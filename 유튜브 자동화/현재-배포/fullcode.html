@@ -1,0 +1,453 @@
+<!-- =============================================
+     YouTube "Learn & Shop" 섹션 - 풀코드
+     메이크샵 메인페이지 HTML탭에 통째로 붙여넣기
+     현재 배포 중인 코드 (youtube-section-v3)
+     ============================================= -->
+
+<style>
+/* YouTube 섹션 CSS */
+.youtube-section-v3 {
+    padding: 50px 0;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+}
+.youtube-section-v3 .section-title h3 {
+    font-weight: 800 !important;
+}
+.youtube-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+.featured-video-wrap {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+}
+.featured-video-wrap .video-wrapper {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
+    background: #222;
+}
+.featured-video-wrap .video-wrapper iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+.featured-video-info {
+    padding: 16px;
+}
+.featured-video-info h4 {
+    font-size: 16px;
+    margin-bottom: 6px;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+.featured-video-info .video-meta {
+    font-size: 12px;
+    color: #888;
+}
+.related-products-wrap {
+    background: #fff;
+    border-radius: 10px;
+    padding: 18px;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+}
+.related-products-wrap .toggle-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    padding: 5px 0;
+    border-bottom: 2px solid var(--color-primary-light);
+    margin-bottom: 0;
+    user-select: none;
+}
+.related-products-wrap .toggle-header h5 {
+    font-size: 15px;
+    margin: 0;
+    color: var(--color-dark);
+    padding-bottom: 8px;
+}
+.related-products-wrap .toggle-icon {
+    font-size: 14px;
+    transition: transform 0.3s ease;
+    color: var(--color-primary);
+    font-weight: bold;
+}
+.related-products-wrap.collapsed .toggle-icon {
+    transform: rotate(-90deg);
+}
+.related-products-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.4s ease, margin-top 0.4s ease;
+    margin-top: 0;
+}
+.related-products-wrap.expanded .related-products-grid {
+    max-height: 800px;
+    margin-top: 12px;
+}
+.related-product-card {
+    background: #fafafa;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: 0.3s;
+    border: 1px solid #eee;
+    text-align: center;
+}
+.related-product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+.related-product-card img {
+    width: 100%;
+    aspect-ratio: 1/1;
+    object-fit: cover;
+}
+.related-product-card .rp-name {
+    padding: 10px 8px 5px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.related-product-card .rp-price {
+    padding: 0 8px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--color-primary);
+}
+.youtube-slider-wrap {
+    margin-top: 20px;
+}
+.youtube-slider-wrap .section-subtitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--color-dark);
+    margin-bottom: 10px;
+    padding-left: 2px;
+}
+.youtube-slider {
+    overflow: hidden;
+    padding: 0;
+}
+.youtube-slider .swiper-slide {
+    background: #fff;
+    border-radius: 6px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: 0.3s;
+}
+.youtube-slider .swiper-slide:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+.youtube-slider .video-thumb {
+    position: relative;
+    padding-bottom: 56.25%;
+    background: #eee;
+    cursor: pointer;
+}
+.youtube-slider .video-thumb img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+.youtube-slider .video-thumb .play-icon {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 35px;
+    height: 35px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+}
+.youtube-slider .video-thumb .play-icon::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-left: 11px solid var(--color-dark);
+    margin-left: 3px;
+}
+.youtube-slider .slide-info {
+    padding: 10px;
+}
+.youtube-slider .slide-info h6 {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin-bottom: 4px;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 31px;
+}
+.youtube-slider .slide-info .date {
+    font-size: 10px;
+    color: #999;
+}
+.youtube-slider-wrap .swiper-button-prev,
+.youtube-slider-wrap .swiper-button-next {
+    display: none;
+}
+.youtube-slider .swiper-pagination {
+    position: relative;
+    bottom: 0;
+    margin-top: 12px;
+}
+.youtube-slider .swiper-pagination-bullet {
+    background: var(--color-primary);
+    opacity: 0.3;
+}
+.youtube-slider .swiper-pagination-bullet-active {
+    opacity: 1;
+}
+.yt-loading {
+    text-align: center;
+    padding: 40px 0;
+    color: #888;
+}
+.yt-spinner {
+    width: 35px;
+    height: 35px;
+    margin: 0 auto 12px;
+    border: 3px solid #eee;
+    border-top-color: var(--color-primary);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+}
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* PC (768px+) */
+@media (min-width: 768px) {
+    .youtube-section-v3 { padding: 70px 0; }
+    .youtube-section-v3 .section-title h3 { font-weight: 800 !important; }
+    .youtube-layout { flex-direction: row; gap: 25px; }
+    .featured-video-wrap { flex: 1.6; }
+    .featured-video-info { padding: 22px 28px; }
+    .featured-video-info h4 { font-size: 20px; }
+    .related-products-wrap { flex: 1; padding: 22px; }
+    .related-products-wrap .toggle-header { cursor: default; pointer-events: none; }
+    .related-products-wrap .toggle-icon { display: none; }
+    .related-products-wrap .toggle-header h5 { font-size: 17px; cursor: default; }
+    .related-products-grid { max-height: none !important; margin-top: 12px !important; overflow: visible; gap: 14px; }
+    .related-product-card .rp-name { font-size: 13px; padding: 12px 10px 5px; }
+    .related-product-card .rp-price { font-size: 14px; }
+    .youtube-slider-wrap { margin-top: 28px; }
+    .youtube-slider-wrap .section-subtitle { font-size: 16px; margin-bottom: 16px; }
+    .youtube-slider .swiper-slide { border-radius: 8px; }
+    .youtube-slider .slide-info { padding: 14px; }
+    .youtube-slider .slide-info h6 { font-size: 14px; height: 37px; }
+    .youtube-slider .slide-info .date { font-size: 11px; }
+    .youtube-slider .video-thumb .play-icon { width: 40px; height: 40px; }
+    .youtube-slider-wrap .swiper-button-prev,
+    .youtube-slider-wrap .swiper-button-next {
+        display: flex; width: 38px; height: 38px;
+        background: rgba(255, 255, 255, 0.95); border-radius: 50%;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15); color: var(--color-dark);
+    }
+    .youtube-slider-wrap .swiper-button-prev::after,
+    .youtube-slider-wrap .swiper-button-next::after { font-size: 15px; font-weight: bold; }
+    .youtube-slider-wrap .swiper-button-prev { left: -19px; }
+    .youtube-slider-wrap .swiper-button-next { right: -19px; }
+    .youtube-slider .swiper-pagination { display: none; }
+}
+</style>
+
+<!--s: section_youtube-->
+<section class="youtube-section-v3" id="weekyoutube">
+    <div class="main-container">
+        <div class="section-title">
+            <h3>Learn & Shop</h3>
+            <p>영상으로 배우고, 바로 재료를 구매하세요</p>
+        </div>
+        <div class="youtube-layout">
+            <div class="featured-video-wrap" id="featured-video-area">
+                <div class="yt-loading">
+                    <div class="yt-spinner"></div>
+                    <p>영상 불러오는 중...</p>
+                </div>
+            </div>
+            <div class="related-products-wrap collapsed" id="related-products-wrap">
+                <div class="toggle-header" onclick="toggleProducts()">
+                    <h5>관련 제품</h5>
+                    <span class="toggle-icon">&#9654;</span>
+                </div>
+                <div class="related-products-grid">
+                    <a href="/shop/shopdetail.html?branduid=000001" class="related-product-card">
+                        <img src="https://via.placeholder.com/200x200/b7c9ad/fff?text=Product1" alt="" />
+                        <div class="rp-name">압화 액자 키트</div>
+                        <div class="rp-price">35,000원</div>
+                    </a>
+                    <a href="/shop/shopdetail.html?branduid=000002" class="related-product-card">
+                        <img src="https://via.placeholder.com/200x200/e2e8dd/333?text=Product2" alt="" />
+                        <div class="rp-name">프리저브드 꽃 세트</div>
+                        <div class="rp-price">28,000원</div>
+                    </a>
+                    <a href="/shop/shopdetail.html?branduid=000003" class="related-product-card">
+                        <img src="https://via.placeholder.com/200x200/d4a373/fff?text=Product3" alt="" />
+                        <div class="rp-name">레진 몰드 패키지</div>
+                        <div class="rp-price">42,000원</div>
+                    </a>
+                    <a href="/shop/shopdetail.html?branduid=000004" class="related-product-card">
+                        <img src="https://via.placeholder.com/200x200/7d9675/fff?text=Product4" alt="" />
+                        <div class="rp-name">하바리움 오일 500ml</div>
+                        <div class="rp-price">18,000원</div>
+                    </a>
+                </div>
+            </div>
+        </div>
+        <div class="youtube-slider-wrap">
+            <p class="section-subtitle">더 많은 영상</p>
+            <div class="swiper-container youtube-slider" id="youtube-slider">
+                <div class="swiper-wrapper" id="youtube-slider-wrapper"></div>
+                <div class="swiper-pagination"></div>
+                <div class="swiper-button-prev"></div>
+                <div class="swiper-button-next"></div>
+            </div>
+        </div>
+    </div>
+</section>
+<!--e: section_youtube-->
+
+<script>
+(function() {
+    'use strict';
+
+    var GOOGLE_SCRIPT_URL =
+        'https://script.google.com/macros/s/AKfycbxNQxgd8Ew0oClPSIoSA3vbtbf4LoOyHL6j7J1cXSyI1gmaL3ya6teTwmu883js4zSkwg/exec';
+
+    function loadYouTube() {
+        var featuredArea = document.getElementById('featured-video-area');
+        var CACHE_KEY = 'yt_cache_v3';
+        var CACHE_TIME = 'yt_time_v3';
+        var CACHE_DURATION = 24 * 60 * 60 * 1000;
+        try {
+            var cached = localStorage.getItem(CACHE_KEY);
+            var time = localStorage.getItem(CACHE_TIME);
+            if (cached && time && Date.now() - parseInt(time) < CACHE_DURATION) {
+                renderYouTube(JSON.parse(cached));
+                return;
+            }
+        } catch (e) {}
+        $.ajax({
+            url: GOOGLE_SCRIPT_URL + '?count=5&t=' + Date.now(),
+            dataType: 'json',
+            cache: false,
+            timeout: 10000,
+            success: function (data) {
+                if (data.status === 'success' && data.items) {
+                    localStorage.setItem(CACHE_KEY, JSON.stringify(data.items));
+                    localStorage.setItem(CACHE_TIME, Date.now().toString());
+                    renderYouTube(data.items);
+                } else {
+                    featuredArea.innerHTML =
+                        '<p style="padding:30px;text-align:center;color:#888">영상을 불러올 수 없습니다.</p>';
+                }
+            },
+            error: function () {
+                featuredArea.innerHTML =
+                    '<p style="padding:30px;text-align:center;color:#888">영상을 불러올 수 없습니다.</p>';
+            },
+        });
+    }
+
+    function renderYouTube(videos) {
+        var featuredArea = document.getElementById('featured-video-area');
+        var sliderWrapper = document.getElementById('youtube-slider-wrapper');
+        if (!videos || videos.length === 0) return;
+        var featured = videos[0];
+        featuredArea.innerHTML =
+            '<div class="video-wrapper"><iframe src="https://www.youtube.com/embed/' +
+            featured.id +
+            '?rel=0&modestbranding=1" frameborder="0" allowfullscreen></iframe></div><div class="featured-video-info"><h4>' +
+            featured.title +
+            '</h4><div class="video-meta">' +
+            new Date(featured.publishedAt).toLocaleDateString() +
+            '</div></div>';
+        for (var i = 1; i < videos.length; i++) {
+            var v = videos[i];
+            var thumb = 'https://img.youtube.com/vi/' + v.id + '/mqdefault.jpg';
+            sliderWrapper.innerHTML +=
+                '<div class="swiper-slide" onclick="playVideo(\'' +
+                v.id +
+                '\')"><div class="video-thumb"><img src="' +
+                thumb +
+                '" alt=""><div class="play-icon"></div></div><div class="slide-info"><h6>' +
+                v.title +
+                '</h6><span class="date">' +
+                new Date(v.publishedAt).toLocaleDateString() +
+                '</span></div></div>';
+        }
+        new Swiper('.youtube-slider', {
+            slidesPerView: 1.1,
+            spaceBetween: 10,
+            loop: false,
+            pagination: { el: '.youtube-slider .swiper-pagination', clickable: true },
+            navigation: {
+                nextEl: '.youtube-slider-wrap .swiper-button-next',
+                prevEl: '.youtube-slider-wrap .swiper-button-prev',
+            },
+            breakpoints: { 768: { slidesPerView: 4, spaceBetween: 15, loop: false } },
+        });
+    }
+
+    // playVideo, toggleProducts는 onclick에서 호출되므로 전역에 노출
+    window.playVideo = function(videoId) {
+        var wrapper = document.querySelector('.featured-video-wrap .video-wrapper');
+        if (wrapper) {
+            wrapper.innerHTML =
+                '<iframe src="https://www.youtube.com/embed/' +
+                videoId +
+                '?rel=0&autoplay=1" frameborder="0" allowfullscreen></iframe>';
+            document
+                .querySelector('.youtube-section-v3')
+                .scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    };
+
+    window.toggleProducts = function() {
+        var wrap = document.getElementById('related-products-wrap');
+        if (!wrap) return;
+        if (window.innerWidth >= 768) return;
+        if (wrap.classList.contains('collapsed')) {
+            wrap.classList.remove('collapsed');
+            wrap.classList.add('expanded');
+        } else {
+            wrap.classList.remove('expanded');
+            wrap.classList.add('collapsed');
+        }
+    };
+
+    // DOM 준비 후 실행
+    $(function() {
+        loadYouTube();
+    });
+})();
+</script>

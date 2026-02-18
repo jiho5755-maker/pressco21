@@ -1,0 +1,226 @@
+<!-- ========================================
+     파트너맵 v3 - HTML (메이크샵 HTML 탭용)
+     복사하여 메이크샵 "디자인 편집 > HTML 탭"에 붙여넣기
+     ======================================== -->
+
+<!-- 메인 컨테이너 -->
+<div id="partnermap-container">
+
+    <!-- 로딩 오버레이 -->
+    <div id="pm-loading-overlay" class="pm-loading-overlay">
+        <div class="pm-spinner"></div>
+        <p>파트너 데이터를 불러오는 중...</p>
+    </div>
+
+    <!-- 히어로 섹션 -->
+    <section class="pm-hero">
+        <h1 class="pm-hero-title">전국 제휴 업체 지도</h1>
+        <p class="pm-hero-subtitle">프레스코21과 함께하는 압화·플라워디자인 업체를 찾아보세요</p>
+    </section>
+
+    <!-- 검색 및 필터 영역 -->
+    <section class="pm-search-filter">
+        <div class="pm-search-container">
+            <!-- 검색창 -->
+            <div class="pm-search-box">
+                <input
+                    type="text"
+                    id="pm-search-input"
+                    class="pm-search-input"
+                    placeholder="업체명, 주소, 카테고리로 검색..."
+                    autocomplete="off"
+                >
+                <button id="pm-search-btn" class="pm-search-btn" aria-label="검색">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <circle cx="11" cy="11" r="8"></circle>
+                        <path d="M21 21l-4.35-4.35"></path>
+                    </svg>
+                </button>
+
+                <!-- 자동완성 드롭다운 -->
+                <div id="pm-autocomplete" class="pm-autocomplete"></div>
+            </div>
+
+            <!-- GPS 버튼 -->
+            <button id="pm-gps-btn" class="pm-gps-btn" title="내 위치에서 검색" aria-label="내 위치 기준으로 검색">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="12" cy="12" r="10"></circle>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+                <span>내 위치</span>
+            </button>
+        </div>
+
+        <!-- 주소 검색 영역 -->
+        <div class="pm-address-search-container">
+            <input
+                type="text"
+                id="pm-address-search-input"
+                class="pm-address-search-input"
+                placeholder="주소를 입력하세요 (예: 대전)"
+                autocomplete="off"
+            >
+            <button id="pm-address-search-btn" class="pm-address-search-btn" aria-label="주소로 검색">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <circle cx="11" cy="11" r="8"></circle>
+                    <path d="M21 21l-4.35-4.35"></path>
+                </svg>
+                <span>주소 검색</span>
+            </button>
+        </div>
+
+        <!-- 활성 필터 배지 -->
+        <div id="pm-active-filters" class="pm-active-filters"></div>
+
+        <!-- 필터 토글 버튼 (모바일용) -->
+        <button id="pm-filter-toggle" class="pm-filter-toggle" aria-expanded="true" aria-controls="pm-filter-section">
+            <span class="pm-filter-toggle-text">필터 접기</span>
+            <svg class="pm-chevron" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="18 15 12 9 6 15"></polyline>
+            </svg>
+        </button>
+
+        <!-- 필터 섹션 (접을 수 있음) -->
+        <div id="pm-filter-section" class="pm-filter-section" data-collapsed="false">
+            <!-- 필터 버튼 그룹 -->
+            <div class="pm-filter-tabs" role="tablist" aria-label="필터 탭">
+            <button class="pm-filter-tab active" data-filter-type="category" role="tab" aria-selected="true" aria-controls="pm-filter-category" aria-label="카테고리 필터">카테고리</button>
+            <button class="pm-filter-tab" data-filter-type="region" role="tab" aria-selected="false" aria-controls="pm-filter-region" aria-label="지역 필터">지역</button>
+            <button class="pm-filter-tab" data-filter-type="association" role="tab" aria-selected="false" aria-controls="pm-filter-association" aria-label="협회 필터">협회</button>
+            <button class="pm-filter-tab" data-filter-type="partnerType" role="tab" aria-selected="false" aria-controls="pm-filter-partnerType" aria-label="파트너 유형 필터">파트너 유형</button>
+            <button class="pm-filter-tab" data-filter-type="favorites" role="tab" aria-selected="false" aria-controls="pm-filter-favorites" aria-label="즐겨찾기 필터">즐겨찾기</button>
+        </div>
+
+        <!-- 필터 콘텐츠 -->
+        <div class="pm-filter-content">
+            <div id="pm-filter-category" class="pm-filter-group active" role="tabpanel" aria-labelledby="pm-filter-tab-category"></div>
+            <div id="pm-filter-region" class="pm-filter-group" role="tabpanel" aria-labelledby="pm-filter-tab-region"></div>
+            <div id="pm-filter-association" class="pm-filter-group" role="tabpanel" aria-labelledby="pm-filter-tab-association"></div>
+            <div id="pm-filter-partnerType" class="pm-filter-group" role="tabpanel" aria-labelledby="pm-filter-tab-partnerType"></div>
+            <div id="pm-filter-favorites" class="pm-filter-group" role="tabpanel" aria-labelledby="pm-filter-tab-favorites">
+                <p class="pm-empty-message">즐겨찾기한 업체가 없습니다.</p>
+            </div>
+        </div>
+    </section>
+
+    <!-- 메인 콘텐츠 영역 -->
+    <section class="pm-main-content">
+        <!-- 지도 -->
+        <div class="pm-map-container">
+            <div id="naverMap" class="pm-map"></div>
+
+            <!-- 지도 컨트롤 -->
+            <div class="pm-map-controls" role="toolbar" aria-label="지도 컨트롤">
+                <button id="pm-reset-map-btn" class="pm-control-btn" title="지도 초기화" aria-label="지도를 초기 위치로 이동">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <path d="M3 12a9 9 0 0 1 9-9 9 9 0 0 1 6 2.3l3 2.7"></path>
+                        <path d="M21 12a9 9 0 0 1-9 9 9 9 0 0 1-6-2.3l-3-2.7"></path>
+                    </svg>
+                </button>
+                <button id="pm-clear-reference-btn" class="pm-control-btn" title="기준점 초기화" style="display: none;" aria-label="지도 기준점 제거">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="15" y1="9" x2="9" y2="15"></line>
+                        <line x1="9" y1="9" x2="15" y2="15"></line>
+                    </svg>
+                </button>
+                <button id="pm-toggle-list-btn" class="pm-control-btn" title="업체 목록 숨기기/보이기" aria-label="업체 목록 토글">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                        <line x1="3" y1="6" x2="21" y2="6"></line>
+                        <line x1="3" y1="12" x2="21" y2="12"></line>
+                        <line x1="3" y1="18" x2="21" y2="18"></line>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 결과 카운트 -->
+            <div class="pm-result-count">
+                <span id="pm-result-count-text">전체 0개 업체</span>
+            </div>
+        </div>
+
+        <!-- 파트너 리스트 -->
+        <div class="pm-list-container">
+            <div class="pm-list-header">
+                <h2>업체 목록</h2>
+                <select id="pm-sort-select" class="pm-sort-select" aria-label="정렬 방식 선택">
+                    <option value="name">이름순</option>
+                    <option value="distance">거리순</option>
+                    <option value="recent">최근 추가순</option>
+                </select>
+            </div>
+            <div id="pm-partner-list" class="pm-partner-list" role="list" aria-label="파트너 업체 목록"></div>
+        </div>
+    </section>
+
+    <!-- 파트너 상세 모달 -->
+    <div id="pm-modal" class="pm-modal" role="dialog" aria-modal="true" aria-labelledby="pm-modal-title">
+        <div class="pm-modal-overlay" aria-hidden="true"></div>
+        <div class="pm-modal-content">
+            <button id="pm-modal-close" class="pm-modal-close" aria-label="모달 닫기">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div id="pm-modal-body" class="pm-modal-body">
+                <!-- 동적으로 생성됨 -->
+            </div>
+        </div>
+    </div>
+
+    <!-- 공유 모달 -->
+    <div id="pm-share-modal" class="pm-modal" role="dialog" aria-modal="true" aria-labelledby="pm-share-modal-title">
+        <div class="pm-modal-overlay" aria-hidden="true"></div>
+        <div class="pm-modal-content pm-share-modal-content">
+            <button class="pm-modal-close" onclick="window.closeShareModal()" aria-label="공유 모달 닫기">
+                <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                    <line x1="18" y1="6" x2="6" y2="18"></line>
+                    <line x1="6" y1="6" x2="18" y2="18"></line>
+                </svg>
+            </button>
+            <div class="pm-share-modal-body">
+                <h3 id="pm-share-modal-title">업체 공유하기</h3>
+                <div class="pm-share-buttons" role="group" aria-label="공유 방법 선택">
+                    <button id="pm-share-copy" class="pm-share-btn pm-share-copy" aria-label="링크 복사">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                            <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                            <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                        </svg>
+                        링크 복사
+                    </button>
+                    <button id="pm-share-kakao" class="pm-share-btn pm-share-kakao" aria-label="카카오톡으로 공유">
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                            <path d="M12 3c5.799 0 10.5 3.664 10.5 8.185 0 4.52-4.701 8.184-10.5 8.184a13.5 13.5 0 0 1-1.727-.11l-4.408 2.883c-.501.265-.678.236-.472-.413l.892-3.678c-2.88-1.46-4.785-3.99-4.785-6.866C1.5 6.665 6.201 3 12 3z"/>
+                        </svg>
+                        카카오톡
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 토스트 알림 컨테이너 -->
+    <div id="pm-toast-container" class="pm-toast-container"></div>
+
+    <!-- 재사용 가능한 숨김 요소들 -->
+    <div id="pm-toast" class="pm-toast" style="display: none;"></div>
+    <textarea id="pm-clipboard-helper" style="position: absolute; left: -9999px; opacity: 0;"></textarea>
+    <div id="pm-error-message" class="pm-error-message" style="display: none;"></div>
+
+</div>
+<!-- /partnermap-container -->
+
+<!-- ========================================
+     외부 라이브러리 CDN
+     ======================================== -->
+
+<!-- Phosphor Icons -->
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/regular/style.css">
+<link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.0.3/src/fill/style.css">
+
+<!-- Fuse.js (퍼지 검색 라이브러리) -->
+<script src="https://cdn.jsdelivr.net/npm/fuse.js@6.6.2"></script>
+
+<!-- 네이버 지도 SDK (ncpKeyId 인증 + Geocoder 서브모듈) -->
+<script type="text/javascript" src="https://oapi.map.naver.com/openapi/v3/maps.js?ncpKeyId=bfp8odep5r&submodules=geocoder"></script>

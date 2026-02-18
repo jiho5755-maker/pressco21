@@ -1,0 +1,1959 @@
+/**
+ * 파트너맵 v3 - CSS 변수
+ * 메이크샵 호환: #partnermap-container 스코핑
+ */
+
+ #partnermap-container {
+    /* ========================================
+       색상 시스템
+       ======================================== */
+
+    /* Primary - 메인 브랜드 색상 */
+    --pm-primary: #7D9675;
+    --pm-primary-dark: #5A6F52;
+    --pm-primary-light: #A8BFA1;
+    --pm-primary-pale: #E8F0E6;
+
+    /* Secondary - 보조 색상 */
+    --pm-secondary: #C9A961;
+    --pm-secondary-dark: #A88B4A;
+    --pm-secondary-light: #E0CA8E;
+
+    /* Accent - 강조 색상 */
+    --pm-accent-blue: #5A7FA8;
+    --pm-accent-blue-light: #E8EEF4;
+
+    /* Neutral - 중립 색상 */
+    --pm-white: #FFFFFF;
+    --pm-gray-50: #F9F9F9;
+    --pm-gray-100: #F1F1F1;
+    --pm-gray-200: #E8E8E8;
+    --pm-gray-300: #D0D0D0;
+    --pm-gray-400: #A8A8A8;
+    --pm-gray-500: #808080;
+    --pm-gray-600: #5A5A5A;
+    --pm-gray-700: #3C3C3C;
+    --pm-gray-800: #2C2C2C;
+    --pm-gray-900: #1A1A1A;
+    --pm-black: #000000;
+
+    /* Text - 텍스트 색상 */
+    --pm-text-primary: #2C2C2C;
+    --pm-text-secondary: #5A5A5A;
+    --pm-text-tertiary: #808080;
+    --pm-text-inverse: #FFFFFF;
+
+    /* Border - 테두리 색상 */
+    --pm-border-light: #E8E8E8;
+    --pm-border-medium: #D0D0D0;
+    --pm-border-dark: #A8A8A8;
+
+    /* Background - 배경 색상 */
+    --pm-bg-primary: #FFFFFF;
+    --pm-bg-secondary: #F9F9F9;
+    --pm-bg-tertiary: #F1F1F1;
+    --pm-bg-overlay: rgba(0, 0, 0, 0.5);
+
+    /* Status - 상태 색상 (WCAG AA 준수) */
+    --pm-success: #4CAF50;
+    --pm-success-light: #E8F5E9;
+    --pm-error: #D32F2F;  /* 수정: #F44336 → #D32F2F (대비 5.1:1) */
+    --pm-error-light: #FFEBEE;
+    --pm-warning: #FF9800;
+    --pm-warning-light: #FFF3E0;
+    --pm-info: #1976D2;  /* 수정: #2196F3 → #1976D2 (대비 5.6:1) */
+    --pm-info-light: #E3F2FD;
+
+    /* ========================================
+       타이포그래피
+       ======================================== */
+
+    /* Font Family */
+    --pm-font-sans: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Apple SD Gothic Neo', 'Noto Sans KR', sans-serif;
+    --pm-font-mono: 'SF Mono', 'Monaco', 'Consolas', 'Liberation Mono', monospace;
+
+    /* Font Size */
+    --pm-text-xs: 0.75rem;    /* 12px */
+    --pm-text-sm: 0.875rem;   /* 14px */
+    --pm-text-base: 1rem;     /* 16px */
+    --pm-text-lg: 1.125rem;   /* 18px */
+    --pm-text-xl: 1.25rem;    /* 20px */
+    --pm-text-2xl: 1.5rem;    /* 24px */
+    --pm-text-3xl: 1.875rem;  /* 30px */
+    --pm-text-4xl: 2.25rem;   /* 36px */
+
+    /* Font Weight */
+    --pm-font-normal: 400;
+    --pm-font-medium: 500;
+    --pm-font-semibold: 600;
+    --pm-font-bold: 700;
+
+    /* Line Height */
+    --pm-leading-tight: 1.25;
+    --pm-leading-normal: 1.5;
+    --pm-leading-relaxed: 1.75;
+
+    /* ========================================
+       간격 (Spacing)
+       ======================================== */
+
+    --pm-space-1: 0.25rem;   /* 4px */
+    --pm-space-2: 0.5rem;    /* 8px */
+    --pm-space-3: 0.75rem;   /* 12px */
+    --pm-space-4: 1rem;      /* 16px */
+    --pm-space-5: 1.25rem;   /* 20px */
+    --pm-space-6: 1.5rem;    /* 24px */
+    --pm-space-8: 2rem;      /* 32px */
+    --pm-space-10: 2.5rem;   /* 40px */
+    --pm-space-12: 3rem;     /* 48px */
+    --pm-space-16: 4rem;     /* 64px */
+    --pm-space-20: 5rem;     /* 80px */
+
+    /* ========================================
+       크기 (Size)
+       ======================================== */
+
+    --pm-size-full: 100%;
+    --pm-size-screen: 100vh;
+    --pm-size-min: min-content;
+    --pm-size-max: max-content;
+
+    /* ========================================
+       Border Radius
+       ======================================== */
+
+    --pm-radius-none: 0;
+    --pm-radius-sm: 0.25rem;   /* 4px */
+    --pm-radius-base: 0.5rem;  /* 8px */
+    --pm-radius-md: 0.75rem;   /* 12px */
+    --pm-radius-lg: 1rem;      /* 16px */
+    --pm-radius-xl: 1.5rem;    /* 24px */
+    --pm-radius-full: 9999px;
+
+    /* ========================================
+       Shadow
+       ======================================== */
+
+    --pm-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --pm-shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px -1px rgba(0, 0, 0, 0.1);
+    --pm-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -2px rgba(0, 0, 0, 0.1);
+    --pm-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -4px rgba(0, 0, 0, 0.1);
+    --pm-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+
+    /* ========================================
+       Transition
+       ======================================== */
+
+    --pm-transition-fast: 150ms ease;
+    --pm-transition-base: 250ms ease;
+    --pm-transition-slow: 350ms ease;
+
+    /* ========================================
+       Z-Index
+       ======================================== */
+
+    --pm-z-base: 1;
+    --pm-z-dropdown: 10;
+    --pm-z-sticky: 20;
+    --pm-z-fixed: 30;
+    --pm-z-modal-overlay: 40;
+    --pm-z-modal: 50;
+    --pm-z-toast: 60;
+    --pm-z-tooltip: 70;
+
+    /* ========================================
+       Layout
+       ======================================== */
+
+    --pm-max-width-sm: 640px;
+    --pm-max-width-md: 768px;
+    --pm-max-width-lg: 1024px;
+    --pm-max-width-xl: 1280px;
+    --pm-max-width-2xl: 1536px;
+
+    /* Container */
+    --pm-container-padding: var(--pm-space-4);
+
+    /* ========================================
+       컴포넌트 변수
+       ======================================== */
+
+    /* Button */
+    --pm-btn-height: 48px;
+    --pm-btn-padding-x: var(--pm-space-4);
+    --pm-btn-padding-y: var(--pm-space-3);
+    --pm-btn-radius: var(--pm-radius-base);
+
+    /* Input */
+    --pm-input-height: 48px;
+    --pm-input-padding-x: var(--pm-space-4);
+    --pm-input-padding-y: var(--pm-space-3);
+    --pm-input-radius: var(--pm-radius-base);
+
+    /* Card */
+    --pm-card-padding: var(--pm-space-4);
+    --pm-card-radius: var(--pm-radius-md);
+    --pm-card-shadow: var(--pm-shadow-base);
+
+    /* Modal */
+    --pm-modal-max-width: 600px;
+    --pm-modal-padding: var(--pm-space-6);
+    --pm-modal-radius: var(--pm-radius-lg);
+
+    /* Toast */
+    --pm-toast-padding: var(--pm-space-4);
+    --pm-toast-radius: var(--pm-radius-base);
+
+    /* ========================================
+       반응형 브레이크포인트
+       ======================================== */
+
+    --pm-breakpoint-mobile: 768px;
+    --pm-breakpoint-tablet: 992px;
+    --pm-breakpoint-desktop: 1200px;
+}
+
+/* ========================================
+   다크모드 색상 시스템 (WCAG AA 준수)
+   ======================================== */
+
+#partnermap-container[data-theme="dark"] {
+    /* Primary - 밝기 20% 상향 */
+    --pm-primary: #9DB895;
+    --pm-primary-dark: #7D9675;
+    --pm-primary-light: #C1D7BA;
+    --pm-primary-pale: #2C3A28;
+
+    /* Secondary */
+    --pm-secondary: #D9BD7E;
+    --pm-secondary-dark: #C9A961;
+    --pm-secondary-light: #E8D9B0;
+
+    /* Accent */
+    --pm-accent-blue: #7A9FC8;
+    --pm-accent-blue-light: #2A3A48;
+
+    /* Background (계층별 명도 차이) */
+    --pm-bg-primary: #1A1A1A;
+    --pm-bg-secondary: #242424;
+    --pm-bg-tertiary: #2C2C2C;
+    --pm-bg-overlay: rgba(0, 0, 0, 0.7);
+
+    /* Text (WCAG AA 대비 11.5:1) */
+    --pm-text-primary: #E8E8E8;
+    --pm-text-secondary: #B0B0B0;
+    --pm-text-tertiary: #808080;
+    --pm-text-inverse: #1A1A1A;
+
+    /* Border */
+    --pm-border-light: #3C3C3C;
+    --pm-border-medium: #5A5A5A;
+    --pm-border-dark: #808080;
+
+    /* Status (대비 강화) */
+    --pm-success: #66BB6A;        /* 대비 4.8:1 */
+    --pm-success-light: #1B2E1C;
+    --pm-error: #EF5350;          /* 대비 5.2:1 */
+    --pm-error-light: #3A1E1D;
+    --pm-warning: #FFA726;
+    --pm-warning-light: #332510;
+    --pm-info: #42A5F5;           /* 대비 5.1:1 */
+    --pm-info-light: #1A2A38;
+
+    /* Neutral */
+    --pm-gray-50: #2C2C2C;
+    --pm-gray-100: #3C3C3C;
+    --pm-gray-200: #5A5A5A;
+    --pm-gray-300: #808080;
+    --pm-gray-400: #A8A8A8;
+    --pm-gray-500: #B0B0B0;
+    --pm-gray-600: #D0D0D0;
+    --pm-gray-700: #E8E8E8;
+    --pm-gray-800: #F1F1F1;
+    --pm-gray-900: #F9F9F9;
+
+    /* Shadow (다크모드용 밝은 그림자) */
+    --pm-shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.3);
+    --pm-shadow-base: 0 1px 3px 0 rgba(0, 0, 0, 0.4), 0 1px 2px -1px rgba(0, 0, 0, 0.4);
+    --pm-shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.5), 0 2px 4px -2px rgba(0, 0, 0, 0.5);
+    --pm-shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.6), 0 4px 6px -4px rgba(0, 0, 0, 0.6);
+    --pm-shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.7), 0 8px 10px -6px rgba(0, 0, 0, 0.7);
+}
+
+/* 다크모드 히어로 섹션 그라디언트 */
+#partnermap-container[data-theme="dark"] .pm-hero {
+    background: linear-gradient(135deg, #2C3A28 0%, #1A2418 100%);
+}
+
+/* 다크모드 입력 필드 배경 */
+#partnermap-container[data-theme="dark"] .pm-search-input,
+#partnermap-container[data-theme="dark"] .pm-sort-select {
+    background: var(--pm-bg-tertiary);
+    color: var(--pm-text-primary);
+}
+
+/* 다크모드 자동완성 */
+#partnermap-container[data-theme="dark"] .pm-autocomplete {
+    background: var(--pm-bg-tertiary);
+    border-color: var(--pm-border-medium);
+}
+
+/* 다크모드 모달 */
+#partnermap-container[data-theme="dark"] .pm-modal-content {
+    background: var(--pm-bg-secondary);
+}
+
+/* 다크모드 토스트 */
+#partnermap-container[data-theme="dark"] .pm-toast {
+    background: var(--pm-gray-800);
+    color: var(--pm-text-primary);
+}
+
+/* 다크모드 Skeleton */
+#partnermap-container[data-theme="dark"] .pm-skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--pm-gray-100) 0%,
+        var(--pm-gray-200) 50%,
+        var(--pm-gray-100) 100%
+    );
+}
+
+/* ========================================
+   테마 토글 버튼
+   ======================================== */
+
+#partnermap-container .pm-theme-toggle {
+    position: absolute;
+    top: var(--pm-space-4);
+    right: var(--pm-space-4);
+    width: 44px;
+    height: 44px;
+    background: var(--pm-bg-primary);
+    border: 2px solid var(--pm-border-light);
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all 300ms ease;
+    box-shadow: var(--pm-shadow-md);
+    z-index: var(--pm-z-fixed);
+}
+
+#partnermap-container .pm-theme-toggle:hover {
+    border-color: var(--pm-primary);
+    background: var(--pm-primary-pale);
+    transform: scale(1.1) rotate(15deg);
+}
+
+#partnermap-container .pm-theme-toggle:active {
+    transform: scale(0.95) rotate(-15deg);
+}
+
+#partnermap-container .pm-theme-icon {
+    font-size: 24px;
+    line-height: 1;
+    transition: transform 300ms ease;
+}
+
+#partnermap-container .pm-theme-toggle:hover .pm-theme-icon {
+    transform: rotate(45deg);
+}
+/**
+ * 파트너맵 v3 - 메인 스타일
+ * 메이크샵 호환: #partnermap-container 스코핑 적용
+ */
+
+/* ========================================
+   기본 리셋
+   ======================================== */
+
+#partnermap-container * {
+    box-sizing: border-box;
+}
+
+#partnermap-container {
+    font-family: var(--pm-font-sans);
+    color: var(--pm-text-primary);
+    line-height: var(--pm-leading-normal);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+/* ========================================
+   로딩 오버레이
+   ======================================== */
+
+#partnermap-container .pm-loading-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--pm-bg-overlay);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    z-index: var(--pm-z-modal);
+    color: var(--pm-text-inverse);
+}
+
+#partnermap-container .pm-spinner {
+    width: 60px;
+    height: 60px;
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top-color: var(--pm-primary);
+    border-radius: 50%;
+    animation: pm-spin 0.8s linear infinite;
+    margin-bottom: var(--pm-space-4);
+}
+
+@keyframes pm-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ========================================
+   히어로 섹션
+   ======================================== */
+
+#partnermap-container .pm-hero {
+    position: relative;
+    background: linear-gradient(135deg, var(--pm-primary) 0%, var(--pm-primary-dark) 100%);
+    color: var(--pm-text-inverse);
+    padding: var(--pm-space-10) var(--pm-container-padding);
+    text-align: center;
+}
+
+#partnermap-container .pm-hero-title {
+    font-size: var(--pm-text-3xl);
+    font-weight: var(--pm-font-bold);
+    margin: 0 0 var(--pm-space-3);
+}
+
+#partnermap-container .pm-hero-subtitle {
+    font-size: var(--pm-text-lg);
+    opacity: 0.9;
+    margin: 0;
+}
+
+/* ========================================
+   검색 및 필터 영역
+   ======================================== */
+
+#partnermap-container .pm-search-filter {
+    background: var(--pm-bg-secondary);
+    padding: var(--pm-space-8) var(--pm-space-4);
+    border-bottom: 1px solid var(--pm-border-light);
+}
+
+#partnermap-container .pm-search-container {
+    display: flex;
+    gap: var(--pm-space-4);
+    max-width: var(--pm-max-width-lg);
+    margin: 0 auto var(--pm-space-6);
+}
+
+#partnermap-container .pm-search-box {
+    position: relative;
+    flex: 1;
+}
+
+#partnermap-container .pm-search-input {
+    width: 100%;
+    height: var(--pm-input-height);
+    padding: var(--pm-input-padding-y) var(--pm-space-12) var(--pm-input-padding-y) var(--pm-input-padding-x);
+    border: 2px solid var(--pm-border-light);
+    border-radius: var(--pm-input-radius);
+    font-size: var(--pm-text-base);
+    transition: border-color var(--pm-transition-fast);
+}
+
+#partnermap-container .pm-search-input:focus {
+    outline: none;
+    border-color: var(--pm-primary);
+}
+
+#partnermap-container .pm-search-btn {
+    position: absolute;
+    right: var(--pm-space-2);
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--pm-text-tertiary);
+    padding: var(--pm-space-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: color var(--pm-transition-fast);
+}
+
+#partnermap-container .pm-search-btn:hover {
+    color: var(--pm-primary);
+}
+
+#partnermap-container .pm-gps-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--pm-space-2);
+    padding: 0 var(--pm-space-4);
+    height: var(--pm-btn-height);
+    background: var(--pm-bg-primary);
+    border: 2px solid var(--pm-border-light);
+    border-radius: var(--pm-btn-radius);
+    font-size: var(--pm-text-base);
+    font-weight: var(--pm-font-medium);
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+    white-space: nowrap;
+}
+
+#partnermap-container .pm-gps-btn:hover {
+    border-color: var(--pm-primary);
+    background: var(--pm-primary-pale);
+    transform: translateY(-2px);
+}
+
+/* 주소 검색 */
+#partnermap-container .pm-address-search-container {
+    display: flex;
+    align-items: center;
+    gap: var(--pm-space-3);
+    margin: var(--pm-space-6) auto var(--pm-space-4);
+    max-width: var(--pm-max-width-lg);
+    padding: var(--pm-space-4);
+    background: var(--pm-bg-secondary);
+    border-radius: var(--pm-radius-md);
+    box-shadow: var(--pm-shadow-sm);
+}
+
+#partnermap-container .pm-address-search-input {
+    flex: 1;
+    height: var(--pm-btn-height);
+    padding: 0 var(--pm-space-4);
+    background: var(--pm-bg-primary);
+    border: 2px solid var(--pm-border-light);
+    border-radius: var(--pm-btn-radius);
+    font-size: var(--pm-text-base);
+    transition: all var(--pm-transition-fast);
+}
+
+#partnermap-container .pm-address-search-input:focus {
+    outline: none;
+    border-color: var(--pm-primary);
+    box-shadow: 0 0 0 3px var(--pm-primary-pale);
+}
+
+#partnermap-container .pm-address-search-input::placeholder {
+    color: var(--pm-text-tertiary);
+}
+
+#partnermap-container .pm-address-search-btn {
+    display: flex;
+    align-items: center;
+    gap: var(--pm-space-2);
+    padding: 0 var(--pm-space-4);
+    height: var(--pm-btn-height);
+    background: var(--pm-primary);
+    color: var(--pm-white);
+    border: none;
+    border-radius: var(--pm-btn-radius);
+    font-size: var(--pm-text-base);
+    font-weight: var(--pm-font-medium);
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+    white-space: nowrap;
+}
+
+#partnermap-container .pm-address-search-btn:hover {
+    background: var(--pm-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--pm-shadow-md);
+}
+
+#partnermap-container .pm-address-search-btn:active {
+    transform: translateY(0);
+}
+
+/* 자동완성 */
+#partnermap-container .pm-autocomplete {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: var(--pm-bg-primary);
+    border: 1px solid var(--pm-border-light);
+    border-radius: var(--pm-radius-base);
+    margin-top: var(--pm-space-1);
+    box-shadow: var(--pm-shadow-lg);
+    z-index: var(--pm-z-dropdown);
+    display: none;
+}
+
+#partnermap-container .pm-autocomplete-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+#partnermap-container .pm-autocomplete-item {
+    padding: var(--pm-space-3) var(--pm-space-4);
+    cursor: pointer;
+    border-bottom: 1px solid var(--pm-border-light);
+    transition: background var(--pm-transition-fast);
+    display: flex;
+    flex-direction: column;
+    gap: var(--pm-space-1);
+}
+
+#partnermap-container .pm-autocomplete-item:last-child {
+    border-bottom: none;
+}
+
+#partnermap-container .pm-autocomplete-item:hover {
+    background: var(--pm-bg-secondary);
+}
+
+/* 키보드 네비게이션 하이라이트 */
+#partnermap-container .pm-autocomplete-item.pm-autocomplete-highlighted {
+    background: var(--pm-primary-pale);
+    border-left: 3px solid var(--pm-primary);
+    padding-left: calc(var(--pm-space-4) - 3px);
+}
+
+#partnermap-container .pm-autocomplete-name {
+    font-weight: var(--pm-font-semibold);
+    color: var(--pm-text-primary);
+}
+
+#partnermap-container .pm-autocomplete-address {
+    font-size: var(--pm-text-sm);
+    color: var(--pm-text-secondary);
+}
+
+/* 활성 필터 배지 */
+#partnermap-container .pm-active-filters {
+    display: none;
+    flex-wrap: wrap;
+    gap: var(--pm-space-2);
+    max-width: var(--pm-max-width-lg);
+    margin: 0 auto var(--pm-space-4);
+}
+
+#partnermap-container .pm-active-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--pm-space-2);
+    padding: var(--pm-space-2) var(--pm-space-3);
+    background: var(--pm-primary);
+    color: var(--pm-text-inverse);
+    border-radius: var(--pm-radius-full);
+    font-size: var(--pm-text-sm);
+    font-weight: var(--pm-font-medium);
+}
+
+#partnermap-container .pm-badge-remove {
+    background: none;
+    border: none;
+    color: var(--pm-text-inverse);
+    font-size: var(--pm-text-lg);
+    cursor: pointer;
+    padding: 0;
+    line-height: 1;
+    opacity: 0.8;
+    transition: opacity var(--pm-transition-fast);
+}
+
+#partnermap-container .pm-badge-remove:hover {
+    opacity: 1;
+}
+
+/* 필터 탭 */
+#partnermap-container .pm-filter-tabs {
+    display: flex;
+    gap: var(--pm-space-3);
+    max-width: var(--pm-max-width-lg);
+    margin: 0 auto var(--pm-space-4);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scroll-snap-type: x mandatory;  /* proximity → mandatory: 스냅 강화 */
+    scroll-padding: 0 var(--pm-space-4);  /* 스냅 패딩 추가 */
+    padding: var(--pm-space-2) var(--pm-space-4) var(--pm-space-3);  /* 좌우 패딩 */
+}
+
+#partnermap-container .pm-filter-tab {
+    padding: var(--pm-space-3) var(--pm-space-5);
+    background: var(--pm-bg-primary);
+    border: 2px solid var(--pm-border-light);
+    border-radius: var(--pm-radius-base);
+    font-size: var(--pm-text-base);
+    font-weight: var(--pm-font-medium);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: all var(--pm-transition-fast);
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    scroll-snap-align: start;
+}
+
+#partnermap-container .pm-filter-tab:hover {
+    border-color: var(--pm-primary);
+}
+
+#partnermap-container .pm-filter-tab.active {
+    background: var(--pm-primary);
+    color: var(--pm-text-inverse);
+    border-color: var(--pm-primary);
+}
+
+/* 필터 콘텐츠 */
+#partnermap-container .pm-filter-content {
+    max-width: var(--pm-max-width-lg);
+    margin: 0 auto;
+}
+
+#partnermap-container .pm-filter-group {
+    display: none;
+    flex-wrap: wrap;
+    gap: var(--pm-space-2);
+}
+
+#partnermap-container .pm-filter-group.active {
+    display: flex;
+}
+
+#partnermap-container .filter-btn {
+    padding: var(--pm-space-2) var(--pm-space-4);
+    background: var(--pm-bg-primary);
+    border: 2px solid var(--pm-border-light);
+    border-radius: var(--pm-radius-base);
+    font-size: var(--pm-text-sm);
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+}
+
+#partnermap-container .filter-btn:hover {
+    border-color: var(--pm-primary);
+    background: var(--pm-primary-pale);
+}
+
+#partnermap-container .filter-btn.active {
+    background: var(--pm-primary);
+    color: var(--pm-text-inverse);
+    border-color: var(--pm-primary);
+    font-weight: var(--pm-font-semibold);
+}
+
+#partnermap-container .pm-empty-message {
+    text-align: center;
+    color: var(--pm-text-secondary);
+    padding: var(--pm-space-4);
+}
+
+/* ========================================
+   메인 콘텐츠
+   ======================================== */
+
+#partnermap-container .pm-main-content {
+    display: grid;
+    grid-template-columns: 1fr 550px;
+    gap: 0;
+    height: 600px;
+    margin-bottom: var(--pm-space-12);  /* 48px - 하단 푸터와 여백 확보 */
+    transition: grid-template-columns 0.3s ease;  /* 토글 애니메이션 */
+}
+
+/* 업체 목록 숨김 상태 (토글) */
+#partnermap-container .pm-main-content.pm-list-hidden {
+    grid-template-columns: 1fr 0;  /* 지도 전체 너비 확장 */
+}
+
+#partnermap-container .pm-list-hidden .pm-list-container {
+    opacity: 0;
+    pointer-events: none;
+    overflow: hidden;
+    transition: opacity 0.3s ease;
+}
+
+/* 지도 */
+#partnermap-container .pm-map-container {
+    position: relative;
+    background: var(--pm-bg-tertiary);
+}
+
+#partnermap-container .pm-map {
+    width: 100%;
+    height: 100%;
+}
+
+#partnermap-container .pm-map-controls {
+    position: absolute;
+    top: var(--pm-space-4);
+    left: var(--pm-space-4);
+    z-index: var(--pm-z-fixed);
+}
+
+#partnermap-container .pm-control-btn {
+    width: 40px;
+    height: 40px;
+    background: var(--pm-bg-primary);
+    border: none;
+    border-radius: var(--pm-radius-base);
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: var(--pm-shadow-md);
+    transition: all var(--pm-transition-fast);
+}
+
+#partnermap-container .pm-control-btn:hover {
+    background: var(--pm-primary-pale);
+    box-shadow: var(--pm-shadow-lg);
+}
+
+#partnermap-container .pm-result-count {
+    position: absolute;
+    bottom: var(--pm-space-4);
+    left: var(--pm-space-4);
+    background: var(--pm-bg-primary);
+    padding: var(--pm-space-2) var(--pm-space-4);
+    border-radius: var(--pm-radius-base);
+    box-shadow: var(--pm-shadow-md);
+    font-size: var(--pm-text-sm);
+    font-weight: var(--pm-font-semibold);
+    z-index: var(--pm-z-fixed);
+}
+
+/* 파트너 리스트 */
+#partnermap-container .pm-list-container {
+    background: var(--pm-bg-primary);
+    border-left: 1px solid var(--pm-border-light);
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+}
+
+#partnermap-container .pm-list-header {
+    padding: var(--pm-space-4);
+    border-bottom: 1px solid var(--pm-border-light);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: var(--pm-bg-secondary);
+}
+
+#partnermap-container .pm-list-header h2 {
+    margin: 0;
+    font-size: var(--pm-text-xl);
+    font-weight: var(--pm-font-bold);
+}
+
+#partnermap-container .pm-sort-select {
+    padding: var(--pm-space-2) var(--pm-space-3);
+    border: 1px solid var(--pm-border-light);
+    border-radius: var(--pm-radius-base);
+    font-size: var(--pm-text-sm);
+    cursor: pointer;
+}
+
+#partnermap-container .pm-partner-list {
+    flex: 1;
+    overflow-y: auto;
+}
+
+/* 파트너 카드 */
+#partnermap-container .pm-partner-card {
+    position: relative;
+    padding: var(--pm-space-4);
+    border-bottom: 1px solid var(--pm-border-light);
+    border-left: 3px solid transparent;  /* 왼쪽 강조 테두리 (기본 투명) */
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);  /* background → all */
+    display: flex;
+    gap: var(--pm-space-4);
+}
+
+#partnermap-container .pm-partner-card:hover {
+    background: var(--pm-bg-secondary);
+    border-left-color: var(--pm-primary);  /* Hover 시 왼쪽 테두리 표시 */
+    transform: translateX(2px);  /* 미세한 이동 효과 */
+    box-shadow: var(--pm-shadow-sm);  /* 그림자 추가 */
+}
+
+#partnermap-container .pm-partner-card:active {
+    background: var(--pm-primary-pale);  /* Active 상태 배경 */
+    transform: translateX(0);  /* 클릭 시 원위치 */
+    transition: all 100ms ease;  /* 빠른 피드백 */
+}
+
+/* 포커스 상태 (키보드 접근성) */
+#partnermap-container .pm-partner-card:focus-visible {
+    outline: 3px solid var(--pm-primary);
+    outline-offset: -3px;
+    border-left-color: var(--pm-primary);
+}
+
+#partnermap-container .pm-favorite-btn {
+    position: absolute;
+    top: var(--pm-space-3);
+    right: var(--pm-space-3);
+    background: none;
+    border: none;
+    font-size: var(--pm-text-xl);
+    cursor: pointer;
+    padding: var(--pm-space-1);
+    line-height: 1;
+    transition: transform var(--pm-transition-fast);
+    z-index: var(--pm-z-base);
+}
+
+#partnermap-container .pm-favorite-btn:hover {
+    transform: scale(1.15);
+}
+
+#partnermap-container .pm-distance-indicator {
+    position: absolute;
+    top: var(--pm-space-3);
+    left: var(--pm-space-3);
+    z-index: var(--pm-z-base);
+}
+
+#partnermap-container .pm-distance-badge {
+    display: inline-block;
+    padding: var(--pm-space-1) var(--pm-space-2);
+    background: var(--pm-primary);
+    color: var(--pm-text-inverse);
+    border-radius: var(--pm-radius-sm);
+    font-size: var(--pm-text-xs);
+    font-weight: var(--pm-font-semibold);
+}
+
+#partnermap-container .pm-partner-logo {
+    flex-shrink: 0;
+    width: 80px;
+    height: 80px;
+    aspect-ratio: 1 / 1;
+    border-radius: var(--pm-radius-base);
+    overflow: hidden;
+    background: var(--pm-bg-tertiary);
+}
+
+#partnermap-container .pm-partner-logo img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+#partnermap-container .pm-partner-info {
+    flex: 1;
+    min-width: 0;
+}
+
+#partnermap-container .pm-partner-info h4 {
+    margin: 0 0 var(--pm-space-2);
+    font-size: var(--pm-text-lg);
+    font-weight: var(--pm-font-semibold);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+#partnermap-container .pm-partner-categories {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--pm-space-1);
+    margin-bottom: var(--pm-space-2);
+}
+
+#partnermap-container .pm-category-tag {
+    display: inline-block;
+    padding: 2px var(--pm-space-2);
+    background: var(--pm-primary-pale);
+    color: var(--pm-primary-dark);
+    border-radius: var(--pm-radius-sm);
+    font-size: var(--pm-text-xs);
+    font-weight: var(--pm-font-medium);
+}
+
+#partnermap-container .pm-partner-address,
+#partnermap-container .pm-partner-phone {
+    margin: var(--pm-space-1) 0;
+    font-size: var(--pm-text-sm);
+    color: var(--pm-text-secondary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+/* ========================================
+   모달
+   ======================================== */
+
+#partnermap-container .pm-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: var(--pm-z-modal);
+    display: none;
+    opacity: 0;
+    visibility: hidden;
+    transition: opacity 250ms ease, visibility 250ms ease;
+}
+
+#partnermap-container .pm-modal.pm-modal-active {
+    display: block;
+    opacity: 1;
+    visibility: visible;
+}
+
+#partnermap-container .pm-modal-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: var(--pm-bg-overlay);
+}
+
+#partnermap-container .pm-modal-content {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) scale(0.95);
+    max-width: var(--pm-modal-max-width);
+    width: 90%;
+    max-height: 80vh;
+    overflow-y: auto;
+    background: var(--pm-bg-primary);
+    border-radius: var(--pm-modal-radius);
+    box-shadow: var(--pm-shadow-xl);
+    padding: var(--pm-modal-padding);
+    transition: transform 250ms cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+#partnermap-container .pm-modal.pm-modal-active .pm-modal-content {
+    transform: translate(-50%, -50%) scale(1);
+}
+
+#partnermap-container .pm-modal-close {
+    position: absolute;
+    top: var(--pm-space-4);
+    right: var(--pm-space-4);
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: var(--pm-space-2);
+    color: var(--pm-text-tertiary);
+    transition: color var(--pm-transition-fast);
+    z-index: 1;
+}
+
+#partnermap-container .pm-modal-close:hover {
+    color: var(--pm-text-primary);
+}
+
+#partnermap-container .pm-modal-header {
+    text-align: center;
+    margin-bottom: var(--pm-space-6);
+}
+
+#partnermap-container .pm-modal-header img {
+    width: 120px;
+    height: 120px;
+    border-radius: var(--pm-radius-lg);
+    object-fit: cover;
+    margin: 0 auto var(--pm-space-4);
+    display: block;
+    background: var(--pm-bg-tertiary);
+}
+
+#partnermap-container .pm-modal-header h2 {
+    margin: 0 0 var(--pm-space-3);
+    font-size: var(--pm-text-2xl);
+    font-weight: var(--pm-font-bold);
+}
+
+#partnermap-container .pm-modal-actions {
+    display: flex;
+    gap: var(--pm-space-3);
+    margin-bottom: var(--pm-space-6);
+}
+
+#partnermap-container .pm-action-btn {
+    flex: 1;
+    padding: var(--pm-space-3) var(--pm-space-4);
+    border: 2px solid var(--pm-border-medium);
+    border-radius: var(--pm-radius-base);
+    background: var(--pm-bg-primary);
+    font-size: var(--pm-text-base);
+    font-weight: var(--pm-font-medium);
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+}
+
+#partnermap-container .pm-action-btn:hover {
+    border-color: var(--pm-primary);
+    background: var(--pm-primary-pale);
+    transform: translateY(-2px);
+}
+
+#partnermap-container .pm-action-btn.active {
+    background: var(--pm-primary-pale);
+    border-color: var(--pm-primary);
+    color: var(--pm-primary-dark);
+}
+
+#partnermap-container .pm-modal-section {
+    margin-bottom: var(--pm-space-6);
+}
+
+#partnermap-container .pm-modal-section:last-child {
+    margin-bottom: 0;
+}
+
+#partnermap-container .pm-modal-section h3 {
+    margin: 0 0 var(--pm-space-3);
+    font-size: var(--pm-text-lg);
+    font-weight: var(--pm-font-semibold);
+    color: var(--pm-primary-dark);
+}
+
+#partnermap-container .pm-modal-section p {
+    margin: var(--pm-space-2) 0;
+    line-height: var(--pm-leading-relaxed);
+}
+
+#partnermap-container .pm-modal-section a {
+    color: var(--pm-primary);
+    text-decoration: none;
+    transition: color var(--pm-transition-fast);
+}
+
+#partnermap-container .pm-modal-section a:hover {
+    color: var(--pm-primary-dark);
+    text-decoration: underline;
+}
+
+#partnermap-container .pm-navigation-buttons {
+    display: flex;
+    gap: var(--pm-space-3);
+    margin-top: var(--pm-space-3);
+}
+
+#partnermap-container .pm-nav-btn {
+    flex: 1;
+    padding: var(--pm-space-3) var(--pm-space-4);
+    background: var(--pm-bg-secondary);
+    border: 1px solid var(--pm-border-light);
+    border-radius: var(--pm-radius-base);
+    text-align: center;
+    text-decoration: none;
+    color: var(--pm-text-primary);
+    font-weight: var(--pm-font-medium);
+    transition: all var(--pm-transition-fast);
+    display: block;
+}
+
+#partnermap-container .pm-nav-btn:hover {
+    background: var(--pm-primary-pale);
+    border-color: var(--pm-primary);
+    transform: translateY(-2px);
+}
+
+/* 공유 모달 */
+#partnermap-container .pm-share-modal-content {
+    max-width: 400px;
+}
+
+#partnermap-container .pm-share-modal-body h3 {
+    margin: 0 0 var(--pm-space-4);
+    font-size: var(--pm-text-xl);
+    font-weight: var(--pm-font-bold);
+    text-align: center;
+}
+
+#partnermap-container .pm-share-buttons {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pm-space-3);
+}
+
+#partnermap-container .pm-share-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--pm-space-2);
+    padding: var(--pm-space-4);
+    border: 2px solid var(--pm-border-light);
+    border-radius: var(--pm-radius-base);
+    background: var(--pm-bg-primary);
+    font-size: var(--pm-text-base);
+    font-weight: var(--pm-font-medium);
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+}
+
+#partnermap-container .pm-share-btn:hover {
+    border-color: var(--pm-primary);
+    background: var(--pm-primary-pale);
+}
+
+/* ========================================
+   토스트
+   ======================================== */
+
+#partnermap-container .pm-toast-container {
+    position: fixed;
+    bottom: var(--pm-space-6);
+    right: var(--pm-space-6);
+    z-index: var(--pm-z-toast);
+    display: flex;
+    flex-direction: column;
+    gap: var(--pm-space-2);
+    pointer-events: none;
+}
+
+#partnermap-container .pm-toast {
+    background: var(--pm-gray-800);
+    color: var(--pm-text-inverse);
+    padding: var(--pm-toast-padding);
+    border-radius: var(--pm-toast-radius);
+    box-shadow: var(--pm-shadow-lg);
+    max-width: 300px;
+    pointer-events: auto;
+}
+
+#partnermap-container .pm-toast.pm-toast-show {
+    animation: pm-toast-slide-in 300ms cubic-bezier(0.68, -0.55, 0.265, 1.55);
+}
+
+#partnermap-container .pm-toast-success {
+    background: var(--pm-success);
+}
+
+#partnermap-container .pm-toast-error {
+    background: var(--pm-error);
+}
+
+#partnermap-container .pm-toast-warning {
+    background: var(--pm-warning);
+}
+
+#partnermap-container .pm-toast-info {
+    background: var(--pm-info);
+}
+
+/* ========================================
+   반응형
+   ======================================== */
+
+/* 태블릿 (768px ~ 992px) */
+@media (min-width: 768px) and (max-width: 992px) {
+    #partnermap-container .pm-main-content {
+        grid-template-columns: 1fr;
+        height: auto;
+        margin-bottom: var(--pm-space-10);  /* 40px - 태블릿 하단 여백 */
+    }
+
+    #partnermap-container .pm-map-container {
+        height: 500px;
+    }
+
+    #partnermap-container .pm-list-container {
+        border-left: none;
+        border-top: 1px solid var(--pm-border-light);
+        height: 500px;
+    }
+}
+
+@media (max-width: 768px) {
+    /* 모바일 히어로 섹션 높이 축소 (40px 절약) */
+    #partnermap-container .pm-hero {
+        padding: var(--pm-space-4) var(--pm-space-4);  /* 32px → 16px */
+    }
+
+    #partnermap-container .pm-hero-title {
+        font-size: var(--pm-text-xl);  /* 24px → 20px */
+        margin-bottom: var(--pm-space-2);
+    }
+
+    #partnermap-container .pm-hero-subtitle {
+        font-size: var(--pm-text-sm);  /* 16px → 14px */
+    }
+
+    #partnermap-container .pm-search-filter {
+        padding: var(--pm-space-6) var(--pm-space-4);
+    }
+
+    #partnermap-container .pm-search-container {
+        flex-direction: column;
+        gap: var(--pm-space-4);
+    }
+
+    /* "내 위치" 버튼 레이블 유지 (접근성 개선) */
+    #partnermap-container .pm-gps-btn {
+        font-size: var(--pm-text-sm);  /* 14px로 축소 */
+        padding: 0 var(--pm-space-3);  /* 패딩 축소 */
+    }
+
+    /* 주소 검색 영역 숨김 (80px 절약, GPS 버튼으로 대체) */
+    #partnermap-container .pm-address-search-container {
+        display: none;
+    }
+
+    #partnermap-container .pm-filter-tabs {
+        position: relative;
+    }
+
+    #partnermap-container .pm-filter-tabs::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 8px;
+        width: 60px;  /* 40px → 60px: 스크롤 힌트 강화 */
+        background: linear-gradient(to left,
+            var(--pm-bg-secondary) 0%,
+            rgba(249, 249, 249, 0.7) 50%,  /* 중간 불투명도 추가 */
+            transparent 100%
+        );
+        pointer-events: none;
+        z-index: 1;
+    }
+
+    #partnermap-container .pm-filter-tab {
+        font-size: var(--pm-text-sm);
+        padding: var(--pm-space-3) var(--pm-space-4);
+        min-height: 48px;
+    }
+
+    /* 필터 토글 버튼 (모바일 전용) */
+    #partnermap-container .pm-filter-toggle {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        width: 100%;
+        padding: var(--pm-space-3) var(--pm-space-4);
+        margin: var(--pm-space-3) 0;
+        background: var(--pm-primary);
+        color: var(--pm-white);
+        border: none;
+        border-radius: var(--pm-radius-base);
+        font-size: var(--pm-text-sm);
+        font-weight: var(--pm-font-semibold);
+        cursor: pointer;
+        transition: all var(--pm-transition-fast);
+    }
+
+    #partnermap-container .pm-filter-toggle:hover {
+        background: var(--pm-primary-dark);
+    }
+
+    #partnermap-container .pm-filter-toggle .pm-chevron {
+        transition: transform var(--pm-transition-fast);
+    }
+
+    #partnermap-container .pm-filter-toggle[aria-expanded="false"] .pm-chevron {
+        transform: rotate(180deg);
+    }
+
+    /* 필터 섹션 접기/펼치기 */
+    #partnermap-container .pm-filter-section {
+        max-height: 2000px;
+        overflow: hidden;
+        transition: max-height 0.3s ease;
+    }
+
+    #partnermap-container .pm-filter-section[data-collapsed="true"] {
+        max-height: 0;
+    }
+
+    /* 카테고리 그리드 레이아웃 (3열 정렬) - Specificity 증가 */
+    #partnermap-container .pm-filter-group,
+    #partnermap-container .pm-filter-group.active {
+        display: grid !important;  /* flex 오버라이드 */
+        grid-template-columns: repeat(3, 1fr);
+        gap: var(--pm-space-3);  /* 12px 간격 증가 (심미성) */
+    }
+
+    #partnermap-container .filter-btn {
+        width: 100%;
+        text-align: center;
+        font-size: var(--pm-text-sm);  /* 14px로 증가 (가독성) */
+        padding: var(--pm-space-3) var(--pm-space-2);  /* 12px 8px */
+        min-height: 48px;  /* 44px → 48px (터치 편의성) */
+        border-radius: var(--pm-radius-lg);  /* 12px 둥근 모서리 (심미성) */
+    }
+
+    /* 모든 터치 타겟 최소 크기 강제 (WCAG 2.1 AA) */
+    #partnermap-container button {
+        min-height: 44px;
+        min-width: 44px;
+    }
+
+    /* 즐겨찾기 버튼 크기 증가 */
+    #partnermap-container .pm-favorite-btn {
+        font-size: 20px;  /* 18px → 20px */
+        min-width: 44px;
+        min-height: 44px;
+    }
+
+    /* 버튼 스타일 통일 (시각적 일관성) */
+    #partnermap-container button,
+    #partnermap-container .pm-btn {
+        border-radius: var(--pm-radius-base);  /* 8px 통일 */
+        transition: all var(--pm-transition-fast);  /* 150ms 통일 */
+    }
+
+    #partnermap-container button:hover:not(:disabled),
+    #partnermap-container .pm-btn:hover:not(:disabled) {
+        transform: translateY(-1px);  /* 미세한 hover 효과 */
+        box-shadow: var(--pm-shadow-md);
+    }
+
+    #partnermap-container button:active:not(:disabled),
+    #partnermap-container .pm-btn:active:not(:disabled) {
+        transform: translateY(0);
+        transition: all 100ms ease;
+    }
+
+    /* 모바일 업체 카드 개선 - 정보 유지 + 가독성 향상 */
+    #partnermap-container .pm-partner-card {
+        padding: var(--pm-space-4);
+        gap: var(--pm-space-3);
+        flex-direction: row;
+        align-items: center;
+        border-radius: var(--pm-radius-base);
+        box-shadow: var(--pm-shadow-sm);
+    }
+
+    #partnermap-container .pm-partner-logo {
+        width: 60px;
+        height: 60px;
+        flex-shrink: 0;
+        border-radius: var(--pm-radius-base);
+    }
+
+    #partnermap-container .pm-partner-info {
+        flex: 1;
+        min-width: 0;
+    }
+
+    #partnermap-container .pm-partner-info h4 {
+        font-size: var(--pm-text-base);
+        margin-bottom: var(--pm-space-2);
+        font-weight: var(--pm-font-semibold);
+        line-height: var(--pm-leading-tight);
+    }
+
+    #partnermap-container .pm-category-tag {
+        font-size: 10px;
+        padding: 2px 6px;
+    }
+
+    #partnermap-container .pm-partner-categories {
+        margin-bottom: var(--pm-space-1);
+    }
+
+    #partnermap-container .pm-partner-address {
+        font-size: 13px;
+        margin: var(--pm-space-1) 0;
+        line-height: var(--pm-leading-normal);
+    }
+
+    #partnermap-container .pm-partner-phone {
+        display: flex;
+        align-items: center;
+        gap: var(--pm-space-1);
+        font-size: 13px;
+        color: var(--pm-primary);
+        margin-top: var(--pm-space-1);
+    }
+
+    #partnermap-container .pm-partner-phone svg {
+        width: 14px;
+        height: 14px;
+        flex-shrink: 0;
+    }
+
+    #partnermap-container .pm-partner-phone span {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+    }
+
+    #partnermap-container .pm-favorite-btn {
+        font-size: 18px;
+        top: var(--pm-space-2);
+        right: var(--pm-space-2);
+        padding: var(--pm-space-1);
+        min-width: 32px;
+        min-height: 32px;
+    }
+
+    #partnermap-container .pm-distance-badge {
+        font-size: 11px;
+        padding: 3px 6px;
+        font-weight: var(--pm-font-semibold);
+    }
+
+    #partnermap-container .pm-distance-indicator {
+        top: var(--pm-space-2);
+        bottom: auto;
+        left: var(--pm-space-2);
+    }
+
+    #partnermap-container .pm-distance-indicator {
+        top: auto;
+        bottom: var(--pm-space-1);
+        left: var(--pm-space-1);
+    }
+
+    #partnermap-container .pm-modal-content {
+        width: 95%;
+        max-height: 90vh;
+        padding: var(--pm-space-4);
+    }
+
+    #partnermap-container .pm-modal-actions {
+        flex-direction: column;
+    }
+
+    #partnermap-container .pm-navigation-buttons {
+        flex-direction: column;
+    }
+
+    #partnermap-container .pm-toast-container {
+        bottom: var(--pm-space-4);
+        right: var(--pm-space-4);
+        left: var(--pm-space-4);
+    }
+
+    #partnermap-container .pm-toast {
+        max-width: 100%;
+    }
+
+    /* 모바일 하단 여백 */
+    #partnermap-container .pm-main-content {
+        margin-bottom: var(--pm-space-8);  /* 32px - 모바일 하단 여백 */
+        grid-template-columns: 1fr;  /* [CRITICAL FIX] 모바일 단일 컬럼 레이아웃 */
+        height: auto;  /* 고정 높이 제거 */
+    }
+
+    /* 모바일 지도/리스트 비율 */
+    #partnermap-container .pm-map-container {
+        height: 450px;
+    }
+
+    #partnermap-container .pm-list-container {
+        height: 500px;
+        border-top: 2px solid var(--pm-border-medium);
+    }
+}
+
+/* 소형 모바일 (480px 이하) */
+@media (max-width: 480px) {
+    #partnermap-container .pm-map-container {
+        height: 400px;
+    }
+
+    #partnermap-container .pm-list-container {
+        height: 450px;
+    }
+}
+
+/* ========================================
+   애니메이션
+   ======================================== */
+
+/* 기준점 마커 펄스 애니메이션 */
+@keyframes pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.8;
+    }
+}
+
+/* 토스트 Slide In 애니메이션 */
+@keyframes pm-toast-slide-in {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 하트 Bounce 애니메이션 */
+@keyframes pm-heart-bounce {
+    0%, 100% {
+        transform: scale(1);
+    }
+    25% {
+        transform: scale(1.3);
+    }
+    50% {
+        transform: scale(0.9);
+    }
+    75% {
+        transform: scale(1.15);
+    }
+}
+
+#partnermap-container .pm-favorite-btn.pm-bouncing {
+    animation: pm-heart-bounce 500ms ease-in-out;
+}
+
+/* 카드 Slide In 애니메이션 */
+#partnermap-container .pm-partner-card {
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 400ms ease, transform 400ms ease;
+}
+
+#partnermap-container .pm-partner-card.pm-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 거리 배지 Pulse 애니메이션 */
+@keyframes pm-badge-pulse {
+    0%, 100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.05);
+        opacity: 0.9;
+    }
+}
+
+#partnermap-container .pm-distance-badge {
+    animation: pm-badge-pulse 2s ease-in-out infinite;
+}
+
+/* ========================================
+   Ripple 효과 (Material Design)
+   ======================================== */
+
+/* Ripple 컨테이너 (상대 위치 필요) */
+#partnermap-container .pm-ripple-container {
+    position: relative;
+    overflow: hidden;
+}
+
+/* Ripple 애니메이션 */
+@keyframes pm-ripple {
+    0% {
+        transform: scale(0);
+        opacity: 0.5;
+    }
+    100% {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* Ripple 요소 */
+#partnermap-container .pm-ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    pointer-events: none;
+    animation: pm-ripple 600ms ease-out;
+}
+
+/* ========================================
+   Skeleton Loading (로딩 중 플레이스홀더)
+   ======================================== */
+
+/* Skeleton 애니메이션 */
+@keyframes pm-skeleton-shimmer {
+    0% {
+        background-position: -200% 0;
+    }
+    100% {
+        background-position: 200% 0;
+    }
+}
+
+/* Skeleton 카드 */
+#partnermap-container .pm-skeleton-card {
+    height: 120px;
+    padding: var(--pm-space-4);
+    border: 1px solid var(--pm-border-light);
+    border-radius: var(--pm-radius-base);
+    margin-bottom: var(--pm-space-3);
+}
+
+/* Skeleton 요소 (공통) */
+#partnermap-container .pm-skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--pm-gray-200) 0%,
+        var(--pm-gray-100) 50%,
+        var(--pm-gray-200) 100%
+    );
+    background-size: 200% 100%;
+    animation: pm-skeleton-shimmer 1.5s ease-in-out infinite;
+    border-radius: var(--pm-radius-sm);
+}
+
+/* Skeleton 로고 (원형) */
+#partnermap-container .pm-skeleton-logo {
+    width: 80px;
+    height: 80px;
+    border-radius: var(--pm-radius-base);
+}
+
+/* Skeleton 텍스트 */
+#partnermap-container .pm-skeleton-text {
+    height: 16px;
+    margin-bottom: var(--pm-space-2);
+}
+
+#partnermap-container .pm-skeleton-text-lg {
+    height: 20px;
+    width: 70%;
+    margin-bottom: var(--pm-space-3);
+}
+
+#partnermap-container .pm-skeleton-text-sm {
+    height: 14px;
+    width: 50%;
+}
+
+/* ========================================
+   접근성: 모션 민감성 대응 (WCAG 2.2)
+   ======================================== */
+
+/* prefers-reduced-motion: 애니메이션 축소 요청 사용자 */
+@media (prefers-reduced-motion: reduce) {
+    #partnermap-container * {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
+/* ========================================
+   접근성: 포커스 링 (WCAG 2.2 Focus Visible)
+   ======================================== */
+
+/* 모든 포커스 가능 요소 기본 포커스 링 */
+#partnermap-container *:focus-visible {
+    outline: 3px solid var(--pm-primary);
+    outline-offset: 2px;
+    border-radius: var(--pm-radius-sm);
+}
+
+/* 버튼 포커스: 그림자 추가 */
+#partnermap-container button:focus-visible,
+#partnermap-container .pm-action-btn:focus-visible,
+#partnermap-container .pm-gps-btn:focus-visible,
+#partnermap-container .pm-favorite-btn:focus-visible {
+    box-shadow: 0 0 0 4px rgba(125, 150, 117, 0.2);
+}
+
+/* 입력 필드 포커스 */
+#partnermap-container input:focus-visible,
+#partnermap-container select:focus-visible {
+    border-color: var(--pm-primary);
+    box-shadow: 0 0 0 3px rgba(125, 150, 117, 0.15);
+}
+
+/* 카드 포커스 (클릭 가능) */
+#partnermap-container .pm-partner-card:focus-visible {
+    outline: 3px solid var(--pm-primary);
+    outline-offset: -3px;
+}
+
+/* ========================================
+   터치 UX 강화 (Phase 1)
+   ======================================== */
+
+/* 터치 활성 상태 */
+#partnermap-container .touch-active {
+    opacity: 0.7;
+    transform: scale(0.98);
+    transition: all 100ms ease;
+}
+
+/* Pull to Refresh 인디케이터 */
+#partnermap-container .pm-pull-indicator {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: var(--pm-primary-pale);
+    color: var(--pm-primary-dark);
+    z-index: var(--pm-z-fixed);
+    overflow: hidden;
+    transition: height 200ms ease;
+}
+
+#partnermap-container .pm-pull-spinner {
+    width: 24px;
+    height: 24px;
+    border: 3px solid var(--pm-primary-light);
+    border-top-color: var(--pm-primary);
+    border-radius: 50%;
+    animation: pm-spin 0.8s linear infinite;
+    margin-bottom: var(--pm-space-2);
+}
+
+#partnermap-container .pm-pull-text {
+    font-size: var(--pm-text-sm);
+    font-weight: var(--pm-font-medium);
+}
+
+#partnermap-container .pm-pull-indicator.pm-pull-ready {
+    background: var(--pm-primary);
+    color: var(--pm-text-inverse);
+}
+
+#partnermap-container .pm-pull-indicator.pm-pull-ready .pm-pull-spinner {
+    border-color: rgba(255, 255, 255, 0.3);
+    border-top-color: var(--pm-white);
+}
+
+/* 햅틱 피드백 애니메이션 */
+@keyframes haptic-feedback {
+    0%, 100% {
+        transform: scale(1);
+    }
+    50% {
+        transform: scale(1.05);
+    }
+}
+
+#partnermap-container .haptic-feedback {
+    animation: haptic-feedback 150ms ease;
+}
+
+/* 스와이프 안내 */
+#partnermap-container .pm-swipe-hint {
+    position: absolute;
+    bottom: var(--pm-space-4);
+    left: 50%;
+    transform: translateX(-50%);
+    padding: var(--pm-space-2) var(--pm-space-4);
+    background: var(--pm-bg-overlay);
+    color: var(--pm-text-inverse);
+    border-radius: var(--pm-radius-full);
+    font-size: var(--pm-text-xs);
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 300ms ease;
+}
+
+#partnermap-container .pm-swipe-hint.pm-show {
+    opacity: 1;
+}
+
+/* 모바일 터치 최적화 */
+@media (max-width: 768px) {
+    /* 필터 탭 스와이프 힌트 */
+    #partnermap-container .pm-filter-tabs::after {
+        content: '';
+        position: absolute;
+        right: 0;
+        top: 0;
+        bottom: 0;
+        width: 30px;
+        background: linear-gradient(to left, var(--pm-bg-secondary), transparent);
+        pointer-events: none;
+    }
+
+    /* 모달 스와이프 닫기 핸들 */
+    #partnermap-container .pm-modal-content::before {
+        content: '';
+        position: absolute;
+        top: var(--pm-space-2);
+        left: 50%;
+        transform: translateX(-50%);
+        width: 40px;
+        height: 4px;
+        background: var(--pm-gray-300);
+        border-radius: var(--pm-radius-full);
+    }
+
+    /* 터치 타겟 크기 확대 (WCAG 2.2) */
+    #partnermap-container button,
+    #partnermap-container .pm-filter-btn,
+    #partnermap-container .pm-favorite-btn {
+        min-height: 44px;
+        min-width: 44px;
+    }
+}
+
+/* ========================================
+   Empty State (빈 상태)
+   ======================================== */
+
+#partnermap-container .pm-empty-state {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--pm-space-12) var(--pm-space-4);
+    text-align: center;
+    color: var(--pm-text-secondary);
+    min-height: 300px;
+}
+
+#partnermap-container .pm-empty-icon {
+    font-size: 64px;
+    color: var(--pm-gray-400);
+    margin-bottom: var(--pm-space-6);
+    opacity: 0.5;
+}
+
+#partnermap-container .pm-empty-state h3 {
+    margin: 0 0 var(--pm-space-3);
+    font-size: var(--pm-text-xl);
+    font-weight: var(--pm-font-semibold);
+    color: var(--pm-text-primary);
+}
+
+#partnermap-container .pm-empty-state p {
+    margin: 0 0 var(--pm-space-6);
+    font-size: var(--pm-text-base);
+}
+
+#partnermap-container .pm-empty-reset-btn {
+    padding: var(--pm-space-3) var(--pm-space-6);
+    background: var(--pm-primary);
+    color: var(--pm-text-inverse);
+    border: none;
+    border-radius: var(--pm-radius-base);
+    font-size: var(--pm-text-base);
+    font-weight: var(--pm-font-medium);
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+}
+
+#partnermap-container .pm-empty-reset-btn:hover {
+    background: var(--pm-primary-dark);
+    transform: translateY(-2px);
+    box-shadow: var(--pm-shadow-md);
+}

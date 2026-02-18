@@ -1,0 +1,35 @@
+{
+  "version": "1.0",
+  "lastUpdated": "2026-02-06",
+  "description": "YouTube 영상과 제품을 연결하는 매핑 데이터",
+
+  "products": {
+    "P1001": {
+      "name": "압화 스타터 키트",
+      "price": "35000",
+      "image": "https://jewoo.img4.kr/products/p1001.jpg",
+      "link": "/shop/shopdetail.html?branduid=1001"
+    },
+    "P1002": {
+      "name": "프리저브드 장미 세트",
+      "price": "28000",
+      "image": "https://jewoo.img4.kr/products/p1002.jpg",
+      "link": "/shop/shopdetail.html?branduid=1002"
+    },
+    "P1003": {
+      "name": "레진 몰드 패키지",
+      "price": "42000",
+      "image": "https://jewoo.img4.kr/products/p1003.jpg",
+      "link": "/shop/shopdetail.html?branduid=1003"
+    }
+  },
+
+  "keywords": {
+    "압화 에코백": ["P1001"],
+    "압화 스타터": ["P1001"],
+    "프리저브드": ["P1002"],
+    "보존화": ["P1002"],
+    "레진": ["P1003"],
+    "몰드": ["P1003"]
+  }
+}

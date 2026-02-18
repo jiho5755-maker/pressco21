@@ -1,0 +1,955 @@
+/* ========================================
+   Resiners 화이트페이퍼 - 메이크샵 D4 개별페이지용
+   CSS 스코핑: #resiners-whitepaper
+   ======================================== */
+
+/* 변수 및 기본 설정 - 컨테이너 스코핑 */
+#resiners-whitepaper {
+    --resiners-brand-green: #8ED8C8;
+    --resiners-brand-green-dark: #6BC4B0;
+    --resiners-brand-green-light: #B8E8DC;
+    --resiners-text-primary: #1a1a1a;
+    --resiners-text-secondary: #4a4a4a;
+    --resiners-text-light: #6a6a6a;
+    --resiners-bg-white: #ffffff;
+    --resiners-bg-light: #f8f9fa;
+    --resiners-bg-section: #fafbfc;
+    --resiners-border-color: #e0e0e0;
+    --resiners-shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.08);
+    --resiners-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.12);
+    --resiners-shadow-lg: 0 8px 24px rgba(0, 0, 0, 0.16);
+    --resiners-transition: all 0.3s ease;
+
+    font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    font-size: 16px;
+    line-height: 1.8;
+    color: var(--resiners-text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+#resiners-whitepaper *,
+#resiners-whitepaper *::before,
+#resiners-whitepaper *::after {
+    box-sizing: border-box;
+}
+
+/* 컨테이너 */
+#resiners-whitepaper .resiners-container {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 24px;
+}
+
+/* 섹션 공통 스타일 */
+#resiners-whitepaper .resiners-section {
+    padding: 80px 0;
+    position: relative;
+}
+
+#resiners-whitepaper .resiners-section-title {
+    font-size: 2.5rem;
+    font-weight: 700;
+    color: var(--resiners-text-primary);
+    margin-bottom: 48px;
+    text-align: center;
+    position: relative;
+    padding-bottom: 24px;
+}
+
+#resiners-whitepaper .resiners-section-title::after {
+    content: '';
+    position: absolute;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 80px;
+    height: 4px;
+    background: linear-gradient(90deg, var(--resiners-brand-green), var(--resiners-brand-green-dark));
+    border-radius: 2px;
+}
+
+#resiners-whitepaper .resiners-subsection-title {
+    font-size: 1.75rem;
+    font-weight: 600;
+    color: var(--resiners-text-primary);
+    margin-top: 48px;
+    margin-bottom: 24px;
+    padding-left: 16px;
+    border-left: 4px solid var(--resiners-brand-green);
+}
+
+/* 표지 섹션 */
+#resiners-whitepaper .resiners-cover {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+    position: relative;
+    overflow: hidden;
+}
+
+#resiners-whitepaper .resiners-cover::before {
+    content: '';
+    position: absolute;
+    top: -50%;
+    right: -50%;
+    width: 200%;
+    height: 200%;
+    background: radial-gradient(circle, rgba(142, 216, 200, 0.1) 0%, transparent 70%);
+    animation: resiners-pulse 20s ease-in-out infinite;
+}
+
+@keyframes resiners-pulse {
+    0%, 100% { transform: scale(1); opacity: 0.5; }
+    50% { transform: scale(1.1); opacity: 0.8; }
+}
+
+#resiners-whitepaper .resiners-cover-inner {
+    text-align: center;
+    z-index: 1;
+    position: relative;
+    padding: 40px;
+}
+
+#resiners-whitepaper .resiners-brand-logo {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--resiners-brand-green-dark);
+    letter-spacing: 2px;
+    margin-bottom: 24px;
+}
+
+#resiners-whitepaper .resiners-cover-title {
+    font-size: 4rem;
+    font-weight: 700;
+    color: var(--resiners-text-primary);
+    margin-bottom: 16px;
+    line-height: 1.2;
+}
+
+#resiners-whitepaper .resiners-cover-subtitle {
+    font-size: 2rem;
+    font-weight: 400;
+    color: var(--resiners-text-secondary);
+    margin-bottom: 32px;
+    letter-spacing: 4px;
+}
+
+#resiners-whitepaper .resiners-cover-tagline {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--resiners-brand-green-dark);
+    margin-bottom: 48px;
+    letter-spacing: 2px;
+}
+
+#resiners-whitepaper .resiners-cover-desc {
+    font-size: 1.125rem;
+    line-height: 1.8;
+    color: var(--resiners-text-secondary);
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+/* Executive Summary */
+#resiners-whitepaper .resiners-executive {
+    background: var(--resiners-bg-white);
+}
+
+#resiners-whitepaper .resiners-lead-text {
+    font-size: 1.25rem;
+    line-height: 2;
+    color: var(--resiners-text-primary);
+    margin-bottom: 24px;
+    font-weight: 400;
+}
+
+#resiners-whitepaper .resiners-highlight-box {
+    background: linear-gradient(135deg, rgba(142, 216, 200, 0.1) 0%, rgba(107, 196, 176, 0.1) 100%);
+    border-left: 4px solid var(--resiners-brand-green);
+    padding: 32px;
+    margin: 32px 0;
+    border-radius: 8px;
+}
+
+#resiners-whitepaper .resiners-highlight-box strong {
+    color: var(--resiners-brand-green-dark);
+    font-weight: 600;
+}
+
+#resiners-whitepaper .resiners-conclusion {
+    font-size: 1.125rem;
+    font-style: italic;
+    color: var(--resiners-text-secondary);
+    margin-top: 32px;
+    padding: 24px;
+    background: var(--resiners-bg-light);
+    border-radius: 8px;
+}
+
+/* 목차 */
+#resiners-whitepaper .resiners-toc {
+    background: var(--resiners-bg-section);
+}
+
+#resiners-whitepaper .resiners-toc-nav ul {
+    list-style: none;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 0;
+}
+
+#resiners-whitepaper .resiners-toc-nav li {
+    margin-bottom: 16px;
+}
+
+#resiners-whitepaper .resiners-toc-nav a {
+    display: block;
+    padding: 16px 24px;
+    background: var(--resiners-bg-white);
+    color: var(--resiners-text-primary);
+    text-decoration: none;
+    border-radius: 8px;
+    transition: var(--resiners-transition);
+    border-left: 4px solid transparent;
+}
+
+#resiners-whitepaper .resiners-toc-nav a:hover {
+    border-left-color: var(--resiners-brand-green);
+    background: rgba(142, 216, 200, 0.05);
+    transform: translateX(8px);
+}
+
+/* Industry Landscape */
+#resiners-whitepaper .resiners-data-highlight {
+    background: var(--resiners-bg-light);
+    padding: 24px;
+    border-radius: 8px;
+    margin: 24px 0;
+    border-left: 4px solid var(--resiners-brand-green);
+}
+
+#resiners-whitepaper .resiners-data-highlight strong {
+    color: var(--resiners-brand-green-dark);
+    font-weight: 600;
+}
+
+/* Product Solution */
+#resiners-whitepaper .resiners-product {
+    background: var(--resiners-bg-section);
+}
+
+#resiners-whitepaper .resiners-quote-box {
+    background: var(--resiners-bg-white);
+    border-left: 4px solid var(--resiners-brand-green);
+    padding: 32px;
+    margin: 32px 0;
+    border-radius: 8px;
+    font-size: 1.125rem;
+    font-style: italic;
+    color: var(--resiners-text-secondary);
+    box-shadow: var(--resiners-shadow-sm);
+}
+
+#resiners-whitepaper .resiners-tech-diagram {
+    background: var(--resiners-bg-white);
+    padding: 48px;
+    border-radius: 12px;
+    margin: 32px 0;
+    box-shadow: var(--resiners-shadow-md);
+}
+
+#resiners-whitepaper .resiners-diagram-flow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 24px;
+}
+
+#resiners-whitepaper .resiners-flow-item {
+    flex: 1;
+    min-width: 200px;
+    text-align: center;
+    padding: 24px;
+    background: var(--resiners-bg-light);
+    border-radius: 8px;
+}
+
+#resiners-whitepaper .resiners-flow-item h4 {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--resiners-text-primary);
+    margin-bottom: 12px;
+}
+
+#resiners-whitepaper .resiners-flow-item.resiners-result {
+    background: linear-gradient(135deg, rgba(142, 216, 200, 0.2) 0%, rgba(107, 196, 176, 0.2) 100%);
+    border: 2px solid var(--resiners-brand-green);
+}
+
+#resiners-whitepaper .resiners-formula {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--resiners-brand-green-dark);
+    margin: 12px 0;
+    font-family: 'Times New Roman', serif;
+}
+
+#resiners-whitepaper .resiners-note {
+    font-size: 0.875rem;
+    color: var(--resiners-text-light);
+    margin-top: 8px;
+}
+
+#resiners-whitepaper .resiners-flow-arrow {
+    font-size: 2rem;
+    color: var(--resiners-brand-green);
+    font-weight: bold;
+}
+
+#resiners-whitepaper .resiners-feature-list {
+    list-style: none;
+    margin: 24px 0;
+    padding: 0;
+}
+
+#resiners-whitepaper .resiners-feature-list li {
+    padding: 16px 0;
+    padding-left: 32px;
+    position: relative;
+    border-bottom: 1px solid var(--resiners-border-color);
+}
+
+#resiners-whitepaper .resiners-feature-list li::before {
+    content: '\2713';
+    position: absolute;
+    left: 0;
+    color: var(--resiners-brand-green);
+    font-weight: bold;
+    font-size: 1.25rem;
+}
+
+#resiners-whitepaper .resiners-feature-list li:last-child {
+    border-bottom: none;
+}
+
+/* Experimental Data */
+#resiners-whitepaper .resiners-experiment {
+    background: var(--resiners-bg-white);
+}
+
+#resiners-whitepaper .resiners-video-link {
+    text-align: center;
+    margin: 32px 0;
+    padding: 24px;
+    background: var(--resiners-bg-light);
+    border-radius: 8px;
+}
+
+#resiners-whitepaper .resiners-video-link a {
+    color: var(--resiners-brand-green-dark);
+    text-decoration: none;
+    font-weight: 600;
+}
+
+#resiners-whitepaper .resiners-video-link a:hover {
+    text-decoration: underline;
+}
+
+#resiners-whitepaper .resiners-test-setup {
+    list-style: none;
+    margin: 24px 0;
+    padding: 0;
+}
+
+#resiners-whitepaper .resiners-test-setup li {
+    padding: 16px 24px;
+    margin-bottom: 12px;
+    background: var(--resiners-bg-light);
+    border-left: 4px solid var(--resiners-brand-green);
+    border-radius: 4px;
+}
+
+#resiners-whitepaper .resiners-chart-wrap {
+    position: relative;
+    height: 500px;
+    margin: 48px 0;
+    padding: 32px;
+    background: var(--resiners-bg-white);
+    border-radius: 12px;
+    box-shadow: var(--resiners-shadow-md);
+}
+
+#resiners-whitepaper .resiners-result-highlight {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--resiners-brand-green-dark);
+    text-align: center;
+    padding: 32px;
+    background: linear-gradient(135deg, rgba(142, 216, 200, 0.1) 0%, rgba(107, 196, 176, 0.1) 100%);
+    border-radius: 12px;
+    margin: 32px 0;
+}
+
+#resiners-whitepaper .resiners-results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 24px;
+    margin: 48px 0;
+}
+
+#resiners-whitepaper .resiners-result-card {
+    background: var(--resiners-bg-white);
+    padding: 32px;
+    border-radius: 12px;
+    text-align: center;
+    box-shadow: var(--resiners-shadow-sm);
+    transition: var(--resiners-transition);
+    border-top: 4px solid var(--resiners-brand-green);
+}
+
+#resiners-whitepaper .resiners-result-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--resiners-shadow-md);
+}
+
+#resiners-whitepaper .resiners-result-number {
+    font-size: 3rem;
+    font-weight: 700;
+    color: var(--resiners-brand-green-dark);
+    margin-bottom: 12px;
+}
+
+#resiners-whitepaper .resiners-result-label {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--resiners-text-primary);
+    margin-bottom: 12px;
+}
+
+#resiners-whitepaper .resiners-result-card p {
+    font-size: 0.9375rem;
+    color: var(--resiners-text-secondary);
+    line-height: 1.6;
+}
+
+/* Expert & User Endorsement */
+#resiners-whitepaper .resiners-endorsement {
+    background: var(--resiners-bg-section);
+}
+
+#resiners-whitepaper .resiners-expert-card,
+#resiners-whitepaper .resiners-artist-card,
+#resiners-whitepaper .resiners-user-card {
+    background: var(--resiners-bg-white);
+    padding: 48px;
+    border-radius: 12px;
+    margin: 32px 0;
+    box-shadow: var(--resiners-shadow-md);
+}
+
+#resiners-whitepaper .resiners-card-header {
+    margin-bottom: 32px;
+    padding-bottom: 24px;
+    border-bottom: 2px solid var(--resiners-border-color);
+}
+
+#resiners-whitepaper .resiners-card-header h4 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--resiners-text-primary);
+    margin-bottom: 8px;
+}
+
+#resiners-whitepaper .resiners-card-role {
+    font-size: 1rem;
+    color: var(--resiners-text-light);
+    font-weight: 400;
+}
+
+#resiners-whitepaper .resiners-blockquote {
+    background: var(--resiners-bg-light);
+    border-left: 4px solid var(--resiners-brand-green);
+    padding: 24px;
+    margin: 24px 0;
+    border-radius: 8px;
+    font-style: italic;
+    color: var(--resiners-text-secondary);
+    line-height: 1.8;
+}
+
+#resiners-whitepaper .resiners-expert-points {
+    list-style: none;
+    margin: 24px 0;
+    padding: 0;
+}
+
+#resiners-whitepaper .resiners-expert-points li {
+    padding: 12px 0;
+    padding-left: 32px;
+    position: relative;
+}
+
+#resiners-whitepaper .resiners-expert-points li::before {
+    content: '\2022';
+    position: absolute;
+    left: 0;
+    color: var(--resiners-brand-green);
+    font-weight: bold;
+    font-size: 1.5rem;
+}
+
+#resiners-whitepaper .resiners-disclaimer {
+    font-size: 0.875rem;
+    color: var(--resiners-text-light);
+    font-style: italic;
+    margin-top: 24px;
+    padding: 16px;
+    background: var(--resiners-bg-light);
+    border-radius: 8px;
+}
+
+#resiners-whitepaper .resiners-testimonials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 24px;
+    margin: 32px 0;
+}
+
+#resiners-whitepaper .resiners-testimonial-card {
+    background: var(--resiners-bg-white);
+    padding: 32px;
+    border-radius: 12px;
+    box-shadow: var(--resiners-shadow-sm);
+    border-top: 4px solid var(--resiners-brand-green);
+}
+
+#resiners-whitepaper .resiners-testimonial-card h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--resiners-text-primary);
+    margin-bottom: 8px;
+}
+
+#resiners-whitepaper .resiners-testimonial-loc {
+    font-size: 0.875rem;
+    color: var(--resiners-text-light);
+    margin-bottom: 16px;
+}
+
+#resiners-whitepaper .resiners-testimonial-card blockquote {
+    font-style: italic;
+    color: var(--resiners-text-secondary);
+    line-height: 1.8;
+    border-left: 3px solid var(--resiners-brand-green-light);
+    padding-left: 16px;
+    margin: 0;
+}
+
+#resiners-whitepaper .resiners-user-card h5 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--resiners-text-primary);
+    margin-top: 32px;
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 2px solid var(--resiners-border-color);
+}
+
+#resiners-whitepaper .resiners-user-card ul {
+    margin: 16px 0;
+    padding-left: 24px;
+}
+
+#resiners-whitepaper .resiners-user-card ul li {
+    margin-bottom: 8px;
+    color: var(--resiners-text-secondary);
+}
+
+/* Safety Guide */
+#resiners-whitepaper .resiners-safety {
+    background: var(--resiners-bg-white);
+}
+
+#resiners-whitepaper .resiners-checklist {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+#resiners-whitepaper .resiners-checklist-item {
+    display: flex;
+    gap: 24px;
+    padding: 32px;
+    margin-bottom: 24px;
+    background: var(--resiners-bg-section);
+    border-radius: 12px;
+    border-left: 4px solid var(--resiners-brand-green);
+    transition: var(--resiners-transition);
+}
+
+#resiners-whitepaper .resiners-checklist-item:hover {
+    background: var(--resiners-bg-white);
+    box-shadow: var(--resiners-shadow-sm);
+    transform: translateX(8px);
+}
+
+#resiners-whitepaper .resiners-check-num {
+    flex-shrink: 0;
+    width: 60px;
+    height: 60px;
+    background: linear-gradient(135deg, var(--resiners-brand-green) 0%, var(--resiners-brand-green-dark) 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.25rem;
+    font-weight: 700;
+}
+
+#resiners-whitepaper .resiners-check-body h4 {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--resiners-text-primary);
+    margin-bottom: 12px;
+}
+
+#resiners-whitepaper .resiners-check-body p {
+    color: var(--resiners-text-secondary);
+    line-height: 1.8;
+}
+
+/* Brand Vision */
+#resiners-whitepaper .resiners-vision {
+    background: linear-gradient(135deg, var(--resiners-bg-section) 0%, var(--resiners-bg-light) 100%);
+}
+
+#resiners-whitepaper .resiners-vision-highlight {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--resiners-brand-green-dark);
+    text-align: center;
+    padding: 48px;
+    background: var(--resiners-bg-white);
+    border-radius: 12px;
+    margin-top: 32px;
+    box-shadow: var(--resiners-shadow-md);
+}
+
+/* FAQ */
+#resiners-whitepaper .resiners-faq {
+    background: var(--resiners-bg-white);
+}
+
+#resiners-whitepaper .resiners-faq-list {
+    max-width: 900px;
+    margin: 0 auto;
+}
+
+#resiners-whitepaper .resiners-faq-item {
+    background: var(--resiners-bg-section);
+    padding: 32px;
+    margin-bottom: 24px;
+    border-radius: 12px;
+    border-left: 4px solid var(--resiners-brand-green);
+    transition: var(--resiners-transition);
+}
+
+#resiners-whitepaper .resiners-faq-item:hover {
+    background: var(--resiners-bg-white);
+    box-shadow: var(--resiners-shadow-sm);
+}
+
+#resiners-whitepaper .resiners-faq-q {
+    font-size: 1.125rem;
+    font-weight: 600;
+    color: var(--resiners-text-primary);
+    margin-bottom: 16px;
+}
+
+#resiners-whitepaper .resiners-faq-a {
+    color: var(--resiners-text-secondary);
+    line-height: 1.8;
+}
+
+/* Appendix */
+#resiners-whitepaper .resiners-appendix {
+    background: var(--resiners-bg-section);
+}
+
+#resiners-whitepaper .resiners-certs-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 32px;
+    margin: 48px 0;
+}
+
+#resiners-whitepaper .resiners-cert-card {
+    background: var(--resiners-bg-white);
+    padding: 32px;
+    border-radius: 12px;
+    box-shadow: var(--resiners-shadow-md);
+    text-align: center;
+    border-top: 4px solid var(--resiners-brand-green);
+}
+
+#resiners-whitepaper .resiners-cert-icon {
+    width: 80px;
+    height: 80px;
+    background: linear-gradient(135deg, var(--resiners-brand-green) 0%, var(--resiners-brand-green-dark) 100%);
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    font-weight: 700;
+    margin: 0 auto 24px;
+}
+
+#resiners-whitepaper .resiners-cert-card h4 {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--resiners-text-primary);
+    margin-bottom: 16px;
+}
+
+#resiners-whitepaper .resiners-cert-card p {
+    color: var(--resiners-text-secondary);
+    margin-bottom: 12px;
+    line-height: 1.6;
+}
+
+#resiners-whitepaper .resiners-cert-placeholder {
+    margin-top: 24px;
+    padding: 48px;
+    background: var(--resiners-bg-light);
+    border: 2px dashed var(--resiners-border-color);
+    border-radius: 8px;
+    color: var(--resiners-text-light);
+    font-style: italic;
+}
+
+#resiners-whitepaper .resiners-references {
+    margin: 48px 0;
+}
+
+#resiners-whitepaper .resiners-ref-list {
+    list-style: none;
+    background: var(--resiners-bg-white);
+    padding: 32px;
+    border-radius: 12px;
+    box-shadow: var(--resiners-shadow-sm);
+    margin: 0;
+}
+
+#resiners-whitepaper .resiners-ref-list li {
+    padding: 16px 0;
+    padding-left: 32px;
+    position: relative;
+    border-bottom: 1px solid var(--resiners-border-color);
+    line-height: 1.8;
+    color: var(--resiners-text-secondary);
+}
+
+#resiners-whitepaper .resiners-ref-list li::before {
+    content: '\1F4C4';
+    position: absolute;
+    left: 0;
+}
+
+#resiners-whitepaper .resiners-ref-list li:last-child {
+    border-bottom: none;
+}
+
+#resiners-whitepaper .resiners-ref-list a {
+    color: var(--resiners-brand-green-dark);
+    text-decoration: none;
+}
+
+#resiners-whitepaper .resiners-ref-list a:hover {
+    text-decoration: underline;
+}
+
+#resiners-whitepaper .resiners-specs {
+    margin: 48px 0;
+    overflow-x: auto;
+}
+
+#resiners-whitepaper .resiners-specs table {
+    width: 100%;
+    border-collapse: collapse;
+    background: var(--resiners-bg-white);
+    border-radius: 12px;
+    overflow: hidden;
+    box-shadow: var(--resiners-shadow-sm);
+}
+
+#resiners-whitepaper .resiners-specs th,
+#resiners-whitepaper .resiners-specs td {
+    padding: 16px 24px;
+    text-align: left;
+    border-bottom: 1px solid var(--resiners-border-color);
+}
+
+#resiners-whitepaper .resiners-specs th {
+    background: var(--resiners-brand-green);
+    color: white;
+    font-weight: 600;
+}
+
+#resiners-whitepaper .resiners-specs tr:last-child td {
+    border-bottom: none;
+}
+
+#resiners-whitepaper .resiners-specs tr:hover {
+    background: var(--resiners-bg-light);
+}
+
+/* Footer */
+#resiners-whitepaper .resiners-footer {
+    background: var(--resiners-text-primary);
+    color: white;
+    padding: 48px 0;
+    text-align: center;
+}
+
+#resiners-whitepaper .resiners-footer-tagline {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--resiners-brand-green);
+    margin-bottom: 16px;
+    letter-spacing: 2px;
+}
+
+#resiners-whitepaper .resiners-footer-brand {
+    font-size: 1.25rem;
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+#resiners-whitepaper .resiners-footer-copy {
+    font-size: 0.875rem;
+    color: rgba(255, 255, 255, 0.7);
+}
+
+/* 반응형 디자인 - 768px */
+@media (max-width: 768px) {
+    #resiners-whitepaper .resiners-container {
+        padding: 0 16px;
+    }
+
+    #resiners-whitepaper .resiners-section {
+        padding: 48px 0;
+    }
+
+    #resiners-whitepaper .resiners-section-title {
+        font-size: 2rem;
+        margin-bottom: 32px;
+    }
+
+    #resiners-whitepaper .resiners-subsection-title {
+        font-size: 1.5rem;
+        margin-top: 32px;
+    }
+
+    #resiners-whitepaper .resiners-cover-title {
+        font-size: 2.5rem;
+    }
+
+    #resiners-whitepaper .resiners-cover-subtitle {
+        font-size: 1.5rem;
+    }
+
+    #resiners-whitepaper .resiners-cover-tagline {
+        font-size: 1.25rem;
+    }
+
+    #resiners-whitepaper .resiners-cover-desc {
+        font-size: 1rem;
+    }
+
+    #resiners-whitepaper .resiners-lead-text {
+        font-size: 1.125rem;
+    }
+
+    #resiners-whitepaper .resiners-diagram-flow {
+        flex-direction: column;
+    }
+
+    #resiners-whitepaper .resiners-flow-arrow {
+        transform: rotate(90deg);
+        margin: 16px 0;
+    }
+
+    #resiners-whitepaper .resiners-chart-wrap {
+        height: 400px;
+        padding: 16px;
+    }
+
+    #resiners-whitepaper .resiners-results-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #resiners-whitepaper .resiners-testimonials-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #resiners-whitepaper .resiners-certs-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #resiners-whitepaper .resiners-checklist-item {
+        flex-direction: column;
+        text-align: center;
+    }
+
+    #resiners-whitepaper .resiners-check-num {
+        margin: 0 auto;
+    }
+
+    #resiners-whitepaper .resiners-expert-card,
+    #resiners-whitepaper .resiners-artist-card,
+    #resiners-whitepaper .resiners-user-card {
+        padding: 24px;
+    }
+
+    #resiners-whitepaper .resiners-tech-diagram {
+        padding: 24px;
+    }
+}
+
+/* 반응형 디자인 - 480px */
+@media (max-width: 480px) {
+    #resiners-whitepaper .resiners-cover-title {
+        font-size: 2rem;
+    }
+
+    #resiners-whitepaper .resiners-cover-subtitle {
+        font-size: 1.25rem;
+    }
+
+    #resiners-whitepaper .resiners-section-title {
+        font-size: 1.75rem;
+    }
+
+    #resiners-whitepaper .resiners-subsection-title {
+        font-size: 1.25rem;
+    }
+
+    #resiners-whitepaper .resiners-chart-wrap {
+        height: 300px;
+    }
+
+    #resiners-whitepaper .resiners-specs {
+        font-size: 0.875rem;
+    }
+
+    #resiners-whitepaper .resiners-specs th,
+    #resiners-whitepaper .resiners-specs td {
+        padding: 12px 16px;
+    }
+}

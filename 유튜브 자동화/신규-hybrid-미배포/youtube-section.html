@@ -1,0 +1,215 @@
+<!--s: section_youtube (하이브리드 레이아웃) -->
+<style>
+.youtube-hybrid-section{padding:50px 0;background:linear-gradient(135deg,#f8f9fa 0%,#e9ecef 100%)}
+.youtube-hybrid-section .main-container{max-width:1400px;margin:0 auto;padding:0 15px}
+.youtube-hybrid-section .section-title{text-align:center;margin-bottom:35px}
+.youtube-hybrid-section .section-title h3{font-size:20px;margin-bottom:8px;font-weight:800;color:#2c3e30}
+.youtube-hybrid-section .section-title p{font-size:14px;color:#888;font-style:italic}
+.youtube-hybrid-section .main-area{display:flex;flex-direction:column;gap:18px;margin-bottom:30px}
+.youtube-hybrid-section .main-video{position:relative;background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 5px 25px rgba(0,0,0,0.08)}
+.youtube-hybrid-section .main-video .video-wrapper{position:relative;width:100%;padding-bottom:56.25%;background:#222}
+.youtube-hybrid-section .main-video .video-wrapper iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none}
+.youtube-hybrid-section .main-video-info{padding:16px}
+.youtube-hybrid-section .main-video-title{font-size:16px;font-weight:700;color:#333;margin:0 0 8px 0;line-height:1.4}
+.youtube-hybrid-section .main-video-meta{display:flex;gap:12px;font-size:12px;color:#888}
+
+/* 제품 사이드바 - 모바일 토글 */
+.youtube-hybrid-section .product-sidebar{background:#fff;border-radius:10px;overflow:hidden;box-shadow:0 5px 25px rgba(0,0,0,0.08)}
+.youtube-hybrid-section .product-toggle-header{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;cursor:pointer;border-bottom:2px solid #b7c9ad;transition:background 0.2s}
+.youtube-hybrid-section .product-toggle-header:hover{background:#f9f9f9}
+.youtube-hybrid-section .product-toggle-header h5{font-size:15px;font-weight:600;color:#2c3e30;margin:0}
+.youtube-hybrid-section .toggle-icon{font-size:12px;color:#888;transition:transform 0.3s}
+.youtube-hybrid-section .product-sidebar.expanded .toggle-icon{transform:rotate(180deg)}
+.youtube-hybrid-section .product-content{max-height:0;overflow:hidden;transition:max-height 0.3s ease}
+.youtube-hybrid-section .product-sidebar.expanded .product-content{max-height:300px}
+.youtube-hybrid-section .product-content-inner{padding:18px}
+
+.youtube-hybrid-section .product-card{display:flex;align-items:center;gap:14px}
+.youtube-hybrid-section .product-card-image{width:80px;height:80px;border-radius:8px;overflow:hidden;flex-shrink:0;background:#f5f5f5}
+.youtube-hybrid-section .product-card-image img{width:100%;height:100%;object-fit:cover}
+.youtube-hybrid-section .product-card-info{flex:1;min-width:0}
+.youtube-hybrid-section .product-card-name{font-size:14px;font-weight:600;color:#333;margin:0 0 6px 0}
+.youtube-hybrid-section .product-card-price{font-size:16px;font-weight:700;color:#7d9675;margin:0 0 10px 0}
+.youtube-hybrid-section .btn-product{display:inline-block;background:linear-gradient(135deg,#2c3e30 0%,#4a5d4a 100%);color:#fff;border:none;padding:10px 18px;border-radius:6px;font-size:13px;font-weight:600;text-decoration:none;transition:all 0.3s ease}
+.youtube-hybrid-section .btn-product:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,0.15)}
+.youtube-hybrid-section .no-product-message{text-align:center;padding:10px;color:#888}
+.youtube-hybrid-section .no-product-message p{margin:0;font-size:13px;line-height:1.5}
+.youtube-hybrid-section .badge-new{position:absolute;top:10px;left:10px;background:linear-gradient(135deg,#FF4600 0%,#E63900 100%);color:#fff;padding:4px 12px;border-radius:15px;font-size:11px;font-weight:700;z-index:10;box-shadow:0 2px 8px rgba(255,70,0,0.35)}
+
+/* 더 많은 영상 - 모바일 횡스크롤 */
+.youtube-hybrid-section .more-videos-section{margin-top:20px}
+.youtube-hybrid-section .more-videos-title{font-size:14px;font-weight:600;color:#2c3e30;margin:0 0 12px 2px}
+.youtube-hybrid-section .more-videos-grid{display:flex;gap:12px;overflow-x:auto;scroll-snap-type:x mandatory;-webkit-overflow-scrolling:touch;padding-bottom:10px;scrollbar-width:none;-ms-overflow-style:none}
+.youtube-hybrid-section .more-videos-grid::-webkit-scrollbar{display:none}
+.youtube-hybrid-section .thumbnail-card{flex:0 0 70%;scroll-snap-align:start;position:relative;border-radius:8px;overflow:hidden;cursor:pointer;transition:all 0.3s ease;background:#fff;box-shadow:0 2px 8px rgba(0,0,0,0.06)}
+.youtube-hybrid-section .thumbnail-card:hover{transform:translateY(-3px);box-shadow:0 6px 16px rgba(0,0,0,0.12)}
+.youtube-hybrid-section .thumbnail-card .thumb-wrapper{position:relative;width:100%;padding-bottom:56.25%;overflow:hidden;background:#eee}
+.youtube-hybrid-section .thumbnail-card .thumb-wrapper img{position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover;transition:transform 0.3s ease}
+.youtube-hybrid-section .thumbnail-card:hover .thumb-wrapper img{transform:scale(1.05)}
+.youtube-hybrid-section .thumb-overlay{position:absolute;bottom:0;left:0;right:0;padding:30px 10px 10px;background:linear-gradient(to top,rgba(0,0,0,0.75) 0%,transparent 100%)}
+.youtube-hybrid-section .thumb-title{font-size:12px;font-weight:600;color:#fff;margin:0;line-height:1.3;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.youtube-hybrid-section .play-button{position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);width:40px;height:40px;background:rgba(255,255,255,0.92);border-radius:50%;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s ease}
+.youtube-hybrid-section .thumbnail-card:hover .play-button{opacity:1}
+.youtube-hybrid-section .play-button::after{content:'';width:0;height:0;border-style:solid;border-width:8px 0 8px 13px;border-color:transparent transparent transparent #2c3e30;margin-left:3px}
+.youtube-hybrid-section .thumbnail-card .badge-new{top:6px;left:6px;padding:3px 8px;font-size:9px}
+.youtube-hybrid-section .loading-message{text-align:center;padding:60px 20px;width:100%;background:#fff;border-radius:10px}
+.youtube-hybrid-section .spinner{width:40px;height:40px;margin:0 auto 12px;border:3px solid #eee;border-top-color:#7d9675;border-radius:50%;animation:yt-spin 0.8s linear infinite}
+@keyframes yt-spin{to{transform:rotate(360deg)}}
+.youtube-hybrid-section .error-message{text-align:center;padding:50px 20px;background:#fff;border-radius:10px;width:100%}
+.youtube-hybrid-section .error-message a{color:#7d9675;font-weight:600}
+
+/* 데스크톱 (768px 이상) */
+@media (min-width:768px){
+.youtube-hybrid-section{padding:70px 0}
+.youtube-hybrid-section .main-container{padding:0 20px}
+.youtube-hybrid-section .section-title h3{font-size:28px}
+.youtube-hybrid-section .section-title{margin-bottom:45px}
+.youtube-hybrid-section .main-area{flex-direction:row;gap:25px;margin-bottom:40px}
+.youtube-hybrid-section .main-video{flex:1.6}
+.youtube-hybrid-section .main-video-info{padding:22px 28px}
+.youtube-hybrid-section .main-video-title{font-size:20px}
+
+/* PC에서는 토글 비활성화, 항상 펼침 */
+.youtube-hybrid-section .product-sidebar{flex:1;display:flex;flex-direction:column}
+.youtube-hybrid-section .product-toggle-header{cursor:default;border-bottom:2px solid #b7c9ad}
+.youtube-hybrid-section .product-toggle-header:hover{background:transparent}
+.youtube-hybrid-section .toggle-icon{display:none}
+.youtube-hybrid-section .product-content{max-height:none!important;overflow:visible;flex:1}
+.youtube-hybrid-section .product-content-inner{padding:22px;display:flex;flex-direction:column;justify-content:center;height:100%}
+
+.youtube-hybrid-section .product-card{flex-direction:column;text-align:center}
+.youtube-hybrid-section .product-card-image{width:140px;height:140px;margin:0 auto}
+.youtube-hybrid-section .product-card-info{text-align:center}
+.youtube-hybrid-section .product-card-name{font-size:15px;white-space:normal}
+.youtube-hybrid-section .product-card-price{font-size:18px;margin-bottom:14px}
+.youtube-hybrid-section .btn-product{width:100%;padding:12px 20px;font-size:14px}
+
+/* PC에서는 그리드 레이아웃 */
+.youtube-hybrid-section .more-videos-section{margin-top:28px}
+.youtube-hybrid-section .more-videos-title{font-size:16px;margin-bottom:16px}
+.youtube-hybrid-section .more-videos-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;overflow:visible}
+.youtube-hybrid-section .thumbnail-card{flex:none}
+.youtube-hybrid-section .thumb-title{font-size:13px}
+}
+</style>
+
+<section class="youtube-hybrid-section" id="weekyoutube">
+    <div class="main-container">
+        <div class="section-title">
+            <h3>Learn & Shop</h3>
+            <p>영상으로 배우고, 바로 재료를 구매하세요</p>
+        </div>
+        <div id="youtube-main-area" class="main-area">
+            <div class="loading-message">
+                <div class="spinner"></div>
+                <p>최신 영상을 불러오는 중...</p>
+            </div>
+        </div>
+        <div class="more-videos-section">
+            <p class="more-videos-title">더 많은 영상</p>
+            <div id="youtube-more-videos" class="more-videos-grid"></div>
+        </div>
+    </div>
+</section>
+
+<script>
+(function(){
+var CONFIG={googleScriptUrl:'https://script.google.com/macros/s/AKfycbxNQxgd8Ew0oClPSIoSA3vbtbf4LoOyHL6j7J1cXSyI1gmaL3ya6teTwmu883js4zSkwg/exec',mappingDataUrl:'/design/jewoo/youtube-product-integration/product-mapping.json',maxVideos:5,cacheDuration:24*60*60*1000,newVideoDays:3};
+var mappingData=null,allVideos=[],currentMainIndex=0;
+
+function init(){if(!document.getElementById('youtube-main-area'))return;loadMappingData().then(loadYouTubeVideos).catch(showErrorMessage)}
+
+function loadMappingData(){return new Promise(function(resolve){$.ajax({url:CONFIG.mappingDataUrl,dataType:'json',cache:true,timeout:5000,success:function(data){if(data&&data.products)mappingData=data;resolve()},error:function(){resolve()}})})}
+
+function loadYouTubeVideos(){var CACHE_KEY='yt_hybrid_cache',CACHE_TIME_KEY='yt_hybrid_time';try{var cached=localStorage.getItem(CACHE_KEY),time=localStorage.getItem(CACHE_TIME_KEY);if(cached&&time&&(Date.now()-parseInt(time))<CONFIG.cacheDuration){allVideos=JSON.parse(cached);renderLayout();return Promise.resolve()}}catch(e){}return new Promise(function(resolve,reject){$.ajax({url:CONFIG.googleScriptUrl+'?count='+CONFIG.maxVideos+'&t='+Date.now(),dataType:'json',cache:false,timeout:15000,success:function(data){if(data.status==='success'&&data.items&&data.items.length>0){try{localStorage.setItem(CACHE_KEY,JSON.stringify(data.items));localStorage.setItem(CACHE_TIME_KEY,Date.now().toString())}catch(e){}allVideos=data.items;renderLayout();resolve()}else{reject()}},error:reject})})}
+
+function renderLayout(){if(allVideos.length===0){showErrorMessage();return}renderMainArea(allVideos[currentMainIndex]);renderMoreVideos()}
+
+function renderMainArea(video){
+var container=document.getElementById('youtube-main-area');
+if(!container)return;
+
+var html='<div class="main-video">';
+if(isNewVideo(video.publishedAt))html+='<span class="badge badge-new">NEW</span>';
+html+='<div class="video-wrapper"><iframe src="https://www.youtube.com/embed/'+video.id+'?rel=0&modestbranding=1" frameborder="0" allowfullscreen loading="lazy"></iframe></div>';
+html+='<div class="main-video-info"><h4 class="main-video-title">'+escapeHtml(video.title)+'</h4>';
+html+='<div class="main-video-meta"><span class="view-count">'+formatViewCount(video.viewCount)+'</span><span>'+formatDate(new Date(video.publishedAt))+'</span></div></div></div>';
+
+html+='<div class="product-sidebar" id="product-sidebar">';
+html+='<div class="product-toggle-header" onclick="toggleProductSidebar()">';
+html+='<h5>영상 속 재료 구매하기</h5>';
+html+='<span class="toggle-icon">▼</span>';
+html+='</div>';
+html+='<div class="product-content"><div class="product-content-inner">';
+
+var product=matchProduct(video);
+if(product){
+html+='<div class="product-card"><div class="product-card-image"><img src="'+product.image+'" alt=""></div>';
+html+='<div class="product-card-info"><p class="product-card-name">'+escapeHtml(product.name)+'</p>';
+html+='<p class="product-card-price">'+formatPrice(product.price)+'원</p>';
+html+='<a href="'+product.link+'" class="btn-product">제품 보기</a></div></div>';
+}else{
+html+='<div class="no-product-message"><p>이 영상의 관련 제품 정보가<br>준비 중입니다.</p></div>';
+}
+
+html+='</div></div></div>';
+container.innerHTML=html;
+
+if(window.innerWidth>=768){
+document.getElementById('product-sidebar').classList.add('expanded');
+}
+}
+
+function renderMoreVideos(){
+var container=document.getElementById('youtube-more-videos');
+if(!container)return;
+container.innerHTML='';
+
+var count=0;
+for(var i=0;i<allVideos.length&&count<4;i++){
+if(i===currentMainIndex)continue;
+var video=allVideos[i];
+var card=document.createElement('div');
+card.className='thumbnail-card';
+
+var html='';
+if(isNewVideo(video.publishedAt))html+='<span class="badge badge-new">NEW</span>';
+html+='<div class="thumb-wrapper"><img src="https://img.youtube.com/vi/'+video.id+'/mqdefault.jpg" alt=""><div class="play-button"></div>';
+html+='<div class="thumb-overlay"><p class="thumb-title">'+escapeHtml(video.title)+'</p></div></div>';
+card.innerHTML=html;
+
+(function(idx){
+card.addEventListener('click',function(){
+currentMainIndex=idx;
+renderLayout();
+document.querySelector('.youtube-hybrid-section').scrollIntoView({behavior:'smooth',block:'start'});
+});
+})(i);
+
+container.appendChild(card);
+count++;
+}
+}
+
+window.toggleProductSidebar=function(){
+if(window.innerWidth>=768)return;
+var sidebar=document.getElementById('product-sidebar');
+if(sidebar){
+sidebar.classList.toggle('expanded');
+}
+};
+
+function matchProduct(video){if(!mappingData)return null;var code=video.description?video.description.match(/\[제품코드:\s*([A-Z0-9]+)\]/):null;if(code&&mappingData.products[code[1]])return mappingData.products[code[1]];if(mappingData.keywords){var text=(video.title+' '+(video.description||'')).toLowerCase();for(var kw in mappingData.keywords){if(text.indexOf(kw.toLowerCase())>=0&&mappingData.products[mappingData.keywords[kw][0]]){return mappingData.products[mappingData.keywords[kw][0]]}}}return null}
+
+function isNewVideo(d){return Math.floor((new Date()-new Date(d))/86400000)<=CONFIG.newVideoDays}
+function formatViewCount(v){var c=parseInt(v);return isNaN(c)||c===0?'조회수 집계 중':c>=10000?(c/10000).toFixed(1)+'만 조회':c.toLocaleString()+' 조회'}
+function formatDate(d){var diff=Math.floor((new Date()-d)/86400000);return diff===0?'오늘':diff===1?'어제':diff<7?diff+'일 전':d.getFullYear()+'년 '+(d.getMonth()+1)+'월 '+d.getDate()+'일'}
+function formatPrice(p){return parseInt(p).toLocaleString()}
+function escapeHtml(t){return t?t.replace(/[&<>"']/g,function(m){return{'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]}):''}
+function showErrorMessage(){var c=document.getElementById('youtube-main-area');if(c)c.innerHTML='<div class="error-message"><p>영상을 불러올 수 없습니다.</p><p><a href="https://www.youtube.com/channel/UCOt_7gyvjqHBw304hU4-FUw" target="_blank">YouTube 채널에서 직접 보기</a></p></div>';var m=document.querySelector('.more-videos-section');if(m)m.style.display='none'}
+
+if(document.readyState==='loading')document.addEventListener('DOMContentLoaded',init);else init();
+window.clearYouTubeHybridCache=function(){localStorage.removeItem('yt_hybrid_cache');localStorage.removeItem('yt_hybrid_time');location.reload()}
+})();
+</script>
+<!--e: section_youtube -->

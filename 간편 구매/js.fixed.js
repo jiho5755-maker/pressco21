@@ -590,10 +590,10 @@
             naverPayBtn.addEventListener('click', function(e) {
                 e.preventDefault();
 
-                // 회원 상태 확인 (<!--/if_login/--> 가상태그로 렌더링된 hidden input)
-                var memberStatus = document.getElementById('pc21MemberStatus');
+                // 회원 상태 확인 (헤더의 로그아웃 링크 존재 여부로 판별)
+                var isLoggedIn = !!document.querySelector('a[href*="/exec/front/Member/logout"]');
 
-                if (!memberStatus) {
+                if (!isLoggedIn) {
                     // ── 비회원 → 주문형: 네이버페이 SDK 버튼 직접 실행 ──
                     var naverCheckout = document.querySelector('.naver-checkout');
                     var sdkButton = null;

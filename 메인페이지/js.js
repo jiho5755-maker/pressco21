@@ -390,14 +390,90 @@
 
     /* ========================================
        이미지 lazy loading (배너 제외 하단 섹션)
+       + 카테고리 아이콘 alt 텍스트 보강
        ======================================== */
     function applyLazyLoading() {
-        var images = document.querySelectorAll('#section02 img, #section03 img, #section04 img, .youtube-section-v3 img, .brand-philosophy img');
+        // 배너 아래 섹션 이미지 lazy loading
+        var images = document.querySelectorAll('#section01 img, #section02 img, #section03 img, #section04 img, .youtube-section-v3 img, .brand-philosophy img');
         for (var i = 0; i < images.length; i++) {
             if (!images[i].hasAttribute('loading')) {
                 images[i].setAttribute('loading', 'lazy');
             }
         }
+
+        // 카테고리 아이콘 alt 텍스트 보강
+        var categoryItems = document.querySelectorAll('#section01 .category-list li');
+        categoryItems.forEach(function(li) {
+            var img = li.querySelector('img');
+            var span = li.querySelector('span');
+            if (img && span && (!img.alt || img.alt === '')) {
+                img.alt = span.textContent.trim() + ' 아이콘';
+            }
+        });
+    }
+
+    /* ========================================
+       접근성: 탭 ARIA 속성 동적 초기화
+       메이크샵 HTML 편집기에서 가상태그 충돌 방지를 위해 JS로 처리
+       ======================================== */
+    function initTabAccessibility() {
+        var tabList = document.querySelector('#section02 .tab-nav-wrap ul');
+        if (!tabList) return;
+
+        tabList.setAttribute('role', 'tablist');
+        tabList.setAttribute('aria-label', '카테고리별 신상품 탭');
+
+        var tabs = tabList.querySelectorAll('li');
+        tabs.forEach(function(li, index) {
+            li.setAttribute('role', 'presentation');
+            var btn = li.querySelector('button');
+            if (btn) {
+                btn.setAttribute('role', 'tab');
+                btn.setAttribute('aria-selected', li.classList.contains('active') ? 'true' : 'false');
+            }
+        });
+    }
+
+    /* ========================================
+       SEO: Schema.org JSON-LD 동적 삽입
+       메이크샵 편집기에서 {중괄호}가 치환코드로 오인되므로 JS로 삽입
+       ======================================== */
+    function initSchemaOrg() {
+        var schemas = [
+            {
+                '@context': 'https://schema.org',
+                '@type': 'Organization',
+                'name': 'PRESSCO21',
+                'alternateName': '\ud504\ub808\uc2a4\ucf5421',
+                'url': 'https://foreverlove.co.kr',
+                'logo': 'https://jewoo.img4.kr/2026/homepage/logo.png',
+                'description': '30\ub144 \uc804\ud1b5\uc758 \uc555\ud654, \ubcf4\uc874\ud654 \uc804\ubb38 \ube0c\ub79c\ub4dc. \ud504\ub808\uc2a4\ub4dc\ud50c\ub77c\uc6cc, \ub808\uc9c4\uacf5\uc608, DIY \ud0a4\ud2b8, \uc6d0\ub370\uc774 \ud074\ub798\uc2a4\uae4c\uc9c0.',
+                'sameAs': ['https://www.instagram.com/pressco21'],
+                'contactPoint': {
+                    '@type': 'ContactPoint',
+                    'contactType': 'customer service',
+                    'availableLanguage': 'Korean'
+                }
+            },
+            {
+                '@context': 'https://schema.org',
+                '@type': 'WebSite',
+                'name': 'PRESSCO21',
+                'url': 'https://foreverlove.co.kr',
+                'potentialAction': {
+                    '@type': 'SearchAction',
+                    'target': 'https://foreverlove.co.kr/shop/search.html?search_str=' + '{' + 'search_term_string}',
+                    'query-input': 'required name=search_term_string'
+                }
+            }
+        ];
+
+        schemas.forEach(function(schema) {
+            var script = document.createElement('script');
+            script.type = 'application/ld+json';
+            script.textContent = JSON.stringify(schema);
+            document.head.appendChild(script);
+        });
     }
 
     /* ========================================
@@ -437,10 +513,12 @@
     $(function() {
         initSwipers();
         initTabs();
+        initTabAccessibility();
         initMoreButtons();
         loadYouTube();
         applyLazyLoading();
         initSEOMeta();
+        initSchemaOrg();
     });
 
 })();

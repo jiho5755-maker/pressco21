@@ -1032,8 +1032,7 @@ a.apple-login-btn {
 #loginWrap .password-toggle {
     position: absolute;
     right: 12px;
-    top: 50%;
-    transform: translateY(-50%);
+    bottom: 18px;
     background: none;
     border: none;
     padding: 4px;

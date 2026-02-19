@@ -582,6 +582,59 @@
                 }
             });
         }
+
+        // 네이버페이 버튼 클릭 시 주문형/결제형 분기 처리
+        var naverPayBtn = document.querySelector('.btn-naver-pay');
+
+        if (naverPayBtn) {
+            naverPayBtn.addEventListener('click', function(e) {
+                e.preventDefault();
+
+                // 회원 상태 확인 (<!--/if_login/--> 가상태그로 렌더링된 hidden input)
+                var memberStatus = document.getElementById('pc21MemberStatus');
+
+                if (!memberStatus) {
+                    // ── 비회원 → 주문형: 네이버페이 SDK 버튼 직접 실행 ──
+                    var naverCheckout = document.querySelector('.naver-checkout');
+                    var sdkButton = null;
+
+                    if (naverCheckout) {
+                        sdkButton = naverCheckout.querySelector('a, button, img[onclick], [onclick]');
+                    }
+
+                    // nhn_btn 영역도 탐색
+                    if (!sdkButton) {
+                        var nhnBtn = document.getElementById('nhn_btn');
+                        if (nhnBtn) {
+                            sdkButton = nhnBtn.querySelector('a, button, img[onclick], [onclick]');
+                        }
+                    }
+
+                    if (sdkButton) {
+                        sdkButton.click();
+                        console.log('네이버페이 주문형 결제 실행 (비회원)');
+                    } else {
+                        alert('네이버페이 결제가 활성화되지 않았습니다.\n메이크샵 관리자에서 네이버페이를 활성화해주세요.');
+                        console.warn('네이버페이 SDK 버튼을 찾을 수 없습니다.');
+                    }
+                } else {
+                    // ── 회원 → 결제형: 주문서로 이동하되 네이버페이만 표시 ──
+                    sessionStorage.setItem('pc21_pay_method', 'naverpay');
+
+                    var orderUrl = naverPayBtn.getAttribute('data-order-url');
+                    if (orderUrl && orderUrl !== '#none' && orderUrl !== '') {
+                        window.location.href = orderUrl;
+                    } else {
+                        // 대체: 바로 구매하기 버튼의 URL 사용
+                        var buyNowBtn = document.querySelector('.btn-buy-now');
+                        if (buyNowBtn && buyNowBtn.href) {
+                            window.location.href = buyNowBtn.href;
+                        }
+                    }
+                    console.log('네이버페이 결제형 실행 (회원)');
+                }
+            });
+        }
     });
 
     /* ========================================

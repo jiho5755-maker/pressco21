@@ -422,6 +422,8 @@ if (typeof window !== 'undefined') {
                     description: p.description,
                     imageUrl: p.imageUrl,
                     logoUrl: p.logoUrl,
+                    hours: p.hours || '',
+                    link: p.link || '',
                     association: p.association || '',
                     partnerType: p.partnerType
                         ? (typeof p.partnerType === 'string'
@@ -2561,12 +2563,51 @@ if (typeof window !== 'undefined') {
 
         if (partners.length === 0) {
             // Empty State 렌더링
-            listContainer.innerHTML = '<div class="pm-empty-state">' +
+            var emptyHtml = '<div class="pm-empty-state">' +
                 '<i class="ph ph-magnifying-glass pm-empty-icon" aria-hidden="true"></i>' +
                 '<h3>검색 결과가 없습니다</h3>' +
                 '<p>다른 필터를 선택하거나 검색어를 변경해보세요.</p>' +
                 '<button class="pm-empty-reset-btn" id="pm-empty-reset">필터 초기화</button>' +
                 '</div>';
+
+            // 가까운 파트너 추천 (전체 파트너 중 거리순 3개)
+            var allPartners = window.FilterService ? window.FilterService.partners : [];
+            var refPoint = window.FilterService ? window.FilterService.referencePoint : null;
+
+            if (allPartners.length > 0 && refPoint) {
+                var sorted = allPartners.slice().map(function(p) {
+                    var dist = self.calculateDistanceSimple(refPoint.lat, refPoint.lng, p.latitude, p.longitude);
+                    return { partner: p, distance: dist };
+                }).sort(function(a, b) {
+                    return a.distance - b.distance;
+                }).slice(0, 3);
+
+                emptyHtml += '<div class="pm-nearby-suggest">' +
+                    '<h4><i class="ph ph-map-pin-area" aria-hidden="true"></i> 가까운 파트너 추천</h4>' +
+                    '<div class="pm-nearby-cards">';
+
+                for (var si = 0; si < sorted.length; si++) {
+                    var sp = sorted[si].partner;
+                    var sdist = sorted[si].distance;
+                    var spName = window.escapeHtml(sp.name);
+                    var spAddr = window.escapeHtml(sp.address);
+                    var spLogo = sp.logoUrl || sp.imageUrl || self.config.defaultLogoPath;
+
+                    emptyHtml += '<div class="pm-nearby-card" data-partner-id="' + String(sp.id) + '">' +
+                        '<img src="' + spLogo + '" alt="' + spName + '" loading="lazy" ' +
+                        'onerror="this.onerror=null;this.style.display=\'none\'">' +
+                        '<div class="pm-nearby-info">' +
+                        '<strong>' + spName + '</strong>' +
+                        '<span class="pm-nearby-dist"><i class="ph ph-ruler"></i> ' + sdist.toFixed(1) + 'km</span>' +
+                        '<span class="pm-nearby-addr">' + spAddr + '</span>' +
+                        '</div>' +
+                        '</div>';
+                }
+
+                emptyHtml += '</div></div>';
+            }
+
+            listContainer.innerHTML = emptyHtml;
 
             // 필터 초기화 버튼 이벤트
             var resetBtn = document.getElementById('pm-empty-reset');
@@ -2574,6 +2615,20 @@ if (typeof window !== 'undefined') {
                 resetBtn.addEventListener('click', function() {
                     if (window.FilterService) {
                         window.FilterService.resetFilters();
+                    }
+                });
+            }
+
+            // 추천 카드 클릭 → 상세 모달
+            var nearbyCards = listContainer.querySelectorAll('.pm-nearby-card');
+            for (var nc = 0; nc < nearbyCards.length; nc++) {
+                nearbyCards[nc].addEventListener('click', function() {
+                    var pid = this.getAttribute('data-partner-id');
+                    var found = allPartners.find(function(p) {
+                        return String(p.id) === pid;
+                    });
+                    if (found) {
+                        self.showPartnerDetail(found);
                     }
                 });
             }
@@ -2723,7 +2778,7 @@ if (typeof window !== 'undefined') {
         var favoriteIcon = '<i class="ph ' + favoriteIconClass + '"></i>';
         var favoriteClass = isFavorite ? 'active' : '';
 
-        var logoUrl = partner.logo || self.config.defaultLogoPath;
+        var logoUrl = partner.logoUrl || partner.imageUrl || self.config.defaultLogoPath;
         var escapedName = window.escapeHtml(partner.name);
         var escapedAddress = window.escapeHtml(partner.address);
         var escapedPhone = window.escapeHtml(partner.phone || '-');
@@ -2799,12 +2854,35 @@ if (typeof window !== 'undefined') {
         var favoriteText = isFavorite ? '즐겨찾기됨' : '즐겨찾기';
         var favoriteClass = isFavorite ? 'active' : '';
 
-        var logoUrl = partner.logo || self.config.defaultLogoPath;
+        var logoUrl = partner.logoUrl || partner.imageUrl || self.config.defaultLogoPath;
         var escapedName = window.escapeHtml(partner.name);
         var escapedAddress = window.escapeHtml(partner.address);
         var escapedPhone = window.escapeHtml(partner.phone || '-');
         var escapedEmail = partner.email ? window.escapeHtml(partner.email) : '';
         var escapedDescription = partner.description ? window.escapeHtml(partner.description) : '소개 정보가 없습니다.';
+        var escapedHours = partner.hours ? window.escapeHtml(partner.hours) : '';
+
+        // 링크 필드에서 homepage/instagram 추출
+        var linkText = partner.link || '';
+        var homepage = '';
+        var instagram = '';
+        if (linkText) {
+            var linkParts = linkText.split(/[,\s]+/);
+            for (var li = 0; li < linkParts.length; li++) {
+                var part = linkParts[li].trim();
+                if (!part) continue;
+                if (part.indexOf('instagram.com') !== -1 || part.indexOf('instagr.am') !== -1) {
+                    instagram = part.startsWith('http') ? part : 'https://' + part;
+                } else if (part.startsWith('http') || part.startsWith('www.')) {
+                    homepage = part.startsWith('http') ? part : 'https://' + part;
+                } else if (part.startsWith('@')) {
+                    instagram = 'https://instagram.com/' + part.replace('@', '');
+                }
+            }
+        }
+
+        // 모바일 여부 판별
+        var isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 
         // 카테고리 태그 (모달에서는 전체 표시)
         var categories = Array.isArray(partner.category) ? partner.category : [partner.category];
@@ -2839,43 +2917,104 @@ if (typeof window !== 'undefined') {
                    '<div class="pm-modal-section">' +
                    '<h3>위치 정보</h3>' +
                    '<p class="pm-address"><i class="ph ph-map-pin"></i> ' + escapedAddress + '</p>' +
-                   '<div class="pm-navigation-buttons">' +
-                   '<a href="https://map.naver.com/v5/search/' + encodeURIComponent(partner.address) + '" ' +
-                   'target="_blank" rel="noopener noreferrer" ' +
-                   'class="pm-nav-btn pm-nav-naver" ' +
-                   'aria-label="네이버 지도에서 ' + escapedName + ' 위치 보기">' +
-                   '<i class="ph ph-map-trifold"></i> 네이버 지도</a>' +
-                   '<a href="https://map.kakao.com/?q=' + encodeURIComponent(partner.address) + '" ' +
-                   'target="_blank" rel="noopener noreferrer" ' +
-                   'class="pm-nav-btn pm-nav-kakao" ' +
-                   'aria-label="카카오맵에서 ' + escapedName + ' 위치 보기">' +
-                   '<i class="ph ph-map-trifold"></i> 카카오맵</a>' +
-                   '</div>' +
-                   '</div>' +
-                   '<div class="pm-modal-section">' +
+                   '<div class="pm-navigation-buttons">';
+
+        // 모바일: 앱 딥링크 + 웹 폴백 / PC: 웹 링크
+        if (isMobile && partner.latitude && partner.longitude) {
+            var naverDeepLink = 'nmap://route/public?dlat=' + partner.latitude +
+                '&dlng=' + partner.longitude +
+                '&dname=' + encodeURIComponent(partner.name) +
+                '&appname=com.pressco21';
+            var naverWebFallback = 'https://map.naver.com/v5/search/' + encodeURIComponent(partner.address);
+            var kakaoDeepLink = 'kakaomap://route?ep=' + partner.latitude + ',' + partner.longitude + '&by=CAR';
+            var kakaoWebFallback = 'https://map.kakao.com/?q=' + encodeURIComponent(partner.address);
+
+            html += '<a href="#" class="pm-nav-btn pm-nav-naver" ' +
+                    'data-deeplink="' + window.escapeHtml(naverDeepLink) + '" ' +
+                    'data-fallback="' + window.escapeHtml(naverWebFallback) + '" ' +
+                    'role="button" ' +
+                    'aria-label="네이버 지도에서 ' + escapedName + ' 길찾기">' +
+                    '<i class="ph ph-map-trifold"></i> 네이버 지도</a>' +
+                    '<a href="#" class="pm-nav-btn pm-nav-kakao" ' +
+                    'data-deeplink="' + window.escapeHtml(kakaoDeepLink) + '" ' +
+                    'data-fallback="' + window.escapeHtml(kakaoWebFallback) + '" ' +
+                    'role="button" ' +
+                    'aria-label="카카오맵에서 ' + escapedName + ' 길찾기">' +
+                    '<i class="ph ph-map-trifold"></i> 카카오맵</a>';
+        } else {
+            html += '<a href="https://map.naver.com/v5/search/' + encodeURIComponent(partner.address) + '" ' +
+                    'target="_blank" rel="noopener noreferrer" ' +
+                    'class="pm-nav-btn pm-nav-naver" ' +
+                    'aria-label="네이버 지도에서 ' + escapedName + ' 위치 보기">' +
+                    '<i class="ph ph-map-trifold"></i> 네이버 지도</a>' +
+                    '<a href="https://map.kakao.com/?q=' + encodeURIComponent(partner.address) + '" ' +
+                    'target="_blank" rel="noopener noreferrer" ' +
+                    'class="pm-nav-btn pm-nav-kakao" ' +
+                    'aria-label="카카오맵에서 ' + escapedName + ' 위치 보기">' +
+                    '<i class="ph ph-map-trifold"></i> 카카오맵</a>';
+        }
+
+        html += '</div>' +
+                   '</div>';
+
+        // 영업시간 섹션
+        if (escapedHours) {
+            html += '<div class="pm-modal-section">' +
+                    '<h3><i class="ph ph-clock"></i> 영업시간</h3>' +
+                    '<p class="pm-hours-text">' + escapedHours + '</p>' +
+                    '</div>';
+        }
+
+        html += '<div class="pm-modal-section">' +
                    '<h3>연락처</h3>' +
                    '<p><i class="ph ph-phone"></i> <a href="tel:' + partner.phone + '">' + escapedPhone + '</a></p>' +
                    (escapedEmail ? '<p><i class="ph ph-envelope-simple"></i> <a href="mailto:' + partner.email + '">' + escapedEmail + '</a></p>' : '') +
                    '</div>';
 
-        // 홈페이지, 인스타그램
-        if (partner.homepage || partner.instagram) {
+        // 홈페이지, 인스타그램 (link 필드에서 추출)
+        if (homepage || instagram) {
             html += '<div class="pm-modal-section">' +
                     '<h3>링크</h3>';
 
-            if (partner.homepage) {
-                html += '<p><i class="ph ph-globe"></i> <a href="' + partner.homepage + '" target="_blank">홈페이지</a></p>';
+            if (homepage) {
+                html += '<p><i class="ph ph-globe"></i> <a href="' + window.escapeHtml(homepage) + '" target="_blank" rel="noopener noreferrer">홈페이지</a></p>';
             }
 
-            if (partner.instagram) {
-                var instagramUrl = partner.instagram.startsWith('http') ? partner.instagram : 'https://instagram.com/' + partner.instagram;
-                html += '<p><i class="ph ph-instagram-logo"></i> <a href="' + instagramUrl + '" target="_blank">인스타그램</a></p>';
+            if (instagram) {
+                html += '<p><i class="ph ph-instagram-logo"></i> <a href="' + window.escapeHtml(instagram) + '" target="_blank" rel="noopener noreferrer">인스타그램</a></p>';
             }
 
             html += '</div>';
+        } else if (linkText) {
+            // homepage/instagram으로 분류되지 않은 일반 링크
+            var safeLink = linkText.startsWith('http') ? linkText : 'https://' + linkText;
+            html += '<div class="pm-modal-section">' +
+                    '<h3>링크</h3>' +
+                    '<p><i class="ph ph-globe"></i> <a href="' + window.escapeHtml(safeLink) + '" target="_blank" rel="noopener noreferrer">' + window.escapeHtml(linkText) + '</a></p>' +
+                    '</div>';
         }
 
         modalBody.innerHTML = html;
+
+        // 모바일 딥링크 클릭 핸들러 (이벤트 위임)
+        if (isMobile) {
+            var navButtons = modalBody.querySelectorAll('.pm-nav-btn[data-deeplink]');
+            for (var ni = 0; ni < navButtons.length; ni++) {
+                navButtons[ni].addEventListener('click', function(e) {
+                    e.preventDefault();
+                    var deeplink = this.getAttribute('data-deeplink');
+                    var fallback = this.getAttribute('data-fallback');
+                    var timer = setTimeout(function() {
+                        window.location.href = fallback;
+                    }, 1500);
+                    window.location.href = deeplink;
+                    // 앱이 열리면 페이지를 떠나므로 타이머가 자동 해제됨
+                    window.addEventListener('pagehide', function() {
+                        clearTimeout(timer);
+                    }, { once: true });
+                });
+            }
+        }
 
         modal.classList.add('pm-modal-active');
         document.body.style.overflow = 'hidden';
@@ -2895,6 +3034,24 @@ if (typeof window !== 'undefined') {
             modal.classList.remove('pm-modal-active');
             document.body.style.overflow = '';
         }
+    };
+
+    /**
+     * 간단 거리 계산 (Haversine)
+     * @param {number} lat1 - 위도1
+     * @param {number} lng1 - 경도1
+     * @param {number} lat2 - 위도2
+     * @param {number} lng2 - 경도2
+     * @returns {number} 거리 (km)
+     */
+    UIService.prototype.calculateDistanceSimple = function(lat1, lng1, lat2, lng2) {
+        var R = 6371;
+        var dLat = (lat2 - lat1) * Math.PI / 180;
+        var dLng = (lng2 - lng1) * Math.PI / 180;
+        var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+                Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+                Math.sin(dLng / 2) * Math.sin(dLng / 2);
+        return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     };
 
     /**

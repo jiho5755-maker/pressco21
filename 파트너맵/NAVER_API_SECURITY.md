@@ -31,10 +31,10 @@ https://www.your-makeshop-domain.com
 http://localhost:*  (로컬 개발용 - 운영 시 제거 권장)
 ```
 
-**예시:**
+**예시 (프레스코21 실제 도메인):**
 ```
-https://pressco21.co.kr
-https://www.pressco21.co.kr
+https://foreverlove.co.kr
+https://www.foreverlove.co.kr
 ```
 
 3. **저장** 버튼 클릭

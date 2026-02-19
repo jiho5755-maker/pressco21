@@ -17,13 +17,13 @@
                         <!--/if_use_login_sns/-->
                         <div id="simpleLogin" class="login-version-order">
                             <!-- 탭 메뉴 -->
-                            <ul class="cw-tab">
-                                <li class="now"><a href="#member-login">일반회원 로그인</a></li>
-                                <li><a href="#non-member-order">비회원 주문조회</a></li>
+                            <ul class="cw-tab" role="tablist">
+                                <li class="now"><a href="#member-login" role="tab" aria-selected="true" id="tab-member-login">일반회원 로그인</a></li>
+                                <li><a href="#non-member-order" role="tab" aria-selected="false" id="tab-non-member-order">비회원 주문조회</a></li>
                             </ul>
 
                             <!-- 일반회원 로그인 탭 -->
-                            <div id="member-login" class="tab-content active">
+                            <div id="member-login" class="tab-content active" role="tabpanel" aria-labelledby="tab-member-login">
                                 <h2 class="welcome-title">환영합니다!
 1초 만에 가입하고
 멤버십 혜택을 바로 확인하세요</h2>
@@ -52,13 +52,13 @@
                                 </div><!-- .sns-login -->
 
                                 <div class="id-login-toggle">
-                                    <a href="javascript:void(0);" class="toggle-link" id="toggleTraditionalLogin">
+                                    <a href="javascript:void(0);" class="toggle-link" id="toggleTraditionalLogin" role="button" aria-expanded="false" aria-controls="traditionalLoginForm">
                                         아이디로 로그인하기
                                     </a>
                                 </div>
 
                                 <!-- 아이디 로그인 폼 - 토글로 보여짐 -->
-                                <div class="mlog-sign">
+                                <div class="mlog-sign" id="traditionalLoginForm">
                                     <div class="mlog">
                                         <h3>회원 로그인</h3>
                                         <p>가입하신 아이디와 비밀번호를 입력해주세요.<br />비밀번호는 대소문자를 구분합니다.</p>
@@ -103,7 +103,7 @@
                             </div>
 
                             <!-- 비회원 주문조회 탭 -->
-                            <div id="non-member-order" class="tab-content">
+                            <div id="non-member-order" class="tab-content" role="tabpanel" aria-labelledby="tab-non-member-order">
                                 <h2 class="welcome-title">비회원 주문조회</h2>
                                 <p class="welcome-subtitle">주문번호로 주문 내역을 확인하세요</p>
 

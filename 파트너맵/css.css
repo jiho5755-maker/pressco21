@@ -1957,3 +1957,103 @@
     transform: translateY(-2px);
     box-shadow: var(--pm-shadow-md);
 }
+
+/* ========================================
+   가까운 파트너 추천 (Empty State 확장)
+   ======================================== */
+
+#partnermap-container .pm-nearby-suggest {
+    margin-top: var(--pm-space-8);
+    padding-top: var(--pm-space-6);
+    border-top: 1px solid var(--pm-border-light);
+    width: 100%;
+}
+
+#partnermap-container .pm-nearby-suggest h4 {
+    margin: 0 0 var(--pm-space-4);
+    font-size: var(--pm-text-base);
+    font-weight: var(--pm-font-semibold);
+    color: var(--pm-text-primary);
+    display: flex;
+    align-items: center;
+    gap: var(--pm-space-2);
+}
+
+#partnermap-container .pm-nearby-cards {
+    display: flex;
+    flex-direction: column;
+    gap: var(--pm-space-3);
+}
+
+#partnermap-container .pm-nearby-card {
+    display: flex;
+    align-items: center;
+    gap: var(--pm-space-3);
+    padding: var(--pm-space-3);
+    background: var(--pm-bg-secondary);
+    border: 1px solid var(--pm-border-light);
+    border-radius: var(--pm-radius-base);
+    cursor: pointer;
+    transition: all var(--pm-transition-fast);
+}
+
+#partnermap-container .pm-nearby-card:hover {
+    border-color: var(--pm-primary);
+    background: var(--pm-primary-pale);
+    transform: translateX(4px);
+}
+
+#partnermap-container .pm-nearby-card img {
+    width: 48px;
+    height: 48px;
+    border-radius: var(--pm-radius-base);
+    object-fit: cover;
+    flex-shrink: 0;
+}
+
+#partnermap-container .pm-nearby-info {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    min-width: 0;
+}
+
+#partnermap-container .pm-nearby-info strong {
+    font-size: var(--pm-text-sm);
+    font-weight: var(--pm-font-semibold);
+    color: var(--pm-text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+#partnermap-container .pm-nearby-dist {
+    font-size: var(--pm-text-xs);
+    color: var(--pm-primary);
+    font-weight: var(--pm-font-medium);
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+#partnermap-container .pm-nearby-addr {
+    font-size: var(--pm-text-xs);
+    color: var(--pm-text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+/* ========================================
+   영업시간 표시 (모달 내)
+   ======================================== */
+
+#partnermap-container .pm-hours-text {
+    white-space: pre-line;
+    line-height: var(--pm-leading-relaxed);
+}
+
+#partnermap-container .pm-modal-section h3 i.ph-clock {
+    margin-right: var(--pm-space-1);
+    vertical-align: middle;
+}

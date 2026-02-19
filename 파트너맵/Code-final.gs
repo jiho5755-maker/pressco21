@@ -88,8 +88,18 @@ function geocodeAddress(address) {
  * 웹 앱 API 엔드포인트
  * "설문지 응답 시트1"의 승인된 데이터를 JSON으로 반환
  */
-function doGet() {
+function doGet(e) {
   try {
+    // 간단한 API 토큰 검증 (선택적 보안 강화)
+    // 사용법: GAS URL에 ?token=pc21_xxxxx 파라미터 추가
+    // 참고: GAS 웹 앱은 HTTP 헤더(Referer 등) 접근 불가하므로 토큰 방식 사용
+    var VALID_TOKEN = 'pc21_partner_v3';
+    if (e && e.parameter && e.parameter.token) {
+      if (e.parameter.token !== VALID_TOKEN) {
+        return createErrorResponse('인증 실패: 유효하지 않은 토큰입니다.');
+      }
+    }
+
     var ss = SpreadsheetApp.getActiveSpreadsheet();
     var sheet = ss.getSheetByName('설문지 응답 시트1');
 
@@ -199,6 +209,9 @@ function doGet() {
  * 성공 응답
  */
 function createSuccessResponse(data) {
+  // 캐시 관련 메타 정보 추가
+  data.cacheControl = 'max-age=3600';
+  data.serverVersion = '3.1';
   var output = ContentService.createTextOutput(JSON.stringify(data));
   output.setMimeType(ContentService.MimeType.JSON);
   return output;

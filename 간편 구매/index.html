@@ -78,6 +78,17 @@
                 <p class="goods--engname"><!--/engname/--></p>
                 <!--/end_if/-->
                 <p class="goods--subtitle"><!--/subname/--></p>
+                <!-- 리뷰 바로가기 + 조회 배지 -->
+                <div class="product-badges">
+                    <a href="#content2" id="reviewAnchorBtn" class="review-anchor-btn">
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 22 12 18.27 5.82 22 7 14.14l-5-4.87 6.91-1.01L12 2z"/></svg>
+                        후기 <span class="review-count">0</span>건
+                    </a>
+                    <span id="viewCountBadge" class="view-badge" style="display:none;">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                        오늘 <span class="badge-count">0</span>명이 봤습니다
+                    </span>
+                </div>
                 <div class="goods--price-wrap">
                     <div class="prices">
                         <!--/if_price_replace/-->
@@ -740,12 +751,12 @@
 
     <div class="row tab-wrapper">
         <div class="col-12 tab-wrapper--contents">
-            <div id="content1" class="tab-wrapper--content active">
-                <ul class="tab-navi--links">
-                    <li class="active"><a href="#content1"><span>상세정보</span></a></li>
-                    <li><a href="#content2"><span>후기<em>(<!--/if_form_review/--><!--/review_total_count/--><!--/else/--><!--/review_board_total_count/--><!--/end_if/-->)</em></span></a></li>
-                    <li><a href="#content3"><span>문의<em>(<!--/qna_board_total_count/-->)</em></span></a></li>
-                    <li><a href="#content4"><span>구매안내</span></a></li>
+            <div id="content1" class="tab-wrapper--content active" role="tabpanel" aria-labelledby="tab-detail">
+                <ul class="tab-navi--links" role="tablist" aria-label="상품 정보 탭">
+                    <li class="active"><a href="#content1" role="tab" id="tab-detail" aria-selected="true" aria-controls="content1"><span>상세정보</span></a></li>
+                    <li><a href="#content2" role="tab" id="tab-review" aria-selected="false" aria-controls="content2"><span>후기<em>(<!--/if_form_review/--><!--/review_total_count/--><!--/else/--><!--/review_board_total_count/--><!--/end_if/-->)</em></span></a></li>
+                    <li><a href="#content3" role="tab" id="tab-qna" aria-selected="false" aria-controls="content3"><span>문의<em>(<!--/qna_board_total_count/-->)</em></span></a></li>
+                    <li><a href="#content4" role="tab" id="tab-guide" aria-selected="false" aria-controls="content4"><span>구매안내</span></a></li>
                 </ul>
                 
                 <!-- 스마트 쿠폰 목록-->
@@ -909,7 +920,7 @@
                 <!--/end_if/-->
             </div><!-- .tab-wrapper--content -->
 
-            <div id="content2" class="tab-wrapper--content">
+            <div id="content2" class="tab-wrapper--content" role="tabpanel" aria-labelledby="tab-review">
                 <ul class="tab-navi--links">
                     <li><a href="#content1"><span>상세정보</span></a></li>
                     <li class="active"><a href="#content2"><span>후기<em>(<!--/if_form_review/--><!--/review_total_count/--><!--/else/--><!--/review_board_total_count/--><!--/end_if/-->)</em></span></a></li>
@@ -1283,7 +1294,7 @@
                 
             </div><!-- .tab-wrapper--content -->
 
-            <div id="content3" class="tab-wrapper--content">
+            <div id="content3" class="tab-wrapper--content" role="tabpanel" aria-labelledby="tab-qna">
                 <ul class="tab-navi--links">
                     <li><a href="#content1"><span>상세정보</span></a></li>
                     <li><a href="#content2"><span>후기<em>(<!--/if_form_review/--><!--/review_total_count/--><!--/else/--><!--/review_board_total_count/--><!--/end_if/-->)</em></span></a></li>
@@ -1404,7 +1415,7 @@
                     <!--/end_if/-->
                 </div>
             </div><!-- .tab-wrapper--content -->
-            <div id="content4" class="tab-wrapper--content">
+            <div id="content4" class="tab-wrapper--content" role="tabpanel" aria-labelledby="tab-guide">
                 <ul class="tab-navi--links">
                     <li><a href="#content1"><span>상세정보</span></a></li>
                     <li><a href="#content2"><span>후기<em>(<!--/if_form_review/--><!--/review_total_count/--><!--/else/--><!--/review_board_total_count/--><!--/end_if/-->)</em></span></a></li>
@@ -1467,6 +1478,12 @@
             </div><!-- .tab-wrapper--content -->
         </div>
     </div>
+</div>
+
+<!-- 최근 본 상품 -->
+<div class="recent-products" style="display:none;">
+    <h3 class="recent-title">최근 본 상품</h3>
+    <div class="recent-scroll" id="recentProductsWrap"></div>
 </div>
 
 <div class="sticky-btns">

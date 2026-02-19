@@ -1,0 +1,518 @@
+<!--
+  상품 카드 스켈레톤 UI
+  - shimmer 애니메이션 포함
+  - 반응형 그리드: 모바일 2열 / 태블릿 3열 / 데스크톱 4열
+  - CSS 스코핑: #skeleton-section 하위로 모든 스타일 제한
+  - 메이크샵 D4 데이터 로드 전 노출용 플레이스홀더
+-->
+
+<style>
+  /* ========================================
+     CSS 변수 (프로젝트 공통)
+  ======================================== */
+  #skeleton-section {
+    --color-primary: #7d9675;
+    --color-primary-light: #b7c9ad;
+    --color-dark: #2c3e30;
+    --color-text: #4a4a4a;
+    --color-bg: #fdfbf7;
+    --color-white: #fff;
+    --color-accent: #d4a373;
+
+    /* 스켈레톤 전용 변수 */
+    --skeleton-base: #e8ede6;
+    --skeleton-shine: #f4f7f2;
+    --skeleton-radius-card: 8px;
+    --skeleton-radius-img: 6px;
+  }
+
+  /* ========================================
+     shimmer 핵심 애니메이션
+     - 좌→우로 빛이 흐르는 효과
+  ======================================== */
+  @keyframes skeleton-shimmer {
+    0% {
+      background-position: -600px 0;
+    }
+    100% {
+      background-position: 600px 0;
+    }
+  }
+
+  /* shimmer 공통 믹스인 역할 클래스 */
+  #skeleton-section .skeleton-shimmer {
+    background: linear-gradient(
+      90deg,
+      var(--skeleton-base) 25%,
+      var(--skeleton-shine) 50%,
+      var(--skeleton-base) 75%
+    );
+    background-size: 1200px 100%;
+    animation: skeleton-shimmer 1.6s ease-in-out infinite;
+  }
+
+  /* ========================================
+     섹션 외부 레이아웃
+  ======================================== */
+  #skeleton-section {
+    width: 100%;
+    padding: 0 16px;
+    box-sizing: border-box;
+    margin-bottom: 50px;
+  }
+
+  /* 섹션 타이틀 스켈레톤 */
+  #skeleton-section .skeleton-title-wrap {
+    display: flex;
+    justify-content: center;
+    margin-bottom: 25px;
+  }
+
+  #skeleton-section .skeleton-title {
+    width: 140px;
+    height: 26px;
+    border-radius: 4px;
+  }
+
+  /* ========================================
+     탭 네비게이션 스켈레톤
+  ======================================== */
+  #skeleton-section .skeleton-tab-wrap {
+    display: flex;
+    gap: 8px;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 32px;
+    background: var(--skeleton-base);
+    border-radius: 25px;
+    padding: 6px;
+  }
+
+  #skeleton-section .skeleton-tab-item {
+    width: 64px;
+    height: 32px;
+    border-radius: 20px;
+  }
+
+  #skeleton-section .skeleton-tab-item:first-child {
+    /* 첫 번째 탭은 활성 탭처럼 약간 더 밝게 */
+    background: var(--skeleton-shine) !important;
+    animation: none;
+  }
+
+  /* ========================================
+     상품 카드 그리드
+     - 모바일(~767px): 2열
+     - 태블릿(768px~991px): 3열
+     - 데스크톱(992px~): 4열
+  ======================================== */
+  #skeleton-section .skeleton-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px 12px;
+  }
+
+  @media (min-width: 768px) {
+    #skeleton-section {
+      padding: 0 24px;
+    }
+
+    #skeleton-section .skeleton-title {
+      width: 180px;
+      height: 32px;
+    }
+
+    #skeleton-section .skeleton-grid {
+      grid-template-columns: repeat(3, 1fr);
+      gap: 20px 16px;
+    }
+  }
+
+  @media (min-width: 992px) {
+    #skeleton-section {
+      max-width: 1760px;
+      margin: 0 auto 80px;
+      padding: 0 32px;
+    }
+
+    #skeleton-section .skeleton-grid {
+      grid-template-columns: repeat(4, 1fr);
+      gap: 24px 20px;
+    }
+  }
+
+  @media (min-width: 1200px) {
+    #skeleton-section .skeleton-grid {
+      gap: 28px 24px;
+    }
+  }
+
+  /* ========================================
+     개별 상품 카드 스켈레톤
+  ======================================== */
+  #skeleton-section .skeleton-card {
+    background: #fafafa;
+    border-radius: var(--skeleton-radius-card);
+    overflow: hidden;
+    /* 카드 자체는 배경만, 내부 요소에 shimmer 적용 */
+  }
+
+  /* 상품 이미지 영역 (정사각형 1:1 비율) */
+  #skeleton-section .skeleton-card .skeleton-img-wrap {
+    position: relative;
+    width: 100%;
+    /* padding-bottom: 100% → 정사각형 유지 */
+    padding-bottom: 100%;
+    border-radius: var(--skeleton-radius-img);
+    overflow: hidden;
+  }
+
+  #skeleton-section .skeleton-card .skeleton-img {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+  }
+
+  /* 카드 하단 텍스트 정보 영역 */
+  #skeleton-section .skeleton-card .skeleton-info {
+    padding: 10px 4px 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+
+  /* 리뷰 카운트 플레이스홀더 */
+  #skeleton-section .skeleton-card .skeleton-review {
+    width: 48px;
+    height: 12px;
+    border-radius: 3px;
+  }
+
+  /* 상품명 플레이스홀더 (두 줄) */
+  #skeleton-section .skeleton-card .skeleton-name {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  #skeleton-section .skeleton-card .skeleton-name-line {
+    height: 14px;
+    border-radius: 3px;
+  }
+
+  /* 첫 번째 줄: 100% 너비 */
+  #skeleton-section .skeleton-card .skeleton-name-line:nth-child(1) {
+    width: 100%;
+  }
+
+  /* 두 번째 줄: 70% 너비 (자연스러운 텍스트 줄바꿈 연출) */
+  #skeleton-section .skeleton-card .skeleton-name-line:nth-child(2) {
+    width: 70%;
+  }
+
+  /* 가격 플레이스홀더 */
+  #skeleton-section .skeleton-card .skeleton-price-wrap {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 4px;
+  }
+
+  /* 정가 (취소선 가격) */
+  #skeleton-section .skeleton-card .skeleton-price-consumer {
+    width: 56px;
+    height: 12px;
+    border-radius: 3px;
+    opacity: 0.6;
+  }
+
+  /* 판매가 (주요 가격) */
+  #skeleton-section .skeleton-card .skeleton-price-sell {
+    width: 80px;
+    height: 18px;
+    border-radius: 3px;
+  }
+
+  @media (min-width: 768px) {
+    #skeleton-section .skeleton-card .skeleton-info {
+      padding: 12px 6px 16px;
+      gap: 10px;
+    }
+
+    #skeleton-section .skeleton-card .skeleton-review {
+      height: 13px;
+    }
+
+    #skeleton-section .skeleton-card .skeleton-name-line {
+      height: 15px;
+    }
+
+    #skeleton-section .skeleton-card .skeleton-price-sell {
+      width: 96px;
+      height: 20px;
+    }
+  }
+
+  @media (min-width: 992px) {
+    #skeleton-section .skeleton-card .skeleton-info {
+      padding: 14px 8px 18px;
+    }
+
+    #skeleton-section .skeleton-card .skeleton-name-line {
+      height: 16px;
+    }
+
+    #skeleton-section .skeleton-card .skeleton-price-sell {
+      width: 110px;
+      height: 22px;
+    }
+  }
+
+  /* ========================================
+     더보기 버튼 스켈레톤
+  ======================================== */
+  #skeleton-section .skeleton-btn-wrap {
+    display: flex;
+    justify-content: center;
+    margin-top: 24px;
+  }
+
+  #skeleton-section .skeleton-btn {
+    width: 106px;
+    height: 32px;
+    border-radius: 25px;
+  }
+
+  /* ========================================
+     shimmer 애니메이션 지연 (stagger 효과)
+     - 카드마다 조금씩 다른 시작 타이밍으로
+       자연스러운 물결 효과 연출
+  ======================================== */
+  #skeleton-section .skeleton-card:nth-child(2) .skeleton-shimmer {
+    animation-delay: 0.1s;
+  }
+
+  #skeleton-section .skeleton-card:nth-child(3) .skeleton-shimmer {
+    animation-delay: 0.2s;
+  }
+
+  #skeleton-section .skeleton-card:nth-child(4) .skeleton-shimmer {
+    animation-delay: 0.3s;
+  }
+
+  #skeleton-section .skeleton-card:nth-child(5) .skeleton-shimmer {
+    animation-delay: 0.15s;
+  }
+
+  #skeleton-section .skeleton-card:nth-child(6) .skeleton-shimmer {
+    animation-delay: 0.25s;
+  }
+
+  #skeleton-section .skeleton-card:nth-child(7) .skeleton-shimmer {
+    animation-delay: 0.05s;
+  }
+
+  #skeleton-section .skeleton-card:nth-child(8) .skeleton-shimmer {
+    animation-delay: 0.35s;
+  }
+
+  /* ========================================
+     접근성: 사용자가 모션 줄이기를 설정한 경우
+     애니메이션 비활성화
+  ======================================== */
+  @media (prefers-reduced-motion: reduce) {
+    #skeleton-section .skeleton-shimmer {
+      animation: none;
+      background: var(--skeleton-base);
+    }
+  }
+</style>
+
+<!-- 상품 카드 스켈레톤 UI 영역 -->
+<!-- TODO: JS에서 실제 상품 데이터 로드 완료 시 이 섹션을 hidden 처리 -->
+<section
+  id="skeleton-section"
+  aria-label="상품 목록 로딩 중"
+  aria-busy="true"
+  aria-live="polite"
+>
+  <!-- 섹션 타이틀 스켈레톤 -->
+  <div class="skeleton-title-wrap" aria-hidden="true">
+    <div class="skeleton-title skeleton-shimmer"></div>
+  </div>
+
+  <!-- 탭 네비게이션 스켈레톤 (New Arrival 탭 영역) -->
+  <div class="skeleton-tab-wrap" aria-hidden="true">
+    <!-- 탭 아이템 7개: 압화/보존화/레진공예/하바리움/DIY/부케말리기/식물표본 -->
+    <div class="skeleton-tab-item skeleton-shimmer"></div>
+    <div class="skeleton-tab-item skeleton-shimmer"></div>
+    <div class="skeleton-tab-item skeleton-shimmer"></div>
+    <div class="skeleton-tab-item skeleton-shimmer"></div>
+    <div class="skeleton-tab-item skeleton-shimmer"></div>
+    <div class="skeleton-tab-item skeleton-shimmer"></div>
+    <div class="skeleton-tab-item skeleton-shimmer"></div>
+  </div>
+
+  <!-- 상품 카드 8개 그리드 -->
+  <div class="skeleton-grid" aria-hidden="true">
+
+    <!-- 상품 카드 #1 -->
+    <div class="skeleton-card">
+      <!-- 상품 이미지 (1:1 정사각형) -->
+      <div class="skeleton-img-wrap">
+        <div class="skeleton-img skeleton-shimmer"></div>
+      </div>
+      <!-- 상품 정보 텍스트 -->
+      <div class="skeleton-info">
+        <!-- 리뷰 수 -->
+        <div class="skeleton-review skeleton-shimmer"></div>
+        <!-- 상품명 (2줄) -->
+        <div class="skeleton-name">
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+        </div>
+        <!-- 가격 정보 -->
+        <div class="skeleton-price-wrap">
+          <div class="skeleton-price-consumer skeleton-shimmer"></div>
+          <div class="skeleton-price-sell skeleton-shimmer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상품 카드 #2 -->
+    <div class="skeleton-card">
+      <div class="skeleton-img-wrap">
+        <div class="skeleton-img skeleton-shimmer"></div>
+      </div>
+      <div class="skeleton-info">
+        <div class="skeleton-review skeleton-shimmer"></div>
+        <div class="skeleton-name">
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+        </div>
+        <div class="skeleton-price-wrap">
+          <div class="skeleton-price-consumer skeleton-shimmer"></div>
+          <div class="skeleton-price-sell skeleton-shimmer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상품 카드 #3 -->
+    <div class="skeleton-card">
+      <div class="skeleton-img-wrap">
+        <div class="skeleton-img skeleton-shimmer"></div>
+      </div>
+      <div class="skeleton-info">
+        <div class="skeleton-review skeleton-shimmer"></div>
+        <div class="skeleton-name">
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+        </div>
+        <div class="skeleton-price-wrap">
+          <div class="skeleton-price-consumer skeleton-shimmer"></div>
+          <div class="skeleton-price-sell skeleton-shimmer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상품 카드 #4 -->
+    <div class="skeleton-card">
+      <div class="skeleton-img-wrap">
+        <div class="skeleton-img skeleton-shimmer"></div>
+      </div>
+      <div class="skeleton-info">
+        <div class="skeleton-review skeleton-shimmer"></div>
+        <div class="skeleton-name">
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+        </div>
+        <div class="skeleton-price-wrap">
+          <div class="skeleton-price-consumer skeleton-shimmer"></div>
+          <div class="skeleton-price-sell skeleton-shimmer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상품 카드 #5 -->
+    <div class="skeleton-card">
+      <div class="skeleton-img-wrap">
+        <div class="skeleton-img skeleton-shimmer"></div>
+      </div>
+      <div class="skeleton-info">
+        <div class="skeleton-review skeleton-shimmer"></div>
+        <div class="skeleton-name">
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+        </div>
+        <div class="skeleton-price-wrap">
+          <div class="skeleton-price-consumer skeleton-shimmer"></div>
+          <div class="skeleton-price-sell skeleton-shimmer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상품 카드 #6 -->
+    <div class="skeleton-card">
+      <div class="skeleton-img-wrap">
+        <div class="skeleton-img skeleton-shimmer"></div>
+      </div>
+      <div class="skeleton-info">
+        <div class="skeleton-review skeleton-shimmer"></div>
+        <div class="skeleton-name">
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+        </div>
+        <div class="skeleton-price-wrap">
+          <div class="skeleton-price-consumer skeleton-shimmer"></div>
+          <div class="skeleton-price-sell skeleton-shimmer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상품 카드 #7 -->
+    <div class="skeleton-card">
+      <div class="skeleton-img-wrap">
+        <div class="skeleton-img skeleton-shimmer"></div>
+      </div>
+      <div class="skeleton-info">
+        <div class="skeleton-review skeleton-shimmer"></div>
+        <div class="skeleton-name">
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+        </div>
+        <div class="skeleton-price-wrap">
+          <div class="skeleton-price-consumer skeleton-shimmer"></div>
+          <div class="skeleton-price-sell skeleton-shimmer"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- 상품 카드 #8 -->
+    <div class="skeleton-card">
+      <div class="skeleton-img-wrap">
+        <div class="skeleton-img skeleton-shimmer"></div>
+      </div>
+      <div class="skeleton-info">
+        <div class="skeleton-review skeleton-shimmer"></div>
+        <div class="skeleton-name">
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+          <div class="skeleton-name-line skeleton-shimmer"></div>
+        </div>
+        <div class="skeleton-price-wrap">
+          <div class="skeleton-price-consumer skeleton-shimmer"></div>
+          <div class="skeleton-price-sell skeleton-shimmer"></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+  <!-- //상품 카드 그리드 -->
+
+  <!-- 더보기 버튼 스켈레톤 -->
+  <div class="skeleton-btn-wrap" aria-hidden="true">
+    <div class="skeleton-btn skeleton-shimmer"></div>
+  </div>
+
+</section>
+<!-- //상품 카드 스켈레톤 UI 영역 -->

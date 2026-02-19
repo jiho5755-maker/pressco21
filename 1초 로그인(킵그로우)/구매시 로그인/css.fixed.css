@@ -1024,3 +1024,38 @@ a.apple-login-btn {
         gap: 12px 1rem;
     }
 }
+
+/* ========================================
+   비밀번호 표시/숨기기 토글 버튼
+   ======================================== */
+
+#loginWrap .password-toggle {
+    position: absolute;
+    right: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #999;
+    line-height: 0;
+    z-index: 2;
+    transition: color 0.2s ease;
+}
+
+#loginWrap .password-toggle:hover {
+    color: #555;
+}
+
+#loginWrap .password-toggle.active {
+    color: #4a7c59;
+}
+
+#loginWrap .password-toggle svg {
+    display: block;
+}
+
+#loginWrap .pwd {
+    position: relative;
+}

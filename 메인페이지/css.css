@@ -1394,3 +1394,56 @@
             max-width: 550px;
         }
     }
+
+/* ============================================
+   스켈레톤 UI
+   ============================================ */
+@keyframes skeleton-shimmer {
+    0% { background-position: -600px 0; }
+    100% { background-position: 600px 0; }
+}
+
+.skeleton-wrap {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    padding: 0 16px;
+}
+
+.skeleton-card {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.skeleton-shimmer {
+    background: linear-gradient(90deg, #e8ede6 25%, #f4f7f2 50%, #e8ede6 75%);
+    background-size: 1200px 100%;
+    animation: skeleton-shimmer 1.6s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+.skeleton-img {
+    width: 100%;
+    padding-bottom: 100%;
+    border-radius: 8px;
+}
+
+.skeleton-text {
+    height: 14px;
+}
+
+@media (min-width: 768px) {
+    .skeleton-wrap {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 20px;
+        padding: 0;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .skeleton-shimmer {
+        animation: none;
+        background: #e8ede6;
+    }
+}

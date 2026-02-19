@@ -1,0 +1,537 @@
+<!--
+  모바일 탭 네비게이션
+  - 가로 스크롤 탭 바 (스크롤바 숨김)
+  - 활성 탭 하단 인디케이터 라인
+  - 활성 탭 클릭/변경 시 자동 중앙 정렬 (scrollIntoView)
+  - CSS 스코핑: #section02 .tab-nav-wrap 하위로 모든 스타일 제한
+  - 기존 tab-nav-wrap 구조와 호환
+-->
+
+<style>
+  /* ========================================
+     CSS 변수 (프로젝트 공통)
+  ======================================== */
+  #section02 .tab-nav-wrap {
+    --color-primary: #7d9675;
+    --color-primary-light: #b7c9ad;
+    --color-dark: #2c3e30;
+    --color-text: #4a4a4a;
+    --color-bg: #fdfbf7;
+    --color-white: #fff;
+    --color-accent: #d4a373;
+
+    /* 탭 전용 변수 */
+    --tab-bg: #e2e8dd;
+    --tab-active-bg: #b7c9ad;
+    --tab-inactive-text: #444444;
+    --tab-active-text: #ffffff;
+    --tab-radius: 25px;
+    --tab-indicator-color: #7d9675;
+    --tab-indicator-height: 2px;
+    --tab-transition: 0.25s ease;
+  }
+
+  /* ========================================
+     탭 네비게이션 래퍼
+  ======================================== */
+  #section02 .tab-nav-wrap {
+    width: 100%;
+    margin-bottom: 32px;
+    /* 탭 컨테이너 외부 패딩 */
+    padding: 0 16px;
+    box-sizing: border-box;
+  }
+
+  /* ========================================
+     탭 목록 (가로 스크롤)
+  ======================================== */
+  #section02 .tab-nav-wrap ul {
+    /* 기존 background 스타일과 호환 */
+    background: var(--tab-bg) !important;
+    border-radius: var(--tab-radius);
+    padding: 4px 6px;
+    box-sizing: border-box;
+
+    /* 가로 스크롤 활성화 */
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    overflow-y: hidden;
+    -webkit-overflow-scrolling: touch; /* iOS 관성 스크롤 */
+    scroll-behavior: smooth;
+
+    /* 스크롤바 완전 숨김 (크로스 브라우저) */
+    scrollbar-width: none;           /* Firefox */
+    -ms-overflow-style: none;        /* IE/Edge */
+
+    list-style: none;
+    margin: 0;
+    gap: 4px;
+    align-items: center;
+    position: relative;
+  }
+
+  /* 웹킷 계열 (Chrome, Safari) 스크롤바 숨김 */
+  #section02 .tab-nav-wrap ul::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* ========================================
+     탭 아이템 (li)
+  ======================================== */
+  #section02 .tab-nav-wrap ul li {
+    /* 탭이 줄어들지 않도록 고정 */
+    flex-shrink: 0;
+    position: relative;
+  }
+
+  /* ========================================
+     탭 버튼 (button)
+  ======================================== */
+  #section02 .tab-nav-wrap ul li button {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    /* 탭 최소 너비 확보 (짧은 텍스트도 충분한 클릭 영역) */
+    min-width: 58px;
+    height: 34px;
+    padding: 0 14px;
+    border: none;
+    cursor: pointer;
+    font-family: 'Pretendard', 'Noto Sans KR', sans-serif;
+    font-weight: 500;
+    font-size: 13px;
+    white-space: nowrap;
+    border-radius: var(--tab-radius);
+    transition:
+      background var(--tab-transition),
+      color var(--tab-transition);
+
+    /* 기존 스타일과 호환 */
+    background: var(--tab-bg) !important;
+    color: var(--tab-inactive-text) !important;
+  }
+
+  /* 탭 버튼 포커스 스타일 (접근성) */
+  #section02 .tab-nav-wrap ul li button:focus-visible {
+    outline: 2px solid var(--tab-active-bg);
+    outline-offset: 2px;
+  }
+
+  /* ========================================
+     활성 탭 스타일
+     - 배경: #b7c9ad / 텍스트: 흰색 / border-radius: 25px
+  ======================================== */
+  #section02 .tab-nav-wrap ul li.active button {
+    background: var(--tab-active-bg) !important;
+    color: var(--tab-active-text) !important;
+    font-weight: 600;
+  }
+
+  /* ========================================
+     활성 탭 하단 인디케이터
+     - 활성 탭 아래에 프라이머리 컬러 라인 표시
+     - 탭 배경 내부이므로 캡슐형 배경과 함께 사용 시
+       인디케이터는 탭 바 하단에 별도 배치
+  ======================================== */
+  #section02 .tab-nav-wrap ul li.active button::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 24px;
+    height: var(--tab-indicator-height);
+    background: var(--tab-indicator-color);
+    border-radius: 2px;
+    /* 활성 탭이 이동할 때 부드럽게 전환 */
+    transition: left var(--tab-transition);
+  }
+
+  /* li 기준으로 인디케이터 절대 위치 지정 */
+  #section02 .tab-nav-wrap ul li {
+    position: relative;
+  }
+
+  /* ========================================
+     탭 하단 구분선 (탭 바 하단 전체)
+  ======================================== */
+  #section02 .tab-nav-wrap {
+    position: relative;
+  }
+
+  /* ========================================
+     탭 내용 영역
+  ======================================== */
+  #section02 .tab-content-wrap .tab-content {
+    display: none;
+    /* 탭 전환 시 부드러운 페이드 효과 */
+    animation: tab-fade-in 0.2s ease;
+  }
+
+  #section02 .tab-content-wrap .tab-content.active {
+    display: block;
+  }
+
+  @keyframes tab-fade-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  /* ========================================
+     모바일 전용 좌우 페이드 힌트
+     - 탭이 더 있다는 것을 시각적으로 암시
+  ======================================== */
+  #section02 .tab-nav-wrap .tab-scroll-hint-right {
+    display: none; /* TODO: JS에서 스크롤 가능 여부에 따라 표시 */
+    position: absolute;
+    right: 16px;
+    top: 0;
+    bottom: 0;
+    width: 32px;
+    background: linear-gradient(to right, transparent, rgba(226, 232, 221, 0.9));
+    pointer-events: none;
+    border-radius: 0 var(--tab-radius) var(--tab-radius) 0;
+    z-index: 1;
+  }
+
+  /* ========================================
+     태블릿 (768px ~)
+  ======================================== */
+  @media (min-width: 768px) {
+    #section02 .tab-nav-wrap {
+      padding: 0 24px;
+      margin-bottom: 40px;
+    }
+
+    #section02 .tab-nav-wrap ul {
+      /* 태블릿에서는 중앙 정렬로 탭 배치 */
+      justify-content: center;
+      padding: 5px 8px;
+      gap: 5px;
+    }
+
+    #section02 .tab-nav-wrap ul li button {
+      min-width: 68px;
+      height: 38px;
+      padding: 0 18px;
+      font-size: 14px;
+    }
+  }
+
+  /* ========================================
+     데스크톱 (992px ~)
+  ======================================== */
+  @media (min-width: 992px) {
+    #section02 .tab-nav-wrap {
+      padding: 0;
+      margin-bottom: 50px;
+    }
+
+    #section02 .tab-nav-wrap ul {
+      /* 데스크톱: 가로 스크롤 필요 없음, 모두 표시 */
+      justify-content: center;
+      overflow: visible;
+      padding: 6px 10px;
+      gap: 6px;
+    }
+
+    #section02 .tab-nav-wrap ul li button {
+      min-width: 80px;
+      height: 42px;
+      padding: 0 22px;
+      font-size: 15px;
+    }
+  }
+
+  /* ========================================
+     대형 화면 (1200px ~)
+  ======================================== */
+  @media (min-width: 1200px) {
+    #section02 .tab-nav-wrap ul li button {
+      min-width: 90px;
+      padding: 0 26px;
+      font-size: 15px;
+    }
+  }
+
+  /* ========================================
+     접근성: 모션 줄이기
+  ======================================== */
+  @media (prefers-reduced-motion: reduce) {
+    #section02 .tab-content-wrap .tab-content {
+      animation: none;
+    }
+
+    #section02 .tab-nav-wrap ul li button {
+      transition: none;
+    }
+  }
+</style>
+
+<!-- New Arrival 탭 네비게이션 섹션 -->
+<div id="section02">
+
+  <!-- 섹션 타이틀 -->
+  <h3 class="title">New Arrival</h3>
+
+  <!-- 탭 네비게이션 -->
+  <div class="tab-nav-wrap" role="navigation" aria-label="상품 카테고리 탭">
+
+    <!-- 탭 목록 (가로 스크롤) -->
+    <!-- TODO: JS에서 활성 탭 클릭 시 scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' }) 호출 -->
+    <ul role="tablist" aria-label="카테고리 선택">
+
+      <!-- 탭 아이템: 압화 (기본 활성) -->
+      <li class="active" role="presentation">
+        <button
+          type="button"
+          class="item"
+          role="tab"
+          aria-selected="true"
+          aria-controls="tab-panel-apha"
+          id="tab-btn-apha"
+          tabindex="0"
+        >
+          압화
+        </button>
+      </li>
+
+      <!-- 탭 아이템: 보존화 -->
+      <li role="presentation">
+        <button
+          type="button"
+          class="item"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-panel-preserved"
+          id="tab-btn-preserved"
+          tabindex="-1"
+        >
+          보존화
+        </button>
+      </li>
+
+      <!-- 탭 아이템: 레진공예 -->
+      <li role="presentation">
+        <button
+          type="button"
+          class="item"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-panel-resin"
+          id="tab-btn-resin"
+          tabindex="-1"
+        >
+          레진공예
+        </button>
+      </li>
+
+      <!-- 탭 아이템: 하바리움 -->
+      <li role="presentation">
+        <button
+          type="button"
+          class="item"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-panel-herbarium"
+          id="tab-btn-herbarium"
+          tabindex="-1"
+        >
+          하바리움
+        </button>
+      </li>
+
+      <!-- 탭 아이템: DIY -->
+      <li role="presentation">
+        <button
+          type="button"
+          class="item"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-panel-diy"
+          id="tab-btn-diy"
+          tabindex="-1"
+        >
+          DIY
+        </button>
+      </li>
+
+      <!-- 탭 아이템: 부케말리기 -->
+      <li role="presentation">
+        <button
+          type="button"
+          class="item"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-panel-bouquet"
+          id="tab-btn-bouquet"
+          tabindex="-1"
+        >
+          부케말리기
+        </button>
+      </li>
+
+      <!-- 탭 아이템: 식물표본 -->
+      <li role="presentation">
+        <button
+          type="button"
+          class="item"
+          role="tab"
+          aria-selected="false"
+          aria-controls="tab-panel-specimen"
+          id="tab-btn-specimen"
+          tabindex="-1"
+        >
+          식물표본
+        </button>
+      </li>
+
+    </ul>
+    <!-- //탭 목록 -->
+
+    <!-- 가로 스크롤 힌트 페이드 오버레이 -->
+    <!-- TODO: JS에서 ul 스크롤 끝 도달 시 display: none으로 전환 -->
+    <div class="tab-scroll-hint-right" aria-hidden="true"></div>
+
+  </div>
+  <!-- //탭 네비게이션 -->
+
+  <!-- 탭 내용 컨테이너 -->
+  <div class="container-wrap">
+    <div class="tab-content-wrap">
+
+      <!-- 탭 내용: 압화 (기본 활성) -->
+      <div
+        class="tab-content active"
+        id="tab-panel-apha"
+        role="tabpanel"
+        aria-labelledby="tab-btn-apha"
+      >
+        <!-- 상품 목록 영역 -->
+        <div class="product-list-wrap">
+          <!-- TODO: 메이크샵 루프 태그로 상품 목록 출력 -->
+          <!-- <!--/loop_new_product(8)/--> -->
+          <!--
+            아래는 마크업 구조 예시 (실제 메이크샵 치환코드로 교체 필요):
+            <dl class="item-list">
+              <dt class="thumb"> ... </dt>
+              <dd class="prd-info"> ... </dd>
+            </dl>
+          -->
+        </div>
+
+        <!-- 더보기 버튼 -->
+        <div class="btn-wrap">
+          <a href="#none" class="btn-more">더보기</a>
+        </div>
+      </div>
+
+      <!-- 탭 내용: 보존화 -->
+      <div
+        class="tab-content"
+        id="tab-panel-preserved"
+        role="tabpanel"
+        aria-labelledby="tab-btn-preserved"
+        hidden
+      >
+        <div class="product-list-wrap">
+          <!-- TODO: 보존화 상품 목록 출력 -->
+        </div>
+        <div class="btn-wrap">
+          <a href="#none" class="btn-more">더보기</a>
+        </div>
+      </div>
+
+      <!-- 탭 내용: 레진공예 -->
+      <div
+        class="tab-content"
+        id="tab-panel-resin"
+        role="tabpanel"
+        aria-labelledby="tab-btn-resin"
+        hidden
+      >
+        <div class="product-list-wrap">
+          <!-- TODO: 레진공예 상품 목록 출력 -->
+        </div>
+        <div class="btn-wrap">
+          <a href="#none" class="btn-more">더보기</a>
+        </div>
+      </div>
+
+      <!-- 탭 내용: 하바리움 -->
+      <div
+        class="tab-content"
+        id="tab-panel-herbarium"
+        role="tabpanel"
+        aria-labelledby="tab-btn-herbarium"
+        hidden
+      >
+        <div class="product-list-wrap">
+          <!-- TODO: 하바리움 상품 목록 출력 -->
+        </div>
+        <div class="btn-wrap">
+          <a href="#none" class="btn-more">더보기</a>
+        </div>
+      </div>
+
+      <!-- 탭 내용: DIY -->
+      <div
+        class="tab-content"
+        id="tab-panel-diy"
+        role="tabpanel"
+        aria-labelledby="tab-btn-diy"
+        hidden
+      >
+        <div class="product-list-wrap">
+          <!-- TODO: DIY 상품 목록 출력 -->
+        </div>
+        <div class="btn-wrap">
+          <a href="#none" class="btn-more">더보기</a>
+        </div>
+      </div>
+
+      <!-- 탭 내용: 부케말리기 -->
+      <div
+        class="tab-content"
+        id="tab-panel-bouquet"
+        role="tabpanel"
+        aria-labelledby="tab-btn-bouquet"
+        hidden
+      >
+        <div class="product-list-wrap">
+          <!-- TODO: 부케말리기 상품 목록 출력 -->
+        </div>
+        <div class="btn-wrap">
+          <a href="#none" class="btn-more">더보기</a>
+        </div>
+      </div>
+
+      <!-- 탭 내용: 식물표본 -->
+      <div
+        class="tab-content"
+        id="tab-panel-specimen"
+        role="tabpanel"
+        aria-labelledby="tab-btn-specimen"
+        hidden
+      >
+        <div class="product-list-wrap">
+          <!-- TODO: 식물표본 상품 목록 출력 -->
+        </div>
+        <div class="btn-wrap">
+          <a href="#none" class="btn-more">더보기</a>
+        </div>
+      </div>
+
+    </div>
+    <!-- //탭 내용 컨테이너 -->
+  </div>
+
+</div>
+<!-- //New Arrival 탭 네비게이션 섹션 -->

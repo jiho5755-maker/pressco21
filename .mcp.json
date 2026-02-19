@@ -1,0 +1,13 @@
+{
+    "mcpServers": {
+      "shrimp-task-manager": {
+        "command": "node",
+        "args": ["/Users/jangjiho/workspace/pressco21/mcp-shrimp-task-manager/dist/index.js"],
+        "env": {
+          "DATA_DIR": "/Users/jangjiho/workspace/pressco21/shrimp_data",
+          "TEMPLATES_USE": "en",
+          "ENABLE_GUI": "true"
+        }
+      }
+    }
+  }

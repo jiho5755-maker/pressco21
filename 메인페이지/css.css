@@ -17,7 +17,7 @@
 .main .topBanner .topBannerLeft {width:49%; float:left; position:relative;}
 .main .topBanner .topBannerRight {width:49%; float:right; position:relative;}
 .main .topBanner img {width:100%; vertical-align:top;}
-.main .Title {width:100%; font-size:1.083em; font-weight:bold; padding:2px 0; background-color:rgba(0,0,0,0.4);; text-align:center; color:#fff; position:absolute; bottom:0; left:0;}
+.main .topBanner .topBannerTitle {width:100%; font-size:1.083em; font-weight:bold; padding:2px 0; background-color:rgba(0,0,0,0.4);; text-align:center; color:#fff; position:absolute; bottom:0; left:0;}
 
 /*쿠폰 혜택 버튼*/
 .main .coupon-benefit {position:relative; margin:-25px 0 10px 0}
@@ -45,7 +45,7 @@
     display: none;
 }
 
-.maon-fraction {
+.main-banner .swiper-pagination-fraction {
     position: relative;
     display: flex;
     gap: 20px;
@@ -419,7 +419,7 @@
     }
 
     .main-banner .swiper-button-next {
-        background: ueshop.co.kr/skin/onstore/pc/images/ic_arrow_w_next.png') no-repeat center;
+        background: url('//skin.makeshop.co.kr/skin/onstore/pc/images/ic_arrow_w_next.png') no-repeat center;
     }
 
     .main-banner .swiper-pagination-fraction {
@@ -705,7 +705,10 @@
         font-size: 14px;
         color: #888;
         font-family: 'Noto Serif KR', serif;
-        font-style        position: relative;
+        font-style: italic;
+    }
+    .hero-section {
+        position: relative;
         width: 100%;
         height: 60vh;
         overflow: hidden;
@@ -930,7 +933,7 @@
     }
     .youtube-section-v3 {
         padding: 50px 0;
-        background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+        background: linear-gradient(180deg, #f4f7f3 0%, #e8ede5 100%);
     }
     .youtube-section-v3 .section-title h3 {
         font-weight: 800 !important;
@@ -960,6 +963,7 @@
         height: 100%;
         border: none;
     }
+    /* .yt-thumb-wrap, .yt-play-btn 스타일은 아래 전용 섹션에서 정의 */
     .featured-video-info {
         padding: 16px;
     }
@@ -1169,6 +1173,145 @@
             transform: rotate(360deg);
         }
     }
+    /* ============================================
+       YouTube 메인 영상 썸네일 래퍼 (.yt-thumb-wrap)
+       JS renderYouTube()가 .video-wrapper에 추가하는 클래스
+       클릭 시 iframe으로 교체되는 썸네일 상태
+       ============================================ */
+    .featured-video-wrap .yt-thumb-wrap {
+        cursor: pointer;
+        overflow: hidden;
+    }
+    /* 썸네일 이미지: video-wrapper의 16:9 비율 박스 내 꽉 채움 */
+    .featured-video-wrap .yt-thumb-wrap img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.4s ease;
+    }
+    /* 호버 시 이미지 미세 확대 효과 */
+    .featured-video-wrap .yt-thumb-wrap:hover img {
+        transform: scale(1.03);
+    }
+    /* ============================================
+       YouTube 메인 영상 재생 버튼 (.yt-play-btn)
+       JS renderYouTube()가 .yt-thumb-wrap 안에 생성
+       ============================================ */
+    .yt-play-btn {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 60px;
+        height: 60px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+        transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+        z-index: 2;
+    }
+    /* 재생 삼각형 아이콘 (CSS only) */
+    .yt-play-btn::after {
+        content: '';
+        width: 0;
+        height: 0;
+        border-top: 11px solid transparent;
+        border-bottom: 11px solid transparent;
+        border-left: 18px solid var(--color-dark);
+        margin-left: 5px;
+    }
+    /* 호버 시 버튼 확대 및 브랜드 색상 적용 */
+    .featured-video-wrap .yt-thumb-wrap:hover .yt-play-btn {
+        transform: translate(-50%, -50%) scale(1.12);
+        background: var(--color-primary);
+        box-shadow: 0 6px 25px rgba(125, 150, 117, 0.4);
+    }
+    .featured-video-wrap .yt-thumb-wrap:hover .yt-play-btn::after {
+        border-left-color: #fff;
+    }
+    /* ============================================
+       YouTube 슬라이더 썸네일 래퍼 (.slide-video-thumb)
+       JS renderYouTube()가 실제로 생성하는 클래스명.
+       기존 CSS의 .video-thumb과 동일한 스타일을 적용.
+       두 클래스명을 병기하여 하위 호환성 유지.
+       ============================================ */
+    .youtube-slider .slide-video-thumb {
+        position: relative;
+        padding-bottom: 56.25%;
+        background: #eee;
+        cursor: pointer;
+        overflow: hidden;
+    }
+    .youtube-slider .slide-video-thumb img {
+        position: absolute;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        transition: transform 0.3s ease;
+    }
+    /* 슬라이더 호버 시 이미지 확대 */
+    .youtube-slider .swiper-slide:hover .slide-video-thumb img {
+        transform: scale(1.05);
+    }
+    /* 슬라이더 재생 버튼: .slide-video-thumb 내부에도 동일 적용 */
+    .youtube-slider .slide-video-thumb .play-icon {
+        position: absolute;
+        top: 50%;
+        left: 50%;
+        transform: translate(-50%, -50%);
+        width: 35px;
+        height: 35px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+        transition: transform 0.2s ease, background 0.2s ease;
+        z-index: 2;
+    }
+    .youtube-slider .slide-video-thumb .play-icon::after {
+        content: '';
+        width: 0;
+        height: 0;
+        border-top: 7px solid transparent;
+        border-bottom: 7px solid transparent;
+        border-left: 11px solid var(--color-dark);
+        margin-left: 3px;
+    }
+    .youtube-slider .swiper-slide:hover .slide-video-thumb .play-icon {
+        transform: translate(-50%, -50%) scale(1.1);
+        background: var(--color-primary);
+    }
+    .youtube-slider .swiper-slide:hover .slide-video-thumb .play-icon::after {
+        border-left-color: #fff;
+    }
+    /* ============================================
+       관련 상품 없을 때 graceful degradation
+       JS에서 상품 데이터가 없을 때 처리 방식:
+       1. .no-products 클래스: 영역 자체를 숨김
+       2. .related-products-empty: 빈 상태 안내 메시지
+       ============================================ */
+    /* 상품 데이터가 전혀 없을 때 관련상품 영역 숨김 */
+    .related-products-wrap.no-products {
+        display: none;
+    }
+    /* 일부 상품만 없을 때 빈 상태 안내 메시지 */
+    .related-products-empty {
+        padding: 24px 0 8px;
+        text-align: center;
+        color: #bbb;
+        font-size: 13px;
+        line-height: 1.5;
+    }
     .brand-philosophy {
         padding: 60px 0;
         background-color: var(--color-primary-light);
@@ -1295,7 +1438,8 @@
             gap: 25px;
         }
         .featured-video-wrap {
-            flex: 1.6;
+            flex: 3;
+            min-width: 0;
         }
         .featured-video-info {
             padding: 22px 28px;
@@ -1305,7 +1449,10 @@
         }
         .related-products-wrap {
             flex: 1;
+            min-width: 260px;
+            max-width: 320px;
             padding: 22px;
+            align-self: flex-start;
         }
         .related-products-wrap .toggle-header {
             cursor: default;
@@ -1356,6 +1503,22 @@
         .youtube-slider .video-thumb .play-icon {
             width: 40px;
             height: 40px;
+        }
+        /* PC: .slide-video-thumb 내 재생 버튼 크기 동일하게 확대 */
+        .youtube-slider .slide-video-thumb .play-icon {
+            width: 40px;
+            height: 40px;
+        }
+        /* PC: 메인 재생 버튼 크기 확대 */
+        .yt-play-btn {
+            width: 72px;
+            height: 72px;
+        }
+        .yt-play-btn::after {
+            border-top-width: 13px;
+            border-bottom-width: 13px;
+            border-left-width: 21px;
+            margin-left: 6px;
         }
         .youtube-slider-wrap .swiper-button-prev,
         .youtube-slider-wrap .swiper-button-next {

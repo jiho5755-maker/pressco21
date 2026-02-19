@@ -41,4 +41,14 @@
 - 3 login CSS files are IDENTICAL (1014 lines each) -- massive duplication
 - All 3 login JS files are IDENTICAL (69 lines each) -- same
 
+### Main Page (메인페이지)
+- **IIFE**: js.js properly uses IIFE, but Index.html inline script is NOT in IIFE (global scope)
+- **Duplicate YouTube code**: js.js IIFE and Index.html inline both define loadYouTube/renderYouTube/playVideo/toggleProducts -- causes double-execution
+- **CSS corruption**: css.css has 4 damaged spots vs original (line 20 selector, line 48 typo, line 422 url(), line 708 merged properties)
+- **JS-CSS mismatch**: js.js uses `slide-video-thumb` class, CSS expects `video-thumb` -- slider thumbnails unstyled
+- **Missing HTML**: toggle-header missing `<h5>` heading text
+- **Missing CSS**: `.yt-thumb-wrap` and `.yt-play-btn` have no styles -- featured video play button invisible
+- **XSS**: Original inline script has NO escaping on `featured.title` / `v.title`; js.js version properly escapes
+- **Swiper conflict**: js.js uses `mySwiper` constructor (MakeShop D4 built-in), inline uses `Swiper` (CDN loaded)
+
 See: [patterns.md](patterns.md) for detailed notes.

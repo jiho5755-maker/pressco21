@@ -2,3 +2,9 @@
 *.swp
 *.swo
 *~
+
+# MCP / Shrimp Task Manager
+.mcp.json
+mcp-shrimp-task-manager/
+shrimp-rules.md
+shrimp_data/

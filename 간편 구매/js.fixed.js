@@ -584,48 +584,40 @@
         }
 
         // 네이버페이 버튼 클릭 시 주문형/결제형 분기 처리
+        // 판별 기준: SDK 버튼(<!--/btn_nhn/-->) 존재 여부
+        //   - 비회원: MakeShop이 <!--/if_btn_nhn/--> 안에 SDK 렌더링 → 주문형
+        //   - 회원: <!--/if_btn_nhn/--> 미렌더링 → SDK 없음 → 결제형
         var naverPayBtn = document.querySelector('.btn-naver-pay');
 
         if (naverPayBtn) {
             naverPayBtn.addEventListener('click', function(e) {
                 e.preventDefault();
 
-                // 회원 상태 확인 (헤더의 로그아웃 링크 존재 여부로 판별)
-                var isLoggedIn = !!document.querySelector('a[href*="/exec/front/Member/logout"]');
-
-                if (!isLoggedIn) {
-                    // ── 비회원 → 주문형: 네이버페이 SDK 버튼 직접 실행 ──
-                    var naverCheckout = document.querySelector('.naver-checkout');
-                    var sdkButton = null;
-
-                    if (naverCheckout) {
-                        sdkButton = naverCheckout.querySelector('a, button, img[onclick], [onclick]');
+                // SDK 버튼 탐색 (비회원에게만 렌더링됨)
+                var sdkButton = null;
+                var naverCheckout = document.querySelector('.naver-checkout');
+                if (naverCheckout) {
+                    sdkButton = naverCheckout.querySelector('a, button, img[onclick], [onclick]');
+                }
+                if (!sdkButton) {
+                    var nhnBtn = document.getElementById('nhn_btn');
+                    if (nhnBtn) {
+                        sdkButton = nhnBtn.querySelector('a, button, img[onclick], [onclick]');
                     }
+                }
 
-                    // nhn_btn 영역도 탐색
-                    if (!sdkButton) {
-                        var nhnBtn = document.getElementById('nhn_btn');
-                        if (nhnBtn) {
-                            sdkButton = nhnBtn.querySelector('a, button, img[onclick], [onclick]');
-                        }
-                    }
-
-                    if (sdkButton) {
-                        sdkButton.click();
-                        console.log('네이버페이 주문형 결제 실행 (비회원)');
-                    } else {
-                        alert('네이버페이 결제가 활성화되지 않았습니다.\n메이크샵 관리자에서 네이버페이를 활성화해주세요.');
-                        console.warn('네이버페이 SDK 버튼을 찾을 수 없습니다.');
-                    }
+                if (sdkButton) {
+                    // ── SDK 존재 → 비회원 → 주문형: 네이버페이 SDK 직접 실행 ──
+                    sdkButton.click();
+                    console.log('네이버페이 주문형 결제 실행 (비회원)');
                 } else {
-                    // ── 회원 → 결제형: 주문서로 이동하되 네이버페이만 표시 ──
+                    // ── SDK 없음 → 회원 → 결제형: 주문서로 이동, 네이버페이만 표시 ──
                     sessionStorage.setItem('pc21_pay_method', 'naverpay');
 
                     var orderUrl = naverPayBtn.getAttribute('data-order-url');
                     if (orderUrl && orderUrl !== '#none' && orderUrl !== '') {
                         window.location.href = orderUrl;
                     } else {
-                        // 대체: 바로 구매하기 버튼의 URL 사용
                         var buyNowBtn = document.querySelector('.btn-buy-now');
                         if (buyNowBtn && buyNowBtn.href) {
                             window.location.href = buyNowBtn.href;

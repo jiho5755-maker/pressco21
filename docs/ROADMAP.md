@@ -42,14 +42,71 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
 
 3. **작업 구현**
    - 작업 파일의 명세서를 따름
-   - 기능과 기능성 구현
+   - **에이전트 자동 투입**: 태스크의 `에이전트:` 필드를 확인하여 `주도` 에이전트를 Task tool로 호출
+   - **협업 에이전트**: 특정 영역(카피/수수료/보안 등) 작업 시 `협업` 에이전트를 병렬 호출
    - API 연동 및 비즈니스 로직 구현 시 Playwright MCP로 테스트 수행 필수
+   - **구현 완료 후**: `makeshop-code-reviewer`로 코드 검수 자동 실행
    - 각 단계 후 작업 파일 내 단계 진행 상황 업데이트
    - 각 단계 완료 후 중단하고 추가 지시를 기다림
 
 4. **로드맵 업데이트**
    - 로드맵에서 완료된 작업을 완료로 표시
    - 완료된 작업에 `See: /tasks/XXX-xxx.md` 참조 추가
+
+---
+
+## 에이전트 투입 체계
+
+> 각 태스크에 전문가 에이전트를 자동 투입하기 위한 매핑 테이블.
+> `주도`: 해당 태스크의 핵심 설계/구현 담당 | `협업`: 특정 영역에서 자문/검수 참여
+
+### 에이전트 목록
+
+| 에이전트 ID | 역할 | 모델 | 투입 Phase |
+|------------|------|------|-----------|
+| `makeshop-planning-expert` | 메이크샵 API, 치환코드, 상품 체계, 플랫폼 아키텍처 | opus | 1.5, 2 |
+| `gas-backend-expert` | GAS 엔드포인트, Sheets 설계, 이메일 자동화, 정산 | opus | 1.5, 2, 3 |
+| `brand-planning-expert` | 브랜드 톤&보이스, 카피라이팅, 파트너 프로그램 | opus | 2, 3 |
+| `makeshop-ui-ux-expert` | UI/UX 디자인, 반응형, CSS 스코핑, 인터랙션 | opus | 2, 3 |
+| `ecommerce-business-expert` | 수수료 모델, 정산 로직, 전환율, KPI | opus | 2, 3 |
+| `seo-performance-expert` | Schema.org, Lighthouse, GA4, Core Web Vitals | sonnet | 2, 3 |
+| `qa-test-expert` | E2E 테스트, 보안, Playwright, 통합 검증 | sonnet | 1.5, 2, 3 |
+| `makeshop-code-reviewer` | 코드 품질, 보안, 메이크샵 제약 준수 검증 | opus | 전 Phase |
+
+### 태스크별 에이전트 투입 요약
+
+| Task | 주도 | 협업 |
+|------|------|------|
+| **Phase 1.5** | | |
+| 150 적립금 API | `makeshop-planning-expert` | `gas-backend-expert`, `qa-test-expert` |
+| 151 치환코드/옵션 | `makeshop-planning-expert` | `qa-test-expert` |
+| 152 API 예산 | `makeshop-planning-expert` | `gas-backend-expert`, `ecommerce-business-expert` |
+| **Phase 2-A** | | |
+| 201 Sheets+GAS | `gas-backend-expert` | `makeshop-planning-expert`, `ecommerce-business-expert` |
+| 202 클래스 상품 | `makeshop-planning-expert` | `gas-backend-expert`, `ecommerce-business-expert` |
+| **Phase 2-B** | | |
+| 211 목록 UI | `makeshop-ui-ux-expert` | `brand-planning-expert`, `seo-performance-expert` |
+| 212 상세 UI | `makeshop-ui-ux-expert` | `brand-planning-expert`, `ecommerce-business-expert`, `seo-performance-expert` |
+| **Phase 2-C** | | |
+| 221 정산 자동화 | `gas-backend-expert` | `ecommerce-business-expert`, `makeshop-planning-expert`, `brand-planning-expert` |
+| 222 파트너 대시보드 | `makeshop-ui-ux-expert`, `gas-backend-expert` | `makeshop-planning-expert`, `ecommerce-business-expert` |
+| 223 파트너 등급 | `ecommerce-business-expert`, `brand-planning-expert` | `gas-backend-expert` |
+| **Phase 2-D** | | |
+| 231 교육 아카데미 | `brand-planning-expert` | `gas-backend-expert` |
+| 232 메인 진입점 | `makeshop-ui-ux-expert` | `brand-planning-expert`, `seo-performance-expert` |
+| **Phase 2-E** | | |
+| 241 통합 테스트 | `qa-test-expert` | `seo-performance-expert`, `makeshop-planning-expert` |
+| **Phase 3-A** | | |
+| 301 기획도우미 GAS | `gas-backend-expert` | `ecommerce-business-expert` |
+| 302 기획 계산기 UI | `makeshop-ui-ux-expert` | `brand-planning-expert`, `ecommerce-business-expert` |
+| 303 가이드 라이브러리 | `makeshop-ui-ux-expert` | `brand-planning-expert` |
+| 304 교육기관 특화 | `gas-backend-expert` | `ecommerce-business-expert` |
+| **Phase 3-B** | | |
+| 311 리뷰 허브 | `gas-backend-expert`, `makeshop-ui-ux-expert` | `ecommerce-business-expert`, `seo-performance-expert` |
+| 312 리뷰 위젯 | `makeshop-ui-ux-expert` | `seo-performance-expert` |
+| 313 리뷰 통합 테스트 | `qa-test-expert` | `seo-performance-expert` |
+
+> **코드 리뷰**: 모든 태스크의 구현 완료 후 `makeshop-code-reviewer`로 자동 검수
 
 ---
 
@@ -104,91 +161,58 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
 
 ### Phase 1a: 기존 코드 개선 (2~3주)
 
-> **상태**: 대기
+> **상태**: ✅ 1차 개발 완료 (2026-02-20), 일부 항목 후속 보완 예정
 > **기간**: 2~3주
 > **시작**: Phase 0 완료 후 즉시
 > **목표**: 배포된 프로젝트들의 코드 품질, 성능, 접근성을 한 단계 끌어올린다
 > **비고**: Phase 1b와 병렬 진행 가능
 
-- **Task 101: 메인페이지 JS IIFE + 탭 지연 로드 + 스켈레톤 UI** - 우선순위
+- **Task 101: 메인페이지 JS IIFE + 탭 지연 로드 + 스켈레톤 UI** - ✅ 완료 (87%)
   - See: `/tasks/101-mainpage-iife-skeleton.md`
   - 대상: `메인페이지/js.js`, `메인페이지/Index.html`, `메인페이지/css.css`
-  - 의존성: 없음
-  - 규모: M
-  - 구현 사항:
-    - `js.js` 전체 IIFE 감싸기, `get_main_list`는 `window` 노출 유지
-    - 초기에 활성 탭만 AJAX 로드, 나머지는 클릭 시 지연 로드
-    - 배너 제외 하단 섹션부터 `<img loading="lazy">` 적용
-    - HTML 내 YouTube/Swiper 초기화 스크립트를 `js.js`로 통합
-    - 모바일 활성 탭 자동 중앙 스크롤
-    - New Arrival 탭 전환 시 스켈레톤 UI 표시
-    - 프로그레스 바 pagination, 배너별 CTA 강화
+  - 완료: IIFE 패턴, 탭 지연 로드, 스켈레톤 UI, 인라인 스크립트 통합, Schema.org, OG 태그
+  - 잔여: 이미지 lazy loading 미적용
 
-- **Task 102: 간편 구매 상품 상세 UX 강화** - 우선순위
+- **Task 102: 간편 구매 상품 상세 UX 강화** - 🟡 부분 완료 (55%)
   - See: `/tasks/102-quick-purchase-ux.md`
   - 대상: `간편 구매/index.html`, `간편 구매/js.fixed.js`, `간편 구매/css.css`
-  - 의존성: 없음
-  - 규모: M
-  - 구현 사항:
-    - 모바일 핀치 줌 + 스와이프 제스처 (상품 이미지)
-    - localStorage 기반 최근 본 상품 위젯
-    - 카카오톡 공유 시 OG 메타 포함 (SNS 공유 강화)
-    - 리뷰 섹션 바로가기 앵커 버튼
-    - "오늘 N명이 봤습니다", "품절 임박" 전환율 유도 배지
+  - 완료: IIFE, localStorage 최근 본 상품, OG 메타, ARIA 접근성, XSS 방지
+  - 잔여: 핀치 줌, 리뷰 앵커 버튼, 전환 유도 배지
 
-- **Task 103: 파트너맵 보안 + 상세 모달 + 길찾기**
+- **Task 103: 파트너맵 보안 + 상세 모달 + 길찾기** - ✅ 완료 (90%)
   - See: `/tasks/103-partnermap-security-modal.md`
   - 대상: `파트너맵/js.js`, `파트너맵/Index.html`, `파트너맵/css.css`, `파트너맵/Code-final.gs`
-  - 의존성: 없음
-  - 규모: M
-  - 구현 사항:
-    - 네이버 클라우드 허용 도메인 설정 (API 보안 최우선)
-    - 파트너 상세 모달 (영업시간, 사진, 연락처, 길찾기 버튼)
-    - 네이버 지도 앱 딥링크 길찾기 연동
-    - "가까운 파트너 추천" (검색 결과 없음 UX)
-    - 100개+ 시 뷰포트 렌더링만 (가상 스크롤링)
+  - 완료: 5개 IIFE 모듈화, 상세 모달, 네이버/카카오 딥링크, 가까운 파트너 추천, WCAG 접근성
+  - 잔여: NCP 콘솔 허용 도메인 설정 (관리자 수동 작업)
 
-- **Task 104: 전체 사이트 이미지 lazy loading + 접근성**
+- **Task 104: 전체 사이트 이미지 lazy loading + 접근성** - 🟡 부분 완료 (50%)
   - See: `/tasks/104-lazy-loading-accessibility.md`
   - 대상: 전체 프로젝트 HTML 파일
-  - 의존성: 없음
-  - 규모: S
-  - 구현 사항:
-    - 배너 제외 하단부터 `<img loading="lazy">` 일괄 적용
-    - 모든 이미지에 의미 있는 alt 텍스트 추가
-    - 인터랙티브 요소에 적절한 role/aria 속성 부여
+  - 완료: 간편 구매/파트너맵/1초 로그인 ARIA 접근성
+  - 잔여: 메인/간편 구매 이미지 lazy loading, 메인페이지 탭 ARIA
 
-- **Task 105: SEO 기본 개선**
+- **Task 105: SEO 기본 개선** - ✅ 완료 (75%)
   - See: `/tasks/105-seo-improvement.md`
   - 대상: 전체 프로젝트 HTML 파일
-  - 의존성: 없음
-  - 규모: S
-  - 구현 사항:
-    - 페이지별 고유 `<title>`, `<meta description>` 작성
-    - Product, Organization, BreadcrumbList Schema.org 구조화 데이터
-    - og:image, og:price 등 상세 OG 태그 적용
+  - 완료: 메인페이지 Organization+WebSite Schema.org, 메인/간편 구매 OG 태그
+  - 잔여: 브랜드스토리/파트너맵 Schema.org 확인 필요
 
-- **Task 106: 1초 로그인 CSS 중복 제거 + 접근성**
+- **Task 106: 1초 로그인 CSS 중복 제거 + 접근성** - ✅ 완료 (95%)
   - See: `/tasks/106-login-css-dedup-a11y.md`
   - 대상: `1초 로그인(킵그로우)/회원 로그인/`, `1초 로그인(킵그로우)/구매시 로그인/`, `1초 로그인(킵그로우)/주문 조회 로그인/`
-  - 의존성: 없음
-  - 규모: S
-  - 구현 사항:
-    - 공통 CSS 1개 파일로 통합 + 변형별 오버라이드 분리
-    - `autocomplete` 속성 추가 (이메일, 비밀번호)
-    - 에러 메시지에 `role="alert"` 적용
-    - 비밀번호 표시/숨기기 토글 버튼 추가
+  - 완료: CSS 분석/워크플로우, IIFE, ARIA (토글+탭), autocomplete, 비밀번호 토글
+  - 잔여: 에러 메시지 role="alert" (배포 후 확인)
 
 ---
 
 ### Phase 1b: 신규 개발 + 리뉴얼 (2~3주, Phase 1a와 병렬)
 
-> **상태**: 대기
+> **상태**: ✅ 1차 개발 완료 (2026-02-20), 배포 전 테스트 및 보완 예정
 > **기간**: 2~3주
 > **시작**: Phase 1a와 동시 착수 가능
 > **목표**: 유튜브 v4, 브랜드스토리, 화이트페이퍼의 신규 개발 및 디자인 리뉴얼
 
-- **Task 111: 유튜브 v4 카테고리 자동매칭 버전 개발** - 우선순위
+- **Task 111: 유튜브 v4 카테고리 자동매칭 버전 개발** - ✅ 1차 완료
   - See: `/tasks/111-youtube-v4-category-matching.md`
   - 대상: `유튜브 자동화/v4-카테고리/` (신규 생성)
   - 의존성: 없음
@@ -207,7 +231,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
     - 매칭 실패 시 "전체 인기 상품" 폴백 동작 확인
     - PC/모바일 반응형 확인, GAS 캐시 동작 확인
 
-- **Task 112: 브랜드스토리 이미지 CDN + 디자인 전면 리뉴얼**
+- **Task 112: 브랜드스토리 이미지 CDN + 디자인 전면 리뉴얼** - ✅ 1차 완료
   - See: `/tasks/112-brandstory-cdn-redesign.md`
   - 대상: `브랜드스토리/브랜드페이지/` (index.html, css/, js/)
   - 의존성: 없음
@@ -219,7 +243,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
     - `@media print` 스타일 (B2B 프레젠테이션용)
     - 현대적 럭셔리 브랜드 느낌으로 디자인 전면 재설계 (11개 섹션 전체)
 
-- **Task 113: 레지너스 화이트페이퍼 CTA + PDF + 디자인 전면 리뉴얼**
+- **Task 113: 레지너스 화이트페이퍼 CTA + PDF + 디자인 전면 리뉴얼** - ✅ 1차 완료
   - See: `/tasks/113-whitepaper-cta-pdf-redesign.md`
   - 대상: `레지너스 화이트페이퍼/style.css`, `레지너스 화이트페이퍼/index.html`, `레지너스 화이트페이퍼/script.js`
   - 의존성: 없음
@@ -234,17 +258,22 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
 
 ### Phase 1.5: 메이크샵 API 검증 (1~2주)
 
-> **상태**: 대기
+> **상태**: 진행 중 (Task 150 완료, Task 151~152 대기)
 > **기간**: 1~2주
 > **시작**: Phase 1b 중반 이후 착수 가능 (Phase 2 착수 전 필수 완료)
 > **목표**: Phase 2 파트너 클래스 플랫폼의 핵심 기술 전제조건을 사전 검증한다
 > **중요도**: Critical -- 검증 결과에 따라 Phase 2 아키텍처가 달라질 수 있음
 
-- **Task 150: 메이크샵 적립금 API 검증** - 우선순위
+- **Task 150: 메이크샵 적립금 API 검증** - ✅ 완료 (2026-02-20)
   - See: `/tasks/150-makeshop-reserve-api-test.md`
-  - 대상: 테스트 GAS 스크립트 (신규 생성)
+  - 대상: curl 직접 호출 테스트 + GAS 테스트 스크립트
   - 의존성: 없음
+  - **결과: Plan A 확정 (process_reserve 기본 적립금 API)**
+  - 지급(+)/차감(-)/조회 모두 정상, 즉시 반영, 에러 처리 명확
+  - 스마트 적립금은 미사용 상점 (N/A)
+  - 상세: `docs/api-verification/reserve-api-result.md`
   - 규모: S
+  - 에이전트: `주도` makeshop-planning-expert | `협업` gas-backend-expert, qa-test-expert
   - 구현 사항:
     - `process_reserve` API로 "특정 회원에게 N원 적립금 지급" 호출 테스트
     - 테스트 계정에서 적립금 지급/차감/조회 정상 동작 확인
@@ -260,6 +289,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: 테스트 HTML 페이지 (신규 생성)
   - 의존성: 없음
   - 규모: S
+  - 에이전트: `주도` makeshop-planning-expert | `협업` qa-test-expert
   - 구현 사항:
     - `{$member_id}` 치환코드로 프론트에서 로그인 회원 ID 읽기 가능 여부 확인
     - 메이크샵 상품 옵션 수 제한 확인 (클래스 일정 증가 시)
@@ -275,6 +305,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: 설계 문서 (신규 생성)
   - 의존성: Task 150, Task 151
   - 규모: S
+  - 에이전트: `주도` makeshop-planning-expert | `협업` gas-backend-expert, ecommerce-business-expert
   - 구현 사항:
     - 메이크샵 조회 API 500회/시간 합산 제한에 대한 서비스별 호출 예산 배분
     - 유튜브 v4 + 파트너맵 + 클래스 플랫폼 동시 사용 시 호출량 예측
@@ -300,6 +331,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `파트너클래스/class-platform-gas.gs` (신규 생성), Google Sheets 3개
   - 의존성: Task 150, Task 151, Task 152 (API 검증 완료 필수)
   - 규모: L
+  - 에이전트: `주도` gas-backend-expert | `협업` makeshop-planning-expert, ecommerce-business-expert
   - 구현 사항:
     - Google Sheets 설계: "파트너 상세" 시트 (코드, 등급, 교육이수, 포트폴리오, 수수료율)
     - Google Sheets 설계: "클래스 메타" 시트 (클래스ID, 커리큘럼JSON, 강사소개, 이미지, 유튜브ID)
@@ -319,6 +351,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: 메이크샵 관리자 설정 + GAS 연동
   - 의존성: Task 201
   - 규모: M
+  - 에이전트: `주도` makeshop-planning-expert | `협업` gas-backend-expert, ecommerce-business-expert
   - 구현 사항:
     - 클래스를 메이크샵 "상품"으로 등록하는 프로세스 정립
     - 옵션(날짜/시간) = 예약 슬롯, 재고 = 정원으로 매핑
@@ -337,6 +370,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `파트너클래스/목록/Index.html`, `파트너클래스/목록/css.css`, `파트너클래스/목록/js.js` (신규 생성)
   - 의존성: Task 201 (GAS API 완성)
   - 규모: L
+  - 에이전트: `주도` makeshop-ui-ux-expert | `협업` brand-planning-expert, seo-performance-expert
   - 구현 사항:
     - 카드형 클래스 목록 (썸네일, 강의명, 강사명, 별점, 가격, 남은 자리, 지역)
     - 필터 UI: 지역(파트너맵 연동) / 카테고리 / 난이도 / 형태(원데이, 정기, 온라인) / 가격대 / 날짜
@@ -351,6 +385,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `파트너클래스/상세/Index.html`, `파트너클래스/상세/css.css`, `파트너클래스/상세/js.js` (신규 생성)
   - 의존성: Task 211, Task 202
   - 규모: L
+  - 에이전트: `주도` makeshop-ui-ux-expert | `협업` brand-planning-expert, ecommerce-business-expert, seo-performance-expert
   - 구현 사항:
     - 대표 이미지 갤러리 (Swiper CDN)
     - 강의 설명 + 커리큘럼 아코디언
@@ -374,6 +409,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `파트너클래스/class-platform-gas.gs` (확장)
   - 의존성: Task 202, Task 212
   - 규모: L
+  - 에이전트: `주도` gas-backend-expert | `협업` ecommerce-business-expert, makeshop-planning-expert, brand-planning-expert
   - 구현 사항:
     - GAS 시간 트리거: 주기적 새 주문 감지 (10~15분 간격, 시간당 4~6회)
     - 수강생 확인 이메일 (예약번호, 일정, 장소, 준비물)
@@ -398,6 +434,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `파트너클래스/파트너/Index.html`, `파트너클래스/파트너/css.css`, `파트너클래스/파트너/js.js` (신규 생성)
   - 의존성: Task 201, Task 221
   - 규모: M
+  - 에이전트: `주도` makeshop-ui-ux-expert, gas-backend-expert | `협업` makeshop-planning-expert, ecommerce-business-expert
   - 구현 사항:
     - 파트너 인증: `{$member_id}` 치환코드 -> JS에서 읽기 -> GAS 파라미터 전달
     - GAS에서 회원 ID -> 파트너 데이터 매칭 (비파트너 접근 차단)
@@ -419,6 +456,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: Google Forms + GAS + Sheets
   - 의존성: Task 201
   - 규모: S
+  - 에이전트: `주도` ecommerce-business-expert, brand-planning-expert | `협업` gas-backend-expert
   - 구현 사항:
     - 파트너 신청 Google Forms (사업자등록증 + 포트폴리오 제출)
     - 관리자 심사 -> 승인 -> 파트너 코드 자동 발급 (GAS)
@@ -433,6 +471,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: YouTube unlisted 영상 + Google Forms 퀴즈 + GAS
   - 의존성: Task 223
   - 규모: S
+  - 에이전트: `주도` brand-planning-expert | `협업` gas-backend-expert
   - 구현 사항:
     - 필수 교육 콘텐츠: 브랜드 가이드라인 / 기본 안전 수칙 / 플랫폼 사용법
     - 선택 교육: 트렌드 업데이트 / 신상품 활용법 / 교육 기법
@@ -444,6 +483,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `메인페이지/Index.html`, `메인페이지/css.css`, `메인페이지/js.js`
   - 의존성: Task 211, Task 212
   - 규모: S
+  - 에이전트: `주도` makeshop-ui-ux-expert | `협업` brand-planning-expert, seo-performance-expert
   - 구현 사항:
     - 메인페이지에 "원데이 클래스" 배너/섹션 추가
     - 인기 클래스 3~4개 카드형 미리보기
@@ -457,6 +497,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: 전체 Phase 2 결과물
   - 의존성: Task 221, Task 222, Task 231, Task 232
   - 규모: M
+  - 에이전트: `주도` qa-test-expert | `협업` seo-performance-expert, makeshop-planning-expert
   - 구현 사항:
     - 고객 플로우 E2E: 강의 탐색 -> 상세 -> 결제 -> 확인 이메일 -> 리마인더 -> 후기
     - 파트너 플로우 E2E: 가입 -> 교육 -> 강의 등록 -> 대시보드 -> 정산 -> 적립금
@@ -489,6 +530,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: Google Sheets 3개 + `수업기획도우미/planner-gas.gs` (신규 생성)
   - 의존성: Task 201 (Sheets/GAS 패턴 재활용)
   - 규모: M
+  - 에이전트: `주도` gas-backend-expert | `협업` ecommerce-business-expert
   - 구현 사항:
     - "프로젝트 템플릿" 시트: ID, 유형명, 카테고리, 난이도, 기본 시간, 설명, 썸네일 (20종+)
     - "재료 매핑" 시트: 템플릿ID, 재료명, branduid, 1인 수량, 단가, 대체재료ID
@@ -504,6 +546,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `수업기획도우미/Index.html`, `수업기획도우미/css.css`, `수업기획도우미/js.js` (신규 생성)
   - 의존성: Task 301
   - 규모: M
+  - 에이전트: `주도` makeshop-ui-ux-expert | `협업` brand-planning-expert, ecommerce-business-expert
   - 구현 사항:
     - 프로젝트 템플릿 선택 UI (20종+ 카드형)
     - 파라미터 입력: 수업 유형, 인원, 1인당 예산, 시간, 난이도
@@ -527,6 +570,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `수업기획도우미/` (Index.html, js.js 확장)
   - 의존성: Task 302
   - 규모: S
+  - 에이전트: `주도` makeshop-ui-ux-expert | `협업` brand-planning-expert
   - 구현 사항:
     - 커리큘럼 템플릿 (60분/90분/120분 시간표)
     - 단계별 가이드: 텍스트 + 이미지 + YouTube (v4 연동)
@@ -539,6 +583,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `수업기획도우미/` (js.js 확장) + GAS
   - 의존성: Task 302
   - 규모: S
+  - 에이전트: `주도` gas-backend-expert | `협업` ecommerce-business-expert
   - 구현 사항:
     - 재료 목록 + 견적서 이메일 발송 (GAS MailApp)
     - 학교 발주서 양식 기관 형태 견적서 포맷
@@ -551,6 +596,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `리뷰허브/Index.html`, `리뷰허브/css.css`, `리뷰허브/js.js`, `리뷰허브/review-gas.gs` (신규 생성)
   - 의존성: Task 201 (GAS 패턴 재활용)
   - 규모: M
+  - 에이전트: `주도` gas-backend-expert, makeshop-ui-ux-expert | `협업` ecommerce-business-expert, seo-performance-expert
   - 구현 사항:
     - 전체 리뷰 모아보기 허브 페이지 (`.review-hub` CSS 스코핑)
     - 필터: 상품별 / 별점 / 리뷰 타입(텍스트/사진/영상)
@@ -570,6 +616,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: `리뷰허브/widget/css.css`, `리뷰허브/widget/js.js` (신규 생성)
   - 의존성: Task 311
   - 규모: S
+  - 에이전트: `주도` makeshop-ui-ux-expert | `협업` seo-performance-expert
   - 구현 사항:
     - 간편구매 상품 상세에 삽입 가능한 "포토 리뷰" 위젯
     - 해당 상품의 최신 사진/영상 리뷰 3~5개 표시
@@ -581,6 +628,7 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
   - 대상: 전체 Phase 3-B 결과물
   - 의존성: Task 311, Task 312
   - 규모: S
+  - 에이전트: `주도` qa-test-expert | `협업` seo-performance-expert
   - 구현 사항:
     - 리뷰 작성 -> 인센티브 지급 -> 등급 반영 전체 플로우 테스트
     - 베스트 리뷰 선정 + 표시 테스트
@@ -759,3 +807,5 @@ Phase 3
 | 날짜 | 버전 | 변경 내용 |
 |------|------|----------|
 | 2026-02-19 | 1.0 | 초기 로드맵 생성 (PRD v1.2 기술 검증 반영) |
+| 2026-02-20 | 1.1 | Phase 1a 1차 개발 완료 (Task 101~106), Phase 1b 1차 개발 완료 (Task 111~113) |
+| 2026-02-20 | 1.2 | 에이전트 투입 체계 추가 -- 7개 전문가 에이전트 매핑 (Phase 1.5~3 전 태스크), 자동 투입 워크플로우 정의 |

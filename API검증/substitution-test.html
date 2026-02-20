@@ -1,186 +1,201 @@
-<!DOCTYPE html>
-<html lang="ko">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>치환코드 검증 - Task 151</title>
+<!--
+  Task 151: 메이크샵 가상태그 검증
+  메이크샵 D4 개별 페이지에 배포하여 사용
+-->
 <style>
-#substitution-test {
-  max-width: 800px;
-  margin: 40px auto;
-  padding: 20px;
-  font-family: 'Malgun Gothic', sans-serif;
-  line-height: 1.6;
-}
-#substitution-test h1 {
-  font-size: 20px;
-  border-bottom: 2px solid #333;
-  padding-bottom: 10px;
-}
-#substitution-test h2 {
-  font-size: 16px;
-  margin-top: 30px;
-  color: #555;
-}
-#substitution-test table {
-  width: 100%;
-  border-collapse: collapse;
-  margin: 10px 0 20px;
-}
-#substitution-test th,
-#substitution-test td {
-  border: 1px solid #ddd;
-  padding: 8px 12px;
-  text-align: left;
-  font-size: 14px;
-}
-#substitution-test th {
-  background: #f5f5f5;
-  font-weight: bold;
-}
-#substitution-test .pass {
-  color: #28a745;
-  font-weight: bold;
-}
-#substitution-test .fail {
-  color: #dc3545;
-  font-weight: bold;
-}
-#substitution-test .pending {
-  color: #ffc107;
-  font-weight: bold;
-}
-#substitution-test .raw-value {
-  background: #f8f9fa;
-  padding: 2px 6px;
-  font-family: monospace;
-  font-size: 13px;
-  border: 1px solid #e0e0e0;
-}
-#substitution-test .result-box {
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-radius: 4px;
-  padding: 15px;
-  margin: 10px 0;
-  font-size: 14px;
-}
-#substitution-test .gas-test-btn {
-  background: #007bff;
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  cursor: pointer;
-  font-size: 14px;
-  border-radius: 4px;
-  margin: 5px 0;
-}
-#substitution-test .gas-test-btn:hover {
-  background: #0056b3;
-}
-#substitution-test #gas-result {
-  margin-top: 10px;
-  white-space: pre-wrap;
-  font-family: monospace;
-  font-size: 13px;
-}
-#substitution-test .note {
-  background: #fff3cd;
-  border: 1px solid #ffc107;
-  padding: 10px;
-  border-radius: 4px;
-  font-size: 13px;
-  margin: 10px 0;
-}
+#substitution-test { max-width: 800px; margin: 40px auto; padding: 20px; font-family: 'Malgun Gothic', sans-serif; line-height: 1.6; }
+#substitution-test h1 { font-size: 20px; border-bottom: 2px solid #333; padding-bottom: 10px; }
+#substitution-test h2 { font-size: 16px; margin-top: 30px; color: #555; }
+#substitution-test table { width: 100%; border-collapse: collapse; margin: 10px 0 20px; }
+#substitution-test th, #substitution-test td { border: 1px solid #ddd; padding: 8px 12px; text-align: left; font-size: 14px; }
+#substitution-test th { background: #f5f5f5; font-weight: bold; }
+#substitution-test .pass { color: #28a745; font-weight: bold; }
+#substitution-test .fail { color: #dc3545; font-weight: bold; }
+#substitution-test .pending { color: #ffc107; font-weight: bold; }
+#substitution-test .raw-value { background: #f8f9fa; padding: 2px 6px; font-family: monospace; font-size: 13px; border: 1px solid #e0e0e0; }
+#substitution-test .result-box { background: #f8f9fa; border: 1px solid #dee2e6; border-radius: 4px; padding: 15px; margin: 10px 0; font-size: 14px; }
+#substitution-test .note { background: #fff3cd; border: 1px solid #ffc107; padding: 10px; border-radius: 4px; font-size: 13px; margin: 10px 0; }
+#substitution-test .export-btn { background: #007bff; color: #fff; border: none; padding: 8px 16px; cursor: pointer; font-size: 14px; border-radius: 4px; }
 </style>
-</head>
-<body>
 
 <div id="substitution-test">
-  <h1>Task 151: 메이크샵 치환코드 검증</h1>
+  <h1>Task 151: 메이크샵 가상태그 검증 v2</h1>
   <p>검증일: <span id="test-date"></span></p>
 
   <div class="note">
-    이 페이지는 메이크샵 D4 개별 페이지에 배포하여 사용합니다.<br>
-    로컬에서는 치환코드가 동작하지 않습니다 (문자열 그대로 출력).
+    메이크샵 D4 가상태그 형식: <code>&lt;!--/태그명/--&gt;</code><br>
+    이전 테스트에서 사용한 <code>{$member_id}</code> 형식은 잘못된 형식이었습니다.
   </div>
 
-  <h2>1. 회원 관련 치환코드</h2>
+  <h2>1. 회원 관련 가상태그</h2>
   <table>
     <thead>
       <tr>
-        <th>치환코드</th>
-        <th>원본 값 (서버 치환 결과)</th>
+        <th>가상태그</th>
+        <th>용도</th>
+        <th>서버 치환 결과</th>
         <th>JS 읽기</th>
         <th>상태</th>
       </tr>
     </thead>
     <tbody>
       <tr>
-        <td><code>{$member_id}</code></td>
-        <td><span id="raw-member-id" class="raw-value"><!--/if_login/-->{$member_id}<!--/endif_login/--></span></td>
-        <td id="js-member-id">-</td>
-        <td id="status-member-id" class="pending">대기</td>
+        <td><code>user_id</code></td>
+        <td>회원 아이디</td>
+        <td><span id="raw-user-id" class="raw-value"><!--/user_id/--></span></td>
+        <td id="js-user-id">-</td>
+        <td id="status-user-id" class="pending">대기</td>
       </tr>
       <tr>
-        <td><code>{$member_name}</code></td>
-        <td><span id="raw-member-name" class="raw-value"><!--/if_login/-->{$member_name}<!--/endif_login/--></span></td>
-        <td id="js-member-name">-</td>
-        <td id="status-member-name" class="pending">대기</td>
+        <td><code>group_name</code></td>
+        <td>회원 그룹</td>
+        <td><span id="raw-group-name" class="raw-value"><!--/group_name/--></span></td>
+        <td id="js-group-name">-</td>
+        <td id="status-group-name" class="pending">대기</td>
       </tr>
       <tr>
-        <td><code>{$member_group}</code></td>
-        <td><span id="raw-member-group" class="raw-value"><!--/if_login/-->{$member_group}<!--/endif_login/--></span></td>
-        <td id="js-member-group">-</td>
-        <td id="status-member-group" class="pending">대기</td>
+        <td><code>group_level</code></td>
+        <td>회원 그룹 등급</td>
+        <td><span id="raw-group-level" class="raw-value"><!--/group_level/--></span></td>
+        <td id="js-group-level">-</td>
+        <td id="status-group-level" class="pending">대기</td>
       </tr>
     </tbody>
   </table>
 
-  <h2>2. 비로그인 상태 확인</h2>
+  <h2>2. 로그인 조건 가상태그</h2>
   <table>
     <thead>
-      <tr>
-        <th>항목</th>
-        <th>값</th>
-        <th>비고</th>
-      </tr>
+      <tr><th>조건</th><th>표시 내용</th><th>상태</th></tr>
     </thead>
     <tbody>
       <tr>
-        <td>member_id 직접 삽입 (if_login 없이)</td>
-        <td><span id="raw-member-id-direct" class="raw-value">{$member_id}</span></td>
-        <td id="note-direct">-</td>
+        <td><code>if_login</code></td>
+        <td id="if-login-result"><!--/if_login/--><span style="color:green;font-weight:bold">로그인 상태입니다</span><!--/end_if/--></td>
+        <td id="status-if-login" class="pending">대기</td>
       </tr>
       <tr>
-        <td>로그인 여부 판별</td>
-        <td id="login-status">-</td>
-        <td>빈 문자열 = 비로그인</td>
+        <td>IS_LOGIN 변수</td>
+        <td id="is-login-var">-</td>
+        <td id="status-is-login" class="pending">대기</td>
       </tr>
     </tbody>
   </table>
 
-  <h2>3. GAS fetch 전달 테스트</h2>
-  <div class="result-box">
-    <p>회원 ID를 GAS 엔드포인트로 전달하는 테스트입니다.</p>
-    <p>GAS URL: <input type="text" id="gas-url-input" style="width:400px;padding:4px;" placeholder="GAS 웹앱 URL 입력"></p>
-    <button class="gas-test-btn" id="btn-gas-test">GAS 전달 테스트</button>
-    <div id="gas-result"></div>
-  </div>
+  <h2>3. 종합 결과</h2>
+  <div id="summary" class="result-box">JS 실행 후 자동 표시됩니다.</div>
 
-  <h2>4. 종합 결과</h2>
-  <div id="summary" class="result-box">
-    JS 실행 후 자동 표시됩니다.
-  </div>
-
-  <h2>5. JSON 내보내기</h2>
+  <h2>4. JSON 내보내기</h2>
   <div class="result-box">
-    <button class="gas-test-btn" id="btn-export">결과 JSON 복사</button>
-    <pre id="json-output" style="margin-top:10px;max-height:200px;overflow:auto;"></pre>
+    <button class="export-btn" id="btn-export">결과 JSON 복사</button>
+    <pre id="json-output" style="margin-top:10px;max-height:300px;overflow:auto;"></pre>
   </div>
 </div>
 
-<script src="substitution-test.js"></script>
+<script>
+(function() {
+  var results = {
+    testDate: new Date().toISOString(),
+    pageUrl: window.location.href,
+    version: 'v2-virtual-tags',
+    tags: {},
+    loginCheck: {},
+    summary: ''
+  };
 
-</body>
-</html>
+  function init() {
+    var dateEl = document.getElementById('test-date');
+    if (dateEl) dateEl.textContent = new Date().toLocaleString('ko-KR');
+
+    // 1. 가상태그 읽기
+    var tags = [
+      { id: 'user-id', name: 'user_id', label: '회원 아이디' },
+      { id: 'group-name', name: 'group_name', label: '회원 그룹' },
+      { id: 'group-level', name: 'group_level', label: '회원 그룹 등급' }
+    ];
+
+    tags.forEach(function(tag) {
+      var rawEl = document.getElementById('raw-' + tag.id);
+      var jsEl = document.getElementById('js-' + tag.id);
+      var statusEl = document.getElementById('status-' + tag.id);
+      var rawValue = rawEl ? rawEl.textContent.trim() : '';
+
+      if (jsEl) jsEl.textContent = rawValue ? '"' + rawValue + '"' : '(빈 문자열)';
+
+      var status;
+      if (rawValue === '') {
+        status = 'empty';
+        if (statusEl) { statusEl.textContent = '빈 문자열'; statusEl.className = 'pending'; }
+      } else {
+        status = 'substituted';
+        if (statusEl) { statusEl.textContent = '치환 성공!'; statusEl.className = 'pass'; }
+      }
+
+      results.tags[tag.name] = { rawValue: rawValue, status: status };
+    });
+
+    // 2. if_login 확인
+    var ifLoginEl = document.getElementById('if-login-result');
+    var ifLoginStatus = document.getElementById('status-if-login');
+    var ifLoginText = ifLoginEl ? ifLoginEl.textContent.trim() : '';
+    if (ifLoginText.length > 0) {
+      results.loginCheck.ifLogin = 'visible';
+      if (ifLoginStatus) { ifLoginStatus.textContent = '로그인 확인!'; ifLoginStatus.className = 'pass'; }
+    } else {
+      results.loginCheck.ifLogin = 'hidden';
+      if (ifLoginStatus) { ifLoginStatus.textContent = '비로그인 (숨김)'; ifLoginStatus.className = 'fail'; }
+    }
+
+    // 3. IS_LOGIN 변수
+    var isLoginEl = document.getElementById('is-login-var');
+    var isLoginStatus = document.getElementById('status-is-login');
+    var isLoginVal = typeof window.IS_LOGIN !== 'undefined' ? window.IS_LOGIN : 'undefined';
+    results.loginCheck.IS_LOGIN = isLoginVal;
+    if (isLoginEl) isLoginEl.textContent = String(isLoginVal);
+    if (isLoginStatus) {
+      if (isLoginVal === 'true' || isLoginVal === true) {
+        isLoginStatus.textContent = '로그인'; isLoginStatus.className = 'pass';
+      } else {
+        isLoginStatus.textContent = '비로그인'; isLoginStatus.className = 'fail';
+      }
+    }
+
+    // 4. 종합
+    var lines = [];
+    var userId = results.tags.user_id;
+    if (userId && userId.status === 'substituted') {
+      lines.push('[성공] 가상태그 정상 동작!');
+      lines.push('- user_id: "' + userId.rawValue + '"');
+      lines.push('- Phase 2 파트너 인증 적용 가능');
+    } else {
+      lines.push('[확인 필요] user_id 가상태그가 빈 문자열입니다.');
+      lines.push('- 비로그인 상태이거나, 이 페이지에서 가상태그가 미지원일 수 있습니다.');
+    }
+    results.summary = lines.join('\n');
+    var summaryEl = document.getElementById('summary');
+    if (summaryEl) summaryEl.textContent = results.summary;
+
+    // 5. JSON 내보내기
+    var btn = document.getElementById('btn-export');
+    if (btn) {
+      btn.addEventListener('click', function() {
+        var json = JSON.stringify(results, null, 2);
+        var output = document.getElementById('json-output');
+        if (output) output.textContent = json;
+        if (navigator.clipboard) {
+          navigator.clipboard.writeText(json).then(function() {
+            btn.textContent = '복사 완료!';
+            setTimeout(function() { btn.textContent = '결과 JSON 복사'; }, 2000);
+          });
+        }
+      });
+    }
+  }
+
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
+})();
+</script>

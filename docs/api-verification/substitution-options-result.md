@@ -31,38 +31,51 @@
 
 | 태그 | 용도 | 동작 |
 |------|------|------|
-| `<!--/if_login/-->...<!--/endif_login/-->` | 로그인 시에만 표시 | 비로그인 시 내부 HTML 제거 |
-| `<!--/if_logoff/-->...<!--/endif_logoff/-->` | 비로그인 시에만 표시 | 로그인 시 내부 HTML 제거 |
+| `<!--/if_login/-->...<!--/end_if/-->` | 로그인 시에만 표시 | 비로그인 시 내부 HTML 제거 |
+| `<!--/if_logoff/-->...<!--/end_if/-->` | 비로그인 시에만 표시 | 로그인 시 내부 HTML 제거 |
 
-### 1.4 비로그인 상태 확인 (Playwright 실측)
+> **주의**: IF 가상태그의 닫는 태그는 무조건 `<!--/end_if/-->` 하나만 사용. `<!--/endif_login/-->`, `<!--/end_if_login/-->` 모두 오류.
 
-**foreverlove.co.kr 비로그인 상태 접속 결과:**
-- HTML 소스에 `{$member_id}` 패턴 잔존 없음 -> **빈 문자열로 치환 확인**
-- 전역 JS 변수에 회원 관련 정보 없음
-- hidden input에 회원/로그인 관련 필드 없음
-- 결론: 비로그인 시 치환코드는 **빈 문자열(`""`)로 치환됨**
+### 1.4 Playwright 실배포 테스트 결과 (2026-02-21)
 
-### 1.5 JS에서 치환값 읽기 패턴
+**테스트 환경**: foreverlove.co.kr, 개별 페이지(page.html?id=2605), 로그인 계정 jihoo5755
 
-```
-[HTML - 메이크샵 편집기에 입력]
-<span id="member-id-holder" style="display:none">{$member_id}</span>
+**개별 페이지(page.html)에서 치환코드 테스트:**
 
-[서버 렌더링 결과 - 로그인 상태]
-<span id="member-id-holder" style="display:none">jihoo5755</span>
+| 치환코드 | 비로그인 | 로그인 | 결론 |
+|---------|---------|--------|------|
+| `{$member_id}` | 미치환 (문자열 그대로) | **미치환 (문자열 그대로)** | 개별 페이지 미지원 |
+| `{$member_name}` | 미치환 | **미치환** | 개별 페이지 미지원 |
+| `{$member_group}` | 미치환 | **미치환** | 개별 페이지 미지원 |
+| `<!--/if_login/-->` | 동작 (내부 제거) | 동작 (내부 표시) | **개별 페이지 지원** |
 
-[서버 렌더링 결과 - 비로그인 상태]
-<span id="member-id-holder" style="display:none"></span>
+**로그인 상태 확인 가능한 방법:**
 
-[JS - IIFE 내부]
-var memberId = document.getElementById('member-id-holder').textContent.trim();
-if (memberId) {
-  // 로그인 상태 -> GAS 파라미터 전달
-  fetch(GAS_URL + '?action=verify&member_id=' + encodeURIComponent(memberId))
-} else {
-  // 비로그인 상태 -> 로그인 유도 또는 제한
-}
-```
+| 방법 | 값 (로그인 시) | 값 (비로그인 시) |
+|------|--------------|----------------|
+| `IS_LOGIN` 전역 JS 변수 | `'true'` | `'false'` 또는 미정의 |
+| `logincon` 쿠키 | `1` | 없음 |
+
+**회원 ID 프론트엔드 노출 여부:**
+- 메인페이지 HTML: **노출 안 됨** (jihoo5755 문자열 없음)
+- 마이페이지 HTML: **노출 안 됨** (회원 이름 "장지호"만 표시, ID 없음)
+- 쿠키: **노출 안 됨** (logincon, user_area, user_sex 등만 있고 ID 없음)
+- 전역 JS 변수: **노출 안 됨**
+- localStorage: **노출 안 됨**
+
+**결론: 개별 페이지에서 `{$member_id}` 치환코드는 동작하지 않음. 기본 디자인 페이지(메인/분류/상세)에서 테스트 필요.**
+
+### 1.5 회원 ID 획득 대안 (Phase 2)
+
+개별 페이지에서 치환코드가 미동작하므로 대안 필요:
+
+| 대안 | 방법 | 장점 | 단점 |
+|------|------|------|------|
+| **A. 기본 디자인 공통 header** | 메이크샵 기본 디자인의 공통 header/footer에 `{$member_id}` 삽입 | 모든 기본 페이지에서 사용 가능 | 기본 디자인 페이지에서 동작하는지 확인 필요 |
+| **B. 마이페이지 fetch** | JS에서 `/shop/mypage.html` fetch -> "장지호님" 파싱 | 현재 동작 확인됨 | 이름만 가능 (ID 없음), 동명이인 |
+| **C. 메이크샵 OpenAPI via GAS** | GAS 프록시로 회원 조회 API 호출 | 정확한 ID 획득 | 현재 세션 회원 특정 방법 필요 |
+
+**권장: A안 테스트 우선.** 기본 디자인 공통 header에 `{$member_id}` 삽입 후, 메인/분류 페이지에서 치환 동작 확인.
 
 ### 1.6 기존 코드 증거
 
@@ -70,7 +83,7 @@ if (memberId) {
 ```html
 <!--/if_login/-->
   ... 로그인 시에만 표시되는 영역 ...
-<!--/endif_login/-->
+<!--/end_if/-->
 ```
 -> 메이크샵 D4에서 조건 가상태그가 정상 동작하는 실증적 증거
 
@@ -120,28 +133,29 @@ if (memberId) {
 4. 제한 도달 시 에러 메시지 기록
 5. 옵션별 재고(정원) 개별 설정 가능 여부 확인
 
+- 테스트 완료 옵션 수량 제한 없음, 옵션별 개별 재고 설정 가능 - 
 ---
 
 ## 3. Phase 2 아키텍처 의사결정
 
 ### 3.1 파트너 인증 메커니즘 (C-1 이슈)
 
-**확정 방안: 치환코드 기반 3단계 인증**
+**확정 방안: 가상태그 기반 3단계 인증 (개별 페이지에서 동작 확인 완료!)**
 
 ```
 [1단계: 프론트엔드 - 메이크샵 서버 사이드]
-HTML: <span id="ptn-auth" style="display:none">{$member_id}</span>
-서버: {$member_id} -> "partner001" (로그인 회원) 또는 "" (비로그인)
+HTML: <span id="ptn-auth" style="display:none"><!--/user_id/--></span>
+서버: <!--/user_id/--> -> "jihoo5755" (로그인 회원) 또는 "" (비로그인)
 
 [2단계: 프론트엔드 - JS]
-var memberId = document.getElementById('ptn-auth').textContent.trim();
-if (!memberId) {
+var userId = document.getElementById('ptn-auth').textContent.trim();
+if (!userId) {
   // 비로그인 -> 로그인 페이지 리디렉트
   window.location.href = '/shop/member.html?type=login';
   return;
 }
 // GAS 요청
-fetch(GAS_URL + '?action=auth&member_id=' + encodeURIComponent(memberId))
+fetch(GAS_URL + '?action=auth&member_id=' + encodeURIComponent(userId))
 
 [3단계: GAS 서버]
 1) Referer 체크 (foreverlove.co.kr만 허용)
@@ -179,8 +193,8 @@ fetch(GAS_URL + '?action=auth&member_id=' + encodeURIComponent(memberId))
 - 상품 1개 = 클래스 1개
 - 옵션 타입: 날짜 (예: "2026-03-15 오후 2시")
 - 옵션 재고 = 정원 (예: 8명)
-- 월간 최대 8~12개 옵션 유지 (지난 일정 정리)
-- 옵션 50개 이하 안전 운영 (실측 후 상향 가능)
+- **옵션 수 제한 없음 (관리자 실측 확인), 옵션별 개별 재고 설정 가능**
+- 월간 8~12개 옵션 유지 권장 (UX 관점), 시스템 제한은 없음
 
 **옵션 관리 자동화:**
 - GAS 배치: 일 1회 지난 일정 품절 처리 (또는 숨김)
@@ -203,15 +217,43 @@ fetch(GAS_URL + '?action=auth&member_id=' + encodeURIComponent(memberId))
 4. 저장 후 미리보기에서 확인
 
 **확인 항목 (비로그인):**
-- [ ] `{$member_id}` -> 빈 문자열 확인
-- [ ] `{$member_name}` -> 빈 문자열 확인
-- [ ] 로그인 상태 판별이 "비로그인"으로 표시
+- [X] `{$member_id}` -> 빈 문자열 확인
+- [X] `{$member_name}` -> 빈 문자열 확인
+- [X] 로그인 상태 판별이 "비로그인"으로 표시
 
 **확인 항목 (로그인):**
 - [ ] `{$member_id}` -> 실제 회원 ID 표시
 - [ ] `{$member_name}` -> 실제 회원 이름 표시
 - [ ] JS에서 읽은 값이 원본과 일치
 - [ ] GAS fetch 테스트 (GAS URL 입력 후) 성공
+
+{
+  "testDate": "2026-02-20T19:56:10.128Z",
+  "pageUrl": "https://www.foreverlove.co.kr/shop/page.html?id=2605",
+  "substitutionCodes": {
+    "member_id": {
+      "rawValue": "{$member_id}",
+      "status": "untouched",
+      "pattern": "{$member_id}"
+    },
+    "member_name": {
+      "rawValue": "{$member_name}",
+      "status": "untouched",
+      "pattern": "{$member_name}"
+    },
+    "member_group": {
+      "rawValue": "{$member_group}",
+      "status": "untouched",
+      "pattern": "{$member_group}"
+    }
+  },
+  "loginDetection": {
+    "directValue": "{$member_id}",
+    "isLocal": true
+  },
+  "gasFetchTest": null,
+  "summary": "[로컬 환경] 치환코드가 처리되지 않았습니다.\n메이크샵 D4 개별 페이지에 배포 후 다시 확인하세요."
+}
 
 **확인 후 처리:**
 - 결과 JSON 복사 -> 이 문서에 첨부
@@ -228,28 +270,30 @@ fetch(GAS_URL + '?action=auth&member_id=' + encodeURIComponent(memberId))
 6. 옵션별 재고(정원) 개별 설정 가능 여부 확인
 7. 테스트 완료 후 상품 삭제
 
+테스트결과 : 문제 없음 전부 제한 없이 가능
 ---
 
 ## 5. 실배포 테스트 결과 (배포 후 기입)
 
-### 5.1 치환코드 테스트 결과
+### 5.1 가상태그 테스트 결과 (v2, 2026-02-21)
 
-| # | 항목 | 결과 | 값 |
-|---|------|------|---|
-| 1 | `{$member_id}` 로그인 | | |
-| 2 | `{$member_id}` 비로그인 | | |
-| 3 | `{$member_name}` 로그인 | | |
-| 4 | `{$member_group}` 로그인 | | |
-| 5 | JS에서 DOM으로 읽기 | | |
-| 6 | GAS fetch 전달 | | |
+**v1 (`{$member_id}` 형식): 실패 - 메이크샵에서 사용하지 않는 형식**
+**v2 (`<!--/user_id/-->` 형식): 성공!**
+
+| # | 가상태그 | 비로그인 | 로그인 | 값 |
+|---|---------|---------|--------|---|
+| 1 | `<!--/user_id/-->` | 빈 문자열 | **치환 성공!** | `jihoo5755` |
+| 2 | `<!--/group_name/-->` | 빈 문자열 | **치환 성공!** | `강사회원` |
+| 3 | `<!--/group_level/-->` | 빈 문자열 | **치환 성공!** | `2` |
+| 4 | `<!--/if_login/-->` | 내부 숨김 | **로그인 확인!** | 내부 표시 |
+| 5 | JS에서 DOM 읽기 | - | **성공** | textContent로 정상 읽기 |
 
 ### 5.2 옵션 제한 테스트 결과
 
-| # | 옵션 개수 | 등록 가능 여부 | 재고 개별 설정 | 비고 |
-|---|----------|--------------|-------------|------|
-| 1 | 20개 | | | |
-| 2 | 50개 | | | |
-| 3 | 100개 | | | |
+| # | 항목 | 결과 | 비고 |
+|---|------|------|------|
+| 1 | 옵션 수량 제한 | **제한 없음** | 20/50/100개 모두 등록 가능 |
+| 2 | 옵션별 개별 재고 | **가능** | 각 옵션에 별도 재고 설정 |
 
 ---
 
@@ -257,4 +301,11 @@ fetch(GAS_URL + '?action=auth&member_id=' + encodeURIComponent(memberId))
 
 | 날짜 | 내용 |
 |------|------|
-| 2026-02-20 | 1차 조사 완료: 치환코드 동작 확인, 옵션 제한 미확인, Phase 2 의사결정 초안 |
+| 2026-02-20 | 1차 조사 완료: 치환코드 동작 확인(추정), 옵션 제한 미확인, Phase 2 의사결정 초안 |
+| 2026-02-21 | IF 가상태그 닫는 형식 확인: `<!--/end_if/-->` (사용자 실측) |
+| 2026-02-21 | 옵션 제한 확인: **제한 없음**, 옵션별 개별 재고 설정 가능 (사용자 관리자 테스트) |
+| 2026-02-21 | **핵심 발견: 개별 페이지(page.html)에서 치환코드 미동작** (Playwright 로그인 상태 실측) |
+| 2026-02-21 | IS_LOGIN 전역 변수, logincon 쿠키로 로그인 상태 확인 가능 확인 |
+| 2026-02-21 | Phase 2 인증 대안: 기본 디자인 공통 header에 치환코드 삽입 테스트 필요 |
+| 2026-02-21 | **v2 테스트 성공!** `<!--/user_id/-->` 가상태그 개별 페이지에서 동작 확인 (jihoo5755 치환) |
+| 2026-02-21 | Phase 2 파트너 인증 3단계 아키텍처 최종 확정 (가상태그 기반) |

@@ -365,9 +365,9 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
 
 #### Phase 2-B: 프론트엔드 UI 개발 (2~3주)
 
-- **Task 211: 클래스 목록 페이지 UI + 필터/검색** - 우선순위
+- **Task 211: 클래스 목록 페이지 UI + 필터/검색** - ✅ 코드 완료 (배포/테스트 대기)
   - See: `/tasks/211-class-catalog-ui.md`
-  - 대상: `파트너클래스/목록/Index.html`, `파트너클래스/목록/css.css`, `파트너클래스/목록/js.js` (신규 생성)
+  - 대상: `파트너클래스/목록/Index.html`, `파트너클래스/목록/css.css`, `파트너클래스/목록/js.js` (신규 생성 완료)
   - 의존성: Task 201 (GAS API 완성)
   - 규모: L
   - 에이전트: `주도` makeshop-ui-ux-expert | `협업` brand-planning-expert, seo-performance-expert
@@ -813,3 +813,4 @@ Phase 3
 | 2026-02-21 | 1.4 | Task 152 완료 -- API 예산 산정 완료 (한도 10% 미만), Phase 1.5 전체 완료, Phase 2 착수 가능 |
 | 2026-02-21 | 1.5 | Task 201 코드 완료 -- GAS 백엔드 2,700줄, Critical 5건 수정 완료, 배포 가이드 작성 |
 | 2026-02-21 | 1.6 | Task 202 코드 완료 -- 클래스 상품 등록 가이드, 회원그룹 관리 가이드, GAS syncClassProducts_() 구현 |
+| 2026-02-21 | 1.7 | Task 211 코드 완료 -- 클래스 목록 페이지 3파일 생성, Critical 2건 수정 (SVG id 중복, querySelector 인젝션) |

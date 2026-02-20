@@ -1,0 +1,1302 @@
+/* ============================================
+   PRESSCO21 파트너 클래스 목록 페이지
+   CSS 스코핑: .class-catalog
+   브랜드 컬러: #7d9675 (세이지 그린), #6B4C3B (브라운), #C4956A (골드 베이지)
+   반응형: ~768px / 768~992px / 992~1200px / 1200px~
+   ============================================ */
+
+/* ----------------------------------------
+   0. CSS 변수 (스코핑된 커스텀 프로퍼티)
+   ---------------------------------------- */
+.class-catalog {
+    --cc-primary: #7d9675;
+    --cc-primary-light: #b7c9ad;
+    --cc-primary-dark: #2c3e30;
+    --cc-brown: #6B4C3B;
+    --cc-brown-light: #8B6B58;
+    --cc-gold: #C4956A;
+    --cc-gold-light: #E8D5C4;
+    --cc-bg: #FAF8F5;
+    --cc-bg-card: #FFFFFF;
+    --cc-bg-filter: #FFFFFF;
+    --cc-text: #333333;
+    --cc-text-light: #777777;
+    --cc-text-dark: #1a1a1a;
+    --cc-border: #E8E2DB;
+    --cc-border-light: #F0EBE5;
+    --cc-shadow-sm: 0 1px 3px rgba(107, 76, 59, 0.06);
+    --cc-shadow-md: 0 4px 16px rgba(107, 76, 59, 0.08);
+    --cc-shadow-lg: 0 8px 32px rgba(107, 76, 59, 0.12);
+    --cc-shadow-hover: 0 12px 28px rgba(107, 76, 59, 0.14);
+    --cc-radius-sm: 8px;
+    --cc-radius-md: 12px;
+    --cc-radius-lg: 16px;
+    --cc-transition: 0.25s ease-out;
+    --cc-font: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
+
+    font-family: var(--cc-font);
+    background-color: var(--cc-bg);
+    color: var(--cc-text);
+    line-height: 1.6;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+.class-catalog *,
+.class-catalog *::before,
+.class-catalog *::after {
+    box-sizing: border-box;
+}
+
+/* 스크린리더 전용 */
+.class-catalog .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+
+/* ----------------------------------------
+   1. 페이지 헤더
+   ---------------------------------------- */
+.class-catalog .catalog-header {
+    background: linear-gradient(135deg, var(--cc-primary-dark) 0%, var(--cc-primary) 50%, var(--cc-primary-light) 100%);
+    padding: 60px 24px 48px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+/* 배경 장식 패턴 */
+.class-catalog .catalog-header::before {
+    content: '';
+    position: absolute;
+    top: -40%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    background: radial-gradient(circle, rgba(255,255,255,0.06) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.class-catalog .catalog-header::after {
+    content: '';
+    position: absolute;
+    bottom: -30%;
+    left: -5%;
+    width: 300px;
+    height: 300px;
+    background: radial-gradient(circle, rgba(255,255,255,0.04) 0%, transparent 70%);
+    border-radius: 50%;
+    pointer-events: none;
+}
+
+.class-catalog .catalog-header__inner {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
+    margin: 0 auto;
+}
+
+.class-catalog .catalog-breadcrumb {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.65);
+    margin-bottom: 20px;
+    letter-spacing: 0.02em;
+}
+
+.class-catalog .catalog-breadcrumb a {
+    color: rgba(255, 255, 255, 0.65);
+    text-decoration: none;
+    transition: color var(--cc-transition);
+}
+
+.class-catalog .catalog-breadcrumb a:hover {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.class-catalog .catalog-breadcrumb__sep {
+    margin: 0 8px;
+    opacity: 0.4;
+}
+
+.class-catalog .catalog-breadcrumb__current {
+    color: rgba(255, 255, 255, 0.9);
+}
+
+.class-catalog .catalog-header__title {
+    font-size: 42px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: -0.02em;
+    margin: 0 0 8px;
+    line-height: 1.2;
+}
+
+.class-catalog .catalog-header__subtitle {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.75);
+    font-weight: 400;
+    margin: 0 0 16px;
+    letter-spacing: 0.01em;
+}
+
+.class-catalog .catalog-header__count {
+    display: inline-block;
+    font-size: 13px;
+    color: var(--cc-primary-dark);
+    background: rgba(255, 255, 255, 0.85);
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-weight: 500;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    margin: 0;
+}
+
+
+/* ----------------------------------------
+   2. 모바일 필터 토글 버튼
+   ---------------------------------------- */
+.class-catalog .filter-toggle {
+    display: none; /* 모바일에서만 표시 */
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    width: 100%;
+    padding: 12px 20px;
+    background: var(--cc-bg-card);
+    border: none;
+    border-bottom: 1px solid var(--cc-border-light);
+    cursor: pointer;
+    font-family: var(--cc-font);
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cc-text-dark);
+    align-items: center;
+    gap: 6px;
+    justify-content: center;
+    box-shadow: var(--cc-shadow-sm);
+}
+
+.class-catalog .filter-toggle__icon {
+    flex-shrink: 0;
+}
+
+.class-catalog .filter-toggle__badge {
+    display: none;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background: var(--cc-gold);
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 9px;
+    line-height: 18px;
+    text-align: center;
+}
+
+.class-catalog .filter-toggle__badge.is-active {
+    display: inline-block;
+}
+
+
+/* ----------------------------------------
+   3. 메인 레이아웃
+   ---------------------------------------- */
+.class-catalog .catalog-layout {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 32px 24px 60px;
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+    position: relative;
+}
+
+
+/* ----------------------------------------
+   4. 필터 패널 (데스크탑: 사이드바)
+   ---------------------------------------- */
+.class-catalog .filter-panel {
+    width: 280px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 24px;
+    background: var(--cc-bg-card);
+    border-radius: var(--cc-radius-lg);
+    box-shadow: var(--cc-shadow-sm);
+    border: 1px solid var(--cc-border-light);
+    overflow: hidden;
+}
+
+/* 드로어 헤더 (데스크탑에서 숨김) */
+.class-catalog .filter-panel__header {
+    display: none;
+}
+
+.class-catalog .filter-panel__body {
+    padding: 24px 20px 16px;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+}
+
+/* 스크롤바 스타일 */
+.class-catalog .filter-panel__body::-webkit-scrollbar {
+    width: 4px;
+}
+
+.class-catalog .filter-panel__body::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+.class-catalog .filter-panel__body::-webkit-scrollbar-thumb {
+    background: var(--cc-border);
+    border-radius: 2px;
+}
+
+/* 필터 그룹 */
+.class-catalog .filter-group {
+    border: none;
+    padding: 0;
+    margin: 0 0 20px;
+}
+
+.class-catalog .filter-group:last-child {
+    margin-bottom: 0;
+}
+
+.class-catalog .filter-group__title {
+    padding: 0;
+    margin: 0 0 12px;
+}
+
+.class-catalog .filter-group__toggle {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--cc-font);
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cc-text-dark);
+    letter-spacing: -0.01em;
+}
+
+.class-catalog .filter-group__arrow {
+    transition: transform var(--cc-transition);
+    color: var(--cc-text-light);
+}
+
+.class-catalog .filter-group__toggle[aria-expanded="false"] .filter-group__arrow {
+    transform: rotate(-90deg);
+}
+
+.class-catalog .filter-group__content {
+    overflow: hidden;
+    transition: max-height 0.3s ease-out, opacity 0.3s ease-out;
+}
+
+.class-catalog .filter-group__content.is-collapsed {
+    max-height: 0;
+    opacity: 0;
+    overflow: hidden;
+}
+
+/* 필터 구분선 */
+.class-catalog .filter-group + .filter-group {
+    padding-top: 20px;
+    border-top: 1px solid var(--cc-border-light);
+}
+
+/* 체크박스 스타일 */
+.class-catalog .filter-checkbox {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 7px 0;
+    cursor: pointer;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.class-catalog .filter-checkbox input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.class-catalog .filter-checkbox__mark {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+    border: 1.5px solid var(--cc-border);
+    border-radius: 4px;
+    background: var(--cc-bg);
+    transition: all var(--cc-transition);
+}
+
+.class-catalog .filter-checkbox__mark::after {
+    content: '';
+    display: block;
+    width: 10px;
+    height: 6px;
+    border-left: 2px solid #FFFFFF;
+    border-bottom: 2px solid #FFFFFF;
+    transform: rotate(-45deg) scale(0);
+    transition: transform 0.2s ease-out;
+    margin-top: -2px;
+}
+
+.class-catalog .filter-checkbox input:checked + .filter-checkbox__mark {
+    background: var(--cc-primary);
+    border-color: var(--cc-primary);
+}
+
+.class-catalog .filter-checkbox input:checked + .filter-checkbox__mark::after {
+    transform: rotate(-45deg) scale(1);
+}
+
+.class-catalog .filter-checkbox input:focus-visible + .filter-checkbox__mark {
+    outline: 2px solid var(--cc-primary);
+    outline-offset: 2px;
+}
+
+.class-catalog .filter-checkbox__label {
+    font-size: 14px;
+    color: var(--cc-text);
+    transition: color var(--cc-transition);
+}
+
+.class-catalog .filter-checkbox:hover .filter-checkbox__label {
+    color: var(--cc-text-dark);
+}
+
+/* 가격 범위 슬라이더 */
+.class-catalog .price-range {
+    padding: 4px 0;
+}
+
+.class-catalog .price-range__slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 4px;
+    background: linear-gradient(to right, var(--cc-primary) 0%, var(--cc-primary) 100%);
+    border-radius: 2px;
+    outline: none;
+    cursor: pointer;
+}
+
+.class-catalog .price-range__slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    background: var(--cc-bg-card);
+    border: 2px solid var(--cc-primary);
+    border-radius: 50%;
+    cursor: pointer;
+    box-shadow: 0 1px 4px rgba(0,0,0,0.1);
+    transition: transform 0.15s ease-out, box-shadow 0.15s ease-out;
+}
+
+.class-catalog .price-range__slider::-webkit-slider-thumb:hover {
+    transform: scale(1.15);
+    box-shadow: 0 2px 8px rgba(125, 150, 117, 0.3);
+}
+
+.class-catalog .price-range__slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    background: var(--cc-bg-card);
+    border: 2px solid var(--cc-primary);
+    border-radius: 50%;
+    cursor: pointer;
+}
+
+.class-catalog .price-range__labels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 12px;
+    color: var(--cc-text-light);
+}
+
+.class-catalog .price-range__value {
+    font-weight: 600;
+    color: var(--cc-primary);
+}
+
+/* 필터 스켈레톤 (카테고리 로딩용) */
+.class-catalog .filter-skeleton-line {
+    height: 18px;
+    margin-bottom: 10px;
+    background: linear-gradient(90deg, var(--cc-border-light) 25%, #f5f0eb 50%, var(--cc-border-light) 75%);
+    background-size: 200% 100%;
+    border-radius: 4px;
+    animation: ccShimmer 1.5s ease-in-out infinite;
+}
+
+.class-catalog .filter-skeleton-line:nth-child(2) { width: 75%; }
+.class-catalog .filter-skeleton-line:nth-child(3) { width: 60%; }
+
+/* 필터 하단 (데스크탑에서 숨김) */
+.class-catalog .filter-panel__footer {
+    display: none;
+}
+
+.class-catalog .filter-reset {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 16px;
+    background: none;
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-sm);
+    cursor: pointer;
+    font-family: var(--cc-font);
+    font-size: 13px;
+    color: var(--cc-text-light);
+    transition: all var(--cc-transition);
+    flex-shrink: 0;
+}
+
+.class-catalog .filter-reset:hover {
+    border-color: var(--cc-text-light);
+    color: var(--cc-text);
+}
+
+.class-catalog .filter-apply {
+    flex: 1;
+    padding: 12px 24px;
+    background: var(--cc-primary);
+    color: #FFFFFF;
+    border: none;
+    border-radius: var(--cc-radius-sm);
+    cursor: pointer;
+    font-family: var(--cc-font);
+    font-size: 14px;
+    font-weight: 600;
+    transition: background-color var(--cc-transition);
+}
+
+.class-catalog .filter-apply:hover {
+    background: var(--cc-primary-dark);
+}
+
+/* 필터 오버레이 (모바일 드로어용) */
+.class-catalog .filter-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+    z-index: 998;
+    opacity: 0;
+    transition: opacity 0.3s ease-out;
+}
+
+.class-catalog .filter-overlay.is-active {
+    display: block;
+    opacity: 1;
+}
+
+
+/* ----------------------------------------
+   5. 콘텐츠 영역
+   ---------------------------------------- */
+.class-catalog .catalog-content {
+    flex: 1;
+    min-width: 0;
+}
+
+
+/* ----------------------------------------
+   6. 정렬 바
+   ---------------------------------------- */
+.class-catalog .sort-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 24px;
+    gap: 16px;
+    flex-wrap: wrap;
+}
+
+.class-catalog .sort-bar__left {
+    flex: 1;
+    min-width: 0;
+}
+
+/* 활성 필터 칩 */
+.class-catalog .active-filters {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.class-catalog .filter-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 5px 10px;
+    background: var(--cc-bg-card);
+    border: 1px solid var(--cc-border);
+    border-radius: 20px;
+    font-size: 12px;
+    color: var(--cc-text);
+    font-weight: 500;
+    white-space: nowrap;
+    animation: ccChipIn 0.2s ease-out;
+}
+
+@keyframes ccChipIn {
+    from { opacity: 0; transform: scale(0.9); }
+    to { opacity: 1; transform: scale(1); }
+}
+
+.class-catalog .filter-chip__remove {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 16px;
+    height: 16px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--cc-text-light);
+    font-size: 14px;
+    line-height: 1;
+    border-radius: 50%;
+    transition: all var(--cc-transition);
+}
+
+.class-catalog .filter-chip__remove:hover {
+    background: var(--cc-border-light);
+    color: var(--cc-text-dark);
+}
+
+/* 정렬 셀렉트 */
+.class-catalog .sort-select {
+    padding: 8px 32px 8px 14px;
+    background: var(--cc-bg-card);
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-sm);
+    font-family: var(--cc-font);
+    font-size: 13px;
+    color: var(--cc-text);
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23777' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 12px center;
+    transition: border-color var(--cc-transition);
+}
+
+.class-catalog .sort-select:hover,
+.class-catalog .sort-select:focus {
+    border-color: var(--cc-primary);
+}
+
+
+/* ----------------------------------------
+   7. 클래스 카드 그리드
+   ---------------------------------------- */
+.class-catalog .class-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+/* 카드 */
+.class-catalog .class-card {
+    display: block;
+    background: var(--cc-bg-card);
+    border-radius: var(--cc-radius-md);
+    overflow: hidden;
+    box-shadow: var(--cc-shadow-sm);
+    border: 1px solid var(--cc-border-light);
+    text-decoration: none;
+    color: inherit;
+    transition: transform var(--cc-transition), box-shadow var(--cc-transition);
+    cursor: pointer;
+}
+
+.class-catalog .class-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--cc-shadow-hover);
+}
+
+/* 카드 썸네일 영역 */
+.class-catalog .class-card__thumb {
+    position: relative;
+    padding-top: 56.25%; /* 16:9 비율 */
+    overflow: hidden;
+    background: var(--cc-border-light);
+}
+
+.class-catalog .class-card__img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease-out;
+}
+
+.class-catalog .class-card:hover .class-card__img {
+    transform: scale(1.05);
+}
+
+/* 카테고리 배지 (좌상단) */
+.class-catalog .class-card__category {
+    position: absolute;
+    top: 12px;
+    left: 12px;
+    padding: 4px 10px;
+    background: rgba(107, 76, 59, 0.85);
+    color: #FFFFFF;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    letter-spacing: 0.02em;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    z-index: 1;
+}
+
+/* 수업 형태 배지 (우상단) */
+.class-catalog .class-card__type {
+    position: absolute;
+    top: 12px;
+    right: 12px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 600;
+    border-radius: 4px;
+    z-index: 1;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.class-catalog .class-card__type--oneday {
+    background: rgba(196, 149, 106, 0.9);
+    color: #FFFFFF;
+}
+
+.class-catalog .class-card__type--regular {
+    background: rgba(125, 150, 117, 0.9);
+    color: #FFFFFF;
+}
+
+.class-catalog .class-card__type--online {
+    background: rgba(100, 140, 180, 0.9);
+    color: #FFFFFF;
+}
+
+/* 카드 정보 영역 */
+.class-catalog .class-card__body {
+    padding: 16px;
+}
+
+.class-catalog .class-card__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cc-text-dark);
+    line-height: 1.4;
+    margin: 0 0 8px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    letter-spacing: -0.01em;
+}
+
+/* 메타 정보 행 */
+.class-catalog .class-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 10px;
+    flex-wrap: wrap;
+}
+
+.class-catalog .class-card__partner {
+    font-size: 13px;
+    color: var(--cc-text-light);
+    font-weight: 400;
+}
+
+.class-catalog .class-card__location {
+    display: flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 12px;
+    color: var(--cc-text-light);
+}
+
+.class-catalog .class-card__location::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 1C4.067 1 2.5 2.567 2.5 4.5 2.5 7.25 6 11 6 11s3.5-3.75 3.5-6.5C9.5 2.567 7.933 1 6 1z' stroke='%23999' stroke-width='1'/%3E%3Ccircle cx='6' cy='4.5' r='1.25' stroke='%23999' stroke-width='.8'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+}
+
+/* 별점 + 난이도 행 */
+.class-catalog .class-card__ratings {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+
+.class-catalog .class-card__stars {
+    display: flex;
+    align-items: center;
+    gap: 2px;
+}
+
+.class-catalog .class-card__star {
+    width: 14px;
+    height: 14px;
+    flex-shrink: 0;
+}
+
+.class-catalog .class-card__star--filled {
+    color: #F5A623;
+}
+
+.class-catalog .class-card__star--half {
+    color: #F5A623;
+}
+
+.class-catalog .class-card__star--empty {
+    color: #DDD;
+}
+
+.class-catalog .class-card__rating-num {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cc-text);
+}
+
+.class-catalog .class-card__review-count {
+    font-size: 12px;
+    color: var(--cc-text-light);
+}
+
+.class-catalog .class-card__level {
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    font-size: 11px;
+    color: var(--cc-text-light);
+    padding: 2px 8px;
+    background: var(--cc-bg);
+    border-radius: 4px;
+    font-weight: 500;
+}
+
+/* 가격 행 (하단) */
+.class-catalog .class-card__footer {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    padding-top: 12px;
+    border-top: 1px solid var(--cc-border-light);
+}
+
+.class-catalog .class-card__price {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--cc-brown);
+    letter-spacing: -0.02em;
+}
+
+.class-catalog .class-card__price-unit {
+    font-size: 13px;
+    font-weight: 400;
+    color: var(--cc-text-light);
+    margin-left: 1px;
+}
+
+.class-catalog .class-card__duration {
+    font-size: 12px;
+    color: var(--cc-text-light);
+    display: flex;
+    align-items: center;
+    gap: 3px;
+}
+
+.class-catalog .class-card__duration::before {
+    content: '';
+    display: inline-block;
+    width: 13px;
+    height: 13px;
+    background-image: url("data:image/svg+xml,%3Csvg width='13' height='13' viewBox='0 0 13 13' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Ccircle cx='6.5' cy='6.5' r='5.5' stroke='%23999' stroke-width='1'/%3E%3Cpath d='M6.5 3.5v3.5l2.5 1.5' stroke='%23999' stroke-width='1' stroke-linecap='round'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+}
+
+
+/* ----------------------------------------
+   8. 스켈레톤 UI
+   ---------------------------------------- */
+@keyframes ccShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.class-catalog .skeleton-card {
+    background: var(--cc-bg-card);
+    border-radius: var(--cc-radius-md);
+    overflow: hidden;
+    box-shadow: var(--cc-shadow-sm);
+    border: 1px solid var(--cc-border-light);
+}
+
+.class-catalog .skeleton-card__thumb {
+    padding-top: 56.25%;
+    background: linear-gradient(90deg, var(--cc-border-light) 25%, #f5f0eb 50%, var(--cc-border-light) 75%);
+    background-size: 200% 100%;
+    animation: ccShimmer 1.5s ease-in-out infinite;
+}
+
+.class-catalog .skeleton-card__body {
+    padding: 16px;
+}
+
+.class-catalog .skeleton-card__line {
+    height: 14px;
+    margin-bottom: 10px;
+    background: linear-gradient(90deg, var(--cc-border-light) 25%, #f5f0eb 50%, var(--cc-border-light) 75%);
+    background-size: 200% 100%;
+    border-radius: 4px;
+    animation: ccShimmer 1.5s ease-in-out infinite;
+}
+
+.class-catalog .skeleton-card__line--short { width: 60%; }
+.class-catalog .skeleton-card__line--medium { width: 80%; }
+.class-catalog .skeleton-card__line--price { width: 40%; height: 20px; margin-top: 16px; }
+
+
+/* ----------------------------------------
+   9. 빈 결과 / 에러 상태
+   ---------------------------------------- */
+.class-catalog .catalog-empty,
+.class-catalog .catalog-error {
+    text-align: center;
+    padding: 80px 24px;
+}
+
+.class-catalog .catalog-empty__icon {
+    margin-bottom: 24px;
+    opacity: 0.7;
+}
+
+.class-catalog .catalog-empty__title,
+.class-catalog .catalog-error__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--cc-text-dark);
+    margin: 0 0 8px;
+}
+
+.class-catalog .catalog-empty__desc,
+.class-catalog .catalog-error__desc {
+    font-size: 14px;
+    color: var(--cc-text-light);
+    margin: 0 0 24px;
+}
+
+.class-catalog .catalog-empty__reset,
+.class-catalog .catalog-error__retry {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 24px;
+    background: var(--cc-bg-card);
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-sm);
+    font-family: var(--cc-font);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cc-text);
+    cursor: pointer;
+    transition: all var(--cc-transition);
+}
+
+.class-catalog .catalog-empty__reset:hover,
+.class-catalog .catalog-error__retry:hover {
+    border-color: var(--cc-primary);
+    color: var(--cc-primary);
+}
+
+
+/* ----------------------------------------
+   10. 페이지네이션
+   ---------------------------------------- */
+.class-catalog .catalog-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 48px;
+    padding: 16px 0;
+}
+
+.class-catalog .catalog-pagination__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 8px;
+    background: var(--cc-bg-card);
+    border: 1px solid var(--cc-border);
+    border-radius: var(--cc-radius-sm);
+    font-family: var(--cc-font);
+    font-size: 14px;
+    color: var(--cc-text);
+    cursor: pointer;
+    text-decoration: none;
+    transition: all var(--cc-transition);
+    font-weight: 500;
+}
+
+.class-catalog .catalog-pagination__btn:hover {
+    border-color: var(--cc-primary);
+    color: var(--cc-primary);
+}
+
+.class-catalog .catalog-pagination__btn.is-active {
+    background: var(--cc-primary);
+    border-color: var(--cc-primary);
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.class-catalog .catalog-pagination__btn.is-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+    cursor: default;
+}
+
+.class-catalog .catalog-pagination__ellipsis {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 32px;
+    height: 40px;
+    font-size: 14px;
+    color: var(--cc-text-light);
+    user-select: none;
+}
+
+
+/* ----------------------------------------
+   11. 스크롤 애니메이션
+   ---------------------------------------- */
+.class-catalog .scroll-reveal {
+    opacity: 0;
+    transform: translateY(24px);
+    transition: opacity 0.5s ease-out, transform 0.5s ease-out;
+}
+
+.class-catalog .scroll-reveal.is-visible {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* 카드 순차 등장 딜레이 */
+.class-catalog .class-card:nth-child(3n+2) { transition-delay: 0.06s; }
+.class-catalog .class-card:nth-child(3n+3) { transition-delay: 0.12s; }
+
+
+/* ----------------------------------------
+   12. 접근성: 모션 감소 설정
+   ---------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .class-catalog .scroll-reveal {
+        opacity: 1;
+        transform: none;
+        transition: none;
+    }
+
+    .class-catalog .class-card {
+        transition: box-shadow var(--cc-transition);
+    }
+
+    .class-catalog .class-card:hover {
+        transform: none;
+    }
+
+    .class-catalog .class-card:hover .class-card__img {
+        transform: none;
+    }
+
+    .class-catalog .skeleton-card__thumb,
+    .class-catalog .skeleton-card__line,
+    .class-catalog .filter-skeleton-line {
+        animation: none;
+        background: var(--cc-border-light);
+    }
+}
+
+
+/* ----------------------------------------
+   13. 반응형: 태블릿 (768px ~ 992px)
+   ---------------------------------------- */
+@media screen and (max-width: 992px) {
+    .class-catalog .catalog-header {
+        padding: 48px 20px 40px;
+    }
+
+    .class-catalog .catalog-header__title {
+        font-size: 34px;
+    }
+
+    .class-catalog .catalog-layout {
+        padding: 24px 20px 48px;
+        gap: 24px;
+    }
+
+    .class-catalog .filter-panel {
+        width: 240px;
+    }
+
+    .class-catalog .class-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+
+    /* 2열 기준 순차 딜레이 재설정 */
+    .class-catalog .class-card:nth-child(2n+2) { transition-delay: 0.06s; }
+    .class-catalog .class-card:nth-child(3n+3) { transition-delay: 0s; }
+}
+
+
+/* ----------------------------------------
+   14. 반응형: 모바일 (~768px)
+   ---------------------------------------- */
+@media screen and (max-width: 768px) {
+
+    /* 헤더 */
+    .class-catalog .catalog-header {
+        padding: 40px 16px 32px;
+    }
+
+    .class-catalog .catalog-header__title {
+        font-size: 28px;
+    }
+
+    .class-catalog .catalog-header__subtitle {
+        font-size: 13px;
+    }
+
+    .class-catalog .catalog-breadcrumb {
+        font-size: 12px;
+    }
+
+    /* 필터 토글 표시 */
+    .class-catalog .filter-toggle {
+        display: flex;
+    }
+
+    /* 레이아웃: 세로 1열 */
+    .class-catalog .catalog-layout {
+        flex-direction: column;
+        padding: 16px 16px 40px;
+        gap: 0;
+    }
+
+    /* 필터 패널: 하단 드로어로 전환 */
+    .class-catalog .filter-panel {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        right: 0;
+        top: auto;
+        width: 100%;
+        max-height: 85vh;
+        border-radius: var(--cc-radius-lg) var(--cc-radius-lg) 0 0;
+        box-shadow: 0 -4px 32px rgba(0, 0, 0, 0.15);
+        z-index: 999;
+        transform: translateY(100%);
+        transition: transform 0.35s cubic-bezier(0.4, 0, 0.2, 1);
+        display: flex;
+        flex-direction: column;
+        border: none;
+    }
+
+    .class-catalog .filter-panel.is-open {
+        transform: translateY(0);
+    }
+
+    /* 드로어 헤더 표시 */
+    .class-catalog .filter-panel__header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 16px 20px;
+        border-bottom: 1px solid var(--cc-border-light);
+        flex-shrink: 0;
+    }
+
+    .class-catalog .filter-panel__title {
+        font-size: 17px;
+        font-weight: 700;
+        color: var(--cc-text-dark);
+        margin: 0;
+    }
+
+    .class-catalog .filter-panel__close {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--cc-text);
+        border-radius: 50%;
+        transition: background-color var(--cc-transition);
+    }
+
+    .class-catalog .filter-panel__close:hover {
+        background: var(--cc-border-light);
+    }
+
+    .class-catalog .filter-panel__body {
+        flex: 1;
+        overflow-y: auto;
+        -webkit-overflow-scrolling: touch;
+        max-height: none;
+        padding: 20px 20px 16px;
+    }
+
+    /* 드로어 하단 액션 표시 */
+    .class-catalog .filter-panel__footer {
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        padding: 12px 20px;
+        border-top: 1px solid var(--cc-border-light);
+        background: var(--cc-bg-card);
+        flex-shrink: 0;
+    }
+
+    /* 카드 그리드: 2열 */
+    .class-catalog .class-grid {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 14px;
+    }
+
+    /* 카드 내 폰트 조정 */
+    .class-catalog .class-card__title {
+        font-size: 14px;
+    }
+
+    .class-catalog .class-card__price {
+        font-size: 16px;
+    }
+
+    .class-catalog .class-card__meta {
+        gap: 6px;
+    }
+
+    .class-catalog .class-card__partner {
+        font-size: 12px;
+    }
+
+    .class-catalog .class-card__location {
+        font-size: 11px;
+    }
+
+    .class-catalog .class-card__body {
+        padding: 12px;
+    }
+
+    .class-catalog .class-card__footer {
+        padding-top: 10px;
+    }
+
+    /* 정렬 바 */
+    .class-catalog .sort-bar {
+        margin-bottom: 16px;
+    }
+
+    /* 페이지네이션 */
+    .class-catalog .catalog-pagination {
+        margin-top: 32px;
+    }
+
+    .class-catalog .catalog-pagination__btn {
+        min-width: 36px;
+        height: 36px;
+        font-size: 13px;
+    }
+}
+
+
+/* ----------------------------------------
+   15. 반응형: 소형 모바일 (~480px)
+   ---------------------------------------- */
+@media screen and (max-width: 480px) {
+    .class-catalog .catalog-header__title {
+        font-size: 24px;
+    }
+
+    /* 1열 레이아웃으로 전환 */
+    .class-catalog .class-grid {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    /* 카드 순차 딜레이 제거 (1열) */
+    .class-catalog .class-card:nth-child(n) {
+        transition-delay: 0s;
+    }
+}
+
+
+/* ----------------------------------------
+   16. 반응형: 데스크탑 확장 (1200px+)
+   ---------------------------------------- */
+@media screen and (min-width: 1200px) {
+    .class-catalog .catalog-layout {
+        gap: 36px;
+    }
+
+    .class-catalog .class-grid {
+        gap: 28px;
+    }
+}

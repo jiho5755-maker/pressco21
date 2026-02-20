@@ -382,6 +382,24 @@ function handleGetClassDetail(params) {
     });
   }
 
+  // 재료비 (없으면 0)
+  var materialsPrice = Number(classData.materials_price) || 0;
+
+  // 일정(schedules) JSON 파싱 - 실패 시 빈 배열 반환
+  var schedules = [];
+  if (classData.schedules_json) {
+    try {
+      schedules = JSON.parse(classData.schedules_json);
+      // 유효한 배열인지 확인
+      if (!Array.isArray(schedules)) {
+        Logger.log('[경고] schedules_json이 배열이 아님: ' + classId);
+        schedules = [];
+      }
+    } catch (e) {
+      Logger.log('[경고] schedules_json 파싱 실패: ' + classId + ' - ' + e.message);
+    }
+  }
+
   var result = {
     success: true,
     data: {
@@ -391,6 +409,7 @@ function handleGetClassDetail(params) {
       category: classData.category,
       level: classData.level,
       price: Number(classData.price) || 0,
+      materials_price: materialsPrice,
       duration_min: Number(classData.duration_min) || 0,
       max_students: Number(classData.max_students) || 0,
       description: classData.description || '',
@@ -405,6 +424,7 @@ function handleGetClassDetail(params) {
       tags: classData.tags || '',
       class_count: Number(classData.class_count) || 0,
       avg_rating: Number(classData.avg_rating) || 0,
+      schedules: schedules,
       partner: partnerInfo
     },
     timestamp: now_()
@@ -2528,10 +2548,10 @@ function initSheets() {
   // 클래스 메타 시트
   createSheetIfNotExists_(ss, '클래스 메타', [
     'class_id', 'makeshop_product_id', 'partner_code', 'class_name', 'category',
-    'level', 'price', 'duration_min', 'max_students', 'description', 'curriculum_json',
-    'instructor_bio', 'thumbnail_url', 'image_urls', 'youtube_video_id', 'location',
-    'materials_included', 'materials_product_ids', 'tags', 'status', 'created_date',
-    'class_count', 'avg_rating'
+    'level', 'price', 'materials_price', 'duration_min', 'max_students', 'description',
+    'curriculum_json', 'schedules_json', 'instructor_bio', 'thumbnail_url', 'image_urls',
+    'youtube_video_id', 'location', 'materials_included', 'materials_product_ids', 'tags',
+    'status', 'created_date', 'class_count', 'avg_rating'
   ]);
 
   // 정산 내역 시트

@@ -380,22 +380,29 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
     - 반응형 디자인 (768px / 992px / 1200px)
     - 로딩 스켈레톤 UI + 에러 시 "일시적 장애" 안내
 
-- **Task 212: 클래스 상세 페이지 UI + 결제 연동**
+- **Task 212: 클래스 상세 페이지 UI + 결제 연동** - ✅ 코드 완료 (배포/테스트 대기)
   - See: `/tasks/212-class-detail-ui-payment.md`
-  - 대상: `파트너클래스/상세/Index.html`, `파트너클래스/상세/css.css`, `파트너클래스/상세/js.js` (신규 생성)
+  - 대상: `파트너클래스/상세/Index.html`, `파트너클래스/상세/css.css`, `파트너클래스/상세/js.js` (생성 완료)
   - 의존성: Task 211, Task 202
   - 규모: L
   - 에이전트: `주도` makeshop-ui-ux-expert | `협업` brand-planning-expert, ecommerce-business-expert, seo-performance-expert
-  - 구현 사항:
-    - 대표 이미지 갤러리 (Swiper CDN)
-    - 강의 설명 + 커리큘럼 아코디언
-    - 강사/공방 프로필 (파트너맵 데이터 연동)
-    - 일정 캘린더 (flatpickr CDN) - 날짜/시간, 정원/잔여석
-    - 수강 후기 (별점 + 텍스트 + 사진)
-    - "이 강의에 필요한 재료" 상품 링크 -> 간편구매 연결
-    - 관련 YouTube 영상 (유튜브 v4 연동)
-    - 일정 선택 -> 인원 -> 옵션(재료 포함/별도) -> 메이크샵 결제 연동
-    - Graceful Degradation: 파트너맵/유튜브/간편구매 연동 실패 시 해당 영역만 "준비 중" 표시
+  - 구현 완료:
+    - Swiper@11 이미지 갤러리 (메인+썸네일, loop/nav/pagination)
+    - 강의 소개 HTML 안전 렌더링 (sanitizeHtml 화이트리스트)
+    - 커리큘럼 아코디언 (키보드 내비게이션 포함)
+    - 강사/공방 프로필 (SILVER/GOLD/PLATINUM 등급 배지)
+    - 일정 선택 flatpickr (한국어, 오늘 이후만)
+    - 인원 +/- 카운터 + 실시간 합계 가격 계산
+    - 재료 옵션 (포함/별도 분기, materials_price 반영)
+    - "이 강의에 필요한 재료" 상품 카드 그리드
+    - YouTube 영상 lazy embed (youtube-nocookie.com)
+    - 수강 후기 섹션 (별점 SVG + placeholder)
+    - 예약 패널 sticky (데스크탑) + 하단 고정 바 (모바일)
+    - 메이크샵 결제 연동: `/goods/goods_view.php?goodsNo={makeshop_product_id}`
+    - Graceful Degradation: 섹션별 독립 try-catch
+    - Schema.org Course JSON-LD 동적 주입
+    - GAS schedules/materials_price 필드 추가 (class-platform-gas.gs)
+    - Critical 3건, Major 5건 코드 리뷰 수정 완료
   - 테스트 체크리스트:
     - 상세 페이지 데이터 로딩 + 렌더링 정상 동작
     - 일정 선택 -> 결제 플로우 전체 검증
@@ -814,3 +821,4 @@ Phase 3
 | 2026-02-21 | 1.5 | Task 201 코드 완료 -- GAS 백엔드 2,700줄, Critical 5건 수정 완료, 배포 가이드 작성 |
 | 2026-02-21 | 1.6 | Task 202 코드 완료 -- 클래스 상품 등록 가이드, 회원그룹 관리 가이드, GAS syncClassProducts_() 구현 |
 | 2026-02-21 | 1.7 | Task 211 코드 완료 -- 클래스 목록 페이지 3파일 생성, Critical 2건 수정 (SVG id 중복, querySelector 인젝션) |
+| 2026-02-21 | 1.8 | Task 212 코드 완료 -- 클래스 상세 페이지 3파일(265/1750/1419줄), GAS schedules/materials_price 추가, Critical 3건+Major 5건 수정 |

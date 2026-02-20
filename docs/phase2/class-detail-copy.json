@@ -1,0 +1,209 @@
+{
+  "_meta": {
+    "version": "1.0",
+    "task": "Task 212 - 클래스 상세 페이지 카피라이팅",
+    "author": "brand-planning-expert",
+    "date": "2026-02-21",
+    "brandTone": "우아+따뜻+신뢰+자연+포용",
+    "usage": "js.js 내 렌더링 함수에서 COPY.xxx 형태로 참조"
+  },
+
+  "sectionTitles": {
+    "classIntro": "강의 소개",
+    "curriculum": "이렇게 진행돼요",
+    "scheduleBooking": "일정 및 예약",
+    "instructorProfile": "강사 & 공방 소개",
+    "materials": "수강에 필요한 재료",
+    "youtubeVideo": "미리 만나는 수업 영상",
+    "reviews": "수강 후기"
+  },
+
+  "cta": {
+    "bookingMain": "수업 예약하기",
+    "bookingMobile": "예약하기",
+    "bookingMobileWithPrice": "{price}원 예약하기",
+    "viewOnPartnerMap": "파트너맵에서 공방 보기",
+    "buyMaterials": "재료 간편구매",
+    "viewAllReviews": "후기 더 보기",
+    "retry": "다시 시도하기",
+    "goBack": "목록으로 돌아가기",
+    "shareClass": "공유하기",
+    "selectDate": "날짜를 선택해주세요",
+    "selectTime": "시간을 선택해주세요"
+  },
+
+  "seatStatus": {
+    "available": "여유 있어요 ({n}석 남음)",
+    "almostFull": "마감이 다가오고 있어요! ({n}석 남음)",
+    "full": "이 일정은 마감되었어요",
+    "almostFullThreshold": 3,
+    "_comment": "almostFullThreshold: 잔여석이 이 값 이하일 때 almostFull 메시지 표시"
+  },
+
+  "materialsBanner": {
+    "included": "이 수업은 모든 재료가 포함되어 있어요. 편하게 오세요!",
+    "separate": "수강에 필요한 재료를 미리 준비해주세요. 아래에서 간편하게 구매할 수 있어요.",
+    "separateShort": "재료 별도 구매"
+  },
+
+  "gracefulDegradation": {
+    "sectionPreparing": "이 섹션은 현재 준비 중이에요. 곧 만나볼 수 있어요!",
+    "materialsUnavailable": "재료 정보를 불러오는 중이에요. 잠시 후 다시 확인해주세요.",
+    "reviewsPlaceholder": "아직 첫 번째 후기가 없어요. 수업 후 소중한 경험을 나눠주세요!",
+    "partnerMapUnavailable": "파트너맵 연동을 준비하고 있어요.",
+    "youtubeUnavailable": "영상을 불러올 수 없어요."
+  },
+
+  "infoLabels": {
+    "duration": "{n}분 수업",
+    "durationHour": "{h}시간 수업",
+    "durationHourMin": "{h}시간 {m}분 수업",
+    "maxStudents": "최대 {n}명 소규모",
+    "maxStudentsLarge": "최대 {n}명",
+    "smallGroupThreshold": 10,
+    "_commentSmallGroup": "정원 10명 이하일 때 '소규모' 표현 사용",
+    "location": "장소",
+    "price": "수강료",
+    "pricePerPerson": "1인 기준",
+    "includedInPrice": "재료비 포함",
+    "notIncludedInPrice": "재료비 별도",
+    "schedule": "수업 일정",
+    "personnel": "인원 선택",
+    "personnelUnit": "명"
+  },
+
+  "levelBadge": {
+    "입문": "입문",
+    "중급": "중급",
+    "심화": "심화",
+    "BEGINNER": "입문",
+    "INTERMEDIATE": "중급",
+    "ADVANCED": "심화"
+  },
+
+  "levelDescription": {
+    "입문": "처음이어도 괜찮아요",
+    "중급": "기초를 다진 분께 추천해요",
+    "심화": "한 단계 더 깊이 들어가요"
+  },
+
+  "partnerGradeBadge": {
+    "SILVER": "실버 파트너",
+    "GOLD": "골드 파트너",
+    "PLATINUM": "플래티넘 파트너"
+  },
+
+  "partnerGradeIcon": {
+    "SILVER": "seed",
+    "GOLD": "sprout",
+    "PLATINUM": "flower",
+    "_comment": "Bloom(씨앗)/Garden(새싹)/Atelier(꽃) 등급 체계와 아이콘 매핑"
+  },
+
+  "reviews": {
+    "averageLabel": "평균 별점",
+    "totalReviewsLabel": "개의 후기",
+    "writeReview": "후기 남기기",
+    "writeReviewGuide": "수업에서의 소중한 경험을 나눠주세요",
+    "ratingDistribution": "별점 분포",
+    "starLabel": "{n}점",
+    "noReviews": "아직 첫 번째 후기가 없어요. 수업 후 소중한 경험을 나눠주세요!",
+    "reviewerMasking": "{first}***",
+    "_commentMasking": "작성자명 첫 글자만 표시, 나머지 *** 처리",
+    "photoReview": "사진 후기",
+    "verifiedPurchase": "수강 인증"
+  },
+
+  "loading": {
+    "pageLoading": "클래스 정보를 불러오고 있어요...",
+    "schedulesLoading": "일정을 확인하고 있어요...",
+    "reviewsLoading": "후기를 불러오고 있어요...",
+    "materialsLoading": "재료 정보를 확인하고 있어요..."
+  },
+
+  "error": {
+    "pageLoadFailed": "클래스 정보를 불러오지 못했어요.",
+    "pageLoadFailedSub": "일시적인 문제일 수 있어요. 잠시 후 다시 시도해주세요.",
+    "schedulesLoadFailed": "일정을 불러오지 못했어요. 잠시 후 다시 확인해주세요.",
+    "invalidClassId": "유효하지 않은 클래스 정보예요.",
+    "networkError": "네트워크 연결이 불안정해요. 인터넷 연결을 확인해주세요.",
+    "classNotFound": "요청하신 클래스를 찾을 수 없어요.",
+    "classNotFoundSub": "삭제되었거나 주소가 변경되었을 수 있어요."
+  },
+
+  "breadcrumb": {
+    "home": "HOME",
+    "classList": "파트너 클래스",
+    "separator": "/"
+  },
+
+  "pageHeader": {
+    "title": "Class Detail",
+    "ogTitleTemplate": "{className} | PRESSCO21 파트너 클래스",
+    "ogDescriptionTemplate": "{partnerName} 선생님과 함께하는 {className}. {duration}분간 {category}의 매력을 경험해보세요.",
+    "metaDescriptionTemplate": "PRESSCO21 파트너 클래스 '{className}' 상세 안내. {location}에서 진행되는 {level} {category} 수업. 수강료 {price}원, {duration}분."
+  },
+
+  "curriculum": {
+    "stepLabel": "STEP {n}",
+    "durationLabel": "{n}분",
+    "expandLabel": "자세히 보기",
+    "collapseLabel": "접기",
+    "totalDuration": "총 소요 시간 약 {n}분",
+    "noCurriculum": "커리큘럼은 수업 당일 안내해드릴게요."
+  },
+
+  "booking": {
+    "panelTitle": "수업 예약",
+    "priceLabel": "수강료",
+    "dateLabel": "수업 날짜",
+    "timeLabel": "수업 시간",
+    "personnelLabel": "인원",
+    "optionLabel": "옵션 선택",
+    "totalLabel": "총 결제 금액",
+    "totalAmount": "{amount}원",
+    "datePickerPlaceholder": "날짜를 선택해주세요",
+    "noScheduleForDate": "선택하신 날짜에 진행 예정인 수업이 없어요.",
+    "selectDateFirst": "먼저 날짜를 선택해주세요.",
+    "bookingNotice": "결제는 PRESSCO21 공식 결제 시스템을 통해 안전하게 진행됩니다.",
+    "redirectNotice": "예약하기를 누르시면 결제 페이지로 이동합니다."
+  },
+
+  "share": {
+    "kakao": "카카오톡 공유",
+    "copyLink": "링크 복사",
+    "copySuccess": "링크가 복사되었어요!",
+    "shareTitle": "이 수업을 함께할 친구에게 공유해보세요"
+  },
+
+  "accessibility": {
+    "imageGallery": "클래스 이미지 갤러리",
+    "mainImage": "{className} 대표 이미지",
+    "additionalImage": "{className} 추가 이미지 {n}",
+    "starRating": "별점 {rating}점 (5점 만점)",
+    "prevImage": "이전 이미지",
+    "nextImage": "다음 이미지",
+    "expandCurriculum": "{title} 단계 상세 보기",
+    "collapseCurriculum": "{title} 단계 접기",
+    "stickyPanel": "수업 예약 패널",
+    "reviewSection": "수강 후기 섹션"
+  },
+
+  "typeBadge": {
+    "원데이": "원데이",
+    "정기": "정기",
+    "온라인": "온라인",
+    "ONEDAY": "원데이",
+    "REGULAR": "정기",
+    "ONLINE": "온라인"
+  },
+
+  "categoryBadge": {
+    "압화": "압화",
+    "보존화": "보존화",
+    "캔들": "캔들",
+    "리스": "리스",
+    "하바리움": "하바리움",
+    "레진아트": "레진아트"
+  }
+}

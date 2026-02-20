@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>치환코드 검증 - Task 151</title>
+<style>
+#substitution-test {
+  max-width: 800px;
+  margin: 40px auto;
+  padding: 20px;
+  font-family: 'Malgun Gothic', sans-serif;
+  line-height: 1.6;
+}
+#substitution-test h1 {
+  font-size: 20px;
+  border-bottom: 2px solid #333;
+  padding-bottom: 10px;
+}
+#substitution-test h2 {
+  font-size: 16px;
+  margin-top: 30px;
+  color: #555;
+}
+#substitution-test table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 10px 0 20px;
+}
+#substitution-test th,
+#substitution-test td {
+  border: 1px solid #ddd;
+  padding: 8px 12px;
+  text-align: left;
+  font-size: 14px;
+}
+#substitution-test th {
+  background: #f5f5f5;
+  font-weight: bold;
+}
+#substitution-test .pass {
+  color: #28a745;
+  font-weight: bold;
+}
+#substitution-test .fail {
+  color: #dc3545;
+  font-weight: bold;
+}
+#substitution-test .pending {
+  color: #ffc107;
+  font-weight: bold;
+}
+#substitution-test .raw-value {
+  background: #f8f9fa;
+  padding: 2px 6px;
+  font-family: monospace;
+  font-size: 13px;
+  border: 1px solid #e0e0e0;
+}
+#substitution-test .result-box {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 15px;
+  margin: 10px 0;
+  font-size: 14px;
+}
+#substitution-test .gas-test-btn {
+  background: #007bff;
+  color: #fff;
+  border: none;
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  border-radius: 4px;
+  margin: 5px 0;
+}
+#substitution-test .gas-test-btn:hover {
+  background: #0056b3;
+}
+#substitution-test #gas-result {
+  margin-top: 10px;
+  white-space: pre-wrap;
+  font-family: monospace;
+  font-size: 13px;
+}
+#substitution-test .note {
+  background: #fff3cd;
+  border: 1px solid #ffc107;
+  padding: 10px;
+  border-radius: 4px;
+  font-size: 13px;
+  margin: 10px 0;
+}
+</style>
+</head>
+<body>
+
+<div id="substitution-test">
+  <h1>Task 151: 메이크샵 치환코드 검증</h1>
+  <p>검증일: <span id="test-date"></span></p>
+
+  <div class="note">
+    이 페이지는 메이크샵 D4 개별 페이지에 배포하여 사용합니다.<br>
+    로컬에서는 치환코드가 동작하지 않습니다 (문자열 그대로 출력).
+  </div>
+
+  <h2>1. 회원 관련 치환코드</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>치환코드</th>
+        <th>원본 값 (서버 치환 결과)</th>
+        <th>JS 읽기</th>
+        <th>상태</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td><code>{$member_id}</code></td>
+        <td><span id="raw-member-id" class="raw-value"><!--/if_login/-->{$member_id}<!--/endif_login/--></span></td>
+        <td id="js-member-id">-</td>
+        <td id="status-member-id" class="pending">대기</td>
+      </tr>
+      <tr>
+        <td><code>{$member_name}</code></td>
+        <td><span id="raw-member-name" class="raw-value"><!--/if_login/-->{$member_name}<!--/endif_login/--></span></td>
+        <td id="js-member-name">-</td>
+        <td id="status-member-name" class="pending">대기</td>
+      </tr>
+      <tr>
+        <td><code>{$member_group}</code></td>
+        <td><span id="raw-member-group" class="raw-value"><!--/if_login/-->{$member_group}<!--/endif_login/--></span></td>
+        <td id="js-member-group">-</td>
+        <td id="status-member-group" class="pending">대기</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>2. 비로그인 상태 확인</h2>
+  <table>
+    <thead>
+      <tr>
+        <th>항목</th>
+        <th>값</th>
+        <th>비고</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>member_id 직접 삽입 (if_login 없이)</td>
+        <td><span id="raw-member-id-direct" class="raw-value">{$member_id}</span></td>
+        <td id="note-direct">-</td>
+      </tr>
+      <tr>
+        <td>로그인 여부 판별</td>
+        <td id="login-status">-</td>
+        <td>빈 문자열 = 비로그인</td>
+      </tr>
+    </tbody>
+  </table>
+
+  <h2>3. GAS fetch 전달 테스트</h2>
+  <div class="result-box">
+    <p>회원 ID를 GAS 엔드포인트로 전달하는 테스트입니다.</p>
+    <p>GAS URL: <input type="text" id="gas-url-input" style="width:400px;padding:4px;" placeholder="GAS 웹앱 URL 입력"></p>
+    <button class="gas-test-btn" id="btn-gas-test">GAS 전달 테스트</button>
+    <div id="gas-result"></div>
+  </div>
+
+  <h2>4. 종합 결과</h2>
+  <div id="summary" class="result-box">
+    JS 실행 후 자동 표시됩니다.
+  </div>
+
+  <h2>5. JSON 내보내기</h2>
+  <div class="result-box">
+    <button class="gas-test-btn" id="btn-export">결과 JSON 복사</button>
+    <pre id="json-output" style="margin-top:10px;max-height:200px;overflow:auto;"></pre>
+  </div>
+</div>
+
+<script src="substitution-test.js"></script>
+
+</body>
+</html>

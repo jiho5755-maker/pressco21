@@ -69,4 +69,18 @@
   - Thumbnail-first loading: iframe only on click (performance)
   - Fallback chain: Data API fail -> RSS only (no tags/views but functional)
 
+### Partner Class Platform GAS Backend (Task 201)
+- **Location**: `파트너클래스/class-platform-gas.gs` (2,627 lines)
+- **GAS Compatibility**: PASS -- var only, no let/const/template literals, all GAS-native APIs
+- **LockService**: Correct pattern -- waitLock for writes, tryLock(0) for batch/poll, finally releaseLock
+- **CacheService**: Max TTL is 21600s (6h), not 86400s. Max value size 100KB.
+- **Critical Bugs Found**:
+  - `incrementEmailCount_` silently does nothing on new day (no appendRow for first record)
+  - No Referer/auth check on doGet/doPost -- pollOrders/clearCache/recordBooking exposed
+  - Email HTML body has no escapeHtml -- XSS via buyer name/class name
+  - No retry mechanism for FAILED settlements
+- **GAS 6-minute limit**: Not checked in pollOrders loop; could timeout on many orders
+- **Sheets getDataRange().getValues()**: Called 19 times across helpers -- N+1 problem at scale
+- **Review output**: `docs/phase2/gas-code-review.md`
+
 See: [patterns.md](patterns.md) for detailed notes.

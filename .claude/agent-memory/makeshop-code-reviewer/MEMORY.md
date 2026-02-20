@@ -83,4 +83,18 @@
 - **Sheets getDataRange().getValues()**: Called 19 times across helpers -- N+1 problem at scale
 - **Review output**: `docs/phase2/gas-code-review.md`
 
+### Partner Class Sync Functions (Task 202) - 검수 완료
+- **Location**: `파트너클래스/class-platform-gas.gs` (라인 2750~3272, 수정 후 3272줄)
+- **Added Functions**: syncClassProducts_, triggerSyncClassProducts, getClassCategoryId_, fetchClassProducts_, extractClassName_, parseProductName_, padNumber_, buildPartnerNameMap_
+- **GAS Compatibility**: PASS -- var only, no let/const/template literals
+- **Critical Issues Fixed (2건)**:
+  - C-01: LockService 미적용 -> waitLock(15000) + try/finally/releaseLock 추가
+  - C-02: 페이지네이션 미구현 -> pageSize=100, 최대 10페이지 루프, 마지막 페이지 자동 감지
+- **Major Issues Fixed (3건)**:
+  - M-01: 개별 setValue() 반복 -> cellUpdates 배열에 수집 후 일괄 적용
+  - M-02: 신규 상품 partner_code 미설정 -> buildPartnerNameMap_()로 자동 매칭, 실패 시 관리자 알림
+  - M-03: CLS999 초과 경고 없음 -> 상한 도달 시 관리자 알림 추가
+- **Minor Issues Fixed**: W-02 updated_date 갱신 추가
+- **Design Pattern**: API 호출(fetchClassProducts_)을 LockService 밖에 배치하여 락 점유 시간 최소화
+
 See: [patterns.md](patterns.md) for detailed notes.

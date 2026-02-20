@@ -28,6 +28,27 @@
 ### Phase 2 착수 전제조건: 모두 충족
 - 적립금 API, 가상태그 인증, API 예산 -- 모두 검증 완료
 
+## Phase 2 진행 상태
+
+### Task 201: Sheets+GAS 백엔드 (완료)
+- GAS 2,700줄, 16개 엔드포인트, Critical 5건 수정 완료
+
+### Task 202: 클래스 상품 등록 체계 (코드 완료, 2026-02-21)
+- `docs/phase2/class-product-registration.md`: 관리자 가이드
+  - 상품명 규칙: `[파트너명] 클래스명`
+  - 옵션 형식: `YYYY-MM-DD HH:mm 요일` (GAS 파싱에 필수)
+  - 등록 체크리스트 포함
+- `docs/phase2/member-group-management.md`: 회원그룹 관리
+  - 파트너 승인 4단계 절차, 비활성화/재활성화
+  - GAS 3단계 인증 아키텍처 상세 설명
+- GAS 확장 (2,748줄 -> 3,140줄): 기존 코드 무수정
+  - syncClassProducts_(): 메이크샵 -> Sheets 일일 동기화
+  - triggerSyncClassProducts(): 오전 3시 트리거 래퍼
+  - fetchClassProducts_(): 카테고리별 상품 목록 API 호출
+  - getClassCategoryId_(): 시스템 설정에서 카테고리 ID
+  - pollOrders 보완: Task 201에서 이미 구현 확인 (getClassProductIdMap_)
+- 다음: makeshop-code-reviewer 검수, 이후 Task 211 (목록 UI)
+
 ## 핵심 패턴
 
 ### API 아키텍처 핵심 원칙

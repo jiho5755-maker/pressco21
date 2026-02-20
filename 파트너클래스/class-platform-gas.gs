@@ -2745,3 +2745,528 @@ function retryFailedSettlements() {
     );
   }
 }
+
+
+// =============================================
+// 추가 섹션: 배치/동기화 함수 (Task 202)
+// 매일 오전 3시 GAS 시간 트리거로 실행
+// =============================================
+
+/**
+ * 메이크샵 "파트너 클래스" 카테고리 상품 목록을 Sheets "클래스 메타"에 동기화
+ *
+ * 실행 주기: 매일 오전 3시 (GAS 시간 트리거 설정 필요)
+ * 설정 방법: GAS 편집기 > 트리거 > 함수: triggerSyncClassProducts > 시간 기반 > 매일 > 오전 3시~4시
+ *
+ * 동작 로직:
+ * 1. "시스템 설정" 시트에서 카테고리 ID 조회
+ * 2. 메이크샵 상품 목록 API 호출 (해당 카테고리 필터)
+ * 3. Sheets "클래스 메타" 전체 데이터와 비교
+ * 4. 신규 상품 -> 새 행 추가 (class_id 자동 부여)
+ * 5. 기존 상품 -> 가격/상태 업데이트
+ * 6. 메이크샵에서 삭제/비노출된 상품 -> INACTIVE 처리
+ * 7. 동기화 결과 관리자 이메일 발송
+ */
+function syncClassProducts_() {
+  Logger.log('[동기화 시작] 클래스 상품 동기화');
+
+  var categoryId = getClassCategoryId_();
+  if (!categoryId) {
+    Logger.log('[동기화 중단] 카테고리 ID가 설정되지 않았습니다.');
+    sendAdminAlert_(
+      '[PRESSCO21] 클래스 상품 동기화 실패',
+      '카테고리 ID가 "시스템 설정" 시트에 설정되지 않았습니다.\n'
+      + '"시스템 설정" 시트에 key="class_category_id", value=카테고리 번호를 입력해 주세요.\n\n'
+      + '카테고리 번호 확인: 메이크샵 관리자 > 상품관리 > 카테고리관리 > "파트너 클래스" 카테고리 번호'
+    );
+    return;
+  }
+
+  // 메이크샵 상품 목록 API 호출 (페이지네이션 포함)
+  var products = fetchClassProducts_(categoryId);
+  if (products === null) {
+    // API 호출 실패 (fetchClassProducts_ 내부에서 로깅 완료)
+    return;
+  }
+
+  // LockService -- 동시 쓰기 방지 (C-01 수정)
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(15000); // 15초 대기 (동기화는 시간이 걸릴 수 있으므로 여유 있게)
+  } catch (lockErr) {
+    Logger.log('[동기화 중단] LockService 획득 실패: ' + lockErr.message);
+    sendAdminAlert_(
+      '[PRESSCO21] 클래스 상품 동기화 실패',
+      '다른 프로세스가 실행 중이어서 동기화를 시작할 수 없습니다.\n'
+      + '잠시 후 자동으로 재시도됩니다.'
+    );
+    return;
+  }
+
+  try {
+  // Sheets "클래스 메타" 시트 데이터 로드
+  var sheet = getSheet_('클래스 메타');
+  if (!sheet) {
+    Logger.log('[동기화 오류] "클래스 메타" 시트를 찾을 수 없습니다.');
+    sendAdminAlert_(
+      '[PRESSCO21] 클래스 상품 동기화 실패',
+      '"클래스 메타" 시트를 찾을 수 없습니다. 시트가 존재하는지 확인해 주세요.'
+    );
+    return;
+  }
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+
+  // 헤더 인덱스 매핑
+  var colIdx = {};
+  for (var h = 0; h < headers.length; h++) {
+    colIdx[String(headers[h]).trim()] = h;
+  }
+
+  // 필수 컬럼 존재 확인
+  if (colIdx['class_id'] === undefined || colIdx['makeshop_product_id'] === undefined || colIdx['status'] === undefined) {
+    Logger.log('[동기화 오류] 필수 컬럼(class_id, makeshop_product_id, status)이 없습니다.');
+    return;
+  }
+
+  // 기존 Sheets 데이터를 branduid(makeshop_product_id) 기준 맵으로 변환
+  // key: branduid, value: { rowIndex: 시트 행 번호(1-based), data: rowObject }
+  var existingMap = {};
+  for (var i = 1; i < data.length; i++) {
+    var productId = String(data[i][colIdx['makeshop_product_id']] || '').trim();
+    if (productId) {
+      existingMap[productId] = {
+        rowIndex: i + 1,  // 시트 행 번호 (1-based, 헤더 포함)
+        data: rowToObject_(headers, data[i])
+      };
+    }
+  }
+
+  // 파트너명 -> partner_code 매핑 테이블 구축 (M-02 수정: 신규 상품에 partner_code 자동 매칭)
+  var partnerNameMap = buildPartnerNameMap_();
+
+  // 메이크샵 상품의 branduid 집합 (삭제 감지용)
+  var makeshopProductIds = {};
+  var addedCount = 0;
+  var updatedCount = 0;
+  var inactivatedCount = 0;
+  var errors = [];
+  var unmatchedPartners = []; // partner_code 자동 매칭 실패 목록
+
+  // 다음 class_id 결정 (CLS001, CLS002, ...)
+  var maxClassNum = 0;
+  for (var j = 1; j < data.length; j++) {
+    var existingClassId = String(data[j][colIdx['class_id']] || '').trim();
+    if (existingClassId && existingClassId.indexOf('CLS') === 0) {
+      var num = parseInt(existingClassId.replace('CLS', ''), 10);
+      if (!isNaN(num) && num > maxClassNum) {
+        maxClassNum = num;
+      }
+    }
+  }
+
+  // M-03 수정: CLS ID 상한 경고
+  if (maxClassNum >= 999) {
+    Logger.log('[경고] class_id가 CLS999를 초과합니다. 현재 최대: CLS' + maxClassNum);
+    sendAdminAlert_(
+      '[PRESSCO21] 클래스 ID 상한 경고',
+      'class_id가 CLS999를 초과했습니다 (현재 최대: CLS' + maxClassNum + ').\n'
+      + '4자리 ID가 생성됩니다. 기존 시스템과 호환 여부를 확인해 주세요.'
+    );
+  }
+
+  // M-01 수정: 일괄 업데이트를 위한 변경 목록 수집
+  var cellUpdates = []; // { row: number, col: number, value: any }
+
+  // 상품 목록 처리
+  for (var p = 0; p < products.length; p++) {
+    var product = products[p];
+    var branduid = String(product.branduid || '').trim();
+
+    if (!branduid) {
+      Logger.log('[동기화 스킵] branduid 없는 상품: ' + (product.name || '이름 없음'));
+      continue;
+    }
+
+    makeshopProductIds[branduid] = true;
+
+    try {
+      if (existingMap[branduid]) {
+        // 기존 상품 -> 업데이트 (가격, 상품명, 상태만 업데이트)
+        var existing = existingMap[branduid];
+        var needsUpdate = false;
+
+        // 가격 비교
+        var newPrice = Number(product.price) || 0;
+        var oldPrice = Number(existing.data.price) || 0;
+        if (newPrice !== oldPrice && colIdx['price'] !== undefined) {
+          cellUpdates.push({ row: existing.rowIndex, col: colIdx['price'] + 1, value: newPrice });
+          needsUpdate = true;
+        }
+
+        // 상품명에서 클래스명 추출 (상품명 형식: "[파트너명] 클래스명")
+        var className = extractClassName_(product.name || '');
+        var oldClassName = String(existing.data.class_name || '').trim();
+        if (className && className !== oldClassName && colIdx['class_name'] !== undefined) {
+          cellUpdates.push({ row: existing.rowIndex, col: colIdx['class_name'] + 1, value: className });
+          needsUpdate = true;
+        }
+
+        // INACTIVE 상태인데 메이크샵에 다시 나타나면 ACTIVE로 복구
+        var existingStatus = String(existing.data.status || '').trim();
+        if (existingStatus === 'INACTIVE' && colIdx['status'] !== undefined) {
+          cellUpdates.push({ row: existing.rowIndex, col: colIdx['status'] + 1, value: 'ACTIVE' });
+          needsUpdate = true;
+        }
+
+        // W-02 수정: 업데이트 시 updated_date 기록
+        if (needsUpdate && colIdx['updated_date'] !== undefined) {
+          cellUpdates.push({ row: existing.rowIndex, col: colIdx['updated_date'] + 1, value: formatDateOnly_(new Date()) });
+        }
+
+        if (needsUpdate) {
+          updatedCount++;
+          Logger.log('[동기화 업데이트] branduid=' + branduid + ', 상품명=' + (product.name || ''));
+        }
+
+      } else {
+        // 신규 상품 -> 새 행 추가
+        maxClassNum++;
+        var newClassId = 'CLS' + padNumber_(maxClassNum, 3);
+
+        // 상품명에서 파트너명과 클래스명 분리
+        var parsedName = parseProductName_(product.name || '');
+
+        var newRow = [];
+        for (var c = 0; c < headers.length; c++) {
+          newRow.push('');  // 기본값 빈 문자열
+        }
+
+        // 핵심 필드 설정
+        if (colIdx['class_id'] !== undefined) newRow[colIdx['class_id']] = newClassId;
+        if (colIdx['makeshop_product_id'] !== undefined) newRow[colIdx['makeshop_product_id']] = branduid;
+        if (colIdx['class_name'] !== undefined) newRow[colIdx['class_name']] = parsedName.className;
+        if (colIdx['price'] !== undefined) newRow[colIdx['price']] = Number(product.price) || 0;
+        if (colIdx['status'] !== undefined) newRow[colIdx['status']] = 'ACTIVE';
+        if (colIdx['created_date'] !== undefined) newRow[colIdx['created_date']] = formatDateOnly_(new Date());
+
+        // M-02 수정: 파트너명으로 partner_code 자동 매칭
+        if (colIdx['partner_code'] !== undefined && parsedName.partnerName) {
+          var matchedCode = partnerNameMap[parsedName.partnerName] || '';
+          newRow[colIdx['partner_code']] = matchedCode;
+          if (!matchedCode) {
+            unmatchedPartners.push({ branduid: branduid, partnerName: parsedName.partnerName, classId: newClassId });
+            Logger.log('[동기화 경고] partner_code 자동 매칭 실패: 파트너명="' + parsedName.partnerName + '", branduid=' + branduid);
+          }
+        }
+
+        // 카테고리 기본값 (관리자가 나중에 수정)
+        if (colIdx['category'] !== undefined) newRow[colIdx['category']] = 'ONEDAY';
+        if (colIdx['level'] !== undefined) newRow[colIdx['level']] = 'BEGINNER';
+
+        sheet.appendRow(newRow);
+        addedCount++;
+        Logger.log('[동기화 신규] class_id=' + newClassId + ', branduid=' + branduid
+          + ', 상품명=' + (product.name || ''));
+      }
+    } catch (productErr) {
+      Logger.log('[동기화 오류] branduid=' + branduid + ': ' + productErr.message);
+      errors.push({ branduid: branduid, error: productErr.message });
+    }
+  }
+
+  // 삭제 감지: Sheets에는 있지만 메이크샵에는 없는 상품 -> INACTIVE
+  for (var existingPid in existingMap) {
+    if (!makeshopProductIds[existingPid]) {
+      var row = existingMap[existingPid];
+      var currentStatus = String(row.data.status || '').trim();
+      if (currentStatus === 'ACTIVE' || currentStatus === 'DRAFT') {
+        if (colIdx['status'] !== undefined) {
+          cellUpdates.push({ row: row.rowIndex, col: colIdx['status'] + 1, value: 'INACTIVE' });
+          inactivatedCount++;
+          Logger.log('[동기화 비활성] branduid=' + existingPid + ' (메이크샵에서 미확인)');
+        }
+      }
+    }
+  }
+
+  // M-01 수정: 수집된 셀 업데이트를 일괄 적용
+  for (var u = 0; u < cellUpdates.length; u++) {
+    sheet.getRange(cellUpdates[u].row, cellUpdates[u].col).setValue(cellUpdates[u].value);
+  }
+
+  SpreadsheetApp.flush();
+
+  // 동기화 결과 로깅
+  var summary = '[동기화 완료] 메이크샵 상품=' + products.length + '건'
+    + ', 신규=' + addedCount + '건'
+    + ', 업데이트=' + updatedCount + '건'
+    + ', 비활성=' + inactivatedCount + '건'
+    + ', 오류=' + errors.length + '건';
+  Logger.log(summary);
+
+  // 마지막 동기화 시각 기록
+  setSystemSetting_('last_sync_time', now_());
+
+  // 변경 사항이 있을 때만 관리자 알림
+  if (addedCount > 0 || updatedCount > 0 || inactivatedCount > 0 || errors.length > 0) {
+    var emailBody = '클래스 상품 동기화 결과 (' + formatDateOnly_(new Date()) + ')\n\n'
+      + '메이크샵 상품 수: ' + products.length + '건\n'
+      + '신규 추가: ' + addedCount + '건\n'
+      + '업데이트: ' + updatedCount + '건\n'
+      + '비활성화: ' + inactivatedCount + '건\n'
+      + '오류: ' + errors.length + '건\n';
+
+    if (errors.length > 0) {
+      emailBody += '\n--- 오류 목록 ---\n';
+      for (var e = 0; e < errors.length; e++) {
+        emailBody += '- branduid=' + errors[e].branduid + ': ' + errors[e].error + '\n';
+      }
+    }
+
+    // M-02 수정: partner_code 매칭 실패 목록을 관리자 알림에 포함
+    if (unmatchedPartners.length > 0) {
+      emailBody += '\n--- partner_code 미매칭 목록 (수동 설정 필요) ---\n';
+      for (var m = 0; m < unmatchedPartners.length; m++) {
+        emailBody += '- ' + unmatchedPartners[m].classId
+          + ': 파트너명="' + unmatchedPartners[m].partnerName
+          + '", branduid=' + unmatchedPartners[m].branduid + '\n';
+      }
+    }
+
+    if (addedCount > 0) {
+      emailBody += '\n신규 추가된 상품은 "클래스 메타" 시트에서 partner_code, category, level 등을 확인/수정해 주세요.';
+    }
+
+    sendAdminAlert_('[PRESSCO21] 클래스 상품 동기화 결과', emailBody);
+  }
+
+  } finally {
+    lock.releaseLock(); // C-01 수정: 반드시 락 해제
+  }
+}
+
+/**
+ * GAS 시간 트리거용 래퍼 함수
+ * 트리거 설정: GAS 편집기 > 트리거 > 함수: triggerSyncClassProducts > 시간 기반 > 매일 > 오전 3시~4시
+ */
+function triggerSyncClassProducts() {
+  Logger.log('[트리거] 클래스 상품 동기화 시작');
+  try {
+    syncClassProducts_();
+  } catch (err) {
+    logError_('triggerSyncClassProducts', '', err);
+    sendAdminAlert_(
+      '[PRESSCO21] 클래스 상품 동기화 트리거 오류',
+      '동기화 중 오류가 발생했습니다.\n\n오류: ' + err.message
+    );
+  }
+}
+
+/**
+ * "시스템 설정" 시트에서 메이크샵 파트너 클래스 카테고리 ID 조회
+ *
+ * @return {string} 카테고리 ID (없으면 빈 문자열)
+ */
+function getClassCategoryId_() {
+  var categoryId = getSystemSetting_('class_category_id');
+
+  if (!categoryId) {
+    Logger.log('[설정 누락] class_category_id가 "시스템 설정" 시트에 없습니다.');
+    Logger.log('설정 방법: "시스템 설정" 시트에 key="class_category_id", value=카테고리 번호 입력');
+  }
+
+  return categoryId;
+}
+
+/**
+ * 메이크샵 상품 목록 API 호출 (카테고리 ID로 필터링, 페이지네이션 포함)
+ *
+ * C-02 수정: 페이지네이션 구현. 메이크샵 API는 기본 10건만 반환하므로
+ * pageSize=100으로 설정하고, 응답이 꽉 차면 다음 페이지를 호출합니다.
+ * API 호출 횟수 제한(시간당 500회)을 고려하여 최대 10페이지(1,000건)로 제한합니다.
+ *
+ * @param {string} categoryId - 메이크샵 카테고리 번호
+ * @return {Array|null} 상품 목록 배열 (실패 시 null)
+ */
+function fetchClassProducts_(categoryId) {
+  var PAGE_SIZE = 100;   // 메이크샵 API 최대 페이지 크기
+  var MAX_PAGES = 10;    // 안전장치: 최대 10페이지 (1,000건)
+  var allProducts = [];
+
+  for (var pageNum = 1; pageNum <= MAX_PAGES; pageNum++) {
+    var url = 'https://' + SHOP_DOMAIN + '/list/open_api.html'
+      + '?mode=search&type=product_list'
+      + '&cate=' + encodeURIComponent(categoryId)
+      + '&pageSize=' + PAGE_SIZE
+      + '&pageNum=' + pageNum;
+
+    var options = {
+      method: 'get',
+      headers: {
+        'Shopkey': SHOPKEY,
+        'Licensekey': LICENSEKEY
+      },
+      muteHttpExceptions: true
+    };
+
+    Logger.log('[상품 조회] 페이지 ' + pageNum + ', URL: ' + url);
+
+    try {
+      var response = UrlFetchApp.fetch(url, options);
+      var httpCode = response.getResponseCode();
+      var body = response.getContentText();
+
+      if (httpCode !== 200) {
+        Logger.log('[상품 조회 오류] HTTP ' + httpCode + ': ' + body);
+        sendAdminAlert_(
+          '[PRESSCO21] 클래스 상품 API 조회 실패',
+          'HTTP ' + httpCode + ' (페이지 ' + pageNum + ')\n응답: ' + body.substring(0, 500)
+        );
+        return null;
+      }
+
+      var result = JSON.parse(body);
+
+      if (result.return_code && result.return_code !== '0000') {
+        Logger.log('[상품 조회] return_code=' + result.return_code + ', message=' + (result.message || ''));
+        // 상품이 0건인 경우 또는 더 이상 페이지가 없는 경우
+        if (result.return_code === '0001') {
+          if (pageNum === 1) {
+            Logger.log('[상품 조회] 해당 카테고리에 상품이 없습니다.');
+            return [];
+          }
+          // 2페이지 이후에서 0001이면 이전 페이지까지의 결과 반환
+          break;
+        }
+        sendAdminAlert_(
+          '[PRESSCO21] 클래스 상품 API 조회 실패',
+          'return_code: ' + result.return_code + '\nmessage: ' + (result.message || '')
+          + '\n(페이지 ' + pageNum + ')'
+        );
+        return null;
+      }
+
+      var products = result.list || result.datas || [];
+      Logger.log('[상품 조회] 페이지 ' + pageNum + ': ' + products.length + '건 조회됨');
+
+      for (var i = 0; i < products.length; i++) {
+        allProducts.push(products[i]);
+      }
+
+      // 반환된 상품 수가 pageSize보다 적으면 마지막 페이지
+      if (products.length < PAGE_SIZE) {
+        break;
+      }
+
+    } catch (err) {
+      Logger.log('[상품 조회 예외] 페이지 ' + pageNum + ': ' + err.message);
+      sendAdminAlert_(
+        '[PRESSCO21] 클래스 상품 API 조회 예외',
+        '오류: ' + err.message + '\n(페이지 ' + pageNum + ')'
+      );
+      return null;
+    }
+  }
+
+  Logger.log('[상품 조회 완료] 총 ' + allProducts.length + '건 조회됨');
+  return allProducts;
+}
+
+/**
+ * 상품명에서 클래스명 추출 (파트너명 제거)
+ * 형식: "[파트너명] 클래스명" -> "클래스명"
+ *
+ * @param {string} productName - 메이크샵 상품명
+ * @return {string} 클래스명 (파트너명이 없으면 원본 반환)
+ */
+function extractClassName_(productName) {
+  if (!productName) return '';
+  var name = String(productName).trim();
+
+  // "[파트너명] 클래스명" 형식에서 클래스명 추출
+  var bracketEnd = name.indexOf(']');
+  if (name.charAt(0) === '[' && bracketEnd > 0) {
+    return name.substring(bracketEnd + 1).trim();
+  }
+
+  return name;
+}
+
+/**
+ * 상품명을 파트너명과 클래스명으로 분리
+ * 형식: "[파트너명] 클래스명"
+ *
+ * @param {string} productName - 메이크샵 상품명
+ * @return {Object} { partnerName: string, className: string }
+ */
+function parseProductName_(productName) {
+  var result = { partnerName: '', className: '' };
+  if (!productName) return result;
+
+  var name = String(productName).trim();
+  var bracketEnd = name.indexOf(']');
+
+  if (name.charAt(0) === '[' && bracketEnd > 0) {
+    result.partnerName = name.substring(1, bracketEnd).trim();
+    result.className = name.substring(bracketEnd + 1).trim();
+  } else {
+    result.className = name;
+  }
+
+  return result;
+}
+
+/**
+ * 숫자를 지정 자릿수로 패딩 (CLS001, CLS002 등 생성용)
+ *
+ * @param {number} num - 숫자
+ * @param {number} digits - 총 자릿수
+ * @return {string} 패딩된 문자열
+ */
+function padNumber_(num, digits) {
+  var str = String(num);
+  while (str.length < digits) {
+    str = '0' + str;
+  }
+  return str;
+}
+
+/**
+ * "파트너 상세" 시트에서 파트너명 -> partner_code 매핑 테이블 구축
+ * 상품명 "[파트너명] 클래스명"에서 추출한 파트너명으로 partner_code를 자동 매칭하기 위한 헬퍼
+ *
+ * M-02 수정 시 추가된 함수
+ *
+ * @return {Object} { '파트너명': 'partner_code', ... }
+ */
+function buildPartnerNameMap_() {
+  var map = {};
+  var sheet = getSheet_('파트너 상세');
+  if (!sheet) {
+    Logger.log('[경고] "파트너 상세" 시트를 찾을 수 없어 partner_code 자동 매칭이 불가합니다.');
+    return map;
+  }
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var codeIdx = headers.indexOf('partner_code');
+  var nameIdx = headers.indexOf('partner_name');
+
+  if (codeIdx === -1 || nameIdx === -1) {
+    Logger.log('[경고] "파트너 상세" 시트에 partner_code 또는 partner_name 컬럼이 없습니다.');
+    return map;
+  }
+
+  for (var i = 1; i < data.length; i++) {
+    var name = String(data[i][nameIdx] || '').trim();
+    var code = String(data[i][codeIdx] || '').trim();
+    if (name && code) {
+      map[name] = code;
+    }
+  }
+
+  Logger.log('[파트너 매핑] ' + Object.keys(map).length + '개 파트너 매핑 완료');
+  return map;
+}

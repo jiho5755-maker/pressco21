@@ -1,219 +1,215 @@
 /* ==========================================
-   Common Styles (자사몰 공통 CSS)
+   Common Styles - PRESSCO21 브랜드스토리
+   리뉴얼 2026.02 | 스코핑 적용
    ========================================== */
 
-/* Reset and Base Styles */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
+/* ==========================================
+   CSS 변수 (브랜드 디자인 시스템)
+   ========================================== */
+:root {
+    /* 브랜드 컬러 */
+    --brand-primary: #7d9675;
+    --brand-primary-light: #b7c9ad;
+    --brand-dark: #2c3e30;
+    --brand-bg: #fdfbf7;
+    --brand-bg-alt: #f5f2ec;
+
+    /* 텍스트 컬러 */
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+    --text-white: #ffffff;
+
+    /* 보조 컬러 */
+    --border-color: #e5e0d8;
+    --card-bg: #ffffff;
+    --overlay-dark: rgba(26, 26, 26, 0.85);
+    --overlay-light: rgba(255, 255, 255, 0.95);
+
+    /* 폰트 */
+    --font-body: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-heading: 'Noto Serif KR', 'Nanum Myeongjo', Georgia, serif;
+
+    /* 간격 */
+    --section-padding-desktop: 140px;
+    --section-padding-tablet: 100px;
+    --section-padding-mobile: 70px;
+
+    /* 트랜지션 */
+    --ease-out-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --ease-out-back: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    /* 레이아웃 */
+    --container-max: 1200px;
+    --container-wide: 1440px;
 }
 
-html {
+/* ==========================================
+   Pretendard 폰트 (jsDelivr CDN)
+   ========================================== */
+@font-face {
+    font-family: 'Pretendard';
+    font-weight: 800;
+    font-display: swap;
+    src: local('Pretendard ExtraBold'),
+         url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-ExtraBold.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    font-weight: 700;
+    font-display: swap;
+    src: local('Pretendard Bold'),
+         url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Bold.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    font-weight: 600;
+    font-display: swap;
+    src: local('Pretendard SemiBold'),
+         url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-SemiBold.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    font-weight: 400;
+    font-display: swap;
+    src: local('Pretendard Regular'),
+         url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Regular.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    font-weight: 300;
+    font-display: swap;
+    src: local('Pretendard Light'),
+         url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Light.woff2) format('woff2');
+}
+
+/* ==========================================
+   Noto Serif KR (Google Fonts CDN)
+   ========================================== */
+@font-face {
+    font-family: 'Noto Serif KR';
+    font-weight: 700;
+    font-display: swap;
+    src: url(https://fonts.gstatic.com/s/notoserifkr/v20/3JnmSDn90Gmq2mr3blnHaTZXTihC8O1ZNH1ahck.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif KR';
+    font-weight: 400;
+    font-display: swap;
+    src: url(https://fonts.gstatic.com/s/notoserifkr/v20/3Jn7SDn90Gmq2mr3blnHaTZXduZp1ONyKHQ.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif KR';
+    font-weight: 300;
+    font-display: swap;
+    src: url(https://fonts.gstatic.com/s/notoserifkr/v20/3JnmSDn90Gmq2mr3blnHaTZXTkxBTihC8O1ZNH1ahck.woff2) format('woff2');
+}
+
+/* ==========================================
+   #heritage-main 스코핑 리셋
+   메이크샵 전역 스타일 오염 방지
+   ========================================== */
+#heritage-main {
+    font-family: var(--font-body);
     font-size: 16px;
+    line-height: 1.75;
+    color: var(--text-primary);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
-body {
-    font-family: 'Pretendard', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-    font-size: 16px;
-    line-height: 1.75;
-    color: #121212;
-    background-color: #ffffff;
+#heritage-main *,
+#heritage-main *::before,
+#heritage-main *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
 }
 
-a {
+#heritage-main img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+#heritage-main a {
     color: inherit;
     text-decoration: none;
 }
 
-button {
+#heritage-main button {
     font-family: inherit;
     border: none;
     background: none;
     cursor: pointer;
 }
 
-img {
-    max-width: 100%;
-    height: auto;
-    display: block;
-}
-
-/* Typography */
-h1, h2, h3, h4, h5, h6 {
+#heritage-main h1,
+#heritage-main h2,
+#heritage-main h3,
+#heritage-main h4 {
+    font-family: var(--font-heading);
     font-weight: 700;
-    line-height: 1.3;
+    line-height: 1.35;
+    color: var(--text-primary);
+}
+
+#heritage-main p {
     margin-bottom: 1rem;
 }
 
-h1 { font-size: 2.5rem; }
-h2 { font-size: 2rem; }
-h3 { font-size: 1.5rem; }
-h4 { font-size: 1.25rem; }
-h5 { font-size: 1.125rem; }
-h6 { font-size: 1rem; }
-
-p {
-    margin-bottom: 1rem;
+#heritage-main ul {
+    list-style: none;
 }
 
-/* Header (자사몰 헤더 placeholder) */
-.main-header {
-    background: #ffffff;
-    border-bottom: 1px solid #dedede;
-    padding: 20px 0;
-    position: sticky;
-    top: 0;
-    z-index: 100;
-}
-
-/* Footer (자사몰 푸터 placeholder) */
-.main-footer {
-    background: #425b51;
-    color: #ffffff;
-    padding: 60px 0 20px;
-    margin-top: 100px;
-}
-
-/* Grid System (Bootstrap-like) */
-.container {
+/* ==========================================
+   컨테이너 시스템
+   ========================================== */
+#heritage-main .container {
     width: 100%;
-    margin-left: auto;
-    margin-right: auto;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 40px;
 }
 
-@media (min-width: 576px) {
-    .container {
-        max-width: 540px;
-        padding-left: 15px;
-        padding-right: 15px;
-    }
+#heritage-main .container-wide {
+    width: 100%;
+    max-width: var(--container-wide);
+    margin: 0 auto;
+    padding: 0 80px;
 }
 
-@media (min-width: 768px) {
-    .container {
-        max-width: 720px;
-        padding-left: 15px;
-        padding-right: 15px;
-    }
-}
-
-@media (min-width: 992px) {
-    .container {
-        max-width: 960px;
-        padding-left: 15px;
-        padding-right: 15px;
-    }
-}
-
-@media (min-width: 1200px) {
-    .container {
-        max-width: 1140px;
-        padding-left: 15px;
-        padding-right: 15px;
-    }
-}
-
-@media (min-width: 1400px) {
-    .container {
-        max-width: 1440px;
-        padding-left: 80px;
-        padding-right: 80px;
-    }
-}
-
-/* Row and Columns */
-.row {
-    display: flex;
-    flex-wrap: wrap;
-    margin-right: -15px;
-    margin-left: -15px;
-}
-
-.col {
-    flex-basis: 0;
-    flex-grow: 1;
-    padding-right: 15px;
-    padding-left: 15px;
-}
-
-.col-1 { flex: 0 0 8.333%; }
-.col-2 { flex: 0 0 16.666%; }
-.col-3 { flex: 0 0 25%; }
-.col-4 { flex: 0 0 33.333%; }
-.col-5 { flex: 0 0 41.666%; }
-.col-6 { flex: 0 0 50%; }
-.col-7 { flex: 0 0 58.333%; }
-.col-8 { flex: 0 0 66.666%; }
-.col-9 { flex: 0 0 75%; }
-.col-10 { flex: 0 0 83.333%; }
-.col-11 { flex: 0 0 91.666%; }
-.col-12 { flex: 0 0 100%; }
-
-/* Responsive Utilities */
 @media (max-width: 991px) {
-    .col-md-1 { flex: 0 0 8.333%; }
-    .col-md-2 { flex: 0 0 16.666%; }
-    .col-md-3 { flex: 0 0 25%; }
-    .col-md-4 { flex: 0 0 33.333%; }
-    .col-md-5 { flex: 0 0 41.666%; }
-    .col-md-6 { flex: 0 0 50%; }
-    .col-md-7 { flex: 0 0 58.333%; }
-    .col-md-8 { flex: 0 0 66.666%; }
-    .col-md-9 { flex: 0 0 75%; }
-    .col-md-10 { flex: 0 0 83.333%; }
-    .col-md-11 { flex: 0 0 91.666%; }
-    .col-md-12 { flex: 0 0 100%; }
+    #heritage-main .container {
+        padding: 0 30px;
+    }
+    #heritage-main .container-wide {
+        padding: 0 40px;
+    }
 }
 
 @media (max-width: 767px) {
-    .col-sm-1 { flex: 0 0 8.333%; }
-    .col-sm-2 { flex: 0 0 16.666%; }
-    .col-sm-3 { flex: 0 0 25%; }
-    .col-sm-4 { flex: 0 0 33.333%; }
-    .col-sm-5 { flex: 0 0 41.666%; }
-    .col-sm-6 { flex: 0 0 50%; }
-    .col-sm-7 { flex: 0 0 58.333%; }
-    .col-sm-8 { flex: 0 0 66.666%; }
-    .col-sm-9 { flex: 0 0 75%; }
-    .col-sm-10 { flex: 0 0 83.333%; }
-    .col-sm-11 { flex: 0 0 91.666%; }
-    .col-sm-12 { flex: 0 0 100%; }
+    #heritage-main {
+        font-size: 15px;
+    }
+    #heritage-main .container {
+        padding: 0 20px;
+    }
+    #heritage-main .container-wide {
+        padding: 0 20px;
+    }
 }
 
-/* Utility Classes */
-.mt-0 { margin-top: 0; }
-.mt-1 { margin-top: 0.25rem; }
-.mt-2 { margin-top: 0.5rem; }
-.mt-3 { margin-top: 1rem; }
-.mt-4 { margin-top: 1.5rem; }
-.mt-5 { margin-top: 3rem; }
-
-.mb-0 { margin-bottom: 0; }
-.mb-1 { margin-bottom: 0.25rem; }
-.mb-2 { margin-bottom: 0.5rem; }
-.mb-3 { margin-bottom: 1rem; }
-.mb-4 { margin-bottom: 1.5rem; }
-.mb-5 { margin-bottom: 3rem; }
-
-.text-center { text-align: center; }
-.text-left { text-align: left; }
-.text-right { text-align: right; }
-
-.d-none { display: none; }
-.d-inline { display: inline; }
-.d-inline-block { display: inline-block; }
-.d-block { display: block; }
-.d-flex { display: flex; }
-
-.align-items-center { align-items: center; }
-.justify-content-center { justify-content: center; }
-.justify-content-between { justify-content: space-between; }
-
-/* Screen Reader Only */
-.sr-only {
+/* ==========================================
+   접근성
+   ========================================== */
+#heritage-main .sr-only {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -225,120 +221,52 @@ p {
     border-width: 0;
 }
 
-/* Focus Styles for Accessibility */
-a:focus,
-button:focus,
-input:focus,
-textarea:focus,
-select:focus {
-    outline: 2px solid #527AFF;
-    outline-offset: 2px;
-}
-
-/* Print Styles */
-@media print {
-    body {
-        background: white;
-    }
-
-    .no-print {
-        display: none;
-    }
-}
-
-/* Responsive Design Breakpoints */
-@media (max-width: 1399px) {
-    /* Large screens */
-}
-
-@media (max-width: 1199px) {
-    /* Desktop */
-    body {
-        font-size: 16px;
-    }
-}
-
-@media (max-width: 991px) {
-    /* Tablet */
-    body {
-        font-size: 15px;
-    }
-
-    h1 { font-size: 2rem; }
-    h2 { font-size: 1.75rem; }
-    h3 { font-size: 1.25rem; }
-}
-
-@media (max-width: 767px) {
-    /* Mobile */
-    body {
-        font-size: 14px;
-        line-height: 1.6;
-    }
-
-    h1 { font-size: 1.75rem; }
-    h2 { font-size: 1.5rem; }
-    h3 { font-size: 1.125rem; }
-
-    .main-header {
-        padding: 15px 0;
-    }
+#heritage-main a:focus-visible,
+#heritage-main button:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 3px;
 }
 
 /* ==========================================
-   자사몰 실제 공통 스타일 (통합됨)
+   Header / Footer (자사몰 공통 placeholder)
    ========================================== */
+.main-header {
+    background: #ffffff;
+    border-bottom: 1px solid #dedede;
+    padding: 20px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.main-footer {
+    background: #425b51;
+    color: #ffffff;
+    padding: 60px 0 20px;
+    margin-top: 0;
+}
 
 /* ==========================================
-   자사몰 CSS 변수 및 핵심 스타일
+   유틸리티 (스코핑)
    ========================================== */
+#heritage-main .text-center { text-align: center; }
 
-:root {
-    /* 자사몰 CSS 변수 통합 완료 */
-    --cw-font-sans-serif: 'Pretendard', system-ui, -apple-system, sans-serif;
-    --cw-heading-color: #121212;
-    --cw-point-color: #2D5F4F;  /* 브랜드 색상 통일: 주황 → 녹색 */
-    --cw-color-white: #ffffff;
-    --cw-color-10: #f6f6f6;
-    --cw-color-30: #dedede;
-    --cw-color-60: #999999;
-    --cw-color-80: #555555;
-    --cw-border-radius: 4px;
-}
+/* 스크린 리더 전용 */
+.no-print { }
 
-/* Pretendard 폰트 정의 (jsDelivr CDN) */
-@font-face {
-    font-family: 'Pretendard';
-    font-weight: 700;
-    font-display: swap;
-    src: local('Pretendard Bold'), url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Bold.woff2) format('woff2');
-}
-
-@font-face {
-    font-family: 'Pretendard';
-    font-weight: 600;
-    font-display: swap;
-    src: local('Pretendard SemiBold'), url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-SemiBold.woff2) format('woff2');
-}
-
-@font-face {
-    font-family: 'Pretendard';
-    font-weight: 400;
-    font-display: swap;
-    src: local('Pretendard Regular'), url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Regular.woff2) format('woff2');
-}
-
-/* 자사몰 버튼 스타일 */
+/* ==========================================
+   자사몰 공통 폼/버튼 스타일
+   ========================================== */
 .btn {
     display: inline-block;
     padding: 0 1.25rem;
     font-size: 0.875rem;
     font-weight: 500;
     line-height: 2.375rem;
-    color: var(--cw-heading-color);
+    color: var(--text-primary);
     background: transparent;
     border: 1px solid transparent;
-    border-radius: var(--cw-border-radius);
+    border-radius: 4px;
     cursor: pointer;
     text-align: center;
     transition: all 0.15s ease-in-out;
@@ -346,28 +274,10 @@ select:focus {
 
 .btn-primary {
     background-color: #425b51;
-    color: var(--cw-color-white);
+    color: var(--text-white);
     border-color: #425b51;
 }
 
 .btn-primary:hover {
     opacity: 0.8;
 }
-
-/* 자사몰 폼 요소 */
-input[type="text"],
-input[type="password"],
-input[type="email"],
-textarea,
-select {
-    padding: 8px 12px;
-    font-size: 14px;
-    color: var(--cw-heading-color);
-    border: 1px solid var(--cw-color-30);
-    border-radius: var(--cw-border-radius);
-    font-family: inherit;
-}
-
-/* NOTE: 실제 production 배포 시에는 자사몰의 전체 CSS 파일을 여기에 통합하세요.
-   현재는 시안 제작을 위해 핵심 스타일만 포함되어 있습니다. */
-

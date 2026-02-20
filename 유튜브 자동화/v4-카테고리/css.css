@@ -1,0 +1,780 @@
+/* =============================================
+ * YouTube v4 - 카테고리 자동매칭 섹션 CSS
+ * 메이크샵 D4 메인페이지 CSS 편집기용
+ *
+ * 스코핑: .youtube-v4-section 클래스로 범위 제한
+ * 반응형: 모바일 퍼스트, 768px / 1024px 브레이크포인트
+ * 브랜드 색상: #7d9675 (primary), #b7c9ad (light), #2c3e30 (dark)
+ * ============================================= */
+
+/* ============================================
+   섹션 컨테이너
+   ============================================ */
+.youtube-v4-section {
+    padding: 50px 0;
+    background: linear-gradient(180deg, #f4f7f3 0%, #e8ede5 100%);
+}
+
+.youtube-v4-section *,
+.youtube-v4-section *::before,
+.youtube-v4-section *::after {
+    box-sizing: border-box;
+}
+
+.youtube-v4-section .main-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 0 15px;
+}
+
+/* 섹션 타이틀 */
+.youtube-v4-section .section-title {
+    text-align: center;
+    margin-bottom: 30px;
+}
+
+.youtube-v4-section .section-title h3 {
+    font-size: 20px;
+    font-weight: 800 !important;
+    color: #2c3e30;
+    margin-bottom: 8px;
+}
+
+.youtube-v4-section .section-title p {
+    font-size: 14px;
+    color: #888;
+    font-style: italic;
+}
+
+/* ============================================
+   메인 레이아웃 (영상 + 상품 패널)
+   ============================================ */
+.youtube-v4-section .ytv4-layout {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* ============================================
+   메인 영상 영역
+   ============================================ */
+.youtube-v4-section .ytv4-main-video {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* 썸네일 래퍼 (클릭 시 iframe 전환) */
+.youtube-v4-section .ytv4-thumb-wrap {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 비율 */
+    background: #222;
+    cursor: pointer;
+    overflow: hidden;
+}
+
+.youtube-v4-section .ytv4-thumb-wrap img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.4s ease;
+}
+
+.youtube-v4-section .ytv4-thumb-wrap:hover img {
+    transform: scale(1.03);
+}
+
+/* iframe 래퍼 (영상 재생 중) */
+.youtube-v4-section .ytv4-iframe-wrap {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%;
+    background: #222;
+}
+
+.youtube-v4-section .ytv4-iframe-wrap iframe {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+/* 재생 버튼 */
+.youtube-v4-section .ytv4-play-btn {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 60px;
+    height: 60px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
+    z-index: 2;
+}
+
+.youtube-v4-section .ytv4-play-btn::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 11px solid transparent;
+    border-bottom: 11px solid transparent;
+    border-left: 18px solid #2c3e30;
+    margin-left: 5px;
+}
+
+.youtube-v4-section .ytv4-thumb-wrap:hover .ytv4-play-btn {
+    transform: translate(-50%, -50%) scale(1.12);
+    background: #7d9675;
+    box-shadow: 0 6px 25px rgba(125, 150, 117, 0.4);
+}
+
+.youtube-v4-section .ytv4-thumb-wrap:hover .ytv4-play-btn::after {
+    border-left-color: #fff;
+}
+
+/* NEW 배지 */
+.youtube-v4-section .ytv4-badge-new {
+    position: absolute;
+    top: 10px;
+    left: 10px;
+    background: linear-gradient(135deg, #FF4600 0%, #E63900 100%);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 15px;
+    font-size: 11px;
+    font-weight: 700;
+    z-index: 3;
+    box-shadow: 0 2px 8px rgba(255, 70, 0, 0.35);
+    line-height: 1;
+}
+
+.youtube-v4-section .ytv4-badge-new--small {
+    top: 6px;
+    left: 6px;
+    padding: 3px 8px;
+    font-size: 9px;
+}
+
+/* 카테고리 배지 */
+.youtube-v4-section .ytv4-badge-category {
+    position: absolute;
+    bottom: 10px;
+    left: 10px;
+    background: rgba(44, 62, 48, 0.85);
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    z-index: 3;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    line-height: 1;
+}
+
+.youtube-v4-section .ytv4-badge-category--small {
+    bottom: 6px;
+    left: 6px;
+    padding: 3px 8px;
+    font-size: 9px;
+}
+
+/* 영상 정보 */
+.youtube-v4-section .ytv4-video-info {
+    padding: 16px;
+}
+
+.youtube-v4-section .ytv4-video-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: #333;
+    margin: 0 0 8px 0;
+    line-height: 1.4;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.youtube-v4-section .ytv4-video-meta {
+    display: flex;
+    gap: 10px;
+    font-size: 12px;
+    color: #888;
+    flex-wrap: wrap;
+}
+
+.youtube-v4-section .ytv4-view-count {
+    color: #666;
+    font-weight: 500;
+}
+
+/* ============================================
+   상품 패널 (사이드바)
+   ============================================ */
+.youtube-v4-section .ytv4-product-panel {
+    background: #fff;
+    border-radius: 10px;
+    overflow: hidden;
+    box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+}
+
+/* 토글 헤더 */
+.youtube-v4-section .ytv4-product-toggle {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 18px;
+    cursor: pointer;
+    border-bottom: 2px solid #b7c9ad;
+    transition: background 0.2s;
+    user-select: none;
+}
+
+.youtube-v4-section .ytv4-product-toggle:hover {
+    background: #f9f9f9;
+}
+
+.youtube-v4-section .ytv4-product-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: #2c3e30;
+    margin: 0;
+}
+
+.youtube-v4-section .ytv4-toggle-icon {
+    font-size: 12px;
+    color: #888;
+    transition: transform 0.3s ease;
+}
+
+/* 접힌 상태 */
+.youtube-v4-section .ytv4-product-panel.collapsed .ytv4-toggle-icon {
+    transform: rotate(-90deg);
+}
+
+.youtube-v4-section .ytv4-product-panel.collapsed .ytv4-product-grid {
+    max-height: 0;
+    overflow: hidden;
+    padding: 0 18px;
+    margin: 0;
+}
+
+/* 펼친 상태 */
+.youtube-v4-section .ytv4-product-panel.expanded .ytv4-toggle-icon {
+    transform: rotate(0deg);
+}
+
+.youtube-v4-section .ytv4-product-panel.expanded .ytv4-product-grid {
+    max-height: 800px;
+    padding: 14px 18px 18px;
+    margin: 0;
+}
+
+/* 상품 그리드 */
+.youtube-v4-section .ytv4-product-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+    transition: max-height 0.4s ease, padding 0.4s ease;
+}
+
+/* 상품 카드 */
+.youtube-v4-section .ytv4-product-card {
+    display: block;
+    background: #fafafa;
+    border-radius: 8px;
+    overflow: hidden;
+    transition: all 0.3s ease;
+    border: 1px solid #eee;
+    text-align: center;
+    text-decoration: none;
+    color: inherit;
+}
+
+.youtube-v4-section .ytv4-product-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 3px 10px rgba(0, 0, 0, 0.08);
+}
+
+.youtube-v4-section .ytv4-product-card img {
+    width: 100%;
+    aspect-ratio: 1 / 1;
+    object-fit: cover;
+    display: block;
+}
+
+.youtube-v4-section .ytv4-product-name {
+    padding: 10px 8px 4px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.youtube-v4-section .ytv4-product-price {
+    padding: 0 8px 10px;
+    font-size: 13px;
+    font-weight: 700;
+    color: #7d9675;
+}
+
+/* 상품 없을 때 */
+.youtube-v4-section .ytv4-no-products {
+    grid-column: 1 / -1;
+    text-align: center;
+    padding: 20px 0;
+    color: #bbb;
+    font-size: 13px;
+    line-height: 1.5;
+}
+
+.youtube-v4-section .ytv4-no-products p {
+    margin: 0;
+}
+
+/* ============================================
+   하단 슬라이더 (더 많은 영상)
+   ============================================ */
+.youtube-v4-section .ytv4-slider-section {
+    margin-top: 24px;
+}
+
+.youtube-v4-section .ytv4-slider-subtitle {
+    font-size: 14px;
+    font-weight: 600;
+    color: #2c3e30;
+    margin: 0 0 12px 2px;
+}
+
+.youtube-v4-section .ytv4-slider {
+    overflow: hidden;
+    padding: 0;
+    position: relative;
+}
+
+/* 슬라이더 카드 */
+.youtube-v4-section .ytv4-slide {
+    background: #fff;
+    border-radius: 8px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    transition: all 0.3s ease;
+    cursor: pointer;
+}
+
+.youtube-v4-section .ytv4-slide:hover {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 슬라이더 썸네일 */
+.youtube-v4-section .ytv4-slide-thumb {
+    position: relative;
+    padding-bottom: 56.25%;
+    background: #eee;
+    overflow: hidden;
+}
+
+.youtube-v4-section .ytv4-slide-thumb img {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    transition: transform 0.3s ease;
+}
+
+.youtube-v4-section .ytv4-slide:hover .ytv4-slide-thumb img {
+    transform: scale(1.05);
+}
+
+/* 슬라이더 재생 아이콘 */
+.youtube-v4-section .ytv4-slide-play {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 35px;
+    height: 35px;
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+    transition: transform 0.2s ease, background 0.2s ease;
+    z-index: 2;
+    opacity: 0;
+}
+
+.youtube-v4-section .ytv4-slide-play::after {
+    content: '';
+    width: 0;
+    height: 0;
+    border-top: 7px solid transparent;
+    border-bottom: 7px solid transparent;
+    border-left: 11px solid #2c3e30;
+    margin-left: 3px;
+}
+
+.youtube-v4-section .ytv4-slide:hover .ytv4-slide-play {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+    background: #7d9675;
+}
+
+.youtube-v4-section .ytv4-slide:hover .ytv4-slide-play::after {
+    border-left-color: #fff;
+}
+
+/* 슬라이더 카드 정보 */
+.youtube-v4-section .ytv4-slide-info {
+    padding: 10px;
+}
+
+.youtube-v4-section .ytv4-slide-title {
+    font-size: 12px;
+    font-weight: 600;
+    color: #333;
+    margin: 0 0 4px 0;
+    line-height: 1.3;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    height: 31px;
+}
+
+.youtube-v4-section .ytv4-slide-meta {
+    display: flex;
+    gap: 8px;
+    font-size: 10px;
+    color: #999;
+    flex-wrap: wrap;
+}
+
+/* Swiper 페이지네이션 */
+.youtube-v4-section .ytv4-slider .swiper-pagination {
+    position: relative;
+    bottom: 0;
+    margin-top: 12px;
+}
+
+.youtube-v4-section .ytv4-slider .swiper-pagination-bullet {
+    background: #7d9675;
+    opacity: 0.3;
+}
+
+.youtube-v4-section .ytv4-slider .swiper-pagination-bullet-active {
+    opacity: 1;
+}
+
+/* Swiper 네비게이션 (모바일 숨김) */
+.youtube-v4-section .ytv4-slider-section .swiper-button-prev,
+.youtube-v4-section .ytv4-slider-section .swiper-button-next {
+    display: none;
+}
+
+/* ============================================
+   스켈레톤 UI (로딩 애니메이션)
+   ============================================ */
+@keyframes ytv4-shimmer {
+    0% { background-position: -600px 0; }
+    100% { background-position: 600px 0; }
+}
+
+.youtube-v4-section .ytv4-shimmer {
+    background: linear-gradient(90deg, #e8ede6 25%, #f4f7f2 50%, #e8ede6 75%);
+    background-size: 1200px 100%;
+    animation: ytv4-shimmer 1.6s ease-in-out infinite;
+    border-radius: 4px;
+}
+
+/* 메인 영상 스켈레톤 */
+.youtube-v4-section .ytv4-skeleton {
+    border-radius: 10px;
+    overflow: hidden;
+}
+
+.youtube-v4-section .ytv4-skeleton-video {
+    width: 100%;
+    padding-bottom: 56.25%;
+    border-radius: 10px 10px 0 0;
+}
+
+.youtube-v4-section .ytv4-skeleton-info {
+    padding: 16px;
+}
+
+.youtube-v4-section .ytv4-skeleton-title {
+    height: 20px;
+    width: 80%;
+    margin-bottom: 10px;
+}
+
+.youtube-v4-section .ytv4-skeleton-meta {
+    height: 14px;
+    width: 40%;
+}
+
+/* 상품 패널 스켈레톤 */
+.youtube-v4-section .ytv4-skeleton-products {
+    padding: 18px;
+}
+
+.youtube-v4-section .ytv4-skeleton-product-title {
+    height: 18px;
+    width: 60%;
+    margin-bottom: 14px;
+}
+
+.youtube-v4-section .ytv4-skeleton-product {
+    display: flex;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+
+.youtube-v4-section .ytv4-skeleton-product-img {
+    width: 60px;
+    height: 60px;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+
+.youtube-v4-section .ytv4-skeleton-product-text {
+    flex: 1;
+    height: 14px;
+    align-self: center;
+}
+
+/* 슬라이더 스켈레톤 */
+.youtube-v4-section .ytv4-skeleton-slide {
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.youtube-v4-section .ytv4-skeleton-slide-thumb {
+    width: 100%;
+    padding-bottom: 56.25%;
+}
+
+.youtube-v4-section .ytv4-skeleton-slide-text {
+    height: 14px;
+    width: 70%;
+    margin: 10px;
+}
+
+/* 모션 감소 선호 시 애니메이션 비활성화 */
+@media (prefers-reduced-motion: reduce) {
+    .youtube-v4-section .ytv4-shimmer {
+        animation: none;
+        background: #e8ede6;
+    }
+}
+
+/* ============================================
+   에러 메시지
+   ============================================ */
+.youtube-v4-section .ytv4-error {
+    text-align: center;
+    padding: 50px 20px;
+    background: #fff;
+    border-radius: 10px;
+}
+
+.youtube-v4-section .ytv4-error p {
+    margin: 0 0 8px 0;
+    color: #888;
+    font-size: 14px;
+}
+
+.youtube-v4-section .ytv4-error a {
+    color: #7d9675;
+    font-weight: 600;
+    text-decoration: none;
+}
+
+.youtube-v4-section .ytv4-error a:hover {
+    text-decoration: underline;
+}
+
+/* ============================================
+   데스크톱 (768px 이상)
+   ============================================ */
+@media (min-width: 768px) {
+    .youtube-v4-section {
+        padding: 70px 0;
+    }
+
+    .youtube-v4-section .main-container {
+        padding: 0 20px;
+    }
+
+    .youtube-v4-section .section-title {
+        margin-bottom: 40px;
+    }
+
+    .youtube-v4-section .section-title h3 {
+        font-size: 28px;
+    }
+
+    /* 좌우 분할 레이아웃 */
+    .youtube-v4-section .ytv4-layout {
+        flex-direction: row;
+        gap: 24px;
+    }
+
+    /* 메인 영상: 좌측 넓게 */
+    .youtube-v4-section .ytv4-main-video {
+        flex: 3;
+        min-width: 0;
+    }
+
+    .youtube-v4-section .ytv4-video-info {
+        padding: 20px 24px;
+    }
+
+    .youtube-v4-section .ytv4-video-title {
+        font-size: 20px;
+    }
+
+    .youtube-v4-section .ytv4-play-btn {
+        width: 72px;
+        height: 72px;
+    }
+
+    .youtube-v4-section .ytv4-play-btn::after {
+        border-top-width: 13px;
+        border-bottom-width: 13px;
+        border-left-width: 21px;
+        margin-left: 6px;
+    }
+
+    /* 상품 패널: 우측 사이드바 */
+    .youtube-v4-section .ytv4-product-panel {
+        flex: 1;
+        min-width: 260px;
+        max-width: 320px;
+        align-self: flex-start;
+    }
+
+    /* PC에서는 토글 비활성화, 항상 펼침 */
+    .youtube-v4-section .ytv4-product-toggle {
+        cursor: default;
+        pointer-events: none;
+    }
+
+    .youtube-v4-section .ytv4-product-toggle:hover {
+        background: transparent;
+    }
+
+    .youtube-v4-section .ytv4-toggle-icon {
+        display: none;
+    }
+
+    .youtube-v4-section .ytv4-product-panel .ytv4-product-grid {
+        max-height: none !important;
+        padding: 14px 18px 18px !important;
+        overflow: visible;
+    }
+
+    .youtube-v4-section .ytv4-product-title {
+        font-size: 16px;
+    }
+
+    .youtube-v4-section .ytv4-product-grid {
+        gap: 14px;
+    }
+
+    .youtube-v4-section .ytv4-product-name {
+        font-size: 13px;
+        padding: 12px 10px 4px;
+    }
+
+    .youtube-v4-section .ytv4-product-price {
+        font-size: 14px;
+    }
+
+    /* 슬라이더 */
+    .youtube-v4-section .ytv4-slider-section {
+        margin-top: 32px;
+    }
+
+    .youtube-v4-section .ytv4-slider-subtitle {
+        font-size: 16px;
+        margin-bottom: 16px;
+    }
+
+    .youtube-v4-section .ytv4-slide-info {
+        padding: 14px;
+    }
+
+    .youtube-v4-section .ytv4-slide-title {
+        font-size: 14px;
+        height: 37px;
+    }
+
+    .youtube-v4-section .ytv4-slide-meta {
+        font-size: 11px;
+    }
+
+    .youtube-v4-section .ytv4-slide-play {
+        width: 40px;
+        height: 40px;
+    }
+
+    /* Swiper 네비게이션 (PC 표시) */
+    .youtube-v4-section .ytv4-slider-section .swiper-button-prev,
+    .youtube-v4-section .ytv4-slider-section .swiper-button-next {
+        display: flex;
+        width: 38px;
+        height: 38px;
+        background: rgba(255, 255, 255, 0.95);
+        border-radius: 50%;
+        box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+        color: #2c3e30;
+    }
+
+    .youtube-v4-section .ytv4-slider-section .swiper-button-prev::after,
+    .youtube-v4-section .ytv4-slider-section .swiper-button-next::after {
+        font-size: 15px;
+        font-weight: bold;
+    }
+
+    .youtube-v4-section .ytv4-slider-section .swiper-button-prev {
+        left: -19px;
+    }
+
+    .youtube-v4-section .ytv4-slider-section .swiper-button-next {
+        right: -19px;
+    }
+
+    /* PC에서는 페이지네이션 숨김 */
+    .youtube-v4-section .ytv4-slider .swiper-pagination {
+        display: none;
+    }
+}
+
+/* ============================================
+   대형 화면 (1024px 이상)
+   ============================================ */
+@media (min-width: 1024px) {
+    .youtube-v4-section .ytv4-product-panel {
+        max-width: 340px;
+    }
+}

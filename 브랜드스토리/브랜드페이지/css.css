@@ -1,4 +1,289 @@
 /* ==========================================
+   Common Styles - PRESSCO21 브랜드스토리
+   리뉴얼 2026.02 | 스코핑 적용
+   ========================================== */
+
+/* ==========================================
+   CSS 변수 (브랜드 디자인 시스템)
+   ========================================== */
+:root {
+    /* 브랜드 컬러 */
+    --brand-primary: #7d9675;
+    --brand-primary-light: #b7c9ad;
+    --brand-dark: #2c3e30;
+    --brand-bg: #fdfbf7;
+    --brand-bg-alt: #f5f2ec;
+
+    /* 텍스트 컬러 */
+    --text-primary: #1a1a1a;
+    --text-secondary: #4a4a4a;
+    --text-muted: #8a8a8a;
+    --text-white: #ffffff;
+
+    /* 보조 컬러 */
+    --border-color: #e5e0d8;
+    --card-bg: #ffffff;
+    --overlay-dark: rgba(26, 26, 26, 0.85);
+    --overlay-light: rgba(255, 255, 255, 0.95);
+
+    /* 폰트 */
+    --font-body: 'Pretendard', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+    --font-heading: 'Noto Serif KR', 'Nanum Myeongjo', Georgia, serif;
+
+    /* 간격 */
+    --section-padding-desktop: 140px;
+    --section-padding-tablet: 100px;
+    --section-padding-mobile: 70px;
+
+    /* 트랜지션 */
+    --ease-out-smooth: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --ease-out-back: cubic-bezier(0.175, 0.885, 0.32, 1.275);
+
+    /* 레이아웃 */
+    --container-max: 1200px;
+    --container-wide: 1440px;
+}
+
+/* ==========================================
+   Pretendard 폰트 (jsDelivr CDN)
+   ========================================== */
+@font-face {
+    font-family: 'Pretendard';
+    font-weight: 800;
+    font-display: swap;
+    src: local('Pretendard ExtraBold'),
+         url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-ExtraBold.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    font-weight: 700;
+    font-display: swap;
+    src: local('Pretendard Bold'),
+         url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Bold.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    font-weight: 600;
+    font-display: swap;
+    src: local('Pretendard SemiBold'),
+         url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-SemiBold.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    font-weight: 400;
+    font-display: swap;
+    src: local('Pretendard Regular'),
+         url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Regular.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Pretendard';
+    font-weight: 300;
+    font-display: swap;
+    src: local('Pretendard Light'),
+         url(https://cdn.jsdelivr.net/npm/pretendard@1.3.9/dist/web/static/woff2/Pretendard-Light.woff2) format('woff2');
+}
+
+/* ==========================================
+   Noto Serif KR (Google Fonts CDN)
+   ========================================== */
+@font-face {
+    font-family: 'Noto Serif KR';
+    font-weight: 700;
+    font-display: swap;
+    src: url(https://fonts.gstatic.com/s/notoserifkr/v20/3JnmSDn90Gmq2mr3blnHaTZXTihC8O1ZNH1ahck.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif KR';
+    font-weight: 400;
+    font-display: swap;
+    src: url(https://fonts.gstatic.com/s/notoserifkr/v20/3Jn7SDn90Gmq2mr3blnHaTZXduZp1ONyKHQ.woff2) format('woff2');
+}
+
+@font-face {
+    font-family: 'Noto Serif KR';
+    font-weight: 300;
+    font-display: swap;
+    src: url(https://fonts.gstatic.com/s/notoserifkr/v20/3JnmSDn90Gmq2mr3blnHaTZXTkxBTihC8O1ZNH1ahck.woff2) format('woff2');
+}
+
+/* ==========================================
+   #heritage-main 스코핑 리셋
+   메이크샵 전역 스타일 오염 방지
+   ========================================== */
+#heritage-main {
+    font-family: var(--font-body);
+    font-size: 16px;
+    line-height: 1.75;
+    color: var(--text-primary);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+#heritage-main *,
+#heritage-main *::before,
+#heritage-main *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+#heritage-main img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+#heritage-main a {
+    color: inherit;
+    text-decoration: none;
+}
+
+#heritage-main button {
+    font-family: inherit;
+    border: none;
+    background: none;
+    cursor: pointer;
+}
+
+#heritage-main h1,
+#heritage-main h2,
+#heritage-main h3,
+#heritage-main h4 {
+    font-family: var(--font-heading);
+    font-weight: 700;
+    line-height: 1.35;
+    color: var(--text-primary);
+}
+
+#heritage-main p {
+    margin-bottom: 1rem;
+}
+
+#heritage-main ul {
+    list-style: none;
+}
+
+/* ==========================================
+   컨테이너 시스템
+   ========================================== */
+#heritage-main .container {
+    width: 100%;
+    max-width: var(--container-max);
+    margin: 0 auto;
+    padding: 0 40px;
+}
+
+#heritage-main .container-wide {
+    width: 100%;
+    max-width: var(--container-wide);
+    margin: 0 auto;
+    padding: 0 80px;
+}
+
+@media (max-width: 991px) {
+    #heritage-main .container {
+        padding: 0 30px;
+    }
+    #heritage-main .container-wide {
+        padding: 0 40px;
+    }
+}
+
+@media (max-width: 767px) {
+    #heritage-main {
+        font-size: 15px;
+    }
+    #heritage-main .container {
+        padding: 0 20px;
+    }
+    #heritage-main .container-wide {
+        padding: 0 20px;
+    }
+}
+
+/* ==========================================
+   접근성
+   ========================================== */
+#heritage-main .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border-width: 0;
+}
+
+#heritage-main a:focus-visible,
+#heritage-main button:focus-visible {
+    outline: 2px solid var(--brand-primary);
+    outline-offset: 3px;
+}
+
+/* ==========================================
+   Header / Footer (자사몰 공통 placeholder)
+   ========================================== */
+.main-header {
+    background: #ffffff;
+    border-bottom: 1px solid #dedede;
+    padding: 20px 0;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.main-footer {
+    background: #425b51;
+    color: #ffffff;
+    padding: 60px 0 20px;
+    margin-top: 0;
+}
+
+/* ==========================================
+   유틸리티 (스코핑)
+   ========================================== */
+#heritage-main .text-center { text-align: center; }
+
+/* 스크린 리더 전용 */
+.no-print { }
+
+/* ==========================================
+   자사몰 공통 폼/버튼 스타일
+   ========================================== */
+.btn {
+    display: inline-block;
+    padding: 0 1.25rem;
+    font-size: 0.875rem;
+    font-weight: 500;
+    line-height: 2.375rem;
+    color: var(--text-primary);
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.15s ease-in-out;
+}
+
+.btn-primary {
+    background-color: #425b51;
+    color: var(--text-white);
+    border-color: #425b51;
+}
+
+.btn-primary:hover {
+    opacity: 0.8;
+}
+
+
+/* ==========================================
    Heritage Page - PRESSCO21 브랜드스토리
    전면 리뉴얼 2026.02
    디자인: 현대적 럭셔리 브랜드 (30년 전통)

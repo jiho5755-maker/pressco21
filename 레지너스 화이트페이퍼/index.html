@@ -9,10 +9,12 @@
   ============================================================
 -->
 
-<!-- 구글 폰트 CDN -->
+<!-- 구글 폰트 CDN: Pretendard(본문) + Noto Serif KR(제목) -->
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;600;700&family=Noto+Sans+KR:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<!-- Pretendard CDN -->
+<link rel="stylesheet" as="style" crossorigin href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css" />
 
 <!-- CSS (스코핑 적용) -->
 <style>
@@ -25,15 +27,32 @@
     <!-- 표지 -->
     <section class="resiners-cover">
         <div class="resiners-cover-inner">
-            <div class="resiners-brand-logo">Resiners</div>
+            <!-- 브랜드 로고 -->
+            <div class="resiners-brand-logo">Resiners&reg; &mdash; Clear Space Series</div>
+            <!-- 메인 타이틀 -->
             <h1 class="resiners-cover-title">RESINERS&reg; CLEAR SPACE</h1>
-            <h2 class="resiners-cover-subtitle">WHITE PAPER 2025</h2>
-            <p class="resiners-cover-tagline">BREATH CLEAN, CREATE FREE.</p>
+            <!-- 부제목 -->
+            <h2 class="resiners-cover-subtitle">White Paper 2025</h2>
+            <!-- 슬로건 -->
+            <p class="resiners-cover-tagline">Breath Clean, Create Free.</p>
+            <!-- 본문 설명 -->
             <p class="resiners-cover-desc">
                 레진 아트 스튜디오를 위한 공기질에 관한 최초의 산업 보고서<br>
                 일반 공기청정기나 제한된 환기가 부족한 이유 &mdash; 그리고 Resiners 공기청정기가<br>
                 깨끗한 창작 공기를 재정의하는 방법
             </p>
+        </div>
+        <!-- 표지 하단 메타 정보 -->
+        <div class="resiners-cover-meta">
+            <span>SGS Certified &middot; Report No. SHFT240900042971</span>
+            <span>PRESSCO21 &copy; 2025</span>
+        </div>
+        <!-- PDF 다운로드 버튼 -->
+        <div class="resiners-pdf-btn-wrap">
+            <button class="resiners-pdf-btn" onclick="window.printWhitepaper && window.printWhitepaper()" type="button">
+                <!-- TODO: PDF 내보내기 기능은 script.js의 printWhitepaper 함수에서 처리 -->
+                &#8595; PDF 저장
+            </button>
         </div>
     </section>
 
@@ -553,6 +572,37 @@
         </div>
     </section>
 
+    <!-- CTA 섹션: Resiners Purair 구매 유도 -->
+    <section class="resiners-section resiners-cta-section">
+        <div class="resiners-container">
+            <!-- CTA 중앙 정렬 래퍼 -->
+            <div class="resiners-cta-inner">
+                <h2 class="resiners-section-title">Resiners Purair로 더 안전하게 창작하세요</h2>
+                <!-- CTA 설명 텍스트 -->
+                <p class="resiners-cta-desc">
+                    SGS 인증 83.59% VOCs 제거율, H13 HEPA 99.97% 입자 포집.<br>
+                    레진 아티스트를 위해 설계된 최초의 레진 특화 공기청정기를 지금 만나보세요.
+                </p>
+                <!-- 주요 특징 배지 -->
+                <div class="resiners-cta-badges">
+                    <span class="resiners-cta-badge">SGS 인증</span>
+                    <span class="resiners-cta-badge">VOCs 83.59% 제거</span>
+                    <span class="resiners-cta-badge">H13 HEPA 필터</span>
+                    <span class="resiners-cta-badge">실시간 VOCs 감지</span>
+                    <span class="resiners-cta-badge">자동 팬 속도 조절</span>
+                </div>
+                <!-- 구매 버튼: TODO - 실제 메이크샵 상품 URL로 교체 필요 -->
+                <a href="https://foreverlove.co.kr/goods/catalog?code=0028" class="resiners-cta-btn" target="_blank" rel="noopener">
+                    Resiners Purair 구매하기
+                </a>
+                <!-- 보조 안내 텍스트 -->
+                <p class="resiners-cta-subtext">
+                    &#8226; 무료 배송 &nbsp;&middot;&nbsp; 30일 반품 보장 &nbsp;&middot;&nbsp; 공식 판매처
+                </p>
+            </div>
+        </div>
+    </section>
+
     <!-- Footer -->
     <footer class="resiners-footer">
         <div class="resiners-container">
@@ -568,29 +618,15 @@
 <!-- Chart.js CDN -->
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 
-<!-- script.js 내용을 여기에 붙여넣기 - 또는 외부 호스팅 후 script src 사용 -->
+<!-- script.js 내용을 여기에 붙여넣기 -->
+<!-- 포함 내용:
+     1. Chart.js VOCs 감소 그래프
+     2. 부드러운 스크롤 (이벤트 위임)
+     3. Intersection Observer 섹션 페이드인
+     4. PDF 내보내기 (window.printWhitepaper)
+     5. Schema.org Article 구조화 데이터 동적 삽입
+         → 메이크샵 중괄호 오인 문제 방지용 JS 동적 생성
+-->
 <script>
 /* script.js 파일 내용을 이 태그 안에 붙여넣기 */
-</script>
-
-<!-- SEO: Schema.org 구조화 데이터 -->
-<script type="application/ld+json">
-{
-    "@context": "https://schema.org",
-    "@type": "TechArticle",
-    "headline": "Resiners Purair 기술 소개 | PRESSCO21",
-    "description": "Resiners Purair 기술 백서. 압화/보존화 전용 레진 솔루션의 과학적 원리와 활용법.",
-    "author": {
-        "@type": "Organization",
-        "name": "PRESSCO21"
-    },
-    "publisher": {
-        "@type": "Organization",
-        "name": "PRESSCO21"
-    },
-    "mainEntityOfPage": {
-        "@type": "WebPage",
-        "url": "https://foreverlove.co.kr/resiners"
-    }
-}
 </script>

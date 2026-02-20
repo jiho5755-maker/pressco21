@@ -13,13 +13,16 @@
 │       ├── Index.html      # HTML만 (55줄)
 │       ├── css.css         # CSS만 (277줄)
 │       └── js.js           # JS만 (116줄)
-└── 신규-hybrid-미배포/      # 하이브리드 버전 - 미배포
-    ├── youtube-section.html     # 통합 HTML (215줄)
-    ├── product-mapping.json     # 영상-상품 자동 매칭 데이터
-    ├── youtube-proxy-v2.gs      # GAS 프록시 v2
-    ├── INTEGRATION_INSTRUCTIONS.md  # 마이그레이션 가이드
-    ├── PRODUCT_GUIDE.md         # 상품 매칭 가이드
-    └── README.md
+├── v4-카테고리/            # v4 - 카테고리 자동매칭 (개발 완료, 미배포)
+│   ├── youtube-proxy-v3.gs # GAS 백엔드 (517줄) - Data API + Sheets 통합
+│   ├── js.js               # 프론트엔드 JS (642줄) - IIFE, 자동매칭
+│   ├── css.css             # 스타일시트 (780줄) - 스코핑, 반응형
+│   └── Index.html          # HTML 마크업 (37줄)
+└── 신규-hybrid-미배포/      # 하이브리드 버전 - 미배포 (v4의 이전 프로토타입)
+    ├── youtube-section.html
+    ├── product-mapping.json
+    ├── youtube-proxy-v2.gs
+    └── ...
 ```
 
 ## 현재 배포 버전 (v3)
@@ -45,21 +48,21 @@ TTL: 24시간 (24 * 60 * 60 * 1000 ms)
 ### JS 핵심 로직 (IIFE 패턴)
 ```
 loadYouTube()
-  → localStorage 캐시 확인 (24h)
-  → 캐시 만료 시 GAS AJAX 호출 (?count=5)
-  → renderYouTube(items) 호출
+  -> localStorage 캐시 확인 (24h)
+  -> 캐시 만료 시 GAS AJAX 호출 (?count=5)
+  -> renderYouTube(items) 호출
 
 renderYouTube(videos)
-  → videos[0]: featured 영상 (iframe 임베드)
-  → videos[1~4]: Swiper 슬라이더 썸네일
-  → Swiper 초기화 (모바일 1.1개, PC 4개)
+  -> videos[0]: featured 영상 (iframe 임베드)
+  -> videos[1~4]: Swiper 슬라이더 썸네일
+  -> Swiper 초기화 (모바일 1.1개, PC 4개)
 
 playVideo(videoId)         // 전역 함수
-  → featured 영역 iframe 교체 + autoplay
-  → 섹션으로 스크롤
+  -> featured 영역 iframe 교체 + autoplay
+  -> 섹션으로 스크롤
 
 toggleProducts()           // 전역 함수 (모바일)
-  → 관련 상품 영역 토글 (collapsed/expanded)
+  -> 관련 상품 영역 토글 (collapsed/expanded)
 ```
 
 ### CSS 클래스
@@ -71,21 +74,73 @@ toggleProducts()           // 전역 함수 (모바일)
 .youtube-slider             Swiper 컨테이너
 ```
 
-## 신규 하이브리드 버전 (미배포)
+---
 
-### v3과의 차이점
+## v4 카테고리 자동매칭 (개발 완료, 미배포)
 
-| 항목 | v3 (현재) | 하이브리드 (미배포) |
-|------|----------|-------------------|
-| CSS 클래스 | `.youtube-section-v3` | `.youtube-hybrid-section` |
-| 캐시 키 | `yt_cache_v3` | 다름 |
-| 관련 상품 | 수동 하드코딩 (HTML에 직접 입력) | `product-mapping.json`으로 자동 매칭 |
-| GAS | RSS 피드 기반 | YouTube Data API v3 |
-| 기능 | 기본 영상 표시 | 영상별 관련 상품 자동 연동 |
+### v3 -> v4 주요 변경사항
 
-### 배포 시 참고
-- `INTEGRATION_INSTRUCTIONS.md`에 v3→hybrid 마이그레이션 절차 기술됨
-- `product-mapping.json` 수정으로 영상-상품 매칭 관리
+| 항목 | v3 (현재) | v4 (신규) |
+|------|----------|----------|
+| CSS 컨테이너 | `.youtube-section-v3` | `.youtube-v4-section` + `ytv4-` 접두사 |
+| 캐시 키 | `yt_cache_v3` | `yt_v4_data` / `yt_v4_time` |
+| 관련 상품 | 수동 하드코딩 | 영상 키워드 기반 자동매칭 |
+| GAS 백엔드 | RSS 기반 | YouTube Data API v3 + Google Sheets |
+| 상품 데이터 | HTML에 직접 입력 | Sheets에서 동적 로드 |
+| 영상 메타데이터 | id, title, publishedAt | + tags, viewCount, description |
+| 카테고리 | 없음 | 자동 감지 + 배지 표시 |
+| 조회수 | 없음 | K/만 단위 포맷팅 |
+| NEW 배지 | 없음 | 3일 이내 영상 표시 |
+| 스켈레톤 UI | 없음 | shimmer 로딩 |
+| XSS 방어 | 없음 | escapeHTML/escapeAttr |
+
+### GAS v3 백엔드 (youtube-proxy-v3.gs)
+
+```
+YouTube Data API v3 -> 채널 영상 목록 (tags, viewCount 포함)
+Google Sheets -> 키워드-카테고리 매핑 + 카테고리-상품 매핑
+CacheService -> 5분 캐싱
+RSS 폴백 -> API 실패 시 기본 데이터 제공
+```
+
+### Google Sheets 구조
+
+**시트1: 카테고리키워드**
+| A: 키워드 | B: 카테고리 |
+|-----------|-----------|
+| 압화 | 압화 |
+| pressed | 압화 |
+| 보존화 | 보존화 |
+
+**시트2: 카테고리상품**
+| A: 카테고리 | B: branduid | C: 상품명 | D: 가격 | E: 이미지URL |
+|-----------|-----------|---------|-------|------------|
+| 압화 | 1001 | 압화 스타터 키트 | 35000 | https://... |
+| default | 2001 | 베스트셀러 1 | 28000 | https://... |
+
+### 배포 절차
+
+1. GAS 프로젝트 생성 -> `youtube-proxy-v3.gs` 코드 붙여넣기
+2. 스크립트 속성 설정: `YOUTUBE_API_KEY`, `SPREADSHEET_ID`
+3. 웹 앱 배포: "모든 사용자" 접근 허용
+4. `js.js`의 `CONFIG.gasUrl`을 배포 URL로 교체
+5. 메이크샵 CSS 탭에 `css.css`, JS 탭에 `js.js`, HTML 탭에 `Index.html` 삽입
+6. 캐시 초기화 필요 시: `window.clearYouTubeV4Cache()`
+
+### CSS 클래스 (v4)
+```
+.youtube-v4-section         섹션 컨테이너
+.ytv4-main-area             메인 영상 + 관련 상품 영역
+.ytv4-featured-wrap         메인 영상 래퍼
+.ytv4-products-wrap         관련 상품 영역
+.ytv4-slider-section        하단 슬라이더 섹션
+.ytv4-slide                 슬라이더 카드
+.ytv4-badge-new             NEW 배지
+.ytv4-badge-category        카테고리 배지
+.ytv4-skeleton              스켈레톤 로딩 UI
+```
+
+---
 
 ## YouTube 채널 정보
 - 채널 ID: `UCOt_7gyvjqHBw304hU4-FUw`
@@ -94,3 +149,4 @@ toggleProducts()           // 전역 함수 (모바일)
 - 메인페이지 HTML 탭에 인라인으로 삽입된 코드와 `분리/` 폴더 코드는 동일 내용
 - 수정 작업은 `분리/` 파일에서 하고, 완료 후 `fullcode.html`을 재생성하여 배포
 - GAS URL은 Google Apps Script 웹 앱 배포 URL이므로, GAS 코드 수정 시 새로 배포하면 URL이 변경될 수 있음
+- v4 배포 시 v3 코드를 완전히 교체 (CSS 클래스가 다름)

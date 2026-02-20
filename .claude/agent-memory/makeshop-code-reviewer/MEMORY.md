@@ -51,4 +51,22 @@
 - **XSS**: Original inline script has NO escaping on `featured.title` / `v.title`; js.js version properly escapes
 - **Swiper conflict**: js.js uses `mySwiper` constructor (MakeShop D4 built-in), inline uses `Swiper` (CDN loaded)
 
+### YouTube v4 (카테고리 자동매칭) - 신규 작성
+- **Location**: `유튜브 자동화/v4-카테고리/`
+- **Files**: youtube-proxy-v3.gs, js.js, css.css, Index.html
+- **CSS Scoping**: `.youtube-v4-section` with `ytv4-` prefixed class names -- well-isolated
+- **IIFE**: Properly wrapped, only `window.clearYouTubeV4Cache` exposed globally
+- **XSS**: Both `escapeHTML()` and `escapeAttr()` implemented and used consistently
+- **Template Literals**: NONE -- all string concatenation. SAFE.
+- **let/const**: NONE -- all `var`. Compatible with older browsers.
+- **Cache Strategy**: GAS CacheService 5분 + localStorage 24시간 이중 캐싱
+- **GAS v3**: YouTube Data API v3 (tags 포함) + Google Sheets (키워드+상품) 통합 응답
+- **Swiper**: CDN loaded, instance properly destroyed before re-init on video switch
+- **Event Delegation**: Slider click uses event delegation on `.ytv4-slider-section` (bound once)
+- **Skeleton UI**: shimmer animation with `prefers-reduced-motion` support
+- **Key Design Decisions**:
+  - autoMatchCategory: long keyword first sorting prevents false positives
+  - Thumbnail-first loading: iframe only on click (performance)
+  - Fallback chain: Data API fail -> RSS only (no tags/views but functional)
+
 See: [patterns.md](patterns.md) for detailed notes.

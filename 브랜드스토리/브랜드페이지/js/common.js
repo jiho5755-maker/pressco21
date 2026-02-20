@@ -1,140 +1,133 @@
 /* ==========================================
-   Common JavaScript (자사몰 공통 JS)
+   Common JavaScript - PRESSCO21 브랜드스토리
+   자사몰 공통 기능 (IIFE 패턴)
    ========================================== */
 
-document.addEventListener('DOMContentLoaded', function() {
+(function() {
+    'use strict';
 
-    // ==========================================
-    // Header/Navigation (자사몰 공통 기능)
-    // ==========================================
+    /* ==========================================
+       유틸리티 함수
+       ========================================== */
 
-    // NOTE: 자사몰의 실제 헤더 기능을 여기에 추가하세요.
-    // 예: 메뉴 토글, 검색, 모바일 네비게이션 등
-
-    // ==========================================
-    // Example: Mobile Menu Toggle
-    // ==========================================
-    const menuToggle = document.querySelector('.menu-toggle');
-    const mobileMenu = document.querySelector('.mobile-menu');
-
-    if (menuToggle && mobileMenu) {
-        menuToggle.addEventListener('click', function() {
-            mobileMenu.classList.toggle('active');
-        });
-    }
-
-    // Close mobile menu when a link is clicked
-    const menuLinks = document.querySelectorAll('.mobile-menu a');
-    menuLinks.forEach(link => {
-        link.addEventListener('click', function() {
-            if (mobileMenu) {
-                mobileMenu.classList.remove('active');
-            }
-        });
-    });
-
-    // ==========================================
-    // Example: Search Functionality
-    // ==========================================
-    const searchForm = document.querySelector('.search-form');
-    if (searchForm) {
-        searchForm.addEventListener('submit', function(e) {
-            e.preventDefault();
-            // Add search functionality here
-        });
-    }
-
-});
-
-// ==========================================
-// Utility Functions
-// ==========================================
-
-/**
- * Debounce function to limit function calls
- * @param {Function} func - The function to debounce
- * @param {Number} wait - The wait time in milliseconds
- * @returns {Function}
- */
-function debounce(func, wait) {
-    let timeout;
-    return function executedFunction(...args) {
-        const later = () => {
+    /**
+     * Debounce - 연속 호출 제한
+     * @param {Function} func - 실행할 함수
+     * @param {Number} wait - 대기 시간 (ms)
+     * @returns {Function}
+     */
+    function debounce(func, wait) {
+        var timeout;
+        return function() {
+            var context = this;
+            var args = arguments;
             clearTimeout(timeout);
-            func(...args);
+            timeout = setTimeout(function() {
+                func.apply(context, args);
+            }, wait);
         };
-        clearTimeout(timeout);
-        timeout = setTimeout(later, wait);
-    };
-}
-
-/**
- * Throttle function to limit function calls
- * @param {Function} func - The function to throttle
- * @param {Number} limit - The throttle limit in milliseconds
- * @returns {Function}
- */
-function throttle(func, limit) {
-    let inThrottle;
-    return function() {
-        const args = arguments;
-        const context = this;
-        if (!inThrottle) {
-            func.apply(context, args);
-            inThrottle = true;
-            setTimeout(() => inThrottle = false, limit);
-        }
-    };
-}
-
-/* ==========================================
-   자사몰 공통 JavaScript (통합됨)
-   ========================================== */
-
-// 입력폼 class 자동 추가
-document.addEventListener("DOMContentLoaded", () => {
-    const labels = document.querySelectorAll('label');
-    if (labels.length) {
-        labels.forEach(label => label.classList.add('form-check-label'));
     }
 
-    const inputs = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
-    if (inputs.length) {
-        inputs.forEach(input => input.classList.add('form-check-input'));
+    /**
+     * Throttle - 실행 빈도 제한
+     * @param {Function} func - 실행할 함수
+     * @param {Number} limit - 제한 간격 (ms)
+     * @returns {Function}
+     */
+    function throttle(func, limit) {
+        var inThrottle;
+        return function() {
+            var args = arguments;
+            var context = this;
+            if (!inThrottle) {
+                func.apply(context, args);
+                inThrottle = true;
+                setTimeout(function() {
+                    inThrottle = false;
+                }, limit);
+            }
+        };
     }
 
-    const textInputs = document.querySelectorAll('input[type="text"], input[type="password"], input[type="date"], textarea');
-    if (textInputs.length) {
-        textInputs.forEach(textfield => textfield.classList.add('cw-textfield'));
-    }
+    /* ==========================================
+       DOMContentLoaded 이후 초기화
+       ========================================== */
+    document.addEventListener('DOMContentLoaded', function() {
 
-    const selects = document.querySelectorAll('select');
-    if (selects.length) {
-        selects.forEach(select => select.classList.add('cw-select-box'));
-    }
-});
+        /* ==========================================
+           모바일 메뉴 토글 (자사몰 공통)
+           ========================================== */
+        var menuToggle = document.querySelector('.menu-toggle');
+        var mobileMenu = document.querySelector('.mobile-menu');
 
-// 스킨 반응형 (jQuery 사용)
-if (typeof jQuery !== 'undefined') {
-    $(function() {
-        var $topBanner = $('#topbanner');
-        var $container = $('#container');
-        if (!$topBanner.length || !$container.length) return;
+        if (menuToggle && mobileMenu) {
+            menuToggle.addEventListener('click', function() {
+                mobileMenu.classList.toggle('active');
+            });
 
-        function adjustPadding() {
-            var paddingTop = ($(window).width() >= 768) ? '0' : '104px';
-            $container.css('padding-top', paddingTop);
+            var menuLinks = document.querySelectorAll('.mobile-menu a');
+            menuLinks.forEach(function(link) {
+                link.addEventListener('click', function() {
+                    mobileMenu.classList.remove('active');
+                });
+            });
         }
 
-        var resizeTimer;
-        $(window).on('resize', function() {
-            clearTimeout(resizeTimer);
-            resizeTimer = setTimeout(adjustPadding, 100);
+        /* ==========================================
+           폼 요소 클래스 자동 추가 (자사몰 호환)
+           ========================================== */
+        var labels = document.querySelectorAll('label');
+        if (labels.length) {
+            labels.forEach(function(label) {
+                label.classList.add('form-check-label');
+            });
+        }
+
+        var radioCheckboxes = document.querySelectorAll('input[type="radio"], input[type="checkbox"]');
+        if (radioCheckboxes.length) {
+            radioCheckboxes.forEach(function(input) {
+                input.classList.add('form-check-input');
+            });
+        }
+
+        var textInputs = document.querySelectorAll('input[type="text"], input[type="password"], input[type="date"], textarea');
+        if (textInputs.length) {
+            textInputs.forEach(function(field) {
+                field.classList.add('cw-textfield');
+            });
+        }
+
+        var selects = document.querySelectorAll('select');
+        if (selects.length) {
+            selects.forEach(function(select) {
+                select.classList.add('cw-select-box');
+            });
+        }
+
+    }); /* END DOMContentLoaded */
+
+    /* ==========================================
+       스킨 반응형 (jQuery 사용, 자사몰 호환)
+       ========================================== */
+    if (typeof jQuery !== 'undefined') {
+        jQuery(function() {
+            var jqTopBanner = jQuery('#topbanner');
+            var jqContainer = jQuery('#container');
+            if (!jqTopBanner.length || !jqContainer.length) return;
+
+            function adjustPadding() {
+                var paddingTop = (jQuery(window).width() >= 768) ? '0' : '104px';
+                jqContainer.css('padding-top', paddingTop);
+            }
+
+            var resizeTimer;
+            jQuery(window).on('resize', function() {
+                clearTimeout(resizeTimer);
+                resizeTimer = setTimeout(adjustPadding, 100);
+            });
+
+            adjustPadding();
         });
+    }
 
-        adjustPadding();
-    });
-}
-
-/* NOTE: 실제 production 배포 시에는 자사몰의 전체 JS 파일을 여기에 통합하세요.
-   현재는 시안 제작을 위해 핵심 기능만 포함되어 있습니다. */
+})(); /* END IIFE */

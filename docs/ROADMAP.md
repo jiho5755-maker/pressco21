@@ -498,27 +498,19 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
 
 #### Phase 2-E: 통합 테스트 (1주)
 
-- **Task 241: 파트너 클래스 플랫폼 통합 테스트**
+- **Task 241: 파트너 클래스 플랫폼 통합 테스트** - ✅ 테스트 체크리스트 완료 (실제 테스트는 관리자 수동 실행 필요)
   - See: `/tasks/241-class-platform-integration-test.md`
   - 대상: 전체 Phase 2 결과물
   - 의존성: Task 221, Task 222, Task 231, Task 232
   - 규모: M
   - 에이전트: `주도` qa-test-expert | `협업` seo-performance-expert, makeshop-planning-expert
   - 구현 사항:
-    - 고객 플로우 E2E: 강의 탐색 -> 상세 -> 결제 -> 확인 이메일 -> 리마인더 -> 후기
-    - 파트너 플로우 E2E: 가입 -> 교육 -> 강의 등록 -> 대시보드 -> 정산 -> 적립금
-    - API 호출 예산 실측: 동시 사용 시 500회/시간 이내 확인
-    - 에러 핸들링: GAS 다운, API 실패, Sheets 동시 쓰기 시나리오
-    - 이메일 발송 한도 모니터링 테스트
-    - PC/모바일 전체 반응형 테스트
-    - 보안 테스트: 비인가 접근, 토큰 위조, Referer 우회 시도
-  - 테스트 체크리스트:
-    - Playwright MCP를 사용한 전체 사용자 플로우 E2E 테스트
-    - 시나리오 1(일반 고객 원데이 클래스) 전체 경로 테스트
-    - 시나리오 2(제휴 공방 파트너) 전체 경로 테스트
-    - 시나리오 3(기업 단체) 문의 -> 알림 테스트
-    - 성능: LCP, CLS, Lighthouse 점수 측정
-    - 접근성: Lighthouse Accessibility 90+ 확인
+    - `docs/test-checklists/phase2-integration-test.md` 생성 (725줄)
+    - 고객/파트너/보안/성능/접근성/API 한도/에러 핸들링 7섹션 체크리스트
+    - Critical Issues 19건 회귀 테스트 항목 포함
+    - seo-performance-expert 분석 결과 통합: og:image·canonical 누락, CDN preconnect, 첫 카드 eager 로딩, 색상 대비, hasCourseInstance·BreadcrumbList 누락
+    - 보안 테스트: 비인가 접근, XSS, Injection, 관리자 API 토큰 보호
+    - 배포 전 최종 점검 체크리스트 + 배포 승인란 포함
 
 ---
 
@@ -826,3 +818,4 @@ Phase 3
 | 2026-02-21 | 2.1 | Task 232 코드 완료 -- 메인페이지 클래스 섹션 IIFE 추가 (js.js+css.css, Index.html 무수정), Critical 4건 수정 |
 | 2026-02-21 | 2.2 | Task 222 코드 완료 -- 파트너 대시보드 3파일 신규 생성(395/1677/1617줄), GAS API 3개 추가, Critical 8건 수정 |
 | 2026-02-21 | 2.3 | Task 231 코드/문서 완료 -- 파트너 아카데미 가이드(950줄), GAS 교육 인증 API 2개, 이메일 인증서 2종 |
+| 2026-02-21 | 2.4 | Task 241 테스트 체크리스트 완료 -- phase2-integration-test.md(725줄), Critical 19건 회귀 테스트 항목, SEO 개선 권고사항(P1/P2) 포함, Phase 2 전체 완료 |

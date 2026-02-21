@@ -522,3 +522,369 @@
     });
 
 })();
+
+/* ========================================
+   메인 클래스 진입점 섹션 (Task 232)
+   GAS API로 인기 클래스 4개를 로드하여
+   YouTube 섹션 아래에 동적 삽입
+   ======================================== */
+(function() {
+    'use strict';
+
+    /* ---- 설정 ---- */
+    var GAS_CLASS_URL = window.PRESSCO21_GAS_URL || '';
+    var CACHE_KEY = 'pressco21_popular_classes';
+    var CACHE_TTL = 30 * 60 * 1000; // 30분
+    var CLASS_LIMIT = 4;
+    var DETAIL_BASE = '/shop/page.html?id=class-detail&class_id=';
+    var LIST_URL = '/shop/page.html?id=class-list';
+
+    /* ---- 유틸리티 (기존 IIFE와 독립) ---- */
+    function escHTML(str) {
+        if (!str) return '';
+        var d = document.createElement('div');
+        d.appendChild(document.createTextNode(str));
+        return d.innerHTML;
+    }
+
+    function escAttr(str) {
+        if (!str) return '';
+        return str.replace(/&/g, '&amp;')
+                  .replace(/"/g, '&quot;')
+                  .replace(/'/g, '&#39;')
+                  .replace(/</g, '&lt;')
+                  .replace(/>/g, '&gt;');
+    }
+
+    /* class_id 검증: 영숫자, 하이픈, 언더스코어만 허용 (최대 64자) */
+    function sanitizeClassId(id) {
+        if (!id || typeof id !== 'string') return '';
+        var clean = id.replace(/[^a-zA-Z0-9\-_]/g, '');
+        return clean.substring(0, 64);
+    }
+
+    function formatPrice(num) {
+        if (!num && num !== 0) return '0';
+        var parsed = Number(num);
+        if (isNaN(parsed)) return '0';
+        return parsed.toLocaleString('ko-KR');
+    }
+
+    /* ---- 별점 SVG 생성 ---- */
+    /* SVG linearGradient id 중복 방지를 위해
+       공유 <defs>를 페이지에 1회만 삽입하고 참조 */
+    var halfGradInjected = false;
+    var HALF_GRAD_ID = 'mceHalfStarGrad';
+
+    function ensureHalfGradDef() {
+        if (halfGradInjected) return;
+        halfGradInjected = true;
+        var svgNS = 'http://www.w3.org/2000/svg';
+        var svg = document.createElementNS(svgNS, 'svg');
+        svg.setAttribute('width', '0');
+        svg.setAttribute('height', '0');
+        svg.style.position = 'absolute';
+        svg.style.visibility = 'hidden';
+        var defs = document.createElementNS(svgNS, 'defs');
+        var grad = document.createElementNS(svgNS, 'linearGradient');
+        grad.setAttribute('id', HALF_GRAD_ID);
+        var stop1 = document.createElementNS(svgNS, 'stop');
+        stop1.setAttribute('offset', '50%');
+        stop1.setAttribute('stop-color', '#d4a373');
+        var stop2 = document.createElementNS(svgNS, 'stop');
+        stop2.setAttribute('offset', '50%');
+        stop2.setAttribute('stop-color', '#ddd');
+        grad.appendChild(stop1);
+        grad.appendChild(stop2);
+        defs.appendChild(grad);
+        svg.appendChild(defs);
+        document.body.appendChild(svg);
+    }
+
+    function createStarsSVG(rating) {
+        var html = '';
+        var fullStars = Math.floor(rating);
+        var hasHalf = (rating - fullStars) >= 0.5;
+        var i;
+        var starPath = 'M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.27l-4.77 2.45.91-5.33L2.27 6.62l5.34-.78z';
+
+        for (i = 0; i < fullStars; i++) {
+            html += '<svg class="mce-star" viewBox="0 0 20 20" fill="#d4a373" xmlns="http://www.w3.org/2000/svg">' +
+                '<path d="' + starPath + '"/></svg>';
+        }
+        if (hasHalf) {
+            ensureHalfGradDef();
+            html += '<svg class="mce-star" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">' +
+                '<path d="' + starPath + '" fill="url(#' + HALF_GRAD_ID + ')"/></svg>';
+        }
+        var emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
+        for (i = 0; i < emptyStars; i++) {
+            html += '<svg class="mce-star" viewBox="0 0 20 20" fill="#ddd" xmlns="http://www.w3.org/2000/svg">' +
+                '<path d="' + starPath + '"/></svg>';
+        }
+        return html;
+    }
+
+    /* ---- 등급 배지 ---- */
+    function gradeHTML(grade) {
+        if (!grade) return '';
+        var gradeMap = {
+            'SILVER': 'mce-grade-silver',
+            'GOLD': 'mce-grade-gold',
+            'PLATINUM': 'mce-grade-platinum'
+        };
+        var cls = gradeMap[grade.toUpperCase()] || 'mce-grade-silver';
+        return '<span class="mce-grade ' + cls + '">' + escHTML(grade) + '</span>';
+    }
+
+    /* ---- 카드 HTML 생성 ---- */
+    function buildCardHTML(item) {
+        var rating = parseFloat(item.rating) || 0;
+        var reviewCount = parseInt(item.grade_count || item.review_count || 0, 10);
+        var seats = parseInt(item.remaining_seats, 10);
+        var isUrgent = !isNaN(seats) && seats > 0 && seats <= 5;
+        var isSoldOut = !isNaN(seats) && seats <= 0;
+
+        /* class_id 검증 후 안전한 값만 href에 사용 */
+        var safeId = sanitizeClassId(item.class_id);
+        if (!safeId) return ''; /* 유효하지 않은 class_id는 카드 생성 스킵 */
+
+        var html = '<a class="mce-card" href="' + escAttr(DETAIL_BASE + safeId) + '" aria-label="' + escAttr(item.class_name) + ' 클래스 상세보기">';
+
+        /* 썸네일 (빈 URL 방지: placeholder 사용) */
+        var thumbUrl = item.thumbnail_url || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" fill="%23e8ede6"/>');
+        html += '<div class="mce-thumb">';
+        html += '<img src="' + escAttr(thumbUrl) + '" alt="' + escAttr(item.class_name) + '" loading="lazy">';
+        if (item.category) {
+            html += '<span class="mce-badge">' + escHTML(item.category) + '</span>';
+        }
+        if (isUrgent) {
+            html += '<span class="mce-urgent">마감 임박!</span>';
+        }
+        html += '</div>';
+
+        /* 정보 */
+        html += '<div class="mce-info">';
+        html += '<p class="mce-name">' + escHTML(item.class_name) + '</p>';
+
+        /* 강사 + 등급 */
+        html += '<div class="mce-instructor">';
+        html += '<span class="mce-instructor-name">' + escHTML(item.partner_name || '') + '</span>';
+        html += gradeHTML(item.grade || item.partner_grade || '');
+        html += '</div>';
+
+        /* 별점 */
+        html += '<div class="mce-rating">';
+        html += '<span class="mce-stars">' + createStarsSVG(rating) + '</span>';
+        html += '<span class="mce-review-count">(' + reviewCount + ')</span>';
+        html += '</div>';
+
+        /* 가격 */
+        html += '<div class="mce-price">' + formatPrice(item.price) + '\uC6D0</div>';
+
+        /* 남은 자리 */
+        if (!isNaN(seats)) {
+            if (isSoldOut) {
+                html += '<div class="mce-seats mce-seats-urgent">마감</div>';
+            } else if (isUrgent) {
+                html += '<div class="mce-seats mce-seats-urgent">\uB0A8\uC740 ' + seats + '\uC790\uB9AC</div>';
+            } else {
+                html += '<div class="mce-seats">\uB0A8\uC740 ' + seats + '\uC790\uB9AC</div>';
+            }
+        }
+
+        html += '</div>'; /* /.mce-info */
+        html += '</a>'; /* /.mce-card */
+        return html;
+    }
+
+    /* ---- 스켈레톤 HTML ---- */
+    function buildSkeletonHTML() {
+        var html = '<div class="mce-skeleton-grid">';
+        for (var i = 0; i < CLASS_LIMIT; i++) {
+            html += '<div class="mce-skeleton-card">' +
+                '<div class="mce-sk-thumb"></div>' +
+                '<div class="mce-sk-info">' +
+                '<div class="mce-sk-line mce-sk-line-full"></div>' +
+                '<div class="mce-sk-line mce-sk-line-medium"></div>' +
+                '<div class="mce-sk-line mce-sk-line-short"></div>' +
+                '</div></div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
+    /* ---- 섹션 전체 HTML ---- */
+    function buildSectionHTML(isLoading) {
+        var html = '<section class="main-class-entry" id="main-class-entry">';
+        html += '<div class="mce-container">';
+        html += '<div class="mce-header">';
+        html += '<h3>\uC9C0\uAE08 \uC778\uAE30 \uC788\uB294 \uC6D0\uB370\uC774 \uD074\uB798\uC2A4</h3>';
+        html += '<p>30\uB144 \uC555\uD654 \uC804\uBB38\uAC00\uB4E4\uC774 \uC9C1\uC811 \uC9C4\uD589\uD558\uB294 \uD2B9\uBCC4\uD55C \uD074\uB798\uC2A4</p>';
+        html += '</div>';
+
+        if (isLoading) {
+            html += buildSkeletonHTML();
+        } else {
+            html += '<div class="mce-grid" id="mce-grid"></div>';
+        }
+
+        html += '<div class="mce-cta-wrap">';
+        html += '<a href="' + escAttr(LIST_URL) + '" class="mce-cta">\uC804\uCCB4 \uD074\uB798\uC2A4 \uBCF4\uAE30</a>';
+        html += '</div>';
+        html += '</div>';
+        html += '</section>';
+        return html;
+    }
+
+    /* ---- 섹션 삽입 위치 ---- */
+    function insertSection(html) {
+        /* YouTube 섹션(#weekyoutube) 뒤에 삽입 */
+        var ytSection = document.querySelector('.youtube-section-v3');
+        if (ytSection) {
+            ytSection.insertAdjacentHTML('afterend', html);
+            return true;
+        }
+        /* YouTube 섹션 없으면 section04(Weekly Best) 뒤에 삽입 */
+        var section04 = document.getElementById('section04');
+        if (section04) {
+            section04.insertAdjacentHTML('afterend', html);
+            return true;
+        }
+        return false;
+    }
+
+    /* ---- 캐시 관리 ---- */
+    function getCachedData() {
+        try {
+            var raw = localStorage.getItem(CACHE_KEY);
+            if (!raw) return null;
+            var cached = JSON.parse(raw);
+            if (cached && cached.ts && (Date.now() - cached.ts < CACHE_TTL)) {
+                return cached.data;
+            }
+            localStorage.removeItem(CACHE_KEY);
+        } catch (e) { /* localStorage 접근 불가 시 무시 */ }
+        return null;
+    }
+
+    function setCachedData(data) {
+        try {
+            localStorage.setItem(CACHE_KEY, JSON.stringify({
+                ts: Date.now(),
+                data: data
+            }));
+        } catch (e) { /* localStorage 용량 초과 시 무시 */ }
+    }
+
+    /* ---- 카드 렌더링 ---- */
+    function renderCards(classes) {
+        var section = document.getElementById('main-class-entry');
+        if (!section) return;
+
+        /* 스켈레톤 제거, 그리드 삽입 */
+        var skeletonGrid = section.querySelector('.mce-skeleton-grid');
+        var ctaWrap = section.querySelector('.mce-cta-wrap');
+
+        var gridHTML = '<div class="mce-grid" id="mce-grid">';
+        for (var i = 0; i < classes.length && i < CLASS_LIMIT; i++) {
+            gridHTML += buildCardHTML(classes[i]);
+        }
+        gridHTML += '</div>';
+
+        if (skeletonGrid) {
+            skeletonGrid.insertAdjacentHTML('afterend', gridHTML);
+            skeletonGrid.parentNode.removeChild(skeletonGrid);
+        } else if (ctaWrap) {
+            ctaWrap.insertAdjacentHTML('beforebegin', gridHTML);
+        }
+    }
+
+    /* ---- 섹션 숨김 (에러 시) ---- */
+    function hideSection() {
+        var section = document.getElementById('main-class-entry');
+        if (section) {
+            section.style.display = 'none';
+        }
+    }
+
+    /* ---- 데이터 로드 ---- */
+    function loadClasses() {
+        /* GAS URL이 설정되지 않았으면 섹션 미표시 */
+        if (!GAS_CLASS_URL) {
+            return;
+        }
+
+        /* 섹션 삽입 (스켈레톤 상태) */
+        var inserted = insertSection(buildSectionHTML(true));
+        if (!inserted) return;
+
+        /* 캐시 확인 */
+        var cached = getCachedData();
+        if (cached && cached.length > 0) {
+            renderCards(cached);
+            return;
+        }
+
+        /* GAS API 호출 */
+        var separator = GAS_CLASS_URL.indexOf('?') >= 0 ? '&' : '?';
+        var url = GAS_CLASS_URL + separator + 'action=getClasses&sort=popular&limit=' + CLASS_LIMIT + '&t=' + Date.now();
+
+        $.ajax({
+            url: url,
+            dataType: 'json',
+            cache: false,
+            timeout: 10000,
+            success: function(res) {
+                if (res && res.success && res.data && res.data.length > 0) {
+                    setCachedData(res.data);
+                    renderCards(res.data);
+                } else {
+                    /* 데이터 없으면 섹션 숨김 */
+                    hideSection();
+                }
+            },
+            error: function() {
+                /* API 오류 시 섹션 조용히 숨김 */
+                hideSection();
+            }
+        });
+    }
+
+    /* ---- Intersection Observer로 뷰포트 진입 시 로드 ---- */
+    function initClassSection() {
+        /* GAS URL 미설정 시 즉시 종료 */
+        if (!GAS_CLASS_URL) return;
+
+        /* YouTube 섹션 근처에 도달했을 때 로드 시작 (성능 최적화) */
+        if ('IntersectionObserver' in window) {
+            var trigger = document.querySelector('.youtube-section-v3') || document.getElementById('section04');
+            if (!trigger) {
+                /* 트리거 요소 없으면 바로 로드 */
+                loadClasses();
+                return;
+            }
+
+            var observer = new IntersectionObserver(function(entries) {
+                entries.forEach(function(entry) {
+                    if (entry.isIntersecting) {
+                        observer.disconnect();
+                        loadClasses();
+                    }
+                });
+            }, {
+                rootMargin: '200px 0px'
+            });
+            observer.observe(trigger);
+        } else {
+            /* IO 미지원 브라우저: 바로 로드 */
+            loadClasses();
+        }
+    }
+
+    /* ---- 초기화 ---- */
+    $(function() {
+        initClassSection();
+    });
+
+})();

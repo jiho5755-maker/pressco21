@@ -411,23 +411,21 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
 
 #### Phase 2-C: 자동화 + 파트너 시스템 (2~3주)
 
-- **Task 221: 결제 -> 정산 -> 이메일 자동화 GAS 파이프라인**
+- **Task 221: 결제 -> 정산 -> 이메일 자동화 GAS 파이프라인** - ✅ 코드 완료 (배포/테스트 대기)
   - See: `/tasks/221-payment-settlement-email-gas.md`
-  - 대상: `파트너클래스/class-platform-gas.gs` (확장)
+  - 대상: `파트너클래스/class-platform-gas.gs` (3,292줄 -> 4,279줄 확장)
   - 의존성: Task 202, Task 212
   - 규모: L
   - 에이전트: `주도` gas-backend-expert | `협업` ecommerce-business-expert, makeshop-planning-expert, brand-planning-expert
-  - 구현 사항:
-    - GAS 시간 트리거: 주기적 새 주문 감지 (10~15분 간격, 시간당 4~6회)
-    - 수강생 확인 이메일 (예약번호, 일정, 장소, 준비물)
-    - 파트너 예약 안내 이메일 (수강생 정보 - 개인정보 마스킹 010-****-1234)
-    - Sheets에 예약 기록 저장
-    - 수수료 계산 (매출 구간별 10%/12%/15%) + 적립금 전환 (100%/80%/60%)
-    - 적립금 API 호출 (`process_reserve`) + 실패 시 관리자 알림 + 수동 복구 프로세스
-    - D-3, D-1 리마인더 이메일 (수강생 + 파트너)
-    - 수강 완료 +7일: 후기 작성 유도 이메일
-    - 일일 이메일 발송 카운트 Sheets 기록 + 70건 도달 시 Workspace 전환 알림
-    - 일 1회 Sheets 잔액 vs 메이크샵 적립금 잔액 정합성 검증 배치
+  - 구현 완료:
+    - 정산 내역 시트 student_name(U), student_email(V), student_phone(W) 컬럼 추가
+    - `migrateSettlementHeaders()` 기존 시트 마이그레이션 함수 제공
+    - `sendReminderIfNeeded_()` 완성: 수강생 + 파트너 모두 D-3/D-1 리마인더 발송
+    - `sendReviewRequestEmail_()` 완성: 수강생 후기 요청 (500원+ 적립금 인센티브)
+    - `retryFailedSettlements()`: LockService + 5분 타임아웃 + 최대 5회 재시도
+    - Task 223 GAS 함수 통합: handlePartnerApply, handlePartnerApprove, triggerUpdatePartnerGrades
+    - 이메일 6종 카피라이팅: `docs/phase2/email-templates.md` 완성
+    - 완료 보고서: `docs/phase2/task221-completion-report.md`
   - 테스트 체크리스트:
     - 새 주문 감지 -> 이메일 발송 전체 파이프라인 E2E 테스트
     - 수수료 계산 정확도 검증 (각 매출 구간별)
@@ -458,17 +456,18 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
     - 대시보드 각 기능(강의관리, 예약현황, 수익리포트, 적립금) 동작 검증
     - 개인정보 마스킹 정상 표시 확인
 
-- **Task 223: 파트너 가입 및 인증 등급 시스템**
+- **Task 223: 파트너 가입 및 인증 등급 시스템** - ✅ 코드/문서 완료 (관리자 Forms 설정 대기)
   - See: `/tasks/223-partner-registration-grade.md`
-  - 대상: Google Forms + GAS + Sheets
+  - 대상: Google Forms + GAS + Sheets (GAS는 Task 221에 통합 구현)
   - 의존성: Task 201
   - 규모: S
   - 에이전트: `주도` ecommerce-business-expert, brand-planning-expert | `협업` gas-backend-expert
-  - 구현 사항:
-    - 파트너 신청 Google Forms (사업자등록증 + 포트폴리오 제출)
-    - 관리자 심사 -> 승인 -> 파트너 코드 자동 발급 (GAS)
-    - 인증 등급 체계: 실버(기본) / 골드(10건+, 4.0+) / 플래티넘(50건+, 4.5+)
-    - 파트너맵 배지 연동 (등급별 표시)
+  - 구현 완료:
+    - GAS `handlePartnerApply()` - 파트너 신청 접수 + 관리자 알림 (Task 221 통합)
+    - GAS `handlePartnerApprove()` - 승인 + 파트너 코드 발급 `PC_YYYYMM_NNN` 형식
+    - GAS `triggerUpdatePartnerGrades()` - 일 1회 등급 자동 업데이트
+    - 파트너 가입/등급 브랜드 가이드: `docs/phase2/partner-registration-guide.md`
+    - 파트너맵 배지 연동: SILVER/GOLD/PLATINUM 등급별 표시
     - 강의 등록 프로세스: Google Forms -> 관리자 검수 -> 승인 -> 플랫폼 자동 노출
 
 #### Phase 2-D: 교육 + 메인 연동 (1~1.5주)
@@ -485,9 +484,9 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
     - YouTube unlisted 영상 + Google Forms 퀴즈 -> 합격 시 인증서 발급 (GAS)
     - 교육 이수 상태 Sheets 기록 -> 등급 반영
 
-- **Task 232: 메인페이지에 클래스 플랫폼 진입점 추가**
+- **Task 232: 메인페이지에 클래스 플랫폼 진입점 추가** - ✅ 코드 완료 (GAS URL 설정 후 활성화)
   - See: `/tasks/232-mainpage-class-entry.md`
-  - 대상: `메인페이지/Index.html`, `메인페이지/css.css`, `메인페이지/js.js`
+  - 대상: `메인페이지/css.css`, `메인페이지/js.js` (Index.html 무수정)
   - 의존성: Task 211, Task 212
   - 규모: S
   - 에이전트: `주도` makeshop-ui-ux-expert | `협업` brand-planning-expert, seo-performance-expert
@@ -822,3 +821,6 @@ Phase 3
 | 2026-02-21 | 1.6 | Task 202 코드 완료 -- 클래스 상품 등록 가이드, 회원그룹 관리 가이드, GAS syncClassProducts_() 구현 |
 | 2026-02-21 | 1.7 | Task 211 코드 완료 -- 클래스 목록 페이지 3파일 생성, Critical 2건 수정 (SVG id 중복, querySelector 인젝션) |
 | 2026-02-21 | 1.8 | Task 212 코드 완료 -- 클래스 상세 페이지 3파일(265/1750/1419줄), GAS schedules/materials_price 추가, Critical 3건+Major 5건 수정 |
+| 2026-02-21 | 1.9 | Task 221 코드 완료 -- GAS 4,279줄(+946), 수강생 이메일 파이프라인 완성, retryFailedSettlements, 파트너 가입/승인/등급 함수 통합 |
+| 2026-02-21 | 2.0 | Task 223 코드/문서 완료 -- 파트너 가입/등급 브랜드 가이드, 이메일 6종 카피, GAS Task 221에 통합 |
+| 2026-02-21 | 2.1 | Task 232 코드 완료 -- 메인페이지 클래스 섹션 IIFE 추가 (js.js+css.css, Index.html 무수정), Critical 4건 수정 |

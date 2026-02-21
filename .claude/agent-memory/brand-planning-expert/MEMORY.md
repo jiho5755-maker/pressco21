@@ -24,9 +24,16 @@
 - **이메일 서명**: "PRESSCO21 드림"
 - **이메일 헤더**: PRESSCO21 + "Forever and ever and Blooming"
 
+- **Task 231 파트너 교육 아카데미**: `docs/phase2/partner-academy-guide.md` 완료
+  - 필수 교육 3모듈: 브랜드 스토리(7분), 안전 수칙(6분), 플랫폼 사용법(9분)
+  - YouTube 스크립트 3편 초안 (공통 인트로/아웃트로 포함)
+  - Google Forms 퀴즈 15문항 (모듈당 5문항, 4지선다, 70% 합격)
+  - 합격/불합격 이메일 HTML 2종 + 인증서 HTML 템플릿
+  - 선택 교육 6주제 목록 + 관리자 운영 가이드
+  - GAS 연동: handleEducationComplete, getEducationStatus (gas-backend-expert 구현 대기)
+
 ### 다음 작업
-- Task 231 (파트너 교육 아카데미): 커리큘럼 기획, 영상 스크립트, 퀴즈 설계
-- Task 232 (메인 진입점): CTA 카피, 배너 메시지
+- Task 232 (메인 진입점): CTA 카피, 배너 메시지 -- 이미 완료 상태 확인 필요
 
 ## 핵심 규칙
 - GAS에서 `${var}` 사용 금지 -> 문자열 연결로 대체

@@ -1,7 +1,7 @@
 /*
  * =============================================
  * PRESSCO21 파트너 클래스 플랫폼 - GAS 백엔드
- * Task 201 + Task 221 + Task 223: Phase 2 데이터 구조 + 정산/이메일 파이프라인 + 파트너 관리
+ * Task 201 + Task 221 + Task 223 + Task 231: Phase 2 데이터 구조 + 정산/이메일 파이프라인 + 파트너 관리 + 교육 아카데미
  * =============================================
  *
  * 역할:
@@ -22,6 +22,7 @@
  * - "이메일 발송 로그": 일일 이메일 카운트 및 이력
  * - "시스템 설정": 마지막 폴링 시각 등 런타임 설정
  * - "파트너 신청": 파트너 가입 신청 접수/심사 이력 (Task 223)
+ * - "후기": 수강 후기 (파트너 답변 포함, Task 222)
  *
  * 스크립트 속성 (PropertiesService):
  * - SHOPKEY: 메이크샵 API 상점키
@@ -71,7 +72,11 @@ var ERROR_CODES = {
   RESERVATION_FAILED: { code: 'RESERVATION_FAILED',  message: '예약 기록에 실패했습니다.' },
   RESERVE_API_FAILED: { code: 'RESERVE_API_FAILED',  message: '적립금 지급에 실패했습니다.' },
   MISSING_PARAMS:     { code: 'MISSING_PARAMS',      message: '필수 파라미터가 누락되었습니다.' },
-  INTERNAL_ERROR:     { code: 'INTERNAL_ERROR',      message: '내부 서버 오류가 발생했습니다.' }
+  INTERNAL_ERROR:     { code: 'INTERNAL_ERROR',      message: '내부 서버 오류가 발생했습니다.' },
+  REVIEW_NOT_FOUND:   { code: 'REVIEW_NOT_FOUND',    message: '해당 후기를 찾을 수 없습니다.' },
+  REVIEW_NOT_OWNED:   { code: 'REVIEW_NOT_OWNED',    message: '본인 소유의 클래스 후기만 답변할 수 있습니다.' },
+  INVALID_SCORE:      { code: 'INVALID_SCORE',       message: '점수가 유효하지 않습니다.' },
+  EDUCATION_SAVE_FAIL:{ code: 'EDUCATION_SAVE_FAIL', message: '교육 이수 정보 저장에 실패했습니다.' }
 };
 
 
@@ -89,6 +94,9 @@ var ERROR_CODES = {
  * - getPartnerDashboard: 파트너 대시보드 데이터 (인증 필수)
  * - getCategories: 카테고리 목록 (공개, 캐시 6시간)
  * - getPartnerApplicationStatus: 파트너 신청 상태 조회 (Task 223)
+ * - getPartnerBookings: 파트너 예약 현황 조회 (Task 222)
+ * - getPartnerReviews: 파트너 후기 목록 조회 (Task 222)
+ * - getEducationStatus: 교육 이수 상태 조회 (Task 231)
  * - health: 헬스 체크
  *
  * @param {Object} e - HTTP 요청 객체
@@ -124,6 +132,18 @@ function doGet(e) {
         result = handleGetPartnerApplicationStatus(e.parameter);
         break;
 
+      case 'getPartnerBookings':
+        result = handleGetPartnerBookings(e.parameter);
+        break;
+
+      case 'getPartnerReviews':
+        result = handleGetPartnerReviews(e.parameter);
+        break;
+
+      case 'getEducationStatus':
+        result = handleGetEducationStatus(e.parameter);
+        break;
+
       case 'health':
         result = { success: true, status: 'ok', timestamp: now_() };
         break;
@@ -149,6 +169,8 @@ function doGet(e) {
  * - clearCache: 캐시 전체 삭제 (관리자 토큰 필수)
  * - partnerApply: 파트너 신청 접수 (Task 223)
  * - partnerApprove: 파트너 승인 처리 (관리자 토큰 필수, Task 223)
+ * - replyToReview: 후기 답변 저장 (파트너 인증 필수, Task 222)
+ * - educationComplete: 교육 이수 완료 처리 (파트너 인증 필수, Task 231)
  *
  * @param {Object} e - HTTP 요청 객체
  * @return {TextOutput} JSON 응답
@@ -170,12 +192,25 @@ function doPost(e) {
       }
     }
 
-    // POST 본문 파싱 (JSON 또는 폼 데이터)
+    // POST 본문 파싱 (JSON, text/plain + JSON 본문, 또는 폼 데이터)
+    // 참고: CORS preflight 회피를 위해 text/plain으로 보내더라도
+    //       본문이 JSON이면 파싱해야 함 (파트너 대시보드 JS 패턴)
     var postData = {};
-    if (e.postData && e.postData.type === 'application/json') {
-      postData = JSON.parse(e.postData.contents);
-    } else if (e.postData) {
-      postData = e.parameter; // 폼 데이터는 parameter에 통합
+    if (e.postData && e.postData.contents) {
+      var contentType = (e.postData.type || '').toLowerCase();
+      if (contentType.indexOf('application/json') !== -1 || contentType.indexOf('text/plain') !== -1) {
+        try {
+          postData = JSON.parse(e.postData.contents);
+        } catch (parseErr) {
+          // JSON 파싱 실패 시 URL 파라미터 폴백
+          Logger.log('[doPost] JSON 파싱 실패, parameter 폴백: ' + parseErr.message);
+          postData = e.parameter || {};
+        }
+      } else {
+        postData = e.parameter || {}; // 폼 데이터는 parameter에 통합
+      }
+    } else if (e.parameter) {
+      postData = e.parameter;
     }
 
     switch (action) {
@@ -201,6 +236,14 @@ function doPost(e) {
 
       case 'partnerApprove':
         result = handlePartnerApprove(postData);
+        break;
+
+      case 'replyToReview':
+        result = handleReplyToReview(postData);
+        break;
+
+      case 'educationComplete':
+        result = handleEducationComplete(postData);
         break;
 
       default:
@@ -487,10 +530,8 @@ function handleGetPartnerAuth(params) {
     };
   }
 
-  if (partner.status !== 'active') {
-    return errorResult(ERROR_CODES.PARTNER_INACTIVE);
-  }
-
+  // pending/inactive 등 비활성 상태도 success: true로 반환하여
+  // 프론트엔드에서 상태별 안내 화면을 표시할 수 있도록 함
   return {
     success: true,
     data: {
@@ -2633,7 +2674,7 @@ function checkConfig() {
       var sheetNames = sheets.map(function(s) { return s.getName(); });
       Logger.log('[시트 목록] ' + sheetNames.join(', '));
 
-      var required = ['파트너 상세', '클래스 메타', '정산 내역', '주문 처리 로그', '이메일 발송 로그', '시스템 설정'];
+      var required = ['파트너 상세', '클래스 메타', '정산 내역', '주문 처리 로그', '이메일 발송 로그', '시스템 설정', '파트너 신청', '후기'];
       for (var i = 0; i < required.length; i++) {
         var exists = sheetNames.indexOf(required[i]) >= 0;
         Logger.log('[' + (exists ? 'OK' : '누락') + '] 시트: ' + required[i]);
@@ -2704,6 +2745,13 @@ function initSheets() {
     'application_id', 'member_id', 'applicant_name', 'workshop_name', 'email',
     'phone', 'location', 'specialty', 'portfolio_url', 'instagram_url',
     'introduction', 'status', 'applied_date', 'reviewed_date', 'reviewer_note'
+  ]);
+
+  // 후기 시트 (Task 222: 파트너 대시보드)
+  createSheetIfNotExists_(ss, '후기', [
+    'review_id', 'class_id', 'member_id', 'reviewer_name', 'rating',
+    'content', 'image_urls', 'created_at', 'partner_code',
+    'partner_answer', 'answer_at'
   ]);
 
   Logger.log('[초기화 완료] 모든 시트가 생성/확인되었습니다.');
@@ -4276,4 +4324,958 @@ function migrateSettlementHeaders() {
   } else {
     Logger.log('[마이그레이션] 이미 모든 컬럼이 존재합니다.');
   }
+}
+
+
+// =============================================
+// Task 222: 파트너 대시보드 API (예약 현황 / 후기 / 후기 답변)
+// =============================================
+
+/**
+ * 텍스트 정제 유틸리티
+ * 후기 답변 등 사용자 입력 텍스트에서 잠재적 위험 문자를 제거합니다.
+ * - 제어 문자 제거 (탭/개행 제외)
+ * - 길이 제한 적용
+ *
+ * @param {string} text - 정제할 텍스트
+ * @param {number} maxLength - 최대 길이 (기본 1000)
+ * @return {string} 정제된 텍스트
+ */
+function sanitizeText_(text, maxLength) {
+  if (!text) return '';
+  maxLength = maxLength || 1000;
+
+  // 제어 문자 제거 (탭 \t, 개행 \n, 캐리지리턴 \r은 허용)
+  var cleaned = String(text).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F\x7F]/g, '');
+
+  // 양쪽 공백 제거 후 길이 제한
+  return cleaned.trim().substring(0, maxLength);
+}
+
+/**
+ * 이메일 마스킹 (대시보드 API 전용)
+ * "user@gmail.com" -> "use***@gmail.com"
+ * 기존 maskEmail_()은 첫 1자만 보여주지만, 요구사항에 따라 앞 3자 표시
+ *
+ * @param {string} email - 이메일
+ * @return {string} 마스킹된 이메일
+ */
+function maskEmailForDashboard_(email) {
+  if (!email || email.indexOf('@') === -1) return email || '';
+  var parts = email.split('@');
+  var local = parts[0];
+  var domain = parts[1];
+
+  if (local.length <= 3) return local + '***@' + domain;
+  return local.substring(0, 3) + '***@' + domain;
+}
+
+/**
+ * 날짜 문자열 유효성 검증 (YYYY-MM-DD 형식)
+ *
+ * @param {string} dateStr - 검증할 날짜 문자열
+ * @return {boolean} 유효 여부
+ */
+function isValidDateStr_(dateStr) {
+  if (!dateStr) return false;
+  return /^\d{4}-\d{2}-\d{2}$/.test(dateStr);
+}
+
+/**
+ * GET action=getPartnerBookings
+ * 파트너의 예약 현황 조회
+ *
+ * 파라미터:
+ * - member_id (필수): 파트너 회원 ID
+ * - class_id (선택): 특정 클래스 필터
+ * - date_from (선택): 기간 시작일 (YYYY-MM-DD)
+ * - date_to (선택): 기간 종료일 (YYYY-MM-DD)
+ * - page (선택, 기본 1): 페이지 번호
+ * - limit (선택, 기본 20): 페이지당 건수 (최대 50)
+ *
+ * @param {Object} params - URL 파라미터
+ * @return {Object} 예약 현황 응답
+ */
+function handleGetPartnerBookings(params) {
+  var memberId = (params.member_id || '').trim();
+
+  if (!memberId) {
+    return errorResult(ERROR_CODES.NOT_LOGGED_IN);
+  }
+
+  // 파트너 인증
+  var partner = findPartnerByMemberId_(memberId);
+  if (!partner) {
+    return errorResult(ERROR_CODES.NOT_PARTNER);
+  }
+  if (partner.status !== 'active') {
+    return errorResult(ERROR_CODES.PARTNER_INACTIVE);
+  }
+
+  var partnerCode = partner.partner_code;
+  var filterClassId = (params.class_id || '').trim();
+  var dateFrom = (params.date_from || '').trim();
+  var dateTo = (params.date_to || '').trim();
+  var page = parseInt(params.page) || 1;
+  var limit = Math.min(parseInt(params.limit) || 20, 50);
+
+  // 날짜 파라미터 유효성 검증
+  if (dateFrom && !isValidDateStr_(dateFrom)) {
+    return errorResult(ERROR_CODES.MISSING_PARAMS, 'date_from은 YYYY-MM-DD 형식이어야 합니다.');
+  }
+  if (dateTo && !isValidDateStr_(dateTo)) {
+    return errorResult(ERROR_CODES.MISSING_PARAMS, 'date_to은 YYYY-MM-DD 형식이어야 합니다.');
+  }
+
+  // 정산 내역 시트에서 해당 파트너 데이터 조회
+  var sheet = getSheet_('정산 내역');
+  if (!sheet) {
+    return errorResult(ERROR_CODES.INTERNAL_ERROR, '"정산 내역" 시트를 찾을 수 없습니다.');
+  }
+
+  var data = sheet.getDataRange().getValues();
+  var headers = data[0];
+  var codeIdx = headers.indexOf('partner_code');
+
+  // 클래스 이름 캐시 (class_id -> class_name 매핑)
+  var classNameCache = {};
+
+  var bookings = [];
+  var totalCount = 0;
+  var completedCount = 0;
+  var pendingCount = 0;
+
+  for (var i = 1; i < data.length; i++) {
+    if (String(data[i][codeIdx]).trim() !== partnerCode) continue;
+
+    var row = rowToObject_(headers, data[i]);
+
+    // class_id 필터
+    if (filterClassId && row.class_id !== filterClassId) continue;
+
+    // 기간 필터 (class_date 또는 created_date 기준)
+    var bookingDate = String(row.class_date || row.created_date || '').substring(0, 10);
+
+    if (dateFrom && bookingDate < dateFrom) continue;
+    if (dateTo && bookingDate > dateTo) continue;
+
+    // 집계 (페이징 전에 전체 카운트)
+    totalCount++;
+    var status = String(row.status || '').toUpperCase();
+    if (status === 'COMPLETED') {
+      completedCount++;
+    } else if (status === 'PENDING' || status === 'PROCESSING') {
+      pendingCount++;
+    }
+
+    // 클래스명 조회 (캐시 활용)
+    var className = '';
+    if (row.class_id) {
+      if (classNameCache[row.class_id] === undefined) {
+        var classData = findClassById_(row.class_id);
+        classNameCache[row.class_id] = classData ? classData.class_name : '';
+      }
+      className = classNameCache[row.class_id];
+    }
+
+    // 수강생 연락처 마스킹
+    var maskedName = maskName_(String(row.student_name || ''));
+    var maskedEmail = maskEmailForDashboard_(String(row.student_email || ''));
+    var maskedPhone = maskPhone_(String(row.student_phone || ''));
+
+    bookings.push({
+      settlement_id: row.settlement_id,
+      order_id: row.order_id,
+      class_id: row.class_id,
+      class_name: className,
+      booking_date: bookingDate,
+      schedule_date: String(row.class_date || '').substring(0, 10),
+      student_name_masked: maskedName,
+      student_email_masked: maskedEmail,
+      student_phone_masked: maskedPhone,
+      student_count: Number(row.student_count) || 1,
+      order_amount: Number(row.order_amount) || 0,
+      commission_amount: Number(row.commission_amount) || 0,
+      reserve_amount: Number(row.reserve_amount) || 0,
+      status: status,
+      created_date: String(row.created_date || '')
+    });
+  }
+
+  // 최신순 정렬 (created_date 내림차순)
+  bookings.sort(function(a, b) {
+    if (a.created_date > b.created_date) return -1;
+    if (a.created_date < b.created_date) return 1;
+    return 0;
+  });
+
+  // 페이징
+  var totalPages = Math.ceil(totalCount / limit);
+  var startIdx = (page - 1) * limit;
+  var pagedBookings = bookings.slice(startIdx, startIdx + limit);
+
+  return {
+    success: true,
+    data: {
+      bookings: pagedBookings,
+      summary: {
+        total_count: totalCount,
+        completed_count: completedCount,
+        pending_count: pendingCount,
+        failed_count: totalCount - completedCount - pendingCount
+      },
+      pagination: {
+        page: page,
+        limit: limit,
+        total_count: totalCount,
+        total_pages: totalPages
+      }
+    },
+    timestamp: now_()
+  };
+}
+
+/**
+ * GET action=getPartnerReviews
+ * 파트너의 후기 목록 조회
+ *
+ * 파라미터:
+ * - member_id (필수): 파트너 회원 ID
+ * - class_id (선택): 특정 클래스 필터
+ * - page (선택, 기본 1): 페이지 번호
+ * - limit (선택, 기본 10): 페이지당 건수 (최대 50)
+ *
+ * "후기" 시트 스키마:
+ * review_id | class_id | member_id | reviewer_name | rating | content |
+ * image_urls | created_at | partner_code | partner_answer | answer_at
+ *
+ * @param {Object} params - URL 파라미터
+ * @return {Object} 후기 목록 응답
+ */
+function handleGetPartnerReviews(params) {
+  var memberId = (params.member_id || '').trim();
+
+  if (!memberId) {
+    return errorResult(ERROR_CODES.NOT_LOGGED_IN);
+  }
+
+  // 파트너 인증
+  var partner = findPartnerByMemberId_(memberId);
+  if (!partner) {
+    return errorResult(ERROR_CODES.NOT_PARTNER);
+  }
+  if (partner.status !== 'active') {
+    return errorResult(ERROR_CODES.PARTNER_INACTIVE);
+  }
+
+  var partnerCode = partner.partner_code;
+  var filterClassId = (params.class_id || '').trim();
+  var page = parseInt(params.page) || 1;
+  var limit = Math.min(parseInt(params.limit) || 10, 50);
+
+  // "후기" 시트 조회 -- 시트가 없으면 빈 배열 반환 (에러 없이)
+  var sheet = getSheet_('후기');
+  if (!sheet) {
+    Logger.log('[후기 조회] "후기" 시트가 없습니다. 빈 배열 반환');
+    return {
+      success: true,
+      data: {
+        reviews: [],
+        summary: {
+          total_count: 0,
+          avg_rating: 0,
+          rating_distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+          answered_count: 0,
+          unanswered_count: 0
+        },
+        pagination: {
+          page: page,
+          limit: limit,
+          total_count: 0,
+          total_pages: 0
+        }
+      },
+      timestamp: now_()
+    };
+  }
+
+  var data = sheet.getDataRange().getValues();
+  if (data.length <= 1) {
+    // 헤더만 있고 데이터 없음
+    return {
+      success: true,
+      data: {
+        reviews: [],
+        summary: {
+          total_count: 0,
+          avg_rating: 0,
+          rating_distribution: { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 },
+          answered_count: 0,
+          unanswered_count: 0
+        },
+        pagination: {
+          page: page,
+          limit: limit,
+          total_count: 0,
+          total_pages: 0
+        }
+      },
+      timestamp: now_()
+    };
+  }
+
+  var headers = data[0];
+
+  // partner_code 컬럼이 있으면 직접 필터, 없으면 class_id 기반으로 소유 확인
+  var partnerCodeIdx = headers.indexOf('partner_code');
+  var classIdIdx = headers.indexOf('class_id');
+
+  // 파트너의 클래스 ID 집합 (partner_code 컬럼이 없을 때 대비)
+  var partnerClassIds = null;
+  if (partnerCodeIdx === -1) {
+    partnerClassIds = {};
+    var myClasses = getClassesByPartner_(partnerCode);
+    for (var c = 0; c < myClasses.length; c++) {
+      partnerClassIds[myClasses[c].class_id] = true;
+    }
+  }
+
+  // 클래스 이름 캐시
+  var classNameCache = {};
+
+  var reviews = [];
+  var totalRating = 0;
+  var ratingDist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
+  var answeredCount = 0;
+  var unansweredCount = 0;
+
+  for (var i = 1; i < data.length; i++) {
+    var row = rowToObject_(headers, data[i]);
+
+    // 파트너 소유 필터
+    if (partnerCodeIdx !== -1) {
+      // partner_code 컬럼이 있는 경우 직접 비교
+      if (String(row.partner_code || '').trim() !== partnerCode) continue;
+    } else {
+      // partner_code 없으면 class_id로 소유 확인
+      if (!partnerClassIds[String(row.class_id || '').trim()]) continue;
+    }
+
+    // class_id 필터
+    if (filterClassId && String(row.class_id || '').trim() !== filterClassId) continue;
+
+    var rating = Number(row.rating) || 0;
+
+    // 집계 (페이징 전 전체)
+    totalRating += rating;
+    if (rating >= 1 && rating <= 5) {
+      ratingDist[rating] = (ratingDist[rating] || 0) + 1;
+    }
+
+    var hasAnswer = String(row.partner_answer || '').trim().length > 0;
+    if (hasAnswer) {
+      answeredCount++;
+    } else {
+      unansweredCount++;
+    }
+
+    // 클래스명 조회 (캐시)
+    var classIdVal = String(row.class_id || '').trim();
+    if (classIdVal && classNameCache[classIdVal] === undefined) {
+      var classInfo = findClassById_(classIdVal);
+      classNameCache[classIdVal] = classInfo ? classInfo.class_name : '';
+    }
+
+    // 리뷰어 이름 마스킹
+    var maskedReviewerName = maskName_(String(row.reviewer_name || ''));
+
+    reviews.push({
+      review_id: String(row.review_id || ''),
+      class_id: classIdVal,
+      class_name: classNameCache[classIdVal] || '',
+      reviewer_name_masked: maskedReviewerName,
+      rating: rating,
+      content: String(row.content || ''),
+      image_urls: String(row.image_urls || ''),
+      created_at: String(row.created_at || ''),
+      partner_answer: String(row.partner_answer || ''),
+      answer_at: String(row.answer_at || ''),
+      has_answer: hasAnswer
+    });
+  }
+
+  // 최신순 정렬 (created_at 내림차순)
+  reviews.sort(function(a, b) {
+    if (a.created_at > b.created_at) return -1;
+    if (a.created_at < b.created_at) return 1;
+    return 0;
+  });
+
+  // 페이징
+  var totalCount = reviews.length;
+  var totalPages = Math.ceil(totalCount / limit);
+  var startIdx = (page - 1) * limit;
+  var pagedReviews = reviews.slice(startIdx, startIdx + limit);
+
+  // 평균 별점 (소수점 1자리)
+  var avgRating = totalCount > 0 ? Math.round((totalRating / totalCount) * 10) / 10 : 0;
+
+  return {
+    success: true,
+    data: {
+      reviews: pagedReviews,
+      summary: {
+        total_count: totalCount,
+        avg_rating: avgRating,
+        rating_distribution: ratingDist,
+        answered_count: answeredCount,
+        unanswered_count: unansweredCount
+      },
+      pagination: {
+        page: page,
+        limit: limit,
+        total_count: totalCount,
+        total_pages: totalPages
+      }
+    },
+    timestamp: now_()
+  };
+}
+
+/**
+ * POST action=replyToReview
+ * 후기에 파트너 답변 저장
+ *
+ * 파라미터:
+ * - member_id (필수): 파트너 회원 ID
+ * - review_id (필수): 후기 ID
+ * - answer (필수): 답변 내용
+ *
+ * 보안:
+ * - 파트너 인증 필수
+ * - review_id의 class_id가 파트너 소유인지 검증 (교차 접근 방지)
+ * - 답변 내용 sanitizeText_ + escapeHtml_ 적용
+ * - LockService 사용 (동시 업데이트 방지)
+ *
+ * @param {Object} data - POST 본문 데이터
+ * @return {Object} 답변 저장 결과
+ */
+function handleReplyToReview(data) {
+  var memberId = (data.member_id || '').trim();
+  var reviewId = (data.review_id || '').trim();
+  var answerRaw = (data.answer || '').trim();
+
+  // 필수 파라미터 검증
+  if (!memberId) return errorResult(ERROR_CODES.NOT_LOGGED_IN);
+  if (!reviewId) return errorResult(ERROR_CODES.MISSING_PARAMS, 'review_id 파라미터가 필요합니다.');
+  if (!answerRaw) return errorResult(ERROR_CODES.MISSING_PARAMS, 'answer 파라미터가 필요합니다.');
+
+  // 파트너 인증
+  var partner = findPartnerByMemberId_(memberId);
+  if (!partner) return errorResult(ERROR_CODES.NOT_PARTNER);
+  if (partner.status !== 'active') return errorResult(ERROR_CODES.PARTNER_INACTIVE);
+
+  var partnerCode = partner.partner_code;
+
+  // 답변 텍스트 정제 (XSS 방지 + 길이 제한)
+  var answerText = sanitizeText_(answerRaw, 1000);
+  if (!answerText) {
+    return errorResult(ERROR_CODES.MISSING_PARAMS, '유효한 답변 내용이 필요합니다.');
+  }
+
+  // "후기" 시트 확인
+  var sheet = getSheet_('후기');
+  if (!sheet) {
+    return errorResult(ERROR_CODES.REVIEW_NOT_FOUND, '"후기" 시트를 찾을 수 없습니다.');
+  }
+
+  // LockService -- 동시 업데이트 방지
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+  } catch (e) {
+    return errorResult(ERROR_CODES.LOCK_TIMEOUT);
+  }
+
+  try {
+    var sheetData = sheet.getDataRange().getValues();
+    var headers = sheetData[0];
+    var reviewIdIdx = headers.indexOf('review_id');
+    var classIdIdx = headers.indexOf('class_id');
+    var partnerCodeIdx = headers.indexOf('partner_code');
+    var answerIdx = headers.indexOf('partner_answer');
+    var answerAtIdx = headers.indexOf('answer_at');
+
+    if (reviewIdIdx === -1) {
+      return errorResult(ERROR_CODES.INTERNAL_ERROR, '"후기" 시트에 review_id 컬럼이 없습니다.');
+    }
+
+    // review_id로 해당 후기 찾기
+    var targetRowNum = -1;
+    var targetRow = null;
+
+    for (var i = 1; i < sheetData.length; i++) {
+      if (String(sheetData[i][reviewIdIdx]).trim() === reviewId) {
+        targetRowNum = i + 1; // 시트 행 번호 (1-based)
+        targetRow = rowToObject_(headers, sheetData[i]);
+        break;
+      }
+    }
+
+    if (!targetRow) {
+      return errorResult(ERROR_CODES.REVIEW_NOT_FOUND);
+    }
+
+    // 해당 class_id가 파트너 소유인지 검증 (교차 접근 방지)
+    var reviewClassId = String(targetRow.class_id || '').trim();
+
+    // 방법 1: partner_code 컬럼이 있으면 직접 비교
+    if (partnerCodeIdx !== -1 && String(targetRow.partner_code || '').trim()) {
+      if (String(targetRow.partner_code).trim() !== partnerCode) {
+        return errorResult(ERROR_CODES.REVIEW_NOT_OWNED);
+      }
+    } else {
+      // 방법 2: class_id로 클래스 조회하여 partner_code 비교
+      if (reviewClassId) {
+        var classData = findClassById_(reviewClassId);
+        if (!classData || classData.partner_code !== partnerCode) {
+          return errorResult(ERROR_CODES.REVIEW_NOT_OWNED);
+        }
+      } else {
+        return errorResult(ERROR_CODES.REVIEW_NOT_OWNED, '후기에 class_id가 없어 소유 확인이 불가합니다.');
+      }
+    }
+
+    // 답변 저장 (partner_answer, answer_at 업데이트)
+    var nowStr = now_();
+
+    if (answerIdx !== -1) {
+      sheet.getRange(targetRowNum, answerIdx + 1).setValue(answerText);
+    }
+    if (answerAtIdx !== -1) {
+      sheet.getRange(targetRowNum, answerAtIdx + 1).setValue(nowStr);
+    }
+
+    SpreadsheetApp.flush();
+
+    Logger.log('[후기 답변] review_id=' + reviewId + ', partner_code=' + partnerCode);
+
+    return {
+      success: true,
+      data: {
+        review_id: reviewId,
+        class_id: reviewClassId,
+        answer: answerText,
+        answer_at: nowStr,
+        message: '후기 답변이 저장되었습니다.'
+      },
+      timestamp: now_()
+    };
+
+  } catch (err) {
+    logError_('handleReplyToReview', reviewId, err);
+    return errorResult(ERROR_CODES.INTERNAL_ERROR, err.message);
+  } finally {
+    lock.releaseLock();
+  }
+}
+
+
+// =============================================
+// 12. 교육 아카데미 (Task 231)
+// =============================================
+
+/**
+ * 교육 이수 상태 조회 (GET)
+ * - 파트너 여부 + 교육 이수 상태 + 점수 + 이수일 반환
+ * - 파트너가 아닌 경우에도 에러가 아닌 정상 응답 (is_partner: false)
+ * - education_date, education_score 컬럼이 없어도 null로 안전 반환
+ *
+ * @param {Object} params - URL 파라미터 (member_id 필수)
+ * @return {Object} 교육 이수 상태 응답
+ */
+function handleGetEducationStatus(params) {
+  var memberId = (params.member_id || '').trim();
+
+  if (!memberId) {
+    return errorResult(ERROR_CODES.NOT_LOGGED_IN);
+  }
+
+  // 파트너 조회
+  var partner = findPartnerByMemberId_(memberId);
+
+  // 파트너가 아닌 경우 -- 에러가 아닌 정상 응답
+  if (!partner) {
+    return {
+      success: true,
+      data: {
+        is_partner: false,
+        member_id: memberId
+      },
+      timestamp: now_()
+    };
+  }
+
+  // education_completed 값 정규화 (TRUE/true/Y -> 'Y', 나머지 -> 'N')
+  var eduCompleted = 'N';
+  var rawCompleted = partner.education_completed;
+  if (rawCompleted === 'TRUE' || rawCompleted === true || rawCompleted === 'Y') {
+    eduCompleted = 'Y';
+  }
+
+  // education_date, education_score 컬럼이 없으면 undefined -> null 처리
+  var eduDate = partner.education_date || null;
+  var eduScore = partner.education_score;
+  // 숫자로 변환 가능하면 변환, 아니면 null
+  eduScore = (eduScore !== undefined && eduScore !== '' && eduScore !== null)
+    ? Number(eduScore)
+    : null;
+  // NaN 가드
+  if (eduScore !== null && isNaN(eduScore)) {
+    eduScore = null;
+  }
+
+  return {
+    success: true,
+    data: {
+      is_partner: true,
+      partner_code: partner.partner_code,
+      education_completed: eduCompleted,
+      education_date: eduDate ? String(eduDate) : null,
+      education_score: eduScore
+    },
+    timestamp: now_()
+  };
+}
+
+
+/**
+ * 교육 이수 완료 처리 (POST)
+ * - 파트너 인증 -> 점수 유효성 검증 -> 합격/불합격 판정
+ * - LockService 내부에서 Sheets 업데이트 (education_completed, education_date, education_score)
+ * - education_date, education_score 컬럼이 없으면 자동 추가 (멱등)
+ * - 합격 시 인증서 이메일, 불합격 시 재응시 안내 이메일 발송
+ *
+ * @param {Object} data - POST 본문 (member_id, score, total, pass_threshold)
+ * @return {Object} 처리 결과 응답
+ */
+function handleEducationComplete(data) {
+  var memberId = (data.member_id || '').trim();
+  var score = data.score;
+  var total = data.total;
+
+  // 합격 기준점은 서버에서 고정 관리 (클라이언트 조작 방지)
+  // 15문항 중 11문항 이상 정답 (73%) 기준
+  var PASS_THRESHOLD = 11;
+  var TOTAL_QUESTIONS = 15;
+
+  // 1. 필수 파라미터 검증
+  if (!memberId) {
+    return errorResult(ERROR_CODES.NOT_LOGGED_IN);
+  }
+
+  // 점수 파라미터를 숫자로 변환
+  score = Number(score);
+  total = Number(total);
+
+  // 2. 점수 유효성 검증
+  if (isNaN(score) || isNaN(total)) {
+    return errorResult(ERROR_CODES.INVALID_SCORE, 'score, total은 숫자여야 합니다.');
+  }
+  if (total !== TOTAL_QUESTIONS) {
+    return errorResult(ERROR_CODES.INVALID_SCORE, 'total은 ' + TOTAL_QUESTIONS + '이어야 합니다.');
+  }
+  if (score < 0 || score > TOTAL_QUESTIONS || score !== Math.floor(score)) {
+    return errorResult(ERROR_CODES.INVALID_SCORE, 'score는 0~' + TOTAL_QUESTIONS + ' 사이의 정수여야 합니다.');
+  }
+
+  // 3. 파트너 인증
+  var partner = findPartnerByMemberId_(memberId);
+  if (!partner) {
+    return errorResult(ERROR_CODES.NOT_PARTNER);
+  }
+  if (partner.status !== 'active') {
+    return errorResult(ERROR_CODES.PARTNER_INACTIVE);
+  }
+
+  // 4. 합격 여부 판단 (서버 고정 기준: PASS_THRESHOLD)
+  var passed = score >= PASS_THRESHOLD;
+  var completedValue = passed ? 'Y' : 'N';
+
+  // 5. LockService 내부에서 Sheets 업데이트
+  var lock = LockService.getScriptLock();
+  try {
+    lock.waitLock(10000);
+
+    var sheet = getSheet_('파트너 상세');
+    if (!sheet) {
+      return errorResult(ERROR_CODES.EDUCATION_SAVE_FAIL, '"파트너 상세" 시트를 찾을 수 없습니다.');
+    }
+
+    var allData = sheet.getDataRange().getValues();
+    var headers = allData[0];
+    var memberIdIdx = headers.indexOf('member_id');
+    var eduCompletedIdx = headers.indexOf('education_completed');
+
+    // education_date 컬럼 찾기 (없으면 자동 추가)
+    var eduDateIdx = headers.indexOf('education_date');
+    if (eduDateIdx === -1) {
+      // 마지막 컬럼 뒤에 추가
+      eduDateIdx = headers.length;
+      sheet.getRange(1, eduDateIdx + 1).setValue('education_date');
+      Logger.log('[교육] education_date 컬럼 추가 (인덱스: ' + eduDateIdx + ')');
+    }
+
+    // education_score 컬럼 찾기 (없으면 자동 추가)
+    var eduScoreIdx = headers.indexOf('education_score');
+    if (eduScoreIdx === -1) {
+      // education_date 뒤에 추가 (헤더 재로드 필요 없이 인덱스 계산)
+      // education_date를 방금 추가했을 수 있으므로 현재 시트 상태 기준으로
+      var currentLastCol = sheet.getLastColumn();
+      eduScoreIdx = currentLastCol; // 0-based: 실제 열 번호는 currentLastCol + 1
+      sheet.getRange(1, eduScoreIdx + 1).setValue('education_score');
+      Logger.log('[교육] education_score 컬럼 추가 (인덱스: ' + eduScoreIdx + ')');
+    }
+
+    // 파트너 행 찾기 (Lock 내부에서 재검색 -- TOCTOU 방지)
+    var targetRow = -1;
+    for (var i = 1; i < allData.length; i++) {
+      if (String(allData[i][memberIdIdx]).trim() === memberId) {
+        targetRow = i + 1; // 시트 행 번호 (1-based)
+        break;
+      }
+    }
+
+    if (targetRow === -1) {
+      return errorResult(ERROR_CODES.NOT_PARTNER, 'Lock 내부에서 파트너를 찾을 수 없습니다.');
+    }
+
+    // education_completed 업데이트
+    if (eduCompletedIdx !== -1) {
+      sheet.getRange(targetRow, eduCompletedIdx + 1).setValue(completedValue);
+    }
+
+    // education_date 업데이트 (오늘 날짜)
+    var todayStr = formatDateOnly_(new Date());
+    sheet.getRange(targetRow, eduDateIdx + 1).setValue(todayStr);
+
+    // education_score 업데이트
+    sheet.getRange(targetRow, eduScoreIdx + 1).setValue(score);
+
+    SpreadsheetApp.flush();
+
+    Logger.log('[교육 이수] member_id=' + memberId + ', score=' + score + '/' + total
+      + ', passed=' + passed);
+
+  } catch (err) {
+    logError_('handleEducationComplete', memberId, err);
+
+    // LockService 타임아웃 판별
+    if (err.message && err.message.indexOf('Lock timeout') !== -1) {
+      return errorResult(ERROR_CODES.LOCK_TIMEOUT);
+    }
+    return errorResult(ERROR_CODES.EDUCATION_SAVE_FAIL, err.message);
+  } finally {
+    lock.releaseLock();
+  }
+
+  // 6. 이메일 발송 (Lock 해제 후 -- 발송 실패가 데이터 저장에 영향 주지 않도록)
+  try {
+    if (passed) {
+      sendCertificateEmail_(partner, score);
+    } else {
+      sendRetryEmail_(partner, score);
+    }
+  } catch (emailErr) {
+    // 이메일 발송 실패는 로깅만 (교육 이수 저장은 이미 완료)
+    Logger.log('[교육 이메일 발송 실패] member_id=' + memberId + ': ' + emailErr.message);
+  }
+
+  // 7. 결과 반환
+  var resultMessage = passed
+    ? '교육 이수가 완료되었습니다.'
+    : '아쉽게도 합격 기준에 미달했습니다. 다시 도전해 보세요!';
+
+  return {
+    success: true,
+    data: {
+      passed: passed,
+      score: score,
+      total: total,
+      message: resultMessage
+    },
+    timestamp: now_()
+  };
+}
+
+
+/**
+ * 합격 인증서 이메일 발송 (내부 함수)
+ * - PRESSCO21 브랜드 골드/아이보리/브라운 색상 인증서
+ * - escapeHtml_ 로 동적값 XSS 방지
+ *
+ * @param {Object} partner - 파트너 데이터 객체
+ * @param {number} score - 맞은 문항 수 (15문항 중)
+ */
+function sendCertificateEmail_(partner, score) {
+  var email = partner.email || '';
+  if (!email) {
+    Logger.log('[인증서 이메일 스킵] 이메일 없음: partner_code=' + partner.partner_code);
+    return;
+  }
+
+  var partnerName = escapeHtml_(partner.partner_name || '파트너');
+  var todayStr = formatDateOnly_(new Date());
+  var escapedToday = escapeHtml_(todayStr);
+  var escapedScore = escapeHtml_(String(score));
+  var escapedPartnerCode = escapeHtml_(partner.partner_code || '');
+
+  var subject = '[PRESSCO21] 파트너 아카데미 수료 축하합니다 - ' + (partner.partner_name || '파트너') + '님';
+
+  var body = '<div style="font-family: \'Noto Sans KR\', sans-serif; max-width: 600px; margin: 0 auto; padding: 0; background: #f8f6f0;">'
+
+    // 헤더
+    + '<div style="background: #3d2c1e; padding: 24px; text-align: center;">'
+    + '<span style="font-size: 24px; color: #b89b5e; font-weight: bold; letter-spacing: 2px;">PRESSCO21</span>'
+    + '</div>'
+
+    // 축하 메시지
+    + '<div style="padding: 32px 24px 16px; text-align: center;">'
+    + '<div style="font-size: 32px; margin-bottom: 8px;">&#127891;</div>'
+    + '<h2 style="color: #3d2c1e; margin: 0 0 8px; font-size: 20px;">'
+    + '파트너 아카데미 수료를 축하합니다!</h2>'
+    + '<p style="color: #666; margin: 0; font-size: 14px;">'
+    + partnerName + '님의 노력과 열정에 박수를 보냅니다.</p>'
+    + '</div>'
+
+    // 인증서 박스
+    + '<div style="margin: 16px 24px; padding: 32px 24px; background: #ffffff; border: 2px solid #b89b5e; text-align: center;">'
+    + '<div style="font-size: 14px; color: #b89b5e; letter-spacing: 4px; margin-bottom: 16px;">CERTIFICATE</div>'
+    + '<div style="width: 60px; height: 1px; background: #b89b5e; margin: 0 auto 16px;"></div>'
+    + '<p style="color: #3d2c1e; font-size: 16px; line-height: 1.8; margin: 0 0 16px;">'
+    + '<strong>' + partnerName + '</strong> 님은<br>'
+    + 'PRESSCO21 파트너 아카데미<br>'
+    + '필수 교육을 이수하였음을 인증합니다.</p>'
+    + '<div style="width: 60px; height: 1px; background: #b89b5e; margin: 0 auto 16px;"></div>'
+
+    // 점수 표시
+    + '<table style="margin: 0 auto; border-collapse: collapse;">'
+    + '<tr><td style="padding: 8px 16px; color: #888; font-size: 13px; text-align: right;">시험 결과</td>'
+    + '<td style="padding: 8px 16px; color: #3d2c1e; font-size: 15px; font-weight: bold;">15문항 중 ' + escapedScore + '문항 정답</td></tr>'
+    + '<tr><td style="padding: 8px 16px; color: #888; font-size: 13px; text-align: right;">이수일</td>'
+    + '<td style="padding: 8px 16px; color: #3d2c1e; font-size: 15px; font-weight: bold;">' + escapedToday + '</td></tr>'
+    + '<tr><td style="padding: 8px 16px; color: #888; font-size: 13px; text-align: right;">파트너 코드</td>'
+    + '<td style="padding: 8px 16px; color: #3d2c1e; font-size: 15px; font-weight: bold;">' + escapedPartnerCode + '</td></tr>'
+    + '</table>'
+
+    + '<div style="margin-top: 24px; color: #b89b5e; font-size: 20px; font-weight: bold; letter-spacing: 2px;">PRESSCO21</div>'
+    + '<div style="color: #888; font-size: 12px; margin-top: 4px;">30년 전통 압화/보존화 전문</div>'
+    + '</div>'
+
+    // 다음 단계 안내
+    + '<div style="padding: 16px 24px 8px;">'
+    + '<div style="background: #ffffff; padding: 16px; border-radius: 4px;">'
+    + '<p style="margin: 0 0 8px; font-weight: bold; color: #3d2c1e; font-size: 15px;">다음 단계</p>'
+    + '<ol style="margin: 0; padding-left: 20px; color: #555; font-size: 14px; line-height: 2;">'
+    + '<li>파트너 대시보드에서 프로필을 완성해 주세요.</li>'
+    + '<li>클래스 커리큘럼을 준비하여 등록 요청을 보내 주세요.</li>'
+    + '<li>승인 후 자동으로 클래스 판매가 시작됩니다.</li>'
+    + '</ol></div></div>'
+
+    // CTA 버튼
+    + '<div style="padding: 16px 24px 32px; text-align: center;">'
+    + '<a href="#" style="display: inline-block; background: #b89b5e; color: #ffffff; padding: 14px 36px; '
+    + 'text-decoration: none; font-size: 15px; font-weight: bold; letter-spacing: 1px;">강의 등록 신청하기</a>'
+    + '</div>'
+
+    // 푸터
+    + '<div style="background: #3d2c1e; padding: 16px 24px; text-align: center;">'
+    + '<p style="margin: 0; color: #b89b5e; font-size: 12px;">PRESSCO21 | foreverlove.co.kr</p>'
+    + '<p style="margin: 4px 0 0; color: #888; font-size: 11px;">문의: foreverloveflower@naver.com</p>'
+    + '</div>'
+
+    + '</div>';
+
+  sendEmailWithTracking_(email, subject, body, 'EDUCATION_CERTIFICATE');
+}
+
+
+/**
+ * 불합격 재응시 안내 이메일 발송 (내부 함수)
+ * - 격려 톤의 재응시 안내
+ * - 합격 기준 및 퀴즈 링크 포함
+ *
+ * @param {Object} partner - 파트너 데이터 객체
+ * @param {number} score - 맞은 문항 수 (15문항 중)
+ */
+function sendRetryEmail_(partner, score) {
+  var email = partner.email || '';
+  if (!email) {
+    Logger.log('[재응시 이메일 스킵] 이메일 없음: partner_code=' + partner.partner_code);
+    return;
+  }
+
+  var partnerName = escapeHtml_(partner.partner_name || '파트너');
+  var escapedScore = escapeHtml_(String(score));
+
+  var subject = '[PRESSCO21] 파트너 아카데미 - 다시 도전해 보세요!';
+
+  var body = '<div style="font-family: \'Noto Sans KR\', sans-serif; max-width: 600px; margin: 0 auto; padding: 0; background: #f8f6f0;">'
+
+    // 헤더
+    + '<div style="background: #3d2c1e; padding: 24px; text-align: center;">'
+    + '<span style="font-size: 24px; color: #b89b5e; font-weight: bold; letter-spacing: 2px;">PRESSCO21</span>'
+    + '</div>'
+
+    // 격려 메시지
+    + '<div style="padding: 32px 24px 16px;">'
+    + '<h2 style="color: #3d2c1e; margin: 0 0 12px; font-size: 20px;">'
+    + '조금 아쉬웠지만, 다시 도전해 보세요!</h2>'
+    + '<p style="color: #555; line-height: 1.8; font-size: 15px; margin: 0;">'
+    + partnerName + '님, 파트너 아카데미 퀴즈에 응시해 주셔서 감사합니다.<br>'
+    + '이번에는 합격 기준에 조금 미치지 못했지만, 한 번 더 도전하시면 충분히 통과하실 수 있습니다!</p>'
+    + '</div>'
+
+    // 점수 안내 박스
+    + '<div style="margin: 16px 24px; background: #ffffff; padding: 24px; border-radius: 4px;">'
+    + '<table style="width: 100%; border-collapse: collapse;">'
+    + '<tr style="border-bottom: 1px solid #eee;">'
+    + '<td style="padding: 12px 8px; color: #888; font-size: 14px;">나의 점수</td>'
+    + '<td style="padding: 12px 8px; color: #3d2c1e; font-size: 16px; font-weight: bold; text-align: right;">'
+    + '15문항 중 ' + escapedScore + '문항 정답</td></tr>'
+    + '<tr style="border-bottom: 1px solid #eee;">'
+    + '<td style="padding: 12px 8px; color: #888; font-size: 14px;">합격 기준</td>'
+    + '<td style="padding: 12px 8px; color: #b89b5e; font-size: 16px; font-weight: bold; text-align: right;">'
+    + '15문항 중 11문항 이상 정답 (73%)</td></tr>'
+    + '<tr>'
+    + '<td style="padding: 12px 8px; color: #888; font-size: 14px;">부족 문항</td>'
+    + '<td style="padding: 12px 8px; color: #e74c3c; font-size: 16px; font-weight: bold; text-align: right;">'
+    + escapeHtml_(String(Math.max(0, 11 - score))) + '문항</td></tr>'
+    + '</table></div>'
+
+    // 도움 안내
+    + '<div style="margin: 0 24px 16px; background: #fff8e8; border-left: 4px solid #b89b5e; padding: 16px;">'
+    + '<p style="margin: 0 0 8px; font-weight: bold; color: #3d2c1e; font-size: 14px;">합격 팁</p>'
+    + '<ul style="margin: 0; padding-left: 18px; color: #555; font-size: 14px; line-height: 2;">'
+    + '<li>교육 자료를 다시 한번 꼼꼼히 읽어 보세요.</li>'
+    + '<li>틀린 문항의 주제를 중심으로 복습하세요.</li>'
+    + '<li>재응시 횟수에 제한은 없으니 편하게 도전하세요.</li>'
+    + '</ul></div>'
+
+    // CTA 버튼
+    + '<div style="padding: 16px 24px 32px; text-align: center;">'
+    + '<a href="#" style="display: inline-block; background: #b89b5e; color: #ffffff; padding: 14px 36px; '
+    + 'text-decoration: none; font-size: 15px; font-weight: bold; letter-spacing: 1px;">다시 퀴즈 응시하기</a>'
+    + '<p style="margin: 12px 0 0; color: #888; font-size: 13px;">응시 횟수 제한 없음 | 바로 재도전 가능</p>'
+    + '</div>'
+
+    // 푸터
+    + '<div style="background: #3d2c1e; padding: 16px 24px; text-align: center;">'
+    + '<p style="margin: 0; color: #b89b5e; font-size: 12px;">PRESSCO21 | foreverlove.co.kr</p>'
+    + '<p style="margin: 4px 0 0; color: #888; font-size: 11px;">문의: foreverloveflower@naver.com</p>'
+    + '</div>'
+
+    + '</div>';
+
+  sendEmailWithTracking_(email, subject, body, 'EDUCATION_RETRY');
 }

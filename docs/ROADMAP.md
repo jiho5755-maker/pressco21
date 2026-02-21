@@ -434,26 +434,24 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
     - 이메일 발송 실패 시 재시도 로직
     - 정합성 검증 배치 정상 동작 확인
 
-- **Task 222: 파트너 대시보드 + 인증 시스템**
+- **Task 222: 파트너 대시보드 + 인증 시스템** - ✅ 코드 완료 (배포/테스트 대기)
   - See: `/tasks/222-partner-dashboard-auth.md`
-  - 대상: `파트너클래스/파트너/Index.html`, `파트너클래스/파트너/css.css`, `파트너클래스/파트너/js.js` (신규 생성)
+  - 대상: `파트너클래스/파트너/Index.html`, `파트너클래스/파트너/css.css`, `파트너클래스/파트너/js.js` (신규 생성 완료)
   - 의존성: Task 201, Task 221
   - 규모: M
   - 에이전트: `주도` makeshop-ui-ux-expert, gas-backend-expert | `협업` makeshop-planning-expert, ecommerce-business-expert
-  - 구현 사항:
-    - 파트너 인증: `{$member_id}` 치환코드 -> JS에서 읽기 -> GAS 파라미터 전달
-    - GAS에서 회원 ID -> 파트너 데이터 매칭 (비파트너 접근 차단)
-    - 파트너별 고유 인증 토큰 + Referer 체크(foreverlove.co.kr만 허용)
-    - 내 강의 관리: 등록/수정/일정 추가/중단
-    - 예약 현황: 실시간 예약 목록, 수강생 연락처 (마스킹)
-    - 수익 리포트: 월별 매출, 수수료, 적립금 잔액
-    - 적립금 사용: 재료 주문(도매가), 광고 부스트 신청
-    - 후기 관리: 수강생 후기 확인 + 답변
+  - 구현 완료:
+    - GAS API 3개 추가: `getPartnerBookings`(예약 현황+마스킹), `getPartnerReviews`(후기 목록), `replyToReview`(답변 저장)
+    - `<!--/user_id/-->` 가상태그 → JS 읽기 → GAS 파트너 인증
+    - 인증 상태별 분기: 미로그인/비파트너/심사중/비활성/인증성공
+    - 탭 4개: 내 강의(상태 토글) / 예약 현황(마스킹+필터) / 수익 리포트(월별) / 후기 관리(답변)
     - `.partner-dashboard` CSS 스코핑, IIFE 패턴
+    - robots: noindex,nofollow (파트너 전용 페이지 검색 차단)
+    - Critical 8건 코드 리뷰 수정 (C-01~C-08)
   - 테스트 체크리스트:
     - 파트너 인증 플로우 E2E (로그인 -> 치환코드 -> GAS 인증 -> 대시보드)
     - 비파트너 회원 접근 차단 확인
-    - 대시보드 각 기능(강의관리, 예약현황, 수익리포트, 적립금) 동작 검증
+    - 대시보드 각 기능(강의관리, 예약현황, 수익리포트, 후기) 동작 검증
     - 개인정보 마스킹 정상 표시 확인
 
 - **Task 223: 파트너 가입 및 인증 등급 시스템** - ✅ 코드/문서 완료 (관리자 Forms 설정 대기)
@@ -472,17 +470,19 @@ PRESSCO21(foreverlove.co.kr)은 30년 전통의 압화/보존화 전문 브랜�
 
 #### Phase 2-D: 교육 + 메인 연동 (1~1.5주)
 
-- **Task 231: 파트너 교육 아카데미 (필수교육 + 인증)**
+- **Task 231: 파트너 교육 아카데미 (필수교육 + 인증)** - ✅ 코드/문서 완료 (YouTube/Forms 관리자 직접 생성 필요)
   - See: `/tasks/231-partner-academy-education.md`
   - 대상: YouTube unlisted 영상 + Google Forms 퀴즈 + GAS
   - 의존성: Task 223
   - 규모: S
   - 에이전트: `주도` brand-planning-expert | `협업` gas-backend-expert
-  - 구현 사항:
-    - 필수 교육 콘텐츠: 브랜드 가이드라인 / 기본 안전 수칙 / 플랫폼 사용법
-    - 선택 교육: 트렌드 업데이트 / 신상품 활용법 / 교육 기법
-    - YouTube unlisted 영상 + Google Forms 퀴즈 -> 합격 시 인증서 발급 (GAS)
-    - 교육 이수 상태 Sheets 기록 -> 등급 반영
+  - 구현 완료:
+    - `docs/phase2/partner-academy-guide.md` 신규 생성 (약 950줄)
+    - 필수 교육 3모듈 커리큘럼: 브랜드 가이드라인(7분) / 안전 수칙(6분) / 플랫폼 사용법(9분)
+    - YouTube 스크립트 초안 3개 + 통합 퀴즈 15문항 설계 (11/15 합격)
+    - GAS `handleGetEducationStatus` + `handleEducationComplete` + 이메일 2종
+    - 합격 인증서 이메일, 불합격 재응시 이메일 (격려 톤)
+    - `education_date`, `education_score` 컬럼 자동 추가 (멱등)
 
 - **Task 232: 메인페이지에 클래스 플랫폼 진입점 추가** - ✅ 코드 완료 (GAS URL 설정 후 활성화)
   - See: `/tasks/232-mainpage-class-entry.md`
@@ -824,3 +824,5 @@ Phase 3
 | 2026-02-21 | 1.9 | Task 221 코드 완료 -- GAS 4,279줄(+946), 수강생 이메일 파이프라인 완성, retryFailedSettlements, 파트너 가입/승인/등급 함수 통합 |
 | 2026-02-21 | 2.0 | Task 223 코드/문서 완료 -- 파트너 가입/등급 브랜드 가이드, 이메일 6종 카피, GAS Task 221에 통합 |
 | 2026-02-21 | 2.1 | Task 232 코드 완료 -- 메인페이지 클래스 섹션 IIFE 추가 (js.js+css.css, Index.html 무수정), Critical 4건 수정 |
+| 2026-02-21 | 2.2 | Task 222 코드 완료 -- 파트너 대시보드 3파일 신규 생성(395/1677/1617줄), GAS API 3개 추가, Critical 8건 수정 |
+| 2026-02-21 | 2.3 | Task 231 코드/문서 완료 -- 파트너 아카데미 가이드(950줄), GAS 교육 인증 API 2개, 이메일 인증서 2종 |

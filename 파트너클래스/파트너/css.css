@@ -1,0 +1,1677 @@
+/* ============================================
+   PRESSCO21 파트너 대시보드 페이지
+   CSS 스코핑: .partner-dashboard
+   CSS 변수 접두사: --pd-
+   브랜드 컬러: #3d2c1e (다크 브라운), #b89b5e (골드), #7d9675 (세이지 그린)
+   반응형: ~768px / 768~992px / 992~1200px / 1200px~
+   ============================================ */
+
+/* ----------------------------------------
+   0. CSS 변수 (스코핑된 커스텀 프로퍼티)
+   ---------------------------------------- */
+.partner-dashboard {
+    --pd-primary: #3d2c1e;
+    --pd-primary-light: #5a4232;
+    --pd-gold: #b89b5e;
+    --pd-gold-light: #d4be8a;
+    --pd-gold-bg: #faf6ee;
+    --pd-green: #7d9675;
+    --pd-green-light: #b7c9ad;
+    --pd-green-dark: #2c3e30;
+    --pd-bg: #FAF8F5;
+    --pd-bg-card: #FFFFFF;
+    --pd-text: #333333;
+    --pd-text-light: #777777;
+    --pd-text-dark: #1a1a1a;
+    --pd-border: #E8E2DB;
+    --pd-border-light: #F0EBE5;
+    --pd-shadow-sm: 0 1px 3px rgba(61, 44, 30, 0.06);
+    --pd-shadow-md: 0 4px 16px rgba(61, 44, 30, 0.08);
+    --pd-shadow-lg: 0 8px 32px rgba(61, 44, 30, 0.12);
+    --pd-radius-sm: 8px;
+    --pd-radius-md: 12px;
+    --pd-radius-lg: 16px;
+    --pd-transition: 0.25s ease-out;
+    --pd-font: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
+
+    /* 상태 컬러 */
+    --pd-status-active: #4caf50;
+    --pd-status-active-bg: #e8f5e9;
+    --pd-status-pending: #ff9800;
+    --pd-status-pending-bg: #fff3e0;
+    --pd-status-inactive: #9e9e9e;
+    --pd-status-inactive-bg: #f5f5f5;
+    --pd-status-failed: #f44336;
+    --pd-status-failed-bg: #ffebee;
+    --pd-status-completed: #4caf50;
+    --pd-status-completed-bg: #e8f5e9;
+
+    /* 등급 컬러 */
+    --pd-grade-silver: #9e9e9e;
+    --pd-grade-gold: #b89b5e;
+    --pd-grade-platinum: #7b68ee;
+
+    font-family: var(--pd-font);
+    background-color: var(--pd-bg);
+    color: var(--pd-text);
+    line-height: 1.6;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+}
+
+.partner-dashboard *,
+.partner-dashboard *::before,
+.partner-dashboard *::after {
+    box-sizing: border-box;
+}
+
+/* 스크린리더 전용 */
+.partner-dashboard .sr-only {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+}
+
+
+/* ----------------------------------------
+   1. 미로그인/비파트너 안내 영역
+   ---------------------------------------- */
+.partner-dashboard .pd-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 70vh;
+    padding: 40px 24px;
+}
+
+.partner-dashboard .pd-notice__inner {
+    text-align: center;
+    max-width: 480px;
+}
+
+.partner-dashboard .pd-notice__icon {
+    margin-bottom: 24px;
+    opacity: 0.8;
+}
+
+.partner-dashboard .pd-notice__title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--pd-text-dark);
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+}
+
+.partner-dashboard .pd-notice__desc {
+    font-size: 15px;
+    color: var(--pd-text-light);
+    margin: 0 0 28px;
+    line-height: 1.7;
+}
+
+.partner-dashboard .pd-notice__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 14px 36px;
+    background: var(--pd-primary);
+    color: #FFFFFF;
+    font-family: var(--pd-font);
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--pd-radius-sm);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--pd-transition), transform var(--pd-transition);
+}
+
+.partner-dashboard .pd-notice__btn:hover {
+    background: var(--pd-primary-light);
+    transform: translateY(-1px);
+}
+
+.partner-dashboard .pd-notice__sub {
+    font-size: 13px;
+    color: var(--pd-text-light);
+    margin: 16px 0 0;
+}
+
+
+/* ----------------------------------------
+   2. 대시보드 헤더
+   ---------------------------------------- */
+.partner-dashboard .pd-header {
+    background: linear-gradient(135deg, var(--pd-primary) 0%, var(--pd-primary-light) 100%);
+    padding: 36px 24px 32px;
+}
+
+.partner-dashboard .pd-header__inner {
+    max-width: 1200px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.partner-dashboard .pd-header__greeting {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+}
+
+.partner-dashboard .pd-header__name {
+    font-size: 24px;
+    font-weight: 700;
+    color: #FFFFFF;
+    letter-spacing: -0.02em;
+}
+
+.partner-dashboard .pd-header__subtitle {
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.7);
+    margin: 6px 0 0;
+}
+
+/* 등급 배지 */
+.partner-dashboard .pd-grade-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.partner-dashboard .pd-grade-badge--silver {
+    background: rgba(158, 158, 158, 0.2);
+    color: #d0d0d0;
+    border: 1px solid rgba(158, 158, 158, 0.3);
+}
+
+.partner-dashboard .pd-grade-badge--gold {
+    background: rgba(184, 155, 94, 0.2);
+    color: var(--pd-gold-light);
+    border: 1px solid rgba(184, 155, 94, 0.3);
+}
+
+.partner-dashboard .pd-grade-badge--platinum {
+    background: rgba(123, 104, 238, 0.2);
+    color: #b0a0ff;
+    border: 1px solid rgba(123, 104, 238, 0.3);
+}
+
+/* 월 선택 */
+.partner-dashboard .pd-month-selector {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: rgba(255, 255, 255, 0.1);
+    border-radius: var(--pd-radius-sm);
+    padding: 4px;
+}
+
+.partner-dashboard .pd-month-selector__prev,
+.partner-dashboard .pd-month-selector__next {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: rgba(255, 255, 255, 0.7);
+    border-radius: 6px;
+    transition: all var(--pd-transition);
+}
+
+.partner-dashboard .pd-month-selector__prev:hover,
+.partner-dashboard .pd-month-selector__next:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: #FFFFFF;
+}
+
+.partner-dashboard .pd-month-selector__label {
+    font-size: 14px;
+    font-weight: 600;
+    color: #FFFFFF;
+    min-width: 100px;
+    text-align: center;
+}
+
+
+/* ----------------------------------------
+   3. 요약 카드
+   ---------------------------------------- */
+.partner-dashboard .pd-summary {
+    max-width: 1200px;
+    margin: -24px auto 0;
+    padding: 0 24px;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    position: relative;
+    z-index: 1;
+}
+
+.partner-dashboard .pd-summary__card {
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-md);
+    padding: 20px;
+    box-shadow: var(--pd-shadow-md);
+    border: 1px solid var(--pd-border-light);
+    transition: transform var(--pd-transition), box-shadow var(--pd-transition);
+}
+
+.partner-dashboard .pd-summary__card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--pd-shadow-lg);
+}
+
+.partner-dashboard .pd-summary__icon {
+    width: 40px;
+    height: 40px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 12px;
+}
+
+.partner-dashboard .pd-summary__icon--revenue {
+    background: var(--pd-gold-bg);
+    color: var(--pd-gold);
+}
+
+.partner-dashboard .pd-summary__icon--fee {
+    background: #e8f5e9;
+    color: var(--pd-green);
+}
+
+.partner-dashboard .pd-summary__icon--reserve {
+    background: #e3f2fd;
+    color: #42a5f5;
+}
+
+.partner-dashboard .pd-summary__icon--booking {
+    background: #fce4ec;
+    color: #ef5350;
+}
+
+.partner-dashboard .pd-summary__label {
+    font-size: 13px;
+    color: var(--pd-text-light);
+    margin: 0 0 4px;
+    font-weight: 400;
+}
+
+.partner-dashboard .pd-summary__value {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--pd-text-dark);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+
+/* ----------------------------------------
+   4. 탭 네비게이션
+   ---------------------------------------- */
+.partner-dashboard .pd-tabs {
+    max-width: 1200px;
+    margin: 32px auto 0;
+    padding: 0 24px;
+    display: flex;
+    gap: 4px;
+    border-bottom: 2px solid var(--pd-border-light);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+}
+
+.partner-dashboard .pd-tabs::-webkit-scrollbar {
+    display: none;
+}
+
+.partner-dashboard .pd-tabs__btn {
+    position: relative;
+    padding: 14px 20px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-family: var(--pd-font);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--pd-text-light);
+    white-space: nowrap;
+    transition: color var(--pd-transition);
+}
+
+.partner-dashboard .pd-tabs__btn:hover {
+    color: var(--pd-text-dark);
+}
+
+.partner-dashboard .pd-tabs__btn.is-active {
+    color: var(--pd-primary);
+    font-weight: 700;
+}
+
+.partner-dashboard .pd-tabs__btn.is-active::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--pd-primary);
+    border-radius: 1px 1px 0 0;
+}
+
+
+/* ----------------------------------------
+   5. 탭 콘텐츠 공통
+   ---------------------------------------- */
+.partner-dashboard .pd-tab-content {
+    display: none;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 24px 60px;
+}
+
+.partner-dashboard .pd-tab-content.is-active {
+    display: block;
+}
+
+.partner-dashboard .pd-tab-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.partner-dashboard .pd-tab-header__title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--pd-text-dark);
+    margin: 0;
+    letter-spacing: -0.01em;
+}
+
+
+/* ----------------------------------------
+   6. 공통 버튼
+   ---------------------------------------- */
+.partner-dashboard .pd-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: var(--pd-radius-sm);
+    font-family: var(--pd-font);
+    font-size: 13px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--pd-transition);
+    text-decoration: none;
+    border: none;
+    white-space: nowrap;
+}
+
+.partner-dashboard .pd-btn--primary {
+    background: var(--pd-primary);
+    color: #FFFFFF;
+}
+
+.partner-dashboard .pd-btn--primary:hover {
+    background: var(--pd-primary-light);
+}
+
+.partner-dashboard .pd-btn--outline {
+    background: var(--pd-bg-card);
+    color: var(--pd-text);
+    border: 1px solid var(--pd-border);
+}
+
+.partner-dashboard .pd-btn--outline:hover {
+    border-color: var(--pd-primary);
+    color: var(--pd-primary);
+}
+
+.partner-dashboard .pd-btn--sm {
+    padding: 6px 14px;
+    font-size: 12px;
+}
+
+.partner-dashboard .pd-btn--gold {
+    background: var(--pd-gold);
+    color: #FFFFFF;
+}
+
+.partner-dashboard .pd-btn--gold:hover {
+    background: #a6883e;
+}
+
+.partner-dashboard .pd-btn--danger {
+    background: none;
+    color: var(--pd-status-failed);
+    border: 1px solid var(--pd-status-failed);
+}
+
+.partner-dashboard .pd-btn--danger:hover {
+    background: var(--pd-status-failed-bg);
+}
+
+
+/* ----------------------------------------
+   7. 공통 폼 요소
+   ---------------------------------------- */
+.partner-dashboard .pd-select {
+    padding: 8px 32px 8px 12px;
+    background: var(--pd-bg-card);
+    border: 1px solid var(--pd-border);
+    border-radius: var(--pd-radius-sm);
+    font-family: var(--pd-font);
+    font-size: 13px;
+    color: var(--pd-text);
+    cursor: pointer;
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg width='10' height='6' viewBox='0 0 10 6' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M1 1l4 4 4-4' stroke='%23777' stroke-width='1.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    transition: border-color var(--pd-transition);
+}
+
+.partner-dashboard .pd-select:hover,
+.partner-dashboard .pd-select:focus {
+    border-color: var(--pd-gold);
+}
+
+.partner-dashboard .pd-input {
+    padding: 8px 12px;
+    background: var(--pd-bg-card);
+    border: 1px solid var(--pd-border);
+    border-radius: var(--pd-radius-sm);
+    font-family: var(--pd-font);
+    font-size: 13px;
+    color: var(--pd-text);
+    outline: none;
+    transition: border-color var(--pd-transition);
+}
+
+.partner-dashboard .pd-input:focus {
+    border-color: var(--pd-gold);
+}
+
+.partner-dashboard .pd-input--date {
+    min-width: 130px;
+}
+
+.partner-dashboard .pd-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--pd-text-dark);
+    margin-bottom: 6px;
+}
+
+.partner-dashboard .pd-textarea {
+    width: 100%;
+    padding: 12px;
+    background: var(--pd-bg-card);
+    border: 1px solid var(--pd-border);
+    border-radius: var(--pd-radius-sm);
+    font-family: var(--pd-font);
+    font-size: 14px;
+    color: var(--pd-text);
+    outline: none;
+    resize: vertical;
+    min-height: 80px;
+    transition: border-color var(--pd-transition);
+}
+
+.partner-dashboard .pd-textarea:focus {
+    border-color: var(--pd-gold);
+}
+
+.partner-dashboard .pd-textarea__counter {
+    font-size: 12px;
+    color: var(--pd-text-light);
+    text-align: right;
+    margin: 4px 0 0;
+}
+
+
+/* ----------------------------------------
+   8. 필터 바
+   ---------------------------------------- */
+.partner-dashboard .pd-filter-bar {
+    display: flex;
+    align-items: flex-end;
+    gap: 16px;
+    margin-bottom: 24px;
+    flex-wrap: wrap;
+}
+
+.partner-dashboard .pd-filter-bar__group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.partner-dashboard .pd-filter-bar__label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--pd-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.partner-dashboard .pd-filter-bar__custom {
+    flex-direction: row;
+    align-items: center;
+    gap: 8px;
+}
+
+.partner-dashboard .pd-filter-bar__sep {
+    color: var(--pd-text-light);
+    font-size: 13px;
+}
+
+
+/* ----------------------------------------
+   9. 빈 상태
+   ---------------------------------------- */
+.partner-dashboard .pd-empty {
+    text-align: center;
+    padding: 60px 24px;
+}
+
+.partner-dashboard .pd-empty__icon {
+    margin-bottom: 16px;
+    opacity: 0.6;
+}
+
+.partner-dashboard .pd-empty__text {
+    font-size: 14px;
+    color: var(--pd-text-light);
+    margin: 0;
+    line-height: 1.7;
+}
+
+
+/* ----------------------------------------
+   10. 내 강의 탭 - 강의 카드
+   ---------------------------------------- */
+.partner-dashboard .pd-class-list {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+}
+
+.partner-dashboard .pd-class-card {
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-md);
+    border: 1px solid var(--pd-border-light);
+    box-shadow: var(--pd-shadow-sm);
+    overflow: hidden;
+    transition: transform var(--pd-transition), box-shadow var(--pd-transition);
+}
+
+.partner-dashboard .pd-class-card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--pd-shadow-md);
+}
+
+.partner-dashboard .pd-class-card__top {
+    display: flex;
+    gap: 16px;
+    padding: 16px;
+}
+
+.partner-dashboard .pd-class-card__thumb {
+    width: 100px;
+    height: 75px;
+    border-radius: var(--pd-radius-sm);
+    overflow: hidden;
+    flex-shrink: 0;
+    background: var(--pd-border-light);
+}
+
+.partner-dashboard .pd-class-card__thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.partner-dashboard .pd-class-card__info {
+    flex: 1;
+    min-width: 0;
+}
+
+.partner-dashboard .pd-class-card__title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--pd-text-dark);
+    margin: 0 0 6px;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
+
+.partner-dashboard .pd-class-card__meta {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    flex-wrap: wrap;
+    font-size: 12px;
+    color: var(--pd-text-light);
+}
+
+.partner-dashboard .pd-class-card__meta span + span::before {
+    content: '';
+    display: inline-block;
+    width: 3px;
+    height: 3px;
+    background: var(--pd-border);
+    border-radius: 50%;
+    margin-right: 8px;
+    vertical-align: middle;
+}
+
+/* 상태 배지 */
+.partner-dashboard .pd-status-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+}
+
+.partner-dashboard .pd-status-badge--active {
+    background: var(--pd-status-active-bg);
+    color: var(--pd-status-active);
+}
+
+.partner-dashboard .pd-status-badge--inactive {
+    background: var(--pd-status-inactive-bg);
+    color: var(--pd-status-inactive);
+}
+
+.partner-dashboard .pd-status-badge--pending {
+    background: var(--pd-status-pending-bg);
+    color: var(--pd-status-pending);
+}
+
+.partner-dashboard .pd-status-badge--completed {
+    background: var(--pd-status-completed-bg);
+    color: var(--pd-status-completed);
+}
+
+.partner-dashboard .pd-status-badge--failed {
+    background: var(--pd-status-failed-bg);
+    color: var(--pd-status-failed);
+}
+
+.partner-dashboard .pd-class-card__bottom {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 16px;
+    background: var(--pd-bg);
+    border-top: 1px solid var(--pd-border-light);
+}
+
+.partner-dashboard .pd-class-card__stats {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    font-size: 12px;
+    color: var(--pd-text-light);
+}
+
+.partner-dashboard .pd-class-card__stat {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.partner-dashboard .pd-class-card__stat strong {
+    color: var(--pd-text-dark);
+    font-weight: 600;
+}
+
+
+/* ----------------------------------------
+   11. 예약 현황 탭
+   ---------------------------------------- */
+.partner-dashboard .pd-booking-summary {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.partner-dashboard .pd-booking-stat {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: var(--pd-bg-card);
+    border-radius: 20px;
+    border: 1px solid var(--pd-border-light);
+    font-size: 13px;
+}
+
+.partner-dashboard .pd-booking-stat__count {
+    font-weight: 700;
+    color: var(--pd-text-dark);
+}
+
+
+/* ----------------------------------------
+   12. 테이블 공통
+   ---------------------------------------- */
+.partner-dashboard .pd-table-wrap {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+.partner-dashboard .pd-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+}
+
+.partner-dashboard .pd-table th {
+    padding: 12px 16px;
+    background: var(--pd-bg);
+    font-weight: 600;
+    color: var(--pd-text-light);
+    text-align: left;
+    white-space: nowrap;
+    border-bottom: 2px solid var(--pd-border);
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+}
+
+.partner-dashboard .pd-table td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--pd-border-light);
+    color: var(--pd-text);
+    vertical-align: middle;
+}
+
+.partner-dashboard .pd-table tr:last-child td {
+    border-bottom: none;
+}
+
+.partner-dashboard .pd-table tr:hover td {
+    background: rgba(250, 248, 245, 0.5);
+}
+
+.partner-dashboard .pd-table__amount {
+    font-weight: 600;
+    color: var(--pd-text-dark);
+    white-space: nowrap;
+}
+
+
+/* ----------------------------------------
+   13. 수익 리포트 탭
+   ---------------------------------------- */
+.partner-dashboard .pd-revenue-summary {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.partner-dashboard .pd-revenue-card {
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-sm);
+    padding: 16px;
+    border: 1px solid var(--pd-border-light);
+    text-align: center;
+}
+
+.partner-dashboard .pd-revenue-card__label {
+    font-size: 12px;
+    color: var(--pd-text-light);
+    margin: 0 0 6px;
+    font-weight: 500;
+}
+
+.partner-dashboard .pd-revenue-card__value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--pd-text-dark);
+    margin: 0;
+    letter-spacing: -0.02em;
+}
+
+.partner-dashboard .pd-revenue-card__value--green {
+    color: var(--pd-green);
+}
+
+.partner-dashboard .pd-revenue-card__value--gold {
+    color: var(--pd-gold);
+}
+
+
+/* ----------------------------------------
+   14. 후기 관리 탭
+   ---------------------------------------- */
+
+/* 별점 분포 */
+.partner-dashboard .pd-rating-dist {
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-md);
+    padding: 20px 24px;
+    margin-bottom: 24px;
+    border: 1px solid var(--pd-border-light);
+    display: flex;
+    gap: 32px;
+    align-items: center;
+}
+
+.partner-dashboard .pd-rating-dist__avg {
+    text-align: center;
+    flex-shrink: 0;
+}
+
+.partner-dashboard .pd-rating-dist__score {
+    font-size: 40px;
+    font-weight: 700;
+    color: var(--pd-text-dark);
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.partner-dashboard .pd-rating-dist__stars {
+    display: flex;
+    justify-content: center;
+    gap: 2px;
+    margin-bottom: 4px;
+}
+
+.partner-dashboard .pd-rating-dist__count {
+    font-size: 12px;
+    color: var(--pd-text-light);
+}
+
+.partner-dashboard .pd-rating-dist__bars {
+    flex: 1;
+}
+
+.partner-dashboard .pd-rating-bar {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+}
+
+.partner-dashboard .pd-rating-bar:last-child {
+    margin-bottom: 0;
+}
+
+.partner-dashboard .pd-rating-bar__label {
+    font-size: 12px;
+    color: var(--pd-text-light);
+    width: 24px;
+    text-align: right;
+    flex-shrink: 0;
+}
+
+.partner-dashboard .pd-rating-bar__track {
+    flex: 1;
+    height: 8px;
+    background: var(--pd-border-light);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.partner-dashboard .pd-rating-bar__fill {
+    height: 100%;
+    background: #F5A623;
+    border-radius: 4px;
+    transition: width 0.4s ease-out;
+}
+
+.partner-dashboard .pd-rating-bar__count {
+    font-size: 12px;
+    color: var(--pd-text-light);
+    width: 28px;
+    text-align: left;
+    flex-shrink: 0;
+}
+
+/* 후기 카드 */
+.partner-dashboard .pd-review-list {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.partner-dashboard .pd-review-card {
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-md);
+    padding: 20px;
+    border: 1px solid var(--pd-border-light);
+    box-shadow: var(--pd-shadow-sm);
+}
+
+.partner-dashboard .pd-review-card__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    gap: 12px;
+}
+
+.partner-dashboard .pd-review-card__stars {
+    display: flex;
+    gap: 2px;
+}
+
+.partner-dashboard .pd-review-card__star {
+    width: 14px;
+    height: 14px;
+}
+
+.partner-dashboard .pd-review-card__star--filled {
+    color: #F5A623;
+}
+
+.partner-dashboard .pd-review-card__star--empty {
+    color: #DDD;
+}
+
+.partner-dashboard .pd-review-card__date {
+    font-size: 12px;
+    color: var(--pd-text-light);
+}
+
+.partner-dashboard .pd-review-card__class {
+    font-size: 12px;
+    color: var(--pd-gold);
+    font-weight: 500;
+    margin-bottom: 8px;
+}
+
+.partner-dashboard .pd-review-card__text {
+    font-size: 14px;
+    color: var(--pd-text);
+    line-height: 1.7;
+    margin-bottom: 12px;
+}
+
+.partner-dashboard .pd-review-card__author {
+    font-size: 12px;
+    color: var(--pd-text-light);
+    margin-bottom: 16px;
+}
+
+/* 기존 답변 표시 */
+.partner-dashboard .pd-review-card__reply {
+    background: var(--pd-bg);
+    border-radius: var(--pd-radius-sm);
+    padding: 14px 16px;
+    margin-top: 12px;
+    border-left: 3px solid var(--pd-gold);
+}
+
+.partner-dashboard .pd-review-card__reply-label {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--pd-gold);
+    margin-bottom: 6px;
+}
+
+.partner-dashboard .pd-review-card__reply-text {
+    font-size: 13px;
+    color: var(--pd-text);
+    line-height: 1.6;
+}
+
+
+/* ----------------------------------------
+   15. 페이지네이션
+   ---------------------------------------- */
+.partner-dashboard .pd-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    margin-top: 32px;
+    padding: 16px 0;
+}
+
+.partner-dashboard .pd-pagination__btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 36px;
+    height: 36px;
+    padding: 0 8px;
+    background: var(--pd-bg-card);
+    border: 1px solid var(--pd-border);
+    border-radius: var(--pd-radius-sm);
+    font-family: var(--pd-font);
+    font-size: 13px;
+    color: var(--pd-text);
+    cursor: pointer;
+    transition: all var(--pd-transition);
+}
+
+.partner-dashboard .pd-pagination__btn:hover {
+    border-color: var(--pd-gold);
+    color: var(--pd-gold);
+}
+
+.partner-dashboard .pd-pagination__btn.is-active {
+    background: var(--pd-primary);
+    border-color: var(--pd-primary);
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.partner-dashboard .pd-pagination__btn.is-disabled {
+    opacity: 0.4;
+    pointer-events: none;
+}
+
+
+/* ----------------------------------------
+   16. 로딩 오버레이
+   ---------------------------------------- */
+.partner-dashboard .pd-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 1000;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(250, 248, 245, 0.85);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.partner-dashboard .pd-loading__spinner {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+
+/* ----------------------------------------
+   17. 모달
+   ---------------------------------------- */
+.partner-dashboard .pd-modal {
+    position: fixed;
+    inset: 0;
+    z-index: 1001;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 24px;
+}
+
+.partner-dashboard .pd-modal__backdrop {
+    position: absolute;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.4);
+}
+
+.partner-dashboard .pd-modal__content {
+    position: relative;
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-lg);
+    box-shadow: var(--pd-shadow-lg);
+    max-width: 520px;
+    width: 100%;
+    max-height: 90vh;
+    overflow-y: auto;
+}
+
+.partner-dashboard .pd-modal__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 20px 24px 16px;
+    border-bottom: 1px solid var(--pd-border-light);
+}
+
+.partner-dashboard .pd-modal__title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--pd-text-dark);
+    margin: 0;
+}
+
+.partner-dashboard .pd-modal__close {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    padding: 0;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--pd-text-light);
+    border-radius: 50%;
+    transition: all var(--pd-transition);
+}
+
+.partner-dashboard .pd-modal__close:hover {
+    background: var(--pd-border-light);
+    color: var(--pd-text-dark);
+}
+
+.partner-dashboard .pd-modal__body {
+    padding: 20px 24px;
+    font-size: 14px;
+    color: var(--pd-text);
+    line-height: 1.7;
+}
+
+.partner-dashboard .pd-modal__body p {
+    margin: 0 0 12px;
+}
+
+.partner-dashboard .pd-modal__steps {
+    padding-left: 20px;
+    margin: 12px 0 16px;
+}
+
+.partner-dashboard .pd-modal__steps li {
+    margin-bottom: 8px;
+    line-height: 1.6;
+}
+
+.partner-dashboard .pd-modal__note {
+    font-size: 13px;
+    color: var(--pd-text-light);
+    margin: 0;
+}
+
+.partner-dashboard .pd-modal__footer {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 24px 20px;
+    border-top: 1px solid var(--pd-border-light);
+}
+
+/* 후기 미리보기 */
+.partner-dashboard .pd-reply-preview {
+    background: var(--pd-bg);
+    border-radius: var(--pd-radius-sm);
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    font-size: 13px;
+    color: var(--pd-text);
+    line-height: 1.6;
+}
+
+
+/* ----------------------------------------
+   18. 토스트 알림
+   ---------------------------------------- */
+.partner-dashboard .pd-toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 1002;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.partner-dashboard .pd-toast {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 14px 20px;
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-sm);
+    box-shadow: var(--pd-shadow-lg);
+    border: 1px solid var(--pd-border-light);
+    font-size: 14px;
+    color: var(--pd-text);
+    animation: pdToastIn 0.3s ease-out;
+    max-width: 360px;
+}
+
+.partner-dashboard .pd-toast--success {
+    border-left: 3px solid var(--pd-status-active);
+}
+
+.partner-dashboard .pd-toast--error {
+    border-left: 3px solid var(--pd-status-failed);
+}
+
+@keyframes pdToastIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.95);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+}
+
+@keyframes pdToastOut {
+    from {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+    }
+    to {
+        opacity: 0;
+        transform: translateY(-10px) scale(0.95);
+    }
+}
+
+
+/* ----------------------------------------
+   19. 스켈레톤 UI
+   ---------------------------------------- */
+@keyframes pdShimmer {
+    0% { background-position: -200% 0; }
+    100% { background-position: 200% 0; }
+}
+
+.partner-dashboard .pd-skeleton {
+    background: linear-gradient(90deg, var(--pd-border-light) 25%, #f5f0eb 50%, var(--pd-border-light) 75%);
+    background-size: 200% 100%;
+    border-radius: 4px;
+    animation: pdShimmer 1.5s ease-in-out infinite;
+}
+
+.partner-dashboard .pd-skeleton--card {
+    height: 120px;
+    border-radius: var(--pd-radius-md);
+}
+
+.partner-dashboard .pd-skeleton--line {
+    height: 14px;
+    margin-bottom: 8px;
+}
+
+.partner-dashboard .pd-skeleton--line-short {
+    height: 14px;
+    width: 60%;
+    margin-bottom: 8px;
+}
+
+
+/* ----------------------------------------
+   20. 모바일 카드형 테이블 (768px 이하에서 테이블 대체)
+   ---------------------------------------- */
+.partner-dashboard .pd-mobile-card {
+    display: none;
+}
+
+.partner-dashboard .pd-mobile-cards {
+    display: none;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.partner-dashboard .pd-mobile-card {
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-sm);
+    border: 1px solid var(--pd-border-light);
+    padding: 14px 16px;
+}
+
+.partner-dashboard .pd-mobile-card__row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 4px 0;
+    font-size: 13px;
+}
+
+.partner-dashboard .pd-mobile-card__label {
+    color: var(--pd-text-light);
+    font-weight: 400;
+}
+
+.partner-dashboard .pd-mobile-card__value {
+    color: var(--pd-text-dark);
+    font-weight: 500;
+    text-align: right;
+}
+
+.partner-dashboard .pd-mobile-card__value--strong {
+    font-weight: 700;
+}
+
+
+/* ----------------------------------------
+   21. 접근성: 모션 감소 설정
+   ---------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .partner-dashboard .pd-summary__card {
+        transition: none;
+    }
+
+    .partner-dashboard .pd-summary__card:hover {
+        transform: none;
+    }
+
+    .partner-dashboard .pd-class-card {
+        transition: none;
+    }
+
+    .partner-dashboard .pd-class-card:hover {
+        transform: none;
+    }
+
+    .partner-dashboard .pd-toast {
+        animation: none;
+    }
+
+    .partner-dashboard .pd-skeleton {
+        animation: none;
+        background: var(--pd-border-light);
+    }
+
+    .partner-dashboard .pd-loading__spinner svg path animateTransform {
+        dur: 0s;
+    }
+}
+
+
+/* ----------------------------------------
+   22. 반응형: 태블릿 (768px ~ 992px)
+   ---------------------------------------- */
+@media screen and (max-width: 992px) {
+    .partner-dashboard .pd-header {
+        padding: 28px 20px 24px;
+    }
+
+    .partner-dashboard .pd-header__name {
+        font-size: 20px;
+    }
+
+    .partner-dashboard .pd-summary {
+        grid-template-columns: repeat(2, 1fr);
+        padding: 0 20px;
+        margin-top: -20px;
+    }
+
+    .partner-dashboard .pd-tabs {
+        padding: 0 20px;
+    }
+
+    .partner-dashboard .pd-tab-content {
+        padding: 20px 20px 48px;
+    }
+
+    .partner-dashboard .pd-class-list {
+        grid-template-columns: 1fr;
+    }
+
+    .partner-dashboard .pd-revenue-summary {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .partner-dashboard .pd-rating-dist {
+        flex-direction: column;
+        gap: 20px;
+    }
+}
+
+
+/* ----------------------------------------
+   23. 반응형: 모바일 (~768px)
+   ---------------------------------------- */
+@media screen and (max-width: 768px) {
+    .partner-dashboard .pd-header {
+        padding: 24px 16px 20px;
+    }
+
+    .partner-dashboard .pd-header__inner {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .partner-dashboard .pd-header__name {
+        font-size: 18px;
+    }
+
+    .partner-dashboard .pd-header__subtitle {
+        font-size: 13px;
+    }
+
+    .partner-dashboard .pd-summary {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+        padding: 0 16px;
+        margin-top: -16px;
+    }
+
+    .partner-dashboard .pd-summary__card {
+        padding: 14px;
+    }
+
+    .partner-dashboard .pd-summary__icon {
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        margin-bottom: 8px;
+    }
+
+    .partner-dashboard .pd-summary__icon svg {
+        width: 18px;
+        height: 18px;
+    }
+
+    .partner-dashboard .pd-summary__label {
+        font-size: 11px;
+    }
+
+    .partner-dashboard .pd-summary__value {
+        font-size: 18px;
+    }
+
+    .partner-dashboard .pd-tabs {
+        padding: 0 16px;
+        margin-top: 24px;
+    }
+
+    .partner-dashboard .pd-tabs__btn {
+        padding: 12px 16px;
+        font-size: 13px;
+    }
+
+    .partner-dashboard .pd-tab-content {
+        padding: 16px 16px 40px;
+    }
+
+    .partner-dashboard .pd-tab-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 12px;
+    }
+
+    .partner-dashboard .pd-class-list {
+        grid-template-columns: 1fr;
+        gap: 12px;
+    }
+
+    .partner-dashboard .pd-class-card__top {
+        padding: 12px;
+        gap: 12px;
+    }
+
+    .partner-dashboard .pd-class-card__thumb {
+        width: 80px;
+        height: 60px;
+    }
+
+    .partner-dashboard .pd-class-card__title {
+        font-size: 14px;
+    }
+
+    /* 필터 바 세로 배치 */
+    .partner-dashboard .pd-filter-bar {
+        flex-direction: column;
+        align-items: stretch;
+        gap: 12px;
+    }
+
+    .partner-dashboard .pd-filter-bar__group {
+        width: 100%;
+    }
+
+    .partner-dashboard .pd-select {
+        width: 100%;
+    }
+
+    /* PC 테이블 숨기고 모바일 카드 표시 */
+    .partner-dashboard .pd-table-wrap .pd-table {
+        display: none;
+    }
+
+    .partner-dashboard .pd-mobile-cards {
+        display: flex;
+    }
+
+    /* 수익 리포트 */
+    .partner-dashboard .pd-revenue-summary {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+
+    .partner-dashboard .pd-revenue-card {
+        padding: 12px;
+    }
+
+    .partner-dashboard .pd-revenue-card__value {
+        font-size: 16px;
+    }
+
+    /* 별점 분포 */
+    .partner-dashboard .pd-rating-dist {
+        flex-direction: column;
+        gap: 16px;
+        padding: 16px;
+    }
+
+    .partner-dashboard .pd-rating-dist__score {
+        font-size: 32px;
+    }
+
+    /* 후기 카드 */
+    .partner-dashboard .pd-review-card {
+        padding: 16px;
+    }
+
+    .partner-dashboard .pd-review-card__header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 6px;
+    }
+
+    /* 모달 */
+    .partner-dashboard .pd-modal {
+        padding: 16px;
+    }
+
+    .partner-dashboard .pd-modal__content {
+        max-height: 85vh;
+    }
+
+    .partner-dashboard .pd-modal__footer {
+        flex-direction: column;
+    }
+
+    .partner-dashboard .pd-modal__footer .pd-btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    /* 토스트 */
+    .partner-dashboard .pd-toast-container {
+        bottom: 16px;
+        right: 16px;
+        left: 16px;
+    }
+
+    .partner-dashboard .pd-toast {
+        max-width: none;
+    }
+
+    /* 안내 영역 */
+    .partner-dashboard .pd-notice__title {
+        font-size: 19px;
+    }
+
+    .partner-dashboard .pd-notice__desc {
+        font-size: 14px;
+    }
+}
+
+
+/* ----------------------------------------
+   24. 반응형: 소형 모바일 (~480px)
+   ---------------------------------------- */
+@media screen and (max-width: 480px) {
+    .partner-dashboard .pd-summary {
+        grid-template-columns: 1fr 1fr;
+        gap: 8px;
+    }
+
+    .partner-dashboard .pd-booking-summary {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .partner-dashboard .pd-revenue-summary {
+        grid-template-columns: 1fr 1fr;
+    }
+}
+
+
+/* ----------------------------------------
+   25. 반응형: 데스크탑 확장 (1200px+)
+   ---------------------------------------- */
+@media screen and (min-width: 1200px) {
+    .partner-dashboard .pd-summary {
+        gap: 20px;
+    }
+
+    .partner-dashboard .pd-class-list {
+        grid-template-columns: repeat(2, 1fr);
+        gap: 20px;
+    }
+}

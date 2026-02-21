@@ -104,6 +104,22 @@
   - W-05: URL `id` parameter no format validation -- added regex whitelist (alphanumeric/hyphen/underscore, max 64 chars).
 - **Good Practices**: IIFE+strict, escapeHtml consistency, YouTube ID validation, Graceful Degradation (renderSection try-catch), Schema.org Course, a11y (ARIA tabs+accordion+live), IntersectionObserver, localStorage cache 5min TTL, youtube-nocookie.com
 
+### Partner Dashboard (Task 222 + 231) -- Review Completed
+- **Location**: `파트너클래스/파트너/` (Index.html 395줄, css.css 1677줄, js.js 1617줄)
+- **GAS additions**: `class-platform-gas.gs` 4279줄~ (getPartnerBookings, getPartnerReviews, replyToReview, getEducationStatus, handleEducationComplete, sendCertificateEmail_, sendRetryEmail_)
+- **MakeShop Compat**: PASS -- IIFE+strict, var only, no template literals, CSS `.partner-dashboard` scoped, `pd` prefix on @keyframes
+- **Critical Issues Fixed (8)**:
+  - C-01: querySelector injection in openReplyModal -- reviewId in attribute selector
+  - C-02: `data.data` array assumption vs GAS `data.data.bookings` object structure
+  - C-03: Booking field name mismatch (date->booking_date, student_name->student_name_masked, amount->order_amount)
+  - C-04: Review field name mismatch (answer->partner_answer, author->reviewer_name_masked)
+  - C-05: Rating distribution field mismatch (distribution->summary.rating_distribution, starN->numeric keys)
+  - C-06: POST Content-Type text/plain body not parsed in GAS doPost
+  - C-07: getPartnerAuth returns errorResult for pending/inactive -- prevents status-specific UI
+  - C-08: formatPrice NaN guard missing
+- **Major Issues (8)**: body.style.overflow, pagination total_pages field name, SVG animateTransform CSS, pass_threshold client-supplied (fixed to server constant), event listener duplication (x2), tab keyboard nav missing
+- **Good Practices**: IIFE+strict, escapeHtml/escapeAttr everywhere, replyToReview class ownership verification, LockService, PII masking, debounce, _pdBound pattern, email after Lock release, prefers-reduced-motion, 4-step responsive
+
 ### Main Page Class Section (Task 232) -- Review Completed
 - **Location**: `메인페이지/js.js` (526~890행), `메인페이지/css.css` (1614~2016행)
 - **MakeShop Compat**: PASS -- separate IIFE, var only, no template literals, CSS `.main-class-entry` scoped
@@ -130,5 +146,11 @@
 11. GAS `handleXxx` TOCTOU: duplicate/existence checks must be INSIDE LockService, not before
 12. User-supplied URLs stored in Sheets and returned via API need `sanitizeUrl_()` -- javascript: protocol XSS
 13. GAS input text fields need `.substring(0, MAX)` length cap to prevent Sheets cell overflow / DoS
+
+14. GAS API response field names (snake_case) vs JS field names (camelCase or different) -- ALWAYS cross-check
+15. GAS `getPartnerAuth` must return `success: true` with status field for pending/inactive, NOT errorResult
+16. GAS `doPost` Content-Type: `text/plain` body parsing -- must handle JSON in text/plain (CORS preflight avoidance pattern)
+17. Server-side validation constants (pass_threshold etc.) must NOT be client-supplied
+18. Event listener duplication: when rendering functions call bindXxx(), add `_pdBound` flag or bind once during init
 
 See: [patterns.md](patterns.md) for detailed notes.

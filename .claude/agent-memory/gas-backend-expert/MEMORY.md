@@ -96,6 +96,19 @@
 - 이메일 발송은 Lock 해제 후 실행 (발송 실패가 데이터 저장에 영향 주지 않음)
 - CTA 링크는 임시 `#` (GAS URL 설정 후 교체 필요)
 
+### n8n + Airtable 전환 설계 완료 (2026-02-25)
+- 설계 문서: `docs/phase2/n8n-airtable-migration-architecture.md`
+- n8n 워크플로우 13개 설계 (WF-01 ~ WF-13)
+- Airtable 테이블 8개 설계 (기존 Sheets 8시트 매핑)
+- CORS: n8n 환경변수 N8N_CORS_ALLOWED_ORIGINS 설정
+- 이메일: Gmail SMTP 500건/일 (GAS 100건의 5배) -> Brevo 300건/일 병행 가능
+- 텔레그램: 기존 @Pressco21_makeshop_bot 활용, 9개 이벤트 알림
+- 프론트엔드 변경: js.js 파일 3개의 URL 변수만 교체 (1줄씩)
+- 응답 형식: { success, data, error, timestamp } 기존 GAS와 동일 유지
+- retry_count: error_message 내 "retry:N|" 패턴 -> Airtable 정식 Number 필드 승격
+- Airtable Linked Record: 파트너-클래스-정산-후기 관계형 참조 (Sheets에서 불가능했던 것)
+
 ### 다음 단계
+- n8n + Airtable 전환 구현 시작 (Phase A~E, 총 10~14일)
 - Task 222: 파트너 대시보드 UI 개발 필요 (GAS API 3개 추가 완료)
 - Task 231: 교육 아카데미 UI 개발 필요 (GAS API 2개 추가 완료)

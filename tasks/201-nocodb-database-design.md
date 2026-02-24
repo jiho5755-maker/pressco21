@@ -1,22 +1,126 @@
-# Task 201: Airtable 데이터베이스 설계 + 초기 세팅 가이드
+# Task 201: NocoDB 설치 + 데이터베이스 설계 가이드
 
-> **버전**: Phase 2 v2.0 (n8n + Airtable)
+> **버전**: Phase 2 v2.1 (n8n + NocoDB)
 > **작성일**: 2026-02-25
 > **의존성**: 없음 (Phase 1.5 검증 결과 참조)
 > **참조 문서**: `docs/phase2/n8n-airtable-migration-architecture.md` 3장
+> **담당 에이전트**: `gas-backend-expert`, `makeshop-planning-expert`, `qa-test-expert`
 
 ---
 
 ## 개요
 
-기존 Google Sheets 8시트 구조를 Airtable 8개 테이블로 전환합니다.
-기존 Base `app6MBsHo7AKwh5XD`(FA 강사 신청 Base)에 신규 테이블을 추가하거나, 별도 Base를 생성합니다.
+기존 Google Sheets 8시트 구조를 NocoDB 8개 테이블로 전환합니다.
+Oracle Cloud ARM 서버 (158.180.77.201)에 NocoDB를 Docker로 설치하고, n8n과 동일 서버에서 운영합니다.
 
-> **플랜 권장**: Airtable Team ($20/월/워크스페이스) — 무료 1,200레코드/Base 제한 해소, 50,000레코드/테이블 지원
+> **플랜**: NocoDB Community Edition (오픈소스, 무료) — 무제한 레코드, 무제한 API 호출, Sustainable Use License (내부 사용 = 영구 무료)
 
 ---
 
-## 테이블 생성 순서 (의존성 고려)
+## 0. NocoDB Docker 설치
+
+### 사전 조건
+
+- Oracle Cloud ARM 서버에 Docker + Docker Compose 설치된 상태 (n8n과 동일 서버)
+- 도메인: `nocodb.pressco21.com` → Nginx 리버스 프록시 설정 필요
+
+### Docker Compose 설치 (권장)
+
+```bash
+# 서버 접속
+ssh ubuntu@158.180.77.201
+
+# NocoDB 디렉토리 생성
+mkdir -p ~/nocodb && cd ~/nocodb
+
+# docker-compose.yml 생성
+cat > docker-compose.yml << 'EOF'
+version: '3'
+
+services:
+  nocodb:
+    image: nocodb/nocodb:latest
+    container_name: nocodb
+    ports:
+      - "8080:8080"
+    environment:
+      - NC_DB=pg://localhost:5432?u=postgres&p=YOUR_PG_PASSWORD&d=nocodb
+      # n8n이 이미 PostgreSQL을 사용 중이라면 동일 DB 서버를 활용할 수 있습니다.
+      # 별도 SQLite 사용 시 아래처럼 단순화:
+      # (NC_DB를 비워두면 /usr/app/data/noco.db SQLite 자동 사용)
+    volumes:
+      - nocodb_data:/usr/app/data
+    restart: unless-stopped
+
+volumes:
+  nocodb_data:
+EOF
+```
+
+> **간단 설치 옵션**: PostgreSQL 연동이 복잡하면 SQLite 모드로 시작:
+> ```yaml
+> environment: []  # NC_DB 제거 → SQLite 자동 사용
+> ```
+
+```bash
+# NocoDB 시작
+docker-compose up -d
+
+# 실행 확인
+docker ps | grep nocodb
+# 로그 확인
+docker logs nocodb
+```
+
+### Nginx 리버스 프록시 설정
+
+`/etc/nginx/sites-available/nocodb` 파일 생성:
+
+```nginx
+server {
+    listen 80;
+    server_name nocodb.pressco21.com;
+    return 301 https://$host$request_uri;
+}
+
+server {
+    listen 443 ssl;
+    server_name nocodb.pressco21.com;
+
+    ssl_certificate /etc/letsencrypt/live/nocodb.pressco21.com/fullchain.pem;
+    ssl_certificate_key /etc/letsencrypt/live/nocodb.pressco21.com/privkey.pem;
+
+    location / {
+        proxy_pass http://localhost:8080;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_http_version 1.1;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection "upgrade";
+    }
+}
+```
+
+```bash
+# Nginx 설정 활성화
+sudo ln -s /etc/nginx/sites-available/nocodb /etc/nginx/sites-enabled/
+sudo nginx -t
+sudo systemctl reload nginx
+
+# SSL 인증서 발급 (Let's Encrypt)
+sudo certbot --nginx -d nocodb.pressco21.com
+```
+
+### NocoDB 초기 계정 설정
+
+1. `https://nocodb.pressco21.com` 접속
+2. 최초 접속 시 관리자 계정 이메일/비밀번호 설정
+3. "New Project" 클릭 → 프로젝트명: `PRESSCO21`
+4. 프로젝트 생성 후 API Token 발급: Project Settings → Team & Auth → API Tokens → Add Token (이름: `n8n-integration`)
+
+---
+
+## 1. 테이블 생성 순서 (의존성 고려)
 
 1. `tbl_Partners` (파트너 상세) — 다른 테이블들이 참조하는 루트
 2. `tbl_Classes` (클래스 메타) — tbl_Partners 링크
@@ -29,14 +133,14 @@
 
 ---
 
-## 1. tbl_Partners (파트너 상세)
+## 2. tbl_Partners (파트너 상세)
 
 **역할**: 승인된 파트너 강사 정보 저장. 전체 시스템의 루트 테이블.
 
 ### 필드 목록
 
-| 순서 | 필드명 | Airtable 타입 | 설정값 | 기존 Sheets 컬럼 |
-|------|--------|-------------|-------|----------------|
+| 순서 | 필드명 | NocoDB 타입 | 설정값 | 기존 Sheets 컬럼 |
+|------|--------|------------|-------|----------------|
 | 1 | partner_code | Single line text | PK 역할, 형식: PC_YYYYMM_NNN | A |
 | 2 | member_id | Single line text | Unique (n8n에서 중복 체크) | B |
 | 3 | partner_name | Single line text | 공방명 | C |
@@ -44,26 +148,26 @@
 | 5 | email | Email | | E |
 | 6 | phone | Phone number | | F |
 | 7 | location | Single line text | 예: 서울 강남, 경기 성남 | G |
-| 8 | commission_rate | Percent | 소수점 2자리 (예: 0.10 = 10%) | H |
-| 9 | reserve_rate | Percent | 소수점 2자리 (예: 1.0 = 100%) | I |
-| 10 | class_count | Number | Format: Integer | J |
-| 11 | avg_rating | Number | Format: Decimal (1 decimal place) | K |
+| 8 | commission_rate | Decimal | 소수점 2자리 (예: 0.10 = 10%) | H |
+| 9 | reserve_rate | Decimal | 소수점 2자리 (예: 1.0 = 100%) | I |
+| 10 | class_count | Number | Integer | J |
+| 11 | avg_rating | Decimal | 소수점 1자리 | K |
 | 12 | education_completed | Checkbox | 기본값: false | L |
-| 13 | education_date | Date | Format: Local (YYYY-MM-DD) | (신규) |
-| 14 | education_score | Number | Format: Integer | (신규) |
+| 13 | education_date | Date | Format: YYYY-MM-DD | (신규) |
+| 14 | education_score | Number | Integer | (신규) |
 | 15 | portfolio_url | URL | | M |
 | 16 | instagram_url | URL | | N |
 | 17 | partner_map_id | Single line text | 파트너맵 연동 ID | O |
-| 18 | approved_date | Date | Format: Local (YYYY-MM-DD) | P |
+| 18 | approved_date | Date | Format: YYYY-MM-DD | P |
 | 19 | status | Single select | 선택지: active, inactive, suspended | Q |
-| 20 | notes | Long text | Airtable Rich text 활성화 | R |
-| 21 | created_at | Created time | Airtable 자동 | (자동) |
-| 22 | updated_at | Last modified time | Airtable 자동 | (자동) |
+| 20 | notes | Long text | | R |
+| 21 | created_at | Created Time | NocoDB 자동 | (자동) |
+| 22 | updated_at | Last Modified Time | NocoDB 자동 | (자동) |
 
 ### grade Single Select 색상 설정
-- SILVER: 회색 (#C0C0C0)
-- GOLD: 노랑 (#FFD700)
-- PLATINUM: 파랑 (#4169E1)
+- SILVER: 회색
+- GOLD: 노랑
+- PLATINUM: 파랑
 
 ### status Single Select 색상 설정
 - active: 초록
@@ -80,31 +184,26 @@
 | GOLD 승급 후보 | grade = SILVER, class_count >= 6 | class_count DESC | 승급 모니터링 |
 | PLATINUM 승급 후보 | grade = GOLD, class_count >= 25 | class_count DESC | 승급 모니터링 |
 
-### Rollup 필드 (tbl_Classes 링크 설정 후 추가)
-
-- `total_classes`: COUNTA(tbl_Classes에서 class_id)
-- `active_classes`: COUNTIF(tbl_Classes, status='active')
-
 ---
 
-## 2. tbl_Classes (클래스 메타)
+## 3. tbl_Classes (클래스 메타)
 
 **역할**: 파트너가 개설한 클래스 정보 저장. 메이크샵 상품과 1:1 매핑.
 
 ### 필드 목록
 
-| 순서 | 필드명 | Airtable 타입 | 설정값 | 기존 Sheets 컬럼 |
-|------|--------|-------------|-------|----------------|
+| 순서 | 필드명 | NocoDB 타입 | 설정값 | 기존 Sheets 컬럼 |
+|------|--------|------------|-------|----------------|
 | 1 | class_id | Single line text | PK, 형식: CLS_XXXXXX | A |
 | 2 | makeshop_product_id | Single line text | 메이크샵 branduid | B |
-| 3 | partner_code | Link to tbl_Partners | Allow linking multiple: OFF | C |
+| 3 | partner_code | Links | → tbl_Partners 연결 | C |
 | 4 | class_name | Single line text | | D |
 | 5 | category | Single select | 압화, 레진, 캔들, 석고, 비즈, 기타 | E |
 | 6 | level | Single select | beginner, intermediate, advanced | F |
-| 7 | price | Currency | KRW, 소수점 없음 | G |
+| 7 | price | Currency | KRW | G |
 | 8 | duration_min | Number | Integer (수업 시간, 분 단위) | H |
 | 9 | max_students | Number | Integer | I |
-| 10 | description | Long text | Rich text 활성화 | J |
+| 10 | description | Long text | | J |
 | 11 | curriculum_json | Long text | JSON 문자열 저장 | K |
 | 12 | schedules_json | Long text | JSON 문자열 (날짜/시간 목록) | (신규) |
 | 13 | instructor_bio | Long text | | L |
@@ -115,28 +214,12 @@
 | 18 | materials_included | Single line text | 포함/별도/불포함 | Q |
 | 19 | materials_price | Currency | KRW, 재료비 별도 금액 | (신규) |
 | 20 | materials_product_ids | Single line text | 콤마 구분 branduid | R |
-| 21 | tags | Multiple select | 드래그앤드롭으로 추가 가능 | S |
+| 21 | tags | Multi Select | | S |
 | 22 | type | Single select | 원데이, 정기, 온라인 | (신규) |
 | 23 | status | Single select | active, paused, closed, INACTIVE | T |
-| 24 | created_date | Date | Format: Local | U |
+| 24 | created_date | Date | Format: YYYY-MM-DD | U |
 | 25 | class_count | Number | 수강 건수, Integer | V |
-| 26 | avg_rating | Number | 평균 평점, Decimal 1dp | W |
-
-### level Single Select 색상 설정
-- beginner: 초록 (입문)
-- intermediate: 파랑 (중급)
-- advanced: 보라 (고급)
-
-### type Single Select 색상 설정
-- 원데이: 주황
-- 정기: 파랑
-- 온라인: 초록
-
-### status Single Select 색상 설정
-- active: 초록
-- paused: 노랑
-- closed: 회색
-- INACTIVE: 빨강 (메이크샵에서 삭제/비공개 처리된 상품)
+| 26 | avg_rating | Decimal | 평균 평점, 소수점 1자리 | W |
 
 ### 뷰 설계
 
@@ -149,14 +232,14 @@
 
 ---
 
-## 3. tbl_Applications (파트너 신청)
+## 4. tbl_Applications (파트너 신청)
 
 **역할**: 파트너 가입 신청서. 관리자가 심사 후 승인/반려 처리.
 
 ### 필드 목록
 
-| 순서 | 필드명 | Airtable 타입 | 설정값 | 기존 Sheets 컬럼 |
-|------|--------|-------------|-------|----------------|
+| 순서 | 필드명 | NocoDB 타입 | 설정값 | 기존 Sheets 컬럼 |
+|------|--------|------------|-------|----------------|
 | 1 | application_id | Single line text | PK, 형식: APP_YYYYMMDD_XXXXXX | A |
 | 2 | member_id | Single line text | 메이크샵 회원 ID | B |
 | 3 | applicant_name | Single line text | | C |
@@ -169,8 +252,8 @@
 | 10 | instagram_url | URL | 인스타그램 링크 | J |
 | 11 | introduction | Long text | 자기소개 및 신청 사유 | K |
 | 12 | status | Single select | PENDING, APPROVED, REJECTED | L |
-| 13 | applied_date | Created time | Airtable 자동 | M |
-| 14 | reviewed_date | Date | Format: Local | N |
+| 13 | applied_date | Created Time | NocoDB 자동 | M |
+| 14 | reviewed_date | Date | Format: YYYY-MM-DD | N |
 | 15 | reviewer_note | Long text | 관리자 검토 메모 | O |
 
 ### status Single Select 색상 설정
@@ -187,29 +270,29 @@
 | 반려 | status = REJECTED | reviewed_date DESC | 반려 이력 |
 | 갤러리 뷰 | status = PENDING | applied_date ASC | portfolio_url 이미지 미리보기 |
 
-> 갤러리 뷰: Airtable에서 "+" -> "Gallery view" 선택. Cover image를 portfolio_url로 설정하면 이미지 미리보기 가능.
+> 갤러리 뷰: NocoDB에서 "+" → "Gallery" 선택. Cover image 필드를 portfolio_url로 설정하면 이미지 카드 형태 미리보기 가능.
 
 ---
 
-## 4. tbl_Settlements (정산 내역)
+## 5. tbl_Settlements (정산 내역)
 
 **역할**: 예약/결제 발생 시 생성. 수수료 계산, 적립금 지급, 리마인더/후기 발송 이력 포함.
 
 ### 필드 목록
 
-| 순서 | 필드명 | Airtable 타입 | 설정값 | 기존 Sheets 컬럼 |
-|------|--------|-------------|-------|----------------|
+| 순서 | 필드명 | NocoDB 타입 | 설정값 | 기존 Sheets 컬럼 |
+|------|--------|------------|-------|----------------|
 | 1 | settlement_id | Single line text | PK, 형식: STL_YYYYMMDD_XXXXXX | A |
 | 2 | order_id | Single line text | 메이크샵 주문번호 | B |
-| 3 | partner_code | Link to tbl_Partners | Allow linking multiple: OFF | C |
-| 4 | class_id | Link to tbl_Classes | Allow linking multiple: OFF | D |
+| 3 | partner_code | Links | → tbl_Partners 연결 | C |
+| 4 | class_id | Links | → tbl_Classes 연결 | D |
 | 5 | member_id | Single line text | 수강생 회원 ID | E |
 | 6 | order_amount | Currency | KRW | F |
-| 7 | commission_rate | Percent | 소수점 2자리 | G |
+| 7 | commission_rate | Decimal | 소수점 2자리 | G |
 | 8 | commission_amount | Currency | KRW | H |
-| 9 | reserve_rate | Percent | 소수점 2자리 | I |
+| 9 | reserve_rate | Decimal | 소수점 2자리 | I |
 | 10 | reserve_amount | Currency | KRW | J |
-| 11 | class_date | Date | Format: Local (수업 일시) | K |
+| 11 | class_date | Date | Format: YYYY-MM-DD (수업 일시) | K |
 | 12 | settlement_due_date | Date | class_date + 3일 (D+3 정산 기준) | (신규) |
 | 13 | student_count | Number | Integer (수강 인원) | L |
 | 14 | status | Single select | PENDING, PENDING_SETTLEMENT, PROCESSING, COMPLETED, FAILED, SELF_PURCHASE | M |
@@ -218,8 +301,8 @@
 | 17 | error_message | Long text | 에러 메시지 | P |
 | 18 | student_email_sent | Single line text | D3_SENT, D1_SENT, REVIEW_SENT 조합 | Q |
 | 19 | partner_email_sent | Single line text | BOOKING_SENT, D3_SENT, D1_SENT 조합 | R |
-| 20 | created_date | Created time | Airtable 자동 | S |
-| 21 | completed_date | Date | Format: Local | T |
+| 20 | created_date | Created Time | NocoDB 자동 | S |
+| 21 | completed_date | Date | Format: YYYY-MM-DD | T |
 | 22 | student_name | Single line text | 수강생 이름 | U |
 | 23 | student_email | Email | 수강생 이메일 | V |
 | 24 | student_phone | Phone number | 수강생 전화번호 | W |
@@ -244,51 +327,49 @@
 | 파트너별 정산 | status = COMPLETED | partner_code 그룹핑 | 수수료 합산 |
 | 리마인더 미발송 | status = PENDING_SETTLEMENT, class_date 3일~1일 전 | class_date ASC | 리마인더 대상 확인 |
 
-> Summary 기능: "파트너별 정산" 뷰에서 commission_amount 컬럼 Summary -> SUM 선택 시 파트너별 수수료 자동 합산
-
 ---
 
-## 5. tbl_Reviews (후기)
+## 6. tbl_Reviews (후기)
 
 **역할**: 수강생이 작성한 클래스 후기. 파트너 답변 포함.
 
 ### 필드 목록
 
-| 순서 | 필드명 | Airtable 타입 | 설정값 | 기존 Sheets 컬럼 |
-|------|--------|-------------|-------|----------------|
+| 순서 | 필드명 | NocoDB 타입 | 설정값 | 기존 Sheets 컬럼 |
+|------|--------|------------|-------|----------------|
 | 1 | review_id | Single line text | PK, 형식: REV_XXXXXX | A |
-| 2 | class_id | Link to tbl_Classes | Allow linking multiple: OFF | B |
+| 2 | class_id | Links | → tbl_Classes 연결 | B |
 | 3 | member_id | Single line text | 수강생 회원 ID | C |
 | 4 | reviewer_name | Single line text | 수강생 이름 | D |
 | 5 | rating | Rating | 5-star | E |
 | 6 | content | Long text | 후기 본문 | F |
 | 7 | image_urls | Long text | 콤마 구분 URL 목록 | G |
-| 8 | created_at | Created time | Airtable 자동 | H |
-| 9 | partner_code | Link to tbl_Partners | Allow linking multiple: OFF | I |
+| 8 | created_at | Created Time | NocoDB 자동 | H |
+| 9 | partner_code | Links | → tbl_Partners 연결 | I |
 | 10 | partner_answer | Long text | 파트너 답변 | J |
-| 11 | answer_at | Date | Format: Local | K |
+| 11 | answer_at | Date | Format: YYYY-MM-DD | K |
 
 ### 뷰 설계
 
 | 뷰 이름 | 필터 | 정렬 | 용도 |
 |--------|------|------|------|
 | 최근 후기 | 없음 | created_at DESC | 신규 후기 확인 |
-| 미답변 후기 | partner_answer = BLANK() | created_at ASC | 파트너 답변 촉구 |
+| 미답변 후기 | partner_answer = null | created_at ASC | 파트너 답변 촉구 |
 | 별점별 보기 | 없음 | rating 그룹핑 | 별점 분포 확인 |
-| 사진 후기 | image_urls != BLANK() | created_at DESC | 마케팅 소재용 |
+| 사진 후기 | image_urls != null | created_at DESC | 마케팅 소재용 |
 | 저평점 후기 | rating <= 3 | created_at DESC | 품질 모니터링 |
 
 ---
 
-## 6. tbl_PollLogs (주문 처리 로그)
+## 7. tbl_PollLogs (주문 처리 로그)
 
 **역할**: n8n WF-05 주문 폴링 실행 이력. 10분마다 자동 기록.
 
 ### 필드 목록
 
-| 순서 | 필드명 | Airtable 타입 | 설정값 |
-|------|--------|-------------|-------|
-| 1 | poll_time | Created time | Airtable 자동 |
+| 순서 | 필드명 | NocoDB 타입 | 설정값 |
+|------|--------|------------|-------|
+| 1 | poll_time | Created Time | NocoDB 자동 |
 | 2 | orders_found | Number | Integer |
 | 3 | orders_processed | Number | Integer |
 | 4 | errors | Long text | 에러 상세 |
@@ -300,46 +381,46 @@
 | 뷰 이름 | 필터 | 정렬 | 용도 |
 |--------|------|------|------|
 | 최근 폴링 | 없음 | poll_time DESC | 최근 실행 이력 (기본 50건) |
-| 에러 발생 건 | errors != BLANK() | poll_time DESC | 에러 이력 확인 |
+| 에러 발생 건 | errors != null | poll_time DESC | 에러 이력 확인 |
 
 ---
 
-## 7. tbl_EmailLogs (이메일 발송 로그)
+## 8. tbl_EmailLogs (이메일 발송 로그)
 
-**역할**: n8n에서 발송한 이메일 이력 추적. GAS 시절 100건 한도 관리 역할은 없어지고 이력 추적 목적으로 유지.
+**역할**: n8n에서 발송한 이메일 이력 추적.
 
 ### 필드 목록
 
-| 순서 | 필드명 | Airtable 타입 | 설정값 |
-|------|--------|-------------|-------|
+| 순서 | 필드명 | NocoDB 타입 | 설정값 |
+|------|--------|------------|-------|
 | 1 | recipient | Email | 수신자 이메일 |
 | 2 | email_type | Single select | BOOKING_CONFIRM, PARTNER_NOTIFY, REMINDER_D3_STUDENT, REMINDER_D1_STUDENT, REMINDER_D3_PARTNER, REMINDER_D1_PARTNER, REVIEW_REQUEST_STUDENT, REVIEW_REQUEST_PARTNER, PARTNER_APPLY_CONFIRM, PARTNER_APPROVAL, GRADE_UPGRADE, EDUCATION_CERTIFICATE, EDUCATION_RETRY |
-| 3 | status | Single select | SENT, FAILED, LIMIT_EXCEEDED |
+| 3 | status | Single select | SENT, FAILED |
 | 4 | error_message | Long text | 실패 원인 |
-| 5 | sent_at | Created time | Airtable 자동 |
-| 6 | log_date | Formula | `DATESTR({sent_at})` — 날짜 추출 집계용 |
+| 5 | sent_at | Created Time | NocoDB 자동 |
+| 6 | log_date | Formula | `DATE({sent_at})` — 날짜 추출 집계용 |
 
 ### 뷰 설계
 
 | 뷰 이름 | 필터 | 정렬 | 용도 |
 |--------|------|------|------|
-| 오늘 발송 | sent_at = TODAY() | sent_at DESC | 일일 발송 현황 |
+| 오늘 발송 | log_date = TODAY() | sent_at DESC | 일일 발송 현황 |
 | 실패 건 | status = FAILED | sent_at DESC | 발송 실패 모니터링 |
-| 유형별 통계 | 없음 | email_type 그룹핑 + Count Summary | 이메일 유형별 통계 |
+| 유형별 통계 | 없음 | email_type 그룹핑 | 이메일 유형별 통계 |
 
 ---
 
-## 8. tbl_Settings (시스템 설정)
+## 9. tbl_Settings (시스템 설정)
 
 **역할**: n8n 워크플로우에서 참조하는 시스템 설정값. API 키는 저장하지 않고 n8n Credentials에 저장.
 
 ### 필드 목록
 
-| 순서 | 필드명 | Airtable 타입 | 설정값 |
-|------|--------|-------------|-------|
+| 순서 | 필드명 | NocoDB 타입 | 설정값 |
+|------|--------|------------|-------|
 | 1 | key | Single line text | PK 역할 |
 | 2 | value | Long text | 설정값 |
-| 3 | updated_at | Last modified time | Airtable 자동 |
+| 3 | updated_at | Last Modified Time | NocoDB 자동 |
 
 ### 초기 데이터 입력 (테이블 생성 후 수동 입력)
 
@@ -357,30 +438,29 @@
 | platinum_reserve_rate | 0.8 | PLATINUM 적립금 비율 |
 | settlement_delay_days | 3 | D+N 정산 지연 일수 |
 
-> ⚠️ 민감 정보(API 키, 앱 비밀번호)는 Airtable에 저장하지 않고 n8n Credentials에 저장합니다.
+> ⚠️ 민감 정보(API 키, 앱 비밀번호)는 NocoDB에 저장하지 않고 n8n Credentials에 저장합니다.
 
 ---
 
-## 9. Linked Record 관계 설정 순서
+## 10. Relations(Links) 설정 순서
 
-Airtable에서 Linked Record를 양방향으로 연결합니다.
-아래 순서대로 설정해야 역방향 링크 필드가 올바르게 생성됩니다.
+NocoDB에서 Links 관계를 설정합니다. 아래 순서대로 설정해야 역방향 링크 필드가 올바르게 생성됩니다.
 
 ```
-Step 1: tbl_Classes.partner_code -> tbl_Partners 연결
-  -> tbl_Partners에 "Classes" 역방향 링크 필드 자동 생성
+Step 1: tbl_Classes.partner_code -> tbl_Partners 연결 (Has Many)
+  -> tbl_Partners에 "tbl_Classes" 역방향 링크 필드 자동 생성
 
-Step 2: tbl_Settlements.partner_code -> tbl_Partners 연결
-  -> tbl_Partners에 "Settlements" 역방향 링크 필드 자동 생성
+Step 2: tbl_Settlements.partner_code -> tbl_Partners 연결 (Has Many)
+  -> tbl_Partners에 "tbl_Settlements" 역방향 링크 필드 자동 생성
 
-Step 3: tbl_Settlements.class_id -> tbl_Classes 연결
-  -> tbl_Classes에 "Settlements" 역방향 링크 필드 자동 생성
+Step 3: tbl_Settlements.class_id -> tbl_Classes 연결 (Has Many)
+  -> tbl_Classes에 "tbl_Settlements" 역방향 링크 필드 자동 생성
 
-Step 4: tbl_Reviews.class_id -> tbl_Classes 연결
-  -> tbl_Classes에 "Reviews" 역방향 링크 필드 자동 생성
+Step 4: tbl_Reviews.class_id -> tbl_Classes 연결 (Has Many)
+  -> tbl_Classes에 "tbl_Reviews" 역방향 링크 필드 자동 생성
 
-Step 5: tbl_Reviews.partner_code -> tbl_Partners 연결
-  -> tbl_Partners에 "Reviews" 역방향 링크 필드 자동 생성
+Step 5: tbl_Reviews.partner_code -> tbl_Partners 연결 (Has Many)
+  -> tbl_Partners에 "tbl_Reviews" 역방향 링크 필드 자동 생성
 ```
 
 ### 관계도
@@ -403,67 +483,52 @@ tbl_Partners (파트너 상세)
 
 ---
 
-## 10. Rollup 필드 설정 (선택 사항)
+## 11. n8n에서 NocoDB 연동 시 주의사항
 
-Linked Record 설정 완료 후 아래 Rollup 필드를 추가하면 집계 자동화가 가능합니다.
-
-### tbl_Partners에 추가
-
-| 필드명 | 타입 | 설정 |
-|--------|------|------|
-| total_settlement_count | Rollup | tbl_Settlements의 settlement_id, COUNTA() |
-| total_commission | Rollup | tbl_Settlements의 commission_amount (status=COMPLETED), SUM() |
-| partner_avg_rating | Rollup | tbl_Reviews의 rating, AVERAGE() |
-
-### tbl_Classes에 추가
-
-| 필드명 | 타입 | 설정 |
-|--------|------|------|
-| review_count | Rollup | tbl_Reviews의 review_id, COUNTA() |
-| class_avg_rating | Rollup | tbl_Reviews의 rating, AVERAGE() |
-
----
-
-## 11. n8n에서 Airtable 연동 시 주의사항
-
-### Base ID 및 Table ID 확인
+### Project ID 및 Table Name 확인
 
 ```
-Base URL 예시: https://airtable.com/app6MBsHo7AKwh5XD/tblXXXXXXXX/...
-                                      ^^^^^^^^^^^^^^^^   ^^^^^^^^^^
-                                      Base ID           Table ID (Airtable API에서 필요)
+NocoDB API URL 구조:
+https://nocodb.pressco21.com/api/v1/db/data/noco/{projectId}/{tableId}
+                                                  ^^^^^^^^^^^  ^^^^^^^
+                                                  Project ID   Table Name or Table ID
 ```
 
-n8n Airtable 노드에서는 `Base ID`와 `Table Name` (또는 `Table ID`)을 입력해야 합니다.
-각 테이블의 URL에서 `tbl...` 부분을 복사해 두세요.
+n8n NocoDB 노드에서:
+- Connection Type: NocoDB (전용 노드 사용, Credentials에 `xc-token` 등록 필요)
+- Operation: List, Create, Update, Delete, Get
 
-### filterByFormula 예시
-
-n8n Airtable 노드의 "Filter By Formula" 필드 예시:
+### NocoDB API where 파라미터 예시
 
 ```javascript
 // 활성 파트너 조회
-{status}='active'
+where=(status,eq,active)
 
-// D+3 정산 대상 조회 (오늘 이전이고 PENDING_SETTLEMENT 상태)
-AND({status}='PENDING_SETTLEMENT', {settlement_due_date}<='2026-02-28')
+// D+3 정산 대상 조회 (PENDING_SETTLEMENT 상태 + 만기일 이전)
+where=(status,eq,PENDING_SETTLEMENT)~and(settlement_due_date,lte,2026-02-28)
 
-// 리마인더 D-3 대상 조회 (3일 후 수업 + D3_SENT 미발송)
-AND({status}='PENDING_SETTLEMENT', {class_date}='2026-03-03', FIND('D3_SENT',{student_email_sent})=0)
+// 리마인더 D-3 대상 조회 (3일 후 수업 + D3_SENT 미포함)
+where=(status,eq,PENDING_SETTLEMENT)~and(class_date,eq,2026-03-03)~and(student_email_sent,nlike,%25D3_SENT%25)
 
-// 후기 요청 대상 조회 (7일 전 수업 + REVIEW_SENT 미발송)
-AND({status}='COMPLETED', {class_date}='2026-02-18', FIND('REVIEW_SENT',{student_email_sent})=0)
+// 후기 요청 대상 조회 (7일 전 수업 + REVIEW_SENT 미포함)
+where=(status,eq,COMPLETED)~and(class_date,eq,2026-02-18)~and(student_email_sent,nlike,%25REVIEW_SENT%25)
 ```
+
+> NocoDB API 연산자: `eq`, `neq`, `lt`, `lte`, `gt`, `gte`, `like`, `nlike`, `null`, `notnull`
+> 복합 조건: `~and`, `~or`
 
 ---
 
 ## 12. 완료 체크리스트
 
-### 기본 설정
+### NocoDB 설치
 
-- [ ] Airtable 플랜 확인 (Team 플랜 권장 — 50,000레코드/테이블)
-- [ ] Base 결정: 기존 `app6MBsHo7AKwh5XD` 사용 또는 신규 Base 생성
-- [ ] Airtable API Key 생성 (Airtable → Account → API Key 또는 Personal Access Token)
+- [ ] Oracle Cloud 서버에 NocoDB Docker 컨테이너 실행 (`docker ps` 확인)
+- [ ] `nocodb.pressco21.com` Nginx 리버스 프록시 설정 + SSL 인증서 발급
+- [ ] `https://nocodb.pressco21.com` 접속 가능 확인
+- [ ] 관리자 계정 생성 (이메일/비밀번호)
+- [ ] 프로젝트명 `PRESSCO21` 생성
+- [ ] API Token 발급 (이름: `n8n-integration`) → 16자리 이상 토큰 복사
 
 ### 테이블 생성 (8개)
 
@@ -476,7 +541,7 @@ AND({status}='COMPLETED', {class_date}='2026-02-18', FIND('REVIEW_SENT',{student
 - [ ] tbl_EmailLogs — 6개 필드 + 3개 뷰
 - [ ] tbl_Settings — 3개 필드
 
-### Linked Record 설정
+### Links(Relations) 설정
 
 - [ ] tbl_Classes.partner_code -> tbl_Partners 연결
 - [ ] tbl_Settlements.partner_code -> tbl_Partners 연결
@@ -492,30 +557,32 @@ AND({status}='COMPLETED', {class_date}='2026-02-18', FIND('REVIEW_SENT',{student
 
 ### n8n 연동 준비
 
-- [ ] 각 테이블의 Table ID 메모 (URL에서 `tbl...` 부분)
-- [ ] Base ID 확인 (`app6MBsHo7AKwh5XD` 또는 신규 Base의 ID)
-- [ ] n8n Credentials에 Airtable API Key 등록 (Task 202에서 진행)
+- [ ] NocoDB API Token 복사 → Task 202 Credential 등록에서 사용
+- [ ] Project ID 확인 (NocoDB URL에서 확인)
+- [ ] 각 테이블의 Table ID 확인 (NocoDB URL에서 `md_...` 또는 테이블명으로 확인)
 
 ### 검증
 
 - [ ] tbl_Classes.partner_code에 tbl_Partners 레코드 연결 테스트
-- [ ] tbl_Settlements에 테스트 레코드 생성 후 파트너/클래스 링크 확인
-- [ ] Rollup 필드 자동 계산 확인 (tbl_Partners에서 "총 정산 건수")
+- [ ] tbl_Settlements에 테스트 레코드 생성 후 파트너/클래스 Links 확인
+- [ ] NocoDB API 직접 호출 테스트: `curl -H "xc-token: YOUR_TOKEN" https://nocodb.pressco21.com/api/v1/db/data/noco/{projectId}/tbl_Settings`
 - [ ] "심사 대기" 뷰에 PENDING 신청 레코드 필터링 확인
 
 ---
 
 ## 참고: 기존 GAS Sheets와의 필드 차이 요약
 
-| 항목 | GAS Sheets | Airtable |
-|-----|-----------|---------|
+| 항목 | GAS Sheets | NocoDB |
+|-----|-----------|--------|
 | 등급 필드 | 문자열 (입력 오류 가능) | Single Select (드롭다운, 실수 방지) |
 | 날짜 필드 | 문자열 (형식 불일치 위험) | Date 타입 (달력 UI, 자동 포맷) |
 | 화폐 필드 | 숫자 (단위 표시 없음) | Currency KRW (₩1,000 형식 표시) |
 | 체크박스 필드 | "true"/"false" 문자열 | Checkbox (클릭 토글) |
 | 별점 필드 | 숫자 1~5 | Rating 필드 (별모양 UI) |
-| 관계 필드 | 텍스트 ID 수동 참조 | Linked Record (클릭 → 레코드 이동) |
+| 관계 필드 | 텍스트 ID 수동 참조 | Links (클릭 → 레코드 이동) |
 | 집계 | SUMIF/COUNTIF 수동 작성 | Rollup 필드 자동 계산 |
 | retry_count | error_message에 "retry:N|" 패턴 | Number 필드 (필터링/정렬 가능) |
-| created_at | 수동 기록 | Created time 자동 |
-| updated_at | 수동 기록 | Last modified time 자동 |
+| created_at | 수동 기록 | Created Time 자동 |
+| updated_at | 수동 기록 | Last Modified Time 자동 |
+| API 인증 | GAS 배포 URL (공개) | xc-token 헤더 (비공개) |
+| API 호출 한도 | 없음 (서버 timeout 위험) | 무제한 (자체 서버) |

@@ -1,9 +1,10 @@
 # Task 202: n8n 서버 환경 설정 (CORS, Credentials, Gmail SMTP)
 
-> **버전**: Phase 2 v2.0 (n8n + Airtable)
+> **버전**: Phase 2 v2.1 (n8n + NocoDB)
 > **작성일**: 2026-02-25
-> **의존성**: 없음 (Task 201과 병렬 진행 가능)
+> **의존성**: Task 201 (NocoDB 설치 완료 후 NocoDB API Token 필요)
 > **참조 문서**: `docs/phase2/n8n-airtable-migration-architecture.md` 4장
+> **담당 에이전트**: `gas-backend-expert`, `makeshop-planning-expert`
 
 ---
 
@@ -11,6 +12,8 @@
 
 n8n.pressco21.com 서버에 Phase 2 개발을 위한 환경을 설정합니다.
 Oracle Cloud ARM 서버 (158.180.77.201)에서 실행 중인 n8n에 아래 설정을 적용합니다.
+
+> Task 201에서 NocoDB가 동일 서버에 설치되므로, 이 Task에서 NocoDB API Token을 n8n Credentials에 등록합니다.
 
 ---
 
@@ -130,22 +133,28 @@ fetch('https://n8n.pressco21.com/webhook/health-check', {
 
 ---
 
-## 3. n8n Credentials 등록 (5개)
+## 3. n8n Credentials 등록 (6개)
 
 n8n UI (https://n8n.pressco21.com) → Settings → Credentials → New
 
-### 3-1. Airtable API Key
+### 3-1. NocoDB API Token
 
 | 항목 | 값 |
 |------|-----|
-| Credential Type | Airtable API |
-| API Key | Airtable Personal Access Token |
-| 이름 | PRESSCO21-Airtable |
+| Credential Type | NocoDB API (또는 HTTP Header Auth) |
+| Token | Task 201에서 발급한 API Token (`xc-token` 헤더) |
+| Base URL | https://nocodb.pressco21.com |
+| 이름 | PRESSCO21-NocoDB |
 
-Airtable Personal Access Token 발급:
-1. https://airtable.com/account → API → "Generate API Key" 또는 "Personal access tokens"
-2. 권한 범위: `data.records:read`, `data.records:write`, `schema.bases:read`
-3. Base 선택: PRESSCO21 Base 또는 All bases
+> **n8n NocoDB 노드**: n8n 코어에 NocoDB 전용 노드가 내장되어 있습니다.
+> Credentials → New → "NocoDB API" 검색 → API Token + Base URL 입력.
+>
+> n8n NocoDB 노드가 보이지 않으면 HTTP Header Auth로 대체:
+> | 항목 | 값 |
+> |------|-----|
+> | Credential Type | HTTP Header Auth |
+> | Name | xc-token |
+> | Value | (Task 201에서 발급한 API Token) |
 
 ### 3-2. Makeshop API (메이크샵 오픈 API)
 
@@ -326,9 +335,9 @@ Respond to Webhook 노드:
 - [ ] N8N_CORS_ALLOWED_ORIGINS 환경변수 설정 (또는 Nginx CORS 헤더)
 - [ ] foreverlove.co.kr에서 n8n Webhook fetch 호출 → CORS 에러 없이 응답 확인
 
-### Credentials 등록 (5개)
+### Credentials 등록 (6개)
 
-- [ ] PRESSCO21-Airtable (Airtable API Key)
+- [ ] PRESSCO21-NocoDB (NocoDB API 또는 HTTP Header Auth, xc-token)
 - [ ] PRESSCO21-Makeshop-Shopkey (HTTP Header Auth)
 - [ ] PRESSCO21-Makeshop-Licensekey (HTTP Header Auth)
 - [ ] PRESSCO21-Gmail-SMTP (SMTP)

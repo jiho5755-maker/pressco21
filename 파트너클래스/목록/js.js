@@ -232,8 +232,12 @@
             })
             .then(function(data) {
                 if (data && data.success && Array.isArray(data.data)) {
-                    setCache('categories', data.data);
-                    renderCategoryFilters(data.data);
+                    // 객체 배열이면 name 문자열만 추출
+                    var cats = data.data.map(function(c) {
+                        return (typeof c === 'object' && c !== null) ? c.name : c;
+                    });
+                    setCache('categories', cats);
+                    renderCategoryFilters(cats);
                 }
             })
             .catch(function(err) {

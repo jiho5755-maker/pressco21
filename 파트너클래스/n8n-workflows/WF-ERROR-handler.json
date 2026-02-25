@@ -1,0 +1,101 @@
+{
+  "name": "WF-ERROR Global Error Handler",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "wf-err-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [220, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-ERROR Step 1: 에러 정보 파싱\n// n8n Error Trigger가 전달하는 실행 에러 데이터를 구조화\n// KST 시간대로 변환하여 텔레그램 메시지 가독성 확보\n// ===================================================\n\nconst input = $input.first().json;\n\n// === 에러 정보 추출 (n8n Error Trigger 구조) ===\nconst execution = input.execution || {};\nconst workflow = input.workflow || {};\n\nconst workflowName = workflow.name || '(알 수 없음)';\nconst workflowId = String(workflow.id || '');\nconst executionId = String(execution.id || '');\nconst lastNodeExecuted = execution.lastNodeExecuted || '(알 수 없음)';\nconst executionMode = execution.mode || 'unknown';\n\n// === 에러 메시지 추출 ===\n// n8n은 여러 구조로 에러 데이터를 전달할 수 있음\nlet errorMessage = '(에러 메시지 없음)';\nif (input.execution && input.execution.error) {\n  errorMessage = input.execution.error.message || JSON.stringify(input.execution.error);\n} else if (input.error) {\n  errorMessage = input.error.message || JSON.stringify(input.error);\n}\n\n// 에러 메시지 길이 제한 (텔레그램 4096자 제한 대비)\nif (errorMessage.length > 500) {\n  errorMessage = errorMessage.substring(0, 500) + '...(생략)';\n}\n\n// === KST 시간 변환 ===\nconst now = new Date();\nconst kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nconst pad = (n) => String(n).padStart(2, '0');\nconst timestampKST = kst.getFullYear() + '-'\n  + pad(kst.getMonth() + 1) + '-'\n  + pad(kst.getDate()) + ' '\n  + pad(kst.getHours()) + ':'\n  + pad(kst.getMinutes()) + ':'\n  + pad(kst.getSeconds());\n\n// === 텔레그램 메시지 구성 ===\n// Markdown 특수문자 이스케이프 (_, *, `, [, ])\nfunction escapeMd(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/\\\\/g, '\\\\\\\\')\n    .replace(/_/g, '\\\\_')\n    .replace(/\\*/g, '\\\\*')\n    .replace(/`/g, '\\\\`')\n    .replace(/\\[/g, '\\\\[')\n    .replace(/\\]/g, '\\\\]');\n}\n\nconst telegramMessage = '\\u26A0\\uFE0F *n8n \\uC5D0\\uB7EC*\\n\\n'\n  + '\\uC6CC\\uD06C\\uD50C\\uB85C\\uC6B0: ' + escapeMd(workflowName) + '\\n'\n  + '\\uB178\\uB4DC: ' + escapeMd(lastNodeExecuted) + '\\n'\n  + '\\uC5D0\\uB7EC: ' + escapeMd(errorMessage) + '\\n'\n  + '\\uC2E4\\uD589ID: `' + executionId + '`\\n'\n  + '\\uBAA8\\uB4DC: ' + executionMode + '\\n'\n  + '\\uC2DC\\uAC01: ' + timestampKST + ' (KST)';\n\n// === NocoDB 로그용 데이터 ===\nconst logContent = JSON.stringify({\n  workflowName: workflowName,\n  workflowId: workflowId,\n  nodeName: lastNodeExecuted,\n  errorMessage: errorMessage,\n  executionId: executionId,\n  executionMode: executionMode\n});\n\nreturn [{\n  json: {\n    _telegramMessage: telegramMessage,\n    _logContent: logContent,\n    _timestampISO: now.toISOString(),\n    _workflowName: workflowName,\n    _executionId: executionId\n  }\n}];"
+      },
+      "id": "wf-err-parse",
+      "name": "Parse Error Info",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 400]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "wf-err-telegram",
+      "name": "Telegram Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [660, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_EmailLogs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'ERROR', content: $json._logContent, sent_at: $json._timestampISO, recipient_email: '', settlement_id: $json._executionId }) }}",
+        "options": {
+          "retry": {
+            "maxTries": 2
+          }
+        }
+      },
+      "id": "wf-err-nocodb-log",
+      "name": "NocoDB Log Error",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 500],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          { "node": "Parse Error Info", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse Error Info": {
+      "main": [
+        [
+          { "node": "Telegram Error Alert", "type": "main", "index": 0 },
+          { "node": "NocoDB Log Error", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "PRESSCO21" },
+    { "name": "Error Handler" },
+    { "name": "Phase 2" }
+  ],
+  "pinData": {}
+}

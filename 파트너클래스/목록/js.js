@@ -1404,11 +1404,8 @@
         for (var i = 0; i < classes.length; i++) {
             var cls = classes[i];
             var classId = encodeURIComponent(cls.class_id || '');
-            /*
-             * URL 내 id=CLASS_DETAIL_PAGE_ID 는 메이크샵 상세 페이지 ID 확정 후 교체
-             * 현재 id=2607 로 임시 사용 중
-             */
-            var detailUrl = 'https://foreverlove.co.kr/shop/page.html?id=CLASS_DETAIL_PAGE_ID&class_id=' + classId;
+            /* 메이크샵 상세 페이지 ID: 2607 (확정) */
+            var detailUrl = 'https://foreverlove.co.kr/shop/page.html?id=2607&class_id=' + classId;
             items.push({
                 '@type': 'ListItem',
                 'position': i + 1,

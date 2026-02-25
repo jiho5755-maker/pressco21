@@ -69,7 +69,7 @@
 
         if (!classId) {
             // id 파라미터 없으면 목록으로 리다이렉트
-            window.location.href = '../\uBAA9\uB85D/';
+            window.location.href = '/shop/page.html?id=2606';
             return;
         }
 
@@ -643,7 +643,7 @@
         // 액션 버튼
         html += '<div class="instructor-actions">';
         if (partner.partner_code) {
-            html += '<a href="../\uBAA9\uB85D/?partner=' + encodeURIComponent(partner.partner_code) + '" class="instructor-action-btn instructor-action-btn--primary">'
+            html += '<a href="/shop/page.html?id=2606&partner=' + encodeURIComponent(partner.partner_code) + '" class="instructor-action-btn instructor-action-btn--primary">'
                 + '\uB2E4\uB978 \uD074\uB798\uC2A4 \uBCF4\uAE30</a>';
         }
         html += '</div>';

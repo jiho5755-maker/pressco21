@@ -1158,3 +1158,4 @@ Phase 3
 | 2026-02-25 | 3.3 | **Task 211~232 n8n 워크플로우 13개 완료** -- WF-01~WF-13+ERROR: class-api/partner-auth/partner-data/record-booking/order-polling-batch(5개 스케줄)/class-management/partner-apply/partner-approve/review-reply/education-complete/send-reminders/review-requests/grade-update/error-handler. 총 약 300노드. |
 | 2026-02-25 | 3.4 | **Task 241 프론트엔드 URL 교체** -- GAS URL 3곳→n8n 웹훅 URL 교체. Content-Type text/plain→application/json. 메이크샵 3페이지 등록 가이드 작성. |
 | 2026-02-25 | 3.5 | **Task 251 E2E 통합 테스트 체크리스트 완료** -- phase2-v2-integration-test.md(692줄, 161개 체크박스), 고객/파트너 플로우+보안+에러핸들링+스케줄+NocoDB GUI+롤백계획 8개 섹션. **Phase 2 v2.0 전체 개발 완료** (관리자 인프라 설정+배포 후 테스트 진행 예정) |
+| 2026-02-25 | 3.6 | **Phase 2 직접 배포 완료** -- Oracle Cloud 서버에 직접 배포: NocoDB Docker 설치(nocodb.pressco21.com), 8개 테이블 생성, n8n 워크플로우 14개 임포트+활성화, Credentials 7개 등록(NocoDB/Makeshop/Telegram/Admin/SMTP), CORS+환경변수 설정. n8n↔NocoDB Docker 네트워크 연결. 잔여: 텔레그램 Chat ID·메이크샵 IP 화이트리스트·class_category_id 관리자 직접 설정 필요. |

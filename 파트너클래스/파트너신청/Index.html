@@ -1,0 +1,338 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>파트너 신청 | PRESSCO21 포에버러브</title>
+    <meta name="description" content="PRESSCO21 블룸 파트너 프로그램에 신청하세요. 수업료 수수료는 적립금으로, 전국 단위 홍보는 저희가 합니다.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Pretendard 웹폰트 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+
+    <!-- 페이지 스타일 -->
+    <link rel="stylesheet" href="css.css">
+</head>
+<body>
+
+<!-- ============================================
+     파트너 신청 페이지
+     CSS 스코핑: .partner-apply
+     ============================================ -->
+<div class="partner-apply">
+
+    <!-- 1. 숨김 가상태그 span (JS에서 읽기용) -->
+    <span id="paMemberId" style="display:none"><!--/user_id/--></span>
+
+    <!-- 2. 미로그인 안내 -->
+    <div id="paNoticeArea" style="display:none">
+        <div class="pa-notice">
+            <div class="pa-notice__inner">
+                <div class="pa-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="32" cy="24" r="10" stroke="#3d2c1e" stroke-width="2" fill="none"/>
+                        <path d="M12 52c0-11.046 8.954-20 20-20s20 8.954 20 20" stroke="#3d2c1e" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="pa-notice__title">로그인이 필요합니다</h2>
+                <p class="pa-notice__desc">파트너 신청은 포에버러브 회원으로 로그인 후 이용하실 수 있어요.</p>
+                <a id="paLoginBtn" href="/member/login.html" class="pa-notice__btn">로그인하기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 신청 완료 화면 -->
+    <div id="paSuccessArea" style="display:none">
+        <div class="pa-success">
+            <div class="pa-success__inner">
+                <div class="pa-success__icon">
+                    <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="36" cy="36" r="34" stroke="#b89b5e" stroke-width="2" fill="#faf6ee"/>
+                        <path d="M22 36l10 10 18-18" stroke="#b89b5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h2 class="pa-success__title">신청이 접수되었습니다!</h2>
+                <p class="pa-success__desc">소중한 신청 감사합니다.<br>1~3 영업일 이내에 입력하신 이메일로 결과를 안내드릴게요.</p>
+                <div class="pa-success__id-box">
+                    <p class="pa-success__id-label">접수 번호</p>
+                    <p class="pa-success__id-value" id="paSuccessAppId">-</p>
+                </div>
+                <div class="pa-success__steps">
+                    <div class="pa-success__step">
+                        <span class="pa-success__step-num">1</span>
+                        <span class="pa-success__step-text">관리자 검토<br><small>1~3 영업일</small></span>
+                    </div>
+                    <div class="pa-success__step-arrow">→</div>
+                    <div class="pa-success__step">
+                        <span class="pa-success__step-num">2</span>
+                        <span class="pa-success__step-text">결과 이메일 발송</span>
+                    </div>
+                    <div class="pa-success__step-arrow">→</div>
+                    <div class="pa-success__step">
+                        <span class="pa-success__step-num">3</span>
+                        <span class="pa-success__step-text">승인 시<br>파트너 코드 발급</span>
+                    </div>
+                </div>
+                <a href="/" class="pa-success__btn">홈으로 돌아가기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 이미 파트너 / 이미 신청중 안내 -->
+    <div id="paAlreadyArea" style="display:none">
+        <div class="pa-notice">
+            <div class="pa-notice__inner">
+                <div class="pa-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="32" cy="32" r="28" stroke="#b89b5e" stroke-width="2" fill="#faf6ee"/>
+                        <path d="M20 32l10 10 14-20" stroke="#b89b5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h2 class="pa-notice__title" id="paAlreadyTitle">이미 파트너입니다</h2>
+                <p class="pa-notice__desc" id="paAlreadyDesc">현재 계정은 이미 파트너로 등록되어 있어요.</p>
+                <a href="../파트너/" class="pa-notice__btn">파트너 대시보드로 이동</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 신청 폼 메인 -->
+    <div id="paFormArea" style="display:none">
+
+        <!-- 페이지 헤더 -->
+        <header class="pa-page-header">
+            <div class="pa-page-header__inner">
+                <a href="/" class="pa-page-header__logo">PRESSCO21</a>
+                <p class="pa-page-header__tagline">Forever and ever and Blooming</p>
+            </div>
+        </header>
+
+        <!-- 히어로 섹션 -->
+        <section class="pa-hero">
+            <div class="pa-hero__inner">
+                <p class="pa-hero__eyebrow">파트너 신청</p>
+                <h1 class="pa-hero__title">블룸 파트너가 되어주세요</h1>
+                <p class="pa-hero__desc">당신의 꽃 이야기를 더 많은 분들과 나눌 수 있도록<br>PRESSCO21이 함께합니다.</p>
+            </div>
+        </section>
+
+        <!-- 혜택 배너 -->
+        <section class="pa-benefits">
+            <div class="pa-benefits__inner">
+                <div class="pa-benefits__item">
+                    <div class="pa-benefits__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="14" cy="14" r="12" stroke="#b89b5e" stroke-width="1.5" fill="none"/>
+                            <path d="M14 8v6l4 2" stroke="#b89b5e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <p class="pa-benefits__text">적립금으로 돌아오는<br>수업 수수료</p>
+                </div>
+                <div class="pa-benefits__item">
+                    <div class="pa-benefits__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M4 20c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="#b89b5e" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                            <circle cx="14" cy="8" r="4" stroke="#b89b5e" stroke-width="1.5" fill="none"/>
+                        </svg>
+                    </div>
+                    <p class="pa-benefits__text">전국 단위 공식 채널<br>홍보 지원</p>
+                </div>
+                <div class="pa-benefits__item">
+                    <div class="pa-benefits__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <rect x="3" y="5" width="22" height="18" rx="3" stroke="#b89b5e" stroke-width="1.5" fill="none"/>
+                            <path d="M3 11h22" stroke="#b89b5e" stroke-width="1.5"/>
+                            <path d="M9 16h4M9 20h6" stroke="#b89b5e" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <p class="pa-benefits__text">예약·수익 대시보드<br>무료 제공</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 신청 폼 -->
+        <section class="pa-form-section">
+            <div class="pa-form-section__inner">
+
+                <form id="paApplyForm" class="pa-form" novalidate>
+
+                    <!-- 섹션 1: 기본 정보 -->
+                    <div class="pa-form__section">
+                        <h2 class="pa-form__section-title">기본 정보</h2>
+                        <p class="pa-form__section-desc">정확한 연락을 위해 필수 정보를 입력해주세요.</p>
+
+                        <div class="pa-form__row pa-form__row--half">
+                            <div class="pa-form__field">
+                                <label class="pa-form__label" for="paName">
+                                    이름 <span class="pa-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="text" id="paName" name="name" class="pa-form__input"
+                                    placeholder="홍길동" maxlength="50" autocomplete="name" required>
+                                <p class="pa-form__error" id="paNameError" role="alert" style="display:none"></p>
+                            </div>
+                            <div class="pa-form__field">
+                                <label class="pa-form__label" for="paStudioName">
+                                    공방 · 스튜디오명 <span class="pa-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="text" id="paStudioName" name="studio_name" class="pa-form__input"
+                                    placeholder="예: 꽃피는 공방" maxlength="100" required>
+                                <p class="pa-form__error" id="paStudioNameError" role="alert" style="display:none"></p>
+                            </div>
+                        </div>
+
+                        <div class="pa-form__row pa-form__row--half">
+                            <div class="pa-form__field">
+                                <label class="pa-form__label" for="paPhone">
+                                    연락처 <span class="pa-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="tel" id="paPhone" name="phone" class="pa-form__input"
+                                    placeholder="010-1234-5678" maxlength="20" autocomplete="tel" required>
+                                <p class="pa-form__error" id="paPhoneError" role="alert" style="display:none"></p>
+                            </div>
+                            <div class="pa-form__field">
+                                <label class="pa-form__label" for="paEmail">
+                                    이메일 <span class="pa-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="email" id="paEmail" name="email" class="pa-form__input"
+                                    placeholder="example@email.com" maxlength="200" autocomplete="email" required>
+                                <p class="pa-form__error" id="paEmailError" role="alert" style="display:none"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 섹션 2: 활동 정보 -->
+                    <div class="pa-form__section">
+                        <h2 class="pa-form__section-title">활동 정보</h2>
+                        <p class="pa-form__section-desc">강의 분야와 활동 지역을 알려주세요.</p>
+
+                        <div class="pa-form__row pa-form__row--half">
+                            <div class="pa-form__field">
+                                <label class="pa-form__label" for="paSpecialty">전문 분야</label>
+                                <select id="paSpecialty" name="specialty" class="pa-form__select">
+                                    <option value="">분야를 선택해주세요</option>
+                                    <option value="압화">압화 (Pressed Flower)</option>
+                                    <option value="드라이플라워">드라이플라워</option>
+                                    <option value="보존화">보존화</option>
+                                    <option value="생화 플라워">생화 플라워</option>
+                                    <option value="기타">기타</option>
+                                </select>
+                            </div>
+                            <div class="pa-form__field">
+                                <label class="pa-form__label" for="paLocation">활동 지역</label>
+                                <input type="text" id="paLocation" name="location" class="pa-form__input"
+                                    placeholder="예: 서울 강남구" maxlength="100">
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 섹션 3: 소개 -->
+                    <div class="pa-form__section">
+                        <h2 class="pa-form__section-title">자기 소개</h2>
+                        <p class="pa-form__section-desc">경력, 강의 스타일, 지향점 등을 자유롭게 소개해주세요. (선택)</p>
+
+                        <div class="pa-form__field">
+                            <label class="pa-form__label" for="paIntroduction">소개글</label>
+                            <textarea id="paIntroduction" name="introduction" class="pa-form__textarea"
+                                placeholder="예: 15년간 압화 작가로 활동해왔으며, 일상 속 꽃의 아름다움을 많은 분들과 나누고 싶습니다..."
+                                maxlength="500" rows="5"></textarea>
+                            <p class="pa-form__char-count"><span id="paIntroCharCount">0</span>/500</p>
+                        </div>
+                    </div>
+
+                    <!-- 섹션 4: 포트폴리오 -->
+                    <div class="pa-form__section">
+                        <h2 class="pa-form__section-title">포트폴리오 링크</h2>
+                        <p class="pa-form__section-desc">작업 결과물을 확인할 수 있는 링크를 남겨주세요. (선택)</p>
+
+                        <div class="pa-form__row pa-form__row--half">
+                            <div class="pa-form__field">
+                                <label class="pa-form__label" for="paPortfolioUrl">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="vertical-align:-2px;margin-right:4px">
+                                        <rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                                        <path d="M1 7h14" stroke="currentColor" stroke-width="1.2"/>
+                                    </svg>
+                                    포트폴리오 URL
+                                </label>
+                                <input type="url" id="paPortfolioUrl" name="portfolio_url" class="pa-form__input"
+                                    placeholder="https://..." maxlength="500">
+                                <p class="pa-form__error" id="paPortfolioUrlError" role="alert" style="display:none"></p>
+                            </div>
+                            <div class="pa-form__field">
+                                <label class="pa-form__label" for="paInstagramUrl">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="vertical-align:-2px;margin-right:4px">
+                                        <rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                                        <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                                        <circle cx="11.5" cy="4.5" r="0.8" fill="currentColor"/>
+                                    </svg>
+                                    인스타그램 URL
+                                </label>
+                                <input type="url" id="paInstagramUrl" name="instagram_url" class="pa-form__input"
+                                    placeholder="https://instagram.com/..." maxlength="500">
+                                <p class="pa-form__error" id="paInstagramUrlError" role="alert" style="display:none"></p>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 섹션 5: 동의 -->
+                    <div class="pa-form__section pa-form__section--agree">
+                        <div class="pa-form__agree-item">
+                            <label class="pa-form__agree-label">
+                                <input type="checkbox" id="paAgreePrivacy" class="pa-form__agree-check" required>
+                                <span class="pa-form__agree-box" aria-hidden="true"></span>
+                                <span class="pa-form__agree-text">
+                                    <strong>[필수]</strong> 개인정보 수집·이용에 동의합니다.
+                                    <button type="button" class="pa-form__agree-detail-btn js-agree-toggle" data-target="paPrivacyDetail">(상세보기)</button>
+                                </span>
+                            </label>
+                            <div id="paPrivacyDetail" class="pa-form__agree-detail" style="display:none">
+                                <p>수집 항목: 이름, 연락처, 이메일, 공방명, 활동 지역, 포트폴리오 URL</p>
+                                <p>수집 목적: 파트너 심사 및 결과 안내, 파트너 프로그램 운영</p>
+                                <p>보관 기간: 신청 심사 완료 후 3년 (미승인 시 6개월)</p>
+                            </div>
+                            <p class="pa-form__error" id="paAgreePrivacyError" role="alert" style="display:none">개인정보 수집·이용 동의가 필요합니다.</p>
+                        </div>
+                        <div class="pa-form__agree-item">
+                            <label class="pa-form__agree-label">
+                                <input type="checkbox" id="paAgreeMarketing" class="pa-form__agree-check">
+                                <span class="pa-form__agree-box" aria-hidden="true"></span>
+                                <span class="pa-form__agree-text">
+                                    <strong>[선택]</strong> 파트너 프로그램 관련 마케팅·홍보 정보 수신에 동의합니다.
+                                </span>
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 전체 에러 메시지 -->
+                    <div id="paFormGlobalError" class="pa-form__global-error" role="alert" style="display:none"></div>
+
+                    <!-- 제출 버튼 -->
+                    <div class="pa-form__submit-area">
+                        <button type="submit" id="paSubmitBtn" class="pa-form__submit-btn">
+                            <span class="pa-form__submit-btn-text">파트너 신청하기</span>
+                            <span class="pa-form__submit-btn-loading" style="display:none">
+                                <svg class="pa-spinner" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.5" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10"/>
+                                </svg>
+                                처리 중...
+                            </span>
+                        </button>
+                        <p class="pa-form__submit-note">심사 결과는 1~3 영업일 내 이메일로 안내드립니다.</p>
+                    </div>
+
+                </form>
+            </div>
+        </section>
+
+    </div><!-- /paFormArea -->
+
+    <!-- 로딩 오버레이 -->
+    <div id="paLoadingOverlay" class="pa-loading-overlay" style="display:none" aria-label="처리 중" role="status">
+        <svg class="pa-spinner" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke="#b89b5e" stroke-width="2.5" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10"/>
+        </svg>
+    </div>
+
+</div><!-- /partner-apply -->
+
+<script src="js.js"></script>
+</body>
+</html>

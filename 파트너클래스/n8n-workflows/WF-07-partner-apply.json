@@ -1,0 +1,599 @@
+{
+  "name": "WF-07 Partner Apply",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "partner-apply",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf07-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 400],
+      "webhookId": "partner-apply"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-07 Step 1: POST 본문 파싱 + 입력값 검증 + URL sanitize\n// 필수: name, studio_name, member_id, phone, email\n// 선택: portfolio_url, instagram_url, specialty, location, introduction\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\n// === HTML XSS 방지 ===\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\\\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\n// === 텍스트 정제 (제어 문자 제거 + 길이 제한) ===\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\n// === URL 검증 (http/https만 허용, javascript:/data: 등 차단) ===\nfunction sanitizeUrl(url) {\n  if (!url) return '';\n  const trimmed = String(url).trim();\n  if (!trimmed) return '';\n  const lower = trimmed.toLowerCase();\n  // http, https 허용\n  if (lower.startsWith('http://') || lower.startsWith('https://')) {\n    return trimmed.substring(0, 2048);\n  }\n  // 프로토콜 없는 경우 https 추가\n  if (!lower.includes('://') && !lower.includes(':')) {\n    return ('https://' + trimmed).substring(0, 2048);\n  }\n  // javascript:, data:, vbscript: 등 차단\n  return '';\n}\n\n// === 필수 필드 검증 ===\nconst name = sanitizeText(body.name, 100);\nconst studioName = sanitizeText(body.studio_name, 100);\nconst memberId = sanitizeText(body.member_id, 100);\nconst phone = sanitizeText(body.phone, 20);\nconst email = sanitizeText(body.email, 200);\n\nconst missingFields = [];\nif (!name) missingFields.push('name');\nif (!studioName) missingFields.push('studio_name');\nif (!memberId) missingFields.push('member_id');\nif (!phone) missingFields.push('phone');\nif (!email) missingFields.push('email');\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: missingFields.join(', ') + ' 파라미터가 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === 이메일 형식 검증 ===\nif (!/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INVALID_PARAMS',\n          message: '유효한 email 형식이 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === 선택 필드 정제 ===\nconst portfolioUrl = sanitizeUrl(body.portfolio_url);\nconst instagramUrl = sanitizeUrl(body.instagram_url);\nconst specialty = sanitizeText(body.specialty, 100);\nconst location = sanitizeText(body.location, 100);\nconst introduction = sanitizeText(body.introduction, 500);\n\nreturn [{\n  json: {\n    _valid: true,\n    name,\n    studioName,\n    memberId,\n    phone,\n    email,\n    portfolioUrl,\n    instagramUrl,\n    specialty,\n    location,\n    introduction,\n    // XSS-safe 버전 (이메일 HTML용)\n    _safe: {\n      name: escapeHtml(name),\n      studioName: escapeHtml(studioName),\n      memberId: escapeHtml(memberId),\n      phone: escapeHtml(phone),\n      email: escapeHtml(email),\n      specialty: escapeHtml(specialty),\n      location: escapeHtml(location)\n    }\n  }\n}];"
+      },
+      "id": "wf07-validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf07-if-valid",
+      "name": "IF Input Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "400",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf07-respond-validation-error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 560]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf07-nocodb-check-partner",
+      "name": "NocoDB Check Existing Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-07 Step 2: 기존 파트너 여부 확인\n// tbl_Partners에 member_id가 이미 있으면 중복\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst validData = $('Validate Input').first().json;\n\nif (partnerList.length > 0) {\n  const existing = partnerList[0];\n  return [{\n    json: {\n      _duplicate: true,\n      _duplicateType: 'PARTNER',\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'ALREADY_PARTNER',\n          message: '이미 파트너로 등록되어 있습니다.'\n        },\n        data: {\n          partner_code: existing.partner_code || '',\n          status: existing.status || ''\n        },\n        timestamp: new Date().toISOString()\n      },\n      // 유효성 검증 데이터 전달\n      ...validData\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _duplicate: false,\n    ...validData\n  }\n}];"
+      },
+      "id": "wf07-check-partner-result",
+      "name": "Check Partner Exists",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._duplicate }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf07-if-not-partner",
+      "name": "IF Not Already Partner",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "409",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf07-respond-duplicate-partner",
+      "name": "Respond Duplicate Partner",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 460]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Applications",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})~and(status,eq,PENDING)" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf07-nocodb-check-application",
+      "name": "NocoDB Check Pending Application",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-07 Step 3: PENDING 신청 중복 확인\n// tbl_Applications에 PENDING 상태인 신청이 있으면 중복\n// ===================================================\n\nconst response = $input.first().json;\nconst appList = response.list || [];\nconst prevData = $('Check Partner Exists').first().json;\n\nif (appList.length > 0) {\n  const existing = appList[0];\n  return [{\n    json: {\n      _duplicate: true,\n      _duplicateType: 'APPLICATION',\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'DUPLICATE_APPLICATION',\n          message: '이미 심사 중인 신청이 있습니다.'\n        },\n        data: {\n          application_id: existing.application_id || '',\n          status: 'PENDING'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _duplicate: false,\n    ...prevData\n  }\n}];"
+      },
+      "id": "wf07-check-application-result",
+      "name": "Check Application Exists",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._duplicate }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf07-if-not-duplicate-app",
+      "name": "IF No Pending Application",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1980, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "409",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf07-respond-duplicate-app",
+      "name": "Respond Duplicate Application",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2200, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-07 Step 4: application_id 생성 (APP_YYYYMMDD_XXXXXX)\n// ===================================================\n\nconst prevData = $input.first().json;\nconst now = new Date();\n\n// === application_id 생성: APP_YYYYMMDD_XXXXXX ===\nconst pad = (n) => String(n).padStart(2, '0');\nconst dateStr = String(now.getFullYear())\n  + pad(now.getMonth() + 1)\n  + pad(now.getDate());\nconst randomSuffix = String(Math.floor(100000 + Math.random() * 900000));\nconst applicationId = 'APP_' + dateStr + '_' + randomSuffix;\n\n// === 한국 날짜 포맷 (이메일용) ===\nconst appliedDate = now.toISOString();\nconst appliedDateKR = now.getFullYear() + '년 '\n  + (now.getMonth() + 1) + '월 '\n  + now.getDate() + '일';\n\nreturn [{\n  json: {\n    ...prevData,\n    _applicationId: applicationId,\n    _appliedDate: appliedDate,\n    _appliedDateKR: appliedDateKR\n  }\n}];"
+      },
+      "id": "wf07-generate-id",
+      "name": "Generate Application ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Applications",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "application_id", "value": "={{ $json._applicationId }}" },
+            { "name": "member_id", "value": "={{ $json.memberId }}" },
+            { "name": "applicant_name", "value": "={{ $json.name }}" },
+            { "name": "workshop_name", "value": "={{ $json.studioName }}" },
+            { "name": "email", "value": "={{ $json.email }}" },
+            { "name": "phone", "value": "={{ $json.phone }}" },
+            { "name": "location", "value": "={{ $json.location }}" },
+            { "name": "specialty", "value": "={{ $json.specialty }}" },
+            { "name": "portfolio_url", "value": "={{ $json.portfolioUrl }}" },
+            { "name": "instagram_url", "value": "={{ $json.instagramUrl }}" },
+            { "name": "introduction", "value": "={{ $json.introduction }}" },
+            { "name": "status", "value": "PENDING" },
+            { "name": "applied_date", "value": "={{ $json._appliedDate }}" },
+            { "name": "reviewed_date", "value": "" },
+            { "name": "reviewer_note", "value": "" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf07-nocodb-create-application",
+      "name": "NocoDB Create Application",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2420, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-07 Step 5: NocoDB 레코드 생성 결과 확인\n// ===================================================\n\nconst createResult = $input.first().json;\nconst prevData = $('Generate Application ID').first().json;\n\n// NocoDB 레코드 생성 성공 확인 (Id 필드가 존재하면 성공)\nconst recordCreated = !!createResult.Id || !!createResult.id;\n\nif (!recordCreated) {\n  return [{\n    json: {\n      _success: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'APPLICATION_FAILED',\n          message: '파트너 신청 저장에 실패했습니다. 잠시 후 다시 시도해 주세요.'\n        },\n        timestamp: new Date().toISOString()\n      },\n      _telegramError: '파트너 신청 저장 실패: ' + prevData.name + ' (' + prevData.memberId + ')'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _success: true,\n    ...prevData,\n    _nocodbRecordId: createResult.Id || createResult.id\n  }\n}];"
+      },
+      "id": "wf07-check-create-result",
+      "name": "Check Create Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._success }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf07-if-created",
+      "name": "IF Created OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2860, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-07 Step 6a: 신청 접수 확인 이메일 HTML 생성\n// brand-strategy-comprehensive.md 이메일 7 참고\n// 브랜드 톤: 따뜻 + 안심 + 포용\n// ===================================================\n\nconst data = $input.first().json;\nconst s = data._safe;\n\nconst subject = '[PRESSCO21] 파트너 신청이 접수되었습니다';\n\nconst html = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>PRESSCO21 파트너 신청 접수 확인</title></head>'\n+ '<body style=\"margin: 0; padding: 0; background-color: #f8f6f0; font-family: \\'Pretendard\\', \\'Apple SD Gothic Neo\\', \\'Malgun Gothic\\', sans-serif;\">'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f8f6f0;\"><tr><td align=\"center\" style=\"padding: 24px 16px;\">'\n+ '<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);\">'\n// 헤더\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; border-bottom: 2px solid #b89b5e;\">'\n+ '<span style=\"font-size: 22px; font-weight: 700; color: #b89b5e; letter-spacing: 2px;\">PRESSCO21</span><br />'\n+ '<span style=\"font-size: 11px; color: #999999; letter-spacing: 1px;\">Forever and ever and Blooming</span>'\n+ '</td></tr>'\n// 본문\n+ '<tr><td style=\"padding: 40px 32px 32px;\">'\n+ '<p style=\"margin: 0 0 24px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + s.name + '</strong>님, 안녕하세요!</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">PRESSCO21 블룸 파트너 프로그램에 관심을 가져주셔서</p>'\n+ '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\">진심으로 감사합니다.</p>'\n+ '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\">' + s.name + '님의 파트너 신청서가 정상적으로 접수되었습니다.</p>'\n// 접수 정보 테이블\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #faf8f3; border-radius: 8px; border: 1px solid #e8e4db; margin-bottom: 24px;\">'\n+ '<tr><td style=\"padding: 20px 24px 12px;\"><p style=\"margin: 0 0 16px; font-size: 14px; font-weight: 700; color: #b89b5e; letter-spacing: 1px;\">접수 정보</p></td></tr>'\n+ '<tr><td style=\"padding: 0 24px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; width: 90px; vertical-align: top;\">신청자</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + s.name + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">공방명</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + s.studioName + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">전문 분야</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + (s.specialty || '-') + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">활동 지역</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + (s.location || '-') + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">접수일</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + data._appliedDateKR + '</td></tr>'\n+ '</table></td></tr>'\n+ '<tr><td style=\"padding: 12px 24px 16px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-top: 1px solid #e8e4db;\">'\n+ '<tr><td style=\"padding: 12px 0 0; font-size: 12px; color: #999999;\">접수 번호: ' + data._applicationId + '</td></tr>'\n+ '</table></td></tr></table>'\n// 다음 단계 안내\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 24px;\"><tr><td style=\"padding: 20px 24px; background-color: #fef9f0; border-radius: 8px; border-left: 3px solid #b89b5e;\">'\n+ '<p style=\"margin: 0 0 12px; font-size: 14px; font-weight: 700; color: #b89b5e;\">다음 단계는 이렇게 진행돼요</p>'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">1.</strong> 관리자 검토 (1~3 영업일)<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">제출해주신 정보와 포트폴리오를 확인합니다.</span></td></tr>'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">2.</strong> 결과 안내 이메일 발송<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">검토가 완료되면 결과를 이메일로 안내해드릴게요.</span></td></tr>'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">3.</strong> 승인 시 파트너 코드 발급<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">바로 교육을 이수하고 활동을 시작하실 수 있어요.</span></td></tr>'\n+ '</table></td></tr></table>'\n// 안심 메시지\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 32px;\"><tr><td style=\"padding: 16px 20px; background-color: #f5f5f5; border-radius: 8px;\">'\n+ '<p style=\"margin: 0; font-size: 13px; color: #888888; line-height: 1.6;\">별도로 준비하실 것은 없습니다.<br />검토 결과가 나오면 바로 연락드릴게요!</p>'\n+ '</td></tr></table>'\n// 마무리\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">궁금하신 점이 있으시면</p>'\n+ '<p style=\"margin: 0; font-size: 15px; color: #333333; line-height: 1.7;\">pressco21@foreverlove.co.kr로 편하게 문의해주세요.</p>'\n+ '</td></tr>'\n// 서명\n+ '<tr><td style=\"padding: 0 32px 32px;\"><p style=\"margin: 0; font-size: 14px; color: #b89b5e; font-weight: 600;\">PRESSCO21 드림</p></td></tr>'\n// 푸터\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; background-color: #faf8f3; border-top: 1px solid #e8e4db;\">'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">PRESSCO21 | foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">문의: pressco21@foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0; font-size: 11px; color: #bbbbbb;\">이 메일은 PRESSCO21 파트너 프로그램 관련 안내 메일입니다.</p>'\n+ '</td></tr></table></td></tr></table></body></html>';\n\nreturn [{\n  json: {\n    ...data,\n    _confirmEmail: {\n      to: data.email,\n      subject,\n      html\n    }\n  }\n}];"
+      },
+      "id": "wf07-build-confirm-email",
+      "name": "Build Confirm Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, 0]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json._confirmEmail.to }}",
+        "subject": "={{ $json._confirmEmail.subject }}",
+        "emailType": "html",
+        "html": "={{ $json._confirmEmail.html }}",
+        "options": {}
+      },
+      "id": "wf07-send-confirm-email",
+      "name": "Send Confirm Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [3300, 0],
+      "credentials": {
+        "smtp": {
+          "id": "pressco21-smtp",
+          "name": "PRESSCO21 SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-07 Step 6b: 텔레그램 관리자 알림 메시지 구성\n// 관리자용이므로 개인정보 포함 (신청 검토에 필요)\n// ===================================================\n\nconst data = $input.first().json;\n\nconst message = '[파트너 신청] 새 신청이 접수되었습니다\\n\\n'\n  + '신청자: ' + data.name + '\\n'\n  + '공방명: ' + data.studioName + '\\n'\n  + '전문 분야: ' + (data.specialty || '-') + '\\n'\n  + '활동 지역: ' + (data.location || '-') + '\\n'\n  + '이메일: ' + data.email + '\\n'\n  + '접수 시각: ' + data._appliedDate + '\\n'\n  + '접수 번호: ' + data._applicationId + '\\n'\n  + (data.portfolioUrl ? '\\n포트폴리오: ' + data.portfolioUrl : '')\n  + (data.instagramUrl ? '\\n인스타그램: ' + data.instagramUrl : '')\n  + '\\n\\n-> NocoDB 파트너 신청 테이블에서 검토해주세요.';\n\nreturn [{\n  json: {\n    ...data,\n    _telegramMessage: message\n  }\n}];"
+      },
+      "id": "wf07-build-telegram-msg",
+      "name": "Build Telegram Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, 160]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {}
+      },
+      "id": "wf07-telegram-apply",
+      "name": "Telegram New Application",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3300, 160],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-07 Step 7: 성공 응답 구성\n// ===================================================\n\nconst data = $('Check Create Result').first().json;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      application_id: data._applicationId,\n      status: 'PENDING',\n      message: '파트너 신청이 접수되었습니다. 1~3 영업일 이내에 검토 결과를 안내해드릴게요.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf07-build-success-response",
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3520, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf07-respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3740, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-07: 레코드 생성 실패 시 에러 텔레그램 알림\n// ===================================================\n\nconst data = $input.first().json;\n\nconst message = '[파트너 신청 실패] 저장 오류\\n\\n'\n  + (data._telegramError || '알 수 없는 오류');\n\nreturn [{\n  json: {\n    ...data,\n    _errorTelegramMessage: message\n  }\n}];"
+      },
+      "id": "wf07-build-error-telegram",
+      "name": "Build Error Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, 300]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._errorTelegramMessage }}",
+        "additionalFields": {}
+      },
+      "id": "wf07-telegram-error",
+      "name": "Telegram Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3300, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "500",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf07-respond-create-error",
+      "name": "Respond Create Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3520, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Validate Input", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          { "node": "IF Input Valid", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Input Valid": {
+      "main": [
+        [
+          { "node": "NocoDB Check Existing Partner", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Validation Error", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Check Existing Partner": {
+      "main": [
+        [
+          { "node": "Check Partner Exists", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Partner Exists": {
+      "main": [
+        [
+          { "node": "IF Not Already Partner", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Not Already Partner": {
+      "main": [
+        [
+          { "node": "NocoDB Check Pending Application", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Duplicate Partner", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Check Pending Application": {
+      "main": [
+        [
+          { "node": "Check Application Exists", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Application Exists": {
+      "main": [
+        [
+          { "node": "IF No Pending Application", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF No Pending Application": {
+      "main": [
+        [
+          { "node": "Generate Application ID", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Duplicate Application", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Generate Application ID": {
+      "main": [
+        [
+          { "node": "NocoDB Create Application", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Create Application": {
+      "main": [
+        [
+          { "node": "Check Create Result", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Create Result": {
+      "main": [
+        [
+          { "node": "IF Created OK", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Created OK": {
+      "main": [
+        [
+          { "node": "Build Confirm Email", "type": "main", "index": 0 },
+          { "node": "Build Telegram Message", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Build Error Telegram", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Confirm Email": {
+      "main": [
+        [
+          { "node": "Send Confirm Email", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Send Confirm Email": {
+      "main": [
+        [
+          { "node": "Build Success Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Telegram Message": {
+      "main": [
+        [
+          { "node": "Telegram New Application", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          { "node": "Respond Success", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Error Telegram": {
+      "main": [
+        [
+          { "node": "Telegram Error Alert", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Telegram Error Alert": {
+      "main": [
+        [
+          { "node": "Respond Create Error", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "PRESSCO21" },
+    { "name": "Partner Apply" },
+    { "name": "Phase 2" },
+    { "name": "Task 221" }
+  ],
+  "pinData": {}
+}

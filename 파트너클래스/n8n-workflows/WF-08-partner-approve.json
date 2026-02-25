@@ -1,0 +1,737 @@
+{
+  "name": "WF-08 Partner Approve",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "partner-approve",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf08-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 400],
+      "webhookId": "partner-approve"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08 Step 1: 관리자 토큰 검증 + 입력값 파싱\n// Authorization: Bearer {ADMIN_API_TOKEN} 헤더 필수\n// 필수: application_id 또는 member_id\n// 선택: reviewer_note\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\nconst headers = input.headers || {};\n\n// === 관리자 토큰 검증 ===\n// Authorization 헤더에서 Bearer 토큰 추출\nconst authHeader = headers.authorization || headers.Authorization || '';\nconst adminToken = $env.ADMIN_API_TOKEN || '';\n\nif (!authHeader || !authHeader.startsWith('Bearer ')) {\n  return [{\n    json: {\n      _valid: false,\n      _errorCode: 401,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'UNAUTHORIZED',\n          message: '관리자 인증이 필요합니다. Authorization: Bearer {token} 헤더를 포함해 주세요.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst providedToken = authHeader.substring(7).trim();\nif (!adminToken || providedToken !== adminToken) {\n  return [{\n    json: {\n      _valid: false,\n      _errorCode: 403,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'FORBIDDEN',\n          message: '관리자 토큰이 유효하지 않습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === 텍스트 정제 ===\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\n// === 필수 파라미터 검증 ===\nconst applicationId = sanitizeText(body.application_id, 100);\nconst memberId = sanitizeText(body.member_id, 100);\nconst reviewerNote = sanitizeText(body.reviewer_note, 500);\n\nif (!applicationId && !memberId) {\n  return [{\n    json: {\n      _valid: false,\n      _errorCode: 400,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: 'application_id 또는 member_id가 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    applicationId,\n    memberId,\n    reviewerNote\n  }\n}];"
+      },
+      "id": "wf08-validate-auth",
+      "name": "Validate Auth & Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf08-if-valid",
+      "name": "IF Auth Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "={{ $json._errorCode }}",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf08-respond-auth-error",
+      "name": "Respond Auth Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 560]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Applications",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "={{ $json.applicationId ? '(application_id,eq,' + $json.applicationId + ')' : '(member_id,eq,' + $json.memberId + ')~and(status,eq,PENDING)' }}" },
+            { "name": "limit", "value": "1" },
+            { "name": "sort", "value": "-applied_date" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf08-nocodb-get-application",
+      "name": "NocoDB Get Application",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08 Step 2: 신청 조회 결과 확인 + PENDING 상태 검증\n// ===================================================\n\nconst response = $input.first().json;\nconst appList = response.list || [];\nconst validData = $('Validate Auth & Input').first().json;\n\nif (appList.length === 0) {\n  return [{\n    json: {\n      _found: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'APPLICATION_NOT_FOUND',\n          message: '해당 파트너 신청을 찾을 수 없습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst app = appList[0];\n\n// 이미 승인된 신청\nif (app.status === 'APPROVED') {\n  return [{\n    json: {\n      _found: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'ALREADY_APPROVED',\n          message: '이미 승인된 신청입니다.'\n        },\n        data: {\n          application_id: app.application_id || ''\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// REJECTED 등 다른 상태\nif (app.status !== 'PENDING') {\n  return [{\n    json: {\n      _found: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INVALID_STATUS',\n          message: '현재 상태(' + app.status + ')에서는 승인할 수 없습니다. PENDING 상태만 승인 가능합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _found: true,\n    _application: {\n      Id: app.Id || app.id,\n      application_id: app.application_id || '',\n      member_id: app.member_id || '',\n      applicant_name: app.applicant_name || '',\n      workshop_name: app.workshop_name || '',\n      email: app.email || '',\n      phone: app.phone || '',\n      location: app.location || '',\n      specialty: app.specialty || '',\n      portfolio_url: app.portfolio_url || '',\n      instagram_url: app.instagram_url || '',\n      introduction: app.introduction || ''\n    },\n    reviewerNote: validData.reviewerNote\n  }\n}];"
+      },
+      "id": "wf08-check-application",
+      "name": "Check Application Status",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._found }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf08-if-pending",
+      "name": "IF Application PENDING",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "400",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf08-respond-not-pending",
+      "name": "Respond Not Pending",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 460]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(member_id,eq,{{ $json._application.member_id }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf08-nocodb-check-existing-partner",
+      "name": "NocoDB Check Existing Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08 Step 3: 기존 파트너 중복 확인 + partner_code 생성\n// partner_code 형식: PC_YYYYMM_NNN (NNN = 해당 월 순번)\n// ===================================================\n\nconst partnerResponse = $input.first().json;\nconst partnerList = partnerResponse.list || [];\nconst prevData = $('Check Application Status').first().json;\n\n// 이미 파트너로 등록된 경우\nif (partnerList.length > 0) {\n  const existing = partnerList[0];\n  return [{\n    json: {\n      _canApprove: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'ALREADY_PARTNER',\n          message: '이 회원은 이미 파트너로 등록되어 있습니다.'\n        },\n        data: {\n          partner_code: existing.partner_code || '',\n          member_id: existing.member_id || ''\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _canApprove: true,\n    _application: prevData._application,\n    reviewerNote: prevData.reviewerNote\n  }\n}];"
+      },
+      "id": "wf08-check-partner-duplicate",
+      "name": "Check Partner Duplicate",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._canApprove }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf08-if-can-approve",
+      "name": "IF Can Approve",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1980, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "409",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf08-respond-already-partner",
+      "name": "Respond Already Partner",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2200, 380]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "fields", "value": "partner_code" },
+            { "name": "where", "value": "=(partner_code,like,PC_{{ new Date().toISOString().substring(0,7).replace('-','') }}%)" },
+            { "name": "limit", "value": "200" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf08-nocodb-get-month-partners",
+      "name": "NocoDB Get Month Partners",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08 Step 4: partner_code 생성 (PC_YYYYMM_NNN)\n// NNN = 해당 월 기존 파트너 수의 최대 순번 + 1\n// ===================================================\n\nconst monthPartnersResponse = $input.first().json;\nconst monthPartners = monthPartnersResponse.list || [];\nconst prevData = $('Check Partner Duplicate').first().json;\n\nconst now = new Date();\nconst pad2 = (n) => String(n).padStart(2, '0');\nconst currentMonth = String(now.getFullYear()) + pad2(now.getMonth() + 1);\nconst prefix = 'PC_' + currentMonth + '_';\n\n// 해당 월 파트너 코드에서 최대 순번 추출\nlet maxNum = 0;\nfor (const p of monthPartners) {\n  const code = String(p.partner_code || '').trim();\n  if (code.startsWith(prefix)) {\n    const numStr = code.substring(prefix.length);\n    const num = parseInt(numStr, 10);\n    if (!isNaN(num) && num > maxNum) {\n      maxNum = num;\n    }\n  }\n}\n\nconst partnerCode = prefix + String(maxNum + 1).padStart(3, '0');\nconst approvedDate = now.toISOString();\n\n// === 한국 날짜 포맷 (이메일용) ===\nconst approvedDateKR = now.getFullYear() + '년 '\n  + (now.getMonth() + 1) + '월 '\n  + now.getDate() + '일';\n\n// === 수수료 설정 (SILVER 기본) ===\nconst COMMISSION_RATES = {\n  SILVER:   { commissionRate: 0.10, reserveRate: 1.00 },\n  GOLD:     { commissionRate: 0.12, reserveRate: 1.00 },\n  PLATINUM: { commissionRate: 0.15, reserveRate: 0.80 }\n};\nconst grade = 'SILVER';\nconst rateConfig = COMMISSION_RATES[grade];\n\nreturn [{\n  json: {\n    _partnerCode: partnerCode,\n    _grade: grade,\n    _commissionRate: rateConfig.commissionRate,\n    _reserveRate: rateConfig.reserveRate,\n    _approvedDate: approvedDate,\n    _approvedDateKR: approvedDateKR,\n    _application: prevData._application,\n    reviewerNote: prevData.reviewerNote\n  }\n}];"
+      },
+      "id": "wf08-generate-partner-code",
+      "name": "Generate Partner Code",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, 100]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Applications/{{ $json._application.Id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'APPROVED', reviewed_date: $json._approvedDate, reviewer_note: $json.reviewerNote || '신규 파트너 승인' }) }}",
+        "options": {}
+      },
+      "id": "wf08-nocodb-update-application",
+      "name": "NocoDB Update Application",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2640, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08 Step 5: Application 업데이트 결과 확인 + Partner 생성 데이터 준비\n// ===================================================\n\nconst updateResult = $input.first().json;\nconst prevData = $('Generate Partner Code').first().json;\n\n// 업데이트 성공 여부 (NocoDB PATCH는 업데이트된 레코드 반환)\nconst app = prevData._application;\n\n// 파트너명: 공방명 우선, 없으면 본명\nconst partnerName = app.workshop_name || app.applicant_name;\n\nreturn [{\n  json: {\n    ...prevData,\n    _partnerName: partnerName\n  }\n}];"
+      },
+      "id": "wf08-prepare-partner-data",
+      "name": "Prepare Partner Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2860, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "partner_code", "value": "={{ $json._partnerCode }}" },
+            { "name": "member_id", "value": "={{ $json._application.member_id }}" },
+            { "name": "partner_name", "value": "={{ $json._partnerName }}" },
+            { "name": "grade", "value": "={{ $json._grade }}" },
+            { "name": "email", "value": "={{ $json._application.email }}" },
+            { "name": "phone", "value": "={{ $json._application.phone }}" },
+            { "name": "location", "value": "={{ $json._application.location }}" },
+            { "name": "commission_rate", "value": "={{ $json._commissionRate }}" },
+            { "name": "reserve_rate", "value": "={{ $json._reserveRate }}" },
+            { "name": "class_count", "value": "=0" },
+            { "name": "avg_rating", "value": "=0" },
+            { "name": "education_completed", "value": "=false" },
+            { "name": "portfolio_url", "value": "={{ $json._application.portfolio_url }}" },
+            { "name": "instagram_url", "value": "={{ $json._application.instagram_url }}" },
+            { "name": "approved_date", "value": "={{ $json._approvedDate }}" },
+            { "name": "status", "value": "active" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf08-nocodb-create-partner",
+      "name": "NocoDB Create Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3080, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08 Step 6: 파트너 생성 결과 확인\n// ===================================================\n\nconst createResult = $input.first().json;\nconst prevData = $('Prepare Partner Data').first().json;\n\nconst recordCreated = !!createResult.Id || !!createResult.id;\n\nif (!recordCreated) {\n  return [{\n    json: {\n      _partnerCreated: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'PARTNER_CREATE_FAILED',\n          message: '파트너 레코드 생성에 실패했습니다.'\n        },\n        timestamp: new Date().toISOString()\n      },\n      _telegramError: '파트너 레코드 생성 실패: '\n        + prevData._partnerName + ' (' + prevData._application.member_id + ')'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _partnerCreated: true,\n    ...prevData,\n    _partnerRecordId: createResult.Id || createResult.id\n  }\n}];"
+      },
+      "id": "wf08-check-partner-created",
+      "name": "Check Partner Created",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3300, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._partnerCreated }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf08-if-partner-created",
+      "name": "IF Partner Created",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3520, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://{{ $env.MAKESHOP_DOMAIN }}/list/open_api_process.html?mode=save&type=user&process=modify",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "datas[0][id]", "value": "={{ $json._application.member_id }}" },
+            { "name": "datas[0][group_no]", "value": "={{ $env.MAKESHOP_PARTNER_GROUP_NO }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf08-makeshop-change-group",
+      "name": "Makeshop Change Member Group",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3740, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "makeshop-api",
+          "name": "Makeshop API Key"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08 Step 7a: 메이크샵 회원등급 변경 결과 확인\n// 실패해도 파트너 등록은 유지 (수동으로 변경 가능)\n// ===================================================\n\nconst makeshopResult = $input.first().json;\nconst prevData = $('Check Partner Created').first().json;\n\n// 메이크샵 API 응답 확인\nlet makeshopSuccess = false;\nlet makeshopMessage = '';\n\ntry {\n  // 메이크샵 API: return_code === '0000' + result === true\n  if (makeshopResult.return_code === '0000'\n      || (makeshopResult.datas && makeshopResult.datas[0] && makeshopResult.datas[0].result === true)) {\n    makeshopSuccess = true;\n    makeshopMessage = '회원등급 변경 성공';\n  } else {\n    makeshopMessage = '회원등급 변경 실패: ' + JSON.stringify(makeshopResult).substring(0, 200);\n  }\n} catch (e) {\n  makeshopMessage = '회원등급 변경 응답 파싱 실패: ' + e.message;\n}\n\nreturn [{\n  json: {\n    ...prevData,\n    _makeshopSuccess: makeshopSuccess,\n    _makeshopMessage: makeshopMessage\n  }\n}];"
+      },
+      "id": "wf08-check-makeshop-result",
+      "name": "Check Makeshop Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3960, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08 Step 7b: 승인 안내 이메일 HTML 생성\n// brand-strategy-comprehensive.md 이메일 5 참고\n// 브랜드 톤: 축하 + 기대 + 가이드\n// ===================================================\n\nconst data = $input.first().json;\nconst app = data._application;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\\\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nconst partnerName = escapeHtml(data._partnerName);\nconst partnerCode = escapeHtml(data._partnerCode);\nconst grade = escapeHtml(data._grade);\nconst approvedDateKR = escapeHtml(data._approvedDateKR);\nconst commissionPct = Math.round(data._commissionRate * 100);\n\nconst subject = '[PRESSCO21] 파트너 승인이 완료되었습니다! ' + data._partnerName + '님 환영합니다';\n\nconst html = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>PRESSCO21 파트너 승인 완료</title></head>'\n+ '<body style=\"margin: 0; padding: 0; background-color: #f8f6f0; font-family: \\'Pretendard\\', \\'Apple SD Gothic Neo\\', \\'Malgun Gothic\\', sans-serif;\">'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f8f6f0;\"><tr><td align=\"center\" style=\"padding: 24px 16px;\">'\n+ '<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);\">'\n// 헤더\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; border-bottom: 2px solid #b89b5e;\">'\n+ '<span style=\"font-size: 22px; font-weight: 700; color: #b89b5e; letter-spacing: 2px;\">PRESSCO21</span><br />'\n+ '<span style=\"font-size: 11px; color: #999999; letter-spacing: 1px;\">Forever and ever and Blooming</span>'\n+ '</td></tr>'\n// APPROVED 배지\n+ '<tr><td style=\"padding: 32px 32px 0; text-align: center;\">'\n+ '<span style=\"display: inline-block; background-color: #4a8c5c; color: #ffffff; font-size: 14px; font-weight: 700; padding: 8px 24px; border-radius: 20px; letter-spacing: 1px;\">PARTNER APPROVED</span>'\n+ '</td></tr>'\n// 본문\n+ '<tr><td style=\"padding: 28px 32px 32px;\">'\n+ '<p style=\"margin: 0 0 24px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + partnerName + '</strong>님, 환영합니다!</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">PRESSCO21 블룸 파트너 프로그램에 오신 것을 진심으로 환영합니다.</p>'\n+ '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\">30년 전통의 압화/보존화 전문 PRESSCO21과 함께<br />아름다운 클래스를 만들어 가요.</p>'\n// 파트너 정보 테이블\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #faf8f3; border-radius: 8px; border: 1px solid #e8e4db; margin-bottom: 24px;\">'\n+ '<tr><td style=\"padding: 20px 24px 12px;\"><p style=\"margin: 0 0 16px; font-size: 14px; font-weight: 700; color: #b89b5e; letter-spacing: 1px;\">파트너 정보</p></td></tr>'\n+ '<tr><td style=\"padding: 0 24px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; width: 100px; vertical-align: top;\">파트너 코드</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 700;\">' + partnerCode + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">파트너 등급</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">Bloom (블룸) - ' + grade + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">수수료율</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + commissionPct + '%</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">승인일</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + approvedDateKR + '</td></tr>'\n+ '</table></td></tr></table>'\n// 시작 가이드\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 24px;\"><tr><td style=\"padding: 20px 24px; background-color: #fef9f0; border-radius: 8px; border-left: 3px solid #b89b5e;\">'\n+ '<p style=\"margin: 0 0 12px; font-size: 14px; font-weight: 700; color: #b89b5e;\">시작 가이드</p>'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">1.</strong> 필수 교육 이수 (22분 영상 + 퀴즈)<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">부담 없이 편하게 시청해주세요. 70점 이상이면 합격!</span></td></tr>'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">2.</strong> 첫 클래스 등록 요청<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">관리자에게 클래스 정보를 보내주시면 등록해드려요.</span></td></tr>'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">3.</strong> 클래스 오픈 + 첫 수강생 만남!<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">수수료는 수강 완료 후 적립금으로 지급됩니다.</span></td></tr>'\n+ '</table></td></tr></table>'\n// 등급 안내\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 32px;\"><tr><td style=\"padding: 16px 20px; background-color: #fff8e8; border-radius: 8px; border-left: 4px solid #b89b5e;\">'\n+ '<p style=\"margin: 0; font-size: 13px; color: #555555; line-height: 1.6;\"><strong>등급 안내:</strong> 수업 실적과 평점에 따라 Garden(가든), Atelier(아틀리에) 파트너로 자동 승급됩니다.<br />Garden: 10건+ / 4.0+ &nbsp;|&nbsp; Atelier: 50건+ / 4.5+</p>'\n+ '</td></tr></table>'\n// 마무리\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">함께하는 여정이 기대됩니다!</p>'\n+ '<p style=\"margin: 0; font-size: 15px; color: #333333; line-height: 1.7;\">궁금하신 점은 pressco21@foreverlove.co.kr로 연락주세요.</p>'\n+ '</td></tr>'\n// 서명\n+ '<tr><td style=\"padding: 0 32px 32px;\"><p style=\"margin: 0; font-size: 14px; color: #b89b5e; font-weight: 600;\">PRESSCO21 드림</p></td></tr>'\n// 푸터\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; background-color: #faf8f3; border-top: 1px solid #e8e4db;\">'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">PRESSCO21 | foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">문의: pressco21@foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0; font-size: 11px; color: #bbbbbb;\">이 메일은 PRESSCO21 파트너 프로그램 관련 안내 메일입니다.</p>'\n+ '</td></tr></table></td></tr></table></body></html>';\n\nreturn [{\n  json: {\n    ...data,\n    _approvalEmail: {\n      to: app.email,\n      subject,\n      html\n    }\n  }\n}];"
+      },
+      "id": "wf08-build-approval-email",
+      "name": "Build Approval Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4180, -100]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json._approvalEmail.to }}",
+        "subject": "={{ $json._approvalEmail.subject }}",
+        "emailType": "html",
+        "html": "={{ $json._approvalEmail.html }}",
+        "options": {}
+      },
+      "id": "wf08-send-approval-email",
+      "name": "Send Approval Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [4400, -100],
+      "credentials": {
+        "smtp": {
+          "id": "pressco21-smtp",
+          "name": "PRESSCO21 SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08 Step 7c: 텔레그램 승인 알림 메시지 구성\n// 관리자용 알림 (메이크샵 등급 변경 결과 포함)\n// ===================================================\n\nconst data = $input.first().json;\nconst app = data._application;\n\nconst makeshopStatus = data._makeshopSuccess\n  ? '성공'\n  : '실패 (수동 변경 필요): ' + data._makeshopMessage;\n\nconst message = '[파트너 승인] 새 파트너가 승인되었습니다\\n\\n'\n  + '신청자: ' + data._partnerName + '\\n'\n  + '회원ID: ' + app.member_id + '\\n'\n  + '파트너 코드: ' + data._partnerCode + '\\n'\n  + '등급: Bloom (' + data._grade + ')\\n'\n  + '수수료율: ' + Math.round(data._commissionRate * 100) + '%\\n'\n  + '승인일: ' + data._approvedDateKR + '\\n'\n  + '\\n메이크샵 회원등급 변경: ' + makeshopStatus;\n\nreturn [{\n  json: {\n    ...data,\n    _telegramMessage: message\n  }\n}];"
+      },
+      "id": "wf08-build-telegram-msg",
+      "name": "Build Telegram Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4180, 60]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {}
+      },
+      "id": "wf08-telegram-approve",
+      "name": "Telegram Approval",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [4400, 60],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08 Step 8: 성공 응답 구성\n// ===================================================\n\nconst data = $('Check Makeshop Result').first().json;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      partner_code: data._partnerCode,\n      member_id: data._application.member_id,\n      partner_name: data._partnerName,\n      grade: data._grade,\n      commission_rate: data._commissionRate,\n      reserve_rate: data._reserveRate,\n      approved_date: data._approvedDateKR,\n      makeshop_group_changed: data._makeshopSuccess,\n      message: '파트너 승인이 완료되었습니다.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf08-build-success-response",
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4620, -20]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf08-respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [4840, -20]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-08: 파트너 생성 실패 시 에러 텔레그램 알림\n// ===================================================\n\nconst data = $input.first().json;\n\nconst message = '[파트너 승인 실패] 레코드 생성 오류\\n\\n'\n  + (data._telegramError || '알 수 없는 오류');\n\nreturn [{\n  json: {\n    ...data,\n    _errorTelegramMessage: message\n  }\n}];"
+      },
+      "id": "wf08-build-error-telegram",
+      "name": "Build Error Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3740, 300]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._errorTelegramMessage }}",
+        "additionalFields": {}
+      },
+      "id": "wf08-telegram-error",
+      "name": "Telegram Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3960, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "500",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf08-respond-create-error",
+      "name": "Respond Create Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [4180, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Validate Auth & Input", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Validate Auth & Input": {
+      "main": [
+        [
+          { "node": "IF Auth Valid", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Auth Valid": {
+      "main": [
+        [
+          { "node": "NocoDB Get Application", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Auth Error", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Get Application": {
+      "main": [
+        [
+          { "node": "Check Application Status", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Application Status": {
+      "main": [
+        [
+          { "node": "IF Application PENDING", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Application PENDING": {
+      "main": [
+        [
+          { "node": "NocoDB Check Existing Partner", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Not Pending", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Check Existing Partner": {
+      "main": [
+        [
+          { "node": "Check Partner Duplicate", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Partner Duplicate": {
+      "main": [
+        [
+          { "node": "IF Can Approve", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Can Approve": {
+      "main": [
+        [
+          { "node": "NocoDB Get Month Partners", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Already Partner", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Get Month Partners": {
+      "main": [
+        [
+          { "node": "Generate Partner Code", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Generate Partner Code": {
+      "main": [
+        [
+          { "node": "NocoDB Update Application", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Update Application": {
+      "main": [
+        [
+          { "node": "Prepare Partner Data", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Prepare Partner Data": {
+      "main": [
+        [
+          { "node": "NocoDB Create Partner", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Create Partner": {
+      "main": [
+        [
+          { "node": "Check Partner Created", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Partner Created": {
+      "main": [
+        [
+          { "node": "IF Partner Created", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Partner Created": {
+      "main": [
+        [
+          { "node": "Makeshop Change Member Group", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Build Error Telegram", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Makeshop Change Member Group": {
+      "main": [
+        [
+          { "node": "Check Makeshop Result", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Makeshop Result": {
+      "main": [
+        [
+          { "node": "Build Approval Email", "type": "main", "index": 0 },
+          { "node": "Build Telegram Message", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Approval Email": {
+      "main": [
+        [
+          { "node": "Send Approval Email", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Send Approval Email": {
+      "main": [
+        [
+          { "node": "Build Success Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Telegram Message": {
+      "main": [
+        [
+          { "node": "Telegram Approval", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          { "node": "Respond Success", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Error Telegram": {
+      "main": [
+        [
+          { "node": "Telegram Error Alert", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Telegram Error Alert": {
+      "main": [
+        [
+          { "node": "Respond Create Error", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "PRESSCO21" },
+    { "name": "Partner Approve" },
+    { "name": "Phase 2" },
+    { "name": "Task 221" },
+    { "name": "Admin" }
+  ],
+  "pinData": {}
+}

@@ -4,14 +4,23 @@
 - Phase 1a/1b 테스트 체크리스트 작성됨 (docs/test-checklists/)
 - Phase 2 GAS 통합 테스트 체크리스트 완료 (Task 241)
   - 파일: `docs/test-checklists/phase2-integration-test.md` (688줄)
-  - 7개 섹션: 환경설정/고객E2E/파트너E2E/보안/성능/API한도/최종점검
-  - Critical Issues 19건 회귀 테스트 포함
 - Phase 2 v2.1 n8n+NocoDB 통합 테스트 체크리스트 완료 (Task 251)
-  - 파일: `docs/test-checklists/phase2-v2-integration-test.md` (692줄)
-  - 8개 섹션: 환경준비/고객플로우/파트너플로우/보안/에러핸들링/스케줄/NocoDB GUI/롤백
-  - 체크박스 항목 161개, Critical 관련 85개
-  - Task 정의: `tasks/251-n8n-e2e-integration-test.md` (206줄)
+  - 파일: `docs/test-checklists/phase2-v2-integration-test.md` (692줄, 161개 체크박스)
+- Phase 2 배포 검증 체크리스트 완료 (Task 271)
+  - 파일: `docs/test-checklists/phase2-deployment-check.md` (인프라/서버/Credentials/CORS)
+- **Phase 2 최종 E2E 체크리스트 완료 (Task 280)**
+  - 파일: `docs/test-checklists/phase2-e2e.md` (8개 섹션, 103개 체크박스)
+  - 초점: Task 261/262 신규 UX + score 경계값 매트릭스 + Playwright 코드 + 완료 선언 기준
 - Playwright MCP 사용 가능 (현재는 서버 미배포 상태로 수동 테스트 가이드 작성)
+
+## Phase 2 최종 E2E 테스트 핵심 패턴 (Task 280 확립)
+
+- **3개 체크리스트 분업**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안경계값+완료선언)
+- **score 경계값 7가지 매트릭스**: 합격최솟값(11), 불합격최댓값(10), 만점(15), 0점, 범위초과(16), total조작(5/5), pass_threshold주입 → 서버 PASS_THRESHOLD=11 고정 확인
+- **UI 분기 HTML ID 패턴**: 교육=`#peNoticeArea/#peNotPartnerArea/#peAlreadyArea/#peContentArea/#peResultArea`, 신청=`#paNoticeArea/#paSuccessArea/#paAlreadyArea/#paFormArea`
+- **Playwright 세션 주입**: 가상태그는 foreverlove.co.kr 서버에서만 치환 → PHPSESSID 쿠키 직접 주입 또는 로그인 폼 자동화
+- **Phase 2 완료 선언 기준**: 필수(인프라+기본E2E+신규UX+보안+성능) vs 조건부(스케줄 이메일, YouTube ENDED, Rich Results)
+- **반응형 가로 스크롤 체크**: scrollWidth <= clientWidth+5px 허용 (Playwright evaluate)
 
 ## Phase 2 v2.1 n8n+NocoDB 테스트 핵심 패턴 (Task 251 확립)
 

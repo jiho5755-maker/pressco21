@@ -285,7 +285,8 @@
                     playerVars: {
                         rel: 0,
                         modestbranding: 1,
-                        playsinline: 1
+                        playsinline: 1,
+                        fs: 1
                     },
                     events: {
                         onStateChange: function(event) {

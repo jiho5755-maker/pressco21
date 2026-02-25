@@ -10,8 +10,18 @@
        설정값
        ======================================== */
 
-    /** n8n 웹훅 엔드포인트 (WF-02 파트너 인증 API) */
-    var GAS_URL = window.PRESSCO21_GAS_URL || 'https://n8n.pressco21.com/webhook/partner-auth';
+    /** n8n 웹훅 엔드포인트 URL 매핑 (모든 워크플로우 POST 전용) */
+    var N8N_BASE = 'https://n8n.pressco21.com/webhook';
+    var WF_ENDPOINT = {
+        'getPartnerAuth':              N8N_BASE + '/partner-auth',
+        'getPartnerDashboard':         N8N_BASE + '/partner-auth',
+        'getPartnerApplicationStatus': N8N_BASE + '/partner-auth',
+        'getEducationStatus':          N8N_BASE + '/partner-auth',
+        'getPartnerBookings':          N8N_BASE + '/partner-data',
+        'getPartnerReviews':           N8N_BASE + '/partner-data',
+        'updateClassStatus':           N8N_BASE + '/class-management',
+        'replyToReview':               N8N_BASE + '/review-reply'
+    };
 
     /** 캐시 유효 시간: 5분 (대시보드는 실시간성 중요) */
     var CACHE_TTL = 5 * 60 * 1000;
@@ -128,11 +138,11 @@
                 showNotice('pending');
                 return;
             }
-            if (status === 'inactive' || status === 'suspended') {
+            if (status === 'inactive' || status === 'suspended' || status === 'closed') {
                 showNotice('inactive');
                 return;
             }
-            if (status !== 'active') {
+            if (status !== 'active' && status !== 'paused') {
                 showNotice('nonpartner');
                 return;
             }
@@ -401,7 +411,7 @@
         var className = escapeHtml(cls.class_name || '');
         var category = escapeHtml(cls.category || '');
         var status = (cls.status || 'active').toLowerCase();
-        var statusLabel = { 'active': '\uD65C\uC131', 'inactive': '\uBE44\uD65C\uC131', 'pending': '\uC2EC\uC0AC\uC911' }[status] || status;
+        var statusLabel = { 'active': '\uD65C\uC131', 'paused': '\uC77C\uC2DC\uC815\uC9C0', 'closed': '\uB9C8\uAC10', 'pending': '\uC2EC\uC0AC\uC911' }[status] || status;
         var avgRating = parseFloat(cls.avg_rating) || 0;
         var bookingCount = parseInt(cls.booking_count) || 0;
         var thumbnail = cls.thumbnail_url || '';
@@ -411,9 +421,9 @@
             ? '<img src="' + escapeAttr(thumbnail) + '" alt="' + escapeAttr(cls.class_name || '') + '" loading="lazy">'
             : '';
 
-        var toggleBtnText = status === 'active' ? '\uBE44\uD65C\uC131\uD654' : '\uD65C\uC131\uD654';
+        var toggleBtnText = status === 'active' ? '\uC77C\uC2DC\uC815\uC9C0' : '\uC7AC\uD65C\uC131\uD654';
         var toggleBtnClass = status === 'active' ? 'pd-btn--outline pd-btn--sm' : 'pd-btn--gold pd-btn--sm';
-        var showToggle = status === 'active' || status === 'inactive';
+        var showToggle = status === 'active' || status === 'paused';
 
         var html = '<div class="pd-class-card" data-class-id="' + classId + '">'
             + '<div class="pd-class-card__top">'
@@ -456,7 +466,7 @@
 
             var classId = btn.getAttribute('data-class-id');
             var currentStatus = btn.getAttribute('data-status');
-            var newStatus = currentStatus === 'active' ? 'inactive' : 'active';
+            var newStatus = currentStatus === 'active' ? 'paused' : 'active';
 
             toggleClassStatus(classId, newStatus);
         });
@@ -498,7 +508,7 @@
                 }
             }
 
-            var statusLabel = newStatus === 'active' ? '\uD65C\uC131\uD654' : '\uBE44\uD65C\uC131\uD654';
+            var statusLabel = newStatus === 'active' ? '\uC7AC\uD65C\uC131\uD654' : '\uC77C\uC2DC\uC815\uC9C0';
             showToast('\uAC15\uC758\uAC00 ' + statusLabel + '\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
             renderMyClasses();
         });
@@ -1378,28 +1388,39 @@
        ======================================== */
 
     /**
-     * GAS GET 호출
+     * 액션명에 따른 엔드포인트 URL 반환
+     * @param {string} action
+     * @returns {string}
+     */
+    function getEndpoint(action) {
+        return WF_ENDPOINT[action] || (N8N_BASE + '/partner-auth');
+    }
+
+    /**
+     * n8n API POST 호출 (모든 액션 공통)
      * @param {string} action - API 액션명
-     * @param {Object} params - 파라미터 객체
+     * @param {Object} params - 요청 파라미터
      * @param {Function} callback - function(err, data)
      */
     function callGAS(action, params, callback) {
-        var queryParams = new URLSearchParams();
-        queryParams.append('action', action);
+        var body = { action: action };
 
         if (params) {
             var keys = Object.keys(params);
             for (var i = 0; i < keys.length; i++) {
                 var val = params[keys[i]];
                 if (val !== undefined && val !== null && val !== '') {
-                    queryParams.append(keys[i], val);
+                    body[keys[i]] = val;
                 }
             }
         }
 
-        var url = GAS_URL + '?' + queryParams.toString();
-
-        fetch(url, { method: 'GET', redirect: 'follow' })
+        fetch(getEndpoint(action), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            redirect: 'follow'
+        })
             .then(function(response) {
                 if (!response.ok) {
                     throw new Error('HTTP ' + response.status);
@@ -1416,19 +1437,26 @@
     }
 
     /**
-     * GAS POST 호출
+     * n8n API POST 호출 (쓰기 액션)
      * @param {string} action - API 액션명
      * @param {Object} data - POST 바디
      * @param {Function} callback - function(err, data)
      */
     function postGAS(action, data, callback) {
-        var url = GAS_URL + '?action=' + encodeURIComponent(action);
+        var body = { action: action };
 
-        fetch(url, {
+        if (data) {
+            var keys = Object.keys(data);
+            for (var i = 0; i < keys.length; i++) {
+                body[keys[i]] = data[keys[i]];
+            }
+        }
+
+        fetch(getEndpoint(action), {
             method: 'POST',
-            redirect: 'follow',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data)
+            body: JSON.stringify(body),
+            redirect: 'follow'
         })
             .then(function(response) {
                 if (!response.ok) {

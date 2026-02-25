@@ -10,8 +10,8 @@
        설정값
        ======================================== */
 
-    /** GAS 백엔드 엔드포인트 */
-    var GAS_URL = window.PRESSCO21_GAS_URL || '';
+    /** n8n 웹훅 엔드포인트 (WF-02 파트너 인증 API) */
+    var GAS_URL = window.PRESSCO21_GAS_URL || 'https://n8n.pressco21.com/webhook/partner-auth';
 
     /** 캐시 유효 시간: 5분 (대시보드는 실시간성 중요) */
     var CACHE_TTL = 5 * 60 * 1000;
@@ -1427,7 +1427,7 @@
         fetch(url, {
             method: 'POST',
             redirect: 'follow',
-            headers: { 'Content-Type': 'text/plain' },
+            headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify(data)
         })
             .then(function(response) {

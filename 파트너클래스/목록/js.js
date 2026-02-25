@@ -9,8 +9,8 @@
        설정값
        ======================================== */
 
-    /** GAS 백엔드 엔드포인트 (배포 시 실제 URL로 교체) */
-    var GAS_URL = 'https://script.google.com/macros/s/YOUR_SCRIPT_ID/exec';
+    /** n8n 웹훅 엔드포인트 (WF-01 클래스 API) */
+    var GAS_URL = 'https://n8n.pressco21.com/webhook/class-api';
 
     /** 캐시 유효 시간: 1시간 (밀리초) */
     var CACHE_TTL = 60 * 60 * 1000;

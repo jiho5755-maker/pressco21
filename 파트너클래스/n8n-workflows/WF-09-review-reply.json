@@ -1,0 +1,470 @@
+{
+  "name": "WF-09 Review Reply",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "review-reply",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf09-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 400],
+      "webhookId": "review-reply"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-09 Step 1: POST 본문 파싱 + 입력값 검증 + 텍스트 sanitize\n// 필수 필드: member_id, review_id, answer\n// 보안: HTML 태그 제거, XSS 방지, 제어 문자 제거\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\n// === 텍스트 정제 (제어 문자 제거 + 길이 제한) ===\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\n// === HTML/XSS 위험 요소 제거 ===\n// <script>, <iframe>, javascript:, on이벤트 속성 등 제거\nfunction sanitizeAnswer(str) {\n  if (!str) return '';\n  return String(str)\n    // HTML 태그 전체 제거\n    .replace(/<[^>]*>/gi, '')\n    // javascript: 프로토콜 제거\n    .replace(/javascript\\s*:/gi, '')\n    // data: 프로토콜 제거\n    .replace(/data\\s*:/gi, '')\n    // vbscript: 프로토콜 제거\n    .replace(/vbscript\\s*:/gi, '')\n    // on이벤트 핸들러 패턴 제거 (onclick, onerror 등)\n    .replace(/on\\w+\\s*=\\s*[\"'][^\"']*[\"']/gi, '')\n    .replace(/on\\w+\\s*=\\s*\\S+/gi, '')\n    // 제어 문자 제거\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, '')\n    .trim();\n}\n\n// === HTML XSS 방지 (이메일용) ===\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\n// === 필수 필드 추출 ===\nconst memberId = sanitizeText(body.member_id, 100);\nconst reviewId = sanitizeText(body.review_id, 100);\nconst answerRaw = body.answer || '';\n\n// === 필수 필드 검증 ===\nconst missingFields = [];\nif (!memberId) missingFields.push('member_id');\nif (!reviewId) missingFields.push('review_id');\nif (!String(answerRaw).trim()) missingFields.push('answer');\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: missingFields.join(', ') + ' 파라미터가 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === 답변 텍스트 정제 (HTML 태그 + XSS 제거 + 1000자 제한) ===\nconst sanitizedAnswer = sanitizeAnswer(answerRaw).substring(0, 1000);\n\nif (!sanitizedAnswer) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: '유효한 답변 내용이 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    memberId,\n    reviewId,\n    answer: sanitizedAnswer,\n    _safe: {\n      answer: escapeHtml(sanitizedAnswer)\n    }\n  }\n}];"
+      },
+      "id": "wf09-validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf09-if-valid",
+      "name": "IF Input Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "400",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf09-respond-validation-error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 560]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf09-nocodb-get-partner",
+      "name": "NocoDB Get Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-09 Step 2: 파트너 인증 확인\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst validData = $('Validate Input').first().json;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _partnerFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'NOT_PARTNER',\n          message: '파트너로 등록되지 않은 회원입니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst partner = partnerList[0];\n\nif (partner.status !== 'active') {\n  return [{\n    json: {\n      _partnerFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'PARTNER_INACTIVE',\n          message: '비활성 상태의 파트너 계정입니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _partnerFound: true,\n    _partner: {\n      partner_code: partner.partner_code || '',\n      partner_name: partner.partner_name || '',\n      member_id: partner.member_id || ''\n    },\n    _input: validData\n  }\n}];"
+      },
+      "id": "wf09-check-partner",
+      "name": "Check Partner Auth",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._partnerFound }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf09-if-partner-found",
+      "name": "IF Partner Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "401",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf09-respond-auth-error",
+      "name": "Respond Auth Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 460]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Reviews",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(review_id,eq,{{ $json._input.reviewId }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf09-nocodb-get-review",
+      "name": "NocoDB Get Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-09 Step 3: 후기 존재 확인 + class_id 추출\n// 후기가 없으면 REVIEW_NOT_FOUND 에러\n// ===================================================\n\nconst response = $input.first().json;\nconst reviewList = response.list || [];\nconst prevData = $('Check Partner Auth').first().json;\n\nif (reviewList.length === 0) {\n  return [{\n    json: {\n      _reviewFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'REVIEW_NOT_FOUND',\n          message: '해당 후기를 찾을 수 없습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst review = reviewList[0];\n\n// class_id 추출 (Links 필드 또는 문자열)\nlet classId = '';\nif (Array.isArray(review.class_id) && review.class_id.length > 0) {\n  classId = review.class_id[0].class_id || review.class_id[0].Title || '';\n} else if (typeof review.class_id === 'string') {\n  classId = review.class_id;\n}\n\n// partner_code 추출 (후기에 직접 있는 경우)\nlet reviewPartnerCode = '';\nif (Array.isArray(review.partner_code) && review.partner_code.length > 0) {\n  reviewPartnerCode = review.partner_code[0].partner_code || review.partner_code[0].Title || '';\n} else if (typeof review.partner_code === 'string') {\n  reviewPartnerCode = review.partner_code;\n}\n\nreturn [{\n  json: {\n    _reviewFound: true,\n    _review: {\n      Id: review.Id || review.id,\n      review_id: review.review_id || '',\n      class_id: classId,\n      partner_code: reviewPartnerCode,\n      reviewer_name: review.reviewer_name || '',\n      rating: review.rating || 0,\n      content: review.content || ''\n    },\n    _partner: prevData._partner,\n    _input: prevData._input\n  }\n}];"
+      },
+      "id": "wf09-check-review",
+      "name": "Check Review Exists",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._reviewFound }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf09-if-review-found",
+      "name": "IF Review Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1980, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "404",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf09-respond-review-not-found",
+      "name": "Respond Review Not Found",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2200, 380]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Classes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(class_id,eq,{{ $json._review.class_id }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf09-nocodb-get-class",
+      "name": "NocoDB Get Class for Ownership",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-09 Step 4: 소유권 2단계 검증\n// 1차: 후기에 partner_code 직접 있으면 비교\n// 2차: class_id -> tbl_Classes 조회 -> partner_code 비교\n// ===================================================\n\nconst classResponse = $input.first().json;\nconst classList = classResponse.list || [];\nconst prevData = $('Check Review Exists').first().json;\nconst review = prevData._review;\nconst partner = prevData._partner;\nconst inputData = prevData._input;\n\n// 1차: 후기에 partner_code가 있으면 직접 비교\nif (review.partner_code) {\n  if (review.partner_code !== partner.partner_code) {\n    return [{\n      json: {\n        _owned: false,\n        _errorResponse: {\n          success: false,\n          error: {\n            code: 'REVIEW_NOT_OWNED',\n            message: '본인 소유의 클래스 후기만 답변할 수 있습니다.'\n          },\n          timestamp: new Date().toISOString()\n        }\n      }\n    }];\n  }\n  // 1차 검증 통과\n  return [{\n    json: {\n      _owned: true,\n      _review: review,\n      _partner: partner,\n      _input: inputData\n    }\n  }];\n}\n\n// 2차: class_id로 클래스 조회하여 partner_code 비교\nif (classList.length === 0) {\n  return [{\n    json: {\n      _owned: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'REVIEW_NOT_OWNED',\n          message: '후기의 클래스 정보를 확인할 수 없습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst classRecord = classList[0];\n\n// partner_code 추출 (Links 필드 또는 문자열)\nlet classPartnerCode = '';\nif (Array.isArray(classRecord.partner_code) && classRecord.partner_code.length > 0) {\n  classPartnerCode = classRecord.partner_code[0].partner_code || classRecord.partner_code[0].Title || '';\n} else if (typeof classRecord.partner_code === 'string') {\n  classPartnerCode = classRecord.partner_code;\n}\n\nif (classPartnerCode !== partner.partner_code) {\n  return [{\n    json: {\n      _owned: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'REVIEW_NOT_OWNED',\n          message: '본인 소유의 클래스 후기만 답변할 수 있습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _owned: true,\n    _review: review,\n    _partner: partner,\n    _input: inputData\n  }\n}];"
+      },
+      "id": "wf09-check-ownership",
+      "name": "Check Review Ownership",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._owned }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf09-if-owned",
+      "name": "IF Review Owned",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2640, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "403",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf09-respond-not-owned",
+      "name": "Respond Not Owned",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2860, 260]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Reviews/{{ $json._review.Id }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ partner_answer: $json._input.answer, answer_at: new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "wf09-nocodb-update-review",
+      "name": "NocoDB Update Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2860, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-09 Step 5: 성공 응답 구성\n// ===================================================\n\nconst ownershipData = $('Check Review Ownership').first().json;\nconst review = ownershipData._review;\nconst inputData = ownershipData._input;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      review_id: review.review_id,\n      class_id: review.class_id,\n      answer: inputData.answer,\n      answer_at: new Date().toISOString(),\n      message: '후기 답변이 저장되었습니다.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf09-build-success",
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf09-respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3300, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Validate Input", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          { "node": "IF Input Valid", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Input Valid": {
+      "main": [
+        [
+          { "node": "NocoDB Get Partner", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Validation Error", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Get Partner": {
+      "main": [
+        [
+          { "node": "Check Partner Auth", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Partner Auth": {
+      "main": [
+        [
+          { "node": "IF Partner Found", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Partner Found": {
+      "main": [
+        [
+          { "node": "NocoDB Get Review", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Auth Error", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Get Review": {
+      "main": [
+        [
+          { "node": "Check Review Exists", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Review Exists": {
+      "main": [
+        [
+          { "node": "IF Review Found", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Review Found": {
+      "main": [
+        [
+          { "node": "NocoDB Get Class for Ownership", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Review Not Found", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Get Class for Ownership": {
+      "main": [
+        [
+          { "node": "Check Review Ownership", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Review Ownership": {
+      "main": [
+        [
+          { "node": "IF Review Owned", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Review Owned": {
+      "main": [
+        [
+          { "node": "NocoDB Update Review", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Not Owned", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Update Review": {
+      "main": [
+        [
+          { "node": "Build Success Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          { "node": "Respond Success", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "PRESSCO21" },
+    { "name": "Review Reply" },
+    { "name": "Phase 2" }
+  ],
+  "pinData": {}
+}

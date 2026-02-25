@@ -124,38 +124,39 @@
         hideElement('catalogEmpty');
         hideElement('catalogError');
 
-        // API 쿼리 파라미터 구성
-        var params = new URLSearchParams();
-        params.append('action', 'getClasses');
+        // API 요청 본문 구성 (POST JSON)
+        var body = { action: 'getClasses' };
 
         if (filters.category && filters.category.length > 0) {
-            params.append('category', filters.category.join(','));
+            body.category = filters.category.join(',');
         }
         if (filters.level && filters.level.length > 0) {
-            params.append('level', filters.level.join(','));
+            body.level = filters.level.join(',');
         }
         if (filters.type && filters.type.length > 0) {
-            params.append('type', filters.type.join(','));
+            body.type = filters.type.join(',');
         }
         if (filters.region && filters.region.length > 0) {
-            params.append('region', filters.region.join(','));
+            body.region = filters.region.join(',');
         }
         if (filters.sort) {
-            params.append('sort', filters.sort);
+            body.sort = filters.sort;
         }
         if (filters.page) {
-            params.append('page', filters.page);
+            body.page = filters.page;
         }
         if (filters.limit) {
-            params.append('limit', filters.limit);
+            body.limit = filters.limit;
         }
         if (filters.maxPrice < 200000) {
-            params.append('maxPrice', filters.maxPrice);
+            body.maxPrice = filters.maxPrice;
         }
 
-        var url = GAS_URL + '?' + params.toString();
-
-        fetch(url, { method: 'GET', redirect: 'follow' })
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
             .then(function(response) {
                 if (!response.ok) {
                     throw new Error('HTTP ' + response.status);
@@ -185,8 +186,12 @@
      * @param {Object} data - API 응답 데이터
      */
     function handleClassesResponse(data) {
-        var classes = (data.data && Array.isArray(data.data)) ? data.data : [];
-        var pagination = data.pagination || { page: 1, totalCount: 0, totalPages: 1 };
+        var classes = (data.data && Array.isArray(data.data.classes)) ? data.data.classes : [];
+        var pagination = {
+            page: (data.data && data.data.page) || 1,
+            totalCount: (data.data && data.data.total) || classes.length,
+            totalPages: (data.data && data.data.totalPages) || 1
+        };
 
         currentClasses = classes;
 
@@ -217,11 +222,11 @@
             return;
         }
 
-        var params = new URLSearchParams();
-        params.append('action', 'getCategories');
-        var url = GAS_URL + '?' + params.toString();
-
-        fetch(url, { method: 'GET', redirect: 'follow' })
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getCategories' })
+        })
             .then(function(response) {
                 return response.json();
             })

@@ -125,13 +125,11 @@
         // 로딩 표시
         showLoading();
 
-        var params = new URLSearchParams();
-        params.append('action', 'getClassDetail');
-        params.append('id', classId);
-
-        var url = GAS_URL + '?' + params.toString();
-
-        fetch(url, { method: 'GET', redirect: 'follow' })
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getClassDetail', id: classId })
+        })
             .then(function(response) {
                 if (!response.ok) {
                     throw new Error('HTTP ' + response.status);

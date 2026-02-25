@@ -478,7 +478,7 @@
         var fullInfoHtml = ''
             + '<svg width="0" height="0" style="position:absolute" aria-hidden="true">'
             + '<defs><linearGradient id="cdHalfStarGrad">'
-            + '<stop offset="50%" stop-color="#F5A623"/>'
+            + '<stop offset="50%" stop-color="#b89b5e"/>'
             + '<stop offset="50%" stop-color="#DDD"/>'
             + '</linearGradient></defs></svg>'
             + badgesHtml
@@ -761,7 +761,7 @@
             summaryEl.innerHTML = ''
                 + '<svg width="0" height="0" style="position:absolute" aria-hidden="true">'
                 + '<defs><linearGradient id="cdHalfStarGrad">'
-                + '<stop offset="50%" stop-color="#F5A623"/>'
+                + '<stop offset="50%" stop-color="#b89b5e"/>'
                 + '<stop offset="50%" stop-color="#DDD"/>'
                 + '</linearGradient></defs></svg>'
                 + '<div class="reviews-score">'
@@ -797,6 +797,7 @@
 
     /**
      * 개별 후기 카드 HTML
+     * renderStars()를 사용하여 SVG 별점 통일 (filled=#b89b5e, empty=#e0e0e0, 16px)
      * @param {Object} review
      * @returns {string}
      */
@@ -807,14 +808,8 @@
         var rating = parseInt(review.rating) || 5;
         var text = escapeHtml(review.text || '');
 
-        var starsHtml = '';
-        for (var i = 1; i <= 5; i++) {
-            if (i <= rating) {
-                starsHtml += '<svg class="review-star review-star--filled" viewBox="0 0 14 14" fill="currentColor"><path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
-            } else {
-                starsHtml += '<svg class="review-star review-star--empty" viewBox="0 0 14 14" fill="currentColor"><path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
-            }
-        }
+        // renderStars() 통일 사용 (review-star CSS 클래스, 16px)
+        var starsHtml = renderStars(rating, 'review-star', 16);
 
         return '<div class="review-card">'
             + '<div class="review-card__header">'
@@ -1152,11 +1147,12 @@
         var html = '';
         var w = size || 16;
 
-        var fullSvg = '<svg class="' + cssClass + ' ' + cssClass + '--filled" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">'
+        // 별점 색상: filled=#b89b5e(골드), empty=#e0e0e0
+        var fullSvg = '<svg class="' + cssClass + ' ' + cssClass + '--filled" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="#b89b5e" xmlns="http://www.w3.org/2000/svg">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
         var halfSvg = '<svg class="' + cssClass + ' ' + cssClass + '--half" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z" fill="url(#cdHalfStarGrad)"/></svg>';
-        var emptySvg = '<svg class="' + cssClass + ' ' + cssClass + '--empty" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">'
+        var emptySvg = '<svg class="' + cssClass + ' ' + cssClass + '--empty" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="#e0e0e0" xmlns="http://www.w3.org/2000/svg">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
 
         for (var i = 1; i <= 5; i++) {
@@ -1185,6 +1181,8 @@
         // 기존 스크립트 제거
         var existing = document.getElementById('cdSchemaOrg');
         if (existing) existing.remove();
+        var existingFaq = document.getElementById('cdSchemaFaq');
+        if (existingFaq) existingFaq.remove();
 
         var schema = {
             '@context': 'https://schema.org',
@@ -1193,8 +1191,11 @@
             'description': data.description ? data.description.replace(/<[^>]+>/g, '').substring(0, 200) : '',
             'provider': {
                 '@type': 'Organization',
-                'name': (data.partner && data.partner.name) ? data.partner.name : 'PRESSCO21'
+                'name': (data.partner && data.partner.name) ? data.partner.name : 'PRESSCO21',
+                'url': 'https://foreverlove.co.kr'
             },
+            'courseMode': 'offline',
+            'inLanguage': 'ko',
             'offers': {
                 '@type': 'Offer',
                 'price': data.price || 0,
@@ -1235,6 +1236,39 @@
         script.type = 'application/ld+json';
         script.text = JSON.stringify(schema);
         document.head.appendChild(script);
+
+        // FAQPage 스키마: 커리큘럼 데이터가 있으면 FAQ로 변환
+        var curriculum = data.curriculum;
+        if (curriculum && Array.isArray(curriculum) && curriculum.length > 0) {
+            var faqEntries = [];
+            for (var i = 0; i < curriculum.length; i++) {
+                var item = curriculum[i];
+                var qTitle = item.title || ('\uB2E8\uACC4 ' + (item.step || (i + 1)));
+                var aDesc = item.desc || '';
+                if (qTitle && aDesc) {
+                    faqEntries.push({
+                        '@type': 'Question',
+                        'name': qTitle,
+                        'acceptedAnswer': {
+                            '@type': 'Answer',
+                            'text': aDesc
+                        }
+                    });
+                }
+            }
+            if (faqEntries.length > 0) {
+                var faqSchema = {
+                    '@context': 'https://schema.org',
+                    '@type': 'FAQPage',
+                    'mainEntity': faqEntries
+                };
+                var faqScript = document.createElement('script');
+                faqScript.id = 'cdSchemaFaq';
+                faqScript.type = 'application/ld+json';
+                faqScript.text = JSON.stringify(faqSchema);
+                document.head.appendChild(faqScript);
+            }
+        }
     }
 
     /**

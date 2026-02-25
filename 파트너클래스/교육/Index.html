@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>파트너 필수 교육 | PRESSCO21 포에버러브</title>
+    <meta name="description" content="PRESSCO21 블룸 파트너 필수 교육 이수 페이지. 교육 영상 시청과 퀴즈를 완료하세요.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Pretendard 웹폰트 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+
+    <!-- 페이지 스타일 -->
+    <link rel="stylesheet" href="css.css">
+</head>
+<body>
+
+<!-- ============================================
+     파트너 필수 교육 이수 페이지
+     CSS 스코핑: .partner-education
+     ============================================ -->
+<div class="partner-education">
+
+    <!-- 숨김 가상태그 span (JS에서 읽기용) -->
+    <span id="peMemberId" style="display:none"><!--/user_id/--></span>
+
+    <!-- 1. 미로그인 안내 -->
+    <div id="peNoticeArea" style="display:none">
+        <div class="pe-notice">
+            <div class="pe-notice__inner">
+                <div class="pe-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="32" cy="24" r="10" stroke="#3d2c1e" stroke-width="2" fill="none"/>
+                        <path d="M12 52c0-11.046 8.954-20 20-20s20 8.954 20 20" stroke="#3d2c1e" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="pe-notice__title">로그인이 필요합니다</h2>
+                <p class="pe-notice__desc">파트너 교육은 포에버러브 회원으로 로그인 후 이용하실 수 있어요.</p>
+                <a id="peLoginBtn" href="/member/login.html" class="pe-notice__btn">로그인하기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 파트너 미등록/미승인/비활성 안내 -->
+    <div id="peNotPartnerArea" style="display:none">
+        <div class="pe-notice">
+            <div class="pe-notice__inner">
+                <div class="pe-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="32" cy="32" r="28" stroke="#C4956A" stroke-width="2" stroke-dasharray="6 4" fill="none"/>
+                        <path d="M32 20v16M32 42v2" stroke="#C4956A" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="pe-notice__title" id="peNotPartnerTitle">파트너 전용 페이지입니다</h2>
+                <p class="pe-notice__desc" id="peNotPartnerDesc">PRESSCO21 파트너로 승인된 후 교육을 이수하실 수 있어요.</p>
+                <a href="../파트너신청/" class="pe-notice__btn">파트너 신청하기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 이미 이수 완료 안내 -->
+    <div id="peAlreadyArea" style="display:none">
+        <div class="pe-notice">
+            <div class="pe-notice__inner">
+                <div class="pe-notice__icon">
+                    <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="36" cy="36" r="34" stroke="#b89b5e" stroke-width="2" fill="#faf6ee"/>
+                        <path d="M22 36l10 10 18-18" stroke="#b89b5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h2 class="pe-notice__title">교육을 이미 이수하셨습니다</h2>
+                <p class="pe-notice__desc">필수 교육이 완료되었어요.<br>파트너 대시보드에서 강의를 등록하실 수 있습니다.</p>
+                <a href="../파트너/" class="pe-notice__btn">파트너 대시보드로 이동</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 메인 콘텐츠 -->
+    <div id="peContentArea" style="display:none">
+
+        <!-- 페이지 헤더 -->
+        <header class="pe-page-header">
+            <div class="pe-page-header__inner">
+                <a href="/" class="pe-page-header__logo">PRESSCO21</a>
+                <p class="pe-page-header__tagline">Forever and ever and Blooming</p>
+            </div>
+        </header>
+
+        <!-- 히어로 섹션 -->
+        <section class="pe-hero">
+            <div class="pe-hero__inner">
+                <p class="pe-hero__eyebrow">파트너 필수 교육</p>
+                <h1 class="pe-hero__title">블룸 파트너 교육 이수</h1>
+                <p class="pe-hero__desc">교육 영상 3편을 시청하고, 15문항 퀴즈를 통과하면<br>파트너 활동을 시작하실 수 있습니다.</p>
+            </div>
+        </section>
+
+        <!-- 진행 상태 바 -->
+        <div class="pe-progress">
+            <div class="pe-progress__inner">
+                <div class="pe-progress__step is-active" id="peProgressStep1">
+                    <span class="pe-progress__num">1</span>
+                    <span class="pe-progress__label">교육 영상 시청</span>
+                </div>
+                <div class="pe-progress__line" id="peProgressLine1"></div>
+                <div class="pe-progress__step" id="peProgressStep2">
+                    <span class="pe-progress__num">2</span>
+                    <span class="pe-progress__label">퀴즈 응시</span>
+                </div>
+                <div class="pe-progress__line" id="peProgressLine2"></div>
+                <div class="pe-progress__step" id="peProgressStep3">
+                    <span class="pe-progress__num">3</span>
+                    <span class="pe-progress__label">이수 완료</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Step 1: 교육 영상 -->
+        <section class="pe-step-section" id="peStep1">
+            <div class="pe-step-section__inner">
+                <h2 class="pe-step-section__title">
+                    <span class="pe-step-section__badge">STEP 1</span>
+                    교육 영상 시청
+                </h2>
+                <p class="pe-step-section__desc">아래 3편의 교육 영상을 끝까지 시청해주세요. 시청이 완료되면 자동으로 체크됩니다.</p>
+
+                <div class="pe-videos">
+                    <!-- 영상 1 -->
+                    <div class="pe-video-card" id="peVideoCard0">
+                        <div class="pe-video-card__player">
+                            <div id="pePlayer0" class="pe-video-card__iframe"></div>
+                        </div>
+                        <div class="pe-video-card__info">
+                            <h3 class="pe-video-card__title">
+                                <span class="pe-video-card__num">01</span>
+                                압화/보존화 기초 이론
+                            </h3>
+                            <div class="pe-video-card__status" id="peVideoStatus0">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="pe-video-card__status-icon">
+                                    <circle cx="9" cy="9" r="8" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                                </svg>
+                                <span class="pe-video-card__status-text">미시청</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 영상 2 -->
+                    <div class="pe-video-card" id="peVideoCard1">
+                        <div class="pe-video-card__player">
+                            <div id="pePlayer1" class="pe-video-card__iframe"></div>
+                        </div>
+                        <div class="pe-video-card__info">
+                            <h3 class="pe-video-card__title">
+                                <span class="pe-video-card__num">02</span>
+                                클래스 운영 가이드
+                            </h3>
+                            <div class="pe-video-card__status" id="peVideoStatus1">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="pe-video-card__status-icon">
+                                    <circle cx="9" cy="9" r="8" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                                </svg>
+                                <span class="pe-video-card__status-text">미시청</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 영상 3 -->
+                    <div class="pe-video-card" id="peVideoCard2">
+                        <div class="pe-video-card__player">
+                            <div id="pePlayer2" class="pe-video-card__iframe"></div>
+                        </div>
+                        <div class="pe-video-card__info">
+                            <h3 class="pe-video-card__title">
+                                <span class="pe-video-card__num">03</span>
+                                PRESSCO21 파트너 정책
+                            </h3>
+                            <div class="pe-video-card__status" id="peVideoStatus2">
+                                <svg width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="pe-video-card__status-icon">
+                                    <circle cx="9" cy="9" r="8" stroke="currentColor" stroke-width="1.5" fill="none"/>
+                                </svg>
+                                <span class="pe-video-card__status-text">미시청</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 영상 완료 카운트 -->
+                <div class="pe-video-count" id="peVideoCount">
+                    시청 완료: <strong><span id="peVideoCompleteNum">0</span> / 3</strong>
+                </div>
+            </div>
+        </section>
+
+        <!-- Step 2: 퀴즈 -->
+        <section class="pe-step-section pe-step-section--locked" id="peStep2">
+            <div class="pe-step-section__inner">
+                <h2 class="pe-step-section__title">
+                    <span class="pe-step-section__badge">STEP 2</span>
+                    퀴즈 응시
+                </h2>
+
+                <!-- 잠금 안내 -->
+                <div class="pe-quiz-lock" id="peQuizLock">
+                    <div class="pe-quiz-lock__icon">
+                        <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <rect x="8" y="18" width="24" height="16" rx="3" stroke="#999" stroke-width="1.8" fill="none"/>
+                            <path d="M14 18v-5a6 6 0 0112 0v5" stroke="#999" stroke-width="1.8" stroke-linecap="round"/>
+                            <circle cx="20" cy="27" r="2" fill="#999"/>
+                        </svg>
+                    </div>
+                    <p class="pe-quiz-lock__text">교육 영상 3편을 모두 시청하면 퀴즈가 활성화됩니다.</p>
+                </div>
+
+                <!-- 퀴즈 폼 (영상 3개 완료 후 표시) -->
+                <div class="pe-quiz" id="peQuizArea" style="display:none">
+                    <p class="pe-quiz__intro">
+                        총 15문항 / 4지 선다형 / 11문항 이상 정답 시 합격<br>
+                        차분히 읽고 정답을 선택해주세요.
+                    </p>
+
+                    <form id="peQuizForm" novalidate>
+                        <div id="peQuizQuestions" class="pe-quiz__questions">
+                            <!-- JS에서 15문항 동적 렌더링 -->
+                        </div>
+
+                        <!-- 미응답 경고 -->
+                        <div id="peQuizWarning" class="pe-quiz__warning" style="display:none" role="alert">
+                            모든 문항에 답변해주세요. 미응답 항목이 표시되어 있습니다.
+                        </div>
+
+                        <!-- 제출 버튼 -->
+                        <div class="pe-quiz__submit-area">
+                            <button type="submit" id="peSubmitBtn" class="pe-quiz__submit-btn">
+                                <span class="pe-quiz__submit-text">제출하기</span>
+                                <span class="pe-quiz__submit-loading" style="display:none">
+                                    <svg class="pe-spinner" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                                        <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.5" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10"/>
+                                    </svg>
+                                    채점 중...
+                                </span>
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        </section>
+
+    </div><!-- /peContentArea -->
+
+    <!-- 5. 결과 화면 -->
+    <div id="peResultArea" style="display:none">
+        <div class="pe-result">
+            <div class="pe-result__inner">
+                <!-- 합격 -->
+                <div id="peResultPass" style="display:none">
+                    <div class="pe-result__icon pe-result__icon--pass">
+                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="40" cy="40" r="38" stroke="#b89b5e" stroke-width="2" fill="#faf6ee"/>
+                            <path d="M24 40l12 12 20-22" stroke="#b89b5e" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <h2 class="pe-result__title pe-result__title--pass">축하합니다! 교육 이수 완료</h2>
+                    <p class="pe-result__score" id="peResultPassScore"></p>
+                    <p class="pe-result__desc">파트너 교육을 성공적으로 이수하셨습니다.<br>이제 파트너 대시보드에서 강의를 등록하실 수 있어요.</p>
+                    <a href="../파트너/" class="pe-result__btn">파트너 대시보드로 이동</a>
+                </div>
+
+                <!-- 불합격 -->
+                <div id="peResultFail" style="display:none">
+                    <div class="pe-result__icon pe-result__icon--fail">
+                        <svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="40" cy="40" r="38" stroke="#C4956A" stroke-width="2" fill="#FFF8F2"/>
+                            <path d="M40 24v20M40 52v2" stroke="#C4956A" stroke-width="3" stroke-linecap="round"/>
+                        </svg>
+                    </div>
+                    <h2 class="pe-result__title pe-result__title--fail">아쉽지만 불합격입니다</h2>
+                    <p class="pe-result__score" id="peResultFailScore"></p>
+                    <p class="pe-result__desc">11문항 이상 정답이 필요합니다.<br>교육 영상을 다시 확인하신 후 재도전해주세요.</p>
+                    <button type="button" id="peRetryBtn" class="pe-result__btn pe-result__btn--retry">다시 도전하기</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 로딩 오버레이 -->
+    <div id="peLoadingOverlay" class="pe-loading-overlay" style="display:none" aria-label="처리 중" role="status">
+        <svg class="pe-spinner" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke="#b89b5e" stroke-width="2.5" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10"/>
+        </svg>
+    </div>
+
+</div><!-- /partner-education -->
+
+<script src="js.js"></script>
+</body>
+</html>

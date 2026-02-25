@@ -48,7 +48,8 @@
         sort: 'latest',
         page: 1,
         limit: PAGE_LIMIT,
-        maxPrice: 200000
+        maxPrice: 200000,
+        search: ''
     };
 
     /** 디바운스 타이머 ID */
@@ -59,6 +60,9 @@
 
     /** 현재 로드된 클래스 데이터 (Schema.org 등에 활용) */
     var currentClasses = [];
+
+    /** 현재 검색어 (카드 하이라이트 표시용) */
+    var currentSearchQuery = '';
 
 
     /* ========================================
@@ -151,6 +155,12 @@
         if (filters.maxPrice < 200000) {
             body.maxPrice = filters.maxPrice;
         }
+        if (filters.search) {
+            body.search = filters.search;
+        }
+
+        // 검색어 하이라이트용 동기화
+        currentSearchQuery = filters.search || '';
 
         fetch(GAS_URL, {
             method: 'POST',
@@ -249,30 +259,51 @@
     }
 
     /**
-     * 카테고리 체크박스 필터 렌더링
+     * 카테고리 Pill 버튼 필터 렌더링
      * @param {Array} categories - 카테고리 문자열 배열
      */
     function renderCategoryFilters(categories) {
         var container = document.getElementById('categoryFilters');
         if (!container) return;
 
-        var html = '';
+        var html = '<div class="category-pills">';
         for (var i = 0; i < categories.length; i++) {
             var cat = escapeHtml(categories[i]);
-            html += '<label class="filter-checkbox">'
-                + '<input type="checkbox" name="category" value="' + cat + '">'
-                + '<span class="filter-checkbox__mark"></span>'
-                + '<span class="filter-checkbox__label">' + cat + '</span>'
-                + '</label>';
+            html += '<button type="button" class="category-pill" data-category="' + cat + '">'
+                + cat + '</button>';
         }
+        html += '</div>';
 
         container.innerHTML = html;
 
-        // 새로 생성된 체크박스에 이벤트 바인딩
-        var checkboxes = container.querySelectorAll('input[type="checkbox"]');
-        for (var j = 0; j < checkboxes.length; j++) {
-            checkboxes[j].addEventListener('change', onFilterChange);
+        // Pill 버튼 클릭 이벤트 바인딩
+        var pills = container.querySelectorAll('.category-pill');
+        for (var j = 0; j < pills.length; j++) {
+            pills[j].addEventListener('click', onCategoryPillClick);
         }
+    }
+
+    /**
+     * 카테고리 Pill 버튼 클릭 핸들러 (토글)
+     * @param {Event} e - 클릭 이벤트
+     */
+    function onCategoryPillClick(e) {
+        var pill = e.currentTarget;
+        var category = pill.getAttribute('data-category');
+        var isActive = pill.classList.contains('is-active');
+
+        if (isActive) {
+            // 비활성화: 배열에서 제거
+            pill.classList.remove('is-active');
+            var idx = currentFilters.category.indexOf(category);
+            if (idx > -1) currentFilters.category.splice(idx, 1);
+        } else {
+            // 활성화: 배열에 추가
+            pill.classList.add('is-active');
+            currentFilters.category.push(category);
+        }
+
+        onFilterChange();
     }
 
 
@@ -332,7 +363,8 @@
             r: filters.region ? filters.region.join(',') : '',
             s: filters.sort || 'latest',
             p: filters.page || 1,
-            m: filters.maxPrice || 200000
+            m: filters.maxPrice || 200000,
+            q: filters.search || ''
         };
 
         try {
@@ -444,14 +476,17 @@
 
         html += '</div>'; // /.class-card__thumb
 
-        // 카드 본문
+        // 카드 본문 (검색어 하이라이트 적용)
+        var displayClassName = currentSearchQuery ? highlightText(className, currentSearchQuery) : className;
+        var displayPartnerName = currentSearchQuery ? highlightText(partnerName, currentSearchQuery) : partnerName;
+
         html += '<div class="class-card__body">';
-        html += '<h3 class="class-card__title">' + className + '</h3>';
+        html += '<h3 class="class-card__title">' + displayClassName + '</h3>';
 
         // 메타 정보 (파트너명, 지역)
         html += '<div class="class-card__meta">';
         if (partnerName) {
-            html += '<span class="class-card__partner">' + partnerName + '</span>';
+            html += '<span class="class-card__partner">' + displayPartnerName + '</span>';
         }
         if (location) {
             html += '<span class="class-card__location">' + location + '</span>';
@@ -599,13 +634,28 @@
     }
 
     /**
-     * 모든 체크박스에서 필터 값 수집
+     * 모든 필터(체크박스 + pill)에서 값 수집
      */
     function collectFilterValues() {
-        currentFilters.category = getCheckedValues('category');
+        // 카테고리: pill 버튼의 is-active 상태에서 수집
+        currentFilters.category = getActivePillValues();
         currentFilters.level = getCheckedValues('level');
         currentFilters.type = getCheckedValues('type');
         currentFilters.region = getCheckedValues('region');
+    }
+
+    /**
+     * 활성 카테고리 pill 버튼 값 배열 반환
+     * @returns {Array} 활성 카테고리 배열
+     */
+    function getActivePillValues() {
+        var values = [];
+        var pills = document.querySelectorAll('.class-catalog .category-pill.is-active');
+        for (var i = 0; i < pills.length; i++) {
+            var val = pills[i].getAttribute('data-category');
+            if (val) values.push(val);
+        }
+        return values;
     }
 
     /**
@@ -639,6 +689,12 @@
             checkboxes[i].checked = false;
         }
 
+        // 카테고리 pill 버튼 전체 비활성화
+        var pills = panel.querySelectorAll('.category-pill.is-active');
+        for (var p = 0; p < pills.length; p++) {
+            pills[p].classList.remove('is-active');
+        }
+
         // 가격 슬라이더 초기화
         var priceSlider = document.getElementById('priceRange');
         if (priceSlider) {
@@ -660,8 +716,10 @@
             sort: 'latest',
             page: 1,
             limit: PAGE_LIMIT,
-            maxPrice: 200000
+            maxPrice: 200000,
+            search: ''
         };
+        currentSearchQuery = '';
 
         updateFilterBadge();
         updateActiveChips();
@@ -995,17 +1053,29 @@
                 updateSliderTrack(slider);
             }
         } else {
-            // 체크박스 해제 (셀렉터 인젝션 방지: querySelector 대신 반복문으로 값 비교)
+            // 허용된 필터 키만 처리 (셀렉터 인젝션 방지)
             var allowedKeys = ['category', 'level', 'type', 'region'];
             if (allowedKeys.indexOf(filterKey) === -1) return;
 
-            var panel = document.getElementById('filterPanel');
-            if (panel) {
-                var allBoxes = panel.querySelectorAll('input[name="' + filterKey + '"]');
-                for (var i = 0; i < allBoxes.length; i++) {
-                    if (allBoxes[i].value === filterValue) {
-                        allBoxes[i].checked = false;
+            if (filterKey === 'category') {
+                // 카테고리: pill 버튼 비활성화
+                var pills = document.querySelectorAll('.class-catalog .category-pill');
+                for (var p = 0; p < pills.length; p++) {
+                    if (pills[p].getAttribute('data-category') === filterValue) {
+                        pills[p].classList.remove('is-active');
                         break;
+                    }
+                }
+            } else {
+                // 체크박스 해제 (반복문으로 값 비교)
+                var panel = document.getElementById('filterPanel');
+                if (panel) {
+                    var allBoxes = panel.querySelectorAll('input[name="' + filterKey + '"]');
+                    for (var i = 0; i < allBoxes.length; i++) {
+                        if (allBoxes[i].value === filterValue) {
+                            allBoxes[i].checked = false;
+                            break;
+                        }
                     }
                 }
             }
@@ -1175,6 +1245,7 @@
             if (currentFilters.sort !== 'latest') params.set('sort', currentFilters.sort);
             if (currentFilters.page > 1) params.set('page', currentFilters.page);
             if (currentFilters.maxPrice < 200000) params.set('maxPrice', currentFilters.maxPrice);
+            if (currentFilters.search) params.set('q', currentFilters.search);
 
             var newUrl = window.location.pathname;
             var paramStr = params.toString();
@@ -1195,7 +1266,7 @@
 
             if (params.has('category')) {
                 currentFilters.category = params.get('category').split(',');
-                setCheckboxes('category', currentFilters.category);
+                setCategoryPills(currentFilters.category);
             }
             if (params.has('level')) {
                 currentFilters.level = params.get('level').split(',');
@@ -1229,6 +1300,10 @@
                     }
                 }
             }
+            if (params.has('q')) {
+                currentFilters.search = params.get('q');
+                currentSearchQuery = currentFilters.search;
+            }
 
             updateFilterBadge();
             updateActiveChips();
@@ -1249,6 +1324,22 @@
         var checkboxes = panel.querySelectorAll('input[name="' + name + '"]');
         for (var i = 0; i < checkboxes.length; i++) {
             checkboxes[i].checked = values.indexOf(checkboxes[i].value) > -1;
+        }
+    }
+
+    /**
+     * 카테고리 pill 버튼을 값 배열에 맞게 활성화 (URL 복원용)
+     * @param {Array} values - 활성화할 카테고리 값 배열
+     */
+    function setCategoryPills(values) {
+        var pills = document.querySelectorAll('.class-catalog .category-pill');
+        for (var i = 0; i < pills.length; i++) {
+            var val = pills[i].getAttribute('data-category');
+            if (values.indexOf(val) > -1) {
+                pills[i].classList.add('is-active');
+            } else {
+                pills[i].classList.remove('is-active');
+            }
         }
     }
 
@@ -1295,40 +1386,42 @@
 
     /**
      * Schema.org ItemList JSON-LD 동적 주입
+     * 클래스 목록 로드 완료 시 head 내 script 태그를 업데이트
      * @param {Array} classes - 클래스 객체 배열
      */
     function injectSchemaOrg(classes) {
         var script = document.getElementById('schemaItemList');
-        if (!script) return;
+
+        // script 태그가 없으면 head에 새로 생성
+        if (!script) {
+            script = document.createElement('script');
+            script.type = 'application/ld+json';
+            script.id = 'schemaItemList';
+            document.head.appendChild(script);
+        }
 
         var items = [];
         for (var i = 0; i < classes.length; i++) {
             var cls = classes[i];
+            var classId = encodeURIComponent(cls.class_id || '');
+            /*
+             * URL 내 id=CLASS_DETAIL_PAGE_ID 는 메이크샵 상세 페이지 ID 확정 후 교체
+             * 현재 id=2607 로 임시 사용 중
+             */
+            var detailUrl = 'https://foreverlove.co.kr/shop/page.html?id=CLASS_DETAIL_PAGE_ID&class_id=' + classId;
             items.push({
                 '@type': 'ListItem',
                 'position': i + 1,
-                'item': {
-                    '@type': 'Course',
-                    'name': cls.class_name || '',
-                    'description': (cls.category || '') + ' ' + (cls.level || '') + ' \uD074\uB798\uC2A4',
-                    'provider': {
-                        '@type': 'Organization',
-                        'name': cls.partner_name || 'PRESSCO21'
-                    },
-                    'offers': {
-                        '@type': 'Offer',
-                        'price': cls.price || 0,
-                        'priceCurrency': 'KRW'
-                    }
-                }
+                'name': cls.class_name || '',
+                'url': detailUrl
             });
         }
 
         var schema = {
             '@context': 'https://schema.org',
             '@type': 'ItemList',
-            'name': 'PRESSCO21 \uD30C\uD2B8\uB108 \uD074\uB798\uC2A4',
-            'numberOfItems': items.length,
+            'name': 'PRESSCO21 \uD30C\uD2B8\uB108 \uD074\uB798\uC2A4 \uBAA9\uB85D',
+            'numberOfItems': classes.length,
             'itemListElement': items
         };
 
@@ -1367,6 +1460,28 @@
         if (!str) return '';
         var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
         return String(str).replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    /**
+     * 검색어 하이라이트: 이스케이프된 텍스트에서 검색어 매칭 부분을 <mark>로 감싸기
+     * XSS 안전: 먼저 escapeHtml 후 검색어 매칭만 mark 태그로 치환
+     * @param {string} escapedText - escapeHtml() 적용된 안전한 문자열
+     * @param {string} query - 검색어 (원본)
+     * @returns {string} 하이라이트 적용된 HTML 문자열
+     */
+    function highlightText(escapedText, query) {
+        if (!query || !escapedText) return escapedText;
+        // 검색어도 이스케이프해서 이스케이프된 텍스트와 매칭
+        var escapedQuery = escapeHtml(query);
+        if (!escapedQuery) return escapedText;
+        // 정규식 특수문자 이스케이프
+        var safeQuery = escapedQuery.replace(/[.*+?^$\{\}()|[\]\\]/g, '\\$&');
+        try {
+            var regex = new RegExp('(' + safeQuery + ')', 'gi');
+            return escapedText.replace(regex, '<mark>$1</mark>');
+        } catch (e) {
+            return escapedText;
+        }
     }
 
     /**

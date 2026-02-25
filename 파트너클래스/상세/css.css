@@ -279,7 +279,9 @@
     width: 380px;
     flex-shrink: 0;
     position: sticky;
-    top: 24px;
+    top: 80px;
+    max-height: calc(100vh - 100px);
+    overflow-y: auto;
     background: var(--cd-bg-card);
     border-radius: var(--cd-radius-lg);
     box-shadow: var(--cd-shadow-md);
@@ -470,9 +472,9 @@
     flex-shrink: 0;
 }
 
-.class-detail .info-star--filled { color: #F5A623; }
-.class-detail .info-star--half { color: #F5A623; }
-.class-detail .info-star--empty { color: #DDD; }
+.class-detail .info-star--filled { color: #b89b5e; }
+.class-detail .info-star--half { color: #b89b5e; }
+.class-detail .info-star--empty { color: #e0e0e0; }
 
 .class-detail .info-rating__num {
     font-size: 15px;
@@ -799,18 +801,18 @@
 }
 
 .class-detail .instructor-grade--silver {
-    background: rgba(180, 180, 180, 0.15);
-    color: #888;
+    background: #e8e8e8;
+    color: #666666;
 }
 
 .class-detail .instructor-grade--gold {
-    background: rgba(196, 149, 106, 0.12);
-    color: var(--cd-gold);
+    background: #f5e6c8;
+    color: #b89b5e;
 }
 
 .class-detail .instructor-grade--platinum {
-    background: rgba(125, 150, 117, 0.12);
-    color: var(--cd-primary);
+    background: #e8f0fe;
+    color: #4a6cf7;
 }
 
 .class-detail .instructor-region {
@@ -1042,7 +1044,7 @@
 
 .class-detail .reviews-bar__fill {
     height: 100%;
-    background: #F5A623;
+    background: #b89b5e;
     border-radius: 3px;
     transition: width 0.5s ease-out;
 }
@@ -1111,12 +1113,14 @@
 }
 
 .class-detail .review-star {
-    width: 14px;
-    height: 14px;
+    width: 16px;
+    height: 16px;
+    flex-shrink: 0;
 }
 
-.class-detail .review-star--filled { color: #F5A623; }
-.class-detail .review-star--empty { color: #DDD; }
+.class-detail .review-star--filled { color: #b89b5e; }
+.class-detail .review-star--half { color: #b89b5e; }
+.class-detail .review-star--empty { color: #e0e0e0; }
 
 .class-detail .review-card__text {
     font-size: 14px;

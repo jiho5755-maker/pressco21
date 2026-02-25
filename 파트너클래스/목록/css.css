@@ -909,18 +909,11 @@
 /* ----------------------------------------
    9. 빈 결과 / 에러 상태
    ---------------------------------------- */
-.class-catalog .catalog-empty,
 .class-catalog .catalog-error {
     text-align: center;
     padding: 80px 24px;
 }
 
-.class-catalog .catalog-empty__icon {
-    margin-bottom: 24px;
-    opacity: 0.7;
-}
-
-.class-catalog .catalog-empty__title,
 .class-catalog .catalog-error__title {
     font-size: 18px;
     font-weight: 600;
@@ -928,14 +921,12 @@
     margin: 0 0 8px;
 }
 
-.class-catalog .catalog-empty__desc,
 .class-catalog .catalog-error__desc {
     font-size: 14px;
     color: var(--cc-text-light);
     margin: 0 0 24px;
 }
 
-.class-catalog .catalog-empty__reset,
 .class-catalog .catalog-error__retry {
     display: inline-flex;
     align-items: center;
@@ -952,7 +943,6 @@
     transition: all var(--cc-transition);
 }
 
-.class-catalog .catalog-empty__reset:hover,
 .class-catalog .catalog-error__retry:hover {
     border-color: var(--cc-primary);
     color: var(--cc-primary);
@@ -1289,7 +1279,118 @@
 
 
 /* ----------------------------------------
-   16. 반응형: 데스크탑 확장 (1200px+)
+   16. 카테고리 Pill 버튼 필터
+   ---------------------------------------- */
+.class-catalog .category-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 0;
+    margin: 0;
+}
+
+.class-catalog .category-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 7px 16px;
+    border: 1.5px solid var(--cc-border);
+    border-radius: 999px;
+    background: transparent;
+    font-family: var(--cc-font);
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--cc-text);
+    cursor: pointer;
+    transition: background-color var(--cc-transition), border-color var(--cc-transition), color var(--cc-transition);
+    white-space: nowrap;
+    user-select: none;
+    -webkit-user-select: none;
+}
+
+.class-catalog .category-pill:hover {
+    background: rgba(184, 155, 94, 0.08);
+    border-color: rgba(184, 155, 94, 0.4);
+}
+
+.class-catalog .category-pill.is-active {
+    background: #b89b5e;
+    border-color: #b89b5e;
+    color: #FFFFFF;
+    font-weight: 600;
+}
+
+.class-catalog .category-pill:focus-visible {
+    outline: 2px solid #b89b5e;
+    outline-offset: 2px;
+}
+
+
+/* ----------------------------------------
+   17. 검색어 하이라이트
+   ---------------------------------------- */
+.class-catalog .class-card__title mark,
+.class-catalog .class-card__partner mark {
+    background-color: rgba(184, 155, 94, 0.25);
+    color: inherit;
+    font-weight: 700;
+    border-radius: 2px;
+    padding: 0 1px;
+}
+
+
+/* ----------------------------------------
+   18. 빈 결과 화면 개선
+   ---------------------------------------- */
+.class-catalog .catalog-empty {
+    text-align: center;
+    padding: 80px 24px;
+    animation: ccFadeIn 0.4s ease-out;
+}
+
+@keyframes ccFadeIn {
+    from { opacity: 0; transform: translateY(12px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+.class-catalog .catalog-empty__icon {
+    margin-bottom: 28px;
+}
+
+.class-catalog .catalog-empty__icon svg {
+    opacity: 0.85;
+}
+
+.class-catalog .catalog-empty__subtitle {
+    font-size: 15px;
+    color: var(--cc-text);
+    font-weight: 500;
+    margin: 0 0 6px;
+}
+
+.class-catalog .catalog-empty__reset {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 12px 28px;
+    background: #b89b5e;
+    border: none;
+    border-radius: var(--cc-radius-sm);
+    font-family: var(--cc-font);
+    font-size: 14px;
+    font-weight: 600;
+    color: #FFFFFF;
+    cursor: pointer;
+    transition: background-color var(--cc-transition), transform var(--cc-transition);
+}
+
+.class-catalog .catalog-empty__reset:hover {
+    background: #a68a4e;
+    transform: translateY(-1px);
+}
+
+
+/* ----------------------------------------
+   19. 반응형: 데스크탑 확장 (1200px+)
    ---------------------------------------- */
 @media screen and (min-width: 1200px) {
     .class-catalog .catalog-layout {
@@ -1298,5 +1399,19 @@
 
     .class-catalog .class-grid {
         gap: 28px;
+    }
+}
+
+/* ----------------------------------------
+   20. 반응형: 모바일 Pill 보정
+   ---------------------------------------- */
+@media screen and (max-width: 768px) {
+    .class-catalog .category-pills {
+        gap: 6px;
+    }
+
+    .class-catalog .category-pill {
+        padding: 6px 12px;
+        font-size: 12px;
     }
 }

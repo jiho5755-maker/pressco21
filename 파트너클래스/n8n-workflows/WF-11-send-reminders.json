@@ -1,0 +1,349 @@
+{
+  "name": "WF-11 Send Reminders",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 9 * * *" }
+          ]
+        }
+      },
+      "id": "wf11-schedule",
+      "name": "Schedule Daily 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-11 Step 1: D-3, D-1 대상 날짜 계산 (KST 기준)\n// today+3 = D-3 리마인더 대상, today+1 = D-1 리마인더 대상\n// ===================================================\n\nconst now = new Date();\n// KST 보정 (+9시간)\nconst kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\n\nconst pad = (n) => String(n).padStart(2, '0');\n\nfunction addDays(base, days) {\n  const d = new Date(base.getTime());\n  d.setDate(d.getDate() + days);\n  return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());\n}\n\nconst d3Date = addDays(kst, 3);\nconst d1Date = addDays(kst, 1);\nconst todayStr = kst.getFullYear() + '-' + pad(kst.getMonth() + 1) + '-' + pad(kst.getDate());\n\nreturn [{\n  json: {\n    d3Date,\n    d1Date,\n    todayStr\n  }\n}];"
+      },
+      "id": "wf11-calc-dates",
+      "name": "Calculate Target Dates",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 400]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=((class_date,eq,{{ $json.d3Date }})~or(class_date,eq,{{ $json.d1Date }}))~and((status,eq,COMPLETED)~or(status,eq,PENDING_SETTLEMENT))" },
+            { "name": "limit", "value": "200" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf11-fetch-settlements",
+      "name": "NocoDB Get Reminder Targets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-11 Step 2: 대상 목록 파싱 + 중복 발송 필터링\n// student_email_sent에 D3_SENT / D1_SENT가 이미 있으면 스킵\n// ===================================================\n\nconst response = $input.first().json;\nconst dates = $('Calculate Target Dates').first().json;\nconst list = response.list || [];\n\nif (list.length === 0) {\n  return [{\n    json: {\n      _hasTargets: false,\n      _d3Count: 0,\n      _d1Count: 0,\n      _items: []\n    }\n  }];\n}\n\nconst items = [];\n\nfor (const row of list) {\n  const classDate = String(row.class_date || '').substring(0, 10);\n  const emailSent = String(row.student_email_sent || '');\n  const studentEmail = String(row.student_email || '').trim();\n  const partnerCode = String(row.partner_code || '');\n  const recordId = row.Id || row.id || '';\n\n  // 수강생 이메일이 없으면 스킵\n  if (!studentEmail || studentEmail.indexOf('@') === -1) continue;\n\n  // D-3 대상\n  if (classDate === dates.d3Date) {\n    if (emailSent.indexOf('D3_SENT') === -1) {\n      items.push({\n        ...row,\n        _recordId: recordId,\n        _reminderType: 'D3',\n        _classDate: classDate,\n        _studentEmail: studentEmail,\n        _partnerCode: partnerCode,\n        _currentEmailSent: emailSent\n      });\n    }\n  }\n\n  // D-1 대상\n  if (classDate === dates.d1Date) {\n    if (emailSent.indexOf('D1_SENT') === -1) {\n      items.push({\n        ...row,\n        _recordId: recordId,\n        _reminderType: 'D1',\n        _classDate: classDate,\n        _studentEmail: studentEmail,\n        _partnerCode: partnerCode,\n        _currentEmailSent: emailSent\n      });\n    }\n  }\n}\n\nconst d3Count = items.filter(i => i._reminderType === 'D3').length;\nconst d1Count = items.filter(i => i._reminderType === 'D1').length;\n\nif (items.length === 0) {\n  return [{\n    json: {\n      _hasTargets: false,\n      _d3Count: 0,\n      _d1Count: 0,\n      _items: []\n    }\n  }];\n}\n\n// 개별 아이템으로 분기\nreturn items.map(item => ({\n  json: {\n    ...item,\n    _hasTargets: true,\n    _totalD3: d3Count,\n    _totalD1: d1Count\n  }\n}));"
+      },
+      "id": "wf11-filter-targets",
+      "name": "Filter and Parse Targets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._hasTargets }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf11-if-has-targets",
+      "name": "IF Has Targets",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// WF-11 대상 없음 텔레그램 메시지\nconst now = new Date();\nconst kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nconst todayStr = kst.toISOString().split('T')[0];\n\nreturn [{\n  json: {\n    _telegramMessage: '\\u2705 *리마인더 발송 (' + todayStr + ')*\\n\\n오늘 발송 대상이 없습니다.'\n  }\n}];"
+      },
+      "id": "wf11-no-targets-msg",
+      "name": "Build No Targets Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 600]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "wf11-telegram-no-targets",
+      "name": "Telegram No Targets",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1540, 600],
+      "credentials": { "telegramApi": { "id": "pressco21-telegram", "name": "PRESSCO21 Telegram Bot" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Classes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(class_id,eq,{{ $json.class_id }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf11-get-class",
+      "name": "NocoDB Get Class",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 300],
+      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(partner_code,eq,{{ $json._partnerCode }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf11-get-partner",
+      "name": "NocoDB Get Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 460],
+      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-11 Step 3: 이메일 HTML 빌드 (수강생 + 파트너)\n// D-3: email-templates.md 이메일 2 디자인\n// D-1: email-templates.md 이메일 3 디자인\n// XSS 방지: 모든 동적 값 escapeHtml 처리\n// ===================================================\n\nconst settlement = $('Filter and Parse Targets').first().json;\nconst classResponse = $('NocoDB Get Class').first().json;\nconst partnerResponse = $('NocoDB Get Partner').first().json;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction maskName(name) {\n  if (!name || name.length <= 1) return name || '';\n  return name.charAt(0) + '*'.repeat(name.length - 1);\n}\n\n// 클래스 정보\nconst classList = classResponse.list || [];\nconst classData = classList.length > 0 ? classList[0] : {};\nconst className = escapeHtml(classData.class_name || settlement.class_name || '');\nconst classLocation = escapeHtml(classData.location || '추후 안내');\nconst materialsIncluded = escapeHtml(classData.materials_included || '');\n\n// 파트너 정보\nconst partnerList = partnerResponse.list || [];\nconst partner = partnerList.length > 0 ? partnerList[0] : {};\nconst partnerName = escapeHtml(partner.partner_name || '');\nconst partnerEmail = String(partner.email || '').trim();\nconst partnerContact = escapeHtml(partner.phone || '');\n\n// 수강생 정보\nconst studentName = escapeHtml(settlement.student_name || '고객');\nconst studentEmail = settlement._studentEmail;\nconst classDate = escapeHtml(settlement._classDate);\nconst reminderType = settlement._reminderType;\nconst recordId = settlement._recordId;\nconst currentEmailSent = settlement._currentEmailSent;\nconst studentCount = escapeHtml(String(settlement.student_count || settlement.participants || 1));\nconst maskedStudentName = escapeHtml(maskName(settlement.student_name || ''));\n\n// 공통 헤더\nconst header = '<tr><td style=\"padding: 24px 32px; text-align: center; border-bottom: 2px solid #b89b5e;\">'\n  + '<span style=\"font-size: 22px; font-weight: 700; color: #b89b5e; letter-spacing: 2px;\">PRESSCO21</span><br />'\n  + '<span style=\"font-size: 11px; color: #999999; letter-spacing: 1px;\">Forever and ever and Blooming</span>'\n  + '</td></tr>';\n\nconst signature = '<tr><td style=\"padding: 0 32px 32px;\"><p style=\"margin: 0; font-size: 14px; color: #b89b5e; font-weight: 600;\">PRESSCO21 드림</p></td></tr>';\n\nconst footer = '<tr><td style=\"padding: 24px 32px; text-align: center; background-color: #faf8f3; border-top: 1px solid #e8e4db;\">'\n  + '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">PRESSCO21 | foreverlove.co.kr</p>'\n  + '<p style=\"margin: 0; font-size: 11px; color: #bbbbbb;\">이 메일은 PRESSCO21 클래스 예약 관련 안내 메일입니다.</p>'\n  + '</td></tr>';\n\nconst wrapStart = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /></head>'\n  + '<body style=\"margin: 0; padding: 0; background-color: #f8f6f0; font-family: Pretendard, Apple SD Gothic Neo, Malgun Gothic, sans-serif;\">'\n  + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f8f6f0;\"><tr><td align=\"center\" style=\"padding: 24px 16px;\">'\n  + '<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);\">';\n\nconst wrapEnd = '</table></td></tr></table></body></html>';\n\n// 준비물 블록\nlet preparationsBlock = '';\nif (materialsIncluded) {\n  preparationsBlock = '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #fef9f0; border-radius: 8px; border-left: 3px solid #b89b5e; margin-bottom: 24px;\">'\n    + '<tr><td style=\"padding: 16px 20px;\">'\n    + '<p style=\"margin: 0 0 10px; font-size: 13px; font-weight: 700; color: #b89b5e;\">준비물 체크리스트</p>'\n    + '<p style=\"margin: 0; font-size: 14px; color: #555555; line-height: 1.8;\">' + materialsIncluded + '</p>'\n    + '</td></tr></table>';\n}\n\n// === 수강생 이메일 HTML ===\nlet studentSubject, studentHtml;\n\nif (reminderType === 'D3') {\n  studentSubject = '[PRESSCO21] ' + (classData.class_name || '') + ' 수업까지 3일 남았습니다!';\n\n  studentHtml = wrapStart + header\n    + '<tr><td style=\"padding: 40px 32px 32px;\">'\n    // D-3 배지\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 28px;\"><tr><td align=\"center\">'\n    + '<span style=\"display: inline-block; background-color: #b89b5e; color: #ffffff; font-size: 14px; font-weight: 700; padding: 8px 20px; border-radius: 20px; letter-spacing: 1px;\">D-3</span>'\n    + '</td></tr></table>'\n    // 인사말\n    + '<p style=\"margin: 0 0 20px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + studentName + '</strong>님, 안녕하세요!</p>'\n    + '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong>' + className + '</strong> 수업이 3일 앞으로 다가왔어요!</p>'\n    + '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\">' + partnerName + ' 선생님이 즐거운 수업을 준비하고 계세요.<br />잠시 시간을 내어 수업 정보를 다시 한번 확인해주세요.</p>'\n    // 수업 정보\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #faf8f3; border-radius: 8px; border: 1px solid #e8e4db; margin-bottom: 24px;\">'\n    + '<tr><td style=\"padding: 20px 24px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n    + '<tr><td style=\"padding: 6px 0; font-size: 13px; color: #999999; width: 80px; vertical-align: top;\">클래스</td><td style=\"padding: 6px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + className + '</td></tr>'\n    + '<tr><td style=\"padding: 6px 0; font-size: 13px; color: #999999; vertical-align: top;\">일시</td><td style=\"padding: 6px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + classDate + '</td></tr>'\n    + '<tr><td style=\"padding: 6px 0; font-size: 13px; color: #999999; vertical-align: top;\">장소</td><td style=\"padding: 6px 0; font-size: 14px; color: #333333;\">' + classLocation + '</td></tr>'\n    + '</table></td></tr></table>'\n    + preparationsBlock\n    + (partnerContact ? '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 32px;\"><tr><td style=\"padding: 12px 20px; background-color: #f5f5f5; border-radius: 8px;\"><p style=\"margin: 0; font-size: 13px; color: #888888; line-height: 1.6;\">수업 관련 문의는 ' + partnerName + ' 선생님(' + partnerContact + ')에게 직접 연락하셔도 됩니다.</p></td></tr></table>' : '')\n    + '<p style=\"margin: 0; font-size: 15px; color: #333333; line-height: 1.7;\">3일 뒤, 꽃과 함께하는 즐거운 시간을 기대해주세요!</p>'\n    + '</td></tr>' + signature + footer + wrapEnd;\n\n} else {\n  // D-1\n  studentSubject = '[PRESSCO21] 내일이 수업날입니다! 준비되셨나요?';\n\n  studentHtml = wrapStart + header\n    + '<tr><td style=\"padding: 40px 32px 32px;\">'\n    // D-1 배지 (오렌지 톤)\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 28px;\"><tr><td align=\"center\">'\n    + '<span style=\"display: inline-block; background-color: #c8785e; color: #ffffff; font-size: 14px; font-weight: 700; padding: 8px 20px; border-radius: 20px; letter-spacing: 1px;\">D-1</span>'\n    + '</td></tr></table>'\n    + '<p style=\"margin: 0 0 20px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + studentName + '</strong>님, 안녕하세요!</p>'\n    + '<p style=\"margin: 0 0 8px; font-size: 16px; color: #333333; line-height: 1.7; font-weight: 600;\">내일이 바로 수업날이에요!</p>'\n    + '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong>' + partnerName + '</strong> 선생님이 내일 기다리고 계실 거예요.<br />마지막으로 준비 사항을 확인해주세요.</p>'\n    // 내일 체크리스트\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #fef9f0; border-radius: 8px; border-left: 3px solid #b89b5e; margin-bottom: 24px;\">'\n    + '<tr><td style=\"padding: 20px 20px;\">'\n    + '<p style=\"margin: 0 0 12px; font-size: 14px; font-weight: 700; color: #b89b5e;\">내일 준비 체크리스트</p>'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n    + '<tr><td style=\"padding: 4px 0; font-size: 14px; color: #555555; line-height: 1.6;\">&#9744; 수업 시간: <strong>' + classDate + '</strong></td></tr>'\n    + '<tr><td style=\"padding: 4px 0; font-size: 14px; color: #555555; line-height: 1.6;\">&#9744; 수업 장소: <strong>' + classLocation + '</strong></td></tr>'\n    + (materialsIncluded ? '<tr><td style=\"padding: 4px 0; font-size: 14px; color: #555555; line-height: 1.6;\">&#9744; 준비물: ' + materialsIncluded + '</td></tr>' : '')\n    + '</table></td></tr></table>'\n    // 오시는 길\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 32px;\"><tr><td style=\"padding: 12px 20px; background-color: #f5f5f5; border-radius: 8px;\">'\n    + '<p style=\"margin: 0; font-size: 13px; color: #888888; line-height: 1.6;\">처음 방문하시는 공방이라면, 미리 오시는 길을 확인해두시면 편해요.<br />수업 10분 전까지 도착해주시면 여유롭게 시작할 수 있어요.</p>'\n    + '</td></tr></table>'\n    + '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">내일, 꽃과 함께하는 아름다운 시간이 기다리고 있어요.</p>'\n    + '<p style=\"margin: 0; font-size: 15px; color: #333333; line-height: 1.7;\">편안한 마음으로 오세요!</p>'\n    + '</td></tr>' + signature + footer + wrapEnd;\n}\n\n// === 파트너 리마인더 이메일 ===\nconst daysLabel = reminderType === 'D3' ? '3일' : '1일';\nconst partnerSubject = '[PRESSCO21] 수업 ' + daysLabel + ' 전 알림 - ' + (classData.class_name || '');\n\nconst partnerHtml = wrapStart + header\n  + '<tr><td style=\"padding: 40px 32px 32px;\">'\n  + '<p style=\"margin: 0 0 20px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + partnerName + '</strong>님, 안녕하세요!</p>'\n  + '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong>' + className + '</strong> 수업이 <strong>' + daysLabel + '</strong> 남았습니다.</p>'\n  + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #faf8f3; border-radius: 8px; border: 1px solid #e8e4db; margin-bottom: 24px;\">'\n  + '<tr><td style=\"padding: 20px 24px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n  + '<tr><td style=\"padding: 6px 0; font-size: 13px; color: #999999; width: 90px;\">일시</td><td style=\"padding: 6px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + classDate + '</td></tr>'\n  + '<tr><td style=\"padding: 6px 0; font-size: 13px; color: #999999;\">예약 인원</td><td style=\"padding: 6px 0; font-size: 14px; color: #333333;\">' + studentCount + '명</td></tr>'\n  + '<tr><td style=\"padding: 6px 0; font-size: 13px; color: #999999;\">수강생</td><td style=\"padding: 6px 0; font-size: 14px; color: #333333;\">' + maskedStudentName + '</td></tr>'\n  + '</table></td></tr></table>'\n  + '<p style=\"margin: 0; font-size: 13px; color: #888888;\">* 파트너 대시보드에서 상세 예약 현황을 확인할 수 있습니다.</p>'\n  + '</td></tr>' + signature + footer + wrapEnd;\n\nreturn [{\n  json: {\n    ...settlement,\n    _studentEmailData: { to: studentEmail, subject: studentSubject, html: studentHtml },\n    _partnerEmailData: { to: partnerEmail, subject: partnerSubject, html: partnerHtml },\n    _hasPartnerEmail: !!(partnerEmail && partnerEmail.indexOf('@') !== -1),\n    _reminderType: reminderType,\n    _recordId: recordId,\n    _currentEmailSent: currentEmailSent,\n    _newEmailSent: currentEmailSent + (currentEmailSent ? ',' : '') + reminderType + '_SENT'\n  }\n}];"
+      },
+      "id": "wf11-build-emails",
+      "name": "Build Reminder Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json._studentEmailData.to }}",
+        "subject": "={{ $json._studentEmailData.subject }}",
+        "emailType": "html",
+        "html": "={{ $json._studentEmailData.html }}",
+        "options": {}
+      },
+      "id": "wf11-send-student-email",
+      "name": "Send Student Reminder",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1760, 200],
+      "credentials": { "smtp": { "id": "pressco21-smtp", "name": "PRESSCO21 SMTP" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._hasPartnerEmail }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf11-if-partner-email",
+      "name": "IF Partner Has Email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1760, 400]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json._partnerEmailData.to }}",
+        "subject": "={{ $json._partnerEmailData.subject }}",
+        "emailType": "html",
+        "html": "={{ $json._partnerEmailData.html }}",
+        "options": {}
+      },
+      "id": "wf11-send-partner-email",
+      "name": "Send Partner Reminder",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1980, 360],
+      "credentials": { "smtp": { "id": "pressco21-smtp", "name": "PRESSCO21 SMTP" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements/{{ $json._recordId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ student_email_sent: $json._newEmailSent }) }}",
+        "options": { "retry": { "maxTries": 2 } }
+      },
+      "id": "wf11-update-email-sent",
+      "name": "NocoDB Update Email Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 200],
+      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_EmailLogs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'REMINDER_' + $json._reminderType, recipient_email: $json._studentEmailData.to, sent_at: new Date().toISOString(), settlement_id: $json.settlement_id || '' }) }}",
+        "options": {}
+      },
+      "id": "wf11-log-email",
+      "name": "NocoDB Log Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 200],
+      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// WF-11 결과 집계 + 텔레그램\nconst allItems = $('Filter and Parse Targets').all();\nconst d3Count = allItems.filter(i => i.json._reminderType === 'D3').length;\nconst d1Count = allItems.filter(i => i.json._reminderType === 'D1').length;\n\nconst now = new Date();\nconst kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nconst todayStr = kst.toISOString().split('T')[0];\n\nconst message = '\\u2709\\uFE0F *리마인더 발송 완료 (' + todayStr + ')*\\n\\n'\n  + 'D-3: ' + d3Count + '건\\n'\n  + 'D-1: ' + d1Count + '건\\n'\n  + '총: ' + (d3Count + d1Count) + '건 발송';\n\nreturn [{\n  json: {\n    _telegramMessage: message\n  }\n}];"
+      },
+      "id": "wf11-build-summary",
+      "name": "Build Summary Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, 200]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "wf11-telegram-summary",
+      "name": "Telegram Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2640, 200],
+      "credentials": { "telegramApi": { "id": "pressco21-telegram", "name": "PRESSCO21 Telegram Bot" } },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Schedule Daily 09:00": {
+      "main": [[{ "node": "Calculate Target Dates", "type": "main", "index": 0 }]]
+    },
+    "Calculate Target Dates": {
+      "main": [[{ "node": "NocoDB Get Reminder Targets", "type": "main", "index": 0 }]]
+    },
+    "NocoDB Get Reminder Targets": {
+      "main": [[{ "node": "Filter and Parse Targets", "type": "main", "index": 0 }]]
+    },
+    "Filter and Parse Targets": {
+      "main": [[{ "node": "IF Has Targets", "type": "main", "index": 0 }]]
+    },
+    "IF Has Targets": {
+      "main": [
+        [
+          { "node": "NocoDB Get Class", "type": "main", "index": 0 },
+          { "node": "NocoDB Get Partner", "type": "main", "index": 0 }
+        ],
+        [{ "node": "Build No Targets Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build No Targets Message": {
+      "main": [[{ "node": "Telegram No Targets", "type": "main", "index": 0 }]]
+    },
+    "NocoDB Get Class": {
+      "main": [[{ "node": "Build Reminder Emails", "type": "main", "index": 0 }]]
+    },
+    "NocoDB Get Partner": {
+      "main": [[{ "node": "Build Reminder Emails", "type": "main", "index": 0 }]]
+    },
+    "Build Reminder Emails": {
+      "main": [
+        [
+          { "node": "Send Student Reminder", "type": "main", "index": 0 },
+          { "node": "IF Partner Has Email", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Send Student Reminder": {
+      "main": [[{ "node": "NocoDB Update Email Sent", "type": "main", "index": 0 }]]
+    },
+    "IF Partner Has Email": {
+      "main": [
+        [{ "node": "Send Partner Reminder", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "NocoDB Update Email Sent": {
+      "main": [[{ "node": "NocoDB Log Email", "type": "main", "index": 0 }]]
+    },
+    "NocoDB Log Email": {
+      "main": [[{ "node": "Build Summary Message", "type": "main", "index": 0 }]]
+    },
+    "Build Summary Message": {
+      "main": [[{ "node": "Telegram Summary", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [
+    { "name": "Phase 2" },
+    { "name": "Email" },
+    { "name": "Batch" }
+  ]
+}

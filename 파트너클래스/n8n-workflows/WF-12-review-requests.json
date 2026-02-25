@@ -1,0 +1,344 @@
+{
+  "name": "WF-12 Review Requests",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 10 * * *" }
+          ]
+        }
+      },
+      "id": "wf12-schedule",
+      "name": "Schedule Daily 10:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-12 Step 1: today-7 날짜 계산 (KST 기준)\n// 수업 완료 후 7일 뒤에 후기 요청 이메일 발송\n// ===================================================\n\nconst now = new Date();\nconst kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\n\nconst pad = (n) => String(n).padStart(2, '0');\n\nconst d7Ago = new Date(kst.getTime());\nd7Ago.setDate(d7Ago.getDate() - 7);\n\nconst targetDate = d7Ago.getFullYear() + '-' + pad(d7Ago.getMonth() + 1) + '-' + pad(d7Ago.getDate());\nconst todayStr = kst.getFullYear() + '-' + pad(kst.getMonth() + 1) + '-' + pad(kst.getDate());\n\nreturn [{\n  json: {\n    targetDate,\n    todayStr\n  }\n}];"
+      },
+      "id": "wf12-calc-date",
+      "name": "Calculate Target Date",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 400]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(class_date,eq,{{ $json.targetDate }})~and(status,eq,COMPLETED)~and(student_email_sent,nlike,%REVIEW_SENT%)" },
+            { "name": "limit", "value": "200" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf12-fetch-settlements",
+      "name": "NocoDB Get Review Targets",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 400],
+      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-12 Step 2: 대상 목록 파싱 + 유효성 필터링\n// student_email이 존재하고, REVIEW_SENT가 없는 건만 대상\n// ===================================================\n\nconst response = $input.first().json;\nconst list = response.list || [];\n\nif (list.length === 0) {\n  return [{\n    json: {\n      _hasTargets: false,\n      _totalCount: 0\n    }\n  }];\n}\n\nconst items = [];\n\nfor (const row of list) {\n  const studentEmail = String(row.student_email || '').trim();\n  const emailSent = String(row.student_email_sent || '');\n  const recordId = row.Id || row.id || '';\n\n  // 수강생 이메일이 없으면 스킵\n  if (!studentEmail || studentEmail.indexOf('@') === -1) continue;\n\n  // 이중 안전장치: REVIEW_SENT 포함 여부 재확인\n  if (emailSent.indexOf('REVIEW_SENT') !== -1) continue;\n\n  items.push({\n    ...row,\n    _recordId: recordId,\n    _studentEmail: studentEmail,\n    _partnerCode: String(row.partner_code || ''),\n    _currentEmailSent: emailSent\n  });\n}\n\nif (items.length === 0) {\n  return [{\n    json: {\n      _hasTargets: false,\n      _totalCount: 0\n    }\n  }];\n}\n\nreturn items.map(item => ({\n  json: {\n    ...item,\n    _hasTargets: true,\n    _totalCount: items.length\n  }\n}));"
+      },
+      "id": "wf12-filter-targets",
+      "name": "Filter Review Targets",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._hasTargets }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf12-if-has-targets",
+      "name": "IF Has Targets",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 400]
+    },
+    {
+      "parameters": {
+        "jsCode": "// WF-12 대상 없음 텔레그램 메시지\nconst dates = $('Calculate Target Date').first().json;\n\nreturn [{\n  json: {\n    _telegramMessage: '\\u2705 *후기 요청 발송 (' + dates.todayStr + ')*\\n\\n오늘 발송 대상이 없습니다. (대상일: ' + dates.targetDate + ')'\n  }\n}];"
+      },
+      "id": "wf12-no-targets-msg",
+      "name": "Build No Targets Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 600]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "wf12-telegram-no-targets",
+      "name": "Telegram No Targets",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1540, 600],
+      "credentials": { "telegramApi": { "id": "pressco21-telegram", "name": "PRESSCO21 Telegram Bot" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Classes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(class_id,eq,{{ $json.class_id }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf12-get-class",
+      "name": "NocoDB Get Class",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 300],
+      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(partner_code,eq,{{ $json._partnerCode }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf12-get-partner",
+      "name": "NocoDB Get Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 460],
+      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-12 Step 3: 후기 요청 이메일 HTML 빌드\n// 수강생: email-templates.md 이메일 4 (후기 요청 + 적립금 인센티브)\n// 파트너: 후기 접수 안내\n// XSS 방지: 모든 동적 값 escapeHtml 처리\n// ===================================================\n\nconst settlement = $('Filter Review Targets').first().json;\nconst classResponse = $('NocoDB Get Class').first().json;\nconst partnerResponse = $('NocoDB Get Partner').first().json;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\n// 클래스 정보\nconst classList = classResponse.list || [];\nconst classData = classList.length > 0 ? classList[0] : {};\nconst className = escapeHtml(classData.class_name || settlement.class_name || '');\n\n// 파트너 정보\nconst partnerList = partnerResponse.list || [];\nconst partner = partnerList.length > 0 ? partnerList[0] : {};\nconst partnerName = escapeHtml(partner.partner_name || '');\nconst partnerEmail = String(partner.email || '').trim();\n\n// 수강생 정보\nconst studentName = escapeHtml(settlement.student_name || '고객');\nconst studentEmail = settlement._studentEmail;\nconst classDate = escapeHtml(String(settlement.class_date || '').substring(0, 10));\nconst recordId = settlement._recordId;\nconst currentEmailSent = settlement._currentEmailSent;\n\nconst reviewUrl = 'https://foreverlove.co.kr';\n\n// 공통 조각\nconst header = '<tr><td style=\"padding: 24px 32px; text-align: center; border-bottom: 2px solid #b89b5e;\">'\n  + '<span style=\"font-size: 22px; font-weight: 700; color: #b89b5e; letter-spacing: 2px;\">PRESSCO21</span><br />'\n  + '<span style=\"font-size: 11px; color: #999999; letter-spacing: 1px;\">Forever and ever and Blooming</span>'\n  + '</td></tr>';\n\nconst signature = '<tr><td style=\"padding: 0 32px 32px;\"><p style=\"margin: 0; font-size: 14px; color: #b89b5e; font-weight: 600;\">PRESSCO21 드림</p></td></tr>';\n\nconst footer = '<tr><td style=\"padding: 24px 32px; text-align: center; background-color: #faf8f3; border-top: 1px solid #e8e4db;\">'\n  + '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">PRESSCO21 | foreverlove.co.kr</p>'\n  + '<p style=\"margin: 0; font-size: 11px; color: #bbbbbb;\">이 메일은 PRESSCO21 클래스 예약 관련 안내 메일입니다.</p>'\n  + '</td></tr>';\n\nconst wrapStart = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /></head>'\n  + '<body style=\"margin: 0; padding: 0; background-color: #f8f6f0; font-family: Pretendard, Apple SD Gothic Neo, Malgun Gothic, sans-serif;\">'\n  + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f8f6f0;\"><tr><td align=\"center\" style=\"padding: 24px 16px;\">'\n  + '<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);\">';\n\nconst wrapEnd = '</table></td></tr></table></body></html>';\n\n// === 수강생 후기 요청 이메일 ===\nconst studentSubject = '[PRESSCO21] 수업은 즐거우셨나요? 후기를 남겨주세요';\n\nconst studentHtml = wrapStart + header\n  + '<tr><td style=\"padding: 40px 32px 32px;\">'\n  + '<p style=\"margin: 0 0 20px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + studentName + '</strong>님, 안녕하세요!</p>'\n  + '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">지난 <strong>' + classDate + '</strong>에 참여해주신</p>'\n  + '<p style=\"margin: 0 0 24px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong>' + className + '</strong>, 즐거우셨나요?</p>'\n  + '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\">' + partnerName + ' 선생님과 함께한 시간이 좋은 추억이 되셨길 바라요.<br />소중한 경험을 다른 분들에게도 나눠주시면 큰 도움이 됩니다.</p>'\n  // 별점\n  + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 24px;\"><tr><td align=\"center\" style=\"padding: 20px 0;\">'\n  + '<span style=\"font-size: 28px; letter-spacing: 4px; color: #b89b5e;\">&#9733; &#9733; &#9733; &#9733; &#9733;</span><br />'\n  + '<span style=\"font-size: 13px; color: #999999; display: inline-block; margin-top: 8px;\">수업은 어떠셨나요?</span>'\n  + '</td></tr></table>'\n  // 인센티브\n  + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #fef9f0; border-radius: 8px; border: 1px solid #e8e4db; margin-bottom: 28px;\">'\n  + '<tr><td style=\"padding: 20px 24px; text-align: center;\">'\n  + '<p style=\"margin: 0 0 8px; font-size: 14px; color: #b89b5e; font-weight: 700;\">사진 후기를 남겨주시면</p>'\n  + '<p style=\"margin: 0 0 4px; font-size: 22px; color: #b89b5e; font-weight: 700;\">1,000원 적립금</p>'\n  + '<p style=\"margin: 0; font-size: 13px; color: #999999;\">을 드려요!</p>'\n  + '</td></tr></table>'\n  // CTA\n  + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 32px;\"><tr><td align=\"center\">'\n  + '<a href=\"' + reviewUrl + '\" style=\"display: inline-block; background-color: #b89b5e; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 40px; border-radius: 6px; letter-spacing: 0.5px;\">후기 작성하기</a>'\n  + '</td></tr></table>'\n  // 후기 안내\n  + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 24px;\"><tr><td style=\"padding: 16px 20px; background-color: #f5f5f5; border-radius: 8px;\">'\n  + '<p style=\"margin: 0 0 8px; font-size: 14px; font-weight: 700; color: #333333;\">후기 작성 안내</p>'\n  + '<ul style=\"margin: 0; padding-left: 20px; color: #666; font-size: 13px; line-height: 1.8;\">'\n  + '<li>솔직한 수업 후기를 남겨 주세요.</li>'\n  + '<li>사진 첨부 시 적립금이 추가 지급됩니다.</li>'\n  + '<li>작성 후 1~2일 내 적립금이 자동 지급됩니다.</li>'\n  + '</ul></td></tr></table>'\n  // 마무리\n  + '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">작성해주신 후기는 ' + partnerName + ' 선생님에게 큰 힘이 됩니다.</p>'\n  + '<p style=\"margin: 0; font-size: 15px; color: #333333; line-height: 1.7;\">감사합니다!</p>'\n  + '</td></tr>' + signature + footer + wrapEnd;\n\n// === 파트너 후기 알림 이메일 ===\nconst partnerSubject = '[PRESSCO21] 수강생 후기 확인 안내 - ' + (classData.class_name || '');\n\nconst partnerHtml = wrapStart + header\n  + '<tr><td style=\"padding: 40px 32px 32px;\">'\n  + '<p style=\"margin: 0 0 20px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + partnerName + '</strong>님, 안녕하세요!</p>'\n  + '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong>' + className + '</strong> 수업에 대한 후기 작성 요청이 수강생에게 발송되었습니다.</p>'\n  + '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\">파트너 대시보드에서 후기를 확인하고 답변해 주시면,<br />수강생 만족도와 재수강률이 높아집니다.</p>'\n  + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #faf8f3; border-radius: 8px; border: 1px solid #e8e4db; margin-bottom: 24px;\">'\n  + '<tr><td style=\"padding: 20px 24px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n  + '<tr><td style=\"padding: 6px 0; font-size: 13px; color: #999999; width: 80px;\">클래스</td><td style=\"padding: 6px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + className + '</td></tr>'\n  + '<tr><td style=\"padding: 6px 0; font-size: 13px; color: #999999;\">수강일</td><td style=\"padding: 6px 0; font-size: 14px; color: #333333;\">' + classDate + '</td></tr>'\n  + '</table></td></tr></table>'\n  // CTA\n  + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 32px;\"><tr><td align=\"center\">'\n  + '<a href=\"https://foreverlove.co.kr/partner/dashboard\" style=\"display: inline-block; background-color: #b89b5e; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 40px; border-radius: 6px; letter-spacing: 0.5px;\">대시보드에서 확인하기</a>'\n  + '</td></tr></table>'\n  + '<p style=\"margin: 0; font-size: 13px; color: #888888;\">* 후기에 대한 감사 답변은 클래스 평점 향상에 도움이 됩니다.</p>'\n  + '</td></tr>' + signature + footer + wrapEnd;\n\nreturn [{\n  json: {\n    ...settlement,\n    _studentEmailData: { to: studentEmail, subject: studentSubject, html: studentHtml },\n    _partnerEmailData: { to: partnerEmail, subject: partnerSubject, html: partnerHtml },\n    _hasPartnerEmail: !!(partnerEmail && partnerEmail.indexOf('@') !== -1),\n    _recordId: recordId,\n    _currentEmailSent: currentEmailSent,\n    _newEmailSent: currentEmailSent + (currentEmailSent ? ',' : '') + 'REVIEW_SENT'\n  }\n}];"
+      },
+      "id": "wf12-build-emails",
+      "name": "Build Review Emails",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json._studentEmailData.to }}",
+        "subject": "={{ $json._studentEmailData.subject }}",
+        "emailType": "html",
+        "html": "={{ $json._studentEmailData.html }}",
+        "options": {}
+      },
+      "id": "wf12-send-student-email",
+      "name": "Send Student Review Request",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1760, 200],
+      "credentials": { "smtp": { "id": "pressco21-smtp", "name": "PRESSCO21 SMTP" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._hasPartnerEmail }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf12-if-partner-email",
+      "name": "IF Partner Has Email",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1760, 400]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json._partnerEmailData.to }}",
+        "subject": "={{ $json._partnerEmailData.subject }}",
+        "emailType": "html",
+        "html": "={{ $json._partnerEmailData.html }}",
+        "options": {}
+      },
+      "id": "wf12-send-partner-email",
+      "name": "Send Partner Review Alert",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1980, 360],
+      "credentials": { "smtp": { "id": "pressco21-smtp", "name": "PRESSCO21 SMTP" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements/{{ $json._recordId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ student_email_sent: $json._newEmailSent }) }}",
+        "options": { "retry": { "maxTries": 2 } }
+      },
+      "id": "wf12-update-email-sent",
+      "name": "NocoDB Update Email Sent",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 200],
+      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_EmailLogs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'REVIEW_REQUEST', recipient_email: $json._studentEmailData.to, sent_at: new Date().toISOString(), settlement_id: $json.settlement_id || '' }) }}",
+        "options": {}
+      },
+      "id": "wf12-log-email",
+      "name": "NocoDB Log Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 200],
+      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// WF-12 결과 집계 + 텔레그램\nconst allItems = $('Filter Review Targets').all();\nconst totalCount = allItems.filter(i => i.json._hasTargets).length;\nconst dates = $('Calculate Target Date').first().json;\n\nconst message = '\\u2709\\uFE0F *후기 요청 발송 완료 (' + dates.todayStr + ')*\\n\\n'\n  + '대상일: ' + dates.targetDate + ' 수강건\\n'\n  + '발송: ' + totalCount + '건\\n'\n  + '적립금 인센티브: 1,000원 (사진 후기)';\n\nreturn [{\n  json: {\n    _telegramMessage: message\n  }\n}];"
+      },
+      "id": "wf12-build-summary",
+      "name": "Build Summary Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, 200]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": { "parse_mode": "Markdown" }
+      },
+      "id": "wf12-telegram-summary",
+      "name": "Telegram Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2640, 200],
+      "credentials": { "telegramApi": { "id": "pressco21-telegram", "name": "PRESSCO21 Telegram Bot" } },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Schedule Daily 10:00": {
+      "main": [[{ "node": "Calculate Target Date", "type": "main", "index": 0 }]]
+    },
+    "Calculate Target Date": {
+      "main": [[{ "node": "NocoDB Get Review Targets", "type": "main", "index": 0 }]]
+    },
+    "NocoDB Get Review Targets": {
+      "main": [[{ "node": "Filter Review Targets", "type": "main", "index": 0 }]]
+    },
+    "Filter Review Targets": {
+      "main": [[{ "node": "IF Has Targets", "type": "main", "index": 0 }]]
+    },
+    "IF Has Targets": {
+      "main": [
+        [
+          { "node": "NocoDB Get Class", "type": "main", "index": 0 },
+          { "node": "NocoDB Get Partner", "type": "main", "index": 0 }
+        ],
+        [{ "node": "Build No Targets Message", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build No Targets Message": {
+      "main": [[{ "node": "Telegram No Targets", "type": "main", "index": 0 }]]
+    },
+    "NocoDB Get Class": {
+      "main": [[{ "node": "Build Review Emails", "type": "main", "index": 0 }]]
+    },
+    "NocoDB Get Partner": {
+      "main": [[{ "node": "Build Review Emails", "type": "main", "index": 0 }]]
+    },
+    "Build Review Emails": {
+      "main": [
+        [
+          { "node": "Send Student Review Request", "type": "main", "index": 0 },
+          { "node": "IF Partner Has Email", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Send Student Review Request": {
+      "main": [[{ "node": "NocoDB Update Email Sent", "type": "main", "index": 0 }]]
+    },
+    "IF Partner Has Email": {
+      "main": [
+        [{ "node": "Send Partner Review Alert", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "NocoDB Update Email Sent": {
+      "main": [[{ "node": "NocoDB Log Email", "type": "main", "index": 0 }]]
+    },
+    "NocoDB Log Email": {
+      "main": [[{ "node": "Build Summary Message", "type": "main", "index": 0 }]]
+    },
+    "Build Summary Message": {
+      "main": [[{ "node": "Telegram Summary", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [
+    { "name": "Phase 2" },
+    { "name": "Email" },
+    { "name": "Batch" }
+  ]
+}

@@ -298,6 +298,9 @@
             redirect: 'follow'
         })
             .then(function(response) {
+                if (!response.ok && response.status >= 500) {
+                    throw new Error('HTTP ' + response.status);
+                }
                 return response.json();
             })
             .then(function(resData) {

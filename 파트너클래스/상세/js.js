@@ -1467,7 +1467,9 @@
      * @returns {string}
      */
     function formatPrice(price) {
-        return String(price).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        var n = Number(price);
+        if (isNaN(n) || n < 0) return '0';
+        return String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
     /**

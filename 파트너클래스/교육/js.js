@@ -169,24 +169,7 @@
         }
     ];
 
-    /** 정답 배열 (0-based index) */
-    var CORRECT_ANSWERS = [
-        1,  // Q1: 꽃/식물을 건조압착해 평면 예술로 만드는 것
-        1,  // Q2: 특수 보존 용액으로 생화의 아름다움을 오래 보존
-        1,  // Q3: 얇고 수분 적은 꽃
-        3,  // Q4: 고온 스팀 건조법 (해당하지 않는 것)
-        2,  // Q5: 습기 차단, 직사광선 피해 서늘한 곳
-        0,  // Q6: 재료/장비 안내와 환기 철저
-        1,  // Q7: 4~8명
-        1,  // Q8: 2~3시간
-        1,  // Q9: 사전에 문자로 상세 안내
-        1,  // Q10: 건조/경화 시간 안내, 안전한 포장 안내
-        2,  // Q11: D+3 영업일 이내 적립금 지급
-        1,  // Q12: 관리자 검수/승인 후 활성화
-        1,  // Q13: 수업 전 전액 환불, 이후 규정에 따라
-        1,  // Q14: 감사 답글 작성 가능
-        1   // Q15: SILVER -> GOLD -> PLATINUM
-    ];
+    /* 정답 배열은 서버(WF-10)에서만 관리 — 클라이언트 채점 없음 */
 
 
     /* ========================================
@@ -417,21 +400,6 @@
     }
 
     /**
-     * 채점 (클라이언트 측)
-     * @returns {number} 정답 수
-     */
-    function gradeQuiz() {
-        var score = 0;
-        for (var i = 0; i < TOTAL_QUESTIONS; i++) {
-            var selected = document.querySelector('input[name="peQuiz' + i + '"]:checked');
-            if (selected && parseInt(selected.value, 10) === CORRECT_ANSWERS[i]) {
-                score++;
-            }
-        }
-        return score;
-    }
-
-    /**
      * 모든 문항 응답 여부 확인
      * @returns {Array} 미응답 문항 인덱스 배열
      */
@@ -489,19 +457,22 @@
         var warningEl = document.getElementById('peQuizWarning');
         if (warningEl) warningEl.style.display = 'none';
 
-        // 채점
-        var score = gradeQuiz();
+        // 선택된 답변 배열 수집 (채점은 서버에서)
+        var answers = [];
+        for (var i = 0; i < TOTAL_QUESTIONS; i++) {
+            var selectedInput = document.querySelector('input[name="peQuiz' + i + '"]:checked');
+            answers.push(selectedInput ? parseInt(selectedInput.value, 10) : -1);
+        }
 
         // 제출 시작
         isSubmitting = true;
         setSubmitLoading(true);
         showLoading();
 
-        // WF-10 API 호출
+        // WF-10 API 호출 (서버사이드 채점)
         var payload = {
             member_id: memberId,
-            score: score,
-            total: TOTAL_QUESTIONS
+            answers: answers
         };
 
         postEducation(payload, function(err, responseData) {
@@ -555,6 +526,9 @@
             redirect: 'follow'
         })
             .then(function(response) {
+                if (!response.ok && response.status >= 500) {
+                    throw new Error('HTTP ' + response.status);
+                }
                 return response.json();
             })
             .then(function(resData) {

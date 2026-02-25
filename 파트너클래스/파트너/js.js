@@ -87,6 +87,15 @@
             memberId = (memberEl.textContent || '').trim();
         }
 
+        // 로그인 버튼 JS 폴백 (href 미동작 대비)
+        var loginBtn = document.getElementById('pdLoginBtn');
+        if (loginBtn) {
+            loginBtn.onclick = function(e) {
+                e.preventDefault();
+                window.location.href = '/member/login.html';
+            };
+        }
+
         // 미로그인 처리
         if (!memberId) {
             showNotice('login');
@@ -449,11 +458,12 @@
     }
 
     /**
-     * 강의 상태 토글 버튼 이벤트 바인딩
+     * 강의 상태 토글 버튼 이벤트 바인딩 (이벤트 위임 - 한 번만 바인딩)
      */
     function bindClassStatusButtons() {
         var container = document.getElementById('pdClassList');
-        if (!container) return;
+        if (!container || container._pdBound) return; // 중복 바인딩 방지
+        container._pdBound = true;
 
         container.addEventListener('click', function(e) {
             var btn = e.target.closest('.js-toggle-status');
@@ -466,9 +476,10 @@
             toggleClassStatus(classId, newStatus);
         });
 
-        // 새 강의 등록 버튼
+        // 새 강의 등록 버튼 (한 번만)
         var newClassBtn = document.getElementById('pdBtnNewClass');
-        if (newClassBtn) {
+        if (newClassBtn && !newClassBtn._pdBound) {
+            newClassBtn._pdBound = true;
             newClassBtn.addEventListener('click', function() {
                 openModal('pdNewClassModal');
             });
@@ -1026,11 +1037,12 @@
     }
 
     /**
-     * 후기 답변 버튼 이벤트 바인딩
+     * 후기 답변 버튼 이벤트 바인딩 (이벤트 위임 - 한 번만 바인딩)
      */
     function bindReviewReplyButtons() {
         var container = document.getElementById('pdReviewList');
-        if (!container) return;
+        if (!container || container._pdBound) return; // 중복 바인딩 방지
+        container._pdBound = true;
 
         container.addEventListener('click', function(e) {
             var btn = e.target.closest('.js-reply-btn');

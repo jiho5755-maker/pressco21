@@ -145,6 +145,74 @@
     margin: 16px 0 0;
 }
 
+.partner-dashboard .pd-notice__btn--outline {
+    background: transparent;
+    color: var(--pd-primary);
+    border: 1.5px solid var(--pd-primary);
+    margin-top: 12px;
+}
+
+.partner-dashboard .pd-notice__btn--outline:hover {
+    background: var(--pd-bg-warm);
+    transform: translateY(-1px);
+}
+
+.partner-dashboard .pd-notice__divider {
+    position: relative;
+    font-size: 13px;
+    color: var(--pd-text-light);
+    margin: 28px 0 20px;
+}
+
+.partner-dashboard .pd-notice__divider::before,
+.partner-dashboard .pd-notice__divider::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    width: 30%;
+    height: 1px;
+    background: var(--pd-border);
+}
+
+.partner-dashboard .pd-notice__divider::before { left: 0; }
+.partner-dashboard .pd-notice__divider::after  { right: 0; }
+
+.partner-dashboard .pd-notice__partner-info {
+    background: var(--pd-bg-warm);
+    border-radius: var(--pd-radius-sm);
+    padding: 20px 24px;
+    text-align: left;
+}
+
+.partner-dashboard .pd-notice__partner-info-title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--pd-text-dark);
+    margin: 0 0 12px;
+}
+
+.partner-dashboard .pd-notice__partner-benefits {
+    list-style: none;
+    margin: 0 0 16px;
+    padding: 0;
+}
+
+.partner-dashboard .pd-notice__partner-benefits li {
+    font-size: 13px;
+    color: var(--pd-text-light);
+    padding: 4px 0;
+    padding-left: 18px;
+    position: relative;
+}
+
+.partner-dashboard .pd-notice__partner-benefits li::before {
+    content: '\2713';
+    position: absolute;
+    left: 0;
+    color: var(--pd-gold);
+    font-weight: 700;
+}
+
 
 /* ----------------------------------------
    2. 대시보드 헤더

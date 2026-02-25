@@ -76,11 +76,6 @@
      * 페이지 초기화
      */
     function init() {
-        // GAS URL 검증
-        if (!GAS_URL) {
-            console.error('[PartnerDash] GAS_URL이 설정되지 않았습니다.');
-            return;
-        }
 
         // 현재 월 설정
         var now = new Date();

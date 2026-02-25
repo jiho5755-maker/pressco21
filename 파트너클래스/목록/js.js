@@ -418,7 +418,7 @@
         var partnerName = escapeHtml(cls.partner_name || '');
         var avgRating = parseFloat(cls.avg_rating) || 0;
         var classCount = parseInt(cls.class_count) || 0;
-        var detailUrl = '../\uC0C1\uC138/?id=' + encodeURIComponent(classId);
+        var detailUrl = '/shop/page.html?id=2607&class_id=' + encodeURIComponent(classId);
 
         var starsHtml = renderStars(avgRating);
 

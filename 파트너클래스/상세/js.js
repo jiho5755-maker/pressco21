@@ -91,10 +91,11 @@
         var id = null;
         try {
             var params = new URLSearchParams(window.location.search);
-            id = params.get('id') || null;
+            // class_id 파라미터 우선 (목록 페이지에서 넘어올 때)
+            id = params.get('class_id') || null;
         } catch (e) {
             // URLSearchParams 미지원 폴백
-            var match = window.location.search.match(/[?&]id=([^&]+)/);
+            var match = window.location.search.match(/[?&]class_id=([^&]+)/);
             id = match ? decodeURIComponent(match[1]) : null;
         }
         // id 형식 검증: 영숫자, 하이픈, 언더스코어만 허용, 최대 64자

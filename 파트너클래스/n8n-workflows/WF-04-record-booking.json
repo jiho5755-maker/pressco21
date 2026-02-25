@@ -1,0 +1,740 @@
+{
+  "name": "WF-04 Record Booking",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "record-booking",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf04-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 400],
+      "webhookId": "record-booking"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04 Step 1: POST 본문 파싱 + 입력값 검증\n// 필수 필드: class_id, member_id, booking_date, participants, amount\n// 선택 필드: student_name, student_email, student_phone\n// ===================================================\n\nconst input = $input.first().json;\n\n// POST 본문 추출 (Content-Type에 따라 body 위치가 다름)\nconst body = input.body || input;\n\n// === HTML XSS 방지 ===\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\n// === 텍스트 정제 (제어 문자 제거 + 길이 제한) ===\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\n// === 필수 필드 검증 ===\nconst classId = sanitizeText(body.class_id, 100);\nconst memberId = sanitizeText(body.member_id, 100);\nconst bookingDate = sanitizeText(body.booking_date, 30);\nconst participants = parseInt(body.participants) || 0;\nconst amount = parseInt(body.amount) || 0;\n\nconst missingFields = [];\nif (!classId) missingFields.push('class_id');\nif (!memberId) missingFields.push('member_id');\nif (!bookingDate) missingFields.push('booking_date');\nif (participants <= 0) missingFields.push('participants');\nif (amount <= 0) missingFields.push('amount');\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: missingFields.join(', ') + ' 파라미터가 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === YYYY-MM-DD 날짜 형식 검증 ===\nconst dateRegex = /^\\d{4}-\\d{2}-\\d{2}$/;\nif (!dateRegex.test(bookingDate)) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INVALID_PARAMS',\n          message: 'booking_date는 YYYY-MM-DD 형식이어야 합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === 금액/인원 범위 검증 ===\nif (amount > 10000000) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INVALID_PARAMS',\n          message: '금액이 유효 범위를 초과합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nif (participants > 50) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INVALID_PARAMS',\n          message: '인원이 유효 범위를 초과합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === 선택 필드 정제 ===\nconst studentName = sanitizeText(body.student_name, 100);\nconst studentEmail = sanitizeText(body.student_email, 200);\nconst studentPhone = sanitizeText(body.student_phone, 20);\n\n// 이메일 형식 간단 검증 (있는 경우만)\nif (studentEmail && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(studentEmail)) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INVALID_PARAMS',\n          message: 'student_email 형식이 올바르지 않습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    classId,\n    memberId,\n    bookingDate,\n    participants,\n    amount,\n    studentName,\n    studentEmail,\n    studentPhone,\n    // XSS-safe 버전 (이메일 HTML용)\n    _safe: {\n      studentName: escapeHtml(studentName),\n      studentEmail: escapeHtml(studentEmail),\n      studentPhone: escapeHtml(studentPhone),\n      classId: escapeHtml(classId),\n      memberId: escapeHtml(memberId)\n    }\n  }\n}];"
+      },
+      "id": "wf04-validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf04-if-valid",
+      "name": "IF Input Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "400",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf04-respond-validation-error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 560]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Classes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(class_id,eq,{{ $json.classId }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf04-nocodb-get-class",
+      "name": "NocoDB Get Class",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04 Step 2: 클래스 존재 여부 확인 + 파트너 코드 추출\n// ===================================================\n\nconst response = $input.first().json;\nconst classesList = response.list || [];\n\n// 검증 데이터를 앞 노드에서 가져옴\nconst validData = $('Validate Input').first().json;\n\nif (classesList.length === 0) {\n  return [{\n    json: {\n      _classFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'CLASS_NOT_FOUND',\n          message: '해당 클래스를 찾을 수 없습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst c = classesList[0];\n\n// partner_code 추출 (Links 필드 또는 문자열)\nlet partnerCode = '';\nif (Array.isArray(c.partner_code) && c.partner_code.length > 0) {\n  partnerCode = c.partner_code[0].partner_code || c.partner_code[0].Title || '';\n} else if (typeof c.partner_code === 'string') {\n  partnerCode = c.partner_code;\n}\n\nif (!partnerCode) {\n  return [{\n    json: {\n      _classFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INTERNAL_ERROR',\n          message: '클래스에 파트너 코드가 설정되지 않았습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _classFound: true,\n    _classData: {\n      class_id: c.class_id || '',\n      class_name: c.class_name || '',\n      category: c.category || '',\n      level: c.level || '',\n      price: Number(c.price) || 0,\n      location: c.location || '',\n      duration_min: Number(c.duration_min) || 0,\n      makeshop_product_id: c.makeshop_product_id || '',\n      partner_code: partnerCode,\n      materials_included: c.materials_included || ''\n    },\n    // 유효성 검증 데이터 전달\n    _booking: validData\n  }\n}];"
+      },
+      "id": "wf04-check-class",
+      "name": "Check Class Exists",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._classFound }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf04-if-class-found",
+      "name": "IF Class Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "404",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf04-respond-class-error",
+      "name": "Respond Class Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 460]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(partner_code,eq,{{ $json._classData.partner_code }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf04-nocodb-get-partner",
+      "name": "NocoDB Get Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04 Step 3: 수수료 계산 + 자기 결제 방지 + settlement_id 생성\n// D+3 정산 방식: 즉시 적립금 지급 X, PENDING_SETTLEMENT 상태로 기록\n// ===================================================\n\n// 파트너 정보 확인\nconst partnerResponse = $input.first().json;\nconst partnerList = partnerResponse.list || [];\n\nconst prevData = $('Check Class Exists').first().json;\nconst classData = prevData._classData;\nconst booking = prevData._booking;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _error: true,\n      _isSelfPurchase: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INTERNAL_ERROR',\n          message: '클래스의 파트너 정보를 찾을 수 없습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst partner = partnerList[0];\n\n// === 자기 결제 방지 ===\nconst isSelfPurchase = (booking.memberId === partner.member_id);\n\n// === 수수료 계산 ===\n// 개선안 B 적용: GOLD reserveRate = 1.00\nconst COMMISSION_RATES = {\n  SILVER:   { commissionRate: 0.10, reserveRate: 1.00 },\n  GOLD:     { commissionRate: 0.12, reserveRate: 1.00 },\n  PLATINUM: { commissionRate: 0.15, reserveRate: 0.80 }\n};\n\nconst grade = (partner.grade || 'SILVER').toUpperCase();\nconst config = COMMISSION_RATES[grade] || COMMISSION_RATES.SILVER;\nconst orderAmount = booking.amount;\nconst commissionAmount = Math.round(orderAmount * config.commissionRate);\nconst reserveAmount = Math.round(commissionAmount * config.reserveRate);\n\n// === settlement_id 생성: STL_YYYYMMDD_XXXXXX ===\nconst now = new Date();\nconst pad = (n) => String(n).padStart(2, '0');\nconst dateStr = String(now.getFullYear()) + pad(now.getMonth() + 1) + pad(now.getDate());\nconst randomSuffix = String(Math.floor(100000 + Math.random() * 900000));\nconst settlementId = 'STL_' + dateStr + '_' + randomSuffix;\n\n// === D+3 정산일 계산 ===\nconst classDate = new Date(booking.bookingDate + 'T00:00:00+09:00');\nconst settlementDueDate = new Date(classDate.getTime() + (3 * 24 * 60 * 60 * 1000));\nconst dueDateStr = settlementDueDate.getFullYear() + '-'\n  + pad(settlementDueDate.getMonth() + 1) + '-'\n  + pad(settlementDueDate.getDate());\n\n// === 정산 상태 결정 ===\nconst status = isSelfPurchase ? 'SELF_PURCHASE' : 'PENDING_SETTLEMENT';\n\n// === 개인정보 마스킹 (이메일/텔레그램용) ===\nfunction maskPhone(phone) {\n  if (!phone || phone.length < 7) return '***';\n  return phone.substring(0, 3) + '-****-' + phone.substring(phone.length - 4);\n}\n\nfunction maskName(name) {\n  if (!name || name.length < 2) return '*';\n  return name.charAt(0) + '*'.repeat(name.length - 1);\n}\n\nfunction maskEmail(email) {\n  if (!email || email.indexOf('@') === -1) return '***';\n  const parts = email.split('@');\n  const local = parts[0];\n  return local.substring(0, Math.min(3, local.length)) + '***@' + parts[1];\n}\n\n// === 금액 포맷 ===\nfunction formatCurrency(num) {\n  return Number(num).toLocaleString('ko-KR') + '원';\n}\n\n// === 날짜 포맷 (한국어) ===\nconst weekDays = ['일', '월', '화', '수', '목', '금', '토'];\nconst classDateKR = classDate.getFullYear() + '년 '\n  + (classDate.getMonth() + 1) + '월 '\n  + classDate.getDate() + '일 ('\n  + weekDays[classDate.getDay()] + ')';\n\nreturn [{\n  json: {\n    _error: false,\n    _isSelfPurchase: isSelfPurchase,\n    // 정산 레코드 데이터\n    _settlement: {\n      settlement_id: settlementId,\n      class_id: classData.class_id,\n      partner_code: classData.partner_code,\n      member_id: booking.memberId,\n      order_amount: orderAmount,\n      commission_rate: config.commissionRate,\n      commission_amount: commissionAmount,\n      reserve_rate: config.reserveRate,\n      reserve_amount: reserveAmount,\n      class_date: booking.bookingDate,\n      settlement_due_date: dueDateStr,\n      student_count: booking.participants,\n      status: status,\n      student_name: booking.studentName,\n      student_email: booking.studentEmail,\n      student_phone: booking.studentPhone,\n      created_date: now.toISOString(),\n      retry_count: 0\n    },\n    // 파트너 정보\n    _partner: {\n      partner_code: partner.partner_code || '',\n      partner_name: partner.partner_name || '',\n      member_id: partner.member_id || '',\n      email: partner.email || '',\n      grade: grade,\n      location: partner.location || '',\n      phone: partner.phone || ''\n    },\n    // 클래스 정보\n    _classData: classData,\n    // 예약 원본 데이터\n    _booking: booking,\n    // 이메일/텔레그램용 가공 데이터\n    _display: {\n      settlementId,\n      className: classData.class_name,\n      partnerName: partner.partner_name || '',\n      studentName: booking.studentName || '수강생',\n      maskedStudentName: maskName(booking.studentName),\n      maskedStudentPhone: maskPhone(booking.studentPhone),\n      maskedStudentEmail: maskEmail(booking.studentEmail),\n      classDateKR,\n      classLocation: classData.location || '',\n      participants: booking.participants + '명',\n      totalAmount: formatCurrency(orderAmount),\n      commissionAmount: formatCurrency(commissionAmount),\n      reserveAmount: formatCurrency(reserveAmount),\n      grade,\n      dueDateStr\n    }\n  }\n}];"
+      },
+      "id": "wf04-calc-commission",
+      "name": "Calculate Commission",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._error }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf04-if-partner-found",
+      "name": "IF Partner Found",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1980, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "500",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf04-respond-partner-error",
+      "name": "Respond Partner Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2200, 380]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "settlement_id", "value": "={{ $json._settlement.settlement_id }}" },
+            { "name": "class_id", "value": "={{ $json._settlement.class_id }}" },
+            { "name": "partner_code", "value": "={{ $json._settlement.partner_code }}" },
+            { "name": "member_id", "value": "={{ $json._settlement.member_id }}" },
+            { "name": "order_amount", "value": "={{ $json._settlement.order_amount }}" },
+            { "name": "commission_rate", "value": "={{ $json._settlement.commission_rate }}" },
+            { "name": "commission_amount", "value": "={{ $json._settlement.commission_amount }}" },
+            { "name": "reserve_rate", "value": "={{ $json._settlement.reserve_rate }}" },
+            { "name": "reserve_amount", "value": "={{ $json._settlement.reserve_amount }}" },
+            { "name": "class_date", "value": "={{ $json._settlement.class_date }}" },
+            { "name": "settlement_due_date", "value": "={{ $json._settlement.settlement_due_date }}" },
+            { "name": "student_count", "value": "={{ $json._settlement.student_count }}" },
+            { "name": "status", "value": "={{ $json._settlement.status }}" },
+            { "name": "student_name", "value": "={{ $json._settlement.student_name }}" },
+            { "name": "student_email", "value": "={{ $json._settlement.student_email }}" },
+            { "name": "student_phone", "value": "={{ $json._settlement.student_phone }}" },
+            { "name": "created_date", "value": "={{ $json._settlement.created_date }}" },
+            { "name": "retry_count", "value": "=0" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf04-nocodb-create-settlement",
+      "name": "NocoDB Create Settlement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04 Step 4: NocoDB 레코드 생성 결과 확인 + 분기 결정\n// 자기 결제(SELF_PURCHASE) 여부에 따라 이메일/텔레그램 분기\n// ===================================================\n\nconst createResult = $input.first().json;\nconst calcData = $('Calculate Commission').first().json;\n\n// NocoDB 레코드 생성 성공 확인 (Id 필드가 존재하면 성공)\nconst recordCreated = !!createResult.Id || !!createResult.id;\n\nif (!recordCreated) {\n  return [{\n    json: {\n      _success: false,\n      _isSelfPurchase: calcData._isSelfPurchase,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'RESERVATION_FAILED',\n          message: '예약 기록 저장에 실패했습니다.'\n        },\n        timestamp: new Date().toISOString()\n      },\n      // 에러 텔레그램 알림용\n      _telegramError: '예약 기록 저장 실패: '\n        + calcData._display.className + ' / '\n        + calcData._display.studentName\n    }\n  }];\n}\n\n// 모든 이전 데이터 전달\nreturn [{\n  json: {\n    _success: true,\n    _isSelfPurchase: calcData._isSelfPurchase,\n    _settlement: calcData._settlement,\n    _partner: calcData._partner,\n    _classData: calcData._classData,\n    _booking: calcData._booking,\n    _display: calcData._display,\n    _nocodbRecordId: createResult.Id || createResult.id\n  }\n}];"
+      },
+      "id": "wf04-check-create-result",
+      "name": "Check Create Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._success }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf04-if-created",
+      "name": "IF Created OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2640, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._isSelfPurchase }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf04-if-not-self-purchase",
+      "name": "IF Not Self Purchase",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2860, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04 Step 5a: 수강생 예약 확인 이메일 HTML 생성\n// email-templates.md의 이메일 1: 수강생 예약 확인\n// XSS 방지: 모든 동적 값 escapeHtml 처리\n// ===================================================\n\nconst data = $input.first().json;\nconst d = data._display;\nconst booking = data._booking;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nconst sName = escapeHtml(d.studentName);\nconst cName = escapeHtml(d.className);\nconst pName = escapeHtml(d.partnerName);\nconst cDateKR = escapeHtml(d.classDateKR);\nconst cLocation = escapeHtml(d.classLocation);\nconst participants = escapeHtml(d.participants);\nconst totalAmount = escapeHtml(d.totalAmount);\nconst settlementId = escapeHtml(d.settlementId);\nconst materialsIncluded = escapeHtml(data._classData.materials_included || '');\n\n// 준비물 블록 (있을 때만)\nlet preparationsBlock = '';\nif (materialsIncluded) {\n  preparationsBlock = '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #fef9f0; border-radius: 8px; border-left: 3px solid #b89b5e; margin-bottom: 24px;\">'\n    + '<tr><td style=\"padding: 16px 20px;\">'\n    + '<p style=\"margin: 0 0 6px; font-size: 13px; font-weight: 700; color: #b89b5e;\">준비물 안내</p>'\n    + '<p style=\"margin: 0; font-size: 14px; color: #555555; line-height: 1.6;\">' + materialsIncluded + '</p>'\n    + '</td></tr></table>';\n}\n\nconst subject = '[PRESSCO21] ' + d.className + ' 예약이 확정되었습니다';\n\nconst html = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>PRESSCO21 예약 확인</title></head>'\n+ '<body style=\"margin: 0; padding: 0; background-color: #f8f6f0; font-family: \\'Pretendard\\', \\'Apple SD Gothic Neo\\', \\'Malgun Gothic\\', sans-serif;\">'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f8f6f0;\"><tr><td align=\"center\" style=\"padding: 24px 16px;\">'\n+ '<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);\">'\n// 헤더\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; border-bottom: 2px solid #b89b5e;\">'\n+ '<span style=\"font-size: 22px; font-weight: 700; color: #b89b5e; letter-spacing: 2px;\">PRESSCO21</span><br />'\n+ '<span style=\"font-size: 11px; color: #999999; letter-spacing: 1px;\">Forever and ever and Blooming</span>'\n+ '</td></tr>'\n// 본문\n+ '<tr><td style=\"padding: 40px 32px 32px;\">'\n+ '<p style=\"margin: 0 0 24px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + sName + '</strong>님, 안녕하세요!</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong>' + cName + '</strong> 예약이 확정되었습니다.</p>'\n+ '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong>' + pName + '</strong> 선생님과 함께하는 특별한 시간을 준비하고 있어요.<br />설레는 수업이 될 거예요!</p>'\n// 예약 정보 테이블\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #faf8f3; border-radius: 8px; border: 1px solid #e8e4db; margin-bottom: 24px;\">'\n+ '<tr><td style=\"padding: 20px 24px 12px;\"><p style=\"margin: 0 0 16px; font-size: 14px; font-weight: 700; color: #b89b5e; letter-spacing: 1px;\">예약 정보</p></td></tr>'\n+ '<tr><td style=\"padding: 0 24px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; width: 90px; vertical-align: top;\">클래스</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + cName + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">강사</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + pName + ' 선생님</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">일시</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + cDateKR + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">장소</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + cLocation + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">인원</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + participants + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">결제 금액</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + totalAmount + '</td></tr>'\n+ '</table></td></tr>'\n+ '<tr><td style=\"padding: 12px 24px 16px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-top: 1px solid #e8e4db;\">'\n+ '<tr><td style=\"padding: 12px 0 0; font-size: 12px; color: #999999;\">예약번호: ' + settlementId + '</td></tr>'\n+ '</table></td></tr></table>'\n// 준비물 (조건부)\n+ preparationsBlock\n// 리마인더 예고\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 32px;\"><tr><td style=\"padding: 16px 20px; background-color: #f5f5f5; border-radius: 8px;\">'\n+ '<p style=\"margin: 0; font-size: 13px; color: #888888; line-height: 1.6;\">수업 3일 전과 하루 전에 리마인더 메일을 보내드릴게요.<br />수업 준비에 참고해주세요.</p>'\n+ '</td></tr></table>'\n// 마무리\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">궁금하신 점이 있으시면 언제든 연락주세요.</p>'\n+ '<p style=\"margin: 0; font-size: 15px; color: #333333; line-height: 1.7;\">즐거운 시간이 될 거예요!</p>'\n+ '</td></tr>'\n// 서명\n+ '<tr><td style=\"padding: 0 32px 32px;\"><p style=\"margin: 0; font-size: 14px; color: #b89b5e; font-weight: 600;\">PRESSCO21 드림</p></td></tr>'\n// 푸터\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; background-color: #faf8f3; border-top: 1px solid #e8e4db;\">'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">PRESSCO21 | foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">문의: pressco21@foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0; font-size: 11px; color: #bbbbbb;\">이 메일은 PRESSCO21 클래스 예약 관련 안내 메일입니다.</p>'\n+ '</td></tr></table></td></tr></table></body></html>';\n\nreturn [{\n  json: {\n    ...data,\n    _studentEmail: {\n      to: booking.studentEmail,\n      subject,\n      html\n    }\n  }\n}];"
+      },
+      "id": "wf04-build-student-email",
+      "name": "Build Student Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, -100]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json._studentEmail.to }}",
+        "subject": "={{ $json._studentEmail.subject }}",
+        "emailType": "html",
+        "html": "={{ $json._studentEmail.html }}",
+        "options": {}
+      },
+      "id": "wf04-send-student-email",
+      "name": "Send Student Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [3300, -100],
+      "credentials": {
+        "smtp": {
+          "id": "pressco21-smtp",
+          "name": "PRESSCO21 SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04 Step 5b: 파트너 예약 알림 이메일 HTML 생성\n// email-templates.md의 이메일 6: 파트너 예약 알림\n// 수강생 개인정보는 마스킹 처리\n// ===================================================\n\nconst data = $input.first().json;\nconst d = data._display;\nconst partner = data._partner;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nconst pName = escapeHtml(d.partnerName);\nconst cName = escapeHtml(d.className);\nconst maskedName = escapeHtml(d.maskedStudentName);\nconst maskedPhone = escapeHtml(d.maskedStudentPhone);\nconst cDateKR = escapeHtml(d.classDateKR);\nconst participants = escapeHtml(d.participants);\nconst totalAmount = escapeHtml(d.totalAmount);\nconst settlementId = escapeHtml(d.settlementId);\nconst cLocation = escapeHtml(d.classLocation);\n\nconst subject = '[PRESSCO21] 새 예약이 들어왔습니다 - ' + d.className;\n\nconst html = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>PRESSCO21 새 예약 알림</title></head>'\n+ '<body style=\"margin: 0; padding: 0; background-color: #f8f6f0; font-family: \\'Pretendard\\', \\'Apple SD Gothic Neo\\', \\'Malgun Gothic\\', sans-serif;\">'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f8f6f0;\"><tr><td align=\"center\" style=\"padding: 24px 16px;\">'\n+ '<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);\">'\n// 헤더\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; border-bottom: 2px solid #b89b5e;\">'\n+ '<span style=\"font-size: 22px; font-weight: 700; color: #b89b5e; letter-spacing: 2px;\">PRESSCO21</span><br />'\n+ '<span style=\"font-size: 11px; color: #999999; letter-spacing: 1px;\">Forever and ever and Blooming</span>'\n+ '</td></tr>'\n// 본문\n+ '<tr><td style=\"padding: 40px 32px 32px;\">'\n// NEW BOOKING 배지\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 28px;\"><tr><td align=\"center\">'\n+ '<span style=\"display: inline-block; background-color: #4a8c5c; color: #ffffff; font-size: 14px; font-weight: 700; padding: 8px 20px; border-radius: 20px; letter-spacing: 1px;\">NEW BOOKING</span>'\n+ '</td></tr></table>'\n// 인사말\n+ '<p style=\"margin: 0 0 20px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + pName + '</strong>님, 안녕하세요!</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong>' + cName + '</strong>에 새 예약이 들어왔습니다.</p>'\n+ '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\">수강생 정보를 확인해주세요.</p>'\n// 예약 상세\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #faf8f3; border-radius: 8px; border: 1px solid #e8e4db; margin-bottom: 24px;\">'\n+ '<tr><td style=\"padding: 20px 24px 12px;\"><p style=\"margin: 0 0 16px; font-size: 14px; font-weight: 700; color: #b89b5e; letter-spacing: 1px;\">예약 상세</p></td></tr>'\n+ '<tr><td style=\"padding: 0 24px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; width: 90px; vertical-align: top;\">클래스</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + cName + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">수강생</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + maskedName + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">연락처</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + maskedPhone + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">수업 일시</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + cDateKR + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">인원</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + participants + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">결제 금액</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 600;\">' + totalAmount + '</td></tr>'\n+ '</table></td></tr>'\n+ '<tr><td style=\"padding: 12px 24px 16px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"border-top: 1px solid #e8e4db;\">'\n+ '<tr><td style=\"padding: 12px 0 0; font-size: 12px; color: #999999;\">예약번호: ' + settlementId + '</td></tr>'\n+ '</table></td></tr></table>'\n// 개인정보 안내\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 28px;\"><tr><td style=\"padding: 12px 20px; background-color: #f5f5f5; border-radius: 8px;\">'\n+ '<p style=\"margin: 0; font-size: 12px; color: #999999; line-height: 1.6;\">수강생 개인정보는 수업 진행 목적으로만 사용해주세요.<br />상세 정보는 파트너 대시보드에서 확인하실 수 있습니다.</p>'\n+ '</td></tr></table>'\n// CTA 버튼\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 32px;\"><tr><td align=\"center\">'\n+ '<a href=\"https://foreverlove.co.kr/partner/dashboard\" style=\"display: inline-block; background-color: #b89b5e; color: #ffffff; font-size: 15px; font-weight: 600; text-decoration: none; padding: 14px 40px; border-radius: 6px; letter-spacing: 0.5px;\">대시보드에서 확인하기</a>'\n+ '</td></tr></table>'\n// 마무리\n+ '<p style=\"margin: 0; font-size: 15px; color: #333333; line-height: 1.7;\">좋은 수업 준비해주세요!</p>'\n+ '</td></tr>'\n// 서명\n+ '<tr><td style=\"padding: 0 32px 32px;\"><p style=\"margin: 0; font-size: 14px; color: #b89b5e; font-weight: 600;\">PRESSCO21 드림</p></td></tr>'\n// 푸터\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; background-color: #faf8f3; border-top: 1px solid #e8e4db;\">'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">PRESSCO21 | foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0; font-size: 11px; color: #bbbbbb;\">이 메일은 PRESSCO21 파트너 예약 알림 메일입니다.</p>'\n+ '</td></tr></table></td></tr></table></body></html>';\n\nreturn [{\n  json: {\n    ...data,\n    _partnerEmail: {\n      to: partner.email,\n      subject,\n      html\n    }\n  }\n}];"
+      },
+      "id": "wf04-build-partner-email",
+      "name": "Build Partner Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, 60]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json._partnerEmail.to }}",
+        "subject": "={{ $json._partnerEmail.subject }}",
+        "emailType": "html",
+        "html": "={{ $json._partnerEmail.html }}",
+        "options": {}
+      },
+      "id": "wf04-send-partner-email",
+      "name": "Send Partner Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [3300, 60],
+      "credentials": {
+        "smtp": {
+          "id": "pressco21-smtp",
+          "name": "PRESSCO21 SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04 Step 6: 텔레그램 새 예약 알림 메시지 구성\n// ===================================================\n\nconst data = $input.first().json;\nconst d = data._display;\n\n// 텔레그램 메시지 (마크다운 형식)\nconst message = '📦 *새 예약 알림*\\n\\n'\n  + '클래스: ' + d.className + '\\n'\n  + '수강생: ' + d.maskedStudentName + ' (' + d.participants + ')\\n'\n  + '수업일: ' + d.classDateKR + '\\n'\n  + '결제액: ' + d.totalAmount + '\\n'\n  + '수수료: ' + d.commissionAmount + '\\n'\n  + '적립금: ' + d.reserveAmount + ' (' + d.grade + ')\\n'\n  + '정산예정: ' + d.dueDateStr + ' (D+3)\\n'\n  + '예약번호: `' + d.settlementId + '`';\n\nreturn [{\n  json: {\n    ...data,\n    _telegramMessage: message\n  }\n}];"
+      },
+      "id": "wf04-build-telegram-msg",
+      "name": "Build Telegram Message",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, 220]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "wf04-telegram-booking",
+      "name": "Telegram New Booking",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3300, 220],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04 Step 7: 정상 예약 성공 응답 구성\n// ===================================================\n\nconst data = $('Check Create Result').first().json;\nconst d = data._display;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      settlement_id: d.settlementId,\n      class_name: d.className,\n      partner_name: d.partnerName,\n      booking_date: data._booking.bookingDate,\n      participants: data._booking.participants,\n      amount: data._booking.amount,\n      commission_amount: data._settlement.commission_amount,\n      reserve_amount: data._settlement.reserve_amount,\n      settlement_due_date: d.dueDateStr,\n      status: 'PENDING_SETTLEMENT',\n      message: '예약이 확인되었습니다. 수업 완료 후 D+3에 파트너에게 적립금이 지급됩니다.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf04-build-success-response",
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3520, 60]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf04-respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3740, 60]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04 자기 결제(SELF_PURCHASE) 감지 시 텔레그램 알림\n// 이메일은 발송하지 않고, 텔레그램 경고만 발송\n// ===================================================\n\nconst data = $input.first().json;\nconst d = data._display;\nconst partner = data._partner;\n\nconst message = '⚠️ *자기 결제 감지*\\n\\n'\n  + '파트너: ' + d.partnerName + ' (' + partner.partner_code + ')\\n'\n  + '회원ID: ' + partner.member_id + '\\n'\n  + '클래스: ' + d.className + '\\n'\n  + '금액: ' + d.totalAmount + '\\n'\n  + '예약번호: `' + d.settlementId + '`\\n\\n'\n  + '정산 상태: SELF\\\\_PURCHASE (적립금 미지급)\\n'\n  + '확인이 필요합니다.';\n\nreturn [{\n  json: {\n    ...data,\n    _selfPurchaseMessage: message\n  }\n}];"
+      },
+      "id": "wf04-build-self-purchase-msg",
+      "name": "Build Self Purchase Alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, 380]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._selfPurchaseMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "wf04-telegram-self-purchase",
+      "name": "Telegram Self Purchase",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3300, 380],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04: 자기 결제 시 응답 구성\n// SELF_PURCHASE 상태로 기록됨을 알림 (에러가 아닌 경고)\n// ===================================================\n\nconst data = $('Check Create Result').first().json;\nconst d = data._display;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      settlement_id: d.settlementId,\n      class_name: d.className,\n      status: 'SELF_PURCHASE',\n      message: '파트너 본인의 클래스 결제가 감지되었습니다. 정산이 보류됩니다.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf04-build-self-purchase-response",
+      "name": "Build Self Purchase Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3520, 380]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf04-respond-self-purchase",
+      "name": "Respond Self Purchase",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3740, 380]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-04: 레코드 생성 실패 시 에러 텔레그램 알림\n// ===================================================\n\nconst data = $input.first().json;\n\nconst message = '🚨 *예약 기록 실패*\\n\\n'\n  + (data._telegramError || '알 수 없는 오류');\n\nreturn [{\n  json: {\n    ...data,\n    _errorTelegramMessage: message\n  }\n}];"
+      },
+      "id": "wf04-build-error-telegram",
+      "name": "Build Error Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2860, 280]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._errorTelegramMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "wf04-telegram-error",
+      "name": "Telegram Error Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3080, 280],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "500",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf04-respond-create-error",
+      "name": "Respond Create Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3300, 280]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Validate Input", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [
+          { "node": "IF Input Valid", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Input Valid": {
+      "main": [
+        [
+          { "node": "NocoDB Get Class", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Validation Error", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Get Class": {
+      "main": [
+        [
+          { "node": "Check Class Exists", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Class Exists": {
+      "main": [
+        [
+          { "node": "IF Class Found", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Class Found": {
+      "main": [
+        [
+          { "node": "NocoDB Get Partner", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Class Error", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Get Partner": {
+      "main": [
+        [
+          { "node": "Calculate Commission", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Calculate Commission": {
+      "main": [
+        [
+          { "node": "IF Partner Found", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Partner Found": {
+      "main": [
+        [
+          { "node": "NocoDB Create Settlement", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Partner Error", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB Create Settlement": {
+      "main": [
+        [
+          { "node": "Check Create Result", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Check Create Result": {
+      "main": [
+        [
+          { "node": "IF Created OK", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Created OK": {
+      "main": [
+        [
+          { "node": "IF Not Self Purchase", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Build Error Telegram", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Not Self Purchase": {
+      "main": [
+        [
+          { "node": "Build Student Email", "type": "main", "index": 0 },
+          { "node": "Build Partner Email", "type": "main", "index": 0 },
+          { "node": "Build Telegram Message", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Build Self Purchase Alert", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Student Email": {
+      "main": [
+        [
+          { "node": "Send Student Email", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Send Student Email": {
+      "main": [
+        [
+          { "node": "Build Success Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Partner Email": {
+      "main": [
+        [
+          { "node": "Send Partner Email", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Telegram Message": {
+      "main": [
+        [
+          { "node": "Telegram New Booking", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [
+          { "node": "Respond Success", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Self Purchase Alert": {
+      "main": [
+        [
+          { "node": "Telegram Self Purchase", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Telegram Self Purchase": {
+      "main": [
+        [
+          { "node": "Build Self Purchase Response", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Self Purchase Response": {
+      "main": [
+        [
+          { "node": "Respond Self Purchase", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Build Error Telegram": {
+      "main": [
+        [
+          { "node": "Telegram Error Alert", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Telegram Error Alert": {
+      "main": [
+        [
+          { "node": "Respond Create Error", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "PRESSCO21" },
+    { "name": "Record Booking" },
+    { "name": "Phase 2" },
+    { "name": "Settlement" }
+  ],
+  "pinData": {}
+}

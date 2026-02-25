@@ -1,0 +1,9 @@
+[     447ms] [WARNING] cdn.tailwindcss.com should not be used in production. To use Tailwind CSS in production, install it as a PostCSS plugin or use the Tailwind CLI: https://tailwindcss.com/docs/installation @ https://cdn.tailwindcss.com/3.4.3:62
+[     753ms] [ERROR] TypeError: Cannot read properties of undefined (reading 'map')
+    at wn.defineGuide (https://openapi.makeshop.co.kr/docs/22:2095:24)
+    at wn.naviTitleHandler (https://openapi.makeshop.co.kr/docs/22:2089:32)
+    at click (eval at Ya (https://openapi.makeshop.co.kr/js/vue-2.6.10.min.js:6:91730), <anonymous>:15:1383)
+    at He (https://openapi.makeshop.co.kr/js/vue-2.6.10.min.js:6:11384)
+    at HTMLAnchorElement.n (https://openapi.makeshop.co.kr/js/vue-2.6.10.min.js:6:13168)
+    at Yr.o._wrapper (https://openapi.makeshop.co.kr/js/vue-2.6.10.min.js:6:48505)
+    at https://openapi.makeshop.co.kr/docs/22:2117:74 @ https://openapi.makeshop.co.kr/js/vue-2.6.10.min.js:5

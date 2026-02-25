@@ -1,0 +1,4 @@
+[    1998ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://via.placeholder.com/200x200/b7c9ad/fff?text=Product1:0
+[    1998ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://via.placeholder.com/200x200/e2e8dd/333?text=Product2:0
+[    1999ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://via.placeholder.com/200x200/7d9675/fff?text=Product4:0
+[    1999ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://via.placeholder.com/200x200/d4a373/fff?text=Product3:0

@@ -108,7 +108,71 @@
 - retry_count: error_message 내 "retry:N|" 패턴 -> Airtable 정식 Number 필드 승격
 - Airtable Linked Record: 파트너-클래스-정산-후기 관계형 참조 (Sheets에서 불가능했던 것)
 
+### Task 211: n8n WF-01~03 구현 완료 (2026-02-25)
+- `파트너클래스/n8n-workflows/WF-01-class-api.json` (20노드) - getClasses/getClassDetail/getCategories
+- `파트너클래스/n8n-workflows/WF-02-partner-auth-api.json` (37노드) - getPartnerAuth/getPartnerDashboard/getPartnerApplicationStatus/getEducationStatus
+- `파트너클래스/n8n-workflows/WF-03-partner-data-api.json` (26노드) - getPartnerBookings/getPartnerReviews
+- `tasks/211-n8n-class-partner-api.md` - Task 정의 + 테스트 체크리스트
+
+### Task 212: WF-04 Record Booking 구현 완료 (2026-02-25)
+- `파트너클래스/n8n-workflows/WF-04-record-booking.json` (27노드) - 예약기록+수수료계산+정산
+- `tasks/212-n8n-booking-settlement.md` - Task 정의 + 테스트 체크리스트
+- **D+3 정산 방식**: 즉시 적립금 X, PENDING_SETTLEMENT로 기록, settlement_due_date = class_date + 3일
+- **자기 결제 방지**: member_id == partner.member_id -> SELF_PURCHASE 상태 + 텔레그램 경고
+- **수수료 개선안 B 적용**: GOLD reserveRate 0.80 -> 1.00 (SILVER/GOLD 모두 수수료 전액 적립금)
+- **settlement_id 형식**: STL_YYYYMMDD_XXXXXX (6자리 랜덤)
+- **이메일 2종**: 수강생 예약확인 + 파트너 알림 (email-templates.md 기반 HTML, escapeHtml XSS 방지)
+- **텔레그램 3종**: 새 예약 알림 / 자기결제 경고 / 에러 알림
+- **이메일/텔레그램 실패 시**: onError: continueRegularOutput (예약 데이터 보존)
+- **NocoDB POST**: tbl_Settlements에 18필드 레코드 생성 (retry_count 정식 Number 필드)
+- **tbl_Settlements 신규 필드**: settlement_due_date (Date), retry_count (Number)
+
+### n8n 워크플로우 패턴 (Task 211+212 확립)
+- Webhook GET -> Switch(action) -> 분기 처리 (읽기)
+- Webhook POST -> Code(검증) -> HTTP Request(조회) -> Code(계산) -> HTTP Request(생성) (쓰기)
+- NocoDB HTTP Request: `xc-token` 헤더 인증, `where` 파라미터로 서버 필터링
+- NocoDB POST: bodyParameters로 필드 전달, 생성 성공 시 Id 필드 반환
+- NocoDB URL: `https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/{tableName}`
+- 환경변수: `NOCODB_PROJECT_ID`, `TELEGRAM_CHAT_ID` (docker-compose에 설정)
+- Links 필드 처리: 배열/문자열 양쪽 모두 대응 (Array.isArray 체크)
+- 마스킹 함수: maskPhone/maskName/maskEmail -> Code 노드에 인라인 정의
+- 응답 형식: 기존 GAS `{ success, data, pagination, timestamp }` 동일 유지
+- 에러 응답: `{ success: false, error: { code, message }, timestamp }` 동일
+- GAS 캐싱(CacheService) -> 삭제 (NocoDB 직접 조회 200~500ms 충분)
+- getClasses 정렬: NocoDB sort 파라미터 활용 (-field = DESC)
+- 페이지네이션: 전체 조회 후 Code 노드에서 slice (NocoDB offset 대신)
+- 파트너 조인: 병렬 HTTP Request -> Code 노드에서 Map 기반 조인
+- 파트너 인증: member_id -> tbl_Partners 조회 -> 없으면 tbl_Applications 체크
+- **이메일 발송**: n8n emailSend 노드 + SMTP Credentials, onError: continueRegularOutput
+- **텔레그램 알림**: n8n telegram 노드 + Telegram API Credentials, Markdown parse_mode
+- **입력 검증**: Code 노드에서 sanitizeText + escapeHtml, _valid/_errorResponse 패턴
+- **다단계 IF**: _error/_classFound/_success 플래그로 순차 분기
+- **CORS 헤더**: 모든 Respond 노드에 Access-Control-Allow-Origin: https://foreverlove.co.kr
+
+### Task 213: WF-05 Order Polling + Batch Jobs 구현 완료 (2026-02-25)
+- `파트너클래스/n8n-workflows/WF-05-order-polling-batch.json` (67노드) - 5개 스케줄 배치 통합
+- `tasks/213-n8n-order-polling-batch.md` - Task 정의 + 테스트 체크리스트
+- **5개 Schedule Trigger**: 주문폴링(10분), 정합성(00:00), 상품동기화(03:00), 실패재시도(04:00), D+3정산(05:00)
+- **5a 주문 폴링**: tbl_Settings(last_poll_time) -> 메이크샵 search_order -> tbl_Classes 매칭 -> 중복 체크 -> 수수료 계산 -> tbl_Settlements PENDING_SETTLEMENT 생성 -> tbl_PollLogs 기록
+- **5b 상품 동기화**: tbl_Settings(class_category_id) -> 메이크샵 product_list -> tbl_Classes 비교 -> CREATE/PATCH/closed
+- **5c 정합성 검증**: tbl_Settlements(COMPLETED) 파트너별 집계 -> 메이크샵 user_reserve 조회 -> 불일치 감지
+- **5d 실패 재시도**: tbl_Settlements(FAILED, retry_count<5) -> process_reserve -> 성공:COMPLETED/실패:retry_count+1
+- **5e D+3 정산**: tbl_Settlements(PENDING_SETTLEMENT, due_date<=today) -> process_reserve -> 성공:COMPLETED/실패:FAILED+retry_count=1
+- **적립금 0원 자동완료**: 5d/5e 모두 reserve_amount<=0이면 API 호출 없이 COMPLETED
+- **메이크샵 API 일일 예산**: ~260건/일 (500/시간 한도 충분)
+- **onError: continueRegularOutput**: 개별 건 실패가 전체 배치를 중단시키지 않음
+- **process_reserve maxTries: 2**: 중복 지급 방지를 위해 적립금 지급은 2회까지만
+
+### n8n 스케줄 배치 패턴 (Task 213 확립)
+- Schedule Trigger -> NocoDB GET(대상 조회) -> Code(파싱/분류) -> IF(대상 존재?) -> 개별 처리 -> 결과 집계 -> 텔레그램
+- 병렬 조회: 2개 HTTP Request 노드 동시 실행 -> Code 노드에서 합류
+- 대상 없을 때: IF false -> 바로 텔레그램 "대상 없음" 메시지
+- NocoDB PATCH: specifyBody: "json" + jsonBody: JSON.stringify() 패턴 (동적 필드 업데이트)
+- 메이크샵 process_reserve: form-urlencoded + datas[0][id]/datas[0][reserve]/datas[0][content]
+- 결과 판정: return_code === '0000' && datas[0].result === true (여러 타입 대응)
+- timezone: Asia/Seoul (settings에 설정)
+
 ### 다음 단계
-- n8n + Airtable 전환 구현 시작 (Phase A~E, 총 10~14일)
+- **Task 214**: WF-06~10 관리/POST 워크플로우 + WF-11~13 스케줄 워크플로우 (리마인더, 후기, 등급)
 - Task 222: 파트너 대시보드 UI 개발 필요 (GAS API 3개 추가 완료)
 - Task 231: 교육 아카데미 UI 개발 필요 (GAS API 2개 추가 완료)

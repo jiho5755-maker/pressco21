@@ -1,0 +1,6 @@
+[     148ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.foreverlove.co.kr/shop/%EA%B0%84%ED%8E%B8%EB%A1%9C%EA%B7%B8%EC%9D%B8.css:0
+[     148ms] [ERROR] Failed to load resource: the server responded with a status of 404 () @ https://www.foreverlove.co.kr/shop/%EA%B0%84%ED%8E%B8%EB%A1%9C%EA%B7%B8%EC%9D%B8.js:0
+[   25187ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://via.placeholder.com/200x200/b7c9ad/fff?text=Product1:0
+[   25187ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://via.placeholder.com/200x200/d4a373/fff?text=Product3:0
+[   25188ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://via.placeholder.com/200x200/e2e8dd/333?text=Product2:0
+[   25188ms] [ERROR] Failed to load resource: net::ERR_NAME_NOT_RESOLVED @ https://via.placeholder.com/200x200/7d9675/fff?text=Product4:0

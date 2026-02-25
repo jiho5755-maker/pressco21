@@ -1,0 +1,293 @@
+{
+  "name": "WF-13 Partner Grade Auto Update",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 6 * * *"
+            }
+          ]
+        }
+      },
+      "id": "wf13-schedule-grade",
+      "name": "Schedule Grade Update",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "genericAuth": {
+          "authType": "httpHeaderAuth",
+          "httpHeaderAuth": {
+            "name": "xc-token",
+            "value": "={{ $env.NOCODB_API_TOKEN }}"
+          }
+        },
+        "options": {
+          "params": {
+            "where": "(status,eq,active)"
+          }
+        }
+      },
+      "id": "wf13-get-partners",
+      "name": "HTTP Request: Get All Partners",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 파트너 목록 파싱\nconst response = items[0].json;\nconst partners = response.list || [];\n\nreturn {\n  json: {\n    partners: partners,\n    totalCount: partners.length\n  }\n};"
+      },
+      "id": "wf13-parse-partners",
+      "name": "Code: Parse Partners",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [620, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "simple": [
+            {
+              "value1": "={{ $node[\"Code: Parse Partners\"].output.json.totalCount }}",
+              "condition": ">",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "wf13-if-partners",
+      "name": "IF: Partners Found?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [820, 300]
+    },
+    {
+      "parameters": {
+        "loopOver": "={{ $node[\"Code: Parse Partners\"].output.json.partners }}"
+      },
+      "id": "wf13-loop-partners",
+      "name": "Loop: For Each Partner",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1020, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "genericAuth": {
+          "authType": "httpHeaderAuth",
+          "httpHeaderAuth": {
+            "name": "xc-token",
+            "value": "={{ $env.NOCODB_API_TOKEN }}"
+          }
+        },
+        "options": {
+          "params": {
+            "where": "(partner_code,eq,{{ $item(1).partner_code }})~and(status,eq,COMPLETED)"
+          }
+        }
+      },
+      "id": "wf13-get-settlements",
+      "name": "HTTP Request: Get Partner Settlements",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1220, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 파트너 성과 집계 및 등급 판정\nconst settlements = items[0].json.list || [];\nconst partner = items[1];\n\nconst completedCount = settlements.length;\n\n// TODO: 회사 파트너 정책 확정 후 아래 기준 채워넣기\n// SILVER (grade=1) -> GOLD (grade=2): completedCount >= ? && avgRating >= ?\n// GOLD (grade=2) -> PLATINUM (grade=3): completedCount >= ? && avgRating >= ?\n// 등급 강등 없음\n\nlet nextGrade = partner.grade; // 기본: 현재 등급 유지\nlet gradeChanged = false;\n\n// ========== TODO: 실제 판정 로직 채우기 ==========\n// if (completedCount >= 10 && partner.grade === 1) {\n//   nextGrade = 2; // SILVER -> GOLD\n//   gradeChanged = true;\n// }\n// \n// if (completedCount >= 50 && partner.grade === 2) {\n//   nextGrade = 3; // GOLD -> PLATINUM\n//   gradeChanged = true;\n// }\n// ===============================================\n\nreturn {\n  json: {\n    partnerId: partner.id,\n    partnerCode: partner.partner_code,\n    partnerName: partner.name,\n    memberId: partner.member_id,\n    currentGrade: partner.grade,\n    completedCount: completedCount,\n    nextGrade: nextGrade,\n    gradeChanged: gradeChanged\n  }\n};"
+      },
+      "id": "wf13-aggregate-judge",
+      "name": "Code: Aggregate & Judge Grade",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1420, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 루프 완료 후 모든 파트너의 결과 집계\nconst allResults = items.map(item => item.json);\n\nconst totalReviewed = allResults.length;\nconst gradeChanges = allResults.filter(r => r.gradeChanged === true);\nconst totalChanged = gradeChanges.length;\n\nconst summary = {\n  executedAt: new Date().toISOString(),\n  timezone: 'Asia/Seoul',\n  totalPartnersReviewed: totalReviewed,\n  totalGradeChanges: totalChanged,\n  changedPartners: gradeChanges.map(r => ({\n    partnerCode: r.partnerCode,\n    partnerName: r.partnerName,\n    memberId: r.memberId,\n    oldGrade: r.currentGrade,\n    newGrade: r.nextGrade,\n    completedCount: r.completedCount\n  }))\n};\n\nreturn {\n  json: summary\n};"
+      },
+      "id": "wf13-aggregate-results",
+      "name": "Code: Aggregate Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1620, 200]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=⭐ 파트너 등급 업데이트 완료\\n\\n실행 시간: {{ $node[\"Code: Aggregate Results\"].output.json.executedAt }}\\n검토 파트너: {{ $node[\"Code: Aggregate Results\"].output.json.totalPartnersReviewed }}명\\n등급 변경: {{ $node[\"Code: Aggregate Results\"].output.json.totalGradeChanges }}건\\n\\n변경 내역:\\n{{ $node[\"Code: Aggregate Results\"].output.json.changedPartners.length > 0 ? $node[\"Code: Aggregate Results\"].output.json.changedPartners.map(p => `• ${p.partnerCode} (${p.partnerName}): Grade ${p.oldGrade} → ${p.newGrade}`).join('\\n') : '없음' }}",
+        "parseMode": "Markdown"
+      },
+      "id": "wf13-telegram-notify",
+      "name": "Telegram: Send Notification",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1820, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstEntryData"
+      },
+      "id": "wf13-respond-success",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [2020, 200]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=⚠️ 파트너 등급 업데이트: 대상 없음\\n\\n활성 파트너가 없거나 조회 실패했습니다.\\n실행 시간: {{ new Date().toISOString() }}",
+        "parseMode": "Markdown"
+      },
+      "id": "wf13-telegram-no-partners",
+      "name": "Telegram: No Partners Found",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [1020, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "firstEntryData"
+      },
+      "id": "wf13-respond-empty",
+      "name": "Respond: Empty Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [1220, 500]
+    }
+  ],
+  "connections": {
+    "Schedule Grade Update": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request: Get All Partners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request: Get All Partners": {
+      "main": [
+        [
+          {
+            "node": "Code: Parse Partners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Parse Partners": {
+      "main": [
+        [
+          {
+            "node": "IF: Partners Found?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF: Partners Found?": {
+      "main": [
+        [
+          {
+            "node": "Loop: For Each Partner",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram: No Partners Found",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop: For Each Partner": {
+      "main": [
+        [
+          {
+            "node": "HTTP Request: Get Partner Settlements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Request: Get Partner Settlements": {
+      "main": [
+        [
+          {
+            "node": "Code: Aggregate & Judge Grade",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Aggregate & Judge Grade": {
+      "main": [
+        [
+          {
+            "node": "Code: Aggregate Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Aggregate Results": {
+      "main": [
+        [
+          {
+            "node": "Telegram: Send Notification",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: Send Notification": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram: No Partners Found": {
+      "main": [
+        [
+          {
+            "node": "Respond: Empty Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

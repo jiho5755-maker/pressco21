@@ -1,0 +1,1651 @@
+{
+  "name": "WF-05 Order Polling + Batch Jobs",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "minutes", "minutesInterval": 10 }
+          ]
+        }
+      },
+      "id": "wf05-schedule-poll",
+      "name": "Schedule Poll Orders",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 0 * * *" }
+          ]
+        }
+      },
+      "id": "wf05-schedule-reconcile",
+      "name": "Schedule Reconciliation",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 1200]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 3 * * *" }
+          ]
+        }
+      },
+      "id": "wf05-schedule-sync",
+      "name": "Schedule Product Sync",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 2200]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 4 * * *" }
+          ]
+        }
+      },
+      "id": "wf05-schedule-retry",
+      "name": "Schedule Retry Failed",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 3200]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "0 5 * * *" }
+          ]
+        }
+      },
+      "id": "wf05-schedule-settle",
+      "name": "Schedule D+3 Settlement",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 4200]
+    },
+
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(setting_key,eq,last_poll_time)" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-get-last-poll",
+      "name": "Get Last Poll Time",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5a-1: last_poll_time 파싱 + 메이크샵 주문 조회 URL 구성\n// ===================================================\n\nconst response = $input.first().json;\nconst list = response.list || [];\n\nlet lastPollTime;\nif (list.length > 0 && list[0].setting_value) {\n  lastPollTime = list[0].setting_value;\n} else {\n  // 최초 실행: 1시간 전부터 검색\n  const oneHourAgo = new Date(Date.now() - 60 * 60 * 1000);\n  lastPollTime = oneHourAgo.toISOString().split('T')[0];\n}\n\n// 날짜만 추출 (YYYY-MM-DD)\nconst sdate = lastPollTime.split(' ')[0].split('T')[0];\nconst now = new Date();\nconst pad = (n) => String(n).padStart(2, '0');\n// KST 보정 (+9시간)\nconst kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nconst edate = kst.getFullYear() + '-' + pad(kst.getMonth() + 1) + '-' + pad(kst.getDate());\n\n// NocoDB에 last_poll_time 레코드가 있는지 여부 (업데이트 vs 생성 구분용)\nconst hasRecord = list.length > 0;\nconst recordId = hasRecord ? (list[0].Id || list[0].id || '') : '';\n\nreturn [{\n  json: {\n    sdate,\n    edate,\n    lastPollTime,\n    hasRecord,\n    recordId,\n    pollStartTime: now.toISOString()\n  }\n}];"
+      },
+      "id": "wf05-parse-poll-time",
+      "name": "Parse Poll Time",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://foreverlove.co.kr/list/open_api.html",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "order_list" },
+            { "name": "status", "value": "결제완료" },
+            { "name": "sdate", "value": "={{ $json.sdate }}" },
+            { "name": "edate", "value": "={{ $json.edate }}" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-fetch-orders",
+      "name": "Makeshop Search Orders",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "makeshop-api",
+          "name": "Makeshop API Keys"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Classes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(status,neq,closed)" },
+            { "name": "fields", "value": "class_id,makeshop_product_id,partner_code,class_name,location,price" },
+            { "name": "limit", "value": "1000" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-get-classes-map",
+      "name": "NocoDB Get Classes Map",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5a-2: 주문 목록 + 클래스맵 결합, 클래스 상품만 필터링\n// 메이크샵 주문 중 클래스 상품(makeshop_product_id)에 매칭되는 주문만 추출\n// ===================================================\n\nconst ordersResponse = $('Makeshop Search Orders').first().json;\nconst classesResponse = $('NocoDB Get Classes Map').first().json;\nconst pollMeta = $('Parse Poll Time').first().json;\n\n// 주문 목록 파싱\nconst orders = ordersResponse.list || ordersResponse.datas || [];\n\n// 클래스 맵 구축: makeshop_product_id -> classData\nconst classesList = classesResponse.list || [];\nconst classMap = {};\nfor (const c of classesList) {\n  const pid = String(c.makeshop_product_id || '').trim();\n  if (pid) {\n    // partner_code: Links 필드 또는 문자열 양쪽 대응\n    let partnerCode = '';\n    if (Array.isArray(c.partner_code) && c.partner_code.length > 0) {\n      partnerCode = c.partner_code[0].partner_code || c.partner_code[0].Title || '';\n    } else if (typeof c.partner_code === 'string') {\n      partnerCode = c.partner_code;\n    }\n    classMap[pid] = {\n      class_id: c.class_id || '',\n      class_name: c.class_name || '',\n      partner_code: partnerCode,\n      location: c.location || '',\n      price: Number(c.price) || 0\n    };\n  }\n}\n\n// 클래스 주문만 필터링\nconst classOrders = [];\nfor (const order of orders) {\n  const branduid = String(order.branduid || '').trim();\n  if (branduid && classMap[branduid]) {\n    classOrders.push({\n      order_id: String(order.order_id || order.orderno || '').trim(),\n      branduid,\n      member_id: String(order.member_id || order.userid || '').trim(),\n      buyer_name: String(order.buyer_name || order.name || '').trim(),\n      buyer_email: String(order.buyer_email || order.email || '').trim(),\n      buyer_phone: String(order.buyer_phone || order.phone || '').trim(),\n      option_value: String(order.option_value || order.option || '').trim(),\n      quantity: Number(order.quantity || order.ea || 1),\n      settle_price: Number(order.settle_price || order.price || 0),\n      classData: classMap[branduid]\n    });\n  }\n}\n\nreturn [{\n  json: {\n    totalOrders: orders.length,\n    classOrders,\n    classOrderCount: classOrders.length,\n    pollMeta\n  }\n}];"
+      },
+      "id": "wf05-filter-class-orders",
+      "name": "Filter Class Orders",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1120, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.classOrderCount }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ]
+        }
+      },
+      "id": "wf05-if-orders-exist",
+      "name": "IF Orders Exist",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1340, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5a-3: 주문 0건 -> 폴링 로그만 기록하고 종료\n// ===================================================\n\nconst data = $('Filter Class Orders').first().json;\nconst pollMeta = data.pollMeta;\n\nreturn [{\n  json: {\n    _logData: {\n      poll_time: pollMeta.pollStartTime,\n      orders_found: data.totalOrders,\n      class_orders: 0,\n      settlements_created: 0,\n      errors: 0,\n      note: '클래스 주문 없음'\n    },\n    _updatePollTime: true,\n    _pollMeta: pollMeta\n  }\n}];"
+      },
+      "id": "wf05-no-orders-log",
+      "name": "Build No Orders Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 360]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5a-4: 주문 배열을 개별 아이템으로 분할 (Loop 준비)\n// 각 주문을 별도 아이템으로 출력\n// ===================================================\n\nconst data = $input.first().json;\nconst orders = data.classOrders || [];\nconst pollMeta = data.pollMeta;\n\nconst items = orders.map(order => ({\n  json: {\n    ...order,\n    _pollMeta: pollMeta\n  }\n}));\n\nreturn items;"
+      },
+      "id": "wf05-split-orders",
+      "name": "Split Orders",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 100]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(order_id,eq,{{ $json.order_id }})" },
+            { "name": "fields", "value": "settlement_id" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-check-duplicate",
+      "name": "Check Duplicate Order",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5a-5: 중복 체크 결과 판정 + 정산 레코드 데이터 구성\n// 이미 처리된 주문이면 스킵, 신규면 정산 레코드 생성 준비\n// ===================================================\n\nconst dupResponse = $input.first().json;\nconst dupList = dupResponse.list || [];\nconst order = $('Split Orders').item.json;\n\nif (dupList.length > 0) {\n  // 이미 처리된 주문\n  return [{\n    json: {\n      _skip: true,\n      _reason: 'duplicate',\n      order_id: order.order_id\n    }\n  }];\n}\n\n// 수수료 계산을 위해 파트너 조회 필요\nreturn [{\n  json: {\n    _skip: false,\n    order_id: order.order_id,\n    branduid: order.branduid,\n    member_id: order.member_id,\n    buyer_name: order.buyer_name,\n    buyer_email: order.buyer_email,\n    buyer_phone: order.buyer_phone,\n    option_value: order.option_value,\n    quantity: order.quantity,\n    settle_price: order.settle_price,\n    classData: order.classData,\n    _pollMeta: order._pollMeta\n  }\n}];"
+      },
+      "id": "wf05-check-dup-result",
+      "name": "Check Dup Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf05-if-not-dup",
+      "name": "IF Not Duplicate",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2220, 100]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(partner_code,eq,{{ $json.classData.partner_code }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-get-partner",
+      "name": "NocoDB Get Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2440, 0],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5a-6: 수수료 계산 + settlement 레코드 구성\n// WF-04 Calculate Commission 로직 재사용\n// D+3 정산: PENDING_SETTLEMENT 상태로 기록\n// ===================================================\n\nconst partnerResponse = $input.first().json;\nconst partnerList = partnerResponse.list || [];\nconst order = $('Check Dup Result').item.json;\n\n// 파트너 정보 없으면 에러 처리\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _error: true,\n      _errorMsg: '파트너 정보 없음: ' + order.classData.partner_code,\n      order_id: order.order_id\n    }\n  }];\n}\n\nconst partner = partnerList[0];\n\n// 자기 결제 방지\nconst isSelfPurchase = (order.member_id === partner.member_id);\n\n// 수수료 계산 (개선안 B 적용)\nconst COMMISSION_RATES = {\n  SILVER:   { commissionRate: 0.10, reserveRate: 1.00 },\n  GOLD:     { commissionRate: 0.12, reserveRate: 1.00 },\n  PLATINUM: { commissionRate: 0.15, reserveRate: 0.80 }\n};\n\nconst grade = (partner.grade || 'SILVER').toUpperCase();\nconst config = COMMISSION_RATES[grade] || COMMISSION_RATES.SILVER;\nconst orderAmount = order.settle_price;\nconst commissionAmount = Math.round(orderAmount * config.commissionRate);\nconst reserveAmount = Math.round(commissionAmount * config.reserveRate);\n\n// settlement_id 생성\nconst now = new Date();\nconst pad = (n) => String(n).padStart(2, '0');\nconst dateStr = String(now.getFullYear()) + pad(now.getMonth() + 1) + pad(now.getDate());\nconst randomSuffix = String(Math.floor(100000 + Math.random() * 900000));\nconst settlementId = 'STL_' + dateStr + '_' + randomSuffix;\n\n// D+3 정산일: 수업일(option_value) 또는 주문일 기준\nlet classDateStr = order.option_value || '';\n// YYYY-MM-DD 형식이 아니면 오늘 날짜 사용\nif (!/^\\d{4}-\\d{2}-\\d{2}/.test(classDateStr)) {\n  classDateStr = now.toISOString().split('T')[0];\n}\nclassDateStr = classDateStr.substring(0, 10);\nconst classDate = new Date(classDateStr + 'T00:00:00+09:00');\nconst dueDate = new Date(classDate.getTime() + 3 * 24 * 60 * 60 * 1000);\nconst dueDateStr = dueDate.getFullYear() + '-' + pad(dueDate.getMonth() + 1) + '-' + pad(dueDate.getDate());\n\n// 개인정보 마스킹\nfunction maskPhone(phone) {\n  if (!phone || phone.length < 7) return '***';\n  return phone.substring(0, 3) + '-****-' + phone.substring(phone.length - 4);\n}\nfunction maskName(name) {\n  if (!name || name.length < 2) return '*';\n  return name.charAt(0) + '*'.repeat(name.length - 1);\n}\n\nconst status = isSelfPurchase ? 'SELF_PURCHASE' : 'PENDING_SETTLEMENT';\n\nreturn [{\n  json: {\n    _error: false,\n    _isSelfPurchase: isSelfPurchase,\n    settlement: {\n      settlement_id: settlementId,\n      order_id: order.order_id,\n      class_id: order.classData.class_id,\n      partner_code: order.classData.partner_code,\n      member_id: order.member_id,\n      order_amount: orderAmount,\n      commission_rate: config.commissionRate,\n      commission_amount: commissionAmount,\n      reserve_rate: config.reserveRate,\n      reserve_amount: reserveAmount,\n      class_date: classDateStr,\n      settlement_due_date: dueDateStr,\n      student_count: order.quantity,\n      status: status,\n      student_name: order.buyer_name,\n      student_email: order.buyer_email,\n      student_phone: maskPhone(order.buyer_phone),\n      created_date: now.toISOString(),\n      retry_count: 0\n    },\n    display: {\n      className: order.classData.class_name,\n      partnerName: partner.partner_name || '',\n      maskedName: maskName(order.buyer_name),\n      grade,\n      amount: orderAmount.toLocaleString('ko-KR') + '원',\n      commission: commissionAmount.toLocaleString('ko-KR') + '원',\n      reserve: reserveAmount.toLocaleString('ko-KR') + '원',\n      dueDate: dueDateStr\n    }\n  }\n}];"
+      },
+      "id": "wf05-calc-commission",
+      "name": "Calc Commission",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2660, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._error }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf05-if-calc-ok",
+      "name": "IF Calc OK",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [2880, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "settlement_id", "value": "={{ $json.settlement.settlement_id }}" },
+            { "name": "order_id", "value": "={{ $json.settlement.order_id }}" },
+            { "name": "class_id", "value": "={{ $json.settlement.class_id }}" },
+            { "name": "partner_code", "value": "={{ $json.settlement.partner_code }}" },
+            { "name": "member_id", "value": "={{ $json.settlement.member_id }}" },
+            { "name": "order_amount", "value": "={{ $json.settlement.order_amount }}" },
+            { "name": "commission_rate", "value": "={{ $json.settlement.commission_rate }}" },
+            { "name": "commission_amount", "value": "={{ $json.settlement.commission_amount }}" },
+            { "name": "reserve_rate", "value": "={{ $json.settlement.reserve_rate }}" },
+            { "name": "reserve_amount", "value": "={{ $json.settlement.reserve_amount }}" },
+            { "name": "class_date", "value": "={{ $json.settlement.class_date }}" },
+            { "name": "settlement_due_date", "value": "={{ $json.settlement.settlement_due_date }}" },
+            { "name": "student_count", "value": "={{ $json.settlement.student_count }}" },
+            { "name": "status", "value": "={{ $json.settlement.status }}" },
+            { "name": "student_name", "value": "={{ $json.settlement.student_name }}" },
+            { "name": "student_email", "value": "={{ $json.settlement.student_email }}" },
+            { "name": "student_phone", "value": "={{ $json.settlement.student_phone }}" },
+            { "name": "created_date", "value": "={{ $json.settlement.created_date }}" },
+            { "name": "retry_count", "value": "=0" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-create-settlement",
+      "name": "Create Settlement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3100, -60],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5a-7: 폴링 처리 결과 집계 + 폴링 로그 구성\n// 모든 주문 처리 완료 후 집계 데이터 생성\n// 참고: SplitInBatches 대신 전체 결과를 Code 노드에서 집계\n// ===================================================\n\nconst items = $input.all();\nconst pollMeta = $('Parse Poll Time').first().json;\nconst filterData = $('Filter Class Orders').first().json;\n\nlet created = 0;\nlet skipped = 0;\nlet errors = 0;\nconst settlements = [];\n\nfor (const item of items) {\n  const d = item.json;\n  if (d.Id || d.id) {\n    created++;\n    // 이전 노드에서 전달된 settlement 데이터 참조\n    settlements.push(d);\n  } else {\n    errors++;\n  }\n}\n\n// 텔레그램 메시지 구성\nlet message = '';\nif (created > 0 || errors > 0) {\n  message = '주문 폴링 완료\\n\\n'\n    + '전체 주문: ' + filterData.totalOrders + '건\\n'\n    + '클래스 주문: ' + filterData.classOrderCount + '건\\n'\n    + '정산 생성: ' + created + '건\\n';\n  if (errors > 0) message += '오류: ' + errors + '건\\n';\n}\n\nreturn [{\n  json: {\n    _logData: {\n      poll_time: pollMeta.pollStartTime,\n      orders_found: filterData.totalOrders,\n      class_orders: filterData.classOrderCount,\n      settlements_created: created,\n      errors: errors,\n      note: ''\n    },\n    _updatePollTime: true,\n    _pollMeta: pollMeta,\n    _telegramMessage: message,\n    _hasMessage: message.length > 0\n  }\n}];"
+      },
+      "id": "wf05-aggregate-poll",
+      "name": "Aggregate Poll Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3320, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5a-merge: 0건 브랜치와 N건 브랜치의 공통 후처리 합류\n// 폴링 로그 기록 + last_poll_time 업데이트\n// ===================================================\n\nconst data = $input.first().json;\nconst pollMeta = data._pollMeta;\nconst logData = data._logData;\n\n// NocoDB tbl_PollLogs 생성용 데이터\nconst pollLogRecord = {\n  poll_time: logData.poll_time,\n  orders_found: logData.orders_found,\n  class_orders: logData.class_orders || 0,\n  settlements_created: logData.settlements_created,\n  errors: logData.errors || 0,\n  note: logData.note || ''\n};\n\n// KST 현재 시각 (last_poll_time 업데이트용)\nconst now = new Date();\nconst kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nconst pad = (n) => String(n).padStart(2, '0');\nconst nowKST = kst.getFullYear() + '-' + pad(kst.getMonth() + 1) + '-' + pad(kst.getDate())\n  + ' ' + pad(kst.getHours()) + ':' + pad(kst.getMinutes()) + ':' + pad(kst.getSeconds());\n\nreturn [{\n  json: {\n    pollLogRecord,\n    nowKST,\n    hasRecord: pollMeta.hasRecord,\n    recordId: pollMeta.recordId,\n    _telegramMessage: data._telegramMessage || '',\n    _hasMessage: data._hasMessage || false\n  }\n}];"
+      },
+      "id": "wf05-prepare-poll-log",
+      "name": "Prepare Poll Log",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3540, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_PollLogs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "poll_time", "value": "={{ $json.pollLogRecord.poll_time }}" },
+            { "name": "orders_found", "value": "={{ $json.pollLogRecord.orders_found }}" },
+            { "name": "settlements_created", "value": "={{ $json.pollLogRecord.settlements_created }}" },
+            { "name": "errors", "value": "={{ $json.pollLogRecord.errors }}" },
+            { "name": "note", "value": "={{ $json.pollLogRecord.note }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf05-create-poll-log",
+      "name": "Create Poll Log",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3760, 100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settings/{{ $('Prepare Poll Log').item.json.recordId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "setting_value", "value": "={{ $('Prepare Poll Log').item.json.nowKST }}" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf05-update-poll-time",
+      "name": "Update Poll Time",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3760, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $('Prepare Poll Log').item.json._hasMessage }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf05-if-poll-msg",
+      "name": "IF Poll Has Message",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [3980, 200]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $('Prepare Poll Log').item.json._telegramMessage }}",
+        "additionalFields": {}
+      },
+      "id": "wf05-telegram-poll",
+      "name": "Telegram Poll Result",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [4200, 140],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(status,eq,COMPLETED)~and(completed_date,gte,{{ $now.minus(1, 'day').toFormat('yyyy-MM-dd') }})" },
+            { "name": "fields", "value": "settlement_id,partner_code,reserve_amount,member_id" },
+            { "name": "limit", "value": "1000" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-reconcile-get-settlements",
+      "name": "Get Completed Settlements",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 1200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(status,eq,active)" },
+            { "name": "fields", "value": "partner_code,member_id,partner_name" },
+            { "name": "limit", "value": "200" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-reconcile-get-partners",
+      "name": "Get Active Partners",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 1400],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5c: 정합성 검증 -- 파트너별 적립금 집계\n// COMPLETED 정산의 reserve_amount를 파트너별로 합산\n// 파트너 member_id 매핑 구축\n// ===================================================\n\nconst settlementsResp = $('Get Completed Settlements').first().json;\nconst partnersResp = $('Get Active Partners').first().json;\n\nconst settlements = settlementsResp.list || [];\nconst partners = partnersResp.list || [];\n\n// 파트너별 누적 적립금 집계\nconst partnerTotals = {};\nfor (const s of settlements) {\n  const code = s.partner_code || '';\n  if (!code) continue;\n  if (!partnerTotals[code]) partnerTotals[code] = 0;\n  partnerTotals[code] += Number(s.reserve_amount) || 0;\n}\n\n// 파트너 코드 -> member_id 매핑\nconst partnerMap = {};\nfor (const p of partners) {\n  partnerMap[p.partner_code] = {\n    member_id: p.member_id || '',\n    partner_name: p.partner_name || ''\n  };\n}\n\n// 검증 대상 파트너 목록 (적립금이 있는 파트너만)\nconst checkTargets = [];\nfor (const code in partnerTotals) {\n  if (partnerMap[code] && partnerMap[code].member_id) {\n    checkTargets.push({\n      partner_code: code,\n      member_id: partnerMap[code].member_id,\n      partner_name: partnerMap[code].partner_name,\n      sheets_total: partnerTotals[code]\n    });\n  }\n}\n\nif (checkTargets.length === 0) {\n  return [{\n    json: {\n      _noTargets: true,\n      _discrepancies: [],\n      _message: '정합성 검증: 검증 대상 파트너 없음'\n    }\n  }];\n}\n\n// 각 파트너를 개별 아이템으로 출력 (순차 API 호출용)\nreturn checkTargets.map(t => ({ json: { ...t, _noTargets: false } }));"
+      },
+      "id": "wf05-reconcile-aggregate",
+      "name": "Aggregate Partner Totals",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 1200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._noTargets }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf05-if-reconcile-targets",
+      "name": "IF Has Targets",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 1200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://foreverlove.co.kr/list/open_api.html",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "user_reserve" },
+            { "name": "userid", "value": "={{ $json.member_id }}" },
+            { "name": "orderByType", "value": "desc" },
+            { "name": "limit", "value": "10" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-reconcile-query-reserve",
+      "name": "Query Makeshop Reserve",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 1100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "makeshop-api",
+          "name": "Makeshop API Keys"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5c-2: 적립금 조회 결과 비교 + 불일치 감지\n// API 조회 성공 여부만 확인 (소비분으로 직접 비교 불가)\n// ===================================================\n\nconst items = $input.all();\nconst discrepancies = [];\n\nfor (const item of items) {\n  const apiResp = item.json;\n  // HTTP Request onError: continueRegularOutput이므로 에러도 여기로 옴\n  const isError = apiResp.return_code && apiResp.return_code !== '0000';\n  const isHttpError = apiResp.statusCode && apiResp.statusCode !== 200;\n\n  // 원래 파트너 데이터는 이전 노드에서 전달\n  const partnerData = $('Aggregate Partner Totals').item;\n\n  if (isError || isHttpError) {\n    discrepancies.push({\n      partner_code: partnerData ? partnerData.json.partner_code : 'unknown',\n      member_id: partnerData ? partnerData.json.member_id : 'unknown',\n      sheets_total: partnerData ? partnerData.json.sheets_total : 0,\n      error: 'API 조회 실패: ' + JSON.stringify(apiResp).substring(0, 200)\n    });\n  }\n}\n\nlet message = '';\nif (discrepancies.length > 0) {\n  message = '정합성 검증 불일치\\n\\n'\n    + discrepancies.length + '건 이상 감지:\\n';\n  for (const d of discrepancies) {\n    message += '- ' + d.partner_code + ': ' + d.error + '\\n';\n  }\n} else {\n  message = '정합성 검증 완료: 이상 없음';\n}\n\nreturn [{\n  json: {\n    discrepancies,\n    hasDiscrepancies: discrepancies.length > 0,\n    _telegramMessage: message\n  }\n}];"
+      },
+      "id": "wf05-reconcile-check",
+      "name": "Check Discrepancies",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 1200]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {}
+      },
+      "id": "wf05-telegram-reconcile",
+      "name": "Telegram Reconcile",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1560, 1200],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settings",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(setting_key,eq,class_category_id)" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-sync-get-category",
+      "name": "Get Category ID",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 2200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5b-1: 카테고리 ID 파싱\n// ===================================================\n\nconst response = $input.first().json;\nconst list = response.list || [];\n\nif (list.length === 0 || !list[0].setting_value) {\n  return [{\n    json: {\n      _hasCategoryId: false,\n      _errorMsg: 'class_category_id가 tbl_Settings에 설정되지 않았습니다.'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _hasCategoryId: true,\n    categoryId: list[0].setting_value\n  }\n}];"
+      },
+      "id": "wf05-sync-parse-category",
+      "name": "Parse Category ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 2200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._hasCategoryId }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf05-if-category-exists",
+      "name": "IF Category Exists",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 2200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://foreverlove.co.kr/list/open_api.html",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product_list" },
+            { "name": "cate", "value": "={{ $('Parse Category ID').first().json.categoryId }}" },
+            { "name": "pageSize", "value": "100" },
+            { "name": "pageNum", "value": "1" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-sync-fetch-products",
+      "name": "Fetch Makeshop Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 2100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "makeshop-api",
+          "name": "Makeshop API Keys"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Classes",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "fields", "value": "Id,class_id,makeshop_product_id,class_name,price,status" },
+            { "name": "limit", "value": "1000" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-sync-get-existing",
+      "name": "Get Existing Classes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 2300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5b-2: 메이크샵 상품 vs NocoDB 비교\n// 신규/수정/비활성 분류 후 변경 건만 출력\n// ===================================================\n\nconst productsResp = $('Fetch Makeshop Products').first().json;\nconst classesResp = $('Get Existing Classes').first().json;\n\nconst products = productsResp.list || productsResp.datas || [];\nconst classes = classesResp.list || [];\n\n// 기존 클래스 맵: makeshop_product_id -> { Id, class_id, class_name, price, status }\nconst existingMap = {};\nfor (const c of classes) {\n  const pid = String(c.makeshop_product_id || '').trim();\n  if (pid) existingMap[pid] = c;\n}\n\n// 메이크샵 상품 branduid 집합\nconst makeshopIds = new Set();\nconst changes = [];\n\nfor (const p of products) {\n  const branduid = String(p.branduid || '').trim();\n  if (!branduid) continue;\n  makeshopIds.add(branduid);\n\n  const existing = existingMap[branduid];\n  if (!existing) {\n    // 신규 상품\n    // 상품명에서 파트너명/클래스명 분리: \"[파트너명] 클래스명\"\n    const name = String(p.name || p.product_name || '').trim();\n    let partnerName = '';\n    let className = name;\n    const bracketEnd = name.indexOf(']');\n    if (name.charAt(0) === '[' && bracketEnd > 0) {\n      partnerName = name.substring(1, bracketEnd).trim();\n      className = name.substring(bracketEnd + 1).trim();\n    }\n\n    changes.push({\n      action: 'create',\n      makeshop_product_id: branduid,\n      class_name: className,\n      partner_name_hint: partnerName,\n      price: Number(p.price || p.sell_price || 0),\n      status: 'active'\n    });\n  } else {\n    // 기존 상품: 가격 변경 여부 확인\n    const newPrice = Number(p.price || p.sell_price || 0);\n    const oldPrice = Number(existing.price || 0);\n    if (newPrice !== oldPrice) {\n      changes.push({\n        action: 'update',\n        nocodbId: existing.Id || existing.id,\n        makeshop_product_id: branduid,\n        class_name: existing.class_name,\n        old_price: oldPrice,\n        new_price: newPrice\n      });\n    }\n  }\n}\n\n// 메이크샵에서 삭제된 상품 -> 비활성 처리\nfor (const pid in existingMap) {\n  if (!makeshopIds.has(pid) && existingMap[pid].status !== 'closed') {\n    changes.push({\n      action: 'deactivate',\n      nocodbId: existingMap[pid].Id || existingMap[pid].id,\n      makeshop_product_id: pid,\n      class_name: existingMap[pid].class_name\n    });\n  }\n}\n\n// 통계\nconst stats = {\n  total_products: products.length,\n  total_classes: classes.length,\n  new_count: changes.filter(c => c.action === 'create').length,\n  update_count: changes.filter(c => c.action === 'update').length,\n  deactivate_count: changes.filter(c => c.action === 'deactivate').length\n};\n\nlet message = '상품 동기화 완료\\n\\n'\n  + '메이크샵: ' + stats.total_products + '건\\n'\n  + 'NocoDB: ' + stats.total_classes + '건\\n'\n  + '신규: ' + stats.new_count + '건\\n'\n  + '가격수정: ' + stats.update_count + '건\\n'\n  + '비활성: ' + stats.deactivate_count + '건';\n\nif (changes.length === 0) {\n  return [{\n    json: {\n      _hasChanges: false,\n      stats,\n      _telegramMessage: message\n    }\n  }];\n}\n\n// 변경 건을 개별 아이템으로 출력\nconst items = changes.map(c => ({\n  json: {\n    _hasChanges: true,\n    change: c,\n    stats,\n    _telegramMessage: message\n  }\n}));\n\nreturn items;"
+      },
+      "id": "wf05-sync-compare",
+      "name": "Compare Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 2200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5b-3: 변경 건 NocoDB 반영 (Create/Update/Deactivate)\n// 각 변경 건에 대해 적절한 HTTP Request 구성\n// ===================================================\n\nconst items = $input.all();\nconst baseUrl = 'https://nocodb.pressco21.com/api/v1/db/data/noco/' + $env.NOCODB_PROJECT_ID + '/tbl_Classes';\nconst results = [];\n\nfor (const item of items) {\n  const data = item.json;\n  if (!data._hasChanges || !data.change) continue;\n\n  const c = data.change;\n  results.push({\n    json: {\n      action: c.action,\n      url: c.action === 'create' ? baseUrl : baseUrl + '/' + c.nocodbId,\n      method: c.action === 'create' ? 'POST' : 'PATCH',\n      body: c.action === 'create'\n        ? {\n            makeshop_product_id: c.makeshop_product_id,\n            class_name: c.class_name,\n            price: c.new_price || c.price,\n            status: 'active'\n          }\n        : c.action === 'update'\n          ? { price: c.new_price }\n          : { status: 'closed' },\n      _telegramMessage: data._telegramMessage\n    }\n  });\n}\n\nif (results.length === 0) {\n  // 변경 없음\n  const firstItem = items[0] ? items[0].json : {};\n  return [{\n    json: {\n      _noChanges: true,\n      _telegramMessage: firstItem._telegramMessage || '상품 동기화: 변경 없음'\n    }\n  }];\n}\n\nreturn results;"
+      },
+      "id": "wf05-sync-prepare-changes",
+      "name": "Prepare Sync Changes",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 2200]
+    },
+    {
+      "parameters": {
+        "method": "={{ $json.method }}",
+        "url": "={{ $json.url }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.body) }}",
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-sync-apply",
+      "name": "Apply Sync Changes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 2200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $('Compare Products').first().json._telegramMessage || $json._telegramMessage || '상품 동기화 완료' }}",
+        "additionalFields": {}
+      },
+      "id": "wf05-telegram-sync",
+      "name": "Telegram Sync Result",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2000, 2200],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._errorMsg || '상품 동기화 중단: 카테고리 ID 미설정' }}",
+        "additionalFields": {}
+      },
+      "id": "wf05-telegram-sync-error",
+      "name": "Telegram Sync Error",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1120, 2400],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(status,eq,FAILED)~and(retry_count,lt,5)" },
+            { "name": "limit", "value": "100" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-retry-get-failed",
+      "name": "Get Failed Settlements",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 3200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5d-1: FAILED 정산 목록 파싱 + 파트너 member_id 매핑 준비\n// retry_count < 5인 FAILED 건만 대상\n// ===================================================\n\nconst response = $input.first().json;\nconst list = response.list || [];\n\nif (list.length === 0) {\n  return [{\n    json: {\n      _hasTargets: false,\n      _telegramMessage: '실패 정산 재시도: 대상 없음'\n    }\n  }];\n}\n\n// 각 건을 개별 아이템으로 분할\nconst items = list.map(s => ({\n  json: {\n    _hasTargets: true,\n    nocodbId: s.Id || s.id,\n    settlement_id: s.settlement_id,\n    partner_code: s.partner_code,\n    member_id: s.member_id,\n    reserve_amount: Number(s.reserve_amount) || 0,\n    retry_count: Number(s.retry_count) || 0,\n    order_id: s.order_id || '',\n    error_message: s.error_message || ''\n  }\n}));\n\nreturn items;"
+      },
+      "id": "wf05-retry-parse",
+      "name": "Parse Failed List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 3200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._hasTargets }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf05-if-retry-targets",
+      "name": "IF Has Retry Targets",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 3200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(partner_code,eq,{{ $json.partner_code }})" },
+            { "name": "fields", "value": "member_id" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-retry-get-partner",
+      "name": "Get Partner for Retry",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 3100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5d-2: 파트너 member_id 확인 + 적립금 지급 요청 구성\n// 적립금 0원이면 자동 COMPLETED\n// ===================================================\n\nconst partnerResp = $input.first().json;\nconst partnerList = partnerResp.list || [];\nconst retryData = $('Parse Failed List').item.json;\n\n// 파트너 없으면 스킵\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _action: 'skip',\n      settlement_id: retryData.settlement_id,\n      nocodbId: retryData.nocodbId,\n      _reason: '파트너 정보 없음'\n    }\n  }];\n}\n\nconst memberId = partnerList[0].member_id;\nconst amount = retryData.reserve_amount;\n\n// 적립금 0원이면 자동 COMPLETED\nif (amount <= 0) {\n  return [{\n    json: {\n      _action: 'auto_complete',\n      settlement_id: retryData.settlement_id,\n      nocodbId: retryData.nocodbId,\n      _reason: '적립금 0원'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _action: 'retry',\n    settlement_id: retryData.settlement_id,\n    nocodbId: retryData.nocodbId,\n    member_id: memberId,\n    reserve_amount: amount,\n    retry_count: retryData.retry_count,\n    order_id: retryData.order_id\n  }\n}];"
+      },
+      "id": "wf05-retry-prepare",
+      "name": "Prepare Retry",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 3100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._action }}",
+              "rightValue": "retry",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf05-if-should-retry",
+      "name": "IF Should Retry",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 3100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://foreverlove.co.kr/list/open_api_process.html?mode=save&type=reserve&process=give",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "datas[0][id]", "value": "={{ $json.member_id }}" },
+            { "name": "datas[0][reserve]", "value": "={{ $json.reserve_amount }}" },
+            { "name": "datas[0][content]", "value": "=[PRESSCO21] 적립금 재처리 (재시도 {{ $json.retry_count + 1 }}회) - {{ $json.order_id }}" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 2 } }
+      },
+      "id": "wf05-retry-process-reserve",
+      "name": "Retry Process Reserve",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 3000],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "makeshop-api",
+          "name": "Makeshop API Keys"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5d-3: 적립금 재시도 결과 판정 + NocoDB 업데이트 구성\n// 성공: status=COMPLETED, 실패: retry_count+1\n// ===================================================\n\nconst apiResp = $input.first().json;\nconst retryData = $('Prepare Retry').item.json;\n\nlet isSuccess = false;\nlet errorMsg = '';\n\ntry {\n  if (apiResp.return_code === '0000' && apiResp.datas && apiResp.datas[0]) {\n    const result = apiResp.datas[0];\n    if (result.result === true || result.result === 1 || result.result === '1') {\n      isSuccess = true;\n    } else {\n      errorMsg = (result.message || []).join(', ') || '알 수 없는 오류';\n    }\n  } else {\n    errorMsg = 'return_code=' + (apiResp.return_code || 'unknown');\n  }\n} catch (e) {\n  errorMsg = e.message || '파싱 오류';\n}\n\nconst nocodbId = retryData.nocodbId;\nconst newRetryCount = retryData.retry_count + 1;\n\nif (isSuccess) {\n  return [{\n    json: {\n      _retrySuccess: true,\n      nocodbId,\n      settlement_id: retryData.settlement_id,\n      updateBody: {\n        status: 'COMPLETED',\n        reserve_paid_date: new Date().toISOString(),\n        completed_date: new Date().toISOString(),\n        error_message: ''\n      }\n    }\n  }];\n} else {\n  return [{\n    json: {\n      _retrySuccess: false,\n      nocodbId,\n      settlement_id: retryData.settlement_id,\n      retry_count: newRetryCount,\n      _maxExceeded: newRetryCount >= 5,\n      updateBody: {\n        status: 'FAILED',\n        retry_count: newRetryCount,\n        error_message: 'retry:' + newRetryCount + '|' + errorMsg\n      }\n    }\n  }];\n}"
+      },
+      "id": "wf05-retry-check-result",
+      "name": "Check Retry Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 3000]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements/{{ $json.nocodbId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.updateBody) }}",
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-retry-update-settlement",
+      "name": "Update Retry Settlement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 3000],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements/{{ $json.nocodbId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "status", "value": "COMPLETED" },
+            { "name": "completed_date", "value": "={{ $now.toISO() }}" },
+            { "name": "error_message", "value": "적립금 0원 (재시도 시 자동 완료)" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf05-retry-auto-complete",
+      "name": "Auto Complete Zero",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 3300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5d-4: 재시도 결과 집계 + 텔레그램 메시지\n// ===================================================\n\nconst items = $input.all();\nlet successCount = 0;\nlet failCount = 0;\nlet maxExceeded = 0;\nconst details = [];\n\nfor (const item of items) {\n  const d = item.json;\n  if (d._retrySuccess) {\n    successCount++;\n    details.push('OK: ' + (d.settlement_id || 'unknown'));\n  } else if (d._retrySuccess === false) {\n    failCount++;\n    if (d._maxExceeded) maxExceeded++;\n    details.push('FAIL: ' + (d.settlement_id || 'unknown') + ' (retry ' + (d.retry_count || '?') + '/5)');\n  }\n}\n\nlet message = '실패 정산 재시도 결과\\n\\n'\n  + '성공: ' + successCount + '건\\n'\n  + '실패: ' + failCount + '건\\n';\nif (maxExceeded > 0) {\n  message += '최대 재시도 초과: ' + maxExceeded + '건 (수동 확인 필요)\\n';\n}\nif (details.length > 0) {\n  message += '\\n' + details.join('\\n');\n}\n\nreturn [{\n  json: {\n    _telegramMessage: message\n  }\n}];"
+      },
+      "id": "wf05-retry-aggregate",
+      "name": "Aggregate Retry Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2440, 3200]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {}
+      },
+      "id": "wf05-telegram-retry",
+      "name": "Telegram Retry Result",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2660, 3200],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(status,eq,PENDING_SETTLEMENT)~and(settlement_due_date,lte,{{ $now.toFormat('yyyy-MM-dd') }})" },
+            { "name": "limit", "value": "100" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-settle-get-due",
+      "name": "Get Due Settlements",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [460, 4200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5e-1: D+3 도래 정산 목록 파싱\n// PENDING_SETTLEMENT + settlement_due_date <= today\n// ===================================================\n\nconst response = $input.first().json;\nconst list = response.list || [];\n\nif (list.length === 0) {\n  return [{\n    json: {\n      _hasTargets: false,\n      _telegramMessage: 'D+3 정산: 오늘 처리 대상 없음'\n    }\n  }];\n}\n\nconst items = list.map(s => ({\n  json: {\n    _hasTargets: true,\n    nocodbId: s.Id || s.id,\n    settlement_id: s.settlement_id,\n    partner_code: s.partner_code,\n    member_id: s.member_id,\n    reserve_amount: Number(s.reserve_amount) || 0,\n    order_id: s.order_id || '',\n    class_id: s.class_id || ''\n  }\n}));\n\nreturn items;"
+      },
+      "id": "wf05-settle-parse",
+      "name": "Parse Due Settlements",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 4200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._hasTargets }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf05-if-settle-targets",
+      "name": "IF Has Settle Targets",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [900, 4200]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(partner_code,eq,{{ $json.partner_code }})" },
+            { "name": "fields", "value": "member_id,partner_name" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-settle-get-partner",
+      "name": "Get Partner for Settle",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1120, 4100],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5e-2: 파트너 확인 + 적립금 지급 준비\n// 적립금 0원이면 자동 COMPLETED\n// ===================================================\n\nconst partnerResp = $input.first().json;\nconst partnerList = partnerResp.list || [];\nconst settleData = $('Parse Due Settlements').item.json;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _action: 'error',\n      nocodbId: settleData.nocodbId,\n      settlement_id: settleData.settlement_id,\n      _reason: '파트너 정보 없음'\n    }\n  }];\n}\n\nconst memberId = partnerList[0].member_id;\nconst amount = settleData.reserve_amount;\n\nif (amount <= 0) {\n  return [{\n    json: {\n      _action: 'auto_complete',\n      nocodbId: settleData.nocodbId,\n      settlement_id: settleData.settlement_id\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _action: 'process',\n    nocodbId: settleData.nocodbId,\n    settlement_id: settleData.settlement_id,\n    member_id: memberId,\n    reserve_amount: amount,\n    order_id: settleData.order_id\n  }\n}];"
+      },
+      "id": "wf05-settle-prepare",
+      "name": "Prepare Settlement",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1340, 4100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._action }}",
+              "rightValue": "process",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf05-if-settle-process",
+      "name": "IF Should Process",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1560, 4100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://foreverlove.co.kr/list/open_api_process.html?mode=save&type=reserve&process=give",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "datas[0][id]", "value": "={{ $json.member_id }}" },
+            { "name": "datas[0][reserve]", "value": "={{ $json.reserve_amount }}" },
+            { "name": "datas[0][content]", "value": "=[PRESSCO21] D+3 정산 적립금 지급 - {{ $json.order_id }}" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 2 } }
+      },
+      "id": "wf05-settle-process-reserve",
+      "name": "D+3 Process Reserve",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 4000],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "makeshop-api",
+          "name": "Makeshop API Keys"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5e-3: 적립금 지급 결과 판정\n// 성공: COMPLETED, 실패: FAILED + retry_count=1\n// ===================================================\n\nconst apiResp = $input.first().json;\nconst settleData = $('Prepare Settlement').item.json;\n\nlet isSuccess = false;\nlet errorMsg = '';\n\ntry {\n  if (apiResp.return_code === '0000' && apiResp.datas && apiResp.datas[0]) {\n    const result = apiResp.datas[0];\n    if (result.result === true || result.result === 1 || result.result === '1') {\n      isSuccess = true;\n    } else {\n      errorMsg = (result.message || []).join(', ') || '알 수 없는 오류';\n    }\n  } else {\n    errorMsg = 'return_code=' + (apiResp.return_code || 'unknown');\n  }\n} catch (e) {\n  errorMsg = e.message || '파싱 오류';\n}\n\nif (isSuccess) {\n  return [{\n    json: {\n      _settleSuccess: true,\n      nocodbId: settleData.nocodbId,\n      settlement_id: settleData.settlement_id,\n      updateBody: {\n        status: 'COMPLETED',\n        reserve_paid_date: new Date().toISOString(),\n        completed_date: new Date().toISOString()\n      }\n    }\n  }];\n} else {\n  return [{\n    json: {\n      _settleSuccess: false,\n      nocodbId: settleData.nocodbId,\n      settlement_id: settleData.settlement_id,\n      updateBody: {\n        status: 'FAILED',\n        retry_count: 1,\n        error_message: 'retry:1|' + errorMsg\n      }\n    }\n  }];\n}"
+      },
+      "id": "wf05-settle-check-result",
+      "name": "Check Settle Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2000, 4000]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements/{{ $json.nocodbId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.updateBody) }}",
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "id": "wf05-settle-update",
+      "name": "Update Settlement Status",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2220, 4000],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements/{{ $json.nocodbId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "status", "value": "COMPLETED" },
+            { "name": "completed_date", "value": "={{ $now.toISO() }}" },
+            { "name": "error_message", "value": "적립금 0원 (D+3 자동 완료)" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf05-settle-auto-complete",
+      "name": "Auto Complete D3 Zero",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1780, 4300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5e-4: D+3 정산 결과 집계\n// ===================================================\n\nconst items = $input.all();\nlet successCount = 0;\nlet failCount = 0;\n\nfor (const item of items) {\n  const d = item.json;\n  if (d._settleSuccess === true) successCount++;\n  else if (d._settleSuccess === false) failCount++;\n}\n\nlet message = 'D+3 정산 배치 결과\\n\\n'\n  + '성공: ' + successCount + '건\\n'\n  + '실패: ' + failCount + '건';\n\nif (failCount > 0) {\n  message += '\\n(실패 건은 04:00 재시도 배치에서 자동 처리)';\n}\n\nreturn [{\n  json: {\n    _telegramMessage: message\n  }\n}];"
+      },
+      "id": "wf05-settle-aggregate",
+      "name": "Aggregate Settle Results",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2440, 4200]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {}
+      },
+      "id": "wf05-telegram-settle",
+      "name": "Telegram Settle Result",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2660, 4200],
+      "credentials": {
+        "telegramApi": {
+          "id": "pressco21-telegram",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Schedule Poll Orders": {
+      "main": [
+        [{ "node": "Get Last Poll Time", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Last Poll Time": {
+      "main": [
+        [{ "node": "Parse Poll Time", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Poll Time": {
+      "main": [
+        [
+          { "node": "Makeshop Search Orders", "type": "main", "index": 0 },
+          { "node": "NocoDB Get Classes Map", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Makeshop Search Orders": {
+      "main": [
+        [{ "node": "Filter Class Orders", "type": "main", "index": 0 }]
+      ]
+    },
+    "NocoDB Get Classes Map": {
+      "main": [
+        [{ "node": "Filter Class Orders", "type": "main", "index": 0 }]
+      ]
+    },
+    "Filter Class Orders": {
+      "main": [
+        [{ "node": "IF Orders Exist", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Orders Exist": {
+      "main": [
+        [{ "node": "Split Orders", "type": "main", "index": 0 }],
+        [{ "node": "Build No Orders Log", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build No Orders Log": {
+      "main": [
+        [{ "node": "Prepare Poll Log", "type": "main", "index": 0 }]
+      ]
+    },
+    "Split Orders": {
+      "main": [
+        [{ "node": "Check Duplicate Order", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Duplicate Order": {
+      "main": [
+        [{ "node": "Check Dup Result", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Dup Result": {
+      "main": [
+        [{ "node": "IF Not Duplicate", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Not Duplicate": {
+      "main": [
+        [{ "node": "NocoDB Get Partner", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "NocoDB Get Partner": {
+      "main": [
+        [{ "node": "Calc Commission", "type": "main", "index": 0 }]
+      ]
+    },
+    "Calc Commission": {
+      "main": [
+        [{ "node": "IF Calc OK", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Calc OK": {
+      "main": [
+        [{ "node": "Create Settlement", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Create Settlement": {
+      "main": [
+        [{ "node": "Aggregate Poll Results", "type": "main", "index": 0 }]
+      ]
+    },
+    "Aggregate Poll Results": {
+      "main": [
+        [{ "node": "Prepare Poll Log", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Poll Log": {
+      "main": [
+        [
+          { "node": "Create Poll Log", "type": "main", "index": 0 },
+          { "node": "Update Poll Time", "type": "main", "index": 0 },
+          { "node": "IF Poll Has Message", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Poll Has Message": {
+      "main": [
+        [{ "node": "Telegram Poll Result", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+
+    "Schedule Reconciliation": {
+      "main": [
+        [
+          { "node": "Get Completed Settlements", "type": "main", "index": 0 },
+          { "node": "Get Active Partners", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Get Completed Settlements": {
+      "main": [
+        [{ "node": "Aggregate Partner Totals", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Active Partners": {
+      "main": [
+        [{ "node": "Aggregate Partner Totals", "type": "main", "index": 0 }]
+      ]
+    },
+    "Aggregate Partner Totals": {
+      "main": [
+        [{ "node": "IF Has Targets", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Has Targets": {
+      "main": [
+        [{ "node": "Query Makeshop Reserve", "type": "main", "index": 0 }],
+        [{ "node": "Telegram Reconcile", "type": "main", "index": 0 }]
+      ]
+    },
+    "Query Makeshop Reserve": {
+      "main": [
+        [{ "node": "Check Discrepancies", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Discrepancies": {
+      "main": [
+        [{ "node": "Telegram Reconcile", "type": "main", "index": 0 }]
+      ]
+    },
+
+    "Schedule Product Sync": {
+      "main": [
+        [{ "node": "Get Category ID", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Category ID": {
+      "main": [
+        [{ "node": "Parse Category ID", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Category ID": {
+      "main": [
+        [{ "node": "IF Category Exists", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Category Exists": {
+      "main": [
+        [
+          { "node": "Fetch Makeshop Products", "type": "main", "index": 0 },
+          { "node": "Get Existing Classes", "type": "main", "index": 0 }
+        ],
+        [{ "node": "Telegram Sync Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Makeshop Products": {
+      "main": [
+        [{ "node": "Compare Products", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Existing Classes": {
+      "main": [
+        [{ "node": "Compare Products", "type": "main", "index": 0 }]
+      ]
+    },
+    "Compare Products": {
+      "main": [
+        [{ "node": "Prepare Sync Changes", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Sync Changes": {
+      "main": [
+        [{ "node": "Apply Sync Changes", "type": "main", "index": 0 }]
+      ]
+    },
+    "Apply Sync Changes": {
+      "main": [
+        [{ "node": "Telegram Sync Result", "type": "main", "index": 0 }]
+      ]
+    },
+
+    "Schedule Retry Failed": {
+      "main": [
+        [{ "node": "Get Failed Settlements", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Failed Settlements": {
+      "main": [
+        [{ "node": "Parse Failed List", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Failed List": {
+      "main": [
+        [{ "node": "IF Has Retry Targets", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Has Retry Targets": {
+      "main": [
+        [{ "node": "Get Partner for Retry", "type": "main", "index": 0 }],
+        [{ "node": "Telegram Retry Result", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Partner for Retry": {
+      "main": [
+        [{ "node": "Prepare Retry", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Retry": {
+      "main": [
+        [{ "node": "IF Should Retry", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Should Retry": {
+      "main": [
+        [{ "node": "Retry Process Reserve", "type": "main", "index": 0 }],
+        [{ "node": "Auto Complete Zero", "type": "main", "index": 0 }]
+      ]
+    },
+    "Retry Process Reserve": {
+      "main": [
+        [{ "node": "Check Retry Result", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Retry Result": {
+      "main": [
+        [{ "node": "Update Retry Settlement", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update Retry Settlement": {
+      "main": [
+        [{ "node": "Aggregate Retry Results", "type": "main", "index": 0 }]
+      ]
+    },
+    "Auto Complete Zero": {
+      "main": [
+        [{ "node": "Aggregate Retry Results", "type": "main", "index": 0 }]
+      ]
+    },
+    "Aggregate Retry Results": {
+      "main": [
+        [{ "node": "Telegram Retry Result", "type": "main", "index": 0 }]
+      ]
+    },
+
+    "Schedule D+3 Settlement": {
+      "main": [
+        [{ "node": "Get Due Settlements", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Due Settlements": {
+      "main": [
+        [{ "node": "Parse Due Settlements", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse Due Settlements": {
+      "main": [
+        [{ "node": "IF Has Settle Targets", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Has Settle Targets": {
+      "main": [
+        [{ "node": "Get Partner for Settle", "type": "main", "index": 0 }],
+        [{ "node": "Telegram Settle Result", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get Partner for Settle": {
+      "main": [
+        [{ "node": "Prepare Settlement", "type": "main", "index": 0 }]
+      ]
+    },
+    "Prepare Settlement": {
+      "main": [
+        [{ "node": "IF Should Process", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Should Process": {
+      "main": [
+        [{ "node": "D+3 Process Reserve", "type": "main", "index": 0 }],
+        [{ "node": "Auto Complete D3 Zero", "type": "main", "index": 0 }]
+      ]
+    },
+    "D+3 Process Reserve": {
+      "main": [
+        [{ "node": "Check Settle Result", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Settle Result": {
+      "main": [
+        [{ "node": "Update Settlement Status", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update Settlement Status": {
+      "main": [
+        [{ "node": "Aggregate Settle Results", "type": "main", "index": 0 }]
+      ]
+    },
+    "Auto Complete D3 Zero": {
+      "main": [
+        [{ "node": "Aggregate Settle Results", "type": "main", "index": 0 }]
+      ]
+    },
+    "Aggregate Settle Results": {
+      "main": [
+        [{ "node": "Telegram Settle Result", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "PRESSCO21" },
+    { "name": "Order Polling" },
+    { "name": "Batch Jobs" },
+    { "name": "Phase 2" },
+    { "name": "Settlement" }
+  ],
+  "pinData": {}
+}

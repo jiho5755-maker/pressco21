@@ -1,0 +1,346 @@
+{
+  "name": "WF-17 Class Approve Auto Product",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nocodb-class-approve",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wf17-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "nocodb-class-approve"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-17 Step 1: NocoDB Webhook 파싱\n// tbl_Classes status → active 변경 감지 시 메이크샵 상품 자동 등록\n// NocoDB After Update 이벤트 구조:\n// { type: 'records.after.update', data: { rows: [...], previous_rows: [...] } }\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\nlet record = {};\nlet prevRecord = {};\n\nif (body.data && body.data.rows && body.data.rows.length > 0) {\n  record = body.data.rows[0];\n  prevRecord = (body.data.previous_rows && body.data.previous_rows[0]) ? body.data.previous_rows[0] : {};\n} else if (body.rows && body.rows.length > 0) {\n  record = body.rows[0];\n} else {\n  record = body;\n}\n\nconst currentStatus = String(record.status || '').toLowerCase().trim();\n\n// active 변경이 아니면 스킵\nif (currentStatus !== 'active') {\n  return [{ json: { _skip: true, _skipReason: 'status가 active가 아님: ' + currentStatus, _timestamp: new Date().toISOString() } }];\n}\n\n// 이미 메이크샵 상품이 등록된 경우 스킵 (중복 방지)\nconst existingProductId = String(record.makeshop_product_id || '').trim();\nif (existingProductId && existingProductId !== '0' && existingProductId !== '') {\n  return [{ json: { _skip: true, _skipReason: '이미 메이크샵 상품 등록됨: ' + existingProductId, _timestamp: new Date().toISOString() } }];\n}\n\n// 필수 필드 추출\nconst nocodbRowId = String(record.Id || record.id || '').trim();\nconst classId = String(record.class_id || '').trim();\nconst title = String(record.title || record.class_name || '').trim();\nconst price = parseInt(record.price || 0, 10);\nconst partnerCode = String(record.partner_code || '').trim();\nconst maxStudents = parseInt(record.max_students || 10, 10);\nconst description = String(record.description || title + ' 강의 안내').trim().substring(0, 1000);\nconst location = String(record.location || '').trim();\nconst imageUrl = String(record.image_url || '').trim();\n\nif (!nocodbRowId || !title || !price) {\n  return [{ json: { _skip: true, _skipReason: 'Id, title, price 중 누락: ' + JSON.stringify({ nocodbRowId, title, price }), _timestamp: new Date().toISOString() } }];\n}\n\nif (!partnerCode) {\n  return [{ json: { _skip: true, _skipReason: 'partner_code 누락 — 파트너 승인 후 강의를 등록해야 합니다', _timestamp: new Date().toISOString() } }];\n}\n\nreturn [{ json: {\n  _skip: false,\n  _nocodbRowId: nocodbRowId,\n  _classId: classId,\n  _title: title,\n  _price: price,\n  _partnerCode: partnerCode,\n  _maxStudents: maxStudents,\n  _description: description,\n  _location: location,\n  _imageUrl: imageUrl,\n  _timestamp: new Date().toISOString()\n} }];"
+      },
+      "id": "wf17-parse",
+      "name": "Parse NocoDB Webhook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf17-if-proceed",
+      "name": "IF Should Proceed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"skipped\": true, \"reason\": \"{{ $json._skipReason }}\", \"timestamp\": \"{{ $json._timestamp }}\"}",
+        "options": { "responseCode": "200" }
+      },
+      "id": "wf17-respond-skip",
+      "name": "Respond Skip",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 500]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(partner_code,eq,{{ $json._partnerCode }})~and(status,eq,active)" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf17-fetch-partner",
+      "name": "Fetch Partner",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "PRESSCO21-NocoDB"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-17 Step 3: 파트너 이메일/이름 추출\n// ===================================================\n\nconst partnerResp = $input.first().json;\nconst classData = $('Parse NocoDB Webhook').first().json;\n\nlet partnerEmail = '';\nlet partnerName = '';\nlet partnerStudioName = '';\n\ntry {\n  const partners = partnerResp.list || partnerResp.data || (partnerResp.datas ? partnerResp.datas : []);\n  const partner = Array.isArray(partners) && partners.length > 0 ? partners[0] : {};\n  partnerEmail = String(partner.email || '').trim();\n  partnerName = String(partner.name || partner.partner_name || '').trim();\n  partnerStudioName = String(partner.studio_name || '').trim();\n} catch (e) {\n  // 파트너 정보 없어도 강의 상품 등록은 진행\n}\n\nreturn [{ json: {\n  ...classData,\n  _partnerEmail: partnerEmail,\n  _partnerName: partnerName,\n  _partnerStudioName: partnerStudioName\n} }];"
+      },
+      "id": "wf17-process-partner",
+      "name": "Process Partner Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://foreverlove.co.kr/list/open_api_process.html?mode=save&type=product&process=store",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "product_name", "value": "={{ $('Parse NocoDB Webhook').first().json._title }}" },
+            { "name": "sellprice", "value": "={{ $('Parse NocoDB Webhook').first().json._price }}" },
+            { "name": "xcode", "value": "022" },
+            { "name": "stock", "value": "={{ $('Parse NocoDB Webhook').first().json._maxStudents }}" },
+            { "name": "product_content", "value": "={{ $('Parse NocoDB Webhook').first().json._description }}" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 2 } }
+      },
+      "id": "wf17-register-product",
+      "name": "Register MakeShop Product",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "makeshop-api",
+          "name": "Makeshop API Key"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-17 Step 5: 메이크샵 상품 등록 응답 처리\n// 응답에서 branduid 직접 추출 시도\n// 없으면 이후 검색 단계에서 찾음\n// ===================================================\n\nconst apiResp = $input.first().json;\nconst classData = $('Process Partner Data').first().json;\n\nlet directBranduid = '';\nlet regSuccess = false;\nlet regError = '';\n\ntry {\n  if (apiResp.return_code === '0000') {\n    regSuccess = true;\n    if (apiResp.datas && apiResp.datas[0]) {\n      directBranduid = String(apiResp.datas[0].branduid || '').trim();\n    }\n    // 일부 메이크샵 API는 최상위에 branduid 반환\n    if (!directBranduid && apiResp.branduid) {\n      directBranduid = String(apiResp.branduid).trim();\n    }\n  } else {\n    regError = 'return_code=' + (apiResp.return_code || 'unknown') + ' | ' + JSON.stringify(apiResp).substring(0, 300);\n    // 등록 실패해도 검색 시도 (이미 동명 상품이 있을 수 있음)\n  }\n} catch (e) {\n  regError = '파싱 오류: ' + e.message;\n}\n\nreturn [{ json: {\n  ...classData,\n  _directBranduid: directBranduid,\n  _regSuccess: regSuccess,\n  _regError: regError\n} }];"
+      },
+      "id": "wf17-process-registration",
+      "name": "Process Registration",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://foreverlove.co.kr/list/open_api_process.html?mode=load&type=product&process=list",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "product_name", "value": "={{ $json._title }}" },
+            { "name": "perpage", "value": "10" },
+            { "name": "page", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf17-search-product",
+      "name": "Search MakeShop Product",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "makeshop-api",
+          "name": "Makeshop API Key"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-17 Step 7: 메이크샵 상품 검색 결과에서 branduid 추출\n// 1순위: 등록 응답에서 직접 받은 branduid\n// 2순위: 동일 이름+가격 상품 검색\n// ===================================================\n\nconst searchResp = $input.first().json;\nconst prevData = $('Process Registration').first().json;\n\nlet branduid = prevData._directBranduid || '';\nlet brandcode = '';\nlet xcode = '022';\nlet mcode = '000';\nlet productFound = !!branduid;\n\n// 직접 받은 branduid가 없으면 검색 결과에서 찾기\nif (!productFound) {\n  try {\n    // 메이크샵 상품 목록 API 응답 구조: { return_code, count, datas: [...] }\n    const datas = searchResp.datas || searchResp.data || (Array.isArray(searchResp) ? searchResp : []);\n    if (Array.isArray(datas) && datas.length > 0) {\n      // 같은 이름과 가격인 상품 찾기 (정확 일치 우선)\n      let match = datas.find(p =>\n        String(p.product_name || '').trim() === prevData._title &&\n        parseInt(p.sellprice || 0, 10) === prevData._price\n      );\n      // 가격 무관하게 이름만 일치 시 첫 번째 사용\n      if (!match) {\n        match = datas.find(p => String(p.product_name || '').trim() === prevData._title);\n      }\n      if (match) {\n        branduid = String(match.branduid || '').trim();\n        brandcode = String(match.brandcode || '').trim();\n        xcode = String(match.xcode || '022').trim();\n        mcode = String(match.mcode || '000').trim();\n        productFound = !!branduid;\n      }\n    }\n  } catch (e) {\n    // 검색 파싱 실패 → branduid 없이 계속\n  }\n}\n\n// 메이크샵 brandcode 형식: xcode(3자리) + mcode(3자리) + 나머지\n// 없으면 기본값으로 구성 (추후 수동 수정 가능)\nif (!brandcode && branduid) {\n  brandcode = xcode.padStart(3, '0') + mcode.padStart(3, '0') + '000251';\n}\n\nreturn [{ json: {\n  ...prevData,\n  _branduid: branduid,\n  _brandcode: brandcode,\n  _xcode: xcode,\n  _mcode: mcode,\n  _productFound: productFound,\n  _searchError: !productFound ? '메이크샵 상품 검색에서 branduid를 찾지 못했습니다' : ''\n} }];"
+      },
+      "id": "wf17-extract-branduid",
+      "name": "Extract Branduid",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1980, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mpvsno4or6asbxk/{{ $json._nocodbRowId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ makeshop_product_id: $json._branduid, makeshop_brandcode: $json._brandcode, makeshop_xcode: $json._xcode, makeshop_mcode: $json._mcode }) }}",
+        "options": { "retry": { "maxTries": 2 } }
+      },
+      "id": "wf17-update-nocodb",
+      "name": "Update NocoDB Class",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2200, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "PRESSCO21-NocoDB"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-17 Step 9: 파트너 강의 오픈 안내 이메일 HTML 생성\n// ===================================================\n\nconst data = $('Extract Branduid').first().json;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nconst partnerName = escapeHtml(data._partnerName) || escapeHtml(data._partnerCode);\nconst classTitle = escapeHtml(data._title);\nconst classPrice = data._price ? data._price.toLocaleString('ko-KR') + '원' : '';\nconst branduid = data._branduid || '';\nconst classUrl = branduid ? 'https://foreverlove.co.kr/shop/shopdetail.html?branduid=' + branduid : 'https://foreverlove.co.kr/shop/page.html?id=2606';\nconst nowKR = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });\n\nconst subject = '[PRESSCO21] 강의 오픈 완료! ' + classTitle + ' 클래스가 공개되었습니다';\n\nconst html = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>PRESSCO21 강의 오픈</title></head>'\n+ '<body style=\"margin: 0; padding: 0; background-color: #f8f6f0; font-family: Pretendard, Apple SD Gothic Neo, Malgun Gothic, sans-serif;\">'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f8f6f0;\"><tr><td align=\"center\" style=\"padding: 24px 16px;\">'\n+ '<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);\">'\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; border-bottom: 2px solid #b89b5e;\">'\n+ '<span style=\"font-size: 22px; font-weight: 700; color: #b89b5e; letter-spacing: 2px;\">PRESSCO21</span><br />'\n+ '<span style=\"font-size: 11px; color: #999999; letter-spacing: 1px;\">Forever and ever and Blooming</span>'\n+ '</td></tr>'\n+ '<tr><td style=\"padding: 32px 32px 0; text-align: center;\">'\n+ '<span style=\"display: inline-block; background-color: #4a8c5c; color: #ffffff; font-size: 14px; font-weight: 700; padding: 8px 24px; border-radius: 20px; letter-spacing: 1px;\">CLASS LIVE</span>'\n+ '</td></tr>'\n+ '<tr><td style=\"padding: 28px 32px 32px;\">'\n+ '<p style=\"margin: 0 0 24px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + partnerName + '</strong>님, 축하드립니다!</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">검수가 완료되어 <strong>' + classTitle + '</strong> 클래스가<br />PRESSCO21 플랫폼에 공개되었습니다.</p>'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #faf8f3; border-radius: 8px; border: 1px solid #e8e4db; margin: 24px 0;\">'\n+ '<tr><td style=\"padding: 20px 24px;\">'\n+ '<table width=\"100%\"><tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; width: 100px;\">강의명</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 700;\">' + classTitle + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999;\">수강료</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + classPrice + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999;\">오픈일</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + nowKR + '</td></tr>'\n+ '</table></td></tr></table>'\n+ '<div style=\"text-align: center; margin: 28px 0;\">'\n+ '<a href=\"' + classUrl + '\" style=\"display: inline-block; background-color: #b89b5e; color: #ffffff; font-size: 15px; font-weight: 700; padding: 14px 32px; border-radius: 6px; text-decoration: none; letter-spacing: 0.5px;\">내 클래스 보기</a>'\n+ '</div>'\n+ '<p style=\"margin: 0 0 8px; font-size: 14px; color: #555555; line-height: 1.7;\">파트너 대시보드에서 예약 현황과 수익을 확인하실 수 있습니다.</p>'\n+ '<p style=\"margin: 0; font-size: 14px; color: #555555; line-height: 1.7;\">궁금하신 점은 pressco21@foreverlove.co.kr로 연락주세요.</p>'\n+ '</td></tr>'\n+ '<tr><td style=\"padding: 0 32px 32px;\"><p style=\"margin: 0; font-size: 14px; color: #b89b5e; font-weight: 600;\">PRESSCO21 드림</p></td></tr>'\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; background-color: #faf8f3; border-top: 1px solid #e8e4db;\">'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">PRESSCO21 | foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0; font-size: 11px; color: #bbbbbb;\">이 메일은 PRESSCO21 파트너 프로그램 관련 안내 메일입니다.</p>'\n+ '</td></tr></table></td></tr></table></body></html>';\n\nreturn [{ json: {\n  ...data,\n  _email: { to: data._partnerEmail, subject, html },\n  _classUrl: classUrl\n} }];"
+      },
+      "id": "wf17-build-email",
+      "name": "Build Open Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2420, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json._email.to }}",
+        "subject": "={{ $json._email.subject }}",
+        "html": "={{ $json._email.html }}",
+        "options": {}
+      },
+      "id": "wf17-send-email",
+      "name": "Send Open Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2640, 300],
+      "credentials": {
+        "smtp": {
+          "id": "31jTm9BU7iyj0pVx",
+          "name": "PRESSCO21 SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "7713811206",
+        "text": "={{ '[강의 오픈 자동화]\\n\\n' + '강의명: ' + $('Extract Branduid').first().json._title + '\\n' + '파트너: ' + $('Extract Branduid').first().json._partnerName + ' (' + $('Extract Branduid').first().json._partnerCode + ')\\n' + '수강료: ' + $('Extract Branduid').first().json._price + '원\\n' + '메이크샵 branduid: ' + ($('Extract Branduid').first().json._branduid || '❌ 미확인 — 수동 확인 필요') + '\\n' + 'NocoDB 업데이트: ' + ($('Extract Branduid').first().json._productFound ? '✅ 완료' : '⚠️ branduid 미확인') + '\\n' + '파트너 이메일: ' + ($('Extract Branduid').first().json._partnerEmail ? '✅ 발송' : '⚠️ 이메일 없음') + '\\n' + '처리 시각: ' + new Date().toISOString() }}",
+        "additionalFields": {}
+      },
+      "id": "wf17-telegram",
+      "name": "Telegram Admin Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2860, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"success\": true, \"message\": \"강의 오픈 자동화 처리 완료\", \"class_id\": \"{{ $('Parse NocoDB Webhook').first().json._classId }}\", \"branduid\": \"{{ $('Extract Branduid').first().json._branduid }}\", \"timestamp\": \"{{ new Date().toISOString() }}\"}",
+        "options": { "responseCode": "200" }
+      },
+      "id": "wf17-respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [3080, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Parse NocoDB Webhook", "type": "main", "index": 0 }]
+      ]
+    },
+    "Parse NocoDB Webhook": {
+      "main": [
+        [{ "node": "IF Should Proceed", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Should Proceed": {
+      "main": [
+        [{ "node": "Fetch Partner", "type": "main", "index": 0 }],
+        [{ "node": "Respond Skip", "type": "main", "index": 0 }]
+      ]
+    },
+    "Fetch Partner": {
+      "main": [
+        [{ "node": "Process Partner Data", "type": "main", "index": 0 }]
+      ]
+    },
+    "Process Partner Data": {
+      "main": [
+        [{ "node": "Register MakeShop Product", "type": "main", "index": 0 }]
+      ]
+    },
+    "Register MakeShop Product": {
+      "main": [
+        [{ "node": "Process Registration", "type": "main", "index": 0 }]
+      ]
+    },
+    "Process Registration": {
+      "main": [
+        [{ "node": "Search MakeShop Product", "type": "main", "index": 0 }]
+      ]
+    },
+    "Search MakeShop Product": {
+      "main": [
+        [{ "node": "Extract Branduid", "type": "main", "index": 0 }]
+      ]
+    },
+    "Extract Branduid": {
+      "main": [
+        [{ "node": "Update NocoDB Class", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update NocoDB Class": {
+      "main": [
+        [{ "node": "Build Open Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Open Email": {
+      "main": [
+        [{ "node": "Send Open Email", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send Open Email": {
+      "main": [
+        [{ "node": "Telegram Admin Notify", "type": "main", "index": 0 }]
+      ]
+    },
+    "Telegram Admin Notify": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "PRESSCO21" },
+    { "name": "Class Approve" },
+    { "name": "MakeShop Auto Product" },
+    { "name": "Phase 2.5" },
+    { "name": "Task 293" }
+  ],
+  "pinData": {}
+}

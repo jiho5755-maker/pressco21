@@ -1556,8 +1556,10 @@
 
     /**
      * 메이크샵 즉시구매 폼 제출 (POST /shop/basket.html)
-     * window.location.href 대신 폼 제출로 결제창 이동
-     * @param {string|number} brandUid - 메이크샵 상품 branduid
+     * - product_uid: 메이크샵 상품 UID (shopdetail.html?branduid=XXXX 와 동일 값)
+     * - prdAmt: 수량(인원)
+     * - ordertype=baro: 바로구매 (장바구니 건너뛰고 주문서 이동)
+     * @param {string|number} brandUid - 메이크샵 상품 UID
      * @param {number} qty - 수량(인원)
      */
     function goToCheckout(brandUid, qty) {
@@ -1567,9 +1569,9 @@
         form.style.display = 'none';
 
         var fields = [
-            { name: 'branduid', value: String(brandUid) },
+            { name: 'product_uid', value: String(brandUid) },
             { name: 'prdAmt', value: String(qty) },
-            { name: 'act', value: 'order' }
+            { name: 'ordertype', value: 'baro' }
         ];
 
         for (var i = 0; i < fields.length; i++) {

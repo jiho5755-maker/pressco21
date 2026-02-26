@@ -1491,16 +1491,19 @@
         var brandUid = classData.makeshop_product_id || '12195502';
 
         // 수강료 계산
-        var unitPrice = classData.price || 0;
+        var unitPrice = classData.price || 50000;
         var totalPrice = unitPrice * selectedQuantity;
+        var productName = classData.title || classData.class_name || '\uc555\ud654 \uae30\ubcf8 \uac15\uc758 \ud074\ub798\uc2a4';
 
         // WF-04 예약 기록 + 결제 페이지 이동
         submitBooking({
-            className: classData.title || classData.class_name || '',
+            className: productName,
             date: selectedDate,
             participants: selectedQuantity,
             totalPrice: totalPrice,
-            brandUid: brandUid
+            brandUid: brandUid,
+            productName: productName,
+            productPrice: unitPrice
         });
     }
 
@@ -1542,7 +1545,7 @@
                 console.warn('[Booking] WF-04 \uc2e4\ud328, \ud3f4\ubc31 \uc774\ub3d9:', resData);
             }
             alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-            goToCheckout(info.brandUid, info.participants);
+            goToCheckout(info.brandUid, info.participants, info.productName, info.productPrice);
         })
         .catch(function(err) {
             if (submitBtn) submitBtn.disabled = false;
@@ -1550,25 +1553,43 @@
             // 네트워크 오류 -> 폴백으로 결제 페이지 이동
             console.warn('[Booking] \ub124\ud2b8\uc6cc\ud06c \uc624\ub958, \ud3f4\ubc31 \uc774\ub3d9:', err);
             alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-            goToCheckout(info.brandUid, info.participants);
+            goToCheckout(info.brandUid, info.participants, info.productName, info.productPrice);
         });
     }
 
     /**
-     * 메이크샵 즉시구매: GET 파라미터로 basket.html 이동
-     * - ordertype=baro: 바로구매 (MakeShop이 처리 후 order.html로 리다이렉트)
-     * - option_type=NO: 옵션 없는 상품
-     * - prdAmt: 인원수 → 수강료 자동 계산 (인원 × 단가)
+     * 메이크샵 즉시구매: POST /shop/basket.html (상품 페이지와 동일한 방식)
+     * product_uid, product_name, product_price, prdAmt, option_type, ordertype=baro 포함
      * @param {string|number} brandUid - 메이크샵 상품 UID
      * @param {number} qty - 수량(인원)
+     * @param {string} productName - 상품명
+     * @param {number} productPrice - 단가
      */
-    function goToCheckout(brandUid, qty) {
-        var url = '/shop/basket.html'
-            + '?product_uid=' + encodeURIComponent(String(brandUid))
-            + '&prdAmt=' + encodeURIComponent(String(qty))
-            + '&option_type=NO'
-            + '&ordertype=baro';
-        window.location.href = url;
+    function goToCheckout(brandUid, qty, productName, productPrice) {
+        var form = document.createElement('form');
+        form.method = 'post';
+        form.action = '/shop/basket.html';
+        form.style.display = 'none';
+
+        var fields = [
+            { name: 'product_uid',   value: String(brandUid) },
+            { name: 'product_name',  value: productName || '' },
+            { name: 'product_price', value: String(productPrice || 0) },
+            { name: 'prdAmt',        value: String(qty) },
+            { name: 'option_type',   value: 'NO' },
+            { name: 'ordertype',     value: 'baro' }
+        ];
+
+        for (var i = 0; i < fields.length; i++) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = fields[i].name;
+            inp.value = fields[i].value;
+            form.appendChild(inp);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
     }
 
 

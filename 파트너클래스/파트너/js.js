@@ -17,6 +17,7 @@
         'getPartnerDashboard':         N8N_BASE + '/partner-auth',
         'getPartnerApplicationStatus': N8N_BASE + '/partner-auth',
         'getEducationStatus':          N8N_BASE + '/partner-auth',
+        'updatePartnerProfile':        N8N_BASE + '/partner-auth',
         'getPartnerBookings':          N8N_BASE + '/partner-data',
         'getPartnerReviews':           N8N_BASE + '/partner-data',
         'updateClassStatus':           N8N_BASE + '/class-management',
@@ -67,6 +68,12 @@
     /** 디바운스 타이머 */
     var debounceTimer = null;
 
+    /** Chart.js 월별 수익 차트 인스턴스 */
+    var revenueChartInstance = null;
+
+    /** 과거 6개월 정산 데이터 캐시 (월별 수익 차트용) */
+    var monthlyRevenueCache = {};
+
 
     /* ========================================
        초기화
@@ -110,6 +117,8 @@
         bindTabEvents();
         bindModalEvents();
         bindMonthSelector();
+        bindProfileEdit();
+        bindCsvExport();
     }
 
 
@@ -751,6 +760,11 @@
         var settlement = data.settlement || {};
         var items = settlement.items || [];
 
+        // 현재 월 수익 캐시에 저장 (차트용)
+        var monthSelect = document.getElementById('pdRevenueMonth');
+        var selectedMonth = monthSelect ? monthSelect.value : currentMonth;
+        monthlyRevenueCache[selectedMonth] = settlement.total_revenue || 0;
+
         // 집계 카드
         if (summaryEl) {
             summaryEl.innerHTML = '<div class="pd-revenue-card">'
@@ -770,6 +784,15 @@
                 + '<p class="pd-revenue-card__value pd-revenue-card__value--gold">' + (settlement.completed_count || 0) + '\uAC74</p>'
                 + '</div>';
         }
+
+        // 전월 대비 렌더링
+        renderRevenueChange(settlement);
+
+        // 월별 수익 차트 렌더링
+        renderRevenueChart();
+
+        // 등급 진행률 게이지 렌더링
+        renderGradeGauge(settlement);
 
         if (!tableWrap) return;
 
@@ -848,6 +871,413 @@
         mobileHtml += '</div>';
 
         tableWrap.innerHTML = tableHtml + mobileHtml;
+    }
+
+
+    /* ========================================
+       Task 313: 수익 시각화 (Chart.js)
+       ======================================== */
+
+    /**
+     * 전월 대비 증감 렌더링
+     * @param {Object} settlement - 현재 월 정산 데이터
+     */
+    function renderRevenueChange(settlement) {
+        var container = document.getElementById('pdRevenueChange');
+        if (!container) return;
+
+        var thisRevenue = Number(settlement.total_revenue) || 0;
+
+        // 전월 계산
+        var monthSelect = document.getElementById('pdRevenueMonth');
+        var selectedMonth = monthSelect ? monthSelect.value : currentMonth;
+        var parts = selectedMonth.split('-');
+        var prevYear = parseInt(parts[0]);
+        var prevMonth = parseInt(parts[1]) - 1;
+        if (prevMonth < 1) { prevMonth = 12; prevYear--; }
+        var prevKey = prevYear + '-' + padZero(prevMonth);
+        var prevRevenue = monthlyRevenueCache[prevKey];
+
+        // 전월 데이터가 없으면 간단한 현재 월 표시
+        if (prevRevenue === undefined) {
+            container.innerHTML = '<span class="pd-revenue-change__label">\uC774\uBC88 \uB2EC \uCD1D \uB9E4\uCD9C</span>'
+                + '<span class="pd-revenue-change__value">' + formatPrice(thisRevenue) + '\uC6D0</span>'
+                + '<span class="pd-revenue-change__delta pd-revenue-change__delta--flat">\uC804\uC6D4 \uB370\uC774\uD130 \uC5C6\uC74C</span>';
+            return;
+        }
+
+        var diff = thisRevenue - prevRevenue;
+        var pct = prevRevenue > 0 ? Math.round((diff / prevRevenue) * 100) : (thisRevenue > 0 ? 100 : 0);
+        var direction = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat';
+        var arrow = diff > 0 ? '\u2191' : diff < 0 ? '\u2193' : '-';
+        var pctText = (diff >= 0 ? '+' : '') + pct + '%';
+
+        container.innerHTML = '<span class="pd-revenue-change__label">\uC774\uBC88 \uB2EC \uCD1D \uB9E4\uCD9C</span>'
+            + '<span class="pd-revenue-change__value">' + formatPrice(thisRevenue) + '\uC6D0</span>'
+            + '<span class="pd-revenue-change__delta pd-revenue-change__delta--' + direction + '">'
+            + arrow + ' ' + pctText + ' \uC804\uC6D4 \uB300\uBE44</span>';
+    }
+
+    /**
+     * 월별 수익 바 차트 렌더링 (Chart.js)
+     */
+    function renderRevenueChart() {
+        var canvas = document.getElementById('pdRevenueChart');
+        if (!canvas || typeof Chart === 'undefined') return;
+
+        // 최근 6개월 라벨 + 데이터
+        var labels = [];
+        var dataArr = [];
+        var now = new Date();
+
+        for (var i = 5; i >= 0; i--) {
+            var d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+            var key = d.getFullYear() + '-' + padZero(d.getMonth() + 1);
+            var shortLabel = (d.getMonth() + 1) + '\uC6D4';
+            labels.push(shortLabel);
+            dataArr.push(monthlyRevenueCache[key] || 0);
+        }
+
+        // 기존 차트 destroy
+        if (revenueChartInstance) {
+            revenueChartInstance.destroy();
+            revenueChartInstance = null;
+        }
+
+        var ctx = canvas.getContext('2d');
+        revenueChartInstance = new Chart(ctx, {
+            type: 'bar',
+            data: {
+                labels: labels,
+                datasets: [{
+                    label: '\uC6D4\uBCC4 \uB9E4\uCD9C (\uC6D0)',
+                    data: dataArr,
+                    backgroundColor: 'rgba(232, 180, 184, 0.7)',
+                    borderColor: '#e8b4b8',
+                    borderWidth: 1,
+                    borderRadius: 6,
+                    borderSkipped: false,
+                    maxBarThickness: 48
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { display: false },
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                return formatPrice(context.raw) + '\uC6D0';
+                            }
+                        },
+                        backgroundColor: '#3d2c1e',
+                        titleFont: { family: 'Pretendard Variable, Pretendard, sans-serif', size: 12 },
+                        bodyFont: { family: 'Pretendard Variable, Pretendard, sans-serif', size: 13 },
+                        padding: 10,
+                        cornerRadius: 8
+                    }
+                },
+                scales: {
+                    x: {
+                        grid: { display: false },
+                        ticks: {
+                            font: { family: 'Pretendard Variable, Pretendard, sans-serif', size: 12 },
+                            color: '#777'
+                        }
+                    },
+                    y: {
+                        beginAtZero: true,
+                        grid: { color: 'rgba(0,0,0,0.04)' },
+                        ticks: {
+                            font: { family: 'Pretendard Variable, Pretendard, sans-serif', size: 11 },
+                            color: '#999',
+                            callback: function(value) {
+                                if (value >= 10000) return (value / 10000) + '\uB9CC';
+                                return formatPrice(value);
+                            }
+                        }
+                    }
+                },
+                animation: {
+                    duration: 600,
+                    easing: 'easeOutQuart'
+                }
+            }
+        });
+    }
+
+    /**
+     * 등급 진행률 게이지 렌더링 (CSS only)
+     * SILVER -> GOLD: 목표 500만원
+     * GOLD -> PLATINUM: 목표 2000만원
+     * @param {Object} settlement
+     */
+    function renderGradeGauge(settlement) {
+        var container = document.getElementById('pdGradeGauge');
+        if (!container) return;
+
+        var grade = partnerData ? (partnerData.grade || 'SILVER').toUpperCase() : 'SILVER';
+        var totalRevenue = Number(settlement.cumulative_revenue || settlement.total_revenue || 0);
+
+        // 등급별 목표/다음 등급 설정
+        var nextGrade, target, currentLabel;
+        if (grade === 'PLATINUM') {
+            nextGrade = 'PLATINUM';
+            target = 1;
+            totalRevenue = 1; // 100% 표시
+            currentLabel = '\uCD5C\uACE0 \uB4F1\uAE09 \uB2EC\uC131!';
+        } else if (grade === 'GOLD') {
+            nextGrade = 'PLATINUM';
+            target = 20000000; // 2000만원
+            currentLabel = 'GOLD \u2192 PLATINUM';
+        } else {
+            nextGrade = 'GOLD';
+            target = 5000000; // 500만원
+            currentLabel = 'SILVER \u2192 GOLD';
+        }
+
+        var pct = target > 0 ? Math.min(Math.round((totalRevenue / target) * 100), 100) : 0;
+        var gaugeDeg = Math.round((pct / 100) * 180);
+
+        // 게이지 색상
+        var gaugeColor = grade === 'GOLD' ? '#7b68ee' : '#b89b5e';
+        if (grade === 'PLATINUM') gaugeColor = '#7b68ee';
+
+        var titleHtml = '<h3 class="pd-grade-gauge__title">\uB4F1\uAE09 \uC9C4\uD589\uB960</h3>';
+
+        var gaugeHtml = '<div class="pd-gauge-wrap">'
+            + '<div class="pd-gauge-bg"></div>'
+            + '<div class="pd-gauge-fill" style="background: conic-gradient('
+            + gaugeColor + ' 0deg, ' + gaugeColor + ' ' + gaugeDeg + 'deg, '
+            + 'transparent ' + gaugeDeg + 'deg, transparent 180deg, transparent 180deg); '
+            + 'clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%); '
+            + 'position:absolute;top:0;left:0;width:180px;height:180px;border-radius:50%;"></div>'
+            + '<div class="pd-gauge-inner"></div>'
+            + '<div class="pd-gauge-text">'
+            + '<span class="pd-gauge-text__pct">' + pct + '%</span>'
+            + '<span class="pd-gauge-text__label">' + escapeHtml(currentLabel) + '</span>'
+            + '</div>'
+            + '</div>';
+
+        var infoHtml = '<div class="pd-gauge-info">'
+            + '<p class="pd-gauge-info__current">\uB204\uC801 \uB9E4\uCD9C: <strong>' + formatPrice(totalRevenue) + '\uC6D0</strong></p>';
+
+        if (grade !== 'PLATINUM') {
+            infoHtml += '<p class="pd-gauge-info__next">\uBAA9\uD45C: ' + formatPrice(target) + '\uC6D0 (' + escapeHtml(nextGrade) + ')</p>';
+        }
+
+        infoHtml += '<div class="pd-gauge-info__bar">'
+            + '<div class="pd-gauge-info__bar-fill" style="width:' + pct + '%"></div>'
+            + '</div>'
+            + '</div>';
+
+        container.innerHTML = titleHtml + gaugeHtml + infoHtml;
+    }
+
+
+    /* ========================================
+       Task 314-A: 프로필 편집 모달
+       ======================================== */
+
+    /**
+     * 프로필 편집 버튼 이벤트 바인딩
+     */
+    function bindProfileEdit() {
+        var editBtn = document.getElementById('pdBtnEditProfile');
+        if (!editBtn) return;
+
+        editBtn.addEventListener('click', function() {
+            openProfileModal();
+        });
+
+        // 저장 버튼
+        var saveBtn = document.getElementById('pdProfileSaveBtn');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+                saveProfile();
+            });
+        }
+
+        // 소개글 글자수 카운터
+        var introTextarea = document.getElementById('pdProfileIntro');
+        var introCounter = document.getElementById('pdProfileIntroCount');
+        if (introTextarea && introCounter) {
+            introTextarea.addEventListener('input', function() {
+                introCounter.textContent = this.value.length;
+            });
+        }
+    }
+
+    /**
+     * 프로필 편집 모달 열기 (기존 데이터 채우기)
+     */
+    function openProfileModal() {
+        if (!partnerData) return;
+
+        // 폼 필드에 기존 값 채우기
+        var fields = {
+            'pdProfileStudioName': partnerData.studio_name || '',
+            'pdProfilePhone': partnerData.phone || '',
+            'pdProfileInstagram': partnerData.instagram_url || '',
+            'pdProfileKakao': partnerData.kakao_channel || '',
+            'pdProfileIntro': partnerData.introduction || ''
+        };
+
+        var keys = Object.keys(fields);
+        for (var i = 0; i < keys.length; i++) {
+            var el = document.getElementById(keys[i]);
+            if (el) el.value = fields[keys[i]];
+        }
+
+        // 소개글 카운터 업데이트
+        var introCounter = document.getElementById('pdProfileIntroCount');
+        if (introCounter) {
+            introCounter.textContent = (fields['pdProfileIntro'] || '').length;
+        }
+
+        openModal('pdProfileModal');
+    }
+
+    /**
+     * 프로필 저장 API 호출
+     */
+    function saveProfile() {
+        var studioName = (document.getElementById('pdProfileStudioName') || {}).value || '';
+        var phone = (document.getElementById('pdProfilePhone') || {}).value || '';
+        var instagramUrl = (document.getElementById('pdProfileInstagram') || {}).value || '';
+        var kakaoChannel = (document.getElementById('pdProfileKakao') || {}).value || '';
+        var introduction = (document.getElementById('pdProfileIntro') || {}).value || '';
+
+        if (!studioName.trim()) {
+            showToast('\uACF5\uBC29/\uC2A4\uD29C\uB514\uC624\uBA85\uC744 \uC785\uB825\uD574\uC8FC\uC138\uC694.', 'error');
+            return;
+        }
+
+        showLoading();
+
+        postGAS('updatePartnerProfile', {
+            member_id: memberId,
+            studio_name: studioName.trim(),
+            phone: phone.trim(),
+            instagram_url: instagramUrl.trim(),
+            kakao_channel: kakaoChannel.trim(),
+            introduction: introduction.trim()
+        }, function(err, data) {
+            hideLoading();
+
+            if (err || !data || !data.success) {
+                showToast('\uD504\uB85C\uD544 \uC800\uC7A5\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+                return;
+            }
+
+            // 로컬 파트너 데이터 업데이트
+            partnerData.studio_name = studioName.trim();
+            partnerData.phone = phone.trim();
+            partnerData.instagram_url = instagramUrl.trim();
+            partnerData.kakao_channel = kakaoChannel.trim();
+            partnerData.introduction = introduction.trim();
+
+            showToast('\uD504\uB85C\uD544\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
+            closeModal('pdProfileModal');
+        });
+    }
+
+
+    /* ========================================
+       Task 314-B: CSV 내보내기
+       ======================================== */
+
+    /**
+     * CSV 내보내기 버튼 이벤트 바인딩
+     */
+    function bindCsvExport() {
+        var csvBtn = document.getElementById('pdBtnCsvExport');
+        if (!csvBtn) return;
+
+        csvBtn.addEventListener('click', function() {
+            exportSettlementCsv();
+        });
+    }
+
+    /**
+     * 정산 내역을 CSV로 내보내기
+     */
+    function exportSettlementCsv() {
+        if (!dashboardData) {
+            showToast('\uB370\uC774\uD130\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4. \uBA3C\uC800 \uC218\uC775 \uB9AC\uD3EC\uD2B8 \uD0ED\uC744 \uC5F4\uC5B4\uC8FC\uC138\uC694.', 'error');
+            return;
+        }
+
+        var settlement = dashboardData.settlement || {};
+        var items = settlement.items || [];
+
+        if (!items || items.length === 0) {
+            showToast('\uB0B4\uBCF4\uB0BC \uC815\uC0B0 \uB0B4\uC5ED\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.', 'error');
+            return;
+        }
+
+        // CSV 헤더
+        var csvRows = [];
+        csvRows.push([
+            '\uC815\uC0B0ID',
+            '\uC8FC\uBB38ID',
+            '\uAC15\uC758\uBA85',
+            '\uC218\uAC15\uC0DD',
+            '\uAE08\uC561',
+            '\uC218\uC218\uB8CC',
+            '\uC801\uB9BD\uAE08',
+            '\uC0C1\uD0DC',
+            '\uC815\uC0B0\uC608\uC815\uC77C'
+        ].join(','));
+
+        for (var i = 0; i < items.length; i++) {
+            var item = items[i];
+            var stStatus = (item.status || '').toUpperCase();
+            var stLabel = { 'COMPLETED': '\uC644\uB8CC', 'PENDING': '\uB300\uAE30', 'FAILED': '\uC2E4\uD328' }[stStatus] || stStatus;
+
+            csvRows.push([
+                csvEscape(item.settlement_id || ''),
+                csvEscape(item.order_id || ''),
+                csvEscape(item.class_name || ''),
+                csvEscape(item.student_name || ''),
+                item.amount || 0,
+                item.fee || 0,
+                item.reserve || 0,
+                csvEscape(stLabel),
+                csvEscape(item.settlement_due_date || item.date || '')
+            ].join(','));
+        }
+
+        var csvContent = '\uFEFF' + csvRows.join('\n');
+
+        // 다운로드 트리거
+        var blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+        var url = URL.createObjectURL(blob);
+        var monthLabel = currentMonth.replace('-', '');
+        var link = document.createElement('a');
+        link.setAttribute('href', url);
+        link.setAttribute('download', 'PRESSCO21_\uC815\uC0B0\uB0B4\uC5ED_' + monthLabel + '.csv');
+        link.style.display = 'none';
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+
+        showToast('CSV \uD30C\uC77C\uC774 \uB2E4\uC6B4\uB85C\uB4DC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
+    }
+
+    /**
+     * CSV 필드 이스케이프 (쉼표, 줄바꿈, 큰따옴표 포함 시 감싸기)
+     * @param {string} str
+     * @returns {string}
+     */
+    function csvEscape(str) {
+        var s = String(str || '');
+        if (s.indexOf(',') !== -1 || s.indexOf('"') !== -1 || s.indexOf('\n') !== -1) {
+            return '"' + s.replace(/"/g, '""') + '"';
+        }
+        return s;
     }
 
 

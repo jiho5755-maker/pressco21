@@ -13,6 +13,9 @@
     <!-- Pretendard 웹폰트 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
 
+    <!-- Chart.js CDN (수익 시각화) -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+
 </head>
 <body>
 
@@ -116,6 +119,12 @@
                     <p class="pd-header__subtitle" id="pdHeaderSubtitle"></p>
                 </div>
                 <div class="pd-header__actions">
+                    <button type="button" class="pd-btn pd-btn--outline pd-btn--header" id="pdBtnEditProfile">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M11.5 2.5a1.414 1.414 0 012 2L5 13l-3 1 1-3 8.5-8.5z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        프로필 편집
+                    </button>
                     <div class="pd-month-selector">
                         <button type="button" class="pd-month-selector__prev" id="pdMonthPrev" aria-label="이전 달">
                             <svg width="16" height="16" viewBox="0 0 16 16" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -263,17 +272,46 @@
         <div id="pdTabRevenue" class="pd-tab-content" role="tabpanel" aria-labelledby="pdTabBtnRevenue">
             <div class="pd-tab-header">
                 <h2 class="pd-tab-header__title">수익 리포트</h2>
-                <div class="pd-month-picker">
-                    <label for="pdRevenueMonth" class="sr-only">월 선택</label>
-                    <select id="pdRevenueMonth" class="pd-select">
-                        <!-- JS: 최근 6개월 동적 생성 -->
-                    </select>
+                <div class="pd-tab-header__right">
+                    <button type="button" class="pd-btn pd-btn--outline pd-btn--sm" id="pdBtnCsvExport">
+                        <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M7 2v7M4 6l3 3 3-3M2 11h10" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                        CSV 다운로드
+                    </button>
+                    <div class="pd-month-picker">
+                        <label for="pdRevenueMonth" class="sr-only">월 선택</label>
+                        <select id="pdRevenueMonth" class="pd-select">
+                            <!-- JS: 최근 6개월 동적 생성 -->
+                        </select>
+                    </div>
                 </div>
             </div>
+
+            <!-- 전월 대비 증감 -->
+            <div class="pd-revenue-change" id="pdRevenueChange">
+                <!-- JS: 전월 대비 증감 렌더링 -->
+            </div>
+
             <!-- 수익 집계 카드 -->
             <div class="pd-revenue-summary" id="pdRevenueSummary">
                 <!-- JS: 동적 렌더링 -->
             </div>
+
+            <!-- 월별 수익 차트 + 등급 진행률 -->
+            <div class="pd-chart-row">
+                <div class="pd-chart-container">
+                    <h3 class="pd-chart-container__title">월별 수익 추이</h3>
+                    <div class="pd-chart-container__canvas-wrap">
+                        <canvas id="pdRevenueChart" width="600" height="280"></canvas>
+                    </div>
+                </div>
+                <div class="pd-grade-gauge" id="pdGradeGauge">
+                    <h3 class="pd-grade-gauge__title">등급 진행률</h3>
+                    <!-- JS: 등급 게이지 동적 렌더링 -->
+                </div>
+            </div>
+
             <!-- 정산 내역 테이블 -->
             <div id="pdRevenueTable" class="pd-table-wrap">
                 <!-- JS: 테이블 동적 렌더링 -->
@@ -391,7 +429,49 @@
         </div>
     </div>
 
-    <!-- 7. 토스트 알림 -->
+    <!-- 7. 프로필 편집 모달 -->
+    <div id="pdProfileModal" class="pd-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="pdProfileModalTitle">
+        <div class="pd-modal__backdrop"></div>
+        <div class="pd-modal__content pd-modal__content--wide">
+            <div class="pd-modal__header">
+                <h3 class="pd-modal__title" id="pdProfileModalTitle">프로필 편집</h3>
+                <button type="button" class="pd-modal__close" aria-label="닫기">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="pd-modal__body">
+                <div class="pd-form-group">
+                    <label for="pdProfileStudioName" class="pd-label">공방/스튜디오명</label>
+                    <input type="text" id="pdProfileStudioName" class="pd-input pd-input--full" maxlength="50" placeholder="공방 또는 스튜디오 이름">
+                </div>
+                <div class="pd-form-group">
+                    <label for="pdProfilePhone" class="pd-label">연락처</label>
+                    <input type="tel" id="pdProfilePhone" class="pd-input pd-input--full" maxlength="20" placeholder="010-0000-0000">
+                </div>
+                <div class="pd-form-group">
+                    <label for="pdProfileInstagram" class="pd-label">Instagram URL</label>
+                    <input type="url" id="pdProfileInstagram" class="pd-input pd-input--full" maxlength="100" placeholder="https://instagram.com/yourname">
+                </div>
+                <div class="pd-form-group">
+                    <label for="pdProfileKakao" class="pd-label">카카오 채널</label>
+                    <input type="text" id="pdProfileKakao" class="pd-input pd-input--full" maxlength="100" placeholder="카카오 채널 URL 또는 ID">
+                </div>
+                <div class="pd-form-group">
+                    <label for="pdProfileIntro" class="pd-label">소개글</label>
+                    <textarea id="pdProfileIntro" class="pd-textarea" rows="4" maxlength="300" placeholder="파트너 소개글을 입력해주세요."></textarea>
+                    <p class="pd-textarea__counter"><span id="pdProfileIntroCount">0</span>/300</p>
+                </div>
+            </div>
+            <div class="pd-modal__footer">
+                <button type="button" class="pd-btn pd-btn--primary" id="pdProfileSaveBtn">저장하기</button>
+                <button type="button" class="pd-btn pd-btn--outline pd-modal__cancel">취소</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 8. 토스트 알림 -->
     <div id="pdToastContainer" class="pd-toast-container" aria-live="polite"></div>
 
 </div><!-- /.partner-dashboard -->

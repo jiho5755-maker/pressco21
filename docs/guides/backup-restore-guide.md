@@ -251,16 +251,23 @@ fi
 
 ---
 
-## 9. NocoDB - n8n 네트워크 연결 재설정
+## 9. NocoDB - n8n 네트워크 연결
 
-서버 재시작 후 NocoDB가 n8n 내부 네트워크에서 접근 불가한 경우:
+**Task 297 완료 (2026-02-26)**: docker-compose.yml에 NocoDB 서비스 블록 + 네트워크 설정이 영구 추가되었습니다.
+`docker compose up -d` 실행 시 자동으로 n8n 내부 네트워크에 연결됩니다.
 
+```bash
+# 전체 재시작 (네트워크 자동 연결됨)
+cd /home/ubuntu && docker compose up -d
+
+# 상태 확인
+docker network inspect n8n_n8n-network | grep -A2 "nocodb"
+```
+
+**비상용 수동 연결 명령** (docker compose 외부에서 nocodb 컨테이너만 재시작한 경우):
 ```bash
 docker network connect n8n_n8n-network nocodb
 ```
-
-이 명령은 서버 재시작마다 수동으로 실행해야 합니다.
-(또는 docker-compose.yml에 네트워크 설정을 영구 추가)
 
 ---
 

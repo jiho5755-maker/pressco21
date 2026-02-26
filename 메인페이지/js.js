@@ -524,20 +524,21 @@
 })();
 
 /* ========================================
-   메인 클래스 진입점 섹션 (Task 232)
-   GAS API로 인기 클래스 4개를 로드하여
+   메인 클래스 진입점 섹션 (Task 315)
+   n8n 웹훅 POST API로 인기 클래스 3개를 로드하여
    YouTube 섹션 아래에 동적 삽입
+   주의: \${var} 이스케이프 필수 (메이크샵 치환코드 오인 방지)
    ======================================== */
 (function() {
     'use strict';
 
     /* ---- 설정 ---- */
-    var GAS_CLASS_URL = window.PRESSCO21_GAS_URL || '';
-    var CACHE_KEY = 'pressco21_popular_classes';
-    var CACHE_TTL = 30 * 60 * 1000; // 30분
-    var CLASS_LIMIT = 4;
-    var DETAIL_BASE = '/shop/page.html?id=class-detail&class_id=';
-    var LIST_URL = '/shop/page.html?id=class-list';
+    var N8N_CLASS_API = 'https://n8n.pressco21.com/webhook/class-api';
+    var CACHE_KEY = 'pressco21_popular_classes_v2';
+    var CACHE_TTL = 30 * 60 * 1000; /* 30분 */
+    var CLASS_LIMIT = 3;
+    var DETAIL_BASE = '/shop/page.html?id=2607&class_id=';
+    var LIST_URL = '/shop/page.html?id=2606';
 
     /* ---- 유틸리티 (기존 IIFE와 독립) ---- */
     function escHTML(str) {
@@ -571,8 +572,6 @@
     }
 
     /* ---- 별점 SVG 생성 ---- */
-    /* SVG linearGradient id 중복 방지를 위해
-       공유 <defs>를 페이지에 1회만 삽입하고 참조 */
     var halfGradInjected = false;
     var HALF_GRAD_ID = 'mceHalfStarGrad';
 
@@ -647,11 +646,11 @@
 
         /* class_id 검증 후 안전한 값만 href에 사용 */
         var safeId = sanitizeClassId(item.class_id);
-        if (!safeId) return ''; /* 유효하지 않은 class_id는 카드 생성 스킵 */
+        if (!safeId) return '';
 
-        var html = '<a class="mce-card" href="' + escAttr(DETAIL_BASE + safeId) + '" aria-label="' + escAttr(item.class_name) + ' 클래스 상세보기">';
+        var html = '<a class="mce-card" href="' + escAttr(DETAIL_BASE + safeId) + '" aria-label="' + escAttr(item.class_name) + ' \uD074\uB798\uC2A4 \uC0C1\uC138\uBCF4\uAE30">';
 
-        /* 썸네일 (빈 URL 방지: placeholder 사용) */
+        /* 썸네일 (빈 URL 방지: placeholder SVG) */
         var thumbUrl = item.thumbnail_url || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" fill="%23e8ede6"/>');
         html += '<div class="mce-thumb">';
         html += '<img src="' + escAttr(thumbUrl) + '" alt="' + escAttr(item.class_name) + '" loading="lazy">';
@@ -659,7 +658,7 @@
             html += '<span class="mce-badge">' + escHTML(item.category) + '</span>';
         }
         if (isUrgent) {
-            html += '<span class="mce-urgent">마감 임박!</span>';
+            html += '<span class="mce-urgent">\uB9C8\uAC10 \uC784\uBC15!</span>';
         }
         html += '</div>';
 
@@ -685,7 +684,7 @@
         /* 남은 자리 */
         if (!isNaN(seats)) {
             if (isSoldOut) {
-                html += '<div class="mce-seats mce-seats-urgent">마감</div>';
+                html += '<div class="mce-seats mce-seats-urgent">\uB9C8\uAC10</div>';
             } else if (isUrgent) {
                 html += '<div class="mce-seats mce-seats-urgent">\uB0A8\uC740 ' + seats + '\uC790\uB9AC</div>';
             } else {
@@ -719,7 +718,7 @@
         var html = '<section class="main-class-entry" id="main-class-entry">';
         html += '<div class="mce-container">';
         html += '<div class="mce-header">';
-        html += '<h3>\uC9C0\uAE08 \uC778\uAE30 \uC788\uB294 \uC6D0\uB370\uC774 \uD074\uB798\uC2A4</h3>';
+        html += '<h3>\uC6B0\uB9AC \uB3D9\uB124 \uAF43 \uACF5\uC608 \uD074\uB798\uC2A4\uB97C \uCC3E\uC544\uBCF4\uC138\uC694</h3>';
         html += '<p>30\uB144 \uC555\uD654 \uC804\uBB38\uAC00\uB4E4\uC774 \uC9C1\uC811 \uC9C4\uD589\uD558\uB294 \uD2B9\uBCC4\uD55C \uD074\uB798\uC2A4</p>';
         html += '</div>';
 
@@ -782,7 +781,6 @@
         var section = document.getElementById('main-class-entry');
         if (!section) return;
 
-        /* 스켈레톤 제거, 그리드 삽입 */
         var skeletonGrid = section.querySelector('.mce-skeleton-grid');
         var ctaWrap = section.querySelector('.mce-cta-wrap');
 
@@ -808,13 +806,8 @@
         }
     }
 
-    /* ---- 데이터 로드 ---- */
+    /* ---- 데이터 로드 (n8n POST API) ---- */
     function loadClasses() {
-        /* GAS URL이 설정되지 않았으면 섹션 미표시 */
-        if (!GAS_CLASS_URL) {
-            return;
-        }
-
         /* 섹션 삽입 (스켈레톤 상태) */
         var inserted = insertSection(buildSectionHTML(true));
         if (!inserted) return;
@@ -826,21 +819,34 @@
             return;
         }
 
-        /* GAS API 호출 */
-        var separator = GAS_CLASS_URL.indexOf('?') >= 0 ? '&' : '?';
-        var url = GAS_CLASS_URL + separator + 'action=getClasses&sort=popular&limit=' + CLASS_LIMIT + '&t=' + Date.now();
-
+        /* n8n 웹훅 POST 호출 */
         $.ajax({
-            url: url,
+            url: N8N_CLASS_API,
+            type: 'POST',
+            contentType: 'text/plain',
+            data: JSON.stringify({
+                action: 'getClasses',
+                status: 'active',
+                limit: CLASS_LIMIT
+            }),
             dataType: 'json',
             cache: false,
             timeout: 10000,
             success: function(res) {
-                if (res && res.success && res.data && res.data.length > 0) {
-                    setCachedData(res.data);
-                    renderCards(res.data);
+                /* n8n 응답 구조: { success: true, data: { classes: [...] } } */
+                var classes = null;
+                if (res && res.success && res.data) {
+                    /* data.classes 배열 또는 data 자체가 배열인 경우 모두 대응 */
+                    if (Array.isArray(res.data.classes)) {
+                        classes = res.data.classes;
+                    } else if (Array.isArray(res.data)) {
+                        classes = res.data;
+                    }
+                }
+                if (classes && classes.length > 0) {
+                    setCachedData(classes);
+                    renderCards(classes);
                 } else {
-                    /* 데이터 없으면 섹션 숨김 */
                     hideSection();
                 }
             },
@@ -853,14 +859,9 @@
 
     /* ---- Intersection Observer로 뷰포트 진입 시 로드 ---- */
     function initClassSection() {
-        /* GAS URL 미설정 시 즉시 종료 */
-        if (!GAS_CLASS_URL) return;
-
-        /* YouTube 섹션 근처에 도달했을 때 로드 시작 (성능 최적화) */
         if ('IntersectionObserver' in window) {
             var trigger = document.querySelector('.youtube-section-v3') || document.getElementById('section04');
             if (!trigger) {
-                /* 트리거 요소 없으면 바로 로드 */
                 loadClasses();
                 return;
             }
@@ -877,7 +878,6 @@
             });
             observer.observe(trigger);
         } else {
-            /* IO 미지원 브라우저: 바로 로드 */
             loadClasses();
         }
     }

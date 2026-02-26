@@ -1902,11 +1902,6 @@
     100% { background-position: 600px 0; }
 }
 
-/* 모바일: 2개만 표시 (기본) */
-.main-class-entry .mce-card:nth-child(n+3) {
-    display: none;
-}
-
 /* ---- 반응형 ---- */
 
 /* 태블릿 (768px~) */
@@ -1928,18 +1923,13 @@
     }
 
     .main-class-entry .mce-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 20px;
     }
 
     .main-class-entry .mce-skeleton-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 20px;
-    }
-
-    /* 태블릿에서 4개 모두 표시 */
-    .main-class-entry .mce-card:nth-child(n+3) {
-        display: block;
     }
 
     .main-class-entry .mce-name {
@@ -1962,12 +1952,12 @@
     }
 
     .main-class-entry .mce-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 24px;
     }
 
     .main-class-entry .mce-skeleton-grid {
-        grid-template-columns: repeat(4, 1fr);
+        grid-template-columns: repeat(3, 1fr);
         gap: 24px;
     }
 

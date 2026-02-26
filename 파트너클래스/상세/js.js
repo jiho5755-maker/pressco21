@@ -16,6 +16,9 @@
     /** n8n WF-04 예약 기록 엔드포인트 */
     var BOOKING_URL = 'https://n8n.pressco21.com/webhook/record-booking';
 
+    /** n8n WF-15 후기 작성 엔드포인트 */
+    var REVIEW_SUBMIT_URL = 'https://n8n.pressco21.com/webhook/review-submit';
+
     /** 캐시 유효 시간: 5분 (밀리초) */
     var CACHE_TTL = 5 * 60 * 1000;
 
@@ -55,12 +58,21 @@
     /** 선택된 날짜 */
     var selectedDate = '';
 
+    /** 후기 작성 선택 별점 */
+    var reviewRating = 0;
+
+    /** 후기 제출 진행 중 플래그 */
+    var isSubmittingReview = false;
+
     /** Swiper 인스턴스 */
     var gallerySwiper = null;
     var thumbsSwiper = null;
 
     /** flatpickr 인스턴스 */
     var datePickerInstance = null;
+
+    /** 갤러리 이미지 배열 (라이트박스용) */
+    var galleryImages = [];
 
 
     /* ========================================
@@ -185,6 +197,12 @@
 
         // 스크롤 애니메이션 초기화
         initScrollReveal();
+
+        // 공유 기능 초기화
+        initShare(classData);
+
+        // 관련 클래스 추천 로드 (비동기, 렌더링 완료 후)
+        loadRelatedClasses(classData);
     }
 
 
@@ -269,6 +287,7 @@
         renderSection(function() { renderMaterials(data); }, null, '');
         renderSection(function() { renderYoutube(data); }, null, '');
         renderSection(function() { renderReviews(data); }, null, '');
+        renderSection(function() { renderReviewForm(data); }, null, '');
         renderSection(function() { renderBookingPanel(data); }, null, '');
 
         // 탭 이벤트 바인딩
@@ -371,6 +390,44 @@
 
         // Swiper 초기화
         initSwiper(images.length);
+
+        // 라이트박스용 이미지 배열 저장 (빈 플레이스홀더 제외)
+        galleryImages = [];
+        for (var m = 0; m < images.length; m++) {
+            if (images[m]) galleryImages.push(images[m]);
+        }
+
+        // 갤러리 이미지 클릭 이벤트 (라이트박스 열기)
+        if (galleryImages.length > 0) {
+            bindGalleryClick();
+        }
+    }
+
+    /**
+     * 갤러리 이미지 클릭 시 라이트박스 열기 이벤트 바인딩
+     */
+    function bindGalleryClick() {
+        var galleryEl = document.getElementById('galleryMain');
+        if (!galleryEl) return;
+
+        // 이벤트 위임: 갤러리 컨테이너에 한 번만 바인딩
+        galleryEl.addEventListener('click', function(e) {
+            var imgEl = e.target.closest('.gallery-slide__img');
+            if (!imgEl) return;
+
+            // 현재 Swiper realIndex로 라이트박스 시작 인덱스 결정
+            var startIdx = 0;
+            if (gallerySwiper && typeof gallerySwiper.realIndex === 'number') {
+                startIdx = gallerySwiper.realIndex;
+            }
+
+            // 범위 보정
+            if (startIdx < 0 || startIdx >= galleryImages.length) {
+                startIdx = 0;
+            }
+
+            openLightbox(galleryImages, startIdx);
+        });
     }
 
     /**
@@ -862,6 +919,347 @@
             + '<p class="review-card__text">' + text + '</p>'
             + '</div>';
     }
+
+    /* ========================================
+       후기 작성 폼
+       ======================================== */
+
+    /**
+     * 후기 작성 폼 렌더링
+     * - 로그인 상태일 때만 폼 표시
+     * - 비로그인 시 로그인 안내
+     * @param {Object} data - 클래스 데이터
+     */
+    function renderReviewForm(data) {
+        var container = document.getElementById('reviewWriteSection');
+        if (!container) return;
+
+        // 비로그인: 안내 메시지 표시
+        if (!memberId) {
+            container.innerHTML = ''
+                + '<div class="review-write-login">'
+                + '<p class="review-write-login__text">\uB85C\uADF8\uC778 \uD6C4 \uD6C4\uAE30\uB97C \uC791\uC131\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.</p>'
+                + '<a href="/member/login.html?returnUrl=' + encodeURIComponent(window.location.href) + '" class="review-write-login__btn">\uB85C\uADF8\uC778 \uD558\uAE30</a>'
+                + '</div>';
+            return;
+        }
+
+        // 로그인 상태: 후기 작성 폼
+        var classId = data.class_id || data.id || '';
+
+        var html = ''
+            + '<div class="review-form" id="reviewForm">'
+            + '<h3 class="review-form__title">\uD6C4\uAE30 \uC791\uC131</h3>'
+            + '<div class="review-form__rating">'
+            + '<span class="review-form__rating-label">\uBCC4\uC810</span>'
+            + '<div class="star-rating" id="starRating" role="radiogroup" aria-label="\uBCC4\uC810 \uC120\uD0DD">';
+
+        for (var i = 1; i <= 5; i++) {
+            html += '<button type="button" class="star-rating__btn" data-value="' + i + '" '
+                + 'aria-label="' + i + '\uC810" role="radio" aria-checked="false">'
+                + '<svg class="star-rating__icon" width="28" height="28" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">'
+                + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/>'
+                + '</svg></button>';
+        }
+
+        html += '</div>'
+            + '<span class="star-rating__value" id="ratingValueText"></span>'
+            + '</div>'
+            + '<div class="review-form__content">'
+            + '<textarea class="review-form__textarea" id="reviewTextarea" '
+            + 'placeholder="\uC218\uAC15 \uD6C4\uAE30\uB97C \uC791\uC131\uD574 \uC8FC\uC138\uC694. (\uCD5C\uC18C 20\uC790)" '
+            + 'maxlength="1000" rows="5"></textarea>'
+            + '<div class="review-form__charcount">'
+            + '<span id="reviewCharCount">0</span>/1000'
+            + '</div>'
+            + '</div>'
+            + '<div class="review-form__actions">'
+            + '<button type="button" class="review-form__submit" id="reviewSubmitBtn" disabled>'
+            + '\uD6C4\uAE30 \uB4F1\uB85D'
+            + '</button>'
+            + '</div>'
+            + '<p class="review-form__notice">\uD6C4\uAE30 \uB4F1\uB85D \uC2DC 1,000\uC6D0\uC758 \uC801\uB9BD\uAE08\uC774 \uC9C0\uAE09\uB429\uB2C8\uB2E4.</p>'
+            + '</div>';
+
+        container.innerHTML = html;
+
+        // 이벤트 바인딩
+        initStarRating();
+        initReviewTextarea();
+        initReviewSubmit(classId);
+    }
+
+    /**
+     * 별점 클릭 UI 초기화
+     */
+    function initStarRating() {
+        var starBtns = document.querySelectorAll('.class-detail .star-rating__btn');
+        var valueText = document.getElementById('ratingValueText');
+        var ratingLabels = ['', '\uBD88\uB9CC\uC871', '\uBCF4\uD1B5', '\uAD1C\uCC2E\uC544\uC694', '\uB9CC\uC871', '\uB9E4\uC6B0 \uB9CC\uC871'];
+
+        for (var i = 0; i < starBtns.length; i++) {
+            // hover 효과
+            starBtns[i].addEventListener('mouseenter', function() {
+                var val = parseInt(this.getAttribute('data-value'));
+                highlightStars(val);
+            });
+
+            // click: 별점 확정
+            starBtns[i].addEventListener('click', function() {
+                var val = parseInt(this.getAttribute('data-value'));
+                reviewRating = val;
+                highlightStars(val);
+
+                // aria-checked 업데이트
+                for (var j = 0; j < starBtns.length; j++) {
+                    starBtns[j].setAttribute('aria-checked', 'false');
+                }
+                this.setAttribute('aria-checked', 'true');
+
+                // 라벨 텍스트
+                if (valueText) {
+                    valueText.textContent = ratingLabels[val] || '';
+                }
+
+                validateReviewForm();
+            });
+        }
+
+        // mouseout: 선택 값으로 복원
+        var starContainer = document.getElementById('starRating');
+        if (starContainer) {
+            starContainer.addEventListener('mouseleave', function() {
+                highlightStars(reviewRating);
+            });
+        }
+    }
+
+    /**
+     * 별점 하이라이트 갱신
+     * @param {number} val - 하이라이트할 별 수 (1~5)
+     */
+    function highlightStars(val) {
+        var starBtns = document.querySelectorAll('.class-detail .star-rating__btn');
+        for (var i = 0; i < starBtns.length; i++) {
+            var btnVal = parseInt(starBtns[i].getAttribute('data-value'));
+            if (btnVal <= val) {
+                starBtns[i].classList.add('is-active');
+            } else {
+                starBtns[i].classList.remove('is-active');
+            }
+        }
+    }
+
+    /**
+     * 후기 입력 textarea 이벤트 초기화
+     */
+    function initReviewTextarea() {
+        var textarea = document.getElementById('reviewTextarea');
+        var charCount = document.getElementById('reviewCharCount');
+
+        if (textarea) {
+            textarea.addEventListener('input', function() {
+                var len = this.value.length;
+                if (charCount) {
+                    charCount.textContent = len;
+                }
+                validateReviewForm();
+            });
+        }
+    }
+
+    /**
+     * 후기 폼 유효성 검증
+     * 별점 1~5 + 내용 20자 이상이면 제출 버튼 활성화
+     */
+    function validateReviewForm() {
+        var submitBtn = document.getElementById('reviewSubmitBtn');
+        if (!submitBtn) return;
+
+        var textarea = document.getElementById('reviewTextarea');
+        var contentLen = textarea ? textarea.value.trim().length : 0;
+
+        if (reviewRating >= 1 && reviewRating <= 5 && contentLen >= 20) {
+            submitBtn.disabled = false;
+        } else {
+            submitBtn.disabled = true;
+        }
+    }
+
+    /**
+     * 후기 제출 버튼 이벤트 초기화
+     * @param {string} classId
+     */
+    function initReviewSubmit(classId) {
+        var submitBtn = document.getElementById('reviewSubmitBtn');
+        if (!submitBtn) return;
+
+        submitBtn.addEventListener('click', function() {
+            if (isSubmittingReview) return;
+
+            var textarea = document.getElementById('reviewTextarea');
+            var content = textarea ? textarea.value.trim() : '';
+
+            // 최종 유효성 체크
+            if (reviewRating < 1 || reviewRating > 5) {
+                showReviewToast('\uBCC4\uC810\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.', 'error');
+                return;
+            }
+            if (content.length < 20) {
+                showReviewToast('\uD6C4\uAE30 \uB0B4\uC6A9\uC744 20\uC790 \uC774\uC0C1 \uC785\uB825\uD574 \uC8FC\uC138\uC694.', 'error');
+                return;
+            }
+
+            submitReview({
+                class_id: classId,
+                member_id: memberId,
+                rating: reviewRating,
+                content: content,
+                reviewer_name: memberId
+            });
+        });
+    }
+
+    /**
+     * WF-15 후기 제출 API 호출
+     * @param {Object} payload
+     */
+    function submitReview(payload) {
+        isSubmittingReview = true;
+
+        var submitBtn = document.getElementById('reviewSubmitBtn');
+        if (submitBtn) {
+            submitBtn.disabled = true;
+            submitBtn.textContent = '\uB4F1\uB85D \uC911...';
+        }
+
+        fetch(REVIEW_SUBMIT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(data) {
+            isSubmittingReview = false;
+
+            if (data && data.success) {
+                // 성공: 토스트 + 폼 숨김 + 목록 새로고침
+                showReviewToast('\uD6C4\uAE30\uAC00 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uC801\uB9BD\uAE08 1,000\uC6D0\uC774 \uC9C0\uAE09\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
+                hideReviewForm();
+                refreshReviewList();
+            } else {
+                // 에러 응답 처리
+                var errCode = (data && data.error && data.error.code) ? data.error.code : '';
+                var errMsg = '\uD6C4\uAE30 \uB4F1\uB85D\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.';
+
+                if (errCode === 'ALREADY_REVIEWED') {
+                    errMsg = '\uC774\uBBF8 \uC791\uC131\uD55C \uD6C4\uAE30\uAC00 \uC788\uC2B5\uB2C8\uB2E4.';
+                    hideReviewForm();
+                } else if (errCode === 'NO_BOOKING_RECORD') {
+                    errMsg = '\uC218\uAC15 \uC774\uB825\uC774 \uD655\uC778\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.';
+                }
+
+                showReviewToast(errMsg, 'error');
+                resetSubmitButton();
+            }
+        })
+        .catch(function(err) {
+            isSubmittingReview = false;
+            console.error('[ClassDetail] \uD6C4\uAE30 \uC81C\uCD9C \uC624\uB958:', err);
+            showReviewToast('\uB124\uD2B8\uC6CC\uD06C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.', 'error');
+            resetSubmitButton();
+        });
+    }
+
+    /**
+     * 제출 버튼 초기 상태 복원
+     */
+    function resetSubmitButton() {
+        var submitBtn = document.getElementById('reviewSubmitBtn');
+        if (submitBtn) {
+            submitBtn.textContent = '\uD6C4\uAE30 \uB4F1\uB85D';
+            validateReviewForm();
+        }
+    }
+
+    /**
+     * 후기 폼 숨김 (제출 성공 또는 이미 작성 시)
+     */
+    function hideReviewForm() {
+        var form = document.getElementById('reviewForm');
+        if (form) {
+            form.style.display = 'none';
+        }
+    }
+
+    /**
+     * 후기 목록 새로고침 (캐시 무효화 + 재요청)
+     */
+    function refreshReviewList() {
+        if (!classData) return;
+        var classId = classData.class_id || classData.id || '';
+        if (!classId) return;
+
+        // 캐시 무효화
+        try { localStorage.removeItem(CACHE_PREFIX + classId); } catch (e) { /* 무시 */ }
+
+        // 재요청
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getClassDetail', id: classId })
+        })
+        .then(function(response) {
+            if (!response.ok) return null;
+            return response.json();
+        })
+        .then(function(data) {
+            if (data && data.success && data.data) {
+                // 캐시 갱신
+                setCache(classId, data);
+                classData = data.data;
+                // 후기 섹션만 재렌더링
+                renderReviews(data.data);
+            }
+        })
+        .catch(function() { /* 조용히 실패 */ });
+    }
+
+    /**
+     * 후기 토스트 메시지 표시
+     * @param {string} message
+     * @param {string} type - 'success' | 'error'
+     */
+    function showReviewToast(message, type) {
+        // 기존 토스트 제거
+        var existing = document.querySelector('.class-detail .review-toast');
+        if (existing) existing.remove();
+
+        var toast = document.createElement('div');
+        toast.className = 'review-toast review-toast--' + (type || 'success');
+        toast.setAttribute('role', 'alert');
+        toast.textContent = message;
+
+        var container = document.querySelector('.class-detail');
+        if (container) {
+            container.appendChild(toast);
+
+            // 강제 리플로우 후 표시 애니메이션
+            void toast.offsetWidth;
+            toast.classList.add('is-visible');
+
+            // 3초 후 자동 제거
+            setTimeout(function() {
+                toast.classList.remove('is-visible');
+                setTimeout(function() {
+                    if (toast.parentNode) toast.parentNode.removeChild(toast);
+                }, 300);
+            }, 3000);
+        }
+    }
+
 
     /**
      * 별점 분포 추정 (실제 데이터 없을 때)
@@ -1615,6 +2013,526 @@
         var mins = min % 60;
         if (mins === 0) return hours + '\uC2DC\uAC04';
         return hours + '\uC2DC\uAC04 ' + mins + '\uBD84';
+    }
+
+
+    /* ========================================
+       공유 기능
+       ======================================== */
+
+    /** 카카오 SDK JS 키 (TODO: 실제 발급받은 키로 교체 필요) */
+    var KAKAO_JS_KEY = 'YOUR_KAKAO_JS_KEY_HERE';
+
+    /**
+     * 공유 기능 초기화
+     * - Web Share API 감지, 카카오 SDK 초기화, 버튼 이벤트 바인딩
+     * @param {Object} data - 클래스 데이터
+     */
+    function initShare(data) {
+        // 카카오 SDK 초기화
+        initKakaoSDK();
+
+        // Web Share API 지원 시 네이티브 공유 버튼 표시
+        var hasNativeShare = !!(navigator && navigator.share);
+
+        // PC용 공유 버튼 바인딩
+        bindShareButtons({
+            kakaoBtn: document.getElementById('cdBtnKakao'),
+            copyBtn: document.getElementById('cdBtnCopyUrl'),
+            nativeBtn: document.getElementById('cdBtnNativeShare')
+        }, data, hasNativeShare);
+
+        // 모바일용 공유 버튼 바인딩
+        bindShareButtons({
+            kakaoBtn: document.querySelector('.cd-share-kakao-mobile'),
+            copyBtn: document.querySelector('.cd-share-copy-mobile'),
+            nativeBtn: document.querySelector('.cd-share-native-mobile')
+        }, data, hasNativeShare);
+    }
+
+    /**
+     * 공유 버튼 이벤트 바인딩 (PC/모바일 공용)
+     * @param {Object} btns - kakaoBtn, copyBtn, nativeBtn
+     * @param {Object} data - 클래스 데이터
+     * @param {boolean} hasNativeShare - Web Share API 지원 여부
+     */
+    function bindShareButtons(btns, data, hasNativeShare) {
+        if (btns.nativeBtn && hasNativeShare) {
+            btns.nativeBtn.style.display = 'inline-flex';
+            btns.nativeBtn.addEventListener('click', function() {
+                nativeShare(data);
+            });
+        }
+
+        if (btns.kakaoBtn) {
+            btns.kakaoBtn.addEventListener('click', function() {
+                shareKakao(data);
+            });
+        }
+
+        if (btns.copyBtn) {
+            btns.copyBtn.addEventListener('click', function() {
+                copyUrl();
+            });
+        }
+    }
+
+    /**
+     * 카카오 SDK 초기화
+     */
+    function initKakaoSDK() {
+        if (typeof Kakao === 'undefined') return;
+        if (KAKAO_JS_KEY === 'YOUR_KAKAO_JS_KEY_HERE') {
+            console.warn('[ClassDetail] \uCE74\uCE74\uC624 JS \uD0A4\uAC00 \uC124\uC815\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.');
+            return;
+        }
+        try {
+            if (!Kakao.isInitialized()) {
+                Kakao.init(KAKAO_JS_KEY);
+            }
+        } catch (e) {
+            console.error('[ClassDetail] \uCE74\uCE74\uC624 SDK \uCD08\uAE30\uD654 \uC2E4\uD328:', e);
+        }
+    }
+
+    /**
+     * 카카오톡 공유 (Feed 메시지)
+     * @param {Object} data - 클래스 데이터
+     */
+    function shareKakao(data) {
+        if (typeof Kakao === 'undefined') {
+            showReviewToast('\uCE74\uCE74\uC624\uD1A1 \uACF5\uC720\uB97C \uC0AC\uC6A9\uD560 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.', 'error');
+            return;
+        }
+        if (!Kakao.isInitialized()) {
+            showReviewToast('\uCE74\uCE74\uC624\uD1A1 \uACF5\uC720 \uC124\uC815\uC774 \uD544\uC694\uD569\uB2C8\uB2E4.', 'error');
+            return;
+        }
+
+        var className = data.class_name || '\uD504\uB808\uC2A4\uCF54 \uD074\uB798\uC2A4';
+        var desc = data.description || '';
+        // HTML 태그 제거 후 100자 잘라내기
+        var cleanDesc = desc.replace(/<[^>]+>/g, '').substring(0, 100);
+        var imageUrl = data.thumbnail_url || 'https://foreverlove.co.kr/design/foreverlove/images/logo.png';
+        var pageUrl = window.location.href;
+
+        try {
+            Kakao.Share.sendDefault({
+                objectType: 'feed',
+                content: {
+                    title: className,
+                    description: cleanDesc,
+                    imageUrl: imageUrl,
+                    link: {
+                        mobileWebUrl: pageUrl,
+                        webUrl: pageUrl
+                    }
+                },
+                buttons: [
+                    {
+                        title: '\uD074\uB798\uC2A4 \uBCF4\uAE30',
+                        link: {
+                            mobileWebUrl: pageUrl,
+                            webUrl: pageUrl
+                        }
+                    }
+                ]
+            });
+        } catch (e) {
+            console.error('[ClassDetail] \uCE74\uCE74\uC624 \uACF5\uC720 \uC2E4\uD328:', e);
+            showReviewToast('\uCE74\uCE74\uC624\uD1A1 \uACF5\uC720\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+        }
+    }
+
+    /**
+     * URL 복사 (Clipboard API 우선, 폴백으로 execCommand)
+     */
+    function copyUrl() {
+        var url = window.location.href;
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(url).then(function() {
+                showReviewToast('\uB9C1\uD06C\uAC00 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4!', 'success');
+            }).catch(function() {
+                fallbackCopy(url);
+            });
+        } else {
+            fallbackCopy(url);
+        }
+    }
+
+    /**
+     * URL 복사 폴백 (execCommand)
+     * @param {string} url
+     */
+    function fallbackCopy(url) {
+        var el = document.createElement('textarea');
+        el.value = url;
+        el.style.position = 'fixed';
+        el.style.left = '-9999px';
+        el.style.top = '-9999px';
+        el.style.opacity = '0';
+        document.body.appendChild(el);
+        el.select();
+        try {
+            document.execCommand('copy');
+            showReviewToast('\uB9C1\uD06C\uAC00 \uBCF5\uC0AC\uB418\uC5C8\uC2B5\uB2C8\uB2E4!', 'success');
+        } catch (e) {
+            showReviewToast('\uBCF5\uC0AC\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4. \uC8FC\uC18C\uCC3D\uC744 \uC9C1\uC811 \uBCF5\uC0AC\uD574 \uC8FC\uC138\uC694.', 'error');
+        }
+        document.body.removeChild(el);
+    }
+
+    /**
+     * Web Share API (모바일 네이티브 공유)
+     * @param {Object} data - 클래스 데이터
+     */
+    function nativeShare(data) {
+        if (!navigator.share) return;
+
+        var className = data.class_name || '\uD504\uB808\uC2A4\uCF54 \uD074\uB798\uC2A4';
+        var desc = data.description || '';
+        var cleanDesc = desc.replace(/<[^>]+>/g, '').substring(0, 100);
+
+        navigator.share({
+            title: className,
+            text: cleanDesc,
+            url: window.location.href
+        }).catch(function() {
+            // 사용자가 공유 취소 시 무시
+        });
+    }
+
+
+    /* ========================================
+       이미지 라이트박스
+       ======================================== */
+
+    /** 현재 라이트박스 상태 */
+    var lightboxCurrentIdx = 0;
+    var lightboxImageList = [];
+
+    /**
+     * 라이트박스 열기
+     * @param {Array} images - 이미지 URL 배열
+     * @param {number} startIndex - 시작 인덱스
+     */
+    function openLightbox(images, startIndex) {
+        if (!images || images.length === 0) return;
+
+        lightboxImageList = images;
+        lightboxCurrentIdx = startIndex || 0;
+
+        // 기존 오버레이 제거
+        closeLightbox();
+
+        // 모달 HTML 생성
+        var overlay = document.createElement('div');
+        overlay.className = 'cd-lightbox-overlay';
+        overlay.id = 'cdLightboxOverlay';
+        overlay.setAttribute('role', 'dialog');
+        overlay.setAttribute('aria-modal', 'true');
+        overlay.setAttribute('aria-label', '\uC774\uBBF8\uC9C0 \uD655\uB300 \uBCF4\uAE30');
+        overlay.setAttribute('tabindex', '-1');
+
+        var containerHtml = '<div class="cd-lightbox-container">'
+            + '<button class="cd-lightbox-close" id="cdLightboxClose" type="button" aria-label="\uB2EB\uAE30">'
+            + '<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M18 6L6 18M6 6l12 12"/></svg>'
+            + '</button>';
+
+        // 이전/다음 버튼 (2장 이상일 때만)
+        if (images.length > 1) {
+            containerHtml += '<button class="cd-lightbox-prev" id="cdLightboxPrev" type="button" aria-label="\uC774\uC804 \uC774\uBBF8\uC9C0">'
+                + '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M15 18l-6-6 6-6"/></svg>'
+                + '</button>';
+        }
+
+        containerHtml += '<div class="cd-lightbox-img-wrap">'
+            + '<img class="cd-lightbox-img" id="cdLightboxImg" src="' + escapeHtml(images[lightboxCurrentIdx]) + '" alt="\uC774\uBBF8\uC9C0 ' + (lightboxCurrentIdx + 1) + '">'
+            + '</div>';
+
+        if (images.length > 1) {
+            containerHtml += '<button class="cd-lightbox-next" id="cdLightboxNext" type="button" aria-label="\uB2E4\uC74C \uC774\uBBF8\uC9C0">'
+                + '<svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18l6-6-6-6"/></svg>'
+                + '</button>';
+        }
+
+        // 카운터
+        if (images.length > 1) {
+            containerHtml += '<div class="cd-lightbox-counter" id="cdLightboxCounter">'
+                + (lightboxCurrentIdx + 1) + ' / ' + images.length
+                + '</div>';
+        }
+
+        containerHtml += '</div>';
+        overlay.innerHTML = containerHtml;
+
+        // body 스크롤 잠금
+        document.body.style.overflow = 'hidden';
+
+        // DOM에 추가
+        document.body.appendChild(overlay);
+
+        // 페이드인 애니메이션
+        void overlay.offsetWidth;
+        overlay.classList.add('is-active');
+        overlay.focus();
+
+        // 이벤트 바인딩
+        bindLightboxEvents(overlay);
+    }
+
+    /**
+     * 라이트박스 닫기
+     */
+    function closeLightbox() {
+        var overlay = document.getElementById('cdLightboxOverlay');
+        if (overlay) {
+            overlay.classList.remove('is-active');
+            // 페이드아웃 후 제거
+            setTimeout(function() {
+                if (overlay.parentNode) {
+                    overlay.parentNode.removeChild(overlay);
+                }
+            }, 250);
+        }
+        // body 스크롤 복원
+        document.body.style.overflow = '';
+        lightboxImageList = [];
+        lightboxCurrentIdx = 0;
+    }
+
+    /**
+     * 라이트박스 이미지 전환
+     * @param {number} newIndex
+     */
+    function lightboxGoTo(newIndex) {
+        if (lightboxImageList.length === 0) return;
+
+        // 순환
+        if (newIndex < 0) {
+            newIndex = lightboxImageList.length - 1;
+        } else if (newIndex >= lightboxImageList.length) {
+            newIndex = 0;
+        }
+
+        lightboxCurrentIdx = newIndex;
+
+        var imgEl = document.getElementById('cdLightboxImg');
+        var counterEl = document.getElementById('cdLightboxCounter');
+
+        if (imgEl) {
+            imgEl.classList.add('is-loading');
+            imgEl.src = lightboxImageList[newIndex];
+            imgEl.alt = '\uC774\uBBF8\uC9C0 ' + (newIndex + 1);
+
+            // 이미지 로드 완료 시 로딩 클래스 제거
+            imgEl.onload = function() {
+                imgEl.classList.remove('is-loading');
+            };
+            imgEl.onerror = function() {
+                imgEl.classList.remove('is-loading');
+            };
+        }
+
+        if (counterEl) {
+            counterEl.textContent = (newIndex + 1) + ' / ' + lightboxImageList.length;
+        }
+    }
+
+    /**
+     * 라이트박스 이벤트 바인딩
+     * @param {HTMLElement} overlay
+     */
+    function bindLightboxEvents(overlay) {
+        // 닫기 버튼
+        var closeBtn = document.getElementById('cdLightboxClose');
+        if (closeBtn) {
+            closeBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                closeLightbox();
+            });
+        }
+
+        // 이전/다음 버튼
+        var prevBtn = document.getElementById('cdLightboxPrev');
+        var nextBtn = document.getElementById('cdLightboxNext');
+
+        if (prevBtn) {
+            prevBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                lightboxGoTo(lightboxCurrentIdx - 1);
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                lightboxGoTo(lightboxCurrentIdx + 1);
+            });
+        }
+
+        // 오버레이 배경 클릭 시 닫기
+        overlay.addEventListener('click', function(e) {
+            if (e.target === overlay) {
+                closeLightbox();
+            }
+        });
+
+        // 키보드 이벤트 (ESC/좌우 화살표)
+        var keyHandler = function(e) {
+            if (e.key === 'Escape') {
+                closeLightbox();
+                document.removeEventListener('keydown', keyHandler);
+            } else if (e.key === 'ArrowLeft') {
+                lightboxGoTo(lightboxCurrentIdx - 1);
+            } else if (e.key === 'ArrowRight') {
+                lightboxGoTo(lightboxCurrentIdx + 1);
+            }
+        };
+        document.addEventListener('keydown', keyHandler);
+
+        // 오버레이 제거 시 키 이벤트도 정리
+        var observer = new MutationObserver(function(mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                for (var j = 0; j < mutations[i].removedNodes.length; j++) {
+                    if (mutations[i].removedNodes[j] === overlay) {
+                        document.removeEventListener('keydown', keyHandler);
+                        observer.disconnect();
+                        return;
+                    }
+                }
+            }
+        });
+        observer.observe(document.body, { childList: true });
+
+        // 터치 스와이프 지원 (모바일)
+        var touchStartX = 0;
+        var touchEndX = 0;
+        var minSwipeDist = 50;
+
+        overlay.addEventListener('touchstart', function(e) {
+            touchStartX = e.changedTouches[0].screenX;
+        }, { passive: true });
+
+        overlay.addEventListener('touchend', function(e) {
+            touchEndX = e.changedTouches[0].screenX;
+            var diff = touchStartX - touchEndX;
+            if (Math.abs(diff) > minSwipeDist) {
+                if (diff > 0) {
+                    // 왼쪽 스와이프 = 다음
+                    lightboxGoTo(lightboxCurrentIdx + 1);
+                } else {
+                    // 오른쪽 스와이프 = 이전
+                    lightboxGoTo(lightboxCurrentIdx - 1);
+                }
+            }
+        }, { passive: true });
+    }
+
+
+    /* ========================================
+       관련 클래스 추천
+       ======================================== */
+
+    /**
+     * 관련 클래스 데이터 로드 (WF-01 API)
+     * @param {Object} data - 현재 클래스 데이터
+     */
+    function loadRelatedClasses(data) {
+        var category = data.category || '';
+        var currentClassId = data.class_id || data.id || '';
+
+        if (!category) return;
+
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getClasses', category: category })
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
+        .then(function(resData) {
+            if (resData && resData.success && resData.data && resData.data.classes) {
+                var allClasses = resData.data.classes;
+                var related = [];
+
+                // 현재 클래스 제외, active 상태만, 최대 4개
+                for (var i = 0; i < allClasses.length; i++) {
+                    var c = allClasses[i];
+                    var cId = c.class_id || c.id || '';
+                    if (cId === currentClassId) continue;
+                    if (c.status && c.status !== 'active') continue;
+                    related.push(c);
+                    if (related.length >= 4) break;
+                }
+
+                if (related.length > 0) {
+                    renderRelatedClasses(related);
+                }
+            }
+        })
+        .catch(function(err) {
+            // 관련 클래스 실패는 조용히 무시 (핵심 기능 아님)
+            console.warn('[ClassDetail] \uAD00\uB828 \uD074\uB798\uC2A4 \uB85C\uB4DC \uC2E4\uD328:', err);
+        });
+    }
+
+    /**
+     * 관련 클래스 카드 렌더링
+     * @param {Array} classes - 클래스 배열
+     */
+    function renderRelatedClasses(classes) {
+        var section = document.getElementById('cdRelatedSection');
+        var grid = document.getElementById('cdRelatedGrid');
+        if (!section || !grid) return;
+
+        var html = '';
+        for (var i = 0; i < classes.length; i++) {
+            var c = classes[i];
+            var cId = escapeHtml(c.class_id || c.id || '');
+            var cName = escapeHtml(c.class_name || '');
+            var cCategory = escapeHtml(c.category || '');
+            var cPrice = formatPrice(c.price || 0);
+            var cThumb = escapeHtml(c.thumbnail_url || '');
+            var cRating = parseFloat(c.avg_rating) || 0;
+
+            html += '<a href="/shop/page.html?id=2607&class_id=' + encodeURIComponent(cId) + '" class="cd-related-card">'
+                + '<div class="cd-related-card__thumb">';
+
+            if (cThumb) {
+                html += '<img src="' + cThumb + '" alt="' + cName + '" loading="lazy">';
+            }
+
+            html += '</div>'
+                + '<div class="cd-related-card__info">';
+
+            if (cCategory) {
+                html += '<span class="cd-related-card__category">' + cCategory + '</span>';
+            }
+
+            html += '<p class="cd-related-card__name">' + cName + '</p>'
+                + '<div class="cd-related-card__meta">'
+                + '<span class="cd-related-card__price">' + cPrice + '\uC6D0</span>';
+
+            if (cRating > 0) {
+                html += '<span class="cd-related-card__rating">'
+                    + '<svg width="12" height="12" viewBox="0 0 14 14" fill="#b89b5e"><path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>'
+                    + cRating.toFixed(1)
+                    + '</span>';
+            }
+
+            html += '</div>'
+                + '</div>'
+                + '</a>';
+        }
+
+        grid.innerHTML = html;
+        section.style.display = '';
     }
 
 

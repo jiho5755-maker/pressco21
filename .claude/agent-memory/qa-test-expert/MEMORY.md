@@ -1,6 +1,6 @@
 # QA/테스트 전문가 메모리
 
-## 상태 (2026-02-25)
+## 상태 (2026-02-26)
 - Phase 1a/1b 테스트 체크리스트 작성됨 (docs/test-checklists/)
 - Phase 2 GAS 통합 테스트 체크리스트 완료 (Task 241)
   - 파일: `docs/test-checklists/phase2-integration-test.md` (688줄)
@@ -12,6 +12,37 @@
   - 파일: `docs/test-checklists/phase2-e2e.md` (8개 섹션, 103개 체크박스)
   - 초점: Task 261/262 신규 UX + score 경계값 매트릭스 + Playwright 코드 + 완료 선언 기준
 - Playwright MCP 사용 가능 (현재는 서버 미배포 상태로 수동 테스트 가이드 작성)
+- **Phase 2.6 인프라+관리 검증 체크리스트 완료 (Task 302)**
+  - 파일: `docs/test-checklists/phase2.6-ops.md` (769줄, 64개 체크박스)
+  - 초점: Task 297~301 산출물 (Docker 안정성/백업/SSL갱신/모니터링/WF-APPROVE/WF-15 후기)
+- **Phase 2.7 UX 통합 테스트 + Lighthouse 체크리스트 완료 (Task 316)**
+  - 파일: `docs/test-checklists/phase2.7-ux.md` (498줄, 105개 테스트 항목)
+  - 초점: Task 310~315 신규 UX (찜/최근본/공유/라이트박스/차트/CSV/메인진입점) + 반응형 + Lighthouse
+
+## Phase 2.7 UX 테스트 핵심 패턴 (Task 316 확립)
+
+- **찜 기능 DOM 패턴**: `.wishlist-btn.is-active` (빨간 하트), `.wishlist-btn.is-animating` (ccHeartPop 0.35s 애니메이션), `.wishlist-btn__outline/filled` (SVG 경로 전환)
+- **localStorage 키 2개**: `pressco21_wishlist` (JSON 배열), `pressco21_recent` (객체 배열, 최대 RECENT_MAX=10개)
+- **찜 필터 aria-pressed**: 활성화 시 `aria-pressed="true"`, 비활성 시 `aria-pressed="false"` 동적 변경 확인
+- **메인페이지 캐시 키**: `pressco21_popular_classes_v2`, TTL=30분 → `{ts: 타임스탬프, data:[...]}` 형태
+- **캐시 만료 수동 테스트**: `localStorage.setItem('pressco21_popular_classes_v2', JSON.stringify({ts: Date.now() - 31*60*1000, data:[]}))` → 새로고침
+- **Chart.js 렌더링 확인**: `#pdRevenueChart` 캔버스 + `typeof Chart !== 'undefined'` 가드
+- **등급 게이지 CSS**: conic-gradient로 반원 게이지 구현 → `gaugeDeg = Math.round((pct/100)*180)` 각도 계산
+- **전월 대비 증감**: `direction = diff > 0 ? 'up' : diff < 0 ? 'down' : 'flat'` → 색상 분기
+- **CSV BOM 처리**: `'\uFEFF'` 접두사로 Excel 한글 UTF-8 인식 (없으면 한글 깨짐)
+- **API 실패 폴백**: 메인페이지 클래스 섹션 `hideSection()` → `section.style.display = 'none'`
+- **Lighthouse 기준 완화**: 파트너 대시보드 Performance 75+ (Chart.js 로드 비용), SEO 85+ (로그인 필요)
+
+## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
+
+- **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**
+- **WF-APPROVE 테스트**: `status=approved` 직접 curl → tbl_Partners 레코드 생성 확인, `status=pending` → `_skip: true` 확인
+- **NocoDB Webhook 수동 설정**: NocoDB GUI → tbl_Applications → Webhooks → After Update → `https://n8n.pressco21.com/webhook/nocodb-approve`
+- **백업 4종 확인**: n8n 워크플로우/NocoDB 데이터/n8n 환경설정/백업 로그 — 크기 > 0 필수
+- **certbot dry-run**: `sudo certbot renew --dry-run` → `all simulated renewals succeeded` 확인
+- **장애 시뮬레이션 순서**: `docker stop nocodb` → `bash monitor.sh` → Telegram 알림 확인 → `docker start nocodb` → 복구 확인
+- **WF-15 임포트 필수**: 파일명 `WF-15-review-submit.json` — 2026-02-26 기준 아직 n8n 미임포트 상태
+- **수동 작업 4종**: 메이크샵 4페이지 js.js 재저장 + WF-10 answers 배열 업데이트 + NocoDB Webhook 설정 + WF-15 임포트
 
 ## Phase 2 최종 E2E 테스트 핵심 패턴 (Task 280 확립)
 

@@ -1,0 +1,315 @@
+{
+  "name": "WF-15 Review Submit",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "review-submit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf15-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 400],
+      "webhookId": "review-submit"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-15 Step 1: POST 본문 파싱 + 입력값 검증 + XSS 방지\n// 필수: member_id, class_id, rating(1-5), content(20자+), reviewer_name\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\n// === 텍스트 정제 (제어 문자 제거 + 길이 제한) ===\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, '')\n    .replace(/<[^>]*>/gi, '')\n    .replace(/javascript\\s*:/gi, '')\n    .replace(/on\\w+\\s*=\\s*[\"'][^\"']*[\"']/gi, '')\n    .replace(/on\\w+\\s*=\\s*\\S+/gi, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\n// === HTML XSS 방지 ===\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\n// === 필수 필드 추출 ===\nconst memberId = sanitizeText(body.member_id, 100);\nconst classId = sanitizeText(body.class_id, 100);\nconst rating = parseInt(body.rating);\nconst content = sanitizeText(body.content, 1000);\nconst reviewerName = sanitizeText(body.reviewer_name, 100);\n\n// === 필수 필드 검증 ===\nconst missingFields = [];\nif (!memberId) missingFields.push('member_id');\nif (!classId) missingFields.push('class_id');\nif (!rating || rating < 1 || rating > 5) missingFields.push('rating(1-5)');\nif (!content || content.length < 20) missingFields.push('content(20자 이상)');\nif (!reviewerName) missingFields.push('reviewer_name');\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: missingFields.join(', ') + ' 파라미터가 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    memberId,\n    classId,\n    rating,\n    content,\n    reviewerName,\n    _safe: {\n      content: escapeHtml(content),\n      reviewerName: escapeHtml(reviewerName)\n    }\n  }\n}];"
+      },
+      "id": "wf15-validate-input",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 400]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf15-if-valid",
+      "name": "IF Input Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 400]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._errorResponse }}",
+        "options": {
+          "responseCode": "400",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf15-respond-validation-error",
+      "name": "Respond Validation Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 560]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcoddguv4d3s3ne",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(member_id,eq,{{ $('Validate Input').first().json.memberId }})~and(class_id,eq,{{ $('Validate Input').first().json.classId }})~and(status,eq,COMPLETED)" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf15-check-booking",
+      "name": "Check Booking",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mbikgjzc8zvicrm",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "=(member_id,eq,{{ $('Validate Input').first().json.memberId }})~and(class_id,eq,{{ $('Validate Input').first().json.classId }})" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf15-check-duplicate",
+      "name": "Check Duplicate Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-15 Step 3: 예약 확인 + 중복 확인 결과 분기\n// 순차 실행: Check Booking → Check Duplicate Review → 이 노드\n// ===================================================\n\nconst bookingResult = $('Check Booking').first().json;\nconst duplicateResult = $input.first().json;\nconst validData = $('Validate Input').first().json;\n\n// 예약(수강) 기록 확인\nconst bookingList = bookingResult.list || [];\nif (bookingList.length === 0) {\n  return [{\n    json: {\n      _canReview: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'NO_BOOKING_RECORD',\n          message: '수강 이력이 확인되지 않습니다. 수강 완료 후 후기를 작성할 수 있습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// 중복 후기 확인\nconst reviewList = duplicateResult.list || [];\nif (reviewList.length > 0) {\n  return [{\n    json: {\n      _canReview: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'ALREADY_REVIEWED',\n          message: '이미 작성한 후기가 있습니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// 파트너 코드 추출 (정산에서)\nconst booking = bookingList[0];\nconst partnerCode = booking.partner_code || '';\n\n// 리뷰 ID 생성: RV_YYYYMMDD_XXXXXX\nconst now = new Date();\nconst dateStr = now.toISOString().slice(0, 10).replace(/-/g, '');\nconst randomPart = Math.random().toString(36).substring(2, 8).toUpperCase();\nconst reviewId = 'RV_' + dateStr + '_' + randomPart;\n\nreturn [{\n  json: {\n    _canReview: true,\n    reviewId,\n    classId: validData.classId,\n    memberId: validData.memberId,\n    reviewerName: validData.reviewerName,\n    rating: validData.rating,\n    content: validData.content,\n    partnerCode,\n    safeContent: validData._safe ? validData._safe.content : '',\n    safeReviewerName: validData._safe ? validData._safe.reviewerName : ''\n  }\n}];"
+      },
+      "id": "wf15-decision",
+      "name": "Decision",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._canReview }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf15-if-can-review",
+      "name": "IF Can Review",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1540, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $('Decision').first().json._errorResponse }}",
+        "options": {
+          "responseCode": "400",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf15-respond-decision-error",
+      "name": "Respond Decision Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1760, 460]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mbikgjzc8zvicrm",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "review_id", "value": "={{ $json.reviewId }}" },
+            { "name": "class_id", "value": "={{ $json.classId }}" },
+            { "name": "member_id", "value": "={{ $json.memberId }}" },
+            { "name": "reviewer_name", "value": "={{ $json.reviewerName }}" },
+            { "name": "rating", "value": "={{ $json.rating }}" },
+            { "name": "content", "value": "={{ $json.content }}" },
+            { "name": "partner_code", "value": "={{ $json.partnerCode }}" },
+            { "name": "is_admin_created", "value": "false" }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf15-create-review",
+      "name": "Create Review",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 200],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "nocodb-token",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.makeshop.co.kr/process_reserve/v1/json",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ shopkey: $env.MAKESHOP_SHOPKEY || '', member_id: $('Decision').first().json.memberId, point: 1000, comment: '파트너클래스 후기 작성 적립금 (RV:' + $('Decision').first().json.reviewId + ')' }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "wf15-give-incentive",
+      "name": "Give Incentive",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-15 Step 5: 성공 응답 생성\n// ===================================================\n\nconst decisionData = $('Decision').first().json;\nconst incentiveResult = $input.first().json;\n\n// 적립금 지급 결과 확인 (실패해도 후기 자체는 성공)\nlet incentiveSuccess = false;\nlet incentiveMessage = '';\n\ntry {\n  if (incentiveResult && (incentiveResult.result === 'success' || incentiveResult.OK === 'Y')) {\n    incentiveSuccess = true;\n    incentiveMessage = '적립금 1,000원 지급 완료';\n  } else {\n    incentiveMessage = '적립금 지급 실패 (후기는 정상 등록됨)';\n    console.log('[WF-15] 적립금 API 응답:', JSON.stringify(incentiveResult));\n  }\n} catch (e) {\n  incentiveMessage = '적립금 지급 확인 불가';\n}\n\nreturn [{\n  json: {\n    _successResponse: {\n      success: true,\n      data: {\n        review_id: decisionData.reviewId,\n        class_id: decisionData.classId,\n        member_id: decisionData.memberId,\n        rating: decisionData.rating,\n        incentive: {\n          granted: incentiveSuccess,\n          amount: 1000,\n          message: incentiveMessage\n        }\n      },\n      timestamp: new Date().toISOString()\n    }\n  }\n}];"
+      },
+      "id": "wf15-success-response",
+      "name": "Build Success Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 200]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json._successResponse }}",
+        "options": {
+          "responseCode": "200",
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
+              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+            ]
+          }
+        }
+      },
+      "id": "wf15-respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2420, 200]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [{ "node": "Validate Input", "type": "main", "index": 0 }]
+      ]
+    },
+    "Validate Input": {
+      "main": [
+        [{ "node": "IF Input Valid", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Input Valid": {
+      "main": [
+        [{ "node": "Check Booking", "type": "main", "index": 0 }],
+        [{ "node": "Respond Validation Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Booking": {
+      "main": [
+        [{ "node": "Check Duplicate Review", "type": "main", "index": 0 }]
+      ]
+    },
+    "Check Duplicate Review": {
+      "main": [
+        [{ "node": "Decision", "type": "main", "index": 0 }]
+      ]
+    },
+    "Decision": {
+      "main": [
+        [{ "node": "IF Can Review", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Can Review": {
+      "main": [
+        [{ "node": "Create Review", "type": "main", "index": 0 }],
+        [{ "node": "Respond Decision Error", "type": "main", "index": 0 }]
+      ]
+    },
+    "Create Review": {
+      "main": [
+        [{ "node": "Give Incentive", "type": "main", "index": 0 }]
+      ]
+    },
+    "Give Incentive": {
+      "main": [
+        [{ "node": "Build Success Response", "type": "main", "index": 0 }]
+      ]
+    },
+    "Build Success Response": {
+      "main": [
+        [{ "node": "Respond Success", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "Phase2" },
+    { "name": "Review" }
+  ],
+  "pinData": {},
+  "versionId": "1"
+}

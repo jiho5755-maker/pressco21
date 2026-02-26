@@ -64,6 +64,18 @@
     /** 현재 검색어 (카드 하이라이트 표시용) */
     var currentSearchQuery = '';
 
+    /** localStorage 키: 찜(관심) 목록 */
+    var WISHLIST_KEY = 'pressco21_wishlist';
+
+    /** localStorage 키: 최근 본 클래스 */
+    var RECENT_KEY = 'pressco21_recent';
+
+    /** 최근 본 클래스 최대 저장 수 */
+    var RECENT_MAX = 10;
+
+    /** 찜 필터 활성 여부 */
+    var isWishlistFilterOn = false;
+
 
     /* ========================================
        초기화
@@ -97,6 +109,12 @@
 
         // URL 파라미터에서 필터 복원 (딥링크 지원)
         restoreFiltersFromURL();
+
+        // 찜(관심) 기능 초기화
+        initWishlist();
+
+        // 최근 본 클래스 렌더링
+        renderRecentSection();
 
         // 스켈레톤 표시 후 첫 데이터 로드
         renderSkeleton();
@@ -208,15 +226,31 @@
         // 결과 건수 업데이트
         updateResultCount(pagination.totalCount || classes.length);
 
-        if (classes.length === 0) {
+        // 찜 필터가 활성화되어 있으면 찜한 클래스만 필터링
+        var displayClasses = classes;
+        if (isWishlistFilterOn) {
+            var wishlist = getWishlist();
+            displayClasses = classes.filter(function(cls) {
+                return wishlist.indexOf(cls.class_id) > -1;
+            });
+        }
+
+        if (displayClasses.length === 0) {
             clearGrid();
-            renderEmpty();
+            if (isWishlistFilterOn && classes.length > 0) {
+                // 찜한 클래스가 없는 경우 별도 메시지
+                renderWishlistEmpty();
+            } else {
+                renderEmpty();
+            }
             hidePagination();
         } else {
-            renderCards(classes);
+            renderCards(displayClasses);
             renderPagination(pagination);
+            // 찜 상태 복원 (카드 렌더링 후)
+            restoreWishlistState();
             // Schema.org 구조화 데이터 주입
-            injectSchemaOrg(classes);
+            injectSchemaOrg(displayClasses);
             // 스크롤 애니메이션 초기화
             initScrollReveal();
         }
@@ -455,6 +489,9 @@
         var starsHtml = renderStars(avgRating);
 
         var html = '<a href="' + detailUrl + '" class="class-card scroll-reveal" role="listitem" '
+            + 'data-class-id="' + classId + '" '
+            + 'data-class-name="' + className + '" '
+            + 'data-thumbnail="' + escapeHtml(thumbnail) + '" '
             + 'aria-label="' + className + ' - ' + partnerName + '">'
             + '<div class="class-card__thumb">';
 
@@ -473,6 +510,16 @@
         if (typeLabel) {
             html += '<span class="class-card__type class-card__type--' + typeCss + '">' + typeLabel + '</span>';
         }
+
+        // 찜(관심) 하트 버튼
+        html += '<button type="button" class="wishlist-btn" data-class-id="' + classId + '" '
+            + 'aria-label="' + className + ' \uCC1C\uD558\uAE30" '
+            + 'onclick="event.preventDefault();event.stopPropagation();">'
+            + '<svg class="wishlist-btn__icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+            + '<path class="wishlist-btn__outline" d="M9 15.5s-6.5-4.35-6.5-8.18A3.32 3.32 0 0 1 5.82 4C7.2 4 8.35 4.82 9 5.96 9.65 4.82 10.8 4 12.18 4A3.32 3.32 0 0 1 15.5 7.32C15.5 11.15 9 15.5 9 15.5z" fill="none" stroke="currentColor" stroke-width="1.2"/>'
+            + '<path class="wishlist-btn__filled" d="M9 15.5s-6.5-4.35-6.5-8.18A3.32 3.32 0 0 1 5.82 4C7.2 4 8.35 4.82 9 5.96 9.65 4.82 10.8 4 12.18 4A3.32 3.32 0 0 1 15.5 7.32C15.5 11.15 9 15.5 9 15.5z" fill="currentColor" stroke="currentColor" stroke-width="1.2" style="display:none"/>'
+            + '</svg>'
+            + '</button>';
 
         html += '</div>'; // /.class-card__thumb
 
@@ -1503,12 +1550,374 @@
 
 
     /* ========================================
+       찜(관심) 기능
+       ======================================== */
+
+    /**
+     * 찜 기능 초기화
+     * - 하트 버튼 이벤트 위임
+     * - 찜 필터 토글 바인딩
+     * - 찜 배지 카운트 업데이트
+     */
+    function initWishlist() {
+        // 하트 버튼 클릭: 이벤트 위임 (classGrid)
+        var grid = document.getElementById('classGrid');
+        if (grid) {
+            grid.addEventListener('click', function(e) {
+                var btn = e.target.closest('.wishlist-btn');
+                if (!btn) return;
+
+                e.preventDefault();
+                e.stopPropagation();
+
+                var classId = btn.getAttribute('data-class-id');
+                if (!classId) return;
+
+                toggleWishlist(classId, btn);
+            });
+        }
+
+        // 찜 필터 토글 버튼
+        var filterBtn = document.getElementById('wishlistFilterBtn');
+        if (filterBtn) {
+            filterBtn.addEventListener('click', onWishlistFilterToggle);
+        }
+
+        // 찜 배지 카운트 업데이트
+        updateWishlistCount();
+    }
+
+    /**
+     * localStorage에서 찜 목록 조회
+     * @returns {Array} class_id 문자열 배열
+     */
+    function getWishlist() {
+        try {
+            var raw = localStorage.getItem(WISHLIST_KEY);
+            if (!raw) return [];
+            var arr = JSON.parse(raw);
+            if (!Array.isArray(arr)) return [];
+            return arr;
+        } catch (e) {
+            return [];
+        }
+    }
+
+    /**
+     * localStorage에 찜 목록 저장
+     * @param {Array} list - class_id 배열
+     */
+    function saveWishlist(list) {
+        try {
+            localStorage.setItem(WISHLIST_KEY, JSON.stringify(list));
+        } catch (e) {
+            /* localStorage 용량 초과 시 무시 */
+        }
+    }
+
+    /**
+     * 찜 토글 (추가/제거)
+     * @param {string} classId - 클래스 ID
+     * @param {HTMLElement} btn - 하트 버튼 요소
+     */
+    function toggleWishlist(classId, btn) {
+        var list = getWishlist();
+        var idx = list.indexOf(classId);
+
+        if (idx > -1) {
+            // 제거
+            list.splice(idx, 1);
+            btn.classList.remove('is-active');
+            updateHeartIcon(btn, false);
+        } else {
+            // 추가
+            list.push(classId);
+            btn.classList.add('is-active');
+            updateHeartIcon(btn, true);
+        }
+
+        // 바운스 애니메이션
+        btn.classList.remove('is-animating');
+        /* 리플로우 트리거로 애니메이션 재시작 */
+        void btn.offsetWidth;
+        btn.classList.add('is-animating');
+
+        saveWishlist(list);
+        updateWishlistCount();
+
+        // 찜 필터가 활성화되어 있고, 찜을 해제한 경우 목록 새로고침
+        if (isWishlistFilterOn && idx > -1) {
+            handleClassesResponse({ success: true, data: { classes: currentClasses, total: currentClasses.length, page: 1, totalPages: 1 } });
+        }
+    }
+
+    /**
+     * 하트 아이콘 채워짐/빈 상태 전환
+     * @param {HTMLElement} btn - 하트 버튼 요소
+     * @param {boolean} active - 활성 여부
+     */
+    function updateHeartIcon(btn, active) {
+        var outline = btn.querySelector('.wishlist-btn__outline');
+        var filled = btn.querySelector('.wishlist-btn__filled');
+        if (outline) outline.style.display = active ? 'none' : '';
+        if (filled) filled.style.display = active ? '' : 'none';
+    }
+
+    /**
+     * 카드 렌더링 후 찜 상태 복원
+     */
+    function restoreWishlistState() {
+        var wishlist = getWishlist();
+        if (wishlist.length === 0) return;
+
+        var btns = document.querySelectorAll('.class-catalog .wishlist-btn');
+        for (var i = 0; i < btns.length; i++) {
+            var classId = btns[i].getAttribute('data-class-id');
+            if (wishlist.indexOf(classId) > -1) {
+                btns[i].classList.add('is-active');
+                updateHeartIcon(btns[i], true);
+            }
+        }
+    }
+
+    /**
+     * 찜 카운트 배지 업데이트
+     */
+    function updateWishlistCount() {
+        var count = getWishlist().length;
+        var badge = document.getElementById('wishlistCount');
+        var filterBtn = document.getElementById('wishlistFilterBtn');
+
+        if (badge) {
+            if (count > 0) {
+                badge.textContent = count;
+                badge.style.display = '';
+            } else {
+                badge.style.display = 'none';
+            }
+        }
+
+        // 찜 필터 버튼 활성 상태 동기화
+        if (filterBtn) {
+            if (isWishlistFilterOn) {
+                filterBtn.classList.add('is-active');
+                filterBtn.setAttribute('aria-pressed', 'true');
+            } else {
+                filterBtn.classList.remove('is-active');
+                filterBtn.setAttribute('aria-pressed', 'false');
+            }
+        }
+    }
+
+    /**
+     * "찜한 클래스만 보기" 필터 토글
+     */
+    function onWishlistFilterToggle() {
+        isWishlistFilterOn = !isWishlistFilterOn;
+        updateWishlistCount();
+
+        // 현재 데이터로 재렌더링 (API 재호출 불필요)
+        if (currentClasses.length > 0) {
+            handleClassesResponse({
+                success: true,
+                data: {
+                    classes: currentClasses,
+                    total: currentClasses.length,
+                    page: 1,
+                    totalPages: 1
+                }
+            });
+        } else {
+            // 데이터가 없으면 API 재호출
+            fetchClasses(currentFilters);
+        }
+    }
+
+    /**
+     * 찜 필터 활성인데 찜한 클래스가 없는 경우의 빈 상태
+     */
+    function renderWishlistEmpty() {
+        var grid = document.getElementById('classGrid');
+        if (!grid) return;
+
+        grid.innerHTML = '<div style="text-align:center;padding:60px 24px;grid-column:1/-1;">'
+            + '<svg width="64" height="64" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0.3;margin-bottom:16px;">'
+            + '<path d="M9 15.5s-6.5-4.35-6.5-8.18A3.32 3.32 0 0 1 5.82 4C7.2 4 8.35 4.82 9 5.96 9.65 4.82 10.8 4 12.18 4A3.32 3.32 0 0 1 15.5 7.32C15.5 11.15 9 15.5 9 15.5z" stroke="#999" stroke-width="1"/>'
+            + '</svg>'
+            + '<p style="font-size:15px;color:#333;font-weight:500;margin:0 0 6px;">'
+            + '\uCC1C\uD55C \uD074\uB798\uC2A4\uAC00 \uC544\uC9C1 \uC5C6\uC5B4\uC694</p>'
+            + '<p style="font-size:13px;color:#777;margin:0 0 20px;">'
+            + '\uB9C8\uC74C\uC5D0 \uB4DC\uB294 \uD074\uB798\uC2A4\uC758 \uD558\uD2B8\uB97C \uB20C\uB7EC\uBCF4\uC138\uC694!</p>'
+            + '</div>';
+    }
+
+
+    /* ========================================
+       최근 본 클래스
+       ======================================== */
+
+    /**
+     * localStorage에서 최근 본 클래스 목록 조회
+     * @returns {Array} { class_id, class_name, thumbnail } 객체 배열
+     */
+    function getRecentClasses() {
+        try {
+            var raw = localStorage.getItem(RECENT_KEY);
+            if (!raw) return [];
+            var arr = JSON.parse(raw);
+            if (!Array.isArray(arr)) return [];
+            return arr;
+        } catch (e) {
+            return [];
+        }
+    }
+
+    /**
+     * localStorage에 최근 본 클래스 저장
+     * @param {Array} list - 최근 본 클래스 배열
+     */
+    function saveRecentClasses(list) {
+        try {
+            localStorage.setItem(RECENT_KEY, JSON.stringify(list));
+        } catch (e) {
+            /* 무시 */
+        }
+    }
+
+    /**
+     * 최근 본 클래스에 추가
+     * - 중복 제거 후 최신 항목을 앞에 배치
+     * - 최대 RECENT_MAX개 유지
+     * @param {string} classId - 클래스 ID
+     * @param {string} className - 클래스 이름
+     * @param {string} thumbnail - 썸네일 URL
+     */
+    function addToRecent(classId, className, thumbnail) {
+        if (!classId) return;
+
+        var list = getRecentClasses();
+
+        // 중복 제거 (같은 class_id 있으면 제거)
+        list = list.filter(function(item) {
+            return item.class_id !== classId;
+        });
+
+        // 최신 항목을 앞에 추가
+        list.unshift({
+            class_id: classId,
+            class_name: className || '',
+            thumbnail: thumbnail || ''
+        });
+
+        // 최대 수 제한
+        if (list.length > RECENT_MAX) {
+            list = list.slice(0, RECENT_MAX);
+        }
+
+        saveRecentClasses(list);
+    }
+
+    /**
+     * 최근 본 클래스 섹션 렌더링
+     */
+    function renderRecentSection() {
+        var section = document.getElementById('recentSection');
+        var container = document.getElementById('recentScrollContainer');
+        if (!section || !container) return;
+
+        var recentList = getRecentClasses();
+
+        if (recentList.length === 0) {
+            section.style.display = 'none';
+            return;
+        }
+
+        section.style.display = '';
+
+        var html = '';
+        for (var i = 0; i < recentList.length; i++) {
+            var item = recentList[i];
+            var detailUrl = '/shop/page.html?id=2607&class_id=' + encodeURIComponent(item.class_id || '');
+            var safeName = escapeHtml(item.class_name || '');
+            var safeThumb = escapeHtml(item.thumbnail || '');
+
+            html += '<a href="' + detailUrl + '" class="recent-card" '
+                + 'aria-label="' + safeName + '">'
+                + '<div class="recent-card__thumb">';
+
+            if (safeThumb) {
+                html += '<img class="recent-card__img" src="' + safeThumb + '" '
+                    + 'alt="' + safeName + '" loading="lazy">';
+            }
+
+            html += '</div>'
+                + '<p class="recent-card__name">' + safeName + '</p>'
+                + '</a>';
+        }
+
+        container.innerHTML = html;
+
+        // 전체 삭제 버튼
+        var clearBtn = document.getElementById('recentClearBtn');
+        if (clearBtn) {
+            // 기존 리스너 중복 방지: onclick으로 교체
+            clearBtn.onclick = function() {
+                clearRecentClasses();
+            };
+        }
+    }
+
+    /**
+     * 최근 본 클래스 전체 삭제
+     */
+    function clearRecentClasses() {
+        try {
+            localStorage.removeItem(RECENT_KEY);
+        } catch (e) {
+            /* 무시 */
+        }
+        renderRecentSection();
+    }
+
+    /**
+     * 클래스 카드 클릭 시 최근 본 클래스에 기록
+     * 이벤트 위임으로 처리
+     */
+    function initRecentClickTracking() {
+        var grid = document.getElementById('classGrid');
+        if (!grid) return;
+
+        grid.addEventListener('click', function(e) {
+            // 찜 버튼 클릭은 제외
+            if (e.target.closest('.wishlist-btn')) return;
+
+            var card = e.target.closest('.class-card');
+            if (!card) return;
+
+            var classId = card.getAttribute('data-class-id');
+            var className = card.getAttribute('data-class-name');
+            var thumbnail = card.getAttribute('data-thumbnail');
+
+            if (classId) {
+                addToRecent(classId, className, thumbnail);
+                // 즉시 최근 본 섹션 업데이트
+                renderRecentSection();
+            }
+        });
+    }
+
+
+    /* ========================================
        DOM Ready 이벤트
        ======================================== */
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', init);
+        document.addEventListener('DOMContentLoaded', function() {
+            init();
+            initRecentClickTracking();
+        });
     } else {
         init();
+        initRecentClickTracking();
     }
 
 })();

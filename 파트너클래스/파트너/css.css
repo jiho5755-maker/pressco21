@@ -951,6 +951,291 @@
 
 
 /* ----------------------------------------
+   13-A. 수익 탭 - 전월 대비 증감
+   ---------------------------------------- */
+.partner-dashboard .pd-revenue-change {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 20px;
+    padding: 16px 20px;
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-md);
+    border: 1px solid var(--pd-border-light);
+    box-shadow: var(--pd-shadow-sm);
+}
+
+.partner-dashboard .pd-revenue-change__label {
+    font-size: 13px;
+    color: var(--pd-text-light);
+    font-weight: 500;
+}
+
+.partner-dashboard .pd-revenue-change__value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--pd-text-dark);
+    letter-spacing: -0.02em;
+}
+
+.partner-dashboard .pd-revenue-change__delta {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 3px 10px;
+    border-radius: 20px;
+    font-size: 13px;
+    font-weight: 600;
+}
+
+.partner-dashboard .pd-revenue-change__delta--up {
+    background: #e8f5e9;
+    color: #2e7d32;
+}
+
+.partner-dashboard .pd-revenue-change__delta--down {
+    background: #ffebee;
+    color: #c62828;
+}
+
+.partner-dashboard .pd-revenue-change__delta--flat {
+    background: var(--pd-status-inactive-bg);
+    color: var(--pd-text-light);
+}
+
+
+/* ----------------------------------------
+   13-B. 수익 탭 - 차트 + 등급 게이지 행
+   ---------------------------------------- */
+.partner-dashboard .pd-chart-row {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 20px;
+    margin-bottom: 28px;
+}
+
+.partner-dashboard .pd-chart-container {
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-md);
+    padding: 20px 24px;
+    border: 1px solid var(--pd-border-light);
+    box-shadow: var(--pd-shadow-sm);
+}
+
+.partner-dashboard .pd-chart-container__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--pd-text-dark);
+    margin: 0 0 16px;
+}
+
+.partner-dashboard .pd-chart-container__canvas-wrap {
+    position: relative;
+    width: 100%;
+    height: 250px;
+}
+
+.partner-dashboard .pd-chart-container__canvas-wrap canvas {
+    width: 100%;
+    height: 100%;
+}
+
+/* 등급 게이지 */
+.partner-dashboard .pd-grade-gauge {
+    background: var(--pd-bg-card);
+    border-radius: var(--pd-radius-md);
+    padding: 20px 24px;
+    border: 1px solid var(--pd-border-light);
+    box-shadow: var(--pd-shadow-sm);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.partner-dashboard .pd-grade-gauge__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--pd-text-dark);
+    margin: 0 0 20px;
+    align-self: flex-start;
+}
+
+.partner-dashboard .pd-gauge-wrap {
+    position: relative;
+    width: 180px;
+    height: 100px;
+    margin-bottom: 12px;
+}
+
+.partner-dashboard .pd-gauge-bg {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--pd-border-light) 0deg,
+        var(--pd-border-light) 180deg,
+        transparent 180deg
+    );
+    clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
+}
+
+.partner-dashboard .pd-gauge-fill {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 180px;
+    height: 180px;
+    border-radius: 50%;
+    background: conic-gradient(
+        var(--pd-green) 0deg,
+        var(--pd-green) var(--pd-gauge-deg, 0deg),
+        transparent var(--pd-gauge-deg, 0deg),
+        transparent 180deg,
+        transparent 180deg
+    );
+    clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
+    transition: --pd-gauge-deg 0.6s ease-out;
+}
+
+.partner-dashboard .pd-gauge-inner {
+    position: absolute;
+    top: 16px;
+    left: 16px;
+    width: 148px;
+    height: 148px;
+    border-radius: 50%;
+    background: var(--pd-bg-card);
+    clip-path: polygon(0 0, 100% 0, 100% 50%, 0 50%);
+}
+
+.partner-dashboard .pd-gauge-text {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    text-align: center;
+}
+
+.partner-dashboard .pd-gauge-text__pct {
+    display: block;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--pd-text-dark);
+    line-height: 1;
+    margin-bottom: 4px;
+}
+
+.partner-dashboard .pd-gauge-text__label {
+    display: block;
+    font-size: 12px;
+    color: var(--pd-text-light);
+}
+
+.partner-dashboard .pd-gauge-info {
+    width: 100%;
+    text-align: center;
+}
+
+.partner-dashboard .pd-gauge-info__current {
+    font-size: 13px;
+    color: var(--pd-text);
+    margin: 8px 0 4px;
+}
+
+.partner-dashboard .pd-gauge-info__current strong {
+    color: var(--pd-green);
+    font-weight: 700;
+}
+
+.partner-dashboard .pd-gauge-info__next {
+    font-size: 12px;
+    color: var(--pd-text-light);
+    margin: 0;
+}
+
+.partner-dashboard .pd-gauge-info__bar {
+    width: 100%;
+    height: 6px;
+    background: var(--pd-border-light);
+    border-radius: 3px;
+    margin-top: 10px;
+    overflow: hidden;
+}
+
+.partner-dashboard .pd-gauge-info__bar-fill {
+    height: 100%;
+    background: linear-gradient(90deg, var(--pd-green), var(--pd-gold));
+    border-radius: 3px;
+    transition: width 0.6s ease-out;
+}
+
+
+/* ----------------------------------------
+   13-C. 수익 탭 헤더 우측 버튼 그룹
+   ---------------------------------------- */
+.partner-dashboard .pd-tab-header__right {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+
+/* ----------------------------------------
+   13-D. 헤더 내 프로필 편집 버튼
+   ---------------------------------------- */
+.partner-dashboard .pd-btn--header {
+    background: rgba(255, 255, 255, 0.12);
+    color: rgba(255, 255, 255, 0.9);
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    font-size: 12px;
+    padding: 7px 14px;
+}
+
+.partner-dashboard .pd-btn--header:hover {
+    background: rgba(255, 255, 255, 0.22);
+    color: #FFFFFF;
+    border-color: rgba(255, 255, 255, 0.4);
+}
+
+
+/* ----------------------------------------
+   13-E. 프로필 모달 - 폼 그룹
+   ---------------------------------------- */
+.partner-dashboard .pd-modal__content--wide {
+    max-width: 560px;
+}
+
+.partner-dashboard .pd-form-group {
+    margin-bottom: 16px;
+}
+
+.partner-dashboard .pd-form-group:last-child {
+    margin-bottom: 0;
+}
+
+.partner-dashboard .pd-input--full {
+    width: 100%;
+    padding: 10px 14px;
+    background: var(--pd-bg-card);
+    border: 1px solid var(--pd-border);
+    border-radius: var(--pd-radius-sm);
+    font-family: var(--pd-font);
+    font-size: 14px;
+    color: var(--pd-text);
+    outline: none;
+    transition: border-color var(--pd-transition);
+}
+
+.partner-dashboard .pd-input--full:focus {
+    border-color: var(--pd-gold);
+    box-shadow: 0 0 0 3px rgba(184, 155, 94, 0.1);
+}
+
+
+/* ----------------------------------------
    14. 후기 관리 탭
    ---------------------------------------- */
 
@@ -1515,6 +1800,22 @@
         flex-direction: column;
         gap: 20px;
     }
+
+    /* 차트 + 게이지 세로 배치 */
+    .partner-dashboard .pd-chart-row {
+        grid-template-columns: 1fr;
+    }
+
+    .partner-dashboard .pd-grade-gauge {
+        flex-direction: row;
+        flex-wrap: wrap;
+        gap: 20px;
+    }
+
+    .partner-dashboard .pd-grade-gauge__title {
+        width: 100%;
+        margin-bottom: 0;
+    }
 }
 
 
@@ -1646,6 +1947,42 @@
 
     .partner-dashboard .pd-revenue-card__value {
         font-size: 16px;
+    }
+
+    /* 전월 대비 */
+    .partner-dashboard .pd-revenue-change {
+        flex-wrap: wrap;
+        gap: 8px;
+        padding: 12px 16px;
+    }
+
+    .partner-dashboard .pd-revenue-change__value {
+        font-size: 18px;
+    }
+
+    /* 차트 + 게이지 */
+    .partner-dashboard .pd-chart-row {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .partner-dashboard .pd-chart-container {
+        padding: 16px;
+    }
+
+    .partner-dashboard .pd-chart-container__canvas-wrap {
+        height: 200px;
+    }
+
+    .partner-dashboard .pd-grade-gauge {
+        flex-direction: column;
+        padding: 16px;
+    }
+
+    /* 탭 헤더 우측 */
+    .partner-dashboard .pd-tab-header__right {
+        flex-wrap: wrap;
+        gap: 8px;
     }
 
     /* 별점 분포 */

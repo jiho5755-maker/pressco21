@@ -16,6 +16,8 @@
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
     <!-- flatpickr CSS -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+    <!-- 카카오 JavaScript SDK -->
+    <script src="https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js" integrity="sha384-TiCUE00h649CAMonG018J1HqFggRxZQTOHbS/yqhGCeJg1wEz09TP2fNJf0Gh62o" crossorigin="anonymous"></script>
 </head>
 <body>
 
@@ -119,6 +121,25 @@
                     <!-- JS: 동적 렌더링 -->
                 </section>
 
+                <!-- 모바일 공유 버튼 (모바일에서만 표시) -->
+                <div class="cd-share-wrap cd-share-wrap--mobile" id="cdShareWrapMobile">
+                    <span class="cd-share-label">공유하기</span>
+                    <div class="cd-share-btns">
+                        <button type="button" class="cd-share-btn cd-share-btn--kakao cd-share-kakao-mobile" aria-label="카카오톡으로 공유">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.48 3 2 6.58 2 11c0 2.84 1.65 5.36 4.16 6.94L5 21l4.38-2.35C10.22 18.88 11.1 19 12 19c5.52 0 10-3.58 10-8S17.52 3 12 3z"/></svg>
+                            <span>카카오톡</span>
+                        </button>
+                        <button type="button" class="cd-share-btn cd-share-btn--copy cd-share-copy-mobile" aria-label="URL 복사">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M6.5 9.5l3-3M5.5 7L4.15 8.35a2.5 2.5 0 003.54 3.54L9 10.5M10.5 9l1.35-1.35a2.5 2.5 0 00-3.54-3.54L7 5.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>링크 복사</span>
+                        </button>
+                        <button type="button" class="cd-share-btn cd-share-btn--native cd-share-native-mobile" aria-label="공유하기" style="display:none">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M8 2v8M4 6l4-4 4 4M3 14h10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>공유</span>
+                        </button>
+                    </div>
+                </div>
+
                 <!-- 탭 내비게이션 -->
                 <nav class="detail-tabs" id="detailTabs" role="tablist" aria-label="클래스 상세 탭">
                     <button class="detail-tab is-active" role="tab" id="tab-description" aria-selected="true" aria-controls="tabDescription" data-tab="description">강의 소개</button>
@@ -180,6 +201,10 @@
                         <p>아직 등록된 후기가 없습니다.</p>
                         <p class="reviews-empty__sub">첫 번째 후기를 남겨주세요!</p>
                     </div>
+                    <!-- 후기 작성 폼 (JS에서 동적 렌더링) -->
+                    <div class="review-write-section" id="reviewWriteSection">
+                        <!-- JS: renderReviewForm()에서 로그인 상태에 따라 폼 또는 안내 메시지 렌더링 -->
+                    </div>
                 </section>
 
             </main>
@@ -236,9 +261,36 @@
 
                 <!-- 안내 문구 -->
                 <p class="booking-notice">예약 확정 전 결제가 진행되지 않습니다.</p>
+
+                <!-- 공유 버튼 -->
+                <div class="cd-share-wrap" id="cdShareWrap">
+                    <span class="cd-share-label">공유하기</span>
+                    <div class="cd-share-btns">
+                        <button type="button" class="cd-share-btn cd-share-btn--kakao" id="cdBtnKakao" aria-label="카카오톡으로 공유">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.48 3 2 6.58 2 11c0 2.84 1.65 5.36 4.16 6.94L5 21l4.38-2.35C10.22 18.88 11.1 19 12 19c5.52 0 10-3.58 10-8S17.52 3 12 3z"/></svg>
+                            <span>카카오톡</span>
+                        </button>
+                        <button type="button" class="cd-share-btn cd-share-btn--copy" id="cdBtnCopyUrl" aria-label="URL 복사">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M6.5 9.5l3-3M5.5 7L4.15 8.35a2.5 2.5 0 003.54 3.54L9 10.5M10.5 9l1.35-1.35a2.5 2.5 0 00-3.54-3.54L7 5.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>링크 복사</span>
+                        </button>
+                        <button type="button" class="cd-share-btn cd-share-btn--native" id="cdBtnNativeShare" aria-label="공유하기" style="display:none">
+                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.4" aria-hidden="true"><path d="M8 2v8M4 6l4-4 4 4M3 14h10" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                            <span>공유</span>
+                        </button>
+                    </div>
+                </div>
             </aside>
 
         </div><!-- /.detail-layout -->
+
+        <!-- 관련 클래스 추천 (API 성공 후 JS로 표시) -->
+        <section class="cd-related-classes" id="cdRelatedSection" style="display:none" aria-label="관련 클래스">
+            <h2 class="cd-section-title">관련 클래스</h2>
+            <div class="cd-related-grid" id="cdRelatedGrid">
+                <!-- JS: loadRelatedClasses()에서 동적 렌더링 -->
+            </div>
+        </section>
 
     </div><!-- /.detail-content -->
 

@@ -1,0 +1,217 @@
+{
+  "name": "WF-APPROVE NocoDB Auto Approve",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "nocodb-approve",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wf-approve-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "nocodb-approve"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-APPROVE Step 1: NocoDB Webhook 바디 파싱\n// NocoDB Webhook 이벤트에서 파트너 신청 정보 추출\n// After Update 이벤트: data 객체 내에 필드 존재\n// ===================================================\n\nconst input = $input.first().json;\n\n// NocoDB Webhook 페이로드 구조:\n// { type: 'records.after.update', data: { rows: [...], previous_rows: [...] } }\n// 또는 직접 body에 필드가 있을 수 있음 (설정에 따라 다름)\nconst body = input.body || input;\n\n// NocoDB Webhook rows 배열에서 첫 번째 레코드 추출\nlet record = {};\nif (body.data && body.data.rows && body.data.rows.length > 0) {\n  record = body.data.rows[0];\n} else if (body.rows && body.rows.length > 0) {\n  record = body.rows[0];\n} else {\n  // 직접 필드가 있는 경우 (구버전 NocoDB)\n  record = body;\n}\n\n// === status 필드 확인 (approved일 때만 처리) ===\nconst status = String(record.status || '').toLowerCase().trim();\n\nif (status !== 'approved') {\n  return [{\n    json: {\n      _skip: true,\n      _skipReason: 'status가 approved가 아님: ' + status,\n      _timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// === 필드 추출 ===\nconst memberId = String(record.member_id || '').trim();\nconst applicantName = String(record.name || record.applicant_name || '').trim();\nconst studioName = String(record.studio_name || record.workshop_name || '').trim();\nconst email = String(record.email || '').trim();\nconst specialty = String(record.specialty || '').trim();\nconst phone = String(record.phone || '').trim();\nconst location = String(record.location || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _skip: true,\n      _skipReason: 'member_id 누락',\n      _timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _skip: false,\n    _memberId: memberId,\n    _name: applicantName,\n    _studioName: studioName,\n    _email: email,\n    _specialty: specialty,\n    _phone: phone,\n    _location: location,\n    _timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf-approve-parse",
+      "name": "Parse NocoDB Webhook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._skip }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf-approve-if-proceed",
+      "name": "IF Should Proceed",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\"skipped\": true, \"reason\": \"{{ $json._skipReason }}\"}",
+        "options": {
+          "responseCode": "200"
+        }
+      },
+      "id": "wf-approve-respond-skip",
+      "name": "Respond Skip",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 460]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/partner-approve",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer pressco21-admin-2026"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ member_id: $json._memberId, name: $json._name, studio_name: $json._studioName, email: $json._email, specialty: $json._specialty }) }}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "wf-approve-call-wf08",
+      "name": "Call WF-08 Partner Approve",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 200],
+      "onError": "continueErrorOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-APPROVE Step 3a: WF-08 성공 응답 처리\n// ===================================================\n\nconst wf08Result = $input.first().json;\nconst prevData = $('Parse NocoDB Webhook').first().json;\n\nconst success = wf08Result.success === true;\nconst partnerCode = (wf08Result.data && wf08Result.data.partner_code) || '(코드 확인 필요)';\nconst partnerName = (wf08Result.data && wf08Result.data.partner_name) || prevData._studioName || prevData._name;\n\nlet message;\nif (success) {\n  message = '[NocoDB 자동 승인 완료]\\n\\n'\n    + '파트너명: ' + partnerName + '\\n'\n    + '회원ID: ' + prevData._memberId + '\\n'\n    + '파트너 코드: ' + partnerCode + '\\n'\n    + '처리 방식: NocoDB GUI 상태 변경 → 자동 승인\\n'\n    + '처리 시각: ' + new Date().toISOString();\n} else {\n  const errorMsg = (wf08Result.error && wf08Result.error.message) || JSON.stringify(wf08Result).substring(0, 200);\n  message = '[NocoDB 자동 승인 실패]\\n\\n'\n    + '회원ID: ' + prevData._memberId + '\\n'\n    + '오류: ' + errorMsg + '\\n'\n    + '처리 시각: ' + new Date().toISOString();\n}\n\nreturn [{\n  json: {\n    _success: success,\n    _telegramMessage: message,\n    _partnerCode: partnerCode,\n    _memberId: prevData._memberId\n  }\n}];"
+      },
+      "id": "wf-approve-process-result",
+      "name": "Process WF08 Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-APPROVE Step 3b: WF-08 호출 자체 실패 처리\n// (네트워크 오류, 타임아웃 등)\n// ===================================================\n\nconst error = $input.first().json;\nconst prevData = $('Parse NocoDB Webhook').first().json;\n\nconst message = '[NocoDB 자동 승인 오류]\\n\\n'\n  + '회원ID: ' + prevData._memberId + '\\n'\n  + '원인: WF-08 호출 실패 (네트워크/타임아웃)\\n'\n  + '오류: ' + JSON.stringify(error).substring(0, 300) + '\\n'\n  + '조치: NocoDB tbl_Applications에서 해당 신청을 직접 확인하고\\n'\n  + '      /webhook/partner-approve를 수동 호출해주세요\\n'\n  + '처리 시각: ' + new Date().toISOString();\n\nreturn [{\n  json: {\n    _success: false,\n    _telegramMessage: message,\n    _memberId: prevData._memberId\n  }\n}];"
+      },
+      "id": "wf-approve-handle-error",
+      "name": "Handle Call Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 400]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "7713811206",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {}
+      },
+      "id": "wf-approve-telegram-success",
+      "name": "Telegram Success Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1320, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "7713811206",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {}
+      },
+      "id": "wf-approve-telegram-error",
+      "name": "Telegram Error Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1320, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          { "node": "Parse NocoDB Webhook", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Parse NocoDB Webhook": {
+      "main": [
+        [
+          { "node": "IF Should Proceed", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF Should Proceed": {
+      "main": [
+        [
+          { "node": "Call WF-08 Partner Approve", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Respond Skip", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Call WF-08 Partner Approve": {
+      "main": [
+        [
+          { "node": "Process WF08 Result", "type": "main", "index": 0 }
+        ]
+      ],
+      "error": [
+        [
+          { "node": "Handle Call Error", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Process WF08 Result": {
+      "main": [
+        [
+          { "node": "Telegram Success Notify", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Handle Call Error": {
+      "main": [
+        [
+          { "node": "Telegram Error Notify", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "PRESSCO21" },
+    { "name": "NocoDB Webhook" },
+    { "name": "Partner Approve" },
+    { "name": "Phase 2" },
+    { "name": "Task 300" }
+  ],
+  "pinData": {}
+}

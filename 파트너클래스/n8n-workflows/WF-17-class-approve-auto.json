@@ -114,7 +114,8 @@
             { "name": "quantity", "value": "={{ $('Parse NocoDB Webhook').first().json._maxStudents }}" },
             { "name": "product_content", "value": "={{ $('Parse NocoDB Webhook').first().json._description }}" },
             { "name": "sell_accept", "value": "Y" },
-            { "name": "display", "value": "Y" }
+            { "name": "display", "value": "Y" },
+            { "name": "xcode", "value": "personal" }
           ]
         },
         "options": { "retry": { "maxTries": 2 } }

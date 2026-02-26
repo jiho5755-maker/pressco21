@@ -1487,11 +1487,17 @@
             return;
         }
 
-        // 메이크샵 상품 정보: 클래스별 필드 있으면 사용, 없으면 파트너클래스 통합 상품 기본값
-        var brandUid = classData.makeshop_product_id || '12195502';
-        var brandCode = classData.makeshop_brandcode || '018001000251';
-        var xCode = classData.makeshop_xcode || '018';
-        var mCode = classData.makeshop_mcode || '001';
+        // 메이크샵 상품 정보: 개인결제 카테고리 (xcode=personal)
+        var brandUid = classData.makeshop_product_id;
+        if (!brandUid) {
+            showToast('\ud301\uc815 \ucebc\ub798\uc2a4\uc758 \uc5f0\ub3d9 \uc0c1\ud488\uc774 \uc900\ube44\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4. \uc7a0\uc2dc \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.', 'error');
+            if (submitBtn) submitBtn.disabled = false;
+            if (mobileBtn) mobileBtn.disabled = false;
+            return;
+        }
+        var brandCode = classData.makeshop_brandcode || 'personal';
+        var xCode = classData.makeshop_xcode || 'personal';
+        var mCode = classData.makeshop_mcode || '';
 
         // 수강료 계산
         var unitPrice = classData.price || 50000;
@@ -1571,14 +1577,22 @@
      * @param {string|number} brandUid - 메이크샵 상품 UID
      * @param {number} qty - 수량(인원)
      * @param {string} productName - 상품명 (option[basic] 구성용)
-     * @param {string} brandCode - 메이크샵 brandcode (예: '018001000251')
-     * @param {string} xCode - xcode (예: '018')
-     * @param {string} mCode - mcode (예: '001')
+     * @param {string} brandCode - 메이크샵 brandcode (일반상품: '018001000251', 개인결제: 'personal')
+     * @param {string} xCode - xcode (일반상품: '018', 개인결제: 'personal')
+     * @param {string} mCode - mcode (일반상품: '001', 개인결제: '')
      */
     function goToCheckout(brandUid, qty, productName, brandCode, xCode, mCode) {
+        var xC = xCode || 'personal';
+
+        // 개인결제(xcode=personal) 상품: /shop/personal.html 직접 이동
+        if (xC === 'personal') {
+            window.location.href = '/shop/personal.html?branduid=' + String(brandUid);
+            return;
+        }
+
+        // 일반상품: basket.action.html POST 방식
         var pName = productName || '\ud30c\ud2b8\ub108 \ud074\ub798\uc2a4';
         var bCode = brandCode || '018001000251';
-        var xC = xCode || '018';
         var mC = mCode || '001';
 
         // URLSearchParams.append() 로 중복 키(amount[], option[...]) 처리

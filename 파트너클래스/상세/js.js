@@ -1487,8 +1487,11 @@
             return;
         }
 
-        // 메이크샵 상품 branduid: 클래스별 상품번호 있으면 사용, 없으면 파트너클래스 통합 상품
+        // 메이크샵 상품 정보: 클래스별 필드 있으면 사용, 없으면 파트너클래스 통합 상품 기본값
         var brandUid = classData.makeshop_product_id || '12195502';
+        var brandCode = classData.makeshop_brandcode || '018001000251';
+        var xCode = classData.makeshop_xcode || '018';
+        var mCode = classData.makeshop_mcode || '001';
 
         // 수강료 계산
         var unitPrice = classData.price || 50000;
@@ -1502,6 +1505,9 @@
             participants: selectedQuantity,
             totalPrice: totalPrice,
             brandUid: brandUid,
+            brandCode: brandCode,
+            xCode: xCode,
+            mCode: mCode,
             productName: productName,
             productPrice: unitPrice
         });
@@ -1545,7 +1551,7 @@
                 console.warn('[Booking] WF-04 \uc2e4\ud328, \ud3f4\ubc31 \uc774\ub3d9:', resData);
             }
             alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-            goToCheckout(info.brandUid, info.participants, info.productName, info.productPrice);
+            goToCheckout(info.brandUid, info.participants, info.productName, info.brandCode, info.xCode, info.mCode);
         })
         .catch(function(err) {
             if (submitBtn) submitBtn.disabled = false;
@@ -1553,39 +1559,78 @@
             // 네트워크 오류 -> 폴백으로 결제 페이지 이동
             console.warn('[Booking] \ub124\ud2b8\uc6cc\ud06c \uc624\ub958, \ud3f4\ubc31 \uc774\ub3d9:', err);
             alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-            goToCheckout(info.brandUid, info.participants, info.productName, info.productPrice);
+            goToCheckout(info.brandUid, info.participants, info.productName, info.brandCode, info.xCode, info.mCode);
         });
     }
 
     /**
-     * 메이크샵 즉시구매:
-     * 1) fetch로 basket.html에 상품 추가 (화면 이동 없음)
-     * 2) 완료 후 /shop/order.html로 이동 (주문서 페이지)
-     * → 장바구니 화면을 건너뛰고 바로 주문서로 이동
+     * 메이크샵 즉시구매 (basket.action.html JSON API 방식, 2026-02-26 확인):
+     * - send_multi()가 basket.action.html로 XHR POST → JSON 응답
+     * - 수량 파라미터: amount[] (totalnum 아님!)
+     * - option[basic][0][0][opt_value] = 상품명 필수
      * @param {string|number} brandUid - 메이크샵 상품 UID
      * @param {number} qty - 수량(인원)
-     * @param {string} productName - 상품명
-     * @param {number} productPrice - 단가
+     * @param {string} productName - 상품명 (option[basic] 구성용)
+     * @param {string} brandCode - 메이크샵 brandcode (예: '018001000251')
+     * @param {string} xCode - xcode (예: '018')
+     * @param {string} mCode - mcode (예: '001')
      */
-    function goToCheckout(brandUid, qty, productName, productPrice) {
-        var body = 'product_uid=' + encodeURIComponent(String(brandUid))
-            + '&product_name=' + encodeURIComponent(productName || '')
-            + '&product_price=' + encodeURIComponent(String(productPrice || 0))
-            + '&prdAmt=' + encodeURIComponent(String(qty))
-            + '&option_type=NO'
-            + '&ordertype=baro';
+    function goToCheckout(brandUid, qty, productName, brandCode, xCode, mCode) {
+        var pName = productName || '\ud30c\ud2b8\ub108 \ud074\ub798\uc2a4';
+        var bCode = brandCode || '018001000251';
+        var xC = xCode || '018';
+        var mC = mCode || '001';
 
-        fetch('/shop/basket.html', {
+        // URLSearchParams.append() 로 중복 키(amount[], option[...]) 처리
+        var params = new URLSearchParams();
+        params.append('totalnum', '');
+        params.append('collbrandcode', '');
+        params.append('xcode', xC);
+        params.append('mcode', mC);
+        params.append('typep', 'X');
+        params.append('aramount', '');
+        params.append('arspcode', '');
+        params.append('arspcode2', '');
+        params.append('optionindex', '');
+        params.append('alluid', '');
+        params.append('alloptiontype', '');
+        params.append('aropts', '');
+        params.append('checktype', '');
+        params.append('ordertype', 'baro|parent.|layer');
+        params.append('brandcode', bCode);
+        params.append('branduid', String(brandUid));
+        params.append('cart_free', '');
+        params.append('opt_type', 'NO');
+        params.append('basket_use', 'Y');
+        // 실제 수량 파라미터 (totalnum 아님)
+        params.append('amount[]', String(qty));
+        // 옵션 없는 상품의 기본 option[basic] 구조 (필수)
+        params.append('option[basic][0][0][opt_id]', '0');
+        params.append('option[basic][0][0][opt_value]', pName);
+        params.append('option[basic][0][0][opt_stock]', '1');
+        params.append('option[basic][0][0][sto_id]', '1');
+        params.append('option[basic][0][0][opt_type]', 'undefined');
+
+        fetch('/shop/basket.action.html', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body: body,
-            credentials: 'include'
+            body: params.toString()
         })
-        .then(function() {
-            window.location.href = '/shop/order.html';
+        .then(function(resp) {
+            if (!resp.ok) throw new Error('basket.action \uc2e4\ud328: ' + resp.status);
+            return resp.json();
+        })
+        .then(function(data) {
+            // baro_type=baro 이면 즉시 결제 페이지로
+            if (data && data.status && data.etc_data && data.etc_data.baro_type === 'baro') {
+                window.location.href = '/shop/order.html';
+            } else {
+                // 일반 장바구니 담기로 처리된 경우
+                window.location.href = '/shop/basket.html';
+            }
         })
         .catch(function() {
-            // fetch 실패해도 order.html로 이동 시도
+            // 네트워크 오류 등 예외 — 결제 페이지로 시도
             window.location.href = '/shop/order.html';
         });
     }

@@ -1487,11 +1487,8 @@
             return;
         }
 
-        // 결제 페이지 URL: 클래스별 상품번호 있으면 사용, 없으면 파트너클래스 통합 상품
-        var goodsNo = classData.makeshop_product_id || '12195502';
-        var paymentUrl = '/goods/goods_order.html?goodsNo='
-            + encodeURIComponent(goodsNo)
-            + '&orderType=direct&cnt=' + selectedQuantity;
+        // 메이크샵 상품 branduid: 클래스별 상품번호 있으면 사용, 없으면 파트너클래스 통합 상품
+        var brandUid = classData.makeshop_product_id || '12195502';
 
         // 수강료 계산
         var unitPrice = classData.price || 0;
@@ -1503,13 +1500,13 @@
             date: selectedDate,
             participants: selectedQuantity,
             totalPrice: totalPrice,
-            paymentUrl: paymentUrl
+            brandUid: brandUid
         });
     }
 
     /**
      * WF-04 예약 기록 후 결제 페이지 이동
-     * @param {Object} info - className, date, participants, totalPrice, paymentUrl
+     * @param {Object} info - className, date, participants, totalPrice, brandUid
      */
     function submitBooking(info) {
         // WF-04 POST 예약 기록
@@ -1540,17 +1537,12 @@
         .then(function(resData) {
             if (submitBtn) submitBtn.disabled = false;
             if (mobileBtn) mobileBtn.disabled = false;
-
-            if (resData && resData.success) {
-                // 예약 기록 성공 -> 안내 후 결제 페이지 이동
-                alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-                window.location.href = info.paymentUrl;
-            } else {
-                // WF-04 실패 -> 폴백으로 결제 페이지 이동
+            // 성공/실패 무관하게 결제 페이지로 이동 (예약 기록 실패해도 결제는 진행)
+            if (!resData || !resData.success) {
                 console.warn('[Booking] WF-04 \uc2e4\ud328, \ud3f4\ubc31 \uc774\ub3d9:', resData);
-                alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-                window.location.href = info.paymentUrl;
             }
+            alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
+            goToCheckout(info.brandUid, info.participants);
         })
         .catch(function(err) {
             if (submitBtn) submitBtn.disabled = false;
@@ -1558,8 +1550,38 @@
             // 네트워크 오류 -> 폴백으로 결제 페이지 이동
             console.warn('[Booking] \ub124\ud2b8\uc6cc\ud06c \uc624\ub958, \ud3f4\ubc31 \uc774\ub3d9:', err);
             alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-            window.location.href = info.paymentUrl;
+            goToCheckout(info.brandUid, info.participants);
         });
+    }
+
+    /**
+     * 메이크샵 즉시구매 폼 제출 (POST /shop/basket.html)
+     * window.location.href 대신 폼 제출로 결제창 이동
+     * @param {string|number} brandUid - 메이크샵 상품 branduid
+     * @param {number} qty - 수량(인원)
+     */
+    function goToCheckout(brandUid, qty) {
+        var form = document.createElement('form');
+        form.method = 'post';
+        form.action = '/shop/basket.html';
+        form.style.display = 'none';
+
+        var fields = [
+            { name: 'branduid', value: String(brandUid) },
+            { name: 'prdAmt', value: String(qty) },
+            { name: 'act', value: 'order' }
+        ];
+
+        for (var i = 0; i < fields.length; i++) {
+            var inp = document.createElement('input');
+            inp.type = 'hidden';
+            inp.name = fields[i].name;
+            inp.value = fields[i].value;
+            form.appendChild(inp);
+        }
+
+        document.body.appendChild(form);
+        form.submit();
     }
 
 

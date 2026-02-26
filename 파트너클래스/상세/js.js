@@ -1570,37 +1570,20 @@
     }
 
     /**
-     * 메이크샵 즉시구매 (basket.action.html JSON API 방식, 2026-02-26 확인):
-     * - send_multi()가 basket.action.html로 XHR POST → JSON 응답
-     * - 수량 파라미터: amount[] (totalnum 아님!)
-     * - option[basic][0][0][opt_value] = 상품명 필수
-     * @param {string|number} brandUid - 메이크샵 상품 UID
-     * @param {number} qty - 수량(인원)
-     * @param {string} productName - 상품명 (option[basic] 구성용)
-     * @param {string} brandCode - 메이크샵 brandcode (일반상품: '018001000251', 개인결제: 'personal')
-     * @param {string} xCode - xcode (일반상품: '018', 개인결제: 'personal')
-     * @param {string} mCode - mcode (일반상품: '001', 개인결제: '')
+     * basket.action.html POST 공통 함수 (바로 구매 → order.html)
+     * - xcode=000, mcode=000 이 개인결제 상품에서 확인된 실제 값
+     * - amount[] 로 수량(인원) 전달
      */
-    function goToCheckout(brandUid, qty, productName, brandCode, xCode, mCode) {
-        var xC = xCode || 'personal';
-
-        // 개인결제(xcode=personal) 상품: shopdetail.html로 이동 (personal.html은 관리자 전용)
-        if (xC === 'personal') {
-            window.location.href = '/shop/shopdetail.html?branduid=' + String(brandUid);
-            return;
-        }
-
-        // 일반상품: basket.action.html POST 방식
+    function doBasketPost(brandUid, qty, productName, brandCode, xC, mC) {
         var pName = productName || '\ud30c\ud2b8\ub108 \ud074\ub798\uc2a4';
         var bCode = brandCode || '018001000251';
-        var mC = mCode || '001';
+        var mCode2 = mC || '001';
 
-        // URLSearchParams.append() 로 중복 키(amount[], option[...]) 처리
         var params = new URLSearchParams();
         params.append('totalnum', '');
         params.append('collbrandcode', '');
         params.append('xcode', xC);
-        params.append('mcode', mC);
+        params.append('mcode', mCode2);
         params.append('typep', 'X');
         params.append('aramount', '');
         params.append('arspcode', '');
@@ -1616,9 +1599,7 @@
         params.append('cart_free', '');
         params.append('opt_type', 'NO');
         params.append('basket_use', 'Y');
-        // 실제 수량 파라미터 (totalnum 아님)
         params.append('amount[]', String(qty));
-        // 옵션 없는 상품의 기본 option[basic] 구조 (필수)
         params.append('option[basic][0][0][opt_id]', '0');
         params.append('option[basic][0][0][opt_value]', pName);
         params.append('option[basic][0][0][opt_stock]', '1');
@@ -1635,18 +1616,52 @@
             return resp.json();
         })
         .then(function(data) {
-            // baro_type=baro 이면 즉시 결제 페이지로
             if (data && data.status && data.etc_data && data.etc_data.baro_type === 'baro') {
                 window.location.href = '/shop/order.html';
             } else {
-                // 일반 장바구니 담기로 처리된 경우
                 window.location.href = '/shop/basket.html';
             }
         })
         .catch(function() {
-            // 네트워크 오류 등 예외 — 결제 페이지로 시도
             window.location.href = '/shop/order.html';
         });
+    }
+
+    /**
+     * 메이크샵 즉시구매 진입점
+     * - xcode=personal 상품: shopdetail.html을 fetch해서 brandcode 추출 후 basket.action.html POST
+     *   (brandcode는 상품마다 다름: 000000000160, 000000000161 ...)
+     * - 일반상품: brandCode/xCode/mCode 그대로 사용
+     */
+    function goToCheckout(brandUid, qty, productName, brandCode, xCode, mCode) {
+        var xC = xCode || 'personal';
+
+        if (xC === 'personal') {
+            // shopdetail.html fetch → brandcode 추출 → basket.action.html POST (수량 반영)
+            fetch('/shop/shopdetail.html?branduid=' + String(brandUid))
+                .then(function(resp) { return resp.text(); })
+                .then(function(html) {
+                    var parser = new DOMParser();
+                    var doc = parser.parseFromString(html, 'text/html');
+                    var extractedBrandcode = '';
+                    doc.querySelectorAll('input[name="brandcode"]').forEach(function(inp) {
+                        if (inp.value && inp.value.length > 5) extractedBrandcode = inp.value;
+                    });
+                    if (extractedBrandcode) {
+                        doBasketPost(brandUid, qty, productName, extractedBrandcode, '000', '000');
+                    } else {
+                        // brandcode 추출 실패 시 상품 상세로 이동 (fallback)
+                        window.location.href = '/shop/shopdetail.html?branduid=' + String(brandUid);
+                    }
+                })
+                .catch(function() {
+                    window.location.href = '/shop/shopdetail.html?branduid=' + String(brandUid);
+                });
+            return;
+        }
+
+        // 일반상품: basket.action.html POST
+        doBasketPost(brandUid, qty, productName, brandCode, xC, mCode || '001');
     }
 
 

@@ -1584,9 +1584,9 @@
     function goToCheckout(brandUid, qty, productName, brandCode, xCode, mCode) {
         var xC = xCode || 'personal';
 
-        // 개인결제(xcode=personal) 상품: /shop/personal.html 직접 이동
+        // 개인결제(xcode=personal) 상품: shopdetail.html로 이동 (personal.html은 관리자 전용)
         if (xC === 'personal') {
-            window.location.href = '/shop/personal.html?branduid=' + String(brandUid);
+            window.location.href = '/shop/shopdetail.html?branduid=' + String(brandUid);
             return;
         }
 

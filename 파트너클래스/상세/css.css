@@ -871,6 +871,59 @@
     color: var(--cd-primary);
 }
 
+/* 파트너 연락처 버튼 */
+.class-detail .instructor-contact {
+    margin-top: 0;
+    padding: 0 24px 24px;
+    border-top: none;
+}
+
+.class-detail .instructor-contact__title {
+    font-size: 14px;
+    color: var(--cd-text-light);
+    margin: 0 0 12px;
+    padding-top: 16px;
+    border-top: 1px solid var(--cd-border-light);
+}
+
+.class-detail .instructor-contact__btns {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+}
+
+.class-detail .instructor-contact__btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 16px;
+    border-radius: var(--cd-radius-sm);
+    font-size: 13px;
+    font-weight: 500;
+    text-decoration: none;
+    transition: opacity var(--cd-transition);
+    font-family: var(--cd-font);
+}
+
+.class-detail .instructor-contact__btn:hover {
+    opacity: 0.85;
+}
+
+.class-detail .instructor-contact__btn--instagram {
+    background: linear-gradient(135deg, #f09433 0%, #e6683c 25%, #dc2743 50%, #cc2366 75%, #bc1888 100%);
+    color: #fff;
+}
+
+.class-detail .instructor-contact__btn--phone {
+    background: var(--cd-brown);
+    color: #fff;
+}
+
+.class-detail .instructor-contact__btn--kakao {
+    background: #FAE100;
+    color: #3C1E1E;
+}
+
 
 /* ----------------------------------------
    12. 수강에 필요한 재료
@@ -1660,6 +1713,18 @@
     .class-detail .instructor-actions {
         padding: 0 16px 20px;
         flex-wrap: wrap;
+    }
+
+    .class-detail .instructor-contact {
+        padding: 0 16px 20px;
+    }
+
+    .class-detail .instructor-contact__btns {
+        flex-direction: column;
+    }
+
+    .class-detail .instructor-contact__btn {
+        justify-content: center;
     }
 
     /* 재료 그리드 */

@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>강의 등록 | PRESSCO21 포에버러브</title>
+    <meta name="description" content="PRESSCO21 블룸 파트너 전용 강의 등록 페이지입니다. 원데이클래스, 정기클래스, 온라인클래스를 등록하세요.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Pretendard 웹폰트 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+
+</head>
+<body>
+
+<!-- ============================================
+     강의 등록 페이지
+     CSS 스코핑: .class-register
+     ============================================ -->
+<div class="class-register">
+
+    <!-- 1. 숨김 가상태그 span (JS에서 읽기용) -->
+    <span id="crMemberId" style="display:none"><!--/user_id/--></span>
+
+    <!-- 2. 미로그인 안내 -->
+    <div id="crNoticeArea" style="display:none">
+        <div class="cr-notice">
+            <div class="cr-notice__inner">
+                <div class="cr-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="32" cy="24" r="10" stroke="#3d2c1e" stroke-width="2" fill="none"/>
+                        <path d="M12 52c0-11.046 8.954-20 20-20s20 8.954 20 20" stroke="#3d2c1e" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="cr-notice__title" id="crNoticeTitle">로그인이 필요합니다</h2>
+                <p class="cr-notice__desc" id="crNoticeDesc">강의 등록은 포에버러브 회원으로 로그인 후 이용하실 수 있어요.</p>
+                <a id="crLoginBtn" href="/member/login.html" class="cr-notice__btn">로그인하기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 3. 등록 완료 화면 -->
+    <div id="crSuccessArea" style="display:none">
+        <div class="cr-success">
+            <div class="cr-success__inner">
+                <div class="cr-success__icon">
+                    <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="36" cy="36" r="34" stroke="#b89b5e" stroke-width="2" fill="#faf6ee"/>
+                        <path d="M22 36l10 10 18-18" stroke="#b89b5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </div>
+                <h2 class="cr-success__title">강의 등록 신청이 접수되었습니다!</h2>
+                <p class="cr-success__desc">소중한 강의 등록 감사합니다.<br>관리자 검수 후 클래스 플랫폼에 노출됩니다. (1~2 영업일)</p>
+                <div class="cr-success__id-box">
+                    <p class="cr-success__id-label">강의 ID</p>
+                    <p class="cr-success__id-value" id="crSuccessClassId">-</p>
+                </div>
+                <div class="cr-success__steps">
+                    <div class="cr-success__step">
+                        <span class="cr-success__step-num">1</span>
+                        <span class="cr-success__step-text">관리자 검수<br><small>1~2 영업일</small></span>
+                    </div>
+                    <div class="cr-success__step-arrow">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M10 5l3 3-3 3" stroke="#E8E2DB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="cr-success__step">
+                        <span class="cr-success__step-num">2</span>
+                        <span class="cr-success__step-text">승인 시<br>플랫폼 노출</span>
+                    </div>
+                    <div class="cr-success__step-arrow">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M10 5l3 3-3 3" stroke="#E8E2DB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="cr-success__step">
+                        <span class="cr-success__step-num">3</span>
+                        <span class="cr-success__step-text">수강생 모집<br>시작</span>
+                    </div>
+                </div>
+                <a href="/shop/page.html?id=2608" class="cr-success__btn">대시보드로 돌아가기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 4. 파트너 아님 / 에러 안내 -->
+    <div id="crAlreadyArea" style="display:none">
+        <div class="cr-notice">
+            <div class="cr-notice__inner">
+                <div class="cr-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="32" cy="32" r="28" stroke="#e53935" stroke-width="2" fill="#fff5f5"/>
+                        <path d="M32 20v16M32 42v2" stroke="#e53935" stroke-width="2.5" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="cr-notice__title" id="crAlreadyTitle">파트너 전용 기능입니다</h2>
+                <p class="cr-notice__desc" id="crAlreadyDesc">강의 등록은 승인된 파트너만 이용하실 수 있어요.</p>
+                <a href="/shop/page.html?id=2609" class="cr-notice__btn">파트너 신청하기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 강의 등록 폼 메인 -->
+    <div id="crFormArea" style="display:none">
+
+        <!-- 페이지 헤더 -->
+        <header class="cr-page-header">
+            <div class="cr-page-header__inner">
+                <a href="/" class="cr-page-header__logo">PRESSCO21</a>
+                <p class="cr-page-header__tagline">Forever and ever and Blooming</p>
+            </div>
+        </header>
+
+        <!-- 히어로 섹션 -->
+        <section class="cr-hero">
+            <div class="cr-hero__inner">
+                <p class="cr-hero__eyebrow">CLASS REGISTER</p>
+                <h1 class="cr-hero__title">새 강의를 등록해주세요</h1>
+                <p class="cr-hero__desc">당신의 꽃 이야기를 수강생들과 나눌 수 있도록<br>강의 정보를 입력해주세요.</p>
+            </div>
+        </section>
+
+        <!-- 안내 배너 -->
+        <section class="cr-benefits">
+            <div class="cr-benefits__inner">
+                <div class="cr-benefits__item">
+                    <div class="cr-benefits__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <rect x="3" y="5" width="22" height="18" rx="3" stroke="#b89b5e" stroke-width="1.5" fill="none"/>
+                            <path d="M3 11h22" stroke="#b89b5e" stroke-width="1.5"/>
+                            <circle cx="9" cy="17" r="2" stroke="#b89b5e" stroke-width="1.2" fill="none"/>
+                        </svg>
+                    </div>
+                    <p class="cr-benefits__text">관리자 검수 후<br>자동 노출</p>
+                </div>
+                <div class="cr-benefits__item">
+                    <div class="cr-benefits__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="14" cy="14" r="12" stroke="#b89b5e" stroke-width="1.5" fill="none"/>
+                            <path d="M14 8v6l4 2" stroke="#b89b5e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <p class="cr-benefits__text">1~2 영업일<br>검수 완료</p>
+                </div>
+                <div class="cr-benefits__item">
+                    <div class="cr-benefits__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M4 20c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="#b89b5e" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                            <circle cx="14" cy="8" r="4" stroke="#b89b5e" stroke-width="1.5" fill="none"/>
+                        </svg>
+                    </div>
+                    <p class="cr-benefits__text">대시보드에서<br>수강생 관리</p>
+                </div>
+            </div>
+        </section>
+
+        <!-- 강의 등록 폼 -->
+        <section class="cr-form-section">
+            <div class="cr-form-section__inner">
+
+                <form id="crRegisterForm" class="cr-form" novalidate>
+
+                    <!-- 섹션 1: 기본 강의 정보 (필수) -->
+                    <div class="cr-form__section">
+                        <h2 class="cr-form__section-title">기본 강의 정보</h2>
+                        <p class="cr-form__section-desc">강의 핵심 정보를 입력해주세요. <span class="cr-form__required" aria-hidden="true">*</span> 표시는 필수 항목입니다.</p>
+
+                        <!-- 강의명 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crTitle">
+                                강의명 <span class="cr-form__required" aria-hidden="true">*</span>
+                            </label>
+                            <input type="text" id="crTitle" name="title" class="cr-form__input"
+                                placeholder="예: 봄꽃 압화 원데이클래스" maxlength="100" required>
+                            <p class="cr-form__error" id="crTitleError" role="alert" style="display:none"></p>
+                        </div>
+
+                        <!-- 카테고리 + 강의형태 -->
+                        <div class="cr-form__row cr-form__row--half">
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crCategory">
+                                    카테고리 <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="crCategory" name="category" class="cr-form__select" required>
+                                    <option value="">카테고리 선택</option>
+                                    <option value="압화공예">압화공예</option>
+                                    <option value="보존화공예">보존화공예</option>
+                                    <option value="드라이플라워">드라이플라워</option>
+                                    <option value="리스">리스</option>
+                                    <option value="기타">기타</option>
+                                </select>
+                                <p class="cr-form__error" id="crCategoryError" role="alert" style="display:none"></p>
+                            </div>
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crType">
+                                    강의 형태 <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="crType" name="type" class="cr-form__select" required>
+                                    <option value="">강의 형태 선택</option>
+                                    <option value="원데이클래스">원데이클래스</option>
+                                    <option value="정기클래스">정기클래스</option>
+                                    <option value="온라인클래스">온라인클래스</option>
+                                </select>
+                                <p class="cr-form__error" id="crTypeError" role="alert" style="display:none"></p>
+                            </div>
+                        </div>
+
+                        <!-- 난이도 + 최대 수강인원 -->
+                        <div class="cr-form__row cr-form__row--half">
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crDifficulty">
+                                    난이도 <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="crDifficulty" name="difficulty" class="cr-form__select" required>
+                                    <option value="">난이도 선택</option>
+                                    <option value="입문">입문</option>
+                                    <option value="초급">초급</option>
+                                    <option value="중급">중급</option>
+                                    <option value="고급">고급</option>
+                                </select>
+                                <p class="cr-form__error" id="crDifficultyError" role="alert" style="display:none"></p>
+                            </div>
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crMaxStudents">
+                                    최대 수강인원 <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="number" id="crMaxStudents" name="max_students" class="cr-form__input"
+                                    placeholder="예: 8" min="1" max="50" required>
+                                <p class="cr-form__error" id="crMaxStudentsError" role="alert" style="display:none"></p>
+                            </div>
+                        </div>
+
+                        <!-- 수강료 + 소요시간 -->
+                        <div class="cr-form__row cr-form__row--half">
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crPrice">
+                                    수강료 (원) <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="number" id="crPrice" name="price" class="cr-form__input"
+                                    placeholder="예: 50000" min="1000" required>
+                                <p class="cr-form__error" id="crPriceError" role="alert" style="display:none"></p>
+                            </div>
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crDuration">
+                                    소요시간 <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="text" id="crDuration" name="duration" class="cr-form__input"
+                                    placeholder="예: 2시간 30분" maxlength="50" required>
+                                <p class="cr-form__error" id="crDurationError" role="alert" style="display:none"></p>
+                            </div>
+                        </div>
+
+                        <!-- 강의 소개 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crDescription">
+                                강의 소개 <span class="cr-form__required" aria-hidden="true">*</span>
+                            </label>
+                            <textarea id="crDescription" name="description" class="cr-form__textarea"
+                                placeholder="강의 내용, 특징, 대상 수강생 등을 소개해주세요."
+                                maxlength="2000" rows="6" required></textarea>
+                            <p class="cr-form__char-count"><span id="crDescCharCount">0</span>/2000</p>
+                            <p class="cr-form__error" id="crDescriptionError" role="alert" style="display:none"></p>
+                        </div>
+                    </div>
+
+                    <!-- 섹션 2: 상세 정보 (선택) -->
+                    <div class="cr-form__section">
+                        <h2 class="cr-form__section-title">상세 정보</h2>
+                        <p class="cr-form__section-desc">더 많은 정보를 입력하면 수강생에게 더 매력적으로 보여요. (선택)</p>
+
+                        <!-- 일정 안내 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crScheduleDesc">일정 안내</label>
+                            <textarea id="crScheduleDesc" name="schedule_desc" class="cr-form__textarea"
+                                placeholder="예: 매주 토요일 오후 2시 / 사전 예약제"
+                                maxlength="1000" rows="3"></textarea>
+                            <p class="cr-form__char-count"><span id="crScheduleCharCount">0</span>/1000</p>
+                        </div>
+
+                        <!-- 커리큘럼 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crCurriculum">커리큘럼</label>
+                            <textarea id="crCurriculum" name="curriculum" class="cr-form__textarea"
+                                placeholder="예:&#10;1단계: 재료 소개 및 기본 기법 (20분)&#10;2단계: 디자인 구성 (30분)&#10;3단계: 작품 완성 (60분)&#10;4단계: 마무리 및 포장 (20분)"
+                                maxlength="2000" rows="5"></textarea>
+                            <p class="cr-form__char-count"><span id="crCurriculumCharCount">0</span>/2000</p>
+                        </div>
+
+                        <!-- 대표 이미지 URL -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crImageUrl">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="vertical-align:-2px;margin-right:4px">
+                                    <rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                                    <circle cx="5" cy="6" r="1.5" stroke="currentColor" stroke-width="1" fill="none"/>
+                                    <path d="M1 11l4-3 3 2 4-4 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                대표 이미지 URL
+                            </label>
+                            <input type="url" id="crImageUrl" name="image_url" class="cr-form__input"
+                                placeholder="https://... (강의 대표 이미지 링크)" maxlength="2048">
+                            <p class="cr-form__error" id="crImageUrlError" role="alert" style="display:none"></p>
+                        </div>
+
+                        <!-- 준비물/재료비 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crMaterials">준비물 / 재료비</label>
+                            <textarea id="crMaterials" name="materials" class="cr-form__textarea"
+                                placeholder="예: 재료비 포함 / 별도 준비물 없음&#10;또는: 앞치마 지참, 추가 재료비 10,000원"
+                                maxlength="1000" rows="3"></textarea>
+                            <p class="cr-form__char-count"><span id="crMaterialsCharCount">0</span>/1000</p>
+                        </div>
+
+                        <!-- 장소/주소 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crLocation">장소 / 주소</label>
+                            <input type="text" id="crLocation" name="location" class="cr-form__input"
+                                placeholder="예: 서울 강남구 테헤란로 123, 꽃피는공방" maxlength="200">
+                        </div>
+                    </div>
+
+                    <!-- 섹션 3: 연락처 (선택) -->
+                    <div class="cr-form__section">
+                        <h2 class="cr-form__section-title">강사 연락처</h2>
+                        <p class="cr-form__section-desc">수강생이 문의할 수 있는 연락 채널을 남겨주세요. (선택)</p>
+
+                        <div class="cr-form__row cr-form__row--half">
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crContactPhone">전화번호</label>
+                                <input type="tel" id="crContactPhone" name="contact_phone" class="cr-form__input"
+                                    placeholder="010-1234-5678" maxlength="20">
+                            </div>
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crContactInstagram">
+                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="vertical-align:-2px;margin-right:4px">
+                                        <rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                                        <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                                        <circle cx="11.5" cy="4.5" r="0.8" fill="currentColor"/>
+                                    </svg>
+                                    인스타그램 URL
+                                </label>
+                                <input type="url" id="crContactInstagram" name="contact_instagram" class="cr-form__input"
+                                    placeholder="https://instagram.com/..." maxlength="500">
+                                <p class="cr-form__error" id="crContactInstagramError" role="alert" style="display:none"></p>
+                            </div>
+                        </div>
+
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crContactKakao">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="vertical-align:-2px;margin-right:4px">
+                                    <path d="M8 2C4.134 2 1 4.462 1 7.5c0 1.956 1.3 3.674 3.253 4.632L3.8 14.5l2.9-1.566C7.125 13.025 7.553 13.071 8 13.071c3.866 0 7-2.533 7-5.571S11.866 2 8 2z" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                                </svg>
+                                카카오톡 채널 URL
+                            </label>
+                            <input type="url" id="crContactKakao" name="contact_kakao" class="cr-form__input"
+                                placeholder="https://pf.kakao.com/..." maxlength="500">
+                            <p class="cr-form__error" id="crContactKakaoError" role="alert" style="display:none"></p>
+                        </div>
+                    </div>
+
+                    <!-- 섹션 4: 동의 -->
+                    <div class="cr-form__section cr-form__section--agree">
+                        <div class="cr-form__agree-item">
+                            <label class="cr-form__agree-label">
+                                <input type="checkbox" id="crAgreeTerms" class="cr-form__agree-check" required>
+                                <span class="cr-form__agree-box" aria-hidden="true"></span>
+                                <span class="cr-form__agree-text">
+                                    <strong>[필수]</strong> 강의 등록 약관 및 수수료 정책에 동의합니다.
+                                    <button type="button" class="cr-form__agree-detail-btn js-agree-toggle" data-target="crTermsDetail">(상세보기)</button>
+                                </span>
+                            </label>
+                            <div id="crTermsDetail" class="cr-form__agree-detail" style="display:none">
+                                <p>등록된 강의는 관리자 검수 후 플랫폼에 노출됩니다.</p>
+                                <p>수강료의 일정 비율이 플랫폼 수수료로 적용됩니다. (파트너 등급별 상이)</p>
+                                <p>강의 내용에 대한 책임은 강사에게 있으며, 부적절한 내용은 비노출 처리될 수 있습니다.</p>
+                            </div>
+                            <p class="cr-form__error" id="crAgreeTermsError" role="alert" style="display:none">강의 등록 약관 동의가 필요합니다.</p>
+                        </div>
+                    </div>
+
+                    <!-- 전체 에러 메시지 -->
+                    <div id="crFormGlobalError" class="cr-form__global-error" role="alert" style="display:none"></div>
+
+                    <!-- 제출 버튼 -->
+                    <div class="cr-form__submit-area">
+                        <button type="submit" id="crSubmitBtn" class="cr-form__submit-btn">
+                            <span class="cr-form__submit-btn-text">강의 등록 신청하기</span>
+                            <span class="cr-form__submit-btn-loading" style="display:none">
+                                <svg class="cr-spinner" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.5" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10"/>
+                                </svg>
+                                처리 중...
+                            </span>
+                        </button>
+                        <p class="cr-form__submit-note">검수 결과는 1~2 영업일 내 확인하실 수 있습니다.</p>
+                    </div>
+
+                </form>
+            </div>
+        </section>
+
+    </div><!-- /crFormArea -->
+
+    <!-- 로딩 오버레이 -->
+    <div id="crLoadingOverlay" class="cr-loading-overlay" style="display:none" aria-label="처리 중" role="status">
+        <svg class="cr-spinner" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
+            <circle cx="12" cy="12" r="10" stroke="#b89b5e" stroke-width="2.5" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10"/>
+        </svg>
+    </div>
+
+</div><!-- /class-register -->
+
+</body>
+</html>

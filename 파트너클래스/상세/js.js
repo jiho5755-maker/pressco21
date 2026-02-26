@@ -13,6 +13,9 @@
     /** n8n 웹훅 엔드포인트 (WF-01 클래스 API) */
     var GAS_URL = 'https://n8n.pressco21.com/webhook/class-api';
 
+    /** n8n WF-04 예약 기록 엔드포인트 */
+    var BOOKING_URL = 'https://n8n.pressco21.com/webhook/record-booking';
+
     /** 캐시 유효 시간: 5분 (밀리초) */
     var CACHE_TTL = 5 * 60 * 1000;
 
@@ -43,6 +46,9 @@
     /** 현재 클래스 데이터 */
     var classData = null;
 
+    /** 로그인한 회원 ID */
+    var memberId = '';
+
     /** 선택된 인원 */
     var selectedQuantity = 1;
 
@@ -71,6 +77,12 @@
             // id 파라미터 없으면 목록으로 리다이렉트
             window.location.href = '/shop/page.html?id=2606';
             return;
+        }
+
+        // 회원 ID 읽기 (가상태그)
+        var memberEl = document.getElementById('cdMemberId');
+        if (memberEl) {
+            memberId = (memberEl.textContent || '').trim();
         }
 
         // 에러 재시도 버튼 바인딩
@@ -640,6 +652,30 @@
             html += '<p class="instructor-bio">' + bioText + '</p>';
         }
 
+        // 파트너 연락처 버튼 생성
+        var contactHtml = '';
+        if (data.contact_instagram || data.contact_phone || data.contact_kakao) {
+            contactHtml += '<div class="instructor-contact">';
+            contactHtml += '<p class="instructor-contact__title">\uc774 \uac15\uc758\uc5d0 \ub300\ud574 \uad81\uae08\ud55c \uc810\uc774 \uc788\uc73c\uc2e0\uac00\uc694?</p>';
+            contactHtml += '<div class="instructor-contact__btns">';
+            if (data.contact_instagram) {
+                contactHtml += '<a href="' + escapeHtml(data.contact_instagram) + '" target="_blank" rel="noopener" class="instructor-contact__btn instructor-contact__btn--instagram">'
+                    + '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z"/></svg>'
+                    + ' \uc778\uc2a4\ud0c0\uadf8\ub7a8 DM</a>';
+            }
+            if (data.contact_phone) {
+                contactHtml += '<a href="tel:' + escapeHtml(data.contact_phone) + '" class="instructor-contact__btn instructor-contact__btn--phone">'
+                    + '<svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 16.92v3a2 2 0 01-2.18 2 19.79 19.79 0 01-8.63-3.07A19.5 19.5 0 013.07 9.8a19.79 19.79 0 01-3.07-8.68A2 2 0 012 .22h3a2 2 0 012 1.72 12.84 12.84 0 00.7 2.81 2 2 0 01-.45 2.11L6.09 7.91a16 16 0 006 6l1.27-1.27a2 2 0 012.11-.45 12.84 12.84 0 002.81.7A2 2 0 0122 14.92v2z"/></svg>'
+                    + ' \uc804\ud654 \ubb38\uc758</a>';
+            }
+            if (data.contact_kakao) {
+                contactHtml += '<a href="' + escapeHtml(data.contact_kakao) + '" target="_blank" rel="noopener" class="instructor-contact__btn instructor-contact__btn--kakao">'
+                    + '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M12 3C6.48 3 2 6.58 2 11c0 2.84 1.65 5.36 4.16 6.94L5 21l4.38-2.35C10.22 18.88 11.1 19 12 19c5.52 0 10-3.58 10-8S17.52 3 12 3z"/></svg>'
+                    + ' \uce74\uce74\uc624 \ucee4\ub9e8\ub4dc</a>';
+            }
+            contactHtml += '</div></div>';
+        }
+
         // 액션 버튼
         html += '<div class="instructor-actions">';
         if (partner.partner_code) {
@@ -647,6 +683,9 @@
                 + '\uB2E4\uB978 \uD074\uB798\uC2A4 \uBCF4\uAE30</a>';
         }
         html += '</div>';
+
+        // 파트너 연락처 섹션 추가
+        html += contactHtml;
 
         container.innerHTML = html;
     }
@@ -1026,27 +1065,119 @@
     }
 
     /**
-     * 예약 버튼 클릭 핸들러
-     * 메이크샵 상품 페이지로 이동
+     * 예약 버튼 클릭 핸들러 (WF-04 연동)
+     * 1. 비로그인 -> 로그인 안내
+     * 2. 날짜 미선택 -> 날짜 선택 안내
+     * 3. WF-04 POST -> NocoDB 예약 기록 -> 메이크샵 결제 페이지 이동
      */
     function handleBookingClick() {
         if (!classData) return;
+
+        // 비로그인 처리
+        if (!memberId) {
+            if (confirm('\uc608\uc57d\uc740 \ub85c\uadf8\uc778 \ud6c4 \uc774\uc6a9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\n\ub85c\uadf8\uc778 \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
+                window.location.href = '/member/login.html?returnUrl=' + encodeURIComponent(window.location.href);
+            }
+            return;
+        }
 
         // 날짜 미선택 시 경고
         if (!selectedDate) {
             var dateInput = document.getElementById('datePicker');
             if (dateInput) dateInput.focus();
-            alert('\uB0A0\uC9DC\uB97C \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.');
+            alert('\ub0a0\uc9dc\ub97c \uc120\ud0dd\ud574 \uc8fc\uc138\uc694.');
             return;
         }
 
-        // 메이크샵 상품 페이지로 이동
+        // 결제 페이지 URL 준비
+        var paymentUrl = '';
         if (classData.makeshop_product_id) {
-            var url = '/goods/goods_view.php?goodsNo=' + encodeURIComponent(classData.makeshop_product_id);
-            window.location.href = url;
-        } else {
-            alert('\uC608\uC57D \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4. \uACE0\uAC1D\uC13C\uD130\uB85C \uBB38\uC758\uD574 \uC8FC\uC138\uC694.');
+            paymentUrl = '/goods/goods_view.php?goodsNo=' + encodeURIComponent(classData.makeshop_product_id);
         }
+
+        // 수강료 계산
+        var unitPrice = classData.price || 0;
+        var totalPrice = unitPrice * selectedQuantity;
+
+        // 예약 확인 모달 표시
+        showBookingConfirm({
+            className: classData.title || classData.class_name || '',
+            date: selectedDate,
+            participants: selectedQuantity,
+            totalPrice: totalPrice,
+            paymentUrl: paymentUrl
+        });
+    }
+
+    /**
+     * 예약 확인 모달 표시 + WF-04 호출
+     * @param {Object} info - className, date, participants, totalPrice, paymentUrl
+     */
+    function showBookingConfirm(info) {
+        var confirmMsg = '\uc608\uc57d \uc815\ubcf4\ub97c \ud655\uc778\ud574 \uc8fc\uc138\uc694.\n\n'
+            + '\ud074\ub798\uc2a4: ' + info.className + '\n'
+            + '\ub0a0\uc9dc: ' + info.date + '\n'
+            + '\uc778\uc6d0: ' + info.participants + '\uba85\n'
+            + '\uacb0\uc81c \uae08\uc561: ' + formatPrice(info.totalPrice) + '\uc6d0\n\n'
+            + '\uc608\uc57d \ud6c4 \uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.';
+
+        if (!confirm(confirmMsg)) return;
+
+        // WF-04 POST 예약 기록
+        var bookingData = {
+            class_id: classData.class_id || classData.id || '',
+            member_id: memberId,
+            booking_date: info.date,
+            participants: info.participants,
+            amount: info.totalPrice
+        };
+
+        // 로딩 상태 표시
+        var submitBtn = document.getElementById('bookingSubmit');
+        var mobileBtn = document.getElementById('mobileBookingBtn');
+        if (submitBtn) submitBtn.disabled = true;
+        if (mobileBtn) mobileBtn.disabled = true;
+
+        fetch(BOOKING_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bookingData),
+            redirect: 'follow'
+        })
+        .then(function(response) {
+            return response.json();
+        })
+        .then(function(resData) {
+            if (submitBtn) submitBtn.disabled = false;
+            if (mobileBtn) mobileBtn.disabled = false;
+            if (resData && resData.success) {
+                // 예약 기록 성공 -> 결제 페이지 이동
+                if (info.paymentUrl) {
+                    window.location.href = info.paymentUrl;
+                } else {
+                    alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \uacb0\uc81c \uc815\ubcf4\uac00 \uc5c6\uc2b5\ub2c8\ub2e4. \uace0\uac1d\uc13c\ud130\ub85c \ubb38\uc758\ud574 \uc8fc\uc138\uc694.');
+                }
+            } else {
+                // 예약 기록 실패 -> 폴백: 직접 결제 페이지 이동
+                console.warn('[Booking] WF-04 \uc2e4\ud328, \ud3f4\ubc31\uc73c\ub85c \uacb0\uc81c \ud398\uc774\uc9c0 \uc774\ub3d9:', resData);
+                if (info.paymentUrl) {
+                    window.location.href = info.paymentUrl;
+                } else {
+                    alert('\uc608\uc57d \uc815\ubcf4\ub97c \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \uace0\uac1d\uc13c\ud130\ub85c \ubb38\uc758\ud574 \uc8fc\uc138\uc694.');
+                }
+            }
+        })
+        .catch(function(err) {
+            if (submitBtn) submitBtn.disabled = false;
+            if (mobileBtn) mobileBtn.disabled = false;
+            // 네트워크 오류 -> 폴백: 직접 결제 페이지 이동
+            console.warn('[Booking] \ub124\ud2b8\uc6cc\ud06c \uc624\ub958, \ud3f4\ubc31 \uc774\ub3d9:', err);
+            if (info.paymentUrl) {
+                window.location.href = info.paymentUrl;
+            } else {
+                alert('\ub124\ud2b8\uc6cc\ud06c \uc624\ub958\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4. \uc7a0\uc2dc \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.');
+            }
+        });
     }
 
 

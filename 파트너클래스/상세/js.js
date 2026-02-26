@@ -1558,38 +1558,36 @@
     }
 
     /**
-     * 메이크샵 즉시구매: POST /shop/basket.html (상품 페이지와 동일한 방식)
-     * product_uid, product_name, product_price, prdAmt, option_type, ordertype=baro 포함
+     * 메이크샵 즉시구매:
+     * 1) fetch로 basket.html에 상품 추가 (화면 이동 없음)
+     * 2) 완료 후 /shop/order.html로 이동 (주문서 페이지)
+     * → 장바구니 화면을 건너뛰고 바로 주문서로 이동
      * @param {string|number} brandUid - 메이크샵 상품 UID
      * @param {number} qty - 수량(인원)
      * @param {string} productName - 상품명
      * @param {number} productPrice - 단가
      */
     function goToCheckout(brandUid, qty, productName, productPrice) {
-        var form = document.createElement('form');
-        form.method = 'post';
-        form.action = '/shop/basket.html';
-        form.style.display = 'none';
+        var body = 'product_uid=' + encodeURIComponent(String(brandUid))
+            + '&product_name=' + encodeURIComponent(productName || '')
+            + '&product_price=' + encodeURIComponent(String(productPrice || 0))
+            + '&prdAmt=' + encodeURIComponent(String(qty))
+            + '&option_type=NO'
+            + '&ordertype=baro';
 
-        var fields = [
-            { name: 'product_uid',   value: String(brandUid) },
-            { name: 'product_name',  value: productName || '' },
-            { name: 'product_price', value: String(productPrice || 0) },
-            { name: 'prdAmt',        value: String(qty) },
-            { name: 'option_type',   value: 'NO' },
-            { name: 'ordertype',     value: 'baro' }
-        ];
-
-        for (var i = 0; i < fields.length; i++) {
-            var inp = document.createElement('input');
-            inp.type = 'hidden';
-            inp.name = fields[i].name;
-            inp.value = fields[i].value;
-            form.appendChild(inp);
-        }
-
-        document.body.appendChild(form);
-        form.submit();
+        fetch('/shop/basket.html', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: body,
+            credentials: 'include'
+        })
+        .then(function() {
+            window.location.href = '/shop/order.html';
+        })
+        .catch(function() {
+            // fetch 실패해도 order.html로 이동 시도
+            window.location.href = '/shop/order.html';
+        });
     }
 
 

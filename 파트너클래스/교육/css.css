@@ -10,13 +10,13 @@
    0. CSS 변수
    ---------------------------------------- */
 .partner-education {
-    --pe-primary: #3d2c1e;
+    --pe-primary: #7d9675;
     --pe-gold: #b89b5e;
     --pe-gold-light: #d4be8a;
     --pe-gold-bg: #faf6ee;
     --pe-green: #7d9675;
     --pe-green-light: #b7c9ad;
-    --pe-bg: #f8f6f0;
+    --pe-bg: #FAF8F5;
     --pe-bg-card: #FFFFFF;
     --pe-text: #333333;
     --pe-text-light: #777777;
@@ -801,5 +801,57 @@
     .partner-education .pe-result__btn,
     .partner-education .pe-quiz__submit-btn {
         transition: none;
+    }
+}
+
+
+/* ----------------------------------------
+   14. 반응형: 초소형 (max-width: 480px)
+   ---------------------------------------- */
+@media (max-width: 480px) {
+    .partner-education .pe-hero__title {
+        font-size: 22px;
+    }
+
+    .partner-education .pe-hero {
+        padding: 36px 16px 24px;
+    }
+
+    .partner-education .pe-progress__inner {
+        gap: 0;
+    }
+
+    .partner-education .pe-progress__line {
+        min-width: 20px;
+        margin: 0 6px;
+    }
+
+    .partner-education .pe-progress__label {
+        font-size: 10px;
+    }
+
+    .partner-education .pe-step-section {
+        padding: 20px 16px;
+    }
+
+    .partner-education .pe-quiz-item {
+        padding: 18px 16px;
+    }
+
+    .partner-education .pe-quiz__submit-btn {
+        width: 100%;
+        padding: 16px 24px;
+        min-height: 48px;
+    }
+
+    .partner-education .pe-notice__btn,
+    .partner-education .pe-result__btn {
+        width: 100%;
+        justify-content: center;
+        min-height: 48px;
+    }
+
+    .partner-education .pe-result__title {
+        font-size: 20px;
     }
 }

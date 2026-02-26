@@ -1,0 +1,343 @@
+{
+  "name": "WF-REFUND Cancel Booking",
+  "nodes": [
+    {
+      "id": "wfr-01",
+      "name": "Webhook Cancel Booking",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "cancel-booking",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "wfr-02",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "parameters": {
+        "jsCode": "// WF-REFUND 1: 입력 검증\n// Body: { order_id, cancel_reason }\nvar body = $input.first().json.body || $input.first().json;\nvar orderId = (body.order_id || '').trim();\nvar cancelReason = (body.cancel_reason || '고객 취소 요청').trim();\n\nif (!orderId) {\n  throw new Error('[WF-REFUND] order_id is required');\n}\n\nreturn [{ json: { orderId: orderId, cancelReason: cancelReason } }];"
+      }
+    },
+    {
+      "id": "wfr-03",
+      "name": "Find Settlement",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mcoddguv4d3s3ne",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "={{ '(order_id,eq,' + $json.orderId + ')' }}" },
+            { "name": "limit", "value": "1" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "id": "wfr-04",
+      "name": "Classify Cancel Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300],
+      "parameters": {
+        "jsCode": "// WF-REFUND 2: 취소 가능 여부 분류\n// _action: 'already_cancelled' | 'cancel_no_deduct' | 'cancel_with_deduct' | 'manual_required'\nvar findResult = $input.first().json;\nvar validateData = $('Validate Input').first().json;\nvar list = findResult.list || [];\n\nif (list.length === 0) {\n  throw new Error('[WF-REFUND] Settlement not found for order_id: ' + validateData.orderId);\n}\n\nvar s = list[0];\nvar status = s.status || '';\nvar classDateStr = s.class_date || '';\n\n// 수강일 vs 오늘 비교\nvar classDate = null;\nif (classDateStr) {\n  classDate = new Date(classDateStr);\n  classDate.setHours(0, 0, 0, 0);\n}\nvar today = new Date();\ntoday.setHours(0, 0, 0, 0);\n\n// 취소 액션 결정\nvar _action;\nif (status === 'CANCELLED') {\n  _action = 'already_cancelled';\n} else if (status === 'PENDING_SETTLEMENT') {\n  // 적립금 미지급 상태 → 단순 취소\n  _action = 'cancel_no_deduct';\n} else if (status === 'COMPLETED') {\n  if (classDate && classDate >= today) {\n    // 수강일 미도래 → 적립금 환수 후 취소\n    _action = 'cancel_with_deduct';\n  } else {\n    // 수강일 경과 → 관리자 수동 처리\n    _action = 'manual_required';\n  }\n} else {\n  // FAILED 등 → 관리자 수동\n  _action = 'manual_required';\n}\n\n// partner_code: Links(배열) 또는 문자열 양쪽 대응\nvar partnerCode = s.partner_code;\nif (Array.isArray(partnerCode) && partnerCode.length > 0) {\n  partnerCode = partnerCode[0].partner_code || partnerCode[0].Title || String(partnerCode[0]);\n} else if (!partnerCode) {\n  partnerCode = '';\n} else {\n  partnerCode = String(partnerCode);\n}\n\nreturn [{\n  json: {\n    _action: _action,\n    _settlementId: s.settlement_id || '',\n    nocodbId: s.Id || s.id || '',\n    _memberId: s.member_id || '',\n    _partnerCode: partnerCode,\n    _reserveAmount: Number(s.reserve_amount) || 0,\n    _orderAmount: Number(s.order_amount) || 0,\n    _classId: s.class_id || '',\n    _classDate: classDateStr,\n    _studentName: s.student_name || '수강생',\n    _studentEmail: s.student_email || '',\n    _cancelReason: validateData.cancelReason,\n    _orderId: validateData.orderId,\n    _currentStatus: status\n  }\n}];"
+      }
+    },
+    {
+      "id": "wfr-05",
+      "name": "IF Cancellable",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "combinator": "or",
+          "conditions": [
+            {
+              "id": "cond-no-deduct",
+              "leftValue": "={{ $json._action }}",
+              "rightValue": "cancel_no_deduct",
+              "operator": { "type": "string", "operation": "equals" }
+            },
+            {
+              "id": "cond-with-deduct",
+              "leftValue": "={{ $json._action }}",
+              "rightValue": "cancel_with_deduct",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wfr-10",
+      "name": "IF Needs Reserve Deduct",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 100],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-needs-deduct",
+              "leftValue": "={{ $json._action }}",
+              "rightValue": "cancel_with_deduct",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wfr-11",
+      "name": "Deduct Reserve",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, -40],
+      "parameters": {
+        "method": "POST",
+        "url": "https://foreverlove.co.kr/list/open_api_process.html?mode=save&type=reserve&process=give",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "datas[0][id]", "value": "={{ $('Classify Cancel Action').first().json._memberId }}" },
+            { "name": "datas[0][reserve]", "value": "={{ -$('Classify Cancel Action').first().json._reserveAmount }}" },
+            { "name": "datas[0][content]", "value": "=[PRESSCO21] 클래스 취소 적립금 환수 - {{ $('Classify Cancel Action').first().json._orderId }}" }
+          ]
+        },
+        "options": { "retry": { "maxTries": 2 } }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "makeshop-api",
+          "name": "Makeshop API Keys"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "wfr-12",
+      "name": "Check Deduct Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, -40],
+      "parameters": {
+        "jsCode": "// 적립금 차감 결과 확인\n// 실패해도 취소는 계속 진행 (관리자 텔레그램으로 알림)\nvar deductResult = $input.first().json;\nvar _deductSuccess = false;\nvar _deductNote = '';\n\ntry {\n  if (deductResult.return_code === '0000' && deductResult.datas && deductResult.datas[0]) {\n    var r = deductResult.datas[0];\n    _deductSuccess = (r.result === true || r.result === 1 || r.result === '1');\n    if (!_deductSuccess) {\n      _deductNote = Array.isArray(r.message) ? r.message.join(', ') : (r.message || '적립금 차감 실패');\n    }\n  } else {\n    _deductNote = 'return_code=' + (deductResult.return_code || 'unknown');\n  }\n} catch(e) {\n  _deductNote = '파싱 오류: ' + (e.message || '');\n}\n\nreturn [{ json: { _deductSuccess: _deductSuccess, _deductNote: _deductNote } }];"
+      }
+    },
+    {
+      "id": "wfr-13",
+      "name": "PATCH Settlement Cancelled",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 100],
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mcoddguv4d3s3ne/{{ $('Classify Cancel Action').first().json.nocodbId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'CANCELLED', cancel_reason: $('Classify Cancel Action').first().json._cancelReason, refund_amount: $('Classify Cancel Action').first().json._orderAmount, cancelled_at: new Date().toISOString() }) }}",
+        "options": { "retry": { "maxTries": 3 } }
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "id": "wfr-14",
+      "name": "Email Cancel Notification",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [2200, 100],
+      "parameters": {
+        "fromEmail": "=noreply@pressco21.com",
+        "toEmail": "={{ $('Classify Cancel Action').first().json._studentEmail || 'admin@pressco21.com' }}",
+        "subject": "=[PRESSCO21] 클래스 수강 취소 완료 안내",
+        "emailType": "html",
+        "message": "=<div style=\"font-family:sans-serif;max-width:600px;margin:0 auto;padding:20px;\"><h2 style=\"color:#3d2c1e;border-bottom:2px solid #7d9675;padding-bottom:10px;\">수강 취소가 완료되었습니다</h2><p>안녕하세요, {{ $('Classify Cancel Action').first().json._studentName }}님.</p><p>아래 클래스 수강이 취소 처리되었습니다.</p><table style=\"width:100%;border-collapse:collapse;margin:20px 0;\"><tr style=\"background:#f5f5f5;\"><td style=\"padding:10px;border:1px solid #ddd;font-weight:bold;width:35%;\">주문번호</td><td style=\"padding:10px;border:1px solid #ddd;\">{{ $('Classify Cancel Action').first().json._orderId }}</td></tr><tr><td style=\"padding:10px;border:1px solid #ddd;font-weight:bold;\">클래스 ID</td><td style=\"padding:10px;border:1px solid #ddd;\">{{ $('Classify Cancel Action').first().json._classId }}</td></tr><tr style=\"background:#f5f5f5;\"><td style=\"padding:10px;border:1px solid #ddd;font-weight:bold;\">수강 예정일</td><td style=\"padding:10px;border:1px solid #ddd;\">{{ $('Classify Cancel Action').first().json._classDate }}</td></tr><tr><td style=\"padding:10px;border:1px solid #ddd;font-weight:bold;\">취소 사유</td><td style=\"padding:10px;border:1px solid #ddd;\">{{ $('Classify Cancel Action').first().json._cancelReason }}</td></tr><tr style=\"background:#f5f5f5;\"><td style=\"padding:10px;border:1px solid #ddd;font-weight:bold;\">환불 금액</td><td style=\"padding:10px;border:1px solid #ddd;color:#7d9675;font-weight:bold;\">{{ $('Classify Cancel Action').first().json._orderAmount }}원</td></tr></table><p style=\"color:#666;font-size:13px;\">환불은 결제 수단에 따라 3-5 영업일 내 처리됩니다.</p><p style=\"color:#666;font-size:13px;\">문의: admin@pressco21.com</p><hr style=\"border:none;border-top:1px solid #eee;margin:20px 0;\"><p style=\"color:#999;font-size:12px;\">PRESSCO21 파트너클래스</p></div>",
+        "options": {}
+      },
+      "credentials": {
+        "smtp": {
+          "id": "31jTm9BU7iyj0pVx",
+          "name": "PRESSCO21-SMTP"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "wfr-15",
+      "name": "Telegram Admin Cancel Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2420, 100],
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=\u2705 [클래스 취소 완료]\n\n\uD83D\uDCCB 주문번호: {{ $('Classify Cancel Action').first().json._orderId }}\n\uD83D\uDCB3 정산ID: {{ $('Classify Cancel Action').first().json._settlementId }}\n\uD83D\uDC64 수강생: {{ $('Classify Cancel Action').first().json._studentName }}\n\uD83C\uDFEB 클래스: {{ $('Classify Cancel Action').first().json._classId }}\n\uD83D\uDCB0 환불금액: {{ $('Classify Cancel Action').first().json._orderAmount }}원\n\uD83D\uDCAC 취소사유: {{ $('Classify Cancel Action').first().json._cancelReason }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "wfr-16",
+      "name": "Respond Cancel Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2640, 100],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, data: { message: '취소가 완료되었습니다.', settlement_id: $('Classify Cancel Action').first().json._settlementId, order_id: $('Classify Cancel Action').first().json._orderId, refund_amount: $('Classify Cancel Action').first().json._orderAmount } }) }}"
+      }
+    },
+    {
+      "id": "wfr-06",
+      "name": "IF Already Cancelled",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 500],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "cond-already",
+              "leftValue": "={{ $json._action }}",
+              "rightValue": "already_cancelled",
+              "operator": { "type": "string", "operation": "equals" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wfr-07",
+      "name": "Respond Already Cancelled",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1540, 400],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, skipped: true, data: { message: '이미 취소된 주문입니다.', settlement_id: $json._settlementId, order_id: $json._orderId } }) }}"
+      }
+    },
+    {
+      "id": "wfr-08",
+      "name": "Telegram Manual Alert",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1540, 620],
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "=\u26A0\uFE0F [수동 처리 필요] 클래스 취소 요청\n\n\uD83D\uDCCB 주문번호: {{ $json._orderId }}\n\uD83D\uDCB3 정산ID: {{ $json._settlementId }}\n\uD83D\uDC64 수강생: {{ $json._studentName }}\n\uD83C\uDFEB 클래스: {{ $json._classId }}\n\uD83D\uDCC5 수강일: {{ $json._classDate }}\n\uD83D\uDEA8 현재상태: {{ $json._currentStatus }}\n\uD83D\uDCAC 취소사유: {{ $json._cancelReason }}\n\n수강일이 이미 지났습니다.\n관리자 수동 처리가 필요합니다.",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "wfr-09",
+      "name": "Respond Manual Required",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1760, 620],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: 'manual_review_required', data: { message: '수강일이 이미 지났습니다. 관리자에게 문의해주세요.', settlement_id: $('Classify Cancel Action').first().json._settlementId, order_id: $('Classify Cancel Action').first().json._orderId } }) }}"
+      }
+    }
+  ],
+  "connections": {
+    "Webhook Cancel Booking": {
+      "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }]]
+    },
+    "Validate Input": {
+      "main": [[{ "node": "Find Settlement", "type": "main", "index": 0 }]]
+    },
+    "Find Settlement": {
+      "main": [[{ "node": "Classify Cancel Action", "type": "main", "index": 0 }]]
+    },
+    "Classify Cancel Action": {
+      "main": [[{ "node": "IF Cancellable", "type": "main", "index": 0 }]]
+    },
+    "IF Cancellable": {
+      "main": [
+        [{ "node": "IF Needs Reserve Deduct", "type": "main", "index": 0 }],
+        [{ "node": "IF Already Cancelled", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF Needs Reserve Deduct": {
+      "main": [
+        [{ "node": "Deduct Reserve", "type": "main", "index": 0 }],
+        [{ "node": "PATCH Settlement Cancelled", "type": "main", "index": 0 }]
+      ]
+    },
+    "Deduct Reserve": {
+      "main": [[{ "node": "Check Deduct Result", "type": "main", "index": 0 }]]
+    },
+    "Check Deduct Result": {
+      "main": [[{ "node": "PATCH Settlement Cancelled", "type": "main", "index": 0 }]]
+    },
+    "PATCH Settlement Cancelled": {
+      "main": [[{ "node": "Email Cancel Notification", "type": "main", "index": 0 }]]
+    },
+    "Email Cancel Notification": {
+      "main": [[{ "node": "Telegram Admin Cancel Alert", "type": "main", "index": 0 }]]
+    },
+    "Telegram Admin Cancel Alert": {
+      "main": [[{ "node": "Respond Cancel Success", "type": "main", "index": 0 }]]
+    },
+    "IF Already Cancelled": {
+      "main": [
+        [{ "node": "Respond Already Cancelled", "type": "main", "index": 0 }],
+        [{ "node": "Telegram Manual Alert", "type": "main", "index": 0 }]
+      ]
+    },
+    "Telegram Manual Alert": {
+      "main": [[{ "node": "Respond Manual Required", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

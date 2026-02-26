@@ -14,6 +14,9 @@
     /** WF-10 교육 이수 엔드포인트 */
     var EDUCATION_URL = 'https://n8n.pressco21.com/webhook/education-complete';
 
+    /** WF-02 파트너 인증 엔드포인트 (교육 상태 조회) */
+    var PARTNER_AUTH_URL = 'https://n8n.pressco21.com/webhook/partner-auth';
+
     /** 총 문항 수 (서버와 동일, 고정) */
     var TOTAL_QUESTIONS = 15;
 
@@ -218,17 +221,52 @@
             return;
         }
 
-        // 콘텐츠 표시
-        showArea('peContentArea');
+        // 교육 이수 완료 여부 사전 체크
+        fetchEducationStatus(memberId, function(err, completed) {
+            if (!err && completed) {
+                showArea('peAlreadyArea');
+                return;
+            }
+            // 콘텐츠 표시
+            showArea('peContentArea');
 
-        // YouTube IFrame API 로드
-        loadYouTubeAPI();
+            // YouTube IFrame API 로드
+            loadYouTubeAPI();
 
-        // 퀴즈 문항 렌더링
-        renderQuizQuestions();
+            // 퀴즈 문항 렌더링
+            renderQuizQuestions();
 
-        // 이벤트 바인딩
-        bindEvents();
+            // 이벤트 바인딩
+            bindEvents();
+        });
+    }
+
+
+    /* ========================================
+       교육 상태 조회 (WF-02)
+       ======================================== */
+
+    /**
+     * 교육 이수 완료 여부 사전 조회
+     * @param {string} mid - 회원 ID
+     * @param {Function} callback - function(err, isCompleted)
+     */
+    function fetchEducationStatus(mid, callback) {
+        fetch(PARTNER_AUTH_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getEducationStatus', member_id: mid }),
+            redirect: 'follow'
+        })
+            .then(function(response) { return response.json(); })
+            .then(function(resData) {
+                var completed = !!(resData && resData.success && resData.data && resData.data.education_completed);
+                callback(null, completed);
+            })
+            .catch(function(err) {
+                console.warn('[PartnerEducation] 상태 조회 실패 (무시):', err);
+                callback(err, false);
+            });
     }
 
 
@@ -453,9 +491,10 @@
             return;
         }
 
-        // 미응답 경고 숨기기
+        // 미응답 경고 + 제출 에러 숨기기
         var warningEl = document.getElementById('peQuizWarning');
         if (warningEl) warningEl.style.display = 'none';
+        hideSubmitError();
 
         // 선택된 답변 배열 수집 (채점은 서버에서)
         var answers = [];
@@ -481,7 +520,7 @@
             isSubmitting = false;
 
             if (err) {
-                alert('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
+                showSubmitError('네트워크 오류가 발생했습니다. 잠시 후 다시 시도해주세요.');
                 return;
             }
 
@@ -575,12 +614,12 @@
         }
 
         if (errorCode === 'INVALID_SCORE') {
-            alert('점수 데이터에 문제가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+            showSubmitError('점수 데이터에 문제가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.');
             return;
         }
 
         // 기타 에러
-        alert(errorMsg);
+        showSubmitError(errorMsg);
     }
 
 
@@ -745,6 +784,36 @@
             if (line2) line2.classList.add('is-done');
             if (step3) step3.classList.add('is-done');
         }
+    }
+
+
+    /* ========================================
+       제출 에러 메시지 (alert 대체)
+       ======================================== */
+
+    /**
+     * 퀴즈 폼 상단에 인라인 에러 표시
+     * @param {string} msg
+     */
+    function showSubmitError(msg) {
+        var el = document.getElementById('peSubmitError');
+        if (!el) {
+            // 요소 없으면 동적 생성 (퀴즈 폼 상단에 삽입)
+            el = document.createElement('div');
+            el.id = 'peSubmitError';
+            el.style.cssText = 'background:#fff2f2;border:1px solid #e55;color:#c33;padding:12px 16px;border-radius:8px;margin:0 0 16px;font-size:14px;';
+            var form = document.getElementById('peQuizForm');
+            if (form) form.insertBefore(el, form.firstChild);
+        }
+        el.textContent = msg;
+        el.style.display = '';
+        el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    }
+
+    /** 제출 에러 메시지 숨기기 */
+    function hideSubmitError() {
+        var el = document.getElementById('peSubmitError');
+        if (el) el.style.display = 'none';
     }
 
 

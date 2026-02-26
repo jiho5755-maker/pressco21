@@ -14,6 +14,9 @@
     /** n8n WF-16 강의 등록 엔드포인트 */
     var REGISTER_URL = 'https://n8n.pressco21.com/webhook/class-register';
 
+    /** WF-02 파트너 인증 엔드포인트 */
+    var PARTNER_AUTH_URL = 'https://n8n.pressco21.com/webhook/partner-auth';
+
     /* ========================================
        상태 관리
        ======================================== */
@@ -51,11 +54,67 @@
             return;
         }
 
-        // 폼 표시
-        showArea('crFormArea');
+        // 파트너 인증 + 교육 이수 사전 체크
+        checkPartnerAndEducation(memberId, function(status) {
+            if (status === 'NOT_PARTNER') {
+                showAlreadyArea(
+                    '파트너 전용 기능입니다',
+                    '강의 등록은 승인된 파트너만 이용하실 수 있어요. 먼저 파트너 신청을 진행해주세요.'
+                );
+                return;
+            }
+            if (status === 'EDUCATION_REQUIRED') {
+                showAlreadyArea(
+                    '교육 이수 후 이용 가능합니다',
+                    '파트너 필수 교육을 이수하시면 강의 등록이 가능해요. 교육 페이지에서 먼저 이수해주세요.'
+                );
+                return;
+            }
+            // 정상: 폼 표시
+            showArea('crFormArea');
+            bindFormEvents();
+        });
+    }
 
-        // 이벤트 바인딩
-        bindFormEvents();
+
+    /* ========================================
+       파트너 인증 사전 체크 (WF-02)
+       ======================================== */
+
+    /**
+     * 파트너 인증 + 교육 이수 여부 확인
+     * @param {string} mid - 회원 ID
+     * @param {Function} callback - function(status) 'OK' | 'NOT_PARTNER' | 'EDUCATION_REQUIRED' | 'ERROR'
+     */
+    function checkPartnerAndEducation(mid, callback) {
+        fetch(PARTNER_AUTH_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getPartnerAuth', member_id: mid }),
+            redirect: 'follow'
+        })
+            .then(function(response) { return response.json(); })
+            .then(function(resData) {
+                if (!resData || !resData.success) {
+                    callback('NOT_PARTNER');
+                    return;
+                }
+                var data = resData.data || {};
+                if (!data.is_partner) {
+                    callback('NOT_PARTNER');
+                    return;
+                }
+                if (!data.education_completed) {
+                    callback('EDUCATION_REQUIRED');
+                    return;
+                }
+                callback('OK');
+            })
+            .catch(function(err) {
+                console.warn('[ClassRegister] 파트너 인증 체크 실패 (폼 표시 진행):', err);
+                // 네트워크 오류 시 폼 표시 (UX 저하 방지)
+                callback('OK');
+            });
     }
 
 
@@ -94,6 +153,9 @@
             })(toggleBtns[i]);
         }
 
+        // 이미지 URL 미리보기
+        bindImagePreview();
+
         // 입력 시 에러 초기화
         var inputs = document.querySelectorAll('.class-register .cr-form__input, .class-register .cr-form__select, .class-register .cr-form__textarea');
         for (var j = 0; j < inputs.length; j++) {
@@ -106,6 +168,46 @@
                 });
             })(inputs[j]);
         }
+    }
+
+    /**
+     * 이미지 URL 입력 시 실시간 미리보기
+     */
+    function bindImagePreview() {
+        var urlInput = document.getElementById('crImageUrl');
+        var previewWrap = document.getElementById('crImagePreviewWrap');
+        var previewImg = document.getElementById('crImagePreview');
+
+        if (!urlInput) return;
+
+        // 미리보기 요소가 없으면 동적 생성
+        if (!previewWrap) {
+            previewWrap = document.createElement('div');
+            previewWrap.id = 'crImagePreviewWrap';
+            previewWrap.style.cssText = 'display:none;margin-top:8px;';
+            previewImg = document.createElement('img');
+            previewImg.id = 'crImagePreview';
+            previewImg.alt = '이미지 미리보기';
+            previewImg.style.cssText = 'max-width:100%;max-height:200px;border-radius:8px;border:1px solid #e0ddd8;object-fit:cover;';
+            previewWrap.appendChild(previewImg);
+            urlInput.parentNode.appendChild(previewWrap);
+        }
+
+        urlInput.addEventListener('input', function() {
+            var url = (this.value || '').trim();
+            if (isValidUrl(url) && url.length > 10) {
+                previewImg.src = url;
+                previewImg.onload = function() {
+                    previewWrap.style.display = '';
+                };
+                previewImg.onerror = function() {
+                    previewWrap.style.display = 'none';
+                };
+            } else {
+                previewWrap.style.display = 'none';
+                previewImg.src = '';
+            }
+        });
     }
 
     /**

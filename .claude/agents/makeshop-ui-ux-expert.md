@@ -223,6 +223,89 @@ pressco21/
 
 ---
 
+## Chart.js 심화 패턴 (파트너 대시보드)
+
+### 접근성 팔레트 (색각이상 대응)
+```javascript
+// 세이지 그린 계열 - 색각이상 안전
+var chartColors = {
+  sage: '#7d9675',       // 기본
+  sageLight: '#b7c9ad',  // 보조
+  sageDark: '#5a7050',   // 강조
+  accent: '#c4956a',     // 대비 (갈색 계열)
+  neutral: '#d4d0c8'     // 배경
+};
+```
+
+### 복합 차트 패턴 (월별 매출+예약수)
+```javascript
+// 두 축(매출/예약) 동시 표시 — y축 2개
+var config = {
+  type: 'bar',
+  data: {
+    datasets: [
+      { type: 'bar', label: '매출', yAxisID: 'y-revenue', backgroundColor: '#7d9675' },
+      { type: 'line', label: '예약', yAxisID: 'y-count', borderColor: '#c4956a' }
+    ]
+  },
+  options: {
+    scales: {
+      'y-revenue': { position: 'left', ticks: { callback: function(v) { return (v/10000) + '만'; } } },
+      'y-count': { position: 'right', grid: { drawOnChartArea: false } }
+    }
+  }
+};
+```
+
+### KPI 카드 배치 원칙
+```
+[이번 달 매출]  [전월 대비 +15%▲]  [예약 건수]  [평균 평점]
+    상단 4개 카드 → 한 눈에 핵심 지표 파악
+    변화량: 증가 green / 감소 red / 동일 gray
+    단위 자동 변환: 10000 → "1만", 1000000 → "100만"
+```
+
+## 모바일 터치 UX 가이드
+
+### 최소 터치 타겟
+- 버튼/링크: 최소 `48×48px` (padding 포함)
+- 폼 입력: 최소 `44px` height
+- 체크박스/라디오: 터치 영역 `44×44px` 이상 확보
+
+### 스와이프 패턴
+```javascript
+// Swiper.js 활용 (CDN 로드)
+var swiper = new Swiper('.class-swiper', {
+  slidesPerView: 1.3,    // 모바일: 다음 카드 엣지 노출
+  spaceBetween: 16,
+  breakpoints: {
+    768: { slidesPerView: 2.3 },
+    992: { slidesPerView: 3, enabled: false }  // PC: 스와이프 비활성
+  }
+});
+```
+
+### 하단 네비게이션 (모바일 전용)
+```css
+/* 모바일 전용 하단 고정 바 */
+@media (max-width: 767px) {
+  .mobile-cta-bar {
+    position: fixed; bottom: 0; left: 0; right: 0;
+    height: 70px; padding: 12px 16px;
+    background: #fff; box-shadow: 0 -2px 12px rgba(0,0,0,0.1);
+    z-index: 100;
+  }
+}
+```
+
+### 모바일 퍼널 최적화
+- 폼 필드 수 최소화: 필수만 표시, 선택사항 "더보기" 토글
+- 스텝 인디케이터: 긴 폼은 `1/3 → 2/3 → 3/3` 진행률 표시
+- 자동완성: `autocomplete="email"`, `autocomplete="tel"` 활성화
+- 키보드: 숫자 입력 시 `inputmode="numeric"`, 전화번호 `type="tel"`
+
+---
+
 ## Phase 2/3 신규 페이지 디자인 가이드
 
 ### 클래스 목록 페이지 (`파트너클래스/목록/`)

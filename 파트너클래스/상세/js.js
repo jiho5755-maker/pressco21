@@ -1474,7 +1474,7 @@
         // 비로그인 처리: confirm -> login.html 이동
         if (!memberId) {
             if (confirm('\uc608\uc57d\uc740 \ub85c\uadf8\uc778 \ud6c4 \uc774\uc6a9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\n\ub85c\uadf8\uc778 \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
-                window.location.href = '/member/login.html?returnUrl=' + encodeURIComponent(window.location.href);
+                window.location.href = '/shop/member.html?type=login&returnUrl=' + encodeURIComponent(window.location.href);
             }
             return;
         }
@@ -1555,23 +1555,31 @@
     }
 
     /**
-     * 메이크샵 즉시구매 폼 제출 (POST /shop/basket.html)
-     * - product_uid: 메이크샵 상품 UID (shopdetail.html?branduid=XXXX 와 동일 값)
-     * - prdAmt: 수량(인원)
-     * - ordertype=baro: 바로구매 (장바구니 건너뛰고 주문서 이동)
+     * 메이크샵 즉시구매 폼 제출 — 상품 페이지의 "바로 구매하기" 동작을 그대로 재현
+     * - loginiframe: MakeShop 내부 iframe에 폼 제출 → basket.html이 parent 리다이렉트
+     * - ordertype=baro|parent.|layer: MakeShop 표준 바로구매 값
+     * - option_type=NO: 옵션 없는 상품
      * @param {string|number} brandUid - 메이크샵 상품 UID
      * @param {number} qty - 수량(인원)
      */
     function goToCheckout(brandUid, qty) {
+        // MakeShop loginiframe 방식: hidden iframe에 폼 제출 → parent 리다이렉트
+        var iframe = document.createElement('iframe');
+        iframe.name = 'loginiframe';
+        iframe.style.cssText = 'display:none;position:absolute;width:0;height:0;';
+        document.body.appendChild(iframe);
+
         var form = document.createElement('form');
         form.method = 'post';
         form.action = '/shop/basket.html';
+        form.target = 'loginiframe';
         form.style.display = 'none';
 
         var fields = [
             { name: 'product_uid', value: String(brandUid) },
             { name: 'prdAmt', value: String(qty) },
-            { name: 'ordertype', value: 'baro' }
+            { name: 'option_type', value: 'NO' },
+            { name: 'ordertype', value: 'baro|parent.|layer' }
         ];
 
         for (var i = 0; i < fields.length; i++) {

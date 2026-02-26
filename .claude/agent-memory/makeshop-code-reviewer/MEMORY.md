@@ -154,3 +154,15 @@
 18. Event listener duplication: when rendering functions call bindXxx(), add `_pdBound` flag or bind once during init
 
 See: [patterns.md](patterns.md) for detailed notes.
+
+### Full 5-Page Review (Task 전면리뷰, 2026-02-26) -- Completed
+- **Scope**: 목록, 상세, 파트너, 파트너신청, 교육 (10 files: 5 HTML + 5 JS)
+- **MakeShop Compat**: ALL PASS -- IIFE+strict, var only, no `${}`, CSS scoped, prefixed @keyframes
+- **Critical Issues (4)**:
+  - C-01: 교육/Index.html `href="/partner-dashboard"` -- 404, should be `../파트너/` or absolute
+  - C-02: 교육/js.js client sends `score` to server -- should send `answers` array
+  - C-03: 교육/js.js `CORRECT_ANSWERS` hardcoded in client -- must move to server
+  - C-04: All inter-page links use `../폴더/` relative paths -- may 404 on MakeShop `/shop/page.html?id=XXX` URL structure; needs live testing or switch to absolute paths
+- **Warning Issues (10)**: window.onYouTubeIframeAPIReady overwrite, body.style.overflow (x2), formatPrice NaN (x2), postApply/postEducation no response.ok check, education no partner auth check, hardcoded page ID, inconsistent API variable names, GAS_URL legacy naming
+- **Virtual Tags**: 3/5 pages use `<!--/user_id/-->` correctly; 2 public pages omit correctly
+- **New Pattern**: Inter-page navigation in MakeShop individual pages must use absolute `/shop/page.html?id=XXX` paths, NOT relative `../folder/` paths

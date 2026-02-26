@@ -1487,15 +1487,11 @@
             return;
         }
 
-        // 결제 페이지 URL: makeshop_product_id 있으면 직접구매, 없으면 결제창
-        var paymentUrl = '';
-        if (classData.makeshop_product_id) {
-            paymentUrl = '/goods/goods_order.html?goodsNo='
-                + encodeURIComponent(classData.makeshop_product_id)
-                + '&orderType=direct&cnt=' + selectedQuantity;
-        } else {
-            paymentUrl = '/order/order_pay.html';
-        }
+        // 결제 페이지 URL: 클래스별 상품번호 있으면 사용, 없으면 파트너클래스 통합 상품
+        var goodsNo = classData.makeshop_product_id || '12195502';
+        var paymentUrl = '/goods/goods_order.html?goodsNo='
+            + encodeURIComponent(goodsNo)
+            + '&orderType=direct&cnt=' + selectedQuantity;
 
         // 수강료 계산
         var unitPrice = classData.price || 0;

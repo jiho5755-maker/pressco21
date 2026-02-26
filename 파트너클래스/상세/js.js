@@ -1464,14 +1464,14 @@
 
     /**
      * 예약 버튼 클릭 핸들러 (WF-04 연동)
-     * 1. 비로그인 -> 로그인 안내
+     * 1. 비로그인 -> 로그인 안내 confirm -> login.html 이동
      * 2. 날짜 미선택 -> 날짜 선택 안내
-     * 3. WF-04 POST -> NocoDB 예약 기록 -> 메이크샵 결제 페이지 이동
+     * 3. WF-04 POST -> NocoDB 예약 기록 -> 안내 alert -> 결제 페이지 이동
      */
     function handleBookingClick() {
         if (!classData) return;
 
-        // 비로그인 처리
+        // 비로그인 처리: confirm -> login.html 이동
         if (!memberId) {
             if (confirm('\uc608\uc57d\uc740 \ub85c\uadf8\uc778 \ud6c4 \uc774\uc6a9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\n\ub85c\uadf8\uc778 \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
                 window.location.href = '/member/login.html?returnUrl=' + encodeURIComponent(window.location.href);
@@ -1487,18 +1487,22 @@
             return;
         }
 
-        // 결제 페이지 URL 준비
+        // 결제 페이지 URL: makeshop_product_id 있으면 직접구매, 없으면 결제창
         var paymentUrl = '';
         if (classData.makeshop_product_id) {
-            paymentUrl = '/goods/goods_view.php?goodsNo=' + encodeURIComponent(classData.makeshop_product_id);
+            paymentUrl = '/goods/goods_order.html?goodsNo='
+                + encodeURIComponent(classData.makeshop_product_id)
+                + '&orderType=direct&cnt=' + selectedQuantity;
+        } else {
+            paymentUrl = '/order/order_pay.html';
         }
 
         // 수강료 계산
         var unitPrice = classData.price || 0;
         var totalPrice = unitPrice * selectedQuantity;
 
-        // 예약 확인 모달 표시
-        showBookingConfirm({
+        // WF-04 예약 기록 + 결제 페이지 이동
+        submitBooking({
             className: classData.title || classData.class_name || '',
             date: selectedDate,
             participants: selectedQuantity,
@@ -1508,19 +1512,10 @@
     }
 
     /**
-     * 예약 확인 모달 표시 + WF-04 호출
+     * WF-04 예약 기록 후 결제 페이지 이동
      * @param {Object} info - className, date, participants, totalPrice, paymentUrl
      */
-    function showBookingConfirm(info) {
-        var confirmMsg = '\uc608\uc57d \uc815\ubcf4\ub97c \ud655\uc778\ud574 \uc8fc\uc138\uc694.\n\n'
-            + '\ud074\ub798\uc2a4: ' + info.className + '\n'
-            + '\ub0a0\uc9dc: ' + info.date + '\n'
-            + '\uc778\uc6d0: ' + info.participants + '\uba85\n'
-            + '\uacb0\uc81c \uae08\uc561: ' + formatPrice(info.totalPrice) + '\uc6d0\n\n'
-            + '\uc608\uc57d \ud6c4 \uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.';
-
-        if (!confirm(confirmMsg)) return;
-
+    function submitBooking(info) {
         // WF-04 POST 예약 기록
         var bookingData = {
             class_id: classData.class_id || classData.id || '',
@@ -1530,7 +1525,7 @@
             amount: info.totalPrice
         };
 
-        // 로딩 상태 표시
+        // 버튼 비활성화
         var submitBtn = document.getElementById('bookingSubmit');
         var mobileBtn = document.getElementById('mobileBookingBtn');
         if (submitBtn) submitBtn.disabled = true;
@@ -1543,38 +1538,31 @@
             redirect: 'follow'
         })
         .then(function(response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
             return response.json();
         })
         .then(function(resData) {
             if (submitBtn) submitBtn.disabled = false;
             if (mobileBtn) mobileBtn.disabled = false;
+
             if (resData && resData.success) {
-                // 예약 기록 성공 -> 결제 페이지 이동
-                if (info.paymentUrl) {
-                    window.location.href = info.paymentUrl;
-                } else {
-                    alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4. \uacb0\uc81c \uc815\ubcf4\uac00 \uc5c6\uc2b5\ub2c8\ub2e4. \uace0\uac1d\uc13c\ud130\ub85c \ubb38\uc758\ud574 \uc8fc\uc138\uc694.');
-                }
+                // 예약 기록 성공 -> 안내 후 결제 페이지 이동
+                alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
+                window.location.href = info.paymentUrl;
             } else {
-                // 예약 기록 실패 -> 폴백: 직접 결제 페이지 이동
-                console.warn('[Booking] WF-04 \uc2e4\ud328, \ud3f4\ubc31\uc73c\ub85c \uacb0\uc81c \ud398\uc774\uc9c0 \uc774\ub3d9:', resData);
-                if (info.paymentUrl) {
-                    window.location.href = info.paymentUrl;
-                } else {
-                    alert('\uc608\uc57d \uc815\ubcf4\ub97c \ucc3e\uc744 \uc218 \uc5c6\uc2b5\ub2c8\ub2e4. \uace0\uac1d\uc13c\ud130\ub85c \ubb38\uc758\ud574 \uc8fc\uc138\uc694.');
-                }
+                // WF-04 실패 -> 폴백으로 결제 페이지 이동
+                console.warn('[Booking] WF-04 \uc2e4\ud328, \ud3f4\ubc31 \uc774\ub3d9:', resData);
+                alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
+                window.location.href = info.paymentUrl;
             }
         })
         .catch(function(err) {
             if (submitBtn) submitBtn.disabled = false;
             if (mobileBtn) mobileBtn.disabled = false;
-            // 네트워크 오류 -> 폴백: 직접 결제 페이지 이동
+            // 네트워크 오류 -> 폴백으로 결제 페이지 이동
             console.warn('[Booking] \ub124\ud2b8\uc6cc\ud06c \uc624\ub958, \ud3f4\ubc31 \uc774\ub3d9:', err);
-            if (info.paymentUrl) {
-                window.location.href = info.paymentUrl;
-            } else {
-                alert('\ub124\ud2b8\uc6cc\ud06c \uc624\ub958\uac00 \ubc1c\uc0dd\ud588\uc2b5\ub2c8\ub2e4. \uc7a0\uc2dc \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.');
-            }
+            alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
+            window.location.href = info.paymentUrl;
         });
     }
 

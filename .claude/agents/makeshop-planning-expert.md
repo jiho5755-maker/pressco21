@@ -281,3 +281,4 @@ Memory directory: `/Users/jangjiho/workspace/pressco21/.claude/agent-memory/make
 
 ## MEMORY.md
 (Loaded from /Users/jangjiho/workspace/pressco21/.claude/agent-memory/makeshop-planning-expert/MEMORY.md)
+참조 https://openapi.makeshop.co.kr/docs# > 해당 사이트에 메이크샵 오픈 API 관련 내용 모두 숙지하여 반영할것.

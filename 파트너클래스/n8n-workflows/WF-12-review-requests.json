@@ -28,7 +28,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mcoddguv4d3s3ne",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
@@ -45,7 +45,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [660, 400],
-      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } }
+      "credentials": { "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" } }
     },
     {
       "parameters": {
@@ -98,13 +98,13 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [1540, 600],
-      "credentials": { "telegramApi": { "id": "pressco21-telegram", "name": "PRESSCO21 Telegram Bot" } },
+      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21 Telegram Bot" } },
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Classes",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mpvsno4or6asbxk",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
@@ -121,13 +121,13 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1320, 300],
-      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "credentials": { "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" } },
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
@@ -144,7 +144,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1320, 460],
-      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "credentials": { "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" } },
       "onError": "continueRegularOutput"
     },
     {
@@ -171,7 +171,7 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [1760, 200],
-      "credentials": { "smtp": { "id": "pressco21-smtp", "name": "PRESSCO21 SMTP" } },
+      "credentials": { "smtp": { "id": "31jTm9BU7iyj0pVx", "name": "PRESSCO21 SMTP" } },
       "onError": "continueRegularOutput"
     },
     {
@@ -207,7 +207,7 @@
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
       "position": [1980, 360],
-      "credentials": { "smtp": { "id": "pressco21-smtp", "name": "PRESSCO21 SMTP" } },
+      "credentials": { "smtp": { "id": "31jTm9BU7iyj0pVx", "name": "PRESSCO21 SMTP" } },
       "onError": "continueRegularOutput"
     },
     {
@@ -226,13 +226,13 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1980, 200],
-      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "credentials": { "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" } },
       "onError": "continueRegularOutput"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_EmailLogs",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -245,7 +245,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [2200, 200],
-      "credentials": { "httpHeaderAuth": { "id": "nocodb-token", "name": "NocoDB API Token" } },
+      "credentials": { "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" } },
       "onError": "continueRegularOutput"
     },
     {
@@ -270,7 +270,7 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [2640, 200],
-      "credentials": { "telegramApi": { "id": "pressco21-telegram", "name": "PRESSCO21 Telegram Bot" } },
+      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21 Telegram Bot" } },
       "onError": "continueRegularOutput"
     }
   ],

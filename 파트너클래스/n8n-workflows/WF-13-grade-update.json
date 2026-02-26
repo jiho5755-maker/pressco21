@@ -21,7 +21,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "genericAuth": {
@@ -84,7 +84,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Settlements",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mcoddguv4d3s3ne",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "genericAuth": {

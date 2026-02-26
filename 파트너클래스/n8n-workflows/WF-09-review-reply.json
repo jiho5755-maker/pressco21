@@ -67,7 +67,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
@@ -86,7 +86,7 @@
       "position": [880, 300],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       }
@@ -143,7 +143,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Reviews",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mbikgjzc8zvicrm",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
@@ -162,7 +162,7 @@
       "position": [1540, 200],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       }
@@ -219,7 +219,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Classes",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mpvsno4or6asbxk",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
@@ -238,7 +238,7 @@
       "position": [2200, 100],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       }
@@ -310,7 +310,7 @@
       "position": [2860, 0],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       }

@@ -86,7 +86,7 @@
       "position": [880, 300],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       }
@@ -113,7 +113,7 @@
       "position": [1100, 300],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       }
@@ -195,7 +195,7 @@
       "position": [1760, 200],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       }

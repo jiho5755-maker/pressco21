@@ -12,7 +12,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [220, 400],
+      "position": [
+        220,
+        400
+      ],
       "webhookId": "partner-apply"
     },
     {
@@ -23,17 +26,25 @@
       "name": "Validate Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 400]
+      "position": [
+        440,
+        400
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._valid }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -42,7 +53,10 @@
       "name": "IF Input Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [660, 400]
+      "position": [
+        660,
+        400
+      ]
     },
     {
       "parameters": {
@@ -52,8 +66,14 @@
           "responseCode": "400",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -62,19 +82,28 @@
       "name": "Respond Validation Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [880, 560]
+      "position": [
+        880,
+        560
+      ]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -83,10 +112,13 @@
       "name": "NocoDB Check Existing Partner",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 300],
+      "position": [
+        880,
+        300
+      ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       }
@@ -99,17 +131,25 @@
       "name": "Check Partner Exists",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 300]
+      "position": [
+        1100,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._duplicate }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -118,7 +158,10 @@
       "name": "IF Not Already Partner",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1320, 300]
+      "position": [
+        1320,
+        300
+      ]
     },
     {
       "parameters": {
@@ -128,8 +171,14 @@
           "responseCode": "409",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -138,19 +187,28 @@
       "name": "Respond Duplicate Partner",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1540, 460]
+      "position": [
+        1540,
+        460
+      ]
     },
     {
       "parameters": {
         "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Applications",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mkciwqtnqdn8m9c",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})~and(status,eq,PENDING)" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})~and(status,eq,PENDING)"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -159,10 +217,13 @@
       "name": "NocoDB Check Pending Application",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1540, 200],
+      "position": [
+        1540,
+        200
+      ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       }
@@ -175,17 +236,25 @@
       "name": "Check Application Exists",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1760, 200]
+      "position": [
+        1760,
+        200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._duplicate }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -194,7 +263,10 @@
       "name": "IF No Pending Application",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1980, 200]
+      "position": [
+        1980,
+        200
+      ]
     },
     {
       "parameters": {
@@ -204,8 +276,14 @@
           "responseCode": "409",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -214,7 +292,10 @@
       "name": "Respond Duplicate Application",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2200, 380]
+      "position": [
+        2200,
+        380
+      ]
     },
     {
       "parameters": {
@@ -224,32 +305,76 @@
       "name": "Generate Application ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2200, 100]
+      "position": [
+        2200,
+        100
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Applications",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mkciwqtnqdn8m9c",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "application_id", "value": "={{ $json._applicationId }}" },
-            { "name": "member_id", "value": "={{ $json.memberId }}" },
-            { "name": "applicant_name", "value": "={{ $json.name }}" },
-            { "name": "workshop_name", "value": "={{ $json.studioName }}" },
-            { "name": "email", "value": "={{ $json.email }}" },
-            { "name": "phone", "value": "={{ $json.phone }}" },
-            { "name": "location", "value": "={{ $json.location }}" },
-            { "name": "specialty", "value": "={{ $json.specialty }}" },
-            { "name": "portfolio_url", "value": "={{ $json.portfolioUrl }}" },
-            { "name": "instagram_url", "value": "={{ $json.instagramUrl }}" },
-            { "name": "introduction", "value": "={{ $json.introduction }}" },
-            { "name": "status", "value": "PENDING" },
-            { "name": "applied_date", "value": "={{ $json._appliedDate }}" },
-            { "name": "reviewed_date", "value": "" },
-            { "name": "reviewer_note", "value": "" }
+            {
+              "name": "application_id",
+              "value": "={{ $json._applicationId }}"
+            },
+            {
+              "name": "member_id",
+              "value": "={{ $json.memberId }}"
+            },
+            {
+              "name": "applicant_name",
+              "value": "={{ $json.name }}"
+            },
+            {
+              "name": "workshop_name",
+              "value": "={{ $json.studioName }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json.email }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "location",
+              "value": "={{ $json.location }}"
+            },
+            {
+              "name": "specialty",
+              "value": "={{ $json.specialty }}"
+            },
+            {
+              "name": "portfolio_url",
+              "value": "={{ $json.portfolioUrl }}"
+            },
+            {
+              "name": "instagram_url",
+              "value": "={{ $json.instagramUrl }}"
+            },
+            {
+              "name": "introduction",
+              "value": "={{ $json.introduction }}"
+            },
+            {
+              "name": "status",
+              "value": "PENDING"
+            },
+            {
+              "name": "reviewed_date",
+              "value": ""
+            },
+            {
+              "name": "reviewer_note",
+              "value": ""
+            }
           ]
         },
         "options": {}
@@ -258,10 +383,13 @@
       "name": "NocoDB Create Application",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2420, 100],
+      "position": [
+        2420,
+        100
+      ],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       }
@@ -274,17 +402,25 @@
       "name": "Check Create Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2640, 100]
+      "position": [
+        2640,
+        100
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._success }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -293,7 +429,10 @@
       "name": "IF Created OK",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2860, 100]
+      "position": [
+        2860,
+        100
+      ]
     },
     {
       "parameters": {
@@ -303,7 +442,10 @@
       "name": "Build Confirm Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3080, 0]
+      "position": [
+        3080,
+        0
+      ]
     },
     {
       "parameters": {
@@ -318,10 +460,13 @@
       "name": "Send Confirm Email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [3300, 0],
+      "position": [
+        3300,
+        0
+      ],
       "credentials": {
         "smtp": {
-          "id": "pressco21-smtp",
+          "id": "31jTm9BU7iyj0pVx",
           "name": "PRESSCO21 SMTP"
         }
       },
@@ -335,7 +480,10 @@
       "name": "Build Telegram Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3080, 160]
+      "position": [
+        3080,
+        160
+      ]
     },
     {
       "parameters": {
@@ -348,10 +496,13 @@
       "name": "Telegram New Application",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [3300, 160],
+      "position": [
+        3300,
+        160
+      ],
       "credentials": {
         "telegramApi": {
-          "id": "pressco21-telegram",
+          "id": "eS5YwFGpbJht6uCB",
           "name": "PRESSCO21 Telegram Bot"
         }
       },
@@ -365,7 +516,10 @@
       "name": "Build Success Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3520, 0]
+      "position": [
+        3520,
+        0
+      ]
     },
     {
       "parameters": {
@@ -374,8 +528,14 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -384,7 +544,10 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [3740, 0]
+      "position": [
+        3740,
+        0
+      ]
     },
     {
       "parameters": {
@@ -394,7 +557,10 @@
       "name": "Build Error Telegram",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3080, 300]
+      "position": [
+        3080,
+        300
+      ]
     },
     {
       "parameters": {
@@ -407,10 +573,13 @@
       "name": "Telegram Error Alert",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [3300, 300],
+      "position": [
+        3300,
+        300
+      ],
       "credentials": {
         "telegramApi": {
-          "id": "pressco21-telegram",
+          "id": "eS5YwFGpbJht6uCB",
           "name": "PRESSCO21 Telegram Bot"
         }
       },
@@ -424,8 +593,14 @@
           "responseCode": "500",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -434,153 +609,252 @@
       "name": "Respond Create Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [3520, 300]
+      "position": [
+        3520,
+        300
+      ]
     }
   ],
   "connections": {
     "Webhook": {
       "main": [
         [
-          { "node": "Validate Input", "type": "main", "index": 0 }
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Validate Input": {
       "main": [
         [
-          { "node": "IF Input Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF Input Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Input Valid": {
       "main": [
         [
-          { "node": "NocoDB Check Existing Partner", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Check Existing Partner",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Validation Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Check Existing Partner": {
       "main": [
         [
-          { "node": "Check Partner Exists", "type": "main", "index": 0 }
+          {
+            "node": "Check Partner Exists",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Partner Exists": {
       "main": [
         [
-          { "node": "IF Not Already Partner", "type": "main", "index": 0 }
+          {
+            "node": "IF Not Already Partner",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Not Already Partner": {
       "main": [
         [
-          { "node": "NocoDB Check Pending Application", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Check Pending Application",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Duplicate Partner", "type": "main", "index": 0 }
+          {
+            "node": "Respond Duplicate Partner",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Check Pending Application": {
       "main": [
         [
-          { "node": "Check Application Exists", "type": "main", "index": 0 }
+          {
+            "node": "Check Application Exists",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Application Exists": {
       "main": [
         [
-          { "node": "IF No Pending Application", "type": "main", "index": 0 }
+          {
+            "node": "IF No Pending Application",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF No Pending Application": {
       "main": [
         [
-          { "node": "Generate Application ID", "type": "main", "index": 0 }
+          {
+            "node": "Generate Application ID",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Duplicate Application", "type": "main", "index": 0 }
+          {
+            "node": "Respond Duplicate Application",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Generate Application ID": {
       "main": [
         [
-          { "node": "NocoDB Create Application", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Create Application",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Create Application": {
       "main": [
         [
-          { "node": "Check Create Result", "type": "main", "index": 0 }
+          {
+            "node": "Check Create Result",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Create Result": {
       "main": [
         [
-          { "node": "IF Created OK", "type": "main", "index": 0 }
+          {
+            "node": "IF Created OK",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Created OK": {
       "main": [
         [
-          { "node": "Build Confirm Email", "type": "main", "index": 0 },
-          { "node": "Build Telegram Message", "type": "main", "index": 0 }
+          {
+            "node": "Build Confirm Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Telegram Message",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Build Error Telegram", "type": "main", "index": 0 }
+          {
+            "node": "Build Error Telegram",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Confirm Email": {
       "main": [
         [
-          { "node": "Send Confirm Email", "type": "main", "index": 0 }
+          {
+            "node": "Send Confirm Email",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Send Confirm Email": {
       "main": [
         [
-          { "node": "Build Success Response", "type": "main", "index": 0 }
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Telegram Message": {
       "main": [
         [
-          { "node": "Telegram New Application", "type": "main", "index": 0 }
+          {
+            "node": "Telegram New Application",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Success Response": {
       "main": [
         [
-          { "node": "Respond Success", "type": "main", "index": 0 }
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Error Telegram": {
       "main": [
         [
-          { "node": "Telegram Error Alert", "type": "main", "index": 0 }
+          {
+            "node": "Telegram Error Alert",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Telegram Error Alert": {
       "main": [
         [
-          { "node": "Respond Create Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Create Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -590,10 +864,18 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "PRESSCO21" },
-    { "name": "Partner Apply" },
-    { "name": "Phase 2" },
-    { "name": "Task 221" }
+    {
+      "name": "PRESSCO21"
+    },
+    {
+      "name": "Partner Apply"
+    },
+    {
+      "name": "Phase 2"
+    },
+    {
+      "name": "Task 221"
+    }
   ],
   "pinData": {}
 }

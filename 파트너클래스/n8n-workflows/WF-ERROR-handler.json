@@ -35,7 +35,7 @@
       "position": [660, 300],
       "credentials": {
         "telegramApi": {
-          "id": "pressco21-telegram",
+          "id": "eS5YwFGpbJht6uCB",
           "name": "PRESSCO21 Telegram Bot"
         }
       },
@@ -44,7 +44,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_EmailLogs",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
@@ -63,7 +63,7 @@
       "position": [660, 500],
       "credentials": {
         "httpHeaderAuth": {
-          "id": "nocodb-token",
+          "id": "JmXQGe9254wG4qVZ",
           "name": "NocoDB API Token"
         }
       },

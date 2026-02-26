@@ -1555,43 +1555,20 @@
     }
 
     /**
-     * 메이크샵 즉시구매 폼 제출 — 상품 페이지의 "바로 구매하기" 동작을 그대로 재현
-     * - loginiframe: MakeShop 내부 iframe에 폼 제출 → basket.html이 parent 리다이렉트
-     * - ordertype=baro|parent.|layer: MakeShop 표준 바로구매 값
+     * 메이크샵 즉시구매: GET 파라미터로 basket.html 이동
+     * - ordertype=baro: 바로구매 (MakeShop이 처리 후 order.html로 리다이렉트)
      * - option_type=NO: 옵션 없는 상품
+     * - prdAmt: 인원수 → 수강료 자동 계산 (인원 × 단가)
      * @param {string|number} brandUid - 메이크샵 상품 UID
      * @param {number} qty - 수량(인원)
      */
     function goToCheckout(brandUid, qty) {
-        // MakeShop loginiframe 방식: hidden iframe에 폼 제출 → parent 리다이렉트
-        var iframe = document.createElement('iframe');
-        iframe.name = 'loginiframe';
-        iframe.style.cssText = 'display:none;position:absolute;width:0;height:0;';
-        document.body.appendChild(iframe);
-
-        var form = document.createElement('form');
-        form.method = 'post';
-        form.action = '/shop/basket.html';
-        form.target = 'loginiframe';
-        form.style.display = 'none';
-
-        var fields = [
-            { name: 'product_uid', value: String(brandUid) },
-            { name: 'prdAmt', value: String(qty) },
-            { name: 'option_type', value: 'NO' },
-            { name: 'ordertype', value: 'baro|parent.|layer' }
-        ];
-
-        for (var i = 0; i < fields.length; i++) {
-            var inp = document.createElement('input');
-            inp.type = 'hidden';
-            inp.name = fields[i].name;
-            inp.value = fields[i].value;
-            form.appendChild(inp);
-        }
-
-        document.body.appendChild(form);
-        form.submit();
+        var url = '/shop/basket.html'
+            + '?product_uid=' + encodeURIComponent(String(brandUid))
+            + '&prdAmt=' + encodeURIComponent(String(qty))
+            + '&option_type=NO'
+            + '&ordertype=baro';
+        window.location.href = url;
     }
 
 

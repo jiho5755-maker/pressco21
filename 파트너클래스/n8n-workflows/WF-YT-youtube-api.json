@@ -1,0 +1,126 @@
+{
+  "name": "WF-YT YouTube API",
+  "nodes": [
+    {
+      "id": "wyt-01",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "youtube-api",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "youtube-api",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "wyt-02",
+      "name": "Validate Input",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "parameters": {
+        "jsCode": "// WF-YT: 입력 검증\nvar body = $input.first().json.body || $input.first().json;\nvar action = (body.action || 'getVideos').trim();\nvar count = Math.min(Math.max(parseInt(body.count) || 5, 1), 10);\nvar videoId = (body.video_id || '').trim();\n\nif (action !== 'getVideos' && action !== 'getVideoProducts') {\n  action = 'getVideos';\n}\n\nreturn [{ json: { action: action, count: count, videoId: videoId } }];"
+      }
+    },
+    {
+      "id": "wyt-07",
+      "name": "Get Videos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/myujhqim7kcd5c9",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(status,eq,active)" },
+            { "name": "sort", "value": "-published_at" },
+            { "name": "limit", "value": "={{ $json.count }}" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+      }
+    },
+    {
+      "id": "wyt-08",
+      "name": "Get Video Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/m6wv7he8qwjs43g",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(is_active,eq,1)" },
+            { "name": "sort", "value": "display_order" },
+            { "name": "limit", "value": "100" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+      }
+    },
+    {
+      "id": "wyt-09",
+      "name": "Build Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300],
+      "parameters": {
+        "jsCode": "// 영상 + 상품 통합 응답 구성\nvar videosResp = $('Get Videos').first().json;\nvar productsResp = $input.first().json;\n\nvar videos = (videosResp && videosResp.list) ? videosResp.list : [];\nvar allProducts = (productsResp && productsResp.list) ? productsResp.list : [];\n\n// 영상별 상품 매핑\nvar productsByVideo = {};\nfor (var i = 0; i < allProducts.length; i++) {\n  var p = allProducts[i];\n  var vid = p.video_id;\n  if (!productsByVideo[vid]) productsByVideo[vid] = [];\n  productsByVideo[vid].push({\n    branduid: p.branduid || '',\n    product_name: p.product_name || '',\n    product_price: p.product_price || 0,\n    product_image: p.product_image || '',\n    product_url: p.product_url || ('/shop/shopdetail.html?branduid=' + (p.branduid || '')),\n    source: p.source || 'keyword'\n  });\n}\n\n// 응답 items 구성\nvar items = [];\nfor (var j = 0; j < videos.length; j++) {\n  var v = videos[j];\n  var videoId = v.video_id || '';\n  var products = productsByVideo[videoId] || [];\n\n  // 상품 source 결정\n  var productSource = 'none';\n  for (var k = 0; k < products.length; k++) {\n    var src = products[k].source;\n    if (src === 'description' || src === 'comment') { productSource = 'direct'; break; }\n    if (src === 'keyword' && productSource !== 'direct') productSource = 'keyword';\n  }\n\n  // tags 파싱\n  var tags = [];\n  try { tags = JSON.parse(v.tags || '[]'); } catch(e) { tags = []; }\n\n  items.push({\n    id: videoId,\n    title: v.title || '',\n    publishedAt: v.published_at || '',\n    viewCount: v.view_count || 0,\n    thumbnail: 'https://img.youtube.com/vi/' + videoId + '/sddefault.jpg',\n    tags: tags,\n    matchedCategory: v.matched_category || '',\n    products: products.slice(0, 4),\n    productSource: productSource\n  });\n}\n\nreturn [{ json: {\n  status: 'success',\n  items: items,\n  timestamp: new Date().toISOString()\n}}];"
+      }
+    },
+    {
+      "id": "wyt-respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 300],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "Validate Input", "type": "main", "index": 0 }]]
+    },
+    "Validate Input": {
+      "main": [[{ "node": "Get Videos", "type": "main", "index": 0 }]]
+    },
+    "Get Videos": {
+      "main": [[{ "node": "Get Video Products", "type": "main", "index": 0 }]]
+    },
+    "Get Video Products": {
+      "main": [[{ "node": "Build Response", "type": "main", "index": 0 }]]
+    },
+    "Build Response": {
+      "main": [[{ "node": "Respond", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

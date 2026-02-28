@@ -1,0 +1,278 @@
+{
+  "name": "WF-YT-SYNC Video Sync",
+  "nodes": [
+    {
+      "id": "wyts-01",
+      "name": "Schedule 30min",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 30 }]
+        }
+      }
+    },
+    {
+      "id": "wyts-02",
+      "name": "Fetch YouTube RSS",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://www.youtube.com/feeds/videos.xml?channel_id={{ $env.YOUTUBE_CHANNEL_ID || 'UCOt_7gyvjqHBw304hU4-FUw' }}",
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      }
+    },
+    {
+      "id": "wyts-03",
+      "name": "Parse RSS",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300],
+      "parameters": {
+        "jsCode": "// YouTube RSS XML 파싱\nvar raw = $input.first().json;\nvar xml = typeof raw === 'string' ? raw : (raw.body || JSON.stringify(raw));\n\n// videoId, title, published 추출\nvar videoIdRegex = /<yt:videoId>([^<]+)<\\/yt:videoId>/g;\nvar titleRegex = /<title>([^<]+)<\\/title>/g;\nvar publishedRegex = /<published>([^<]+)<\\/published>/g;\nvar thumbRegex = /<media:thumbnail[^>]*url=\"([^\"]+)\"/g;\nvar descRegex = /<media:description>([\\s\\S]*?)<\\/media:description>/g;\n\nvar videoIds = [];\nvar titles = [];\nvar publishedDates = [];\nvar thumbUrls = [];\nvar descriptions = [];\n\nvar m;\nwhile ((m = videoIdRegex.exec(xml)) !== null) videoIds.push(m[1].trim());\nwhile ((m = titleRegex.exec(xml)) !== null) titles.push(m[1].trim());\nwhile ((m = publishedRegex.exec(xml)) !== null) publishedDates.push(m[1].trim());\nwhile ((m = thumbRegex.exec(xml)) !== null) thumbUrls.push(m[1].trim());\nwhile ((m = descRegex.exec(xml)) !== null) {\n  var desc = m[1].trim();\n  // HTML 엔티티 디코딩 (기본)\n  desc = desc.replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&amp;/g, '&').replace(/&quot;/g, '\"').replace(/&#39;/g, \"'\");\n  descriptions.push(desc);\n}\n\n// 채널 제목(첫 번째 title)은 스킵\nvar startIdx = (titles[0] && titles[0].indexOf('PRESSCO') >= 0) ? 1 : 1;\n\nvar videos = [];\nfor (var i = 0; i < videoIds.length; i++) {\n  videos.push({\n    video_id: videoIds[i],\n    title: titles[i + startIdx] || titles[i] || '',\n    published_at: publishedDates[i] || new Date().toISOString(),\n    thumbnail_url: thumbUrls[i] || 'https://img.youtube.com/vi/' + videoIds[i] + '/sddefault.jpg',\n    description: descriptions[i] || ''\n  });\n}\n\nif (videos.length === 0) {\n  throw new Error('YouTube RSS: no videos found');\n}\n\nreturn [{ json: { videos: videos, count: videos.length } }];"
+      }
+    },
+    {
+      "id": "wyts-04",
+      "name": "Get Existing Videos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/myujhqim7kcd5c9",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "fields", "value": "video_id,Id,view_count" },
+            { "name": "limit", "value": "100" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+      }
+    },
+    {
+      "id": "wyts-05",
+      "name": "Find New Videos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300],
+      "parameters": {
+        "jsCode": "// 신규 영상 감지\nvar rssData = $('Parse RSS').first().json;\nvar existingResp = $input.first().json;\n\nvar rssVideos = rssData.videos || [];\nvar existing = (existingResp && existingResp.list) ? existingResp.list : [];\n\nvar existingIds = {};\nfor (var i = 0; i < existing.length; i++) {\n  existingIds[existing[i].video_id] = existing[i].Id;\n}\n\nvar newVideos = [];\nvar updateVideos = [];\n\nfor (var j = 0; j < rssVideos.length; j++) {\n  var v = rssVideos[j];\n  if (!existingIds[v.video_id]) {\n    newVideos.push(v);\n  } else {\n    // 기존 영상은 통계 업데이트 대상\n    updateVideos.push({ id: existingIds[v.video_id], video_id: v.video_id });\n  }\n}\n\nreturn [{ json: { newVideos, updateVideos, hasNew: newVideos.length > 0 } }];"
+      }
+    },
+    {
+      "id": "wyts-06",
+      "name": "Any New Videos?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1320, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.hasNew }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wyts-07",
+      "name": "Get YouTube Details",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/youtube/v3/videos",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "id", "value": "={{ $json.newVideos.map(function(v){return v.video_id}).join(',') }}" },
+            { "name": "part", "value": "snippet,statistics" },
+            { "name": "key", "value": "={{ $env.YOUTUBE_API_KEY || '' }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "wyts-08",
+      "name": "Process New Videos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1760, 200],
+      "parameters": {
+        "jsCode": "// YouTube API 결과로 영상 데이터 보강 + URL/키워드 파싱\nvar ytResp = $input.first().json;\nvar newVideosData = $('Find New Videos').first().json;\nvar rssMap = {};\nvar rssVideos = $('Parse RSS').first().json.videos || [];\nfor (var i = 0; i < rssVideos.length; i++) {\n  rssMap[rssVideos[i].video_id] = rssVideos[i];\n}\n\n// YouTube API 결과 맵\nvar ytMap = {};\nvar ytItems = (ytResp && ytResp.items) ? ytResp.items : [];\nfor (var j = 0; j < ytItems.length; j++) {\n  var item = ytItems[j];\n  ytMap[item.id] = item;\n}\n\n// foreverlove URL 파싱 정규식\nvar URL_REGEX = /https?:\\/\\/(?:www\\.)?foreverlove\\.co\\.kr\\/shop\\/shopdetail\\.html\\?[^\\s\"<>]*branduid=(\\d+)/gi;\n\nvar CATEGORY_MAP = { '압화': ['압화', '프레스드', '건조꽃'], '레진': ['레진', 'uv레진', '에폭시', '몰드'], '캔들': ['캔들', '왁스', '향초'], '석고': ['석고', '방향제'], '비즈': ['비즈', '구슬'] };\n\nfunction detectCategory(text) {\n  var t = (text || '').toLowerCase();\n  for (var cat in CATEGORY_MAP) {\n    var words = CATEGORY_MAP[cat];\n    for (var k = 0; k < words.length; k++) {\n      if (t.indexOf(words[k]) >= 0) return cat;\n    }\n  }\n  return '';\n}\n\nvar processedVideos = [];\nvar newVideos = newVideosData.newVideos || [];\n\nfor (var n = 0; n < newVideos.length; n++) {\n  var rssV = rssMap[newVideos[n].video_id] || newVideos[n];\n  var ytV = ytMap[rssV.video_id];\n\n  var title = (ytV && ytV.snippet && ytV.snippet.title) ? ytV.snippet.title : rssV.title;\n  var description = (ytV && ytV.snippet && ytV.snippet.description) ? ytV.snippet.description : (rssV.description || '');\n  var tags = (ytV && ytV.snippet && ytV.snippet.tags) ? ytV.snippet.tags : [];\n  var viewCount = (ytV && ytV.statistics && ytV.statistics.viewCount) ? parseInt(ytV.statistics.viewCount) : 0;\n  var publishedAt = (ytV && ytV.snippet && ytV.snippet.publishedAt) ? ytV.snippet.publishedAt : rssV.published_at;\n  var thumbnail = 'https://img.youtube.com/vi/' + rssV.video_id + '/sddefault.jpg';\n\n  // URL 직접 매칭 (description에서 branduid 추출)\n  var directBranduids = [];\n  var urlMatch;\n  var tmpDesc = description;\n  URL_REGEX.lastIndex = 0;\n  while ((urlMatch = URL_REGEX.exec(tmpDesc)) !== null) {\n    if (directBranduids.indexOf(urlMatch[1]) < 0) directBranduids.push(urlMatch[1]);\n  }\n\n  // 카테고리 감지\n  var allText = title + ' ' + description + ' ' + tags.join(' ');\n  var matchedCategory = detectCategory(allText);\n\n  processedVideos.push({\n    video_id: rssV.video_id,\n    title: title,\n    description: description.substring(0, 2000),\n    tags: JSON.stringify(tags),\n    thumbnail_url: thumbnail,\n    view_count: viewCount,\n    published_at: publishedAt,\n    synced_at: new Date().toISOString(),\n    product_count: 0,\n    matched_category: matchedCategory,\n    status: 'active',\n    // 매칭 데이터 (워크플로우 내 참조용)\n    _directBranduids: directBranduids,\n    _allText: allText\n  });\n}\n\nreturn [{ json: { processedVideos, count: processedVideos.length } }];"
+      }
+    },
+    {
+      "id": "wyts-09",
+      "name": "Insert New Videos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1980, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/bulk/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/myujhqim7kcd5c9",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.processedVideos.map(function(v){ var rec = Object.assign({}, v); delete rec._directBranduids; delete rec._allText; return rec; })) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+      }
+    },
+    {
+      "id": "wyts-10",
+      "name": "Match Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2200, 200],
+      "parameters": {
+        "jsCode": "// URL 직접 매칭 + 키워드 매칭으로 tbl_VideoProducts 레코드 생성\nvar processed = $('Process New Videos').first().json;\nvar videos = processed.processedVideos || [];\n\n// 키워드 → 카테고리 매핑\nvar KEYWORDS = { '압화':['압화','프레스드플라워'], '레진':['레진','UV레진','에폭시레진','몰드'], '캔들':['캔들','왁스','소이왁스'], '석고':['석고방향제','석고'], '비즈':['비즈','구슬','비즈공예'] };\n\n// score 계산 함수 (제목에 포함=3, 태그에 포함=2, 설명에 포함=1)\nfunction scoreKeyword(keyword, video) {\n  var kw = keyword.toLowerCase();\n  var score = 0;\n  if ((video.title || '').toLowerCase().indexOf(kw) >= 0) score += 3;\n  var tags = [];\n  try { tags = JSON.parse(video.tags || '[]'); } catch(e) {}\n  if (tags.join(' ').toLowerCase().indexOf(kw) >= 0) score += 2;\n  if ((video.description || '').toLowerCase().indexOf(kw) >= 0) score += 1;\n  return score;\n}\n\nvar videoProductRequests = [];\nfor (var i = 0; i < videos.length; i++) {\n  var v = videos[i];\n  var directBranduids = v._directBranduids || [];\n\n  // URL 직접 매칭 레코드\n  for (var d = 0; d < directBranduids.length; d++) {\n    videoProductRequests.push({\n      video_id: v.video_id,\n      branduid: directBranduids[d],\n      product_name: '',\n      product_price: 0,\n      product_image: '',\n      product_url: '/shop/shopdetail.html?branduid=' + directBranduids[d],\n      source: 'description',\n      confidence: 'high',\n      match_score: 100,\n      display_order: d + 1,\n      is_active: true,\n      matched_at: new Date().toISOString()\n    });\n  }\n\n  // 키워드 매칭 (직접 매칭 없을 때만)\n  if (directBranduids.length === 0) {\n    var detectedKws = [];\n    for (var cat in KEYWORDS) {\n      var words = KEYWORDS[cat];\n      for (var k = 0; k < words.length; k++) {\n        var sc = scoreKeyword(words[k], v);\n        if (sc > 0) detectedKws.push({ keyword: words[k], category: cat, score: sc });\n      }\n    }\n    detectedKws.sort(function(a, b) { return b.score - a.score; });\n\n    // 키워드 기반 상품 매칭은 tbl_Products 조회가 필요하지만\n    // 이 Code 노드에서는 HTTP 호출 불가 → 키워드 정보만 저장\n    // matched_category는 이미 video에 설정됨\n    v._topKeywords = detectedKws.slice(0, 3).map(function(kw) { return kw.keyword; });\n  }\n}\n\nreturn [{ json: { videoProductRequests, directMatchCount: videoProductRequests.length, videos: videos } }];"
+      }
+    },
+    {
+      "id": "wyts-11",
+      "name": "Get Products For Keyword Match",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2420, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/mq4aef7kh1tg1zz",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(status,eq,active)" },
+            { "name": "fields", "value": "branduid,product_name,price,image_url,product_url,keywords,category_name" },
+            { "name": "limit", "value": "500" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+      }
+    },
+    {
+      "id": "wyts-12",
+      "name": "Build Video Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, 200],
+      "parameters": {
+        "jsCode": "// 키워드 매칭으로 VideoProducts 레코드 완성\nvar matchData = $('Match Products').first().json;\nvar productsResp = $input.first().json;\n\nvar allProducts = (productsResp && productsResp.list) ? productsResp.list : [];\nvar directRequests = matchData.videoProductRequests || [];\nvar videos = matchData.videos || [];\n\n// 이미 URL 직접 매칭된 video_id 목록\nvar directVideoIds = {};\nfor (var r = 0; r < directRequests.length; r++) {\n  directVideoIds[directRequests[r].video_id] = true;\n}\n\n// 상품 키워드 인덱스 구축\nvar productKeywords = {};\nfor (var p = 0; p < allProducts.length; p++) {\n  var prod = allProducts[p];\n  var kws = [];\n  try { kws = JSON.parse(prod.keywords || '[]'); } catch(e) {}\n  productKeywords[prod.branduid] = {\n    keywords: kws,\n    product: prod\n  };\n}\n\nvar keywordMatchRequests = [];\n\nfor (var i = 0; i < videos.length; i++) {\n  var v = videos[i];\n  if (directVideoIds[v.video_id]) continue; // 이미 URL 직접 매칭\n\n  var topKws = v._topKeywords || [];\n  var matchedProducts = [];\n\n  for (var j = 0; j < allProducts.length; j++) {\n    var prod = allProducts[j];\n    var prodName = (prod.product_name || '').toLowerCase();\n    var score = 0;\n\n    for (var k = 0; k < topKws.length; k++) {\n      if (prodName.indexOf(topKws[k].toLowerCase()) >= 0) score += 2;\n    }\n    if ((v.matched_category || '') && prodName.indexOf(v.matched_category.toLowerCase()) >= 0) score += 3;\n    var catName = prod.category_name || '';\n    if (catName && catName === v.matched_category) score += 1;\n\n    if (score > 0) matchedProducts.push({ score, prod });\n  }\n\n  // 점수 순 정렬, 상위 4개\n  matchedProducts.sort(function(a, b) { return b.score - a.score; });\n  matchedProducts = matchedProducts.slice(0, 4);\n\n  for (var m = 0; m < matchedProducts.length; m++) {\n    var mp = matchedProducts[m];\n    keywordMatchRequests.push({\n      video_id: v.video_id,\n      branduid: mp.prod.branduid,\n      product_name: mp.prod.product_name || '',\n      product_price: mp.prod.price || 0,\n      product_image: mp.prod.image_url || '',\n      product_url: mp.prod.product_url || '/shop/shopdetail.html?branduid=' + mp.prod.branduid,\n      source: 'keyword',\n      confidence: 'medium',\n      match_score: mp.score,\n      display_order: m + 1,\n      is_active: true,\n      matched_at: new Date().toISOString()\n    });\n  }\n}\n\nvar allRequests = directRequests.concat(keywordMatchRequests);\nreturn [{ json: { allRequests, count: allRequests.length } }];"
+      }
+    },
+    {
+      "id": "wyts-13",
+      "name": "Insert Video Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2860, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/bulk/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/m6wv7he8qwjs43g",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.allRequests.length > 0 ? $json.allRequests : [{ _skip: true }]) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+      }
+    },
+    {
+      "id": "wyts-14",
+      "name": "Notify New Videos",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3080, 200],
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID || '7713811206' }}",
+        "text": "={{ '\uD83C\uDFAC \uC2E0\uADDC YouTube \uC601\uC0C1 \uAC10\uC9C0: ' + $('Process New Videos').first().json.count + '\uAC1C\\n\uC5F0\uB3D9 \uC0C1\uD488: ' + $json.count + '\uAC1C\\n\uC2DC\uAC04: ' + new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21 Telegram Bot" }
+      }
+    },
+    {
+      "id": "wyts-15",
+      "name": "No New Videos",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 420],
+      "parameters": {
+        "jsCode": "// 신규 영상 없음 - 종료\nreturn [{ json: { status: 'no_new_videos', timestamp: new Date().toISOString() } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule 30min": {
+      "main": [[{ "node": "Fetch YouTube RSS", "type": "main", "index": 0 }]]
+    },
+    "Fetch YouTube RSS": {
+      "main": [[{ "node": "Parse RSS", "type": "main", "index": 0 }]]
+    },
+    "Parse RSS": {
+      "main": [[{ "node": "Get Existing Videos", "type": "main", "index": 0 }]]
+    },
+    "Get Existing Videos": {
+      "main": [[{ "node": "Find New Videos", "type": "main", "index": 0 }]]
+    },
+    "Find New Videos": {
+      "main": [[{ "node": "Any New Videos?", "type": "main", "index": 0 }]]
+    },
+    "Any New Videos?": {
+      "main": [
+        [{ "node": "Get YouTube Details", "type": "main", "index": 0 }],
+        [{ "node": "No New Videos", "type": "main", "index": 0 }]
+      ]
+    },
+    "Get YouTube Details": {
+      "main": [[{ "node": "Process New Videos", "type": "main", "index": 0 }]]
+    },
+    "Process New Videos": {
+      "main": [[{ "node": "Insert New Videos", "type": "main", "index": 0 }]]
+    },
+    "Insert New Videos": {
+      "main": [[{ "node": "Match Products", "type": "main", "index": 0 }]]
+    },
+    "Match Products": {
+      "main": [[{ "node": "Get Products For Keyword Match", "type": "main", "index": 0 }]]
+    },
+    "Get Products For Keyword Match": {
+      "main": [[{ "node": "Build Video Products", "type": "main", "index": 0 }]]
+    },
+    "Build Video Products": {
+      "main": [[{ "node": "Insert Video Products", "type": "main", "index": 0 }]]
+    },
+    "Insert Video Products": {
+      "main": [[{ "node": "Notify New Videos", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" }
+}

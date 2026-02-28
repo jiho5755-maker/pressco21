@@ -9,8 +9,7 @@
     /* ========================================
        설정
        ======================================== */
-    var YOUTUBE_GAS_URL =
-        'https://script.google.com/macros/s/AKfycbxNQxgd8Ew0oClPSIoSA3vbtbf4LoOyHL6j7J1cXSyI1gmaL3ya6teTwmu883js4zSkwg/exec';
+    var N8N_YOUTUBE_URL = 'https://n8n.pressco21.com/webhook/youtube-api';
 
     /* ========================================
        상품 더보기 (페이지네이션)
@@ -221,45 +220,68 @@
     }
 
     /* ========================================
-       YouTube 섹션 (Learn & Shop)
+       YouTube 섹션 (Learn & Shop) — n8n WF-YT 연동 v4
        ======================================== */
-    var YT_CACHE_KEY = 'yt_cache_v3';
-    var YT_CACHE_TIME = 'yt_time_v3';
-    var YT_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24시간
+    var YT_CACHE_KEY = 'yt_cache_n8n_v1';
+    var YT_CACHE_TIME = 'yt_time_n8n_v1';
+    var YT_CACHE_DURATION = 30 * 60 * 1000; // 30분
+    var ytAllVideos = [];
+    var ytCurrentIndex = 0;
+    var ytSliderBound = false;
+    var ytSwiperInstance = null;
 
     function loadYouTube() {
         var featuredArea = document.getElementById('featured-video-area');
         var sliderWrapper = document.getElementById('youtube-slider-wrapper');
         if (!featuredArea || !sliderWrapper) return;
 
-        // localStorage 캐시 확인
+        // localStorage 캐시 확인 (30분 TTL)
         try {
             var cached = localStorage.getItem(YT_CACHE_KEY);
             var time = localStorage.getItem(YT_CACHE_TIME);
             if (cached && time && Date.now() - parseInt(time) < YT_CACHE_DURATION) {
-                renderYouTube(JSON.parse(cached));
-                return;
+                var parsed = JSON.parse(cached);
+                if (parsed && parsed.length > 0) {
+                    ytAllVideos = parsed;
+                    renderYouTube();
+                    return;
+                }
             }
         } catch (e) { /* localStorage 접근 불가 시 무시 */ }
 
-        // GAS API 호출
+        // n8n WF-YT API 호출 (POST)
         $.ajax({
-            url: YOUTUBE_GAS_URL + '?count=5&t=' + Date.now(),
+            url: N8N_YOUTUBE_URL,
+            type: 'POST',
+            contentType: 'application/json',
+            data: JSON.stringify({ action: 'getVideos', count: 5 }),
             dataType: 'json',
-            cache: false,
-            timeout: 10000,
+            timeout: 8000,
             success: function(data) {
-                if (data.status === 'success' && data.items) {
+                if (data && data.status === 'success' && data.items && data.items.length > 0) {
+                    ytAllVideos = data.items;
                     try {
                         localStorage.setItem(YT_CACHE_KEY, JSON.stringify(data.items));
                         localStorage.setItem(YT_CACHE_TIME, Date.now().toString());
                     } catch (e) { /* localStorage 용량 초과 시 무시 */ }
-                    renderYouTube(data.items);
+                    renderYouTube();
                 } else {
                     showYouTubeError(featuredArea);
                 }
             },
             error: function() {
+                // 캐시 폴백 (만료됐어도 데이터 있으면 사용)
+                try {
+                    var fb = localStorage.getItem(YT_CACHE_KEY);
+                    if (fb) {
+                        var parsed = JSON.parse(fb);
+                        if (parsed && parsed.length > 0) {
+                            ytAllVideos = parsed;
+                            renderYouTube();
+                            return;
+                        }
+                    }
+                } catch (e) {}
                 showYouTubeError(featuredArea);
             }
         });
@@ -268,57 +290,70 @@
     function showYouTubeError(container) {
         if (!container) return;
         container.innerHTML =
-            '<p style="padding:30px;text-align:center;color:#888">영상을 불러올 수 없습니다.</p>';
+            '<div style="padding:40px;text-align:center;color:#888">' +
+                '<p>영상을 불러올 수 없습니다.</p>' +
+                '<p style="margin-top:8px"><a href="https://www.youtube.com/@pressco21" target="_blank" rel="noopener noreferrer" style="color:#7d9675">YouTube 채널에서 직접 보기</a></p>' +
+            '</div>';
     }
 
-    function renderYouTube(videos) {
+    function renderYouTube() {
         var featuredArea = document.getElementById('featured-video-area');
         var sliderWrapper = document.getElementById('youtube-slider-wrapper');
-        if (!videos || videos.length === 0 || !featuredArea || !sliderWrapper) return;
+        if (!ytAllVideos || ytAllVideos.length === 0 || !featuredArea || !sliderWrapper) return;
 
-        // 메인 영상: 썸네일 클릭 시 iframe 로드 (성능 최적화)
-        var featured = videos[0];
-        var mainThumb = 'https://img.youtube.com/vi/' + featured.id + '/maxresdefault.jpg';
+        var video = ytAllVideos[ytCurrentIndex];
+        if (!video) return;
+
+        // 메인 영상: 썸네일 클릭 시 iframe 로드
+        var thumb = video.thumbnail || ('https://img.youtube.com/vi/' + video.id + '/sddefault.jpg');
         featuredArea.innerHTML =
-            '<div class="video-wrapper yt-thumb-wrap" data-video-id="' + featured.id + '">' +
-                '<img src="' + mainThumb + '" alt="' + escapeAttr(featured.title) + '" loading="lazy">' +
+            '<div class="video-wrapper yt-thumb-wrap" data-video-id="' + escapeAttr(video.id) + '">' +
+                '<img src="' + escapeAttr(thumb) + '" alt="' + escapeAttr(video.title) + '" loading="lazy">' +
                 '<div class="yt-play-btn"></div>' +
             '</div>' +
             '<div class="featured-video-info">' +
-                '<h4>' + escapeHTML(featured.title) + '</h4>' +
-                '<div class="video-meta">' + new Date(featured.publishedAt).toLocaleDateString() + '</div>' +
+                '<h4>' + escapeHTML(video.title) + '</h4>' +
+                '<div class="video-meta">' + ytFormatDate(video.publishedAt) + '</div>' +
             '</div>';
 
-        // 썸네일 클릭 시 iframe 로드
+        // 썸네일 클릭 이벤트
         var thumbWrap = featuredArea.querySelector('.yt-thumb-wrap');
         if (thumbWrap) {
             thumbWrap.addEventListener('click', function() {
-                playVideo(this.getAttribute('data-video-id'));
+                ytPlayVideo(this.getAttribute('data-video-id'));
             });
         }
 
-        // 슬라이더 영상
+        // 관련 상품 패널 렌더링
+        ytRenderProducts(video);
+
+        // 슬라이더 영상 (현재 메인 제외)
         var sliderHTML = '';
-        for (var i = 1; i < videos.length; i++) {
-            var v = videos[i];
-            var thumb = 'https://img.youtube.com/vi/' + v.id + '/mqdefault.jpg';
+        for (var i = 0; i < ytAllVideos.length; i++) {
+            if (i === ytCurrentIndex) continue;
+            var v = ytAllVideos[i];
+            var slThumb = 'https://img.youtube.com/vi/' + escapeAttr(v.id) + '/mqdefault.jpg';
             sliderHTML +=
-                '<div class="swiper-slide" data-video-id="' + v.id + '">' +
+                '<div class="swiper-slide yt-slide-card" data-index="' + i + '">' +
                     '<div class="slide-video-thumb">' +
-                        '<img src="' + thumb + '" alt="' + escapeAttr(v.title) + '" loading="lazy">' +
+                        '<img src="' + slThumb + '" alt="' + escapeAttr(v.title) + '" loading="lazy">' +
                         '<div class="play-icon"></div>' +
                     '</div>' +
                     '<div class="slide-info">' +
                         '<h6>' + escapeHTML(v.title) + '</h6>' +
-                        '<span class="date">' + new Date(v.publishedAt).toLocaleDateString() + '</span>' +
+                        '<span class="date">' + ytFormatDate(v.publishedAt) + '</span>' +
                     '</div>' +
                 '</div>';
         }
         sliderWrapper.innerHTML = sliderHTML;
 
-        // 슬라이더 Swiper 초기화
+        // Swiper 초기화
+        if (ytSwiperInstance && typeof ytSwiperInstance.destroy === 'function') {
+            ytSwiperInstance.destroy(true, true);
+            ytSwiperInstance = null;
+        }
         if (typeof Swiper !== 'undefined') {
-            new Swiper('.youtube-slider', {
+            ytSwiperInstance = new Swiper('.youtube-slider', {
                 slidesPerView: 1.1,
                 spaceBetween: 10,
                 loop: false,
@@ -328,37 +363,106 @@
                     prevEl: '.youtube-slider-wrap .swiper-button-prev'
                 },
                 breakpoints: {
-                    768: { slidesPerView: 4, spaceBetween: 15, loop: false }
+                    768: { slidesPerView: 4, spaceBetween: 15 }
                 }
             });
         }
 
-        // 슬라이더 카드 클릭 이벤트 위임
-        sliderWrapper.addEventListener('click', function(e) {
-            var slide = e.target.closest('.swiper-slide');
-            if (slide) {
-                var videoId = slide.getAttribute('data-video-id');
-                if (videoId) playVideo(videoId);
-            }
-        });
+        // 슬라이더 클릭 이벤트 위임 (한 번만 바인딩)
+        if (!ytSliderBound) {
+            ytSliderBound = true;
+            sliderWrapper.addEventListener('click', function(e) {
+                var slide = e.target.closest('.yt-slide-card');
+                if (slide) {
+                    var idx = parseInt(slide.getAttribute('data-index'));
+                    if (!isNaN(idx) && idx !== ytCurrentIndex) {
+                        ytCurrentIndex = idx;
+                        renderYouTube();
+                        var ytSection = document.querySelector('.youtube-section-v3');
+                        if (ytSection) ytSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                }
+            });
+        }
     }
 
-    function playVideo(videoId) {
+    function ytRenderProducts(video) {
+        var productsWrap = document.getElementById('related-products-wrap');
+        if (!productsWrap) return;
+
+        var products = video.products || [];
+        var productSource = video.productSource || 'none';
+
+        // 3-tier 헤더
+        var headerText = '';
+        if (productSource === 'direct') {
+            headerText = '이 영상에 사용된 재료';
+        } else if (productSource === 'keyword') {
+            headerText = '추천 재료';
+        } else {
+            headerText = '인기 재료';
+        }
+
+        var html = '<div class="yt-products-inner">';
+        html += '<div class="yt-products-header">';
+        html += '<span class="yt-products-title">' + escapeHTML(headerText) + '</span>';
+        html += '</div>';
+        html += '<div class="yt-products-grid">';
+
+        if (products.length > 0) {
+            for (var i = 0; i < Math.min(products.length, 4); i++) {
+                var p = products[i];
+                var pUrl = p.product_url || ('/shop/shopdetail.html?branduid=' + escapeAttr(p.branduid));
+                var pImg = p.product_image || '';
+                var pName = p.product_name || '';
+                var pPrice = p.product_price ? p.product_price.toLocaleString() + '원' : '';
+                html += '<a href="' + escapeAttr(pUrl) + '" class="yt-product-card">';
+                if (pImg) {
+                    html += '<img src="' + escapeAttr(pImg) + '" alt="' + escapeAttr(pName) + '" loading="lazy">';
+                }
+                html += '<div class="yt-product-name">' + escapeHTML(pName) + '</div>';
+                if (pPrice) html += '<div class="yt-product-price">' + escapeHTML(pPrice) + '</div>';
+                html += '</a>';
+            }
+        } else {
+            html += '<p class="yt-no-products">이 영상의 관련 재료를 준비하고 있어요</p>';
+        }
+
+        html += '</div></div>';
+        productsWrap.innerHTML = html;
+
+        // PC에서는 항상 펼침, 모바일은 접힘
+        if (window.innerWidth >= 768) {
+            productsWrap.classList.add('expanded');
+            productsWrap.classList.remove('collapsed');
+        } else {
+            productsWrap.classList.add('collapsed');
+            productsWrap.classList.remove('expanded');
+        }
+    }
+
+    function ytFormatDate(dateStr) {
+        if (!dateStr) return '';
+        var d = new Date(dateStr);
+        var diff = Math.floor((Date.now() - d.getTime()) / 86400000);
+        if (isNaN(diff)) return '';
+        if (diff === 0) return '오늘';
+        if (diff <= 7) return diff + '일 전';
+        return (d.getMonth() + 1) + '.' + d.getDate();
+    }
+
+    function ytPlayVideo(videoId) {
         var featuredArea = document.getElementById('featured-video-area');
         if (!featuredArea) return;
         var wrapper = featuredArea.querySelector('.video-wrapper');
         if (wrapper) {
             wrapper.innerHTML =
-                '<iframe src="https://www.youtube.com/embed/' + videoId +
-                '?rel=0&autoplay=1" frameborder="0" allowfullscreen></iframe>';
+                '<iframe src="https://www.youtube.com/embed/' + escapeAttr(videoId) +
+                '?rel=0&autoplay=1&modestbranding=1" frameborder="0" allowfullscreen allow="autoplay"></iframe>';
             wrapper.classList.remove('yt-thumb-wrap');
         }
-        var ytSection = document.querySelector('.youtube-section-v3');
-        if (ytSection) {
-            ytSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }
     }
-    window.playVideo = playVideo;
+    window.playVideo = ytPlayVideo;
 
     function toggleProducts() {
         var wrap = document.getElementById('related-products-wrap');

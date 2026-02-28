@@ -1,0 +1,159 @@
+{
+  "name": "WF-YT-CATALOG Product Sync",
+  "nodes": [
+    {
+      "id": "wytc-01",
+      "name": "Schedule 03:30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "cronExpression", "expression": "30 3 * * *" }]
+        }
+      }
+    },
+    {
+      "id": "wytc-02",
+      "name": "Fetch Makeshop Products Page 1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://foreverlove.co.kr/open_api_process.html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product_list" },
+            { "name": "pageSize", "value": "100" },
+            { "name": "page", "value": "1" }
+          ]
+        },
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      }
+    },
+    {
+      "id": "wytc-03",
+      "name": "Parse Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300],
+      "parameters": {
+        "jsCode": "// 메이크샵 상품 목록 파싱 + 키워드 자동 추출\nvar raw = $input.first().json;\nvar body = typeof raw === 'string' ? raw : (raw.body || JSON.stringify(raw));\n\n// JSON 파싱 시도\nvar data;\ntry { data = JSON.parse(body); } catch(e) { data = raw; }\n\n// return_code 확인\nif (data && data.return_code && data.return_code !== '0000') {\n  throw new Error('Makeshop API error: ' + data.return_code + ' / ' + JSON.stringify(data));\n}\n\n// 상품 목록 추출\nvar products = [];\nif (data && data.datas && Array.isArray(data.datas)) {\n  products = data.datas;\n} else if (data && Array.isArray(data)) {\n  products = data;\n}\n\n// 카테고리 키워드 매핑\nvar CATEGORY_KEYWORDS = {\n  '압화': ['압화', '프레스드플라워', '프레스드', '건조꽃', '드라이플라워'],\n  '레진': ['레진', 'UV레진', '에폭시', '실리콘몰드', '몰드'],\n  '캔들': ['캔들', '왁스', '소이왁스', '향초', '심지', '캔들틴'],\n  '석고': ['석고', '방향제', '석고방향제', '아로마'],\n  '비즈': ['비즈', '구슬', '실', '바늘', '클레이']\n};\n\nfunction extractKeywords(name) {\n  if (!name) return [];\n  var kws = [];\n  var lname = name.toLowerCase();\n  for (var cat in CATEGORY_KEYWORDS) {\n    var words = CATEGORY_KEYWORDS[cat];\n    for (var i = 0; i < words.length; i++) {\n      if (lname.indexOf(words[i]) >= 0) {\n        if (kws.indexOf(words[i]) < 0) kws.push(words[i]);\n      }\n    }\n  }\n  return kws;\n}\n\nfunction detectCategory(name) {\n  if (!name) return '';\n  var lname = name.toLowerCase();\n  for (var cat in CATEGORY_KEYWORDS) {\n    var words = CATEGORY_KEYWORDS[cat];\n    for (var i = 0; i < words.length; i++) {\n      if (lname.indexOf(words[i]) >= 0) return cat;\n    }\n  }\n  return '';\n}\n\nvar records = [];\nfor (var j = 0; j < products.length; j++) {\n  var p = products[j];\n  var branduid = String(p.branduid || p.uid || p.product_id || '');\n  var name = p.product_name || p.name || '';\n  var price = parseInt(p.sellprice || p.price || 0);\n  var image = p.image1 || p.image || '';\n  var catCode = p.cate1 || p.category_code || '';\n  var keywords = extractKeywords(name);\n  var catName = detectCategory(name);\n\n  if (branduid && name) {\n    records.push({\n      branduid: branduid,\n      product_name: name,\n      price: price,\n      image_url: image,\n      product_url: '/shop/shopdetail.html?branduid=' + branduid,\n      category_code: catCode,\n      category_name: catName,\n      keywords: JSON.stringify(keywords),\n      status: 'active',\n      synced_at: new Date().toISOString()\n    });\n  }\n}\n\nreturn [{ json: { products: records, total: records.length } }];"
+      }
+    },
+    {
+      "id": "wytc-04",
+      "name": "Get Existing Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/mq4aef7kh1tg1zz",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "fields", "value": "branduid,Id" },
+            { "name": "limit", "value": "1000" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+      }
+    },
+    {
+      "id": "wytc-05",
+      "name": "Upsert Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300],
+      "parameters": {
+        "jsCode": "// 신규/변경 상품 NocoDB Upsert\nvar parsed = $('Parse Products').first().json;\nvar existingResp = $input.first().json;\n\nvar newProducts = parsed.products || [];\nvar existing = (existingResp && existingResp.list) ? existingResp.list : [];\n\n// 기존 branduid → Id 맵\nvar existingMap = {};\nfor (var i = 0; i < existing.length; i++) {\n  existingMap[String(existing[i].branduid)] = existing[i].Id;\n}\n\nvar toInsert = [];\nvar toUpdate = [];\n\nfor (var j = 0; j < newProducts.length; j++) {\n  var p = newProducts[j];\n  if (existingMap[p.branduid]) {\n    toUpdate.push({ id: existingMap[p.branduid], data: p });\n  } else {\n    toInsert.push(p);\n  }\n}\n\nreturn [{ json: { toInsert, toUpdate, insertCount: toInsert.length, updateCount: toUpdate.length } }];"
+      }
+    },
+    {
+      "id": "wytc-06",
+      "name": "Bulk Insert New Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/bulk/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/mq4aef7kh1tg1zz",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.toInsert.length > 0 ? $json.toInsert : [{ _skip: true }]) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+      }
+    },
+    {
+      "id": "wytc-07",
+      "name": "Build Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 300],
+      "parameters": {
+        "jsCode": "var upsertData = $('Upsert Products').first().json;\nvar insertResult = $('Bulk Insert New Products').first().json;\nvar insertCount = upsertData.insertCount || 0;\nvar updateCount = upsertData.updateCount || 0;\nvar msg = '\uD83D\uDCE6 \uBA54\uC774\uD06C\uC0F5 \uC0C1\uD488 \uCE74\uD0C1\uB85C\uADF8 \uB3D9\uAE30\uD654 \uC644\uB8CC\n\uC2E0\uADDC: ' + insertCount + '\uAC1C\n\uAE30\uC874 \uC5C5\uB370\uC774\uD2B8: ' + updateCount + '\uAC1C\n\uC2DC\uAC04: ' + new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });\nreturn [{ json: { message: msg, insertCount, updateCount } }];"
+      }
+    },
+    {
+      "id": "wytc-08",
+      "name": "Telegram Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1760, 300],
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID || '7713811206' }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21 Telegram Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule 03:30": {
+      "main": [[{ "node": "Fetch Makeshop Products Page 1", "type": "main", "index": 0 }]]
+    },
+    "Fetch Makeshop Products Page 1": {
+      "main": [[{ "node": "Parse Products", "type": "main", "index": 0 }]]
+    },
+    "Parse Products": {
+      "main": [[{ "node": "Get Existing Products", "type": "main", "index": 0 }]]
+    },
+    "Get Existing Products": {
+      "main": [[{ "node": "Upsert Products", "type": "main", "index": 0 }]]
+    },
+    "Upsert Products": {
+      "main": [[{ "node": "Bulk Insert New Products", "type": "main", "index": 0 }]]
+    },
+    "Bulk Insert New Products": {
+      "main": [[{ "node": "Build Summary", "type": "main", "index": 0 }]]
+    },
+    "Build Summary": {
+      "main": [[{ "node": "Telegram Notify", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" }
+}

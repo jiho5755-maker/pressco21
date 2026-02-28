@@ -1,0 +1,201 @@
+{
+  "name": "WF-YT-COMMENTS Comment Parse",
+  "nodes": [
+    {
+      "id": "wytcm-01",
+      "name": "Schedule 6Hours",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300],
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "hours", "hoursInterval": 6 }]
+        }
+      }
+    },
+    {
+      "id": "wytcm-02",
+      "name": "Get Recent Videos",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/myujhqim7kcd5c9",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(status,eq,active)" },
+            { "name": "sort", "value": "-published_at" },
+            { "name": "limit", "value": "20" },
+            { "name": "fields", "value": "video_id,Id" }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+      }
+    },
+    {
+      "id": "wytcm-03",
+      "name": "Has API Key?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "leftValue": "={{ $env.YOUTUBE_API_KEY || '' }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEquals" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wytcm-04",
+      "name": "Skip No API Key",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 420],
+      "parameters": {
+        "jsCode": "return [{ json: { status: 'skipped', reason: 'YOUTUBE_API_KEY not configured', timestamp: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "wytcm-05",
+      "name": "Process Each Video",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 200],
+      "parameters": {
+        "jsCode": "// 영상 목록에서 video_id 추출\nvar resp = $('Get Recent Videos').first().json;\nvar videos = (resp && resp.list) ? resp.list : [];\nvar videoIds = videos.map(function(v) { return v.video_id; }).filter(Boolean);\nreturn [{ json: { videoIds: videoIds, total: videoIds.length } }];"
+      }
+    },
+    {
+      "id": "wytcm-06",
+      "name": "Fetch Comments Batch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 200],
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.googleapis.com/youtube/v3/commentThreads",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "videoId", "value": "={{ $json.videoIds.slice(0, 10).join(',') }}" },
+            { "name": "part", "value": "snippet" },
+            { "name": "maxResults", "value": "100" },
+            { "name": "key", "value": "={{ $env.YOUTUBE_API_KEY }}" }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "wytcm-07",
+      "name": "Parse Comment URLs",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1320, 200],
+      "parameters": {
+        "jsCode": "// 댓글에서 foreverlove.co.kr URL 파싱\nvar commentsResp = $input.first().json;\nvar items = (commentsResp && commentsResp.items) ? commentsResp.items : [];\n\nvar URL_REGEX = /https?:\\/\\/(?:www\\.)?foreverlove\\.co\\.kr\\/shop\\/shopdetail\\.html\\?[^\\s\"<>]*branduid=(\\d+)/gi;\n\nvar videoProductMatches = [];\nvar seen = {};\n\nfor (var i = 0; i < items.length; i++) {\n  var item = items[i];\n  var videoId = item.snippet && item.snippet.videoId;\n  var comment = item.snippet && item.snippet.topLevelComment && item.snippet.topLevelComment.snippet && item.snippet.topLevelComment.snippet.textDisplay;\n  if (!videoId || !comment) continue;\n\n  URL_REGEX.lastIndex = 0;\n  var m;\n  while ((m = URL_REGEX.exec(comment)) !== null) {\n    var branduid = m[1];\n    var key = videoId + '_' + branduid;\n    if (!seen[key]) {\n      seen[key] = true;\n      videoProductMatches.push({\n        video_id: videoId,\n        branduid: branduid,\n        product_name: '',\n        product_price: 0,\n        product_image: '',\n        product_url: '/shop/shopdetail.html?branduid=' + branduid,\n        source: 'comment',\n        confidence: 'high',\n        match_score: 90,\n        display_order: 1,\n        is_active: true,\n        matched_at: new Date().toISOString()\n      });\n    }\n  }\n}\n\nreturn [{ json: { matches: videoProductMatches, count: videoProductMatches.length } }];"
+      }
+    },
+    {
+      "id": "wytcm-08",
+      "name": "Has Matches?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1540, 200],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": false },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wytcm-09",
+      "name": "Insert Comment Products",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 200],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/bulk/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/m6wv7he8qwjs43g",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.matches) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+      }
+    },
+    {
+      "id": "wytcm-10",
+      "name": "Comment Parse Notify",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1980, 200],
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID || '7713811206' }}",
+        "text": "={{ '\uD83D\uDCAC YouTube \uB313\uAE00 URL \uD30C\uC2F1 \uC644\uB8CC\\n\uC2E0\uADDC \uC0C1\uD488 \uC5F0\uB3D9: ' + $('Parse Comment URLs').first().json.count + '\uAC1C\\n\uC2DC\uAC04: ' + new Date().toLocaleString('ko-KR', {timeZone:'Asia/Seoul'}) }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21 Telegram Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule 6Hours": {
+      "main": [[{ "node": "Get Recent Videos", "type": "main", "index": 0 }]]
+    },
+    "Get Recent Videos": {
+      "main": [[{ "node": "Has API Key?", "type": "main", "index": 0 }]]
+    },
+    "Has API Key?": {
+      "main": [
+        [{ "node": "Process Each Video", "type": "main", "index": 0 }],
+        [{ "node": "Skip No API Key", "type": "main", "index": 0 }]
+      ]
+    },
+    "Process Each Video": {
+      "main": [[{ "node": "Fetch Comments Batch", "type": "main", "index": 0 }]]
+    },
+    "Fetch Comments Batch": {
+      "main": [[{ "node": "Parse Comment URLs", "type": "main", "index": 0 }]]
+    },
+    "Parse Comment URLs": {
+      "main": [[{ "node": "Has Matches?", "type": "main", "index": 0 }]]
+    },
+    "Has Matches?": {
+      "main": [
+        [{ "node": "Insert Comment Products", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Insert Comment Products": {
+      "main": [[{ "node": "Comment Parse Notify", "type": "main", "index": 0 }]]
+    }
+  },
+  "active": true,
+  "settings": { "executionOrder": "v1" }
+}

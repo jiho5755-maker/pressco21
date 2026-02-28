@@ -1312,6 +1312,73 @@
         font-size: 13px;
         line-height: 1.5;
     }
+
+    /* ============================================
+       yt-products-* : ytRenderProducts() 출력 스타일
+       n8n WF-YT 연동 v4 — 영상별 관련 재료 패널
+       ============================================ */
+    .yt-products-inner {
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
+    }
+    .yt-products-header {
+        border-bottom: 2px solid var(--color-primary-light);
+        padding-bottom: 8px;
+        margin-bottom: 2px;
+    }
+    .yt-products-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--color-dark);
+    }
+    .yt-products-grid {
+        display: grid;
+        grid-template-columns: repeat(2, 1fr);
+        gap: 10px;
+    }
+    .yt-product-card {
+        display: flex;
+        flex-direction: column;
+        background: #fafafa;
+        border: 1px solid #eee;
+        border-radius: 8px;
+        overflow: hidden;
+        text-decoration: none;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    .yt-product-card:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+    .yt-product-card img {
+        width: 100%;
+        aspect-ratio: 1/1;
+        object-fit: cover;
+    }
+    .yt-product-name {
+        padding: 7px 8px 3px;
+        font-size: 11px;
+        font-weight: 600;
+        color: #333;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    .yt-product-price {
+        padding: 0 8px 8px;
+        font-size: 12px;
+        font-weight: 700;
+        color: var(--color-primary);
+    }
+    .yt-no-products {
+        grid-column: 1 / -1;
+        padding: 20px 0;
+        text-align: center;
+        color: #bbb;
+        font-size: 13px;
+    }
+
     .brand-philosophy {
         padding: 60px 0;
         background-color: var(--color-primary-light);
@@ -1479,6 +1546,21 @@
         }
         .related-product-card .rp-price {
             font-size: 14px;
+        }
+        /* PC: yt-products 패널 — 항상 펼침, 그리드 확대 */
+        .yt-products-title {
+            font-size: 15px;
+        }
+        .yt-products-grid {
+            gap: 12px;
+        }
+        .yt-product-name {
+            font-size: 12px;
+            padding: 9px 9px 4px;
+        }
+        .yt-product-price {
+            font-size: 13px;
+            padding: 0 9px 9px;
         }
         .youtube-slider-wrap {
             margin-top: 28px;

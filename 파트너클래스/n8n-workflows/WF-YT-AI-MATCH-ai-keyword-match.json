@@ -94,7 +94,7 @@
       "typeVersion": 2,
       "position": [1100, 300],
       "parameters": {
-        "jsCode": "// AI 처리가 필요한 영상 필터링 (description/comment 직접 매칭 없는 영상)\nvar videosResp = $('Get Active Videos').first().json;\nvar vpsResp = $input.first().json;\n\nvar videos = (videosResp && videosResp.list) ? videosResp.list : [];\nvar allVPs = (vpsResp && vpsResp.list) ? vpsResp.list : [];\n\n// description/comment VPs가 있는 video_id 수집\nvar directVideoIds = {};\nfor (var i = 0; i < allVPs.length; i++) {\n  var vp = allVPs[i];\n  if (vp.source === 'description' || vp.source === 'comment') {\n    directVideoIds[vp.video_id] = true;\n  }\n}\n\n// AI 처리 대상: 직접 URL 매칭 없는 영상만\nvar toProcess = [];\nfor (var j = 0; j < videos.length; j++) {\n  var v = videos[j];\n  if (!directVideoIds[v.video_id]) {\n    toProcess.push(v);\n  }\n}\n\nreturn [{ json: { videos: toProcess, count: toProcess.length } }];"
+        "jsCode": "// AI 처리가 필요한 영상 필터링 (description/comment 직접 매칭 없는 영상)\nvar videosResp = $('Get Active Videos').first().json;\nvar vpsResp = $('Get All VPs').first().json;\n\nvar videos = (videosResp && videosResp.list) ? videosResp.list : [];\nvar allVPs = (vpsResp && vpsResp.list) ? vpsResp.list : [];\n\n// description/comment VPs가 있는 video_id 수집\nvar directVideoIds = {};\nfor (var i = 0; i < allVPs.length; i++) {\n  var vp = allVPs[i];\n  if (vp.source === 'description' || vp.source === 'comment') {\n    directVideoIds[vp.video_id] = true;\n  }\n}\n\n// AI 처리 대상: 직접 URL 매칭 없는 영상만\nvar toProcess = [];\nfor (var j = 0; j < videos.length; j++) {\n  var v = videos[j];\n  if (!directVideoIds[v.video_id]) {\n    toProcess.push(v);\n  }\n}\n\nreturn [{ json: { videos: toProcess, count: toProcess.length } }];"
       }
     },
     {
@@ -144,7 +144,7 @@
       "typeVersion": 2,
       "position": [1980, 100],
       "parameters": {
-        "jsCode": "// Gemini API 프롬프트 구성\nvar v = $input.first().json;\nvar title = v.title || '';\nvar desc = (v.description || '').substring(0, 600);\nvar tagsArr = [];\ntry { tagsArr = JSON.parse(v.tags || '[]'); } catch(e) { tagsArr = []; }\nvar matchedCat = v.matched_category || '';\n\nvar prompt = '당신은 한국 공예 재료 쇼핑몰 상품 매칭 전문가입니다.\\n\\n다음 YouTube 영상 정보에서 영상에서 사용된 핵심 재료명을 추출해 주세요.\\n\\n영상 제목: ' + title + '\\n';\nif (matchedCat) prompt += '감지된 카테고리: ' + matchedCat + '\\n';\nif (tagsArr.length > 0) prompt += '태그: ' + tagsArr.slice(0, 8).join(', ') + '\\n';\nif (desc) prompt += '영상 설명(일부): ' + desc + '\\n';\nprompt += '\\n규칙:\\n';\nprompt += '1. 상품명으로 검색 가능한 정확한 재료명 추출\\n';\nprompt += '2. 예: \"UV레진\", \"실리콘 몰드\", \"소이왁스\", \"LED 천스탠드\", \"압화 꽃 세트\", \"탈포기\"\\n';\nprompt += '3. 철자 주의: 탠 vs 텐, 탈포기 vs 달포기 등 정확한 상품 철자 사용\\n';\nprompt += '4. 최대 5개 키워드 추출\\n';\nprompt += '5. \"만들기\", \"영상\", \"강좌\", \"DIY\" 등 일반 단어 제외\\n';\nprompt += '\\nJSON으로만 응답하세요 (다른 텍스트 없이):\\n';\nprompt += '{\"keywords\": [\"키워드1\", \"키워드2\"], \"category\": \"압화|레진|캔들|석고|비즈|기타\"}';\n\nreturn [{ json: { video_id: v.video_id, title: v.title, prompt: prompt } }];"
+        "jsCode": "// Stage 1: Gemini 키워드 추출용 프롬프트 구성\nvar v = $input.first().json;\nvar title = v.title || '';\nvar desc = (v.description || '').substring(0, 600);\nvar tagsArr = [];\ntry { tagsArr = JSON.parse(v.tags || '[]'); } catch(e) { tagsArr = []; }\nvar matchedCat = v.matched_category || '';\n\nvar prompt = '당신은 한국 공예 재료 쇼핑몰 상품 매칭 전문가입니다.\\n\\n다음 YouTube 영상 정보에서 영상에서 사용된 핵심 재료명을 추출해 주세요.\\n\\n영상 제목: ' + title + '\\n';\nif (matchedCat) prompt += '감지된 카테고리: ' + matchedCat + '\\n';\nif (tagsArr.length > 0) prompt += '태그: ' + tagsArr.slice(0, 8).join(', ') + '\\n';\nif (desc) prompt += '영상 설명(일부): ' + desc + '\\n';\nprompt += '\\n규칙:\\n';\nprompt += '1. 상품명으로 검색 가능한 정확한 재료명 추출\\n';\nprompt += '2. 예: \"UV레진\", \"실리콘 몰드\", \"소이왁스\", \"LED 천스탠드\", \"압화 꽃 세트\", \"탈포기\", \"하바리움 용액\"\\n';\nprompt += '3. 철자 주의: 스탠 vs 스텐 (LED 천스탠드가 올바름), 하바리움 용액/용기 정확히\\n';\nprompt += '4. 최대 5개 키워드 추출\\n';\nprompt += '5. \"만들기\", \"영상\", \"강좌\", \"DIY\" 등 일반 단어 제외\\n';\nprompt += '\\nJSON으로만 응답하세요 (다른 텍스트 없이):\\n';\nprompt += '{\"keywords\": [\"키워드1\", \"키워드2\"], \"category\": \"압화|레진|캔들|석고|비즈|기타\"}';\n\nreturn [{ json: { video_id: v.video_id, title: v.title, prompt: prompt } }];"
       }
     },
     {
@@ -158,7 +158,7 @@
         "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={{ $env.GEMINI_API_KEY || '' }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ contents: [{ role: 'user', parts: [{ text: $json.prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 1000 } }) }}",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ role: 'user', parts: [{ text: $json.prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192 } }) }}",
         "options": {}
       },
       "continueOnFail": true
@@ -170,7 +170,43 @@
       "typeVersion": 2,
       "position": [2420, 100],
       "parameters": {
-        "jsCode": "// Gemini 응답 파싱 + 상품 점수 계산 + deactivate/insert 배열 구성\nvar geminiResp = $input.first().json;\nvar buildData = $('Build Prompt').first().json;\nvar productsResp = $('Get All Products').first().json;\nvar vpsResp = $('Get All VPs').first().json;\n\nvar videoId = buildData.video_id;\nvar allProducts = (productsResp && productsResp.list) ? productsResp.list : [];\nvar allVPs = (vpsResp && vpsResp.list) ? vpsResp.list : [];\n\n// Gemini 응답 파싱 (error 또는 정상 응답 모두 처리)\nvar keywords = [];\nvar aiCategory = '';\ntry {\n  var candidates = (geminiResp && geminiResp.candidates) ? geminiResp.candidates : [];\n  if (candidates.length > 0) {\n    var text = '';\n    if (candidates[0].content && candidates[0].content.parts && candidates[0].content.parts[0]) {\n      text = candidates[0].content.parts[0].text || '';\n    }\n    // JSON 블록 추출 (```json ... ``` 또는 순수 JSON)\n    var jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      var parsed = JSON.parse(jsonMatch[0]);\n      keywords = (parsed.keywords || []).filter(function(k) { return k && k.length >= 2; });\n      aiCategory = parsed.category || '';\n    }\n  }\n} catch(e) { keywords = []; }\n\n// 키워드가 없으면 기존 VP 그대로 유지 (아무것도 변경 안 함)\nif (keywords.length === 0) {\n  return [{ json: { video_id: videoId, keywords: [], deactivateBody: [], insertBody: [], skip: true } }];\n}\n\n// 기존 keyword/ai VP 비활성화 대상 (is_active=false 로 변경)\nvar deactivateBody = [];\nfor (var i = 0; i < allVPs.length; i++) {\n  var vp = allVPs[i];\n  if (vp.video_id === videoId && (vp.source === 'keyword' || vp.source === 'ai') && vp.is_active !== false) {\n    deactivateBody.push({ Id: vp.Id, is_active: false });\n  }\n}\n\n// 상품 점수 계산 (AI 키워드 매칭)\nvar scored = [];\nfor (var j = 0; j < allProducts.length; j++) {\n  var prod = allProducts[j];\n  var pname = (prod.product_name || '').toLowerCase();\n  var score = 0;\n  for (var k = 0; k < keywords.length; k++) {\n    var kw = (keywords[k] || '').toLowerCase();\n    // 전체 키워드 매칭 (최고 점수)\n    if (kw.length >= 2 && pname.indexOf(kw) >= 0) score += 5;\n    // 키워드 내 개별 단어 매칭 (부분 점수)\n    var parts = kw.split(/\\s+/);\n    for (var p = 0; p < parts.length; p++) {\n      if (parts[p].length >= 2 && pname.indexOf(parts[p]) >= 0) score += 2;\n    }\n  }\n  // AI가 감지한 카테고리와 상품명 일치시 보너스\n  if (aiCategory && pname.indexOf(aiCategory.toLowerCase()) >= 0) score += 1;\n  if (score > 0) scored.push({ score: score, prod: prod });\n}\nscored.sort(function(a, b) { return b.score - a.score; });\nvar top4 = scored.slice(0, 4);\n\n// 삽입할 AI VP 레코드 구성\nvar insertBody = [];\nfor (var t = 0; t < top4.length; t++) {\n  var mp = top4[t];\n  insertBody.push({\n    video_id: videoId,\n    branduid: String(mp.prod.branduid || ''),\n    product_name: mp.prod.product_name || '',\n    product_price: mp.prod.price || 0,\n    product_image: mp.prod.image_url || '',\n    product_url: mp.prod.product_url || ('/shop/shopdetail.html?branduid=' + mp.prod.branduid),\n    source: 'ai',\n    confidence: 'medium',\n    match_score: mp.score,\n    display_order: t + 1,\n    is_active: true,\n    matched_at: new Date().toISOString()\n  });\n}\n\nreturn [{ json: { video_id: videoId, keywords: keywords, aiCategory: aiCategory, deactivateBody: deactivateBody, insertBody: insertBody, skip: false } }];"
+        "jsCode": "// Stage 1: Gemini 응답 파싱 + 한국어 정규화 + 상품 점수 계산 → Top 20 후보 반환\nvar geminiResp = $input.first().json;\nvar buildData = $('Build Prompt').first().json;\nvar productsResp = $('Get All Products').first().json;\nvar vpsResp = $('Get All VPs').first().json;\n\nvar videoId = buildData.video_id;\nvar videoTitle = buildData.title || '';\nvar allProducts = (productsResp && productsResp.list) ? productsResp.list : [];\nvar allVPs = (vpsResp && vpsResp.list) ? vpsResp.list : [];\n\n// 한국어 발음 정규화 (AI 오타/발음 오류 보정)\nfunction normalize(s) {\n  return (s || '').toLowerCase()\n    .replace(/스텐/g, '스탠')\n    .replace(/텐드/g, '탠드')\n    .replace(/레짐/g, '레진')\n    .replace(/켄들/g, '캔들')\n    .replace(/에폭씨/g, '에폭시')\n    .replace(/레즌/g, '레진')\n    .replace(/하바륨/g, '하바리움');\n}\n\n// Gemini Stage 1 응답 파싱 (thinking mode: 여러 parts에서 텍스트 합산)\nvar keywords = [];\nvar aiCategory = '';\ntry {\n  var cands = (geminiResp && geminiResp.candidates) ? geminiResp.candidates : [];\n  if (cands.length > 0) {\n    var text = '';\n    var parts = (cands[0].content && cands[0].content.parts) ? cands[0].content.parts : [];\n    for (var pi = 0; pi < parts.length; pi++) {\n      if (parts[pi].text) text += parts[pi].text;\n    }\n    var jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      var parsed = JSON.parse(jsonMatch[0]);\n      keywords = (parsed.keywords || []).filter(function(k) { return k && k.length >= 2; });\n      aiCategory = parsed.category || '';\n    }\n  }\n} catch(e) { keywords = []; }\n\n// 기존 keyword/ai VP 비활성화 대상 수집\nvar deactivateBody = [];\nfor (var i = 0; i < allVPs.length; i++) {\n  var vp = allVPs[i];\n  if (vp.video_id === videoId && (vp.source === 'keyword' || vp.source === 'ai') && vp.is_active !== false) {\n    deactivateBody.push({ Id: vp.Id, is_active: false });\n  }\n}\n\n// 키워드 없으면 스킵 (기존 VP 유지)\nif (keywords.length === 0) {\n  return [{ json: { video_id: videoId, videoTitle: videoTitle, keywords: [], aiCategory: '', deactivateBody: [], matchCandidates: [], skip: true } }];\n}\n\n// 상품 점수 계산 (정규화 적용 후 키워드 매칭)\nvar scored = [];\nfor (var j = 0; j < allProducts.length; j++) {\n  var prod = allProducts[j];\n  var pname = normalize(prod.product_name || '');\n  var score = 0;\n  var matchedKws = [];\n  for (var k = 0; k < keywords.length; k++) {\n    var kw = normalize(keywords[k]);\n    if (kw.length < 2) continue;\n    if (pname.indexOf(kw) >= 0) {\n      score += 5;\n      matchedKws.push(keywords[k]);\n    } else {\n      var wparts = kw.split(/\\s+/);\n      for (var wp = 0; wp < wparts.length; wp++) {\n        if (wparts[wp].length >= 2 && pname.indexOf(wparts[wp]) >= 0) {\n          score += 2;\n          if (matchedKws.indexOf(keywords[k]) < 0) matchedKws.push(keywords[k]);\n        }\n      }\n    }\n  }\n  var pcat = normalize(prod.category_name || '');\n  if (aiCategory && pcat.indexOf(normalize(aiCategory)) >= 0) score += 1;\n  if (score > 0) scored.push({ score: score, prod: prod });\n}\nscored.sort(function(a, b) { return b.score - a.score; });\nvar top20 = scored.slice(0, 20);\n\n// Stage 2에 전달할 후보 목록 구성\nvar matchCandidates = top20.map(function(item) {\n  return {\n    branduid: String(item.prod.branduid || ''),\n    product_name: item.prod.product_name || '',\n    product_price: item.prod.price || 0,\n    product_image: item.prod.image_url || '',\n    product_url: item.prod.product_url || ('/shop/shopdetail.html?branduid=' + item.prod.branduid),\n    score: item.score\n  };\n});\n\nreturn [{ json: { video_id: videoId, videoTitle: videoTitle, keywords: keywords, aiCategory: aiCategory, deactivateBody: deactivateBody, matchCandidates: matchCandidates, skip: false } }];"
+      }
+    },
+    {
+      "id": "wytai-15",
+      "name": "Build Catalog Prompt",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2640, 100],
+      "parameters": {
+        "jsCode": "// Stage 2 프롬프트 구성: Top 20 후보 → Gemini에게 실제 사용 재료 선택 요청\nvar stage1 = $input.first().json;\n\n// 후보 없거나 스킵 → Gemini에게 빈 응답 유도 프롬프트 전달\nif (stage1.skip || !stage1.matchCandidates || stage1.matchCandidates.length === 0) {\n  return [{ json: {\n    video_id: stage1.video_id || '',\n    videoTitle: stage1.videoTitle || '',\n    keywords: stage1.keywords || [],\n    aiCategory: stage1.aiCategory || '',\n    deactivateBody: stage1.deactivateBody || [],\n    matchCandidates: [],\n    stage2Prompt: '다음 JSON을 그대로 출력하세요: {\"matches\": []}',\n    skip: true\n  } }];\n}\n\nvar title = stage1.videoTitle || '';\nvar candidates = stage1.matchCandidates;\n\nvar prodLines = candidates.map(function(c, idx) {\n  return (idx + 1) + '. branduid=' + c.branduid + ' | ' + c.product_name;\n}).join('\\n');\n\nvar prompt = '당신은 한국 공예 쇼핑몰 상품 추천 전문가입니다.\\n\\n';\nprompt += '영상 제목: ' + title + '\\n';\nprompt += 'AI 감지 키워드: ' + stage1.keywords.join(', ') + '\\n\\n';\nprompt += '=== 후보 상품 목록 ===\\n';\nprompt += prodLines + '\\n\\n';\nprompt += '선택 기준:\\n';\nprompt += '1. 영상에서 실제로 손으로 사용하는 핵심 재료/도구 우선 선택\\n';\nprompt += '2. 완성 작품(완성 액자, 완성 부케, 작품집, 책, 완성 키링) 제외 - 원재료/용기/공구만 선택\\n';\nprompt += '3. 영상 메인 주제 상품을 1순위로\\n';\nprompt += '4. 카테고리 매칭: 하바리움 영상에는 하바리움 용기/용액, 천스탠드 영상에는 LED 천스탠드 우선\\n';\nprompt += '5. 최대 4개 선택\\n\\n';\nprompt += 'JSON으로만 응답 (다른 텍스트 없이):\\n';\nprompt += '{\"matches\": [{\"branduid\": \"값\", \"reason\": \"선택이유\"}]}\\n';\nprompt += '위 후보 목록에 없는 branduid는 절대 포함하지 마세요.';\n\nreturn [{ json: {\n  video_id: stage1.video_id,\n  videoTitle: title,\n  keywords: stage1.keywords,\n  aiCategory: stage1.aiCategory,\n  deactivateBody: stage1.deactivateBody,\n  matchCandidates: candidates,\n  stage2Prompt: prompt,\n  skip: false\n} }];"
+      }
+    },
+    {
+      "id": "wytai-16",
+      "name": "Call Gemini Stage2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2860, 100],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={{ $env.GEMINI_API_KEY || '' }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ role: 'user', parts: [{ text: $json.stage2Prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192 } }) }}",
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "wytai-17",
+      "name": "Parse Catalog",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3080, 100],
+      "parameters": {
+        "jsCode": "// Stage 2 파싱: Gemini 선택 결과 → 최종 insertBody 구성\nvar stage2Data = $('Build Catalog Prompt').first().json;\nvar geminiResp = $input.first().json;\n\nvar videoId = stage2Data.video_id;\nvar deactivateBody = stage2Data.deactivateBody || [];\nvar matchCandidates = stage2Data.matchCandidates || [];\n\n// skip 또는 후보 없음 → 아무것도 변경하지 않음\nif (stage2Data.skip || matchCandidates.length === 0) {\n  return [{ json: { video_id: videoId, insertBody: [], deactivateBody: [], skip: true } }];\n}\n\n// 후보 맵 구성 (branduid → 상품 정보)\nvar candMap = {};\nmatchCandidates.forEach(function(c) { candMap[String(c.branduid)] = c; });\n\n// Gemini Stage 2 응답 파싱 (thinking mode: 여러 parts 합산)\nvar matchedBranduids = [];\ntry {\n  var candidates = (geminiResp && geminiResp.candidates) ? geminiResp.candidates : [];\n  if (candidates.length > 0) {\n    var text = '';\n    var parts = (candidates[0].content && candidates[0].content.parts) ? candidates[0].content.parts : [];\n    for (var pi = 0; pi < parts.length; pi++) {\n      if (parts[pi].text) text += parts[pi].text;\n    }\n    var jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      var parsed = JSON.parse(jsonMatch[0]);\n      var matches = parsed.matches || [];\n      matches.forEach(function(m) {\n        var buid = String(m.branduid || '');\n        if (buid && candMap[buid] && matchedBranduids.indexOf(buid) < 0) {\n          matchedBranduids.push(buid);\n        }\n      });\n    }\n  }\n} catch(e) { matchedBranduids = []; }\n\n// Stage 2 실패 시 Stage 1 Top 4로 폴백\nif (matchedBranduids.length === 0) {\n  matchedBranduids = matchCandidates.slice(0, 4).map(function(c) { return c.branduid; });\n}\n\n// 최종 삽입 데이터 구성 (최대 4개)\nvar insertBody = matchedBranduids.slice(0, 4).map(function(buid, idx) {\n  var c = candMap[buid];\n  return {\n    video_id: videoId,\n    branduid: buid,\n    product_name: c.product_name,\n    product_price: c.product_price,\n    product_image: c.product_image,\n    product_url: c.product_url,\n    source: 'ai',\n    confidence: 'medium',\n    match_score: c.score,\n    display_order: idx + 1,\n    is_active: true,\n    matched_at: new Date().toISOString()\n  };\n});\n\nreturn [{ json: { video_id: videoId, insertBody: insertBody, deactivateBody: deactivateBody, skip: false } }];"
       }
     },
     {
@@ -178,7 +214,7 @@
       "name": "Deactivate Old VPs",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2640, 100],
+      "position": [3300, 100],
       "parameters": {
         "method": "PATCH",
         "url": "=https://nocodb.pressco21.com/api/v1/db/data/bulk/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/m6wv7he8qwjs43g",
@@ -186,7 +222,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json.deactivateBody.length > 0 ? $json.deactivateBody : [{Id: -1, is_active: false}]) }}",
+        "jsonBody": "={{ JSON.stringify(($json.deactivateBody || []).length > 0 ? $json.deactivateBody : [{Id: -1, is_active: false}]) }}",
         "options": {}
       },
       "credentials": {
@@ -199,7 +235,7 @@
       "name": "Insert AI VPs",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2860, 100],
+      "position": [3520, 100],
       "parameters": {
         "method": "POST",
         "url": "=https://nocodb.pressco21.com/api/v1/db/data/bulk/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/m6wv7he8qwjs43g",
@@ -207,7 +243,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($('Parse Match').first().json.insertBody) }}",
+        "jsonBody": "={{ JSON.stringify($('Parse Catalog').first().json.insertBody) }}",
         "options": {}
       },
       "credentials": {
@@ -223,7 +259,7 @@
       "position": [1980, 420],
       "parameters": {
         "chatId": "={{ $env.TELEGRAM_CHAT_ID || '7713811206' }}",
-        "text": "=*[WF-YT-AI] AI 키워드 매칭 완료* ({{ new Date().toISOString().substring(0,10) }})\n처리 대상 영상: {{ $('Filter For AI').first().json.count }}개\nGemini 1.5 Flash 기반 자동 매칭\n매일 04:00 실행"
+        "text": "=*[WF-YT-AI] AI 2단계 카탈로그 매칭 완료* ({{ new Date().toISOString().substring(0,10) }})\n처리 대상 영상: {{ $('Filter For AI').first().json.count }}개\nStage1: 키워드 추출 + 정규화 → Top 20 후보\nStage2: Gemini 실제 사용 재료 선택 → 최종 4개\n매일 04:00 실행"
       },
       "credentials": {
         "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "Telegram Bot" }
@@ -268,6 +304,15 @@
       "main": [[{ "node": "Parse Match", "type": "main", "index": 0 }]]
     },
     "Parse Match": {
+      "main": [[{ "node": "Build Catalog Prompt", "type": "main", "index": 0 }]]
+    },
+    "Build Catalog Prompt": {
+      "main": [[{ "node": "Call Gemini Stage2", "type": "main", "index": 0 }]]
+    },
+    "Call Gemini Stage2": {
+      "main": [[{ "node": "Parse Catalog", "type": "main", "index": 0 }]]
+    },
+    "Parse Catalog": {
       "main": [[{ "node": "Deactivate Old VPs", "type": "main", "index": 0 }]]
     },
     "Deactivate Old VPs": {

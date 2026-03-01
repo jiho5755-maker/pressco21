@@ -244,7 +244,10 @@
                         '<div id="related-products-wrap" class="related-products collapsed"></div>' +
                     '</div>' +
                     '<div class="youtube-slider-wrap">' +
-                        '<p class="section-subtitle">\ub354 \ub9ce\uc740 \uc601\uc0c1</p>' +
+                        '<div class="yt-slider-header">' +
+                            '<span class="yt-slider-title">\ub354 \ub9ce\uc740 \uc601\uc0c1</span>' +
+                            '<span class="yt-slider-toggle-icon">&#9654;</span>' +
+                        '</div>' +
                         '<div class="youtube-slider swiper">' +
                             '<div id="youtube-slider-wrapper" class="swiper-wrapper"></div>' +
                             '<div class="swiper-pagination"></div>' +
@@ -392,57 +395,63 @@
                 },
                 breakpoints: {
                     768: { slidesPerView: 4, spaceBetween: 15 }
-                }
-            });
-        }
-
-        // 슬라이더 클릭 이벤트 위임 (한 번만 바인딩)
-        if (!ytSliderBound) {
-            ytSliderBound = true;
-            sliderWrapper.addEventListener('click', function(e) {
-                var slide = e.target.closest('.yt-slide-card');
-                if (slide) {
-                    var idx = parseInt(slide.getAttribute('data-index'));
-                    if (!isNaN(idx) && idx !== ytCurrentIndex) {
-                        ytCurrentIndex = idx;
-                        renderYouTube();
-                        var ytSection = document.querySelector('.youtube-section-v3');
-                        if (ytSection) ytSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                },
+                on: {
+                    // 모바일 터치 이후 click 이벤트를 Swiper가 소비하는 문제 해결
+                    // Swiper on.click은 터치 탭 후에도 신뢰할 수 있게 발동함
+                    click: function(swiper, event) {
+                        var slide = event && event.target ? event.target.closest('.yt-slide-card') : null;
+                        if (!slide) return;
+                        var idx = parseInt(slide.getAttribute('data-index'));
+                        if (!isNaN(idx) && idx !== ytCurrentIndex) {
+                            ytCurrentIndex = idx;
+                            // setTimeout 0: 현재 Swiper 이벤트 처리 완료 후 실행 (destroy 충돌 방지)
+                            setTimeout(function() {
+                                renderYouTube();
+                                var ytSection = document.querySelector('.youtube-section-v3');
+                                if (ytSection) ytSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            }, 0);
+                        }
                     }
                 }
             });
+        } else {
+            // Swiper 미로드 시 fallback: 일반 클릭 이벤트 위임
+            if (!ytSliderBound) {
+                ytSliderBound = true;
+                sliderWrapper.addEventListener('click', function(e) {
+                    var slide = e.target.closest('.yt-slide-card');
+                    if (slide) {
+                        var idx = parseInt(slide.getAttribute('data-index'));
+                        if (!isNaN(idx) && idx !== ytCurrentIndex) {
+                            ytCurrentIndex = idx;
+                            renderYouTube();
+                            var ytSection = document.querySelector('.youtube-section-v3');
+                            if (ytSection) ytSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                        }
+                    }
+                });
+            }
         }
 
-        // 모바일 슬라이더 토글 설정 (.section-subtitle 재활용)
+        // 모바일 슬라이더 토글 설정 (.yt-slider-header 카드 헤더 사용)
         var sliderWrap = document.querySelector('.youtube-slider-wrap');
         if (sliderWrap) {
-            var sliderSubtitle = sliderWrap.querySelector('.section-subtitle');
+            var sliderHeader = sliderWrap.querySelector('.yt-slider-header');
             if (window.innerWidth < 768) {
                 // 모바일: 기본 접힘 상태
                 sliderWrap.classList.add('yt-slider-collapsed');
-                // .section-subtitle을 토글 버튼으로 변환 (최초 1회)
-                if (sliderSubtitle && !sliderSubtitle.getAttribute('data-yt-toggle')) {
-                    sliderSubtitle.setAttribute('data-yt-toggle', '1');
-                    sliderSubtitle.classList.add('yt-toggle-btn');
-                    var ytChevron = document.createElement('span');
-                    ytChevron.className = 'yt-chevron';
-                    ytChevron.innerHTML = '&#8964;';
-                    sliderSubtitle.appendChild(ytChevron);
-                    sliderSubtitle.addEventListener('click', function() {
+                // .yt-slider-header를 토글 버튼으로 활용 (최초 1회)
+                if (sliderHeader && !sliderHeader.getAttribute('data-yt-toggle')) {
+                    sliderHeader.setAttribute('data-yt-toggle', '1');
+                    sliderHeader.addEventListener('click', function() {
                         sliderWrap.classList.toggle('yt-slider-collapsed');
-                        var ch = sliderSubtitle.querySelector('.yt-chevron');
-                        if (ch) ch.style.transform = sliderWrap.classList.contains('yt-slider-collapsed') ? '' : 'rotate(180deg)';
+                        // 토글 아이콘 회전은 CSS에서 처리 (.yt-slider-toggle-icon)
                     });
                 }
             } else {
                 // PC: 항상 펼침, 토글 상태 리셋
                 sliderWrap.classList.remove('yt-slider-collapsed');
-                if (sliderSubtitle && sliderSubtitle.getAttribute('data-yt-toggle')) {
-                    sliderSubtitle.removeAttribute('data-yt-toggle');
-                    sliderSubtitle.classList.remove('yt-toggle-btn');
-                    var oldChevron = sliderSubtitle.querySelector('.yt-chevron');
-                    if (oldChevron) oldChevron.remove();
-                }
             }
         }
     }

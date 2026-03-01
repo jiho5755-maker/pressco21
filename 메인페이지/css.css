@@ -941,7 +941,7 @@
     .youtube-layout {
         display: flex;
         flex-direction: column;
-        gap: 18px;
+        gap: 12px;
     }
     .featured-video-wrap {
         background: #fff;
@@ -1059,8 +1059,35 @@
         color: var(--color-primary);
     }
     .youtube-slider-wrap {
-        margin-top: 20px;
+        margin-top: 0;
+        background: #fff;
+        border-radius: 10px;
+        padding: 18px;
+        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
     }
+    /* "더 많은 영상" 헤더 — 추천 재료 헤더와 동일한 디자인 */
+    .youtube-slider-wrap .yt-slider-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        border-bottom: 2px solid var(--color-primary-light);
+        padding-bottom: 8px;
+        margin-bottom: 12px;
+        cursor: pointer;
+        user-select: none;
+    }
+    .youtube-slider-wrap .yt-slider-title {
+        font-size: 14px;
+        font-weight: 700;
+        color: var(--color-dark);
+    }
+    .youtube-slider-wrap .yt-slider-toggle-icon {
+        font-size: 11px;
+        color: var(--color-primary);
+        font-weight: bold;
+        transition: transform 0.3s ease;
+    }
+    /* 기존 .section-subtitle 유지 (하위 호환) — 새 헤더가 있으면 숨김 */
     .youtube-slider-wrap .section-subtitle {
         font-size: 14px;
         font-weight: 600;
@@ -1073,7 +1100,7 @@
         padding: 0;
     }
     .youtube-slider .swiper-slide {
-        background: #fff;
+        background: #fafafa;
         border-radius: 6px;
         overflow: hidden;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
@@ -1422,32 +1449,42 @@
         color: #bbb;
         font-size: 13px;
     }
-    /* 모바일: 슬라이더 섹션 접힘 */
+    /* 모바일: 슬라이더 섹션 접힘 — 새 카드 구조 */
     .youtube-slider-wrap.yt-slider-collapsed .youtube-slider,
     .youtube-slider-wrap.yt-slider-collapsed .swiper-button-prev,
     .youtube-slider-wrap.yt-slider-collapsed .swiper-button-next,
     .youtube-slider-wrap.yt-slider-collapsed .swiper-pagination {
+        max-height: 0;
+        overflow: hidden;
+        margin: 0;
+        opacity: 0;
+        transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.4s ease;
+    }
+    /* 펼침 상태 */
+    .youtube-slider-wrap:not(.yt-slider-collapsed) .youtube-slider {
+        max-height: 1200px;
+        opacity: 1;
+        transition: max-height 0.4s ease, opacity 0.3s ease 0.1s;
+    }
+    /* 접힘 시 헤더 하단 border 제거 */
+    .youtube-slider-wrap.yt-slider-collapsed .yt-slider-header {
+        border-bottom-color: transparent;
+        margin-bottom: 0;
+    }
+    /* 접힘 시 토글 아이콘 회전 (▶ 상태 유지) */
+    .youtube-slider-wrap.yt-slider-collapsed .yt-slider-toggle-icon {
+        transform: rotate(0deg);
+    }
+    /* 펼침 시 토글 아이콘 회전 (▼ 상태) */
+    .youtube-slider-wrap:not(.yt-slider-collapsed) .yt-slider-toggle-icon {
+        transform: rotate(90deg);
+    }
+    /* 레거시: section-subtitle 토글 버튼 (새 헤더 도입으로 숨김) */
+    .youtube-slider-wrap .section-subtitle.yt-toggle-btn {
         display: none;
     }
-    /* 모바일: section-subtitle 토글 버튼 */
-    .youtube-slider-wrap .section-subtitle.yt-toggle-btn {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 13px 0;
-        margin-bottom: 0;
-        cursor: pointer;
-        border-bottom: 1px solid #e8e8e8;
-        user-select: none;
-        -webkit-user-select: none;
-    }
     .youtube-slider-wrap .section-subtitle.yt-toggle-btn .yt-chevron {
-        font-size: 22px;
-        display: inline-block;
-        transition: transform 0.25s ease;
-        color: var(--color-primary);
-        line-height: 1;
-        margin-left: 6px;
+        display: none;
     }
 
     .brand-philosophy {
@@ -1642,27 +1679,40 @@
             font-size: 13px;
             padding: 0 9px 9px;
         }
-        /* PC: 슬라이더 섹션 항상 표시 */
+        /* PC: 슬라이더 섹션 항상 표시 (카드 형태 유지) */
         .youtube-slider-wrap.yt-slider-collapsed .youtube-slider,
         .youtube-slider-wrap.yt-slider-collapsed .swiper-button-prev,
         .youtube-slider-wrap.yt-slider-collapsed .swiper-button-next,
         .youtube-slider-wrap.yt-slider-collapsed .swiper-pagination {
             display: block;
+            max-height: none;
+            opacity: 1;
+            overflow: visible;
         }
-        .youtube-slider-wrap .section-subtitle.yt-toggle-btn {
+        /* PC: 새 카드 헤더 — 토글 비활성, 포인터 기본 */
+        .youtube-slider-wrap .yt-slider-header {
             cursor: default;
-            border-bottom: none;
-            padding: 0;
+            pointer-events: none;
+        }
+        .youtube-slider-wrap .yt-slider-toggle-icon {
+            display: none;
+        }
+        .youtube-slider-wrap .yt-slider-title {
+            font-size: 15px;
+        }
+        /* PC: 레거시 subtitle 숨김 */
+        .youtube-slider-wrap .section-subtitle.yt-toggle-btn {
+            display: none;
         }
         .youtube-slider-wrap .section-subtitle.yt-toggle-btn .yt-chevron {
             display: none;
         }
         .youtube-slider-wrap {
-            margin-top: 28px;
+            margin-top: 0;
+            padding: 22px;
         }
         .youtube-slider-wrap .section-subtitle {
-            font-size: 16px;
-            margin-bottom: 16px;
+            display: none;
         }
         .youtube-slider .swiper-slide {
             border-radius: 8px;
@@ -1785,6 +1835,15 @@
     .skeleton-shimmer {
         animation: none;
         background: #e8ede6;
+    }
+    /* 슬라이더/상품 토글 애니메이션 비활성화 */
+    .youtube-slider-wrap.yt-slider-collapsed .youtube-slider,
+    .youtube-slider-wrap:not(.yt-slider-collapsed) .youtube-slider,
+    .yt-products-grid,
+    .related-products-wrap.expanded .yt-products-grid,
+    .yt-slider-toggle-icon,
+    .yt-toggle-icon {
+        transition: none;
     }
 }
 

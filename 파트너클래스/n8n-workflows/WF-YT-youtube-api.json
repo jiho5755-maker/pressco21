@@ -66,7 +66,7 @@
           "parameters": [
             { "name": "where", "value": "(is_active,eq,1)" },
             { "name": "sort", "value": "display_order" },
-            { "name": "limit", "value": "100" }
+            { "name": "limit", "value": "1000" }
           ]
         },
         "options": {}

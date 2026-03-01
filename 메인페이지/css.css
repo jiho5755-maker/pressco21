@@ -1116,6 +1116,35 @@
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
+    /* 터치 피드백 */
+    .youtube-slider .swiper-slide:active {
+        transform: scale(0.98);
+    }
+    /* 현재 재생 중인 슬라이드 강조 */
+    .youtube-slider .yt-slide-active {
+        border: 2px solid var(--color-primary) !important;
+        box-shadow: 0 0 0 3px rgba(125, 150, 117, 0.25) !important;
+    }
+    /* "재생 중" 배지 오버레이 */
+    .yt-now-playing {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(44, 62, 48, 0.45);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        z-index: 2;
+    }
+    .yt-now-playing span {
+        background: var(--color-primary);
+        color: #fff;
+        font-size: 11px;
+        font-weight: 700;
+        padding: 4px 10px;
+        border-radius: 12px;
+        letter-spacing: 0.02em;
+    }
     .youtube-slider .video-thumb {
         position: relative;
         padding-bottom: 56.25%;
@@ -1179,11 +1208,11 @@
         align-items: center;
     }
     .youtube-slider .slide-date {
-        font-size: 11px;
+        font-size: 12px;
         color: #999;
     }
     .youtube-slider .slide-views {
-        font-size: 10px;
+        font-size: 11px;
         color: #7d9675;
         font-weight: 600;
     }
@@ -1227,6 +1256,26 @@
         to {
             transform: rotate(360deg);
         }
+    }
+    /* ============================================
+       Featured area 영상 전환 Fade Transition
+       renderYouTube() 재호출 시 opacity 0 → 콘텐츠 교체 → opacity 1
+       ============================================ */
+    #featured-video-area {
+        transition: opacity 0.3s ease;
+    }
+    #featured-video-area.yt-fading {
+        opacity: 0;
+    }
+    /* 로딩 스피너 오버레이 (ytPlayVideo — 200ms 딜레이 중) */
+    .yt-thumb-loading {
+        position: absolute;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: #f8f8f8;
+        display: flex;
+        align-items: center;
+        justify-content: center;
     }
     /* ============================================
        YouTube 메인 영상 썸네일 래퍼 (.yt-thumb-wrap)
@@ -1429,7 +1478,8 @@
     .yt-more-btn {
         grid-column: 1 / -1;
         margin-top: 4px;
-        padding: 8px 0;
+        padding: 12px 0;
+        min-height: 44px; /* 모바일 터치 타겟 최소 44px */
         background: none;
         border: 1px solid var(--color-primary);
         border-radius: 6px;
@@ -1449,14 +1499,15 @@
         flex-direction: column;
         background: #fafafa;
         border: 1px solid #eee;
-        border-radius: 8px;
+        border-radius: 12px; /* 영상 카드와 통일 */
         overflow: hidden;
         text-decoration: none;
         transition: transform 0.2s ease, box-shadow 0.2s ease;
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.08); /* 영상 카드와 통일 */
     }
     .yt-product-card:hover {
         transform: translateY(-2px);
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        box-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
     }
     .yt-product-card img {
         width: 100%;
@@ -1479,7 +1530,7 @@
         padding: 0 8px 8px;
         font-size: 12px;
         font-weight: 700;
-        color: var(--color-primary);
+        color: #5a7050; /* WCAG AA 충족 (흰 배경 대비 4.5:1 이상) */
     }
     .yt-no-products {
         grid-column: 1 / -1;
@@ -1488,7 +1539,7 @@
         color: #bbb;
         font-size: 13px;
     }
-    /* 모바일: 슬라이더 섹션 접힘 — 새 카드 구조 */
+    /* 모바일: 슬라이더 섹션 완전 접힘 (레거시 호환) */
     .youtube-slider-wrap.yt-slider-collapsed .youtube-slider,
     .youtube-slider-wrap.yt-slider-collapsed .swiper-button-prev,
     .youtube-slider-wrap.yt-slider-collapsed .swiper-button-next,
@@ -1499,8 +1550,30 @@
         opacity: 0;
         transition: max-height 0.4s ease, opacity 0.3s ease, margin 0.4s ease;
     }
+    /* 모바일 티저 상태: 첫 카드 일부 peek + 하단 그라데이션 */
+    .youtube-slider-wrap.yt-slider-teaser .youtube-slider {
+        max-height: 155px;
+        overflow: hidden;
+        opacity: 1;
+        position: relative;
+        transition: max-height 0.4s ease, opacity 0.3s ease;
+    }
+    .youtube-slider-wrap.yt-slider-teaser .youtube-slider::after {
+        content: '';
+        position: absolute;
+        bottom: 0; left: 0;
+        width: 100%; height: 50px;
+        background: linear-gradient(transparent, #fff);
+        pointer-events: none;
+        z-index: 2;
+    }
+    .youtube-slider-wrap.yt-slider-teaser .swiper-button-prev,
+    .youtube-slider-wrap.yt-slider-teaser .swiper-button-next,
+    .youtube-slider-wrap.yt-slider-teaser .swiper-pagination {
+        display: none;
+    }
     /* 펼침 상태 */
-    .youtube-slider-wrap:not(.yt-slider-collapsed) .youtube-slider {
+    .youtube-slider-wrap:not(.yt-slider-collapsed):not(.yt-slider-teaser) .youtube-slider {
         max-height: 1200px;
         opacity: 1;
         transition: max-height 0.4s ease, opacity 0.3s ease 0.1s;
@@ -1510,12 +1583,16 @@
         border-bottom-color: transparent;
         margin-bottom: 0;
     }
+    /* 티저 상태 토글 아이콘: ▶ */
+    .youtube-slider-wrap.yt-slider-teaser .yt-slider-toggle-icon {
+        transform: rotate(0deg);
+    }
     /* 접힘 시 토글 아이콘 회전 (▶ 상태 유지) */
     .youtube-slider-wrap.yt-slider-collapsed .yt-slider-toggle-icon {
         transform: rotate(0deg);
     }
     /* 펼침 시 토글 아이콘 회전 (▼ 상태) */
-    .youtube-slider-wrap:not(.yt-slider-collapsed) .yt-slider-toggle-icon {
+    .youtube-slider-wrap:not(.yt-slider-collapsed):not(.yt-slider-teaser) .yt-slider-toggle-icon {
         transform: rotate(90deg);
     }
     /* 레거시: section-subtitle 토글 버튼 (새 헤더 도입으로 숨김) */
@@ -1723,7 +1800,7 @@
             font-size: 13px;
             padding: 0 9px 9px;
         }
-        /* PC: 슬라이더 섹션 항상 표시 (카드 형태 유지) */
+        /* PC: 슬라이더 섹션 항상 표시 (collapsed/teaser 모두 오버라이드) */
         .youtube-slider-wrap.yt-slider-collapsed .youtube-slider,
         .youtube-slider-wrap.yt-slider-collapsed .swiper-button-prev,
         .youtube-slider-wrap.yt-slider-collapsed .swiper-button-next,
@@ -1732,6 +1809,33 @@
             max-height: none;
             opacity: 1;
             overflow: visible;
+        }
+        .youtube-slider-wrap.yt-slider-teaser .youtube-slider {
+            max-height: none;
+            overflow: visible;
+            opacity: 1;
+        }
+        .youtube-slider-wrap.yt-slider-teaser .youtube-slider::after {
+            display: none; /* PC에서 그라데이션 오버레이 숨김 */
+        }
+        .youtube-slider-wrap.yt-slider-teaser .swiper-button-prev,
+        .youtube-slider-wrap.yt-slider-teaser .swiper-button-next,
+        .youtube-slider-wrap.yt-slider-teaser .swiper-pagination {
+            display: block;
+        }
+        /* PC: active 카드 위 삼각형 인디케이터 */
+        .youtube-slider .yt-slide-active {
+            position: relative;
+        }
+        .youtube-slider .yt-slide-active::before {
+            content: '';
+            position: absolute;
+            top: -9px; left: 50%;
+            transform: translateX(-50%);
+            border-left: 7px solid transparent;
+            border-right: 7px solid transparent;
+            border-bottom: 7px solid var(--color-primary);
+            z-index: 3;
         }
         /* PC: 새 카드 헤더 — 토글 비활성, 포인터 기본 */
         .youtube-slider-wrap .yt-slider-header {
@@ -1904,9 +2008,17 @@
         animation: none;
         background: #e8ede6;
     }
+    /* Featured area fade 비활성화 */
+    #featured-video-area {
+        transition: none;
+    }
+    #featured-video-area.yt-fading {
+        opacity: 1; /* 깜빡임 없이 즉시 표시 */
+    }
     /* 슬라이더/상품 토글 애니메이션 비활성화 */
     .youtube-slider-wrap.yt-slider-collapsed .youtube-slider,
     .youtube-slider-wrap:not(.yt-slider-collapsed) .youtube-slider,
+    .youtube-slider-wrap.yt-slider-teaser .youtube-slider,
     .yt-products-grid,
     .related-products-wrap.expanded .yt-products-grid,
     .yt-slider-toggle-icon,
@@ -1916,6 +2028,7 @@
     /* hover 애니메이션 비활성화 */
     .youtube-slider .swiper-slide,
     .youtube-slider .swiper-slide:hover,
+    .youtube-slider .swiper-slide:active,
     .yt-product-card,
     .yt-product-card:hover {
         transition: none;

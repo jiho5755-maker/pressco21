@@ -10,6 +10,7 @@
        설정
        ======================================== */
     var N8N_YOUTUBE_URL = 'https://n8n.pressco21.com/webhook/youtube-api';
+    var mainBannerSwiper = null; /* YouTube hover 시 배너 autoplay 제어 */
 
     /* ========================================
        상품 더보기 (페이지네이션)
@@ -171,7 +172,7 @@
         if (typeof mySwiper === 'undefined') return;
 
         // 메인 배너
-        var mainBannerSwiper = new mySwiper('.main-banner', {
+        mainBannerSwiper = new mySwiper('.main-banner', {
             pagination: {
                 el: '.main-banner .swiper-pagination',
                 type: 'fraction',
@@ -231,6 +232,8 @@
     var ytSliderToggleBound = false;
     var ytSwiperInstance = null;
     var ytTouchStartX = 0; /* 스와이프 시작 X좌표 */
+    var ytTouchStartY = 0; /* 스와이프 시작 Y좌표 (세로 스크롤 구분) */
+    var ytTouchStartTime = 0; /* 터치 시작 시간 ms (롱프레스 구분) */
     var ytIsSwiping = false; /* 스와이프 중 플래그 (탭 vs 스와이프 구분) */
 
     function loadYouTube() {
@@ -242,7 +245,7 @@
             ytContainer.innerHTML =
                 '<div class="youtube-section-v3">' +
                     '<div class="youtube-main-area">' +
-                        '<div id="featured-video-area" class="featured-video"></div>' +
+                        '<div id="featured-video-area" class="featured-video" aria-live="polite" aria-atomic="true"></div>' +
                         '<div id="related-products-wrap" class="related-products collapsed"></div>' +
                     '</div>' +
                     '<div class="youtube-slider-wrap">' +
@@ -350,11 +353,16 @@
         var video = ytAllVideos[ytCurrentIndex];
         if (!video) return;
 
-        // 메인 영상: 썸네일 클릭 시 iframe 로드
+        // 재전환 시 fade-out: 이미 콘텐츠가 있으면 yt-fading 추가 (opacity 0)
+        var _hasPrev = !!featuredArea.querySelector('.yt-thumb-wrap, iframe');
+        if (_hasPrev) featuredArea.classList.add('yt-fading');
+
+        // 메인 영상: 썸네일 클릭 시 iframe 로드 (loading="lazy" 제거 — LCP 핵심 이미지)
         var thumb = video.thumbnail || ('https://img.youtube.com/vi/' + video.id + '/sddefault.jpg');
         featuredArea.innerHTML =
-            '<div class="video-wrapper yt-thumb-wrap" data-video-id="' + escapeAttr(video.id) + '">' +
-                '<img src="' + escapeAttr(thumb) + '" alt="' + escapeAttr(video.title) + '" loading="lazy">' +
+            '<div class="video-wrapper yt-thumb-wrap" data-video-id="' + escapeAttr(video.id) + '"' +
+                ' role="button" tabindex="0" aria-label="\uc601\uc0c1 \uc7ac\uc0dd: ' + escapeAttr(video.title) + '">' +
+                '<img src="' + escapeAttr(thumb) + '" alt="' + escapeAttr(video.title) + '">' +
                 '<div class="yt-play-btn"></div>' +
             '</div>' +
             '<div class="featured-video-info">' +
@@ -373,18 +381,22 @@
         // 관련 상품 패널 렌더링
         ytRenderProducts(video);
 
-        // 슬라이더 영상 (현재 메인 제외)
+        // 슬라이더 영상 전체 포함 (현재 재생 영상 포함 — active 배지로 표시)
         var sliderHTML = '';
-        var sliderCount = 0;
         for (var i = 0; i < ytAllVideos.length; i++) {
-            if (i === ytCurrentIndex) continue;
             var v = ytAllVideos[i];
+            var isActive = (i === ytCurrentIndex);
             var slThumb = 'https://img.youtube.com/vi/' + escapeAttr(v.id) + '/mqdefault.jpg';
             sliderHTML +=
-                '<div class="swiper-slide yt-slide-card" data-index="' + i + '" title="' + escapeAttr(v.title) + '">' +
+                '<div class="swiper-slide yt-slide-card' + (isActive ? ' yt-slide-active' : '') + '"' +
+                    ' data-index="' + i + '"' +
+                    ' title="' + escapeAttr(v.title) + '"' +
+                    ' role="button" tabindex="0"' +
+                    (isActive ? ' aria-current="true"' : '') + '>' +
                     '<div class="slide-video-thumb">' +
                         '<img src="' + slThumb + '" alt="' + escapeAttr(v.title) + '" loading="lazy">' +
                         '<div class="play-icon"></div>' +
+                        (isActive ? '<div class="yt-now-playing"><span>\uc7ac\uc0dd \uc911</span></div>' : '') +
                     '</div>' +
                     '<div class="slide-info">' +
                         '<h6>' + escapeHTML(v.title) + '</h6>' +
@@ -394,14 +406,13 @@
                         '</div>' +
                     '</div>' +
                 '</div>';
-            sliderCount++;
         }
         sliderWrapper.innerHTML = sliderHTML;
 
-        // 슬라이더 헤더에 영상 총 개수 동적 표시
+        // 슬라이더 헤더에 영상 총 개수 동적 표시 (현재 영상 포함 전체 수)
         var sliderTitleEl = document.querySelector('.yt-slider-title');
         if (sliderTitleEl) {
-            sliderTitleEl.textContent = '\ub354 \ub9ce\uc740 \uc601\uc0c1 (' + sliderCount + '\uac1c)';
+            sliderTitleEl.textContent = '\ub354 \ub9ce\uc740 \uc601\uc0c1 (' + ytAllVideos.length + '\uac1c)';
         }
 
         // Swiper 초기화
@@ -414,45 +425,51 @@
                 slidesPerView: 1.4,
                 spaceBetween: 12,
                 loop: false,
+                initialSlide: ytCurrentIndex, /* 현재 재생 영상이 슬라이더에 보이도록 */
+                touchAngle: 30, /* 수직 스크롤 우선: 30도 이상 기울면 스와이프로 인식 안 함 */
                 pagination: { el: '.youtube-slider .swiper-pagination', clickable: true },
                 navigation: {
                     nextEl: '.youtube-slider-wrap .swiper-button-next',
                     prevEl: '.youtube-slider-wrap .swiper-button-prev'
                 },
+                a11y: {
+                    prevSlideMessage: '\uc774\uc804 \uc601\uc0c1',
+                    nextSlideMessage: '\ub2e4\uc74c \uc601\uc0c1'
+                },
+                keyboard: { enabled: true, onlyInViewport: true },
                 breakpoints: {
                     480: { slidesPerView: 2.2, spaceBetween: 12 },
                     768: { slidesPerView: 4, spaceBetween: 15 }
                 },
                 on: {
                     touchStart: function(swiper, event) {
-                        // 스와이프 시작 X좌표 기록, 플래그 초기화
                         ytIsSwiping = false;
                         var t = event && event.touches ? event.touches[0] : event;
-                        ytTouchStartX = (t && t.clientX) ? t.clientX : 0;
+                        ytTouchStartX = (t && t.clientX) || 0;
+                        ytTouchStartY = (t && t.clientY) || 0;
+                        ytTouchStartTime = Date.now();
                     },
                     touchMove: function(swiper, event) {
-                        // 10px 이상 이동 시 스와이프로 간주
                         var t = event && event.touches ? event.touches[0] : event;
-                        var curX = (t && t.clientX) ? t.clientX : ytTouchStartX;
-                        if (Math.abs(curX - ytTouchStartX) > 10) {
+                        var dX = Math.abs(((t && t.clientX) || ytTouchStartX) - ytTouchStartX);
+                        var dY = Math.abs(((t && t.clientY) || ytTouchStartY) - ytTouchStartY);
+                        /* 가로 15px 초과 & 가로>세로: 수평 스와이프
+                           세로 10px 초과 & 세로>가로: 수직 스크롤 (클릭 아님) */
+                        if ((dX > 15 && dX > dY) || (dY > 10 && dY > dX)) {
                             ytIsSwiping = true;
                         }
                     },
                     click: function(swiper, event) {
-                        // 스와이프 중이었으면 클릭 무시 (스와이프 vs 탭 정확히 구분)
                         if (ytIsSwiping) { ytIsSwiping = false; return; }
+                        /* 롱프레스 (300ms 초과) 무시 */
+                        if (Date.now() - ytTouchStartTime > 300) return;
                         var slide = event && event.target ? event.target.closest('.yt-slide-card') : null;
                         if (!slide) return;
                         var idx = parseInt(slide.getAttribute('data-index'));
-                        if (!isNaN(idx) && idx !== ytCurrentIndex) {
-                            ytCurrentIndex = idx;
-                            // setTimeout 0: 현재 Swiper 이벤트 처리 완료 후 실행 (destroy 충돌 방지)
-                            setTimeout(function() {
-                                renderYouTube();
-                                var ytSection = document.querySelector('.youtube-section-v3');
-                                if (ytSection) ytSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                            }, 0);
-                        }
+                        if (isNaN(idx)) return;
+                        ytCurrentIndex = idx;
+                        /* setTimeout 0: 현재 Swiper 이벤트 처리 완료 후 실행 (destroy 충돌 방지) */
+                        setTimeout(function() { renderYouTube(); ytScrollToFeatured(); }, 0);
                     }
                 }
             });
@@ -467,8 +484,7 @@
                         if (!isNaN(idx) && idx !== ytCurrentIndex) {
                             ytCurrentIndex = idx;
                             renderYouTube();
-                            var ytSection = document.querySelector('.youtube-section-v3');
-                            if (ytSection) ytSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                            ytScrollToFeatured();
                         }
                     }
                 });
@@ -480,30 +496,26 @@
         if (sliderWrap) {
             var sliderHeader = sliderWrap.querySelector('.yt-slider-header');
             if (window.innerWidth < 768) {
-                // 모바일: 기본 접힘 상태
-                sliderWrap.classList.add('yt-slider-collapsed');
-                // 접근성: aria-expanded 초기값 설정
+                // 모바일: 기본 티저 상태 (일부 peek — 영상 목록 존재 인지 가능)
+                sliderWrap.classList.remove('yt-slider-collapsed');
+                sliderWrap.classList.add('yt-slider-teaser');
                 if (sliderHeader) {
                     sliderHeader.setAttribute('aria-expanded', 'false');
                     sliderHeader.setAttribute('role', 'button');
                     sliderHeader.setAttribute('tabindex', '0');
                 }
-                // .yt-slider-header를 토글 버튼으로 활용 (최초 1회)
+                // .yt-slider-header 토글 버튼 바인딩 (최초 1회)
                 if (sliderHeader && !sliderHeader.getAttribute('data-yt-toggle')) {
                     sliderHeader.setAttribute('data-yt-toggle', '1');
                     sliderHeader.addEventListener('click', function() {
-                        sliderWrap.classList.toggle('yt-slider-collapsed');
-                        // aria-expanded 토글
-                        var isExpanded = !sliderWrap.classList.contains('yt-slider-collapsed');
-                        sliderHeader.setAttribute('aria-expanded', isExpanded ? 'true' : 'false');
-                        // 펼침 전환 시 Swiper 크기 재계산 (hidden 상태에서 초기화된 경우 대응)
-                        if (isExpanded && ytSwiperInstance) {
-                            setTimeout(function() {
-                                ytSwiperInstance.update();
-                            }, 350);
+                        var isTeaser = sliderWrap.classList.contains('yt-slider-teaser');
+                        sliderWrap.classList.toggle('yt-slider-teaser', !isTeaser);
+                        sliderHeader.setAttribute('aria-expanded', isTeaser ? 'true' : 'false');
+                        // 티저 → 펼침 전환 시 Swiper 크기 재계산
+                        if (isTeaser && ytSwiperInstance) {
+                            setTimeout(function() { ytSwiperInstance.update(); }, 350);
                         }
                     });
-                    // 키보드 접근성: Enter/Space로도 토글 가능
                     sliderHeader.addEventListener('keydown', function(e) {
                         if (e.key === 'Enter' || e.key === ' ') {
                             e.preventDefault();
@@ -514,6 +526,7 @@
             } else {
                 // PC: 항상 펼침, 토글 상태 리셋
                 sliderWrap.classList.remove('yt-slider-collapsed');
+                sliderWrap.classList.remove('yt-slider-teaser');
                 if (sliderHeader) {
                     sliderHeader.removeAttribute('aria-expanded');
                     sliderHeader.removeAttribute('role');
@@ -521,6 +534,56 @@
                 }
             }
         }
+
+        // 콘텐츠 업데이트 후 fade-in: double rAF로 브라우저 페인트 이후 클래스 제거
+        (function(fa) {
+            requestAnimationFrame(function() {
+                requestAnimationFrame(function() {
+                    if (fa) fa.classList.remove('yt-fading');
+                });
+            });
+        }(featuredArea));
+
+        // YouTube 섹션 hover/touch 시 메인 배너 autoplay 일시정지 (1회 바인딩)
+        var _ytSection = document.querySelector('.youtube-section-v3');
+        if (_ytSection && !_ytSection.getAttribute('data-yt-pause-bound')) {
+            _ytSection.setAttribute('data-yt-pause-bound', '1');
+            var _ytAutoTimer = null;
+            var AUTOPLAY_RESUME_DELAY = 5000;
+
+            function _pauseBanner() {
+                if (mainBannerSwiper && mainBannerSwiper.autoplay && mainBannerSwiper.autoplay.running) {
+                    mainBannerSwiper.autoplay.stop();
+                }
+                if (_ytAutoTimer) clearTimeout(_ytAutoTimer);
+            }
+            function _resumeBanner() {
+                if (_ytAutoTimer) clearTimeout(_ytAutoTimer);
+                _ytAutoTimer = setTimeout(function() {
+                    if (mainBannerSwiper && mainBannerSwiper.autoplay) {
+                        mainBannerSwiper.autoplay.start();
+                    }
+                }, AUTOPLAY_RESUME_DELAY);
+            }
+
+            _ytSection.addEventListener('mouseenter', _pauseBanner);
+            _ytSection.addEventListener('mouseleave', _resumeBanner);
+            _ytSection.addEventListener('touchstart', _pauseBanner, { passive: true });
+            _ytSection.addEventListener('touchend', _resumeBanner, { passive: true });
+        }
+    }
+
+    /* ============================================================
+       스마트 스크롤: 메인 영상이 뷰포트 밖일 때만 스크롤
+       ============================================================ */
+    function ytScrollToFeatured() {
+        var el = document.getElementById('featured-video-area');
+        if (!el) return;
+        var rect = el.getBoundingClientRect();
+        var vH = window.innerHeight || document.documentElement.clientHeight;
+        /* 이미 뷰포트 안에 있으면 스크롤 생략 */
+        if (rect.top >= 0 && rect.bottom <= vH) return;
+        el.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
     }
 
     function ytRenderProducts(video) {
@@ -625,10 +688,17 @@
         if (!featuredArea) return;
         var wrapper = featuredArea.querySelector('.video-wrapper');
         if (wrapper) {
-            wrapper.innerHTML =
-                '<iframe src="https://www.youtube.com/embed/' + escapeAttr(videoId) +
-                '?rel=0&autoplay=1&modestbranding=1" frameborder="0" allowfullscreen allow="autoplay"></iframe>';
+            // 로딩 스피너 먼저 표시 (200ms 후 iframe 교체)
+            wrapper.innerHTML = '<div class="yt-thumb-loading"><div class="yt-spinner"></div></div>';
             wrapper.classList.remove('yt-thumb-wrap');
+            var videoTitle = (ytAllVideos[ytCurrentIndex] && ytAllVideos[ytCurrentIndex].title)
+                ? ytAllVideos[ytCurrentIndex].title : 'YouTube \uc601\uc0c1';
+            setTimeout(function() {
+                wrapper.innerHTML =
+                    '<iframe src="https://www.youtube.com/embed/' + escapeAttr(videoId) +
+                    '?rel=0&autoplay=1&modestbranding=1" frameborder="0" allowfullscreen' +
+                    ' allow="autoplay" title="' + escapeAttr(videoTitle) + '"></iframe>';
+            }, 200);
         }
     }
     window.playVideo = ytPlayVideo;

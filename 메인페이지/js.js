@@ -258,6 +258,19 @@
                 '</div>';
         }
 
+        // Index.html 구식 section-subtitle → yt-slider-header 카드로 업그레이드 (최초 1회)
+        var existingSliderWrap = document.querySelector('.youtube-slider-wrap');
+        if (existingSliderWrap && !existingSliderWrap.querySelector('.yt-slider-header')) {
+            var oldSubtitle = existingSliderWrap.querySelector('.section-subtitle');
+            if (oldSubtitle) {
+                var newHeader = document.createElement('div');
+                newHeader.className = 'yt-slider-header';
+                newHeader.innerHTML = '<span class="yt-slider-title">\ub354 \ub9ce\uc740 \uc601\uc0c1</span><span class="yt-slider-toggle-icon">&#9654;</span>';
+                existingSliderWrap.insertBefore(newHeader, oldSubtitle);
+                oldSubtitle.parentNode.removeChild(oldSubtitle);
+            }
+        }
+
         var featuredArea = document.getElementById('featured-video-area');
         var sliderWrapper = document.getElementById('youtube-slider-wrapper');
         if (!featuredArea || !sliderWrapper) return;
@@ -446,7 +459,12 @@
                     sliderHeader.setAttribute('data-yt-toggle', '1');
                     sliderHeader.addEventListener('click', function() {
                         sliderWrap.classList.toggle('yt-slider-collapsed');
-                        // 토글 아이콘 회전은 CSS에서 처리 (.yt-slider-toggle-icon)
+                        // 펼침 전환 시 Swiper 크기 재계산 (hidden 상태에서 초기화된 경우 대응)
+                        if (!sliderWrap.classList.contains('yt-slider-collapsed') && ytSwiperInstance) {
+                            setTimeout(function() {
+                                ytSwiperInstance.update();
+                            }, 350);
+                        }
                     });
                 }
             } else {

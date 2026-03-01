@@ -945,9 +945,9 @@
     }
     .featured-video-wrap {
         background: #fff;
-        border-radius: 10px;
+        border-radius: 12px;
         overflow: hidden;
-        box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
+        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.12);
     }
     .featured-video-wrap .video-wrapper {
         position: relative;
@@ -968,13 +968,15 @@
         padding: 16px;
     }
     .featured-video-info h4 {
-        font-size: 16px;
+        font-size: 18px;
         margin-bottom: 6px;
         line-height: 1.4;
         display: -webkit-box;
         -webkit-line-clamp: 2;
         -webkit-box-orient: vertical;
         overflow: hidden;
+        font-weight: 700;
+        color: #2c3e30;
     }
     .featured-video-info .video-meta {
         font-size: 12px;
@@ -1170,6 +1172,21 @@
         font-size: 11px;
         color: #999;
     }
+    /* 슬라이더 카드 메타 (날짜 + 조회수) */
+    .youtube-slider .slide-meta {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    .youtube-slider .slide-date {
+        font-size: 11px;
+        color: #999;
+    }
+    .youtube-slider .slide-views {
+        font-size: 10px;
+        color: #7d9675;
+        font-weight: 600;
+    }
     .youtube-slider-wrap .swiper-button-prev,
     .youtube-slider-wrap .swiper-button-next {
         display: none;
@@ -1180,11 +1197,17 @@
         margin-top: 12px;
     }
     .youtube-slider .swiper-pagination-bullet {
-        background: var(--color-primary);
-        opacity: 0.3;
+        background: #ccc;
+        opacity: 1;
+        width: 6px;
+        height: 6px;
+        border-radius: 3px;
+        transition: width 0.3s ease, background 0.3s ease;
     }
     .youtube-slider .swiper-pagination-bullet-active {
-        opacity: 1;
+        background: #7d9675;
+        width: 18px;
+        border-radius: 3px;
     }
     .yt-loading {
         text-align: center;
@@ -1248,14 +1271,14 @@
         transition: transform 0.2s ease, background 0.2s ease, box-shadow 0.2s ease;
         z-index: 2;
     }
-    /* 재생 삼각형 아이콘 (CSS only) */
+    /* 재생 삼각형 아이콘 (CSS only) — 세이지 그린 삼각형 */
     .yt-play-btn::after {
         content: '';
         width: 0;
         height: 0;
         border-top: 11px solid transparent;
         border-bottom: 11px solid transparent;
-        border-left: 18px solid var(--color-dark);
+        border-left: 18px solid #7d9675;
         margin-left: 5px;
     }
     /* 호버 시 버튼 확대 및 브랜드 색상 적용 */
@@ -1358,12 +1381,18 @@
         display: flex;
         justify-content: space-between;
         align-items: center;
-        border-bottom: 2px solid var(--color-primary-light);
-        padding-bottom: 8px;
+        background: #fff;
+        border: 1px solid #e8e0d8;
+        border-radius: 8px;
+        padding: 14px 16px;
         margin-bottom: 0;
         cursor: pointer;
         user-select: none;
         min-height: 48px; /* 모바일 터치 타겟 최소 48px 확보 */
+        transition: box-shadow 0.2s ease;
+    }
+    .yt-products-header:active {
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
     }
     .yt-products-title {
         font-size: 14px;
@@ -1439,9 +1468,12 @@
         font-size: 11px;
         font-weight: 600;
         color: #333;
-        white-space: nowrap;
         overflow: hidden;
-        text-overflow: ellipsis;
+        display: -webkit-box;
+        -webkit-line-clamp: 2;
+        -webkit-box-orient: vertical;
+        line-height: 1.4;
+        min-height: 30px;
     }
     .yt-product-price {
         padding: 0 8px 8px;
@@ -1665,6 +1697,11 @@
         /* PC: yt-products 패널 — 항상 펼침, 그리드 확대 */
         .yt-products-header {
             cursor: default;
+            background: transparent;
+            border: none;
+            border-bottom: 2px solid var(--color-primary-light);
+            border-radius: 0;
+            padding: 0 0 8px;
         }
         .yt-toggle-icon {
             display: none;
@@ -1734,6 +1771,13 @@
         .youtube-slider .slide-info .date {
             font-size: 11px;
         }
+        /* PC 슬라이더 메타 (날짜+조회수) */
+        .youtube-slider .slide-date {
+            font-size: 11px;
+        }
+        .youtube-slider .slide-views {
+            font-size: 11px;
+        }
         .youtube-slider .video-thumb .play-icon {
             width: 40px;
             height: 40px;
@@ -1754,26 +1798,43 @@
             border-left-width: 21px;
             margin-left: 6px;
         }
+        /* PC 슬라이더 네비게이션 버튼 — 세이지 그린 원형 */
         .youtube-slider-wrap .swiper-button-prev,
         .youtube-slider-wrap .swiper-button-next {
             display: flex;
-            width: 38px;
-            height: 38px;
-            background: rgba(255, 255, 255, 0.95);
+            align-items: center;
+            justify-content: center;
+            width: 40px;
+            height: 40px;
+            background: rgba(125, 150, 117, 0.9);
             border-radius: 50%;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
-            color: var(--color-dark);
+            top: 50%;
+            transform: translateY(-50%);
+            color: #fff;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+            transition: background 0.2s ease, transform 0.2s ease;
+        }
+        .youtube-slider-wrap .swiper-button-prev:hover,
+        .youtube-slider-wrap .swiper-button-next:hover {
+            background: #7d9675;
+            transform: translateY(-50%) scale(1.1);
         }
         .youtube-slider-wrap .swiper-button-prev::after,
         .youtube-slider-wrap .swiper-button-next::after {
-            font-size: 15px;
-            font-weight: bold;
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
         }
         .youtube-slider-wrap .swiper-button-prev {
-            left: -19px;
+            left: -8px;
         }
         .youtube-slider-wrap .swiper-button-next {
-            right: -19px;
+            right: -8px;
+        }
+        /* 슬라이드 끝 비활성 버튼 */
+        .youtube-slider-wrap .swiper-button-disabled {
+            opacity: 0.3;
+            pointer-events: none;
         }
         .youtube-slider .swiper-pagination {
             display: none;

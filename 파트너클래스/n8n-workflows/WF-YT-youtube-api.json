@@ -22,7 +22,7 @@
       "typeVersion": 2,
       "position": [440, 300],
       "parameters": {
-        "jsCode": "// WF-YT: 입력 검증\nvar body = $input.first().json.body || $input.first().json;\nvar action = (body.action || 'getVideos').trim();\nvar count = Math.min(Math.max(parseInt(body.count) || 5, 1), 10);\nvar videoId = (body.video_id || '').trim();\n\nif (action !== 'getVideos' && action !== 'getVideoProducts') {\n  action = 'getVideos';\n}\n\nreturn [{ json: { action: action, count: count, videoId: videoId } }];"
+        "jsCode": "// WF-YT: 입력 검증\nvar body = $input.first().json.body || $input.first().json;\nvar action = (body.action || 'getVideos').trim();\nvar count = Math.min(Math.max(parseInt(body.count) || 5, 1), 20);\nvar videoId = (body.video_id || '').trim();\n\nif (action !== 'getVideos' && action !== 'getVideoProducts') {\n  action = 'getVideos';\n}\n\nreturn [{ json: { action: action, count: count, videoId: videoId } }];"
       }
     },
     {

@@ -230,7 +230,8 @@
     var ytSliderBound = false;
     var ytSliderToggleBound = false;
     var ytSwiperInstance = null;
-    var ytSwipeDist = 0; /* 스와이프 거리 추적 (탭 vs 스와이프 구분용) */
+    var ytTouchStartX = 0; /* 스와이프 시작 X좌표 */
+    var ytIsSwiping = false; /* 스와이프 중 플래그 (탭 vs 스와이프 구분) */
 
     function loadYouTube() {
         // 구조 초기화: featured-video-area가 없으면 youtube-container 안에 동적 생성
@@ -387,7 +388,10 @@
                     '</div>' +
                     '<div class="slide-info">' +
                         '<h6>' + escapeHTML(v.title) + '</h6>' +
-                        '<span class="date">' + ytFormatDate(v.publishedAt) + '</span>' +
+                        '<div class="slide-meta">' +
+                            '<span class="slide-date">' + ytFormatDate(v.publishedAt) + '</span>' +
+                            (v.viewCount > 0 ? '<span class="slide-views">' + ytFormatViewCount(v.viewCount) + '</span>' : '') +
+                        '</div>' +
                     '</div>' +
                 '</div>';
             sliderCount++;
@@ -420,15 +424,23 @@
                     768: { slidesPerView: 4, spaceBetween: 15 }
                 },
                 on: {
-                    touchStart: function() {
-                        ytSwipeDist = 0;
+                    touchStart: function(swiper, event) {
+                        // 스와이프 시작 X좌표 기록, 플래그 초기화
+                        ytIsSwiping = false;
+                        var t = event && event.touches ? event.touches[0] : event;
+                        ytTouchStartX = (t && t.clientX) ? t.clientX : 0;
                     },
-                    touchMove: function(swiper) {
-                        ytSwipeDist = Math.abs(swiper.touches ? swiper.touches.diff : 0);
+                    touchMove: function(swiper, event) {
+                        // 10px 이상 이동 시 스와이프로 간주
+                        var t = event && event.touches ? event.touches[0] : event;
+                        var curX = (t && t.clientX) ? t.clientX : ytTouchStartX;
+                        if (Math.abs(curX - ytTouchStartX) > 10) {
+                            ytIsSwiping = true;
+                        }
                     },
                     click: function(swiper, event) {
-                        // 스와이프 거리 10px 초과 시 클릭 무시 (스와이프 vs 탭 구분)
-                        if (ytSwipeDist > 10) return;
+                        // 스와이프 중이었으면 클릭 무시 (스와이프 vs 탭 정확히 구분)
+                        if (ytIsSwiping) { ytIsSwiping = false; return; }
                         var slide = event && event.target ? event.target.closest('.yt-slide-card') : null;
                         if (!slide) return;
                         var idx = parseInt(slide.getAttribute('data-index'));
@@ -598,6 +610,14 @@
         if (diff === 0) return '오늘';
         if (diff <= 7) return diff + '일 전';
         return (d.getMonth() + 1) + '.' + d.getDate();
+    }
+
+    /* 조회수 포맷 (1만회, 3천회 등) */
+    function ytFormatViewCount(n) {
+        n = parseInt(n) || 0;
+        if (n >= 10000) return Math.floor(n / 10000) + '\ub9cc\ud68c';
+        if (n >= 1000) return Math.floor(n / 1000) + '\ucc9c\ud68c';
+        return n + '\ud68c';
     }
 
     function ytPlayVideo(videoId) {

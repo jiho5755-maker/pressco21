@@ -1065,7 +1065,7 @@
         padding: 18px;
         box-shadow: 0 5px 25px rgba(0, 0, 0, 0.08);
     }
-    /* "더 많은 영상" 헤더 — 추천 재료 헤더와 동일한 디자인 */
+    /* "더 많은 영상" 헤더 — 추천 재료 헤더(.yt-products-header)와 동일한 디자인 */
     .youtube-slider-wrap .yt-slider-header {
         display: flex;
         justify-content: space-between;
@@ -1075,6 +1075,7 @@
         margin-bottom: 12px;
         cursor: pointer;
         user-select: none;
+        min-height: 48px; /* 모바일 터치 타겟 최소 48px 확보 */
     }
     .youtube-slider-wrap .yt-slider-title {
         font-size: 14px;
@@ -1086,6 +1087,8 @@
         color: var(--color-primary);
         font-weight: bold;
         transition: transform 0.3s ease;
+        /* 토글 아이콘 터치 영역 확보 */
+        padding: 8px;
     }
     /* 기존 .section-subtitle 유지 (하위 호환) — 새 헤더가 있으면 숨김 */
     .youtube-slider-wrap .section-subtitle {
@@ -1101,12 +1104,14 @@
     }
     .youtube-slider .swiper-slide {
         background: #fafafa;
-        border-radius: 6px;
+        border-radius: 8px;
         overflow: hidden;
+        border: 1px solid #eee;
         box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
-        transition: 0.3s;
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
     }
     .youtube-slider .swiper-slide:hover {
+        transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
     }
     .youtube-slider .video-thumb {
@@ -1147,7 +1152,7 @@
         margin-left: 3px;
     }
     .youtube-slider .slide-info {
-        padding: 10px;
+        padding: 8px 8px 10px;
     }
     .youtube-slider .slide-info h6 {
         font-size: 12px;
@@ -1162,7 +1167,7 @@
         height: 31px;
     }
     .youtube-slider .slide-info .date {
-        font-size: 10px;
+        font-size: 11px;
         color: #999;
     }
     .youtube-slider-wrap .swiper-button-prev,
@@ -1358,18 +1363,20 @@
         margin-bottom: 0;
         cursor: pointer;
         user-select: none;
+        min-height: 48px; /* 모바일 터치 타겟 최소 48px 확보 */
     }
     .yt-products-title {
         font-size: 14px;
         font-weight: 700;
         color: var(--color-dark);
     }
-    /* 토글 아이콘 (▶) — 모바일만 표시 */
+    /* 토글 아이콘 (>) — 모바일만 표시 */
     .yt-toggle-icon {
         font-size: 11px;
         color: var(--color-primary);
         font-weight: bold;
         transition: transform 0.3s ease;
+        padding: 8px; /* 터치 영역 확보 */
     }
     /* 상품 그리드 — 기본(모바일): 접힘 */
     .yt-products-grid {
@@ -1844,6 +1851,14 @@
     .yt-slider-toggle-icon,
     .yt-toggle-icon {
         transition: none;
+    }
+    /* hover 애니메이션 비활성화 */
+    .youtube-slider .swiper-slide,
+    .youtube-slider .swiper-slide:hover,
+    .yt-product-card,
+    .yt-product-card:hover {
+        transition: none;
+        transform: none;
     }
 }
 

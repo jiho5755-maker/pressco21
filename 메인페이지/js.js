@@ -386,25 +386,29 @@
             });
         }
 
-        // 모바일 슬라이더 토글 설정 (한 번만 바인딩)
-        if (!ytSliderToggleBound && window.innerWidth < 768) {
-            ytSliderToggleBound = true;
-            var sliderWrap = document.querySelector('.youtube-slider-wrap');
-            if (sliderWrap) {
+        // 모바일 슬라이더 토글 설정
+        var sliderWrap = document.querySelector('.youtube-slider-wrap');
+        if (sliderWrap && window.innerWidth < 768) {
+            // 토글 헤더가 없으면 삽입
+            if (!sliderWrap.querySelector('.yt-slider-header')) {
                 sliderWrap.classList.add('yt-slider-collapsed');
-                var subtitle = sliderWrap.querySelector('.section-subtitle');
-                if (subtitle) {
-                    subtitle.innerHTML = '\ub354 \ub9ce\uc740 \uc601\uc0c1 <span class="yt-slider-icon">&#9654;</span>';
-                    subtitle.style.cursor = 'pointer';
-                    subtitle.addEventListener('click', function() {
-                        sliderWrap.classList.toggle('yt-slider-collapsed');
-                        var icon = sliderWrap.querySelector('.yt-slider-icon');
-                        if (icon) {
-                            icon.style.transform = sliderWrap.classList.contains('yt-slider-collapsed') ? '' : 'rotate(90deg)';
-                        }
-                    });
-                }
+                var sliderHeader = document.createElement('div');
+                sliderHeader.className = 'yt-slider-header';
+                sliderHeader.innerHTML = '\ub354 \ub9ce\uc740 \uc601\uc0c1 <span class="yt-slider-icon">&#9654;</span>';
+                sliderWrap.insertBefore(sliderHeader, sliderWrap.firstChild);
+                sliderHeader.addEventListener('click', function() {
+                    sliderWrap.classList.toggle('yt-slider-collapsed');
+                    var icon = sliderHeader.querySelector('.yt-slider-icon');
+                    if (icon) {
+                        icon.style.transform = sliderWrap.classList.contains('yt-slider-collapsed') ? '' : 'rotate(90deg)';
+                    }
+                });
             }
+        } else if (sliderWrap) {
+            // PC: 항상 펼침, 토글 헤더 제거
+            sliderWrap.classList.remove('yt-slider-collapsed');
+            var existingSliderHeader = sliderWrap.querySelector('.yt-slider-header');
+            if (existingSliderHeader) existingSliderHeader.remove();
         }
     }
 

@@ -1422,6 +1422,20 @@
         color: #bbb;
         font-size: 13px;
     }
+    /* 모바일: 슬라이더 토글 헤더 */
+    .yt-slider-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 12px 0 10px;
+        font-size: 15px;
+        font-weight: 600;
+        color: #333;
+        cursor: pointer;
+        border-bottom: 1px solid #eee;
+        margin-bottom: 0;
+        user-select: none;
+    }
     /* 모바일: 슬라이더 섹션 접힘 */
     .youtube-slider-wrap.yt-slider-collapsed .youtube-slider,
     .youtube-slider-wrap.yt-slider-collapsed .swiper-button-prev,

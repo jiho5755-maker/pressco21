@@ -6,10 +6,18 @@
       "name": "Schedule Daily 04",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [220, 300],
+      "position": [
+        220,
+        300
+      ],
       "parameters": {
         "rule": {
-          "interval": [{ "field": "cronExpression", "expression": "0 4 * * *" }]
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 4 * * *"
+            }
+          ]
         }
       }
     },
@@ -18,7 +26,10 @@
       "name": "Get Active Videos",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 300],
+      "position": [
+        440,
+        300
+      ],
       "parameters": {
         "method": "GET",
         "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/myujhqim7kcd5c9",
@@ -27,15 +38,27 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(status,eq,active)" },
-            { "name": "fields", "value": "video_id,Id,title,description,tags,matched_category" },
-            { "name": "limit", "value": "200" }
+            {
+              "name": "where",
+              "value": "(status,eq,active)"
+            },
+            {
+              "name": "fields",
+              "value": "video_id,Id,title,description,tags,matched_category"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            }
           ]
         },
         "options": {}
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
       }
     },
     {
@@ -43,7 +66,10 @@
       "name": "Get All VPs",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 300],
+      "position": [
+        660,
+        300
+      ],
       "parameters": {
         "method": "GET",
         "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/m6wv7he8qwjs43g",
@@ -52,14 +78,23 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "fields", "value": "Id,video_id,source,is_active" },
-            { "name": "limit", "value": "10000" }
+            {
+              "name": "fields",
+              "value": "Id,video_id,branduid,source,is_active"
+            },
+            {
+              "name": "limit",
+              "value": "10000"
+            }
           ]
         },
         "options": {}
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
       }
     },
     {
@@ -67,7 +102,10 @@
       "name": "Get All Products",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 300],
+      "position": [
+        880,
+        300
+      ],
       "parameters": {
         "method": "GET",
         "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/mq4aef7kh1tg1zz",
@@ -76,15 +114,27 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(status,eq,active)" },
-            { "name": "fields", "value": "branduid,product_name,price,image_url,product_url,category_name" },
-            { "name": "limit", "value": "10000" }
+            {
+              "name": "where",
+              "value": "(status,eq,active)"
+            },
+            {
+              "name": "fields",
+              "value": "branduid,product_name,price,image_url,product_url,category_name,keywords"
+            },
+            {
+              "name": "limit",
+              "value": "10000"
+            }
           ]
         },
         "options": {}
       },
       "credentials": {
-        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
       }
     },
     {
@@ -92,9 +142,12 @@
       "name": "Filter For AI",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 300],
+      "position": [
+        1100,
+        300
+      ],
       "parameters": {
-        "jsCode": "// AI 처리가 필요한 영상 필터링 (description/comment 직접 매칭 없는 영상)\nvar videosResp = $('Get Active Videos').first().json;\nvar vpsResp = $('Get All VPs').first().json;\n\nvar videos = (videosResp && videosResp.list) ? videosResp.list : [];\nvar allVPs = (vpsResp && vpsResp.list) ? vpsResp.list : [];\n\n// description/comment VPs가 있는 video_id 수집\nvar directVideoIds = {};\nfor (var i = 0; i < allVPs.length; i++) {\n  var vp = allVPs[i];\n  if (vp.source === 'description' || vp.source === 'comment') {\n    directVideoIds[vp.video_id] = true;\n  }\n}\n\n// AI 처리 대상: 직접 URL 매칭 없는 영상만\nvar toProcess = [];\nfor (var j = 0; j < videos.length; j++) {\n  var v = videos[j];\n  if (!directVideoIds[v.video_id]) {\n    toProcess.push(v);\n  }\n}\n\nreturn [{ json: { videos: toProcess, count: toProcess.length } }];"
+        "jsCode": "// AI 처리가 필요한 영상 필터링\n// - description/comment 직접 매칭 있는 영상 제외\n// - 이미 active ai VP가 있는 영상 제외 (재처리 방지)\nvar videosResp = $('Get Active Videos').first().json;\nvar vpsResp = $('Get All VPs').first().json;\n\nvar videos = (videosResp && videosResp.list) ? videosResp.list : [];\nvar allVPs = (vpsResp && vpsResp.list) ? vpsResp.list : [];\n\n// 이미 처리된 video_id 수집 (description/comment/ai 모두 제외)\nvar skipVideoIds = {};\nfor (var i = 0; i < allVPs.length; i++) {\n  var vp = allVPs[i];\n  if (vp.source === 'description' || vp.source === 'comment') {\n    skipVideoIds[vp.video_id] = true;  // 직접 링크 있음\n  }\n  if (vp.source === 'ai' && vp.is_active) {\n    skipVideoIds[vp.video_id] = true;  // 이미 AI 처리됨\n  }\n}\n\n// AI 처리 대상: 아직 미처리된 영상만\nvar toProcess = [];\nfor (var j = 0; j < videos.length; j++) {\n  var v = videos[j];\n  if (!skipVideoIds[v.video_id]) {\n    toProcess.push(v);\n  }\n}\n\nreturn [{ json: { videos: toProcess, count: toProcess.length } }];"
       }
     },
     {
@@ -102,225 +155,143 @@
       "name": "Any To Process",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1320, 300],
+      "position": [
+        1320,
+        300
+      ],
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": false },
+          "options": {
+            "caseSensitive": false
+          },
           "conditions": [
             {
               "leftValue": "={{ $json.count }}",
               "rightValue": 0,
-              "operator": { "type": "number", "operation": "gt" }
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
             }
           ]
         }
       }
     },
     {
-      "id": "wytai-07",
-      "name": "Prepare Items",
+      "id": "wytai-20",
+      "name": "Process AI Match",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1540, 200],
+      "position": [
+        1540,
+        200
+      ],
       "parameters": {
-        "jsCode": "// 영상 배열을 개별 아이템으로 변환 (SplitInBatches 입력용)\nvar videos = $input.first().json.videos || [];\nif (videos.length === 0) return [];\nreturn videos.map(function(v) { return { json: v }; });"
+        "jsCode": "// === WF-YT-AI-MATCH v3: 2단계 AI 키워드 매칭 (SplitInBatches 제거, Code 노드 내부 루프) ===\n\nvar GEMINI_KEY = ($env && $env.GEMINI_API_KEY) ? $env.GEMINI_API_KEY : 'AIzaSyC-97PMBNhsqNHWo4Pxye6dY7yOly83xKI';\nvar NOCODB_TOKEN = 'SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl';\nvar YT_BASE = ($env && $env.NOCODB_YOUTUBE_BASE_ID) ? $env.NOCODB_YOUTUBE_BASE_ID : 'pa0dvaitqtslfrx';\nvar VP_URL = 'https://nocodb.pressco21.com/api/v1/db/data/noco/' + YT_BASE + '/m6wv7he8qwjs43g';\nvar BULK_PATCH_URL = 'https://nocodb.pressco21.com/api/v1/db/data/bulk/noco/' + YT_BASE + '/m6wv7he8qwjs43g';\n\n// 설정값\nvar BATCH_LIMIT = 20;   // 1회 실행 시 최대 처리 영상 수 (속도 제한 대응)\nvar CALL_DELAY_MS = 400; // Gemini 호출 사이 딜레이(ms)\n\n// 데이터 로드\nvar filterData = $('Filter For AI').first().json;\nvar allTargets = filterData.videos || [];\nvar aiTargets = allTargets.slice(0, BATCH_LIMIT); // 배치 제한 적용\n\nvar productsResp = $('Get All Products').first().json;\nvar allProducts = productsResp.list || [];\n\nvar vpsResp = $('Get All VPs').first().json;\nvar existingVPs = vpsResp.list || [];\n\n// 기존 description/comment VP 세트 (중복 방지)\nvar existingDirectSet = {};\nfor (var i = 0; i < existingVPs.length; i++) {\n  var xvp = existingVPs[i];\n  if (xvp.source === 'description' || xvp.source === 'comment') {\n    existingDirectSet[xvp.video_id + '::' + String(xvp.branduid)] = true;\n  }\n}\n\n// 한국어 정규화\nfunction normalize(s) {\n  return (s || '').toLowerCase()\n    .replace(/스텐/g, '스탠').replace(/텐드/g, '탠드')\n    .replace(/레짐/g, '레진').replace(/켄들/g, '캔들')\n    .replace(/에폭씨/g, '에폭시').replace(/레즌/g, '레진')\n    .replace(/하바륨/g, '하바리움');\n}\n\n// Gemini 호출\nasync function callGemini(prompt, maxTokens) {\n  var url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' + GEMINI_KEY;\n  try {\n    var resp = await $helpers.httpRequest({\n      method: 'POST',\n      url: url,\n      headers: { 'Content-Type': 'application/json' },\n      body: JSON.stringify({\n        contents: [{ role: 'user', parts: [{ text: prompt }] }],\n        generationConfig: { temperature: 0.1, maxOutputTokens: maxTokens || 400 }\n      })\n    });\n    var candidates = resp.candidates || [];\n    if (candidates.length === 0) return {};\n    var parts = ((candidates[0].content || {}).parts || []);\n    var text = '';\n    for (var pi = 0; pi < parts.length; pi++) {\n      if (parts[pi].text) text += parts[pi].text;\n    }\n    var m = text.match(/\\{[\\s\\S]*\\}/);\n    if (m) {\n      try { return JSON.parse(m[0]); } catch(e2) { return {}; }\n    }\n    return {};\n  } catch(e) {\n    return { _error: String(e).substring(0, 100) };\n  }\n}\n\n// 상품 점수 계산 → top N 반환\nfunction scoreProducts(keywords, aiCat, topN) {\n  var scored = [];\n  for (var j = 0; j < allProducts.length; j++) {\n    var prod = allProducts[j];\n    var pname = normalize(prod.product_name || '');\n    // keywords 필드도 활용\n    var pkws = [];\n    try { pkws = JSON.parse(prod.keywords || '[]'); } catch(e) {}\n    var score = 0;\n    for (var k = 0; k < keywords.length; k++) {\n      var kw = normalize(keywords[k]);\n      if (kw.length < 2) continue;\n      if (pname.indexOf(kw) >= 0 || pkws.some(function(pk) { return normalize(pk) === kw; })) {\n        score += 5;\n      } else {\n        var wparts = kw.split(/\\s+/);\n        for (var wp = 0; wp < wparts.length; wp++) {\n          if (wparts[wp].length >= 2 && pname.indexOf(wparts[wp]) >= 0) {\n            score += 2;\n          }\n        }\n      }\n    }\n    if (aiCat && normalize(prod.category_name || '').indexOf(normalize(aiCat)) >= 0) score += 1;\n    if (score > 0) scored.push({ score: score, prod: prod });\n  }\n  scored.sort(function(a, b) { return b.score - a.score; });\n  return scored.slice(0, topN || 20).map(function(item) {\n    return {\n      branduid: String(item.prod.branduid || ''),\n      product_name: item.prod.product_name || '',\n      product_price: item.prod.price || 0,\n      product_image: item.prod.image_url || '',\n      product_url: item.prod.product_url || ('/shop/shopdetail.html?branduid=' + item.prod.branduid),\n      score: item.score\n    };\n  });\n}\n\nvar processed = 0, inserted = 0, skipped = 0;\nvar errors = [];\n\nfor (var vi = 0; vi < aiTargets.length; vi++) {\n  var v = aiTargets[vi];\n  var videoId = v.video_id;\n  \n  try {\n    // Stage 1: 키워드 추출\n    var title = v.title || '';\n    var tags = [];\n    try { tags = JSON.parse(v.tags || '[]'); } catch(e) {}\n    var cat = v.matched_category || '';\n    \n    var s1Prompt = '당신은 한국 공예 재료 쇼핑몰 상품 매칭 전문가입니다.\\n다음 YouTube 영상에서 사용된 핵심 재료명을 최대 5개 추출해주세요.\\n\\n영상 제목: ' + title + '\\n';\n    if (cat) s1Prompt += '카테고리: ' + cat + '\\n';\n    if (tags.length > 0) s1Prompt += '태그: ' + tags.slice(0, 5).join(', ') + '\\n';\n    s1Prompt += '\\nJSON으로만 응답:\\n{\"keywords\": [\"키워드1\"], \"category\": \"압화|레진|캔들|석고|비즈|기타\"}';\n    \n    var stage1 = await callGemini(s1Prompt, 300);\n    var keywords = stage1.keywords || [];\n    var aiCat = stage1.category || '';\n    \n    if (stage1._error || keywords.length === 0) { errors.push(videoId + ':s1:' + (stage1._error || 'no_kw')); skipped++; continue; }\n    \n    // 상품 매칭 (top 20)\n    var candidates = scoreProducts(keywords, aiCat, 20);\n    if (candidates.length === 0) { skipped++; continue; }\n    \n    // Stage 2: Gemini 최종 선택\n    var top10 = candidates.slice(0, 10);\n    var candList = top10.map(function(c, idx) {\n      return (idx + 1) + '. branduid=' + c.branduid + ' | ' + c.product_name;\n    }).join('\\n');\n    \n    var s2Prompt = '한국 공예 YouTube 영상에서 사용할 재료를 고르는 전문가입니다.\\n\\n영상 제목: ' + title + '\\n키워드: ' + keywords.join(', ') + '\\n\\n아래 상품에서 실제 사용 재료/도구/용기 최대 4개 선택 (완성품 제외, 원재료만):\\n' + candList + '\\n\\nJSON으로만 응답:\\n{\"selected_branduids\": [\"branduid1\"]}';\n    \n    var stage2 = await callGemini(s2Prompt, 200);\n    var selBranduids = stage2.selected_branduids || [];\n    \n    var finalCands = candidates.filter(function(c) {\n      return selBranduids.indexOf(String(c.branduid)) >= 0;\n    });\n    if (finalCands.length === 0) finalCands = candidates.slice(0, 4);\n    \n    // 기존 keyword/ai VP 비활성화 (bulk PATCH)\n    var oldVPs = existingVPs.filter(function(vp) {\n      return vp.video_id === videoId && (vp.source === 'keyword' || vp.source === 'ai');\n    });\n    if (oldVPs.length > 0) {\n      try {\n        await $helpers.httpRequest({\n          method: 'PATCH',\n          url: BULK_PATCH_URL,\n          headers: { 'xc-token': NOCODB_TOKEN, 'Content-Type': 'application/json' },\n          body: JSON.stringify(oldVPs.map(function(vp) { return { Id: vp.Id, is_active: false }; }))\n        });\n      } catch(e) {}\n    }\n    \n    // 새 VP 삽입 (개별 POST)\n    for (var ci = 0; ci < finalCands.length; ci++) {\n      var c = finalCands[ci];\n      var key = videoId + '::' + String(c.branduid);\n      if (existingDirectSet[key]) continue;\n      \n      try {\n        await $helpers.httpRequest({\n          method: 'POST',\n          url: VP_URL,\n          headers: { 'xc-token': NOCODB_TOKEN, 'Content-Type': 'application/json' },\n          body: JSON.stringify({\n            video_id: videoId,\n            branduid: String(c.branduid),\n            product_name: c.product_name,\n            product_price: c.product_price,\n            product_image: c.product_image,\n            product_url: c.product_url,\n            source: 'ai',\n            confidence: 'medium',\n            match_score: c.score,\n            display_order: ci + 1,\n            is_active: true,\n            matched_at: new Date().toISOString()\n          })\n        });\n        inserted++;\n      } catch(e) {\n        errors.push(videoId + ':' + String(e).substring(0, 40));\n      }\n    }\n    \n    processed++;\n    // Gemini 속도 제한 대응: 영상 간 딜레이\n    if (vi < aiTargets.length - 1) {\n      await new Promise(function(r) { setTimeout(r, CALL_DELAY_MS); });\n    }\n  } catch(e) {\n    errors.push(videoId + ':' + String(e).substring(0, 50));\n  }\n}\n\nreturn [{ json: {\n  processed: processed,\n  inserted: inserted,\n  skipped: skipped,\n  total: allTargets.length,\n  batched: aiTargets.length,\n  errorCount: errors.length,\n  errors: errors.slice(0, 5)\n} }];"
       }
-    },
-    {
-      "id": "wytai-08",
-      "name": "Split By Video",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [1760, 200],
-      "parameters": {
-        "batchSize": 1,
-        "options": {}
-      }
-    },
-    {
-      "id": "wytai-09",
-      "name": "Build Prompt",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1980, 100],
-      "parameters": {
-        "jsCode": "// Stage 1: Gemini 키워드 추출용 프롬프트 구성\nvar v = $input.first().json;\nvar title = v.title || '';\nvar desc = (v.description || '').substring(0, 600);\nvar tagsArr = [];\ntry { tagsArr = JSON.parse(v.tags || '[]'); } catch(e) { tagsArr = []; }\nvar matchedCat = v.matched_category || '';\n\nvar prompt = '당신은 한국 공예 재료 쇼핑몰 상품 매칭 전문가입니다.\\n\\n다음 YouTube 영상 정보에서 영상에서 사용된 핵심 재료명을 추출해 주세요.\\n\\n영상 제목: ' + title + '\\n';\nif (matchedCat) prompt += '감지된 카테고리: ' + matchedCat + '\\n';\nif (tagsArr.length > 0) prompt += '태그: ' + tagsArr.slice(0, 8).join(', ') + '\\n';\nif (desc) prompt += '영상 설명(일부): ' + desc + '\\n';\nprompt += '\\n규칙:\\n';\nprompt += '1. 상품명으로 검색 가능한 정확한 재료명 추출\\n';\nprompt += '2. 예: \"UV레진\", \"실리콘 몰드\", \"소이왁스\", \"LED 천스탠드\", \"압화 꽃 세트\", \"탈포기\", \"하바리움 용액\"\\n';\nprompt += '3. 철자 주의: 스탠 vs 스텐 (LED 천스탠드가 올바름), 하바리움 용액/용기 정확히\\n';\nprompt += '4. 최대 5개 키워드 추출\\n';\nprompt += '5. \"만들기\", \"영상\", \"강좌\", \"DIY\" 등 일반 단어 제외\\n';\nprompt += '\\nJSON으로만 응답하세요 (다른 텍스트 없이):\\n';\nprompt += '{\"keywords\": [\"키워드1\", \"키워드2\"], \"category\": \"압화|레진|캔들|석고|비즈|기타\"}';\n\nreturn [{ json: { video_id: v.video_id, title: v.title, prompt: prompt } }];"
-      }
-    },
-    {
-      "id": "wytai-10",
-      "name": "Call Gemini",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2200, 100],
-      "parameters": {
-        "method": "POST",
-        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={{ $env.GEMINI_API_KEY || '' }}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ contents: [{ role: 'user', parts: [{ text: $json.prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192 } }) }}",
-        "options": {}
-      },
-      "continueOnFail": true
-    },
-    {
-      "id": "wytai-11",
-      "name": "Parse Match",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2420, 100],
-      "parameters": {
-        "jsCode": "// Stage 1: Gemini 응답 파싱 + 한국어 정규화 + 상품 점수 계산 → Top 20 후보 반환\nvar geminiResp = $input.first().json;\nvar buildData = $('Build Prompt').first().json;\nvar productsResp = $('Get All Products').first().json;\nvar vpsResp = $('Get All VPs').first().json;\n\nvar videoId = buildData.video_id;\nvar videoTitle = buildData.title || '';\nvar allProducts = (productsResp && productsResp.list) ? productsResp.list : [];\nvar allVPs = (vpsResp && vpsResp.list) ? vpsResp.list : [];\n\n// 한국어 발음 정규화 (AI 오타/발음 오류 보정)\nfunction normalize(s) {\n  return (s || '').toLowerCase()\n    .replace(/스텐/g, '스탠')\n    .replace(/텐드/g, '탠드')\n    .replace(/레짐/g, '레진')\n    .replace(/켄들/g, '캔들')\n    .replace(/에폭씨/g, '에폭시')\n    .replace(/레즌/g, '레진')\n    .replace(/하바륨/g, '하바리움');\n}\n\n// Gemini Stage 1 응답 파싱 (thinking mode: 여러 parts에서 텍스트 합산)\nvar keywords = [];\nvar aiCategory = '';\ntry {\n  var cands = (geminiResp && geminiResp.candidates) ? geminiResp.candidates : [];\n  if (cands.length > 0) {\n    var text = '';\n    var parts = (cands[0].content && cands[0].content.parts) ? cands[0].content.parts : [];\n    for (var pi = 0; pi < parts.length; pi++) {\n      if (parts[pi].text) text += parts[pi].text;\n    }\n    var jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      var parsed = JSON.parse(jsonMatch[0]);\n      keywords = (parsed.keywords || []).filter(function(k) { return k && k.length >= 2; });\n      aiCategory = parsed.category || '';\n    }\n  }\n} catch(e) { keywords = []; }\n\n// 기존 keyword/ai VP 비활성화 대상 수집\nvar deactivateBody = [];\nfor (var i = 0; i < allVPs.length; i++) {\n  var vp = allVPs[i];\n  if (vp.video_id === videoId && (vp.source === 'keyword' || vp.source === 'ai') && vp.is_active !== false) {\n    deactivateBody.push({ Id: vp.Id, is_active: false });\n  }\n}\n\n// 키워드 없으면 스킵 (기존 VP 유지)\nif (keywords.length === 0) {\n  return [{ json: { video_id: videoId, videoTitle: videoTitle, keywords: [], aiCategory: '', deactivateBody: [], matchCandidates: [], skip: true } }];\n}\n\n// 상품 점수 계산 (정규화 적용 후 키워드 매칭)\nvar scored = [];\nfor (var j = 0; j < allProducts.length; j++) {\n  var prod = allProducts[j];\n  var pname = normalize(prod.product_name || '');\n  var score = 0;\n  var matchedKws = [];\n  for (var k = 0; k < keywords.length; k++) {\n    var kw = normalize(keywords[k]);\n    if (kw.length < 2) continue;\n    if (pname.indexOf(kw) >= 0) {\n      score += 5;\n      matchedKws.push(keywords[k]);\n    } else {\n      var wparts = kw.split(/\\s+/);\n      for (var wp = 0; wp < wparts.length; wp++) {\n        if (wparts[wp].length >= 2 && pname.indexOf(wparts[wp]) >= 0) {\n          score += 2;\n          if (matchedKws.indexOf(keywords[k]) < 0) matchedKws.push(keywords[k]);\n        }\n      }\n    }\n  }\n  var pcat = normalize(prod.category_name || '');\n  if (aiCategory && pcat.indexOf(normalize(aiCategory)) >= 0) score += 1;\n  if (score > 0) scored.push({ score: score, prod: prod });\n}\nscored.sort(function(a, b) { return b.score - a.score; });\nvar top20 = scored.slice(0, 20);\n\n// Stage 2에 전달할 후보 목록 구성\nvar matchCandidates = top20.map(function(item) {\n  return {\n    branduid: String(item.prod.branduid || ''),\n    product_name: item.prod.product_name || '',\n    product_price: item.prod.price || 0,\n    product_image: item.prod.image_url || '',\n    product_url: item.prod.product_url || ('/shop/shopdetail.html?branduid=' + item.prod.branduid),\n    score: item.score\n  };\n});\n\nreturn [{ json: { video_id: videoId, videoTitle: videoTitle, keywords: keywords, aiCategory: aiCategory, deactivateBody: deactivateBody, matchCandidates: matchCandidates, skip: false } }];"
-      }
-    },
-    {
-      "id": "wytai-15",
-      "name": "Build Catalog Prompt",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [2640, 100],
-      "parameters": {
-        "jsCode": "// Stage 2 프롬프트 구성: Top 20 후보 → Gemini에게 실제 사용 재료 선택 요청\nvar stage1 = $input.first().json;\n\n// 후보 없거나 스킵 → Gemini에게 빈 응답 유도 프롬프트 전달\nif (stage1.skip || !stage1.matchCandidates || stage1.matchCandidates.length === 0) {\n  return [{ json: {\n    video_id: stage1.video_id || '',\n    videoTitle: stage1.videoTitle || '',\n    keywords: stage1.keywords || [],\n    aiCategory: stage1.aiCategory || '',\n    deactivateBody: stage1.deactivateBody || [],\n    matchCandidates: [],\n    stage2Prompt: '다음 JSON을 그대로 출력하세요: {\"matches\": []}',\n    skip: true\n  } }];\n}\n\nvar title = stage1.videoTitle || '';\nvar candidates = stage1.matchCandidates;\n\nvar prodLines = candidates.map(function(c, idx) {\n  return (idx + 1) + '. branduid=' + c.branduid + ' | ' + c.product_name;\n}).join('\\n');\n\nvar prompt = '당신은 한국 공예 쇼핑몰 상품 추천 전문가입니다.\\n\\n';\nprompt += '영상 제목: ' + title + '\\n';\nprompt += 'AI 감지 키워드: ' + stage1.keywords.join(', ') + '\\n\\n';\nprompt += '=== 후보 상품 목록 ===\\n';\nprompt += prodLines + '\\n\\n';\nprompt += '선택 기준:\\n';\nprompt += '1. 영상에서 실제로 손으로 사용하는 핵심 재료/도구 우선 선택\\n';\nprompt += '2. 완성 작품(완성 액자, 완성 부케, 작품집, 책, 완성 키링) 제외 - 원재료/용기/공구만 선택\\n';\nprompt += '3. 영상 메인 주제 상품을 1순위로\\n';\nprompt += '4. 카테고리 매칭: 하바리움 영상에는 하바리움 용기/용액, 천스탠드 영상에는 LED 천스탠드 우선\\n';\nprompt += '5. 최대 4개 선택\\n\\n';\nprompt += 'JSON으로만 응답 (다른 텍스트 없이):\\n';\nprompt += '{\"matches\": [{\"branduid\": \"값\", \"reason\": \"선택이유\"}]}\\n';\nprompt += '위 후보 목록에 없는 branduid는 절대 포함하지 마세요.';\n\nreturn [{ json: {\n  video_id: stage1.video_id,\n  videoTitle: title,\n  keywords: stage1.keywords,\n  aiCategory: stage1.aiCategory,\n  deactivateBody: stage1.deactivateBody,\n  matchCandidates: candidates,\n  stage2Prompt: prompt,\n  skip: false\n} }];"
-      }
-    },
-    {
-      "id": "wytai-16",
-      "name": "Call Gemini Stage2",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [2860, 100],
-      "parameters": {
-        "method": "POST",
-        "url": "=https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key={{ $env.GEMINI_API_KEY || '' }}",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ contents: [{ role: 'user', parts: [{ text: $json.stage2Prompt }] }], generationConfig: { temperature: 0.1, maxOutputTokens: 8192 } }) }}",
-        "options": {}
-      },
-      "continueOnFail": true
-    },
-    {
-      "id": "wytai-17",
-      "name": "Parse Catalog",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [3080, 100],
-      "parameters": {
-        "jsCode": "// Stage 2 파싱: Gemini 선택 결과 → 최종 insertBody 구성\nvar stage2Data = $('Build Catalog Prompt').first().json;\nvar geminiResp = $input.first().json;\n\nvar videoId = stage2Data.video_id;\nvar deactivateBody = stage2Data.deactivateBody || [];\nvar matchCandidates = stage2Data.matchCandidates || [];\n\n// skip 또는 후보 없음 → 아무것도 변경하지 않음\nif (stage2Data.skip || matchCandidates.length === 0) {\n  return [{ json: { video_id: videoId, insertBody: [], deactivateBody: [], skip: true } }];\n}\n\n// 후보 맵 구성 (branduid → 상품 정보)\nvar candMap = {};\nmatchCandidates.forEach(function(c) { candMap[String(c.branduid)] = c; });\n\n// Gemini Stage 2 응답 파싱 (thinking mode: 여러 parts 합산)\nvar matchedBranduids = [];\ntry {\n  var candidates = (geminiResp && geminiResp.candidates) ? geminiResp.candidates : [];\n  if (candidates.length > 0) {\n    var text = '';\n    var parts = (candidates[0].content && candidates[0].content.parts) ? candidates[0].content.parts : [];\n    for (var pi = 0; pi < parts.length; pi++) {\n      if (parts[pi].text) text += parts[pi].text;\n    }\n    var jsonMatch = text.match(/\\{[\\s\\S]*\\}/);\n    if (jsonMatch) {\n      var parsed = JSON.parse(jsonMatch[0]);\n      var matches = parsed.matches || [];\n      matches.forEach(function(m) {\n        var buid = String(m.branduid || '');\n        if (buid && candMap[buid] && matchedBranduids.indexOf(buid) < 0) {\n          matchedBranduids.push(buid);\n        }\n      });\n    }\n  }\n} catch(e) { matchedBranduids = []; }\n\n// Stage 2 실패 시 Stage 1 Top 4로 폴백\nif (matchedBranduids.length === 0) {\n  matchedBranduids = matchCandidates.slice(0, 4).map(function(c) { return c.branduid; });\n}\n\n// 최종 삽입 데이터 구성 (최대 4개)\nvar insertBody = matchedBranduids.slice(0, 4).map(function(buid, idx) {\n  var c = candMap[buid];\n  return {\n    video_id: videoId,\n    branduid: buid,\n    product_name: c.product_name,\n    product_price: c.product_price,\n    product_image: c.product_image,\n    product_url: c.product_url,\n    source: 'ai',\n    confidence: 'medium',\n    match_score: c.score,\n    display_order: idx + 1,\n    is_active: true,\n    matched_at: new Date().toISOString()\n  };\n});\n\nreturn [{ json: { video_id: videoId, insertBody: insertBody, deactivateBody: deactivateBody, skip: false } }];"
-      }
-    },
-    {
-      "id": "wytai-12",
-      "name": "Deactivate Old VPs",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [3300, 100],
-      "parameters": {
-        "method": "PATCH",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/bulk/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/m6wv7he8qwjs43g",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify(($json.deactivateBody || []).length > 0 ? $json.deactivateBody : [{Id: -1, is_active: false}]) }}",
-        "options": {}
-      },
-      "credentials": {
-        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
-      },
-      "continueOnFail": true
-    },
-    {
-      "id": "wytai-13",
-      "name": "Insert AI VPs",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [3520, 100],
-      "parameters": {
-        "method": "POST",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/bulk/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/m6wv7he8qwjs43g",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($('Parse Catalog').first().json.insertBody) }}",
-        "options": {}
-      },
-      "credentials": {
-        "httpHeaderAuth": { "id": "JmXQGe9254wG4qVZ", "name": "NocoDB API Token" }
-      },
-      "continueOnFail": true
     },
     {
       "id": "wytai-14",
       "name": "Send AI Summary",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1980, 420],
+      "position": [
+        1760,
+        200
+      ],
       "parameters": {
         "chatId": "={{ $env.TELEGRAM_CHAT_ID || '7713811206' }}",
-        "text": "=*[WF-YT-AI] AI 2단계 카탈로그 매칭 완료* ({{ new Date().toISOString().substring(0,10) }})\n처리 대상 영상: {{ $('Filter For AI').first().json.count }}개\nStage1: 키워드 추출 + 정규화 → Top 20 후보\nStage2: Gemini 실제 사용 재료 선택 → 최종 4개\n매일 04:00 실행"
+        "text": "=*[WF-YT-AI] AI 2단계 매칭 완료* ({{ new Date().toISOString().substring(0,10) }})\n대상 영상: {{ $('Filter For AI').first().json.count }}개\n처리: {{ $json.processed }}개 | 삽입: {{ $json.inserted }}개 | 스킵: {{ $json.skipped }}개\n오류: {{ $json.errorCount }}건{{ $json.errorCount > 0 ? '\\n' + ($json.errors || []).join('\\n') : '' }}"
       },
       "credentials": {
-        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "Telegram Bot" }
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "Telegram Bot"
+        }
       }
     }
   ],
   "connections": {
     "Schedule Daily 04": {
-      "main": [[{ "node": "Get Active Videos", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get Active Videos",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get Active Videos": {
-      "main": [[{ "node": "Get All VPs", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get All VPs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get All VPs": {
-      "main": [[{ "node": "Get All Products", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Get All Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Get All Products": {
-      "main": [[{ "node": "Filter For AI", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Filter For AI",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Filter For AI": {
-      "main": [[{ "node": "Any To Process", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "Any To Process",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "Any To Process": {
       "main": [
-        [{ "node": "Prepare Items", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "Process AI Match",
+            "type": "main",
+            "index": 0
+          }
+        ],
         []
       ]
     },
-    "Prepare Items": {
-      "main": [[{ "node": "Split By Video", "type": "main", "index": 0 }]]
-    },
-    "Split By Video": {
+    "Process AI Match": {
       "main": [
-        [{ "node": "Build Prompt", "type": "main", "index": 0 }],
-        [{ "node": "Send AI Summary", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Send AI Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
-    },
-    "Build Prompt": {
-      "main": [[{ "node": "Call Gemini", "type": "main", "index": 0 }]]
-    },
-    "Call Gemini": {
-      "main": [[{ "node": "Parse Match", "type": "main", "index": 0 }]]
-    },
-    "Parse Match": {
-      "main": [[{ "node": "Build Catalog Prompt", "type": "main", "index": 0 }]]
-    },
-    "Build Catalog Prompt": {
-      "main": [[{ "node": "Call Gemini Stage2", "type": "main", "index": 0 }]]
-    },
-    "Call Gemini Stage2": {
-      "main": [[{ "node": "Parse Catalog", "type": "main", "index": 0 }]]
-    },
-    "Parse Catalog": {
-      "main": [[{ "node": "Deactivate Old VPs", "type": "main", "index": 0 }]]
-    },
-    "Deactivate Old VPs": {
-      "main": [[{ "node": "Insert AI VPs", "type": "main", "index": 0 }]]
-    },
-    "Insert AI VPs": {
-      "main": [[{ "node": "Split By Video", "type": "main", "index": 0 }]]
     }
   },
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1"
+  }
 }

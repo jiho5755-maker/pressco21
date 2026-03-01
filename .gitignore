@@ -8,3 +8,12 @@
 mcp-shrimp-task-manager/
 shrimp-rules.md
 shrimp_data/
+
+# Playwright MCP 임시 파일
+.playwright-mcp/
+
+# 임시 스크린샷
+*.png
+detail-*.png
+test-*.png
+page-*.png

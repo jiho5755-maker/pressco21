@@ -164,7 +164,7 @@
           "parameters": [
             { "name": "where", "value": "(status,eq,active)" },
             { "name": "fields", "value": "branduid,product_name,price,image_url,product_url,keywords,category_name" },
-            { "name": "limit", "value": "500" }
+            { "name": "limit", "value": "10000" }
           ]
         },
         "options": {}

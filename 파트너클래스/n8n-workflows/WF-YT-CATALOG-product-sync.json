@@ -15,13 +15,13 @@
     },
     {
       "id": "wytc-02",
-      "name": "Fetch Makeshop Products",
+      "name": "Fetch Page 1",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 300],
+      "position": [460, 300],
       "parameters": {
         "method": "GET",
-        "url": "https://foreverlove.co.kr/open_api_process.html",
+        "url": "https://foreverlove.co.kr/list/open_api.html",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -33,8 +33,8 @@
         "queryParameters": {
           "parameters": [
             { "name": "mode", "value": "search" },
-            { "name": "type", "value": "product_list" },
-            { "name": "pageSize", "value": "5000" },
+            { "name": "type", "value": "product" },
+            { "name": "pageSize", "value": "1000" },
             { "name": "page", "value": "1" }
           ]
         },
@@ -43,20 +43,160 @@
     },
     {
       "id": "wytc-03",
-      "name": "Parse Products",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [660, 300],
+      "name": "Fetch Page 2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300],
       "parameters": {
-        "jsCode": "// 메이크샵 상품 목록 파싱 + 카테고리/키워드 자동 추출\nvar raw = $input.first().json;\nvar body = typeof raw === 'string' ? raw : (raw.body || JSON.stringify(raw));\n\nvar data;\ntry { data = JSON.parse(body); } catch(e) {\n  throw new Error('메이크샵 API 응답 파싱 실패. 응답: ' + String(body).slice(0, 300));\n}\n\nif (data && data.return_code && data.return_code !== '0000') {\n  throw new Error('메이크샵 API 오류 ' + data.return_code + ': ' + JSON.stringify(data).slice(0, 200) + ' → 어드민 오픈API 조회 권한 확인 필요');\n}\n\nvar CATEGORY_KEYWORDS = {\n  '압화': ['압화', '프레스드플라워', '프레스드', '건조꽃', '드라이플라워', '하바리움', '부케', '꽃'],\n  '레진': ['레진', 'UV레진', '에폭시', '실리콘몰드', '몰드', '레지너스', '꽃레진'],\n  '캔들': ['캔들', '왁스', '소이왁스', '향초', '심지'],\n  '석고': ['석고', '방향제', '아로마'],\n  '비즈': ['비즈', '구슬', '클레이']\n};\n\nfunction detectCategory(name) {\n  if (!name) return '';\n  var lname = name.toLowerCase();\n  for (var cat in CATEGORY_KEYWORDS) {\n    var words = CATEGORY_KEYWORDS[cat];\n    for (var i = 0; i < words.length; i++) {\n      if (lname.indexOf(words[i]) >= 0) return cat;\n    }\n  }\n  return '';\n}\n\nfunction extractKeywords(name) {\n  if (!name) return [];\n  var kws = [];\n  var lname = name.toLowerCase();\n  for (var cat in CATEGORY_KEYWORDS) {\n    var words = CATEGORY_KEYWORDS[cat];\n    for (var i = 0; i < words.length; i++) {\n      if (lname.indexOf(words[i]) >= 0 && kws.indexOf(words[i]) < 0) kws.push(words[i]);\n    }\n  }\n  // 키워드 없으면 상품명 첫 단어로 폴백\n  if (kws.length === 0 && name) kws.push(name.split('/')[0].split(' ')[0].trim());\n  return kws;\n}\n\nvar rawList = [];\nif (data && data.datas && Array.isArray(data.datas)) rawList = data.datas;\nelse if (Array.isArray(data)) rawList = data;\n\nvar records = [];\nfor (var j = 0; j < rawList.length; j++) {\n  var p = rawList[j];\n  // 메이크샵 API 필드명 (실제 응답 확인 후 조정 가능)\n  var branduid = String(p.branduid || p.uid || p.product_id || '');\n  var name = p.product_name || p.name || '';\n  var price = parseInt(p.sellprice || p.price || 0);\n  var image = p.image1 || p.mainimage || p.image || '';\n  if (image && !image.startsWith('http')) image = 'https://foreverlove.co.kr' + image;\n\n  if (branduid && name) {\n    records.push({\n      branduid: branduid,\n      product_name: name,\n      price: isNaN(price) ? 0 : price,\n      image_url: image,\n      product_url: 'https://foreverlove.co.kr/shop/shopdetail.html?branduid=' + branduid,\n      category_name: detectCategory(name),\n      keywords: JSON.stringify(extractKeywords(name)),\n      status: 'active',\n      synced_at: new Date().toISOString()\n    });\n  }\n}\n\nif (records.length === 0) {\n  throw new Error('파싱된 상품이 없습니다. API 응답: ' + JSON.stringify(data).slice(0, 500));\n}\n\nreturn [{ json: { products: records, total: records.length } }];"
+        "method": "GET",
+        "url": "https://foreverlove.co.kr/list/open_api.html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "pageSize", "value": "1000" },
+            { "name": "page", "value": "2" }
+          ]
+        },
+        "options": { "response": { "response": { "responseFormat": "text" } } }
       }
     },
     {
       "id": "wytc-04",
+      "name": "Fetch Page 3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://foreverlove.co.kr/list/open_api.html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "pageSize", "value": "1000" },
+            { "name": "page", "value": "3" }
+          ]
+        },
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      }
+    },
+    {
+      "id": "wytc-05",
+      "name": "Fetch Page 4",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1180, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://foreverlove.co.kr/list/open_api.html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "pageSize", "value": "1000" },
+            { "name": "page", "value": "4" }
+          ]
+        },
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      }
+    },
+    {
+      "id": "wytc-06",
+      "name": "Fetch Page 5",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1420, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://foreverlove.co.kr/list/open_api.html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "pageSize", "value": "1000" },
+            { "name": "page", "value": "5" }
+          ]
+        },
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      }
+    },
+    {
+      "id": "wytc-07",
+      "name": "Fetch Page 6",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1660, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://foreverlove.co.kr/list/open_api.html",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "pageSize", "value": "1000" },
+            { "name": "page", "value": "6" }
+          ]
+        },
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      }
+    },
+    {
+      "id": "wytc-08",
+      "name": "Parse All Products",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1900, 300],
+      "parameters": {
+        "jsCode": "// 메이크샵 전체 상품 카탈로그 파싱 (6페이지 순차 집계)\n// 올바른 엔드포인트: /list/open_api.html?type=product&page=N\n// 올바른 응답 키: list[] (datas 아님), uid (branduid 아님)\nvar CATEGORY_KEYWORDS = {\n  '압화': ['압화','프레스드플라워','프레스드','건조꽃','드라이플라워','하바리움','부케','꽃다발','꽃'],\n  '레진': ['레진','UV레진','에폭시','실리콘몰드','몰드','레지너스','꽃레진'],\n  '캔들': ['캔들','왁스','소이왁스','향초','심지'],\n  '석고': ['석고','방향제','아로마'],\n  '비즈': ['비즈','구슬','클레이']\n};\nfunction detectCategory(name) {\n  if (!name) return '';\n  for (var cat in CATEGORY_KEYWORDS) {\n    var ws = CATEGORY_KEYWORDS[cat];\n    for (var i = 0; i < ws.length; i++) {\n      if (name.indexOf(ws[i]) >= 0) return cat;\n    }\n  }\n  return '';\n}\nfunction extractKeywords(name) {\n  if (!name) return [];\n  var kws = [];\n  for (var cat in CATEGORY_KEYWORDS) {\n    var ws = CATEGORY_KEYWORDS[cat];\n    for (var i = 0; i < ws.length; i++) {\n      if (name.indexOf(ws[i]) >= 0 && kws.indexOf(ws[i]) < 0) kws.push(ws[i]);\n    }\n  }\n  return kws;\n}\nfunction parsePage(item) {\n  try {\n    var raw = item.json;\n    var body = typeof raw === 'string' ? raw : (raw.data || raw.body || JSON.stringify(raw));\n    if (typeof body === 'object') body = JSON.stringify(body);\n    var d = JSON.parse(body);\n    if (!d || d.return_code !== '0000') return [];\n    return Array.isArray(d.list) ? d.list : [];\n  } catch(e) { return []; }\n}\nvar allRaw = [];\ntry { allRaw = allRaw.concat(parsePage($('Fetch Page 1').first())); } catch(e) {}\ntry { allRaw = allRaw.concat(parsePage($('Fetch Page 2').first())); } catch(e) {}\ntry { allRaw = allRaw.concat(parsePage($('Fetch Page 3').first())); } catch(e) {}\ntry { allRaw = allRaw.concat(parsePage($('Fetch Page 4').first())); } catch(e) {}\ntry { allRaw = allRaw.concat(parsePage($('Fetch Page 5').first())); } catch(e) {}\ntry { allRaw = allRaw.concat(parsePage($('Fetch Page 6').first())); } catch(e) {}\nvar records = [];\nvar now = new Date().toISOString();\nfor (var j = 0; j < allRaw.length; j++) {\n  var p = allRaw[j];\n  if (p.sell_accept !== 'Y' || p.display !== 'Y') continue;\n  var uid = String(p.uid || '');\n  var name = p.product_name || '';\n  if (!uid || !name) continue;\n  var price = parseInt(p.sellprice) || 0;\n  var image = '';\n  if (p.multi_image && typeof p.multi_image === 'string' && p.multi_image.trim()) {\n    image = p.multi_image.split(',')[0].trim();\n    if (image && !image.startsWith('http')) image = 'https://foreverlove.co.kr' + image;\n  }\n  records.push({\n    branduid: uid,\n    product_name: name,\n    price: price,\n    image_url: image,\n    product_url: 'https://foreverlove.co.kr/shop/shopdetail.html?branduid=' + uid,\n    category_name: detectCategory(name),\n    keywords: JSON.stringify(extractKeywords(name)),\n    status: 'active',\n    synced_at: now\n  });\n}\nif (records.length === 0) {\n  throw new Error('활성 상품이 없습니다. API 응답 확인 필요 (endpoint: /list/open_api.html)');\n}\nreturn [{ json: { products: records, total: records.length } }];"
+      }
+    },
+    {
+      "id": "wytc-09",
       "name": "Get Existing Products",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 300],
+      "position": [2140, 300],
       "parameters": {
         "method": "GET",
         "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/mq4aef7kh1tg1zz",
@@ -66,7 +206,7 @@
         "queryParameters": {
           "parameters": [
             { "name": "fields", "value": "branduid,Id,price" },
-            { "name": "limit", "value": "5000" }
+            { "name": "limit", "value": "10000" }
           ]
         },
         "options": {}
@@ -76,21 +216,21 @@
       }
     },
     {
-      "id": "wytc-05",
+      "id": "wytc-10",
       "name": "Upsert Decision",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 300],
+      "position": [2380, 300],
       "parameters": {
-        "jsCode": "var parsed = $('Parse Products').first().json;\nvar existingResp = $input.first().json;\n\nvar newProducts = parsed.products || [];\nvar existing = (existingResp && existingResp.list) ? existingResp.list : [];\n\nvar existingMap = {};\nfor (var i = 0; i < existing.length; i++) {\n  existingMap[String(existing[i].branduid)] = { id: existing[i].Id, price: existing[i].price };\n}\n\nvar toInsert = [];\nvar toUpdate = [];\n\nfor (var j = 0; j < newProducts.length; j++) {\n  var p = newProducts[j];\n  var ex = existingMap[String(p.branduid)];\n  if (ex) {\n    // 가격 변경 시만 업데이트\n    if (parseInt(ex.price) !== parseInt(p.price)) {\n      toUpdate.push({ Id: ex.id, price: p.price, image_url: p.image_url, synced_at: p.synced_at });\n    }\n  } else {\n    toInsert.push(p);\n  }\n}\n\nreturn [{ json: { toInsert: toInsert, toUpdate: toUpdate, insertCount: toInsert.length, updateCount: toUpdate.length } }];"
+        "jsCode": "var parsed = $('Parse All Products').first().json;\nvar existingResp = $input.first().json;\nvar newProducts = parsed.products || [];\nvar existing = (existingResp && existingResp.list) ? existingResp.list : [];\nvar existingMap = {};\nfor (var i = 0; i < existing.length; i++) {\n  existingMap[String(existing[i].branduid)] = { id: existing[i].Id, price: existing[i].price };\n}\nvar toInsert = [];\nvar toUpdate = [];\nfor (var j = 0; j < newProducts.length; j++) {\n  var p = newProducts[j];\n  var ex = existingMap[String(p.branduid)];\n  if (ex) {\n    if (String(ex.price) !== String(p.price)) {\n      toUpdate.push({ Id: ex.id, price: p.price, synced_at: p.synced_at });\n    }\n  } else {\n    toInsert.push(p);\n  }\n}\nreturn [{ json: { toInsert: toInsert, toUpdate: toUpdate, insertCount: toInsert.length, updateCount: toUpdate.length, totalProcessed: newProducts.length } }];"
       }
     },
     {
-      "id": "wytc-06",
+      "id": "wytc-11",
       "name": "Bulk Insert New",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1320, 300],
+      "position": [2620, 300],
       "parameters": {
         "method": "POST",
         "url": "=https://nocodb.pressco21.com/api/v1/db/data/bulk/noco/{{ $env.NOCODB_YOUTUBE_BASE_ID }}/mq4aef7kh1tg1zz",
@@ -98,7 +238,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json.toInsert.length > 0 ? $json.toInsert : [{_skip:true}]) }}",
+        "jsonBody": "={{ $json.toInsert.length > 0 ? $json.toInsert : [] }}",
         "options": {}
       },
       "credentials": {
@@ -106,21 +246,21 @@
       }
     },
     {
-      "id": "wytc-07",
+      "id": "wytc-12",
       "name": "Build Summary",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1540, 300],
+      "position": [2860, 300],
       "parameters": {
-        "jsCode": "var d = $('Upsert Decision').first().json;\nvar now = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });\nvar msg = '\uD83D\uDCE6 \uBA54\uC774\uD06C\uC0F5 \uC0C1\uD488 \uCE74\uD0C1\uB85C\uADF8 \uB3D9\uAE30\uD654 \uC644\uB8CC\\n\uC2E0\uADDC: ' + (d.insertCount||0) + '\uAC1C\\n\uAC31\uC2E0: ' + (d.updateCount||0) + '\uAC1C\\n\uC2DC\uAC04: ' + now;\nreturn [{ json: { message: msg, insertCount: d.insertCount, updateCount: d.updateCount } }];"
+        "jsCode": "var d = $('Upsert Decision').first().json;\nvar now = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });\nvar msg = '\uD83D\uDCE6 메이크샵 상품 카탈로그 동기화 완료\\n처리: ' + (d.totalProcessed||0) + '개\\n신규: ' + (d.insertCount||0) + '개\\n가격갱신: ' + (d.updateCount||0) + '개\\n시간: ' + now;\nreturn [{ json: { message: msg, insertCount: d.insertCount, updateCount: d.updateCount, totalProcessed: d.totalProcessed } }];"
       }
     },
     {
-      "id": "wytc-08",
+      "id": "wytc-13",
       "name": "Telegram Notify",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1760, 300],
+      "position": [3100, 300],
       "parameters": {
         "chatId": "={{ $env.TELEGRAM_CHAT_ID || '7713811206' }}",
         "text": "={{ $json.message }}",
@@ -133,12 +273,27 @@
   ],
   "connections": {
     "Schedule 03:30": {
-      "main": [[{ "node": "Fetch Makeshop Products", "type": "main", "index": 0 }]]
+      "main": [[{ "node": "Fetch Page 1", "type": "main", "index": 0 }]]
     },
-    "Fetch Makeshop Products": {
-      "main": [[{ "node": "Parse Products", "type": "main", "index": 0 }]]
+    "Fetch Page 1": {
+      "main": [[{ "node": "Fetch Page 2", "type": "main", "index": 0 }]]
     },
-    "Parse Products": {
+    "Fetch Page 2": {
+      "main": [[{ "node": "Fetch Page 3", "type": "main", "index": 0 }]]
+    },
+    "Fetch Page 3": {
+      "main": [[{ "node": "Fetch Page 4", "type": "main", "index": 0 }]]
+    },
+    "Fetch Page 4": {
+      "main": [[{ "node": "Fetch Page 5", "type": "main", "index": 0 }]]
+    },
+    "Fetch Page 5": {
+      "main": [[{ "node": "Fetch Page 6", "type": "main", "index": 0 }]]
+    },
+    "Fetch Page 6": {
+      "main": [[{ "node": "Parse All Products", "type": "main", "index": 0 }]]
+    },
+    "Parse All Products": {
       "main": [[{ "node": "Get Existing Products", "type": "main", "index": 0 }]]
     },
     "Get Existing Products": {

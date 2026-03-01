@@ -1320,22 +1320,66 @@
     .yt-products-inner {
         display: flex;
         flex-direction: column;
-        gap: 10px;
+        gap: 0;
     }
     .yt-products-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         border-bottom: 2px solid var(--color-primary-light);
         padding-bottom: 8px;
-        margin-bottom: 2px;
+        margin-bottom: 0;
+        cursor: pointer;
+        user-select: none;
     }
     .yt-products-title {
         font-size: 14px;
         font-weight: 700;
         color: var(--color-dark);
     }
+    /* 토글 아이콘 (▶) — 모바일만 표시 */
+    .yt-toggle-icon {
+        font-size: 11px;
+        color: var(--color-primary);
+        font-weight: bold;
+        transition: transform 0.3s ease;
+    }
+    /* 상품 그리드 — 기본(모바일): 접힘 */
     .yt-products-grid {
         display: grid;
         grid-template-columns: repeat(2, 1fr);
         gap: 10px;
+        max-height: 0;
+        overflow: hidden;
+        transition: max-height 0.4s ease, margin-top 0.4s ease;
+        margin-top: 0;
+    }
+    .related-products-wrap.expanded .yt-products-grid {
+        max-height: 1200px;
+        margin-top: 12px;
+    }
+    /* 숨겨진 상품 (더 보기 전) */
+    .yt-hidden {
+        display: none !important;
+    }
+    /* "더 보기 / 접기" 버튼 */
+    .yt-more-btn {
+        grid-column: 1 / -1;
+        margin-top: 4px;
+        padding: 8px 0;
+        background: none;
+        border: 1px solid var(--color-primary);
+        border-radius: 6px;
+        color: var(--color-primary);
+        font-size: 12px;
+        font-weight: 600;
+        cursor: pointer;
+        text-align: center;
+        transition: background 0.2s ease, color 0.2s ease;
+    }
+    .yt-more-btn:hover {
+        background: var(--color-primary);
+        color: #fff;
     }
     .yt-product-card {
         display: flex;
@@ -1377,6 +1421,21 @@
         text-align: center;
         color: #bbb;
         font-size: 13px;
+    }
+    /* 모바일: 슬라이더 섹션 접힘 */
+    .youtube-slider-wrap.yt-slider-collapsed .youtube-slider,
+    .youtube-slider-wrap.yt-slider-collapsed .swiper-button-prev,
+    .youtube-slider-wrap.yt-slider-collapsed .swiper-button-next,
+    .youtube-slider-wrap.yt-slider-collapsed .swiper-pagination {
+        display: none;
+    }
+    /* 슬라이더 토글 아이콘 */
+    .yt-slider-icon {
+        display: inline-block;
+        font-size: 11px;
+        margin-left: 6px;
+        color: var(--color-primary);
+        transition: transform 0.3s ease;
     }
 
     .brand-philosophy {
@@ -1548,11 +1607,20 @@
             font-size: 14px;
         }
         /* PC: yt-products 패널 — 항상 펼침, 그리드 확대 */
-        .yt-products-title {
-            font-size: 15px;
+        .yt-products-header {
+            cursor: default;
+        }
+        .yt-toggle-icon {
+            display: none;
         }
         .yt-products-grid {
+            max-height: none !important;
+            overflow: visible !important;
+            margin-top: 12px !important;
             gap: 12px;
+        }
+        .yt-products-title {
+            font-size: 15px;
         }
         .yt-product-name {
             font-size: 12px;
@@ -1561,6 +1629,16 @@
         .yt-product-price {
             font-size: 13px;
             padding: 0 9px 9px;
+        }
+        /* PC: 슬라이더 섹션 항상 표시 */
+        .youtube-slider-wrap.yt-slider-collapsed .youtube-slider,
+        .youtube-slider-wrap.yt-slider-collapsed .swiper-button-prev,
+        .youtube-slider-wrap.yt-slider-collapsed .swiper-button-next,
+        .youtube-slider-wrap.yt-slider-collapsed .swiper-pagination {
+            display: block;
+        }
+        .yt-slider-icon {
+            display: none;
         }
         .youtube-slider-wrap {
             margin-top: 28px;

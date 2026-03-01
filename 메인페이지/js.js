@@ -228,6 +228,7 @@
     var ytAllVideos = [];
     var ytCurrentIndex = 0;
     var ytSliderBound = false;
+    var ytSliderToggleBound = false;
     var ytSwiperInstance = null;
 
     function loadYouTube() {
@@ -384,6 +385,27 @@
                 }
             });
         }
+
+        // 모바일 슬라이더 토글 설정 (한 번만 바인딩)
+        if (!ytSliderToggleBound && window.innerWidth < 768) {
+            ytSliderToggleBound = true;
+            var sliderWrap = document.querySelector('.youtube-slider-wrap');
+            if (sliderWrap) {
+                sliderWrap.classList.add('yt-slider-collapsed');
+                var subtitle = sliderWrap.querySelector('.section-subtitle');
+                if (subtitle) {
+                    subtitle.innerHTML = '\ub354 \ub9ce\uc740 \uc601\uc0c1 <span class="yt-slider-icon">&#9654;</span>';
+                    subtitle.style.cursor = 'pointer';
+                    subtitle.addEventListener('click', function() {
+                        sliderWrap.classList.toggle('yt-slider-collapsed');
+                        var icon = sliderWrap.querySelector('.yt-slider-icon');
+                        if (icon) {
+                            icon.style.transform = sliderWrap.classList.contains('yt-slider-collapsed') ? '' : 'rotate(90deg)';
+                        }
+                    });
+                }
+            }
+        }
     }
 
     function ytRenderProducts(video) {
@@ -394,29 +416,27 @@
         var productSource = video.productSource || 'none';
 
         // 3-tier 헤더
-        var headerText = '';
-        if (productSource === 'direct') {
-            headerText = '이 영상에 사용된 재료';
-        } else if (productSource === 'keyword') {
-            headerText = '추천 재료';
-        } else {
-            headerText = '인기 재료';
-        }
+        var headerText = productSource === 'direct' ? '\uc774 \uc601\uc0c1\uc5d0 \uc0ac\uc6a9\ub41c \uc7ac\ub8cc'
+                       : productSource === 'keyword' ? '\ucd94\ucc9c \uc7ac\ub8cc'
+                       : '\uc778\uae30 \uc7ac\ub8cc';
 
         var html = '<div class="yt-products-inner">';
-        html += '<div class="yt-products-header">';
+        // 모바일 토글 헤더 (onclick="toggleProducts()")
+        html += '<div class="yt-products-header" onclick="toggleProducts()">';
         html += '<span class="yt-products-title">' + escapeHTML(headerText) + '</span>';
+        html += '<span class="yt-toggle-icon">&#9654;</span>';
         html += '</div>';
         html += '<div class="yt-products-grid">';
 
         if (products.length > 0) {
-            for (var i = 0; i < Math.min(products.length, 4); i++) {
+            for (var i = 0; i < products.length; i++) {
                 var p = products[i];
                 var pUrl = p.product_url || ('/shop/shopdetail.html?branduid=' + escapeAttr(p.branduid));
                 var pImg = p.product_image || '';
                 var pName = p.product_name || '';
-                var pPrice = p.product_price ? p.product_price.toLocaleString() + '원' : '';
-                html += '<a href="' + escapeAttr(pUrl) + '" class="yt-product-card">';
+                var pPrice = p.product_price ? p.product_price.toLocaleString() + '\uc6d0' : '';
+                // 5번째 이상 상품은 기본 숨김 (.yt-hidden)
+                html += '<a href="' + escapeAttr(pUrl) + '" class="yt-product-card' + (i >= 4 ? ' yt-hidden' : '') + '">';
                 if (pImg) {
                     html += '<img src="' + escapeAttr(pImg) + '" alt="' + escapeAttr(pName) + '" loading="lazy">';
                 }
@@ -424,22 +444,47 @@
                 if (pPrice) html += '<div class="yt-product-price">' + escapeHTML(pPrice) + '</div>';
                 html += '</a>';
             }
+            // 상품이 4개 초과일 때 "더 보기" 버튼
+            if (products.length > 4) {
+                html += '<button type="button" class="yt-more-btn" onclick="ytToggleMoreProducts(this)">'
+                    + '+ ' + (products.length - 4) + '\uac1c \ub354 \ubcf4\uae30</button>';
+            }
         } else {
-            html += '<p class="yt-no-products">이 영상의 관련 재료를 준비하고 있어요</p>';
+            html += '<p class="yt-no-products">\uc774 \uc601\uc0c1\uc758 \uad00\ub828 \uc7ac\ub8cc\ub97c \uc900\ube44\ud558\uace0 \uc788\uc5b4\uc694</p>';
         }
 
         html += '</div></div>';
         productsWrap.innerHTML = html;
 
-        // PC에서는 항상 펼침, 모바일은 접힘
+        // PC: 항상 펼침 / 모바일: 접힘
         if (window.innerWidth >= 768) {
-            productsWrap.classList.add('expanded');
             productsWrap.classList.remove('collapsed');
+            productsWrap.classList.add('expanded');
         } else {
-            productsWrap.classList.add('collapsed');
             productsWrap.classList.remove('expanded');
+            productsWrap.classList.add('collapsed');
         }
     }
+
+    function ytToggleMoreProducts(btn) {
+        var grid = btn.parentElement;
+        var hiddenCards = grid.querySelectorAll('.yt-product-card.yt-hidden');
+        if (hiddenCards.length > 0) {
+            for (var i = 0; i < hiddenCards.length; i++) {
+                hiddenCards[i].classList.remove('yt-hidden');
+            }
+            btn.textContent = '\uc811\uae30';
+        } else {
+            var allCards = grid.querySelectorAll('.yt-product-card');
+            var count = 0;
+            for (var j = 4; j < allCards.length; j++) {
+                allCards[j].classList.add('yt-hidden');
+                count++;
+            }
+            btn.textContent = '+ ' + count + '\uac1c \ub354 \ubcf4\uae30';
+        }
+    }
+    window.ytToggleMoreProducts = ytToggleMoreProducts;
 
     function ytFormatDate(dateStr) {
         if (!dateStr) return '';
@@ -467,12 +512,12 @@
     function toggleProducts() {
         var wrap = document.getElementById('related-products-wrap');
         if (!wrap || window.innerWidth >= 768) return;
-        if (wrap.classList.contains('collapsed')) {
-            wrap.classList.remove('collapsed');
-            wrap.classList.add('expanded');
-        } else {
-            wrap.classList.remove('expanded');
-            wrap.classList.add('collapsed');
+        var isCollapsed = wrap.classList.contains('collapsed');
+        wrap.classList.toggle('collapsed', !isCollapsed);
+        wrap.classList.toggle('expanded', isCollapsed);
+        var icon = wrap.querySelector('.yt-toggle-icon');
+        if (icon) {
+            icon.style.transform = isCollapsed ? 'rotate(90deg)' : '';
         }
     }
     window.toggleProducts = toggleProducts;

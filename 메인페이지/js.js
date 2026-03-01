@@ -232,6 +232,29 @@
     var ytSwiperInstance = null;
 
     function loadYouTube() {
+        // 구조 초기화: featured-video-area가 없으면 youtube-container 안에 동적 생성
+        if (!document.getElementById('featured-video-area')) {
+            var ytContainer = document.getElementById('youtube-container') ||
+                              document.querySelector('.weekyoutube');
+            if (!ytContainer) return;
+            ytContainer.innerHTML =
+                '<div class="youtube-section-v3">' +
+                    '<div class="youtube-main-area">' +
+                        '<div id="featured-video-area" class="featured-video"></div>' +
+                        '<div id="related-products-wrap" class="related-products collapsed"></div>' +
+                    '</div>' +
+                    '<div class="youtube-slider-wrap">' +
+                        '<p class="section-subtitle">\ub354 \ub9ce\uc740 \uc601\uc0c1</p>' +
+                        '<div class="youtube-slider swiper">' +
+                            '<div id="youtube-slider-wrapper" class="swiper-wrapper"></div>' +
+                            '<div class="swiper-pagination"></div>' +
+                        '</div>' +
+                        '<div class="swiper-button-prev"></div>' +
+                        '<div class="swiper-button-next"></div>' +
+                    '</div>' +
+                '</div>';
+        }
+
         var featuredArea = document.getElementById('featured-video-area');
         var sliderWrapper = document.getElementById('youtube-slider-wrapper');
         if (!featuredArea || !sliderWrapper) return;

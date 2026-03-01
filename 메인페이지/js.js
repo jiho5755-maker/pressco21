@@ -259,6 +259,10 @@
         var sliderWrapper = document.getElementById('youtube-slider-wrapper');
         if (!featuredArea || !sliderWrapper) return;
 
+        // HTML에 하드코딩된 placeholder 이미지를 즉시 제거 (콘솔 에러 방지)
+        var existingGrid = document.querySelector('.related-products-grid, #related-products-wrap .yt-products-grid');
+        if (existingGrid) existingGrid.innerHTML = '';
+
         // localStorage 캐시 확인 (30분 TTL)
         try {
             var cached = localStorage.getItem(YT_CACHE_KEY);

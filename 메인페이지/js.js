@@ -386,29 +386,37 @@
             });
         }
 
-        // 모바일 슬라이더 토글 설정
+        // 모바일 슬라이더 토글 설정 (.section-subtitle 재활용)
         var sliderWrap = document.querySelector('.youtube-slider-wrap');
-        if (sliderWrap && window.innerWidth < 768) {
-            // 토글 헤더가 없으면 삽입
-            if (!sliderWrap.querySelector('.yt-slider-header')) {
+        if (sliderWrap) {
+            var sliderSubtitle = sliderWrap.querySelector('.section-subtitle');
+            if (window.innerWidth < 768) {
+                // 모바일: 기본 접힘 상태
                 sliderWrap.classList.add('yt-slider-collapsed');
-                var sliderHeader = document.createElement('div');
-                sliderHeader.className = 'yt-slider-header';
-                sliderHeader.innerHTML = '\ub354 \ub9ce\uc740 \uc601\uc0c1 <span class="yt-slider-icon">&#9654;</span>';
-                sliderWrap.insertBefore(sliderHeader, sliderWrap.firstChild);
-                sliderHeader.addEventListener('click', function() {
-                    sliderWrap.classList.toggle('yt-slider-collapsed');
-                    var icon = sliderHeader.querySelector('.yt-slider-icon');
-                    if (icon) {
-                        icon.style.transform = sliderWrap.classList.contains('yt-slider-collapsed') ? '' : 'rotate(90deg)';
-                    }
-                });
+                // .section-subtitle을 토글 버튼으로 변환 (최초 1회)
+                if (sliderSubtitle && !sliderSubtitle.getAttribute('data-yt-toggle')) {
+                    sliderSubtitle.setAttribute('data-yt-toggle', '1');
+                    sliderSubtitle.classList.add('yt-toggle-btn');
+                    var ytChevron = document.createElement('span');
+                    ytChevron.className = 'yt-chevron';
+                    ytChevron.innerHTML = '&#8964;';
+                    sliderSubtitle.appendChild(ytChevron);
+                    sliderSubtitle.addEventListener('click', function() {
+                        sliderWrap.classList.toggle('yt-slider-collapsed');
+                        var ch = sliderSubtitle.querySelector('.yt-chevron');
+                        if (ch) ch.style.transform = sliderWrap.classList.contains('yt-slider-collapsed') ? '' : 'rotate(180deg)';
+                    });
+                }
+            } else {
+                // PC: 항상 펼침, 토글 상태 리셋
+                sliderWrap.classList.remove('yt-slider-collapsed');
+                if (sliderSubtitle && sliderSubtitle.getAttribute('data-yt-toggle')) {
+                    sliderSubtitle.removeAttribute('data-yt-toggle');
+                    sliderSubtitle.classList.remove('yt-toggle-btn');
+                    var oldChevron = sliderSubtitle.querySelector('.yt-chevron');
+                    if (oldChevron) oldChevron.remove();
+                }
             }
-        } else if (sliderWrap) {
-            // PC: 항상 펼침, 토글 헤더 제거
-            sliderWrap.classList.remove('yt-slider-collapsed');
-            var existingSliderHeader = sliderWrap.querySelector('.yt-slider-header');
-            if (existingSliderHeader) existingSliderHeader.remove();
         }
     }
 

@@ -1422,20 +1422,6 @@
         color: #bbb;
         font-size: 13px;
     }
-    /* 모바일: 슬라이더 토글 헤더 */
-    .yt-slider-header {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        padding: 12px 0 10px;
-        font-size: 15px;
-        font-weight: 600;
-        color: #333;
-        cursor: pointer;
-        border-bottom: 1px solid #eee;
-        margin-bottom: 0;
-        user-select: none;
-    }
     /* 모바일: 슬라이더 섹션 접힘 */
     .youtube-slider-wrap.yt-slider-collapsed .youtube-slider,
     .youtube-slider-wrap.yt-slider-collapsed .swiper-button-prev,
@@ -1443,13 +1429,25 @@
     .youtube-slider-wrap.yt-slider-collapsed .swiper-pagination {
         display: none;
     }
-    /* 슬라이더 토글 아이콘 */
-    .yt-slider-icon {
+    /* 모바일: section-subtitle 토글 버튼 */
+    .youtube-slider-wrap .section-subtitle.yt-toggle-btn {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 13px 0;
+        margin-bottom: 0;
+        cursor: pointer;
+        border-bottom: 1px solid #e8e8e8;
+        user-select: none;
+        -webkit-user-select: none;
+    }
+    .youtube-slider-wrap .section-subtitle.yt-toggle-btn .yt-chevron {
+        font-size: 22px;
         display: inline-block;
-        font-size: 11px;
-        margin-left: 6px;
+        transition: transform 0.25s ease;
         color: var(--color-primary);
-        transition: transform 0.3s ease;
+        line-height: 1;
+        margin-left: 6px;
     }
 
     .brand-philosophy {
@@ -1651,7 +1649,12 @@
         .youtube-slider-wrap.yt-slider-collapsed .swiper-pagination {
             display: block;
         }
-        .yt-slider-icon {
+        .youtube-slider-wrap .section-subtitle.yt-toggle-btn {
+            cursor: default;
+            border-bottom: none;
+            padding: 0;
+        }
+        .youtube-slider-wrap .section-subtitle.yt-toggle-btn .yt-chevron {
             display: none;
         }
         .youtube-slider-wrap {

@@ -504,11 +504,11 @@
         if (sliderWrap) {
             var sliderHeader = sliderWrap.querySelector('.yt-slider-header');
             if (window.innerWidth < 768) {
-                // 최초 렌더 시에만 티저 상태 초기화 (재렌더 시 기존 open/close 상태 유지)
+                // 최초 렌더 시에만 접힘 상태 초기화 (재렌더 시 기존 open/close 상태 유지)
                 if (!sliderWrap.getAttribute('data-yt-mobile-init')) {
                     sliderWrap.setAttribute('data-yt-mobile-init', '1');
-                    sliderWrap.classList.remove('yt-slider-collapsed');
-                    sliderWrap.classList.add('yt-slider-teaser');
+                    sliderWrap.classList.remove('yt-slider-teaser');
+                    sliderWrap.classList.add('yt-slider-collapsed');
                     if (sliderHeader) sliderHeader.setAttribute('aria-expanded', 'false');
                 }
                 if (sliderHeader) {
@@ -519,17 +519,17 @@
                 if (sliderHeader && !sliderHeader.getAttribute('data-yt-toggle')) {
                     sliderHeader.setAttribute('data-yt-toggle', '1');
                     sliderHeader.addEventListener('click', function() {
-                        var isTeaser = sliderWrap.classList.contains('yt-slider-teaser');
-                        if (isTeaser) {
-                            /* 티저 → 펼침 */
-                            sliderWrap.classList.remove('yt-slider-teaser');
+                        var isCollapsed = sliderWrap.classList.contains('yt-slider-collapsed');
+                        if (isCollapsed) {
+                            /* 접힘 → 펼침 */
+                            sliderWrap.classList.remove('yt-slider-collapsed');
                             sliderHeader.setAttribute('aria-expanded', 'true');
                             if (ytSwiperInstance) {
-                                setTimeout(function() { ytSwiperInstance.update(); }, 350);
+                                setTimeout(function() { ytSwiperInstance.update(); }, 450);
                             }
                         } else {
-                            /* 펼침 → 티저 (닫기) */
-                            sliderWrap.classList.add('yt-slider-teaser');
+                            /* 펼침 → 접힘 (완전히 닫기) */
+                            sliderWrap.classList.add('yt-slider-collapsed');
                             sliderHeader.setAttribute('aria-expanded', 'false');
                         }
                     });

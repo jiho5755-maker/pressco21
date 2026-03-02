@@ -1858,6 +1858,7 @@
         .youtube-slider-wrap {
             margin-top: 0;
             padding: 22px;
+            position: relative; /* PC 네비 버튼 기준점 */
         }
         .youtube-slider-wrap .section-subtitle {
             display: none;
@@ -1902,47 +1903,48 @@
             border-left-width: 21px;
             margin-left: 6px;
         }
-        /* PC 슬라이더 네비게이션 버튼 — 세이지 그린 원형 */
+        /* PC 슬라이더 네비게이션 버튼 — 다크 그린 원형, 썸네일 중앙 기준 */
         .youtube-slider-wrap .swiper-button-prev,
         .youtube-slider-wrap .swiper-button-next {
             display: flex;
             align-items: center;
             justify-content: center;
-            width: 40px;
-            height: 40px;
-            background: rgba(125, 150, 117, 0.9);
+            width: 36px;
+            height: 36px;
+            background: rgba(44, 62, 48, 0.85);
             border-radius: 50%;
-            top: 50%;
+            top: 40%; /* 썸네일 이미지 중앙 기준 */
             transform: translateY(-50%);
             color: #fff;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-            transition: background 0.2s ease, transform 0.2s ease;
+            box-shadow: 0 3px 12px rgba(0, 0, 0, 0.25);
+            transition: background 0.2s ease, transform 0.2s ease, box-shadow 0.2s ease;
         }
         .youtube-slider-wrap .swiper-button-prev:hover,
         .youtube-slider-wrap .swiper-button-next:hover {
             background: #7d9675;
-            transform: translateY(-50%) scale(1.1);
+            transform: translateY(-50%) scale(1.08);
+            box-shadow: 0 4px 16px rgba(125, 150, 117, 0.4);
         }
-        /* 화살표 방향 명시 — prev: ❮, next: ❯ (swiper-icons 폰트 오버라이드 위해 !important) */
+        /* 화살표 방향 명시 — prev: <, next: > (swiper-icons 폰트 오버라이드) */
         .youtube-slider-wrap .swiper-button-prev::after {
-            content: '\276E' !important; /* ❮ */
+            content: '\276E' !important;
             font-family: Arial, Helvetica, sans-serif !important;
-            font-size: 14px !important;
+            font-size: 13px !important;
             font-weight: 700;
             color: #fff;
         }
         .youtube-slider-wrap .swiper-button-next::after {
-            content: '\276F' !important; /* ❯ */
+            content: '\276F' !important;
             font-family: Arial, Helvetica, sans-serif !important;
-            font-size: 14px !important;
+            font-size: 13px !important;
             font-weight: 700;
             color: #fff;
         }
         .youtube-slider-wrap .swiper-button-prev {
-            left: -8px;
+            left: -6px;
         }
         .youtube-slider-wrap .swiper-button-next {
-            right: -8px;
+            right: -6px;
         }
         /* 슬라이드 끝 비활성 버튼 */
         .youtube-slider-wrap .swiper-button-disabled {
@@ -1965,6 +1967,77 @@
             max-width: 550px;
         }
     }
+
+/* ============================================
+   모바일 토글 헤더 통일 스타일
+   "더 많은 영상" (.yt-slider-header)과
+   "추천 재료" (.yt-products-header)를 동일한 디자인으로 통일
+   ============================================ */
+@media (max-width: 767px) {
+    /* 두 토글 헤더 공통 스타일 */
+    .youtube-slider-wrap .yt-slider-header,
+    .yt-products-header {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        padding: 14px 16px;
+        background: #fff;
+        border: 1px solid #e8e0d5;
+        border-radius: 10px;
+        cursor: pointer;
+        user-select: none;
+        min-height: 48px;
+        margin-bottom: 0;
+        transition: box-shadow 0.2s ease;
+    }
+    .youtube-slider-wrap .yt-slider-header:active,
+    .yt-products-header:active {
+        box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+    }
+    /* 접힘 시 하단 border 제거 오버라이드 (border-bottom 대신 전체 border 사용) */
+    .youtube-slider-wrap.yt-slider-collapsed .yt-slider-header {
+        border-bottom-color: #e8e0d5;
+    }
+    /* 타이틀 텍스트 통일 */
+    .yt-slider-title,
+    .yt-products-title {
+        font-size: 15px;
+        font-weight: 600;
+        color: #2c3e30;
+    }
+    /* 토글 아이콘 통일 */
+    .yt-slider-toggle-icon,
+    .yt-toggle-icon {
+        font-size: 13px;
+        color: #7d9675;
+        font-weight: 600;
+        transition: transform 0.3s ease;
+        flex-shrink: 0;
+        padding: 6px;
+    }
+    /* 슬라이더 래퍼: 모바일 배경/패딩 간소화 */
+    .youtube-slider-wrap {
+        background: transparent;
+        border-radius: 0;
+        padding: 0;
+        box-shadow: none;
+        margin-top: 10px;
+    }
+    /* 추천 재료 래퍼: 모바일 배경/패딩 간소화 */
+    #related-products-wrap {
+        background: transparent;
+        border-radius: 0;
+        padding: 0;
+        box-shadow: none;
+    }
+    .yt-products-inner {
+        gap: 0;
+    }
+    /* 두 토글 영역 사이 간격 일정하게 */
+    .youtube-main-area {
+        margin-bottom: 10px;
+    }
+}
 
 /* ============================================
    스켈레톤 UI

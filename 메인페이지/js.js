@@ -231,10 +231,8 @@
     var ytSliderBound = false;
     var ytSliderToggleBound = false;
     var ytSwiperInstance = null;
-    var ytTouchStartX = 0; /* 스와이프 시작 X좌표 */
-    var ytTouchStartY = 0; /* 스와이프 시작 Y좌표 (세로 스크롤 구분) */
-    var ytTouchStartTime = 0; /* 터치 시작 시간 ms (롱프레스 구분) */
-    var ytIsSwiping = false; /* 스와이프 중 플래그 (탭 vs 스와이프 구분) */
+    /* 스와이프/탭 구분: 네이티브 DOM 터치 이벤트 사용 (Swiper 합성 이벤트 의존 제거) */
+    var _nativeMoved = false;
 
     function loadYouTube() {
         // 구조 초기화: featured-video-area가 없으면 youtube-container 안에 동적 생성
@@ -442,35 +440,9 @@
                     768: { slidesPerView: 4, spaceBetween: 15 }
                 },
                 on: {
-                    touchStart: function(swiper, event) {
-                        ytIsSwiping = false;
-                        ytTouchStartTime = Date.now();
-                        /* 좌표 추적 (가능한 경우) */
-                        var t = (event && event.touches && event.touches[0]) ||
-                                (event && event.changedTouches && event.changedTouches[0]) || null;
-                        ytTouchStartX = (t && t.clientX != null) ? t.clientX : 0;
-                        ytTouchStartY = (t && t.clientY != null) ? t.clientY : 0;
-                    },
-                    /* sliderMove: Swiper가 실제로 수평 이동을 감지했을 때 발생
-                       event.touches 유무와 무관하게 가장 신뢰할 수 있는 스와이프 감지 */
-                    sliderMove: function(swiper, event) {
-                        ytIsSwiping = true;
-                    },
-                    touchMove: function(swiper, event) {
-                        /* sliderMove 보조: 좌표 추적이 가능할 때 Y축 스크롤도 스와이프로 처리 */
-                        var t = (event && event.touches && event.touches[0]) ||
-                                (event && event.changedTouches && event.changedTouches[0]) || null;
-                        if (t && t.clientX != null) {
-                            var dX = Math.abs(t.clientX - ytTouchStartX);
-                            var dY = Math.abs(t.clientY - ytTouchStartY);
-                            if ((dX > 8 && dX > dY) || (dY > 8 && dY > dX)) {
-                                ytIsSwiping = true;
-                            }
-                        }
-                    },
                     click: function(swiper, event) {
-                        /* ytIsSwiping: sliderMove 또는 touchMove에서 설정 */
-                        if (ytIsSwiping) { ytIsSwiping = false; return; }
+                        /* _nativeMoved: 네이티브 touchmove에서 5px 이상 이동 시 true */
+                        if (_nativeMoved) { _nativeMoved = false; return; }
                         var slide = event && event.target ? event.target.closest('.yt-slide-card') : null;
                         if (!slide) return;
                         var idx = parseInt(slide.getAttribute('data-index'));
@@ -481,6 +453,46 @@
                     }
                 }
             });
+
+            /* 네이티브 DOM 터치 이벤트로 스와이프/탭 구분 (Swiper 합성 이벤트 의존 제거)
+               5px 이상 이동 시 _nativeMoved = true → Swiper on.click에서 영상 전환 차단 */
+            var _swiperEl = document.querySelector('.youtube-slider');
+            if (_swiperEl && !_swiperEl.getAttribute('data-yt-touch-bound')) {
+                _swiperEl.setAttribute('data-yt-touch-bound', '1');
+                var _nativeTouchStartX = 0;
+                var _nativeTouchStartY = 0;
+
+                _swiperEl.addEventListener('touchstart', function(e) {
+                    _nativeMoved = false;
+                    if (e.touches && e.touches[0]) {
+                        _nativeTouchStartX = e.touches[0].clientX;
+                        _nativeTouchStartY = e.touches[0].clientY;
+                    }
+                }, { passive: true });
+
+                _swiperEl.addEventListener('touchmove', function(e) {
+                    if (e.touches && e.touches[0]) {
+                        var dx = Math.abs(e.touches[0].clientX - _nativeTouchStartX);
+                        var dy = Math.abs(e.touches[0].clientY - _nativeTouchStartY);
+                        if (dx > 5 || dy > 5) _nativeMoved = true;
+                    }
+                }, { passive: true });
+
+                /* mousedown/mousemove 폴백 (PC 마우스 드래그 시에도 탭 방지) */
+                _swiperEl.addEventListener('mousedown', function(e) {
+                    _nativeMoved = false;
+                    _nativeTouchStartX = e.clientX;
+                    _nativeTouchStartY = e.clientY;
+                });
+
+                _swiperEl.addEventListener('mousemove', function(e) {
+                    if (e.buttons === 1) { /* 좌클릭 드래그 중 */
+                        var dx = Math.abs(e.clientX - _nativeTouchStartX);
+                        var dy = Math.abs(e.clientY - _nativeTouchStartY);
+                        if (dx > 5 || dy > 5) _nativeMoved = true;
+                    }
+                });
+            }
         } else {
             // Swiper 미로드 시 fallback: 일반 클릭 이벤트 위임
             if (!ytSliderBound) {

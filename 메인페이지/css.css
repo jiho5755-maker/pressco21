@@ -1923,11 +1923,20 @@
             background: #7d9675;
             transform: translateY(-50%) scale(1.1);
         }
-        .youtube-slider-wrap .swiper-button-prev::after,
-        .youtube-slider-wrap .swiper-button-next::after {
+        /* 화살표 방향 명시 — prev: ❮, next: ❯ */
+        .youtube-slider-wrap .swiper-button-prev::after {
+            content: '\276E'; /* ❮ */
             font-size: 14px;
             font-weight: 700;
             color: #fff;
+            font-family: inherit;
+        }
+        .youtube-slider-wrap .swiper-button-next::after {
+            content: '\276F'; /* ❯ */
+            font-size: 14px;
+            font-weight: 700;
+            color: #fff;
+            font-family: inherit;
         }
         .youtube-slider-wrap .swiper-button-prev {
             left: -8px;

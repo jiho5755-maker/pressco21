@@ -444,25 +444,33 @@
                 on: {
                     touchStart: function(swiper, event) {
                         ytIsSwiping = false;
-                        var t = event && event.touches ? event.touches[0] : event;
-                        ytTouchStartX = (t && t.clientX) || 0;
-                        ytTouchStartY = (t && t.clientY) || 0;
                         ytTouchStartTime = Date.now();
+                        /* 좌표 추적 (가능한 경우) */
+                        var t = (event && event.touches && event.touches[0]) ||
+                                (event && event.changedTouches && event.changedTouches[0]) || null;
+                        ytTouchStartX = (t && t.clientX != null) ? t.clientX : 0;
+                        ytTouchStartY = (t && t.clientY != null) ? t.clientY : 0;
+                    },
+                    /* sliderMove: Swiper가 실제로 수평 이동을 감지했을 때 발생
+                       event.touches 유무와 무관하게 가장 신뢰할 수 있는 스와이프 감지 */
+                    sliderMove: function(swiper, event) {
+                        ytIsSwiping = true;
                     },
                     touchMove: function(swiper, event) {
-                        var t = event && event.touches ? event.touches[0] : event;
-                        var dX = Math.abs(((t && t.clientX) || ytTouchStartX) - ytTouchStartX);
-                        var dY = Math.abs(((t && t.clientY) || ytTouchStartY) - ytTouchStartY);
-                        /* 가로 15px 초과 & 가로>세로: 수평 스와이프
-                           세로 10px 초과 & 세로>가로: 수직 스크롤 (클릭 아님) */
-                        if ((dX > 15 && dX > dY) || (dY > 10 && dY > dX)) {
-                            ytIsSwiping = true;
+                        /* sliderMove 보조: 좌표 추적이 가능할 때 Y축 스크롤도 스와이프로 처리 */
+                        var t = (event && event.touches && event.touches[0]) ||
+                                (event && event.changedTouches && event.changedTouches[0]) || null;
+                        if (t && t.clientX != null) {
+                            var dX = Math.abs(t.clientX - ytTouchStartX);
+                            var dY = Math.abs(t.clientY - ytTouchStartY);
+                            if ((dX > 8 && dX > dY) || (dY > 8 && dY > dX)) {
+                                ytIsSwiping = true;
+                            }
                         }
                     },
                     click: function(swiper, event) {
+                        /* ytIsSwiping: sliderMove 또는 touchMove에서 설정 */
                         if (ytIsSwiping) { ytIsSwiping = false; return; }
-                        /* 롱프레스 (300ms 초과) 무시 */
-                        if (Date.now() - ytTouchStartTime > 300) return;
                         var slide = event && event.target ? event.target.closest('.yt-slide-card') : null;
                         if (!slide) return;
                         var idx = parseInt(slide.getAttribute('data-index'));
@@ -496,24 +504,33 @@
         if (sliderWrap) {
             var sliderHeader = sliderWrap.querySelector('.yt-slider-header');
             if (window.innerWidth < 768) {
-                // 모바일: 기본 티저 상태 (일부 peek — 영상 목록 존재 인지 가능)
-                sliderWrap.classList.remove('yt-slider-collapsed');
-                sliderWrap.classList.add('yt-slider-teaser');
+                // 최초 렌더 시에만 티저 상태 초기화 (재렌더 시 기존 open/close 상태 유지)
+                if (!sliderWrap.getAttribute('data-yt-mobile-init')) {
+                    sliderWrap.setAttribute('data-yt-mobile-init', '1');
+                    sliderWrap.classList.remove('yt-slider-collapsed');
+                    sliderWrap.classList.add('yt-slider-teaser');
+                    if (sliderHeader) sliderHeader.setAttribute('aria-expanded', 'false');
+                }
                 if (sliderHeader) {
-                    sliderHeader.setAttribute('aria-expanded', 'false');
                     sliderHeader.setAttribute('role', 'button');
                     sliderHeader.setAttribute('tabindex', '0');
                 }
-                // .yt-slider-header 토글 버튼 바인딩 (최초 1회)
+                // 토글 이벤트 바인딩 (최초 1회)
                 if (sliderHeader && !sliderHeader.getAttribute('data-yt-toggle')) {
                     sliderHeader.setAttribute('data-yt-toggle', '1');
                     sliderHeader.addEventListener('click', function() {
                         var isTeaser = sliderWrap.classList.contains('yt-slider-teaser');
-                        sliderWrap.classList.toggle('yt-slider-teaser', !isTeaser);
-                        sliderHeader.setAttribute('aria-expanded', isTeaser ? 'true' : 'false');
-                        // 티저 → 펼침 전환 시 Swiper 크기 재계산
-                        if (isTeaser && ytSwiperInstance) {
-                            setTimeout(function() { ytSwiperInstance.update(); }, 350);
+                        if (isTeaser) {
+                            /* 티저 → 펼침 */
+                            sliderWrap.classList.remove('yt-slider-teaser');
+                            sliderHeader.setAttribute('aria-expanded', 'true');
+                            if (ytSwiperInstance) {
+                                setTimeout(function() { ytSwiperInstance.update(); }, 350);
+                            }
+                        } else {
+                            /* 펼침 → 티저 (닫기) */
+                            sliderWrap.classList.add('yt-slider-teaser');
+                            sliderHeader.setAttribute('aria-expanded', 'false');
                         }
                     });
                     sliderHeader.addEventListener('keydown', function(e) {
@@ -525,6 +542,7 @@
                 }
             } else {
                 // PC: 항상 펼침, 토글 상태 리셋
+                sliderWrap.removeAttribute('data-yt-mobile-init');
                 sliderWrap.classList.remove('yt-slider-collapsed');
                 sliderWrap.classList.remove('yt-slider-teaser');
                 if (sliderHeader) {

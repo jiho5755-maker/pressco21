@@ -20,7 +20,7 @@
 1초 만에 가입하고
 멤버십 혜택을 바로 확인하세요</h2>
                             <p class="welcome-subtitle">소셜 계정으로 간편하게 시작하세요</p>
-                            
+
                             <div class="benefits-section">
                                 <div class="benefit-item">
                                     <span class="benefit-icon">&#128666;</span>
@@ -35,7 +35,7 @@
                                     <span>즉시 5% 할인</span>
                                 </div>
                             </div>
-                            
+
                             <div class="sns-login">
                                 <!--/if_link_login_facebook/--><a href="<!--/link_login_facebook/-->" class="fb-login-btn"><span>Facebook으로 시작하기</span></a><!--/end_if/-->
                                 <!--/if_link_login_kakao/--><a href="<!--/link_login_kakao/-->" class="kakao-login-btn"><span>카카오로 1초 시작하기</span></a><!--/end_if/-->
@@ -44,13 +44,13 @@
                             </div><!-- .sns-login -->
 
                             <div class="id-login-toggle">
-                                <a href="javascript:void(0);" class="toggle-link" id="toggleTraditionalLogin">
+                                <a href="javascript:void(0);" class="toggle-link" id="toggleTraditionalLogin" role="button" aria-expanded="false" aria-controls="traditionalLoginForm">
                                     아이디로 로그인하기
                                 </a>
                             </div>
 
                             <!-- 아이디 로그인 폼 - 토글로 보여짐 -->
-                            <div class="mlog-sign">
+                            <div class="mlog-sign" id="traditionalLoginForm">
                                 <div class="mlog">
                                     <h3>회원 로그인</h3>
                                     <p>가입하신 아이디와 비밀번호를 입력해주세요.<br />비밀번호는 대소문자를 구분합니다.</p>
@@ -108,17 +108,24 @@
 
 <script src="간편로그인.js"></script>
 <script>
-// 상단 타이틀 변경
-if (typeof changeNaviTitleText === 'function') {
-    changeNaviTitleText('로그인');
-}
+// ============================================================================
+// 인라인 스크립트 - 수정본 (IIFE 패턴 적용)
+// ============================================================================
+(function() {
+    'use strict';
 
-// placeholder 설정
-document.addEventListener('DOMContentLoaded', function() {
-    const idInput = document.querySelector('input[name="id"]');
-    if (idInput) idInput.placeholder = '아이디';
+    // 상단 타이틀 변경
+    if (typeof changeNaviTitleText === 'function') {
+        changeNaviTitleText('로그인');
+    }
 
-    const passwdInput = document.querySelector('input[name="passwd"]');
-    if (passwdInput) passwdInput.placeholder = '비밀번호';
-});
+    // placeholder 설정
+    document.addEventListener('DOMContentLoaded', function() {
+        var idInput = document.querySelector('input[name="id"]');
+        if (idInput) idInput.placeholder = '아이디';
+
+        var passwdInput = document.querySelector('input[name="passwd"]');
+        if (passwdInput) passwdInput.placeholder = '비밀번호';
+    });
+})();
 </script>

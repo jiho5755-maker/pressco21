@@ -1,9 +1,21 @@
-* {
+/* ============================================================================
+   1초 로그인 - 수정본 (CSS 전역 오염 제거)
+   수정 내용:
+   1. * 셀렉터를 #loginWrap 범위로 스코핑
+   2. body, html 직접 스타일링 제거 (전역 오염 방지)
+   ============================================================================ */
+
+/* 수정: * 셀렉터를 #loginWrap 범위로 한정 */
+#loginWrap,
+#loginWrap * {
     font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
 }
 
+/* 수정: body, html 스타일링 제거 (메이크샵 상점 전체에 영향을 주지 않도록)
+   필요한 스타일은 #loginWrap에서 처리합니다. */
+/*
 body, html {
     font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Malgun Gothic', '맑은 고딕', 'Apple SD Gothic Neo', sans-serif;
     margin: 0;
@@ -12,6 +24,7 @@ body, html {
     width: 100%;
     max-width: 100vw;
 }
+*/
 
 #wrap,
 #contentWrapper,
@@ -1010,4 +1023,38 @@ a.apple-login-btn {
     #simpleLogin.login-version-purchase .form-check {
         gap: 12px 1rem;
     }
+}
+
+/* ========================================
+   비밀번호 표시/숨기기 토글 버튼
+   ======================================== */
+
+#loginWrap .password-toggle {
+    position: absolute;
+    right: 12px;
+    bottom: 18px;
+    background: none;
+    border: none;
+    padding: 4px;
+    cursor: pointer;
+    color: #999;
+    line-height: 0;
+    z-index: 2;
+    transition: color 0.2s ease;
+}
+
+#loginWrap .password-toggle:hover {
+    color: #555;
+}
+
+#loginWrap .password-toggle.active {
+    color: #4a7c59;
+}
+
+#loginWrap .password-toggle svg {
+    display: block;
+}
+
+#loginWrap .pwd {
+    position: relative;
 }

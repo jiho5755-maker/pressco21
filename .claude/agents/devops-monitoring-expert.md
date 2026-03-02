@@ -42,9 +42,9 @@ services:
     networks: [n8n-network]
     environment:
       - N8N_CORS_ORIGIN=https://foreverlove.co.kr,...
-      - ADMIN_API_TOKEN=pressco21-admin-2026
+      - ADMIN_API_TOKEN=${ADMIN_API_TOKEN: .secrets.env 참조}
       - NOCODB_PROJECT_ID=poey1yrm1r6sthf
-      - NOCODB_API_TOKEN=SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl
+      - NOCODB_API_TOKEN=${NOCODB_API_TOKEN: .secrets.env 참조}
 
   nocodb:
     image: nocodb/nocodb:latest
@@ -118,7 +118,7 @@ if ! docker network inspect n8n_n8n-network | grep -q nocodb; then
 
     # 텔레그램 알림
     curl -s -X POST "https://api.telegram.org/bot{BOT_TOKEN}/sendMessage" \
-        -d "chat_id=7713811206" \
+        -d "chat_id=${TELEGRAM_CHAT_ID: .secrets.env 참조}" \
         -d "text=[PRESSCO21] NocoDB 네트워크 자동 복구 완료 $(date)"
 fi
 ```
@@ -132,7 +132,7 @@ fi
 
 BACKUP_DIR="/home/ubuntu/backups/nocodb"
 DATE=$(date +%Y%m%d)
-NOCODB_TOKEN="SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+NOCODB_TOKEN="${NOCODB_API_TOKEN: .secrets.env 참조}"
 NOCODB_BASE="https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf"
 
 mkdir -p $BACKUP_DIR
@@ -164,7 +164,7 @@ sleep 30  # 컨테이너 완전 시작 대기
 docker network connect n8n_n8n-network nocodb 2>/dev/null || true
 
 # n8n 워크플로우 전체 활성화 확인
-N8N_API_KEY="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+N8N_API_KEY="${N8N_API_KEY: .secrets.env 참조}"
 curl -s -H "X-N8N-API-KEY: $N8N_API_KEY" \
     "https://n8n.pressco21.com/api/v1/workflows?active=false" | \
     python3 -c "import json,sys; wfs=json.load(sys.stdin)['data']; print(f'비활성 워크플로우: {len(wfs)}개')"
@@ -190,7 +190,7 @@ echo "시작 복구 완료"
 # 매 시간 서버 상태 확인 (오류 시 텔레그램)
 0 * * * * /home/ubuntu/scripts/health-check.sh | grep -E "Error|Down|0%" | \
   xargs -I {} curl -s -X POST "https://api.telegram.org/bot{BOT_TOKEN}/sendMessage" \
-  -d "chat_id=7713811206" -d "text=[PRESSCO21 경고] {}"
+  -d "chat_id=${TELEGRAM_CHAT_ID: .secrets.env 참조}" -d "text=[PRESSCO21 경고] {}"
 
 # 매일 자정 Docker 로그 정리
 0 0 * * * docker system prune -f >> /home/ubuntu/logs/cleanup.log 2>&1

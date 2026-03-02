@@ -15,7 +15,7 @@
 | NocoDB | `https://nocodb.pressco21.com` |
 | 파트너 테스트 계정 | `jihoo5755` (SILVER, active) |
 | 수강생 테스트 계정 | 별도 일반 회원 계정 |
-| 관리자 토큰 | `pressco21-admin-2026` |
+| 관리자 토큰 | `${ADMIN_API_TOKEN: .secrets.env 참조}` |
 
 ---
 
@@ -66,7 +66,7 @@ curl -s -X POST https://n8n.pressco21.com/webhook/partner-apply \
 # WF-08 파트너 승인 (관리자 토큰 필요)
 curl -s -X POST https://n8n.pressco21.com/webhook/partner-approve \
   -H "Content-Type: application/json" \
-  -H "Authorization: Bearer pressco21-admin-2026" \
+  -H "Authorization: Bearer ${ADMIN_API_TOKEN: .secrets.env 참조}" \
   -d '{
     "application_id": "{섹션 1-1에서 받은 application_id}",
     "admin_note": "E2E 테스트 승인"

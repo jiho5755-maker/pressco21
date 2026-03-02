@@ -26,7 +26,7 @@ memory: project
   ↓
 [n8n 2차 인증]
   WF-02 /partner-auth: member_id → tbl_Partners 조회 → is_partner 확인
-  WF-08 /partner-approve: Authorization: Bearer pressco21-admin-2026
+  WF-08 /partner-approve: Authorization: Bearer ${ADMIN_API_TOKEN: .secrets.env 참조}
   ↓
 [NocoDB 데이터 인가]
   파트너는 자신의 partner_code에 해당하는 데이터만 접근
@@ -37,7 +37,7 @@ memory: project
 
 | 취약점 | 위험도 | 현재 상태 | 권장 조치 |
 |--------|--------|----------|----------|
-| ADMIN_API_TOKEN 고정값 | 🟠 중간 | `pressco21-admin-2026` 하드코딩 | 주기적 교체 + 환경변수 관리 |
+| ADMIN_API_TOKEN 고정값 | 🟠 중간 | `${ADMIN_API_TOKEN: .secrets.env 참조}` 하드코딩 | 주기적 교체 + 환경변수 관리 |
 | n8n 웹훅 공개 URL | 🟡 낮음 | 인증 없는 엔드포인트 존재 | Rate limiting 추가 |
 | member_id 위조 가능성 | 🟠 중간 | 프론트가 member_id를 POST로 전송 | 서버사이드 세션 검증 강화 |
 | NocoDB API Token 노출 | 🔴 높음 | JS에 직접 쓰면 위험 | n8n 경유로만 접근 |
@@ -51,7 +51,7 @@ memory: project
 
 ```javascript
 // ❌ 위험: 프론트엔드에 토큰 하드코딩
-var NOCODB_TOKEN = 'SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl';
+var NOCODB_TOKEN = '${NOCODB_API_TOKEN: .secrets.env 참조}';
 
 // ✅ 안전: 모든 NocoDB 접근은 n8n 경유
 // 프론트 → n8n 웹훅 → NocoDB (토큰은 n8n 환경변수에만)

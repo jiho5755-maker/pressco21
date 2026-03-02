@@ -1,19 +1,30 @@
+# OS
 .DS_Store
+Thumbs.db
+
+# 에디터
 *.swp
 *.swo
 *~
+.vscode/
 
-# MCP / Shrimp Task Manager
+# 인증키 (절대 커밋 금지)
+.secrets.env
+
+# MCP / Task Manager
 .mcp.json
 mcp-shrimp-task-manager/
 shrimp-rules.md
 shrimp_data/
 
-# Playwright MCP 임시 파일
+# Playwright MCP
 .playwright-mcp/
 
-# 임시 스크린샷
+# 루트 임시 스크린샷
 *.png
 detail-*.png
 test-*.png
 page-*.png
+
+# 브랜드스토리 이미지 (교체 예정)
+브랜드스토리/브랜드페이지/images/

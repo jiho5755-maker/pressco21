@@ -67,7 +67,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "Bearer pressco21-admin-2026"
+              "value": "Bearer {{ $env.ADMIN_API_TOKEN }}"
             },
             {
               "name": "Content-Type",

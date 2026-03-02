@@ -1,7 +1,7 @@
 # data-integrity-expert 에이전트 메모리
 
 ## NocoDB 접속 정보
-- Token: `SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl`
+- Token: `${NOCODB_API_TOKEN: .secrets.env 참조}`
 - Base URL: `https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf`
 
 ## 정산 비즈니스 규칙

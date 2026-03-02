@@ -18,7 +18,7 @@ memory: project
 
 ```bash
 # NocoDB API 직접 접근
-NOCODB_TOKEN="SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+NOCODB_TOKEN="${NOCODB_API_TOKEN: .secrets.env 참조}"
 NOCODB_BASE="https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf"
 
 # tbl_Settlements 전체 조회 (최근 20건)

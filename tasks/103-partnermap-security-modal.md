@@ -20,7 +20,7 @@
 
 ### js.js
 - **IIFE 적용 완료**: 모든 서비스가 독립 IIFE로 구성 (PartnerAPI, MapService, FilterService, SearchService, UIService)
-- **API 키 노출**: `naverMapNcpKeyId: 'bfp8odep5r'` 하드코딩 (11줄)
+- **API 키 노출**: `naverMapNcpKeyId: '${NAVER_MAP_CLIENT_ID: .secrets.env 참조}'` 하드코딩 (11줄)
 - **상세 모달 구현됨**: `showPartnerDetail()` (2781~2887줄) - 로고, 업체명, 카테고리, 소개, 주소, 연락처, 링크
 - **길찾기 구현됨**: 네이버 지도/카카오맵 외부 링크 방식 (2843~2852줄)
 - **XSS 방지**: `window.escapeHtml()` 적용

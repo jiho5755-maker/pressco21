@@ -262,7 +262,7 @@
       "typeVersion": 1.2,
       "position": [3100, 300],
       "parameters": {
-        "chatId": "={{ $env.TELEGRAM_CHAT_ID || '7713811206' }}",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
         "text": "={{ $json.message }}",
         "additionalFields": {}
       },

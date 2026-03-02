@@ -2,7 +2,7 @@
 
 ## n8n 접속 정보
 - SSH: `ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201`
-- n8n API Key: `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` (파일 내 전체 키 참조)
+- n8n API Key: `${N8N_API_KEY: .secrets.env 참조} (파일 내 전체 키 참조)
 - 컨테이너: `n8n_n8n_1`
 
 ## 알려진 버그 패턴 (Phase 2에서 확립)

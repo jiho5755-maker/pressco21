@@ -22,7 +22,7 @@
 | NocoDB URL | https://nocodb.pressco21.com |
 | 서버 IP | 158.180.77.201 |
 | SSH 접속 | `ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201` |
-| NocoDB API Token (테스트용) | `SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl` |
+| NocoDB API Token (테스트용) | `${NOCODB_API_TOKEN: .secrets.env 참조}` |
 | NocoDB Project ID | `poey1yrm1r6sthf` |
 
 ### 합격 기준
@@ -151,50 +151,50 @@
 
 - [ ] **[CRITICAL]** tbl_Partners 테이블 존재 및 접근 가능
   ```bash
-  curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
     "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Partners?limit=1" | jq '.pageInfo'
   # 기대: pageInfo 객체 반환 (totalRows, page 등)
   ```
 
 - [ ] **[CRITICAL]** tbl_Classes 테이블 존재
   ```bash
-  curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
     "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Classes?limit=1" | jq '.pageInfo'
   ```
 
 - [ ] **[CRITICAL]** tbl_Applications 테이블 존재
   ```bash
-  curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
     "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Applications?limit=1" | jq '.pageInfo'
   ```
 
 - [ ] **[CRITICAL]** tbl_Settlements 테이블 존재
   ```bash
-  curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
     "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Settlements?limit=1" | jq '.pageInfo'
   ```
 
 - [ ] **[CRITICAL]** tbl_Reviews 테이블 존재
   ```bash
-  curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
     "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Reviews?limit=1" | jq '.pageInfo'
   ```
 
 - [ ] **[CRITICAL]** tbl_PollLogs 테이블 존재
   ```bash
-  curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
     "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_PollLogs?limit=1" | jq '.pageInfo'
   ```
 
 - [ ] **[CRITICAL]** tbl_EmailLogs 테이블 존재
   ```bash
-  curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
     "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_EmailLogs?limit=1" | jq '.pageInfo'
   ```
 
 - [ ] **[CRITICAL]** tbl_Settings 테이블 존재
   ```bash
-  curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
     "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Settings?limit=1" | jq '.pageInfo'
   ```
 
@@ -221,7 +221,7 @@
 
 - [ ] **[CRITICAL]** tbl_Settings에 11개 설정 키-값 전체 확인
   ```bash
-  curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
     "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Settings?limit=25" | jq '.list[] | {key: .key, value: .value}'
   ```
 
@@ -504,7 +504,7 @@ curl -s "https://n8n.pressco21.com/webhook/record-booking" \
 검증 후 테스트 데이터 정리:
 ```bash
 # tbl_Settlements에서 TEST_ORDER_001 레코드 확인
-curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
   "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Settlements?where=(order_id,eq,TEST_ORDER_001)" | jq '.list'
 ```
 
@@ -534,7 +534,7 @@ curl -s "https://n8n.pressco21.com/webhook/partner-apply" \
 검증:
 ```bash
 # tbl_Applications에서 test_apply_member 확인
-curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
   "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Applications?where=(member_id,eq,test_apply_member)" | jq '.list'
 ```
 
@@ -664,7 +664,7 @@ curl -s "https://n8n.pressco21.com/webhook/class-api" \
 
 ```bash
 # tbl_EmailLogs에서 최근 에러 로그 확인
-curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
   "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_EmailLogs?where=(type,eq,ERROR)&sort=-created_at&limit=3" | jq '.list'
 ```
 
@@ -842,7 +842,7 @@ n8n UI에서 수동 실행하는 방법:
 - [ ] tbl_Settlements에서 `order_id=TEST_ORDER_001` 레코드 삭제
   ```bash
   # NocoDB UI에서 수동 삭제하거나, 테스트 레코드 ID 확인 후 API 삭제
-  curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
     "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Settlements?where=(order_id,eq,TEST_ORDER_001)" | jq '.list[].Id'
   ```
 
@@ -912,7 +912,7 @@ docker logs -f nocodb --tail 100
 
 ### NocoDB API 테이블 목록 확인
 ```bash
-curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
   "https://nocodb.pressco21.com/api/v1/db/meta/projects/poey1yrm1r6sthf/tables" | jq '.list[] | .title'
 ```
 

@@ -17,5 +17,5 @@
 - 관리자 group_level = 9 (메이크샵 관리자 그룹)
 
 ## API 연동 패턴
-- 파트너 승인: WF-08 POST /partner-approve (Authorization: Bearer pressco21-admin-2026)
+- 파트너 승인: WF-08 POST /partner-approve (Authorization: Bearer ${ADMIN_API_TOKEN: .secrets.env 참조})
 - NocoDB 직접 접근은 보안상 금지 → n8n 경유 권장

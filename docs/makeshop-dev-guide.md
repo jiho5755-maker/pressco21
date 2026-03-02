@@ -462,7 +462,7 @@ fetch(API_URL, {
 | WF-04 | `POST /record-booking` | params: class_id, member_id, booking_date, participants, amount |
 | WF-06 | `POST /class-management` | updateClassStatus |
 | WF-07 | `POST /partner-apply` | 파트너 신청 |
-| WF-08 | `POST /partner-approve` | Authorization: Bearer pressco21-admin-2026 |
+| WF-08 | `POST /partner-approve` | Authorization: Bearer ${ADMIN_API_TOKEN: .secrets.env 참조} |
 | WF-09 | `POST /review-reply` | replyToReview |
 | WF-10 | `POST /education-complete` | answers=[...15개 정수 배열] |
 | WF-15 | `POST /review-submit` | 수강 후기 작성 |
@@ -577,7 +577,7 @@ if (body.data && body.data.rows && body.data.rows.length > 0) {
 headers: { 'Authorization': 'Bearer TOKEN' }
 
 // 성공: NocoDB xc-token 헤더
-headers: { 'xc-token': 'SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl' }
+headers: { 'xc-token': '${NOCODB_API_TOKEN: .secrets.env 참조}' }
 ```
 
 ### 8-2. API URL 구조

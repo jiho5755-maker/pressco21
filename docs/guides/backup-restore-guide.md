@@ -157,11 +157,11 @@ docker logs n8n --tail=30
 
 | 변수명 | 설명 |
 |--------|------|
-| `ADMIN_API_TOKEN` | 관리자 API 토큰 (`pressco21-admin-2026`) |
+| `ADMIN_API_TOKEN` | 관리자 API 토큰 (`${ADMIN_API_TOKEN: .secrets.env 참조}`) |
 | `NOCODB_PROJECT_ID` | NocoDB 프로젝트 ID (`poey1yrm1r6sthf`) |
 | `MAKESHOP_DOMAIN` | 메이크샵 도메인 (`foreverlove.co.kr`) |
 | `MAKESHOP_PARTNER_GROUP_NO` | 파트너 회원그룹 번호 |
-| `TELEGRAM_CHAT_ID` | 텔레그램 알림 채팅 ID (`7713811206`) |
+| `TELEGRAM_CHAT_ID` | 텔레그램 알림 채팅 ID (`${TELEGRAM_CHAT_ID: .secrets.env 참조}`) |
 
 ---
 

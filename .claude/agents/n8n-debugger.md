@@ -33,7 +33,7 @@ docker ps | grep nocodb
 docker network connect n8n_n8n-network nocodb
 
 # n8n API로 워크플로우 실행 목록 조회
-curl -s -H "X-N8N-API-KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIwYWIxOTU4ZS03M2IxLTRmMjgtYTc0Ni00ZTljMGU2YzczMDMiLCJpc3MiOiJuOG4iLCJhdWQiOiJwdWJsaWMtYXBpIiwianRpIjoiNjI4YjYwNTMtOTVkNS00NDQzLThkY2UtOTM2MDE5NjBkMGJjIiwiaWF0IjoxNzcxODY2MjEzfQ.jp923n3FNkKMuIpQriqARLHJUSax8LBbU6Xhat4LhRE" \
+curl -s -H "X-N8N-API-KEY: ${N8N_API_KEY: .secrets.env 참조}" \
   "https://n8n.pressco21.com/api/v1/executions?limit=10" | python3 -m json.tool
 ```
 
@@ -156,7 +156,7 @@ docker network connect n8n_n8n-network nocodb
 ### 기본 요청 구조
 ```bash
 # NocoDB 직접 쿼리 테스트
-curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
   "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Partners?where=(member_id,eq,jihoo5755)"
 
 # where 파라미터 예시

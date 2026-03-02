@@ -58,9 +58,9 @@ memory: project
 ### 어드민 인증 방식
 ```javascript
 // 관리자 전용: n8n ADMIN_API_TOKEN 검증
-// HTTP Header: Authorization: Bearer pressco21-admin-2026
+// HTTP Header: Authorization: Bearer ${ADMIN_API_TOKEN: .secrets.env 참조}
 // 메이크샵 회원 그룹 레벨로 관리자 여부 1차 확인 (group_level 체크)
-var ADMIN_TOKEN = 'pressco21-admin-2026';
+var ADMIN_TOKEN = '${ADMIN_API_TOKEN: .secrets.env 참조}';
 var ADMIN_GROUP_LEVEL = '9'; // 메이크샵 관리자 그룹 레벨
 
 function checkAdminAuth() {
@@ -92,7 +92,7 @@ function approvePartner(applicationId, memberId, action) {
 }
 
 // NocoDB 직접 조회 (어드민은 n8n 경유 또는 NocoDB API 직접 사용 선택)
-var NOCODB_TOKEN = 'SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl';
+var NOCODB_TOKEN = '${NOCODB_API_TOKEN: .secrets.env 참조}';
 var NOCODB_BASE = 'https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf';
 ```
 

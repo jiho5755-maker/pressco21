@@ -155,7 +155,7 @@
       "typeVersion": 1.2,
       "position": [1980, 200],
       "parameters": {
-        "chatId": "={{ $env.TELEGRAM_CHAT_ID || '7713811206' }}",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
         "text": "={{ '\uD83D\uDCAC YouTube \uB313\uAE00 URL \uD30C\uC2F1 \uC644\uB8CC\\n\uC2E0\uADDC \uC0C1\uD488 \uC5F0\uB3D9: ' + $('Parse Comment URLs').first().json.count + '\uAC1C\\n\uC2DC\uAC04: ' + new Date().toLocaleString('ko-KR', {timeZone:'Asia/Seoul'}) }}",
         "additionalFields": {}
       },

@@ -210,7 +210,7 @@
       "typeVersion": 1.2,
       "position": [3080, 200],
       "parameters": {
-        "chatId": "={{ $env.TELEGRAM_CHAT_ID || '7713811206' }}",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
         "text": "={{ '\uD83C\uDFAC \uC2E0\uADDC YouTube \uC601\uC0C1 \uAC10\uC9C0: ' + $('Process New Videos').first().json.count + '\uAC1C\\n\uC5F0\uB3D9 \uC0C1\uD488: ' + $json.count + '\uAC1C\\n\uC2DC\uAC04: ' + new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }) }}",
         "additionalFields": {}
       },

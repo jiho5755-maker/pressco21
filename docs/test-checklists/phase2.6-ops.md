@@ -22,10 +22,10 @@
 | SSH 접속 | `ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201` |
 | n8n URL | https://n8n.pressco21.com |
 | NocoDB URL | https://nocodb.pressco21.com |
-| 텔레그램 Chat ID | `7713811206` |
-| 관리자 토큰 | `pressco21-admin-2026` |
-| n8n API Key | `eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...` (MEMORY.md 참조) |
-| NocoDB API Token | `SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl` |
+| 텔레그램 Chat ID | `${TELEGRAM_CHAT_ID: .secrets.env 참조}` |
+| 관리자 토큰 | `${ADMIN_API_TOKEN: .secrets.env 참조}` |
+| n8n API Key | `${N8N_API_KEY: .secrets.env 참조} (MEMORY.md 참조) |
+| NocoDB API Token | `${NOCODB_API_TOKEN: .secrets.env 참조}` |
 | NocoDB Project ID | `poey1yrm1r6sthf` |
 | WF-BACKUP ID | `al1OukxfDEs6DAOY` |
 | WF-APPROVE ID | `u00ltxmpWR5Poz4J` |
@@ -224,7 +224,7 @@ curl -s -X POST https://n8n.pressco21.com/webhook/backup-notify \
 - [ ] **[CRITICAL]** `/webhook/backup-notify` POST 호출 시 2xx 응답 반환
   - 기대: HTTP 200 또는 JSON `{"success": true}` 형태
 - [ ] **[CRITICAL]** Telegram 알림 수신 확인
-  - 기대: Chat ID `7713811206`으로 백업 완료/테스트 메시지 수신
+  - 기대: Chat ID `${TELEGRAM_CHAT_ID: .secrets.env 참조}`으로 백업 완료/테스트 메시지 수신
 
 ---
 
@@ -342,7 +342,7 @@ docker inspect nocodb --format='{{.State.Status}}'
 
 - [ ] **[CRITICAL]** `docker stop nocodb` 후 monitor.sh 실행 시 장애 감지 메시지 출력
   - 기대: `[ERROR] NocoDB 응답 없음` 또는 유사 경고 메시지
-- [ ] **[CRITICAL]** Telegram Chat ID `7713811206`으로 장애 알림 수신
+- [ ] **[CRITICAL]** Telegram Chat ID `${TELEGRAM_CHAT_ID: .secrets.env 참조}`으로 장애 알림 수신
   - 기대: "NocoDB 장애 감지" 또는 유사 메시지 텔레그램 수신
 - [ ] **[CRITICAL]** `docker start nocodb` 후 컨테이너 `running` 상태 복구
   - 기대: `docker inspect nocodb --format='{{.State.Status}}'` → `running`

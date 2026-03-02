@@ -101,7 +101,7 @@
 
 ```bash
 # n8n API로 WF-05 최근 실행 확인
-curl -s -H "X-N8N-API-KEY: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..." \
+curl -s -H "X-N8N-API-KEY: ${N8N_API_KEY: .secrets.env 참조}" \
   "https://n8n.pressco21.com/api/v1/executions?workflowId={WF-05-ID}&limit=5" | python3 -m json.tool
 ```
 
@@ -146,7 +146,7 @@ WF-05가 정산 레코드를 올바르게 생성했는지 확인합니다.
 
 **방법 B: API 직접 조회**
 ```bash
-curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
   "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Settlements?sort=-CreatedAt&limit=5" \
   | python3 -m json.tool
 ```
@@ -187,7 +187,7 @@ curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
 RECORD_ID="..." # NocoDB에서 확인한 Id 필드 값
 
 curl -s -X PATCH \
-  -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+  -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
   -H "Content-Type: application/json" \
   "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Settlements/${RECORD_ID}" \
   -d "{\"settlement_due_date\": \"$(date +%Y-%m-%d)\"}" | python3 -m json.tool
@@ -326,7 +326,7 @@ NocoDB 정산 합계와 메이크샵 실 결제 금액을 대조하여 누락/�
 
 ```bash
 # tbl_Settlements에서 특정 기간 COMPLETED 정산 조회
-curl -s -H "xc-token: SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl" \
+curl -s -H "xc-token: ${NOCODB_API_TOKEN: .secrets.env 참조}" \
   "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/tbl_Settlements?where=(status,eq,COMPLETED)~and(partner_code,eq,PC_202602_001)&limit=100" \
   | python3 -c "
 import json, sys

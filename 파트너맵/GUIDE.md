@@ -17,7 +17,7 @@
 
 ### 네이버 지도 API
 ```
-ncpKeyId: 'bfp8odep5r'
+ncpKeyId: '${NAVER_MAP_CLIENT_ID: .secrets.env 참조}'
 SDK: https://oapi.map.naver.com/openapi/v3/maps.js
 용도: 지도 렌더링, 마커, 클러스터링, 지오코딩
 ```

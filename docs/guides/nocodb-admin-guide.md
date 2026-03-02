@@ -11,7 +11,7 @@
 
 **계정:**
 - 이메일: pressco5755@naver.com
-- 비밀번호: /Jang040300
+- 비밀번호: (.secrets.env 참조)
 
 접속 후 프로젝트 목록에서 **PRESSCO21** 선택.
 

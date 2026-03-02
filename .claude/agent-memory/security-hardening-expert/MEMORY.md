@@ -1,7 +1,7 @@
 # security-hardening-expert 에이전트 메모리
 
 ## 현재 보안 구성
-- 관리자 토큰: `pressco21-admin-2026` (WF-08, n8n 환경변수)
+- 관리자 토큰: `${ADMIN_API_TOKEN: .secrets.env 참조}` (WF-08, n8n 환경변수)
 - CORS 허용: foreverlove.co.kr, www.foreverlove.co.kr
 - NocoDB Token: 프론트엔드에 노출 금지 (n8n 경유 필수)
 

@@ -1,0 +1,202 @@
+{
+  "name": "WF-AFFIL-SYNC 협회 구매액 집계",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtDayOfMonth": 1,
+              "triggerAtHour": 21,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "id": "affil-schedule-trigger",
+      "name": "Schedule: 매월 1일 06:00 KST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 전월 날짜 범위 계산 (KST 기준, n8n 서버는 UTC)\n// KST = UTC+9, 매월 1일 21:00 UTC = 다음날 06:00 KST\nconst now = new Date();\nconst year = now.getFullYear();\nconst month = now.getMonth(); // 0-based, 현재 월의 이전 달 = 전월\n\nconst targetYear = month === 0 ? year - 1 : year;\nconst targetMonth = month === 0 ? 12 : month; // 1-based 전월\n\nconst startDate = new Date(targetYear, targetMonth - 1, 1);\nconst endDate = new Date(targetYear, targetMonth, 0); // 전월 마지막 날\n\nconst pad = (n) => String(n).padStart(2, '0');\nconst fmtDate = (d) => `${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}`;\n\nreturn [{\n  json: {\n    targetYear,\n    targetMonth,\n    startDate: fmtDate(startDate),\n    endDate: fmtDate(endDate),\n    startDateDisplay: `${targetYear}-${pad(targetMonth)}-01`,\n    endDateDisplay: `${targetYear}-${pad(targetMonth)}-${pad(endDate.getDate())}`\n  }\n}];"
+      },
+      "id": "affil-calc-date",
+      "name": "Code: 전월 날짜 계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 메이크샵 주문 전체 조회 + NocoDB 매핑/협회 조회를 순차적으로 수행\n// (n8n 병렬 입력 버그 방지 위해 단일 Code 노드에서 모두 처리)\nconst shopkey = $env.MAKESHOP_SHOPKEY;\nconst licensekey = $env.MAKESHOP_LICENSEKEY;\nconst nocoToken = $env.NOCODB_API_TOKEN;\nconst nocoProjectId = $env.NOCODB_PROJECT_ID;\nconst dateInfo = $input.first().json;\n\nconst startDate = dateInfo.startDate;\nconst endDate = dateInfo.endDate;\n\nconst https = require('https');\n\n// HTTP 요청 헬퍼\nfunction httpGet(hostname, path, headers) {\n  return new Promise((resolve, reject) => {\n    const options = { hostname, port: 443, path, method: 'GET', headers };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', chunk => { data += chunk; });\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); }\n        catch(e) { resolve({ list: [], totalCount: 0 }); }\n      });\n    });\n    req.on('error', reject);\n    req.end();\n  });\n}\n\n// 1. 메이크샵 주문 조회 (전월 완료 주문)\nlet allOrders = [];\ntry {\n  const firstPage = await httpGet(\n    'foreverlove.co.kr',\n    `/list/open_api.html?type=order_list&mode=search&startDate=${startDate}&endDate=${endDate}&pageNum=1&pageSize=100&statusType=complete`,\n    { 'Shopkey': shopkey, 'Licensekey': licensekey, 'Content-Type': 'application/json' }\n  );\n  const totalCount = firstPage.totalCount || firstPage.total_count || (firstPage.list || []).length;\n  allOrders = allOrders.concat(firstPage.list || []);\n  \n  const totalPages = Math.ceil(totalCount / 100);\n  for (let p = 2; p <= Math.min(totalPages, 20); p++) {\n    const page = await httpGet(\n      'foreverlove.co.kr',\n      `/list/open_api.html?type=order_list&mode=search&startDate=${startDate}&endDate=${endDate}&pageNum=${p}&pageSize=100&statusType=complete`,\n      { 'Shopkey': shopkey, 'Licensekey': licensekey, 'Content-Type': 'application/json' }\n    );\n    allOrders = allOrders.concat(page.list || []);\n  }\n} catch(e) {\n  // 메이크샵 API 실패 시 빈 배열로 계속 진행\n  allOrders = [];\n}\n\n// 2. NocoDB 회원-협회 매핑 조회 (verified=1)\nlet memberMappings = [];\ntry {\n  const mappingResp = await httpGet(\n    'nocodb.pressco21.com',\n    `/api/v1/db/data/noco/${nocoProjectId}/mjrgja20gm84e71?where=(verified,eq,1)&limit=1000`,\n    { 'xc-token': nocoToken, 'Content-Type': 'application/json' }\n  );\n  memberMappings = mappingResp.list || [];\n} catch(e) {\n  memberMappings = [];\n}\n\n// 3. NocoDB 협회 마스터 조회 (active)\nlet affiliations = [];\ntry {\n  const affilResp = await httpGet(\n    'nocodb.pressco21.com',\n    `/api/v1/db/data/noco/${nocoProjectId}/m1y7q68q1zlrvv6?where=(status,eq,active)&limit=500`,\n    { 'xc-token': nocoToken, 'Content-Type': 'application/json' }\n  );\n  affiliations = affilResp.list || [];\n} catch(e) {\n  affiliations = [];\n}\n\n// 4. 회원ID → 협회코드 맵\nconst memberToAffil = {};\nfor (const m of memberMappings) {\n  if (m.member_id && m.affiliation_code) {\n    memberToAffil[m.member_id] = m.affiliation_code;\n  }\n}\n\n// 5. 협회코드 → 협회 정보 맵\nconst affilMap = {};\nfor (const a of affiliations) {\n  affilMap[a.affiliation_code] = a;\n}\n\n// 6. 협회별 집계\nconst affilStats = {};\nfor (const order of allOrders) {\n  // 메이크샵 주문 응답에서 회원 ID 추출 (필드명은 API 응답에 따라 다를 수 있음)\n  const memberId = order.member_id || order.memberId || order.user_id || order.userId;\n  if (!memberId) continue;\n  \n  const affilCode = memberToAffil[memberId];\n  if (!affilCode) continue;\n  \n  const amount = parseFloat(\n    order.totalAmount || order.total_amount || order.orderAmount || order.order_amount || 0\n  );\n  if (amount <= 0) continue;\n  \n  if (!affilStats[affilCode]) {\n    affilStats[affilCode] = { affiliation_code: affilCode, total_amount: 0, members: new Set() };\n  }\n  affilStats[affilCode].total_amount += amount;\n  affilStats[affilCode].members.add(memberId);\n}\n\n// 7. 결과 배열\nconst results = Object.values(affilStats).map(stat => ({\n  affiliation_code: stat.affiliation_code,\n  total_amount: Math.round(stat.total_amount),\n  member_count: stat.members.size,\n  affilInfo: affilMap[stat.affiliation_code] || null\n}));\n\nreturn [{\n  json: {\n    targetYear: dateInfo.targetYear,\n    targetMonth: dateInfo.targetMonth,\n    results,\n    totalAffils: results.length,\n    orderCount: allOrders.length\n  }\n}];"
+      },
+      "id": "affil-collect-all",
+      "name": "Code: 주문조회 + 매핑조회 + 집계",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-results",
+              "leftValue": "={{ $json.totalAffils }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "affil-check-results",
+      "name": "IF: 집계 결과 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 연간 누적 집계 및 인센티브 레벨 판단 후 NocoDB UPSERT\nconst data = $input.first().json;\nconst targetYear = data.targetYear;\nconst targetMonth = data.targetMonth;\nconst results = data.results;\n\nconst nocoToken = $env.NOCODB_API_TOKEN;\nconst nocoProjectId = $env.NOCODB_PROJECT_ID;\nconst TABLE_STATS = 'mdyqit8fhsm7zqu'; // tbl_Affiliation_Stats\n\nconst https = require('https');\n\nfunction nocoRequest(method, path, body) {\n  return new Promise((resolve, reject) => {\n    const bodyStr = body ? JSON.stringify(body) : null;\n    const options = {\n      hostname: 'nocodb.pressco21.com',\n      port: 443,\n      path,\n      method,\n      headers: {\n        'xc-token': nocoToken,\n        'Content-Type': 'application/json'\n      }\n    };\n    const req = https.request(options, (res) => {\n      let d = '';\n      res.on('data', chunk => { d += chunk; });\n      res.on('end', () => { try { resolve(JSON.parse(d)); } catch(e) { resolve({}); } });\n    });\n    req.on('error', reject);\n    if (bodyStr) req.write(bodyStr);\n    req.end();\n  });\n}\n\nconst processed = [];\nconst incentiveAlerts = [];\n\nfor (const result of results) {\n  const { affiliation_code, total_amount, member_count, affilInfo } = result;\n  \n  // 해당 협회의 올해 전체 월 통계 조회 (누적 계산용)\n  const statsPath = `/api/v1/db/data/noco/${nocoProjectId}/${TABLE_STATS}?where=(affiliation_code,eq,${encodeURIComponent(affiliation_code)})~and(year,eq,${targetYear})&limit=12`;\n  const existing = await nocoRequest('GET', statsPath, null);\n  const existingList = existing.list || [];\n  \n  // 이번 달 이전 월 누적합 계산\n  let prevCumulative = 0;\n  for (const row of existingList) {\n    if (row.month < targetMonth) {\n      prevCumulative += (row.total_amount || 0);\n    }\n  }\n  const cumulativeAmount = prevCumulative + total_amount;\n  \n  // 인센티브 레벨 판단 (협회별 설정값 또는 기본값)\n  const t1 = affilInfo ? (affilInfo.target_1 || 5000000) : 5000000;\n  const t2 = affilInfo ? (affilInfo.target_2 || 10000000) : 10000000;\n  const t3 = affilInfo ? (affilInfo.target_3 || 20000000) : 20000000;\n  const inc1 = affilInfo ? (affilInfo.incentive_1 || 250000) : 250000;\n  const inc2 = affilInfo ? (affilInfo.incentive_2 || 500000) : 500000;\n  const inc3 = affilInfo ? (affilInfo.incentive_3 || 1200000) : 1200000;\n  \n  let incentiveLevel = 0;\n  let incentiveAmount = 0;\n  if (cumulativeAmount >= t3) { incentiveLevel = 3; incentiveAmount = inc3; }\n  else if (cumulativeAmount >= t2) { incentiveLevel = 2; incentiveAmount = inc2; }\n  else if (cumulativeAmount >= t1) { incentiveLevel = 1; incentiveAmount = inc1; }\n  \n  // 이번 달 기존 레코드 확인\n  const thisMonthRow = existingList.find(r => r.month === targetMonth);\n  const prevLevel = thisMonthRow ? (thisMonthRow.incentive_level || 0) : 0;\n  \n  const rowData = {\n    affiliation_code,\n    year: targetYear,\n    month: targetMonth,\n    total_amount,\n    member_count,\n    cumulative_amount: cumulativeAmount,\n    incentive_level: incentiveLevel,\n    incentive_amount: incentiveAmount,\n    incentive_paid: thisMonthRow ? (thisMonthRow.incentive_paid || false) : false,\n    updated_at: new Date().toISOString()\n  };\n  \n  if (thisMonthRow && thisMonthRow.Id) {\n    // PATCH (업데이트)\n    await nocoRequest(\n      'PATCH',\n      `/api/v1/db/data/noco/${nocoProjectId}/${TABLE_STATS}/${thisMonthRow.Id}`,\n      rowData\n    );\n  } else {\n    // POST (신규 삽입)\n    await nocoRequest(\n      'POST',\n      `/api/v1/db/data/noco/${nocoProjectId}/${TABLE_STATS}`,\n      rowData\n    );\n  }\n  \n  processed.push(rowData);\n  \n  // 새로 인센티브 레벨 달성 시 알림 대상 추가\n  if (incentiveLevel > prevLevel && incentiveLevel > 0) {\n    const levelTargets = [t1, t2, t3];\n    incentiveAlerts.push({\n      affiliation_code,\n      affilName: affilInfo ? affilInfo.name : affiliation_code,\n      incentiveLevel,\n      incentiveAmount,\n      cumulativeAmount,\n      target: levelTargets[incentiveLevel - 1]\n    });\n  }\n}\n\nreturn [{\n  json: {\n    targetYear,\n    targetMonth,\n    processed,\n    incentiveAlerts,\n    hasAlerts: incentiveAlerts.length > 0\n  }\n}];"
+      },
+      "id": "affil-upsert-stats",
+      "name": "Code: 누적집계 + NocoDB UPSERT",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 180]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-alerts",
+              "leftValue": "={{ $json.hasAlerts }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "affil-check-alerts",
+      "name": "IF: 인센티브 달성?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [1200, 180]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=🏆 협회 인센티브 달성 알림!\n\n집계 기간: {{ $json.targetYear }}년 {{ $json.targetMonth }}월\n처리 협회 수: {{ $json.processed.length }}개\n\n달성 협회:\n{{ $json.incentiveAlerts.map(a => '• ' + a.affilName + ' (' + a.affiliation_code + ')\\n  누적 구매액: ' + a.cumulativeAmount.toLocaleString() + '원\\n  달성 레벨: ' + a.incentiveLevel + '단계 (기준 ' + a.target.toLocaleString() + '원)\\n  지급 인센티브: ' + a.incentiveAmount.toLocaleString() + '원').join('\\n\\n') }}",
+        "parseMode": "Markdown"
+      },
+      "id": "affil-telegram-incentive",
+      "name": "Telegram: 인센티브 달성 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1440, 80],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=✅ 협회 구매액 집계 완료\n\n집계 기간: {{ $json.targetYear }}년 {{ $json.targetMonth }}월\n처리된 협회 수: {{ $json.processed.length }}개\n인센티브 달성: 없음",
+        "parseMode": "Markdown"
+      },
+      "id": "affil-telegram-complete",
+      "name": "Telegram: 집계 완료 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1440, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=⚠️ 협회 구매액 집계: 집계 대상 없음\n\n집계 기간: {{ $json.targetYear }}년 {{ $json.targetMonth }}월\n\n협회 소속 구매 회원이 없거나 완료 주문이 없습니다.\n전월 완료 주문 수: {{ $json.orderCount }}건",
+        "parseMode": "Markdown"
+      },
+      "id": "affil-telegram-no-data",
+      "name": "Telegram: 집계 대상 없음",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 440],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule: 매월 1일 06:00 KST": {
+      "main": [
+        [{ "node": "Code: 전월 날짜 계산", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code: 전월 날짜 계산": {
+      "main": [
+        [{ "node": "Code: 주문조회 + 매핑조회 + 집계", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code: 주문조회 + 매핑조회 + 집계": {
+      "main": [
+        [{ "node": "IF: 집계 결과 있음?", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF: 집계 결과 있음?": {
+      "main": [
+        [{ "node": "Code: 누적집계 + NocoDB UPSERT", "type": "main", "index": 0 }],
+        [{ "node": "Telegram: 집계 대상 없음", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code: 누적집계 + NocoDB UPSERT": {
+      "main": [
+        [{ "node": "IF: 인센티브 달성?", "type": "main", "index": 0 }]
+      ]
+    },
+    "IF: 인센티브 달성?": {
+      "main": [
+        [{ "node": "Telegram: 인센티브 달성 알림", "type": "main", "index": 0 }],
+        [{ "node": "Telegram: 집계 완료 알림", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

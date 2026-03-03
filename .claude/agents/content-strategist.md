@@ -1,17 +1,6 @@
 ---
 name: content-strategist
-description: "PRESSCO21의 콘텐츠 전략가. 교육 콘텐츠 기획, 원장님 노하우 디지털화, 콘텐츠 캘린더 관리, YouTube/블로그/SNS 콘텐츠 전략을 담당한다.
-
-Examples:
-
-- user: '유튜브 콘텐츠 전략을 짜줘'
-  assistant: 'content-strategist 에이전트로 유튜브 콘텐츠 전략을 수립하겠습니다.'
-
-- user: '원장님 노하우를 교육 콘텐츠로 만들고 싶어'
-  assistant: 'content-strategist 에이전트로 교육 콘텐츠 기획을 진행하겠습니다.'
-
-- user: '이번 달 콘텐츠 캘린더를 만들어줘'
-  assistant: 'content-strategist 에이전트로 콘텐츠 캘린더를 작성하겠습니다.'"
+description: "Use this agent when the user needs content strategy, content calendar planning, educational content creation, YouTube/blog/SNS content planning, or brand storytelling for PRESSCO21. This includes tasks like planning monthly content calendars, creating educational content from the founder's 30-year flower craft expertise, developing YouTube channel strategies, or designing content marketing campaigns for partner recruitment.\n\nExamples:\n\n- user: \"유튜브 콘텐츠 전략을 짜줘\"\n  assistant: \"content-strategist 에이전트를 실행하여 유튜브 콘텐츠 전략을 수립하겠습니다.\"\n  <commentary>유튜브 콘텐츠 전략 수립이 필요하므로 content-strategist를 실행합니다.</commentary>\n\n- user: \"원장님 노하우를 교육 콘텐츠로 만들고 싶어\"\n  assistant: \"content-strategist 에이전트로 교육 콘텐츠 기획을 진행하겠습니다.\"\n  <commentary>교육 콘텐츠 기획이 필요하므로 content-strategist를 실행합니다.</commentary>\n\n- user: \"이번 달 콘텐츠 캘린더를 만들어줘\"\n  assistant: \"content-strategist 에이전트로 콘텐츠 캘린더를 작성하겠습니다.\"\n  <commentary>월간 콘텐츠 캘린더 작성이 필요하므로 content-strategist를 실행합니다.</commentary>"
 model: opus
 color: magenta
 memory: project

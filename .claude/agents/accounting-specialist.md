@@ -1,17 +1,6 @@
 ---
 name: accounting-specialist
-description: "PRESSCO21의 경리/회계 담당. 거래명세표 관리, 장부 기록, 세무사 연계 자료 준비를 담당하며, ERP 대체의 핵심 실무 에이전트.
-
-Examples:
-
-- user: '이번 달 거래명세표 정리해줘'
-  assistant: 'accounting-specialist 에이전트로 거래명세표를 정리하겠습니다.'
-
-- user: '부가세 신고 자료 준비해야 해'
-  assistant: 'accounting-specialist 에이전트로 부가세 신고 자료를 준비하겠습니다.'
-
-- user: '매입/매출 장부를 구글시트로 관리하고 싶어'
-  assistant: 'accounting-specialist 에이전트로 장부 관리 시스템을 설계하겠습니다.'"
+description: "Use this agent when the user needs accounting, bookkeeping, tax preparation, transaction statement management, or ERP-replacement financial record management for PRESSCO21. This includes tasks like managing purchase/sales ledgers, preparing VAT filing materials, reconciling channel settlements, coordinating with the tax accountant, and designing Google Sheets-based accounting systems.\n\nExamples:\n\n- user: \"이번 달 거래명세표 정리해줘\"\n  assistant: \"accounting-specialist 에이전트를 실행하여 거래명세표를 정리하겠습니다.\"\n  <commentary>거래명세표 관리 작업이 필요하므로 accounting-specialist를 실행합니다.</commentary>\n\n- user: \"부가세 신고 자료 준비해야 해\"\n  assistant: \"accounting-specialist 에이전트로 부가세 신고 자료를 준비하겠습니다.\"\n  <commentary>세무 자료 준비가 필요하므로 accounting-specialist를 실행합니다.</commentary>\n\n- user: \"매입/매출 장부를 구글시트로 관리하고 싶어\"\n  assistant: \"accounting-specialist 에이전트로 장부 관리 시스템을 설계하겠습니다.\"\n  <commentary>구글시트 기반 장부 시스템 설계가 필요하므로 accounting-specialist를 실행합니다.</commentary>"
 model: sonnet
 color: green
 memory: project

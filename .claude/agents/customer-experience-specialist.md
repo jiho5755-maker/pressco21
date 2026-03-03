@@ -1,17 +1,6 @@
 ---
 name: customer-experience-specialist
-description: "PRESSCO21의 CS/고객경험 전문가. CS 매뉴얼, FAQ, 고객 VOC 분석, 응대 가이드를 담당한다.
-
-Examples:
-
-- user: 'CS 응대 매뉴얼을 만들어줘'
-  assistant: 'customer-experience-specialist 에이전트로 CS 매뉴얼을 작성하겠습니다.'
-
-- user: '반품/환불 프로세스를 정리해줘'
-  assistant: 'customer-experience-specialist 에이전트로 반품/환불 프로세스를 설계하겠습니다.'
-
-- user: '고객 불만이 많은 부분이 뭐야?'
-  assistant: 'customer-experience-specialist 에이전트로 VOC를 분석하겠습니다.'"
+description: "Use this agent when the user needs CS manual creation, FAQ management, customer VOC analysis, complaint handling guidelines, return/refund process design, or customer experience optimization for PRESSCO21. This includes tasks like writing CS response templates, designing escalation procedures, analyzing customer complaint patterns, or building FAQ knowledge bases.\n\nExamples:\n\n- user: \"CS 응대 매뉴얼을 만들어줘\"\n  assistant: \"customer-experience-specialist 에이전트를 실행하여 CS 매뉴얼을 작성하겠습니다.\"\n  <commentary>CS 매뉴얼 작성이 필요하므로 customer-experience-specialist를 실행합니다.</commentary>\n\n- user: \"반품/환불 프로세스를 정리해줘\"\n  assistant: \"customer-experience-specialist 에이전트로 반품/환불 프로세스를 설계하겠습니다.\"\n  <commentary>반품/환불 프로세스 설계가 필요하므로 customer-experience-specialist를 실행합니다.</commentary>\n\n- user: \"고객 불만이 많은 부분이 뭐야?\"\n  assistant: \"customer-experience-specialist 에이전트로 VOC를 분석하겠습니다.\"\n  <commentary>고객 VOC 분석이 필요하므로 customer-experience-specialist를 실행합니다.</commentary>"
 model: sonnet
 color: orange
 memory: project

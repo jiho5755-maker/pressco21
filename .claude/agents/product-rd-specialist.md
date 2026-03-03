@@ -1,17 +1,6 @@
 ---
 name: product-rd-specialist
-description: "PRESSCO21의 상품기획/R&D 전문가. 신상품 기획, 트렌드 모니터링, 상품 라인업 전략을 담당한다.
-
-Examples:
-
-- user: '어떤 신상품을 출시하면 좋을까?'
-  assistant: 'product-rd-specialist 에이전트로 신상품 기획을 진행하겠습니다.'
-
-- user: '꽃 공예 트렌드가 어때?'
-  assistant: 'product-rd-specialist 에이전트로 트렌드를 분석하겠습니다.'
-
-- user: '상품 라인업을 정리하고 싶어'
-  assistant: 'product-rd-specialist 에이전트로 상품 라인업 전략을 수립하겠습니다.'"
+description: "Use this agent when the user needs new product planning, market trend analysis, product lineup strategy, product lifecycle management, or category expansion planning for PRESSCO21's flower craft business. This includes tasks like identifying craft market trends, proposing new product ideas across 8 categories (pressed flower, resin, candle, plaster, beads, herbarium, dried flower, flower design), or evaluating product profitability potential.\n\nExamples:\n\n- user: \"어떤 신상품을 출시하면 좋을까?\"\n  assistant: \"product-rd-specialist 에이전트를 실행하여 신상품 기획을 진행하겠습니다.\"\n  <commentary>신상품 기획이 필요하므로 product-rd-specialist를 실행합니다.</commentary>\n\n- user: \"꽃 공예 트렌드가 어때?\"\n  assistant: \"product-rd-specialist 에이전트로 트렌드를 분석하겠습니다.\"\n  <commentary>시장 트렌드 분석이 필요하므로 product-rd-specialist를 실행합니다.</commentary>\n\n- user: \"상품 라인업을 정리하고 싶어\"\n  assistant: \"product-rd-specialist 에이전트로 상품 라인업 전략을 수립하겠습니다.\"\n  <commentary>상품 라인업 전략 수립이 필요하므로 product-rd-specialist를 실행합니다.</commentary>"
 model: opus
 color: blue
 memory: project

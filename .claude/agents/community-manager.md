@@ -1,17 +1,6 @@
 ---
 name: community-manager
-description: "PRESSCO21의 커뮤니티 매니저. 파트너 관계 관리, SNS 커뮤니티 운영, 수강생→재구매 전환을 담당한다.
-
-Examples:
-
-- user: '파트너들과 소통을 강화하고 싶어'
-  assistant: 'community-manager 에이전트로 파트너 커뮤니티 전략을 수립하겠습니다.'
-
-- user: '수강생이 재료를 재구매하게 하려면?'
-  assistant: 'community-manager 에이전트로 재구매 전환 전략을 설계하겠습니다.'
-
-- user: 'SNS에서 팬층을 만들고 싶어'
-  assistant: 'community-manager 에이전트로 SNS 커뮤니티 전략을 수립하겠습니다.'"
+description: "Use this agent when the user needs community management, partner relationship nurturing, SNS community operations, fan engagement strategies, or student-to-buyer conversion optimization for PRESSCO21. This includes tasks like designing partner communication programs, planning SNS community growth, creating engagement campaigns, or building the education-community-purchase flywheel.\n\nExamples:\n\n- user: \"파트너들과 소통을 강화하고 싶어\"\n  assistant: \"community-manager 에이전트를 실행하여 파트너 커뮤니티 전략을 수립하겠습니다.\"\n  <commentary>파트너 관계 관리 전략이 필요하므로 community-manager를 실행합니다.</commentary>\n\n- user: \"수강생이 재료를 재구매하게 하려면?\"\n  assistant: \"community-manager 에이전트로 재구매 전환 전략을 설계하겠습니다.\"\n  <commentary>수강생→구매 전환 전략이 필요하므로 community-manager를 실행합니다.</commentary>\n\n- user: \"SNS에서 팬층을 만들고 싶어\"\n  assistant: \"community-manager 에이전트로 SNS 커뮤니티 전략을 수립하겠습니다.\"\n  <commentary>SNS 커뮤니티 구축이 필요하므로 community-manager를 실행합니다.</commentary>"
 model: sonnet
 color: magenta
 memory: project

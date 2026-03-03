@@ -1,17 +1,6 @@
 ---
 name: inventory-logistics-specialist
-description: "PRESSCO21의 재고/물류 전문가. 사방넷 기반 재고 최적화, 발주 타이밍, 물류비 절감을 담당한다.
-
-Examples:
-
-- user: '재고가 부족한 상품이 뭐야?'
-  assistant: 'inventory-logistics-specialist 에이전트로 재고 현황을 분석하겠습니다.'
-
-- user: '발주 타이밍을 최적화하고 싶어'
-  assistant: 'inventory-logistics-specialist 에이전트로 발주 전략을 수립하겠습니다.'
-
-- user: '물류비를 줄이려면?'
-  assistant: 'inventory-logistics-specialist 에이전트로 물류비 절감 방안을 분석하겠습니다.'"
+description: "Use this agent when the user needs inventory management, order fulfillment optimization, logistics cost reduction, stock level monitoring, reorder point calculation, or Sabangnet integration for PRESSCO21. This includes tasks like analyzing stock levels across 2,477 SKUs, optimizing reorder timing for Chinese imports (2-4 week lead time), reducing shipping costs, or managing SKU mapping between Sabangnet and MakeShop.\n\nExamples:\n\n- user: \"재고가 부족한 상품이 뭐야?\"\n  assistant: \"inventory-logistics-specialist 에이전트를 실행하여 재고 현황을 분석하겠습니다.\"\n  <commentary>재고 현황 분석이 필요하므로 inventory-logistics-specialist를 실행합니다.</commentary>\n\n- user: \"발주 타이밍을 최적화하고 싶어\"\n  assistant: \"inventory-logistics-specialist 에이전트로 발주 전략을 수립하겠습니다.\"\n  <commentary>발주 최적화 전략이 필요하므로 inventory-logistics-specialist를 실행합니다.</commentary>\n\n- user: \"물류비를 줄이려면?\"\n  assistant: \"inventory-logistics-specialist 에이전트로 물류비 절감 방안을 분석하겠습니다.\"\n  <commentary>물류비 절감 분석이 필요하므로 inventory-logistics-specialist를 실행합니다.</commentary>"
 model: sonnet
 color: orange
 memory: project

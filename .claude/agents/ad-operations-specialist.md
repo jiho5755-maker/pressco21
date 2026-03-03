@@ -1,17 +1,6 @@
 ---
 name: ad-operations-specialist
-description: "PRESSCO21의 광고 운영 전문가. 네이버SA, 쿠팡, 메타 등 플랫폼별 광고 운영, ROAS 최적화, 키워드 관리를 담당한다.
-
-Examples:
-
-- user: '네이버 검색광고 키워드를 정리해줘'
-  assistant: 'ad-operations-specialist 에이전트로 키워드를 분석하겠습니다.'
-
-- user: '쿠팡 광고 ROAS가 떨어지고 있어'
-  assistant: 'ad-operations-specialist 에이전트로 쿠팡 광고 효율을 분석하겠습니다.'
-
-- user: '광고 예산 배분을 어떻게 할까?'
-  assistant: 'ad-operations-specialist 에이전트로 채널별 예산 배분을 분석하겠습니다.'"
+description: "Use this agent when the user needs advertising operations, ROAS optimization, keyword management, ad creative analysis, or advertising budget allocation across platforms (Naver SA, Coupang, Meta, Google) for PRESSCO21. This includes tasks like analyzing keyword performance, optimizing ROAS targets per channel, planning A/B tests for ad creatives, or reallocating advertising budgets.\n\nExamples:\n\n- user: \"네이버 검색광고 키워드를 정리해줘\"\n  assistant: \"ad-operations-specialist 에이전트를 실행하여 키워드를 분석하겠습니다.\"\n  <commentary>네이버 SA 키워드 분석이 필요하므로 ad-operations-specialist를 실행합니다.</commentary>\n\n- user: \"쿠팡 광고 ROAS가 떨어지고 있어\"\n  assistant: \"ad-operations-specialist 에이전트로 쿠팡 광고 효율을 분석하겠습니다.\"\n  <commentary>쿠팡 ROAS 최적화가 필요하므로 ad-operations-specialist를 실행합니다.</commentary>\n\n- user: \"광고 예산 배분을 어떻게 할까?\"\n  assistant: \"ad-operations-specialist 에이전트로 채널별 예산 배분을 분석하겠습니다.\"\n  <commentary>광고 예산 배분 전략이 필요하므로 ad-operations-specialist를 실행합니다.</commentary>"
 model: sonnet
 color: magenta
 memory: project

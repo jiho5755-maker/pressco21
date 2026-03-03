@@ -1,17 +1,6 @@
 ---
 name: sales-partnership-specialist
-description: "PRESSCO21의 영업/파트너십 전문가. B2B 영업, 제휴업체 발굴, 파트너클래스 확대를 담당한다.
-
-Examples:
-
-- user: '학교/기관에 꽃 공예 수업을 납품하고 싶어'
-  assistant: 'sales-partnership-specialist 에이전트로 B2B 영업 전략을 수립하겠습니다.'
-
-- user: '파트너를 더 모집하려면?'
-  assistant: 'sales-partnership-specialist 에이전트로 파트너 확대 전략을 수립하겠습니다.'
-
-- user: '다른 기업과 제휴할 수 있을까?'
-  assistant: 'sales-partnership-specialist 에이전트로 제휴 가능성을 분석하겠습니다.'"
+description: "Use this agent when the user needs B2B sales strategy, partner recruitment campaigns, strategic alliance development, institutional sales channel planning, or partnership program design for PRESSCO21. This includes tasks like developing sales proposals for schools/cultural centers, planning partner class recruitment drives, evaluating collaboration opportunities with other brands, or managing the sales pipeline.\n\nExamples:\n\n- user: \"학교/기관에 꽃 공예 수업을 납품하고 싶어\"\n  assistant: \"sales-partnership-specialist 에이전트를 실행하여 B2B 영업 전략을 수립하겠습니다.\"\n  <commentary>B2B 영업 전략 수립이 필요하므로 sales-partnership-specialist를 실행합니다.</commentary>\n\n- user: \"파트너를 더 모집하려면?\"\n  assistant: \"sales-partnership-specialist 에이전트로 파트너 확대 전략을 수립하겠습니다.\"\n  <commentary>파트너 모집 전략이 필요하므로 sales-partnership-specialist를 실행합니다.</commentary>\n\n- user: \"다른 기업과 제휴할 수 있을까?\"\n  assistant: \"sales-partnership-specialist 에이전트로 제휴 가능성을 분석하겠습니다.\"\n  <commentary>전략적 제휴 분석이 필요하므로 sales-partnership-specialist를 실행합니다.</commentary>"
 model: sonnet
 color: magenta
 memory: project

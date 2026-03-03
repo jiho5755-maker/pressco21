@@ -1,17 +1,6 @@
 ---
 name: overseas-sourcing-specialist
-description: "PRESSCO21의 해외소싱 전문가. 1688 소싱 최적화, 공급업체 발굴, 관세/통관 전략을 담당한다.
-
-Examples:
-
-- user: '1688에서 새 공급업체를 찾아줘'
-  assistant: 'overseas-sourcing-specialist 에이전트로 공급업체를 조사하겠습니다.'
-
-- user: '중국 사입 비용을 줄이려면?'
-  assistant: 'overseas-sourcing-specialist 에이전트로 소싱 최적화 방안을 분석하겠습니다.'
-
-- user: '통관에서 문제가 생겼어'
-  assistant: 'overseas-sourcing-specialist 에이전트로 통관 이슈를 분석하겠습니다.'"
+description: "Use this agent when the user needs 1688 sourcing optimization, supplier discovery and evaluation, customs/tariff strategy, HS code classification, international logistics planning, or exchange rate risk management for PRESSCO21's Chinese imports. This includes tasks like finding alternative suppliers, calculating landed costs (COGS with tariffs), optimizing shipping methods, or managing supplier relationships.\n\nExamples:\n\n- user: \"1688에서 새 공급업체를 찾아줘\"\n  assistant: \"overseas-sourcing-specialist 에이전트를 실행하여 공급업체를 조사하겠습니다.\"\n  <commentary>1688 공급업체 발굴이 필요하므로 overseas-sourcing-specialist를 실행합니다.</commentary>\n\n- user: \"중국 사입 비용을 줄이려면?\"\n  assistant: \"overseas-sourcing-specialist 에이전트로 소싱 최적화 방안을 분석하겠습니다.\"\n  <commentary>소싱 비용 절감 분석이 필요하므로 overseas-sourcing-specialist를 실행합니다.</commentary>\n\n- user: \"통관에서 문제가 생겼어\"\n  assistant: \"overseas-sourcing-specialist 에이전트로 통관 이슈를 분석하겠습니다.\"\n  <commentary>통관 문제 해결이 필요하므로 overseas-sourcing-specialist를 실행합니다.</commentary>"
 model: sonnet
 color: blue
 memory: project

@@ -1142,93 +1142,109 @@ function buildInvoiceHtml(inv, items, copyType) {
 }
 
 // 이등분 용지: 공급자+공급받는자 2장을 A4 한 장에 출력
-// .inv-scale-wrap으로 내부 콘텐츠를 감싸서 iframe 인쇄 시 동적 scale 적용 가능
+// 절취선 148.5mm, 각 절반 위아래 균등 여백, iframe에서 동적 scale 적용
 function buildDuplexInvoiceHtml(inv, items) {
   var supplier  = buildInvoiceHtml(inv, items, "공급자 보관용");
   var recipient = buildInvoiceHtml(inv, items, "공급받는자 보관용");
   return '<div class="inv-page-duplex">' +
     '<div class="inv-half top"><div class="inv-scale-wrap">' + supplier + '</div></div>' +
-    '<div class="inv-cut-line">--- 절 취 선 ---</div>' +
+    '<div class="inv-cut-line"><span>✂ 절 취 선</span></div>' +
     '<div class="inv-half bottom"><div class="inv-scale-wrap">' + recipient + '</div></div>' +
   '</div>';
 }
 
 // ─────────────────────────────────────────
 // iframe 기반 이등분 인쇄 (host 페이지 간섭 없음)
+// - html/body height:297mm + overflow:hidden → Chrome 2페이지 생성 원천 차단
+// - 절취선 148.5mm (A4 정중앙), 각 절반 위아래 7mm 균등 여백
+// - 콘텐츠가 넘칠 경우 transform:scale로 축소 (최소 0.5배까지)
 // ─────────────────────────────────────────
 function printDuplexViaIframe(duplexHtml) {
   var iframe = document.createElement("iframe");
-  iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;";
+  iframe.style.cssText = "position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;visibility:hidden;";
   document.body.appendChild(iframe);
 
   var iframeDoc = iframe.contentDocument || iframe.contentWindow.document;
-  // 거래명세표 전용 CSS를 iframe 내부에 완전 포함
+
+  // 콘텐츠 target: 각 절반(148.5mm) - 위패딩(7mm) - 아래패딩(7mm) = 134.5mm → 안전 여유 빼면 132mm
+  var TARGET_MM = 132;
+  var TARGET_PX = TARGET_MM * (96 / 25.4); // ~499px
+
   var cssText = [
     "@page { size: A4 portrait; margin: 0; }",
-    "html, body { margin: 0; padding: 0; width: 210mm; }",
+    // ★ 핵심: html/body를 A4 높이로 강제 → Chrome 2페이지 생성 불가
+    "html { margin: 0; padding: 0; width: 210mm; height: 297mm; overflow: hidden !important; }",
+    "body { margin: 0; padding: 0; width: 210mm; height: 297mm; overflow: hidden !important; }",
     "* { box-sizing: border-box; }",
 
-    // 거래명세표 기본 스타일
-    ".inv-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 4px; }",
+    // 거래명세표 기본 스타일 (약간 컴팩트하게 축소)
+    ".inv-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }",
     ".inv-header-center { flex: 1; text-align: center; }",
-    ".inv-logo-wrap { width: 80px; display: flex; align-items: center; }",
-    ".inv-logo { max-height: 32px; max-width: 80px; object-fit: contain; }",
-    ".inv-title { font-size: 14pt; font-weight: 900; letter-spacing: 4px; margin-bottom: 1px; }",
-    ".inv-sub { font-size: 7pt; color: #555; }",
-    ".inv-meta-tbl { width: 100%; border-collapse: collapse; margin-bottom: 4px; font-size: 7.5pt; }",
+    ".inv-logo-wrap { width: 72px; display: flex; align-items: center; }",
+    ".inv-logo { max-height: 30px; max-width: 72px; object-fit: contain; }",
+    ".inv-title { font-size: 13pt; font-weight: 900; letter-spacing: 4px; margin-bottom: 1px; }",
+    ".inv-sub { font-size: 6.5pt; color: #555; }",
+    ".inv-meta-tbl { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 7pt; }",
     ".inv-meta-tbl td { padding: 1px 3px; }",
-    ".inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-bottom: 4px; }",
-    ".inv-party { border: 1px solid #444; padding: 3px 5px; }",
-    ".inv-party-title { font-size: 7pt; color: #444; margin-bottom: 1px; font-weight: 700; }",
-    ".inv-party table { width: 100%; border-collapse: collapse; font-size: 7pt; }",
-    ".inv-party table td { padding: 1px 2px; }",
-    ".inv-party table td:first-child { color: #555; width: 50px; font-size: 7pt; }",
-    ".inv-items-table { width: 100%; border-collapse: collapse; font-size: 7pt; margin-bottom: 3px; }",
-    ".inv-items-table th { background: #f0f0f0; border: 1px solid #888; padding: 2px 2px; text-align: center; font-weight: 700; }",
-    ".inv-items-table td { border: 1px solid #ccc; padding: 1.5px 2px; }",
+    ".inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 3px; }",
+    ".inv-party { border: 1px solid #444; padding: 2px 4px; }",
+    ".inv-party-title { font-size: 6.5pt; color: #444; margin-bottom: 1px; font-weight: 700; }",
+    ".inv-party table { width: 100%; border-collapse: collapse; font-size: 6.5pt; }",
+    ".inv-party table td { padding: 0.5px 2px; }",
+    ".inv-party table td:first-child { color: #555; width: 44px; font-size: 6.5pt; }",
+    ".inv-items-table { width: 100%; border-collapse: collapse; font-size: 6.5pt; margin-bottom: 2px; }",
+    ".inv-items-table th { background: #f0f0f0; border: 1px solid #888; padding: 1.5px 2px; text-align: center; font-weight: 700; }",
+    ".inv-items-table td { border: 1px solid #ccc; padding: 1px 2px; }",
+    // 빈 행 높이 축소 (inline style override)
+    "td[colspan='8'] { height: 9px !important; }",
     ".t-right { text-align: right; }",
     ".t-center { text-align: center; }",
-    ".inv-total-tbl { width: 100%; border-collapse: collapse; border: 2px solid #333; font-size: 7.5pt; margin-bottom: 3px; }",
-    ".inv-total-tbl td { padding: 3px 5px; border: 1px solid #ccc; }",
-    ".inv-grand { background: #f0f0f0; font-weight: 700; font-size: 8.5pt; }",
-    ".inv-memo { background: #fafafa; border: 1px solid #e0e0e0; padding: 3px 5px; font-size: 7pt; margin-bottom: 3px; }",
-    ".inv-sig { display: flex; align-items: center; justify-content: flex-end; gap: 8px; font-size: 7pt; color: #333; margin-top: 3px; }",
-    ".inv-stamp { display: inline-block; width: 56px; height: 56px; overflow: hidden; border-radius: 50%; vertical-align: middle; margin-left: -35px; mix-blend-mode: multiply; transform: rotate(-10deg) translateY(-2px); }",
+    ".inv-total-tbl { width: 100%; border-collapse: collapse; border: 2px solid #333; font-size: 7pt; margin-bottom: 2px; }",
+    ".inv-total-tbl td { padding: 2px 4px; border: 1px solid #ccc; }",
+    ".inv-grand { background: #f0f0f0; font-weight: 700; font-size: 7.5pt; }",
+    ".inv-memo { background: #fafafa; border: 1px solid #e0e0e0; padding: 2px 4px; font-size: 6.5pt; margin-bottom: 2px; }",
+    ".inv-sig { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 6.5pt; color: #333; margin-top: 2px; }",
+    ".inv-stamp { display: inline-block; width: 50px; height: 50px; overflow: hidden; border-radius: 50%; vertical-align: middle; margin-left: -28px; mix-blend-mode: multiply; transform: rotate(-10deg) translateY(-2px); }",
     ".inv-stamp-img { width: 100%; height: 100%; object-fit: contain; clip-path: circle(40% at 50% 46%); filter: contrast(1.1) saturate(1.2); }",
 
-    // 이등분 레이아웃: 각 절반 내부에 transform scale 적용
-    ".inv-page-duplex { position: relative; width: 210mm; height: 297mm; background: #fff; font-family: 'Malgun Gothic', sans-serif; font-size: 7.5pt; color: #000; overflow: hidden; }",
-    ".inv-half { position: absolute; width: 210mm; box-sizing: border-box; padding: 3mm 6mm 2mm; overflow: hidden; }",
-    ".inv-half.top { top: 0; height: 148mm; }",
-    ".inv-half.bottom { top: 149mm; height: 148mm; }",
-    // 절취선
-    ".inv-cut-line { position: absolute; top: 148mm; left: 0; right: 0; height: 1mm; border-top: 1px dashed #999; display: flex; align-items: center; justify-content: center; font-size: 7pt; color: #999; overflow: visible; }",
-
-    // scale wrapper: 내부 콘텐츠 자연 높이 렌더링 후 scale 적용
+    // 이등분 컨테이너: A4 정확히 297mm
+    ".inv-page-duplex { position: relative; width: 210mm; height: 297mm; background: #fff; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; font-size: 7pt; color: #000; overflow: hidden; }",
+    // 각 절반: 위아래 7mm, 좌우 8mm 균등 여백 → 중앙 배치감
+    ".inv-half { position: absolute; width: 210mm; box-sizing: border-box; padding: 7mm 8mm 7mm; overflow: hidden; }",
+    ".inv-half.top    { top: 0; height: 148.5mm; }",
+    ".inv-half.bottom { top: 148.5mm; height: 148.5mm; }",
+    // 절취선: 148.5mm 정중앙 고정
+    ".inv-cut-line { position: absolute; top: 148.5mm; left: 0; right: 0; border-top: 1px dashed #bbb; display: flex; align-items: center; justify-content: center; }",
+    ".inv-cut-line span { background: #fff; padding: 0 8px; font-size: 6pt; color: #bbb; letter-spacing: 3px; line-height: 1; transform: translateY(-50%); font-family: 'Malgun Gothic', sans-serif; }",
+    // scale wrapper
     ".inv-scale-wrap { transform-origin: top left; width: 100%; }"
   ].join("\n");
 
-  // beforeprint 핸들러: 각 .inv-half 내부 콘텐츠 높이 측정 후 scale 적용
+  // beforeprint + 즉시 실행: 콘텐츠 높이 측정 → scale 적용
   var scriptText = [
-    "window.addEventListener('beforeprint', function() {",
-    "  var halves = document.querySelectorAll('.inv-half');",
-    "  var targetPx = 142 * (96 / 25.4);", // 142mm = 148mm - 패딩 6mm(3+2+여유1)
-    "  for (var i = 0; i < halves.length; i++) {",
-    "    var wrap = halves[i].querySelector('.inv-scale-wrap');",
-    "    if (!wrap) continue;",
-    "    wrap.style.transform = 'none';", // 측정 전 리셋
-    "    var natural = wrap.scrollHeight;",
-    "    if (natural > targetPx) {",
-    "      var s = targetPx / natural;",
-    "      if (s < 0.45) s = 1;", // 너무 작으면 포기
-    "      wrap.style.transform = 'scale(' + s.toFixed(4) + ')';",
-    "      wrap.style.width = (100 / s).toFixed(2) + '%';",
+    "(function() {",
+    "  var TARGET = " + TARGET_PX.toFixed(1) + ";",
+    "  function applyScale() {",
+    "    var halves = document.querySelectorAll('.inv-half');",
+    "    for (var i = 0; i < halves.length; i++) {",
+    "      var wrap = halves[i].querySelector('.inv-scale-wrap');",
+    "      if (!wrap) continue;",
+    "      wrap.style.transform = 'none';",
+    "      wrap.style.width = '100%';",
+    "      var h = wrap.scrollHeight;",
+    "      if (h > TARGET) {",
+    "        var s = TARGET / h;",
+    "        if (s >= 0.5) {",
+    "          wrap.style.transform = 'scale(' + s.toFixed(4) + ')';",
+    "          wrap.style.width = (100 / s).toFixed(2) + '%';",
+    "        }",
+    "      }",
     "    }",
     "  }",
-    "});"
+    "  window.addEventListener('beforeprint', applyScale);",
+    "})();"
   ].join("\n");
 
-  // duplexHtml은 이미 .inv-scale-wrap 포함 (buildDuplexInvoiceHtml에서 처리)
   iframeDoc.open();
   iframeDoc.write(
     '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
@@ -1239,33 +1255,30 @@ function printDuplexViaIframe(duplexHtml) {
   );
   iframeDoc.close();
 
-  // iframe 로드 완료 후 인쇄
   iframe.contentWindow.focus();
-  // 이미지 로딩 대기
+  // 이미지 로딩 + 레이아웃 계산 대기 (600ms)
   setTimeout(function() {
-    // 인쇄 전 수동으로 scale 계산 (beforeprint 대비 이중 안전장치)
+    // 인쇄 전 scale 수동 적용 (beforeprint 이중 보장)
     var halves = iframeDoc.querySelectorAll(".inv-half");
-    var targetPx = 142 * (96 / 25.4); // 142mm -> ~537px
     for (var i = 0; i < halves.length; i++) {
       var wrap = halves[i].querySelector(".inv-scale-wrap");
       if (!wrap) continue;
       wrap.style.transform = "none";
       wrap.style.width = "100%";
-      var natural = wrap.scrollHeight;
-      if (natural > targetPx) {
-        var s = targetPx / natural;
-        if (s >= 0.45) {
+      var h = wrap.scrollHeight;
+      if (h > TARGET_PX) {
+        var s = TARGET_PX / h;
+        if (s >= 0.5) {
           wrap.style.transform = "scale(" + s.toFixed(4) + ")";
           wrap.style.width = (100 / s).toFixed(2) + "%";
         }
       }
     }
     iframe.contentWindow.print();
-    // 인쇄 다이얼로그 닫힌 후 iframe 정리
     setTimeout(function() {
       if (iframe.parentNode) document.body.removeChild(iframe);
-    }, 2000);
-  }, 300);
+    }, 3000);
+  }, 600);
 }
 
 // 인쇄 전: 단일 페이지(비이등분) 인쇄 시 transform scale 축소

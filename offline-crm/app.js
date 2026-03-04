@@ -1435,9 +1435,9 @@ async function loadCustomerList(q, append) {
       if (q2 && q2.trim().length > 0) {
         var trimQ = q2.trim();
         var where = "(name,like,%"+trimQ+"%)~or(book_name,like,%"+trimQ+"%)~or(phone1,like,%"+trimQ+"%)~or(mobile,like,%"+trimQ+"%)";
-        url = apiUrl("customers") + buildWhere(where, "limit="+CUSTOMER_PAGE_SIZE+"&offset="+customerCurrentOffset+"&sort="+custSortParam+"&fields=Id,legacy_id,name,phone1,mobile,email,address1,price_tier,partner_grade");
+        url = apiUrl("customers") + buildWhere(where, "limit="+CUSTOMER_PAGE_SIZE+"&offset="+customerCurrentOffset+"&sort="+custSortParam+"&fields=Id,legacy_id,name,book_name,phone1,mobile,email,address1,extra_addresses,business_no,manager,price_tier,partner_grade");
       } else {
-        url = apiUrl("customers") + "?limit="+CUSTOMER_PAGE_SIZE+"&offset="+customerCurrentOffset+"&sort="+custSortParam+"&fields=Id,legacy_id,name,phone1,mobile,email,address1,price_tier,partner_grade";
+        url = apiUrl("customers") + "?limit="+CUSTOMER_PAGE_SIZE+"&offset="+customerCurrentOffset+"&sort="+custSortParam+"&fields=Id,legacy_id,name,book_name,phone1,mobile,email,address1,extra_addresses,business_no,manager,price_tier,partner_grade";
       }
       var res = await apiFetch(url);
       var list = res.list || [];

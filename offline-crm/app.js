@@ -1083,8 +1083,9 @@ async function saveInvoice(status) {
 // ─────────────────────────────────────────
 // 인쇄
 // ─────────────────────────────────────────
-function buildInvoiceHtml(inv, items) {
+function buildInvoiceHtml(inv, items, copyType) {
   var c = companyInfo;
+  var copyLabel = copyType || "공급받는자 보관용";
   var blankCount = Math.max(0, 6 - items.length);
   var rows = items.map(function(item, i) {
     return '<tr>' +
@@ -1105,7 +1106,7 @@ function buildInvoiceHtml(inv, items) {
     '<div class="inv-logo-wrap"><img src="' + logoSrc + '" class="inv-logo" alt="로고" onerror="this.style.display=\'none\'"></div>' +
     '<div class="inv-header-center">' +
       '<div class="inv-title">거 래 명 세 표</div>' +
-      '<div class="inv-sub">( 공급받는자 보관용 )</div>' +
+      '<div class="inv-sub">( ' + copyLabel + ' )</div>' +
     '</div>' +
     '<div class="inv-logo-wrap"></div>' +
   '</div>' +
@@ -1140,13 +1141,25 @@ function buildInvoiceHtml(inv, items) {
     '<div class="inv-stamp"><img src="' + stampSrc + '" class="inv-stamp-img" alt="직인" onerror="this.style.display=\'none\'"></div></div>';
 }
 
-// 인쇄 전 1페이지 자동 맞춤
+// 이등분 용지: 공급자+공급받는자 2장을 A4 한 장에 출력
+function buildDuplexInvoiceHtml(inv, items) {
+  var supplier  = buildInvoiceHtml(inv, items, "공급자 보관용");
+  var recipient = buildInvoiceHtml(inv, items, "공급받는자 보관용");
+  return '<div class="inv-page-duplex">' +
+    '<div class="inv-half">' + supplier + '</div>' +
+    '<div class="inv-cut-line"><span class="inv-cut-label">✂ 절 취 선</span></div>' +
+    '<div class="inv-half">' + recipient + '</div>' +
+  '</div>';
+}
+
+// 인쇄 전: 이등분 모드는 고정 높이 사용 → auto-scale 불필요
 window.addEventListener("beforeprint", function() {
   var el = document.getElementById("print-area");
   if (!el || !el.innerHTML.trim()) return;
   el.style.transform = "";
   el.style.width = "";
-  // 실제 높이 측정 후 277mm(A4 - 여백 20mm) 초과 시 축소
+  if (el.querySelector(".inv-page-duplex")) return;  // 이등분은 스케일 건드리지 않음
+  // 단일 페이지: 277mm 초과 시 축소
   var maxPx = 277 * (96 / 25.4);
   if (el.scrollHeight > maxPx) {
     var scale = maxPx / el.scrollHeight;
@@ -1190,7 +1203,7 @@ function printInvoice(fixedNo) {
       total_amount: parseFloat(document.getElementById("row-"+id+"-total").value) || 0,
     };
   });
-  document.getElementById("print-area").innerHTML = buildInvoiceHtml(inv, items);
+  document.getElementById("print-area").innerHTML = buildDuplexInvoiceHtml(inv, items);
   window.print();
 }
 
@@ -1198,7 +1211,7 @@ async function printInvoiceById(invId) {
   try {
     var inv = await apiFetch(apiUrl("invoices") + "/" + invId);
     var itemsRes = await apiFetch(apiUrl("items") + buildWhere("(invoice_id,eq,"+invId+")", "limit=50"));
-    document.getElementById("print-area").innerHTML = buildInvoiceHtml(inv, itemsRes.list||[]);
+    document.getElementById("print-area").innerHTML = buildDuplexInvoiceHtml(inv, itemsRes.list||[]);
     window.print();
   } catch(e) { toast("불러오기 실패: " + e.message, "error"); }
 }

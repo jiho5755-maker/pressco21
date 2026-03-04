@@ -1145,10 +1145,11 @@ function buildInvoiceHtml(inv, items, copyType) {
 function buildDuplexInvoiceHtml(inv, items) {
   var supplier  = buildInvoiceHtml(inv, items, "공급자 보관용");
   var recipient = buildInvoiceHtml(inv, items, "공급받는자 보관용");
+  // position:absolute → Chrome 인쇄 페이지 나눔 계산에서 제외, 1페이지 고정
   return '<div class="inv-page-duplex">' +
-    '<div class="inv-half">' + supplier + '</div>' +
+    '<div class="inv-half top">' + supplier + '</div>' +
     '<div class="inv-cut-line">✂ 절 취 선</div>' +
-    '<div class="inv-half">' + recipient + '</div>' +
+    '<div class="inv-half bottom">' + recipient + '</div>' +
   '</div>';
 }
 

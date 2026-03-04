@@ -235,10 +235,8 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
     border: none !important;
     margin: 0 !important;
   }
-  /* 이등분: 각 절반 148mm 고정 → 절취선 A4 정중앙 보장 */
-  .inv-page-duplex { width: 210mm !important; height: 297mm !important; overflow: hidden !important; }
-  .inv-half { height: 148mm !important; overflow: hidden !important; }
-  .inv-cut-line { border-top: 1px dashed #bbb !important; }
+  /* 이등분 인쇄는 iframe에서 처리 → host 페이지에서는 duplex 숨김 */
+  .inv-page-duplex { display: none !important; }
   .inv-items-table, .inv-total-tbl { page-break-inside: avoid; }
   #print-area input { border: none !important; background: transparent !important; }
 }

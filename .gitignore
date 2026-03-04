@@ -22,6 +22,9 @@ shrimp_data/
 
 # 루트 임시 스크린샷
 *.png
+# CRM 회사 이미지는 예외
+!offline-crm/images/*.png
+!offline-crm/images/*.jpg
 detail-*.png
 test-*.png
 page-*.png

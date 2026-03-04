@@ -10,6 +10,7 @@ var API = {
     products:  "mioztktmluobmmo",
     invoices:  "ml81i9mcuw0pjzk",
     items:     "mxwgdlj56p9joxo",
+    suppliers: "", // NocoDB GUI에서 tbl_Suppliers 생성 후 설정에서 ID 입력
   }
 };
 
@@ -66,8 +67,11 @@ function loadSettings() {
   var map = {
     "cfg-company": "company", "cfg-bizno": "bizno", "cfg-ceo": "ceo",
     "cfg-biz-type": "bizType", "cfg-biz-item": "bizItem",
-    "cfg-address": "address", "cfg-phone": "phone", "cfg-fax": "fax", "cfg-email": "email"
+    "cfg-address": "address", "cfg-phone": "phone", "cfg-fax": "fax", "cfg-email": "email",
+    "cfg-suppliers-table-id": "suppliersTableId",
   };
+  // 동적 테이블 ID 적용
+  if (companyInfo.suppliersTableId) API.tables.suppliers = companyInfo.suppliersTableId;
   Object.keys(map).forEach(function(id) {
     var el = document.getElementById(id);
     if (el) el.value = companyInfo[map[id]] || "";
@@ -78,8 +82,11 @@ function saveSettings() {
   companyInfo = {
     company: v("cfg-company"), bizno: v("cfg-bizno"), ceo: v("cfg-ceo"),
     bizType: v("cfg-biz-type"), bizItem: v("cfg-biz-item"),
-    address: v("cfg-address"), phone: v("cfg-phone"), fax: v("cfg-fax"), email: v("cfg-email")
+    address: v("cfg-address"), phone: v("cfg-phone"), fax: v("cfg-fax"), email: v("cfg-email"),
+    suppliersTableId: v("cfg-suppliers-table-id"),
   };
+  // 동적 테이블 ID 즉시 반영
+  if (companyInfo.suppliersTableId) API.tables.suppliers = companyInfo.suppliersTableId;
   try {
     localStorage.setItem("pressco21-crm-v2", JSON.stringify(companyInfo));
     var btn = document.getElementById("btn-save-settings");
@@ -96,16 +103,40 @@ function v(id) { var el = document.getElementById(id); return el ? el.value.trim
 // 페이지 전환
 // ─────────────────────────────────────────
 var pageLoaded = {};
+var pageHistory = [];
 
 function showPage(name) {
+  // 현재 활성 페이지를 히스토리에 저장
+  var active = document.querySelector(".page.active");
+  if (active) {
+    var currentName = active.id.replace("page-", "");
+    if (currentName !== name) pageHistory.push(currentName);
+    if (pageHistory.length > 30) pageHistory.shift();
+  }
+  _activatePage(name);
+}
+
+function goBack() {
+  if (pageHistory.length === 0) return;
+  var prev = pageHistory.pop();
+  _activatePage(prev);
+}
+
+function _activatePage(name) {
   document.querySelectorAll(".page").forEach(function(p) { p.classList.remove("active"); });
   document.querySelectorAll(".sidebar-menu a").forEach(function(a) { a.classList.remove("active"); });
   document.getElementById("page-" + name).classList.add("active");
   document.getElementById("nav-" + name).classList.add("active");
 
+  // 뒤로가기 버튼 표시/숨김
+  var backBtn = document.getElementById("sidebar-back");
+  if (backBtn) backBtn.style.display = pageHistory.length > 0 ? "block" : "none";
+
   if (name === "list"      && !pageLoaded.list)      { pageLoaded.list = true;      initCalendar(); }
   if (name === "products"  && !pageLoaded.products)  { pageLoaded.products = true;  loadProductList(""); }
   if (name === "customers" && !pageLoaded.customers) { pageLoaded.customers = true; loadCustomerList(""); }
+  if (name === "suppliers") { loadSupplierList(supplierCurrentQ); }
+  if (name === "dashboard") { loadDashboard(); }
   if (name === "new") {
     setTimeout(function() {
       var cs = document.getElementById("customer-search");
@@ -118,33 +149,43 @@ function showPage(name) {
 // 대시보드
 // ─────────────────────────────────────────
 async function loadDashboard() {
+  // 고객 수
   try {
-    // 4-A: 병렬 로드 + 서버 사이드 월별 필터
+    var custRes = await apiFetch(apiUrl("customers") + "?limit=1");
+    var el = document.getElementById("stat-customers");
+    if (el) el.textContent = ((custRes.pageInfo || {}).totalRows || 0).toLocaleString();
+  } catch(e) { console.error("대시보드 고객:", e); }
+
+  // 상품 수
+  try {
+    var prodRes = await apiFetch(apiUrl("products") + "?limit=1");
+    var el2 = document.getElementById("stat-products");
+    if (el2) el2.textContent = ((prodRes.pageInfo || {}).totalRows || 0).toLocaleString();
+  } catch(e) { console.error("대시보드 상품:", e); }
+
+  // 명세표: 최근 500건 로드 후 클라이언트 사이드 월별 필터
+  try {
     var now = new Date();
     var ym = now.getFullYear() + "-" + String(now.getMonth() + 1).padStart(2, "0");
-    var monthFrom = ym + "-01";
-    var monthTo   = ym + "-31";
-    var monthWhere = "(invoice_date,gte," + monthFrom + ")~and(invoice_date,lte," + monthTo + ")";
-
-    var [custRes, prodRes, monthRes, recentRes] = await Promise.all([
-      apiFetch(apiUrl("customers") + "?limit=1"),
-      apiFetch(apiUrl("products")  + "?limit=1"),
-      apiFetch(apiUrl("invoices") + buildWhere(monthWhere, "limit=1&fields=Id")),
-      apiFetch(apiUrl("invoices") + "?sort=-invoice_date&limit=10"),
-    ]);
-    document.getElementById("stat-customers").textContent = ((custRes.pageInfo || {}).totalRows || 0).toLocaleString();
-    document.getElementById("stat-products").textContent  = ((prodRes.pageInfo || {}).totalRows || 0).toLocaleString();
-
-    // 이번 달 건수는 서버 totalRows로, 공급가액 합계는 별도 조회
-    var monthCount = (monthRes.pageInfo || {}).totalRows || 0;
-    document.getElementById("stat-month").textContent = monthCount;
-
-    // 공급가액 합계: limit 500으로 조회 (통계용)
-    var salesRes = await apiFetch(apiUrl("invoices") + buildWhere(monthWhere, "limit=500&fields=supply_amount"));
-    var totalSales = (salesRes.list || []).reduce(function(s, r) { return s + (r.supply_amount || 0); }, 0);
-    document.getElementById("stat-sales").textContent = totalSales.toLocaleString() + "원";
-    renderInvoiceRows("recent-invoices-body", recentRes.list || []);
-  } catch (e) { console.error("대시보드:", e); }
+    var invRes = await apiFetch(apiUrl("invoices") + "?sort=-invoice_date&limit=500");
+    var all = invRes.list || [];
+    var monthList = all.filter(function(r) { return (r.invoice_date || "").startsWith(ym); });
+    var monthCount = monthList.length;
+    var totalSales = monthList.reduce(function(s, r) { return s + (r.supply_amount || 0); }, 0);
+    var elM = document.getElementById("stat-month");
+    var elS = document.getElementById("stat-sales");
+    if (elM) elM.textContent = monthCount;
+    if (elS) elS.textContent = totalSales.toLocaleString() + "원";
+    renderInvoiceRows("recent-invoices-body", all.slice(0, 10));
+  } catch(e) {
+    console.error("대시보드 명세표:", e);
+    var elM2 = document.getElementById("stat-month");
+    var elS2 = document.getElementById("stat-sales");
+    if (elM2) elM2.textContent = "0";
+    if (elS2) elS2.textContent = "0원";
+    var tbody = document.getElementById("recent-invoices-body");
+    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#ef4444">불러오기 실패 — 콘솔 확인</td></tr>';
+  }
 }
 
 function statusLabel(s) {
@@ -540,7 +581,9 @@ function selectCustomer(id) {
   if (!c) return;
   var name  = c.name || c.book_name || "";
   var phone = c.phone1 || c.mobile || "";
-  var addr  = [c.address1, c.address2].filter(Boolean).join(" ");
+  // 다중 주소 처리
+  var addresses = [c.address1, c.address2].filter(Boolean);
+  var addr = addresses[0] || "";
   document.getElementById("customer-search").value        = "";
   hideAc("customer-ac");
   document.getElementById("f-customer-id").value          = id;
@@ -553,6 +596,20 @@ function selectCustomer(id) {
   document.getElementById("f-price-tier").value           = c.price_tier || 1;
   currentPriceTier = parseInt(c.price_tier) || 1;
   currentCustomer = c;
+  // 다중 주소 선택 드롭다운
+  var addrSelect = document.getElementById("f-addr-select");
+  if (addrSelect) {
+    if (addresses.length >= 2) {
+      addrSelect.innerHTML = addresses.map(function(a, i) {
+        return '<option value="' + i + '">주소' + (i+1) + ': ' + esc(a) + '</option>';
+      }).join("");
+      addrSelect.style.display = "";
+      window._customerAddresses = addresses;
+    } else {
+      addrSelect.style.display = "none";
+      window._customerAddresses = addresses;
+    }
+  }
   var tierBadge = document.getElementById("tier-badge");
   if (tierBadge) tierBadge.textContent = "단가등급 " + currentPriceTier;
   var card = document.getElementById("selected-customer-card");
@@ -567,6 +624,16 @@ function selectCustomer(id) {
   loadRecentTxForCustomer(id);
   // 고객 선택 후 상품 검색 포커스
   setTimeout(function() { document.getElementById("product-search").focus(); }, 100);
+}
+
+function onAddrSelectChange() {
+  var addrSelect = document.getElementById("f-addr-select");
+  var addresses = window._customerAddresses || [];
+  var idx = parseInt(addrSelect ? addrSelect.value : 0) || 0;
+  var addr = addresses[idx] || "";
+  document.getElementById("f-customer-addr").value = addr;
+  var scAddr = document.getElementById("sc-addr");
+  if (scAddr) scAddr.textContent = addr;
 }
 
 async function loadRecentTxForCustomer(customerId) {
@@ -982,8 +1049,14 @@ function buildInvoiceHtml(inv, items) {
     '</tr>';
   }).join("") + Array(blankCount).fill('<tr><td colspan="8" style="height:14px;border:1px solid #ccc"></td></tr>').join("");
 
-  return '<div class="inv-title">거 래 명 세 표</div>' +
-    '<div class="inv-sub">( 공급받는자 보관용 )</div>' +
+  return '<div class="inv-header">' +
+    '<div class="inv-logo-wrap"><img src="images/company-logo.png" class="inv-logo" alt="로고" onerror="this.style.display=\'none\'"></div>' +
+    '<div class="inv-header-center">' +
+      '<div class="inv-title">거 래 명 세 표</div>' +
+      '<div class="inv-sub">( 공급받는자 보관용 )</div>' +
+    '</div>' +
+    '<div class="inv-logo-wrap"></div>' +
+  '</div>' +
     '<table class="inv-meta-tbl"><tr>' +
       '<td>발행번호: <strong>'+esc(inv.invoice_no||"")+'</strong></td>' +
       '<td style="text-align:right">거래일자: <strong>'+esc(inv.invoice_date||"")+'</strong></td>' +
@@ -1011,7 +1084,8 @@ function buildInvoiceHtml(inv, items) {
       '<td class="inv-grand">합 계 금 액</td><td class="inv-grand"><strong>'+(inv.total_amount||0).toLocaleString()+'원</strong></td>' +
     '</tr></table>' +
     (inv.memo ? '<div class="inv-memo">비고: '+esc(inv.memo)+'</div>' : '') +
-    '<div class="inv-sig">위 금액을 정히 ' + esc(inv.receipt_type||"영수(청구)") + '합니다.&nbsp;&nbsp;&nbsp;'+esc(inv.invoice_date||"")+'&nbsp;&nbsp;&nbsp;'+esc(c.company||"")+' 대표 '+esc(c.ceo||"")+'<div class="inv-stamp">인</div></div>';
+    '<div class="inv-sig">위 금액을 정히 ' + esc(inv.receipt_type||"영수(청구)") + '합니다.&nbsp;&nbsp;&nbsp;'+esc(inv.invoice_date||"")+'&nbsp;&nbsp;&nbsp;'+esc(c.company||"")+' 대표 '+esc(c.ceo||"")+
+    '<div class="inv-stamp"><img src="images/company-stamp.jpg" class="inv-stamp-img" alt="직인" onerror="this.style.display=\'none\'"></div></div>';
 }
 
 // 인쇄 전 1페이지 자동 맞춤
@@ -1381,6 +1455,7 @@ async function openEditCustomer(id) {
   document.getElementById("edit-cust-mobile").value       = c.mobile || "";
   document.getElementById("edit-cust-email").value        = c.email || "";
   document.getElementById("edit-cust-addr").value         = c.address1 || "";
+  if (document.getElementById("edit-cust-addr2")) document.getElementById("edit-cust-addr2").value = c.address2 || "";
   document.getElementById("edit-cust-bizno").value        = c.business_no || "";
   document.getElementById("edit-cust-ceo").value          = c.ceo_name || "";
   document.getElementById("edit-cust-tier").value         = String(c.price_tier || 1);
@@ -1400,6 +1475,7 @@ async function saveEditCustomer() {
     mobile:        document.getElementById("edit-cust-mobile").value.trim(),
     email:         document.getElementById("edit-cust-email").value.trim(),
     address1:      document.getElementById("edit-cust-addr").value.trim(),
+    address2:      document.getElementById("edit-cust-addr2") ? document.getElementById("edit-cust-addr2").value.trim() : "",
     business_no:   document.getElementById("edit-cust-bizno").value.trim(),
     ceo_name:      document.getElementById("edit-cust-ceo").value.trim(),
     price_tier:    parseInt(document.getElementById("edit-cust-tier").value) || 1,
@@ -1445,6 +1521,7 @@ async function saveNewCustomer() {
     mobile: v("new-cust-mobile"),
     email: v("new-cust-email"),
     address1: v("new-cust-addr"),
+    address2: v("new-cust-addr2"),
     business_no: v("new-cust-bizno"),
     ceo_name: v("new-cust-ceo"),
     price_tier: parseInt(v("new-cust-tier")) || 1,
@@ -1638,6 +1715,161 @@ function parseMoney(s) { return parseInt(String(s||"0").replace(/,/g,"")) || 0; 
 function todayStr() {
   var d = new Date();
   return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+
+// ─────────────────────────────────────────
+// 공급사(매입처) 관리
+// ─────────────────────────────────────────
+var supplierCurrentQ = "";
+var supplierCurrentOffset = 0;
+var SUPPLIER_PAGE_SIZE = 100;
+var supplierListTimer;
+
+function supplierApiUrl() {
+  if (!API.tables.suppliers) return null;
+  return API.base + "/api/v1/db/data/noco/" + API.projectId + "/" + API.tables.suppliers;
+}
+
+async function loadSupplierList(q, append) {
+  clearTimeout(supplierListTimer);
+  if (!append) {
+    supplierCurrentQ = q;
+    supplierCurrentOffset = 0;
+  }
+  var url = supplierApiUrl();
+  if (!url) {
+    var tbody = document.getElementById("supplier-list-body");
+    if (tbody) tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#ef4444">⚠️ 설정 &gt; 공급사 테이블 ID를 입력하세요.</td></tr>';
+    return;
+  }
+  var trimQ = (q || "").trim();
+  if (trimQ) {
+    var where = "(name,like,%" + trimQ + "%)~or(phone1,like,%" + trimQ + "%)";
+    url += buildWhere(where, "limit=" + SUPPLIER_PAGE_SIZE + "&offset=" + supplierCurrentOffset + "&sort=name");
+  } else {
+    url += "?limit=" + SUPPLIER_PAGE_SIZE + "&offset=" + supplierCurrentOffset + "&sort=name";
+  }
+  try {
+    var res = await apiFetch(url);
+    var list = res.list || [];
+    var total = (res.pageInfo || {}).totalRows || 0;
+    var countEl = document.getElementById("supplier-list-count");
+    if (countEl) countEl.textContent = "총 " + total + "건";
+    var tbody = document.getElementById("supplier-list-body");
+    if (!tbody) return;
+    if (!list.length) {
+      tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:20px;color:#9ca3af">등록된 공급사가 없습니다.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = list.map(function(s) {
+      return '<tr>' +
+        '<td>' + esc(s.name || "") + '</td>' +
+        '<td>' + esc(s.business_no || "") + '</td>' +
+        '<td>' + esc(s.phone1 || s.mobile || "") + '</td>' +
+        '<td>' + esc(s.email || "") + '</td>' +
+        '<td>' + esc(s.address1 || "") + '</td>' +
+        '<td style="white-space:nowrap">' +
+          '<button class="btn-ghost btn-sm" onclick="openEditSupplier(' + s.Id + ')">수정</button>' +
+          '<button class="btn-danger btn-sm" style="margin-left:4px" onclick="deleteSupplier(' + s.Id + ')">삭제</button>' +
+        '</td>' +
+      '</tr>';
+    }).join("");
+  } catch(e) {
+    var tbody2 = document.getElementById("supplier-list-body");
+    if (tbody2) tbody2.innerHTML = '<tr><td colspan="6" style="text-align:center;color:#ef4444;padding:20px">불러오기 실패: ' + esc(e.message) + '</td></tr>';
+  }
+}
+
+var supplierCache = {};
+
+async function openEditSupplier(id) {
+  var url = supplierApiUrl();
+  if (!url) return;
+  try {
+    var s = await apiFetch(url + "/" + id);
+    supplierCache[id] = s;
+    document.getElementById("edit-sup-id").value   = s.Id;
+    document.getElementById("edit-sup-name").value  = s.name || "";
+    document.getElementById("edit-sup-bizno").value = s.business_no || "";
+    document.getElementById("edit-sup-ceo").value   = s.ceo_name || "";
+    document.getElementById("edit-sup-phone").value = s.phone1 || "";
+    document.getElementById("edit-sup-mobile").value= s.mobile || "";
+    document.getElementById("edit-sup-email").value = s.email || "";
+    document.getElementById("edit-sup-addr").value  = s.address1 || "";
+    document.getElementById("edit-sup-bank").value  = s.bank_name || "";
+    document.getElementById("edit-sup-account").value = s.bank_account || "";
+    document.getElementById("edit-sup-memo").value  = s.memo || "";
+    openModal("modal-edit-supplier");
+  } catch(e) { toast("불러오기 실패: " + e.message, "error"); }
+}
+
+async function saveEditSupplier() {
+  var id = document.getElementById("edit-sup-id").value;
+  if (!id) return;
+  var url = supplierApiUrl();
+  if (!url) return;
+  var data = {
+    name:         document.getElementById("edit-sup-name").value.trim(),
+    business_no:  document.getElementById("edit-sup-bizno").value.trim(),
+    ceo_name:     document.getElementById("edit-sup-ceo").value.trim(),
+    phone1:       document.getElementById("edit-sup-phone").value.trim(),
+    mobile:       document.getElementById("edit-sup-mobile").value.trim(),
+    email:        document.getElementById("edit-sup-email").value.trim(),
+    address1:     document.getElementById("edit-sup-addr").value.trim(),
+    bank_name:    document.getElementById("edit-sup-bank").value.trim(),
+    bank_account: document.getElementById("edit-sup-account").value.trim(),
+    memo:         document.getElementById("edit-sup-memo").value.trim(),
+  };
+  if (!data.name) { toast("거래처명을 입력하세요.", "warning"); return; }
+  try {
+    await apiFetch(url + "/" + id, { method: "PATCH", body: JSON.stringify(data) });
+    closeModal("modal-edit-supplier");
+    toast("공급사 정보가 수정되었습니다.", "success");
+    loadSupplierList(supplierCurrentQ);
+  } catch(e) { toast("저장 오류: " + e.message, "error"); }
+}
+
+async function saveNewSupplier() {
+  var url = supplierApiUrl();
+  if (!url) { toast("설정에서 공급사 테이블 ID를 먼저 입력하세요.", "error"); return; }
+  var data = {
+    name:         v("new-sup-name"),
+    business_no:  v("new-sup-bizno"),
+    ceo_name:     v("new-sup-ceo"),
+    phone1:       v("new-sup-phone"),
+    mobile:       v("new-sup-mobile"),
+    email:        v("new-sup-email"),
+    address1:     v("new-sup-addr"),
+    bank_name:    v("new-sup-bank"),
+    bank_account: v("new-sup-account"),
+    memo:         v("new-sup-memo"),
+    is_active:    true,
+  };
+  if (!data.name) { toast("거래처명을 입력하세요.", "warning"); return; }
+  try {
+    await apiFetch(url, { method: "POST", body: JSON.stringify(data) });
+    closeModal("modal-new-supplier");
+    toast("공급사가 추가되었습니다.", "success");
+    loadSupplierList(supplierCurrentQ);
+  } catch(e) { toast("저장 오류: " + e.message, "error"); }
+}
+
+async function deleteSupplier(id) {
+  if (!confirm("이 공급사를 삭제하시겠습니까?")) return;
+  var url = supplierApiUrl();
+  if (!url) return;
+  try {
+    await apiFetch(url + "/" + id, { method: "DELETE" });
+    toast("삭제되었습니다.", "success");
+    loadSupplierList(supplierCurrentQ);
+  } catch(e) { toast("삭제 실패: " + e.message, "error"); }
+}
+
+function clearNewSupplierForm() {
+  ["new-sup-name","new-sup-bizno","new-sup-ceo","new-sup-phone","new-sup-mobile",
+   "new-sup-email","new-sup-addr","new-sup-bank","new-sup-account","new-sup-memo"].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.value = "";
+  });
 }
 
 // ─────────────────────────────────────────

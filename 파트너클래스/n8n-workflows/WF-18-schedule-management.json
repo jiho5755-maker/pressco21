@@ -1,0 +1,48 @@
+{
+  "name": "WF-18 Schedule Management",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "schedule-manage",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf18-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "schedule-manage"
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\n\nfunction nocoRequest(method, path, body) {\n  return new Promise((resolve, reject) => {\n    const options = {\n      hostname: 'nocodb.pressco21.com',\n      path: '/api/v1/db/data/noco/' + $env.NOCODB_PROJECT_ID + path,\n      method: method,\n      headers: {\n        'xc-token': $env.NOCODB_API_TOKEN,\n        'Content-Type': 'application/json'\n      }\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch(e) { resolve(data); }\n      });\n    });\n    req.on('error', reject);\n    if (body) req.write(JSON.stringify(body));\n    req.end();\n  });\n}\n\nconst body = $input.first().json.body || {};\nconst action = body.action;\n\ntry {\n  if (action === 'getSchedules') {\n    const classId = body.class_id;\n    if (!classId) return [{json: {success: false, message: 'class_id required', statusCode: 400}}];\n    const result = await nocoRequest('GET', '/mschd3d81ad88fb?where=(class_id,eq,' + classId + ')~and(status,eq,active)&sort=schedule_date,schedule_time&limit=100');\n    const list = result.list || [];\n    const schedules = list.map(s => ({\n      schedule_id: s.schedule_id, class_id: s.class_id,\n      schedule_date: s.schedule_date, schedule_time: s.schedule_time,\n      capacity: s.capacity || 8, booked_count: s.booked_count || 0,\n      remaining: (s.capacity || 8) - (s.booked_count || 0), status: s.status\n    }));\n    return [{json: {success: true, data: {schedules, total: schedules.length}, statusCode: 200}}];\n\n  } else if (action === 'addSchedule') {\n    const {member_id, class_id, schedule_date, schedule_time, capacity} = body;\n    if (!member_id || !class_id || !schedule_date || !schedule_time)\n      return [{json: {success: false, message: 'missing required fields', statusCode: 400}}];\n    if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(schedule_date))\n      return [{json: {success: false, message: 'date format: YYYY-MM-DD', statusCode: 400}}];\n    if (!/^\\d{2}:\\d{2}$/.test(schedule_time))\n      return [{json: {success: false, message: 'time format: HH:MM', statusCode: 400}}];\n    const today = new Date().toISOString().split('T')[0];\n    if (schedule_date < today)\n      return [{json: {success: false, message: 'past date not allowed', statusCode: 400}}];\n    const cap = parseInt(capacity, 10) || 8;\n    if (cap < 1 || cap > 50)\n      return [{json: {success: false, message: 'capacity 1-50', statusCode: 400}}];\n\n    // 파트너 인증\n    const partners = await nocoRequest('GET', '/mp8t0yq15cabmj4?where=(member_id,eq,' + member_id + ')~and(status,eq,active)&limit=1');\n    if (!partners.list || partners.list.length === 0)\n      return [{json: {success: false, message: 'not an active partner', statusCode: 403}}];\n    const partner = partners.list[0];\n\n    // 클래스 소유 확인\n    const classes = await nocoRequest('GET', '/mpvsno4or6asbxk?where=(class_id,eq,' + class_id + ')~and(partner_code,eq,' + partner.partner_code + ')&limit=1');\n    if (!classes.list || classes.list.length === 0)\n      return [{json: {success: false, message: 'you do not own this class', statusCode: 403}}];\n\n    // 중복 확인\n    const dups = await nocoRequest('GET', '/mschd3d81ad88fb?where=(class_id,eq,' + class_id + ')~and(schedule_date,eq,' + schedule_date + ')~and(schedule_time,eq,' + schedule_time + ')~and(status,ne,cancelled)&limit=1');\n    if (dups.list && dups.list.length > 0)\n      return [{json: {success: false, message: 'duplicate schedule exists', statusCode: 409}}];\n\n    // schedule_id 생성\n    const dateStr = schedule_date.replace(/-/g, '');\n    const rand = String(Math.floor(Math.random() * 99) + 1).padStart(2, '0');\n    const scheduleId = 'SCH_' + dateStr + '_' + rand;\n\n    // INSERT\n    const created = await nocoRequest('POST', '/mschd3d81ad88fb', {\n      schedule_id: scheduleId, class_id, schedule_date, schedule_time,\n      capacity: cap, booked_count: 0, status: 'active'\n    });\n\n    return [{json: {success: true, message: 'schedule created', data: {\n      schedule_id: scheduleId, class_id, schedule_date, schedule_time, capacity: cap\n    }, statusCode: 201}}];\n\n  } else if (action === 'deleteSchedule') {\n    const {member_id, schedule_id} = body;\n    if (!member_id || !schedule_id)\n      return [{json: {success: false, message: 'missing required fields', statusCode: 400}}];\n\n    // 일정 조회\n    const schResult = await nocoRequest('GET', '/mschd3d81ad88fb?where=(schedule_id,eq,' + schedule_id + ')&limit=1');\n    if (!schResult.list || schResult.list.length === 0)\n      return [{json: {success: false, message: 'schedule not found', statusCode: 404}}];\n\n    const sch = schResult.list[0];\n    const hasBookings = (sch.booked_count || 0) > 0;\n\n    // status → cancelled\n    await nocoRequest('PATCH', '/mschd3d81ad88fb/' + sch.Id, { status: 'cancelled' });\n\n    return [{json: {success: true, message: 'schedule cancelled', data: {\n      schedule_id: sch.schedule_id,\n      warning: hasBookings ? (sch.booked_count + ' students have bookings') : null\n    }, statusCode: 200}}];\n\n  } else {\n    return [{json: {success: false, message: 'Unknown action. Use addSchedule, deleteSchedule, getSchedules', statusCode: 400}}];\n  }\n} catch(e) {\n  return [{json: {success: false, message: 'Internal error: ' + e.message, statusCode: 500}}];\n}"
+      },
+      "id": "wf18-main",
+      "name": "Process Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({success: $json.success, message: $json.message, data: $json.data}) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode || 200 }}"
+        }
+      },
+      "id": "wf18-respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [660, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {"main": [[{"node": "Process Action", "type": "main", "index": 0}]]},
+    "Process Action": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"}
+}

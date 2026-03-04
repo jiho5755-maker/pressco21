@@ -12,7 +12,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [220, 300],
+      "position": [
+        220,
+        300
+      ],
       "webhookId": "class-api"
     },
     {
@@ -21,12 +24,17 @@
           "rules": [
             {
               "conditions": {
-                "options": { "caseSensitive": false },
+                "options": {
+                  "caseSensitive": false
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $json.query.action }}",
                     "rightValue": "getClasses",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ]
               },
@@ -34,12 +42,17 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false },
+                "options": {
+                  "caseSensitive": false
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $json.query.action }}",
                     "rightValue": "getClassDetail",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ]
               },
@@ -47,12 +60,17 @@
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false },
+                "options": {
+                  "caseSensitive": false
+                },
                 "conditions": [
                   {
                     "leftValue": "={{ $json.query.action }}",
                     "rightValue": "getCategories",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ]
               },
@@ -69,7 +87,10 @@
       "name": "Switch Action",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3,
-      "position": [440, 300]
+      "position": [
+        440,
+        300
+      ]
     },
     {
       "parameters": {
@@ -79,7 +100,10 @@
       "name": "Parse getClasses Params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 140]
+      "position": [
+        660,
+        140
+      ]
     },
     {
       "parameters": {
@@ -90,10 +114,22 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "={{ $json.where }}" },
-            { "name": "sort", "value": "={{ $json.sortField }}" },
-            { "name": "limit", "value": "=1000" },
-            { "name": "fields", "value": "class_id,makeshop_product_id,class_name,category,level,price,duration_min,max_students,thumbnail_url,location,tags,class_count,avg_rating,partner_code,type,status" }
+            {
+              "name": "where",
+              "value": "={{ $json.where }}"
+            },
+            {
+              "name": "sort",
+              "value": "={{ $json.sortField }}"
+            },
+            {
+              "name": "limit",
+              "value": "=1000"
+            },
+            {
+              "name": "fields",
+              "value": "class_id,makeshop_product_id,class_name,category,level,price,duration_min,max_students,thumbnail_url,location,tags,class_count,avg_rating,partner_code,type,status"
+            }
           ]
         },
         "options": {}
@@ -102,7 +138,10 @@
       "name": "NocoDB Get Classes",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 140],
+      "position": [
+        880,
+        140
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -119,9 +158,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(status,eq,active)" },
-            { "name": "fields", "value": "partner_code,partner_name,grade,location,avg_rating,instagram_url,portfolio_url" },
-            { "name": "limit", "value": "1000" }
+            {
+              "name": "where",
+              "value": "(status,eq,active)"
+            },
+            {
+              "name": "fields",
+              "value": "partner_code,partner_name,grade,location,avg_rating,instagram_url,portfolio_url"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            }
           ]
         },
         "options": {}
@@ -130,7 +178,10 @@
       "name": "NocoDB Get Partners (Join)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 340],
+      "position": [
+        880,
+        340
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -146,7 +197,10 @@
       "name": "Merge Classes + Partners",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 240]
+      "position": [
+        1100,
+        240
+      ]
     },
     {
       "parameters": {
@@ -155,8 +209,14 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -165,7 +225,10 @@
       "name": "Respond getClasses",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1320, 240]
+      "position": [
+        1320,
+        240
+      ]
     },
     {
       "parameters": {
@@ -175,17 +238,25 @@
       "name": "Parse getClassDetail Params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 300]
+      "position": [
+        660,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._error }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -194,7 +265,10 @@
       "name": "IF Detail Params Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [840, 300]
+      "position": [
+        840,
+        300
+      ]
     },
     {
       "parameters": {
@@ -205,8 +279,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(class_id,eq,{{ $json.classId }})" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(class_id,eq,{{ $json.classId }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -215,7 +295,10 @@
       "name": "NocoDB Get Class Detail",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1040, 260],
+      "position": [
+        1040,
+        260
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -231,7 +314,10 @@
       "name": "Format Class Detail",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1260, 260]
+      "position": [
+        1260,
+        260
+      ]
     },
     {
       "parameters": {
@@ -242,9 +328,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(partner_code,eq,{{ $json._partnerCode }})" },
-            { "name": "fields", "value": "partner_code,partner_name,grade,location,avg_rating,instagram_url,portfolio_url" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(partner_code,eq,{{ $json._partnerCode }})"
+            },
+            {
+              "name": "fields",
+              "value": "partner_code,partner_name,grade,location,avg_rating,instagram_url,portfolio_url"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -253,7 +348,10 @@
       "name": "NocoDB Get Partner (Detail)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1480, 260],
+      "position": [
+        1480,
+        260
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -263,13 +361,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 클래스 상세 + 파트너 정보 결합 -> 최종 응답\n// ===================================================\n\nconst classData = $('Format Class Detail').first().json._classData;\nconst partnerResponse = $input.first().json;\nconst partnerList = partnerResponse.list || [];\n\nlet partner = {\n  partner_code: '',\n  partner_name: '',\n  grade: '',\n  location: '',\n  avg_rating: 0,\n  instagram_url: '',\n  portfolio_url: ''\n};\n\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n  partner = {\n    partner_code: p.partner_code || '',\n    partner_name: p.partner_name || '',\n    grade: p.grade || '',\n    location: p.location || '',\n    avg_rating: Number(p.avg_rating) || 0,\n    instagram_url: p.instagram_url || '',\n    portfolio_url: p.portfolio_url || ''\n  };\n}\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      ...classData,\n      partner\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// 클래스 상세 + 파트너 정보 + tbl_Schedules 결합 -> 최종 응답\n// ===================================================\nconst https = require('https');\n\nfunction fetchSchedules(classId) {\n  return new Promise((resolve, reject) => {\n    const path = '/api/v1/db/data/noco/' + $env.NOCODB_PROJECT_ID + '/mschd3d81ad88fb?where=(class_id,eq,' + classId + ')~and(status,eq,active)&sort=schedule_date,schedule_time&limit=100';\n    const options = {\n      hostname: 'nocodb.pressco21.com',\n      path: path,\n      method: 'GET',\n      headers: { 'xc-token': $env.NOCODB_API_TOKEN }\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch(e) { resolve({ list: [] }); }\n      });\n    });\n    req.on('error', () => resolve({ list: [] }));\n    req.end();\n  });\n}\n\nconst classData = $('Format Class Detail').first().json._classData;\nconst partnerResponse = $input.first().json;\nconst partnerList = partnerResponse.list || [];\n\nlet partner = {\n  partner_code: '',\n  partner_name: '',\n  grade: '',\n  location: '',\n  avg_rating: 0,\n  instagram_url: '',\n  portfolio_url: ''\n};\n\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n  partner = {\n    partner_code: p.partner_code || '',\n    partner_name: p.partner_name || '',\n    grade: p.grade || '',\n    location: p.location || '',\n    avg_rating: Number(p.avg_rating) || 0,\n    instagram_url: p.instagram_url || '',\n    portfolio_url: p.portfolio_url || ''\n  };\n}\n\n// tbl_Schedules에서 실제 일정 조회\nlet schedules = classData.schedules || []; // 기존 schedules_json 백업\ntry {\n  const schResult = await fetchSchedules(classData.class_id);\n  const schList = schResult.list || [];\n  if (schList.length > 0) {\n    // tbl_Schedules가 있으면 이걸 우선 사용\n    schedules = schList.map(s => ({\n      schedule_id: s.schedule_id,\n      schedule_date: s.schedule_date,\n      schedule_time: s.schedule_time,\n      capacity: s.capacity || 8,\n      booked_count: s.booked_count || 0,\n      remaining: (s.capacity || 8) - (s.booked_count || 0),\n      status: s.status\n    }));\n  }\n} catch(e) {\n  // 일정 조회 실패 시 기존 데이터 유지\n}\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      ...classData,\n      schedules,  // tbl_Schedules 기반 일정 (또는 기존 schedules_json)\n      partner\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf01-build-detail-response",
       "name": "Build Detail Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1700, 260]
+      "position": [
+        1700,
+        260
+      ]
     },
     {
       "parameters": {
@@ -278,7 +379,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -287,7 +391,10 @@
       "name": "Respond getClassDetail",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1920, 260]
+      "position": [
+        1920,
+        260
+      ]
     },
     {
       "parameters": {
@@ -296,7 +403,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -305,7 +415,10 @@
       "name": "Respond Detail Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1040, 420]
+      "position": [
+        1040,
+        420
+      ]
     },
     {
       "parameters": {
@@ -316,9 +429,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(status,eq,active)" },
-            { "name": "fields", "value": "category,status" },
-            { "name": "limit", "value": "1000" }
+            {
+              "name": "where",
+              "value": "(status,eq,active)"
+            },
+            {
+              "name": "fields",
+              "value": "category,status"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            }
           ]
         },
         "options": {}
@@ -327,7 +449,10 @@
       "name": "NocoDB Get Active Classes (Categories)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 500],
+      "position": [
+        660,
+        500
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -343,7 +468,10 @@
       "name": "Aggregate Categories",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [880, 500]
+      "position": [
+        880,
+        500
+      ]
     },
     {
       "parameters": {
@@ -352,7 +480,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -361,7 +492,10 @@
       "name": "Respond getCategories",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1100, 500]
+      "position": [
+        1100,
+        500
+      ]
     },
     {
       "parameters": {
@@ -371,7 +505,10 @@
       "name": "Unknown Action Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 660]
+      "position": [
+        660,
+        660
+      ]
     },
     {
       "parameters": {
@@ -381,7 +518,10 @@
           "responseCode": "400",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -390,125 +530,208 @@
       "name": "Respond Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [880, 660]
+      "position": [
+        880,
+        660
+      ]
     }
   ],
   "connections": {
     "Webhook": {
       "main": [
         [
-          { "node": "Switch Action", "type": "main", "index": 0 }
+          {
+            "node": "Switch Action",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Switch Action": {
       "main": [
         [
-          { "node": "Parse getClasses Params", "type": "main", "index": 0 }
+          {
+            "node": "Parse getClasses Params",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Parse getClassDetail Params", "type": "main", "index": 0 }
+          {
+            "node": "Parse getClassDetail Params",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "NocoDB Get Active Classes (Categories)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Active Classes (Categories)",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Unknown Action Error", "type": "main", "index": 0 }
+          {
+            "node": "Unknown Action Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Parse getClasses Params": {
       "main": [
         [
-          { "node": "NocoDB Get Classes", "type": "main", "index": 0 },
-          { "node": "NocoDB Get Partners (Join)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Classes",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "NocoDB Get Partners (Join)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Classes": {
       "main": [
         [
-          { "node": "Merge Classes + Partners", "type": "main", "index": 0 }
+          {
+            "node": "Merge Classes + Partners",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Partners (Join)": {
       "main": [
         [
-          { "node": "Merge Classes + Partners", "type": "main", "index": 0 }
+          {
+            "node": "Merge Classes + Partners",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Merge Classes + Partners": {
       "main": [
         [
-          { "node": "Respond getClasses", "type": "main", "index": 0 }
+          {
+            "node": "Respond getClasses",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Parse getClassDetail Params": {
       "main": [
         [
-          { "node": "IF Detail Params Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF Detail Params Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Detail Params Valid": {
       "main": [
         [
-          { "node": "NocoDB Get Class Detail", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Class Detail",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Detail Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Detail Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Class Detail": {
       "main": [
         [
-          { "node": "Format Class Detail", "type": "main", "index": 0 }
+          {
+            "node": "Format Class Detail",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Format Class Detail": {
       "main": [
         [
-          { "node": "NocoDB Get Partner (Detail)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Partner (Detail)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Partner (Detail)": {
       "main": [
         [
-          { "node": "Build Detail Response", "type": "main", "index": 0 }
+          {
+            "node": "Build Detail Response",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Detail Response": {
       "main": [
         [
-          { "node": "Respond getClassDetail", "type": "main", "index": 0 }
+          {
+            "node": "Respond getClassDetail",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Active Classes (Categories)": {
       "main": [
         [
-          { "node": "Aggregate Categories", "type": "main", "index": 0 }
+          {
+            "node": "Aggregate Categories",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Aggregate Categories": {
       "main": [
         [
-          { "node": "Respond getCategories", "type": "main", "index": 0 }
+          {
+            "node": "Respond getCategories",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Unknown Action Error": {
       "main": [
         [
-          { "node": "Respond Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -518,9 +741,15 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "PRESSCO21" },
-    { "name": "Class API" },
-    { "name": "Phase 2" }
+    {
+      "name": "PRESSCO21"
+    },
+    {
+      "name": "Class API"
+    },
+    {
+      "name": "Phase 2"
+    }
   ],
   "pinData": {}
 }

@@ -1755,7 +1755,7 @@ function pickerSelect(productId) {
   if (!p) return;
   var isTax = (p.is_taxable || "").indexOf("과세") >= 0;
   var price = getPriceByTier(p, currentPriceTier);
-  if (pickerTargetRowId !== null) {
+  if (pickerTargetRowId != null) {   // undefined도 null처럼 처리 (loose equality)
     // 기존 행에 값 채우기
     var nameEl  = document.getElementById("row-"+pickerTargetRowId+"-name");
     var codeEl  = document.getElementById("row-"+pickerTargetRowId+"-code");

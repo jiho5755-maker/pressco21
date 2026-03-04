@@ -245,48 +245,54 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
 #print-area-wrap { display: none; }
 #print-area {
   width: 210mm; background: #fff;
-  padding: 8mm 10mm; font-family: '맑은 고딕', sans-serif;
-  font-size: 9pt; color: #000; border: 1px solid #ccc; margin: 0 auto;
+  padding: 0; font-family: '맑은 고딕', sans-serif;
+  font-size: 8pt; color: #000; border: 1px solid #ccc; margin: 0 auto;
 }
-.inv-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; }
-.inv-header-center { flex: 1; text-align: center; }
-.inv-logo-wrap { width: 110px; display: flex; align-items: center; }
-.inv-logo { max-height: 48px; max-width: 110px; object-fit: contain; }
-.inv-title { font-size: 18pt; font-weight: 900; letter-spacing: 6px; margin-bottom: 2px; }
-.inv-sub { font-size: 8pt; color: #555; }
-.inv-meta-tbl { width: 100%; border-collapse: collapse; margin-bottom: 6px; font-size: 8.5pt; }
-.inv-meta-tbl td { padding: 2px 4px; }
-.inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-bottom: 6px; }
-.inv-party { border: 1px solid #444; padding: 4px 6px; }
-.inv-party-title { font-size: 7.5pt; color: #444; margin-bottom: 2px; font-weight: 700; }
-.inv-party table { width: 100%; border-collapse: collapse; font-size: 8pt; }
-.inv-party table td { padding: 1.5px 3px; }
-.inv-party table td:first-child { color: #555; width: 55px; font-size: 7.5pt; }
-.inv-items-table { width: 100%; border-collapse: collapse; font-size: 8pt; margin-bottom: 5px; }
-.inv-items-table th { background: #f0f0f0; border: 1px solid #888; padding: 3px 2px; text-align: center; font-weight: 700; }
-.inv-items-table td { border: 1px solid #ccc; padding: 2.5px 3px; }
+/* 공통 테이블 */
+.inv-tbl { width: 100%; border-collapse: collapse; }
+/* ① 타이틀 */
+.inv-hdr-tbl { border: 1.5px solid #333; }
+.inv-date-cell { padding: 4px 7px; font-size: 8pt; width: 28%; }
+.inv-title-cell { padding: 4px 0; text-align: center; font-size: 15pt; font-weight: 900; letter-spacing: 6px; }
+.inv-copy-cell { padding: 4px 7px; text-align: right; font-size: 8pt; width: 28%; }
+/* ② 당사자 정보 */
+.inv-pty-tbl { border: 1.5px solid #333; border-top: none; font-size: 8pt; }
+.inv-pty-tbl td { border: 1px solid #aaa; padding: 2px 4px; }
+.inv-pty-head td { background: #f0f0f0; font-weight: 700; text-align: center; padding: 3px 4px; font-size: 8.5pt; }
+.inv-lbl { background: #f5f5f5; text-align: center; font-weight: 600; white-space: nowrap; width: 50px; }
+.inv-lbl-multi { line-height: 1.5; }
+/* ③ 합계금액 바 */
+.inv-totalbar-tbl { border: 1.5px solid #333; border-top: none; }
+.inv-totalbar-tbl td { border: 1px solid #aaa; padding: 4px 8px; }
+.inv-totalbar-lbl { font-size: 8.5pt; font-weight: 700; background: #f5f5f5; text-align: center; width: 22%; }
+.inv-totalbar-amt { font-size: 12pt; font-weight: 900; }
+.inv-totalbar-rt { text-align: center; font-size: 8pt; }
+/* ④ 품목 테이블 */
+.inv-items-tbl { border: 1.5px solid #333; border-top: none; font-size: 8pt; }
+.inv-items-tbl th { background: #f0f0f0; border: 1px solid #aaa; padding: 3px 2px; text-align: center; font-weight: 700; }
+.inv-items-tbl td { border: 1px solid #ccc; padding: 2px 3px; }
+.inv-blank td { height: 16px; }
 .t-right { text-align: right; }
 .t-center { text-align: center; }
-.inv-total-tbl { width: 100%; border-collapse: collapse; border: 2px solid #333; font-size: 8.5pt; margin-bottom: 5px; }
-.inv-total-tbl td { padding: 4px 7px; border: 1px solid #ccc; }
-.inv-grand { background: #f0f0f0; font-weight: 700; font-size: 9.5pt; }
-.inv-memo { background: #fafafa; border: 1px solid #e0e0e0; padding: 4px 7px; font-size: 8pt; margin-bottom: 5px; }
-.inv-sig { display: flex; align-items: center; justify-content: flex-end; gap: 10px; font-size: 8pt; color: #333; margin-top: 6px; }
-/* 도장: 컨테이너에 multiply 적용 → 흰 배경 투명, 텍스트 위에 잉크만 겹쳐 보임 */
-.inv-stamp { display: inline-block; width: 68px; height: 68px; overflow: hidden; border-radius: 50%; vertical-align: middle; margin-left: -42px; mix-blend-mode: multiply; transform: rotate(-10deg) translateY(-2px); }
-/* 하단 검은 선 제거: circle 반경 축소 + 중심 위로 올림, mix-blend는 컨테이너로 이동 */
-.inv-stamp-img { width: 100%; height: 100%; object-fit: contain; clip-path: circle(40% at 50% 46%); filter: contrast(1.1) saturate(1.2); }
+/* ⑤ 비고 */
+.inv-memo-tbl { border: 1.5px solid #333; border-top: none; }
+.inv-memo-tbl td { padding: 3px 7px; font-size: 8pt; }
+/* ⑥ 하단 요약 */
+.inv-sum-tbl { border: 1.5px solid #333; border-top: none; font-size: 8pt; }
+.inv-sum-tbl td { border: 1px solid #aaa; padding: 2.5px 4px; }
+.inv-sl { background: #f0f0f0; text-align: center; font-weight: 600; width: 12.5%; white-space: nowrap; }
+.inv-sv { width: 12.5%; }
+/* 도장 */
+.inv-sum-stamp { display: inline-block; width: 42px; height: 42px; overflow: hidden; border-radius: 50%; mix-blend-mode: multiply; transform: rotate(-10deg); vertical-align: middle; margin-right: 3px; }
+.inv-sum-stamp-img { width: 100%; height: 100%; object-fit: contain; clip-path: circle(40% at 50% 46%); filter: contrast(1.1) saturate(1.2); }
 
 /* ── 이등분 용지 레이아웃 (A4=210×297mm) ── */
-/* 절취선 A4 정중앙 148.5mm 고정, 각 절반 위아래 균등 여백 */
+/* 절취선 A4 정중앙 148.5mm, 각 절반 위아래 7mm 균등 여백 */
 .inv-page-duplex { position: relative; width: 210mm; height: 297mm; overflow: hidden; background: #fff; font-family: '맑은 고딕', sans-serif; font-size: 7pt; color: #000; }
 .inv-half { position: absolute; width: 210mm; box-sizing: border-box; padding: 7mm 8mm 7mm; overflow: hidden; }
 .inv-half.top    { top: 0; height: 148.5mm; }
 .inv-half.bottom { top: 148.5mm; height: 148.5mm; }
-.inv-half .inv-title  { font-size: 13pt; letter-spacing: 4px; }
-.inv-half .inv-logo   { max-height: 30px; max-width: 72px; }
-.inv-half .inv-logo-wrap { width: 72px; }
-/* 절취선: A4 정중앙 148.5mm 고정 */
+/* 절취선 */
 .inv-cut-line { position: absolute; top: 148.5mm; left: 0; right: 0; border-top: 1px dashed #bbb; display: flex; align-items: center; justify-content: center; }
 .inv-cut-line span { background: #fff; padding: 0 6px; font-size: 6pt; color: #bbb; letter-spacing: 3px; line-height: 1; transform: translateY(-50%); }
 </style>

@@ -1081,64 +1081,111 @@ async function saveInvoice(status) {
 }
 
 // ─────────────────────────────────────────
-// 인쇄
+// 인쇄 — 표준 한국 거래명세표 양식 (세로형 표 구조)
 // ─────────────────────────────────────────
 function buildInvoiceHtml(inv, items, copyType) {
   var c = companyInfo;
   var copyLabel = copyType || "공급받는자 보관용";
-  var blankCount = Math.max(0, 6 - items.length);
-  var rows = items.map(function(item, i) {
+  var blankCount = Math.max(0, 10 - items.length);
+  var stampSrc = _stampDataUrl || "images/company-stamp.jpg";
+
+  var itemRows = items.map(function(item, i) {
     return '<tr>' +
       '<td class="t-center">'+(i+1)+'</td>' +
       '<td>'+esc(item.product_name||"")+'</td>' +
+      '<td></td>' +
       '<td class="t-center">'+esc(item.unit||"")+'</td>' +
       '<td class="t-right">'+(item.quantity||0).toLocaleString()+'</td>' +
       '<td class="t-right">'+(item.unit_price||0).toLocaleString()+'</td>' +
       '<td class="t-right">'+(item.supply_amount||0).toLocaleString()+'</td>' +
       '<td class="t-right">'+(item.tax_amount||0).toLocaleString()+'</td>' +
-      '<td class="t-right">'+(item.total_amount||0).toLocaleString()+'</td>' +
     '</tr>';
-  }).join("") + Array(blankCount).fill('<tr><td colspan="8" style="height:11px;border:1px solid #ccc"></td></tr>').join("");
+  }).join("") +
+  Array(blankCount).fill(
+    '<tr class="inv-blank"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>'
+  ).join("");
 
-  var logoSrc = _logoDataUrl || "images/company-logo.png";
-  var stampSrc = _stampDataUrl || "images/company-stamp.jpg";
-  return '<div class="inv-header">' +
-    '<div class="inv-logo-wrap"><img src="' + logoSrc + '" class="inv-logo" alt="로고" onerror="this.style.display=\'none\'"></div>' +
-    '<div class="inv-header-center">' +
-      '<div class="inv-title">거 래 명 세 표</div>' +
-      '<div class="inv-sub">( ' + copyLabel + ' )</div>' +
-    '</div>' +
-    '<div class="inv-logo-wrap"></div>' +
-  '</div>' +
-    '<table class="inv-meta-tbl"><tr>' +
-      '<td>발행번호: <strong>'+esc(inv.invoice_no||"")+'</strong></td>' +
-      '<td style="text-align:right">거래일자: <strong>'+esc(inv.invoice_date||"")+'</strong></td>' +
+  return (
+    // ① 타이틀 행: 거래일 | 거 래 명 세 표 | (보관용)
+    '<table class="inv-tbl inv-hdr-tbl"><tr>' +
+      '<td class="inv-date-cell">거래일:&nbsp;<b>'+esc(inv.invoice_date||"")+'</b></td>' +
+      '<td class="inv-title-cell">거 래 명 세 표</td>' +
+      '<td class="inv-copy-cell">('+esc(copyLabel)+')</td>' +
     '</tr></table>' +
-    '<div class="inv-parties">' +
-      '<div class="inv-party"><div class="inv-party-title">■ 공급자</div><table>' +
-        '<tr><td>상호</td><td><strong>'+esc(c.company||"")+'</strong></td><td>사업자번호</td><td>'+esc(c.bizno||"")+'</td></tr>' +
-        '<tr><td>대표자</td><td>'+esc(c.ceo||"")+'</td><td>업태/종목</td><td>'+esc((c.bizType||"")+"/"+(c.bizItem||""))+'</td></tr>' +
-        '<tr><td>주소</td><td colspan="3">'+esc(c.address||"")+'</td></tr>' +
-        '<tr><td>전화</td><td>'+esc(c.phone||"")+'</td><td>이메일</td><td>'+esc(c.email||"")+'</td></tr>' +
-      '</table></div>' +
-      '<div class="inv-party"><div class="inv-party-title">■ 공급받는자</div><table>' +
-        '<tr><td>상호</td><td><strong>'+esc(inv.customer_name||"")+'</strong></td><td>사업자번호</td><td>'+esc(inv.customer_bizno||"")+'</td></tr>' +
-        '<tr><td>담당자</td><td>'+esc(inv.manager||"")+'</td><td>연락처</td><td>'+esc(inv.customer_phone||"")+'</td></tr>' +
-        '<tr><td>주소</td><td colspan="3">'+esc(inv.customer_address||"")+'</td></tr>' +
-      '</table></div>' +
-    '</div>' +
-    '<table class="inv-items-table">' +
-      '<thead><tr><th>No</th><th>품목명</th><th>단위</th><th>수량</th><th>단가</th><th>공급가액</th><th>세액</th><th>합계금액</th></tr></thead>' +
-      '<tbody>'+rows+'</tbody>' +
+
+    // ② 당사자 정보: 공급받는자 (좌) | 공급자 (우)
+    '<table class="inv-tbl inv-pty-tbl">' +
+      '<tr class="inv-pty-head">' +
+        '<td colspan="4">공급받는자&nbsp;&nbsp;등록번호:&nbsp;'+esc(inv.customer_bizno||"")+'</td>' +
+        '<td colspan="4">공&nbsp;&nbsp;급&nbsp;&nbsp;자&nbsp;&nbsp;등록번호:&nbsp;'+esc(c.bizno||"")+'</td>' +
+      '</tr>' +
+      '<tr>' +
+        '<td class="inv-lbl">상&nbsp;&nbsp;호</td><td class="inv-val">'+esc(inv.customer_name||"")+'</td>' +
+        '<td class="inv-lbl">성&nbsp;명</td><td class="inv-val">'+esc(inv.manager||"")+'</td>' +
+        '<td class="inv-lbl">상&nbsp;&nbsp;호</td><td class="inv-val">'+esc(c.company||"")+'</td>' +
+        '<td class="inv-lbl">성&nbsp;명</td><td class="inv-val">'+esc(c.ceo||"")+'</td>' +
+      '</tr>' +
+      '<tr>' +
+        '<td class="inv-lbl inv-lbl-multi">사업장<br>주&nbsp;&nbsp;소</td><td class="inv-val" colspan="3">'+esc(inv.customer_address||"")+'</td>' +
+        '<td class="inv-lbl inv-lbl-multi">사업장<br>주&nbsp;&nbsp;소</td><td class="inv-val" colspan="3">'+esc(c.address||"")+'</td>' +
+      '</tr>' +
+      '<tr>' +
+        '<td class="inv-lbl">업&nbsp;&nbsp;태</td><td class="inv-val"></td>' +
+        '<td class="inv-lbl">업&nbsp;종</td><td class="inv-val"></td>' +
+        '<td class="inv-lbl">업&nbsp;&nbsp;태</td><td class="inv-val">'+esc(c.bizType||"")+'</td>' +
+        '<td class="inv-lbl">업&nbsp;종</td><td class="inv-val">'+esc(c.bizItem||"")+'</td>' +
+      '</tr>' +
+      '<tr>' +
+        '<td class="inv-lbl">연&nbsp;락&nbsp;처</td><td class="inv-val" colspan="3">'+esc(inv.customer_phone||"")+'</td>' +
+        '<td class="inv-lbl">연&nbsp;락&nbsp;처</td><td class="inv-val" colspan="3">'+esc(c.phone||"")+'</td>' +
+      '</tr>' +
     '</table>' +
-    '<table class="inv-total-tbl"><tr>' +
-      '<td>공급가액 합계</td><td><strong>'+(inv.supply_amount||0).toLocaleString()+'원</strong></td>' +
-      '<td>세액 합계</td><td><strong>'+(inv.tax_amount||0).toLocaleString()+'원</strong></td>' +
-      '<td class="inv-grand">합 계 금 액</td><td class="inv-grand"><strong>'+(inv.total_amount||0).toLocaleString()+'원</strong></td>' +
+
+    // ③ 합계금액 바
+    '<table class="inv-tbl inv-totalbar-tbl"><tr>' +
+      '<td class="inv-totalbar-lbl">합계금액:</td>' +
+      '<td class="inv-totalbar-amt"><b>'+(inv.total_amount||0).toLocaleString()+'</b>&nbsp;원</td>' +
+      '<td class="inv-totalbar-rt">'+esc(inv.receipt_type||"영수(청구)")+' (&nbsp;'+esc(inv.invoice_no||"")+'&nbsp;)</td>' +
     '</tr></table>' +
-    (inv.memo ? '<div class="inv-memo">비고: '+esc(inv.memo)+'</div>' : '') +
-    '<div class="inv-sig">위 금액을 정히 ' + esc(inv.receipt_type||"영수(청구)") + '합니다.&nbsp;&nbsp;&nbsp;'+esc(inv.invoice_date||"")+'&nbsp;&nbsp;&nbsp;'+esc(c.company||"")+' 대표 '+esc(c.ceo||"")+
-    '<div class="inv-stamp"><img src="' + stampSrc + '" class="inv-stamp-img" alt="직인" onerror="this.style.display=\'none\'"></div></div>';
+
+    // ④ 품목 테이블
+    '<table class="inv-tbl inv-items-tbl">' +
+      '<thead><tr>' +
+        '<th class="t-center" style="width:5%">No</th>' +
+        '<th style="width:27%">품&nbsp;&nbsp;&nbsp;목</th>' +
+        '<th style="width:11%">규&nbsp;&nbsp;격</th>' +
+        '<th class="t-center" style="width:7%">단위</th>' +
+        '<th class="t-center" style="width:9%">수&nbsp;량</th>' +
+        '<th class="t-right" style="width:13%">단&nbsp;&nbsp;가</th>' +
+        '<th class="t-right" style="width:14%">공급가액</th>' +
+        '<th class="t-right" style="width:14%">세&nbsp;&nbsp;액</th>' +
+      '</tr></thead>' +
+      '<tbody>'+itemRows+'</tbody>' +
+    '</table>' +
+
+    // ⑤ 비고 (메모 있을 경우)
+    (inv.memo ? '<table class="inv-tbl inv-memo-tbl"><tr><td>비고:&nbsp;'+esc(inv.memo)+'</td></tr></table>' : "") +
+
+    // ⑥ 하단 요약
+    '<table class="inv-tbl inv-sum-tbl">' +
+      '<tr>' +
+        '<td class="inv-sl">공급가액</td><td class="inv-sv t-right">'+(inv.supply_amount||0).toLocaleString()+'</td>' +
+        '<td class="inv-sl">세&nbsp;&nbsp;&nbsp;액</td><td class="inv-sv t-right">'+(inv.tax_amount||0).toLocaleString()+'</td>' +
+        '<td class="inv-sl">입&nbsp;금&nbsp;액</td><td class="inv-sv"></td>' +
+        '<td class="inv-sl">회&nbsp;상&nbsp;액</td><td class="inv-sv"></td>' +
+      '</tr>' +
+      '<tr>' +
+        '<td class="inv-sl">할&nbsp;인&nbsp;액</td><td class="inv-sv"></td>' +
+        '<td class="inv-sl">잔미수금</td><td class="inv-sv"></td>' +
+        '<td class="inv-sl">현미수금</td><td class="inv-sv"></td>' +
+        '<td class="inv-sl">인&nbsp;수&nbsp;자</td>' +
+        '<td class="inv-sv t-center">' +
+          '<span class="inv-sum-stamp"><img src="'+stampSrc+'" class="inv-sum-stamp-img" alt="" onerror="this.style.display=\'none\'"></span>' +
+          '인' +
+        '</td>' +
+      '</tr>' +
+    '</table>'
+  );
 }
 
 // 이등분 용지: 공급자+공급받는자 2장을 A4 한 장에 출력
@@ -1173,75 +1220,87 @@ function printDuplexViaIframe(duplexHtml) {
   var cssText = [
     "@page { size: A4 portrait; margin: 0; }",
     // ★ 핵심: html/body를 A4 높이로 강제 → Chrome 2페이지 생성 불가
-    "html { margin: 0; padding: 0; width: 210mm; height: 297mm; overflow: hidden !important; }",
-    "body { margin: 0; padding: 0; width: 210mm; height: 297mm; overflow: hidden !important; }",
-    "* { box-sizing: border-box; }",
+    "html { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; }",
+    "body { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; }",
+    "* { box-sizing:border-box; }",
 
-    // 거래명세표 기본 스타일 (약간 컴팩트하게 축소)
-    ".inv-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 3px; }",
-    ".inv-header-center { flex: 1; text-align: center; }",
-    ".inv-logo-wrap { width: 72px; display: flex; align-items: center; }",
-    ".inv-logo { max-height: 30px; max-width: 72px; object-fit: contain; }",
-    ".inv-title { font-size: 13pt; font-weight: 900; letter-spacing: 4px; margin-bottom: 1px; }",
-    ".inv-sub { font-size: 6.5pt; color: #555; }",
-    ".inv-meta-tbl { width: 100%; border-collapse: collapse; margin-bottom: 3px; font-size: 7pt; }",
-    ".inv-meta-tbl td { padding: 1px 3px; }",
-    ".inv-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 3px; margin-bottom: 3px; }",
-    ".inv-party { border: 1px solid #444; padding: 2px 4px; }",
-    ".inv-party-title { font-size: 6.5pt; color: #444; margin-bottom: 1px; font-weight: 700; }",
-    ".inv-party table { width: 100%; border-collapse: collapse; font-size: 6.5pt; }",
-    ".inv-party table td { padding: 0.5px 2px; }",
-    ".inv-party table td:first-child { color: #555; width: 44px; font-size: 6.5pt; }",
-    ".inv-items-table { width: 100%; border-collapse: collapse; font-size: 6.5pt; margin-bottom: 2px; }",
-    ".inv-items-table th { background: #f0f0f0; border: 1px solid #888; padding: 1.5px 2px; text-align: center; font-weight: 700; }",
-    ".inv-items-table td { border: 1px solid #ccc; padding: 1px 2px; }",
-    // 빈 행 높이 축소 (inline style override)
-    "td[colspan='8'] { height: 9px !important; }",
-    ".t-right { text-align: right; }",
-    ".t-center { text-align: center; }",
-    ".inv-total-tbl { width: 100%; border-collapse: collapse; border: 2px solid #333; font-size: 7pt; margin-bottom: 2px; }",
-    ".inv-total-tbl td { padding: 2px 4px; border: 1px solid #ccc; }",
-    ".inv-grand { background: #f0f0f0; font-weight: 700; font-size: 7.5pt; }",
-    ".inv-memo { background: #fafafa; border: 1px solid #e0e0e0; padding: 2px 4px; font-size: 6.5pt; margin-bottom: 2px; }",
-    ".inv-sig { display: flex; align-items: center; justify-content: flex-end; gap: 6px; font-size: 6.5pt; color: #333; margin-top: 2px; }",
-    ".inv-stamp { display: inline-block; width: 50px; height: 50px; overflow: hidden; border-radius: 50%; vertical-align: middle; margin-left: -28px; mix-blend-mode: multiply; transform: rotate(-10deg) translateY(-2px); }",
-    ".inv-stamp-img { width: 100%; height: 100%; object-fit: contain; clip-path: circle(40% at 50% 46%); filter: contrast(1.1) saturate(1.2); }",
+    // 공통 테이블 스타일
+    ".inv-tbl { width:100%; border-collapse:collapse; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; }",
 
-    // 이등분 컨테이너: A4 정확히 297mm
-    ".inv-page-duplex { position: relative; width: 210mm; height: 297mm; background: #fff; font-family: 'Malgun Gothic', '맑은 고딕', sans-serif; font-size: 7pt; color: #000; overflow: hidden; }",
-    // 각 절반: 위아래 7mm, 좌우 8mm 균등 여백 → 중앙 배치감
-    ".inv-half { position: absolute; width: 210mm; box-sizing: border-box; padding: 7mm 8mm 7mm; overflow: hidden; }",
-    ".inv-half.top    { top: 0; height: 148.5mm; }",
-    ".inv-half.bottom { top: 148.5mm; height: 148.5mm; }",
-    // 절취선: 148.5mm 정중앙 고정
-    ".inv-cut-line { position: absolute; top: 148.5mm; left: 0; right: 0; border-top: 1px dashed #bbb; display: flex; align-items: center; justify-content: center; }",
-    ".inv-cut-line span { background: #fff; padding: 0 8px; font-size: 6pt; color: #bbb; letter-spacing: 3px; line-height: 1; transform: translateY(-50%); font-family: 'Malgun Gothic', sans-serif; }",
-    // scale wrapper
-    ".inv-scale-wrap { transform-origin: top left; width: 100%; }"
+    // ① 타이틀
+    ".inv-hdr-tbl { border:1.5px solid #333; }",
+    ".inv-date-cell { padding:2px 5px; font-size:6.5pt; width:28%; }",
+    ".inv-title-cell { padding:2px 0; text-align:center; font-size:12pt; font-weight:900; letter-spacing:5px; }",
+    ".inv-copy-cell { padding:2px 5px; text-align:right; font-size:6.5pt; width:28%; }",
+
+    // ② 당사자 정보
+    ".inv-pty-tbl { border:1.5px solid #333; border-top:none; font-size:6.5pt; }",
+    ".inv-pty-tbl td { border:1px solid #999; padding:1.5px 3px; }",
+    ".inv-pty-head td { background:#f0f0f0; font-weight:700; text-align:center; padding:2px 3px; font-size:7pt; }",
+    ".inv-lbl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:40px; }",
+    ".inv-lbl-multi { line-height:1.4; }",
+
+    // ③ 합계금액 바
+    ".inv-totalbar-tbl { border:1.5px solid #333; border-top:none; }",
+    ".inv-totalbar-tbl td { border:1px solid #999; padding:3px 6px; }",
+    ".inv-totalbar-lbl { font-size:7pt; font-weight:700; background:#f5f5f5; text-align:center; width:22%; }",
+    ".inv-totalbar-amt { font-size:10pt; font-weight:900; }",
+    ".inv-totalbar-rt { text-align:center; font-size:7pt; }",
+
+    // ④ 품목 테이블
+    ".inv-items-tbl { border:1.5px solid #333; border-top:none; font-size:6.5pt; }",
+    ".inv-items-tbl th { background:#f0f0f0; border:1px solid #999; padding:2px 1px; text-align:center; font-weight:700; }",
+    ".inv-items-tbl td { border:1px solid #ccc; padding:1.5px 2px; }",
+    ".inv-blank td { height:13px; }",
+
+    // ⑤ 비고
+    ".inv-memo-tbl { border:1.5px solid #333; border-top:none; }",
+    ".inv-memo-tbl td { padding:2px 5px; font-size:6.5pt; }",
+
+    // ⑥ 하단 요약
+    ".inv-sum-tbl { border:1.5px solid #333; border-top:none; font-size:6.5pt; }",
+    ".inv-sum-tbl td { border:1px solid #999; padding:2px 3px; }",
+    ".inv-sl { background:#f0f0f0; text-align:center; font-weight:600; width:12.5%; white-space:nowrap; }",
+    ".inv-sv { width:12.5%; }",
+
+    // 도장
+    ".inv-sum-stamp { display:inline-block; width:34px; height:34px; overflow:hidden; border-radius:50%; mix-blend-mode:multiply; transform:rotate(-10deg); vertical-align:middle; margin-right:2px; }",
+    ".inv-sum-stamp-img { width:100%; height:100%; object-fit:contain; clip-path:circle(40% at 50% 46%); filter:contrast(1.1) saturate(1.2); }",
+
+    // 공통
+    ".t-right { text-align:right; }",
+    ".t-center { text-align:center; }",
+
+    // 이등분 레이아웃 (position:absolute 자식은 body scrollHeight에 영향 없음)
+    ".inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; }",
+    ".inv-half { position:absolute; width:210mm; box-sizing:border-box; padding:7mm 8mm 7mm; overflow:hidden; }",
+    ".inv-half.top    { top:0; height:148.5mm; }",
+    ".inv-half.bottom { top:148.5mm; height:148.5mm; }",
+    ".inv-cut-line { position:absolute; top:148.5mm; left:0; right:0; border-top:1px dashed #bbb; display:flex; align-items:center; justify-content:center; }",
+    ".inv-cut-line span { background:#fff; padding:0 8px; font-size:6pt; color:#bbb; letter-spacing:3px; transform:translateY(-50%); font-family:'Malgun Gothic',sans-serif; }",
+    // ★ zoom wrapper: zoom은 layout 치수 자체를 줄임 → Chrome이 overflow 감지 불가
+    ".inv-scale-wrap { width:100%; }"
   ].join("\n");
 
-  // beforeprint + 즉시 실행: 콘텐츠 높이 측정 → scale 적용
+  // beforeprint: 콘텐츠 높이 측정 → zoom 적용 (transform:scale 대신 zoom 사용)
+  // zoom은 레이아웃 치수 자체를 변경 → Chrome이 overflow를 감지하지 못함
   var scriptText = [
     "(function() {",
     "  var TARGET = " + TARGET_PX.toFixed(1) + ";",
-    "  function applyScale() {",
+    "  function applyZoom() {",
     "    var halves = document.querySelectorAll('.inv-half');",
     "    for (var i = 0; i < halves.length; i++) {",
     "      var wrap = halves[i].querySelector('.inv-scale-wrap');",
     "      if (!wrap) continue;",
-    "      wrap.style.transform = 'none';",
-    "      wrap.style.width = '100%';",
+    "      wrap.style.zoom = '';",
     "      var h = wrap.scrollHeight;",
     "      if (h > TARGET) {",
-    "        var s = TARGET / h;",
-    "        if (s >= 0.5) {",
-    "          wrap.style.transform = 'scale(' + s.toFixed(4) + ')';",
-    "          wrap.style.width = (100 / s).toFixed(2) + '%';",
-    "        }",
+    "        var z = TARGET / h;",
+    "        if (z >= 0.5) wrap.style.zoom = z.toFixed(4);",
     "      }",
     "    }",
     "  }",
-    "  window.addEventListener('beforeprint', applyScale);",
+    "  window.addEventListener('beforeprint', applyZoom);",
     "})();"
   ].join("\n");
 
@@ -1258,20 +1317,17 @@ function printDuplexViaIframe(duplexHtml) {
   iframe.contentWindow.focus();
   // 이미지 로딩 + 레이아웃 계산 대기 (600ms)
   setTimeout(function() {
-    // 인쇄 전 scale 수동 적용 (beforeprint 이중 보장)
+    // 인쇄 전 zoom 수동 적용 (beforeprint 이중 보장)
+    // zoom은 layout 치수 자체를 줄임 → Chrome overflow 감지 불가 → 확실한 1페이지
     var halves = iframeDoc.querySelectorAll(".inv-half");
     for (var i = 0; i < halves.length; i++) {
       var wrap = halves[i].querySelector(".inv-scale-wrap");
       if (!wrap) continue;
-      wrap.style.transform = "none";
-      wrap.style.width = "100%";
+      wrap.style.zoom = "";
       var h = wrap.scrollHeight;
       if (h > TARGET_PX) {
-        var s = TARGET_PX / h;
-        if (s >= 0.5) {
-          wrap.style.transform = "scale(" + s.toFixed(4) + ")";
-          wrap.style.width = (100 / s).toFixed(2) + "%";
-        }
+        var z = TARGET_PX / h;
+        if (z >= 0.5) wrap.style.zoom = z.toFixed(4);
       }
     }
     iframe.contentWindow.print();

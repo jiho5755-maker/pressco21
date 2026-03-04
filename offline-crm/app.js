@@ -55,6 +55,54 @@ function toast(msg, type) {
 }
 
 // ─────────────────────────────────────────
+// 인쇄 이미지 프리로드 (PDF 준비중 방지)
+// ─────────────────────────────────────────
+var _logoDataUrl = "";
+var _stampDataUrl = "";
+
+function _fetchDataUrl(src, cb) {
+  fetch(src)
+    .then(function(res) { return res.blob(); })
+    .then(function(blob) {
+      var reader = new FileReader();
+      reader.onloadend = function() { cb(reader.result); };
+      reader.readAsDataURL(blob);
+    })
+    .catch(function() { cb(""); });
+}
+
+// ─────────────────────────────────────────
+// 다중 주소 관리
+// ─────────────────────────────────────────
+function addAddrField(containerId, value) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  var idx = container.querySelectorAll(".addr-row").length;
+  var row = document.createElement("div");
+  row.className = "addr-row";
+  row.style.cssText = "display:flex;gap:6px;margin-bottom:6px;align-items:center";
+  row.innerHTML = '<input type="text" class="addr-input" placeholder="주소 ' + (idx + 1) + '" style="flex:1" value="' + esc(value || "") + '">' +
+    '<button type="button" onclick="this.parentNode.remove()" style="background:#dc2626;color:#fff;border:none;border-radius:4px;padding:2px 8px;cursor:pointer;flex-shrink:0">×</button>';
+  container.appendChild(row);
+}
+
+function getAddrList(containerId) {
+  var container = document.getElementById(containerId);
+  if (!container) return [];
+  return Array.from(container.querySelectorAll(".addr-input"))
+    .map(function(el) { return el.value.trim(); })
+    .filter(Boolean);
+}
+
+function setAddrList(containerId, addresses) {
+  var container = document.getElementById(containerId);
+  if (!container) return;
+  container.innerHTML = "";
+  (addresses || []).forEach(function(addr) { addAddrField(containerId, addr); });
+  if (!addresses || !addresses.length) addAddrField(containerId, ""); // 최소 1개
+}
+
+// ─────────────────────────────────────────
 // 설정
 // ─────────────────────────────────────────
 var companyInfo = {};
@@ -581,8 +629,10 @@ function selectCustomer(id) {
   if (!c) return;
   var name  = c.name || c.book_name || "";
   var phone = c.phone1 || c.mobile || "";
-  // 다중 주소 처리
-  var addresses = [c.address1, c.address2].filter(Boolean);
+  // 다중 주소: address1 + extra_addresses(JSON) 병합
+  var extras = [];
+  try { extras = JSON.parse(c.extra_addresses || "[]"); } catch(e) { extras = []; }
+  var addresses = [c.address1].concat(extras).filter(Boolean);
   var addr = addresses[0] || "";
   document.getElementById("customer-search").value        = "";
   hideAc("customer-ac");
@@ -1049,8 +1099,10 @@ function buildInvoiceHtml(inv, items) {
     '</tr>';
   }).join("") + Array(blankCount).fill('<tr><td colspan="8" style="height:14px;border:1px solid #ccc"></td></tr>').join("");
 
+  var logoSrc = _logoDataUrl || "images/company-logo.png";
+  var stampSrc = _stampDataUrl || "images/company-stamp.jpg";
   return '<div class="inv-header">' +
-    '<div class="inv-logo-wrap"><img src="images/company-logo.png" class="inv-logo" alt="로고" onerror="this.style.display=\'none\'"></div>' +
+    '<div class="inv-logo-wrap"><img src="' + logoSrc + '" class="inv-logo" alt="로고" onerror="this.style.display=\'none\'"></div>' +
     '<div class="inv-header-center">' +
       '<div class="inv-title">거 래 명 세 표</div>' +
       '<div class="inv-sub">( 공급받는자 보관용 )</div>' +
@@ -1085,7 +1137,7 @@ function buildInvoiceHtml(inv, items) {
     '</tr></table>' +
     (inv.memo ? '<div class="inv-memo">비고: '+esc(inv.memo)+'</div>' : '') +
     '<div class="inv-sig">위 금액을 정히 ' + esc(inv.receipt_type||"영수(청구)") + '합니다.&nbsp;&nbsp;&nbsp;'+esc(inv.invoice_date||"")+'&nbsp;&nbsp;&nbsp;'+esc(c.company||"")+' 대표 '+esc(c.ceo||"")+
-    '<div class="inv-stamp"><img src="images/company-stamp.jpg" class="inv-stamp-img" alt="직인" onerror="this.style.display=\'none\'"></div></div>';
+    '<div class="inv-stamp"><img src="' + stampSrc + '" class="inv-stamp-img" alt="직인" onerror="this.style.display=\'none\'"></div></div>';
 }
 
 // 인쇄 전 1페이지 자동 맞춤
@@ -1454,8 +1506,11 @@ async function openEditCustomer(id) {
   document.getElementById("edit-cust-phone").value        = c.phone1 || "";
   document.getElementById("edit-cust-mobile").value       = c.mobile || "";
   document.getElementById("edit-cust-email").value        = c.email || "";
-  document.getElementById("edit-cust-addr").value         = c.address1 || "";
-  if (document.getElementById("edit-cust-addr2")) document.getElementById("edit-cust-addr2").value = c.address2 || "";
+  // 다중 주소 복원
+  var editExtras = [];
+  try { editExtras = JSON.parse(c.extra_addresses || "[]"); } catch(e) {}
+  var editAddrs = [c.address1].concat(editExtras).filter(Boolean);
+  setAddrList("edit-addr-list", editAddrs);
   document.getElementById("edit-cust-bizno").value        = c.business_no || "";
   document.getElementById("edit-cust-ceo").value          = c.ceo_name || "";
   document.getElementById("edit-cust-tier").value         = String(c.price_tier || 1);
@@ -1474,8 +1529,8 @@ async function saveEditCustomer() {
     phone1:        document.getElementById("edit-cust-phone").value.trim(),
     mobile:        document.getElementById("edit-cust-mobile").value.trim(),
     email:         document.getElementById("edit-cust-email").value.trim(),
-    address1:      document.getElementById("edit-cust-addr").value.trim(),
-    address2:      document.getElementById("edit-cust-addr2") ? document.getElementById("edit-cust-addr2").value.trim() : "",
+    address1:      (getAddrList("edit-addr-list")[0] || ""),
+    extra_addresses: JSON.stringify(getAddrList("edit-addr-list").slice(1)),
     business_no:   document.getElementById("edit-cust-bizno").value.trim(),
     ceo_name:      document.getElementById("edit-cust-ceo").value.trim(),
     price_tier:    parseInt(document.getElementById("edit-cust-tier").value) || 1,
@@ -1520,8 +1575,8 @@ async function saveNewCustomer() {
     phone1: v("new-cust-phone"),
     mobile: v("new-cust-mobile"),
     email: v("new-cust-email"),
-    address1: v("new-cust-addr"),
-    address2: v("new-cust-addr2"),
+    address1:        getAddrList("new-addr-list")[0] || "",
+    extra_addresses: JSON.stringify(getAddrList("new-addr-list").slice(1)),
     business_no: v("new-cust-bizno"),
     ceo_name: v("new-cust-ceo"),
     price_tier: parseInt(v("new-cust-tier")) || 1,
@@ -1555,9 +1610,10 @@ function clearNewProductForm() {
 
 function clearNewCustomerForm() {
   ["new-cust-name","new-cust-phone","new-cust-mobile","new-cust-email",
-   "new-cust-addr","new-cust-bizno","new-cust-ceo","new-cust-memo"].forEach(function(id) {
+   "new-cust-bizno","new-cust-ceo","new-cust-memo"].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = "";
   });
+  setAddrList("new-addr-list", []);
   var tierEl = document.getElementById("new-cust-tier");
   if (tierEl) tierEl.value = "1";
 }
@@ -1877,6 +1933,9 @@ function clearNewSupplierForm() {
 // ─────────────────────────────────────────
 document.addEventListener("DOMContentLoaded", function() {
   loadSettings();
+  // 인쇄 이미지 미리 data URL로 변환 (PDF 준비중 방지)
+  _fetchDataUrl("images/company-logo.png", function(u) { _logoDataUrl = u; });
+  _fetchDataUrl("images/company-stamp.jpg", function(u) { _stampDataUrl = u; });
   document.getElementById("f-date").value = todayStr();
   var now = new Date();
   var firstDay = now.getFullYear()+"-"+String(now.getMonth()+1).padStart(2,"0")+"-01";

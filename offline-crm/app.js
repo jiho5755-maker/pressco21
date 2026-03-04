@@ -10,7 +10,7 @@ var API = {
     products:  "mioztktmluobmmo",
     invoices:  "ml81i9mcuw0pjzk",
     items:     "mxwgdlj56p9joxo",
-    suppliers: "", // NocoDB GUI에서 tbl_Suppliers 생성 후 설정에서 ID 입력
+    suppliers: "mw6y9qyzex7lix9", // tbl_Suppliers
   }
 };
 

@@ -1098,7 +1098,7 @@ function buildInvoiceHtml(inv, items, copyType) {
       '<td class="t-right">'+(item.tax_amount||0).toLocaleString()+'</td>' +
       '<td class="t-right">'+(item.total_amount||0).toLocaleString()+'</td>' +
     '</tr>';
-  }).join("") + Array(blankCount).fill('<tr><td colspan="8" style="height:14px;border:1px solid #ccc"></td></tr>').join("");
+  }).join("") + Array(blankCount).fill('<tr><td colspan="8" style="height:11px;border:1px solid #ccc"></td></tr>').join("");
 
   var logoSrc = _logoDataUrl || "images/company-logo.png";
   var stampSrc = _stampDataUrl || "images/company-stamp.jpg";

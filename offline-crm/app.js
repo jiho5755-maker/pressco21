@@ -1147,7 +1147,7 @@ function buildDuplexInvoiceHtml(inv, items) {
   var recipient = buildInvoiceHtml(inv, items, "공급받는자 보관용");
   return '<div class="inv-page-duplex">' +
     '<div class="inv-half">' + supplier + '</div>' +
-    '<div class="inv-cut-line"><span class="inv-cut-label">✂ 절 취 선</span></div>' +
+    '<div class="inv-cut-line">✂ 절 취 선</div>' +
     '<div class="inv-half">' + recipient + '</div>' +
   '</div>';
 }

@@ -602,7 +602,7 @@ function searchCustomers(q) {
     try {
       var trimQ = q.trim();
       var where = "(name,like,%" + trimQ + "%)~or(book_name,like,%" + trimQ + "%)~or(phone1,like,%" + trimQ + "%)~or(mobile,like,%" + trimQ + "%)";
-      var res = await apiFetch(apiUrl("customers") + buildWhere(where, "limit=10&fields=Id,name,book_name,phone1,mobile,email,address1,address2,business_no,manager,price_tier"));
+      var res = await apiFetch(apiUrl("customers") + buildWhere(where, "limit=10&fields=Id,name,book_name,phone1,mobile,email,address1,address2,extra_addresses,business_no,manager,price_tier"));
       var list = res.list || [];
       if (!list.length) { ac.innerHTML = '<div class="ac-empty">검색 결과 없음</div>'; return; }
       list.forEach(function(c) { customerCache[c.Id] = c; });
@@ -1670,11 +1670,26 @@ function openProductPicker(rowId) {
   pickerCurrentPage = 0;
   var qEl = document.getElementById("picker-search");
   var catEl = document.getElementById("picker-category");
-  if (qEl)  qEl.value  = "";
-  if (catEl) catEl.value = "";
+  if (qEl) qEl.value = "";
+  if (catEl && catEl.tagName === "SELECT") catEl.value = "";
   openModal("modal-product-picker");
+  loadPickerCategories();
   loadPickerList("", "", 0);
   setTimeout(function() { if (qEl) qEl.focus(); }, 100);
+}
+
+async function loadPickerCategories() {
+  var catEl = document.getElementById("picker-category");
+  if (!catEl || catEl.tagName !== "SELECT") return;
+  try {
+    var res = await apiFetch(apiUrl("products") + "?limit=2000&fields=category");
+    var cats = (res.list || []).map(function(p) { return (p.category || "").trim(); }).filter(Boolean);
+    var unique = [];
+    cats.forEach(function(c) { if (unique.indexOf(c) < 0) unique.push(c); });
+    unique.sort();
+    catEl.innerHTML = '<option value="">전체 카테고리</option>' +
+      unique.map(function(c) { return '<option value="' + esc(c) + '">' + esc(c) + '</option>'; }).join("");
+  } catch(e) { console.error("카테고리 로드 오류", e); }
 }
 
 async function loadPickerList(query, category, page) {
@@ -1690,10 +1705,11 @@ async function loadPickerList(query, category, page) {
     if (category && category.trim()) {
       conditions.push("(category,eq,"+category.trim()+")");
     }
-    var whereStr = conditions.length ? conditions.join("~and(") + (conditions.length > 1 ? ")" : "") : "(is_active,eq,true)";
-    var url = apiUrl("products") + buildWhere(whereStr,
-      "limit="+PICKER_PAGE_SIZE+"&offset="+(page*PICKER_PAGE_SIZE)+
-      "&fields=Id,product_code,name,unit,price1,price2,price3,is_taxable,is_active");
+    var params = "limit="+PICKER_PAGE_SIZE+"&offset="+(page*PICKER_PAGE_SIZE)+
+      "&fields=Id,product_code,name,unit,price1,price2,price3,is_taxable,is_active,category";
+    var url = conditions.length
+      ? apiUrl("products") + buildWhere(conditions.join("~and"), params)
+      : apiUrl("products") + "?" + params;
     var res = await apiFetch(url);
     var list = res.list || [];
     var total = (res.pageInfo || {}).totalRows || list.length;

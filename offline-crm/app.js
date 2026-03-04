@@ -1145,7 +1145,7 @@ function buildInvoiceHtml(inv, items, copyType) {
 function buildDuplexInvoiceHtml(inv, items) {
   var supplier  = buildInvoiceHtml(inv, items, "공급자 보관용");
   var recipient = buildInvoiceHtml(inv, items, "공급받는자 보관용");
-  // position:absolute → Chrome 인쇄 페이지 나눔 계산에서 제외, 1페이지 고정
+  // zoom 기반 1페이지 맞춤: beforeprint에서 동적 zoom 적용
   return '<div class="inv-page-duplex">' +
     '<div class="inv-half top">' + supplier + '</div>' +
     '<div class="inv-cut-line">✂ 절 취 선</div>' +
@@ -1153,14 +1153,37 @@ function buildDuplexInvoiceHtml(inv, items) {
   '</div>';
 }
 
-// 인쇄 전: 이등분 모드는 고정 높이 사용 → auto-scale 불필요
+// 인쇄 전: 이등분 모드는 zoom으로 A4 1페이지 강제, 단일 모드는 transform scale
 window.addEventListener("beforeprint", function() {
   var el = document.getElementById("print-area");
   if (!el || !el.innerHTML.trim()) return;
+  // 이전 스타일 초기화
   el.style.transform = "";
   el.style.width = "";
-  if (el.querySelector(".inv-page-duplex")) return;  // 이등분은 스케일 건드리지 않음
-  // 단일 페이지: 277mm 초과 시 축소
+  el.style.zoom = "";
+
+  var duplexEl = el.querySelector(".inv-page-duplex");
+  if (duplexEl) {
+    duplexEl.style.zoom = "";
+    // ① html/body를 A4 높이로 제약 → Chrome 2페이지 생성 원천 차단
+    document.documentElement.style.setProperty("height", "297mm", "important");
+    document.documentElement.style.setProperty("overflow", "hidden", "important");
+    document.body.style.setProperty("height", "297mm", "important");
+    document.body.style.setProperty("overflow", "hidden", "important");
+    // ② duplexEl(297mm)을 295mm로 zoom 축소 → 2mm 여유로 1페이지 확실 보장
+    var naturalHeight = duplexEl.scrollHeight; // position:relative height:297mm → ~1122px
+    var safeHeightPx  = 295 * (96 / 25.4);    // ~1114px
+    if (naturalHeight > safeHeightPx) {
+      var zoomRatio = safeHeightPx / naturalHeight;
+      if (zoomRatio >= 0.5) {
+        duplexEl.style.zoom = zoomRatio.toFixed(4); // 정상: ~0.993
+      }
+      // zoomRatio < 0.5 (품목 과다): zoom 미적용, 자연 다음 페이지 허용
+    }
+    return;
+  }
+
+  // 단일 페이지 모드: 277mm 초과 시 transform scale 축소
   var maxPx = 277 * (96 / 25.4);
   if (el.scrollHeight > maxPx) {
     var scale = maxPx / el.scrollHeight;
@@ -1171,7 +1194,18 @@ window.addEventListener("beforeprint", function() {
 });
 window.addEventListener("afterprint", function() {
   var el = document.getElementById("print-area");
-  if (el) { el.style.transform = ""; el.style.width = ""; }
+  if (el) {
+    el.style.transform = "";
+    el.style.width = "";
+    el.style.zoom = "";
+    var duplexEl = el.querySelector(".inv-page-duplex");
+    if (duplexEl) duplexEl.style.zoom = "";
+  }
+  // html/body 제약 해제 (화면 표시 복원)
+  document.documentElement.style.height    = "";
+  document.documentElement.style.overflow  = "";
+  document.body.style.height    = "";
+  document.body.style.overflow  = "";
 });
 
 function printInvoice(fixedNo) {

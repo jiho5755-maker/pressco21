@@ -235,10 +235,9 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
     border: none !important;
     margin: 0 !important;
   }
-  /* 이등분: page-break 규칙 제거 — zoom으로 1페이지 제어 */
-  .inv-page-duplex { width: 210mm !important; }
-  /* 각 절반: 높이 자동, 내용에 맞춤 */
-  .inv-half { overflow: visible !important; height: auto !important; }
+  /* 이등분: 각 절반 148mm 고정 → 절취선 A4 정중앙 보장 */
+  .inv-page-duplex { width: 210mm !important; height: 297mm !important; overflow: hidden !important; }
+  .inv-half { height: 148mm !important; overflow: hidden !important; }
   .inv-cut-line { border-top: 1px dashed #bbb !important; }
   .inv-items-table, .inv-total-tbl { page-break-inside: avoid; }
   #print-area input { border: none !important; background: transparent !important; }
@@ -280,15 +279,18 @@ input:focus, select:focus, textarea:focus { border-color: var(--brand); box-shad
 /* 하단 검은 선 제거: circle 반경 축소 + 중심 위로 올림, mix-blend는 컨테이너로 이동 */
 .inv-stamp-img { width: 100%; height: 100%; object-fit: contain; clip-path: circle(40% at 50% 46%); filter: contrast(1.1) saturate(1.2); }
 
-/* ── 이등분 용지 레이아웃 (A4=210x297mm) ── */
-/* zoom 기반: 내용물 자연 높이 -> beforeprint에서 zoom 계산 -> 1페이지 강제 */
-.inv-page-duplex { width: 210mm; background: #fff; font-family: '맑은 고딕', sans-serif; font-size: 8pt; color: #000; }
-.inv-half { display: block; width: 210mm; box-sizing: border-box; padding: 3mm 6mm 2mm; }
+/* ── 이등분 용지 레이아웃 (A4=210×297mm) ── */
+/* position:absolute → 각 절반을 정확히 148mm 고정, 절취선 A4 정중앙(148mm) */
+/* beforeprint zoom 0.993 → 295mm로 미세 축소 → Chrome 1페이지 + html/body 제약 이중 보호 */
+.inv-page-duplex { position: relative; width: 210mm; height: 297mm; overflow: hidden; background: #fff; font-family: '맑은 고딕', sans-serif; font-size: 8pt; color: #000; }
+.inv-half { position: absolute; width: 210mm; height: 148mm; box-sizing: border-box; padding: 3mm 6mm 2mm; overflow: hidden; }
+.inv-half.top    { top: 0; }
+.inv-half.bottom { top: 149mm; }
 .inv-half .inv-title  { font-size: 14pt; letter-spacing: 4px; }
 .inv-half .inv-logo   { max-height: 32px; max-width: 80px; }
 .inv-half .inv-logo-wrap { width: 80px; }
-/* 절취선 */
-.inv-cut-line { display: flex; width: 210mm; height: 5mm; border-top: 1px dashed #bbb; align-items: center; justify-content: center; font-size: 7pt; color: #aaa; box-sizing: border-box; }
+/* 절취선: A4 정중앙(148mm)에 절대 위치 고정 */
+.inv-cut-line { position: absolute; top: 148mm; left: 0; right: 0; height: 1mm; border-top: 1px dashed #999; display: flex; align-items: center; justify-content: center; font-size: 7pt; color: #999; overflow: visible; }
 </style>
 </head>
 <body>

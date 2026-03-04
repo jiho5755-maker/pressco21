@@ -232,7 +232,22 @@ async function loadDashboard() {
     if (elM2) elM2.textContent = "0";
     if (elS2) elS2.textContent = "0원";
     var tbody = document.getElementById("recent-invoices-body");
-    if (tbody) tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#ef4444">불러오기 실패 — 콘솔 확인</td></tr>';
+    if (tbody) tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#ef4444">불러오기 실패 — 콘솔 확인</td></tr>';
+  }
+
+  // 미수금 통계 (payment_status=unpaid 또는 partial 건)
+  try {
+    var balRes = await apiFetch(apiUrl("invoices") + buildWhere("(payment_status,neq,paid)", "limit=500&fields=current_balance,customer_id,payment_status"));
+    var unpaidList = (balRes.list || []).filter(function(r) { return (r.payment_status === "unpaid" || r.payment_status === "partial"); });
+    var totalBalance = unpaidList.reduce(function(s, r) { return s + (r.current_balance || 0); }, 0);
+    var unpaidCustomers = new Set(unpaidList.map(function(r) { return r.customer_id; })).size;
+    var elBal = document.getElementById("stat-balance");
+    var elBalSub = document.getElementById("stat-balance-sub");
+    if (elBal) elBal.textContent = totalBalance.toLocaleString() + "원";
+    if (elBalSub) elBalSub.textContent = unpaidCustomers + "개 거래처 미수";
+  } catch(e) {
+    var elBal2 = document.getElementById("stat-balance");
+    if (elBal2) elBal2.textContent = "-";
   }
 }
 
@@ -252,10 +267,16 @@ function setFormMode(mode, invoiceNo) {
   else                      badge.textContent = "새 작성";
 }
 
+function paymentStatusLabel(s) {
+  if (s === "paid")    return '<span class="status-badge" style="background:#dcfce7;color:#166534">완납</span>';
+  if (s === "partial") return '<span class="status-badge" style="background:#fef3c7;color:#92400e">부분수금</span>';
+  return '<span class="status-badge" style="background:#fee2e2;color:#991b1b">미수금</span>';
+}
+
 function renderInvoiceRows(tbodyId, list) {
   var tbody = document.getElementById(tbodyId);
   if (!list || !list.length) {
-    tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#9ca3af">내역 없음</td></tr>';
+    tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#9ca3af">내역 없음</td></tr>';
     return;
   }
   tbody.innerHTML = list.map(function(inv) {
@@ -267,10 +288,12 @@ function renderInvoiceRows(tbodyId, list) {
       '<td class="td-num">' + (inv.tax_amount || 0).toLocaleString() + '원</td>' +
       '<td class="td-num">' + (inv.total_amount || 0).toLocaleString() + '원</td>' +
       '<td><span class="status-badge status-' + (inv.status || "draft") + '">' + statusLabel(inv.status) + '</span></td>' +
+      '<td>' + paymentStatusLabel(inv.payment_status) + '</td>' +
       '<td style="white-space:nowrap">' +
         '<button class="btn-ghost btn-sm" onclick="loadInvoiceForEdit(' + inv.Id + ')">수정</button>' +
         '<button class="btn-ghost btn-sm" onclick="copyInvoice(' + inv.Id + ')">복사</button>' +
         '<button class="btn-ghost btn-sm" onclick="printInvoiceById(' + inv.Id + ')">인쇄</button>' +
+        (inv.payment_status !== "paid" ? '<button class="btn-ghost btn-sm" style="color:#16a34a;border-color:#16a34a" onclick="openPaymentModal(' + inv.Id + ')">입금</button>' : '') +
         '<button class="btn-danger btn-sm" style="margin-left:4px" onclick="deleteInvoice(' + inv.Id + ')">삭제</button>' +
       '</td>' +
     '</tr>';
@@ -326,6 +349,13 @@ async function loadInvoiceForEdit(invId) {
       });
     });
     if (!items.length) addEmptyRow();
+
+    // 미수금 복원
+    var prevEl = document.getElementById("f-prev-balance");
+    if (prevEl) prevEl.value = inv.previous_balance || 0;
+    var paidEl = document.getElementById("f-paid-amount");
+    if (paidEl) paidEl.value = inv.paid_amount || 0;
+    updateBalanceCalc();
 
     // PATCH 모드 설정
     document.getElementById("f-invoice-id").value        = invId;
@@ -385,6 +415,10 @@ async function copyInvoice(invId) {
 async function deleteInvoice(invId) {
   if (!confirm("이 명세표를 삭제하시겠습니까?\n(복구 불가)")) return;
   try {
+    // 고객 ID 사전 확인 (삭제 후 잔액 재계산용)
+    var deletedInv = await apiFetch(apiUrl("invoices") + "/" + invId + "?fields=customer_id");
+    var deletedCustomerId = deletedInv ? deletedInv.customer_id : null;
+
     // items 먼저 삭제
     var oldItems = await apiFetch(apiUrl("items") + buildWhere("(invoice_id,eq,"+invId+")", "fields=Id&limit=200"));
     var oldIds = (oldItems.list || []).map(function(it) { return it.Id; });
@@ -394,6 +428,10 @@ async function deleteInvoice(invId) {
     }
     await apiFetch(apiUrl("invoices") + "/" + invId, { method: "DELETE" });
     toast("명세표가 삭제되었습니다.", "success");
+
+    // 고객 잔액 재계산
+    if (deletedCustomerId) recalcCustomerBalance(deletedCustomerId).catch(function(){});
+
     // 발행 내역 갱신
     pageLoaded.list = false;
     allInvoices = allInvoices.filter(function(inv) { return inv.Id !== invId; });
@@ -672,6 +710,16 @@ function selectCustomer(id) {
   }
   // 최근 거래내역 로딩
   loadRecentTxForCustomer(id);
+  // 미수금 자동 로드
+  var prevEl = document.getElementById("f-prev-balance");
+  if (prevEl) prevEl.value = "";
+  var paidEl = document.getElementById("f-paid-amount");
+  if (paidEl) paidEl.value = "";
+  getCustomerBalance(id).then(function(bal) {
+    var prevEl2 = document.getElementById("f-prev-balance");
+    if (prevEl2) prevEl2.value = bal;
+    updateBalanceCalc();
+  });
   // 고객 선택 후 상품 검색 포커스
   setTimeout(function() { document.getElementById("product-search").focus(); }, 100);
 }
@@ -722,6 +770,12 @@ function clearSelectedCustomer() {
   if (card) card.style.display = "none";
   var panel = document.getElementById("recent-tx-panel");
   if (panel) panel.style.display = "none";
+  // 미수금 초기화
+  var prevEl = document.getElementById("f-prev-balance");
+  if (prevEl) prevEl.value = "";
+  var paidEl = document.getElementById("f-paid-amount");
+  if (paidEl) paidEl.value = "";
+  updateBalanceCalc();
   setTimeout(function() { document.getElementById("customer-search").focus(); }, 50);
 }
 
@@ -947,6 +1001,7 @@ function updateTotals() {
   document.getElementById("total-supply").textContent = supply.toLocaleString();
   document.getElementById("total-tax").textContent    = tax.toLocaleString();
   document.getElementById("total-amount").textContent = total.toLocaleString();
+  updateBalanceCalc();
 }
 
 function resetForm(force) {
@@ -954,7 +1009,7 @@ function resetForm(force) {
     if (!confirm("작성 중인 내용을 초기화할까요?")) return;
   }
   clearSelectedCustomer();
-  ["f-invoice-id","f-invoice-no-stored","f-memo","customer-search","product-search"].forEach(function(id) {
+  ["f-invoice-id","f-invoice-no-stored","f-memo","customer-search","product-search","f-prev-balance","f-paid-amount"].forEach(function(id) {
     var el = document.getElementById(id); if (el) el.value = "";
   });
   document.getElementById("f-date").value = todayStr();
@@ -999,12 +1054,21 @@ async function saveInvoice(status) {
   var invoiceNo = existId ? document.getElementById("f-invoice-no-stored").value : generateInvoiceNo();
   var receiptType = (document.getElementById("f-receipt-type") || {}).value || "영수";
 
+  var prevBalEl = document.getElementById("f-prev-balance");
+  var paidAmtEl = document.getElementById("f-paid-amount");
+  var prevBal  = parseFloat(prevBalEl ? prevBalEl.value : 0) || 0;
+  var paidAmt  = parseFloat(paidAmtEl ? paidAmtEl.value : 0) || 0;
+  var curBal   = prevBal + total - paidAmt;
+  var paymentStatus = paidAmt >= (prevBal + total) ? "paid" : paidAmt > 0 ? "partial" : "unpaid";
+
   var invoiceData = {
     invoice_no: invoiceNo, customer_id: parseInt(customerId), customer_name: customerName,
     invoice_date: invDate,
     supply_amount: supply, tax_amount: tax, total_amount: total,
     memo: document.getElementById("f-memo").value, status: status,
     receipt_type: receiptType,
+    paid_amount: paidAmt, previous_balance: prevBal,
+    current_balance: curBal, payment_status: paymentStatus,
   };
 
   // 2-D: 저장 중 버튼 비활성화
@@ -1059,6 +1123,9 @@ async function saveInvoice(status) {
     pageLoaded.list = false;
     isDirty = false;
 
+    // 고객 잔액 갱신 (비동기, 실패해도 계속)
+    recalcCustomerBalance(parseInt(customerId)).catch(function(e) { console.warn("잔액 갱신:", e); });
+
     if (status === "issued") {
       toast("발행 완료! 인쇄 창을 확인하세요.", "success");
       printInvoice(invoiceNo);
@@ -1081,24 +1148,30 @@ async function saveInvoice(status) {
 }
 
 // ─────────────────────────────────────────
-// 인쇄 — 표준 한국 거래명세표 양식 (세로형 표 구조)
+// 인쇄 — 카드형 거래명세표 (로고+도장+미수금)
 // ─────────────────────────────────────────
 function buildInvoiceHtml(inv, items, copyType) {
   var c = companyInfo;
   var copyLabel = copyType || "공급받는자 보관용";
-  var blankCount = Math.max(0, 10 - items.length);
+  var blankCount = Math.max(0, 8 - items.length);
+  var logoSrc  = _logoDataUrl  || "images/company-logo.png";
   var stampSrc = _stampDataUrl || "images/company-stamp.jpg";
 
-  var itemRows = items.map(function(item, i) {
+  var prevBal  = inv.previous_balance || 0;
+  var paidAmt  = inv.paid_amount || 0;
+  var totalAmt = inv.total_amount || 0;
+  var curBal   = prevBal + totalAmt - paidAmt;
+
+  var itemRowsHtml = items.map(function(item, i) {
     return '<tr>' +
       '<td class="t-center">'+(i+1)+'</td>' +
       '<td>'+esc(item.product_name||"")+'</td>' +
-      '<td></td>' +
       '<td class="t-center">'+esc(item.unit||"")+'</td>' +
       '<td class="t-right">'+(item.quantity||0).toLocaleString()+'</td>' +
       '<td class="t-right">'+(item.unit_price||0).toLocaleString()+'</td>' +
       '<td class="t-right">'+(item.supply_amount||0).toLocaleString()+'</td>' +
       '<td class="t-right">'+(item.tax_amount||0).toLocaleString()+'</td>' +
+      '<td class="t-right">'+((item.supply_amount||0)+(item.tax_amount||0)).toLocaleString()+'</td>' +
     '</tr>';
   }).join("") +
   Array(blankCount).fill(
@@ -1106,85 +1179,83 @@ function buildInvoiceHtml(inv, items, copyType) {
   ).join("");
 
   return (
-    // ① 타이틀 행: 거래일 | 거 래 명 세 표 | (보관용)
-    '<table class="inv-tbl inv-hdr-tbl"><tr>' +
-      '<td class="inv-date-cell">거래일:&nbsp;<b>'+esc(inv.invoice_date||"")+'</b></td>' +
-      '<td class="inv-title-cell">거 래 명 세 표</td>' +
-      '<td class="inv-copy-cell">('+esc(copyLabel)+')</td>' +
+    // ① 헤더: 로고 | 제목+보관용 | 빈공간
+    '<div class="inv-header">' +
+      '<div class="inv-logo"><img src="'+logoSrc+'" alt="" onerror="this.style.display=\'none\'"></div>' +
+      '<div class="inv-title-area"><div class="inv-title">거 래 명 세 표</div><div class="inv-sub">('+esc(copyLabel)+')</div></div>' +
+      '<div></div>' +
+    '</div>' +
+
+    // ② 메타: 발행번호 | 영수/청구 | 거래일자
+    '<table class="inv-tbl inv-meta-tbl"><tr>' +
+      '<td class="inv-ml">발행번호</td><td class="inv-mv">'+esc(inv.invoice_no||"")+'</td>' +
+      '<td class="inv-ml">구분</td><td class="inv-mv t-center">'+esc(inv.receipt_type||"영수")+'</td>' +
+      '<td class="inv-ml">거래일자</td><td class="inv-mv">'+esc(inv.invoice_date||"")+'</td>' +
     '</tr></table>' +
 
-    // ② 당사자 정보: 공급받는자 (좌) | 공급자 (우)
-    '<table class="inv-tbl inv-pty-tbl">' +
-      '<tr class="inv-pty-head">' +
-        '<td colspan="4">공급받는자&nbsp;&nbsp;등록번호:&nbsp;'+esc(inv.customer_bizno||"")+'</td>' +
-        '<td colspan="4">공&nbsp;&nbsp;급&nbsp;&nbsp;자&nbsp;&nbsp;등록번호:&nbsp;'+esc(c.bizno||"")+'</td>' +
-      '</tr>' +
-      '<tr>' +
-        '<td class="inv-lbl">상&nbsp;&nbsp;호</td><td class="inv-val">'+esc(inv.customer_name||"")+'</td>' +
-        '<td class="inv-lbl">성&nbsp;명</td><td class="inv-val">'+esc(inv.manager||"")+'</td>' +
-        '<td class="inv-lbl">상&nbsp;&nbsp;호</td><td class="inv-val">'+esc(c.company||"")+'</td>' +
-        '<td class="inv-lbl">성&nbsp;명</td><td class="inv-val">'+esc(c.ceo||"")+'</td>' +
-      '</tr>' +
-      '<tr>' +
-        '<td class="inv-lbl inv-lbl-multi">사업장<br>주&nbsp;&nbsp;소</td><td class="inv-val" colspan="3">'+esc(inv.customer_address||"")+'</td>' +
-        '<td class="inv-lbl inv-lbl-multi">사업장<br>주&nbsp;&nbsp;소</td><td class="inv-val" colspan="3">'+esc(c.address||"")+'</td>' +
-      '</tr>' +
-      '<tr>' +
-        '<td class="inv-lbl">업&nbsp;&nbsp;태</td><td class="inv-val"></td>' +
-        '<td class="inv-lbl">업&nbsp;종</td><td class="inv-val"></td>' +
-        '<td class="inv-lbl">업&nbsp;&nbsp;태</td><td class="inv-val">'+esc(c.bizType||"")+'</td>' +
-        '<td class="inv-lbl">업&nbsp;종</td><td class="inv-val">'+esc(c.bizItem||"")+'</td>' +
-      '</tr>' +
-      '<tr>' +
-        '<td class="inv-lbl">연&nbsp;락&nbsp;처</td><td class="inv-val" colspan="3">'+esc(inv.customer_phone||"")+'</td>' +
-        '<td class="inv-lbl">연&nbsp;락&nbsp;처</td><td class="inv-val" colspan="3">'+esc(c.phone||"")+'</td>' +
-      '</tr>' +
-    '</table>' +
+    // ③ 당사자: 공급자 카드 | 공급받는자 카드
+    '<div class="inv-parties">' +
+      '<div class="inv-party">' +
+        '<div class="inv-party-title">공&nbsp;&nbsp;급&nbsp;&nbsp;자</div>' +
+        '<table class="inv-tbl inv-party-tbl">' +
+          '<tr><td class="inv-pl">상호</td><td>'+esc(c.company||"")+'</td><td class="inv-pl">대표자</td><td>'+esc(c.ceo||"")+'</td></tr>' +
+          '<tr><td class="inv-pl">사업자번호</td><td colspan="3">'+esc(c.bizno||"")+'</td></tr>' +
+          '<tr><td class="inv-pl">주소</td><td colspan="3">'+esc(c.address||"")+'</td></tr>' +
+          '<tr><td class="inv-pl">업태/종목</td><td colspan="3">'+esc(c.bizType||"")+'&nbsp;/&nbsp;'+esc(c.bizItem||"")+'</td></tr>' +
+          '<tr><td class="inv-pl">전화</td><td colspan="3">'+esc(c.phone||"")+'</td></tr>' +
+        '</table>' +
+      '</div>' +
+      '<div class="inv-party">' +
+        '<div class="inv-party-title">공&nbsp;급&nbsp;받&nbsp;는&nbsp;자</div>' +
+        '<table class="inv-tbl inv-party-tbl">' +
+          '<tr><td class="inv-pl">상호</td><td>'+esc(inv.customer_name||"")+'</td><td class="inv-pl">담당자</td><td>'+esc(inv.manager||"")+'</td></tr>' +
+          '<tr><td class="inv-pl">사업자번호</td><td colspan="3">'+esc(inv.customer_bizno||"")+'</td></tr>' +
+          '<tr><td class="inv-pl">주소</td><td colspan="3">'+esc(inv.customer_address||"")+'</td></tr>' +
+          '<tr><td class="inv-pl">업태/종목</td><td colspan="3"></td></tr>' +
+          '<tr><td class="inv-pl">전화</td><td colspan="3">'+esc(inv.customer_phone||"")+'</td></tr>' +
+        '</table>' +
+      '</div>' +
+    '</div>' +
 
-    // ③ 합계금액 바
-    '<table class="inv-tbl inv-totalbar-tbl"><tr>' +
-      '<td class="inv-totalbar-lbl">합계금액:</td>' +
-      '<td class="inv-totalbar-amt"><b>'+(inv.total_amount||0).toLocaleString()+'</b>&nbsp;원</td>' +
-      '<td class="inv-totalbar-rt">'+esc(inv.receipt_type||"영수(청구)")+' (&nbsp;'+esc(inv.invoice_no||"")+'&nbsp;)</td>' +
-    '</tr></table>' +
-
-    // ④ 품목 테이블
-    '<table class="inv-tbl inv-items-tbl">' +
+    // ④ 품목 테이블 (8열)
+    '<table class="inv-tbl inv-items-table">' +
       '<thead><tr>' +
-        '<th class="t-center" style="width:5%">No</th>' +
-        '<th style="width:27%">품&nbsp;&nbsp;&nbsp;목</th>' +
-        '<th style="width:11%">규&nbsp;&nbsp;격</th>' +
-        '<th class="t-center" style="width:7%">단위</th>' +
-        '<th class="t-center" style="width:9%">수&nbsp;량</th>' +
-        '<th class="t-right" style="width:13%">단&nbsp;&nbsp;가</th>' +
-        '<th class="t-right" style="width:14%">공급가액</th>' +
-        '<th class="t-right" style="width:14%">세&nbsp;&nbsp;액</th>' +
+        '<th style="width:5%">No</th>' +
+        '<th style="width:29%">품&nbsp;&nbsp;&nbsp;목&nbsp;&nbsp;&nbsp;명</th>' +
+        '<th style="width:7%">단위</th>' +
+        '<th style="width:8%">수량</th>' +
+        '<th style="width:13%">단가</th>' +
+        '<th style="width:13%">공급가액</th>' +
+        '<th style="width:11%">세액</th>' +
+        '<th style="width:14%">합계금액</th>' +
       '</tr></thead>' +
-      '<tbody>'+itemRows+'</tbody>' +
+      '<tbody>'+itemRowsHtml+'</tbody>' +
     '</table>' +
 
-    // ⑤ 비고 (메모 있을 경우)
-    (inv.memo ? '<table class="inv-tbl inv-memo-tbl"><tr><td>비고:&nbsp;'+esc(inv.memo)+'</td></tr></table>' : "") +
+    // ⑤ 합계
+    '<table class="inv-tbl inv-total-tbl"><tr>' +
+      '<td class="inv-tl">공&nbsp;급&nbsp;가&nbsp;액</td><td class="inv-tv t-right">'+(inv.supply_amount||0).toLocaleString()+'</td>' +
+      '<td class="inv-tl">세&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;액</td><td class="inv-tv t-right">'+(inv.tax_amount||0).toLocaleString()+'</td>' +
+      '<td class="inv-tl inv-grand">합&nbsp;계&nbsp;금&nbsp;액</td><td class="inv-tv inv-grand t-right">'+(inv.total_amount||0).toLocaleString()+'</td>' +
+    '</tr></table>' +
 
-    // ⑥ 하단 요약
-    '<table class="inv-tbl inv-sum-tbl">' +
-      '<tr>' +
-        '<td class="inv-sl">공급가액</td><td class="inv-sv t-right">'+(inv.supply_amount||0).toLocaleString()+'</td>' +
-        '<td class="inv-sl">세&nbsp;&nbsp;&nbsp;액</td><td class="inv-sv t-right">'+(inv.tax_amount||0).toLocaleString()+'</td>' +
-        '<td class="inv-sl">입&nbsp;금&nbsp;액</td><td class="inv-sv"></td>' +
-        '<td class="inv-sl">회&nbsp;상&nbsp;액</td><td class="inv-sv"></td>' +
-      '</tr>' +
-      '<tr>' +
-        '<td class="inv-sl">할&nbsp;인&nbsp;액</td><td class="inv-sv"></td>' +
-        '<td class="inv-sl">잔미수금</td><td class="inv-sv"></td>' +
-        '<td class="inv-sl">현미수금</td><td class="inv-sv"></td>' +
-        '<td class="inv-sl">인&nbsp;수&nbsp;자</td>' +
-        '<td class="inv-sv t-center">' +
-          '<span class="inv-sum-stamp"><img src="'+stampSrc+'" class="inv-sum-stamp-img" alt="" onerror="this.style.display=\'none\'"></span>' +
-          '인' +
-        '</td>' +
-      '</tr>' +
-    '</table>'
+    // ⑥ 미수금
+    '<table class="inv-tbl inv-balance-tbl"><tr>' +
+      '<td class="inv-bl">전&nbsp;&nbsp;잔&nbsp;&nbsp;액</td><td class="inv-bv t-right">'+prevBal.toLocaleString()+'</td>' +
+      '<td class="inv-bl">출&nbsp;&nbsp;고&nbsp;&nbsp;액</td><td class="inv-bv t-right">'+totalAmt.toLocaleString()+'</td>' +
+      '<td class="inv-bl">입&nbsp;&nbsp;금&nbsp;&nbsp;액</td><td class="inv-bv t-right">'+paidAmt.toLocaleString()+'</td>' +
+      '<td class="inv-bl">현&nbsp;&nbsp;잔&nbsp;&nbsp;액</td>' +
+      '<td class="inv-bv t-right'+(curBal > 0 ? " inv-bv-warn" : "")+'">'+curBal.toLocaleString()+'</td>' +
+    '</tr></table>' +
+
+    // ⑦ 비고 (있을 때만)
+    (inv.memo ? '<div class="inv-memo">비고:&nbsp;'+esc(inv.memo)+'</div>' : "") +
+
+    // ⑧ 서명 + 도장
+    '<div class="inv-sig">' +
+      '<span>위 금액을 정히 '+esc(inv.receipt_type||"영수(청구)")+'합니다.</span>' +
+      '<span class="inv-stamp"><img src="'+stampSrc+'" class="inv-stamp-img" alt="" onerror="this.style.display=\'none\'"></span>' +
+    '</div>'
   );
 }
 
@@ -1221,51 +1292,60 @@ function printDuplexViaIframe(duplexHtml) {
     "@page { size: A4 portrait; margin: 0; }",
     // ★ 핵심: html/body를 A4 높이로 강제 → Chrome 2페이지 생성 불가
     "html { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; }",
-    "body { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; }",
+    "body { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; font-size:6pt; }",
     "* { box-sizing:border-box; }",
 
-    // 공통 테이블 스타일
-    ".inv-tbl { width:100%; border-collapse:collapse; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; }",
+    // 공통 테이블
+    ".inv-tbl { width:100%; border-collapse:collapse; }",
 
-    // ① 타이틀
-    ".inv-hdr-tbl { border:1.5px solid #333; }",
-    ".inv-date-cell { padding:2px 5px; font-size:6.5pt; width:28%; }",
-    ".inv-title-cell { padding:2px 0; text-align:center; font-size:12pt; font-weight:900; letter-spacing:5px; }",
-    ".inv-copy-cell { padding:2px 5px; text-align:right; font-size:6.5pt; width:28%; }",
+    // ① 헤더: 로고 | 제목 | 빈공간
+    ".inv-header { display:flex; align-items:center; justify-content:space-between; border:1.5px solid #333; padding:3px 6px; gap:6px; }",
+    ".inv-logo img { height:24px; max-width:80px; object-fit:contain; }",
+    ".inv-title-area { text-align:center; flex:1; }",
+    ".inv-title { font-size:11pt; font-weight:900; letter-spacing:5px; }",
+    ".inv-sub { font-size:5.5pt; color:#555; margin-top:1px; }",
 
-    // ② 당사자 정보
-    ".inv-pty-tbl { border:1.5px solid #333; border-top:none; font-size:6.5pt; }",
-    ".inv-pty-tbl td { border:1px solid #999; padding:1.5px 3px; }",
-    ".inv-pty-head td { background:#f0f0f0; font-weight:700; text-align:center; padding:2px 3px; font-size:7pt; }",
-    ".inv-lbl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:40px; }",
-    ".inv-lbl-multi { line-height:1.4; }",
+    // ② 메타
+    ".inv-meta-tbl { border:1.5px solid #333; border-top:none; }",
+    ".inv-meta-tbl td { border:1px solid #999; padding:1.5px 4px; font-size:6pt; }",
+    ".inv-ml { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }",
+    ".inv-mv { }",
 
-    // ③ 합계금액 바
-    ".inv-totalbar-tbl { border:1.5px solid #333; border-top:none; }",
-    ".inv-totalbar-tbl td { border:1px solid #999; padding:3px 6px; }",
-    ".inv-totalbar-lbl { font-size:7pt; font-weight:700; background:#f5f5f5; text-align:center; width:22%; }",
-    ".inv-totalbar-amt { font-size:10pt; font-weight:900; }",
-    ".inv-totalbar-rt { text-align:center; font-size:7pt; }",
+    // ③ 당사자
+    ".inv-parties { display:flex; border:1.5px solid #333; border-top:none; }",
+    ".inv-party { flex:1; }",
+    ".inv-party:first-child { border-right:1px solid #aaa; }",
+    ".inv-party-title { background:#f0f0f0; text-align:center; font-weight:700; padding:2px 0; font-size:6.5pt; border-bottom:1px solid #aaa; }",
+    ".inv-party-tbl td { border:none; border-bottom:1px solid #eee; border-right:1px solid #eee; padding:1.5px 3px; font-size:5.5pt; }",
+    ".inv-pl { background:#f9f9f9; font-weight:600; white-space:nowrap; width:42px; text-align:center; }",
 
     // ④ 품목 테이블
-    ".inv-items-tbl { border:1.5px solid #333; border-top:none; font-size:6.5pt; }",
-    ".inv-items-tbl th { background:#f0f0f0; border:1px solid #999; padding:2px 1px; text-align:center; font-weight:700; }",
-    ".inv-items-tbl td { border:1px solid #ccc; padding:1.5px 2px; }",
-    ".inv-blank td { height:13px; }",
+    ".inv-items-table { border:1.5px solid #333; border-top:none; }",
+    ".inv-items-table th { background:#f0f0f0; border:1px solid #999; padding:1.5px 1px; text-align:center; font-weight:700; font-size:5.5pt; }",
+    ".inv-items-table td { border:1px solid #ccc; padding:1px 2px; font-size:6pt; }",
+    ".inv-blank td { height:11px; }",
 
-    // ⑤ 비고
-    ".inv-memo-tbl { border:1.5px solid #333; border-top:none; }",
-    ".inv-memo-tbl td { padding:2px 5px; font-size:6.5pt; }",
+    // ⑤ 합계
+    ".inv-total-tbl { border:1.5px solid #333; border-top:none; }",
+    ".inv-total-tbl td { border:1px solid #999; padding:2px 5px; font-size:6.5pt; }",
+    ".inv-tl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:60px; }",
+    ".inv-tv { }",
+    ".inv-grand { background:#e8f0e8 !important; font-weight:700; }",
 
-    // ⑥ 하단 요약
-    ".inv-sum-tbl { border:1.5px solid #333; border-top:none; font-size:6.5pt; }",
-    ".inv-sum-tbl td { border:1px solid #999; padding:2px 3px; }",
-    ".inv-sl { background:#f0f0f0; text-align:center; font-weight:600; width:12.5%; white-space:nowrap; }",
-    ".inv-sv { width:12.5%; }",
+    // ⑥ 미수금
+    ".inv-balance-tbl { border:1.5px solid #333; border-top:none; }",
+    ".inv-balance-tbl td { border:1px solid #999; padding:2px 4px; font-size:6pt; }",
+    ".inv-bl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }",
+    ".inv-bv { }",
+    ".inv-bv-warn { color:#dc2626; font-weight:700; }",
 
-    // 도장
-    ".inv-sum-stamp { display:inline-block; width:34px; height:34px; overflow:hidden; border-radius:50%; mix-blend-mode:multiply; transform:rotate(-10deg); vertical-align:middle; margin-right:2px; }",
-    ".inv-sum-stamp-img { width:100%; height:100%; object-fit:contain; clip-path:circle(40% at 50% 46%); filter:contrast(1.1) saturate(1.2); }",
+    // ⑦ 비고
+    ".inv-memo { border:1.5px solid #333; border-top:none; padding:2px 6px; font-size:6pt; }",
+
+    // ⑧ 서명 + 도장
+    ".inv-sig { border:1.5px solid #333; border-top:none; padding:4px 8px; display:flex; align-items:center; justify-content:space-between; font-size:6.5pt; }",
+    ".inv-stamp { display:inline-block; width:36px; height:36px; overflow:hidden; border-radius:50%; mix-blend-mode:multiply; transform:rotate(-10deg); vertical-align:middle; }",
+    ".inv-stamp-img { width:100%; height:100%; object-fit:contain; clip-path:circle(40% at 50% 46%); filter:contrast(1.1) saturate(1.2); }",
 
     // 공통
     ".t-right { text-align:right; }",
@@ -1364,6 +1444,95 @@ window.addEventListener("afterprint", function() {
   }
 });
 
+// ─────────────────────────────────────────
+// 입금 처리 모달
+// ─────────────────────────────────────────
+var _paymentTargetInvId = null;
+var _paymentTargetCustomerId = null;
+
+async function openPaymentModal(invId) {
+  try {
+    var inv = await apiFetch(apiUrl("invoices") + "/" + invId);
+    _paymentTargetInvId = invId;
+    _paymentTargetCustomerId = inv.customer_id;
+    document.getElementById("pm-inv-no").textContent      = inv.invoice_no || "";
+    document.getElementById("pm-customer").textContent    = inv.customer_name || "";
+    document.getElementById("pm-total").textContent       = (inv.total_amount || 0).toLocaleString() + "원";
+    document.getElementById("pm-paid").textContent        = (inv.paid_amount || 0).toLocaleString() + "원";
+    document.getElementById("pm-prev-bal").textContent    = (inv.previous_balance || 0).toLocaleString() + "원";
+    document.getElementById("pm-cur-bal").textContent     = (inv.current_balance || 0).toLocaleString() + "원";
+    document.getElementById("pm-amount").value            = "";
+    document.getElementById("pm-date").value              = todayStr();
+    openModal("modal-payment");
+    setTimeout(function() { document.getElementById("pm-amount").focus(); }, 100);
+  } catch(e) { toast("불러오기 실패: " + e.message, "error"); }
+}
+
+async function processPayment() {
+  var invId = _paymentTargetInvId;
+  var customerId = _paymentTargetCustomerId;
+  if (!invId) return;
+
+  var newPaidAmt = parseFloat(document.getElementById("pm-amount").value) || 0;
+  if (newPaidAmt <= 0) { toast("입금액을 입력하세요.", "warning"); return; }
+
+  try {
+    var inv = await apiFetch(apiUrl("invoices") + "/" + invId);
+    var totalPaid    = (inv.paid_amount || 0) + newPaidAmt;
+    var prevBal      = inv.previous_balance || 0;
+    var totalAmt     = inv.total_amount || 0;
+    var curBal       = prevBal + totalAmt - totalPaid;
+    var paymentStatus = totalPaid >= (prevBal + totalAmt) ? "paid" : "partial";
+
+    await apiFetch(apiUrl("invoices") + "/" + invId, {
+      method: "PATCH",
+      body: JSON.stringify({ paid_amount: totalPaid, current_balance: curBal, payment_status: paymentStatus })
+    });
+
+    if (customerId) recalcCustomerBalance(customerId).catch(function(){});
+
+    closeModal("modal-payment");
+    toast("입금 처리 완료: " + newPaidAmt.toLocaleString() + "원", "success");
+    pageLoaded.list = false;
+    loadDashboard();
+  } catch(e) { toast("처리 오류: " + e.message, "error"); }
+}
+
+// ─────────────────────────────────────────
+// 미수금 관리
+// ─────────────────────────────────────────
+async function getCustomerBalance(customerId) {
+  try {
+    var res = await apiFetch(apiUrl("invoices") + buildWhere("(customer_id,eq,"+customerId+")", "sort=-invoice_date&limit=1&fields=current_balance"));
+    var list = res.list || [];
+    return (list.length) ? (list[0].current_balance || 0) : 0;
+  } catch(e) { return 0; }
+}
+
+async function recalcCustomerBalance(customerId) {
+  try {
+    var res = await apiFetch(apiUrl("invoices") + buildWhere("(customer_id,eq,"+customerId+")", "sort=-invoice_date&limit=1&fields=current_balance"));
+    var list = res.list || [];
+    var balance = list.length ? (list[0].current_balance || 0) : 0;
+    await apiFetch(apiUrl("customers") + "/" + customerId, { method: "PATCH", body: JSON.stringify({ outstanding_balance: balance }) });
+  } catch(e) { console.warn("잔액 재계산 실패:", e); }
+}
+
+function updateBalanceCalc() {
+  var prevEl = document.getElementById("f-prev-balance");
+  var paidEl = document.getElementById("f-paid-amount");
+  var dispEl = document.getElementById("f-cur-balance-display");
+  if (!prevEl || !paidEl || !dispEl) return;
+  var prevBal  = parseFloat(prevEl.value) || 0;
+  var paidAmt  = parseFloat(paidEl.value) || 0;
+  var totalAmt = parseMoney(document.getElementById("total-amount").textContent);
+  var curBal   = prevBal + totalAmt - paidAmt;
+  dispEl.textContent = curBal.toLocaleString() + "원";
+  dispEl.style.color = curBal > 0 ? "#dc2626" : "#16a34a";
+  var prevDispEl = document.getElementById("f-prev-balance-display");
+  if (prevDispEl) prevDispEl.textContent = prevBal.toLocaleString() + "원";
+}
+
 function printInvoice(fixedNo) {
   // 2-D: 공급자 미설정 경고
   if (!companyInfo.company) {
@@ -1382,6 +1551,8 @@ function printInvoice(fixedNo) {
     total_amount: parseMoney(document.getElementById("total-amount").textContent),
     memo: document.getElementById("f-memo").value,
     receipt_type: (document.getElementById("f-receipt-type") || {}).value || "영수(청구)",
+    previous_balance: parseFloat((document.getElementById("f-prev-balance") || {}).value) || 0,
+    paid_amount: parseFloat((document.getElementById("f-paid-amount") || {}).value) || 0,
   };
   var items = itemRows.map(function(id) {
     return {
@@ -1625,9 +1796,9 @@ async function loadCustomerList(q, append) {
       if (q2 && q2.trim().length > 0) {
         var trimQ = q2.trim();
         var where = "(name,like,%"+trimQ+"%)~or(book_name,like,%"+trimQ+"%)~or(phone1,like,%"+trimQ+"%)~or(mobile,like,%"+trimQ+"%)";
-        url = apiUrl("customers") + buildWhere(where, "limit="+CUSTOMER_PAGE_SIZE+"&offset="+customerCurrentOffset+"&sort="+custSortParam+"&fields=Id,legacy_id,name,book_name,phone1,mobile,email,address1,extra_addresses,business_no,manager,price_tier,partner_grade");
+        url = apiUrl("customers") + buildWhere(where, "limit="+CUSTOMER_PAGE_SIZE+"&offset="+customerCurrentOffset+"&sort="+custSortParam+"&fields=Id,legacy_id,name,book_name,phone1,mobile,email,address1,extra_addresses,business_no,manager,price_tier,partner_grade,outstanding_balance");
       } else {
-        url = apiUrl("customers") + "?limit="+CUSTOMER_PAGE_SIZE+"&offset="+customerCurrentOffset+"&sort="+custSortParam+"&fields=Id,legacy_id,name,book_name,phone1,mobile,email,address1,extra_addresses,business_no,manager,price_tier,partner_grade";
+        url = apiUrl("customers") + "?limit="+CUSTOMER_PAGE_SIZE+"&offset="+customerCurrentOffset+"&sort="+custSortParam+"&fields=Id,legacy_id,name,book_name,phone1,mobile,email,address1,extra_addresses,business_no,manager,price_tier,partner_grade,outstanding_balance";
       }
       var res = await apiFetch(url);
       var list = res.list || [];
@@ -1639,6 +1810,8 @@ async function loadCustomerList(q, append) {
 
       list.forEach(function(c) { customerListCache[c.Id] = c; });
       var rowsHtml = list.map(function(c) {
+        var bal = c.outstanding_balance || 0;
+        var balStyle = bal > 0 ? "color:#dc2626;font-weight:600" : "color:#16a34a";
         return '<tr onclick="startInvoiceForCustomer(' + c.Id + ')" style="cursor:pointer" title="클릭: 이 고객으로 거래명세표 작성">' +
           '<td>'+( c.legacy_id||c.Id)+'</td>' +
           '<td><strong>'+esc(c.name||"")+'</strong></td>' +
@@ -1647,6 +1820,7 @@ async function loadCustomerList(q, append) {
           '<td>'+esc(c.address1||"")+'</td>' +
           '<td class="td-center">'+(c.price_tier||1)+'</td>' +
           '<td>'+esc(c.partner_grade||"")+'</td>' +
+          '<td class="td-num" style="'+balStyle+'">'+bal.toLocaleString()+'원</td>' +
           '<td class="td-center" onclick="event.stopPropagation()"><button class="btn-ghost btn-sm" onclick="openEditCustomer('+c.Id+')">수정</button></td>' +
         '</tr>';
       }).join("");
@@ -1665,11 +1839,11 @@ async function loadCustomerList(q, append) {
       var remaining = total - customerCurrentOffset;
       if (hasMore) {
         tbody.insertAdjacentHTML("beforeend",
-          '<tr id="customer-more-row"><td colspan="8" style="text-align:center;padding:12px">' +
+          '<tr id="customer-more-row"><td colspan="9" style="text-align:center;padding:12px">' +
           '<button class="btn-outline" onclick="loadCustomerList(customerCurrentQ, true)">'+
           '▼ 더 보기 (' + remaining.toLocaleString() + '명 더 있음)</button></td></tr>');
       }
-    } catch(e) { console.error(e); tbody.innerHTML = '<tr><td colspan="8" style="text-align:center;padding:20px;color:#dc2626">오류 발생</td></tr>'; }
+    } catch(e) { console.error(e); tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;padding:20px;color:#dc2626">오류 발생</td></tr>'; }
   };
 
   if (q && q.trim().length > 0 && !append) {

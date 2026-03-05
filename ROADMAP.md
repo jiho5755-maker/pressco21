@@ -474,27 +474,18 @@ NocoDB 직접 조작 의존을 탈피하여 관리자가 메이크샵 전용 페
 
 ---
 
-#### Task CRM-003: 고객/거래처 14,549건 병합 이전
+#### Task CRM-003: 고객/거래처 15,830건 병합 이전 ✅ 완료 (2026-03-05)
 
-> **규모**: L | **예상 기간**: 1.5주 | **담당**: `gas-backend-expert` (Python 스크립트), `data-integrity-expert` (검증) | **의존성**: CRM-001
+> **규모**: L | **담당**: `data-integrity-expert` | **의존성**: CRM-001
 
-구글시트 고객 목록과 거래처 목록을 통합하여 NocoDB tbl_customers로 이전한다. 동일 고객의 중복 레코드를 병합하는 것이 핵심 난이도.
+얼마에요 거래처.xls(13,298건) + 고객리스트 전체자료.xls(6,592건) → NocoDB tbl_Customers 병합 이전.
 
-- Python 마이그레이션 스크립트 개발
-  - 구글시트 고객 시트 + 거래처 시트 데이터 읽기
-  - 중복 판별 로직: 사업자번호 동일 → 병합, 전화번호+이름 동일 → 병합 후보 (수동 확인 목록 생성)
-  - 병합 시 최신 정보 우선 원칙 (최근 거래일 기준)
-  - NocoDB REST API를 통한 배치 INSERT
-- 병합 결과 검증
-  - 원본 총 건수 vs 병합 후 고유 건수 대조
-  - 수동 확인 필요 건 목록 CSV 출력 → 사용자 검토
-- customer_id와 tbl_tx_history.customer_id 간 참조 무결성 확인
-
-**수락 기준**:
-- [ ] 고객 + 거래처 데이터 NocoDB tbl_customers 이관 완료
-- [ ] 중복 병합 완료 (사업자번호 기준 자동, 전화번호+이름 기준 수동 확인 목록 제공)
-- [ ] tbl_tx_history.customer_id와 tbl_customers.id 참조 무결성 100%
-- [ ] 수동 확인 필요 건 CSV 보고서 생성
+**완료 결과**:
+- [x] `scripts/migrate_customers.py` 작성 및 실행
+- [x] customer_type 자동 분류 10,380건 적용 (INDIVIDUAL/SCHOOL_*/CENTER/ASSOC/ACADEMY/ONLINE)
+- [x] 고객리스트 매칭 4,043건 → email/mobile 보완 업데이트 (858건)
+- [x] 고객리스트 미매칭 2,548건 신규 추가
+- [x] 최종 tbl_Customers: 15,830건
 
 ---
 

@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Layout } from '@/components/layout/Layout'
 import { Dashboard } from '@/pages/Dashboard'
 import { Customers } from '@/pages/Customers'
+import { CustomerDetail } from '@/pages/CustomerDetail'
 import { Invoices } from '@/pages/Invoices'
 import { Products } from '@/pages/Products'
 import { Suppliers } from '@/pages/Suppliers'
@@ -26,6 +27,7 @@ function App() {
           <Route element={<Layout />}>
             <Route index element={<Dashboard />} />
             <Route path="customers" element={<Customers />} />
+            <Route path="customers/:id" element={<CustomerDetail />} />
             <Route path="invoices" element={<Invoices />} />
             <Route path="products" element={<Products />} />
             <Route path="suppliers" element={<Suppliers />} />

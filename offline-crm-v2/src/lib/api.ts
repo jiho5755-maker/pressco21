@@ -96,10 +96,14 @@ export interface Invoice {
   customer_id?: number
   customer_name?: string
   status?: string
+  receipt_type?: string
   supply_amount?: number
   tax_amount?: number
   total_amount?: number
   paid_amount?: number
+  previous_balance?: number
+  current_balance?: number
+  payment_status?: string
   payment_method?: string
   paid_date?: string
   memo?: string
@@ -125,6 +129,7 @@ export interface InvoiceItem {
   invoice_id?: number
   product_id?: number
   product_name?: string
+  unit?: string
   quantity?: number
   unit_price?: number
   supply_amount?: number

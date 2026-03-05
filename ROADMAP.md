@@ -660,33 +660,44 @@ CRM의 주요 데이터를 엑셀 파일로 내보내는 기능을 구현한다.
 
 ---
 
-#### Task CRM-010: VIP 등급 자동 산정 + 고객 카드 강화
+#### Task CRM-010: 회원 등급 체계 구축 + 고객 카드 강화
 
-> **규모**: M | **예상 기간**: 1주 | **담당**: `ecommerce-business-expert` (등급 기준 설계), `makeshop-ui-ux-expert` (UI) | **의존성**: CRM-004
+> **규모**: M | **예상 기간**: 1~1.5주 | **담당**: `ecommerce-business-expert` (등급 기준·수익성), `brand-planning-expert` (브랜딩), `sales-partnership-specialist` (파트너/VIP 전략), `partner-admin-developer` (UI), `makeshop-ui-ux-expert` (디자인) | **의존성**: CRM-004
 
-고객의 구매 이력 기반으로 VIP 등급을 자동 산정하고, 고객 카드 UI를 강화하여 한눈에 고객 가치를 파악할 수 있게 한다.
+> ⚠️ **착수 전 필수**: 아래 3개 에이전트 병렬 오케스트레이션 → 결과 취합 후 최종 규정 확정
+> - `ecommerce-business-expert`: 할인율 수익성 분석, VIP 인센티브 공식, KPI
+> - `brand-planning-expert`: 배지 디자인, 커뮤니케이션 문구 (참고: `docs/member-grade-brand-strategy.md`)
+> - `sales-partnership-specialist`: 자격 인정 기준, VIP 협상 전략, 엠버서더 계약안 (참고: `.claude/agent-memory/sales-partnership-specialist/partner-vip-ambassador-strategy.md`)
 
-- VIP 등급 기준 설계 및 자동 산정
-  - BRONZE: 총 구매 100만원 미만
-  - SILVER: 총 구매 100~300만원
-  - GOLD: 총 구매 300~500만원
-  - PLATINUM: 총 구매 500만원 이상
-  - 기준값은 tbl_settings에 JSON으로 관리 (향후 조정 가능)
-- Python 등급 산정 스크립트
-  - tbl_customers.total_purchase_amount 기준 vip_grade 일괄 UPDATE
-  - 등급 변경 이력 로그 (승급/강등 추적)
-- 프론트: 고객 카드 UI 강화
-  - VIP 등급 배지 (색상 구분: BRONZE=#CD7F32, SILVER=#C0C0C0, GOLD=#FFD700, PLATINUM=#E5E4E2)
-  - 고객 카드에 표시: 등급, 총 매출, 최종 거래일, customer_status
-  - 등급별 필터 기능 (고객 목록에서)
-- 향후 자동 갱신: 거래 발생 시 등급 재산정 로직 설계 (n8n 워크플로우 문서화)
+**5등급 구조 (경영진 확정 방향)**
+
+브랜드 메타포: "한 송이 꽃이 정원이 되기까지" — 씨앗(회원) → 뿌리(인스트럭터) → 꽃밭(파트너스) → 정원사(VIP) + ★별빛(엠버서더)
+
+| 등급 | 자격 조건 | 혜택 | 배지 색상 |
+|------|----------|------|---------|
+| 회원 | 회원가입 | 정가 | `#a8b5a0` |
+| 인스트럭터 | 자격증/수료증 or 원예 사업자등록증 | 5~10% 할인 (소매 1개도 적용) | `#7d9675` |
+| 파트너스 | 제휴 협회/업체 소속 or 인정 자격증 | 10~20% 할인 (소매 1개도 적용) | `#5e8a6e` |
+| VIP | 프레스코21 직접 선정 (협회장) | 특가 + 분기 인센티브 적립금 + 협회 지원 | `#b89b5e` |
+| 엠버서더★ | 바이럴 능력 보유 초청 (어떤 등급도 병행 가능) | 신제품 협찬 + 전 제품 30% 할인 + 전용코드 | `#8b6fae` |
+
+**구현 항목**:
+
+- DB: customers 테이블에 `member_grade`, `is_ambassador`, `ambassador_code`, `grade_qualification`, `discount_rate`, `grade_approved_at`, `grade_updated_at` 필드 추가 (SSH SQLite)
+- 기존 강사회원 1,200명 → INSTRUCTOR 일괄 분류 후 수동 검토
+- 등급 갱신 버튼 (관리자 설정): 전체 member_grade 재산정 (tbl_tx_history 기반)
+- 프론트: 고객 카드 5등급 배지 + 엠버서더 ★ 아이콘 + customer_status 배지 + 미수금 알림
+- 할인율 메이크샵 회원 그룹 연동 (price_tier 적용)
+- VIP 분기 인센티브: 메이크샵 process_reserve API + 분기 실적 리포트 이메일 발송
 
 **수락 기준**:
-- [ ] VIP 4등급 기준 설계 문서화 + tbl_settings 저장
-- [ ] 전체 고객 vip_grade 자동 산정 완료
-- [ ] 고객 카드 UI에 등급 배지 + 핵심 정보 표시
-- [ ] 등급별 필터 동작 확인
-- [ ] 등급 변경 이력 로그 확인
+- [ ] Phase 6 착수 전 3개 에이전트 오케스트레이션 완료 + 최종 규정 문서화
+- [ ] customers 테이블 신규 필드 추가 확인 (SSH SQLite)
+- [ ] 기존 강사회원 INSTRUCTOR 일괄 분류 + 수동 검토 완료
+- [ ] 고객 카드 5등급 배지 + 엠버서더 ★ 아이콘 정상 표시
+- [ ] 엠버서더 30% 할인 협찬 대상 상품 제한 목록 확정
+- [ ] VIP 분기 인센티브 지급 시뮬레이션 성공
+- [ ] 등급별 필터 (고객 목록) 동작 확인
 
 ---
 
@@ -782,7 +793,7 @@ CRM 시스템의 API 토큰 보안을 강화하고, 전체 CRM 기능에 대한 
 |                                            | CRM-005 고객 상세 페이지 (1.5주) -------->|
 |                                            | CRM-006 필터 강화 (1주) ---|              |
 |                                            | CRM-009 엑셀 내보내기 (0.5주)             |
-|                                            | CRM-010 VIP 등급 (1주)                    |
+|                                            | CRM-010 회원 등급 체계 (1~1.5주)           |
 |                                            |                            | CRM-007 대시보드 KPI (1.5주)
 |                                            |                            | CRM-008 미수금 관리 (1.5주)
 |                                            |                            | CRM-011 성능 최적화 (0.5주)

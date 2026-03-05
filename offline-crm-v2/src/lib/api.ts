@@ -167,9 +167,14 @@ export interface TxHistory {
   amount?: number
   tax?: number
   memo?: string
+  slip_no?: string
+  debit_account?: string
+  credit_account?: string
+  ledger?: string
   tx_year?: number
+  CreatedAt?: string
   [key: string]: unknown
 }
 
 export const getTxHistory = (params: Record<string, string | number> = {}) =>
-  request<ListResponse<TxHistory>>('tbl_tx_history', {}, { limit: 50, ...params })
+  request<ListResponse<TxHistory>>('mtxh72a1f4beeac', {}, { limit: 50, ...params })

@@ -10,7 +10,7 @@ export const TABLE_IDS = {
   invoices: 'ml81i9mcuw0pjzk',
   items: 'mxwgdlj56p9joxo',
   suppliers: 'mw6y9qyzex7lix9',
-  txHistory: 'tbl_tx_history', // 신규 생성 후 업데이트
+  txHistory: 'mtxh72a1f4beeac',
 } as const
 
 // 회원 등급 배지 색상

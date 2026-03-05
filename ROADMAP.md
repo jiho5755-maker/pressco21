@@ -749,6 +749,74 @@ CRM 시스템의 API 토큰 보안을 강화하고, 전체 CRM 기능에 대한 
 
 ---
 
+#### ✅ Task CRM-v2-고도화: CRM v2 6단계 고도화 (2026-03-05 완료)
+
+> **규모**: XL | **담당**: Claude (오케스트레이션) + 6개 전문가 에이전트 | **의존성**: CRM-012
+
+PRD: PRESSCO21 Offline CRM v2 고도화 (Phase 1~6 전체 구현)
+
+**Phase 1 — 공통 인프라**:
+- `sonner` 토스트 시스템 도입 (`alert()` 전체 교체)
+- 설정 페이지 (`src/pages/Settings.tsx`): 공급자정보/인쇄설정/입금계좌/시스템 4섹션
+- 인쇄 로고(좌상단) + 도장(우하단, 원형/회전/-15deg) 복원 (`print.ts`)
+- `App.tsx`: Toaster, `/settings`, `/calendar` 라우트 추가
+- `Sidebar.tsx`: 캘린더/설정 메뉴 추가
+- 등급 색상: CHURNED 빨강 → 슬레이트(#94a3b8) (brand-planning-expert 권고)
+
+**Phase 2 — API 타입 확장 + 보안**:
+- `sanitizeSearchTerm()` / `sanitizeAmount()` 추가 (security-hardening-expert)
+- `Product` 인터페이스: 8단가(price1~8), product_code, alias, category, is_taxable, is_active
+- `getPriceByTier(product, tier)`: 등급별 단가 반환
+- Product CRUD 4종: `getProduct()`, `createProduct()`, `updateProduct()`, `deleteProduct()`
+- `deleteInvoice()`, `recalcCustomerBalance()` 신규 (accounting-specialist 설계)
+- `Customer` 보강: mobile, price_tier, biz_no, ceo_name, biz_type, biz_item, memo
+- `Supplier` 인터페이스 12필드 + CRUD 4종
+
+**Phase 3 — 플레이스홀더 3페이지 구현**:
+- `Transactions.tsx` 전체 재작성: 97K건 거래내역, 검색+유형필터+기간필터+50건 페이지네이션
+- `ProductDialog.tsx` 신규 + `Products.tsx` 전체 재작성: 3,008건 제품 CRUD, 5단가 편집
+- `SupplierDialog.tsx` 신규 + `Suppliers.tsx` 전체 재작성: 공급처 CRUD 12필드
+
+**Phase 4 — 명세표 고도화**:
+- `InvoiceDialog.tsx` 전면 재작성:
+  - 상품 자동완성: debounce 250ms → 등급별 단가 자동세팅
+  - 거래처 카드: 등급배지 + 최근거래 5건
+  - 합계 역산: `supply = Math.floor(total/1.1)`, `tax = total - supply` (accounting-specialist 검증)
+  - `_totalUnit` 수량 역산 패턴
+  - `isDirty` + `window.confirm` 저장 안전장치
+  - Ctrl+Enter 저장 / Esc 닫기 단축키
+  - copySourceId 복사 모드 지원
+- `Invoices.tsx` 재작성: 인라인 [인쇄][복사][삭제] 버튼, 삭제 시 items 연계 + 잔액 재계산
+
+**Phase 5 — 고객 고도화**:
+- `CustomerDialog.tsx` 신규: 전체 필드(name/phone/mobile/email/주소/유형/상태/단가등급/회원등급/사업자정보/메모)
+- `Customers.tsx`: "새 고객" 버튼 + 다중필드 검색(name/phone/mobile) + sanitize 적용
+
+**Phase 6 — 캘린더**:
+- `Calendar.tsx` 신규: 월간 7열 캘린더, 일별 건수/금액, 날짜 클릭 → 명세표 목록, 월간 요약 사이드바
+
+**수락 기준**:
+- [x] Phase 1: sonner 토스트 전환, 설정 페이지 4섹션, 인쇄 로고/도장 CSS
+- [x] Phase 2: TypeScript 빌드 에러 0건, sanitize 함수 3곳 적용
+- [x] Phase 3: Transactions/Products/Suppliers 3페이지 완전 동작
+- [x] Phase 4: 상품 자동완성 → 단가세팅 → 합계역산 → 잔액 재계산 E2E
+- [x] Phase 5: CustomerDialog CRUD 동작, 다중필드 검색
+- [x] Phase 6: Calendar 월별 탐색, 날짜 클릭 필터 동작
+- [x] TypeScript 빌드 성공 (chunk 경고만, 에러 0건)
+- [x] git commit + push 완료 (19파일, 2340 insertions)
+
+**수정 파일 (19개)**:
+`src/App.tsx`, `src/components/layout/Sidebar.tsx`, `src/lib/constants.ts`,
+`src/lib/print.ts`, `src/lib/api.ts`,
+`src/pages/Settings.tsx`(신규), `src/pages/Transactions.tsx`, `src/pages/Products.tsx`,
+`src/pages/Suppliers.tsx`, `src/pages/Calendar.tsx`(신규),
+`src/pages/Invoices.tsx`, `src/pages/Customers.tsx`,
+`src/components/InvoiceDialog.tsx`, `src/components/CustomerDialog.tsx`(신규),
+`src/components/ProductDialog.tsx`(신규), `src/components/SupplierDialog.tsx`(신규),
+`public/images/company-stamp.jpg`(복사)
+
+---
+
 ## 타임라인 요약
 
 ```

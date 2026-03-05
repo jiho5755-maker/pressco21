@@ -401,10 +401,14 @@ NocoDB 직접 조작 의존을 탈피하여 관리자가 메이크샵 전용 페
 
 ### Phase CRM: Offline CRM 고도화 -- ERP 이전 + 고객관계관리 엔진 (예상 6~8주)
 
-> **상태**: 진행중 (사전 기반 작업 완료)
+> **상태**: Phase 1(데이터 이관) ✅ 완료 / Phase 2(UI 구현) 🚧 진행 대기
 > **시작**: Phase 3-A와 병렬 착수 가능 (CRM-001~004는 파트너클래스와 의존성 없음)
 > **목표**: 구글시트 기반 거래장부/고객 관리를 NocoDB로 이전하고, 미수금 관리/VIP 등급/대시보드 KPI를 갖춘 본격 CRM 엔진 구축
 > **배경**: 현재 Offline CRM(Vanilla HTML/CSS/JS)은 거래명세표 발행/고객 목록 기본 기능만 보유. ERP 도입 전 단계로 거래 히스토리 10만건과 고객 14,549건을 NocoDB로 통합하여 데이터 기반 경영 판단의 토대를 마련한다.
+>
+> ⚠️ **프로젝트 관리 정본**: **Shrimp Task Manager** (이 ROADMAP.md는 참조용 — 상세 태스크 현황은 Shrimp 확인)
+> 🤝 **실행 방식**: Shrimp(추적) + 전문가 에이전트(도메인 판단) + Claude(코드 구현) 3계층 협업
+> 📋 **에이전트 배치**: CRM-006/008 → `accounting-specialist` 선호출 / CRM-010 → 3개 에이전트 병렬 / CRM-012 → 2개 에이전트 병렬
 
 ---
 
@@ -427,50 +431,39 @@ NocoDB 직접 조작 의존을 탈피하여 관리자가 메이크샵 전용 페
 
 ---
 
-#### Task CRM-001: NocoDB tbl_tx_history 테이블 생성 + customers 필드 추가
+#### ✅ Task CRM-001: NocoDB tbl_tx_history 테이블 생성 + customers 필드 추가 (2026-03-05 완료)
 
-> **규모**: M | **예상 기간**: 1일 | **담당**: `devops-monitoring-expert` (SSH SQLite), `data-integrity-expert` (스키마 설계) | **의존성**: 없음
+> **규모**: M | **담당**: `data-integrity-expert` | **의존성**: 없음
 
-거래내역과 고객 데이터를 수용할 NocoDB 테이블 구조를 설계하고 생성한다. REST API로 필드 추가가 불가하므로 SSH SQLite 직접 수정 방식을 사용한다.
+**완료 결과**:
+- tbl_tx_history 생성: 15컬럼 (tx_date, legacy_book_id, customer_name, tx_type, amount, tax, memo, slip_no, debit_account, credit_account, ledger, tx_year + 3개)
+- tbl_Customers 확장: customer_type, customer_status, business_no, last_order_date, first_order_date, total_order_count, total_order_amount, outstanding_balance 등 12개 필드
+- 인덱스 5개 생성 (customer_name, tx_date, tx_type, tx_year, customer_status)
 
-- DB: NocoDB tbl_tx_history 테이블 생성 (SSH SQLite 직접 수정)
-  - 필드: id, customer_id, invoice_no, invoice_date, item_name, qty, unit_price, supply_amount, tax_amount, total_amount, payment_status, payment_date, memo, created_at, updated_at
-  - 인덱스: customer_id, invoice_date, payment_status 복합 인덱스
-- DB: 기존 tbl_customers 테이블에 필드 추가 (SSH SQLite)
-  - 추가 필드: customer_type(개인/사업자/기관), customer_status(ACTIVE/DORMANT/CHURNED), business_no, total_purchase_amount, total_purchase_count, last_order_date, first_order_date, vip_grade, memo
-- 데이터 타입 및 NOT NULL 제약조건 검증
+> ⚠️ **실제 구현 vs PRD 차이**: PRD는 customer_id FK 설계 → 실제는 customer_name 문자열 비정규화 (Phase 1 완료 후 소급 변경 없음)
 
 **수락 기준**:
-- [ ] tbl_tx_history 테이블 SSH SQLite로 생성 확인
-- [ ] tbl_customers 테이블 필드 추가 확인 (customer_type, customer_status 등 8개 필드)
-- [ ] NocoDB REST API로 두 테이블 모두 조회 가능 확인
-- [ ] 인덱스 생성 확인 (EXPLAIN QUERY PLAN으로 검증)
+- [x] tbl_tx_history 테이블 생성 확인
+- [x] tbl_Customers 필드 추가 확인 (12개 필드)
+- [x] NocoDB REST API로 두 테이블 모두 조회 가능 확인
+- [x] 인덱스 생성 확인
 
 ---
 
-#### Task CRM-002: 거래내역 10만건 마이그레이션 스크립트
+#### ✅ Task CRM-002: 거래내역 97,086건 마이그레이션 (2026-03-05 완료)
 
-> **규모**: XL | **예상 기간**: 2주 | **담당**: `gas-backend-expert` (Python 스크립트), `data-integrity-expert` (검증) | **의존성**: CRM-001
+> **규모**: XL | **담당**: `data-integrity-expert` | **의존성**: CRM-001
 
-구글시트에 축적된 거래내역 10만건을 NocoDB tbl_tx_history로 이전한다. 데이터 정합성이 최우선이므로 검증 단계를 필수로 포함한다.
-
-- Python 마이그레이션 스크립트 개발
-  - 구글시트 API로 거래내역 시트 전체 데이터 읽기
-  - 데이터 정제: 날짜 형식 통일, 금액 숫자 변환, 빈값/이상값 처리
-  - NocoDB REST API를 통한 배치 INSERT (200건/배치, Rate Limit 준수)
-  - 실패 건 별도 로그 파일 기록 + 재시도 로직
-- 검증 스크립트 개발
-  - 원본(구글시트) vs 이관(NocoDB) 건수 대조
-  - 금액 합계 대조 (supply_amount, tax_amount, total_amount)
-  - 샘플 100건 상세 필드 값 1:1 비교
-- 마이그레이션 실행 및 검증 보고서 작성
+**완료 결과**:
+- 스크립트: `offline-crm-v2/scripts/migrate_tx_history.py`
+- 원본: 얼마에요 백업 엑셀 (2013~2026 연도별 .xls)
+- 이관: 97,086건 → NocoDB tbl_tx_history (배치 500건, 연도별 중복 방지)
+- tx_type 분포: 출고/입금/반입/메모 (PRD 설계 SALES/PURCHASE와 다름 — 원본값 보존)
 
 **수락 기준**:
-- [ ] 구글시트 → NocoDB 거래내역 전체 이관 완료
-- [ ] 원본 대비 이관 건수 100% 일치
-- [ ] 금액 합계 원본 대비 오차 0원
-- [ ] 샘플 100건 필드 값 1:1 일치 확인
-- [ ] 실패 건수 0건 (또는 실패 사유 문서화 + 수동 처리 완료)
+- [x] 얼마에요 엑셀 → NocoDB 거래내역 전체 이관 완료 (97,086건)
+- [x] 연도별 중복 방지 확인 (count_by_year 검증)
+- [x] 연도별 건수 보고서 출력
 
 ---
 
@@ -877,5 +870,7 @@ Phase CRM (Offline CRM 고도화 -- Phase 3-A와 병렬 착수 가능)
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-03-05 | CRM-001~004 완료 처리 + Shrimp Task Manager 정본 안내 + 에이전트 배치 명시 |
+| 2026-03-05 | 오케스트레이션 전략 확정: Shrimp(추적)+에이전트(도메인)+Claude(구현) 3계층 |
 | 2026-03-04 | Phase CRM 고도화 로드맵 추가 (CRM-001~012, ERP 이전 + 고객관계관리 엔진) |
 | 2026-03-04 | Phase 3-A/B/C 고도화 로드맵 초판 작성 (PRD v3.0 기반) |

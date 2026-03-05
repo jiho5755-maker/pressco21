@@ -42,14 +42,15 @@ test('T1-02: 고객 목록 테이블 로드 (NocoDB API 응답)', async ({ page 
   // API 에러 없음 확인
   await assertNoApiError(page)
 
-  // 테이블 헤더 컬럼 6개 확인
+  // 테이블 헤더 컬럼 7개 확인 (거래처명/유형/상태/등급/최종거래일/총매출/미수금)
   const headers = page.locator('thead th')
-  await expect(headers).toHaveCount(6)
+  await expect(headers).toHaveCount(7)
 
   // 헤더 텍스트 확인
   await expect(page.getByRole('columnheader', { name: '거래처명' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: '유형' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: '상태' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: '등급' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: '최종거래일' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: '총매출' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: '미수금' })).toBeVisible()
@@ -179,9 +180,9 @@ test('T1-08: 상세 페이지 4탭 표시 확인', async ({ page }) => {
   const tabList = page.getByRole('tablist')
   await expect(tabList).toBeVisible({ timeout: API_TIMEOUT })
 
-  await expect(page.getByRole('tab', { name: '기본 정보' })).toBeVisible()
-  await expect(page.getByRole('tab', { name: '거래 내역' })).toBeVisible()
-  await expect(page.getByRole('tab', { name: '매출 차트' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: '기본정보' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: '거래내역' })).toBeVisible()
+  await expect(page.getByRole('tab', { name: '매출차트' })).toBeVisible()
   await expect(page.getByRole('tab', { name: '명세표' })).toBeVisible()
 })
 
@@ -194,7 +195,7 @@ test('T1-09: 상세 페이지 뒤로가기 버튼으로 목록 복귀', async ({
   await expect(page).toHaveURL(/\/customers\/\d+/)
 
   // 뒤로가기 버튼 클릭
-  const backBtn = page.getByRole('button', { name: /뒤로/ })
+  const backBtn = page.getByRole('button', { name: '목록으로' })
   await expect(backBtn).toBeVisible({ timeout: API_TIMEOUT })
   await backBtn.click()
 

@@ -6,7 +6,8 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { getInvoices, updateInvoice, Invoice } from '@/lib/api'
+import { getInvoices, updateInvoice } from '@/lib/api'
+import type { Invoice } from '@/lib/api'
 import { exportReceivables } from '@/lib/excel'
 
 // ─── 에이징 구간 ────────────────────────────────
@@ -173,7 +174,6 @@ export function Receivables() {
   })
 
   const invoices = data?.list ?? []
-  const today = Date.now()
 
   // 에이징 집계
   const aging = AGING_BUCKETS.map((bucket) => {

@@ -380,7 +380,7 @@ export function CustomerDetail() {
                       width={55}
                     />
                     <Tooltip
-                      formatter={(v: number) => [`${v.toLocaleString()}원`, '출고 매출']}
+                      formatter={(v: number | undefined) => [`${(v ?? 0).toLocaleString()}원`, '출고 매출']}
                     />
                     <Bar dataKey="amount" fill="#7d9675" radius={[3, 3, 0, 0]} />
                   </BarChart>

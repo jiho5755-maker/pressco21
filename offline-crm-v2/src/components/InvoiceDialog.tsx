@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Trash2, Printer, X } from 'lucide-react'
+import { Plus, Printer, X } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -8,8 +8,6 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
 import {
-  Invoice,
-  Customer,
   createInvoice,
   updateInvoice,
   getInvoice,
@@ -18,6 +16,7 @@ import {
   bulkDeleteItems,
   getCustomers,
 } from '@/lib/api'
+import type { Invoice, Customer } from '@/lib/api'
 import { printDuplexViaIframe } from '@/lib/print'
 
 // ─── 라인 아이템 ───────────────────────────────

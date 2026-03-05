@@ -61,31 +61,34 @@ test('T2-03: "새 명세표" 버튼 클릭 → Dialog 열림', async ({ page }) 
   // Dialog 열림 확인
   await waitForDialog(page, '새 거래명세표')
 
-  // Dialog 내 주요 라벨 확인
-  await expect(page.getByText('거래처 *')).toBeVisible()
-  await expect(page.getByText('발행일')).toBeVisible()
-  await expect(page.getByText('발행번호')).toBeVisible()
-  await expect(page.getByText('품목 목록')).toBeVisible()
+  // Dialog 스코프로 라벨 확인 (페이지 내 동명 요소와 충돌 방지)
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByText('거래처 *')).toBeVisible()
+  await expect(dialog.getByText('발행일')).toBeVisible()
+  await expect(dialog.getByText('발행번호')).toBeVisible()
+  await expect(dialog.getByText('품목 목록')).toBeVisible()
 })
 
 test('T2-04: Dialog 기본값 확인 — 발행번호 자동생성 / 오늘 날짜', async ({ page }) => {
   await page.getByRole('button', { name: /새 명세표/ }).click()
   await waitForDialog(page, '새 거래명세표')
 
+  const dialog = page.getByRole('dialog')
+
   // 발행번호: INV-YYYYMMDD-HHMMSS 패턴
-  const invoiceNoInput = page.locator('input.font-mono')
+  const invoiceNoInput = dialog.locator('input.font-mono')
   await expect(invoiceNoInput).toHaveValue(/^INV-\d{8}-\d{6}$/)
 
   // 발행일: 오늘 날짜 (YYYY-MM-DD)
   const today = new Date().toISOString().slice(0, 10)
-  const dateInput = page.locator('input[type="date"]')
+  const dateInput = dialog.locator('input[type="date"]')
   await expect(dateInput).toHaveValue(today)
 
-  // 기본 구분: 영수
-  await expect(page.locator('button[role="combobox"]').first()).toContainText('영수')
+  // 기본 구분: 영수 (Dialog 내 첫 번째 combobox)
+  await expect(dialog.locator('button[role="combobox"]').first()).toContainText('영수')
 
   // 기본 품목 행 1개 존재
-  const itemRows = page.locator('tbody tr')
+  const itemRows = dialog.locator('tbody tr')
   await expect(itemRows).toHaveCount(1)
 })
 
@@ -93,8 +96,9 @@ test('T2-05: 거래처 자동완성 동작 확인', async ({ page }) => {
   await page.getByRole('button', { name: /새 명세표/ }).click()
   await waitForDialog(page, '새 거래명세표')
 
-  // 거래처 input에 글자 입력
-  const customerInput = page.getByPlaceholder('거래처명 검색...')
+  // Dialog 스코프로 입력 (목록 검색 input과 충돌 방지)
+  const dialog = page.getByRole('dialog')
+  const customerInput = dialog.getByPlaceholder('거래처명 검색...')
   await customerInput.fill('학교')
 
   // 자동완성 드롭다운 대기 (NocoDB 검색 API 호출)
@@ -156,8 +160,9 @@ test('T2-07: 품목 단가 입력 시 공급가액/세액 자동 계산', async 
   const taxCell = firstRow.locator('td.text-right.text-xs').nth(1)
   await expect(taxCell).toContainText('1,000')
 
-  // 합계 요약 (Dialog 하단) 업데이트 확인
-  await expect(page.getByText('공급가액')).toBeVisible()
+  // 합계 요약 (Dialog 하단) 업데이트 확인 (Dialog 스코프로 strict mode 충돌 방지)
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.locator('div').filter({ hasText: /^공급가액$/ }).first()).toBeVisible()
 })
 
 test('T2-08: 거래처 없이 저장 시도 → 유효성 검사 경고', async ({ page }) => {
@@ -191,12 +196,15 @@ test('T2-09: 완전한 데이터로 명세표 저장 → 목록에 반영', asyn
   await page.getByRole('button', { name: /새 명세표/ }).click()
   await waitForDialog(page, '새 거래명세표')
 
+  // Dialog 스코프 (목록 검색 input과 충돌 방지)
+  const dialog = page.getByRole('dialog')
+
   // 1) 발행번호를 테스트용으로 변경 (나중에 찾기 쉽도록)
-  const invoiceNoInput = page.locator('input.font-mono')
+  const invoiceNoInput = dialog.locator('input.font-mono')
   await invoiceNoInput.fill('TEST-E2E-PLAYWRIGHT')
 
   // 2) 거래처 직접 입력 (자동완성 없이 텍스트로)
-  const customerInput = page.getByPlaceholder('거래처명 검색...')
+  const customerInput = dialog.getByPlaceholder('거래처명 검색...')
   await customerInput.fill('E2E테스트거래처')
 
   // 3) 품목 입력
@@ -223,9 +231,9 @@ test('T2-09: 완전한 데이터로 명세표 저장 → 목록에 반영', asyn
   // 5) 목록 새로고침 후 저장된 명세표 확인
   await waitForTableLoaded(page)
 
-  // 발행번호 "TEST-E2E-PLAYWRIGHT" 행이 목록에 표시됨
+  // 발행번호 "TEST-E2E-PLAYWRIGHT" 행이 목록에 표시됨 (.first()로 중복 방지)
   await expect(
-    page.locator('td.font-mono.text-xs').filter({ hasText: 'TEST-E2E-PLAYWRIGHT' })
+    page.locator('td.font-mono.text-xs').filter({ hasText: 'TEST-E2E-PLAYWRIGHT' }).first()
   ).toBeVisible({ timeout: API_TIMEOUT })
 })
 

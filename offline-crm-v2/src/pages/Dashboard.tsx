@@ -278,7 +278,7 @@ export function Dashboard() {
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="ym" tick={{ fontSize: 11 }} />
                 <YAxis tickFormatter={(v) => `${Math.round(v / 10000)}만`} tick={{ fontSize: 10 }} width={42} />
-                <Tooltip formatter={(v: number) => [`${v.toLocaleString()}원`]} />
+                <Tooltip formatter={(v: number | undefined) => [`${(v ?? 0).toLocaleString()}원`]} />
                 <Line type="monotone" dataKey="thisYear" stroke="#7d9675" strokeWidth={2} dot={false} name="올해" />
                 <Line type="monotone" dataKey="lastYear" stroke="#d1d5db" strokeWidth={1.5} dot={false} name="전년" strokeDasharray="4 4" />
                 <Legend />
@@ -307,7 +307,7 @@ export function Dashboard() {
                     <Cell key={entry.key} fill={PIE_COLORS[entry.key as keyof typeof PIE_COLORS]} />
                   ))}
                 </Pie>
-                <Tooltip formatter={(v: number) => [`${v.toLocaleString()}명`]} />
+                <Tooltip formatter={(v: number | undefined) => [`${(v ?? 0).toLocaleString()}명`]} />
               </PieChart>
             </ResponsiveContainer>
             {/* 범례 */}
@@ -347,7 +347,7 @@ export function Dashboard() {
                 <BarChart data={receivablesChart} layout="vertical" margin={{ top: 0, right: 10, left: 0, bottom: 0 }}>
                   <XAxis type="number" tickFormatter={(v) => `${Math.round(v / 10000)}만`} tick={{ fontSize: 10 }} />
                   <YAxis type="category" dataKey="name" tick={{ fontSize: 11 }} width={70} />
-                  <Tooltip formatter={(v: number) => [`${v.toLocaleString()}원`, '미수금']} />
+                  <Tooltip formatter={(v: number | undefined) => [`${(v ?? 0).toLocaleString()}원`, '미수금']} />
                   <Bar dataKey="amount" radius={[0, 3, 3, 0]}>
                     {receivablesChart.map((entry, idx) => (
                       <Cell
@@ -410,8 +410,6 @@ function KpiCard({
 
 // ── 연도별 차트 (별도 쿼리) ────────────────────────────────
 function YearlyChart() {
-  const years = [2013, 2014, 2015, 2016, 2017, 2018, 2019, 2020, 2021, 2022, 2023, 2024, 2025, 2026]
-
   // 연도별 집계는 customers.total_order_amount를 직접 합산하는 대신
   // 이미 로드된 tx_history 데이터가 없으므로, 각 tx_year별로 단순 카운트
   // (실제로는 year별로 쿼리해야 하지만, 기존 this/last year 데이터를 활용)
@@ -446,7 +444,7 @@ function YearlyChart() {
         <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
         <XAxis dataKey="year" tick={{ fontSize: 11 }} />
         <YAxis tickFormatter={(v) => `${Math.round(v / 100_000_000)}억`} tick={{ fontSize: 10 }} width={38} />
-        <Tooltip formatter={(v: number) => [`${v.toLocaleString()}원`, '출고']} />
+        <Tooltip formatter={(v: number | undefined) => [`${(v ?? 0).toLocaleString()}원`, '출고']} />
         <Bar dataKey="total" fill="#7d9675" radius={[3, 3, 0, 0]} />
       </BarChart>
     </ResponsiveContainer>

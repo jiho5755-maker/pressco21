@@ -25,7 +25,7 @@ export const GRADE_COLORS: Record<string, { bg: string; text: string; label: str
 export const STATUS_COLORS: Record<string, { bg: string; label: string }> = {
   ACTIVE:   { bg: '#22c55e', label: '활성' },
   DORMANT:  { bg: '#eab308', label: '휴면' },
-  CHURNED:  { bg: '#ef4444', label: '이탈' },
+  CHURNED:  { bg: '#94a3b8', label: '이탈' },
   ARCHIVED: { bg: '#94a3b8', label: '보관' },
 }
 

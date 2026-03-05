@@ -14,6 +14,13 @@ export interface CompanyInfo {
   phone?: string
   fax?: string
   email?: string
+  logo_url?: string    // 로고 이미지 data URL
+  stamp_url?: string   // 도장 이미지 data URL
+  bank_name?: string
+  bank_account?: string
+  bank_holder?: string
+  invoice_header?: string
+  invoice_footer?: string
 }
 
 export interface PrintInvoice {
@@ -95,9 +102,16 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
       )
       .join('')
 
+  const logoHtml = c.logo_url
+    ? `<img src="${c.logo_url}" alt="로고" style="height:40px;object-fit:contain;" />`
+    : ''
+  const stampHtml = c.stamp_url
+    ? `<img src="${c.stamp_url}" alt="도장" style="width:36px;height:36px;object-fit:cover;border-radius:50%;transform:rotate(-15deg);mix-blend-mode:multiply;clip-path:circle(40% at 50% 46%);" />`
+    : ''
+
   return (
     '<div class="inv-header">' +
-    '<div class="inv-logo"></div>' +
+    `<div class="inv-logo">${logoHtml}</div>` +
     `<div class="inv-title-area"><div class="inv-title">거 래 명 세 표</div><div class="inv-sub">(${esc(copyType)})</div></div>` +
     '<div></div>' +
     '</div>' +
@@ -156,7 +170,7 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
     (inv.memo ? `<div class="inv-memo">비고:&nbsp;${esc(inv.memo)}</div>` : '') +
     '<div class="inv-sig">' +
     `<span>위 금액을 정히 ${esc(inv.receipt_type ?? '영수(청구)')}합니다.</span>` +
-    '<span class="inv-stamp"></span>' +
+    `<span class="inv-stamp">${stampHtml}</span>` +
     '</div>'
   )
 }

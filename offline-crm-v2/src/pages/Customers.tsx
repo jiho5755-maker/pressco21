@@ -1,12 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
-import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Search, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getCustomers } from '@/lib/api'
+import { getCustomers, sanitizeSearchTerm } from '@/lib/api'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
+import { CustomerDialog } from '@/components/CustomerDialog'
 
 const PAGE_SIZE = 25
 
@@ -21,11 +22,13 @@ function useDebounce<T>(value: T, delay: number): T {
 
 export function Customers() {
   const navigate = useNavigate()
+  const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [gradeFilter, setGradeFilter] = useState('ALL')
   const [page, setPage] = useState(1)
+  const [dialogOpen, setDialogOpen] = useState(false)
 
   const debouncedSearch = useDebounce(search, 400)
 
@@ -39,7 +42,10 @@ export function Customers() {
   }
 
   const conditions: string[] = []
-  if (debouncedSearch) conditions.push(`(name,like,%${debouncedSearch}%)`)
+  if (debouncedSearch) {
+    const safe = sanitizeSearchTerm(debouncedSearch)
+    conditions.push(`(name,like,%${safe}%)~or(phone,like,%${safe}%)~or(mobile,like,%${safe}%)`)
+  }
   if (typeFilter !== 'ALL') conditions.push(`(customer_type,eq,${typeFilter})`)
   if (statusFilter !== 'ALL') conditions.push(`(customer_status,eq,${statusFilter})`)
   if (gradeFilter === 'AMBASSADOR') {
@@ -72,6 +78,13 @@ export function Customers() {
             총 {totalRows.toLocaleString()}명
           </p>
         </div>
+        <Button
+          onClick={() => setDialogOpen(true)}
+          className="bg-[#7d9675] hover:bg-[#6a8462] text-white gap-1"
+        >
+          <Plus className="h-4 w-4" />
+          새 고객
+        </Button>
       </div>
 
       {/* 필터 */}
@@ -256,6 +269,15 @@ export function Customers() {
           </div>
         </div>
       )}
+
+      <CustomerDialog
+        open={dialogOpen}
+        onClose={() => setDialogOpen(false)}
+        onSaved={() => {
+          setDialogOpen(false)
+          void qc.invalidateQueries({ queryKey: ['customers'] })
+        }}
+      />
     </div>
   )
 }

@@ -1,6 +1,7 @@
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Printer, X } from 'lucide-react'
+import { Plus, Printer, X, Copy } from 'lucide-react'
+import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -11,13 +12,19 @@ import {
   createInvoice,
   updateInvoice,
   getInvoice,
+  getInvoices,
   getItems,
   bulkCreateItems,
   bulkDeleteItems,
   getCustomers,
+  getProducts,
+  sanitizeSearchTerm,
+  sanitizeAmount,
+  recalcCustomerBalance,
 } from '@/lib/api'
-import type { Invoice, Customer } from '@/lib/api'
+import type { Invoice, Customer, Product } from '@/lib/api'
 import { printDuplexViaIframe } from '@/lib/print'
+import { GRADE_COLORS } from '@/lib/constants'
 
 // ─── 라인 아이템 ───────────────────────────────
 interface ItemRow {
@@ -30,6 +37,7 @@ interface ItemRow {
   supply_amount: number
   taxable: boolean
   tax_amount: number
+  _totalUnit?: number  // 합계역산용 단위금액 (합계/수량)
 }
 
 function newRow(taxable = true): ItemRow {
@@ -49,6 +57,14 @@ function calcRow(row: ItemRow): ItemRow {
   const supply = row.quantity * row.unit_price
   const tax = row.taxable ? Math.floor(supply / 10) : 0
   return { ...row, supply_amount: supply, tax_amount: tax }
+}
+
+// 합계(total) → 공급가/세액 역산 (accounting-specialist 검증)
+function reverseCalcFromTotal(total: number, taxable: boolean): { supply: number; tax: number } {
+  if (!taxable) return { supply: total, tax: 0 }
+  const supply = Math.floor(total / 1.1)
+  const tax = total - supply
+  return { supply, tax }
 }
 
 function today(): string {
@@ -72,6 +88,7 @@ function calcStatus(paid: number, prevBal: number, total: number): string {
 interface InvoiceDialogProps {
   open: boolean
   invoiceId?: number
+  copySourceId?: number   // 복사 시 소스 ID
   onClose: () => void
   onSaved: () => void
 }
@@ -82,7 +99,7 @@ function useCustomerSearch(query: string) {
     queryKey: ['customerSearch', query],
     queryFn: () =>
       getCustomers({
-        where: `(name,like,%${query}%)`,
+        where: `(name,like,%${sanitizeSearchTerm(query)}%)`,
         limit: 8,
         sort: '-last_order_date',
       }),
@@ -91,9 +108,40 @@ function useCustomerSearch(query: string) {
   })
 }
 
+// ─── 상품 자동완성 ─────────────────────────────
+function useProductSearch(query: string) {
+  return useQuery({
+    queryKey: ['productSearch', query],
+    queryFn: () =>
+      getProducts({
+        where: `(name,like,%${sanitizeSearchTerm(query)}%)`,
+        limit: 8,
+        sort: 'name',
+      }),
+    enabled: query.length >= 1,
+    staleTime: 60 * 1000,
+  })
+}
+
+// 고객의 단가등급(1~5)에 해당하는 단가 반환
+function getPriceForCustomer(product: Product, customer: Customer | null): number {
+  const tier = customer?.price_tier ?? 1
+  const key = `price${tier}` as keyof Product
+  const price = product[key]
+  if (typeof price === 'number') return price
+  return product.price1 ?? 0
+}
+
+function getTierLabel(tier: number): string {
+  const labels: Record<number, string> = { 1: '씨앗', 2: '뿌리', 3: '꽃밭', 4: '정원사', 5: '별빛' }
+  return labels[tier] ?? '소매가'
+}
+
 // ─── 컴포넌트 ──────────────────────────────────
-export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDialogProps) {
-  const isNew = !invoiceId
+export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved }: InvoiceDialogProps) {
+  const isNew = !invoiceId && !copySourceId
+  const isCopy = !!copySourceId
+  const editId = invoiceId || copySourceId
   const qc = useQueryClient()
 
   // 폼 상태
@@ -108,29 +156,47 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
   const [items, setItems] = useState<ItemRow[]>([newRow()])
   const [existingItemIds, setExistingItemIds] = useState<number[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [isDirty, setIsDirty] = useState(false)
+
+  // 선택된 고객 (단가등급용)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
 
   // 고객 검색
   const [customerInput, setCustomerInput] = useState('')
-  const [showDropdown, setShowDropdown] = useState(false)
-  const dropdownRef = useRef<HTMLDivElement>(null)
-  const { data: searchResult } = useCustomerSearch(customerInput)
+  const [showCustomerDrop, setShowCustomerDrop] = useState(false)
+  const customerDropRef = useRef<HTMLDivElement>(null)
+  const { data: customerSearchResult } = useCustomerSearch(customerInput)
+
+  // 최근 거래 5건
+  const { data: recentInvoices } = useQuery({
+    queryKey: ['recentInvoices', selectedCustomer?.Id],
+    queryFn: () =>
+      getInvoices({
+        where: `(customer_id,eq,${selectedCustomer!.Id})`,
+        limit: 5,
+        sort: '-invoice_date',
+      }),
+    enabled: !!selectedCustomer?.Id,
+    staleTime: 60 * 1000,
+  })
 
   // 기존 명세표 로드
   const { data: existingInvoice } = useQuery({
-    queryKey: ['invoice', invoiceId],
-    queryFn: () => getInvoice(invoiceId!),
-    enabled: !!invoiceId && open,
+    queryKey: ['invoice', editId],
+    queryFn: () => getInvoice(editId!),
+    enabled: !!editId && open,
   })
   const { data: existingItems } = useQuery({
-    queryKey: ['invoiceItems', invoiceId],
-    queryFn: () => getItems(invoiceId!),
-    enabled: !!invoiceId && open,
+    queryKey: ['invoiceItems', editId],
+    queryFn: () => getItems(editId!),
+    enabled: !!editId && open,
   })
 
   // 기존 데이터로 폼 채우기
   useEffect(() => {
     if (!open) return
-    if (isNew) {
+    setIsDirty(false)
+    if (isNew && !isCopy) {
       setForm({
         invoice_date: today(),
         invoice_no: generateInvoiceNo(),
@@ -140,18 +206,33 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
         payment_method: '현금',
       })
       setCustomerInput('')
+      setSelectedCustomer(null)
       setItems([newRow()])
       setExistingItemIds([])
       return
     }
     if (existingInvoice) {
-      setForm(existingInvoice)
+      if (isCopy) {
+        // 복사: 새 번호 + 오늘 날짜, 수금 초기화
+        setForm({
+          ...existingInvoice,
+          Id: undefined,
+          invoice_no: generateInvoiceNo(),
+          invoice_date: today(),
+          paid_amount: 0,
+          payment_status: 'unpaid',
+          status: 'unpaid',
+          current_balance: existingInvoice.total_amount,
+        })
+      } else {
+        setForm(existingInvoice)
+      }
       setCustomerInput(existingInvoice.customer_name ?? '')
     }
     if (existingItems) {
       const rows: ItemRow[] = existingItems.list.map((it) => ({
         _key: String(it.Id),
-        Id: it.Id,
+        Id: isCopy ? undefined : it.Id,
         product_name: it.product_name ?? '',
         unit: it.unit ?? '개',
         quantity: it.quantity ?? 1,
@@ -161,9 +242,9 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
         tax_amount: it.tax_amount ?? 0,
       }))
       setItems(rows.length > 0 ? rows : [newRow()])
-      setExistingItemIds(existingItems.list.map((it) => it.Id))
+      setExistingItemIds(isCopy ? [] : existingItems.list.map((it) => it.Id))
     }
-  }, [open, isNew, existingInvoice, existingItems])
+  }, [open, isNew, isCopy, existingInvoice, existingItems])
 
   // 합계 자동 계산
   const supplyTotal = items.reduce((s, r) => s + r.supply_amount, 0)
@@ -176,18 +257,34 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
   // 바깥 클릭 시 드롭다운 닫기
   useEffect(() => {
     function handler(e: MouseEvent) {
-      if (dropdownRef.current && !dropdownRef.current.contains(e.target as Node)) {
-        setShowDropdown(false)
+      if (customerDropRef.current && !customerDropRef.current.contains(e.target as Node)) {
+        setShowCustomerDrop(false)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
 
+  // 키보드 단축키
+  useEffect(() => {
+    if (!open) return
+    function handler(e: KeyboardEvent) {
+      if (e.key === 'Escape') {
+        handleClose()
+      }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        void handleSave()
+      }
+    }
+    document.addEventListener('keydown', handler)
+    return () => document.removeEventListener('keydown', handler)
+  }, [open, isDirty])
+
   // 고객 선택
   function selectCustomer(c: Customer) {
     setCustomerInput(c.name ?? '')
-    setShowDropdown(false)
+    setSelectedCustomer(c)
+    setShowCustomerDrop(false)
     setForm((f) => ({
       ...f,
       customer_id: c.Id,
@@ -196,6 +293,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
       customer_address: (c.address1 as string) ?? '',
       previous_balance: isNew ? (c.outstanding_balance ?? 0) : f.previous_balance,
     }))
+    setIsDirty(true)
   }
 
   // 라인 아이템 업데이트
@@ -203,24 +301,111 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
     setItems((prev) =>
       prev.map((r) => {
         if (r._key !== key) return r
-        return calcRow({ ...r, ...patch })
+        const updated = { ...r, ...patch }
+        // 단가 변경 시 합계 재계산
+        if ('unit_price' in patch || 'quantity' in patch || 'taxable' in patch) {
+          return calcRow(updated)
+        }
+        return updated
       }),
     )
+    setIsDirty(true)
+  }
+
+  // 합계 직접 입력 → 역산 (accounting-specialist 로직)
+  function updateItemFromTotal(key: string, totalStr: string) {
+    const totalVal = sanitizeAmount(totalStr)
+    setItems((prev) =>
+      prev.map((r) => {
+        if (r._key !== key) return r
+        const { supply, tax } = reverseCalcFromTotal(totalVal, r.taxable)
+        const qty = Math.max(1, r.quantity)
+        const unitPrice = Math.floor(supply / qty)
+        const totalUnit = Math.floor(totalVal / qty)  // 역산 기준 보존
+        return {
+          ...r,
+          unit_price: unitPrice,
+          supply_amount: supply,
+          tax_amount: tax,
+          _totalUnit: totalUnit,
+        }
+      }),
+    )
+    setIsDirty(true)
+  }
+
+  // 수량 변경 시 totalUnit 기준 역산
+  function updateItemQuantity(key: string, qtyStr: string) {
+    const qty = Math.max(1, parseInt(qtyStr) || 1)
+    setItems((prev) =>
+      prev.map((r) => {
+        if (r._key !== key) return r
+        if (r._totalUnit != null) {
+          // 역산 모드: totalUnit × 수량
+          const supply = r._totalUnit * qty
+          const tax = r.taxable ? Math.floor(supply / 10) : 0
+          const unitPrice = Math.floor(supply / qty)
+          return { ...r, quantity: qty, unit_price: unitPrice, supply_amount: supply, tax_amount: tax }
+        }
+        return calcRow({ ...r, quantity: qty })
+      }),
+    )
+    setIsDirty(true)
+  }
+
+  // 상품 자동완성 상태 (품목 행별)
+  const [productInputs, setProductInputs] = useState<Record<string, string>>({})
+  const [showProductDrop, setShowProductDrop] = useState<string | null>(null)
+  const productDropRef = useRef<HTMLDivElement>(null)
+  const [activeProductKey, setActiveProductKey] = useState<string | null>(null)
+
+  const productQuery = activeProductKey ? (productInputs[activeProductKey] ?? '') : ''
+  const { data: productSearchResult } = useProductSearch(productQuery)
+
+  function selectProduct(rowKey: string, product: Product) {
+    const price = getPriceForCustomer(product, selectedCustomer)
+    setItems((prev) =>
+      prev.map((r) => {
+        if (r._key !== rowKey) return r
+        return calcRow({
+          ...r,
+          product_name: product.name ?? '',
+          unit_price: price,
+          unit: product.unit ?? '개',
+          taxable: product.is_taxable ?? true,
+        })
+      }),
+    )
+    setProductInputs((prev) => ({ ...prev, [rowKey]: product.name ?? '' }))
+    setShowProductDrop(null)
+    setIsDirty(true)
   }
 
   function addItem() {
     const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : true
-    setItems((prev) => [...prev, newRow(defaultTaxable)])
+    const row = newRow(defaultTaxable)
+    setItems((prev) => [...prev, row])
+    setProductInputs((prev) => ({ ...prev, [row._key]: '' }))
+    setIsDirty(true)
   }
 
   function removeItem(key: string) {
     setItems((prev) => prev.filter((r) => r._key !== key))
+    setIsDirty(true)
   }
+
+  // 닫기 안전장치
+  const handleClose = useCallback(() => {
+    if (isDirty) {
+      if (!window.confirm('저장하지 않은 내용이 있습니다. 그래도 닫으시겠습니까?')) return
+    }
+    onClose()
+  }, [isDirty, onClose])
 
   // 저장
   async function handleSave() {
     if (!form.customer_name?.trim()) {
-      alert('거래처를 입력해주세요.')
+      toast.warning('거래처를 입력해주세요')
       return
     }
     setIsSaving(true)
@@ -238,12 +423,13 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
       }
 
       let invId: number
-      if (isNew) {
+      if (!invoiceId) {
+        // 신규 or 복사
         const created = await createInvoice(invoicePayload)
         invId = created.Id
       } else {
-        await updateInvoice(invoiceId!, invoicePayload)
-        invId = invoiceId!
+        await updateInvoice(invoiceId, invoicePayload)
+        invId = invoiceId
       }
 
       // 기존 아이템 삭제 후 새로 저장
@@ -265,11 +451,20 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
         )
       }
 
+      // 잔액 재계산
+      if (form.customer_id) {
+        try { await recalcCustomerBalance(form.customer_id) } catch {}
+      }
+
       qc.invalidateQueries({ queryKey: ['invoices'] })
+      qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({ queryKey: ['customers'] })
+      setIsDirty(false)
+      toast.success(invoiceId ? '명세표가 수정되었습니다' : '명세표가 발행되었습니다')
       onSaved()
     } catch (e) {
       console.error(e)
-      alert('저장 중 오류가 발생했습니다.')
+      toast.error('저장하지 못했습니다. 잠시 후 다시 시도해주세요')
     } finally {
       setIsSaving(false)
     }
@@ -303,18 +498,24 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
     )
   }
 
+  const titleLabel = isCopy ? '명세표 복사' : invoiceId ? '명세표 수정' : '새 거래명세표'
+
   return (
-    <Dialog open={open} onOpenChange={(v) => { if (!v) onClose() }}>
+    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
-          <DialogTitle>{isNew ? '새 거래명세표' : '명세표 수정'}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2">
+            {isCopy && <Copy className="h-4 w-4 text-muted-foreground" />}
+            {titleLabel}
+            <span className="text-xs font-normal text-muted-foreground ml-1">Ctrl+Enter 저장 / Esc 닫기</span>
+          </DialogTitle>
         </DialogHeader>
 
         <div className="space-y-4 pb-2">
           {/* ─── 거래처 + 발행정보 ─── */}
           <div className="grid grid-cols-3 gap-3">
             {/* 거래처 자동완성 */}
-            <div className="relative" ref={dropdownRef}>
+            <div className="relative" ref={customerDropRef}>
               <Label className="text-xs">거래처 *</Label>
               <Input
                 placeholder="거래처명 검색..."
@@ -322,20 +523,28 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
                 onChange={(e) => {
                   setCustomerInput(e.target.value)
                   setForm((f) => ({ ...f, customer_name: e.target.value }))
-                  setShowDropdown(true)
+                  setShowCustomerDrop(true)
+                  setIsDirty(true)
                 }}
-                onFocus={() => customerInput.length >= 1 && setShowDropdown(true)}
+                onFocus={() => customerInput.length >= 1 && setShowCustomerDrop(true)}
                 className="mt-1"
               />
-              {showDropdown && searchResult?.list && searchResult.list.length > 0 && (
+              {showCustomerDrop && customerSearchResult?.list && customerSearchResult.list.length > 0 && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {searchResult.list.map((c) => (
+                  {customerSearchResult.list.map((c) => (
                     <button
                       key={c.Id}
                       className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between"
                       onMouseDown={() => selectCustomer(c)}
                     >
-                      <span className="font-medium">{c.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="font-medium">{c.name}</span>
+                        {c.price_tier && c.price_tier > 1 && (
+                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#e8f0e8', color: '#3d6b4a' }}>
+                            {getTierLabel(c.price_tier)}
+                          </span>
+                        )}
+                      </div>
                       {c.outstanding_balance != null && c.outstanding_balance > 0 && (
                         <span className="text-xs text-red-500">
                           미수{c.outstanding_balance.toLocaleString()}원
@@ -352,7 +561,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
               <Input
                 type="date"
                 value={form.invoice_date ?? ''}
-                onChange={(e) => setForm((f) => ({ ...f, invoice_date: e.target.value }))}
+                onChange={(e) => { setForm((f) => ({ ...f, invoice_date: e.target.value })); setIsDirty(true) }}
                 className="mt-1"
               />
             </div>
@@ -361,18 +570,58 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
               <Label className="text-xs">발행번호</Label>
               <Input
                 value={form.invoice_no ?? ''}
-                onChange={(e) => setForm((f) => ({ ...f, invoice_no: e.target.value }))}
+                onChange={(e) => { setForm((f) => ({ ...f, invoice_no: e.target.value })); setIsDirty(true) }}
                 className="mt-1 font-mono text-xs"
               />
             </div>
           </div>
+
+          {/* 거래처 카드 (선택 시) */}
+          {selectedCustomer && (
+            <div className="bg-gray-50 rounded-md px-3 py-2 text-xs flex flex-wrap gap-4">
+              <div>
+                <span className="text-muted-foreground">전화: </span>
+                <span>{selectedCustomer.phone ?? '-'}</span>
+              </div>
+              <div>
+                <span className="text-muted-foreground">주소: </span>
+                <span>{selectedCustomer.address1 ?? '-'}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="text-muted-foreground">단가등급: </span>
+                {(() => {
+                  const tier = selectedCustomer.price_tier ?? 1
+                  const grade = selectedCustomer.is_ambassador ? 'AMBASSADOR' : (selectedCustomer.member_grade ?? 'MEMBER')
+                  const g = GRADE_COLORS[grade]
+                  return g ? (
+                    <span className="px-1.5 py-0.5 rounded text-white text-xs" style={{ backgroundColor: g.bg }}>
+                      {getTierLabel(tier)} ({g.label})
+                    </span>
+                  ) : <span>{getTierLabel(tier)}</span>
+                })()}
+              </div>
+              {/* 최근 거래 5건 */}
+              {recentInvoices?.list && recentInvoices.list.length > 0 && (
+                <div className="w-full">
+                  <span className="text-muted-foreground font-medium">최근 거래: </span>
+                  <span className="space-x-3">
+                    {recentInvoices.list.map((inv) => (
+                      <span key={inv.Id} className="text-muted-foreground">
+                        {inv.invoice_date?.slice(0, 10)} {inv.total_amount?.toLocaleString()}원
+                      </span>
+                    ))}
+                  </span>
+                </div>
+              )}
+            </div>
+          )}
 
           <div className="grid grid-cols-3 gap-3">
             <div>
               <Label className="text-xs">구분</Label>
               <Select
                 value={form.receipt_type ?? '영수'}
-                onValueChange={(v) => setForm((f) => ({ ...f, receipt_type: v }))}
+                onValueChange={(v) => { setForm((f) => ({ ...f, receipt_type: v })); setIsDirty(true) }}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
@@ -389,9 +638,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
               <Input
                 type="number"
                 value={form.previous_balance ?? 0}
-                onChange={(e) =>
-                  setForm((f) => ({ ...f, previous_balance: Number(e.target.value) }))
-                }
+                onChange={(e) => { setForm((f) => ({ ...f, previous_balance: sanitizeAmount(e.target.value) })); setIsDirty(true) }}
                 className="mt-1"
               />
             </div>
@@ -399,7 +646,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
               <Label className="text-xs">비고</Label>
               <Input
                 value={form.memo ?? ''}
-                onChange={(e) => setForm((f) => ({ ...f, memo: e.target.value }))}
+                onChange={(e) => { setForm((f) => ({ ...f, memo: e.target.value })); setIsDirty(true) }}
                 placeholder="비고 (선택)"
                 className="mt-1"
               />
@@ -421,45 +668,60 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
-                    <th className="text-left px-2 py-2 font-medium text-xs text-muted-foreground w-[30%]">
-                      품목명
-                    </th>
-                    <th className="text-center px-2 py-2 font-medium text-xs text-muted-foreground w-[7%]">
-                      단위
-                    </th>
-                    <th className="text-right px-2 py-2 font-medium text-xs text-muted-foreground w-[8%]">
-                      수량
-                    </th>
-                    <th className="text-right px-2 py-2 font-medium text-xs text-muted-foreground w-[13%]">
-                      단가
-                    </th>
-                    <th className="text-right px-2 py-2 font-medium text-xs text-muted-foreground w-[13%]">
-                      공급가액
-                    </th>
-                    <th className="text-center px-2 py-2 font-medium text-xs text-muted-foreground w-[6%]">
-                      과세
-                    </th>
-                    <th className="text-right px-2 py-2 font-medium text-xs text-muted-foreground w-[10%]">
-                      세액
-                    </th>
-                    <th className="text-right px-2 py-2 font-medium text-xs text-muted-foreground w-[12%]">
-                      합계
-                    </th>
+                    <th className="text-left px-2 py-2 font-medium text-xs text-muted-foreground w-[28%]">품목명</th>
+                    <th className="text-center px-2 py-2 font-medium text-xs text-muted-foreground w-[7%]">단위</th>
+                    <th className="text-right px-2 py-2 font-medium text-xs text-muted-foreground w-[8%]">수량</th>
+                    <th className="text-right px-2 py-2 font-medium text-xs text-muted-foreground w-[13%]">단가</th>
+                    <th className="text-right px-2 py-2 font-medium text-xs text-muted-foreground w-[12%]">공급가액</th>
+                    <th className="text-center px-2 py-2 font-medium text-xs text-muted-foreground w-[6%]">과세</th>
+                    <th className="text-right px-2 py-2 font-medium text-xs text-muted-foreground w-[10%]">세액</th>
+                    <th className="text-right px-2 py-2 font-medium text-xs text-muted-foreground w-[12%]">합계(역산)</th>
                     <th className="w-[4%]" />
                   </tr>
                 </thead>
                 <tbody>
                   {items.map((row) => (
                     <tr key={row._key} className="border-b last:border-b-0">
-                      <td className="px-1 py-1">
-                        <Input
-                          value={row.product_name}
-                          onChange={(e) =>
-                            updateItem(row._key, { product_name: e.target.value })
-                          }
-                          placeholder="품목명"
-                          className="h-7 text-sm border-0 focus-visible:ring-1"
-                        />
+                      {/* 품목명 with 상품 자동완성 */}
+                      <td className="px-1 py-1 relative">
+                        <div ref={row._key === activeProductKey ? productDropRef : null}>
+                          <Input
+                            value={productInputs[row._key] ?? row.product_name}
+                            onChange={(e) => {
+                              const v = e.target.value
+                              setProductInputs((prev) => ({ ...prev, [row._key]: v }))
+                              updateItem(row._key, { product_name: v })
+                              setActiveProductKey(row._key)
+                              setShowProductDrop(row._key)
+                            }}
+                            onFocus={() => {
+                              setActiveProductKey(row._key)
+                              if ((productInputs[row._key] ?? row.product_name).length >= 1) {
+                                setShowProductDrop(row._key)
+                              }
+                            }}
+                            onBlur={() => setTimeout(() => setShowProductDrop(null), 150)}
+                            placeholder="품목명"
+                            className="h-7 text-sm border-0 focus-visible:ring-1"
+                          />
+                          {showProductDrop === row._key && productSearchResult?.list && productSearchResult.list.length > 0 && (
+                            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                              {productSearchResult.list.map((p) => {
+                                const price = getPriceForCustomer(p, selectedCustomer)
+                                return (
+                                  <button
+                                    key={p.Id}
+                                    className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center justify-between"
+                                    onMouseDown={() => selectProduct(row._key, p)}
+                                  >
+                                    <span>{p.name}</span>
+                                    <span className="text-muted-foreground">{price.toLocaleString()}원</span>
+                                  </button>
+                                )
+                              })}
+                            </div>
+                          )}
+                        </div>
                       </td>
                       <td className="px-1 py-1">
                         <Input
@@ -472,9 +734,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
                         <Input
                           type="number"
                           value={row.quantity}
-                          onChange={(e) =>
-                            updateItem(row._key, { quantity: Number(e.target.value) })
-                          }
+                          onChange={(e) => updateItemQuantity(row._key, e.target.value)}
                           className="h-7 text-xs text-right border-0 focus-visible:ring-1"
                         />
                       </td>
@@ -482,9 +742,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
                         <Input
                           type="number"
                           value={row.unit_price}
-                          onChange={(e) =>
-                            updateItem(row._key, { unit_price: Number(e.target.value) })
-                          }
+                          onChange={(e) => updateItem(row._key, { unit_price: sanitizeAmount(e.target.value), _totalUnit: undefined })}
                           className="h-7 text-xs text-right border-0 focus-visible:ring-1"
                         />
                       </td>
@@ -502,8 +760,15 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
                       <td className="px-2 py-1 text-right text-xs tabular-nums">
                         {row.tax_amount.toLocaleString()}
                       </td>
-                      <td className="px-2 py-1 text-right text-xs font-medium tabular-nums">
-                        {(row.supply_amount + row.tax_amount).toLocaleString()}
+                      {/* 합계 직접 입력 → 역산 */}
+                      <td className="px-1 py-1">
+                        <Input
+                          type="number"
+                          value={row.supply_amount + row.tax_amount || ''}
+                          onChange={(e) => updateItemFromTotal(row._key, e.target.value)}
+                          className="h-7 text-xs text-right border-0 focus-visible:ring-1"
+                          placeholder="합계입력"
+                        />
                       </td>
                       <td className="px-1 py-1">
                         <button
@@ -547,9 +812,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
                   <Input
                     type="number"
                     value={form.paid_amount ?? 0}
-                    onChange={(e) =>
-                      setForm((f) => ({ ...f, paid_amount: Number(e.target.value) }))
-                    }
+                    onChange={(e) => { setForm((f) => ({ ...f, paid_amount: sanitizeAmount(e.target.value) })); setIsDirty(true) }}
                     className="mt-1"
                   />
                 </div>
@@ -557,7 +820,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
                   <Label className="text-xs">입금방법</Label>
                   <Select
                     value={form.payment_method ?? '현금'}
-                    onValueChange={(v) => setForm((f) => ({ ...f, payment_method: v }))}
+                    onValueChange={(v) => { setForm((f) => ({ ...f, payment_method: v })); setIsDirty(true) }}
                   >
                     <SelectTrigger className="mt-1">
                       <SelectValue />
@@ -588,9 +851,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
               </div>
               <div className="flex justify-between border-t pt-1 mt-1">
                 <span className="text-xs font-medium">현잔액</span>
-                <span
-                  className={`font-bold ${curBal > 0 ? 'text-red-600' : 'text-green-600'}`}
-                >
+                <span className={`font-bold ${curBal > 0 ? 'text-red-600' : 'text-green-600'}`}>
                   {curBal.toLocaleString()}원
                 </span>
               </div>
@@ -604,7 +865,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
               인쇄 미리보기
             </Button>
             <div className="flex gap-2">
-              <Button variant="ghost" onClick={onClose} disabled={isSaving}>
+              <Button variant="ghost" onClick={handleClose} disabled={isSaving}>
                 취소
               </Button>
               <Button
@@ -612,7 +873,7 @@ export function InvoiceDialog({ open, invoiceId, onClose, onSaved }: InvoiceDial
                 disabled={isSaving}
                 className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
               >
-                {isSaving ? '저장 중...' : isNew ? '명세표 발행' : '수정 저장'}
+                {isSaving ? '저장 중...' : isCopy ? '복사 발행' : invoiceId ? '수정 저장' : '명세표 발행'}
               </Button>
             </div>
           </div>

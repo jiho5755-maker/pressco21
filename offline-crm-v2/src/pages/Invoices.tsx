@@ -1,12 +1,15 @@
 import { useState, useEffect } from 'react'
-import { useQuery } from '@tanstack/react-query'
-import { Plus, Search, ChevronLeft, ChevronRight, Download } from 'lucide-react'
+import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { InvoiceDialog } from '@/components/InvoiceDialog'
-import { getInvoices } from '@/lib/api'
+import { getInvoices, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerBalance, sanitizeSearchTerm } from '@/lib/api'
+import type { Invoice } from '@/lib/api'
 import { exportInvoices } from '@/lib/excel'
+import { printDuplexViaIframe } from '@/lib/print'
 
 const PAGE_SIZE = 25
 
@@ -26,11 +29,14 @@ const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
 }
 
 export function Invoices() {
+  const qc = useQueryClient()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<number | undefined>(undefined)
+  const [copySourceId, setCopySourceId] = useState<number | undefined>(undefined)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const debouncedSearch = useDebounce(search, 400)
   useEffect(() => setPage(1), [debouncedSearch, statusFilter])
@@ -41,7 +47,10 @@ export function Invoices() {
     sort: '-invoice_date',
   }
   const conditions: string[] = []
-  if (debouncedSearch) conditions.push(`(customer_name,like,%${debouncedSearch}%)`)
+  if (debouncedSearch) {
+    const safe = sanitizeSearchTerm(debouncedSearch)
+    conditions.push(`(customer_name,like,%${safe}%)`)
+  }
   if (statusFilter !== 'ALL') conditions.push(`(payment_status,eq,${statusFilter})`)
   if (conditions.length > 0) {
     params.where = conditions.length === 1 ? conditions[0] : conditions.join('~and')
@@ -58,12 +67,77 @@ export function Invoices() {
 
   function openCreate() {
     setSelectedId(undefined)
+    setCopySourceId(undefined)
     setDialogOpen(true)
   }
 
   function openEdit(id: number) {
     setSelectedId(id)
+    setCopySourceId(undefined)
     setDialogOpen(true)
+  }
+
+  function openCopy(id: number) {
+    setSelectedId(undefined)
+    setCopySourceId(id)
+    setDialogOpen(true)
+  }
+
+  async function handleDelete(inv: Invoice) {
+    if (!confirm('이 명세표를 삭제하시겠습니까? 삭제 후에는 되돌릴 수 없습니다.')) return
+    setDeletingId(inv.Id)
+    try {
+      // 라인아이템 먼저 삭제
+      const itemsData = await getItems(inv.Id)
+      const itemIds = itemsData.list.map((it) => it.Id)
+      if (itemIds.length > 0) await bulkDeleteItems(itemIds)
+      await deleteInvoice(inv.Id)
+
+      // 잔액 재계산
+      if (inv.customer_id) {
+        try { await recalcCustomerBalance(inv.customer_id as number) } catch {}
+      }
+
+      toast.success('명세표가 삭제되었습니다')
+      void refetch()
+      qc.invalidateQueries({ queryKey: ['receivables'] })
+    } catch {
+      toast.error('삭제하지 못했습니다. 잠시 후 다시 시도해주세요')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
+  async function handlePrint(inv: Invoice) {
+    try {
+      const itemsData = await getItems(inv.Id)
+      printDuplexViaIframe(
+        {
+          invoice_no: inv.invoice_no,
+          invoice_date: inv.invoice_date,
+          receipt_type: inv.receipt_type,
+          customer_name: inv.customer_name,
+          customer_phone: inv.customer_phone as string,
+          customer_address: inv.customer_address as string,
+          supply_amount: inv.supply_amount,
+          tax_amount: inv.tax_amount,
+          total_amount: inv.total_amount,
+          previous_balance: inv.previous_balance,
+          paid_amount: inv.paid_amount,
+          memo: inv.memo,
+        },
+        itemsData.list.map((it) => ({
+          product_name: it.product_name,
+          unit: it.unit,
+          quantity: it.quantity,
+          unit_price: it.unit_price,
+          supply_amount: it.supply_amount,
+          tax_amount: it.tax_amount,
+        })),
+      )
+    } catch {
+      toast.error('인쇄 데이터를 불러오지 못했습니다')
+    }
   }
 
   return (
@@ -73,7 +147,7 @@ export function Invoices() {
         <div>
           <h2 className="text-2xl font-bold">거래명세표</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            총 {totalRows.toLocaleString()}건
+            이번 달 {totalRows.toLocaleString()}건
           </p>
         </div>
         <div className="flex gap-2">
@@ -141,66 +215,119 @@ export function Invoices() {
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">합계금액</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">입금</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">수금</th>
+              <th className="w-32" />
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-muted-foreground">
+                <td colSpan={8} className="text-center py-12 text-muted-foreground">
                   불러오는 중...
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-red-500">
+                <td colSpan={8} className="text-center py-12 text-red-500">
                   데이터를 불러오지 못했습니다.
                 </td>
               </tr>
             )}
             {!isLoading && !isError && invoices.length === 0 && (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-muted-foreground">
-                  명세표가 없습니다.
+                <td colSpan={8} className="text-center py-12 text-muted-foreground">
+                  발행된 명세표가 없습니다. 새 명세표를 만들어보세요.
                 </td>
               </tr>
             )}
             {invoices.map((inv) => {
               const st = STATUS_LABEL[inv.payment_status ?? inv.status ?? '']
+              const isDeleting = deletingId === inv.Id
               return (
                 <tr
                   key={inv.Id}
-                  className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors"
-                  onClick={() => openEdit(inv.Id)}
+                  className="border-b last:border-b-0 hover:bg-gray-50 transition-colors"
                 >
-                  <td className="px-4 py-3 font-mono text-xs text-muted-foreground">
+                  <td
+                    className="px-4 py-3 font-mono text-xs text-muted-foreground cursor-pointer"
+                    onClick={() => openEdit(inv.Id)}
+                  >
                     {inv.invoice_no ?? '-'}
                   </td>
-                  <td className="px-4 py-3 font-medium">{inv.customer_name ?? '-'}</td>
-                  <td className="px-4 py-3 text-right text-muted-foreground text-xs">
+                  <td
+                    className="px-4 py-3 font-medium cursor-pointer"
+                    onClick={() => openEdit(inv.Id)}
+                  >
+                    {inv.customer_name ?? '-'}
+                  </td>
+                  <td
+                    className="px-4 py-3 text-right text-muted-foreground text-xs cursor-pointer"
+                    onClick={() => openEdit(inv.Id)}
+                  >
                     {inv.invoice_date?.slice(0, 10) ?? '-'}
                   </td>
-                  <td className="px-4 py-3 text-right">
-                    {inv.supply_amount != null
-                      ? `${inv.supply_amount.toLocaleString()}원`
-                      : '-'}
+                  <td
+                    className="px-4 py-3 text-right cursor-pointer"
+                    onClick={() => openEdit(inv.Id)}
+                  >
+                    {inv.supply_amount != null ? `${inv.supply_amount.toLocaleString()}원` : '-'}
                   </td>
-                  <td className="px-4 py-3 text-right font-medium">
-                    {inv.total_amount != null
-                      ? `${inv.total_amount.toLocaleString()}원`
-                      : '-'}
+                  <td
+                    className="px-4 py-3 text-right font-medium cursor-pointer"
+                    onClick={() => openEdit(inv.Id)}
+                  >
+                    {inv.total_amount != null ? `${inv.total_amount.toLocaleString()}원` : '-'}
                   </td>
-                  <td className="px-4 py-3 text-right text-xs text-muted-foreground">
+                  <td
+                    className="px-4 py-3 text-right text-xs text-muted-foreground cursor-pointer"
+                    onClick={() => openEdit(inv.Id)}
+                  >
                     {inv.paid_amount != null && inv.paid_amount > 0
                       ? `${inv.paid_amount.toLocaleString()}원`
                       : '-'}
                   </td>
-                  <td className="px-4 py-3">
+                  <td
+                    className="px-4 py-3 cursor-pointer"
+                    onClick={() => openEdit(inv.Id)}
+                  >
                     {st ? (
                       <span className={`text-xs font-medium ${st.cls}`}>{st.label}</span>
                     ) : (
                       <span className="text-muted-foreground">-</span>
                     )}
+                  </td>
+                  {/* 인라인 액션 버튼 */}
+                  <td className="px-2 py-3">
+                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        title="인쇄"
+                        onClick={(e) => { e.stopPropagation(); void handlePrint(inv) }}
+                      >
+                        <Printer className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        title="복사"
+                        onClick={(e) => { e.stopPropagation(); openCopy(inv.Id) }}
+                      >
+                        <Copy className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
+                        title="삭제"
+                        disabled={isDeleting}
+                        onClick={(e) => { e.stopPropagation(); void handleDelete(inv) }}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               )
@@ -244,6 +371,7 @@ export function Invoices() {
       <InvoiceDialog
         open={dialogOpen}
         invoiceId={selectedId}
+        copySourceId={copySourceId}
         onClose={() => setDialogOpen(false)}
         onSaved={() => {
           setDialogOpen(false)

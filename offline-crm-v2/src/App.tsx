@@ -1,5 +1,6 @@
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
+import { Toaster } from 'sonner'
 import { Layout } from '@/components/layout/Layout'
 import { Dashboard } from '@/pages/Dashboard'
 import { Customers } from '@/pages/Customers'
@@ -9,6 +10,8 @@ import { Products } from '@/pages/Products'
 import { Suppliers } from '@/pages/Suppliers'
 import { Transactions } from '@/pages/Transactions'
 import { Receivables } from '@/pages/Receivables'
+import { Settings } from '@/pages/Settings'
+import { Calendar } from '@/pages/Calendar'
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -36,9 +39,12 @@ function App() {
             <Route path="suppliers" element={<Suppliers />} />
             <Route path="transactions" element={<Transactions />} />
             <Route path="receivables" element={<Receivables />} />
+            <Route path="settings" element={<Settings />} />
+            <Route path="calendar" element={<Calendar />} />
           </Route>
         </Routes>
       </BrowserRouter>
+      <Toaster richColors position="top-right" />
     </QueryClientProvider>
   )
 }

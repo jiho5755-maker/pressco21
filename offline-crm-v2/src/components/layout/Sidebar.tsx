@@ -2,13 +2,15 @@ import { NavLink } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 
 const menuItems = [
-  { path: '/',           label: '대시보드',    icon: '📊' },
-  { path: '/customers',  label: '고객 관리',   icon: '👥' },
-  { path: '/invoices',   label: '거래명세표',  icon: '📋' },
-  { path: '/products',   label: '제품 관리',   icon: '📦' },
-  { path: '/suppliers',  label: '공급처',      icon: '🏭' },
-  { path: '/transactions', label: '거래 내역', icon: '📈' },
-  { path: '/receivables', label: '미수금',     icon: '💰' },
+  { path: '/',             label: '대시보드',    icon: '📊' },
+  { path: '/customers',    label: '고객 관리',   icon: '👥' },
+  { path: '/invoices',     label: '거래명세표',  icon: '📋' },
+  { path: '/products',     label: '제품 관리',   icon: '📦' },
+  { path: '/suppliers',    label: '공급처',      icon: '🏭' },
+  { path: '/transactions', label: '거래 내역',   icon: '📈' },
+  { path: '/receivables',  label: '미수금',      icon: '💰' },
+  { path: '/calendar',     label: '캘린더',      icon: '📅' },
+  { path: '/settings',     label: '설정',        icon: '⚙️' },
 ]
 
 export function Sidebar() {

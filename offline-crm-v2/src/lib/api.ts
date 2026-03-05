@@ -78,17 +78,35 @@ export interface ListResponse<T> {
 }
 
 // ─────────────────────────────────────────
+// 보안: 입력값 sanitize 함수
+// ─────────────────────────────────────────
+
+// NocoDB where 파라미터 특수문자 제거 (SQL injection 방어)
+export function sanitizeSearchTerm(term: string): string {
+  return term.replace(/[~(),\\]/g, '').trim().slice(0, 100)
+}
+
+// 금액/수량 범위 검증 (음수 및 비현실적 값 방어)
+export function sanitizeAmount(value: string | number): number {
+  const n = typeof value === 'string' ? Number(value) : value
+  if (isNaN(n) || !isFinite(n)) return 0
+  return Math.max(0, Math.min(Math.floor(n), 1_000_000_000))
+}
+
+// ─────────────────────────────────────────
 // 고객 (customers)
 // ─────────────────────────────────────────
 export interface Customer {
   Id: number
   name?: string
   phone?: string
+  mobile?: string
   email?: string
   address1?: string
   customer_type?: string
   customer_status?: string
   member_grade?: string
+  price_tier?: number      // 1~5 단가등급
   is_ambassador?: boolean
   ambassador_code?: string
   discount_rate?: number
@@ -98,6 +116,12 @@ export interface Customer {
   total_order_count?: number
   total_order_amount?: number
   outstanding_balance?: number
+  // 전자세금계산서 대비 필드 (accounting-specialist)
+  biz_no?: string
+  ceo_name?: string
+  biz_type?: string
+  biz_item?: string
+  memo?: string
   CreatedAt?: string
   UpdatedAt?: string
   [key: string]: unknown
@@ -142,20 +166,65 @@ export const deleteCustomer = (id: number) =>
 // ─────────────────────────────────────────
 export interface Product {
   Id: number
-  name?: string
-  code?: string
-  unit?: string
-  price1?: number
-  price2?: number
-  price3?: number
-  price4?: number
+  product_code?: string  // 품목 코드
+  name?: string          // 품목명
+  alias?: string         // 별칭
+  category?: string      // 카테고리
+  unit?: string          // 단위
+  purchase_price?: number // 매입가
+  price1?: number        // 소매가 (MEMBER/씨앗)
+  price2?: number        // 강사우대가 (INSTRUCTOR/뿌리)
+  price3?: number        // 파트너도매가 (PARTNERS/꽃밭)
+  price4?: number        // VIP특가 (정원사)
+  price5?: number        // 엠버서더 (별빛)
+  price6?: number        // 예비6
+  price7?: number        // 예비7
+  price8?: number        // 예비8
+  is_taxable?: boolean   // 과세여부
+  is_active?: boolean    // 활성여부
   [key: string]: unknown
+}
+
+// 단가등급별 단가 조회 (1=소매가 ~ 5=엠버서더)
+export function getPriceByTier(product: Product, tier: number = 1): number {
+  const key = `price${tier}` as keyof Product
+  const price = product[key]
+  if (typeof price === 'number') return price
+  return product.price1 ?? 0
 }
 
 export const getProducts = (params: Record<string, string | number> = {}) =>
   proxyRequest<ListResponse<Product>>({
     table: 'products',
     params: { limit: 25, ...params },
+  })
+
+export const getProduct = (id: number) =>
+  proxyRequest<Product>({
+    table: 'products',
+    recordId: id,
+  })
+
+export const createProduct = (data: Partial<Product>) =>
+  proxyRequest<Product>({
+    table: 'products',
+    method: 'POST',
+    payload: data,
+  })
+
+export const updateProduct = (id: number, data: Partial<Product>) =>
+  proxyRequest<Product>({
+    table: 'products',
+    method: 'PATCH',
+    recordId: id,
+    payload: data,
+  })
+
+export const deleteProduct = (id: number) =>
+  proxyRequest<void>({
+    table: 'products',
+    method: 'DELETE',
+    recordId: id,
   })
 
 // ─────────────────────────────────────────
@@ -253,13 +322,47 @@ export const bulkDeleteItems = (ids: number[]) =>
   })
 
 // ─────────────────────────────────────────
+// 명세표 삭제 + 잔액 재계산
+// ─────────────────────────────────────────
+export const deleteInvoice = (id: number) =>
+  proxyRequest<void>({
+    table: 'invoices',
+    method: 'DELETE',
+    recordId: id,
+  })
+
+export async function recalcCustomerBalance(customerId: number): Promise<void> {
+  // 미완납 명세표 전체 조회
+  const unpaid = await proxyRequest<ListResponse<Invoice>>({
+    table: 'invoices',
+    params: {
+      where: `(customer_id,eq,${customerId})~and(payment_status,neq,paid)`,
+      limit: 500,
+    },
+  })
+  const outstanding = unpaid.list.reduce(
+    (s, inv) => s + (inv.total_amount ?? 0) - (inv.paid_amount ?? 0),
+    0
+  )
+  await updateCustomer(customerId, { outstanding_balance: Math.max(0, outstanding) })
+}
+
+// ─────────────────────────────────────────
 // 공급처 (suppliers)
 // ─────────────────────────────────────────
 export interface Supplier {
   Id: number
   name?: string
-  phone?: string
+  business_no?: string   // 사업자번호
+  ceo_name?: string      // 대표자
+  phone1?: string        // 전화
+  mobile?: string        // 핸드폰
   email?: string
+  address1?: string      // 주소
+  bank_name?: string     // 은행명
+  bank_account?: string  // 계좌번호
+  memo?: string
+  is_active?: boolean
   [key: string]: unknown
 }
 
@@ -267,6 +370,34 @@ export const getSuppliers = (params: Record<string, string | number> = {}) =>
   proxyRequest<ListResponse<Supplier>>({
     table: 'suppliers',
     params: { limit: 25, ...params },
+  })
+
+export const getSupplier = (id: number) =>
+  proxyRequest<Supplier>({
+    table: 'suppliers',
+    recordId: id,
+  })
+
+export const createSupplier = (data: Partial<Supplier>) =>
+  proxyRequest<Supplier>({
+    table: 'suppliers',
+    method: 'POST',
+    payload: data,
+  })
+
+export const updateSupplier = (id: number, data: Partial<Supplier>) =>
+  proxyRequest<Supplier>({
+    table: 'suppliers',
+    method: 'PATCH',
+    recordId: id,
+    payload: data,
+  })
+
+export const deleteSupplier = (id: number) =>
+  proxyRequest<void>({
+    table: 'suppliers',
+    method: 'DELETE',
+    recordId: id,
   })
 
 // ─────────────────────────────────────────

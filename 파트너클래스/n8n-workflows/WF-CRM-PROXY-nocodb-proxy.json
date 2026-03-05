@@ -1,0 +1,229 @@
+{
+  "name": "WF-CRM-PROXY NocoDB Proxy",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm-proxy",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf-crm-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [220, 300],
+      "webhookId": "crm-proxy"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// CRM Proxy: 인증 + 요청 검증 + NocoDB URL 구성\n// ===================================================\n\nconst input = $input.first().json;\nconst headers = input.headers || {};\nconst body = input.body || {};\n\n// --- 1. API Key 인증 ---\nconst apiKey = (headers['x-crm-key'] || '').trim();\nif (!apiKey || apiKey !== $env.CRM_API_KEY) {\n  return [{\n    json: {\n      _status: 401,\n      _error: true,\n      success: false,\n      error: { code: 'UNAUTHORIZED', message: '인증에 실패했습니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// --- 2. 필수 파라미터 검증 ---\nconst table = (body.table || '').trim();\nconst method = (body.method || 'GET').toUpperCase();\nconst recordId = body.recordId ? String(body.recordId).trim() : '';\nconst params = body.params || {};\nconst payload = body.payload || null;\n\nif (!table) {\n  return [{\n    json: {\n      _status: 400,\n      _error: true,\n      success: false,\n      error: { code: 'MISSING_TABLE', message: 'table 파라미터가 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// --- 3. 테이블 화이트리스트 ---\n// CRM(Offline) Base 테이블만 허용\nconst ALLOWED_TABLES = {\n  'customers':  'mffgxkftaeppyk0',\n  'products':   'mioztktmluobmmo',\n  'invoices':   'ml81i9mcuw0pjzk',\n  'items':      'mxwgdlj56p9joxo',\n  'suppliers':  'mw6y9qyzex7lix9',\n  'txHistory':  'mtxh72a1f4beeac'\n};\n\nconst tableId = ALLOWED_TABLES[table];\nif (!tableId) {\n  return [{\n    json: {\n      _status: 400,\n      _error: true,\n      success: false,\n      error: { code: 'INVALID_TABLE', message: '허용되지 않는 테이블: ' + table },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// --- 4. HTTP Method 화이트리스트 ---\nconst ALLOWED_METHODS = ['GET', 'POST', 'PATCH', 'DELETE'];\nif (!ALLOWED_METHODS.includes(method)) {\n  return [{\n    json: {\n      _status: 400,\n      _error: true,\n      success: false,\n      error: { code: 'INVALID_METHOD', message: '허용되지 않는 메서드: ' + method },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// --- 5. 쓰기 작업 테이블 제한 (txHistory는 읽기 전용) ---\nconst READ_ONLY_TABLES = ['txHistory'];\nif (READ_ONLY_TABLES.includes(table) && method !== 'GET') {\n  return [{\n    json: {\n      _status: 403,\n      _error: true,\n      success: false,\n      error: { code: 'READ_ONLY', message: table + ' 테이블은 읽기 전용입니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// --- 6. NocoDB URL 구성 ---\nconst CRM_PROJECT_ID = 'pu0mwk97kac8a5p';\nlet path = tableId;\n\n// bulk 오퍼레이션 처리\nif (body.bulk) {\n  path = tableId + '/bulk';\n} else if (recordId) {\n  // recordId 숫자 검증 (SQL injection 방지)\n  if (!/^\\d+$/.test(recordId)) {\n    return [{\n      json: {\n        _status: 400,\n        _error: true,\n        success: false,\n        error: { code: 'INVALID_ID', message: 'recordId는 숫자여야 합니다.' },\n        timestamp: new Date().toISOString()\n      }\n    }];\n  }\n  path = tableId + '/' + recordId;\n}\n\nconst nocodbUrl = 'https://nocodb.pressco21.com/api/v1/db/data/noco/' + CRM_PROJECT_ID + '/' + path;\n\n// --- 7. 쿼리 파라미터 정제 (허용된 것만 전달) ---\nconst ALLOWED_PARAMS = ['where', 'limit', 'offset', 'sort', 'fields', 'shuffle', 'page'];\nconst cleanParams = {};\nfor (const key of ALLOWED_PARAMS) {\n  if (params[key] !== undefined && params[key] !== null && params[key] !== '') {\n    cleanParams[key] = String(params[key]);\n  }\n}\n\n// limit 상한 설정 (DoS 방지)\nif (cleanParams.limit) {\n  const limit = parseInt(cleanParams.limit, 10);\n  cleanParams.limit = String(Math.min(Math.max(limit || 25, 1), 200));\n}\n\nreturn [{\n  json: {\n    _error: false,\n    _status: 200,\n    nocodbUrl,\n    method,\n    params: cleanParams,\n    payload,\n    table,\n    bulk: !!body.bulk\n  }\n}];"
+      },
+      "id": "wf-crm-validate",
+      "name": "Validate & Parse Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._error }}",
+              "rightValue": false,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ]
+        }
+      },
+      "id": "wf-crm-if-valid",
+      "name": "IF Request Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "method": "={{ $json.method }}",
+        "url": "={{ $json.nocodbUrl }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "specifyQuery": "json",
+        "queryParametersJson": "={{ JSON.stringify($json.params) }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.payload ? JSON.stringify($json.payload) : '{}' }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "wf-crm-nocodb-request",
+      "name": "NocoDB HTTP Request",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 240],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// NocoDB 응답을 CRM 클라이언트 형식으로 변환\n// ===================================================\n\nconst response = $input.first().json;\nconst statusCode = response.statusCode || 200;\nconst body = response.body || response;\n\n// NocoDB 오류 처리\nif (statusCode >= 400) {\n  const errorMsg = (typeof body === 'string') ? body : (body.msg || body.message || 'NocoDB 오류');\n  return [{\n    json: {\n      _status: statusCode,\n      success: false,\n      error: {\n        code: 'NOCODB_ERROR',\n        message: errorMsg\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// 정상 응답 전달\nreturn [{\n  json: {\n    _status: 200,\n    success: true,\n    data: body,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf-crm-format-response",
+      "name": "Format Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: $json.success, data: $json.data, error: $json.error, timestamp: $json.timestamp } }}",
+        "options": {
+          "responseCode": "={{ $json._status || 200 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, x-crm-key"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf-crm-respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1320, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { success: $json.success, error: $json.error, timestamp: $json.timestamp } }}",
+        "options": {
+          "responseCode": "={{ $json._status || 400 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, x-crm-key"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf-crm-respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 440]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate & Parse Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate & Parse Request": {
+      "main": [
+        [
+          {
+            "node": "IF Request Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Request Valid": {
+      "main": [
+        [
+          {
+            "node": "NocoDB HTTP Request",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB HTTP Request": {
+      "main": [
+        [
+          {
+            "node": "Format Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "PRESSCO21" },
+    { "name": "CRM" },
+    { "name": "Security" }
+  ],
+  "pinData": {}
+}

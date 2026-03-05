@@ -1,33 +1,129 @@
 // ─────────────────────────────────────────
-// API 설정
+// API 설정 (n8n 프록시 경유 - NocoDB 토큰 미노출)
 // ─────────────────────────────────────────
 var API = {
-  base: "https://nocodb.pressco21.com",
-  token: "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl",
-  projectId: "pu0mwk97kac8a5p",
+  proxyUrl: "https://n8n.pressco21.com/webhook/crm-proxy",
+  crmApiKey: "",  // .secrets.env의 CRM_API_KEY 값 설정 필요
   tables: {
-    customers: "mffgxkftaeppyk0",
-    products:  "mioztktmluobmmo",
-    invoices:  "ml81i9mcuw0pjzk",
-    items:     "mxwgdlj56p9joxo",
-    suppliers: "mw6y9qyzex7lix9", // tbl_Suppliers
+    customers: "customers",
+    products:  "products",
+    invoices:  "invoices",
+    items:     "items",
+    suppliers: "suppliers",
   }
 };
 
+// 하위 호환: 기존 apiUrl + apiFetch 패턴 유지
+// 내부적으로 n8n 프록시를 경유하도록 변환
 function apiUrl(table) {
-  return API.base + "/api/v1/db/data/noco/" + API.projectId + "/" + API.tables[table];
+  // 마커 URL 반환 (apiFetch에서 파싱하여 프록시 요청으로 변환)
+  return "__proxy__/" + API.tables[table];
 }
 
 async function apiFetch(url, options) {
   options = options || {};
-  var res = await fetch(url, Object.assign({}, options, {
-    headers: Object.assign(
-      { "xc-token": API.token, "Content-Type": "application/json" },
-      options.headers || {}
-    )
-  }));
-  if (!res.ok) throw new Error("API " + res.status + " " + url);
-  return res.json();
+
+  // --- 프록시 모드: __proxy__/ 마커 URL 파싱 ---
+  if (url.indexOf("__proxy__/") === 0) {
+    return _proxyFetch(url, options);
+  }
+  // 레거시 bulk URL 처리
+  if (url.indexOf("/api/v1/db/data/bulk/") !== -1) {
+    return _proxyBulkFetch(url, options);
+  }
+  // 기타 직접 URL (예외 상황)
+  return _proxyFetch(url, options);
+}
+
+// 프록시 요청 변환 핵심 함수
+async function _proxyFetch(markerUrl, options) {
+  options = options || {};
+  var method = (options.method || "GET").toUpperCase();
+
+  // URL 파싱: __proxy__/tableName/recordId?params
+  var path = markerUrl.replace("__proxy__/", "");
+  var qIdx = path.indexOf("?");
+  var queryStr = qIdx >= 0 ? path.substring(qIdx + 1) : "";
+  var pathOnly = qIdx >= 0 ? path.substring(0, qIdx) : path;
+
+  var parts = pathOnly.split("/");
+  var table = parts[0] || "";
+  var recordId = parts[1] || "";
+
+  // 쿼리 파라미터 파싱
+  var params = {};
+  if (queryStr) {
+    queryStr.split("&").forEach(function(pair) {
+      var kv = pair.split("=");
+      if (kv[0]) params[decodeURIComponent(kv[0])] = decodeURIComponent(kv[1] || "");
+    });
+  }
+
+  // payload 파싱
+  var payload = null;
+  if (options.body) {
+    try { payload = JSON.parse(options.body); } catch(e) { payload = options.body; }
+  }
+
+  var proxyBody = {
+    table: table,
+    method: method,
+    params: params
+  };
+  if (recordId) proxyBody.recordId = parseInt(recordId, 10);
+  if (payload) proxyBody.payload = payload;
+
+  var res = await fetch(API.proxyUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-crm-key": API.crmApiKey
+    },
+    body: JSON.stringify(proxyBody)
+  });
+
+  if (!res.ok) throw new Error("Proxy " + res.status);
+  var json = await res.json();
+  if (!json.success) throw new Error((json.error && json.error.message) || "Proxy error");
+  return json.data;
+}
+
+// 레거시 bulk URL 처리
+async function _proxyBulkFetch(url, options) {
+  options = options || {};
+  var method = (options.method || "POST").toUpperCase();
+
+  // 테이블명 역매핑
+  var table = "";
+  Object.keys(API.tables).forEach(function(key) {
+    if (url.indexOf(API.tables[key]) !== -1 || url.indexOf(key) !== -1) {
+      table = API.tables[key];
+    }
+  });
+
+  var payload = null;
+  if (options.body) {
+    try { payload = JSON.parse(options.body); } catch(e) { payload = options.body; }
+  }
+
+  var res = await fetch(API.proxyUrl, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "x-crm-key": API.crmApiKey
+    },
+    body: JSON.stringify({
+      table: table,
+      method: method,
+      payload: payload,
+      bulk: true
+    })
+  });
+
+  if (!res.ok) throw new Error("Proxy " + res.status);
+  var json = await res.json();
+  if (!json.success) throw new Error((json.error && json.error.message) || "Proxy error");
+  return json.data;
 }
 
 function buildWhere(where, extra) {
@@ -2177,7 +2273,7 @@ var supplierListTimer;
 
 function supplierApiUrl() {
   if (!API.tables.suppliers) return null;
-  return API.base + "/api/v1/db/data/noco/" + API.projectId + "/" + API.tables.suppliers;
+  return "__proxy__/" + API.tables.suppliers;
 }
 
 async function loadSupplierList(q, append) {

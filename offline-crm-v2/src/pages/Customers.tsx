@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getCustomers } from '@/lib/api'
-import { STATUS_COLORS, CUSTOMER_TYPE_LABELS } from '@/lib/constants'
+import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
 
 const PAGE_SIZE = 25
 
@@ -24,12 +24,13 @@ export function Customers() {
   const [search, setSearch] = useState('')
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [gradeFilter, setGradeFilter] = useState('ALL')
   const [page, setPage] = useState(1)
 
   const debouncedSearch = useDebounce(search, 400)
 
   // 필터 변경 시 첫 페이지로
-  useEffect(() => { setPage(1) }, [debouncedSearch, typeFilter, statusFilter])
+  useEffect(() => { setPage(1) }, [debouncedSearch, typeFilter, statusFilter, gradeFilter])
 
   const params: Record<string, string | number> = {
     limit: PAGE_SIZE,
@@ -41,6 +42,11 @@ export function Customers() {
   if (debouncedSearch) conditions.push(`(name,like,%${debouncedSearch}%)`)
   if (typeFilter !== 'ALL') conditions.push(`(customer_type,eq,${typeFilter})`)
   if (statusFilter !== 'ALL') conditions.push(`(customer_status,eq,${statusFilter})`)
+  if (gradeFilter === 'AMBASSADOR') {
+    conditions.push(`(is_ambassador,eq,1)`)
+  } else if (gradeFilter !== 'ALL') {
+    conditions.push(`(member_grade,eq,${gradeFilter})`)
+  }
   if (conditions.length > 0) {
     params.where = conditions.length === 1 ? conditions[0] : conditions.join('~and')
   }
@@ -48,6 +54,8 @@ export function Customers() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['customers', params],
     queryFn: () => getCustomers(params),
+    staleTime: 10 * 60_000,
+    placeholderData: (prev) => prev,
   })
 
   const totalRows = data?.pageInfo?.totalRows ?? 0
@@ -99,11 +107,22 @@ export function Customers() {
             <SelectItem value="CHURNED">이탈</SelectItem>
           </SelectContent>
         </Select>
-        {(typeFilter !== 'ALL' || statusFilter !== 'ALL' || search) && (
+        <Select value={gradeFilter} onValueChange={setGradeFilter}>
+          <SelectTrigger className="w-32">
+            <SelectValue placeholder="등급" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="ALL">모든 등급</SelectItem>
+            {Object.entries(GRADE_COLORS).map(([k, v]) => (
+              <SelectItem key={k} value={k}>{v.label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+        {(typeFilter !== 'ALL' || statusFilter !== 'ALL' || gradeFilter !== 'ALL' || search) && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { setSearch(''); setTypeFilter('ALL'); setStatusFilter('ALL') }}
+            onClick={() => { setSearch(''); setTypeFilter('ALL'); setStatusFilter('ALL'); setGradeFilter('ALL') }}
           >
             초기화
           </Button>
@@ -118,6 +137,7 @@ export function Customers() {
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처명</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">유형</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">상태</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">등급</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">최종거래일</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">총매출</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">미수금</th>
@@ -126,21 +146,21 @@ export function Customers() {
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                <td colSpan={7} className="text-center py-12 text-muted-foreground">
                   불러오는 중...
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-red-500">
+                <td colSpan={7} className="text-center py-12 text-red-500">
                   데이터를 불러오지 못했습니다.
                 </td>
               </tr>
             )}
             {!isLoading && !isError && customers.length === 0 && (
               <tr>
-                <td colSpan={6} className="text-center py-12 text-muted-foreground">
+                <td colSpan={7} className="text-center py-12 text-muted-foreground">
                   검색 결과가 없습니다.
                 </td>
               </tr>
@@ -166,6 +186,22 @@ export function Customers() {
                   ) : (
                     <span className="text-muted-foreground">-</span>
                   )}
+                </td>
+                <td className="px-4 py-3">
+                  {(() => {
+                    const effectiveGrade = c.is_ambassador ? 'AMBASSADOR' : (c.member_grade ?? '')
+                    return effectiveGrade && GRADE_COLORS[effectiveGrade] ? (
+                      <span
+                        className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                        style={{ backgroundColor: GRADE_COLORS[effectiveGrade].bg, color: GRADE_COLORS[effectiveGrade].text }}
+                      >
+                        {effectiveGrade === 'AMBASSADOR' && '★'}
+                        {GRADE_COLORS[effectiveGrade].label}
+                      </span>
+                    ) : (
+                      <span className="text-muted-foreground text-xs">-</span>
+                    )
+                  })()}
                 </td>
                 <td className="px-4 py-3 text-right text-muted-foreground text-xs">
                   {c.last_order_date ? c.last_order_date.slice(0, 10) : '-'}

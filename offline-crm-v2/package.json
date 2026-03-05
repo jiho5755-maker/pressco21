@@ -7,7 +7,15 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test:e2e": "playwright test",
+    "test:e2e:ui": "playwright test --ui",
+    "test:e2e:debug": "playwright test --debug",
+    "test:e2e:report": "playwright show-report",
+    "test:crm-009": "playwright test --reporter=list",
+    "test:customers": "playwright test tests/01-customers.spec.ts",
+    "test:invoices": "playwright test tests/02-invoices.spec.ts",
+    "test:dashboard": "playwright test tests/03-dashboard.spec.ts"
   },
   "dependencies": {
     "@radix-ui/react-dialog": "^1.1.15",
@@ -31,6 +39,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.39.1",
+    "@playwright/test": "^1.58.2",
     "@types/node": "^24.11.0",
     "@types/react": "^19.2.7",
     "@types/react-dom": "^19.2.3",

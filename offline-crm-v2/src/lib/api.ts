@@ -1,39 +1,85 @@
 /**
- * NocoDB API 클라이언트
- * TODO (CRM-009): n8n Webhook 프록시로 교체하여 토큰 격리
- * 현재: 임시 직접 호출 (개발 환경 전용)
+ * NocoDB API 클라이언트 (n8n Webhook 프록시 경유)
+ *
+ * 보안 아키텍처:
+ *   React App --x-crm-key--> n8n WF-CRM-PROXY --xc-token--> NocoDB
+ *
+ * - NocoDB 토큰은 n8n Credential에만 존재 (프론트엔드 노출 제로)
+ * - 프론트엔드는 CRM_API_KEY만 보유 (VITE_ 접두사로 빌드 시 포함)
+ * - n8n이 테이블/메서드 화이트리스트 검증 후 NocoDB에 전달
  */
-import { NOCODB_BASE_URL, NOCODB_TOKEN, NOCODB_PROJECT_ID } from './constants'
 
-const BASE = `${NOCODB_BASE_URL}/api/v1/db/data/noco/${NOCODB_PROJECT_ID}`
+// n8n Webhook 프록시 URL
+const PROXY_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://n8n.pressco21.com/webhook/crm-proxy'
+// CRM 전용 API Key (NocoDB 토큰과 무관한 별도 키)
+const CRM_API_KEY = import.meta.env.VITE_CRM_API_KEY || ''
 
-async function request<T>(
-  tableId: string,
-  options: RequestInit = {},
-  params: Record<string, string | number> = {}
-): Promise<T> {
-  const url = new URL(`${BASE}/${tableId}`)
-  Object.entries(params).forEach(([k, v]) => url.searchParams.set(k, String(v)))
+// 테이블 논리명 (n8n 프록시에서 Model ID로 변환)
+type TableName = 'customers' | 'products' | 'invoices' | 'items' | 'suppliers' | 'txHistory'
 
-  const res = await fetch(url.toString(), {
-    ...options,
-    headers: {
-      'xc-token': NOCODB_TOKEN,
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  })
-  if (!res.ok) throw new Error(`API Error ${res.status}: ${await res.text()}`)
-  return res.json() as Promise<T>
+// ─────────────────────────────────────────
+// n8n 프록시 요청 인터페이스
+// ─────────────────────────────────────────
+interface ProxyRequest {
+  table: TableName
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  recordId?: number
+  params?: Record<string, string | number>
+  payload?: unknown
+  bulk?: boolean
 }
 
-// 공통 목록 응답 타입
+interface ProxyResponse<T> {
+  success: boolean
+  data?: T
+  error?: { code: string; message: string }
+  timestamp: string
+}
+
+// ─────────────────────────────────────────
+// 핵심 프록시 호출 함수
+// ─────────────────────────────────────────
+async function proxyRequest<T>(req: ProxyRequest): Promise<T> {
+  const res = await fetch(PROXY_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-crm-key': CRM_API_KEY,
+    },
+    body: JSON.stringify({
+      table: req.table,
+      method: req.method || 'GET',
+      recordId: req.recordId,
+      params: req.params,
+      payload: req.payload,
+      bulk: req.bulk,
+    }),
+  })
+
+  if (!res.ok) {
+    throw new Error(`Proxy Error ${res.status}: ${await res.text()}`)
+  }
+
+  const json: ProxyResponse<T> = await res.json()
+
+  if (!json.success) {
+    throw new Error(`[${json.error?.code || 'PROXY_ERROR'}] ${json.error?.message || 'Unknown proxy error'}`)
+  }
+
+  return json.data as T
+}
+
+// ─────────────────────────────────────────
+// 공통 목록 응답 타입 (NocoDB 호환)
+// ─────────────────────────────────────────
 export interface ListResponse<T> {
   list: T[]
   pageInfo: { totalRows: number; page: number; pageSize: number; isLastPage: boolean }
 }
 
-// --- 고객 (customers) ---
+// ─────────────────────────────────────────
+// 고객 (customers)
+// ─────────────────────────────────────────
 export interface Customer {
   Id: number
   name?: string
@@ -58,21 +104,42 @@ export interface Customer {
 }
 
 export const getCustomers = (params: Record<string, string | number> = {}) =>
-  request<ListResponse<Customer>>('mffgxkftaeppyk0', {}, { limit: 25, ...params })
+  proxyRequest<ListResponse<Customer>>({
+    table: 'customers',
+    params: { limit: 25, ...params },
+  })
 
 export const getCustomer = (id: number) =>
-  request<Customer>(`mffgxkftaeppyk0/${id}`)
+  proxyRequest<Customer>({
+    table: 'customers',
+    recordId: id,
+  })
 
 export const createCustomer = (data: Partial<Customer>) =>
-  request<Customer>('mffgxkftaeppyk0', { method: 'POST', body: JSON.stringify(data) })
+  proxyRequest<Customer>({
+    table: 'customers',
+    method: 'POST',
+    payload: data,
+  })
 
 export const updateCustomer = (id: number, data: Partial<Customer>) =>
-  request<Customer>(`mffgxkftaeppyk0/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  proxyRequest<Customer>({
+    table: 'customers',
+    method: 'PATCH',
+    recordId: id,
+    payload: data,
+  })
 
 export const deleteCustomer = (id: number) =>
-  request(`mffgxkftaeppyk0/${id}`, { method: 'DELETE' })
+  proxyRequest<void>({
+    table: 'customers',
+    method: 'DELETE',
+    recordId: id,
+  })
 
-// --- 제품 (products) ---
+// ─────────────────────────────────────────
+// 제품 (products)
+// ─────────────────────────────────────────
 export interface Product {
   Id: number
   name?: string
@@ -86,9 +153,14 @@ export interface Product {
 }
 
 export const getProducts = (params: Record<string, string | number> = {}) =>
-  request<ListResponse<Product>>('mioztktmluobmmo', {}, { limit: 25, ...params })
+  proxyRequest<ListResponse<Product>>({
+    table: 'products',
+    params: { limit: 25, ...params },
+  })
 
-// --- 거래명세표 (invoices) ---
+// ─────────────────────────────────────────
+// 거래명세표 (invoices)
+// ─────────────────────────────────────────
 export interface Invoice {
   Id: number
   invoice_no?: string
@@ -112,18 +184,35 @@ export interface Invoice {
 }
 
 export const getInvoices = (params: Record<string, string | number> = {}) =>
-  request<ListResponse<Invoice>>('ml81i9mcuw0pjzk', {}, { limit: 25, ...params })
+  proxyRequest<ListResponse<Invoice>>({
+    table: 'invoices',
+    params: { limit: 25, ...params },
+  })
 
 export const getInvoice = (id: number) =>
-  request<Invoice>(`ml81i9mcuw0pjzk/${id}`)
+  proxyRequest<Invoice>({
+    table: 'invoices',
+    recordId: id,
+  })
 
 export const createInvoice = (data: Partial<Invoice>) =>
-  request<Invoice>('ml81i9mcuw0pjzk', { method: 'POST', body: JSON.stringify(data) })
+  proxyRequest<Invoice>({
+    table: 'invoices',
+    method: 'POST',
+    payload: data,
+  })
 
 export const updateInvoice = (id: number, data: Partial<Invoice>) =>
-  request<Invoice>(`ml81i9mcuw0pjzk/${id}`, { method: 'PATCH', body: JSON.stringify(data) })
+  proxyRequest<Invoice>({
+    table: 'invoices',
+    method: 'PATCH',
+    recordId: id,
+    payload: data,
+  })
 
-// --- 명세표 라인아이템 (items) ---
+// ─────────────────────────────────────────
+// 명세표 라인아이템 (items)
+// ─────────────────────────────────────────
 export interface InvoiceItem {
   Id: number
   invoice_id?: number
@@ -139,18 +228,33 @@ export interface InvoiceItem {
 }
 
 export const getItems = (invoiceId: number) =>
-  request<ListResponse<InvoiceItem>>('mxwgdlj56p9joxo', {}, {
-    where: `(invoice_id,eq,${invoiceId})`,
-    limit: 200,
+  proxyRequest<ListResponse<InvoiceItem>>({
+    table: 'items',
+    params: {
+      where: `(invoice_id,eq,${invoiceId})`,
+      limit: 200,
+    },
   })
 
 export const bulkCreateItems = (items: Partial<InvoiceItem>[]) =>
-  request<InvoiceItem[]>('mxwgdlj56p9joxo/bulk', { method: 'POST', body: JSON.stringify(items) })
+  proxyRequest<InvoiceItem[]>({
+    table: 'items',
+    method: 'POST',
+    payload: items,
+    bulk: true,
+  })
 
 export const bulkDeleteItems = (ids: number[]) =>
-  request('mxwgdlj56p9joxo/bulk', { method: 'DELETE', body: JSON.stringify(ids) })
+  proxyRequest<void>({
+    table: 'items',
+    method: 'DELETE',
+    payload: ids,
+    bulk: true,
+  })
 
-// --- 공급처 (suppliers) ---
+// ─────────────────────────────────────────
+// 공급처 (suppliers)
+// ─────────────────────────────────────────
 export interface Supplier {
   Id: number
   name?: string
@@ -160,9 +264,14 @@ export interface Supplier {
 }
 
 export const getSuppliers = (params: Record<string, string | number> = {}) =>
-  request<ListResponse<Supplier>>('mw6y9qyzex7lix9', {}, { limit: 25, ...params })
+  proxyRequest<ListResponse<Supplier>>({
+    table: 'suppliers',
+    params: { limit: 25, ...params },
+  })
 
-// --- 거래내역 (tbl_tx_history) ---
+// ─────────────────────────────────────────
+// 거래내역 (tbl_tx_history) -- 읽기 전용
+// ─────────────────────────────────────────
 export interface TxHistory {
   Id: number
   tx_date?: string
@@ -182,4 +291,7 @@ export interface TxHistory {
 }
 
 export const getTxHistory = (params: Record<string, string | number> = {}) =>
-  request<ListResponse<TxHistory>>('mtxh72a1f4beeac', {}, { limit: 50, ...params })
+  proxyRequest<ListResponse<TxHistory>>({
+    table: 'txHistory',
+    params: { limit: 50, ...params },
+  })

@@ -1,16 +1,15 @@
-// NocoDB 설정
-export const NOCODB_BASE_URL = import.meta.env.VITE_NOCODB_URL || 'https://nocodb.pressco21.com'
-export const NOCODB_TOKEN = import.meta.env.VITE_NOCODB_TOKEN || ''
-export const NOCODB_PROJECT_ID = 'pu0mwk97kac8a5p'
+// n8n 프록시 설정 (NocoDB 토큰은 n8n Credential에만 존재)
+// VITE_N8N_WEBHOOK_URL, VITE_CRM_API_KEY: .env.local에서 관리
+// NocoDB Model ID는 n8n 프록시 내부에서만 사용 (프론트엔드 불필요)
 
-// NocoDB 테이블 ID
-export const TABLE_IDS = {
-  customers: 'mffgxkftaeppyk0',
-  products: 'mioztktmluobmmo',
-  invoices: 'ml81i9mcuw0pjzk',
-  items: 'mxwgdlj56p9joxo',
-  suppliers: 'mw6y9qyzex7lix9',
-  txHistory: 'mtxh72a1f4beeac',
+// 테이블 논리명 (api.ts에서 프록시에 전달)
+export const TABLE_NAMES = {
+  customers: 'customers',
+  products: 'products',
+  invoices: 'invoices',
+  items: 'items',
+  suppliers: 'suppliers',
+  txHistory: 'txHistory',
 } as const
 
 // 회원 등급 배지 색상

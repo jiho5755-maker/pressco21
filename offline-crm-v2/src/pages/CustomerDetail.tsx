@@ -1,14 +1,16 @@
 import { useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { useQuery } from '@tanstack/react-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { ArrowLeft } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Textarea } from '@/components/ui/textarea'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { getCustomer, getTxHistory, getInvoices } from '@/lib/api'
+import { getCustomer, getTxHistory, getInvoices, updateCustomer } from '@/lib/api'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
 
 const TX_PAGE = 50
@@ -40,6 +42,8 @@ function useCustomerTxPage(name: string | undefined, offset: number) {
         offset,
       }),
     enabled: !!name,
+    staleTime: 5 * 60_000,
+    placeholderData: (prev) => prev,
   })
 }
 
@@ -47,12 +51,30 @@ export function CustomerDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
   const customerId = Number(id)
+  const queryClient = useQueryClient()
   const [txOffset, setTxOffset] = useState(0)
+  const [gradeEditMode, setGradeEditMode] = useState(false)
+  const [editGrade, setEditGrade] = useState('')
+  const [editQual, setEditQual] = useState('')
 
   const { data: customer, isLoading } = useQuery({
     queryKey: ['customer', customerId],
     queryFn: () => getCustomer(customerId),
     enabled: !!customerId,
+    staleTime: 10 * 60_000,
+  })
+
+  const { mutate: saveGrade, isPending: savingGrade } = useMutation({
+    mutationFn: () =>
+      updateCustomer(customerId, {
+        member_grade: editGrade || undefined,
+        grade_qualification: editQual,
+        is_ambassador: editGrade === 'AMBASSADOR',
+      }),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer', customerId] })
+      setGradeEditMode(false)
+    },
   })
 
   const { data: txAll } = useCustomerTxAll(customer?.name)
@@ -101,7 +123,7 @@ export function CustomerDetail() {
   }
 
   const status = customer.customer_status
-  const grade = customer.member_grade
+  const effectiveGrade = customer.is_ambassador ? 'AMBASSADOR' : (customer.member_grade ?? '')
   const outstandingBalance = (customer.outstanding_balance as number | undefined) ?? 0
 
   return (
@@ -125,12 +147,13 @@ export function CustomerDetail() {
                 {STATUS_COLORS[status].label}
               </span>
             )}
-            {grade && GRADE_COLORS[grade] && (
+            {effectiveGrade && GRADE_COLORS[effectiveGrade] && (
               <span
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium"
-                style={{ backgroundColor: GRADE_COLORS[grade].bg, color: GRADE_COLORS[grade].text }}
+                className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
+                style={{ backgroundColor: GRADE_COLORS[effectiveGrade].bg, color: GRADE_COLORS[effectiveGrade].text }}
               >
-                {GRADE_COLORS[grade].label}
+                {effectiveGrade === 'AMBASSADOR' && '★'}
+                {GRADE_COLORS[effectiveGrade].label}
               </span>
             )}
           </div>
@@ -197,6 +220,80 @@ export function CustomerDetail() {
                   </div>
                 ))}
               </dl>
+
+              {/* 등급 관리 */}
+              <div className="mt-6 pt-6 border-t">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-sm font-semibold">회원 등급</h4>
+                  {!gradeEditMode && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      onClick={() => {
+                        setEditGrade(effectiveGrade)
+                        setEditQual((customer.grade_qualification as string) ?? '')
+                        setGradeEditMode(true)
+                      }}
+                    >
+                      변경
+                    </Button>
+                  )}
+                </div>
+
+                {gradeEditMode ? (
+                  <div className="space-y-3">
+                    <Select value={editGrade} onValueChange={setEditGrade}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="등급 선택 (없으면 비워두세요)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">등급 없음</SelectItem>
+                        {Object.entries(GRADE_COLORS).map(([k, v]) => (
+                          <SelectItem key={k} value={k}>
+                            {k === 'AMBASSADOR' ? `★ ${v.label}` : v.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <Textarea
+                      placeholder="자격 근거 (예: 파트너 계약 완료 2024-01, VIP 기준 충족)"
+                      value={editQual}
+                      onChange={(e) => setEditQual(e.target.value)}
+                      className="text-sm resize-none"
+                      rows={2}
+                    />
+                    <div className="flex gap-2">
+                      <Button size="sm" onClick={() => saveGrade()} disabled={savingGrade}>
+                        {savingGrade ? '저장 중...' : '저장'}
+                      </Button>
+                      <Button size="sm" variant="ghost" onClick={() => setGradeEditMode(false)}>
+                        취소
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="text-sm">
+                    {effectiveGrade && GRADE_COLORS[effectiveGrade] ? (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span
+                          className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
+                          style={{ backgroundColor: GRADE_COLORS[effectiveGrade].bg, color: GRADE_COLORS[effectiveGrade].text }}
+                        >
+                          {effectiveGrade === 'AMBASSADOR' && '★'}
+                          {GRADE_COLORS[effectiveGrade].label}
+                        </span>
+                        {(customer.grade_qualification as string) && (
+                          <span className="text-muted-foreground text-xs">
+                            {customer.grade_qualification as string}
+                          </span>
+                        )}
+                      </div>
+                    ) : (
+                      <span className="text-muted-foreground">등급 없음</span>
+                    )}
+                  </div>
+                )}
+              </div>
             </CardContent>
           </Card>
         </TabsContent>

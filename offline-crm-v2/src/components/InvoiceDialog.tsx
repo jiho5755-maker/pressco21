@@ -699,16 +699,15 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
   return (
     <>
-    <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
+    <Dialog open={open} onOpenChange={(v) => {
+      if (!v) {
+        // body 포탈 드롭다운이 열려있으면 Dialog 닫힘만 억제 (드롭다운은 유지 — selectProduct가 자연 닫힘)
+        if (showProductDrop) return
+        handleClose()
+      }
+    }}>
       <DialogContent
         className="max-w-4xl max-h-[90vh] overflow-y-auto"
-        onPointerDownOutside={(e) => {
-          // 드롭다운 포탈이 열려있으면 Dialog 닫힘 방지
-          if (showProductDrop) e.preventDefault()
-        }}
-        onInteractOutside={(e) => {
-          if (showProductDrop) e.preventDefault()
-        }}
         onKeyDown={(e) => {
           if (e.altKey && e.key === 'Enter') { e.preventDefault(); addItem() }
         }}
@@ -1170,7 +1169,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       </DialogContent>
     </Dialog>
 
-    {/* 상품 자동완성 드롭다운 (body portal + pointerEvents:auto — Radix 오버레이 우회) */}
+    {/* 상품 자동완성 드롭다운 (body portal — onOpenChange에서 닫힘 억제) */}
     {showProductDrop && dropdownPos && productSearchResult?.list && productSearchResult.list.length > 0 && createPortal(
       <div
         ref={dropdownContainerRef}
@@ -1179,9 +1178,8 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           ...(dropdownPos.top != null ? { top: dropdownPos.top } : { bottom: dropdownPos.bottom }),
           left: dropdownPos.left, width: dropdownPos.width, zIndex: 99999, pointerEvents: 'auto',
         }}
-        onPointerDown={(e) => e.preventDefault()}
+        onMouseDown={(e) => e.preventDefault()}
         onWheel={(e) => {
-          // Radix가 body pointer-events:none 설정하므로 휠 스크롤 직접 처리
           e.stopPropagation()
           if (dropdownContainerRef.current) {
             dropdownContainerRef.current.scrollTop += e.deltaY
@@ -1194,11 +1192,16 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           return (
             <button
               key={p.Id}
+              type="button"
               className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 ${
                 isActive ? 'bg-[#f0f4f0] text-[#3d6b4a] font-medium' : 'hover:bg-gray-50'
               }`}
               onMouseEnter={() => setDropdownIdx(index)}
-              onPointerDown={() => { if (showProductDrop) selectProduct(showProductDrop, p) }}
+              onMouseDown={(e) => {
+                e.preventDefault()
+                e.stopPropagation()
+                if (showProductDrop) selectProduct(showProductDrop, p)
+              }}
             >
               <span className="flex-1 truncate">
                 {p.name}

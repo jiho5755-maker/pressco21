@@ -373,7 +373,10 @@ export async function recalcCustomerStats(customerId: number): Promise<void> {
     const d = inv.invoice_date?.slice(0, 10) ?? ''
     if (d > crmLastDate) crmLastDate = d
     if (inv.payment_status !== 'paid') {
-      outstanding += (inv.total_amount ?? 0) - (inv.paid_amount ?? 0)
+      // 미수금: 개별 레코드 단위로 음수 방어 (선입금/초과입금 케이스 처리)
+      // 동일 고객의 초과입금이 다른 명세표 미수금을 상쇄하지 않도록 0 하한 적용
+      const invOutstanding = Math.max(0, (inv.total_amount ?? 0) - (inv.paid_amount ?? 0))
+      outstanding += invOutstanding
     }
   }
 

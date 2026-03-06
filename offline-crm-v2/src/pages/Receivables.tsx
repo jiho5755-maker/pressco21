@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { getInvoices, updateInvoice } from '@/lib/api'
+import { getInvoices, updateInvoice, recalcCustomerStats } from '@/lib/api'
 import type { Invoice } from '@/lib/api'
 import { exportReceivables } from '@/lib/excel'
 
@@ -45,12 +45,16 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
 
   const remaining = calcRemaining(invoice)
   const prevPaid = invoice.paid_amount ?? 0
-  const prevBal = invoice.previous_balance ?? 0
   const total = invoice.total_amount ?? 0
   const newPaid = prevPaid + amount
   const newRemaining = remaining - amount
-  const newPaymentStatus =
-    newPaid >= prevBal + total ? 'paid' : newPaid > 0 ? 'partial' : 'unpaid'
+  // payment_status: 이번 명세표 total 기준으로만 판정 (InvoiceDialog.calcStatus와 동일 기준)
+  // prevBal은 이전 명세표에 귀속된 채무이므로 완납 여부에 포함하지 않음
+  const newPaymentStatus: string =
+    total <= 0 ? 'paid'
+    : newPaid >= total ? 'paid'
+    : newPaid > 0 ? 'partial'
+    : 'unpaid'
 
   async function handleSave() {
     if (amount <= 0) {
@@ -65,13 +69,31 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
     try {
       await updateInvoice(invoice!.Id, {
         paid_amount: newPaid,
-        current_balance: newRemaining + prevBal,
+        // current_balance: 이 명세표에서 남은 금액만 기록 (prevBal은 별도 명세표에 귀속)
+        current_balance: newRemaining,
         payment_status: newPaymentStatus,
         status: newPaymentStatus,
         payment_method: method,
       })
       qc.invalidateQueries({ queryKey: ['receivables'] })
       qc.invalidateQueries({ queryKey: ['invoices'] })
+      // 해당 명세표 개별 캐시 무효화 (InvoiceDialog에서 다시 열 때 갱신 반영)
+      qc.invalidateQueries({ queryKey: ['invoice', invoice!.Id] })
+      // 거래내역 갱신
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      qc.invalidateQueries({ queryKey: ['transactions-crm'] })
+      // 고객 미수금 재계산 + 대시보드 전체 갱신
+      if (invoice!.customer_id) {
+        try { await recalcCustomerStats(invoice!.customer_id as number) } catch {}
+        qc.invalidateQueries({ queryKey: ['customers'] })
+      }
+      // 대시보드 + 기간 리포트 전체 갱신
+      qc.invalidateQueries({
+        predicate: (q) => {
+          const k = q.queryKey[0]
+          return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-'))
+        },
+      })
       onSaved()
     } catch (e) {
       console.error(e)

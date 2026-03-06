@@ -99,8 +99,23 @@ export function Invoices() {
       }
 
       toast.success('명세표가 삭제되었습니다')
+      // 삭제된 명세표 캐시 제거
+      qc.removeQueries({ queryKey: ['invoice', inv.Id] })
+      qc.removeQueries({ queryKey: ['invoiceItems', inv.Id] })
+      // 관련 목록 전체 갱신
       void refetch()
+      qc.invalidateQueries({ queryKey: ['invoices-customer'] })
       qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({ queryKey: ['customers'] })
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      qc.invalidateQueries({ queryKey: ['transactions-crm'] })
+      // 대시보드 + 기간 리포트 전체 갱신
+      qc.invalidateQueries({
+        predicate: (q) => {
+          const k = q.queryKey[0]
+          return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-'))
+        },
+      })
     } catch {
       toast.error('삭제하지 못했습니다. 잠시 후 다시 시도해주세요')
     } finally {

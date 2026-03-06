@@ -24,14 +24,20 @@ interface SettingsData extends CompanyInfo {
 }
 
 const SETTINGS_KEY = 'pressco21-crm-settings'
+const LEGACY_KEY = 'pressco21-crm-v2'
 
 function loadSettings(): SettingsData {
+  // 양쪽 키 병합: 어느 쪽에 데이터가 있든 모두 반영 (settings 키 우선)
+  let merged: Record<string, unknown> = {}
   try {
-    const saved = localStorage.getItem(SETTINGS_KEY)
-    if (saved) return JSON.parse(saved) as SettingsData
+    const legacy = localStorage.getItem(LEGACY_KEY)
+    if (legacy) merged = { ...merged, ...JSON.parse(legacy) }
   } catch {}
-  // 기존 CompanyInfo와 병합
-  return loadCompanyInfo()
+  try {
+    const settings = localStorage.getItem(SETTINGS_KEY)
+    if (settings) merged = { ...merged, ...JSON.parse(settings) }
+  } catch {}
+  return merged as SettingsData
 }
 
 function saveSettings(data: SettingsData): void {
@@ -78,7 +84,11 @@ export function Settings() {
   }, [])
 
   function set<K extends keyof SettingsData>(key: K, value: SettingsData[K]) {
-    setData((prev) => ({ ...prev, [key]: value }))
+    setData((prev) => {
+      const next = { ...prev, [key]: value }
+      saveSettings(next)  // 필드 변경 즉시 저장 (페이지 이동 시 데이터 소실 방지)
+      return next
+    })
   }
 
   function handleImageUpload(field: 'logo_url' | 'stamp_url', e: React.ChangeEvent<HTMLInputElement>) {

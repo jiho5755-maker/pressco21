@@ -81,8 +81,11 @@ function generateInvoiceNo(): string {
   return `INV-${ymd}-${hms}`
 }
 
-function calcStatus(paid: number, prevBal: number, total: number): string {
-  if (paid >= prevBal + total && prevBal + total > 0) return 'paid'
+// payment_status 판정: 이번 명세표 total 기준으로만 판단 (accounting-specialist 검증)
+// prevBal은 이전 명세표에 귀속된 채무이므로 이번 명세표 완납 여부에 포함하지 않음
+function calcStatus(paid: number, _prevBal: number, total: number): string {
+  if (total <= 0) return 'paid'   // 금액 없는 명세표
+  if (paid >= total) return 'paid'
   if (paid > 0) return 'partial'
   return 'unpaid'
 }
@@ -596,6 +599,21 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       qc.invalidateQueries({ queryKey: ['invoices-customer'] })
       qc.invalidateQueries({ queryKey: ['receivables'] })
       qc.invalidateQueries({ queryKey: ['customers'] })
+      // 수정된 명세표 캐시 무효화 (다시 열 때 구 데이터 표시 방지)
+      if (invoiceId) {
+        qc.invalidateQueries({ queryKey: ['invoice', invoiceId] })
+        qc.invalidateQueries({ queryKey: ['invoiceItems', invoiceId] })
+      }
+      // 거래내역 갱신 (CRM 명세표 통합 표시용)
+      qc.invalidateQueries({ queryKey: ['transactions'] })
+      qc.invalidateQueries({ queryKey: ['transactions-crm'] })
+      // 대시보드 + 기간 리포트 전체 갱신
+      qc.invalidateQueries({
+        predicate: (q) => {
+          const k = q.queryKey[0]
+          return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-'))
+        },
+      })
       setIsDirty(false)
       toast.success(invoiceId ? '명세표가 수정되었습니다' : '명세표가 발행되었습니다')
       onSaved()

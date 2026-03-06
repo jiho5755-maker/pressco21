@@ -1,10 +1,11 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { Search, ChevronLeft, ChevronRight } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getTxHistory, sanitizeSearchTerm } from '@/lib/api'
+import { getTxHistory, getInvoices, sanitizeSearchTerm } from '@/lib/api'
+import type { TxHistory, Invoice } from '@/lib/api'
 
 const PAGE_SIZE = 50
 
@@ -18,11 +19,54 @@ function useDebounce<T>(value: T, delay: number): T {
 }
 
 // 거래 유형별 배지 색상
+// CRM 명세표: '출고(CRM)' 유형으로 구분 표시
 const TX_TYPE_STYLE: Record<string, { bg: string; text: string }> = {
   출고: { bg: '#dbeafe', text: '#1d4ed8' },
+  '출고(CRM)': { bg: '#e0e7ff', text: '#4338ca' },  // CRM 명세표는 인디고 계열로 구분
   입금: { bg: '#dcfce7', text: '#15803d' },
   반입: { bg: '#fef3c7', text: '#b45309' },
   메모: { bg: '#f1f5f9', text: '#64748b' },
+}
+
+// CRM Invoice → 통합 행 형식으로 변환
+interface UnifiedRow {
+  id: string           // 'legacy-{Id}' or 'crm-{Id}'
+  tx_date: string
+  customer_name: string
+  tx_type: string
+  amount: number
+  tax: number
+  slip_no: string
+  memo: string
+  source: 'legacy' | 'crm'
+}
+
+function invoiceToRow(inv: Invoice): UnifiedRow {
+  return {
+    id: `crm-${inv.Id}`,
+    tx_date: inv.invoice_date ?? '',
+    customer_name: inv.customer_name ?? '',
+    tx_type: '출고(CRM)',
+    amount: inv.total_amount ?? 0,
+    tax: inv.tax_amount ?? 0,
+    slip_no: inv.invoice_no ?? '',
+    memo: inv.memo ?? '',
+    source: 'crm',
+  }
+}
+
+function txToRow(tx: TxHistory): UnifiedRow {
+  return {
+    id: `legacy-${tx.Id}`,
+    tx_date: tx.tx_date ?? '',
+    customer_name: tx.customer_name ?? '',
+    tx_type: tx.tx_type ?? '',
+    amount: tx.amount ?? 0,
+    tax: tx.tax ?? 0,
+    slip_no: tx.slip_no ?? '',
+    memo: tx.memo ?? '',
+    source: 'legacy',
+  }
 }
 
 export function Transactions() {
@@ -35,34 +79,74 @@ export function Transactions() {
   const debouncedSearch = useDebounce(search, 400)
   useEffect(() => setPage(1), [debouncedSearch, typeFilter, dateFrom, dateTo])
 
-  const params: Record<string, string | number> = {
-    limit: PAGE_SIZE,
-    offset: (page - 1) * PAGE_SIZE,
+  // ── 레거시 거래내역 쿼리 (CRM 유형 필터 시 건너뜀)
+  const legacyParams: Record<string, string | number> = {
+    limit: PAGE_SIZE * 2,  // 병합 후 페이지네이션이므로 2배 요청
     sort: '-tx_date',
   }
-
-  const conditions: string[] = []
+  const legacyConditions: string[] = []
   if (debouncedSearch) {
     const safe = sanitizeSearchTerm(debouncedSearch)
-    conditions.push(`(customer_name,like,%${safe}%)`)
+    legacyConditions.push(`(customer_name,like,%${safe}%)`)
   }
-  if (typeFilter !== 'ALL') conditions.push(`(tx_type,eq,${typeFilter})`)
-  if (dateFrom) conditions.push(`(tx_date,gte,${dateFrom})`)
-  if (dateTo) conditions.push(`(tx_date,lte,${dateTo})`)
-  if (conditions.length > 0) {
-    params.where = conditions.length === 1 ? conditions[0] : conditions.join('~and')
+  // CRM 필터 선택 시 레거시 조회 생략
+  const skipLegacy = typeFilter === '출고(CRM)'
+  if (!skipLegacy && typeFilter !== 'ALL') legacyConditions.push(`(tx_type,eq,${typeFilter})`)
+  if (dateFrom) legacyConditions.push(`(tx_date,gte,${dateFrom})`)
+  if (dateTo) legacyConditions.push(`(tx_date,lte,${dateTo})`)
+  if (legacyConditions.length > 0) {
+    legacyParams.where = legacyConditions.length === 1 ? legacyConditions[0] : legacyConditions.join('~and')
   }
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['transactions', params],
-    queryFn: () => getTxHistory(params),
+  const { data: legacyData, isLoading: legacyLoading, isError: legacyError } = useQuery({
+    queryKey: ['transactions', legacyParams],
+    queryFn: () => getTxHistory(legacyParams),
     staleTime: 10 * 60_000,
     placeholderData: (prev) => prev,
+    enabled: !skipLegacy,
   })
 
-  const totalRows = data?.pageInfo?.totalRows ?? 0
-  const totalPages = Math.ceil(totalRows / PAGE_SIZE)
-  const txList = data?.list ?? []
+  // ── CRM 명세표 쿼리 (레거시 유형 필터 시 건너뜀)
+  const skipCrm = ['입금', '반입', '메모'].includes(typeFilter)
+  const crmParams: Record<string, string | number> = {
+    limit: PAGE_SIZE * 2,
+    sort: '-invoice_date',
+    fields: 'Id,invoice_date,customer_name,total_amount,tax_amount,invoice_no,memo',
+  }
+  const crmConditions: string[] = []
+  if (debouncedSearch) {
+    const safe = sanitizeSearchTerm(debouncedSearch)
+    crmConditions.push(`(customer_name,like,%${safe}%)`)
+  }
+  if (dateFrom) crmConditions.push(`(invoice_date,gte,${dateFrom})`)
+  if (dateTo) crmConditions.push(`(invoice_date,lte,${dateTo})`)
+  if (crmConditions.length > 0) {
+    crmParams.where = crmConditions.length === 1 ? crmConditions[0] : crmConditions.join('~and')
+  }
+
+  const { data: crmData, isLoading: crmLoading, isError: crmError } = useQuery({
+    queryKey: ['transactions-crm', crmParams],
+    queryFn: () => getInvoices(crmParams),
+    staleTime: 5 * 60_000,
+    placeholderData: (prev) => prev,
+    enabled: !skipCrm,
+  })
+
+  // ── 병합 + 날짜 내림차순 정렬 + 클라이언트 페이지네이션
+  const allRows = useMemo<UnifiedRow[]>(() => {
+    const legacy = (legacyData?.list ?? []).map(txToRow)
+    const crm = (crmData?.list ?? []).map(invoiceToRow)
+    const merged = [...legacy, ...crm]
+    merged.sort((a, b) => b.tx_date.localeCompare(a.tx_date))
+    return merged
+  }, [legacyData, crmData])
+
+  const totalRows = allRows.length
+  const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE))
+  const pagedRows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+
+  const isLoading = legacyLoading || crmLoading
+  const isError = legacyError || crmError
 
   function resetFilters() {
     setSearch('')
@@ -80,6 +164,9 @@ export function Transactions() {
           <h2 className="text-2xl font-bold">거래 내역</h2>
           <p className="text-sm text-muted-foreground mt-1">
             총 {totalRows.toLocaleString()}건
+            <span className="ml-2 text-xs text-muted-foreground">
+              (레거시 {legacyData?.list?.length ?? 0}건 + CRM 명세표 {crmData?.list?.length ?? 0}건)
+            </span>
           </p>
         </div>
       </div>
@@ -96,12 +183,13 @@ export function Transactions() {
           />
         </div>
         <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-28">
+          <SelectTrigger className="w-36">
             <SelectValue placeholder="유형" />
           </SelectTrigger>
           <SelectContent>
             <SelectItem value="ALL">모든 유형</SelectItem>
-            <SelectItem value="출고">출고</SelectItem>
+            <SelectItem value="출고">출고 (레거시)</SelectItem>
+            <SelectItem value="출고(CRM)">출고 (CRM명세표)</SelectItem>
             <SelectItem value="입금">입금</SelectItem>
             <SelectItem value="반입">반입</SelectItem>
             <SelectItem value="메모">메모</SelectItem>
@@ -129,6 +217,12 @@ export function Transactions() {
         )}
       </div>
 
+      {/* CRM 명세표 포함 안내 */}
+      <div className="mb-3 text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
+        레거시 거래내역(장부 원본)과 CRM 거래명세표를 날짜순으로 통합 표시합니다.
+        CRM 명세표의 입금 내역은 미수금 관리 탭에서 확인하세요.
+      </div>
+
       {/* 테이블 */}
       <div className="rounded-lg border bg-white overflow-hidden">
         <table className="w-full text-sm">
@@ -139,7 +233,7 @@ export function Transactions() {
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">유형</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">금액</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">세액</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">전표번호</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">전표/발행번호</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
             </tr>
           </thead>
@@ -158,42 +252,47 @@ export function Transactions() {
                 </td>
               </tr>
             )}
-            {!isLoading && !isError && txList.length === 0 && (
+            {!isLoading && !isError && pagedRows.length === 0 && (
               <tr>
                 <td colSpan={7} className="text-center py-12 text-muted-foreground">
                   조건에 맞는 거래내역이 없습니다. 검색어나 필터를 변경해보세요.
                 </td>
               </tr>
             )}
-            {txList.map((tx) => {
-              const style = TX_TYPE_STYLE[tx.tx_type ?? ''] ?? { bg: '#f1f5f9', text: '#64748b' }
+            {pagedRows.map((row) => {
+              const style = TX_TYPE_STYLE[row.tx_type] ?? { bg: '#f1f5f9', text: '#64748b' }
               return (
-                <tr key={tx.Id} className="border-b last:border-b-0 hover:bg-gray-50">
+                <tr
+                  key={row.id}
+                  className={`border-b last:border-b-0 hover:bg-gray-50 ${
+                    row.source === 'crm' ? 'bg-indigo-50/30' : ''
+                  }`}
+                >
                   <td className="px-4 py-2.5 text-xs text-muted-foreground tabular-nums">
-                    {tx.tx_date?.slice(0, 10) ?? '-'}
+                    {row.tx_date.slice(0, 10) || '-'}
                   </td>
-                  <td className="px-4 py-2.5 font-medium">{tx.customer_name ?? '-'}</td>
+                  <td className="px-4 py-2.5 font-medium">{row.customer_name || '-'}</td>
                   <td className="px-4 py-2.5">
-                    {tx.tx_type && (
+                    {row.tx_type && (
                       <span
                         className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium"
                         style={{ backgroundColor: style.bg, color: style.text }}
                       >
-                        {tx.tx_type}
+                        {row.tx_type}
                       </span>
                     )}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums">
-                    {tx.amount != null ? `${tx.amount.toLocaleString()}원` : '-'}
+                    {row.amount > 0 ? `${row.amount.toLocaleString()}원` : '-'}
                   </td>
                   <td className="px-4 py-2.5 text-right tabular-nums text-muted-foreground text-xs">
-                    {tx.tax != null && tx.tax > 0 ? `${tx.tax.toLocaleString()}원` : '-'}
+                    {row.tax > 0 ? `${row.tax.toLocaleString()}원` : '-'}
                   </td>
                   <td className="px-4 py-2.5 text-xs text-muted-foreground font-mono">
-                    {tx.slip_no ?? '-'}
+                    {row.slip_no || '-'}
                   </td>
                   <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                    {tx.memo ?? '-'}
+                    {row.memo || '-'}
                   </td>
                 </tr>
               )

@@ -21,7 +21,7 @@ import {
   getProducts,
   sanitizeSearchTerm,
   sanitizeAmount,
-  recalcCustomerBalance,
+  recalcCustomerStats,
 } from '@/lib/api'
 import type { Invoice, Customer, Product } from '@/lib/api'
 import { printDuplexViaIframe, buildDuplexBlobUrl } from '@/lib/print'
@@ -195,19 +195,37 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   const [productPickerOpen, setProductPickerOpen] = useState(false)
   const [productPickerRowKey, setProductPickerRowKey] = useState<string | null>(null)
 
-  // 드롭다운 portal 위치 (테이블 overflow 밖으로 렌더링)
-  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null)
+  // 드롭다운 portal 위치 (테이블 overflow 밖으로 렌더링 + 뷰포트 하단 감지)
+  const [dropdownPos, setDropdownPos] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null)
+  const dropdownContainerRef = useRef<HTMLDivElement>(null)
   useLayoutEffect(() => {
     if (showProductDrop && activeProductKey) {
       const el = productInputRefs.current[activeProductKey]
       if (el) {
         const rect = el.getBoundingClientRect()
-        setDropdownPos({ top: rect.bottom + 2, left: rect.left, width: Math.max(rect.width + 100, 360) })
+        const width = Math.max(rect.width + 100, 360)
+        const maxH = 240 // max-h-60 = 15rem
+        const spaceBelow = window.innerHeight - rect.bottom
+        if (spaceBelow < maxH && rect.top > maxH) {
+          // 위쪽에 표시
+          setDropdownPos({ bottom: window.innerHeight - rect.top + 2, left: rect.left, width })
+        } else {
+          // 아래쪽에 표시 (기본)
+          setDropdownPos({ top: rect.bottom + 2, left: rect.left, width })
+        }
       }
     } else {
       setDropdownPos(null)
     }
   }, [showProductDrop, activeProductKey])
+
+  // 키보드 방향키 탐색 시 활성 아이템 스크롤 추적
+  useEffect(() => {
+    if (dropdownIdx >= 0 && dropdownContainerRef.current) {
+      const el = dropdownContainerRef.current.children[dropdownIdx] as HTMLElement
+      el?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [dropdownIdx])
 
   // 최근 거래 5건
   const { data: recentInvoices } = useQuery({
@@ -571,7 +589,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
       // 잔액 재계산
       if (form.customer_id) {
-        try { await recalcCustomerBalance(form.customer_id) } catch {}
+        try { await recalcCustomerStats(form.customer_id) } catch {}
       }
 
       qc.invalidateQueries({ queryKey: ['invoices'] })
@@ -1118,8 +1136,12 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     {/* 상품 자동완성 드롭다운 (portal - 테이블 overflow 밖에 렌더링) */}
     {showProductDrop && dropdownPos && productSearchResult?.list && productSearchResult.list.length > 0 && createPortal(
       <div
+        ref={dropdownContainerRef}
         className="fixed bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto"
-        style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
+        style={{
+          ...(dropdownPos.top != null ? { top: dropdownPos.top } : { bottom: dropdownPos.bottom }),
+          left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999,
+        }}
       >
         {productSearchResult.list.map((p, index) => {
           const price = getPriceForCustomer(p, selectedCustomer)

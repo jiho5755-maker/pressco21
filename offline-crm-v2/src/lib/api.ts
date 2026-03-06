@@ -347,19 +347,66 @@ export const deleteInvoice = (id: number) =>
   })
 
 export async function recalcCustomerBalance(customerId: number): Promise<void> {
-  // 미완납 명세표 전체 조회
-  const unpaid = await proxyRequest<ListResponse<Invoice>>({
+  await recalcCustomerStats(customerId)
+}
+
+// CRM 명세표 + 레거시 거래내역 기반 고객 통계 종합 재계산
+// (last_order_date, total_order_count, total_order_amount, outstanding_balance)
+export async function recalcCustomerStats(customerId: number): Promise<void> {
+  const customer = await getCustomer(customerId)
+
+  // 1. CRM 명세표 전체 조회
+  const crmResult = await proxyRequest<ListResponse<Invoice>>({
     table: 'invoices',
     params: {
-      where: `(customer_id,eq,${customerId})~and(payment_status,neq,paid)`,
-      limit: 500,
+      where: `(customer_id,eq,${customerId})`,
+      sort: '-invoice_date',
+      limit: 1000,
+      fields: 'Id,invoice_date,total_amount,paid_amount,payment_status',
     },
   })
-  const outstanding = unpaid.list.reduce(
-    (s, inv) => s + (inv.total_amount ?? 0) - (inv.paid_amount ?? 0),
-    0
-  )
-  await updateCustomer(customerId, { outstanding_balance: Math.max(0, outstanding) })
+
+  let crmTotal = 0, crmCount = 0, crmLastDate = '', outstanding = 0
+  for (const inv of crmResult.list) {
+    crmTotal += inv.total_amount ?? 0
+    crmCount++
+    const d = inv.invoice_date?.slice(0, 10) ?? ''
+    if (d > crmLastDate) crmLastDate = d
+    if (inv.payment_status !== 'paid') {
+      outstanding += (inv.total_amount ?? 0) - (inv.paid_amount ?? 0)
+    }
+  }
+
+  // 2. 레거시 거래내역 합산 (출고 유형만)
+  let legacyTotal = 0, legacyCount = 0, legacyLastDate = ''
+  if (customer.name) {
+    const txResult = await proxyRequest<ListResponse<TxHistory>>({
+      table: 'txHistory',
+      params: {
+        where: `(customer_name,eq,${customer.name})~and(tx_type,eq,출고)`,
+        sort: '-tx_date',
+        limit: 1000,
+        fields: 'Id,amount,tx_date',
+      },
+    })
+    for (const tx of txResult.list) {
+      legacyTotal += tx.amount ?? 0
+      legacyCount++
+      const d = tx.tx_date?.slice(0, 10) ?? ''
+      if (d > legacyLastDate) legacyLastDate = d
+    }
+  }
+
+  // 3. 종합 통계 업데이트
+  const lastDate = crmLastDate > legacyLastDate ? crmLastDate : (legacyLastDate || crmLastDate)
+  const patch: Partial<Customer> = {
+    total_order_amount: legacyTotal + crmTotal,
+    total_order_count: legacyCount + crmCount,
+    outstanding_balance: Math.max(0, outstanding),
+  }
+  if (lastDate) patch.last_order_date = lastDate
+
+  await updateCustomer(customerId, patch)
 }
 
 // ─────────────────────────────────────────

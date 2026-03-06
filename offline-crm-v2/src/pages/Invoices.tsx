@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { InvoiceDialog } from '@/components/InvoiceDialog'
-import { getInvoices, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerBalance, sanitizeSearchTerm } from '@/lib/api'
+import { getInvoices, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm } from '@/lib/api'
 import type { Invoice } from '@/lib/api'
 import { exportInvoices } from '@/lib/excel'
 import { printDuplexViaIframe } from '@/lib/print'
@@ -95,7 +95,7 @@ export function Invoices() {
 
       // 잔액 재계산
       if (inv.customer_id) {
-        try { await recalcCustomerBalance(inv.customer_id as number) } catch {}
+        try { await recalcCustomerStats(inv.customer_id as number) } catch {}
       }
 
       toast.success('명세표가 삭제되었습니다')

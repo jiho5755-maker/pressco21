@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { getCustomer, getTxHistory, getInvoices, updateCustomer, recalcCustomerBalance } from '@/lib/api'
+import { getCustomer, getTxHistory, getInvoices, updateCustomer, recalcCustomerStats } from '@/lib/api'
 import type { Customer } from '@/lib/api'
 import { printPeriodReport } from '@/lib/print'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
@@ -189,13 +189,13 @@ export function CustomerDetail() {
     },
   })
 
-  // 잔액 재계산
+  // 고객 통계 재계산 (미수금 + 총매출 + 최종거래일 + 주문건수)
   const { mutate: recalcBalance, isPending: recalcing } = useMutation({
-    mutationFn: () => recalcCustomerBalance(customerId),
+    mutationFn: () => recalcCustomerStats(customerId),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] })
       queryClient.invalidateQueries({ queryKey: ['customers'] })
-      toast.success('미수금이 재계산되었습니다')
+      toast.success('고객 통계가 재계산되었습니다 (미수금·총매출·최종거래일)')
     },
     onError: (e: Error) => toast.error(`재계산 실패: ${e.message}`),
   })
@@ -422,7 +422,7 @@ export function CustomerDetail() {
             <button
               onClick={() => recalcBalance()}
               disabled={recalcing}
-              title="CRM 명세표 기준으로 미수금 재계산"
+              title="CRM + 레거시 기준 통계 재계산 (미수금·총매출·최종거래일)"
               className="absolute top-1.5 right-1.5 p-1 rounded-full text-muted-foreground hover:text-[#3d6b4a] hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <RefreshCw className={`h-3 w-3 ${recalcing ? 'animate-spin' : ''}`} />

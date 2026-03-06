@@ -24,7 +24,7 @@ import {
   recalcCustomerStats,
 } from '@/lib/api'
 import type { Invoice, Customer, Product } from '@/lib/api'
-import { printDuplexViaIframe, buildDuplexBlobUrl } from '@/lib/print'
+import { printDuplexViaIframe, buildDuplexBlobUrl, getPreviewPageCount } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
 import { ProductPickerDialog } from '@/components/ProductPickerDialog'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -174,6 +174,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   // 인쇄 미리보기
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState('')
+  const [previewPages, setPreviewPages] = useState(1)
   const previewIframeRef = useRef<HTMLIFrameElement>(null)
 
   // 고객 검색
@@ -254,6 +255,16 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     queryFn: () => getItems(editId!),
     enabled: !!editId && open,
   })
+
+  // 다이얼로그 닫힐 때 드롭다운 정리 (portal 잔류 방지)
+  useEffect(() => {
+    if (!open) {
+      setShowProductDrop(null)
+      setDropdownIdx(-1)
+      setActiveProductKey(null)
+      setDropdownPos(null)
+    }
+  }, [open])
 
   // 기존 데이터로 폼 채우기
   useEffect(() => {
@@ -660,6 +671,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     const { inv, rows } = buildPrintData()
     const url = buildDuplexBlobUrl(inv, rows)
     setPreviewUrl(url)
+    setPreviewPages(getPreviewPageCount(rows.length))
     setPreviewOpen(true)
   }
 
@@ -929,7 +941,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                                 setShowProductDrop(row._key)
                               }
                             }}
-                            onBlur={() => setTimeout(() => { setShowProductDrop(null); setDropdownIdx(-1) }, 200)}
+                            onBlur={() => { setShowProductDrop(null); setDropdownIdx(-1) }}
                             onKeyDown={(e) => {
                               const list = productSearchResult?.list ?? []
                               if (showProductDrop === row._key && list.length > 0) {
@@ -1160,6 +1172,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           ...(dropdownPos.top != null ? { top: dropdownPos.top } : { bottom: dropdownPos.bottom }),
           left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999,
         }}
+        onMouseDown={(e) => e.preventDefault()}
       >
         {productSearchResult.list.map((p, index) => {
           const price = getPriceForCustomer(p, selectedCustomer)
@@ -1170,6 +1183,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
               className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 ${
                 isActive ? 'bg-[#f0f4f0] text-[#3d6b4a] font-medium' : 'hover:bg-gray-50'
               }`}
+              onMouseEnter={() => setDropdownIdx(index)}
               onMouseDown={() => { if (showProductDrop) selectProduct(showProductDrop, p) }}
             >
               <span className="flex-1 truncate">
@@ -1231,7 +1245,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
               style={{
                 display: 'block',
                 width: '210mm',
-                height: '297mm',
+                height: `${previewPages * 297}mm`,
                 border: 'none',
                 margin: '16px auto',
                 boxShadow: '0 2px 12px rgba(0,0,0,0.15)',

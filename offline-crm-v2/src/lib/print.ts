@@ -115,9 +115,30 @@ function esc(str: string): string {
     .replace(/"/g, '&quot;')
 }
 
-function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: string): string {
+// ── 멀티페이지 상수 ──
+// A4 절반(148.5mm) - 여백(14mm) = 134.5mm 기준
+// 첫 페이지: 전체 헤더(~52mm) + 합계/잔액/서명(~30mm) + 품목헤더(~5mm) → 품목 ~47mm ≈ 12행
+// 속지: 간략 헤더(~14mm) + 합계/잔액/서명(~30mm) + 품목헤더(~5mm) → 품목 ~85mm ≈ 24행
+const ITEMS_FIRST_PAGE = 12
+const ITEMS_CONT_PAGE = 24
+
+interface PageOptions {
+  pageNum: number
+  totalPages: number
+  isFirst: boolean
+  isLast: boolean
+}
+
+function buildInvoicePageHtml(
+  inv: PrintInvoice,
+  pageItems: PrintItem[],
+  copyType: string,
+  opts: PageOptions,
+  startIndex: number,
+): string {
   const c = loadCompanyInfo()
-  const blankCount = Math.max(0, 8 - items.length)
+  const capacity = opts.isFirst ? ITEMS_FIRST_PAGE : ITEMS_CONT_PAGE
+  const blankCount = opts.isLast ? Math.max(0, Math.min(8, capacity) - pageItems.length) : 0
 
   const prevBal = inv.previous_balance ?? 0
   const paidAmt = inv.paid_amount ?? 0
@@ -125,11 +146,11 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
   const curBal = prevBal + totalAmt - paidAmt
 
   const itemRowsHtml =
-    items
+    pageItems
       .map(
         (item, i) =>
           '<tr>' +
-          `<td class="t-center">${i + 1}</td>` +
+          `<td class="t-center">${startIndex + i + 1}</td>` +
           `<td>${esc(item.product_name ?? '')}</td>` +
           `<td class="t-center">${esc(item.unit ?? '')}</td>` +
           `<td class="t-right">${(item.quantity ?? 0).toLocaleString()}</td>` +
@@ -146,10 +167,8 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
       )
       .join('')
 
-  // 우선순위: 사용자 업로드 data URL > 정적 파일 preload data URL
   const effectiveLogo = c.logo_url || _logoFallback
   const effectiveStamp = c.stamp_url || _stampFallback
-
   const logoHtml = effectiveLogo
     ? `<img src="${effectiveLogo}" alt="로고" style="height:40px;object-fit:contain;" />`
     : ''
@@ -157,47 +176,65 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
     ? `<img src="${effectiveStamp}" alt="도장" class="inv-stamp-img" />`
     : ''
 
-  return (
-    '<div class="inv-header">' +
-    `<div class="inv-logo">${logoHtml}</div>` +
-    `<div class="inv-title-area"><div class="inv-title">거 래 명 세 표</div><div class="inv-sub">(${esc(copyType)})</div></div>` +
-    '<div></div>' +
-    '</div>' +
-    '<table class="inv-tbl inv-meta-tbl"><tr>' +
-    `<td class="inv-ml">발행번호</td><td class="inv-mv">${esc(inv.invoice_no ?? '')}</td>` +
-    `<td class="inv-ml">구분</td><td class="inv-mv t-center">${esc(inv.receipt_type ?? '영수')}</td>` +
-    `<td class="inv-ml">거래일자</td><td class="inv-mv">${esc(inv.invoice_date ?? '')}</td>` +
-    '</tr></table>' +
-    // 공급자/공급받는자를 단일 테이블로 통합 → 행 높이가 항상 일치 (정렬 보장)
-    // colgroup: 공급자 38%(8+11+8+11) : 공급받는자 60%(8+22+8+22) 비율
-    '<table class="inv-tbl inv-party-tbl">' +
-    '<colgroup>' +
-    '<col style="width:8%" /><col style="width:11%" /><col style="width:8%" /><col style="width:11%" />' +
-    '<col style="width:1px" />' +
-    '<col style="width:8%" /><col style="width:22%" /><col style="width:8%" /><col style="width:22%" />' +
-    '</colgroup>' +
-    '<thead><tr>' +
-    '<th class="inv-party-title" colspan="4">공&nbsp;&nbsp;급&nbsp;&nbsp;자</th>' +
-    '<th class="inv-party-div"></th>' +
-    '<th class="inv-party-title" colspan="4">공&nbsp;급&nbsp;받&nbsp;는&nbsp;자</th>' +
-    '</tr></thead>' +
-    '<tbody>' +
-    `<tr><td class="inv-pl">상호</td><td>${esc(c.company ?? '')}</td><td class="inv-pl">대표자</td><td>${esc(c.ceo ?? '')}</td>` +
-    `<td class="inv-party-div"></td>` +
-    `<td class="inv-pl">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="inv-pl">담당자</td><td>${esc(inv.manager ?? '')}</td></tr>` +
-    `<tr><td class="inv-pl">사업자번호</td><td colspan="3">${esc(c.bizno ?? '')}</td>` +
-    `<td class="inv-party-div"></td>` +
-    `<td class="inv-pl">사업자번호</td><td colspan="3">${esc(inv.customer_bizno ?? '')}</td></tr>` +
-    `<tr><td class="inv-pl">주소</td><td colspan="3">${esc(c.address ?? '')}</td>` +
-    `<td class="inv-party-div"></td>` +
-    `<td class="inv-pl">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
-    `<tr><td class="inv-pl">업태/종목</td><td colspan="3">${esc(c.bizType ?? '')}&nbsp;/&nbsp;${esc(c.bizItem ?? '')}</td>` +
-    `<td class="inv-party-div"></td>` +
-    `<td class="inv-pl">업태/종목</td><td colspan="3"></td></tr>` +
-    `<tr><td class="inv-pl">전화</td><td colspan="3">${esc(c.phone ?? '')}</td>` +
-    `<td class="inv-party-div"></td>` +
-    `<td class="inv-pl">전화</td><td colspan="3">${esc(inv.customer_phone ?? '')}</td></tr>` +
-    '</tbody></table>' +
+  let html = ''
+  const pageLabel = opts.totalPages > 1 ? ` [${opts.pageNum}/${opts.totalPages}]` : ''
+
+  if (opts.isFirst) {
+    // ── 첫 페이지: 전체 헤더 (공급자/공급받는자 정보 포함) ──
+    html +=
+      '<div class="inv-header">' +
+      `<div class="inv-logo">${logoHtml}</div>` +
+      `<div class="inv-title-area"><div class="inv-title">거 래 명 세 표</div><div class="inv-sub">(${esc(copyType)})${pageLabel}</div></div>` +
+      '<div></div>' +
+      '</div>' +
+      '<table class="inv-tbl inv-meta-tbl"><tr>' +
+      `<td class="inv-ml">발행번호</td><td class="inv-mv">${esc(inv.invoice_no ?? '')}</td>` +
+      `<td class="inv-ml">구분</td><td class="inv-mv t-center">${esc(inv.receipt_type ?? '영수')}</td>` +
+      `<td class="inv-ml">거래일자</td><td class="inv-mv">${esc(inv.invoice_date ?? '')}</td>` +
+      '</tr></table>' +
+      '<table class="inv-tbl inv-party-tbl">' +
+      '<colgroup>' +
+      '<col style="width:8%" /><col style="width:11%" /><col style="width:8%" /><col style="width:11%" />' +
+      '<col style="width:1px" />' +
+      '<col style="width:8%" /><col style="width:22%" /><col style="width:8%" /><col style="width:22%" />' +
+      '</colgroup>' +
+      '<thead><tr>' +
+      '<th class="inv-party-title" colspan="4">공&nbsp;&nbsp;급&nbsp;&nbsp;자</th>' +
+      '<th class="inv-party-div"></th>' +
+      '<th class="inv-party-title" colspan="4">공&nbsp;급&nbsp;받&nbsp;는&nbsp;자</th>' +
+      '</tr></thead>' +
+      '<tbody>' +
+      `<tr><td class="inv-pl">상호</td><td>${esc(c.company ?? '')}</td><td class="inv-pl">대표자</td><td>${esc(c.ceo ?? '')}</td>` +
+      `<td class="inv-party-div"></td>` +
+      `<td class="inv-pl">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="inv-pl">담당자</td><td>${esc(inv.manager ?? '')}</td></tr>` +
+      `<tr><td class="inv-pl">사업자번호</td><td colspan="3">${esc(c.bizno ?? '')}</td>` +
+      `<td class="inv-party-div"></td>` +
+      `<td class="inv-pl">사업자번호</td><td colspan="3">${esc(inv.customer_bizno ?? '')}</td></tr>` +
+      `<tr><td class="inv-pl">주소</td><td colspan="3">${esc(c.address ?? '')}</td>` +
+      `<td class="inv-party-div"></td>` +
+      `<td class="inv-pl">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
+      `<tr><td class="inv-pl">업태/종목</td><td colspan="3">${esc(c.bizType ?? '')}&nbsp;/&nbsp;${esc(c.bizItem ?? '')}</td>` +
+      `<td class="inv-party-div"></td>` +
+      `<td class="inv-pl">업태/종목</td><td colspan="3"></td></tr>` +
+      `<tr><td class="inv-pl">전화</td><td colspan="3">${esc(c.phone ?? '')}</td>` +
+      `<td class="inv-party-div"></td>` +
+      `<td class="inv-pl">전화</td><td colspan="3">${esc(inv.customer_phone ?? '')}</td></tr>` +
+      '</tbody></table>'
+  } else {
+    // ── 속지 페이지: 간략 헤더 ──
+    html +=
+      '<div class="inv-cont-header">' +
+      '<div class="inv-cont-title">거 래 명 세 표 (속)</div>' +
+      '<div class="inv-cont-info">' +
+      `<span>발행번호: ${esc(inv.invoice_no ?? '')}</span>` +
+      `<span>거래처: ${esc(inv.customer_name ?? '')}</span>` +
+      `<span>${esc(copyType)} [${opts.pageNum}/${opts.totalPages}]</span>` +
+      '</div>' +
+      '</div>'
+  }
+
+  // ── 품목 테이블 (모든 페이지 공통) ──
+  html +=
     '<table class="inv-tbl inv-items-table">' +
     '<thead><tr>' +
     '<th style="width:4%">No</th>' +
@@ -210,65 +247,104 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
     '<th style="width:14%">합계금액</th>' +
     '</tr></thead>' +
     `<tbody>${itemRowsHtml}</tbody>` +
-    '</table>' +
-    '<table class="inv-tbl inv-total-tbl"><tr>' +
-    `<td class="inv-tl">공&nbsp;급&nbsp;가&nbsp;액</td><td class="inv-tv t-right">${(inv.supply_amount ?? 0).toLocaleString()}</td>` +
-    `<td class="inv-tl">세&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;액</td><td class="inv-tv t-right">${(inv.tax_amount ?? 0).toLocaleString()}</td>` +
-    `<td class="inv-tl inv-grand">합&nbsp;계&nbsp;금&nbsp;액</td><td class="inv-tv inv-grand t-right">${(inv.total_amount ?? 0).toLocaleString()}</td>` +
-    '</tr></table>' +
-    '<table class="inv-tbl inv-balance-tbl"><tr>' +
-    `<td class="inv-bl">전&nbsp;&nbsp;잔&nbsp;&nbsp;액</td><td class="inv-bv t-right">${prevBal.toLocaleString()}</td>` +
-    `<td class="inv-bl">출&nbsp;&nbsp;고&nbsp;&nbsp;액</td><td class="inv-bv t-right">${totalAmt.toLocaleString()}</td>` +
-    `<td class="inv-bl">입&nbsp;&nbsp;금&nbsp;&nbsp;액</td><td class="inv-bv t-right">${paidAmt.toLocaleString()}</td>` +
-    `<td class="inv-bl">현&nbsp;&nbsp;잔&nbsp;&nbsp;액</td>` +
-    `<td class="inv-bv t-right${curBal > 0 ? ' inv-bv-warn' : ''}">${curBal.toLocaleString()}</td>` +
-    '</tr></table>' +
-    (inv.memo ? `<div class="inv-memo">비고:&nbsp;${esc(inv.memo)}</div>` : '') +
-    '<div class="inv-sig">' +
-    `<span class="inv-sig-text">위 금액을 정히 ${esc(inv.receipt_type ?? '영수(청구)')}합니다.</span>` +
-    '<div class="inv-sig-right">' +
-    '<span class="inv-sig-label">대표자</span>' +
-    '<div class="inv-sig-name-wrap">' +
-    `<span class="inv-ceo-name">${esc(c.ceo ?? '')}</span>` +
-    '<div class="inv-sig-underline"></div>' +
-    '</div>' +
-    '<div class="inv-seal-area">' +
-    '<span class="inv-seal-text">(인)</span>' +
-    `<span class="inv-stamp">${stampHtml}</span>` +
-    '</div>' +
-    '</div>' +
-    '</div>'
-  )
+    '</table>'
+
+  if (opts.isLast) {
+    // ── 마지막 페이지: 합계 + 잔액 + 비고 + 서명 ──
+    html +=
+      '<table class="inv-tbl inv-total-tbl"><tr>' +
+      `<td class="inv-tl">공&nbsp;급&nbsp;가&nbsp;액</td><td class="inv-tv t-right">${(inv.supply_amount ?? 0).toLocaleString()}</td>` +
+      `<td class="inv-tl">세&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;액</td><td class="inv-tv t-right">${(inv.tax_amount ?? 0).toLocaleString()}</td>` +
+      `<td class="inv-tl inv-grand">합&nbsp;계&nbsp;금&nbsp;액</td><td class="inv-tv inv-grand t-right">${(inv.total_amount ?? 0).toLocaleString()}</td>` +
+      '</tr></table>' +
+      '<table class="inv-tbl inv-balance-tbl"><tr>' +
+      `<td class="inv-bl">전&nbsp;&nbsp;잔&nbsp;&nbsp;액</td><td class="inv-bv t-right">${prevBal.toLocaleString()}</td>` +
+      `<td class="inv-bl">출&nbsp;&nbsp;고&nbsp;&nbsp;액</td><td class="inv-bv t-right">${totalAmt.toLocaleString()}</td>` +
+      `<td class="inv-bl">입&nbsp;&nbsp;금&nbsp;&nbsp;액</td><td class="inv-bv t-right">${paidAmt.toLocaleString()}</td>` +
+      `<td class="inv-bl">현&nbsp;&nbsp;잔&nbsp;&nbsp;액</td>` +
+      `<td class="inv-bv t-right${curBal > 0 ? ' inv-bv-warn' : ''}">${curBal.toLocaleString()}</td>` +
+      '</tr></table>' +
+      (inv.memo ? `<div class="inv-memo">비고:&nbsp;${esc(inv.memo)}</div>` : '') +
+      '<div class="inv-sig">' +
+      `<span class="inv-sig-text">위 금액을 정히 ${esc(inv.receipt_type ?? '영수(청구)')}합니다.</span>` +
+      '<div class="inv-sig-right">' +
+      '<span class="inv-sig-label">대표자</span>' +
+      '<div class="inv-sig-name-wrap">' +
+      `<span class="inv-ceo-name">${esc(c.ceo ?? '')}</span>` +
+      '<div class="inv-sig-underline"></div>' +
+      '</div>' +
+      '<div class="inv-seal-area">' +
+      '<span class="inv-seal-text">(인)</span>' +
+      `<span class="inv-stamp">${stampHtml}</span>` +
+      '</div>' +
+      '</div>' +
+      '</div>'
+  } else {
+    // ── 중간 페이지: "다음 장 계속" 안내 ──
+    html += '<div class="inv-cont-note">- 다음 장 계속 -</div>'
+  }
+
+  return html
+}
+
+/** 품목 수 기준 총 페이지 수 (미리보기 iframe 높이 계산용) */
+export function getPreviewPageCount(itemCount: number): number {
+  if (itemCount <= ITEMS_FIRST_PAGE) return 1
+  return 1 + Math.ceil((itemCount - ITEMS_FIRST_PAGE) / ITEMS_CONT_PAGE)
+}
+
+/** 품목을 페이지 단위로 분할 */
+function splitItemsToPages(items: PrintItem[]): PrintItem[][] {
+  if (items.length <= ITEMS_FIRST_PAGE) return [items]
+  const pages: PrintItem[][] = [items.slice(0, ITEMS_FIRST_PAGE)]
+  let offset = ITEMS_FIRST_PAGE
+  while (offset < items.length) {
+    pages.push(items.slice(offset, offset + ITEMS_CONT_PAGE))
+    offset += ITEMS_CONT_PAGE
+  }
+  return pages
 }
 
 function buildDuplexInvoiceHtml(inv: PrintInvoice, items: PrintItem[]): string {
-  const supplier = buildInvoiceHtml(inv, items, '공급자 보관용')
-  const recipient = buildInvoiceHtml(inv, items, '공급받는자 보관용')
-  return (
-    '<div class="inv-page-duplex">' +
-    '<div class="inv-half top"><div class="inv-scale-wrap">' +
-    supplier +
-    '</div></div>' +
-    '<div class="inv-cut-line"><span>✂ 절 취 선</span></div>' +
-    '<div class="inv-half bottom"><div class="inv-scale-wrap">' +
-    recipient +
-    '</div></div>' +
-    '</div>'
-  )
+  const pages = splitItemsToPages(items)
+  const totalPages = pages.length
+
+  return pages.map((pageItems, i) => {
+    const opts: PageOptions = {
+      pageNum: i + 1,
+      totalPages,
+      isFirst: i === 0,
+      isLast: i === totalPages - 1,
+    }
+    const startIndex = i === 0 ? 0 : ITEMS_FIRST_PAGE + (i - 1) * ITEMS_CONT_PAGE
+    const supplier = buildInvoicePageHtml(inv, pageItems, '공급자 보관용', opts, startIndex)
+    const recipient = buildInvoicePageHtml(inv, pageItems, '공급받는자 보관용', opts, startIndex)
+    return (
+      '<div class="inv-page-duplex">' +
+      '<div class="inv-half top"><div class="inv-scale-wrap">' +
+      supplier +
+      '</div></div>' +
+      '<div class="inv-cut-line"><span>✂ 절 취 선</span></div>' +
+      '<div class="inv-half bottom"><div class="inv-scale-wrap">' +
+      recipient +
+      '</div></div>' +
+      '</div>'
+    )
+  }).join('')
 }
 
 /**
- * A4 이등분 인쇄 (iframe 기반)
- * - html/body height:297mm + overflow:hidden → Chrome 2페이지 생성 원천 차단
+ * A4 이등분 인쇄 (iframe 기반, 멀티페이지)
+ * - 품목 12개 초과 시 자동으로 다음 페이지로 분할
+ * - 폰트 크기 고정 (6.5pt), 줌 축소 없음
  * - 절취선 148.5mm (A4 정중앙), 각 절반 7mm 균등 여백
- * - 콘텐츠 넘칠 경우 zoom 축소 (최소 0.5배)
  */
 // ─── 공통 CSS (미리보기 + 인쇄 공유) ────────────────────────────
 // 통일 기준: 외곽선 1.5px #333 / 내부선 1px #bbb / 레이블 배경 #f4f4f4 / 본문 6.5pt
 const DUPLEX_CSS = [
   '@page { size: A4 portrait; margin: 0; }',
-  'html { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; }',
-  "body { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; font-size:6.5pt; }",
+  'html { margin:0; padding:0; width:210mm; }',
+  "body { margin:0; padding:0; width:210mm; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; font-size:6.5pt; }",
   '* { box-sizing:border-box; }',
   '.inv-tbl { width:100%; border-collapse:collapse; }',
   // ─── 헤더 ───
@@ -320,26 +396,23 @@ const DUPLEX_CSS = [
   // ─── 유틸 ───
   '.t-right { text-align:right; }',
   '.t-center { text-align:center; }',
-  // ─── 이등분 레이아웃 ───
-  '.inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; }',
+  // ─── 이등분 레이아웃 + 멀티페이지 ───
+  '.inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; page-break-after:always; }',
+  '.inv-page-duplex:last-child { page-break-after:auto; }',
   '.inv-half { position:absolute; width:210mm; box-sizing:border-box; padding:7mm 8mm 7mm; overflow:hidden; }',
   '.inv-half.top    { top:0; height:148.5mm; }',
   '.inv-half.bottom { top:148.5mm; height:148.5mm; }',
   '.inv-cut-line { position:absolute; top:148.5mm; left:0; right:0; border-top:1px dashed #bbb; display:flex; align-items:center; justify-content:center; }',
   ".inv-cut-line span { background:#fff; padding:0 8px; font-size:6pt; color:#bbb; letter-spacing:3px; transform:translateY(-50%); font-family:'Malgun Gothic',sans-serif; }",
   '.inv-scale-wrap { width:100%; }',
+  // ─── 속지 헤더 (2페이지 이후) ───
+  '.inv-cont-header { border:1.5px solid #333; padding:3px 8px; display:flex; align-items:center; justify-content:space-between; margin-bottom:0; }',
+  '.inv-cont-title { font-size:9pt; font-weight:800; letter-spacing:3px; }',
+  '.inv-cont-info { display:flex; gap:12px; font-size:6.5pt; color:#555; }',
+  // ─── "다음 장 계속" 안내 ───
+  '.inv-cont-note { text-align:center; font-size:6.5pt; color:#999; padding:4px 0; border:1.5px solid #333; border-top:none; }',
   '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
 ].join('\n')
-
-const TARGET_MM = 132
-const TARGET_PX = TARGET_MM * (96 / 25.4)
-const ZOOM_SCRIPT =
-  `(function(){var T=${TARGET_PX.toFixed(1)};` +
-  `function z(){var h=document.querySelectorAll('.inv-half');` +
-  `for(var i=0;i<h.length;i++){var w=h[i].querySelector('.inv-scale-wrap');` +
-  `if(!w)continue;w.style.zoom='';var s=w.scrollHeight;` +
-  `if(s>T){var r=T/s;if(r>=0.5)w.style.zoom=r.toFixed(4);}}}` +
-  `window.addEventListener('beforeprint',z);z();})();`
 
 // 미리보기 + 인쇄 공통 Blob URL 생성 (호출자가 revokeObjectURL 책임)
 export function buildDuplexBlobUrl(inv: PrintInvoice, items: PrintItem[]): string {
@@ -349,17 +422,17 @@ export function buildDuplexBlobUrl(inv: PrintInvoice, items: PrintItem[]): strin
     '<style>' + DUPLEX_CSS + '</style>' +
     '</head><body>' +
     duplexHtml +
-    '<script>' + ZOOM_SCRIPT + '<\/script>' +
     '</body></html>'
   return URL.createObjectURL(new Blob([fullHtml], { type: 'text/html;charset=utf-8' }))
 }
 
 export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): void {
   const blobUrl = buildDuplexBlobUrl(inv, items)
+  const pages = getPreviewPageCount(items.length)
 
   const iframe = document.createElement('iframe')
   iframe.style.cssText =
-    'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;visibility:hidden;'
+    `position:fixed;top:-9999px;left:-9999px;width:210mm;height:${pages * 297}mm;border:none;visibility:hidden;`
   document.body.appendChild(iframe)
   iframe.src = blobUrl
 

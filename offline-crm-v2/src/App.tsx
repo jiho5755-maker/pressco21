@@ -1,7 +1,9 @@
+import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'sonner'
 import { Layout } from '@/components/layout/Layout'
+import { preloadPrintImages } from '@/lib/print'
 import { Dashboard } from '@/pages/Dashboard'
 import { Customers } from '@/pages/Customers'
 import { CustomerDetail } from '@/pages/CustomerDetail'
@@ -26,6 +28,9 @@ const queryClient = new QueryClient({
 })
 
 function App() {
+  // 앱 시작 시 정적 로고/도장 이미지를 data URL로 프리로드 (blob URL iframe에서도 사용 가능)
+  useEffect(() => { void preloadPrintImages() }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>

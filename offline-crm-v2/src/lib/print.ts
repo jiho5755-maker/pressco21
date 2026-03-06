@@ -53,6 +53,35 @@ const COMPANY_INFO_KEY = 'pressco21-crm-v2'
 // Settings.tsx가 저장하는 키 (우선 참조)
 const SETTINGS_MERGED_KEY = 'pressco21-crm-settings'
 
+// 정적 이미지 fallback data URL (앱 시작 시 preloadPrintImages()로 채워짐)
+let _logoFallback = ''
+let _stampFallback = ''
+
+/** public/images/ 정적 파일을 data URL로 변환해 캐시 (구 offline-crm 방식) */
+export async function preloadPrintImages(): Promise<void> {
+  async function toDataUrl(src: string): Promise<string> {
+    try {
+      const res = await fetch(src)
+      if (!res.ok) return ''
+      const blob = await res.blob()
+      return await new Promise<string>((resolve) => {
+        const reader = new FileReader()
+        reader.onload = () => resolve(reader.result as string)
+        reader.onerror = () => resolve('')
+        reader.readAsDataURL(blob)
+      })
+    } catch {
+      return ''
+    }
+  }
+  const [logo, stamp] = await Promise.all([
+    toDataUrl('/images/company-logo.png'),
+    toDataUrl('/images/company-stamp.jpg'),
+  ])
+  if (logo) _logoFallback = logo
+  if (stamp) _stampFallback = stamp
+}
+
 export function loadCompanyInfo(): CompanyInfo {
   // 두 키를 모두 읽어 병합 (logo/stamp는 어느 쪽에 있어도 반영)
   let fromLegacy: CompanyInfo = {}
@@ -117,11 +146,15 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
       )
       .join('')
 
-  const logoHtml = c.logo_url
-    ? `<img src="${c.logo_url}" alt="로고" style="height:40px;object-fit:contain;" />`
+  // 우선순위: 사용자 업로드 data URL > 정적 파일 preload data URL
+  const effectiveLogo = c.logo_url || _logoFallback
+  const effectiveStamp = c.stamp_url || _stampFallback
+
+  const logoHtml = effectiveLogo
+    ? `<img src="${effectiveLogo}" alt="로고" style="height:40px;object-fit:contain;" />`
     : ''
-  const stampHtml = c.stamp_url
-    ? `<img src="${c.stamp_url}" alt="도장" style="width:46px;height:46px;object-fit:cover;border-radius:50%;transform:rotate(-12deg);opacity:0.88;" />`
+  const stampHtml = effectiveStamp
+    ? `<img src="${effectiveStamp}" alt="도장" style="width:46px;height:46px;object-fit:cover;border-radius:50%;transform:rotate(-12deg);opacity:0.88;" />`
     : ''
 
   return (

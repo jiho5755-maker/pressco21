@@ -703,15 +703,11 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       <DialogContent
         className="max-w-4xl max-h-[90vh] overflow-y-auto"
         onPointerDownOutside={(e) => {
-          // 드롭다운 포탈 클릭 시 Dialog 닫힘 방지
-          if (showProductDrop && dropdownContainerRef.current?.contains(e.target as Node)) {
-            e.preventDefault()
-          }
+          // 드롭다운 포탈이 열려있으면 Dialog 닫힘 방지
+          if (showProductDrop) e.preventDefault()
         }}
         onInteractOutside={(e) => {
-          if (showProductDrop && dropdownContainerRef.current?.contains(e.target as Node)) {
-            e.preventDefault()
-          }
+          if (showProductDrop) e.preventDefault()
         }}
         onKeyDown={(e) => {
           if (e.altKey && e.key === 'Enter') { e.preventDefault(); addItem() }
@@ -1184,6 +1180,13 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           left: dropdownPos.left, width: dropdownPos.width, zIndex: 99999, pointerEvents: 'auto',
         }}
         onPointerDown={(e) => e.preventDefault()}
+        onWheel={(e) => {
+          // Radix가 body pointer-events:none 설정하므로 휠 스크롤 직접 처리
+          e.stopPropagation()
+          if (dropdownContainerRef.current) {
+            dropdownContainerRef.current.scrollTop += e.deltaY
+          }
+        }}
       >
         {productSearchResult.list.map((p, index) => {
           const price = getPriceForCustomer(p, selectedCustomer)

@@ -169,7 +169,13 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
     `<td class="inv-ml">거래일자</td><td class="inv-mv">${esc(inv.invoice_date ?? '')}</td>` +
     '</tr></table>' +
     // 공급자/공급받는자를 단일 테이블로 통합 → 행 높이가 항상 일치 (정렬 보장)
+    // colgroup: 공급자 38%(8+11+8+11) : 공급받는자 60%(8+22+8+22) 비율
     '<table class="inv-tbl inv-party-tbl">' +
+    '<colgroup>' +
+    '<col style="width:8%" /><col style="width:11%" /><col style="width:8%" /><col style="width:11%" />' +
+    '<col style="width:1px" />' +
+    '<col style="width:8%" /><col style="width:22%" /><col style="width:8%" /><col style="width:22%" />' +
+    '</colgroup>' +
     '<thead><tr>' +
     '<th class="inv-party-title" colspan="4">공&nbsp;&nbsp;급&nbsp;&nbsp;자</th>' +
     '<th class="inv-party-div"></th>' +
@@ -194,12 +200,12 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
     '</tbody></table>' +
     '<table class="inv-tbl inv-items-table">' +
     '<thead><tr>' +
-    '<th style="width:5%">No</th>' +
-    '<th style="width:29%">품&nbsp;&nbsp;&nbsp;목&nbsp;&nbsp;&nbsp;명</th>' +
-    '<th style="width:7%">단위</th>' +
-    '<th style="width:8%">수량</th>' +
-    '<th style="width:13%">단가</th>' +
-    '<th style="width:13%">공급가액</th>' +
+    '<th style="width:4%">No</th>' +
+    '<th style="width:32%">품&nbsp;&nbsp;&nbsp;목&nbsp;&nbsp;&nbsp;명</th>' +
+    '<th style="width:6%">단위</th>' +
+    '<th style="width:7%">수량</th>' +
+    '<th style="width:12%">단가</th>' +
+    '<th style="width:14%">공급가액</th>' +
     '<th style="width:11%">세액</th>' +
     '<th style="width:14%">합계금액</th>' +
     '</tr></thead>' +
@@ -258,52 +264,63 @@ function buildDuplexInvoiceHtml(inv: PrintInvoice, items: PrintItem[]): string {
  * - 콘텐츠 넘칠 경우 zoom 축소 (최소 0.5배)
  */
 // ─── 공통 CSS (미리보기 + 인쇄 공유) ────────────────────────────
+// 통일 기준: 외곽선 1.5px #333 / 내부선 1px #bbb / 레이블 배경 #f4f4f4 / 본문 6.5pt
 const DUPLEX_CSS = [
   '@page { size: A4 portrait; margin: 0; }',
   'html { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; }',
-  "body { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; font-size:6pt; }",
+  "body { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; font-size:6.5pt; }",
   '* { box-sizing:border-box; }',
   '.inv-tbl { width:100%; border-collapse:collapse; }',
+  // ─── 헤더 ───
   '.inv-header { display:flex; align-items:center; justify-content:space-between; border:1.5px solid #333; padding:3px 6px; gap:6px; }',
   '.inv-logo { width:80px; }',
   '.inv-title-area { text-align:center; flex:1; }',
   '.inv-title { font-size:11pt; font-weight:900; letter-spacing:5px; }',
-  '.inv-sub { font-size:5.5pt; color:#555; margin-top:1px; }',
+  '.inv-sub { font-size:6pt; color:#555; margin-top:1px; }',
+  // ─── 메타 (발행번호/구분/거래일자) ───
   '.inv-meta-tbl { border:1.5px solid #333; border-top:none; }',
-  '.inv-meta-tbl td { border:1px solid #999; padding:1.5px 4px; font-size:6pt; }',
-  '.inv-ml { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
-  // 공급자/공급받는자 통합 테이블 (행 정렬 보장)
+  '.inv-meta-tbl td { border:1px solid #bbb; padding:1.5px 4px; font-size:6.5pt; }',
+  '.inv-ml { background:#f4f4f4; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
+  // ─── 공급자/공급받는자 통합 테이블 (colgroup으로 38:60 비율, 행 정렬 보장) ───
   '.inv-party-tbl { border:1.5px solid #333; border-top:none; }',
-  '.inv-party-title { background:#f0f0f0; text-align:center; font-weight:700; padding:2px 0; font-size:6.5pt; border:1px solid #aaa; }',
-  '.inv-party-div { width:1px; background:#888; padding:0; border:none; }',
-  '.inv-party-tbl td { border:none; border-bottom:1px solid #eee; border-right:1px solid #eee; padding:1.5px 3px; font-size:6pt; white-space:nowrap; overflow:hidden; }',
-  '.inv-pl { background:#f9f9f9; font-weight:600; white-space:nowrap; width:42px; text-align:center; }',
+  '.inv-party-title { background:#f4f4f4; text-align:center; font-weight:700; padding:2px 0; font-size:6.5pt; border:1px solid #bbb; }',
+  '.inv-party-div { width:1px; background:#bbb; padding:0; border:none; }',
+  '.inv-party-tbl td { border:1px solid #bbb; padding:1.5px 3px; font-size:6.5pt; white-space:nowrap; overflow:hidden; }',
+  '.inv-pl { background:#f4f4f4; font-weight:600; white-space:nowrap; text-align:center; }',
+  // ─── 품목 테이블 ───
   '.inv-items-table { border:1.5px solid #333; border-top:none; }',
-  '.inv-items-table th { background:#f0f0f0; border:1px solid #999; padding:1.5px 1px; text-align:center; font-weight:700; font-size:6pt; }',
-  '.inv-items-table td { border:1px solid #ccc; padding:1px 2px; font-size:6pt; }',
+  '.inv-items-table th { background:#f4f4f4; border:1px solid #bbb; padding:1.5px 1px; text-align:center; font-weight:700; font-size:6.5pt; }',
+  '.inv-items-table td { border:1px solid #bbb; padding:1px 2px; font-size:6.5pt; }',
   '.inv-blank td { height:10px; }',
+  // ─── 합계 ───
   '.inv-total-tbl { border:1.5px solid #333; border-top:none; }',
-  '.inv-total-tbl td { border:1px solid #999; padding:2.5px 5px; font-size:6pt; }',
-  '.inv-tl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:60px; }',
-  '.inv-grand { background:#e8f0e8 !important; font-weight:700; }',
+  '.inv-total-tbl td { border:1px solid #bbb; padding:2.5px 5px; font-size:6.5pt; }',
+  '.inv-tl { background:#f4f4f4; text-align:center; font-weight:600; white-space:nowrap; width:60px; }',
+  '.inv-grand { background:#e8f0e8 !important; font-weight:700; font-size:7pt; }',
+  // ─── 잔액 ───
   '.inv-balance-tbl { border:1.5px solid #333; border-top:none; }',
-  '.inv-balance-tbl td { border:1px solid #999; padding:2px 4px; font-size:6pt; }',
-  '.inv-bl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
-  '.inv-bv-warn { color:#dc2626; font-weight:700; }',
-  '.inv-memo { border:1.5px solid #333; border-top:none; padding:2px 6px; font-size:6pt; }',
-  '.inv-sig { border:1.5px solid #333; border-top:none; padding:6px 8px 8px; display:flex; align-items:flex-end; justify-content:space-between; font-size:6pt; min-height:48px; }',
+  '.inv-balance-tbl td { border:1px solid #bbb; padding:2px 4px; font-size:6.5pt; }',
+  '.inv-bl { background:#f4f4f4; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
+  '.inv-bv-warn { color:#dc2626; font-weight:700; background:#fef2f2 !important; }',
+  // ─── 비고 ───
+  '.inv-memo { border:1.5px solid #333; border-top:none; padding:2px 6px; font-size:6.5pt; }',
+  // ─── 서명란 ───
+  '.inv-sig { border:1.5px solid #333; border-top:none; padding:4px 8px 6px; display:flex; align-items:flex-end; justify-content:space-between; font-size:6.5pt; min-height:42px; }',
   '.inv-sig-text { align-self:center; }',
   '.inv-sig-right { display:flex; align-items:flex-end; gap:4px; }',
-  '.inv-sig-label { font-weight:600; font-size:6pt; white-space:nowrap; padding-bottom:2px; }',
-  '.inv-sig-name-wrap { position:relative; width:68px; height:36px; }',
-  '.inv-ceo-name { position:absolute; bottom:4px; left:0; right:0; text-align:center; font-size:6pt; color:#333; }',
+  '.inv-sig-label { font-weight:600; font-size:6.5pt; white-space:nowrap; padding-bottom:2px; }',
+  '.inv-sig-name-wrap { position:relative; width:60px; height:32px; }',
+  '.inv-ceo-name { position:absolute; bottom:3px; left:0; right:0; text-align:center; font-size:6.5pt; color:#333; }',
   '.inv-sig-underline { position:absolute; bottom:0; left:0; right:0; border-bottom:1px solid #555; }',
-  '.inv-seal-area { position:relative; width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#fff; }',
-  '.inv-seal-text { font-size:7.5pt; color:#666; position:relative; z-index:1; }',
+  // ─── 도장 (배경 투명 → 흰 박스 선 제거) ───
+  '.inv-seal-area { position:relative; width:40px; height:40px; display:flex; align-items:center; justify-content:center; }',
+  '.inv-seal-text { font-size:7pt; color:#999; position:relative; z-index:1; }',
   '.inv-stamp { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-8deg); width:42px; height:42px; z-index:2; }',
   '.inv-stamp-img { width:100%; height:100%; object-fit:contain; opacity:0.92; }',
+  // ─── 유틸 ───
   '.t-right { text-align:right; }',
   '.t-center { text-align:center; }',
+  // ─── 이등분 레이아웃 ───
   '.inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; }',
   '.inv-half { position:absolute; width:210mm; box-sizing:border-box; padding:7mm 8mm 7mm; overflow:hidden; }',
   '.inv-half.top    { top:0; height:148.5mm; }',

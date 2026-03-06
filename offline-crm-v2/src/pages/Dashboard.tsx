@@ -1,4 +1,4 @@
-import { useMemo } from 'react'
+import { useMemo, useState } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -25,6 +25,71 @@ const GROWTH_THRESHOLDS = {
 }
 
 const PIE_COLORS = { ACTIVE: '#22c55e', DORMANT: '#eab308', CHURNED: '#94a3b8' }
+
+// ─── 기간 매출 리포트 임계값 (accounting-specialist 확정, 2026-03-06) ───
+// PRESSCO21 꽃 공예 도매 | 월 매출 3,000~5,000만 원 기준
+// 수금률 = paid_amount 합계 / total_amount 합계 (금액 기준, 건수 아님)
+const COLLECTION_RATE_THRESHOLDS = {
+  EXCELLENT: 95,  // 95% 이상 → green  (양호)
+  GOOD:      85,  // 85~95%   → gray   (도매업 정상)
+  CAUTION:   70,  // 70~85%   → amber  (주의)
+                  // 70% 미만 → red    (위험, 운전자금 압박)
+}
+// 전년동월대비 임계값 (기존 GROWTH_THRESHOLDS와 동일 수치, 맥락 분리)
+const YOY_THRESHOLDS = {
+  EXCELLENT: 10, GOOD: 1, CAUTION: -5, DANGER: -20,
+}
+
+type PresetKey = 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear'
+const PRESET_LABELS: Record<PresetKey, string> = {
+  thisMonth: '이번달', lastMonth: '지난달', thisQuarter: '이번분기', thisYear: '올해',
+}
+
+const pad = (n: number) => String(n).padStart(2, '0')
+const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
+
+function getPresetRange(preset: PresetKey): { startDate: string; endDate: string; label: string } {
+  const today = new Date()
+  const y = today.getFullYear()
+  const m = today.getMonth() + 1
+  if (preset === 'thisMonth') {
+    return { startDate: `${y}-${pad(m)}-01`, endDate: toISO(today), label: `${y}년 ${m}월` }
+  }
+  if (preset === 'lastMonth') {
+    const lm = m === 1 ? 12 : m - 1
+    const ly = m === 1 ? y - 1 : y
+    const ld = new Date(ly, lm, 0).getDate()
+    return { startDate: `${ly}-${pad(lm)}-01`, endDate: `${ly}-${pad(lm)}-${pad(ld)}`, label: `${ly}년 ${lm}월` }
+  }
+  if (preset === 'thisQuarter') {
+    // 분기 기준: Q1=1~3, Q2=4~6, Q3=7~9, Q4=10~12 (세무 신고 기준과 동일)
+    const q = Math.ceil(m / 3)
+    const qsm = (q - 1) * 3 + 1
+    const qem = q * 3
+    const qEndFull = new Date(y, qem - 1, new Date(y, qem, 0).getDate())
+    return {
+      startDate: `${y}-${pad(qsm)}-01`,
+      endDate: toISO(qEndFull > today ? today : qEndFull),
+      label: `${y}년 ${q}분기 (${qsm}~${qem}월)`,
+    }
+  }
+  // thisYear: 1월 1일 ~ 오늘
+  return { startDate: `${y}-01-01`, endDate: toISO(today), label: `${y}년 전체` }
+}
+
+function collectionRateColor(rate: number): string {
+  if (rate >= COLLECTION_RATE_THRESHOLDS.EXCELLENT) return 'text-green-600'
+  if (rate >= COLLECTION_RATE_THRESHOLDS.GOOD)      return ''
+  if (rate >= COLLECTION_RATE_THRESHOLDS.CAUTION)   return 'text-amber-600'
+  return 'text-red-600'
+}
+function yoyColor(pct: number): string {
+  if (pct >= YOY_THRESHOLDS.EXCELLENT) return 'text-green-600'
+  if (pct >= YOY_THRESHOLDS.GOOD)      return 'text-green-500'
+  if (pct >= YOY_THRESHOLDS.CAUTION)   return 'text-gray-500'
+  if (pct >= YOY_THRESHOLDS.DANGER)    return 'text-amber-500'
+  return 'text-red-600'
+}
 const STATUS_LABELS: Record<string, string> = { ACTIVE: '활성', DORMANT: '휴면', CHURNED: '이탈' }
 
 function getYearMonth(dateStr: string) {
@@ -61,6 +126,15 @@ const PREV_YM   = CUR_MONTH === 1
   : `${CUR_YEAR}-${String(CUR_MONTH - 1).padStart(2, '0')}`
 
 export function Dashboard() {
+  // ── 기간 리포트 상태 ─────────────────────────────────────
+  const [activePreset, setActivePreset] = useState<PresetKey>('thisMonth')
+  const [dateRange, setDateRange] = useState(() => getPresetRange('thisMonth'))
+
+  function selectPreset(preset: PresetKey) {
+    setActivePreset(preset)
+    setDateRange(getPresetRange(preset))
+  }
+
   // ── 데이터 패칭 (병렬) ──────────────────────────────────
   const { data: totalData } = useQuery({
     queryKey: ['dash-total'],
@@ -112,6 +186,26 @@ export function Dashboard() {
       limit: 1,
     }),
     staleTime: 5 * 60_000,
+  })
+  // 기간 리포트: 수금률+객단가용 (invoices)
+  const { data: periodInvoices } = useQuery({
+    queryKey: ['period-invoices', dateRange.startDate, dateRange.endDate],
+    queryFn: () => getInvoices({
+      where: `(invoice_date,gte,${dateRange.startDate})~and(invoice_date,lte,${dateRange.endDate})`,
+      limit: 2000,
+      sort: 'invoice_date',
+    }),
+    staleTime: 3 * 60_000,
+  })
+  // 기간 리포트: 매출 차트용 (tbl_tx_history)
+  const { data: periodTx } = useQuery({
+    queryKey: ['period-tx', dateRange.startDate, dateRange.endDate],
+    queryFn: () => getTxHistory({
+      where: `(tx_type,eq,출고)~and(tx_date,gte,${dateRange.startDate})~and(tx_date,lte,${dateRange.endDate})`,
+      limit: 5000,
+      sort: 'tx_date',
+    }),
+    staleTime: 3 * 60_000,
   })
 
   // ── 계산 ────────────────────────────────────────────────
@@ -192,6 +286,52 @@ export function Dashboard() {
     name: (c.name ?? '').slice(0, 8),
     amount: c.outstanding_balance ?? 0,
   }))
+
+  // ── 기간 리포트 계산 ─────────────────────────────────────
+  const periodInvoiceList = periodInvoices?.list ?? []
+  const periodTxList = periodTx?.list ?? []
+
+  // 수금률: paid_amount 합계 / total_amount 합계 (금액 기준)
+  const periodTotalAmt = periodInvoiceList.reduce((s, i) => s + (i.total_amount ?? 0), 0)
+  const periodPaidAmt  = periodInvoiceList.reduce((s, i) => s + (i.paid_amount  ?? 0), 0)
+  const collectionRate = periodTotalAmt > 0
+    ? Math.min(100, (periodPaidAmt / periodTotalAmt) * 100)
+    : 100  // 명세표 없음 → 100% (경보 없음)
+
+  // 객단가: 기간 내 명세표 건당 평균 (total_amount=0 제외)
+  const validInvoices = periodInvoiceList.filter((i) => (i.total_amount ?? 0) > 0)
+  const periodAvgAmount = validInvoices.length > 0
+    ? Math.round(periodTotalAmt / validInvoices.length)
+    : 0
+
+  // 기간 매출 (tx_history 출고 합계)
+  const periodTxSales = periodTxList.reduce((s, t) => s + (t.amount ?? 0), 0)
+
+  // 전년동월대비 (thisMonth 프리셋일 때만 계산, 기존 txLastYear 재사용)
+  const prevYearSales = useMemo(() => {
+    if (activePreset !== 'thisMonth') return null
+    const prevYM = `${CUR_YEAR - 1}-${String(CUR_MONTH).padStart(2, '0')}`
+    return (txLastYear?.list ?? [])
+      .filter((t) => (t.tx_date ?? '').startsWith(prevYM))
+      .reduce((s, t) => s + (t.amount ?? 0), 0)
+  }, [activePreset, txLastYear])
+
+  const yoyGrowthPct = (prevYearSales !== null && prevYearSales > 0)
+    ? ((periodTxSales - prevYearSales) / prevYearSales) * 100
+    : null
+
+  // 기간 일별 차트 데이터
+  const periodChartData = useMemo(() => {
+    const byDate: Record<string, number> = {}
+    periodTxList.forEach((tx) => {
+      const d = (tx.tx_date ?? '').slice(0, 10)
+      if (!d) return
+      byDate[d] = (byDate[d] ?? 0) + (tx.amount ?? 0)
+    })
+    return Object.entries(byDate)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([date, amount]) => ({ date: date.slice(5), amount }))
+  }, [periodTxList])
 
   // 미수금 경보 색상
   const totalRecColor = totalReceivables >= TOTAL_RECEIVABLE_DANGER
@@ -377,6 +517,98 @@ export function Dashboard() {
             <YearlyChart />
           </CardContent>
         </Card>
+      </div>
+
+      {/* ── 기간 매출 리포트 ── */}
+      <div className="space-y-4 border-t pt-6">
+        {/* 헤더 + 퀵 프리셋 */}
+        <div className="flex items-center justify-between flex-wrap gap-2">
+          <div>
+            <h3 className="text-base font-semibold">기간 매출 리포트</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {dateRange.label} ({dateRange.startDate} ~ {dateRange.endDate})
+            </p>
+          </div>
+          <div className="flex gap-1.5">
+            {(Object.keys(PRESET_LABELS) as PresetKey[]).map((p) => (
+              <button
+                key={p}
+                onClick={() => selectPreset(p)}
+                className={`text-xs px-3 py-1 rounded-md border transition-colors ${
+                  activePreset === p
+                    ? 'bg-[#7d9675] text-white border-[#7d9675]'
+                    : 'bg-white text-muted-foreground border-border hover:border-[#7d9675] hover:text-[#7d9675]'
+                }`}
+              >
+                {PRESET_LABELS[p]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* KPI 카드 3개 */}
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
+          {/* 수금률 */}
+          <KpiCard
+            title="수금률"
+            value={`${collectionRate.toFixed(1)}%`}
+            sub={`명세표 ${periodInvoiceList.length}건 기준`}
+            valueClass={collectionRateColor(collectionRate)}
+            icon={
+              collectionRate < COLLECTION_RATE_THRESHOLDS.CAUTION
+                ? <AlertTriangle className="h-4 w-4 text-red-500" />
+                : undefined
+            }
+          />
+          {/* 전년동월대비 (thisMonth) 또는 기간 매출 */}
+          <KpiCard
+            title={activePreset === 'thisMonth' ? '전년동월 대비' : '기간 출고 매출'}
+            value={
+              yoyGrowthPct !== null
+                ? `${yoyGrowthPct >= 0 ? '+' : ''}${yoyGrowthPct.toFixed(1)}%`
+                : `${fmt(periodTxSales)}원`
+            }
+            sub={
+              yoyGrowthPct !== null
+                ? `전년 ${CUR_YEAR - 1}년 ${CUR_MONTH}월 대비`
+                : `출고 기준`
+            }
+            valueClass={yoyGrowthPct !== null ? yoyColor(yoyGrowthPct) : ''}
+            icon={yoyGrowthPct !== null ? <GrowthIcon pct={yoyGrowthPct} /> : undefined}
+          />
+          {/* 객단가 */}
+          <KpiCard
+            title="기간 객단가"
+            value={`${fmt(periodAvgAmount)}원`}
+            sub={`명세표 ${validInvoices.length}건 평균`}
+          />
+        </div>
+
+        {/* 기간 Bar 차트 */}
+        {periodChartData.length > 0 ? (
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">
+                {dateRange.label} 일별 출고 매출
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={200}>
+                <BarChart data={periodChartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                  <YAxis tickFormatter={(v) => `${Math.round(v / 10000)}만`} tick={{ fontSize: 10 }} width={42} />
+                  <Tooltip formatter={(v: number | undefined) => [`${(v ?? 0).toLocaleString()}원`, '출고']} />
+                  <Bar dataKey="amount" fill="#7d9675" radius={[2, 2, 0, 0]} />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+        ) : (
+          <p className="text-sm text-muted-foreground text-center py-6">
+            해당 기간에 출고 데이터가 없습니다.
+          </p>
+        )}
       </div>
     </div>
   )

@@ -22,4 +22,11 @@ export default defineConfig({
       },
     },
   },
+  build: {
+    // 프로덕션 빌드 시 console.* / debugger 제거 (security-hardening-expert)
+    minify: 'esbuild',
+  },
+  esbuild: {
+    drop: process.env.NODE_ENV === 'production' ? ['console', 'debugger'] : [],
+  },
 })

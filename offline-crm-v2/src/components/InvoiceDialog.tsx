@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Printer, X, Copy, LayoutList } from 'lucide-react'
 import { toast } from 'sonner'
@@ -1159,46 +1160,48 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
             </div>
           </div>
         </div>
-        {/* 상품 자동완성 드롭다운 (Dialog 내부 fixed - 오버레이 이벤트 문제 방지) */}
-        {showProductDrop && dropdownPos && productSearchResult?.list && productSearchResult.list.length > 0 && (
-          <div
-            ref={dropdownContainerRef}
-            className="fixed bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto"
-            style={{
-              ...(dropdownPos.top != null ? { top: dropdownPos.top } : { bottom: dropdownPos.bottom }),
-              left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999,
-            }}
-            onMouseDown={(e) => e.preventDefault()}
-          >
-            {productSearchResult.list.map((p, index) => {
-              const price = getPriceForCustomer(p, selectedCustomer)
-              const isActive = index === dropdownIdx
-              return (
-                <button
-                  key={p.Id}
-                  className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 ${
-                    isActive ? 'bg-[#f0f4f0] text-[#3d6b4a] font-medium' : 'hover:bg-gray-50'
-                  }`}
-                  onMouseEnter={() => setDropdownIdx(index)}
-                  onMouseDown={() => { if (showProductDrop) selectProduct(showProductDrop, p) }}
-                >
-                  <span className="flex-1 truncate">
-                    {p.name}
-                    {p.category && <span className="text-[10px] text-muted-foreground ml-1">({p.category})</span>}
-                  </span>
-                  <span className="flex items-center gap-1.5 flex-none">
-                    {p.product_code && (
-                      <span className="bg-gray-100 text-gray-500 px-1 py-0.5 rounded text-[10px] font-mono">{p.product_code}</span>
-                    )}
-                    <span className={isActive ? 'text-[#3d6b4a]' : 'text-muted-foreground'}>{price.toLocaleString()}원</span>
-                  </span>
-                </button>
-              )
-            })}
-          </div>
-        )}
       </DialogContent>
     </Dialog>
+
+    {/* 상품 자동완성 드롭다운 (body portal + pointerEvents:auto — Radix 오버레이 우회) */}
+    {showProductDrop && dropdownPos && productSearchResult?.list && productSearchResult.list.length > 0 && createPortal(
+      <div
+        ref={dropdownContainerRef}
+        className="fixed bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto"
+        style={{
+          ...(dropdownPos.top != null ? { top: dropdownPos.top } : { bottom: dropdownPos.bottom }),
+          left: dropdownPos.left, width: dropdownPos.width, zIndex: 99999, pointerEvents: 'auto',
+        }}
+        onMouseDown={(e) => e.preventDefault()}
+      >
+        {productSearchResult.list.map((p, index) => {
+          const price = getPriceForCustomer(p, selectedCustomer)
+          const isActive = index === dropdownIdx
+          return (
+            <button
+              key={p.Id}
+              className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 ${
+                isActive ? 'bg-[#f0f4f0] text-[#3d6b4a] font-medium' : 'hover:bg-gray-50'
+              }`}
+              onMouseEnter={() => setDropdownIdx(index)}
+              onMouseDown={() => { if (showProductDrop) selectProduct(showProductDrop, p) }}
+            >
+              <span className="flex-1 truncate">
+                {p.name}
+                {p.category && <span className="text-[10px] text-muted-foreground ml-1">({p.category})</span>}
+              </span>
+              <span className="flex items-center gap-1.5 flex-none">
+                {p.product_code && (
+                  <span className="bg-gray-100 text-gray-500 px-1 py-0.5 rounded text-[10px] font-mono">{p.product_code}</span>
+                )}
+                <span className={isActive ? 'text-[#3d6b4a]' : 'text-muted-foreground'}>{price.toLocaleString()}원</span>
+              </span>
+            </button>
+          )
+        })}
+      </div>,
+      document.body
+    )}
 
     {/* 품목 선택 모달 */}
     <ProductPickerDialog

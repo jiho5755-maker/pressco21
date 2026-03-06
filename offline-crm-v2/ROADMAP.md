@@ -233,23 +233,26 @@
 
 ## 미완료 항목
 
-### Phase 6.2: 기간 매출 리포트
+### Phase 6.2: 기간 매출 리포트 ✅ 완료 (2026-03-06)
 
 Dashboard에 기간별 매출 분석 기능을 추가한다.
 
-- [ ] 퀵 프리셋: 이번달 / 지난달 / 이번분기 / 올해
-- [ ] 추가 KPI: 수금률, 전년동월대비 증감, 객단가 추이
-- [ ] 기간 선택 시 차트 및 KPI 카드 실시간 갱신
-- [ ] 기간별 매출 비교 차트 (전월/전년 대비)
+- [x] 퀵 프리셋: 이번달 / 지난달 / 이번분기 / 올해
+- [x] 추가 KPI: 수금률, 전년동월대비 증감, 객단가 추이
+- [x] 기간 선택 시 차트 및 KPI 카드 실시간 갱신
+- [x] 기간별 매출 비교 차트 (전월/전년 대비)
 
-### Phase 7: 보안 배포 전 필수 조치
+> **accounting-specialist 확정 기준**: 수금률 = paid_amount 합계 / total_amount 합계 (금액 기준)
+> EXCELLENT(≥95%) / GOOD(≥85%) / CAUTION(≥70%) / DANGER(<70%)
+
+### Phase 7: 보안 배포 전 필수 조치 (부분 완료)
 
 프로덕션 배포 전 반드시 완료해야 하는 보안 항목들.
 
-- [ ] `vite.config.ts` drop_console 설정 (프로덕션 빌드 시 console.* 제거)
-- [ ] n8n CORS 설정 `*` -> 특정 도메인으로 제한 (예: `crm.pressco21.com`)
-- [ ] CSP (Content-Security-Policy) 헤더 추가
-- [ ] NocoDB API 토큰 재발급 (git history에 노출된 건 -- 키 로테이션 필수)
+- [x] `vite.config.ts` drop_console 설정 (프로덕션 빌드 시 console.* 제거)
+- [ ] n8n CORS 설정 `*` -> 특정 도메인으로 제한 (예: `crm.pressco21.com`) **⚠️ 수동 작업 필요**
+- [x] CSP (Content-Security-Policy) 헤더 추가 (`index.html` meta 태그)
+- [ ] NocoDB API 토큰 재발급 (git history에 노출된 건 -- 키 로테이션 필수) **⚠️ 수동 작업 필요**
 - [ ] XSS 방어 새니타이징 추가 적용 확인 (CRM-012에서 향후 과제로 남김)
 
 ---

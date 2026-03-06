@@ -702,6 +702,17 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
       <DialogContent
         className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        onPointerDownOutside={(e) => {
+          // 드롭다운 포탈 클릭 시 Dialog 닫힘 방지
+          if (showProductDrop && dropdownContainerRef.current?.contains(e.target as Node)) {
+            e.preventDefault()
+          }
+        }}
+        onInteractOutside={(e) => {
+          if (showProductDrop && dropdownContainerRef.current?.contains(e.target as Node)) {
+            e.preventDefault()
+          }
+        }}
         onKeyDown={(e) => {
           if (e.altKey && e.key === 'Enter') { e.preventDefault(); addItem() }
         }}
@@ -1172,7 +1183,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           ...(dropdownPos.top != null ? { top: dropdownPos.top } : { bottom: dropdownPos.bottom }),
           left: dropdownPos.left, width: dropdownPos.width, zIndex: 99999, pointerEvents: 'auto',
         }}
-        onMouseDown={(e) => e.preventDefault()}
+        onPointerDown={(e) => e.preventDefault()}
       >
         {productSearchResult.list.map((p, index) => {
           const price = getPriceForCustomer(p, selectedCustomer)
@@ -1184,7 +1195,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                 isActive ? 'bg-[#f0f4f0] text-[#3d6b4a] font-medium' : 'hover:bg-gray-50'
               }`}
               onMouseEnter={() => setDropdownIdx(index)}
-              onMouseDown={() => { if (showProductDrop) selectProduct(showProductDrop, p) }}
+              onPointerDown={() => { if (showProductDrop) selectProduct(showProductDrop, p) }}
             >
               <span className="flex-1 truncate">
                 {p.name}

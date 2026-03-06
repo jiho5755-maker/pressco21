@@ -219,12 +219,15 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
     '<div class="inv-sig">' +
     `<span class="inv-sig-text">위 금액을 정히 ${esc(inv.receipt_type ?? '영수(청구)')}합니다.</span>` +
     '<div class="inv-sig-right">' +
-    `<span class="inv-sig-label">대표자</span>` +
-    '<div class="inv-sig-line-wrap">' +
-    '<div class="inv-sig-line"></div>' +
+    '<span class="inv-sig-label">대표자</span>' +
+    '<div class="inv-sig-name-wrap">' +
+    `<span class="inv-ceo-name">${esc(c.ceo ?? '')}</span>` +
+    '<div class="inv-sig-underline"></div>' +
+    '</div>' +
+    '<div class="inv-seal-area">' +
+    '<span class="inv-seal-text">(인)</span>' +
     `<span class="inv-stamp">${stampHtml}</span>` +
     '</div>' +
-    `<span class="inv-sig-seal">(인)</span>` +
     '</div>' +
     '</div>'
   )
@@ -286,15 +289,17 @@ const DUPLEX_CSS = [
   '.inv-bl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
   '.inv-bv-warn { color:#dc2626; font-weight:700; }',
   '.inv-memo { border:1.5px solid #333; border-top:none; padding:2px 6px; font-size:6pt; }',
-  '.inv-sig { border:1.5px solid #333; border-top:none; padding:6px 8px 8px; display:flex; align-items:flex-end; justify-content:space-between; font-size:6.5pt; min-height:42px; }',
+  '.inv-sig { border:1.5px solid #333; border-top:none; padding:6px 8px 8px; display:flex; align-items:flex-end; justify-content:space-between; font-size:6.5pt; min-height:48px; }',
   '.inv-sig-text { align-self:center; }',
-  '.inv-sig-right { display:flex; align-items:flex-end; gap:6px; }',
+  '.inv-sig-right { display:flex; align-items:flex-end; gap:4px; }',
   '.inv-sig-label { font-weight:600; font-size:6.5pt; white-space:nowrap; padding-bottom:2px; }',
-  '.inv-sig-line-wrap { position:relative; width:72px; height:38px; }',
-  '.inv-sig-line { position:absolute; bottom:0; left:0; right:0; border-bottom:1px solid #333; }',
-  '.inv-stamp { position:absolute; bottom:-2px; left:50%; transform:translateX(-50%) rotate(-8deg); width:44px; height:44px; }',
+  '.inv-sig-name-wrap { position:relative; width:68px; height:36px; }',
+  '.inv-ceo-name { position:absolute; bottom:4px; left:0; right:0; text-align:center; font-size:6pt; color:#333; }',
+  '.inv-sig-underline { position:absolute; bottom:0; left:0; right:0; border-bottom:1px solid #555; }',
+  '.inv-seal-area { position:relative; width:40px; height:40px; display:flex; align-items:center; justify-content:center; }',
+  '.inv-seal-text { font-size:7.5pt; color:#666; position:relative; z-index:1; }',
+  '.inv-stamp { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-8deg); width:42px; height:42px; z-index:2; }',
   '.inv-stamp-img { width:100%; height:100%; object-fit:cover; border-radius:50%; opacity:0.88; }',
-  '.inv-sig-seal { font-size:6pt; color:#999; padding-bottom:2px; }',
   '.t-right { text-align:right; }',
   '.t-center { text-align:center; }',
   '.inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; }',

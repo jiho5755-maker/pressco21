@@ -154,7 +154,7 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
     ? `<img src="${effectiveLogo}" alt="로고" style="height:40px;object-fit:contain;" />`
     : ''
   const stampHtml = effectiveStamp
-    ? `<img src="${effectiveStamp}" alt="도장" style="width:46px;height:46px;object-fit:cover;border-radius:50%;transform:rotate(-12deg);opacity:0.88;" />`
+    ? `<img src="${effectiveStamp}" alt="도장" class="inv-stamp-img" />`
     : ''
 
   return (
@@ -217,8 +217,15 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
     '</tr></table>' +
     (inv.memo ? `<div class="inv-memo">비고:&nbsp;${esc(inv.memo)}</div>` : '') +
     '<div class="inv-sig">' +
-    `<span>위 금액을 정히 ${esc(inv.receipt_type ?? '영수(청구)')}합니다.</span>` +
+    `<span class="inv-sig-text">위 금액을 정히 ${esc(inv.receipt_type ?? '영수(청구)')}합니다.</span>` +
+    '<div class="inv-sig-right">' +
+    `<span class="inv-sig-label">대표자</span>` +
+    '<div class="inv-sig-line-wrap">' +
+    '<div class="inv-sig-line"></div>' +
     `<span class="inv-stamp">${stampHtml}</span>` +
+    '</div>' +
+    `<span class="inv-sig-seal">(인)</span>` +
+    '</div>' +
     '</div>'
   )
 }
@@ -279,8 +286,15 @@ const DUPLEX_CSS = [
   '.inv-bl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
   '.inv-bv-warn { color:#dc2626; font-weight:700; }',
   '.inv-memo { border:1.5px solid #333; border-top:none; padding:2px 6px; font-size:6pt; }',
-  '.inv-sig { border:1.5px solid #333; border-top:none; padding:4px 8px; display:flex; align-items:center; justify-content:space-between; font-size:6.5pt; }',
-  '.inv-stamp { display:inline-block; width:46px; height:46px; }',
+  '.inv-sig { border:1.5px solid #333; border-top:none; padding:6px 8px 8px; display:flex; align-items:flex-end; justify-content:space-between; font-size:6.5pt; min-height:42px; }',
+  '.inv-sig-text { align-self:center; }',
+  '.inv-sig-right { display:flex; align-items:flex-end; gap:6px; }',
+  '.inv-sig-label { font-weight:600; font-size:6.5pt; white-space:nowrap; padding-bottom:2px; }',
+  '.inv-sig-line-wrap { position:relative; width:72px; height:38px; }',
+  '.inv-sig-line { position:absolute; bottom:0; left:0; right:0; border-bottom:1px solid #333; }',
+  '.inv-stamp { position:absolute; bottom:-2px; left:50%; transform:translateX(-50%) rotate(-8deg); width:44px; height:44px; }',
+  '.inv-stamp-img { width:100%; height:100%; object-fit:cover; border-radius:50%; opacity:0.88; }',
+  '.inv-sig-seal { font-size:6pt; color:#999; padding-bottom:2px; }',
   '.t-right { text-align:right; }',
   '.t-center { text-align:center; }',
   '.inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; }',

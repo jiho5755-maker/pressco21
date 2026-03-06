@@ -23,7 +23,7 @@ import {
   recalcCustomerBalance,
 } from '@/lib/api'
 import type { Invoice, Customer, Product } from '@/lib/api'
-import { printDuplexViaIframe } from '@/lib/print'
+import { printDuplexViaIframe, buildDuplexBlobUrl } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
 import { ProductPickerDialog } from '@/components/ProductPickerDialog'
 
@@ -164,6 +164,11 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   // 고객 주소 선택 (address1 ~ addressN 동적)
   const [selectedAddrKey, setSelectedAddrKey] = useState<string>('address1')
 
+  // 인쇄 미리보기
+  const [previewOpen, setPreviewOpen] = useState(false)
+  const [previewUrl, setPreviewUrl] = useState('')
+  const previewIframeRef = useRef<HTMLIFrameElement>(null)
+
   // 고객 검색
   const [customerInput, setCustomerInput] = useState('')
   const [showCustomerDrop, setShowCustomerDrop] = useState(false)
@@ -293,7 +298,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       ...f,
       customer_id: c.Id,
       customer_name: c.name,
-      customer_phone: (c.phone as string) ?? '',
+      customer_phone: (c.mobile ?? c.phone1 ?? c.phone ?? '') as string,
       customer_address: (c.address1 as string) ?? '',
       previous_balance: isNew ? (c.outstanding_balance ?? 0) : f.previous_balance,
     }))
@@ -518,10 +523,10 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     }
   }
 
-  // 인쇄
-  function handlePrint() {
-    printDuplexViaIframe(
-      {
+  // 인쇄 데이터 빌더
+  function buildPrintData() {
+    return {
+      inv: {
         invoice_no: form.invoice_no,
         invoice_date: form.invoice_date,
         receipt_type: form.receipt_type,
@@ -535,7 +540,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
         paid_amount: paidAmt,
         memo: form.memo,
       },
-      items.map((r) => ({
+      rows: items.map((r) => ({
         product_name: r.product_name,
         unit: r.unit,
         quantity: r.quantity,
@@ -543,7 +548,36 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
         supply_amount: r.supply_amount,
         tax_amount: r.tax_amount,
       })),
-    )
+    }
+  }
+
+  // 인쇄 미리보기: 인앱 모달로 먼저 확인
+  function handlePreview() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl)
+    const { inv, rows } = buildPrintData()
+    const url = buildDuplexBlobUrl(inv, rows)
+    setPreviewUrl(url)
+    setPreviewOpen(true)
+  }
+
+  // 미리보기 닫기
+  function closePreview() {
+    setPreviewOpen(false)
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl)
+      setPreviewUrl('')
+    }
+  }
+
+  // 미리보기에서 실제 인쇄
+  function handlePrintFromPreview() {
+    previewIframeRef.current?.contentWindow?.print()
+  }
+
+  // 직접 인쇄 (미리보기 없이)
+  function handlePrint() {
+    const { inv, rows } = buildPrintData()
+    printDuplexViaIframe(inv, rows)
   }
 
   const titleLabel = isCopy ? '명세표 복사' : invoiceId ? '명세표 수정' : '새 거래명세표'
@@ -955,7 +989,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
           {/* ─── 액션 버튼 ─── */}
           <div className="flex items-center justify-between pt-2 border-t">
-            <Button variant="outline" onClick={handlePrint} className="gap-1">
+            <Button variant="outline" onClick={handlePreview} className="gap-1">
               <Printer className="h-4 w-4" />
               인쇄 미리보기
             </Button>
@@ -983,6 +1017,50 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       onClose={() => setProductPickerOpen(false)}
       onSelect={handleProductPicked}
     />
+
+    {/* ─── 인쇄 미리보기 모달 ─── */}
+    {previewOpen && (
+      <Dialog open onOpenChange={(v) => { if (!v) closePreview() }}>
+        <DialogContent className="max-w-3xl w-full p-0 gap-0 overflow-hidden" style={{ maxHeight: '95vh' }}>
+          <DialogHeader className="px-4 py-3 border-b bg-gray-50 flex-row items-center justify-between space-y-0">
+            <DialogTitle className="text-sm font-semibold flex items-center gap-2">
+              <Printer className="h-4 w-4 text-[#7d9675]" />
+              인쇄 미리보기
+              <span className="text-xs font-normal text-muted-foreground">로고·도장 포함 여부를 확인 후 인쇄하세요</span>
+            </DialogTitle>
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                className="bg-[#7d9675] hover:bg-[#6a8462] text-white gap-1"
+                onClick={handlePrintFromPreview}
+              >
+                <Printer className="h-3.5 w-3.5" />
+                인쇄
+              </Button>
+              <Button size="sm" variant="ghost" onClick={closePreview}>
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+          </DialogHeader>
+          <div className="overflow-auto bg-gray-100" style={{ maxHeight: 'calc(95vh - 56px)' }}>
+            <iframe
+              ref={previewIframeRef}
+              src={previewUrl}
+              title="인쇄 미리보기"
+              style={{
+                display: 'block',
+                width: '210mm',
+                height: '297mm',
+                border: 'none',
+                margin: '16px auto',
+                boxShadow: '0 2px 12px rgba(0,0,0,0.15)',
+                background: '#fff',
+              }}
+            />
+          </div>
+        </DialogContent>
+      </Dialog>
+    )}
     </>
   )
 }

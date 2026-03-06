@@ -212,103 +212,93 @@ function buildDuplexInvoiceHtml(inv: PrintInvoice, items: PrintItem[]): string {
  * - 절취선 148.5mm (A4 정중앙), 각 절반 7mm 균등 여백
  * - 콘텐츠 넘칠 경우 zoom 축소 (최소 0.5배)
  */
-export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): void {
+// ─── 공통 CSS (미리보기 + 인쇄 공유) ────────────────────────────
+const DUPLEX_CSS = [
+  '@page { size: A4 portrait; margin: 0; }',
+  'html { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; }',
+  "body { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; font-size:6pt; }",
+  '* { box-sizing:border-box; }',
+  '.inv-tbl { width:100%; border-collapse:collapse; }',
+  '.inv-header { display:flex; align-items:center; justify-content:space-between; border:1.5px solid #333; padding:3px 6px; gap:6px; }',
+  '.inv-logo { width:80px; }',
+  '.inv-title-area { text-align:center; flex:1; }',
+  '.inv-title { font-size:11pt; font-weight:900; letter-spacing:5px; }',
+  '.inv-sub { font-size:5.5pt; color:#555; margin-top:1px; }',
+  '.inv-meta-tbl { border:1.5px solid #333; border-top:none; }',
+  '.inv-meta-tbl td { border:1px solid #999; padding:1.5px 4px; font-size:6pt; }',
+  '.inv-ml { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
+  '.inv-parties { display:flex; border:1.5px solid #333; border-top:none; }',
+  '.inv-party { flex:1; }',
+  '.inv-party:first-child { border-right:1px solid #aaa; }',
+  '.inv-party-title { background:#f0f0f0; text-align:center; font-weight:700; padding:2px 0; font-size:6.5pt; border-bottom:1px solid #aaa; }',
+  '.inv-party-tbl td { border:none; border-bottom:1px solid #eee; border-right:1px solid #eee; padding:1.5px 3px; font-size:5.5pt; }',
+  '.inv-pl { background:#f9f9f9; font-weight:600; white-space:nowrap; width:42px; text-align:center; }',
+  '.inv-items-table { border:1.5px solid #333; border-top:none; }',
+  '.inv-items-table th { background:#f0f0f0; border:1px solid #999; padding:1.5px 1px; text-align:center; font-weight:700; font-size:5.5pt; }',
+  '.inv-items-table td { border:1px solid #ccc; padding:1px 2px; font-size:6pt; }',
+  '.inv-blank td { height:11px; }',
+  '.inv-total-tbl { border:1.5px solid #333; border-top:none; }',
+  '.inv-total-tbl td { border:1px solid #999; padding:2px 5px; font-size:6.5pt; }',
+  '.inv-tl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:60px; }',
+  '.inv-grand { background:#e8f0e8 !important; font-weight:700; }',
+  '.inv-balance-tbl { border:1.5px solid #333; border-top:none; }',
+  '.inv-balance-tbl td { border:1px solid #999; padding:2px 4px; font-size:6pt; }',
+  '.inv-bl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
+  '.inv-bv-warn { color:#dc2626; font-weight:700; }',
+  '.inv-memo { border:1.5px solid #333; border-top:none; padding:2px 6px; font-size:6pt; }',
+  '.inv-sig { border:1.5px solid #333; border-top:none; padding:4px 8px; display:flex; align-items:center; justify-content:space-between; font-size:6.5pt; }',
+  '.inv-stamp { display:inline-block; width:46px; height:46px; }',
+  '.t-right { text-align:right; }',
+  '.t-center { text-align:center; }',
+  '.inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; }',
+  '.inv-half { position:absolute; width:210mm; box-sizing:border-box; padding:7mm 8mm 7mm; overflow:hidden; }',
+  '.inv-half.top    { top:0; height:148.5mm; }',
+  '.inv-half.bottom { top:148.5mm; height:148.5mm; }',
+  '.inv-cut-line { position:absolute; top:148.5mm; left:0; right:0; border-top:1px dashed #bbb; display:flex; align-items:center; justify-content:center; }',
+  ".inv-cut-line span { background:#fff; padding:0 8px; font-size:6pt; color:#bbb; letter-spacing:3px; transform:translateY(-50%); font-family:'Malgun Gothic',sans-serif; }",
+  '.inv-scale-wrap { width:100%; }',
+].join('\n')
+
+const TARGET_MM = 132
+const TARGET_PX = TARGET_MM * (96 / 25.4)
+const ZOOM_SCRIPT =
+  `(function(){var T=${TARGET_PX.toFixed(1)};` +
+  `function z(){var h=document.querySelectorAll('.inv-half');` +
+  `for(var i=0;i<h.length;i++){var w=h[i].querySelector('.inv-scale-wrap');` +
+  `if(!w)continue;w.style.zoom='';var s=w.scrollHeight;` +
+  `if(s>T){var r=T/s;if(r>=0.5)w.style.zoom=r.toFixed(4);}}}` +
+  `window.addEventListener('beforeprint',z);z();})();`
+
+// 미리보기 + 인쇄 공통 Blob URL 생성 (호출자가 revokeObjectURL 책임)
+export function buildDuplexBlobUrl(inv: PrintInvoice, items: PrintItem[]): string {
   const duplexHtml = buildDuplexInvoiceHtml(inv, items)
+  const fullHtml =
+    '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
+    '<style>' + DUPLEX_CSS + '</style>' +
+    '</head><body>' +
+    duplexHtml +
+    '<script>' + ZOOM_SCRIPT + '<\/script>' +
+    '</body></html>'
+  return URL.createObjectURL(new Blob([fullHtml], { type: 'text/html;charset=utf-8' }))
+}
+
+export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): void {
+  const blobUrl = buildDuplexBlobUrl(inv, items)
 
   const iframe = document.createElement('iframe')
   iframe.style.cssText =
     'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;visibility:hidden;'
   document.body.appendChild(iframe)
-
-  const TARGET_MM = 132
-  const TARGET_PX = TARGET_MM * (96 / 25.4)
-
-  const cssText = [
-    '@page { size: A4 portrait; margin: 0; }',
-    'html { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; }',
-    "body { margin:0; padding:0; width:210mm; height:297mm; overflow:hidden !important; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; font-size:6pt; }",
-    '* { box-sizing:border-box; }',
-    '.inv-tbl { width:100%; border-collapse:collapse; }',
-    '.inv-header { display:flex; align-items:center; justify-content:space-between; border:1.5px solid #333; padding:3px 6px; gap:6px; }',
-    '.inv-logo { width:80px; }',
-    '.inv-title-area { text-align:center; flex:1; }',
-    '.inv-title { font-size:11pt; font-weight:900; letter-spacing:5px; }',
-    '.inv-sub { font-size:5.5pt; color:#555; margin-top:1px; }',
-    '.inv-meta-tbl { border:1.5px solid #333; border-top:none; }',
-    '.inv-meta-tbl td { border:1px solid #999; padding:1.5px 4px; font-size:6pt; }',
-    '.inv-ml { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
-    '.inv-parties { display:flex; border:1.5px solid #333; border-top:none; }',
-    '.inv-party { flex:1; }',
-    '.inv-party:first-child { border-right:1px solid #aaa; }',
-    '.inv-party-title { background:#f0f0f0; text-align:center; font-weight:700; padding:2px 0; font-size:6.5pt; border-bottom:1px solid #aaa; }',
-    '.inv-party-tbl td { border:none; border-bottom:1px solid #eee; border-right:1px solid #eee; padding:1.5px 3px; font-size:5.5pt; }',
-    '.inv-pl { background:#f9f9f9; font-weight:600; white-space:nowrap; width:42px; text-align:center; }',
-    '.inv-items-table { border:1.5px solid #333; border-top:none; }',
-    '.inv-items-table th { background:#f0f0f0; border:1px solid #999; padding:1.5px 1px; text-align:center; font-weight:700; font-size:5.5pt; }',
-    '.inv-items-table td { border:1px solid #ccc; padding:1px 2px; font-size:6pt; }',
-    '.inv-blank td { height:11px; }',
-    '.inv-total-tbl { border:1.5px solid #333; border-top:none; }',
-    '.inv-total-tbl td { border:1px solid #999; padding:2px 5px; font-size:6.5pt; }',
-    '.inv-tl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:60px; }',
-    '.inv-grand { background:#e8f0e8 !important; font-weight:700; }',
-    '.inv-balance-tbl { border:1.5px solid #333; border-top:none; }',
-    '.inv-balance-tbl td { border:1px solid #999; padding:2px 4px; font-size:6pt; }',
-    '.inv-bl { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
-    '.inv-bv-warn { color:#dc2626; font-weight:700; }',
-    '.inv-memo { border:1.5px solid #333; border-top:none; padding:2px 6px; font-size:6pt; }',
-    '.inv-sig { border:1.5px solid #333; border-top:none; padding:4px 8px; display:flex; align-items:center; justify-content:space-between; font-size:6.5pt; }',
-    '.inv-stamp { display:inline-block; width:46px; height:46px; }',
-    '.t-right { text-align:right; }',
-    '.t-center { text-align:center; }',
-    '.inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; }',
-    '.inv-half { position:absolute; width:210mm; box-sizing:border-box; padding:7mm 8mm 7mm; overflow:hidden; }',
-    '.inv-half.top    { top:0; height:148.5mm; }',
-    '.inv-half.bottom { top:148.5mm; height:148.5mm; }',
-    '.inv-cut-line { position:absolute; top:148.5mm; left:0; right:0; border-top:1px dashed #bbb; display:flex; align-items:center; justify-content:center; }',
-    ".inv-cut-line span { background:#fff; padding:0 8px; font-size:6pt; color:#bbb; letter-spacing:3px; transform:translateY(-50%); font-family:'Malgun Gothic',sans-serif; }",
-    '.inv-scale-wrap { width:100%; }',
-  ].join('\n')
-
-  // minify script to avoid parser issues
-  const scriptText =
-    `(function(){var T=${TARGET_PX.toFixed(1)};` +
-    `function z(){var h=document.querySelectorAll('.inv-half');` +
-    `for(var i=0;i<h.length;i++){var w=h[i].querySelector('.inv-scale-wrap');` +
-    `if(!w)continue;w.style.zoom='';var s=w.scrollHeight;` +
-    `if(s>T){var r=T/s;if(r>=0.5)w.style.zoom=r.toFixed(4);}}}` +
-    `window.addEventListener('beforeprint',z);})();`
-
-  const fullHtml =
-    '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-    '<style>' + cssText + '</style>' +
-    '</head><body>' +
-    duplexHtml +
-    '<script>' + scriptText + '<\\/script>' +
-    '</body></html>'
-
-  // Blob URL 방식: base64 이미지가 iframeDoc.write()에서 누락되는 문제 방지
-  const blobUrl = URL.createObjectURL(new Blob([fullHtml], { type: 'text/html;charset=utf-8' }))
   iframe.src = blobUrl
 
   iframe.addEventListener('load', () => {
-    const doc = iframe.contentDocument || (iframe.contentWindow as Window).document
-    doc.querySelectorAll<HTMLElement>('.inv-half').forEach((half) => {
-      const wrap = half.querySelector<HTMLElement>('.inv-scale-wrap')
-      if (!wrap) return
-      wrap.style.zoom = ''
-      const h = wrap.scrollHeight
-      if (h > TARGET_PX) {
-        const z = TARGET_PX / h
-        if (z >= 0.5) wrap.style.zoom = z.toFixed(4)
-      }
-    })
     setTimeout(() => {
       iframe.contentWindow?.print()
       URL.revokeObjectURL(blobUrl)
       setTimeout(() => {
         if (iframe.parentNode) document.body.removeChild(iframe)
       }, 3000)
-    }, 200)
+    }, 300)
   })
 }
 

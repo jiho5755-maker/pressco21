@@ -107,7 +107,9 @@ export function sanitizeAmount(value: string | number): number {
 export interface Customer {
   Id: number
   name?: string
-  phone?: string
+  phone?: string    // 인터페이스 호환용 (NocoDB 실제 필드: phone1)
+  phone1?: string   // NocoDB 실제 필드명
+  phone2?: string
   mobile?: string
   email?: string
   address1?: string

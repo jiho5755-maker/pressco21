@@ -44,7 +44,7 @@ export function Customers() {
   const conditions: string[] = []
   if (debouncedSearch) {
     const safe = sanitizeSearchTerm(debouncedSearch)
-    conditions.push(`(name,like,%${safe}%)~or(phone,like,%${safe}%)`)
+    conditions.push(`(name,like,%${safe}%)~or(mobile,like,%${safe}%)~or(phone1,like,%${safe}%)`)
   }
   if (typeFilter !== 'ALL') conditions.push(`(customer_type,eq,${typeFilter})`)
   if (statusFilter !== 'ALL') conditions.push(`(customer_status,eq,${statusFilter})`)

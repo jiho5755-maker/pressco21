@@ -112,6 +112,10 @@ export interface Customer {
   email?: string
   address1?: string
   address2?: string
+  address3?: string
+  address4?: string
+  address5?: string
+  address6?: string
   customer_type?: string
   customer_status?: string
   member_grade?: string

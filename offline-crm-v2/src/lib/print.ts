@@ -220,9 +220,6 @@ export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): voi
     'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;visibility:hidden;'
   document.body.appendChild(iframe)
 
-  const iframeDoc = (iframe.contentDocument ||
-    (iframe.contentWindow as Window).document) as Document
-
   const TARGET_MM = 132
   const TARGET_PX = TARGET_MM * (96 / 25.4)
 
@@ -281,24 +278,21 @@ export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): voi
     `if(s>T){var r=T/s;if(r>=0.5)w.style.zoom=r.toFixed(4);}}}` +
     `window.addEventListener('beforeprint',z);})();`
 
-  iframeDoc.open()
-  iframeDoc.write(
+  const fullHtml =
     '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-      '<style>' +
-      cssText +
-      '</style>' +
-      '</head><body>' +
-      duplexHtml +
-      '<script>' +
-      scriptText +
-      '<\\/script>' +
-      '</body></html>',
-  )
-  iframeDoc.close()
-  iframe.contentWindow?.focus()
+    '<style>' + cssText + '</style>' +
+    '</head><body>' +
+    duplexHtml +
+    '<script>' + scriptText + '<\\/script>' +
+    '</body></html>'
 
-  setTimeout(() => {
-    iframeDoc.querySelectorAll<HTMLElement>('.inv-half').forEach((half) => {
+  // Blob URL 방식: base64 이미지가 iframeDoc.write()에서 누락되는 문제 방지
+  const blobUrl = URL.createObjectURL(new Blob([fullHtml], { type: 'text/html;charset=utf-8' }))
+  iframe.src = blobUrl
+
+  iframe.addEventListener('load', () => {
+    const doc = iframe.contentDocument || (iframe.contentWindow as Window).document
+    doc.querySelectorAll<HTMLElement>('.inv-half').forEach((half) => {
       const wrap = half.querySelector<HTMLElement>('.inv-scale-wrap')
       if (!wrap) return
       wrap.style.zoom = ''
@@ -308,11 +302,14 @@ export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): voi
         if (z >= 0.5) wrap.style.zoom = z.toFixed(4)
       }
     })
-    iframe.contentWindow?.print()
     setTimeout(() => {
-      if (iframe.parentNode) document.body.removeChild(iframe)
-    }, 3000)
-  }, 600)
+      iframe.contentWindow?.print()
+      URL.revokeObjectURL(blobUrl)
+      setTimeout(() => {
+        if (iframe.parentNode) document.body.removeChild(iframe)
+      }, 3000)
+    }, 200)
+  })
 }
 
 // ─────────────────────────────────────────────────────────────────
@@ -453,16 +450,18 @@ export function printPeriodReport(
   iframe.style.cssText =
     'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;visibility:hidden;'
   document.body.appendChild(iframe)
-  const iframeDoc = (iframe.contentDocument ||
-    (iframe.contentWindow as Window).document) as Document
-  iframeDoc.open()
-  iframeDoc.write(html)
-  iframeDoc.close()
-  iframe.contentWindow?.focus()
-  setTimeout(() => {
-    iframe.contentWindow?.print()
+
+  // Blob URL 방식: 로고 이미지가 iframeDoc.write()에서 누락되는 문제 방지
+  const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+  iframe.src = blobUrl
+
+  iframe.addEventListener('load', () => {
     setTimeout(() => {
-      if (iframe.parentNode) document.body.removeChild(iframe)
-    }, 3000)
-  }, 600)
+      iframe.contentWindow?.print()
+      URL.revokeObjectURL(blobUrl)
+      setTimeout(() => {
+        if (iframe.parentNode) document.body.removeChild(iframe)
+      }, 3000)
+    }, 200)
+  })
 }

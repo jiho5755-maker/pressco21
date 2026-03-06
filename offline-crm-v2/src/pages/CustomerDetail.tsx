@@ -1,19 +1,64 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, Printer } from 'lucide-react'
+import { ArrowLeft, Calendar, Printer, Plus, Trash2, Pencil } from 'lucide-react'
+import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Textarea } from '@/components/ui/textarea'
+import { Label } from '@/components/ui/label'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
 import { getCustomer, getTxHistory, getInvoices, updateCustomer } from '@/lib/api'
+import type { Customer } from '@/lib/api'
 import { printPeriodReport } from '@/lib/print'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
+
+// ── 기본정보 편집 폼 ──────────────────────────────────────
+interface InfoForm {
+  name: string
+  phone: string
+  mobile: string
+  email: string
+  biz_no: string
+  ceo_name: string
+  biz_type: string
+  biz_item: string
+  customer_type: string
+  customer_status: string
+  price_tier: string
+  discount_rate: string
+  memo: string
+  addresses: string[]
+}
+
+function buildInfoForm(c: Customer): InfoForm {
+  const addresses: string[] = []
+  for (let i = 1; i <= 10; i++) {
+    const v = c[`address${i}`] as string | undefined
+    if (v) addresses.push(v)
+  }
+  return {
+    name: c.name ?? '',
+    phone: c.phone ?? '',
+    mobile: (c.mobile as string) ?? '',
+    email: c.email ?? '',
+    biz_no: c.biz_no ?? '',
+    ceo_name: (c.ceo_name as string) ?? '',
+    biz_type: (c.biz_type as string) ?? '',
+    biz_item: (c.biz_item as string) ?? '',
+    customer_type: c.customer_type ?? '',
+    customer_status: c.customer_status ?? '',
+    price_tier: String(c.price_tier ?? 1),
+    discount_rate: String(c.discount_rate ?? ''),
+    memo: (c.memo as string) ?? '',
+    addresses: addresses.length > 0 ? addresses : [''],
+  }
+}
 
 const TX_PAGE = 50
 
@@ -76,6 +121,14 @@ export function CustomerDetail() {
   const [editGrade, setEditGrade] = useState('')
   const [editQual, setEditQual] = useState('')
 
+  // 기본정보 편집 상태
+  const [infoEditMode, setInfoEditMode] = useState(false)
+  const [infoForm, setInfoForm] = useState<InfoForm>({
+    name: '', phone: '', mobile: '', email: '', biz_no: '', ceo_name: '',
+    biz_type: '', biz_item: '', customer_type: '', customer_status: '',
+    price_tier: '1', discount_rate: '', memo: '', addresses: [''],
+  })
+
   // 기간 매출 필터 상태 (명세표 탭)
   const [dateFrom, setDateFrom] = useState(thisMonthStart)
   const [dateTo, setDateTo] = useState(todayStr)
@@ -97,6 +150,42 @@ export function CustomerDetail() {
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] })
       setGradeEditMode(false)
+    },
+  })
+
+  const { mutate: saveInfo, isPending: savingInfo } = useMutation({
+    mutationFn: () => {
+      // 주소 필드 동적 구성 (address1~6, 빈 주소는 undefined)
+      const addrPayload: Record<string, string | undefined> = {}
+      for (let i = 1; i <= 6; i++) {
+        const v = infoForm.addresses[i - 1]
+        addrPayload[`address${i}`] = v && v.trim() ? v.trim() : undefined
+      }
+      return updateCustomer(customerId, {
+        name: infoForm.name || undefined,
+        phone: infoForm.phone || undefined,
+        mobile: infoForm.mobile || undefined,
+        email: infoForm.email || undefined,
+        biz_no: infoForm.biz_no || undefined,
+        ceo_name: infoForm.ceo_name || undefined,
+        biz_type: infoForm.biz_type || undefined,
+        biz_item: infoForm.biz_item || undefined,
+        customer_type: infoForm.customer_type || undefined,
+        customer_status: infoForm.customer_status || undefined,
+        price_tier: infoForm.price_tier ? Number(infoForm.price_tier) : undefined,
+        discount_rate: infoForm.discount_rate ? Number(infoForm.discount_rate) : undefined,
+        memo: infoForm.memo || undefined,
+        ...addrPayload,
+      })
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer', customerId] })
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      setInfoEditMode(false)
+      toast.success('고객 정보가 저장되었습니다')
+    },
+    onError: (e: Error) => {
+      toast.error(e.message)
     },
   })
 
@@ -332,24 +421,203 @@ export function CustomerDetail() {
         <TabsContent value="info">
           <Card>
             <CardContent className="pt-6">
-              <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-4 text-sm">
-                {[
-                  { label: '전화', value: customer.phone },
-                  { label: '모바일', value: (customer as Record<string, unknown>)['mobile'] as string },
-                  { label: '이메일', value: customer.email },
-                  { label: '사업자번호', value: customer.biz_no },
-                  { label: '주소', value: customer.address1 },
-                  { label: '주소2', value: (customer as Record<string, unknown>)['address2'] as string },
-                  { label: '최초거래일', value: customer.first_order_date?.slice(0, 10) },
-                  { label: '최종거래일', value: customer.last_order_date?.slice(0, 10) },
-                  { label: '메모', value: (customer as Record<string, unknown>)['memo'] as string },
-                ].map(({ label, value }) => (
-                  <div key={label} className="flex flex-col gap-1">
-                    <dt className="font-medium text-muted-foreground text-xs">{label}</dt>
-                    <dd className="truncate">{value || '-'}</dd>
+              {/* ── 헤더: 수정 버튼 ── */}
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="text-sm font-semibold text-muted-foreground">연락처 · 사업자 정보</h4>
+                {!infoEditMode ? (
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    className="gap-1"
+                    onClick={() => {
+                      setInfoForm(buildInfoForm(customer))
+                      setInfoEditMode(true)
+                    }}
+                  >
+                    <Pencil className="h-3.5 w-3.5" />
+                    수정
+                  </Button>
+                ) : (
+                  <div className="flex gap-2">
+                    <Button size="sm" onClick={() => saveInfo()} disabled={savingInfo}>
+                      {savingInfo ? '저장 중...' : '저장'}
+                    </Button>
+                    <Button size="sm" variant="ghost" onClick={() => setInfoEditMode(false)}>
+                      취소
+                    </Button>
                   </div>
-                ))}
-              </dl>
+                )}
+              </div>
+
+              {/* ── 읽기 모드 ── */}
+              {!infoEditMode ? (
+                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                  {[
+                    { label: '전화', value: customer.phone },
+                    { label: '모바일', value: (customer.mobile as string) },
+                    { label: '이메일', value: customer.email },
+                    { label: '사업자번호', value: customer.biz_no },
+                    { label: '담당자', value: (customer.ceo_name as string) },
+                    { label: '업태/종목', value: [(customer.biz_type as string), (customer.biz_item as string)].filter(Boolean).join(' / ') || undefined },
+                    { label: '고객유형', value: CUSTOMER_TYPE_LABELS[customer.customer_type ?? ''] ?? customer.customer_type },
+                    { label: '상태', value: STATUS_COLORS[customer.customer_status ?? '']?.label ?? customer.customer_status },
+                    { label: '단가등급', value: customer.price_tier ? `Tier ${customer.price_tier}` : undefined },
+                    { label: '최초거래일', value: customer.first_order_date?.slice(0, 10) },
+                    { label: '최종거래일', value: customer.last_order_date?.slice(0, 10) },
+                    { label: '메모', value: (customer.memo as string) },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex flex-col gap-0.5">
+                      <dt className="font-medium text-muted-foreground text-xs">{label}</dt>
+                      <dd className="text-sm">{value || <span className="text-muted-foreground">-</span>}</dd>
+                    </div>
+                  ))}
+                  {/* 주소 목록 */}
+                  {(() => {
+                    const addrs: string[] = []
+                    for (let i = 1; i <= 6; i++) {
+                      const v = customer[`address${i}`] as string | undefined
+                      if (v) addrs.push(v)
+                    }
+                    if (addrs.length === 0) return (
+                      <div className="flex flex-col gap-0.5 sm:col-span-2">
+                        <dt className="font-medium text-muted-foreground text-xs">주소</dt>
+                        <dd className="text-sm text-muted-foreground">-</dd>
+                      </div>
+                    )
+                    return (
+                      <div className="flex flex-col gap-1 sm:col-span-2">
+                        <dt className="font-medium text-muted-foreground text-xs">주소</dt>
+                        {addrs.map((addr, i) => (
+                          <dd key={i} className="text-sm">{i > 0 && <span className="text-muted-foreground text-xs mr-1">(배송지{i + 1})</span>}{addr}</dd>
+                        ))}
+                      </div>
+                    )
+                  })()}
+                </dl>
+              ) : (
+                /* ── 편집 모드 ── */
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { label: '거래처명', key: 'name' as const, placeholder: '회사명 또는 이름' },
+                      { label: '전화', key: 'phone' as const, placeholder: '02-0000-0000' },
+                      { label: '모바일', key: 'mobile' as const, placeholder: '010-0000-0000' },
+                      { label: '이메일', key: 'email' as const, placeholder: 'user@example.com' },
+                      { label: '사업자번호', key: 'biz_no' as const, placeholder: '000-00-00000' },
+                      { label: '담당자', key: 'ceo_name' as const, placeholder: '홍길동' },
+                      { label: '업태', key: 'biz_type' as const, placeholder: '도소매' },
+                      { label: '종목', key: 'biz_item' as const, placeholder: '꽃 공예 재료' },
+                    ].map(({ label, key, placeholder }) => (
+                      <div key={key} className="space-y-1">
+                        <Label className="text-xs">{label}</Label>
+                        <Input
+                          value={infoForm[key]}
+                          onChange={(e) => setInfoForm((f) => ({ ...f, [key]: e.target.value }))}
+                          placeholder={placeholder}
+                          className="h-8 text-sm"
+                        />
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 고객유형/상태/단가등급 */}
+                  <div className="grid grid-cols-3 gap-3">
+                    <div className="space-y-1">
+                      <Label className="text-xs">고객 유형</Label>
+                      <Select value={infoForm.customer_type || '_NONE_'} onValueChange={(v) => setInfoForm((f) => ({ ...f, customer_type: v === '_NONE_' ? '' : v }))}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_NONE_">유형 없음</SelectItem>
+                          {Object.entries(CUSTOMER_TYPE_LABELS).map(([k, v]) => (
+                            <SelectItem key={k} value={k}>{v}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">상태</Label>
+                      <Select value={infoForm.customer_status || '_NONE_'} onValueChange={(v) => setInfoForm((f) => ({ ...f, customer_status: v === '_NONE_' ? '' : v }))}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="_NONE_">상태 없음</SelectItem>
+                          <SelectItem value="ACTIVE">활성</SelectItem>
+                          <SelectItem value="DORMANT">휴면</SelectItem>
+                          <SelectItem value="CHURNED">이탈</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">단가등급</Label>
+                      <Select value={infoForm.price_tier} onValueChange={(v) => setInfoForm((f) => ({ ...f, price_tier: v }))}>
+                        <SelectTrigger className="h-8 text-sm"><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          {[['1','씨앗(소매)'],['2','뿌리(강사)'],['3','꽃밭(파트너)'],['4','정원사(VIP)'],['5','별빛(앰배)']].map(([v, l]) => (
+                            <SelectItem key={v} value={v}>{l}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  {/* 동적 주소 목록 */}
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between">
+                      <Label className="text-xs">주소 목록</Label>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        className="h-6 text-xs gap-1"
+                        onClick={() => setInfoForm((f) => ({ ...f, addresses: [...f.addresses, ''] }))}
+                        disabled={infoForm.addresses.length >= 6}
+                      >
+                        <Plus className="h-3 w-3" />
+                        주소 추가
+                      </Button>
+                    </div>
+                    {infoForm.addresses.map((addr, idx) => (
+                      <div key={idx} className="flex gap-2 items-center">
+                        <span className="text-xs text-muted-foreground w-16 shrink-0">
+                          {idx === 0 ? '기본 주소' : `배송지 ${idx + 1}`}
+                        </span>
+                        <Input
+                          value={addr}
+                          onChange={(e) => {
+                            const next = [...infoForm.addresses]
+                            next[idx] = e.target.value
+                            setInfoForm((f) => ({ ...f, addresses: next }))
+                          }}
+                          placeholder={`주소 ${idx + 1}`}
+                          className="h-8 text-sm flex-1"
+                        />
+                        {infoForm.addresses.length > 1 && (
+                          <Button
+                            type="button"
+                            size="icon"
+                            variant="ghost"
+                            className="h-8 w-8 text-muted-foreground hover:text-red-500"
+                            onClick={() => setInfoForm((f) => ({ ...f, addresses: f.addresses.filter((_, i) => i !== idx) }))}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+
+                  {/* 메모 */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">메모</Label>
+                    <Textarea
+                      value={infoForm.memo}
+                      onChange={(e) => setInfoForm((f) => ({ ...f, memo: e.target.value }))}
+                      placeholder="고객 메모"
+                      className="text-sm resize-none"
+                      rows={2}
+                    />
+                  </div>
+                </div>
+              )}
 
               {/* 등급 관리 */}
               <div className="mt-6 pt-6 border-t">

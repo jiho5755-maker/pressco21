@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react'
+import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Printer, X, Copy, LayoutList } from 'lucide-react'
 import { toast } from 'sonner'
@@ -193,6 +194,20 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   // 품목 선택 모달
   const [productPickerOpen, setProductPickerOpen] = useState(false)
   const [productPickerRowKey, setProductPickerRowKey] = useState<string | null>(null)
+
+  // 드롭다운 portal 위치 (테이블 overflow 밖으로 렌더링)
+  const [dropdownPos, setDropdownPos] = useState<{ top: number; left: number; width: number } | null>(null)
+  useLayoutEffect(() => {
+    if (showProductDrop && activeProductKey) {
+      const el = productInputRefs.current[activeProductKey]
+      if (el) {
+        const rect = el.getBoundingClientRect()
+        setDropdownPos({ top: rect.bottom + 2, left: rect.left, width: Math.max(rect.width + 100, 360) })
+      }
+    } else {
+      setDropdownPos(null)
+    }
+  }, [showProductDrop, activeProductKey])
 
   // 최근 거래 5건
   const { data: recentInvoices } = useQuery({
@@ -907,34 +922,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                             placeholder="품목명 검색 (자동완성)"
                             className="h-7 text-sm border-0 focus-visible:ring-1"
                           />
-                          {showProductDrop === row._key && productSearchResult?.list && productSearchResult.list.length > 0 && (
-                            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
-                              {productSearchResult.list.map((p, index) => {
-                                const price = getPriceForCustomer(p, selectedCustomer)
-                                const isActive = index === dropdownIdx
-                                return (
-                                  <button
-                                    key={p.Id}
-                                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 ${
-                                      isActive ? 'bg-[#f0f4f0] text-[#3d6b4a] font-medium' : 'hover:bg-gray-50'
-                                    }`}
-                                    onMouseDown={() => selectProduct(row._key, p)}
-                                  >
-                                    <span className="flex-1 truncate">
-                                      {p.name}
-                                      {p.category && <span className="text-[10px] text-muted-foreground ml-1">({p.category})</span>}
-                                    </span>
-                                    <span className="flex items-center gap-1.5 flex-none">
-                                      {p.product_code && (
-                                        <span className="bg-gray-100 text-gray-500 px-1 py-0.5 rounded text-[10px] font-mono">{p.product_code}</span>
-                                      )}
-                                      <span className={isActive ? 'text-[#3d6b4a]' : 'text-muted-foreground'}>{price.toLocaleString()}원</span>
-                                    </span>
-                                  </button>
-                                )
-                              })}
-                            </div>
-                          )}
+                          {/* 드롭다운은 portal로 body에 렌더링 (테이블 overflow 밖) */}
                           {/* 목록에서 선택 버튼 */}
                           <button
                             type="button"
@@ -1126,6 +1114,40 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* 상품 자동완성 드롭다운 (portal - 테이블 overflow 밖에 렌더링) */}
+    {showProductDrop && dropdownPos && productSearchResult?.list && productSearchResult.list.length > 0 && createPortal(
+      <div
+        className="fixed bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto"
+        style={{ top: dropdownPos.top, left: dropdownPos.left, width: dropdownPos.width, zIndex: 9999 }}
+      >
+        {productSearchResult.list.map((p, index) => {
+          const price = getPriceForCustomer(p, selectedCustomer)
+          const isActive = index === dropdownIdx
+          return (
+            <button
+              key={p.Id}
+              className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 ${
+                isActive ? 'bg-[#f0f4f0] text-[#3d6b4a] font-medium' : 'hover:bg-gray-50'
+              }`}
+              onMouseDown={() => { if (showProductDrop) selectProduct(showProductDrop, p) }}
+            >
+              <span className="flex-1 truncate">
+                {p.name}
+                {p.category && <span className="text-[10px] text-muted-foreground ml-1">({p.category})</span>}
+              </span>
+              <span className="flex items-center gap-1.5 flex-none">
+                {p.product_code && (
+                  <span className="bg-gray-100 text-gray-500 px-1 py-0.5 rounded text-[10px] font-mono">{p.product_code}</span>
+                )}
+                <span className={isActive ? 'text-[#3d6b4a]' : 'text-muted-foreground'}>{price.toLocaleString()}원</span>
+              </span>
+            </button>
+          )
+        })}
+      </div>,
+      document.body
+    )}
 
     {/* 품목 선택 모달 */}
     <ProductPickerDialog

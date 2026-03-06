@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, Printer, Plus, Trash2, Pencil } from 'lucide-react'
+import { ArrowLeft, Calendar, Printer, Plus, Trash2, Pencil, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { getCustomer, getTxHistory, getInvoices, updateCustomer } from '@/lib/api'
+import { getCustomer, getTxHistory, getInvoices, updateCustomer, recalcCustomerBalance } from '@/lib/api'
 import type { Customer } from '@/lib/api'
 import { printPeriodReport } from '@/lib/print'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
@@ -189,15 +189,26 @@ export function CustomerDetail() {
     },
   })
 
+  // 잔액 재계산
+  const { mutate: recalcBalance, isPending: recalcing } = useMutation({
+    mutationFn: () => recalcCustomerBalance(customerId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['customer', customerId] })
+      queryClient.invalidateQueries({ queryKey: ['customers'] })
+      toast.success('미수금이 재계산되었습니다')
+    },
+    onError: (e: Error) => toast.error(`재계산 실패: ${e.message}`),
+  })
+
   const { data: txAll } = useCustomerTxAll(customer?.name)
   const { data: txPage } = useCustomerTxPage(customer?.name, txOffset)
 
-  // 명세표 + 거래내역 병합용: 최대 500건 페치
+  // 명세표 + 거래내역 병합용: 최대 500건 (customer_name OR customer_id로 조회)
   const { data: invoiceData } = useQuery({
-    queryKey: ['invoices-customer', customer?.name],
+    queryKey: ['invoices-customer', customerId, customer?.name],
     queryFn: () =>
       getInvoices({
-        where: `(customer_name,eq,${customer!.name})`,
+        where: `(customer_name,eq,${customer!.name})~or(customer_id,eq,${customerId})`,
         sort: '-invoice_date',
         limit: 500,
       }),
@@ -395,16 +406,28 @@ export function CustomerDetail() {
 
         {/* 요약 stat 카드 */}
         <div className="flex gap-3 flex-wrap">
-          {[
-            { label: '총 거래 건수', value: `${(customer.total_order_count ?? 0).toLocaleString()}건`, red: false },
-            { label: '총 매출', value: `${(customer.total_order_amount ?? 0).toLocaleString()}원`, red: false },
-            { label: '미수금', value: `${outstandingBalance.toLocaleString()}원`, red: outstandingBalance > 0 },
-          ].map((s) => (
-            <div key={s.label} className="bg-white rounded-lg border px-4 py-3 text-center min-w-[120px]">
-              <p className="text-xs text-muted-foreground mb-0.5">{s.label}</p>
-              <p className={`text-lg font-bold ${s.red ? 'text-red-600' : ''}`}>{s.value}</p>
-            </div>
-          ))}
+          <div className="bg-white rounded-lg border px-4 py-3 text-center min-w-[120px]">
+            <p className="text-xs text-muted-foreground mb-0.5">총 거래 건수</p>
+            <p className="text-lg font-bold">{(customer.total_order_count ?? 0).toLocaleString()}건</p>
+          </div>
+          <div className="bg-white rounded-lg border px-4 py-3 text-center min-w-[120px]">
+            <p className="text-xs text-muted-foreground mb-0.5">총 매출</p>
+            <p className="text-lg font-bold">{(customer.total_order_amount ?? 0).toLocaleString()}원</p>
+          </div>
+          <div className="bg-white rounded-lg border px-4 py-3 text-center min-w-[120px] relative group">
+            <p className="text-xs text-muted-foreground mb-0.5">미수금</p>
+            <p className={`text-lg font-bold ${outstandingBalance > 0 ? 'text-red-600' : ''}`}>
+              {outstandingBalance.toLocaleString()}원
+            </p>
+            <button
+              onClick={() => recalcBalance()}
+              disabled={recalcing}
+              title="CRM 명세표 기준으로 미수금 재계산"
+              className="absolute top-1.5 right-1.5 p-1 rounded-full text-muted-foreground hover:text-[#3d6b4a] hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
+            >
+              <RefreshCw className={`h-3 w-3 ${recalcing ? 'animate-spin' : ''}`} />
+            </button>
+          </div>
         </div>
       </div>
 

@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Calendar } from 'lucide-react'
+import { ArrowLeft, Calendar, Printer } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
@@ -12,6 +12,7 @@ import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
 import { getCustomer, getTxHistory, getInvoices, updateCustomer } from '@/lib/api'
+import { printPeriodReport } from '@/lib/print'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
 
 const TX_PAGE = 50
@@ -336,7 +337,7 @@ export function CustomerDetail() {
                   { label: '전화', value: customer.phone },
                   { label: '모바일', value: (customer as Record<string, unknown>)['mobile'] as string },
                   { label: '이메일', value: customer.email },
-                  { label: '사업자번호', value: (customer as Record<string, unknown>)['business_no'] as string },
+                  { label: '사업자번호', value: customer.biz_no },
                   { label: '주소', value: customer.address1 },
                   { label: '주소2', value: (customer as Record<string, unknown>)['address2'] as string },
                   { label: '최초거래일', value: customer.first_order_date?.slice(0, 10) },
@@ -549,9 +550,42 @@ export function CustomerDetail() {
         <TabsContent value="invoices">
           {/* 기간 필터 */}
           <div className="bg-white rounded-lg border p-4 mb-4">
-            <div className="flex items-center gap-2 mb-3">
-              <Calendar className="h-4 w-4 text-muted-foreground" />
-              <span className="text-sm font-medium">기간 매출 조회</span>
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <Calendar className="h-4 w-4 text-muted-foreground" />
+                <span className="text-sm font-medium">기간 매출 조회</span>
+              </div>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1.5 h-7 text-xs"
+                onClick={() =>
+                  printPeriodReport(
+                    customer.name ?? '',
+                    dateFrom,
+                    dateTo,
+                    filteredInvoices.map((inv) => ({
+                      invoice_no: inv.invoice_no,
+                      invoice_date: inv.invoice_date,
+                      supply_amount: inv.supply_amount,
+                      total_amount: inv.total_amount,
+                      paid_amount: inv.paid_amount,
+                      status: inv.status,
+                    })),
+                    filteredLegacyTx.map((tx) => ({
+                      tx_date: tx.tx_date,
+                      tx_type: tx.tx_type,
+                      memo: tx.memo,
+                      slip_no: tx.slip_no,
+                      amount: tx.amount,
+                    })),
+                    periodStats,
+                  )
+                }
+              >
+                <Printer className="h-3.5 w-3.5" />
+                PDF 출력
+              </Button>
             </div>
 
             {/* 프리셋 버튼 */}
@@ -620,43 +654,47 @@ export function CustomerDetail() {
             </div>
           </div>
 
-          {/* 필터된 명세표 목록 */}
-          <div className="rounded-lg border bg-white overflow-hidden">
+          {/* CRM 명세표 목록 */}
+          <div className="rounded-lg border bg-white overflow-hidden mb-4">
+            <div className="px-4 py-2.5 border-b bg-gray-50 flex items-center gap-2">
+              <span className="text-xs font-semibold text-[#3d6b4a]">CRM 거래명세표</span>
+              <span className="text-xs text-muted-foreground">{filteredInvoices.length}건</span>
+            </div>
             <table className="w-full text-sm">
               <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">발행번호</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">발행일</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">공급가</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">합계</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">입금</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">수금</th>
+                <tr className="border-b bg-gray-50/50">
+                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">발행번호</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">발행일</th>
+                  <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs">공급가</th>
+                  <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs">합계</th>
+                  <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs">입금</th>
+                  <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">수금</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredInvoices.length === 0 && (
                   <tr>
-                    <td colSpan={6} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={6} className="text-center py-6 text-muted-foreground text-xs">
                       해당 기간에 발행된 명세표가 없습니다.
                     </td>
                   </tr>
                 )}
                 {filteredInvoices.map((inv) => (
                   <tr key={inv.Id} className="border-b last:border-b-0">
-                    <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                    <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
                       {inv.invoice_no ?? '-'}
                     </td>
-                    <td className="px-4 py-2.5">{inv.invoice_date?.slice(0, 10) ?? '-'}</td>
-                    <td className="px-4 py-2.5 text-right tabular-nums">
+                    <td className="px-4 py-2 text-sm">{inv.invoice_date?.slice(0, 10) ?? '-'}</td>
+                    <td className="px-4 py-2 text-right tabular-nums text-sm">
                       {(inv.supply_amount ?? 0).toLocaleString()}원
                     </td>
-                    <td className="px-4 py-2.5 text-right font-medium tabular-nums">
+                    <td className="px-4 py-2 text-right font-medium tabular-nums text-sm">
                       {(inv.total_amount ?? 0).toLocaleString()}원
                     </td>
-                    <td className="px-4 py-2.5 text-right tabular-nums text-green-700">
+                    <td className="px-4 py-2 text-right tabular-nums text-sm text-green-700">
                       {(inv.paid_amount ?? 0) > 0 ? `${(inv.paid_amount ?? 0).toLocaleString()}원` : '-'}
                     </td>
-                    <td className="px-4 py-2.5">
+                    <td className="px-4 py-2">
                       <span
                         className={`text-xs font-medium ${
                           inv.status === 'paid'
@@ -674,6 +712,38 @@ export function CustomerDetail() {
               </tbody>
             </table>
           </div>
+
+          {/* 레거시 거래내역 목록 (출고) */}
+          {filteredLegacyTx.length > 0 && (
+            <div className="rounded-lg border bg-white overflow-hidden">
+              <div className="px-4 py-2.5 border-b bg-gray-50 flex items-center gap-2">
+                <span className="text-xs font-semibold text-muted-foreground">레거시 출고 내역</span>
+                <span className="text-xs text-muted-foreground">{filteredLegacyTx.length}건</span>
+              </div>
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50/50">
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">거래일</th>
+                    <th className="text-left px-4 py-2.5 font-medium text-muted-foreground text-xs">적요 / 전표번호</th>
+                    <th className="text-right px-4 py-2.5 font-medium text-muted-foreground text-xs">금액</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLegacyTx.map((tx) => (
+                    <tr key={tx.Id} className="border-b last:border-b-0">
+                      <td className="px-4 py-2 text-sm">{(tx.tx_date ?? '').slice(0, 10) || '-'}</td>
+                      <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
+                        {tx.memo || tx.slip_no || '-'}
+                      </td>
+                      <td className="px-4 py-2 text-right font-medium tabular-nums text-sm">
+                        {(tx.amount ?? 0).toLocaleString()}원
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
     </div>

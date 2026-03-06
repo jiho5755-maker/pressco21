@@ -161,8 +161,8 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
   // 선택된 고객 (단가등급용)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
-  // 고객 주소 선택 (address1 / address2)
-  const [selectedAddressIdx, setSelectedAddressIdx] = useState<1 | 2>(1)
+  // 고객 주소 선택 (address1 ~ addressN 동적)
+  const [selectedAddrKey, setSelectedAddrKey] = useState<string>('address1')
 
   // 고객 검색
   const [customerInput, setCustomerInput] = useState('')
@@ -288,7 +288,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     setCustomerInput(c.name ?? '')
     setSelectedCustomer(c)
     setShowCustomerDrop(false)
-    setSelectedAddressIdx(1)  // 기본: address1
+    setSelectedAddrKey('address1')  // 기본: address1
     setForm((f) => ({
       ...f,
       customer_id: c.Id,
@@ -300,15 +300,26 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     setIsDirty(true)
   }
 
-  // 주소 전환 (address1 ↔ address2)
-  function switchAddress(idx: 1 | 2) {
+  // 주소 전환 (address1 ~ addressN 동적)
+  function switchAddress(key: string) {
     if (!selectedCustomer) return
-    setSelectedAddressIdx(idx)
-    const addr = idx === 2
-      ? ((selectedCustomer as Record<string, unknown>)['address2'] as string) ?? ''
-      : (selectedCustomer.address1 as string) ?? ''
+    setSelectedAddrKey(key)
+    const addr = ((selectedCustomer as Record<string, unknown>)[key] as string) ?? ''
     setForm((f) => ({ ...f, customer_address: addr }))
     setIsDirty(true)
+  }
+
+  // 고객의 비어있지 않은 주소 필드 목록
+  function getCustomerAddresses(c: Customer): { key: string; label: string }[] {
+    const result: { key: string; label: string }[] = []
+    for (let i = 1; i <= 5; i++) {
+      const key = `address${i}`
+      const val = (c as Record<string, unknown>)[key]
+      if (typeof val === 'string' && val.trim()) {
+        result.push({ key, label: `주소${i}` })
+      }
+    }
+    return result
   }
 
   // 라인 아이템 업데이트
@@ -622,26 +633,29 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
               </div>
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="text-muted-foreground">주소: </span>
-                {/* address2가 있으면 탭 선택 */}
-                {(selectedCustomer as Record<string, unknown>)['address2'] ? (
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => switchAddress(1)}
-                      className={`px-1.5 py-0.5 rounded border text-xs ${selectedAddressIdx === 1 ? 'bg-[#7d9675] text-white border-[#7d9675]' : 'border-border text-muted-foreground'}`}
-                    >
-                      주소1
-                    </button>
-                    <button
-                      onClick={() => switchAddress(2)}
-                      className={`px-1.5 py-0.5 rounded border text-xs ${selectedAddressIdx === 2 ? 'bg-[#7d9675] text-white border-[#7d9675]' : 'border-border text-muted-foreground'}`}
-                    >
-                      주소2
-                    </button>
-                    <span>{(form.customer_address as string) ?? '-'}</span>
-                  </div>
-                ) : (
-                  <span>{selectedCustomer.address1 ?? '-'}</span>
-                )}
+                {(() => {
+                  const addrList = getCustomerAddresses(selectedCustomer)
+                  if (addrList.length <= 1) {
+                    return <span>{selectedCustomer.address1 ?? '-'}</span>
+                  }
+                  return (
+                    <div className="flex items-center gap-1 flex-wrap">
+                      <Select value={selectedAddrKey} onValueChange={switchAddress}>
+                        <SelectTrigger className="h-6 text-xs py-0 px-2 w-20 border-[#7d9675]">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {addrList.map(({ key, label }) => (
+                            <SelectItem key={key} value={key} className="text-xs">
+                              {label}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                      <span className="max-w-[200px] truncate">{(form.customer_address as string) ?? '-'}</span>
+                    </div>
+                  )
+                })()}
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground">단가등급: </span>

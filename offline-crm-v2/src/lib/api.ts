@@ -103,6 +103,7 @@ export interface Customer {
   mobile?: string
   email?: string
   address1?: string
+  address2?: string
   customer_type?: string
   customer_status?: string
   member_grade?: string

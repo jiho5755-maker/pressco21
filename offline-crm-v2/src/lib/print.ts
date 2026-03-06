@@ -54,14 +54,24 @@ const COMPANY_INFO_KEY = 'pressco21-crm-v2'
 const SETTINGS_MERGED_KEY = 'pressco21-crm-settings'
 
 export function loadCompanyInfo(): CompanyInfo {
-  // Settings 페이지는 pressco21-crm-settings에 저장 → 우선 참조
-  for (const key of [SETTINGS_MERGED_KEY, COMPANY_INFO_KEY]) {
-    try {
-      const saved = localStorage.getItem(key)
-      if (saved) return JSON.parse(saved) as CompanyInfo
-    } catch {}
+  // 두 키를 모두 읽어 병합 (logo/stamp는 어느 쪽에 있어도 반영)
+  let fromLegacy: CompanyInfo = {}
+  let fromSettings: CompanyInfo = {}
+  try {
+    const l = localStorage.getItem(COMPANY_INFO_KEY)
+    if (l) fromLegacy = JSON.parse(l) as CompanyInfo
+  } catch {}
+  try {
+    const s = localStorage.getItem(SETTINGS_MERGED_KEY)
+    if (s) fromSettings = JSON.parse(s) as CompanyInfo
+  } catch {}
+  return {
+    ...fromLegacy,
+    ...fromSettings,
+    // 어느 쪽에든 있으면 반영 (설정 저장 타이밍 무관)
+    logo_url: fromSettings.logo_url || fromLegacy.logo_url,
+    stamp_url: fromSettings.stamp_url || fromLegacy.stamp_url,
   }
-  return {}
 }
 
 export function saveCompanyInfo(info: CompanyInfo): void {
@@ -298,6 +308,158 @@ export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): voi
         if (z >= 0.5) wrap.style.zoom = z.toFixed(4)
       }
     })
+    iframe.contentWindow?.print()
+    setTimeout(() => {
+      if (iframe.parentNode) document.body.removeChild(iframe)
+    }, 3000)
+  }, 600)
+}
+
+// ─────────────────────────────────────────────────────────────────
+// 거래처별 기간 거래 내역서 PDF 출력
+// ─────────────────────────────────────────────────────────────────
+export interface PeriodReportInvoice {
+  invoice_no?: string
+  invoice_date?: string
+  supply_amount?: number
+  total_amount?: number
+  paid_amount?: number
+  status?: string
+}
+
+export interface PeriodReportTx {
+  tx_date?: string
+  tx_type?: string
+  memo?: string
+  slip_no?: string
+  amount?: number
+}
+
+export interface PeriodReportStats {
+  crmSales: number
+  crmCount: number
+  legacySales: number
+  legacyCount: number
+  totalSales: number
+  outstanding: number
+}
+
+export function printPeriodReport(
+  customerName: string,
+  dateFrom: string,
+  dateTo: string,
+  crmInvoices: PeriodReportInvoice[],
+  legacyTx: PeriodReportTx[],
+  stats: PeriodReportStats,
+): void {
+  const c = loadCompanyInfo()
+  const today = new Date().toLocaleDateString('ko-KR')
+
+  const logoHtml = c.logo_url
+    ? `<img src="${c.logo_url}" alt="로고" style="height:36px;object-fit:contain;" />`
+    : `<span style="font-weight:700;font-size:10pt;color:#3d6b4a;">${esc(c.company ?? '')}</span>`
+
+  const statusLabel = (s?: string) =>
+    s === 'paid' ? '완납' : s === 'partial' ? '부분수금' : '미수금'
+  const statusColor = (s?: string) =>
+    s === 'paid' ? '#16a34a' : s === 'partial' ? '#d97706' : '#dc2626'
+
+  const crmRows = crmInvoices
+    .map(
+      (inv) =>
+        `<tr>` +
+        `<td class="mono">${esc(inv.invoice_no ?? '-')}</td>` +
+        `<td class="c">${esc((inv.invoice_date ?? '').slice(0, 10))}</td>` +
+        `<td class="r">${(inv.supply_amount ?? 0).toLocaleString()}</td>` +
+        `<td class="r b">${(inv.total_amount ?? 0).toLocaleString()}</td>` +
+        `<td class="r">${(inv.paid_amount ?? 0) > 0 ? (inv.paid_amount ?? 0).toLocaleString() : '-'}</td>` +
+        `<td class="c" style="color:${statusColor(inv.status)};font-weight:600;">${statusLabel(inv.status)}</td>` +
+        `</tr>`,
+    )
+    .join('')
+
+  const legacyRows = legacyTx
+    .map(
+      (tx) =>
+        `<tr>` +
+        `<td class="c">${esc((tx.tx_date ?? '').slice(0, 10))}</td>` +
+        `<td class="c">${esc(tx.tx_type ?? '-')}</td>` +
+        `<td class="mono">${esc(tx.memo || tx.slip_no || '-')}</td>` +
+        `<td class="r b">${(tx.amount ?? 0).toLocaleString()}</td>` +
+        `</tr>`,
+    )
+    .join('')
+
+  const html =
+    `<!DOCTYPE html><html><head><meta charset="UTF-8">` +
+    `<style>` +
+    `@page{size:A4 portrait;margin:12mm 14mm;}` +
+    `html,body{margin:0;padding:0;font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:7.5pt;color:#111;}` +
+    `*{box-sizing:border-box;}` +
+    `.hdr{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid #3d6b4a;padding-bottom:6px;margin-bottom:10px;}` +
+    `.hdr-l{display:flex;align-items:center;gap:10px;}` +
+    `.ttl{font-size:13pt;font-weight:900;letter-spacing:2px;color:#1a2e1f;margin-bottom:3px;}` +
+    `.sub{font-size:7pt;color:#555;line-height:1.6;}` +
+    `.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;}` +
+    `.kc{background:#f5f8f5;border:1px solid #c8d8c5;border-radius:4px;padding:5px 7px;text-align:center;}` +
+    `.kl{font-size:6pt;color:#666;margin-bottom:2px;}` +
+    `.kv{font-size:9pt;font-weight:700;color:#1a2e1f;}` +
+    `.kc.warn .kv{color:#dc2626;}` +
+    `.sec{font-size:8pt;font-weight:700;color:#3d6b4a;border-left:3px solid #7d9675;padding-left:6px;margin:10px 0 4px;}` +
+    `table{width:100%;border-collapse:collapse;}` +
+    `th{background:#f0f5f0;border:1px solid #c8d8c5;padding:3px 5px;font-size:6.5pt;font-weight:700;text-align:center;color:#333;}` +
+    `td{border:1px solid #dde8dd;padding:2.5px 5px;font-size:7pt;}` +
+    `.r{text-align:right;} .c{text-align:center;} .b{font-weight:700;}` +
+    `.mono{font-family:monospace;font-size:6.5pt;color:#444;}` +
+    `.footer{margin-top:12px;text-align:right;font-size:6.5pt;color:#888;border-top:1px solid #ddd;padding-top:6px;}` +
+    `.nodata{text-align:center;padding:8px;color:#999;font-size:7pt;}` +
+    `</style></head><body>` +
+    `<div class="hdr">` +
+    `<div class="hdr-l">${logoHtml}` +
+    `<div><div class="ttl">거래처별 기간 거래 내역서</div>` +
+    `<div class="sub">거래처: <strong>${esc(customerName)}</strong> &nbsp;|&nbsp; 기간: ${esc(dateFrom)} ~ ${esc(dateTo)}</div>` +
+    (c.company ? `<div class="sub">발행: ${esc(c.company)}</div>` : '') +
+    `</div></div>` +
+    `<div class="sub" style="white-space:nowrap;">출력일: ${today}</div>` +
+    `</div>` +
+    `<div class="kpi">` +
+    `<div class="kc"><div class="kl">합계 매출</div><div class="kv">${stats.totalSales.toLocaleString()}원</div></div>` +
+    `<div class="kc"><div class="kl">CRM 명세표</div><div class="kv">${stats.crmSales.toLocaleString()}원</div></div>` +
+    `<div class="kc"><div class="kl">레거시 출고</div><div class="kv">${stats.legacySales.toLocaleString()}원</div></div>` +
+    `<div class="kc${stats.outstanding > 0 ? ' warn' : ''}"><div class="kl">기간 미수금</div><div class="kv">${stats.outstanding.toLocaleString()}원</div></div>` +
+    `</div>` +
+    (crmInvoices.length > 0
+      ? `<div class="sec">CRM 거래명세표 (${stats.crmCount}건 / ${stats.crmSales.toLocaleString()}원)</div>` +
+        `<table><thead><tr>` +
+        `<th style="width:22%">발행번호</th><th style="width:12%">발행일</th>` +
+        `<th style="width:14%">공급가액</th><th style="width:14%">합계금액</th>` +
+        `<th style="width:14%">입금액</th><th style="width:10%">수금</th>` +
+        `</tr></thead><tbody>${crmRows}</tbody></table>`
+      : '') +
+    (legacyTx.length > 0
+      ? `<div class="sec">레거시 거래내역 (${stats.legacyCount}건 / ${stats.legacySales.toLocaleString()}원)</div>` +
+        `<table><thead><tr>` +
+        `<th style="width:13%">거래일</th><th style="width:10%">유형</th>` +
+        `<th style="width:51%">적요 / 전표번호</th><th style="width:16%">금액</th>` +
+        `</tr></thead><tbody>${legacyRows}</tbody></table>`
+      : '') +
+    (crmInvoices.length === 0 && legacyTx.length === 0
+      ? `<div class="nodata">해당 기간에 거래내역이 없습니다.</div>`
+      : '') +
+    `<div class="footer">${esc(c.company ?? '')}${c.phone ? ` | 전화: ${esc(c.phone)}` : ''}</div>` +
+    `</body></html>`
+
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText =
+    'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;visibility:hidden;'
+  document.body.appendChild(iframe)
+  const iframeDoc = (iframe.contentDocument ||
+    (iframe.contentWindow as Window).document) as Document
+  iframeDoc.open()
+  iframeDoc.write(html)
+  iframeDoc.close()
+  iframe.contentWindow?.focus()
+  setTimeout(() => {
     iframe.contentWindow?.print()
     setTimeout(() => {
       if (iframe.parentNode) document.body.removeChild(iframe)

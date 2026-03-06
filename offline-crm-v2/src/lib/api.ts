@@ -386,7 +386,7 @@ export async function recalcCustomerStats(customerId: number): Promise<void> {
     const txResult = await proxyRequest<ListResponse<TxHistory>>({
       table: 'txHistory',
       params: {
-        where: `(customer_name,eq,${customer.name})~and(tx_type,eq,출고)`,
+        where: `(customer_name,eq,${sanitizeSearchTerm(customer.name)})~and(tx_type,eq,출고)`,
         sort: '-tx_date',
         limit: 1000,
         fields: 'Id,amount,tx_date',

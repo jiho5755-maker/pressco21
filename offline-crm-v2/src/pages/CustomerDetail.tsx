@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { getCustomer, getTxHistory, getInvoices, updateCustomer, recalcCustomerStats } from '@/lib/api'
+import { getCustomer, getTxHistory, getInvoices, updateCustomer, recalcCustomerStats, sanitizeSearchTerm } from '@/lib/api'
 import type { Customer } from '@/lib/api'
 import { printPeriodReport } from '@/lib/print'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
@@ -77,7 +77,7 @@ function useCustomerTxPage(name: string | undefined, offset: number) {
     queryKey: ['txHistoryPage', name, offset],
     queryFn: () =>
       getTxHistory({
-        where: `(customer_name,eq,${name})`,
+        where: `(customer_name,eq,${sanitizeSearchTerm(name ?? '')})`,
         sort: '-tx_date',
         limit: TX_PAGE,
         offset,
@@ -208,7 +208,7 @@ export function CustomerDetail() {
     queryKey: ['invoices-customer', customerId, customer?.name],
     queryFn: () =>
       getInvoices({
-        where: `(customer_name,eq,${customer!.name})~or(customer_id,eq,${customerId})`,
+        where: `(customer_name,eq,${sanitizeSearchTerm(customer!.name ?? '')})~or(customer_id,eq,${customerId})`,
         sort: '-invoice_date',
         limit: 500,
       }),

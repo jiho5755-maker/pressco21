@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback } from 'react'
+import { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Printer, X, Copy, LayoutList } from 'lucide-react'
 import { toast } from 'sonner'
@@ -26,6 +26,7 @@ import type { Invoice, Customer, Product } from '@/lib/api'
 import { printDuplexViaIframe, buildDuplexBlobUrl } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
 import { ProductPickerDialog } from '@/components/ProductPickerDialog'
+import { useDebounce } from '@/hooks/useDebounce'
 
 // ─── 라인 아이템 ───────────────────────────────
 interface ItemRow {
@@ -109,16 +110,18 @@ function useCustomerSearch(query: string) {
   })
 }
 
-// ─── 상품 자동완성 ─────────────────────────────
+// ─── 상품 자동완성 (이름+품목코드 복합검색, 15건) ──
 function useProductSearch(query: string) {
   return useQuery({
     queryKey: ['productSearch', query],
-    queryFn: () =>
-      getProducts({
-        where: `(name,like,%${sanitizeSearchTerm(query)}%)`,
-        limit: 8,
+    queryFn: () => {
+      const q = sanitizeSearchTerm(query)
+      return getProducts({
+        where: `(name,like,%${q}%)~or(product_code,like,%${q}%)`,
+        limit: 15,
         sort: 'name',
-      }),
+      })
+    },
     enabled: query.length >= 1,
     staleTime: 60 * 1000,
   })
@@ -174,6 +177,22 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   const [showCustomerDrop, setShowCustomerDrop] = useState(false)
   const customerDropRef = useRef<HTMLDivElement>(null)
   const { data: customerSearchResult } = useCustomerSearch(customerInput)
+
+  // 상품 자동완성 상태 (품목 행별) — useEffect 전에 선언 필요
+  const [productInputs, setProductInputs] = useState<Record<string, string>>({})
+  const [showProductDrop, setShowProductDrop] = useState<string | null>(null)
+  const productDropRef = useRef<HTMLDivElement>(null)
+  const [activeProductKey, setActiveProductKey] = useState<string | null>(null)
+  const [dropdownIdx, setDropdownIdx] = useState(-1)
+  const productInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const qtyInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  // items 최신값을 항상 참조 (stale closure 방지)
+  const itemsRef = useRef(items)
+  itemsRef.current = items
+
+  // 품목 선택 모달
+  const [productPickerOpen, setProductPickerOpen] = useState(false)
+  const [productPickerRowKey, setProductPickerRowKey] = useState<string | null>(null)
 
   // 최근 거래 5건
   const { data: recentInvoices } = useQuery({
@@ -386,23 +405,8 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     setIsDirty(true)
   }
 
-  // 상품 자동완성 상태 (품목 행별)
-  const [productInputs, setProductInputs] = useState<Record<string, string>>({})
-  const [showProductDrop, setShowProductDrop] = useState<string | null>(null)
-  const productDropRef = useRef<HTMLDivElement>(null)
-  const [activeProductKey, setActiveProductKey] = useState<string | null>(null)
-  const [dropdownIdx, setDropdownIdx] = useState(-1)
-  const productInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
-  const qtyInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
-  // items 최신값을 항상 참조 (stale closure 방지)
-  const itemsRef = useRef(items)
-  itemsRef.current = items
-
-  // 품목 선택 모달
-  const [productPickerOpen, setProductPickerOpen] = useState(false)
-  const [productPickerRowKey, setProductPickerRowKey] = useState<string | null>(null)
-
-  const productQuery = activeProductKey ? (productInputs[activeProductKey] ?? '') : ''
+  const productQueryRaw = activeProductKey ? (productInputs[activeProductKey] ?? '') : ''
+  const productQuery = useDebounce(productQueryRaw, 200)
   const { data: productSearchResult } = useProductSearch(productQuery)
 
   function selectProduct(rowKey: string, product: Product) {
@@ -441,7 +445,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     setTimeout(() => { productInputRefs.current[row._key]?.focus() }, 50)
   }, [])
 
-  // 품목 선택 모달에서 선택 완료
+  // 품목 선택 모달에서 단일 선택 완료
   function handleProductPicked(product: import('@/lib/api').Product) {
     const rowKey = productPickerRowKey
     if (rowKey) {
@@ -456,6 +460,29 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       setTimeout(() => selectProduct(row._key, product), 0)
     }
     setProductPickerRowKey(null)
+  }
+
+  // 품목 선택 모달에서 복수 선택 완료
+  function handleMultiPicked(products: import('@/lib/api').Product[]) {
+    const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : true
+    const newRows: ItemRow[] = products.map((p) => {
+      const price = getPriceForCustomer(p, selectedCustomer)
+      const row = newRow(p.is_taxable ?? defaultTaxable)
+      row.product_name = p.name ?? ''
+      row.unit_price = price
+      row.unit = p.unit ?? '개'
+      row.taxable = p.is_taxable ?? defaultTaxable
+      return calcRow(row)
+    })
+    setItems((prev) => [...prev, ...newRows])
+    setProductInputs((prev) => {
+      const next = { ...prev }
+      newRows.forEach((r, i) => { next[r._key] = products[i].name ?? '' })
+      return next
+    })
+    setIsDirty(true)
+    setProductPickerRowKey(null)
+    toast.success(`${products.length}개 품목 추가됨`)
   }
 
   function removeItem(key: string) {
@@ -620,7 +647,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           <DialogTitle className="flex items-center gap-2">
             {isCopy && <Copy className="h-4 w-4 text-muted-foreground" />}
             {titleLabel}
-            <span className="text-xs font-normal text-muted-foreground ml-1">Ctrl+Enter 저장 / Esc 닫기</span>
+            <span className="text-xs font-normal text-muted-foreground ml-1">수량Enter=다음행 / Ctrl+Enter=저장 / Esc=닫기</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -851,7 +878,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                                 setShowProductDrop(row._key)
                               }
                             }}
-                            onBlur={() => setTimeout(() => { setShowProductDrop(null); setDropdownIdx(-1) }, 150)}
+                            onBlur={() => setTimeout(() => { setShowProductDrop(null); setDropdownIdx(-1) }, 200)}
                             onKeyDown={(e) => {
                               const list = productSearchResult?.list ?? []
                               if (showProductDrop === row._key && list.length > 0) {
@@ -865,27 +892,44 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                                   e.preventDefault()
                                   e.stopPropagation()
                                   selectProduct(row._key, list[dropdownIdx])
+                                } else if (e.key === 'Tab') {
+                                  setShowProductDrop(null)
+                                  setDropdownIdx(-1)
                                 }
+                              } else if (e.key === 'Enter') {
+                                // 드롭다운 없을 때 Enter → 수량으로 포커스
+                                e.preventDefault()
+                                e.stopPropagation()
+                                qtyInputRefs.current[row._key]?.focus()
+                                qtyInputRefs.current[row._key]?.select()
                               }
                             }}
                             placeholder="품목명 검색 (자동완성)"
                             className="h-7 text-sm border-0 focus-visible:ring-1"
                           />
                           {showProductDrop === row._key && productSearchResult?.list && productSearchResult.list.length > 0 && (
-                            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto">
+                            <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-60 overflow-y-auto">
                               {productSearchResult.list.map((p, index) => {
                                 const price = getPriceForCustomer(p, selectedCustomer)
                                 const isActive = index === dropdownIdx
                                 return (
                                   <button
                                     key={p.Id}
-                                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between ${
+                                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center gap-2 ${
                                       isActive ? 'bg-[#f0f4f0] text-[#3d6b4a] font-medium' : 'hover:bg-gray-50'
                                     }`}
                                     onMouseDown={() => selectProduct(row._key, p)}
                                   >
-                                    <span>{p.name}</span>
-                                    <span className={isActive ? 'text-[#3d6b4a]' : 'text-muted-foreground'}>{price.toLocaleString()}원</span>
+                                    <span className="flex-1 truncate">
+                                      {p.name}
+                                      {p.category && <span className="text-[10px] text-muted-foreground ml-1">({p.category})</span>}
+                                    </span>
+                                    <span className="flex items-center gap-1.5 flex-none">
+                                      {p.product_code && (
+                                        <span className="bg-gray-100 text-gray-500 px-1 py-0.5 rounded text-[10px] font-mono">{p.product_code}</span>
+                                      )}
+                                      <span className={isActive ? 'text-[#3d6b4a]' : 'text-muted-foreground'}>{price.toLocaleString()}원</span>
+                                    </span>
                                   </button>
                                 )
                               })}
@@ -908,6 +952,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                       </td>
                       <td className="px-1 py-1">
                         <Input
+                          tabIndex={-1}
                           value={row.unit}
                           onChange={(e) => updateItem(row._key, { unit: e.target.value })}
                           className="h-7 text-xs text-center border-0 focus-visible:ring-1 w-12"
@@ -919,11 +964,19 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                           type="number"
                           value={row.quantity}
                           onChange={(e) => updateItemQuantity(row._key, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              addItem()
+                            }
+                          }}
                           className="h-7 text-xs text-right border-0 focus-visible:ring-1"
                         />
                       </td>
                       <td className="px-1 py-1">
                         <Input
+                          tabIndex={-1}
                           type="number"
                           value={row.unit_price}
                           onChange={(e) => updateItem(row._key, { unit_price: sanitizeAmount(e.target.value), _totalUnit: undefined })}
@@ -935,6 +988,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                       </td>
                       <td className="px-1 py-1 text-center">
                         <input
+                          tabIndex={-1}
                           type="checkbox"
                           checked={row.taxable}
                           onChange={(e) => updateItem(row._key, { taxable: e.target.checked })}
@@ -947,9 +1001,17 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                       {/* 합계 직접 입력 → 역산 */}
                       <td className="px-1 py-1">
                         <Input
+                          tabIndex={-1}
                           type="number"
                           value={row.supply_amount + row.tax_amount || ''}
                           onChange={(e) => updateItemFromTotal(row._key, e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              addItem()
+                            }
+                          }}
                           className="h-7 text-xs text-right border-0 focus-visible:ring-1"
                           placeholder="합계입력"
                         />
@@ -1069,8 +1131,10 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     <ProductPickerDialog
       open={productPickerOpen}
       customer={selectedCustomer}
+      multiSelect={!productPickerRowKey}
       onClose={() => setProductPickerOpen(false)}
       onSelect={handleProductPicked}
+      onMultiSelect={handleMultiPicked}
     />
 
     {/* ─── 인쇄 미리보기 모달 ─── */}

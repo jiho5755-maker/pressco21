@@ -159,6 +159,7 @@ export function Dashboard() {
       limit: 5000,
     }),
     staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   })
   const { data: txLastYear } = useQuery({
     queryKey: ['dash-tx-last', CUR_YEAR - 1],
@@ -167,6 +168,7 @@ export function Dashboard() {
       limit: 5000,
     }),
     staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
   })
   // 미수금 TOP10 거래처
   const { data: receivablesData } = useQuery({
@@ -178,24 +180,17 @@ export function Dashboard() {
     }),
     staleTime: 2 * 60_000,
   })
-  // 이번 달 명세표 건수
-  const { data: invoiceData } = useQuery({
-    queryKey: ['dash-invoice-count', CUR_YM],
-    queryFn: () => getInvoices({
-      where: `(invoice_date,gte,${CUR_YM}-01)`,
-      limit: 1,
-    }),
-    staleTime: 5 * 60_000,
-  })
   // 기간 리포트: 수금률+객단가용 (invoices)
-  const { data: periodInvoices } = useQuery({
-    queryKey: ['period-invoices', dateRange.startDate, dateRange.endDate],
+  // invoice_date가 Text 타입 → 날짜 필터 없이 최신 순 가져와서 클라이언트 필터링
+  // 1000건으로 제한 (1년치 이상 → 올해 전체 기준 충분)
+  const { data: periodInvoicesRaw } = useQuery({
+    queryKey: ['period-invoices-all'],
     queryFn: () => getInvoices({
-      where: `(invoice_date,gte,${dateRange.startDate})~and(invoice_date,lte,${dateRange.endDate})`,
-      limit: 2000,
-      sort: 'invoice_date',
+      sort: '-invoice_date',
+      limit: 1000,
     }),
     staleTime: 3 * 60_000,
+    refetchOnWindowFocus: false,
   })
   // 기간 리포트: 매출 차트용 (tbl_tx_history)
   const { data: periodTx } = useQuery({
@@ -250,8 +245,13 @@ export function Dashboard() {
   )
   const receivableCustomers = receivablesData?.pageInfo?.totalRows ?? 0
 
-  // 명세표 건수
-  const thisMonthInvoices = invoiceData?.pageInfo?.totalRows ?? 0
+  // 이번 달 명세표 건수 — periodInvoicesRaw에서 클라이언트 필터링
+  const thisMonthInvoices = useMemo(
+    () => (periodInvoicesRaw?.list ?? []).filter((i) =>
+      (i.invoice_date ?? '').startsWith(CUR_YM)
+    ).length,
+    [periodInvoicesRaw]
+  )
 
   // 12개월 차트 데이터 (최근 12개월)
   const monthlyChart = useMemo(() => {
@@ -288,7 +288,14 @@ export function Dashboard() {
   }))
 
   // ── 기간 리포트 계산 ─────────────────────────────────────
-  const periodInvoiceList = periodInvoices?.list ?? []
+  // YYYY-MM-DD 텍스트 문자열 비교로 날짜 범위 필터링
+  const periodInvoiceList = useMemo(
+    () => (periodInvoicesRaw?.list ?? []).filter((i) => {
+      const d = (i.invoice_date ?? '').slice(0, 10)
+      return d >= dateRange.startDate && d <= dateRange.endDate
+    }),
+    [periodInvoicesRaw, dateRange]
+  )
   const periodTxList = periodTx?.list ?? []
 
   // 수금률: paid_amount 합계 / total_amount 합계 (금액 기준)
@@ -648,13 +655,13 @@ function YearlyChart() {
   const { data } = useQuery({
     queryKey: ['dash-yearly'],
     queryFn: async () => {
-      // 최근 5년만 상세 조회 (성능)
+      // 최근 5년 상세 조회 (병렬, 각 limit 2000으로 API 부하 절감)
       const recentYears = [2022, 2023, 2024, 2025, 2026]
       const results = await Promise.all(
         recentYears.map((y) =>
           getTxHistory({
             where: `(tx_type,eq,출고)~and(tx_year,eq,${y})`,
-            limit: 5000,
+            limit: 2000,
           }).then((d) => ({
             year: y,
             total: d.list.reduce((s, t) => s + (t.amount ?? 0), 0),
@@ -663,7 +670,8 @@ function YearlyChart() {
       )
       return results
     },
-    staleTime: 10 * 60_000,
+    staleTime: 30 * 60_000,  // 30분 캐시 (연도 데이터는 자주 안 바뀜)
+    refetchOnWindowFocus: false,
   })
 
   if (!data) {

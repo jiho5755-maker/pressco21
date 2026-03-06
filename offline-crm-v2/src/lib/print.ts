@@ -50,12 +50,17 @@ export interface PrintItem {
 }
 
 const COMPANY_INFO_KEY = 'pressco21-crm-v2'
+// Settings.tsx가 저장하는 키 (우선 참조)
+const SETTINGS_MERGED_KEY = 'pressco21-crm-settings'
 
 export function loadCompanyInfo(): CompanyInfo {
-  try {
-    const saved = localStorage.getItem(COMPANY_INFO_KEY)
-    if (saved) return JSON.parse(saved) as CompanyInfo
-  } catch {}
+  // Settings 페이지는 pressco21-crm-settings에 저장 → 우선 참조
+  for (const key of [SETTINGS_MERGED_KEY, COMPANY_INFO_KEY]) {
+    try {
+      const saved = localStorage.getItem(key)
+      if (saved) return JSON.parse(saved) as CompanyInfo
+    } catch {}
+  }
   return {}
 }
 

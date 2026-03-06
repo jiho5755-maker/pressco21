@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Printer, X, Copy } from 'lucide-react'
+import { Plus, Printer, X, Copy, LayoutList } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -25,6 +25,7 @@ import {
 import type { Invoice, Customer, Product } from '@/lib/api'
 import { printDuplexViaIframe } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
+import { ProductPickerDialog } from '@/components/ProductPickerDialog'
 
 // ─── 라인 아이템 ───────────────────────────────
 interface ItemRow {
@@ -160,6 +161,8 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
   // 선택된 고객 (단가등급용)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  // 고객 주소 선택 (address1 / address2)
+  const [selectedAddressIdx, setSelectedAddressIdx] = useState<1 | 2>(1)
 
   // 고객 검색
   const [customerInput, setCustomerInput] = useState('')
@@ -285,6 +288,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     setCustomerInput(c.name ?? '')
     setSelectedCustomer(c)
     setShowCustomerDrop(false)
+    setSelectedAddressIdx(1)  // 기본: address1
     setForm((f) => ({
       ...f,
       customer_id: c.Id,
@@ -293,6 +297,17 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       customer_address: (c.address1 as string) ?? '',
       previous_balance: isNew ? (c.outstanding_balance ?? 0) : f.previous_balance,
     }))
+    setIsDirty(true)
+  }
+
+  // 주소 전환 (address1 ↔ address2)
+  function switchAddress(idx: 1 | 2) {
+    if (!selectedCustomer) return
+    setSelectedAddressIdx(idx)
+    const addr = idx === 2
+      ? ((selectedCustomer as Record<string, unknown>)['address2'] as string) ?? ''
+      : (selectedCustomer.address1 as string) ?? ''
+    setForm((f) => ({ ...f, customer_address: addr }))
     setIsDirty(true)
   }
 
@@ -359,6 +374,10 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   const productDropRef = useRef<HTMLDivElement>(null)
   const [activeProductKey, setActiveProductKey] = useState<string | null>(null)
 
+  // 품목 선택 모달
+  const [productPickerOpen, setProductPickerOpen] = useState(false)
+  const [productPickerRowKey, setProductPickerRowKey] = useState<string | null>(null)
+
   const productQuery = activeProductKey ? (productInputs[activeProductKey] ?? '') : ''
   const { data: productSearchResult } = useProductSearch(productQuery)
 
@@ -387,6 +406,23 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     setItems((prev) => [...prev, row])
     setProductInputs((prev) => ({ ...prev, [row._key]: '' }))
     setIsDirty(true)
+  }
+
+  // 품목 선택 모달에서 선택 완료
+  function handleProductPicked(product: import('@/lib/api').Product) {
+    const rowKey = productPickerRowKey
+    if (rowKey) {
+      selectProduct(rowKey, product)
+    } else {
+      // rowKey 없으면 새 행 추가 후 선택
+      const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : true
+      const row = newRow(defaultTaxable)
+      setItems((prev) => [...prev, row])
+      setProductInputs((prev) => ({ ...prev, [row._key]: '' }))
+      // 다음 tick에 selectProduct 호출
+      setTimeout(() => selectProduct(row._key, product), 0)
+    }
+    setProductPickerRowKey(null)
   }
 
   function removeItem(key: string) {
@@ -501,6 +537,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   const titleLabel = isCopy ? '명세표 복사' : invoiceId ? '명세표 수정' : '새 거래명세표'
 
   return (
+    <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
         <DialogHeader>
@@ -583,9 +620,28 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                 <span className="text-muted-foreground">전화: </span>
                 <span>{selectedCustomer.phone ?? '-'}</span>
               </div>
-              <div>
+              <div className="flex items-center gap-1 flex-wrap">
                 <span className="text-muted-foreground">주소: </span>
-                <span>{selectedCustomer.address1 ?? '-'}</span>
+                {/* address2가 있으면 탭 선택 */}
+                {(selectedCustomer as Record<string, unknown>)['address2'] ? (
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={() => switchAddress(1)}
+                      className={`px-1.5 py-0.5 rounded border text-xs ${selectedAddressIdx === 1 ? 'bg-[#7d9675] text-white border-[#7d9675]' : 'border-border text-muted-foreground'}`}
+                    >
+                      주소1
+                    </button>
+                    <button
+                      onClick={() => switchAddress(2)}
+                      className={`px-1.5 py-0.5 rounded border text-xs ${selectedAddressIdx === 2 ? 'bg-[#7d9675] text-white border-[#7d9675]' : 'border-border text-muted-foreground'}`}
+                    >
+                      주소2
+                    </button>
+                    <span>{(form.customer_address as string) ?? '-'}</span>
+                  </div>
+                ) : (
+                  <span>{selectedCustomer.address1 ?? '-'}</span>
+                )}
               </div>
               <div className="flex items-center gap-1">
                 <span className="text-muted-foreground">단가등급: </span>
@@ -659,10 +715,21 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           <div>
             <div className="flex items-center justify-between mb-2">
               <span className="text-sm font-medium">품목 목록</span>
-              <Button size="sm" variant="outline" onClick={addItem}>
-                <Plus className="h-3.5 w-3.5 mr-1" />
-                행 추가
-              </Button>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  variant="outline"
+                  onClick={() => { setProductPickerRowKey(null); setProductPickerOpen(true) }}
+                  className="gap-1 text-xs h-8"
+                >
+                  <LayoutList className="h-3.5 w-3.5" />
+                  목록에서 선택
+                </Button>
+                <Button size="sm" variant="outline" onClick={addItem} className="h-8">
+                  <Plus className="h-3.5 w-3.5 mr-1" />
+                  행 추가
+                </Button>
+              </div>
             </div>
             <div className="rounded-md border overflow-x-auto">
               <table className="w-full text-sm">
@@ -701,7 +768,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                               }
                             }}
                             onBlur={() => setTimeout(() => setShowProductDrop(null), 150)}
-                            placeholder="품목명"
+                            placeholder="품목명 검색 (자동완성)"
                             className="h-7 text-sm border-0 focus-visible:ring-1"
                           />
                           {showProductDrop === row._key && productSearchResult?.list && productSearchResult.list.length > 0 && (
@@ -721,6 +788,19 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                               })}
                             </div>
                           )}
+                          {/* 목록에서 선택 버튼 */}
+                          <button
+                            type="button"
+                            title="목록에서 선택"
+                            onMouseDown={(e) => {
+                              e.preventDefault()
+                              setProductPickerRowKey(row._key)
+                              setProductPickerOpen(true)
+                            }}
+                            className="absolute right-1 top-1/2 -translate-y-1/2 p-0.5 text-muted-foreground hover:text-[#7d9675] rounded"
+                          >
+                            <LayoutList className="h-3 w-3" />
+                          </button>
                         </div>
                       </td>
                       <td className="px-1 py-1">
@@ -880,5 +960,14 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
         </div>
       </DialogContent>
     </Dialog>
+
+    {/* 품목 선택 모달 */}
+    <ProductPickerDialog
+      open={productPickerOpen}
+      customer={selectedCustomer}
+      onClose={() => setProductPickerOpen(false)}
+      onSelect={handleProductPicked}
+    />
+    </>
   )
 }

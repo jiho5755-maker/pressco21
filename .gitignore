@@ -25,6 +25,8 @@ shrimp_data/
 # CRM 회사 이미지는 예외
 !offline-crm/images/*.png
 !offline-crm/images/*.jpg
+!offline-crm-v2/public/images/*.png
+!offline-crm-v2/public/images/*.jpg
 detail-*.png
 test-*.png
 page-*.png

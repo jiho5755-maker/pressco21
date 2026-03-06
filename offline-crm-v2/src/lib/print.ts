@@ -76,7 +76,7 @@ export async function preloadPrintImages(): Promise<void> {
   }
   const [logo, stamp] = await Promise.all([
     toDataUrl('/images/company-logo.png'),
-    toDataUrl('/images/company-stamp.jpg'),
+    toDataUrl('/images/company-stamp.png'),
   ])
   if (logo) _logoFallback = logo
   if (stamp) _stampFallback = stamp
@@ -168,28 +168,30 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
     `<td class="inv-ml">구분</td><td class="inv-mv t-center">${esc(inv.receipt_type ?? '영수')}</td>` +
     `<td class="inv-ml">거래일자</td><td class="inv-mv">${esc(inv.invoice_date ?? '')}</td>` +
     '</tr></table>' +
-    '<div class="inv-parties">' +
-    '<div class="inv-party">' +
-    '<div class="inv-party-title">공&nbsp;&nbsp;급&nbsp;&nbsp;자</div>' +
+    // 공급자/공급받는자를 단일 테이블로 통합 → 행 높이가 항상 일치 (정렬 보장)
     '<table class="inv-tbl inv-party-tbl">' +
-    `<tr><td class="inv-pl">상호</td><td>${esc(c.company ?? '')}</td><td class="inv-pl">대표자</td><td>${esc(c.ceo ?? '')}</td></tr>` +
-    `<tr><td class="inv-pl">사업자번호</td><td colspan="3">${esc(c.bizno ?? '')}</td></tr>` +
-    `<tr><td class="inv-pl">주소</td><td colspan="3">${esc(c.address ?? '')}</td></tr>` +
-    `<tr><td class="inv-pl">업태/종목</td><td colspan="3">${esc(c.bizType ?? '')}&nbsp;/&nbsp;${esc(c.bizItem ?? '')}</td></tr>` +
-    `<tr><td class="inv-pl">전화</td><td colspan="3">${esc(c.phone ?? '')}</td></tr>` +
-    '</table>' +
-    '</div>' +
-    '<div class="inv-party">' +
-    '<div class="inv-party-title">공&nbsp;급&nbsp;받&nbsp;는&nbsp;자</div>' +
-    '<table class="inv-tbl inv-party-tbl">' +
-    `<tr><td class="inv-pl">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="inv-pl">담당자</td><td>${esc(inv.manager ?? '')}</td></tr>` +
-    `<tr><td class="inv-pl">사업자번호</td><td colspan="3">${esc(inv.customer_bizno ?? '')}</td></tr>` +
-    `<tr><td class="inv-pl">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
-    '<tr><td class="inv-pl">업태/종목</td><td colspan="3"></td></tr>' +
-    `<tr><td class="inv-pl">전화</td><td colspan="3">${esc(inv.customer_phone ?? '')}</td></tr>` +
-    '</table>' +
-    '</div>' +
-    '</div>' +
+    '<thead><tr>' +
+    '<th class="inv-party-title" colspan="4">공&nbsp;&nbsp;급&nbsp;&nbsp;자</th>' +
+    '<th class="inv-party-div"></th>' +
+    '<th class="inv-party-title" colspan="4">공&nbsp;급&nbsp;받&nbsp;는&nbsp;자</th>' +
+    '</tr></thead>' +
+    '<tbody>' +
+    `<tr><td class="inv-pl">상호</td><td>${esc(c.company ?? '')}</td><td class="inv-pl">대표자</td><td>${esc(c.ceo ?? '')}</td>` +
+    `<td class="inv-party-div"></td>` +
+    `<td class="inv-pl">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="inv-pl">담당자</td><td>${esc(inv.manager ?? '')}</td></tr>` +
+    `<tr><td class="inv-pl">사업자번호</td><td colspan="3">${esc(c.bizno ?? '')}</td>` +
+    `<td class="inv-party-div"></td>` +
+    `<td class="inv-pl">사업자번호</td><td colspan="3">${esc(inv.customer_bizno ?? '')}</td></tr>` +
+    `<tr><td class="inv-pl">주소</td><td colspan="3">${esc(c.address ?? '')}</td>` +
+    `<td class="inv-party-div"></td>` +
+    `<td class="inv-pl">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
+    `<tr><td class="inv-pl">업태/종목</td><td colspan="3">${esc(c.bizType ?? '')}&nbsp;/&nbsp;${esc(c.bizItem ?? '')}</td>` +
+    `<td class="inv-party-div"></td>` +
+    `<td class="inv-pl">업태/종목</td><td colspan="3"></td></tr>` +
+    `<tr><td class="inv-pl">전화</td><td colspan="3">${esc(c.phone ?? '')}</td>` +
+    `<td class="inv-party-div"></td>` +
+    `<td class="inv-pl">전화</td><td colspan="3">${esc(inv.customer_phone ?? '')}</td></tr>` +
+    '</tbody></table>' +
     '<table class="inv-tbl inv-items-table">' +
     '<thead><tr>' +
     '<th style="width:5%">No</th>' +
@@ -270,11 +272,11 @@ const DUPLEX_CSS = [
   '.inv-meta-tbl { border:1.5px solid #333; border-top:none; }',
   '.inv-meta-tbl td { border:1px solid #999; padding:1.5px 4px; font-size:6pt; }',
   '.inv-ml { background:#f5f5f5; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
-  '.inv-parties { display:flex; border:1.5px solid #333; border-top:none; }',
-  '.inv-party { flex:1; }',
-  '.inv-party:first-child { border-right:1px solid #888; }',
-  '.inv-party-title { background:#f0f0f0; text-align:center; font-weight:700; padding:2px 0; font-size:6.5pt; border-bottom:1px solid #aaa; }',
-  '.inv-party-tbl td { border:none; border-bottom:1px solid #eee; border-right:1px solid #eee; padding:1.5px 3px; font-size:6pt; }',
+  // 공급자/공급받는자 통합 테이블 (행 정렬 보장)
+  '.inv-party-tbl { border:1.5px solid #333; border-top:none; }',
+  '.inv-party-title { background:#f0f0f0; text-align:center; font-weight:700; padding:2px 0; font-size:6.5pt; border:1px solid #aaa; }',
+  '.inv-party-div { width:1px; background:#888; padding:0; border:none; }',
+  '.inv-party-tbl td { border:none; border-bottom:1px solid #eee; border-right:1px solid #eee; padding:1.5px 3px; font-size:6pt; white-space:nowrap; overflow:hidden; }',
   '.inv-pl { background:#f9f9f9; font-weight:600; white-space:nowrap; width:42px; text-align:center; }',
   '.inv-items-table { border:1.5px solid #333; border-top:none; }',
   '.inv-items-table th { background:#f0f0f0; border:1px solid #999; padding:1.5px 1px; text-align:center; font-weight:700; font-size:6pt; }',
@@ -299,7 +301,7 @@ const DUPLEX_CSS = [
   '.inv-seal-area { position:relative; width:40px; height:40px; display:flex; align-items:center; justify-content:center; background:#fff; }',
   '.inv-seal-text { font-size:7.5pt; color:#666; position:relative; z-index:1; }',
   '.inv-stamp { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-8deg); width:42px; height:42px; z-index:2; }',
-  '.inv-stamp-img { width:100%; height:100%; object-fit:contain; mix-blend-mode:multiply; opacity:0.92; }',
+  '.inv-stamp-img { width:100%; height:100%; object-fit:contain; opacity:0.92; }',
   '.t-right { text-align:right; }',
   '.t-center { text-align:center; }',
   '.inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; }',
@@ -309,7 +311,7 @@ const DUPLEX_CSS = [
   '.inv-cut-line { position:absolute; top:148.5mm; left:0; right:0; border-top:1px dashed #bbb; display:flex; align-items:center; justify-content:center; }',
   ".inv-cut-line span { background:#fff; padding:0 8px; font-size:6pt; color:#bbb; letter-spacing:3px; transform:translateY(-50%); font-family:'Malgun Gothic',sans-serif; }",
   '.inv-scale-wrap { width:100%; }',
-  '@media print { .inv-stamp-img { mix-blend-mode:multiply !important; -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
+  '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
 ].join('\n')
 
 const TARGET_MM = 132

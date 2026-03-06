@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useMemo, useLayoutEffect } from 'react'
+import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Printer, X, Copy, LayoutList } from 'lucide-react'
@@ -24,7 +24,7 @@ import {
   recalcCustomerStats,
 } from '@/lib/api'
 import type { Invoice, Customer, Product } from '@/lib/api'
-import { printDuplexViaIframe, buildDuplexBlobUrl, getPreviewPageCount } from '@/lib/print'
+import { buildDuplexBlobUrl, getPreviewPageCount } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
 import { ProductPickerDialog } from '@/components/ProductPickerDialog'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -687,12 +687,6 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   // 미리보기에서 실제 인쇄
   function handlePrintFromPreview() {
     previewIframeRef.current?.contentWindow?.print()
-  }
-
-  // 직접 인쇄 (미리보기 없이)
-  function handlePrint() {
-    const { inv, rows } = buildPrintData()
-    printDuplexViaIframe(inv, rows)
   }
 
   const titleLabel = isCopy ? '명세표 복사' : invoiceId ? '명세표 수정' : '새 거래명세표'

@@ -21,6 +21,7 @@
 12. [회계/비즈니스 로직](#12-회계비즈니스-로직)
 13. [테스트 전략](#13-테스트-전략)
 14. [개선 방향 & 기술 부채](#14-개선-방향--기술-부채)
+15. [프로덕션 배포](#15-프로덕션-배포)
 
 ---
 
@@ -761,6 +762,9 @@ npx tsc --noEmit
 # 프로덕션 빌드
 npm run build
 
+# 프로덕션 배포 (빌드 + 서버 업로드 + Nginx 재로드)
+bash deploy/deploy.sh
+
 # E2E 테스트
 npm run test:e2e
 npm run test:e2e:ui      # UI 모드
@@ -769,9 +773,135 @@ npm run test:e2e:debug   # 디버그 모드
 # 린트
 npm run lint
 
+# 서버 SSH 접속
+ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201
+
 # n8n 서버 재시작 (SSH 접속 후)
 cd /home/ubuntu/n8n && docker compose down && docker compose up -d
+
+# Nginx 상태 확인 (SSH 접속 후)
+sudo nginx -t && sudo systemctl status nginx
+
+# SSL 인증서 확인 (SSH 접속 후)
+sudo certbot certificates
 ```
+
+---
+
+## 15. 프로덕션 배포
+
+### 배포 아키텍처
+
+```
+브라우저 (직원)
+  │  https://crm.pressco21.com
+  ▼
+Nginx (Oracle Cloud 158.180.77.201:443)
+  ├── 정적 파일 서빙: /var/www/crm/ (React SPA dist/)
+  │   └── try_files $uri $uri/ /index.html (SPA 라우팅)
+  │
+  └── /crm-proxy → reverse proxy
+        └── http://127.0.0.1:5678/webhook/crm-proxy (n8n)
+              └── xc-token 주입 → NocoDB (SQLite)
+```
+
+### 배포 방법
+
+```bash
+# 1회 명령으로 빌드 + 업로드 + Nginx 재로드
+cd offline-crm-v2
+bash deploy/deploy.sh
+```
+
+내부 동작:
+1. `NODE_ENV=production npm run build` → `dist/` 생성 (TypeScript 타입체크 + Vite 번들링)
+2. `scp` → 서버 `/var/www/crm/`에 업로드
+3. `sudo nginx -t && sudo systemctl reload nginx`
+
+### 서버 구성
+
+| 항목 | 값 |
+|------|-----|
+| 서버 | Oracle Cloud ARM (Ubuntu) |
+| IP | 158.180.77.201 |
+| SSH | `ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201` |
+| 웹서버 | Nginx 1.18.0 |
+| SSL | Let's Encrypt (certbot 자동갱신) |
+| CRM 파일 | `/var/www/crm/` |
+| Nginx 설정 | `/etc/nginx/sites-available/crm` |
+| DNS | crm.pressco21.com → A → 158.180.77.201 (Namecheap) |
+
+### Nginx 핵심 설정
+
+```nginx
+server {
+    listen 443 ssl;
+    server_name crm.pressco21.com;
+    root /var/www/crm;
+
+    # API 프록시: 프론트엔드의 /crm-proxy 요청을 n8n으로 전달
+    location /crm-proxy {
+        proxy_pass http://127.0.0.1:5678/webhook/crm-proxy;
+    }
+
+    # 정적 에셋 캐싱 (Vite 해시 파일명이므로 1년 캐시 안전)
+    location /assets/ {
+        expires 1y;
+        add_header Cache-Control "public, immutable";
+    }
+
+    # React Router SPA: 모든 경로 → index.html
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+}
+```
+
+### 환경변수 (.env.local)
+
+```env
+# 프로덕션/개발 공통 — 상대경로이므로 환경 무관
+VITE_N8N_WEBHOOK_URL=/crm-proxy
+
+# CRM 전용 API Key (n8n에서 검증)
+VITE_CRM_API_KEY=<.secrets.env 참조>
+```
+
+- 개발: Vite dev proxy가 `/crm-proxy` → `https://n8n.pressco21.com/webhook/crm-proxy` 전달
+- 프로덕션: Nginx가 `/crm-proxy` → `http://127.0.0.1:5678/webhook/crm-proxy` 전달
+
+### SSL 인증서
+
+- **발급**: `sudo certbot --nginx -d crm.pressco21.com`
+- **자동갱신**: certbot cron 등록됨 (90일마다)
+- **만료 확인**: `sudo certbot certificates`
+
+### 트러블슈팅
+
+#### 사이트 접속 불가
+```bash
+# 1. Nginx 상태 확인
+ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201 "sudo nginx -t && systemctl status nginx"
+
+# 2. n8n 컨테이너 확인 (API 프록시 의존)
+ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201 "docker ps"
+
+# 3. SSL 인증서 만료 확인
+ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201 "sudo certbot certificates"
+```
+
+#### API 프록시 오류 (502/504)
+- n8n 컨테이너 재시작: `cd /home/ubuntu/n8n && docker compose down && docker compose up -d`
+- NocoDB 컨테이너 확인: `docker ps | grep nocodb`
+
+#### 빌드 실패
+- TypeScript 오류: `npx tsc --noEmit`로 타입 체크 후 수정
+- 미사용 import/변수 경고가 빌드 에러로 발생 (strict mode)
+
+### 보안 미완료 항목 (수동 작업 필요)
+
+- [ ] n8n CORS: `*` → `https://crm.pressco21.com` 제한
+- [ ] NocoDB API 토큰 재발급 (git history 노출 건)
 
 ---
 

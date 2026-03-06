@@ -250,10 +250,25 @@ Dashboard에 기간별 매출 분석 기능을 추가한다.
 프로덕션 배포 전 반드시 완료해야 하는 보안 항목들.
 
 - [x] `vite.config.ts` drop_console 설정 (프로덕션 빌드 시 console.* 제거)
-- [ ] n8n CORS 설정 `*` -> 특정 도메인으로 제한 (예: `crm.pressco21.com`) **⚠️ 수동 작업 필요**
+- [ ] n8n CORS 설정 `*` -> `https://crm.pressco21.com` 제한 **⚠️ 수동 작업 필요**
 - [x] CSP (Content-Security-Policy) 헤더 추가 (`index.html` meta 태그)
 - [ ] NocoDB API 토큰 재발급 (git history에 노출된 건 -- 키 로테이션 필수) **⚠️ 수동 작업 필요**
 - [ ] XSS 방어 새니타이징 추가 적용 확인 (CRM-012에서 향후 과제로 남김)
+
+### Phase 8: 프로덕션 배포 ✅ 완료 (2026-03-07)
+
+Oracle Cloud 서버에 Nginx로 프로덕션 배포 완료.
+
+- [x] 프로덕션 빌드 (`NODE_ENV=production npm run build`) — TypeScript 미사용 변수 정리
+- [x] Oracle Cloud 서버 파일 업로드 (`/var/www/crm/`)
+- [x] Nginx 설정 (`/etc/nginx/sites-available/crm`) — 정적 서빙 + `/crm-proxy` 리버스 프록시
+- [x] DNS A 레코드 추가 (`crm.pressco21.com` → `158.180.77.201`, Namecheap)
+- [x] SSL 인증서 발급 (Let's Encrypt certbot, 자동갱신)
+- [x] HTTPS + API 프록시 동작 검증 완료
+- [x] 재배포 스크립트 작성 (`deploy/deploy.sh`)
+
+> **접속 URL**: https://crm.pressco21.com
+> **재배포**: `cd offline-crm-v2 && bash deploy/deploy.sh`
 
 ---
 
@@ -328,5 +343,6 @@ tax = total - supply
 | 2026-03-05 | CRM-v2-고도화 Phase 1~6 완료 (19파일, 2340 insertions) |
 | 2026-03-05 | CRM-012 보안+E2E 완료 (Playwright 28/28 통과) |
 | 2026-03-05 | CRM-001~011 전체 완료 |
+| 2026-03-07 | Phase 8: Oracle Cloud 프로덕션 배포 완료 (https://crm.pressco21.com) |
 | 2026-03-04 | CRM-PRE Vanilla JS v1 완료 (카드형 명세표 + 미수금) |
 | 2026-03-04 | Phase CRM 로드맵 초판 작성 |

@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
-import { loadCompanyInfo, saveCompanyInfo } from '@/lib/print'
+import { saveCompanyInfo } from '@/lib/print'
 import type { CompanyInfo } from '@/lib/print'
 
 // print.ts 인터페이스 확장 (설정 전용 추가 필드)

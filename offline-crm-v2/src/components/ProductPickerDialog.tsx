@@ -3,7 +3,7 @@ import { useQuery } from '@tanstack/react-query'
 import { Search } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Input } from '@/components/ui/input'
-import { getProducts } from '@/lib/api'
+import { getProducts, sanitizeSearchTerm } from '@/lib/api'
 import type { Product, Customer } from '@/lib/api'
 
 interface ProductPickerDialogProps {
@@ -45,17 +45,13 @@ export function ProductPickerDialog({ open, customer, onClose, onSelect }: Produ
   const { data, isLoading } = useQuery({
     queryKey: ['productPicker', search, selectedCategory],
     queryFn: () => {
-      const conditions: string[] = []
-      if (search) conditions.push(`(name,like,%${search}%)`)
-      if (selectedCategory) conditions.push(`(category,eq,${selectedCategory})`)
-      const where =
-        conditions.length === 0
-          ? undefined
-          : conditions.length === 1
-          ? conditions[0]
-          : conditions.join('~and')
+      const q = sanitizeSearchTerm(search)
+      // 이름 OR 품목코드 복합 검색
+      const searchCond = q ? `(name,like,%${q}%)~or(product_code,like,%${q}%)` : null
+      const catCond = selectedCategory ? `(category,eq,${selectedCategory})` : null
+      const where = [searchCond, catCond].filter(Boolean).join('~and') || undefined
       return getProducts({
-        limit: 300,
+        limit: 500,
         sort: 'category',
         ...(where ? { where } : {}),
       })
@@ -84,7 +80,7 @@ export function ProductPickerDialog({ open, customer, onClose, onSelect }: Produ
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
             <Input
               autoFocus
-              placeholder="품목명으로 검색..."
+              placeholder="품목명 또는 품목코드로 검색..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-9"
@@ -154,8 +150,12 @@ export function ProductPickerDialog({ open, customer, onClose, onSelect }: Produ
         <div className="px-6 py-3 border-t flex-none">
           <p className="text-xs text-muted-foreground">
             {tier > 1
-              ? `${TIER_LABELS[tier] ?? tier}등급 단가 기준 (price${tier}) · ${products.length}개 표시`
-              : `소매가 기준 · ${products.length}개 표시`}
+              ? `${TIER_LABELS[tier] ?? tier}등급 단가 기준 (price${tier})`
+              : `소매가 기준`}
+            {' · '}
+            {data?.pageInfo?.totalRows != null && data.pageInfo.totalRows > products.length
+              ? `전체 ${data.pageInfo.totalRows.toLocaleString()}개 중 ${products.length}개 표시`
+              : `${products.length}개 표시`}
           </p>
         </div>
       </DialogContent>

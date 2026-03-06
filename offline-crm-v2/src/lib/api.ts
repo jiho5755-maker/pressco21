@@ -332,7 +332,7 @@ export const bulkDeleteItems = (ids: number[]) =>
   proxyRequest<void>({
     table: 'items',
     method: 'DELETE',
-    payload: ids,
+    payload: ids.map((id) => ({ Id: id })),  // NocoDB bulk DELETE: [{Id:N},...] 형식 필요
     bulk: true,
   })
 

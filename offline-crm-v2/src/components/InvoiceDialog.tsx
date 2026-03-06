@@ -278,15 +278,17 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     if (!open) return
     function handler(e: KeyboardEvent) {
       if (e.key === 'Escape') {
+        // 드롭다운 열린 경우 먼저 닫기
+        if (showProductDrop) { setShowProductDrop(null); setDropdownIdx(-1); return }
         handleClose()
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        void handleSave()
+        if (!showProductDrop) void handleSave()
       }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [open, isDirty])
+  }, [open, isDirty, showProductDrop])
 
   // 고객 선택
   function selectCustomer(c: Customer) {
@@ -389,6 +391,12 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   const [showProductDrop, setShowProductDrop] = useState<string | null>(null)
   const productDropRef = useRef<HTMLDivElement>(null)
   const [activeProductKey, setActiveProductKey] = useState<string | null>(null)
+  const [dropdownIdx, setDropdownIdx] = useState(-1)
+  const productInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const qtyInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  // items 최신값을 항상 참조 (stale closure 방지)
+  const itemsRef = useRef(items)
+  itemsRef.current = items
 
   // 품목 선택 모달
   const [productPickerOpen, setProductPickerOpen] = useState(false)
@@ -413,16 +421,25 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     )
     setProductInputs((prev) => ({ ...prev, [rowKey]: product.name ?? '' }))
     setShowProductDrop(null)
+    setDropdownIdx(-1)
     setIsDirty(true)
+    // 상품 선택 후 수량 input으로 자동 포커스
+    setTimeout(() => {
+      qtyInputRefs.current[rowKey]?.focus()
+      qtyInputRefs.current[rowKey]?.select()
+    }, 0)
   }
 
-  function addItem() {
-    const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : true
+  const addItem = useCallback(() => {
+    const cur = itemsRef.current
+    const defaultTaxable = cur.length > 0 ? cur[cur.length - 1].taxable : true
     const row = newRow(defaultTaxable)
     setItems((prev) => [...prev, row])
     setProductInputs((prev) => ({ ...prev, [row._key]: '' }))
     setIsDirty(true)
-  }
+    // 새 행의 품목 input으로 자동 포커스
+    setTimeout(() => { productInputRefs.current[row._key]?.focus() }, 50)
+  }, [])
 
   // 품목 선택 모달에서 선택 완료
   function handleProductPicked(product: import('@/lib/api').Product) {
@@ -593,7 +610,12 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   return (
     <>
     <Dialog open={open} onOpenChange={(v) => { if (!v) handleClose() }}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        onKeyDown={(e) => {
+          if (e.altKey && e.key === 'Enter') { e.preventDefault(); addItem() }
+        }}
+      >
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             {isCopy && <Copy className="h-4 w-4 text-muted-foreground" />}
@@ -771,7 +793,9 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           {/* ─── 품목 테이블 ─── */}
           <div>
             <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">품목 목록</span>
+              <span className="text-sm font-medium">
+                품목 목록 <span className="text-muted-foreground font-normal text-xs">({items.length}개)</span>
+              </span>
               <div className="flex gap-2">
                 <Button
                   size="sm"
@@ -782,9 +806,10 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                   <LayoutList className="h-3.5 w-3.5" />
                   목록에서 선택
                 </Button>
-                <Button size="sm" variant="outline" onClick={addItem} className="h-8">
+                <Button size="sm" variant="outline" onClick={addItem} className="h-8" title="행 추가 (Alt+Enter)">
                   <Plus className="h-3.5 w-3.5 mr-1" />
                   행 추가
+                  <kbd className="ml-1 text-[10px] opacity-50 font-sans">Alt+↵</kbd>
                 </Button>
               </div>
             </div>
@@ -810,6 +835,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                       <td className="px-1 py-1 relative">
                         <div ref={row._key === activeProductKey ? productDropRef : null}>
                           <Input
+                            ref={(el) => { productInputRefs.current[row._key] = el }}
                             value={productInputs[row._key] ?? row.product_name}
                             onChange={(e) => {
                               const v = e.target.value
@@ -817,6 +843,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                               updateItem(row._key, { product_name: v })
                               setActiveProductKey(row._key)
                               setShowProductDrop(row._key)
+                              setDropdownIdx(-1)
                             }}
                             onFocus={() => {
                               setActiveProductKey(row._key)
@@ -824,22 +851,41 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                                 setShowProductDrop(row._key)
                               }
                             }}
-                            onBlur={() => setTimeout(() => setShowProductDrop(null), 150)}
+                            onBlur={() => setTimeout(() => { setShowProductDrop(null); setDropdownIdx(-1) }, 150)}
+                            onKeyDown={(e) => {
+                              const list = productSearchResult?.list ?? []
+                              if (showProductDrop === row._key && list.length > 0) {
+                                if (e.key === 'ArrowDown') {
+                                  e.preventDefault()
+                                  setDropdownIdx((i) => Math.min(i + 1, list.length - 1))
+                                } else if (e.key === 'ArrowUp') {
+                                  e.preventDefault()
+                                  setDropdownIdx((i) => Math.max(i - 1, 0))
+                                } else if (e.key === 'Enter' && dropdownIdx >= 0) {
+                                  e.preventDefault()
+                                  e.stopPropagation()
+                                  selectProduct(row._key, list[dropdownIdx])
+                                }
+                              }
+                            }}
                             placeholder="품목명 검색 (자동완성)"
                             className="h-7 text-sm border-0 focus-visible:ring-1"
                           />
                           {showProductDrop === row._key && productSearchResult?.list && productSearchResult.list.length > 0 && (
                             <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-40 overflow-y-auto">
-                              {productSearchResult.list.map((p) => {
+                              {productSearchResult.list.map((p, index) => {
                                 const price = getPriceForCustomer(p, selectedCustomer)
+                                const isActive = index === dropdownIdx
                                 return (
                                   <button
                                     key={p.Id}
-                                    className="w-full text-left px-3 py-1.5 text-xs hover:bg-gray-50 flex items-center justify-between"
+                                    className={`w-full text-left px-3 py-1.5 text-xs flex items-center justify-between ${
+                                      isActive ? 'bg-[#f0f4f0] text-[#3d6b4a] font-medium' : 'hover:bg-gray-50'
+                                    }`}
                                     onMouseDown={() => selectProduct(row._key, p)}
                                   >
                                     <span>{p.name}</span>
-                                    <span className="text-muted-foreground">{price.toLocaleString()}원</span>
+                                    <span className={isActive ? 'text-[#3d6b4a]' : 'text-muted-foreground'}>{price.toLocaleString()}원</span>
                                   </button>
                                 )
                               })}
@@ -869,6 +915,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                       </td>
                       <td className="px-1 py-1">
                         <Input
+                          ref={(el) => { qtyInputRefs.current[row._key] = el }}
                           type="number"
                           value={row.quantity}
                           onChange={(e) => updateItemQuantity(row._key, e.target.value)}

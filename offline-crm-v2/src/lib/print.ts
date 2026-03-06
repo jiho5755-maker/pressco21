@@ -224,7 +224,7 @@ function buildInvoicePageHtml(
     // ── 속지 페이지: 간략 헤더 ──
     html +=
       '<div class="inv-cont-header">' +
-      '<div class="inv-cont-title">거 래 명 세 표 (속)</div>' +
+      '<div class="inv-cont-title">거 래 명 세 표</div>' +
       '<div class="inv-cont-info">' +
       `<span>발행번호: ${esc(inv.invoice_no ?? '')}</span>` +
       `<span>거래처: ${esc(inv.customer_name ?? '')}</span>` +

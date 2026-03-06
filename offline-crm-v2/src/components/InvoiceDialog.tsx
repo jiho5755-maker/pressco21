@@ -486,21 +486,28 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
       // 기존 아이템 삭제 후 새로 저장
       if (existingItemIds.length > 0) {
-        await bulkDeleteItems(existingItemIds)
+        // 삭제도 10개 단위 배치 (NocoDB 벌크 제한 방어)
+        const BATCH = 10
+        for (let i = 0; i < existingItemIds.length; i += BATCH) {
+          await bulkDeleteItems(existingItemIds.slice(i, i + BATCH))
+        }
       }
       if (items.length > 0) {
-        await bulkCreateItems(
-          items.map((r) => ({
-            invoice_id: invId,
-            product_name: r.product_name,
-            unit: r.unit,
-            quantity: r.quantity,
-            unit_price: r.unit_price,
-            supply_amount: r.supply_amount,
-            tax_amount: r.tax_amount,
-            taxable: r.taxable ? 'Y' : 'N',
-          })),
-        )
+        const itemPayloads = items.map((r) => ({
+          invoice_id: invId,
+          product_name: r.product_name,
+          unit: r.unit,
+          quantity: r.quantity,
+          unit_price: r.unit_price,
+          supply_amount: r.supply_amount,
+          tax_amount: r.tax_amount,
+          taxable: r.taxable ? 'Y' : 'N',
+        }))
+        // 10개씩 배치로 나눠 생성 (NocoDB 벌크 1회 상한 초과 방지)
+        const BATCH = 10
+        for (let i = 0; i < itemPayloads.length; i += BATCH) {
+          await bulkCreateItems(itemPayloads.slice(i, i + BATCH))
+        }
       }
 
       // 잔액 재계산
@@ -516,8 +523,9 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       toast.success(invoiceId ? '명세표가 수정되었습니다' : '명세표가 발행되었습니다')
       onSaved()
     } catch (e) {
-      console.error(e)
-      toast.error('저장하지 못했습니다. 잠시 후 다시 시도해주세요')
+      const msg = e instanceof Error ? e.message : String(e)
+      console.error('[InvoiceDialog.save]', msg)
+      toast.error(`저장 실패: ${msg.slice(0, 80)}`)
     } finally {
       setIsSaving(false)
     }

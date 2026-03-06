@@ -15,8 +15,12 @@ import requests
 from datetime import datetime
 
 # ─── 설정 ───────────────────────────────────────────
+# NOCODB_TOKEN: .env.local 또는 시스템 환경변수에서 로드 (코드에 직접 기재 금지)
 NOCODB_URL   = "https://nocodb.pressco21.com"
-NOCODB_TOKEN = "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+NOCODB_TOKEN = os.environ.get("NOCODB_TOKEN", "")
+if not NOCODB_TOKEN:
+    sys.exit("오류: NOCODB_TOKEN 환경변수가 설정되지 않았습니다.\n"
+             "실행 방법: export NOCODB_TOKEN=<토큰값> && python3 migrate_tx_history.py")
 TABLE_ID     = "mtxh72a1f4beeac"
 XLS_DIR      = "/Users/jangjiho/Downloads/얼마에요 백업파일"
 BATCH_SIZE   = 500

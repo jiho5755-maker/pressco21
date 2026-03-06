@@ -10,6 +10,7 @@ CRM-004: 파생 필드 산출 및 customer_status 분류
 - tbl_Customers 일괄 업데이트
 """
 
+import os
 import sys
 import time
 import json
@@ -17,8 +18,12 @@ import requests
 from datetime import date, datetime
 
 # ─── 설정 ─────────────────────────────────────────────
+# NOCODB_TOKEN: .env.local 또는 시스템 환경변수에서 로드 (코드에 직접 기재 금지)
 NOCODB_URL  = "https://nocodb.pressco21.com"
-NOCODB_TOKEN = "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+NOCODB_TOKEN = os.environ.get("NOCODB_TOKEN", "")
+if not NOCODB_TOKEN:
+    sys.exit("오류: NOCODB_TOKEN 환경변수가 설정되지 않았습니다.\n"
+             "실행 방법: export NOCODB_TOKEN=<토큰값> && python3 compute_derived_fields.py")
 PROJECT_ID  = "pu0mwk97kac8a5p"
 CUSTOMERS_TBL = "mffgxkftaeppyk0"   # tbl_Customers
 TX_TBL        = "mtxh72a1f4beeac"   # tbl_tx_history

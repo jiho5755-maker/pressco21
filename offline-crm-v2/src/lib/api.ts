@@ -86,6 +86,14 @@ export function sanitizeSearchTerm(term: string): string {
   return term.replace(/[~(),\\]/g, '').trim().slice(0, 100)
 }
 
+// NocoDB 자동생성 필드 제거 (PATCH payload에 포함 시 400 에러 방지)
+const AUTO_FIELDS = new Set(['Id', 'CreatedAt', 'UpdatedAt', 'nc_order'])
+export function stripAutoFields<T extends Record<string, unknown>>(data: T): Partial<T> {
+  return Object.fromEntries(
+    Object.entries(data).filter(([k]) => !AUTO_FIELDS.has(k)),
+  ) as Partial<T>
+}
+
 // 금액/수량 범위 검증 (음수 및 비현실적 값 방어)
 export function sanitizeAmount(value: string | number): number {
   const n = typeof value === 'string' ? Number(value) : value
@@ -152,7 +160,7 @@ export const updateCustomer = (id: number, data: Partial<Customer>) =>
     table: 'customers',
     method: 'PATCH',
     recordId: id,
-    payload: data,
+    payload: stripAutoFields(data as Record<string, unknown>),
   })
 
 export const deleteCustomer = (id: number) =>
@@ -218,7 +226,7 @@ export const updateProduct = (id: number, data: Partial<Product>) =>
     table: 'products',
     method: 'PATCH',
     recordId: id,
-    payload: data,
+    payload: stripAutoFields(data as Record<string, unknown>),
   })
 
 export const deleteProduct = (id: number) =>
@@ -277,7 +285,7 @@ export const updateInvoice = (id: number, data: Partial<Invoice>) =>
     table: 'invoices',
     method: 'PATCH',
     recordId: id,
-    payload: data,
+    payload: stripAutoFields(data as Record<string, unknown>),
   })
 
 // ─────────────────────────────────────────

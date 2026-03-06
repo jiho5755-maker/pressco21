@@ -1,5 +1,14 @@
 # PRESSCO21 프로젝트 CLAUDE 지침
 
+## AI handoff first
+
+이 저장소와 하위 폴더에서 작업을 시작하기 전에 반드시 루트의 `AI_SYNC.md`와 `git status --short`를 먼저 확인하세요.
+
+- `AI_SYNC.md`의 `Current Owner`가 다른 에이전트이고 `Mode`가 `WRITE`면 파일 수정 금지
+- 첫 수정 전에 `AI_SYNC.md`의 `Session Lock`과 `Files In Progress` 갱신
+- 작업 종료 전 `Last Changes`와 `Next Step` 갱신
+- `git commit`, 브랜치 변경, 의존성 설치, lockfile 수정, dev server 재시작은 기록 후 한 번에 한 에이전트만 수행
+
 ## 백업/참조용 폴더 (수정 금지)
 
 다음 폴더들은 리뉴얼 전 원본 백업입니다. 절대 수정하지 마세요:

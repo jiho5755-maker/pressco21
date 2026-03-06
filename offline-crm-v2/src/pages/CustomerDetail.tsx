@@ -90,7 +90,7 @@ export function CustomerDetail() {
   const { mutate: saveGrade, isPending: savingGrade } = useMutation({
     mutationFn: () =>
       updateCustomer(customerId, {
-        member_grade: editGrade || undefined,
+        member_grade: editGrade && editGrade !== '_NONE_' ? editGrade : undefined,
         grade_qualification: editQual,
         is_ambassador: editGrade === 'AMBASSADOR',
       }),
@@ -360,7 +360,7 @@ export function CustomerDetail() {
                       size="sm"
                       variant="outline"
                       onClick={() => {
-                        setEditGrade(effectiveGrade)
+                        setEditGrade(effectiveGrade || '_NONE_')
                         setEditQual((customer.grade_qualification as string) ?? '')
                         setGradeEditMode(true)
                       }}
@@ -377,7 +377,7 @@ export function CustomerDetail() {
                         <SelectValue placeholder="등급 선택 (없으면 비워두세요)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">등급 없음</SelectItem>
+                        <SelectItem value="_NONE_">등급 없음</SelectItem>
                         {Object.entries(GRADE_COLORS).map(([k, v]) => (
                           <SelectItem key={k} value={k}>
                             {k === 'AMBASSADOR' ? `★ ${v.label}` : v.label}

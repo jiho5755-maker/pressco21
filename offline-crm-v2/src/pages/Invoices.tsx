@@ -298,7 +298,7 @@ export function Invoices() {
                   </td>
                   {/* 인라인 액션 버튼 */}
                   <td className="px-2 py-3">
-                    <div className="flex gap-1 justify-end opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex gap-1 justify-end">
                       <Button
                         variant="ghost"
                         size="sm"

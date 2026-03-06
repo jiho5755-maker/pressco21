@@ -16,6 +16,11 @@ interface SettingsData extends CompanyInfo {
   invoice_footer?: string
   default_taxable?: boolean
   default_payment_method?: string
+  // 단가등급 할인율 (소매가 기준, 이 값만큼 할인)
+  price2_rate?: number  // 강사우대가 (기본 5%)
+  price3_rate?: number  // 파트너도매가 (기본 12%)
+  price4_rate?: number  // VIP특가 (기본 15%)
+  price5_rate?: number  // 엠버서더 (기본 20%)
 }
 
 const SETTINGS_KEY = 'pressco21-crm-settings'
@@ -82,7 +87,11 @@ export function Settings() {
     const reader = new FileReader()
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string
-      setData((prev) => ({ ...prev, [field]: dataUrl }))
+      setData((prev) => {
+        const updated = { ...prev, [field]: dataUrl }
+        saveSettings(updated) // 업로드 즉시 저장 (인쇄 시 반영)
+        return updated
+      })
       if (field === 'logo_url') setLogoPreview(dataUrl)
       else setStampPreview(dataUrl)
     }
@@ -276,6 +285,38 @@ export function Settings() {
                 새 품목 기본값: 과세 (10%)
               </label>
             </div>
+          </div>
+        </section>
+
+        {/* ─── 섹션 5: 단가등급 할인율 ─── */}
+        <section>
+          <SectionTitle>단가등급 할인율</SectionTitle>
+          <p className="text-xs text-muted-foreground mb-4">
+            소매가(price1) 대비 할인율. 제품 등록 시 소매가 입력 후 "할인율 자동계산" 버튼으로 적용됩니다.
+          </p>
+          <div className="grid grid-cols-2 gap-4">
+            {([
+              { key: 'price2_rate' as const, label: '강사우대가 (뿌리/INSTRUCTOR)', defaultVal: 5 },
+              { key: 'price3_rate' as const, label: '파트너도매가 (꽃밭/PARTNERS)', defaultVal: 12 },
+              { key: 'price4_rate' as const, label: 'VIP특가 (정원사/VIP)', defaultVal: 15 },
+              { key: 'price5_rate' as const, label: '엠버서더 (별빛/AMBASSADOR)', defaultVal: 20 },
+            ] as const).map(({ key, label, defaultVal }) => (
+              <Field key={key} label={label} hint={`기본값: ${defaultVal}% 할인`}>
+                <div className="flex items-center gap-2 mt-1">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={99}
+                    value={data[key] ?? defaultVal}
+                    onChange={(e) =>
+                      set(key, Math.min(99, Math.max(0, Number(e.target.value))))
+                    }
+                    className="w-24"
+                  />
+                  <span className="text-sm text-muted-foreground">% 할인</span>
+                </div>
+              </Field>
+            ))}
           </div>
         </section>
       </div>

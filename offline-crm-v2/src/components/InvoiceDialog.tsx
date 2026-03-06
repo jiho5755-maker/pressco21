@@ -504,6 +504,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       }
 
       qc.invalidateQueries({ queryKey: ['invoices'] })
+      qc.invalidateQueries({ queryKey: ['invoices-customer'] })
       qc.invalidateQueries({ queryKey: ['receivables'] })
       qc.invalidateQueries({ queryKey: ['customers'] })
       setIsDirty(false)

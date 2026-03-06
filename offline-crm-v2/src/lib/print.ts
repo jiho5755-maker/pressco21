@@ -121,7 +121,7 @@ function buildInvoiceHtml(inv: PrintInvoice, items: PrintItem[], copyType: strin
     ? `<img src="${c.logo_url}" alt="로고" style="height:40px;object-fit:contain;" />`
     : ''
   const stampHtml = c.stamp_url
-    ? `<img src="${c.stamp_url}" alt="도장" style="width:36px;height:36px;object-fit:cover;border-radius:50%;transform:rotate(-15deg);mix-blend-mode:multiply;clip-path:circle(40% at 50% 46%);" />`
+    ? `<img src="${c.stamp_url}" alt="도장" style="width:46px;height:46px;object-fit:cover;border-radius:50%;transform:rotate(-12deg);opacity:0.88;" />`
     : ''
 
   return (
@@ -260,7 +260,7 @@ export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): voi
     '.inv-bv-warn { color:#dc2626; font-weight:700; }',
     '.inv-memo { border:1.5px solid #333; border-top:none; padding:2px 6px; font-size:6pt; }',
     '.inv-sig { border:1.5px solid #333; border-top:none; padding:4px 8px; display:flex; align-items:center; justify-content:space-between; font-size:6.5pt; }',
-    '.inv-stamp { display:inline-block; width:36px; height:36px; }',
+    '.inv-stamp { display:inline-block; width:46px; height:46px; }',
     '.t-right { text-align:right; }',
     '.t-center { text-align:center; }',
     '.inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; }',
@@ -423,13 +423,13 @@ export function printPeriodReport(
     `<div class="sub" style="white-space:nowrap;">출력일: ${today}</div>` +
     `</div>` +
     `<div class="kpi">` +
-    `<div class="kc"><div class="kl">합계 매출</div><div class="kv">${stats.totalSales.toLocaleString()}원</div></div>` +
-    `<div class="kc"><div class="kl">CRM 명세표</div><div class="kv">${stats.crmSales.toLocaleString()}원</div></div>` +
-    `<div class="kc"><div class="kl">레거시 출고</div><div class="kv">${stats.legacySales.toLocaleString()}원</div></div>` +
+    `<div class="kc"><div class="kl">기간 합계 매출</div><div class="kv">${stats.totalSales.toLocaleString()}원</div></div>` +
+    `<div class="kc"><div class="kl">명세표 발행액</div><div class="kv">${stats.crmSales.toLocaleString()}원</div></div>` +
+    `<div class="kc"><div class="kl">과거 거래액</div><div class="kv">${stats.legacySales.toLocaleString()}원</div></div>` +
     `<div class="kc${stats.outstanding > 0 ? ' warn' : ''}"><div class="kl">기간 미수금</div><div class="kv">${stats.outstanding.toLocaleString()}원</div></div>` +
     `</div>` +
     (crmInvoices.length > 0
-      ? `<div class="sec">CRM 거래명세표 (${stats.crmCount}건 / ${stats.crmSales.toLocaleString()}원)</div>` +
+      ? `<div class="sec">거래명세표 발행 내역 (${stats.crmCount}건 / ${stats.crmSales.toLocaleString()}원)</div>` +
         `<table><thead><tr>` +
         `<th style="width:22%">발행번호</th><th style="width:12%">발행일</th>` +
         `<th style="width:14%">공급가액</th><th style="width:14%">합계금액</th>` +
@@ -437,7 +437,7 @@ export function printPeriodReport(
         `</tr></thead><tbody>${crmRows}</tbody></table>`
       : '') +
     (legacyTx.length > 0
-      ? `<div class="sec">레거시 거래내역 (${stats.legacyCount}건 / ${stats.legacySales.toLocaleString()}원)</div>` +
+      ? `<div class="sec">과거 거래 이력 (${stats.legacyCount}건 / ${stats.legacySales.toLocaleString()}원)</div>` +
         `<table><thead><tr>` +
         `<th style="width:13%">거래일</th><th style="width:10%">유형</th>` +
         `<th style="width:51%">적요 / 전표번호</th><th style="width:16%">금액</th>` +

@@ -164,18 +164,16 @@ export function Transactions() {
     const p: Record<string, string | number> = {
       limit: isServerPaginated && activeTab === 'crm' ? PAGE_SIZE : 1000,
       sort: '-invoice_date',
-      fields: 'Id,invoice_date,customer_name,total_amount,tax_amount,invoice_no,memo',
     }
     if (isServerPaginated && activeTab === 'crm') {
       p.offset = (page - 1) * PAGE_SIZE
     }
+    // NocoDB Date 타입 컬럼은 gte/lte 연산자를 지원하지 않아 날짜 필터는 클라이언트에서 처리
     const conds: string[] = []
     if (debouncedSearch) {
       const safe = sanitizeSearchTerm(debouncedSearch)
       conds.push(`(customer_name,like,%${safe}%)`)
     }
-    if (dateFrom) conds.push(`(invoice_date,gte,${dateFrom})`)
-    if (dateTo) conds.push(`(invoice_date,lte,${dateTo})`)
     if (conds.length > 0) {
       p.where = conds.length === 1 ? conds[0] : conds.join('~and')
     }
@@ -195,6 +193,17 @@ export function Transactions() {
   const serverCrmTotal = crmData?.pageInfo?.totalRows ?? 0
 
   // ── 행 데이터 + 페이지네이션 계산 ──
+  // CRM 데이터 클라이언트 날짜 필터 (NocoDB Date 타입은 gte/lte 미지원)
+  const filterByDate = (rows: UnifiedRow[]) => {
+    if (!dateFrom && !dateTo) return rows
+    return rows.filter((r) => {
+      const d = r.tx_date.slice(0, 10)
+      if (dateFrom && d < dateFrom) return false
+      if (dateTo && d > dateTo) return false
+      return true
+    })
+  }
+
   const { rows, totalPages, totalDisplay, isTruncated } = useMemo(() => {
     if (isServerPaginated) {
       // 서버 페이지네이션: 한쪽 소스만 표시
@@ -207,11 +216,12 @@ export function Transactions() {
           isTruncated: false,
         }
       } else {
-        const list = (crmData?.list ?? []).map(invoiceToRow)
+        // CRM 탭: 클라이언트 날짜 필터 적용
+        const list = filterByDate((crmData?.list ?? []).map(invoiceToRow))
         return {
-          rows: list,
-          totalPages: Math.max(1, Math.ceil(serverCrmTotal / PAGE_SIZE)),
-          totalDisplay: serverCrmTotal,
+          rows: list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+          totalPages: Math.max(1, Math.ceil(list.length / PAGE_SIZE)),
+          totalDisplay: list.length,
           isTruncated: false,
         }
       }
@@ -219,7 +229,7 @@ export function Transactions() {
 
     // 전체 탭: 양쪽 병합 → 클라이언트 페이지네이션
     const legacy = (legacyData?.list ?? []).map(txToRow)
-    const crm = (crmData?.list ?? []).map(invoiceToRow)
+    const crm = filterByDate((crmData?.list ?? []).map(invoiceToRow))
     const merged = [...legacy, ...crm]
     merged.sort((a, b) => b.tx_date.localeCompare(a.tx_date))
     const loadedCount = merged.length
@@ -230,10 +240,16 @@ export function Transactions() {
       totalDisplay: loadedCount,
       isTruncated: truncated,
     }
-  }, [isServerPaginated, activeTab, legacyData, crmData, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm, page])
+  }, [isServerPaginated, activeTab, legacyData, crmData, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm, page, dateFrom, dateTo])
 
   const isLoading = (legacyLoading && !skipLegacy) || (crmLoading && !skipCrm)
-  const isError = (legacyError && !skipLegacy) || (crmError && !skipCrm)
+  // 양쪽 모두 실패한 경우만 전체 에러 (부분 실패는 경고로 처리)
+  const isError = activeTab === 'all'
+    ? (legacyError && !skipLegacy) && (crmError && !skipCrm) // 전체탭: 양쪽 다 실패해야 에러
+    : (legacyError && !skipLegacy) || (crmError && !skipCrm) // 개별탭: 해당 소스 실패 시 에러
+  const partialError = activeTab === 'all' && !isError && (
+    (legacyError && !skipLegacy) || (crmError && !skipCrm)
+  )
 
   function resetFilters() {
     setSearch('')
@@ -383,6 +399,15 @@ export function Transactions() {
       {activeTab === 'crm' && (
         <div className="mb-3 text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
           CRM에서 생성한 거래명세표입니다. 입금 내역은 미수금 관리 탭에서 확인하세요.
+        </div>
+      )}
+
+      {/* 부분 소스 실패 경고 */}
+      {partialError && (
+        <div className="mb-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
+          <AlertTriangle className="h-4 w-4 shrink-0" />
+          {legacyError ? '레거시 거래내역' : 'CRM 명세표'} 데이터를 불러오지 못했습니다.
+          {legacyError ? ' CRM 명세표만 ' : ' 레거시 데이터만 '}표시 중입니다.
         </div>
       )}
 

@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -6,6 +6,9 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { saveCompanyInfo } from '@/lib/print'
 import type { CompanyInfo } from '@/lib/print'
+import { getSettings, saveSettingsToServer } from '@/lib/api'
+import type { CrmSettings } from '@/lib/api'
+import { Cloud, CloudOff, Loader2 } from 'lucide-react'
 
 // print.ts 인터페이스 확장 (설정 전용 추가 필드)
 interface SettingsData extends CompanyInfo {
@@ -40,10 +43,36 @@ function loadSettings(): SettingsData {
   return merged as SettingsData
 }
 
-function saveSettings(data: SettingsData): void {
+function saveSettingsLocal(data: SettingsData): void {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(data))
   // print.ts와 호환되도록 CompanyInfo도 동기 저장
   saveCompanyInfo(data)
+}
+
+// NocoDB ↔ localStorage 필드 매핑 (SettingsData → CrmSettings)
+function toServerPayload(data: SettingsData): Partial<CrmSettings> {
+  return {
+    company: data.company,
+    ceo: data.ceo,
+    bizno: data.bizno,
+    phone: data.phone,
+    email: data.email,
+    bizType: data.bizType,
+    bizItem: data.bizItem,
+    address: data.address,
+    logo_url: data.logo_url,
+    stamp_url: data.stamp_url,
+    bank_name: data.bank_name,
+    bank_account: data.bank_account,
+    bank_holder: data.bank_holder,
+    invoice_header: data.invoice_header,
+    invoice_footer: data.invoice_footer,
+    default_taxable: data.default_taxable,
+    price2_rate: data.price2_rate,
+    price3_rate: data.price3_rate,
+    price4_rate: data.price4_rate,
+    price5_rate: data.price5_rate,
+  }
 }
 
 function SectionTitle({ children }: { children: React.ReactNode }) {
@@ -73,20 +102,78 @@ function Field({
 
 export function Settings() {
   const [data, setData] = useState<SettingsData>(loadSettings)
+  const [serverRowId, setServerRowId] = useState<number | null>(null)
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('idle')
 
   // 이미지 프리뷰 state
   const [logoPreview, setLogoPreview] = useState<string>('')
   const [stampPreview, setStampPreview] = useState<string>('')
 
+  // debounce 저장용 ref
+  const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const initialLoadDone = useRef(false)
+
+  // 앱 시작 시 NocoDB에서 설정 로드
   useEffect(() => {
-    setLogoPreview(data.logo_url ?? '/images/company-logo.png')
-    setStampPreview(data.stamp_url ?? '/images/company-stamp.jpg')
+    setSyncStatus('loading')
+    getSettings().then((server) => {
+      if (server) {
+        setServerRowId(server.Id ?? null)
+        // 서버 데이터로 localStorage + state 갱신 (서버가 source of truth)
+        const merged: SettingsData = { ...loadSettings(), ...server }
+        // NocoDB 자동 필드 제거
+        delete (merged as Record<string, unknown>).Id
+        delete (merged as Record<string, unknown>).CreatedAt
+        delete (merged as Record<string, unknown>).UpdatedAt
+        delete (merged as Record<string, unknown>).nc_order
+        saveSettingsLocal(merged)
+        setData(merged)
+        setLogoPreview(merged.logo_url ?? '/images/company-logo.png')
+        setStampPreview(merged.stamp_url ?? '/images/company-stamp.jpg')
+        setSyncStatus('saved')
+      } else {
+        // 서버에 아직 행이 없음 → localStorage 값 유지
+        setLogoPreview(data.logo_url ?? '/images/company-logo.png')
+        setStampPreview(data.stamp_url ?? '/images/company-stamp.jpg')
+        setSyncStatus('idle')
+      }
+      initialLoadDone.current = true
+    }).catch(() => {
+      // 네트워크 오류 등 → localStorage fallback
+      setLogoPreview(data.logo_url ?? '/images/company-logo.png')
+      setStampPreview(data.stamp_url ?? '/images/company-stamp.jpg')
+      setSyncStatus('error')
+      initialLoadDone.current = true
+    })
   }, [])
+
+  // debounce NocoDB 저장 (1초)
+  const debounceSave = useCallback((nextData: SettingsData) => {
+    if (!initialLoadDone.current) return
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    debounceTimer.current = setTimeout(async () => {
+      try {
+        setSyncStatus('saving')
+        const payload = toServerPayload(nextData)
+        if (serverRowId) payload.Id = serverRowId
+        await saveSettingsToServer(payload)
+        // 서버에 처음 저장된 경우 rowId 갱신
+        if (!serverRowId) {
+          const fresh = await getSettings()
+          if (fresh?.Id) setServerRowId(fresh.Id)
+        }
+        setSyncStatus('saved')
+      } catch {
+        setSyncStatus('error')
+      }
+    }, 1000)
+  }, [serverRowId])
 
   function set<K extends keyof SettingsData>(key: K, value: SettingsData[K]) {
     setData((prev) => {
       const next = { ...prev, [key]: value }
-      saveSettings(next)  // 필드 변경 즉시 저장 (페이지 이동 시 데이터 소실 방지)
+      saveSettingsLocal(next)
+      debounceSave(next)
       return next
     })
   }
@@ -99,7 +186,8 @@ export function Settings() {
       const dataUrl = ev.target?.result as string
       setData((prev) => {
         const updated = { ...prev, [field]: dataUrl }
-        saveSettings(updated) // 업로드 즉시 저장 (인쇄 시 반영)
+        saveSettingsLocal(updated)
+        debounceSave(updated)
         return updated
       })
       if (field === 'logo_url') setLogoPreview(dataUrl)
@@ -108,9 +196,49 @@ export function Settings() {
     reader.readAsDataURL(file)
   }
 
-  function handleSave() {
-    saveSettings(data)
-    toast.success('설정이 저장되었습니다')
+  // "저장" 버튼: 즉시 flush
+  async function handleSave() {
+    if (debounceTimer.current) clearTimeout(debounceTimer.current)
+    saveSettingsLocal(data)
+    try {
+      setSyncStatus('saving')
+      const payload = toServerPayload(data)
+      if (serverRowId) payload.Id = serverRowId
+      await saveSettingsToServer(payload)
+      if (!serverRowId) {
+        const fresh = await getSettings()
+        if (fresh?.Id) setServerRowId(fresh.Id)
+      }
+      setSyncStatus('saved')
+      toast.success('설정이 서버에 저장되었습니다')
+    } catch {
+      setSyncStatus('error')
+      toast.error('서버 저장 실패 (로컬에는 저장됨)')
+    }
+  }
+
+  // 동기화 상태 아이콘
+  const SyncIcon = () => {
+    switch (syncStatus) {
+      case 'loading':
+        return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      case 'saving':
+        return <Loader2 className="h-4 w-4 animate-spin text-[#7d9675]" />
+      case 'saved':
+        return <Cloud className="h-4 w-4 text-[#7d9675]" />
+      case 'error':
+        return <CloudOff className="h-4 w-4 text-red-500" />
+      default:
+        return <CloudOff className="h-4 w-4 text-muted-foreground" />
+    }
+  }
+
+  const syncLabel: Record<typeof syncStatus, string> = {
+    idle: '오프라인',
+    loading: '불러오는 중...',
+    saving: '저장 중...',
+    saved: '서버 동기화됨',
+    error: '서버 연결 실패',
   }
 
   return (
@@ -118,12 +246,20 @@ export function Settings() {
       <div className="flex items-center justify-between mb-6">
         <div>
           <h2 className="text-2xl font-bold">설정</h2>
-          <p className="text-sm text-muted-foreground mt-1">거래명세표 및 시스템 환경을 설정합니다</p>
+          <div className="flex items-center gap-2 mt-1">
+            <p className="text-sm text-muted-foreground">거래명세표 및 시스템 환경을 설정합니다</p>
+            <span className="flex items-center gap-1 text-xs text-muted-foreground">
+              <SyncIcon />
+              {syncLabel[syncStatus]}
+            </span>
+          </div>
         </div>
         <Button
           onClick={handleSave}
+          disabled={syncStatus === 'saving'}
           className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
         >
+          {syncStatus === 'saving' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
           저장
         </Button>
       </div>

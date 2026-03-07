@@ -15,7 +15,7 @@ const PROXY_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://n8n.pressco21
 const CRM_API_KEY = import.meta.env.VITE_CRM_API_KEY || ''
 
 // 테이블 논리명 (n8n 프록시에서 Model ID로 변환)
-type TableName = 'customers' | 'products' | 'invoices' | 'items' | 'suppliers' | 'txHistory'
+type TableName = 'customers' | 'products' | 'invoices' | 'items' | 'suppliers' | 'txHistory' | 'settings'
 
 // ─────────────────────────────────────────
 // n8n 프록시 요청 인터페이스
@@ -491,3 +491,74 @@ export const getTxHistory = (params: Record<string, string | number> = {}) =>
     table: 'txHistory',
     params: { limit: 50, ...params },
   })
+
+// ─────────────────────────────────────────
+// CRM 설정 (settings) — 단일 행 테이블
+// ─────────────────────────────────────────
+export interface CrmSettings {
+  Id?: number
+  company?: string
+  ceo?: string
+  bizno?: string
+  phone?: string
+  email?: string
+  bizType?: string
+  bizItem?: string
+  address?: string
+  logo_url?: string     // data URL (LongText)
+  stamp_url?: string    // data URL (LongText)
+  bank_name?: string
+  bank_account?: string
+  bank_holder?: string
+  invoice_header?: string
+  invoice_footer?: string
+  default_taxable?: boolean
+  price2_rate?: number
+  price3_rate?: number
+  price4_rate?: number
+  price5_rate?: number
+  [key: string]: unknown
+}
+
+// 설정 조회 (항상 1행만 사용)
+export async function getSettings(): Promise<CrmSettings | null> {
+  try {
+    const res = await proxyRequest<ListResponse<CrmSettings>>({
+      table: 'settings',
+      params: { limit: 1 },
+    })
+    return res.list?.[0] ?? null
+  } catch {
+    return null
+  }
+}
+
+// 설정 저장 (Upsert: 행이 없으면 POST, 있으면 PATCH)
+export async function saveSettingsToServer(data: Partial<CrmSettings>): Promise<void> {
+  const cleaned = stripAutoFields(data as Record<string, unknown>)
+  if (data.Id) {
+    await proxyRequest<CrmSettings>({
+      table: 'settings',
+      method: 'PATCH',
+      recordId: data.Id,
+      payload: cleaned,
+    })
+  } else {
+    // 기존 행 존재 여부 확인
+    const existing = await getSettings()
+    if (existing?.Id) {
+      await proxyRequest<CrmSettings>({
+        table: 'settings',
+        method: 'PATCH',
+        recordId: existing.Id,
+        payload: cleaned,
+      })
+    } else {
+      await proxyRequest<CrmSettings>({
+        table: 'settings',
+        method: 'POST',
+        payload: cleaned,
+      })
+    }
+  }
+}

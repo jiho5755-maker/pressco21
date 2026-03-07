@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
+import { toast } from 'sonner'
 import { Download, AlertCircle } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -58,11 +59,11 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
 
   async function handleSave() {
     if (amount <= 0) {
-      alert('입금액을 입력해주세요.')
+      toast.error('입금액을 입력해주세요.')
       return
     }
     if (amount > remaining) {
-      alert(`미수금(${remaining.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
+      toast.error(`미수금(${remaining.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
       return
     }
     setIsSaving(true)
@@ -74,6 +75,7 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
         payment_status: newPaymentStatus,
         status: newPaymentStatus,
         payment_method: method,
+        paid_date: new Date().toISOString().slice(0, 10),  // 실제 입금일 기록
       })
       qc.invalidateQueries({ queryKey: ['receivables'] })
       qc.invalidateQueries({ queryKey: ['invoices'] })
@@ -97,7 +99,7 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
       onSaved()
     } catch (e) {
       console.error(e)
-      alert('저장 중 오류가 발생했습니다.')
+      toast.error('저장 중 오류가 발생했습니다.')
     } finally {
       setIsSaving(false)
     }

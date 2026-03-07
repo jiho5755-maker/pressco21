@@ -170,13 +170,15 @@ export function Dashboard() {
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
   })
-  // 미수금 TOP10 거래처
+  // 미수금 전체 거래처 (합계 계산용, TOP10 차트는 slice)
+  // Source of truth: customers.outstanding_balance (CRM 명세표 기반 재계산 값)
   const { data: receivablesData } = useQuery({
     queryKey: ['dash-receivables'],
     queryFn: () => getCustomers({
       where: '(outstanding_balance,gt,0)',
       sort: '-outstanding_balance',
-      limit: 10,
+      limit: 200,
+      fields: 'Id,name,outstanding_balance',
     }),
     staleTime: 2 * 60_000,
   })
@@ -227,16 +229,11 @@ export function Dashboard() {
       .reduce((s, t) => s + (t.amount ?? 0), 0),
     [allTx]
   )
-  const growthPct = prevMonthSales > 0
-    ? ((thisMonthSales - prevMonthSales) / prevMonthSales) * 100
-    : 0
-
-  // 이번 달 건수 → 평균 거래 단가
+  // 이번 달 건수 (레거시 출고)
   const thisMonthCount = useMemo(
     () => (txThisYear?.list ?? []).filter((t) => (t.tx_date ?? '').startsWith(CUR_YM)).length,
     [txThisYear]
   )
-  const avgAmount = thisMonthCount > 0 ? Math.round(thisMonthSales / thisMonthCount) : 0
 
   // 미수금 총액
   const totalReceivables = useMemo(
@@ -253,7 +250,33 @@ export function Dashboard() {
     [periodInvoicesRaw]
   )
 
-  // 12개월 차트 데이터 (최근 12개월)
+  // ── CRM 명세표 매출 (레거시 tx_history와 별도 집계, 이중계산 없음) ──
+  // Source of truth: invoices.total_amount (새 CRM에서 발행한 명세표)
+  // tx_history = 얼마에요 레거시, invoices = CRM 신규 → 데이터 소스 완전 분리
+  const thisMonthCrmSales = useMemo(
+    () => (periodInvoicesRaw?.list ?? [])
+      .filter((i) => (i.invoice_date ?? '').startsWith(CUR_YM))
+      .reduce((s, i) => s + (i.total_amount ?? 0), 0),
+    [periodInvoicesRaw]
+  )
+  const prevMonthCrmSales = useMemo(
+    () => (periodInvoicesRaw?.list ?? [])
+      .filter((i) => (i.invoice_date ?? '').startsWith(PREV_YM))
+      .reduce((s, i) => s + (i.total_amount ?? 0), 0),
+    [periodInvoicesRaw]
+  )
+  // 통합 매출 = 레거시(tx_history 출고) + CRM(invoices)
+  const combinedThisMonthSales = thisMonthSales + thisMonthCrmSales
+  const combinedPrevMonthSales = prevMonthSales + prevMonthCrmSales
+  const combinedGrowthPct = combinedPrevMonthSales > 0
+    ? ((combinedThisMonthSales - combinedPrevMonthSales) / combinedPrevMonthSales) * 100
+    : 0
+  const combinedThisMonthCount = thisMonthCount + thisMonthInvoices
+  const combinedAvgAmount = combinedThisMonthCount > 0
+    ? Math.round(combinedThisMonthSales / combinedThisMonthCount)
+    : 0
+
+  // 12개월 차트 데이터 (레거시 tx_history + CRM invoices 통합)
   const monthlyChart = useMemo(() => {
     const byYM: Record<string, { thisYear: number; lastYear: number }> = {}
     for (let i = 11; i >= 0; i--) {
@@ -261,18 +284,27 @@ export function Dashboard() {
       const ym = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`
       byYM[ym] = { thisYear: 0, lastYear: 0 }
     }
+    // 레거시 tx_history
     allTx.forEach((tx) => {
       const ym = getYearMonth(tx.tx_date ?? '')
-      const lyYM = ym.replace(`${CUR_YEAR - 1}`, `${CUR_YEAR}`) // 전년 → 올해 키로 맵핑
+      const lyYM = ym.replace(`${CUR_YEAR - 1}`, `${CUR_YEAR}`)
       if (byYM[ym])   byYM[ym].thisYear  += tx.amount ?? 0
       if (byYM[lyYM]) byYM[lyYM].lastYear += tx.amount ?? 0
     })
+    // CRM invoices (이중계산 없음: 레거시와 데이터 소스 분리)
+    ;(periodInvoicesRaw?.list ?? []).forEach((inv) => {
+      const ym = getYearMonth(inv.invoice_date ?? '')
+      if (byYM[ym]) byYM[ym].thisYear += inv.total_amount ?? 0
+      // CRM 전년 데이터도 반영 (있는 경우)
+      const lyYM = ym.replace(`${CUR_YEAR - 1}`, `${CUR_YEAR}`)
+      if (lyYM !== ym && byYM[lyYM]) byYM[lyYM].lastYear += inv.total_amount ?? 0
+    })
     return Object.entries(byYM).map(([ym, v]) => ({
-      ym: ym.slice(5),  // 'MM'만 표시
+      ym: ym.slice(5),
       thisYear: v.thisYear,
       lastYear: v.lastYear,
     }))
-  }, [allTx])
+  }, [allTx, periodInvoicesRaw])
 
   // 고객 상태 파이 데이터
   const pieData = [
@@ -281,8 +313,8 @@ export function Dashboard() {
     { name: '이탈', value: churnedCount,    key: 'CHURNED' },
   ]
 
-  // 미수금 TOP10
-  const receivablesChart = (receivablesData?.list ?? []).map((c) => ({
+  // 미수금 TOP10 (차트용: 상위 10건만 표시)
+  const receivablesChart = (receivablesData?.list ?? []).slice(0, 10).map((c) => ({
     name: (c.name ?? '').slice(0, 8),
     amount: c.outstanding_balance ?? 0,
   }))
@@ -311,8 +343,10 @@ export function Dashboard() {
     ? Math.round(periodTotalAmt / validInvoices.length)
     : 0
 
-  // 기간 매출 (tx_history 출고 합계)
+  // 기간 매출: 레거시(tx_history 출고) + CRM(invoices) 통합
   const periodTxSales = periodTxList.reduce((s, t) => s + (t.amount ?? 0), 0)
+  const periodCrmSales = periodInvoiceList.reduce((s, i) => s + (i.total_amount ?? 0), 0)
+  const periodCombinedSales = periodTxSales + periodCrmSales
 
   // 전년동월대비 (thisMonth 프리셋일 때만 계산, 기존 txLastYear 재사용)
   const prevYearSales = useMemo(() => {
@@ -324,21 +358,28 @@ export function Dashboard() {
   }, [activePreset, txLastYear])
 
   const yoyGrowthPct = (prevYearSales !== null && prevYearSales > 0)
-    ? ((periodTxSales - prevYearSales) / prevYearSales) * 100
+    ? ((periodCombinedSales - prevYearSales) / prevYearSales) * 100
     : null
 
-  // 기간 일별 차트 데이터
+  // 기간 일별 차트 데이터 (레거시 + CRM 통합)
   const periodChartData = useMemo(() => {
     const byDate: Record<string, number> = {}
+    // 레거시 tx_history
     periodTxList.forEach((tx) => {
       const d = (tx.tx_date ?? '').slice(0, 10)
       if (!d) return
       byDate[d] = (byDate[d] ?? 0) + (tx.amount ?? 0)
     })
+    // CRM invoices (이중계산 없음)
+    periodInvoiceList.forEach((inv) => {
+      const d = (inv.invoice_date ?? '').slice(0, 10)
+      if (!d) return
+      byDate[d] = (byDate[d] ?? 0) + (inv.total_amount ?? 0)
+    })
     return Object.entries(byDate)
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([date, amount]) => ({ date: date.slice(5), amount }))
-  }, [periodTxList])
+  }, [periodTxList, periodInvoiceList])
 
   // 미수금 경보 색상
   const totalRecColor = totalReceivables >= TOTAL_RECEIVABLE_DANGER
@@ -364,8 +405,11 @@ export function Dashboard() {
         {/* Row 1: 돈 관련 */}
         <KpiCard
           title="이번 달 매출"
-          value={`${fmt(thisMonthSales)}원`}
-          sub={`${thisMonthCount}건 출고`}
+          value={`${fmt(combinedThisMonthSales)}원`}
+          sub={thisMonthCrmSales > 0 && thisMonthSales > 0
+            ? `레거시 ${thisMonthCount}건 + CRM ${thisMonthInvoices}건`
+            : `${combinedThisMonthCount}건 출고`
+          }
         />
         <KpiCard
           title="미수금 총액"
@@ -382,10 +426,10 @@ export function Dashboard() {
         />
         <KpiCard
           title="매출 성장률"
-          value={`${growthPct >= 0 ? '+' : ''}${growthPct.toFixed(1)}%`}
-          sub="전월 대비"
-          valueClass={growthColor(growthPct)}
-          icon={<GrowthIcon pct={growthPct} />}
+          value={`${combinedGrowthPct >= 0 ? '+' : ''}${combinedGrowthPct.toFixed(1)}%`}
+          sub="전월 대비 (레거시+CRM 통합)"
+          valueClass={growthColor(combinedGrowthPct)}
+          icon={<GrowthIcon pct={combinedGrowthPct} />}
         />
 
         {/* Row 2: 고객 관련 */}
@@ -407,8 +451,8 @@ export function Dashboard() {
         />
         <KpiCard
           title="평균 거래 단가"
-          value={`${fmt(avgAmount)}원`}
-          sub="이번 달 출고 기준"
+          value={`${fmt(combinedAvgAmount)}원`}
+          sub="이번 달 통합 기준"
         />
       </div>
 
@@ -569,16 +613,16 @@ export function Dashboard() {
           />
           {/* 전년동월대비 (thisMonth) 또는 기간 매출 */}
           <KpiCard
-            title={activePreset === 'thisMonth' ? '전년동월 대비' : '기간 출고 매출'}
+            title={activePreset === 'thisMonth' ? '전년동월 대비' : '기간 매출'}
             value={
               yoyGrowthPct !== null
                 ? `${yoyGrowthPct >= 0 ? '+' : ''}${yoyGrowthPct.toFixed(1)}%`
-                : `${fmt(periodTxSales)}원`
+                : `${fmt(periodCombinedSales)}원`
             }
             sub={
               yoyGrowthPct !== null
                 ? `전년 ${CUR_YEAR - 1}년 ${CUR_MONTH}월 대비`
-                : `출고 기준`
+                : `레거시+CRM 통합`
             }
             valueClass={yoyGrowthPct !== null ? yoyColor(yoyGrowthPct) : ''}
             icon={yoyGrowthPct !== null ? <GrowthIcon pct={yoyGrowthPct} /> : undefined}
@@ -596,7 +640,7 @@ export function Dashboard() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">
-                {dateRange.label} 일별 출고 매출
+                {dateRange.label} 일별 매출 (레거시+CRM)
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -655,16 +699,18 @@ function YearlyChart() {
   const { data } = useQuery({
     queryKey: ['dash-yearly'],
     queryFn: async () => {
-      // 최근 5년 상세 조회 (병렬, 각 limit 2000으로 API 부하 절감)
+      // 최근 5년 상세 조회 (병렬, 연간 7500건 예상 → limit 5000으로 대응)
       const recentYears = [2022, 2023, 2024, 2025, 2026]
       const results = await Promise.all(
         recentYears.map((y) =>
           getTxHistory({
             where: `(tx_type,eq,출고)~and(tx_year,eq,${y})`,
-            limit: 2000,
+            limit: 5000,
+            fields: 'Id,amount',
           }).then((d) => ({
             year: y,
             total: d.list.reduce((s, t) => s + (t.amount ?? 0), 0),
+            truncated: d.list.length < (d.pageInfo?.totalRows ?? 0),
           }))
         )
       )

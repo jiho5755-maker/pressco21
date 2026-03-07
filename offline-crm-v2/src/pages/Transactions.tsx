@@ -81,7 +81,7 @@ export function Transactions() {
 
   // ── 레거시 거래내역 쿼리 (CRM 유형 필터 시 건너뜀)
   const legacyParams: Record<string, string | number> = {
-    limit: PAGE_SIZE * 2,  // 병합 후 페이지네이션이므로 2배 요청
+    limit: 500,  // 레거시 최근 500건 (날짜순 정렬 후 CRM과 병합)
     sort: '-tx_date',
   }
   const legacyConditions: string[] = []
@@ -109,7 +109,7 @@ export function Transactions() {
   // ── CRM 명세표 쿼리 (레거시 유형 필터 시 건너뜀)
   const skipCrm = ['입금', '반입', '메모'].includes(typeFilter)
   const crmParams: Record<string, string | number> = {
-    limit: PAGE_SIZE * 2,
+    limit: 500,  // CRM 최근 500건
     sort: '-invoice_date',
     fields: 'Id,invoice_date,customer_name,total_amount,tax_amount,invoice_no,memo',
   }
@@ -141,8 +141,14 @@ export function Transactions() {
     return merged
   }, [legacyData, crmData])
 
-  const totalRows = allRows.length
-  const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE))
+  // 서버 기준 실제 총 건수 (로드된 배열 길이가 아닌 DB 전체 건수)
+  const serverLegacyTotal = legacyData?.pageInfo?.totalRows ?? 0
+  const serverCrmTotal = crmData?.pageInfo?.totalRows ?? 0
+  const serverTotalRows = serverLegacyTotal + serverCrmTotal
+
+  // 클라이언트 페이지네이션은 로드된 데이터 범위 내에서만
+  const loadedRows = allRows.length
+  const totalPages = Math.max(1, Math.ceil(loadedRows / PAGE_SIZE))
   const pagedRows = allRows.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
 
   const isLoading = legacyLoading || crmLoading
@@ -163,10 +169,15 @@ export function Transactions() {
         <div>
           <h2 className="text-2xl font-bold">거래 내역</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            총 {totalRows.toLocaleString()}건
+            전체 {serverTotalRows.toLocaleString()}건
             <span className="ml-2 text-xs text-muted-foreground">
-              (레거시 {legacyData?.list?.length ?? 0}건 + CRM 명세표 {crmData?.list?.length ?? 0}건)
+              (레거시 {serverLegacyTotal.toLocaleString()}건 + CRM {serverCrmTotal.toLocaleString()}건)
             </span>
+            {loadedRows < serverTotalRows && (
+              <span className="ml-1 text-xs text-amber-600">
+                — 최근 {loadedRows.toLocaleString()}건 표시 중
+              </span>
+            )}
           </p>
         </div>
       </div>
@@ -306,7 +317,10 @@ export function Transactions() {
         <div className="flex items-center justify-between mt-4">
           <p className="text-sm text-muted-foreground">
             {((page - 1) * PAGE_SIZE + 1).toLocaleString()}–
-            {Math.min(page * PAGE_SIZE, totalRows).toLocaleString()} / {totalRows.toLocaleString()}건
+            {Math.min(page * PAGE_SIZE, loadedRows).toLocaleString()} / {loadedRows.toLocaleString()}건
+            {loadedRows < serverTotalRows && (
+              <span className="text-xs text-muted-foreground"> (전체 {serverTotalRows.toLocaleString()}건)</span>
+            )}
           </p>
           <div className="flex items-center gap-2">
             <Button

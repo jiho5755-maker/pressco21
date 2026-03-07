@@ -162,7 +162,7 @@ export function Invoices() {
         <div>
           <h2 className="text-2xl font-bold">거래명세표</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            이번 달 {totalRows.toLocaleString()}건
+            총 {totalRows.toLocaleString()}건
           </p>
         </div>
         <div className="flex gap-2">

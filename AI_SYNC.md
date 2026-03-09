@@ -332,16 +332,40 @@
   - 일정 관리 탭은 라이브 집중 재현에서 fresh session 기준 정상 활성화 확인
   - 다음 단계는 메이크샵 실제 반영 후 라이브 URL 재검증
 
+### 파트너클래스 라이브 재검증 (CODEX)
+- 실행 일시: 2026-03-10 01:02 KST ~ 2026-03-10 01:05 KST
+- 실행 명령
+  - `NODE_PATH=/tmp/partnerclass-live-runner/node_modules PARTNER_MEMBER_ID='jihoo5755' PARTNER_MEMBER_PASSWORD='jang1015!' node scripts/partnerclass-live-smoke.js`
+- 결과 요약
+  - 라이브 `https://www.foreverlove.co.kr` 기준 총 15건 중 11건 성공, 4건 실패
+  - 이전 실패 항목 중 `목록 정렬/서울 필터/찜 필터`, `파트너 대시보드 탭 전환/CSV 다운로드`는 라이브 통과 확인
+  - 결과 파일: `output/playwright/partnerclass-20260310-fix/partnerclass-live-results.json`
+- 실패 상세
+  - `파트너 일정 관리 탭`
+    - 에러: `page.waitForFunction: Timeout 15000ms exceeded.`
+    - 스크린샷: `output/playwright/partnerclass-20260310-fix/fail-파트너-일정-관리-탭.png`
+  - `파트너 등급 게이지/승급표 정합성`
+    - 에러: `page.waitForSelector: Timeout 15000ms exceeded. waiting for locator('#pdMainArea') to be visible`
+    - 스크린샷: `output/playwright/partnerclass-20260310-fix/fail-파트너-등급-게이지-승급표-정합성.png`
+  - `강의 등록 폼 검증/일정 추가/키트 토글`
+    - 에러: `page.waitForSelector: Timeout 15000ms exceeded. waiting for locator('#crRegisterForm') to be visible`
+    - 스크린샷: `output/playwright/partnerclass-20260310-fix/fail-강의-등록-폼-검증-일정-추가-키트-토글.png`
+  - `마이페이지 로그인 상태 빈 화면`
+    - 에러: `page.waitForSelector: Timeout 15000ms exceeded. waiting for locator('#mbMainArea') to be visible`
+    - 스크린샷: `output/playwright/partnerclass-20260310-fix/fail-마이페이지-로그인-상태-빈-화면.png`
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] 메이크샵 페이지 반영 후 `partnerclass-live-smoke.js`를 다시 실행해 라이브 URL 기준 실패 3건 해소 여부 확인
+- [CODEX] 파트너 일정 관리 탭 타임아웃 재현 시 `#pdTabSchedules`, `#pdLoadingOverlay`, 강의 셀렉트 옵션 상태를 라이브 DOM 기준으로 수집
+- [CODEX] 로그인 후 hidden 상태로 남는 `파트너 대시보드 메인`, `강의등록 폼`, `마이페이지 메인`의 초기화 조건과 멤버 권한 체크 분기 점검
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
 
 ### Claude Code 태스크
-- 메이크샵 편집기 또는 배포 경로로 `파트너클래스/목록/js.js`, `파트너클래스/파트너/js.js` 최신 소스 반영
+- 로그인 후 `id=2608`, `id=8009`, `id=8010`에서 메인 패널이 hidden 상태로 남는 원인 점검
+- `id=2608` 일정 관리 탭 활성화 실패 시 실제 DOM 클래스/로딩 오버레이 상태 확인
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
 - 실관리자 계정으로 `id=8011` 최종 양성 시나리오 재검증
 - CRM 운영 확인: 실제 운영 브라우저에서 `미수금` 복구와 `캘린더 2026-03-09 8건` 표기를 확인
@@ -352,7 +376,8 @@
 
 ## Known Risks
 
-- 리포지토리 수정본이 아직 메이크샵 실서비스에 반영되지 않아, 라이브 URL 기준 결과는 배포 전 상태일 수 있음
+- 라이브 재검증 기준 `목록 찜 필터`와 `파트너 대시보드 탭 전환/CSV`는 정상이나, 로그인 후 일부 페이지가 메인 패널 hidden 상태로 남음
+- `id=2608` 일정 관리 탭은 여전히 활성화 타임아웃이 재현됨
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.
 - 운영 `invoice_date`는 서버측 날짜 비교(`gte/lte`)가 안정적으로 동작하지 않아, 캘린더는 전체 명세표를 읽은 뒤 프론트에서 월/기간 필터링하는 구조를 사용 중.
 - 거래처 자동완성 exact-name hydrate는 유지되어, 동일 상호 고객이 여러 명인 케이스는 기존처럼 `customer_id` 연결 품질에 영향을 받음.

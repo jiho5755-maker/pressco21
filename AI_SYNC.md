@@ -459,10 +459,25 @@
   - 스크린샷: `output/playwright/admin-positive-20260310/admin-positive-denied.png`
   - 상태 파일: `output/playwright/admin-positive-20260310/admin-positive-state.json`
 
+### 어드민 권한 판정 보강 (CODEX)
+- 실행 일시: 2026-03-10 02:18 KST ~ 2026-03-10 02:20 KST
+- 수정 파일
+  - `파트너클래스/어드민/js.js`
+- 수정 내용
+  - 기존 `group_name` 정확 일치(`관리자`, `운영자`, `대표`) 규칙은 유지
+  - 추가로 `group_level`에서 숫자를 추출해 `9 이상`이면 관리자 권한으로 허용하도록 보강
+  - 따라서 `groupName=테스트 관리자`, `groupLevel=10` 같은 케이스도 통과 가능
+- 검증
+  - `python3 codex-skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/어드민/js.js` → `OK`
+  - 로직 샘플 검증
+    - `테스트 관리자 / 10` → `true`
+    - `관리자 / 1` → `true`
+    - `일반회원 / 3` → `false`
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] 어드민 권한 판정 로직을 `group_name=테스트 관리자` 또는 `group_level>=9`까지 허용할지 결정 후 `id=8011` 재검증
+- [CODEX] 메이크샵에 `파트너클래스/어드민/js.js` 반영 후 `id=8011` 실관리자 양성 재검증
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
@@ -492,4 +507,4 @@
 - `codex-skills/partnerclass-live-qa`는 repo-local 스킬이라, 자동 트리거를 원하면 전역 Codex 스킬 디렉터리로 별도 설치가 필요함
 - 실관리자 계정 자격증명은 리포지토리에서 확인되지 않았고, `id=8011` 양성 최종 검증 전 별도 제공이 필요함
 - `makeshop-d4-dev`는 `/Users/jangjiho/workspace/AGENTS.md`를 기준 문서로 참조하므로, 해당 경로가 바뀌면 스킬 안내도 함께 갱신해야 함
-- 현재 어드민 `isAdmin()`은 `group_level`을 보지 않고 `group_name`이 `관리자`, `운영자`, `대표`와 정확히 일치할 때만 통과함
+- 어드민 권한 판정은 이제 `group_name` 일치 또는 `group_level >= 9`면 통과하므로, 다른 최고등급 회원이 의도치 않게 열리지 않는지 운영 정책 확인 필요

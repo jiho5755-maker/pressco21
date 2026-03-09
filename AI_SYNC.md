@@ -394,10 +394,20 @@
     - `showLoading(show)`가 `false`일 때 `pdLoadingOverlay`를 숨기도록 보정
   - 이 수정은 리포지토리에 반영됐고, 메이크샵 최신 배포 후 다시 라이브 확인 필요
 
+### 파트너클래스 라이브 최종 확인 완료 (CODEX)
+- 실행 일시: 2026-03-10 01:41 KST ~ 2026-03-10 01:43 KST
+- 실행 명령
+  - `NODE_PATH=/tmp/partnerclass-live-runner/node_modules PARTNER_MEMBER_ID='jihoo5755' PARTNER_MEMBER_PASSWORD='jang1015!' node scripts/partnerclass-live-smoke.js`
+- 결과 요약
+  - 라이브 `https://www.foreverlove.co.kr` 기준 총 15건 중 15건 성공, 0건 실패
+  - 결과 파일: `output/playwright/partnerclass-20260310-fix/partnerclass-live-results.json`
+  - 마지막 실패였던 `파트너 일정 관리 탭`도 `강의 옵션 3건, 일정 추가 폼 열기/취소 확인`으로 통과
+- 비고
+  - 현재 파트너클래스 라이브 스모크 기준 블로커 없음
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] 메이크샵에 최신 `파트너클래스/파트너/js.js` 반영 후 `partnerclass-live-smoke.js` 재실행
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
@@ -415,7 +425,6 @@
 ## Known Risks
 
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음
-- 일정 관리 오버레이 수정은 리포지토리에 반영됐지만, 메이크샵 실서비스에는 아직 최신 `파트너/js.js` 재배포가 필요함
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.
 - 운영 `invoice_date`는 서버측 날짜 비교(`gte/lte`)가 안정적으로 동작하지 않아, 캘린더는 전체 명세표를 읽은 뒤 프론트에서 월/기간 필터링하는 구조를 사용 중.
 - 거래처 자동완성 exact-name hydrate는 유지되어, 동일 상호 고객이 여러 명인 케이스는 기존처럼 `customer_id` 연결 품질에 영향을 받음.

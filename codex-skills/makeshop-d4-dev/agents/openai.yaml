@@ -1,0 +1,4 @@
+interface:
+  display_name: "MakeShop D4 Dev"
+  short_description: "메이크샵 D4 저장 오류 방지와 템플릿 검수 스킬"
+  default_prompt: "Use $makeshop-d4-dev to review this MakeShop D4 template and apply editor-safe fixes before deploy."

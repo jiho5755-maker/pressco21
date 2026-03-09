@@ -58,9 +58,9 @@
 
 ## Files In Progress
 
-- (none)
+- 없음
 
-## Last Changes (2026-03-09)
+## Last Changes (2026-03-09 ~ 2026-03-10)
 
 ### CRM 수정
 - `offline-crm-v2/docs/crm-handoff-2026-03-09.md`, `.claude/agent-memory/accounting-specialist/MEMORY.md`
@@ -418,17 +418,36 @@
 - 검증
   - `quick_validate.py codex-skills/partnerclass-live-qa` 통과
 
+### 메이크샵 전역 Codex 스킬 생성/설치 (CODEX)
+- 실행 일시: 2026-03-10 01:41 KST ~ 2026-03-10 02:05 KST
+- 기준 문서
+  - `/Users/jangjiho/workspace/AGENTS.md`
+- 생성 파일
+  - `codex-skills/makeshop-d4-dev/SKILL.md`
+  - `codex-skills/makeshop-d4-dev/references/makeshop_d4_rules.md`
+  - `codex-skills/makeshop-d4-dev/scripts/check_makeshop_d4.py`
+  - `codex-skills/makeshop-d4-dev/agents/openai.yaml`
+- 내용 요약
+  - 메이크샵 D4 개발 전용 Codex 스킬 추가
+  - `${}` 이스케이프, `var` 강제, IIFE, CSS 컨테이너 스코핑, 가상태그 보존, HTTPS CDN, 이모지 금지 규칙을 스킬과 레퍼런스로 정리
+  - 번들 검수 스크립트로 raw `${`, `let/const`, `http://`, 잘못된 가상태그 종료, 이모지, JS IIFE 누락을 빠르게 탐지하도록 구성
+  - 전역 설치 경로: `/Users/jangjiho/.codex/skills/makeshop-d4-dev`
+- 검증
+  - `generate_openai_yaml.py codex-skills/makeshop-d4-dev ...` 통과
+  - `quick_validate.py codex-skills/makeshop-d4-dev` 통과
+  - `PYTHONPYCACHEPREFIX=/tmp/pycache python3 -m py_compile codex-skills/makeshop-d4-dev/scripts/check_makeshop_d4.py` 통과
+  - `python3 codex-skills/makeshop-d4-dev/scripts/check_makeshop_d4.py /tmp/makeshop-sample.js` → `OK`
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
+- [CODEX] `$makeshop-d4-dev` 스킬을 사용해 실관리자 계정 기반 `id=8011` 어드민 양성 최종 검증
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
-- [CODEX] 필요 시 `codex-skills/partnerclass-live-qa`를 전역 Codex 스킬 디렉터리로 설치
 
 ### Claude Code 태스크
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
-- 실관리자 계정으로 `id=8011` 최종 양성 시나리오 재검증
 - CRM 운영 확인: 실제 운영 브라우저에서 `미수금` 복구와 `캘린더 2026-03-09 8건` 표기를 확인
 - 캘린더 운영 판단: 과거 기준일 `미수 후속`은 현재 미수 기준 참고용이라는 점을 UX 문구로 더 명확히 할지 검토
 - 필요 시 캘린더 3단계: 최근 미주문 고객/고액 미수 고객 추천과 후속 액션 버튼 추가
@@ -450,3 +469,5 @@
 - 기존 tbl_Partners의 grade 필드가 SILVER로 되어 있어 프론트에서 BLOOM 매핑 처리 중
 - `docs/n8n-automation-efficiency-review-2026-03-09.md`는 분석/제언 문서이며, 아직 실제 이관이나 워크플로우 분할은 수행되지 않음
 - `codex-skills/partnerclass-live-qa`는 repo-local 스킬이라, 자동 트리거를 원하면 전역 Codex 스킬 디렉터리로 별도 설치가 필요함
+- 실관리자 계정 자격증명은 리포지토리에서 확인되지 않았고, `id=8011` 양성 최종 검증 전 별도 제공이 필요함
+- `makeshop-d4-dev`는 `/Users/jangjiho/workspace/AGENTS.md`를 기준 문서로 참조하므로, 해당 경로가 바뀌면 스킬 안내도 함께 갱신해야 함

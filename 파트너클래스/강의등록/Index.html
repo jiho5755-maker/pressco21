@@ -331,6 +331,31 @@
                             <input type="text" id="crLocation" name="location" class="cr-form__input"
                                 placeholder="예: 서울 강남구 테헤란로 123, 꽃피는공방" maxlength="200">
                         </div>
+
+                        <!-- 재료키트 자동 배송 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label">
+                                재료키트 자동 배송
+                                <span class="cr-form__hint">(선택)</span>
+                            </label>
+                            <p class="cr-form__field-desc">수강생 결제 시 재료키트가 자동으로 배송 처리됩니다. 키트에 포함할 상품을 등록하세요.</p>
+                            <label class="cr-kit-toggle">
+                                <input type="checkbox" id="crKitEnabled" class="cr-kit-toggle__input">
+                                <span class="cr-kit-toggle__slider"></span>
+                                <span class="cr-kit-toggle__text">재료키트 자동 배송 사용</span>
+                            </label>
+                            <div id="crKitItemsArea" class="cr-kit-items" style="display:none">
+                                <div id="crKitItemsList" class="cr-kit-items__list">
+                                    <!-- JS: 키트 항목 동적 렌더링 -->
+                                </div>
+                                <button type="button" id="crAddKitItemBtn" class="cr-btn cr-btn--outline cr-btn--sm">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                                        <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                    </svg>
+                                    키트 항목 추가
+                                </button>
+                            </div>
+                        </div>
                     </div>
 
                     <!-- 섹션 3: 연락처 (선택) -->

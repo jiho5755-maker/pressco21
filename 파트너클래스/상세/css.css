@@ -444,6 +444,11 @@
     color: var(--cd-gold);
 }
 
+.class-detail .info-badge--kit {
+    background: rgba(125, 150, 117, 0.15);
+    color: #5a8a50;
+}
+
 .class-detail .info-title {
     font-size: 24px;
     font-weight: 700;

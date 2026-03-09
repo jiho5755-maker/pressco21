@@ -13,25 +13,42 @@
 ## Session Lock
 
 - Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-09 15:00:00 KST
+- Mode: IDLE
+- Started At: 2026-03-09 16:05:00 KST
 - Branch: main
-- Working Scope: Improve toast UX, invoice taxable default sync, and invoice customer autocomplete keyboard UX.
+- Working Scope: Calendar current-state analysis and upgrade proposal prepared.
 - Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
 
-- offline-crm-v2/src/App.tsx
-- offline-crm-v2/src/pages/Settings.tsx
-- offline-crm-v2/src/components/ProductDialog.tsx
-- offline-crm-v2/src/components/InvoiceDialog.tsx
+(없음 — 분석만 수행)
 
 ## Last Changes (2026-03-09)
 
 ### CRM 수정
+- `offline-crm-v2/src/pages/Calendar.tsx`, `offline-crm-v2/src/pages/Dashboard.tsx`
+  - 캘린더 페이지의 현재 구조와 데이터 연결 상태를 점검.
+  - 대시보드의 기간 리포트/통합 매출 계산 로직과 캘린더의 단순 월별 명세표 집계를 비교해 개선 방향 제안 준비.
+- `offline-crm-v2/src/components/InvoiceDialog.tsx`
+  - 거래처 검색 결과가 0건일 때 드롭다운 위치에 `검색 결과가 없습니다` 안내 문구를 표시하도록 추가.
+  - 새 명세표에서 최근 명세표 기준 최근 거래처 6개를 빠른 선택 버튼으로 노출하고, 클릭 시 고객 정보를 hydrate하도록 추가.
+  - 새 명세표 전용 `임시저장` 버튼과 `임시저장본 불러오기/삭제` 배너 추가.
+  - 실제 발행 완료 시 임시저장본은 자동 삭제되도록 처리.
+  - 검색 debounce 전에는 `검색 결과 없음` 메시지가 성급하게 뜨지 않도록 조건 보정.
+- `offline-crm-v2/src/App.tsx`
+  - Sonner 토스트 위치를 우측 상단에서 우측 하단으로 변경.
+  - 토스트 본문 클릭 시 즉시 닫히도록 전역 click-dismiss 처리 추가.
+- `offline-crm-v2/src/lib/settings.ts`
+  - 저장된 CRM 설정에서 `default_taxable`를 boolean으로 정규화해 읽는 helper 추가.
 - `offline-crm-v2/src/components/ProductDialog.tsx`
   - 새 제품 등록 시 `is_taxable` 기본값이 설정값(`default_taxable`)을 따르도록 수정.
   - `default_taxable`가 `0/1`, `true/false`, 문자열로 들어와도 boolean으로 정규화되도록 보강.
+- `offline-crm-v2/src/components/InvoiceDialog.tsx`
+  - 새 명세표 첫 행, 행 추가, 품목 선택 모달 추가 시 `default_taxable` 설정을 기본 과세값으로 사용하도록 수정.
+  - 거래처 자동완성에 `↑/↓/Enter/Escape/Tab` 키보드 탐색, 활성 항목 하이라이트, 스크롤 추적 추가.
+  - 거래처명을 다시 입력할 때 이전 선택 고객의 `customer_id`/고객 카드/사업자 스냅샷이 남지 않도록 stale 상태 초기화.
+  - 빈 placeholder 품목만 있는 명세표는 저장되지 않도록 검증 추가.
+  - 마지막 품목 행 삭제 시에는 기본 과세값이 반영된 빈 행 1개를 유지하도록 조정.
 - `offline-crm-v2/src/pages/Settings.tsx`
   - `새 품목 기본값: 과세 (10%)` 체크박스의 fallback 기본값을 해제 상태로 조정.
   - 현재 운영 설정 레코드의 `default_taxable` 값이 `0`인 것도 확인.
@@ -41,6 +58,7 @@
 - 운영 배포
   - `npm run build` 통과.
   - `bash deploy/deploy.sh`로 운영 재배포 완료.
+  - 운영 주소 `https://crm.pressco21.com` 기준 최신 빌드 반영 완료.
 
 ### Phase 0 완료
 - `파트너클래스/n8n-workflows/WF-01-class-api.json` — POST 전환, Switch v3.2, 순차 연결, tbl_Schedules schedules[] 확장
@@ -65,22 +83,41 @@
 - `파트너클래스/n8n-workflows/WF-05-order-polling-batch.json` — "Update Booked Count" 노드 추가 (Create Settlement → booked_count 증가 → Aggregate)
 - `파트너클래스/n8n-workflows/WF-16-class-register.json` — "Create Initial Schedules" 노드 추가 + Validate Input에 schedules[] 파싱
 
+### Phase 1 Task 005 완료: 재료키트 자동 배송
+- NocoDB tbl_Classes에 kit_enabled(Number), kit_items(LongText) 필드 추가
+- `파트너클래스/강의등록/Index.html` — 키트 토글 + 키트 항목 입력 UI 추가
+- `파트너클래스/강의등록/js.js` — bindKitToggle, addKitItem, collectKitItems 함수 추가
+- `파트너클래스/강의등록/css.css` — 키트 토글/항목 스타일 추가
+- `파트너클래스/상세/js.js` — "재료키트 포함" 배지 추가
+- `파트너클래스/상세/css.css` — info-badge--kit 스타일 추가
+- `파트너클래스/파트너/js.js` — 클래스 수정 모달에 키트 토글/항목 편집 추가
+- `파트너클래스/파트너/css.css` — 키트 편집 UI 스타일 추가
+
+### 수강생 마이페이지 UI 완료
+- `파트너클래스/마이페이지/Index.html` — 로그인 안내, 요약 카드, 예약 카드, 빈 상태
+- `파트너클래스/마이페이지/js.js` — WF-19 API 연동, 예약 카드 렌더링
+- `파트너클래스/마이페이지/css.css` — 반응형 스타일
+
 ### 서버 배포 (n8n)
-- WF-01 재배포 (schedules 확장)
-- WF-05 재배포 (수수료율 + booked_count 증가 로직)
-- WF-16 재배포 (초기 일정 저장 로직)
-- WF-19 신규 배포 (ID: Zvk8akZ20VnfsQeN)
-- WF-20 신규 배포 (ID: EHjVijWGTkUkYNip)
+- WF-01 재배포 (kit_enabled 필드 추가)
+- WF-05 재배포 (Process Kit Order 텔레그램 알림 노드 추가)
+- WF-16 재배포 (kit_enabled/kit_items 저장)
+- WF-20 재배포 (kit 필드 수정 허용)
+- WF-19 배포 완료 (ID: Zvk8akZ20VnfsQeN)
 
 ## Next Step
 
-- E2E 테스트: 대시보드 일정 관리 탭 동작 확인, 강의 등록 시 일정 저장 확인, 결제 시 booked_count 증가 확인
-- Phase 1 Task 005: 재료키트 자동 배송 연동
-- 수강생 마이페이지 예약 확인 프론트 UI
+- 캘린더 고도화 1단계: Dashboard와 동일한 기간 KPI/프리셋/통합 매출 계산 로직을 Calendar로 이관.
+- 캘린더 고도화 2단계: 날짜 클릭 시 `명세표/미수금/재방문 대상` 액션 패널 추가.
+- CRM 운영 확인: 토스트 우하단, 과세 기본값, 거래처 자동완성, 검색/임시저장 플로우
+- 파트너클래스 E2E: 일정 관리/강의 등록/키트 배송/마이페이지 전체 흐름 테스트
+- Phase 1 Task 005-1: 통합 테스트
 - 카카오 JS Key 실제 발급 후 교체 필요
 
 ## Known Risks
 
+- 거래처 자동완성 exact-name hydrate는 유지되어, 동일 상호 고객이 여러 명인 케이스는 기존처럼 `customer_id` 연결 품질에 영향을 받음.
+- 임시저장은 현재 `새 명세표` 1건만 로컬에 보관하는 구조라, 여러 개의 임시 명세표를 병렬로 쌓아두는 용도는 아님.
 - 카카오 SDK JS Key가 플레이스홀더(`YOUR_KAKAO_JS_KEY_HERE`) 상태
 - tbl_Schedules에 중복 일정 테스트 데이터 있음 (SCH_20260320_03, SCH_20260320_77 — 같은 날짜/시간)
 - WF-18의 schedule_id 생성이 2자리 랜덤으로 충돌 가능성 있음 (6자리로 확장 권장)

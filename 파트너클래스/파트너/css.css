@@ -1580,6 +1580,41 @@
     border-top: 1px solid var(--pd-border-light);
 }
 
+/* 키트 편집 (모달) */
+.partner-dashboard .pd-kit-section {
+    margin-top: 12px;
+    padding-top: 12px;
+    border-top: 1px solid var(--pd-border-light);
+}
+.partner-dashboard .pd-kit-toggle-label {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    cursor: pointer;
+}
+.partner-dashboard .pd-kit-items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 10px 0;
+}
+.partner-dashboard .pd-kit-row {
+    display: flex;
+    gap: 6px;
+    align-items: center;
+}
+.partner-dashboard .pd-kit-row .pd-kit-name { flex: 3; }
+.partner-dashboard .pd-kit-row .pd-kit-code { flex: 2; }
+.partner-dashboard .pd-kit-row .pd-kit-qty { flex: 1; min-width: 60px; }
+.partner-dashboard .pd-kit-row__remove {
+    background: none;
+    border: none;
+    color: var(--pd-gold);
+    font-size: 18px;
+    cursor: pointer;
+    padding: 0 4px;
+}
+
 /* 후기 미리보기 */
 .partner-dashboard .pd-reply-preview {
     background: var(--pd-bg);

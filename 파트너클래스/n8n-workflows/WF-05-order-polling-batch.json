@@ -387,13 +387,24 @@
     },
     {
       "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5a-6c: 재료키트 자동 배송 처리\n// kit_enabled=1인 클래스의 경우 텔레그램으로 키트 배송 알림\n// ===================================================\n\nconst https = require('https');\nconst settlement = $('Calc Commission').first().json.settlement;\nconst createResult = $('Create Settlement').first().json;\n\n// 정산 생성 실패 시 스킵\nif (!createResult.Id && !createResult.id) {\n  return [$input.first()];\n}\n\nconst classId = settlement.class_id;\n\nfunction nocoRequest(method, path, body) {\n  return new Promise((resolve, reject) => {\n    const options = {\n      hostname: 'nocodb.pressco21.com',\n      path: '/api/v1/db/data/noco/' + $env.NOCODB_PROJECT_ID + path,\n      method: method,\n      headers: {\n        'xc-token': $env.NOCODB_API_TOKEN,\n        'Content-Type': 'application/json'\n      }\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch(e) { resolve(data); }\n      });\n    });\n    req.on('error', reject);\n    if (body) req.write(JSON.stringify(body));\n    req.end();\n  });\n}\n\nfunction sendTelegram(message) {\n  return new Promise((resolve, reject) => {\n    const chatId = $env.TELEGRAM_CHAT_ID || '7713811206';\n    const postData = JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML' });\n    const options = {\n      hostname: 'api.telegram.org',\n      path: '/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage',\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => resolve(data));\n    });\n    req.on('error', reject);\n    req.write(postData);\n    req.end();\n  });\n}\n\ntry {\n  // tbl_Classes에서 kit_enabled 확인\n  const classResult = await nocoRequest('GET',\n    '/mpvsno4or6asbxk?where=(class_id,eq,' + encodeURIComponent(classId) + ')&fields=class_id,class_name,kit_enabled,kit_items&limit=1'\n  );\n  const classList = classResult.list || [];\n\n  if (classList.length > 0) {\n    const cls = classList[0];\n    const kitEnabled = Number(cls.kit_enabled) || 0;\n\n    if (kitEnabled === 1 && cls.kit_items) {\n      let kitItems = [];\n      try { kitItems = JSON.parse(cls.kit_items); } catch(e) {}\n\n      if (kitItems.length > 0) {\n        // 텔레그램 키트 배송 알림\n        let itemsList = '';\n        for (const item of kitItems) {\n          const qty = (item.quantity || 1) * (settlement.student_count || 1);\n          itemsList += '  - ' + item.name + (item.product_code ? ' (' + item.product_code + ')' : '') + ' x ' + qty + '\\n';\n        }\n\n        const msg = '📦 <b>재료키트 배송 요청</b>\\n\\n'\n          + '<b>클래스:</b> ' + (cls.class_name || classId) + '\\n'\n          + '<b>수강생:</b> ' + (settlement.student_name || '-') + '\\n'\n          + '<b>연락처:</b> ' + (settlement.student_phone || '-') + '\\n'\n          + '<b>수강일:</b> ' + (settlement.class_date || '-') + '\\n'\n          + '<b>인원:</b> ' + (settlement.student_count || 1) + '명\\n\\n'\n          + '<b>키트 구성:</b>\\n' + itemsList + '\\n'\n          + '주문번호: ' + (settlement.order_id || '-');\n\n        try {\n          await sendTelegram(msg);\n        } catch(e) {\n          // 텔레그램 실패해도 정산은 정상 처리\n        }\n      }\n    }\n  }\n} catch(e) {\n  // kit 처리 실패해도 정산은 이미 생성됨 - 로그만\n}\n\nreturn [$input.first()];"
+      },
+      "id": "wf05-process-kit-order",
+      "name": "Process Kit Order",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3330, -60],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
         "jsCode": "// ===================================================\n// WF-05 5a-7: 폴링 처리 결과 집계 + 폴링 로그 구성\n// 모든 주문 처리 완료 후 집계 데이터 생성\n// 참고: SplitInBatches 대신 전체 결과를 Code 노드에서 집계\n// ===================================================\n\nconst items = $input.all();\nconst pollMeta = $('Parse Poll Time').first().json;\nconst filterData = $('Filter Class Orders').first().json;\n\nlet created = 0;\nlet skipped = 0;\nlet errors = 0;\nconst settlements = [];\n\nfor (const item of items) {\n  const d = item.json;\n  if (d.Id || d.id) {\n    created++;\n    // 이전 노드에서 전달된 settlement 데이터 참조\n    settlements.push(d);\n  } else {\n    errors++;\n  }\n}\n\n// 텔레그램 메시지 구성\nlet message = '';\nif (created > 0 || errors > 0) {\n  message = '주문 폴링 완료\\n\\n'\n    + '전체 주문: ' + filterData.totalOrders + '건\\n'\n    + '클래스 주문: ' + filterData.classOrderCount + '건\\n'\n    + '정산 생성: ' + created + '건\\n';\n  if (errors > 0) message += '오류: ' + errors + '건\\n';\n}\n\nreturn [{\n  json: {\n    _logData: {\n      poll_time: pollMeta.pollStartTime,\n      orders_found: filterData.totalOrders,\n      class_orders: filterData.classOrderCount,\n      settlements_created: created,\n      errors: errors,\n      note: ''\n    },\n    _updatePollTime: true,\n    _pollMeta: pollMeta,\n    _telegramMessage: message,\n    _hasMessage: message.length > 0\n  }\n}];"
       },
       "id": "wf05-aggregate-poll",
       "name": "Aggregate Poll Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3440, 200]
+      "position": [3560, 200]
     },
     {
       "parameters": {
@@ -1410,6 +1421,11 @@
       ]
     },
     "Update Booked Count": {
+      "main": [
+        [{ "node": "Process Kit Order", "type": "main", "index": 0 }]
+      ]
+    },
+    "Process Kit Order": {
       "main": [
         [{ "node": "Aggregate Poll Results", "type": "main", "index": 0 }]
       ]

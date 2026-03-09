@@ -852,6 +852,95 @@
     background: #f0f5ef;
 }
 
+/* ── 재료키트 토글 ── */
+.class-register .cr-kit-toggle {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    margin-bottom: 12px;
+    user-select: none;
+}
+.class-register .cr-kit-toggle__input {
+    display: none;
+}
+.class-register .cr-kit-toggle__slider {
+    position: relative;
+    width: 44px;
+    height: 24px;
+    background: #d5cfc7;
+    border-radius: 12px;
+    transition: background 0.25s;
+    flex-shrink: 0;
+}
+.class-register .cr-kit-toggle__slider::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 18px;
+    height: 18px;
+    background: #fff;
+    border-radius: 50%;
+    transition: transform 0.25s;
+}
+.class-register .cr-kit-toggle__input:checked + .cr-kit-toggle__slider {
+    background: #7d9675;
+}
+.class-register .cr-kit-toggle__input:checked + .cr-kit-toggle__slider::after {
+    transform: translateX(20px);
+}
+.class-register .cr-kit-toggle__text {
+    font-size: 14px;
+    font-weight: 500;
+    color: #3d2c1e;
+}
+
+/* ── 키트 항목 목록 ── */
+.class-register .cr-kit-items {
+    margin-top: 4px;
+}
+.class-register .cr-kit-items__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 12px;
+}
+.class-register .cr-kit-item {
+    background: #faf8f5;
+    border: 1px solid #e8e2db;
+    border-radius: 10px;
+    padding: 12px;
+}
+.class-register .cr-kit-item__fields {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+.class-register .cr-kit-item__field {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.class-register .cr-kit-item__field--name { flex: 3; }
+.class-register .cr-kit-item__field--code { flex: 2; }
+.class-register .cr-kit-item__field--qty { flex: 1; min-width: 70px; }
+.class-register .cr-kit-item__label {
+    font-size: 12px;
+    color: #8c7b6b;
+}
+.class-register .cr-kit-item__remove {
+    background: none;
+    border: none;
+    color: #c4956a;
+    font-size: 20px;
+    cursor: pointer;
+    padding: 0 4px;
+    line-height: 1;
+    align-self: flex-end;
+    margin-bottom: 6px;
+}
+
 @media screen and (max-width: 767px) {
     .class-register .cr-schedule-entry__fields {
         flex-wrap: wrap;
@@ -859,4 +948,10 @@
     .class-register .cr-schedule-entry__field {
         min-width: calc(50% - 8px);
     }
+    .class-register .cr-kit-item__fields {
+        flex-wrap: wrap;
+    }
+    .class-register .cr-kit-item__field--name { flex: 1 1 100%; }
+    .class-register .cr-kit-item__field--code { flex: 1 1 calc(60% - 5px); }
+    .class-register .cr-kit-item__field--qty { flex: 1 1 calc(40% - 5px); }
 }

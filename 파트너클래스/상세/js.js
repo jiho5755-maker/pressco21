@@ -516,6 +516,9 @@
         if (durationText) {
             badgesHtml += '<span class="info-badge info-badge--duration">' + durationText + '</span>';
         }
+        if (data.kit_enabled && parseInt(data.kit_enabled) === 1) {
+            badgesHtml += '<span class="info-badge info-badge--kit">\uC7AC\uB8CC\uD0A4\uD2B8 \uD3EC\uD568</span>';
+        }
         badgesHtml += '</div>';
 
         // 별점 행

@@ -156,6 +156,9 @@
         // 일정 추가 버튼
         bindScheduleEntries();
 
+        // 재료키트 토글
+        bindKitToggle();
+
         // 이미지 URL 미리보기
         bindImagePreview();
 
@@ -260,6 +263,103 @@
             }
         }
         return schedules;
+    }
+
+    /* ========================================
+       재료키트 구성 UI
+       ======================================== */
+
+    /** 키트 항목 카운터 */
+    var kitItemCount = 0;
+
+    /**
+     * 재료키트 토글 바인딩
+     */
+    function bindKitToggle() {
+        var toggle = document.getElementById('crKitEnabled');
+        var area = document.getElementById('crKitItemsArea');
+        if (!toggle || !area) return;
+
+        toggle.addEventListener('change', function() {
+            area.style.display = toggle.checked ? '' : 'none';
+            if (toggle.checked && !document.querySelector('.class-register .cr-kit-item')) {
+                addKitItem();
+            }
+        });
+
+        // 키트 항목 추가 버튼
+        var addBtn = document.getElementById('crAddKitItemBtn');
+        if (addBtn) {
+            addBtn.addEventListener('click', function() {
+                addKitItem();
+            });
+        }
+
+        // 삭제 이벤트 위임
+        var list = document.getElementById('crKitItemsList');
+        if (list) {
+            list.addEventListener('click', function(e) {
+                var removeBtn = e.target.closest('.cr-kit-item__remove');
+                if (removeBtn) {
+                    var item = removeBtn.closest('.cr-kit-item');
+                    if (item) item.remove();
+                }
+            });
+        }
+    }
+
+    /**
+     * 키트 항목 하나 추가
+     */
+    function addKitItem() {
+        var list = document.getElementById('crKitItemsList');
+        if (!list) return;
+
+        kitItemCount++;
+        var item = document.createElement('div');
+        item.className = 'cr-kit-item';
+        item.innerHTML = '<div class="cr-kit-item__fields">' +
+            '<div class="cr-kit-item__field cr-kit-item__field--name">' +
+                '<label class="cr-kit-item__label">\uC0C1\uD488\uBA85</label>' +
+                '<input type="text" class="cr-form__input cr-kit-name" placeholder="\uC608: \uD504\uB9AC\uC800\uBE0C\uB4DC \uB85C\uC988 \uC138\uD2B8" maxlength="100">' +
+            '</div>' +
+            '<div class="cr-kit-item__field cr-kit-item__field--code">' +
+                '<label class="cr-kit-item__label">\uC0C1\uD488\uCF54\uB4DC</label>' +
+                '<input type="text" class="cr-form__input cr-kit-code" placeholder="\uBA54\uC774\uD06C\uC0F5 \uCF54\uB4DC" maxlength="50">' +
+            '</div>' +
+            '<div class="cr-kit-item__field cr-kit-item__field--qty">' +
+                '<label class="cr-kit-item__label">\uC218\uB7C9</label>' +
+                '<input type="number" class="cr-form__input cr-kit-qty" value="1" min="1" max="99">' +
+            '</div>' +
+            '<button type="button" class="cr-kit-item__remove" aria-label="\uC0AD\uC81C">&times;</button>' +
+        '</div>';
+
+        list.appendChild(item);
+    }
+
+    /**
+     * 키트 항목들 수집
+     * @returns {Array}
+     */
+    function collectKitItems() {
+        var items = document.querySelectorAll('.class-register .cr-kit-item');
+        var result = [];
+        for (var i = 0; i < items.length; i++) {
+            var nameEl = items[i].querySelector('.cr-kit-name');
+            var codeEl = items[i].querySelector('.cr-kit-code');
+            var qtyEl = items[i].querySelector('.cr-kit-qty');
+            var name = nameEl ? nameEl.value.trim() : '';
+            var code = codeEl ? codeEl.value.trim() : '';
+            var qty = qtyEl ? parseInt(qtyEl.value, 10) : 1;
+            if (name) {
+                result.push({
+                    name: name,
+                    product_code: code,
+                    quantity: qty > 0 ? qty : 1
+                });
+            }
+        }
+        return result;
     }
 
     /**
@@ -408,7 +508,9 @@
             contact_instagram:  getVal('crContactInstagram'),
             contact_phone:      getVal('crContactPhone'),
             contact_kakao:      getVal('crContactKakao'),
-            schedules:          collectSchedules()
+            schedules:          collectSchedules(),
+            kit_enabled:        document.getElementById('crKitEnabled') && document.getElementById('crKitEnabled').checked ? 1 : 0,
+            kit_items:          collectKitItems()
         };
     }
 

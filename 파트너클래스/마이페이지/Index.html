@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 수강 내역 | PRESSCO21 포에버러브</title>
+    <meta name="description" content="PRESSCO21 파트너클래스에서 수강한 내역을 확인하세요.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+</head>
+<body>
+
+<!-- ============================================
+     수강생 마이페이지 — 예약 내역
+     CSS 스코핑: .my-bookings
+     ============================================ -->
+<div class="my-bookings">
+
+    <!-- 숨김 가상태그 (회원 ID) -->
+    <span id="mbMemberId" style="display:none"><!--/user_id/--></span>
+
+    <!-- 1. 미로그인 안내 -->
+    <div id="mbNoticeArea" style="display:none">
+        <div class="mb-notice">
+            <div class="mb-notice__inner">
+                <div class="mb-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="32" cy="24" r="10" stroke="#3d2c1e" stroke-width="2" fill="none"/>
+                        <path d="M12 52c0-11.046 8.954-20 20-20s20 8.954 20 20" stroke="#3d2c1e" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="mb-notice__title">로그인이 필요합니다</h2>
+                <p class="mb-notice__desc">수강 내역 확인은 로그인 후 이용하실 수 있어요.</p>
+                <a href="/member/login.html" class="mb-notice__btn">로그인하기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 메인 콘텐츠 -->
+    <div id="mbMainArea" style="display:none">
+
+        <!-- 페이지 헤더 -->
+        <header class="mb-header">
+            <div class="mb-header__inner">
+                <h1 class="mb-header__title">내 수강 내역</h1>
+                <p class="mb-header__desc">수강 신청한 클래스와 예약 상태를 확인하세요.</p>
+            </div>
+        </header>
+
+        <!-- 요약 카드 -->
+        <div class="mb-summary">
+            <div class="mb-summary__card">
+                <p class="mb-summary__label">전체</p>
+                <p class="mb-summary__value" id="mbTotalCount">0</p>
+            </div>
+            <div class="mb-summary__card">
+                <p class="mb-summary__label">예정</p>
+                <p class="mb-summary__value" id="mbUpcomingCount">0</p>
+            </div>
+            <div class="mb-summary__card">
+                <p class="mb-summary__label">완료</p>
+                <p class="mb-summary__value" id="mbCompletedCount">0</p>
+            </div>
+        </div>
+
+        <!-- 예약 목록 -->
+        <div id="mbBookingList" class="mb-booking-list">
+            <!-- JS: 예약 카드 동적 렌더링 -->
+        </div>
+
+        <!-- 빈 상태 -->
+        <div id="mbEmptyState" class="mb-empty" style="display:none">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="mb-empty__icon">
+                <rect x="8" y="12" width="48" height="40" rx="6" stroke="#C4956A" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+                <path d="M20 8v10M44 8v10M8 24h48" stroke="#C4956A" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <h3 class="mb-empty__title">아직 수강 내역이 없어요</h3>
+            <p class="mb-empty__desc">관심있는 클래스를 둘러보고 첫 수업에 도전해보세요!</p>
+            <a href="/shop/page.html?id=2606" class="mb-empty__btn">클래스 둘러보기</a>
+        </div>
+
+    </div>
+
+    <!-- 3. 로딩 오버레이 -->
+    <div id="mbLoadingOverlay" class="mb-loading" style="display:none" aria-live="polite" aria-label="로딩 중">
+        <svg class="mb-spinner" viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
+            <circle cx="20" cy="20" r="16" stroke="#E8E2DB" stroke-width="3" fill="none"/>
+            <path d="M36 20a16 16 0 00-16-16" stroke="#7d9675" stroke-width="3" stroke-linecap="round">
+                <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="0.8s" repeatCount="indefinite"/>
+            </path>
+        </svg>
+    </div>
+
+</div><!-- /.my-bookings -->
+
+</body>
+</html>

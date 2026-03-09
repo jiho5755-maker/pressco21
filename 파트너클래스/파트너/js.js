@@ -608,6 +608,14 @@
             + '<textarea id="editDescription" class="pd-form-input pd-form-textarea" rows="4">' + escapeHtml(cls.description || '') + '</textarea>'
             + '<label class="pd-form-label">\uAC15\uC0AC \uC18C\uAC1C</label>'
             + '<textarea id="editInstructorBio" class="pd-form-input pd-form-textarea" rows="3">' + escapeHtml(cls.instructor_bio || '') + '</textarea>'
+            + '<div class="pd-kit-section">'
+            + '<label class="pd-form-label pd-kit-toggle-label">'
+            + '<input type="checkbox" id="editKitEnabled"' + (parseInt(cls.kit_enabled) === 1 ? ' checked' : '') + '>'
+            + ' \uC7AC\uB8CC\uD0A4\uD2B8 \uC790\uB3D9 \uBC30\uC1A1'
+            + '</label>'
+            + '<div id="editKitItems" class="pd-kit-items"' + (parseInt(cls.kit_enabled) !== 1 ? ' style="display:none"' : '') + '></div>'
+            + '<button type="button" id="editAddKitItem" class="pd-btn pd-btn--outline pd-btn--sm"' + (parseInt(cls.kit_enabled) !== 1 ? ' style="display:none"' : '') + '>+ \uD0A4\uD2B8 \uD56D\uBAA9 \uCD94\uAC00</button>'
+            + '</div>'
             + '</div>'
             + '<div class="pd-modal__footer">'
             + '<button type="button" class="pd-btn pd-btn--outline js-close-edit-modal">\uCDE8\uC18C</button>'
@@ -632,6 +640,73 @@
                 saveClassEdit();
             });
         }
+
+        // 키트 토글 바인딩
+        var kitToggle = document.getElementById('editKitEnabled');
+        var kitItemsArea = document.getElementById('editKitItems');
+        var kitAddBtn = document.getElementById('editAddKitItem');
+        if (kitToggle) {
+            kitToggle.addEventListener('change', function() {
+                var show = kitToggle.checked;
+                if (kitItemsArea) kitItemsArea.style.display = show ? '' : 'none';
+                if (kitAddBtn) kitAddBtn.style.display = show ? '' : 'none';
+                if (show && !kitItemsArea.querySelector('.pd-kit-row')) {
+                    addEditKitRow(kitItemsArea, '', '', 1);
+                }
+            });
+        }
+        if (kitAddBtn) {
+            kitAddBtn.addEventListener('click', function() {
+                addEditKitRow(kitItemsArea, '', '', 1);
+            });
+        }
+        if (kitItemsArea) {
+            kitItemsArea.addEventListener('click', function(e) {
+                if (e.target.classList.contains('pd-kit-row__remove')) {
+                    var row = e.target.closest('.pd-kit-row');
+                    if (row) row.remove();
+                }
+            });
+        }
+
+        // 기존 키트 항목 렌더링
+        var existingKitItems = [];
+        try { existingKitItems = cls.kit_items ? JSON.parse(cls.kit_items) : []; } catch(e) {}
+        if (Array.isArray(existingKitItems)) {
+            for (var ki = 0; ki < existingKitItems.length; ki++) {
+                addEditKitRow(kitItemsArea, existingKitItems[ki].name || '', existingKitItems[ki].product_code || '', existingKitItems[ki].quantity || 1);
+            }
+        }
+    }
+
+    function addEditKitRow(container, name, code, qty) {
+        if (!container) return;
+        var row = document.createElement('div');
+        row.className = 'pd-kit-row';
+        row.innerHTML = '<input type="text" class="pd-form-input pd-kit-name" placeholder="\uC0C1\uD488\uBA85" value="' + escapeAttr(name) + '">'
+            + '<input type="text" class="pd-form-input pd-kit-code" placeholder="\uCF54\uB4DC" value="' + escapeAttr(code) + '">'
+            + '<input type="number" class="pd-form-input pd-kit-qty" placeholder="\uC218\uB7C9" value="' + (qty || 1) + '" min="1" max="99">'
+            + '<button type="button" class="pd-kit-row__remove">&times;</button>';
+        container.appendChild(row);
+    }
+
+    function collectEditKitItems() {
+        var rows = document.querySelectorAll('#editKitItems .pd-kit-row');
+        var items = [];
+        for (var i = 0; i < rows.length; i++) {
+            var nameEl = rows[i].querySelector('.pd-kit-name');
+            var codeEl = rows[i].querySelector('.pd-kit-code');
+            var qtyEl = rows[i].querySelector('.pd-kit-qty');
+            var n = nameEl ? nameEl.value.trim() : '';
+            if (n) {
+                items.push({
+                    name: n,
+                    product_code: codeEl ? codeEl.value.trim() : '',
+                    quantity: qtyEl ? parseInt(qtyEl.value, 10) || 1 : 1
+                });
+            }
+        }
+        return items;
     }
 
     /**
@@ -650,7 +725,9 @@
             duration_min: parseInt((document.getElementById('editDuration') || {}).value) || 0,
             max_students: parseInt((document.getElementById('editMaxStudents') || {}).value) || 8,
             description: (document.getElementById('editDescription') || {}).value || '',
-            instructor_bio: (document.getElementById('editInstructorBio') || {}).value || ''
+            instructor_bio: (document.getElementById('editInstructorBio') || {}).value || '',
+            kit_enabled: (document.getElementById('editKitEnabled') || {}).checked ? 1 : 0,
+            kit_items: collectEditKitItems()
         };
 
         showLoading();
@@ -675,6 +752,8 @@
                         myClasses[i].max_students = updateData.max_students;
                         myClasses[i].description = updateData.description;
                         myClasses[i].instructor_bio = updateData.instructor_bio;
+                        myClasses[i].kit_enabled = updateData.kit_enabled;
+                        myClasses[i].kit_items = JSON.stringify(updateData.kit_items);
                         break;
                     }
                 }

@@ -153,6 +153,9 @@
             })(toggleBtns[i]);
         }
 
+        // 일정 추가 버튼
+        bindScheduleEntries();
+
         // 이미지 URL 미리보기
         bindImagePreview();
 
@@ -168,6 +171,95 @@
                 });
             })(inputs[j]);
         }
+    }
+
+    /** 일정 항목 카운터 */
+    var scheduleCount = 0;
+
+    /**
+     * 일정 추가 UI 바인딩
+     */
+    function bindScheduleEntries() {
+        var addBtn = document.getElementById('crAddScheduleBtn');
+        if (!addBtn) return;
+
+        addBtn.addEventListener('click', function() {
+            addScheduleEntry();
+        });
+
+        // 삭제 이벤트 위임
+        var container = document.getElementById('crScheduleEntries');
+        if (container) {
+            container.addEventListener('click', function(e) {
+                var removeBtn = e.target.closest('.cr-schedule-entry__remove');
+                if (removeBtn) {
+                    var entry = removeBtn.closest('.cr-schedule-entry');
+                    if (entry) entry.remove();
+                }
+            });
+        }
+    }
+
+    /**
+     * 일정 항목 하나 추가
+     */
+    function addScheduleEntry() {
+        var container = document.getElementById('crScheduleEntries');
+        if (!container) return;
+
+        scheduleCount++;
+        var idx = scheduleCount;
+
+        // 기본 날짜: 내일
+        var tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        var pad = function(n) { return n < 10 ? '0' + n : '' + n; };
+        var defaultDate = tomorrow.getFullYear() + '-' + pad(tomorrow.getMonth() + 1) + '-' + pad(tomorrow.getDate());
+
+        var entry = document.createElement('div');
+        entry.className = 'cr-schedule-entry';
+        entry.innerHTML = '<div class="cr-schedule-entry__fields">' +
+            '<div class="cr-schedule-entry__field">' +
+                '<label class="cr-schedule-entry__label">\uB0A0\uC9DC</label>' +
+                '<input type="date" class="cr-form__input cr-sched-date" value="' + defaultDate + '" min="' + defaultDate + '">' +
+            '</div>' +
+            '<div class="cr-schedule-entry__field">' +
+                '<label class="cr-schedule-entry__label">\uC2DC\uAC04</label>' +
+                '<input type="time" class="cr-form__input cr-sched-time" value="10:00">' +
+            '</div>' +
+            '<div class="cr-schedule-entry__field">' +
+                '<label class="cr-schedule-entry__label">\uC815\uC6D0</label>' +
+                '<input type="number" class="cr-form__input cr-sched-capacity" value="6" min="1" max="50">' +
+            '</div>' +
+            '<button type="button" class="cr-schedule-entry__remove" aria-label="\uC0AD\uC81C">&times;</button>' +
+        '</div>';
+
+        container.appendChild(entry);
+    }
+
+    /**
+     * 일정 항목들 수집
+     * @returns {Array}
+     */
+    function collectSchedules() {
+        var entries = document.querySelectorAll('.class-register .cr-schedule-entry');
+        var schedules = [];
+        for (var i = 0; i < entries.length; i++) {
+            var dateEl = entries[i].querySelector('.cr-sched-date');
+            var timeEl = entries[i].querySelector('.cr-sched-time');
+            var capEl = entries[i].querySelector('.cr-sched-capacity');
+            var date = dateEl ? dateEl.value : '';
+            var time = timeEl ? timeEl.value : '';
+            var cap = capEl ? parseInt(capEl.value, 10) : 6;
+            if (date && time && cap > 0) {
+                schedules.push({
+                    schedule_date: date,
+                    schedule_time: time,
+                    capacity: cap
+                });
+            }
+        }
+        return schedules;
     }
 
     /**
@@ -315,7 +407,8 @@
             location:           getVal('crLocation'),
             contact_instagram:  getVal('crContactInstagram'),
             contact_phone:      getVal('crContactPhone'),
-            contact_kakao:      getVal('crContactKakao')
+            contact_kakao:      getVal('crContactKakao'),
+            schedules:          collectSchedules()
         };
     }
 

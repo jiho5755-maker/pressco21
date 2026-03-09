@@ -343,7 +343,8 @@
             'classes': 'pdTabClasses',
             'bookings': 'pdTabBookings',
             'revenue': 'pdTabRevenue',
-            'reviews': 'pdTabReviews'
+            'reviews': 'pdTabReviews',
+            'schedules': 'pdTabSchedules'
         };
 
         var targetId = targetMap[tabName];
@@ -374,6 +375,9 @@
             case 'reviews':
                 reviewPage = 1;
                 loadReviews();
+                break;
+            case 'schedules':
+                loadScheduleTab();
                 break;
         }
     }
@@ -684,6 +688,271 @@
         .catch(function(err) {
             hideLoading();
             showToast('\uB124\uD2B8\uC6CC\uD06C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+        });
+    }
+
+
+    /* ========================================
+       탭 5: 일정 관리
+       ======================================== */
+
+    /** 현재 선택된 강의의 스케줄 데이터 */
+    var scheduleClassId = '';
+    var scheduleList = [];
+
+    /**
+     * 일정 관리 탭 초기화
+     */
+    function loadScheduleTab() {
+        var classSelect = document.getElementById('pdScheduleClass');
+        if (!classSelect) return;
+
+        // 강의 드롭다운 채우기
+        var opts = '<option value="">강의를 선택하세요</option>';
+        for (var i = 0; i < myClasses.length; i++) {
+            var c = myClasses[i];
+            opts += '<option value="' + escapeHtml(c.class_id) + '">' + escapeHtml(c.class_name) + '</option>';
+        }
+        classSelect.innerHTML = opts;
+
+        // 이전 선택값 복원
+        if (scheduleClassId) {
+            classSelect.value = scheduleClassId;
+            loadSchedulesForClass(scheduleClassId);
+        } else {
+            renderScheduleEmpty(true);
+        }
+
+        // 이벤트 바인딩 (중복 방지)
+        if (!classSelect._schedBound) {
+            classSelect._schedBound = true;
+            classSelect.addEventListener('change', function() {
+                scheduleClassId = this.value;
+                if (scheduleClassId) {
+                    loadSchedulesForClass(scheduleClassId);
+                    var addBtn = document.getElementById('pdBtnAddSchedule');
+                    if (addBtn) addBtn.style.display = '';
+                } else {
+                    renderScheduleEmpty(true);
+                    var addBtn2 = document.getElementById('pdBtnAddSchedule');
+                    if (addBtn2) addBtn2.style.display = 'none';
+                }
+            });
+
+            // 일정 추가 버튼
+            var addBtn = document.getElementById('pdBtnAddSchedule');
+            if (addBtn) {
+                addBtn.addEventListener('click', function() {
+                    toggleScheduleForm(true);
+                });
+            }
+
+            // 저장 버튼
+            var saveBtn = document.getElementById('pdBtnSaveSchedule');
+            if (saveBtn) {
+                saveBtn.addEventListener('click', function() {
+                    saveNewSchedule();
+                });
+            }
+
+            // 취소 버튼
+            var cancelBtn = document.getElementById('pdBtnCancelSchedule');
+            if (cancelBtn) {
+                cancelBtn.addEventListener('click', function() {
+                    toggleScheduleForm(false);
+                });
+            }
+
+            // 일정 삭제 (이벤트 위임)
+            var listEl = document.getElementById('pdScheduleList');
+            if (listEl) {
+                listEl.addEventListener('click', function(e) {
+                    var delBtn = e.target.closest('.pd-schedule-card__delete');
+                    if (delBtn) {
+                        var schedId = delBtn.getAttribute('data-schedule-id');
+                        if (schedId && confirm('이 일정을 삭제하시겠습니까?')) {
+                            deleteSchedule(schedId);
+                        }
+                    }
+                });
+            }
+        }
+    }
+
+    /**
+     * 일정 추가 폼 토글
+     */
+    function toggleScheduleForm(show) {
+        var form = document.getElementById('pdScheduleForm');
+        if (!form) return;
+        form.style.display = show ? '' : 'none';
+        if (show) {
+            // 기본 날짜를 내일로 설정
+            var tomorrow = new Date();
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            var dateInput = document.getElementById('pdSchedDate');
+            if (dateInput) {
+                dateInput.value = tomorrow.getFullYear() + '-' + padZero(tomorrow.getMonth() + 1) + '-' + padZero(tomorrow.getDate());
+                dateInput.min = dateInput.value;
+            }
+        }
+    }
+
+    /**
+     * 빈 상태 / 목록 토글
+     */
+    function renderScheduleEmpty(show) {
+        var emptyEl = document.getElementById('pdScheduleEmpty');
+        var listEl = document.getElementById('pdScheduleList');
+        var addBtn = document.getElementById('pdBtnAddSchedule');
+        if (emptyEl) emptyEl.style.display = show ? '' : 'none';
+        if (listEl) listEl.style.display = show ? 'none' : '';
+        if (addBtn && !scheduleClassId) addBtn.style.display = 'none';
+    }
+
+    /**
+     * 특정 강의의 일정 목록 로드 (WF-18)
+     */
+    function loadSchedulesForClass(classId) {
+        showLoading(true);
+
+        apiCall(WF_ENDPOINT.manageSchedule, {
+            action: 'getSchedules',
+            class_id: classId,
+            partner_code: partnerData.partner_code
+        }, function(res) {
+            showLoading(false);
+            if (res.success) {
+                scheduleList = res.data || [];
+                renderScheduleList();
+            } else {
+                showToast(res.message || '일정을 불러오지 못했습니다.', 'error');
+                scheduleList = [];
+                renderScheduleEmpty(true);
+            }
+        }, function() {
+            showLoading(false);
+            showToast('일정 조회 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
+    /**
+     * 일정 목록 렌더링
+     */
+    function renderScheduleList() {
+        var listEl = document.getElementById('pdScheduleList');
+        if (!listEl) return;
+
+        if (!scheduleList.length) {
+            renderScheduleEmpty(false);
+            listEl.innerHTML = '<p class="pd-empty__text" style="text-align:center;padding:24px 0;">등록된 일정이 없습니다. 일정을 추가해보세요.</p>';
+            return;
+        }
+
+        renderScheduleEmpty(false);
+
+        // 날짜순 정렬
+        scheduleList.sort(function(a, b) {
+            var da = (a.schedule_date || '') + (a.schedule_time || '');
+            var db = (b.schedule_date || '') + (b.schedule_time || '');
+            return da < db ? -1 : da > db ? 1 : 0;
+        });
+
+        var html = '';
+        var today = new Date();
+        var todayStr = today.getFullYear() + '-' + padZero(today.getMonth() + 1) + '-' + padZero(today.getDate());
+
+        for (var i = 0; i < scheduleList.length; i++) {
+            var s = scheduleList[i];
+            var isPast = (s.schedule_date || '') < todayStr;
+            var remaining = Math.max(0, (s.capacity || 0) - (s.booked_count || 0));
+            var statusClass = isPast ? 'pd-schedule-card--past' : (remaining === 0 ? 'pd-schedule-card--full' : '');
+            var badgeClass = isPast ? 'ended' : (remaining === 0 ? 'full' : 'available');
+            var statusLabel = isPast ? '\uC885\uB8CC' : (remaining === 0 ? '\uB9C8\uAC10' : '\uC608\uC57D\uAC00\uB2A5');
+
+            html += '<div class="pd-schedule-card ' + statusClass + '">' +
+                '<div class="pd-schedule-card__date">' +
+                    '<span class="pd-schedule-card__day">' + escapeHtml(s.schedule_date || '') + '</span>' +
+                    '<span class="pd-schedule-card__time">' + escapeHtml(s.schedule_time || '') + '</span>' +
+                '</div>' +
+                '<div class="pd-schedule-card__info">' +
+                    '<span class="pd-schedule-card__capacity">\uC815\uC6D0 ' + (s.capacity || 0) + '\uBA85</span>' +
+                    '<span class="pd-schedule-card__booked">\uC608\uC57D ' + (s.booked_count || 0) + '\uBA85</span>' +
+                    '<span class="pd-schedule-card__remain">\uC794\uC5EC ' + remaining + '\uBA85</span>' +
+                '</div>' +
+                '<div class="pd-schedule-card__status">' +
+                    '<span class="pd-schedule-card__badge pd-schedule-card__badge--' + badgeClass + '">' + statusLabel + '</span>' +
+                '</div>' +
+                '<div class="pd-schedule-card__actions">' +
+                    (isPast ? '' : '<button type="button" class="pd-btn pd-btn--text pd-btn--sm pd-schedule-card__delete" data-schedule-id="' + escapeHtml(s.schedule_id || '') + '">삭제</button>') +
+                '</div>' +
+            '</div>';
+        }
+
+        listEl.innerHTML = html;
+    }
+
+    /**
+     * 새 일정 저장 (WF-18 addSchedule)
+     */
+    function saveNewSchedule() {
+        var dateInput = document.getElementById('pdSchedDate');
+        var timeInput = document.getElementById('pdSchedTime');
+        var capInput = document.getElementById('pdSchedCapacity');
+
+        var schedDate = dateInput ? dateInput.value : '';
+        var schedTime = timeInput ? timeInput.value : '';
+        var capacity = capInput ? parseInt(capInput.value, 10) : 6;
+
+        if (!schedDate) { showToast('날짜를 선택하세요.', 'error'); return; }
+        if (!schedTime) { showToast('시간을 입력하세요.', 'error'); return; }
+        if (!capacity || capacity < 1) { showToast('정원은 1명 이상이어야 합니다.', 'error'); return; }
+
+        showLoading(true);
+
+        apiCall(WF_ENDPOINT.manageSchedule, {
+            action: 'addSchedule',
+            class_id: scheduleClassId,
+            partner_code: partnerData.partner_code,
+            schedule_date: schedDate,
+            schedule_time: schedTime,
+            capacity: capacity
+        }, function(res) {
+            showLoading(false);
+            if (res.success) {
+                showToast('일정이 추가되었습니다.');
+                toggleScheduleForm(false);
+                loadSchedulesForClass(scheduleClassId);
+            } else {
+                showToast(res.message || '일정 추가에 실패했습니다.', 'error');
+            }
+        }, function() {
+            showLoading(false);
+            showToast('일정 추가 중 오류가 발생했습니다.', 'error');
+        });
+    }
+
+    /**
+     * 일정 삭제 (WF-18 deleteSchedule)
+     */
+    function deleteSchedule(scheduleId) {
+        showLoading(true);
+
+        apiCall(WF_ENDPOINT.manageSchedule, {
+            action: 'deleteSchedule',
+            schedule_id: scheduleId,
+            partner_code: partnerData.partner_code
+        }, function(res) {
+            showLoading(false);
+            if (res.success) {
+                showToast('일정이 삭제되었습니다.');
+                loadSchedulesForClass(scheduleClassId);
+            } else {
+                showToast(res.message || '일정 삭제에 실패했습니다.', 'error');
+            }
+        }, function() {
+            showLoading(false);
+            showToast('일정 삭제 중 오류가 발생했습니다.', 'error');
         });
     }
 

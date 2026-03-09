@@ -274,6 +274,24 @@
                             <p class="cr-form__char-count"><span id="crScheduleCharCount">0</span>/1000</p>
                         </div>
 
+                        <!-- 초기 수업 일정 등록 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label">
+                                수업 일정 등록
+                                <span class="cr-form__hint">(선택, 승인 후 예약 가능)</span>
+                            </label>
+                            <p class="cr-form__field-desc">강의 승인 후 바로 예약을 받으려면 수업 일정을 미리 등록하세요. 나중에 대시보드에서도 추가할 수 있어요.</p>
+                            <div id="crScheduleEntries" class="cr-schedule-entries">
+                                <!-- JS: 일정 항목 동적 렌더링 -->
+                            </div>
+                            <button type="button" id="crAddScheduleBtn" class="cr-btn cr-btn--outline cr-btn--sm">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                                    <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                </svg>
+                                일정 추가
+                            </button>
+                        </div>
+
                         <!-- 커리큘럼 -->
                         <div class="cr-form__field">
                             <label class="cr-form__label" for="crCurriculum">커리큘럼</label>

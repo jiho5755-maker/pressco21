@@ -377,13 +377,23 @@
     },
     {
       "parameters": {
+        "jsCode": "// ===================================================\n// WF-05 5a-6b: tbl_Schedules booked_count 증가\n// Create Settlement 성공 후 해당 스케줄의 booked_count 업데이트\n// ===================================================\n\nconst https = require('https');\nconst settlement = $('Calc Commission').first().json.settlement;\nconst createResult = $input.first().json;\n\n// 정산 레코드 생성 실패 시 스킵\nif (!createResult.Id && !createResult.id) {\n  return [$input.first()];\n}\n\nconst classId = settlement.class_id;\nconst classDate = settlement.class_date;\nconst studentCount = settlement.student_count || 1;\n\nfunction nocoRequest(method, path, body) {\n  return new Promise((resolve, reject) => {\n    const options = {\n      hostname: 'nocodb.pressco21.com',\n      path: '/api/v1/db/data/noco/' + $env.NOCODB_PROJECT_ID + path,\n      method: method,\n      headers: {\n        'xc-token': $env.NOCODB_API_TOKEN,\n        'Content-Type': 'application/json'\n      }\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch(e) { resolve(data); }\n      });\n    });\n    req.on('error', reject);\n    if (body) req.write(JSON.stringify(body));\n    req.end();\n  });\n}\n\ntry {\n  // tbl_Schedules에서 class_id + schedule_date 매칭 스케줄 조회\n  const schedResult = await nocoRequest('GET',\n    '/mschd3d81ad88fb?where=(class_id,eq,' + encodeURIComponent(classId) + ')~and(schedule_date,eq,' + encodeURIComponent(classDate) + ')~and(status,eq,active)&limit=1'\n  );\n  const schedList = schedResult.list || [];\n\n  if (schedList.length > 0) {\n    const sched = schedList[0];\n    const newBookedCount = (Number(sched.booked_count) || 0) + Number(studentCount);\n    // PATCH로 booked_count 업데이트\n    await nocoRequest('PATCH',\n      '/mschd3d81ad88fb/' + sched.Id,\n      { booked_count: newBookedCount }\n    );\n  }\n} catch(e) {\n  // booked_count 업데이트 실패해도 정산은 이미 생성됨 - 로그만 남김\n}\n\nreturn [$input.first()];"
+      },
+      "id": "wf05-update-booked-count",
+      "name": "Update Booked Count",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3210, -60]
+    },
+    {
+      "parameters": {
         "jsCode": "// ===================================================\n// WF-05 5a-7: 폴링 처리 결과 집계 + 폴링 로그 구성\n// 모든 주문 처리 완료 후 집계 데이터 생성\n// 참고: SplitInBatches 대신 전체 결과를 Code 노드에서 집계\n// ===================================================\n\nconst items = $input.all();\nconst pollMeta = $('Parse Poll Time').first().json;\nconst filterData = $('Filter Class Orders').first().json;\n\nlet created = 0;\nlet skipped = 0;\nlet errors = 0;\nconst settlements = [];\n\nfor (const item of items) {\n  const d = item.json;\n  if (d.Id || d.id) {\n    created++;\n    // 이전 노드에서 전달된 settlement 데이터 참조\n    settlements.push(d);\n  } else {\n    errors++;\n  }\n}\n\n// 텔레그램 메시지 구성\nlet message = '';\nif (created > 0 || errors > 0) {\n  message = '주문 폴링 완료\\n\\n'\n    + '전체 주문: ' + filterData.totalOrders + '건\\n'\n    + '클래스 주문: ' + filterData.classOrderCount + '건\\n'\n    + '정산 생성: ' + created + '건\\n';\n  if (errors > 0) message += '오류: ' + errors + '건\\n';\n}\n\nreturn [{\n  json: {\n    _logData: {\n      poll_time: pollMeta.pollStartTime,\n      orders_found: filterData.totalOrders,\n      class_orders: filterData.classOrderCount,\n      settlements_created: created,\n      errors: errors,\n      note: ''\n    },\n    _updatePollTime: true,\n    _pollMeta: pollMeta,\n    _telegramMessage: message,\n    _hasMessage: message.length > 0\n  }\n}];"
       },
       "id": "wf05-aggregate-poll",
       "name": "Aggregate Poll Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3320, 200]
+      "position": [3440, 200]
     },
     {
       "parameters": {
@@ -1395,6 +1405,11 @@
       ]
     },
     "Create Settlement": {
+      "main": [
+        [{ "node": "Update Booked Count", "type": "main", "index": 0 }]
+      ]
+    },
+    "Update Booked Count": {
       "main": [
         [{ "node": "Aggregate Poll Results", "type": "main", "index": 0 }]
       ]

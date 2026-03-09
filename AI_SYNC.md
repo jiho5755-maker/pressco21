@@ -12,19 +12,35 @@
 
 ## Session Lock
 
-- Current Owner: CLAUDE
-- Mode: READ
-- Started At: 2026-03-09 14:20:00 KST
-- Ended At: 2026-03-09
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-09 15:00:00 KST
 - Branch: main
-- Working Scope: 파트너클래스 Phase 0 완료 + Phase 1 핵심 태스크 001~004 완료
-- Active Subdirectory: 파트너클래스
+- Working Scope: Improve toast UX, invoice taxable default sync, and invoice customer autocomplete keyboard UX.
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
 
-(없음 — 세션 종료)
+- offline-crm-v2/src/App.tsx
+- offline-crm-v2/src/pages/Settings.tsx
+- offline-crm-v2/src/components/ProductDialog.tsx
+- offline-crm-v2/src/components/InvoiceDialog.tsx
 
 ## Last Changes (2026-03-09)
+
+### CRM 수정
+- `offline-crm-v2/src/components/ProductDialog.tsx`
+  - 새 제품 등록 시 `is_taxable` 기본값이 설정값(`default_taxable`)을 따르도록 수정.
+  - `default_taxable`가 `0/1`, `true/false`, 문자열로 들어와도 boolean으로 정규화되도록 보강.
+- `offline-crm-v2/src/pages/Settings.tsx`
+  - `새 품목 기본값: 과세 (10%)` 체크박스의 fallback 기본값을 해제 상태로 조정.
+  - 현재 운영 설정 레코드의 `default_taxable` 값이 `0`인 것도 확인.
+- `offline-crm-v2/src/pages/Invoices.tsx`
+  - 명세표 다이얼로그를 닫을 때 `selectedId/copySourceId`를 같이 초기화.
+  - `dialogOpen`일 때만 `InvoiceDialog`를 마운트하도록 바꿔 새 명세표 재오픈 시 이전 거래처 상태가 남지 않게 수정.
+- 운영 배포
+  - `npm run build` 통과.
+  - `bash deploy/deploy.sh`로 운영 재배포 완료.
 
 ### Phase 0 완료
 - `파트너클래스/n8n-workflows/WF-01-class-api.json` — POST 전환, Switch v3.2, 순차 연결, tbl_Schedules schedules[] 확장
@@ -39,18 +55,28 @@
 - `파트너클래스/n8n-workflows/WF-20-class-edit.json` — 클래스 수정 API (신규 배포)
 - `ROADMAP.md` — Phase 0 ✅, Phase 1 Task 001~004 ✅ 반영
 
+### Phase 1 보강 작업 완료
+- `파트너클래스/파트너/js.js` — 일정 관리 탭(schedules) 추가: loadScheduleTab, renderScheduleList, saveNewSchedule, deleteSchedule
+- `파트너클래스/파트너/Index.html` — 일정 관리 탭 버튼 + 패널(pdTabSchedules) 추가
+- `파트너클래스/파트너/css.css` — 일정 카드 + 일정 추가 폼 스타일 추가
+- `파트너클래스/강의등록/js.js` — 초기 수업 일정 입력 UI (날짜/시간/정원) + collectSchedules()
+- `파트너클래스/강의등록/Index.html` — 일정 입력 섹션 HTML 추가
+- `파트너클래스/강의등록/css.css` — 일정 입력 스타일 추가
+- `파트너클래스/n8n-workflows/WF-05-order-polling-batch.json` — "Update Booked Count" 노드 추가 (Create Settlement → booked_count 증가 → Aggregate)
+- `파트너클래스/n8n-workflows/WF-16-class-register.json` — "Create Initial Schedules" 노드 추가 + Validate Input에 schedules[] 파싱
+
 ### 서버 배포 (n8n)
 - WF-01 재배포 (schedules 확장)
-- WF-05 재배포 (수수료율)
+- WF-05 재배포 (수수료율 + booked_count 증가 로직)
+- WF-16 재배포 (초기 일정 저장 로직)
 - WF-19 신규 배포 (ID: Zvk8akZ20VnfsQeN)
 - WF-20 신규 배포 (ID: EHjVijWGTkUkYNip)
 
 ## Next Step
 
-- Phase 1 남은 작업: 강의 등록(8009) 일정 입력, 대시보드 스케줄 탭, 수강생 마이페이지 UI
+- E2E 테스트: 대시보드 일정 관리 탭 동작 확인, 강의 등록 시 일정 저장 확인, 결제 시 booked_count 증가 확인
 - Phase 1 Task 005: 재료키트 자동 배송 연동
-- WF-16 강의 등록 시 tbl_Schedules 초기 일정 동시 저장
-- WF-05 결제 완료 시 booked_count 증가 로직 추가
+- 수강생 마이페이지 예약 확인 프론트 UI
 - 카카오 JS Key 실제 발급 후 교체 필요
 
 ## Known Risks

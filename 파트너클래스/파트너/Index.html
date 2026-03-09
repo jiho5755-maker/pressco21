@@ -193,6 +193,7 @@
             <button type="button" class="pd-tabs__btn" role="tab" aria-selected="false" aria-controls="pdTabBookings" data-tab="bookings" id="pdTabBtnBookings">예약 현황</button>
             <button type="button" class="pd-tabs__btn" role="tab" aria-selected="false" aria-controls="pdTabRevenue" data-tab="revenue" id="pdTabBtnRevenue">수익 리포트</button>
             <button type="button" class="pd-tabs__btn" role="tab" aria-selected="false" aria-controls="pdTabReviews" data-tab="reviews" id="pdTabBtnReviews">후기 관리</button>
+            <button type="button" class="pd-tabs__btn" role="tab" aria-selected="false" aria-controls="pdTabSchedules" data-tab="schedules" id="pdTabBtnSchedules">일정 관리</button>
         </nav>
 
         <!-- 3-4. 탭 콘텐츠 -->
@@ -357,6 +358,61 @@
                     <path d="M24 6l4.47 9.06 10 1.45-7.24 7.05 1.71 9.97L24 29.27l-8.94 4.26 1.71-9.97-7.24-7.05 10-1.45L24 6z" stroke="#C4956A" stroke-width="1.5" fill="none" stroke-linejoin="round"/>
                 </svg>
                 <p class="pd-empty__text">아직 후기가 없어요. 첫 수강생이 소중한 경험을 남겨줄 거예요.</p>
+            </div>
+        </div>
+
+        <!-- 탭 5: 일정 관리 -->
+        <div id="pdTabSchedules" class="pd-tab-content" role="tabpanel" aria-labelledby="pdTabBtnSchedules">
+            <div class="pd-tab-header">
+                <h2 class="pd-tab-header__title">일정 관리</h2>
+            </div>
+            <!-- 강의 선택 -->
+            <div class="pd-filter-bar">
+                <div class="pd-filter-bar__group">
+                    <label for="pdScheduleClass" class="pd-filter-bar__label">강의 선택</label>
+                    <select id="pdScheduleClass" class="pd-select">
+                        <option value="">강의를 선택하세요</option>
+                    </select>
+                </div>
+                <button type="button" class="pd-btn pd-btn--outline pd-btn--sm" id="pdBtnAddSchedule" style="display:none">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                    </svg>
+                    일정 추가
+                </button>
+            </div>
+            <!-- 일정 추가 폼 (숨김) -->
+            <div id="pdScheduleForm" class="pd-schedule-form" style="display:none">
+                <div class="pd-schedule-form__row">
+                    <div class="pd-schedule-form__field">
+                        <label for="pdSchedDate" class="pd-schedule-form__label">날짜</label>
+                        <input type="date" id="pdSchedDate" class="pd-input pd-input--date">
+                    </div>
+                    <div class="pd-schedule-form__field">
+                        <label for="pdSchedTime" class="pd-schedule-form__label">시간</label>
+                        <input type="time" id="pdSchedTime" class="pd-input" value="10:00">
+                    </div>
+                    <div class="pd-schedule-form__field">
+                        <label for="pdSchedCapacity" class="pd-schedule-form__label">정원</label>
+                        <input type="number" id="pdSchedCapacity" class="pd-input" min="1" max="50" value="6">
+                    </div>
+                </div>
+                <div class="pd-schedule-form__actions">
+                    <button type="button" class="pd-btn pd-btn--primary pd-btn--sm" id="pdBtnSaveSchedule">저장</button>
+                    <button type="button" class="pd-btn pd-btn--outline pd-btn--sm" id="pdBtnCancelSchedule">취소</button>
+                </div>
+            </div>
+            <!-- 일정 목록 -->
+            <div id="pdScheduleList" class="pd-schedule-list">
+                <!-- JS: 일정 카드 동적 렌더링 -->
+            </div>
+            <!-- 빈 상태 -->
+            <div id="pdScheduleEmpty" class="pd-empty" style="display:none">
+                <svg width="48" height="48" viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="pd-empty__icon">
+                    <rect x="8" y="8" width="32" height="32" rx="4" stroke="#C4956A" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+                    <path d="M16 6v6M32 6v6M8 18h32" stroke="#C4956A" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+                <p class="pd-empty__text">강의를 선택하면 수업 일정을 관리할 수 있어요.</p>
             </div>
         </div>
 

@@ -776,3 +776,87 @@
         margin: -4px 0;
     }
 }
+
+/* ----------------------------------------
+   일정 입력 섹션
+   ---------------------------------------- */
+.class-register .cr-form__field-desc {
+    font-size: 13px;
+    color: #8c7b6b;
+    margin-bottom: 12px;
+    line-height: 1.5;
+}
+.class-register .cr-form__hint {
+    font-weight: 400;
+    font-size: 13px;
+    color: #8c7b6b;
+}
+.class-register .cr-schedule-entries {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.class-register .cr-schedule-entry {
+    background: #faf6ee;
+    border: 1px solid #e8e2db;
+    border-radius: 10px;
+    padding: 12px;
+}
+.class-register .cr-schedule-entry__fields {
+    display: flex;
+    gap: 10px;
+    align-items: flex-end;
+}
+.class-register .cr-schedule-entry__field {
+    flex: 1;
+    min-width: 0;
+}
+.class-register .cr-schedule-entry__label {
+    display: block;
+    font-size: 12px;
+    color: #8c7b6b;
+    margin-bottom: 4px;
+}
+.class-register .cr-schedule-entry__remove {
+    flex-shrink: 0;
+    width: 32px;
+    height: 32px;
+    border: none;
+    background: none;
+    color: #d32f2f;
+    font-size: 20px;
+    cursor: pointer;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+.class-register .cr-schedule-entry__remove:hover {
+    background: #ffebee;
+}
+.class-register .cr-btn--outline {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 14px;
+    font-size: 13px;
+    color: #7d9675;
+    border: 1px solid #7d9675;
+    border-radius: 8px;
+    background: none;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.class-register .cr-btn--outline:hover {
+    background: #f0f5ef;
+}
+
+@media screen and (max-width: 767px) {
+    .class-register .cr-schedule-entry__fields {
+        flex-wrap: wrap;
+    }
+    .class-register .cr-schedule-entry__field {
+        min-width: calc(50% - 8px);
+    }
+}

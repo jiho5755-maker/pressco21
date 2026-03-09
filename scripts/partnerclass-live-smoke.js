@@ -56,7 +56,7 @@ async function loginAsPartner(page) {
   await page.getByRole('textbox', { name: '아이디' }).fill(partnerMemberId);
   await page.getByRole('textbox', { name: '비밀번호' }).fill(partnerMemberPassword);
   await Promise.all([
-    page.waitForURL(/\/html\/mainm\.html/, { timeout: 15000 }),
+    page.waitForURL(/\/html\/mainm\.html/, { timeout: 15000, waitUntil: 'domcontentloaded' }),
     page.getByRole('link', { name: '로그인' }).click(),
   ]);
 }
@@ -399,26 +399,47 @@ async function runMemberScenarios(browser) {
     return `등급=${String(gradeText).trim()}, ${csvResult}`;
   }, page);
 
-  let scheduleContext = null;
   let schedulePage = null;
   await runScenario('파트너 일정 관리 탭', async () => {
-    scheduleContext = await browser.newContext();
-    schedulePage = await scheduleContext.newPage();
-
-    await loginAsPartner(schedulePage);
+    schedulePage = await context.newPage();
     await schedulePage.goto(`${baseUrl}/shop/page.html?id=2608`, { waitUntil: 'domcontentloaded' });
     await waitForPartnerDashboardReady(schedulePage);
+    await schedulePage.waitForTimeout(800);
+    await waitForOverlayHidden(schedulePage, '#pdLoadingOverlay', 15000);
 
-    await schedulePage.locator('#pdTabBtnSchedules').click();
-    await schedulePage.waitForFunction(() => {
-      const panel = document.getElementById('pdTabSchedules');
-      const button = document.getElementById('pdTabBtnSchedules');
-      return !!panel
-        && !!button
-        && panel.classList.contains('is-active')
-        && button.classList.contains('is-active');
-    }, { timeout: 10000 });
+    await schedulePage.locator('#pdTabBtnSchedules').evaluate((element) => element.click());
+    try {
+      await schedulePage.waitForFunction(() => {
+        const panel = document.getElementById('pdTabSchedules');
+        const button = document.getElementById('pdTabBtnSchedules');
+        const select = document.getElementById('pdScheduleClass');
+        const optionCount = select ? select.querySelectorAll('option').length : 0;
+        return !!panel
+          && !!button
+          && window.getComputedStyle(panel).display !== 'none'
+          && panel.classList.contains('is-active')
+          && button.classList.contains('is-active')
+          && optionCount > 1;
+      }, { timeout: 15000 });
+    } catch (tabError) {
+      const debugState = await schedulePage.evaluate(() => {
+        const panel = document.getElementById('pdTabSchedules');
+        const button = document.getElementById('pdTabBtnSchedules');
+        const select = document.getElementById('pdScheduleClass');
+        const overlay = document.getElementById('pdLoadingOverlay');
+        return {
+          panelClass: panel ? panel.className : 'missing',
+          panelDisplay: panel ? window.getComputedStyle(panel).display : 'missing',
+          buttonClass: button ? button.className : 'missing',
+          buttonAriaSelected: button ? button.getAttribute('aria-selected') : 'missing',
+          optionCount: select ? select.querySelectorAll('option').length : 0,
+          overlayDisplay: overlay ? window.getComputedStyle(overlay).display : 'missing'
+        };
+      });
+      throw new Error(`${tabError.message} ${JSON.stringify(debugState)}`);
+    }
     await schedulePage.waitForTimeout(500);
+    await waitForOverlayHidden(schedulePage, '#pdLoadingOverlay', 15000);
 
     const optionCount = await schedulePage.locator('#pdScheduleClass option').count();
     assert(optionCount > 1, `일정 관리용 강의 옵션이 부족합니다. optionCount=${optionCount}`);
@@ -452,8 +473,8 @@ async function runMemberScenarios(browser) {
 
     return `강의 옵션 ${optionCount - 1}건, 일정 추가 폼 열기/취소 확인`;
   }, () => schedulePage || page);
-  if (scheduleContext) {
-    await scheduleContext.close();
+  if (schedulePage) {
+    await schedulePage.close();
   }
 
   await runScenario('파트너 등급 게이지/승급표 정합성', async () => {

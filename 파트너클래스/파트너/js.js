@@ -900,7 +900,13 @@
         }, function(res) {
             showLoading(false);
             if (res.success) {
-                scheduleList = res.data || [];
+                if (res.data && res.data.schedules && res.data.schedules.length) {
+                    scheduleList = res.data.schedules;
+                } else if (res.data && res.data.schedules) {
+                    scheduleList = [];
+                } else {
+                    scheduleList = res.data || [];
+                }
                 renderScheduleList();
             } else {
                 showToast(res.message || '일정을 불러오지 못했습니다.', 'error');
@@ -989,8 +995,8 @@
 
         apiCall(WF_ENDPOINT.manageSchedule, {
             action: 'addSchedule',
+            member_id: memberId,
             class_id: scheduleClassId,
-            partner_code: partnerData.partner_code,
             schedule_date: schedDate,
             schedule_time: schedTime,
             capacity: capacity
@@ -1018,7 +1024,7 @@
         apiCall(WF_ENDPOINT.manageSchedule, {
             action: 'deleteSchedule',
             schedule_id: scheduleId,
-            partner_code: partnerData.partner_code
+            member_id: memberId
         }, function(res) {
             showLoading(false);
             if (res.success) {
@@ -2504,6 +2510,40 @@
             .catch(function(err) {
                 console.error('[PartnerDash] POST \uC2E4\uD328 (' + action + '):', err);
                 callback(err, null);
+            });
+    }
+
+    /**
+     * 직접 엔드포인트 호출용 POST helper
+     * 일정 관리처럼 URL을 직접 넘기는 기존 코드와 호환한다.
+     * @param {string} endpoint
+     * @param {Object} data
+     * @param {Function} onSuccess
+     * @param {Function} onError
+     */
+    function apiCall(endpoint, data, onSuccess, onError) {
+        fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data || {}),
+            redirect: 'follow'
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
+            .then(function(resData) {
+                if (typeof onSuccess === 'function') {
+                    onSuccess(resData);
+                }
+            })
+            .catch(function(err) {
+                console.error('[PartnerDash] Direct POST \uC2E4\uD328 (' + endpoint + '):', err);
+                if (typeof onError === 'function') {
+                    onError(err);
+                }
             });
     }
 

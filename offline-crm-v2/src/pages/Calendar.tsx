@@ -1,14 +1,40 @@
-import { useState, useMemo } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { useNavigate } from 'react-router-dom'
+import {
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  Minus,
+  TrendingDown,
+  TrendingUp,
+} from 'lucide-react'
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 import { Button } from '@/components/ui/button'
-import { getInvoices } from '@/lib/api'
-import type { Invoice } from '@/lib/api'
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { getAllCustomers, getAllInvoices, getTxHistory, type Customer, type Invoice } from '@/lib/api'
+import {
+  COLLECTION_RATE_THRESHOLDS,
+  PRESET_LABELS,
+  buildInvoiceDateSummary,
+  buildPeriodReport,
+  collectionRateColor,
+  fmtCompactAmount as fmt,
+  getPaymentStatusAsOf,
+  getPresetRange,
+  getRemainingAmountAsOf,
+  type PresetKey,
+  yoyColor,
+} from '@/lib/reporting'
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
 
-function padMonth(m: number) {
-  return String(m).padStart(2, '0')
+function padMonth(month: number) {
+  return String(month).padStart(2, '0')
+}
+
+function padDay(day: number) {
+  return String(day).padStart(2, '0')
 }
 
 function getDaysInMonth(year: number, month: number) {
@@ -19,93 +45,251 @@ function getFirstDayOfWeek(year: number, month: number) {
   return new Date(year, month - 1, 1).getDay()
 }
 
-function fmt(n: number): string {
-  if (n >= 10000) return `${Math.round(n / 10000)}만`
-  return n.toLocaleString()
+function getMonthRange(year: number, month: number) {
+  const lastDay = getDaysInMonth(year, month)
+  return {
+    startDate: `${year}-${padMonth(month)}-01`,
+    endDate: `${year}-${padMonth(month)}-${padDay(lastDay)}`,
+  }
+}
+
+function getDaysBetween(from: string | undefined, to: string): number {
+  if (!from || !to) return 0
+  return Math.max(0, Math.floor((new Date(to).getTime() - new Date(from).getTime()) / 86400000))
+}
+
+function getCustomerPhone(customer: Customer): string {
+  return (customer.mobile ?? customer.phone1 ?? customer.phone ?? '') as string
+}
+
+function GrowthIcon({ pct }: { pct: number }) {
+  if (pct >= 1) return <TrendingUp className="h-4 w-4 text-green-500" />
+  if (pct >= -5) return <Minus className="h-4 w-4 text-gray-400" />
+  return <TrendingDown className="h-4 w-4 text-red-500" />
 }
 
 export function Calendar() {
-  const today = new Date()
+  const navigate = useNavigate()
+  const [today] = useState(() => new Date())
   const [year, setYear] = useState(today.getFullYear())
   const [month, setMonth] = useState(today.getMonth() + 1)
   const [selectedDate, setSelectedDate] = useState<string | null>(null)
+  const [activePreset, setActivePreset] = useState<PresetKey>('thisMonth')
+  const [dateRange, setDateRange] = useState(() => getPresetRange('thisMonth', today))
 
-  const ym = `${year}-${padMonth(month)}`
-  const ymPrev = month === 1 ? `${year - 1}-12` : `${year}-${padMonth(month - 1)}`
-  const ymNext = month === 12 ? `${year + 1}-01` : `${year}-${padMonth(month + 1)}`
+  const prevMonthLabel = month === 1 ? `${year - 1}-12` : `${year}-${padMonth(month - 1)}`
+  const nextMonthLabel = month === 12 ? `${year + 1}-01` : `${year}-${padMonth(month + 1)}`
+  const { startDate: monthStartDate, endDate: monthEndDate } = getMonthRange(year, month)
+  const todayStr = `${today.getFullYear()}-${padMonth(today.getMonth() + 1)}-${padDay(today.getDate())}`
+  const prevYearMonthRange = getMonthRange(today.getFullYear() - 1, today.getMonth() + 1)
 
-  // 이번 달 명세표 전체 (최대 500건)
-  const { data, isLoading } = useQuery({
-    queryKey: ['calendarInvoices', ym],
-    queryFn: () => getInvoices({
-      where: `(invoice_date,gte,${ym}-01)~and(invoice_date,lte,${ym}-31)`,
-      limit: 500,
-      sort: 'invoice_date',
+  const { data: allInvoices = [], isLoading: isInvoiceLoading } = useQuery({
+    queryKey: ['calendar-invoices-all'],
+    queryFn: () => getAllInvoices({
+      sort: '-invoice_date',
+      fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status',
     }),
-    staleTime: 5 * 60_000,
+    staleTime: 3 * 60_000,
+    refetchOnWindowFocus: false,
   })
 
-  const invoices = data?.list ?? []
+  const { data: periodTx, isLoading: isPeriodTxLoading } = useQuery({
+    queryKey: ['calendar-period-tx', dateRange.startDate, dateRange.endDate],
+    queryFn: () => getTxHistory({
+      where: `(tx_type,eq,출고)~and(tx_date,gte,${dateRange.startDate})~and(tx_date,lte,${dateRange.endDate})`,
+      limit: 5000,
+      sort: 'tx_date',
+    }),
+    staleTime: 3 * 60_000,
+    refetchOnWindowFocus: false,
+  })
 
-  // 날짜별 집계
-  const byDate = useMemo(() => {
-    const map: Record<string, { count: number; total: number; list: Invoice[] }> = {}
-    invoices.forEach((inv) => {
-      const d = inv.invoice_date?.slice(0, 10)
-      if (!d) return
-      if (!map[d]) map[d] = { count: 0, total: 0, list: [] }
-      map[d].count++
-      map[d].total += inv.total_amount ?? 0
-      map[d].list.push(inv)
-    })
-    return map
-  }, [invoices])
+  const { data: txLastYear, isLoading: isTxLastYearLoading } = useQuery({
+    queryKey: ['calendar-period-tx-last-year', today.getFullYear() - 1],
+    queryFn: () => getTxHistory({
+      where: `(tx_type,eq,출고)~and(tx_year,eq,${today.getFullYear() - 1})`,
+      limit: 5000,
+    }),
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    enabled: activePreset === 'thisMonth',
+  })
+  const { data: receivableActionInvoices = [], isLoading: isReceivableActionLoading } = useQuery({
+    queryKey: ['calendar-action-receivables'],
+    queryFn: () => getAllInvoices({
+      where: '(payment_status,eq,unpaid)~or(payment_status,eq,partial)',
+      sort: '-invoice_date',
+      fields: 'Id,invoice_no,invoice_date,customer_name,total_amount,paid_amount,payment_status',
+    }),
+    staleTime: 2 * 60_000,
+    refetchOnWindowFocus: false,
+    enabled: !!selectedDate,
+  })
+  const { data: revisitCustomers = [], isLoading: isRevisitCustomerLoading } = useQuery({
+    queryKey: ['calendar-revisit-customers'],
+    queryFn: () => getAllCustomers({
+      sort: 'last_order_date',
+      fields: 'Id,name,last_order_date,outstanding_balance,mobile,phone1,customer_status',
+    }),
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+    enabled: !!selectedDate,
+  })
 
-  // 이번 달 요약
-  const monthTotal = invoices.reduce((s, inv) => s + (inv.total_amount ?? 0), 0)
+  const invoices = useMemo(
+    () => allInvoices.filter((invoice) => {
+      const date = invoice.invoice_date?.slice(0, 10) ?? ''
+      return date >= monthStartDate && date <= monthEndDate
+    }),
+    [allInvoices, monthStartDate, monthEndDate],
+  )
+  const byDate = useMemo(() => buildInvoiceDateSummary(invoices), [invoices])
+  const isMonthLoading = isInvoiceLoading
+
+  const monthTotal = invoices.reduce((sum, invoice) => sum + (invoice.total_amount ?? 0), 0)
   const monthCount = invoices.length
+  const monthUnpaidCount = invoices.filter((invoice) => (invoice.payment_status ?? '') !== 'paid').length
+  const monthTradingDays = Object.keys(byDate).length
 
-  // 선택된 날짜의 명세표
-  const selectedInvoices = selectedDate ? (byDate[selectedDate]?.list ?? []) : []
+  const selectedSummary = selectedDate ? byDate[selectedDate] : null
+  const selectedInvoices = selectedSummary?.list ?? []
+  const selectedReceivables = useMemo(() => {
+    if (!selectedDate) return []
+    return receivableActionInvoices
+      .map((invoice) => {
+        const remainingAmount = getRemainingAmountAsOf(invoice, selectedDate)
+        if (remainingAmount <= 0) return null
+        return {
+          ...invoice,
+          remainingAmount,
+          paymentStatusAsOf: getPaymentStatusAsOf(invoice, selectedDate),
+          ageDays: getDaysBetween(invoice.invoice_date, selectedDate),
+        }
+      })
+      .filter((invoice): invoice is Invoice & {
+        remainingAmount: number
+        paymentStatusAsOf: 'paid' | 'partial' | 'unpaid'
+        ageDays: number
+      } => invoice !== null)
+      .sort((left, right) => {
+        const amountDiff = right.remainingAmount - left.remainingAmount
+        if (amountDiff !== 0) return amountDiff
+        return right.ageDays - left.ageDays
+      })
+      .slice(0, 5)
+  }, [selectedDate, receivableActionInvoices])
+  const currentRevisitTargets = useMemo(() => {
+    return revisitCustomers
+      .filter((customer) => {
+        if (!(customer.name ?? '').trim()) return false
+        if (customer.customer_status === 'CHURNED') return false
+        const lastOrderDate = customer.last_order_date?.slice(0, 10)
+        if (!lastOrderDate || lastOrderDate > todayStr) return false
+        const gapDays = getDaysBetween(lastOrderDate, todayStr)
+        return gapDays >= 45
+      })
+      .map((customer) => {
+        const lastOrderDate = customer.last_order_date?.slice(0, 10) ?? ''
+        const gapDays = getDaysBetween(lastOrderDate, todayStr)
+        return {
+          ...customer,
+          gapDays,
+          phone: getCustomerPhone(customer),
+        }
+      })
+      .sort((left, right) => {
+        const leftOutstanding = left.outstanding_balance ?? 0
+        const rightOutstanding = right.outstanding_balance ?? 0
+        if (rightOutstanding !== leftOutstanding) return rightOutstanding - leftOutstanding
+        return right.gapDays - left.gapDays
+      })
+      .slice(0, 5)
+  }, [revisitCustomers, todayStr])
+  const actionPanelLoading = isReceivableActionLoading || isRevisitCustomerLoading
+  const previousYearInvoiceSales = useMemo(
+    () => allInvoices
+      .filter((invoice) => {
+        const date = invoice.invoice_date?.slice(0, 10) ?? ''
+        return date >= prevYearMonthRange.startDate && date <= prevYearMonthRange.endDate
+      })
+      .reduce((sum, invoice) => sum + (invoice.total_amount ?? 0), 0),
+    [allInvoices, prevYearMonthRange.endDate, prevYearMonthRange.startDate],
+  )
 
-  // 달력 그리드 생성
+  const {
+    periodInvoiceList,
+    validInvoices,
+    collectionRate,
+    periodAvgAmount,
+    periodCombinedSales,
+    yoyGrowthPct,
+    periodChartData,
+  } = useMemo(() => buildPeriodReport({
+    activePreset,
+    dateRange,
+    invoices: allInvoices,
+    txHistory: periodTx?.list ?? [],
+    txLastYear: txLastYear?.list ?? [],
+    previousYearInvoiceSales,
+    now: today,
+  }), [activePreset, dateRange, allInvoices, periodTx, txLastYear, previousYearInvoiceSales, today])
+
+  const periodIsLoading =
+    isInvoiceLoading ||
+    isPeriodTxLoading ||
+    (activePreset === 'thisMonth' && isTxLastYearLoading)
+
   const daysInMonth = getDaysInMonth(year, month)
   const firstDow = getFirstDayOfWeek(year, month)
-  const todayStr = today.toISOString().slice(0, 10)
-
   const cells: (number | null)[] = [
     ...Array(firstDow).fill(null),
-    ...Array.from({ length: daysInMonth }, (_, i) => i + 1),
+    ...Array.from({ length: daysInMonth }, (_, index) => index + 1),
   ]
-  // 7의 배수로 맞춤
   while (cells.length % 7 !== 0) cells.push(null)
 
+  function selectPreset(preset: PresetKey) {
+    setActivePreset(preset)
+    setDateRange(getPresetRange(preset, today))
+  }
+
   function prevMonth() {
-    if (month === 1) { setYear(y => y - 1); setMonth(12) }
-    else setMonth(m => m - 1)
+    if (month === 1) {
+      setYear((value) => value - 1)
+      setMonth(12)
+    } else {
+      setMonth((value) => value - 1)
+    }
     setSelectedDate(null)
   }
 
   function nextMonth() {
-    if (month === 12) { setYear(y => y + 1); setMonth(1) }
-    else setMonth(m => m + 1)
+    if (month === 12) {
+      setYear((value) => value + 1)
+      setMonth(1)
+    } else {
+      setMonth((value) => value + 1)
+    }
     setSelectedDate(null)
   }
 
+  const monthTopDays = Object.entries(byDate)
+    .sort(([, left], [, right]) => right.total - left.total)
+    .slice(0, 5)
+
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between mb-6">
+    <div className="p-6 space-y-6">
+      <div className="flex items-start justify-between gap-3 flex-wrap">
         <div>
           <h2 className="text-2xl font-bold">캘린더</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            {year}년 {month}월 — {monthCount}건 / {monthTotal.toLocaleString()}원
+            월간 달력은 명세표 기준, 상단 리포트는 레거시 거래내역 + CRM 명세표 통합 기준입니다.
           </p>
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" onClick={prevMonth}>
             <ChevronLeft className="h-4 w-4" />
           </Button>
-          <span className="text-sm font-medium w-24 text-center">
+          <span className="text-sm font-medium w-28 text-center">
             {year}년 {month}월
           </span>
           <Button variant="outline" size="sm" onClick={nextMonth}>
@@ -114,157 +298,476 @@ export function Calendar() {
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { setYear(today.getFullYear()); setMonth(today.getMonth() + 1); setSelectedDate(null) }}
+            onClick={() => {
+              setYear(today.getFullYear())
+              setMonth(today.getMonth() + 1)
+              setSelectedDate(null)
+            }}
           >
             오늘
           </Button>
         </div>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        {/* 달력 */}
-        <div className="lg:col-span-2">
-          {isLoading ? (
-            <div className="text-center py-12 text-muted-foreground">불러오는 중...</div>
-          ) : (
-            <div className="rounded-lg border bg-white overflow-hidden">
-              {/* 요일 헤더 */}
-              <div className="grid grid-cols-7 border-b">
-                {DAY_LABELS.map((d, i) => (
-                  <div
-                    key={d}
-                    className={`text-center py-2 text-xs font-medium ${i === 0 ? 'text-red-500' : i === 6 ? 'text-blue-500' : 'text-muted-foreground'}`}
-                  >
-                    {d}
-                  </div>
-                ))}
-              </div>
-
-              {/* 날짜 셀 */}
-              <div className="grid grid-cols-7">
-                {cells.map((day, idx) => {
-                  if (!day) {
-                    return <div key={`empty-${idx}`} className="min-h-[72px] border-b border-r last:border-r-0 bg-gray-50/50" />
-                  }
-                  const dateStr = `${year}-${padMonth(month)}-${String(day).padStart(2, '0')}`
-                  const entry = byDate[dateStr]
-                  const isToday = dateStr === todayStr
-                  const isSelected = dateStr === selectedDate
-                  const dow = (firstDow + day - 1) % 7
-
-                  return (
-                    <div
-                      key={dateStr}
-                      className={`min-h-[72px] border-b border-r last:border-r-0 p-1.5 cursor-pointer transition-colors
-                        ${isSelected ? 'bg-[#e8f0e8]' : 'hover:bg-gray-50'}
-                        ${entry ? '' : ''}
-                      `}
-                      onClick={() => setSelectedDate(isSelected ? null : dateStr)}
-                    >
-                      <div
-                        className={`text-xs font-medium mb-1 w-5 h-5 flex items-center justify-center rounded-full
-                          ${isToday ? 'bg-[#7d9675] text-white' : dow === 0 ? 'text-red-500' : dow === 6 ? 'text-blue-500' : ''}
-                        `}
-                      >
-                        {day}
-                      </div>
-                      {entry && (
-                        <div className="space-y-0.5">
-                          <div className="text-xs text-[#3d6b4a] font-medium">{entry.count}건</div>
-                          <div className="text-xs text-muted-foreground">{fmt(entry.total)}원</div>
-                        </div>
-                      )}
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+      <div className="space-y-4 border rounded-xl bg-white p-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div>
+            <h3 className="text-base font-semibold">기간 매출 리포트</h3>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              {dateRange.label} ({dateRange.startDate} ~ {dateRange.endDate})
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {(Object.keys(PRESET_LABELS) as PresetKey[]).map((preset) => (
+              <button
+                key={preset}
+                onClick={() => selectPreset(preset)}
+                className={`text-xs px-3 py-1 rounded-md border transition-colors ${
+                  activePreset === preset
+                    ? 'bg-[#7d9675] text-white border-[#7d9675]'
+                    : 'bg-white text-muted-foreground border-border hover:border-[#7d9675] hover:text-[#7d9675]'
+                }`}
+              >
+                {PRESET_LABELS[preset]}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {/* 사이드 패널: 선택 날짜 명세표 or 월간 요약 */}
-        <div className="space-y-3">
-          {selectedDate ? (
-            <>
-              <h3 className="text-sm font-semibold">{selectedDate} 명세표</h3>
-              {selectedInvoices.length === 0 ? (
-                <p className="text-sm text-muted-foreground">이날 발행된 명세표가 없습니다.</p>
-              ) : (
-                <div className="space-y-2">
-                  {selectedInvoices.map((inv) => (
-                    <div key={inv.Id} className="bg-white rounded-md border p-2.5 text-xs">
-                      <div className="font-medium">{inv.customer_name}</div>
-                      <div className="text-muted-foreground mt-0.5 flex justify-between">
-                        <span className="font-mono">{inv.invoice_no?.slice(-8)}</span>
-                        <span className="font-bold text-[#3d6b4a]">{(inv.total_amount ?? 0).toLocaleString()}원</span>
-                      </div>
-                      {inv.payment_status === 'unpaid' && (
-                        <div className="text-red-500 mt-0.5">미수금</div>
-                      )}
+        {periodIsLoading ? (
+          <div className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
+            기간 데이터를 불러오는 중입니다.
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              <KpiCard
+                title="수금률"
+                value={`${collectionRate.toFixed(1)}%`}
+                sub={`명세표 ${periodInvoiceList.length}건 기준`}
+                valueClass={collectionRateColor(collectionRate)}
+                icon={
+                  collectionRate < COLLECTION_RATE_THRESHOLDS.CAUTION
+                    ? <AlertTriangle className="h-4 w-4 text-red-500" />
+                    : undefined
+                }
+              />
+              <KpiCard
+                title={activePreset === 'thisMonth' ? '전년동월 대비' : '기간 매출'}
+                value={
+                  yoyGrowthPct !== null
+                    ? `${yoyGrowthPct >= 0 ? '+' : ''}${yoyGrowthPct.toFixed(1)}%`
+                    : `${fmt(periodCombinedSales)}원`
+                }
+                sub={
+                  yoyGrowthPct !== null
+                    ? `전년 ${today.getFullYear() - 1}년 ${today.getMonth() + 1}월 대비`
+                    : '레거시+CRM 통합'
+                }
+                valueClass={yoyGrowthPct !== null ? yoyColor(yoyGrowthPct) : ''}
+                icon={yoyGrowthPct !== null ? <GrowthIcon pct={yoyGrowthPct} /> : undefined}
+              />
+              <KpiCard
+                title="평균 객단가"
+                value={`${fmt(periodAvgAmount)}원`}
+                sub={`명세표 ${validInvoices.length}건 평균`}
+                valueClass={validInvoices.length === 0 ? 'text-muted-foreground' : ''}
+              />
+            </div>
+
+            {periodChartData.length > 0 ? (
+              <Card className="shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold">
+                    {dateRange.label} 일별 매출 추이
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <ResponsiveContainer width="100%" height={220}>
+                    <BarChart data={periodChartData} margin={{ top: 5, right: 10, left: 0, bottom: 5 }}>
+                      <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                      <XAxis dataKey="date" tick={{ fontSize: 10 }} interval="preserveStartEnd" />
+                      <YAxis tickFormatter={(value) => `${Math.round(value / 10000)}만`} tick={{ fontSize: 10 }} width={42} />
+                      <Tooltip formatter={(value: number | undefined) => [`${(value ?? 0).toLocaleString()}원`, '매출']} />
+                      <Bar dataKey="amount" fill="#7d9675" radius={[2, 2, 0, 0]} />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </CardContent>
+              </Card>
+            ) : (
+              <div className="rounded-lg border border-dashed py-8 text-center text-sm text-muted-foreground">
+                해당 기간에 출고 데이터가 없습니다.
+              </div>
+            )}
+          </>
+        )}
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,2fr)_360px] gap-4">
+        <Card className="overflow-hidden shadow-none">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-base font-semibold">
+              {year}년 {month}월 월간 달력
+            </CardTitle>
+            <p className="text-xs text-muted-foreground">
+              명세표 {monthCount}건 / {monthTotal.toLocaleString()}원
+            </p>
+          </CardHeader>
+          <CardContent className="p-0">
+            {isMonthLoading ? (
+              <div className="text-center py-16 text-sm text-muted-foreground">월간 명세표를 불러오는 중입니다.</div>
+            ) : (
+              <>
+                <div className="grid grid-cols-7 border-y">
+                  {DAY_LABELS.map((label, index) => (
+                    <div
+                      key={label}
+                      className={`text-center py-2 text-xs font-medium ${
+                        index === 0 ? 'text-red-500' : index === 6 ? 'text-blue-500' : 'text-muted-foreground'
+                      }`}
+                    >
+                      {label}
                     </div>
                   ))}
                 </div>
-              )}
+
+                <div className="grid grid-cols-7">
+                  {cells.map((day, index) => {
+                    if (!day) {
+                      return (
+                        <div
+                          key={`empty-${index}`}
+                          className="min-h-[92px] border-b border-r last:border-r-0 bg-gray-50/40"
+                        />
+                      )
+                    }
+
+                    const dateStr = `${year}-${padMonth(month)}-${padDay(day)}`
+                    const entry = byDate[dateStr]
+                    const isToday = dateStr === todayStr
+                    const isSelected = dateStr === selectedDate
+                    const dayOfWeek = (firstDow + day - 1) % 7
+
+                    return (
+                      <button
+                        key={dateStr}
+                        type="button"
+                        className={`min-h-[92px] border-b border-r last:border-r-0 p-2 text-left transition-colors ${
+                          isSelected ? 'bg-[#eef4ed]' : 'hover:bg-gray-50'
+                        }`}
+                        onClick={() => setSelectedDate(isSelected ? null : dateStr)}
+                      >
+                        <div
+                          className={`mb-1 flex h-6 w-6 items-center justify-center rounded-full text-xs font-medium ${
+                            isToday
+                              ? 'bg-[#7d9675] text-white'
+                              : dayOfWeek === 0
+                              ? 'text-red-500'
+                              : dayOfWeek === 6
+                              ? 'text-blue-500'
+                              : ''
+                          }`}
+                        >
+                          {day}
+                        </div>
+
+                        {entry ? (
+                          <div className="space-y-0.5">
+                            <div className="text-xs font-medium text-[#3d6b4a]">{entry.count}건</div>
+                            <div className="text-xs text-muted-foreground">{fmt(entry.total)}원</div>
+                            {entry.unpaidCount > 0 && (
+                              <div className="text-[10px] text-red-500">{entry.unpaidCount}건 미수</div>
+                            )}
+                          </div>
+                        ) : (
+                          <div className="text-[10px] text-muted-foreground/50">발행 없음</div>
+                        )}
+                      </button>
+                    )
+                  })}
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <div className="space-y-3">
+          {selectedDate ? (
+            <>
+              <Card className="shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold">{selectedDate} 실행 요약</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">발행 건수</span>
+                    <span className="font-medium">{selectedSummary?.count ?? 0}건</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">총 매출</span>
+                    <span className="font-semibold text-[#3d6b4a]">{(selectedSummary?.total ?? 0).toLocaleString()}원</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">미수 명세표</span>
+                    <span className={`font-medium ${(selectedSummary?.unpaidCount ?? 0) > 0 ? 'text-red-500' : ''}`}>
+                      {selectedSummary?.unpaidCount ?? 0}건
+                    </span>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold">바로 실행</CardTitle>
+                </CardHeader>
+                <CardContent className="grid grid-cols-1 gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => navigate(`/invoices?date=${selectedDate}`)}
+                  >
+                    당일 명세표 보기
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="justify-start"
+                    onClick={() => navigate(`/receivables?asOf=${selectedDate}`)}
+                  >
+                    기준일 미수 보기
+                  </Button>
+                  <Button
+                    size="sm"
+                    className="justify-start bg-[#7d9675] text-white hover:bg-[#6a8462]"
+                    onClick={() => navigate(`/invoices?date=${selectedDate}&new=1`)}
+                  >
+                    이 날짜로 새 명세표 발행
+                  </Button>
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold">당일 명세표</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {selectedInvoices.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">이날 발행된 명세표가 없습니다.</p>
+                  ) : (
+                    selectedInvoices.map((invoice) => (
+                      <InvoiceSummaryCard key={invoice.Id} invoice={invoice} />
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold">기준일 미수 후속</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {actionPanelLoading ? (
+                    <p className="text-sm text-muted-foreground">후속 대상을 계산하는 중입니다.</p>
+                  ) : selectedReceivables.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">이 날짜 기준으로 남아 있는 미수 명세표가 없습니다.</p>
+                  ) : (
+                    selectedReceivables.map((invoice) => (
+                      <button
+                        key={`receivable-${invoice.Id}`}
+                        type="button"
+                        className="w-full rounded-md border px-3 py-2 text-left transition-colors hover:border-[#7d9675]"
+                        onClick={() => navigate(`/receivables?asOf=${selectedDate}`)}
+                      >
+                        <div className="flex items-start justify-between gap-2 text-xs">
+                          <div>
+                            <div className="font-medium text-sm">{invoice.customer_name || '거래처 미지정'}</div>
+                            <div className="mt-0.5 text-muted-foreground">
+                              {invoice.invoice_date?.slice(0, 10) || '-'} · {invoice.ageDays}일 경과
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <div className="font-semibold text-red-600">{invoice.remainingAmount.toLocaleString()}원</div>
+                            <div className="mt-0.5 text-muted-foreground">
+                              {invoice.paymentStatusAsOf === 'partial' ? '부분수금' : '미수금'} · {invoice.invoice_no?.slice(-8) || '-'}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
+              <Card className="shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold">현재 기준 재방문 추천</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {actionPanelLoading ? (
+                    <p className="text-sm text-muted-foreground">재방문 대상을 계산하는 중입니다.</p>
+                  ) : currentRevisitTargets.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">현재 기준으로 바로 연락할 재방문 대상이 없습니다.</p>
+                  ) : (
+                    currentRevisitTargets.map((customer) => (
+                      <button
+                        key={`revisit-${customer.Id ?? customer.name}`}
+                        type="button"
+                        className="w-full rounded-md border px-3 py-2 text-left transition-colors hover:border-[#7d9675]"
+                        onClick={() => {
+                          if (customer.Id) navigate(`/customers/${customer.Id}`)
+                        }}
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <div>
+                            <div className="font-medium text-sm">{customer.name}</div>
+                            <div className="mt-0.5 text-xs text-muted-foreground">
+                              {customer.phone || '연락처 없음'}
+                            </div>
+                          </div>
+                          <div className="text-right text-xs">
+                            <div className="font-medium">{customer.gapDays}일 무주문</div>
+                            <div className={`mt-0.5 ${(customer.outstanding_balance ?? 0) > 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                              {(customer.outstanding_balance ?? 0) > 0
+                                ? `미수 ${(customer.outstanding_balance ?? 0).toLocaleString()}원`
+                                : (customer.last_order_date?.slice(0, 10) ?? '-')}
+                            </div>
+                          </div>
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
+
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground px-1">
+                  날짜를 클릭하면 당일 명세표와 기준일 미수, 재방문 대상을 함께 확인할 수 있습니다.
+                </p>
+              </div>
             </>
           ) : (
             <>
-              <h3 className="text-sm font-semibold">{year}년 {month}월 요약</h3>
-              <div className="bg-white rounded-md border p-3 space-y-2 text-sm">
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">발행 건수</span>
-                  <span className="font-medium">{monthCount}건</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">총 매출</span>
-                  <span className="font-bold text-[#3d6b4a]">{monthTotal.toLocaleString()}원</span>
-                </div>
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">거래일 수</span>
-                  <span className="font-medium">{Object.keys(byDate).length}일</span>
-                </div>
-                {monthCount > 0 && (
+              <Card className="shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold">{year}년 {month}월 월간 요약</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2 text-sm">
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">발행 건수</span>
+                    <span className="font-medium">{monthCount}건</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">총 매출</span>
+                    <span className="font-semibold text-[#3d6b4a]">{monthTotal.toLocaleString()}원</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">미수 명세표</span>
+                    <span className={`font-medium ${monthUnpaidCount > 0 ? 'text-red-500' : ''}`}>{monthUnpaidCount}건</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">거래일 수</span>
+                    <span className="font-medium">{monthTradingDays}일</span>
+                  </div>
                   <div className="flex justify-between border-t pt-2">
                     <span className="text-muted-foreground">건당 평균</span>
-                    <span className="font-medium">{Math.round(monthTotal / monthCount).toLocaleString()}원</span>
+                    <span className="font-medium">
+                      {monthCount > 0 ? Math.round(monthTotal / monthCount).toLocaleString() : '0'}원
+                    </span>
                   </div>
-                )}
-              </div>
+                </CardContent>
+              </Card>
 
-              {/* 이번 달 거래일 TOP5 */}
-              {Object.keys(byDate).length > 0 && (
-                <div>
-                  <h4 className="text-xs font-medium text-muted-foreground mb-2">매출 상위 날짜</h4>
-                  <div className="space-y-1.5">
-                    {Object.entries(byDate)
-                      .sort((a, b) => b[1].total - a[1].total)
-                      .slice(0, 5)
-                      .map(([date, entry]) => (
-                        <div
-                          key={date}
-                          className="flex justify-between text-xs cursor-pointer hover:text-[#3d6b4a]"
-                          onClick={() => setSelectedDate(date)}
-                        >
-                          <span className="text-muted-foreground">{date.slice(5)}</span>
-                          <span>{entry.count}건 / {fmt(entry.total)}원</span>
-                        </div>
-                      ))}
-                  </div>
-                </div>
-              )}
+              <Card className="shadow-none">
+                <CardHeader className="pb-2">
+                  <CardTitle className="text-sm font-semibold">매출 상위 날짜</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-2">
+                  {monthTopDays.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">이번 달 발행 데이터가 없습니다.</p>
+                  ) : (
+                    monthTopDays.map(([date, entry]) => (
+                      <button
+                        key={date}
+                        type="button"
+                        className="flex w-full items-center justify-between rounded-md border px-3 py-2 text-left text-xs transition-colors hover:border-[#7d9675] hover:text-[#3d6b4a]"
+                        onClick={() => setSelectedDate(date)}
+                      >
+                        <span className="text-muted-foreground">{date.slice(5)}</span>
+                        <span>{entry.count}건 / {fmt(entry.total)}원</span>
+                      </button>
+                    ))
+                  )}
+                </CardContent>
+              </Card>
             </>
           )}
         </div>
       </div>
 
-      {/* 이전/다음 달 빠른 이동 */}
-      <div className="flex gap-2 mt-4">
+      <div className="flex gap-2">
         <Button variant="ghost" size="sm" className="text-xs text-muted-foreground" onClick={prevMonth}>
-          ← {ymPrev}
+          ← {prevMonthLabel}
         </Button>
-        <Button variant="ghost" size="sm" className="text-xs text-muted-foreground ml-auto" onClick={nextMonth}>
-          {ymNext} →
+        <Button variant="ghost" size="sm" className="ml-auto text-xs text-muted-foreground" onClick={nextMonth}>
+          {nextMonthLabel} →
         </Button>
       </div>
     </div>
+  )
+}
+
+function KpiCard({
+  title,
+  value,
+  sub,
+  valueClass = '',
+  icon,
+}: {
+  title: string
+  value: string
+  sub: string
+  valueClass?: string
+  icon?: ReactNode
+}) {
+  return (
+    <Card className="shadow-none">
+      <CardHeader className="pb-1">
+        <CardTitle className="flex items-center gap-1 text-xs font-medium text-muted-foreground">
+          {icon}
+          {title}
+        </CardTitle>
+      </CardHeader>
+      <CardContent>
+        <p className={`text-xl font-bold leading-tight ${valueClass}`}>{value}</p>
+        <p className="mt-0.5 text-xs text-muted-foreground">{sub}</p>
+      </CardContent>
+    </Card>
+  )
+}
+
+function InvoiceSummaryCard({ invoice }: { invoice: Invoice }) {
+  const isUnpaid = (invoice.payment_status ?? '') !== 'paid'
+
+  return (
+    <Card className="shadow-none">
+      <CardContent className="space-y-1 p-3 text-xs">
+        <div className="flex items-start justify-between gap-2">
+          <div>
+            <div className="font-medium text-sm">{invoice.customer_name || '거래처 미지정'}</div>
+            <div className="text-muted-foreground font-mono mt-0.5">{invoice.invoice_no?.slice(-8) || '-'}</div>
+          </div>
+          <div className="text-right">
+            <div className="font-bold text-[#3d6b4a]">{(invoice.total_amount ?? 0).toLocaleString()}원</div>
+            <div className={`mt-0.5 ${isUnpaid ? 'text-red-500' : 'text-muted-foreground'}`}>
+              {isUnpaid ? '미수' : '수금 완료'}
+            </div>
+          </div>
+        </div>
+        {invoice.memo ? (
+          <p className="border-t pt-2 text-muted-foreground line-clamp-2">{invoice.memo}</p>
+        ) : null}
+      </CardContent>
+    </Card>
   )
 }

@@ -27,7 +27,7 @@ export function CustomerDialog({ open, customer, onClose, onSaved }: CustomerDia
 
   useEffect(() => {
     if (!open) return
-    setForm(isNew ? { customer_status: 'ACTIVE', price_tier: 1 } : { ...customer })
+    setForm(isNew ? { customer_status: 'ACTIVE', price_tier: 1 } : { ...customer, phone: customer?.phone ?? customer?.phone1 })
   }, [open, customer, isNew])
 
   function set<K extends keyof Customer>(key: K, value: Customer[K]) {
@@ -35,17 +35,19 @@ export function CustomerDialog({ open, customer, onClose, onSaved }: CustomerDia
   }
 
   async function handleSave() {
-    if (!form.name?.trim()) {
+    const trimmedName = form.name?.trim()
+    if (!trimmedName) {
       toast.warning('거래처명을 입력해주세요')
       return
     }
     setIsSaving(true)
     try {
+      const payload = { ...form, name: trimmedName, phone1: form.phone ?? form.phone1 }
       if (isNew) {
-        await createCustomer(form)
+        await createCustomer(payload)
         toast.success('고객이 등록되었습니다')
       } else {
-        await updateCustomer(customer!.Id, form)
+        await updateCustomer(customer!.Id, payload)
         toast.success('고객 정보가 수정되었습니다')
       }
       onSaved()

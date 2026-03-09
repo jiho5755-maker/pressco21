@@ -36,15 +36,17 @@ interface InfoForm {
   addresses: string[]
 }
 
+const MAX_ADDRESS_FIELDS = 10
+
 function buildInfoForm(c: Customer): InfoForm {
   const addresses: string[] = []
-  for (let i = 1; i <= 10; i++) {
+  for (let i = 1; i <= MAX_ADDRESS_FIELDS; i++) {
     const v = c[`address${i}`] as string | undefined
     if (v) addresses.push(v)
   }
   return {
     name: c.name ?? '',
-    phone: c.phone ?? '',
+    phone: c.phone ?? c.phone1 ?? '',
     mobile: (c.mobile as string) ?? '',
     email: c.email ?? '',
     biz_no: c.biz_no ?? '',
@@ -69,6 +71,11 @@ function todayStr() {
 function thisMonthStart() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
+}
+
+function toNullableText(value: string): string | null {
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
 }
 
 // ── 거래내역 쿼리 (모든 tx_type, 페이지네이션) ──────────
@@ -155,28 +162,35 @@ export function CustomerDetail() {
 
   const { mutate: saveInfo, isPending: savingInfo } = useMutation({
     mutationFn: () => {
-      // 주소 필드 동적 구성 (address1~6, 빈 주소는 undefined)
-      const addrPayload: Record<string, string | undefined> = {}
-      for (let i = 1; i <= 6; i++) {
-        const v = infoForm.addresses[i - 1]
-        addrPayload[`address${i}`] = v && v.trim() ? v.trim() : undefined
+      const trimmedName = infoForm.name.trim()
+      if (!trimmedName) throw new Error('거래처명을 입력해주세요')
+
+      // 주소 필드 동적 구성 (address1~address10, 삭제된 슬롯은 null로 명시)
+      const addrPayload: Record<string, unknown> = {}
+      for (let i = 1; i <= MAX_ADDRESS_FIELDS; i++) {
+        const value = infoForm.addresses[i - 1] ?? ''
+        addrPayload[`address${i}`] = toNullableText(value)
       }
-      return updateCustomer(customerId, {
-        name: infoForm.name || undefined,
-        phone: infoForm.phone || undefined,
-        mobile: infoForm.mobile || undefined,
-        email: infoForm.email || undefined,
-        biz_no: infoForm.biz_no || undefined,
-        ceo_name: infoForm.ceo_name || undefined,
-        biz_type: infoForm.biz_type || undefined,
-        biz_item: infoForm.biz_item || undefined,
-        customer_type: infoForm.customer_type || undefined,
-        customer_status: infoForm.customer_status || undefined,
-        price_tier: infoForm.price_tier ? Number(infoForm.price_tier) : undefined,
-        discount_rate: infoForm.discount_rate ? Number(infoForm.discount_rate) : undefined,
-        memo: infoForm.memo || undefined,
+
+      const customerPatch = {
+        name: trimmedName,
+        phone: toNullableText(infoForm.phone),
+        phone1: toNullableText(infoForm.phone),
+        mobile: toNullableText(infoForm.mobile),
+        email: toNullableText(infoForm.email),
+        biz_no: toNullableText(infoForm.biz_no),
+        ceo_name: toNullableText(infoForm.ceo_name),
+        biz_type: toNullableText(infoForm.biz_type),
+        biz_item: toNullableText(infoForm.biz_item),
+        customer_type: toNullableText(infoForm.customer_type),
+        customer_status: toNullableText(infoForm.customer_status),
+        price_tier: infoForm.price_tier ? Number(infoForm.price_tier) : null,
+        discount_rate: infoForm.discount_rate.trim() ? Number(infoForm.discount_rate) : null,
+        memo: toNullableText(infoForm.memo),
         ...addrPayload,
-      })
+      } as Partial<Customer>
+
+      return updateCustomer(customerId, customerPatch)
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ['customer', customerId] })
@@ -476,7 +490,7 @@ export function CustomerDetail() {
               {!infoEditMode ? (
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                   {[
-                    { label: '전화', value: customer.phone },
+                    { label: '전화', value: customer.phone ?? customer.phone1 },
                     { label: '모바일', value: (customer.mobile as string) },
                     { label: '이메일', value: customer.email },
                     { label: '사업자번호', value: customer.biz_no },
@@ -497,7 +511,7 @@ export function CustomerDetail() {
                   {/* 주소 목록 */}
                   {(() => {
                     const addrs: string[] = []
-                    for (let i = 1; i <= 6; i++) {
+                    for (let i = 1; i <= MAX_ADDRESS_FIELDS; i++) {
                       const v = customer[`address${i}`] as string | undefined
                       if (v) addrs.push(v)
                     }
@@ -592,7 +606,7 @@ export function CustomerDetail() {
                         variant="outline"
                         className="h-6 text-xs gap-1"
                         onClick={() => setInfoForm((f) => ({ ...f, addresses: [...f.addresses, ''] }))}
-                        disabled={infoForm.addresses.length >= 6}
+                        disabled={infoForm.addresses.length >= MAX_ADDRESS_FIELDS}
                       >
                         <Plus className="h-3 w-3" />
                         주소 추가
@@ -861,7 +875,7 @@ export function CustomerDetail() {
                       supply_amount: inv.supply_amount,
                       total_amount: inv.total_amount,
                       paid_amount: inv.paid_amount,
-                      status: inv.status,
+                      status: inv.payment_status,
                     })),
                     filteredLegacyTx.map((tx) => ({
                       tx_date: tx.tx_date,
@@ -988,14 +1002,14 @@ export function CustomerDetail() {
                     <td className="px-4 py-2">
                       <span
                         className={`text-xs font-medium ${
-                          inv.status === 'paid'
+                          inv.payment_status === 'paid'
                             ? 'text-green-600'
-                            : inv.status === 'partial'
+                            : inv.payment_status === 'partial'
                             ? 'text-amber-600'
                             : 'text-red-600'
                         }`}
                       >
-                        {inv.status === 'paid' ? '완납' : inv.status === 'partial' ? '부분수금' : '미수금'}
+                        {inv.payment_status === 'paid' ? '완납' : inv.payment_status === 'partial' ? '부분수금' : '미수금'}
                       </span>
                     </td>
                   </tr>

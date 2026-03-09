@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
 import { TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -7,6 +7,16 @@ import {
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts'
 import { getCustomers, getTxHistory, getInvoices } from '@/lib/api'
+import {
+  COLLECTION_RATE_THRESHOLDS,
+  PRESET_LABELS,
+  buildPeriodReport,
+  collectionRateColor,
+  fmtCompactAmount as fmt,
+  getPresetRange,
+  type PresetKey,
+  yoyColor,
+} from '@/lib/reporting'
 
 // accounting-specialist 정의 임계값
 const RECEIVABLE_THRESHOLDS = {
@@ -26,80 +36,10 @@ const GROWTH_THRESHOLDS = {
 
 const PIE_COLORS = { ACTIVE: '#22c55e', DORMANT: '#eab308', CHURNED: '#94a3b8' }
 
-// ─── 기간 매출 리포트 임계값 (accounting-specialist 확정, 2026-03-06) ───
-// PRESSCO21 꽃 공예 도매 | 월 매출 3,000~5,000만 원 기준
-// 수금률 = paid_amount 합계 / total_amount 합계 (금액 기준, 건수 아님)
-const COLLECTION_RATE_THRESHOLDS = {
-  EXCELLENT: 95,  // 95% 이상 → green  (양호)
-  GOOD:      85,  // 85~95%   → gray   (도매업 정상)
-  CAUTION:   70,  // 70~85%   → amber  (주의)
-                  // 70% 미만 → red    (위험, 운전자금 압박)
-}
-// 전년동월대비 임계값 (기존 GROWTH_THRESHOLDS와 동일 수치, 맥락 분리)
-const YOY_THRESHOLDS = {
-  EXCELLENT: 10, GOOD: 1, CAUTION: -5, DANGER: -20,
-}
-
-type PresetKey = 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear'
-const PRESET_LABELS: Record<PresetKey, string> = {
-  thisMonth: '이번달', lastMonth: '지난달', thisQuarter: '이번분기', thisYear: '올해',
-}
-
-const pad = (n: number) => String(n).padStart(2, '0')
-const toISO = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
-
-function getPresetRange(preset: PresetKey): { startDate: string; endDate: string; label: string } {
-  const today = new Date()
-  const y = today.getFullYear()
-  const m = today.getMonth() + 1
-  if (preset === 'thisMonth') {
-    return { startDate: `${y}-${pad(m)}-01`, endDate: toISO(today), label: `${y}년 ${m}월` }
-  }
-  if (preset === 'lastMonth') {
-    const lm = m === 1 ? 12 : m - 1
-    const ly = m === 1 ? y - 1 : y
-    const ld = new Date(ly, lm, 0).getDate()
-    return { startDate: `${ly}-${pad(lm)}-01`, endDate: `${ly}-${pad(lm)}-${pad(ld)}`, label: `${ly}년 ${lm}월` }
-  }
-  if (preset === 'thisQuarter') {
-    // 분기 기준: Q1=1~3, Q2=4~6, Q3=7~9, Q4=10~12 (세무 신고 기준과 동일)
-    const q = Math.ceil(m / 3)
-    const qsm = (q - 1) * 3 + 1
-    const qem = q * 3
-    const qEndFull = new Date(y, qem - 1, new Date(y, qem, 0).getDate())
-    return {
-      startDate: `${y}-${pad(qsm)}-01`,
-      endDate: toISO(qEndFull > today ? today : qEndFull),
-      label: `${y}년 ${q}분기 (${qsm}~${qem}월)`,
-    }
-  }
-  // thisYear: 1월 1일 ~ 오늘
-  return { startDate: `${y}-01-01`, endDate: toISO(today), label: `${y}년 전체` }
-}
-
-function collectionRateColor(rate: number): string {
-  if (rate >= COLLECTION_RATE_THRESHOLDS.EXCELLENT) return 'text-green-600'
-  if (rate >= COLLECTION_RATE_THRESHOLDS.GOOD)      return ''
-  if (rate >= COLLECTION_RATE_THRESHOLDS.CAUTION)   return 'text-amber-600'
-  return 'text-red-600'
-}
-function yoyColor(pct: number): string {
-  if (pct >= YOY_THRESHOLDS.EXCELLENT) return 'text-green-600'
-  if (pct >= YOY_THRESHOLDS.GOOD)      return 'text-green-500'
-  if (pct >= YOY_THRESHOLDS.CAUTION)   return 'text-gray-500'
-  if (pct >= YOY_THRESHOLDS.DANGER)    return 'text-amber-500'
-  return 'text-red-600'
-}
 const STATUS_LABELS: Record<string, string> = { ACTIVE: '활성', DORMANT: '휴면', CHURNED: '이탈' }
 
 function getYearMonth(dateStr: string) {
   return dateStr.slice(0, 7) // 'YYYY-MM'
-}
-
-function fmt(n: number) {
-  if (n >= 100_000_000) return `${(n / 100_000_000).toFixed(1)}억`
-  if (n >= 10_000)      return `${Math.round(n / 10_000)}만`
-  return n.toLocaleString()
 }
 
 function growthColor(pct: number) {
@@ -320,66 +260,22 @@ export function Dashboard() {
   }))
 
   // ── 기간 리포트 계산 ─────────────────────────────────────
-  // YYYY-MM-DD 텍스트 문자열 비교로 날짜 범위 필터링
-  const periodInvoiceList = useMemo(
-    () => (periodInvoicesRaw?.list ?? []).filter((i) => {
-      const d = (i.invoice_date ?? '').slice(0, 10)
-      return d >= dateRange.startDate && d <= dateRange.endDate
-    }),
-    [periodInvoicesRaw, dateRange]
-  )
-  const periodTxList = periodTx?.list ?? []
-
-  // 수금률: paid_amount 합계 / total_amount 합계 (금액 기준)
-  const periodTotalAmt = periodInvoiceList.reduce((s, i) => s + (i.total_amount ?? 0), 0)
-  const periodPaidAmt  = periodInvoiceList.reduce((s, i) => s + (i.paid_amount  ?? 0), 0)
-  const collectionRate = periodTotalAmt > 0
-    ? Math.min(100, (periodPaidAmt / periodTotalAmt) * 100)
-    : 100  // 명세표 없음 → 100% (경보 없음)
-
-  // 객단가: 기간 내 명세표 건당 평균 (total_amount=0 제외)
-  const validInvoices = periodInvoiceList.filter((i) => (i.total_amount ?? 0) > 0)
-  const periodAvgAmount = validInvoices.length > 0
-    ? Math.round(periodTotalAmt / validInvoices.length)
-    : 0
-
-  // 기간 매출: 레거시(tx_history 출고) + CRM(invoices) 통합
-  const periodTxSales = periodTxList.reduce((s, t) => s + (t.amount ?? 0), 0)
-  const periodCrmSales = periodInvoiceList.reduce((s, i) => s + (i.total_amount ?? 0), 0)
-  const periodCombinedSales = periodTxSales + periodCrmSales
-
-  // 전년동월대비 (thisMonth 프리셋일 때만 계산, 기존 txLastYear 재사용)
-  const prevYearSales = useMemo(() => {
-    if (activePreset !== 'thisMonth') return null
-    const prevYM = `${CUR_YEAR - 1}-${String(CUR_MONTH).padStart(2, '0')}`
-    return (txLastYear?.list ?? [])
-      .filter((t) => (t.tx_date ?? '').startsWith(prevYM))
-      .reduce((s, t) => s + (t.amount ?? 0), 0)
-  }, [activePreset, txLastYear])
-
-  const yoyGrowthPct = (prevYearSales !== null && prevYearSales > 0)
-    ? ((periodCombinedSales - prevYearSales) / prevYearSales) * 100
-    : null
-
-  // 기간 일별 차트 데이터 (레거시 + CRM 통합)
-  const periodChartData = useMemo(() => {
-    const byDate: Record<string, number> = {}
-    // 레거시 tx_history
-    periodTxList.forEach((tx) => {
-      const d = (tx.tx_date ?? '').slice(0, 10)
-      if (!d) return
-      byDate[d] = (byDate[d] ?? 0) + (tx.amount ?? 0)
-    })
-    // CRM invoices (이중계산 없음)
-    periodInvoiceList.forEach((inv) => {
-      const d = (inv.invoice_date ?? '').slice(0, 10)
-      if (!d) return
-      byDate[d] = (byDate[d] ?? 0) + (inv.total_amount ?? 0)
-    })
-    return Object.entries(byDate)
-      .sort(([a], [b]) => a.localeCompare(b))
-      .map(([date, amount]) => ({ date: date.slice(5), amount }))
-  }, [periodTxList, periodInvoiceList])
+  const {
+    periodInvoiceList,
+    validInvoices,
+    collectionRate,
+    periodAvgAmount,
+    periodCombinedSales,
+    yoyGrowthPct,
+    periodChartData,
+  } = useMemo(() => buildPeriodReport({
+    activePreset,
+    dateRange,
+    invoices: periodInvoicesRaw?.list ?? [],
+    txHistory: periodTx?.list ?? [],
+    txLastYear: txLastYear?.list ?? [],
+    now: NOW,
+  }), [activePreset, dateRange, periodInvoicesRaw, periodTx, txLastYear])
 
   // 미수금 경보 색상
   const totalRecColor = totalReceivables >= TOTAL_RECEIVABLE_DANGER
@@ -673,7 +569,7 @@ function KpiCard({
   value: string
   sub: string
   valueClass?: string
-  icon?: React.ReactNode
+  icon?: ReactNode
 }) {
   return (
     <Card>

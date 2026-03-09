@@ -1,7 +1,7 @@
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route } from 'react-router-dom'
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
-import { Toaster } from 'sonner'
+import { Toaster, toast } from 'sonner'
 import { Layout } from '@/components/layout/Layout'
 import { preloadPrintImages, saveCompanyInfo } from '@/lib/print'
 import { getSettings } from '@/lib/api'
@@ -49,6 +49,20 @@ function App() {
     })
   }, [])
 
+  useEffect(() => {
+    function handleToastClick(event: MouseEvent) {
+      const target = event.target as HTMLElement | null
+      if (!target) return
+      const toastElement = target.closest('[data-sonner-toast]')
+      if (!toastElement) return
+      if (target.closest('[data-button], [data-close-button], button, a, input, select, textarea, label')) return
+      toast.dismiss()
+    }
+
+    document.addEventListener('click', handleToastClick)
+    return () => document.removeEventListener('click', handleToastClick)
+  }, [])
+
   return (
     <QueryClientProvider client={queryClient}>
       <BrowserRouter>
@@ -67,7 +81,13 @@ function App() {
           </Route>
         </Routes>
       </BrowserRouter>
-      <Toaster richColors position="top-right" />
+      <Toaster
+        richColors
+        position="bottom-right"
+        toastOptions={{
+          className: 'cursor-pointer',
+        }}
+      />
     </QueryClientProvider>
   )
 }

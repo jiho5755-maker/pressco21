@@ -77,6 +77,33 @@ export interface ListResponse<T> {
   pageInfo: { totalRows: number; page: number; pageSize: number; isLastPage: boolean }
 }
 
+async function fetchAllPages<T>(
+  fetchPage: (params: Record<string, string | number>) => Promise<ListResponse<T>>,
+  params: Record<string, string | number> = {},
+  pageSize = 500,
+): Promise<T[]> {
+  const baseParams = { ...params }
+  delete baseParams.limit
+  delete baseParams.offset
+
+  const rows: T[] = []
+  let offset = 0
+
+  for (let page = 0; page < 100; page++) {
+    const result = await fetchPage({
+      ...baseParams,
+      limit: pageSize,
+      offset,
+    })
+    rows.push(...result.list)
+
+    if (result.pageInfo?.isLastPage || result.list.length < pageSize) break
+    offset += pageSize
+  }
+
+  return rows
+}
+
 // ─────────────────────────────────────────
 // 보안: 입력값 sanitize 함수
 // ─────────────────────────────────────────
@@ -101,6 +128,63 @@ export function sanitizeAmount(value: string | number): number {
   return Math.max(0, Math.min(Math.floor(n), 1_000_000_000))
 }
 
+function pickFirstString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === 'string') return value
+  }
+  return undefined
+}
+
+function pickFirstNonBlankString(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value !== 'string') continue
+    const trimmed = value.trim()
+    if (trimmed) return trimmed
+  }
+  return undefined
+}
+
+function hasOwn(obj: object, key: string): boolean {
+  return Object.prototype.hasOwnProperty.call(obj, key)
+}
+
+function normalizeNullableString(value: unknown): string | null | unknown {
+  if (typeof value !== 'string') return value
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+const NULLABLE_CUSTOMER_TEXT_FIELDS = new Set([
+  'phone1',
+  'phone2',
+  'mobile',
+  'email',
+  'customer_type',
+  'customer_status',
+  'ambassador_code',
+  'grade_qualification',
+  'business_no',
+  'ceo_name',
+  'business_type',
+  'business_item',
+  'business_address',
+  'memo',
+  ...Array.from({ length: 10 }, (_, index) => `address${index + 1}`),
+])
+
+const RECEIPT_TYPE_SET = new Set(['영수', '청구', '영수(청구)'])
+const PAYMENT_STATUS_SET = new Set(['paid', 'partial', 'unpaid'])
+
+function normalizeReceiptType(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  return RECEIPT_TYPE_SET.has(value) ? value : undefined
+}
+
+function normalizePaymentStatus(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  return PAYMENT_STATUS_SET.has(value) ? value : undefined
+}
+
 // ─────────────────────────────────────────
 // 고객 (customers)
 // ─────────────────────────────────────────
@@ -118,6 +202,10 @@ export interface Customer {
   address4?: string
   address5?: string
   address6?: string
+  address7?: string
+  address8?: string
+  address9?: string
+  address10?: string
   customer_type?: string
   customer_status?: string
   member_grade?: string
@@ -133,41 +221,124 @@ export interface Customer {
   outstanding_balance?: number
   // 전자세금계산서 대비 필드 (accounting-specialist)
   biz_no?: string
+  business_no?: string
   ceo_name?: string
   biz_type?: string
+  business_type?: string
   biz_item?: string
+  business_item?: string
+  business_address?: string
   memo?: string
   CreatedAt?: string
   UpdatedAt?: string
   [key: string]: unknown
 }
 
+function normalizeCustomerRecord(customer: Customer): Customer {
+  const phone = pickFirstString(customer.phone, customer.phone1)
+  const phone1 = pickFirstString(customer.phone1, customer.phone)
+  return {
+    ...customer,
+    phone,
+    phone1,
+    biz_no: pickFirstString(customer.biz_no, customer.business_no),
+    business_no: pickFirstString(customer.business_no, customer.biz_no),
+    biz_type: pickFirstString(customer.biz_type, customer.business_type),
+    business_type: pickFirstString(customer.business_type, customer.biz_type),
+    biz_item: pickFirstString(customer.biz_item, customer.business_item),
+    business_item: pickFirstString(customer.business_item, customer.biz_item),
+  }
+}
+
+function normalizeCustomerList(result: ListResponse<Customer>): ListResponse<Customer> {
+  return {
+    ...result,
+    list: result.list.map(normalizeCustomerRecord),
+  }
+}
+
+function serializeCustomerPayload(data: Partial<Customer>): Partial<Customer> {
+  const payload = stripAutoFields(data as Record<string, unknown>) as Record<string, unknown>
+
+  for (const key of NULLABLE_CUSTOMER_TEXT_FIELDS) {
+    if (!hasOwn(payload, key)) continue
+    payload[key] = normalizeNullableString(payload[key])
+  }
+
+  if (hasOwn(payload, 'phone') || hasOwn(payload, 'phone1')) {
+    payload.phone1 = pickFirstNonBlankString(payload.phone, payload.phone1) ?? null
+  }
+  if (hasOwn(payload, 'biz_no') || hasOwn(payload, 'business_no')) {
+    payload.business_no = pickFirstNonBlankString(payload.biz_no, payload.business_no) ?? null
+  }
+  if (hasOwn(payload, 'biz_type') || hasOwn(payload, 'business_type')) {
+    payload.business_type = pickFirstNonBlankString(payload.biz_type, payload.business_type) ?? null
+  }
+  if (hasOwn(payload, 'biz_item') || hasOwn(payload, 'business_item')) {
+    payload.business_item = pickFirstNonBlankString(payload.biz_item, payload.business_item) ?? null
+  }
+
+  delete payload.phone
+  delete payload.biz_no
+  delete payload.biz_type
+  delete payload.biz_item
+
+  return payload as Partial<Customer>
+}
+
 export const getCustomers = (params: Record<string, string | number> = {}) =>
   proxyRequest<ListResponse<Customer>>({
     table: 'customers',
     params: { limit: 25, ...params },
-  })
+  }).then(normalizeCustomerList)
 
 export const getCustomer = (id: number) =>
   proxyRequest<Customer>({
     table: 'customers',
     recordId: id,
+  }).then(normalizeCustomerRecord)
+
+export const getAllCustomers = (
+  params: Record<string, string | number> = {},
+  pageSize = 500,
+) => fetchAllPages(getCustomers, params, pageSize)
+
+export async function findCustomerByInvoiceLink(
+  customerId?: number,
+  customerName?: string,
+): Promise<Customer | null> {
+  if (typeof customerId === 'number' && customerId > 0) {
+    try {
+      return await getCustomer(customerId)
+    } catch {
+      // Fall through to exact-name lookup for older invoices missing valid links.
+    }
+  }
+
+  const safeName = sanitizeSearchTerm(customerName ?? '')
+  if (!safeName) return null
+
+  const result = await getCustomers({
+    where: `(name,eq,${safeName})`,
+    limit: 1,
   })
+  return result.list[0] ?? null
+}
 
 export const createCustomer = (data: Partial<Customer>) =>
   proxyRequest<Customer>({
     table: 'customers',
     method: 'POST',
-    payload: data,
-  })
+    payload: serializeCustomerPayload(data),
+  }).then(normalizeCustomerRecord)
 
 export const updateCustomer = (id: number, data: Partial<Customer>) =>
   proxyRequest<Customer>({
     table: 'customers',
     method: 'PATCH',
     recordId: id,
-    payload: stripAutoFields(data as Record<string, unknown>),
-  })
+    payload: serializeCustomerPayload(data),
+  }).then(normalizeCustomerRecord)
 
 export const deleteCustomer = (id: number) =>
   proxyRequest<void>({
@@ -251,6 +422,12 @@ export interface Invoice {
   invoice_date?: string
   customer_id?: number
   customer_name?: string
+  customer_phone?: string
+  customer_address?: string
+  customer_bizno?: string
+  customer_ceo_name?: string
+  customer_biz_type?: string
+  customer_biz_item?: string
   status?: string
   receipt_type?: string
   supply_amount?: number
@@ -261,38 +438,72 @@ export interface Invoice {
   current_balance?: number
   payment_status?: string
   payment_method?: string
-  paid_date?: string
+  paid_date?: string | null
   memo?: string
   taxable?: string
   [key: string]: unknown
+}
+
+function normalizeInvoiceRecord(invoice: Invoice): Invoice {
+  return {
+    ...invoice,
+    receipt_type: normalizeReceiptType(invoice.receipt_type) ?? normalizeReceiptType(invoice.status),
+    payment_status:
+      normalizePaymentStatus(invoice.payment_status) ??
+      normalizePaymentStatus(invoice.status) ??
+      invoice.payment_status,
+  }
+}
+
+function normalizeInvoiceList(result: ListResponse<Invoice>): ListResponse<Invoice> {
+  return {
+    ...result,
+    list: result.list.map(normalizeInvoiceRecord),
+  }
+}
+
+function serializeInvoicePayload(data: Partial<Invoice>): Partial<Invoice> {
+  const payload = stripAutoFields(data as Record<string, unknown>) as Partial<Invoice>
+  const receiptType = normalizeReceiptType(payload.receipt_type)
+
+  if (receiptType) payload.status = receiptType
+  else delete payload.status
+
+  delete payload.receipt_type
+  return payload
 }
 
 export const getInvoices = (params: Record<string, string | number> = {}) =>
   proxyRequest<ListResponse<Invoice>>({
     table: 'invoices',
     params: { limit: 25, ...params },
-  })
+  }).then(normalizeInvoiceList)
 
 export const getInvoice = (id: number) =>
   proxyRequest<Invoice>({
     table: 'invoices',
     recordId: id,
-  })
+  }).then(normalizeInvoiceRecord)
+
+export const getAllInvoices = (
+  params: Record<string, string | number> = {},
+  pageSize = 500,
+) => fetchAllPages(getInvoices, params, pageSize)
 
 export const createInvoice = (data: Partial<Invoice>) =>
   proxyRequest<Invoice>({
     table: 'invoices',
     method: 'POST',
-    payload: data,
-  })
+    payload: serializeInvoicePayload(data),
+  }).then(normalizeInvoiceRecord)
 
 export const updateInvoice = (id: number, data: Partial<Invoice>) =>
   proxyRequest<Invoice>({
     table: 'invoices',
     method: 'PATCH',
     recordId: id,
-    payload: stripAutoFields(data as Record<string, unknown>),
-  })
+    payload: serializeInvoicePayload(data),
+  }).then(normalizeInvoiceRecord)
 
 // ─────────────────────────────────────────
 // 명세표 라인아이템 (items)

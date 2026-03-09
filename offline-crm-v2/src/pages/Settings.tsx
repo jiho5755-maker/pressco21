@@ -6,7 +6,10 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { saveCompanyInfo } from '@/lib/print'
 import type { CompanyInfo } from '@/lib/print'
-import { getSettings, saveSettingsToServer } from '@/lib/api'
+import {
+  getSettings,
+  saveSettingsToServer,
+} from '@/lib/api'
 import type { CrmSettings } from '@/lib/api'
 import { Cloud, CloudOff, Loader2 } from 'lucide-react'
 
@@ -84,13 +87,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
   )
 }
 
-function Field({
-  label, hint, children,
-}: {
-  label: string
-  hint?: string
-  children: React.ReactNode
-}) {
+function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
       <Label className="text-sm font-medium">{label}</Label>
@@ -423,7 +420,7 @@ export function Settings() {
               <input
                 type="checkbox"
                 id="default-taxable"
-                checked={data.default_taxable ?? true}
+                checked={Boolean(data.default_taxable)}
                 onChange={(e) => set('default_taxable', e.target.checked)}
                 className="accent-[#7d9675] w-4 h-4"
               />

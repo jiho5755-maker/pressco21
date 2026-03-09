@@ -12,20 +12,87 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
+- Current Owner: IDLE
 - Mode: IDLE
-- Started At: 2026-03-09 16:05:00 KST
+- Started At: 2026-03-09 17:30:00 KST
 - Branch: main
-- Working Scope: Calendar current-state analysis and upgrade proposal prepared.
+- Working Scope: CRM handoff memory update, commit, and push for recent invoice/calendar/UX fixes.
 - Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
 
-(없음 — 분석만 수행)
+- 없음
 
 ## Last Changes (2026-03-09)
 
 ### CRM 수정
+- `offline-crm-v2/docs/crm-handoff-2026-03-09.md`, `.claude/agent-memory/accounting-specialist/MEMORY.md`
+  - 최근 CRM 인쇄/고객수정/과세 기본값/캘린더/미수금 복구 작업을 다음 에이전트가 바로 이어받을 수 있도록 handoff 문서와 accounting 메모리를 정리.
+- `offline-crm-v2/src/pages/Receivables.tsx`
+  - 운영 `invoices` 스키마에 없는 `paid_date`, `payment_method` 필드 조회 때문에 페이지 전체가 실패하던 문제 수정.
+  - 미수금 조회는 다시 안정적인 `payment_status in (unpaid, partial)` 기준 전체 조회로 바꾸고, `asOf` 날짜는 프론트에서 필터링하도록 조정.
+  - 입금 확인 저장 payload에서도 스키마에 없는 `paid_date` 전송을 제거.
+- `offline-crm-v2/src/pages/Calendar.tsx`
+  - 운영 `invoice_date` 필드가 NocoDB 서버측 `gte/lte` 날짜 비교를 지원하지 않아 월간/기간 쿼리가 실패하던 문제 수정.
+  - 캘린더는 전체 명세표를 한 번 읽고 프론트에서 월/기간/전년동월 범위를 필터링하도록 변경.
+  - `기준일 미수 후속`도 서버 날짜 조건이 아니라 현재 미수 명세표 전체를 읽은 뒤 기준일 이전 건만 프론트에서 골라 표시하도록 조정.
+- `offline-crm-v2/src/components/InvoiceDialog.tsx`
+  - 운영 스키마에 없는 `paid_date`를 복사/저장 payload에 섞지 않도록 정리.
+- 운영 검증
+  - `curl`로 운영 `crm-proxy` 응답을 직접 확인해 2026-03-09 명세표 8건, 현재 미수 6건 존재를 검증.
+  - 로컬 Vite 프록시(`http://127.0.0.1:4173`)에서 실제 화면 검증:
+    - `미수금 관리` 정상 로드, 총 `1,704,700원 / 6건`
+    - `캘린더` 2026년 3월 정상 로드, `명세표 8건 / 1,810,260원`, `03-09`에 `8건 / 181만원`
+  - `npm run build` 통과.
+  - `bash deploy/deploy.sh`로 운영 재배포 완료.
+- `offline-crm-v2/src/lib/api.ts`
+  - `fetchAllPages` 기반 `getAllInvoices`, `getAllCustomers` 추가로 캘린더/미수금의 500/1000건 샘플 조회를 전체 조회로 교체할 수 있게 정리.
+  - `Invoice.paid_date` 타입을 `string | null`로 확장해 저장 시 비우기/설정이 명시적으로 가능하도록 수정.
+- `offline-crm-v2/src/lib/reporting.ts`
+  - 기준일 기준 `paid_amount`, `remaining_amount`, `payment_status` 계산 helper 추가.
+  - 기간 리포트에서 전년 동월 CRM 명세표 매출을 함께 반영할 수 있도록 `previousYearInvoiceSales` 입력 지원 추가.
+- `offline-crm-v2/src/pages/Calendar.tsx`
+  - 월간 달력 조회를 `calendar-month-invoices` 전체 조회로 교체해 월 500건 제한 문제 수정.
+  - 기간 리포트를 최신 1000건 샘플이 아니라 선택 기간 전체 명세표 기준으로 계산하도록 수정.
+  - `전년동월 대비` 계산에 전년 동월 CRM 명세표 매출을 포함하도록 수정.
+  - `기준일 미수 후속`을 현재 `payment_status`가 아닌 `paid_date` 기반 기준일 미수 계산으로 교체.
+  - `재방문 추천`은 과거 기준일 재현이 불가능한 현재 데이터 필드(`last_order_date`)를 쓰고 있어, 의미를 `현재 기준 재방문 추천`으로 명시하고 조회도 전체 고객 기준으로 교체.
+- `offline-crm-v2/src/pages/Receivables.tsx`
+  - 미수금 목록/에이징/총액을 현재 상태값이 아니라 기준일 기준 as-of 계산으로 재구성.
+  - 과거 기준일에서는 조회 전용 안내를 표시하고 `입금 확인` 버튼을 비활성화해, 과거 스냅샷 화면에서 현재 레코드를 잘못 수정하는 위험을 차단.
+  - 엑셀 내보내기도 선택 기준일 기준 경과일수/입금액/미수금이 반영되도록 수정.
+- `offline-crm-v2/src/components/InvoiceDialog.tsx`
+  - 명세표 저장 시 `paid_amount > 0`이면 `paid_date`가 자동 기록되고, 0원이면 `paid_date`가 비워지도록 정리.
+  - 명세표 복사 시 기존 수금일이 따라오지 않도록 `paid_date` 초기화 추가.
+- `offline-crm-v2/src/lib/excel.ts`
+  - `exportReceivables`가 선택 기준일을 받아 경과일수를 계산하도록 확장.
+- 운영 배포
+  - `npm run build` 통과.
+  - `bash deploy/deploy.sh`로 캘린더 정합성 수정 운영 반영 완료.
+  - 운영 주소 `https://crm.pressco21.com` 기준 최신 빌드 반영 완료.
+- `offline-crm-v2/src/pages/Calendar.tsx`
+  - 날짜 클릭 시 `바로 실행 / 당일 명세표 / 기준일 미수 후속 / 재방문 추천` 패널 추가.
+  - `명세표 보기`, `미수 보기`, `이 날짜로 새 명세표 발행` 버튼을 실제 라우트 이동과 연결.
+  - 기준일 이전 미수 명세표 상위 목록과 45일 이상 무주문 거래처 추천 로직 추가.
+- `offline-crm-v2/src/pages/Invoices.tsx`
+  - `date` query param 연동 및 발행일 필터 UI 추가.
+  - `new=1&date=YYYY-MM-DD` 진입 시 해당 날짜를 기본값으로 새 명세표 다이얼로그가 열리도록 수정.
+- `offline-crm-v2/src/pages/Receivables.tsx`
+  - `asOf` query param 연동 및 `기준일` 필터 UI 추가.
+  - 에이징/총 미수금/목록이 현재 시점이 아니라 선택 기준일 기준으로 계산되도록 수정.
+- `offline-crm-v2/src/components/InvoiceDialog.tsx`
+  - `initialInvoiceDate` prop 추가로 외부에서 새 명세표 기본 발행일을 주입할 수 있도록 수정.
+  - 명세표 저장 후 `calendar-*` query까지 invalidate 하도록 보강.
+- `offline-crm-v2/src/lib/reporting.ts`
+  - 기간 리포트 공통 helper 추가: 프리셋(`이번달/지난달/이번분기/올해`), 기간 범위 계산, 금액 포맷, 수금률/전년동월 색상 규칙, 기간 통합 매출 계산, 일별 차트 데이터 생성.
+- `offline-crm-v2/src/pages/Calendar.tsx`
+  - 캘린더 상단에 `기간 매출 리포트` 섹션 추가.
+  - Dashboard와 동일한 계산식으로 `수금률`, `전년동월 대비/기간 매출`, `평균 객단가`, `일별 매출 차트`를 표시하도록 수정.
+  - 월간 달력은 `명세표 기준`, 상단 리포트는 `레거시 거래내역 + CRM 명세표 통합 기준`으로 역할을 분리해 안내 문구 추가.
+  - 날짜 셀에 `미수 건수`를 노출하고, 우측 패널에 선택 날짜 실행 요약 / 월간 요약 / 매출 상위 날짜 카드 추가.
+  - 월별 명세표 조회 범위도 실제 말일 기준으로 보정.
+- `offline-crm-v2/src/pages/Dashboard.tsx`
+  - 기간 리포트가 새 공통 helper를 사용하도록 정리해 Calendar와 동일한 계산 로직을 공유하도록 수정.
 - `offline-crm-v2/src/pages/Calendar.tsx`, `offline-crm-v2/src/pages/Dashboard.tsx`
   - 캘린더 페이지의 현재 구조와 데이터 연결 상태를 점검.
   - 대시보드의 기간 리포트/통합 매출 계산 로직과 캘린더의 단순 월별 명세표 집계를 비교해 개선 방향 제안 준비.
@@ -55,10 +122,27 @@
 - `offline-crm-v2/src/pages/Invoices.tsx`
   - 명세표 다이얼로그를 닫을 때 `selectedId/copySourceId`를 같이 초기화.
   - `dialogOpen`일 때만 `InvoiceDialog`를 마운트하도록 바꿔 새 명세표 재오픈 시 이전 거래처 상태가 남지 않게 수정.
+  - 명세표 삭제 후 `calendar-*` query까지 invalidate 하도록 보강.
+- `offline-crm-v2/src/pages/Receivables.tsx`
+  - 입금 확인 저장 후 `calendar-*` query까지 invalidate 하도록 보강.
+- 운영 배포
+  - `npm run build` 통과.
+  - `bash deploy/deploy.sh`로 캘린더 2단계 기능 운영 반영 완료.
+  - 운영 주소 `https://crm.pressco21.com` 기준 최신 빌드 반영 완료.
+- 운영 배포
+  - `npm run build` 통과.
+  - `bash deploy/deploy.sh`로 캘린더 1단계 기능 운영 반영 완료.
+  - 운영 주소 `https://crm.pressco21.com` 기준 최신 빌드 반영 완료.
 - 운영 배포
   - `npm run build` 통과.
   - `bash deploy/deploy.sh`로 운영 재배포 완료.
   - 운영 주소 `https://crm.pressco21.com` 기준 최신 빌드 반영 완료.
+
+### 운영/아키텍처 문서화
+- `docs/n8n-automation-efficiency-review-2026-03-09.md`
+  - PRESSCO21 전반에서 `n8n`이 필요한 영역과 비효율 영역을 분리해 정리.
+  - `유지 / 하이브리드 / 이관` 분류, 워크플로우 설계 가드레일, Claude Code 실행 판단 체크리스트 추가.
+  - 우선순위를 `offline-crm-v2 프록시 이관`과 `WF-05 분할` 중심으로 명시.
 
 ### Phase 0 완료
 - `파트너클래스/n8n-workflows/WF-01-class-api.json` — POST 전환, Switch v3.2, 순차 연결, tbl_Schedules schedules[] 확장
@@ -107,15 +191,20 @@
 
 ## Next Step
 
-- 캘린더 고도화 1단계: Dashboard와 동일한 기간 KPI/프리셋/통합 매출 계산 로직을 Calendar로 이관.
-- 캘린더 고도화 2단계: 날짜 클릭 시 `명세표/미수금/재방문 대상` 액션 패널 추가.
+- CRM 운영 확인: 실제 운영 브라우저에서 `미수금` 복구와 `캘린더 2026-03-09 8건` 표기를 확인
+- 캘린더 운영 판단: 과거 기준일 `미수 후속`은 현재 미수 기준 참고용이라는 점을 UX 문구로 더 명확히 할지 검토
+- 필요 시 캘린더 3단계: 최근 미주문 고객/고액 미수 고객 추천과 후속 액션 버튼 추가
+- 캘린더 고도화 4단계: 주간 뷰/담당자별 액션 큐/알림 배지 추가 검토.
 - CRM 운영 확인: 토스트 우하단, 과세 기본값, 거래처 자동완성, 검색/임시저장 플로우
+- n8n 효율화 검토 문서 기준으로 `offline-crm-v2`의 프록시 이관 여부와 `WF-05` 분할 착수 여부 결정
 - 파트너클래스 E2E: 일정 관리/강의 등록/키트 배송/마이페이지 전체 흐름 테스트
 - Phase 1 Task 005-1: 통합 테스트
 - 카카오 JS Key 실제 발급 후 교체 필요
 
 ## Known Risks
 
+- 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.
+- 운영 `invoice_date`는 서버측 날짜 비교(`gte/lte`)가 안정적으로 동작하지 않아, 캘린더는 전체 명세표를 읽은 뒤 프론트에서 월/기간 필터링하는 구조를 사용 중.
 - 거래처 자동완성 exact-name hydrate는 유지되어, 동일 상호 고객이 여러 명인 케이스는 기존처럼 `customer_id` 연결 품질에 영향을 받음.
 - 임시저장은 현재 `새 명세표` 1건만 로컬에 보관하는 구조라, 여러 개의 임시 명세표를 병렬로 쌓아두는 용도는 아님.
 - 카카오 SDK JS Key가 플레이스홀더(`YOUR_KAKAO_JS_KEY_HERE`) 상태
@@ -123,3 +212,4 @@
 - WF-18의 schedule_id 생성이 2자리 랜덤으로 충돌 가능성 있음 (6자리로 확장 권장)
 - WF-20의 `require('https')` 방식은 동작하지만 비권장
 - 기존 tbl_Partners의 grade 필드가 SILVER로 되어 있어 프론트에서 BLOOM 매핑 처리 중
+- `docs/n8n-automation-efficiency-review-2026-03-09.md`는 분석/제언 문서이며, 아직 실제 이관이나 워크플로우 분할은 수행되지 않음

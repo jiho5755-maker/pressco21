@@ -1,7 +1,7 @@
 /**
  * 거래명세표 인쇄 유틸리티
  * 기존 offline-crm/app.js의 인쇄 로직을 TypeScript로 이식
- * 이등분(A4 절취선) + iframe 기반 zoom 축소 방식
+ * A4 상하 2단 복제 + iframe 기반 zoom 축소 방식
  */
 
 export interface CompanyInfo {
@@ -29,7 +29,10 @@ export interface PrintInvoice {
   receipt_type?: string
   customer_name?: string
   manager?: string
+  customer_ceo_name?: string
   customer_bizno?: string
+  customer_biz_type?: string
+  customer_biz_item?: string
   customer_address?: string
   customer_phone?: string
   supply_amount?: number
@@ -116,11 +119,26 @@ function esc(str: string): string {
 }
 
 // ── 멀티페이지 상수 ──
-// A4 절반(148.5mm) - 여백(14mm) = 134.5mm 기준
-// 첫 페이지: 전체 헤더(~52mm) + 합계/잔액/서명(~30mm) + 품목헤더(~5mm) → 품목 ~47mm ≈ 12행
-// 속지: 간략 헤더(~14mm) + 합계/잔액/서명(~30mm) + 품목헤더(~5mm) → 품목 ~85mm ≈ 24행
-const ITEMS_FIRST_PAGE = 12
-const ITEMS_CONT_PAGE = 24
+// 샘플 거래명세표(20행)는 한 장 안에 우선 맞추고,
+// 그 이상부터는 자동 분할 + zoom 축소를 함께 사용한다.
+const ITEMS_FIRST_PAGE = 20
+const ITEMS_CONT_PAGE = 20
+const DUPLEX_HALF_TARGET_MM = 132
+const DUPLEX_HALF_TARGET_PX = DUPLEX_HALF_TARGET_MM * (96 / 25.4)
+// Chrome/Edge PDF 저장에서 A4 정확히 297mm를 꽉 채우면 마지막 빈 페이지가 붙는 경우가 있어
+// 컨테이너 높이를 아주 미세하게 줄여 반올림 오차를 흡수한다.
+const PRINT_PAGE_HEIGHT_MM = 296.8
+const PRINT_HALF_HEIGHT_MM = PRINT_PAGE_HEIGHT_MM / 2
+
+function formatBizInfo(bizType?: string, bizItem?: string): string {
+  return [bizType, bizItem].filter(Boolean).join(' / ')
+}
+
+function formatBankInfo(company: CompanyInfo): string {
+  const bank = [company.bank_name, company.bank_account].filter(Boolean).join(' ')
+  const holder = company.bank_holder ? `예금주 ${company.bank_holder}` : ''
+  return [bank, holder].filter(Boolean).join(' / ')
+}
 
 interface PageOptions {
   pageNum: number
@@ -144,6 +162,10 @@ function buildInvoicePageHtml(
   const paidAmt = inv.paid_amount ?? 0
   const totalAmt = inv.total_amount ?? 0
   const curBal = prevBal + totalAmt - paidAmt
+  const payNoteLines = [
+    formatBankInfo(c) ? `입금계좌: ${formatBankInfo(c)}` : '',
+    c.invoice_footer ?? '',
+  ].filter(Boolean)
 
   const itemRowsHtml =
     pageItems
@@ -206,7 +228,7 @@ function buildInvoicePageHtml(
       '<tbody>' +
       `<tr><td class="inv-pl">상호</td><td>${esc(c.company ?? '')}</td><td class="inv-pl">대표자</td><td>${esc(c.ceo ?? '')}</td>` +
       `<td class="inv-party-div"></td>` +
-      `<td class="inv-pl">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="inv-pl">담당자</td><td>${esc(inv.manager ?? '')}</td></tr>` +
+      `<td class="inv-pl">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="inv-pl">대표자</td><td>${esc(inv.customer_ceo_name ?? inv.manager ?? '')}</td></tr>` +
       `<tr><td class="inv-pl">사업자번호</td><td colspan="3">${esc(c.bizno ?? '')}</td>` +
       `<td class="inv-party-div"></td>` +
       `<td class="inv-pl">사업자번호</td><td colspan="3">${esc(inv.customer_bizno ?? '')}</td></tr>` +
@@ -215,7 +237,7 @@ function buildInvoicePageHtml(
       `<td class="inv-pl">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
       `<tr><td class="inv-pl">업태/종목</td><td colspan="3">${esc(c.bizType ?? '')}&nbsp;/&nbsp;${esc(c.bizItem ?? '')}</td>` +
       `<td class="inv-party-div"></td>` +
-      `<td class="inv-pl">업태/종목</td><td colspan="3"></td></tr>` +
+      `<td class="inv-pl">업태/종목</td><td colspan="3">${esc(formatBizInfo(inv.customer_biz_type, inv.customer_biz_item))}</td></tr>` +
       `<tr><td class="inv-pl">전화</td><td colspan="3">${esc(c.phone ?? '')}</td>` +
       `<td class="inv-party-div"></td>` +
       `<td class="inv-pl">전화</td><td colspan="3">${esc(inv.customer_phone ?? '')}</td></tr>` +
@@ -265,8 +287,11 @@ function buildInvoicePageHtml(
       `<td class="inv-bv t-right${curBal > 0 ? ' inv-bv-warn' : ''}">${curBal.toLocaleString()}</td>` +
       '</tr></table>' +
       (inv.memo ? `<div class="inv-memo">비고:&nbsp;${esc(inv.memo)}</div>` : '') +
+      (payNoteLines.length > 0
+        ? `<div class="inv-paynote">${payNoteLines.map((line) => esc(line)).join('<br />')}</div>`
+        : '') +
       '<div class="inv-sig">' +
-      `<span class="inv-sig-text">위 금액을 정히 ${esc(inv.receipt_type ?? '영수(청구)')}합니다.</span>` +
+      `<span class="inv-sig-text">위 금액을 정히 ${esc(inv.receipt_type ?? '영수')}합니다.</span>` +
       '<div class="inv-sig-right">' +
       '<span class="inv-sig-label">대표자</span>' +
       '<div class="inv-sig-name-wrap">' +
@@ -324,7 +349,6 @@ function buildDuplexInvoiceHtml(inv: PrintInvoice, items: PrintItem[]): string {
       '<div class="inv-half top"><div class="inv-scale-wrap">' +
       supplier +
       '</div></div>' +
-      '<div class="inv-cut-line"><span>✂ 절 취 선</span></div>' +
       '<div class="inv-half bottom"><div class="inv-scale-wrap">' +
       recipient +
       '</div></div>' +
@@ -333,95 +357,120 @@ function buildDuplexInvoiceHtml(inv: PrintInvoice, items: PrintItem[]): string {
   }).join('')
 }
 
+function buildDuplexFitScript(): string {
+  return [
+    '(function() {',
+    `  var TARGET = ${DUPLEX_HALF_TARGET_PX.toFixed(1)};`,
+    '  function applyFit() {',
+    "    var halves = document.querySelectorAll('.inv-half');",
+    '    for (var i = 0; i < halves.length; i++) {',
+    "      var wrap = halves[i].querySelector('.inv-scale-wrap');",
+    '      if (!wrap) continue;',
+    "      wrap.style.zoom = '';",
+    '      var height = wrap.scrollHeight;',
+    '      if (height <= TARGET) continue;',
+    '      var zoom = TARGET / height;',
+    "      wrap.style.zoom = Math.max(0.5, zoom).toFixed(4);",
+    '    }',
+    '  }',
+    '  window.__fitDuplexPrint = applyFit;',
+    "  window.addEventListener('load', function() { setTimeout(applyFit, 60); });",
+    "  window.addEventListener('beforeprint', applyFit);",
+    '  setTimeout(applyFit, 0);',
+    '})();',
+  ].join('\n')
+}
+
 /**
  * A4 이등분 인쇄 (iframe 기반, 멀티페이지)
- * - 품목 12개 초과 시 자동으로 다음 페이지로 분할
- * - 폰트 크기 고정 (6.5pt), 줌 축소 없음
- * - 절취선 148.5mm (A4 정중앙), 각 절반 7mm 균등 여백
+ * - 첫 페이지 20개, 이후 페이지 20개 기준으로 자동 분할
+ * - 기본 폰트는 가독성을 유지하되, overflow 시 half 영역 높이에 맞춰 zoom 축소
+ * - A4 상하 절반 레이아웃 기준으로 각 복사본을 동일하게 배치
  */
 // ─── 공통 CSS (미리보기 + 인쇄 공유) ────────────────────────────
-// 통일 기준: 외곽선 1.5px #333 / 내부선 1px #bbb / 레이블 배경 #f4f4f4 / 본문 6.5pt
+// 통일 기준: 외곽선 1.5px #333 / 내부선 1px #bbb / 레이블 배경 #f4f4f4 / 본문 8.2pt
 const DUPLEX_CSS = [
   '@page { size: A4 portrait; margin: 0; }',
   'html { margin:0; padding:0; width:210mm; }',
-  "body { margin:0; padding:0; width:210mm; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; font-size:6.5pt; }",
+  "body { margin:0; padding:0; width:210mm; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#000; font-size:8.2pt; }",
   '* { box-sizing:border-box; }',
   '.inv-tbl { width:100%; border-collapse:collapse; }',
   // ─── 헤더 ───
-  '.inv-header { display:flex; align-items:center; justify-content:space-between; border:1.5px solid #333; padding:3px 6px; gap:6px; }',
-  '.inv-logo { width:80px; }',
+  '.inv-header { display:flex; align-items:center; justify-content:space-between; border:1.5px solid #333; padding:4px 7px; gap:7px; }',
+  '.inv-logo { width:88px; }',
   '.inv-title-area { text-align:center; flex:1; }',
-  '.inv-title { font-size:11pt; font-weight:900; letter-spacing:5px; }',
-  '.inv-sub { font-size:6pt; color:#555; margin-top:1px; }',
+  '.inv-title { font-size:14pt; font-weight:900; letter-spacing:4px; }',
+  '.inv-sub { font-size:7.2pt; color:#555; margin-top:1px; }',
   // ─── 메타 (발행번호/구분/거래일자) ───
   '.inv-meta-tbl { border:1.5px solid #333; border-top:none; }',
-  '.inv-meta-tbl td { border:1px solid #bbb; padding:1.5px 4px; font-size:6.5pt; }',
-  '.inv-ml { background:#f4f4f4; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
+  '.inv-meta-tbl td { border:1px solid #bbb; padding:2.5px 4px; font-size:7.9pt; }',
+  '.inv-ml { background:#f4f4f4; text-align:center; font-weight:700; white-space:nowrap; width:52px; }',
   // ─── 공급자/공급받는자 통합 테이블 (colgroup으로 38:60 비율, 행 정렬 보장) ───
   '.inv-party-tbl { border:1.5px solid #333; border-top:none; }',
-  '.inv-party-title { background:#f4f4f4; text-align:center; font-weight:700; padding:2px 0; font-size:6.5pt; border:1px solid #bbb; }',
+  '.inv-party-title { background:#f4f4f4; text-align:center; font-weight:700; padding:2px 0; font-size:7.8pt; border:1px solid #bbb; }',
   '.inv-party-div { width:1px; background:#bbb; padding:0; border:none; }',
-  '.inv-party-tbl td { border:1px solid #bbb; padding:1.5px 3px; font-size:6.5pt; white-space:nowrap; overflow:hidden; }',
-  '.inv-pl { background:#f4f4f4; font-weight:600; white-space:nowrap; text-align:center; }',
+  '.inv-party-tbl td { border:1px solid #bbb; padding:2px 3px; font-size:7.7pt; white-space:nowrap; overflow:hidden; }',
+  '.inv-pl { background:#f4f4f4; font-weight:700; white-space:nowrap; text-align:center; }',
   // ─── 품목 테이블 ───
   '.inv-items-table { border:1.5px solid #333; border-top:none; }',
-  '.inv-items-table th { background:#f4f4f4; border:1px solid #bbb; padding:1.5px 1px; text-align:center; font-weight:700; font-size:6.5pt; }',
-  '.inv-items-table td { border:1px solid #bbb; padding:1px 2px; font-size:6.5pt; }',
-  '.inv-blank td { height:10px; }',
+  '.inv-items-table th { background:#f4f4f4; border:1px solid #bbb; padding:2px 2px; text-align:center; font-weight:700; font-size:7.7pt; }',
+  '.inv-items-table td { border:1px solid #bbb; padding:2px 3px; font-size:8.05pt; line-height:1.2; }',
+  '.inv-items-table td:nth-child(2) { font-size:8.45pt; font-weight:600; letter-spacing:0.05px; }',
+  '.inv-blank td { height:13px; }',
   // ─── 합계 ───
   '.inv-total-tbl { border:1.5px solid #333; border-top:none; }',
-  '.inv-total-tbl td { border:1px solid #bbb; padding:2.5px 5px; font-size:6.5pt; }',
-  '.inv-tl { background:#f4f4f4; text-align:center; font-weight:600; white-space:nowrap; width:60px; }',
-  '.inv-grand { background:#e8f0e8 !important; font-weight:700; font-size:7pt; }',
+  '.inv-total-tbl td { border:1px solid #bbb; padding:3px 5px; font-size:7.9pt; }',
+  '.inv-tl { background:#f4f4f4; text-align:center; font-weight:700; white-space:nowrap; width:64px; }',
+  '.inv-grand { background:#e8f0e8 !important; font-weight:800; font-size:8.7pt; }',
   // ─── 잔액 ───
   '.inv-balance-tbl { border:1.5px solid #333; border-top:none; }',
-  '.inv-balance-tbl td { border:1px solid #bbb; padding:2px 4px; font-size:6.5pt; }',
-  '.inv-bl { background:#f4f4f4; text-align:center; font-weight:600; white-space:nowrap; width:44px; }',
+  '.inv-balance-tbl td { border:1px solid #bbb; padding:2.5px 4px; font-size:7.8pt; }',
+  '.inv-bl { background:#f4f4f4; text-align:center; font-weight:700; white-space:nowrap; width:52px; }',
   '.inv-bv-warn { color:#dc2626; font-weight:700; background:#fef2f2 !important; }',
   // ─── 비고 ───
-  '.inv-memo { border:1.5px solid #333; border-top:none; padding:2px 6px; font-size:6.5pt; }',
+  '.inv-memo { border:1.5px solid #333; border-top:none; padding:3px 6px; font-size:7.9pt; }',
+  '.inv-paynote { border:1.5px solid #333; border-top:none; padding:3px 6px; font-size:7.6pt; line-height:1.3; color:#222; }',
   // ─── 서명란 ───
-  '.inv-sig { border:1.5px solid #333; border-top:none; padding:4px 8px 6px; display:flex; align-items:flex-end; justify-content:space-between; font-size:6.5pt; min-height:42px; }',
+  '.inv-sig { border:1.5px solid #333; border-top:none; padding:5px 7px 7px; display:flex; align-items:flex-end; justify-content:space-between; font-size:8pt; min-height:46px; }',
   '.inv-sig-text { align-self:center; }',
   '.inv-sig-right { display:flex; align-items:flex-end; gap:4px; }',
-  '.inv-sig-label { font-weight:600; font-size:6.5pt; white-space:nowrap; padding-bottom:2px; }',
-  '.inv-sig-name-wrap { position:relative; width:60px; height:32px; }',
-  '.inv-ceo-name { position:absolute; bottom:3px; left:0; right:0; text-align:center; font-size:6.5pt; color:#333; }',
+  '.inv-sig-label { font-weight:700; font-size:7.8pt; white-space:nowrap; padding-bottom:2px; }',
+  '.inv-sig-name-wrap { position:relative; width:68px; height:32px; }',
+  '.inv-ceo-name { position:absolute; bottom:4px; left:0; right:0; text-align:center; font-size:7.7pt; color:#333; }',
   '.inv-sig-underline { position:absolute; bottom:0; left:0; right:0; border-bottom:1px solid #555; }',
   // ─── 도장 (배경 투명 → 흰 박스 선 제거) ───
-  '.inv-seal-area { position:relative; width:40px; height:40px; display:flex; align-items:center; justify-content:center; }',
-  '.inv-seal-text { font-size:7pt; color:#999; position:relative; z-index:1; }',
-  '.inv-stamp { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-8deg); width:42px; height:42px; z-index:2; }',
+  '.inv-seal-area { position:relative; width:44px; height:44px; display:flex; align-items:center; justify-content:center; }',
+  '.inv-seal-text { font-size:7.2pt; color:#999; position:relative; z-index:1; }',
+  '.inv-stamp { position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) rotate(-8deg); width:46px; height:46px; z-index:2; }',
   '.inv-stamp-img { width:100%; height:100%; object-fit:contain; opacity:0.92; }',
   // ─── 유틸 ───
   '.t-right { text-align:right; }',
   '.t-center { text-align:center; }',
   // ─── 이등분 레이아웃 + 멀티페이지 ───
-  '.inv-page-duplex { position:relative; width:210mm; height:297mm; background:#fff; overflow:hidden; page-break-after:always; }',
-  '.inv-page-duplex:last-child { page-break-after:auto; }',
+  `.inv-page-duplex { position:relative; display:block; width:210mm; height:${PRINT_PAGE_HEIGHT_MM.toFixed(1)}mm; background:#fff; overflow:hidden; break-inside:avoid-page; page-break-inside:avoid; }`,
   '.inv-half { position:absolute; width:210mm; box-sizing:border-box; padding:7mm 8mm 7mm; overflow:hidden; }',
-  '.inv-half.top    { top:0; height:148.5mm; }',
-  '.inv-half.bottom { top:148.5mm; height:148.5mm; }',
-  '.inv-cut-line { position:absolute; top:148.5mm; left:0; right:0; border-top:1px dashed #bbb; display:flex; align-items:center; justify-content:center; }',
-  ".inv-cut-line span { background:#fff; padding:0 8px; font-size:6pt; color:#bbb; letter-spacing:3px; transform:translateY(-50%); font-family:'Malgun Gothic',sans-serif; }",
+  `.inv-half.top    { top:0; height:${PRINT_HALF_HEIGHT_MM.toFixed(1)}mm; }`,
+  `.inv-half.bottom { top:${PRINT_HALF_HEIGHT_MM.toFixed(1)}mm; height:${PRINT_HALF_HEIGHT_MM.toFixed(1)}mm; }`,
   '.inv-scale-wrap { width:100%; }',
   // ─── 속지 헤더 (2페이지 이후) ───
-  '.inv-cont-header { border:1.5px solid #333; padding:3px 8px; display:flex; align-items:center; justify-content:space-between; margin-bottom:0; }',
-  '.inv-cont-title { font-size:9pt; font-weight:800; letter-spacing:3px; }',
-  '.inv-cont-info { display:flex; gap:12px; font-size:6.5pt; color:#555; }',
+  '.inv-cont-header { border:1.5px solid #333; padding:4px 7px; display:flex; align-items:center; justify-content:space-between; margin-bottom:0; }',
+  '.inv-cont-title { font-size:10.5pt; font-weight:800; letter-spacing:2px; }',
+  '.inv-cont-info { display:flex; gap:10px; font-size:7.5pt; color:#555; }',
   // ─── "다음 장 계속" 안내 ───
-  '.inv-cont-note { text-align:center; font-size:6.5pt; color:#999; padding:4px 0; border:1.5px solid #333; border-top:none; }',
+  '.inv-cont-note { text-align:center; font-size:7.2pt; color:#999; padding:4px 0; border:1.5px solid #333; border-top:none; }',
   '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
 ].join('\n')
 
 // 미리보기 + 인쇄 공통 Blob URL 생성 (호출자가 revokeObjectURL 책임)
 export function buildDuplexBlobUrl(inv: PrintInvoice, items: PrintItem[]): string {
   const duplexHtml = buildDuplexInvoiceHtml(inv, items)
+  const fitScript = buildDuplexFitScript()
   const fullHtml =
     '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
     '<style>' + DUPLEX_CSS + '</style>' +
     '</head><body>' +
     duplexHtml +
+    '<script>' + fitScript + '<\/script>' +
     '</body></html>'
   return URL.createObjectURL(new Blob([fullHtml], { type: 'text/html;charset=utf-8' }))
 }
@@ -438,12 +487,14 @@ export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): voi
 
   iframe.addEventListener('load', () => {
     setTimeout(() => {
+      const fitFn = (iframe.contentWindow as (Window & { __fitDuplexPrint?: () => void }) | null)?.__fitDuplexPrint
+      fitFn?.()
       iframe.contentWindow?.print()
       URL.revokeObjectURL(blobUrl)
       setTimeout(() => {
         if (iframe.parentNode) document.body.removeChild(iframe)
       }, 3000)
-    }, 300)
+    }, 450)
   })
 }
 

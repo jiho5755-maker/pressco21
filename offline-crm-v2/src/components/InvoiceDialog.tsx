@@ -19,6 +19,7 @@ import {
   bulkDeleteItems,
   getCustomers,
   getProducts,
+  findCustomerByInvoiceLink,
   sanitizeSearchTerm,
   sanitizeAmount,
   recalcCustomerStats,
@@ -26,6 +27,7 @@ import {
 import type { Invoice, Customer, Product } from '@/lib/api'
 import { buildDuplexBlobUrl, getPreviewPageCount } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
+import { loadDefaultTaxableSetting } from '@/lib/settings'
 import { ProductPickerDialog } from '@/components/ProductPickerDialog'
 import { useDebounce } from '@/hooks/useDebounce'
 
@@ -43,7 +45,25 @@ interface ItemRow {
   _totalUnit?: number  // 합계역산용 단위금액 (합계/수량)
 }
 
-function newRow(taxable = true): ItemRow {
+interface InvoiceDraft {
+  savedAt: string
+  form: Partial<Invoice>
+  items: ItemRow[]
+  customerInput: string
+  selectedAddrKey: string
+}
+
+interface RecentCustomerOption {
+  key: string
+  customerId?: number
+  customerName: string
+  invoiceDate?: string
+  outstandingBalance?: number
+}
+
+const INVOICE_DRAFT_KEY = 'pressco21-crm-invoice-draft-v1'
+
+function newRow(taxable = loadDefaultTaxableSetting()): ItemRow {
   return {
     _key: Math.random().toString(36).slice(2),
     product_name: '',
@@ -54,6 +74,56 @@ function newRow(taxable = true): ItemRow {
     taxable,
     tax_amount: 0,
   }
+}
+
+function hasMeaningfulItemValue(row: ItemRow): boolean {
+  return Boolean(row.product_name.trim()) || row.unit_price > 0 || row.supply_amount > 0 || row.tax_amount > 0
+}
+
+function hasMeaningfulDraftValue(
+  form: Partial<Invoice>,
+  items: ItemRow[],
+  customerInput: string,
+): boolean {
+  return Boolean(
+    customerInput.trim()
+    || (form.memo as string | undefined)?.trim()
+    || items.some(hasMeaningfulItemValue)
+    || (form.previous_balance ?? 0) > 0
+    || (form.paid_amount ?? 0) > 0,
+  )
+}
+
+function saveInvoiceDraft(draft: InvoiceDraft): void {
+  localStorage.setItem(INVOICE_DRAFT_KEY, JSON.stringify(draft))
+}
+
+function loadInvoiceDraft(): InvoiceDraft | null {
+  try {
+    const raw = localStorage.getItem(INVOICE_DRAFT_KEY)
+    if (!raw) return null
+    const parsed = JSON.parse(raw) as InvoiceDraft
+    if (!parsed || !Array.isArray(parsed.items)) return null
+    return parsed
+  } catch {
+    return null
+  }
+}
+
+function clearInvoiceDraft(): void {
+  localStorage.removeItem(INVOICE_DRAFT_KEY)
+}
+
+function formatDraftTime(value?: string): string {
+  if (!value) return ''
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return ''
+  return new Intl.DateTimeFormat('ko-KR', {
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+  }).format(date)
 }
 
 function calcRow(row: ItemRow): ItemRow {
@@ -72,6 +142,11 @@ function reverseCalcFromTotal(total: number, taxable: boolean): { supply: number
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+function normalizeInvoiceDate(value?: string): string {
+  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  return today()
 }
 
 function generateInvoiceNo(): string {
@@ -95,6 +170,7 @@ interface InvoiceDialogProps {
   open: boolean
   invoiceId?: number
   copySourceId?: number   // 복사 시 소스 ID
+  initialInvoiceDate?: string
   onClose: () => void
   onSaved: () => void
 }
@@ -145,8 +221,63 @@ function getTierLabel(tier: number): string {
   return labels[tier] ?? '소매가'
 }
 
+function getCustomerPrimaryPhone(customer: Customer | null | undefined): string {
+  return (customer?.mobile ?? customer?.phone1 ?? customer?.phone ?? '') as string
+}
+
+function getCustomerAddressKeys(customer: Customer | null | undefined): string[] {
+  if (!customer) return []
+  const result: string[] = []
+  for (let i = 1; i <= 10; i++) {
+    const key = `address${i}`
+    const value = (customer[key] as string | undefined)?.trim()
+    if (value) result.push(key)
+  }
+  return result
+}
+
+function resolveCustomerAddressKey(
+  customer: Customer | null | undefined,
+  preferredAddress?: string,
+  fallbackKey = 'address1',
+): string {
+  const keys = getCustomerAddressKeys(customer)
+  const normalized = preferredAddress?.trim()
+  if (normalized && customer) {
+    const matchedKey = keys.find((key) => ((customer[key] as string | undefined)?.trim() ?? '') === normalized)
+    if (matchedKey) return matchedKey
+  }
+  if (keys.includes(fallbackKey)) return fallbackKey
+  return keys[0] ?? fallbackKey
+}
+
+function getCustomerAddressValue(
+  customer: Customer | null | undefined,
+  addressKey = 'address1',
+): string {
+  if (!customer) return ''
+  const resolvedKey = resolveCustomerAddressKey(customer, undefined, addressKey)
+  return ((customer[resolvedKey] as string | undefined) ?? '') as string
+}
+
+function buildCustomerSnapshot(
+  customer: Customer,
+  addressKey = 'address1',
+): Partial<Invoice> {
+  return {
+    customer_id: customer.Id,
+    customer_name: customer.name,
+    customer_phone: getCustomerPrimaryPhone(customer),
+    customer_address: getCustomerAddressValue(customer, addressKey),
+    customer_bizno: customer.biz_no,
+    customer_ceo_name: customer.ceo_name as string | undefined,
+    customer_biz_type: customer.biz_type as string | undefined,
+    customer_biz_item: customer.biz_item as string | undefined,
+  }
+}
+
 // ─── 컴포넌트 ──────────────────────────────────
-export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved }: InvoiceDialogProps) {
+export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDate, onClose, onSaved }: InvoiceDialogProps) {
   const isNew = !invoiceId && !copySourceId
   const isCopy = !!copySourceId
   const editId = invoiceId || copySourceId
@@ -154,17 +285,18 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
   // 폼 상태
   const [form, setForm] = useState<Partial<Invoice>>({
-    invoice_date: today(),
+    invoice_date: normalizeInvoiceDate(initialInvoiceDate),
     invoice_no: generateInvoiceNo(),
     receipt_type: '영수',
     previous_balance: 0,
     paid_amount: 0,
     payment_method: '현금',
   })
-  const [items, setItems] = useState<ItemRow[]>([newRow()])
+  const [items, setItems] = useState<ItemRow[]>(() => [newRow(loadDefaultTaxableSetting())])
   const [existingItemIds, setExistingItemIds] = useState<number[]>([])
   const [isSaving, setIsSaving] = useState(false)
   const [isDirty, setIsDirty] = useState(false)
+  const [draftMeta, setDraftMeta] = useState<InvoiceDraft | null>(null)
 
   // 선택된 고객 (단가등급용)
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
@@ -181,7 +313,10 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   const [customerInput, setCustomerInput] = useState('')
   const [showCustomerDrop, setShowCustomerDrop] = useState(false)
   const customerDropRef = useRef<HTMLDivElement>(null)
-  const { data: customerSearchResult } = useCustomerSearch(customerInput)
+  const customerDropdownRef = useRef<HTMLDivElement>(null)
+  const [customerDropdownIdx, setCustomerDropdownIdx] = useState(-1)
+  const debouncedCustomerInput = useDebounce(customerInput, 150)
+  const { data: customerSearchResult, isFetching: isCustomerSearching } = useCustomerSearch(debouncedCustomerInput)
 
   // 상품 자동완성 상태 (품목 행별) — useEffect 전에 선언 필요
   const [productInputs, setProductInputs] = useState<Record<string, string>>({})
@@ -202,6 +337,13 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   // 드롭다운 portal 위치 (테이블 overflow 밖으로 렌더링 + 뷰포트 하단 감지)
   const [dropdownPos, setDropdownPos] = useState<{ top?: number; bottom?: number; left: number; width: number } | null>(null)
   const dropdownContainerRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (customerDropdownIdx >= 0 && customerDropdownRef.current) {
+      const el = customerDropdownRef.current.children[customerDropdownIdx] as HTMLElement | undefined
+      el?.scrollIntoView({ block: 'nearest' })
+    }
+  }, [customerDropdownIdx])
   useLayoutEffect(() => {
     if (showProductDrop && activeProductKey) {
       const el = productInputRefs.current[activeProductKey]
@@ -243,6 +385,16 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     enabled: !!selectedCustomer?.Id,
     staleTime: 60 * 1000,
   })
+  const { data: recentCustomerInvoices, isFetching: isRecentCustomerLoading } = useQuery({
+    queryKey: ['recentInvoiceCustomers-global'],
+    queryFn: () =>
+      getInvoices({
+        limit: 20,
+        sort: '-invoice_date',
+      }),
+    enabled: open && isNew && !isCopy,
+    staleTime: 60 * 1000,
+  })
 
   // 기존 명세표 로드
   const { data: existingInvoice } = useQuery({
@@ -255,6 +407,20 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     queryFn: () => getItems(editId!),
     enabled: !!editId && open,
   })
+  const { data: currentCustomer } = useQuery({
+    queryKey: ['invoice-customer-current', form.customer_id, existingInvoice?.customer_id, customerInput, existingInvoice?.customer_name],
+    queryFn: () =>
+      findCustomerByInvoiceLink(
+        customerInput.trim() && customerInput.trim() !== (selectedCustomer?.name?.trim() ?? '')
+          ? undefined
+          : selectedCustomer?.Id ??
+            (typeof form.customer_id === 'number' ? form.customer_id : undefined) ??
+            existingInvoice?.customer_id,
+        customerInput || form.customer_name || existingInvoice?.customer_name,
+      ),
+    enabled: open && !!(customerInput || form.customer_name || existingInvoice?.customer_name || form.customer_id || existingInvoice?.customer_id),
+    staleTime: 0,
+  })
 
   // 다이얼로그 닫힐 때 드롭다운 정리 (portal 잔류 방지)
   useEffect(() => {
@@ -263,6 +429,9 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       setDropdownIdx(-1)
       setActiveProductKey(null)
       setDropdownPos(null)
+      setShowCustomerDrop(false)
+      setCustomerDropdownIdx(-1)
+      setDraftMeta(null)
     }
   }, [open])
 
@@ -271,8 +440,9 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     if (!open) return
     setIsDirty(false)
     if (isNew && !isCopy) {
+      const defaultTaxable = loadDefaultTaxableSetting()
       setForm({
-        invoice_date: today(),
+        invoice_date: normalizeInvoiceDate(initialInvoiceDate),
         invoice_no: generateInvoiceNo(),
         receipt_type: '영수',
         previous_balance: 0,
@@ -281,15 +451,24 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       })
       setCustomerInput('')
       setSelectedCustomer(null)
-      setItems([newRow()])
+      setSelectedAddrKey('address1')
+      setShowCustomerDrop(false)
+      setCustomerDropdownIdx(-1)
+      setItems([newRow(defaultTaxable)])
       setExistingItemIds([])
+      setDraftMeta(loadInvoiceDraft())
       return
     }
+    setDraftMeta(null)
     if (existingInvoice) {
+      const normalizedExistingInvoice = {
+        ...existingInvoice,
+        receipt_type: existingInvoice.receipt_type ?? '영수',
+      }
       if (isCopy) {
         // 복사: 새 번호 + 오늘 날짜, 수금 초기화
         setForm({
-          ...existingInvoice,
+          ...normalizedExistingInvoice,
           Id: undefined,
           invoice_no: generateInvoiceNo(),
           invoice_date: today(),
@@ -299,9 +478,13 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           current_balance: existingInvoice.total_amount,
         })
       } else {
-        setForm(existingInvoice)
+        setForm(normalizedExistingInvoice)
       }
       setCustomerInput(existingInvoice.customer_name ?? '')
+      setSelectedCustomer(null)
+      setSelectedAddrKey('address1')
+      setShowCustomerDrop(false)
+      setCustomerDropdownIdx(-1)
     }
     if (existingItems) {
       const rows: ItemRow[] = existingItems.list.map((it) => ({
@@ -315,10 +498,28 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
         taxable: it.taxable === 'Y',
         tax_amount: it.tax_amount ?? 0,
       }))
-      setItems(rows.length > 0 ? rows : [newRow()])
+      setItems(rows.length > 0 ? rows : [newRow(loadDefaultTaxableSetting())])
       setExistingItemIds(isCopy ? [] : existingItems.list.map((it) => it.Id))
     }
-  }, [open, isNew, isCopy, existingInvoice, existingItems])
+  }, [open, isNew, isCopy, existingInvoice, existingItems, initialInvoiceDate])
+
+  useEffect(() => {
+    if (!open || !currentCustomer) return
+    const nextAddressKey = resolveCustomerAddressKey(
+      currentCustomer,
+      (form.customer_address as string | undefined) ?? (existingInvoice?.customer_address as string | undefined),
+      selectedAddrKey || 'address1',
+    )
+    const snapshot = buildCustomerSnapshot(currentCustomer, nextAddressKey)
+    setSelectedCustomer(currentCustomer)
+    setSelectedAddrKey(nextAddressKey)
+    setCustomerInput(currentCustomer.name ?? '')
+    setForm((prev) => ({
+      ...prev,
+      ...snapshot,
+      customer_name: currentCustomer.name ?? prev.customer_name,
+    }))
+  }, [open, currentCustomer, existingInvoice?.customer_address])
 
   // 합계 자동 계산
   const supplyTotal = items.reduce((s, r) => s + r.supply_amount, 0)
@@ -333,11 +534,21 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
     function handler(e: MouseEvent) {
       if (customerDropRef.current && !customerDropRef.current.contains(e.target as Node)) {
         setShowCustomerDrop(false)
+        setCustomerDropdownIdx(-1)
       }
     }
     document.addEventListener('mousedown', handler)
     return () => document.removeEventListener('mousedown', handler)
   }, [])
+
+  useEffect(() => {
+    const customerCount = customerSearchResult?.list?.length ?? 0
+    if (!showCustomerDrop || customerCount === 0) {
+      setCustomerDropdownIdx(-1)
+      return
+    }
+    setCustomerDropdownIdx((prev) => Math.min(prev, customerCount - 1))
+  }, [customerSearchResult?.list, showCustomerDrop])
 
   // 키보드 단축키
   useEffect(() => {
@@ -358,18 +569,41 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
   // 고객 선택
   function selectCustomer(c: Customer) {
+    const nextAddressKey = resolveCustomerAddressKey(c, undefined, 'address1')
+    const snapshot = buildCustomerSnapshot(c, nextAddressKey)
     setCustomerInput(c.name ?? '')
     setSelectedCustomer(c)
     setShowCustomerDrop(false)
-    setSelectedAddrKey('address1')  // 기본: address1
+    setCustomerDropdownIdx(-1)
+    setSelectedAddrKey(nextAddressKey)
     setForm((f) => ({
       ...f,
-      customer_id: c.Id,
-      customer_name: c.name,
-      customer_phone: (c.mobile ?? c.phone1 ?? c.phone ?? '') as string,
-      customer_address: (c.address1 as string) ?? '',
+      ...snapshot,
       previous_balance: isNew ? (c.outstanding_balance ?? 0) : f.previous_balance,
     }))
+    setIsDirty(true)
+  }
+
+  async function selectRecentCustomer(option: RecentCustomerOption) {
+    try {
+      const linkedCustomer = await findCustomerByInvoiceLink(option.customerId, option.customerName)
+      if (linkedCustomer) {
+        selectCustomer(linkedCustomer)
+        return
+      }
+    } catch {}
+
+    setCustomerInput(option.customerName)
+    setSelectedCustomer(null)
+    setSelectedAddrKey('address1')
+    setForm((f) => ({
+      ...f,
+      customer_id: option.customerId,
+      customer_name: option.customerName,
+      previous_balance: isNew ? (option.outstandingBalance ?? 0) : f.previous_balance,
+    }))
+    setShowCustomerDrop(false)
+    setCustomerDropdownIdx(-1)
     setIsDirty(true)
   }
 
@@ -377,22 +611,17 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   function switchAddress(key: string) {
     if (!selectedCustomer) return
     setSelectedAddrKey(key)
-    const addr = ((selectedCustomer as Record<string, unknown>)[key] as string) ?? ''
+    const addr = getCustomerAddressValue(selectedCustomer, key)
     setForm((f) => ({ ...f, customer_address: addr }))
     setIsDirty(true)
   }
 
   // 고객의 비어있지 않은 주소 필드 목록
   function getCustomerAddresses(c: Customer): { key: string; label: string }[] {
-    const result: { key: string; label: string }[] = []
-    for (let i = 1; i <= 5; i++) {
-      const key = `address${i}`
-      const val = (c as Record<string, unknown>)[key]
-      if (typeof val === 'string' && val.trim()) {
-        result.push({ key, label: `주소${i}` })
-      }
-    }
-    return result
+    return getCustomerAddressKeys(c).map((key) => ({
+      key,
+      label: `주소${key.replace('address', '')}`,
+    }))
   }
 
   // 라인 아이템 업데이트
@@ -466,7 +695,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           product_name: product.name ?? '',
           unit_price: price,
           unit: product.unit ?? '개',
-          taxable: product.is_taxable ?? true,
+          taxable: product.is_taxable ?? loadDefaultTaxableSetting(),
         })
       }),
     )
@@ -483,7 +712,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
   const addItem = useCallback(() => {
     const cur = itemsRef.current
-    const defaultTaxable = cur.length > 0 ? cur[cur.length - 1].taxable : true
+    const defaultTaxable = cur.length > 0 ? cur[cur.length - 1].taxable : loadDefaultTaxableSetting()
     const row = newRow(defaultTaxable)
     setItems((prev) => [...prev, row])
     setProductInputs((prev) => ({ ...prev, [row._key]: '' }))
@@ -499,7 +728,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       selectProduct(rowKey, product)
     } else {
       // rowKey 없으면 새 행 추가 후 선택
-      const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : true
+      const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : loadDefaultTaxableSetting()
       const row = newRow(defaultTaxable)
       setItems((prev) => [...prev, row])
       setProductInputs((prev) => ({ ...prev, [row._key]: '' }))
@@ -511,7 +740,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
   // 품목 선택 모달에서 복수 선택 완료
   function handleMultiPicked(products: import('@/lib/api').Product[]) {
-    const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : true
+    const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : loadDefaultTaxableSetting()
     const newRows: ItemRow[] = products.map((p) => {
       const price = getPriceForCustomer(p, selectedCustomer)
       const row = newRow(p.is_taxable ?? defaultTaxable)
@@ -533,8 +762,72 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   }
 
   function removeItem(key: string) {
-    setItems((prev) => prev.filter((r) => r._key !== key))
+    setItems((prev) => {
+      const next = prev.filter((r) => r._key !== key)
+      return next.length > 0 ? next : [newRow(loadDefaultTaxableSetting())]
+    })
     setIsDirty(true)
+  }
+
+  function handleSaveDraft() {
+    if (!isNew || isCopy) return
+    if (!hasMeaningfulDraftValue(form, items, customerInput)) {
+      toast.warning('임시저장할 내용이 없습니다')
+      return
+    }
+    const draft: InvoiceDraft = {
+      savedAt: new Date().toISOString(),
+      form: {
+        ...form,
+        customer_name: customerInput || form.customer_name,
+      },
+      items,
+      customerInput,
+      selectedAddrKey,
+    }
+    saveInvoiceDraft(draft)
+    setDraftMeta(draft)
+    toast.success('임시저장되었습니다')
+  }
+
+  function handleRestoreDraft() {
+    const draft = draftMeta ?? loadInvoiceDraft()
+    if (!draft) {
+      toast.warning('불러올 임시저장본이 없습니다')
+      return
+    }
+    const restoredItems = draft.items.length > 0
+      ? draft.items.map((item) => ({
+        ...newRow(loadDefaultTaxableSetting()),
+        ...item,
+        _key: item._key || Math.random().toString(36).slice(2),
+      }))
+      : [newRow(loadDefaultTaxableSetting())]
+
+    setForm({
+      invoice_date: draft.form.invoice_date ?? today(),
+      invoice_no: draft.form.invoice_no ?? generateInvoiceNo(),
+      receipt_type: draft.form.receipt_type ?? '영수',
+      previous_balance: draft.form.previous_balance ?? 0,
+      paid_amount: draft.form.paid_amount ?? 0,
+      payment_method: draft.form.payment_method ?? '현금',
+      ...draft.form,
+    })
+    setCustomerInput(draft.customerInput)
+    setSelectedCustomer(null)
+    setSelectedAddrKey(draft.selectedAddrKey || 'address1')
+    setShowCustomerDrop(false)
+    setCustomerDropdownIdx(-1)
+    setItems(restoredItems)
+    setExistingItemIds([])
+    setIsDirty(true)
+    toast.success('임시저장본을 불러왔습니다')
+  }
+
+  function handleClearDraft(showToast = true) {
+    clearInvoiceDraft()
+    setDraftMeta(null)
+    if (showToast) toast.success('임시저장본을 삭제했습니다')
   }
 
   // 닫기 안전장치
@@ -551,18 +844,25 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       toast.warning('거래처를 입력해주세요')
       return
     }
+    const effectiveItems = items.filter(hasMeaningfulItemValue)
+    if (effectiveItems.length === 0) {
+      toast.warning('품목을 한 개 이상 입력해주세요')
+      return
+    }
     setIsSaving(true)
     try {
       const status = calcStatus(paidAmt, prevBal, grandTotal)
+      const sourceCustomer = currentCustomer ?? selectedCustomer
+      const customerSnapshot = sourceCustomer ? buildCustomerSnapshot(sourceCustomer, selectedAddrKey) : undefined
       const invoicePayload: Partial<Invoice> = {
         ...form,
-        customer_name: customerInput || form.customer_name,
+        ...(customerSnapshot ?? {}),
+        customer_name: customerInput || customerSnapshot?.customer_name || form.customer_name,
         supply_amount: supplyTotal,
         tax_amount: taxTotal,
         total_amount: grandTotal,
         current_balance: curBal,
         payment_status: status,
-        status: status,
       }
 
       let invId: number
@@ -583,8 +883,8 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
           await bulkDeleteItems(existingItemIds.slice(i, i + BATCH))
         }
       }
-      if (items.length > 0) {
-        const itemPayloads = items.map((r) => ({
+      if (effectiveItems.length > 0) {
+        const itemPayloads = effectiveItems.map((r) => ({
           invoice_id: invId,
           product_name: r.product_name,
           unit: r.unit,
@@ -622,9 +922,12 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
       qc.invalidateQueries({
         predicate: (q) => {
           const k = q.queryKey[0]
-          return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-'))
+          return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-') || k.startsWith('calendar-'))
         },
       })
+      if (isNew && !isCopy) {
+        handleClearDraft(false)
+      }
       setIsDirty(false)
       toast.success(invoiceId ? '명세표가 수정되었습니다' : '명세표가 발행되었습니다')
       onSaved()
@@ -639,14 +942,21 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
   // 인쇄 데이터 빌더
   function buildPrintData() {
+    const sourceCustomer = currentCustomer ?? selectedCustomer
+    const customerSnapshot = sourceCustomer ? buildCustomerSnapshot(sourceCustomer, selectedAddrKey) : undefined
+    const effectiveItems = items.filter(hasMeaningfulItemValue)
     return {
       inv: {
         invoice_no: form.invoice_no,
         invoice_date: form.invoice_date,
-        receipt_type: form.receipt_type,
-        customer_name: customerInput || form.customer_name,
-        customer_phone: form.customer_phone as string,
-        customer_address: form.customer_address as string,
+        receipt_type: form.receipt_type ?? '영수',
+        customer_name: customerInput || customerSnapshot?.customer_name || form.customer_name,
+        customer_phone: customerSnapshot?.customer_phone ?? (form.customer_phone as string),
+        customer_address: customerSnapshot?.customer_address ?? (form.customer_address as string),
+        customer_bizno: customerSnapshot?.customer_bizno ?? (form.customer_bizno as string),
+        customer_ceo_name: customerSnapshot?.customer_ceo_name ?? (form.customer_ceo_name as string),
+        customer_biz_type: customerSnapshot?.customer_biz_type ?? (form.customer_biz_type as string),
+        customer_biz_item: customerSnapshot?.customer_biz_item ?? (form.customer_biz_item as string),
         supply_amount: supplyTotal,
         tax_amount: taxTotal,
         total_amount: grandTotal,
@@ -654,7 +964,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
         paid_amount: paidAmt,
         memo: form.memo,
       },
-      rows: items.map((r) => ({
+      rows: effectiveItems.map((r) => ({
         product_name: r.product_name,
         unit: r.unit,
         quantity: r.quantity,
@@ -690,6 +1000,27 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
   }
 
   const titleLabel = isCopy ? '명세표 복사' : invoiceId ? '명세표 수정' : '새 거래명세표'
+  const recentCustomerOptions: RecentCustomerOption[] = []
+  const recentSeen = new Set<string>()
+  for (const inv of recentCustomerInvoices?.list ?? []) {
+    const normalizedName = inv.customer_name?.trim()
+    const dedupeKey = typeof inv.customer_id === 'number' && inv.customer_id > 0
+      ? `id:${inv.customer_id}`
+      : normalizedName
+        ? `name:${normalizedName.toLowerCase()}`
+        : ''
+    if (!dedupeKey || recentSeen.has(dedupeKey) || !normalizedName) continue
+    recentSeen.add(dedupeKey)
+    recentCustomerOptions.push({
+      key: dedupeKey,
+      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+      customerName: normalizedName,
+      invoiceDate: inv.invoice_date,
+      outstandingBalance: inv.current_balance ?? inv.previous_balance,
+    })
+    if (recentCustomerOptions.length >= 6) break
+  }
+  const showRecentCustomers = isNew && !isCopy && !selectedCustomer && customerInput.trim().length === 0
 
   return (
     <>
@@ -715,6 +1046,25 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
         </DialogHeader>
 
         <div className="space-y-4 pb-2">
+          {isNew && !isCopy && draftMeta && (
+            <div className="rounded-md border border-[#d8e4d6] bg-[#f5faf4] px-3 py-2 text-sm flex items-center justify-between gap-3">
+              <div>
+                <p className="font-medium text-[#3d6b4a]">임시저장본이 있습니다</p>
+                <p className="text-xs text-muted-foreground">
+                  저장 시각: {formatDraftTime(draftMeta.savedAt) || '-'}
+                </p>
+              </div>
+              <div className="flex gap-2">
+                <Button type="button" size="sm" variant="outline" onClick={handleRestoreDraft}>
+                  불러오기
+                </Button>
+                <Button type="button" size="sm" variant="ghost" onClick={() => handleClearDraft()}>
+                  삭제
+                </Button>
+              </div>
+            </div>
+          )}
+
           {/* ─── 거래처 + 발행정보 ─── */}
           <div className="grid grid-cols-3 gap-3">
             {/* 거래처 자동완성 */}
@@ -724,20 +1074,87 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                 placeholder="거래처명 검색..."
                 value={customerInput}
                 onChange={(e) => {
-                  setCustomerInput(e.target.value)
-                  setForm((f) => ({ ...f, customer_name: e.target.value }))
-                  setShowCustomerDrop(true)
+                  const nextValue = e.target.value
+                  setCustomerInput(nextValue)
+                  setSelectedCustomer(null)
+                  setSelectedAddrKey('address1')
+                  setCustomerDropdownIdx(-1)
+                  setForm((f) => ({
+                    ...f,
+                    customer_id: undefined,
+                    customer_name: nextValue,
+                    customer_phone: '',
+                    customer_address: '',
+                    customer_bizno: '',
+                    customer_ceo_name: '',
+                    customer_biz_type: '',
+                    customer_biz_item: '',
+                  }))
+                  setShowCustomerDrop(nextValue.trim().length >= 1)
                   setIsDirty(true)
                 }}
                 onFocus={() => customerInput.length >= 1 && setShowCustomerDrop(true)}
+                onKeyDown={(e) => {
+                  const customerList = customerSearchResult?.list ?? []
+                  if (e.key === 'ArrowDown') {
+                    if (customerList.length === 0) return
+                    e.preventDefault()
+                    setShowCustomerDrop(true)
+                    setCustomerDropdownIdx((prev) => Math.min(prev + 1, customerList.length - 1))
+                    return
+                  }
+                  if (e.key === 'ArrowUp') {
+                    if (customerList.length === 0) return
+                    e.preventDefault()
+                    setShowCustomerDrop(true)
+                    setCustomerDropdownIdx((prev) => (prev <= 0 ? customerList.length - 1 : prev - 1))
+                    return
+                  }
+                  if (e.key === 'Enter' && showCustomerDrop && customerList.length > 0) {
+                    e.preventDefault()
+                    selectCustomer(customerList[Math.max(customerDropdownIdx, 0)] ?? customerList[0])
+                    return
+                  }
+                  if (e.key === 'Escape') {
+                    setShowCustomerDrop(false)
+                    setCustomerDropdownIdx(-1)
+                    return
+                  }
+                  if (e.key === 'Tab') {
+                    setShowCustomerDrop(false)
+                    setCustomerDropdownIdx(-1)
+                  }
+                }}
                 className="mt-1"
               />
+              {showRecentCustomers && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  <span className="text-xs text-muted-foreground py-1">최근 거래처</span>
+                  {isRecentCustomerLoading && (
+                    <span className="text-xs text-muted-foreground py-1">불러오는 중...</span>
+                  )}
+                  {!isRecentCustomerLoading && recentCustomerOptions.map((option) => (
+                    <button
+                      key={option.key}
+                      type="button"
+                      onClick={() => { void selectRecentCustomer(option) }}
+                      className="rounded-full border px-2.5 py-1 text-xs text-gray-700 hover:border-[#7d9675] hover:text-[#3d6b4a] hover:bg-[#f5faf4]"
+                    >
+                      {option.customerName}
+                      {option.invoiceDate ? <span className="ml-1 text-muted-foreground">{option.invoiceDate.slice(5, 10)}</span> : null}
+                    </button>
+                  ))}
+                </div>
+              )}
               {showCustomerDrop && customerSearchResult?.list && customerSearchResult.list.length > 0 && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {customerSearchResult.list.map((c) => (
+                <div ref={customerDropdownRef} className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  {customerSearchResult.list.map((c, index) => (
                     <button
                       key={c.Id}
-                      className="w-full text-left px-3 py-2 text-sm hover:bg-gray-50 flex items-center justify-between"
+                      className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between ${
+                        index === customerDropdownIdx ? 'bg-[#f0f4f0] text-[#3d6b4a]' : 'hover:bg-gray-50'
+                      }`}
+                      onMouseEnter={() => setCustomerDropdownIdx(index)}
                       onMouseDown={() => selectCustomer(c)}
                     >
                       <div className="flex items-center gap-2">
@@ -755,6 +1172,14 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
                       )}
                     </button>
                   ))}
+                </div>
+              )}
+              {showCustomerDrop && !isCustomerSearching && debouncedCustomerInput.trim().length >= 1 && (customerSearchResult?.list?.length ?? 0) === 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-md border bg-white shadow-lg px-3 py-3 text-sm">
+                  <p className="font-medium text-gray-700">검색 결과가 없습니다</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    고객관리에서 거래처를 먼저 등록하거나 다른 상호명으로 다시 검색해 주세요.
+                  </p>
                 </div>
               )}
             </div>
@@ -784,7 +1209,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
             <div className="bg-gray-50 rounded-md px-3 py-2 text-xs flex flex-wrap gap-4">
               <div>
                 <span className="text-muted-foreground">전화: </span>
-                <span>{selectedCustomer.phone ?? '-'}</span>
+                <span>{getCustomerPrimaryPhone(selectedCustomer) || '-'}</span>
               </div>
               <div className="flex items-center gap-1 flex-wrap">
                 <span className="text-muted-foreground">주소: </span>
@@ -1142,10 +1567,17 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, onClose, onSaved 
 
           {/* ─── 액션 버튼 ─── */}
           <div className="flex items-center justify-between pt-2 border-t">
-            <Button variant="outline" onClick={handlePreview} className="gap-1">
-              <Printer className="h-4 w-4" />
-              인쇄 미리보기
-            </Button>
+            <div className="flex gap-2">
+              <Button variant="outline" onClick={handlePreview} className="gap-1">
+                <Printer className="h-4 w-4" />
+                인쇄 미리보기
+              </Button>
+              {isNew && !isCopy && (
+                <Button variant="outline" onClick={handleSaveDraft}>
+                  임시저장
+                </Button>
+              )}
+            </div>
             <div className="flex gap-2">
               <Button variant="ghost" onClick={handleClose} disabled={isSaving}>
                 취소

@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { createProduct, updateProduct, getProducts } from '@/lib/api'
+import { loadDefaultTaxableSetting } from '@/lib/settings'
 import type { Product } from '@/lib/api'
 
 interface ProductDialogProps {
@@ -87,7 +88,7 @@ export function ProductDialog({ open, product, onClose, onSaved }: ProductDialog
   useEffect(() => {
     if (!open) return
     if (isNew) {
-      setForm({ is_taxable: true, is_active: true })
+      setForm({ is_taxable: loadDefaultTaxableSetting(), is_active: true })
       setCategoryInput('')
     } else {
       setForm({ ...product })
@@ -318,7 +319,7 @@ export function ProductDialog({ open, product, onClose, onSaved }: ProductDialog
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input
                 type="checkbox"
-                checked={form.is_taxable ?? true}
+                checked={Boolean(form.is_taxable)}
                 onChange={(e) => set('is_taxable', e.target.checked)}
                 className="accent-[#7d9675] w-4 h-4"
               />

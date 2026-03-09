@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
@@ -6,12 +7,16 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { InvoiceDialog } from '@/components/InvoiceDialog'
-import { getInvoices, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm } from '@/lib/api'
-import type { Invoice } from '@/lib/api'
+import { getInvoices, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink } from '@/lib/api'
+import type { Customer, Invoice } from '@/lib/api'
 import { exportInvoices } from '@/lib/excel'
 import { printDuplexViaIframe } from '@/lib/print'
 
 const PAGE_SIZE = 25
+
+function isValidCalendarDate(value: string | null): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
 
 function useDebounce<T>(value: T, delay: number): T {
   const [dv, setDv] = useState<T>(value)
@@ -28,18 +33,74 @@ const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   unpaid:  { label: '미수금', cls: 'text-red-600' },
 }
 
+function getCustomerPrimaryPhone(customer: Customer | null | undefined): string {
+  return (customer?.mobile ?? customer?.phone1 ?? customer?.phone ?? '') as string
+}
+
+function getCustomerAddress(customer: Customer | null | undefined, preferredAddress?: string): string {
+  if (!customer) return ''
+  const trimmedPreferred = preferredAddress?.trim()
+  let firstAddress = ''
+  for (let i = 1; i <= 10; i++) {
+    const value = (customer[`address${i}`] as string | undefined)?.trim()
+    if (!value) continue
+    if (!firstAddress) firstAddress = value
+    if (trimmedPreferred && value === trimmedPreferred) return value
+  }
+  return firstAddress
+}
+
+function buildCustomerPrintSnapshot(
+  customer: Customer | null | undefined,
+  preferredAddress?: string,
+): Partial<Invoice> {
+  if (!customer) return {}
+  return {
+    customer_name: customer.name,
+    customer_phone: getCustomerPrimaryPhone(customer),
+    customer_address: getCustomerAddress(customer, preferredAddress),
+    customer_bizno: customer.biz_no,
+    customer_ceo_name: customer.ceo_name as string | undefined,
+    customer_biz_type: customer.biz_type as string | undefined,
+    customer_biz_item: customer.biz_item as string | undefined,
+  }
+}
+
 export function Invoices() {
   const qc = useQueryClient()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
+  const [dateFilter, setDateFilter] = useState(() => {
+    const date = searchParams.get('date')
+    return isValidCalendarDate(date) ? date : ''
+  })
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [selectedId, setSelectedId] = useState<number | undefined>(undefined)
   const [copySourceId, setCopySourceId] = useState<number | undefined>(undefined)
+  const [initialInvoiceDate, setInitialInvoiceDate] = useState<string | undefined>(undefined)
   const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const debouncedSearch = useDebounce(search, 400)
-  useEffect(() => setPage(1), [debouncedSearch, statusFilter])
+  useEffect(() => setPage(1), [debouncedSearch, statusFilter, dateFilter])
+
+  useEffect(() => {
+    const nextDate = searchParams.get('date')
+    const normalizedDate = isValidCalendarDate(nextDate) ? nextDate : ''
+    setDateFilter((prev) => (prev === normalizedDate ? prev : normalizedDate))
+
+    if (searchParams.get('new') === '1') {
+      setSelectedId(undefined)
+      setCopySourceId(undefined)
+      setInitialInvoiceDate(normalizedDate || undefined)
+      setDialogOpen(true)
+
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('new')
+      setSearchParams(nextParams, { replace: true })
+    }
+  }, [searchParams, setSearchParams])
 
   const params: Record<string, string | number> = {
     limit: PAGE_SIZE,
@@ -52,6 +113,7 @@ export function Invoices() {
     conditions.push(`(customer_name,like,%${safe}%)`)
   }
   if (statusFilter !== 'ALL') conditions.push(`(payment_status,eq,${statusFilter})`)
+  if (dateFilter) conditions.push(`(invoice_date,eq,${dateFilter})`)
   if (conditions.length > 0) {
     params.where = conditions.length === 1 ? conditions[0] : conditions.join('~and')
   }
@@ -65,21 +127,33 @@ export function Invoices() {
   const totalPages = Math.ceil(totalRows / PAGE_SIZE)
   const invoices = data?.list ?? []
 
-  function openCreate() {
+  function applyDateFilter(nextValue: string) {
+    setDateFilter(nextValue)
+    const nextParams = new URLSearchParams(searchParams)
+    if (nextValue) nextParams.set('date', nextValue)
+    else nextParams.delete('date')
+    nextParams.delete('new')
+    setSearchParams(nextParams, { replace: true })
+  }
+
+  function openCreate(date?: string) {
     setSelectedId(undefined)
     setCopySourceId(undefined)
+    setInitialInvoiceDate(date || undefined)
     setDialogOpen(true)
   }
 
   function openEdit(id: number) {
     setSelectedId(id)
     setCopySourceId(undefined)
+    setInitialInvoiceDate(undefined)
     setDialogOpen(true)
   }
 
   function openCopy(id: number) {
     setSelectedId(undefined)
     setCopySourceId(id)
+    setInitialInvoiceDate(undefined)
     setDialogOpen(true)
   }
 
@@ -113,7 +187,7 @@ export function Invoices() {
       qc.invalidateQueries({
         predicate: (q) => {
           const k = q.queryKey[0]
-          return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-'))
+          return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-') || k.startsWith('calendar-'))
         },
       })
     } catch {
@@ -125,21 +199,39 @@ export function Invoices() {
 
   async function handlePrint(inv: Invoice) {
     try {
-      const itemsData = await getItems(inv.Id)
+      const [latestInvoice, itemsData] = await Promise.all([
+        getInvoice(inv.Id),
+        getItems(inv.Id),
+      ])
+      let currentCustomer: Customer | null = null
+      try {
+        currentCustomer = await findCustomerByInvoiceLink(
+          Number(latestInvoice.customer_id),
+          latestInvoice.customer_name,
+        )
+      } catch {}
+      const customerSnapshot = buildCustomerPrintSnapshot(
+        currentCustomer,
+        latestInvoice.customer_address as string | undefined,
+      )
       printDuplexViaIframe(
         {
-          invoice_no: inv.invoice_no,
-          invoice_date: inv.invoice_date,
-          receipt_type: inv.receipt_type,
-          customer_name: inv.customer_name,
-          customer_phone: inv.customer_phone as string,
-          customer_address: inv.customer_address as string,
-          supply_amount: inv.supply_amount,
-          tax_amount: inv.tax_amount,
-          total_amount: inv.total_amount,
-          previous_balance: inv.previous_balance,
-          paid_amount: inv.paid_amount,
-          memo: inv.memo,
+          invoice_no: latestInvoice.invoice_no,
+          invoice_date: latestInvoice.invoice_date,
+          receipt_type: latestInvoice.receipt_type ?? '영수',
+          customer_name: customerSnapshot.customer_name ?? latestInvoice.customer_name,
+          customer_phone: customerSnapshot.customer_phone ?? (latestInvoice.customer_phone as string),
+          customer_address: customerSnapshot.customer_address ?? (latestInvoice.customer_address as string),
+          customer_bizno: customerSnapshot.customer_bizno ?? (latestInvoice.customer_bizno as string),
+          customer_ceo_name: customerSnapshot.customer_ceo_name ?? (latestInvoice.customer_ceo_name as string),
+          customer_biz_type: customerSnapshot.customer_biz_type ?? (latestInvoice.customer_biz_type as string),
+          customer_biz_item: customerSnapshot.customer_biz_item ?? (latestInvoice.customer_biz_item as string),
+          supply_amount: latestInvoice.supply_amount,
+          tax_amount: latestInvoice.tax_amount,
+          total_amount: latestInvoice.total_amount,
+          previous_balance: latestInvoice.previous_balance,
+          paid_amount: latestInvoice.paid_amount,
+          memo: latestInvoice.memo,
         },
         itemsData.list.map((it) => ({
           product_name: it.product_name,
@@ -176,7 +268,7 @@ export function Invoices() {
             엑셀
           </Button>
           <Button
-            onClick={openCreate}
+            onClick={() => openCreate(dateFilter || undefined)}
             className="bg-[#7d9675] hover:bg-[#6a8462] text-white gap-1"
           >
             <Plus className="h-4 w-4" />
@@ -196,6 +288,12 @@ export function Invoices() {
             className="pl-9"
           />
         </div>
+        <Input
+          type="date"
+          value={dateFilter}
+          onChange={(e) => applyDateFilter(e.target.value)}
+          className="w-[170px]"
+        />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
           <SelectTrigger className="w-32">
             <SelectValue placeholder="수금 상태" />
@@ -207,11 +305,15 @@ export function Invoices() {
             <SelectItem value="unpaid">미수금</SelectItem>
           </SelectContent>
         </Select>
-        {(statusFilter !== 'ALL' || search) && (
+        {(statusFilter !== 'ALL' || search || dateFilter) && (
           <Button
             variant="ghost"
             size="sm"
-            onClick={() => { setSearch(''); setStatusFilter('ALL') }}
+            onClick={() => {
+              setSearch('')
+              setStatusFilter('ALL')
+              applyDateFilter('')
+            }}
           >
             초기화
           </Button>
@@ -256,7 +358,7 @@ export function Invoices() {
               </tr>
             )}
             {invoices.map((inv) => {
-              const st = STATUS_LABEL[inv.payment_status ?? inv.status ?? '']
+              const st = STATUS_LABEL[inv.payment_status ?? '']
               const isDeleting = deletingId === inv.Id
               return (
                 <tr
@@ -383,16 +485,27 @@ export function Invoices() {
       )}
 
       {/* 명세표 다이얼로그 */}
-      <InvoiceDialog
-        open={dialogOpen}
-        invoiceId={selectedId}
-        copySourceId={copySourceId}
-        onClose={() => setDialogOpen(false)}
-        onSaved={() => {
-          setDialogOpen(false)
-          void refetch()
-        }}
-      />
+      {dialogOpen && (
+        <InvoiceDialog
+          open={dialogOpen}
+          invoiceId={selectedId}
+          copySourceId={copySourceId}
+          initialInvoiceDate={initialInvoiceDate}
+          onClose={() => {
+            setDialogOpen(false)
+            setSelectedId(undefined)
+            setCopySourceId(undefined)
+            setInitialInvoiceDate(undefined)
+          }}
+          onSaved={() => {
+            setDialogOpen(false)
+            setSelectedId(undefined)
+            setCopySourceId(undefined)
+            setInitialInvoiceDate(undefined)
+            void refetch()
+          }}
+        />
+      )}
     </div>
   )
 }

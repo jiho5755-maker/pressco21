@@ -1,4 +1,5 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Download, AlertCircle } from 'lucide-react'
@@ -7,9 +8,10 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { getInvoices, updateInvoice, recalcCustomerStats } from '@/lib/api'
+import { getAllInvoices, updateInvoice, recalcCustomerStats } from '@/lib/api'
 import type { Invoice } from '@/lib/api'
 import { exportReceivables } from '@/lib/excel'
+import { getPaidAmountAsOf, getPaymentStatusAsOf, getRemainingAmountAsOf } from '@/lib/reporting'
 
 // ─── 에이징 구간 ────────────────────────────────
 const AGING_BUCKETS = [
@@ -20,13 +22,27 @@ const AGING_BUCKETS = [
   { label: '180일 초과', min: 181, max: Infinity },
 ]
 
-function getDaysSince(dateStr: string | undefined): number {
+function isValidCalendarDate(value: string | null): value is string {
+  return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+function todayDate(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+function getDaysSince(dateStr: string | undefined, baseDate = todayDate()): number {
   if (!dateStr) return 0
-  return Math.floor((Date.now() - new Date(dateStr).getTime()) / 86400000)
+  return Math.max(0, Math.floor((new Date(baseDate).getTime() - new Date(dateStr).getTime()) / 86400000))
 }
 
 function calcRemaining(inv: Invoice): number {
   return (inv.total_amount ?? 0) - (inv.paid_amount ?? 0)
+}
+
+interface ReceivableSnapshot extends Invoice {
+  asOfPaidAmount: number
+  asOfRemaining: number
+  asOfStatus: 'paid' | 'partial' | 'unpaid'
 }
 
 // ─── 입금 확인 다이얼로그 ───────────────────────
@@ -73,9 +89,7 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
         // current_balance: 이 명세표에서 남은 금액만 기록 (prevBal은 별도 명세표에 귀속)
         current_balance: newRemaining,
         payment_status: newPaymentStatus,
-        status: newPaymentStatus,
         payment_method: method,
-        paid_date: new Date().toISOString().slice(0, 10),  // 실제 입금일 기록
       })
       qc.invalidateQueries({ queryKey: ['receivables'] })
       qc.invalidateQueries({ queryKey: ['invoices'] })
@@ -93,7 +107,7 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
       qc.invalidateQueries({
         predicate: (q) => {
           const k = q.queryKey[0]
-          return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-'))
+          return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-') || k.startsWith('calendar-'))
         },
       })
       onSaved()
@@ -184,37 +198,76 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
 
 // ─── 미수금 관리 메인 ───────────────────────────
 export function Receivables() {
+  const [searchParams, setSearchParams] = useSearchParams()
   const [paymentTarget, setPaymentTarget] = useState<Invoice | null>(null)
+  const [asOfDate, setAsOfDate] = useState(() => {
+    const value = searchParams.get('asOf')
+    return isValidCalendarDate(value) ? value : todayDate()
+  })
 
-  const { data, isLoading, isError } = useQuery({
-    queryKey: ['receivables'],
+  useEffect(() => {
+    const value = searchParams.get('asOf')
+    const normalized = isValidCalendarDate(value) ? value : todayDate()
+    setAsOfDate((prev) => (prev === normalized ? prev : normalized))
+  }, [searchParams])
+  useEffect(() => {
+    setPaymentTarget(null)
+  }, [asOfDate])
+
+  const { data: invoices = [], isLoading, isError } = useQuery({
+    queryKey: ['receivables', asOfDate],
     queryFn: () =>
-      getInvoices({
+      getAllInvoices({
         where: '(payment_status,eq,unpaid)~or(payment_status,eq,partial)',
-        limit: 500,
         sort: '-invoice_date',
+        fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status,current_balance',
       }),
     staleTime: 2 * 60 * 1000,
   })
+  const isTodayView = asOfDate === todayDate()
+  const visibleInvoices: ReceivableSnapshot[] = invoices
+    .map((inv) => {
+      const asOfPaidAmount = getPaidAmountAsOf(inv, asOfDate)
+      const asOfRemaining = getRemainingAmountAsOf(inv, asOfDate)
+      const asOfStatus = getPaymentStatusAsOf(inv, asOfDate)
+      return {
+        ...inv,
+        asOfPaidAmount,
+        asOfRemaining,
+        asOfStatus,
+      }
+    })
+    .filter((inv) => {
+      const invoiceDate = inv.invoice_date?.slice(0, 10)
+      if (!invoiceDate) return false
+      return invoiceDate <= asOfDate && inv.asOfRemaining > 0
+    })
 
-  const invoices = data?.list ?? []
+  function applyAsOfDate(nextValue: string) {
+    const normalized = nextValue || todayDate()
+    setAsOfDate(normalized)
+    const nextParams = new URLSearchParams(searchParams)
+    if (normalized) nextParams.set('asOf', normalized)
+    else nextParams.delete('asOf')
+    setSearchParams(nextParams, { replace: true })
+  }
 
   // 에이징 집계
   const aging = AGING_BUCKETS.map((bucket) => {
-    const filtered = invoices.filter((inv) => {
-      const days = getDaysSince(inv.invoice_date)
+    const filtered = visibleInvoices.filter((inv) => {
+      const days = getDaysSince(inv.invoice_date, asOfDate)
       return days >= bucket.min && days <= bucket.max
     })
     return {
       ...bucket,
       count: filtered.length,
-      amount: filtered.reduce((s, inv) => s + calcRemaining(inv), 0),
+      amount: filtered.reduce((s, inv) => s + inv.asOfRemaining, 0),
     }
   })
 
-  const totalReceivable = invoices.reduce((s, inv) => s + calcRemaining(inv), 0)
-  const criticalCount = invoices.filter((inv) => {
-    const days = getDaysSince(inv.invoice_date)
+  const totalReceivable = visibleInvoices.reduce((s, inv) => s + inv.asOfRemaining, 0)
+  const criticalCount = visibleInvoices.filter((inv) => {
+    const days = getDaysSince(inv.invoice_date, asOfDate)
     return days > 90
   }).length
 
@@ -240,7 +293,7 @@ export function Receivables() {
           <h2 className="text-2xl font-bold">미수금 관리</h2>
           <p className="text-sm text-muted-foreground mt-1">
             총 <span className="font-medium text-red-600">{totalReceivable.toLocaleString()}원</span>
-            {' / '}{invoices.length}건
+            {' / '}{visibleInvoices.length}건
             {criticalCount > 0 && (
               <span className="ml-2 text-amber-600">
                 <AlertCircle className="inline h-3.5 w-3.5 mr-0.5" />
@@ -252,12 +305,40 @@ export function Receivables() {
         <Button
           variant="outline"
           size="sm"
-          onClick={() => exportReceivables(invoices)}
+          onClick={() => exportReceivables(
+            visibleInvoices.map((inv) => ({
+              ...inv,
+              paid_amount: inv.asOfPaidAmount,
+              payment_status: inv.asOfStatus,
+            })),
+            asOfDate,
+          )}
           className="gap-1"
         >
           <Download className="h-4 w-4" />
           엑셀 내보내기
         </Button>
+      </div>
+
+      <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="flex items-center gap-2">
+          <Label htmlFor="receivables-asof" className="text-xs text-muted-foreground">기준일</Label>
+          <Input
+            id="receivables-asof"
+            type="date"
+            value={asOfDate}
+            onChange={(e) => applyAsOfDate(e.target.value)}
+            className="w-[170px]"
+          />
+        </div>
+        <Button variant="ghost" size="sm" onClick={() => applyAsOfDate(todayDate())}>
+          오늘 기준
+        </Button>
+        {!isTodayView && (
+          <span className="text-xs text-muted-foreground">
+            과거 기준일은 조회 전용입니다. 입금 처리는 오늘 기준에서만 가능합니다.
+          </span>
+        )}
       </div>
 
       {/* 에이징 테이블 */}
@@ -294,9 +375,9 @@ export function Receivables() {
       </div>
 
       {/* 미수금 목록 */}
-      {invoices.length === 0 ? (
+      {visibleInvoices.length === 0 ? (
         <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
-          미수금이 없습니다.
+          해당 기준일까지의 미수금이 없습니다.
         </div>
       ) : (
         <div className="rounded-lg border bg-white overflow-hidden">
@@ -315,9 +396,8 @@ export function Receivables() {
               </tr>
             </thead>
             <tbody>
-              {invoices.map((inv) => {
-                const days = getDaysSince(inv.invoice_date)
-                const remaining = calcRemaining(inv)
+              {visibleInvoices.map((inv) => {
+                const days = getDaysSince(inv.invoice_date, asOfDate)
                 const ageColor =
                   days > 180
                     ? 'text-red-700 font-bold'
@@ -342,20 +422,20 @@ export function Receivables() {
                       {(inv.total_amount ?? 0).toLocaleString()}원
                     </td>
                     <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
-                      {inv.paid_amount != null && inv.paid_amount > 0
-                        ? `${inv.paid_amount.toLocaleString()}원`
+                      {inv.asOfPaidAmount > 0
+                        ? `${inv.asOfPaidAmount.toLocaleString()}원`
                         : '-'}
                     </td>
                     <td className="px-4 py-2.5 text-right font-medium text-red-600">
-                      {remaining.toLocaleString()}원
+                      {inv.asOfRemaining.toLocaleString()}원
                     </td>
                     <td className="px-4 py-2.5">
                       <span
                         className={`text-xs font-medium ${
-                          inv.payment_status === 'partial' ? 'text-amber-600' : 'text-red-600'
+                          inv.asOfStatus === 'partial' ? 'text-amber-600' : 'text-red-600'
                         }`}
                       >
-                        {inv.payment_status === 'partial' ? '부분수금' : '미수금'}
+                        {inv.asOfStatus === 'partial' ? '부분수금' : '미수금'}
                       </span>
                     </td>
                     <td className="px-4 py-2.5">
@@ -363,6 +443,7 @@ export function Receivables() {
                         size="sm"
                         variant="outline"
                         className="h-7 text-xs"
+                        disabled={!isTodayView}
                         onClick={() => setPaymentTarget(inv)}
                       >
                         입금 확인

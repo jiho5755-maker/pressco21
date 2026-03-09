@@ -28,11 +28,11 @@ export function exportCustomers(customers: Customer[]): void {
   downloadXlsx(data, '고객목록')
 }
 
-export function exportReceivables(invoices: Invoice[]): void {
-  const today = Date.now()
+export function exportReceivables(invoices: Invoice[], baseDate = new Date().toISOString().slice(0, 10)): void {
+  const baseTime = new Date(baseDate).getTime()
   const data = invoices.map((inv) => {
     const days = inv.invoice_date
-      ? Math.floor((today - new Date(inv.invoice_date).getTime()) / 86400000)
+      ? Math.floor((baseTime - new Date(inv.invoice_date).getTime()) / 86400000)
       : 0
     const remaining = (inv.total_amount ?? 0) - (inv.paid_amount ?? 0)
     return {

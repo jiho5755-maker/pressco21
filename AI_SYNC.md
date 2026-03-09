@@ -2,6 +2,43 @@
 
 이 파일은 Claude Code와 Codex CLI가 같은 저장소와 하위 폴더를 교대로 작업할 때 충돌을 줄이기 위한 공용 인수인계 보드입니다.
 
+---
+
+## 운영 모드
+
+### 모드 A: 메인 프로젝트 (Claude Code 주도 → Codex 관리)
+
+| 단계 | 담당 | 커밋 prefix |
+|------|------|------------|
+| 기획/아키텍처/신규 개발 | **Claude Code** | — |
+| 테스트/리팩토링/버그수정 | **Codex CLI** | `[codex]` |
+
+### 모드 B: 독립 프로젝트 (Codex 단독 총괄)
+
+가벼운 프로젝트는 Codex CLI가 기획~배포까지 독립 수행. Next Step에 `[CODEX-LEAD]` prefix.
+
+### 태스크 위임 표시
+
+| prefix | 의미 |
+|--------|------|
+| `[CODEX]` | 모드 A — Codex가 보조 작업 수행 |
+| `[CODEX-LEAD]` | 모드 B — Codex가 독립 주도 |
+| (prefix 없음) | Claude Code 담당 |
+
+### 공통 금지 사항 (모드 무관)
+
+- `.secrets.env` 수정 금지
+- `git push --force`, `git reset --hard` 금지
+- Claude Code가 WRITE 중인 파일 수정 금지
+
+### 모드 A 추가 금지 (보조 모드에서만)
+
+- `n8n-workflows/*.json` 수정 금지
+- 비즈니스 로직 임계값 변경 금지
+- ROADMAP.md 수정 금지
+
+---
+
 ## Mandatory Rules
 
 1. 작업 시작 전에 이 파일과 `git status --short`를 먼저 확인합니다.
@@ -13,11 +50,11 @@
 ## Session Lock
 
 - Current Owner: IDLE
-- Mode: IDLE
-- Started At: 2026-03-09 17:30:00 KST
+- Mode: —
+- Started At: —
 - Branch: main
-- Working Scope: CRM handoff memory update, commit, and push for recent invoice/calendar/UX fixes.
-- Active Subdirectory: offline-crm-v2
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
 
@@ -189,16 +226,69 @@
 - WF-20 재배포 (kit 필드 수정 허용)
 - WF-19 배포 완료 (ID: Zvk8akZ20VnfsQeN)
 
+### 파트너클래스 통합 테스트 (CODEX)
+- 실행 일시: 2026-03-09 20:13~20:29 KST
+- 실행 계정: `jihoo5755` (파트너 회원)
+- 확인된 수강생 마이페이지 ID: `8010`
+- 실제 검증 도메인: `https://www.foreverlove.co.kr`
+- 메이크샵 관련 공식 운영/배포 기준 도메인: `https://www.foreverlove.co.kr`
+- 산출물 경로: `output/playwright/partnerclass-20260309/`
+
+#### Phase 1 검증
+- 목록 `id=2606`
+  - 클래스 6건 렌더링 확인, 첫 카드 `압화 아트 기초 클래스`에 `잔여 20석` 배지 노출 확인
+  - 스크린샷: `output/playwright/partnerclass-20260309/list-page.png`
+- 상세 `id=2607&class_id=CL_202602_001`
+  - 목록 카드 클릭으로 진입 확인
+  - flatpickr 예약 가능 날짜 `2026-03-15`, `2026-03-20` 확인
+  - 시간슬롯/잔여석 확인: `2026-03-15 14:00 잔여 8석`, `2026-03-20 10:00 잔여 6석` 2건
+  - FAQ 탭 5개 아코디언 열기/닫기 정상 확인
+  - 스크린샷: `output/playwright/partnerclass-20260309/detail-date-timeslot.png`, `output/playwright/partnerclass-20260309/detail-faq-expanded.png`
+- 목록 `협회 제휴` 탭
+  - `한국꽃공예협회` 카드와 제휴 인센티브 섹션 노출 확인
+  - 스크린샷: `output/playwright/partnerclass-20260309/list-association-tab.png`
+
+#### Phase 2 검증
+- 파트너 대시보드 `id=2608`
+  - 로그인 후 `BLOOM PARTNER` 헤더, 등급 진행률 게이지, 4등급 승급 조건 테이블 확인
+  - 스크린샷: `output/playwright/partnerclass-20260309/partner-dashboard-grade-report.png`
+- 강의등록 `id=8009`
+  - 파트너 로그인 상태에서 등록 폼 전체 렌더링 확인
+  - 스크린샷: `output/playwright/partnerclass-20260309/class-register-form.png`
+- 어드민 `id=8011`
+  - 파트너 계정으로 접근 시 `접근 권한이 없습니다` 가드 화면 노출 확인
+  - 관리자 전용 양성 시나리오는 관리자 계정 미제공으로 미검증
+  - 스크린샷: `output/playwright/partnerclass-20260309/admin-access-denied.png`
+
+#### Phase 3 검증
+- 마이페이지 `id=8010`
+  - 비로그인 상태: 로그인 안내 화면 확인
+  - 로그인 후: 예약 요약 카드(`전체/예정/완료 = 0`)와 빈 상태 노출 확인
+  - 스크린샷: `output/playwright/partnerclass-20260309/mypage-8010-login-required.png`, `output/playwright/partnerclass-20260309/mypage-empty-state.png`
+- 잔여석 정합성
+  - 목록 배지 `20석` = 상세 시간슬롯 합계 `8 + 6 + 6 = 20석`
+  - 결과: PASS
+
+#### 실패/이슈
+- 상세 페이지 콘솔 에러
+  - `https://t1.kakaocdn.net/kakao_js_sdk/2.7.2/kakao.min.js` 무결성 해시 불일치로 차단
+  - 에러 메시지: `Failed to find a valid digest in the 'integrity' attribute ... The resource has been blocked.`
+  - 로그: `output/playwright/partnerclass-20260309/detail-console.log`
+
 ## Next Step
 
+### Codex CLI 위임 태스크
+- [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
+- [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
+- [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
+
+### Claude Code 태스크
+- 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
+- 관리자 계정으로 `id=8011` 양성 시나리오 재검증
 - CRM 운영 확인: 실제 운영 브라우저에서 `미수금` 복구와 `캘린더 2026-03-09 8건` 표기를 확인
 - 캘린더 운영 판단: 과거 기준일 `미수 후속`은 현재 미수 기준 참고용이라는 점을 UX 문구로 더 명확히 할지 검토
 - 필요 시 캘린더 3단계: 최근 미주문 고객/고액 미수 고객 추천과 후속 액션 버튼 추가
-- 캘린더 고도화 4단계: 주간 뷰/담당자별 액션 큐/알림 배지 추가 검토.
-- CRM 운영 확인: 토스트 우하단, 과세 기본값, 거래처 자동완성, 검색/임시저장 플로우
 - n8n 효율화 검토 문서 기준으로 `offline-crm-v2`의 프록시 이관 여부와 `WF-05` 분할 착수 여부 결정
-- 파트너클래스 E2E: 일정 관리/강의 등록/키트 배송/마이페이지 전체 흐름 테스트
-- Phase 1 Task 005-1: 통합 테스트
 - 카카오 JS Key 실제 발급 후 교체 필요
 
 ## Known Risks
@@ -208,6 +298,7 @@
 - 거래처 자동완성 exact-name hydrate는 유지되어, 동일 상호 고객이 여러 명인 케이스는 기존처럼 `customer_id` 연결 품질에 영향을 받음.
 - 임시저장은 현재 `새 명세표` 1건만 로컬에 보관하는 구조라, 여러 개의 임시 명세표를 병렬로 쌓아두는 용도는 아님.
 - 카카오 SDK JS Key가 플레이스홀더(`YOUR_KAKAO_JS_KEY_HERE`) 상태
+- 상세 페이지 카카오 SDK `integrity` 값이 현재 응답 해시와 달라 공유 SDK 로딩이 차단됨
 - tbl_Schedules에 중복 일정 테스트 데이터 있음 (SCH_20260320_03, SCH_20260320_77 — 같은 날짜/시간)
 - WF-18의 schedule_id 생성이 2자리 랜덤으로 충돌 가능성 있음 (6자리로 확장 권장)
 - WF-20의 `require('https')` 방식은 동작하지만 비권장

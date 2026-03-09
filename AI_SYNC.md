@@ -438,10 +438,31 @@
   - `PYTHONPYCACHEPREFIX=/tmp/pycache python3 -m py_compile codex-skills/makeshop-d4-dev/scripts/check_makeshop_d4.py` 통과
   - `python3 codex-skills/makeshop-d4-dev/scripts/check_makeshop_d4.py /tmp/makeshop-sample.js` → `OK`
 
+### 실관리자 계정 어드민 양성 검증 (CODEX)
+- 실행 일시: 2026-03-10 02:11 KST ~ 2026-03-10 02:15 KST
+- 실행 계정
+  - `jihoo5755`
+- 실행 도메인
+  - `https://www.foreverlove.co.kr/shop/page.html?id=8011`
+- 실행 방식
+  - Playwright 실브라우저 로그인 후 관리자 페이지 직접 진입
+- 결과
+  - FAIL
+  - 로그인은 성공했지만 어드민 메인 영역은 열리지 않았고 비인가 안내가 그대로 표시됨
+  - 페이지 가상태그 값 확인:
+    - `member = jihoo5755`
+    - `groupName = 테스트 관리자`
+    - `groupLevel = 10`
+  - 현재 어드민 프론트는 `group_level`이 아니라 `group_name`이 `관리자`, `운영자`, `대표` 중 하나인지로만 권한 판정
+- 실패 상세
+  - 에러 메시지: `접근 권한이 없습니다 / 이 페이지는 관리자 전용입니다.`
+  - 스크린샷: `output/playwright/admin-positive-20260310/admin-positive-denied.png`
+  - 상태 파일: `output/playwright/admin-positive-20260310/admin-positive-state.json`
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] `$makeshop-d4-dev` 스킬을 사용해 실관리자 계정 기반 `id=8011` 어드민 양성 최종 검증
+- [CODEX] 어드민 권한 판정 로직을 `group_name=테스트 관리자` 또는 `group_level>=9`까지 허용할지 결정 후 `id=8011` 재검증
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
@@ -471,3 +492,4 @@
 - `codex-skills/partnerclass-live-qa`는 repo-local 스킬이라, 자동 트리거를 원하면 전역 Codex 스킬 디렉터리로 별도 설치가 필요함
 - 실관리자 계정 자격증명은 리포지토리에서 확인되지 않았고, `id=8011` 양성 최종 검증 전 별도 제공이 필요함
 - `makeshop-d4-dev`는 `/Users/jangjiho/workspace/AGENTS.md`를 기준 문서로 참조하므로, 해당 경로가 바뀌면 스킬 안내도 함께 갱신해야 함
+- 현재 어드민 `isAdmin()`은 `group_level`을 보지 않고 `group_name`이 `관리자`, `운영자`, `대표`와 정확히 일치할 때만 통과함

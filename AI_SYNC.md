@@ -474,10 +474,42 @@
     - `관리자 / 1` → `true`
     - `일반회원 / 3` → `false`
 
+### 실관리자 계정 어드민 양성 재검증 PASS (CODEX)
+- 실행 일시: 2026-03-10 02:24 KST ~ 2026-03-10 02:26 KST
+- 실행 계정
+  - `jihoo5755`
+- 실행 도메인
+  - `https://www.foreverlove.co.kr/shop/page.html?id=8011`
+- 결과
+  - PASS
+  - 로그인 후 어드민 메인 진입 성공
+  - 페이지 가상태그 값 확인:
+    - `member = jihoo5755`
+    - `groupName = 관리자`
+    - `groupLevel = 10`
+  - 비인가 영역 숨김, 메인 대시보드 표시 확인
+  - 요약 카드 수치 확인:
+    - 파트너 신청 대기 `5`
+    - 강의 승인 대기 `1`
+    - 정산 대기 `12`
+  - 4개 탭 모두 전환 및 패널 표시 확인:
+    - `applications` 5행
+    - `classes` 1행
+    - `settlements` 12행
+    - `affiliations` 3행
+- 산출물
+  - 상태 파일: `output/playwright/admin-positive-20260310/admin-positive-state.json`
+  - 메인 스크린샷: `output/playwright/admin-positive-20260310/admin-positive-main.png`
+  - 탭 스크린샷:
+    - `output/playwright/admin-positive-20260310/admin-tab-applications.png`
+    - `output/playwright/admin-positive-20260310/admin-tab-classes.png`
+    - `output/playwright/admin-positive-20260310/admin-tab-settlements.png`
+    - `output/playwright/admin-positive-20260310/admin-tab-affiliations.png`
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] 메이크샵에 `파트너클래스/어드민/js.js` 반영 후 `id=8011` 실관리자 양성 재검증
+- [CODEX] 어드민 승인/거부/일괄정산 쓰기 액션까지 포함한 실관리자 E2E 확장 검증
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안

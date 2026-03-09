@@ -58,7 +58,7 @@
 
 ## Files In Progress
 
-- 없음
+- (none)
 
 ## Last Changes (2026-03-09)
 
@@ -275,16 +275,58 @@
   - 에러 메시지: `Failed to find a valid digest in the 'integrity' attribute ... The resource has been blocked.`
   - 로그: `output/playwright/partnerclass-20260309/detail-console.log`
 
+### 파트너클래스 확장 통합 테스트 (CODEX)
+- 실행 일시: 2026-03-09 23:05 KST ~ 2026-03-10 00:08 KST
+- 실행 계정: `jihoo5755` (파트너 회원)
+- 실행 도메인: `https://www.foreverlove.co.kr`
+- 자동화 스크립트: `scripts/partnerclass-live-smoke.js`
+- 결과 문서: `docs/파트너클래스/partnerclass-live-test-matrix-2026-03-09.md`
+- 산출물 경로: `output/playwright/partnerclass-20260309-ext/`
+
+#### 확장 시나리오 결과
+- 총 15건 중 12건 PASS, 3건 FAIL
+- PASS
+  - 목록 기본 렌더링, 협회 제휴 탭
+  - 상세 진입, flatpickr 일정/시간슬롯, FAQ 5개, 잔여석 정합성, 비정상 `class_id` 처리
+  - 파트너 대시보드 탭 전환/CSV 예외 처리
+  - 강의등록 폼 검증/일정 추가/키트 토글
+  - 마이페이지 비로그인 안내, 로그인 후 빈 상태
+  - 관리자 비권한 차단, 관리자 API 읽기 전용 조회, 관리자 양성 UI 시뮬레이션
+- FAIL
+  - 목록 찜 필터 저장 실패
+    - 에러: `찜 필터 결과가 1건이 아닙니다. count=0, wishedClassId=CL_202602_002, wishlist=null, rendered=`
+    - 스크린샷: `output/playwright/partnerclass-20260309-ext/fail-목록-정렬-서울-필터-찜-필터.png`
+  - 파트너 일정 관리 탭 활성화 실패
+    - 에러: `page.waitForFunction: Timeout 15000ms exceeded.`
+    - 스크린샷: `output/playwright/partnerclass-20260309-ext/fail-파트너-일정-관리-탭.png`
+  - 파트너 등급/수수료율 정합성 불일치
+    - 에러: `수수료율 불일치: ui=25, api=20, badge=BLOOM PARTNER`
+    - 스크린샷: `output/playwright/partnerclass-20260309-ext/fail-파트너-등급-게이지-승급표-정합성.png`
+
+#### API 교차 검증
+- `getPartnerAuth(member_id=jihoo5755)` → `partner_code=PC_202602_001`, `grade=SILVER`, `commission_rate=20`
+- `getPartnerDashboard` → 클래스 3건 확인
+- `getMyBookings(member_id=jihoo5755)` → `bookings=[]`, `total=0`
+- `getApplications` 5건, `getPendingClasses` 1건, `getSettlements(limit=5)` 5건, `getAffiliations` 1건
+
+#### 관리자 양성 시뮬레이션
+- 실관리자 계정 없이 `adMemberId`, `adGroupName`, `adGroupLevel`를 `DOMContentLoaded` 전에 주입해 관리자 UI를 양성 상태로 재현
+- 요약 카드 `5`건, 어드민 탭 4종 렌더링과 전환 확인
+- 스크린샷: `output/playwright/partnerclass-20260309-ext/admin-simulated-dashboard.png`
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
+- [CODEX] 파트너클래스 목록 페이지 찜 버튼/localStorage 저장 실패 원인 점검
+- [CODEX] 파트너 대시보드 `일정 관리` 탭 활성화 타임아웃 재현 및 네트워크/콘솔 원인 수집
+- [CODEX] 파트너 대시보드 등급 alias(`SILVER→BLOOM`)와 수수료율 표시 정책 정합성 리뷰
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
 
 ### Claude Code 태스크
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
-- 관리자 계정으로 `id=8011` 양성 시나리오 재검증
+- 실관리자 계정으로 `id=8011` 최종 양성 시나리오 재검증
 - CRM 운영 확인: 실제 운영 브라우저에서 `미수금` 복구와 `캘린더 2026-03-09 8건` 표기를 확인
 - 캘린더 운영 판단: 과거 기준일 `미수 후속`은 현재 미수 기준 참고용이라는 점을 UX 문구로 더 명확히 할지 검토
 - 필요 시 캘린더 3단계: 최근 미주문 고객/고액 미수 고객 추천과 후속 액션 버튼 추가
@@ -293,6 +335,9 @@
 
 ## Known Risks
 
+- 목록 찜 버튼 클릭 후 `pressco21_wishlist`가 저장되지 않아 찜 필터 시나리오가 실서비스에서 동작하지 않을 수 있음
+- 파트너 대시보드 `일정 관리` 탭은 활성화 지연 또는 무한 로딩으로 이어질 가능성이 있음
+- 파트너 대시보드 UI 수수료율(25%)과 인증 API 수수료율(20%)이 불일치함
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.
 - 운영 `invoice_date`는 서버측 날짜 비교(`gte/lte`)가 안정적으로 동작하지 않아, 캘린더는 전체 명세표를 읽은 뒤 프론트에서 월/기간 필터링하는 구조를 사용 중.
 - 거래처 자동완성 exact-name hydrate는 유지되어, 동일 상호 고객이 여러 명인 케이스는 기존처럼 `customer_id` 연결 품질에 영향을 받음.

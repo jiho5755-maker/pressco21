@@ -1,0 +1,95 @@
+{
+  "generatedAt": "2026-03-09T15:08:24.943Z",
+  "results": [
+    {
+      "name": "목록 기본 렌더링",
+      "passed": true,
+      "detail": "클래스 6건, 첫 카드 배지: 잔여 20석",
+      "extra": null
+    },
+    {
+      "name": "목록 정렬/서울 필터/찜 필터",
+      "passed": false,
+      "detail": "찜 필터 결과가 1건이 아닙니다. count=0, wishedClassId=CL_202602_002, wishlist=null, rendered=\nScreenshot: /Users/jangjiho/workspace/pressco21/output/playwright/partnerclass-20260309-ext/fail-목록-정렬-서울-필터-찜-필터.png",
+      "extra": null
+    },
+    {
+      "name": "협회 제휴 탭 렌더링",
+      "passed": true,
+      "detail": "협회 카드 및 인센티브 섹션 확인",
+      "extra": null
+    },
+    {
+      "name": "상세 일정/수량/탭 전환",
+      "passed": true,
+      "detail": "날짜 3월 15, 2026, 3월 20, 2026, 슬롯 14:00잔여 8석",
+      "extra": null
+    },
+    {
+      "name": "상세 FAQ/잔여석 정합성",
+      "passed": true,
+      "detail": "목록 20석 = 상세 20석, FAQ 5개, screenshot=/Users/jangjiho/workspace/pressco21/output/playwright/partnerclass-20260309-ext/detail-faq-remaining-consistency.png",
+      "extra": null
+    },
+    {
+      "name": "상세 비정상 class_id 처리",
+      "passed": true,
+      "detail": "오류 상태 확인, screenshot=/Users/jangjiho/workspace/pressco21/output/playwright/partnerclass-20260309-ext/detail-invalid-state.png",
+      "extra": null
+    },
+    {
+      "name": "마이페이지 비로그인 안내",
+      "passed": true,
+      "detail": "로그인 안내 화면 노출 확인",
+      "extra": null
+    },
+    {
+      "name": "파트너 대시보드 탭 전환/CSV 다운로드",
+      "passed": true,
+      "detail": "등급=BLOOM PARTNER, toast=내보낼 정산 내역이 없습니다.",
+      "extra": null
+    },
+    {
+      "name": "파트너 일정 관리 탭",
+      "passed": false,
+      "detail": "page.waitForFunction: Timeout 15000ms exceeded.\nScreenshot: /Users/jangjiho/workspace/pressco21/output/playwright/partnerclass-20260309-ext/fail-파트너-일정-관리-탭.png",
+      "extra": null
+    },
+    {
+      "name": "파트너 등급 게이지/승급표 정합성",
+      "passed": false,
+      "detail": "수수료율 불일치: ui=25, api=20, badge=BLOOM PARTNER\nScreenshot: /Users/jangjiho/workspace/pressco21/output/playwright/partnerclass-20260309-ext/fail-파트너-등급-게이지-승급표-정합성.png",
+      "extra": null
+    },
+    {
+      "name": "강의 등록 폼 검증/일정 추가/키트 토글",
+      "passed": true,
+      "detail": "error=9, schedules=1, kitItems=2, screenshot=/Users/jangjiho/workspace/pressco21/output/playwright/partnerclass-20260309-ext/class-register-validation-kit.png",
+      "extra": null
+    },
+    {
+      "name": "마이페이지 로그인 상태 빈 화면",
+      "passed": true,
+      "detail": "빈 상태 확인",
+      "extra": null
+    },
+    {
+      "name": "관리자 비권한 접근 차단",
+      "passed": true,
+      "detail": "비권한 접근 차단 화면 확인",
+      "extra": null
+    },
+    {
+      "name": "관리자 API 읽기 전용 조회",
+      "passed": true,
+      "detail": "applications=5, classes=1, settlements=5, affiliations=1",
+      "extra": null
+    },
+    {
+      "name": "관리자 양성 UI 시뮬레이션",
+      "passed": true,
+      "detail": "요약 대기 건수=5, screenshot=/Users/jangjiho/workspace/pressco21/output/playwright/partnerclass-20260309-ext/admin-simulated-dashboard.png",
+      "extra": null
+    }
+  ]
+}

@@ -36,9 +36,13 @@
 
     /** 파트너 등급 매핑 */
     var GRADE_MAP = {
-        'SILVER': { label: '\uC778\uC99D \uD30C\uD2B8\uB108', css: 'silver' },
-        'GOLD': { label: '\uACE8\uB4DC \uD30C\uD2B8\uB108', css: 'gold' },
-        'PLATINUM': { label: '\uD50C\uB798\uD2F0\uB118 \uD30C\uD2B8\uB108', css: 'platinum' }
+        'BLOOM': { label: 'BLOOM \uD30C\uD2B8\uB108', css: 'bloom' },
+        'GARDEN': { label: 'GARDEN \uD30C\uD2B8\uB108', css: 'garden' },
+        'ATELIER': { label: 'ATELIER \uD30C\uD2B8\uB108', css: 'atelier' },
+        'AMBASSADOR': { label: 'AMBASSADOR \uD30C\uD2B8\uB108', css: 'ambassador' },
+        'SILVER': { label: 'BLOOM \uD30C\uD2B8\uB108', css: 'bloom' },
+        'GOLD': { label: 'GARDEN \uD30C\uD2B8\uB108', css: 'garden' },
+        'PLATINUM': { label: 'ATELIER \uD30C\uD2B8\uB108', css: 'atelier' }
     };
 
 
@@ -57,6 +61,12 @@
 
     /** 선택된 날짜 */
     var selectedDate = '';
+
+    /** 선택된 일정 ID */
+    var selectedScheduleId = '';
+
+    /** 현재 클래스의 일정 목록 (tbl_Schedules) */
+    var classSchedules = [];
 
     /** 후기 작성 선택 별점 */
     var reviewRating = 0;
@@ -663,10 +673,10 @@
         if (!container) return;
 
         var partner = data.partner || {};
-        var name = escapeHtml(partner.name || '\uACF5\uBC29 \uC815\uBCF4 \uC5C6\uC74C');
-        var grade = partner.grade || 'SILVER';
-        var gradeInfo = GRADE_MAP[grade] || GRADE_MAP['SILVER'];
-        var region = escapeHtml(partner.region || '');
+        var name = escapeHtml(partner.partner_name || partner.name || '\uACF5\uBC29 \uC815\uBCF4 \uC5C6\uC74C');
+        var grade = partner.grade || 'BLOOM';
+        var gradeInfo = GRADE_MAP[grade] || GRADE_MAP['BLOOM'];
+        var region = escapeHtml(partner.location || partner.region || '');
         var description = escapeHtml(partner.description || '');
         var logoUrl = partner.logo_url || '';
         var instructorBio = escapeHtml(data.instructor_bio || '');
@@ -1352,22 +1362,42 @@
         var price = data.price || 0;
         var maxStudents = parseInt(data.max_students) || DEFAULT_MAX_STUDENTS;
 
+        // tbl_Schedules 기반 일정 저장
+        classSchedules = (data.schedules || []).filter(function(s) {
+            return s.remaining > 0;
+        });
+
+        // 활성 날짜 목록 추출 (중복 제거)
+        var enabledDatesMap = {};
+        classSchedules.forEach(function(s) {
+            enabledDatesMap[s.schedule_date] = true;
+        });
+        var enabledDates = Object.keys(enabledDatesMap);
+
         // flatpickr 초기화
         var dateInput = document.getElementById('datePicker');
         if (dateInput && typeof flatpickr !== 'undefined') {
-            // appendTo: .class-detail 내부에 캘린더 렌더링 (CSS 스코핑 유지)
             var calendarContainer = document.querySelector('.class-detail');
-            datePickerInstance = flatpickr(dateInput, {
-                locale: 'ko',
-                minDate: 'today',
-                dateFormat: 'Y-m-d',
-                disableMobile: true,
-                appendTo: calendarContainer,
-                onChange: function(selectedDates, dateStr) {
-                    selectedDate = dateStr;
-                    validateBooking();
-                }
-            });
+
+            if (enabledDates.length === 0) {
+                dateInput.placeholder = '\uB4F1\uB85D\uB41C \uC77C\uC815\uC774 \uC5C6\uC2B5\uB2C8\uB2E4';
+                dateInput.disabled = true;
+            } else {
+                datePickerInstance = flatpickr(dateInput, {
+                    locale: 'ko',
+                    minDate: 'today',
+                    dateFormat: 'Y-m-d',
+                    disableMobile: true,
+                    appendTo: calendarContainer,
+                    enable: enabledDates,
+                    onChange: function(selectedDates, dateStr) {
+                        selectedDate = dateStr;
+                        selectedScheduleId = '';
+                        renderTimeSlots(dateStr, price);
+                        validateBooking();
+                    }
+                });
+            }
         }
 
         // 인원 카운터
@@ -1448,14 +1478,78 @@
     }
 
     /**
+     * 선택 날짜의 시간대 슬롯 렌더링
+     * @param {string} dateStr - YYYY-MM-DD
+     * @param {number} unitPrice - 수강료
+     */
+    function renderTimeSlots(dateStr, unitPrice) {
+        var container = document.getElementById('timeSlots');
+        if (!container) {
+            // 시간대 컨테이너가 없으면 datePicker 다음에 동적 생성
+            var dateInput = document.getElementById('datePicker');
+            if (dateInput && dateInput.parentNode) {
+                container = document.createElement('div');
+                container.id = 'timeSlots';
+                container.className = 'cd-time-slots';
+                dateInput.parentNode.insertBefore(container, dateInput.nextSibling);
+            } else {
+                return;
+            }
+        }
+
+        var daySchedules = classSchedules.filter(function(s) {
+            return s.schedule_date === dateStr && s.remaining > 0;
+        });
+
+        if (daySchedules.length === 0) {
+            container.innerHTML = '<p class="cd-time-slots__empty">\uD574\uB2F9 \uB0A0\uC9DC\uC5D0 \uAC00\uB2A5\uD55C \uC2DC\uAC04\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.</p>';
+            return;
+        }
+
+        var html = '<p class="cd-time-slots__label">\uC2DC\uAC04 \uC120\uD0DD</p><div class="cd-time-slots__list">';
+        daySchedules.forEach(function(s) {
+            html += '<button type="button" class="cd-time-slot" data-schedule-id="' + escapeHtml(s.schedule_id) + '" data-remaining="' + s.remaining + '">'
+                + '<span class="cd-time-slot__time">' + escapeHtml(s.schedule_time) + '</span>'
+                + '<span class="cd-time-slot__remain">\uC794\uC5EC ' + s.remaining + '\uC11D</span>'
+                + '</button>';
+        });
+        html += '</div>';
+        container.innerHTML = html;
+
+        // 시간 슬롯 클릭 이벤트
+        var slots = container.querySelectorAll('.cd-time-slot');
+        for (var i = 0; i < slots.length; i++) {
+            slots[i].addEventListener('click', function() {
+                // 활성 상태 토글
+                for (var j = 0; j < slots.length; j++) {
+                    slots[j].classList.remove('cd-time-slot--selected');
+                }
+                this.classList.add('cd-time-slot--selected');
+                selectedScheduleId = this.getAttribute('data-schedule-id');
+
+                // 최대 인원을 잔여석으로 제한
+                var remaining = parseInt(this.getAttribute('data-remaining')) || DEFAULT_MAX_STUDENTS;
+                var valueEl = document.getElementById('quantityValue');
+                if (selectedQuantity > remaining) {
+                    selectedQuantity = remaining;
+                    if (valueEl) valueEl.textContent = selectedQuantity;
+                }
+                updateCounterButtons(remaining);
+                updatePriceDisplay(unitPrice);
+                validateBooking();
+            });
+        }
+    }
+
+    /**
      * 예약 유효성 검증
      */
     function validateBooking() {
         var submitBtn = document.getElementById('bookingSubmit');
         if (!submitBtn) return;
 
-        // 날짜 선택 필수
-        if (selectedDate) {
+        // 날짜 + 시간 선택 필수
+        if (selectedDate && selectedScheduleId) {
             submitBtn.disabled = false;
         } else {
             submitBtn.disabled = true;
@@ -1484,6 +1578,12 @@
             var dateInput = document.getElementById('datePicker');
             if (dateInput) dateInput.focus();
             alert('\ub0a0\uc9dc\ub97c \uc120\ud0dd\ud574 \uc8fc\uc138\uc694.');
+            return;
+        }
+
+        // 시간 미선택 시 경고
+        if (!selectedScheduleId) {
+            alert('\uc2dc\uac04\uc744 \uc120\ud0dd\ud574 \uc8fc\uc138\uc694.');
             return;
         }
 
@@ -1529,6 +1629,7 @@
             class_id: classData.class_id || classData.id || '',
             member_id: memberId,
             booking_date: info.date,
+            schedule_id: selectedScheduleId,
             participants: info.participants,
             amount: info.totalPrice
         };
@@ -1806,7 +1907,7 @@
             'description': data.description ? data.description.replace(/<[^>]+>/g, '').substring(0, 200) : '',
             'provider': {
                 '@type': 'Organization',
-                'name': (data.partner && data.partner.name) ? data.partner.name : 'PRESSCO21',
+                'name': (data.partner && (data.partner.partner_name || data.partner.name)) ? (data.partner.partner_name || data.partner.name) : 'PRESSCO21',
                 'url': 'https://foreverlove.co.kr'
             },
             'courseMode': 'offline',
@@ -1892,7 +1993,7 @@
      */
     function updateMetaTags(data) {
         var className = data.class_name || '\uD074\uB798\uC2A4 \uC0C1\uC138';
-        var partnerName = (data.partner && data.partner.name) ? data.partner.name : '';
+        var partnerName = (data.partner && (data.partner.partner_name || data.partner.name)) ? (data.partner.partner_name || data.partner.name) : '';
         var descText = data.description ? data.description.replace(/<[^>]+>/g, '').substring(0, 155) : '';
 
         // title

@@ -1567,6 +1567,56 @@
     margin: 6px 0 0;
 }
 
+/* 시간대 선택 슬롯 */
+.class-detail .cd-time-slots {
+    margin: 12px 0 0;
+}
+.class-detail .cd-time-slots__label {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cd-text);
+    margin: 0 0 8px;
+}
+.class-detail .cd-time-slots__list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+.class-detail .cd-time-slot {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 10px 16px;
+    border: 1.5px solid var(--cd-border);
+    border-radius: 10px;
+    background: var(--cd-bg-light);
+    cursor: pointer;
+    transition: border-color 0.2s, background 0.2s;
+}
+.class-detail .cd-time-slot:hover {
+    border-color: var(--cd-primary);
+    background: rgba(76, 111, 104, 0.04);
+}
+.class-detail .cd-time-slot--selected {
+    border-color: var(--cd-primary);
+    background: rgba(76, 111, 104, 0.08);
+}
+.class-detail .cd-time-slot__time {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cd-text);
+}
+.class-detail .cd-time-slot__remain {
+    font-size: 11px;
+    color: var(--cd-primary);
+}
+.class-detail .cd-time-slots__empty {
+    font-size: 13px;
+    color: var(--cd-text-light);
+    margin: 4px 0;
+}
+
 /* 가격 요약 */
 .class-detail .booking-price {
     padding: 16px 0;

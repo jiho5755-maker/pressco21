@@ -1,0 +1,49 @@
+{
+  "id": "EHjVijWGTkUkYNip",
+  "name": "WF-20 Class Edit",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "class-edit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf20-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "class-edit"
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\n\nfunction nocoRequest(method, path, body) {\n  return new Promise((resolve, reject) => {\n    const options = {\n      hostname: 'nocodb.pressco21.com',\n      path: '/api/v1/db/data/noco/' + $env.NOCODB_PROJECT_ID + path,\n      method: method,\n      headers: {\n        'xc-token': $env.NOCODB_API_TOKEN,\n        'Content-Type': 'application/json'\n      }\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch(e) { resolve(data); }\n      });\n    });\n    req.on('error', reject);\n    if (body) req.write(JSON.stringify(body));\n    req.end();\n  });\n}\n\nconst body = $input.first().json.body || {};\nconst { member_id, class_id } = body;\n\ntry {\n  if (!member_id || !class_id) {\n    return [{json: {success: false, message: 'member_id and class_id required', statusCode: 400}}];\n  }\n\n  // 파트너 인증\n  const partners = await nocoRequest('GET', '/mp8t0yq15cabmj4?where=(member_id,eq,' + encodeURIComponent(member_id) + ')~and(status,eq,active)&limit=1');\n  if (!partners.list || partners.list.length === 0) {\n    return [{json: {success: false, message: 'not an active partner', statusCode: 403}}];\n  }\n  const partner = partners.list[0];\n\n  // 클래스 소유 확인\n  const classes = await nocoRequest('GET', '/mpvsno4or6asbxk?where=(class_id,eq,' + encodeURIComponent(class_id) + ')~and(partner_code,eq,' + encodeURIComponent(partner.partner_code) + ')&limit=1');\n  if (!classes.list || classes.list.length === 0) {\n    return [{json: {success: false, message: 'class not found or not owned by you', statusCode: 403}}];\n  }\n  const cls = classes.list[0];\n\n  // 수정 가능 필드만 추출\n  const allowedFields = ['class_name', 'description', 'price', 'category', 'level', 'duration_min', 'max_students', 'thumbnail_url', 'image_urls', 'instructor_bio', 'location', 'materials_included', 'youtube_video_id', 'tags'];\n  const updateData = {};\n  let hasChanges = false;\n\n  for (const field of allowedFields) {\n    if (body[field] !== undefined && body[field] !== null) {\n      updateData[field] = body[field];\n      hasChanges = true;\n    }\n  }\n\n  if (!hasChanges) {\n    return [{json: {success: false, message: 'no fields to update', statusCode: 400}}];\n  }\n\n  // price 검증\n  if (updateData.price !== undefined) {\n    const p = Number(updateData.price);\n    if (isNaN(p) || p < 0) {\n      return [{json: {success: false, message: 'invalid price', statusCode: 400}}];\n    }\n    updateData.price = p;\n  }\n\n  // NocoDB PATCH\n  await nocoRequest('PATCH', '/mpvsno4or6asbxk/' + cls.Id, updateData);\n\n  return [{json: {\n    success: true,\n    message: 'class updated',\n    data: { class_id: class_id, updated_fields: Object.keys(updateData) },\n    statusCode: 200\n  }}];\n\n} catch(e) {\n  return [{json: {success: false, message: 'Internal error: ' + e.message, statusCode: 500}}];\n}"
+      },
+      "id": "wf20-main",
+      "name": "Process Edit",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({success: $json.success, message: $json.message, data: $json.data}) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode || 200 }}"
+        }
+      },
+      "id": "wf20-respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [660, 300]
+    }
+  ],
+  "connections": {
+    "Webhook": {"main": [[{"node": "Process Edit", "type": "main", "index": 0}]]},
+    "Process Edit": {"main": [[{"node": "Respond", "type": "main", "index": 0}]]}
+  },
+  "settings": {"executionOrder": "v1"}
+}

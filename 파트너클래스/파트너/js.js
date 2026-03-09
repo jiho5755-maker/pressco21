@@ -21,7 +21,9 @@
         'getPartnerBookings':          N8N_BASE + '/partner-data',
         'getPartnerReviews':           N8N_BASE + '/partner-data',
         'updateClassStatus':           N8N_BASE + '/class-management',
-        'replyToReview':               N8N_BASE + '/review-reply'
+        'replyToReview':               N8N_BASE + '/review-reply',
+        'editClass':                   N8N_BASE + '/class-edit',
+        'manageSchedule':              N8N_BASE + '/schedule-manage'
     };
 
     /** 캐시 유효 시간: 5분 (대시보드는 실시간성 중요) */
@@ -218,7 +220,9 @@
         // 등급 배지
         var badgeEl = document.getElementById('pdGradeBadge');
         if (badgeEl) {
-            var grade = (partnerData.grade || 'SILVER').toUpperCase();
+            var rawGrade = (partnerData.grade || 'BLOOM').toUpperCase();
+            var gradeAlias = { 'SILVER': 'BLOOM', 'GOLD': 'GARDEN', 'PLATINUM': 'ATELIER' };
+            var grade = gradeAlias[rawGrade] || rawGrade;
             badgeEl.textContent = grade + ' PARTNER';
             badgeEl.className = 'pd-grade-badge pd-grade-badge--' + grade.toLowerCase();
         }
@@ -455,6 +459,10 @@
             + '<span class="pd-class-card__stat">\uD3C9\uC810 <strong>' + (avgRating > 0 ? avgRating.toFixed(1) : '-') + '</strong></span>'
             + '</div>';
 
+        // 수정 버튼
+        html += '<button type="button" class="pd-btn pd-btn--outline pd-btn--sm js-edit-class" '
+            + 'data-class-id="' + classId + '">\uC218\uC815</button>';
+
         if (showToggle) {
             html += '<button type="button" class="pd-btn ' + toggleBtnClass + ' js-toggle-status" '
                 + 'data-class-id="' + classId + '" data-status="' + status + '">'
@@ -475,6 +483,15 @@
         container._pdBound = true;
 
         container.addEventListener('click', function(e) {
+            // 수정 버튼
+            var editBtn = e.target.closest('.js-edit-class');
+            if (editBtn) {
+                var editClassId = editBtn.getAttribute('data-class-id');
+                openClassEditModal(editClassId);
+                return;
+            }
+
+            // 상태 토글 버튼
             var btn = e.target.closest('.js-toggle-status');
             if (!btn) return;
 
@@ -526,6 +543,147 @@
             var statusLabel = newStatus === 'active' ? '\uC7AC\uD65C\uC131\uD654' : '\uC77C\uC2DC\uC815\uC9C0';
             showToast('\uAC15\uC758\uAC00 ' + statusLabel + '\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
             renderMyClasses();
+        });
+    }
+
+
+    /* ========================================
+       클래스 수정 모달 (WF-20)
+       ======================================== */
+
+    /**
+     * 클래스 수정 모달 열기
+     * @param {string} classId
+     */
+    function openClassEditModal(classId) {
+        // 로컬 데이터에서 클래스 정보 찾기
+        var cls = null;
+        for (var i = 0; i < myClasses.length; i++) {
+            if (myClasses[i].class_id === classId) {
+                cls = myClasses[i];
+                break;
+            }
+        }
+        if (!cls) {
+            showToast('\uD074\uB798\uC2A4 \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.', 'error');
+            return;
+        }
+
+        // 모달이 없으면 동적 생성
+        var modal = document.getElementById('pdEditClassModal');
+        if (!modal) {
+            modal = document.createElement('div');
+            modal.id = 'pdEditClassModal';
+            modal.className = 'pd-modal';
+            document.body.appendChild(modal);
+        }
+
+        var html = '<div class="pd-modal__overlay js-close-edit-modal"></div>'
+            + '<div class="pd-modal__content">'
+            + '<div class="pd-modal__header">'
+            + '<h3>\uD074\uB798\uC2A4 \uC218\uC815</h3>'
+            + '<button type="button" class="pd-modal__close js-close-edit-modal">&times;</button>'
+            + '</div>'
+            + '<div class="pd-modal__body">'
+            + '<input type="hidden" id="editClassId" value="' + escapeAttr(classId) + '">'
+            + '<label class="pd-form-label">\uD074\uB798\uC2A4\uBA85</label>'
+            + '<input type="text" id="editClassName" class="pd-form-input" value="' + escapeAttr(cls.class_name || '') + '">'
+            + '<label class="pd-form-label">\uCE74\uD14C\uACE0\uB9AC</label>'
+            + '<select id="editCategory" class="pd-form-input">'
+            + '<option value="\uC555\uD654"' + (cls.category === '\uC555\uD654' ? ' selected' : '') + '>\uC555\uD654</option>'
+            + '<option value="\uCE94\uB4E4"' + (cls.category === '\uCE94\uB4E4' ? ' selected' : '') + '>\uCE94\uB4E4</option>'
+            + '<option value="\uAE30\uD0C0"' + (cls.category === '\uAE30\uD0C0' ? ' selected' : '') + '>\uAE30\uD0C0</option>'
+            + '</select>'
+            + '<label class="pd-form-label">\uC218\uAC15\uB8CC (\uC6D0)</label>'
+            + '<input type="number" id="editPrice" class="pd-form-input" value="' + (cls.price || 0) + '">'
+            + '<label class="pd-form-label">\uC218\uC5C5 \uC2DC\uAC04 (\uBD84)</label>'
+            + '<input type="number" id="editDuration" class="pd-form-input" value="' + (cls.duration_min || 0) + '">'
+            + '<label class="pd-form-label">\uCD5C\uB300 \uC778\uC6D0</label>'
+            + '<input type="number" id="editMaxStudents" class="pd-form-input" value="' + (cls.max_students || 8) + '">'
+            + '<label class="pd-form-label">\uC124\uBA85</label>'
+            + '<textarea id="editDescription" class="pd-form-input pd-form-textarea" rows="4">' + escapeHtml(cls.description || '') + '</textarea>'
+            + '<label class="pd-form-label">\uAC15\uC0AC \uC18C\uAC1C</label>'
+            + '<textarea id="editInstructorBio" class="pd-form-input pd-form-textarea" rows="3">' + escapeHtml(cls.instructor_bio || '') + '</textarea>'
+            + '</div>'
+            + '<div class="pd-modal__footer">'
+            + '<button type="button" class="pd-btn pd-btn--outline js-close-edit-modal">\uCDE8\uC18C</button>'
+            + '<button type="button" class="pd-btn pd-btn--gold js-save-edit-class">\uC800\uC7A5</button>'
+            + '</div>'
+            + '</div>';
+
+        modal.innerHTML = html;
+        modal.classList.add('pd-modal--open');
+
+        // 이벤트 바인딩
+        var closeBtns = modal.querySelectorAll('.js-close-edit-modal');
+        for (var c = 0; c < closeBtns.length; c++) {
+            closeBtns[c].addEventListener('click', function() {
+                modal.classList.remove('pd-modal--open');
+            });
+        }
+
+        var saveBtn = modal.querySelector('.js-save-edit-class');
+        if (saveBtn) {
+            saveBtn.addEventListener('click', function() {
+                saveClassEdit();
+            });
+        }
+    }
+
+    /**
+     * 클래스 수정 저장 (WF-20 호출)
+     */
+    function saveClassEdit() {
+        var classId = (document.getElementById('editClassId') || {}).value;
+        if (!classId) return;
+
+        var updateData = {
+            member_id: memberId,
+            class_id: classId,
+            class_name: (document.getElementById('editClassName') || {}).value || '',
+            category: (document.getElementById('editCategory') || {}).value || '',
+            price: parseInt((document.getElementById('editPrice') || {}).value) || 0,
+            duration_min: parseInt((document.getElementById('editDuration') || {}).value) || 0,
+            max_students: parseInt((document.getElementById('editMaxStudents') || {}).value) || 8,
+            description: (document.getElementById('editDescription') || {}).value || '',
+            instructor_bio: (document.getElementById('editInstructorBio') || {}).value || ''
+        };
+
+        showLoading();
+
+        fetch(WF_ENDPOINT['editClass'], {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        })
+        .then(function(res) { return res.json(); })
+        .then(function(data) {
+            hideLoading();
+            if (data.success) {
+                showToast('\uD074\uB798\uC2A4\uAC00 \uC218\uC815\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
+                // 로컬 데이터 업데이트
+                for (var i = 0; i < myClasses.length; i++) {
+                    if (myClasses[i].class_id === classId) {
+                        myClasses[i].class_name = updateData.class_name;
+                        myClasses[i].category = updateData.category;
+                        myClasses[i].price = updateData.price;
+                        myClasses[i].duration_min = updateData.duration_min;
+                        myClasses[i].max_students = updateData.max_students;
+                        myClasses[i].description = updateData.description;
+                        myClasses[i].instructor_bio = updateData.instructor_bio;
+                        break;
+                    }
+                }
+                renderMyClasses();
+                var modal = document.getElementById('pdEditClassModal');
+                if (modal) modal.classList.remove('pd-modal--open');
+            } else {
+                showToast(data.message || '\uC218\uC815\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+            }
+        })
+        .catch(function(err) {
+            hideLoading();
+            showToast('\uB124\uD2B8\uC6CC\uD06C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4.', 'error');
         });
     }
 
@@ -1017,32 +1175,39 @@
         var container = document.getElementById('pdGradeGauge');
         if (!container) return;
 
-        var grade = partnerData ? (partnerData.grade || 'SILVER').toUpperCase() : 'SILVER';
-        var totalRevenue = Number(settlement.cumulative_revenue || settlement.total_revenue || 0);
+        var rawGrade = partnerData ? (partnerData.grade || 'BLOOM').toUpperCase() : 'BLOOM';
+        // 구 등급명 호환
+        var gradeAliasMap = { 'SILVER': 'BLOOM', 'GOLD': 'GARDEN', 'PLATINUM': 'ATELIER' };
+        var grade = gradeAliasMap[rawGrade] || rawGrade;
+        var totalClasses = Number(settlement.total_classes || settlement.cumulative_classes || 0);
 
-        // 등급별 목표/다음 등급 설정
+        // 등급별 목표/다음 등급 설정 (클래스 운영 횟수 기준)
         var nextGrade, target, currentLabel;
-        if (grade === 'PLATINUM') {
-            nextGrade = 'PLATINUM';
+        if (grade === 'AMBASSADOR') {
+            nextGrade = 'AMBASSADOR';
             target = 1;
-            totalRevenue = 1; // 100% 표시
+            totalClasses = 1; // 100% 표시
             currentLabel = '\uCD5C\uACE0 \uB4F1\uAE09 \uB2EC\uC131!';
-        } else if (grade === 'GOLD') {
-            nextGrade = 'PLATINUM';
-            target = 20000000; // 2000만원
-            currentLabel = 'GOLD \u2192 PLATINUM';
+        } else if (grade === 'ATELIER') {
+            nextGrade = 'AMBASSADOR';
+            target = 30; // 30회
+            currentLabel = 'ATELIER \u2192 AMBASSADOR';
+        } else if (grade === 'GARDEN') {
+            nextGrade = 'ATELIER';
+            target = 10; // 10회
+            currentLabel = 'GARDEN \u2192 ATELIER';
         } else {
-            nextGrade = 'GOLD';
-            target = 5000000; // 500만원
-            currentLabel = 'SILVER \u2192 GOLD';
+            nextGrade = 'GARDEN';
+            target = 3; // 3회
+            currentLabel = 'BLOOM \u2192 GARDEN';
         }
 
-        var pct = target > 0 ? Math.min(Math.round((totalRevenue / target) * 100), 100) : 0;
+        var pct = target > 0 ? Math.min(Math.round((totalClasses / target) * 100), 100) : 0;
         var gaugeDeg = Math.round((pct / 100) * 180);
 
-        // 게이지 색상
-        var gaugeColor = grade === 'GOLD' ? '#7b68ee' : '#b89b5e';
-        if (grade === 'PLATINUM') gaugeColor = '#7b68ee';
+        // 게이지 색상 (등급별)
+        var gradeColors = { 'BLOOM': '#b89b5e', 'GARDEN': '#4caf50', 'ATELIER': '#7b68ee', 'AMBASSADOR': '#e91e63' };
+        var gaugeColor = gradeColors[grade] || '#b89b5e';
 
         var titleHtml = '<h3 class="pd-grade-gauge__title">\uB4F1\uAE09 \uC9C4\uD589\uB960</h3>';
 
@@ -1061,10 +1226,10 @@
             + '</div>';
 
         var infoHtml = '<div class="pd-gauge-info">'
-            + '<p class="pd-gauge-info__current">\uB204\uC801 \uB9E4\uCD9C: <strong>' + formatPrice(totalRevenue) + '\uC6D0</strong></p>';
+            + '<p class="pd-gauge-info__current">\uC6B4\uC601 \uD074\uB798\uC2A4: <strong>' + totalClasses + '\uD68C</strong></p>';
 
-        if (grade !== 'PLATINUM') {
-            infoHtml += '<p class="pd-gauge-info__next">\uBAA9\uD45C: ' + formatPrice(target) + '\uC6D0 (' + escapeHtml(nextGrade) + ')</p>';
+        if (grade !== 'AMBASSADOR') {
+            infoHtml += '<p class="pd-gauge-info__next">\uBAA9\uD45C: ' + totalClasses + '/' + target + '\uD68C (' + escapeHtml(nextGrade) + ')</p>';
         }
 
         infoHtml += '<div class="pd-gauge-info__bar">'

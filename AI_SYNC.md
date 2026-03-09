@@ -314,17 +314,34 @@
 - 요약 카드 `5`건, 어드민 탭 4종 렌더링과 전환 확인
 - 스크린샷: `output/playwright/partnerclass-20260309-ext/admin-simulated-dashboard.png`
 
+### 파트너클래스 실패 수정 (CODEX)
+- 실행 일시: 2026-03-10 00:17 KST ~ 2026-03-10 00:45 KST
+- 수정 파일
+  - `파트너클래스/목록/js.js`
+  - `파트너클래스/파트너/js.js`
+  - `scripts/partnerclass-live-smoke.js`
+- 수정 내용
+  - 목록 찜 버튼 HTML에서 인라인 `onclick` 제거
+  - 파트너 대시보드가 구등급(`SILVER/GOLD/PLATINUM`)과 신등급(`BLOOM/GARDEN/ATELIER/AMBASSADOR`)이 섞인 데이터를 받을 때 실제 `commission_rate` 기준으로 표시 등급/수수료율을 해석하도록 보정
+  - 라이브 스모크 스크립트에서 서울 필터 대기, 구등급 표시 검증, 일정 관리 새 세션 검증을 강화
+- 검증 메모
+  - 라이브 `foreverlove.co.kr`는 아직 리포지토리 소스가 반영되지 않아 전체 재실행 시 기존 실패가 그대로 재현됨
+  - 대신 로컬 소스 주입/모의 응답 검증으로 수정 효과를 확인
+    - 목록 찜 저장: mocked local origin에서 `wishlist=[\"CL_1\"]`, `active=true` 확인
+    - 파트너 등급 표시: mocked partner dashboard에서 `badge=GARDEN PARTNER`, `commission=20%`, `currentRow=GARDEN`, `tierRows=4` 확인
+  - 일정 관리 탭은 라이브 집중 재현에서 fresh session 기준 정상 활성화 확인
+  - 다음 단계는 메이크샵 실제 반영 후 라이브 URL 재검증
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] 파트너클래스 목록 페이지 찜 버튼/localStorage 저장 실패 원인 점검
-- [CODEX] 파트너 대시보드 `일정 관리` 탭 활성화 타임아웃 재현 및 네트워크/콘솔 원인 수집
-- [CODEX] 파트너 대시보드 등급 alias(`SILVER→BLOOM`)와 수수료율 표시 정책 정합성 리뷰
+- [CODEX] 메이크샵 페이지 반영 후 `partnerclass-live-smoke.js`를 다시 실행해 라이브 URL 기준 실패 3건 해소 여부 확인
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
 
 ### Claude Code 태스크
+- 메이크샵 편집기 또는 배포 경로로 `파트너클래스/목록/js.js`, `파트너클래스/파트너/js.js` 최신 소스 반영
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
 - 실관리자 계정으로 `id=8011` 최종 양성 시나리오 재검증
 - CRM 운영 확인: 실제 운영 브라우저에서 `미수금` 복구와 `캘린더 2026-03-09 8건` 표기를 확인
@@ -335,9 +352,7 @@
 
 ## Known Risks
 
-- 목록 찜 버튼 클릭 후 `pressco21_wishlist`가 저장되지 않아 찜 필터 시나리오가 실서비스에서 동작하지 않을 수 있음
-- 파트너 대시보드 `일정 관리` 탭은 활성화 지연 또는 무한 로딩으로 이어질 가능성이 있음
-- 파트너 대시보드 UI 수수료율(25%)과 인증 API 수수료율(20%)이 불일치함
+- 리포지토리 수정본이 아직 메이크샵 실서비스에 반영되지 않아, 라이브 URL 기준 결과는 배포 전 상태일 수 있음
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.
 - 운영 `invoice_date`는 서버측 날짜 비교(`gte/lte`)가 안정적으로 동작하지 않아, 캘린더는 전체 명세표를 읽은 뒤 프론트에서 월/기간 필터링하는 구조를 사용 중.
 - 거래처 자동완성 exact-name hydrate는 유지되어, 동일 상호 고객이 여러 명인 케이스는 기존처럼 `customer_id` 연결 품질에 영향을 받음.

@@ -511,10 +511,22 @@
             html += '<span class="class-card__type class-card__type--' + typeCss + '">' + typeLabel + '</span>';
         }
 
+        // 잔여석 배지 (Task 011)
+        var totalRemaining = parseInt(cls.total_remaining) || 0;
+        var scheduleCount = parseInt(cls.schedule_count) || 0;
+        if (scheduleCount > 0) {
+            if (totalRemaining <= 0) {
+                html += '<span class="class-card__remaining class-card__remaining--soldout">\uB9C8\uAC10</span>';
+            } else if (totalRemaining <= 3) {
+                html += '<span class="class-card__remaining class-card__remaining--few">\uC794\uC5EC ' + totalRemaining + '\uC11D</span>';
+            } else {
+                html += '<span class="class-card__remaining">\uC794\uC5EC ' + totalRemaining + '\uC11D</span>';
+            }
+        }
+
         // 찜(관심) 하트 버튼
         html += '<button type="button" class="wishlist-btn" data-class-id="' + classId + '" '
-            + 'aria-label="' + className + ' \uCC1C\uD558\uAE30" '
-            + 'onclick="event.preventDefault();event.stopPropagation();">'
+            + 'aria-label="' + className + ' \uCC1C\uD558\uAE30">'
             + '<svg class="wishlist-btn__icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
             + '<path class="wishlist-btn__outline" d="M9 15.5s-6.5-4.35-6.5-8.18A3.32 3.32 0 0 1 5.82 4C7.2 4 8.35 4.82 9 5.96 9.65 4.82 10.8 4 12.18 4A3.32 3.32 0 0 1 15.5 7.32C15.5 11.15 9 15.5 9 15.5z" fill="none" stroke="currentColor" stroke-width="1.2"/>'
             + '<path class="wishlist-btn__filled" d="M9 15.5s-6.5-4.35-6.5-8.18A3.32 3.32 0 0 1 5.82 4C7.2 4 8.35 4.82 9 5.96 9.65 4.82 10.8 4 12.18 4A3.32 3.32 0 0 1 15.5 7.32C15.5 11.15 9 15.5 9 15.5z" fill="currentColor" stroke="currentColor" stroke-width="1.2" style="display:none"/>'
@@ -1908,16 +1920,203 @@
 
 
     /* ========================================
+       협회 제휴 탭
+       ======================================== */
+
+    /** 협회 탭 현재 활성 여부 */
+    var isAffilTabActive = false;
+
+    /** 협회 데이터 캐시 */
+    var affilDataCache = null;
+
+    /**
+     * 탭 네비게이션 초기화
+     */
+    function initCatalogTabs() {
+        var tabBtns = document.querySelectorAll('.catalog-tabs__btn');
+        for (var i = 0; i < tabBtns.length; i++) {
+            tabBtns[i].addEventListener('click', handleTabClick);
+        }
+    }
+
+    /**
+     * 탭 클릭 핸들러
+     */
+    function handleTabClick(e) {
+        var btn = e.currentTarget;
+        var tab = btn.getAttribute('data-tab');
+
+        // 모든 탭 비활성화
+        var tabBtns = document.querySelectorAll('.catalog-tabs__btn');
+        for (var i = 0; i < tabBtns.length; i++) {
+            tabBtns[i].classList.remove('catalog-tabs__btn--active');
+            tabBtns[i].setAttribute('aria-selected', 'false');
+        }
+        btn.classList.add('catalog-tabs__btn--active');
+        btn.setAttribute('aria-selected', 'true');
+
+        // 패널 전환
+        var panelClasses = document.getElementById('panelClasses');
+        var panelAffil = document.getElementById('panelAffiliations');
+
+        if (tab === 'affiliations') {
+            isAffilTabActive = true;
+            if (panelClasses) panelClasses.style.display = 'none';
+            if (panelAffil) panelAffil.style.display = '';
+            loadAffiliations();
+        } else {
+            isAffilTabActive = false;
+            if (panelClasses) panelClasses.style.display = '';
+            if (panelAffil) panelAffil.style.display = 'none';
+        }
+    }
+
+    /**
+     * 협회 목록 API 호출
+     */
+    function loadAffiliations() {
+        if (affilDataCache) {
+            renderAffiliations(affilDataCache);
+            return;
+        }
+
+        var grid = document.getElementById('affilGrid');
+        var loading = document.getElementById('affilLoading');
+        var empty = document.getElementById('affilEmpty');
+
+        if (grid) grid.innerHTML = '';
+        if (loading) loading.style.display = '';
+        if (empty) empty.style.display = 'none';
+
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getAffiliations' })
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(function(data) {
+                if (loading) loading.style.display = 'none';
+                if (data && data.success && data.data) {
+                    affilDataCache = data.data;
+                    renderAffiliations(data.data);
+                    // 뱃지 업데이트
+                    var badge = document.getElementById('affilBadge');
+                    if (badge && data.total > 0) {
+                        badge.textContent = data.total;
+                    }
+                } else {
+                    if (empty) empty.style.display = '';
+                }
+            })
+            .catch(function(err) {
+                if (loading) loading.style.display = 'none';
+                if (empty) empty.style.display = '';
+                console.error('[ClassCatalog] 협회 API 호출 실패:', err);
+            });
+    }
+
+    /**
+     * 협회 카드 렌더링
+     * @param {Array} affiliations - 협회 목록
+     */
+    function renderAffiliations(affiliations) {
+        var grid = document.getElementById('affilGrid');
+        var empty = document.getElementById('affilEmpty');
+
+        if (!affiliations || affiliations.length === 0) {
+            if (grid) grid.innerHTML = '';
+            if (empty) empty.style.display = '';
+            return;
+        }
+
+        if (empty) empty.style.display = 'none';
+        var html = '';
+        for (var i = 0; i < affiliations.length; i++) {
+            html += renderAffilCard(affiliations[i]);
+        }
+        if (grid) grid.innerHTML = html;
+    }
+
+    /**
+     * 개별 협회 카드 HTML 생성
+     * @param {Object} affil - 협회 데이터
+     * @returns {string} HTML 문자열
+     */
+    function renderAffilCard(affil) {
+        var logoHtml = '';
+        if (affil.logo_url) {
+            logoHtml = '<img class="affil-card__logo" src="' + escapeHtml(affil.logo_url) + '" alt="' + escapeHtml(affil.name) + ' 로고" loading="lazy">';
+        } else {
+            // 로고 없을 때 플레이스홀더
+            logoHtml = '<div class="affil-card__logo-placeholder">' +
+                '<svg viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round">' +
+                '<circle cx="24" cy="24" r="20"/>' +
+                '<path d="M24 14v8M20 18h8M16 28c0 0 2 4 8 4s8-4 8-4"/>' +
+                '</svg>' +
+                '</div>';
+        }
+
+        var discountHtml = '';
+        if (affil.discount_rate > 0) {
+            discountHtml = '<span class="affil-card__discount">' + affil.discount_rate + '% 할인</span>';
+        }
+
+        var tiersHtml = '';
+        if (affil.incentive_tiers && affil.incentive_tiers.length > 0) {
+            tiersHtml = '<div class="affil-card__tiers">';
+            for (var j = 0; j < affil.incentive_tiers.length; j++) {
+                var tier = affil.incentive_tiers[j];
+                tiersHtml += '<div class="affil-card__tier">' +
+                    '<span class="affil-card__tier-target">' + formatPrice(tier.target) + ' 이상</span>' +
+                    '<span class="affil-card__tier-reward">' + formatPrice(tier.incentive) + '</span>' +
+                    '</div>';
+            }
+            tiersHtml += '</div>';
+        }
+
+        return '<div class="affil-card">' +
+            '<div class="affil-card__header">' +
+            logoHtml +
+            '<div class="affil-card__info">' +
+            '<h4 class="affil-card__name">' + escapeHtml(affil.name) + '</h4>' +
+            discountHtml +
+            '</div>' +
+            '</div>' +
+            (affil.memo ? '<p class="affil-card__memo">' + escapeHtml(affil.memo) + '</p>' : '') +
+            tiersHtml +
+            '</div>';
+    }
+
+    /**
+     * 금액 포맷 (ex: 5000000 -> "500만원")
+     * @param {number} amount
+     * @returns {string}
+     */
+    function formatPrice(amount) {
+        if (amount >= 10000) {
+            var man = Math.floor(amount / 10000);
+            return man.toLocaleString() + '\uB9CC\uC6D0'; /* 만원 */
+        }
+        return amount.toLocaleString() + '\uC6D0'; /* 원 */
+    }
+
+
+    /* ========================================
        DOM Ready 이벤트
        ======================================== */
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', function() {
             init();
             initRecentClickTracking();
+            initCatalogTabs();
         });
     } else {
         init();
         initRecentClickTracking();
+        initCatalogTabs();
     }
 
 })();

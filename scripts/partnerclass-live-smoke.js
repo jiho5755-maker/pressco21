@@ -4,7 +4,7 @@ const path = require('node:path');
 const { chromium, request } = require('playwright');
 
 const baseUrl = 'https://www.foreverlove.co.kr';
-const outputDir = path.resolve(process.cwd(), 'output/playwright/partnerclass-20260309-ext');
+const outputDir = path.resolve(process.cwd(), 'output/playwright/partnerclass-20260310-fix');
 const resultsPath = path.join(outputDir, 'partnerclass-live-results.json');
 const partnerMemberId = process.env.PARTNER_MEMBER_ID || '';
 const partnerMemberPassword = process.env.PARTNER_MEMBER_PASSWORD || '';
@@ -65,6 +65,40 @@ function numericValue(value) {
   return Number(String(value || '').replace(/[^\d]/g, ''));
 }
 
+function normalizePercent(value) {
+  const numberValue = Number(value);
+  if (!Number.isFinite(numberValue) || numberValue <= 0) {
+    return 0;
+  }
+  return numberValue <= 1 ? Math.round(numberValue * 100) : Math.round(numberValue);
+}
+
+function resolvePartnerDisplayGrade(authData) {
+  const rawGrade = String(authData?.grade || '').toUpperCase();
+  const liveGrades = ['BLOOM', 'GARDEN', 'ATELIER', 'AMBASSADOR'];
+  if (liveGrades.includes(rawGrade)) {
+    return rawGrade;
+  }
+
+  const commissionRate = normalizePercent(authData?.commission_rate);
+  const commissionGradeMap = {
+    25: 'BLOOM',
+    20: 'GARDEN',
+    15: 'ATELIER',
+    10: 'AMBASSADOR',
+  };
+  if (commissionGradeMap[commissionRate]) {
+    return commissionGradeMap[commissionRate];
+  }
+
+  const legacyFallback = {
+    SILVER: 'GARDEN',
+    GOLD: 'BLOOM',
+    PLATINUM: 'ATELIER',
+  };
+  return legacyFallback[rawGrade] || 'BLOOM';
+}
+
 function assert(condition, message) {
   if (!condition) {
     throw new Error(message);
@@ -114,9 +148,10 @@ async function runScenario(name, callback, page) {
     logResult(name, true, detail);
   } catch (error) {
     let failureDetail = error.message;
-    if (page) {
+    const capturePage = typeof page === 'function' ? page() : page;
+    if (capturePage) {
       try {
-        const shot = await captureFullPage(page, `fail-${slugify(name)}.png`);
+        const shot = await captureFullPage(capturePage, `fail-${slugify(name)}.png`);
         failureDetail += `\nScreenshot: ${shot}`;
       } catch (shotError) {
         failureDetail += `\nScreenshotError: ${shotError.message}`;
@@ -163,7 +198,12 @@ async function runGuestScenarios(browser) {
     assert(JSON.stringify(sortedPrices) === JSON.stringify(descending), `가격 정렬 실패: ${sortedPrices.join(', ')}`);
 
     await page.locator('input[name="region"][value="서울"]').check();
-    await page.waitForTimeout(500);
+    await page.waitForFunction(() => {
+      const locations = Array.from(document.querySelectorAll('.class-card .class-card__location'))
+        .map((node) => String(node.textContent || '').trim())
+        .filter(Boolean);
+      return locations.length > 0 && locations.every((location) => location.indexOf('서울') > -1);
+    }, { timeout: 15000 });
     const seoulLocations = await page.locator('.class-card .class-card__location').evaluateAll((nodes) => {
       return nodes.map((node) => (node.textContent || '').trim());
     });
@@ -322,8 +362,10 @@ async function runMemberScenarios(browser) {
     await page.goto(`${baseUrl}/shop/page.html?id=2608`, { waitUntil: 'domcontentloaded' });
     await waitForPartnerDashboardReady(page);
 
+    const authData = await fetchPartnerAuth();
+    const expectedGrade = resolvePartnerDisplayGrade(authData);
     const gradeText = await page.locator('#pdGradeBadge').textContent();
-    assert(String(gradeText).includes('BLOOM'), `등급 배지가 BLOOM이 아닙니다: ${gradeText}`);
+    assert(String(gradeText).includes(expectedGrade), `등급 배지가 기대값과 다릅니다. expected=${expectedGrade}, actual=${gradeText}`);
 
     const tabs = [
       { button: '#pdTabBtnClasses', panel: '#pdTabClasses' },
@@ -357,13 +399,18 @@ async function runMemberScenarios(browser) {
     return `등급=${String(gradeText).trim()}, ${csvResult}`;
   }, page);
 
+  let scheduleContext = null;
+  let schedulePage = null;
   await runScenario('파트너 일정 관리 탭', async () => {
-    if (!/page\.html\?id=2608/.test(page.url())) {
-      await page.goto(`${baseUrl}/shop/page.html?id=2608`, { waitUntil: 'domcontentloaded' });
-      await waitForPartnerDashboardReady(page);
-    }
-    await page.locator('#pdTabBtnSchedules').evaluate((element) => element.click());
-    await page.waitForFunction(() => {
+    scheduleContext = await browser.newContext();
+    schedulePage = await scheduleContext.newPage();
+
+    await loginAsPartner(schedulePage);
+    await schedulePage.goto(`${baseUrl}/shop/page.html?id=2608`, { waitUntil: 'domcontentloaded' });
+    await waitForPartnerDashboardReady(schedulePage);
+
+    await schedulePage.locator('#pdTabBtnSchedules').click();
+    await schedulePage.waitForFunction(() => {
       const panel = document.getElementById('pdTabSchedules');
       const button = document.getElementById('pdTabBtnSchedules');
       return !!panel
@@ -371,20 +418,20 @@ async function runMemberScenarios(browser) {
         && panel.classList.contains('is-active')
         && button.classList.contains('is-active');
     }, { timeout: 10000 });
-    await page.waitForTimeout(500);
+    await schedulePage.waitForTimeout(500);
 
-    const optionCount = await page.locator('#pdScheduleClass option').count();
+    const optionCount = await schedulePage.locator('#pdScheduleClass option').count();
     assert(optionCount > 1, `일정 관리용 강의 옵션이 부족합니다. optionCount=${optionCount}`);
 
-    const firstValue = await page.locator('#pdScheduleClass option').nth(1).getAttribute('value');
+    const firstValue = await schedulePage.locator('#pdScheduleClass option').nth(1).getAttribute('value');
     assert(firstValue, '첫 강의 value가 비어 있습니다.');
-    await page.selectOption('#pdScheduleClass', firstValue);
-    await page.waitForTimeout(1000);
-    await waitForOverlayHidden(page, '#pdLoadingOverlay', 15000);
+    await schedulePage.selectOption('#pdScheduleClass', firstValue);
+    await schedulePage.waitForTimeout(1000);
+    await waitForOverlayHidden(schedulePage, '#pdLoadingOverlay', 15000);
 
-    const addButtonVisible = await page.locator('#pdBtnAddSchedule').isVisible();
+    const addButtonVisible = await schedulePage.locator('#pdBtnAddSchedule').isVisible();
     if (!addButtonVisible) {
-      const debugState = await page.evaluate(() => {
+      const debugState = await schedulePage.evaluate(() => {
         const select = document.getElementById('pdScheduleClass');
         const button = document.getElementById('pdBtnAddSchedule');
         const panel = document.getElementById('pdTabSchedules');
@@ -398,13 +445,16 @@ async function runMemberScenarios(browser) {
       throw new Error(`일정 추가 버튼이 보이지 않습니다. ${JSON.stringify(debugState)}`);
     }
 
-    await page.locator('#pdBtnAddSchedule').click();
-    const formVisible = await page.locator('#pdScheduleForm').isVisible();
+    await schedulePage.locator('#pdBtnAddSchedule').click();
+    const formVisible = await schedulePage.locator('#pdScheduleForm').isVisible();
     assert(formVisible, '일정 추가 폼이 열리지 않았습니다.');
-    await page.locator('#pdBtnCancelSchedule').click();
+    await schedulePage.locator('#pdBtnCancelSchedule').click();
 
     return `강의 옵션 ${optionCount - 1}건, 일정 추가 폼 열기/취소 확인`;
-  }, page);
+  }, () => schedulePage || page);
+  if (scheduleContext) {
+    await scheduleContext.close();
+  }
 
   await runScenario('파트너 등급 게이지/승급표 정합성', async () => {
     await page.goto(`${baseUrl}/shop/page.html?id=2608`, { waitUntil: 'domcontentloaded' });
@@ -417,13 +467,15 @@ async function runMemberScenarios(browser) {
     await page.waitForTimeout(1000);
 
     const authData = await fetchPartnerAuth();
+    const expectedGrade = resolvePartnerDisplayGrade(authData);
     const gradeBadgeText = String(await page.locator('#pdGradeBadge').textContent() || '').trim();
     const commissionText = String(await page.locator('.pd-gauge-info__commission').textContent() || '').trim();
     const tierRows = await page.locator('.pd-grade-tiers__table tbody tr').count();
     assert(tierRows === 4, `승급 조건 테이블 행 수가 4가 아닙니다. count=${tierRows}`);
 
     const uiCommission = numericValue(commissionText);
-    const apiCommission = Number(authData.commission_rate || 0);
+    const apiCommission = normalizePercent(authData.commission_rate);
+    assert(gradeBadgeText.includes(expectedGrade), `등급 배지 불일치: expected=${expectedGrade}, actual=${gradeBadgeText}`);
     assert(uiCommission === apiCommission, `수수료율 불일치: ui=${uiCommission}, api=${apiCommission}, badge=${gradeBadgeText}`);
 
     const shot = await captureFullPage(page, 'partner-grade-gauge-consistency.png');

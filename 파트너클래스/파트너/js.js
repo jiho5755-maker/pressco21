@@ -220,9 +220,7 @@
         // 등급 배지
         var badgeEl = document.getElementById('pdGradeBadge');
         if (badgeEl) {
-            var rawGrade = (partnerData.grade || 'BLOOM').toUpperCase();
-            var gradeAlias = { 'SILVER': 'BLOOM', 'GOLD': 'GARDEN', 'PLATINUM': 'ATELIER' };
-            var grade = gradeAlias[rawGrade] || rawGrade;
+            var grade = getDisplayGrade();
             badgeEl.textContent = grade + ' PARTNER';
             badgeEl.className = 'pd-grade-badge pd-grade-badge--' + grade.toLowerCase();
         }
@@ -1515,38 +1513,41 @@
 
     /**
      * 등급 진행률 게이지 렌더링 (CSS only)
-     * SILVER -> GOLD: 목표 500만원
-     * GOLD -> PLATINUM: 목표 2000만원
+     * 4등급 체계: BLOOM(25%) → GARDEN(20%) → ATELIER(15%) → AMBASSADOR(10%)
+     * 승급 기준: 완료 건수 + 평점 (매월 1일 자동 심사)
      * @param {Object} settlement
      */
     function renderGradeGauge(settlement) {
         var container = document.getElementById('pdGradeGauge');
         if (!container) return;
 
-        var rawGrade = partnerData ? (partnerData.grade || 'BLOOM').toUpperCase() : 'BLOOM';
-        // 구 등급명 호환
-        var gradeAliasMap = { 'SILVER': 'BLOOM', 'GOLD': 'GARDEN', 'PLATINUM': 'ATELIER' };
-        var grade = gradeAliasMap[rawGrade] || rawGrade;
+        var grade = getDisplayGrade();
         var totalClasses = Number(settlement.total_classes || settlement.cumulative_classes || 0);
+        var avgRating = Number(settlement.avg_rating || partnerData.avg_rating || 0);
+        var commissionPct = getDisplayCommissionRate(grade);
 
-        // 등급별 목표/다음 등급 설정 (클래스 운영 횟수 기준)
-        var nextGrade, target, currentLabel;
+        // 등급별 승급 기준 (완료 건수 + 평점)
+        var nextGrade, target, ratingReq, currentLabel;
         if (grade === 'AMBASSADOR') {
             nextGrade = 'AMBASSADOR';
             target = 1;
-            totalClasses = 1; // 100% 표시
+            totalClasses = 1;
+            ratingReq = 0;
             currentLabel = '\uCD5C\uACE0 \uB4F1\uAE09 \uB2EC\uC131!';
         } else if (grade === 'ATELIER') {
             nextGrade = 'AMBASSADOR';
-            target = 30; // 30회
+            target = 50;
+            ratingReq = 0;
             currentLabel = 'ATELIER \u2192 AMBASSADOR';
         } else if (grade === 'GARDEN') {
             nextGrade = 'ATELIER';
-            target = 10; // 10회
+            target = 30;
+            ratingReq = 4.3;
             currentLabel = 'GARDEN \u2192 ATELIER';
         } else {
             nextGrade = 'GARDEN';
-            target = 3; // 3회
+            target = 10;
+            ratingReq = 4.0;
             currentLabel = 'BLOOM \u2192 GARDEN';
         }
 
@@ -1574,18 +1575,101 @@
             + '</div>';
 
         var infoHtml = '<div class="pd-gauge-info">'
-            + '<p class="pd-gauge-info__current">\uC6B4\uC601 \uD074\uB798\uC2A4: <strong>' + totalClasses + '\uD68C</strong></p>';
+            + '<p class="pd-gauge-info__current">\uC6B4\uC601 \uD074\uB798\uC2A4: <strong>' + totalClasses + '\uD68C</strong>'
+            + (avgRating > 0 ? ' / \u2605 ' + avgRating.toFixed(1) : '') + '</p>';
 
         if (grade !== 'AMBASSADOR') {
-            infoHtml += '<p class="pd-gauge-info__next">\uBAA9\uD45C: ' + totalClasses + '/' + target + '\uD68C (' + escapeHtml(nextGrade) + ')</p>';
+            infoHtml += '<p class="pd-gauge-info__next">\uBAA9\uD45C: ' + totalClasses + '/' + target + '\uD68C';
+            if (ratingReq > 0) {
+                infoHtml += ' + \u2605' + ratingReq + '\uC774\uC0C1';
+            }
+            infoHtml += ' (' + escapeHtml(nextGrade) + ')</p>';
         }
 
         infoHtml += '<div class="pd-gauge-info__bar">'
             + '<div class="pd-gauge-info__bar-fill" style="width:' + pct + '%"></div>'
-            + '</div>'
             + '</div>';
 
-        container.innerHTML = titleHtml + gaugeHtml + infoHtml;
+        // 수수료율 안내
+        infoHtml += '<p class="pd-gauge-info__commission">\uD604\uC7AC \uC218\uC218\uB8CC\uC728: <strong>' + commissionPct + '%</strong></p>';
+
+        infoHtml += '</div>';
+
+        // 승급 조건 안내 테이블
+        var tierHtml = '<div class="pd-grade-tiers">'
+            + '<h4 class="pd-grade-tiers__title">\uB4F1\uAE09 \uC2B9\uAE09 \uC870\uAC74</h4>'
+            + '<table class="pd-grade-tiers__table">'
+            + '<thead><tr>'
+            + '<th>\uB4F1\uAE09</th><th>\uC218\uC218\uB8CC</th><th>\uC870\uAC74</th>'
+            + '</tr></thead>'
+            + '<tbody>'
+            + '<tr' + (grade === 'BLOOM' ? ' class="pd-grade-tiers__current"' : '') + '>'
+            + '<td><span class="pd-tier-badge pd-tier-badge--bloom">BLOOM</span></td>'
+            + '<td>25%</td><td>\uAE30\uBCF8 \uB4F1\uAE09</td></tr>'
+            + '<tr' + (grade === 'GARDEN' ? ' class="pd-grade-tiers__current"' : '') + '>'
+            + '<td><span class="pd-tier-badge pd-tier-badge--garden">GARDEN</span></td>'
+            + '<td>20%</td><td>\uC644\uB8CC 10\uAC74 + \u2605 4.0</td></tr>'
+            + '<tr' + (grade === 'ATELIER' ? ' class="pd-grade-tiers__current"' : '') + '>'
+            + '<td><span class="pd-tier-badge pd-tier-badge--atelier">ATELIER</span></td>'
+            + '<td>15%</td><td>\uC644\uB8CC 30\uAC74 + \u2605 4.3</td></tr>'
+            + '<tr' + (grade === 'AMBASSADOR' ? ' class="pd-grade-tiers__current"' : '') + '>'
+            + '<td><span class="pd-tier-badge pd-tier-badge--ambassador">AMBASSADOR</span></td>'
+            + '<td>10%</td><td>\uC644\uB8CC 50\uAC74</td></tr>'
+            + '</tbody></table>'
+            + '<p class="pd-grade-tiers__note">\uB9E4\uC6D4 1\uC77C \uC790\uB3D9 \uC2EC\uC0AC \xB7 \uAC15\uB4F1 \uC5C6\uC74C</p>'
+            + '</div>';
+
+        container.innerHTML = titleHtml + gaugeHtml + infoHtml + tierHtml;
+    }
+
+    /**
+     * 운영 데이터가 구등급/신등급이 혼재해도 화면 표시는 실제 수수료율을 우선 기준으로 맞춘다.
+     */
+    function getDisplayGrade() {
+        if (!partnerData) return 'BLOOM';
+
+        var rawGrade = String(partnerData.grade || '').toUpperCase();
+        var liveGrades = ['BLOOM', 'GARDEN', 'ATELIER', 'AMBASSADOR'];
+        if (liveGrades.indexOf(rawGrade) > -1) {
+            return rawGrade;
+        }
+
+        var commissionRate = normalizePercent(partnerData.commission_rate);
+        var legacyRateMap = {
+            25: 'BLOOM',
+            20: 'GARDEN',
+            15: 'ATELIER',
+            10: 'AMBASSADOR'
+        };
+        if (legacyRateMap[commissionRate]) {
+            return legacyRateMap[commissionRate];
+        }
+
+        var legacyNameMap = {
+            SILVER: 'GARDEN',
+            GOLD: 'BLOOM',
+            PLATINUM: 'ATELIER'
+        };
+        return legacyNameMap[rawGrade] || 'BLOOM';
+    }
+
+    function getDisplayCommissionRate(grade) {
+        var liveRate = normalizePercent(partnerData ? partnerData.commission_rate : 0);
+        if (liveRate > 0) return liveRate;
+
+        var fallback = {
+            BLOOM: 25,
+            GARDEN: 20,
+            ATELIER: 15,
+            AMBASSADOR: 10
+        };
+        return fallback[grade] || 25;
+    }
+
+    function normalizePercent(value) {
+        var num = Number(value);
+        if (!isFinite(num) || num <= 0) return 0;
+        return num <= 1 ? Math.round(num * 100) : Math.round(num);
     }
 
 

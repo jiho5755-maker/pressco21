@@ -1,0 +1,4 @@
+interface:
+  display_name: "PartnerClass Live QA"
+  short_description: "파트너클래스 라이브 배포 검증과 결과 기록 스킬"
+  default_prompt: "파트너클래스 배포 후 라이브 스모크를 실행하고 결과를 AI_SYNC.md에 기록하세요."

@@ -405,15 +405,28 @@
 - 비고
   - 현재 파트너클래스 라이브 스모크 기준 블로커 없음
 
+### Codex 스킬 생성 (CODEX)
+- 실행 일시: 2026-03-10 01:44 KST ~ 2026-03-10 01:48 KST
+- 생성 파일
+  - `codex-skills/partnerclass-live-qa/SKILL.md`
+  - `codex-skills/partnerclass-live-qa/references/runbook.md`
+  - `codex-skills/partnerclass-live-qa/agents/openai.yaml`
+- 내용 요약
+  - 파트너클래스 라이브 배포 검증 전용 repo-local Codex 스킬 추가
+  - 배포 후 스모크 실행, 결과 JSON 확인, 스크린샷 증빙, `AI_SYNC.md` 갱신 흐름을 한 번에 안내
+  - 세션 무효화, Makeshop 반영 필요, 일정 관리 디버깅 포인트 같은 반복 함정을 런북으로 정리
+- 검증
+  - `quick_validate.py codex-skills/partnerclass-live-qa` 통과
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
+- [CODEX] 필요 시 `codex-skills/partnerclass-live-qa`를 전역 Codex 스킬 디렉터리로 설치
 
 ### Claude Code 태스크
-- 메이크샵 편집기 또는 배포 경로로 최신 `파트너클래스/파트너/js.js` 반영
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
 - 실관리자 계정으로 `id=8011` 최종 양성 시나리오 재검증
 - CRM 운영 확인: 실제 운영 브라우저에서 `미수금` 복구와 `캘린더 2026-03-09 8건` 표기를 확인
@@ -436,3 +449,4 @@
 - WF-20의 `require('https')` 방식은 동작하지만 비권장
 - 기존 tbl_Partners의 grade 필드가 SILVER로 되어 있어 프론트에서 BLOOM 매핑 처리 중
 - `docs/n8n-automation-efficiency-review-2026-03-09.md`는 분석/제언 문서이며, 아직 실제 이관이나 워크플로우 분할은 수행되지 않음
+- `codex-skills/partnerclass-live-qa`는 repo-local 스킬이라, 자동 트리거를 원하면 전역 Codex 스킬 디렉터리로 별도 설치가 필요함

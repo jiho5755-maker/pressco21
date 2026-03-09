@@ -378,6 +378,22 @@
       - 원인: 프론트 `apiCall` 미정의로 `ReferenceError` 발생 후 오버레이가 유지되는 구조 확인
   - 현재 리포지토리에는 일정 관리 버그 수정이 반영되었고, 메이크샵 최신 배포 후 라이브 재검증 필요
 
+### 파트너클래스 라이브 최종 재검증 (CODEX)
+- 실행 일시: 2026-03-10 01:33 KST ~ 2026-03-10 01:38 KST
+- 실행 명령
+  - `NODE_PATH=/tmp/partnerclass-live-runner/node_modules PARTNER_MEMBER_ID='jihoo5755' PARTNER_MEMBER_PASSWORD='jang1015!' node scripts/partnerclass-live-smoke.js`
+- 결과 요약
+  - 라이브 `https://www.foreverlove.co.kr` 기준 총 15건 중 14건 성공, 1건 실패
+  - 실패 항목: `파트너 일정 관리 탭`
+  - 스크린샷: `output/playwright/partnerclass-20260310-fix/fail-파트너-일정-관리-탭.png`
+- 원인 분석
+  - 스크린샷상 일정 목록 자체는 렌더링되지만 로딩 오버레이가 계속 남아 있음
+  - `파트너클래스/파트너/js.js`의 `showLoading(false)` 호출이 실제로는 오버레이를 다시 표시하는 구조여서 일정 관리 시나리오가 타임아웃됨
+- 후속 수정
+  - `파트너클래스/파트너/js.js`
+    - `showLoading(show)`가 `false`일 때 `pdLoadingOverlay`를 숨기도록 보정
+  - 이 수정은 리포지토리에 반영됐고, 메이크샵 최신 배포 후 다시 라이브 확인 필요
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
@@ -399,7 +415,7 @@
 ## Known Risks
 
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음
-- 일정 관리 실버그 수정은 리포지토리에 반영됐지만, 메이크샵 실서비스에는 아직 최신 `파트너/js.js` 재배포가 필요할 수 있음
+- 일정 관리 오버레이 수정은 리포지토리에 반영됐지만, 메이크샵 실서비스에는 아직 최신 `파트너/js.js` 재배포가 필요함
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.
 - 운영 `invoice_date`는 서버측 날짜 비교(`gte/lte`)가 안정적으로 동작하지 않아, 캘린더는 전체 명세표를 읽은 뒤 프론트에서 월/기간 필터링하는 구조를 사용 중.
 - 거래처 자동완성 exact-name hydrate는 유지되어, 동일 상호 고객이 여러 명인 케이스는 기존처럼 `customer_id` 연결 품질에 영향을 받음.

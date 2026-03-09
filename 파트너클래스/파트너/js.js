@@ -2668,7 +2668,11 @@
     /**
      * 로딩 오버레이 표시
      */
-    function showLoading() {
+    function showLoading(show) {
+        if (show === false) {
+            hideElement('pdLoadingOverlay');
+            return;
+        }
         showElement('pdLoadingOverlay');
     }
 

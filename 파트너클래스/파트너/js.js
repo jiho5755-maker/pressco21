@@ -18,6 +18,7 @@
         'getPartnerApplicationStatus': N8N_BASE + '/partner-auth',
         'getEducationStatus':          N8N_BASE + '/partner-auth',
         'updatePartnerProfile':        N8N_BASE + '/partner-auth',
+        'getClassDetail':             N8N_BASE + '/class-api',
         'getPartnerBookings':          N8N_BASE + '/partner-data',
         'getPartnerReviews':           N8N_BASE + '/partner-data',
         'updateClassStatus':           N8N_BASE + '/class-management',
@@ -76,6 +77,12 @@
     /** 과거 6개월 정산 데이터 캐시 (월별 수익 차트용) */
     var monthlyRevenueCache = {};
 
+    /** 신규 파트너 온보딩 상태 */
+    var onboardingState = null;
+
+    /** 온보딩 비동기 최신 요청 토큰 */
+    var onboardingLoadToken = 0;
+
 
     /* ========================================
        초기화
@@ -120,6 +127,7 @@
         bindModalEvents();
         bindMonthSelector();
         bindProfileEdit();
+        bindOnboardingEvents();
         bindCsvExport();
     }
 
@@ -271,6 +279,9 @@
 
             // 현재 탭 데이터 로드
             loadTabData(currentTab);
+
+            // 신규 파트너 온보딩 체크리스트 갱신
+            refreshOnboardingChecklist(true);
         });
     }
 
@@ -291,6 +302,497 @@
         setTextById('pdSumFee', formatPrice(summary.total_fee || 0) + '\uC6D0');
         setTextById('pdSumReserve', formatPrice(summary.available_reserve || 0) + '\uC6D0');
         setTextById('pdSumBooking', (summary.total_bookings || 0) + '\uAC74');
+    }
+
+
+    /* ========================================
+       신규 파트너 온보딩 체크리스트
+       ======================================== */
+
+    function bindOnboardingEvents() {
+        var openBtn = document.getElementById('pdOnboardingOpenBtn');
+        var nextBtn = document.getElementById('pdOnboardingNextBtn');
+        var modalNextBtn = document.getElementById('pdOnboardingModalNextBtn');
+
+        if (openBtn) {
+            openBtn.addEventListener('click', function() {
+                if (!onboardingState || onboardingState.isComplete) return;
+                renderOnboardingModal(onboardingState);
+                openModal('pdOnboardingModal');
+            });
+        }
+
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                handleOnboardingPrimaryAction();
+            });
+        }
+
+        if (modalNextBtn) {
+            modalNextBtn.addEventListener('click', function() {
+                handleOnboardingPrimaryAction();
+            });
+        }
+    }
+
+    function refreshOnboardingChecklist(openIfNeeded) {
+        if (!partnerData) return;
+
+        var token = ++onboardingLoadToken;
+        var baseSignals = {
+            hasProfile: isProfileCompleted(),
+            educationCompleted: isEducationCompleted(),
+            hasClass: !!(myClasses && myClasses.length),
+            hasSchedule: false,
+            hasKit: false,
+            firstClassId: getFirstClassId()
+        };
+
+        callGAS('getEducationStatus', { member_id: memberId }, function(err, data) {
+            if (token !== onboardingLoadToken) return;
+
+            if (!err && data && data.success && data.data && data.data.is_partner !== false) {
+                baseSignals.educationCompleted = normalizeEducationCompleted(data.data.education_completed);
+                partnerData.education_completed = baseSignals.educationCompleted;
+            }
+
+            inspectOnboardingClassSetup(myClasses, function(classSignals) {
+                if (token !== onboardingLoadToken) return;
+
+                baseSignals.hasSchedule = classSignals.hasSchedule;
+                baseSignals.hasKit = classSignals.hasKit;
+                if (classSignals.firstClassId) {
+                    baseSignals.firstClassId = classSignals.firstClassId;
+                }
+
+                onboardingState = buildOnboardingState(baseSignals);
+                renderOnboardingCard(onboardingState);
+                renderOnboardingModal(onboardingState);
+                handleOnboardingAutoOpen(onboardingState, openIfNeeded);
+            });
+        });
+    }
+
+    function inspectOnboardingClassSetup(classes, callback) {
+        var list = classes || [];
+        var classIds = [];
+        var result = {
+            hasSchedule: false,
+            hasKit: false,
+            firstClassId: ''
+        };
+
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && list[i].class_id) {
+                classIds.push(String(list[i].class_id));
+            }
+        }
+
+        if (classIds.length === 0) {
+            callback(result);
+            return;
+        }
+
+        result.firstClassId = classIds[0];
+
+        var pending = classIds.length;
+        for (var j = 0; j < classIds.length; j++) {
+            (function(classId) {
+                callGAS('getClassDetail', { id: classId }, function(err, data) {
+                    if (!err && data && data.success && data.data) {
+                        if (!result.firstClassId && data.data.class_id) {
+                            result.firstClassId = String(data.data.class_id);
+                        }
+                        if (Array.isArray(data.data.schedules) && data.data.schedules.length > 0) {
+                            result.hasSchedule = true;
+                        }
+                        if (hasConfiguredKit(data.data)) {
+                            result.hasKit = true;
+                        }
+                    } else {
+                        var localClass = findClassById(classId);
+                        if (localClass) {
+                            if (!result.firstClassId) {
+                                result.firstClassId = String(localClass.class_id || classId);
+                            }
+                            if (parseInt(localClass.schedule_count, 10) > 0 || localClass.next_date) {
+                                result.hasSchedule = true;
+                            }
+                            if (hasConfiguredKit(localClass)) {
+                                result.hasKit = true;
+                            }
+                        }
+                    }
+
+                    pending--;
+                    if (pending === 0) {
+                        callback(result);
+                    }
+                });
+            })(classIds[j]);
+        }
+    }
+
+    function buildOnboardingState(signals) {
+        var normalizedSignals = signals || {};
+        var steps = [
+            {
+                key: 'profile',
+                title: '\uD504\uB85C\uD544 \uC644\uC131',
+                desc: '\uACF5\uBC29 \uC18C\uAC1C\uC640 \uC5F0\uB77D \uCC44\uB110\uC744 \uCC44\uC6CC \uC2E0\uB8B0\uB97C \uB9CC\uB4E4\uC5B4\uC8FC\uC138\uC694.',
+                tip: '\uACF5\uBC29\uBA85, \uC5F0\uB77D\uCC98, \uC18C\uAC1C\uAE00\uACFC \uD568\uAED8 SNS \uB610\uB294 \uCE74\uCE74\uC624 \uCC44\uB110\uC744 \uB0A8\uACA8\uC8FC\uC138\uC694.',
+                actionLabel: '\uD504\uB85C\uD544 \uC785\uB825\uD558\uAE30',
+                completed: !!normalizedSignals.hasProfile
+            },
+            {
+                key: 'education',
+                title: '\uAD50\uC721 \uC774\uC218',
+                desc: '\uC6B4\uC601 \uAE30\uC900\uACFC \uC11C\uBE44\uC2A4 \uAC00\uC774\uB4DC\uB97C \uD655\uC778\uD558\uACE0 \uC774\uC218\uD574\uC8FC\uC138\uC694.',
+                tip: '\uD30C\uD2B8\uB108 \uAC00\uC774\uB4DC \uD398\uC774\uC9C0\uC5D0\uC11C \uAD50\uC721 \uC815\uCC45\uC744 \uD655\uC778\uD558\uBA74 \uC2EC\uC0AC\uAC00 \uB354 \uBE60\uB985\uB2C8\uB2E4.',
+                actionLabel: '\uAD50\uC721 \uD398\uC774\uC9C0 \uBCF4\uAE30',
+                completed: !!normalizedSignals.educationCompleted
+            },
+            {
+                key: 'class',
+                title: '\uCCAB \uAC15\uC758 \uB4F1\uB85D',
+                desc: '\uC218\uAC15\uC0DD\uC774 \uC608\uC57D\uD560 \uCCAB \uD074\uB798\uC2A4\uB97C \uC62C\uB824\uC8FC\uC138\uC694.',
+                tip: '\uAC15\uC758\uBA85, \uC0C1\uC138 \uC124\uBA85, \uAC15\uC0AC \uC18C\uAC1C\uAC00 \uC815\uB9AC\uB418\uBA74 \uAC80\uC218\uC640 \uB178\uCD9C\uC774 \uC218\uC6D4\uD569\uB2C8\uB2E4.',
+                actionLabel: '\uAC15\uC758 \uB4F1\uB85D \uC548\uB0B4 \uBCF4\uAE30',
+                completed: !!normalizedSignals.hasClass
+            },
+            {
+                key: 'schedule',
+                title: '\uC77C\uC815 \uCD94\uAC00',
+                desc: '\uC624\uD504\uB77C\uC778 \uC218\uC5C5 \uB0A0\uC9DC\uC640 \uC2DC\uAC04\uC744 \uB123\uC5B4 \uC608\uC57D \uAC00\uB2A5 \uC0C1\uD0DC\uB97C \uB9CC\uB4E4\uC5B4\uC8FC\uC138\uC694.',
+                tip: '\uC77C\uC815\uC774 \uD55C \uAC1C\uB77C\uB3C4 \uC788\uC5B4\uC57C \uC218\uAC15\uC0DD\uC774 \uC608\uC57D\uC744 \uACE0\uBBFC\uD560 \uC218 \uC788\uC5B4\uC694.',
+                actionLabel: '\uC77C\uC815 \uB4F1\uB85D\uD558\uAE30',
+                completed: !!normalizedSignals.hasSchedule
+            },
+            {
+                key: 'kit',
+                title: '\uD0A4\uD2B8 \uC124\uC815',
+                desc: '\uD544\uC694 \uC7AC\uB8CC\uC640 \uD0A4\uD2B8 \uC0C1\uD488\uC744 \uC5F0\uACB0\uD574 \uC6B4\uC601 \uBD80\uB2F4\uC744 \uC904\uC5EC\uC8FC\uC138\uC694.',
+                tip: '\uD0A4\uD2B8\uB97C \uC124\uC815\uD574\uB450\uBA74 \uC790\uC0AC\uBAB0 \uC0C1\uD488 \uD310\uB9E4\uC640 \uC218\uC5C5 \uC6B4\uC601\uC744 \uD568\uAED8 \uBB36\uC744 \uC218 \uC788\uC5B4\uC694.',
+                actionLabel: '\uD0A4\uD2B8 \uC5F0\uACB0\uD558\uAE30',
+                completed: !!normalizedSignals.hasKit
+            }
+        ];
+
+        var completedCount = 0;
+        var nextStep = null;
+        for (var i = 0; i < steps.length; i++) {
+            if (steps[i].completed) {
+                completedCount++;
+            } else if (!nextStep) {
+                nextStep = steps[i];
+                steps[i].isCurrent = true;
+            }
+        }
+
+        var percent = Math.round((completedCount / steps.length) * 100);
+        var remainingCount = steps.length - completedCount;
+        var isComplete = completedCount === steps.length;
+        var cardTitle = isComplete
+            ? '\uCCAB \uC608\uC57D\uC744 \uBC1B\uC744 \uC900\uBE44\uAC00 \uB05D\uB0AC\uC5B4\uC694'
+            : '\uCCAB \uC608\uC57D\uAE4C\uC9C0 ' + remainingCount + '\uB2E8\uACC4\uB9CC \uB0A8\uC558\uC5B4\uC694';
+        var cardDesc = isComplete
+            ? '\uC774\uC81C \uCCAB \uC608\uC57D\uC774 \uB4E4\uC5B4\uC624\uBA74 \uB300\uC2DC\uBCF4\uB4DC\uC5D0\uC11C \uC6B4\uC601\uACFC \uC815\uC0B0\uC744 \uBC14\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.'
+            : nextStep.title + '\uBD80\uD130 \uB9C8\uBB34\uB9AC\uD558\uBA74 \uC218\uAC15\uC0DD \uC608\uC57D\uC744 \uBC1B\uC744 \uC900\uBE44\uAC00 \uB354 \uBE68\uB77C\uC9D1\uB2C8\uB2E4.';
+        var modalHeadline = isComplete
+            ? '\uCCAB \uC608\uC57D\uC744 \uBC1B\uC744 \uC900\uBE44\uAC00 \uB05D\uB0AC\uC5B4\uC694'
+            : '\uC9C0\uAE08\uC740 ' + nextStep.title + '\uAC00 \uB2E4\uC74C \uD560 \uC77C\uC785\uB2C8\uB2E4.';
+        var modalDesc = isComplete
+            ? '\uD504\uB85C\uD544, \uAD50\uC721, \uAC15\uC758, \uC77C\uC815, \uD0A4\uD2B8 \uC124\uC815\uC774 \uBAA8\uB450 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.'
+            : '\uD55C \uBC88 \uC900\uBE44\uD574\uB450\uBA74 \uD64D\uBCF4, \uC608\uC57D, \uC6B4\uC601 \uD750\uB984\uC774 \uB354 \uB9E4\uB044\uB7FD\uAC8C \uC774\uC5B4\uC9D1\uB2C8\uB2E4.';
+
+        return {
+            steps: steps,
+            completedCount: completedCount,
+            totalCount: steps.length,
+            percent: percent,
+            remainingCount: remainingCount,
+            nextStep: nextStep,
+            nextActionLabel: nextStep ? nextStep.actionLabel : '\uB300\uC2DC\uBCF4\uB4DC \uBCF4\uAE30',
+            isComplete: isComplete,
+            cardTitle: cardTitle,
+            cardDesc: cardDesc,
+            modalHeadline: modalHeadline,
+            modalDesc: modalDesc,
+            progressText: completedCount + '/' + steps.length + ' \uC644\uB8CC',
+            tip: nextStep ? nextStep.tip : '\uC774\uC81C \uCCAB \uC608\uC57D\uB9CC \uAE30\uB2E4\uB9AC\uBA74 \uB429\uB2C8\uB2E4.',
+            firstClassId: normalizedSignals.firstClassId || '',
+            completionDesc: '\uD504\uB85C\uD544, \uAD50\uC721, \uAC15\uC758, \uC77C\uC815, \uD0A4\uD2B8 \uC124\uC815\uC774 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC774\uC81C \uCCAB \uC608\uC57D\uB9CC \uAE30\uB2E4\uB9AC\uBA74 \uB429\uB2C8\uB2E4.'
+        };
+    }
+
+    function renderOnboardingCard(state) {
+        var card = document.getElementById('pdOnboardingCard');
+        var nextBtn = document.getElementById('pdOnboardingNextBtn');
+        if (!card) return;
+
+        if (!state || state.isComplete) {
+            hideElement('pdOnboardingCard');
+            return;
+        }
+
+        showElement('pdOnboardingCard');
+        setTextById('pdOnboardingCardTitle', state.cardTitle);
+        setTextById('pdOnboardingCardDesc', state.cardDesc);
+        setTextById('pdOnboardingCardProgressText', state.progressText);
+
+        var bar = document.getElementById('pdOnboardingCardBar');
+        if (bar) {
+            bar.style.width = state.percent + '%';
+        }
+
+        if (nextBtn) {
+            nextBtn.textContent = state.nextActionLabel || '\uB2E4\uC74C \uD560 \uC77C';
+        }
+    }
+
+    function renderOnboardingModal(state) {
+        var modalNextBtn = document.getElementById('pdOnboardingModalNextBtn');
+
+        if (!state) return;
+
+        setTextById('pdOnboardingModalHeadline', state.modalHeadline);
+        setTextById('pdOnboardingModalDesc', state.modalDesc);
+        setTextById('pdOnboardingModalProgressText', state.progressText);
+        setTextById('pdOnboardingTip', state.tip);
+        setTextById('pdOnboardingCompleteDesc', state.completionDesc);
+
+        var modalBar = document.getElementById('pdOnboardingModalBar');
+        if (modalBar) {
+            modalBar.style.width = state.percent + '%';
+        }
+
+        var stepList = document.getElementById('pdOnboardingStepList');
+        if (stepList) {
+            stepList.innerHTML = renderOnboardingStepList(state.steps);
+        }
+
+        if (modalNextBtn) {
+            modalNextBtn.textContent = state.nextActionLabel || '\uB300\uC2DC\uBCF4\uB4DC \uBCF4\uAE30';
+            modalNextBtn.style.display = state.isComplete ? 'none' : '';
+        }
+    }
+
+    function renderOnboardingStepList(steps) {
+        var html = '';
+        var list = steps || [];
+
+        for (var i = 0; i < list.length; i++) {
+            var step = list[i];
+            var statusText = step.completed ? '\uC644\uB8CC' : (step.isCurrent ? '\uC9C0\uAE08 \uD558\uAE30' : '\uB300\uAE30');
+            var statusClass = step.completed ? 'pd-onboarding-step__status--done' : 'pd-onboarding-step__status--todo';
+            var itemClass = 'pd-onboarding-step';
+
+            if (step.completed) {
+                itemClass += ' is-done';
+            }
+            if (step.isCurrent) {
+                itemClass += ' is-current';
+            }
+
+            html += '<div class="' + itemClass + '">'
+                + '<div class="pd-onboarding-step__index">' + (i + 1) + '</div>'
+                + '<div class="pd-onboarding-step__copy">'
+                + '<div class="pd-onboarding-step__title-row">'
+                + '<h5 class="pd-onboarding-step__title">' + escapeHtml(step.title) + '</h5>'
+                + '<span class="pd-onboarding-step__status ' + statusClass + '">' + statusText + '</span>'
+                + '</div>'
+                + '<p class="pd-onboarding-step__desc">' + escapeHtml(step.desc) + '</p>'
+                + '</div>'
+                + '</div>';
+        }
+
+        return html;
+    }
+
+    function handleOnboardingAutoOpen(state, openIfNeeded) {
+        if (!state) return;
+
+        storeOnboardingProgress(state.completedCount);
+
+        if (state.isComplete) {
+            hideElement('pdOnboardingCard');
+            if (!hasShownOnboardingCompleteModal()) {
+                markOnboardingCompleteModalShown();
+                closeModal('pdOnboardingModal');
+                openModal('pdOnboardingCompleteModal');
+            }
+            return;
+        }
+
+        if (!openIfNeeded) return;
+
+        if (getLastOnboardingAutoOpenProgress() !== state.completedCount) {
+            setLastOnboardingAutoOpenProgress(state.completedCount);
+            openModal('pdOnboardingModal');
+        }
+    }
+
+    function handleOnboardingPrimaryAction() {
+        if (!onboardingState || !onboardingState.nextStep) return;
+        runOnboardingAction(onboardingState.nextStep.key);
+    }
+
+    function runOnboardingAction(stepKey) {
+        closeModal('pdOnboardingModal');
+
+        if (stepKey === 'profile') {
+            openProfileModal();
+            return;
+        }
+
+        if (stepKey === 'education') {
+            window.location.href = '/shop/page.html?id=2610';
+            return;
+        }
+
+        if (stepKey === 'class') {
+            openModal('pdNewClassModal');
+            return;
+        }
+
+        if (stepKey === 'schedule') {
+            switchTab('schedules');
+            prepareOnboardingScheduleAction();
+            return;
+        }
+
+        if (stepKey === 'kit') {
+            switchTab('classes');
+            prepareOnboardingKitAction();
+        }
+    }
+
+    function prepareOnboardingScheduleAction() {
+        var firstClassId = onboardingState ? onboardingState.firstClassId : '';
+        if (!firstClassId) {
+            showToast('\uBA3C\uC800 \uC77C\uC815\uC744 \uCD94\uAC00\uD560 \uAC15\uC758\uB97C \uB4F1\uB85D\uD574\uC8FC\uC138\uC694.', 'error');
+            return;
+        }
+
+        setTimeout(function() {
+            var classSelect = document.getElementById('pdScheduleClass');
+            if (classSelect) {
+                classSelect.value = firstClassId;
+            }
+            scheduleClassId = firstClassId;
+            loadSchedulesForClass(firstClassId);
+            toggleScheduleForm(true);
+            showToast('\uC120\uD0DD\uD55C \uAC15\uC758\uC5D0 \uCCAB \uC77C\uC815\uC744 \uCD94\uAC00\uD574\uBCF4\uC138\uC694.');
+        }, 80);
+    }
+
+    function prepareOnboardingKitAction() {
+        var firstClassId = onboardingState ? onboardingState.firstClassId : '';
+        if (!firstClassId) {
+            showToast('\uD0A4\uD2B8\uB97C \uC124\uC815\uD560 \uAC15\uC758\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694.', 'error');
+            return;
+        }
+
+        setTimeout(function() {
+            openClassEditModal(firstClassId);
+            showToast('\uD074\uB798\uC2A4 \uC218\uC815 \uCC3D\uC5D0\uC11C \uD0A4\uD2B8 \uC124\uC815\uC744 \uB9C8\uBB34\uB9AC\uD574\uBCF4\uC138\uC694.');
+        }, 80);
+    }
+
+    function isProfileCompleted() {
+        if (!partnerData) return false;
+
+        var studioName = String(partnerData.studio_name || '').trim();
+        var phone = String(partnerData.phone || '').trim();
+        var introduction = String(partnerData.introduction || '').trim();
+        var instagram = String(partnerData.instagram_url || '').trim();
+        var kakao = String(partnerData.kakao_channel || '').trim();
+
+        return !!(studioName && phone && introduction && (instagram || kakao));
+    }
+
+    function isEducationCompleted() {
+        return normalizeEducationCompleted(partnerData ? partnerData.education_completed : false);
+    }
+
+    function normalizeEducationCompleted(value) {
+        if (value === true || value === 'true' || value === 'TRUE') return true;
+        if (value === 'Y' || value === 'y' || value === 'YES' || value === 'yes') return true;
+        return false;
+    }
+
+    function hasConfiguredKit(detail) {
+        var enabled = parseInt(detail && detail.kit_enabled, 10) === 1;
+        var items = parseKitItems(detail ? detail.kit_items : []);
+        return enabled && items.length > 0;
+    }
+
+    function parseKitItems(raw) {
+        if (Array.isArray(raw)) {
+            return raw;
+        }
+
+        if (!raw) return [];
+
+        try {
+            var parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function getFirstClassId() {
+        if (!myClasses || !myClasses.length) return '';
+        return String(myClasses[0].class_id || '');
+    }
+
+    function findClassById(classId) {
+        for (var i = 0; i < myClasses.length; i++) {
+            if (String(myClasses[i].class_id || '') === String(classId || '')) {
+                return myClasses[i];
+            }
+        }
+        return null;
+    }
+
+    function getOnboardingStorageKey(suffix) {
+        return CACHE_PREFIX + 'onboarding_' + memberId + '_' + suffix;
+    }
+
+    function readOnboardingStorage(suffix) {
+        try {
+            return window.localStorage.getItem(getOnboardingStorageKey(suffix));
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function writeOnboardingStorage(suffix, value) {
+        try {
+            window.localStorage.setItem(getOnboardingStorageKey(suffix), String(value));
+        } catch (err) {}
+    }
+
+    function storeOnboardingProgress(progress) {
+        writeOnboardingStorage('progress', progress);
+    }
+
+    function getLastOnboardingAutoOpenProgress() {
+        var raw = readOnboardingStorage('auto_open_progress');
+        return raw === null ? -1 : parseInt(raw, 10);
+    }
+
+    function setLastOnboardingAutoOpenProgress(progress) {
+        writeOnboardingStorage('auto_open_progress', progress);
+    }
+
+    function hasShownOnboardingCompleteModal() {
+        return readOnboardingStorage('complete_modal_shown') === 'Y';
+    }
+
+    function markOnboardingCompleteModalShown() {
+        writeOnboardingStorage('complete_modal_shown', 'Y');
     }
 
 
@@ -893,6 +1395,7 @@
                 renderMyClasses();
                 var modal = document.getElementById('pdEditClassModal');
                 if (modal) modal.classList.remove('pd-modal--open');
+                refreshOnboardingChecklist(false);
             } else {
                 showToast(data.message || '\uC218\uC815\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.', 'error');
             }
@@ -1141,6 +1644,7 @@
                 showToast('일정이 추가되었습니다.');
                 toggleScheduleForm(false);
                 loadSchedulesForClass(scheduleClassId);
+                refreshOnboardingChecklist(false);
             } else {
                 showToast(res.message || '일정 추가에 실패했습니다.', 'error');
             }
@@ -1165,6 +1669,7 @@
             if (res.success) {
                 showToast('일정이 삭제되었습니다.');
                 loadSchedulesForClass(scheduleClassId);
+                refreshOnboardingChecklist(false);
             } else {
                 showToast(res.message || '일정 삭제에 실패했습니다.', 'error');
             }
@@ -1918,6 +2423,7 @@
 
             showToast('\uD504\uB85C\uD544\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
             closeModal('pdProfileModal');
+            refreshOnboardingChecklist(false);
         });
     }
 

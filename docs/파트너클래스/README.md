@@ -62,6 +62,8 @@
   - S1-5 기준 WF-SETTLE 구조, 관리자 정산 실행/이력 화면, 라이브 SMTP blocker 정리
 - `faq-expansion-guide.md`
   - S1-6 기준 상세 FAQ 15개 구조, 카테고리 필터/검색 규칙, FAQPage JSON-LD 반영 기준 정리
+- `onboarding-checklist-guide.md`
+  - S1-7 기준 파트너 대시보드 온보딩 5단계, 완료 조건, CTA 매핑, 로컬 저장 규칙 정리
 
 ### QA / 검증
 

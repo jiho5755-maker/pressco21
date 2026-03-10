@@ -142,6 +142,28 @@
             </div>
         </header>
 
+        <section id="pdOnboardingCard" class="pd-onboarding-card" style="display:none" aria-label="신규 파트너 온보딩 체크리스트">
+            <div class="pd-onboarding-card__inner">
+                <div class="pd-onboarding-card__copy">
+                    <p class="pd-onboarding-card__eyebrow">신규 파트너 시작 가이드</p>
+                    <h2 class="pd-onboarding-card__title" id="pdOnboardingCardTitle">첫 예약까지 5단계만 남았어요</h2>
+                    <p class="pd-onboarding-card__desc" id="pdOnboardingCardDesc"></p>
+                </div>
+                <div class="pd-onboarding-card__side">
+                    <div class="pd-onboarding-card__progress">
+                        <div class="pd-onboarding-card__bar">
+                            <span id="pdOnboardingCardBar"></span>
+                        </div>
+                        <p class="pd-onboarding-card__progress-text" id="pdOnboardingCardProgressText"></p>
+                    </div>
+                    <div class="pd-onboarding-card__actions">
+                        <button type="button" class="pd-btn pd-btn--outline pd-btn--sm" id="pdOnboardingOpenBtn">체크리스트 보기</button>
+                        <button type="button" class="pd-btn pd-btn--primary pd-btn--sm" id="pdOnboardingNextBtn">다음 할 일</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+
         <!-- 3-2. 요약 카드 4개 -->
         <div class="pd-summary" id="pdSummaryCards">
             <div class="pd-summary__card">
@@ -527,7 +549,69 @@
         </div>
     </div>
 
-    <!-- 8. 토스트 알림 -->
+    <!-- 8. 온보딩 체크리스트 모달 -->
+    <div id="pdOnboardingModal" class="pd-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="pdOnboardingModalTitle">
+        <div class="pd-modal__backdrop"></div>
+        <div class="pd-modal__content pd-modal__content--wide pd-modal__content--onboarding">
+            <div class="pd-modal__header">
+                <h3 class="pd-modal__title" id="pdOnboardingModalTitle">파트너 온보딩 체크리스트</h3>
+                <button type="button" class="pd-modal__close" aria-label="닫기">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="pd-modal__body">
+                <div class="pd-onboarding-modal__hero">
+                    <p class="pd-onboarding-modal__eyebrow">첫 예약까지 남은 단계</p>
+                    <h4 class="pd-onboarding-modal__headline" id="pdOnboardingModalHeadline"></h4>
+                    <p class="pd-onboarding-modal__desc" id="pdOnboardingModalDesc"></p>
+                    <div class="pd-onboarding-modal__progress">
+                        <div class="pd-onboarding-modal__bar">
+                            <span id="pdOnboardingModalBar"></span>
+                        </div>
+                        <p class="pd-onboarding-modal__progress-text" id="pdOnboardingModalProgressText"></p>
+                    </div>
+                </div>
+                <div class="pd-onboarding-step-list" id="pdOnboardingStepList">
+                    <!-- JS: 단계 목록 동적 렌더링 -->
+                </div>
+                <div class="pd-onboarding-tip" id="pdOnboardingTip"></div>
+            </div>
+            <div class="pd-modal__footer">
+                <button type="button" class="pd-btn pd-btn--outline pd-modal__cancel">나중에 볼게요</button>
+                <button type="button" class="pd-btn pd-btn--primary" id="pdOnboardingModalNextBtn">다음 할 일로 이동</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 9. 온보딩 완료 모달 -->
+    <div id="pdOnboardingCompleteModal" class="pd-modal" style="display:none" role="dialog" aria-modal="true" aria-labelledby="pdOnboardingCompleteTitle">
+        <div class="pd-modal__backdrop"></div>
+        <div class="pd-modal__content">
+            <div class="pd-modal__header">
+                <h3 class="pd-modal__title" id="pdOnboardingCompleteTitle">온보딩 완료</h3>
+                <button type="button" class="pd-modal__close" aria-label="닫기">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+            <div class="pd-modal__body">
+                <div class="pd-onboarding-complete">
+                    <div class="pd-onboarding-complete__badge">READY</div>
+                    <h4 class="pd-onboarding-complete__headline">첫 예약을 받을 준비가 끝났어요</h4>
+                    <p class="pd-onboarding-complete__desc" id="pdOnboardingCompleteDesc"></p>
+                </div>
+            </div>
+            <div class="pd-modal__footer">
+                <button type="button" class="pd-btn pd-btn--outline pd-modal__cancel">대시보드 보기</button>
+                <a href="/shop/page.html?id=8009" class="pd-btn pd-btn--primary">새 강의 등록</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 10. 토스트 알림 -->
     <div id="pdToastContainer" class="pd-toast-container" aria-live="polite"></div>
 
 </div><!-- /.partner-dashboard -->

@@ -53,13 +53,46 @@
 - Mode: IDLE
 - Started At: 2026-03-11 00:08:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S1-6 완료, 다음 턴 S1-7 예정
+- Working Scope: [CODEX-LEAD] 파트너클래스 S1-7 완료, 다음 턴 S1-8 예정
 - Active Subdirectory: pressco21
 
 ## Files In Progress
 - (none)
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S1-7 파트너 온보딩 체크리스트 UX 완료 (CODEX)
+- 프론트
+  - `파트너클래스/파트너/Index.html`
+    - 헤더 아래 온보딩 카드, 진행률 바, `체크리스트 보기 / 다음 할 일` CTA 추가
+    - 온보딩 모달, 완료 모달 추가
+  - `파트너클래스/파트너/css.css`
+    - 온보딩 카드/모달/단계 리스트/완료 상태 스타일 추가
+    - `992px / 768px / 480px` 반응형 레이아웃 보강
+  - `파트너클래스/파트너/js.js`
+    - 온보딩 상태 계산 로직 추가
+    - 단계 체계를 `프로필 / 교육 / 강의 / 일정 / 키트` 5단계로 고정
+    - `getPartnerAuth`, `getEducationStatus`, `getPartnerDashboard`, `getClassDetail` 응답을 조합해 완료 상태를 계산
+    - 현재 단계 CTA를 프로필 모달, 교육 페이지, 강의 등록 모달, 일정 탭, 클래스 수정 모달에 연결
+    - 일정 추가, 클래스 수정, 프로필 저장 후 체크리스트를 즉시 다시 계산하도록 연결
+- 문서 / 메모리
+  - `docs/파트너클래스/onboarding-checklist-guide.md` 신규 추가
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+- 검증
+  - `node --check 파트너클래스/파트너/js.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+    - `http://` 경고는 SVG namespace / data URI 기준 false positive 확인
+  - Playwright 로컬 목킹 검증
+    - 미완료 파트너 `3/5 완료` 확인
+    - 모달 CTA `일정 등록하기` 클릭 시 `일정 관리` 탭 전환 + 첫 강의 자동 선택 + 일정 폼 노출 확인
+    - 완료 파트너 체크리스트 카드 숨김 + 완료 모달 자동 노출 확인
+  - 산출물
+    - `output/playwright/s1-7-onboarding/incomplete-onboarding-schedule.png`
+    - `output/playwright/s1-7-onboarding/complete-onboarding-modal.png`
 
 ### [CODEX-LEAD] Phase 3 S1-6 상세 FAQ 15개 확장 완료 (CODEX)
 - 프론트
@@ -1240,7 +1273,7 @@
 
 #### 현재 다음 태스크
 
-- `S1-7 파트너 온보딩 체크리스트 UX`
+- `S1-8 대시보드 액션 보드`
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
@@ -1329,6 +1362,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - `파트너클래스/어드민/js.js`의 `PENDING_REVIEW` 정렬 보정은 아직 메이크샵 디자인편집기에 저장되지 않아 라이브 어드민 UI에는 반영되지 않음
 - S1-1 프론트 변경(강의등록/상세/파트너 수정 모달)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 화면 확인이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-2 상세 프론트 변경(Trust Summary Bar, 포함 내역, 모바일 CTA 바)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
+- S1-7 파트너 대시보드 온보딩 카드/모달도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 실제 2608 페이지 반영 시 사용자 배포 후 재검증이 필요함
 - S1-4 마이페이지 프론트 변경(`파트너클래스/마이페이지/*`)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
 - `scripts/partnerclass-live-smoke.js` 는 현재 FAQ 기대 개수가 여전히 `5` 기준이라, 상세 FAQ를 라이브 반영한 뒤에는 스모크 기대값을 `15` 로 맞춰야 함

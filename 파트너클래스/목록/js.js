@@ -44,6 +44,7 @@
         category: [],
         level: [],
         type: [],
+        format: [],
         region: [],
         sort: 'latest',
         page: 1,
@@ -69,6 +70,9 @@
 
     /** localStorage 키: 최근 본 클래스 */
     var RECENT_KEY = 'pressco21_recent';
+
+    /** localStorage 키: 목록 필터 상태 */
+    var FILTER_STATE_KEY = 'pressco21_catalog_filters_v1';
 
     /** 최근 본 클래스 최대 저장 수 */
     var RECENT_MAX = 10;
@@ -103,6 +107,9 @@
 
         // 가격 슬라이더 초기화
         initPriceRange();
+
+        // 퀵 필터 칩 초기화
+        initQuickFilters();
 
         // 빈결과/에러 상태 버튼 바인딩
         bindStateButtons();
@@ -317,6 +324,8 @@
         for (var j = 0; j < pills.length; j++) {
             pills[j].addEventListener('click', onCategoryPillClick);
         }
+
+        setCategoryPills(currentFilters.category || []);
     }
 
     /**
@@ -340,6 +349,89 @@
         }
 
         onFilterChange();
+    }
+
+    function initQuickFilters() {
+        var chips = document.querySelectorAll('.class-catalog .quick-filter-chip');
+        for (var i = 0; i < chips.length; i++) {
+            chips[i].addEventListener('click', onQuickFilterClick);
+        }
+    }
+
+    function onQuickFilterClick(e) {
+        var chip = e.currentTarget;
+        var key = chip.getAttribute('data-quick-key');
+        var value = chip.getAttribute('data-value');
+        var isSingle = chip.classList.contains('quick-filter-chip--single');
+        var isActive = chip.classList.contains('is-active');
+
+        if (!key || !value) return;
+
+        if (key === 'maxPrice') {
+            currentFilters.maxPrice = isActive ? 200000 : (parseInt(value, 10) || 200000);
+            syncPriceRangeUI();
+        } else if (key === 'format') {
+            currentFilters.format = isActive ? [] : [value];
+            currentFilters.type = pruneTypesByFormat(currentFilters.type || [], currentFilters.format);
+        } else if (isSingle) {
+            currentFilters[key] = isActive ? [] : [value];
+        } else {
+            if (!currentFilters[key] || !Array.isArray(currentFilters[key])) {
+                currentFilters[key] = [];
+            }
+
+            if (isActive) {
+                removeValueFromArray(currentFilters[key], value);
+            } else {
+                currentFilters[key].push(value);
+            }
+        }
+
+        syncFilterUI();
+        onFilterChange();
+    }
+
+    function pruneTypesByFormat(types, formats) {
+        var normalizedTypes = dedupeArray(types || []);
+        var normalizedFormats = dedupeArray(formats || []);
+
+        if (normalizedFormats.indexOf('\uC628\uB77C\uC778') > -1) {
+            return normalizedTypes.filter(function(type) {
+                return isOnlineType(type);
+            });
+        }
+
+        if (normalizedFormats.indexOf('\uC624\uD504\uB77C\uC778') > -1) {
+            return normalizedTypes.filter(function(type) {
+                return !isOnlineType(type);
+            });
+        }
+
+        return normalizedTypes;
+    }
+
+    function syncQuickFilterState() {
+        var chips = document.querySelectorAll('.class-catalog .quick-filter-chip');
+        for (var i = 0; i < chips.length; i++) {
+            var chip = chips[i];
+            var key = chip.getAttribute('data-quick-key');
+            var value = chip.getAttribute('data-value');
+            var active = false;
+
+            if (key === 'maxPrice') {
+                active = parseInt(value, 10) === currentFilters.maxPrice && currentFilters.maxPrice < 200000;
+            } else if (key === 'format') {
+                active = (currentFilters.format || []).indexOf(value) > -1;
+            } else {
+                active = currentFilters[key] && currentFilters[key].indexOf(value) > -1;
+            }
+
+            if (active) {
+                chip.classList.add('is-active');
+            } else {
+                chip.classList.remove('is-active');
+            }
+        }
     }
 
 
@@ -464,6 +556,66 @@
         grid.innerHTML = html;
     }
 
+    function isNewClassBadge(classId) {
+        var match = String(classId || '').match(/CL_(\d{6})_/);
+        var now = new Date();
+        var currentYm = now.getFullYear() * 100 + (now.getMonth() + 1);
+        var prevMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        var prevYm = prevMonth.getFullYear() * 100 + (prevMonth.getMonth() + 1);
+        var ym = match ? parseInt(match[1], 10) : 0;
+
+        return ym === currentYm || ym === prevYm;
+    }
+
+    function computeCardBadges(cls) {
+        var badges = [];
+        var reviewCount = parseInt(cls.class_count, 10) || 0;
+        var avgRating = parseFloat(cls.avg_rating) || 0;
+        var totalRemaining = parseInt(cls.total_remaining, 10) || 0;
+        var tags = String(cls.tags || '');
+        var affiliationText = [cls.affiliation_code || '', tags, cls.class_name || '', cls.category || ''].join(' ');
+
+        if (isNewClassBadge(cls.class_id)) {
+            badges.push({ key: 'new', label: '\uC2E0\uADDC' });
+        }
+        if (reviewCount >= 8 || (avgRating >= 4.7 && reviewCount >= 5)) {
+            badges.push({ key: 'popular', label: '\uC778\uAE30' });
+        }
+        if (totalRemaining > 0 && totalRemaining <= 3) {
+            badges.push({ key: 'closing', label: '\uB9C8\uAC10\uC784\uBC15' });
+        }
+        if (parseInt(cls.kit_enabled, 10) === 1) {
+            badges.push({ key: 'kit', label: '\uD0A4\uD2B8\uD3EC\uD568' });
+        }
+        if (normalizedContains(affiliationText, '\uD611\uD68C') || normalizedContains(affiliationText, '\uC81C\uD734')) {
+            badges.push({ key: 'affiliation', label: '\uD611\uD68C\uC81C\uD734' });
+        }
+        if (avgRating >= 4.8 && reviewCount >= 3) {
+            badges.push({ key: 'rating', label: '\uB192\uC740\uD3C9\uC810' });
+        }
+
+        return badges.slice(0, 3);
+    }
+
+    function buildCardBadgesHtml(cls) {
+        var badges = computeCardBadges(cls);
+        var html = '';
+        for (var i = 0; i < badges.length; i++) {
+            html += '<span class="class-card__trust-badge class-card__trust-badge--' + badges[i].key + '">' + badges[i].label + '</span>';
+        }
+        return html;
+    }
+
+    function buildPartnerMapSearchUrl(cls) {
+        var query = [cls.partner_name || '', cls.location || getDisplayRegionName(cls.region || '')].join(' ').replace(/\s+/g, ' ').trim();
+        if (!query) return '';
+        return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query);
+    }
+
+    function buildCardMapEntryLabel(cls) {
+        return isOnlineType(cls.type) ? '' : '\uAC00\uAE4C\uC6B4 \uACF5\uBC29 \uBCF4\uAE30';
+    }
+
     /**
      * 단일 클래스 카드 HTML 문자열 생성
      * @param {Object} cls - 클래스 데이터 객체
@@ -488,14 +640,18 @@
         var avgRating = parseFloat(cls.avg_rating) || 0;
         var classCount = parseInt(cls.class_count) || 0;
         var detailUrl = '/shop/page.html?id=2607&class_id=' + encodeURIComponent(classId);
+        var trustBadgesHtml = buildCardBadgesHtml(cls);
+        var mapUrl = buildPartnerMapSearchUrl(cls);
+        var mapLabel = buildCardMapEntryLabel(cls);
 
         var starsHtml = renderStars(avgRating);
 
-        var html = '<a href="' + detailUrl + '" class="class-card scroll-reveal" role="listitem" '
+        var html = '<article class="class-card scroll-reveal" role="listitem" '
             + 'data-class-id="' + classId + '" '
             + 'data-class-name="' + className + '" '
             + 'data-thumbnail="' + escapeHtml(thumbnail) + '" '
             + 'aria-label="' + className + ' - ' + partnerName + '">'
+            + '<a href="' + detailUrl + '" class="class-card__link" aria-label="' + className + ' - ' + partnerName + '">'
             + '<div class="class-card__thumb">';
 
         // 썸네일 이미지 (lazy loading)
@@ -544,6 +700,9 @@
 
         html += '<div class="class-card__body">';
         html += '<h3 class="class-card__title">' + displayClassName + '</h3>';
+        if (trustBadgesHtml) {
+            html += '<div class="class-card__trust-badges">' + trustBadgesHtml + '</div>';
+        }
 
         // 메타 정보 (파트너명, 지역)
         html += '<div class="class-card__meta">';
@@ -578,7 +737,13 @@
         html += '</div>';
 
         html += '</div>'; // /.class-card__body
-        html += '</a>';   // /.class-card
+        html += '</a>';   // /.class-card__link
+        if (mapUrl && mapLabel) {
+            html += '<div class="class-card__actions">'
+                + '<a href="' + escapeHtml(mapUrl) + '" target="_blank" rel="noopener" class="class-card__map-entry">' + mapLabel + '</a>'
+                + '</div>';
+        }
+        html += '</article>';   // /.class-card
 
         return html;
     }
@@ -688,9 +853,11 @@
         debounceTimer = setTimeout(function() {
             collectFilterValues();
             currentFilters.page = 1; // 필터 변경 시 1페이지로
+            syncQuickFilterState();
             updateFilterBadge();
             updateActiveChips();
             updateURLParams();
+            saveFilterState();
             fetchClasses(currentFilters);
         }, DEBOUNCE_DELAY);
     }
@@ -738,6 +905,76 @@
         return values;
     }
 
+    function removeValueFromArray(arr, value) {
+        var idx = arr ? arr.indexOf(value) : -1;
+        if (idx > -1) arr.splice(idx, 1);
+    }
+
+    function syncPriceRangeUI() {
+        var slider = document.getElementById('priceRange');
+        if (!slider) return;
+
+        slider.value = currentFilters.maxPrice;
+        updatePriceDisplay(currentFilters.maxPrice);
+        updateSliderTrack(slider);
+    }
+
+    function syncFilterUI() {
+        setCategoryPills(currentFilters.category || []);
+        setCheckboxes('level', currentFilters.level || []);
+        setCheckboxes('type', currentFilters.type || []);
+        setCheckboxes('region', currentFilters.region || []);
+        syncPriceRangeUI();
+        syncQuickFilterState();
+    }
+
+    function saveFilterState() {
+        try {
+            localStorage.setItem(FILTER_STATE_KEY, JSON.stringify({
+                category: currentFilters.category || [],
+                level: currentFilters.level || [],
+                type: currentFilters.type || [],
+                format: currentFilters.format || [],
+                region: currentFilters.region || [],
+                sort: currentFilters.sort || 'latest',
+                maxPrice: currentFilters.maxPrice || 200000,
+                search: currentFilters.search || ''
+            }));
+        } catch (e) {
+            /* localStorage 저장 실패 시 무시 */
+        }
+    }
+
+    function restoreFiltersFromStorage() {
+        try {
+            var raw = localStorage.getItem(FILTER_STATE_KEY);
+            if (!raw) return false;
+
+            var parsed = JSON.parse(raw);
+            if (!parsed || typeof parsed !== 'object') return false;
+
+            currentFilters.category = dedupeArray(parsed.category || []);
+            currentFilters.level = dedupeArray((parsed.level || []).map(normalizeLevelValue).filter(Boolean));
+            currentFilters.type = dedupeArray(parsed.type || []);
+            currentFilters.format = dedupeArray(parsed.format || []);
+            currentFilters.type = pruneTypesByFormat(currentFilters.type, currentFilters.format);
+            currentFilters.region = dedupeArray((parsed.region || []).map(getDisplayRegionName).filter(Boolean));
+            currentFilters.sort = parsed.sort || 'latest';
+            currentFilters.maxPrice = parsed.maxPrice || 200000;
+            currentFilters.search = parsed.search || '';
+            currentFilters.page = 1;
+
+            var sortSelect = document.getElementById('sortSelect');
+            if (sortSelect) sortSelect.value = currentFilters.sort;
+
+            syncFilterUI();
+            currentSearchQuery = currentFilters.search;
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
     /**
      * 모든 필터 초기화
      */
@@ -774,6 +1011,7 @@
             category: [],
             level: [],
             type: [],
+            format: [],
             region: [],
             sort: 'latest',
             page: 1,
@@ -783,9 +1021,11 @@
         };
         currentSearchQuery = '';
 
+        syncFilterUI();
         updateFilterBadge();
         updateActiveChips();
         updateURLParams();
+        saveFilterState();
         fetchClasses(currentFilters);
     }
 
@@ -805,6 +1045,7 @@
             currentFilters.sort = this.value;
             currentFilters.page = 1;
             updateURLParams();
+            saveFilterState();
             fetchClasses(currentFilters);
         });
     }
@@ -1049,6 +1290,7 @@
             { key: 'region', label: '\uC9C0\uC5ED' },
             { key: 'category', label: '\uCE74\uD14C\uACE0\uB9AC' },
             { key: 'type', label: '\uD615\uD0DC' },
+            { key: 'format', label: '\uC628/\uC624\uD504\uB77C\uC778' },
             { key: 'level', label: '\uB09C\uC774\uB3C4' }
         ];
 
@@ -1116,7 +1358,7 @@
             }
         } else {
             // 허용된 필터 키만 처리 (셀렉터 인젝션 방지)
-            var allowedKeys = ['category', 'level', 'type', 'region'];
+            var allowedKeys = ['category', 'level', 'type', 'format', 'region'];
             if (allowedKeys.indexOf(filterKey) === -1) return;
 
             if (filterKey === 'category') {
@@ -1151,9 +1393,11 @@
         }
 
         currentFilters.page = 1;
+        syncQuickFilterState();
         updateFilterBadge();
         updateActiveChips();
         updateURLParams();
+        saveFilterState();
         fetchClasses(currentFilters);
     }
 
@@ -1168,6 +1412,7 @@
         count += (currentFilters.category || []).length;
         count += (currentFilters.level || []).length;
         count += (currentFilters.type || []).length;
+        count += (currentFilters.format || []).length;
         count += (currentFilters.region || []).length;
         if (currentFilters.maxPrice < 200000) count++;
 
@@ -1304,6 +1549,7 @@
             if (currentFilters.category.length > 0) params.set('category', currentFilters.category.join(','));
             if (currentFilters.level.length > 0) params.set('level', currentFilters.level.join(','));
             if (currentFilters.type.length > 0) params.set('type', currentFilters.type.join(','));
+            if (currentFilters.format.length > 0) params.set('format', currentFilters.format.join(','));
             if (currentFilters.region.length > 0) params.set('region', currentFilters.region.join(','));
             if (currentFilters.sort !== 'latest') params.set('sort', currentFilters.sort);
             if (currentFilters.page > 1) params.set('page', currentFilters.page);
@@ -1326,6 +1572,16 @@
     function restoreFiltersFromURL() {
         try {
             var params = new URLSearchParams(window.location.search);
+            var hasFilterParams = params.has('tab') || params.has('category') || params.has('level')
+                || params.has('type') || params.has('format') || params.has('region')
+                || params.has('sort') || params.has('page') || params.has('maxPrice') || params.has('q');
+
+            if (!hasFilterParams) {
+                restoreFiltersFromStorage();
+                updateFilterBadge();
+                updateActiveChips();
+                return;
+            }
 
             activeCatalogTab = params.get('tab') === 'affiliations' ? 'affiliations' : 'classes';
 
@@ -1339,6 +1595,11 @@
             }
             if (params.has('type')) {
                 currentFilters.type = params.get('type').split(',');
+                setCheckboxes('type', currentFilters.type);
+            }
+            if (params.has('format')) {
+                currentFilters.format = dedupeArray(splitFilterValues(params.get('format')).filter(Boolean));
+                currentFilters.type = pruneTypesByFormat(currentFilters.type, currentFilters.format);
                 setCheckboxes('type', currentFilters.type);
             }
             if (params.has('region')) {
@@ -1370,6 +1631,7 @@
                 currentSearchQuery = currentFilters.search;
             }
 
+            syncQuickFilterState();
             updateFilterBadge();
             updateActiveChips();
         } catch (e) {
@@ -1619,11 +1881,47 @@
         return map[label] || String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
     }
 
+    function normalizedContains(source, keyword) {
+        var normalizedSource = String(source || '').replace(/\s+/g, '').toLowerCase();
+        var normalizedKeyword = String(keyword || '').replace(/\s+/g, '').toLowerCase();
+        if (!normalizedSource || !normalizedKeyword) return false;
+        return normalizedSource.indexOf(normalizedKeyword) > -1;
+    }
+
+    function isOnlineType(raw) {
+        return String(raw || '').replace(/\s+/g, ' ').trim().indexOf('\uC628\uB77C\uC778') > -1;
+    }
+
+    function getEffectiveTypeFilters(filters) {
+        var types = dedupeArray(filters.type || []);
+        var formats = dedupeArray(filters.format || []);
+        var allowedByFormat = [];
+
+        if (formats.indexOf('\uC628\uB77C\uC778') > -1) {
+            allowedByFormat.push('\uC628\uB77C\uC778');
+        }
+        if (formats.indexOf('\uC624\uD504\uB77C\uC778') > -1) {
+            allowedByFormat.push('\uC6D0\uB370\uC774');
+            allowedByFormat.push('\uC815\uAE30');
+        }
+
+        if (allowedByFormat.length === 0) {
+            return dedupeArray(types);
+        }
+        if (types.length === 0) {
+            return dedupeArray(allowedByFormat);
+        }
+
+        return dedupeArray(types.filter(function(type) {
+            return allowedByFormat.indexOf(type) > -1;
+        }));
+    }
+
     function buildApiFilters(filters) {
         return {
             category: dedupeArray(filters.category || []),
             level: dedupeArray((filters.level || []).map(normalizeLevelForApi).filter(Boolean)),
-            type: dedupeArray(filters.type || []),
+            type: getEffectiveTypeFilters(filters),
             region: dedupeArray((filters.region || []).map(normalizeRegionForApi).filter(Boolean)),
             sort: filters.sort || 'latest',
             page: filters.page || 1,
@@ -2026,6 +2324,7 @@
         grid.addEventListener('click', function(e) {
             // 찜 버튼 클릭은 제외
             if (e.target.closest('.wishlist-btn')) return;
+            if (e.target.closest('.class-card__map-entry')) return;
 
             var card = e.target.closest('.class-card');
             if (!card) return;
@@ -2226,8 +2525,8 @@
             for (var j = 0; j < affil.incentive_tiers.length; j++) {
                 var tier = affil.incentive_tiers[j];
                 tiersHtml += '<div class="affil-card__tier">' +
-                    '<span class="affil-card__tier-target">' + formatPrice(tier.target) + ' 이상</span>' +
-                    '<span class="affil-card__tier-reward">' + formatPrice(tier.incentive) + '</span>' +
+                    '<span class="affil-card__tier-target">' + formatAffilPrice(tier.target) + ' 이상</span>' +
+                    '<span class="affil-card__tier-reward">' + formatAffilPrice(tier.incentive) + '</span>' +
                     '</div>';
             }
             tiersHtml += '</div>';
@@ -2251,7 +2550,7 @@
      * @param {number} amount
      * @returns {string}
      */
-    function formatPrice(amount) {
+    function formatAffilPrice(amount) {
         if (amount >= 10000) {
             var man = Math.floor(amount / 10000);
             return man.toLocaleString() + '\uB9CC\uC6D0'; /* 만원 */

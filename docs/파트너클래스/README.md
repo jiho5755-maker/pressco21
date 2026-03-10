@@ -54,6 +54,8 @@
   - S1-1 기준 키트 JSON 구조, 화면 반영 범위, WF-01/05/16/20 연동 방식, 라이브 DB 제약 정리
 - `detail-ux-upgrade-guide.md`
   - S1-2 기준 상세 페이지 신뢰 요약 바, 포함 내역 섹션, CTA 계층, 모바일 하단 고정 바 정리
+- `list-badge-filter-guide.md`
+  - S1-3 기준 목록 신뢰 배지 6종, 퀵 필터 저장 규칙, 오프라인 지도 진입점, Playwright 검증 결과 정리
 
 ### QA / 검증
 

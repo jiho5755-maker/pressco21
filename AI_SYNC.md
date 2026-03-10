@@ -49,17 +49,60 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: 2026-03-10 22:24:00 KST
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-10 22:31:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S1-2 상세 UX 고도화 완료
+- Working Scope: [CODEX-LEAD] 파트너클래스 S1-3 목록 신뢰 배지 + 퀵 필터 진행
 - Active Subdirectory: pressco21
 
 ## Files In Progress
-- 없음
+- AI_SYNC.md
+- ROADMAP.md
+- docs/파트너클래스/README.md
+- docs/파트너클래스/list-badge-filter-guide.md
+- .claude/agent-memory/class-platform-architect/MEMORY.md
+- .claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md
+- 파트너클래스/목록/Index.html
+- 파트너클래스/목록/css.css
+- 파트너클래스/목록/js.js
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### [CODEX-LEAD] Phase 3 S1-3 목록 신뢰 배지 + 퀵 필터 완료 (CODEX)
+- 프론트
+  - `파트너클래스/목록/Index.html`
+    - 상단 퀵 필터 레일 추가: 카테고리 / 지역 / 형태 / 가격대 / 난이도.
+  - `파트너클래스/목록/css.css`
+    - 퀵 필터 레일 스타일, 카드 신뢰 배지 스타일, 카드 하단 지도 CTA 스타일 추가.
+    - 카드 구조를 `링크 본문 + 오프라인 지도 액션` 구조에 맞게 보정.
+  - `파트너클래스/목록/js.js`
+    - 신뢰 배지 6종 계산 로직 추가.
+    - `pressco21_catalog_filters_v1` localStorage 복원 로직 추가.
+    - `오프라인 -> 원데이/정기`, `온라인 -> 온라인` 매핑 퀵 필터 추가.
+    - 오프라인 카드에 `가까운 공방 보기` Google Maps 검색 링크 추가.
+    - 협회 탭 금액 포맷 함수 충돌 수정, `normalizedContains()` 누락 보완, 최근 본 클래스 추적에서 외부 지도 링크 제외.
+- 문서/메모리
+  - `ROADMAP.md`
+    - S1-3를 `✅ 완료`로 변경하고 운영 메모와 Playwright 검증 결과 반영.
+  - `docs/파트너클래스/list-badge-filter-guide.md`
+    - 배지 기준, 퀵 필터 저장 키, 지도 진입점, 검증 결과 정리.
+  - `docs/파트너클래스/README.md`
+    - 새 목록 UX 가이드 문서 연결.
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+    - S1-3 기준 메모리 갱신.
+- 검증
+  - `node --check 파트너클래스/목록/js.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+    - `http://` 경고는 SVG namespace(`xmlns`) 기준 false positive 확인
+  - Playwright 로컬 모킹 검증:
+    - 초기 `총 4개의 클래스`, 배지 6종 전체 확인
+    - `서울 + 오프라인 + 입문 + 5만원 이하` 조합 결과 1건 확인
+    - 새로고침 후 필터 복원 확인
+    - `온라인` 전환 시 지도 CTA 제거 확인
+  - 스크린샷 산출물:
+    - `output/playwright/s1-3-20260310/list-quick-filter-state.png`
 
 ### [CODEX-LEAD] Phase 3 S1-2 상세 UX 고도화 완료 (CODEX)
 - 프론트
@@ -1099,8 +1142,8 @@
 
 #### 현재 다음 태스크
 
-- `S1-3 목록 배지 + 퀵 필터` 진행
-- 그 다음 `S1-4 수강완료 → 재구매 동선`
+- `S1-4 수강완료 → 재구매 동선` 진행
+- 그 다음 `S1-5 정산 자동화 WF-SETTLE`
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
 #### 실행 순서

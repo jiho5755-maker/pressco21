@@ -529,6 +529,80 @@
 
 
 /* ----------------------------------------
+   5-1. 퀵 필터 바
+   ---------------------------------------- */
+.class-catalog .catalog-quick-filters {
+    display: grid;
+    gap: 14px;
+    margin-bottom: 22px;
+    padding: 18px 20px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.96) 0%, rgba(250, 248, 245, 0.92) 100%);
+    border: 1px solid var(--cc-border-light);
+    border-radius: var(--cc-radius-lg);
+    box-shadow: var(--cc-shadow-sm);
+}
+
+.class-catalog .quick-filter-group {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+}
+
+.class-catalog .quick-filter-group__label {
+    width: 56px;
+    flex-shrink: 0;
+    padding-top: 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--cc-text-light);
+    letter-spacing: 0.02em;
+}
+
+.class-catalog .quick-filter-group__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-width: 0;
+}
+
+.class-catalog .quick-filter-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 8px 14px;
+    background: rgba(255, 255, 255, 0.92);
+    border: 1px solid var(--cc-border);
+    border-radius: 999px;
+    font-family: var(--cc-font);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cc-text);
+    cursor: pointer;
+    white-space: nowrap;
+    transition: transform var(--cc-transition), border-color var(--cc-transition), background-color var(--cc-transition), color var(--cc-transition), box-shadow var(--cc-transition);
+}
+
+.class-catalog .quick-filter-chip:hover {
+    border-color: rgba(125, 150, 117, 0.55);
+    color: var(--cc-primary-dark);
+    box-shadow: 0 6px 16px rgba(125, 150, 117, 0.12);
+    transform: translateY(-1px);
+}
+
+.class-catalog .quick-filter-chip.is-active {
+    background: var(--cc-primary-dark);
+    border-color: var(--cc-primary-dark);
+    color: #FFFFFF;
+    box-shadow: 0 10px 22px rgba(44, 62, 48, 0.18);
+}
+
+.class-catalog .quick-filter-chip.is-active:hover {
+    color: #FFFFFF;
+}
+
+
+/* ----------------------------------------
    6. 정렬 바
    ---------------------------------------- */
 .class-catalog .sort-bar {
@@ -634,21 +708,28 @@
 
 /* 카드 */
 .class-catalog .class-card {
-    display: block;
+    display: flex;
+    flex-direction: column;
     background: var(--cc-bg-card);
     border-radius: var(--cc-radius-md);
     overflow: hidden;
     box-shadow: var(--cc-shadow-sm);
     border: 1px solid var(--cc-border-light);
-    text-decoration: none;
-    color: inherit;
     transition: transform var(--cc-transition), box-shadow var(--cc-transition);
-    cursor: pointer;
 }
 
 .class-catalog .class-card:hover {
     transform: translateY(-4px);
     box-shadow: var(--cc-shadow-hover);
+}
+
+.class-catalog .class-card__link {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
+    min-height: 100%;
+    color: inherit;
+    text-decoration: none;
 }
 
 /* 카드 썸네일 영역 */
@@ -719,8 +800,41 @@
     color: #FFFFFF;
 }
 
+/* 잔여석 배지 (Task 011) */
+.class-catalog .class-card__remaining {
+    position: absolute;
+    bottom: 12px;
+    left: 12px;
+    padding: 4px 10px;
+    font-size: 11px;
+    font-weight: 700;
+    border-radius: 4px;
+    z-index: 1;
+    background: rgba(125, 150, 117, 0.92);
+    color: #FFFFFF;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.class-catalog .class-card__remaining--few {
+    background: rgba(220, 120, 60, 0.92);
+    animation: pulse-badge 2s ease-in-out infinite;
+}
+
+.class-catalog .class-card__remaining--soldout {
+    background: rgba(160, 160, 160, 0.92);
+}
+
+@keyframes pulse-badge {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+}
+
 /* 카드 정보 영역 */
 .class-catalog .class-card__body {
+    display: flex;
+    flex: 1;
+    flex-direction: column;
     padding: 16px;
 }
 
@@ -735,6 +849,54 @@
     -webkit-box-orient: vertical;
     overflow: hidden;
     letter-spacing: -0.01em;
+}
+
+.class-catalog .class-card__trust-badges {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 10px;
+}
+
+.class-catalog .class-card__trust-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.class-catalog .class-card__trust-badge--new {
+    background: #EDF6EA;
+    color: #53724D;
+}
+
+.class-catalog .class-card__trust-badge--popular {
+    background: #FFF3E8;
+    color: #B56D2D;
+}
+
+.class-catalog .class-card__trust-badge--closing {
+    background: #FFF0E8;
+    color: #BF5E28;
+}
+
+.class-catalog .class-card__trust-badge--kit {
+    background: #F0F2FF;
+    color: #5868B2;
+}
+
+.class-catalog .class-card__trust-badge--affiliation {
+    background: #F6F1FF;
+    color: #6C55A5;
+}
+
+.class-catalog .class-card__trust-badge--rating {
+    background: #FFF8DF;
+    color: #A07812;
 }
 
 /* 메타 정보 행 */
@@ -831,6 +993,7 @@
     display: flex;
     align-items: flex-end;
     justify-content: space-between;
+    margin-top: auto;
     padding-top: 12px;
     border-top: 1px solid var(--cc-border-light);
 }
@@ -866,6 +1029,44 @@
     background-size: contain;
     background-repeat: no-repeat;
     flex-shrink: 0;
+}
+
+.class-catalog .class-card__actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    padding: 0 16px 16px;
+}
+
+.class-catalog .class-card__map-entry {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: rgba(125, 150, 117, 0.08);
+    border-radius: 999px;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cc-primary-dark);
+    text-decoration: none;
+    transition: background-color var(--cc-transition), color var(--cc-transition), transform var(--cc-transition);
+}
+
+.class-catalog .class-card__map-entry::before {
+    content: '';
+    display: inline-block;
+    width: 12px;
+    height: 12px;
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12' fill='none' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M6 1.25C4.205 1.25 2.75 2.705 2.75 4.5c0 2.563 3.25 5.75 3.25 5.75S9.25 7.063 9.25 4.5C9.25 2.705 7.795 1.25 6 1.25z' stroke='%232C3E30' stroke-width='1'/%3E%3Ccircle cx='6' cy='4.5' r='1.2' fill='%232C3E30'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    flex-shrink: 0;
+}
+
+.class-catalog .class-card__map-entry:hover {
+    background: rgba(125, 150, 117, 0.16);
+    color: var(--cc-primary-dark);
+    transform: translateY(-1px);
 }
 
 
@@ -1081,6 +1282,20 @@
         gap: 24px;
     }
 
+    .class-catalog .catalog-quick-filters {
+        padding: 16px 18px;
+    }
+
+    .class-catalog .quick-filter-group {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .class-catalog .quick-filter-group__label {
+        width: auto;
+        padding-top: 0;
+    }
+
     .class-catalog .filter-panel {
         width: 240px;
     }
@@ -1128,6 +1343,35 @@
         flex-direction: column;
         padding: 16px 16px 40px;
         gap: 0;
+    }
+
+    .class-catalog .catalog-quick-filters {
+        gap: 12px;
+        margin-bottom: 16px;
+        padding: 14px;
+        border-radius: 14px;
+    }
+
+    .class-catalog .quick-filter-group {
+        gap: 6px;
+    }
+
+    .class-catalog .quick-filter-group__chips {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        overflow-y: hidden;
+        padding-bottom: 2px;
+        scrollbar-width: none;
+    }
+
+    .class-catalog .quick-filter-group__chips::-webkit-scrollbar {
+        display: none;
+    }
+
+    .class-catalog .quick-filter-chip {
+        min-height: 34px;
+        padding: 7px 12px;
+        font-size: 12px;
     }
 
     /* 필터 패널: 하단 드로어로 전환 */
@@ -1239,8 +1483,24 @@
         padding: 12px;
     }
 
+    .class-catalog .class-card__trust-badge {
+        min-height: 20px;
+        padding: 3px 7px;
+        font-size: 10px;
+    }
+
     .class-catalog .class-card__footer {
         padding-top: 10px;
+    }
+
+    .class-catalog .class-card__actions {
+        padding: 0 12px 12px;
+    }
+
+    .class-catalog .class-card__map-entry {
+        width: 100%;
+        justify-content: center;
+        font-size: 11px;
     }
 
     /* 정렬 바 */
@@ -1267,6 +1527,14 @@
 @media screen and (max-width: 480px) {
     .class-catalog .catalog-header__title {
         font-size: 24px;
+    }
+
+    .class-catalog .catalog-quick-filters {
+        padding: 12px;
+    }
+
+    .class-catalog .quick-filter-group__label {
+        font-size: 11px;
     }
 
     /* 1열 레이아웃으로 전환 */
@@ -1722,5 +1990,477 @@
 
     .class-catalog .recent-card:hover .recent-card__img {
         transform: none;
+    }
+}
+
+
+/* ----------------------------------------
+   12. 탭 네비게이션
+   ---------------------------------------- */
+.class-catalog .catalog-tabs {
+    display: flex;
+    gap: 0;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px;
+    border-bottom: 1px solid var(--cc-border);
+}
+
+.class-catalog .catalog-tabs__btn {
+    position: relative;
+    padding: 14px 24px;
+    background: none;
+    border: none;
+    font-family: 'Pretendard Variable', sans-serif;
+    font-size: 15px;
+    font-weight: 500;
+    color: var(--cc-text-light);
+    cursor: pointer;
+    transition: color 0.2s;
+}
+
+.class-catalog .catalog-tabs__btn:hover {
+    color: var(--cc-text);
+}
+
+.class-catalog .catalog-tabs__btn--active {
+    color: var(--cc-brown);
+    font-weight: 600;
+}
+
+.class-catalog .catalog-tabs__btn--active::after {
+    content: '';
+    position: absolute;
+    bottom: -1px;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--cc-brown);
+    border-radius: 1px 1px 0 0;
+}
+
+.class-catalog .catalog-tabs__badge {
+    display: inline-block;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    margin-left: 6px;
+    background: var(--cc-primary);
+    color: #fff;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 18px;
+    text-align: center;
+    border-radius: 9px;
+    vertical-align: middle;
+}
+
+.class-catalog .catalog-tabs__badge:empty {
+    display: none;
+}
+
+
+/* ----------------------------------------
+   13. 협회 제휴 섹션
+   ---------------------------------------- */
+.class-catalog .affil-section {
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 0 20px 60px;
+}
+
+/* 히어로 */
+.class-catalog .affil-hero {
+    margin: 32px 0;
+    padding: 40px 32px;
+    background: linear-gradient(135deg, #f5f0eb 0%, #e8e2db 100%);
+    border-radius: 16px;
+    text-align: center;
+}
+
+.class-catalog .affil-hero__title {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--cc-brown);
+    margin: 0 0 12px;
+}
+
+.class-catalog .affil-hero__desc {
+    font-size: 15px;
+    color: var(--cc-text-light);
+    line-height: 1.6;
+    margin: 0;
+    max-width: 600px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+/* 혜택 카드 */
+.class-catalog .affil-benefits {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin: 32px 0;
+}
+
+.class-catalog .affil-benefits__card {
+    padding: 24px 20px;
+    background: var(--cc-bg-card);
+    border: 1px solid var(--cc-border);
+    border-radius: 12px;
+    text-align: center;
+    transition: box-shadow 0.2s;
+}
+
+.class-catalog .affil-benefits__card:hover {
+    box-shadow: var(--cc-shadow-md);
+}
+
+.class-catalog .affil-benefits__icon {
+    width: 40px;
+    height: 40px;
+    margin: 0 auto 12px;
+    color: var(--cc-primary);
+}
+
+.class-catalog .affil-benefits__icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.class-catalog .affil-benefits__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--cc-text);
+    margin: 0 0 6px;
+}
+
+.class-catalog .affil-benefits__desc {
+    font-size: 13px;
+    color: var(--cc-text-light);
+    margin: 0;
+    line-height: 1.4;
+}
+
+/* 인센티브 테이블 */
+.class-catalog .affil-incentive-table {
+    margin: 32px 0;
+    padding: 28px 24px;
+    background: var(--cc-bg-card);
+    border: 1px solid var(--cc-border);
+    border-radius: 12px;
+}
+
+.class-catalog .affil-incentive-table__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cc-text);
+    margin: 0 0 16px;
+}
+
+.class-catalog .affil-incentive-table__grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.class-catalog .affil-incentive-table__tier {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    padding: 20px 16px;
+    background: var(--cc-bg);
+    border-radius: 8px;
+    text-align: center;
+}
+
+.class-catalog .affil-incentive-table__level {
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cc-primary);
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.class-catalog .affil-incentive-table__target {
+    font-size: 14px;
+    color: var(--cc-text);
+    font-weight: 500;
+}
+
+.class-catalog .affil-incentive-table__reward {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--cc-brown);
+}
+
+/* 협회 목록 */
+.class-catalog .affil-list {
+    margin: 32px 0;
+}
+
+.class-catalog .affil-list__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--cc-text);
+    margin: 0 0 16px;
+}
+
+.class-catalog .affil-list__grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 16px;
+}
+
+.class-catalog .affil-list__empty {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--cc-text-light);
+    font-size: 14px;
+}
+
+.class-catalog .affil-list__empty a {
+    color: var(--cc-primary);
+    text-decoration: underline;
+}
+
+.class-catalog .affil-list__loading {
+    text-align: center;
+    padding: 40px 20px;
+    color: var(--cc-text-light);
+    font-size: 14px;
+}
+
+/* 협회 카드 */
+.class-catalog .affil-card {
+    padding: 24px;
+    background: var(--cc-bg-card);
+    border: 1px solid var(--cc-border);
+    border-radius: 12px;
+    transition: box-shadow 0.2s;
+}
+
+.class-catalog .affil-card:hover {
+    box-shadow: var(--cc-shadow-md);
+}
+
+.class-catalog .affil-card__header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+
+.class-catalog .affil-card__logo {
+    width: 56px;
+    height: 56px;
+    border-radius: 12px;
+    object-fit: cover;
+    border: 1px solid var(--cc-border-light);
+}
+
+.class-catalog .affil-card__logo-placeholder {
+    width: 56px;
+    height: 56px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--cc-bg);
+    border-radius: 12px;
+    color: var(--cc-text-light);
+}
+
+.class-catalog .affil-card__logo-placeholder svg {
+    width: 32px;
+    height: 32px;
+}
+
+.class-catalog .affil-card__info {
+    flex: 1;
+}
+
+.class-catalog .affil-card__name {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--cc-text);
+    margin: 0 0 4px;
+}
+
+.class-catalog .affil-card__discount {
+    display: inline-block;
+    padding: 2px 8px;
+    background: #FFF3E8;
+    color: var(--cc-gold);
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 4px;
+}
+
+.class-catalog .affil-card__memo {
+    font-size: 13px;
+    color: var(--cc-text-light);
+    margin: 0 0 12px;
+    line-height: 1.4;
+}
+
+.class-catalog .affil-card__tiers {
+    display: flex;
+    gap: 8px;
+}
+
+.class-catalog .affil-card__tier {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 2px;
+    padding: 8px 6px;
+    background: var(--cc-bg);
+    border-radius: 6px;
+    text-align: center;
+}
+
+.class-catalog .affil-card__tier-target {
+    font-size: 11px;
+    color: var(--cc-text-light);
+}
+
+.class-catalog .affil-card__tier-reward {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--cc-brown);
+}
+
+/* CTA */
+.class-catalog .affil-cta {
+    margin: 40px 0 0;
+    padding: 40px 32px;
+    background: var(--cc-primary-dark);
+    border-radius: 16px;
+    text-align: center;
+    color: #fff;
+}
+
+.class-catalog .affil-cta__title {
+    font-size: 20px;
+    font-weight: 700;
+    margin: 0 0 12px;
+}
+
+.class-catalog .affil-cta__desc {
+    font-size: 14px;
+    opacity: 0.85;
+    margin: 0 0 20px;
+    line-height: 1.5;
+}
+
+.class-catalog .affil-cta__btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: #fff;
+    color: var(--cc-primary-dark);
+    font-size: 14px;
+    font-weight: 600;
+    border-radius: 8px;
+    text-decoration: none;
+    transition: opacity 0.2s;
+}
+
+.class-catalog .affil-cta__btn:hover {
+    opacity: 0.9;
+}
+
+/* 스피너 (협회 탭용) */
+.class-catalog .ad-spinner {
+    width: 32px;
+    height: 32px;
+    border: 3px solid var(--cc-border);
+    border-top-color: var(--cc-primary);
+    border-radius: 50%;
+    animation: cc-spin 0.8s linear infinite;
+    margin: 0 auto 12px;
+}
+
+@keyframes cc-spin {
+    to { transform: rotate(360deg); }
+}
+
+
+/* ----------------------------------------
+   14. 협회 탭 반응형
+   ---------------------------------------- */
+@media (max-width: 992px) {
+    .class-catalog .affil-benefits {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .class-catalog .affil-incentive-table__grid {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .class-catalog .affil-incentive-table__tier {
+        flex-direction: row;
+        justify-content: space-between;
+        padding: 14px 16px;
+    }
+}
+
+@media (max-width: 768px) {
+    .class-catalog .catalog-tabs {
+        padding: 0 16px;
+    }
+
+    .class-catalog .catalog-tabs__btn {
+        padding: 12px 16px;
+        font-size: 14px;
+    }
+
+    .class-catalog .affil-section {
+        padding: 0 16px 40px;
+    }
+
+    .class-catalog .affil-hero {
+        margin: 20px 0;
+        padding: 28px 20px;
+    }
+
+    .class-catalog .affil-hero__title {
+        font-size: 20px;
+    }
+
+    .class-catalog .affil-hero__desc {
+        font-size: 14px;
+    }
+
+    .class-catalog .affil-benefits {
+        grid-template-columns: 1fr 1fr;
+        gap: 10px;
+    }
+
+    .class-catalog .affil-benefits__card {
+        padding: 16px 12px;
+    }
+
+    .class-catalog .affil-list__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .class-catalog .affil-card__tiers {
+        flex-direction: column;
+    }
+
+    .class-catalog .affil-card__tier {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+
+    .class-catalog .affil-cta {
+        padding: 28px 20px;
+    }
+
+    .class-catalog .affil-cta__title {
+        font-size: 18px;
     }
 }

@@ -38,6 +38,20 @@
         </div>
     </header>
 
+    <!-- 탭 네비게이션 -->
+    <nav class="catalog-tabs" role="tablist" aria-label="콘텐츠 탭">
+        <button class="catalog-tabs__btn catalog-tabs__btn--active" role="tab" aria-selected="true" data-tab="classes" id="tabClasses">
+            전체 클래스
+        </button>
+        <button class="catalog-tabs__btn" role="tab" aria-selected="false" data-tab="affiliations" id="tabAffiliations">
+            협회 제휴
+            <span class="catalog-tabs__badge" id="affilBadge"></span>
+        </button>
+    </nav>
+
+    <!-- 클래스 탭 콘텐츠 (기본 표시) -->
+    <div class="catalog-tab-panel" id="panelClasses" role="tabpanel">
+
     <!-- 모바일 필터 토글 버튼 -->
     <button class="filter-toggle" type="button" aria-label="필터 열기" aria-expanded="false" aria-controls="filterPanel">
         <svg class="filter-toggle__icon" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -243,6 +257,53 @@
         <!-- 콘텐츠 영역 -->
         <main class="catalog-content">
 
+            <section class="catalog-quick-filters" id="catalogQuickFilters" aria-label="빠른 탐색 필터">
+                <div class="quick-filter-group">
+                    <span class="quick-filter-group__label">카테고리</span>
+                    <div class="quick-filter-group__chips">
+                        <button type="button" class="quick-filter-chip" data-quick-key="category" data-value="압화">압화</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="category" data-value="보존화">보존화</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="category" data-value="캔들">캔들</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="category" data-value="리스">리스</button>
+                    </div>
+                </div>
+
+                <div class="quick-filter-group">
+                    <span class="quick-filter-group__label">지역</span>
+                    <div class="quick-filter-group__chips">
+                        <button type="button" class="quick-filter-chip" data-quick-key="region" data-value="서울">서울</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="region" data-value="경기">경기</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="region" data-value="부산">부산</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="region" data-value="대구">대구</button>
+                    </div>
+                </div>
+
+                <div class="quick-filter-group">
+                    <span class="quick-filter-group__label">형태</span>
+                    <div class="quick-filter-group__chips">
+                        <button type="button" class="quick-filter-chip quick-filter-chip--single" data-quick-key="format" data-value="오프라인">오프라인</button>
+                        <button type="button" class="quick-filter-chip quick-filter-chip--single" data-quick-key="format" data-value="온라인">온라인</button>
+                    </div>
+                </div>
+
+                <div class="quick-filter-group">
+                    <span class="quick-filter-group__label">가격대</span>
+                    <div class="quick-filter-group__chips">
+                        <button type="button" class="quick-filter-chip quick-filter-chip--single" data-quick-key="maxPrice" data-value="50000">5만원 이하</button>
+                        <button type="button" class="quick-filter-chip quick-filter-chip--single" data-quick-key="maxPrice" data-value="100000">10만원 이하</button>
+                    </div>
+                </div>
+
+                <div class="quick-filter-group">
+                    <span class="quick-filter-group__label">난이도</span>
+                    <div class="quick-filter-group__chips">
+                        <button type="button" class="quick-filter-chip" data-quick-key="level" data-value="입문">입문</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="level" data-value="중급">중급</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="level" data-value="심화">심화</button>
+                    </div>
+                </div>
+            </section>
+
             <!-- 상단 정렬/뷰 바 -->
             <div class="sort-bar">
                 <div class="sort-bar__left">
@@ -339,6 +400,98 @@
         </main>
 
     </div><!-- /.catalog-layout -->
+
+    </div><!-- /#panelClasses -->
+
+    <!-- 협회 제휴 탭 콘텐츠 (기본 숨김) -->
+    <div class="catalog-tab-panel" id="panelAffiliations" role="tabpanel" style="display:none">
+        <div class="affil-section">
+            <!-- 협회 제휴 소개 -->
+            <div class="affil-hero">
+                <div class="affil-hero__inner">
+                    <h2 class="affil-hero__title">협회 제휴 프로그램</h2>
+                    <p class="affil-hero__desc">PRESSCO21은 꽃 공예 관련 협회와 함께합니다. 협회원 전용 할인, 연간 인센티브, 무료 홍보 채널을 제공합니다.</p>
+                </div>
+            </div>
+
+            <!-- 혜택 요약 -->
+            <div class="affil-benefits">
+                <div class="affil-benefits__card">
+                    <div class="affil-benefits__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                    </div>
+                    <h3 class="affil-benefits__title">협회원 전용 할인</h3>
+                    <p class="affil-benefits__desc">전 상품 10~20% 할인 쿠폰 제공</p>
+                </div>
+                <div class="affil-benefits__card">
+                    <div class="affil-benefits__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                    </div>
+                    <h3 class="affil-benefits__title">연간 인센티브</h3>
+                    <p class="affil-benefits__desc">구매 누적액 기반 협회 운영비 지원</p>
+                </div>
+                <div class="affil-benefits__card">
+                    <div class="affil-benefits__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    </div>
+                    <h3 class="affil-benefits__title">무료 홍보 채널</h3>
+                    <p class="affil-benefits__desc">협회 행사를 4,000+ 회원에게 노출</p>
+                </div>
+                <div class="affil-benefits__card">
+                    <div class="affil-benefits__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                    </div>
+                    <h3 class="affil-benefits__title">파트너 우선 심사</h3>
+                    <p class="affil-benefits__desc">협회 인증 강사 간소화 승인</p>
+                </div>
+            </div>
+
+            <!-- 인센티브 단계표 -->
+            <div class="affil-incentive-table">
+                <h3 class="affil-incentive-table__title">인센티브 달성 기준</h3>
+                <div class="affil-incentive-table__grid">
+                    <div class="affil-incentive-table__tier">
+                        <span class="affil-incentive-table__level">1단계</span>
+                        <span class="affil-incentive-table__target">연 500만원 이상</span>
+                        <span class="affil-incentive-table__reward">25만원 지원</span>
+                    </div>
+                    <div class="affil-incentive-table__tier">
+                        <span class="affil-incentive-table__level">2단계</span>
+                        <span class="affil-incentive-table__target">연 1,000만원 이상</span>
+                        <span class="affil-incentive-table__reward">50만원 지원</span>
+                    </div>
+                    <div class="affil-incentive-table__tier">
+                        <span class="affil-incentive-table__level">3단계</span>
+                        <span class="affil-incentive-table__target">연 2,000만원 이상</span>
+                        <span class="affil-incentive-table__reward">120만원 지원</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 제휴 협회 목록 (JS 동적 렌더링) -->
+            <div class="affil-list">
+                <h3 class="affil-list__title">제휴 협회</h3>
+                <div class="affil-list__grid" id="affilGrid">
+                    <!-- JS: 협회 카드 동적 렌더링 -->
+                </div>
+                <div class="affil-list__empty" id="affilEmpty" style="display:none">
+                    <p>현재 제휴 협회를 준비 중입니다.</p>
+                    <p>제휴 문의: <a href="mailto:pressco5755@naver.com">pressco5755@naver.com</a></p>
+                </div>
+                <div class="affil-list__loading" id="affilLoading" style="display:none">
+                    <div class="ad-spinner"></div>
+                    <p>불러오는 중...</p>
+                </div>
+            </div>
+
+            <!-- 제휴 문의 CTA -->
+            <div class="affil-cta">
+                <h3 class="affil-cta__title">협회 제휴를 원하시나요?</h3>
+                <p class="affil-cta__desc">비용 부담 없이 협회원에게 실질적인 혜택을 제공할 수 있습니다. 언제든 연락주세요.</p>
+                <a href="mailto:pressco5755@naver.com" class="affil-cta__btn">제휴 문의하기</a>
+            </div>
+        </div>
+    </div><!-- /#panelAffiliations -->
 
     <!-- Schema.org ItemList (JS 동적 주입) -->
     <script type="application/ld+json" id="schemaItemList">

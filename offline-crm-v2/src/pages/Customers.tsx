@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Search, ChevronLeft, ChevronRight, Plus, Pencil, Trash2 } from 'lucide-react'
@@ -6,10 +6,12 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { deleteCustomer, getCustomers, sanitizeSearchTerm } from '@/lib/api'
-import type { Customer } from '@/lib/api'
+import { deleteCustomer, getAllInvoices, getCustomers, sanitizeSearchTerm } from '@/lib/api'
+import type { Customer, Invoice } from '@/lib/api'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
 import { CustomerDialog } from '@/components/CustomerDialog'
+import { getLegacyCustomerSnapshots } from '@/lib/legacySnapshots'
+import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
 
 const PAGE_SIZE = 25
 
@@ -20,6 +22,44 @@ function useDebounce<T>(value: T, delay: number): T {
     return () => clearTimeout(t)
   }, [value, delay])
   return debounced
+}
+
+function normalizeLookup(value?: string | null): string {
+  return (value ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+}
+
+function extractAliasRoot(value?: string | null): string {
+  return normalizeLookup((value ?? '').split('(')[0])
+}
+
+function resolveSplitInvoiceAliases(customer: Customer, invoices: Invoice[]): string[] {
+  const customerName = normalizeLookup(customer.name)
+  const customerBookName = normalizeLookup(customer.book_name)
+
+  if (!customerName && !customerBookName) return []
+
+  const aliases = new Set<string>()
+  for (const invoice of invoices) {
+    const rawInvoiceName = invoice.customer_name?.trim()
+    if (!rawInvoiceName) continue
+    if (rawInvoiceName === customer.name?.trim() || rawInvoiceName === customer.book_name?.trim()) continue
+
+    const invoiceName = normalizeLookup(rawInvoiceName)
+    const invoiceRoot = extractAliasRoot(rawInvoiceName)
+    const linkedById = invoice.customer_id === customer.Id
+    const linkedByName =
+      Boolean(customerName) &&
+      (invoiceName === customerName || invoiceRoot === customerName || invoiceName.includes(customerName))
+    const linkedByBookName =
+      Boolean(customerBookName) &&
+      (customerBookName.includes(invoiceName) || customerBookName.includes(invoiceRoot))
+
+    if (linkedById || linkedByName || linkedByBookName) {
+      aliases.add(rawInvoiceName)
+    }
+  }
+
+  return Array.from(aliases)
 }
 
 export function Customers() {
@@ -72,6 +112,34 @@ export function Customers() {
   const totalPages = Math.ceil(totalRows / PAGE_SIZE)
   const customers = data?.list ?? []
 
+  const { data: invoiceAliases = [] } = useQuery({
+    queryKey: ['customer-split-invoice-aliases'],
+    queryFn: () => getAllInvoices({
+      where: '(payment_status,eq,unpaid)~or(payment_status,eq,partial)',
+      fields: 'Id,customer_id,customer_name,invoice_date,total_amount,paid_amount,payment_status',
+    }),
+    staleTime: 10 * 60_000,
+  })
+  const { data: legacySnapshots } = useQuery({
+    queryKey: ['customer-legacy-snapshots'],
+    queryFn: getLegacyCustomerSnapshots,
+    staleTime: Infinity,
+  })
+
+  const splitAliasMap = useMemo(() => {
+    return new Map(
+      customers.map((customer) => [customer.Id, resolveSplitInvoiceAliases(customer, invoiceAliases)] as const),
+    )
+  }, [customers, invoiceAliases])
+
+  const receivableAmountMap = useMemo(() => {
+    if (!legacySnapshots) return new Map<number, number>()
+    const asOfDate = new Date().toISOString().slice(0, 10)
+    const resolvedInvoices = buildResolvedReceivableInvoices(invoiceAliases, customers, asOfDate)
+    const summary = buildCustomerReceivableLedger(customers, resolvedInvoices, legacySnapshots)
+    return new Map(summary.map((item) => [item.customerId, item.totalRemaining]))
+  }, [customers, invoiceAliases, legacySnapshots])
+
   async function handleDelete(customer: Customer) {
     if (!confirm(`"${customer.name ?? '이 고객'}"을(를) 삭제하시겠습니까?`)) return
     setDeletingId(customer.Id)
@@ -111,7 +179,7 @@ export function Customers() {
         <div className="relative flex-1 min-w-48 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
-            placeholder="거래처명 검색..."
+            placeholder="거래처명/얼마에요 구분명 검색..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             className="pl-9"
@@ -199,98 +267,108 @@ export function Customers() {
               </tr>
             )}
             {customers.map((c) => (
-              <tr
-                key={c.Id}
-                className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors"
-                onClick={() => navigate(`/customers/${c.Id}`)}
-              >
-                <td className="px-4 py-3">
-                  <div className="font-medium">{c.name ?? '-'}</div>
-                  {c.book_name && c.book_name !== c.name && (
-                    <div className="mt-0.5 text-xs text-muted-foreground">
-                      얼마에요 구분명: {c.book_name}
-                    </div>
-                  )}
-                </td>
-                <td className="px-4 py-3 text-xs text-muted-foreground">
-                  {CUSTOMER_TYPE_LABELS[c.customer_type ?? ''] ?? c.customer_type ?? '-'}
-                </td>
-                <td className="px-4 py-3">
-                  {c.customer_status && STATUS_COLORS[c.customer_status] ? (
-                    <span
-                      className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
-                      style={{ backgroundColor: STATUS_COLORS[c.customer_status].bg }}
-                    >
-                      {STATUS_COLORS[c.customer_status].label}
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </td>
-                <td className="px-4 py-3">
-                  {(() => {
-                    const effectiveGrade = c.is_ambassador ? 'AMBASSADOR' : (c.member_grade ?? '')
-                    return effectiveGrade && GRADE_COLORS[effectiveGrade] ? (
-                      <span
-                        className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium"
-                        style={{ backgroundColor: GRADE_COLORS[effectiveGrade].bg, color: GRADE_COLORS[effectiveGrade].text }}
-                      >
-                        {effectiveGrade === 'AMBASSADOR' && '★'}
-                        {GRADE_COLORS[effectiveGrade].label}
-                      </span>
-                    ) : (
-                      <span className="text-muted-foreground text-xs">-</span>
-                    )
-                  })()}
-                </td>
-                <td className="px-4 py-3 text-right text-muted-foreground text-xs">
-                  {c.last_order_date ? c.last_order_date.slice(0, 10) : '-'}
-                </td>
-                <td className="px-4 py-3 text-right font-medium">
-                  {c.total_order_amount != null
-                    ? `${c.total_order_amount.toLocaleString()}원`
-                    : '-'}
-                </td>
-                <td className="px-4 py-3 text-right">
-                  {c.outstanding_balance != null && c.outstanding_balance > 0 ? (
-                    <span className="text-red-600 font-medium text-xs">
-                      {c.outstanding_balance.toLocaleString()}원
-                    </span>
-                  ) : (
-                    <span className="text-muted-foreground">-</span>
-                  )}
-                </td>
-                <td className="px-2 py-3">
-                  <div className="flex justify-end gap-1">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0"
-                      title="수정"
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        setSelectedCustomer(c)
-                        setDialogOpen(true)
-                      }}
-                    >
-                      <Pencil className="h-3.5 w-3.5" />
-                    </Button>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
-                      title="삭제"
-                      disabled={deletingId === c.Id}
-                      onClick={(e) => {
-                        e.stopPropagation()
-                        void handleDelete(c)
-                      }}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
-                  </div>
-                </td>
-              </tr>
+              (() => {
+                const splitAliases = splitAliasMap.get(c.Id) ?? []
+                return (
+                  <tr
+                    key={c.Id}
+                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors"
+                    onClick={() => navigate(`/customers/${c.Id}`)}
+                  >
+                    <td className="px-4 py-3">
+                      <div className="font-medium">{c.name ?? '-'}</div>
+                      {c.book_name && c.book_name !== c.name && (
+                        <div className="mt-0.5 text-xs text-muted-foreground">
+                          얼마에요 구분명: {c.book_name}
+                        </div>
+                      )}
+                      {splitAliases.map((alias) => (
+                        <div key={alias} className="mt-0.5 text-xs text-amber-700">
+                          분리 거래명: {alias}
+                        </div>
+                      ))}
+                    </td>
+                    <td className="px-4 py-3 text-xs text-muted-foreground">
+                      {CUSTOMER_TYPE_LABELS[c.customer_type ?? ''] ?? c.customer_type ?? '-'}
+                    </td>
+                    <td className="px-4 py-3">
+                      {c.customer_status && STATUS_COLORS[c.customer_status] ? (
+                        <span
+                          className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium text-white"
+                          style={{ backgroundColor: STATUS_COLORS[c.customer_status].bg }}
+                        >
+                          {STATUS_COLORS[c.customer_status].label}
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {(() => {
+                        const effectiveGrade = c.is_ambassador ? 'AMBASSADOR' : (c.member_grade ?? '')
+                        return effectiveGrade && GRADE_COLORS[effectiveGrade] ? (
+                          <span
+                            className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-xs font-medium"
+                            style={{ backgroundColor: GRADE_COLORS[effectiveGrade].bg, color: GRADE_COLORS[effectiveGrade].text }}
+                          >
+                            {effectiveGrade === 'AMBASSADOR' && '★'}
+                            {GRADE_COLORS[effectiveGrade].label}
+                          </span>
+                        ) : (
+                          <span className="text-muted-foreground text-xs">-</span>
+                        )
+                      })()}
+                    </td>
+                    <td className="px-4 py-3 text-right text-muted-foreground text-xs">
+                      {c.last_order_date ? c.last_order_date.slice(0, 10) : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-right font-medium">
+                      {c.total_order_amount != null
+                        ? `${c.total_order_amount.toLocaleString()}원`
+                        : '-'}
+                    </td>
+                    <td className="px-4 py-3 text-right">
+                      {(receivableAmountMap.get(c.Id) ?? 0) > 0 ? (
+                        <span className="text-red-600 font-medium text-xs">
+                          {(receivableAmountMap.get(c.Id) ?? 0).toLocaleString()}원
+                        </span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                    </td>
+                    <td className="px-2 py-3">
+                      <div className="flex justify-end gap-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          title="수정"
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            setSelectedCustomer(c)
+                            setDialogOpen(true)
+                          }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
+                          title="삭제"
+                          disabled={deletingId === c.Id}
+                          onClick={(e) => {
+                            e.stopPropagation()
+                            void handleDelete(c)
+                          }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </td>
+                  </tr>
+                )
+              })()
             ))}
           </tbody>
         </table>

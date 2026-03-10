@@ -71,6 +71,7 @@ export interface LegacySnapshotMatchTarget {
   email?: string
   biz_no?: string
   business_no?: string
+  memo?: string
 }
 
 let legacySnapshotPromise: Promise<LegacyCustomerSnapshotPayload> | null = null
@@ -108,6 +109,11 @@ export function deriveLegacyTradebookSnapshot(
   if (legacyId) {
     const snapshot = snapshots.tradebookByLegacyId?.[legacyId]
     if (snapshot) return { snapshot, matchReason: 'legacy_id' }
+  }
+
+  // 분리 거래명으로 생성한 CRM 전용 고객은 레거시 장부 baseline을 상속하지 않는다.
+  if ((customer.memo ?? '').includes('분리 거래명 별도 고객')) {
+    return {}
   }
 
   const customerMobile = normalizePhoneLike(customer.mobile)
@@ -175,4 +181,17 @@ export async function getLegacyBalanceBaseline(customer: LegacySnapshotMatchTarg
   const snapshots = await getLegacyCustomerSnapshots()
   const { snapshot } = deriveLegacyTradebookSnapshot(customer, snapshots)
   return parseInteger(snapshot?.balance)
+}
+
+export async function getLegacyReceivableBaseline(customer: LegacySnapshotMatchTarget | undefined): Promise<number> {
+  const baseline = await getLegacyBalanceBaseline(customer)
+  return Math.abs(baseline)
+}
+
+export function getLegacyReceivableBaselineFromSnapshots(
+  customer: LegacySnapshotMatchTarget | undefined,
+  snapshots: LegacyCustomerSnapshotPayload | undefined,
+): number {
+  const { snapshot } = deriveLegacyTradebookSnapshot(customer, snapshots)
+  return Math.abs(parseInteger(snapshot?.balance))
 }

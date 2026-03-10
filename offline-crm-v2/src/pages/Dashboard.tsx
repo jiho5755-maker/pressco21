@@ -6,7 +6,7 @@ import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
 } from 'recharts'
-import { getCustomers, getTxHistory, getInvoices } from '@/lib/api'
+import { getAllCustomers, getAllInvoices, getCustomers, getTxHistory, getInvoices } from '@/lib/api'
 import {
   COLLECTION_RATE_THRESHOLDS,
   PRESET_LABELS,
@@ -17,6 +17,8 @@ import {
   type PresetKey,
   yoyColor,
 } from '@/lib/reporting'
+import { getLegacyCustomerSnapshots } from '@/lib/legacySnapshots'
+import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
 
 // accounting-specialist 정의 임계값
 const RECEIVABLE_THRESHOLDS = {
@@ -110,16 +112,24 @@ export function Dashboard() {
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
   })
-  // 미수금 전체 거래처 (합계 계산용, TOP10 차트는 slice)
-  // Source of truth: customers.outstanding_balance (CRM 명세표 기반 재계산 값)
+  // 미수금 전체 거래처
+  // Source of truth: 레거시 미수 baseline + CRM 열린 명세표 미수
   const { data: receivablesData } = useQuery({
     queryKey: ['dash-receivables'],
-    queryFn: () => getCustomers({
-      where: '(outstanding_balance,gt,0)',
-      sort: '-outstanding_balance',
-      limit: 200,
-      fields: 'Id,name,outstanding_balance',
-    }),
+    queryFn: async () => {
+      const [customers, invoices, snapshots] = await Promise.all([
+        getAllCustomers({ fields: 'Id,name,book_name,legacy_id,mobile,email,biz_no,business_no,memo' }),
+        getAllInvoices({
+          where: '(payment_status,eq,unpaid)~or(payment_status,eq,partial)',
+          sort: '-invoice_date',
+          fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status',
+        }),
+        getLegacyCustomerSnapshots(),
+      ])
+      const asOfDate = new Date().toISOString().slice(0, 10)
+      const resolvedInvoices = buildResolvedReceivableInvoices(invoices, customers, asOfDate)
+      return buildCustomerReceivableLedger(customers, resolvedInvoices, snapshots)
+    },
     staleTime: 2 * 60_000,
   })
   // 기간 리포트: 수금률+객단가용 (invoices)
@@ -177,10 +187,18 @@ export function Dashboard() {
 
   // 미수금 총액
   const totalReceivables = useMemo(
-    () => (receivablesData?.list ?? []).reduce((s, c) => s + (c.outstanding_balance ?? 0), 0),
+    () => (receivablesData ?? []).reduce((sum, customer) => sum + customer.totalRemaining, 0),
     [receivablesData]
   )
-  const receivableCustomers = receivablesData?.pageInfo?.totalRows ?? 0
+  const receivableCustomers = receivablesData?.length ?? 0
+  const legacyReceivables = useMemo(
+    () => (receivablesData ?? []).reduce((sum, customer) => sum + customer.legacyBaseline, 0),
+    [receivablesData]
+  )
+  const crmReceivables = useMemo(
+    () => (receivablesData ?? []).reduce((sum, customer) => sum + customer.crmRemaining, 0),
+    [receivablesData]
+  )
 
   // 이번 달 명세표 건수 — periodInvoicesRaw에서 클라이언트 필터링
   const thisMonthInvoices = useMemo(
@@ -254,9 +272,9 @@ export function Dashboard() {
   ]
 
   // 미수금 TOP10 (차트용: 상위 10건만 표시)
-  const receivablesChart = (receivablesData?.list ?? []).slice(0, 10).map((c) => ({
-    name: (c.name ?? '').slice(0, 8),
-    amount: c.outstanding_balance ?? 0,
+  const receivablesChart = (receivablesData ?? []).slice(0, 10).map((customer) => ({
+    name: customer.customerName.slice(0, 8),
+    amount: customer.totalRemaining,
   }))
 
   // ── 기간 리포트 계산 ─────────────────────────────────────
@@ -310,14 +328,14 @@ export function Dashboard() {
         <KpiCard
           title="미수금 총액"
           value={`${fmt(totalReceivables)}원`}
-          sub={`${receivableCustomers}곳 미수`}
+          sub={`레거시 ${fmt(legacyReceivables)}원 / CRM ${fmt(crmReceivables)}원`}
           valueClass={totalRecColor}
           icon={totalReceivables >= TOTAL_RECEIVABLE_WARNING ? <AlertTriangle className="h-4 w-4 text-amber-500" /> : undefined}
         />
         <KpiCard
           title="미수금 고객 수"
           value={`${receivableCustomers}곳`}
-          sub="입금 요청 필요"
+          sub="레거시 + CRM 합산"
           valueClass={receivableCustomers > 10 ? 'text-amber-600' : ''}
         />
         <KpiCard

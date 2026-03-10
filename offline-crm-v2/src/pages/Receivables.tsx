@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { useEffect, useMemo, useState } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
 import { Download, AlertCircle, Search } from 'lucide-react'
@@ -8,11 +8,18 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { getAllCustomers, getAllInvoices, getCustomer, updateInvoice, recalcCustomerStats } from '@/lib/api'
 import type { Customer, Invoice } from '@/lib/api'
 import { exportReceivables } from '@/lib/excel'
-import { getLegacyBalanceBaseline } from '@/lib/legacySnapshots'
-import { getPaidAmountAsOf, getPaymentStatusAsOf, getRemainingAmountAsOf } from '@/lib/reporting'
+import { getLegacyCustomerSnapshots, getLegacyReceivableBaseline } from '@/lib/legacySnapshots'
+import { getPaidAmountAsOf } from '@/lib/reporting'
+import {
+  buildCustomerReceivableLedger,
+  buildResolvedReceivableInvoices,
+  resolveInvoiceCustomer,
+  type ResolvedReceivableInvoice,
+} from '@/lib/receivables'
 
 // ─── 에이징 구간 ────────────────────────────────
 const AGING_BUCKETS = [
@@ -204,10 +211,12 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
 
 // ─── 미수금 관리 메인 ───────────────────────────
 export function Receivables() {
+  const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [paymentTarget, setPaymentTarget] = useState<Invoice | null>(null)
   const [customerSearch, setCustomerSearch] = useState(() => searchParams.get('customer') ?? '')
   const [customerIdFilter, setCustomerIdFilter] = useState(() => searchParams.get('customerId') ?? '')
+  const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy'>('all')
   const [asOfDate, setAsOfDate] = useState(() => {
     const value = searchParams.get('asOf')
     return isValidCalendarDate(value) ? value : todayDate()
@@ -243,35 +252,40 @@ export function Receivables() {
       const customer = await getCustomer(Number(customerIdFilter))
       return {
         customer,
-        legacyBaseline: await getLegacyBalanceBaseline(customer),
+        legacyBaseline: await getLegacyReceivableBaseline(customer),
       }
     },
     staleTime: 10 * 60 * 1000,
   })
   const { data: customersForLink = [] } = useQuery({
     queryKey: ['receivable-link-customers'],
-    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id' }),
+    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id,mobile,email,biz_no,business_no,memo' }),
     staleTime: 10 * 60 * 60 * 1000,
+  })
+  const { data: legacySnapshots } = useQuery({
+    queryKey: ['receivable-legacy-snapshots'],
+    queryFn: getLegacyCustomerSnapshots,
+    staleTime: Infinity,
   })
   const customerById = new Map(customersForLink.map((customer) => [customer.Id, customer]))
   const isTodayView = asOfDate === todayDate()
-  const visibleInvoices: ReceivableSnapshot[] = invoices
-    .map((inv) => {
-      const asOfPaidAmount = getPaidAmountAsOf(inv, asOfDate)
-      const asOfRemaining = getRemainingAmountAsOf(inv, asOfDate)
-      const asOfStatus = getPaymentStatusAsOf(inv, asOfDate)
-      return {
-        ...inv,
-        asOfPaidAmount,
-        asOfRemaining,
-        asOfStatus,
-      }
-    })
-    .filter((inv) => {
-      const invoiceDate = inv.invoice_date?.slice(0, 10)
-      if (!invoiceDate) return false
-      return invoiceDate <= asOfDate && inv.asOfRemaining > 0
-    })
+  const resolvedInvoices: ResolvedReceivableInvoice[] = useMemo(
+    () => buildResolvedReceivableInvoices(invoices, customersForLink, asOfDate),
+    [asOfDate, customersForLink, invoices],
+  )
+  const visibleInvoices: ReceivableSnapshot[] = useMemo(() => resolvedInvoices
+    .map((inv) => ({
+      ...inv,
+      customer_id: inv.resolvedCustomerId ?? inv.customer_id,
+      customer_name: inv.resolvedCustomerName,
+      asOfPaidAmount: getPaidAmountAsOf(inv, asOfDate),
+      asOfRemaining: inv.asOfRemaining,
+      asOfStatus: inv.asOfStatus,
+    })), [asOfDate, resolvedInvoices])
+  const receivableLedger = useMemo(
+    () => buildCustomerReceivableLedger(customersForLink, resolvedInvoices, legacySnapshots),
+    [customersForLink, legacySnapshots, resolvedInvoices],
+  )
 
   function applyAsOfDate(nextValue: string) {
     const normalized = nextValue || todayDate()
@@ -293,9 +307,24 @@ export function Receivables() {
     setSearchParams(nextParams, { replace: true })
   }
 
-  // 에이징 집계
+  const normalizedSearch = customerSearch.trim().toLowerCase()
+  const filteredInvoices = visibleInvoices.filter((inv) => {
+    if (customerIdFilter && String(inv.customer_id ?? '') !== customerIdFilter) return false
+    if (!normalizedSearch) return true
+    return (inv.customer_name ?? '').toLowerCase().includes(normalizedSearch)
+  })
+  const filteredLedger = receivableLedger.filter((entry) => {
+    if (customerIdFilter && String(entry.customerId) !== customerIdFilter) return false
+    if (!normalizedSearch) return true
+    return (
+      entry.customerName.toLowerCase().includes(normalizedSearch) ||
+      entry.aliases.some((alias) => alias.toLowerCase().includes(normalizedSearch))
+    )
+  })
+
+  // 에이징 집계는 CRM 명세표 기준으로만 관리한다.
   const aging = AGING_BUCKETS.map((bucket) => {
-    const filtered = visibleInvoices.filter((inv) => {
+    const filtered = filteredInvoices.filter((inv) => {
       const days = getDaysSince(inv.invoice_date, asOfDate)
       return days >= bucket.min && days <= bucket.max
     })
@@ -306,24 +335,25 @@ export function Receivables() {
     }
   })
 
-  const filteredInvoices = visibleInvoices.filter((inv) => {
-    if (customerIdFilter && String(inv.customer_id ?? '') === customerIdFilter) return true
-    if (!customerSearch.trim()) return true
-    return (inv.customer_name ?? '').toLowerCase().includes(customerSearch.trim().toLowerCase())
-  })
-  const filteredTotalReceivable = filteredInvoices.reduce((sum, inv) => sum + inv.asOfRemaining, 0)
+  const filteredLegacyLedger = filteredLedger.filter((entry) => entry.legacyBaseline > 0)
+  const filteredCrmLedger = filteredLedger.filter((entry) => entry.crmRemaining > 0)
+  const filteredTotalReceivable = filteredLedger.reduce((sum, entry) => sum + entry.totalRemaining, 0)
+  const filteredLegacyTotal = filteredLegacyLedger.reduce((sum, entry) => sum + entry.legacyBaseline, 0)
+  const filteredCrmTotal = filteredCrmLedger.reduce((sum, entry) => sum + entry.crmRemaining, 0)
   const criticalCount = filteredInvoices.filter((inv) => {
     const days = getDaysSince(inv.invoice_date, asOfDate)
     return days > 90
   }).length
-  const breakdownCrmReceivable = customerBreakdown ? filteredInvoices.reduce((sum, inv) => sum + inv.asOfRemaining, 0) : 0
+  const breakdownCrmReceivable = customerBreakdown
+    ? filteredInvoices.reduce((sum, inv) => sum + inv.asOfRemaining, 0)
+    : 0
   const breakdownCurrentBalance = customerBreakdown?.customer.outstanding_balance ?? 0
   const receivableLinkSummary = filteredInvoices.reduce((summary, invoice) => {
-    const linkedCustomer = typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined
+    const linkedCustomer = resolveInvoiceCustomer(invoice, customersForLink) ?? (typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined)
     const invoiceName = invoice.customer_name?.trim()
     const masterName = linkedCustomer?.name?.trim()
     const masterBookName = linkedCustomer?.book_name?.trim()
-    if (typeof invoice.customer_id === 'number' && invoice.customer_id > 0 && !linkedCustomer) {
+    if (!linkedCustomer) {
       summary.orphanCount += 1
       return summary
     }
@@ -355,7 +385,8 @@ export function Receivables() {
           <h2 className="text-2xl font-bold">미수금 관리</h2>
           <p className="text-sm text-muted-foreground mt-1">
             총 <span className="font-medium text-red-600">{filteredTotalReceivable.toLocaleString()}원</span>
-            {' / '}{filteredInvoices.length}건
+            {' / '}레거시 {filteredLegacyTotal.toLocaleString()}원
+            {' / '}CRM {filteredCrmTotal.toLocaleString()}원
             {criticalCount > 0 && (
               <span className="ml-2 text-amber-600">
                 <AlertCircle className="inline h-3.5 w-3.5 mr-0.5" />
@@ -417,6 +448,24 @@ export function Receivables() {
         )}
       </div>
 
+      <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <p className="text-xs text-muted-foreground">총 미수금</p>
+          <p className="mt-1 text-base font-semibold text-red-600">{filteredTotalReceivable.toLocaleString()}원</p>
+          <p className="mt-1 text-xs text-muted-foreground">레거시 + CRM 합산</p>
+        </div>
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <p className="text-xs text-muted-foreground">레거시 미수</p>
+          <p className="mt-1 text-base font-semibold text-red-600">{filteredLegacyTotal.toLocaleString()}원</p>
+          <p className="mt-1 text-xs text-muted-foreground">{filteredLegacyLedger.length}개 고객</p>
+        </div>
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <p className="text-xs text-muted-foreground">CRM 미수</p>
+          <p className="mt-1 text-base font-semibold text-red-600">{filteredCrmTotal.toLocaleString()}원</p>
+          <p className="mt-1 text-xs text-muted-foreground">{filteredInvoices.length}개 열린 명세표</p>
+        </div>
+      </div>
+
       {customerBreakdown && (
         <div className="mb-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-lg border bg-white px-4 py-3">
@@ -460,139 +509,236 @@ export function Receivables() {
         </div>
       )}
 
-      {/* 에이징 테이블 */}
-      <div className="rounded-lg border bg-white overflow-hidden mb-6">
-        <div className="px-4 py-3 border-b bg-gray-50">
-          <span className="text-sm font-medium">에이징 분석</span>
-        </div>
-        <table className="w-full text-sm">
-          <thead>
-            <tr className="border-b">
-              {AGING_BUCKETS.map((b) => (
-                <th
-                  key={b.label}
-                  className="text-center px-4 py-2 font-medium text-muted-foreground text-xs"
-                >
-                  {b.label}
-                </th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr className="border-b">
-              {aging.map((b) => (
-                <td key={b.label} className="text-center px-4 py-3">
-                  <div className={`text-base font-bold ${b.min > 90 ? 'text-red-600' : b.min > 30 ? 'text-amber-600' : 'text-gray-800'}`}>
-                    {b.amount.toLocaleString()}원
-                  </div>
-                  <div className="text-xs text-muted-foreground mt-0.5">{b.count}건</div>
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <Tabs value={sourceTab} onValueChange={(value) => setSourceTab(value as 'all' | 'crm' | 'legacy')}>
+        <TabsList className="mb-4">
+          <TabsTrigger value="all">전체</TabsTrigger>
+          <TabsTrigger value="crm">CRM 명세표</TabsTrigger>
+          <TabsTrigger value="legacy">레거시 잔액</TabsTrigger>
+        </TabsList>
 
-      {/* 미수금 목록 */}
-      {filteredInvoices.length === 0 ? (
-        <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
-          해당 기준일까지의 미수금이 없습니다.
-        </div>
-      ) : (
-        <div className="rounded-lg border bg-white overflow-hidden">
-          <table className="w-full text-sm">
-            <thead>
-              <tr className="border-b bg-gray-50">
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">발행번호</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">발행일</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">경과</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">합계</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">입금</th>
-                <th className="text-right px-4 py-3 font-medium text-muted-foreground">미수금</th>
-                <th className="text-left px-4 py-3 font-medium text-muted-foreground">상태</th>
-                <th className="w-24" />
-              </tr>
-            </thead>
-            <tbody>
-              {filteredInvoices.map((inv) => {
-                const days = getDaysSince(inv.invoice_date, asOfDate)
-                const ageColor =
-                  days > 180
-                    ? 'text-red-700 font-bold'
-                    : days > 90
-                      ? 'text-red-500'
-                      : days > 60
-                        ? 'text-amber-600'
-                        : 'text-muted-foreground'
-                return (
-                  <tr key={inv.Id} className="border-b last:border-b-0">
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium">{inv.customer_name ?? '-'}</div>
-                      {(() => {
-                        const linkedCustomer = typeof inv.customer_id === 'number' ? customerById.get(inv.customer_id) : undefined
-                        const invoiceName = inv.customer_name?.trim()
-                        const masterName = linkedCustomer?.name?.trim()
-                        const masterBookName = linkedCustomer?.book_name?.trim()
-                        if (typeof inv.customer_id === 'number' && inv.customer_id > 0 && !linkedCustomer) {
-                          return <div className="mt-0.5 text-xs text-amber-700">고객관리 연결 없음 · 분리 거래명 유지</div>
-                        }
-                        if (linkedCustomer && invoiceName && invoiceName !== masterName && invoiceName !== masterBookName) {
-                          return <div className="mt-0.5 text-xs text-amber-700">고객관리: {masterName || '-'} · 분리 거래명 유지</div>
-                        }
-                        if (linkedCustomer && masterBookName && masterBookName !== masterName && invoiceName === masterBookName) {
-                          return <div className="mt-0.5 text-xs text-muted-foreground">얼마에요 구분명 기준</div>
-                        }
-                        return null
-                      })()}
-                    </td>
-                    <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
-                      {inv.invoice_no ?? '-'}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
-                      {inv.invoice_date?.slice(0, 10) ?? '-'}
-                    </td>
-                    <td className={`px-4 py-2.5 text-right text-xs ${ageColor}`}>
-                      {days}일
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      {(inv.total_amount ?? 0).toLocaleString()}원
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
-                      {inv.asOfPaidAmount > 0
-                        ? `${inv.asOfPaidAmount.toLocaleString()}원`
-                        : '-'}
-                    </td>
-                    <td className="px-4 py-2.5 text-right font-medium text-red-600">
-                      {inv.asOfRemaining.toLocaleString()}원
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <span
-                        className={`text-xs font-medium ${
-                          inv.asOfStatus === 'partial' ? 'text-amber-600' : 'text-red-600'
-                        }`}
-                      >
-                        {inv.asOfStatus === 'partial' ? '부분수금' : '미수금'}
-                      </span>
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        disabled={!isTodayView}
-                        onClick={() => setPaymentTarget(inv)}
-                      >
-                        입금 확인
-                      </Button>
+        <TabsContent value="all" className="space-y-4">
+          <div className="rounded-lg border bg-white overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">레거시</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">CRM</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">총 미수금</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">구분</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLedger.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+                      해당 기준일까지의 미수금이 없습니다.
                     </td>
                   </tr>
-                )
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
+                )}
+                {filteredLedger.map((entry) => (
+                  <tr
+                    key={entry.customerId}
+                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => navigate(`/customers/${entry.customerId}`)}
+                  >
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium">{entry.customerName}</div>
+                      {entry.aliases.length > 0 && (
+                        <div className="mt-0.5 text-xs text-amber-700">
+                          분리 거래명: {entry.aliases.join(', ')}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-xs">
+                      {entry.legacyBaseline > 0 ? `${entry.legacyBaseline.toLocaleString()}원` : '-'}
+                    </td>
+                    <td className="px-4 py-2.5 text-right text-xs">
+                      {entry.crmRemaining > 0 ? `${entry.crmRemaining.toLocaleString()}원` : '-'}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-medium text-red-600">
+                      {entry.totalRemaining.toLocaleString()}원
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {entry.source === 'both' ? '레거시 + CRM' : entry.source === 'legacy' ? '레거시' : 'CRM'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="crm" className="space-y-4">
+          <div className="rounded-lg border bg-white overflow-hidden">
+            <div className="px-4 py-3 border-b bg-gray-50">
+              <span className="text-sm font-medium">에이징 분석</span>
+            </div>
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b">
+                  {AGING_BUCKETS.map((b) => (
+                    <th key={b.label} className="text-center px-4 py-2 font-medium text-muted-foreground text-xs">
+                      {b.label}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                <tr className="border-b">
+                  {aging.map((b) => (
+                    <td key={b.label} className="text-center px-4 py-3">
+                      <div className={`text-base font-bold ${b.min > 90 ? 'text-red-600' : b.min > 30 ? 'text-amber-600' : 'text-gray-800'}`}>
+                        {b.amount.toLocaleString()}원
+                      </div>
+                      <div className="text-xs text-muted-foreground mt-0.5">{b.count}건</div>
+                    </td>
+                  ))}
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          {filteredInvoices.length === 0 ? (
+            <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
+              해당 기준일까지의 CRM 미수 명세표가 없습니다.
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-white overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">발행번호</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">발행일</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">경과</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">합계</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">입금</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">미수금</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">상태</th>
+                    <th className="w-24" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredInvoices.map((inv) => {
+                    const days = getDaysSince(inv.invoice_date, asOfDate)
+                    const ageColor =
+                      days > 180
+                        ? 'text-red-700 font-bold'
+                        : days > 90
+                          ? 'text-red-500'
+                          : days > 60
+                            ? 'text-amber-600'
+                            : 'text-muted-foreground'
+                    return (
+                      <tr key={inv.Id} className="border-b last:border-b-0">
+                        <td className="px-4 py-2.5">
+                          <div className="font-medium">{inv.customer_name ?? '-'}</div>
+                          {(() => {
+                            const linkedCustomer = resolveInvoiceCustomer(inv, customersForLink) ?? (typeof inv.customer_id === 'number' ? customerById.get(inv.customer_id) : undefined)
+                            const invoiceName = inv.customer_name?.trim()
+                            const masterName = linkedCustomer?.name?.trim()
+                            const masterBookName = linkedCustomer?.book_name?.trim()
+                            if (!linkedCustomer) {
+                              return <div className="mt-0.5 text-xs text-amber-700">고객관리 연결 없음 · 분리 거래명 유지</div>
+                            }
+                            if (linkedCustomer && invoiceName && invoiceName !== masterName && invoiceName !== masterBookName) {
+                              return <div className="mt-0.5 text-xs text-amber-700">고객관리: {masterName || '-'} · 분리 거래명 유지</div>
+                            }
+                            if (linkedCustomer && masterBookName && masterBookName !== masterName && invoiceName === masterBookName) {
+                              return <div className="mt-0.5 text-xs text-muted-foreground">얼마에요 구분명 기준</div>
+                            }
+                            return null
+                          })()}
+                        </td>
+                        <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
+                          {inv.invoice_no ?? '-'}
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
+                          {inv.invoice_date?.slice(0, 10) ?? '-'}
+                        </td>
+                        <td className={`px-4 py-2.5 text-right text-xs ${ageColor}`}>
+                          {days}일
+                        </td>
+                        <td className="px-4 py-2.5 text-right">
+                          {(inv.total_amount ?? 0).toLocaleString()}원
+                        </td>
+                        <td className="px-4 py-2.5 text-right text-xs text-muted-foreground">
+                          {inv.asOfPaidAmount > 0 ? `${inv.asOfPaidAmount.toLocaleString()}원` : '-'}
+                        </td>
+                        <td className="px-4 py-2.5 text-right font-medium text-red-600">
+                          {inv.asOfRemaining.toLocaleString()}원
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <span className={`text-xs font-medium ${inv.asOfStatus === 'partial' ? 'text-amber-600' : 'text-red-600'}`}>
+                            {inv.asOfStatus === 'partial' ? '부분수금' : '미수금'}
+                          </span>
+                        </td>
+                        <td className="px-4 py-2.5">
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs"
+                            disabled={!isTodayView}
+                            onClick={() => setPaymentTarget(inv)}
+                          >
+                            입금 확인
+                          </Button>
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+        </TabsContent>
+
+        <TabsContent value="legacy">
+          <div className="rounded-lg border bg-white overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">레거시 미수금</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredLegacyLedger.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-12 text-center text-muted-foreground">
+                      레거시 미수 고객이 없습니다.
+                    </td>
+                  </tr>
+                )}
+                {filteredLegacyLedger.map((entry) => (
+                  <tr
+                    key={entry.customerId}
+                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => navigate(`/customers/${entry.customerId}`)}
+                  >
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium">{entry.customerName}</div>
+                      {entry.aliases.length > 0 && (
+                        <div className="mt-0.5 text-xs text-amber-700">
+                          분리 거래명: {entry.aliases.join(', ')}
+                        </div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-medium text-red-600">
+                      {entry.legacyBaseline.toLocaleString()}원
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {entry.crmRemaining > 0 ? `CRM 미수 ${entry.crmRemaining.toLocaleString()}원 별도 보유` : '레거시 원장 기준'}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+      </Tabs>
 
       {/* 입금 다이얼로그 */}
       <PaymentDialog

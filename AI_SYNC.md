@@ -51,16 +51,36 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-10 23:25:00 KST
+- Started At: 2026-03-10 23:58:00 KST
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: [CODEX] CRM 레거시/CRM 미수금 통합 집계 및 분리 탭 정리 완료
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
 
-- 없음
+- AI_SYNC.md
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### [CODEX] CRM 레거시/CRM 미수금 집계 통합 (CODEX)
+- `offline-crm-v2/src/lib/legacySnapshots.ts`
+  - 레거시 미수 baseline을 스냅샷만으로 동기 계산할 수 있는 helper를 추가.
+  - `분리 거래명 별도 고객` 메모가 있는 CRM 전용 고객은 부모 레거시 baseline을 상속하지 않도록 유지.
+- `offline-crm-v2/src/lib/receivables.ts`
+  - `legacyBaseline`, `crmRemaining`, `totalRemaining`, `source`를 함께 가지는 고객별 미수 ledger builder를 추가.
+- `offline-crm-v2/src/pages/Dashboard.tsx`
+  - 대시보드 미수금 총액을 `레거시 미수 + CRM 열린 명세표 미수` 합산으로 변경.
+  - KPI 보조문구에 `레거시 / CRM` 분해값을 표시.
+- `offline-crm-v2/src/pages/Customers.tsx`
+  - 고객관리 `미수금` 컬럼이 CRM 명세표만이 아니라 레거시 미수까지 포함한 총 미수금을 표시하도록 변경.
+- `offline-crm-v2/src/pages/Receivables.tsx`
+  - 미수금 탭을 `전체 / CRM 명세표 / 레거시 잔액` 3개 탭으로 분리.
+  - `전체` 탭은 고객 단위 총 미수, `CRM` 탭은 기존 입금 처리 명세표, `레거시` 탭은 원장 기준 고객별 미수를 노출.
+  - 총액 요약은 `레거시 + CRM` 합산으로 통일.
+- 검증
+  - `cd offline-crm-v2 && npm run build`
+  - `cd offline-crm-v2 && bash deploy/deploy.sh`
+  - 결과: 성공, 운영 반영 완료
 
 ### [CODEX-LEAD] 전국 탐색 허브 + 파트너맵 통합 방향 반영 (CODEX)
 - `docs/파트너클래스/shared-service-identity.md`
@@ -885,6 +905,10 @@
 
 ## Next Step
 
+- [CODEX] CRM 운영 화면에서 `서상견 님` / `서상견 님 (단양)` 고객관리, 미수금, 대시보드 숫자가 기대대로 보이는지 실사용 확인
+- [CODEX] CRM `입금 확인` 실행 후 대시보드/고객관리/미수금/고객상세가 같은 값으로 즉시 줄어드는지 회귀 확인
+- [CODEX] CRM 미수금 탭의 `엑셀 내보내기`를 `전체/레거시/CRM` 소스별 내보내기로 분리할지 결정
+
 ### [CODEX-LEAD] 파트너클래스 Phase 3 전체 구현 (독립 프로젝트)
 
 > **이 태스크는 모드 B (독립)입니다. Codex가 기획~구현~배포~검증까지 독립 수행합니다.**
@@ -978,6 +1002,8 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 
 ## Known Risks
 
+- CRM 운영 반영은 완료했지만, Basic Auth 자격증명 제약으로 운영 브라우저 화면의 최종 시각 검증은 아직 못 했음
+- CRM 미수금 `전체`/`레거시` 탭은 고객 단위 집계이고 `CRM` 탭만 명세표 단위라, 엑셀 내보내기 포맷은 아직 CRM 명세표 기준만 지원함
 - 이번 UX 수정은 아직 메이크샵에 저장되지 않았으므로, 실제 라이브 재검증 전까지는 기존 `/member/login.html` 및 선물하기 동작이 남아 있을 수 있음
 - 클래스 실상품 `branduid=12195642` 기준 상품 상세에는 native `.btn-gift` 링크가 노출되지 않아, 상품 설정상 선물하기가 비활성인 경우 프론트는 `basket.action` 기반 선물 주문 진입으로만 폴백함
 - `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음

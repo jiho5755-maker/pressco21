@@ -227,8 +227,27 @@
                 <!-- FAQ / 문의 -->
                 <section class="detail-section detail-faq" id="tabFaq" role="tabpanel" aria-labelledby="tab-faq" style="display:none;">
                     <h2 class="detail-section__title">자주 묻는 질문</h2>
+                    <p class="detail-section__subtitle">가격, 일정, 키트 배송, 환불 기준까지 예약 전에 많이 묻는 질문을 먼저 확인하세요.</p>
+                    <div class="faq-toolbar">
+                        <label class="faq-search" for="faqSearchInput">
+                            <span class="faq-search__icon" aria-hidden="true">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+                                    <circle cx="7" cy="7" r="4.5" stroke="currentColor" stroke-width="1.3"></circle>
+                                    <path d="M10.5 10.5L14 14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"></path>
+                                </svg>
+                            </span>
+                            <input type="search" class="faq-search__input" id="faqSearchInput" placeholder="가격, 환불, 준비물, 키트 배송 등을 검색하세요." autocomplete="off">
+                        </label>
+                        <div class="faq-category-list" id="faqCategoryList" aria-label="FAQ 카테고리 필터">
+                            <!-- JS: 카테고리 필터 동적 렌더링 -->
+                        </div>
+                        <p class="faq-result" id="faqResultCount" aria-live="polite"></p>
+                    </div>
                     <div class="faq-list" id="faqList">
                         <!-- JS: renderFaqSection()에서 동적 렌더링 -->
+                    </div>
+                    <div class="faq-empty" id="faqEmpty" style="display:none;">
+                        <!-- JS: 검색 결과가 없을 때 안내 메시지 렌더링 -->
                     </div>
                     <div class="faq-contact" id="faqContact">
                         <!-- JS: 문의 연락처 렌더링 -->

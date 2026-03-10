@@ -84,6 +84,17 @@
     /** 갤러리 이미지 배열 (라이트박스용) */
     var galleryImages = [];
 
+    /** FAQ 카테고리 순서 */
+    var FAQ_CATEGORY_ALL = '\uC804\uCCB4';
+    var FAQ_CATEGORY_ORDER = [FAQ_CATEGORY_ALL, '\uC218\uAC15', '\uD0A4\uD2B8\u00B7\uBC30\uC1A1', '\uD30C\uD2B8\uB108', '\uC815\uC0B0', '\uAE30\uD0C0'];
+
+    /** FAQ UI 상태 */
+    var faqState = {
+        items: [],
+        category: FAQ_CATEGORY_ALL,
+        keyword: ''
+    };
+
 
     /* ========================================
        초기화
@@ -2125,66 +2136,454 @@
     function renderFaqSection(data) {
         var faqList = document.getElementById('faqList');
         var faqContact = document.getElementById('faqContact');
-        if (!faqList || !faqContact) return;
+        var faqCategoryList = document.getElementById('faqCategoryList');
+        var faqSearchInput = document.getElementById('faqSearchInput');
+        var faqResultCount = document.getElementById('faqResultCount');
+        var faqEmpty = document.getElementById('faqEmpty');
+        if (!faqList || !faqContact || !faqCategoryList || !faqSearchInput || !faqResultCount || !faqEmpty) return;
 
-        var faqs = [
-            { q: '\uc218\uc5c5\uc744 \ucde8\uc18c\ud558\uace0 \uc2f6\uc5b4\uc694. \ud658\ubd88\uc774 \uac00\ub2a5\ud55c\uac00\uc694?', a: '\uc218\uc5c5 3\uc77c \uc804\uae4c\uc9c0 \uc804\uc561 \ud658\ubd88 \uac00\ub2a5\ud569\ub2c8\ub2e4. 2\uc77c \uc804 50%, 1\uc77c \uc804/\ub2f9\uc77c\uc740 \ud658\ubd88\uc774 \uc5b4\ub835\uc2b5\ub2c8\ub2e4. \uace0\uac1d\uc13c\ud130\ub85c \ubb38\uc758\ud574 \uc8fc\uc138\uc694.' },
-            { q: '\uc7ac\ub8cc\ub294 \uc9c1\uc811 \uac00\uc838\uac00\uc57c \ud558\ub098\uc694?', a: '\ubaa8\ub4e0 \uc7ac\ub8cc\ub294 \uac15\uc0ac\uac00 \uc900\ube44\ud569\ub2c8\ub2e4. \uc7ac\ub8cc\ud0a4\ud2b8 \ud3ec\ud568 \ud074\ub798\uc2a4\ub294 \uc218\uc5c5 \uc804 \ubc30\uc1a1\ub429\ub2c8\ub2e4. \ud3b8\ud55c \ucc28\ub9bc\uc73c\ub85c \uc624\uc138\uc694!' },
-            { q: '\ucd08\ubcf4\uc790\ub3c4 \ucc38\uc5ec\ud560 \uc218 \uc788\ub098\uc694?', a: '\ub124, \ub300\ubd80\ubd84\uc758 \ud074\ub798\uc2a4\ub294 \ucd08\ubcf4\uc790\ub97c \uc704\ud574 \uad6c\uc131\ub418\uc5b4 \uc788\uc2b5\ub2c8\ub2e4. \ud074\ub798\uc2a4 \uc0c1\uc138\uc758 \ub09c\uc774\ub3c4 \ud45c\uc2dc\ub97c \ud655\uc778\ud574 \uc8fc\uc138\uc694.' },
-            { q: '\uc218\uc5c5 \uc2dc\uac04\uc740 \uc5bc\ub9c8\ub098 \uac78\ub9ac\ub098\uc694?', a: '\ud074\ub798\uc2a4\ub9c8\ub2e4 \ub2e4\ub974\uba70, \uc0c1\uc138 \ud398\uc774\uc9c0\uc758 \uc18c\uc694\uc2dc\uac04\uc744 \ud655\uc778\ud574 \uc8fc\uc138\uc694. \ubcf4\ud1b5 1\uc2dc\uac04 30\ubd84 ~ 3\uc2dc\uac04 \uc815\ub3c4\uc785\ub2c8\ub2e4.' },
-            { q: '\uc608\uc57d \uc778\uc6d0\uc744 \ubcc0\uacbd\ud560 \uc218 \uc788\ub098\uc694?', a: '\uc608\uc57d \ud6c4 \uc778\uc6d0 \ubcc0\uacbd\uc740 \uace0\uac1d\uc13c\ud130\ub97c \ud1b5\ud574 \uac00\ub2a5\ud569\ub2c8\ub2e4. \uc794\uc5ec\uc11d\uc774 \uc788\ub294 \uacbd\uc6b0\uc5d0\ub9cc \ucd94\uac00 \uac00\ub2a5\ud569\ub2c8\ub2e4.' }
-        ];
+        faqState.items = getResolvedFaqItems(data);
+        faqState.category = FAQ_CATEGORY_ALL;
+        faqState.keyword = '';
+        faqSearchInput.value = '';
 
-        var html = '';
-        for (var i = 0; i < faqs.length; i++) {
-            html += '<div class="faq-item">'
-                + '<button type="button" class="faq-item__question" aria-expanded="false">'
-                + '<span>Q. ' + escapeHtml(faqs[i].q) + '</span>'
-                + '<svg class="faq-item__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-                + '</button>'
-                + '<div class="faq-item__answer" style="display:none;">'
-                + '<p>' + escapeHtml(faqs[i].a) + '</p>'
-                + '</div>'
-                + '</div>';
+        bindFaqEvents();
+        renderFaqCategoryFilters();
+        renderFilteredFaqList();
+        renderFaqContact(data);
+    }
+
+    function getResolvedFaqItems(data) {
+        var rawFaqs = data ? (data.faq_items || data.faqItems || data.faq_items_json || data.faqItemsJson) : [];
+        var customItems = normalizeFaqItems(parseFaqItemsValue(rawFaqs));
+        var defaultItems = buildDefaultFaqItems(data || {});
+        var merged = mergeFaqItems(customItems, defaultItems);
+
+        if (merged.length > 15) {
+            merged = merged.slice(0, 15);
         }
-        faqList.innerHTML = html;
+        return merged;
+    }
 
-        // FAQ 아코디언 이벤트
-        faqList.addEventListener('click', function(e) {
-            var btn = e.target.closest('.faq-item__question');
-            if (!btn) return;
-            var item = btn.closest('.faq-item');
-            var answer = item.querySelector('.faq-item__answer');
-            var expanded = btn.getAttribute('aria-expanded') === 'true';
-            btn.setAttribute('aria-expanded', String(!expanded));
-            answer.style.display = expanded ? 'none' : 'block';
-        });
+    function parseFaqItemsValue(rawFaqs) {
+        if (!rawFaqs) return [];
+        if (Array.isArray(rawFaqs)) return rawFaqs;
 
-        // 문의 연락처
-        var contactPhone = (data.contact_phone) ? escapeHtml(data.contact_phone) : '010-9848-5520';
-        var contactKakao = (data.contact_kakao) ? escapeHtml(data.contact_kakao) : '';
-        var contactInstagram = (data.partner && data.partner.instagram_url) ? escapeHtml(data.partner.instagram_url) : '';
+        if (typeof rawFaqs === 'string') {
+            var text = rawFaqs.replace(/^\s+|\s+$/g, '');
+            if (!text) return [];
+            try {
+                var parsed = JSON.parse(text);
+                if (Array.isArray(parsed)) return parsed;
+                if (parsed && Array.isArray(parsed.items)) return parsed.items;
+                if (parsed && Array.isArray(parsed.faqs)) return parsed.faqs;
+            } catch (e) {
+                return [];
+            }
+        }
 
-        var contactHtml = '<h3 class="faq-contact__title">\ubb38\uc758\ud558\uae30</h3>'
+        if (rawFaqs && Array.isArray(rawFaqs.items)) return rawFaqs.items;
+        if (rawFaqs && Array.isArray(rawFaqs.faqs)) return rawFaqs.faqs;
+        return [];
+    }
+
+    function normalizeFaqItems(items) {
+        var normalized = [];
+        var i;
+
+        for (i = 0; i < items.length; i++) {
+            var item = items[i] || {};
+            var question = normalizeFaqText(item.q || item.question || item.title || item.name || '');
+            var answer = normalizeFaqText(item.a || item.answer || item.desc || item.body || item.text || '');
+            var category = normalizeFaqCategory(item.category || item.group || item.type || inferFaqCategory(question, answer));
+
+            if (!question || !answer) continue;
+
+            normalized.push({
+                category: category,
+                q: question,
+                a: answer
+            });
+        }
+
+        return normalized;
+    }
+
+    function buildDefaultFaqItems(data) {
+        var levelText = normalizeLevelValue(data.level || '');
+        var durationText = formatDuration(data.duration_min || 0);
+        var priceText = data.price ? formatPrice(data.price) + '\uC6D0' : '\uC0C1\uC138 \uD398\uC774\uC9C0 \uC548\uB0B4 \uAE08\uC561';
+        var classType = getClassTypeLabel(data);
+        var locationText = getFaqLocationText(data, classType);
+        var maxStudents = parseInt(data.max_students, 10);
+        var partnerName = (data.partner && (data.partner.partner_name || data.partner.name)) ? (data.partner.partner_name || data.partner.name) : 'PRESSCO21 \uD30C\uD2B8\uB108 \uACF5\uBC29';
+        var materialItems = getMaterialKitItems(data);
+        var hasKit = materialItems.length > 0;
+        var materialsNote = normalizeFaqText(getMaterialsNoteText(data, materialItems));
+        var includedItems = getIncludesItems(data);
+        var includedTitles = [];
+        var includesSummary = '';
+        var i;
+
+        if (isNaN(maxStudents) || maxStudents <= 0) {
+            maxStudents = DEFAULT_MAX_STUDENTS;
+        }
+
+        for (i = 0; i < includedItems.length; i++) {
+            if (includedItems[i] && includedItems[i].title) {
+                includedTitles.push(includedItems[i].title);
+            }
+        }
+        includesSummary = includedTitles.length > 0 ? normalizeFaqText(includedTitles.join(', ')) : '\uAC15\uC758, \uC7AC\uB8CC\uD0A4\uD2B8, \uC218\uB8CC \uC548\uB0B4';
+
+        return [
+            {
+                category: '\uC218\uAC15',
+                q: '\uCC98\uC74C \uBC30\uC6B0\uB294 \uC0AC\uB78C\uB3C4 \uCC38\uC5EC\uD560 \uC218 \uC788\uB098\uC694?',
+                a: (levelText ? '\uD604\uC7AC \uC774 \uC218\uC5C5\uC740 ' + levelText + ' \uB09C\uC774\uB3C4\uB85C \uC548\uB0B4\uB418\uACE0 \uC788\uACE0, ' : '') + '\uAC15\uC0AC\uAC00 \uB2E8\uACC4\uBCC4\uB85C \uC9C4\uD589\uD558\uAE30 \uB54C\uBB38\uC5D0 \uCD08\uBCF4\uC790\uB3C4 \uB530\uB77C\uC624\uAE30 \uC26C\uC6B4 \uAD6C\uC131\uC785\uB2C8\uB2E4. \uCC98\uC74C \uCC38\uC5EC\uD558\uB294 \uBD84\uC740 \uC218\uC5C5 \uC18C\uAC1C, \uCEE4\uB9AC\uD050\uB7FC, \uC18C\uC694 \uC2DC\uAC04' + (durationText ? ' ' + durationText : '') + '\uC744 \uD568\uAED8 \uBCF4\uACE0 \uC120\uD0DD\uD558\uC2DC\uBA74 \uC88B\uC2B5\uB2C8\uB2E4.'
+            },
+            {
+                category: '\uC218\uAC15',
+                q: '\uC218\uAC15\uB8CC\uC5D0 \uC5B4\uB5A4 \uB0B4\uC6A9\uC774 \uD3EC\uD568\uB418\uB098\uC694?',
+                a: '\uD604\uC7AC \uC548\uB0B4 \uAE08\uC561\uC740 ' + priceText + ' \uAE30\uC900\uC774\uBA70, \uAE30\uBCF8 \uAC15\uC758 \uC9C4\uD589\uACFC \uC218\uC5C5 \uC548\uB0B4\uAC00 \uD3EC\uD568\uB429\uB2C8\uB2E4. \uC0C1\uB2E8 \u2018\uC774 \uAC00\uACA9\uC5D0 \uD3EC\uD568\uB41C \uAC83\u2019 \uC601\uC5ED\uC5D0\uC11C ' + includesSummary + ' \uAD6C\uC131\uC744 \uBC14\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.'
+            },
+            {
+                category: '\uC218\uAC15',
+                q: '\uC624\uD504\uB77C\uC778\uACFC \uC628\uB77C\uC778 \uCC38\uC5EC \uBC29\uC2DD\uC740 \uC5B4\uB5BB\uAC8C \uD655\uC778\uD558\uB098\uC694?',
+                a: locationText + ' ' + classType + ' \uC720\uD615\uC740 \uD074\uB798\uC2A4 \uAE30\uBCF8 \uC815\uBCF4\uC640 \uC77C\uC815 \uC120\uD0DD \uC601\uC5ED\uC5D0\uC11C \uD568\uAED8 \uBCF4\uC2E4 \uC218 \uC788\uACE0, \uC628\uB77C\uC778 \uC218\uC5C5\uC740 \uC608\uC57D \uD655\uC815 \uD6C4 \uC811\uC18D \uC548\uB0B4\uAC00 \uBCC4\uB3C4\uB85C \uC81C\uACF5\uB429\uB2C8\uB2E4.'
+            },
+            {
+                category: '\uC218\uAC15',
+                q: '\uD55C \uBC88\uC5D0 \uBA87 \uBA85\uAE4C\uC9C0 \uC608\uC57D\uD560 \uC218 \uC788\uB098\uC694?',
+                a: '\uAE30\uBCF8 \uC608\uC57D \uC815\uC6D0\uC740 \uCD5C\uB300 ' + maxStudents + '\uBA85 \uAE30\uC900\uC73C\uB85C \uC6B4\uC601\uB429\uB2C8\uB2E4. \uB2E8\uCCB4 \uC218\uAC15, \uAE30\uC5C5/\uD611\uD68C \uC77C\uC815, \uCD94\uAC00 \uC778\uC6D0 \uC870\uC815\uC740 \uD558\uB2E8 \uBB38\uC758\uD558\uAE30\uC5D0\uC11C \uBA3C\uC800 \uC0C1\uB2F4\uD574 \uC8FC\uC138\uC694.'
+            },
+            {
+                category: '\uD0A4\uD2B8\u00B7\uBC30\uC1A1',
+                q: '\uC7AC\uB8CC\uB098 \uB3C4\uAD6C\uB294 \uB530\uB85C \uC900\uBE44\uD574\uC57C \uD558\uB098\uC694?',
+                a: materialsNote + (hasKit ? ' \uD604\uC7AC \uC790\uC0AC\uBAB0 \uC5F0\uB3D9 \uC7AC\uB8CC\uB294 ' + materialItems.length + '\uAC1C \uAE30\uC900\uC73C\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4, \uC218\uC5C5 \uC804 \uBBF8\uB9AC \uAD6C\uC131\uC744 \uBCF4\uACE0 \uC900\uBE44\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.' : '')
+            },
+            {
+                category: '\uD0A4\uD2B8\u00B7\uBC30\uC1A1',
+                q: '\uD0A4\uD2B8 \uD3EC\uD568 \uC218\uC5C5\uC774\uBA74 \uC5B8\uC81C \uBC30\uC1A1\uB418\uB098\uC694?',
+                a: '\uD0A4\uD2B8 \uD3EC\uD568 \uB610\uB294 \uC0AC\uC804 \uC900\uBE44\uAC00 \uD544\uC694\uD55C \uC218\uC5C5\uC740 \uC608\uC57D \uD655\uC815 \uD6C4 \uC77C\uC815\uC5D0 \uB9DE\uCD98 \uC21C\uCC28 \uC548\uB0B4\uC640 \uBC1C\uC1A1\uC774 \uC9C4\uD589\uB429\uB2C8\uB2E4. \uC624\uD504\uB77C\uC778 \uC218\uC5C5\uC740 \uD604\uC7A5 \uC900\uBE44 \uAE30\uC900, \uC628\uB77C\uC778 \uC218\uC5C5\uC740 \uD0DD\uBC30 \uBCF4\uB0B4\uAE30 \uC77C\uC815\uC744 \uD568\uAED8 \uC548\uB0B4\uD574 \uB4DC\uB9BD\uB2C8\uB2E4.'
+            },
+            {
+                category: '\uD0A4\uD2B8\u00B7\uBC30\uC1A1',
+                q: '\uBC30\uC1A1\uC9C0\uB97C \uBC14\uAFB8\uAC70\uB098 \uBD80\uC7AC\uC911 \uC218\uB839\uC774 \uAC71\uC815\uB3FC\uC694.',
+                a: '\uACB0\uC81C \uD6C4 \uBC1C\uC1A1 \uC804 \uB2E8\uACC4\uC5D0\uC11C \uBB38\uC758 \uCC44\uB110\uB85C \uC54C\uB824 \uC8FC\uC2DC\uBA74 \uBCC0\uACBD \uAC00\uB2A5 \uC5EC\uBD80\uB97C \uD655\uC778\uD574 \uB4DC\uB9BD\uB2C8\uB2E4. \uC774\uBBF8 \uCD9C\uACE0\uB41C \uB4A4\uC5D0\uB294 \uD0DD\uBC30\uC0AC \uC815\uCC45\uC5D0 \uB530\uB77C \uC870\uC815\uB418\uBBC0\uB85C \uAC00\uB2A5\uD55C \uD55C \uBE60\uB974\uAC8C \uC694\uCCAD\uD574 \uC8FC\uC138\uC694.'
+            },
+            {
+                category: '\uD0A4\uD2B8\u00B7\uBC30\uC1A1',
+                q: '\uBC1B\uC740 \uD0A4\uD2B8\uC5D0 \uB204\uB77D\uC774\uB098 \uD30C\uC190\uC774 \uC788\uC73C\uBA74 \uC5B4\uB5BB\uAC8C \uD558\uB098\uC694?',
+                a: '\uC0AC\uC9C4\uACFC \uD568\uAED8 \uC5F0\uB77D \uC8FC\uC2DC\uBA74 \uBB38\uC81C \uD655\uC778 \uD6C4 \uC7AC\uBC1C\uC1A1 \uB610\uB294 \uB300\uCCB4 \uC548\uB0B4\uB97C \uB3C4\uC640\uB4DC\uB9BD\uB2C8\uB2E4. \uC218\uC5C5 \uB2F9\uC77C \uC9C4\uD589\uC5D0 \uC601\uD5A5\uC774 \uC5C6\uB3C4\uB85D \uAC00\uB2A5\uD55C \uD55C \uBE60\uB974\uAC8C \uC811\uC218\uD574 \uC8FC\uC138\uC694.'
+            },
+            {
+                category: '\uD0A4\uD2B8\u00B7\uBC30\uC1A1',
+                q: '\uC218\uC5C5 \uD6C4 \uAC19\uC740 \uC7AC\uB8CC\uB97C \uB2E4\uC2DC \uAD6C\uB9E4\uD560 \uC218 \uC788\uB098\uC694?',
+                a: '\uC608. \uC0C1\uC138 \uD398\uC774\uC9C0 \uC7AC\uB8CC \uC139\uC158\uACFC \uC218\uAC15 \uC644\uB8CC \uD6C4 \uB9C8\uC774\uD398\uC774\uC9C0\uC5D0\uC11C \uAC19\uC740 \uC7AC\uB8CC \uB2E4\uC2DC \uBCF4\uAE30 \uB3D9\uC120\uC744 \uC81C\uACF5\uD569\uB2C8\uB2E4. \uB9C8\uC74C\uC5D0 \uB4E0 \uC7AC\uB8CC\uB294 \uC790\uC0AC\uBAB0 \uC0C1\uD488\uC73C\uB85C \uC790\uC5F0\uC2A4\uB7FD\uAC8C \uC774\uC5B4\uC11C \uAD6C\uB9E4\uD560 \uC218 \uC788\uC5B4\uC694.'
+            },
+            {
+                category: '\uD30C\uD2B8\uB108',
+                q: '\uC218\uC5C5\uC744 \uC9C4\uD589\uD558\uB294 \uAC15\uC0AC\uC640 \uACF5\uBC29\uC740 \uC5B4\uB5A4 \uAE30\uC900\uC73C\uB85C \uC120\uC815\uB418\uB098\uC694?',
+                a: 'PRESSCO21 \uD30C\uD2B8\uB108 \uAE30\uC900\uC73C\uB85C \uC6B4\uC601 \uAC00\uC774\uB4DC, \uACE0\uAC1D \uC751\uB300, \uC218\uC5C5 \uC18C\uAC1C \uD488\uC9C8\uC744 \uB9DE\uCD98 \uD30C\uD2B8\uB108\uAC00 \uC218\uC5C5\uC744 \uC6B4\uC601\uD569\uB2C8\uB2E4. \uD604\uC7AC \uD074\uB798\uC2A4\uB294 ' + normalizeFaqText(partnerName) + '\uAC00 \uC9C4\uD589\uD558\uBA70, \uC0C1\uC138 \uC18C\uAC1C\uC640 \uD6C4\uAE30\uB97C \uD1B5\uD574 \uC2A4\uD0C0\uC77C\uC744 \uBA3C\uC800 \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.'
+            },
+            {
+                category: '\uD30C\uD2B8\uB108',
+                q: '\uAC15\uC0AC\uB098 \uACF5\uBC29 \uC77C\uC815\uC774 \uBC14\uB00C\uBA74 \uC5B4\uB5BB\uAC8C \uC548\uB0B4\uB418\uB098\uC694?',
+                a: '\uC77C\uC815 \uBCC0\uACBD, \uC9C4\uD589 \uC7A5\uC18C \uC870\uC815, \uC6B4\uC601 \uC774\uC288\uAC00 \uBC1C\uC0DD\uD558\uBA74 \uB4F1\uB85D\uB41C \uC5F0\uB77D\uCC98\uB85C \uBA3C\uC800 \uC548\uB0B4\uB4DC\uB9AC\uACE0 \uAC00\uB2A5\uD55C \uB300\uCCB4 \uC77C\uC815\uC774\uB098 \uD6C4\uC18D \uC870\uCE58\uB97C \uD568\uAED8 \uC548\uB0B4\uD569\uB2C8\uB2E4. \uC0C1\uC138 \uD398\uC774\uC9C0\uC5D0\uC11C\uB3C4 \uB0A8\uC740 \uC88C\uC11D\uACFC \uC77C\uC815 \uC0C1\uD0DC\uB97C \uC2E4\uC2DC\uAC04\uC73C\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.'
+            },
+            {
+                category: '\uC815\uC0B0',
+                q: '\uCDE8\uC18C\uC640 \uD658\uBD88\uC740 \uC5B4\uB5A4 \uAE30\uC900\uC73C\uB85C \uCC98\uB9AC\uB418\uB098\uC694?',
+                a: '\uAE30\uBCF8 \uD658\uBD88 \uAE30\uC900\uC740 \uC218\uC5C5 3\uC77C \uC804\uAE4C\uC9C0 \uC804\uC561, 2\uC77C \uC804 50%, 1\uC77C \uC804\uACFC \uB2F9\uC77C\uC740 \uD658\uBD88\uC774 \uC5B4\uB824\uC6B4 \uC815\uCC45\uC744 \uAE30\uBCF8\uC73C\uB85C \uC801\uC6A9\uD569\uB2C8\uB2E4. \uC608\uC57D \uBCC0\uACBD\uC774\uB098 \uC608\uC678 \uC0C1\uD669\uC740 \uACE0\uAC1D\uC13C\uD130 \uD655\uC778 \uD6C4 \uBCC4\uB3C4 \uC548\uB0B4\uB418\uB2C8 \uBA3C\uC800 \uBB38\uC758\uD574 \uC8FC\uC138\uC694.'
+            },
+            {
+                category: '\uC815\uC0B0',
+                q: '\uD6C4\uAE30 \uC774\uBCA4\uD2B8\uB098 \uC801\uB9BD\uAE08 \uD61C\uD0DD\uC740 \uC5B8\uC81C \uBC18\uC601\uB418\uB098\uC694?',
+                a: '\uD6C4\uAE30 \uC791\uC131 \uD61C\uD0DD, \uC774\uBCA4\uD2B8 \uC801\uB9BD\uAE08, \uC7AC\uAD6C\uB9E4 \uD61C\uD0DD\uC740 \uC6B4\uC601 \uD655\uC778 \uD6C4 \uC21C\uCC28 \uBC18\uC601\uB429\uB2C8\uB2E4. \uC9C0\uAE09 \uD0C0\uC774\uBC0D\uC774 \uC815\uD574\uC9C4 \uD504\uB85C\uBAA8\uC158\uC740 \uC0C1\uC138 \uACF5\uC9C0\uC640 \uC54C\uB9BC \uBA54\uC2DC\uC9C0\uB85C \uB2E4\uC2DC \uC548\uB0B4\uD574 \uB4DC\uB9BD\uB2C8\uB2E4.'
+            },
+            {
+                category: '\uC815\uC0B0',
+                q: '\uD604\uAE08\uC601\uC218\uC99D\uC774\uB098 \uACB0\uC81C \uC99D\uBE59\uC740 \uBC1B\uC744 \uC218 \uC788\uB098\uC694?',
+                a: '\uC790\uC0AC\uBAB0 \uC8FC\uBB38 \uAE30\uC900\uC73C\uB85C \uACB0\uC81C \uB0B4\uC5ED \uD655\uC778\uC774 \uAC00\uB2A5\uD558\uBA70, \uD544\uC694 \uC2DC \uACE0\uAC1D\uC13C\uD130\uB97C \uD1B5\uD574 \uD604\uAE08\uC601\uC218\uC99D \uB610\uB294 \uAC00\uB2A5\uD55C \uBC94\uC704\uC758 \uACB0\uC81C \uC99D\uBE59 \uC548\uB0B4\uB97C \uBC1B\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.'
+            },
+            {
+                category: '\uAE30\uD0C0',
+                q: '\uC8FC\uCC28, \uB3D9\uBC18 \uCC38\uC5EC, \uB2E8\uCCB4 \uC218\uC5C5 \uBB38\uC758\uB294 \uC5B4\uB514\uB85C \uD558\uBA74 \uB418\uB098\uC694?',
+                a: '\uD558\uB2E8 \uBB38\uC758\uD558\uAE30\uC758 \uC804\uD654, \uCE74\uCE74\uC624\uD1A1, \uC778\uC2A4\uD0C0\uADF8\uB7A8 \uCC44\uB110 \uC911 \uD3B8\uD55C \uBC29\uC2DD\uC73C\uB85C \uB0A8\uACA8 \uC8FC\uC138\uC694. \uC8FC\uCC28 \uAC00\uB2A5 \uC5EC\uBD80, \uBCF4\uD638\uC790 \uB3D9\uBC18, \uAE30\uC5C5/\uD611\uD68C \uB2E8\uCCB4 \uC218\uC5C5 \uC870\uC728\uB3C4 \uAC19\uC740 \uCC44\uB110\uC5D0\uC11C \uC548\uB0B4\uD574 \uB4DC\uB9BD\uB2C8\uB2E4.'
+            }
+        ];
+    }
+
+    function mergeFaqItems(primaryItems, fallbackItems) {
+        var merged = [];
+        var seen = {};
+        var groups = [primaryItems || [], fallbackItems || []];
+        var i;
+        var j;
+
+        for (i = 0; i < groups.length; i++) {
+            for (j = 0; j < groups[i].length; j++) {
+                var item = groups[i][j];
+                var key = normalizeFaqText(item.q || '').toLowerCase();
+                if (!key || seen[key]) continue;
+                seen[key] = true;
+                merged.push(item);
+            }
+        }
+
+        return merged;
+    }
+
+    function normalizeFaqText(text) {
+        return String(text || '').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
+    }
+
+    function normalizeFaqCategory(raw) {
+        var text = normalizeFaqText(raw);
+
+        if (!text) return '\uC218\uAC15';
+        if (text === FAQ_CATEGORY_ALL) return FAQ_CATEGORY_ALL;
+        if (normalizedContains(text, '\uD0A4\uD2B8') || normalizedContains(text, '\uBC30\uC1A1') || normalizedContains(text, '\uD0DD\uBC30') || normalizedContains(text, 'kit') || normalizedContains(text, 'delivery')) return '\uD0A4\uD2B8\u00B7\uBC30\uC1A1';
+        if (normalizedContains(text, '\uD30C\uD2B8\uB108') || normalizedContains(text, '\uAC15\uC0AC') || normalizedContains(text, '\uACF5\uBC29') || normalizedContains(text, '\uD611\uD68C') || normalizedContains(text, 'partner')) return '\uD30C\uD2B8\uB108';
+        if (normalizedContains(text, '\uC815\uC0B0') || normalizedContains(text, '\uD658\uBD88') || normalizedContains(text, '\uACB0\uC81C') || normalizedContains(text, '\uC801\uB9BD\uAE08') || normalizedContains(text, '\uC601\uC218\uC99D') || normalizedContains(text, 'payment') || normalizedContains(text, 'refund')) return '\uC815\uC0B0';
+        if (normalizedContains(text, '\uAE30\uD0C0') || normalizedContains(text, '\uB2E8\uCCB4') || normalizedContains(text, '\uC8FC\uCC28') || normalizedContains(text, 'etc')) return '\uAE30\uD0C0';
+        return '\uC218\uAC15';
+    }
+
+    function inferFaqCategory(question, answer) {
+        var text = normalizeFaqText(question + ' ' + answer);
+
+        if (!text) return '\uC218\uAC15';
+        if (normalizedContains(text, '\uD0A4\uD2B8') || normalizedContains(text, '\uBC30\uC1A1') || normalizedContains(text, '\uC7AC\uB8CC') || normalizedContains(text, '\uD0DD\uBC30')) return '\uD0A4\uD2B8\u00B7\uBC30\uC1A1';
+        if (normalizedContains(text, '\uD30C\uD2B8\uB108') || normalizedContains(text, '\uAC15\uC0AC') || normalizedContains(text, '\uACF5\uBC29') || normalizedContains(text, '\uD611\uD68C')) return '\uD30C\uD2B8\uB108';
+        if (normalizedContains(text, '\uD658\uBD88') || normalizedContains(text, '\uACB0\uC81C') || normalizedContains(text, '\uC801\uB9BD\uAE08') || normalizedContains(text, '\uC601\uC218\uC99D') || normalizedContains(text, '\uC815\uC0B0')) return '\uC815\uC0B0';
+        if (normalizedContains(text, '\uC8FC\uCC28') || normalizedContains(text, '\uB2E8\uCCB4') || normalizedContains(text, '\uB3D9\uBC18')) return '\uAE30\uD0C0';
+        return '\uC218\uAC15';
+    }
+
+    function getFaqLocationText(data, classType) {
+        var location = normalizeFaqText(data.location || '');
+
+        if (String(data.type || '').toUpperCase() === 'ONLINE' || normalizedContains(classType, '\uC628\uB77C\uC778')) {
+            return '\uC628\uB77C\uC778 \uC218\uC5C5\uC740 \uC608\uC57D \uD655\uC815 \uD6C4 \uC811\uC18D \uB9C1\uD06C\uC640 \uCC38\uC5EC \uBC29\uC2DD\uC744 \uBCC4\uB3C4\uB85C \uC548\uB0B4\uD574 \uB4DC\uB9BD\uB2C8\uB2E4.';
+        }
+
+        if (location) {
+            return '\uC218\uC5C5 \uC9C4\uD589 \uC7A5\uC18C\uB294 ' + location + ' \uAE30\uC900\uC73C\uB85C \uC548\uB0B4\uB418\uACE0 \uC788\uC5B4\uC694.';
+        }
+
+        return '\uC9C4\uD589 \uC7A5\uC18C\uC640 \uCC38\uC5EC \uBC29\uC2DD\uC740 \uC608\uC57D \uC804 \uC0C1\uC138 \uC815\uBCF4\uC5D0\uC11C \uD655\uC778\uD560 \uC218 \uC788\uACE0, \uD544\uC694 \uC2DC \uBCC4\uB3C4 \uC548\uB0B4\uAC00 \uD568\uAED8 \uC81C\uACF5\uB429\uB2C8\uB2E4.';
+    }
+
+    function bindFaqEvents() {
+        var faqList = document.getElementById('faqList');
+        var faqCategoryList = document.getElementById('faqCategoryList');
+        var faqSearchInput = document.getElementById('faqSearchInput');
+
+        if (faqCategoryList && faqCategoryList.getAttribute('data-bound') !== 'true') {
+            faqCategoryList.setAttribute('data-bound', 'true');
+            faqCategoryList.addEventListener('click', function(e) {
+                var button = e.target.closest('.faq-category-btn');
+                if (!button) return;
+
+                faqState.category = button.getAttribute('data-category') || FAQ_CATEGORY_ALL;
+                renderFaqCategoryFilters();
+                renderFilteredFaqList();
+            });
+        }
+
+        if (faqSearchInput && faqSearchInput.getAttribute('data-bound') !== 'true') {
+            faqSearchInput.setAttribute('data-bound', 'true');
+            faqSearchInput.addEventListener('input', function() {
+                faqState.keyword = normalizeFaqText(faqSearchInput.value);
+                renderFilteredFaqList();
+            });
+        }
+
+        if (faqList && faqList.getAttribute('data-bound') !== 'true') {
+            faqList.setAttribute('data-bound', 'true');
+            faqList.addEventListener('click', function(e) {
+                var button = e.target.closest('.faq-item__question');
+                if (!button) return;
+
+                var item = button.closest('.faq-item');
+                var answer = item ? item.querySelector('.faq-item__answer') : null;
+                var isExpanded = button.getAttribute('aria-expanded') === 'true';
+                var openButtons = faqList.querySelectorAll('.faq-item__question[aria-expanded="true"]');
+                var i;
+
+                for (i = 0; i < openButtons.length; i++) {
+                    if (openButtons[i] === button) continue;
+                    closeFaqItem(openButtons[i]);
+                }
+
+                if (isExpanded) {
+                    closeFaqItem(button);
+                    return;
+                }
+
+                button.setAttribute('aria-expanded', 'true');
+                if (item) item.classList.add('is-open');
+                if (answer) answer.removeAttribute('hidden');
+            });
+        }
+    }
+
+    function closeFaqItem(button) {
+        var item = button ? button.closest('.faq-item') : null;
+        var answer = item ? item.querySelector('.faq-item__answer') : null;
+        if (!button) return;
+
+        button.setAttribute('aria-expanded', 'false');
+        if (item) item.classList.remove('is-open');
+        if (answer) answer.setAttribute('hidden', 'hidden');
+    }
+
+    function renderFaqCategoryFilters() {
+        var faqCategoryList = document.getElementById('faqCategoryList');
+        var counts = getFaqCategoryCounts(faqState.items);
+        var html = '';
+        var i;
+
+        if (!faqCategoryList) return;
+
+        for (i = 0; i < FAQ_CATEGORY_ORDER.length; i++) {
+            var category = FAQ_CATEGORY_ORDER[i];
+            var count = category === FAQ_CATEGORY_ALL ? faqState.items.length : (counts[category] || 0);
+            if (category !== FAQ_CATEGORY_ALL && count === 0) continue;
+
+            html += '<button type="button" class="faq-category-btn' + (faqState.category === category ? ' is-active' : '') + '" data-category="' + escapeHtml(category) + '">'
+                + '<span class="faq-category-btn__label">' + escapeHtml(category) + '</span>'
+                + '<span class="faq-category-btn__count">' + escapeHtml(String(count)) + '</span>'
+                + '</button>';
+        }
+
+        faqCategoryList.innerHTML = html;
+    }
+
+    function getFaqCategoryCounts(items) {
+        var counts = {};
+        var i;
+
+        for (i = 0; i < items.length; i++) {
+            var category = normalizeFaqCategory(items[i].category || '');
+            counts[category] = (counts[category] || 0) + 1;
+        }
+
+        return counts;
+    }
+
+    function renderFilteredFaqList() {
+        var faqList = document.getElementById('faqList');
+        var faqEmpty = document.getElementById('faqEmpty');
+        var faqResultCount = document.getElementById('faqResultCount');
+        var filteredItems = filterFaqItems(faqState.items, faqState.category, faqState.keyword);
+        var html = '';
+        var i;
+
+        if (!faqList || !faqEmpty || !faqResultCount) return;
+
+        if (filteredItems.length === 0) {
+            faqList.innerHTML = '';
+            faqEmpty.style.display = 'block';
+            faqEmpty.innerHTML = '<p class="faq-empty__title">\uAC80\uC0C9 \uACB0\uACFC\uAC00 \uC5C6\uC5B4\uC694.</p>'
+                + '<p class="faq-empty__desc">\uD2B9\uC815 \uB2E8\uC5B4\uB97C \uBE7C\uAC70\uB098 \uB2E4\uB978 \uCE74\uD14C\uACE0\uB9AC\uB97C \uC120\uD0DD\uD574 \uBCF4\uC138\uC694. \uCC3E\uB294 \uB2F5\uC774 \uC5C6\uC73C\uBA74 \uD558\uB2E8 \uBB38\uC758 \uCC44\uB110\uC5D0\uC11C \uBC14\uB85C \uB3C4\uC640\uB4DC\uB9BD\uB2C8\uB2E4.</p>';
+        } else {
+            for (i = 0; i < filteredItems.length; i++) {
+                var item = filteredItems[i];
+                var answerId = 'faqAnswer' + i;
+                html += '<article class="faq-item" data-category="' + escapeHtml(item.category) + '">'
+                    + '<button type="button" class="faq-item__question" aria-expanded="false" aria-controls="' + answerId + '">'
+                    + '<span class="faq-item__question-copy">'
+                    + '<span class="faq-item__category">' + escapeHtml(item.category) + '</span>'
+                    + '<span class="faq-item__title">' + escapeHtml(item.q) + '</span>'
+                    + '</span>'
+                    + '<svg class="faq-item__arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+                    + '</button>'
+                    + '<div class="faq-item__answer" id="' + answerId + '" hidden>'
+                    + '<p>' + escapeHtml(item.a) + '</p>'
+                    + '</div>'
+                    + '</article>';
+            }
+
+            faqList.innerHTML = html;
+            faqEmpty.style.display = 'none';
+            faqEmpty.innerHTML = '';
+        }
+
+        faqResultCount.textContent = buildFaqResultMessage(filteredItems.length, faqState.items.length, faqState.category, faqState.keyword);
+    }
+
+    function filterFaqItems(items, category, keyword) {
+        var filtered = [];
+        var normalizedKeyword = normalizeFaqText(keyword).toLowerCase();
+        var normalizedCategory = normalizeFaqCategory(category);
+        var i;
+
+        for (i = 0; i < items.length; i++) {
+            var item = items[i];
+            var haystack = (item.q + ' ' + item.a + ' ' + item.category).toLowerCase();
+            var sameCategory = normalizedCategory === FAQ_CATEGORY_ALL || normalizeFaqCategory(item.category) === normalizedCategory;
+            var matchesKeyword = !normalizedKeyword || haystack.indexOf(normalizedKeyword) > -1;
+
+            if (sameCategory && matchesKeyword) {
+                filtered.push(item);
+            }
+        }
+
+        return filtered;
+    }
+
+    function buildFaqResultMessage(filteredCount, totalCount, category, keyword) {
+        var parts = [];
+        var normalizedCategory = normalizeFaqCategory(category);
+
+        if (normalizedCategory !== FAQ_CATEGORY_ALL) {
+            parts.push(normalizedCategory);
+        } else {
+            parts.push('\uC804\uCCB4 FAQ');
+        }
+
+        if (keyword) {
+            parts.push('"' + keyword + '" \uAC80\uC0C9');
+        }
+
+        return parts.join(' / ') + ' \uAE30\uC900 ' + filteredCount + '\uAC1C \uD56D\uBAA9\uC774 \uBCF4\uC785\uB2C8\uB2E4. \uC804\uCCB4\uB294 ' + totalCount + '\uAC1C \uC785\uB2C8\uB2E4.';
+    }
+
+    function renderFaqContact(data) {
+        var faqContact = document.getElementById('faqContact');
+        var phoneRaw = normalizeFaqText(data.contact_phone || '');
+        var instagramRaw = normalizeFaqText(data.contact_instagram || (data.partner && data.partner.instagram_url) || '');
+        var kakaoRaw = normalizeFaqText(data.contact_kakao || '');
+        var phoneHref = 'tel:' + (phoneRaw || '010-9848-5520').replace(/[^0-9+]/g, '');
+        var phoneLabel = phoneRaw || '010-9848-5520';
+        var kakaoHref = /^https?:\/\//i.test(kakaoRaw) ? kakaoRaw : 'https://pf.kakao.com/_pressco21';
+        var contactHtml = '';
+
+        if (!faqContact) return;
+
+        contactHtml += '<h3 class="faq-contact__title">\uCC3E\uB294 \uB2F5\uC774 \uC5C6\uB2E4\uBA74 \uBC14\uB85C \uBB38\uC758\uD558\uC138\uC694</h3>'
             + '<div class="faq-contact__links">'
-            + '<a href="tel:' + contactPhone.replace(/-/g, '') + '" class="faq-contact__link faq-contact__link--phone">'
+            + '<a href="' + phoneHref + '" class="faq-contact__link faq-contact__link--phone">'
             + '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M6 7a7.5 7.5 0 003 3l1.35-1.35a.5.5 0 01.52-.12 5.7 5.7 0 001.78.28.5.5 0 01.5.5V12a.5.5 0 01-.5.5A10.5 10.5 0 013.5 3.35a.5.5 0 01.5-.5h2.68a.5.5 0 01.5.5 5.7 5.7 0 00.28 1.78.5.5 0 01-.12.52L6 7z" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-            + '\uc804\ud654 \ubb38\uc758'
+            + '\uC804\uD654 \uBB38\uC758'
             + '</a>'
-            + '<a href="https://pf.kakao.com/_pressco21" target="_blank" rel="noopener" class="faq-contact__link faq-contact__link--kakao">'
+            + '<a href="' + escapeHtml(kakaoHref) + '" target="_blank" rel="noopener" class="faq-contact__link faq-contact__link--kakao">'
             + '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.48 3 2 6.58 2 11c0 2.84 1.65 5.36 4.16 6.94L5 21l4.38-2.35C10.22 18.88 11.1 19 12 19c5.52 0 10-3.58 10-8S17.52 3 12 3z"/></svg>'
-            + '\uce74\uce74\uc624\ud1a1 \ubb38\uc758'
+            + '\uCE74\uCE74\uC624\uD1A1 \uBB38\uC758'
             + '</a>';
 
-        if (contactInstagram) {
-            contactHtml += '<a href="' + contactInstagram + '" target="_blank" rel="noopener" class="faq-contact__link faq-contact__link--insta">'
+        if (instagramRaw) {
+            contactHtml += '<a href="' + escapeHtml(instagramRaw) + '" target="_blank" rel="noopener" class="faq-contact__link faq-contact__link--insta">'
                 + '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="2.5"/><circle cx="11.5" cy="4.5" r="0.7" fill="currentColor" stroke="none"/></svg>'
-                + '\uc778\uc2a4\ud0c0\uadf8\ub7a8'
+                + '\uC778\uC2A4\uD0C0\uADF8\uB7A8'
                 + '</a>';
         }
 
         contactHtml += '</div>'
-            + '<p class="faq-contact__hours">\uc6b4\uc601\uc2dc\uac04: \ud3c9\uc77c 10:00 ~ 18:00 (\uc8fc\ub9d0/\uacf5\ud734\uc77c \ud734\ubb34)</p>';
+            + '<p class="faq-contact__hours">\uC6B4\uC601\uC2DC\uAC04: \uD3C9\uC77C 10:00 ~ 18:00 (\uC8FC\uB9D0/\uACF5\uD734\uC77C \uD734\uBB34) | \uC5F0\uB77D\uCC98: ' + escapeHtml(phoneLabel) + ' | \uC77C\uC815 \uBCC0\uACBD, \uD0A4\uD2B8 \uBC30\uC1A1, \uB2E8\uCCB4 \uBB38\uC758\uAE4C\uC9C0 \uAC19\uC740 \uCC44\uB110\uC5D0\uC11C \uB3C4\uC640\uB4DC\uB9BD\uB2C8\uB2E4.</p>';
 
         faqContact.innerHTML = contactHtml;
     }
@@ -2462,14 +2861,14 @@
         script.text = JSON.stringify(schema);
         document.head.appendChild(script);
 
-        // FAQPage 스키마: 커리큘럼 데이터가 있으면 FAQ로 변환
-        var curriculum = data.curriculum;
-        if (curriculum && Array.isArray(curriculum) && curriculum.length > 0) {
+        // FAQPage 스키마: 실제 FAQ 데이터 기준으로 생성
+        var faqItems = getResolvedFaqItems(data);
+        if (faqItems && faqItems.length > 0) {
             var faqEntries = [];
-            for (var i = 0; i < curriculum.length; i++) {
-                var item = curriculum[i];
-                var qTitle = item.title || ('\uB2E8\uACC4 ' + (item.step || (i + 1)));
-                var aDesc = item.desc || '';
+            for (var i = 0; i < faqItems.length; i++) {
+                var item = faqItems[i];
+                var qTitle = item.q || '';
+                var aDesc = String(item.a || '').replace(/<[^>]+>/g, '');
                 if (qTitle && aDesc) {
                     faqEntries.push({
                         '@type': 'Question',

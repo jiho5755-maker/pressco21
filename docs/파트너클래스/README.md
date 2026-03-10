@@ -60,6 +60,8 @@
   - S1-4 기준 마이페이지 수강완료 후 후기/재구매/같은 강사 추천 동선, WF-12 후기 메일 연결 방식 정리
 - `settlement-automation-guide.md`
   - S1-5 기준 WF-SETTLE 구조, 관리자 정산 실행/이력 화면, 라이브 SMTP blocker 정리
+- `faq-expansion-guide.md`
+  - S1-6 기준 상세 FAQ 15개 구조, 카테고리 필터/검색 규칙, FAQPage JSON-LD 반영 기준 정리
 
 ### QA / 검증
 

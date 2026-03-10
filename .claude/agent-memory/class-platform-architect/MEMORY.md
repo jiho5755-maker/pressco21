@@ -65,3 +65,11 @@
 - 정산 이력의 기본 단위는 settlement row가 아니라 `statement_id=SETB_YYYYMM_H1|H2_PARTNER_CODE` 다.
 - 라이브 SMTP credential이 현재 깨져 있으므로, 정산 실행 API는 메일 발송 실패를 성공으로 숨기지 않고 그대로 오류로 반환해야 한다.
 - 운영 기준 문서는 `docs/파트너클래스/settlement-automation-guide.md` 이다.
+
+## 2026-03-11 S1-6 FAQ 레이어 확장 완료
+
+- 상세 FAQ는 `faq_items` 데이터가 있으면 우선 사용하고, 없으면 공통 FAQ 15개로 보강하는 구조로 고정한다.
+- 카테고리 체계는 `수강 / 키트·배송 / 파트너 / 정산 / 기타` 로 통일한다.
+- FAQPage JSON-LD도 이제 커리큘럼 변환이 아니라 실제 FAQ 데이터 기준으로 생성한다.
+- 수강생이 예약 전 답을 못 찾았을 때 바로 문의 채널로 빠질 수 있게 FAQ와 문의를 한 탭 안에서 이어준다.
+- 운영 기준 문서는 `docs/파트너클래스/faq-expansion-guide.md` 이다.

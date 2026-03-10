@@ -51,15 +51,48 @@
 
 - Current Owner: CODEX
 - Mode: IDLE
-- Started At: 2026-03-10 23:13:00 KST
+- Started At: 2026-03-11 00:08:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S1-5 구현 정리 완료, 다음 턴 S1-6 예정
+- Working Scope: [CODEX-LEAD] 파트너클래스 S1-6 완료, 다음 턴 S1-7 예정
 - Active Subdirectory: pressco21
 
 ## Files In Progress
 - (none)
 
-## Last Changes (2026-03-09 ~ 2026-03-10)
+## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S1-6 상세 FAQ 15개 확장 완료 (CODEX)
+- 프론트
+  - `파트너클래스/상세/Index.html`
+    - FAQ 탭 상단에 설명 문구, 검색 입력, 카테고리 필터, 결과 요약 영역 추가
+    - FAQ 빈 상태 영역 추가
+  - `파트너클래스/상세/css.css`
+    - 검색 바, 카테고리 칩, FAQ 카드형 아코디언, 빈 상태, 문의 블록 레이아웃 스타일 추가
+    - 기존 FAQ 셀렉터와 실제 JS 클래스명이 어긋나던 부분을 `faq-item__*` 기준으로 정리
+  - `파트너클래스/상세/js.js`
+    - FAQ 기본값을 15개로 확장 (`수강 4 / 키트·배송 5 / 파트너 2 / 정산 3 / 기타 1`)
+    - `faq_items`, `faqItems` 계열 데이터를 우선 사용하고 부족하면 공통 FAQ로 fallback 하도록 구현
+    - 카테고리 필터, 실시간 검색, 결과 요약 문구, 1개씩 열리는 아코디언 동작 추가
+    - `FAQPage` JSON-LD 생성 기준을 커리큘럼 변환에서 실제 FAQ 데이터 기준으로 변경
+- 문서 / 메모리
+  - `docs/파트너클래스/faq-expansion-guide.md` 신규 추가
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+- 검증
+  - `node --check 파트너클래스/상세/js.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+    - `http://` 경고는 SVG namespace 기준 false positive 확인
+  - Playwright 로컬 목업 검증
+    - FAQ 15개 렌더링 확인
+    - `정산` 필터 3개 확인
+    - `환불` 검색 결과 1개 확인
+    - `정산 + 배송` 조합 빈 상태 확인
+  - 산출물
+    - `output/playwright/s1-6-detail-faq/default-faq-panel.png`
+    - `output/playwright/s1-6-detail-faq/faq-empty-state.png`
 
 ### [CODEX-LEAD] Phase 3 S1-5 정산 자동화 WF-SETTLE 구현 (CODEX)
 - 백엔드
@@ -1207,7 +1240,7 @@
 
 #### 현재 다음 태스크
 
-- `S1-6 CS FAQ 15개 확장`
+- `S1-7 파트너 온보딩 체크리스트 UX`
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
@@ -1298,6 +1331,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S1-2 상세 프론트 변경(Trust Summary Bar, 포함 내역, 모바일 CTA 바)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-4 마이페이지 프론트 변경(`파트너클래스/마이페이지/*`)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
+- `scripts/partnerclass-live-smoke.js` 는 현재 FAQ 기대 개수가 여전히 `5` 기준이라, 상세 FAQ를 라이브 반영한 뒤에는 스모크 기대값을 `15` 로 맞춰야 함
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함
 - `PRD-파트너클래스-플랫폼-고도화.md`, `commission-policy.md`, 일부 구현 문서는 아직 예전 등급/수수료 표현이 남아 있으므로 서비스 방향 판단은 `docs/파트너클래스/README.md`와 `shared-service-identity.md`를 우선해야 함
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음

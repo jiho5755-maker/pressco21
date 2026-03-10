@@ -87,6 +87,13 @@ function toNullableText(value: string): string | null {
   return trimmed ? trimmed : null
 }
 
+function parseLegacyAmount(value: string | undefined): number {
+  const normalized = (value ?? '').replace(/,/g, '').trim()
+  if (!normalized) return 0
+  const parsed = Number(normalized)
+  return Number.isFinite(parsed) ? Math.trunc(parsed) : 0
+}
+
 // ── 거래내역 쿼리 (모든 tx_type, 페이지네이션) ──────────
 function useCustomerTxPage(legacyId: string | undefined, name: string | undefined, offset: number) {
   const txWhere = legacyId
@@ -425,6 +432,8 @@ export function CustomerDetail() {
   const outstandingBalance = (customer.outstanding_balance as number | undefined) ?? 0
   const { snapshot: legacyTradebook, matchReason: legacyTradebookMatchReason } = deriveLegacyTradebookSnapshot(customer, legacySnapshots)
   const legacyCustomerList = (customer.name ? legacySnapshots?.customerListByName?.[customer.name] : undefined) ?? []
+  const legacyBalanceBaseline = parseLegacyAmount(legacyTradebook?.balance)
+  const crmOutstandingBalance = outstandingBalance - legacyBalanceBaseline
 
   return (
     <div className="p-6">
@@ -472,7 +481,7 @@ export function CustomerDetail() {
             <p className="text-lg font-bold">{(customer.total_order_amount ?? 0).toLocaleString()}원</p>
           </div>
           <div className="bg-white rounded-lg border px-4 py-3 text-center min-w-[120px] relative group">
-            <p className="text-xs text-muted-foreground mb-0.5">미수금</p>
+            <p className="text-xs text-muted-foreground mb-0.5">현재 잔액</p>
             <p className={`text-lg font-bold ${outstandingBalance > 0 ? 'text-red-600' : ''}`}>
               {outstandingBalance.toLocaleString()}원
             </p>
@@ -485,6 +494,36 @@ export function CustomerDetail() {
               <RefreshCw className={`h-3 w-3 ${recalcing ? 'animate-spin' : ''}`} />
             </button>
           </div>
+        </div>
+      </div>
+
+      <div className="mb-6 grid gap-3 md:grid-cols-3">
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <p className="text-xs text-muted-foreground">레거시 baseline</p>
+          <p className={`mt-1 text-base font-semibold ${legacyBalanceBaseline > 0 ? 'text-red-600' : legacyBalanceBaseline < 0 ? 'text-blue-700' : ''}`}>
+            {legacyBalanceBaseline.toLocaleString()}원
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            얼마에요 거래처 원본 잔액
+          </p>
+        </div>
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <p className="text-xs text-muted-foreground">CRM 미수</p>
+          <p className={`mt-1 text-base font-semibold ${crmOutstandingBalance > 0 ? 'text-red-600' : crmOutstandingBalance < 0 ? 'text-blue-700' : ''}`}>
+            {crmOutstandingBalance.toLocaleString()}원
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            CRM 명세표 기준 미수 증감분
+          </p>
+        </div>
+        <div className="rounded-lg border border-[#d9e4d5] bg-[#f7faf6] px-4 py-3">
+          <p className="text-xs text-muted-foreground">현재 운영 잔액</p>
+          <p className={`mt-1 text-base font-semibold ${outstandingBalance > 0 ? 'text-red-600' : outstandingBalance < 0 ? 'text-blue-700' : ''}`}>
+            {outstandingBalance.toLocaleString()}원
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            레거시 baseline + CRM 미수
+          </p>
         </div>
       </div>
 

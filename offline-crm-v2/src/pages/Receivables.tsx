@@ -2,15 +2,16 @@ import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { toast } from 'sonner'
-import { Download, AlertCircle } from 'lucide-react'
+import { Download, AlertCircle, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { getAllInvoices, updateInvoice, recalcCustomerStats } from '@/lib/api'
-import type { Invoice } from '@/lib/api'
+import { getAllInvoices, getCustomer, updateInvoice, recalcCustomerStats } from '@/lib/api'
+import type { Customer, Invoice } from '@/lib/api'
 import { exportReceivables } from '@/lib/excel'
+import { getLegacyBalanceBaseline } from '@/lib/legacySnapshots'
 import { getPaidAmountAsOf, getPaymentStatusAsOf, getRemainingAmountAsOf } from '@/lib/reporting'
 
 // ─── 에이징 구간 ────────────────────────────────
@@ -43,6 +44,11 @@ interface ReceivableSnapshot extends Invoice {
   asOfPaidAmount: number
   asOfRemaining: number
   asOfStatus: 'paid' | 'partial' | 'unpaid'
+}
+
+interface CustomerReceivableBreakdown {
+  customer: Customer
+  legacyBaseline: number
 }
 
 // ─── 입금 확인 다이얼로그 ───────────────────────
@@ -200,6 +206,8 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
 export function Receivables() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [paymentTarget, setPaymentTarget] = useState<Invoice | null>(null)
+  const [customerSearch, setCustomerSearch] = useState(() => searchParams.get('customer') ?? '')
+  const [customerIdFilter, setCustomerIdFilter] = useState(() => searchParams.get('customerId') ?? '')
   const [asOfDate, setAsOfDate] = useState(() => {
     const value = searchParams.get('asOf')
     return isValidCalendarDate(value) ? value : todayDate()
@@ -209,6 +217,10 @@ export function Receivables() {
     const value = searchParams.get('asOf')
     const normalized = isValidCalendarDate(value) ? value : todayDate()
     setAsOfDate((prev) => (prev === normalized ? prev : normalized))
+    const nextCustomer = searchParams.get('customer') ?? ''
+    setCustomerSearch((prev) => (prev === nextCustomer ? prev : nextCustomer))
+    const nextCustomerId = searchParams.get('customerId') ?? ''
+    setCustomerIdFilter((prev) => (prev === nextCustomerId ? prev : nextCustomerId))
   }, [searchParams])
   useEffect(() => {
     setPaymentTarget(null)
@@ -223,6 +235,18 @@ export function Receivables() {
         fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status,current_balance',
       }),
     staleTime: 2 * 60 * 1000,
+  })
+  const { data: customerBreakdown } = useQuery<CustomerReceivableBreakdown | null>({
+    queryKey: ['receivable-customer-breakdown', customerIdFilter],
+    enabled: !!customerIdFilter,
+    queryFn: async () => {
+      const customer = await getCustomer(Number(customerIdFilter))
+      return {
+        customer,
+        legacyBaseline: await getLegacyBalanceBaseline(customer),
+      }
+    },
+    staleTime: 10 * 60 * 1000,
   })
   const isTodayView = asOfDate === todayDate()
   const visibleInvoices: ReceivableSnapshot[] = invoices
@@ -252,6 +276,17 @@ export function Receivables() {
     setSearchParams(nextParams, { replace: true })
   }
 
+  function applyCustomerFilter(nextValue: string, nextCustomerId = '') {
+    setCustomerSearch(nextValue)
+    setCustomerIdFilter(nextCustomerId)
+    const nextParams = new URLSearchParams(searchParams)
+    if (nextValue.trim()) nextParams.set('customer', nextValue.trim())
+    else nextParams.delete('customer')
+    if (nextCustomerId) nextParams.set('customerId', nextCustomerId)
+    else nextParams.delete('customerId')
+    setSearchParams(nextParams, { replace: true })
+  }
+
   // 에이징 집계
   const aging = AGING_BUCKETS.map((bucket) => {
     const filtered = visibleInvoices.filter((inv) => {
@@ -265,11 +300,18 @@ export function Receivables() {
     }
   })
 
-  const totalReceivable = visibleInvoices.reduce((s, inv) => s + inv.asOfRemaining, 0)
-  const criticalCount = visibleInvoices.filter((inv) => {
+  const filteredInvoices = visibleInvoices.filter((inv) => {
+    if (customerIdFilter && String(inv.customer_id ?? '') === customerIdFilter) return true
+    if (!customerSearch.trim()) return true
+    return (inv.customer_name ?? '').toLowerCase().includes(customerSearch.trim().toLowerCase())
+  })
+  const filteredTotalReceivable = filteredInvoices.reduce((sum, inv) => sum + inv.asOfRemaining, 0)
+  const criticalCount = filteredInvoices.filter((inv) => {
     const days = getDaysSince(inv.invoice_date, asOfDate)
     return days > 90
   }).length
+  const breakdownCrmReceivable = customerBreakdown ? filteredInvoices.reduce((sum, inv) => sum + inv.asOfRemaining, 0) : 0
+  const breakdownCurrentBalance = customerBreakdown?.customer.outstanding_balance ?? 0
 
   if (isLoading)
     return (
@@ -292,8 +334,8 @@ export function Receivables() {
         <div>
           <h2 className="text-2xl font-bold">미수금 관리</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            총 <span className="font-medium text-red-600">{totalReceivable.toLocaleString()}원</span>
-            {' / '}{visibleInvoices.length}건
+            총 <span className="font-medium text-red-600">{filteredTotalReceivable.toLocaleString()}원</span>
+            {' / '}{filteredInvoices.length}건
             {criticalCount > 0 && (
               <span className="ml-2 text-amber-600">
                 <AlertCircle className="inline h-3.5 w-3.5 mr-0.5" />
@@ -306,7 +348,7 @@ export function Receivables() {
           variant="outline"
           size="sm"
           onClick={() => exportReceivables(
-            visibleInvoices.map((inv) => ({
+            filteredInvoices.map((inv) => ({
               ...inv,
               paid_amount: inv.asOfPaidAmount,
               payment_status: inv.asOfStatus,
@@ -321,6 +363,15 @@ export function Receivables() {
       </div>
 
       <div className="flex items-center gap-3 mb-4 flex-wrap">
+        <div className="relative min-w-[220px]">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            value={customerSearch}
+            onChange={(e) => applyCustomerFilter(e.target.value, customerIdFilter)}
+            placeholder="거래처명 필터"
+            className="pl-9 w-[240px]"
+          />
+        </div>
         <div className="flex items-center gap-2">
           <Label htmlFor="receivables-asof" className="text-xs text-muted-foreground">기준일</Label>
           <Input
@@ -334,12 +385,49 @@ export function Receivables() {
         <Button variant="ghost" size="sm" onClick={() => applyAsOfDate(todayDate())}>
           오늘 기준
         </Button>
+        {(customerSearch || customerIdFilter) && (
+          <Button variant="ghost" size="sm" onClick={() => applyCustomerFilter('')}>
+            거래처 필터 해제
+          </Button>
+        )}
         {!isTodayView && (
           <span className="text-xs text-muted-foreground">
             과거 기준일은 조회 전용입니다. 입금 처리는 오늘 기준에서만 가능합니다.
           </span>
         )}
       </div>
+
+      {customerBreakdown && (
+        <div className="mb-4 grid gap-3 md:grid-cols-3">
+          <div className="rounded-lg border bg-white px-4 py-3">
+            <p className="text-xs text-muted-foreground">레거시 baseline</p>
+            <p className={`mt-1 text-base font-semibold ${customerBreakdown.legacyBaseline > 0 ? 'text-red-600' : customerBreakdown.legacyBaseline < 0 ? 'text-blue-700' : ''}`}>
+              {customerBreakdown.legacyBaseline.toLocaleString()}원
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {customerBreakdown.customer.name} 원본 잔액
+            </p>
+          </div>
+          <div className="rounded-lg border bg-white px-4 py-3">
+            <p className="text-xs text-muted-foreground">기준일 CRM 미수</p>
+            <p className={`mt-1 text-base font-semibold ${breakdownCrmReceivable > 0 ? 'text-red-600' : breakdownCrmReceivable < 0 ? 'text-blue-700' : ''}`}>
+              {breakdownCrmReceivable.toLocaleString()}원
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              {asOfDate} 기준 미수 명세표 합계
+            </p>
+          </div>
+          <div className="rounded-lg border border-[#d9e4d5] bg-[#f7faf6] px-4 py-3">
+            <p className="text-xs text-muted-foreground">현재 고객 잔액</p>
+            <p className={`mt-1 text-base font-semibold ${breakdownCurrentBalance > 0 ? 'text-red-600' : breakdownCurrentBalance < 0 ? 'text-blue-700' : ''}`}>
+              {breakdownCurrentBalance.toLocaleString()}원
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              운영 고객 카드 저장값{!isTodayView ? ' (오늘 기준)' : ''}
+            </p>
+          </div>
+        </div>
+      )}
 
       {/* 에이징 테이블 */}
       <div className="rounded-lg border bg-white overflow-hidden mb-6">
@@ -375,7 +463,7 @@ export function Receivables() {
       </div>
 
       {/* 미수금 목록 */}
-      {visibleInvoices.length === 0 ? (
+      {filteredInvoices.length === 0 ? (
         <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
           해당 기준일까지의 미수금이 없습니다.
         </div>
@@ -396,7 +484,7 @@ export function Receivables() {
               </tr>
             </thead>
             <tbody>
-              {visibleInvoices.map((inv) => {
+              {filteredInvoices.map((inv) => {
                 const days = getDaysSince(inv.invoice_date, asOfDate)
                 const ageColor =
                   days > 180

@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-10 16:10:00 KST
+- Started At: 2026-03-10 18:30:00 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: —
@@ -61,6 +61,32 @@
 - 없음
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### 파트너클래스 공용 메모리 및 문서 정리 (CODEX)
+- `.claude/agent-memory/class-platform-architect/MEMORY.md`
+- `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+- `.claude/agent-memory/sales-partnership-specialist/MEMORY.md`
+- `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+  - Claude Code가 바로 같은 방향으로 대화할 수 있도록 파트너클래스 정체성, IA 3레이어, 우선 고객, 수익 구조, KPI 기준을 공용 메모리로 반영.
+- `docs/파트너클래스/README.md`
+  - 현재 기준으로 먼저 읽어야 할 문서, 판단 우선순위, 운영 가이드, 참고용 아카이브를 한 장으로 정리.
+- `CLAUDE.md`, `AGENTS.md`, `파트너클래스/AGENTS.md`, `파트너클래스/GUIDE.md`
+  - 파트너클래스 작업 시 `README -> shared-service-identity -> enterprise-elevation-strategy` 순서로 문맥을 잡도록 진입점을 통일.
+- `docs/파트너클래스/archive/2026-03-10/`
+  - 임시 handoff, 상세 상용화 감사, 구형 플랫폼 개요 가이드를 아카이브로 이동해 현재 문서 묶음과 분리.
+- `docs/n8n-automation-efficiency-review-2026-03-09.md`
+  - 구형 `platform-overview-guide.md` 대신 새 문서 인덱스를 참조하도록 정리.
+
+### 파트너클래스 공용 정체성 문서 연결 (CODEX)
+- `docs/파트너클래스/shared-service-identity.md`
+  - Claude Code와 Codex CLI가 공통으로 따라야 할 파트너클래스 정체성 기준을 짧은 문서로 정리.
+  - `수강생 1순위`, `파트너/협회는 공급자 레이어`, `재료/키트 판매 활성화`, `협회 제휴/협회원 락인`을 공용 판단 기준으로 명시.
+- `CLAUDE.md`
+  - 파트너클래스 작업 전 공용 정체성 문서와 상세 전략 문서를 먼저 읽도록 섹션 추가.
+- `AGENTS.md`
+  - Codex 작업 시 파트너클래스 관련 기획/UX/카피/문서 작업 전에 공용 정체성 문서를 우선 참조하도록 명시.
+- `파트너클래스/AGENTS.md`
+  - 파트너클래스 전용 지침 상단에 공용 정체성 문서 경로와 핵심 기준 요약 추가.
 
 ### CRM 미수 상위 20건 대조 감사 (CODEX)
 - `offline-crm-v2/docs/top-20-receivables-reconciliation-2026-03-10.md`
@@ -140,7 +166,7 @@
   - 결과: `28 passed (28.3s)`
 
 ### 파트너클래스 handoff 백업
-- 재시작용 handoff 문서를 [docs/파트너클래스/partnerclass-handoff-2026-03-10.md](/Users/jangjiho/workspace/pressco21/docs/파트너클래스/partnerclass-handoff-2026-03-10.md)에 추가.
+- 재시작용 handoff 문서를 [docs/파트너클래스/archive/2026-03-10/partnerclass-handoff-2026-03-10.md](/Users/jangjiho/workspace/pressco21/docs/파트너클래스/archive/2026-03-10/partnerclass-handoff-2026-03-10.md)에 보관.
 - 전역 Codex 메모리에도 `pressco21-partnerclass-handoff-2026-03-10.md`로 핵심 요약을 백업.
 - 다음 세션에서는 `AI_SYNC.md`와 handoff 문서만 읽어도 `메이크샵 저장 확인 -> 라이브 재검증 -> Atlas 연결 검토` 순서로 바로 이어갈 수 있게 정리.
 
@@ -829,6 +855,8 @@
 - [CODEX] 얼마에요 백업 원본 대비 고객/거래/품목 최종 누락 0건 재감사
 - [CODEX] 메이크샵 저장 후 `파트너신청(2609)`, `상세(2607)`, `파트너(2608)`, `강의등록(8009)`, `마이페이지(8010)`, `교육(2610)` 로그인 안내 버튼 라이브 재검증
 - [CODEX] `상세(2607)` 선물하기를 실상품 기준으로 다시 눌러 `선물 주문하기` 헤더 노출 여부 최종 E2E 확인
+- [CODEX] `shared-service-identity.md` 기준으로 파트너클래스 공통 카피 원칙과 IA 원칙 1장 정리
+- [CODEX] 협회 제휴용 가치 제안서 1장과 `협회원 혜택 허브` IA 초안 작성
 - [CODEX] 상세 분류 링크(`카테고리/난이도/지역/강사`)가 목록 필터와 실제 일치하는지 라이브 회귀 테스트
 - [CODEX] 메이크샵 배포 후 `파트너신청(2609)`, `상세(2607)`, `목록(2606)` 라이브 회귀 테스트 재실행
 - [CODEX] `메인페이지/파트너클래스-홈개편` 시안 기준으로 실제 메인페이지 저장용 마이그레이션 패치 정리
@@ -840,6 +868,7 @@
 - [CODEX] 협회 레이어와 클래스 레이어를 같은 허브 안에서 어떻게 분리할지 IA 시안 2안 작성
 - [CODEX] 파트너 대시보드 메인 KPI를 `오늘 수업 / 준비할 키트 / 예상 정산액` 기준으로 와이어프레임 초안 작성
 - [CODEX] 협회 제휴용 가치 제안서 1장과 `협회원 혜택 허브` IA 초안 작성
+- [CODEX] `docs/파트너클래스/README.md` 기준으로 남아 있는 구현 문서의 구형 수수료/등급/용어 불일치 정리
 
 ### Claude Code 태스크
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
@@ -854,6 +883,7 @@
 - 상세 페이지 선물하기는 메이크샵 네이티브 장바구니 POST로 맞췄지만, 실제 선물 가능 상품 설정 여부에 따라 최종 동작이 달라질 수 있어 실상품 1건 재검증 필요
 - `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 저장 전까지 라이브 반영되지 않음
 - 라이브 `class-api`는 현재 `level=입문` 조회 시 `0건`, `level=beginner` 조회 시 `5건`을 반환해 상세 한글 난이도 링크와 목록/API 결과가 아직 불일치함
+- `PRD-파트너클래스-플랫폼-고도화.md`, `commission-policy.md`, 일부 구현 문서는 아직 예전 등급/수수료 표현이 남아 있으므로 서비스 방향 판단은 `docs/파트너클래스/README.md`와 `shared-service-identity.md`를 우선해야 함
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.
 - 운영 `invoice_date`는 서버측 날짜 비교(`gte/lte`)가 안정적으로 동작하지 않아, 캘린더는 전체 명세표를 읽은 뒤 프론트에서 월/기간 필터링하는 구조를 사용 중.

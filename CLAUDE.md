@@ -9,6 +9,38 @@
 - 작업 종료 전 `Last Changes`와 `Next Step` 갱신
 - `git commit`, 브랜치 변경, 의존성 설치, lockfile 수정, dev server 재시작은 기록 후 한 번에 한 에이전트만 수행
 
+## 파트너클래스 공용 기준
+
+파트너클래스 관련 기획, 카피, UX, IA, 운영 전략 작업을 할 때는 아래 문서를 먼저 읽고 그 기준을 우선 적용하세요.
+
+- 문서 인덱스: `docs/파트너클래스/README.md`
+- 공용 정체성 문서: `docs/파트너클래스/shared-service-identity.md`
+- 상세 전략 문서: `docs/파트너클래스/enterprise-elevation-strategy-2026-03-10.md`
+
+핵심 원칙:
+
+- 1순위 고객은 수강생
+- 파트너와 협회는 공급자/제휴 레이어
+- 핵심 사업 목적은 플랫폼 수수료 극대화가 아니라 재료/키트 판매 활성화와 자사몰 락인 강화
+- 협회 기능은 부가 게시판이 아니라 제휴 유치와 협회원 락인 장치
+
+문서가 충돌하면 `shared-service-identity.md`와 `enterprise-elevation-strategy-2026-03-10.md`를 예전 구현 문서보다 우선합니다.
+
+## Codex CLI 협업 규칙
+
+두 가지 모드로 운영됩니다:
+- **모드 A (보조)**: Claude Code가 메인 프로젝트 기획/개발 → Codex가 테스트/리팩토링/관리
+- **모드 B (독립)**: 가벼운 프로젝트는 Codex가 기획~배포까지 독립 수행
+
+### Claude Code 작업 지침
+- **작업 시작 전**: `AI_SYNC.md`에서 Codex가 WRITE 모드인지 확인. 같은 서브디렉토리면 수정 금지
+- **작업 완료 후**: `AI_SYNC.md` Session Lock을 IDLE로 돌리고 Last Changes/Next Step 갱신
+- **Codex에 위임할 태스크**: AI_SYNC.md Next Step에 prefix로 기재:
+  - `[CODEX]` — 보조 작업 (테스트, 리팩토링 등)
+  - `[CODEX-LEAD]` — 독립 프로젝트 (기획~배포 위임)
+- **Codex 설정 파일**: `AGENTS.md` (루트 + 서브디렉토리), `.codex/config.toml`
+- **서브디렉토리 격리**: 서로 다른 서브디렉토리면 동시 WRITE 가능
+
 ## 백업/참조용 폴더 (수정 금지)
 
 다음 폴더들은 리뉴얼 전 원본 백업입니다. 절대 수정하지 마세요:

@@ -48,3 +48,11 @@
 - 회원그룹 관리: `docs/파트너클래스/member-group-management.md`
 - PRD 고도화: `docs/파트너클래스/PRD-파트너클래스-플랫폼-고도화.md`
 - 전략 상세: `.claude/agent-memory/sales-partnership-specialist/partner-vip-ambassador-strategy.md`
+
+## 2026-03-10 협회 제휴 방향 업데이트
+
+- 파트너클래스의 1순위 고객은 수강생이고, 협회는 공급자이자 제휴 레이어다.
+- 협회 제휴의 목적은 단순 노출이 아니라 `파트너 제휴 서비스`를 미끼로 파트너십을 맺고, 협회원 혜택과 전용 상품으로 자사몰 락인을 강화하는 것이다.
+- 협회 레이어는 `협회 일정/세미나`, `협회원 전용 제품`, `협회 시그니처 제품`, `협회원 전용 혜택`을 같은 허브 안에서 운영하는 방향으로 본다.
+- 협회 세일즈 메시지는 `홍보해드립니다`보다 `회원 혜택과 구매 락인을 같이 설계해드립니다`에 가깝게 잡는다.
+- 현재 기준 문서는 `docs/파트너클래스/README.md`, `shared-service-identity.md`, `enterprise-elevation-strategy-2026-03-10.md` 이다.

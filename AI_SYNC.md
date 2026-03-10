@@ -62,6 +62,23 @@
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
 
+### CRM 잔액 재계산 로직 보정 (CODEX)
+- `offline-crm-v2/src/lib/legacySnapshots.ts`
+  - 레거시 거래처 스냅샷 타입, 공통 매칭 로직, 스냅샷 캐시 fetch, baseline 잔액 조회 helper를 분리.
+- `offline-crm-v2/src/lib/api.ts`
+  - `recalcCustomerStats()`가 CRM 미수만 덮어쓰지 않고 `legacy baseline + CRM 미수`로 `outstanding_balance`를 재계산하도록 수정.
+- `offline-crm-v2/src/pages/CustomerDetail.tsx`
+  - 고객 상세의 레거시 원본 매칭 로직도 새 공통 helper를 사용하도록 정리해 화면과 재계산이 같은 기준을 공유.
+- 검증
+  - `cd offline-crm-v2 && npm run build`
+  - 결과: 성공
+
+### 파트너클래스 엔터프라이즈 고도화 전략 문서화 (CODEX)
+- `docs/파트너클래스/enterprise-elevation-strategy-2026-03-10.md`
+  - 현재 PRD/로드맵의 비전과 2026-03-10 라이브 UI 상태를 교차 검토해 서비스 목적 재정의 초안을 문서화.
+  - 대표/운영/파트너/수강생 인터뷰 프레임, JTBD 산출물, 엔터프라이즈급 UX 우선순위, 4단계 실행 순서를 정리.
+  - 라이브 기준 핵심 갭을 `운영 OS 비전 대비 카탈로그형 UX`, `용어 혼재`, `운영 가치 전달 부족`으로 명시.
+
 ### CRM 잔액 불일치 6건 원인 분석 (CODEX)
 - `offline-crm-v2/docs/legacy-balance-analysis-2026-03-10.md`
   - 잔액 불일치 6건을 고객별로 대조한 결과, 전부 `레거시 tradebook.balance + CRM 미수 명세표 합계 = 현재 CRM 고객 잔액` 공식을 만족함을 정리.
@@ -791,7 +808,7 @@
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] `recalcCustomerStats()`에 레거시 잔액 baseline 보존 방식 반영 여부 설계 및 수정
+- [CODEX] `legacySnapshots` 기반으로 고객 상세/미수금 화면에 `레거시 baseline / CRM 미수 / 현재 잔액` 분리 표기 검토
 - [CODEX] CRM 데이터 정합성 P1 후속: 잔액 불일치 6건에 대해 레거시 원장 / CRM 명세표 / 입금 이력 대조
 - [CODEX] `서상견 님`류 중복 고객 통합 정책 문서화 및 대표 레코드 규칙 정의
 - [CODEX] 레거시 주소/유선전화/email 오염 필드의 `원본값 / 보정값 / 현재값` 표기 전략 설계
@@ -808,6 +825,8 @@
 - [CODEX] 파트너클래스 상세 선물하기를 실상품 1건 기준으로 최종 E2E 검증
 - [CODEX] 파트너 계정 자격증명 주입 후 `scripts/partnerclass-live-smoke.js`의 멤버 전용 시나리오(`상세 선물하기 주문서 진입`) 재실행
 - [CODEX] 라이브 `class-api`의 레벨 필터 어휘(`입문` vs `beginner`)를 정리하고 상세/목록 링크 회귀 실패를 해소
+- [CODEX] `enterprise-elevation-strategy-2026-03-10.md` 기준으로 대표/운영/파트너/수강생 인터뷰 운영본 작성
+- [CODEX] 인터뷰 결과를 바탕으로 목록/상세/파트너신청/대시보드 개편 PRD v1 작성
 
 ### Claude Code 태스크
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정

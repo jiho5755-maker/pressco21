@@ -76,6 +76,16 @@ function newRow(taxable = loadDefaultTaxableSetting()): ItemRow {
   }
 }
 
+function cloneRowDefaults(source?: ItemRow): ItemRow {
+  const row = newRow(source?.taxable ?? loadDefaultTaxableSetting())
+  if (!source) return row
+  return {
+    ...row,
+    unit: source.unit || row.unit,
+    taxable: source.taxable,
+  }
+}
+
 function hasMeaningfulItemValue(row: ItemRow): boolean {
   return Boolean(row.product_name.trim()) || row.unit_price > 0 || row.supply_amount > 0 || row.tax_amount > 0
 }
@@ -269,6 +279,7 @@ function buildCustomerSnapshot(
     customer_name: customer.name,
     customer_phone: getCustomerPrimaryPhone(customer),
     customer_address: getCustomerAddressValue(customer, addressKey),
+    customer_address_key: addressKey,
     customer_bizno: customer.biz_no,
     customer_ceo_name: customer.ceo_name as string | undefined,
     customer_biz_type: customer.biz_type as string | undefined,
@@ -326,6 +337,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
   const [dropdownIdx, setDropdownIdx] = useState(-1)
   const productInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   const qtyInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
+  const unitPriceInputRefs = useRef<Record<string, HTMLInputElement | null>>({})
   // items 최신값을 항상 참조 (stale closure 방지)
   const itemsRef = useRef(items)
   itemsRef.current = items
@@ -612,7 +624,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
     if (!selectedCustomer) return
     setSelectedAddrKey(key)
     const addr = getCustomerAddressValue(selectedCustomer, key)
-    setForm((f) => ({ ...f, customer_address: addr }))
+    setForm((f) => ({ ...f, customer_address: addr, customer_address_key: key }))
     setIsDirty(true)
   }
 
@@ -712,14 +724,34 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
 
   const addItem = useCallback(() => {
     const cur = itemsRef.current
-    const defaultTaxable = cur.length > 0 ? cur[cur.length - 1].taxable : loadDefaultTaxableSetting()
-    const row = newRow(defaultTaxable)
+    const row = cloneRowDefaults(cur.length > 0 ? cur[cur.length - 1] : undefined)
     setItems((prev) => [...prev, row])
     setProductInputs((prev) => ({ ...prev, [row._key]: '' }))
     setIsDirty(true)
     // 새 행의 품목 input으로 자동 포커스
     setTimeout(() => { productInputRefs.current[row._key]?.focus() }, 50)
   }, [])
+
+  function focusUnitPrice(rowKey: string) {
+    setTimeout(() => {
+      unitPriceInputRefs.current[rowKey]?.focus()
+      unitPriceInputRefs.current[rowKey]?.select()
+    }, 0)
+  }
+
+  function focusNextProductRow(currentKey: string) {
+    const currentRows = itemsRef.current
+    const currentIndex = currentRows.findIndex((row) => row._key === currentKey)
+    const nextRow = currentRows[currentIndex + 1]
+    if (nextRow) {
+      setTimeout(() => {
+        productInputRefs.current[nextRow._key]?.focus()
+        productInputRefs.current[nextRow._key]?.select()
+      }, 0)
+      return
+    }
+    addItem()
+  }
 
   // 품목 선택 모달에서 단일 선택 완료
   function handleProductPicked(product: import('@/lib/api').Product) {
@@ -728,8 +760,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
       selectProduct(rowKey, product)
     } else {
       // rowKey 없으면 새 행 추가 후 선택
-      const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : loadDefaultTaxableSetting()
-      const row = newRow(defaultTaxable)
+      const row = cloneRowDefaults(itemsRef.current[itemsRef.current.length - 1])
       setItems((prev) => [...prev, row])
       setProductInputs((prev) => ({ ...prev, [row._key]: '' }))
       // 다음 tick에 selectProduct 호출
@@ -1041,7 +1072,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
           <DialogTitle className="flex items-center gap-2">
             {isCopy && <Copy className="h-4 w-4 text-muted-foreground" />}
             {titleLabel}
-            <span className="text-xs font-normal text-muted-foreground ml-1">수량Enter=다음행 / Ctrl+Enter=저장 / Esc=닫기</span>
+            <span className="text-xs font-normal text-muted-foreground ml-1">품목명→수량→단가 / 단가Enter=다음행 / Ctrl+Enter=저장 / Esc=닫기</span>
           </DialogTitle>
         </DialogHeader>
 
@@ -1085,6 +1116,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
                     customer_name: nextValue,
                     customer_phone: '',
                     customer_address: '',
+                    customer_address_key: '',
                     customer_bizno: '',
                     customer_ceo_name: '',
                     customer_biz_type: '',
@@ -1376,10 +1408,10 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
                                 } else if (e.key === 'ArrowUp') {
                                   e.preventDefault()
                                   setDropdownIdx((i) => Math.max(i - 1, 0))
-                                } else if (e.key === 'Enter' && dropdownIdx >= 0) {
+                                } else if (e.key === 'Enter') {
                                   e.preventDefault()
                                   e.stopPropagation()
-                                  selectProduct(row._key, list[dropdownIdx])
+                                  selectProduct(row._key, list[Math.max(dropdownIdx, 0)])
                                 } else if (e.key === 'Tab') {
                                   setShowProductDrop(null)
                                   setDropdownIdx(-1)
@@ -1425,11 +1457,12 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
                           type="number"
                           value={row.quantity}
                           onChange={(e) => updateItemQuantity(row._key, e.target.value)}
+                          onFocus={(e) => e.target.select()}
                           onKeyDown={(e) => {
                             if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
                               e.preventDefault()
                               e.stopPropagation()
-                              addItem()
+                              focusUnitPrice(row._key)
                             }
                           }}
                           className="h-7 text-xs text-right border-0 focus-visible:ring-1"
@@ -1437,10 +1470,18 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
                       </td>
                       <td className="px-1 py-1">
                         <Input
-                          tabIndex={-1}
+                          ref={(el) => { unitPriceInputRefs.current[row._key] = el }}
                           type="number"
                           value={row.unit_price}
                           onChange={(e) => updateItem(row._key, { unit_price: sanitizeAmount(e.target.value), _totalUnit: undefined })}
+                          onFocus={(e) => e.target.select()}
+                          onKeyDown={(e) => {
+                            if (e.key === 'Enter' && !e.ctrlKey && !e.metaKey) {
+                              e.preventDefault()
+                              e.stopPropagation()
+                              focusNextProductRow(row._key)
+                            }
+                          }}
                           className="h-7 text-xs text-right border-0 focus-visible:ring-1"
                         />
                       </td>

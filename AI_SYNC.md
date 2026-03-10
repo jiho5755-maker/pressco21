@@ -49,15 +49,20 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: 2026-03-10 20:58:00 KST
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-10 21:20:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S0-3 / S0-4 완료
-- Active Subdirectory: pressco21/파트너클래스
+- Working Scope: [CODEX] CRM 레거시 수금 처리 + 택배송장 자동입력 보강
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
-- 없음
+- `AI_SYNC.md`
+- `offline-crm-v2/src/lib/legacySnapshots.ts`
+- `offline-crm-v2/src/lib/api.ts`
+- `offline-crm-v2/src/pages/Receivables.tsx`
+- `offline-crm-v2/src/pages/Invoices.tsx`
+- `offline-crm-v2/src/components/InvoiceDialog.tsx`
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
 

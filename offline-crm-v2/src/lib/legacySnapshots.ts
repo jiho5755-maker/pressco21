@@ -74,6 +74,19 @@ export interface LegacySnapshotMatchTarget {
   memo?: string
 }
 
+export interface LegacyReceivableSettlementEntry {
+  amount: number
+  date: string
+  method?: string
+}
+
+interface LegacyReceivableMemoState {
+  settledAmount: number
+  settlements: LegacyReceivableSettlementEntry[]
+}
+
+const LEGACY_RECEIVABLE_META_PREFIX = '[LEGACY_RECEIVABLE_META]'
+
 let legacySnapshotPromise: Promise<LegacyCustomerSnapshotPayload> | null = null
 
 function normalizeLegacyCompareText(value: string | undefined) {
@@ -97,6 +110,84 @@ function parseInteger(value: string | number | undefined) {
   if (!value) return 0
   const parsed = Number(String(value).replace(/,/g, '').trim())
   return Number.isFinite(parsed) ? Math.trunc(parsed) : 0
+}
+
+function normalizeMemo(value: string | undefined): string {
+  return (value ?? '').replace(/\r\n/g, '\n')
+}
+
+function sanitizeSettlementEntry(entry: Partial<LegacyReceivableSettlementEntry>): LegacyReceivableSettlementEntry | null {
+  const amount = Math.max(0, parseInteger(entry.amount))
+  const date = typeof entry.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(entry.date)
+    ? entry.date
+    : ''
+  if (!amount || !date) return null
+  return {
+    amount,
+    date,
+    method: typeof entry.method === 'string' && entry.method.trim() ? entry.method.trim() : undefined,
+  }
+}
+
+export function parseLegacyReceivableMemo(memo?: string): LegacyReceivableMemoState {
+  const normalizedMemo = normalizeMemo(memo)
+  const metaLine = normalizedMemo
+    .split('\n')
+    .map((line) => line.trim())
+    .find((line) => line.startsWith(LEGACY_RECEIVABLE_META_PREFIX))
+
+  if (!metaLine) {
+    return { settledAmount: 0, settlements: [] }
+  }
+
+  try {
+    const parsed = JSON.parse(metaLine.slice(LEGACY_RECEIVABLE_META_PREFIX.length).trim()) as {
+      settledAmount?: number
+      settlements?: Partial<LegacyReceivableSettlementEntry>[]
+    }
+    const settlements = Array.isArray(parsed.settlements)
+      ? parsed.settlements.map(sanitizeSettlementEntry).filter((entry): entry is LegacyReceivableSettlementEntry => entry !== null)
+      : []
+    const settledAmount = Math.max(
+      parseInteger(parsed.settledAmount),
+      settlements.reduce((sum, entry) => sum + entry.amount, 0),
+    )
+    return { settledAmount, settlements }
+  } catch {
+    return { settledAmount: 0, settlements: [] }
+  }
+}
+
+export function serializeLegacyReceivableMemo(
+  memo: string | undefined,
+  nextState: LegacyReceivableMemoState,
+): string {
+  const normalizedMemo = normalizeMemo(memo)
+  const lines = normalizedMemo
+    .split('\n')
+    .filter((line) => line.trim() && !line.trim().startsWith(LEGACY_RECEIVABLE_META_PREFIX))
+
+  const sanitizedSettlements = nextState.settlements
+    .map(sanitizeSettlementEntry)
+    .filter((entry): entry is LegacyReceivableSettlementEntry => entry !== null)
+
+  if (sanitizedSettlements.length === 0 && nextState.settledAmount <= 0) {
+    return lines.join('\n').trim()
+  }
+
+  const metaLine = `${LEGACY_RECEIVABLE_META_PREFIX} ${JSON.stringify({
+    settledAmount: Math.max(
+      parseInteger(nextState.settledAmount),
+      sanitizedSettlements.reduce((sum, entry) => sum + entry.amount, 0),
+    ),
+    settlements: sanitizedSettlements,
+  })}`
+
+  return [...lines, metaLine].join('\n').trim()
+}
+
+export function getLegacyReceivableSettledAmount(customer: LegacySnapshotMatchTarget | undefined): number {
+  return parseLegacyReceivableMemo(customer?.memo).settledAmount
 }
 
 export function deriveLegacyTradebookSnapshot(
@@ -185,7 +276,8 @@ export async function getLegacyBalanceBaseline(customer: LegacySnapshotMatchTarg
 
 export async function getLegacyReceivableBaseline(customer: LegacySnapshotMatchTarget | undefined): Promise<number> {
   const baseline = await getLegacyBalanceBaseline(customer)
-  return Math.abs(baseline)
+  const settledAmount = getLegacyReceivableSettledAmount(customer)
+  return Math.max(0, Math.abs(baseline) - settledAmount)
 }
 
 export function getLegacyReceivableBaselineFromSnapshots(
@@ -193,5 +285,6 @@ export function getLegacyReceivableBaselineFromSnapshots(
   snapshots: LegacyCustomerSnapshotPayload | undefined,
 ): number {
   const { snapshot } = deriveLegacyTradebookSnapshot(customer, snapshots)
-  return Math.abs(parseInteger(snapshot?.balance))
+  const settledAmount = getLegacyReceivableSettledAmount(customer)
+  return Math.max(0, Math.abs(parseInteger(snapshot?.balance)) - settledAmount)
 }

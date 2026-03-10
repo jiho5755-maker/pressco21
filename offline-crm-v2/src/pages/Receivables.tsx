@@ -9,15 +9,21 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
-import { getAllCustomers, getAllInvoices, getCustomer, updateInvoice, recalcCustomerStats } from '@/lib/api'
+import { getAllCustomers, getAllInvoices, getCustomer, updateCustomer, updateInvoice, recalcCustomerStats } from '@/lib/api'
 import type { Customer, Invoice } from '@/lib/api'
 import { exportReceivables } from '@/lib/excel'
-import { getLegacyCustomerSnapshots, getLegacyReceivableBaseline } from '@/lib/legacySnapshots'
+import {
+  getLegacyCustomerSnapshots,
+  getLegacyReceivableBaseline,
+  parseLegacyReceivableMemo,
+  serializeLegacyReceivableMemo,
+} from '@/lib/legacySnapshots'
 import { getPaidAmountAsOf } from '@/lib/reporting'
 import {
   buildCustomerReceivableLedger,
   buildResolvedReceivableInvoices,
   resolveInvoiceCustomer,
+  type CustomerReceivableLedger,
   type ResolvedReceivableInvoice,
 } from '@/lib/receivables'
 
@@ -56,6 +62,11 @@ interface ReceivableSnapshot extends Invoice {
 interface CustomerReceivableBreakdown {
   customer: Customer
   legacyBaseline: number
+}
+
+interface LegacyPaymentTarget {
+  customer: Customer
+  ledger: CustomerReceivableLedger
 }
 
 // ─── 입금 확인 다이얼로그 ───────────────────────
@@ -209,11 +220,152 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
   )
 }
 
+interface LegacyPaymentDialogProps {
+  target: LegacyPaymentTarget | null
+  onClose: () => void
+  onSaved: () => void
+}
+
+function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogProps) {
+  const qc = useQueryClient()
+  const [amount, setAmount] = useState(0)
+  const [method, setMethod] = useState('계좌이체')
+  const [isSaving, setIsSaving] = useState(false)
+
+  if (!target) return null
+  const legacyTarget = target
+
+  const remaining = legacyTarget.ledger.legacyBaseline
+
+  async function handleSave() {
+    if (amount <= 0) {
+      toast.error('입금액을 입력해주세요.')
+      return
+    }
+    if (amount > remaining) {
+      toast.error(`레거시 미수금(${remaining.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const memoState = parseLegacyReceivableMemo(legacyTarget.customer.memo as string | undefined)
+      const nextSettlements = [
+        ...memoState.settlements,
+        {
+          amount,
+          date: todayDate(),
+          method,
+        },
+      ]
+      const nextMemo = serializeLegacyReceivableMemo(legacyTarget.customer.memo as string | undefined, {
+        settledAmount: memoState.settledAmount + amount,
+        settlements: nextSettlements,
+      })
+
+      await updateCustomer(legacyTarget.customer.Id, { memo: nextMemo })
+      await recalcCustomerStats(legacyTarget.customer.Id)
+
+      qc.invalidateQueries({ queryKey: ['customers'] })
+      qc.invalidateQueries({ queryKey: ['customer', legacyTarget.customer.Id] })
+      qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(legacyTarget.customer.Id)] })
+      qc.invalidateQueries({ queryKey: ['dash-receivables'] })
+      qc.invalidateQueries({
+        predicate: (q) => {
+          const key = q.queryKey[0]
+          return typeof key === 'string' && (key.startsWith('dash-') || key.startsWith('period-') || key.startsWith('calendar-'))
+        },
+      })
+
+      toast.success('레거시 미수금 입금 처리가 반영되었습니다.')
+      onSaved()
+    } catch (error) {
+      console.error(error)
+      toast.error('레거시 미수금 입금 처리 중 오류가 발생했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={!!target} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>레거시 미수 입금 확인</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="bg-gray-50 rounded-md p-3 space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">거래처</span>
+              <span className="font-medium">{legacyTarget.customer.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">레거시 미수금</span>
+              <span className="font-bold text-red-600">{remaining.toLocaleString()}원</span>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">입금액</Label>
+            <Input
+              type="number"
+              value={amount || ''}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              placeholder={`최대 ${remaining.toLocaleString()}원`}
+              className="mt-1"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs">입금방법</Label>
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="현금">현금</SelectItem>
+                <SelectItem value="계좌이체">계좌이체</SelectItem>
+                <SelectItem value="카드">카드</SelectItem>
+                <SelectItem value="수표">수표</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {amount > 0 && (
+            <div className="bg-blue-50 rounded-md p-2 text-xs text-blue-700">
+              입금 후 레거시 잔액:{' '}
+              <span className={remaining - amount > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
+                {(remaining - amount).toLocaleString()}원
+              </span>
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="ghost" onClick={onClose} disabled={isSaving}>
+              취소
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || amount <= 0}
+              className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
+            >
+              {isSaving ? '처리 중...' : '입금 확인'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 // ─── 미수금 관리 메인 ───────────────────────────
 export function Receivables() {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [paymentTarget, setPaymentTarget] = useState<Invoice | null>(null)
+  const [legacyPaymentTarget, setLegacyPaymentTarget] = useState<LegacyPaymentTarget | null>(null)
   const [customerSearch, setCustomerSearch] = useState(() => searchParams.get('customer') ?? '')
   const [customerIdFilter, setCustomerIdFilter] = useState(() => searchParams.get('customerId') ?? '')
   const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy'>('all')
@@ -233,6 +385,7 @@ export function Receivables() {
   }, [searchParams])
   useEffect(() => {
     setPaymentTarget(null)
+    setLegacyPaymentTarget(null)
   }, [asOfDate])
 
   const { data: invoices = [], isLoading, isError } = useQuery({
@@ -712,12 +865,13 @@ export function Receivables() {
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
                   <th className="text-right px-4 py-3 font-medium text-muted-foreground">레거시 미수금</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
+                  <th className="w-28" />
                 </tr>
               </thead>
               <tbody>
                 {filteredLegacyLedger.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="px-4 py-12 text-center text-muted-foreground">
+                    <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
                       레거시 미수 고객이 없습니다.
                     </td>
                   </tr>
@@ -742,6 +896,24 @@ export function Receivables() {
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
                       {entry.crmRemaining > 0 ? `CRM 미수 ${entry.crmRemaining.toLocaleString()}원 별도 보유` : '레거시 원장 기준'}
                     </td>
+                    <td className="px-4 py-2.5">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          const customer = customerById.get(entry.customerId)
+                          if (!customer) {
+                            toast.error('고객 정보를 찾을 수 없습니다.')
+                            return
+                          }
+                          setLegacyPaymentTarget({ customer, ledger: entry })
+                        }}
+                      >
+                        입금 확인
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -755,6 +927,11 @@ export function Receivables() {
         invoice={paymentTarget}
         onClose={() => setPaymentTarget(null)}
         onSaved={() => setPaymentTarget(null)}
+      />
+      <LegacyPaymentDialog
+        target={legacyPaymentTarget}
+        onClose={() => setLegacyPaymentTarget(null)}
+        onSaved={() => setLegacyPaymentTarget(null)}
       />
     </div>
   )

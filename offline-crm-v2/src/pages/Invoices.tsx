@@ -40,6 +40,26 @@ function getCustomerPrimaryPhone(customer: Customer | null | undefined): string 
   return (customer?.mobile ?? customer?.phone1 ?? customer?.phone ?? '') as string
 }
 
+function getCustomerAddressKeys(customer: Customer | null | undefined): string[] {
+  if (!customer) return []
+  const keys: string[] = []
+  for (let i = 1; i <= 10; i++) {
+    const key = `address${i}`
+    const value = (customer[key] as string | undefined)?.trim()
+    if (value) keys.push(key)
+  }
+  return keys
+}
+
+function getCustomerAddressByKey(customer: Customer | null | undefined, addressKey?: string): string {
+  if (!customer) return ''
+  const keys = getCustomerAddressKeys(customer)
+  if (addressKey && keys.includes(addressKey)) {
+    return ((customer[addressKey] as string | undefined) ?? '').trim()
+  }
+  return keys.length > 0 ? (((customer[keys[0]] as string | undefined) ?? '').trim()) : ''
+}
+
 function getCustomerAddress(customer: Customer | null | undefined, preferredAddress?: string): string {
   if (!customer) return ''
   const trimmedPreferred = preferredAddress?.trim()
@@ -155,7 +175,9 @@ export function Invoices() {
   })
   const { data: customersForLink = [] } = useQuery({
     queryKey: ['invoice-link-customers'],
-    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id' }),
+    queryFn: () => getAllCustomers({
+      fields: 'Id,name,book_name,legacy_id,mobile,phone1,address1,address2,address3,address4,address5,address6,address7,address8,address9,address10',
+    }),
     staleTime: 10 * 60 * 1000,
   })
   const customerById = useMemo(
@@ -176,8 +198,13 @@ export function Invoices() {
     let missingAddress = 0
     let missingPhone = 0
     for (const invoice of filteredInvoices) {
-      const hasAddress = Boolean(invoice.customer_address?.trim())
-      const hasPhone = Boolean(invoice.customer_phone?.trim())
+      const linkedCustomer = typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined
+      const resolvedAddress = linkedCustomer
+        ? getCustomerAddressByKey(linkedCustomer, invoice.customer_address_key as string | undefined) || invoice.customer_address || ''
+        : invoice.customer_address || ''
+      const resolvedPhone = getCustomerPrimaryPhone(linkedCustomer) || invoice.customer_phone || ''
+      const hasAddress = Boolean(resolvedAddress.trim())
+      const hasPhone = Boolean(resolvedPhone.trim())
       if (!hasAddress) missingAddress += 1
       if (!hasPhone) missingPhone += 1
     }
@@ -186,7 +213,7 @@ export function Invoices() {
       missingPhone,
       totalMissing: Math.max(missingAddress, 0) + Math.max(missingPhone, 0),
     }
-  }, [filteredInvoices])
+  }, [customerById, filteredInvoices])
 
   const totalRows = filteredInvoices.length
   const totalPages = Math.ceil(totalRows / PAGE_SIZE)
@@ -293,15 +320,18 @@ export function Invoices() {
     setIsCourierExporting(true)
     try {
       const rows = await Promise.all(filteredInvoices.map(async (invoice) => {
-        const itemsData = await getItems(invoice.Id)
-        const quantity = itemsData.list.reduce((sum, item) => sum + (item.quantity ?? 0), 0) || itemsData.list.length || 1
+        const linkedCustomer = typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined
+        const receiverPhone = getCustomerPrimaryPhone(linkedCustomer) || invoice.customer_phone || ''
+        const receiverAddress = linkedCustomer
+          ? getCustomerAddressByKey(linkedCustomer, invoice.customer_address_key as string | undefined) || invoice.customer_address || ''
+          : invoice.customer_address || ''
         return {
           receiverName: invoice.customer_name ?? '',
-          receiverPhone: invoice.customer_phone ?? '',
-          receiverMobile: invoice.customer_phone ?? '',
-          receiverAddress: invoice.customer_address ?? '',
-          quantity,
-          deliveryMessage: invoice.memo ?? '',
+          receiverPhone,
+          receiverMobile: receiverPhone,
+          receiverAddress,
+          quantity: 1,
+          deliveryMessage: '',
         }
       }))
 

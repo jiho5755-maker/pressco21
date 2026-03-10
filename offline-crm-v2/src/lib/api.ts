@@ -9,7 +9,7 @@
  * - n8n이 테이블/메서드 화이트리스트 검증 후 NocoDB에 전달
  */
 
-import { getLegacyBalanceBaseline } from '@/lib/legacySnapshots'
+import { getLegacyReceivableBaseline } from '@/lib/legacySnapshots'
 
 // n8n Webhook 프록시 URL
 const PROXY_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://n8n.pressco21.com/webhook/crm-proxy'
@@ -428,6 +428,7 @@ export interface Invoice {
   customer_name?: string
   customer_phone?: string
   customer_address?: string
+  customer_address_key?: string
   customer_bizno?: string
   customer_ceo_name?: string
   customer_biz_type?: string
@@ -623,14 +624,14 @@ export async function recalcCustomerStats(customerId: number): Promise<void> {
   }
 
   // 3. 레거시 잔액 baseline 조회
-  const legacyBalanceBaseline = await getLegacyBalanceBaseline(customer)
+  const legacyBalanceBaseline = await getLegacyReceivableBaseline(customer)
 
   // 4. 종합 통계 업데이트
   const lastDate = crmLastDate > legacyLastDate ? crmLastDate : (legacyLastDate || crmLastDate)
   const patch: Partial<Customer> = {
     total_order_amount: legacyTotal + crmTotal,
     total_order_count: legacyCount + crmCount,
-    // 레거시 백업 잔액을 baseline으로 유지하고, CRM 명세표 미수만 가감한다.
+    // 레거시 잔액 부호를 CRM 미수 방향(양수=받을금액)으로 정규화해서 합산한다.
     outstanding_balance: legacyBalanceBaseline + outstanding,
   }
   if (lastDate) patch.last_order_date = lastDate

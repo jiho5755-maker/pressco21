@@ -770,6 +770,7 @@
             'active': '\uD65C\uC131',
             'INACTIVE': '\uB300\uAE30',
             'paused': '\uC77C\uC2DC\uC911\uC9C0',
+            'closed': '\uAC70\uBD80',
             'rejected': '\uAC70\uBD80',
             'PENDING_SETTLEMENT': '\uC815\uC0B0\uB300\uAE30',
             'COMPLETED': '\uC644\uB8CC',

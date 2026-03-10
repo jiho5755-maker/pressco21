@@ -565,17 +565,60 @@
   - 스크린샷: `output/playwright/admin-write-20260310/write-complete-settlement.png`
   - 결과 파일: `output/playwright/admin-write-20260310/admin-write-results.json`
 
+### 어드민 잔여 오류 2건 수정 반영 (CODEX)
+- 실행 일시: 2026-03-10 09:22 KST ~ 2026-03-10 09:40 KST
+- 수정 파일
+  - `파트너클래스/n8n-workflows/WF-08-partner-approve.json`
+  - `파트너클래스/n8n-workflows/WF-ADMIN-admin-api.json`
+  - `파트너클래스/어드민/Index.html`
+  - `파트너클래스/어드민/js.js`
+- 수정 내용
+  - `WF-08 Partner Approve`
+    - 신청 조회 정렬 필드를 존재하지 않는 `applied_date`에서 `CreatedAt`으로 수정
+    - 관리자 화면에서 전달하는 숫자형 row id(`application_id=4`)도 조회 가능하도록 `Id` 또는 `application_id` 매칭 where 식으로 보강
+  - `WF-ADMIN Admin API`
+    - `approveApplication -> WF-08` 내부 호출에 `Authorization: Bearer {{ ADMIN_API_TOKEN }}` 및 `Content-Type: application/json` 헤더 추가
+    - 내부 호출 응답을 `fullResponse + neverError`로 받아서, `WF-08`이 실패해도 관리자 UI가 JSON 에러 메시지를 읽을 수 있게 응답 정규화
+    - `getPendingClasses`가 실제로 `status` 파라미터(`INACTIVE`, `active`, `closed`)를 반영하도록 수정
+    - `rejectClass` 상태값을 NocoDB 허용 enum에 맞춰 `rejected`에서 `closed`로 수정
+  - 어드민 프론트
+    - 강의 승인 탭의 `거부됨` 필터 값을 `rejected`에서 `closed`로 수정
+    - 상태 라벨 매핑에 `closed -> 거부` 추가
+- 검증
+  - `jq empty 파트너클래스/n8n-workflows/WF-08-partner-approve.json` → `OK`
+  - `jq empty 파트너클래스/n8n-workflows/WF-ADMIN-admin-api.json` → `OK`
+  - `python3 codex-skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/어드민/js.js` → `OK`
+  - `Index.html`는 기존 문서 내 `http://` 링크 1건 때문에 가드 스크립트 경고가 있었고, 이번 수정과 무관하여 유지
+
+### 어드민 정산 재검증 PASS (CODEX)
+- 실행 일시: 2026-03-10 09:18 KST ~ 2026-03-10 09:19 KST
+- 실행 계정
+  - `jihoo5755`
+- 실행 도메인
+  - `https://www.foreverlove.co.kr/shop/page.html?id=8011`
+- 결과
+  - `completeSettlement` PASS
+  - 체크박스 값이 row `Id`가 아니라 `settlement_id=STL_20260302_966532`로 전송되는 것 확인
+  - API 응답: `200`, `{\"success\":true,\"data\":{\"completed_count\":1,\"total_paid\":117000,\"not_found_ids\":[]}}`
+  - 토스트: `1건 정산 완료`
+- 산출물
+  - 결과 파일: `output/playwright/admin-write-20260310/admin-write-results.json`
+  - 스크린샷: `output/playwright/admin-write-20260310/complete-settlement-result.png`
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] 어드민 최신 `파트너클래스/어드민/js.js` 메이크샵 배포 후 `completeSettlement` 재검증
+- [CODEX] 아래 4개 파일 배포 후 `approveApplication`, `rejectClass` 라이브 재검증
+- [CODEX] 배포 대상 1: `파트너클래스/n8n-workflows/WF-08-partner-approve.json`
+- [CODEX] 배포 대상 2: `파트너클래스/n8n-workflows/WF-ADMIN-admin-api.json`
+- [CODEX] 배포 대상 3: `파트너클래스/어드민/Index.html`
+- [CODEX] 배포 대상 4: `파트너클래스/어드민/js.js`
+- [CODEX] 어드민 `css.css`는 이번 라운드 수정 없음
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
 
 ### Claude Code 태스크
-- `WF-08 Partner Approve`의 신청 조회 정렬 필드 `applied_date` 제거 또는 실제 컬럼명으로 교체
-- `WF-ADMIN Admin API`의 `rejectClass` 상태값을 실제 허용 옵션(`closed` 또는 운영 합의값)으로 수정
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
 - CRM 운영 확인: 실제 운영 브라우저에서 `미수금` 복구와 `캘린더 2026-03-09 8건` 표기를 확인
 - 캘린더 운영 판단: 과거 기준일 `미수 후속`은 현재 미수 기준 참고용이라는 점을 UX 문구로 더 명확히 할지 검토
@@ -601,5 +644,5 @@
 - 실관리자 계정 자격증명은 리포지토리에서 확인되지 않았고, `id=8011` 양성 최종 검증 전 별도 제공이 필요함
 - `makeshop-d4-dev`는 `/Users/jangjiho/workspace/AGENTS.md`를 기준 문서로 참조하므로, 해당 경로가 바뀌면 스킬 안내도 함께 갱신해야 함
 - 어드민 권한 판정은 이제 `group_name` 일치 또는 `group_level >= 9`면 통과하므로, 다른 최고등급 회원이 의도치 않게 열리지 않는지 운영 정책 확인 필요
-- 어드민 쓰기 액션 중 `approveApplication`, `rejectClass`는 현재 프론트가 아니라 라이브 n8n 워크플로우 오류로 막혀 있음
-- 어드민 `completeSettlement`는 로컬 수정본 기준으로 `settlement_id`를 보내도록 보정됐지만, 라이브 정적 JS 배포 전까지는 동일 오류가 재현됨
+- 어드민 쓰기 액션 중 남은 미해결은 `approveApplication`, `rejectClass` 2건이며, 이번 라운드 수정은 로컬 파일 기준 반영 완료 상태
+- `approveApplication`, `rejectClass` 최종 PASS 판단은 `WF-08`, `WF-ADMIN`, 어드민 `Index.html/js.js` 4개 배포 후 재검증이 필요함

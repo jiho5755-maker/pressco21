@@ -12,7 +12,10 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [220, 400],
+      "position": [
+        220,
+        400
+      ],
       "webhookId": "partner-approve"
     },
     {
@@ -23,17 +26,25 @@
       "name": "Validate Auth & Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 400]
+      "position": [
+        440,
+        400
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._valid }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -42,7 +53,10 @@
       "name": "IF Auth Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [660, 400]
+      "position": [
+        660,
+        400
+      ]
     },
     {
       "parameters": {
@@ -52,8 +66,14 @@
           "responseCode": "={{ $json._errorCode }}",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -62,7 +82,10 @@
       "name": "Respond Auth Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [880, 560]
+      "position": [
+        880,
+        560
+      ]
     },
     {
       "parameters": {
@@ -73,9 +96,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "={{ $json.applicationId ? '(application_id,eq,' + $json.applicationId + ')' : '(member_id,eq,' + $json.memberId + ')~and(status,eq,PENDING)' }}" },
-            { "name": "limit", "value": "1" },
-            { "name": "sort", "value": "-applied_date" }
+            {
+              "name": "where",
+              "value": "={{ $json.applicationId ? (/^\\d+$/.test(String($json.applicationId)) ? '((Id,eq,' + $json.applicationId + ')~or(application_id,eq,' + $json.applicationId + '))~and(status,eq,PENDING)' : '(application_id,eq,' + $json.applicationId + ')~and(status,eq,PENDING)') : '(member_id,eq,' + $json.memberId + ')~and(status,eq,PENDING)' }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            },
+            {
+              "name": "sort",
+              "value": "-CreatedAt"
+            }
           ]
         },
         "options": {}
@@ -84,7 +116,10 @@
       "name": "NocoDB Get Application",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 300],
+      "position": [
+        880,
+        300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -100,17 +135,25 @@
       "name": "Check Application Status",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 300]
+      "position": [
+        1100,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._found }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -119,7 +162,10 @@
       "name": "IF Application PENDING",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1320, 300]
+      "position": [
+        1320,
+        300
+      ]
     },
     {
       "parameters": {
@@ -129,8 +175,14 @@
           "responseCode": "400",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -139,7 +191,10 @@
       "name": "Respond Not Pending",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1540, 460]
+      "position": [
+        1540,
+        460
+      ]
     },
     {
       "parameters": {
@@ -150,8 +205,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json._application.member_id }})" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json._application.member_id }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -160,7 +221,10 @@
       "name": "NocoDB Check Existing Partner",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1540, 200],
+      "position": [
+        1540,
+        200
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -176,17 +240,25 @@
       "name": "Check Partner Duplicate",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1760, 200]
+      "position": [
+        1760,
+        200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._canApprove }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -195,7 +267,10 @@
       "name": "IF Can Approve",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1980, 200]
+      "position": [
+        1980,
+        200
+      ]
     },
     {
       "parameters": {
@@ -205,8 +280,14 @@
           "responseCode": "409",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -215,7 +296,10 @@
       "name": "Respond Already Partner",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2200, 380]
+      "position": [
+        2200,
+        380
+      ]
     },
     {
       "parameters": {
@@ -226,9 +310,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "fields", "value": "partner_code" },
-            { "name": "where", "value": "=(partner_code,like,PC_{{ new Date().toISOString().substring(0,7).replace('-','') }}%)" },
-            { "name": "limit", "value": "200" }
+            {
+              "name": "fields",
+              "value": "partner_code"
+            },
+            {
+              "name": "where",
+              "value": "=(partner_code,like,PC_{{ new Date().toISOString().substring(0,7).replace('-','') }}%)"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            }
           ]
         },
         "options": {}
@@ -237,7 +330,10 @@
       "name": "NocoDB Get Month Partners",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2200, 100],
+      "position": [
+        2200,
+        100
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -247,13 +343,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-08 Step 4: partner_code 생성 (PC_YYYYMM_NNN)\n// NNN = 해당 월 기존 파트너 수의 최대 순번 + 1\n// ===================================================\n\nconst monthPartnersResponse = $input.first().json;\nconst monthPartners = monthPartnersResponse.list || [];\nconst prevData = $('Check Partner Duplicate').first().json;\n\nconst now = new Date();\nconst pad2 = (n) => String(n).padStart(2, '0');\nconst currentMonth = String(now.getFullYear()) + pad2(now.getMonth() + 1);\nconst prefix = 'PC_' + currentMonth + '_';\n\n// 해당 월 파트너 코드에서 최대 순번 추출\nlet maxNum = 0;\nfor (const p of monthPartners) {\n  const code = String(p.partner_code || '').trim();\n  if (code.startsWith(prefix)) {\n    const numStr = code.substring(prefix.length);\n    const num = parseInt(numStr, 10);\n    if (!isNaN(num) && num > maxNum) {\n      maxNum = num;\n    }\n  }\n}\n\nconst partnerCode = prefix + String(maxNum + 1).padStart(3, '0');\nconst approvedDate = now.toISOString();\n\n// === 한국 날짜 포맷 (이메일용) ===\nconst approvedDateKR = now.getFullYear() + '년 '\n  + (now.getMonth() + 1) + '월 '\n  + now.getDate() + '일';\n\n// === 수수료 설정 (SILVER 기본) ===\nconst COMMISSION_RATES = {\n  SILVER:   { commissionRate: 0.10, reserveRate: 1.00 },\n  GOLD:     { commissionRate: 0.12, reserveRate: 1.00 },\n  PLATINUM: { commissionRate: 0.15, reserveRate: 0.80 }\n};\nconst grade = 'SILVER';\nconst rateConfig = COMMISSION_RATES[grade];\n\nreturn [{\n  json: {\n    _partnerCode: partnerCode,\n    _grade: grade,\n    _commissionRate: rateConfig.commissionRate,\n    _reserveRate: rateConfig.reserveRate,\n    _approvedDate: approvedDate,\n    _approvedDateKR: approvedDateKR,\n    _application: prevData._application,\n    reviewerNote: prevData.reviewerNote\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-08 Step 4: partner_code 생성 (PC_YYYYMM_NNN)\n// NNN = 해당 월 기존 파트너 수의 최대 순번 + 1\n// ===================================================\n\nconst monthPartnersResponse = $input.first().json;\nconst monthPartners = monthPartnersResponse.list || [];\nconst prevData = $('Check Partner Duplicate').first().json;\n\nconst now = new Date();\nconst pad2 = (n) => String(n).padStart(2, '0');\nconst currentMonth = String(now.getFullYear()) + pad2(now.getMonth() + 1);\nconst prefix = 'PC_' + currentMonth + '_';\n\n// 해당 월 파트너 코드에서 최대 순번 추출\nlet maxNum = 0;\nfor (const p of monthPartners) {\n  const code = String(p.partner_code || '').trim();\n  if (code.startsWith(prefix)) {\n    const numStr = code.substring(prefix.length);\n    const num = parseInt(numStr, 10);\n    if (!isNaN(num) && num > maxNum) {\n      maxNum = num;\n    }\n  }\n}\n\nconst partnerCode = prefix + String(maxNum + 1).padStart(3, '0');\nconst approvedDate = now.toISOString();\n\n// === 한국 날짜 포맷 (이메일용) ===\nconst approvedDateKR = now.getFullYear() + '년 '\n  + (now.getMonth() + 1) + '월 '\n  + now.getDate() + '일';\n\n// === 수수료 설정 (BLOOM 기본 — 4등급 체계) ===\n// BLOOM 25% → GARDEN 20% → ATELIER 15% → AMBASSADOR 10%\nconst grade = 'BLOOM';\nconst commissionRate = 0.25;\nconst reserveRate = 0.80;\n\nreturn [{\n  json: {\n    _partnerCode: partnerCode,\n    _grade: grade,\n    _commissionRate: commissionRate,\n    _reserveRate: reserveRate,\n    _approvedDate: approvedDate,\n    _approvedDateKR: approvedDateKR,\n    _application: prevData._application,\n    reviewerNote: prevData.reviewerNote\n  }\n}];"
       },
       "id": "wf08-generate-partner-code",
       "name": "Generate Partner Code",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2420, 100]
+      "position": [
+        2420,
+        100
+      ]
     },
     {
       "parameters": {
@@ -270,7 +369,10 @@
       "name": "NocoDB Update Application",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2640, 100],
+      "position": [
+        2640,
+        100
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -286,7 +388,10 @@
       "name": "Prepare Partner Data",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2860, 100]
+      "position": [
+        2860,
+        100
+      ]
     },
     {
       "parameters": {
@@ -297,22 +402,70 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "partner_code", "value": "={{ $json._partnerCode }}" },
-            { "name": "member_id", "value": "={{ $json._application.member_id }}" },
-            { "name": "partner_name", "value": "={{ $json._partnerName }}" },
-            { "name": "grade", "value": "={{ $json._grade }}" },
-            { "name": "email", "value": "={{ $json._application.email }}" },
-            { "name": "phone", "value": "={{ $json._application.phone }}" },
-            { "name": "location", "value": "={{ $json._application.location }}" },
-            { "name": "commission_rate", "value": "={{ $json._commissionRate }}" },
-            { "name": "reserve_rate", "value": "={{ $json._reserveRate }}" },
-            { "name": "class_count", "value": "=0" },
-            { "name": "avg_rating", "value": "=0" },
-            { "name": "education_completed", "value": "=false" },
-            { "name": "portfolio_url", "value": "={{ $json._application.portfolio_url }}" },
-            { "name": "instagram_url", "value": "={{ $json._application.instagram_url }}" },
-            { "name": "approved_date", "value": "={{ $json._approvedDate }}" },
-            { "name": "status", "value": "active" }
+            {
+              "name": "partner_code",
+              "value": "={{ $json._partnerCode }}"
+            },
+            {
+              "name": "member_id",
+              "value": "={{ $json._application.member_id }}"
+            },
+            {
+              "name": "partner_name",
+              "value": "={{ $json._partnerName }}"
+            },
+            {
+              "name": "grade",
+              "value": "={{ $json._grade }}"
+            },
+            {
+              "name": "email",
+              "value": "={{ $json._application.email }}"
+            },
+            {
+              "name": "phone",
+              "value": "={{ $json._application.phone }}"
+            },
+            {
+              "name": "location",
+              "value": "={{ $json._application.location }}"
+            },
+            {
+              "name": "commission_rate",
+              "value": "={{ $json._commissionRate }}"
+            },
+            {
+              "name": "reserve_rate",
+              "value": "={{ $json._reserveRate }}"
+            },
+            {
+              "name": "class_count",
+              "value": "=0"
+            },
+            {
+              "name": "avg_rating",
+              "value": "=0"
+            },
+            {
+              "name": "education_completed",
+              "value": "=false"
+            },
+            {
+              "name": "portfolio_url",
+              "value": "={{ $json._application.portfolio_url }}"
+            },
+            {
+              "name": "instagram_url",
+              "value": "={{ $json._application.instagram_url }}"
+            },
+            {
+              "name": "approved_date",
+              "value": "={{ $json._approvedDate }}"
+            },
+            {
+              "name": "status",
+              "value": "active"
+            }
           ]
         },
         "options": {}
@@ -321,7 +474,10 @@
       "name": "NocoDB Create Partner",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3080, 100],
+      "position": [
+        3080,
+        100
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -337,17 +493,25 @@
       "name": "Check Partner Created",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3300, 100]
+      "position": [
+        3300,
+        100
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._partnerCreated }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -356,7 +520,10 @@
       "name": "IF Partner Created",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [3520, 100]
+      "position": [
+        3520,
+        100
+      ]
     },
     {
       "parameters": {
@@ -368,8 +535,14 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            { "name": "datas[0][id]", "value": "={{ $json._application.member_id }}" },
-            { "name": "datas[0][group_no]", "value": "={{ $env.MAKESHOP_PARTNER_GROUP_NO }}" }
+            {
+              "name": "datas[0][id]",
+              "value": "={{ $json._application.member_id }}"
+            },
+            {
+              "name": "datas[0][group_no]",
+              "value": "={{ $env.MAKESHOP_PARTNER_GROUP_NO }}"
+            }
           ]
         },
         "options": {}
@@ -378,7 +551,10 @@
       "name": "Makeshop Change Member Group",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3740, 0],
+      "position": [
+        3740,
+        0
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "makeshop-api",
@@ -395,17 +571,23 @@
       "name": "Check Makeshop Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3960, 0]
+      "position": [
+        3960,
+        0
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-08 Step 7b: 승인 안내 이메일 HTML 생성\n// brand-strategy-comprehensive.md 이메일 5 참고\n// 브랜드 톤: 축하 + 기대 + 가이드\n// ===================================================\n\nconst data = $input.first().json;\nconst app = data._application;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\\\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nconst partnerName = escapeHtml(data._partnerName);\nconst partnerCode = escapeHtml(data._partnerCode);\nconst grade = escapeHtml(data._grade);\nconst approvedDateKR = escapeHtml(data._approvedDateKR);\nconst commissionPct = Math.round(data._commissionRate * 100);\n\nconst subject = '[PRESSCO21] 파트너 승인이 완료되었습니다! ' + data._partnerName + '님 환영합니다';\n\nconst html = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>PRESSCO21 파트너 승인 완료</title></head>'\n+ '<body style=\"margin: 0; padding: 0; background-color: #f8f6f0; font-family: \\'Pretendard\\', \\'Apple SD Gothic Neo\\', \\'Malgun Gothic\\', sans-serif;\">'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f8f6f0;\"><tr><td align=\"center\" style=\"padding: 24px 16px;\">'\n+ '<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);\">'\n// 헤더\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; border-bottom: 2px solid #b89b5e;\">'\n+ '<span style=\"font-size: 22px; font-weight: 700; color: #b89b5e; letter-spacing: 2px;\">PRESSCO21</span><br />'\n+ '<span style=\"font-size: 11px; color: #999999; letter-spacing: 1px;\">Forever and ever and Blooming</span>'\n+ '</td></tr>'\n// APPROVED 배지\n+ '<tr><td style=\"padding: 32px 32px 0; text-align: center;\">'\n+ '<span style=\"display: inline-block; background-color: #4a8c5c; color: #ffffff; font-size: 14px; font-weight: 700; padding: 8px 24px; border-radius: 20px; letter-spacing: 1px;\">PARTNER APPROVED</span>'\n+ '</td></tr>'\n// 본문\n+ '<tr><td style=\"padding: 28px 32px 32px;\">'\n+ '<p style=\"margin: 0 0 24px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + partnerName + '</strong>님, 환영합니다!</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">PRESSCO21 블룸 파트너 프로그램에 오신 것을 진심으로 환영합니다.</p>'\n+ '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\">30년 전통의 압화/보존화 전문 PRESSCO21과 함께<br />아름다운 클래스를 만들어 가요.</p>'\n// 파트너 정보 테이블\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #faf8f3; border-radius: 8px; border: 1px solid #e8e4db; margin-bottom: 24px;\">'\n+ '<tr><td style=\"padding: 20px 24px 12px;\"><p style=\"margin: 0 0 16px; font-size: 14px; font-weight: 700; color: #b89b5e; letter-spacing: 1px;\">파트너 정보</p></td></tr>'\n+ '<tr><td style=\"padding: 0 24px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; width: 100px; vertical-align: top;\">파트너 코드</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 700;\">' + partnerCode + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">파트너 등급</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">Bloom (블룸) - ' + grade + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">수수료율</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + commissionPct + '%</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">승인일</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + approvedDateKR + '</td></tr>'\n+ '</table></td></tr></table>'\n// 시작 가이드\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 24px;\"><tr><td style=\"padding: 20px 24px; background-color: #fef9f0; border-radius: 8px; border-left: 3px solid #b89b5e;\">'\n+ '<p style=\"margin: 0 0 12px; font-size: 14px; font-weight: 700; color: #b89b5e;\">시작 가이드</p>'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">1.</strong> 필수 교육 이수 (22분 영상 + 퀴즈)<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">부담 없이 편하게 시청해주세요. 70점 이상이면 합격!</span></td></tr>'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">2.</strong> 첫 클래스 등록 요청<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">관리자에게 클래스 정보를 보내주시면 등록해드려요.</span></td></tr>'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">3.</strong> 클래스 오픈 + 첫 수강생 만남!<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">수수료는 수강 완료 후 적립금으로 지급됩니다.</span></td></tr>'\n+ '</table></td></tr></table>'\n// 등급 안내\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 32px;\"><tr><td style=\"padding: 16px 20px; background-color: #fff8e8; border-radius: 8px; border-left: 4px solid #b89b5e;\">'\n+ '<p style=\"margin: 0; font-size: 13px; color: #555555; line-height: 1.6;\"><strong>등급 안내:</strong> 수업 실적과 평점에 따라 Garden(가든), Atelier(아틀리에) 파트너로 자동 승급됩니다.<br />Garden: 10건+ / 4.0+ &nbsp;|&nbsp; Atelier: 50건+ / 4.5+</p>'\n+ '</td></tr></table>'\n// 마무리\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">함께하는 여정이 기대됩니다!</p>'\n+ '<p style=\"margin: 0; font-size: 15px; color: #333333; line-height: 1.7;\">궁금하신 점은 pressco21@foreverlove.co.kr로 연락주세요.</p>'\n+ '</td></tr>'\n// 서명\n+ '<tr><td style=\"padding: 0 32px 32px;\"><p style=\"margin: 0; font-size: 14px; color: #b89b5e; font-weight: 600;\">PRESSCO21 드림</p></td></tr>'\n// 푸터\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; background-color: #faf8f3; border-top: 1px solid #e8e4db;\">'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">PRESSCO21 | foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">문의: pressco21@foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0; font-size: 11px; color: #bbbbbb;\">이 메일은 PRESSCO21 파트너 프로그램 관련 안내 메일입니다.</p>'\n+ '</td></tr></table></td></tr></table></body></html>';\n\nreturn [{\n  json: {\n    ...data,\n    _approvalEmail: {\n      to: app.email,\n      subject,\n      html\n    }\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-08 Step 7b: 승인 안내 이메일 HTML 생성\n// brand-strategy-comprehensive.md 이메일 5 참고\n// 브랜드 톤: 축하 + 기대 + 가이드\n// ===================================================\n\nconst data = $input.first().json;\nconst app = data._application;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\\\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nconst partnerName = escapeHtml(data._partnerName);\nconst partnerCode = escapeHtml(data._partnerCode);\nconst grade = escapeHtml(data._grade);\nconst approvedDateKR = escapeHtml(data._approvedDateKR);\nconst commissionPct = Math.round(data._commissionRate * 100);\n\nconst subject = '[PRESSCO21] 파트너 승인이 완료되었습니다! ' + data._partnerName + '님 환영합니다';\n\nconst html = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /><meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\" /><title>PRESSCO21 파트너 승인 완료</title></head>'\n+ '<body style=\"margin: 0; padding: 0; background-color: #f8f6f0; font-family: \\'Pretendard\\', \\'Apple SD Gothic Neo\\', \\'Malgun Gothic\\', sans-serif;\">'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #f8f6f0;\"><tr><td align=\"center\" style=\"padding: 24px 16px;\">'\n+ '<table width=\"600\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width: 600px; width: 100%; background-color: #ffffff; border-radius: 8px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,0.06);\">'\n// 헤더\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; border-bottom: 2px solid #b89b5e;\">'\n+ '<span style=\"font-size: 22px; font-weight: 700; color: #b89b5e; letter-spacing: 2px;\">PRESSCO21</span><br />'\n+ '<span style=\"font-size: 11px; color: #999999; letter-spacing: 1px;\">Forever and ever and Blooming</span>'\n+ '</td></tr>'\n// APPROVED 배지\n+ '<tr><td style=\"padding: 32px 32px 0; text-align: center;\">'\n+ '<span style=\"display: inline-block; background-color: #4a8c5c; color: #ffffff; font-size: 14px; font-weight: 700; padding: 8px 24px; border-radius: 20px; letter-spacing: 1px;\">PARTNER APPROVED</span>'\n+ '</td></tr>'\n// 본문\n+ '<tr><td style=\"padding: 28px 32px 32px;\">'\n+ '<p style=\"margin: 0 0 24px; font-size: 15px; color: #333333; line-height: 1.7;\"><strong style=\"color: #b89b5e;\">' + partnerName + '</strong>님, 환영합니다!</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">PRESSCO21 블룸 파트너 프로그램에 오신 것을 진심으로 환영합니다.</p>'\n+ '<p style=\"margin: 0 0 32px; font-size: 15px; color: #333333; line-height: 1.7;\">30년 전통의 압화/보존화 전문 PRESSCO21과 함께<br />아름다운 클래스를 만들어 가요.</p>'\n// 파트너 정보 테이블\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"background-color: #faf8f3; border-radius: 8px; border: 1px solid #e8e4db; margin-bottom: 24px;\">'\n+ '<tr><td style=\"padding: 20px 24px 12px;\"><p style=\"margin: 0 0 16px; font-size: 14px; font-weight: 700; color: #b89b5e; letter-spacing: 1px;\">파트너 정보</p></td></tr>'\n+ '<tr><td style=\"padding: 0 24px;\"><table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; width: 100px; vertical-align: top;\">파트너 코드</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333; font-weight: 700;\">' + partnerCode + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">파트너 등급</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">Bloom (블룸) - ' + grade + '</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">수수료율</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + commissionPct + '%</td></tr>'\n+ '<tr><td style=\"padding: 8px 0; font-size: 13px; color: #999999; vertical-align: top;\">승인일</td><td style=\"padding: 8px 0; font-size: 14px; color: #333333;\">' + approvedDateKR + '</td></tr>'\n+ '</table></td></tr></table>'\n// 시작 가이드\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 24px;\"><tr><td style=\"padding: 20px 24px; background-color: #fef9f0; border-radius: 8px; border-left: 3px solid #b89b5e;\">'\n+ '<p style=\"margin: 0 0 12px; font-size: 14px; font-weight: 700; color: #b89b5e;\">시작 가이드</p>'\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\">'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">1.</strong> 필수 교육 이수 (22분 영상 + 퀴즈)<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">부담 없이 편하게 시청해주세요. 70점 이상이면 합격!</span></td></tr>'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">2.</strong> 첫 클래스 등록 요청<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">관리자에게 클래스 정보를 보내주시면 등록해드려요.</span></td></tr>'\n+ '<tr><td style=\"padding: 6px 0; font-size: 14px; color: #555555; line-height: 1.6;\"><strong style=\"color: #b89b5e;\">3.</strong> 클래스 오픈 + 첫 수강생 만남!<br /><span style=\"font-size: 13px; color: #888888; padding-left: 16px;\">수수료는 수강 완료 후 적립금으로 지급됩니다.</span></td></tr>'\n+ '</table></td></tr></table>'\n// 등급 안내\n+ '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom: 32px;\"><tr><td style=\"padding: 16px 20px; background-color: #fff8e8; border-radius: 8px; border-left: 4px solid #b89b5e;\">'\n+ '<p style=\"margin: 0; font-size: 13px; color: #555555; line-height: 1.6;\"><strong>등급 안내:</strong> 수업 실적과 평점에 따라 자동 승급됩니다.<br />Garden: 10건+ / 평점 4.0+ &nbsp;|&nbsp; Atelier: 30건+ / 평점 4.3+ &nbsp;|&nbsp; Ambassador: 50건+</p>'\n+ '</td></tr></table>'\n// 마무리\n+ '<p style=\"margin: 0 0 8px; font-size: 15px; color: #333333; line-height: 1.7;\">함께하는 여정이 기대됩니다!</p>'\n+ '<p style=\"margin: 0; font-size: 15px; color: #333333; line-height: 1.7;\">궁금하신 점은 pressco21@foreverlove.co.kr로 연락주세요.</p>'\n+ '</td></tr>'\n// 서명\n+ '<tr><td style=\"padding: 0 32px 32px;\"><p style=\"margin: 0; font-size: 14px; color: #b89b5e; font-weight: 600;\">PRESSCO21 드림</p></td></tr>'\n// 푸터\n+ '<tr><td style=\"padding: 24px 32px; text-align: center; background-color: #faf8f3; border-top: 1px solid #e8e4db;\">'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">PRESSCO21 | foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0 0 8px; font-size: 12px; color: #999999;\">문의: pressco21@foreverlove.co.kr</p>'\n+ '<p style=\"margin: 0; font-size: 11px; color: #bbbbbb;\">이 메일은 PRESSCO21 파트너 프로그램 관련 안내 메일입니다.</p>'\n+ '</td></tr></table></td></tr></table></body></html>';\n\nreturn [{\n  json: {\n    ...data,\n    _approvalEmail: {\n      to: app.email,\n      subject,\n      html\n    }\n  }\n}];"
       },
       "id": "wf08-build-approval-email",
       "name": "Build Approval Email",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4180, -100]
+      "position": [
+        4180,
+        -100
+      ]
     },
     {
       "parameters": {
@@ -420,7 +602,10 @@
       "name": "Send Approval Email",
       "type": "n8n-nodes-base.emailSend",
       "typeVersion": 2.1,
-      "position": [4400, -100],
+      "position": [
+        4400,
+        -100
+      ],
       "credentials": {
         "smtp": {
           "id": "31jTm9BU7iyj0pVx",
@@ -437,7 +622,10 @@
       "name": "Build Telegram Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4180, 60]
+      "position": [
+        4180,
+        60
+      ]
     },
     {
       "parameters": {
@@ -450,7 +638,10 @@
       "name": "Telegram Approval",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [4400, 60],
+      "position": [
+        4400,
+        60
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -467,7 +658,10 @@
       "name": "Build Success Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [4620, -20]
+      "position": [
+        4620,
+        -20
+      ]
     },
     {
       "parameters": {
@@ -476,8 +670,14 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -486,7 +686,10 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [4840, -20]
+      "position": [
+        4840,
+        -20
+      ]
     },
     {
       "parameters": {
@@ -496,7 +699,10 @@
       "name": "Build Error Telegram",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3740, 300]
+      "position": [
+        3740,
+        300
+      ]
     },
     {
       "parameters": {
@@ -509,7 +715,10 @@
       "name": "Telegram Error Alert",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [3960, 300],
+      "position": [
+        3960,
+        300
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -526,8 +735,14 @@
           "responseCode": "500",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -536,188 +751,307 @@
       "name": "Respond Create Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [4180, 300]
+      "position": [
+        4180,
+        300
+      ]
     }
   ],
   "connections": {
     "Webhook": {
       "main": [
         [
-          { "node": "Validate Auth & Input", "type": "main", "index": 0 }
+          {
+            "node": "Validate Auth & Input",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Validate Auth & Input": {
       "main": [
         [
-          { "node": "IF Auth Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF Auth Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Auth Valid": {
       "main": [
         [
-          { "node": "NocoDB Get Application", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Application",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Auth Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Auth Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Application": {
       "main": [
         [
-          { "node": "Check Application Status", "type": "main", "index": 0 }
+          {
+            "node": "Check Application Status",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Application Status": {
       "main": [
         [
-          { "node": "IF Application PENDING", "type": "main", "index": 0 }
+          {
+            "node": "IF Application PENDING",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Application PENDING": {
       "main": [
         [
-          { "node": "NocoDB Check Existing Partner", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Check Existing Partner",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Not Pending", "type": "main", "index": 0 }
+          {
+            "node": "Respond Not Pending",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Check Existing Partner": {
       "main": [
         [
-          { "node": "Check Partner Duplicate", "type": "main", "index": 0 }
+          {
+            "node": "Check Partner Duplicate",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Partner Duplicate": {
       "main": [
         [
-          { "node": "IF Can Approve", "type": "main", "index": 0 }
+          {
+            "node": "IF Can Approve",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Can Approve": {
       "main": [
         [
-          { "node": "NocoDB Get Month Partners", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Month Partners",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Already Partner", "type": "main", "index": 0 }
+          {
+            "node": "Respond Already Partner",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Month Partners": {
       "main": [
         [
-          { "node": "Generate Partner Code", "type": "main", "index": 0 }
+          {
+            "node": "Generate Partner Code",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Generate Partner Code": {
       "main": [
         [
-          { "node": "NocoDB Update Application", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Update Application",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Update Application": {
       "main": [
         [
-          { "node": "Prepare Partner Data", "type": "main", "index": 0 }
+          {
+            "node": "Prepare Partner Data",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Prepare Partner Data": {
       "main": [
         [
-          { "node": "NocoDB Create Partner", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Create Partner",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Create Partner": {
       "main": [
         [
-          { "node": "Check Partner Created", "type": "main", "index": 0 }
+          {
+            "node": "Check Partner Created",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Partner Created": {
       "main": [
         [
-          { "node": "IF Partner Created", "type": "main", "index": 0 }
+          {
+            "node": "IF Partner Created",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Partner Created": {
       "main": [
         [
-          { "node": "Makeshop Change Member Group", "type": "main", "index": 0 }
+          {
+            "node": "Makeshop Change Member Group",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Build Error Telegram", "type": "main", "index": 0 }
+          {
+            "node": "Build Error Telegram",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Makeshop Change Member Group": {
       "main": [
         [
-          { "node": "Check Makeshop Result", "type": "main", "index": 0 }
+          {
+            "node": "Check Makeshop Result",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Makeshop Result": {
       "main": [
         [
-          { "node": "Build Approval Email", "type": "main", "index": 0 },
-          { "node": "Build Telegram Message", "type": "main", "index": 0 }
+          {
+            "node": "Build Approval Email",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Telegram Message",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Approval Email": {
       "main": [
         [
-          { "node": "Send Approval Email", "type": "main", "index": 0 }
+          {
+            "node": "Send Approval Email",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Send Approval Email": {
       "main": [
         [
-          { "node": "Build Success Response", "type": "main", "index": 0 }
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Telegram Message": {
       "main": [
         [
-          { "node": "Telegram Approval", "type": "main", "index": 0 }
+          {
+            "node": "Telegram Approval",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Success Response": {
       "main": [
         [
-          { "node": "Respond Success", "type": "main", "index": 0 }
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Error Telegram": {
       "main": [
         [
-          { "node": "Telegram Error Alert", "type": "main", "index": 0 }
+          {
+            "node": "Telegram Error Alert",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Telegram Error Alert": {
       "main": [
         [
-          { "node": "Respond Create Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Create Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -727,11 +1061,22 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "PRESSCO21" },
-    { "name": "Partner Approve" },
-    { "name": "Phase 2" },
-    { "name": "Task 221" },
-    { "name": "Admin" }
+    {
+      "name": "PRESSCO21"
+    },
+    {
+      "name": "Partner Approve"
+    },
+    {
+      "name": "Phase 2"
+    },
+    {
+      "name": "Task 221"
+    },
+    {
+      "name": "Admin"
+    }
   ],
-  "pinData": {}
+  "pinData": {},
+  "id": "89eQKUm5KNeVRtYf"
 }

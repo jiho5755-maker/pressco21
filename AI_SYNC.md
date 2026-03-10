@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-10 15:45:00 KST
+- Started At: 2026-03-10 16:10:00 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: —
@@ -61,6 +61,18 @@
 - 없음
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### CRM 데이터 정합성 P1 재감사 (CODEX)
+- `offline-crm-v2/scripts/repair_legacy_backup.py`
+  - blank legacy 고객 관련 거래만 선별 조회하도록 바꿔 dry-run 시간이 길어지지 않게 정리.
+  - customer patch를 현재 값과 diff 비교 후 압축하도록 보강해 no-op 업데이트를 요약에서 제거.
+  - 최신 dry-run 기준 실제 남은 보정은 `customer_updates 6`, `customer_creates 0`, `tx_updates 0`, `product_creates 0`.
+- `offline-crm-v2/docs/legacy-backup-audit-2026-03-10.md`
+  - 예전 문서에 남아 있던 `누락 고객 15건 / 분리 거래 237건 / 품목 1건 누락`을 재검증 결과 기준으로 정정.
+  - 현재 P1 실잔여 이슈를 `outstanding_balance 6건`으로 축소하고, 이를 이관 실패가 아니라 잔액 정책 미확정 이슈로 재분류.
+- 검증
+  - `cd offline-crm-v2 && python3 scripts/repair_legacy_backup.py`
+  - 결과: `customer_updates 6 / customer_creates 0 / tx_updates 0 / product_creates 0`
 
 ### CRM 얼마에요 대체 평가 + E2E 기준선 복구 (CODEX)
 - `offline-crm-v2/docs/crm-replacement-assessment-2026-03-10.md`
@@ -756,7 +768,7 @@
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] CRM 데이터 정합성 P1 착수: 누락 고객 15건 / 잔액 75건 / 품목 1건 / 오염 필드 재감사
+- [CODEX] CRM 데이터 정합성 P1 후속: 잔액 불일치 6건에 대해 레거시 원장 / CRM 명세표 / 입금 이력 대조
 - [CODEX] `서상견 님`류 중복 고객 통합 정책 문서화 및 대표 레코드 규칙 정의
 - [CODEX] 레거시 주소/유선전화/email 오염 필드의 `원본값 / 보정값 / 현재값` 표기 전략 설계
 - [CODEX] handoff 문서 기준으로 메이크샵 저장 여부부터 재확인하고, 저장 완료 시 라이브 회귀를 즉시 재개

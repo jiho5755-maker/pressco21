@@ -180,6 +180,47 @@ def fetch_all(table: str, fields: str, where: str | None = None, limit: int = 10
     return rows
 
 
+def build_or_eq_where(field: str, values: list[str], chunk_size: int = 10) -> list[str]:
+    normalized = [clean(value) for value in values if clean(value)]
+    clauses: list[str] = []
+    for start in range(0, len(normalized), chunk_size):
+        chunk = normalized[start:start + chunk_size]
+        clause = "~or".join(f"({field},eq,{value})" for value in chunk)
+        if clause:
+            clauses.append(clause)
+    return clauses
+
+
+def fetch_tx_for_legacy_ids(legacy_ids: set[str], fields: str) -> list[dict[str, Any]]:
+    if not legacy_ids:
+        return []
+    rows: list[dict[str, Any]] = []
+    for where in build_or_eq_where("legacy_book_id", sorted(legacy_ids)):
+        rows.extend(fetch_all("txHistory", fields, where=where, limit=1000))
+    return rows
+
+
+def compact_customer_patch(current: dict[str, Any], patch: dict[str, Any]) -> dict[str, Any] | None:
+    compacted: dict[str, Any] = {"Id": int(patch["Id"])}
+    for field, new_value in patch.items():
+        if field == "Id":
+            continue
+        current_value = current.get(field)
+        if isinstance(new_value, int):
+            if to_int(current_value) == new_value:
+                continue
+        elif new_value in (None, ""):
+            if clean(current_value) == "":
+                continue
+        else:
+            if clean(current_value) == clean(new_value):
+                continue
+        compacted[field] = new_value
+    if len(compacted) == 1:
+        return None
+    return compacted
+
+
 def bulk_write(table: str, method: str, rows: list[dict[str, Any]], chunk_size: int = 200) -> None:
     for start in range(0, len(rows), chunk_size):
         chunk = rows[start:start + chunk_size]
@@ -384,7 +425,10 @@ def main() -> None:
         "customers",
         "Id,legacy_id,name,book_name,business_no,ceo_name,business_address,address1,address2,zip,phone1,phone2,fax,manager,mobile,email,business_type,business_item,memo,price_tier,outstanding_balance,total_order_count,total_order_amount,last_order_date,first_order_date,customer_status,is_active"
     )
-    crm_tx = fetch_all("txHistory", "Id,legacy_book_id,customer_name,tx_type,tx_date,amount,tax,slip_no,tx_year")
+    crm_tx = fetch_tx_for_legacy_ids(
+        blank_legacy_ids,
+        "Id,legacy_book_id,customer_name,tx_type,tx_date,amount,tax,slip_no,tx_year",
+    )
     crm_products = fetch_all("products", "Id,product_code,name,unit,is_active")
 
     customers_by_id = {int(row["Id"]): row for row in crm_customers}
@@ -525,6 +569,13 @@ def main() -> None:
     if skip_products:
         product_creates = []
 
+    compacted_updates: dict[int, dict[str, Any]] = {}
+    for customer_id, patch in customer_updates.items():
+        compacted = compact_customer_patch(customers_by_id[customer_id], patch)
+        if compacted:
+            compacted_updates[customer_id] = compacted
+    customer_updates = compacted_updates
+
     summary = {
         "customer_updates": len(customer_updates),
         "customer_creates": len(customer_creates),
@@ -568,7 +619,7 @@ def main() -> None:
     # 후검증
     post_customers = fetch_all("customers", "Id,legacy_id,name,book_name,outstanding_balance,phone1,address1,address2,mobile,email")
     post_products = fetch_all("products", "Id,product_code,name")
-    post_tx = fetch_all("txHistory", "Id,legacy_book_id,customer_name")
+    post_tx = fetch_tx_for_legacy_ids(blank_legacy_ids, "Id,legacy_book_id,customer_name")
 
     post_by_legacy = {clean(row.get("legacy_id")): row for row in post_customers if clean(row.get("legacy_id"))}
     unresolved_blank_customers = [row.legacy_id for row in blank_named_customers if row.legacy_id not in post_by_legacy]

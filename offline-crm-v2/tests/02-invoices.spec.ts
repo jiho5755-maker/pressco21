@@ -29,24 +29,24 @@ import {
 // 테스트 전 거래명세표 페이지로 이동
 test.beforeEach(async ({ page }) => {
   await page.goto('/invoices')
-  await assertPageTitle(page, '거래명세표')
+  await assertPageTitle(page, '명세표 작성/관리')
 })
 
 test('T2-01: 거래명세표 페이지 접속 및 헤더 확인', async ({ page }) => {
-  await expect(page.getByRole('heading', { name: '거래명세표' })).toBeVisible()
+  await expect(page.getByRole('heading', { name: '명세표 작성/관리' })).toBeVisible()
 
-  // "새 명세표" 버튼과 "엑셀" 버튼 표시 확인
+  // "새 명세표" 버튼과 송장 엑셀 버튼 표시 확인
   await expect(page.getByRole('button', { name: /새 명세표/ })).toBeVisible()
-  await expect(page.getByRole('button', { name: /엑셀/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /택배 송장 자동 다운로드/ })).toBeVisible()
 })
 
 test('T2-02: 기존 명세표 목록 로드 확인', async ({ page }) => {
   await waitForTableLoaded(page)
   await assertNoApiError(page)
 
-  // 테이블 헤더 7개 확인
+  // 테이블 헤더 8개 확인 (액션 컬럼 포함)
   const headers = page.locator('thead th')
-  await expect(headers).toHaveCount(7)
+  await expect(headers).toHaveCount(8)
 
   // 주요 헤더 텍스트 확인
   await expect(page.getByRole('columnheader', { name: '발행번호' })).toBeVisible()
@@ -147,7 +147,11 @@ test('T2-07: 품목 단가 입력 시 공급가액/세액 자동 계산', async 
   const tbody = page.locator('[role="dialog"] tbody')
   const firstRow = tbody.locator('tr').first()
 
-  // 단가 input (4번째 number input)
+  // 과세 체크를 켜서 세액 계산이 발생하도록 맞춘다.
+  const taxableCheckbox = firstRow.locator('input[type="checkbox"]')
+  await taxableCheckbox.check()
+
+  // 단가 input (수량 다음 number input)
   const priceInput = firstRow.locator('input[type="number"]').nth(1)  // 수량=0, 단가=1
   await priceInput.fill('10000')
   await priceInput.press('Tab')  // blur 발생 → calcRow 실행
@@ -169,20 +173,12 @@ test('T2-08: 거래처 없이 저장 시도 → 유효성 검사 경고', async 
   await page.getByRole('button', { name: /새 명세표/ }).click()
   await waitForDialog(page, '새 거래명세표')
 
-  // dialog 핸들러: alert 메시지 캡처
-  let alertMessage = ''
-  page.once('dialog', async (dialog) => {
-    alertMessage = dialog.message()
-    await dialog.accept()
-  })
-
   // 거래처 입력 없이 저장 시도
   const saveBtn = page.getByRole('button', { name: '명세표 발행' })
   await saveBtn.click()
 
-  // alert 메시지 확인
-  await page.waitForTimeout(500)
-  expect(alertMessage).toContain('거래처를 입력해주세요')
+  // 토스트 경고 메시지 확인
+  await expect(page.getByText('거래처를 입력해주세요')).toBeVisible()
 
   // Dialog가 닫히지 않음 (여전히 열려 있음)
   await expect(page.getByRole('dialog')).toBeVisible()
@@ -212,7 +208,7 @@ test('T2-09: 완전한 데이터로 명세표 저장 → 목록에 반영', asyn
   const firstRow = tbody.locator('tr').first()
 
   // 품목명
-  const productNameInput = firstRow.locator('input[placeholder="품목명"]')
+  const productNameInput = firstRow.locator('input[placeholder="품목명 검색 (자동완성)"]')
   await productNameInput.fill('테스트 품목')
 
   // 단가 (10,000원)
@@ -252,12 +248,14 @@ test('T2-10: 저장된 명세표 클릭 → 수정 Dialog 열림', async ({ page
     return
   }
 
-  await firstRow.click()
+  await firstRow.locator('td').first().click()
 
-  // 수정 Dialog 열림 확인
+  // 거래 상세 모달을 거쳐 수정 Dialog로 진입
+  await waitForDialog(page, '거래 상세')
+  await page.getByRole('button', { name: '수정 열기' }).click()
   await waitForDialog(page, '명세표 수정')
 
-  // "수정 저장" 버튼 표시 확인
+  // 저장 버튼 표시 확인
   await expect(page.getByRole('button', { name: '수정 저장' })).toBeVisible()
 
   // 취소 버튼으로 닫기

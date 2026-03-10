@@ -143,16 +143,18 @@ test('T3-07: 연도별 매출 차트 렌더링 확인', async ({ page }) => {
   expect(wrapperCount).toBeGreaterThanOrEqual(3)
 })
 
-test('T3-08: 사이드바 네비게이션 링크 7개 표시 확인', async ({ page }) => {
-  // 사이드바 메뉴 7개: 대시보드/고객관리/거래명세표/제품관리/공급처/거래내역/미수금
+test('T3-08: 사이드바 네비게이션 링크 표시 확인', async ({ page }) => {
+  // 현재 사이드바 메뉴 9개
   const menuItems = [
     '대시보드',
     '고객 관리',
-    '거래명세표',
+    '명세표 작성',
     '제품 관리',
     '공급처',
-    '거래 내역',
+    '거래/명세표 조회',
     '미수금',
+    '캘린더',
+    '설정',
   ]
 
   const sidebar = page.locator('aside')

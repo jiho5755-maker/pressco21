@@ -42,9 +42,9 @@ test('T1-02: 고객 목록 테이블 로드 (NocoDB API 응답)', async ({ page 
   // API 에러 없음 확인
   await assertNoApiError(page)
 
-  // 테이블 헤더 컬럼 7개 확인 (거래처명/유형/상태/등급/최종거래일/총매출/미수금)
+  // 테이블 헤더 컬럼 8개 확인 (액션 컬럼 포함)
   const headers = page.locator('thead th')
-  await expect(headers).toHaveCount(7)
+  await expect(headers).toHaveCount(8)
 
   // 헤더 텍스트 확인
   await expect(page.getByRole('columnheader', { name: '거래처명' })).toBeVisible()

@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-10 13:41:35 KST
+- Started At: 2026-03-10 15:45:00 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: —
@@ -61,6 +61,22 @@
 - 없음
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### CRM 얼마에요 대체 평가 + E2E 기준선 복구 (CODEX)
+- `offline-crm-v2/docs/crm-replacement-assessment-2026-03-10.md`
+  - 현재 CRM의 `얼마에요` 대체 수준을 `부분 대체 성공, 완전 대체 미완료`로 판정하고 데이터/회계/UX/QA 기준을 문서화.
+  - 다음 단계 우선순위를 `기준선 복구 -> 데이터 진실원 확정 -> 회계 정확도 보강 -> UX 정제` 순으로 정리.
+- `offline-crm-v2/tests/01-customers.spec.ts`
+  - 고객 목록 액션 컬럼 추가 반영으로 헤더 기대값을 `7 -> 8`로 갱신.
+- `offline-crm-v2/tests/02-invoices.spec.ts`
+  - 페이지 제목을 현재 UI 기준 `명세표 작성/관리`로 갱신.
+  - 송장 버튼 명칭, 품목 placeholder, 토스트 기반 유효성 경고, 거래 상세 -> 수정 열기 흐름을 반영해 명세표 테스트를 현재 동작 기준으로 복구.
+  - 과세 체크 후 세액 계산을 검증하도록 T2-07을 보강.
+- `offline-crm-v2/tests/03-dashboard.spec.ts`
+  - 사이드바 메뉴 기대값을 현재 구조 `명세표 작성 / 거래/명세표 조회 / 캘린더 / 설정` 포함 기준으로 갱신.
+- 검증
+  - `cd offline-crm-v2 && npx playwright test tests/01-customers.spec.ts tests/02-invoices.spec.ts tests/03-dashboard.spec.ts`
+  - 결과: `28 passed (28.3s)`
 
 ### 파트너클래스 handoff 백업
 - 재시작용 handoff 문서를 [docs/파트너클래스/partnerclass-handoff-2026-03-10.md](/Users/jangjiho/workspace/pressco21/docs/파트너클래스/partnerclass-handoff-2026-03-10.md)에 추가.
@@ -740,6 +756,9 @@
 ## Next Step
 
 ### Codex CLI 위임 태스크
+- [CODEX] CRM 데이터 정합성 P1 착수: 누락 고객 15건 / 잔액 75건 / 품목 1건 / 오염 필드 재감사
+- [CODEX] `서상견 님`류 중복 고객 통합 정책 문서화 및 대표 레코드 규칙 정의
+- [CODEX] 레거시 주소/유선전화/email 오염 필드의 `원본값 / 보정값 / 현재값` 표기 전략 설계
 - [CODEX] handoff 문서 기준으로 메이크샵 저장 여부부터 재확인하고, 저장 완료 시 라이브 회귀를 즉시 재개
 - [CODEX] CRM 중복 고객 레코드 통합 정책 정리 (예: `서상견 님` / `서상견 님 (단양)`)
 - [CODEX] 레거시 고객리스트 충돌 506건을 덮어쓰기 없이 보관/표시하는 정책 설계

@@ -48,6 +48,8 @@
 - `phase2-deploy-guide.md`
 - `phase2-deployment-check.md`
 - `affiliation-db-guide.md`
+- `WF-01-switch-map.md`
+  - WF-01 공개 API의 action 분기, 입력 파라미터, 응답 구조, 호출 페이지 정리
 
 ### QA / 검증
 

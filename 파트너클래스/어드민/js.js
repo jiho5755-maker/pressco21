@@ -29,6 +29,17 @@
     var modalCallback = null;
     var selectedSettlements = {};
 
+    function normalizeClassFilterStatus(status) {
+        var value = String(status || '').toUpperCase().trim();
+        if (!value || value === 'INACTIVE' || value === 'PENDING') return 'PENDING_REVIEW';
+        if (value === 'ACTIVE') return 'ACTIVE';
+        if (value === 'PAUSED') return 'PAUSED';
+        if (value === 'CLOSED') return 'REJECTED';
+        if (value === 'REJECTED') return 'REJECTED';
+        if (value === 'ARCHIVED') return 'ARCHIVED';
+        return value;
+    }
+
     /* ========================================
        초기화
        ======================================== */
@@ -194,7 +205,7 @@
                 break;
             case 'classes':
                 var filterClass = document.getElementById('filterClassStatus');
-                loadPendingClasses(filterClass ? filterClass.value : 'INACTIVE');
+                loadPendingClasses(filterClass ? filterClass.value : 'PENDING_REVIEW');
                 break;
             case 'settlements':
                 var filterSettle = document.getElementById('filterSettlementStatus');
@@ -261,11 +272,12 @@
        강의 승인 탭
        ======================================== */
     function loadPendingClasses(status) {
+        var normalizedStatus = normalizeClassFilterStatus(status || 'PENDING_REVIEW');
         showLoading('Classes');
-        adminFetch({ action: 'getPendingClasses', status: status || 'INACTIVE', page: 1, limit: 50 }, function(httpStatus, resp) {
+        adminFetch({ action: 'getPendingClasses', status: normalizedStatus, page: 1, limit: 50 }, function(httpStatus, resp) {
             hideLoading('Classes');
             if (resp && resp.success) {
-                renderClasses(resp.data.classes || [], status);
+                renderClasses(resp.data.classes || [], normalizedStatus);
             } else {
                 showToast('강의 목록 로드 실패', 'error');
             }
@@ -298,7 +310,7 @@
             html += '<td>' + escapeHtml(cls.type || '-') + '</td>';
             html += '<td>' + formatPrice(cls.price || 0) + '\uC6D0</td>';
             html += '<td class="ad-table__actions">';
-            if (status === 'INACTIVE') {
+            if (status === 'PENDING_REVIEW') {
                 html += '<button class="ad-btn ad-btn--sm ad-btn--approve" onclick="window._adminAction(\'approveClass\',' + cls.Id + ')">승인</button>';
                 html += '<button class="ad-btn ad-btn--sm ad-btn--reject" onclick="window._adminAction(\'rejectClass\',' + cls.Id + ')">거부</button>';
             } else {
@@ -487,7 +499,7 @@
                     }, function(status, resp) {
                         if (resp && resp.success) {
                             showToast('\uAC15\uC758 \uC2B9\uC778 \uC644\uB8CC (\uBA54\uC774\uD06C\uC0F5 \uC0C1\uD488 \uC790\uB3D9 \uB4F1\uB85D)', 'success');
-                            loadPendingClasses('INACTIVE');
+                            loadPendingClasses('PENDING_REVIEW');
                             loadSummary();
                         } else {
                             showToast('\uC2B9\uC778 \uCC98\uB9AC \uC2E4\uD328: ' + getErrorMessage(resp, '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958'), 'error');
@@ -509,7 +521,7 @@
                     }, function(status, resp) {
                         if (resp && resp.success) {
                             showToast('\uAC15\uC758 \uAC70\uBD80 \uCC98\uB9AC \uC644\uB8CC', 'success');
-                            loadPendingClasses('INACTIVE');
+                            loadPendingClasses('PENDING_REVIEW');
                             loadSummary();
                         } else {
                             showToast('\uAC70\uBD80 \uCC98\uB9AC \uC2E4\uD328: ' + getErrorMessage(resp, '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958'), 'error');
@@ -767,11 +779,10 @@
             'PENDING': '\uB300\uAE30',
             'APPROVED': '\uC2B9\uC778',
             'REJECTED': '\uAC70\uBD80',
-            'active': '\uD65C\uC131',
-            'INACTIVE': '\uB300\uAE30',
-            'paused': '\uC77C\uC2DC\uC911\uC9C0',
-            'closed': '\uAC70\uBD80',
-            'rejected': '\uAC70\uBD80',
+            'ACTIVE': '\uD65C\uC131',
+            'PENDING_REVIEW': '\uB300\uAE30',
+            'PAUSED': '\uC77C\uC2DC\uC911\uC9C0',
+            'ARCHIVED': '\uBCF4\uAD00',
             'PENDING_SETTLEMENT': '\uC815\uC0B0\uB300\uAE30',
             'COMPLETED': '\uC644\uB8CC',
             'CANCELLED': '\uCDE8\uC18C',

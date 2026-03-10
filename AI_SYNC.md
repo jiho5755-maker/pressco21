@@ -51,9 +51,9 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-10 20:45:00 KST
+- Started At: 2026-03-10 20:58:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S0-2 상태값 정규화 완료
+- Working Scope: [CODEX-LEAD] 파트너클래스 S0-3 / S0-4 완료
 - Active Subdirectory: pressco21/파트너클래스
 
 ## Files In Progress
@@ -165,6 +165,30 @@
   - 저장소 기준 스크립트 경로, 재설치 명령, 수동/실패 테스트 방법을 반영.
 - `ROADMAP.md`
   - Task `S0-1`을 `✅ 완료`로 갱신하고 검증 결과를 변경 이력에 기록.
+
+### [CODEX-LEAD] Phase 3 S0-3 WF-ADMIN 중복 ID 정리 + S0-4 Switch 문서화 완료 (CODEX)
+- 운영 n8n
+  - inactive `WF-ADMIN Admin API` 중복 4건 삭제 완료:
+    - `LwkPImRkhuoN3krF`
+    - `FgTVuCi37J68QVYa`
+    - `ggzThCFb4LG1uHJl`
+    - `YT6cKPhozRLpKS7u`
+  - 유지 ID: `SMCKmeLSfxs1e1Ef` 1건만 ACTIVE
+  - 삭제 전 백업: `output/n8n-backups/20260310-s0-3/`
+- `파트너클래스/어드민/js.js`
+  - 강의 승인 탭 기본/재조회 status를 `PENDING_REVIEW` 기준으로 맞춤.
+  - legacy `INACTIVE` 필터값이 들어와도 `PENDING_REVIEW`로 정규화하는 helper 추가.
+  - 상태 라벨 맵을 `ACTIVE / PENDING_REVIEW / PAUSED / ARCHIVED / REJECTED` 기준으로 정리.
+- `docs/파트너클래스/WF-01-switch-map.md`
+  - `getClasses`, `getClassDetail`, `getCategories`, `getAffiliations` 4개 action의 입력 파라미터, 응답 구조, 호출 페이지, unknown action 처리 경로 문서화.
+- `docs/파트너클래스/README.md`
+  - `WF-01-switch-map.md`를 유지 문서 목록에 추가.
+- 검증
+  - 운영 n8n 목록 조회 결과 `WF-ADMIN Admin API`는 `SMCKmeLSfxs1e1Ef` 1건만 남음
+  - 라이브 `admin-api` 읽기 호출:
+    - `getApplications status=PENDING` 정상 응답
+    - `getPendingClasses status=PENDING_REVIEW` 정상 응답
+  - `node --check 파트너클래스/어드민/js.js`
 
 ### 파트너클래스 공용 메모리 및 문서 정리 (CODEX)
 - `.claude/agent-memory/class-platform-architect/MEMORY.md`
@@ -965,8 +989,8 @@
 
 #### 현재 다음 태스크
 
-- `S0-3 WF-ADMIN 중복 ID 정리` 진행
-- 그 다음 `S0-4 WF-01 Switch 케이스 문서화`
+- `S1-1 키트 연동 Step 1 — 자사몰 상품 링크 방식` 진행
+- 그 다음 `S1-2 상세 UX 고도화`
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
 #### 실행 순서
@@ -1051,6 +1075,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - 상세 페이지 선물하기는 메이크샵 네이티브 장바구니 POST로 맞췄지만, 실제 선물 가능 상품 설정 여부에 따라 최종 동작이 달라질 수 있어 실상품 1건 재검증 필요
 - `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 저장 전까지 라이브 반영되지 않음
 - 라이브 `admin-api`는 현재 리포지토리의 랜덤 `ADMIN_API_TOKEN`이 아니라 구형 토큰 `pressco21-admin-2026` 기준으로만 인증이 통과함
+- `파트너클래스/어드민/js.js`의 `PENDING_REVIEW` 정렬 보정은 아직 메이크샵 디자인편집기에 저장되지 않아 라이브 어드민 UI에는 반영되지 않음
 - `PRD-파트너클래스-플랫폼-고도화.md`, `commission-policy.md`, 일부 구현 문서는 아직 예전 등급/수수료 표현이 남아 있으므로 서비스 방향 판단은 `docs/파트너클래스/README.md`와 `shared-service-identity.md`를 우선해야 함
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.

@@ -11,6 +11,7 @@
        설정값
        ======================================== */
     var ADMIN_API_URL = 'https://n8n.pressco21.com/webhook/admin-api';
+    var SETTLEMENT_API_URL = 'https://n8n.pressco21.com/webhook/settlement-batch';
     // 관리자 그룹명 목록 (메이크샵 회원등급명과 일치해야 함)
     var ADMIN_GROUP_NAMES = ['관리자', '운영자', '대표'];
     // 관리자 그룹 레벨 하한선
@@ -91,6 +92,21 @@
     function adminFetch(payload, callback) {
         var xhr = new XMLHttpRequest();
         xhr.open('POST', ADMIN_API_URL, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Authorization', 'Bearer ' + ADMIN_TOKEN);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                var resp = null;
+                try { resp = JSON.parse(xhr.responseText); } catch(e) {}
+                callback(xhr.status, resp);
+            }
+        };
+        xhr.send(JSON.stringify(payload));
+    }
+
+    function settlementFetch(payload, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', SETTLEMENT_API_URL, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.setRequestHeader('Authorization', 'Bearer ' + ADMIN_TOKEN);
         xhr.onreadystatechange = function() {
@@ -210,6 +226,7 @@
             case 'settlements':
                 var filterSettle = document.getElementById('filterSettlementStatus');
                 loadSettlements(filterSettle ? filterSettle.value : 'PENDING_SETTLEMENT');
+                loadSettlementHistory();
                 break;
             case 'affiliations':
                 loadAdminAffiliations();
@@ -359,11 +376,11 @@
         var html = '';
         for (var i = 0; i < list.length; i++) {
             var stl = list[i];
-            var date = formatDate(stl.order_date || stl.created_at || stl.CreatedAt);
-            var commRate = Number(stl.commission_rate) || 0;
+            var date = formatDate(stl.class_date || stl.order_date || stl.created_at || stl.CreatedAt);
+            var commRate = normalizePercent(stl.commission_rate);
             var orderAmt = Number(stl.order_amount) || 0;
             var commAmt = Number(stl.commission_amount) || Math.round(orderAmt * commRate / 100);
-            var partnerAmt = Number(stl.partner_amount) || (orderAmt - commAmt);
+            var partnerAmt = Number(stl.reserve_amount) || Number(stl.partner_amount) || (orderAmt - commAmt);
 
             html += '<tr data-id="' + (stl.Id || '') + '">';
             if (status === 'PENDING_SETTLEMENT') {
@@ -400,7 +417,111 @@
         if (partnerEl) partnerEl.textContent = formatPrice(summary.total_partner_amount || 0) + '\uC6D0';
     }
 
+    function loadSettlementHistory() {
+        var month = getSettlementMonthValue();
+        showLoading('SettlementHistory');
+        settlementFetch({ action: 'getSettlementHistory', month: month }, function(httpStatus, resp) {
+            hideLoading('SettlementHistory');
+            if (resp && resp.success && resp.data) {
+                renderSettlementHistory(resp.data.history || [], resp.data.summary || {});
+            } else {
+                showEmpty('SettlementHistory');
+                updateSettlementHistoryMeta(null, month);
+            }
+        });
+    }
+
+    function renderSettlementHistory(list, summary) {
+        var tbody = document.getElementById('tbodySettlementHistory');
+        var emptyEl = document.getElementById('emptySettlementHistory');
+        var tableWrap = document.getElementById('tableWrapSettlementHistory');
+        var month = getSettlementMonthValue();
+
+        updateSettlementHistoryMeta(summary, month);
+
+        if (!list.length) {
+            if (tbody) tbody.innerHTML = '';
+            if (emptyEl) emptyEl.style.display = '';
+            if (tableWrap) tableWrap.style.display = 'none';
+            return;
+        }
+
+        if (emptyEl) emptyEl.style.display = 'none';
+        if (tableWrap) tableWrap.style.display = '';
+
+        var html = '';
+        for (var i = 0; i < list.length; i++) {
+            var item = list[i];
+            html += '<tr>';
+            html += '<td>' + escapeHtml(item.cycle_label || '-') + '</td>';
+            html += '<td><strong>' + escapeHtml(item.partner_name || item.partner_code || '-') + '</strong></td>';
+            html += '<td>' + escapeHtml(item.grade || '-') + '</td>';
+            html += '<td class="ad-table__num">' + formatPrice(item.classes_count || 0) + '</td>';
+            html += '<td class="ad-table__num">' + formatPrice(item.total_order_amount || 0) + '\uC6D0</td>';
+            html += '<td class="ad-table__num ad-table__num--highlight">' + formatPrice(item.total_reserve_amount || 0) + '\uC6D0</td>';
+            html += '<td>' + (item.last_sent_at ? formatDateTime(item.last_sent_at) : '-') + '</td>';
+            html += '</tr>';
+        }
+
+        if (tbody) tbody.innerHTML = html;
+    }
+
+    function updateSettlementHistoryMeta(summary, month) {
+        var metaEl = document.getElementById('settlementHistoryMeta');
+        if (!metaEl) return;
+
+        if (!summary) {
+            metaEl.textContent = month + ' 기준 정산서 발송 이력을 확인합니다.';
+            return;
+        }
+
+        metaEl.textContent = month + ' 기준 총 ' + formatPrice(summary.total_order_amount || 0) + '\uC6D0 주문, '
+            + formatPrice(summary.total_reserve_amount || 0) + '\uC6D0 적립금, '
+            + (summary.sent_count || 0) + '건 발송 완료';
+    }
+
     function bindSettlementControls() {
+        var monthInput = document.getElementById('settlementMonth');
+        var cycleSelect = document.getElementById('settlementCycle');
+        var runBtn = document.getElementById('btnRunSettlement');
+
+        if (monthInput && !monthInput.value) {
+            monthInput.value = getCurrentMonthValue();
+        }
+        if (monthInput) {
+            monthInput.addEventListener('change', function() {
+                loadSettlementHistory();
+            });
+        }
+        if (cycleSelect) {
+            cycleSelect.addEventListener('change', function() {
+                updateSettlementRunLabel();
+            });
+        }
+        if (runBtn) {
+            runBtn.addEventListener('click', function() {
+                var month = getSettlementMonthValue();
+                var cycle = getSettlementCycleValue();
+                var cycleLabel = month + ' ' + (cycle === 'SECOND_HALF' ? '후반' : '전반');
+
+                showModal('정산 실행 확인', cycleLabel + ' 정산서를 파트너에게 발송하시겠습니까?', function() {
+                    settlementFetch({
+                        action: 'runSettlementBatch',
+                        month: month,
+                        cycle: cycle
+                    }, function(status, resp) {
+                        if (resp && resp.success) {
+                            var sentCount = resp.data && resp.data.sent_count ? resp.data.sent_count : 0;
+                            showToast(cycleLabel + ' 정산 실행 완료 (' + sentCount + '건)', 'success');
+                        } else {
+                            showToast('정산 실행 실패: ' + getErrorMessage(resp, '메일 설정 또는 정산 데이터를 확인해 주세요.'), 'error');
+                        }
+                        loadSettlementHistory();
+                    });
+                });
+            });
+        }
+
         // 전체 선택 체크박스
         var checkAll = document.getElementById('settleCheckAll');
         if (checkAll) {
@@ -442,6 +563,17 @@
                 });
             });
         }
+
+        updateSettlementRunLabel();
+    }
+
+    function updateSettlementRunLabel() {
+        var runBtn = document.getElementById('btnRunSettlement');
+        if (!runBtn) return;
+
+        var month = getSettlementMonthValue();
+        var cycle = getSettlementCycleValue();
+        runBtn.textContent = month + ' ' + (cycle === 'SECOND_HALF' ? '후반 정산 실행' : '전반 정산 실행');
     }
 
     /* ========================================
@@ -764,6 +896,12 @@
         return String(Math.round(Number(num) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
+    function normalizePercent(num) {
+        var value = Number(num) || 0;
+        if (!value) return 0;
+        return value > 0 && value < 1 ? Math.round(value * 100) : value;
+    }
+
     function formatDate(dateStr) {
         if (!dateStr) return '-';
         var d = new Date(dateStr);
@@ -772,6 +910,35 @@
         var m = ('0' + (d.getMonth() + 1)).slice(-2);
         var day = ('0' + d.getDate()).slice(-2);
         return y + '-' + m + '-' + day;
+    }
+
+    function formatDateTime(dateStr) {
+        if (!dateStr) return '-';
+        var d = new Date(dateStr);
+        if (isNaN(d.getTime())) return dateStr;
+        var y = d.getFullYear();
+        var m = ('0' + (d.getMonth() + 1)).slice(-2);
+        var day = ('0' + d.getDate()).slice(-2);
+        var hh = ('0' + d.getHours()).slice(-2);
+        var mm = ('0' + d.getMinutes()).slice(-2);
+        return y + '-' + m + '-' + day + ' ' + hh + ':' + mm;
+    }
+
+    function getCurrentMonthValue() {
+        var now = new Date();
+        var y = now.getFullYear();
+        var m = ('0' + (now.getMonth() + 1)).slice(-2);
+        return y + '-' + m;
+    }
+
+    function getSettlementMonthValue() {
+        var input = document.getElementById('settlementMonth');
+        return input && input.value ? input.value : getCurrentMonthValue();
+    }
+
+    function getSettlementCycleValue() {
+        var select = document.getElementById('settlementCycle');
+        return select && select.value === 'SECOND_HALF' ? 'SECOND_HALF' : 'FIRST_HALF';
     }
 
     function getStatusLabel(status) {

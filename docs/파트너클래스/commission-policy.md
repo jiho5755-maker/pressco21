@@ -1,114 +1,42 @@
-# PRESSCO21 수수료 정책 (확정판)
+# PRESSCO21 수수료 정책
 
-> 작성일: 2026-02-26 | Task 294 산출물
+작성일: 2026-03-10
 
----
+## 현재 기준
 
-## 파트너 등급별 수수료 정책
+파트너클래스의 수수료 정책은 프론트에 노출하지 않는다. 운영 계산의 기준 문서는 이 파일과 `ROADMAP.md`다.
 
-| 등급 | 수수료율 | 적립금 전환율 | 예시 (10만원 수강료 기준) |
-|------|---------|------------|-------------------------|
-| SILVER | 20% | 80% | 수수료 2만원 → 적립금 1.6만원 |
-| GOLD | 25% | 80% | 수수료 2.5만원 → 적립금 2만원 |
-| PLATINUM | 30% | 80% | 수수료 3만원 → 적립금 2.4만원 |
+| 등급 | 수수료율 | 적립금 전환율 |
+|------|---------|-------------|
+| BLOOM | 25% | 80% |
+| GARDEN | 20% | 80% |
+| ATELIER | 15% | 80% |
+| AMBASSADOR | 10% | 80% |
 
-**계산식:**
-- `commission_amount = order_amount × commission_rate / 100`
-- `reserve_amount = commission_amount × reserve_rate / 100`
+## 레거시 등급 매핑
 
-**적립금 지급 일정:** 수강 완료 D+3 영업일 이내
+운영 데이터에 아직 구 등급값이 남아 있어, 워크플로우에서는 아래처럼 alias로 처리한다.
 
----
+| 레거시 값 | 현재 계산 기준 |
+|----------|---------------|
+| SILVER | BLOOM |
+| GOLD | GARDEN |
+| PLATINUM | ATELIER |
 
-## n8n WF-05 상수 (확인됨)
+## 계산식
 
-```javascript
-// WF-05 주문 폴링 - 수수료 계산 상수
-const COMMISSION_RATES = {
-    SILVER: 20,
-    GOLD: 25,
-    PLATINUM: 30
-};
-const DEFAULT_RESERVE_RATE = 80;
-```
+- `commission_amount = order_amount × commission_rate`
+- `reserve_amount = commission_amount × reserve_rate`
+- `reserve_rate`는 현재 전 등급 공통 `0.80`
 
-## n8n WF-13 등급 업그레이드 기준 (확인됨)
+## 적용 위치
 
-| 등급 | 누적 매출 기준 |
-|------|-------------|
-| SILVER (초기) | 파트너 승인 시 자동 부여 |
-| GOLD | 누적 매출 500만원 이상 |
-| PLATINUM | 누적 매출 2000만원 이상 |
+- `WF-05-order-polling-batch`
+- `WF-SETTLE Partner Settlement`
+- 관리자 정산 응답 포맷 (`WF-ADMIN getSettlements`)
 
-**참고:** 등급 강등 없음 (상위 등급만 변경)
+## 운영 메모
 
----
-
-## NocoDB 필드 구성 (Task 294 완료)
-
-### tbl_Partners 추가 필드
-| 필드명 | 타입 | 용도 |
-|-------|------|------|
-| `instagram_url` | URL | 파트너 인스타그램 (기존) |
-| `phone` | PhoneNumber | 파트너 전화번호 (기존) |
-| `kakao_channel` | URL | 파트너 카카오톡 채널 (신규 추가) |
-
-### tbl_Classes 추가 필드 (신규)
-| 필드명 | 타입 | 용도 |
-|-------|------|------|
-| `contact_instagram` | URL | 강의별 인스타그램 연락처 |
-| `contact_phone` | PhoneNumber | 강의별 전화번호 |
-| `contact_kakao` | URL | 강의별 카카오톡 채널 |
-
-### tbl_Reviews 추가 필드 (신규)
-| 필드명 | 타입 | 용도 |
-|-------|------|------|
-| `is_admin_created` | Checkbox | 관리자 생성 후기 표시 (내부 추적용, 프론트 미노출) |
-
----
-
-## NocoDB 필드 추가 방법 (향후 참고)
-
-현재 NocoDB v0.301.2는 REST API를 통한 column 추가가 불가능합니다.
-(POST /api/v1/db/meta/projects/.../columns → 404)
-
-대신 두 가지 방법 사용 가능:
-
-### 방법 1: NocoDB GUI (권장)
-1. `https://nocodb.pressco21.com` 로그인
-2. 테이블 선택 → `+` 버튼으로 필드 추가
-
-### 방법 2: SQLite 직접 수정 (Task 294에서 사용한 방법)
-```bash
-# 서버에 SSH 접속
-ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201
-
-# SQLite 수정 (sudo 필요)
-sudo python3 << 'EOF'
-import sqlite3, random, string, time
-
-DB_PATH = '/home/ubuntu/nocodb/nocodb_data/noco.db'
-# ... (ALTER TABLE + nc_columns_v2 INSERT + nc_grid_view_columns_v2 INSERT)
-EOF
-
-# NocoDB 재시작 + 네트워크 재연결
-docker restart nocodb && sleep 12
-docker network connect n8n_n8n-network nocodb
-```
-
-> ⚠️ SQLite 직접 수정 후 반드시 NocoDB 재시작 + n8n 네트워크 재연결 필요
-
----
-
-## 정책 적용 확인
-
-| 항목 | 적용 위치 | 상태 |
-|------|----------|------|
-| SILVER 20% | WF-05, tbl_Partners | ✅ 확인됨 |
-| GOLD 25% | WF-05, tbl_Partners | ✅ 확인됨 |
-| PLATINUM 30% | WF-05, tbl_Partners | ✅ 확인됨 |
-| reserve_rate 80% | WF-05 | ✅ 확인됨 |
-| D+3 정산 | WF-05 스케줄 | ✅ 확인됨 |
-| tbl_Partners 연락처 필드 | NocoDB | ✅ 추가 완료 |
-| tbl_Classes 연락처 필드 | NocoDB | ✅ 추가 완료 |
-| tbl_Reviews is_admin_created | NocoDB | ✅ 추가 완료 |
+- `tbl_Partners.grade`에 아직 `SILVER`가 남아 있어도 정산 계산은 alias 매핑으로 동작한다.
+- 수수료율은 파트너 프론트, 수강생 프론트 어디에도 직접 노출하지 않는다.
+- Phase 3에서 등급 체계를 완전히 정리할 때까지는 canonical 등급과 legacy alias를 함께 유지한다.

@@ -58,6 +58,8 @@
   - S1-3 기준 목록 신뢰 배지 6종, 퀵 필터 저장 규칙, 오프라인 지도 진입점, Playwright 검증 결과 정리
 - `repurchase-path-guide.md`
   - S1-4 기준 마이페이지 수강완료 후 후기/재구매/같은 강사 추천 동선, WF-12 후기 메일 연결 방식 정리
+- `settlement-automation-guide.md`
+  - S1-5 기준 WF-SETTLE 구조, 관리자 정산 실행/이력 화면, 라이브 SMTP blocker 정리
 
 ### QA / 검증
 

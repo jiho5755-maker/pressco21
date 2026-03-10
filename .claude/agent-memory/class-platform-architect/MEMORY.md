@@ -57,3 +57,11 @@
 - 구현은 `WF-19 my-bookings`에 직접 필드를 늘리지 않고 프론트에서 `WF-01 class-api`를 추가 호출해 추천 컨텍스트를 합성하는 방식으로 고정했다.
 - 후기 요청 이메일 `WF-12`는 클래스 상세로 직접 들어가도록 바꾸고, `내 수강 내역` 복귀 문구로 마이페이지 후속 동선을 연결한다.
 - 운영 기준 문서는 `docs/파트너클래스/repurchase-path-guide.md` 이다.
+
+## 2026-03-10 S1-5 정산 자동화 구조 확정
+
+- 정산 자동화는 별도 워크플로우 `WF-SETTLE Partner Settlement` 로 분리해 `WF-ADMIN`과 결합도를 낮춘다.
+- 관리자 정산 화면은 `대기/완료 목록`과 `정산서 발송 이력`을 같은 패널 안에서 함께 본다.
+- 정산 이력의 기본 단위는 settlement row가 아니라 `statement_id=SETB_YYYYMM_H1|H2_PARTNER_CODE` 다.
+- 라이브 SMTP credential이 현재 깨져 있으므로, 정산 실행 API는 메일 발송 실패를 성공으로 숨기지 않고 그대로 오류로 반환해야 한다.
+- 운영 기준 문서는 `docs/파트너클래스/settlement-automation-guide.md` 이다.

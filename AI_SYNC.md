@@ -50,26 +50,50 @@
 ## Session Lock
 
 - Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-10 22:57:00 KST
+- Mode: IDLE
+- Started At: 2026-03-10 23:13:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S1-4 수강완료 -> 재구매 동선 진행
+- Working Scope: [CODEX-LEAD] 파트너클래스 S1-5 구현 정리 완료, 다음 턴 S1-6 예정
 - Active Subdirectory: pressco21
 
 ## Files In Progress
-- AI_SYNC.md
-- ROADMAP.md
-- docs/파트너클래스/README.md
-- docs/파트너클래스/repurchase-path-guide.md
-- .claude/agent-memory/class-platform-architect/MEMORY.md
-- .claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md
-- .claude/agent-memory/ecommerce-business-expert/MEMORY.md
-- 파트너클래스/마이페이지/Index.html
-- 파트너클래스/마이페이지/css.css
-- 파트너클래스/마이페이지/js.js
-- 파트너클래스/n8n-workflows/WF-12-review-requests.json
+- (none)
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### [CODEX-LEAD] Phase 3 S1-5 정산 자동화 WF-SETTLE 구현 (CODEX)
+- 백엔드
+  - `파트너클래스/n8n-workflows/WF-SETTLE-partner-settlement.json`
+    - 신규 워크플로우 `WF-SETTLE Partner Settlement` 생성 및 활성화 (`CGdB7kIdTRjO6ZVr`)
+    - `getSettlementHistory`, `runSettlementBatch` 액션 구현
+    - 월/반기 필터를 NocoDB `like` 쿼리 대신 코드 단계에서 처리하도록 보정
+    - 메일 발송 실패를 `success: false`, `SETTLEMENT_EMAIL_FAILED` 로 그대로 반환하도록 수정
+  - `파트너클래스/n8n-workflows/WF-ADMIN-admin-api.json`
+    - `getSettlements`가 `PENDING_SETTLEMENT / COMPLETED` 상태값을 정상 구분하도록 수정
+    - `commission_rate 0.1` 같은 레거시 저장값을 `%` 기준으로 정규화해 응답
+- 프론트
+  - `파트너클래스/어드민/Index.html`
+    - 정산 탭에 `월`, `전반/후반`, `정산 실행` 컨트롤 추가
+    - `정산서 발송 이력` 테이블 섹션 추가
+  - `파트너클래스/어드민/js.js`
+    - `settlement-batch` 전용 호출 헬퍼 추가
+    - 정산 이력 로딩, 실행 버튼, 실패 토스트, 이력 메타 문구 연결
+    - 정산 목록의 수수료율/지급액 표시를 레거시 값까지 보정
+- 문서 / 메모리
+  - `docs/파트너클래스/settlement-automation-guide.md` 신규 추가
+  - `docs/파트너클래스/commission-policy.md`를 canonical 등급 기준으로 정리
+  - `docs/파트너클래스/README.md`, `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+- 라이브 검증
+  - `admin-api getSettlements(status=COMPLETED)` 성공, 총 1건 확인
+  - `settlement-batch getSettlementHistory(month=2026-03)` 성공
+  - `runSettlementBatch(month=2026-03, cycle=FIRST_HALF)`는 의도적으로 실패 반환 확인
+    - 원인: 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535 Username and Password not accepted`
+- Playwright 검증
+  - 로컬 목업 관리자 페이지에서 `정산 현황` 탭 렌더링, 이력 테이블, 정산 실행 모달, 실패 토스트까지 확인
+  - 스크린샷: `output/playwright/s1-5-admin-ui/admin-settlement-panel.png`
 
 ### [CODEX-LEAD] Phase 3 S1-4 수강완료 -> 재구매 동선 완료 (CODEX)
 - 프론트
@@ -1183,8 +1207,8 @@
 
 #### 현재 다음 태스크
 
-- `S1-5 정산 자동화 WF-SETTLE` 진행
-- 그 다음 `S1-6 CS FAQ 15개 확장`
+- `S1-6 CS FAQ 15개 확장`
+- `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
 #### 실행 순서
@@ -1273,6 +1297,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S1-1 프론트 변경(강의등록/상세/파트너 수정 모달)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 화면 확인이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-2 상세 프론트 변경(Trust Summary Bar, 포함 내역, 모바일 CTA 바)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-4 마이페이지 프론트 변경(`파트너클래스/마이페이지/*`)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
+- S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함
 - `PRD-파트너클래스-플랫폼-고도화.md`, `commission-policy.md`, 일부 구현 문서는 아직 예전 등급/수수료 표현이 남아 있으므로 서비스 방향 판단은 `docs/파트너클래스/README.md`와 `shared-service-identity.md`를 우선해야 함
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음

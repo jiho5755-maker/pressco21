@@ -1,0 +1,843 @@
+{
+  "name": "WF-SETTLE Partner Settlement",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 1,16 * *"
+            }
+          ]
+        }
+      },
+      "id": "wfsettle-schedule",
+      "name": "Schedule 1st and 16th",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "settlement-batch",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wfsettle-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        420
+      ],
+      "webhookId": "settlement-batch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst headers = input.headers || {};\nconst hasWebhookBody = !!input.body || Object.keys(headers).length > 0;\n\nfunction pad(n) {\n  return String(n).padStart(2, '0');\n}\n\nfunction getKstNow() {\n  const now = new Date();\n  return new Date(now.getTime() + 9 * 60 * 60 * 1000);\n}\n\nfunction getMonthString(date) {\n  return date.getFullYear() + '-' + pad(date.getMonth() + 1);\n}\n\nfunction getCurrentCycle(date) {\n  return date.getDate() <= 15 ? 'FIRST_HALF' : 'SECOND_HALF';\n}\n\nfunction getScheduledWindow(date) {\n  const day = date.getDate();\n  if (day === 1) {\n    const prevMonth = new Date(Date.UTC(date.getFullYear(), date.getMonth() - 1, 1));\n    return {\n      month: prevMonth.getUTCFullYear() + '-' + pad(prevMonth.getUTCMonth() + 1),\n      cycle: 'SECOND_HALF'\n    };\n  }\n  return {\n    month: getMonthString(date),\n    cycle: 'FIRST_HALF'\n  };\n}\n\nif (!hasWebhookBody) {\n  const kst = getKstNow();\n  const scheduled = getScheduledWindow(kst);\n  return [{\n    json: {\n      _source: 'schedule',\n      _action: 'runSettlementBatch',\n      month: scheduled.month,\n      cycle: scheduled.cycle,\n      force: false\n    }\n  }];\n}\n\nconst body = input.body || {};\nconst authHeader = headers.authorization || headers.Authorization || '';\nconst token = typeof authHeader === 'string' && authHeader.indexOf('Bearer ') === 0 ? authHeader.substring(7).trim() : '';\nconst expectedToken = $env.ADMIN_API_TOKEN || '';\nconst isValid = !!token && !!expectedToken && token === expectedToken;\n\nif (!isValid) {\n  return [{\n    json: {\n      _source: 'webhook',\n      _action: '_unauthorized'\n    }\n  }];\n}\n\nconst kst = getKstNow();\nconst month = /^\\d{4}-\\d{2}$/.test(String(body.month || '').trim()) ? String(body.month || '').trim() : getMonthString(kst);\nconst cycleRaw = String(body.cycle || body.cycle_key || '').trim().toUpperCase();\nconst cycle = cycleRaw === 'FIRST_HALF' || cycleRaw === 'SECOND_HALF' ? cycleRaw : getCurrentCycle(kst);\nconst action = String(body.action || 'runSettlementBatch').trim() || 'runSettlementBatch';\nconst force = body.force === true || String(body.force || '').toLowerCase() === 'true';\n\nreturn [{\n  json: {\n    _source: 'webhook',\n    _action: action,\n    month,\n    cycle,\n    force\n  }\n}];"
+      },
+      "id": "wfsettle-parse-trigger",
+      "name": "Parse Trigger & Auth",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._action }}",
+                    "rightValue": "getSettlementHistory",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "getSettlementHistory"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._action }}",
+                    "rightValue": "runSettlementBatch",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "runSettlementBatch"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._action }}",
+                    "rightValue": "_unauthorized",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "_unauthorized"
+            }
+          ]
+        }
+      },
+      "id": "wfsettle-switch",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        700,
+        340
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst month = /^\\d{4}-\\d{2}$/.test(String(data.month || '').trim()) ? String(data.month || '').trim() : new Date().toISOString().slice(0, 7);\nreturn [{\n  json: {\n    ...data,\n    month,\n    where: '(status,eq,COMPLETED)'\n  }\n}];"
+      },
+      "id": "wfsettle-history-params",
+      "name": "Parse History Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mcoddguv4d3s3ne",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "={{ $(\"Parse History Params\").first().json.where }}"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wfsettle-history-get-settlements",
+      "name": "Get Completed Settlements (History)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        180
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(status,eq,active)"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wfsettle-history-get-partners",
+      "name": "Get Partners (History)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1420,
+        180
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "200"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wfsettle-history-get-logs",
+      "name": "Get Settlement Email Logs (History)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        180
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const settlementsResp = $('Get Completed Settlements (History)').first().json;\nconst partnersResp = $('Get Partners (History)').first().json;\nconst logsResp = $('Get Settlement Email Logs (History)').first().json;\nconst params = $('Parse History Params').first().json;\n\nconst settlements = settlementsResp.list || [];\nconst partners = partnersResp.list || [];\nconst logs = logsResp.list || [];\n\nfunction cycleInfo(dateStr) {\n  const safe = String(dateStr || '').substring(0, 10);\n  const day = parseInt(safe.substring(8, 10), 10) || 1;\n  const month = safe.substring(0, 7);\n  const cycle = day <= 15 ? 'FIRST_HALF' : 'SECOND_HALF';\n  const half = cycle === 'FIRST_HALF' ? 'H1' : 'H2';\n  return {\n    month,\n    cycle,\n    statementIdPrefix: 'SETB_' + month.replace('-', '') + '_' + half,\n    cycleLabel: month + (cycle === 'FIRST_HALF' ? ' 전반' : ' 후반')\n  };\n}\n\nconst partnerMap = {};\nfor (const partner of partners) {\n  partnerMap[partner.partner_code || ''] = {\n    partner_name: partner.partner_name || partner.partner_code || '',\n    grade: partner.grade || '',\n    email: partner.email || ''\n  };\n}\n\nconst logMap = {};\nfor (const log of logs) {\n  const emailType = String(log.email_type || log.type || '').trim();\n  const sid = String(log.settlement_id || '').trim();\n  if (emailType !== 'SETTLEMENT_STATEMENT' || !sid) continue;\n  const sentAt = log.sent_at || log.CreatedAt || '';\n  if (!logMap[sid] || sentAt > logMap[sid]) {\n    logMap[sid] = sentAt;\n  }\n}\n\nconst grouped = {};\nfor (const row of settlements) {\n  const info = cycleInfo(row.class_date || '');\n  if (info.month !== params.month) continue;\n  const key = info.statementIdPrefix + '_' + (row.partner_code || '');\n  if (!grouped[key]) {\n    const partner = partnerMap[row.partner_code || ''] || {};\n    grouped[key] = {\n      statement_id: key,\n      cycle_label: info.cycleLabel,\n      partner_code: row.partner_code || '',\n      partner_name: partner.partner_name || row.partner_code || '-',\n      grade: partner.grade || '',\n      recipient_email: partner.email || '',\n      classes_count: 0,\n      total_order_amount: 0,\n      total_commission_amount: 0,\n      total_reserve_amount: 0,\n      last_sent_at: logMap[key] || ''\n    };\n  }\n  grouped[key].classes_count += 1;\n  grouped[key].total_order_amount += Number(row.order_amount) || 0;\n  grouped[key].total_commission_amount += Number(row.commission_amount) || 0;\n  grouped[key].total_reserve_amount += Number(row.reserve_amount) || 0;\n}\n\nconst history = Object.values(grouped).sort((a, b) => {\n  if (a.cycle_label === b.cycle_label) {\n    return (b.total_reserve_amount || 0) - (a.total_reserve_amount || 0);\n  }\n  return a.cycle_label < b.cycle_label ? 1 : -1;\n});\n\nlet totalOrderAmount = 0;\nlet totalReserveAmount = 0;\nfor (const item of history) {\n  totalOrderAmount += item.total_order_amount;\n  totalReserveAmount += item.total_reserve_amount;\n}\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      history,\n      total: history.length,\n      summary: {\n        month: params.month,\n        total_order_amount: totalOrderAmount,\n        total_reserve_amount: totalReserveAmount,\n        sent_count: history.filter((item) => !!item.last_sent_at).length\n      }\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wfsettle-history-format",
+      "name": "Format Settlement History",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst month = /^\\d{4}-\\d{2}$/.test(String(data.month || '').trim()) ? String(data.month || '').trim() : new Date().toISOString().slice(0, 7);\nconst cycle = String(data.cycle || 'FIRST_HALF').toUpperCase() === 'SECOND_HALF' ? 'SECOND_HALF' : 'FIRST_HALF';\nconst cycleLabel = month + (cycle === 'FIRST_HALF' ? ' 전반' : ' 후반');\nreturn [{\n  json: {\n    ...data,\n    month,\n    cycle,\n    cycleLabel,\n    where: '(status,eq,COMPLETED)'\n  }\n}];"
+      },
+      "id": "wfsettle-batch-params",
+      "name": "Parse Batch Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mcoddguv4d3s3ne",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "={{ $(\"Parse Batch Params\").first().json.where }}"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wfsettle-batch-get-settlements",
+      "name": "Get Completed Settlements (Batch)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1180,
+        460
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(status,eq,active)"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wfsettle-batch-get-partners",
+      "name": "Get Partners (Batch)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1420,
+        460
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "200"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wfsettle-batch-get-logs",
+      "name": "Get Settlement Email Logs (Batch)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1660,
+        460
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const settlementsResp = $('Get Completed Settlements (Batch)').first().json;\nconst partnersResp = $('Get Partners (Batch)').first().json;\nconst logsResp = $('Get Settlement Email Logs (Batch)').first().json;\nconst params = $('Parse Batch Params').first().json;\n\nconst settlements = settlementsResp.list || [];\nconst partners = partnersResp.list || [];\nconst logs = logsResp.list || [];\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction formatPrice(value) {\n  return Number(value || 0).toLocaleString('ko-KR');\n}\n\nfunction getCycleMeta(dateStr) {\n  const safe = String(dateStr || '').substring(0, 10);\n  const day = parseInt(safe.substring(8, 10), 10) || 1;\n  const cycle = day <= 15 ? 'FIRST_HALF' : 'SECOND_HALF';\n  const month = safe.substring(0, 7);\n  return {\n    month,\n    cycle,\n    half: cycle === 'FIRST_HALF' ? 'H1' : 'H2',\n    label: month + (cycle === 'FIRST_HALF' ? ' 전반' : ' 후반')\n  };\n}\n\nconst partnerMap = {};\nfor (const partner of partners) {\n  partnerMap[partner.partner_code || ''] = {\n    partner_name: partner.partner_name || partner.partner_code || '',\n    grade: partner.grade || '',\n    email: String(partner.email || '').trim()\n  };\n}\n\nconst sentIds = {};\nfor (const log of logs) {\n  const emailType = String(log.email_type || log.type || '').trim();\n  const sid = String(log.settlement_id || '').trim();\n  if (emailType === 'SETTLEMENT_STATEMENT' && sid) {\n    sentIds[sid] = true;\n  }\n}\n\nconst grouped = {};\nfor (const row of settlements) {\n  const meta = getCycleMeta(row.class_date || '');\n  if (meta.month !== params.month || meta.cycle !== params.cycle) continue;\n  const partnerCode = row.partner_code || '';\n  if (!partnerCode) continue;\n  const statementId = 'SETB_' + params.month.replace('-', '') + '_' + meta.half + '_' + partnerCode;\n  if (!grouped[statementId]) {\n    const partner = partnerMap[partnerCode] || {};\n    grouped[statementId] = {\n      statement_id: statementId,\n      partner_code: partnerCode,\n      partner_name: partner.partner_name || partnerCode,\n      recipient_email: partner.email || '',\n      grade: partner.grade || '',\n      cycle_label: meta.label,\n      month: params.month,\n      cycle: params.cycle,\n      total_order_amount: 0,\n      total_commission_amount: 0,\n      total_reserve_amount: 0,\n      classes_count: 0,\n      class_rows: []\n    };\n  }\n  grouped[statementId].classes_count += 1;\n  grouped[statementId].total_order_amount += Number(row.order_amount) || 0;\n  grouped[statementId].total_commission_amount += Number(row.commission_amount) || 0;\n  grouped[statementId].total_reserve_amount += Number(row.reserve_amount) || 0;\n  grouped[statementId].class_rows.push({\n    class_date: String(row.class_date || '').substring(0, 10),\n    class_id: row.class_id || '',\n    order_amount: Number(row.order_amount) || 0,\n    commission_amount: Number(row.commission_amount) || 0,\n    reserve_amount: Number(row.reserve_amount) || 0\n  });\n}\n\nconst statements = [];\nfor (const key of Object.keys(grouped)) {\n  const item = grouped[key];\n  if (!item.recipient_email || item.recipient_email.indexOf('@') === -1) continue;\n  if (!params.force && sentIds[item.statement_id]) continue;\n\n  let rowsHtml = '';\n  for (const row of item.class_rows.slice(0, 10)) {\n    rowsHtml += '<tr>'\n      + '<td style=\"padding: 10px 12px; border-bottom: 1px solid #eee;\">' + escapeHtml(row.class_date) + '</td>'\n      + '<td style=\"padding: 10px 12px; border-bottom: 1px solid #eee;\">' + escapeHtml(row.class_id) + '</td>'\n      + '<td style=\"padding: 10px 12px; border-bottom: 1px solid #eee; text-align: right;\">' + formatPrice(row.order_amount) + '원</td>'\n      + '<td style=\"padding: 10px 12px; border-bottom: 1px solid #eee; text-align: right;\">' + formatPrice(row.reserve_amount) + '원</td>'\n      + '</tr>';\n  }\n\n  const html = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /></head><body style=\"margin:0;padding:0;background:#f7f5f1;font-family:Pretendard,Apple SD Gothic Neo,Malgun Gothic,sans-serif;\">'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"padding:24px 0;background:#f7f5f1;\"><tr><td align=\"center\">'\n    + '<table width=\"640\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width:640px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;\">'\n    + '<tr><td style=\"padding:28px 32px;background:#2f4234;color:#ffffff;\">'\n    + '<p style=\"margin:0 0 8px;font-size:12px;letter-spacing:0.12em;opacity:0.72;\">SETTLEMENT STATEMENT</p>'\n    + '<h1 style=\"margin:0;font-size:28px;\">' + escapeHtml(item.cycle_label) + ' 정산 안내</h1>'\n    + '</td></tr>'\n    + '<tr><td style=\"padding:28px 32px;\">'\n    + '<p style=\"margin:0 0 12px;font-size:15px;line-height:1.7;color:#333;\">' + escapeHtml(item.partner_name) + ' 파트너님,</p>'\n    + '<p style=\"margin:0 0 24px;font-size:14px;line-height:1.8;color:#666;\">이번 기간 정산 집계가 완료되었습니다. 아래에서 클래스별 정산 요약과 지급 예정 적립금을 확인하실 수 있습니다.</p>'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom:24px;background:#f8f3eb;border:1px solid #ebe3d5;border-radius:8px;\">'\n    + '<tr><td style=\"padding:20px 24px;\">'\n    + '<p style=\"margin:0 0 8px;font-size:13px;color:#8a6f4d;\">지급 예정 적립금</p>'\n    + '<p style=\"margin:0;font-size:28px;font-weight:700;color:#b88956;\">' + formatPrice(item.total_reserve_amount) + '원</p>'\n    + '<p style=\"margin:8px 0 0;font-size:12px;color:#777;\">총 ' + item.classes_count + '건 집계 · 등급 ' + escapeHtml(item.grade || '-') + '</p>'\n    + '</td></tr></table>'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom:20px;\">'\n    + '<tr><td style=\"padding:10px 12px;background:#faf8f3;font-size:12px;font-weight:700;color:#777;\">수강일</td><td style=\"padding:10px 12px;background:#faf8f3;font-size:12px;font-weight:700;color:#777;\">클래스 ID</td><td style=\"padding:10px 12px;background:#faf8f3;font-size:12px;font-weight:700;color:#777;text-align:right;\">주문 금액</td><td style=\"padding:10px 12px;background:#faf8f3;font-size:12px;font-weight:700;color:#777;text-align:right;\">적립금</td></tr>'\n    + rowsHtml\n    + '</table>'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom:20px;\">'\n    + '<tr><td style=\"padding:8px 0;font-size:13px;color:#777;\">총 주문 금액</td><td style=\"padding:8px 0;font-size:14px;color:#333;text-align:right;\">' + formatPrice(item.total_order_amount) + '원</td></tr>'\n    + '<tr><td style=\"padding:8px 0;font-size:13px;color:#777;\">총 수수료</td><td style=\"padding:8px 0;font-size:14px;color:#333;text-align:right;\">' + formatPrice(item.total_commission_amount) + '원</td></tr>'\n    + '<tr><td style=\"padding:8px 0;font-size:13px;color:#777;\">총 적립금</td><td style=\"padding:8px 0;font-size:16px;font-weight:700;color:#b88956;text-align:right;\">' + formatPrice(item.total_reserve_amount) + '원</td></tr>'\n    + '</table>'\n    + '<p style=\"margin:0;font-size:12px;color:#999;line-height:1.7;\">이 안내는 파트너 전용 운영 정산 메일입니다. 세부 문의는 PRESSCO21 운영팀으로 전달해 주세요.</p>'\n    + '</td></tr></table></td></tr></table></body></html>';\n\n  statements.push({\n    json: {\n      _hasTargets: true,\n      _source: params._source,\n      statement_id: item.statement_id,\n      cycle_label: item.cycle_label,\n      partner_code: item.partner_code,\n      partner_name: item.partner_name,\n      recipient_email: item.recipient_email,\n      subject: '[PRESSCO21] ' + item.cycle_label + ' 정산 안내',\n      html,\n      total_order_amount: item.total_order_amount,\n      total_commission_amount: item.total_commission_amount,\n      total_reserve_amount: item.total_reserve_amount,\n      classes_count: item.classes_count,\n      month: params.month,\n      cycle: params.cycle\n    }\n  });\n}\n\nif (statements.length === 0) {\n  return [{\n    json: {\n      _hasTargets: false,\n      _source: params._source,\n      success: true,\n      data: {\n        cycle_label: params.cycleLabel,\n        sent_count: 0,\n        skipped_count: Object.keys(grouped).length,\n        message: '발송할 정산서가 없습니다.'\n      },\n      _telegramMessage: '[WF-SETTLE] ' + params.cycleLabel + ' 발송 대상 없음'\n    }\n  }];\n}\n\nreturn statements;"
+      },
+      "id": "wfsettle-build-statements",
+      "name": "Build Statement Payloads",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1900,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._hasTargets }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "wfsettle-if-targets",
+      "name": "IF Has Targets",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2140,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json.recipient_email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "id": "wfsettle-send-email",
+      "name": "Send Settlement Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2380,
+        380
+      ],
+      "credentials": {
+        "smtp": {
+          "id": "31jTm9BU7iyj0pVx",
+          "name": "PRESSCO21-SMTP-Naver"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ email_type: \"SETTLEMENT_STATEMENT\", recipient_email: $json.recipient_email, sent_at: new Date().toISOString(), settlement_id: $json.statement_id }) }}",
+        "options": {}
+      },
+      "id": "wfsettle-log-email",
+      "name": "Log Settlement Email",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2620,
+        380
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const statementItems = $('Build Statement Payloads').all();\nconst mailItems = $('Send Settlement Email').all();\nlet totalOrderAmount = 0;\nlet totalReserveAmount = 0;\nlet cycleLabel = '';\nlet sentCount = 0;\nlet failedCount = 0;\nlet firstError = '';\n\nfor (const item of statementItems) {\n  totalOrderAmount += Number(item.json.total_order_amount) || 0;\n  totalReserveAmount += Number(item.json.total_reserve_amount) || 0;\n  cycleLabel = item.json.cycle_label || cycleLabel;\n}\n\nfor (const item of mailItems) {\n  const errorValue = item && item.json ? item.json.error : '';\n  if (errorValue) {\n    failedCount += 1;\n    if (!firstError) {\n      firstError = typeof errorValue === 'string' ? errorValue : (errorValue.message || JSON.stringify(errorValue));\n    }\n  } else {\n    sentCount += 1;\n  }\n}\n\nconst success = failedCount === 0;\nconst message = success ? '정산서 발송이 완료되었습니다.' : '정산서 발송 중 실패가 발생했습니다.';\n\nreturn [{\n  json: {\n    success,\n    data: {\n      cycle_label: cycleLabel,\n      sent_count: sentCount,\n      failed_count: failedCount,\n      total_order_amount: totalOrderAmount,\n      total_reserve_amount: totalReserveAmount,\n      message: message\n    },\n    error: success ? null : {\n      code: 'SETTLEMENT_EMAIL_FAILED',\n      message: firstError || 'SMTP 또는 이메일 로그 설정을 확인해 주세요.'\n    },\n    _telegramMessage: success\n      ? '[WF-SETTLE] ' + cycleLabel + ' 정산서 ' + sentCount + '건 발송 완료'\n      : '[WF-SETTLE] ' + cycleLabel + ' 정산서 발송 실패 ' + failedCount + '건',\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wfsettle-build-summary",
+      "name": "Build Batch Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "wfsettle-telegram-summary",
+      "name": "Telegram Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3100,
+        320
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Build Batch Summary').first().json }];"
+      },
+      "id": "wfsettle-return-summary",
+      "name": "Return Batch Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3340,
+        380
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $input.first().json }];"
+      },
+      "id": "wfsettle-build-no-targets",
+      "name": "Build No Targets Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2380,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage || \"\" }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "wfsettle-no-targets-telegram",
+      "name": "Telegram No Targets",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2620,
+        520
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: $('Build No Targets Response').first().json }];"
+      },
+      "id": "wfsettle-return-no-targets",
+      "name": "Return No Targets Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2860,
+        560
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nif (data._action === '_unauthorized') {\n  return [{\n    json: {\n      success: false,\n      error: {\n        code: 'UNAUTHORIZED',\n        message: '유효한 Bearer 토큰이 필요합니다.'\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\nreturn [{\n  json: {\n    success: false,\n    error: {\n      code: 'INVALID_ACTION',\n      message: '지원하지 않는 action입니다: ' + (data._action || '')\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wfsettle-invalid-action",
+      "name": "Return Invalid Action",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        660
+      ]
+    }
+  ],
+  "connections": {
+    "Schedule 1st and 16th": {
+      "main": [
+        [
+          {
+            "node": "Parse Trigger & Auth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Trigger & Auth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Trigger & Auth": {
+      "main": [
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Parse History Params",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Parse Batch Params",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Invalid Action",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Return Invalid Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse History Params": {
+      "main": [
+        [
+          {
+            "node": "Get Completed Settlements (History)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Completed Settlements (History)": {
+      "main": [
+        [
+          {
+            "node": "Get Partners (History)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Partners (History)": {
+      "main": [
+        [
+          {
+            "node": "Get Settlement Email Logs (History)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Settlement Email Logs (History)": {
+      "main": [
+        [
+          {
+            "node": "Format Settlement History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Batch Params": {
+      "main": [
+        [
+          {
+            "node": "Get Completed Settlements (Batch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Completed Settlements (Batch)": {
+      "main": [
+        [
+          {
+            "node": "Get Partners (Batch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Partners (Batch)": {
+      "main": [
+        [
+          {
+            "node": "Get Settlement Email Logs (Batch)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Settlement Email Logs (Batch)": {
+      "main": [
+        [
+          {
+            "node": "Build Statement Payloads",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Statement Payloads": {
+      "main": [
+        [
+          {
+            "node": "IF Has Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Has Targets": {
+      "main": [
+        [
+          {
+            "node": "Send Settlement Email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build No Targets Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Settlement Email": {
+      "main": [
+        [
+          {
+            "node": "Log Settlement Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Settlement Email": {
+      "main": [
+        [
+          {
+            "node": "Build Batch Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Batch Summary": {
+      "main": [
+        [
+          {
+            "node": "Telegram Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Summary": {
+      "main": [
+        [
+          {
+            "node": "Return Batch Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build No Targets Response": {
+      "main": [
+        [
+          {
+            "node": "Telegram No Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram No Targets": {
+      "main": [
+        [
+          {
+            "node": "Return No Targets Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {},
+  "tags": []
+}

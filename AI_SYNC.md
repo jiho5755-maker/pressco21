@@ -62,6 +62,29 @@
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
 
+### CRM 잔액 불일치 6건 원인 분석 (CODEX)
+- `offline-crm-v2/docs/legacy-balance-analysis-2026-03-10.md`
+  - 잔액 불일치 6건을 고객별로 대조한 결과, 전부 `레거시 tradebook.balance + CRM 미수 명세표 합계 = 현재 CRM 고객 잔액` 공식을 만족함을 정리.
+  - 따라서 현재 6건은 이관 누락이 아니라 `레거시 baseline을 유지한 운영 잔액` 케이스로 판정.
+  - 동시에 `recalcCustomerStats()`가 레거시 baseline을 합산하지 않아 재계산 시 잔액을 훼손할 수 있는 구조적 리스크도 문서화.
+- 검증
+  - 인라인 재검증 결과 6건 모두 `formula_match = true`
+
+### 파트너클래스 라이브 회귀 스크립트 보강 (CODEX)
+- `scripts/partnerclass-live-smoke.js`
+  - 게스트 시나리오에 `2609/2608/8009/8010/2610` 로그인 안내 링크 회귀와 `2607 상세 후기 로그인 경로` 검증을 추가.
+  - 상세 분류 링크를 실제 목록 필터 결과까지 따라가는 회귀 시나리오를 추가하고, 모바일/데스크탑 중복 링크는 visible anchor만 수집하도록 보강.
+  - 파트너 자격증명이 없을 때 멤버 전용 시나리오는 `skip` 처리하고, 관리자 API 읽기 전용 검증은 `0건`도 정상 응답으로 간주하도록 수정.
+  - 멤버 전용 상세 `선물하기 -> 선물 주문서` 시나리오를 추가해 자격증명 주입 시 바로 재검증할 수 있게 정리.
+- 검증
+  - `node --check scripts/partnerclass-live-smoke.js`
+  - `NODE_PATH=/Users/jangjiho/workspace/pressco21/offline-crm-v2/node_modules node scripts/partnerclass-live-smoke.js`
+  - 결과: `14건 중 12건 성공 / 1건 실패 / 1건 건너뜀`
+  - 확인된 라이브 실패: `상세 분류 링크 회귀`
+    - `https://n8n.pressco21.com/webhook/class-api` 기준 `{"action":"getClasses","level":"입문"}` 는 `total=0`
+    - 동일 API에서 `{"action":"getClasses","level":"beginner"}` 는 `total=5`
+    - 즉, 라이브 목록/API 레벨 필터 어휘가 아직 영문(`beginner`) 기준이라 상세의 한글 레벨 링크와 실제 결과가 불일치함
+
 ### CRM 데이터 정합성 P1 재감사 (CODEX)
 - `offline-crm-v2/scripts/repair_legacy_backup.py`
   - blank legacy 고객 관련 거래만 선별 조회하도록 바꿔 dry-run 시간이 길어지지 않게 정리.
@@ -768,6 +791,7 @@
 ## Next Step
 
 ### Codex CLI 위임 태스크
+- [CODEX] `recalcCustomerStats()`에 레거시 잔액 baseline 보존 방식 반영 여부 설계 및 수정
 - [CODEX] CRM 데이터 정합성 P1 후속: 잔액 불일치 6건에 대해 레거시 원장 / CRM 명세표 / 입금 이력 대조
 - [CODEX] `서상견 님`류 중복 고객 통합 정책 문서화 및 대표 레코드 규칙 정의
 - [CODEX] 레거시 주소/유선전화/email 오염 필드의 `원본값 / 보정값 / 현재값` 표기 전략 설계
@@ -782,7 +806,8 @@
 - [CODEX] 메이크샵 배포 후 `파트너신청(2609)`, `상세(2607)`, `목록(2606)` 라이브 회귀 테스트 재실행
 - [CODEX] `메인페이지/파트너클래스-홈개편` 시안 기준으로 실제 메인페이지 저장용 마이그레이션 패치 정리
 - [CODEX] 파트너클래스 상세 선물하기를 실상품 1건 기준으로 최종 E2E 검증
-- [CODEX] 파트너클래스 홈/목록/상세/신청 동선 Playwright 회귀 시나리오 정식 스크립트화
+- [CODEX] 파트너 계정 자격증명 주입 후 `scripts/partnerclass-live-smoke.js`의 멤버 전용 시나리오(`상세 선물하기 주문서 진입`) 재실행
+- [CODEX] 라이브 `class-api`의 레벨 필터 어휘(`입문` vs `beginner`)를 정리하고 상세/목록 링크 회귀 실패를 해소
 
 ### Claude Code 태스크
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
@@ -796,6 +821,7 @@
 - `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음
 - 상세 페이지 선물하기는 메이크샵 네이티브 장바구니 POST로 맞췄지만, 실제 선물 가능 상품 설정 여부에 따라 최종 동작이 달라질 수 있어 실상품 1건 재검증 필요
 - `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 저장 전까지 라이브 반영되지 않음
+- 라이브 `class-api`는 현재 `level=입문` 조회 시 `0건`, `level=beginner` 조회 시 `5건`을 반환해 상세 한글 난이도 링크와 목록/API 결과가 아직 불일치함
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.
 - 운영 `invoice_date`는 서버측 날짜 비교(`gte/lte`)가 안정적으로 동작하지 않아, 캘린더는 전체 명세표를 읽은 뒤 프론트에서 월/기간 필터링하는 구조를 사용 중.

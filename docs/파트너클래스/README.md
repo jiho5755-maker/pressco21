@@ -52,6 +52,8 @@
   - WF-01 공개 API의 action 분기, 입력 파라미터, 응답 구조, 호출 페이지 정리
 - `kit-link-integration-guide.md`
   - S1-1 기준 키트 JSON 구조, 화면 반영 범위, WF-01/05/16/20 연동 방식, 라이브 DB 제약 정리
+- `detail-ux-upgrade-guide.md`
+  - S1-2 기준 상세 페이지 신뢰 요약 바, 포함 내역 섹션, CTA 계층, 모바일 하단 고정 바 정리
 
 ### QA / 검증
 

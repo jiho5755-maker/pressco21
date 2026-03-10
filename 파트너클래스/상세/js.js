@@ -289,12 +289,14 @@
      */
     function renderAll(data) {
         renderSection(function() { renderHeader(data); }, null, '');
+        renderSection(function() { renderTrustSummaryBar(data); }, null, '');
         renderSection(function() { renderGallery(data); }, null, '');
         renderSection(function() { renderBasicInfo(data); }, null, '');
+        renderSection(function() { renderIncludesSection(data); }, null, '');
         renderSection(function() { renderDescription(data); }, document.getElementById('descriptionContent'), '\uAC15\uC758 \uC18C\uAC1C\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.');
         renderSection(function() { renderCurriculum(data); }, document.getElementById('curriculumList'), '\uCEE4\uB9AC\uD050\uB7FC \uC815\uBCF4\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.');
         renderSection(function() { renderInstructor(data); }, document.getElementById('instructorCard'), '\uAC15\uC0AC \uC815\uBCF4\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.');
-        renderSection(function() { renderMaterials(data); }, null, '');
+        renderSection(function() { renderMaterials(data); updateKitPurchaseLinks(data); }, null, '');
         renderSection(function() { renderYoutube(data); }, null, '');
         renderSection(function() { renderReviews(data); }, null, '');
         renderSection(function() { renderReviewForm(data); }, null, '');
@@ -338,6 +340,131 @@
 
         // 페이지 타이틀 업데이트
         document.title = (data.class_name || '\uD074\uB798\uC2A4 \uC0C1\uC138') + ' | PRESSCO21 \uD3EC\uC5D0\uBC84\uB7EC\uBE0C';
+    }
+
+    function getAverageRatingValue(data) {
+        return parseFloat(data.avg_rating || data.rating_avg) || 0;
+    }
+
+    function getReviewCountValue(data) {
+        return parseInt(data.class_count || data.review_count, 10) || 0;
+    }
+
+    function getBookedCountValue(data) {
+        return parseInt(data.booked_count || data.booking_count, 10) || 0;
+    }
+
+    function getClassTypeLabel(data) {
+        var type = String(data.type || '').toUpperCase();
+        if (type === 'ONLINE') return '\uC628\uB77C\uC778 \uC218\uC5C5';
+        if (type === 'OFFLINE') return '\uC624\uD504\uB77C\uC778 \uC218\uC5C5';
+        return '\uAC15\uC0AC \uC9C4\uD589 \uC218\uC5C5';
+    }
+
+    function hasKitPurchaseOption(data) {
+        return getMaterialKitItems(data).length > 0;
+    }
+
+    function renderTrustSummaryBar(data) {
+        var bar = document.getElementById('detailTrustBar');
+        var statsEl = document.getElementById('detailTrustBarStats');
+        if (!bar || !statsEl) return;
+
+        var bookedCount = getBookedCountValue(data);
+        var avgRating = getAverageRatingValue(data);
+        var reviewCount = getReviewCountValue(data);
+        var ratingText = avgRating > 0 ? avgRating.toFixed(1) : '0.0';
+
+        statsEl.innerHTML = ''
+            + '<span class="detail-trust-bar__stat"><strong>' + formatPrice(bookedCount) + '\uBA85</strong><span>\uC218\uAC15</span></span>'
+            + '<span class="detail-trust-bar__divider" aria-hidden="true"></span>'
+            + '<span class="detail-trust-bar__stat"><strong>\u2605 ' + ratingText + '</strong><span>\uD3C9\uC810</span></span>'
+            + '<span class="detail-trust-bar__divider" aria-hidden="true"></span>'
+            + '<span class="detail-trust-bar__stat"><strong>' + formatPrice(reviewCount) + '\uAC74</strong><span>\uD6C4\uAE30</span></span>';
+
+        bar.style.display = '';
+    }
+
+    function getIncludesItems(data) {
+        var items = [];
+        var materialItems = getMaterialKitItems(data);
+        var hasKit = materialItems.length > 0;
+        var materialsIncluded = String(data.materials_included || '').trim();
+        var certificateFlag = String(data.certificate_available || data.certificate_enabled || '').toUpperCase();
+
+        items.push({
+            title: '\uAC15\uC758',
+            status: '\uD3EC\uD568',
+            desc: getClassTypeLabel(data) + '\uACFC \uAE30\uBCF8 \uC218\uC5C5 \uC548\uB0B4\uAC00 \uD568\uAED8 \uC81C\uACF5\uB429\uB2C8\uB2E4.'
+        });
+
+        if (materialsIncluded === '\uD3EC\uD568') {
+            items.push({
+                title: '\uC7AC\uB8CC\uD0A4\uD2B8',
+                status: '\uD3EC\uD568',
+                desc: '\uC218\uC5C5\uC5D0 \uD544\uC694\uD55C \uC7AC\uB8CC\uAC00 \uC218\uAC15\uB8CC\uC5D0 \uD3EC\uD568\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.'
+            });
+        } else if (hasKit) {
+            items.push({
+                title: '\uC7AC\uB8CC\uD0A4\uD2B8',
+                status: '\uC120\uD0DD \uAD6C\uB9E4',
+                desc: '\uD544\uC694 \uC7AC\uB8CC\uB97C \uC790\uC0AC\uBAB0 \uC0C1\uD488 \uB9C1\uD06C\uB85C \uBC14\uB85C \uD655\uC778\uD558\uACE0 \uB530\uB85C \uB2F4\uC744 \uC218 \uC788\uC5B4\uC694.'
+            });
+        } else {
+            items.push({
+                title: '\uC7AC\uB8CC\uD0A4\uD2B8',
+                status: '\uBCC4\uB3C4 \uC548\uB0B4',
+                desc: '\uD544\uC694 \uC7AC\uB8CC\uB294 \uAC15\uC0AC \uC548\uB0B4\uC5D0 \uB530\uB77C \uAC1C\uBCC4 \uC900\uBE44 \uB610\uB294 \uD604\uC7A5 \uD655\uC778\uC73C\uB85C \uC9C4\uD589\uB429\uB2C8\uB2E4.'
+            });
+        }
+
+        if (certificateFlag === 'Y' || certificateFlag === '1' || certificateFlag === 'TRUE') {
+            items.push({
+                title: '\uC218\uB8CC\uC99D',
+                status: '\uC81C\uACF5',
+                desc: '\uC218\uAC15 \uC644\uB8CC \uD6C4 \uBC1C\uAE09 \uAE30\uC900\uC5D0 \uB9DE\uCDB0 \uC218\uB8CC\uC99D \uC548\uB0B4\uB97C \uBC1B\uC744 \uC218 \uC788\uC5B4\uC694.'
+            });
+        } else {
+            items.push({
+                title: '\uC218\uB8CC\uC99D',
+                status: '\uD074\uB798\uC2A4\uBCC4 \uC0C1\uC774',
+                desc: '\uC218\uB8CC\uC99D \uC81C\uACF5 \uC5EC\uBD80\uB294 \uAC15\uC0AC \uB610\uB294 \uD611\uD68C \uC6B4\uC601 \uC815\uCC45\uC5D0 \uB530\uB77C \uB2EC\uB77C\uC9D1\uB2C8\uB2E4.'
+            });
+        }
+
+        return items;
+    }
+
+    function renderIncludesSection(data) {
+        var grid = document.getElementById('detailIncludesGrid');
+        if (!grid) return;
+
+        var items = getIncludesItems(data);
+        var html = '';
+        for (var i = 0; i < items.length; i++) {
+            html += '<article class="detail-includes__item">'
+                + '<div class="detail-includes__item-top">'
+                + '<h3 class="detail-includes__item-title">' + escapeHtml(items[i].title) + '</h3>'
+                + '<span class="detail-includes__item-status">' + escapeHtml(items[i].status) + '</span>'
+                + '</div>'
+                + '<p class="detail-includes__item-desc">' + escapeHtml(items[i].desc) + '</p>'
+                + '</article>';
+        }
+
+        grid.innerHTML = html;
+    }
+
+    function updateKitPurchaseLinks(data) {
+        var hasKit = hasKitPurchaseOption(data);
+        var desktopLink = document.getElementById('bookingKitLink');
+        var mobileLink = document.getElementById('mobileKitLink');
+
+        if (desktopLink) {
+            desktopLink.style.display = hasKit ? '' : 'none';
+        }
+        if (mobileLink) {
+            mobileLink.style.display = hasKit ? '' : 'none';
+        }
     }
 
     /**
@@ -496,8 +623,8 @@
         var duration = data.duration_min || 0;
         var durationText = formatDuration(duration);
         var price = formatPrice(data.price || 0);
-        var avgRating = parseFloat(data.avg_rating) || 0;
-        var classCount = parseInt(data.class_count) || 0;
+        var avgRating = getAverageRatingValue(data);
+        var classCount = getReviewCountValue(data);
         var location = escapeHtml(data.location || '');
         var maxStudents = parseInt(data.max_students) || DEFAULT_MAX_STUDENTS;
 
@@ -565,6 +692,10 @@
         var mobilePrice = document.getElementById('mobilePrice');
         if (mobilePrice) {
             mobilePrice.textContent = price + '\uC6D0';
+        }
+        var mobilePriceUnit = document.getElementById('mobilePriceUnit');
+        if (mobilePriceUnit) {
+            mobilePriceUnit.textContent = '/1\uC778';
         }
     }
 
@@ -1507,8 +1638,8 @@
 
         var className = escapeHtml(data.class_name || '');
         var price = data.price || 0;
-        var avgRating = parseFloat(data.avg_rating) || 0;
-        var classCount = parseInt(data.class_count) || 0;
+        var avgRating = getAverageRatingValue(data);
+        var classCount = getReviewCountValue(data);
         var maxStudents = parseInt(data.max_students) || DEFAULT_MAX_STUDENTS;
         var durationText = formatDuration(data.duration_min || 0);
         var starsHtml = renderStars(avgRating, 'info-star', 14);
@@ -1664,20 +1795,29 @@
      */
     function updatePriceDisplay(unitPrice) {
         var priceEl = document.getElementById('bookingPrice');
-        if (!priceEl) return;
-
         var totalPrice = unitPrice * selectedQuantity;
+        var mobilePrice = document.getElementById('mobilePrice');
+        var mobilePriceUnit = document.getElementById('mobilePriceUnit');
 
-        var html = '<div class="booking-price__row">'
-            + '<span>' + formatPrice(unitPrice) + '\uC6D0 x ' + selectedQuantity + '\uBA85</span>'
-            + '<span>' + formatPrice(totalPrice) + '\uC6D0</span>'
-            + '</div>'
-            + '<div class="booking-price__row booking-price__total">'
-            + '<span>\uCD1D \uACB0\uC81C \uAE08\uC561</span>'
-            + '<span class="booking-price__total-value">' + formatPrice(totalPrice) + '\uC6D0</span>'
-            + '</div>';
+        if (priceEl) {
+            var html = '<div class="booking-price__row">'
+                + '<span>' + formatPrice(unitPrice) + '\uC6D0 x ' + selectedQuantity + '\uBA85</span>'
+                + '<span>' + formatPrice(totalPrice) + '\uC6D0</span>'
+                + '</div>'
+                + '<div class="booking-price__row booking-price__total">'
+                + '<span>\uCD1D \uACB0\uC81C \uAE08\uC561</span>'
+                + '<span class="booking-price__total-value">' + formatPrice(totalPrice) + '\uC6D0</span>'
+                + '</div>';
 
-        priceEl.innerHTML = html;
+            priceEl.innerHTML = html;
+        }
+
+        if (mobilePrice) {
+            mobilePrice.textContent = formatPrice(totalPrice) + '\uC6D0';
+        }
+        if (mobilePriceUnit) {
+            mobilePriceUnit.textContent = '/' + selectedQuantity + '\uBA85';
+        }
     }
 
     /**
@@ -1750,6 +1890,8 @@
     function validateBooking() {
         var submitBtn = document.getElementById('bookingSubmit');
         var giftBtn = document.getElementById('bookingGift');
+        var mobileBtn = document.getElementById('mobileBookingBtn');
+        var mobileGiftBtn = document.getElementById('mobileGiftBtn');
         var isValid = !!(selectedDate && selectedScheduleId);
 
         if (submitBtn) {
@@ -1757,6 +1899,12 @@
         }
         if (giftBtn) {
             giftBtn.disabled = !isValid;
+        }
+        if (mobileBtn) {
+            mobileBtn.disabled = !isValid;
+        }
+        if (mobileGiftBtn) {
+            mobileGiftBtn.disabled = !isValid;
         }
     }
 
@@ -2105,17 +2253,24 @@
 
     function setGiftButtonBusy(isBusy) {
         var giftBtn = document.getElementById('bookingGift');
-        if (!giftBtn) return;
+        var mobileGiftBtn = document.getElementById('mobileGiftBtn');
+        var buttons = [];
+        var i = 0;
 
-        giftBtn.classList[isBusy ? 'add' : 'remove']('is-loading');
-        giftBtn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+        if (giftBtn) buttons.push(giftBtn);
+        if (mobileGiftBtn) buttons.push(mobileGiftBtn);
+        if (buttons.length === 0) return;
 
-        if (isBusy) {
-            giftBtn.disabled = true;
-            return;
+        for (i = 0; i < buttons.length; i++) {
+            buttons[i].classList[isBusy ? 'add' : 'remove']('is-loading');
+            buttons[i].setAttribute('aria-busy', isBusy ? 'true' : 'false');
+
+            if (isBusy) {
+                buttons[i].disabled = true;
+            } else {
+                buttons[i].disabled = !(selectedDate && selectedScheduleId);
+            }
         }
-
-        giftBtn.disabled = !(selectedDate && selectedScheduleId);
     }
 
 
@@ -2435,9 +2590,15 @@
      */
     function bindMobileBookingBtn() {
         var mobileBtn = document.getElementById('mobileBookingBtn');
+        var mobileGiftBtn = document.getElementById('mobileGiftBtn');
         if (mobileBtn) {
             mobileBtn.addEventListener('click', function() {
                 handleBookingClick();
+            });
+        }
+        if (mobileGiftBtn) {
+            mobileGiftBtn.addEventListener('click', function() {
+                handleGiftClick();
             });
         }
     }

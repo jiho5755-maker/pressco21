@@ -43,6 +43,12 @@
         </div>
     </header>
 
+    <div class="detail-trust-bar" id="detailTrustBar" style="display:none;" aria-label="클래스 신뢰 요약">
+        <div class="detail-trust-bar__inner">
+            <div class="detail-trust-bar__stats" id="detailTrustBarStats"></div>
+        </div>
+    </div>
+
     <!-- 로딩 상태 (초기 표시, JS로 토글) -->
     <div class="detail-loading" id="detailLoading" role="status" aria-label="로딩 중">
         <div class="detail-loading__inner">
@@ -139,6 +145,16 @@
                         </button>
                     </div>
                 </div>
+
+                <section class="detail-section detail-includes" id="detailIncludes" aria-label="이 가격에 포함된 것">
+                    <div class="detail-section__heading">
+                        <h2 class="detail-section__title">이 가격에 포함된 것</h2>
+                        <p class="detail-section__subtitle">예약 전에 포함 범위와 별도 구매 항목을 한 번에 확인하세요.</p>
+                    </div>
+                    <div class="detail-includes__grid" id="detailIncludesGrid">
+                        <!-- JS: 포함 내역 동적 생성 -->
+                    </div>
+                </section>
 
                 <!-- 탭 내비게이션 -->
                 <nav class="detail-tabs" id="detailTabs" role="tablist" aria-label="클래스 상세 탭">
@@ -276,6 +292,9 @@
                         선물하기
                     </button>
                 </div>
+                <div class="booking-link-row">
+                    <a href="#detailMaterials" class="booking-link-inline" id="bookingKitLink" style="display:none;">키트만 구매</a>
+                </div>
 
                 <!-- 안내 문구 -->
                 <p class="booking-notice">예약 확정 전 결제가 진행되지 않습니다.</p>
@@ -314,11 +333,20 @@
 
     <!-- 모바일 하단 고정 예약 바 -->
     <div class="booking-bar-mobile" id="bookingBarMobile" style="display:none;">
-        <div class="booking-bar-mobile__price">
-            <span class="booking-bar-mobile__amount" id="mobilePrice">--</span>
-            <span class="booking-bar-mobile__unit">/1인</span>
+        <div class="booking-bar-mobile__top">
+            <div class="booking-bar-mobile__price">
+                <span class="booking-bar-mobile__label">총 결제 예상</span>
+                <div class="booking-bar-mobile__price-row">
+                    <span class="booking-bar-mobile__amount" id="mobilePrice">--</span>
+                    <span class="booking-bar-mobile__unit" id="mobilePriceUnit">/1인</span>
+                </div>
+            </div>
+            <button class="booking-bar-mobile__btn" type="button" id="mobileBookingBtn" disabled>예약하기</button>
         </div>
-        <button class="booking-bar-mobile__btn" type="button" id="mobileBookingBtn">예약하기</button>
+        <div class="booking-bar-mobile__actions">
+            <button class="booking-bar-mobile__gift" type="button" id="mobileGiftBtn" disabled>선물하기</button>
+            <a href="#detailMaterials" class="booking-bar-mobile__link" id="mobileKitLink" style="display:none;">키트만 구매</a>
+        </div>
     </div>
 
 </div><!-- /.class-detail -->

@@ -76,6 +76,49 @@
     margin: 0 auto;
 }
 
+.class-detail .detail-trust-bar {
+    position: sticky;
+    top: 0;
+    z-index: 30;
+    background: rgba(250, 248, 245, 0.94);
+    backdrop-filter: blur(14px);
+    border-bottom: 1px solid rgba(232, 226, 219, 0.9);
+}
+
+.class-detail .detail-trust-bar__inner {
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 12px 24px;
+}
+
+.class-detail .detail-trust-bar__stats {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    flex-wrap: wrap;
+}
+
+.class-detail .detail-trust-bar__stat {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 6px;
+    color: var(--cd-text-light);
+    font-size: 13px;
+}
+
+.class-detail .detail-trust-bar__stat strong {
+    color: var(--cd-text-dark);
+    font-size: 15px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+}
+
+.class-detail .detail-trust-bar__divider {
+    width: 1px;
+    height: 14px;
+    background: var(--cd-border);
+}
+
 .class-detail .detail-breadcrumb {
     font-size: 13px;
     color: var(--cd-text-light);
@@ -648,6 +691,25 @@
     letter-spacing: -0.02em;
 }
 
+.class-detail .detail-section__heading {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 16px;
+    flex-wrap: wrap;
+    margin-bottom: 24px;
+}
+
+.class-detail .detail-section__heading .detail-section__title {
+    margin-bottom: 0;
+}
+
+.class-detail .detail-section__subtitle {
+    margin: 0;
+    font-size: 14px;
+    color: var(--cd-text-light);
+}
+
 .class-detail .section-unavailable {
     text-align: center;
     padding: 40px 20px;
@@ -695,6 +757,64 @@
 .class-detail .detail-description__content h2 { font-size: 20px; }
 .class-detail .detail-description__content h3 { font-size: 17px; }
 .class-detail .detail-description__content h4 { font-size: 15px; }
+
+
+/* ----------------------------------------
+   9-B. 포함 내역
+   ---------------------------------------- */
+.class-detail .detail-includes {
+    padding-top: 8px;
+}
+
+.class-detail .detail-includes__grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+}
+
+.class-detail .detail-includes__item {
+    padding: 18px 18px 16px;
+    border: 1px solid var(--cd-border-light);
+    border-radius: var(--cd-radius-md);
+    background: linear-gradient(180deg, #ffffff 0%, #fbf8f4 100%);
+    box-shadow: var(--cd-shadow-sm);
+}
+
+.class-detail .detail-includes__item-top {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-bottom: 10px;
+}
+
+.class-detail .detail-includes__item-title {
+    margin: 0;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--cd-text-dark);
+}
+
+.class-detail .detail-includes__item-status {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(125, 150, 117, 0.11);
+    color: var(--cd-primary-dark);
+    font-size: 12px;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.class-detail .detail-includes__item-desc {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.7;
+    color: var(--cd-text);
+}
 
 
 /* ----------------------------------------
@@ -1890,6 +2010,26 @@
     transform: none;
 }
 
+.class-detail .booking-link-row {
+    padding-top: 12px;
+    text-align: center;
+}
+
+.class-detail .booking-link-inline {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    color: var(--cd-primary-dark);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+.class-detail .booking-link-inline:hover {
+    color: var(--cd-primary);
+}
+
 .class-detail .booking-gift.is-loading {
     position: relative;
     opacity: 0.84;
@@ -2028,13 +2168,36 @@
     background: var(--cd-bg-card);
     border-top: 1px solid var(--cd-border-light);
     box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.08);
+    flex-direction: column;
+    gap: 10px;
+}
+
+.class-detail .booking-bar-mobile__top {
+    display: flex;
     align-items: center;
     justify-content: space-between;
     gap: 16px;
+    width: 100%;
 }
 
 .class-detail .booking-bar-mobile__price {
-    flex-shrink: 0;
+    flex: 1;
+    min-width: 0;
+}
+
+.class-detail .booking-bar-mobile__label {
+    display: block;
+    margin-bottom: 2px;
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--cd-text-light);
+    letter-spacing: 0.02em;
+}
+
+.class-detail .booking-bar-mobile__price-row {
+    display: flex;
+    align-items: baseline;
+    gap: 4px;
 }
 
 .class-detail .booking-bar-mobile__amount {
@@ -2052,7 +2215,7 @@
 
 .class-detail .booking-bar-mobile__btn {
     flex: 1;
-    max-width: 200px;
+    max-width: 190px;
     padding: 14px 24px;
     background: var(--cd-primary);
     color: #FFFFFF;
@@ -2067,6 +2230,51 @@
 
 .class-detail .booking-bar-mobile__btn:hover {
     background: var(--cd-primary-dark);
+}
+
+.class-detail .booking-bar-mobile__btn:disabled {
+    background: var(--cd-border);
+    color: #FFFFFF;
+}
+
+.class-detail .booking-bar-mobile__actions {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    width: 100%;
+}
+
+.class-detail .booking-bar-mobile__gift {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 96px;
+    padding: 10px 14px;
+    background: #FFFFFF;
+    border: 1px solid var(--cd-gold);
+    border-radius: var(--cd-radius-sm);
+    color: var(--cd-brown);
+    font-family: var(--cd-font);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.class-detail .booking-bar-mobile__gift.is-loading {
+    opacity: 0.75;
+}
+
+.class-detail .booking-bar-mobile__gift:disabled {
+    border-color: var(--cd-border);
+    color: var(--cd-text-light);
+}
+
+.class-detail .booking-bar-mobile__link {
+    color: var(--cd-primary-dark);
+    font-size: 13px;
+    font-weight: 600;
+    text-decoration: underline;
+    text-underline-offset: 3px;
 }
 
 
@@ -2255,6 +2463,22 @@
         border-top: none;
     }
 
+    .class-detail .detail-trust-bar__inner {
+        padding: 10px 16px;
+    }
+
+    .class-detail .detail-trust-bar__stats {
+        gap: 10px;
+    }
+
+    .class-detail .detail-trust-bar__stat {
+        font-size: 12px;
+    }
+
+    .class-detail .detail-trust-bar__stat strong {
+        font-size: 14px;
+    }
+
     /* 탭 */
     .class-detail .detail-tabs {
         position: sticky;
@@ -2278,6 +2502,15 @@
         margin-bottom: 20px;
     }
 
+    .class-detail .detail-section__subtitle {
+        font-size: 13px;
+    }
+
+    .class-detail .detail-includes__grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
     /* 예약 패널 숨김 (모바일 하단 바로 대체) */
     .class-detail .detail-booking {
         display: none;
@@ -2286,6 +2519,19 @@
     /* 모바일 하단 예약 바 표시 */
     .class-detail .booking-bar-mobile {
         display: flex;
+    }
+
+    .class-detail .booking-bar-mobile__top {
+        gap: 12px;
+    }
+
+    .class-detail .booking-bar-mobile__btn {
+        max-width: 160px;
+        padding: 13px 18px;
+    }
+
+    .class-detail .booking-bar-mobile__actions {
+        gap: 10px;
     }
 
     /* 커리큘럼 */
@@ -3020,5 +3266,9 @@
 
     .class-detail .booking-gift {
         width: 100%;
+    }
+
+    .class-detail .booking-link-row {
+        text-align: left;
     }
 }

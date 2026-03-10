@@ -51,15 +51,50 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-10 22:02:00 KST
+- Started At: 2026-03-10 22:24:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S1-1 키트 연동 Step 1 완료
+- Working Scope: [CODEX-LEAD] 파트너클래스 S1-2 상세 UX 고도화 완료
 - Active Subdirectory: pressco21
 
 ## Files In Progress
 - 없음
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### [CODEX-LEAD] Phase 3 S1-2 상세 UX 고도화 완료 (CODEX)
+- 프론트
+  - `파트너클래스/상세/Index.html`
+    - 상단 `Trust Summary Bar` 영역 추가.
+    - `이 가격에 포함된 것` 섹션 추가.
+    - 데스크탑 `키트만 구매` 링크와 모바일 하단 3계층 CTA 추가.
+  - `파트너클래스/상세/css.css`
+    - 상단 고정 신뢰 바 스타일 추가.
+    - 포함 내역 카드 스타일 추가.
+    - 데스크탑/모바일 CTA 계층 스타일 분리.
+    - 모바일 하단 고정 바를 `총 결제 예상 + 예약하기 / 선물하기 + 키트만 구매` 2줄 구조로 재구성.
+  - `파트너클래스/상세/js.js`
+    - `수강 / 평점 / 후기` 요약 바 렌더링 추가.
+    - `강의 / 재료키트 / 수료증` 포함 내역 판단/렌더링 추가.
+    - 데스크탑/모바일 `예약하기`, `선물하기`, `키트만 구매` 버튼 상태 동기화 추가.
+    - 모바일 하단 바 금액이 선택 인원에 맞춰 갱신되도록 수정.
+- 문서/메모리
+  - `ROADMAP.md`
+    - S1-2를 `✅ 완료`로 변경하고 운영 메모 추가.
+  - `docs/파트너클래스/detail-ux-upgrade-guide.md`
+    - 상세 UX 변경 목적, CTA 계층, 포함 내역 상태 기준, Playwright 검증 산출물 정리.
+  - `docs/파트너클래스/README.md`
+    - 새 상세 UX 가이드 문서 연결.
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+    - S1-2 기준 메모리 갱신.
+- 검증
+  - `node --check 파트너클래스/상세/js.js`
+  - Playwright 로컬 모킹 검증:
+    - desktop: `Trust Summary Bar`, 포함 내역 3카드, 데스크탑 CTA 3계층 확인
+    - mobile: 하단 고정 바 노출, `예약하기 / 선물하기 / 키트만 구매` 확인
+  - 스크린샷 산출물:
+    - `output/playwright/s1-2-20260310/detail-desktop-trust-bar.png`
+    - `output/playwright/s1-2-20260310/detail-mobile-cta.png`
 
 ### [CODEX-LEAD] Phase 3 S1-1 키트 연동 Step 1 완료 (CODEX)
 - 프론트
@@ -1064,8 +1099,8 @@
 
 #### 현재 다음 태스크
 
-- `S1-2 상세 UX 고도화` 진행
-- 그 다음 `S1-3 목록 배지 + 퀵 필터`
+- `S1-3 목록 배지 + 퀵 필터` 진행
+- 그 다음 `S1-4 수강완료 → 재구매 동선`
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
 #### 실행 순서
@@ -1152,6 +1187,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - 라이브 `admin-api`는 현재 리포지토리의 랜덤 `ADMIN_API_TOKEN`이 아니라 구형 토큰 `pressco21-admin-2026` 기준으로만 인증이 통과함
 - `파트너클래스/어드민/js.js`의 `PENDING_REVIEW` 정렬 보정은 아직 메이크샵 디자인편집기에 저장되지 않아 라이브 어드민 UI에는 반영되지 않음
 - S1-1 프론트 변경(강의등록/상세/파트너 수정 모달)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 화면 확인이 필요해지면 사용자 배포 후 재검증이 필요함
+- S1-2 상세 프론트 변경(Trust Summary Bar, 포함 내역, 모바일 CTA 바)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함
 - `PRD-파트너클래스-플랫폼-고도화.md`, `commission-policy.md`, 일부 구현 문서는 아직 예전 등급/수수료 표현이 남아 있으므로 서비스 방향 판단은 `docs/파트너클래스/README.md`와 `shared-service-identity.md`를 우선해야 함
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음

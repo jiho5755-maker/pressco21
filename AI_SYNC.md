@@ -49,22 +49,37 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
+- Current Owner: IDLE
+- Mode: —
 - Started At: 2026-03-10 21:20:00 KST
 - Branch: main
-- Working Scope: [CODEX] CRM 레거시 수금 처리 + 택배송장 자동입력 보강
+- Working Scope: [CODEX] CRM 레거시 수금 처리 + 택배송장 자동입력 보강 완료
 - Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
-- `AI_SYNC.md`
-- `offline-crm-v2/src/lib/legacySnapshots.ts`
-- `offline-crm-v2/src/lib/api.ts`
-- `offline-crm-v2/src/pages/Receivables.tsx`
-- `offline-crm-v2/src/pages/Invoices.tsx`
-- `offline-crm-v2/src/components/InvoiceDialog.tsx`
+- 없음
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### [CODEX] CRM 레거시 수금 처리 + 택배송장 자동입력 보강 (CODEX)
+- `offline-crm-v2/src/lib/legacySnapshots.ts`
+  - 고객 메모에 `[LEGACY_RECEIVABLE_META]` JSON을 저장해 레거시 수금 누적액을 관리하는 helper를 추가.
+  - 레거시 baseline 계산 시 누적 수금액을 차감하도록 변경.
+- `offline-crm-v2/src/pages/Receivables.tsx`
+  - `레거시 잔액` 탭에 `입금 확인` 버튼과 레거시 수금 전용 다이얼로그를 추가.
+  - 저장 시 고객 메모 메타데이터를 갱신하고 고객 미수 통계를 재계산하도록 연결.
+- `offline-crm-v2/src/lib/api.ts`
+  - 명세표에 `customer_address_key` 필드를 허용해 선택 주소를 저장할 수 있게 보강.
+- `offline-crm-v2/src/components/InvoiceDialog.tsx`
+  - 명세표 저장 시 선택 주소 키를 함께 저장.
+  - 주소 전환 시 `customer_address_key`도 같이 갱신.
+- `offline-crm-v2/src/pages/Invoices.tsx`
+  - 택배송장 자동 다운로드 시 받는분 전화/핸드폰을 같은 휴대폰 번호로 채우고, 주소는 명세표에 저장된 선택 주소 기준으로 채우도록 변경.
+  - 수량은 항상 `1`, 배송메세지는 빈값으로 고정.
+- 검증
+  - `cd offline-crm-v2 && npm run build`
+  - `cd offline-crm-v2 && bash deploy/deploy.sh`
+  - 결과: 성공, 운영 반영 완료
 
 ### [CODEX] CRM 레거시/CRM 미수금 집계 통합 (CODEX)
 - `offline-crm-v2/src/lib/legacySnapshots.ts`
@@ -975,6 +990,9 @@
 
 ## Next Step
 
+- [CODEX] CRM 레거시 수금 처리 후 고객 상세/대시보드/미수금 탭 숫자가 동시에 줄어드는지 실사용 검증
+- [CODEX] CRM 택배송장 자동 다운로드 결과물을 실제 택배 업로드 양식에 1회 대입 검증
+- [CODEX] 레거시 수금 메타데이터를 고객 상세에 히스토리로 노출할지 결정
 - [CODEX] CRM 운영 화면에서 `서상견 님` / `서상견 님 (단양)` 고객관리, 미수금, 대시보드 숫자가 기대대로 보이는지 실사용 확인
 - [CODEX] CRM `입금 확인` 실행 후 대시보드/고객관리/미수금/고객상세가 같은 값으로 즉시 줄어드는지 회귀 확인
 - [CODEX] CRM 미수금 탭의 `엑셀 내보내기`를 `전체/레거시/CRM` 소스별 내보내기로 분리할지 결정

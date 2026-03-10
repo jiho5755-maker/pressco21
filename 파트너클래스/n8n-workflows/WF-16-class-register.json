@@ -13,28 +13,39 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [220, 400],
+      "position": [
+        220,
+        400
+      ],
       "webhookId": "class-register"
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-16 Step 1: POST 본문 파싱 + 입력값 검증\n// 필수: member_id, title, category, type, difficulty, max_students, price, duration, description\n// 선택: schedule_desc, curriculum, image_url, materials, location, contact_instagram, contact_phone, contact_kakao\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\n// === HTML XSS 방지 ===\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\\\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\n// === 텍스트 정제 (제어 문자 제거 + 길이 제한) ===\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\n// === URL 검증 (http/https만 허용) ===\nfunction sanitizeUrl(url) {\n  if (!url) return '';\n  const trimmed = String(url).trim();\n  if (!trimmed) return '';\n  const lower = trimmed.toLowerCase();\n  if (lower.startsWith('http://') || lower.startsWith('https://')) {\n    return trimmed.substring(0, 2048);\n  }\n  if (!lower.includes('://') && !lower.includes(':')) {\n    return ('https://' + trimmed).substring(0, 2048);\n  }\n  return '';\n}\n\n// === 필수 필드 검증 ===\nconst memberId = sanitizeText(body.member_id, 100);\nconst title = sanitizeText(body.title, 100);\nconst category = sanitizeText(body.category, 50);\nconst type = sanitizeText(body.type, 50);\nconst difficulty = sanitizeText(body.difficulty, 20);\nconst maxStudents = parseInt(body.max_students, 10) || 0;\nconst price = parseInt(body.price, 10) || 0;\nconst duration = sanitizeText(body.duration, 50);\nconst description = sanitizeText(body.description, 2000);\n\nconst missingFields = [];\nif (!memberId) missingFields.push('member_id');\nif (!title) missingFields.push('title');\nif (!category) missingFields.push('category');\nif (!type) missingFields.push('type');\nif (!difficulty) missingFields.push('difficulty');\nif (!maxStudents || maxStudents < 1 || maxStudents > 50) missingFields.push('max_students (1~50)');\nif (!price || price < 1000) missingFields.push('price (min 1000)');\nif (!duration) missingFields.push('duration');\nif (!description) missingFields.push('description');\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: missingFields.join(', ') + ' 파라미터가 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === 카테고리/타입/난이도 유효값 검증 ===\nconst validCategories = ['압화', '레진', '캔들', '석고', '비즈', '기타'];\nconst validTypes = ['원데이', '정기', '온라인'];\nconst validDifficulties = ['beginner', 'intermediate', 'advanced'];\n\nif (!validCategories.includes(category)) {\n  return [{ json: { _valid: false, _errorResponse: { success: false, error: { code: 'INVALID_PARAMS', message: '유효하지 않은 카테고리입니다: ' + category }, timestamp: new Date().toISOString() } } }];\n}\nif (!validTypes.includes(type)) {\n  return [{ json: { _valid: false, _errorResponse: { success: false, error: { code: 'INVALID_PARAMS', message: '유효하지 않은 강의 형태입니다: ' + type }, timestamp: new Date().toISOString() } } }];\n}\nif (!validDifficulties.includes(difficulty)) {\n  return [{ json: { _valid: false, _errorResponse: { success: false, error: { code: 'INVALID_PARAMS', message: '유효하지 않은 난이도입니다: ' + difficulty }, timestamp: new Date().toISOString() } } }];\n}\n\n// === 선택 필드 정제 ===\nconst scheduleDesc = sanitizeText(body.schedule_desc, 1000);\nconst curriculum = sanitizeText(body.curriculum, 2000);\nconst imageUrl = sanitizeUrl(body.image_url);\nconst materials = sanitizeText(body.materials, 1000);\nconst location = sanitizeText(body.location, 200);\nconst contactInstagram = sanitizeUrl(body.contact_instagram);\nconst contactPhone = sanitizeText(body.contact_phone, 20);\nconst contactKakao = sanitizeUrl(body.contact_kakao);\n\n// === 일정 배열 정제 ===\nconst schedules = Array.isArray(body.schedules) ? body.schedules.filter(s => s && s.schedule_date && s.schedule_time).slice(0, 20).map(s => ({\n  schedule_date: sanitizeText(s.schedule_date, 10),\n  schedule_time: sanitizeText(s.schedule_time, 5),\n  capacity: Math.min(Math.max(parseInt(s.capacity, 10) || 6, 1), 50)\n})) : [];\n\n// === 재료키트 정제 ===\nconst kitEnabled = body.kit_enabled ? 1 : 0;\nconst kitItems = Array.isArray(body.kit_items) ? body.kit_items.filter(k => k && k.name).slice(0, 20).map(k => ({\n  name: sanitizeText(k.name, 100),\n  product_code: sanitizeText(k.product_code, 50),\n  quantity: Math.min(Math.max(parseInt(k.quantity, 10) || 1, 1), 99)\n})) : [];\n\nreturn [{\n  json: {\n    _valid: true,\n    memberId,\n    title,\n    category,\n    type,\n    difficulty,\n    maxStudents,\n    price,\n    duration,\n    description,\n    scheduleDesc,\n    curriculum,\n    imageUrl,\n    materials,\n    location,\n    contactInstagram,\n    contactPhone,\n    contactKakao,\n    schedules,\n    kitEnabled,\n    kitItems,\n    _safe: {\n      title: escapeHtml(title),\n      memberId: escapeHtml(memberId),\n      category: escapeHtml(category),\n      type: escapeHtml(type)\n    }\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-16 Step 1: POST 본문 파싱 + 입력값 검증\n// 필수: member_id, title, category, type, difficulty, max_students, price, duration, description\n// 선택: schedule_desc, curriculum, image_url, materials, location, contact_instagram, contact_phone, contact_kakao\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\\\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\u0000-\b\u000b\f\u000e-\u001f]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\nfunction sanitizeUrl(url) {\n  if (!url) return '';\n  const trimmed = String(url).trim();\n  if (!trimmed) return '';\n  const lower = trimmed.toLowerCase();\n  if (lower.startsWith('http://') || lower.startsWith('https://')) {\n    return trimmed.substring(0, 2048);\n  }\n  if (!lower.includes('://') && !lower.includes(':')) {\n    return ('https://' + trimmed).substring(0, 2048);\n  }\n  return '';\n}\n\nfunction normalizeDifficulty(raw) {\n  const text = sanitizeText(raw, 30);\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.includes('입문') || text.includes('초급')) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.includes('중급')) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.includes('심화') || text.includes('고급')) return 'ADVANCED';\n  if (upper === 'ALL_LEVELS' || text.includes('전체')) return 'ALL_LEVELS';\n  return upper;\n}\n\nfunction difficultyLabel(code) {\n  return { BEGINNER: '입문', INTERMEDIATE: '중급', ADVANCED: '심화', ALL_LEVELS: '전체' }[code] || code;\n}\n\nfunction normalizeRegion(location, classType) {\n  const text = sanitizeText(location, 200);\n  const type = sanitizeText(classType, 50);\n  const upper = text.toUpperCase();\n  if (type.includes('온라인') || text.includes('온라인') || upper === 'ONLINE' || upper.includes('ONLINE')) return 'ONLINE';\n  if (!text) return '';\n  const primary = text.split(' ')[0];\n  const map = {\n    '서울': 'SEOUL','경기': 'GYEONGGI','경기도': 'GYEONGGI','인천': 'INCHEON','부산': 'BUSAN','대구': 'DAEGU','대전': 'DAEJEON','광주': 'GWANGJU','울산': 'ULSAN','세종': 'SEJONG','강원': 'GANGWON','강원도': 'GANGWON','충북': 'CHUNGBUK','충청북도': 'CHUNGBUK','충남': 'CHUNGNAM','충청남도': 'CHUNGNAM','전북': 'JEONBUK','전라북도': 'JEONBUK','전남': 'JEONNAM','전라남도': 'JEONNAM','경북': 'GYEONGBUK','경상북도': 'GYEONGBUK','경남': 'GYEONGNAM','경상남도': 'GYEONGNAM','제주': 'JEJU','제주도': 'JEJU'\n  };\n  return map[text] || map[primary] || upper;\n}\n\nconst memberId = sanitizeText(body.member_id, 100);\nconst title = sanitizeText(body.title, 100);\nconst category = sanitizeText(body.category, 50);\nconst type = sanitizeText(body.type, 50);\nconst difficulty = normalizeDifficulty(body.difficulty);\nconst maxStudents = parseInt(body.max_students, 10) || 0;\nconst price = parseInt(body.price, 10) || 0;\nconst duration = sanitizeText(body.duration, 50);\nconst description = sanitizeText(body.description, 2000);\nconst location = sanitizeText(body.location, 200);\nconst region = normalizeRegion(location, type);\n\nconst missingFields = [];\nif (!memberId) missingFields.push('member_id');\nif (!title) missingFields.push('title');\nif (!category) missingFields.push('category');\nif (!type) missingFields.push('type');\nif (!difficulty) missingFields.push('difficulty');\nif (!maxStudents || maxStudents < 1 || maxStudents > 50) missingFields.push('max_students (1~50)');\nif (!price || price < 1000) missingFields.push('price (min 1000)');\nif (!duration) missingFields.push('duration');\nif (!description) missingFields.push('description');\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: missingFields.join(', ') + ' 파라미터가 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst validCategories = ['압화', '레진', '캔들', '석고', '비즈', '기타'];\nconst validTypes = ['원데이', '정기', '온라인'];\nconst validDifficulties = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ALL_LEVELS'];\n\nif (!validCategories.includes(category)) {\n  return [{ json: { _valid: false, _errorResponse: { success: false, error: { code: 'INVALID_PARAMS', message: '유효하지 않은 카테고리입니다: ' + category }, timestamp: new Date().toISOString() } } }];\n}\nif (!validTypes.includes(type)) {\n  return [{ json: { _valid: false, _errorResponse: { success: false, error: { code: 'INVALID_PARAMS', message: '유효하지 않은 강의 형태입니다: ' + type }, timestamp: new Date().toISOString() } } }];\n}\nif (!validDifficulties.includes(difficulty)) {\n  return [{ json: { _valid: false, _errorResponse: { success: false, error: { code: 'INVALID_PARAMS', message: '유효하지 않은 난이도입니다: ' + difficulty }, timestamp: new Date().toISOString() } } }];\n}\n\nconst scheduleDesc = sanitizeText(body.schedule_desc, 1000);\nconst curriculum = sanitizeText(body.curriculum, 2000);\nconst imageUrl = sanitizeUrl(body.image_url);\nconst materials = sanitizeText(body.materials, 1000);\nconst contactInstagram = sanitizeUrl(body.contact_instagram);\nconst contactPhone = sanitizeText(body.contact_phone, 20);\nconst contactKakao = sanitizeUrl(body.contact_kakao);\n\nconst schedules = Array.isArray(body.schedules) ? body.schedules.filter((s) => s && s.schedule_date && s.schedule_time).slice(0, 20).map((s) => ({\n  schedule_date: sanitizeText(s.schedule_date, 10),\n  schedule_time: sanitizeText(s.schedule_time, 5),\n  capacity: Math.min(Math.max(parseInt(s.capacity, 10) || 6, 1), 50)\n})) : [];\n\nconst kitEnabled = body.kit_enabled ? 1 : 0;\nconst kitItems = Array.isArray(body.kit_items) ? body.kit_items.filter((k) => k && k.name).slice(0, 20).map((k) => ({\n  name: sanitizeText(k.name, 100),\n  product_code: sanitizeText(k.product_code, 50),\n  quantity: Math.min(Math.max(parseInt(k.quantity, 10) || 1, 1), 99)\n})) : [];\n\nreturn [{\n  json: {\n    _valid: true,\n    memberId,\n    title,\n    category,\n    type,\n    difficulty,\n    difficultyLabel: difficultyLabel(difficulty),\n    region,\n    maxStudents,\n    price,\n    duration,\n    description,\n    scheduleDesc,\n    curriculum,\n    imageUrl,\n    materials,\n    location,\n    contactInstagram,\n    contactPhone,\n    contactKakao,\n    schedules,\n    kitEnabled,\n    kitItems,\n    _safe: {\n      title: escapeHtml(title),\n      memberId: escapeHtml(memberId),\n      category: escapeHtml(category),\n      type: escapeHtml(type)\n    }\n  }\n}];"
       },
       "id": "wf16-validate-input",
       "name": "Validate Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 400]
+      "position": [
+        440,
+        400
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._valid }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -43,7 +54,10 @@
       "name": "IF Input Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [660, 400]
+      "position": [
+        660,
+        400
+      ]
     },
     {
       "parameters": {
@@ -53,8 +67,14 @@
           "responseCode": "400",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -63,7 +83,10 @@
       "name": "Respond Validation Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [880, 560]
+      "position": [
+        880,
+        560
+      ]
     },
     {
       "parameters": {
@@ -74,8 +97,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})~and(status,eq,active)" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})~and(status,eq,active)"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -84,7 +113,10 @@
       "name": "NocoDB Check Active Partner",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 300],
+      "position": [
+        880,
+        300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -100,17 +132,25 @@
       "name": "Check Partner Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 300]
+      "position": [
+        1100,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._isPartner }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -119,7 +159,10 @@
       "name": "IF Is Active Partner",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1320, 300]
+      "position": [
+        1320,
+        300
+      ]
     },
     {
       "parameters": {
@@ -129,8 +172,14 @@
           "responseCode": "403",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -139,7 +188,10 @@
       "name": "Respond Not Partner",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1540, 460]
+      "position": [
+        1540,
+        460
+      ]
     },
     {
       "parameters": {
@@ -149,7 +201,10 @@
       "name": "Generate Class ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1540, 200]
+      "position": [
+        1540,
+        200
+      ]
     },
     {
       "parameters": {
@@ -160,25 +215,86 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "class_id", "value": "={{ $json._classId }}" },
-            { "name": "partner_code", "value": "={{ $json._partnerCode }}" },
-            { "name": "class_name", "value": "={{ $json.title }}" },
-            { "name": "category", "value": "={{ $json.category }}" },
-            { "name": "type", "value": "={{ $json.type }}" },
-            { "name": "level", "value": "={{ $json.difficulty }}" },
-            { "name": "max_students", "value": "={{ $json.maxStudents }}" },
-            { "name": "price", "value": "={{ $json.price }}" },
-            { "name": "description", "value": "={{ $json.description }}" },
-            { "name": "curriculum_json", "value": "={{ $json.curriculum }}" },
-            { "name": "image_urls", "value": "={{ $json.imageUrl }}" },
-            { "name": "materials_included", "value": "={{ $json.materials }}" },
-            { "name": "location", "value": "={{ $json.location }}" },
-            { "name": "contact_instagram", "value": "={{ $json.contactInstagram }}" },
-            { "name": "contact_phone", "value": "={{ $json.contactPhone }}" },
-            { "name": "contact_kakao", "value": "={{ $json.contactKakao }}" },
-            { "name": "kit_enabled", "value": "={{ $json.kitEnabled }}" },
-            { "name": "kit_items", "value": "={{ JSON.stringify($json.kitItems) }}" },
-            { "name": "status", "value": "INACTIVE" }
+            {
+              "name": "class_id",
+              "value": "={{ $json._classId }}"
+            },
+            {
+              "name": "partner_code",
+              "value": "={{ $json._partnerCode }}"
+            },
+            {
+              "name": "class_name",
+              "value": "={{ $json.title }}"
+            },
+            {
+              "name": "category",
+              "value": "={{ $json.category }}"
+            },
+            {
+              "name": "type",
+              "value": "={{ $json.type }}"
+            },
+            {
+              "name": "level",
+              "value": "={{ $json.difficulty }}"
+            },
+            {
+              "name": "max_students",
+              "value": "={{ $json.maxStudents }}"
+            },
+            {
+              "name": "price",
+              "value": "={{ $json.price }}"
+            },
+            {
+              "name": "description",
+              "value": "={{ $json.description }}"
+            },
+            {
+              "name": "curriculum_json",
+              "value": "={{ $json.curriculum }}"
+            },
+            {
+              "name": "image_urls",
+              "value": "={{ $json.imageUrl }}"
+            },
+            {
+              "name": "materials_included",
+              "value": "={{ $json.materials }}"
+            },
+            {
+              "name": "location",
+              "value": "={{ $json.location }}"
+            },
+            {
+              "name": "region",
+              "value": "={{ $json.region }}"
+            },
+            {
+              "name": "contact_instagram",
+              "value": "={{ $json.contactInstagram }}"
+            },
+            {
+              "name": "contact_phone",
+              "value": "={{ $json.contactPhone }}"
+            },
+            {
+              "name": "contact_kakao",
+              "value": "={{ $json.contactKakao }}"
+            },
+            {
+              "name": "kit_enabled",
+              "value": "={{ $json.kitEnabled }}"
+            },
+            {
+              "name": "kit_items",
+              "value": "={{ JSON.stringify($json.kitItems) }}"
+            },
+            {
+              "name": "status",
+              "value": "PENDING_REVIEW"
+            }
           ]
         },
         "options": {}
@@ -187,7 +303,10 @@
       "name": "NocoDB Create Class",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1760, 200],
+      "position": [
+        1760,
+        200
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -203,17 +322,25 @@
       "name": "Check Create Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1980, 200]
+      "position": [
+        1980,
+        200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._success }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -222,17 +349,23 @@
       "name": "IF Created OK",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2200, 200]
+      "position": [
+        2200,
+        200
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-16 Step 5a: 텔레그램 관리자 알림 메시지 구성\n// ===================================================\n\nconst data = $input.first().json;\n\nconst priceFormatted = Number(data.price).toLocaleString('ko-KR');\n\nconst message = '[강의 등록 신청] 새 강의가 등록되었습니다\\n\\n'\n  + '강의명: ' + data.title + '\\n'\n  + '파트너: ' + data._partnerName + ' (' + data._partnerCode + ')\\n'\n  + '카테고리: ' + data.category + '\\n'\n  + '형태: ' + data.type + '\\n'\n  + '난이도: ' + data.difficulty + '\\n'\n  + '수강료: ' + priceFormatted + '원\\n'\n  + '최대 인원: ' + data.maxStudents + '명\\n'\n  + '소요시간: ' + data.duration + '\\n'\n  + '강의 ID: ' + data._classId + '\\n'\n  + (data.location ? '장소: ' + data.location + '\\n' : '')\n  + '\\n-> NocoDB tbl_Classes에서 검토 후 status를 active로 변경해주세요.';\n\nreturn [{\n  json: {\n    ...data,\n    _telegramMessage: message\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-16 Step 5a: 텔레그램 관리자 알림 메시지 구성\n// ===================================================\n\nconst data = $input.first().json;\nconst priceFormatted = Number(data.price).toLocaleString('ko-KR');\nconst lines = [\n  '[강의 등록 신청] 새 강의가 등록되었습니다',\n  '',\n  '강의명: ' + data.title,\n  '파트너: ' + data._partnerName + ' (' + data._partnerCode + ')',\n  '카테고리: ' + data.category,\n  '형태: ' + data.type,\n  '난이도: ' + (data.difficultyLabel || data.difficulty),\n  '지역코드: ' + (data.region || '-'),\n  '수강료: ' + priceFormatted + '원',\n  '최대 인원: ' + data.maxStudents + '명',\n  '소요시간: ' + data.duration,\n  '강의 ID: ' + data._classId\n];\n\nif (data.location) {\n  lines.push('장소: ' + data.location);\n}\n\nlines.push('');\nlines.push('-> NocoDB tbl_Classes에서 검토 후 status를 ACTIVE로 변경해주세요.');\n\nreturn [{\n  json: {\n    ...data,\n    _telegramMessage: lines.join('\\n')\n  }\n}];"
       },
       "id": "wf16-build-telegram-msg",
       "name": "Build Telegram Message",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2420, 100]
+      "position": [
+        2420,
+        100
+      ]
     },
     {
       "parameters": {
@@ -245,7 +378,10 @@
       "name": "Telegram New Class",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [2640, 100],
+      "position": [
+        2640,
+        100
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -262,7 +398,10 @@
       "name": "Build Success Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2420, 260]
+      "position": [
+        2420,
+        260
+      ]
     },
     {
       "parameters": {
@@ -271,8 +410,14 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -281,7 +426,10 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2640, 260]
+      "position": [
+        2640,
+        260
+      ]
     },
     {
       "parameters": {
@@ -291,7 +439,10 @@
       "name": "Build Error Telegram",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2420, 420]
+      "position": [
+        2420,
+        420
+      ]
     },
     {
       "parameters": {
@@ -304,7 +455,10 @@
       "name": "Telegram Error Alert",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [2640, 420],
+      "position": [
+        2640,
+        420
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -321,7 +475,10 @@
       "name": "Create Initial Schedules",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2420, 0]
+      "position": [
+        2420,
+        0
+      ]
     },
     {
       "parameters": {
@@ -331,8 +488,14 @@
           "responseCode": "500",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -341,116 +504,195 @@
       "name": "Respond Create Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2860, 420]
+      "position": [
+        2860,
+        420
+      ]
     }
   ],
   "connections": {
     "Webhook": {
       "main": [
         [
-          { "node": "Validate Input", "type": "main", "index": 0 }
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Validate Input": {
       "main": [
         [
-          { "node": "IF Input Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF Input Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Input Valid": {
       "main": [
         [
-          { "node": "NocoDB Check Active Partner", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Check Active Partner",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Validation Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Check Active Partner": {
       "main": [
         [
-          { "node": "Check Partner Result", "type": "main", "index": 0 }
+          {
+            "node": "Check Partner Result",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Partner Result": {
       "main": [
         [
-          { "node": "IF Is Active Partner", "type": "main", "index": 0 }
+          {
+            "node": "IF Is Active Partner",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Is Active Partner": {
       "main": [
         [
-          { "node": "Generate Class ID", "type": "main", "index": 0 }
+          {
+            "node": "Generate Class ID",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Not Partner", "type": "main", "index": 0 }
+          {
+            "node": "Respond Not Partner",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Generate Class ID": {
       "main": [
         [
-          { "node": "NocoDB Create Class", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Create Class",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Create Class": {
       "main": [
         [
-          { "node": "Check Create Result", "type": "main", "index": 0 }
+          {
+            "node": "Check Create Result",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Create Result": {
       "main": [
         [
-          { "node": "IF Created OK", "type": "main", "index": 0 }
+          {
+            "node": "IF Created OK",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Created OK": {
       "main": [
         [
-          { "node": "Build Telegram Message", "type": "main", "index": 0 },
-          { "node": "Build Success Response", "type": "main", "index": 0 },
-          { "node": "Create Initial Schedules", "type": "main", "index": 0 }
+          {
+            "node": "Build Telegram Message",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Build Success Response",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Create Initial Schedules",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Build Error Telegram", "type": "main", "index": 0 }
+          {
+            "node": "Build Error Telegram",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Telegram Message": {
       "main": [
         [
-          { "node": "Telegram New Class", "type": "main", "index": 0 }
+          {
+            "node": "Telegram New Class",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Success Response": {
       "main": [
         [
-          { "node": "Respond Success", "type": "main", "index": 0 }
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Error Telegram": {
       "main": [
         [
-          { "node": "Telegram Error Alert", "type": "main", "index": 0 }
+          {
+            "node": "Telegram Error Alert",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Telegram Error Alert": {
       "main": [
         [
-          { "node": "Respond Create Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Create Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -460,10 +702,18 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "PRESSCO21" },
-    { "name": "Class Register" },
-    { "name": "Phase 3" },
-    { "name": "Task 293" }
+    {
+      "name": "PRESSCO21"
+    },
+    {
+      "name": "Class Register"
+    },
+    {
+      "name": "Phase 3"
+    },
+    {
+      "name": "Task 293"
+    }
   ],
   "pinData": {}
 }

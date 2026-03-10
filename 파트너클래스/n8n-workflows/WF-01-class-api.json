@@ -91,6 +91,29 @@
               },
               "renameOutput": true,
               "outputKey": "getCategories"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "getAffiliations",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "getAffiliations"
             }
           ]
         },
@@ -109,7 +132,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-01-A: getClasses - 클래스 목록 조회\n// NocoDB tbl_Classes에서 active 클래스 조회 + 필터/정렬/페이징\n// ===================================================\n\nconst body = $input.first().json.body;\n\n// 파라미터 파싱\nconst category = (body.category || '').trim();\nconst level = (body.level || '').trim();\nconst classType = (body.type || '').trim();\nconst region = (body.region || '').trim();\nconst sort = (body.sort || 'latest').trim();\nconst page = Math.max(parseInt(body.page) || 1, 1);\nconst limit = Math.min(Math.max(parseInt(body.limit) || 20, 1), 50);\n\n// NocoDB where 파라미터 구성 (status=active 기본)\nlet whereParts = ['(status,eq,active)'];\nif (category) whereParts.push(`(category,eq,${category})`);\nif (level) whereParts.push(`(level,eq,${level})`);\nif (classType) whereParts.push(`(type,eq,${classType})`);\nif (region) whereParts.push(`(location,like,%${region}%)`);\n\nconst where = whereParts.join('~and');\n\n// NocoDB 정렬 매핑\nlet sortField = '-created_date'; // 기본: 최신순 (- = DESC)\nswitch (sort) {\n  case 'popular':   sortField = '-class_count'; break;\n  case 'rating':    sortField = '-avg_rating'; break;\n  case 'price_asc': sortField = 'price'; break;\n  case 'price_desc':sortField = '-price'; break;\n  case 'latest':\n  default:          sortField = '-created_date'; break;\n}\n\nreturn [{\n  json: {\n    where,\n    sortField,\n    page,\n    limit,\n    offset: (page - 1) * limit,\n    sort,\n    // 원본 파라미터 보존 (응답 구성용)\n    _params: { category, level, classType, region, sort, page, limit }\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-01-A: getClasses - 클래스 목록 조회\n// 레거시/신규 상태값을 모두 읽되 응답은 정규화된 값으로 반환\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\nfunction splitValues(raw) {\n  return String(raw || '')\n    .split(',')\n    .map((item) => String(item || '').replace(/\\s+/g, ' ').trim())\n    .filter((item) => item.length > 0);\n}\n\nfunction unique(values) {\n  const seen = new Set();\n  const result = [];\n  for (const value of values) {\n    if (!value || seen.has(value)) continue;\n    seen.add(value);\n    result.push(value);\n  }\n  return result;\n}\n\nfunction normalizeLevel(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.includes('입문') || text.includes('초급')) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.includes('중급')) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.includes('심화') || text.includes('고급')) return 'ADVANCED';\n  if (upper === 'ALL_LEVELS' || text.includes('전체')) return 'ALL_LEVELS';\n  return upper;\n}\n\nfunction normalizeRegion(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  if (!text) return '';\n  const upper = text.toUpperCase();\n  const primary = text.split(' ')[0];\n  const map = {\n    '서울': 'SEOUL',\n    '경기': 'GYEONGGI',\n    '경기도': 'GYEONGGI',\n    '인천': 'INCHEON',\n    '부산': 'BUSAN',\n    '대구': 'DAEGU',\n    '대전': 'DAEJEON',\n    '광주': 'GWANGJU',\n    '울산': 'ULSAN',\n    '세종': 'SEJONG',\n    '강원': 'GANGWON',\n    '강원도': 'GANGWON',\n    '충북': 'CHUNGBUK',\n    '충청북도': 'CHUNGBUK',\n    '충남': 'CHUNGNAM',\n    '충청남도': 'CHUNGNAM',\n    '전북': 'JEONBUK',\n    '전라북도': 'JEONBUK',\n    '전남': 'JEONNAM',\n    '전라남도': 'JEONNAM',\n    '경북': 'GYEONGBUK',\n    '경상북도': 'GYEONGBUK',\n    '경남': 'GYEONGNAM',\n    '경상남도': 'GYEONGNAM',\n    '제주': 'JEJU',\n    '제주도': 'JEJU',\n    '온라인': 'ONLINE',\n    '기타': 'OTHER'\n  };\n  if (map[text]) return map[text];\n  if (map[primary]) return map[primary];\n  if (upper === 'ONLINE' || lowerContains(text, 'online')) return 'ONLINE';\n  return map[upper] || upper;\n}\n\nfunction lowerContains(text, keyword) {\n  return String(text || '').toLowerCase().includes(String(keyword || '').toLowerCase());\n}\n\nconst categories = unique(splitValues(body.category));\nconst levels = unique(splitValues(body.level || body.difficulty).map(normalizeLevel).filter(Boolean));\nconst classTypes = unique(splitValues(body.type));\nconst regions = unique(splitValues(body.region).map(normalizeRegion).filter(Boolean));\nconst sort = String(body.sort || 'latest').trim() || 'latest';\nconst page = Math.max(parseInt(body.page, 10) || 1, 1);\nconst limit = Math.min(Math.max(parseInt(body.limit, 10) || 20, 1), 50);\nconst maxPrice = Math.min(Math.max(parseInt(body.maxPrice, 10) || 200000, 0), 200000000);\nconst search = String(body.search || body.q || '').replace(/\\s+/g, ' ').trim();\n\nreturn [{\n  json: {\n    page,\n    limit,\n    sort,\n    _params: {\n      categories,\n      levels,\n      classTypes,\n      regions,\n      sort,\n      page,\n      limit,\n      maxPrice,\n      search\n    }\n  }\n}];"
       },
       "id": "wf01-parse-classes",
       "name": "Parse getClasses Params",
@@ -130,20 +153,12 @@
         "queryParameters": {
           "parameters": [
             {
-              "name": "where",
-              "value": "={{ $json.where }}"
-            },
-            {
-              "name": "sort",
-              "value": "={{ $json.sortField }}"
-            },
-            {
               "name": "limit",
               "value": "=1000"
             },
             {
               "name": "fields",
-              "value": "class_id,makeshop_product_id,class_name,category,level,price,duration_min,max_students,thumbnail_url,location,tags,class_count,avg_rating,partner_code,type,status,kit_enabled"
+              "value": "class_id,makeshop_product_id,class_name,category,level,price,duration_min,max_students,thumbnail_url,location,region,tags,class_count,avg_rating,partner_code,type,status,kit_enabled"
             }
           ]
         },
@@ -206,7 +221,47 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 클래스 목록 + 파트너 정보 조인 + 페이지네이션 응답 구성\n// ===================================================\n\n// NocoDB 응답에서 데이터 추출\nconst classesResponse = $('NocoDB Get Classes').first().json;\nconst partnersResponse = $('NocoDB Get Partners (Join)').first().json;\nconst params = $('Parse getClasses Params').first().json._params;\n\nconst classesList = classesResponse.list || [];\nconst partnersList = partnersResponse.list || [];\n\n// 파트너 코드 -> 파트너 정보 맵\nconst partnerMap = {};\nfor (const p of partnersList) {\n  partnerMap[p.partner_code] = {\n    partner_name: p.partner_name || '',\n    grade: p.grade || '',\n    location: p.location || '',\n    avg_rating: Number(p.avg_rating) || 0\n  };\n}\n\n// 클래스 목록 구성 (파트너 이름 조인)\nconst classes = classesList.map(c => {\n  // NocoDB Links 필드에서 partner_code 추출\n  // Links 필드는 배열 형태: [{partner_code: 'PC_...'}] 또는 문자열\n  let partnerCode = '';\n  if (Array.isArray(c.partner_code) && c.partner_code.length > 0) {\n    partnerCode = c.partner_code[0].partner_code || c.partner_code[0].Title || c.partner_code[0].Id || '';\n  } else if (typeof c.partner_code === 'string') {\n    partnerCode = c.partner_code;\n  }\n\n  const partnerInfo = partnerMap[partnerCode] || { partner_name: '', grade: '' };\n\n  return {\n    class_id: c.class_id || '',\n    makeshop_product_id: c.makeshop_product_id || '',\n    class_name: c.class_name || '',\n    category: c.category || '',\n    level: c.level || '',\n    price: Number(c.price) || 0,\n    duration_min: Number(c.duration_min) || 0,\n    max_students: Number(c.max_students) || 0,\n    thumbnail_url: c.thumbnail_url || '',\n    location: c.location || '',\n    tags: c.tags || '',\n    type: c.type || '',\n    class_count: Number(c.class_count) || 0,\n    avg_rating: Number(c.avg_rating) || 0,\n    partner_name: partnerInfo.partner_name,\n    partner_code: partnerCode,\n    kit_enabled: Number(c.kit_enabled) || 0\n  };\n});\n\n// 페이지네이션\nconst totalCount = classes.length;\nconst limit = params.limit;\nconst page = params.page;\nconst totalPages = Math.ceil(totalCount / limit);\nconst startIdx = (page - 1) * limit;\nconst pagedClasses = classes.slice(startIdx, startIdx + limit);\n\nreturn [{\n  json: {\n    success: true,\n    data: pagedClasses,\n    pagination: {\n      page,\n      limit,\n      totalCount,\n      totalPages\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mschd3d81ad88fb",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "=(status,eq,active)"
+            },
+            {
+              "name": "fields",
+              "value": "class_id,capacity,booked_count,schedule_date"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf01-nocodb-schedules-for-list",
+      "name": "NocoDB Get Schedules for List",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        880,
+        500
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// 클래스 목록 + 파트너 정보 + 잔여석 조인 + 정규화 + 필터/정렬/페이지네이션\n// ===================================================\n\nconst classesResponse = $('NocoDB Get Classes').first().json;\nconst partnersResponse = $('NocoDB Get Partners (Join)').first().json;\nconst schedulesResponse = $('NocoDB Get Schedules for List').first().json;\nconst params = $('Parse getClasses Params').first().json._params || {};\n\nconst classesList = classesResponse.list || [];\nconst partnersList = partnersResponse.list || [];\nconst schedulesList = schedulesResponse.list || [];\n\nfunction normalizeStatus(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (!text) return 'DRAFT';\n  if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'ACTIVE';\n  if (upper === 'PAUSED' || text.toLowerCase() === 'paused') return 'PAUSED';\n  if (upper === 'PENDING_REVIEW' || upper === 'INACTIVE' || text.toLowerCase() === 'pending') return 'PENDING_REVIEW';\n  if (upper === 'REJECTED' || text.toLowerCase() === 'closed') return 'REJECTED';\n  if (upper === 'ARCHIVED') return 'ARCHIVED';\n  return upper;\n}\n\nfunction normalizeLevel(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.includes('입문') || text.includes('초급')) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.includes('중급')) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.includes('심화') || text.includes('고급')) return 'ADVANCED';\n  if (upper === 'ALL_LEVELS' || text.includes('전체')) return 'ALL_LEVELS';\n  return upper;\n}\n\nfunction normalizeRegion(rawRegion, rawLocation, rawType) {\n  const fromRegion = String(rawRegion || '').replace(/\\s+/g, ' ').trim();\n  const text = fromRegion || String(rawLocation || '').replace(/\\s+/g, ' ').trim();\n  const type = String(rawType || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const primary = text.split(' ')[0];\n  const map = {\n    '서울': 'SEOUL',\n    '경기': 'GYEONGGI',\n    '경기도': 'GYEONGGI',\n    '인천': 'INCHEON',\n    '부산': 'BUSAN',\n    '대구': 'DAEGU',\n    '대전': 'DAEJEON',\n    '광주': 'GWANGJU',\n    '울산': 'ULSAN',\n    '세종': 'SEJONG',\n    '강원': 'GANGWON',\n    '강원도': 'GANGWON',\n    '충북': 'CHUNGBUK',\n    '충청북도': 'CHUNGBUK',\n    '충남': 'CHUNGNAM',\n    '충청남도': 'CHUNGNAM',\n    '전북': 'JEONBUK',\n    '전라북도': 'JEONBUK',\n    '전남': 'JEONNAM',\n    '전라남도': 'JEONNAM',\n    '경북': 'GYEONGBUK',\n    '경상북도': 'GYEONGBUK',\n    '경남': 'GYEONGNAM',\n    '경상남도': 'GYEONGNAM',\n    '제주': 'JEJU',\n    '제주도': 'JEJU',\n    '온라인': 'ONLINE',\n    '기타': 'OTHER'\n  };\n  if (type.includes('온라인') || text.includes('온라인') || upper === 'ONLINE' || upper.includes('ONLINE')) return 'ONLINE';\n  if (!text) return '';\n  if (map[text]) return map[text];\n  if (map[primary]) return map[primary];\n  return map[upper] || upper;\n}\n\nfunction normalizePartnerGrade(raw) {\n  const upper = String(raw || '').toUpperCase().trim();\n  const alias = { SILVER: 'BLOOM', GOLD: 'GARDEN', PLATINUM: 'ATELIER' };\n  return alias[upper] || upper;\n}\n\nfunction hasRegionMatch(classRegion, filterRegions) {\n  if (!filterRegions || filterRegions.length === 0) return true;\n  if (!classRegion) return false;\n  if (filterRegions.includes(classRegion)) return true;\n\n  if (filterRegions.includes('OTHER')) {\n    const standard = ['SEOUL','GYEONGGI','INCHEON','BUSAN','DAEGU','DAEJEON','GWANGJU','ULSAN','SEJONG','GANGWON','CHUNGBUK','CHUNGNAM','JEONBUK','JEONNAM','GYEONGBUK','GYEONGNAM','JEJU','ONLINE'];\n    return standard.indexOf(classRegion) === -1;\n  }\n\n  return false;\n}\n\nconst today = new Date().toISOString().slice(0, 10);\nconst remainingMap = {};\nfor (const s of schedulesList) {\n  const cid = s.class_id || '';\n  if (!cid || s.schedule_date < today) continue;\n  const remaining = Math.max((Number(s.capacity) || 0) - (Number(s.booked_count) || 0), 0);\n  if (!remainingMap[cid]) {\n    remainingMap[cid] = { total_remaining: 0, schedule_count: 0, next_date: s.schedule_date };\n  }\n  remainingMap[cid].total_remaining += remaining;\n  remainingMap[cid].schedule_count += 1;\n  if (s.schedule_date < remainingMap[cid].next_date) {\n    remainingMap[cid].next_date = s.schedule_date;\n  }\n}\n\nconst partnerMap = {};\nfor (const p of partnersList) {\n  partnerMap[p.partner_code] = {\n    partner_name: p.partner_name || '',\n    grade: normalizePartnerGrade(p.grade || ''),\n    location: p.location || '',\n    avg_rating: Number(p.avg_rating) || 0\n  };\n}\n\nlet classes = classesList.map((c) => {\n  let partnerCode = '';\n  if (Array.isArray(c.partner_code) && c.partner_code.length > 0) {\n    partnerCode = c.partner_code[0].partner_code || c.partner_code[0].Title || c.partner_code[0].Id || '';\n  } else if (typeof c.partner_code === 'string') {\n    partnerCode = c.partner_code;\n  }\n\n  const partnerInfo = partnerMap[partnerCode] || { partner_name: '', grade: '', location: '', avg_rating: 0 };\n  const status = normalizeStatus(c.status || '');\n  const level = normalizeLevel(c.level || '');\n  const region = normalizeRegion(c.region || '', c.location || '', c.type || '');\n  const price = Number(c.price) || 0;\n\n  return {\n    class_id: c.class_id || '',\n    makeshop_product_id: c.makeshop_product_id || '',\n    class_name: c.class_name || '',\n    category: c.category || '',\n    level,\n    price,\n    duration_min: Number(c.duration_min) || 0,\n    max_students: Number(c.max_students) || 0,\n    thumbnail_url: c.thumbnail_url || '',\n    location: c.location || '',\n    region,\n    tags: c.tags || '',\n    type: c.type || '',\n    status,\n    class_count: Number(c.class_count) || 0,\n    avg_rating: Number(c.avg_rating) || 0,\n    partner_name: partnerInfo.partner_name,\n    partner_code: partnerCode,\n    partner_grade: partnerInfo.grade,\n    kit_enabled: Number(c.kit_enabled) || 0,\n    total_remaining: (remainingMap[c.class_id] || {}).total_remaining || 0,\n    schedule_count: (remainingMap[c.class_id] || {}).schedule_count || 0,\n    next_date: (remainingMap[c.class_id] || {}).next_date || ''\n  };\n});\n\nclasses = classes.filter((c) => c.status === 'ACTIVE');\n\nif (params.categories && params.categories.length > 0) {\n  classes = classes.filter((c) => params.categories.includes(c.category || ''));\n}\nif (params.levels && params.levels.length > 0) {\n  classes = classes.filter((c) => params.levels.includes(c.level || ''));\n}\nif (params.classTypes && params.classTypes.length > 0) {\n  classes = classes.filter((c) => params.classTypes.includes(c.type || ''));\n}\nif (params.regions && params.regions.length > 0) {\n  classes = classes.filter((c) => hasRegionMatch(c.region, params.regions));\n}\nif (params.maxPrice && params.maxPrice < 200000000) {\n  classes = classes.filter((c) => (Number(c.price) || 0) <= params.maxPrice);\n}\nif (params.search) {\n  const query = params.search.toLowerCase();\n  classes = classes.filter((c) => {\n    return [c.class_name, c.partner_name, c.category, c.location, c.tags]\n      .join(' ')\n      .toLowerCase()\n      .includes(query);\n  });\n}\n\nswitch (params.sort) {\n  case 'popular':\n    classes.sort((a, b) => (b.class_count || 0) - (a.class_count || 0));\n    break;\n  case 'rating':\n    classes.sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0));\n    break;\n  case 'price_asc':\n    classes.sort((a, b) => (a.price || 0) - (b.price || 0));\n    break;\n  case 'price_desc':\n    classes.sort((a, b) => (b.price || 0) - (a.price || 0));\n    break;\n  case 'latest':\n  default:\n    classes.sort((a, b) => String(b.class_id || '').localeCompare(String(a.class_id || '')));\n    break;\n}\n\nconst totalCount = classes.length;\nconst limit = params.limit || 20;\nconst page = params.page || 1;\nconst totalPages = Math.max(Math.ceil(totalCount / limit), 1);\nconst startIdx = (page - 1) * limit;\nconst pagedClasses = classes.slice(startIdx, startIdx + limit);\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      classes: pagedClasses,\n      page,\n      limit,\n      total: totalCount,\n      totalPages\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf01-merge-classes",
       "name": "Merge Classes + Partners",
@@ -420,7 +475,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 클래스 상세 + 파트너 + 일정 정보 결합 -> 최종 응답\n// ===================================================\n\nconst classResponse = $('NocoDB Get Class Detail').first().json;\nconst classesList = classResponse.list || [];\n\nif (classesList.length === 0) {\n  return [{ json: { success: false, error: { code: 'CLASS_NOT_FOUND', message: '해당 클래스를 찾을 수 없습니다.' }, timestamp: new Date().toISOString() } }];\n}\n\nconst c = classesList[0];\n\nlet curriculum = [];\ntry { if (c.curriculum_json) curriculum = JSON.parse(c.curriculum_json); } catch(e) {}\n\nlet images = [];\nif (c.image_urls) images = c.image_urls.split(',').map(u => u.trim()).filter(u => u.length > 0);\n\nlet materialsProductIds = [];\nif (c.materials_product_ids) materialsProductIds = c.materials_product_ids.split(',').map(id => id.trim()).filter(id => id.length > 0);\n\n// tbl_Schedules 기반 일정 (schedules_json 대신)\nconst schedulesResponse = $input.first().json;\nconst schedulesList = schedulesResponse.list || [];\nconst schedules = schedulesList.map(s => ({\n  schedule_id: s.schedule_id,\n  schedule_date: s.schedule_date,\n  schedule_time: s.schedule_time,\n  capacity: s.capacity || 8,\n  booked_count: s.booked_count || 0,\n  remaining: (s.capacity || 8) - (s.booked_count || 0)\n}));\n\n// 파트너 정보\nconst partnerResponse = $('NocoDB Get Partner (Detail)').first().json;\nconst partnerList = partnerResponse.list || [];\nlet partner = { partner_code: '', partner_name: '', grade: '', location: '', avg_rating: 0, instagram_url: '', portfolio_url: '' };\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n  partner = { partner_code: p.partner_code || '', partner_name: p.partner_name || '', grade: p.grade || '', location: p.location || '', avg_rating: Number(p.avg_rating) || 0, instagram_url: p.instagram_url || '', portfolio_url: p.portfolio_url || '' };\n}\n\nreturn [{ json: {\n  success: true,\n  data: {\n    class_id: c.class_id || '', makeshop_product_id: c.makeshop_product_id || '',\n    class_name: c.class_name || '', category: c.category || '', level: c.level || '',\n    price: Number(c.price) || 0, materials_price: Number(c.materials_price) || 0,\n    duration_min: Number(c.duration_min) || 0, max_students: Number(c.max_students) || 0,\n    description: c.description || '', curriculum, instructor_bio: c.instructor_bio || '',\n    thumbnail_url: c.thumbnail_url || '', images, youtube_video_id: c.youtube_video_id || '',\n    location: c.location || '', materials_included: c.materials_included || '',\n    materials_product_ids: materialsProductIds, tags: c.tags || '', type: c.type || '',\n    class_count: Number(c.class_count) || 0, avg_rating: Number(c.avg_rating) || 0,\n    schedules, partner,\n    kit_enabled: Number(c.kit_enabled) || 0,\n    kit_items: (() => { try { return c.kit_items ? JSON.parse(c.kit_items) : []; } catch(e) { return []; } })()\n  },\n  timestamp: new Date().toISOString()\n} }];"
+        "jsCode": "// ===================================================\n// 클래스 상세 + 파트너 + 일정 정보 결합 -> 최종 응답\n// ===================================================\n\nconst classResponse = $('NocoDB Get Class Detail').first().json;\nconst classesList = classResponse.list || [];\n\nif (classesList.length === 0) {\n  return [{ json: { success: false, error: { code: 'CLASS_NOT_FOUND', message: '해당 클래스를 찾을 수 없습니다.' }, timestamp: new Date().toISOString() } }];\n}\n\nfunction normalizeStatus(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (!text) return 'DRAFT';\n  if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'ACTIVE';\n  if (upper === 'PAUSED' || text.toLowerCase() === 'paused') return 'PAUSED';\n  if (upper === 'PENDING_REVIEW' || upper === 'INACTIVE' || text.toLowerCase() === 'pending') return 'PENDING_REVIEW';\n  if (upper === 'REJECTED' || text.toLowerCase() === 'closed') return 'REJECTED';\n  if (upper === 'ARCHIVED') return 'ARCHIVED';\n  return upper;\n}\n\nfunction normalizeLevel(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.includes('입문') || text.includes('초급')) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.includes('중급')) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.includes('심화') || text.includes('고급')) return 'ADVANCED';\n  if (upper === 'ALL_LEVELS' || text.includes('전체')) return 'ALL_LEVELS';\n  return upper;\n}\n\nfunction normalizeRegion(rawRegion, rawLocation, rawType) {\n  const fromRegion = String(rawRegion || '').replace(/\\s+/g, ' ').trim();\n  const text = fromRegion || String(rawLocation || '').replace(/\\s+/g, ' ').trim();\n  const type = String(rawType || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const primary = text.split(' ')[0];\n  const map = {\n    '서울': 'SEOUL','경기': 'GYEONGGI','경기도': 'GYEONGGI','인천': 'INCHEON','부산': 'BUSAN','대구': 'DAEGU','대전': 'DAEJEON','광주': 'GWANGJU','울산': 'ULSAN','세종': 'SEJONG','강원': 'GANGWON','강원도': 'GANGWON','충북': 'CHUNGBUK','충청북도': 'CHUNGBUK','충남': 'CHUNGNAM','충청남도': 'CHUNGNAM','전북': 'JEONBUK','전라북도': 'JEONBUK','전남': 'JEONNAM','전라남도': 'JEONNAM','경북': 'GYEONGBUK','경상북도': 'GYEONGBUK','경남': 'GYEONGNAM','경상남도': 'GYEONGNAM','제주': 'JEJU','제주도': 'JEJU','온라인': 'ONLINE','기타': 'OTHER'\n  };\n  if (type.includes('온라인') || text.includes('온라인') || upper === 'ONLINE' || upper.includes('ONLINE')) return 'ONLINE';\n  if (!text) return '';\n  if (map[text]) return map[text];\n  if (map[primary]) return map[primary];\n  return map[upper] || upper;\n}\n\nfunction normalizePartnerGrade(raw) {\n  const upper = String(raw || '').toUpperCase().trim();\n  const alias = { SILVER: 'BLOOM', GOLD: 'GARDEN', PLATINUM: 'ATELIER' };\n  return alias[upper] || upper;\n}\n\nconst c = classesList[0];\nlet curriculum = [];\ntry { if (c.curriculum_json) curriculum = JSON.parse(c.curriculum_json); } catch(e) {}\n\nlet images = [];\nif (c.image_urls) images = c.image_urls.split(',').map((u) => u.trim()).filter((u) => u.length > 0);\n\nlet materialsProductIds = [];\nif (c.materials_product_ids) materialsProductIds = c.materials_product_ids.split(',').map((id) => id.trim()).filter((id) => id.length > 0);\n\nconst schedulesResponse = $input.first().json;\nconst schedulesList = schedulesResponse.list || [];\nconst schedules = schedulesList.map((s) => ({\n  schedule_id: s.schedule_id,\n  schedule_date: s.schedule_date,\n  schedule_time: s.schedule_time,\n  capacity: s.capacity || 8,\n  booked_count: s.booked_count || 0,\n  remaining: (s.capacity || 8) - (s.booked_count || 0)\n}));\n\nconst partnerResponse = $('NocoDB Get Partner (Detail)').first().json;\nconst partnerList = partnerResponse.list || [];\nlet partner = { partner_code: '', partner_name: '', grade: '', location: '', avg_rating: 0, instagram_url: '', portfolio_url: '' };\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n  partner = {\n    partner_code: p.partner_code || '',\n    partner_name: p.partner_name || '',\n    grade: normalizePartnerGrade(p.grade || ''),\n    location: p.location || '',\n    region: normalizeRegion('', p.location || '', ''),\n    avg_rating: Number(p.avg_rating) || 0,\n    instagram_url: p.instagram_url || '',\n    portfolio_url: p.portfolio_url || ''\n  };\n}\n\nreturn [{ json: {\n  success: true,\n  data: {\n    class_id: c.class_id || '', makeshop_product_id: c.makeshop_product_id || '',\n    class_name: c.class_name || '', category: c.category || '', level: normalizeLevel(c.level || ''),\n    status: normalizeStatus(c.status || ''), region: normalizeRegion(c.region || '', c.location || '', c.type || ''),\n    price: Number(c.price) || 0, materials_price: Number(c.materials_price) || 0,\n    duration_min: Number(c.duration_min) || 0, max_students: Number(c.max_students) || 0,\n    description: c.description || '', curriculum, instructor_bio: c.instructor_bio || '',\n    thumbnail_url: c.thumbnail_url || '', images, youtube_video_id: c.youtube_video_id || '',\n    location: c.location || '', materials_included: c.materials_included || '',\n    materials_product_ids: materialsProductIds, tags: c.tags || '', type: c.type || '',\n    class_count: Number(c.class_count) || 0, avg_rating: Number(c.avg_rating) || 0,\n    schedules, partner,\n    kit_enabled: Number(c.kit_enabled) || 0,\n    kit_items: (() => { try { return c.kit_items ? JSON.parse(c.kit_items) : []; } catch(e) { return []; } })()\n  },\n  timestamp: new Date().toISOString()\n} }];"
       },
       "id": "wf01-build-detail-response",
       "name": "Build Detail Response",
@@ -489,10 +544,6 @@
         "queryParameters": {
           "parameters": [
             {
-              "name": "where",
-              "value": "(status,eq,active)"
-            },
-            {
               "name": "fields",
               "value": "category,status"
             },
@@ -521,7 +572,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-01-C: getCategories - 카테고리 목록 + 건수 집계\n// active 클래스에서 카테고리별 건수를 집계합니다.\n// ===================================================\n\nconst response = $input.first().json;\nconst classesList = response.list || [];\n\n// 카테고리별 건수 집계\nconst categories = {};\nfor (const c of classesList) {\n  const cat = (c.category || '').trim();\n  if (cat) {\n    categories[cat] = (categories[cat] || 0) + 1;\n  }\n}\n\n// 배열로 변환 + 건수 내림차순 정렬\nconst categoryList = Object.entries(categories)\n  .map(([name, classCount]) => ({ name, class_count: classCount }))\n  .sort((a, b) => b.class_count - a.class_count);\n\nreturn [{\n  json: {\n    success: true,\n    data: categoryList,\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-01-C: getCategories - 카테고리 목록 + 건수 집계\n// ACTIVE / active 클래스를 모두 포함해 카운트 후 응답합니다.\n// ===================================================\n\nconst response = $input.first().json;\nconst classesList = response.list || [];\n\nfunction normalizeStatus(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'ACTIVE';\n  return upper;\n}\n\nconst categories = {};\nfor (const c of classesList) {\n  if (normalizeStatus(c.status || '') !== 'ACTIVE') continue;\n  const cat = String(c.category || '').trim();\n  if (cat) {\n    categories[cat] = (categories[cat] || 0) + 1;\n  }\n}\n\nconst categoryList = Object.entries(categories)\n  .map(([name, classCount]) => ({ name, class_count: classCount }))\n  .sort((a, b) => b.class_count - a.class_count);\n\nreturn [{\n  json: {\n    success: true,\n    data: categoryList,\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf01-aggregate-categories",
       "name": "Aggregate Categories",
@@ -574,7 +625,7 @@
         "respondWith": "json",
         "responseBody": "={{ $json }}",
         "options": {
-          "responseCode": "400",
+          "responseCode": 400,
           "responseHeaders": {
             "entries": [
               {
@@ -592,6 +643,91 @@
       "position": [
         880,
         660
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/m1y7q68q1zlrvv6",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(status,eq,active)"
+            },
+            {
+              "name": "fields",
+              "value": "affiliation_code,name,logo_url,discount_rate,target_1,incentive_1,target_2,incentive_2,target_3,incentive_3,contact_name,memo"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "sort",
+              "value": "-CreatedAt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf01-nocodb-affiliations",
+      "name": "NocoDB Get Affiliations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        820
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-01-D: getAffiliations - 협회 목록 응답\n// ===================================================\n\nconst response = $input.first().json;\nconst affiliList = response.list || [];\n\nconst affiliations = affiliList.map(a => ({\n  affiliation_code: a.affiliation_code || '',\n  name: a.name || '',\n  logo_url: a.logo_url || '',\n  discount_rate: Number(a.discount_rate) || 0,\n  incentive_tiers: [\n    { target: Number(a.target_1) || 5000000, incentive: Number(a.incentive_1) || 250000 },\n    { target: Number(a.target_2) || 10000000, incentive: Number(a.incentive_2) || 500000 },\n    { target: Number(a.target_3) || 20000000, incentive: Number(a.incentive_3) || 1200000 }\n  ],\n  contact_name: a.contact_name || '',\n  memo: a.memo || ''\n}));\n\nreturn [{\n  json: {\n    success: true,\n    data: affiliations,\n    total: affiliations.length,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf01-format-affiliations",
+      "name": "Format Affiliations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf01-respond-affiliations",
+      "name": "Respond getAffiliations",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        820
       ]
     }
   ],
@@ -632,6 +768,13 @@
         ],
         [
           {
+            "node": "NocoDB Get Affiliations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Unknown Action Error",
             "type": "main",
             "index": 0
@@ -662,6 +805,17 @@
       ]
     },
     "NocoDB Get Partners (Join)": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Get Schedules for List",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Get Schedules for List": {
       "main": [
         [
           {
@@ -794,6 +948,28 @@
         [
           {
             "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Get Affiliations": {
+      "main": [
+        [
+          {
+            "node": "Format Affiliations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Affiliations": {
+      "main": [
+        [
+          {
+            "node": "Respond getAffiliations",
             "type": "main",
             "index": 0
           }

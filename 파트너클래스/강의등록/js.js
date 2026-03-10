@@ -486,6 +486,19 @@
      * 폼 데이터 수집
      * @returns {Object}
      */
+    function normalizeDifficultyForApi(raw) {
+        var value = String(raw || '').replace(/\s+/g, ' ').trim();
+        var upper = value.toUpperCase();
+        var lower = value.toLowerCase();
+
+        if (!value) return '';
+        if (upper === 'BEGINNER' || lower === 'beginner' || value.indexOf('\uC785\uBB38') > -1 || value.indexOf('\uCD08\uAE09') > -1) return 'BEGINNER';
+        if (upper === 'INTERMEDIATE' || lower === 'intermediate' || value.indexOf('\uC911\uAE09') > -1) return 'INTERMEDIATE';
+        if (upper === 'ADVANCED' || lower === 'advanced' || value.indexOf('\uC2EC\uD654') > -1 || value.indexOf('\uACE0\uAE09') > -1) return 'ADVANCED';
+        if (upper === 'ALL_LEVELS' || value.indexOf('\uC804\uCCB4') > -1) return 'ALL_LEVELS';
+        return value.toUpperCase();
+    }
+
     function collectFormData() {
         var maxStudentsVal = parseInt(getVal('crMaxStudents'), 10);
         var priceVal = parseInt(getVal('crPrice'), 10);
@@ -495,7 +508,7 @@
             title:              getVal('crTitle'),
             category:           getVal('crCategory'),
             type:               getVal('crType'),
-            difficulty:         getVal('crDifficulty'),
+            difficulty:         normalizeDifficultyForApi(getVal('crDifficulty')),
             max_students:       isNaN(maxStudentsVal) ? 0 : maxStudentsVal,
             price:              isNaN(priceVal) ? 0 : priceVal,
             duration:           getVal('crDuration'),

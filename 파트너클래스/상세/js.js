@@ -2373,21 +2373,46 @@
     function normalizeLevelValue(raw) {
         var text = String(raw || '').replace(/\s+/g, ' ').trim();
         var normalized = text.toLowerCase();
+        var upper = text.toUpperCase();
 
         if (!text) return '';
-        if (normalized === 'beginner' || normalized === 'basic' || text.indexOf('\uC785\uBB38') > -1) return '\uC785\uBB38';
-        if (normalized === 'intermediate' || text.indexOf('\uC911\uAE09') > -1) return '\uC911\uAE09';
-        if (normalized === 'advanced' || normalized === 'expert' || text.indexOf('\uC2EC\uD654') > -1) return '\uC2EC\uD654';
+        if (upper === 'BEGINNER' || normalized === 'beginner' || normalized === 'basic' || text.indexOf('\uC785\uBB38') > -1 || text.indexOf('\uCD08\uAE09') > -1) return '\uC785\uBB38';
+        if (upper === 'INTERMEDIATE' || normalized === 'intermediate' || text.indexOf('\uC911\uAE09') > -1) return '\uC911\uAE09';
+        if (upper === 'ADVANCED' || normalized === 'advanced' || normalized === 'expert' || text.indexOf('\uC2EC\uD654') > -1 || text.indexOf('\uACE0\uAE09') > -1) return '\uC2EC\uD654';
+        if (upper === 'ALL_LEVELS' || text.indexOf('\uC804\uCCB4') > -1) return '\uC804\uCCB4';
         return text;
     }
 
     function getPrimaryRegion(raw) {
         var text = String(raw || '').replace(/\s+/g, ' ').trim();
+        var upper = text.toUpperCase();
+        var codeMap = {
+            SEOUL: '\uC11C\uC6B8',
+            GYEONGGI: '\uACBD\uAE30',
+            INCHEON: '\uC778\uCC9C',
+            BUSAN: '\uBD80\uC0B0',
+            DAEGU: '\uB300\uAD6C',
+            DAEJEON: '\uB300\uC804',
+            GWANGJU: '\uAD11\uC8FC',
+            ULSAN: '\uC6B8\uC0B0',
+            SEJONG: '\uC138\uC885',
+            GANGWON: '\uAC15\uC6D0',
+            CHUNGBUK: '\uCDA9\uBD81',
+            CHUNGNAM: '\uCDA9\uB0A8',
+            JEONBUK: '\uC804\uBD81',
+            JEONNAM: '\uC804\uB0A8',
+            GYEONGBUK: '\uACBD\uBD81',
+            GYEONGNAM: '\uACBD\uB0A8',
+            JEJU: '\uC81C\uC8FC',
+            ONLINE: '\uC628\uB77C\uC778',
+            OTHER: '\uAE30\uD0C0'
+        };
+
         if (!text) return '';
-        if (text.indexOf('\uC628\uB77C\uC778') > -1) return '\uC628\uB77C\uC778';
+        if (codeMap[upper]) return codeMap[upper];
+        if (text.indexOf('\uC628\uB77C\uC778') > -1 || normalizedContains(text, 'online')) return '\uC628\uB77C\uC778';
 
         var parts = text.split(' ');
-        if (parts.length >= 2) return parts[0] + ' ' + parts[1];
         return parts[0];
     }
 
@@ -2399,11 +2424,27 @@
             '\uACBD\uAE30': true,
             '\uC778\uCC9C': true,
             '\uBD80\uC0B0': true,
-            '\uB300\uAD6C': true
+            '\uB300\uAD6C': true,
+            '\uB300\uC804': true,
+            '\uAD11\uC8FC': true,
+            '\uC6B8\uC0B0': true,
+            '\uC138\uC885': true,
+            '\uAC15\uC6D0': true,
+            '\uCDA9\uBD81': true,
+            '\uCDA9\uB0A8': true,
+            '\uC804\uBD81': true,
+            '\uC804\uB0A8': true,
+            '\uACBD\uBD81': true,
+            '\uACBD\uB0A8': true,
+            '\uC81C\uC8FC': true
         };
 
         if (!text || text.indexOf('\uC628\uB77C\uC778') > -1) return '';
         return allowed[primary] ? primary : '\uAE30\uD0C0';
+    }
+
+    function normalizedContains(text, keyword) {
+        return String(text || '').toLowerCase().indexOf(String(keyword || '').toLowerCase()) > -1;
     }
 
     function buildListPageUrl(params) {
@@ -2513,8 +2554,8 @@
     function buildRelatedContext(data) {
         return {
             category: data.category || '',
-            level: data.level || '',
-            region: getPrimaryRegion(data.location || (data.partner && (data.partner.location || data.partner.region)) || ''),
+            level: normalizeLevelValue(data.level || ''),
+            region: getPrimaryRegion(data.region || data.location || (data.partner && (data.partner.region || data.partner.location)) || ''),
             partnerCode: data.partner_code || (data.partner && data.partner.partner_code) || '',
             partnerName: data.partner && (data.partner.partner_name || data.partner.name) ? (data.partner.partner_name || data.partner.name) : ''
         };
@@ -2544,12 +2585,13 @@
         var score = 0;
         var candidatePartnerCode = candidate.partner_code || (candidate.partner && candidate.partner.partner_code) || '';
         var candidatePartnerName = candidate.partner_name || (candidate.partner && (candidate.partner.partner_name || candidate.partner.name)) || '';
-        var candidateRegion = getPrimaryRegion(candidate.location || (candidate.partner && (candidate.partner.location || candidate.partner.region)) || '');
+        var candidateRegion = getPrimaryRegion(candidate.region || candidate.location || (candidate.partner && (candidate.partner.region || candidate.partner.location)) || '');
+        var candidateLevel = normalizeLevelValue(candidate.level || '');
         var candidateRating = parseFloat(candidate.avg_rating) || 0;
         var candidateSeats = getRelatedRemainingSeats(candidate);
 
         if (current.category && candidate.category === current.category) score += 50;
-        if (current.level && candidate.level === current.level) score += 20;
+        if (current.level && candidateLevel === current.level) score += 20;
         if (current.region && candidateRegion && candidateRegion === current.region) score += 15;
         if (current.partnerCode && candidatePartnerCode && candidatePartnerCode === current.partnerCode) score += 25;
         if (!current.partnerCode && current.partnerName && candidatePartnerName === current.partnerName) score += 20;
@@ -3124,8 +3166,9 @@
                 for (var i = 0; i < allClasses.length; i++) {
                     var c = allClasses[i];
                     var cId = c.class_id || c.id || '';
+                    var cStatus = String(c.status || '').toUpperCase();
                     if (cId === currentClassId) continue;
-                    if (c.status && c.status !== 'active') continue;
+                    if (cStatus && cStatus !== 'ACTIVE' && String(c.status || '').toLowerCase() !== 'active') continue;
                     candidates.push({
                         item: c,
                         score: getRelatedScore(currentMeta, c)

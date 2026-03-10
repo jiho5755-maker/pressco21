@@ -12,28 +12,39 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [220, 400],
+      "position": [
+        220,
+        400
+      ],
       "webhookId": "class-management"
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-06 Step 1: POST 본문 파싱 + 입력값 검증\n// 필수 필드: member_id, class_id, status\n// status 유효값: active, paused, closed\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\n// === 텍스트 정제 (제어 문자 제거 + 길이 제한) ===\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\n// === 필수 필드 추출 ===\nconst memberId = sanitizeText(body.member_id, 100);\nconst classId = sanitizeText(body.class_id, 100);\nconst newStatus = sanitizeText(body.status, 20).toLowerCase();\n\n// === 필수 필드 검증 ===\nconst missingFields = [];\nif (!memberId) missingFields.push('member_id');\nif (!classId) missingFields.push('class_id');\nif (!newStatus) missingFields.push('status');\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: missingFields.join(', ') + ' 파라미터가 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === status 유효값 검증 ===\nconst validStatuses = ['active', 'paused', 'closed'];\nif (!validStatuses.includes(newStatus)) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INVALID_PARAMS',\n          message: 'status는 active, paused, closed 중 하나여야 합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    memberId,\n    classId,\n    newStatus\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-06 Step 1: POST 본문 파싱 + 입력값 검증\n// 필수 필드: member_id, class_id, status\n// 레거시 값(active/paused/closed)도 받아 신값으로 정규화\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\u0000-\b\u000b\f\u000e-\u001f]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\nfunction normalizeStatus(raw) {\n  const text = sanitizeText(raw, 30);\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'ACTIVE' || lower === 'active' || text.includes('활성')) return 'ACTIVE';\n  if (upper === 'PAUSED' || lower === 'paused' || text.includes('일시정지')) return 'PAUSED';\n  if (upper === 'ARCHIVED' || lower === 'archived' || lower === 'closed' || lower === 'rejected' || text.includes('마감') || text.includes('반려')) return 'ARCHIVED';\n  return upper;\n}\n\nconst memberId = sanitizeText(body.member_id, 100);\nconst classId = sanitizeText(body.class_id, 100);\nconst newStatus = normalizeStatus(body.status);\n\nconst missingFields = [];\nif (!memberId) missingFields.push('member_id');\nif (!classId) missingFields.push('class_id');\nif (!newStatus) missingFields.push('status');\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: missingFields.join(', ') + ' 파라미터가 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst validStatuses = ['ACTIVE', 'PAUSED', 'ARCHIVED'];\nif (!validStatuses.includes(newStatus)) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INVALID_PARAMS',\n          message: 'status는 ACTIVE, PAUSED, ARCHIVED 중 하나여야 합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    memberId,\n    classId,\n    newStatus\n  }\n}];"
       },
       "id": "wf06-validate-input",
       "name": "Validate Input",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 400]
+      "position": [
+        440,
+        400
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._valid }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -42,7 +53,10 @@
       "name": "IF Input Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [660, 400]
+      "position": [
+        660,
+        400
+      ]
     },
     {
       "parameters": {
@@ -52,8 +66,14 @@
           "responseCode": "400",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -62,7 +82,10 @@
       "name": "Respond Validation Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [880, 560]
+      "position": [
+        880,
+        560
+      ]
     },
     {
       "parameters": {
@@ -73,8 +96,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -83,7 +112,10 @@
       "name": "NocoDB Get Partner",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, 300],
+      "position": [
+        880,
+        300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -93,23 +125,31 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-06 Step 2: 파트너 인증 확인\n// member_id로 조회한 파트너가 존재하고 active 상태인지 검증\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst validData = $('Validate Input').first().json;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _partnerFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'NOT_PARTNER',\n          message: '파트너로 등록되지 않은 회원입니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst partner = partnerList[0];\n\n// 파트너 상태 확인\nif (partner.status !== 'active') {\n  return [{\n    json: {\n      _partnerFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'PARTNER_INACTIVE',\n          message: '비활성 상태의 파트너 계정입니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _partnerFound: true,\n    _partner: {\n      partner_code: partner.partner_code || '',\n      partner_name: partner.partner_name || '',\n      member_id: partner.member_id || '',\n      grade: partner.grade || 'SILVER'\n    },\n    _input: validData\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-06 Step 2: 파트너 인증 확인\n// member_id로 조회한 파트너가 존재하고 active/ACTIVE 상태인지 검증\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst validData = $('Validate Input').first().json;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _partnerFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'NOT_PARTNER',\n          message: '파트너로 등록되지 않은 회원입니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst partner = partnerList[0];\nconst partnerStatus = String(partner.status || '').toUpperCase().trim();\nif (partnerStatus !== 'ACTIVE') {\n  return [{\n    json: {\n      _partnerFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'PARTNER_INACTIVE',\n          message: '비활성 상태의 파트너 계정입니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _partnerFound: true,\n    _partner: {\n      partner_code: partner.partner_code || '',\n      partner_name: partner.partner_name || '',\n      member_id: partner.member_id || '',\n      grade: partner.grade || 'SILVER'\n    },\n    _input: validData\n  }\n}];"
       },
       "id": "wf06-check-partner",
       "name": "Check Partner Auth",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1100, 300]
+      "position": [
+        1100,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._partnerFound }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -118,7 +158,10 @@
       "name": "IF Partner Found",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1320, 300]
+      "position": [
+        1320,
+        300
+      ]
     },
     {
       "parameters": {
@@ -128,8 +171,14 @@
           "responseCode": "401",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -138,7 +187,10 @@
       "name": "Respond Auth Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1540, 460]
+      "position": [
+        1540,
+        460
+      ]
     },
     {
       "parameters": {
@@ -149,8 +201,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(class_id,eq,{{ $json._input.classId }})" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(class_id,eq,{{ $json._input.classId }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -159,7 +217,10 @@
       "name": "NocoDB Get Class",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1540, 200],
+      "position": [
+        1540,
+        200
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -175,17 +236,25 @@
       "name": "Check Class Ownership",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1760, 200]
+      "position": [
+        1760,
+        200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._classOwned }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -194,7 +263,10 @@
       "name": "IF Class Owned",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1980, 200]
+      "position": [
+        1980,
+        200
+      ]
     },
     {
       "parameters": {
@@ -204,8 +276,14 @@
           "responseCode": "={{ $json._errorCode || 403 }}",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -214,7 +292,10 @@
       "name": "Respond Class Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2200, 380]
+      "position": [
+        2200,
+        380
+      ]
     },
     {
       "parameters": {
@@ -231,7 +312,10 @@
       "name": "NocoDB Update Class Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2200, 100],
+      "position": [
+        2200,
+        100
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -241,13 +325,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-06 Step 4: 텔레그램 알림 메시지 구성 + 성공 응답 준비\n// ===================================================\n\nconst updateResult = $input.first().json;\nconst classData = $('Check Class Ownership').first().json._classRecord;\nconst partner = $('Check Class Ownership').first().json._partner;\nconst newStatus = $('Check Class Ownership').first().json._newStatus;\n\n// 상태 한국어 매핑\nconst statusLabels = {\n  active: '활성',\n  paused: '일시정지',\n  closed: '마감'\n};\n\nconst oldLabel = statusLabels[classData.old_status] || classData.old_status;\nconst newLabel = statusLabels[newStatus] || newStatus;\n\n// 텔레그램 메시지\nconst telegramMessage = '[클래스 상태 변경]\\n\\n'\n  + '클래스: ' + classData.class_name + '\\n'\n  + '파트너: ' + partner.partner_name + ' (' + partner.partner_code + ')\\n'\n  + '변경: ' + oldLabel + ' -> ' + newLabel + '\\n'\n  + '시각: ' + new Date().toISOString();\n\n// 성공 응답\nconst successResponse = {\n  success: true,\n  data: {\n    class_id: classData.class_id,\n    class_name: classData.class_name,\n    old_status: classData.old_status,\n    new_status: newStatus,\n    message: '클래스 상태가 변경되었습니다.'\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn [{\n  json: {\n    _telegramMessage: telegramMessage,\n    _successResponse: successResponse\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-06 Step 4: 텔레그램 알림 메시지 구성 + 성공 응답 준비\n// ===================================================\n\nconst classData = $('Check Class Ownership').first().json._classRecord;\nconst partner = $('Check Class Ownership').first().json._partner;\nconst newStatus = String($('Check Class Ownership').first().json._newStatus || '').toUpperCase();\nconst oldStatus = String(classData.old_status || '').toUpperCase();\n\nconst statusLabels = {\n  ACTIVE: '활성',\n  PAUSED: '일시정지',\n  ARCHIVED: '보관',\n  REJECTED: '반려',\n  PENDING_REVIEW: '심사중',\n  DRAFT: '초안'\n};\n\nconst oldLabel = statusLabels[oldStatus] || oldStatus;\nconst newLabel = statusLabels[newStatus] || newStatus;\nconst telegramMessage = [\n  '[클래스 상태 변경]',\n  '',\n  '클래스: ' + classData.class_name,\n  '파트너: ' + partner.partner_name + ' (' + partner.partner_code + ')',\n  '변경: ' + oldLabel + ' -> ' + newLabel,\n  '시각: ' + new Date().toISOString()\n].join('\\n');\n\nconst successResponse = {\n  success: true,\n  data: {\n    class_id: classData.class_id,\n    class_name: classData.class_name,\n    old_status: oldStatus,\n    new_status: newStatus,\n    message: '클래스 상태가 변경되었습니다.'\n  },\n  timestamp: new Date().toISOString()\n};\n\nreturn [{\n  json: {\n    _telegramMessage: telegramMessage,\n    _successResponse: successResponse\n  }\n}];"
       },
       "id": "wf06-build-result",
       "name": "Build Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2420, 100]
+      "position": [
+        2420,
+        100
+      ]
     },
     {
       "parameters": {
@@ -262,7 +349,10 @@
       "name": "Telegram Status Change",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [2640, 100],
+      "position": [
+        2640,
+        100
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -278,8 +368,14 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" },
-              { "name": "Access-Control-Allow-Origin", "value": "https://foreverlove.co.kr" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              }
             ]
           }
         }
@@ -288,100 +384,163 @@
       "name": "Respond Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2860, 100]
+      "position": [
+        2860,
+        100
+      ]
     }
   ],
   "connections": {
     "Webhook": {
       "main": [
         [
-          { "node": "Validate Input", "type": "main", "index": 0 }
+          {
+            "node": "Validate Input",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Validate Input": {
       "main": [
         [
-          { "node": "IF Input Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF Input Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Input Valid": {
       "main": [
         [
-          { "node": "NocoDB Get Partner", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Partner",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Validation Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Validation Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Partner": {
       "main": [
         [
-          { "node": "Check Partner Auth", "type": "main", "index": 0 }
+          {
+            "node": "Check Partner Auth",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Partner Auth": {
       "main": [
         [
-          { "node": "IF Partner Found", "type": "main", "index": 0 }
+          {
+            "node": "IF Partner Found",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Partner Found": {
       "main": [
         [
-          { "node": "NocoDB Get Class", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Class",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Auth Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Auth Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Class": {
       "main": [
         [
-          { "node": "Check Class Ownership", "type": "main", "index": 0 }
+          {
+            "node": "Check Class Ownership",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Class Ownership": {
       "main": [
         [
-          { "node": "IF Class Owned", "type": "main", "index": 0 }
+          {
+            "node": "IF Class Owned",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Class Owned": {
       "main": [
         [
-          { "node": "NocoDB Update Class Status", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Update Class Status",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Class Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Class Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Update Class Status": {
       "main": [
         [
-          { "node": "Build Result", "type": "main", "index": 0 }
+          {
+            "node": "Build Result",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Result": {
       "main": [
         [
-          { "node": "Telegram Status Change", "type": "main", "index": 0 }
+          {
+            "node": "Telegram Status Change",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Telegram Status Change": {
       "main": [
         [
-          { "node": "Respond Success", "type": "main", "index": 0 }
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -391,9 +550,15 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "PRESSCO21" },
-    { "name": "Class Management" },
-    { "name": "Phase 2" }
+    {
+      "name": "PRESSCO21"
+    },
+    {
+      "name": "Class Management"
+    },
+    {
+      "name": "Phase 2"
+    }
   ],
   "pinData": {}
 }

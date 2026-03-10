@@ -51,14 +51,13 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-10 23:58:00 KST
+- Started At: 2026-03-10 20:45:00 KST
 - Branch: main
-- Working Scope: [CODEX] CRM 레거시/CRM 미수금 통합 집계 및 분리 탭 정리 완료
-- Active Subdirectory: offline-crm-v2
+- Working Scope: [CODEX-LEAD] 파트너클래스 S0-2 상태값 정규화 완료
+- Active Subdirectory: pressco21/파트너클래스
 
 ## Files In Progress
-
-- AI_SYNC.md
+- 없음
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
 
@@ -118,6 +117,48 @@
 - 검증
   - 수동 백업 실행: `/home/ubuntu/backups/20260310_101318` 생성 확인
   - 생성 파일: `noco_*.db`, `nocodb_data_*.tar.gz`, compose 3종, `n8n_env_*.bak`, manifest
+
+### [CODEX-LEAD] Phase 3 S0-2 상태값 정규화 완료 (CODEX)
+- `파트너클래스/n8n-workflows/WF-01-class-api.json`
+  - `getClasses/getClassDetail/getCategories` 응답을 canonical status/level/region 기준으로 정규화.
+  - `getClasses`가 `입문/beginner/BEGINNER`, `서울/SEOUL` 같은 혼합 입력을 동일하게 처리하도록 보정.
+  - 목록 응답에 `region`, `status`, `partner_grade`, `remaining seats` 집계를 포함한 뒤 라이브 재배포 완료.
+- `파트너클래스/n8n-workflows/WF-06-class-management.json`
+  - 클래스 상태 변경 API가 legacy status를 받아도 `ACTIVE/PAUSED/ARCHIVED` canonical 값으로 저장/응답하도록 정리.
+- `파트너클래스/n8n-workflows/WF-16-class-register.json`
+  - 강의 등록 시 difficulty/region을 canonical 값으로 저장하고 `PENDING_REVIEW` 상태로 생성하도록 수정.
+  - `Create Initial Schedules`와 관리자 알림 메시지 노드 문법 오류를 같이 정리.
+- `파트너클래스/n8n-workflows/WF-17-class-approve-auto.json`
+  - `ACTIVE` 전환 감지 기준으로 메이크샵 상품 자동 등록을 수행하도록 수정.
+- `파트너클래스/n8n-workflows/WF-ADMIN-admin-api.json`
+  - `getPendingClasses`가 legacy/new status를 모두 읽고 canonical 값으로 응답하도록 수정.
+  - `approveClass/rejectClass`가 `ACTIVE/REJECTED`를 저장하도록 정리.
+- `파트너클래스/목록/js.js`
+  - filter/query 파라미터를 canonical level/region으로 정규화하고, 카드 지역/난이도 표시 보정을 추가.
+- `파트너클래스/상세/js.js`
+  - related classes와 난이도/지역 링크 문맥이 canonical 값과 legacy 입력을 모두 처리하도록 수정.
+- `파트너클래스/파트너/js.js`
+  - 대시보드 상태 토글/배지 표시를 canonical class status 기준으로 변경.
+  - legacy grade(`SILVER/GOLD/PLATINUM`)를 `BLOOM/GARDEN/ATELIER`로 alias 처리.
+- `파트너클래스/강의등록/js.js`
+  - 폼 제출 difficulty를 canonical uppercase 값으로 전송하도록 수정.
+- `scripts/server/partnerclass-s0-2-normalize-nocodb.sh`
+  - 컨테이너 sqlite3 부재 환경에서도 호스트 mount DB로 fallback 되도록 보강.
+  - 라이브 NocoDB에서 `tbl_Classes.level/status/region`, `tbl_Applications.status`, `tbl_Settlements.status` 정규화 실행 완료.
+- 서버/배포
+  - n8n 운영 반영: `WF-01=WabRAcHmcCdOpPzJ`, `WF-06=ty68eBtMnlH2lz7x`, `WF-16=I4zkrUK036YEiUHe`, `WF-17=N3p7L6wo0nuT5cqM`, `WF-ADMIN=SMCKmeLSfxs1e1Ef`
+  - 사전 백업: `/home/ubuntu/backups/20260310_113500`
+  - n8n 현재 정의 백업: `output/n8n-backups/20260310-s0-2/`
+- 검증
+  - workflow JSON 전체 `JSON.parse` 및 모든 `jsCode` `AsyncFunction` 컴파일 통과
+  - `bash -n scripts/server/partnerclass-s0-2-normalize-nocodb.sh`
+  - 라이브 `class-api`:
+    - `getClasses level=입문/beginner/BEGINNER` 모두 `total=5`
+    - `getClasses region=서울/SEOUL` 모두 `total=5`
+    - 기본 목록 `total=7`, status=`ACTIVE`만 반환
+    - `getClassDetail` 응답 `status=ACTIVE`, `level=BEGINNER`, `region=SEOUL`, `partner.grade=BLOOM` 확인
+  - 라이브 상세 → 입문 링크 클릭 시 목록 `총 5개의 클래스` 확인 (Playwright MCP)
+  - 라이브 목록 첫 진입 `총 7개의 클래스` / 상세 진입 확인 (Playwright MCP)
   - 7일 정리 검증: 더미 디렉토리 `20260228_000000` 생성 후 cleanup 명령으로 삭제 확인
   - 실패 알림 검증: `PRESSCO21_BACKUP_FORCE_FAIL=1 bash /home/ubuntu/scripts/backup.sh` 실행 시 `WF-BACKUP Backup Notify` 실행 로그 확인
 - `docs/파트너클래스/backup-restore-guide.md`
@@ -924,8 +965,8 @@
 
 #### 현재 다음 태스크
 
-- `S0-2 상태값 정규화 (6개 도메인 일괄)` 착수
-- 그 다음 `S0-3 WF-ADMIN 중복 ID 정리`, `S0-4 WF-01 Switch 케이스 문서화`
+- `S0-3 WF-ADMIN 중복 ID 정리` 진행
+- 그 다음 `S0-4 WF-01 Switch 케이스 문서화`
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
 #### 실행 순서
@@ -1009,7 +1050,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음
 - 상세 페이지 선물하기는 메이크샵 네이티브 장바구니 POST로 맞췄지만, 실제 선물 가능 상품 설정 여부에 따라 최종 동작이 달라질 수 있어 실상품 1건 재검증 필요
 - `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 저장 전까지 라이브 반영되지 않음
-- 라이브 `class-api`는 현재 `level=입문` 조회 시 `0건`, `level=beginner` 조회 시 `5건`을 반환해 상세 한글 난이도 링크와 목록/API 결과가 아직 불일치함
+- 라이브 `admin-api`는 현재 리포지토리의 랜덤 `ADMIN_API_TOKEN`이 아니라 구형 토큰 `pressco21-admin-2026` 기준으로만 인증이 통과함
 - `PRD-파트너클래스-플랫폼-고도화.md`, `commission-policy.md`, 일부 구현 문서는 아직 예전 등급/수수료 표현이 남아 있으므로 서비스 방향 판단은 `docs/파트너클래스/README.md`와 `shared-service-identity.md`를 우선해야 함
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.

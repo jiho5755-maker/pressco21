@@ -420,6 +420,19 @@
         bindClassStatusButtons();
     }
 
+    function normalizeClassStatus(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim();
+        var upper = text.toUpperCase();
+
+        if (!text) return 'pending';
+        if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'active';
+        if (upper === 'PAUSED' || text.toLowerCase() === 'paused') return 'paused';
+        if (upper === 'PENDING_REVIEW' || upper === 'DRAFT' || upper === 'INACTIVE' || text.toLowerCase() === 'pending') return 'pending';
+        if (upper === 'REJECTED') return 'rejected';
+        if (upper === 'ARCHIVED' || upper === 'CLOSED' || text.toLowerCase() === 'closed') return 'closed';
+        return text.toLowerCase();
+    }
+
     /**
      * 강의 카드 HTML 생성
      * @param {Object} cls - 강의 데이터
@@ -429,8 +442,14 @@
         var classId = escapeAttr(cls.class_id || '');
         var className = escapeHtml(cls.class_name || '');
         var category = escapeHtml(cls.category || '');
-        var status = (cls.status || 'active').toLowerCase();
-        var statusLabel = { 'active': '\uD65C\uC131', 'paused': '\uC77C\uC2DC\uC815\uC9C0', 'closed': '\uB9C8\uAC10', 'pending': '\uC2EC\uC0AC\uC911' }[status] || status;
+        var status = normalizeClassStatus(cls.status || 'active');
+        var statusLabel = {
+            'active': '\uD65C\uC131',
+            'paused': '\uC77C\uC2DC\uC815\uC9C0',
+            'closed': '\uB9C8\uAC10',
+            'pending': '\uC2EC\uC0AC\uC911',
+            'rejected': '\uBC18\uB824'
+        }[status] || status;
         var avgRating = parseFloat(cls.avg_rating) || 0;
         var bookingCount = parseInt(cls.booking_count) || 0;
         var thumbnail = cls.thumbnail_url || '';
@@ -498,8 +517,8 @@
             if (!btn) return;
 
             var classId = btn.getAttribute('data-class-id');
-            var currentStatus = btn.getAttribute('data-status');
-            var newStatus = currentStatus === 'active' ? 'paused' : 'active';
+            var currentStatus = normalizeClassStatus(btn.getAttribute('data-status'));
+            var newStatus = currentStatus === 'active' ? 'PAUSED' : 'ACTIVE';
 
             toggleClassStatus(classId, newStatus);
         });
@@ -542,7 +561,8 @@
                 }
             }
 
-            var statusLabel = newStatus === 'active' ? '\uC7AC\uD65C\uC131\uD654' : '\uC77C\uC2DC\uC815\uC9C0';
+            var normalizedNewStatus = normalizeClassStatus(newStatus);
+            var statusLabel = normalizedNewStatus === 'active' ? '\uC7AC\uD65C\uC131\uD654' : '\uC77C\uC2DC\uC815\uC9C0';
             showToast('\uAC15\uC758\uAC00 ' + statusLabel + '\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
             renderMyClasses();
         });
@@ -1652,8 +1672,8 @@
         }
 
         var legacyNameMap = {
-            SILVER: 'GARDEN',
-            GOLD: 'BLOOM',
+            SILVER: 'BLOOM',
+            GOLD: 'GARDEN',
             PLATINUM: 'ATELIER'
         };
         return legacyNameMap[rawGrade] || 'BLOOM';

@@ -721,7 +721,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// case 3: getPendingClasses - 파라미터 파싱\n// 상태별 클래스 목록 + 파트너 이름 조인\n// ===================================================\n\nconst params = $input.first().json._params || {};\nconst limit = Math.min(Math.max(parseInt(params.limit) || 50, 1), 200);\nconst offset = Math.max(parseInt(params.offset) || 0, 0);\nconst allowedStatuses = { INACTIVE: true, active: true, closed: true };\nconst status = allowedStatuses[params.status] ? params.status : 'INACTIVE';\n\nreturn [{\n  json: {\n    limit,\n    offset,\n    status\n  }\n}];"
+        "jsCode": "// ===================================================\n// case 3: getPendingClasses - 파라미터 파싱\n// 상태별 클래스 목록 + 파트너 이름 조인\n// ===================================================\n\nconst params = $input.first().json._params || {};\nconst limit = Math.min(Math.max(parseInt(params.limit, 10) || 50, 1), 200);\nconst offset = Math.max(parseInt(params.offset, 10) || 0, 0);\n\nfunction normalizeStatus(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (!text) return 'PENDING_REVIEW';\n  if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'ACTIVE';\n  if (upper === 'PAUSED' || text.toLowerCase() === 'paused') return 'PAUSED';\n  if (upper === 'ARCHIVED') return 'ARCHIVED';\n  if (upper === 'REJECTED' || text.toLowerCase() === 'closed') return 'REJECTED';\n  if (upper === 'PENDING_REVIEW' || upper === 'INACTIVE' || text.toLowerCase() === 'pending') return 'PENDING_REVIEW';\n  return upper;\n}\n\nreturn [{\n  json: {\n    limit,\n    offset,\n    status: normalizeStatus(params.status || 'PENDING_REVIEW')\n  }\n}];"
       },
       "id": "wfadmin-parse-get-pending-classes",
       "name": "Parse getPendingClasses",
@@ -742,20 +742,12 @@
         "queryParameters": {
           "parameters": [
             {
-              "name": "where",
-              "value": "={{ '(status,eq,' + $json.status + ')' }}"
-            },
-            {
               "name": "sort",
               "value": "-created_date"
             },
             {
               "name": "limit",
-              "value": "={{ $json.limit }}"
-            },
-            {
-              "name": "offset",
-              "value": "={{ $json.offset }}"
+              "value": "=500"
             }
           ]
         },
@@ -818,7 +810,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// getPendingClasses 응답 포맷\n// inactive 클래스 + 파트너 이름 조인\n// ===================================================\n\nconst classesResponse = $('NocoDB Get Pending Classes').first().json;\nconst partnersResponse = $('NocoDB Get Partners (Classes Join)').first().json;\n\nconst classesList = classesResponse.list || [];\nconst partnersList = partnersResponse.list || [];\nconst classPageInfo = classesResponse.pageInfo || {};\n\n// partner_code -> partner_name 맵\nconst partnerMap = {};\nfor (const p of partnersList) {\n  if (p.partner_code) {\n    partnerMap[p.partner_code] = p.partner_name || '';\n  }\n}\n\n// 클래스 목록에 파트너 이름 조인\nconst classes = classesList.map(c => {\n  // partner_code 추출 (Links 필드 또는 문자열)\n  let partnerCode = '';\n  if (Array.isArray(c.partner_code) && c.partner_code.length > 0) {\n    partnerCode = c.partner_code[0].partner_code || c.partner_code[0].Title || '';\n  } else if (typeof c.partner_code === 'string') {\n    partnerCode = c.partner_code;\n  }\n\n  return {\n    Id: c.Id || c.id,\n    class_id: c.class_id || '',\n    class_name: c.class_name || '',\n    category: c.category || '',\n    level: c.level || '',\n    price: Number(c.price) || 0,\n    type: c.type || '',\n    location: c.location || '',\n    partner_code: partnerCode,\n    partner_name: partnerMap[partnerCode] || '',\n    status: c.status || '',\n    created_date: c.created_date || ''\n  };\n});\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      classes: classes,\n      total: classPageInfo.totalRows || classes.length\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// getPendingClasses 응답 포맷\n// 레거시/신규 상태값을 모두 읽고 정규화된 값으로 반환\n// ===================================================\n\nconst classesResponse = $('NocoDB Get Pending Classes').first().json;\nconst partnersResponse = $('NocoDB Get Partners (Classes Join)').first().json;\nconst params = $('Parse getPendingClasses').first().json;\n\nconst classesList = classesResponse.list || [];\nconst partnersList = partnersResponse.list || [];\n\nfunction normalizeStatus(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (!text) return 'DRAFT';\n  if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'ACTIVE';\n  if (upper === 'PAUSED' || text.toLowerCase() === 'paused') return 'PAUSED';\n  if (upper === 'ARCHIVED') return 'ARCHIVED';\n  if (upper === 'REJECTED' || text.toLowerCase() === 'closed') return 'REJECTED';\n  if (upper === 'PENDING_REVIEW' || upper === 'INACTIVE' || text.toLowerCase() === 'pending') return 'PENDING_REVIEW';\n  return upper;\n}\n\nfunction normalizeLevel(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.includes('입문') || text.includes('초급')) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.includes('중급')) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.includes('심화') || text.includes('고급')) return 'ADVANCED';\n  if (upper === 'ALL_LEVELS' || text.includes('전체')) return 'ALL_LEVELS';\n  return upper;\n}\n\nfunction normalizeRegion(rawRegion, rawLocation, rawType) {\n  const fromRegion = String(rawRegion || '').replace(/\\s+/g, ' ').trim();\n  const text = fromRegion || String(rawLocation || '').replace(/\\s+/g, ' ').trim();\n  const type = String(rawType || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const primary = text.split(' ')[0];\n  const map = {\n    '서울': 'SEOUL','경기': 'GYEONGGI','경기도': 'GYEONGGI','인천': 'INCHEON','부산': 'BUSAN','대구': 'DAEGU','대전': 'DAEJEON','광주': 'GWANGJU','울산': 'ULSAN','세종': 'SEJONG','강원': 'GANGWON','강원도': 'GANGWON','충북': 'CHUNGBUK','충청북도': 'CHUNGBUK','충남': 'CHUNGNAM','충청남도': 'CHUNGNAM','전북': 'JEONBUK','전라북도': 'JEONBUK','전남': 'JEONNAM','전라남도': 'JEONNAM','경북': 'GYEONGBUK','경상북도': 'GYEONGBUK','경남': 'GYEONGNAM','경상남도': 'GYEONGNAM','제주': 'JEJU','제주도': 'JEJU','온라인': 'ONLINE','기타': 'OTHER'\n  };\n  if (type.includes('온라인') || text.includes('온라인') || upper === 'ONLINE' || upper.includes('ONLINE')) return 'ONLINE';\n  if (!text) return '';\n  if (map[text]) return map[text];\n  if (map[primary]) return map[primary];\n  return map[upper] || upper;\n}\n\nconst partnerMap = {};\nfor (const p of partnersList) {\n  if (p.partner_code) {\n    partnerMap[p.partner_code] = p.partner_name || '';\n  }\n}\n\nlet classes = classesList.map((c) => {\n  let partnerCode = '';\n  if (Array.isArray(c.partner_code) && c.partner_code.length > 0) {\n    partnerCode = c.partner_code[0].partner_code || c.partner_code[0].Title || '';\n  } else if (typeof c.partner_code === 'string') {\n    partnerCode = c.partner_code;\n  }\n\n  return {\n    Id: c.Id || c.id,\n    class_id: c.class_id || '',\n    class_name: c.class_name || '',\n    category: c.category || '',\n    level: normalizeLevel(c.level || ''),\n    price: Number(c.price) || 0,\n    type: c.type || '',\n    location: c.location || '',\n    region: normalizeRegion(c.region || '', c.location || '', c.type || ''),\n    partner_code: partnerCode,\n    partner_name: partnerMap[partnerCode] || '',\n    status: normalizeStatus(c.status || ''),\n    created_date: c.created_date || ''\n  };\n});\n\nclasses = classes.filter((c) => c.status === params.status);\nconst total = classes.length;\nclasses = classes.slice(params.offset, params.offset + params.limit);\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      classes,\n      total\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wfadmin-format-get-pending-classes",
       "name": "Format getPendingClasses",
@@ -905,7 +897,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'active', approved_at: new Date().toISOString() }) }}",
+        "jsonBody": "={{ JSON.stringify({ status: 'ACTIVE', approved_at: new Date().toISOString() }) }}",
         "options": {}
       },
       "id": "wfadmin-nocodb-approve-class",
@@ -925,7 +917,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// approveClass 응답 포맷\n// ===================================================\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      status: 'active'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// approveClass 응답 포맷\n// ===================================================\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      status: 'ACTIVE'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wfadmin-format-approve-class",
       "name": "Format approveClass",
@@ -1041,7 +1033,7 @@
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ status: 'closed', reject_reason: $json.rejectReason, rejected_at: new Date().toISOString() }) }}",
+        "jsonBody": "={{ JSON.stringify({ status: 'REJECTED', reject_reason: $json.rejectReason, rejected_at: new Date().toISOString() }) }}",
         "options": {}
       },
       "id": "wfadmin-nocodb-reject-class",
@@ -1061,7 +1053,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// rejectClass 응답 포맷\n// ===================================================\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      status: 'closed'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// rejectClass 응답 포맷\n// ===================================================\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      status: 'REJECTED'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wfadmin-format-reject-class",
       "name": "Format rejectClass",

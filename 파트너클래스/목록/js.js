@@ -133,6 +133,8 @@
     function fetchClasses(filters) {
         if (isLoading) return;
 
+        var apiFilters = buildApiFilters(filters);
+
         // 캐시 확인
         var cacheKey = buildCacheKey(filters);
         var cached = getCached(cacheKey);
@@ -149,32 +151,32 @@
         // API 요청 본문 구성 (POST JSON)
         var body = { action: 'getClasses' };
 
-        if (filters.category && filters.category.length > 0) {
-            body.category = filters.category.join(',');
+        if (apiFilters.category && apiFilters.category.length > 0) {
+            body.category = apiFilters.category.join(',');
         }
-        if (filters.level && filters.level.length > 0) {
-            body.level = filters.level.join(',');
+        if (apiFilters.level && apiFilters.level.length > 0) {
+            body.level = apiFilters.level.join(',');
         }
-        if (filters.type && filters.type.length > 0) {
-            body.type = filters.type.join(',');
+        if (apiFilters.type && apiFilters.type.length > 0) {
+            body.type = apiFilters.type.join(',');
         }
-        if (filters.region && filters.region.length > 0) {
-            body.region = filters.region.join(',');
+        if (apiFilters.region && apiFilters.region.length > 0) {
+            body.region = apiFilters.region.join(',');
         }
-        if (filters.sort) {
-            body.sort = filters.sort;
+        if (apiFilters.sort) {
+            body.sort = apiFilters.sort;
         }
-        if (filters.page) {
-            body.page = filters.page;
+        if (apiFilters.page) {
+            body.page = apiFilters.page;
         }
-        if (filters.limit) {
-            body.limit = filters.limit;
+        if (apiFilters.limit) {
+            body.limit = apiFilters.limit;
         }
-        if (filters.maxPrice < 200000) {
-            body.maxPrice = filters.maxPrice;
+        if (apiFilters.maxPrice < 200000) {
+            body.maxPrice = apiFilters.maxPrice;
         }
-        if (filters.search) {
-            body.search = filters.search;
+        if (apiFilters.search) {
+            body.search = apiFilters.search;
         }
 
         // 검색어 하이라이트용 동기화
@@ -390,15 +392,16 @@
      * @returns {string} 캐시 키
      */
     function buildCacheKey(filters) {
+        var apiFilters = buildApiFilters(filters);
         var keyObj = {
-            c: filters.category ? filters.category.join(',') : '',
-            l: filters.level ? filters.level.join(',') : '',
-            t: filters.type ? filters.type.join(',') : '',
-            r: filters.region ? filters.region.join(',') : '',
-            s: filters.sort || 'latest',
-            p: filters.page || 1,
-            m: filters.maxPrice || 200000,
-            q: filters.search || ''
+            c: apiFilters.category ? apiFilters.category.join(',') : '',
+            l: apiFilters.level ? apiFilters.level.join(',') : '',
+            t: apiFilters.type ? apiFilters.type.join(',') : '',
+            r: apiFilters.region ? apiFilters.region.join(',') : '',
+            s: apiFilters.sort || 'latest',
+            p: apiFilters.page || 1,
+            m: apiFilters.maxPrice || 200000,
+            q: apiFilters.search || ''
         };
 
         try {
@@ -470,7 +473,7 @@
         var classId = escapeHtml(cls.class_id || '');
         var className = escapeHtml(cls.class_name || '');
         var category = escapeHtml(cls.category || '');
-        var level = escapeHtml(cls.level || '');
+        var level = escapeHtml(normalizeLevelValue(cls.level || ''));
         var typeRaw = cls.type || '';
         var typeLabel = escapeHtml(typeRaw);
         var typeCss = TYPE_CLASS_MAP[typeRaw] || 'oneday';
@@ -480,7 +483,7 @@
             ? Math.floor(duration / 60) + '\uC2DC\uAC04' + (duration % 60 > 0 ? ' ' + (duration % 60) + '\uBD84' : '')
             : duration + '\uBD84';
         var thumbnail = cls.thumbnail_url || '';
-        var location = escapeHtml(cls.location || '');
+        var location = escapeHtml(cls.location || getDisplayRegionName(cls.region || ''));
         var partnerName = escapeHtml(cls.partner_name || '');
         var avgRating = parseFloat(cls.avg_rating) || 0;
         var classCount = parseInt(cls.class_count) || 0;
@@ -1331,7 +1334,7 @@
                 setCategoryPills(currentFilters.category);
             }
             if (params.has('level')) {
-                currentFilters.level = params.get('level').split(',');
+                currentFilters.level = dedupeArray(splitFilterValues(params.get('level')).map(normalizeLevelValue).filter(Boolean));
                 setCheckboxes('level', currentFilters.level);
             }
             if (params.has('type')) {
@@ -1339,7 +1342,7 @@
                 setCheckboxes('type', currentFilters.type);
             }
             if (params.has('region')) {
-                currentFilters.region = params.get('region').split(',');
+                currentFilters.region = dedupeArray(splitFilterValues(params.get('region')).map(getDisplayRegionName).filter(Boolean));
                 setCheckboxes('region', currentFilters.region);
             }
             if (params.has('sort')) {
@@ -1510,6 +1513,124 @@
      */
     function formatNumber(num) {
         return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    function splitFilterValues(raw) {
+        var parts = String(raw || '').split(',');
+        var result = [];
+        for (var i = 0; i < parts.length; i++) {
+            var value = String(parts[i] || '').replace(/\s+/g, ' ').trim();
+            if (value) result.push(value);
+        }
+        return result;
+    }
+
+    function dedupeArray(items) {
+        var seen = {};
+        var result = [];
+        for (var i = 0; i < items.length; i++) {
+            var key = String(items[i] || '');
+            if (!key || seen[key]) continue;
+            seen[key] = true;
+            result.push(key);
+        }
+        return result;
+    }
+
+    function normalizeLevelValue(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim();
+        var upper = text.toUpperCase();
+        var lower = text.toLowerCase();
+
+        if (!text) return '';
+        if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.indexOf('\uC785\uBB38') > -1 || text.indexOf('\uCD08\uAE09') > -1) return '\uC785\uBB38';
+        if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.indexOf('\uC911\uAE09') > -1) return '\uC911\uAE09';
+        if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.indexOf('\uC2EC\uD654') > -1 || text.indexOf('\uACE0\uAE09') > -1) return '\uC2EC\uD654';
+        if (upper === 'ALL_LEVELS' || text.indexOf('\uC804\uCCB4') > -1) return '\uC804\uCCB4';
+        return text;
+    }
+
+    function normalizeLevelForApi(raw) {
+        var label = normalizeLevelValue(raw);
+        var map = {
+            '\uC785\uBB38': 'BEGINNER',
+            '\uC911\uAE09': 'INTERMEDIATE',
+            '\uC2EC\uD654': 'ADVANCED',
+            '\uC804\uCCB4': 'ALL_LEVELS'
+        };
+        return map[label] || String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
+    }
+
+    function getDisplayRegionName(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim();
+        var upper = text.toUpperCase();
+        var map = {
+            SEOUL: '\uC11C\uC6B8',
+            GYEONGGI: '\uACBD\uAE30',
+            INCHEON: '\uC778\uCC9C',
+            BUSAN: '\uBD80\uC0B0',
+            DAEGU: '\uB300\uAD6C',
+            DAEJEON: '\uB300\uC804',
+            GWANGJU: '\uAD11\uC8FC',
+            ULSAN: '\uC6B8\uC0B0',
+            SEJONG: '\uC138\uC885',
+            GANGWON: '\uAC15\uC6D0',
+            CHUNGBUK: '\uCDA9\uBD81',
+            CHUNGNAM: '\uCDA9\uB0A8',
+            JEONBUK: '\uC804\uBD81',
+            JEONNAM: '\uC804\uB0A8',
+            GYEONGBUK: '\uACBD\uBD81',
+            GYEONGNAM: '\uACBD\uB0A8',
+            JEJU: '\uC81C\uC8FC',
+            ONLINE: '\uC628\uB77C\uC778',
+            OTHER: '\uAE30\uD0C0'
+        };
+
+        if (!text) return '';
+        if (map[upper]) return map[upper];
+        if (text.indexOf('\uC628\uB77C\uC778') > -1 || text.toLowerCase().indexOf('online') > -1) return '\uC628\uB77C\uC778';
+        return text.split(' ')[0];
+    }
+
+    function normalizeRegionForApi(raw) {
+        var label = getDisplayRegionName(raw);
+        var map = {
+            '\uC11C\uC6B8': 'SEOUL',
+            '\uACBD\uAE30': 'GYEONGGI',
+            '\uC778\uCC9C': 'INCHEON',
+            '\uBD80\uC0B0': 'BUSAN',
+            '\uB300\uAD6C': 'DAEGU',
+            '\uB300\uC804': 'DAEJEON',
+            '\uAD11\uC8FC': 'GWANGJU',
+            '\uC6B8\uC0B0': 'ULSAN',
+            '\uC138\uC885': 'SEJONG',
+            '\uAC15\uC6D0': 'GANGWON',
+            '\uCDA9\uBD81': 'CHUNGBUK',
+            '\uCDA9\uB0A8': 'CHUNGNAM',
+            '\uC804\uBD81': 'JEONBUK',
+            '\uC804\uB0A8': 'JEONNAM',
+            '\uACBD\uBD81': 'GYEONGBUK',
+            '\uACBD\uB0A8': 'GYEONGNAM',
+            '\uC81C\uC8FC': 'JEJU',
+            '\uC628\uB77C\uC778': 'ONLINE',
+            '\uAE30\uD0C0': 'OTHER'
+        };
+
+        return map[label] || String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
+    }
+
+    function buildApiFilters(filters) {
+        return {
+            category: dedupeArray(filters.category || []),
+            level: dedupeArray((filters.level || []).map(normalizeLevelForApi).filter(Boolean)),
+            type: dedupeArray(filters.type || []),
+            region: dedupeArray((filters.region || []).map(normalizeRegionForApi).filter(Boolean)),
+            sort: filters.sort || 'latest',
+            page: filters.page || 1,
+            limit: filters.limit || PAGE_LIMIT,
+            maxPrice: filters.maxPrice || 200000,
+            search: filters.search || ''
+        };
     }
 
     /**

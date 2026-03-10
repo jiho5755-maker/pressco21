@@ -51,23 +51,64 @@
 
 - Current Owner: CODEX
 - Mode: WRITE
-- Started At: 2026-03-10 22:31:00 KST
+- Started At: 2026-03-10 22:57:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S1-3 목록 신뢰 배지 + 퀵 필터 진행
+- Working Scope: [CODEX-LEAD] 파트너클래스 S1-4 수강완료 -> 재구매 동선 진행
 - Active Subdirectory: pressco21
 
 ## Files In Progress
 - AI_SYNC.md
 - ROADMAP.md
 - docs/파트너클래스/README.md
-- docs/파트너클래스/list-badge-filter-guide.md
+- docs/파트너클래스/repurchase-path-guide.md
 - .claude/agent-memory/class-platform-architect/MEMORY.md
 - .claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md
-- 파트너클래스/목록/Index.html
-- 파트너클래스/목록/css.css
-- 파트너클래스/목록/js.js
+- .claude/agent-memory/ecommerce-business-expert/MEMORY.md
+- 파트너클래스/마이페이지/Index.html
+- 파트너클래스/마이페이지/css.css
+- 파트너클래스/마이페이지/js.js
+- 파트너클래스/n8n-workflows/WF-12-review-requests.json
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### [CODEX-LEAD] Phase 3 S1-4 수강완료 -> 재구매 동선 완료 (CODEX)
+- 프론트
+  - `파트너클래스/마이페이지/Index.html`
+    - 헤더와 빈 상태 문구를 `후기 -> 재료 재구매 -> 다음 수업` 흐름 기준으로 갱신.
+    - 루트 컨테이너에 `#partnerclass-my-bookings` ID를 추가해 메이크샵 스타일 충돌을 차단.
+  - `파트너클래스/마이페이지/css.css`
+    - 완료 카드용 후기 히어로, 키트 재구매 패널, 같은 강사 추천 카드, 요약 카드/섹션 레이아웃을 새로 구성.
+    - 모든 셀렉터를 `#partnerclass-my-bookings` 기준으로 스코핑.
+  - `파트너클래스/마이페이지/js.js`
+    - `WF-19 my-bookings` 응답을 `다가오는 수업 / 수강 완료 후 다시 보기`로 분리 렌더링.
+    - `WF-01 class-api getClasses/getClassDetail`를 추가 호출해 같은 강사 추천과 `kit_items` 기반 재구매 칩을 합성.
+    - 완료 카드에 `후기 작성하기`, `수업 다시 보기`, `이 수업 재료 다시 보기`, `같은 강사의 다른 클래스` 동선을 연결.
+- 워크플로우
+  - `파트너클래스/n8n-workflows/WF-12-review-requests.json`
+    - 수강생 후기 요청 CTA를 클래스 상세 `2607`로 직접 연결.
+    - 이메일 본문에 `내 수강 내역(2609)` 복귀 문구를 추가.
+  - 운영 반영
+    - WF-12 (`zUxqaEHZpYwMspsC`) 백업 후 n8n API로 업데이트 완료.
+    - 업데이트 확인: `active=true`, `reviewUrlChanged=true`, `myPageChanged=true`
+- 문서/메모리
+  - `docs/파트너클래스/repurchase-path-guide.md`
+    - S1-4 데이터 조합 방식, 화면 구조, WF-12 연결, 검증 결과 정리.
+  - `docs/파트너클래스/README.md`
+    - 새 가이드 문서 연결.
+  - `ROADMAP.md`
+    - S1-4를 `✅ 완료`로 변경하고 운영 메모/검증 결과 반영.
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+    - S1-4 기준 메모리 갱신.
+- 검증
+  - `node --check 파트너클래스/마이페이지/js.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+    - `http://` 경고는 SVG namespace(`xmlns`) 기준 false positive 확인
+  - `node`로 `WF-12-review-requests.json` 파싱 + `wf12-build-emails` 구문 검사
+  - Playwright 로컬 모킹 검증:
+    - 전체 `2`, 완료 섹션 `1`, `후기 작성하기`, `로즈 패키지`, `같은 강사의 다른 클래스` 확인
+    - 스크린샷: `output/playwright/s1-4-20260310/mypage-repurchase-flow.png`
 
 ### [CODEX-LEAD] Phase 3 S1-3 목록 신뢰 배지 + 퀵 필터 완료 (CODEX)
 - 프론트
@@ -1142,8 +1183,8 @@
 
 #### 현재 다음 태스크
 
-- `S1-4 수강완료 → 재구매 동선` 진행
-- 그 다음 `S1-5 정산 자동화 WF-SETTLE`
+- `S1-5 정산 자동화 WF-SETTLE` 진행
+- 그 다음 `S1-6 CS FAQ 15개 확장`
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
 #### 실행 순서
@@ -1231,6 +1272,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - `파트너클래스/어드민/js.js`의 `PENDING_REVIEW` 정렬 보정은 아직 메이크샵 디자인편집기에 저장되지 않아 라이브 어드민 UI에는 반영되지 않음
 - S1-1 프론트 변경(강의등록/상세/파트너 수정 모달)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 화면 확인이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-2 상세 프론트 변경(Trust Summary Bar, 포함 내역, 모바일 CTA 바)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
+- S1-4 마이페이지 프론트 변경(`파트너클래스/마이페이지/*`)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함
 - `PRD-파트너클래스-플랫폼-고도화.md`, `commission-policy.md`, 일부 구현 문서는 아직 예전 등급/수수료 표현이 남아 있으므로 서비스 방향 판단은 `docs/파트너클래스/README.md`와 `shared-service-identity.md`를 우선해야 함
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음

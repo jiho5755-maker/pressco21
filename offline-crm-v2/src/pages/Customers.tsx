@@ -1,11 +1,13 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Search, ChevronLeft, ChevronRight, Plus } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, Plus, Pencil, Trash2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { getCustomers, sanitizeSearchTerm } from '@/lib/api'
+import { deleteCustomer, getCustomers, sanitizeSearchTerm } from '@/lib/api'
+import type { Customer } from '@/lib/api'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
 import { CustomerDialog } from '@/components/CustomerDialog'
 
@@ -29,6 +31,8 @@ export function Customers() {
   const [gradeFilter, setGradeFilter] = useState('ALL')
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
+  const [deletingId, setDeletingId] = useState<number | null>(null)
 
   const debouncedSearch = useDebounce(search, 400)
 
@@ -44,7 +48,7 @@ export function Customers() {
   const conditions: string[] = []
   if (debouncedSearch) {
     const safe = sanitizeSearchTerm(debouncedSearch)
-    conditions.push(`(name,like,%${safe}%)~or(mobile,like,%${safe}%)~or(phone1,like,%${safe}%)`)
+    conditions.push(`(name,like,%${safe}%)~or(book_name,like,%${safe}%)~or(mobile,like,%${safe}%)~or(phone1,like,%${safe}%)~or(business_no,like,%${safe}%)`)
   }
   if (typeFilter !== 'ALL') conditions.push(`(customer_type,eq,${typeFilter})`)
   if (statusFilter !== 'ALL') conditions.push(`(customer_status,eq,${statusFilter})`)
@@ -68,6 +72,21 @@ export function Customers() {
   const totalPages = Math.ceil(totalRows / PAGE_SIZE)
   const customers = data?.list ?? []
 
+  async function handleDelete(customer: Customer) {
+    if (!confirm(`"${customer.name ?? '이 고객'}"을(를) 삭제하시겠습니까?`)) return
+    setDeletingId(customer.Id)
+    try {
+      await deleteCustomer(customer.Id)
+      toast.success('고객이 삭제되었습니다')
+      await qc.invalidateQueries({ queryKey: ['customers'] })
+    } catch (error) {
+      console.error(error)
+      toast.error('고객을 삭제하지 못했습니다. 잠시 후 다시 시도해주세요')
+    } finally {
+      setDeletingId(null)
+    }
+  }
+
   return (
     <div className="p-6">
       {/* 헤더 */}
@@ -79,7 +98,7 @@ export function Customers() {
           </p>
         </div>
         <Button
-          onClick={() => setDialogOpen(true)}
+          onClick={() => { setSelectedCustomer(null); setDialogOpen(true) }}
           className="bg-[#7d9675] hover:bg-[#6a8462] text-white gap-1"
         >
           <Plus className="h-4 w-4" />
@@ -154,26 +173,27 @@ export function Customers() {
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">최종거래일</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">총매출</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">미수금</th>
+              <th className="w-28" />
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-muted-foreground">
+                <td colSpan={8} className="text-center py-12 text-muted-foreground">
                   불러오는 중...
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-red-500">
+                <td colSpan={8} className="text-center py-12 text-red-500">
                   데이터를 불러오지 못했습니다.
                 </td>
               </tr>
             )}
             {!isLoading && !isError && customers.length === 0 && (
               <tr>
-                <td colSpan={7} className="text-center py-12 text-muted-foreground">
+                <td colSpan={8} className="text-center py-12 text-muted-foreground">
                   검색 결과가 없습니다.
                 </td>
               </tr>
@@ -184,7 +204,14 @@ export function Customers() {
                 className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer transition-colors"
                 onClick={() => navigate(`/customers/${c.Id}`)}
               >
-                <td className="px-4 py-3 font-medium">{c.name ?? '-'}</td>
+                <td className="px-4 py-3">
+                  <div className="font-medium">{c.name ?? '-'}</div>
+                  {c.book_name && c.book_name !== c.name && (
+                    <div className="mt-0.5 text-xs text-muted-foreground">
+                      얼마에요 구분명: {c.book_name}
+                    </div>
+                  )}
+                </td>
                 <td className="px-4 py-3 text-xs text-muted-foreground">
                   {CUSTOMER_TYPE_LABELS[c.customer_type ?? ''] ?? c.customer_type ?? '-'}
                 </td>
@@ -233,6 +260,36 @@ export function Customers() {
                     <span className="text-muted-foreground">-</span>
                   )}
                 </td>
+                <td className="px-2 py-3">
+                  <div className="flex justify-end gap-1">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0"
+                      title="수정"
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        setSelectedCustomer(c)
+                        setDialogOpen(true)
+                      }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
+                      title="삭제"
+                      disabled={deletingId === c.Id}
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        void handleDelete(c)
+                      }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -272,9 +329,14 @@ export function Customers() {
 
       <CustomerDialog
         open={dialogOpen}
-        onClose={() => setDialogOpen(false)}
+        customer={selectedCustomer}
+        onClose={() => {
+          setDialogOpen(false)
+          setSelectedCustomer(null)
+        }}
         onSaved={() => {
           setDialogOpen(false)
+          setSelectedCustomer(null)
           void qc.invalidateQueries({ queryKey: ['customers'] })
         }}
       />

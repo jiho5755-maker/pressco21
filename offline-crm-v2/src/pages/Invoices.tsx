@@ -1,15 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2 } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
+import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { InvoiceDialog } from '@/components/InvoiceDialog'
-import { getInvoices, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink } from '@/lib/api'
+import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
+import type { TransactionPreview } from '@/components/TransactionDetailDialog'
+import { getAllCustomers, getAllInvoices, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink } from '@/lib/api'
 import type { Customer, Invoice } from '@/lib/api'
-import { exportInvoices } from '@/lib/excel'
+import { exportCourierInvoices } from '@/lib/excel'
 import { printDuplexViaIframe } from '@/lib/print'
 
 const PAGE_SIZE = 25
@@ -56,7 +59,6 @@ function buildCustomerPrintSnapshot(
 ): Partial<Invoice> {
   if (!customer) return {}
   return {
-    customer_name: customer.name,
     customer_phone: getCustomerPrimaryPhone(customer),
     customer_address: getCustomerAddress(customer, preferredAddress),
     customer_bizno: customer.biz_no,
@@ -71,9 +73,17 @@ export function Invoices() {
   const [searchParams, setSearchParams] = useSearchParams()
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
-  const [dateFilter, setDateFilter] = useState(() => {
+  const [dateFrom, setDateFrom] = useState(() => {
     const date = searchParams.get('date')
-    return isValidCalendarDate(date) ? date : ''
+    const from = searchParams.get('from')
+    if (isValidCalendarDate(date)) return date
+    return isValidCalendarDate(from) ? from : ''
+  })
+  const [dateTo, setDateTo] = useState(() => {
+    const date = searchParams.get('date')
+    const to = searchParams.get('to')
+    if (isValidCalendarDate(date)) return date
+    return isValidCalendarDate(to) ? to : ''
   })
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -81,19 +91,42 @@ export function Invoices() {
   const [copySourceId, setCopySourceId] = useState<number | undefined>(undefined)
   const [initialInvoiceDate, setInitialInvoiceDate] = useState<string | undefined>(undefined)
   const [deletingId, setDeletingId] = useState<number | null>(null)
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionPreview | null>(null)
+  const [isCourierExporting, setIsCourierExporting] = useState(false)
+  const [showCourierConfirm, setShowCourierConfirm] = useState(false)
 
   const debouncedSearch = useDebounce(search, 400)
-  useEffect(() => setPage(1), [debouncedSearch, statusFilter, dateFilter])
+  useEffect(() => setPage(1), [debouncedSearch, statusFilter, dateFrom, dateTo])
 
   useEffect(() => {
     const nextDate = searchParams.get('date')
     const normalizedDate = isValidCalendarDate(nextDate) ? nextDate : ''
-    setDateFilter((prev) => (prev === normalizedDate ? prev : normalizedDate))
+    const nextFrom = searchParams.get('from')
+    const nextTo = searchParams.get('to')
+    const normalizedFrom = normalizedDate || (isValidCalendarDate(nextFrom) ? nextFrom : '')
+    const normalizedTo = normalizedDate || (isValidCalendarDate(nextTo) ? nextTo : '')
+
+    setDateFrom((prev) => (prev === normalizedFrom ? prev : normalizedFrom))
+    setDateTo((prev) => (prev === normalizedTo ? prev : normalizedTo))
+
+    const editParam = searchParams.get('edit')
+    const editId = editParam ? Number(editParam) : NaN
+    if (Number.isFinite(editId) && editId > 0) {
+      setSelectedId(editId)
+      setCopySourceId(undefined)
+      setInitialInvoiceDate(undefined)
+      setDialogOpen(true)
+
+      const nextParams = new URLSearchParams(searchParams)
+      nextParams.delete('edit')
+      setSearchParams(nextParams, { replace: true })
+      return
+    }
 
     if (searchParams.get('new') === '1') {
       setSelectedId(undefined)
       setCopySourceId(undefined)
-      setInitialInvoiceDate(normalizedDate || undefined)
+      setInitialInvoiceDate(normalizedDate || normalizedFrom || undefined)
       setDialogOpen(true)
 
       const nextParams = new URLSearchParams(searchParams)
@@ -103,8 +136,6 @@ export function Invoices() {
   }, [searchParams, setSearchParams])
 
   const params: Record<string, string | number> = {
-    limit: PAGE_SIZE,
-    offset: (page - 1) * PAGE_SIZE,
     sort: '-invoice_date',
   }
   const conditions: string[] = []
@@ -113,25 +144,81 @@ export function Invoices() {
     conditions.push(`(customer_name,like,%${safe}%)`)
   }
   if (statusFilter !== 'ALL') conditions.push(`(payment_status,eq,${statusFilter})`)
-  if (dateFilter) conditions.push(`(invoice_date,eq,${dateFilter})`)
   if (conditions.length > 0) {
     params.where = conditions.length === 1 ? conditions[0] : conditions.join('~and')
   }
 
   const { data, isLoading, isError, refetch } = useQuery({
     queryKey: ['invoices', params],
-    queryFn: () => getInvoices(params),
+    queryFn: () => getAllInvoices(params),
+    placeholderData: (prev) => prev,
   })
+  const { data: customersForLink = [] } = useQuery({
+    queryKey: ['invoice-link-customers'],
+    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id' }),
+    staleTime: 10 * 60 * 1000,
+  })
+  const customerById = useMemo(
+    () => new Map(customersForLink.map((customer) => [customer.Id, customer])),
+    [customersForLink],
+  )
 
-  const totalRows = data?.pageInfo?.totalRows ?? 0
+  const filteredInvoices = useMemo(
+    () => (data ?? []).filter((invoice) => {
+      const invoiceDate = invoice.invoice_date?.slice(0, 10) ?? ''
+      if (dateFrom && invoiceDate < dateFrom) return false
+      if (dateTo && invoiceDate > dateTo) return false
+      return true
+    }),
+    [data, dateFrom, dateTo],
+  )
+  const courierWarning = useMemo(() => {
+    let missingAddress = 0
+    let missingPhone = 0
+    for (const invoice of filteredInvoices) {
+      const hasAddress = Boolean(invoice.customer_address?.trim())
+      const hasPhone = Boolean(invoice.customer_phone?.trim())
+      if (!hasAddress) missingAddress += 1
+      if (!hasPhone) missingPhone += 1
+    }
+    return {
+      missingAddress,
+      missingPhone,
+      totalMissing: Math.max(missingAddress, 0) + Math.max(missingPhone, 0),
+    }
+  }, [filteredInvoices])
+
+  const totalRows = filteredInvoices.length
   const totalPages = Math.ceil(totalRows / PAGE_SIZE)
-  const invoices = data?.list ?? []
+  const invoices = filteredInvoices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const invoiceLinkSummary = useMemo(() => {
+    let orphanCount = 0
+    let splitCount = 0
+    for (const invoice of filteredInvoices) {
+      const linkedCustomer = typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined
+      const invoiceName = invoice.customer_name?.trim()
+      const masterName = linkedCustomer?.name?.trim()
+      const masterBookName = linkedCustomer?.book_name?.trim()
+      if (typeof invoice.customer_id === 'number' && invoice.customer_id > 0 && !linkedCustomer) {
+        orphanCount += 1
+        continue
+      }
+      if (linkedCustomer && invoiceName && invoiceName !== masterName && invoiceName !== masterBookName) {
+        splitCount += 1
+      }
+    }
+    return { orphanCount, splitCount }
+  }, [filteredInvoices, customerById])
 
-  function applyDateFilter(nextValue: string) {
-    setDateFilter(nextValue)
+  function applyDateRange(nextFrom: string, nextTo: string) {
+    setDateFrom(nextFrom)
+    setDateTo(nextTo)
     const nextParams = new URLSearchParams(searchParams)
-    if (nextValue) nextParams.set('date', nextValue)
-    else nextParams.delete('date')
+    nextParams.delete('date')
+    if (nextFrom) nextParams.set('from', nextFrom)
+    else nextParams.delete('from')
+    if (nextTo) nextParams.set('to', nextTo)
+    else nextParams.delete('to')
     nextParams.delete('new')
     setSearchParams(nextParams, { replace: true })
   }
@@ -197,6 +284,47 @@ export function Invoices() {
     }
   }
 
+  async function runCourierExport() {
+    if (filteredInvoices.length === 0) {
+      toast.error('다운로드할 명세표가 없습니다')
+      return
+    }
+
+    setIsCourierExporting(true)
+    try {
+      const rows = await Promise.all(filteredInvoices.map(async (invoice) => {
+        const itemsData = await getItems(invoice.Id)
+        const quantity = itemsData.list.reduce((sum, item) => sum + (item.quantity ?? 0), 0) || itemsData.list.length || 1
+        return {
+          receiverName: invoice.customer_name ?? '',
+          receiverPhone: invoice.customer_phone ?? '',
+          receiverMobile: invoice.customer_phone ?? '',
+          receiverAddress: invoice.customer_address ?? '',
+          quantity,
+          deliveryMessage: invoice.memo ?? '',
+        }
+      }))
+
+      exportCourierInvoices(rows, {
+        filename: '전자송장(3.9)',
+        dateLabel: dateFrom && dateTo ? `${dateFrom}_${dateTo}` : undefined,
+      })
+      toast.success(`전자송장 ${rows.length}건을 다운로드했습니다`)
+    } catch {
+      toast.error('전자송장 파일을 생성하지 못했습니다')
+    } finally {
+      setIsCourierExporting(false)
+    }
+  }
+
+  async function handleCourierExport() {
+    if (courierWarning.totalMissing > 0) {
+      setShowCourierConfirm(true)
+      return
+    }
+    await runCourierExport()
+  }
+
   async function handlePrint(inv: Invoice) {
     try {
       const [latestInvoice, itemsData] = await Promise.all([
@@ -219,7 +347,7 @@ export function Invoices() {
           invoice_no: latestInvoice.invoice_no,
           invoice_date: latestInvoice.invoice_date,
           receipt_type: latestInvoice.receipt_type ?? '영수',
-          customer_name: customerSnapshot.customer_name ?? latestInvoice.customer_name,
+          customer_name: latestInvoice.customer_name ?? currentCustomer?.name,
           customer_phone: customerSnapshot.customer_phone ?? (latestInvoice.customer_phone as string),
           customer_address: customerSnapshot.customer_address ?? (latestInvoice.customer_address as string),
           customer_bizno: customerSnapshot.customer_bizno ?? (latestInvoice.customer_bizno as string),
@@ -252,23 +380,24 @@ export function Invoices() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold">거래명세표</h2>
+          <h2 className="text-2xl font-bold">명세표 작성/관리</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            총 {totalRows.toLocaleString()}건
+            필터 결과 {totalRows.toLocaleString()}건
           </p>
         </div>
         <div className="flex gap-2">
           <Button
             variant="outline"
             size="sm"
-            onClick={() => exportInvoices(invoices)}
+            onClick={() => void handleCourierExport()}
+            disabled={isCourierExporting}
             className="gap-1"
           >
             <Download className="h-4 w-4" />
-            엑셀
+            {isCourierExporting ? '생성 중...' : '택배 송장 자동 다운로드'}
           </Button>
           <Button
-            onClick={() => openCreate(dateFilter || undefined)}
+            onClick={() => openCreate((dateFrom && dateFrom === dateTo) ? dateFrom : undefined)}
             className="bg-[#7d9675] hover:bg-[#6a8462] text-white gap-1"
           >
             <Plus className="h-4 w-4" />
@@ -290,8 +419,15 @@ export function Invoices() {
         </div>
         <Input
           type="date"
-          value={dateFilter}
-          onChange={(e) => applyDateFilter(e.target.value)}
+          value={dateFrom}
+          onChange={(e) => applyDateRange(e.target.value, dateTo)}
+          className="w-[170px]"
+        />
+        <span className="flex items-center text-muted-foreground text-sm">~</span>
+        <Input
+          type="date"
+          value={dateTo}
+          onChange={(e) => applyDateRange(dateFrom, e.target.value)}
           className="w-[170px]"
         />
         <Select value={statusFilter} onValueChange={setStatusFilter}>
@@ -305,18 +441,42 @@ export function Invoices() {
             <SelectItem value="unpaid">미수금</SelectItem>
           </SelectContent>
         </Select>
-        {(statusFilter !== 'ALL' || search || dateFilter) && (
+        {(statusFilter !== 'ALL' || search || dateFrom || dateTo) && (
           <Button
             variant="ghost"
             size="sm"
             onClick={() => {
               setSearch('')
               setStatusFilter('ALL')
-              applyDateFilter('')
+              applyDateRange('', '')
             }}
           >
             초기화
           </Button>
+        )}
+      </div>
+
+      {(invoiceLinkSummary.orphanCount > 0 || invoiceLinkSummary.splitCount > 0) && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {invoiceLinkSummary.orphanCount > 0 && (
+            <div>고객관리 연결이 없는 분리 명세표 {invoiceLinkSummary.orphanCount}건</div>
+          )}
+          {invoiceLinkSummary.splitCount > 0 && (
+            <div>고객명과 별도로 얼마에요 구분명이 유지된 명세표 {invoiceLinkSummary.splitCount}건</div>
+          )}
+        </div>
+      )}
+
+      <div className="mb-4 rounded-lg border border-blue-100 bg-blue-50 px-4 py-3 text-xs text-blue-700">
+        기간 기준으로 명세표를 조회하고, 현재 필터 결과를 택배 송장 업로드용 엑셀로 바로 내려받을 수 있습니다.
+        {courierWarning.totalMissing > 0 ? (
+          <span className="ml-2 inline-flex flex-wrap gap-2 text-amber-700">
+            <span>검토 필요:</span>
+            {courierWarning.missingAddress > 0 ? <span>주소 누락 {courierWarning.missingAddress}건</span> : null}
+            {courierWarning.missingPhone > 0 ? <span>연락처 누락 {courierWarning.missingPhone}건</span> : null}
+          </span>
+        ) : (
+          <span className="ml-2 text-[#3d6b4a]">필수 배송 정보 누락 없음</span>
         )}
       </div>
 
@@ -367,37 +527,119 @@ export function Invoices() {
                 >
                   <td
                     className="px-4 py-3 font-mono text-xs text-muted-foreground cursor-pointer"
-                    onClick={() => openEdit(inv.Id)}
+                    onClick={() => setSelectedTransaction({
+                      source: 'crm',
+                      recordId: inv.Id,
+                      date: inv.invoice_date?.slice(0, 10) ?? '',
+                      customerName: inv.customer_name ?? '',
+                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+                      txType: '출고',
+                      amount: inv.total_amount ?? 0,
+                      tax: inv.tax_amount ?? 0,
+                      slipNo: inv.invoice_no,
+                      memo: inv.memo ?? '',
+                    })}
                   >
                     {inv.invoice_no ?? '-'}
                   </td>
                   <td
                     className="px-4 py-3 font-medium cursor-pointer"
-                    onClick={() => openEdit(inv.Id)}
+                    onClick={() => setSelectedTransaction({
+                      source: 'crm',
+                      recordId: inv.Id,
+                      date: inv.invoice_date?.slice(0, 10) ?? '',
+                      customerName: inv.customer_name ?? '',
+                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+                      txType: '출고',
+                      amount: inv.total_amount ?? 0,
+                      tax: inv.tax_amount ?? 0,
+                      slipNo: inv.invoice_no,
+                      memo: inv.memo ?? '',
+                    })}
                   >
-                    {inv.customer_name ?? '-'}
+                    <div className="font-medium">{inv.customer_name ?? '-'}</div>
+                    {(() => {
+                      const linkedCustomer = typeof inv.customer_id === 'number' ? customerById.get(inv.customer_id) : undefined
+                      const invoiceName = inv.customer_name?.trim()
+                      const masterName = linkedCustomer?.name?.trim()
+                      const masterBookName = linkedCustomer?.book_name?.trim()
+                      if (typeof inv.customer_id === 'number' && inv.customer_id > 0 && !linkedCustomer) {
+                        return <div className="mt-0.5 text-xs text-amber-700">고객관리 연결 없음 · 분리 거래명 유지</div>
+                      }
+                      if (linkedCustomer && invoiceName && invoiceName !== masterName && invoiceName !== masterBookName) {
+                        return <div className="mt-0.5 text-xs text-amber-700">고객관리: {masterName || '-'} · 분리 거래명 유지</div>
+                      }
+                      if (linkedCustomer && masterBookName && masterBookName !== masterName && invoiceName === masterBookName) {
+                        return <div className="mt-0.5 text-xs text-muted-foreground">얼마에요 구분명 기준</div>
+                      }
+                      return null
+                    })()}
                   </td>
                   <td
                     className="px-4 py-3 text-right text-muted-foreground text-xs cursor-pointer"
-                    onClick={() => openEdit(inv.Id)}
+                    onClick={() => setSelectedTransaction({
+                      source: 'crm',
+                      recordId: inv.Id,
+                      date: inv.invoice_date?.slice(0, 10) ?? '',
+                      customerName: inv.customer_name ?? '',
+                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+                      txType: '출고',
+                      amount: inv.total_amount ?? 0,
+                      tax: inv.tax_amount ?? 0,
+                      slipNo: inv.invoice_no,
+                      memo: inv.memo ?? '',
+                    })}
                   >
                     {inv.invoice_date?.slice(0, 10) ?? '-'}
                   </td>
                   <td
                     className="px-4 py-3 text-right cursor-pointer"
-                    onClick={() => openEdit(inv.Id)}
+                    onClick={() => setSelectedTransaction({
+                      source: 'crm',
+                      recordId: inv.Id,
+                      date: inv.invoice_date?.slice(0, 10) ?? '',
+                      customerName: inv.customer_name ?? '',
+                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+                      txType: '출고',
+                      amount: inv.total_amount ?? 0,
+                      tax: inv.tax_amount ?? 0,
+                      slipNo: inv.invoice_no,
+                      memo: inv.memo ?? '',
+                    })}
                   >
                     {inv.supply_amount != null ? `${inv.supply_amount.toLocaleString()}원` : '-'}
                   </td>
                   <td
                     className="px-4 py-3 text-right font-medium cursor-pointer"
-                    onClick={() => openEdit(inv.Id)}
+                    onClick={() => setSelectedTransaction({
+                      source: 'crm',
+                      recordId: inv.Id,
+                      date: inv.invoice_date?.slice(0, 10) ?? '',
+                      customerName: inv.customer_name ?? '',
+                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+                      txType: '출고',
+                      amount: inv.total_amount ?? 0,
+                      tax: inv.tax_amount ?? 0,
+                      slipNo: inv.invoice_no,
+                      memo: inv.memo ?? '',
+                    })}
                   >
                     {inv.total_amount != null ? `${inv.total_amount.toLocaleString()}원` : '-'}
                   </td>
                   <td
                     className="px-4 py-3 text-right text-xs text-muted-foreground cursor-pointer"
-                    onClick={() => openEdit(inv.Id)}
+                    onClick={() => setSelectedTransaction({
+                      source: 'crm',
+                      recordId: inv.Id,
+                      date: inv.invoice_date?.slice(0, 10) ?? '',
+                      customerName: inv.customer_name ?? '',
+                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+                      txType: '출고',
+                      amount: inv.total_amount ?? 0,
+                      tax: inv.tax_amount ?? 0,
+                      slipNo: inv.invoice_no,
+                      memo: inv.memo ?? '',
+                    })}
                   >
                     {inv.paid_amount != null && inv.paid_amount > 0
                       ? `${inv.paid_amount.toLocaleString()}원`
@@ -405,7 +647,18 @@ export function Invoices() {
                   </td>
                   <td
                     className="px-4 py-3 cursor-pointer"
-                    onClick={() => openEdit(inv.Id)}
+                    onClick={() => setSelectedTransaction({
+                      source: 'crm',
+                      recordId: inv.Id,
+                      date: inv.invoice_date?.slice(0, 10) ?? '',
+                      customerName: inv.customer_name ?? '',
+                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+                      txType: '출고',
+                      amount: inv.total_amount ?? 0,
+                      tax: inv.tax_amount ?? 0,
+                      slipNo: inv.invoice_no,
+                      memo: inv.memo ?? '',
+                    })}
                   >
                     {st ? (
                       <span className={`text-xs font-medium ${st.cls}`}>{st.label}</span>
@@ -416,6 +669,15 @@ export function Invoices() {
                   {/* 인라인 액션 버튼 */}
                   <td className="px-2 py-3">
                     <div className="flex gap-1 justify-end">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        title="수정"
+                        onClick={(e) => { e.stopPropagation(); openEdit(inv.Id) }}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="sm"
@@ -506,6 +768,40 @@ export function Invoices() {
           }}
         />
       )}
+
+      <TransactionDetailDialog
+        open={!!selectedTransaction}
+        transaction={selectedTransaction}
+        onClose={() => setSelectedTransaction(null)}
+      />
+
+      <Dialog open={showCourierConfirm} onOpenChange={setShowCourierConfirm}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>송장 다운로드 전 확인</DialogTitle>
+            <DialogDescription>
+              업로드용 엑셀은 생성할 수 있지만, 누락된 배송 정보는 택배 시스템에서 반려될 수 있습니다.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="rounded-lg border bg-amber-50 px-4 py-3 text-sm text-amber-800 space-y-1">
+            <p>현재 필터 결과 {filteredInvoices.length.toLocaleString()}건</p>
+            <p>주소 누락 {courierWarning.missingAddress.toLocaleString()}건</p>
+            <p>연락처 누락 {courierWarning.missingPhone.toLocaleString()}건</p>
+          </div>
+          <DialogFooter>
+            <Button variant="ghost" onClick={() => setShowCourierConfirm(false)}>취소</Button>
+            <Button
+              className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
+              onClick={() => {
+                setShowCourierConfirm(false)
+                void runCourierExport()
+              }}
+            >
+              계속 다운로드
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

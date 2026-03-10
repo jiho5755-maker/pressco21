@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { getAllInvoices, getCustomer, updateInvoice, recalcCustomerStats } from '@/lib/api'
+import { getAllCustomers, getAllInvoices, getCustomer, updateInvoice, recalcCustomerStats } from '@/lib/api'
 import type { Customer, Invoice } from '@/lib/api'
 import { exportReceivables } from '@/lib/excel'
 import { getLegacyBalanceBaseline } from '@/lib/legacySnapshots'
@@ -248,6 +248,12 @@ export function Receivables() {
     },
     staleTime: 10 * 60 * 1000,
   })
+  const { data: customersForLink = [] } = useQuery({
+    queryKey: ['receivable-link-customers'],
+    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id' }),
+    staleTime: 10 * 60 * 60 * 1000,
+  })
+  const customerById = new Map(customersForLink.map((customer) => [customer.Id, customer]))
   const isTodayView = asOfDate === todayDate()
   const visibleInvoices: ReceivableSnapshot[] = invoices
     .map((inv) => {
@@ -312,6 +318,20 @@ export function Receivables() {
   }).length
   const breakdownCrmReceivable = customerBreakdown ? filteredInvoices.reduce((sum, inv) => sum + inv.asOfRemaining, 0) : 0
   const breakdownCurrentBalance = customerBreakdown?.customer.outstanding_balance ?? 0
+  const receivableLinkSummary = filteredInvoices.reduce((summary, invoice) => {
+    const linkedCustomer = typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined
+    const invoiceName = invoice.customer_name?.trim()
+    const masterName = linkedCustomer?.name?.trim()
+    const masterBookName = linkedCustomer?.book_name?.trim()
+    if (typeof invoice.customer_id === 'number' && invoice.customer_id > 0 && !linkedCustomer) {
+      summary.orphanCount += 1
+      return summary
+    }
+    if (linkedCustomer && invoiceName && invoiceName !== masterName && invoiceName !== masterBookName) {
+      summary.splitCount += 1
+    }
+    return summary
+  }, { orphanCount: 0, splitCount: 0 })
 
   if (isLoading)
     return (
@@ -429,6 +449,17 @@ export function Receivables() {
         </div>
       )}
 
+      {(receivableLinkSummary.orphanCount > 0 || receivableLinkSummary.splitCount > 0) && (
+        <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
+          {receivableLinkSummary.orphanCount > 0 && (
+            <div>고객관리 연결이 없는 분리 거래명 미수 {receivableLinkSummary.orphanCount}건</div>
+          )}
+          {receivableLinkSummary.splitCount > 0 && (
+            <div>고객명과 별도로 얼마에요 구분명이 유지된 미수 {receivableLinkSummary.splitCount}건</div>
+          )}
+        </div>
+      )}
+
       {/* 에이징 테이블 */}
       <div className="rounded-lg border bg-white overflow-hidden mb-6">
         <div className="px-4 py-3 border-b bg-gray-50">
@@ -496,7 +527,25 @@ export function Receivables() {
                         : 'text-muted-foreground'
                 return (
                   <tr key={inv.Id} className="border-b last:border-b-0">
-                    <td className="px-4 py-2.5 font-medium">{inv.customer_name ?? '-'}</td>
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium">{inv.customer_name ?? '-'}</div>
+                      {(() => {
+                        const linkedCustomer = typeof inv.customer_id === 'number' ? customerById.get(inv.customer_id) : undefined
+                        const invoiceName = inv.customer_name?.trim()
+                        const masterName = linkedCustomer?.name?.trim()
+                        const masterBookName = linkedCustomer?.book_name?.trim()
+                        if (typeof inv.customer_id === 'number' && inv.customer_id > 0 && !linkedCustomer) {
+                          return <div className="mt-0.5 text-xs text-amber-700">고객관리 연결 없음 · 분리 거래명 유지</div>
+                        }
+                        if (linkedCustomer && invoiceName && invoiceName !== masterName && invoiceName !== masterBookName) {
+                          return <div className="mt-0.5 text-xs text-amber-700">고객관리: {masterName || '-'} · 분리 거래명 유지</div>
+                        }
+                        if (linkedCustomer && masterBookName && masterBookName !== masterName && invoiceName === masterBookName) {
+                          return <div className="mt-0.5 text-xs text-muted-foreground">얼마에요 구분명 기준</div>
+                        }
+                        return null
+                      })()}
+                    </td>
                     <td className="px-4 py-2.5 font-mono text-xs text-muted-foreground">
                       {inv.invoice_no ?? '-'}
                     </td>

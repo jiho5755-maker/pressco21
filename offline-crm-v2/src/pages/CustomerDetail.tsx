@@ -434,6 +434,13 @@ export function CustomerDetail() {
   const legacyCustomerList = (customer.name ? legacySnapshots?.customerListByName?.[customer.name] : undefined) ?? []
   const legacyBalanceBaseline = parseLegacyAmount(legacyTradebook?.balance)
   const crmOutstandingBalance = outstandingBalance - legacyBalanceBaseline
+  const invoiceNameVariants = Array.from(
+    new Set(
+      (invoiceData?.list ?? [])
+        .map((invoice) => invoice.customer_name?.trim())
+        .filter((name): name is string => Boolean(name && name !== customer.name)),
+    ),
+  )
 
   return (
     <div className="p-6">
@@ -526,6 +533,23 @@ export function CustomerDetail() {
           </p>
         </div>
       </div>
+
+      {((customer.book_name && customer.book_name !== customer.name) || invoiceNameVariants.length > 0) && (
+        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
+          <p className="text-sm font-medium text-amber-900">얼마에요 구분명 유지</p>
+          <div className="mt-2 space-y-1 text-sm text-amber-900">
+            {customer.book_name && customer.book_name !== customer.name && (
+              <div>장부명: {customer.book_name}</div>
+            )}
+            {invoiceNameVariants.length > 0 && (
+              <div>명세표 표기명: {invoiceNameVariants.join(', ')}</div>
+            )}
+          </div>
+          <p className="mt-2 text-xs text-amber-800">
+            대납, 지점 구분, 입금 주체 분리 같은 이유로 고객명과 다른 거래명이 유지될 수 있습니다.
+          </p>
+        </div>
+      )}
 
       {/* 탭 */}
       <Tabs defaultValue="info">

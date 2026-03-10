@@ -1,12 +1,15 @@
 import { useState, useEffect, useMemo } from 'react'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { useQuery } from '@tanstack/react-query'
-import { Search, ChevronLeft, ChevronRight, AlertTriangle } from 'lucide-react'
+import { Search, ChevronLeft, ChevronRight, AlertTriangle, Plus } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
-import { getTxHistory, getInvoices, sanitizeSearchTerm } from '@/lib/api'
-import type { TxHistory, Invoice } from '@/lib/api'
+import { getAllCustomers, getTxHistory, getInvoices, sanitizeSearchTerm } from '@/lib/api'
+import type { TxHistory, Invoice, Customer } from '@/lib/api'
+import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
+import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 
 const PAGE_SIZE = 50
 
@@ -32,8 +35,10 @@ const TX_TYPE_STYLE: Record<string, { bg: string; text: string }> = {
 // CRM Invoice → 통합 행 형식으로 변환
 interface UnifiedRow {
   id: string
+  recordId: number
   tx_date: string
   customer_name: string
+  legacy_book_id?: string
   tx_type: string
   amount: number
   tax: number
@@ -42,9 +47,26 @@ interface UnifiedRow {
   source: 'legacy' | 'crm'
 }
 
+function matchesTransactionSearch(
+  row: UnifiedRow,
+  keyword: string,
+  customerSearchTextByLegacyId: Map<string, string>,
+): boolean {
+  const normalizedKeyword = keyword.trim().toLowerCase()
+  if (!normalizedKeyword) return true
+  const haystacks = [
+    row.customer_name,
+    row.memo,
+    row.slip_no,
+    row.legacy_book_id ? customerSearchTextByLegacyId.get(row.legacy_book_id) ?? '' : '',
+  ]
+  return haystacks.some((value) => value?.toLowerCase().includes(normalizedKeyword))
+}
+
 function invoiceToRow(inv: Invoice): UnifiedRow {
   return {
     id: `crm-${inv.Id}`,
+    recordId: inv.Id,
     tx_date: inv.invoice_date ?? '',
     customer_name: inv.customer_name ?? '',
     tx_type: '출고(CRM)',
@@ -56,11 +78,16 @@ function invoiceToRow(inv: Invoice): UnifiedRow {
   }
 }
 
-function txToRow(tx: TxHistory): UnifiedRow {
+function txToRow(tx: TxHistory, customerNameByLegacyId: Map<string, string>): UnifiedRow {
+  const legacyBookId = tx.legacy_book_id != null ? String(tx.legacy_book_id).trim() : ''
+  const resolvedCustomerName =
+    tx.customer_name?.trim() || (legacyBookId ? customerNameByLegacyId.get(legacyBookId) ?? '' : '')
   return {
     id: `legacy-${tx.Id}`,
+    recordId: tx.Id,
     tx_date: tx.tx_date ?? '',
-    customer_name: tx.customer_name ?? '',
+    customer_name: resolvedCustomerName,
+    legacy_book_id: legacyBookId,
     tx_type: tx.tx_type ?? '',
     amount: tx.amount ?? 0,
     tax: tx.tax ?? 0,
@@ -100,10 +127,16 @@ function getPresetDates(key: string): [string, string] {
 }
 
 export function Transactions() {
-  const [activeTab, setActiveTab] = useState<TabKey>('all')
-  const [search, setSearch] = useState('')
+  const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
+  const [activeTab, setActiveTab] = useState<TabKey>(() => {
+    const tab = searchParams.get('tab')
+    return tab === 'legacy' || tab === 'crm' || tab === 'all' ? tab : 'all'
+  })
+  const [search, setSearch] = useState(() => searchParams.get('customer') ?? searchParams.get('q') ?? '')
   const [typeFilter, setTypeFilter] = useState('ALL')
   const [page, setPage] = useState(1)
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionPreview | null>(null)
 
   // 전체 탭: 기본 최근 3개월
   const [defaultFrom, defaultTo] = getPresetDates('3months')
@@ -111,6 +144,67 @@ export function Transactions() {
   const [dateTo, setDateTo] = useState(defaultTo)
 
   const debouncedSearch = useDebounce(search, 400)
+
+  const { data: customerDirectory = [] } = useQuery({
+    queryKey: ['transactions-customer-directory'],
+    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id' }),
+    staleTime: 10 * 60_000,
+  })
+
+  const customerNameByLegacyId = useMemo(() => {
+    const map = new Map<string, string>()
+    customerDirectory.forEach((customer: Customer) => {
+      const legacyId = customer.legacy_id != null ? String(customer.legacy_id).trim() : ''
+      if (!legacyId) return
+      const label = customer.name?.trim() || customer.book_name?.trim() || ''
+      if (label) map.set(legacyId, label)
+    })
+    return map
+  }, [customerDirectory])
+
+  const customerSearchTextByLegacyId = useMemo(() => {
+    const map = new Map<string, string>()
+    customerDirectory.forEach((customer: Customer) => {
+      const legacyId = customer.legacy_id != null ? String(customer.legacy_id).trim() : ''
+      if (!legacyId) return
+      const searchText = [customer.name?.trim(), customer.book_name?.trim()].filter(Boolean).join(' ')
+      if (searchText) map.set(legacyId, searchText)
+    })
+    return map
+  }, [customerDirectory])
+
+  const matchedLegacyIds = useMemo(() => {
+    const keyword = debouncedSearch.trim().toLowerCase()
+    if (!keyword) return [] as string[]
+    return customerDirectory
+      .flatMap((customer: Customer) => {
+        const legacyId = customer.legacy_id != null ? String(customer.legacy_id).trim() : ''
+        const haystacks = [customer.name?.trim(), customer.book_name?.trim()].filter(Boolean) as string[]
+        const matched = haystacks.some((value) => value.toLowerCase().includes(keyword))
+        return matched && legacyId ? [legacyId] : []
+      })
+      .filter((legacyId, index, arr) => arr.indexOf(legacyId) === index)
+  }, [customerDirectory, debouncedSearch])
+
+  useEffect(() => {
+    const nextSearch = searchParams.get('customer') ?? searchParams.get('q') ?? ''
+    setSearch((prev) => (prev === nextSearch ? prev : nextSearch))
+    const tab = searchParams.get('tab')
+    const nextTab = tab === 'legacy' || tab === 'crm' || tab === 'all' ? tab : 'all'
+    setActiveTab((prev) => (prev === nextTab ? prev : nextTab))
+  }, [searchParams])
+
+  useEffect(() => {
+    const nextParams = new URLSearchParams(searchParams)
+    if (debouncedSearch) nextParams.set('customer', debouncedSearch)
+    else nextParams.delete('customer')
+    nextParams.delete('q')
+    if (activeTab !== 'all') nextParams.set('tab', activeTab)
+    else nextParams.delete('tab')
+    const current = searchParams.toString()
+    const next = nextParams.toString()
+    if (current !== next) setSearchParams(nextParams, { replace: true })
+  }, [debouncedSearch, activeTab, searchParams, setSearchParams])
 
   // 필터/검색 변경 시 1페이지로 리셋
   useEffect(() => setPage(1), [debouncedSearch, typeFilter, dateFrom, dateTo])
@@ -123,22 +217,23 @@ export function Transactions() {
   }
 
   // ── skipLegacy / skipCrm 판별 ──
+  const useLegacyClientSearch = !!debouncedSearch && matchedLegacyIds.length > 0
   const skipLegacy = activeTab === 'crm' || typeFilter === '출고(CRM)'
   const skipCrm = activeTab === 'legacy' || ['입금', '반입', '메모'].includes(typeFilter)
 
-  const isServerPaginated = activeTab === 'legacy' || activeTab === 'crm'
+  const isServerPaginated = (activeTab === 'legacy' || activeTab === 'crm') && !useLegacyClientSearch
 
   // ── 레거시 거래내역 쿼리 ──
   const legacyParams = useMemo(() => {
     const p: Record<string, string | number> = {
-      limit: isServerPaginated && activeTab === 'legacy' ? PAGE_SIZE : 1000,
+      limit: isServerPaginated && activeTab === 'legacy' ? PAGE_SIZE : (useLegacyClientSearch ? 5000 : 1000),
       sort: '-tx_date',
     }
     if (isServerPaginated && activeTab === 'legacy') {
       p.offset = (page - 1) * PAGE_SIZE
     }
     const conds: string[] = []
-    if (debouncedSearch) {
+    if (debouncedSearch && !useLegacyClientSearch) {
       const safe = sanitizeSearchTerm(debouncedSearch)
       conds.push(`(customer_name,like,%${safe}%)`)
     }
@@ -149,7 +244,7 @@ export function Transactions() {
       p.where = conds.length === 1 ? conds[0] : conds.join('~and')
     }
     return p
-  }, [isServerPaginated, activeTab, page, debouncedSearch, skipLegacy, typeFilter, dateFrom, dateTo])
+  }, [isServerPaginated, activeTab, page, debouncedSearch, useLegacyClientSearch, skipLegacy, typeFilter, dateFrom, dateTo])
 
   const { data: legacyData, isLoading: legacyLoading, isError: legacyError } = useQuery({
     queryKey: ['transactions', legacyParams],
@@ -208,11 +303,13 @@ export function Transactions() {
     if (isServerPaginated) {
       // 서버 페이지네이션: 한쪽 소스만 표시
       if (activeTab === 'legacy') {
-        const list = (legacyData?.list ?? []).map(txToRow)
+        const list = (legacyData?.list ?? [])
+          .map((tx) => txToRow(tx, customerNameByLegacyId))
+          .filter((row) => matchesTransactionSearch(row, debouncedSearch, customerSearchTextByLegacyId))
         return {
-          rows: list,
-          totalPages: Math.max(1, Math.ceil(serverLegacyTotal / PAGE_SIZE)),
-          totalDisplay: serverLegacyTotal,
+          rows: isServerPaginated ? list : list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
+          totalPages: Math.max(1, Math.ceil((isServerPaginated ? serverLegacyTotal : list.length) / PAGE_SIZE)),
+          totalDisplay: isServerPaginated ? serverLegacyTotal : list.length,
           isTruncated: false,
         }
       } else {
@@ -228,8 +325,11 @@ export function Transactions() {
     }
 
     // 전체 탭: 양쪽 병합 → 클라이언트 페이지네이션
-    const legacy = (legacyData?.list ?? []).map(txToRow)
+    const legacy = (legacyData?.list ?? [])
+      .map((tx) => txToRow(tx, customerNameByLegacyId))
+      .filter((row) => matchesTransactionSearch(row, debouncedSearch, customerSearchTextByLegacyId))
     const crm = filterByDate((crmData?.list ?? []).map(invoiceToRow))
+      .filter((row) => matchesTransactionSearch(row, debouncedSearch, customerSearchTextByLegacyId))
     const merged = [...legacy, ...crm]
     merged.sort((a, b) => b.tx_date.localeCompare(a.tx_date))
     const loadedCount = merged.length
@@ -240,7 +340,7 @@ export function Transactions() {
       totalDisplay: loadedCount,
       isTruncated: truncated,
     }
-  }, [isServerPaginated, activeTab, legacyData, crmData, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm, page, dateFrom, dateTo])
+  }, [isServerPaginated, activeTab, legacyData, crmData, customerNameByLegacyId, customerSearchTextByLegacyId, debouncedSearch, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm, page, dateFrom, dateTo])
 
   const isLoading = (legacyLoading && !skipLegacy) || (crmLoading && !skipCrm)
   // 양쪽 모두 실패한 경우만 전체 에러 (부분 실패는 경고로 처리)
@@ -302,9 +402,16 @@ export function Transactions() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h2 className="text-2xl font-bold">거래 내역</h2>
+          <h2 className="text-2xl font-bold">거래/명세표 조회</h2>
           <p className="text-sm text-muted-foreground mt-1">{headerCount}</p>
         </div>
+        <Button
+          onClick={() => navigate('/invoices?new=1')}
+          className="bg-[#7d9675] hover:bg-[#6a8462] text-white gap-1"
+        >
+          <Plus className="h-4 w-4" />
+          명세표 작성
+        </Button>
       </div>
 
       {/* 탭 */}
@@ -388,7 +495,7 @@ export function Transactions() {
       {activeTab === 'all' && (
         <div className="mb-3 text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
           레거시 거래내역과 CRM 거래명세표를 날짜순으로 통합 표시합니다.
-          더 많은 데이터를 탐색하려면 &ldquo;레거시 거래&rdquo; 또는 &ldquo;CRM 명세표&rdquo; 탭을 사용하세요.
+          행을 클릭하면 당시 거래 상세와 묶음 내역을 확인할 수 있습니다.
         </div>
       )}
       {activeTab === 'legacy' && (
@@ -462,7 +569,19 @@ export function Transactions() {
                   key={row.id}
                   className={`border-b last:border-b-0 hover:bg-gray-50 ${
                     row.source === 'crm' ? 'bg-indigo-50/30' : ''
-                  }`}
+                  } cursor-pointer transition-colors`}
+                  onClick={() => setSelectedTransaction({
+                    source: row.source,
+                    recordId: row.recordId,
+                    date: row.tx_date.slice(0, 10),
+                    customerName: row.customer_name,
+                    legacyBookId: row.legacy_book_id,
+                    txType: row.tx_type,
+                    amount: row.amount,
+                    tax: row.tax,
+                    slipNo: row.slip_no,
+                    memo: row.memo,
+                  })}
                 >
                   <td className="px-4 py-2.5 text-xs text-muted-foreground tabular-nums">
                     {row.tx_date.slice(0, 10) || '-'}
@@ -536,6 +655,12 @@ export function Transactions() {
           </div>
         </div>
       )}
+
+      <TransactionDetailDialog
+        open={!!selectedTransaction}
+        transaction={selectedTransaction}
+        onClose={() => setSelectedTransaction(null)}
+      />
     </div>
   )
 }

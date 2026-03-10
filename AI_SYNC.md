@@ -49,16 +49,17 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
+- Current Owner: CODEX
+- Mode: WRITE
 - Started At: 2026-03-10 13:41:35 KST
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: 파트너클래스 handoff 문서화 및 재시작용 메모리 백업
+- Active Subdirectory: docs, 파트너클래스
 
 ## Files In Progress
 
-- 없음
+- AI_SYNC.md
+- docs/파트너클래스/partnerclass-handoff-2026-03-10.md
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
 
@@ -706,9 +707,39 @@
   - `node --check 파트너클래스/파트너신청/js.js` → `OK`
   - `curl -i -X POST https://n8n.pressco21.com/webhook/partner-apply ...` → `409 Conflict`, `ALREADY_PARTNER` JSON 응답 확인
 
+### CRM 레거시/명세표 복구 및 검증 (CODEX)
+- 실행 일시: 2026-03-10 13:41 KST ~ 2026-03-10 14:55 KST
+- 복구 내용
+  - 운영 NocoDB 안전 백업 추가: `~/nocodb/nocodb_data/noco.db.pre-recovery-20260310-134105`
+  - 감사 로그 기준 `tbl_Invoices 16건`, `tbl_InvoiceItems 127건` 복구
+  - `txHistory.customer_name` 공란 중 고객 매핑 가능 237건 정규화 완료
+  - `서상견 님` `legacy_book_id=721`의 2023~2025 거래가 DB/화면에서 직접 검색되도록 보정
+  - 복구된 CRM 명세표 기준 고객 통계/미수금 일부 재산출
+- 운영 검증
+  - `거래/명세표 조회`에서 `2026-03-10` CRM 명세표 노출 확인
+  - `명세표 작성`에서 `INV-20260310-095704` 포함 최신 명세표 노출 확인
+  - `미수금`에서 `서상견 님 (단양)`, `권금희 회장님 (전주)`, `대아수목원` 노출 확인
+  - `서상견` 검색 + `2023-01-01 ~ 2025-12-31` 범위에서 레거시 거래 노출 확인
+- 추가 파일
+  - `offline-crm-v2/docs/legacy-backup-audit-2026-03-10.md`
+  - `offline-crm-v2/public/data/legacy-customer-snapshots.json`
+  - `offline-crm-v2/scripts/export_legacy_customer_snapshots.py`
+  - `offline-crm-v2/scripts/repair_legacy_backup.py`
+  - `offline-crm-v2/scripts/restore_crm_invoices_from_audit.sql`
+  - `offline-crm-v2/scripts/fill_txhistory_customer_names.sql`
+  - `offline-crm-v2/scripts/recompute_invoice_customer_stats.sql`
+  - `offline-crm-v2/src/components/TransactionDetailDialog.tsx`
+  - `offline-crm-v2/src/pages/CustomerDetail.tsx`
+  - `offline-crm-v2/src/pages/Transactions.tsx`
+  - `offline-crm-v2/src/lib/api.ts`
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
+- [CODEX] CRM 중복 고객 레코드 통합 정책 정리 (예: `서상견 님` / `서상견 님 (단양)`)
+- [CODEX] 레거시 고객리스트 충돌 506건을 덮어쓰기 없이 보관/표시하는 정책 설계
+- [CODEX] `outstanding_balance`의 레거시 baseline + CRM 미수 합산 정책 최종 검증
+- [CODEX] 얼마에요 백업 원본 대비 고객/거래/품목 최종 누락 0건 재감사
 - [CODEX] 메이크샵 저장 후 `파트너신청(2609)`, `상세(2607)`, `파트너(2608)`, `강의등록(8009)`, `마이페이지(8010)`, `교육(2610)` 로그인 안내 버튼 라이브 재검증
 - [CODEX] `상세(2607)` 선물하기를 실상품 기준으로 다시 눌러 `선물 주문하기` 헤더 노출 여부 최종 E2E 확인
 - [CODEX] 상세 분류 링크(`카테고리/난이도/지역/강사`)가 목록 필터와 실제 일치하는지 라이브 회귀 테스트

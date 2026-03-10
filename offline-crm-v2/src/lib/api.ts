@@ -190,6 +190,8 @@ function normalizePaymentStatus(value: unknown): string | undefined {
 // ─────────────────────────────────────────
 export interface Customer {
   Id: number
+  legacy_id?: number | string
+  book_name?: string
   name?: string
   phone?: string    // 인터페이스 호환용 (NocoDB 실제 필드: phone1)
   phone1?: string   // NocoDB 실제 필드명
@@ -593,11 +595,18 @@ export async function recalcCustomerStats(customerId: number): Promise<void> {
 
   // 2. 레거시 거래내역 합산 (출고 유형만)
   let legacyTotal = 0, legacyCount = 0, legacyLastDate = ''
-  if (customer.name) {
+  const legacyId = customer.legacy_id != null ? String(customer.legacy_id).trim() : ''
+  const customerName = customer.name?.trim()
+  const txWhere = legacyId
+    ? `(legacy_book_id,eq,${sanitizeSearchTerm(legacyId)})~and(tx_type,eq,출고)`
+    : customerName
+      ? `(customer_name,eq,${sanitizeSearchTerm(customerName)})~and(tx_type,eq,출고)`
+      : ''
+  if (txWhere) {
     const txResult = await proxyRequest<ListResponse<TxHistory>>({
       table: 'txHistory',
       params: {
-        where: `(customer_name,eq,${sanitizeSearchTerm(customer.name)})~and(tx_type,eq,출고)`,
+        where: txWhere,
         sort: '-tx_date',
         limit: 1000,
         fields: 'Id,amount,tx_date',

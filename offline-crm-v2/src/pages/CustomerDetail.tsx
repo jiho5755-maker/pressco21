@@ -17,6 +17,8 @@ import { getCustomer, getTxHistory, getInvoices, updateCustomer, recalcCustomerS
 import type { Customer } from '@/lib/api'
 import { printPeriodReport } from '@/lib/print'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
+import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
+import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 
 // ── 기본정보 편집 폼 ──────────────────────────────────────
 interface InfoForm {
@@ -36,7 +38,149 @@ interface InfoForm {
   addresses: string[]
 }
 
+interface LegacyTradebookSnapshot {
+  legacy_id: string
+  book_name: string
+  name: string
+  business_no: string
+  branch_no: string
+  corporation_no: string
+  ceo_name: string
+  business_address: string
+  business_type: string
+  business_item: string
+  zip: string
+  address1: string
+  address2: string
+  phone1: string
+  phone2: string
+  fax: string
+  manager: string
+  mobile: string
+  email: string
+  email2: string
+  homepage: string
+  trade_type: string
+  tree_type: string
+  memo: string
+  related_account: string
+  category_name: string
+  sales_manager: string
+  report_print: string
+  balance: string
+  price_tier: string
+  sms_opt_in: string
+  fax_opt_in: string
+  vat_custom: string
+  auto_category: string
+  carry_over_balance: string
+  bank_name: string
+  bank_account: string
+  bank_owner: string
+  rate: string
+}
+
+interface LegacyCustomerListSnapshot {
+  serial_no: string
+  business_no: string
+  customer_group: string
+  registered_at: string
+  customer_name: string
+  company_department: string
+  zip: string
+  address1: string
+  address2: string
+  note: string
+  reference: string
+  phone_company: string
+  phone_home: string
+  mobile: string
+  email: string
+}
+
+interface LegacyCustomerSnapshotPayload {
+  generatedAt: string
+  tradebookByLegacyId: Record<string, LegacyTradebookSnapshot>
+  customerListByName: Record<string, LegacyCustomerListSnapshot[]>
+}
+
 const MAX_ADDRESS_FIELDS = 10
+
+function normalizeLegacyCompareText(value: string | undefined) {
+  return (value ?? '')
+    .replace(/\s+/g, '')
+    .replace(/[()\-.,]/g, '')
+    .trim()
+    .toLowerCase()
+}
+
+function normalizePhoneLike(value: string | undefined) {
+  return (value ?? '').replace(/\D/g, '')
+}
+
+function normalizeBusinessNo(value: string | undefined) {
+  return (value ?? '').replace(/\D/g, '')
+}
+
+function deriveLegacyTradebookSnapshot(
+  customer: Customer | undefined,
+  snapshots: LegacyCustomerSnapshotPayload | undefined,
+): { snapshot?: LegacyTradebookSnapshot; matchReason?: string } {
+  if (!customer || !snapshots) return {}
+
+  const legacyId = customer.legacy_id != null ? String(customer.legacy_id).trim() : ''
+  if (legacyId) {
+    const snapshot = snapshots.tradebookByLegacyId?.[legacyId]
+    if (snapshot) return { snapshot, matchReason: 'legacy_id' }
+  }
+
+  const customerMobile = normalizePhoneLike(typeof customer.mobile === 'string' ? customer.mobile : undefined)
+  const customerEmail = normalizeLegacyCompareText(typeof customer.email === 'string' ? customer.email : undefined)
+  const customerBizNo = normalizeBusinessNo(
+    typeof customer.biz_no === 'string' ? customer.biz_no : typeof customer.business_no === 'string' ? customer.business_no : undefined,
+  )
+  const customerName = normalizeLegacyCompareText(typeof customer.name === 'string' ? customer.name : undefined)
+
+  let fallbackMatch: LegacyTradebookSnapshot | undefined
+  let fallbackReason: string | undefined
+
+  for (const snapshot of Object.values(snapshots.tradebookByLegacyId ?? {})) {
+    const snapshotMobile = normalizePhoneLike(snapshot.mobile)
+    const snapshotEmail = normalizeLegacyCompareText(snapshot.email)
+    const snapshotBizNo = normalizeBusinessNo(snapshot.business_no)
+    const snapshotName = normalizeLegacyCompareText(snapshot.name)
+    const snapshotBookName = normalizeLegacyCompareText(snapshot.book_name)
+    const snapshotCeoName = normalizeLegacyCompareText(snapshot.ceo_name)
+
+    if (customerBizNo && snapshotBizNo && customerBizNo === snapshotBizNo) {
+      return { snapshot, matchReason: 'business_no' }
+    }
+
+    const mobileMatched = customerMobile && snapshotMobile && customerMobile === snapshotMobile
+    const emailMatched = customerEmail && snapshotEmail && customerEmail === snapshotEmail
+
+    if (mobileMatched && emailMatched) {
+      return { snapshot, matchReason: 'mobile+email' }
+    }
+
+    if (!fallbackMatch && mobileMatched) {
+      fallbackMatch = snapshot
+      fallbackReason = 'mobile'
+    }
+
+    if (!fallbackMatch && customerName && (customerName === snapshotName || customerName === snapshotBookName)) {
+      fallbackMatch = snapshot
+      fallbackReason = 'name'
+    }
+
+    if (!fallbackMatch && customerName && snapshotCeoName && customerName.includes(snapshotCeoName)) {
+      fallbackMatch = snapshot
+      fallbackReason = 'name-ceo'
+    }
+  }
+
+  return { snapshot: fallbackMatch, matchReason: fallbackReason }
+}
 
 function buildInfoForm(c: Customer): InfoForm {
   const addresses: string[] = []
@@ -79,33 +223,43 @@ function toNullableText(value: string): string | null {
 }
 
 // ── 거래내역 쿼리 (모든 tx_type, 페이지네이션) ──────────
-function useCustomerTxPage(name: string | undefined, offset: number) {
+function useCustomerTxPage(legacyId: string | undefined, name: string | undefined, offset: number) {
+  const txWhere = legacyId
+    ? `(legacy_book_id,eq,${sanitizeSearchTerm(legacyId)})`
+    : name
+      ? `(customer_name,eq,${sanitizeSearchTerm(name)})`
+      : ''
   return useQuery({
-    queryKey: ['txHistoryPage', name, offset],
+    queryKey: ['txHistoryPage', legacyId, name, offset],
     queryFn: () =>
       getTxHistory({
-        where: `(customer_name,eq,${sanitizeSearchTerm(name ?? '')})`,
+        where: txWhere,
         sort: '-tx_date',
         limit: TX_PAGE,
         offset,
       }),
-    enabled: !!name,
+    enabled: !!txWhere,
     staleTime: 5 * 60_000,
     placeholderData: (prev) => prev,
   })
 }
 
 // ── 차트용 출고 전체 (최대 1,000건) ──────────────────────
-function useCustomerTxAll(name: string | undefined) {
+function useCustomerTxAll(legacyId: string | undefined, name: string | undefined) {
+  const txWhere = legacyId
+    ? `(legacy_book_id,eq,${sanitizeSearchTerm(legacyId)})~and(tx_type,eq,출고)`
+    : name
+      ? `(customer_name,eq,${sanitizeSearchTerm(name)})~and(tx_type,eq,출고)`
+      : ''
   return useQuery({
-    queryKey: ['txHistoryAll', name],
+    queryKey: ['txHistoryAll', legacyId, name],
     queryFn: () =>
       getTxHistory({
-        where: `(customer_name,eq,${name})~and(tx_type,eq,출고)`,
+        where: txWhere,
         sort: '-tx_date',
         limit: 1000,
       }),
-    enabled: !!name,
+    enabled: !!txWhere,
     staleTime: 10 * 60_000,
   })
 }
@@ -127,6 +281,7 @@ export function CustomerDetail() {
   const [gradeEditMode, setGradeEditMode] = useState(false)
   const [editGrade, setEditGrade] = useState('')
   const [editQual, setEditQual] = useState('')
+  const [selectedTransaction, setSelectedTransaction] = useState<TransactionPreview | null>(null)
 
   // 기본정보 편집 상태
   const [infoEditMode, setInfoEditMode] = useState(false)
@@ -145,6 +300,16 @@ export function CustomerDetail() {
     queryFn: () => getCustomer(customerId),
     enabled: !!customerId,
     staleTime: 10 * 60_000,
+  })
+
+  const { data: legacySnapshots } = useQuery<LegacyCustomerSnapshotPayload>({
+    queryKey: ['legacy-customer-snapshots'],
+    queryFn: async () => {
+      const response = await fetch('/data/legacy-customer-snapshots.json')
+      if (!response.ok) throw new Error('레거시 백업 스냅샷을 불러오지 못했습니다.')
+      return response.json() as Promise<LegacyCustomerSnapshotPayload>
+    },
+    staleTime: Infinity,
   })
 
   const { mutate: saveGrade, isPending: savingGrade } = useMutation({
@@ -214,8 +379,9 @@ export function CustomerDetail() {
     onError: (e: Error) => toast.error(`재계산 실패: ${e.message}`),
   })
 
-  const { data: txAll } = useCustomerTxAll(customer?.name)
-  const { data: txPage } = useCustomerTxPage(customer?.name, txOffset)
+  const customerLegacyId = customer?.legacy_id != null ? String(customer.legacy_id).trim() : undefined
+  const { data: txAll } = useCustomerTxAll(customerLegacyId, customer?.name)
+  const { data: txPage } = useCustomerTxPage(customerLegacyId, customer?.name, txOffset)
 
   // 명세표 + 거래내역 병합용: 최대 500건 (customer_name OR customer_id로 조회)
   const { data: invoiceData } = useQuery({
@@ -301,20 +467,28 @@ export function CustomerDetail() {
   const mergedHistory = useMemo(() => {
     type Row = {
       key: string
+      source: 'crm' | 'legacy'
+      recordId: number
       date: string
+      legacyBookId?: string
       txType: string
       amount: number
       memo: string
+      slipNo?: string
       isCrm: boolean
     }
 
     // 레거시 txHistory (현재 페이지)
     const txRows: Row[] = (txPage?.list ?? []).map((tx) => ({
       key: `tx-${tx.Id}`,
+      source: 'legacy',
+      recordId: tx.Id,
       date: tx.tx_date?.slice(0, 10) ?? '',
+      legacyBookId: tx.legacy_book_id != null ? String(tx.legacy_book_id).trim() : '',
       txType: tx.tx_type ?? '-',
       amount: tx.amount ?? 0,
       memo: tx.memo || tx.slip_no || '-',
+      slipNo: tx.slip_no ?? '',
       isCrm: false,
     }))
 
@@ -323,20 +497,26 @@ export function CustomerDetail() {
     for (const inv of invoiceData?.list ?? []) {
       invRows.push({
         key: `inv-${inv.Id}`,
+        source: 'crm',
+        recordId: inv.Id,
         date: inv.invoice_date?.slice(0, 10) ?? '',
         txType: '출고',
         amount: inv.total_amount ?? 0,
         memo: inv.invoice_no ?? '-',
+        slipNo: inv.invoice_no ?? '',
         isCrm: true,
       })
       // 입금 행 (paid_amount > 0 인 경우)
       if ((inv.paid_amount ?? 0) > 0) {
         invRows.push({
           key: `inv-paid-${inv.Id}`,
+          source: 'crm',
+          recordId: inv.Id,
           date: inv.invoice_date?.slice(0, 10) ?? '',
           txType: '입금',
           amount: inv.paid_amount ?? 0,
           memo: inv.invoice_no ?? '-',
+          slipNo: inv.invoice_no ?? '',
           isCrm: true,
         })
       }
@@ -382,6 +562,8 @@ export function CustomerDetail() {
   const status = customer.customer_status
   const effectiveGrade = customer.is_ambassador ? 'AMBASSADOR' : (customer.member_grade ?? '')
   const outstandingBalance = (customer.outstanding_balance as number | undefined) ?? 0
+  const { snapshot: legacyTradebook, matchReason: legacyTradebookMatchReason } = deriveLegacyTradebookSnapshot(customer, legacySnapshots)
+  const legacyCustomerList = (customer.name ? legacySnapshots?.customerListByName?.[customer.name] : undefined) ?? []
 
   return (
     <div className="p-6">
@@ -452,6 +634,7 @@ export function CustomerDetail() {
           <TabsTrigger value="history">거래내역</TabsTrigger>
           <TabsTrigger value="chart">매출차트</TabsTrigger>
           <TabsTrigger value="invoices">명세표 · 기간매출</TabsTrigger>
+          <TabsTrigger value="legacy">레거시 백업 원본</TabsTrigger>
         </TabsList>
 
         {/* ─── 기본정보 ─── */}
@@ -746,6 +929,7 @@ export function CustomerDetail() {
             <p className="text-blue-600 pt-0.5">
               <span className="font-medium">[CRM]</span> 배지 = 이 시스템에서 발행한 명세표 · 배지 없음 = 기존 거래 데이터
             </p>
+            <p className="text-blue-600">행을 클릭하면 당시 거래 상세를 바로 확인할 수 있습니다.</p>
           </div>
           <div className="rounded-lg border bg-white overflow-hidden">
             <table className="w-full text-sm">
@@ -766,7 +950,22 @@ export function CustomerDetail() {
                   </tr>
                 )}
                 {mergedHistory.map((row) => (
-                  <tr key={row.key} className="border-b last:border-b-0">
+                  <tr
+                    key={row.key}
+                    className="border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => setSelectedTransaction({
+                      source: row.source,
+                      recordId: row.recordId,
+                      date: row.date,
+                      customerName: customer.name ?? '',
+                      customerId,
+                      legacyBookId: row.legacyBookId,
+                      txType: row.txType,
+                      amount: row.amount,
+                      slipNo: row.slipNo,
+                      memo: row.memo,
+                    })}
+                  >
                     <td className="px-4 py-2.5 text-sm">{row.date || '-'}</td>
                     <td className="px-4 py-2.5">
                       <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${TX_TYPE_STYLE[row.txType] ?? 'bg-gray-50 text-gray-600'}`}>
@@ -985,7 +1184,22 @@ export function CustomerDetail() {
                   </tr>
                 )}
                 {filteredInvoices.map((inv) => (
-                  <tr key={inv.Id} className="border-b last:border-b-0">
+                  <tr
+                    key={inv.Id}
+                    className="border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors"
+                    onClick={() => setSelectedTransaction({
+                      source: 'crm',
+                      recordId: inv.Id,
+                      date: inv.invoice_date?.slice(0, 10) ?? '',
+                      customerName: inv.customer_name ?? customer.name ?? '',
+                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : customerId,
+                      txType: '출고',
+                      amount: inv.total_amount ?? 0,
+                      tax: inv.tax_amount ?? 0,
+                      slipNo: inv.invoice_no,
+                      memo: inv.memo ?? '',
+                    })}
+                  >
                     <td className="px-4 py-2 font-mono text-xs text-muted-foreground">
                       {inv.invoice_no ?? '-'}
                     </td>
@@ -1050,7 +1264,118 @@ export function CustomerDetail() {
             </div>
           )}
         </TabsContent>
+
+        <TabsContent value="legacy">
+          <div className="grid gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">얼마에요 거래처 원본</CardTitle>
+              </CardHeader>
+              <CardContent>
+                {!legacyTradebook ? (
+                  <p className="text-sm text-muted-foreground">연결된 거래처 원본이 없습니다.</p>
+                ) : (
+                  <div className="space-y-4">
+                    {!customerLegacyId && legacyTradebookMatchReason && (
+                      <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+                        현재 고객 레코드에 `legacy_id`가 없어 백업 원본을 보조 매칭으로 연결했습니다.
+                        {legacyTradebookMatchReason === 'mobile+email' && ' 기준: 핸드폰 + 이메일'}
+                        {legacyTradebookMatchReason === 'mobile' && ' 기준: 핸드폰'}
+                        {legacyTradebookMatchReason === 'business_no' && ' 기준: 사업자번호'}
+                        {legacyTradebookMatchReason === 'name' && ' 기준: 거래처명/장부명'}
+                        {legacyTradebookMatchReason === 'name-ceo' && ' 기준: 거래처명 + 대표자명'}
+                      </div>
+                    )}
+                    <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                      {[
+                        ['장부번호', legacyTradebook.legacy_id],
+                        ['장부명', legacyTradebook.book_name],
+                        ['거래처명', legacyTradebook.name],
+                        ['사업번호', legacyTradebook.business_no],
+                        ['대표자', legacyTradebook.ceo_name],
+                        ['사업주소', legacyTradebook.business_address],
+                        ['업태', legacyTradebook.business_type],
+                        ['종목', legacyTradebook.business_item],
+                        ['우편번호', legacyTradebook.zip],
+                        ['실제주소1', legacyTradebook.address1],
+                        ['실제주소2', legacyTradebook.address2],
+                        ['전화1', legacyTradebook.phone1],
+                        ['전화2', legacyTradebook.phone2],
+                        ['팩스', legacyTradebook.fax],
+                        ['담당자', legacyTradebook.manager],
+                        ['핸드폰', legacyTradebook.mobile],
+                        ['이메일', legacyTradebook.email],
+                        ['이메일2', legacyTradebook.email2],
+                        ['홈페이지', legacyTradebook.homepage],
+                        ['거래구분', legacyTradebook.trade_type],
+                        ['트리구분', legacyTradebook.tree_type],
+                        ['비고', legacyTradebook.memo],
+                        ['잔액', legacyTradebook.balance],
+                        ['매출가격', legacyTradebook.price_tier],
+                        ['은행명', legacyTradebook.bank_name],
+                        ['계좌번호', legacyTradebook.bank_account],
+                        ['예금주', legacyTradebook.bank_owner],
+                      ].map(([label, value]) => (
+                        <div key={label} className="flex flex-col gap-0.5">
+                          <dt className="font-medium text-muted-foreground text-xs">{label}</dt>
+                          <dd className="text-sm whitespace-pre-wrap break-all">{value || <span className="text-muted-foreground">-</span>}</dd>
+                        </div>
+                      ))}
+                    </dl>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">고객리스트 원본</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                {legacyCustomerList.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">연결된 고객리스트 원본이 없습니다.</p>
+                ) : (
+                  legacyCustomerList.map((snapshot, index) => (
+                    <div key={`${snapshot.serial_no}-${index}`} className="rounded-lg border p-4">
+                      <p className="text-xs font-medium text-muted-foreground mb-3">원본 행 #{index + 1}</p>
+                      <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
+                        {[
+                          ['일련번호', snapshot.serial_no],
+                          ['등록번호', snapshot.business_no],
+                          ['고객분류', snapshot.customer_group],
+                          ['등록일자', snapshot.registered_at],
+                          ['고객명', snapshot.customer_name],
+                          ['회사부서', snapshot.company_department],
+                          ['우편번호', snapshot.zip],
+                          ['주소1', snapshot.address1],
+                          ['주소2', snapshot.address2],
+                          ['특기사항', snapshot.note],
+                          ['참고사항', snapshot.reference],
+                          ['전화번호(회사)', snapshot.phone_company],
+                          ['전화번호(집)', snapshot.phone_home],
+                          ['핸드폰', snapshot.mobile],
+                          ['이메일', snapshot.email],
+                        ].map(([label, value]) => (
+                          <div key={`${snapshot.serial_no}-${label}`} className="flex flex-col gap-0.5">
+                            <dt className="font-medium text-muted-foreground text-xs">{label}</dt>
+                            <dd className="text-sm whitespace-pre-wrap break-all">{value || <span className="text-muted-foreground">-</span>}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  ))
+                )}
+              </CardContent>
+            </Card>
+          </div>
+        </TabsContent>
       </Tabs>
+
+      <TransactionDetailDialog
+        open={!!selectedTransaction}
+        transaction={selectedTransaction}
+        onClose={() => setSelectedTransaction(null)}
+      />
     </div>
   )
 }

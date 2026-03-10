@@ -56,6 +56,7 @@
 
         // 이벤트 바인딩
         bindFormEvents();
+        bindScrollLinks();
     }
 
 
@@ -109,6 +110,41 @@
                 });
             })(inputs[j]);
         }
+
+        var agreePrivacy = document.getElementById('paAgreePrivacy');
+        if (agreePrivacy) {
+            agreePrivacy.addEventListener('change', function() {
+                clearFieldError('paAgreePrivacy');
+            });
+        }
+    }
+
+    function bindScrollLinks() {
+        var buttons = document.querySelectorAll('.partner-apply .js-scroll-link');
+        for (var i = 0; i < buttons.length; i++) {
+            (function(btn) {
+                btn.addEventListener('click', function() {
+                    var targetId = btn.getAttribute('data-target');
+                    scrollToTarget(targetId);
+                });
+            })(buttons[i]);
+        }
+    }
+
+    function scrollToTarget(targetId) {
+        if (!targetId) return;
+
+        var target = document.getElementById(targetId);
+        if (!target) return;
+
+        var header = document.querySelector('.partner-apply .pa-page-header');
+        var offset = header && window.innerWidth > 767 ? header.offsetHeight + 16 : 16;
+        var top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+
+        window.scrollTo({
+            top: top > 0 ? top : 0,
+            behavior: 'smooth'
+        });
     }
 
 
@@ -277,7 +313,7 @@
     function isValidUrl(url) {
         if (!url) return true;
         var lower = url.toLowerCase().trim();
-        return lower.indexOf('http://') === 0 || lower.indexOf('https://') === 0;
+        return /^https?:\/\//.test(lower);
     }
 
 

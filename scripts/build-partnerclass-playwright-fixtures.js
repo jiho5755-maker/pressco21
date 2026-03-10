@@ -45,6 +45,16 @@ var pages = [
         ]
     },
     {
+        key: 'apply',
+        html: path.join(repoRoot, '파트너클래스', '파트너신청', 'Index.html'),
+        css: path.join(repoRoot, '파트너클래스', '파트너신청', 'css.css'),
+        js: path.join(repoRoot, '파트너클래스', '파트너신청', 'js.js'),
+        output: path.join(outputDir, 'apply.html'),
+        replacements: [
+            { from: '<!--/user_id/-->', to: 'partner-applicant-001' }
+        ]
+    },
+    {
         key: 'admin',
         html: path.join(repoRoot, '파트너클래스', '어드민', 'Index.html'),
         css: path.join(repoRoot, '파트너클래스', '어드민', 'css.css'),

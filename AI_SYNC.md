@@ -51,15 +51,47 @@
 
 - Current Owner: CODEX
 - Mode: IDLE
-- Started At: 2026-03-11 14:05:00 KST
+- Started At: 2026-03-11 15:18:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S1-9 Phase 3-1 통합 테스트 완료
+- Working Scope: [CODEX-LEAD] 파트너클래스 S2-1 파트너 신청 세일즈 랜딩 리디자인 완료
 - Active Subdirectory: pressco21
 
 ## Files In Progress
 - (none)
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S2-1 파트너 신청 세일즈 랜딩 리디자인 완료 (CODEX)
+- 프론트
+  - `파트너클래스/파트너신청/Index.html`
+    - 2609 상단 구조를 `세일즈 랜딩 + 신청 전환` 흐름으로 전면 개편
+    - 히어로, 운영 지원 4카드, 비교 테이블, 적합 파트너/신청 흐름, 성장 경로, 사회적 증거, 신청 프로세스, 하단 고정 CTA 추가
+  - `파트너클래스/파트너신청/css.css`
+    - 상단 세일즈 레이어, 비교표, 성장 카드, 모바일 반응형, 하단 고정 CTA 스타일 추가
+  - `파트너클래스/파트너신청/js.js`
+    - `js-scroll-link + data-target` 스크롤 CTA 바인딩 추가
+    - 개인정보 동의 체크박스 에러 초기화 보강
+- 테스트 자산
+  - `scripts/build-partnerclass-playwright-fixtures.js`
+    - `output/playwright/fixtures/partnerclass/apply.html` fixture 빌드 추가
+- 문서 / 메모리
+  - `docs/파트너클래스/partner-apply-sales-landing-guide.md` 신규 추가
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+  - `.claude/agent-memory/brand-planning-expert/MEMORY.md`
+  - `.claude/agent-memory/sales-partnership-specialist/MEMORY.md`
+- 검증
+  - `node --check 파트너클래스/파트너신청/js.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+  - Playwright 로컬 검증
+    - 데스크톱: 비교표 5행, 성장 카드 4개, 지원 카드 4개, CTA -> 폼 `formTop ~= 106px`
+    - 모바일: 하단 고정 CTA 표시, 상단 점프 버튼 3개, CTA -> 폼 `formTop ~= 16px`
+  - 산출물
+    - `output/playwright/s2-1-partner-apply/partner-apply-results.json`
+    - `output/playwright/s2-1-partner-apply/*.png`
 
 ### [CODEX-LEAD] Phase 3 S1-9 Phase 3-1 통합 테스트 완료 (CODEX)
 - 테스트 자산
@@ -1347,7 +1379,7 @@
 
 #### 현재 다음 태스크
 
-- `S2-1 파트너 신청 세일즈 랜딩 리디자인`
+- `S2-2 협회 B2B 영업 도구`
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
@@ -1440,6 +1472,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S1-8 파트너 대시보드 액션 보드도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 실제 2608 페이지 반영 시 사용자 배포 후 재검증이 필요함
 - S1-4 마이페이지 프론트 변경(`파트너클래스/마이페이지/*`)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-9 통합 테스트는 로컬 fixture + Playwright 러너 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 후 동일 흐름을 라이브에서 한 번 더 확인해야 함
+- S2-1 파트너 신청 세일즈 랜딩(2609)은 로컬 fixture 기준으로 CTA/반응형이 검증됐지만, 메이크샵 디자인편집기 실배포 후 라이브 스크롤과 모바일 하단 고정 CTA를 다시 확인해야 함
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
 - `scripts/partnerclass-live-smoke.js` 는 현재 FAQ 기대 개수가 여전히 `5` 기준이라, 상세 FAQ를 라이브 반영한 뒤에는 스모크 기대값을 `15` 로 맞춰야 함
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함

@@ -66,6 +66,8 @@
   - S1-7 기준 파트너 대시보드 온보딩 5단계, 완료 조건, CTA 매핑, 로컬 저장 규칙 정리
 - `dashboard-action-board-guide.md`
   - S1-8 기준 파트너 대시보드 액션 보드 3카드, 기존 API 조합 방식, 클릭 이동 규칙 정리
+- `partner-apply-sales-landing-guide.md`
+  - S2-1 기준 파트너 신청(2609) 세일즈 랜딩 구조, 비교 테이블, 성장 경로, CTA 스크롤 검증 정리
 
 ### QA / 검증
 

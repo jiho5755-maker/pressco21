@@ -70,6 +70,8 @@
 ### QA / 검증
 
 - `partnerclass-live-test-matrix-2026-03-09.md`
+- `phase3-1-integration-test.md`
+  - S1-1~S1-8 로컬 Playwright 통합 검증, 픽스처 빌드/러너 실행 방법, 2026-03-11 결과
 - `phase2-e2e.md`
 - `phase2-integration-test.md`
 - `phase2-v2-integration-test.md`

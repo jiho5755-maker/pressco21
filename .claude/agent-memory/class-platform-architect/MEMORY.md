@@ -95,3 +95,10 @@
 - 카드 기준은 `오늘 일정 중 예약 있는 수업 / 7일 내 키트 준비 예약 / 미답변 후기 수` 로 고정한다.
 - 카드 클릭 시 각 탭으로 이동할 때 첫 관련 클래스와 기간 필터를 자동 세팅한다.
 - 운영 기준 문서는 `docs/파트너클래스/dashboard-action-board-guide.md` 이다.
+
+## 2026-03-11 S1-9 통합 테스트 구조 확정
+
+- 메이크샵 분리 자산은 `build-partnerclass-playwright-fixtures.js` 로 단일 HTML fixture 로 조립한 뒤 검증한다.
+- `partnerclass-phase3-integration-runner.js` 가 목록, 상세, 마이페이지, 파트너, 어드민까지 한 세션에서 순회한다.
+- 현재 로컬 fixture 기준으로 S1-1~S1-8 연결 흐름은 통과했고, 최종 남은 검증은 메이크샵 디자인편집기 실배포 후 라이브 재확인이다.
+- 운영 기준 문서는 `docs/파트너클래스/phase3-1-integration-test.md` 이다.

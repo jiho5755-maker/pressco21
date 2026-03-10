@@ -78,6 +78,8 @@ export interface LegacyReceivableSettlementEntry {
   amount: number
   date: string
   method?: string
+  operator?: string
+  createdAt?: string
 }
 
 interface LegacyReceivableMemoState {
@@ -126,6 +128,8 @@ function sanitizeSettlementEntry(entry: Partial<LegacyReceivableSettlementEntry>
     amount,
     date,
     method: typeof entry.method === 'string' && entry.method.trim() ? entry.method.trim() : undefined,
+    operator: typeof entry.operator === 'string' && entry.operator.trim() ? entry.operator.trim() : undefined,
+    createdAt: typeof entry.createdAt === 'string' && entry.createdAt.trim() ? entry.createdAt.trim() : undefined,
   }
 }
 

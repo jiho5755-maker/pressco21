@@ -8,7 +8,7 @@ import { getInvoice, getItems, getTxHistory, sanitizeSearchTerm } from '@/lib/ap
 import type { Invoice, InvoiceItem, TxHistory } from '@/lib/api'
 
 export interface TransactionPreview {
-  source: 'crm' | 'legacy'
+  source: 'crm' | 'legacy' | 'legacySettlement'
   recordId: number
   date: string
   customerName: string
@@ -156,7 +156,7 @@ export function TransactionDetailDialog({ open, transaction, onClose }: Transact
             <span>거래 상세</span>
             {transaction ? (
               <span className="text-xs font-normal text-muted-foreground">
-                {transaction.source === 'crm' ? 'CRM 명세표 기준' : '레거시 장부 기준'}
+                {transaction.source === 'crm' ? 'CRM 명세표 기준' : transaction.source === 'legacySettlement' ? '레거시 수금 이력 기준' : '레거시 장부 기준'}
               </span>
             ) : null}
           </DialogTitle>
@@ -177,7 +177,15 @@ export function TransactionDetailDialog({ open, transaction, onClose }: Transact
         ) : (
           <LegacyTransactionContent
             transaction={transaction}
-            rows={relatedLegacyRows}
+            rows={transaction.source === 'legacySettlement' ? [{
+              Id: transaction.recordId,
+              tx_date: transaction.date,
+              customer_name: transaction.customerName,
+              tx_type: transaction.txType,
+              amount: transaction.amount,
+              memo: transaction.memo,
+              slip_no: transaction.slipNo,
+            }] : relatedLegacyRows}
           />
         )}
 

@@ -21,3 +21,8 @@ export function loadDefaultTaxableSetting(fallback = false): boolean {
   return normalizeStoredBoolean(settings.default_taxable as StoredBoolean, fallback)
 }
 
+export function loadLegacySettlementOperator(): string {
+  const settings = loadStoredCrmSettings()
+  const raw = settings.legacy_settlement_operator
+  return typeof raw === 'string' ? raw.trim() : ''
+}

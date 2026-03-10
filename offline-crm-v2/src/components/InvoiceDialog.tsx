@@ -1270,6 +1270,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
                         </SelectContent>
                       </Select>
                       <span className="max-w-[200px] truncate">{(form.customer_address as string) ?? '-'}</span>
+                      <span className="text-[11px] text-[#3d6b4a]">선택된 주소로 송장 다운로드</span>
                     </div>
                   )
                 })()}

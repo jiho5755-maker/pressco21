@@ -19,6 +19,7 @@ import {
   serializeLegacyReceivableMemo,
 } from '@/lib/legacySnapshots'
 import { getPaidAmountAsOf } from '@/lib/reporting'
+import { loadLegacySettlementOperator } from '@/lib/settings'
 import {
   buildCustomerReceivableLedger,
   buildResolvedReceivableInvoices,
@@ -42,6 +43,10 @@ function isValidCalendarDate(value: string | null): value is string {
 
 function todayDate(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+function currentTimestamp(): string {
+  return new Date().toISOString()
 }
 
 function getDaysSince(dateStr: string | undefined, baseDate = todayDate()): number {
@@ -244,6 +249,8 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
   async function refreshReceivableViews(customerId: number) {
     qc.invalidateQueries({ queryKey: ['customers'] })
     qc.invalidateQueries({ queryKey: ['customer', customerId] })
+    qc.invalidateQueries({ queryKey: ['transactions-customer-directory'] })
+    qc.invalidateQueries({ queryKey: ['customer-detail-link-customers'] })
     qc.invalidateQueries({ queryKey: ['receivables'] })
     qc.invalidateQueries({ queryKey: ['receivable-link-customers'] })
     qc.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(customerId)] })
@@ -274,6 +281,8 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
           amount,
           date: todayDate(),
           method,
+          operator: loadLegacySettlementOperator() || undefined,
+          createdAt: currentTimestamp(),
         },
       ]
       const nextMemo = serializeLegacyReceivableMemo(legacyTarget.customer.memo as string | undefined, {
@@ -385,6 +394,8 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
                     <span>{entry.date}</span>
                     <span className="ml-2 font-medium">{entry.amount.toLocaleString()}원</span>
                     {entry.method ? <span className="ml-2 text-muted-foreground">{entry.method}</span> : null}
+                    {entry.operator ? <span className="ml-2 text-muted-foreground">입력: {entry.operator}</span> : null}
+                    {entry.createdAt ? <span className="ml-2 text-muted-foreground">{entry.createdAt.slice(0, 16).replace('T', ' ')}</span> : null}
                   </div>
                   <Button
                     type="button"

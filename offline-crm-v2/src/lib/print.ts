@@ -527,6 +527,15 @@ export interface PeriodReportStats {
   outstanding: number
 }
 
+export interface CustomerTransactionStatementRow {
+  date: string
+  txType: string
+  amount: number
+  slipNo?: string
+  memo?: string
+  sourceLabel?: string
+}
+
 export function printPeriodReport(
   customerName: string,
   dateFrom: string,
@@ -638,6 +647,106 @@ export function printPeriodReport(
   document.body.appendChild(iframe)
 
   // Blob URL 방식: 로고 이미지가 iframeDoc.write()에서 누락되는 문제 방지
+  const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
+  iframe.src = blobUrl
+
+  iframe.addEventListener('load', () => {
+    setTimeout(() => {
+      iframe.contentWindow?.print()
+      URL.revokeObjectURL(blobUrl)
+      setTimeout(() => {
+        if (iframe.parentNode) document.body.removeChild(iframe)
+      }, 3000)
+    }, 200)
+  })
+}
+
+export function printCustomerTransactionStatement(
+  customerName: string,
+  dateFrom: string,
+  dateTo: string,
+  rows: CustomerTransactionStatementRow[],
+): void {
+  const c = loadCompanyInfo()
+  const today = new Date().toLocaleDateString('ko-KR')
+  const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0)
+  const byType = {
+    shipment: rows.filter((row) => row.txType.includes('출고')).length,
+    payment: rows.filter((row) => row.txType === '입금').length,
+    memo: rows.filter((row) => row.txType === '메모').length,
+    returnTx: rows.filter((row) => row.txType === '반입').length,
+  }
+  const statementRows = rows
+    .map((row) =>
+      `<tr>` +
+      `<td class="c">${esc(row.date)}</td>` +
+      `<td class="c">${esc(row.txType)}</td>` +
+      `<td>${esc(row.memo || '-')}</td>` +
+      `<td class="mono">${esc(row.slipNo || '-')}</td>` +
+      `<td class="c">${esc(row.sourceLabel || '-')}</td>` +
+      `<td class="r b">${row.amount.toLocaleString()}원</td>` +
+      `</tr>`,
+    )
+    .join('')
+
+  const logoHtml = c.logo_url
+    ? `<img src="${c.logo_url}" alt="로고" style="height:34px;object-fit:contain;" />`
+    : `<span style="font-weight:800;font-size:11pt;color:#2f4f38;">${esc(c.company ?? '')}</span>`
+
+  const html =
+    `<!DOCTYPE html><html><head><meta charset="UTF-8">` +
+    `<style>` +
+    `@page{size:A4 portrait;margin:14mm 15mm;}` +
+    `html,body{margin:0;padding:0;font-family:'Malgun Gothic','맑은 고딕',sans-serif;color:#1a1a1a;font-size:8pt;}` +
+    `*{box-sizing:border-box;}` +
+    `.page{width:100%;}` +
+    `.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #54745d;padding-bottom:8px;margin-bottom:14px;}` +
+    `.brand{display:flex;gap:10px;align-items:center;}` +
+    `.title{font-size:15pt;font-weight:900;letter-spacing:1px;color:#22362a;}` +
+    `.sub{margin-top:4px;font-size:7.5pt;color:#5a5a5a;line-height:1.7;}` +
+    `.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}` +
+    `.card{border:1px solid #d7e2d9;border-radius:6px;background:#f8fbf8;padding:8px 10px;}` +
+    `.label{font-size:6.5pt;color:#68756b;margin-bottom:3px;}` +
+    `.value{font-size:10pt;font-weight:800;color:#21352a;}` +
+    `.section{margin-bottom:12px;}` +
+    `.section-title{font-size:8.5pt;font-weight:800;color:#3d5c46;margin-bottom:6px;display:flex;align-items:center;gap:6px;}` +
+    `.section-title:before{content:'';display:inline-block;width:4px;height:14px;background:#7d9675;border-radius:2px;}` +
+    `table{width:100%;border-collapse:collapse;}` +
+    `th{background:#f2f6f3;border:1px solid #cfdacf;padding:6px 5px;font-size:6.7pt;font-weight:700;color:#445348;text-align:center;}` +
+    `td{border:1px solid #dde6de;padding:5px 6px;font-size:7.2pt;vertical-align:top;}` +
+    `.r{text-align:right;}` +
+    `.c{text-align:center;}` +
+    `.b{font-weight:700;}` +
+    `.mono{font-family:monospace;font-size:6.6pt;color:#555;}` +
+    `.note{margin-top:10px;padding:8px 10px;border:1px solid #e3e8e3;background:#fafcfb;border-radius:6px;font-size:7pt;color:#58645c;line-height:1.6;}` +
+    `.footer{margin-top:14px;border-top:1px solid #d9dfda;padding-top:7px;text-align:right;font-size:6.6pt;color:#7a7a7a;}` +
+    `.empty{padding:22px 0;text-align:center;color:#8a8a8a;font-size:7.5pt;}` +
+    `</style></head><body><div class="page">` +
+    `<div class="header">` +
+    `<div class="brand">${logoHtml}<div><div class="title">거래내역 확인서</div>` +
+    `<div class="sub">거래처: <strong>${esc(customerName)}</strong><br/>조회 기간: ${esc(dateFrom)} ~ ${esc(dateTo)}</div></div></div>` +
+    `<div class="sub" style="text-align:right;">출력일: ${today}${c.company ? `<br/>발행: ${esc(c.company)}` : ''}</div>` +
+    `</div>` +
+    `<div class="summary">` +
+    `<div class="card"><div class="label">조회 건수</div><div class="value">${rows.length.toLocaleString()}건</div></div>` +
+    `<div class="card"><div class="label">거래 금액 합계</div><div class="value">${totalAmount.toLocaleString()}원</div></div>` +
+    `<div class="card"><div class="label">출고 / 입금</div><div class="value">${byType.shipment} / ${byType.payment}</div></div>` +
+    `<div class="card"><div class="label">반입 / 메모</div><div class="value">${byType.returnTx} / ${byType.memo}</div></div>` +
+    `</div>` +
+    `<div class="section"><div class="section-title">거래내역 목록</div>` +
+    (rows.length > 0
+      ? `<table><thead><tr><th style="width:12%;">날짜</th><th style="width:10%;">유형</th><th>적요</th><th style="width:18%;">전표번호</th><th style="width:10%;">구분</th><th style="width:14%;">금액</th></tr></thead><tbody>${statementRows}</tbody></table>`
+      : `<div class="empty">선택한 조건에 해당하는 거래내역이 없습니다.</div>`) +
+    `</div>` +
+    `<div class="note">본 문서는 CRM에 기록된 거래내역을 기준으로 생성된 확인용 출력물입니다. 필요 시 발행번호 또는 날짜를 기준으로 추가 확인할 수 있습니다.</div>` +
+    `<div class="footer">${esc(c.company ?? '')}${c.phone ? ` | 전화 ${esc(c.phone)}` : ''}</div>` +
+    `</div></body></html>`
+
+  const iframe = document.createElement('iframe')
+  iframe.style.cssText =
+    'position:fixed;top:-9999px;left:-9999px;width:210mm;height:297mm;border:none;visibility:hidden;'
+  document.body.appendChild(iframe)
+
   const blobUrl = URL.createObjectURL(new Blob([html], { type: 'text/html;charset=utf-8' }))
   iframe.src = blobUrl
 

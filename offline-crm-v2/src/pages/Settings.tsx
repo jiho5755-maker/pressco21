@@ -27,6 +27,7 @@ interface SettingsData extends CompanyInfo {
   price3_rate?: number  // 파트너도매가 (기본 12%)
   price4_rate?: number  // VIP특가 (기본 15%)
   price5_rate?: number  // 엠버서더 (기본 20%)
+  legacy_settlement_operator?: string
 }
 
 const SETTINGS_KEY = 'pressco21-crm-settings'
@@ -416,6 +417,13 @@ export function Settings() {
         <section>
           <SectionTitle>시스템 설정</SectionTitle>
           <div className="space-y-4">
+            <Field label="레거시 수금 작업자명" hint="레거시 미수 입금/취소 기록에 남길 이름입니다. 이 브라우저에 저장됩니다.">
+              <Input
+                value={data.legacy_settlement_operator ?? ''}
+                onChange={(e) => set('legacy_settlement_operator', e.target.value)}
+                placeholder="예: 장지호"
+              />
+            </Field>
             <div className="flex items-center gap-3">
               <input
                 type="checkbox"

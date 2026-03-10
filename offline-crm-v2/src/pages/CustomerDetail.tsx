@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
-import { ArrowLeft, Calendar, Printer, Plus, Trash2, Pencil, RefreshCw } from 'lucide-react'
+import { ArrowLeft, Calendar, Printer, Plus, Trash2, Pencil, RefreshCw, Download, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
@@ -13,19 +13,25 @@ import { Label } from '@/components/ui/label'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { getCustomer, getTxHistory, getInvoices, updateCustomer, recalcCustomerStats, sanitizeSearchTerm } from '@/lib/api'
-import type { Customer } from '@/lib/api'
+import { getAllCustomers, getAllInvoices, getCustomer, getTxHistory, updateCustomer, recalcCustomerStats, sanitizeSearchTerm } from '@/lib/api'
+import type { Customer, Invoice } from '@/lib/api'
 import {
   deriveLegacyTradebookSnapshot,
   getLegacyCustomerSnapshots,
+  getLegacyReceivableBaselineFromSnapshots,
+  parseLegacyReceivableMemo,
+  serializeLegacyReceivableMemo,
 } from '@/lib/legacySnapshots'
 import type {
   LegacyCustomerSnapshotPayload,
 } from '@/lib/legacySnapshots'
-import { printPeriodReport } from '@/lib/print'
+import { printCustomerTransactionStatement, printPeriodReport } from '@/lib/print'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
+import { buildResolvedReceivableInvoices, resolveInvoiceCustomer } from '@/lib/receivables'
+import { loadLegacySettlementOperator } from '@/lib/settings'
+import { exportUnifiedTransactions } from '@/lib/excel'
 
 // ── 기본정보 편집 폼 ──────────────────────────────────────
 interface InfoForm {
@@ -77,6 +83,9 @@ const TX_PAGE = 50
 function todayStr() {
   return new Date().toISOString().slice(0, 10)
 }
+function currentTimestamp() {
+  return new Date().toISOString()
+}
 function thisMonthStart() {
   const now = new Date()
   return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`
@@ -92,6 +101,10 @@ function parseLegacyAmount(value: string | undefined): number {
   if (!normalized) return 0
   const parsed = Number(normalized)
   return Number.isFinite(parsed) ? Math.trunc(parsed) : 0
+}
+
+function normalizeReceivableBaseline(value: number): number {
+  return Math.abs(value)
 }
 
 // ── 거래내역 쿼리 (모든 tx_type, 페이지네이션) ──────────
@@ -154,6 +167,14 @@ export function CustomerDetail() {
   const [editGrade, setEditGrade] = useState('')
   const [editQual, setEditQual] = useState('')
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionPreview | null>(null)
+  const [historySearch, setHistorySearch] = useState('')
+  const [historyTypeFilter, setHistoryTypeFilter] = useState('ALL')
+  const [historyDateFrom, setHistoryDateFrom] = useState(thisMonthStart)
+  const [historyDateTo, setHistoryDateTo] = useState(todayStr)
+  const [legacyPaymentAmount, setLegacyPaymentAmount] = useState('')
+  const [legacyPaymentMethod, setLegacyPaymentMethod] = useState('계좌이체')
+  const [savingLegacyPayment, setSavingLegacyPayment] = useState(false)
+  const [editingLegacySettlementIndex, setEditingLegacySettlementIndex] = useState<number | null>(null)
 
   // 기본정보 편집 상태
   const [infoEditMode, setInfoEditMode] = useState(false)
@@ -251,22 +272,29 @@ export function CustomerDetail() {
   const { data: txAll } = useCustomerTxAll(customerLegacyId, customer?.name)
   const { data: txPage } = useCustomerTxPage(customerLegacyId, customer?.name, txOffset)
 
-  // 명세표 + 거래내역 병합용: 최대 500건 (customer_name OR customer_id로 조회)
-  const { data: invoiceData } = useQuery({
-    queryKey: ['invoices-customer', customerId, customer?.name],
-    queryFn: () =>
-      getInvoices({
-        where: `(customer_name,eq,${sanitizeSearchTerm(customer!.name ?? '')})~or(customer_id,eq,${customerId})`,
+  const { data: customerLinks = [] } = useQuery({
+    queryKey: ['customer-detail-link-customers'],
+    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name' }),
+    staleTime: 10 * 60_000,
+  })
+
+  // 분리 거래명까지 포함한 고객별 CRM 명세표
+  const { data: invoiceData = [] } = useQuery<Invoice[]>({
+    queryKey: ['invoices-customer', customerId],
+    queryFn: async () => {
+      const invoices = await getAllInvoices({
         sort: '-invoice_date',
-        limit: 500,
-      }),
-    enabled: !!customer?.name,
+        fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,supply_amount,tax_amount,total_amount,paid_amount,payment_status,memo',
+      })
+      return invoices.filter((invoice) => resolveInvoiceCustomer(invoice, customerLinks)?.Id === customerId)
+    },
+    enabled: !!customerId && customerLinks.length > 0,
   })
 
   // ── 기간 매출 필터 (명세표 탭) ────────────────────────
   const filteredInvoices = useMemo(
     () =>
-      (invoiceData?.list ?? []).filter((inv) => {
+      invoiceData.filter((inv) => {
         const d = (inv.invoice_date ?? '').slice(0, 10)
         return d >= dateFrom && d <= dateTo
       }),
@@ -335,7 +363,7 @@ export function CustomerDetail() {
   const mergedHistory = useMemo(() => {
     type Row = {
       key: string
-      source: 'crm' | 'legacy'
+      source: 'crm' | 'legacy' | 'legacySettlement'
       recordId: number
       date: string
       legacyBookId?: string
@@ -362,7 +390,7 @@ export function CustomerDetail() {
 
     // CRM v2 명세표 → 출고 행
     const invRows: Row[] = []
-    for (const inv of invoiceData?.list ?? []) {
+    for (const inv of invoiceData) {
       invRows.push({
         key: `inv-${inv.Id}`,
         source: 'crm',
@@ -390,11 +418,80 @@ export function CustomerDetail() {
       }
     }
 
+    const legacySettlementRows: Row[] = parseLegacyReceivableMemo(customer?.memo as string | undefined).settlements.map((entry, index) => ({
+      key: `legacy-settlement-${index}`,
+      source: 'legacySettlement',
+      recordId: -(index + 1),
+      date: entry.date,
+      legacyBookId: customerLegacyId,
+      txType: '입금',
+      amount: entry.amount,
+      memo: [
+        '레거시 미수 입금',
+        entry.method ? `방법: ${entry.method}` : '',
+        entry.operator ? `입력: ${entry.operator}` : '',
+        entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
+      ].filter(Boolean).join(' · '),
+      slipNo: entry.createdAt ?? entry.date,
+      isCrm: false,
+    }))
+
     // 날짜 내림차순 정렬 후 상위 100건
-    return [...invRows, ...txRows]
-      .sort((a, b) => b.date.localeCompare(a.date))
+    return [...invRows, ...legacySettlementRows, ...txRows]
+      .sort((a, b) => {
+        const dateCompare = b.date.localeCompare(a.date)
+        if (dateCompare !== 0) return dateCompare
+        if (a.source === 'legacySettlement' && b.source !== 'legacySettlement') return -1
+        if (b.source === 'legacySettlement' && a.source !== 'legacySettlement') return 1
+        return b.key.localeCompare(a.key)
+      })
       .slice(0, 100)
-  }, [txPage, invoiceData])
+  }, [txPage, invoiceData, customer?.memo, customerLegacyId])
+
+  const filteredHistory = useMemo(() => {
+    const keyword = historySearch.trim().toLowerCase()
+    return mergedHistory.filter((row) => {
+      if (historyTypeFilter !== 'ALL' && row.txType !== historyTypeFilter) return false
+      if (historyDateFrom && row.date < historyDateFrom) return false
+      if (historyDateTo && row.date > historyDateTo) return false
+      if (!keyword) return true
+      return [
+        row.txType,
+        row.memo,
+        row.slipNo,
+        row.legacyBookId,
+      ].some((value) => (value ?? '').toLowerCase().includes(keyword))
+    })
+  }, [mergedHistory, historySearch, historyTypeFilter, historyDateFrom, historyDateTo])
+
+  const historySummary = useMemo(() => ({
+    count: filteredHistory.length,
+    amount: filteredHistory.reduce((sum, row) => sum + row.amount, 0),
+    crmCount: filteredHistory.filter((row) => row.isCrm).length,
+    legacyCount: filteredHistory.filter((row) => !row.isCrm).length,
+  }), [filteredHistory])
+
+  function resetHistoryFilters() {
+    setHistorySearch('')
+    setHistoryTypeFilter('ALL')
+    setHistoryDateFrom(thisMonthStart())
+    setHistoryDateTo(todayStr())
+  }
+
+  function exportHistoryRows() {
+    exportUnifiedTransactions(
+      filteredHistory.map((row) => ({
+        date: row.date,
+        customerName: customer?.name ?? '',
+        txType: row.txType,
+        amount: row.amount,
+        slipNo: row.slipNo,
+        memo: row.memo,
+        sourceLabel: row.isCrm ? 'CRM' : '레거시',
+      })),
+      `${customer?.name ?? '고객'}_거래내역`,
+    )
+  }
 
   // ── 차트 데이터 ───────────────────────────────────────
   const chartData = (() => {
@@ -407,6 +504,11 @@ export function CustomerDetail() {
       .sort(([a], [b]) => a.localeCompare(b))
       .map(([year, amount]) => ({ year, amount }))
   })()
+
+  const todayResolvedInvoices = useMemo(
+    () => buildResolvedReceivableInvoices(invoiceData, customerLinks, todayStr()),
+    [invoiceData, customerLinks],
+  )
 
   if (isLoading) {
     return (
@@ -432,15 +534,102 @@ export function CustomerDetail() {
   const outstandingBalance = (customer.outstanding_balance as number | undefined) ?? 0
   const { snapshot: legacyTradebook, matchReason: legacyTradebookMatchReason } = deriveLegacyTradebookSnapshot(customer, legacySnapshots)
   const legacyCustomerList = (customer.name ? legacySnapshots?.customerListByName?.[customer.name] : undefined) ?? []
-  const legacyBalanceBaseline = parseLegacyAmount(legacyTradebook?.balance)
-  const crmOutstandingBalance = outstandingBalance - legacyBalanceBaseline
+  const legacyBalanceBaseline = normalizeReceivableBaseline(parseLegacyAmount(legacyTradebook?.balance))
+  const currentLegacyReceivable = getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots)
+  const legacyMemoState = parseLegacyReceivableMemo(customer.memo as string | undefined)
+  const crmOutstandingBalance = todayResolvedInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0)
   const invoiceNameVariants = Array.from(
     new Set(
-      (invoiceData?.list ?? [])
+      invoiceData
         .map((invoice) => invoice.customer_name?.trim())
         .filter((name): name is string => Boolean(name && name !== customer.name)),
     ),
   )
+
+  async function refreshCustomerViews() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['customer', customerId] }),
+      queryClient.invalidateQueries({ queryKey: ['customers'] }),
+      queryClient.invalidateQueries({ queryKey: ['transactions-customer-directory'] }),
+      queryClient.invalidateQueries({ queryKey: ['customer-detail-link-customers'] }),
+      queryClient.invalidateQueries({ queryKey: ['receivables'] }),
+      queryClient.invalidateQueries({ queryKey: ['receivable-link-customers'] }),
+      queryClient.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(customerId)] }),
+      queryClient.invalidateQueries({ queryKey: ['dash-receivables'] }),
+    ])
+    await queryClient.invalidateQueries({
+      predicate: (query) => {
+        const key = query.queryKey[0]
+        return typeof key === 'string' && (key.startsWith('dash-') || key.startsWith('period-') || key.startsWith('calendar-'))
+      },
+    })
+  }
+
+  async function handleLegacyPaymentSave() {
+    const amount = Math.trunc(Number(legacyPaymentAmount))
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('입금액을 입력해주세요')
+      return
+    }
+    if (amount > currentLegacyReceivable) {
+      toast.error(`레거시 미수금(${currentLegacyReceivable.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
+      return
+    }
+
+    setSavingLegacyPayment(true)
+    try {
+      const nextSettlements = [
+        ...legacyMemoState.settlements,
+        {
+          amount,
+          date: todayStr(),
+          method: legacyPaymentMethod,
+          operator: loadLegacySettlementOperator() || undefined,
+          createdAt: currentTimestamp(),
+        },
+      ]
+      const nextMemo = serializeLegacyReceivableMemo(customer!.memo as string | undefined, {
+        settledAmount: legacyMemoState.settledAmount + amount,
+        settlements: nextSettlements,
+      })
+      await updateCustomer(customerId, { memo: nextMemo })
+      await recalcCustomerStats(customerId)
+      await refreshCustomerViews()
+      setLegacyPaymentAmount('')
+      toast.success('레거시 입금이 반영되었습니다')
+    } catch (error) {
+      console.error(error)
+      toast.error('레거시 입금 처리 중 오류가 발생했습니다')
+    } finally {
+      setSavingLegacyPayment(false)
+    }
+  }
+
+  async function handleLegacySettlementCancel(index: number) {
+    const settlement = legacyMemoState.settlements[index]
+    if (!settlement) return
+    if (!confirm(`${settlement.date} ${settlement.amount.toLocaleString()}원 입금 기록을 취소하시겠습니까?`)) return
+
+    setSavingLegacyPayment(true)
+    setEditingLegacySettlementIndex(index)
+    try {
+      const nextSettlements = legacyMemoState.settlements.filter((_, settlementIndex) => settlementIndex !== index)
+      const nextMemo = serializeLegacyReceivableMemo(customer!.memo as string | undefined, {
+        settledAmount: nextSettlements.reduce((sum, entry) => sum + entry.amount, 0),
+        settlements: nextSettlements,
+      })
+      await updateCustomer(customerId, { memo: nextMemo })
+      await recalcCustomerStats(customerId)
+      await refreshCustomerViews()
+      toast.success('레거시 입금 기록을 취소했습니다')
+    } catch (error) {
+      console.error(error)
+      toast.error('레거시 입금 기록 취소 중 오류가 발생했습니다')
+    } finally {
+      setSavingLegacyPayment(false)
+      setEditingLegacySettlementIndex(null)
+    }
+  }
 
   return (
     <div className="p-6">
@@ -532,6 +721,19 @@ export function CustomerDetail() {
             레거시 baseline + CRM 미수
           </p>
         </div>
+      </div>
+
+      <div className="mb-6 flex flex-wrap gap-2">
+        <Button size="sm" variant="outline" onClick={() => navigate(`/receivables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}`)}>
+          미수금 보기
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => navigate(`/transactions?customer=${encodeURIComponent(customer.name ?? '')}`)}>
+          거래/명세표 조회
+        </Button>
+        <Button size="sm" className="bg-[#7d9675] hover:bg-[#6a8462] text-white" onClick={() => navigate('/invoices?new=1')}>
+          <Plus className="mr-1 h-3.5 w-3.5" />
+          명세표 작성
+        </Button>
       </div>
 
       {((customer.book_name && customer.book_name !== customer.name) || invoiceNameVariants.length > 0) && (
@@ -855,6 +1057,101 @@ export function CustomerDetail() {
             </p>
             <p className="text-blue-600">행을 클릭하면 당시 거래 상세를 바로 확인할 수 있습니다.</p>
           </div>
+          <div className="mb-4 rounded-lg border bg-white p-4">
+            <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+              <div>
+                <p className="text-sm font-medium">기간별 거래내역 조회</p>
+                <p className="text-xs text-muted-foreground">
+                  고객별 거래를 기간, 유형, 키워드로 나눠 조회하고 현재 보이는 결과를 바로 다운로드할 수 있습니다.
+                </p>
+              </div>
+              <Button size="sm" variant="outline" className="gap-1" onClick={exportHistoryRows} disabled={filteredHistory.length === 0}>
+                <Download className="h-3.5 w-3.5" />
+                거래내역 다운로드
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
+                className="gap-1"
+                onClick={() =>
+                  printCustomerTransactionStatement(
+                    customer?.name ?? '',
+                    historyDateFrom,
+                    historyDateTo,
+                    filteredHistory.map((row) => ({
+                      date: row.date,
+                      txType: row.txType,
+                      amount: row.amount,
+                      slipNo: row.slipNo,
+                      memo: row.memo,
+                      sourceLabel: row.isCrm ? 'CRM' : '레거시',
+                    })),
+                  )
+                }
+                disabled={filteredHistory.length === 0}
+              >
+                <Printer className="h-3.5 w-3.5" />
+                고객 제출용 인쇄
+              </Button>
+            </div>
+            <div className="flex gap-3 flex-wrap items-center">
+              <div className="relative min-w-[220px]">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={historySearch}
+                  onChange={(e) => setHistorySearch(e.target.value)}
+                  placeholder="전표번호 / 메모 / 유형 검색"
+                  className="pl-9"
+                />
+              </div>
+              <Select value={historyTypeFilter} onValueChange={setHistoryTypeFilter}>
+                <SelectTrigger className="w-[150px]">
+                  <SelectValue placeholder="유형 필터" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">모든 유형</SelectItem>
+                  <SelectItem value="출고">출고</SelectItem>
+                  <SelectItem value="입금">입금</SelectItem>
+                  <SelectItem value="반입">반입</SelectItem>
+                  <SelectItem value="메모">메모</SelectItem>
+                </SelectContent>
+              </Select>
+              <Input
+                type="date"
+                value={historyDateFrom}
+                onChange={(e) => setHistoryDateFrom(e.target.value)}
+                className="w-[160px]"
+              />
+              <span className="text-sm text-muted-foreground">~</span>
+              <Input
+                type="date"
+                value={historyDateTo}
+                onChange={(e) => setHistoryDateTo(e.target.value)}
+                className="w-[160px]"
+              />
+              <Button size="sm" variant="ghost" onClick={resetHistoryFilters}>
+                초기화
+              </Button>
+            </div>
+            <div className="mt-3 grid gap-3 md:grid-cols-4">
+              <div className="rounded-md bg-gray-50 px-3 py-2">
+                <p className="text-xs text-muted-foreground">조회 건수</p>
+                <p className="mt-1 text-sm font-semibold">{historySummary.count.toLocaleString()}건</p>
+              </div>
+              <div className="rounded-md bg-gray-50 px-3 py-2">
+                <p className="text-xs text-muted-foreground">거래 금액 합계</p>
+                <p className="mt-1 text-sm font-semibold">{historySummary.amount.toLocaleString()}원</p>
+              </div>
+              <div className="rounded-md bg-gray-50 px-3 py-2">
+                <p className="text-xs text-muted-foreground">CRM 행</p>
+                <p className="mt-1 text-sm font-semibold">{historySummary.crmCount.toLocaleString()}건</p>
+              </div>
+              <div className="rounded-md bg-gray-50 px-3 py-2">
+                <p className="text-xs text-muted-foreground">레거시 행</p>
+                <p className="mt-1 text-sm font-semibold">{historySummary.legacyCount.toLocaleString()}건</p>
+              </div>
+            </div>
+          </div>
           <div className="rounded-lg border bg-white overflow-hidden">
             <table className="w-full text-sm">
               <thead>
@@ -866,14 +1163,14 @@ export function CustomerDetail() {
                 </tr>
               </thead>
               <tbody>
-                {mergedHistory.length === 0 && (
+                {filteredHistory.length === 0 && (
                   <tr>
                     <td colSpan={4} className="text-center py-8 text-muted-foreground">
-                      거래내역이 없습니다.
+                      조건에 맞는 거래내역이 없습니다.
                     </td>
                   </tr>
                 )}
-                {mergedHistory.map((row) => (
+                {filteredHistory.map((row) => (
                   <tr
                     key={row.key}
                     className="border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors"
@@ -1191,6 +1488,109 @@ export function CustomerDetail() {
 
         <TabsContent value="legacy">
           <div className="grid gap-4">
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base">레거시 미수 관리</CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-4">
+                <div className="grid gap-3 md:grid-cols-3">
+                  <div className="rounded-lg border bg-white px-4 py-3">
+                    <p className="text-xs text-muted-foreground">레거시 원본 미수</p>
+                    <p className={`mt-1 text-base font-semibold ${legacyBalanceBaseline > 0 ? 'text-red-600' : ''}`}>
+                      {legacyBalanceBaseline.toLocaleString()}원
+                    </p>
+                  </div>
+                  <div className="rounded-lg border bg-white px-4 py-3">
+                    <p className="text-xs text-muted-foreground">누적 입금 반영</p>
+                    <p className="mt-1 text-base font-semibold text-green-700">
+                      {legacyMemoState.settledAmount.toLocaleString()}원
+                    </p>
+                  </div>
+                  <div className="rounded-lg border bg-[#f7faf6] px-4 py-3">
+                    <p className="text-xs text-muted-foreground">현재 레거시 미수</p>
+                    <p className={`mt-1 text-base font-semibold ${currentLegacyReceivable > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                      {currentLegacyReceivable.toLocaleString()}원
+                    </p>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                      <p className="text-sm font-medium">레거시 입금 확인</p>
+                      <p className="text-xs text-muted-foreground">
+                        최대 입금 가능액 {currentLegacyReceivable.toLocaleString()}원
+                      </p>
+                    </div>
+                    {currentLegacyReceivable === 0 && legacyMemoState.settledAmount > 0 && (
+                      <p className="text-xs text-green-700">완납 처리됨. 아래 이력에서 취소 후 다시 입력할 수 있습니다.</p>
+                    )}
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
+                    <Input
+                      type="number"
+                      value={legacyPaymentAmount}
+                      onChange={(event) => setLegacyPaymentAmount(event.target.value)}
+                      placeholder={`최대 ${currentLegacyReceivable.toLocaleString()}원`}
+                      disabled={savingLegacyPayment || currentLegacyReceivable <= 0}
+                    />
+                    <Select value={legacyPaymentMethod} onValueChange={setLegacyPaymentMethod} disabled={savingLegacyPayment}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="현금">현금</SelectItem>
+                        <SelectItem value="계좌이체">계좌이체</SelectItem>
+                        <SelectItem value="카드">카드</SelectItem>
+                        <SelectItem value="수표">수표</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => void handleLegacyPaymentSave()}
+                      disabled={savingLegacyPayment || currentLegacyReceivable <= 0 || !legacyPaymentAmount}
+                      className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
+                    >
+                      {savingLegacyPayment ? '처리 중...' : '입금 확인'}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-4 space-y-3">
+                  <div>
+                    <p className="text-sm font-medium">레거시 입금 이력</p>
+                    <p className="text-xs text-muted-foreground">잘못 입력한 건은 여기서 바로 취소할 수 있습니다.</p>
+                  </div>
+                  {legacyMemoState.settlements.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">아직 반영된 레거시 입금 이력이 없습니다.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {legacyMemoState.settlements.map((entry, index) => (
+                        <div key={`${entry.date}-${entry.amount}-${index}`} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                          <div className="text-sm">
+                            <span>{entry.date}</span>
+                            <span className="ml-2 font-medium">{entry.amount.toLocaleString()}원</span>
+                            {entry.method ? <span className="ml-2 text-muted-foreground">{entry.method}</span> : null}
+                            {entry.operator ? <span className="ml-2 text-muted-foreground">입력: {entry.operator}</span> : null}
+                            {entry.createdAt ? <span className="ml-2 text-muted-foreground">{entry.createdAt.slice(0, 16).replace('T', ' ')}</span> : null}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-600"
+                            disabled={savingLegacyPayment}
+                            onClick={() => void handleLegacySettlementCancel(index)}
+                          >
+                            {savingLegacyPayment && editingLegacySettlementIndex === index ? '처리 중...' : '취소'}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </CardContent>
+            </Card>
+
             <Card>
               <CardHeader>
                 <CardTitle className="text-base">얼마에요 거래처 원본</CardTitle>

@@ -11,6 +11,10 @@ function downloadXlsx(data: Record<string, unknown>[], filename: string): void {
   XLSX.writeFile(wb, `${filename}_${new Date().toISOString().slice(0, 10)}.xlsx`)
 }
 
+function writeWorkbook(workbook: XLSX.WorkBook, filename: string): void {
+  XLSX.writeFile(workbook, filename)
+}
+
 export function exportCustomers(customers: Customer[]): void {
   const data = customers.map((c) => ({
     거래처명: c.name ?? '',
@@ -61,6 +65,31 @@ export function exportTxHistory(txs: TxHistory[], filename = '거래내역'): vo
   downloadXlsx(data, filename)
 }
 
+export interface UnifiedTransactionExportRow {
+  date: string
+  customerName: string
+  txType: string
+  amount: number
+  tax?: number
+  slipNo?: string
+  memo?: string
+  sourceLabel?: string
+}
+
+export function exportUnifiedTransactions(rows: UnifiedTransactionExportRow[], filename = '거래내역'): void {
+  const data = rows.map((row) => ({
+    거래일: row.date,
+    거래처: row.customerName,
+    거래유형: row.txType,
+    금액: row.amount,
+    세액: row.tax ?? 0,
+    전표번호: row.slipNo ?? '',
+    적요: row.memo ?? '',
+    구분: row.sourceLabel ?? '',
+  }))
+  downloadXlsx(data, filename)
+}
+
 export function exportInvoices(invoices: Invoice[]): void {
   const data = invoices.map((inv) => ({
     발행번호: inv.invoice_no ?? '',
@@ -78,4 +107,68 @@ export function exportInvoices(invoices: Invoice[]): void {
           : '미수금',
   }))
   downloadXlsx(data, '명세표목록')
+}
+
+export interface CourierInvoiceRow {
+  receiverName: string
+  receiverPhone: string
+  receiverMobile: string
+  receiverAddress: string
+  quantity: number
+  deliveryMessage: string
+}
+
+interface CourierExportOptions {
+  filename?: string
+  dateLabel?: string
+}
+
+export function exportCourierInvoices(rows: CourierInvoiceRow[], options: CourierExportOptions = {}): void {
+  const headers = [
+    '받는분',
+    '받는분전화',
+    '받는분핸드폰',
+    '받는분총주소',
+    '수량',
+    '배송메세지',
+    '', '', '', '', '', '', '', '',
+  ]
+
+  const sheetRows = [
+    headers,
+    ...rows.map((row) => ([
+      row.receiverName,
+      row.receiverPhone,
+      row.receiverMobile,
+      row.receiverAddress,
+      row.quantity,
+      row.deliveryMessage,
+      '', '', '', '', '', '', '', '',
+    ])),
+  ]
+
+  const workbook = XLSX.utils.book_new()
+  const worksheet = XLSX.utils.aoa_to_sheet(sheetRows)
+  worksheet['!cols'] = [
+    { wch: 18 },
+    { wch: 16 },
+    { wch: 16 },
+    { wch: 48 },
+    { wch: 8 },
+    { wch: 28 },
+    { wch: 6 },
+    { wch: 6 },
+    { wch: 6 },
+    { wch: 6 },
+    { wch: 6 },
+    { wch: 6 },
+    { wch: 6 },
+    { wch: 6 },
+  ]
+  XLSX.utils.book_append_sheet(workbook, worksheet, 'Sheet1')
+
+  const today = new Date().toISOString().slice(0, 10)
+  const baseName = options.filename ?? '전자송장(3.9)'
+  const suffix = options.dateLabel ? `_${options.dateLabel}` : `_${today}`
+  writeWorkbook(workbook, `${baseName}${suffix}.xlsx`)
 }

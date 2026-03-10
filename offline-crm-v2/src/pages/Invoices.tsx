@@ -330,13 +330,30 @@ export function Invoices() {
 
     setIsCourierExporting(true)
     try {
+      const linkedCustomerCache = new Map<number, Customer | null>()
       const rows = await Promise.all(filteredInvoices.map(async (invoice) => {
-        const linkedCustomer = typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined
-        const receiverPhone = getCustomerPrimaryPhone(linkedCustomer) || invoice.customer_phone || ''
-        const receiverAddress = (invoice.customer_address || '').trim()
-          || (linkedCustomer ? getCustomerAddressByKey(linkedCustomer, invoice.customer_address_key as string | undefined) : '')
+        const latestInvoice = await getInvoice(invoice.Id)
+        const invoiceCustomerId = typeof latestInvoice.customer_id === 'number'
+          ? latestInvoice.customer_id
+          : typeof invoice.customer_id === 'number'
+            ? invoice.customer_id
+            : undefined
+
+        let linkedCustomer = invoiceCustomerId ? linkedCustomerCache.get(invoiceCustomerId) : undefined
+        if (invoiceCustomerId && linkedCustomer === undefined) {
+          linkedCustomer = customerById.get(invoiceCustomerId) ?? await findCustomerByInvoiceLink(invoiceCustomerId, latestInvoice.customer_name)
+          linkedCustomerCache.set(invoiceCustomerId, linkedCustomer ?? null)
+        }
+
+        const receiverPhone = getCustomerPrimaryPhone(linkedCustomer) || latestInvoice.customer_phone || invoice.customer_phone || ''
+        const receiverAddressKey = (latestInvoice.customer_address_key as string | undefined)
+          ?? (invoice.customer_address_key as string | undefined)
+          ?? getCustomerAddressKeys(linkedCustomer)[0]
+        const receiverAddress = (latestInvoice.customer_address || invoice.customer_address || '').trim()
+          || getCustomerAddressByKey(linkedCustomer, receiverAddressKey)
+
         return {
-          receiverName: invoice.customer_name ?? '',
+          receiverName: latestInvoice.customer_name ?? invoice.customer_name ?? '',
           receiverPhone,
           receiverMobile: receiverPhone,
           receiverAddress,

@@ -10,6 +10,7 @@ import { getAllCustomers, getTxHistory, getInvoices, sanitizeSearchTerm } from '
 import type { TxHistory, Invoice, Customer } from '@/lib/api'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
+import { parseLegacyReceivableMemo } from '@/lib/legacySnapshots'
 
 const PAGE_SIZE = 50
 
@@ -36,6 +37,7 @@ const TX_TYPE_STYLE: Record<string, { bg: string; text: string }> = {
 interface UnifiedRow {
   id: string
   recordId: number
+  customer_id?: number
   tx_date: string
   customer_name: string
   legacy_book_id?: string
@@ -44,7 +46,7 @@ interface UnifiedRow {
   tax: number
   slip_no: string
   memo: string
-  source: 'legacy' | 'crm'
+  source: 'legacy' | 'crm' | 'legacySettlement'
 }
 
 function matchesTransactionSearch(
@@ -67,6 +69,7 @@ function invoiceToRow(inv: Invoice): UnifiedRow {
   return {
     id: `crm-${inv.Id}`,
     recordId: inv.Id,
+    customer_id: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
     tx_date: inv.invoice_date ?? '',
     customer_name: inv.customer_name ?? '',
     tx_type: '출고(CRM)',
@@ -78,13 +81,19 @@ function invoiceToRow(inv: Invoice): UnifiedRow {
   }
 }
 
-function txToRow(tx: TxHistory, customerNameByLegacyId: Map<string, string>): UnifiedRow {
+function txToRow(
+  tx: TxHistory,
+  customerNameByLegacyId: Map<string, string>,
+  customerIdByLegacyId: Map<string, number>,
+  customerIdByName: Map<string, number>,
+): UnifiedRow {
   const legacyBookId = tx.legacy_book_id != null ? String(tx.legacy_book_id).trim() : ''
   const resolvedCustomerName =
     tx.customer_name?.trim() || (legacyBookId ? customerNameByLegacyId.get(legacyBookId) ?? '' : '')
   return {
     id: `legacy-${tx.Id}`,
     recordId: tx.Id,
+    customer_id: (legacyBookId ? customerIdByLegacyId.get(legacyBookId) : undefined) ?? customerIdByName.get(resolvedCustomerName),
     tx_date: tx.tx_date ?? '',
     customer_name: resolvedCustomerName,
     legacy_book_id: legacyBookId,
@@ -147,7 +156,7 @@ export function Transactions() {
 
   const { data: customerDirectory = [] } = useQuery({
     queryKey: ['transactions-customer-directory'],
-    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id' }),
+    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id,memo' }),
     staleTime: 10 * 60_000,
   })
 
@@ -158,6 +167,26 @@ export function Transactions() {
       if (!legacyId) return
       const label = customer.name?.trim() || customer.book_name?.trim() || ''
       if (label) map.set(legacyId, label)
+    })
+    return map
+  }, [customerDirectory])
+
+  const customerIdByLegacyId = useMemo(() => {
+    const map = new Map<string, number>()
+    customerDirectory.forEach((customer: Customer) => {
+      const legacyId = customer.legacy_id != null ? String(customer.legacy_id).trim() : ''
+      if (legacyId && typeof customer.Id === 'number') map.set(legacyId, customer.Id)
+    })
+    return map
+  }, [customerDirectory])
+
+  const customerIdByName = useMemo(() => {
+    const map = new Map<string, number>()
+    customerDirectory.forEach((customer: Customer) => {
+      const names = [customer.name?.trim(), customer.book_name?.trim()].filter(Boolean) as string[]
+      names.forEach((name) => {
+        if (!map.has(name) && typeof customer.Id === 'number') map.set(name, customer.Id)
+      })
     })
     return map
   }, [customerDirectory])
@@ -185,6 +214,31 @@ export function Transactions() {
       })
       .filter((legacyId, index, arr) => arr.indexOf(legacyId) === index)
   }, [customerDirectory, debouncedSearch])
+
+  const legacySettlementRows = useMemo(() => (
+    customerDirectory.flatMap((customer: Customer) => {
+      const legacyBookId = customer.legacy_id != null ? String(customer.legacy_id).trim() : ''
+      return parseLegacyReceivableMemo(customer.memo as string | undefined).settlements.map((entry, index) => ({
+        id: `legacy-settlement-${customer.Id}-${index}`,
+        recordId: -(customer.Id * 1000 + index + 1),
+        customer_id: customer.Id,
+        tx_date: entry.createdAt ?? entry.date,
+        customer_name: customer.name?.trim() || customer.book_name?.trim() || '',
+        legacy_book_id: legacyBookId || undefined,
+        tx_type: '입금',
+        amount: entry.amount,
+        tax: 0,
+        slip_no: entry.createdAt ?? entry.date,
+        memo: [
+          '레거시 미수 입금',
+          entry.method ? `방법: ${entry.method}` : '',
+          entry.operator ? `입력: ${entry.operator}` : '',
+          entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
+        ].filter(Boolean).join(' · '),
+        source: 'legacySettlement' as const,
+      }))
+    })
+  ), [customerDirectory])
 
   useEffect(() => {
     const nextSearch = searchParams.get('customer') ?? searchParams.get('q') ?? ''
@@ -303,13 +357,24 @@ export function Transactions() {
     if (isServerPaginated) {
       // 서버 페이지네이션: 한쪽 소스만 표시
       if (activeTab === 'legacy') {
-        const list = (legacyData?.list ?? [])
-          .map((tx) => txToRow(tx, customerNameByLegacyId))
+        const list = [
+          ...(legacyData?.list ?? [])
+          .map((tx) => txToRow(tx, customerNameByLegacyId, customerIdByLegacyId, customerIdByName))
+          .filter((row) => matchesTransactionSearch(row, debouncedSearch, customerSearchTextByLegacyId)),
+          ...(useLegacyClientSearch ? legacySettlementRows : []),
+        ]
           .filter((row) => matchesTransactionSearch(row, debouncedSearch, customerSearchTextByLegacyId))
+          .filter((row) => {
+            const d = row.tx_date.slice(0, 10)
+            if (dateFrom && d < dateFrom) return false
+            if (dateTo && d > dateTo) return false
+            return true
+          })
+        list.sort((a, b) => b.tx_date.localeCompare(a.tx_date))
         return {
           rows: isServerPaginated ? list : list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
-          totalPages: Math.max(1, Math.ceil((isServerPaginated ? serverLegacyTotal : list.length) / PAGE_SIZE)),
-          totalDisplay: isServerPaginated ? serverLegacyTotal : list.length,
+          totalPages: Math.max(1, Math.ceil((isServerPaginated ? list.length : list.length) / PAGE_SIZE)),
+          totalDisplay: list.length,
           isTruncated: false,
         }
       } else {
@@ -325,9 +390,19 @@ export function Transactions() {
     }
 
     // 전체 탭: 양쪽 병합 → 클라이언트 페이지네이션
-    const legacy = (legacyData?.list ?? [])
-      .map((tx) => txToRow(tx, customerNameByLegacyId))
+    const legacy = [
+      ...(legacyData?.list ?? [])
+      .map((tx) => txToRow(tx, customerNameByLegacyId, customerIdByLegacyId, customerIdByName))
+      .filter((row) => matchesTransactionSearch(row, debouncedSearch, customerSearchTextByLegacyId)),
+      ...legacySettlementRows,
+    ]
       .filter((row) => matchesTransactionSearch(row, debouncedSearch, customerSearchTextByLegacyId))
+      .filter((row) => {
+        const d = row.tx_date.slice(0, 10)
+        if (dateFrom && d < dateFrom) return false
+        if (dateTo && d > dateTo) return false
+        return true
+      })
     const crm = filterByDate((crmData?.list ?? []).map(invoiceToRow))
       .filter((row) => matchesTransactionSearch(row, debouncedSearch, customerSearchTextByLegacyId))
     const merged = [...legacy, ...crm]
@@ -340,7 +415,7 @@ export function Transactions() {
       totalDisplay: loadedCount,
       isTruncated: truncated,
     }
-  }, [isServerPaginated, activeTab, legacyData, crmData, customerNameByLegacyId, customerSearchTextByLegacyId, debouncedSearch, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm, page, dateFrom, dateTo])
+  }, [isServerPaginated, activeTab, legacyData, crmData, customerNameByLegacyId, customerIdByLegacyId, customerIdByName, customerSearchTextByLegacyId, legacySettlementRows, debouncedSearch, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm, page, dateFrom, dateTo, useLegacyClientSearch])
 
   const isLoading = (legacyLoading && !skipLegacy) || (crmLoading && !skipCrm)
   // 양쪽 모두 실패한 경우만 전체 에러 (부분 실패는 경고로 처리)
@@ -394,9 +469,9 @@ export function Transactions() {
   const headerCount = useMemo(() => {
     if (activeTab === 'legacy') return `레거시 ${serverLegacyTotal.toLocaleString()}건`
     if (activeTab === 'crm') return `CRM ${serverCrmTotal.toLocaleString()}건`
-    const total = (skipLegacy ? 0 : serverLegacyTotal) + (skipCrm ? 0 : serverCrmTotal)
+    const total = (skipLegacy ? 0 : serverLegacyTotal + legacySettlementRows.length) + (skipCrm ? 0 : serverCrmTotal)
     return `전체 ${total.toLocaleString()}건`
-  }, [activeTab, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm])
+  }, [activeTab, serverLegacyTotal, serverCrmTotal, legacySettlementRows.length, skipLegacy, skipCrm])
 
   return (
     <div className="p-6">
@@ -500,12 +575,12 @@ export function Transactions() {
       )}
       {activeTab === 'legacy' && (
         <div className="mb-3 text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
-          레거시 장부 원본 데이터입니다. 서버 페이지네이션으로 전체 {serverLegacyTotal.toLocaleString()}건을 탐색할 수 있습니다.
+          레거시 장부 원본 데이터입니다. 고객 검색 시 레거시 미수 입금 이력도 함께 표시됩니다.
         </div>
       )}
       {activeTab === 'crm' && (
         <div className="mb-3 text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
-          CRM에서 생성한 거래명세표입니다. 입금 내역은 미수금 관리 탭에서 확인하세요.
+          CRM에서 생성한 거래명세표입니다.
         </div>
       )}
 
@@ -573,6 +648,7 @@ export function Transactions() {
                   onClick={() => setSelectedTransaction({
                     source: row.source,
                     recordId: row.recordId,
+                    customerId: row.customer_id,
                     date: row.tx_date.slice(0, 10),
                     customerName: row.customer_name,
                     legacyBookId: row.legacy_book_id,

@@ -298,10 +298,37 @@
             redirect: 'follow'
         })
             .then(function(response) {
-                if (!response.ok && response.status >= 500) {
-                    throw new Error('HTTP ' + response.status);
-                }
-                return response.json();
+                return response.text().then(function(text) {
+                    var parsed = null;
+
+                    if (text) {
+                        try {
+                            parsed = JSON.parse(text);
+                        } catch (parseErr) {
+                            console.warn('[PartnerApply] JSON 파싱 실패:', parseErr);
+                        }
+                    }
+
+                    if (parsed) {
+                        return parsed;
+                    }
+
+                    if (!response.ok && response.status >= 500) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+
+                    return {
+                        success: false,
+                        error: {
+                            code: 'INVALID_RESPONSE',
+                            message: response.status === 409
+                                ? '이미 등록된 신청 정보가 있습니다. 잠시 후 다시 확인해주세요.'
+                                : '신청 처리 중 응답을 해석할 수 없습니다.',
+                            status: response.status,
+                            raw: text ? text.substring(0, 200) : ''
+                        }
+                    };
+                });
             })
             .then(function(resData) {
                 callback(null, resData);

@@ -429,6 +429,17 @@
     letter-spacing: 0.01em;
 }
 
+.class-detail .info-badge--link {
+    text-decoration: none;
+    transition: transform 0.18s ease, box-shadow 0.18s ease, opacity 0.18s ease;
+}
+
+.class-detail .info-badge--link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.06);
+    opacity: 0.92;
+}
+
 .class-detail .info-badge--category {
     background: rgba(107, 76, 59, 0.1);
     color: var(--cd-brown);
@@ -538,6 +549,45 @@
 .class-detail .info-price__per {
     font-size: 13px;
     color: var(--cd-text-light);
+}
+
+.class-detail .detail-explore {
+    margin-top: 18px;
+}
+
+.class-detail .detail-explore__label {
+    display: block;
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--cd-text-light);
+    margin-bottom: 10px;
+    letter-spacing: 0.02em;
+}
+
+.class-detail .detail-explore__links {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.class-detail .detail-explore__link {
+    display: inline-flex;
+    align-items: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--cd-border);
+    background: #fff;
+    color: var(--cd-text);
+    text-decoration: none;
+    font-size: 12px;
+    font-weight: 600;
+    transition: border-color 0.18s ease, color 0.18s ease, background 0.18s ease;
+}
+
+.class-detail .detail-explore__link:hover {
+    border-color: var(--cd-primary);
+    color: var(--cd-primary);
+    background: rgba(125, 150, 117, 0.07);
 }
 
 
@@ -1476,6 +1526,10 @@
     margin-left: 4px;
 }
 
+.class-detail .detail-explore--sidebar {
+    padding-top: 16px;
+}
+
 /* 날짜/인원 선택 공통 */
 .class-detail .booking-label {
     display: flex;
@@ -1683,6 +1737,56 @@
 }
 
 .class-detail .booking-submit:disabled {
+    background: var(--cd-border);
+    cursor: default;
+    box-shadow: none;
+    transform: none;
+}
+
+.class-detail .booking-btn-group {
+    display: flex;
+    gap: 10px;
+}
+
+.class-detail .booking-btn-group .booking-submit {
+    flex: 1;
+}
+
+.class-detail .booking-gift {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 16px 20px;
+    background: var(--cd-gold);
+    color: #FFFFFF;
+    border: none;
+    border-radius: var(--cd-radius-sm);
+    font-family: var(--cd-font);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all var(--cd-transition);
+    white-space: nowrap;
+    letter-spacing: -0.01em;
+}
+
+.class-detail .booking-gift svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.class-detail .booking-gift:hover {
+    background: #b07e52;
+    box-shadow: 0 4px 16px rgba(196, 149, 106, 0.3);
+}
+
+.class-detail .booking-gift:active {
+    transform: scale(0.98);
+}
+
+.class-detail .booking-gift:disabled {
     background: var(--cd-border);
     cursor: default;
     box-shadow: none;
@@ -2516,6 +2620,30 @@
     letter-spacing: 0.02em;
 }
 
+.class-detail .cd-related-card__tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-bottom: 8px;
+}
+
+.class-detail .cd-related-card__tag {
+    display: inline-flex;
+    align-items: center;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(125, 150, 117, 0.08);
+    color: var(--cd-primary);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.class-detail .cd-related-card__tag--remain {
+    background: rgba(184, 155, 94, 0.12);
+    color: var(--cd-brown);
+}
+
 .class-detail .cd-related-card__name {
     font-size: 14px;
     font-weight: 600;
@@ -2620,5 +2748,143 @@
 
     .class-detail .cd-related-card:hover .cd-related-card__thumb img {
         transform: none;
+    }
+}
+
+/* ----------------------------------------
+   20. FAQ 섹션 (Task 010)
+   ---------------------------------------- */
+.class-detail .detail-faq {
+    padding: 0;
+}
+
+.class-detail .faq-list {
+    margin-bottom: 32px;
+}
+
+.class-detail .faq-item {
+    border-bottom: 1px solid var(--cd-border-light);
+}
+
+.class-detail .faq-item:first-child {
+    border-top: 1px solid var(--cd-border-light);
+}
+
+.class-detail .faq-question {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    padding: 16px 0;
+    background: none;
+    border: none;
+    font-family: var(--cd-font);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--cd-text);
+    cursor: pointer;
+    text-align: left;
+    line-height: 1.5;
+    gap: 12px;
+    transition: color var(--cd-transition);
+}
+
+.class-detail .faq-question:hover {
+    color: var(--cd-primary);
+}
+
+.class-detail .faq-question .faq-icon {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    transition: transform 0.2s ease;
+}
+
+.class-detail .faq-item.is-open .faq-icon {
+    transform: rotate(180deg);
+}
+
+.class-detail .faq-answer {
+    display: none;
+    padding: 0 0 16px;
+    font-size: 14px;
+    color: var(--cd-text-light);
+    line-height: 1.7;
+}
+
+.class-detail .faq-item.is-open .faq-answer {
+    display: block;
+}
+
+.class-detail .faq-contact {
+    background: var(--cd-bg);
+    border-radius: var(--cd-radius-md);
+    padding: 24px;
+}
+
+.class-detail .faq-contact__title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--cd-text-dark);
+    margin: 0 0 16px;
+}
+
+.class-detail .faq-contact__links {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-bottom: 12px;
+}
+
+.class-detail .faq-contact__link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background: #FFFFFF;
+    border: 1px solid var(--cd-border);
+    border-radius: var(--cd-radius-sm);
+    font-family: var(--cd-font);
+    font-size: 14px;
+    font-weight: 500;
+    color: var(--cd-text);
+    text-decoration: none;
+    transition: all var(--cd-transition);
+}
+
+.class-detail .faq-contact__link:hover {
+    border-color: var(--cd-primary);
+    color: var(--cd-primary);
+    box-shadow: var(--cd-shadow-sm);
+}
+
+.class-detail .faq-contact__link svg {
+    width: 18px;
+    height: 18px;
+    flex-shrink: 0;
+}
+
+.class-detail .faq-contact__hours {
+    font-size: 13px;
+    color: var(--cd-text-light);
+    line-height: 1.6;
+}
+
+/* FAQ 모바일 반응형 */
+@media screen and (max-width: 768px) {
+    .class-detail .faq-contact__links {
+        flex-direction: column;
+    }
+
+    .class-detail .faq-contact__link {
+        justify-content: center;
+    }
+
+    .class-detail .booking-btn-group {
+        flex-direction: column;
+    }
+
+    .class-detail .booking-gift {
+        width: 100%;
     }
 }

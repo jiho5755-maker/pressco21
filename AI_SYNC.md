@@ -629,24 +629,67 @@
   - 결과 파일: `output/playwright/admin-write-20260310/admin-write-results.json`
   - 스크린샷: `output/playwright/admin-write-20260310/approve-application-result.png`
 
+### 파트너클래스 UX 보강 및 메인페이지 별도 프로젝트 생성 (CODEX)
+- 실행 일시: 2026-03-10 12:28 KST ~ 2026-03-10 13:35 KST
+- 수정/추가 파일
+  - `파트너클래스/n8n-workflows/WF-07-partner-apply.json`
+  - `파트너클래스/파트너신청/js.js`
+  - `파트너클래스/상세/js.js`
+  - `파트너클래스/상세/css.css`
+  - `파트너클래스/목록/js.js`
+  - `메인페이지/파트너클래스-홈개편/Index.html`
+  - `메인페이지/파트너클래스-홈개편/css.css`
+  - `메인페이지/파트너클래스-홈개편/js.js`
+  - `docs/파트너클래스/affiliation-db-guide.md`
+- 작업 내용
+  - `WF-07 partner-apply`
+    - 중복 신청/기등록 파트너 분기에서 IF 체인을 `Switch` 기반으로 정리하고, 409 JSON 응답이 깨지지 않도록 응답 코드를 숫자형으로 정리.
+    - `partner-apply` 웹훅 라이브 재호출 시 `HTTP 409`, `ALREADY_PARTNER` JSON 응답 확인.
+  - `파트너신청/js.js`
+    - `response.json()` 실패 시 raw text를 먼저 읽고 안전하게 파싱하도록 수정해 `SyntaxError: The string did not match the expected pattern.` 오류를 프론트에서 흡수.
+  - `상세/js.js`, `상세/css.css`
+    - 상세 기본 정보 배지를 링크형으로 보강하고, 지역/카테고리/수업형태로 목록에 다시 탐색하는 링크 추가.
+    - 관련 클래스 추천이 카테고리 누락 시에도 죽지 않도록 점수 기반 추천으로 변경.
+    - 선물하기는 수동 `gift=Y` 이동 대신 메이크샵 상품 메타를 확인한 후 네이티브 장바구니 POST로 연결하고, 설정 미비 상품은 상세로 안전하게 폴백.
+  - `목록/js.js`
+    - `tab=affiliations` URL 파라미터를 읽어 협회 제휴 탭을 바로 여는 딥링크 지원 추가.
+    - 탭 전환 시 URL에도 `tab=affiliations`를 반영하도록 정리.
+  - `메인페이지/파트너클래스-홈개편`
+    - 기존 메인페이지 코드를 복사한 별도 프로젝트 폴더 생성.
+    - `YouTube` 섹션 아래에 파트너클래스 허브 블록을 동적으로 삽입하도록 재구성:
+      - 빠른 필터 칩
+      - 전체 클래스 / 협회 제휴 CTA
+      - 강사 지원 / 예약 확인 서비스 패널
+      - 추천 클래스 4건 카드와 실시간 메트릭
+    - 카테고리 아이콘에 `원데이 클래스` 진입점 추가.
+    - `Event` 섹션을 `강사 파트너 지원 / 협회·기관 제휴 / 예약 확인` 3축 카드로 재구성.
+  - 운영 가이드
+    - `docs/파트너클래스/affiliation-db-guide.md`에 제휴업체 자료 수령 후 DB 정리, QA 접두사 규칙, 메인 노출 제어 필드 가이드 작성.
+- 검증
+  - `node --check 메인페이지/파트너클래스-홈개편/js.js` → `OK`
+  - `node --check 파트너클래스/목록/js.js` → `OK`
+  - `node --check 파트너클래스/상세/js.js` → `OK`
+  - `node --check 파트너클래스/파트너신청/js.js` → `OK`
+  - `curl -i -X POST https://n8n.pressco21.com/webhook/partner-apply ...` → `409 Conflict`, `ALREADY_PARTNER` JSON 응답 확인
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
-- [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
-- [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
-- [CODEX] 어드민 쓰기 액션 Playwright 회귀 시나리오를 approve/reject/settlement 기준으로 정식 스크립트화
+- [CODEX] 메이크샵 배포 후 `파트너신청(2609)`, `상세(2607)`, `목록(2606)` 라이브 회귀 테스트 재실행
+- [CODEX] `메인페이지/파트너클래스-홈개편` 시안 기준으로 실제 메인페이지 저장용 마이그레이션 패치 정리
+- [CODEX] 파트너클래스 상세 선물하기를 실상품 1건 기준으로 최종 E2E 검증
+- [CODEX] 파트너클래스 홈/목록/상세/신청 동선 Playwright 회귀 시나리오 정식 스크립트화
 
 ### Claude Code 태스크
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
-- CRM 운영 확인: 실제 운영 브라우저에서 `미수금` 복구와 `캘린더 2026-03-09 8건` 표기를 확인
-- 캘린더 운영 판단: 과거 기준일 `미수 후속`은 현재 미수 기준 참고용이라는 점을 UX 문구로 더 명확히 할지 검토
-- 필요 시 캘린더 3단계: 최근 미주문 고객/고액 미수 고객 추천과 후속 액션 버튼 추가
-- n8n 효율화 검토 문서 기준으로 `offline-crm-v2`의 프록시 이관 여부와 `WF-05` 분할 착수 여부 결정
-- 카카오 JS Key 실제 발급 후 교체 필요
+- 메인페이지 개편안에서 실제 저장할 섹션 범위와 운영 배너/이미지 소재 확정
+- 제휴업체 실자료 수령 시 `affiliation-db-guide` 기준으로 필드 확정 및 NocoDB 운영 규칙 승인
 
 ## Known Risks
 
+- `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음
+- 상세 페이지 선물하기는 메이크샵 네이티브 장바구니 POST로 맞췄지만, 실제 선물 가능 상품 설정 여부에 따라 최종 동작이 달라질 수 있어 실상품 1건 재검증 필요
+- `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 저장 전까지 라이브 반영되지 않음
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.
 - 운영 `invoice_date`는 서버측 날짜 비교(`gte/lte`)가 안정적으로 동작하지 않아, 캘린더는 전체 명세표를 읽은 뒤 프론트에서 월/기간 필터링하는 구조를 사용 중.

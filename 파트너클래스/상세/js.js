@@ -299,6 +299,7 @@
         renderSection(function() { renderReviews(data); }, null, '');
         renderSection(function() { renderReviewForm(data); }, null, '');
         renderSection(function() { renderBookingPanel(data); }, null, '');
+        renderSection(function() { renderFaqSection(data); }, null, '');
 
         // 탭 이벤트 바인딩
         initTabs();
@@ -492,8 +493,6 @@
      */
     function renderBasicInfo(data) {
         var className = escapeHtml(data.class_name || '');
-        var category = escapeHtml(data.category || '');
-        var level = escapeHtml(data.level || '');
         var duration = data.duration_min || 0;
         var durationText = formatDuration(duration);
         var price = formatPrice(data.price || 0);
@@ -505,21 +504,7 @@
         // 별점 SVG (half star gradient 선언)
         var starsHtml = renderStars(avgRating, 'info-star', 16);
 
-        // 배지 HTML
-        var badgesHtml = '<div class="info-badges">';
-        if (category) {
-            badgesHtml += '<span class="info-badge info-badge--category">' + category + '</span>';
-        }
-        if (level) {
-            badgesHtml += '<span class="info-badge info-badge--level">' + level + '</span>';
-        }
-        if (durationText) {
-            badgesHtml += '<span class="info-badge info-badge--duration">' + durationText + '</span>';
-        }
-        if (data.kit_enabled && parseInt(data.kit_enabled) === 1) {
-            badgesHtml += '<span class="info-badge info-badge--kit">\uC7AC\uB8CC\uD0A4\uD2B8 \uD3EC\uD568</span>';
-        }
-        badgesHtml += '</div>';
+        var badgesHtml = buildInfoBadgesHtml(data, true, durationText);
 
         // 별점 행
         var ratingHtml = '';
@@ -567,7 +552,8 @@
             + '<h1 class="info-title">' + className + '</h1>'
             + ratingHtml
             + metaHtml
-            + priceHtml;
+            + priceHtml
+            + buildExploreLinksHtml(data, 'mobile');
 
         // 모바일 기본 정보
         var mobileInfo = document.getElementById('detailInfoMobile');
@@ -676,10 +662,12 @@
         if (!container) return;
 
         var partner = data.partner || {};
-        var name = escapeHtml(partner.partner_name || partner.name || '\uACF5\uBC29 \uC815\uBCF4 \uC5C6\uC74C');
+        var rawPartnerName = partner.partner_name || partner.name || '';
+        var name = escapeHtml(rawPartnerName || '\uACF5\uBC29 \uC815\uBCF4 \uC5C6\uC74C');
         var grade = partner.grade || 'BLOOM';
         var gradeInfo = GRADE_MAP[grade] || GRADE_MAP['BLOOM'];
-        var region = escapeHtml(partner.location || partner.region || '');
+        var rawRegion = partner.location || partner.region || '';
+        var region = escapeHtml(rawRegion);
         var description = escapeHtml(partner.description || '');
         var logoUrl = partner.logo_url || '';
         var instructorBio = escapeHtml(data.instructor_bio || '');
@@ -748,8 +736,11 @@
 
         // 액션 버튼
         html += '<div class="instructor-actions">';
-        if (partner.partner_code) {
-            html += '<a href="/shop/page.html?id=2606&partner=' + encodeURIComponent(partner.partner_code) + '" class="instructor-action-btn instructor-action-btn--primary">'
+        if (rawPartnerName || region) {
+            html += '<a href="' + buildListPageUrl({
+                q: rawPartnerName,
+                region: rawPartnerName ? '' : getPrimaryRegion(rawRegion)
+            }) + '" class="instructor-action-btn instructor-action-btn--primary">'
                 + '\uB2E4\uB978 \uD074\uB798\uC2A4 \uBCF4\uAE30</a>';
         }
         html += '</div>';
@@ -1273,6 +1264,10 @@
         }
     }
 
+    function showToast(message, type) {
+        showReviewToast(message, type);
+    }
+
 
     /**
      * 별점 분포 추정 (실제 데이터 없을 때)
@@ -1321,11 +1316,13 @@
         var avgRating = parseFloat(data.avg_rating) || 0;
         var classCount = parseInt(data.class_count) || 0;
         var maxStudents = parseInt(data.max_students) || DEFAULT_MAX_STUDENTS;
+        var durationText = formatDuration(data.duration_min || 0);
         var starsHtml = renderStars(avgRating, 'info-star', 14);
 
         // 예약 패널 정보
         if (infoEl) {
-            var html = '<h2 class="booking-info__title">' + className + '</h2>';
+            var html = buildInfoBadgesHtml(data, true, durationText)
+                + '<h2 class="booking-info__title">' + className + '</h2>';
             if (avgRating > 0) {
                 html += '<div class="booking-info__rating">'
                     + '<div class="booking-info__stars">' + starsHtml + '</div>'
@@ -1336,7 +1333,8 @@
             html += '<div>'
                 + '<span class="booking-info__price">' + formatPrice(price) + '<span class="booking-info__price-unit">\uC6D0</span></span>'
                 + '<span class="booking-info__price-per">/1\uC778</span>'
-                + '</div>';
+                + '</div>'
+                + buildExploreLinksHtml(data, 'sidebar');
             infoEl.innerHTML = html;
         }
 
@@ -1438,6 +1436,14 @@
         if (submitBtn) {
             submitBtn.addEventListener('click', function() {
                 handleBookingClick();
+            });
+        }
+
+        // 선물하기 버튼
+        var giftBtn = document.getElementById('bookingGift');
+        if (giftBtn) {
+            giftBtn.addEventListener('click', function() {
+                handleGiftClick();
             });
         }
     }
@@ -1549,13 +1555,14 @@
      */
     function validateBooking() {
         var submitBtn = document.getElementById('bookingSubmit');
-        if (!submitBtn) return;
+        var giftBtn = document.getElementById('bookingGift');
+        var isValid = !!(selectedDate && selectedScheduleId);
 
-        // 날짜 + 시간 선택 필수
-        if (selectedDate && selectedScheduleId) {
-            submitBtn.disabled = false;
-        } else {
-            submitBtn.disabled = true;
+        if (submitBtn) {
+            submitBtn.disabled = !isValid;
+        }
+        if (giftBtn) {
+            giftBtn.disabled = !isValid;
         }
     }
 
@@ -1770,6 +1777,139 @@
 
 
     /* ========================================
+       FAQ / 문의 (Task 010)
+       ======================================== */
+
+    function renderFaqSection(data) {
+        var faqList = document.getElementById('faqList');
+        var faqContact = document.getElementById('faqContact');
+        if (!faqList || !faqContact) return;
+
+        var faqs = [
+            { q: '\uc218\uc5c5\uc744 \ucde8\uc18c\ud558\uace0 \uc2f6\uc5b4\uc694. \ud658\ubd88\uc774 \uac00\ub2a5\ud55c\uac00\uc694?', a: '\uc218\uc5c5 3\uc77c \uc804\uae4c\uc9c0 \uc804\uc561 \ud658\ubd88 \uac00\ub2a5\ud569\ub2c8\ub2e4. 2\uc77c \uc804 50%, 1\uc77c \uc804/\ub2f9\uc77c\uc740 \ud658\ubd88\uc774 \uc5b4\ub835\uc2b5\ub2c8\ub2e4. \uace0\uac1d\uc13c\ud130\ub85c \ubb38\uc758\ud574 \uc8fc\uc138\uc694.' },
+            { q: '\uc7ac\ub8cc\ub294 \uc9c1\uc811 \uac00\uc838\uac00\uc57c \ud558\ub098\uc694?', a: '\ubaa8\ub4e0 \uc7ac\ub8cc\ub294 \uac15\uc0ac\uac00 \uc900\ube44\ud569\ub2c8\ub2e4. \uc7ac\ub8cc\ud0a4\ud2b8 \ud3ec\ud568 \ud074\ub798\uc2a4\ub294 \uc218\uc5c5 \uc804 \ubc30\uc1a1\ub429\ub2c8\ub2e4. \ud3b8\ud55c \ucc28\ub9bc\uc73c\ub85c \uc624\uc138\uc694!' },
+            { q: '\ucd08\ubcf4\uc790\ub3c4 \ucc38\uc5ec\ud560 \uc218 \uc788\ub098\uc694?', a: '\ub124, \ub300\ubd80\ubd84\uc758 \ud074\ub798\uc2a4\ub294 \ucd08\ubcf4\uc790\ub97c \uc704\ud574 \uad6c\uc131\ub418\uc5b4 \uc788\uc2b5\ub2c8\ub2e4. \ud074\ub798\uc2a4 \uc0c1\uc138\uc758 \ub09c\uc774\ub3c4 \ud45c\uc2dc\ub97c \ud655\uc778\ud574 \uc8fc\uc138\uc694.' },
+            { q: '\uc218\uc5c5 \uc2dc\uac04\uc740 \uc5bc\ub9c8\ub098 \uac78\ub9ac\ub098\uc694?', a: '\ud074\ub798\uc2a4\ub9c8\ub2e4 \ub2e4\ub974\uba70, \uc0c1\uc138 \ud398\uc774\uc9c0\uc758 \uc18c\uc694\uc2dc\uac04\uc744 \ud655\uc778\ud574 \uc8fc\uc138\uc694. \ubcf4\ud1b5 1\uc2dc\uac04 30\ubd84 ~ 3\uc2dc\uac04 \uc815\ub3c4\uc785\ub2c8\ub2e4.' },
+            { q: '\uc608\uc57d \uc778\uc6d0\uc744 \ubcc0\uacbd\ud560 \uc218 \uc788\ub098\uc694?', a: '\uc608\uc57d \ud6c4 \uc778\uc6d0 \ubcc0\uacbd\uc740 \uace0\uac1d\uc13c\ud130\ub97c \ud1b5\ud574 \uac00\ub2a5\ud569\ub2c8\ub2e4. \uc794\uc5ec\uc11d\uc774 \uc788\ub294 \uacbd\uc6b0\uc5d0\ub9cc \ucd94\uac00 \uac00\ub2a5\ud569\ub2c8\ub2e4.' }
+        ];
+
+        var html = '';
+        for (var i = 0; i < faqs.length; i++) {
+            html += '<div class="faq-item">'
+                + '<button type="button" class="faq-item__question" aria-expanded="false">'
+                + '<span>Q. ' + escapeHtml(faqs[i].q) + '</span>'
+                + '<svg class="faq-item__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+                + '</button>'
+                + '<div class="faq-item__answer" style="display:none;">'
+                + '<p>' + escapeHtml(faqs[i].a) + '</p>'
+                + '</div>'
+                + '</div>';
+        }
+        faqList.innerHTML = html;
+
+        // FAQ 아코디언 이벤트
+        faqList.addEventListener('click', function(e) {
+            var btn = e.target.closest('.faq-item__question');
+            if (!btn) return;
+            var item = btn.closest('.faq-item');
+            var answer = item.querySelector('.faq-item__answer');
+            var expanded = btn.getAttribute('aria-expanded') === 'true';
+            btn.setAttribute('aria-expanded', String(!expanded));
+            answer.style.display = expanded ? 'none' : 'block';
+        });
+
+        // 문의 연락처
+        var contactPhone = (data.contact_phone) ? escapeHtml(data.contact_phone) : '010-9848-5520';
+        var contactKakao = (data.contact_kakao) ? escapeHtml(data.contact_kakao) : '';
+        var contactInstagram = (data.partner && data.partner.instagram_url) ? escapeHtml(data.partner.instagram_url) : '';
+
+        var contactHtml = '<h3 class="faq-contact__title">\ubb38\uc758\ud558\uae30</h3>'
+            + '<div class="faq-contact__links">'
+            + '<a href="tel:' + contactPhone.replace(/-/g, '') + '" class="faq-contact__link faq-contact__link--phone">'
+            + '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M6 7a7.5 7.5 0 003 3l1.35-1.35a.5.5 0 01.52-.12 5.7 5.7 0 001.78.28.5.5 0 01.5.5V12a.5.5 0 01-.5.5A10.5 10.5 0 013.5 3.35a.5.5 0 01.5-.5h2.68a.5.5 0 01.5.5 5.7 5.7 0 00.28 1.78.5.5 0 01-.12.52L6 7z" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+            + '\uc804\ud654 \ubb38\uc758'
+            + '</a>'
+            + '<a href="https://pf.kakao.com/_pressco21" target="_blank" rel="noopener" class="faq-contact__link faq-contact__link--kakao">'
+            + '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.48 3 2 6.58 2 11c0 2.84 1.65 5.36 4.16 6.94L5 21l4.38-2.35C10.22 18.88 11.1 19 12 19c5.52 0 10-3.58 10-8S17.52 3 12 3z"/></svg>'
+            + '\uce74\uce74\uc624\ud1a1 \ubb38\uc758'
+            + '</a>';
+
+        if (contactInstagram) {
+            contactHtml += '<a href="' + contactInstagram + '" target="_blank" rel="noopener" class="faq-contact__link faq-contact__link--insta">'
+                + '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="2.5"/><circle cx="11.5" cy="4.5" r="0.7" fill="currentColor" stroke="none"/></svg>'
+                + '\uc778\uc2a4\ud0c0\uadf8\ub7a8'
+                + '</a>';
+        }
+
+        contactHtml += '</div>'
+            + '<p class="faq-contact__hours">\uc6b4\uc601\uc2dc\uac04: \ud3c9\uc77c 10:00 ~ 18:00 (\uc8fc\ub9d0/\uacf5\ud734\uc77c \ud734\ubb34)</p>';
+
+        faqContact.innerHTML = contactHtml;
+    }
+
+
+    /* ========================================
+       선물하기 (Task 012)
+       ======================================== */
+
+    function handleGiftClick() {
+        if (!classData) return;
+
+        if (!memberId) {
+            if (confirm('\uc120\ubb3c\ud558\uae30\ub294 \ub85c\uadf8\uc778 \ud6c4 \uc774\uc6a9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\n\ub85c\uadf8\uc778 \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
+                window.location.href = '/shop/member.html?type=login&returnUrl=' + encodeURIComponent(window.location.href);
+            }
+            return;
+        }
+
+        if (!selectedDate || !selectedScheduleId) {
+            alert('\ub0a0\uc9dc\uc640 \uc2dc\uac04\uc744 \uba3c\uc800 \uc120\ud0dd\ud574 \uc8fc\uc138\uc694.');
+            return;
+        }
+
+        var brandUid = classData.makeshop_product_id;
+        var productDetailUrl = '/shop/shopdetail.html?branduid=' + String(brandUid);
+        if (!brandUid) {
+            showToast('\uc5f0\ub3d9 \uc0c1\ud488\uc774 \uc900\ube44\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4.', 'error');
+            return;
+        }
+
+        try {
+            sessionStorage.setItem('pressco21_pending_gift', JSON.stringify({
+                class_id: classData.class_id || classData.id || '',
+                schedule_id: selectedScheduleId,
+                schedule_date: selectedDate,
+                quantity: selectedQuantity,
+                return_url: window.location.href
+            }));
+        } catch (e) {
+            /* 세션 저장 실패는 무시 */
+        }
+
+        resolveGiftProductMeta(brandUid)
+            .then(function(meta) {
+                if (!meta || !meta.brandCode) {
+                    showToast('\uBA54\uC774\uD06C\uC0F5 \uC120\uBB3C\uD558\uAE30 \uAD6C\uC131\uC744 \uCC3E\uC9C0 \uBABB\uD574 \uC0C1\uD488 \uC0C1\uC138\uB85C \uC774\uB3D9\uD569\uB2C8\uB2E4.', 'error');
+                    window.location.href = productDetailUrl;
+                    return;
+                }
+
+                if (!meta.isSellable) {
+                    showToast('\uD604\uC7AC \uD074\uB798\uC2A4 \uC0C1\uD488\uC740 \uBA54\uC774\uD06C\uC0F5 \uC120\uBB3C\uD558\uAE30 \uC9C1\uD589 \uC0C1\uD0DC\uAC00 \uC544\uB2D9\uB2C8\uB2E4. \uC0C1\uD488 \uC0C1\uC138\uC5D0\uC11C \uD310\uB9E4/\uC120\uBB3C \uC124\uC815\uC744 \uD655\uC778\uD574\uC8FC\uC138\uC694.', 'error');
+                    window.location.href = productDetailUrl;
+                    return;
+                }
+
+                submitGiftCheckout(meta, selectedQuantity || 1);
+            })
+            .catch(function(err) {
+                console.warn('[ClassDetail] \uC120\uBB3C\uD558\uAE30 \uBA54\uD0C0 \uD655\uC778 \uC2E4\uD328:', err);
+                window.location.href = productDetailUrl;
+            });
+    }
+
+
+    /* ========================================
        탭 내비게이션
        ======================================== */
 
@@ -1782,7 +1922,8 @@
             'description': document.getElementById('tabDescription'),
             'curriculum': document.getElementById('tabCurriculum'),
             'instructor': document.getElementById('tabInstructor'),
-            'reviews': document.getElementById('tabReviews')
+            'reviews': document.getElementById('tabReviews'),
+            'faq': document.getElementById('tabFaq')
         };
 
         for (var i = 0; i < tabBtns.length; i++) {
@@ -1796,7 +1937,7 @@
                 }
 
                 // 모든 패널 숨김
-                var keys = ['description', 'curriculum', 'instructor', 'reviews'];
+                var keys = ['description', 'curriculum', 'instructor', 'reviews', 'faq'];
                 for (var k = 0; k < keys.length; k++) {
                     if (panels[keys[k]]) {
                         panels[keys[k]].style.display = 'none';
@@ -2203,6 +2344,239 @@
         var mins = min % 60;
         if (mins === 0) return hours + '\uC2DC\uAC04';
         return hours + '\uC2DC\uAC04 ' + mins + '\uBD84';
+    }
+
+    function getPrimaryRegion(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim();
+        if (!text) return '';
+        if (text.indexOf('\uC628\uB77C\uC778') > -1) return '\uC628\uB77C\uC778';
+
+        var parts = text.split(' ');
+        if (parts.length >= 2) return parts[0] + ' ' + parts[1];
+        return parts[0];
+    }
+
+    function buildListPageUrl(params) {
+        var query = ['id=2606'];
+
+        if (params.category) {
+            query.push('category=' + encodeURIComponent(params.category));
+        }
+        if (params.level) {
+            query.push('level=' + encodeURIComponent(params.level));
+        }
+        if (params.region) {
+            query.push('region=' + encodeURIComponent(params.region));
+        }
+        if (params.q) {
+            query.push('q=' + encodeURIComponent(params.q));
+        }
+
+        return '/shop/page.html?' + query.join('&');
+    }
+
+    function buildInfoBadge(label, className, href, ariaLabel) {
+        if (!label) return '';
+
+        if (href) {
+            return '<a href="' + href + '" class="info-badge ' + className + ' info-badge--link" aria-label="' + escapeHtml(ariaLabel || label) + '">'
+                + escapeHtml(label)
+                + '</a>';
+        }
+
+        return '<span class="info-badge ' + className + '">' + escapeHtml(label) + '</span>';
+    }
+
+    function buildInfoBadgesHtml(data, linkable, durationText) {
+        var html = '<div class="info-badges">';
+        var category = data.category || '';
+        var level = data.level || '';
+
+        if (category) {
+            html += buildInfoBadge(
+                category,
+                'info-badge--category',
+                linkable ? buildListPageUrl({ category: category }) : '',
+                category + ' \uBD84\uB958 \uD074\uB798\uC2A4 \uBAA9\uB85D \uBCF4\uAE30'
+            );
+        }
+        if (level) {
+            html += buildInfoBadge(
+                level,
+                'info-badge--level',
+                linkable ? buildListPageUrl({ level: level }) : '',
+                level + ' \uB09C\uC774\uB3C4 \uD074\uB798\uC2A4 \uBAA9\uB85D \uBCF4\uAE30'
+            );
+        }
+        if (durationText) {
+            html += buildInfoBadge(durationText, 'info-badge--duration', '', '');
+        }
+        if (data.kit_enabled && parseInt(data.kit_enabled, 10) === 1) {
+            html += buildInfoBadge('\uC7AC\uB8CC\uD0A4\uD2B8 \uD3EC\uD568', 'info-badge--kit', '', '');
+        }
+
+        html += '</div>';
+        return html;
+    }
+
+    function buildExploreLinksHtml(data, variant) {
+        var links = [];
+        var seen = {};
+        var region = getPrimaryRegion(data.location || (data.partner && (data.partner.location || data.partner.region)) || '');
+        var partnerName = data.partner && (data.partner.partner_name || data.partner.name) ? (data.partner.partner_name || data.partner.name) : '';
+
+        function pushLink(href, label) {
+            if (!href || !label || seen[href]) return;
+            seen[href] = true;
+            links.push({ href: href, label: label });
+        }
+
+        if (data.category) {
+            pushLink(buildListPageUrl({ category: data.category }), data.category + ' \uD074\uB798\uC2A4');
+        }
+        if (data.level) {
+            pushLink(buildListPageUrl({ level: data.level }), data.level + ' \uB09C\uC774\uB3C4');
+        }
+        if (region) {
+            pushLink(buildListPageUrl({ region: region }), region + ' \uD074\uB798\uC2A4');
+        }
+        if (partnerName) {
+            pushLink(buildListPageUrl({ q: partnerName }), '\uAC15\uC0AC \uD074\uB798\uC2A4 \uBAA8\uC544\uBCF4\uAE30');
+        }
+
+        if (links.length === 0) return '';
+
+        var html = '<div class="detail-explore detail-explore--' + escapeHtml(variant || 'default') + '">'
+            + '<span class="detail-explore__label">\uD074\uB798\uC2A4 \uB354 \uB458\uB7EC\uBCF4\uAE30</span>'
+            + '<div class="detail-explore__links">';
+
+        for (var i = 0; i < links.length && i < 3; i++) {
+            html += '<a href="' + links[i].href + '" class="detail-explore__link">' + escapeHtml(links[i].label) + '</a>';
+        }
+
+        html += '</div></div>';
+        return html;
+    }
+
+    function buildRelatedContext(data) {
+        return {
+            category: data.category || '',
+            level: data.level || '',
+            region: getPrimaryRegion(data.location || (data.partner && (data.partner.location || data.partner.region)) || ''),
+            partnerCode: data.partner_code || (data.partner && data.partner.partner_code) || '',
+            partnerName: data.partner && (data.partner.partner_name || data.partner.name) ? (data.partner.partner_name || data.partner.name) : ''
+        };
+    }
+
+    function getRelatedRemainingSeats(cls) {
+        var total = 0;
+        var schedules = cls.schedules || [];
+
+        if (schedules && schedules.length) {
+            for (var i = 0; i < schedules.length; i++) {
+                if (schedules[i].remaining > 0) {
+                    total += parseInt(schedules[i].remaining, 10) || 0;
+                }
+            }
+            return total;
+        }
+
+        if (cls.remaining_seats !== undefined) {
+            return Math.max(parseInt(cls.remaining_seats, 10) || 0, 0);
+        }
+
+        return 0;
+    }
+
+    function getRelatedScore(current, candidate) {
+        var score = 0;
+        var candidatePartnerCode = candidate.partner_code || (candidate.partner && candidate.partner.partner_code) || '';
+        var candidatePartnerName = candidate.partner_name || (candidate.partner && (candidate.partner.partner_name || candidate.partner.name)) || '';
+        var candidateRegion = getPrimaryRegion(candidate.location || (candidate.partner && (candidate.partner.location || candidate.partner.region)) || '');
+        var candidateRating = parseFloat(candidate.avg_rating) || 0;
+        var candidateSeats = getRelatedRemainingSeats(candidate);
+
+        if (current.category && candidate.category === current.category) score += 50;
+        if (current.level && candidate.level === current.level) score += 20;
+        if (current.region && candidateRegion && candidateRegion === current.region) score += 15;
+        if (current.partnerCode && candidatePartnerCode && candidatePartnerCode === current.partnerCode) score += 25;
+        if (!current.partnerCode && current.partnerName && candidatePartnerName === current.partnerName) score += 20;
+        if (candidateSeats > 0) score += Math.min(candidateSeats, 10);
+        score += Math.round(candidateRating * 3);
+
+        return score;
+    }
+
+    function appendHiddenInput(form, name, value) {
+        var input = document.createElement('input');
+        input.type = 'hidden';
+        input.name = name;
+        input.value = value == null ? '' : String(value);
+        form.appendChild(input);
+    }
+
+    function resolveGiftProductMeta(brandUid) {
+        return fetch('/shop/shopdetail.html?branduid=' + String(brandUid))
+            .then(function(resp) {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.text();
+            })
+            .then(function(html) {
+                var parser = new DOMParser();
+                var doc = parser.parseFromString(html, 'text/html');
+                var form = doc.querySelector('form[name="form1"], form[name="detailform"]');
+                var inputs = form ? form.querySelectorAll('input[name]') : [];
+                var fields = {};
+                var stopUseMatch = html.match(/sto_stop_use:'([YN])'/);
+                var stoIdMatch = html.match(/sto_id:'([^']+)'/);
+                var titleEl = doc.querySelector('.goods--title');
+
+                for (var i = 0; i < inputs.length; i++) {
+                    fields[inputs[i].name] = inputs[i].value || '';
+                }
+
+                return {
+                    brandUid: String(brandUid),
+                    brandCode: fields.brandcode || '',
+                    xCode: fields.xcode || '000',
+                    mCode: fields.mcode || '000',
+                    typep: fields.typep || 'X',
+                    optType: fields.opt_type || 'NO',
+                    basketUse: fields.basket_use || 'Y',
+                    cartFree: fields.cart_free || '',
+                    stoId: stoIdMatch ? stoIdMatch[1] : '1',
+                    productName: titleEl ? titleEl.textContent.trim() : (classData && classData.class_name ? classData.class_name : '\uD30C\uD2B8\uB108 \uD074\uB798\uC2A4'),
+                    isSellable: !(stopUseMatch && stopUseMatch[1] === 'Y')
+                };
+            });
+    }
+
+    function submitGiftCheckout(meta, quantity) {
+        var form = document.createElement('form');
+        form.method = 'POST';
+        form.action = '/shop/basket.html';
+        form.style.display = 'none';
+
+        appendHiddenInput(form, 'brandcode', meta.brandCode);
+        appendHiddenInput(form, 'branduid', meta.brandUid);
+        appendHiddenInput(form, 'xcode', meta.xCode);
+        appendHiddenInput(form, 'mcode', meta.mCode);
+        appendHiddenInput(form, 'typep', meta.typep);
+        appendHiddenInput(form, 'ordertype', 'baro|parent.|layer');
+        appendHiddenInput(form, 'cart_free', meta.cartFree);
+        appendHiddenInput(form, 'opt_type', meta.optType);
+        appendHiddenInput(form, 'basket_use', meta.basketUse);
+        appendHiddenInput(form, 'giveapresent', 'Y');
+        appendHiddenInput(form, 'amount', quantity);
+        appendHiddenInput(form, 'amount[]', quantity);
+        appendHiddenInput(form, 'option[basic][0][0][opt_id]', '0');
+        appendHiddenInput(form, 'option[basic][0][0][opt_value]', meta.productName);
+        appendHiddenInput(form, 'option[basic][0][0][opt_stock]', '1');
+        appendHiddenInput(form, 'option[basic][0][0][sto_id]', meta.stoId || '1');
+        appendHiddenInput(form, 'option[basic][0][0][opt_type]', 'undefined');
+
+        document.body.appendChild(form);
+        form.submit();
     }
 
 
@@ -2630,15 +3004,17 @@
      * @param {Object} data - 현재 클래스 데이터
      */
     function loadRelatedClasses(data) {
-        var category = data.category || '';
         var currentClassId = data.class_id || data.id || '';
-
-        if (!category) return;
+        var currentMeta = buildRelatedContext(data);
 
         fetch(GAS_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ action: 'getClasses', category: category })
+            body: JSON.stringify({
+                action: 'getClasses',
+                category: data.category || '',
+                limit: 24
+            })
         })
         .then(function(response) {
             if (!response.ok) {
@@ -2650,14 +3026,29 @@
             if (resData && resData.success && resData.data && resData.data.classes) {
                 var allClasses = resData.data.classes;
                 var related = [];
+                var candidates = [];
 
-                // 현재 클래스 제외, active 상태만, 최대 4개
+                // 현재 클래스 제외, active 상태만 후보로 수집
                 for (var i = 0; i < allClasses.length; i++) {
                     var c = allClasses[i];
                     var cId = c.class_id || c.id || '';
                     if (cId === currentClassId) continue;
                     if (c.status && c.status !== 'active') continue;
-                    related.push(c);
+                    candidates.push({
+                        item: c,
+                        score: getRelatedScore(currentMeta, c)
+                    });
+                }
+
+                candidates.sort(function(a, b) {
+                    if (b.score !== a.score) {
+                        return b.score - a.score;
+                    }
+                    return (parseFloat(b.item.avg_rating) || 0) - (parseFloat(a.item.avg_rating) || 0);
+                });
+
+                for (var j = 0; j < candidates.length; j++) {
+                    related.push(candidates[j].item);
                     if (related.length >= 4) break;
                 }
 
@@ -2687,9 +3078,12 @@
             var cId = escapeHtml(c.class_id || c.id || '');
             var cName = escapeHtml(c.class_name || '');
             var cCategory = escapeHtml(c.category || '');
+            var cLevel = escapeHtml(c.level || '');
+            var cRegion = escapeHtml(getPrimaryRegion(c.location || (c.partner && (c.partner.location || c.partner.region)) || ''));
             var cPrice = formatPrice(c.price || 0);
             var cThumb = escapeHtml(c.thumbnail_url || '');
             var cRating = parseFloat(c.avg_rating) || 0;
+            var cRemaining = getRelatedRemainingSeats(c);
 
             html += '<a href="/shop/page.html?id=2607&class_id=' + encodeURIComponent(cId) + '" class="cd-related-card">'
                 + '<div class="cd-related-card__thumb">';
@@ -2703,6 +3097,19 @@
 
             if (cCategory) {
                 html += '<span class="cd-related-card__category">' + cCategory + '</span>';
+            }
+            if (cLevel || cRegion || cRemaining > 0) {
+                html += '<div class="cd-related-card__tags">';
+                if (cLevel) {
+                    html += '<span class="cd-related-card__tag">' + cLevel + '</span>';
+                }
+                if (cRegion) {
+                    html += '<span class="cd-related-card__tag">' + cRegion + '</span>';
+                }
+                if (cRemaining > 0) {
+                    html += '<span class="cd-related-card__tag cd-related-card__tag--remain">\uC794\uC5EC ' + cRemaining + '\uC11D</span>';
+                }
+                html += '</div>';
             }
 
             html += '<p class="cd-related-card__name">' + cName + '</p>'

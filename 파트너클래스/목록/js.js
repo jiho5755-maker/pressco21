@@ -1297,6 +1297,7 @@
         try {
             var params = new URLSearchParams();
 
+            if (activeCatalogTab === 'affiliations') params.set('tab', 'affiliations');
             if (currentFilters.category.length > 0) params.set('category', currentFilters.category.join(','));
             if (currentFilters.level.length > 0) params.set('level', currentFilters.level.join(','));
             if (currentFilters.type.length > 0) params.set('type', currentFilters.type.join(','));
@@ -1322,6 +1323,8 @@
     function restoreFiltersFromURL() {
         try {
             var params = new URLSearchParams(window.location.search);
+
+            activeCatalogTab = params.get('tab') === 'affiliations' ? 'affiliations' : 'classes';
 
             if (params.has('category')) {
                 currentFilters.category = params.get('category').split(',');
@@ -1929,6 +1932,9 @@
     /** 협회 데이터 캐시 */
     var affilDataCache = null;
 
+    /** 현재 활성 탭 */
+    var activeCatalogTab = 'classes';
+
     /**
      * 탭 네비게이션 초기화
      */
@@ -1937,6 +1943,7 @@
         for (var i = 0; i < tabBtns.length; i++) {
             tabBtns[i].addEventListener('click', handleTabClick);
         }
+        applyInitialCatalogTab();
     }
 
     /**
@@ -1945,21 +1952,33 @@
     function handleTabClick(e) {
         var btn = e.currentTarget;
         var tab = btn.getAttribute('data-tab');
+        activateCatalogTab(tab);
+    }
+
+    /**
+     * 탭 활성화 공통 처리
+     * @param {string} tab
+     */
+    function activateCatalogTab(tab) {
+        var targetTab = (tab === 'affiliations') ? 'affiliations' : 'classes';
+        activeCatalogTab = targetTab;
 
         // 모든 탭 비활성화
         var tabBtns = document.querySelectorAll('.catalog-tabs__btn');
         for (var i = 0; i < tabBtns.length; i++) {
             tabBtns[i].classList.remove('catalog-tabs__btn--active');
             tabBtns[i].setAttribute('aria-selected', 'false');
+            if (tabBtns[i].getAttribute('data-tab') === targetTab) {
+                tabBtns[i].classList.add('catalog-tabs__btn--active');
+                tabBtns[i].setAttribute('aria-selected', 'true');
+            }
         }
-        btn.classList.add('catalog-tabs__btn--active');
-        btn.setAttribute('aria-selected', 'true');
 
         // 패널 전환
         var panelClasses = document.getElementById('panelClasses');
         var panelAffil = document.getElementById('panelAffiliations');
 
-        if (tab === 'affiliations') {
+        if (targetTab === 'affiliations') {
             isAffilTabActive = true;
             if (panelClasses) panelClasses.style.display = 'none';
             if (panelAffil) panelAffil.style.display = '';
@@ -1968,6 +1987,22 @@
             isAffilTabActive = false;
             if (panelClasses) panelClasses.style.display = '';
             if (panelAffil) panelAffil.style.display = 'none';
+        }
+
+        updateURLParams();
+    }
+
+    /**
+     * URL 파라미터 기반 초기 탭 적용
+     */
+    function applyInitialCatalogTab() {
+        try {
+            var params = new URLSearchParams(window.location.search);
+            if (params.get('tab') === 'affiliations') {
+                activateCatalogTab('affiliations');
+            }
+        } catch (e) {
+            /* URL 파라미터 파싱 실패 시 기본 탭 유지 */
         }
     }
 

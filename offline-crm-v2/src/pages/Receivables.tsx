@@ -259,7 +259,10 @@ export function Receivables() {
   })
   const { data: customersForLink = [] } = useQuery({
     queryKey: ['receivable-link-customers'],
-    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id,mobile,email,business_no,memo' }),
+    queryFn: () => getAllCustomers({
+      where: '(outstanding_balance,gt,0)',
+      fields: 'Id,name,book_name,legacy_id,mobile,email,business_no,memo,outstanding_balance',
+    }),
     staleTime: 10 * 60 * 60 * 1000,
   })
   const { data: legacySnapshots } = useQuery({
@@ -374,6 +377,13 @@ export function Receivables() {
     return (
       <div className="p-6 text-red-500">
         데이터를 불러오지 못했습니다.
+      </div>
+    )
+
+  if (!legacySnapshots || customersForLink.length === 0)
+    return (
+      <div className="p-6 text-muted-foreground">
+        미수금 기준 고객을 불러오는 중...
       </div>
     )
 

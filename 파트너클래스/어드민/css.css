@@ -1,0 +1,939 @@
+/* ============================================
+   PRESSCO21 관리자 대시보드
+   CSS 스코핑: .admin-dashboard
+   CSS 변수 접두사: --ad-
+   브랜드 컬러: #7d9675 (세이지 그린), #6B4C3B (브라운), #C4956A (골드 베이지)
+   반응형: ~768px / 768~992px / 992~1200px / 1200px~
+   ============================================ */
+
+/* ----------------------------------------
+   0. CSS 변수
+   ---------------------------------------- */
+.admin-dashboard {
+    --ad-primary: #7d9675;
+    --ad-primary-light: #b7c9ad;
+    --ad-primary-dark: #2c3e30;
+    --ad-brown: #6B4C3B;
+    --ad-brown-light: #8B6B58;
+    --ad-gold: #C4956A;
+    --ad-gold-light: #E8D5C4;
+    --ad-danger: #dc4848;
+    --ad-danger-light: #fee2e2;
+    --ad-warning: #e09c40;
+    --ad-warning-light: #fef3cd;
+    --ad-success: #4caf50;
+    --ad-success-light: #e8f5e9;
+    --ad-bg: #FAF8F5;
+    --ad-bg-card: #FFFFFF;
+    --ad-text: #333333;
+    --ad-text-light: #777777;
+    --ad-text-dark: #1a1a1a;
+    --ad-border: #E8E2DB;
+    --ad-border-light: #F0EBE5;
+    --ad-shadow-sm: 0 1px 3px rgba(107, 76, 59, 0.06);
+    --ad-shadow-md: 0 4px 16px rgba(107, 76, 59, 0.08);
+    --ad-shadow-lg: 0 8px 32px rgba(107, 76, 59, 0.12);
+    --ad-radius-sm: 8px;
+    --ad-radius-md: 12px;
+    --ad-radius-lg: 16px;
+    --ad-transition: 0.25s ease-out;
+    --ad-font: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
+
+    font-family: var(--ad-font);
+    background-color: var(--ad-bg);
+    color: var(--ad-text);
+    line-height: 1.6;
+    box-sizing: border-box;
+    max-width: 1200px;
+    margin: 0 auto;
+    padding: 24px 20px 60px;
+    -webkit-font-smoothing: antialiased;
+}
+
+.admin-dashboard *,
+.admin-dashboard *::before,
+.admin-dashboard *::after {
+    box-sizing: border-box;
+}
+
+/* ----------------------------------------
+   1. 비인가 안내
+   ---------------------------------------- */
+.admin-dashboard .ad-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+}
+
+.admin-dashboard .ad-notice__inner {
+    text-align: center;
+    max-width: 400px;
+    padding: 40px 24px;
+}
+
+.admin-dashboard .ad-notice__icon {
+    margin-bottom: 20px;
+    color: var(--ad-text-light);
+}
+
+.admin-dashboard .ad-notice__title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ad-text-dark);
+    margin: 0 0 8px;
+}
+
+.admin-dashboard .ad-notice__desc {
+    font-size: 15px;
+    color: var(--ad-text-light);
+    margin: 0 0 24px;
+}
+
+.admin-dashboard .ad-notice__btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: var(--ad-primary);
+    color: #FFFFFF;
+    border: none;
+    border-radius: var(--ad-radius-sm);
+    font-family: var(--ad-font);
+    font-size: 15px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background var(--ad-transition);
+}
+
+.admin-dashboard .ad-notice__btn:hover {
+    background: var(--ad-primary-dark);
+}
+
+/* ----------------------------------------
+   2. 헤더
+   ---------------------------------------- */
+.admin-dashboard .ad-header {
+    margin-bottom: 24px;
+}
+
+.admin-dashboard .ad-header__title {
+    font-size: 26px;
+    font-weight: 800;
+    color: var(--ad-text-dark);
+    margin: 0 0 4px;
+    letter-spacing: -0.02em;
+}
+
+.admin-dashboard .ad-header__desc {
+    font-size: 15px;
+    color: var(--ad-text-light);
+    margin: 0;
+}
+
+/* ----------------------------------------
+   3. 요약 카드
+   ---------------------------------------- */
+.admin-dashboard .ad-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-bottom: 24px;
+}
+
+.admin-dashboard .ad-summary__card {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 20px;
+    background: var(--ad-bg-card);
+    border-radius: var(--ad-radius-md);
+    border: 1px solid var(--ad-border-light);
+    box-shadow: var(--ad-shadow-sm);
+    transition: box-shadow var(--ad-transition);
+}
+
+.admin-dashboard .ad-summary__card:hover {
+    box-shadow: var(--ad-shadow-md);
+}
+
+.admin-dashboard .ad-summary__icon {
+    width: 44px;
+    height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--ad-bg);
+    border-radius: 10px;
+    color: var(--ad-primary);
+    flex-shrink: 0;
+}
+
+.admin-dashboard .ad-summary__icon svg {
+    width: 22px;
+    height: 22px;
+}
+
+.admin-dashboard .ad-summary__info {
+    display: flex;
+    flex-direction: column;
+}
+
+.admin-dashboard .ad-summary__label {
+    font-size: 13px;
+    color: var(--ad-text-light);
+    font-weight: 500;
+}
+
+.admin-dashboard .ad-summary__count {
+    font-size: 28px;
+    font-weight: 800;
+    color: var(--ad-text-dark);
+    line-height: 1.2;
+}
+
+/* ----------------------------------------
+   4. 탭 네비게이션
+   ---------------------------------------- */
+.admin-dashboard .ad-tabs {
+    display: flex;
+    gap: 4px;
+    margin-bottom: 20px;
+    border-bottom: 2px solid var(--ad-border-light);
+    padding-bottom: 0;
+}
+
+.admin-dashboard .ad-tabs__btn {
+    position: relative;
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    padding: 12px 20px;
+    background: none;
+    border: none;
+    font-family: var(--ad-font);
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--ad-text-light);
+    cursor: pointer;
+    transition: color var(--ad-transition);
+    border-bottom: 2px solid transparent;
+    margin-bottom: -2px;
+}
+
+.admin-dashboard .ad-tabs__btn:hover {
+    color: var(--ad-text);
+}
+
+.admin-dashboard .ad-tabs__btn--active {
+    color: var(--ad-primary);
+    border-bottom-color: var(--ad-primary);
+}
+
+.admin-dashboard .ad-tabs__badge {
+    display: none;
+    min-width: 20px;
+    height: 20px;
+    padding: 0 6px;
+    background: var(--ad-danger);
+    color: #FFFFFF;
+    border-radius: 10px;
+    font-size: 11px;
+    font-weight: 700;
+    line-height: 20px;
+    text-align: center;
+}
+
+/* ----------------------------------------
+   5. 패널
+   ---------------------------------------- */
+.admin-dashboard .ad-panel {
+    margin-bottom: 24px;
+}
+
+.admin-dashboard .ad-panel__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 16px;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.admin-dashboard .ad-panel__title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ad-text-dark);
+    margin: 0;
+}
+
+.admin-dashboard .ad-panel__actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+/* ----------------------------------------
+   6. 테이블
+   ---------------------------------------- */
+.admin-dashboard .ad-table-wrap {
+    overflow-x: auto;
+    background: var(--ad-bg-card);
+    border-radius: var(--ad-radius-md);
+    border: 1px solid var(--ad-border-light);
+    box-shadow: var(--ad-shadow-sm);
+}
+
+.admin-dashboard .ad-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+}
+
+.admin-dashboard .ad-table thead th {
+    padding: 12px 16px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ad-text-light);
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    text-align: left;
+    background: var(--ad-bg);
+    border-bottom: 1px solid var(--ad-border);
+    white-space: nowrap;
+}
+
+.admin-dashboard .ad-table tbody td {
+    padding: 12px 16px;
+    border-bottom: 1px solid var(--ad-border-light);
+    vertical-align: middle;
+}
+
+.admin-dashboard .ad-table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.admin-dashboard .ad-table tbody tr:hover {
+    background: rgba(125, 150, 117, 0.03);
+}
+
+.admin-dashboard .ad-table__date {
+    white-space: nowrap;
+    color: var(--ad-text-light);
+    font-size: 13px;
+}
+
+.admin-dashboard .ad-table__num {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.admin-dashboard .ad-table__num--highlight {
+    font-weight: 700;
+    color: var(--ad-primary-dark);
+}
+
+.admin-dashboard .ad-table__actions {
+    white-space: nowrap;
+    display: flex;
+    gap: 6px;
+}
+
+/* ----------------------------------------
+   7. 버튼
+   ---------------------------------------- */
+.admin-dashboard .ad-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 10px 18px;
+    border: none;
+    border-radius: var(--ad-radius-sm);
+    font-family: var(--ad-font);
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all var(--ad-transition);
+    white-space: nowrap;
+}
+
+.admin-dashboard .ad-btn--primary {
+    background: var(--ad-primary);
+    color: #FFFFFF;
+}
+
+.admin-dashboard .ad-btn--primary:hover {
+    background: var(--ad-primary-dark);
+}
+
+.admin-dashboard .ad-btn--secondary {
+    background: var(--ad-bg);
+    color: var(--ad-text);
+    border: 1px solid var(--ad-border);
+}
+
+.admin-dashboard .ad-btn--secondary:hover {
+    background: var(--ad-border-light);
+}
+
+.admin-dashboard .ad-btn--sm {
+    padding: 6px 12px;
+    font-size: 13px;
+}
+
+.admin-dashboard .ad-btn--approve {
+    background: var(--ad-success-light);
+    color: #2e7d32;
+}
+
+.admin-dashboard .ad-btn--approve:hover {
+    background: #c8e6c9;
+}
+
+.admin-dashboard .ad-btn--reject {
+    background: var(--ad-danger-light);
+    color: #c62828;
+}
+
+.admin-dashboard .ad-btn--reject:hover {
+    background: #ffcdd2;
+}
+
+/* ----------------------------------------
+   8. 셀렉트 / 체크박스
+   ---------------------------------------- */
+.admin-dashboard .ad-select {
+    padding: 8px 32px 8px 12px;
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius-sm);
+    font-family: var(--ad-font);
+    font-size: 14px;
+    color: var(--ad-text);
+    background: var(--ad-bg-card) url("data:image/svg+xml,%3Csvg width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath d='M3 5l3 3 3-3' fill='none' stroke='%23777' stroke-width='1.5'/%3E%3C/svg%3E") no-repeat right 10px center;
+    appearance: none;
+    -webkit-appearance: none;
+    cursor: pointer;
+}
+
+.admin-dashboard .ad-checkbox {
+    width: 18px;
+    height: 18px;
+    cursor: pointer;
+    accent-color: var(--ad-primary);
+}
+
+/* ----------------------------------------
+   9. 상태 배지
+   ---------------------------------------- */
+.admin-dashboard .ad-status {
+    display: inline-block;
+    padding: 3px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    font-weight: 600;
+    white-space: nowrap;
+}
+
+.admin-dashboard .ad-status--pending {
+    background: var(--ad-warning-light);
+    color: #8a6d1b;
+}
+
+.admin-dashboard .ad-status--approved,
+.admin-dashboard .ad-status--active {
+    background: var(--ad-success-light);
+    color: #2e7d32;
+}
+
+.admin-dashboard .ad-status--rejected {
+    background: var(--ad-danger-light);
+    color: #c62828;
+}
+
+.admin-dashboard .ad-status--inactive {
+    background: #f0f0f0;
+    color: #888;
+}
+
+/* ----------------------------------------
+   9a. 협회 요약
+   ---------------------------------------- */
+.admin-dashboard .ad-affil-summary {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.admin-dashboard .ad-affil-summary__item {
+    background: var(--ad-bg-card);
+    border: 1px solid var(--ad-border);
+    border-radius: 8px;
+    padding: 16px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+}
+
+.admin-dashboard .ad-affil-summary__label {
+    font-size: 13px;
+    color: var(--ad-text-secondary);
+}
+
+.admin-dashboard .ad-affil-summary__value {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--ad-primary);
+}
+
+/* ----------------------------------------
+   9b. 협회 제안서 빌더
+   ---------------------------------------- */
+.admin-dashboard .ad-input {
+    width: 100%;
+    padding: 11px 12px;
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius-sm);
+    background: #ffffff;
+    color: var(--ad-text);
+    font-family: var(--ad-font);
+    font-size: 14px;
+}
+
+.admin-dashboard .ad-proposal-builder {
+    margin-bottom: 20px;
+    padding: 24px;
+    border: 1px solid var(--ad-border-light);
+    border-radius: var(--ad-radius-lg);
+    background: linear-gradient(180deg, #fffaf3 0%, #ffffff 100%);
+    box-shadow: var(--ad-shadow-sm);
+}
+
+.admin-dashboard .ad-proposal-builder__desc {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: var(--ad-text-light);
+    line-height: 1.65;
+}
+
+.admin-dashboard .ad-proposal-builder__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.92fr);
+    gap: 16px;
+}
+
+.admin-dashboard .ad-proposal-builder__form,
+.admin-dashboard .ad-proposal-builder__result {
+    padding: 20px;
+    border-radius: var(--ad-radius-md);
+    border: 1px solid var(--ad-border-light);
+    background: #ffffff;
+}
+
+.admin-dashboard .ad-proposal-builder__field {
+    margin-bottom: 14px;
+}
+
+.admin-dashboard .ad-proposal-builder__field:last-child {
+    margin-bottom: 0;
+}
+
+.admin-dashboard .ad-proposal-builder__field--half,
+.admin-dashboard .ad-proposal-builder__field--triple {
+    display: grid;
+    gap: 12px;
+}
+
+.admin-dashboard .ad-proposal-builder__field--half {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.admin-dashboard .ad-proposal-builder__field--triple {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.admin-dashboard .ad-proposal-builder__label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ad-text-dark);
+    letter-spacing: 0.02em;
+}
+
+.admin-dashboard .ad-proposal-builder__hint,
+.admin-dashboard .ad-proposal-builder__result-meta {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ad-text-light);
+    line-height: 1.65;
+}
+
+.admin-dashboard .ad-proposal-builder__result {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.admin-dashboard .ad-proposal-builder__result-head {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.admin-dashboard .ad-proposal-builder__result-label {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ad-primary);
+    letter-spacing: 0.08em;
+}
+
+.admin-dashboard .ad-proposal-builder__textarea {
+    width: 100%;
+    min-height: 140px;
+    padding: 14px;
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius-sm);
+    background: var(--ad-bg);
+    color: var(--ad-text);
+    font-family: var(--ad-font);
+    font-size: 13px;
+    line-height: 1.65;
+    resize: vertical;
+}
+
+.admin-dashboard .ad-proposal-builder__actions {
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+
+/* ----------------------------------------
+   10. 정산 요약
+   ---------------------------------------- */
+.admin-dashboard .ad-settle-summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 16px;
+}
+
+.admin-dashboard .ad-settle-summary__item {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    padding: 16px;
+    background: var(--ad-bg-card);
+    border: 1px solid var(--ad-border-light);
+    border-radius: var(--ad-radius-sm);
+    text-align: center;
+}
+
+.admin-dashboard .ad-settle-summary__label {
+    font-size: 13px;
+    color: var(--ad-text-light);
+    font-weight: 500;
+}
+
+.admin-dashboard .ad-settle-summary__value {
+    font-size: 20px;
+    font-weight: 800;
+    color: var(--ad-text-dark);
+    font-variant-numeric: tabular-nums;
+}
+
+.admin-dashboard .ad-settle-summary__value--highlight {
+    color: var(--ad-primary);
+}
+
+/* ----------------------------------------
+   11. 빈 상태 / 로딩
+   ---------------------------------------- */
+.admin-dashboard .ad-empty {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--ad-text-light);
+    font-size: 15px;
+}
+
+.admin-dashboard .ad-loading {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+    padding: 60px 20px;
+    color: var(--ad-text-light);
+}
+
+.admin-dashboard .ad-spinner {
+    width: 36px;
+    height: 36px;
+    border: 3px solid var(--ad-border);
+    border-top-color: var(--ad-primary);
+    border-radius: 50%;
+    animation: ad-spin 0.8s linear infinite;
+}
+
+@keyframes ad-spin {
+    to { transform: rotate(360deg); }
+}
+
+/* ----------------------------------------
+   12. 모달
+   ---------------------------------------- */
+.admin-dashboard .ad-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+}
+
+.admin-dashboard .ad-modal__backdrop {
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(0, 0, 0, 0.5);
+}
+
+.admin-dashboard .ad-modal__content {
+    position: relative;
+    width: 100%;
+    max-width: 440px;
+    background: var(--ad-bg-card);
+    border-radius: var(--ad-radius-lg);
+    padding: 28px;
+    box-shadow: var(--ad-shadow-lg);
+}
+
+.admin-dashboard .ad-modal__title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--ad-text-dark);
+    margin: 0 0 12px;
+}
+
+.admin-dashboard .ad-modal__body {
+    font-size: 14px;
+    color: var(--ad-text);
+    line-height: 1.6;
+    margin-bottom: 16px;
+    white-space: pre-line;
+}
+
+.admin-dashboard .ad-modal__note {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--ad-border);
+    border-radius: var(--ad-radius-sm);
+    font-family: var(--ad-font);
+    font-size: 14px;
+    resize: vertical;
+    margin-bottom: 20px;
+    color: var(--ad-text);
+}
+
+.admin-dashboard .ad-modal__note:focus {
+    outline: none;
+    border-color: var(--ad-primary);
+    box-shadow: 0 0 0 3px rgba(125, 150, 117, 0.15);
+}
+
+.admin-dashboard .ad-modal__actions {
+    display: flex;
+    gap: 10px;
+    justify-content: flex-end;
+}
+
+/* ----------------------------------------
+   13. 토스트
+   ---------------------------------------- */
+.admin-dashboard .ad-toast-container {
+    position: fixed;
+    bottom: 24px;
+    right: 24px;
+    z-index: 10000;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.admin-dashboard .ad-toast {
+    padding: 12px 20px;
+    border-radius: var(--ad-radius-sm);
+    font-family: var(--ad-font);
+    font-size: 14px;
+    font-weight: 600;
+    color: #FFFFFF;
+    box-shadow: var(--ad-shadow-md);
+    animation: ad-toast-in 0.3s ease-out;
+    max-width: 360px;
+}
+
+.admin-dashboard .ad-toast--success {
+    background: var(--ad-success);
+}
+
+.admin-dashboard .ad-toast--error {
+    background: var(--ad-danger);
+}
+
+.admin-dashboard .ad-toast--warning {
+    background: var(--ad-warning);
+}
+
+.admin-dashboard .ad-toast--info {
+    background: var(--ad-brown);
+}
+
+.admin-dashboard .ad-toast--hide {
+    animation: ad-toast-out 0.3s ease-out forwards;
+}
+
+@keyframes ad-toast-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes ad-toast-out {
+    from { opacity: 1; transform: translateY(0); }
+    to { opacity: 0; transform: translateY(10px); }
+}
+
+/* ----------------------------------------
+   14. 반응형 (~768px)
+   ---------------------------------------- */
+@media screen and (max-width: 768px) {
+    .admin-dashboard {
+        padding: 16px 12px 40px;
+    }
+
+    .admin-dashboard .ad-header__title {
+        font-size: 22px;
+    }
+
+    .admin-dashboard .ad-summary {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+
+    .admin-dashboard .ad-summary__card {
+        padding: 16px;
+    }
+
+    .admin-dashboard .ad-summary__count {
+        font-size: 24px;
+    }
+
+    .admin-dashboard .ad-tabs {
+        overflow-x: auto;
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .admin-dashboard .ad-tabs__btn {
+        padding: 10px 14px;
+        font-size: 14px;
+    }
+
+    .admin-dashboard .ad-panel__header {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    .admin-dashboard .ad-panel__actions {
+        width: 100%;
+    }
+
+    .admin-dashboard .ad-select {
+        flex: 1;
+    }
+
+    .admin-dashboard .ad-proposal-builder {
+        padding: 18px 16px;
+    }
+
+    .admin-dashboard .ad-proposal-builder__grid,
+    .admin-dashboard .ad-proposal-builder__field--half,
+    .admin-dashboard .ad-proposal-builder__field--triple {
+        grid-template-columns: 1fr;
+    }
+
+    .admin-dashboard .ad-settle-summary {
+        grid-template-columns: 1fr;
+        gap: 8px;
+    }
+
+    .admin-dashboard .ad-settle-summary__item {
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 12px 16px;
+    }
+
+    .admin-dashboard .ad-settle-summary__value {
+        font-size: 18px;
+    }
+
+    .admin-dashboard .ad-table {
+        font-size: 13px;
+    }
+
+    .admin-dashboard .ad-table thead th,
+    .admin-dashboard .ad-table tbody td {
+        padding: 10px 12px;
+    }
+
+    .admin-dashboard .ad-toast-container {
+        left: 12px;
+        right: 12px;
+        bottom: 16px;
+    }
+
+    .admin-dashboard .ad-toast {
+        max-width: 100%;
+    }
+
+    .admin-dashboard .ad-modal__content {
+        padding: 20px;
+    }
+}
+
+/* ----------------------------------------
+   15. 반응형 (768~992px)
+   ---------------------------------------- */
+@media screen and (min-width: 769px) and (max-width: 992px) {
+    .admin-dashboard .ad-summary {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 12px;
+    }
+
+    .admin-dashboard .ad-settle-summary {
+        grid-template-columns: repeat(3, 1fr);
+    }
+}
+
+/* ----------------------------------------
+   16. 모션 감소
+   ---------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+    .admin-dashboard .ad-spinner {
+        animation-duration: 1.5s;
+    }
+
+    .admin-dashboard .ad-toast {
+        animation: none;
+    }
+
+    .admin-dashboard .ad-toast--hide {
+        animation: none;
+        opacity: 0;
+    }
+}

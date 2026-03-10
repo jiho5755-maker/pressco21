@@ -55,6 +55,14 @@ var pages = [
         ]
     },
     {
+        key: 'affiliation-proposal',
+        html: path.join(repoRoot, '파트너클래스', '협회제안서', 'Index.html'),
+        css: path.join(repoRoot, '파트너클래스', '협회제안서', 'css.css'),
+        js: path.join(repoRoot, '파트너클래스', '협회제안서', 'js.js'),
+        output: path.join(outputDir, 'affiliation-proposal.html'),
+        replacements: []
+    },
+    {
         key: 'admin',
         html: path.join(repoRoot, '파트너클래스', '어드민', 'Index.html'),
         css: path.join(repoRoot, '파트너클래스', '어드민', 'css.css'),

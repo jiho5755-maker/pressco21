@@ -29,7 +29,7 @@
     <div id="adUnauthorized" class="ad-notice">
         <div class="ad-notice__inner">
             <div class="ad-notice__icon">
-                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
                     <circle cx="32" cy="32" r="22" stroke="#b0b0b0" stroke-width="2" fill="none"/>
                     <path d="M32 20v16M32 42v2" stroke="#b0b0b0" stroke-width="3" stroke-linecap="round"/>
                 </svg>
@@ -286,6 +286,66 @@
                     <span class="ad-affil-summary__value" id="affilTotalCount">-</span>
                 </div>
             </div>
+
+            <div class="ad-proposal-builder">
+                <div class="ad-panel__header">
+                    <div>
+                        <h2 class="ad-panel__title">협회 제안서 URL 생성</h2>
+                        <p class="ad-proposal-builder__desc">협회명을 선택하고 예상 수치만 조정하면 제안서 미리보기 URL을 바로 만들 수 있습니다.</p>
+                    </div>
+                </div>
+                <div class="ad-proposal-builder__grid">
+                    <div class="ad-proposal-builder__form">
+                        <div class="ad-proposal-builder__field">
+                            <label class="ad-proposal-builder__label" for="proposalAffiliationSelect">협회 선택</label>
+                            <select id="proposalAffiliationSelect" class="ad-select">
+                                <option value="">협회를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div class="ad-proposal-builder__field ad-proposal-builder__field--half">
+                            <div>
+                                <label class="ad-proposal-builder__label" for="proposalAffiliationName">협회명</label>
+                                <input type="text" id="proposalAffiliationName" class="ad-input" placeholder="협회명">
+                            </div>
+                            <div>
+                                <label class="ad-proposal-builder__label" for="proposalPageId">실배포 페이지 ID</label>
+                                <input type="text" id="proposalPageId" class="ad-input" placeholder="예: 2611">
+                            </div>
+                        </div>
+                        <div class="ad-proposal-builder__field">
+                            <label class="ad-proposal-builder__label" for="proposalLogoUrl">로고 URL</label>
+                            <input type="url" id="proposalLogoUrl" class="ad-input" placeholder="https://...">
+                        </div>
+                        <div class="ad-proposal-builder__field ad-proposal-builder__field--triple">
+                            <div>
+                                <label class="ad-proposal-builder__label" for="proposalMemberCount">협회원 수</label>
+                                <input type="number" id="proposalMemberCount" class="ad-input" min="1" step="1" value="120">
+                            </div>
+                            <div>
+                                <label class="ad-proposal-builder__label" for="proposalMonthlyStudents">월 예상 수강 인원</label>
+                                <input type="number" id="proposalMonthlyStudents" class="ad-input" min="1" step="1" value="24">
+                            </div>
+                            <div>
+                                <label class="ad-proposal-builder__label" for="proposalAvgOrderAmount">평균 재료 구매액</label>
+                                <input type="number" id="proposalAvgOrderAmount" class="ad-input" min="1000" step="1000" value="45000">
+                            </div>
+                        </div>
+                        <p class="ad-proposal-builder__hint" id="proposalBenefitSummary">협회 선택 시 할인율과 인센티브 구간이 자동 반영됩니다.</p>
+                    </div>
+                    <div class="ad-proposal-builder__result">
+                        <div class="ad-proposal-builder__result-head">
+                            <p class="ad-proposal-builder__result-label" id="proposalUrlModeLabel">로컬 미리보기 URL</p>
+                            <p class="ad-proposal-builder__result-meta" id="proposalTierSummary">1단계 250,000원 / 2단계 500,000원 / 3단계 1,200,000원</p>
+                        </div>
+                        <textarea id="proposalGeneratedUrl" class="ad-proposal-builder__textarea" readonly>협회를 선택하면 URL이 생성됩니다.</textarea>
+                        <div class="ad-proposal-builder__actions">
+                            <button type="button" class="ad-btn ad-btn--primary" id="btnPreviewProposal">제안서 미리보기</button>
+                            <button type="button" class="ad-btn ad-btn--secondary" id="btnCopyProposalUrl">URL 복사</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <div class="ad-table-wrap" id="tableWrapAffiliations">
                 <table class="ad-table">
                     <thead>
@@ -298,6 +358,7 @@
                             <th>2단계</th>
                             <th>3단계</th>
                             <th>상태</th>
+                            <th>제안서</th>
                         </tr>
                     </thead>
                     <tbody id="tbodyAffiliations">

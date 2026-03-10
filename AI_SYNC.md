@@ -51,15 +51,52 @@
 
 - Current Owner: CODEX
 - Mode: IDLE
-- Started At: 2026-03-11 15:18:00 KST
+- Started At: 2026-03-11 16:18:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S2-1 파트너 신청 세일즈 랜딩 리디자인 완료
+- Working Scope: [CODEX-LEAD] 파트너클래스 S2-2 협회 B2B 영업 도구 완료
 - Active Subdirectory: pressco21
 
 ## Files In Progress
 - (none)
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S2-2 협회 B2B 영업 도구 완료 (CODEX)
+- 프론트
+  - `파트너클래스/협회제안서/Index.html`
+  - `파트너클래스/협회제안서/css.css`
+  - `파트너클래스/협회제안서/js.js`
+    - 협회명/로고/인센티브 구간을 URL 파라미터로 커스터마이징하는 디지털 제안서 페이지 추가
+    - ROI 시뮬레이터(`협회원 수 / 월 예상 수강 인원 / 평균 재료 구매액`) 즉시 계산 구현
+  - `파트너클래스/어드민/Index.html`
+  - `파트너클래스/어드민/css.css`
+  - `파트너클래스/어드민/js.js`
+    - 협회 탭에 `제안서 URL 생성` 카드 추가
+    - 협회 선택, 협회명/로고/예상 수치 입력, preview/copy 버튼, 생성 URL textarea 추가
+    - 협회 테이블에 `불러오기` 액션 추가
+- 테스트 자산
+  - `scripts/build-partnerclass-playwright-fixtures.js`
+    - `affiliation-proposal.html` fixture 빌드 추가
+- 문서 / 메모리
+  - `docs/파트너클래스/affiliation-b2b-proposal-tool-guide.md` 신규 추가
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+  - `.claude/agent-memory/sales-partnership-specialist/MEMORY.md`
+- 검증
+  - `node --check 파트너클래스/협회제안서/js.js`
+  - `node --check 파트너클래스/어드민/js.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+  - Playwright 로컬 검증
+    - 어드민 협회 셀렉트 옵션 3개, 협회 행 2개 렌더링
+    - 협회 선택 후 맞춤 URL 자동 생성
+    - 새 탭 제안서 미리보기에서 협회명/할인율/로고 반영
+    - ROI 입력 변경 후 연간 구매액 즉시 갱신 확인
+  - 산출물
+    - `output/playwright/s2-2-affiliation-proposal/affiliation-proposal-results.json`
+    - `output/playwright/s2-2-affiliation-proposal/*.png`
 
 ### [CODEX-LEAD] Phase 3 S2-1 파트너 신청 세일즈 랜딩 리디자인 완료 (CODEX)
 - 프론트
@@ -1379,7 +1416,7 @@
 
 #### 현재 다음 태스크
 
-- `S2-2 협회 B2B 영업 도구`
+- `S2-3 IA 확장 (목록 3탭 + 상세 content_type + 파트너맵 통합)`
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
@@ -1473,6 +1510,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S1-4 마이페이지 프론트 변경(`파트너클래스/마이페이지/*`)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-9 통합 테스트는 로컬 fixture + Playwright 러너 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 후 동일 흐름을 라이브에서 한 번 더 확인해야 함
 - S2-1 파트너 신청 세일즈 랜딩(2609)은 로컬 fixture 기준으로 CTA/반응형이 검증됐지만, 메이크샵 디자인편집기 실배포 후 라이브 스크롤과 모바일 하단 고정 CTA를 다시 확인해야 함
+- S2-2 협회 제안서 페이지와 어드민 URL 생성기는 로컬 fixture 기준으로 검증됐지만, 실배포 전까지는 실제 MakeShop page id가 없어서 라이브 URL은 확정되지 않음
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
 - `scripts/partnerclass-live-smoke.js` 는 현재 FAQ 기대 개수가 여전히 `5` 기준이라, 상세 FAQ를 라이브 반영한 뒤에는 스모크 기대값을 `15` 로 맞춰야 함
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함

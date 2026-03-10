@@ -110,3 +110,11 @@
 - 신청 플로우 자체는 기존 `로그인 체크 -> 중복 신청/기존 파트너 분기 -> WF-07 제출` 구조를 유지한다.
 - 로컬 fixture 빌더는 이제 `apply.html` 도 조립하므로, 2609도 메이크샵 배포 전 Playwright 로컬 검증이 가능하다.
 - 운영 기준 문서는 `docs/파트너클래스/partner-apply-sales-landing-guide.md` 이다.
+
+## 2026-03-11 S2-2 협회 B2B 영업 도구 구조 확정
+
+- 협회 제안서는 별도 워크플로우 없이 `getAffiliations` 읽기 응답만으로 구성 가능한 프론트 자산으로 시작한다.
+- 새 페이지 `파트너클래스/협회제안서/*` 는 URL 파라미터로 협회명, 로고, 할인율, 인센티브 구간을 받는다.
+- 어드민 협회 탭은 기존 협회 목록 위에 제안서 생성기를 두고, 로컬 fixture preview 또는 실배포 page id 기반 URL을 조합한다.
+- 로컬 fixture 빌더는 이제 `affiliation-proposal.html` 도 조립하므로 협회 제안서도 배포 전 Playwright 검증이 가능하다.
+- 운영 기준 문서는 `docs/파트너클래스/affiliation-b2b-proposal-tool-guide.md` 이다.

@@ -18,6 +18,8 @@
     var ADMIN_MIN_GROUP_LEVEL = 9;
     // API 인증 토큰 (이 페이지는 관리자만 접근 가능하므로 프론트 노출 허용)
     var ADMIN_TOKEN = 'pressco21-admin-2026';
+    // 로컬 preview 환경에서 협회 제안서 fixture 경로
+    var AFFILIATION_PROPOSAL_PREVIEW_PATH = '/output/playwright/fixtures/partnerclass/affiliation-proposal.html';
 
     /* ========================================
        상태 관리
@@ -29,6 +31,7 @@
     var groupLevel = '';
     var modalCallback = null;
     var selectedSettlements = {};
+    var affiliationRecords = [];
 
     function normalizeClassFilterStatus(status) {
         var value = String(status || '').toUpperCase().trim();
@@ -68,6 +71,7 @@
         bindModal();
         bindFilters();
         bindSettlementControls();
+        bindProposalBuilder();
         loadSummary();
         loadTab('applications');
     }
@@ -785,6 +789,9 @@
         var tableWrap = document.getElementById('tableWrapAffiliations');
         var emptyEl = document.getElementById('emptyAffiliations');
 
+        affiliationRecords = list || [];
+        populateProposalBuilderOptions(affiliationRecords);
+
         if (!list || list.length === 0) {
             if (tableWrap) tableWrap.style.display = 'none';
             if (emptyEl) emptyEl.style.display = '';
@@ -810,9 +817,255 @@
             html += '<td>' + formatPrice(t2.target) + '\uC6D0 / ' + formatPrice(t2.incentive) + '\uC6D0</td>';
             html += '<td>' + formatPrice(t3.target) + '\uC6D0 / ' + formatPrice(t3.incentive) + '\uC6D0</td>';
             html += '<td><span class="ad-status ad-status--active">\uD65C\uC131</span></td>';
+            html += '<td><button type="button" class="ad-btn ad-btn--secondary ad-btn--sm" onclick="window._adminLoadAffiliationProposal(\'' + escapeAttr(a.affiliation_code || '') + '\')">\uBD88\uB7EC\uC624\uAE30</button></td>';
             html += '</tr>';
         }
         if (tbody) tbody.innerHTML = html;
+    }
+
+    function bindProposalBuilder() {
+        var selectEl = document.getElementById('proposalAffiliationSelect');
+        var inputIds = [
+            'proposalAffiliationName',
+            'proposalPageId',
+            'proposalLogoUrl',
+            'proposalMemberCount',
+            'proposalMonthlyStudents',
+            'proposalAvgOrderAmount'
+        ];
+        var previewBtn = document.getElementById('btnPreviewProposal');
+        var copyBtn = document.getElementById('btnCopyProposalUrl');
+        var i;
+
+        if (selectEl) {
+            selectEl.addEventListener('change', function() {
+                populateProposalBuilderFromAffiliation(selectEl.value);
+            });
+        }
+
+        for (i = 0; i < inputIds.length; i++) {
+            bindProposalInput(inputIds[i], refreshProposalBuilder);
+        }
+
+        if (previewBtn) {
+            previewBtn.addEventListener('click', function() {
+                var url = buildProposalUrl();
+                if (!url) {
+                    showToast('로컬 preview 환경이 아니면 실배포 페이지 ID를 먼저 입력해주세요.', 'warning');
+                    return;
+                }
+                window.open(url, '_blank');
+            });
+        }
+
+        if (copyBtn) {
+            copyBtn.addEventListener('click', function() {
+                var url = buildProposalUrl();
+                if (!url) {
+                    showToast('복사할 제안서 URL이 없습니다.', 'warning');
+                    return;
+                }
+                copyText(url, function(success) {
+                    showToast(success ? '제안서 URL을 복사했습니다.' : '브라우저에서 복사를 허용하지 않아 URL을 선택 상태로 남겼습니다.', success ? 'success' : 'info');
+                });
+            });
+        }
+
+        window._adminLoadAffiliationProposal = function(code) {
+            var select = document.getElementById('proposalAffiliationSelect');
+            if (select) {
+                select.value = code || '';
+            }
+            populateProposalBuilderFromAffiliation(code || '');
+            var builder = document.querySelector('.admin-dashboard .ad-proposal-builder');
+            if (builder) {
+                builder.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            }
+        };
+    }
+
+    function bindProposalInput(id, handler) {
+        var el = document.getElementById(id);
+        if (!el) return;
+
+        el.addEventListener('input', handler);
+        el.addEventListener('change', handler);
+    }
+
+    function populateProposalBuilderOptions(list) {
+        var selectEl = document.getElementById('proposalAffiliationSelect');
+        var currentValue = selectEl ? selectEl.value : '';
+        var html = '<option value="">협회를 선택하세요</option>';
+        var i;
+
+        if (!selectEl) return;
+
+        for (i = 0; i < list.length; i++) {
+            html += '<option value="' + escapeAttr(list[i].affiliation_code || '') + '">' + escapeHtml(list[i].name || list[i].affiliation_code || '-') + '</option>';
+        }
+
+        selectEl.innerHTML = html;
+
+        if (currentValue) {
+            selectEl.value = currentValue;
+        }
+
+        if (!selectEl.value && list.length) {
+            selectEl.value = list[0].affiliation_code || '';
+        }
+
+        populateProposalBuilderFromAffiliation(selectEl.value);
+    }
+
+    function populateProposalBuilderFromAffiliation(code) {
+        var affiliation = findAffiliation(code);
+        var tiers = affiliation && affiliation.incentive_tiers ? affiliation.incentive_tiers : [];
+        var t1 = tiers[0] || { target: 5000000, incentive: 250000 };
+        var t2 = tiers[1] || { target: 10000000, incentive: 500000 };
+        var t3 = tiers[2] || { target: 20000000, incentive: 1200000 };
+        var benefitSummary = document.getElementById('proposalBenefitSummary');
+        var tierSummary = document.getElementById('proposalTierSummary');
+
+        if (affiliation) {
+            setFieldValue('proposalAffiliationName', affiliation.name || '');
+            setFieldValue('proposalLogoUrl', affiliation.logo_url || '');
+            if (benefitSummary) {
+                benefitSummary.textContent = '할인율 ' + (Number(affiliation.discount_rate) || 0) + '%, 담당자 ' + (affiliation.contact_name || '-') + ', ' + '협회별 인센티브 기준을 반영했습니다.';
+            }
+        } else if (benefitSummary) {
+            benefitSummary.textContent = '협회 선택 시 할인율과 인센티브 구간이 자동 반영됩니다.';
+        }
+
+        if (tierSummary) {
+            tierSummary.textContent = '1단계 ' + formatPrice(t1.incentive) + '\uC6D0 / 2단계 ' + formatPrice(t2.incentive) + '\uC6D0 / 3단계 ' + formatPrice(t3.incentive) + '\uC6D0';
+        }
+
+        refreshProposalBuilder();
+    }
+
+    function refreshProposalBuilder() {
+        var textarea = document.getElementById('proposalGeneratedUrl');
+        var modeLabel = document.getElementById('proposalUrlModeLabel');
+        var url = buildProposalUrl();
+        var liveReady = hasProposalPageId();
+
+        if (modeLabel) {
+            if (isLocalPreviewHost()) {
+                modeLabel.textContent = liveReady ? '\uB85C\uCEEC \uBBF8\uB9AC\uBCF4\uAE30 URL (page id \uB9E4\uD551 \uC900\uBE44\uC644\uB8CC)' : '\uB85C\uCEEC \uBBF8\uB9AC\uBCF4\uAE30 URL';
+            } else {
+                modeLabel.textContent = liveReady ? '\uC2E4\uBC30\uD3EC URL' : '\uC2E4\uBC30\uD3EC \uD398\uC774\uC9C0 ID \uD544\uC694';
+            }
+        }
+
+        if (textarea) {
+            textarea.value = url || '\uB85C\uCEEC preview \uD658\uACBD\uC774 \uC544\uB2C8\uBA74 \uC2E4\uBC30\uD3EC \uD398\uC774\uC9C0 ID\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694.';
+        }
+    }
+
+    function buildProposalUrl() {
+        var baseUrl = getProposalBaseUrl();
+        var query = buildProposalQuery();
+        if (!baseUrl) return '';
+        return baseUrl + (baseUrl.indexOf('?') === -1 ? '?' : '&') + query;
+    }
+
+    function getProposalBaseUrl() {
+        var pageId = getFieldValue('proposalPageId');
+        if (isLocalPreviewHost()) {
+            return window.location.origin + AFFILIATION_PROPOSAL_PREVIEW_PATH;
+        }
+        if (pageId) {
+            return window.location.origin + '/shop/page.html?id=' + encodeURIComponent(pageId);
+        }
+        return '';
+    }
+
+    function buildProposalQuery() {
+        var affiliation = findAffiliation(getFieldValue('proposalAffiliationSelect'));
+        var tiers = affiliation && affiliation.incentive_tiers ? affiliation.incentive_tiers : [];
+        var t1 = tiers[0] || { target: 5000000, incentive: 250000 };
+        var t2 = tiers[1] || { target: 10000000, incentive: 500000 };
+        var t3 = tiers[2] || { target: 20000000, incentive: 1200000 };
+        var params = [];
+
+        pushQueryParam(params, 'code', affiliation && affiliation.affiliation_code ? affiliation.affiliation_code : 'AFFILIATION PARTNERSHIP');
+        pushQueryParam(params, 'name', getFieldValue('proposalAffiliationName'));
+        pushQueryParam(params, 'contact', affiliation && affiliation.contact_name ? affiliation.contact_name + ' 담당 협회 제휴 제안서' : '협회 운영 방향에 맞춰 혜택과 인센티브를 조정할 수 있습니다.');
+        pushQueryParam(params, 'logo', getFieldValue('proposalLogoUrl'));
+        pushQueryParam(params, 'discountRate', affiliation ? Number(affiliation.discount_rate) || 0 : 0);
+        pushQueryParam(params, 'members', getNumericFieldValue('proposalMemberCount', 120));
+        pushQueryParam(params, 'monthlyStudents', getNumericFieldValue('proposalMonthlyStudents', 24));
+        pushQueryParam(params, 'avgOrderAmount', getNumericFieldValue('proposalAvgOrderAmount', 45000));
+        pushQueryParam(params, 'target1', Number(t1.target) || 5000000);
+        pushQueryParam(params, 'target2', Number(t2.target) || 10000000);
+        pushQueryParam(params, 'target3', Number(t3.target) || 20000000);
+        pushQueryParam(params, 'incentive1', Number(t1.incentive) || 250000);
+        pushQueryParam(params, 'incentive2', Number(t2.incentive) || 500000);
+        pushQueryParam(params, 'incentive3', Number(t3.incentive) || 1200000);
+
+        return params.join('&');
+    }
+
+    function findAffiliation(code) {
+        var i;
+        for (i = 0; i < affiliationRecords.length; i++) {
+            if ((affiliationRecords[i].affiliation_code || '') === code) {
+                return affiliationRecords[i];
+            }
+        }
+        return null;
+    }
+
+    function hasProposalPageId() {
+        return !!getFieldValue('proposalPageId');
+    }
+
+    function isLocalPreviewHost() {
+        return /^(127\.0\.0\.1|localhost)$/i.test(window.location.hostname || '');
+    }
+
+    function pushQueryParam(list, key, value) {
+        list.push(encodeURIComponent(key) + '=' + encodeURIComponent(String(value || '')));
+    }
+
+    function getFieldValue(id) {
+        var el = document.getElementById(id);
+        return el ? String(el.value || '').trim() : '';
+    }
+
+    function getNumericFieldValue(id, fallback) {
+        var value = Number(getFieldValue(id).replace(/[^\d.-]/g, ''));
+        return isNaN(value) ? fallback : value;
+    }
+
+    function setFieldValue(id, value) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.value = value;
+        }
+    }
+
+    function copyText(text, callback) {
+        var textarea = document.getElementById('proposalGeneratedUrl');
+
+        if (navigator.clipboard && navigator.clipboard.writeText) {
+            navigator.clipboard.writeText(text).then(function() {
+                callback(true);
+            }).catch(function() {
+                if (textarea) {
+                    textarea.focus();
+                    textarea.select();
+                }
+                callback(false);
+            });
+            return;
+        }
+
+        if (textarea) {
+            textarea.focus();
+            textarea.select();
+        }
+        callback(false);
     }
 
     function loadAffilStats() {

@@ -355,7 +355,7 @@
 
             html += '<tr data-id="' + (stl.Id || '') + '">';
             if (status === 'PENDING_SETTLEMENT') {
-                html += '<td><input type="checkbox" class="ad-checkbox settle-check" value="' + stl.Id + '"></td>';
+                html += '<td><input type="checkbox" class="ad-checkbox settle-check" value="' + escapeAttr(stl.settlement_id || '') + '"></td>';
             } else {
                 html += '<td></td>';
             }
@@ -411,7 +411,7 @@
                 }
                 var ids = [];
                 for (var i = 0; i < checks.length; i++) {
-                    ids.push(Number(checks[i].value));
+                    ids.push(String(checks[i].value || '').trim());
                 }
                 showModal('\uC77C\uAD04 \uC815\uC0B0 \uD655\uC778', ids.length + '\uAC74\uC744 \uC815\uC0B0 \uC644\uB8CC \uCC98\uB9AC\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?', function(note) {
                     adminFetch({
@@ -424,7 +424,7 @@
                             loadSettlements('PENDING_SETTLEMENT');
                             loadSummary();
                         } else {
-                            showToast('\uC815\uC0B0 \uCC98\uB9AC \uC2E4\uD328', 'error');
+                            showToast('\uC815\uC0B0 \uCC98\uB9AC \uC2E4\uD328: ' + getErrorMessage(resp, '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958'), 'error');
                         }
                     });
                 });
@@ -447,10 +447,10 @@
                     }, function(status, resp) {
                         if (resp && resp.success) {
                             showToast('\uD30C\uD2B8\uB108 \uC2B9\uC778 \uC644\uB8CC', 'success');
-                            loadApplications('pending');
+                            loadApplications('PENDING');
                             loadSummary();
                         } else {
-                            showToast('\uC2B9\uC778 \uCC98\uB9AC \uC2E4\uD328: ' + ((resp && resp.error) || '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958'), 'error');
+                            showToast('\uC2B9\uC778 \uCC98\uB9AC \uC2E4\uD328: ' + getErrorMessage(resp, '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958'), 'error');
                         }
                     });
                 });
@@ -464,15 +464,15 @@
                     }
                     adminFetch({
                         action: 'rejectApplication',
-                        application_id: String(rowId),
+                        row_id: String(rowId),
                         reject_reason: note
                     }, function(status, resp) {
                         if (resp && resp.success) {
                             showToast('\uC2E0\uCCAD \uAC70\uBD80 \uCC98\uB9AC \uC644\uB8CC', 'success');
-                            loadApplications('pending');
+                            loadApplications('PENDING');
                             loadSummary();
                         } else {
-                            showToast('\uAC70\uBD80 \uCC98\uB9AC \uC2E4\uD328', 'error');
+                            showToast('\uAC70\uBD80 \uCC98\uB9AC \uC2E4\uD328: ' + getErrorMessage(resp, '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958'), 'error');
                         }
                     });
                 });
@@ -482,15 +482,15 @@
                 showModal('\uAC15\uC758 \uC2B9\uC778', '\uC774 \uAC15\uC758\uB97C \uC2B9\uC778\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?\n\uC2B9\uC778 \uC2DC \uBA54\uC774\uD06C\uC0F5 \uC0C1\uD488\uC774 \uC790\uB3D9 \uB4F1\uB85D\uB429\uB2C8\uB2E4.', function(note) {
                     adminFetch({
                         action: 'approveClass',
-                        class_row_id: rowId,
+                        row_id: String(rowId),
                         reviewer_note: note
                     }, function(status, resp) {
                         if (resp && resp.success) {
                             showToast('\uAC15\uC758 \uC2B9\uC778 \uC644\uB8CC (\uBA54\uC774\uD06C\uC0F5 \uC0C1\uD488 \uC790\uB3D9 \uB4F1\uB85D)', 'success');
-                            loadPendingClasses('inactive');
+                            loadPendingClasses('INACTIVE');
                             loadSummary();
                         } else {
-                            showToast('\uC2B9\uC778 \uCC98\uB9AC \uC2E4\uD328', 'error');
+                            showToast('\uC2B9\uC778 \uCC98\uB9AC \uC2E4\uD328: ' + getErrorMessage(resp, '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958'), 'error');
                         }
                     });
                 });
@@ -504,15 +504,15 @@
                     }
                     adminFetch({
                         action: 'rejectClass',
-                        class_row_id: rowId,
+                        row_id: String(rowId),
                         reject_reason: note
                     }, function(status, resp) {
                         if (resp && resp.success) {
                             showToast('\uAC15\uC758 \uAC70\uBD80 \uCC98\uB9AC \uC644\uB8CC', 'success');
-                            loadPendingClasses('inactive');
+                            loadPendingClasses('INACTIVE');
                             loadSummary();
                         } else {
-                            showToast('\uAC70\uBD80 \uCC98\uB9AC \uC2E4\uD328', 'error');
+                            showToast('\uAC70\uBD80 \uCC98\uB9AC \uC2E4\uD328: ' + getErrorMessage(resp, '\uC54C \uC218 \uC5C6\uB294 \uC624\uB958'), 'error');
                         }
                     });
                 });
@@ -533,8 +533,9 @@
         if (confirmBtn) {
             confirmBtn.addEventListener('click', function() {
                 var note = (document.getElementById('modalNote') || {}).value || '';
+                var callback = modalCallback;
                 hideModal();
-                if (modalCallback) modalCallback(note);
+                if (callback) callback(note);
             });
         }
     }
@@ -581,6 +582,12 @@
                 if (toast.parentNode) toast.parentNode.removeChild(toast);
             }, 300);
         }, 3000);
+    }
+
+    function getErrorMessage(resp, fallback) {
+        if (resp && resp.error && resp.error.message) return resp.error.message;
+        if (resp && typeof resp.error === 'string') return resp.error;
+        return fallback || '알 수 없는 오류';
     }
 
     /* ========================================

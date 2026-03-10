@@ -506,15 +506,76 @@
     - `output/playwright/admin-positive-20260310/admin-tab-settlements.png`
     - `output/playwright/admin-positive-20260310/admin-tab-affiliations.png`
 
+### 어드민 쓰기 액션 실브라우저 확장 검증 및 프론트 보강 (CODEX)
+- 실행 일시: 2026-03-10 08:37 KST ~ 2026-03-10 09:20 KST
+- 수정 파일
+  - `파트너클래스/어드민/js.js`
+- 수정 내용
+  - 모달 확인 버튼이 `hideModal()`에서 `modalCallback`을 먼저 지워 승인/거부 콜백이 죽던 문제 수정
+  - `rejectApplication` payload를 `application_id`에서 `row_id`로 수정
+  - `approveClass` / `rejectClass` payload를 `class_row_id`에서 `row_id`로 수정
+  - 정산 체크박스 값을 NocoDB row `Id`가 아니라 `settlement_id`로 렌더링하고, 일괄 정산 payload도 문자열 배열 그대로 전달하도록 수정
+  - 액션 후 재조회 필터값을 `pending/inactive` 소문자에서 `PENDING/INACTIVE`로 수정
+  - 빈 응답 시에도 원인 파악이 가능하도록 에러 토스트 메시지 구체화
+- 검증
+  - `python3 codex-skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/어드민/js.js` → `OK`
+
+### 어드민 쓰기 액션 실검증 결과 (CODEX)
+- 실행 일시: 2026-03-10 08:55 KST ~ 2026-03-10 09:18 KST
+- 실행 계정
+  - `jihoo5755`
+- 실행 도메인
+  - `https://www.foreverlove.co.kr/shop/page.html?id=8011`
+- 결과 요약
+  - `rejectApplication` PASS
+  - `approveApplication` FAIL
+  - `rejectClass` FAIL
+  - `completeSettlement` FAIL
+- PASS 상세
+  - `rejectApplication`
+  - 대상: `row_id=5`, `member_id=test_email_check_002`
+  - 결과: 신청 대기 건수 `5 -> 4` 감소
+  - API 응답: `200`, `{\"success\":true,\"data\":{\"status\":\"rejected\"}}`
+  - 스크린샷: `output/playwright/admin-write-20260310/write-reject-application.png`
+- FAIL 상세
+  - `approveApplication`
+  - UI 에러: `승인 처리 실패: 알 수 없는 오류`
+  - UI 관측 응답: `200` 빈 본문 (`Unexpected end of JSON input`)
+  - n8n 원인
+    - `WF-ADMIN Admin API` 실행 `21002`: `HTTP Call WF-08 Approve`에서 `Invalid JSON in response body`
+    - `WF-08 Partner Approve` 실행 `21003`: `Field 'applied_date' not found`
+    - 실제 조회 쿼리: `(member_id,eq,undefined)~and(status,eq,PENDING)` + `sort=-applied_date`
+  - 스크린샷: `output/playwright/admin-write-20260310/write-approve-application.png`
+  - 결과 파일: `output/playwright/admin-write-20260310/admin-write-results.json`
+  - `rejectClass`
+  - UI 에러: `거부 처리 실패: 알 수 없는 오류`
+  - UI 관측 응답: `200` 빈 본문 (`Unexpected end of JSON input`)
+  - n8n 원인
+    - `WF-ADMIN Admin API` 실행 `21015`
+    - NocoDB PATCH payload가 `status: "rejected"`를 보내지만, 실제 허용 옵션은 `active, paused, closed, INACTIVE`
+    - 오류 메시지: `Invalid option(s) "rejected" provided for column "status"`
+  - 스크린샷: `output/playwright/admin-write-20260310/write-reject-class.png`
+  - 결과 파일: `output/playwright/admin-write-20260310/admin-write-results.json`
+  - `completeSettlement`
+  - UI 에러: `정산 처리 실패: 알 수 없는 오류`
+  - UI 관측 응답: `200` 빈 본문 (`Unexpected end of JSON input`)
+  - 원인 분리
+    - 라이브 정적 JS `/shopimages/jewoo/template/work/49407/page.8011.js?t=202603100225`가 아직 구버전이라 체크박스 값을 `settlement_id`가 아닌 row `Id` (`47`)로 전송
+    - `WF-ADMIN Admin API` 실행 `21028`에서 `settlementIds=["47"]`로 들어가 `Cannot read properties of undefined (reading 'map')` 발생
+  - 스크린샷: `output/playwright/admin-write-20260310/write-complete-settlement.png`
+  - 결과 파일: `output/playwright/admin-write-20260310/admin-write-results.json`
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] 어드민 승인/거부/일괄정산 쓰기 액션까지 포함한 실관리자 E2E 확장 검증
+- [CODEX] 어드민 최신 `파트너클래스/어드민/js.js` 메이크샵 배포 후 `completeSettlement` 재검증
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
 
 ### Claude Code 태스크
+- `WF-08 Partner Approve`의 신청 조회 정렬 필드 `applied_date` 제거 또는 실제 컬럼명으로 교체
+- `WF-ADMIN Admin API`의 `rejectClass` 상태값을 실제 허용 옵션(`closed` 또는 운영 합의값)으로 수정
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
 - CRM 운영 확인: 실제 운영 브라우저에서 `미수금` 복구와 `캘린더 2026-03-09 8건` 표기를 확인
 - 캘린더 운영 판단: 과거 기준일 `미수 후속`은 현재 미수 기준 참고용이라는 점을 UX 문구로 더 명확히 할지 검토
@@ -540,3 +601,5 @@
 - 실관리자 계정 자격증명은 리포지토리에서 확인되지 않았고, `id=8011` 양성 최종 검증 전 별도 제공이 필요함
 - `makeshop-d4-dev`는 `/Users/jangjiho/workspace/AGENTS.md`를 기준 문서로 참조하므로, 해당 경로가 바뀌면 스킬 안내도 함께 갱신해야 함
 - 어드민 권한 판정은 이제 `group_name` 일치 또는 `group_level >= 9`면 통과하므로, 다른 최고등급 회원이 의도치 않게 열리지 않는지 운영 정책 확인 필요
+- 어드민 쓰기 액션 중 `approveApplication`, `rejectClass`는 현재 프론트가 아니라 라이브 n8n 워크플로우 오류로 막혀 있음
+- 어드민 `completeSettlement`는 로컬 수정본 기준으로 `settlement_id`를 보내도록 보정됐지만, 라이브 정적 JS 배포 전까지는 동일 오류가 재현됨

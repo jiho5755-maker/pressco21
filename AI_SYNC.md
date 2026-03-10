@@ -605,18 +605,37 @@
   - 결과 파일: `output/playwright/admin-write-20260310/admin-write-results.json`
   - 스크린샷: `output/playwright/admin-write-20260310/complete-settlement-result.png`
 
+### 어드민 승인/거부 최종 n8n 직접 배포 PASS (CODEX)
+- 실행 일시: 2026-03-10 09:48 KST ~ 2026-03-10 09:56 KST
+- 직접 배포 경로
+  - 기준 디렉토리: `/Users/jangjiho/Desktop/n8n-main`
+  - 배포 스크립트: `pressco21/_tools/deploy.sh`
+- 수정 및 배포 파일
+  - `파트너클래스/n8n-workflows/WF-08-partner-approve.json`
+  - `파트너클래스/n8n-workflows/WF-ADMIN-admin-api.json`
+- 수정 내용
+  - `WF-08 Partner Approve`
+    - NocoDB 신청 업데이트 PATCH 경로를 존재하지 않는 `tbl_Applications`에서 실제 테이블 ID `mkciwqtnqdn8m9c`로 수정
+  - `WF-ADMIN Admin API`
+    - `approveApplication -> WF-08` 내부 호출 `Authorization` 헤더를 문자열 `Bearer {{ $env.ADMIN_API_TOKEN }}`에서 실제 표현식 `={{ 'Bearer ' + $env.ADMIN_API_TOKEN }}`으로 수정
+- 라이브 검증 결과
+  - `approveApplication` PASS
+  - 대상: `row_id=4`, `member_id=test_email_check_001`
+  - 결과: 신청 대기 건수 `4 -> 3` 감소, 목록에서 대상 행 제거 확인
+  - API 응답: `200`, `{\"success\":true,\"data\":{},\"timestamp\":\"2026-03-10T00:55:58.860Z\"}`
+  - 토스트: `파트너 승인 완료`
+  - `rejectClass` PASS 상태 유지
+- 산출물
+  - 결과 파일: `output/playwright/admin-write-20260310/admin-write-results.json`
+  - 스크린샷: `output/playwright/admin-write-20260310/approve-application-result.png`
+
 ## Next Step
 
 ### Codex CLI 위임 태스크
-- [CODEX] 아래 4개 파일 배포 후 `approveApplication`, `rejectClass` 라이브 재검증
-- [CODEX] 배포 대상 1: `파트너클래스/n8n-workflows/WF-08-partner-approve.json`
-- [CODEX] 배포 대상 2: `파트너클래스/n8n-workflows/WF-ADMIN-admin-api.json`
-- [CODEX] 배포 대상 3: `파트너클래스/어드민/Index.html`
-- [CODEX] 배포 대상 4: `파트너클래스/어드민/js.js`
-- [CODEX] 어드민 `css.css`는 이번 라운드 수정 없음
 - [CODEX] offline-crm-v2 E2E 테스트 04~09 작성 (상세 지침: offline-crm-v2/AGENTS.md 참조)
 - [CODEX] 파트너클래스/파트너/css.css 중복 스타일 정리
 - [CODEX] 파트너클래스/상세/js.js 코드 리뷰 및 리팩토링 제안
+- [CODEX] 어드민 쓰기 액션 Playwright 회귀 시나리오를 approve/reject/settlement 기준으로 정식 스크립트화
 
 ### Claude Code 태스크
 - 파트너클래스 상세 페이지 카카오 SDK `integrity` 해시 불일치 수정
@@ -644,5 +663,3 @@
 - 실관리자 계정 자격증명은 리포지토리에서 확인되지 않았고, `id=8011` 양성 최종 검증 전 별도 제공이 필요함
 - `makeshop-d4-dev`는 `/Users/jangjiho/workspace/AGENTS.md`를 기준 문서로 참조하므로, 해당 경로가 바뀌면 스킬 안내도 함께 갱신해야 함
 - 어드민 권한 판정은 이제 `group_name` 일치 또는 `group_level >= 9`면 통과하므로, 다른 최고등급 회원이 의도치 않게 열리지 않는지 운영 정책 확인 필요
-- 어드민 쓰기 액션 중 남은 미해결은 `approveApplication`, `rejectClass` 2건이며, 이번 라운드 수정은 로컬 파일 기준 반영 완료 상태
-- `approveApplication`, `rejectClass` 최종 PASS 판단은 `WF-08`, `WF-ADMIN`, 어드민 `Index.html/js.js` 4개 배포 후 재검증이 필요함

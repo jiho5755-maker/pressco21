@@ -357,7 +357,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Applications/{{ $json._application.Id }}",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mkciwqtnqdn8m9c/{{ $json._application.Id }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,

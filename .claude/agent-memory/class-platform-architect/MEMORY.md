@@ -26,3 +26,11 @@
 - 정보 구조는 `클래스 예약`, `협회/세미나`, `협회원 혜택` 3레이어를 같은 허브 안에서 분리해 운영한다.
 - 협회 기능은 부가 게시판이 아니라 제휴 유치와 협회원 락인 장치다.
 - 현재 문서 진입점은 `docs/파트너클래스/README.md` 이고, 충돌 시 `shared-service-identity.md`와 `enterprise-elevation-strategy-2026-03-10.md`를 우선한다.
+
+## 2026-03-10 S1-1 키트 링크 연동 완료
+
+- 키트 표준 데이터 구조는 `kit_items[{ name, product_url, quantity, price }]`로 고정한다.
+- 강의 등록, 파트너 수정, 상세 페이지가 모두 같은 구조를 사용한다.
+- 상세 페이지는 키트를 단순 안내가 아니라 `상품 보기`와 `재료 한번에 담기`가 있는 재구매 진입점으로 본다.
+- 라이브 DB INSERT 제약 때문에 `WF-16/WF-20`은 `status=INACTIVE`, 소문자 `level`, `region 미저장`으로 저장하고, `WF-01` 읽기 응답에서 canonical 값으로 재정규화한다.
+- 운영 기준 문서는 `docs/파트너클래스/kit-link-integration-guide.md` 이다.

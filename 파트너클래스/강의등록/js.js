@@ -305,6 +305,11 @@
                     if (item) item.remove();
                 }
             });
+            list.addEventListener('input', function(e) {
+                if (e.target && e.target.classList) {
+                    e.target.classList.remove('is-error');
+                }
+            });
         }
     }
 
@@ -323,18 +328,51 @@
                 '<label class="cr-kit-item__label">\uC0C1\uD488\uBA85</label>' +
                 '<input type="text" class="cr-form__input cr-kit-name" placeholder="\uC608: \uD504\uB9AC\uC800\uBE0C\uB4DC \uB85C\uC988 \uC138\uD2B8" maxlength="100">' +
             '</div>' +
-            '<div class="cr-kit-item__field cr-kit-item__field--code">' +
-                '<label class="cr-kit-item__label">\uC0C1\uD488\uCF54\uB4DC</label>' +
-                '<input type="text" class="cr-form__input cr-kit-code" placeholder="\uBA54\uC774\uD06C\uC0F5 \uCF54\uB4DC" maxlength="50">' +
+            '<div class="cr-kit-item__field cr-kit-item__field--url">' +
+                '<label class="cr-kit-item__label">\uC790\uC0AC\uBAB0 \uC0C1\uD488 \uB9C1\uD06C</label>' +
+                '<input type="text" class="cr-form__input cr-kit-url" placeholder="https://foreverlove.co.kr/shop/shopdetail.html?branduid=..." maxlength="255">' +
+                '<p class="cr-kit-item__desc">branduid\uB9CC \uC785\uB825\uD574\uB3C4 \uC790\uB3D9 \uBCC0\uD658\uB429\uB2C8\uB2E4.</p>' +
+            '</div>' +
+            '<div class="cr-kit-item__field cr-kit-item__field--price">' +
+                '<label class="cr-kit-item__label">\uC608\uC0C1 \uD310\uB9E4\uAC00</label>' +
+                '<input type="number" class="cr-form__input cr-kit-price" value="0" min="0" step="100">' +
             '</div>' +
             '<div class="cr-kit-item__field cr-kit-item__field--qty">' +
-                '<label class="cr-kit-item__label">\uC218\uB7C9</label>' +
+                '<label class="cr-kit-item__label">1\uC778 \uAE30\uC900 \uC218\uB7C9</label>' +
                 '<input type="number" class="cr-form__input cr-kit-qty" value="1" min="1" max="99">' +
             '</div>' +
             '<button type="button" class="cr-kit-item__remove" aria-label="\uC0AD\uC81C">&times;</button>' +
         '</div>';
 
         list.appendChild(item);
+    }
+
+    function extractKitBrandUid(raw) {
+        var value = String(raw || '').replace(/\s+/g, '').trim();
+        var match = value.match(/[?&]branduid=([^&#]+)/i);
+        if (match && match[1]) {
+            return decodeURIComponent(match[1]);
+        }
+        if (/^[A-Za-z0-9_-]{4,64}$/.test(value)) {
+            return value;
+        }
+        return '';
+    }
+
+    function normalizeKitProductUrl(raw) {
+        var value = String(raw || '').trim();
+        if (!value) return '';
+
+        var brandUid = extractKitBrandUid(value);
+        if (brandUid) {
+            return '/shop/shopdetail.html?branduid=' + encodeURIComponent(brandUid);
+        }
+
+        if (!isValidUrl(value)) return '';
+
+        var link = document.createElement('a');
+        link.href = value;
+        return link.href || '';
     }
 
     /**
@@ -346,20 +384,100 @@
         var result = [];
         for (var i = 0; i < items.length; i++) {
             var nameEl = items[i].querySelector('.cr-kit-name');
-            var codeEl = items[i].querySelector('.cr-kit-code');
+            var urlEl = items[i].querySelector('.cr-kit-url');
+            var priceEl = items[i].querySelector('.cr-kit-price');
             var qtyEl = items[i].querySelector('.cr-kit-qty');
             var name = nameEl ? nameEl.value.trim() : '';
-            var code = codeEl ? codeEl.value.trim() : '';
+            var productUrl = normalizeKitProductUrl(urlEl ? urlEl.value : '');
+            var price = priceEl ? parseInt(priceEl.value, 10) : 0;
             var qty = qtyEl ? parseInt(qtyEl.value, 10) : 1;
             if (name) {
                 result.push({
                     name: name,
-                    product_code: code,
-                    quantity: qty > 0 ? qty : 1
+                    product_url: productUrl,
+                    quantity: qty > 0 ? qty : 1,
+                    price: !isNaN(price) && price > 0 ? price : 0
                 });
             }
         }
         return result;
+    }
+
+    function clearKitValidationState() {
+        var fields = document.querySelectorAll('.class-register .cr-kit-name, .class-register .cr-kit-url, .class-register .cr-kit-price, .class-register .cr-kit-qty');
+        for (var i = 0; i < fields.length; i++) {
+            fields[i].classList.remove('is-error');
+        }
+    }
+
+    function validateKitItems() {
+        var items = document.querySelectorAll('.class-register .cr-kit-item');
+        var validItemCount = 0;
+
+        clearKitValidationState();
+
+        for (var i = 0; i < items.length; i++) {
+            var nameEl = items[i].querySelector('.cr-kit-name');
+            var urlEl = items[i].querySelector('.cr-kit-url');
+            var qtyEl = items[i].querySelector('.cr-kit-qty');
+            var priceEl = items[i].querySelector('.cr-kit-price');
+            var name = nameEl ? nameEl.value.trim() : '';
+            var rawUrl = urlEl ? urlEl.value.trim() : '';
+            var qty = qtyEl ? parseInt(qtyEl.value, 10) : 0;
+            var price = priceEl ? parseInt(priceEl.value, 10) : 0;
+
+            if (!name && !rawUrl) {
+                continue;
+            }
+
+            if (!name) {
+                if (nameEl) nameEl.classList.add('is-error');
+                return {
+                    valid: false,
+                    field: nameEl,
+                    message: '\uD0A4\uD2B8 \uD56D\uBAA9\uC5D0 \uC0C1\uD488\uBA85\uC744 \uC785\uB825\uD574\uC8FC\uC138\uC694.'
+                };
+            }
+
+            if (!normalizeKitProductUrl(rawUrl)) {
+                if (urlEl) urlEl.classList.add('is-error');
+                return {
+                    valid: false,
+                    field: urlEl,
+                    message: '\uD0A4\uD2B8 \uD56D\uBAA9\uC5D0 \uC790\uC0AC\uBAB0 \uC0C1\uD488 \uB9C1\uD06C \uB610\uB294 branduid\uB97C \uC785\uB825\uD574\uC8FC\uC138\uC694.'
+                };
+            }
+
+            if (isNaN(qty) || qty < 1 || qty > 99) {
+                if (qtyEl) qtyEl.classList.add('is-error');
+                return {
+                    valid: false,
+                    field: qtyEl,
+                    message: '\uD0A4\uD2B8 \uC218\uB7C9\uC740 1~99 \uC0AC\uC774\uB85C \uC785\uB825\uD574\uC8FC\uC138\uC694.'
+                };
+            }
+
+            if (!isNaN(price) && price < 0) {
+                if (priceEl) priceEl.classList.add('is-error');
+                return {
+                    valid: false,
+                    field: priceEl,
+                    message: '\uD0A4\uD2B8 \uC608\uC0C1 \uD310\uB9E4\uAC00\uB294 0\uC6D0 \uC774\uC0C1\uC73C\uB85C \uC785\uB825\uD574\uC8FC\uC138\uC694.'
+                };
+            }
+
+            validItemCount++;
+        }
+
+        if (validItemCount === 0) {
+            return {
+                valid: false,
+                field: document.querySelector('.class-register .cr-kit-url') || document.getElementById('crAddKitItemBtn'),
+                message: '\uC790\uB3D9 \uBC30\uC1A1\uC744 \uC0AC\uC6A9\uD558\uB824\uBA74 \uCD5C\uC18C 1\uAC1C \uC774\uC0C1\uC758 \uD0A4\uD2B8 \uD56D\uBAA9\uC744 \uB4F1\uB85D\uD574\uC8FC\uC138\uC694.'
+            };
+        }
+
+        return { valid: true, items: collectKitItems() };
     }
 
     /**
@@ -502,6 +620,7 @@
     function collectFormData() {
         var maxStudentsVal = parseInt(getVal('crMaxStudents'), 10);
         var priceVal = parseInt(getVal('crPrice'), 10);
+        var kitEnabled = document.getElementById('crKitEnabled') && document.getElementById('crKitEnabled').checked ? 1 : 0;
 
         return {
             member_id:          memberId,
@@ -522,8 +641,8 @@
             contact_phone:      getVal('crContactPhone'),
             contact_kakao:      getVal('crContactKakao'),
             schedules:          collectSchedules(),
-            kit_enabled:        document.getElementById('crKitEnabled') && document.getElementById('crKitEnabled').checked ? 1 : 0,
-            kit_items:          collectKitItems()
+            kit_enabled:        kitEnabled,
+            kit_items:          kitEnabled ? collectKitItems() : []
         };
     }
 
@@ -615,6 +734,20 @@
             valid = false;
         }
 
+        if (document.getElementById('crKitEnabled') && document.getElementById('crKitEnabled').checked) {
+            var kitValidation = validateKitItems();
+            if (!kitValidation.valid) {
+                valid = false;
+                showGlobalError(kitValidation.message);
+                if (kitValidation.field && kitValidation.field.focus) {
+                    kitValidation.field.focus();
+                    kitValidation.field.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+            }
+        } else {
+            clearKitValidationState();
+        }
+
         // 약관 동의
         var agreeTerms = document.getElementById('crAgreeTerms');
         if (!agreeTerms || !agreeTerms.checked) {
@@ -642,8 +775,7 @@
      */
     function isValidUrl(url) {
         if (!url) return true;
-        var lower = url.toLowerCase().trim();
-        return lower.indexOf('http://') === 0 || lower.indexOf('https://') === 0;
+        return /^https?:\/\//i.test(url.toLowerCase().trim());
     }
 
 

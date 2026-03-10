@@ -51,15 +51,67 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-10 21:20:00 KST
+- Started At: 2026-03-10 22:02:00 KST
 - Branch: main
-- Working Scope: [CODEX] CRM 레거시 수금 처리 + 택배송장 자동입력 보강 완료
-- Active Subdirectory: offline-crm-v2
+- Working Scope: [CODEX-LEAD] 파트너클래스 S1-1 키트 연동 Step 1 완료
+- Active Subdirectory: pressco21
 
 ## Files In Progress
 - 없음
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### [CODEX-LEAD] Phase 3 S1-1 키트 연동 Step 1 완료 (CODEX)
+- 프론트
+  - `파트너클래스/강의등록/Index.html`, `css.css`, `js.js`
+    - 키트 항목 입력을 `상품명 / 자사몰 상품 링크 / 예상 판매가 / 1인 기준 수량` 구조로 변경.
+    - `branduid`만 넣어도 링크로 정규화되도록 검증/수집 로직 보강.
+  - `파트너클래스/파트너/css.css`, `js.js`
+    - 클래스 수정 모달도 같은 키트 구조를 사용하도록 통일.
+    - legacy `product_code` 데이터를 링크형으로 보정 로드.
+  - `파트너클래스/상세/Index.html`, `css.css`, `js.js`
+    - 재료 섹션을 카드형 UI로 재구성.
+    - `재료 한번에 담기`, `상품 보기`, `장바구니 담기` CTA 추가.
+    - `kit_items` 우선, legacy `materials_product_ids` fallback 구조로 렌더링.
+- 워크플로우/서버
+  - `파트너클래스/n8n-workflows/WF-01-class-api.json`
+    - 상세 응답의 `kit_items`를 `product_url`, `price`, `quantity`, `branduid` 기준으로 정규화.
+  - `파트너클래스/n8n-workflows/WF-05-order-polling-batch.json`
+    - 키트 주문 텔레그램 알림에 상품 링크와 예상 판매가를 포함.
+  - `파트너클래스/n8n-workflows/WF-16-class-register.json`
+    - 키트 링크 입력 검증 추가.
+    - 라이브 DB 제약에 맞춰 INSERT는 `status=INACTIVE`, 소문자 `level`, `region 미저장`으로 저장하고 성공 응답은 `PENDING_REVIEW`로 통일.
+  - `파트너클래스/n8n-workflows/WF-20-class-edit.json`
+    - 수정 API도 같은 키트 구조를 검증/정규화.
+  - 운영 n8n 재배포 완료:
+    - `WF-01=WabRAcHmcCdOpPzJ`
+    - `WF-05=W3DFBCKMmgylxGqD`
+    - `WF-16=I4zkrUK036YEiUHe`
+    - `WF-20=EHjVijWGTkUkYNip`
+- 문서/메모리
+  - `ROADMAP.md`
+    - S1-1을 `✅ 완료`로 변경하고 라이브 DB 제약 메모 추가.
+  - `docs/파트너클래스/kit-link-integration-guide.md`
+    - 표준 키트 JSON 구조, 화면/워크플로우 반영 범위, 라이브 제약, 검증 결과 정리.
+  - `docs/파트너클래스/README.md`
+    - 새 가이드 문서를 문서 인덱스에 추가.
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+    - S1-1 기준 메모리 갱신.
+- 검증
+  - `node --check 파트너클래스/강의등록/js.js`
+  - `node --check 파트너클래스/파트너/js.js`
+  - `node --check 파트너클래스/상세/js.js`
+  - 라이브 API:
+    - `class-register` 정상 등록 성공
+    - `class-register` 잘못된 키트 링크 `HTTP 400 / INVALID_PARAMS`
+    - `class-edit` 정상 수정 성공
+    - `class-edit` 잘못된 키트 항목 `HTTP 400`
+    - `class-api getClassDetail`의 `kit_items` 정규화 확인
+  - Playwright 로컬 검증:
+    - 상세 페이지 재료 섹션 제목/카드/`재료 한번에 담기` CTA 확인
+    - 강의 등록 페이지 키트 토글, 4개 입력 라벨, 기본 항목 1개 자동 생성 확인
 
 ### [CODEX] CRM 레거시 수금 처리 + 택배송장 자동입력 보강 (CODEX)
 - `offline-crm-v2/src/lib/legacySnapshots.ts`
@@ -1012,8 +1064,8 @@
 
 #### 현재 다음 태스크
 
-- `S1-1 키트 연동 Step 1 — 자사몰 상품 링크 방식` 진행
-- 그 다음 `S1-2 상세 UX 고도화`
+- `S1-2 상세 UX 고도화` 진행
+- 그 다음 `S1-3 목록 배지 + 퀵 필터`
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
 #### 실행 순서
@@ -1099,6 +1151,8 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 저장 전까지 라이브 반영되지 않음
 - 라이브 `admin-api`는 현재 리포지토리의 랜덤 `ADMIN_API_TOKEN`이 아니라 구형 토큰 `pressco21-admin-2026` 기준으로만 인증이 통과함
 - `파트너클래스/어드민/js.js`의 `PENDING_REVIEW` 정렬 보정은 아직 메이크샵 디자인편집기에 저장되지 않아 라이브 어드민 UI에는 반영되지 않음
+- S1-1 프론트 변경(강의등록/상세/파트너 수정 모달)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 화면 확인이 필요해지면 사용자 배포 후 재검증이 필요함
+- 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함
 - `PRD-파트너클래스-플랫폼-고도화.md`, `commission-policy.md`, 일부 구현 문서는 아직 예전 등급/수수료 표현이 남아 있으므로 서비스 방향 판단은 `docs/파트너클래스/README.md`와 `shared-service-identity.md`를 우선해야 함
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.

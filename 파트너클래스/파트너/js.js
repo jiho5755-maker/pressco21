@@ -631,6 +631,7 @@
             + '<input type="checkbox" id="editKitEnabled"' + (parseInt(cls.kit_enabled) === 1 ? ' checked' : '') + '>'
             + ' \uC7AC\uB8CC\uD0A4\uD2B8 \uC790\uB3D9 \uBC30\uC1A1'
             + '</label>'
+            + '<p class="pd-kit-help">\uC0C1\uD488 \uC0C1\uC138 URL \uB610\uB294 branduid\uB97C \uB123\uC73C\uBA74 \uC0C1\uC138 \uD398\uC774\uC9C0\uC5D0\uC11C \uBC14\uB85C \uC5F0\uACB0\uB429\uB2C8\uB2E4.</p>'
             + '<div id="editKitItems" class="pd-kit-items"' + (parseInt(cls.kit_enabled) !== 1 ? ' style="display:none"' : '') + '></div>'
             + '<button type="button" id="editAddKitItem" class="pd-btn pd-btn--outline pd-btn--sm"' + (parseInt(cls.kit_enabled) !== 1 ? ' style="display:none"' : '') + '>+ \uD0A4\uD2B8 \uD56D\uBAA9 \uCD94\uAC00</button>'
             + '</div>'
@@ -685,6 +686,11 @@
                     if (row) row.remove();
                 }
             });
+            kitItemsArea.addEventListener('input', function(e) {
+                if (e.target && e.target.classList) {
+                    e.target.classList.remove('is-error');
+                }
+            });
         }
 
         // 기존 키트 항목 렌더링
@@ -692,17 +698,49 @@
         try { existingKitItems = cls.kit_items ? JSON.parse(cls.kit_items) : []; } catch(e) {}
         if (Array.isArray(existingKitItems)) {
             for (var ki = 0; ki < existingKitItems.length; ki++) {
-                addEditKitRow(kitItemsArea, existingKitItems[ki].name || '', existingKitItems[ki].product_code || '', existingKitItems[ki].quantity || 1);
+                addEditKitRow(
+                    kitItemsArea,
+                    existingKitItems[ki].name || '',
+                    normalizeKitProductUrl(existingKitItems[ki].product_url || existingKitItems[ki].product_code || ''),
+                    existingKitItems[ki].quantity || 1,
+                    existingKitItems[ki].price || 0
+                );
             }
         }
     }
 
-    function addEditKitRow(container, name, code, qty) {
+    function extractKitBrandUid(raw) {
+        var value = String(raw || '').replace(/\s+/g, '').trim();
+        var match = value.match(/[?&]branduid=([^&#]+)/i);
+        if (match && match[1]) {
+            return decodeURIComponent(match[1]);
+        }
+        if (/^[A-Za-z0-9_-]{4,64}$/.test(value)) {
+            return value;
+        }
+        return '';
+    }
+
+    function normalizeKitProductUrl(raw) {
+        var value = String(raw || '').trim();
+        if (!value) return '';
+
+        var brandUid = extractKitBrandUid(value);
+        if (brandUid) {
+            return '/shop/shopdetail.html?branduid=' + encodeURIComponent(brandUid);
+        }
+
+        if (!/^https?:\/\//i.test(value)) return '';
+        return value;
+    }
+
+    function addEditKitRow(container, name, productUrl, qty, price) {
         if (!container) return;
         var row = document.createElement('div');
         row.className = 'pd-kit-row';
         row.innerHTML = '<input type="text" class="pd-form-input pd-kit-name" placeholder="\uC0C1\uD488\uBA85" value="' + escapeAttr(name) + '">'
-            + '<input type="text" class="pd-form-input pd-kit-code" placeholder="\uCF54\uB4DC" value="' + escapeAttr(code) + '">'
+            + '<input type="text" class="pd-form-input pd-kit-url" placeholder="\uC790\uC0AC\uBAB0 \uC0C1\uD488 URL \uB610\uB294 branduid" value="' + escapeAttr(productUrl) + '">'
+            + '<input type="number" class="pd-form-input pd-kit-price" placeholder="\uD310\uB9E4\uAC00" value="' + (parseInt(price, 10) || 0) + '" min="0" step="100">'
             + '<input type="number" class="pd-form-input pd-kit-qty" placeholder="\uC218\uB7C9" value="' + (qty || 1) + '" min="1" max="99">'
             + '<button type="button" class="pd-kit-row__remove">&times;</button>';
         container.appendChild(row);
@@ -713,18 +751,81 @@
         var items = [];
         for (var i = 0; i < rows.length; i++) {
             var nameEl = rows[i].querySelector('.pd-kit-name');
-            var codeEl = rows[i].querySelector('.pd-kit-code');
+            var urlEl = rows[i].querySelector('.pd-kit-url');
+            var priceEl = rows[i].querySelector('.pd-kit-price');
             var qtyEl = rows[i].querySelector('.pd-kit-qty');
             var n = nameEl ? nameEl.value.trim() : '';
             if (n) {
                 items.push({
                     name: n,
-                    product_code: codeEl ? codeEl.value.trim() : '',
-                    quantity: qtyEl ? parseInt(qtyEl.value, 10) || 1 : 1
+                    product_url: normalizeKitProductUrl(urlEl ? urlEl.value : ''),
+                    quantity: qtyEl ? parseInt(qtyEl.value, 10) || 1 : 1,
+                    price: priceEl ? Math.max(parseInt(priceEl.value, 10) || 0, 0) : 0
                 });
             }
         }
         return items;
+    }
+
+    function clearEditKitValidationState() {
+        var fields = document.querySelectorAll('#editKitItems .pd-kit-name, #editKitItems .pd-kit-url, #editKitItems .pd-kit-price, #editKitItems .pd-kit-qty');
+        for (var i = 0; i < fields.length; i++) {
+            fields[i].classList.remove('is-error');
+        }
+    }
+
+    function validateEditKitItems() {
+        var rows = document.querySelectorAll('#editKitItems .pd-kit-row');
+        var validCount = 0;
+
+        clearEditKitValidationState();
+
+        for (var i = 0; i < rows.length; i++) {
+            var nameEl = rows[i].querySelector('.pd-kit-name');
+            var urlEl = rows[i].querySelector('.pd-kit-url');
+            var priceEl = rows[i].querySelector('.pd-kit-price');
+            var qtyEl = rows[i].querySelector('.pd-kit-qty');
+            var name = nameEl ? nameEl.value.trim() : '';
+            var rawUrl = urlEl ? urlEl.value.trim() : '';
+            var price = priceEl ? parseInt(priceEl.value, 10) : 0;
+            var qty = qtyEl ? parseInt(qtyEl.value, 10) : 0;
+
+            if (!name && !rawUrl) {
+                continue;
+            }
+
+            if (!name) {
+                if (nameEl) nameEl.classList.add('is-error');
+                return { valid: false, field: nameEl, message: '\uD0A4\uD2B8 \uC0C1\uD488\uBA85\uC744 \uC785\uB825\uD574\uC8FC\uC138\uC694.' };
+            }
+
+            if (!normalizeKitProductUrl(rawUrl)) {
+                if (urlEl) urlEl.classList.add('is-error');
+                return { valid: false, field: urlEl, message: '\uC0C1\uD488 URL \uB610\uB294 branduid\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4.' };
+            }
+
+            if (isNaN(qty) || qty < 1 || qty > 99) {
+                if (qtyEl) qtyEl.classList.add('is-error');
+                return { valid: false, field: qtyEl, message: '\uC218\uB7C9\uC740 1~99 \uC0AC\uC774\uB85C \uC785\uB825\uD574\uC8FC\uC138\uC694.' };
+            }
+
+            if (!isNaN(price) && price < 0) {
+                if (priceEl) priceEl.classList.add('is-error');
+                return { valid: false, field: priceEl, message: '\uD310\uB9E4\uAC00\uB294 0\uC6D0 \uC774\uC0C1\uC73C\uB85C \uC785\uB825\uD574\uC8FC\uC138\uC694.' };
+            }
+
+            validCount++;
+        }
+
+        if (validCount === 0) {
+            return {
+                valid: false,
+                field: document.querySelector('#editKitItems .pd-kit-url') || document.getElementById('editAddKitItem'),
+                message: '\uD0A4\uD2B8 \uC0AC\uC6A9 \uC2DC \uCD5C\uC18C 1\uAC1C \uC774\uC0C1\uC758 \uC0C1\uD488\uC744 \uB4F1\uB85D\uD574\uC8FC\uC138\uC694.'
+            };
+        }
+
+        return { valid: true, items: collectEditKitItems() };
     }
 
     /**
@@ -733,6 +834,20 @@
     function saveClassEdit() {
         var classId = (document.getElementById('editClassId') || {}).value;
         if (!classId) return;
+        var isKitEnabled = (document.getElementById('editKitEnabled') || {}).checked;
+
+        if (isKitEnabled) {
+            var kitValidation = validateEditKitItems();
+            if (!kitValidation.valid) {
+                if (kitValidation.field && kitValidation.field.focus) {
+                    kitValidation.field.focus();
+                }
+                showToast(kitValidation.message, 'error');
+                return;
+            }
+        } else {
+            clearEditKitValidationState();
+        }
 
         var updateData = {
             member_id: memberId,
@@ -744,8 +859,8 @@
             max_students: parseInt((document.getElementById('editMaxStudents') || {}).value) || 8,
             description: (document.getElementById('editDescription') || {}).value || '',
             instructor_bio: (document.getElementById('editInstructorBio') || {}).value || '',
-            kit_enabled: (document.getElementById('editKitEnabled') || {}).checked ? 1 : 0,
-            kit_items: collectEditKitItems()
+            kit_enabled: isKitEnabled ? 1 : 0,
+            kit_items: isKitEnabled ? collectEditKitItems() : []
         };
 
         showLoading();

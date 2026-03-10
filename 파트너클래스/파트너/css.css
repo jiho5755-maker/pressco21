@@ -1174,6 +1174,99 @@
 
 
 /* ----------------------------------------
+   13-B-2. 수수료율 안내
+   ---------------------------------------- */
+.partner-dashboard .pd-gauge-info__commission {
+    margin: 8px 0 0;
+    font-size: 13px;
+    color: var(--pd-text-muted);
+}
+
+.partner-dashboard .pd-gauge-info__commission strong {
+    color: var(--pd-gold);
+    font-weight: 700;
+}
+
+/* ----------------------------------------
+   13-B-3. 등급 승급 조건 테이블
+   ---------------------------------------- */
+.partner-dashboard .pd-grade-tiers {
+    margin-top: 20px;
+    padding-top: 16px;
+    border-top: 1px solid var(--pd-border);
+}
+
+.partner-dashboard .pd-grade-tiers__title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--pd-text-secondary);
+    margin: 0 0 10px;
+}
+
+.partner-dashboard .pd-grade-tiers__table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 12px;
+}
+
+.partner-dashboard .pd-grade-tiers__table th {
+    padding: 6px 8px;
+    text-align: left;
+    font-weight: 600;
+    color: var(--pd-text-muted);
+    border-bottom: 1px solid var(--pd-border);
+    font-size: 11px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+.partner-dashboard .pd-grade-tiers__table td {
+    padding: 8px 8px;
+    color: var(--pd-text-primary);
+    border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.partner-dashboard .pd-grade-tiers__current td {
+    background: rgba(184, 155, 94, 0.08);
+    font-weight: 600;
+}
+
+.partner-dashboard .pd-tier-badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+}
+
+.partner-dashboard .pd-tier-badge--bloom {
+    background: rgba(184, 155, 94, 0.2);
+    color: var(--pd-gold-light);
+}
+
+.partner-dashboard .pd-tier-badge--garden {
+    background: rgba(76, 175, 80, 0.2);
+    color: #81c784;
+}
+
+.partner-dashboard .pd-tier-badge--atelier {
+    background: rgba(123, 104, 238, 0.2);
+    color: #b0a0ff;
+}
+
+.partner-dashboard .pd-tier-badge--ambassador {
+    background: rgba(233, 30, 99, 0.2);
+    color: #f48fb1;
+}
+
+.partner-dashboard .pd-grade-tiers__note {
+    margin: 8px 0 0;
+    font-size: 11px;
+    color: var(--pd-text-muted);
+}
+
+/* ----------------------------------------
    13-C. 수익 탭 헤더 우측 버튼 그룹
    ---------------------------------------- */
 .partner-dashboard .pd-tab-header__right {
@@ -1598,13 +1691,21 @@
     gap: 8px;
     margin: 10px 0;
 }
+.partner-dashboard .pd-kit-help {
+    margin: 8px 0 10px;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--pd-text-light);
+}
 .partner-dashboard .pd-kit-row {
     display: flex;
     gap: 6px;
     align-items: center;
+    flex-wrap: wrap;
 }
 .partner-dashboard .pd-kit-row .pd-kit-name { flex: 3; }
-.partner-dashboard .pd-kit-row .pd-kit-code { flex: 2; }
+.partner-dashboard .pd-kit-row .pd-kit-url { flex: 4; }
+.partner-dashboard .pd-kit-row .pd-kit-price { flex: 1.5; min-width: 110px; }
 .partner-dashboard .pd-kit-row .pd-kit-qty { flex: 1; min-width: 60px; }
 .partner-dashboard .pd-kit-row__remove {
     background: none;
@@ -1613,6 +1714,16 @@
     font-size: 18px;
     cursor: pointer;
     padding: 0 4px;
+}
+@media (max-width: 767px) {
+    .partner-dashboard .pd-kit-row .pd-kit-name,
+    .partner-dashboard .pd-kit-row .pd-kit-url {
+        flex: 1 1 100%;
+    }
+    .partner-dashboard .pd-kit-row .pd-kit-price,
+    .partner-dashboard .pd-kit-row .pd-kit-qty {
+        flex: 1 1 calc(50% - 3px);
+    }
 }
 
 /* 후기 미리보기 */

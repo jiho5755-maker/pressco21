@@ -751,53 +751,247 @@
         container.innerHTML = html;
     }
 
+    function extractBrandUidFromValue(raw) {
+        var value = String(raw || '').replace(/\s+/g, '').trim();
+        var match = value.match(/[?&]branduid=([^&#]+)/i);
+        if (match && match[1]) {
+            return decodeURIComponent(match[1]);
+        }
+        if (/^[A-Za-z0-9_-]{4,64}$/.test(value)) {
+            return value;
+        }
+        return '';
+    }
+
+    function normalizeMaterialProductUrl(raw) {
+        var value = String(raw || '').trim();
+        if (!value) return '';
+
+        var brandUid = extractBrandUidFromValue(value);
+        if (brandUid) {
+            return '/shop/shopdetail.html?branduid=' + encodeURIComponent(brandUid);
+        }
+
+        if (/^https?:\/\//i.test(value) || value.indexOf('/shop/') === 0) {
+            return value;
+        }
+
+        return '';
+    }
+
+    function getMaterialKitItems(data) {
+        var sourceItems = Array.isArray(data.kit_items) ? data.kit_items : [];
+        var items = [];
+        var i;
+
+        if (sourceItems.length > 0) {
+            for (i = 0; i < sourceItems.length; i++) {
+                var item = sourceItems[i] || {};
+                var name = String(item.name || '').trim();
+                var productUrl = normalizeMaterialProductUrl(item.product_url || item.product_code || '');
+                var quantity = parseInt(item.quantity, 10);
+                var price = parseInt(item.price, 10);
+                var brandUid = extractBrandUidFromValue(productUrl || item.product_url || item.product_code || '');
+
+                if (!name && !productUrl && !brandUid) continue;
+
+                items.push({
+                    name: name || ('\uC7AC\uB8CC \uC0C1\uD488 ' + (i + 1)),
+                    product_url: productUrl || (brandUid ? '/shop/shopdetail.html?branduid=' + encodeURIComponent(brandUid) : ''),
+                    quantity: !isNaN(quantity) && quantity > 0 ? quantity : 1,
+                    price: !isNaN(price) && price > 0 ? price : 0,
+                    branduid: brandUid
+                });
+            }
+        }
+
+        if (items.length === 0 && Array.isArray(data.materials_product_ids)) {
+            for (i = 0; i < data.materials_product_ids.length; i++) {
+                var pid = String(data.materials_product_ids[i] || '').trim();
+                if (!pid) continue;
+                items.push({
+                    name: '\uC7AC\uB8CC \uC0C1\uD488 #' + pid,
+                    product_url: '/shop/shopdetail.html?branduid=' + encodeURIComponent(pid),
+                    quantity: 1,
+                    price: 0,
+                    branduid: pid
+                });
+            }
+        }
+
+        return items;
+    }
+
+    function getMaterialsNoteText(data, items) {
+        if (data.kit_enabled && parseInt(data.kit_enabled, 10) === 1 && items.length > 0) {
+            return '\uC218\uC5C5 \uD6C4 \uBCF5\uC2B5\uC774\uB098 \uCD94\uAC00 \uC81C\uC791\uC5D0 \uC4F0\uB294 \uC790\uC0AC\uBAB0 \uC7AC\uB8CC\uB97C \uD55C \uBC88\uC5D0 \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694. \uC218\uB7C9\uC740 1\uC778 \uAE30\uC900\uC73C\uB85C \uD45C\uC2DC\uB429\uB2C8\uB2E4.';
+        }
+        if (data.materials_included === '\uD3EC\uD568') {
+            return '\uC218\uAC15\uB8CC\uC5D0 \uAE30\uBCF8 \uC7AC\uB8CC\uAC00 \uD3EC\uD568\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4. \uB3D9\uC77C\uD55C \uC7AC\uB8CC\uB97C \uCD94\uAC00\uB85C \uAD6C\uB9E4\uD558\uB824\uBA74 \uC544\uB798 \uC0C1\uD488\uC744 \uD655\uC778\uD574\uC8FC\uC138\uC694.';
+        }
+        return '\uC218\uAC15 \uC804\uC5D0 \uBBF8\uB9AC \uC900\uBE44\uD558\uAC70\uB098 \uC218\uC5C5 \uD6C4 \uB2E4\uC2DC \uB9CC\uB4E4 \uB54C \uC4F0\uB294 \uC7AC\uB8CC\uB4E4\uC785\uB2C8\uB2E4.';
+    }
+
+    function setMaterialButtonBusy(button, isBusy, idleText) {
+        if (!button) return;
+        button.disabled = !!isBusy;
+        button.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+        button.textContent = isBusy ? '\uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uB294 \uC911...' : idleText;
+    }
+
+    function bindMaterialActions(items) {
+        var addAllBtn = document.getElementById('materialsAddAllBtn');
+        var grid = document.getElementById('materialsGrid');
+        if (addAllBtn) {
+            addAllBtn.addEventListener('click', function() {
+                handleMaterialAddAll(items, addAllBtn);
+            });
+        }
+        if (grid) {
+            grid.addEventListener('click', function(e) {
+                var btn = e.target.closest('.js-material-add');
+                if (!btn) return;
+
+                var brandUid = btn.getAttribute('data-branduid') || '';
+                var baseQty = parseInt(btn.getAttribute('data-quantity'), 10) || 1;
+                var totalQty = Math.max(baseQty * (selectedQuantity || 1), 1);
+
+                e.preventDefault();
+                if (!brandUid) {
+                    showToast('\uC774 \uC0C1\uD488\uC740 \uC7A5\uBC14\uAD6C\uB2C8 \uC5F0\uACB0 \uC815\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.', 'error');
+                    return;
+                }
+
+                setMaterialButtonBusy(btn, true, '\uC7A5\uBC14\uAD6C\uB2C8 \uB2F4\uAE30');
+                addKitProductToBasket(brandUid, totalQty)
+                    .then(function() {
+                        setMaterialButtonBusy(btn, false, '\uC7A5\uBC14\uAD6C\uB2C8 \uB2F4\uAE30');
+                        showToast('\uC7AC\uB8CC\uAC00 \uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uACBC\uC2B5\uB2C8\uB2E4.', 'success');
+                    })
+                    .catch(function(err) {
+                        console.warn('[ClassDetail] \uC7AC\uB8CC \uAC1C\uBCC4 \uB2F4\uAE30 \uC2E4\uD328:', err);
+                        setMaterialButtonBusy(btn, false, '\uC7A5\uBC14\uAD6C\uB2C8 \uB2F4\uAE30');
+                        showToast('\uC7AC\uB8CC\uB97C \uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+                    });
+            });
+        }
+    }
+
+    function handleMaterialAddAll(items, button) {
+        var queue = [];
+        var i;
+        var successCount = 0;
+        var failCount = 0;
+
+        for (i = 0; i < items.length; i++) {
+            if (items[i].branduid) {
+                queue.push({
+                    branduid: items[i].branduid,
+                    quantity: Math.max((items[i].quantity || 1) * (selectedQuantity || 1), 1)
+                });
+            }
+        }
+
+        if (queue.length === 0) {
+            showToast('\uD55C \uBC88\uC5D0 \uB2F4\uC744 \uC218 \uC788\uB294 \uC790\uC0AC\uBAB0 \uC0C1\uD488 \uC815\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.', 'error');
+            return;
+        }
+
+        setMaterialButtonBusy(button, true, '\uC7AC\uB8CC \uD55C\uBC88\uC5D0 \uB2F4\uAE30');
+
+        (function run(index) {
+            if (index >= queue.length) {
+                setMaterialButtonBusy(button, false, '\uC7AC\uB8CC \uD55C\uBC88\uC5D0 \uB2F4\uAE30');
+                if (successCount > 0 && failCount === 0) {
+                    showToast('\uC7AC\uB8CC ' + successCount + '\uC885\uC744 \uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uC558\uC2B5\uB2C8\uB2E4.', 'success');
+                } else if (successCount > 0) {
+                    showToast('\uC77C\uBD80 \uC7AC\uB8CC\uB9CC \uB2F4\uACBC\uC2B5\uB2C8\uB2E4. \uC131\uACF5 ' + successCount + '\uAC1C, \uC2E4\uD328 ' + failCount + '\uAC1C', 'error');
+                } else {
+                    showToast('\uC7AC\uB8CC \uB2F4\uAE30\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+                }
+                return;
+            }
+
+            addKitProductToBasket(queue[index].branduid, queue[index].quantity)
+                .then(function() {
+                    successCount++;
+                    run(index + 1);
+                })
+                .catch(function(err) {
+                    console.warn('[ClassDetail] \uC7AC\uB8CC \uD55C\uBC88\uC5D0 \uB2F4\uAE30 \uC2E4\uD328:', err);
+                    failCount++;
+                    run(index + 1);
+                });
+        })(0);
+    }
+
     /**
      * 수강에 필요한 재료 렌더링 (Graceful Degradation)
      */
     function renderMaterials(data) {
         var section = document.getElementById('detailMaterials');
-        if (!section) return;
+        var noteEl = document.getElementById('materialsNote');
+        var grid = document.getElementById('materialsGrid');
+        var items = getMaterialKitItems(data);
+        var html = '';
 
-        var productIds = data.materials_product_ids;
-        if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
-            // 재료 정보 없으면 섹션 숨김
+        if (!section || !noteEl || !grid) return;
+
+        if (!items || items.length === 0) {
             section.style.display = 'none';
             return;
         }
 
         section.style.display = '';
+        noteEl.textContent = getMaterialsNoteText(data, items);
 
-        var noteEl = document.getElementById('materialsNote');
-        if (noteEl) {
-            if (data.materials_included === '\uD3EC\uD568') {
-                noteEl.textContent = '\uC218\uAC15\uB8CC\uC5D0 \uC7AC\uB8CC\uAC00 \uD3EC\uD568\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4. \uCD94\uAC00 \uAD6C\uB9E4\uB97C \uC6D0\uD558\uC2DC\uBA74 \uC544\uB798 \uC0C1\uD488\uC744 \uCC38\uACE0\uD574 \uC8FC\uC138\uC694.';
-            } else {
-                noteEl.textContent = '\uC218\uAC15\uC5D0 \uD544\uC694\uD55C \uC7AC\uB8CC\uC785\uB2C8\uB2E4. \uBCC4\uB3C4 \uAD6C\uB9E4\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4.';
-            }
+        var addableCount = 0;
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].branduid) addableCount++;
         }
 
-        var grid = document.getElementById('materialsGrid');
-        if (!grid) return;
+        if (addableCount > 0) {
+            html += '<div class="detail-materials__actions">'
+                + '<button type="button" class="detail-materials__action detail-materials__action--primary" id="materialsAddAllBtn">\uC7AC\uB8CC \uD55C\uBC88\uC5D0 \uB2F4\uAE30</button>'
+                + '<a href="/shop/basket.html" class="detail-materials__action detail-materials__action--secondary">\uC7A5\uBC14\uAD6C\uB2C8 \uBCF4\uAE30</a>'
+                + '</div>';
+        }
 
-        // 재료 카드 렌더링 (상품 상세 링크)
-        var html = '';
-        for (var i = 0; i < productIds.length; i++) {
-            var pid = escapeHtml(productIds[i]);
-            var productUrl = '/goods/goods_view.php?goodsNo=' + encodeURIComponent(pid);
+        html += '<div class="materials-grid__inner">';
+        for (i = 0; i < items.length; i++) {
+            var item = items[i];
+            var productUrl = item.product_url || '#';
+            var hasLink = !!item.product_url;
+            var hasBrandUid = !!item.branduid;
+            var priceText = item.price > 0 ? formatPrice(item.price) + '\uC6D0' : '\uAC00\uACA9 \uD655\uC778 \uD544\uC694';
 
-            html += '<a href="' + productUrl + '" class="material-card" target="_blank" rel="noopener">'
+            html += '<article class="material-card">'
                 + '<div class="material-card__thumb">'
-                + '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:12px;">'
-                + '\uC0C1\uD488 #' + pid
-                + '</div>'
+                + '<div class="material-card__thumb-label">\uC7AC\uB8CC KIT</div>'
+                + '<span class="material-card__qty">1\uC778 \uAE30\uC900 x ' + escapeHtml(String(item.quantity || 1)) + '</span>'
                 + '</div>'
                 + '<div class="material-card__body">'
-                + '<p class="material-card__name">\uC7AC\uB8CC \uC0C1\uD488 #' + pid + '</p>'
-                + '<span class="material-card__price">\uC0C1\uD488 \uD398\uC774\uC9C0 \uD655\uC778</span>'
-                + '</div>'
-                + '</a>';
+                + '<p class="material-card__name">' + escapeHtml(item.name || '') + '</p>'
+                + '<p class="material-card__meta">' + (hasLink ? '\uC790\uC0AC\uBAB0 \uC5F0\uACB0 \uC644\uB8CC' : '\uC6B4\uC601\uD300 \uD655\uC778 \uC911') + '</p>'
+                + '<div class="material-card__price">' + escapeHtml(priceText) + '</div>'
+                + '<div class="material-card__actions">';
+
+            if (hasLink) {
+                html += '<a href="' + escapeHtml(productUrl) + '" class="material-card__btn material-card__btn--link" target="_blank" rel="noopener">\uC0C1\uD488 \uBCF4\uAE30</a>';
+            } else {
+                html += '<span class="material-card__btn material-card__btn--disabled">\uB9C1\uD06C \uC900\uBE44 \uC911</span>';
+            }
+
+            if (hasBrandUid) {
+                html += '<button type="button" class="material-card__btn material-card__btn--cart js-material-add" data-branduid="' + escapeHtml(item.branduid) + '" data-quantity="' + escapeHtml(String(item.quantity || 1)) + '">\uC7A5\uBC14\uAD6C\uB2C8 \uB2F4\uAE30</button>';
+            }
+
+            html += '</div></div></article>';
         }
+        html += '</div>';
+
         grid.innerHTML = html;
+        bindMaterialActions(items);
     }
 
     /**
@@ -2601,7 +2795,7 @@
         return score;
     }
 
-    function resolveGiftProductMeta(brandUid) {
+    function resolveShopProductMeta(brandUid) {
         return fetch('/shop/shopdetail.html?branduid=' + String(brandUid))
             .then(function(resp) {
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -2644,6 +2838,75 @@
                     productName: titleEl ? titleEl.textContent.trim() : (classData && classData.class_name ? classData.class_name : '\uD30C\uD2B8\uB108 \uD074\uB798\uC2A4'),
                     nativeGiftUrl: nativeGiftUrl
                 };
+            });
+    }
+
+    function resolveGiftProductMeta(brandUid) {
+        return resolveShopProductMeta(brandUid);
+    }
+
+    function submitBasketAdd(meta, quantity) {
+        var params = new URLSearchParams();
+        params.append('totalnum', '');
+        params.append('collbrandcode', '');
+        params.append('xcode', meta.xCode);
+        params.append('mcode', meta.mCode);
+        params.append('typep', meta.typep);
+        params.append('aramount', '');
+        params.append('arspcode', '');
+        params.append('arspcode2', '');
+        params.append('optionindex', '');
+        params.append('alluid', '');
+        params.append('alloptiontype', '');
+        params.append('aropts', '');
+        params.append('checktype', '');
+        params.append('ordertype', 'basket|parent.|layer');
+        params.append('brandcode', meta.brandCode);
+        params.append('branduid', meta.brandUid);
+        params.append('cart_free', meta.cartFree);
+        params.append('opt_type', meta.optType);
+        params.append('basket_use', meta.basketUse);
+        params.append('amount', String(quantity));
+        params.append('amount[]', String(quantity));
+        params.append('option[basic][0][0][opt_id]', '0');
+        params.append('option[basic][0][0][opt_value]', meta.productName);
+        params.append('option[basic][0][0][opt_stock]', '1');
+        params.append('option[basic][0][0][sto_id]', meta.stoId || '1');
+        params.append('option[basic][0][0][opt_type]', 'undefined');
+
+        return fetch('/shop/basket.action.html', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString(),
+            credentials: 'same-origin'
+        })
+            .then(function(resp) {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.text();
+            })
+            .then(function(text) {
+                var data = null;
+                try {
+                    data = JSON.parse(text);
+                } catch (err) {
+                    throw new Error('\uBA54\uC774\uD06C\uC0F5 \uC7A5\uBC14\uAD6C\uB2C8 \uC751\uB2F5 \uD30C\uC2F1 \uC2E4\uD328');
+                }
+
+                if (!data || data.status !== true) {
+                    throw new Error(data && data.message ? data.message : '\uBA54\uC774\uD06C\uC0F5 \uC7A5\uBC14\uAD6C\uB2C8 \uCC98\uB9AC \uC2E4\uD328');
+                }
+
+                return data;
+            });
+    }
+
+    function addKitProductToBasket(brandUid, quantity) {
+        return resolveShopProductMeta(brandUid)
+            .then(function(meta) {
+                if (!meta || !meta.brandCode) {
+                    throw new Error('meta not found');
+                }
+                return submitBasketAdd(meta, quantity);
             });
     }
 

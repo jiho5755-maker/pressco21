@@ -21,7 +21,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-16 Step 1: POST 본문 파싱 + 입력값 검증\n// 필수: member_id, title, category, type, difficulty, max_students, price, duration, description\n// 선택: schedule_desc, curriculum, image_url, materials, location, contact_instagram, contact_phone, contact_kakao\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\\\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\u0000-\b\u000b\f\u000e-\u001f]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\nfunction sanitizeUrl(url) {\n  if (!url) return '';\n  const trimmed = String(url).trim();\n  if (!trimmed) return '';\n  const lower = trimmed.toLowerCase();\n  if (lower.startsWith('http://') || lower.startsWith('https://')) {\n    return trimmed.substring(0, 2048);\n  }\n  if (!lower.includes('://') && !lower.includes(':')) {\n    return ('https://' + trimmed).substring(0, 2048);\n  }\n  return '';\n}\n\nfunction normalizeDifficulty(raw) {\n  const text = sanitizeText(raw, 30);\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.includes('입문') || text.includes('초급')) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.includes('중급')) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.includes('심화') || text.includes('고급')) return 'ADVANCED';\n  if (upper === 'ALL_LEVELS' || text.includes('전체')) return 'ALL_LEVELS';\n  return upper;\n}\n\nfunction difficultyLabel(code) {\n  return { BEGINNER: '입문', INTERMEDIATE: '중급', ADVANCED: '심화', ALL_LEVELS: '전체' }[code] || code;\n}\n\nfunction normalizeRegion(location, classType) {\n  const text = sanitizeText(location, 200);\n  const type = sanitizeText(classType, 50);\n  const upper = text.toUpperCase();\n  if (type.includes('온라인') || text.includes('온라인') || upper === 'ONLINE' || upper.includes('ONLINE')) return 'ONLINE';\n  if (!text) return '';\n  const primary = text.split(' ')[0];\n  const map = {\n    '서울': 'SEOUL','경기': 'GYEONGGI','경기도': 'GYEONGGI','인천': 'INCHEON','부산': 'BUSAN','대구': 'DAEGU','대전': 'DAEJEON','광주': 'GWANGJU','울산': 'ULSAN','세종': 'SEJONG','강원': 'GANGWON','강원도': 'GANGWON','충북': 'CHUNGBUK','충청북도': 'CHUNGBUK','충남': 'CHUNGNAM','충청남도': 'CHUNGNAM','전북': 'JEONBUK','전라북도': 'JEONBUK','전남': 'JEONNAM','전라남도': 'JEONNAM','경북': 'GYEONGBUK','경상북도': 'GYEONGBUK','경남': 'GYEONGNAM','경상남도': 'GYEONGNAM','제주': 'JEJU','제주도': 'JEJU'\n  };\n  return map[text] || map[primary] || upper;\n}\n\nconst memberId = sanitizeText(body.member_id, 100);\nconst title = sanitizeText(body.title, 100);\nconst category = sanitizeText(body.category, 50);\nconst type = sanitizeText(body.type, 50);\nconst difficulty = normalizeDifficulty(body.difficulty);\nconst maxStudents = parseInt(body.max_students, 10) || 0;\nconst price = parseInt(body.price, 10) || 0;\nconst duration = sanitizeText(body.duration, 50);\nconst description = sanitizeText(body.description, 2000);\nconst location = sanitizeText(body.location, 200);\nconst region = normalizeRegion(location, type);\n\nconst missingFields = [];\nif (!memberId) missingFields.push('member_id');\nif (!title) missingFields.push('title');\nif (!category) missingFields.push('category');\nif (!type) missingFields.push('type');\nif (!difficulty) missingFields.push('difficulty');\nif (!maxStudents || maxStudents < 1 || maxStudents > 50) missingFields.push('max_students (1~50)');\nif (!price || price < 1000) missingFields.push('price (min 1000)');\nif (!duration) missingFields.push('duration');\nif (!description) missingFields.push('description');\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'MISSING_PARAMS',\n          message: missingFields.join(', ') + ' 파라미터가 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst validCategories = ['압화', '레진', '캔들', '석고', '비즈', '기타'];\nconst validTypes = ['원데이', '정기', '온라인'];\nconst validDifficulties = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ALL_LEVELS'];\n\nif (!validCategories.includes(category)) {\n  return [{ json: { _valid: false, _errorResponse: { success: false, error: { code: 'INVALID_PARAMS', message: '유효하지 않은 카테고리입니다: ' + category }, timestamp: new Date().toISOString() } } }];\n}\nif (!validTypes.includes(type)) {\n  return [{ json: { _valid: false, _errorResponse: { success: false, error: { code: 'INVALID_PARAMS', message: '유효하지 않은 강의 형태입니다: ' + type }, timestamp: new Date().toISOString() } } }];\n}\nif (!validDifficulties.includes(difficulty)) {\n  return [{ json: { _valid: false, _errorResponse: { success: false, error: { code: 'INVALID_PARAMS', message: '유효하지 않은 난이도입니다: ' + difficulty }, timestamp: new Date().toISOString() } } }];\n}\n\nconst scheduleDesc = sanitizeText(body.schedule_desc, 1000);\nconst curriculum = sanitizeText(body.curriculum, 2000);\nconst imageUrl = sanitizeUrl(body.image_url);\nconst materials = sanitizeText(body.materials, 1000);\nconst contactInstagram = sanitizeUrl(body.contact_instagram);\nconst contactPhone = sanitizeText(body.contact_phone, 20);\nconst contactKakao = sanitizeUrl(body.contact_kakao);\n\nconst schedules = Array.isArray(body.schedules) ? body.schedules.filter((s) => s && s.schedule_date && s.schedule_time).slice(0, 20).map((s) => ({\n  schedule_date: sanitizeText(s.schedule_date, 10),\n  schedule_time: sanitizeText(s.schedule_time, 5),\n  capacity: Math.min(Math.max(parseInt(s.capacity, 10) || 6, 1), 50)\n})) : [];\n\nconst kitEnabled = body.kit_enabled ? 1 : 0;\nconst kitItems = Array.isArray(body.kit_items) ? body.kit_items.filter((k) => k && k.name).slice(0, 20).map((k) => ({\n  name: sanitizeText(k.name, 100),\n  product_code: sanitizeText(k.product_code, 50),\n  quantity: Math.min(Math.max(parseInt(k.quantity, 10) || 1, 1), 99)\n})) : [];\n\nreturn [{\n  json: {\n    _valid: true,\n    memberId,\n    title,\n    category,\n    type,\n    difficulty,\n    difficultyLabel: difficultyLabel(difficulty),\n    region,\n    maxStudents,\n    price,\n    duration,\n    description,\n    scheduleDesc,\n    curriculum,\n    imageUrl,\n    materials,\n    location,\n    contactInstagram,\n    contactPhone,\n    contactKakao,\n    schedules,\n    kitEnabled,\n    kitItems,\n    _safe: {\n      title: escapeHtml(title),\n      memberId: escapeHtml(memberId),\n      category: escapeHtml(category),\n      type: escapeHtml(type)\n    }\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-16 Step 1: POST 본문 파싱 + 입력값 검증\n// 필수: member_id, title, category, type, difficulty, max_students, price, duration, description\n// 선택: schedule_desc, curriculum, image_url, materials, location, contact_instagram, contact_phone, contact_kakao\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\nfunction escapeHtml(str) {\n  if (!str) return '';\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\\\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\\u0000-\\b\\u000b\\f\\u000e-\\u001f]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\nfunction sanitizeUrl(url) {\n  if (!url) return '';\n  const trimmed = String(url).trim();\n  if (!trimmed) return '';\n  const lower = trimmed.toLowerCase();\n  if (lower.startsWith('http://') || lower.startsWith('https://')) {\n    return trimmed.substring(0, 2048);\n  }\n  if (!lower.includes('://') && !lower.includes(':')) {\n    return ('https://' + trimmed).substring(0, 2048);\n  }\n  return '';\n}\n\nfunction extractBrandUid(raw) {\n  const text = String(raw || '').replace(/\\s+/g, '').trim();\n  const match = text.match(/[?&]branduid=([^&#]+)/i);\n  if (match && match[1]) return decodeURIComponent(match[1]);\n  if (/^[A-Za-z0-9_-]{4,64}$/.test(text)) return text;\n  return '';\n}\n\nfunction normalizeKitProductUrl(raw) {\n  const text = sanitizeText(raw, 2048);\n  if (!text) return '';\n  const brandUid = extractBrandUid(text);\n  if (brandUid) {\n    return '/shop/shopdetail.html?branduid=' + encodeURIComponent(brandUid);\n  }\n  const lower = text.toLowerCase();\n  if (lower.startsWith('http://') || lower.startsWith('https://') || text.indexOf('/shop/') === 0) {\n    return text.substring(0, 2048);\n  }\n  return '';\n}\n\nfunction normalizeDifficulty(raw) {\n  const text = sanitizeText(raw, 30);\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.includes('입문') || text.includes('초급')) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.includes('중급')) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.includes('심화') || text.includes('고급')) return 'ADVANCED';\n  if (upper === 'ALL_LEVELS' || text.includes('전체')) return 'ALL_LEVELS';\n  return upper;\n}\n\nfunction difficultyLabel(code) {\n  return { BEGINNER: '입문', INTERMEDIATE: '중급', ADVANCED: '심화', ALL_LEVELS: '전체' }[code] || code;\n}\n\nfunction normalizeRegion(location, classType) {\n  const text = sanitizeText(location, 200);\n  const type = sanitizeText(classType, 50);\n  const upper = text.toUpperCase();\n  if (type.includes('온라인') || text.includes('온라인') || upper === 'ONLINE' || upper.includes('ONLINE')) return 'ONLINE';\n  if (!text) return '';\n  const primary = text.split(' ')[0];\n  const map = {\n    '서울': 'SEOUL','경기': 'GYEONGGI','경기도': 'GYEONGGI','인천': 'INCHEON','부산': 'BUSAN','대구': 'DAEGU','대전': 'DAEJEON','광주': 'GWANGJU','울산': 'ULSAN','세종': 'SEJONG','강원': 'GANGWON','강원도': 'GANGWON','충북': 'CHUNGBUK','충청북도': 'CHUNGBUK','충남': 'CHUNGNAM','충청남도': 'CHUNGNAM','전북': 'JEONBUK','전라북도': 'JEONBUK','전남': 'JEONNAM','전라남도': 'JEONNAM','경북': 'GYEONGBUK','경상북도': 'GYEONGBUK','경남': 'GYEONGNAM','경상남도': 'GYEONGNAM','제주': 'JEJU','제주도': 'JEJU'\n  };\n  return map[text] || map[primary] || upper;\n}\n\nfunction buildInvalidResponse(code, message) {\n  return [{ json: { _valid: false, _errorResponse: { success: false, error: { code, message }, timestamp: new Date().toISOString() } } }];\n}\n\nconst memberId = sanitizeText(body.member_id, 100);\nconst title = sanitizeText(body.title, 100);\nconst category = sanitizeText(body.category, 50);\nconst type = sanitizeText(body.type, 50);\nconst difficulty = normalizeDifficulty(body.difficulty);\nconst maxStudents = parseInt(body.max_students, 10) || 0;\nconst price = parseInt(body.price, 10) || 0;\nconst duration = sanitizeText(body.duration, 50);\nconst description = sanitizeText(body.description, 2000);\nconst location = sanitizeText(body.location, 200);\nconst region = normalizeRegion(location, type);\n\nconst missingFields = [];\nif (!memberId) missingFields.push('member_id');\nif (!title) missingFields.push('title');\nif (!category) missingFields.push('category');\nif (!type) missingFields.push('type');\nif (!difficulty) missingFields.push('difficulty');\nif (!maxStudents || maxStudents < 1 || maxStudents > 50) missingFields.push('max_students (1~50)');\nif (!price || price < 1000) missingFields.push('price (min 1000)');\nif (!duration) missingFields.push('duration');\nif (!description) missingFields.push('description');\n\nif (missingFields.length > 0) {\n  return buildInvalidResponse('MISSING_PARAMS', missingFields.join(', ') + ' 파라미터가 필요합니다.');\n}\n\nconst validCategories = ['압화', '레진', '캔들', '석고', '비즈', '기타'];\nconst validTypes = ['원데이', '정기', '온라인'];\nconst validDifficulties = ['BEGINNER', 'INTERMEDIATE', 'ADVANCED', 'ALL_LEVELS'];\n\nif (!validCategories.includes(category)) {\n  return buildInvalidResponse('INVALID_PARAMS', '유효하지 않은 카테고리입니다: ' + category);\n}\nif (!validTypes.includes(type)) {\n  return buildInvalidResponse('INVALID_PARAMS', '유효하지 않은 강의 형태입니다: ' + type);\n}\nif (!validDifficulties.includes(difficulty)) {\n  return buildInvalidResponse('INVALID_PARAMS', '유효하지 않은 난이도입니다: ' + difficulty);\n}\n\nconst scheduleDesc = sanitizeText(body.schedule_desc, 1000);\nconst curriculum = sanitizeText(body.curriculum, 2000);\nconst imageUrl = sanitizeUrl(body.image_url);\nconst materials = sanitizeText(body.materials, 1000);\nconst contactInstagram = sanitizeUrl(body.contact_instagram);\nconst contactPhone = sanitizeText(body.contact_phone, 20);\nconst contactKakao = sanitizeUrl(body.contact_kakao);\n\nconst schedules = Array.isArray(body.schedules) ? body.schedules.filter((s) => s && s.schedule_date && s.schedule_time).slice(0, 20).map((s) => ({\n  schedule_date: sanitizeText(s.schedule_date, 10),\n  schedule_time: sanitizeText(s.schedule_time, 5),\n  capacity: Math.min(Math.max(parseInt(s.capacity, 10) || 6, 1), 50)\n})) : [];\n\nconst kitEnabled = Number(body.kit_enabled) === 1 ? 1 : 0;\nconst kitItems = Array.isArray(body.kit_items) ? body.kit_items.slice(0, 20).map((k) => ({\n  name: sanitizeText(k && k.name, 100),\n  product_url: normalizeKitProductUrl(k && (k.product_url || k.product_code || '')),\n  quantity: Math.min(Math.max(parseInt(k && k.quantity, 10) || 1, 1), 99),\n  price: Math.max(parseInt(k && k.price, 10) || 0, 0)\n})).filter((k) => k.name || k.product_url) : [];\n\nif (kitEnabled === 1) {\n  if (kitItems.length === 0) {\n    return buildInvalidResponse('INVALID_PARAMS', '재료키트 자동 배송을 사용하려면 최소 1개 이상의 키트 항목이 필요합니다.');\n  }\n  for (const item of kitItems) {\n    if (!item.name) {\n      return buildInvalidResponse('INVALID_PARAMS', '키트 항목명은 비워둘 수 없습니다.');\n    }\n    if (!item.product_url) {\n      return buildInvalidResponse('INVALID_PARAMS', '키트 항목에는 자사몰 상품 링크 또는 branduid가 필요합니다.');\n    }\n  }\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    memberId,\n    title,\n    category,\n    type,\n    difficulty,\n    difficultyLabel: difficultyLabel(difficulty),\n    region,\n    maxStudents,\n    price,\n    duration,\n    description,\n    scheduleDesc,\n    curriculum,\n    imageUrl,\n    materials,\n    location,\n    contactInstagram,\n    contactPhone,\n    contactKakao,\n    schedules,\n    kitEnabled,\n    kitItems,\n    _safe: {\n      title: escapeHtml(title),\n      memberId: escapeHtml(memberId),\n      category: escapeHtml(category),\n      type: escapeHtml(type)\n    }\n  }\n}];"
       },
       "id": "wf16-validate-input",
       "name": "Validate Input",
@@ -34,26 +34,41 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true
-          },
-          "conditions": [
+        "rules": {
+          "values": [
             {
-              "leftValue": "={{ $json._valid }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ String($json._valid) }}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "valid"
             }
           ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
         }
       },
       "id": "wf16-if-valid",
       "name": "IF Input Valid",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
       "position": [
         660,
         400
@@ -64,7 +79,7 @@
         "respondWith": "json",
         "responseBody": "={{ $json._errorResponse }}",
         "options": {
-          "responseCode": "400",
+          "responseCode": 400,
           "responseHeaders": {
             "entries": [
               {
@@ -139,26 +154,41 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true
-          },
-          "conditions": [
+        "rules": {
+          "values": [
             {
-              "leftValue": "={{ $json._isPartner }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ String($json._isPartner) }}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "partner"
             }
           ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
         }
       },
       "id": "wf16-if-is-partner",
       "name": "IF Is Active Partner",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
       "position": [
         1320,
         300
@@ -169,7 +199,7 @@
         "respondWith": "json",
         "responseBody": "={{ $json._errorResponse }}",
         "options": {
-          "responseCode": "403",
+          "responseCode": 403,
           "responseHeaders": {
             "entries": [
               {
@@ -237,7 +267,7 @@
             },
             {
               "name": "level",
-              "value": "={{ $json.difficulty }}"
+              "value": "={{ ({ BEGINNER: 'beginner', INTERMEDIATE: 'intermediate', ADVANCED: 'advanced', ALL_LEVELS: 'beginner' }[$json.difficulty] || String($json.difficulty || '').toLowerCase()) }}"
             },
             {
               "name": "max_students",
@@ -268,10 +298,6 @@
               "value": "={{ $json.location }}"
             },
             {
-              "name": "region",
-              "value": "={{ $json.region }}"
-            },
-            {
               "name": "contact_instagram",
               "value": "={{ $json.contactInstagram }}"
             },
@@ -293,7 +319,7 @@
             },
             {
               "name": "status",
-              "value": "PENDING_REVIEW"
+              "value": "INACTIVE"
             }
           ]
         },
@@ -329,26 +355,41 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true
-          },
-          "conditions": [
+        "rules": {
+          "values": [
             {
-              "leftValue": "={{ $json._success }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ String($json._success) }}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "created"
             }
           ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
         }
       },
       "id": "wf16-if-created",
       "name": "IF Created OK",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
       "position": [
         2200,
         200
@@ -392,7 +433,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-16 Step 5b: 성공 응답 구성\n// ===================================================\n\nconst data = $('Check Create Result').first().json;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      class_id: data._classId,\n      status: 'pending',\n      message: '강의 등록이 접수되었습니다. 관리자 검수 후 플랫폼에 노출됩니다.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-16 Step 5b: 성공 응답 구성\n// ===================================================\n\nconst data = $('Check Create Result').first().json;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      class_id: data._classId,\n      status: 'PENDING_REVIEW',\n      message: '강의 등록이 접수되었습니다. 관리자 검수 후 플랫폼에 노출됩니다.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf16-build-success-response",
       "name": "Build Success Response",
@@ -485,7 +526,7 @@
         "respondWith": "json",
         "responseBody": "={{ $json._errorResponse }}",
         "options": {
-          "responseCode": "500",
+          "responseCode": 500,
           "responseHeaders": {
             "entries": [
               {

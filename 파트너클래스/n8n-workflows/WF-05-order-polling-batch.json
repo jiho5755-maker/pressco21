@@ -6,7 +6,10 @@
       "parameters": {
         "rule": {
           "interval": [
-            { "field": "minutes", "minutesInterval": 10 }
+            {
+              "field": "minutes",
+              "minutesInterval": 10
+            }
           ]
         }
       },
@@ -14,13 +17,19 @@
       "name": "Schedule Poll Orders",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [220, 200]
+      "position": [
+        220,
+        200
+      ]
     },
     {
       "parameters": {
         "rule": {
           "interval": [
-            { "field": "cronExpression", "expression": "0 0 * * *" }
+            {
+              "field": "cronExpression",
+              "expression": "0 0 * * *"
+            }
           ]
         }
       },
@@ -28,13 +37,19 @@
       "name": "Schedule Reconciliation",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [220, 1200]
+      "position": [
+        220,
+        1200
+      ]
     },
     {
       "parameters": {
         "rule": {
           "interval": [
-            { "field": "cronExpression", "expression": "0 3 * * *" }
+            {
+              "field": "cronExpression",
+              "expression": "0 3 * * *"
+            }
           ]
         }
       },
@@ -42,13 +57,19 @@
       "name": "Schedule Product Sync",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [220, 2200]
+      "position": [
+        220,
+        2200
+      ]
     },
     {
       "parameters": {
         "rule": {
           "interval": [
-            { "field": "cronExpression", "expression": "0 4 * * *" }
+            {
+              "field": "cronExpression",
+              "expression": "0 4 * * *"
+            }
           ]
         }
       },
@@ -56,13 +77,19 @@
       "name": "Schedule Retry Failed",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [220, 3200]
+      "position": [
+        220,
+        3200
+      ]
     },
     {
       "parameters": {
         "rule": {
           "interval": [
-            { "field": "cronExpression", "expression": "0 5 * * *" }
+            {
+              "field": "cronExpression",
+              "expression": "0 5 * * *"
+            }
           ]
         }
       },
@@ -70,9 +97,11 @@
       "name": "Schedule D+3 Settlement",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [220, 4200]
+      "position": [
+        220,
+        4200
+      ]
     },
-
     {
       "parameters": {
         "method": "GET",
@@ -82,17 +111,30 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(setting_key,eq,last_poll_time)" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "(setting_key,eq,last_poll_time)"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-get-last-poll",
       "name": "Get Last Poll Time",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 200],
+      "position": [
+        460,
+        200
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -108,7 +150,10 @@
       "name": "Parse Poll Time",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 200]
+      "position": [
+        680,
+        200
+      ]
     },
     {
       "parameters": {
@@ -119,20 +164,42 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "mode", "value": "search" },
-            { "name": "type", "value": "order_list" },
-            { "name": "status", "value": "결제완료" },
-            { "name": "sdate", "value": "={{ $json.sdate }}" },
-            { "name": "edate", "value": "={{ $json.edate }}" }
+            {
+              "name": "mode",
+              "value": "search"
+            },
+            {
+              "name": "type",
+              "value": "order_list"
+            },
+            {
+              "name": "status",
+              "value": "결제완료"
+            },
+            {
+              "name": "sdate",
+              "value": "={{ $json.sdate }}"
+            },
+            {
+              "name": "edate",
+              "value": "={{ $json.edate }}"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-fetch-orders",
       "name": "Makeshop Search Orders",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 200],
+      "position": [
+        900,
+        200
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "makeshop-api",
@@ -149,18 +216,34 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(status,neq,closed)" },
-            { "name": "fields", "value": "class_id,makeshop_product_id,partner_code,class_name,location,price" },
-            { "name": "limit", "value": "1000" }
+            {
+              "name": "where",
+              "value": "(status,neq,closed)"
+            },
+            {
+              "name": "fields",
+              "value": "class_id,makeshop_product_id,partner_code,class_name,location,price"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-get-classes-map",
       "name": "NocoDB Get Classes Map",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [900, 400],
+      "position": [
+        900,
+        400
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -176,17 +259,25 @@
       "name": "Filter Class Orders",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1120, 200]
+      "position": [
+        1120,
+        200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json.classOrderCount }}",
               "rightValue": 0,
-              "operator": { "type": "number", "operation": "gt" }
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
             }
           ]
         }
@@ -195,7 +286,10 @@
       "name": "IF Orders Exist",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1340, 200]
+      "position": [
+        1340,
+        200
+      ]
     },
     {
       "parameters": {
@@ -205,7 +299,10 @@
       "name": "Build No Orders Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1560, 360]
+      "position": [
+        1560,
+        360
+      ]
     },
     {
       "parameters": {
@@ -215,7 +312,10 @@
       "name": "Split Orders",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1560, 100]
+      "position": [
+        1560,
+        100
+      ]
     },
     {
       "parameters": {
@@ -226,18 +326,34 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(order_id,eq,{{ $json.order_id }})" },
-            { "name": "fields", "value": "settlement_id" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(order_id,eq,{{ $json.order_id }})"
+            },
+            {
+              "name": "fields",
+              "value": "settlement_id"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-check-duplicate",
       "name": "Check Duplicate Order",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 100],
+      "position": [
+        1780,
+        100
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -253,17 +369,25 @@
       "name": "Check Dup Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 100]
+      "position": [
+        2000,
+        100
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._skip }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -272,7 +396,10 @@
       "name": "IF Not Duplicate",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2220, 100]
+      "position": [
+        2220,
+        100
+      ]
     },
     {
       "parameters": {
@@ -283,17 +410,30 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(partner_code,eq,{{ $json.classData.partner_code }})" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(partner_code,eq,{{ $json.classData.partner_code }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-get-partner",
       "name": "NocoDB Get Partner",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2440, 0],
+      "position": [
+        2440,
+        0
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -309,17 +449,25 @@
       "name": "Calc Commission",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2660, 0]
+      "position": [
+        2660,
+        0
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._error }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -328,7 +476,10 @@
       "name": "IF Calc OK",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2880, 0]
+      "position": [
+        2880,
+        0
+      ]
     },
     {
       "parameters": {
@@ -339,34 +490,98 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "settlement_id", "value": "={{ $json.settlement.settlement_id }}" },
-            { "name": "order_id", "value": "={{ $json.settlement.order_id }}" },
-            { "name": "class_id", "value": "={{ $json.settlement.class_id }}" },
-            { "name": "partner_code", "value": "={{ $json.settlement.partner_code }}" },
-            { "name": "member_id", "value": "={{ $json.settlement.member_id }}" },
-            { "name": "order_amount", "value": "={{ $json.settlement.order_amount }}" },
-            { "name": "commission_rate", "value": "={{ $json.settlement.commission_rate }}" },
-            { "name": "commission_amount", "value": "={{ $json.settlement.commission_amount }}" },
-            { "name": "reserve_rate", "value": "={{ $json.settlement.reserve_rate }}" },
-            { "name": "reserve_amount", "value": "={{ $json.settlement.reserve_amount }}" },
-            { "name": "class_date", "value": "={{ $json.settlement.class_date }}" },
-            { "name": "settlement_due_date", "value": "={{ $json.settlement.settlement_due_date }}" },
-            { "name": "student_count", "value": "={{ $json.settlement.student_count }}" },
-            { "name": "status", "value": "={{ $json.settlement.status }}" },
-            { "name": "student_name", "value": "={{ $json.settlement.student_name }}" },
-            { "name": "student_email", "value": "={{ $json.settlement.student_email }}" },
-            { "name": "student_phone", "value": "={{ $json.settlement.student_phone }}" },
-            { "name": "created_date", "value": "={{ $json.settlement.created_date }}" },
-            { "name": "retry_count", "value": "=0" }
+            {
+              "name": "settlement_id",
+              "value": "={{ $json.settlement.settlement_id }}"
+            },
+            {
+              "name": "order_id",
+              "value": "={{ $json.settlement.order_id }}"
+            },
+            {
+              "name": "class_id",
+              "value": "={{ $json.settlement.class_id }}"
+            },
+            {
+              "name": "partner_code",
+              "value": "={{ $json.settlement.partner_code }}"
+            },
+            {
+              "name": "member_id",
+              "value": "={{ $json.settlement.member_id }}"
+            },
+            {
+              "name": "order_amount",
+              "value": "={{ $json.settlement.order_amount }}"
+            },
+            {
+              "name": "commission_rate",
+              "value": "={{ $json.settlement.commission_rate }}"
+            },
+            {
+              "name": "commission_amount",
+              "value": "={{ $json.settlement.commission_amount }}"
+            },
+            {
+              "name": "reserve_rate",
+              "value": "={{ $json.settlement.reserve_rate }}"
+            },
+            {
+              "name": "reserve_amount",
+              "value": "={{ $json.settlement.reserve_amount }}"
+            },
+            {
+              "name": "class_date",
+              "value": "={{ $json.settlement.class_date }}"
+            },
+            {
+              "name": "settlement_due_date",
+              "value": "={{ $json.settlement.settlement_due_date }}"
+            },
+            {
+              "name": "student_count",
+              "value": "={{ $json.settlement.student_count }}"
+            },
+            {
+              "name": "status",
+              "value": "={{ $json.settlement.status }}"
+            },
+            {
+              "name": "student_name",
+              "value": "={{ $json.settlement.student_name }}"
+            },
+            {
+              "name": "student_email",
+              "value": "={{ $json.settlement.student_email }}"
+            },
+            {
+              "name": "student_phone",
+              "value": "={{ $json.settlement.student_phone }}"
+            },
+            {
+              "name": "created_date",
+              "value": "={{ $json.settlement.created_date }}"
+            },
+            {
+              "name": "retry_count",
+              "value": "=0"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-create-settlement",
       "name": "Create Settlement",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3100, -60],
+      "position": [
+        3100,
+        -60
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -383,17 +598,23 @@
       "name": "Update Booked Count",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3210, -60]
+      "position": [
+        3210,
+        -60
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-05 5a-6c: 재료키트 자동 배송 처리\n// kit_enabled=1인 클래스의 경우 텔레그램으로 키트 배송 알림\n// ===================================================\n\nconst https = require('https');\nconst settlement = $('Calc Commission').first().json.settlement;\nconst createResult = $('Create Settlement').first().json;\n\n// 정산 생성 실패 시 스킵\nif (!createResult.Id && !createResult.id) {\n  return [$input.first()];\n}\n\nconst classId = settlement.class_id;\n\nfunction nocoRequest(method, path, body) {\n  return new Promise((resolve, reject) => {\n    const options = {\n      hostname: 'nocodb.pressco21.com',\n      path: '/api/v1/db/data/noco/' + $env.NOCODB_PROJECT_ID + path,\n      method: method,\n      headers: {\n        'xc-token': $env.NOCODB_API_TOKEN,\n        'Content-Type': 'application/json'\n      }\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch(e) { resolve(data); }\n      });\n    });\n    req.on('error', reject);\n    if (body) req.write(JSON.stringify(body));\n    req.end();\n  });\n}\n\nfunction sendTelegram(message) {\n  return new Promise((resolve, reject) => {\n    const chatId = $env.TELEGRAM_CHAT_ID || '7713811206';\n    const postData = JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML' });\n    const options = {\n      hostname: 'api.telegram.org',\n      path: '/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage',\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => resolve(data));\n    });\n    req.on('error', reject);\n    req.write(postData);\n    req.end();\n  });\n}\n\ntry {\n  // tbl_Classes에서 kit_enabled 확인\n  const classResult = await nocoRequest('GET',\n    '/mpvsno4or6asbxk?where=(class_id,eq,' + encodeURIComponent(classId) + ')&fields=class_id,class_name,kit_enabled,kit_items&limit=1'\n  );\n  const classList = classResult.list || [];\n\n  if (classList.length > 0) {\n    const cls = classList[0];\n    const kitEnabled = Number(cls.kit_enabled) || 0;\n\n    if (kitEnabled === 1 && cls.kit_items) {\n      let kitItems = [];\n      try { kitItems = JSON.parse(cls.kit_items); } catch(e) {}\n\n      if (kitItems.length > 0) {\n        // 텔레그램 키트 배송 알림\n        let itemsList = '';\n        for (const item of kitItems) {\n          const qty = (item.quantity || 1) * (settlement.student_count || 1);\n          itemsList += '  - ' + item.name + (item.product_code ? ' (' + item.product_code + ')' : '') + ' x ' + qty + '\\n';\n        }\n\n        const msg = '📦 <b>재료키트 배송 요청</b>\\n\\n'\n          + '<b>클래스:</b> ' + (cls.class_name || classId) + '\\n'\n          + '<b>수강생:</b> ' + (settlement.student_name || '-') + '\\n'\n          + '<b>연락처:</b> ' + (settlement.student_phone || '-') + '\\n'\n          + '<b>수강일:</b> ' + (settlement.class_date || '-') + '\\n'\n          + '<b>인원:</b> ' + (settlement.student_count || 1) + '명\\n\\n'\n          + '<b>키트 구성:</b>\\n' + itemsList + '\\n'\n          + '주문번호: ' + (settlement.order_id || '-');\n\n        try {\n          await sendTelegram(msg);\n        } catch(e) {\n          // 텔레그램 실패해도 정산은 정상 처리\n        }\n      }\n    }\n  }\n} catch(e) {\n  // kit 처리 실패해도 정산은 이미 생성됨 - 로그만\n}\n\nreturn [$input.first()];"
+        "jsCode": "// ===================================================\n// WF-05 5a-6c: 재료키트 자동 배송 처리\n// kit_enabled=1인 클래스의 경우 텔레그램으로 키트 배송 알림\n// ===================================================\n\nconst https = require('https');\nconst settlement = $('Calc Commission').first().json.settlement;\nconst createResult = $('Create Settlement').first().json;\n\nif (!createResult.Id && !createResult.id) {\n  return [$input.first()];\n}\n\nconst classId = settlement.class_id;\n\nfunction nocoRequest(method, path, body) {\n  return new Promise((resolve, reject) => {\n    const options = {\n      hostname: 'nocodb.pressco21.com',\n      path: '/api/v1/db/data/noco/' + $env.NOCODB_PROJECT_ID + path,\n      method: method,\n      headers: {\n        'xc-token': $env.NOCODB_API_TOKEN,\n        'Content-Type': 'application/json'\n      }\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => {\n        try { resolve(JSON.parse(data)); } catch(e) { resolve(data); }\n      });\n    });\n    req.on('error', reject);\n    if (body) req.write(JSON.stringify(body));\n    req.end();\n  });\n}\n\nfunction sendTelegram(message) {\n  return new Promise((resolve, reject) => {\n    const chatId = $env.TELEGRAM_CHAT_ID || '7713811206';\n    const postData = JSON.stringify({ chat_id: chatId, text: message, parse_mode: 'HTML' });\n    const options = {\n      hostname: 'api.telegram.org',\n      path: '/bot' + $env.TELEGRAM_BOT_TOKEN + '/sendMessage',\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => resolve(data));\n    });\n    req.on('error', reject);\n    req.write(postData);\n    req.end();\n  });\n}\n\nfunction extractBrandUid(raw) {\n  const text = String(raw || '').replace(/\\s+/g, '').trim();\n  const match = text.match(/[?&]branduid=([^&#]+)/i);\n  if (match && match[1]) return decodeURIComponent(match[1]);\n  if (/^[A-Za-z0-9_-]{4,64}$/.test(text)) return text;\n  return '';\n}\n\nfunction normalizeKitProductUrl(raw) {\n  const text = String(raw || '').trim();\n  if (!text) return '';\n  const brandUid = extractBrandUid(text);\n  if (brandUid) {\n    return '/shop/shopdetail.html?branduid=' + encodeURIComponent(brandUid);\n  }\n  if (/^https?:\\/\\//i.test(text) || text.indexOf('/shop/') === 0) {\n    return text;\n  }\n  return '';\n}\n\ntry {\n  const classResult = await nocoRequest('GET', '/mpvsno4or6asbxk?where=(class_id,eq,' + encodeURIComponent(classId) + ')&fields=class_id,class_name,kit_enabled,kit_items&limit=1');\n  const classList = classResult.list || [];\n\n  if (classList.length > 0) {\n    const cls = classList[0];\n    const kitEnabled = Number(cls.kit_enabled) || 0;\n\n    if (kitEnabled === 1 && cls.kit_items) {\n      let kitItems = [];\n      try { kitItems = JSON.parse(cls.kit_items); } catch(e) {}\n\n      if (kitItems.length > 0) {\n        let itemsList = '';\n        for (const item of kitItems) {\n          const qty = (item.quantity || 1) * (settlement.student_count || 1);\n          const productUrl = normalizeKitProductUrl(item.product_url || item.product_code || '');\n          const price = Math.max(parseInt(item.price, 10) || 0, 0);\n          itemsList += '  - ' + (item.name || '재료') + ' x ' + qty;\n          if (price > 0) itemsList += ' / 예상가 ' + price.toLocaleString('ko-KR') + '원';\n          if (productUrl) itemsList += ' / ' + productUrl;\n          itemsList += '\\n';\n        }\n\n        const msg = '📦 <b>재료키트 배송 요청</b>\\n\\n'\n          + '<b>클래스:</b> ' + (cls.class_name || classId) + '\\n'\n          + '<b>수강생:</b> ' + (settlement.student_name || '-') + '\\n'\n          + '<b>연락처:</b> ' + (settlement.student_phone || '-') + '\\n'\n          + '<b>수강일:</b> ' + (settlement.class_date || '-') + '\\n'\n          + '<b>인원:</b> ' + (settlement.student_count || 1) + '명\\n\\n'\n          + '<b>키트 구성:</b>\\n' + itemsList + '\\n'\n          + '주문번호: ' + (settlement.order_id || '-');\n\n        try {\n          await sendTelegram(msg);\n        } catch(e) {\n          // 텔레그램 실패해도 정산은 정상 처리\n        }\n      }\n    }\n  }\n} catch(e) {\n  // kit 처리 실패해도 정산은 이미 생성됨 - 로그만\n}\n\nreturn [$input.first()];"
       },
       "id": "wf05-process-kit-order",
       "name": "Process Kit Order",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3330, -60],
+      "position": [
+        3330,
+        -60
+      ],
       "onError": "continueRegularOutput"
     },
     {
@@ -404,7 +625,10 @@
       "name": "Aggregate Poll Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3560, 200]
+      "position": [
+        3560,
+        200
+      ]
     },
     {
       "parameters": {
@@ -414,7 +638,10 @@
       "name": "Prepare Poll Log",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3540, 200]
+      "position": [
+        3540,
+        200
+      ]
     },
     {
       "parameters": {
@@ -425,11 +652,26 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "poll_time", "value": "={{ $json.pollLogRecord.poll_time }}" },
-            { "name": "orders_found", "value": "={{ $json.pollLogRecord.orders_found }}" },
-            { "name": "settlements_created", "value": "={{ $json.pollLogRecord.settlements_created }}" },
-            { "name": "errors", "value": "={{ $json.pollLogRecord.errors }}" },
-            { "name": "note", "value": "={{ $json.pollLogRecord.note }}" }
+            {
+              "name": "poll_time",
+              "value": "={{ $json.pollLogRecord.poll_time }}"
+            },
+            {
+              "name": "orders_found",
+              "value": "={{ $json.pollLogRecord.orders_found }}"
+            },
+            {
+              "name": "settlements_created",
+              "value": "={{ $json.pollLogRecord.settlements_created }}"
+            },
+            {
+              "name": "errors",
+              "value": "={{ $json.pollLogRecord.errors }}"
+            },
+            {
+              "name": "note",
+              "value": "={{ $json.pollLogRecord.note }}"
+            }
           ]
         },
         "options": {}
@@ -438,7 +680,10 @@
       "name": "Create Poll Log",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3760, 100],
+      "position": [
+        3760,
+        100
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -456,7 +701,10 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "setting_value", "value": "={{ $('Prepare Poll Log').item.json.nowKST }}" }
+            {
+              "name": "setting_value",
+              "value": "={{ $('Prepare Poll Log').item.json.nowKST }}"
+            }
           ]
         },
         "options": {}
@@ -465,7 +713,10 @@
       "name": "Update Poll Time",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [3760, 300],
+      "position": [
+        3760,
+        300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -477,12 +728,17 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $('Prepare Poll Log').item.json._hasMessage }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -491,7 +747,10 @@
       "name": "IF Poll Has Message",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [3980, 200]
+      "position": [
+        3980,
+        200
+      ]
     },
     {
       "parameters": {
@@ -504,7 +763,10 @@
       "name": "Telegram Poll Result",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [4200, 140],
+      "position": [
+        4200,
+        140
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -513,7 +775,6 @@
       },
       "onError": "continueRegularOutput"
     },
-
     {
       "parameters": {
         "method": "GET",
@@ -523,18 +784,34 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(status,eq,COMPLETED)~and(completed_date,gte,{{ $now.minus(1, 'day').toFormat('yyyy-MM-dd') }})" },
-            { "name": "fields", "value": "settlement_id,partner_code,reserve_amount,member_id" },
-            { "name": "limit", "value": "1000" }
+            {
+              "name": "where",
+              "value": "(status,eq,COMPLETED)~and(completed_date,gte,{{ $now.minus(1, 'day').toFormat('yyyy-MM-dd') }})"
+            },
+            {
+              "name": "fields",
+              "value": "settlement_id,partner_code,reserve_amount,member_id"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-reconcile-get-settlements",
       "name": "Get Completed Settlements",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 1200],
+      "position": [
+        460,
+        1200
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -551,18 +828,34 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(status,eq,active)" },
-            { "name": "fields", "value": "partner_code,member_id,partner_name" },
-            { "name": "limit", "value": "200" }
+            {
+              "name": "where",
+              "value": "(status,eq,active)"
+            },
+            {
+              "name": "fields",
+              "value": "partner_code,member_id,partner_name"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-reconcile-get-partners",
       "name": "Get Active Partners",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 1400],
+      "position": [
+        460,
+        1400
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -578,17 +871,25 @@
       "name": "Aggregate Partner Totals",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 1200]
+      "position": [
+        680,
+        1200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._noTargets }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -597,7 +898,10 @@
       "name": "IF Has Targets",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [900, 1200]
+      "position": [
+        900,
+        1200
+      ]
     },
     {
       "parameters": {
@@ -608,20 +912,42 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "mode", "value": "search" },
-            { "name": "type", "value": "user_reserve" },
-            { "name": "userid", "value": "={{ $json.member_id }}" },
-            { "name": "orderByType", "value": "desc" },
-            { "name": "limit", "value": "10" }
+            {
+              "name": "mode",
+              "value": "search"
+            },
+            {
+              "name": "type",
+              "value": "user_reserve"
+            },
+            {
+              "name": "userid",
+              "value": "={{ $json.member_id }}"
+            },
+            {
+              "name": "orderByType",
+              "value": "desc"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-reconcile-query-reserve",
       "name": "Query Makeshop Reserve",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 1100],
+      "position": [
+        1120,
+        1100
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "makeshop-api",
@@ -638,7 +964,10 @@
       "name": "Check Discrepancies",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 1200]
+      "position": [
+        1340,
+        1200
+      ]
     },
     {
       "parameters": {
@@ -651,7 +980,10 @@
       "name": "Telegram Reconcile",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1560, 1200],
+      "position": [
+        1560,
+        1200
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -660,7 +992,6 @@
       },
       "onError": "continueRegularOutput"
     },
-
     {
       "parameters": {
         "method": "GET",
@@ -670,17 +1001,30 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(setting_key,eq,class_category_id)" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "(setting_key,eq,class_category_id)"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-sync-get-category",
       "name": "Get Category ID",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 2200],
+      "position": [
+        460,
+        2200
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -696,17 +1040,25 @@
       "name": "Parse Category ID",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 2200]
+      "position": [
+        680,
+        2200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._hasCategoryId }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -715,7 +1067,10 @@
       "name": "IF Category Exists",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [900, 2200]
+      "position": [
+        900,
+        2200
+      ]
     },
     {
       "parameters": {
@@ -726,20 +1081,42 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "mode", "value": "search" },
-            { "name": "type", "value": "product_list" },
-            { "name": "cate", "value": "={{ $('Parse Category ID').first().json.categoryId }}" },
-            { "name": "pageSize", "value": "100" },
-            { "name": "pageNum", "value": "1" }
+            {
+              "name": "mode",
+              "value": "search"
+            },
+            {
+              "name": "type",
+              "value": "product_list"
+            },
+            {
+              "name": "cate",
+              "value": "={{ $('Parse Category ID').first().json.categoryId }}"
+            },
+            {
+              "name": "pageSize",
+              "value": "100"
+            },
+            {
+              "name": "pageNum",
+              "value": "1"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-sync-fetch-products",
       "name": "Fetch Makeshop Products",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 2100],
+      "position": [
+        1120,
+        2100
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "makeshop-api",
@@ -756,17 +1133,30 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "fields", "value": "Id,class_id,makeshop_product_id,class_name,price,status" },
-            { "name": "limit", "value": "1000" }
+            {
+              "name": "fields",
+              "value": "Id,class_id,makeshop_product_id,class_name,price,status"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-sync-get-existing",
       "name": "Get Existing Classes",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 2300],
+      "position": [
+        1120,
+        2300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -782,7 +1172,10 @@
       "name": "Compare Products",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 2200]
+      "position": [
+        1340,
+        2200
+      ]
     },
     {
       "parameters": {
@@ -792,7 +1185,10 @@
       "name": "Prepare Sync Changes",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1560, 2200]
+      "position": [
+        1560,
+        2200
+      ]
     },
     {
       "parameters": {
@@ -803,13 +1199,20 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.body) }}",
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-sync-apply",
       "name": "Apply Sync Changes",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 2200],
+      "position": [
+        1780,
+        2200
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -829,7 +1232,10 @@
       "name": "Telegram Sync Result",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [2000, 2200],
+      "position": [
+        2000,
+        2200
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -849,7 +1255,10 @@
       "name": "Telegram Sync Error",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1120, 2400],
+      "position": [
+        1120,
+        2400
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -858,7 +1267,6 @@
       },
       "onError": "continueRegularOutput"
     },
-
     {
       "parameters": {
         "method": "GET",
@@ -868,17 +1276,30 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "(status,eq,FAILED)~and(retry_count,lt,5)" },
-            { "name": "limit", "value": "100" }
+            {
+              "name": "where",
+              "value": "(status,eq,FAILED)~and(retry_count,lt,5)"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-retry-get-failed",
       "name": "Get Failed Settlements",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 3200],
+      "position": [
+        460,
+        3200
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -894,17 +1315,25 @@
       "name": "Parse Failed List",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 3200]
+      "position": [
+        680,
+        3200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._hasTargets }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -913,7 +1342,10 @@
       "name": "IF Has Retry Targets",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [900, 3200]
+      "position": [
+        900,
+        3200
+      ]
     },
     {
       "parameters": {
@@ -924,18 +1356,34 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(partner_code,eq,{{ $json.partner_code }})" },
-            { "name": "fields", "value": "member_id" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(partner_code,eq,{{ $json.partner_code }})"
+            },
+            {
+              "name": "fields",
+              "value": "member_id"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-retry-get-partner",
       "name": "Get Partner for Retry",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 3100],
+      "position": [
+        1120,
+        3100
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -951,17 +1399,25 @@
       "name": "Prepare Retry",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 3100]
+      "position": [
+        1340,
+        3100
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._action }}",
               "rightValue": "retry",
-              "operator": { "type": "string", "operation": "equals" }
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -970,7 +1426,10 @@
       "name": "IF Should Retry",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1560, 3100]
+      "position": [
+        1560,
+        3100
+      ]
     },
     {
       "parameters": {
@@ -982,18 +1441,34 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            { "name": "datas[0][id]", "value": "={{ $json.member_id }}" },
-            { "name": "datas[0][reserve]", "value": "={{ $json.reserve_amount }}" },
-            { "name": "datas[0][content]", "value": "=[PRESSCO21] 적립금 재처리 (재시도 {{ $json.retry_count + 1 }}회) - {{ $json.order_id }}" }
+            {
+              "name": "datas[0][id]",
+              "value": "={{ $json.member_id }}"
+            },
+            {
+              "name": "datas[0][reserve]",
+              "value": "={{ $json.reserve_amount }}"
+            },
+            {
+              "name": "datas[0][content]",
+              "value": "=[PRESSCO21] 적립금 재처리 (재시도 {{ $json.retry_count + 1 }}회) - {{ $json.order_id }}"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 2 } }
+        "options": {
+          "retry": {
+            "maxTries": 2
+          }
+        }
       },
       "id": "wf05-retry-process-reserve",
       "name": "Retry Process Reserve",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 3000],
+      "position": [
+        1780,
+        3000
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "makeshop-api",
@@ -1010,7 +1485,10 @@
       "name": "Check Retry Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 3000]
+      "position": [
+        2000,
+        3000
+      ]
     },
     {
       "parameters": {
@@ -1021,13 +1499,20 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.updateBody) }}",
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-retry-update-settlement",
       "name": "Update Retry Settlement",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2220, 3000],
+      "position": [
+        2220,
+        3000
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -1045,9 +1530,18 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "status", "value": "COMPLETED" },
-            { "name": "completed_date", "value": "={{ $now.toISO() }}" },
-            { "name": "error_message", "value": "적립금 0원 (재시도 시 자동 완료)" }
+            {
+              "name": "status",
+              "value": "COMPLETED"
+            },
+            {
+              "name": "completed_date",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "error_message",
+              "value": "적립금 0원 (재시도 시 자동 완료)"
+            }
           ]
         },
         "options": {}
@@ -1056,7 +1550,10 @@
       "name": "Auto Complete Zero",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 3300],
+      "position": [
+        1780,
+        3300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -1073,7 +1570,10 @@
       "name": "Aggregate Retry Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2440, 3200]
+      "position": [
+        2440,
+        3200
+      ]
     },
     {
       "parameters": {
@@ -1086,7 +1586,10 @@
       "name": "Telegram Retry Result",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [2660, 3200],
+      "position": [
+        2660,
+        3200
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -1095,7 +1598,6 @@
       },
       "onError": "continueRegularOutput"
     },
-
     {
       "parameters": {
         "method": "GET",
@@ -1105,17 +1607,30 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(status,eq,PENDING_SETTLEMENT)~and(settlement_due_date,lte,{{ $now.toFormat('yyyy-MM-dd') }})" },
-            { "name": "limit", "value": "100" }
+            {
+              "name": "where",
+              "value": "=(status,eq,PENDING_SETTLEMENT)~and(settlement_due_date,lte,{{ $now.toFormat('yyyy-MM-dd') }})"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-settle-get-due",
       "name": "Get Due Settlements",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [460, 4200],
+      "position": [
+        460,
+        4200
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -1131,17 +1646,25 @@
       "name": "Parse Due Settlements",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [680, 4200]
+      "position": [
+        680,
+        4200
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._hasTargets }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -1150,7 +1673,10 @@
       "name": "IF Has Settle Targets",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [900, 4200]
+      "position": [
+        900,
+        4200
+      ]
     },
     {
       "parameters": {
@@ -1161,18 +1687,34 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(partner_code,eq,{{ $json.partner_code }})" },
-            { "name": "fields", "value": "member_id,partner_name" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(partner_code,eq,{{ $json.partner_code }})"
+            },
+            {
+              "name": "fields",
+              "value": "member_id,partner_name"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-settle-get-partner",
       "name": "Get Partner for Settle",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1120, 4100],
+      "position": [
+        1120,
+        4100
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -1188,17 +1730,25 @@
       "name": "Prepare Settlement",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1340, 4100]
+      "position": [
+        1340,
+        4100
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._action }}",
               "rightValue": "process",
-              "operator": { "type": "string", "operation": "equals" }
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -1207,7 +1757,10 @@
       "name": "IF Should Process",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1560, 4100]
+      "position": [
+        1560,
+        4100
+      ]
     },
     {
       "parameters": {
@@ -1219,18 +1772,34 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            { "name": "datas[0][id]", "value": "={{ $json.member_id }}" },
-            { "name": "datas[0][reserve]", "value": "={{ $json.reserve_amount }}" },
-            { "name": "datas[0][content]", "value": "=[PRESSCO21] D+3 정산 적립금 지급 - {{ $json.order_id }}" }
+            {
+              "name": "datas[0][id]",
+              "value": "={{ $json.member_id }}"
+            },
+            {
+              "name": "datas[0][reserve]",
+              "value": "={{ $json.reserve_amount }}"
+            },
+            {
+              "name": "datas[0][content]",
+              "value": "=[PRESSCO21] D+3 정산 적립금 지급 - {{ $json.order_id }}"
+            }
           ]
         },
-        "options": { "retry": { "maxTries": 2 } }
+        "options": {
+          "retry": {
+            "maxTries": 2
+          }
+        }
       },
       "id": "wf05-settle-process-reserve",
       "name": "D+3 Process Reserve",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 4000],
+      "position": [
+        1780,
+        4000
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "makeshop-api",
@@ -1247,7 +1816,10 @@
       "name": "Check Settle Result",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2000, 4000]
+      "position": [
+        2000,
+        4000
+      ]
     },
     {
       "parameters": {
@@ -1258,13 +1830,20 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.updateBody) }}",
-        "options": { "retry": { "maxTries": 3 } }
+        "options": {
+          "retry": {
+            "maxTries": 3
+          }
+        }
       },
       "id": "wf05-settle-update",
       "name": "Update Settlement Status",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2220, 4000],
+      "position": [
+        2220,
+        4000
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -1282,9 +1861,18 @@
         "sendBody": true,
         "bodyParameters": {
           "parameters": [
-            { "name": "status", "value": "COMPLETED" },
-            { "name": "completed_date", "value": "={{ $now.toISO() }}" },
-            { "name": "error_message", "value": "적립금 0원 (D+3 자동 완료)" }
+            {
+              "name": "status",
+              "value": "COMPLETED"
+            },
+            {
+              "name": "completed_date",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "error_message",
+              "value": "적립금 0원 (D+3 자동 완료)"
+            }
           ]
         },
         "options": {}
@@ -1293,7 +1881,10 @@
       "name": "Auto Complete D3 Zero",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1780, 4300],
+      "position": [
+        1780,
+        4300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -1310,7 +1901,10 @@
       "name": "Aggregate Settle Results",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2440, 4200]
+      "position": [
+        2440,
+        4200
+      ]
     },
     {
       "parameters": {
@@ -1323,7 +1917,10 @@
       "name": "Telegram Settle Result",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [2660, 4200],
+      "position": [
+        2660,
+        4200
+      ],
       "credentials": {
         "telegramApi": {
           "id": "eS5YwFGpbJht6uCB",
@@ -1336,334 +1933,750 @@
   "connections": {
     "Schedule Poll Orders": {
       "main": [
-        [{ "node": "Get Last Poll Time", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get Last Poll Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get Last Poll Time": {
       "main": [
-        [{ "node": "Parse Poll Time", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Parse Poll Time",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Parse Poll Time": {
       "main": [
         [
-          { "node": "Makeshop Search Orders", "type": "main", "index": 0 },
-          { "node": "NocoDB Get Classes Map", "type": "main", "index": 0 }
+          {
+            "node": "Makeshop Search Orders",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "NocoDB Get Classes Map",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Makeshop Search Orders": {
       "main": [
-        [{ "node": "Filter Class Orders", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Filter Class Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "NocoDB Get Classes Map": {
       "main": [
-        [{ "node": "Filter Class Orders", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Filter Class Orders",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Filter Class Orders": {
       "main": [
-        [{ "node": "IF Orders Exist", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "IF Orders Exist",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "IF Orders Exist": {
       "main": [
-        [{ "node": "Split Orders", "type": "main", "index": 0 }],
-        [{ "node": "Build No Orders Log", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Split Orders",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build No Orders Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Build No Orders Log": {
       "main": [
-        [{ "node": "Prepare Poll Log", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Prepare Poll Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Split Orders": {
       "main": [
-        [{ "node": "Check Duplicate Order", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Check Duplicate Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Check Duplicate Order": {
       "main": [
-        [{ "node": "Check Dup Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Check Dup Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Check Dup Result": {
       "main": [
-        [{ "node": "IF Not Duplicate", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "IF Not Duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "IF Not Duplicate": {
       "main": [
-        [{ "node": "NocoDB Get Partner", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "NocoDB Get Partner",
+            "type": "main",
+            "index": 0
+          }
+        ],
         []
       ]
     },
     "NocoDB Get Partner": {
       "main": [
-        [{ "node": "Calc Commission", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Calc Commission",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Calc Commission": {
       "main": [
-        [{ "node": "IF Calc OK", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "IF Calc OK",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "IF Calc OK": {
       "main": [
-        [{ "node": "Create Settlement", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "Create Settlement",
+            "type": "main",
+            "index": 0
+          }
+        ],
         []
       ]
     },
     "Create Settlement": {
       "main": [
-        [{ "node": "Update Booked Count", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Booked Count",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Update Booked Count": {
       "main": [
-        [{ "node": "Process Kit Order", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Process Kit Order",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Process Kit Order": {
       "main": [
-        [{ "node": "Aggregate Poll Results", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Aggregate Poll Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Aggregate Poll Results": {
       "main": [
-        [{ "node": "Prepare Poll Log", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Prepare Poll Log",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prepare Poll Log": {
       "main": [
         [
-          { "node": "Create Poll Log", "type": "main", "index": 0 },
-          { "node": "Update Poll Time", "type": "main", "index": 0 },
-          { "node": "IF Poll Has Message", "type": "main", "index": 0 }
+          {
+            "node": "Create Poll Log",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Update Poll Time",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "IF Poll Has Message",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Poll Has Message": {
       "main": [
-        [{ "node": "Telegram Poll Result", "type": "main", "index": 0 }],
+        [
+          {
+            "node": "Telegram Poll Result",
+            "type": "main",
+            "index": 0
+          }
+        ],
         []
       ]
     },
-
     "Schedule Reconciliation": {
       "main": [
         [
-          { "node": "Get Completed Settlements", "type": "main", "index": 0 },
-          { "node": "Get Active Partners", "type": "main", "index": 0 }
+          {
+            "node": "Get Completed Settlements",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Active Partners",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Get Completed Settlements": {
       "main": [
-        [{ "node": "Aggregate Partner Totals", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Aggregate Partner Totals",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get Active Partners": {
       "main": [
-        [{ "node": "Aggregate Partner Totals", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Aggregate Partner Totals",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Aggregate Partner Totals": {
       "main": [
-        [{ "node": "IF Has Targets", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "IF Has Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "IF Has Targets": {
       "main": [
-        [{ "node": "Query Makeshop Reserve", "type": "main", "index": 0 }],
-        [{ "node": "Telegram Reconcile", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Query Makeshop Reserve",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram Reconcile",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Query Makeshop Reserve": {
       "main": [
-        [{ "node": "Check Discrepancies", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Check Discrepancies",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Check Discrepancies": {
       "main": [
-        [{ "node": "Telegram Reconcile", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Telegram Reconcile",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-
     "Schedule Product Sync": {
       "main": [
-        [{ "node": "Get Category ID", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get Category ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get Category ID": {
       "main": [
-        [{ "node": "Parse Category ID", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Parse Category ID",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Parse Category ID": {
       "main": [
-        [{ "node": "IF Category Exists", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "IF Category Exists",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "IF Category Exists": {
       "main": [
         [
-          { "node": "Fetch Makeshop Products", "type": "main", "index": 0 },
-          { "node": "Get Existing Classes", "type": "main", "index": 0 }
+          {
+            "node": "Fetch Makeshop Products",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Get Existing Classes",
+            "type": "main",
+            "index": 0
+          }
         ],
-        [{ "node": "Telegram Sync Error", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Telegram Sync Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Fetch Makeshop Products": {
       "main": [
-        [{ "node": "Compare Products", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Compare Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get Existing Classes": {
       "main": [
-        [{ "node": "Compare Products", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Compare Products",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Compare Products": {
       "main": [
-        [{ "node": "Prepare Sync Changes", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Prepare Sync Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prepare Sync Changes": {
       "main": [
-        [{ "node": "Apply Sync Changes", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Apply Sync Changes",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Apply Sync Changes": {
       "main": [
-        [{ "node": "Telegram Sync Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Telegram Sync Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-
     "Schedule Retry Failed": {
       "main": [
-        [{ "node": "Get Failed Settlements", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get Failed Settlements",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get Failed Settlements": {
       "main": [
-        [{ "node": "Parse Failed List", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Parse Failed List",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Parse Failed List": {
       "main": [
-        [{ "node": "IF Has Retry Targets", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "IF Has Retry Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "IF Has Retry Targets": {
       "main": [
-        [{ "node": "Get Partner for Retry", "type": "main", "index": 0 }],
-        [{ "node": "Telegram Retry Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get Partner for Retry",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram Retry Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get Partner for Retry": {
       "main": [
-        [{ "node": "Prepare Retry", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Prepare Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prepare Retry": {
       "main": [
-        [{ "node": "IF Should Retry", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "IF Should Retry",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "IF Should Retry": {
       "main": [
-        [{ "node": "Retry Process Reserve", "type": "main", "index": 0 }],
-        [{ "node": "Auto Complete Zero", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Retry Process Reserve",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auto Complete Zero",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Retry Process Reserve": {
       "main": [
-        [{ "node": "Check Retry Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Check Retry Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Check Retry Result": {
       "main": [
-        [{ "node": "Update Retry Settlement", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Retry Settlement",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Update Retry Settlement": {
       "main": [
-        [{ "node": "Aggregate Retry Results", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Aggregate Retry Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Auto Complete Zero": {
       "main": [
-        [{ "node": "Aggregate Retry Results", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Aggregate Retry Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Aggregate Retry Results": {
       "main": [
-        [{ "node": "Telegram Retry Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Telegram Retry Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-
     "Schedule D+3 Settlement": {
       "main": [
-        [{ "node": "Get Due Settlements", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get Due Settlements",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get Due Settlements": {
       "main": [
-        [{ "node": "Parse Due Settlements", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Parse Due Settlements",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Parse Due Settlements": {
       "main": [
-        [{ "node": "IF Has Settle Targets", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "IF Has Settle Targets",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "IF Has Settle Targets": {
       "main": [
-        [{ "node": "Get Partner for Settle", "type": "main", "index": 0 }],
-        [{ "node": "Telegram Settle Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Get Partner for Settle",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram Settle Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Get Partner for Settle": {
       "main": [
-        [{ "node": "Prepare Settlement", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Prepare Settlement",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Prepare Settlement": {
       "main": [
-        [{ "node": "IF Should Process", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "IF Should Process",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "IF Should Process": {
       "main": [
-        [{ "node": "D+3 Process Reserve", "type": "main", "index": 0 }],
-        [{ "node": "Auto Complete D3 Zero", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "D+3 Process Reserve",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Auto Complete D3 Zero",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "D+3 Process Reserve": {
       "main": [
-        [{ "node": "Check Settle Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Check Settle Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Check Settle Result": {
       "main": [
-        [{ "node": "Update Settlement Status", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Update Settlement Status",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Update Settlement Status": {
       "main": [
-        [{ "node": "Aggregate Settle Results", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Aggregate Settle Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Auto Complete D3 Zero": {
       "main": [
-        [{ "node": "Aggregate Settle Results", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Aggregate Settle Results",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
     "Aggregate Settle Results": {
       "main": [
-        [{ "node": "Telegram Settle Result", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Telegram Settle Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     }
   },
@@ -1673,11 +2686,21 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "PRESSCO21" },
-    { "name": "Order Polling" },
-    { "name": "Batch Jobs" },
-    { "name": "Phase 2" },
-    { "name": "Settlement" }
+    {
+      "name": "PRESSCO21"
+    },
+    {
+      "name": "Order Polling"
+    },
+    {
+      "name": "Batch Jobs"
+    },
+    {
+      "name": "Phase 2"
+    },
+    {
+      "name": "Settlement"
+    }
   ],
   "pinData": {}
 }

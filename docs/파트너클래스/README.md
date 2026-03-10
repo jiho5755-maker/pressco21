@@ -50,6 +50,8 @@
 - `affiliation-db-guide.md`
 - `WF-01-switch-map.md`
   - WF-01 공개 API의 action 분기, 입력 파라미터, 응답 구조, 호출 페이지 정리
+- `kit-link-integration-guide.md`
+  - S1-1 기준 키트 JSON 구조, 화면 반영 범위, WF-01/05/16/20 연동 방식, 라이브 DB 제약 정리
 
 ### QA / 검증
 

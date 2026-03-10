@@ -167,6 +167,17 @@ docker logs n8n --tail=30
 
 ## 7. 자동 백업 스케줄 설정 (crontab)
 
+저장소 기준 스크립트:
+
+- `scripts/server/nocodb-daily-backup.sh`
+- `scripts/server/install-nocodb-backup-cron.sh`
+
+로컬 저장소에서 서버에 재설치할 때:
+
+```bash
+bash scripts/server/install-nocodb-backup-cron.sh
+```
+
 서버에서 다음 명령으로 crontab을 확인하거나 설정합니다:
 
 ```bash
@@ -183,30 +194,35 @@ crontab 내용 (매일 새벽 3시, 7일 롤링):
 0 3 * * * /home/ubuntu/scripts/backup.sh >> /home/ubuntu/backups/backup.log 2>&1
 
 # 오래된 백업 삭제 - 매일 새벽 3시 30분 (7일 이상)
-30 3 * * * find /home/ubuntu/backups -maxdepth 1 -type d -mtime +7 -exec rm -rf {} \;
+30 3 * * * find /home/ubuntu/backups -maxdepth 1 -type d -name '20??????_??????' -mtime +7 -exec rm -rf {} \; 2>/dev/null
 ```
 
-### 백업 스크립트 예시 (`/home/ubuntu/scripts/backup.sh`)
+### 현재 운영 스크립트 개요 (`/home/ubuntu/scripts/backup.sh`)
 
 ```bash
-#!/bin/bash
-TIMESTAMP=$(date +%Y%m%d_%H%M%S)
-BACKUP_DIR="/home/ubuntu/backups/${TIMESTAMP}"
-mkdir -p "${BACKUP_DIR}"
+set -Eeuo pipefail
 
-# NocoDB 백업
-cp /home/ubuntu/nocodb/nocodb_data/noco.db \
-   "${BACKUP_DIR}/noco_${TIMESTAMP}.db"
+# 1. /home/ubuntu/backups/YYYYMMDD_HHMMSS/ 디렉토리 생성
+# 2. NocoDB DB 파일(noco.db) + nocodb_data tar.gz 백업
+# 3. docker-compose 3종 + n8n .env 백업
+# 4. manifest 파일 생성
+# 5. 매월 1일 monthly 아카이브 복사
+# 6. 7일 초과 일일 백업 폴더 정리
+# 7. 실패 시 telegram-notify.sh + /webhook/backup-notify 호출
+```
 
-# docker-compose 백업
-cp /home/ubuntu/docker-compose.yml \
-   "${BACKUP_DIR}/docker-compose_${TIMESTAMP}.bak"
+### 실패 알림 테스트
 
-# n8n 환경변수 백업
-cp /home/ubuntu/n8n/.env \
-   "${BACKUP_DIR}/n8n_env_${TIMESTAMP}.bak"
+```bash
+ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201 \
+  'PRESSCO21_BACKUP_FORCE_FAIL=1 bash /home/ubuntu/scripts/backup.sh'
+```
 
-echo "[${TIMESTAMP}] 백업 완료: ${BACKUP_DIR}"
+### 수동 백업 테스트
+
+```bash
+ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201 \
+  'bash /home/ubuntu/scripts/backup.sh'
 ```
 
 ---

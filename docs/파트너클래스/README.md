@@ -31,6 +31,8 @@
 - `PRD-파트너클래스-플랫폼-고도화.md`
 - `협회-제휴-제안서.md`
 - `brand-strategy-comprehensive.md`
+- `phase3-non-technical-test-guide.md`
+  - 비전공자 기준으로 Phase 3 방향과 테스트 포인트를 이해하는 설명서
 
 ### 운영 / 구현 가이드
 

@@ -51,16 +51,43 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-10 22:00:00 KST
+- Started At: 2026-03-10 22:50:00 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: —
 
 ## Files In Progress
 
-- 없음 (Codex가 작업 시작 시 갱신할 것)
+- 없음
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### [CODEX-LEAD] Phase 3 비전공자 테스트 가이드 추가 (CODEX)
+- `docs/파트너클래스/phase3-non-technical-test-guide.md`
+  - Phase 3 전체 방향을 비전공자도 이해할 수 있도록 `수강생 / 파트너 / 협회` 3개 관점으로 다시 설명.
+  - Phase 3-0 ~ 3-3을 기술 용어 대신 "무엇이 바뀌는지 / 왜 중요한지 / 화면에서 뭘 봐야 하는지 / 합격과 불합격 신호" 중심으로 정리.
+  - 향후 테스트 시 `상세 신뢰감`, `목록 탐색감`, `재구매 흐름`, `파트너 온보딩/대시보드`, `협회/세미나`, `협회원 혜택`을 어떻게 봐야 하는지 체크포인트를 문서화.
+- `docs/파트너클래스/README.md`
+  - 현재 유지 문서 목록에 비전공자용 테스트 가이드를 추가해 문서 진입점에서 바로 찾을 수 있게 정리.
+
+### [CODEX-LEAD] Phase 3 S0-1 NocoDB 일일 자동 백업 구축 완료 (CODEX)
+- `scripts/server/nocodb-daily-backup.sh`
+  - NocoDB DB 파일 + `nocodb_data` 볼륨 tar.gz + compose 파일 + `n8n/.env`를 일일 백업하도록 저장소 기준 스크립트를 추가.
+  - 7일 롤링 삭제, 월간 아카이브, 실패 시 `telegram-notify.sh`와 `backup-notify` webhook 호출, `PRESSCO21_BACKUP_FORCE_FAIL=1` 테스트 플래그를 포함.
+- `scripts/server/install-nocodb-backup-cron.sh`
+  - 로컬 저장소에서 서버 `/home/ubuntu/scripts/backup.sh`로 반영하고 crontab을 재설치하는 스크립트를 추가.
+- 서버 반영
+  - `/home/ubuntu/scripts/backup.sh` 재설치
+  - crontab 백업/정리 라인을 `20??????_??????` 패턴 기준으로 재설치
+- 검증
+  - 수동 백업 실행: `/home/ubuntu/backups/20260310_101318` 생성 확인
+  - 생성 파일: `noco_*.db`, `nocodb_data_*.tar.gz`, compose 3종, `n8n_env_*.bak`, manifest
+  - 7일 정리 검증: 더미 디렉토리 `20260228_000000` 생성 후 cleanup 명령으로 삭제 확인
+  - 실패 알림 검증: `PRESSCO21_BACKUP_FORCE_FAIL=1 bash /home/ubuntu/scripts/backup.sh` 실행 시 `WF-BACKUP Backup Notify` 실행 로그 확인
+- `docs/파트너클래스/backup-restore-guide.md`
+  - 저장소 기준 스크립트 경로, 재설치 명령, 수동/실패 테스트 방법을 반영.
+- `ROADMAP.md`
+  - Task `S0-1`을 `✅ 완료`로 갱신하고 검증 결과를 변경 이력에 기록.
 
 ### 파트너클래스 공용 메모리 및 문서 정리 (CODEX)
 - `.claude/agent-memory/class-platform-architect/MEMORY.md`
@@ -854,6 +881,11 @@
 3. `docs/파트너클래스/shared-service-identity.md` — 서비스 정체성 (판단 기준)
 4. `docs/파트너클래스/enterprise-elevation-strategy-2026-03-10.md` — 상세 전략
 5. `docs/파트너클래스/README.md` — 문서 인덱스 및 우선순위
+
+#### 현재 다음 태스크
+
+- `S0-2 상태값 정규화 (6개 도메인 일괄)` 착수
+- 그 다음 `S0-3 WF-ADMIN 중복 ID 정리`, `S0-4 WF-01 Switch 케이스 문서화`
 
 #### 실행 순서
 

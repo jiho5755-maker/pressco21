@@ -49,19 +49,23 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
+- Current Owner: IDLE
+- Mode: —
 - Started At: 2026-03-10 13:41:35 KST
 - Branch: main
-- Working Scope: 파트너클래스 handoff 문서화 및 재시작용 메모리 백업
-- Active Subdirectory: docs, 파트너클래스
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
 
-- AI_SYNC.md
-- docs/파트너클래스/partnerclass-handoff-2026-03-10.md
+- 없음
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### 파트너클래스 handoff 백업
+- 재시작용 handoff 문서를 [docs/파트너클래스/partnerclass-handoff-2026-03-10.md](/Users/jangjiho/workspace/pressco21/docs/파트너클래스/partnerclass-handoff-2026-03-10.md)에 추가.
+- 전역 Codex 메모리에도 `pressco21-partnerclass-handoff-2026-03-10.md`로 핵심 요약을 백업.
+- 다음 세션에서는 `AI_SYNC.md`와 handoff 문서만 읽어도 `메이크샵 저장 확인 -> 라이브 재검증 -> Atlas 연결 검토` 순서로 바로 이어갈 수 있게 정리.
 
 ### 파트너클래스 UX 긴급 수정
 - 라이브 재현
@@ -736,6 +740,7 @@
 ## Next Step
 
 ### Codex CLI 위임 태스크
+- [CODEX] handoff 문서 기준으로 메이크샵 저장 여부부터 재확인하고, 저장 완료 시 라이브 회귀를 즉시 재개
 - [CODEX] CRM 중복 고객 레코드 통합 정책 정리 (예: `서상견 님` / `서상견 님 (단양)`)
 - [CODEX] 레거시 고객리스트 충돌 506건을 덮어쓰기 없이 보관/표시하는 정책 설계
 - [CODEX] `outstanding_balance`의 레거시 baseline + CRM 미수 합산 정책 최종 검증

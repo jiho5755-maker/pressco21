@@ -199,9 +199,8 @@ export function Invoices() {
     let missingPhone = 0
     for (const invoice of filteredInvoices) {
       const linkedCustomer = typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined
-      const resolvedAddress = linkedCustomer
-        ? getCustomerAddressByKey(linkedCustomer, invoice.customer_address_key as string | undefined) || invoice.customer_address || ''
-        : invoice.customer_address || ''
+      const resolvedAddress = (invoice.customer_address || '').trim()
+        || (linkedCustomer ? getCustomerAddressByKey(linkedCustomer, invoice.customer_address_key as string | undefined) : '')
       const resolvedPhone = getCustomerPrimaryPhone(linkedCustomer) || invoice.customer_phone || ''
       const hasAddress = Boolean(resolvedAddress.trim())
       const hasPhone = Boolean(resolvedPhone.trim())
@@ -322,9 +321,8 @@ export function Invoices() {
       const rows = await Promise.all(filteredInvoices.map(async (invoice) => {
         const linkedCustomer = typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined
         const receiverPhone = getCustomerPrimaryPhone(linkedCustomer) || invoice.customer_phone || ''
-        const receiverAddress = linkedCustomer
-          ? getCustomerAddressByKey(linkedCustomer, invoice.customer_address_key as string | undefined) || invoice.customer_address || ''
-          : invoice.customer_address || ''
+        const receiverAddress = (invoice.customer_address || '').trim()
+          || (linkedCustomer ? getCustomerAddressByKey(linkedCustomer, invoice.customer_address_key as string | undefined) : '')
         return {
           receiverName: invoice.customer_name ?? '',
           receiverPhone,

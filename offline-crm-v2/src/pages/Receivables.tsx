@@ -116,6 +116,7 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
         payment_method: method,
       })
       qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({ queryKey: ['receivable-link-customers'] })
       qc.invalidateQueries({ queryKey: ['invoices'] })
       // 해당 명세표 개별 캐시 무효화 (InvoiceDialog에서 다시 열 때 갱신 반영)
       qc.invalidateQueries({ queryKey: ['invoice', invoice!.Id] })
@@ -269,6 +270,7 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
       qc.invalidateQueries({ queryKey: ['customers'] })
       qc.invalidateQueries({ queryKey: ['customer', legacyTarget.customer.Id] })
       qc.invalidateQueries({ queryKey: ['receivables'] })
+      qc.invalidateQueries({ queryKey: ['receivable-link-customers'] })
       qc.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(legacyTarget.customer.Id)] })
       qc.invalidateQueries({ queryKey: ['dash-receivables'] })
       qc.invalidateQueries({

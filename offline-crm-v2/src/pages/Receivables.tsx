@@ -259,7 +259,7 @@ export function Receivables() {
   })
   const { data: customersForLink = [] } = useQuery({
     queryKey: ['receivable-link-customers'],
-    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id,mobile,email,biz_no,business_no,memo' }),
+    queryFn: () => getAllCustomers({ fields: 'Id,name,book_name,legacy_id,mobile,email,business_no,memo' }),
     staleTime: 10 * 60 * 60 * 1000,
   })
   const { data: legacySnapshots } = useQuery({

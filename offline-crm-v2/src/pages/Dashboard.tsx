@@ -118,7 +118,7 @@ export function Dashboard() {
     queryKey: ['dash-receivables'],
     queryFn: async () => {
       const [customers, invoices, snapshots] = await Promise.all([
-        getAllCustomers({ fields: 'Id,name,book_name,legacy_id,mobile,email,biz_no,business_no,memo' }),
+        getAllCustomers({ fields: 'Id,name,book_name,legacy_id,mobile,email,business_no,memo' }),
         getAllInvoices({
           where: '(payment_status,eq,unpaid)~or(payment_status,eq,partial)',
           sort: '-invoice_date',

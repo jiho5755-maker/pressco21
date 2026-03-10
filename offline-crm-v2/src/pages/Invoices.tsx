@@ -55,9 +55,21 @@ function getCustomerAddressByKey(customer: Customer | null | undefined, addressK
   if (!customer) return ''
   const keys = getCustomerAddressKeys(customer)
   if (addressKey && keys.includes(addressKey)) {
-    return ((customer[addressKey] as string | undefined) ?? '').trim()
+    const base = ((customer[addressKey] as string | undefined) ?? '').trim()
+    if (addressKey === 'address1') {
+      const detail = ((customer.address2 as string | undefined) ?? '').trim()
+      return [base, detail].filter(Boolean).join(' ')
+    }
+    return base
   }
-  return keys.length > 0 ? (((customer[keys[0]] as string | undefined) ?? '').trim()) : ''
+  if (keys.length === 0) return ''
+  const firstKey = keys[0]
+  const base = (((customer[firstKey] as string | undefined) ?? '').trim())
+  if (firstKey === 'address1') {
+    const detail = ((customer.address2 as string | undefined) ?? '').trim()
+    return [base, detail].filter(Boolean).join(' ')
+  }
+  return base
 }
 
 function getCustomerAddress(customer: Customer | null | undefined, preferredAddress?: string): string {

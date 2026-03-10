@@ -267,7 +267,12 @@ function getCustomerAddressValue(
 ): string {
   if (!customer) return ''
   const resolvedKey = resolveCustomerAddressKey(customer, undefined, addressKey)
-  return ((customer[resolvedKey] as string | undefined) ?? '') as string
+  const base = (((customer[resolvedKey] as string | undefined) ?? '') as string).trim()
+  if (resolvedKey === 'address1') {
+    const detail = ((customer.address2 as string | undefined) ?? '').trim()
+    return [base, detail].filter(Boolean).join(' ')
+  }
+  return base
 }
 
 function buildCustomerSnapshot(

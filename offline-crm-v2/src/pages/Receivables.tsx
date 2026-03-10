@@ -232,25 +232,42 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
   const [amount, setAmount] = useState(0)
   const [method, setMethod] = useState('계좌이체')
   const [isSaving, setIsSaving] = useState(false)
+  const [editingEntryIndex, setEditingEntryIndex] = useState<number | null>(null)
 
   if (!target) return null
   const legacyTarget = target
 
   const remaining = legacyTarget.ledger.legacyBaseline
+  const memoState = parseLegacyReceivableMemo(legacyTarget.customer.memo as string | undefined)
+  const maxAmount = remaining
+
+  async function refreshReceivableViews(customerId: number) {
+    qc.invalidateQueries({ queryKey: ['customers'] })
+    qc.invalidateQueries({ queryKey: ['customer', customerId] })
+    qc.invalidateQueries({ queryKey: ['receivables'] })
+    qc.invalidateQueries({ queryKey: ['receivable-link-customers'] })
+    qc.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(customerId)] })
+    qc.invalidateQueries({ queryKey: ['dash-receivables'] })
+    qc.invalidateQueries({
+      predicate: (q) => {
+        const key = q.queryKey[0]
+        return typeof key === 'string' && (key.startsWith('dash-') || key.startsWith('period-') || key.startsWith('calendar-'))
+      },
+    })
+  }
 
   async function handleSave() {
     if (amount <= 0) {
       toast.error('입금액을 입력해주세요.')
       return
     }
-    if (amount > remaining) {
-      toast.error(`레거시 미수금(${remaining.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
+    if (amount > maxAmount) {
+      toast.error(`레거시 미수금(${maxAmount.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
       return
     }
 
     setIsSaving(true)
     try {
-      const memoState = parseLegacyReceivableMemo(legacyTarget.customer.memo as string | undefined)
       const nextSettlements = [
         ...memoState.settlements,
         {
@@ -266,25 +283,39 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
 
       await updateCustomer(legacyTarget.customer.Id, { memo: nextMemo })
       await recalcCustomerStats(legacyTarget.customer.Id)
-
-      qc.invalidateQueries({ queryKey: ['customers'] })
-      qc.invalidateQueries({ queryKey: ['customer', legacyTarget.customer.Id] })
-      qc.invalidateQueries({ queryKey: ['receivables'] })
-      qc.invalidateQueries({ queryKey: ['receivable-link-customers'] })
-      qc.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(legacyTarget.customer.Id)] })
-      qc.invalidateQueries({ queryKey: ['dash-receivables'] })
-      qc.invalidateQueries({
-        predicate: (q) => {
-          const key = q.queryKey[0]
-          return typeof key === 'string' && (key.startsWith('dash-') || key.startsWith('period-') || key.startsWith('calendar-'))
-        },
-      })
+      await refreshReceivableViews(legacyTarget.customer.Id)
 
       toast.success('레거시 미수금 입금 처리가 반영되었습니다.')
       onSaved()
     } catch (error) {
       console.error(error)
       toast.error('레거시 미수금 입금 처리 중 오류가 발생했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleDeleteSettlement(index: number) {
+    const settlement = memoState.settlements[index]
+    if (!settlement) return
+    if (!confirm(`${settlement.date} ${settlement.amount.toLocaleString()}원 입금 기록을 취소하시겠습니까?`)) return
+
+    setIsSaving(true)
+    try {
+      const nextSettlements = memoState.settlements.filter((_, settlementIndex) => settlementIndex !== index)
+      const nextMemo = serializeLegacyReceivableMemo(legacyTarget.customer.memo as string | undefined, {
+        settledAmount: nextSettlements.reduce((sum, entry) => sum + entry.amount, 0),
+        settlements: nextSettlements,
+      })
+      await updateCustomer(legacyTarget.customer.Id, { memo: nextMemo })
+      await recalcCustomerStats(legacyTarget.customer.Id)
+      await refreshReceivableViews(legacyTarget.customer.Id)
+      setEditingEntryIndex(null)
+      toast.success('레거시 입금 기록을 취소했습니다.')
+      onSaved()
+    } catch (error) {
+      console.error(error)
+      toast.error('레거시 입금 기록 취소 중 오류가 발생했습니다.')
     } finally {
       setIsSaving(false)
     }
@@ -318,6 +349,7 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
               className="mt-1"
               autoFocus
             />
+            <p className="mt-1 text-xs text-muted-foreground">최대 입금 가능액: {maxAmount.toLocaleString()}원</p>
           </div>
 
           <div>
@@ -341,6 +373,34 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
               <span className={remaining - amount > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
                 {(remaining - amount).toLocaleString()}원
               </span>
+            </div>
+          )}
+
+          {memoState.settlements.length > 0 && (
+            <div className="rounded-md border p-3 space-y-2">
+              <div className="text-xs font-medium text-muted-foreground">기존 레거시 입금 이력</div>
+              {memoState.settlements.map((entry, index) => (
+                <div key={`${entry.date}-${entry.amount}-${index}`} className="flex items-center justify-between gap-2 text-xs">
+                  <div>
+                    <span>{entry.date}</span>
+                    <span className="ml-2 font-medium">{entry.amount.toLocaleString()}원</span>
+                    {entry.method ? <span className="ml-2 text-muted-foreground">{entry.method}</span> : null}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-red-500 hover:text-red-600"
+                    disabled={isSaving}
+                    onClick={() => {
+                      setEditingEntryIndex(index)
+                      void handleDeleteSettlement(index)
+                    }}
+                  >
+                    {editingEntryIndex === index && isSaving ? '처리 중...' : '취소'}
+                  </Button>
+                </div>
+              ))}
             </div>
           )}
 

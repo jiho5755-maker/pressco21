@@ -51,15 +51,48 @@
 
 - Current Owner: CODEX
 - Mode: IDLE
-- Started At: 2026-03-11 00:08:00 KST
+- Started At: 2026-03-11 11:05:00 KST
 - Branch: main
-- Working Scope: CRM 레거시/명세표 UX 고도화 및 운영 안정화 완료
+- Working Scope: [CODEX-LEAD] 파트너클래스 S1-8 대시보드 액션 보드 완료
 - Active Subdirectory: pressco21
 
 ## Files In Progress
 - (none)
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S1-8 파트너 대시보드 액션 보드 완료 (CODEX)
+- 프론트
+  - `파트너클래스/파트너/Index.html`
+    - 온보딩 카드 아래, 기존 KPI 카드 위에 액션 보드 섹션 추가
+    - `오늘 수업 / 키트 준비 / 미답변 후기` 3개 카드와 설명 문구 추가
+  - `파트너클래스/파트너/css.css`
+    - 액션 보드 카드, 빈 상태, 반응형 레이아웃 스타일 추가
+  - `파트너클래스/파트너/js.js`
+    - `actionBoardState`, `actionBoardLoadToken` 기반 집계/렌더링 상태 추가
+    - `getPartnerDashboard`, `getClassDetail`, `getPartnerBookings`, `getPartnerReviews` 응답을 조합해 3개 카드 수치를 계산
+    - 카드 클릭 시 `일정 관리 / 예약 현황 / 후기 관리` 탭으로 이동하고 필요한 필터와 첫 클래스를 자동 세팅
+    - 클래스 수정, 상태 변경, 일정 추가/삭제, 후기 답변 후 액션 보드가 즉시 다시 계산되도록 연결
+- 문서 / 메모리
+  - `docs/파트너클래스/dashboard-action-board-guide.md` 신규 추가
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+- 검증
+  - `node --check 파트너클래스/파트너/js.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+    - `http://` 경고는 SVG namespace / data URI 기준 false positive 확인
+  - Playwright 로컬 목킹 검증
+    - populated 시나리오 `오늘 수업 1건 / 키트 준비 2건 / 미답변 후기 3건` 확인
+    - `오늘 수업` 클릭 시 `일정 관리` 탭 + 첫 클래스 자동 선택 확인
+    - `키트 준비` 클릭 시 `예약 현황` 탭 + `custom` 기간 + 클래스 자동 선택 확인
+    - `미답변 후기` 클릭 시 `후기 관리` 탭 이동 확인
+    - empty 시나리오 `0건` 수치와 새 강의 등록 유도 문구 확인
+  - 산출물
+    - `output/playwright/s1-8-action-board/action-board-populated.png`
+    - `output/playwright/s1-8-action-board/action-board-empty-state.png`
 
 ### [CODEX] offline-crm-v2 운영 안정화/UX 고도화 완료 (CODEX)
 - CRM 데이터/정합성
@@ -1289,7 +1322,7 @@
 
 #### 현재 다음 태스크
 
-- `S1-8 대시보드 액션 보드`
+- `S1-9 Phase 3-1 통합 테스트`
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
@@ -1379,6 +1412,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S1-1 프론트 변경(강의등록/상세/파트너 수정 모달)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 화면 확인이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-2 상세 프론트 변경(Trust Summary Bar, 포함 내역, 모바일 CTA 바)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-7 파트너 대시보드 온보딩 카드/모달도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 실제 2608 페이지 반영 시 사용자 배포 후 재검증이 필요함
+- S1-8 파트너 대시보드 액션 보드도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 실제 2608 페이지 반영 시 사용자 배포 후 재검증이 필요함
 - S1-4 마이페이지 프론트 변경(`파트너클래스/마이페이지/*`)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
 - `scripts/partnerclass-live-smoke.js` 는 현재 FAQ 기대 개수가 여전히 `5` 기준이라, 상세 FAQ를 라이브 반영한 뒤에는 스모크 기대값을 `15` 로 맞춰야 함

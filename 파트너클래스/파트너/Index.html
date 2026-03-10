@@ -164,6 +164,33 @@
             </div>
         </section>
 
+        <section id="pdActionBoard" class="pd-action-board" aria-label="오늘 할 일 액션 보드">
+            <div class="pd-action-board__header">
+                <div>
+                    <p class="pd-action-board__eyebrow">운영 액션 보드</p>
+                    <h2 class="pd-action-board__title">오늘 할 일</h2>
+                </div>
+                <p class="pd-action-board__desc" id="pdActionBoardDesc">오늘 바로 확인하면 좋은 운영 항목을 모았습니다.</p>
+            </div>
+            <div class="pd-action-board__grid">
+                <button type="button" class="pd-action-card" id="pdActionCardToday" data-action="today-class">
+                    <span class="pd-action-card__label">오늘 수업</span>
+                    <strong class="pd-action-card__value" id="pdActionTodayValue">0건</strong>
+                    <span class="pd-action-card__meta" id="pdActionTodayMeta">오늘 일정이 없습니다.</span>
+                </button>
+                <button type="button" class="pd-action-card" id="pdActionCardKit" data-action="kit-prep">
+                    <span class="pd-action-card__label">키트 준비 필요</span>
+                    <strong class="pd-action-card__value" id="pdActionKitValue">0건</strong>
+                    <span class="pd-action-card__meta" id="pdActionKitMeta">준비할 키트가 없습니다.</span>
+                </button>
+                <button type="button" class="pd-action-card" id="pdActionCardReview" data-action="review-reply">
+                    <span class="pd-action-card__label">미답변 후기</span>
+                    <strong class="pd-action-card__value" id="pdActionReviewValue">0건</strong>
+                    <span class="pd-action-card__meta" id="pdActionReviewMeta">답변 대기 중인 후기가 없습니다.</span>
+                </button>
+            </div>
+        </section>
+
         <!-- 3-2. 요약 카드 4개 -->
         <div class="pd-summary" id="pdSummaryCards">
             <div class="pd-summary__card">

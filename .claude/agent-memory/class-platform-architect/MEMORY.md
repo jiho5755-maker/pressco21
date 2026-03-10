@@ -87,3 +87,11 @@
   - 클래스 수정 모달
 - 완료 후에는 카드 숨김 + 완료 모달 1회 노출로 상태를 닫는다.
 - 운영 기준 문서는 `docs/파트너클래스/onboarding-checklist-guide.md` 이다.
+
+## 2026-03-11 S1-8 파트너 액션 보드 구조 확정
+
+- 대시보드 상단에는 온보딩 카드 다음 레이어로 액션 보드를 둔다.
+- 별도 집계 API를 늘리지 않고 `getPartnerDashboard + getClassDetail + getPartnerBookings + getPartnerReviews` 조합으로 3개 카드를 계산한다.
+- 카드 기준은 `오늘 일정 중 예약 있는 수업 / 7일 내 키트 준비 예약 / 미답변 후기 수` 로 고정한다.
+- 카드 클릭 시 각 탭으로 이동할 때 첫 관련 클래스와 기간 필터를 자동 세팅한다.
+- 운영 기준 문서는 `docs/파트너클래스/dashboard-action-board-guide.md` 이다.

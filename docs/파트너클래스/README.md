@@ -64,6 +64,8 @@
   - S1-6 기준 상세 FAQ 15개 구조, 카테고리 필터/검색 규칙, FAQPage JSON-LD 반영 기준 정리
 - `onboarding-checklist-guide.md`
   - S1-7 기준 파트너 대시보드 온보딩 5단계, 완료 조건, CTA 매핑, 로컬 저장 규칙 정리
+- `dashboard-action-board-guide.md`
+  - S1-8 기준 파트너 대시보드 액션 보드 3카드, 기존 API 조합 방식, 클릭 이동 규칙 정리
 
 ### QA / 검증
 

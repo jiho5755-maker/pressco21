@@ -83,6 +83,12 @@
     /** 온보딩 비동기 최신 요청 토큰 */
     var onboardingLoadToken = 0;
 
+    /** 상단 액션 보드 상태 */
+    var actionBoardState = null;
+
+    /** 액션 보드 비동기 최신 요청 토큰 */
+    var actionBoardLoadToken = 0;
+
 
     /* ========================================
        초기화
@@ -128,6 +134,7 @@
         bindMonthSelector();
         bindProfileEdit();
         bindOnboardingEvents();
+        bindActionBoardEvents();
         bindCsvExport();
     }
 
@@ -282,6 +289,9 @@
 
             // 신규 파트너 온보딩 체크리스트 갱신
             refreshOnboardingChecklist(true);
+
+            // 상단 액션 보드 갱신
+            refreshActionBoard();
         });
     }
 
@@ -797,6 +807,303 @@
 
 
     /* ========================================
+       상단 액션 보드
+       ======================================== */
+
+    function bindActionBoardEvents() {
+        var board = document.getElementById('pdActionBoard');
+        if (!board || board._pdBound) return;
+
+        board._pdBound = true;
+        board.addEventListener('click', function(e) {
+            var card = e.target.closest('.pd-action-card');
+            if (!card) return;
+            handleActionBoardClick(card.getAttribute('data-action'));
+        });
+    }
+
+    function refreshActionBoard() {
+        if (!partnerData) return;
+
+        var token = ++actionBoardLoadToken;
+        var classes = myClasses || [];
+        var today = getDateOffsetString(0);
+        var nextWeek = getDateOffsetString(7);
+
+        if (!classes.length) {
+            actionBoardState = buildActionBoardState(
+                { todayClassCount: 0, todayBookedCount: 0, todayClassId: '', kitClassIds: [], firstKitClassId: '' },
+                [],
+                { unansweredCount: 0 },
+                true
+            );
+            renderActionBoard(actionBoardState);
+            return;
+        }
+
+        var pending = 3;
+        var classState = null;
+        var bookingPayload = [];
+        var reviewPayload = { unansweredCount: 0 };
+
+        function finish() {
+            pending--;
+            if (pending > 0 || token !== actionBoardLoadToken) {
+                return;
+            }
+
+            actionBoardState = buildActionBoardState(classState, bookingPayload, reviewPayload, false);
+            renderActionBoard(actionBoardState);
+        }
+
+        inspectActionBoardClasses(classes, function(result) {
+            if (token !== actionBoardLoadToken) return;
+            classState = result;
+            finish();
+        });
+
+        callGAS('getPartnerBookings', {
+            member_id: memberId,
+            date_from: today,
+            date_to: nextWeek
+        }, function(err, data) {
+            if (token !== actionBoardLoadToken) return;
+            if (!err && data && data.success && data.data) {
+                bookingPayload = data.data.bookings || [];
+            }
+            finish();
+        });
+
+        callGAS('getPartnerReviews', {
+            member_id: memberId,
+            page: 1,
+            limit: 1
+        }, function(err, data) {
+            if (token !== actionBoardLoadToken) return;
+            if (!err && data && data.success && data.data && data.data.summary) {
+                reviewPayload.unansweredCount = parseInt(data.data.summary.unanswered_count, 10) || 0;
+            }
+            finish();
+        });
+    }
+
+    function inspectActionBoardClasses(classes, callback) {
+        var list = classes || [];
+        var classIds = [];
+        var result = {
+            todayClassCount: 0,
+            todayBookedCount: 0,
+            todayClassId: '',
+            kitClassIds: [],
+            firstKitClassId: ''
+        };
+        var today = getDateOffsetString(0);
+
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && list[i].class_id) {
+                classIds.push(String(list[i].class_id));
+            }
+        }
+
+        if (!classIds.length) {
+            callback(result);
+            return;
+        }
+
+        var pending = classIds.length;
+        for (var j = 0; j < classIds.length; j++) {
+            (function(classId) {
+                callGAS('getClassDetail', { id: classId }, function(err, data) {
+                    var detail = !err && data && data.success && data.data ? data.data : findClassById(classId);
+                    var schedules = detail && Array.isArray(detail.schedules) ? detail.schedules : [];
+
+                    for (var s = 0; s < schedules.length; s++) {
+                        var schedule = schedules[s];
+                        var bookedCount = parseInt(schedule.booked_count, 10) || 0;
+                        if ((schedule.schedule_date || '') === today && bookedCount > 0) {
+                            result.todayClassCount++;
+                            result.todayBookedCount += bookedCount;
+                            if (!result.todayClassId) {
+                                result.todayClassId = classId;
+                            }
+                        }
+                    }
+
+                    if (hasConfiguredKit(detail)) {
+                        if (result.kitClassIds.indexOf(classId) === -1) {
+                            result.kitClassIds.push(classId);
+                        }
+                        if (!result.firstKitClassId) {
+                            result.firstKitClassId = classId;
+                        }
+                    }
+
+                    pending--;
+                    if (pending === 0) {
+                        callback(result);
+                    }
+                });
+            })(classIds[j]);
+        }
+    }
+
+    function buildActionBoardState(classState, bookings, reviewState, noClasses) {
+        var todayCard;
+        var kitCard;
+        var reviewCard;
+        var kitBookingCount = 0;
+        var kitClassMap = {};
+        var unansweredCount = reviewState ? reviewState.unansweredCount || 0 : 0;
+        var classesEmpty = !!noClasses;
+        var bookingList = bookings || [];
+        var kitClassIds = classState && classState.kitClassIds ? classState.kitClassIds : [];
+
+        for (var i = 0; i < bookingList.length; i++) {
+            var booking = bookingList[i];
+            if (kitClassIds.indexOf(String(booking.class_id || '')) === -1) continue;
+            if (!isPendingBookingStatus(booking.status)) continue;
+
+            kitBookingCount++;
+            kitClassMap[String(booking.class_id || '')] = true;
+        }
+
+        todayCard = {
+            value: (classState && classState.todayClassCount ? classState.todayClassCount : 0) + '\uAC74',
+            meta: classesEmpty
+                ? '\uCCAB \uAC15\uC758\uB97C \uB4F1\uB85D\uD558\uBA74 \uC624\uB298 \uC218\uC5C5\uC774 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4.'
+                : (classState && classState.todayClassCount > 0
+                    ? '\uC608\uC57D ' + (classState.todayBookedCount || 0) + '\uBA85 \uC608\uC815'
+                    : '\uC624\uB298 \uC77C\uC815\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.'),
+            empty: !(classState && classState.todayClassCount > 0)
+        };
+
+        kitCard = {
+            value: kitBookingCount + '\uAC74',
+            meta: classesEmpty
+                ? '\uD0A4\uD2B8 \uC5F0\uACB0 \uC218\uC5C5\uC774 \uC0DD\uAE30\uBA74 \uC900\uBE44 \uD56D\uBAA9\uC774 \uD45C\uC2DC\uB429\uB2C8\uB2E4.'
+                : (kitBookingCount > 0
+                    ? '\uB2E4\uC74C 7\uC77C \uAE30\uC900 \uD0A4\uD2B8 \uC5F0\uACB0 \uC218\uC5C5 ' + Object.keys(kitClassMap).length + '\uAC1C'
+                    : '\uC900\uBE44\uD560 \uD0A4\uD2B8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.'),
+            empty: kitBookingCount === 0
+        };
+
+        reviewCard = {
+            value: unansweredCount + '\uAC74',
+            meta: classesEmpty
+                ? '\uC218\uC5C5\uC774 \uC2DC\uC791\uB418\uBA74 \uD6C4\uAE30\uAC00 \uC5EC\uAE30 \uC313\uC785\uB2C8\uB2E4.'
+                : (unansweredCount > 0
+                    ? '\uD6C4\uAE30 \uD0ED\uC5D0\uC11C \uB2F5\uBCC0\uC744 \uB0A8\uACA8\uBCF4\uC138\uC694.'
+                    : '\uB2F5\uBCC0 \uB300\uAE30 \uC911\uC778 \uD6C4\uAE30\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.'),
+            empty: unansweredCount === 0
+        };
+
+        return {
+            noClasses: classesEmpty,
+            todayClassId: classState ? classState.todayClassId || '' : '',
+            firstKitClassId: classState ? classState.firstKitClassId || '' : '',
+            desc: classesEmpty
+                ? '\uC544\uC9C1 \uB4F1\uB85D\uB41C \uC218\uC5C5\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uCCAB \uAC15\uC758\uB97C \uB9CC\uB4E4\uC5B4 \uBCF4\uC138\uC694.'
+                : (todayCard.empty && kitCard.empty && reviewCard.empty
+                    ? '\uC9C0\uAE08\uC740 \uCC98\uB9AC\uD560 \uD560 \uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.'
+                    : '\uC624\uB298 \uBC14\uB85C \uD655\uC778\uD558\uBA74 \uC88B\uC740 \uC6B4\uC601 \uD56D\uBAA9\uC744 \uBAA8\uC558\uC2B5\uB2C8\uB2E4.'),
+            todayCard: todayCard,
+            kitCard: kitCard,
+            reviewCard: reviewCard
+        };
+    }
+
+    function renderActionBoard(state) {
+        if (!state) return;
+
+        setTextById('pdActionBoardDesc', state.desc);
+        setActionCardContent('pdActionCardToday', 'pdActionTodayValue', 'pdActionTodayMeta', state.todayCard);
+        setActionCardContent('pdActionCardKit', 'pdActionKitValue', 'pdActionKitMeta', state.kitCard);
+        setActionCardContent('pdActionCardReview', 'pdActionReviewValue', 'pdActionReviewMeta', state.reviewCard);
+    }
+
+    function setActionCardContent(cardId, valueId, metaId, cardState) {
+        var card = document.getElementById(cardId);
+        if (card) {
+            card.classList.toggle('is-empty', !!(cardState && cardState.empty));
+        }
+        setTextById(valueId, cardState ? cardState.value : '0\uAC74');
+        setTextById(metaId, cardState ? cardState.meta : '');
+    }
+
+    function handleActionBoardClick(action) {
+        if (!actionBoardState) return;
+
+        if (actionBoardState.noClasses && (action === 'today-class' || action === 'kit-prep')) {
+            openModal('pdNewClassModal');
+            return;
+        }
+
+        if (action === 'today-class') {
+            switchTab('schedules');
+            setTimeout(function() {
+                var targetClassId = actionBoardState.todayClassId || getFirstClassId();
+                var classSelect = document.getElementById('pdScheduleClass');
+                if (classSelect && targetClassId) {
+                    classSelect.value = targetClassId;
+                    scheduleClassId = targetClassId;
+                    loadSchedulesForClass(targetClassId);
+                }
+                scrollToElementById('pdTabSchedules');
+            }, 80);
+            return;
+        }
+
+        if (action === 'kit-prep') {
+            switchTab('bookings');
+            setTimeout(function() {
+                var periodEl = document.getElementById('pdBookingPeriod');
+                var customArea = document.getElementById('pdBookingCustomDate');
+                var fromEl = document.getElementById('pdBookingDateFrom');
+                var toEl = document.getElementById('pdBookingDateTo');
+                var classEl = document.getElementById('pdBookingClass');
+
+                if (periodEl) periodEl.value = 'custom';
+                if (customArea) customArea.style.display = '';
+                if (fromEl) fromEl.value = getDateOffsetString(0);
+                if (toEl) toEl.value = getDateOffsetString(7);
+                if (classEl && actionBoardState.firstKitClassId) {
+                    classEl.value = actionBoardState.firstKitClassId;
+                }
+                loadBookings();
+                scrollToElementById('pdBookingTable');
+            }, 80);
+            return;
+        }
+
+        if (action === 'review-reply') {
+            switchTab('reviews');
+            setTimeout(function() {
+                scrollToElementById('pdReviewList');
+            }, 80);
+        }
+    }
+
+    function isPendingBookingStatus(status) {
+        var text = String(status || '').toLowerCase();
+        return text !== 'cancelled' && text !== 'completed' && text !== 'failed';
+    }
+
+    function getDateOffsetString(offset) {
+        var target = new Date();
+        target.setHours(0, 0, 0, 0);
+        target.setDate(target.getDate() + (offset || 0));
+        return target.getFullYear() + '-' + padZero(target.getMonth() + 1) + '-' + padZero(target.getDate());
+    }
+
+    function scrollToElementById(id) {
+        var el = document.getElementById(id);
+        if (el && el.scrollIntoView) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+    }
+
+
+    /* ========================================
        탭 관리
        ======================================== */
 
@@ -1067,6 +1374,7 @@
             var statusLabel = normalizedNewStatus === 'active' ? '\uC7AC\uD65C\uC131\uD654' : '\uC77C\uC2DC\uC815\uC9C0';
             showToast('\uAC15\uC758\uAC00 ' + statusLabel + '\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
             renderMyClasses();
+            refreshActionBoard();
         });
     }
 
@@ -1396,6 +1704,7 @@
                 var modal = document.getElementById('pdEditClassModal');
                 if (modal) modal.classList.remove('pd-modal--open');
                 refreshOnboardingChecklist(false);
+                refreshActionBoard();
             } else {
                 showToast(data.message || '\uC218\uC815\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.', 'error');
             }
@@ -1645,6 +1954,7 @@
                 toggleScheduleForm(false);
                 loadSchedulesForClass(scheduleClassId);
                 refreshOnboardingChecklist(false);
+                refreshActionBoard();
             } else {
                 showToast(res.message || '일정 추가에 실패했습니다.', 'error');
             }
@@ -1670,6 +1980,7 @@
                 showToast('일정이 삭제되었습니다.');
                 loadSchedulesForClass(scheduleClassId);
                 refreshOnboardingChecklist(false);
+                refreshActionBoard();
             } else {
                 showToast(res.message || '일정 삭제에 실패했습니다.', 'error');
             }
@@ -2804,6 +3115,7 @@
 
             showToast('\uB2F5\uBCC0\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
             closeModal('pdReplyModal');
+            refreshActionBoard();
 
             // 후기 새로고침
             loadReviews();

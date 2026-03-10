@@ -1793,6 +1793,27 @@
     transform: none;
 }
 
+.class-detail .booking-gift.is-loading {
+    position: relative;
+    opacity: 0.84;
+    pointer-events: none;
+}
+
+.class-detail .booking-gift.is-loading::after {
+    content: '';
+    width: 14px;
+    height: 14px;
+    border: 2px solid rgba(255, 255, 255, 0.34);
+    border-top-color: #FFFFFF;
+    border-radius: 50%;
+    animation: cdGiftSpin 0.8s linear infinite;
+}
+
+@keyframes cdGiftSpin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+}
+
 .class-detail .booking-notice {
     font-size: 12px;
     color: var(--cd-text-light);

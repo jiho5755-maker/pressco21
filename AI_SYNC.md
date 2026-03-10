@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: —
+- Started At: 2026-03-10 13:41:35 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: —
@@ -61,6 +61,40 @@
 - 없음
 
 ## Last Changes (2026-03-09 ~ 2026-03-10)
+
+### 파트너클래스 UX 긴급 수정
+- 라이브 재현
+  - `output/playwright/partnerclass-ux-20260310/ux-audit-results.json` 기준으로 `파트너신청(2609)` 로그인 버튼이 `/member/login.html`로 연결되어 `net::ERR_ABORTED`로 실패하는 문제를 재현.
+  - `상세(2607)` 선물하기가 메이크샵 선물 주문서가 아니라 일반 `shopdetail.html?branduid=...`로만 이동하는 흐름을 재현.
+  - 상세의 `클래스 더 둘러보기` 링크가 `level=beginner`, `region=서울 강남구`처럼 목록 필터와 맞지 않는 값으로 생성되는 문제를 확인.
+- 프론트 수정
+  - `파트너클래스/파트너신청/Index.html`, `파트너클래스/파트너신청/js.js`
+    - 로그인 버튼 기본 링크와 JS 폴백을 `/shop/member.html?type=login` 기반으로 교체하고 현재 페이지 `returnUrl`을 붙이도록 수정.
+  - `파트너클래스/파트너/Index.html`, `파트너클래스/파트너/js.js`
+    - 파트너 대시보드 로그인 안내 링크/폴백을 메이크샵 실제 로그인 경로로 통일.
+  - `파트너클래스/강의등록/Index.html`, `파트너클래스/강의등록/js.js`
+    - 강의등록 로그인 안내 링크/폴백을 메이크샵 실제 로그인 경로로 통일.
+  - `파트너클래스/마이페이지/Index.html`
+    - 마이페이지 로그인 안내 링크를 메이크샵 실제 로그인 경로로 교체.
+  - `파트너클래스/교육/Index.html`, `파트너클래스/교육/js.js`
+    - 교육 페이지 로그인 안내 링크/폴백을 메이크샵 실제 로그인 경로로 통일.
+  - `파트너클래스/상세/js.js`
+    - 공통 `buildLoginUrl()` 헬퍼 추가로 리뷰 작성/예약/선물하기 로그인 이동 경로를 일관화.
+    - 상세 분류 링크에서 난이도 영문값(`beginner/intermediate/advanced`)을 목록 필터 값(`입문/중급/심화`)으로 정규화.
+    - 상세 지역 링크를 목록 필터 체계(`서울/경기/인천/부산/대구/기타`)에 맞게 정규화.
+    - 선물하기는 메이크샵 상품 상세를 먼저 조회해 native gift 링크가 있으면 그대로 사용하고, 없으면 `basket.action.html -> /shop/order.html + add_rand_url` 흐름으로 연결되도록 수정.
+    - 선물하기 처리 중 중복 클릭을 막는 loading 상태와 오류 토스트 복구 처리 추가.
+  - `파트너클래스/상세/css.css`
+    - 선물하기 버튼 loading 스피너 스타일 추가.
+- 검증
+  - `node --check 파트너클래스/파트너신청/js.js` → `OK`
+  - `node --check 파트너클래스/파트너/js.js` → `OK`
+  - `node --check 파트너클래스/강의등록/js.js` → `OK`
+  - `node --check 파트너클래스/교육/js.js` → `OK`
+  - `node --check 파트너클래스/상세/js.js` → `OK`
+  - `curl -I https://www.foreverlove.co.kr/member/login.html` → `204`
+  - `curl -I https://www.foreverlove.co.kr/shop/member.html?type=login` → `200`
+  - `curl https://www.foreverlove.co.kr/shop/shopdetail.html?branduid=12195642` 점검 기준, 클래스 실상품은 현재 native `.btn-gift` 노출이 없어 프론트가 우선 `basket.action` 선물 흐름으로 폴백하도록 맞춤.
 
 ### CRM 수정
 - `offline-crm-v2/docs/crm-handoff-2026-03-09.md`, `.claude/agent-memory/accounting-specialist/MEMORY.md`
@@ -675,6 +709,9 @@
 ## Next Step
 
 ### Codex CLI 위임 태스크
+- [CODEX] 메이크샵 저장 후 `파트너신청(2609)`, `상세(2607)`, `파트너(2608)`, `강의등록(8009)`, `마이페이지(8010)`, `교육(2610)` 로그인 안내 버튼 라이브 재검증
+- [CODEX] `상세(2607)` 선물하기를 실상품 기준으로 다시 눌러 `선물 주문하기` 헤더 노출 여부 최종 E2E 확인
+- [CODEX] 상세 분류 링크(`카테고리/난이도/지역/강사`)가 목록 필터와 실제 일치하는지 라이브 회귀 테스트
 - [CODEX] 메이크샵 배포 후 `파트너신청(2609)`, `상세(2607)`, `목록(2606)` 라이브 회귀 테스트 재실행
 - [CODEX] `메인페이지/파트너클래스-홈개편` 시안 기준으로 실제 메인페이지 저장용 마이그레이션 패치 정리
 - [CODEX] 파트너클래스 상세 선물하기를 실상품 1건 기준으로 최종 E2E 검증
@@ -687,6 +724,8 @@
 
 ## Known Risks
 
+- 이번 UX 수정은 아직 메이크샵에 저장되지 않았으므로, 실제 라이브 재검증 전까지는 기존 `/member/login.html` 및 선물하기 동작이 남아 있을 수 있음
+- 클래스 실상품 `branduid=12195642` 기준 상품 상세에는 native `.btn-gift` 링크가 노출되지 않아, 상품 설정상 선물하기가 비활성인 경우 프론트는 `basket.action` 기반 선물 주문 진입으로만 폴백함
 - `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음
 - 상세 페이지 선물하기는 메이크샵 네이티브 장바구니 POST로 맞췄지만, 실제 선물 가능 상품 설정 여부에 따라 최종 동작이 달라질 수 있어 실상품 1건 재검증 필요
 - `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 저장 전까지 라이브 반영되지 않음

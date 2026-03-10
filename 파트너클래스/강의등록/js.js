@@ -38,7 +38,7 @@
         if (loginBtn) {
             loginBtn.onclick = function(e) {
                 e.preventDefault();
-                window.location.href = '/member/login.html';
+                window.location.href = '/shop/member.html?type=login&returnUrl=' + encodeURIComponent(window.location.href);
             };
         }
 

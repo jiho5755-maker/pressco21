@@ -739,7 +739,7 @@
         if (rawPartnerName || region) {
             html += '<a href="' + buildListPageUrl({
                 q: rawPartnerName,
-                region: rawPartnerName ? '' : getPrimaryRegion(rawRegion)
+                region: rawPartnerName ? '' : getRegionFilterValue(rawRegion)
             }) + '" class="instructor-action-btn instructor-action-btn--primary">'
                 + '\uB2E4\uB978 \uD074\uB798\uC2A4 \uBCF4\uAE30</a>';
         }
@@ -943,7 +943,7 @@
             container.innerHTML = ''
                 + '<div class="review-write-login">'
                 + '<p class="review-write-login__text">\uB85C\uADF8\uC778 \uD6C4 \uD6C4\uAE30\uB97C \uC791\uC131\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.</p>'
-                + '<a href="/member/login.html?returnUrl=' + encodeURIComponent(window.location.href) + '" class="review-write-login__btn">\uB85C\uADF8\uC778 \uD558\uAE30</a>'
+                + '<a href="' + buildLoginUrl(window.location.href) + '" class="review-write-login__btn">\uB85C\uADF8\uC778 \uD558\uAE30</a>'
                 + '</div>';
             return;
         }
@@ -1578,7 +1578,7 @@
         // 비로그인 처리: confirm -> login.html 이동
         if (!memberId) {
             if (confirm('\uc608\uc57d\uc740 \ub85c\uadf8\uc778 \ud6c4 \uc774\uc6a9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\n\ub85c\uadf8\uc778 \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
-                window.location.href = '/shop/member.html?type=login&returnUrl=' + encodeURIComponent(window.location.href);
+                window.location.href = buildLoginUrl(window.location.href);
             }
             return;
         }
@@ -1857,7 +1857,7 @@
 
         if (!memberId) {
             if (confirm('\uc120\ubb3c\ud558\uae30\ub294 \ub85c\uadf8\uc778 \ud6c4 \uc774\uc6a9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\n\ub85c\uadf8\uc778 \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
-                window.location.href = '/shop/member.html?type=login&returnUrl=' + encodeURIComponent(window.location.href);
+                window.location.href = buildLoginUrl(window.location.href);
             }
             return;
         }
@@ -1868,7 +1868,6 @@
         }
 
         var brandUid = classData.makeshop_product_id;
-        var productDetailUrl = '/shop/shopdetail.html?branduid=' + String(brandUid);
         if (!brandUid) {
             showToast('\uc5f0\ub3d9 \uc0c1\ud488\uc774 \uc900\ube44\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4.', 'error');
             return;
@@ -1886,17 +1885,18 @@
             /* 세션 저장 실패는 무시 */
         }
 
+        setGiftButtonBusy(true);
+
         resolveGiftProductMeta(brandUid)
             .then(function(meta) {
                 if (!meta || !meta.brandCode) {
-                    showToast('\uBA54\uC774\uD06C\uC0F5 \uC120\uBB3C\uD558\uAE30 \uAD6C\uC131\uC744 \uCC3E\uC9C0 \uBABB\uD574 \uC0C1\uD488 \uC0C1\uC138\uB85C \uC774\uB3D9\uD569\uB2C8\uB2E4.', 'error');
-                    window.location.href = productDetailUrl;
+                    setGiftButtonBusy(false);
+                    showToast('\uBA54\uC774\uD06C\uC0F5 \uC120\uBB3C\uD558\uAE30 \uAD6C\uC131\uC744 \uCC3E\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694.', 'error');
                     return;
                 }
 
-                if (!meta.isSellable) {
-                    showToast('\uD604\uC7AC \uD074\uB798\uC2A4 \uC0C1\uD488\uC740 \uBA54\uC774\uD06C\uC0F5 \uC120\uBB3C\uD558\uAE30 \uC9C1\uD589 \uC0C1\uD0DC\uAC00 \uC544\uB2D9\uB2C8\uB2E4. \uC0C1\uD488 \uC0C1\uC138\uC5D0\uC11C \uD310\uB9E4/\uC120\uBB3C \uC124\uC815\uC744 \uD655\uC778\uD574\uC8FC\uC138\uC694.', 'error');
-                    window.location.href = productDetailUrl;
+                if (meta.nativeGiftUrl) {
+                    window.location.href = meta.nativeGiftUrl;
                     return;
                 }
 
@@ -1904,8 +1904,24 @@
             })
             .catch(function(err) {
                 console.warn('[ClassDetail] \uC120\uBB3C\uD558\uAE30 \uBA54\uD0C0 \uD655\uC778 \uC2E4\uD328:', err);
-                window.location.href = productDetailUrl;
+                setGiftButtonBusy(false);
+                showToast('\uC120\uBB3C \uC8FC\uBB38\uC11C\uB97C \uC5F4\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694.', 'error');
             });
+    }
+
+    function setGiftButtonBusy(isBusy) {
+        var giftBtn = document.getElementById('bookingGift');
+        if (!giftBtn) return;
+
+        giftBtn.classList[isBusy ? 'add' : 'remove']('is-loading');
+        giftBtn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+
+        if (isBusy) {
+            giftBtn.disabled = true;
+            return;
+        }
+
+        giftBtn.disabled = !(selectedDate && selectedScheduleId);
     }
 
 
@@ -2346,6 +2362,25 @@
         return hours + '\uC2DC\uAC04 ' + mins + '\uBD84';
     }
 
+    function buildLoginUrl(returnUrl) {
+        var url = '/shop/member.html?type=login';
+        if (returnUrl) {
+            url += '&returnUrl=' + encodeURIComponent(returnUrl);
+        }
+        return url;
+    }
+
+    function normalizeLevelValue(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim();
+        var normalized = text.toLowerCase();
+
+        if (!text) return '';
+        if (normalized === 'beginner' || normalized === 'basic' || text.indexOf('\uC785\uBB38') > -1) return '\uC785\uBB38';
+        if (normalized === 'intermediate' || text.indexOf('\uC911\uAE09') > -1) return '\uC911\uAE09';
+        if (normalized === 'advanced' || normalized === 'expert' || text.indexOf('\uC2EC\uD654') > -1) return '\uC2EC\uD654';
+        return text;
+    }
+
     function getPrimaryRegion(raw) {
         var text = String(raw || '').replace(/\s+/g, ' ').trim();
         if (!text) return '';
@@ -2354,6 +2389,21 @@
         var parts = text.split(' ');
         if (parts.length >= 2) return parts[0] + ' ' + parts[1];
         return parts[0];
+    }
+
+    function getRegionFilterValue(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim();
+        var primary = text ? text.split(' ')[0] : '';
+        var allowed = {
+            '\uC11C\uC6B8': true,
+            '\uACBD\uAE30': true,
+            '\uC778\uCC9C': true,
+            '\uBD80\uC0B0': true,
+            '\uB300\uAD6C': true
+        };
+
+        if (!text || text.indexOf('\uC628\uB77C\uC778') > -1) return '';
+        return allowed[primary] ? primary : '\uAE30\uD0C0';
     }
 
     function buildListPageUrl(params) {
@@ -2390,7 +2440,7 @@
     function buildInfoBadgesHtml(data, linkable, durationText) {
         var html = '<div class="info-badges">';
         var category = data.category || '';
-        var level = data.level || '';
+        var level = normalizeLevelValue(data.level);
 
         if (category) {
             html += buildInfoBadge(
@@ -2423,6 +2473,8 @@
         var links = [];
         var seen = {};
         var region = getPrimaryRegion(data.location || (data.partner && (data.partner.location || data.partner.region)) || '');
+        var regionFilter = getRegionFilterValue(region);
+        var level = normalizeLevelValue(data.level);
         var partnerName = data.partner && (data.partner.partner_name || data.partner.name) ? (data.partner.partner_name || data.partner.name) : '';
 
         function pushLink(href, label) {
@@ -2434,11 +2486,11 @@
         if (data.category) {
             pushLink(buildListPageUrl({ category: data.category }), data.category + ' \uD074\uB798\uC2A4');
         }
-        if (data.level) {
-            pushLink(buildListPageUrl({ level: data.level }), data.level + ' \uB09C\uC774\uB3C4');
+        if (level) {
+            pushLink(buildListPageUrl({ level: level }), level + ' \uB09C\uC774\uB3C4');
         }
-        if (region) {
-            pushLink(buildListPageUrl({ region: region }), region + ' \uD074\uB798\uC2A4');
+        if (regionFilter) {
+            pushLink(buildListPageUrl({ region: regionFilter }), regionFilter + ' \uD074\uB798\uC2A4');
         }
         if (partnerName) {
             pushLink(buildListPageUrl({ q: partnerName }), '\uAC15\uC0AC \uD074\uB798\uC2A4 \uBAA8\uC544\uBCF4\uAE30');
@@ -2507,14 +2559,6 @@
         return score;
     }
 
-    function appendHiddenInput(form, name, value) {
-        var input = document.createElement('input');
-        input.type = 'hidden';
-        input.name = name;
-        input.value = value == null ? '' : String(value);
-        form.appendChild(input);
-    }
-
     function resolveGiftProductMeta(brandUid) {
         return fetch('/shop/shopdetail.html?branduid=' + String(brandUid))
             .then(function(resp) {
@@ -2525,14 +2569,24 @@
                 var parser = new DOMParser();
                 var doc = parser.parseFromString(html, 'text/html');
                 var form = doc.querySelector('form[name="form1"], form[name="detailform"]');
+                var nativeGiftLink = doc.querySelector('.btn-gift[href]');
                 var inputs = form ? form.querySelectorAll('input[name]') : [];
                 var fields = {};
-                var stopUseMatch = html.match(/sto_stop_use:'([YN])'/);
                 var stoIdMatch = html.match(/sto_id:'([^']+)'/);
                 var titleEl = doc.querySelector('.goods--title');
+                var nativeGiftUrl = '';
 
                 for (var i = 0; i < inputs.length; i++) {
                     fields[inputs[i].name] = inputs[i].value || '';
+                }
+
+                if (nativeGiftLink) {
+                    nativeGiftUrl = nativeGiftLink.getAttribute('href') || '';
+                    if (nativeGiftUrl && nativeGiftUrl.indexOf('javascript:') !== 0 && nativeGiftUrl.charAt(0) !== '#') {
+                        nativeGiftUrl = nativeGiftUrl.charAt(0) === '/' ? nativeGiftUrl : '/shop/' + nativeGiftUrl.replace(/^\.\//, '');
+                    } else {
+                        nativeGiftUrl = '';
+                    }
                 }
 
                 return {
@@ -2546,37 +2600,75 @@
                     cartFree: fields.cart_free || '',
                     stoId: stoIdMatch ? stoIdMatch[1] : '1',
                     productName: titleEl ? titleEl.textContent.trim() : (classData && classData.class_name ? classData.class_name : '\uD30C\uD2B8\uB108 \uD074\uB798\uC2A4'),
-                    isSellable: !(stopUseMatch && stopUseMatch[1] === 'Y')
+                    nativeGiftUrl: nativeGiftUrl
                 };
             });
     }
 
     function submitGiftCheckout(meta, quantity) {
-        var form = document.createElement('form');
-        form.method = 'POST';
-        form.action = '/shop/basket.html';
-        form.style.display = 'none';
+        var params = new URLSearchParams();
+        params.append('totalnum', '');
+        params.append('collbrandcode', '');
+        params.append('xcode', meta.xCode);
+        params.append('mcode', meta.mCode);
+        params.append('typep', meta.typep);
+        params.append('aramount', '');
+        params.append('arspcode', '');
+        params.append('arspcode2', '');
+        params.append('optionindex', '');
+        params.append('alluid', '');
+        params.append('alloptiontype', '');
+        params.append('aropts', '');
+        params.append('checktype', '');
+        params.append('ordertype', 'baro|parent.|layer');
+        params.append('brandcode', meta.brandCode);
+        params.append('branduid', meta.brandUid);
+        params.append('cart_free', meta.cartFree);
+        params.append('opt_type', meta.optType);
+        params.append('basket_use', meta.basketUse);
+        params.append('giveapresent', 'Y');
+        params.append('amount', String(quantity));
+        params.append('amount[]', String(quantity));
+        params.append('option[basic][0][0][opt_id]', '0');
+        params.append('option[basic][0][0][opt_value]', meta.productName);
+        params.append('option[basic][0][0][opt_stock]', '1');
+        params.append('option[basic][0][0][sto_id]', meta.stoId || '1');
+        params.append('option[basic][0][0][opt_type]', 'undefined');
 
-        appendHiddenInput(form, 'brandcode', meta.brandCode);
-        appendHiddenInput(form, 'branduid', meta.brandUid);
-        appendHiddenInput(form, 'xcode', meta.xCode);
-        appendHiddenInput(form, 'mcode', meta.mCode);
-        appendHiddenInput(form, 'typep', meta.typep);
-        appendHiddenInput(form, 'ordertype', 'baro|parent.|layer');
-        appendHiddenInput(form, 'cart_free', meta.cartFree);
-        appendHiddenInput(form, 'opt_type', meta.optType);
-        appendHiddenInput(form, 'basket_use', meta.basketUse);
-        appendHiddenInput(form, 'giveapresent', 'Y');
-        appendHiddenInput(form, 'amount', quantity);
-        appendHiddenInput(form, 'amount[]', quantity);
-        appendHiddenInput(form, 'option[basic][0][0][opt_id]', '0');
-        appendHiddenInput(form, 'option[basic][0][0][opt_value]', meta.productName);
-        appendHiddenInput(form, 'option[basic][0][0][opt_stock]', '1');
-        appendHiddenInput(form, 'option[basic][0][0][sto_id]', meta.stoId || '1');
-        appendHiddenInput(form, 'option[basic][0][0][opt_type]', 'undefined');
+        fetch('/shop/basket.action.html', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString(),
+            credentials: 'same-origin'
+        })
+            .then(function(resp) {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.text();
+            })
+            .then(function(text) {
+                var data = null;
+                try {
+                    data = JSON.parse(text);
+                } catch (err) {
+                    throw new Error('\uBA54\uC774\uD06C\uC0F5 \uC120\uBB3C\uD558\uAE30 \uC751\uB2F5 \uD30C\uC2F1 \uC2E4\uD328');
+                }
 
-        document.body.appendChild(form);
-        form.submit();
+                if (!data || data.status !== true) {
+                    throw new Error(data && data.message ? data.message : '\uBA54\uC774\uD06C\uC0F5 \uC120\uBB3C\uD558\uAE30 \uCC98\uB9AC \uC2E4\uD328');
+                }
+
+                if (data.etc_data && data.etc_data.baro_type === 'baro') {
+                    window.location.href = '/shop/order.html' + (data.etc_data.add_rand_url || '');
+                    return;
+                }
+
+                window.location.href = '/shop/basket.html';
+            })
+            .catch(function(err) {
+                console.warn('[ClassDetail] \uC120\uBB3C\uD558\uAE30 basket.action \uC2E4\uD328:', err);
+                setGiftButtonBusy(false);
+                showToast('\uC120\uBB3C \uC8FC\uBB38\uC11C\uB97C \uBD88\uB7EC\uC624\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574\uC8FC\uC138\uC694.', 'error');
+            });
     }
 
 

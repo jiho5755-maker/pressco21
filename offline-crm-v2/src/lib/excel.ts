@@ -72,6 +72,30 @@ export function exportOutgoingLedger(rows: OutgoingLedgerExportRow[], filename =
   downloadXlsx(data, filename)
 }
 
+export interface MonthlyAccountingSummaryExportRow {
+  month: string
+  legacySales: number
+  crmSales: number
+  totalSales: number
+  legacyReceipts: number
+  legacyPayments: number
+}
+
+export function exportMonthlyAccountingSummary(
+  rows: MonthlyAccountingSummaryExportRow[],
+  filename = '월별회계요약',
+): void {
+  const data = rows.map((row) => ({
+    월: row.month,
+    '기존 장부 매출': row.legacySales,
+    '새 입력 매출': row.crmSales,
+    '총 매출': row.totalSales,
+    '기존 장부 입금': row.legacyReceipts,
+    '기존 장부 지급': row.legacyPayments,
+  }))
+  downloadXlsx(data, filename)
+}
+
 export function exportTxHistory(txs: TxHistory[], filename = '거래내역'): void {
   const data = txs.map((tx) => ({
     거래일: tx.tx_date?.slice(0, 10) ?? '',

@@ -1,7 +1,8 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { useQuery } from '@tanstack/react-query'
-import { TrendingUp, TrendingDown, Minus, AlertTriangle } from 'lucide-react'
+import { TrendingUp, TrendingDown, Minus, AlertTriangle, Download } from 'lucide-react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Button } from '@/components/ui/button'
 import {
   LineChart, Line, BarChart, Bar, PieChart, Pie, Cell,
   XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend,
@@ -19,6 +20,7 @@ import {
 } from '@/lib/reporting'
 import { getFiscalBalanceSnapshots, getLegacyCustomerSnapshots, getLegacyPayableBaselineFromSnapshots } from '@/lib/legacySnapshots'
 import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
+import { exportMonthlyAccountingSummary } from '@/lib/excel'
 
 // accounting-specialist 정의 임계값
 const RECEIVABLE_THRESHOLDS = {
@@ -107,6 +109,24 @@ export function Dashboard() {
     queryKey: ['dash-tx-last', CUR_YEAR - 1],
     queryFn: () => getTxHistory({
       where: `(tx_type,eq,출고)~and(tx_year,eq,${CUR_YEAR - 1})`,
+      limit: 5000,
+    }),
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  })
+  const { data: txThisYearReceipts } = useQuery({
+    queryKey: ['dash-tx-receipts', CUR_YEAR],
+    queryFn: () => getTxHistory({
+      where: `(tx_type,eq,입금)~and(tx_year,eq,${CUR_YEAR})`,
+      limit: 5000,
+    }),
+    staleTime: 5 * 60_000,
+    refetchOnWindowFocus: false,
+  })
+  const { data: txThisYearPayments } = useQuery({
+    queryKey: ['dash-tx-payments', CUR_YEAR],
+    queryFn: () => getTxHistory({
+      where: `(tx_type,eq,지급)~and(tx_year,eq,${CUR_YEAR})`,
       limit: 5000,
     }),
     staleTime: 5 * 60_000,
@@ -309,6 +329,47 @@ export function Dashboard() {
     amount: customer.totalRemaining,
   }))
 
+  const monthlyAccountingSummary = useMemo(() => {
+    const summary = Array.from({ length: CUR_MONTH }, (_, index) => {
+      const month = `${CUR_YEAR}-${String(index + 1).padStart(2, '0')}`
+      return {
+        month,
+        legacySales: 0,
+        crmSales: 0,
+        totalSales: 0,
+        legacyReceipts: 0,
+        legacyPayments: 0,
+      }
+    })
+    const byMonth = new Map(summary.map((row) => [row.month, row]))
+
+    ;(txThisYear?.list ?? []).forEach((tx) => {
+      const month = getYearMonth(tx.tx_date ?? '')
+      const target = byMonth.get(month)
+      if (target) target.legacySales += tx.amount ?? 0
+    })
+    ;(periodInvoicesRaw?.list ?? []).forEach((invoice) => {
+      const month = getYearMonth(invoice.invoice_date ?? '')
+      const target = byMonth.get(month)
+      if (target) target.crmSales += invoice.total_amount ?? 0
+    })
+    ;(txThisYearReceipts?.list ?? []).forEach((tx) => {
+      const month = getYearMonth(tx.tx_date ?? '')
+      const target = byMonth.get(month)
+      if (target) target.legacyReceipts += tx.amount ?? 0
+    })
+    ;(txThisYearPayments?.list ?? []).forEach((tx) => {
+      const month = getYearMonth(tx.tx_date ?? '')
+      const target = byMonth.get(month)
+      if (target) target.legacyPayments += tx.amount ?? 0
+    })
+
+    return summary.map((row) => ({
+      ...row,
+      totalSales: row.legacySales + row.crmSales,
+    }))
+  }, [periodInvoicesRaw, txThisYear, txThisYearPayments, txThisYearReceipts])
+
   // ── 기간 리포트 계산 ─────────────────────────────────────
   const {
     periodInvoiceList,
@@ -344,6 +405,15 @@ export function Dashboard() {
             기준: {CUR_YEAR}년 {CUR_MONTH}월
           </p>
         </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="gap-1"
+          onClick={() => exportMonthlyAccountingSummary(monthlyAccountingSummary)}
+        >
+          <Download className="h-4 w-4" />
+          월별 회계 요약
+        </Button>
       </div>
 
       {/* ── KPI 카드 8개 ── */}

@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -35,6 +36,14 @@ interface SettingsData extends CompanyInfo {
   operator_profile_2_label?: string
   operator_profile_2_name?: string
   active_operator_profile_id?: string
+  auto_deposit_bank_name?: string
+  auto_deposit_account_number?: string
+  auto_deposit_account_holder?: string
+  auto_deposit_source?: string
+  auto_deposit_exact_match_enabled?: boolean
+  auto_deposit_auto_apply_enabled?: boolean
+  auto_deposit_last_sync_at?: string
+  auto_deposit_note?: string
 }
 
 const SETTINGS_KEY = 'pressco21-crm-settings'
@@ -84,6 +93,14 @@ function toServerPayload(data: SettingsData): Partial<CrmSettings> {
     price3_rate: data.price3_rate,
     price4_rate: data.price4_rate,
     price5_rate: data.price5_rate,
+    auto_deposit_bank_name: data.auto_deposit_bank_name,
+    auto_deposit_account_number: data.auto_deposit_account_number,
+    auto_deposit_account_holder: data.auto_deposit_account_holder,
+    auto_deposit_source: data.auto_deposit_source,
+    auto_deposit_exact_match_enabled: data.auto_deposit_exact_match_enabled,
+    auto_deposit_auto_apply_enabled: data.auto_deposit_auto_apply_enabled,
+    auto_deposit_last_sync_at: data.auto_deposit_last_sync_at,
+    auto_deposit_note: data.auto_deposit_note,
   }
 }
 
@@ -107,6 +124,7 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
 }
 
 export function Settings() {
+  const navigate = useNavigate()
   const [data, setData] = useState<SettingsData>(loadSettings)
   const [serverRowId, setServerRowId] = useState<number | null>(null)
   const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('idle')
@@ -561,6 +579,121 @@ export function Settings() {
                 </div>
               </Field>
             ))}
+          </div>
+        </section>
+
+        {/* ─── 섹션 6: 자동입금 준비 ─── */}
+        <section>
+          <SectionTitle>자동입금 준비</SectionTitle>
+          <p className="text-xs text-muted-foreground mb-4">
+            원장님 농협 계좌 입금 자동화를 붙이기 전, 수집 방식과 자동 반영 기준을 먼저 고정합니다.
+          </p>
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-4">
+              <Field label="은행명">
+                <Input
+                  value={data.auto_deposit_bank_name ?? ''}
+                  onChange={(e) => set('auto_deposit_bank_name', e.target.value)}
+                  placeholder="농협"
+                />
+              </Field>
+              <Field label="계좌번호">
+                <Input
+                  value={data.auto_deposit_account_number ?? ''}
+                  onChange={(e) => set('auto_deposit_account_number', e.target.value)}
+                  placeholder="000-0000-0000-00"
+                />
+              </Field>
+              <Field label="예금주">
+                <Input
+                  value={data.auto_deposit_account_holder ?? ''}
+                  onChange={(e) => set('auto_deposit_account_holder', e.target.value)}
+                  placeholder="예금주명"
+                />
+              </Field>
+            </div>
+
+            <Field label="입금 수집 방식" hint="실연동 전까지는 수동 업로드 또는 검토 전용으로 시작하는 것이 안전합니다.">
+              <Select
+                value={data.auto_deposit_source ?? 'manual_csv'}
+                onValueChange={(value) => set('auto_deposit_source', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="수집 방식을 선택하세요" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="manual_csv">수동 파일 업로드</SelectItem>
+                  <SelectItem value="review_only">검토 전용 연결</SelectItem>
+                  <SelectItem value="bank_api">은행 API 연동</SelectItem>
+                </SelectContent>
+              </Select>
+            </Field>
+
+            <div className="grid grid-cols-2 gap-4">
+              <div className="rounded-lg border bg-gray-50 px-4 py-3">
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(data.auto_deposit_exact_match_enabled)}
+                    onChange={(e) => set('auto_deposit_exact_match_enabled', e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-[#7d9675]"
+                  />
+                  <span>
+                    <span className="font-medium text-gray-900">정확 금액 자동매칭 사용</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      입금자명, 금액, 남은 받을 돈이 모두 맞는 후보를 우선 제안합니다.
+                    </span>
+                  </span>
+                </label>
+              </div>
+              <div className="rounded-lg border bg-gray-50 px-4 py-3">
+                <label className="flex items-start gap-3 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={Boolean(data.auto_deposit_auto_apply_enabled)}
+                    onChange={(e) => set('auto_deposit_auto_apply_enabled', e.target.checked)}
+                    className="mt-0.5 h-4 w-4 accent-[#7d9675]"
+                  />
+                  <span>
+                    <span className="font-medium text-gray-900">정확 일치 자동반영 허용</span>
+                    <span className="mt-1 block text-xs text-muted-foreground">
+                      완전히 맞는 입금만 자동 처리하고, 나머지는 검토 대기열로 보냅니다.
+                    </span>
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <Field label="최근 동기화 시각" hint="실수집이 붙으면 마지막 입금 수집 성공 시각이 여기에 기록됩니다.">
+              <Input
+                value={data.auto_deposit_last_sync_at ?? ''}
+                onChange={(e) => set('auto_deposit_last_sync_at', e.target.value)}
+                placeholder="예: 2026-03-12 09:30"
+              />
+            </Field>
+
+            <Field label="운영 메모" hint="은행 접속 방식, 담당자, 검토 규칙 등을 적어두면 인수인계에 유용합니다.">
+              <Input
+                value={data.auto_deposit_note ?? ''}
+                onChange={(e) => set('auto_deposit_note', e.target.value)}
+                placeholder="예: 1차는 수동 업로드, 정확 일치만 자동반영"
+              />
+            </Field>
+
+            <div className="rounded-lg border bg-[#f7faf6] px-4 py-3 text-sm">
+              <p className="font-medium text-gray-900">현재 자동입금 운영 기준</p>
+              <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
+                <li>수집 방식: {(data.auto_deposit_source ?? 'manual_csv') === 'manual_csv' ? '수동 파일 업로드' : (data.auto_deposit_source ?? '') === 'review_only' ? '검토 전용 연결' : '은행 API 연동'}</li>
+                <li>자동매칭: {data.auto_deposit_exact_match_enabled ? '사용' : '미사용'}</li>
+                <li>자동반영: {data.auto_deposit_auto_apply_enabled ? '정확 일치만 자동반영' : '검토 후 수동 반영'}</li>
+                <li>계좌: {[data.auto_deposit_bank_name, data.auto_deposit_account_number, data.auto_deposit_account_holder].filter(Boolean).join(' / ') || '미설정'}</li>
+              </ul>
+              <div className="mt-3">
+                <Button type="button" variant="outline" size="sm" onClick={() => navigate('/deposit-inbox')}>
+                  입금 수집함 열기
+                </Button>
+              </div>
+            </div>
           </div>
         </section>
       </div>

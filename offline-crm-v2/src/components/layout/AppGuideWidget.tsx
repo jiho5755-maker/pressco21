@@ -168,7 +168,8 @@ export function AppGuideWidget() {
               <div className="mt-2 flex flex-wrap gap-2">
                 {APP_GUIDES.map((item) => {
                   const path =
-                    item.key === 'receivables' ? '/receivables'
+                    item.key === 'deposit-inbox' ? '/deposit-inbox'
+                    : item.key === 'receivables' ? '/receivables'
                     : item.key === 'payables' ? '/payables'
                     : item.key === 'customers' ? '/customers'
                     : '/transactions'

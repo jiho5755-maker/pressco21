@@ -13,6 +13,7 @@ const menuItems = [
   { path: '/transactions', label: '거래/명세표 조회',   icon: '📈' },
   { path: '/receivables',  label: '수금 관리',   icon: '💰' },
   { path: '/payables',     label: '지급 관리',   icon: '💸' },
+  { path: '/deposit-inbox', label: '입금 수집함', icon: '🏦' },
   { path: '/calendar',     label: '캘린더',      icon: '📅' },
   { path: '/settings',     label: '설정',        icon: '⚙️' },
 ]

@@ -1367,7 +1367,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       </div>
 
       <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="relative min-w-[220px]">
+        <div className="relative min-w-[220px]" data-guide-id="receivables-search">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             value={customerSearch}
@@ -1402,7 +1402,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       </div>
 
       {isPayableMode ? (
-        <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <div className="mb-4 grid gap-3 md:grid-cols-3" data-guide-id="payables-summary">
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{totalSummaryLabel}</p>
             <p className="mt-1 text-base font-semibold text-blue-700">{filteredTotalOutgoing.toLocaleString()}원</p>
@@ -1420,7 +1420,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           </div>
         </div>
       ) : (
-        <div className="mb-4 grid gap-3 md:grid-cols-5">
+        <div className="mb-4 grid gap-3 md:grid-cols-5" data-guide-id="receivables-summary">
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{totalSummaryLabel}</p>
             <p className="mt-1 text-base font-semibold text-red-600">{filteredTotalReceivable.toLocaleString()}원</p>
@@ -1536,7 +1536,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           setSearchParams(nextParams, { replace: true })
         }}
       >
-        <TabsList className="mb-4">
+        <TabsList className="mb-4" data-guide-id="receivables-tabs">
           <TabsTrigger value="all">{allTabLabel}</TabsTrigger>
           {!isPayableMode && <TabsTrigger value="crm">{crmTabLabel}</TabsTrigger>}
           {!isPayableMode && <TabsTrigger value="legacy">{legacyTabLabel}</TabsTrigger>}
@@ -1546,7 +1546,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
 
         <TabsContent value="all" className="space-y-4">
           {isPayableMode ? (
-            <div className="rounded-lg border bg-white overflow-hidden">
+            <div className="rounded-lg border bg-white overflow-hidden" data-guide-id="payables-table">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
@@ -1624,7 +1624,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
               </table>
             </div>
           ) : (
-            <div className="rounded-lg border bg-white overflow-hidden">
+            <div className="rounded-lg border bg-white overflow-hidden" data-guide-id="receivables-table">
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">

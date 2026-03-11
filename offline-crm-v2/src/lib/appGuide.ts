@@ -1,6 +1,7 @@
 export interface AppGuideStep {
   title: string
   description: string
+  selector?: string
 }
 
 export interface AppGuideScreen {
@@ -57,10 +58,10 @@ export const APP_GUIDES: AppGuideScreen[] = [
     title: '수금 관리 가이드',
     summary: '받을 돈을 확인하고 입금 처리, 취소, 고객 이동을 가장 빠르게 처리하는 화면입니다.',
     steps: [
-      { title: '1. 먼저 오늘 처리할 고객을 찾기', description: '거래처명 필터로 고객을 좁히고, 기준일은 기본적으로 오늘 기준으로 둡니다.' },
-      { title: '2. 돈의 출처 구분하기', description: '기존 장부 받을 돈은 얼마에요에서 넘어온 금액, 새 입력 받을 돈은 프로그램에서 새로 만든 명세표 미수입니다.' },
-      { title: '3. 입금 확인 전 체크', description: '현재 작업 계정, 최대 입금 가능액, 남는 잔액을 보고 저장합니다. 잘못 넣은 건은 바로 취소할 수 있습니다.' },
-      { title: '4. 처리 후 바로 확인하기', description: '고객 상세, 거래원장, 수금 이력이 함께 줄어드는지 확인하면 실수가 줄어듭니다.' },
+      { title: '1. 먼저 오늘 처리할 고객을 찾기', description: '거래처명 필터로 고객을 좁히고, 기준일은 기본적으로 오늘 기준으로 둡니다.', selector: '[data-guide-id="receivables-search"]' },
+      { title: '2. 돈의 출처 구분하기', description: '상단 카드에서 기존 장부 받을 돈, 새 입력 받을 돈, 줄 돈, 환불대기를 나눠 봅니다.', selector: '[data-guide-id="receivables-summary"]' },
+      { title: '3. 처리할 탭 고르기', description: '새 입력 받을 돈, 기존 장부 받을 돈, 줄 돈, 환불대기 탭 중 지금 처리할 일을 고릅니다.', selector: '[data-guide-id="receivables-tabs"]' },
+      { title: '4. 처리 후 바로 확인하기', description: '입금 확인 뒤에는 고객 상세와 거래원장에서 금액이 같이 바뀌는지 확인합니다.', selector: '[data-guide-id="receivables-table"]' },
     ],
   },
   {
@@ -68,10 +69,10 @@ export const APP_GUIDES: AppGuideScreen[] = [
     title: '지급 관리 가이드',
     summary: '줄 돈을 확인하고 지급 처리, 취소, 거래 이력을 관리하는 화면입니다.',
     steps: [
-      { title: '1. 줄 돈과 받을 돈을 구분하기', description: '이 화면의 핵심 숫자는 총 줄 돈입니다. 받을 돈 숫자는 참고용이고, 실제 처리 대상은 기존 장부 줄 돈 탭입니다.' },
-      { title: '2. 지급 확인 전 체크', description: '지급액이 최대 지급 가능액을 넘지 않는지, 어떤 계정으로 기록되는지 보고 저장합니다.' },
-      { title: '3. 지급 후 검증하기', description: '지급 관리 금액, 고객 상세 기존 장부 원본 탭, 거래원장의 지급 행이 같이 바뀌는지 확인합니다.' },
-      { title: '4. 잘못 지급한 경우', description: '지급 이력에서 취소하면 줄 돈이 다시 복원되고, 거래원장 지급 행도 사라집니다.' },
+      { title: '1. 총 지급 예정 보기', description: '이 화면은 줄 돈과 환불대기를 합친 총 지급 예정 금액부터 봅니다.', selector: '[data-guide-id="payables-summary"]' },
+      { title: '2. 지급 성격 구분하기', description: '기존 장부 줄 돈은 실제로 보내야 할 돈, 환불대기는 고객에게 돌려줄 예정 금액입니다.', selector: '[data-guide-id="receivables-tabs"]' },
+      { title: '3. 같은 목록에서 바로 처리하기', description: '전체 지급 탭에서 지급 확인과 환불 처리를 같은 목록에서 바로 진행할 수 있습니다.', selector: '[data-guide-id="payables-table"]' },
+      { title: '4. 처리 후 검증하기', description: '지급 관리 금액, 고객 상세, 거래원장의 지급 또는 환불 행이 같이 바뀌는지 확인합니다.', selector: '[data-guide-id="payables-table"]' },
     ],
   },
   {
@@ -79,9 +80,10 @@ export const APP_GUIDES: AppGuideScreen[] = [
     title: '고객 관리 가이드',
     summary: '고객을 찾고, 상세에서 수금/지급/거래 흐름을 한 번에 확인하는 시작 화면입니다.',
     steps: [
-      { title: '1. 고객 찾기', description: '거래처명과 기존 장부 장부명 둘 다 검색할 수 있으니, 분리 거래처도 그대로 찾을 수 있습니다.' },
-      { title: '2. 고객 상세 활용', description: '상단의 수금 관리, 지급 관리, 거래/명세표 조회 버튼으로 바로 업무 화면으로 이동합니다.' },
-      { title: '3. 기존 장부 원본 확인', description: '이월 잔액과 기존 장부 원본 필드를 같이 봐야 왜 지금 금액이 나왔는지 이해하기 쉽습니다.' },
+      { title: '1. 고객 찾기', description: '거래처명과 기존 장부 장부명을 같이 검색할 수 있으니, 분리 거래처도 그대로 찾을 수 있습니다.', selector: '[data-guide-id="customers-search"]' },
+      { title: '2. 필터로 좁히기', description: '유형, 상태, 등급 필터를 같이 써서 오늘 처리할 고객만 남깁니다.', selector: '[data-guide-id="customers-filters"]' },
+      { title: '3. 상세로 들어가기', description: '목록 행을 누르면 고객 상세로 이동하고, 거기서 수금 관리/지급 관리/거래원장으로 바로 이동합니다.', selector: '[data-guide-id="customers-table"]' },
+      { title: '4. 신규 고객 등록', description: '새 고객 버튼으로 고객 정보를 추가하고 바로 거래를 시작할 수 있습니다.', selector: '[data-guide-id="customers-new-button"]' },
     ],
   },
   {
@@ -89,9 +91,10 @@ export const APP_GUIDES: AppGuideScreen[] = [
     title: '거래원장 가이드',
     summary: '출고, 입금, 지급, 반입이 시간순으로 보이는 통합 원장입니다.',
     steps: [
-      { title: '1. 고객과 기간으로 좁히기', description: '거래처명, 유형, 시작일/종료일로 범위를 좁혀서 필요한 흐름만 확인합니다.' },
-      { title: '2. 행을 눌러 상세 보기', description: '거래 상세 팝업에서 고객 상세, 수금 관리, 지급 관리로 바로 이동할 수 있습니다.' },
-      { title: '3. 지급/입금 확인', description: '지급은 줄 돈 처리, 입금은 받을 돈 처리입니다. 둘을 같은 원장에서 같이 보면 실수가 줄어듭니다.' },
+      { title: '1. 원장 범위 고르기', description: '전체, 기존 장부 거래, 새 입력 명세표 탭 중 필요한 원장 범위를 먼저 고릅니다.', selector: '[data-guide-id="transactions-tabs"]' },
+      { title: '2. 고객과 기간으로 좁히기', description: '거래처명, 유형, 시작일/종료일로 필요한 흐름만 남깁니다.', selector: '[data-guide-id="transactions-filters"]' },
+      { title: '3. 행을 눌러 상세 보기', description: '거래 상세 팝업에서 고객 상세, 수금 관리, 지급 관리로 바로 이동할 수 있습니다.', selector: '[data-guide-id="transactions-table"]' },
+      { title: '4. 입금과 지급을 함께 보기', description: '입금은 받을 돈 처리, 지급은 줄 돈 처리입니다. 한 원장에서 같이 보면 실수가 줄어듭니다.', selector: '[data-guide-id="transactions-table"]' },
     ],
   },
 ]

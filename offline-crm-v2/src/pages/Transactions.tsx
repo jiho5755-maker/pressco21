@@ -564,7 +564,7 @@ export function Transactions() {
 
       {/* 탭 */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
-        <TabsList>
+        <TabsList data-guide-id="transactions-tabs">
           <TabsTrigger value="all">전체</TabsTrigger>
           <TabsTrigger value="legacy">기존 장부 거래</TabsTrigger>
           <TabsTrigger value="crm">새 입력 명세표</TabsTrigger>
@@ -595,7 +595,7 @@ export function Transactions() {
       )}
 
       {/* 필터 */}
-      <div className="flex gap-3 mb-4 flex-wrap">
+      <div className="flex gap-3 mb-4 flex-wrap" data-guide-id="transactions-filters">
         <div className="relative flex-1 min-w-48 max-w-xs">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
@@ -675,7 +675,7 @@ export function Transactions() {
       )}
 
       {/* 테이블 */}
-      <div className="rounded-lg border bg-white overflow-hidden">
+      <div className="rounded-lg border bg-white overflow-hidden" data-guide-id="transactions-table">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-gray-50">

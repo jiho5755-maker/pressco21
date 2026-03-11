@@ -168,6 +168,7 @@ export function Customers() {
         <Button
           onClick={() => { setSelectedCustomer(null); setDialogOpen(true) }}
           className="bg-[#7d9675] hover:bg-[#6a8462] text-white gap-1"
+          data-guide-id="customers-new-button"
         >
           <Plus className="h-4 w-4" />
           새 고객
@@ -175,8 +176,8 @@ export function Customers() {
       </div>
 
       {/* 필터 */}
-      <div className="flex gap-3 mb-4 flex-wrap">
-        <div className="relative flex-1 min-w-48 max-w-xs">
+      <div className="flex gap-3 mb-4 flex-wrap" data-guide-id="customers-filters">
+        <div className="relative flex-1 min-w-48 max-w-xs" data-guide-id="customers-search">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
           <Input
             placeholder="거래처명/얼마에요 구분명 검색..."
@@ -230,7 +231,7 @@ export function Customers() {
       </div>
 
       {/* 테이블 */}
-      <div className="rounded-lg border bg-white overflow-hidden">
+      <div className="rounded-lg border bg-white overflow-hidden" data-guide-id="customers-table">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-gray-50">

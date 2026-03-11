@@ -8,6 +8,7 @@ export interface AppGuideScreen {
   key: string
   title: string
   summary: string
+  dock?: 'left' | 'right'
   steps: AppGuideStep[]
 }
 
@@ -57,6 +58,7 @@ export const APP_GUIDES: AppGuideScreen[] = [
     key: 'deposit-inbox',
     title: '입금 수집함 가이드',
     summary: '농협 파일을 먼저 올리고, 자동으로 잡힌 후보를 검토한 뒤 안전하게 입금 반영하는 화면입니다.',
+    dock: 'left',
     steps: [
       { title: '1. 입금 파일 올리기', description: '농협 CSV나 엑셀 파일을 업로드하면 수집함에 입금 건이 쌓입니다.', selector: '[data-guide-id="deposit-upload-button"]' },
       { title: '2. 오늘 처리할 건수 확인', description: '정확 후보, 검토 필요, 미매칭, 반영 완료 건수를 먼저 보고 우선순위를 정합니다.', selector: '[data-guide-id="deposit-summary"]' },
@@ -68,6 +70,7 @@ export const APP_GUIDES: AppGuideScreen[] = [
     key: 'receivables',
     title: '수금 관리 가이드',
     summary: '받을 돈을 확인하고 입금 처리, 취소, 고객 이동을 가장 빠르게 처리하는 화면입니다.',
+    dock: 'left',
     steps: [
       { title: '1. 먼저 오늘 처리할 고객을 찾기', description: '거래처명 필터로 고객을 좁히고, 기준일은 기본적으로 오늘 기준으로 둡니다.', selector: '[data-guide-id="receivables-search"]' },
       { title: '2. 돈의 출처 구분하기', description: '상단 카드에서 기존 장부 받을 돈, 새 입력 받을 돈, 줄 돈, 환불대기를 나눠 봅니다.', selector: '[data-guide-id="receivables-summary"]' },
@@ -79,6 +82,7 @@ export const APP_GUIDES: AppGuideScreen[] = [
     key: 'payables',
     title: '지급 관리 가이드',
     summary: '줄 돈을 확인하고 지급 처리, 취소, 거래 이력을 관리하는 화면입니다.',
+    dock: 'left',
     steps: [
       { title: '1. 총 지급 예정 보기', description: '이 화면은 줄 돈과 환불대기를 합친 총 지급 예정 금액부터 봅니다.', selector: '[data-guide-id="payables-summary"]' },
       { title: '2. 지급 성격 구분하기', description: '기존 장부 줄 돈은 실제로 보내야 할 돈, 환불대기는 고객에게 돌려줄 예정 금액입니다.', selector: '[data-guide-id="receivables-tabs"]' },
@@ -90,6 +94,7 @@ export const APP_GUIDES: AppGuideScreen[] = [
     key: 'customers',
     title: '고객 관리 가이드',
     summary: '고객을 찾고, 상세에서 수금/지급/거래 흐름을 한 번에 확인하는 시작 화면입니다.',
+    dock: 'left',
     steps: [
       { title: '1. 고객 찾기', description: '거래처명과 기존 장부 장부명을 같이 검색할 수 있으니, 분리 거래처도 그대로 찾을 수 있습니다.', selector: '[data-guide-id="customers-search"]' },
       { title: '2. 필터로 좁히기', description: '유형, 상태, 등급 필터를 같이 써서 오늘 처리할 고객만 남깁니다.', selector: '[data-guide-id="customers-filters"]' },
@@ -101,6 +106,7 @@ export const APP_GUIDES: AppGuideScreen[] = [
     key: 'transactions',
     title: '거래원장 가이드',
     summary: '출고, 입금, 지급, 반입이 시간순으로 보이는 통합 원장입니다.',
+    dock: 'left',
     steps: [
       { title: '1. 원장 범위 고르기', description: '전체, 기존 장부 거래, 새 입력 명세표 탭 중 필요한 원장 범위를 먼저 고릅니다.', selector: '[data-guide-id="transactions-tabs"]' },
       { title: '2. 고객과 기간으로 좁히기', description: '거래처명, 유형, 시작일/종료일로 필요한 흐름만 남깁니다.', selector: '[data-guide-id="transactions-filters"]' },

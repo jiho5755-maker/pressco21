@@ -73,6 +73,10 @@ export function AppGuideWidget() {
 
   if (!guide) return null
 
+  const dockClass = guide.dock === 'left'
+    ? 'left-[16rem] right-auto items-start'
+    : 'right-5 items-end'
+
   return (
     <>
       {isTourMode && highlightRect && (
@@ -87,7 +91,7 @@ export function AppGuideWidget() {
         />
       )}
 
-      <div className="fixed bottom-5 right-5 z-50 flex max-w-sm flex-col items-end gap-2">
+      <div className={`fixed bottom-5 z-50 flex max-w-sm flex-col gap-2 ${dockClass}`}>
         <div className="rounded-full border bg-white/95 p-1 shadow-lg backdrop-blur">
           <Button
             type="button"

@@ -50,17 +50,19 @@
 ## Session Lock
 
 - Current Owner: CODEX
-- Mode: IDLE
-- Started At: 2026-03-11 16:36:00 KST
+- Mode: —
+- Started At: 2026-03-11 17:05:00 KST
 - Branch: main
-- Working Scope: Waiting for next task
-- Active Subdirectory: pressco21
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
 - `AI_SYNC.md`
 - `ROADMAP.md`
 - `docs/파트너클래스/*`
 - `scripts/*`
+- `offline-crm-v2/docs/accounting-upgrade-prd-2026-03-11.md`
+- `offline-crm-v2/docs/accounting-upgrade-roadmap-2026-03-11.md`
 
 ### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
 - 스크립트 / 문서
@@ -295,6 +297,22 @@
     - `output/playwright/s2-7-partner-churn/churn-results.json`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX] offline-crm-v2 회계 고도화 PRD/로드맵 수립 완료 (CODEX)
+- 문서
+  - `offline-crm-v2/docs/accounting-upgrade-prd-2026-03-11.md`
+  - `offline-crm-v2/docs/accounting-upgrade-roadmap-2026-03-11.md`
+- 기준점 백업
+  - Git tag: `crm-backup-before-accounting-upgrade-20260311`
+  - 기준 커밋: `3eee628`
+  - 원격 푸시 완료
+- 결정
+  - 목표 3개를 공식화
+    - 회계 운영 프로그램 고도화
+    - 직원 사용 가이드 투어
+    - 원장님 농협 계좌 입금 자동 반영
+  - 구현 순서는 `수금/지급 처리 엔진 분리 -> 화면 구조 재설계 -> 직원 가이드 투어 -> 농협 계좌 자동화`
+  - 자동 수금은 첫 단계에서 완전 자동이 아니라 `후보 매칭 + 승인 가능한 반자동`을 원칙으로 함
 
 ### [CODEX-LEAD] Phase 3 S3-3 키트 구독 파일럿 완료 (CODEX)
 - 메이크샵
@@ -1990,6 +2008,9 @@
 
 ## Next Step
 
+- [CODEX-LEAD] offline-crm-v2 Phase 1 지급 처리 엔진 설계 착수
+- [CODEX-LEAD] offline-crm-v2 지급 관리 화면 IA와 데이터 모델 초안 작성
+- [CODEX-LEAD] offline-crm-v2 농협 입금 자동화 1차 기술 검토: 수집 경로, 보안, 승인 큐 구조
 - [CODEX] CRM 수금/지급 실제 로그인 계정 체계가 필요해지면 localStorage 작업 계정 방식에서 서버 세션 기반 로그로 승격
 - [CODEX] CRM 운영 사용 중 신규 분리 고객/분리 거래명 케이스가 생기면 동일 정책으로 누적 정리
 - [CODEX] CRM 운영 데이터 직접 수정 사고 대비 `서상견`과 같은 핵심 분리 고객 복구 절차를 스크립트화하거나 관리자 백업 체크리스트로 문서화
@@ -2090,6 +2111,8 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 
 ## Known Risks
 
+- 농협 입금 자동화는 아직 실제 연동 방식이 확정되지 않았으므로, NH 오픈 API/계좌 조회 대행/파일 업로드 중 어떤 수집 경로를 쓸지 결정이 필요함
+- 회계 고도화 범위가 커서 중간 단계에서는 `기존 장부 기준 처리`와 `새 입력 처리`가 잠시 공존할 수 있음
 - CRM 작업 계정 로그는 아직 실제 로그인 인증이 아니라 브라우저별 로컬 설정 기반이므로, 같은 PC/브라우저를 여러 사람이 공유하면 현재 선택된 작업 계정으로 기록됨
 - CRM 운영 반영은 완료했지만, Basic Auth 자격증명 제약으로 운영 브라우저 화면의 최종 시각 검증은 아직 못 했음
 - CRM 운영 DB를 사용자가 직접 수정할 수 있는 상태라, 동일한 데이터 훼손이 반복되면 고객/명세표 수동 복구가 다시 필요할 수 있음

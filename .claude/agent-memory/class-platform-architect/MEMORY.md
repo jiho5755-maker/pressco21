@@ -118,3 +118,11 @@
 - 어드민 협회 탭은 기존 협회 목록 위에 제안서 생성기를 두고, 로컬 fixture preview 또는 실배포 page id 기반 URL을 조합한다.
 - 로컬 fixture 빌더는 이제 `affiliation-proposal.html` 도 조립하므로 협회 제안서도 배포 전 Playwright 검증이 가능하다.
 - 운영 기준 문서는 `docs/파트너클래스/affiliation-b2b-proposal-tool-guide.md` 이다.
+
+## 2026-03-11 S2-3 전국 탐색 IA 구조 확정
+
+- 목록 2606은 이제 `전체 클래스 / 협회·세미나 / 혜택·이벤트` 3탭 구조로 본다.
+- 오프라인 탐색은 목록 안의 `리스트 보기 / 지도 보기` 토글로 처리하고, 실서비스 지도 뷰는 기존 `/partnermap` 자산을 같은 흐름 안에 흡수한다.
+- 상세 2607은 `GENERAL / AFFILIATION / EVENT` 3가지 content profile 로 상단 identity, trust chip, 예약 노트를 분기한다.
+- `content_type`, `delivery_mode`, `class_format` 값이 실데이터에 아직 없더라도 기존 `type/tags/affiliation_code` 로 폴백 추론해 기존 클래스를 깨지 않게 한다.
+- 운영 기준 문서는 `docs/파트너클래스/nationwide-discovery-ia-guide.md` 이다.

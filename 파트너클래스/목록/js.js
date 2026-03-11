@@ -74,11 +74,20 @@
     /** localStorage 키: 목록 필터 상태 */
     var FILTER_STATE_KEY = 'pressco21_catalog_filters_v1';
 
+    /** localStorage 키: 목록 보기 모드 */
+    var VIEW_STATE_KEY = 'pressco21_catalog_view_mode_v1';
+
     /** 최근 본 클래스 최대 저장 수 */
     var RECENT_MAX = 10;
 
     /** 찜 필터 활성 여부 */
     var isWishlistFilterOn = false;
+
+    /** 현재 목록 보기 모드 */
+    var currentCatalogView = 'list';
+
+    /** 현재 화면에 노출 중인 클래스 데이터 */
+    var currentDisplayClasses = [];
 
 
     /* ========================================
@@ -117,11 +126,17 @@
         // URL 파라미터에서 필터 복원 (딥링크 지원)
         restoreFiltersFromURL();
 
+        // 목록 / 지도 보기 모드 복원
+        restoreCatalogViewMode();
+
         // 찜(관심) 기능 초기화
         initWishlist();
 
         // 최근 본 클래스 렌더링
         renderRecentSection();
+
+        // 리스트 / 지도 토글 초기화
+        initCatalogViewToggle();
 
         // 스켈레톤 표시 후 첫 데이터 로드
         renderSkeleton();
@@ -244,8 +259,16 @@
             });
         }
 
+        currentDisplayClasses = displayClasses;
+        renderMapPanel(displayClasses);
+        renderBenefitsPanel(displayClasses, affilDataCache);
+        if (activeCatalogTab === 'affiliations' || activeCatalogTab === 'benefits') {
+            loadAffiliations();
+        }
+
         if (displayClasses.length === 0) {
             clearGrid();
+            currentDisplayClasses = [];
             if (isWishlistFilterOn && classes.length > 0) {
                 // 찜한 클래스가 없는 경우 별도 메시지
                 renderWishlistEmpty();
@@ -263,6 +286,8 @@
             // 스크롤 애니메이션 초기화
             initScrollReveal();
         }
+
+        updateCatalogViewUI();
     }
 
     /**
@@ -574,6 +599,7 @@
         var totalRemaining = parseInt(cls.total_remaining, 10) || 0;
         var tags = String(cls.tags || '');
         var affiliationText = [cls.affiliation_code || '', tags, cls.class_name || '', cls.category || ''].join(' ');
+        var contentMeta = resolveContentTypeMeta(cls);
 
         if (isNewClassBadge(cls.class_id)) {
             badges.push({ key: 'new', label: '\uC2E0\uADDC' });
@@ -589,6 +615,9 @@
         }
         if (normalizedContains(affiliationText, '\uD611\uD68C') || normalizedContains(affiliationText, '\uC81C\uD734')) {
             badges.push({ key: 'affiliation', label: '\uD611\uD68C\uC81C\uD734' });
+        }
+        if (contentMeta.key === 'event') {
+            badges.push({ key: 'event', label: '\uC138\uBBF8\uB098' });
         }
         if (avgRating >= 4.8 && reviewCount >= 3) {
             badges.push({ key: 'rating', label: '\uB192\uC740\uD3C9\uC810' });
@@ -606,14 +635,94 @@
         return html;
     }
 
+    function getDeliveryModeValue(cls) {
+        var raw = String((cls && (cls.delivery_mode || cls.class_format || cls.format)) || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        var typeRaw = String((cls && cls.type) || '').replace(/\s+/g, ' ').trim();
+
+        if (raw === 'ONLINE' || raw === 'OFFLINE' || raw === 'HYBRID') return raw;
+        if (isOnlineType(typeRaw)) return 'ONLINE';
+        if (typeRaw.indexOf('\uD558\uC774\uBE0C\uB9AC\uB4DC') > -1 || typeRaw.toUpperCase() === 'HYBRID') return 'HYBRID';
+        return 'OFFLINE';
+    }
+
+    function normalizeContentTypeValue(raw, cls) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        var tags = [cls && cls.tags, cls && cls.class_name, cls && cls.category, cls && cls.affiliation_code].join(' ');
+
+        if (text.indexOf('EVENT') > -1 || text.indexOf('SEMINAR') > -1) return 'EVENT';
+        if (text.indexOf('AFFILIATION') > -1 || text.indexOf('MEMBER') > -1) return 'AFFILIATION';
+        if (text === 'CLASS' || text === 'GENERAL') return 'GENERAL';
+        if (normalizedContains(tags, '\uC138\uBBF8\uB098') || normalizedContains(tags, '\uC774\uBCA4\uD2B8')) return 'EVENT';
+        if ((cls && cls.affiliation_code) || normalizedContains(tags, '\uD611\uD68C') || normalizedContains(tags, '\uD611\uD68C\uC6D0') || normalizedContains(tags, '\uC81C\uD734')) return 'AFFILIATION';
+        return 'GENERAL';
+    }
+
+    function resolveContentTypeMeta(cls) {
+        var contentType = normalizeContentTypeValue(cls && cls.content_type, cls);
+        var meta = {
+            key: 'general',
+            label: '\uC77C\uBC18 \uD074\uB798\uC2A4',
+            desc: '\uD6C4\uAE30, \uD3EC\uD568 \uB0B4\uC5ED, \uC77C\uC815\uC744 \uBCF4\uACE0 \uBC14\uB85C \uC608\uC57D\uD558\uB294 \uAE30\uBCF8 \uD074\uB798\uC2A4 \uD750\uB984'
+        };
+
+        if (contentType === 'AFFILIATION') {
+            meta.key = 'affiliation';
+            meta.label = '\uD611\uD68C \uC804\uC6A9';
+            meta.desc = '\uD611\uD68C \uC77C\uC815\uACFC \uD68C\uC6D0 \uD61C\uD0DD\uC774 \uD568\uAED8 \uC548\uB0B4\uB418\uB294 \uD074\uB798\uC2A4';
+        } else if (contentType === 'EVENT') {
+            meta.key = 'event';
+            meta.label = '\uC138\uBBF8\uB098/\uC774\uBCA4\uD2B8';
+            meta.desc = '\uC77C\uC815 \uBC0F \uACF5\uC9C0 \uBCC0\uB3D9\uC774 \uC911\uC694\uD55C \uD589\uC0AC\uD615 \uCF58\uD150\uCE20';
+        }
+
+        return meta;
+    }
+
+    function isLocalCatalogPreview() {
+        var host = String(window.location.hostname || '').toLowerCase();
+        return host === '127.0.0.1' || host === 'localhost';
+    }
+
+    function buildPartnerMapUrl(options) {
+        var params = [];
+        var base = isLocalCatalogPreview()
+            ? '/output/playwright/fixtures/partnerclass/partnermap-shell.html'
+            : '/partnermap';
+
+        if (options && options.region) {
+            params.push('region=' + encodeURIComponent(options.region));
+        }
+        if (options && options.category) {
+            params.push('category=' + encodeURIComponent(options.category));
+        }
+        if (options && options.keyword) {
+            params.push('keyword=' + encodeURIComponent(options.keyword));
+        }
+        if (options && options.partner) {
+            params.push('partner=' + encodeURIComponent(options.partner));
+        }
+        if (options && options.classId) {
+            params.push('class_id=' + encodeURIComponent(options.classId));
+        }
+
+        return base + (params.length ? '?' + params.join('&') : '');
+    }
+
     function buildPartnerMapSearchUrl(cls) {
-        var query = [cls.partner_name || '', cls.location || getDisplayRegionName(cls.region || '')].join(' ').replace(/\s+/g, ' ').trim();
-        if (!query) return '';
-        return 'https://www.google.com/maps/search/?api=1&query=' + encodeURIComponent(query);
+        var deliveryMode = getDeliveryModeValue(cls);
+        if (deliveryMode === 'ONLINE') return '';
+
+        return buildPartnerMapUrl({
+            region: getDisplayRegionName(cls.region || cls.location || ''),
+            category: cls.category || '',
+            keyword: cls.class_name || '',
+            partner: cls.partner_name || '',
+            classId: cls.class_id || ''
+        });
     }
 
     function buildCardMapEntryLabel(cls) {
-        return isOnlineType(cls.type) ? '' : '\uAC00\uAE4C\uC6B4 \uACF5\uBC29 \uBCF4\uAE30';
+        return getDeliveryModeValue(cls) === 'ONLINE' ? '' : '\uD30C\uD2B8\uB108\uB9F5\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30';
     }
 
     /**
@@ -643,13 +752,17 @@
         var trustBadgesHtml = buildCardBadgesHtml(cls);
         var mapUrl = buildPartnerMapSearchUrl(cls);
         var mapLabel = buildCardMapEntryLabel(cls);
+        var contentMeta = resolveContentTypeMeta(cls);
+        var deliveryMode = getDeliveryModeValue(cls);
 
         var starsHtml = renderStars(avgRating);
 
-        var html = '<article class="class-card scroll-reveal" role="listitem" '
+        var html = '<article class="class-card scroll-reveal class-card--' + contentMeta.key + '" role="listitem" '
             + 'data-class-id="' + classId + '" '
             + 'data-class-name="' + className + '" '
             + 'data-thumbnail="' + escapeHtml(thumbnail) + '" '
+            + 'data-content-type="' + escapeHtml(contentMeta.key) + '" '
+            + 'data-delivery-mode="' + escapeHtml(deliveryMode) + '" '
             + 'aria-label="' + className + ' - ' + partnerName + '">'
             + '<a href="' + detailUrl + '" class="class-card__link" aria-label="' + className + ' - ' + partnerName + '">'
             + '<div class="class-card__thumb">';
@@ -1533,6 +1646,192 @@
         }
     }
 
+    function restoreCatalogViewMode() {
+        try {
+            var stored = localStorage.getItem(VIEW_STATE_KEY);
+            if (stored === 'map' || stored === 'list') {
+                currentCatalogView = stored;
+            }
+        } catch (e) {
+            currentCatalogView = 'list';
+        }
+    }
+
+    function saveCatalogViewMode() {
+        try {
+            localStorage.setItem(VIEW_STATE_KEY, currentCatalogView);
+        } catch (e) {
+            /* 무시 */
+        }
+    }
+
+    function initCatalogViewToggle() {
+        var wrap = document.getElementById('catalogViewToggle');
+        if (!wrap) return;
+
+        wrap.addEventListener('click', function(e) {
+            var btn = e.target.closest('.catalog-view-toggle__btn');
+            if (!btn || btn.disabled) return;
+            setCatalogView(btn.getAttribute('data-view') || 'list');
+        });
+    }
+
+    function isMapViewAvailable() {
+        if (activeCatalogTab !== 'classes') return false;
+        if ((currentFilters.format || []).length === 1 && currentFilters.format[0] === '\uC628\uB77C\uC778') return false;
+
+        var list = currentDisplayClasses.length ? currentDisplayClasses : currentClasses;
+        return list.some(function(cls) {
+            return getDeliveryModeValue(cls) !== 'ONLINE';
+        });
+    }
+
+    function setCatalogView(mode) {
+        if (mode === 'map' && !isMapViewAvailable()) {
+            currentCatalogView = 'list';
+        } else {
+            currentCatalogView = mode === 'map' ? 'map' : 'list';
+        }
+
+        saveCatalogViewMode();
+        updateCatalogViewUI();
+    }
+
+    function updateCatalogViewUI() {
+        var listBtn = document.getElementById('viewListBtn');
+        var mapBtn = document.getElementById('viewMapBtn');
+        var grid = document.getElementById('classGrid');
+        var mapPanel = document.getElementById('catalogMapPanel');
+        var empty = document.getElementById('catalogEmpty');
+        var pagination = document.getElementById('catalogPagination');
+        var recent = document.getElementById('recentSection');
+        var title = document.getElementById('catalogDiscoveryTitle');
+        var desc = document.getElementById('catalogDiscoveryDesc');
+        var mapAvailable = isMapViewAvailable();
+        var useMap = mapAvailable && currentCatalogView === 'map' && activeCatalogTab === 'classes';
+
+        if (mapBtn) {
+            mapBtn.disabled = !mapAvailable;
+            if (!mapAvailable) {
+                mapBtn.classList.add('is-disabled');
+                mapBtn.setAttribute('aria-selected', 'false');
+            } else {
+                mapBtn.classList.remove('is-disabled');
+                mapBtn.setAttribute('aria-selected', useMap ? 'true' : 'false');
+            }
+            mapBtn.classList.toggle('is-active', useMap);
+        }
+
+        if (listBtn) {
+            listBtn.classList.toggle('is-active', !useMap);
+            listBtn.setAttribute('aria-selected', useMap ? 'false' : 'true');
+        }
+
+        if (grid) grid.style.display = useMap ? 'none' : '';
+        if (mapPanel) mapPanel.style.display = useMap ? '' : 'none';
+
+        if (title && desc) {
+            if ((currentFilters.format || []).length === 1 && currentFilters.format[0] === '\uC628\uB77C\uC778') {
+                title.textContent = '\uC628\uB77C\uC778 \uC218\uC5C5\uC740 \uB9AC\uC2A4\uD2B8\uC5D0\uC11C \uBC14\uB85C \uBE44\uAD50\uD558\uC138\uC694.';
+                desc.textContent = '\uC9C0\uB3C4 \uBCF4\uAE30\uB294 \uC624\uD504\uB77C\uC778 \uD074\uB798\uC2A4\uB97C \uC704\uD55C \uD0D0\uC0C9 \uBDF0\uC785\uB2C8\uB2E4. \uC628\uB77C\uC778 \uC218\uC5C5\uC740 \uB9AC\uC2A4\uD2B8\uC5D0\uC11C \uAC00\uACA9, \uC77C\uC815, \uD6C4\uAE30\uB97C \uBC14\uB85C \uBE44\uAD50\uD574\uBCF4\uC138\uC694.';
+            } else if (useMap) {
+                title.textContent = '\uC6D0\uD558\uB294 \uC9C0\uC5ED\uC758 \uACF5\uBC29\uACFC \uD074\uB798\uC2A4\uB97C \uC9C0\uB3C4\uC5D0\uC11C \uD568\uAED8 \uBCF4\uC138\uC694.';
+                desc.textContent = '\uD30C\uD2B8\uB108\uB9F5 \uD0D0\uC0C9 \uBDF0\uB294 \uB9AC\uC2A4\uD2B8 \uD544\uD130\uB97C \uADF8\uB300\uB85C \uBC1B\uC544 \uAC00\uAE4C\uC6B4 \uC624\uD504\uB77C\uC778 \uC218\uC5C5\uACFC \uD611\uD68C/\uC774\uBCA4\uD2B8 \uAC70\uC810\uC744 \uD568\uAED8 \uB4DC\uB7EC\uB0C5\uB2C8\uB2E4.';
+            } else {
+                title.textContent = '\uC6D0\uD558\uB294 \uCE74\uD14C\uACE0\uB9AC\uC640 \uC9C0\uC5ED\uC744 \uACE0\uB974\uACE0, \uC624\uD504\uB77C\uC778\uC740 \uC9C0\uB3C4\uC5D0\uC11C \uBC14\uB85C \uBE44\uAD50\uD558\uC138\uC694.';
+                desc.textContent = '\uC624\uD504\uB77C\uC778 \uD074\uB798\uC2A4\uB294 \uD30C\uD2B8\uB108\uB9F5 \uAE30\uBC18\uC73C\uB85C \uAC00\uAE4C\uC6B4 \uACF5\uBC29\uC744 \uAC19\uC774 \uD0D0\uC0C9\uD558\uACE0, \uC628\uB77C\uC778 \uD074\uB798\uC2A4\uB294 \uB9AC\uC2A4\uD2B8\uC5D0\uC11C \uBC14\uB85C \uC77C\uC815\uACFC \uAC00\uACA9\uC744 \uBE44\uAD50\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.';
+            }
+        }
+
+        if (empty && useMap) {
+            empty.style.display = 'none';
+        }
+        if (pagination && useMap) {
+            pagination.style.display = 'none';
+        }
+        if (recent) {
+            if (useMap) {
+                recent.style.display = 'none';
+            } else {
+                renderRecentSection();
+            }
+        }
+    }
+
+    function renderMapPanel(classes) {
+        var frame = document.getElementById('catalogMapFrame');
+        var notice = document.getElementById('catalogMapNotice');
+        var stats = document.getElementById('catalogMapStats');
+        var spotlights = document.getElementById('catalogMapSpotlights');
+        var title = document.getElementById('catalogMapTitle');
+        var desc = document.getElementById('catalogMapDesc');
+        var offlineClasses = (classes || []).filter(function(cls) {
+            return getDeliveryModeValue(cls) !== 'ONLINE';
+        });
+        var onlineCount = (classes || []).length - offlineClasses.length;
+        var regionMap = {};
+        var i;
+        var html = '';
+
+        if (!frame || !notice || !stats || !spotlights) return;
+
+        for (i = 0; i < offlineClasses.length; i++) {
+            var regionName = getDisplayRegionName(offlineClasses[i].region || offlineClasses[i].location || '');
+            if (regionName) {
+                regionMap[regionName] = true;
+            }
+        }
+
+        stats.innerHTML = ''
+            + '<div class="catalog-map-panel__stat"><strong>' + formatNumber(offlineClasses.length) + '</strong><span>\uC624\uD504\uB77C\uC778 \uD074\uB798\uC2A4</span></div>'
+            + '<div class="catalog-map-panel__stat"><strong>' + formatNumber(Object.keys(regionMap).length) + '</strong><span>\uD0D0\uC0C9 \uAC00\uB2A5 \uC9C0\uC5ED</span></div>'
+            + '<div class="catalog-map-panel__stat"><strong>' + formatNumber(Math.max(onlineCount, 0)) + '</strong><span>\uD568\uAED8 \uBE44\uAD50\uD560 \uC628\uB77C\uC778</span></div>';
+
+        frame.src = buildPartnerMapUrl({
+            region: (currentFilters.region || [])[0] || '',
+            category: (currentFilters.category || [])[0] || '',
+            keyword: currentFilters.search || ''
+        });
+
+        if (!offlineClasses.length) {
+            title.textContent = '\uD604\uC7AC \uD544\uD130\uC5D0 \uC0C1\uC751\uD558\uB294 \uC624\uD504\uB77C\uC778 \uD074\uB798\uC2A4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.';
+            desc.textContent = '\uC9C0\uC5ED \uD544\uD130\uB97C \uC644\uD654\uD558\uAC70\uB098 \uC628/\uC624\uD504\uB77C\uC778 \uC870\uAC74\uC744 \uC870\uC815\uD558\uBA74 \uC804\uAD6D \uD074\uB798\uC2A4 \uD558\uC774\uD2B8\uB97C \uB2E4\uC2DC \uBCFC \uC218 \uC788\uC5B4\uC694.';
+            notice.textContent = '\uC628\uB77C\uC778 \uC218\uC5C5\uB9CC \uBCF4\uACE0 \uC788\uB294 \uACBD\uC6B0 \uC9C0\uB3C4 \uBCF4\uAE30\uB294 \uC790\uB3D9\uC73C\uB85C \uBE44\uD65C\uC131\uD654\uB429\uB2C8\uB2E4.';
+            spotlights.innerHTML = '<div class="catalog-map-panel__empty">\uC9C0\uAE08\uC740 \uB9AC\uC2A4\uD2B8 \uBCF4\uAE30\uB85C \uB3CC\uC544\uAC00 \uC628\uB77C\uC778 \uC218\uC5C5\uACFC \uD601\uC2E0 \uC774\uBCA4\uD2B8\uB97C \uBE44\uAD50\uD574\uBCF4\uC138\uC694.</div>';
+            return;
+        }
+
+        title.textContent = '\uC804\uAD6D \uD30C\uD2B8\uB108 \uACF5\uBC29\uC744 \uC9C0\uB3C4\uC5D0\uC11C \uC0B4\uD3B4\uBCF4\uC138\uC694.';
+        desc.textContent = '\uD604\uC7AC \uD544\uD130 \uAE30\uC900\uC73C\uB85C \uAC00\uAE4C\uC6B4 \uC9C0\uC5ED \uC218\uC5C5\uC744 \uBA3C\uC800 \uD655\uC778\uD558\uACE0, \uAD00\uC2EC \uACF5\uBC29\uC73C\uB85C \uBC14\uB85C \uC774\uB3D9\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.';
+        notice.textContent = '\uC2E4\uBC30\uD3EC \uC2DC \uC774 \uC601\uC5ED\uC740 \uAE30\uC874 \uD30C\uD2B8\uB108\uB9F5\uACFC \uC5F0\uB3D9\uB41C \uC624\uD504\uB77C\uC778 \uD0D0\uC0C9 \uBDF0\uB85C \uB3D9\uC791\uD569\uB2C8\uB2E4.';
+
+        for (i = 0; i < offlineClasses.length && i < 4; i++) {
+            html += renderMapSpotlight(offlineClasses[i]);
+        }
+        spotlights.innerHTML = html;
+    }
+
+    function renderMapSpotlight(cls) {
+        var region = getDisplayRegionName(cls.region || cls.location || '') || '\uC804\uAD6D';
+        var typeLabel = cls.type || '\uC624\uD504\uB77C\uC778';
+        var priceText = cls.price ? formatPrice(cls.price) + '\uC6D0' : '\uC0C1\uC138 \uC548\uB0B4';
+        var detailUrl = '/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || '');
+        var mapUrl = buildPartnerMapSearchUrl(cls);
+
+        return '<article class="catalog-map-spotlight">'
+            + '<div class="catalog-map-spotlight__meta">'
+            + '<span class="catalog-map-spotlight__chip">' + escapeHtml(typeLabel) + '</span>'
+            + '<span class="catalog-map-spotlight__chip catalog-map-spotlight__chip--place">' + escapeHtml(region) + '</span>'
+            + '</div>'
+            + '<h3 class="catalog-map-spotlight__name">' + escapeHtml(cls.class_name || '') + '</h3>'
+            + '<p class="catalog-map-spotlight__desc">' + escapeHtml((cls.partner_name || '\uD30C\uD2B8\uB108 \uACF5\uBC29') + ' | ' + priceText + ' | ' + resolveContentTypeMeta(cls).desc) + '</p>'
+            + '<div class="catalog-map-spotlight__actions">'
+            + '<a href="' + detailUrl + '" class="catalog-map-spotlight__link catalog-map-spotlight__link--primary">\uC0C1\uC138 \uBCF4\uAE30</a>'
+            + (mapUrl ? '<a href="' + escapeHtml(mapUrl) + '" class="catalog-map-spotlight__link catalog-map-spotlight__link--secondary">\uC9C0\uB3C4\uC5D0\uC11C \uBCF4\uAE30</a>' : '')
+            + '</div>'
+            + '</article>';
+    }
+
 
     /* ========================================
        URL 파라미터 동기화 (딥링크)
@@ -1545,7 +1844,7 @@
         try {
             var params = new URLSearchParams();
 
-            if (activeCatalogTab === 'affiliations') params.set('tab', 'affiliations');
+            if (activeCatalogTab !== 'classes') params.set('tab', activeCatalogTab);
             if (currentFilters.category.length > 0) params.set('category', currentFilters.category.join(','));
             if (currentFilters.level.length > 0) params.set('level', currentFilters.level.join(','));
             if (currentFilters.type.length > 0) params.set('type', currentFilters.type.join(','));
@@ -1555,6 +1854,7 @@
             if (currentFilters.page > 1) params.set('page', currentFilters.page);
             if (currentFilters.maxPrice < 200000) params.set('maxPrice', currentFilters.maxPrice);
             if (currentFilters.search) params.set('q', currentFilters.search);
+            if (activeCatalogTab === 'classes' && currentCatalogView === 'map' && isMapViewAvailable()) params.set('view', 'map');
 
             var newUrl = window.location.pathname;
             var paramStr = params.toString();
@@ -1572,7 +1872,7 @@
     function restoreFiltersFromURL() {
         try {
             var params = new URLSearchParams(window.location.search);
-            var hasFilterParams = params.has('tab') || params.has('category') || params.has('level')
+            var hasFilterParams = params.has('tab') || params.has('view') || params.has('category') || params.has('level')
                 || params.has('type') || params.has('format') || params.has('region')
                 || params.has('sort') || params.has('page') || params.has('maxPrice') || params.has('q');
 
@@ -1583,7 +1883,11 @@
                 return;
             }
 
-            activeCatalogTab = params.get('tab') === 'affiliations' ? 'affiliations' : 'classes';
+            if (params.get('tab') === 'affiliations' || params.get('tab') === 'benefits') {
+                activeCatalogTab = params.get('tab');
+            } else {
+                activeCatalogTab = 'classes';
+            }
 
             if (params.has('category')) {
                 currentFilters.category = params.get('category').split(',');
@@ -1629,6 +1933,9 @@
             if (params.has('q')) {
                 currentFilters.search = params.get('q');
                 currentSearchQuery = currentFilters.search;
+            }
+            if (params.get('view') === 'map') {
+                currentCatalogView = 'map';
             }
 
             syncQuickFilterState();
@@ -2346,9 +2653,6 @@
        협회 제휴 탭
        ======================================== */
 
-    /** 협회 탭 현재 활성 여부 */
-    var isAffilTabActive = false;
-
     /** 협회 데이터 캐시 */
     var affilDataCache = null;
 
@@ -2380,7 +2684,10 @@
      * @param {string} tab
      */
     function activateCatalogTab(tab) {
-        var targetTab = (tab === 'affiliations') ? 'affiliations' : 'classes';
+        var targetTab = 'classes';
+        if (tab === 'affiliations' || tab === 'benefits') {
+            targetTab = tab;
+        }
         activeCatalogTab = targetTab;
 
         // 모든 탭 비활성화
@@ -2397,16 +2704,18 @@
         // 패널 전환
         var panelClasses = document.getElementById('panelClasses');
         var panelAffil = document.getElementById('panelAffiliations');
+        var panelBenefits = document.getElementById('panelBenefits');
 
-        if (targetTab === 'affiliations') {
-            isAffilTabActive = true;
-            if (panelClasses) panelClasses.style.display = 'none';
-            if (panelAffil) panelAffil.style.display = '';
+        if (panelClasses) panelClasses.style.display = targetTab === 'classes' ? '' : 'none';
+        if (panelAffil) panelAffil.style.display = targetTab === 'affiliations' ? '' : 'none';
+        if (panelBenefits) panelBenefits.style.display = targetTab === 'benefits' ? '' : 'none';
+
+        if (targetTab === 'affiliations' || targetTab === 'benefits') {
             loadAffiliations();
-        } else {
-            isAffilTabActive = false;
-            if (panelClasses) panelClasses.style.display = '';
-            if (panelAffil) panelAffil.style.display = 'none';
+        }
+
+        if (targetTab === 'benefits') {
+            renderBenefitsPanel(currentDisplayClasses, affilDataCache);
         }
 
         updateURLParams();
@@ -2418,8 +2727,8 @@
     function applyInitialCatalogTab() {
         try {
             var params = new URLSearchParams(window.location.search);
-            if (params.get('tab') === 'affiliations') {
-                activateCatalogTab('affiliations');
+            if (params.get('tab') === 'affiliations' || params.get('tab') === 'benefits') {
+                activateCatalogTab(params.get('tab'));
             }
         } catch (e) {
             /* URL 파라미터 파싱 실패 시 기본 탭 유지 */
@@ -2432,6 +2741,7 @@
     function loadAffiliations() {
         if (affilDataCache) {
             renderAffiliations(affilDataCache);
+            renderBenefitsPanel(currentDisplayClasses, affilDataCache);
             return;
         }
 
@@ -2457,10 +2767,16 @@
                 if (data && data.success && data.data) {
                     affilDataCache = data.data;
                     renderAffiliations(data.data);
+                    renderBenefitsPanel(currentDisplayClasses, data.data);
                     // 뱃지 업데이트
                     var badge = document.getElementById('affilBadge');
-                    if (badge && data.total > 0) {
-                        badge.textContent = data.total;
+                    var benefitBadge = document.getElementById('benefitBadge');
+                    var benefitCount = buildBenefitItems(currentDisplayClasses, data.data).length;
+                    if (badge) {
+                        badge.textContent = data.total > 0 ? data.total : '';
+                    }
+                    if (benefitBadge) {
+                        benefitBadge.textContent = benefitCount > 0 ? benefitCount : '';
                     }
                 } else {
                     if (empty) empty.style.display = '';
@@ -2480,10 +2796,15 @@
     function renderAffiliations(affiliations) {
         var grid = document.getElementById('affilGrid');
         var empty = document.getElementById('affilEmpty');
+        var seminarGrid = document.getElementById('seminarGrid');
+        var seminarEmpty = document.getElementById('seminarEmpty');
 
         if (!affiliations || affiliations.length === 0) {
             if (grid) grid.innerHTML = '';
             if (empty) empty.style.display = '';
+            if (seminarGrid) seminarGrid.innerHTML = '';
+            if (seminarEmpty) seminarEmpty.style.display = '';
+            updateAffiliationSummary([], []);
             return;
         }
 
@@ -2493,6 +2814,8 @@
             html += renderAffilCard(affiliations[i]);
         }
         if (grid) grid.innerHTML = html;
+
+        renderSeminarFeed(currentDisplayClasses, affiliations);
     }
 
     /**
@@ -2543,6 +2866,232 @@
             (affil.memo ? '<p class="affil-card__memo">' + escapeHtml(affil.memo) + '</p>' : '') +
             tiersHtml +
             '</div>';
+    }
+
+    function updateAffiliationSummary(classes, affiliations) {
+        var seminarItems = buildSeminarItems(classes, affiliations);
+        var seminarCountEl = document.getElementById('affilSeminarCount');
+        var associationCountEl = document.getElementById('affilAssociationCount');
+        var benefitCountEl = document.getElementById('affilMemberBenefitCount');
+
+        if (seminarCountEl) seminarCountEl.textContent = formatNumber(seminarItems.length);
+        if (associationCountEl) associationCountEl.textContent = formatNumber((affiliations || []).length);
+        if (benefitCountEl) benefitCountEl.textContent = formatNumber(buildBenefitItems(classes, affiliations).length);
+    }
+
+    function buildSeminarItems(classes, affiliations) {
+        var items = [];
+        var sourceClasses = classes || [];
+        var sourceAffils = affiliations || [];
+        var i;
+
+        for (i = 0; i < sourceClasses.length; i++) {
+            var cls = sourceClasses[i];
+            var meta = resolveContentTypeMeta(cls);
+            if (meta.key === 'event' || meta.key === 'affiliation') {
+                items.push({
+                    title: cls.class_name || '',
+                    desc: meta.desc,
+                    typeLabel: meta.label,
+                    affiliation: cls.affiliation_code || cls.partner_name || '',
+                    region: getDisplayRegionName(cls.region || cls.location || ''),
+                    price: cls.price || 0,
+                    detailUrl: '/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || ''),
+                    mapUrl: buildPartnerMapSearchUrl(cls)
+                });
+            }
+        }
+
+        if (items.length === 0) {
+            for (i = 0; i < sourceAffils.length; i++) {
+                items.push({
+                    title: (sourceAffils[i].name || '\uD611\uD68C') + ' \uC815\uAE30 \uC138\uBBF8\uB098',
+                    desc: '\uD611\uD68C \uC77C\uC815, \uD68C\uC6D0 \uD61C\uD0DD, \uC804\uC6A9 \uD074\uB798\uC2A4\uB97C \uD568\uAED8 \uC548\uB0B4\uD558\uB294 \uC138\uBBF8\uB098 \uD615 \uCF58\uD150\uCE20',
+                    typeLabel: '\uC138\uBBF8\uB098/\uC774\uBCA4\uD2B8',
+                    affiliation: sourceAffils[i].name || '',
+                    region: '\uC804\uAD6D',
+                    price: 0,
+                    detailUrl: buildPartnerMapUrl({ keyword: sourceAffils[i].name || '' }),
+                    mapUrl: buildPartnerMapUrl({ keyword: sourceAffils[i].name || '' })
+                });
+            }
+        }
+
+        return items.slice(0, 6);
+    }
+
+    function renderSeminarFeed(classes, affiliations) {
+        var seminarGrid = document.getElementById('seminarGrid');
+        var seminarEmpty = document.getElementById('seminarEmpty');
+        var items = buildSeminarItems(classes, affiliations);
+        var html = '';
+        var i;
+
+        updateAffiliationSummary(classes, affiliations);
+
+        if (!seminarGrid || !seminarEmpty) return;
+
+        if (!items.length) {
+            seminarGrid.innerHTML = '';
+            seminarEmpty.style.display = '';
+            return;
+        }
+
+        seminarEmpty.style.display = 'none';
+        for (i = 0; i < items.length; i++) {
+            html += '<article class="seminar-card">'
+                + '<div class="seminar-card__meta">'
+                + '<span class="seminar-card__chip seminar-card__chip--type">' + escapeHtml(items[i].typeLabel) + '</span>'
+                + (items[i].affiliation ? '<span class="seminar-card__chip seminar-card__chip--affiliation">' + escapeHtml(items[i].affiliation) + '</span>' : '')
+                + '</div>'
+                + '<h4 class="seminar-card__name">' + escapeHtml(items[i].title) + '</h4>'
+                + '<p class="seminar-card__desc">' + escapeHtml(items[i].desc) + '</p>'
+                + '<div class="seminar-card__stats">'
+                + (items[i].region ? '<span>' + escapeHtml(items[i].region) + '</span>' : '')
+                + (items[i].price > 0 ? '<span>' + formatPrice(items[i].price) + '\uC6D0\uBD80\uD130</span>' : '<span>\uD61C\uD0DD \uC548\uB0B4 \uD655\uC778</span>')
+                + '</div>'
+                + '<div class="seminar-card__actions">'
+                + '<a href="' + escapeHtml(items[i].detailUrl) + '" class="seminar-card__link seminar-card__link--primary">\uC790\uC138\uD788 \uBCF4\uAE30</a>'
+                + (items[i].mapUrl ? '<a href="' + escapeHtml(items[i].mapUrl) + '" class="seminar-card__link seminar-card__link--secondary">\uD30C\uD2B8\uB108\uB9F5 \uC5F0\uACB0</a>' : '')
+                + '</div>'
+                + '</article>';
+        }
+
+        seminarGrid.innerHTML = html;
+    }
+
+    function buildBenefitItems(classes, affiliations) {
+        var items = [];
+        var seen = {};
+        var i;
+        var benefit;
+
+        for (i = 0; i < (affiliations || []).length; i++) {
+            benefit = affiliations[i];
+            if (!benefit || !benefit.name) continue;
+            items.push({
+                title: benefit.name + ' \uD68C\uC6D0 \uD61C\uD0DD',
+                eyebrow: '\uD611\uD68C \uD2B9\uD654',
+                desc: (benefit.discount_rate || 0) + '% \uD560\uC778, \uC5F0\uAC04 \uC778\uC13C\uD2F0\uBE0C, \uD611\uD68C \uC77C\uC815 \uD64D\uBCF4\uB97C \uD55C \uD328\uD0A4\uC9C0\uB85C \uC6B4\uC601\uD569\uB2C8\uB2E4.',
+                chips: [benefit.name, (benefit.discount_rate || 0) + '% \uD560\uC778'],
+                href: buildPartnerMapUrl({ keyword: benefit.name || '' })
+            });
+            seen[benefit.name] = true;
+        }
+
+        for (i = 0; i < (classes || []).length; i++) {
+            var cls = classes[i];
+            var contentMeta = resolveContentTypeMeta(cls);
+            if (parseInt(cls.kit_enabled, 10) === 1) {
+                items.push({
+                    title: (cls.class_name || '\uD074\uB798\uC2A4') + ' \uC7AC\uB8CC \uC7AC\uAD6C\uB9E4',
+                    eyebrow: '\uC790\uC0AC\uBAB0 \uC5F0\uACB0',
+                    desc: '\uC218\uAC15 \uD6C4 \uBC14\uB85C \uC7AC\uB8CC\uC640 \uD0A4\uD2B8\uB97C \uB2E4\uC2DC \uAD6C\uB9E4\uD560 \uC218 \uC788\uB294 \uD750\uB984\uC73C\uB85C \uC774\uC5B4\uC9D1\uB2C8\uB2E4.',
+                    chips: [cls.category || '\uC7AC\uB8CC\uD0A4\uD2B8', '\uC7AC\uAD6C\uB9E4'],
+                    href: '/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || '')
+                });
+            }
+            if (contentMeta.key === 'event') {
+                items.push({
+                    title: (cls.class_name || '\uC774\uBCA4\uD2B8') + ' \uCC38\uC5EC \uC774\uBCA4\uD2B8',
+                    eyebrow: '\uB178\uCD9C \uAC15\uD654',
+                    desc: '\uC138\uBBF8\uB098, \uCCB4\uD5D8\uD68C, \uD558\uC6B0\uC2A4 \uC774\uBCA4\uD2B8 \uD615\uC758 \uC77C\uC815\uC744 \uD55C \uB808\uC774\uC5B4\uC5D0 \uBB36\uC5B4 \uC218\uAC15\uC0DD \uD765\uBBF8\uB97C \uB04C\uC5B4\uC62C\uB9BD\uB2C8\uB2E4.',
+                    chips: [contentMeta.label, getDisplayRegionName(cls.region || cls.location || '') || '\uC804\uAD6D'],
+                    href: '/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || '')
+                });
+            }
+            if (!seen.partnerMap && getDeliveryModeValue(cls) === 'OFFLINE') {
+                items.push({
+                    title: '\uC9C0\uB3C4\uC5D0\uC11C \uAC00\uAE4C\uC6B4 \uACF5\uBC29 \uCC3E\uAE30',
+                    eyebrow: '\uC9C0\uC5ED \uD0D0\uC0C9',
+                    desc: '\uD30C\uD2B8\uB108\uB9F5\uC744 \uD1B5\uD574 \uAC19\uC740 \uCE74\uD14C\uACE0\uB9AC\uC758 \uC624\uD504\uB77C\uC778 \uC218\uC5C5\uACFC \uACF5\uBC29\uC744 \uD55C \uBC88\uC5D0 \uBE44\uAD50\uD558\uC138\uC694.',
+                    chips: [cls.category || '\uD074\uB798\uC2A4', '\uC624\uD504\uB77C\uC778'],
+                    href: buildPartnerMapSearchUrl(cls)
+                });
+                seen.partnerMap = true;
+            }
+        }
+
+        return items.slice(0, 6);
+    }
+
+    function renderBenefitsPanel(classes, affiliations) {
+        var statContainer = document.getElementById('benefitHeroStats');
+        var benefitGrid = document.getElementById('benefitGrid');
+        var classGrid = document.getElementById('benefitClassGrid');
+        var emptyEl = document.getElementById('benefitClassEmpty');
+        var benefitBadge = document.getElementById('benefitBadge');
+        var items = buildBenefitItems(classes, affiliations);
+        var recommended = (classes || []).filter(function(cls) {
+            return parseInt(cls.kit_enabled, 10) === 1 || resolveContentTypeMeta(cls).key !== 'general';
+        }).slice(0, 6);
+        var html = '';
+        var i;
+
+        if (benefitBadge) {
+            benefitBadge.textContent = items.length > 0 ? items.length : '';
+        }
+
+        if (statContainer) {
+            statContainer.innerHTML = ''
+                + '<div class="benefit-hero__stat"><strong>' + formatNumber(items.length) + '</strong><span>\uD61C\uD0DD \uD3EC\uC778\uD2B8</span></div>'
+                + '<div class="benefit-hero__stat"><strong>' + formatNumber((affiliations || []).length) + '</strong><span>\uD611\uD68C/\uC81C\uD734 \uB808\uC774\uC5B4</span></div>'
+                + '<div class="benefit-hero__stat"><strong>' + formatNumber(recommended.length) + '</strong><span>\uC5F0\uACC4 \uD074\uB798\uC2A4</span></div>';
+        }
+
+        if (benefitGrid) {
+            html = '';
+            for (i = 0; i < items.length; i++) {
+                html += '<article class="benefit-card">'
+                    + '<p class="benefit-card__eyebrow">' + escapeHtml(items[i].eyebrow) + '</p>'
+                    + '<h3 class="benefit-card__title">' + escapeHtml(items[i].title) + '</h3>'
+                    + '<p class="benefit-card__desc">' + escapeHtml(items[i].desc) + '</p>'
+                    + '<div class="benefit-card__meta">' + renderBenefitChips(items[i].chips) + '</div>'
+                    + '<a href="' + escapeHtml(items[i].href || '/shop/page.html?id=2606') + '" class="benefit-card__link">\uD61C\uD0DD \uD750\uB984 \uBCF4\uAE30</a>'
+                    + '</article>';
+            }
+            benefitGrid.innerHTML = html;
+        }
+
+        if (classGrid) {
+            if (!recommended.length) {
+                classGrid.innerHTML = '';
+                if (emptyEl) emptyEl.style.display = '';
+            } else {
+                html = '';
+                if (emptyEl) emptyEl.style.display = 'none';
+                for (i = 0; i < recommended.length; i++) {
+                    html += renderBenefitClassCard(recommended[i]);
+                }
+                classGrid.innerHTML = html;
+            }
+        }
+    }
+
+    function renderBenefitChips(chips) {
+        var html = '';
+        var i;
+        for (i = 0; i < (chips || []).length; i++) {
+            if (!chips[i]) continue;
+            html += '<span class="benefit-card__chip">' + escapeHtml(chips[i]) + '</span>';
+        }
+        return html;
+    }
+
+    function renderBenefitClassCard(cls) {
+        var meta = resolveContentTypeMeta(cls);
+        var region = getDisplayRegionName(cls.region || cls.location || '');
+        var desc = meta.desc;
+
+        return '<article class="benefit-class-card">'
+            + '<div class="benefit-class-card__meta">'
+            + '<span class="benefit-class-card__chip">' + escapeHtml(meta.label) + '</span>'
+            + (region ? '<span class="benefit-class-card__chip">' + escapeHtml(region) + '</span>' : '')
+            + '</div>'
+            + '<h4 class="benefit-class-card__name">' + escapeHtml(cls.class_name || '') + '</h4>'
+            + '<p class="benefit-class-card__desc">' + escapeHtml(desc) + '</p>'
+            + '<a href="/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || '') + '" class="benefit-class-card__link">\uC790\uC138\uD788 \uBCF4\uAE30</a>'
+            + '</article>';
     }
 
     /**

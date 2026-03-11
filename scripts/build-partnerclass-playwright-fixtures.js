@@ -118,6 +118,42 @@ function buildFixture(page) {
     return finalHtml;
 }
 
+function buildPartnerMapShell() {
+    return [
+        '<!DOCTYPE html>',
+        '<html lang="ko">',
+        '<head>',
+        '<meta charset="UTF-8">',
+        '<meta name="viewport" content="width=device-width, initial-scale=1.0">',
+        '<title>파트너맵 통합 셸</title>',
+        '<style>',
+        'body{margin:0;font-family:Pretendard,system-ui,sans-serif;background:linear-gradient(135deg,#eef4eb 0%,#f7f1ea 100%);color:#1f2c22;}',
+        '.shell{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:24px;}',
+        '.panel{width:min(720px,100%);padding:28px;border-radius:24px;background:rgba(255,255,255,.88);box-shadow:0 18px 40px rgba(44,62,48,.14);border:1px solid rgba(44,62,48,.08);}',
+        '.eyebrow{margin:0 0 10px;font-size:12px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;color:#5d7a57;}',
+        'h1{margin:0 0 10px;font-size:28px;line-height:1.35;letter-spacing:-.03em;}',
+        'p{margin:0;font-size:14px;line-height:1.8;color:#56635b;}',
+        '.chips{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px;}',
+        '.chip{display:inline-flex;align-items:center;min-height:28px;padding:0 12px;border-radius:999px;background:#f4eee7;color:#6B4C3B;font-size:12px;font-weight:700;}',
+        '</style>',
+        '</head>',
+        '<body>',
+        '<div class="shell">',
+        '<div class="panel">',
+        '<p class="eyebrow">Local Partner Map Shell</p>',
+        '<h1>실서비스에서는 이 영역이 기존 파트너맵으로 대체됩니다.</h1>',
+        '<p>Playwright 로컬 검증에서는 오프라인 클래스 탐색 플로우만 확인할 수 있도록 가벼운 셸 페이지를 사용합니다.</p>',
+        '<div class="chips" id="chips"></div>',
+        '</div>',
+        '</div>',
+        '<script>',
+        "(function(){'use strict';var params=new URLSearchParams(window.location.search);var chips=document.getElementById('chips');var keys=[['region','지역'],['category','카테고리'],['keyword','검색어'],['partner','파트너']];var html='';var i;for(i=0;i<keys.length;i++){var value=params.get(keys[i][0]);if(value){html+='<span class=\"chip\">'+keys[i][1]+': '+String(value).replace(/[&<>\"']/g,'')+'</span>';}}chips.innerHTML=html||'<span class=\"chip\">필터 없음</span>';})();",
+        '</script>',
+        '</body>',
+        '</html>'
+    ].join('\n');
+}
+
 function main() {
     var i;
 
@@ -127,6 +163,9 @@ function main() {
         fs.writeFileSync(pages[i].output, buildFixture(pages[i]), 'utf8');
         console.log('built', path.relative(repoRoot, pages[i].output));
     }
+
+    fs.writeFileSync(path.join(outputDir, 'partnermap-shell.html'), buildPartnerMapShell(), 'utf8');
+    console.log('built', path.relative(repoRoot, path.join(outputDir, 'partnermap-shell.html')));
 }
 
 main();

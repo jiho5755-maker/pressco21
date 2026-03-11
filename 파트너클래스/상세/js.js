@@ -301,6 +301,7 @@
     function renderAll(data) {
         renderSection(function() { renderHeader(data); }, null, '');
         renderSection(function() { renderTrustSummaryBar(data); }, null, '');
+        renderSection(function() { renderIdentity(data); }, null, '');
         renderSection(function() { renderGallery(data); }, null, '');
         renderSection(function() { renderBasicInfo(data); }, null, '');
         renderSection(function() { renderIncludesSection(data); }, null, '');
@@ -353,6 +354,42 @@
         document.title = (data.class_name || '\uD074\uB798\uC2A4 \uC0C1\uC138') + ' | PRESSCO21 \uD3EC\uC5D0\uBC84\uB7EC\uBE0C';
     }
 
+    function renderIdentity(data) {
+        var section = document.getElementById('detailIdentity');
+        var eyebrow = document.getElementById('detailIdentityEyebrow');
+        var title = document.getElementById('detailIdentityTitle');
+        var desc = document.getElementById('detailIdentityDesc');
+        var highlights = document.getElementById('detailIdentityHighlights');
+        var profile = resolveContentProfile(data || {});
+        var root = document.querySelector('.class-detail');
+        var html = '';
+        var i;
+
+        if (!section || !eyebrow || !title || !desc || !highlights || !root) return;
+
+        root.classList.remove('class-detail--type-general', 'class-detail--type-affiliation', 'class-detail--type-event');
+        root.classList.add('class-detail--type-' + profile.key);
+
+        eyebrow.textContent = profile.eyebrow;
+        title.textContent = profile.title;
+        desc.textContent = profile.desc;
+
+        for (i = 0; i < profile.highlights.length; i++) {
+            html += '<div class="detail-identity__highlight">'
+                + '<strong>' + escapeHtml(profile.highlights[i].title) + '</strong>'
+                + '<span>' + escapeHtml(profile.highlights[i].desc) + '</span>'
+                + '</div>';
+        }
+
+        highlights.innerHTML = html;
+        section.style.display = '';
+
+        var descTab = document.getElementById('tab-description');
+        if (descTab) {
+            descTab.textContent = profile.descriptionTabLabel;
+        }
+    }
+
     function getAverageRatingValue(data) {
         return parseFloat(data.avg_rating || data.rating_avg) || 0;
     }
@@ -365,10 +402,89 @@
         return parseInt(data.booked_count || data.booking_count, 10) || 0;
     }
 
+    function getDeliveryModeValue(data) {
+        var raw = String((data && (data.delivery_mode || data.class_format || data.format)) || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        var type = String((data && data.type) || '').replace(/\s+/g, ' ').trim();
+
+        if (raw === 'ONLINE' || raw === 'OFFLINE' || raw === 'HYBRID') return raw;
+        if (type.toUpperCase() === 'ONLINE' || type.indexOf('\uC628\uB77C\uC778') > -1) return 'ONLINE';
+        if (type.toUpperCase() === 'HYBRID' || type.indexOf('\uD558\uC774\uBE0C\uB9AC\uB4DC') > -1) return 'HYBRID';
+        return 'OFFLINE';
+    }
+
+    function normalizeContentTypeValue(raw, data) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        var joined = [data && data.tags, data && data.class_name, data && data.category, data && data.affiliation_code, data && data.type].join(' ');
+
+        if (text.indexOf('EVENT') > -1 || text.indexOf('SEMINAR') > -1) return 'EVENT';
+        if (text.indexOf('AFFILIATION') > -1 || text.indexOf('MEMBER') > -1) return 'AFFILIATION';
+        if (text === 'GENERAL' || text === 'CLASS') return 'GENERAL';
+        if (normalizedContains(joined, '\uC138\uBBF8\uB098') || normalizedContains(joined, '\uC774\uBCA4\uD2B8')) return 'EVENT';
+        if ((data && data.affiliation_code) || normalizedContains(joined, '\uD611\uD68C') || normalizedContains(joined, '\uD611\uD68C\uC6D0') || normalizedContains(joined, '\uC81C\uD734')) return 'AFFILIATION';
+        return 'GENERAL';
+    }
+
+    function resolveContentProfile(data) {
+        var contentType = normalizeContentTypeValue(data && data.content_type, data);
+        var deliveryMode = getDeliveryModeValue(data || {});
+        var profile = {
+            key: 'general',
+            chip: '\uC77C\uBC18 \uD074\uB798\uC2A4',
+            eyebrow: '\uC77C\uBC18 \uD074\uB798\uC2A4',
+            title: '\uC608\uC57D \uC804\uC5D0 \uD6C4\uAE30, \uD3EC\uD568 \uB0B4\uC5ED, \uC77C\uC815\uC744 \uD55C \uBC88\uC5D0 \uBCF4\uACE0 \uC120\uD0DD\uD560 \uC218 \uC788\uB294 \uD074\uB798\uC2A4\uC785\uB2C8\uB2E4.',
+            desc: '\uC218\uAC15\uC0DD\uC774 \uBE44\uAD50\uD558\uAE30 \uC26C\uC6B4 \uD6C4\uAE30, \uC7AC\uB8CC \uD3EC\uD568 \uC5EC\uBD80, \uAC15\uC0AC/\uACF5\uBC29 \uC815\uBCF4\uAC00 \uD55C \uD750\uB984\uC73C\uB85C \uC774\uC5B4\uC9D1\uB2C8\uB2E4.',
+            highlights: [
+                { title: '\uC2E0\uB8B0 \uBE44\uAD50', desc: '\uD6C4\uAE30, \uD3C9\uC810, \uD3EC\uD568 \uB0B4\uC5ED\uC744 \uD55C \uBC88\uC5D0 \uD655\uC778' },
+                { title: '\uC608\uC57D \uC989\uC2DC\uC131', desc: '\uC77C\uC815 \uC120\uD0DD \uD6C4 \uBC14\uB85C \uC608\uC57D\uACFC \uACB0\uC81C \uC9C4\uC785' },
+                { title: '\uC790\uC0AC\uBAB0 \uC5F0\uACB0', desc: '\uD544\uC694 \uC2DC \uC7AC\uB8CC/\uD0A4\uD2B8 \uD750\uB984\uAE4C\uC9C0 \uC790\uC5F0\uC2A4\uB7FD\uAC8C \uC774\uC5B4\uC9D0' }
+            ],
+            descriptionLead: '\uC77C\uBC18 \uC608\uC57D \uD074\uB798\uC2A4\uB85C, \uCC98\uC74C \uBCF4\uB294 \uC218\uAC15\uC0DD\uB3C4 \uC548\uC2EC\uD558\uACE0 \uC120\uD0DD\uD560 \uC218 \uC788\uB3C4\uB85D \uC815\uBCF4\uB97C \uC815\uB9AC\uD574\uB454 \uD398\uC774\uC9C0\uC785\uB2C8\uB2E4.',
+            bookingNote: '\uBC14\uB85C \uC608\uC57D\uD558\uB294 \uC218\uAC15\uC0DD\uC744 \uC704\uD55C \uAE30\uBCF8 \uC608\uC57D \uD750\uB984\uC785\uB2C8\uB2E4.',
+            descriptionTabLabel: '\uAC15\uC758 \uC18C\uAC1C'
+        };
+
+        if (contentType === 'AFFILIATION') {
+            profile.key = 'affiliation';
+            profile.chip = '\uD611\uD68C \uC804\uC6A9';
+            profile.eyebrow = '\uD611\uD68C \uC804\uC6A9 \uD074\uB798\uC2A4';
+            profile.title = '\uD611\uD68C \uC77C\uC815\uACFC \uD68C\uC6D0 \uD61C\uD0DD\uC774 \uD568\uAED8 \uBB36\uC778 \uD074\uB798\uC2A4\uC785\uB2C8\uB2E4.';
+            profile.desc = '\uD611\uD68C \uC18C\uC18D \uC218\uAC15\uC0DD\uC744 \uC704\uD55C \uD560\uC778, \uC138\uBBF8\uB098 \uC77C\uC815, \uC804\uC6A9 \uC7AC\uB8CC/\uC2DC\uADF8\uB2C8\uCC98 \uC81C\uD488 \uD750\uB984\uC744 \uAC19\uC774 \uC548\uB0B4\uD558\uAE30 \uC704\uD55C \uB808\uC774\uC5B4\uC785\uB2C8\uB2E4.';
+            profile.highlights = [
+                { title: '\uD68C\uC6D0 \uD61C\uD0DD', desc: '\uD611\uD68C/\uD68C\uC6D0 \uB300\uC0C1 \uD560\uC778\uACFC \uC6B0\uC120 \uC548\uB0B4 \uD3EC\uC778\uD2B8 \uD45C\uC2DC' },
+                { title: '\uC77C\uC815 \uBB36\uC74C', desc: '\uD074\uB798\uC2A4, \uD611\uD68C \uC2DC\uAC04\uD45C, \uC138\uBBF8\uB098 \uACF5\uC9C0 \uD750\uB984 \uB3D9\uC2DC \uC81C\uACF5' },
+                { title: '\uC7AC\uAD6C\uB9E4 \uC5F0\uACB0', desc: '\uD68C\uC6D0 \uC804\uC6A9 \uC0C1\uD488/\uC2DC\uADF8\uB2C8\uCC98 \uC81C\uD488\uC73C\uB85C \uC5F0\uACB0 \uD655\uC7A5' }
+            ];
+            profile.descriptionLead = '\uD611\uD68C \uB610\uB294 \uD611\uD68C\uC6D0 \uD750\uB984\uACFC \uC5F0\uACB0\uB41C \uD074\uB798\uC2A4\uB85C, \uC218\uAC15\uB9CC\uC774 \uC544\uB2C8\uB77C \uD61C\uD0DD\uACFC \uD589\uC0AC \uACF5\uC9C0\uAE4C\uC9C0 \uD568\uAED8 \uD655\uC778\uD558\uB294 \uBDF0\uC785\uB2C8\uB2E4.';
+            profile.bookingNote = '\uD611\uD68C \uB300\uC0C1 \uD61C\uD0DD/\uC804\uC6A9 \uC815\uCC45\uC774 \uC788\uC744 \uC218 \uC788\uC73C\uB2C8 \uC608\uC57D \uC804 \uC548\uB0B4 \uBB38\uAD6C\uB97C \uD55C \uBC88 \uB354 \uD655\uC778\uD558\uC138\uC694.';
+            profile.descriptionTabLabel = '\uD611\uD68C \uC548\uB0B4';
+        } else if (contentType === 'EVENT') {
+            profile.key = 'event';
+            profile.chip = '\uC138\uBBF8\uB098/\uC774\uBCA4\uD2B8';
+            profile.eyebrow = '\uC138\uBBF8\uB098 / \uC774\uBCA4\uD2B8 \uD074\uB798\uC2A4';
+            profile.title = '\uC88C\uC11D, \uACF5\uC9C0, \uC900\uBE44\uBB3C \uBCC0\uB3D9\uC774 \uC911\uC694\uD55C \uD589\uC0AC\uD615 \uCF58\uD150\uCE20\uC785\uB2C8\uB2E4.';
+            profile.desc = '\uCCB4\uD5D8\uD68C, \uC138\uBBF8\uB098, \uD2B9\uBCC4 \uC774\uBCA4\uD2B8 \uAC19\uC774 \uC77C\uC815 \uC911\uC2EC\uC73C\uB85C \uC6B4\uC601\uB418\uB294 \uCF58\uD150\uCE20\uB294 \uCD5C\uC2E0 \uACF5\uC9C0\uC640 \uCC38\uC5EC \uC548\uB0B4\uB97C \uBA3C\uC800 \uBCF4\uC5EC\uC918\uC57C \uD569\uB2C8\uB2E4.';
+            profile.highlights = [
+                { title: '\uACF5\uC9C0 \uC6B0\uC120', desc: '\uC77C\uC815 \uBCC0\uACBD, \uC8FC\uCC28, \uC900\uBE44\uBB3C \uACF5\uC9C0\uB97C \uC0C1\uB2E8\uC5D0 \uC9D1\uC911 \uD45C\uC2DC' },
+                { title: '\uD589\uC0AC \uCC38\uC5EC', desc: '\uCC38\uC5EC \uC790\uACA9, \uBAA8\uC9D1 \uD750\uB984, \uC77C\uC815 \uC120\uD0DD\uC744 \uC9C1\uAD00\uC801\uC73C\uB85C \uC5F0\uACB0' },
+                { title: '\uC9C0\uC5ED \uB3D9\uC120', desc: '\uC624\uD504\uB77C\uC778 \uD589\uC0AC\uB77C\uBA74 \uD30C\uD2B8\uB108\uB9F5/\uC9C0\uC5ED \uD0D0\uC0C9 \uBDF0\uB85C \uBC14\uB85C \uD655\uC7A5' }
+            ];
+            profile.descriptionLead = '\uD589\uC0AC\uD615 \uD074\uB798\uC2A4\uB85C, \uD6C4\uAE30\uBCF4\uB2E4 \uCD5C\uC2E0 \uC77C\uC815\uACFC \uCC38\uC5EC \uC548\uB0B4\uAC00 \uB354 \uC911\uC694\uD55C \uCF58\uD150\uCE20\uC785\uB2C8\uB2E4.';
+            profile.bookingNote = '\uC138\uBBF8\uB098/\uC774\uBCA4\uD2B8\uB294 \uC2E4\uC2DC\uAC04 \uACF5\uC9C0 \uBCC0\uB3D9\uC774 \uC788\uC744 \uC218 \uC788\uC73C\uB2C8 \uC2E0\uCCAD \uC804 \uC548\uB0B4 \uBB38\uAD6C\uB97C \uAF2D \uD655\uC778\uD558\uC138\uC694.';
+            profile.descriptionTabLabel = '\uD504\uB85C\uADF8\uB7A8 \uC548\uB0B4';
+        }
+
+        if (deliveryMode === 'ONLINE') {
+            profile.highlights[1] = { title: '\uC628\uB77C\uC778 \uCC38\uC5EC', desc: '\uC811\uC18D \uC548\uB0B4\uC640 \uC790\uB8CC \uC218\uB839 \uD750\uB984\uC744 \uC911\uC2EC\uC73C\uB85C \uD655\uC778' };
+        }
+
+        return profile;
+    }
+
     function getClassTypeLabel(data) {
-        var type = String(data.type || '').toUpperCase();
-        if (type === 'ONLINE') return '\uC628\uB77C\uC778 \uC218\uC5C5';
-        if (type === 'OFFLINE') return '\uC624\uD504\uB77C\uC778 \uC218\uC5C5';
+        var mode = getDeliveryModeValue(data || {});
+        if (mode === 'ONLINE') return '\uC628\uB77C\uC778 \uC218\uC5C5';
+        if (mode === 'HYBRID') return '\uD558\uC774\uBE0C\uB9AC\uB4DC \uC218\uC5C5';
+        if (mode === 'OFFLINE') return '\uC624\uD504\uB77C\uC778 \uC218\uC5C5';
         return '\uAC15\uC0AC \uC9C4\uD589 \uC218\uC5C5';
     }
 
@@ -379,6 +495,7 @@
     function renderTrustSummaryBar(data) {
         var bar = document.getElementById('detailTrustBar');
         var statsEl = document.getElementById('detailTrustBarStats');
+        var profile = resolveContentProfile(data || {});
         if (!bar || !statsEl) return;
 
         var bookedCount = getBookedCountValue(data);
@@ -387,6 +504,7 @@
         var ratingText = avgRating > 0 ? avgRating.toFixed(1) : '0.0';
 
         statsEl.innerHTML = ''
+            + '<span class="detail-trust-bar__chip">' + escapeHtml(profile.chip) + '</span>'
             + '<span class="detail-trust-bar__stat"><strong>' + formatPrice(bookedCount) + '\uBA85</strong><span>\uC218\uAC15</span></span>'
             + '<span class="detail-trust-bar__divider" aria-hidden="true"></span>'
             + '<span class="detail-trust-bar__stat"><strong>\u2605 ' + ratingText + '</strong><span>\uD3C9\uC810</span></span>'
@@ -402,12 +520,27 @@
         var hasKit = materialItems.length > 0;
         var materialsIncluded = String(data.materials_included || '').trim();
         var certificateFlag = String(data.certificate_available || data.certificate_enabled || '').toUpperCase();
+        var profile = resolveContentProfile(data || {});
 
         items.push({
             title: '\uAC15\uC758',
             status: '\uD3EC\uD568',
             desc: getClassTypeLabel(data) + '\uACFC \uAE30\uBCF8 \uC218\uC5C5 \uC548\uB0B4\uAC00 \uD568\uAED8 \uC81C\uACF5\uB429\uB2C8\uB2E4.'
         });
+
+        if (profile.key === 'affiliation') {
+            items.push({
+                title: '\uD68C\uC6D0 \uD61C\uD0DD',
+                status: '\uB300\uC0C1\uC790 \uD655\uC778',
+                desc: '\uD611\uD68C/\uD68C\uC6D0 \uD750\uB984\uC5D0 \uB9DE\uB294 \uD61C\uD0DD, \uD560\uC778, \uC804\uC6A9 \uC0C1\uD488 \uC548\uB0B4\uAC00 \uD568\uAED8 \uC81C\uACF5\uB429\uB2C8\uB2E4.'
+            });
+        } else if (profile.key === 'event') {
+            items.push({
+                title: '\uD589\uC0AC \uC548\uB0B4',
+                status: '\uC2E4\uC2DC\uAC04 \uD655\uC778',
+                desc: '\uC138\uBBF8\uB098/\uC774\uBCA4\uD2B8 \uC131\uACA9\uC758 \uC77C\uC815 \uBCC0\uACBD, \uC900\uBE44\uBB3C, \uCC38\uC5EC \uC548\uB0B4 \uBB38\uAD6C\uAC00 \uC6B0\uC120 \uC81C\uACF5\uB429\uB2C8\uB2E4.'
+            });
+        }
 
         if (materialsIncluded === '\uD3EC\uD568') {
             items.push({
@@ -715,12 +848,13 @@
      */
     function renderDescription(data) {
         var container = document.getElementById('descriptionContent');
+        var profile = resolveContentProfile(data || {});
         if (!container) return;
 
         if (data.description) {
-            container.innerHTML = sanitizeHtml(data.description);
+            container.innerHTML = '<div class="section-unavailable" style="display:block;margin-bottom:18px;">' + escapeHtml(profile.descriptionLead) + '</div>' + sanitizeHtml(data.description);
         } else {
-            container.innerHTML = '<p class="section-unavailable">\uAC15\uC758 \uC18C\uAC1C\uAC00 \uC900\uBE44\uB418\uC9C0 \uC54A\uC558\uC2B5\uB2C8\uB2E4.</p>';
+            container.innerHTML = '<p class="section-unavailable">' + escapeHtml(profile.descriptionLead) + '</p>';
         }
     }
 
@@ -884,6 +1018,15 @@
                 region: rawPartnerName ? '' : getRegionFilterValue(rawRegion)
             }) + '" class="instructor-action-btn instructor-action-btn--primary">'
                 + '\uB2E4\uB978 \uD074\uB798\uC2A4 \uBCF4\uAE30</a>';
+        }
+        if (getDeliveryModeValue(data) !== 'ONLINE') {
+            html += '<a href="' + buildPartnerMapUrl({
+                region: getPrimaryRegion(rawRegion),
+                category: data.category || '',
+                keyword: rawPartnerName || data.class_name || '',
+                partner: rawPartnerName || ''
+            }) + '" class="instructor-action-btn instructor-action-btn--outline">'
+                + '\uD30C\uD2B8\uB108\uB9F5\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30</a>';
         }
         html += '</div>';
 
@@ -1646,6 +1789,7 @@
         var infoEl = document.getElementById('bookingInfo');
         var priceEl = document.getElementById('bookingPrice');
         var maxEl = document.getElementById('bookingMax');
+        var profile = resolveContentProfile(data || {});
 
         var className = escapeHtml(data.class_name || '');
         var price = data.price || 0;
@@ -1670,6 +1814,7 @@
                 + '<span class="booking-info__price">' + formatPrice(price) + '<span class="booking-info__price-unit">\uC6D0</span></span>'
                 + '<span class="booking-info__price-per">/1\uC778</span>'
                 + '</div>'
+                + '<p class="booking-info__note">' + escapeHtml(profile.bookingNote) + '</p>'
                 + buildExploreLinksHtml(data, 'sidebar');
             infoEl.innerHTML = html;
         }
@@ -3204,6 +3349,9 @@
     function buildListPageUrl(params) {
         var query = ['id=2606'];
 
+        if (params.tab) {
+            query.push('tab=' + encodeURIComponent(params.tab));
+        }
         if (params.category) {
             query.push('category=' + encodeURIComponent(params.category));
         }
@@ -3216,8 +3364,38 @@
         if (params.q) {
             query.push('q=' + encodeURIComponent(params.q));
         }
+        if (params.view) {
+            query.push('view=' + encodeURIComponent(params.view));
+        }
 
         return '/shop/page.html?' + query.join('&');
+    }
+
+    function isLocalDetailPreview() {
+        var host = String(window.location.hostname || '').toLowerCase();
+        return host === '127.0.0.1' || host === 'localhost';
+    }
+
+    function buildPartnerMapUrl(params) {
+        var query = [];
+        var base = isLocalDetailPreview()
+            ? '/output/playwright/fixtures/partnerclass/partnermap-shell.html'
+            : '/partnermap';
+
+        if (params.region) {
+            query.push('region=' + encodeURIComponent(params.region));
+        }
+        if (params.category) {
+            query.push('category=' + encodeURIComponent(params.category));
+        }
+        if (params.keyword) {
+            query.push('keyword=' + encodeURIComponent(params.keyword));
+        }
+        if (params.partner) {
+            query.push('partner=' + encodeURIComponent(params.partner));
+        }
+
+        return base + (query.length ? '?' + query.join('&') : '');
     }
 
     function buildInfoBadge(label, className, href, ariaLabel) {
@@ -3236,6 +3414,9 @@
         var html = '<div class="info-badges">';
         var category = data.category || '';
         var level = normalizeLevelValue(data.level);
+        var profile = resolveContentProfile(data || {});
+
+        html += buildInfoBadge(profile.chip, 'info-badge--level', '', '');
 
         if (category) {
             html += buildInfoBadge(
@@ -3271,6 +3452,7 @@
         var regionFilter = getRegionFilterValue(region);
         var level = normalizeLevelValue(data.level);
         var partnerName = data.partner && (data.partner.partner_name || data.partner.name) ? (data.partner.partner_name || data.partner.name) : '';
+        var profile = resolveContentProfile(data || {});
 
         function pushLink(href, label) {
             if (!href || !label || seen[href]) return;
@@ -3289,6 +3471,19 @@
         }
         if (partnerName) {
             pushLink(buildListPageUrl({ q: partnerName }), '\uAC15\uC0AC \uD074\uB798\uC2A4 \uBAA8\uC544\uBCF4\uAE30');
+        }
+        if (profile.key === 'affiliation') {
+            pushLink(buildListPageUrl({ tab: 'benefits' }), '\uD611\uD68C\uC6D0 \uD61C\uD0DD \uBCF4\uAE30');
+        } else if (profile.key === 'event') {
+            pushLink(buildListPageUrl({ tab: 'affiliations' }), '\uD611\uD68C/\uC138\uBBF8\uB098 \uD5C8\uBE0C \uBCF4\uAE30');
+        }
+        if (getDeliveryModeValue(data) !== 'ONLINE') {
+            pushLink(buildPartnerMapUrl({
+                region: region,
+                category: data.category || '',
+                keyword: partnerName || data.class_name || '',
+                partner: partnerName
+            }), '\uD30C\uD2B8\uB108\uB9F5\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30');
         }
 
         if (links.length === 0) return '';

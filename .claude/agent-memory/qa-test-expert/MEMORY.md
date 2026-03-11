@@ -33,6 +33,14 @@
 - **API 실패 폴백**: 메인페이지 클래스 섹션 `hideSection()` → `section.style.display = 'none'`
 - **Lighthouse 기준 완화**: 파트너 대시보드 Performance 75+ (Chart.js 로드 비용), SEO 85+ (로그인 필요)
 
+## 2026-03-11 S2-3 전국 탐색 IA 테스트 메모
+
+- 목록 2606은 이제 탭 3개를 기준으로 검증한다: `전체 클래스`, `협회·세미나`, `혜택·이벤트`.
+- 로컬 검증 시 파트너맵 실서비스 대신 `output/playwright/fixtures/partnerclass/partnermap-shell.html` 연결 여부를 확인하면 된다.
+- 지도 보기 검증은 `오프라인 카드가 있을 때 활성`, `온라인 필터만 남으면 비활성` 두 상태를 모두 확인해야 한다.
+- 상세 2607은 `GENERAL / AFFILIATION / EVENT` fixture 각각에서 상단 eyebrow, trust chip, 파트너맵 링크 존재 여부를 같이 본다.
+- 실제 산출물 기준 파일은 `output/playwright/s2-3-ia/s2-3-results.json` 과 `output/playwright/s2-3-ia/*.png` 이다.
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

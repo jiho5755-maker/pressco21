@@ -44,8 +44,12 @@
             전체 클래스
         </button>
         <button class="catalog-tabs__btn" role="tab" aria-selected="false" data-tab="affiliations" id="tabAffiliations">
-            협회 제휴
+            협회/세미나
             <span class="catalog-tabs__badge" id="affilBadge"></span>
+        </button>
+        <button class="catalog-tabs__btn" role="tab" aria-selected="false" data-tab="benefits" id="tabBenefits">
+            혜택·이벤트
+            <span class="catalog-tabs__badge" id="benefitBadge"></span>
         </button>
     </nav>
 
@@ -334,6 +338,38 @@
                 </div>
             </div>
 
+            <section class="catalog-discovery" id="catalogDiscovery" aria-label="탐색 방식 전환">
+                <div class="catalog-discovery__copy">
+                    <p class="catalog-discovery__eyebrow">전국 탐색 허브</p>
+                    <h2 class="catalog-discovery__title" id="catalogDiscoveryTitle">원하는 카테고리와 지역을 고르고, 오프라인은 지도에서 바로 비교하세요.</h2>
+                    <p class="catalog-discovery__desc" id="catalogDiscoveryDesc">오프라인 클래스는 파트너맵 기반으로 가까운 공방을 같이 탐색하고, 온라인 클래스는 리스트에서 바로 일정과 가격을 비교할 수 있습니다.</p>
+                </div>
+                <div class="catalog-view-toggle" id="catalogViewToggle" role="tablist" aria-label="클래스 보기 방식">
+                    <button type="button" class="catalog-view-toggle__btn is-active" id="viewListBtn" data-view="list" role="tab" aria-selected="true">리스트 보기</button>
+                    <button type="button" class="catalog-view-toggle__btn" id="viewMapBtn" data-view="map" role="tab" aria-selected="false">지도 보기</button>
+                </div>
+            </section>
+
+            <section class="catalog-map-panel" id="catalogMapPanel" style="display:none;" aria-label="오프라인 클래스 지도 탐색">
+                <div class="catalog-map-panel__hero">
+                    <div class="catalog-map-panel__summary">
+                        <p class="catalog-map-panel__eyebrow">오프라인 클래스 탐색</p>
+                        <h2 class="catalog-map-panel__title" id="catalogMapTitle">전국 파트너 공방을 지도에서 살펴보세요.</h2>
+                        <p class="catalog-map-panel__desc" id="catalogMapDesc">현재 필터 기준으로 가까운 지역 수업을 먼저 확인하고, 관심 공방으로 바로 이동할 수 있습니다.</p>
+                    </div>
+                    <div class="catalog-map-panel__stats" id="catalogMapStats" aria-live="polite">
+                        <!-- JS: 지도 요약 -->
+                    </div>
+                </div>
+                <div class="catalog-map-panel__frame-wrap">
+                    <iframe class="catalog-map-panel__frame" id="catalogMapFrame" title="파트너맵 통합 미리보기" loading="lazy"></iframe>
+                </div>
+                <div class="catalog-map-panel__notice" id="catalogMapNotice"></div>
+                <div class="catalog-map-panel__spotlights" id="catalogMapSpotlights">
+                    <!-- JS: 오프라인 클래스 하이라이트 -->
+                </div>
+            </section>
+
             <!-- 클래스 카드 그리드 -->
             <div class="class-grid" id="classGrid" role="list" aria-label="클래스 목록">
                 <!-- JS: 스켈레톤 UI 또는 실제 카드 렌더링 -->
@@ -409,8 +445,36 @@
             <!-- 협회 제휴 소개 -->
             <div class="affil-hero">
                 <div class="affil-hero__inner">
-                    <h2 class="affil-hero__title">협회 제휴 프로그램</h2>
-                    <p class="affil-hero__desc">PRESSCO21은 꽃 공예 관련 협회와 함께합니다. 협회원 전용 할인, 연간 인센티브, 무료 홍보 채널을 제공합니다.</p>
+                    <h2 class="affil-hero__title">협회/세미나 허브</h2>
+                    <p class="affil-hero__desc">협회 일정, 세미나, 회원 대상 클래스를 한 화면에서 묶어 보여주는 허브입니다. 수강생은 행사를 쉽게 찾고, 협회는 일정과 혜택을 함께 홍보할 수 있습니다.</p>
+                </div>
+            </div>
+
+            <div class="affil-seminar-strip" id="affilSeminarStrip">
+                <div class="affil-seminar-strip__metric">
+                    <strong id="affilSeminarCount">0</strong>
+                    <span>세미나/이벤트</span>
+                </div>
+                <div class="affil-seminar-strip__metric">
+                    <strong id="affilAssociationCount">0</strong>
+                    <span>제휴 협회</span>
+                </div>
+                <div class="affil-seminar-strip__metric">
+                    <strong id="affilMemberBenefitCount">0</strong>
+                    <span>회원 혜택 포인트</span>
+                </div>
+            </div>
+
+            <div class="seminar-feed">
+                <div class="seminar-feed__header">
+                    <h3 class="seminar-feed__title">지금 주목할 협회 일정과 세미나</h3>
+                    <p class="seminar-feed__desc">기존 클래스 데이터와 제휴 협회 정보를 묶어 세미나형 콘텐츠를 우선 노출합니다.</p>
+                </div>
+                <div class="seminar-feed__grid" id="seminarGrid">
+                    <!-- JS: 세미나 카드 -->
+                </div>
+                <div class="seminar-feed__empty" id="seminarEmpty" style="display:none">
+                    <p>준비된 세미나가 없습니다. 제휴 협회와 신규 일정을 조율 중입니다.</p>
                 </div>
             </div>
 
@@ -492,6 +556,38 @@
             </div>
         </div>
     </div><!-- /#panelAffiliations -->
+
+    <div class="catalog-tab-panel" id="panelBenefits" role="tabpanel" style="display:none">
+        <div class="benefit-section">
+            <div class="benefit-hero">
+                <div class="benefit-hero__copy">
+                    <p class="benefit-hero__eyebrow">협회원 혜택 허브</p>
+                    <h2 class="benefit-hero__title">회원 전용 혜택과 이벤트를 자사몰 구매 흐름까지 자연스럽게 연결합니다.</h2>
+                    <p class="benefit-hero__desc">협회별 전용 할인, 시그니처 제품 노출, 수강 후 재료 재구매, 온라인/오프라인 이벤트를 한 곳에서 보여주는 레이어입니다.</p>
+                </div>
+                <div class="benefit-hero__stats" id="benefitHeroStats">
+                    <!-- JS: 혜택 통계 -->
+                </div>
+            </div>
+
+            <div class="benefit-grid" id="benefitGrid">
+                <!-- JS: 혜택 카드 -->
+            </div>
+
+            <section class="benefit-class-rail" id="benefitClassRail">
+                <div class="benefit-class-rail__header">
+                    <h3 class="benefit-class-rail__title">혜택과 함께 보면 좋은 클래스</h3>
+                    <p class="benefit-class-rail__desc">협회 연계 클래스, 재료키트 포함 수업, 이벤트성 클래스를 함께 제안합니다.</p>
+                </div>
+                <div class="benefit-class-rail__grid" id="benefitClassGrid">
+                    <!-- JS: 추천 클래스 -->
+                </div>
+                <div class="benefit-class-rail__empty" id="benefitClassEmpty" style="display:none">
+                    <p>추천할 클래스 데이터를 준비 중입니다.</p>
+                </div>
+            </section>
+        </div>
+    </div><!-- /#panelBenefits -->
 
     <!-- Schema.org ItemList (JS 동적 주입) -->
     <script type="application/ld+json" id="schemaItemList">

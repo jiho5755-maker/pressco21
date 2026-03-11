@@ -119,6 +119,93 @@
     background: var(--cd-border);
 }
 
+.class-detail .detail-trust-bar__chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(44, 62, 48, 0.08);
+    color: var(--cd-primary-dark);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.02em;
+}
+
+.class-detail .detail-identity {
+    background: linear-gradient(135deg, rgba(247, 241, 234, 0.94) 0%, rgba(237, 244, 235, 0.88) 100%);
+    border-bottom: 1px solid rgba(232, 226, 219, 0.9);
+}
+
+.class-detail .detail-identity__inner {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 22px;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 26px 24px;
+}
+
+.class-detail .detail-identity__copy {
+    flex: 1;
+    min-width: 0;
+}
+
+.class-detail .detail-identity__eyebrow {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--cd-primary);
+}
+
+.class-detail .detail-identity__title {
+    margin: 0 0 8px;
+    font-size: 28px;
+    line-height: 1.34;
+    letter-spacing: -0.04em;
+    color: var(--cd-text-dark);
+}
+
+.class-detail .detail-identity__desc {
+    margin: 0;
+    max-width: 740px;
+    font-size: 14px;
+    line-height: 1.75;
+    color: var(--cd-text-light);
+}
+
+.class-detail .detail-identity__highlights {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 10px;
+    min-width: 420px;
+}
+
+.class-detail .detail-identity__highlight {
+    padding: 16px 14px;
+    background: rgba(255, 255, 255, 0.88);
+    border: 1px solid rgba(44, 62, 48, 0.08);
+    border-radius: 16px;
+}
+
+.class-detail .detail-identity__highlight strong {
+    display: block;
+    margin-bottom: 4px;
+    font-size: 13px;
+    line-height: 1.35;
+    color: var(--cd-text-dark);
+}
+
+.class-detail .detail-identity__highlight span {
+    display: block;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--cd-text-light);
+}
+
 .class-detail .detail-breadcrumb {
     font-size: 13px;
     color: var(--cd-text-light);
@@ -143,6 +230,32 @@
 .class-detail .detail-breadcrumb__current {
     color: var(--cd-text-dark);
     font-weight: 500;
+}
+
+.class-detail.class-detail--type-affiliation .detail-identity {
+    background: linear-gradient(135deg, rgba(246, 241, 255, 0.94) 0%, rgba(255, 246, 238, 0.92) 100%);
+}
+
+.class-detail.class-detail--type-affiliation .detail-identity__eyebrow,
+.class-detail.class-detail--type-affiliation .detail-trust-bar__chip {
+    color: #6C55A5;
+}
+
+.class-detail.class-detail--type-affiliation .detail-trust-bar__chip {
+    background: rgba(108, 85, 165, 0.1);
+}
+
+.class-detail.class-detail--type-event .detail-identity {
+    background: linear-gradient(135deg, rgba(235, 244, 251, 0.96) 0%, rgba(244, 247, 255, 0.92) 100%);
+}
+
+.class-detail.class-detail--type-event .detail-identity__eyebrow,
+.class-detail.class-detail--type-event .detail-trust-bar__chip {
+    color: #315F89;
+}
+
+.class-detail.class-detail--type-event .detail-trust-bar__chip {
+    background: rgba(49, 95, 137, 0.1);
 }
 
 
@@ -1743,6 +1856,13 @@
     margin-left: 4px;
 }
 
+.class-detail .booking-info__note {
+    margin: 12px 0 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--cd-text-light);
+}
+
 .class-detail .detail-explore--sidebar {
     padding-top: 16px;
 }
@@ -2358,6 +2478,15 @@
    20. 반응형: 태블릿 (768px ~ 992px)
    ---------------------------------------- */
 @media screen and (max-width: 992px) {
+    .class-detail .detail-identity__inner {
+        flex-direction: column;
+    }
+
+    .class-detail .detail-identity__highlights {
+        width: 100%;
+        min-width: 0;
+    }
+
     .class-detail .detail-content {
         padding: 24px 20px 80px;
     }
@@ -2396,6 +2525,18 @@
 
     .class-detail .detail-breadcrumb {
         font-size: 12px;
+    }
+
+    .class-detail .detail-identity__inner {
+        padding: 20px 16px;
+    }
+
+    .class-detail .detail-identity__title {
+        font-size: 22px;
+    }
+
+    .class-detail .detail-identity__highlights {
+        grid-template-columns: 1fr;
     }
 
     /* 로딩 */

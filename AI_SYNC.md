@@ -49,17 +49,59 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: 2026-03-11 16:45:00 KST
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-11 19:10:00 KST
 - Branch: main
-- Working Scope: [CODEX] offline-crm-v2 서상견 운영 데이터 복구 완료
-- Active Subdirectory: offline-crm-v2
+- Working Scope: [CODEX-LEAD] 파트너클래스 S2-4 WF-01 분리 구현 중
+- Active Subdirectory: pressco21/파트너클래스
 
 ## Files In Progress
-- (none)
+- `파트너클래스/n8n-workflows/WF-01-class-api.json`
+- `파트너클래스/n8n-workflows/WF-01A-class-read.json`
+- `파트너클래스/n8n-workflows/WF-01B-schedule-read.json`
+- `파트너클래스/n8n-workflows/WF-01C-affiliation-read.json`
+- `docs/파트너클래스/WF-01-split-guide.md`
+- `scripts/partnerclass-s2-4-*.js`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S2-3 IA 확장 완료 (CODEX)
+- 프론트
+  - `파트너클래스/목록/Index.html`
+  - `파트너클래스/목록/css.css`
+  - `파트너클래스/목록/js.js`
+    - `전체 클래스 / 협회·세미나 / 혜택·이벤트` 3탭 구조 추가
+    - `리스트 보기 / 지도 보기` 토글, 파트너맵 shell 연동, 협회 세미나 피드, 혜택 허브 카드 추가
+    - `content_type`, `delivery_mode`, `class_format` 우선 사용 + `type/tags/affiliation_code` 폴백 추론 추가
+  - `파트너클래스/상세/Index.html`
+  - `파트너클래스/상세/css.css`
+  - `파트너클래스/상세/js.js`
+    - `GENERAL / AFFILIATION / EVENT` 별 상단 identity, trust chip, 예약 노트, 탐색 링크 분기 추가
+- 테스트 자산
+  - `scripts/build-partnerclass-playwright-fixtures.js`
+    - `partnermap-shell.html` fixture 추가
+- 문서 / 메모리
+  - `docs/파트너클래스/nationwide-discovery-ia-guide.md` 신규 추가
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+  - `.claude/agent-memory/makeshop-planning-expert/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+- 검증
+  - `node --check 파트너클래스/목록/js.js`
+  - `node --check 파트너클래스/상세/js.js`
+  - `node --check scripts/build-partnerclass-playwright-fixtures.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+    - `http://` 경고는 SVG namespace / data URI 기준 false positive 확인
+  - Playwright 로컬 fixture 검증
+    - 목록 탭 3개, 지도 보기 전환, 온라인 전용 시 지도 비활성화 확인
+    - 협회 세미나 2건, 혜택 카드 6건, 오프라인 스포트라이트 3건 확인
+    - 상세 `GENERAL / AFFILIATION / EVENT` 각 identity 카피와 trust chip 분기 확인
+  - 산출물
+    - `output/playwright/s2-3-ia/s2-3-results.json`
+    - `output/playwright/s2-3-ia/*.png`
 
 ### [CODEX-LEAD] Phase 3 S2-2 협회 B2B 영업 도구 완료 (CODEX)
 - 프론트
@@ -1435,7 +1477,7 @@
 
 #### 현재 다음 태스크
 
-- `S2-3 IA 확장 (목록 3탭 + 상세 content_type + 파트너맵 통합)`
+- `S2-4 WF-01 God Workflow 분리`
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
@@ -1531,6 +1573,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S1-9 통합 테스트는 로컬 fixture + Playwright 러너 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 후 동일 흐름을 라이브에서 한 번 더 확인해야 함
 - S2-1 파트너 신청 세일즈 랜딩(2609)은 로컬 fixture 기준으로 CTA/반응형이 검증됐지만, 메이크샵 디자인편집기 실배포 후 라이브 스크롤과 모바일 하단 고정 CTA를 다시 확인해야 함
 - S2-2 협회 제안서 페이지와 어드민 URL 생성기는 로컬 fixture 기준으로 검증됐지만, 실배포 전까지는 실제 MakeShop page id가 없어서 라이브 URL은 확정되지 않음
+- S2-3 전국 탐색 IA 확장은 로컬 fixture + Playwright 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 전까지는 실제 2606/2607 페이지와 `/partnermap` 실자산 연동을 라이브에서 다시 확인해야 함
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
 - `scripts/partnerclass-live-smoke.js` 는 현재 FAQ 기대 개수가 여전히 `5` 기준이라, 상세 FAQ를 라이브 반영한 뒤에는 스모크 기대값을 `15` 로 맞춰야 함
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함

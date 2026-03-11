@@ -62,6 +62,22 @@
 - 첫 스토리 카드의 등급 라벨이 `BLOOM` 으로 보이면 grade alias 정규화까지 정상 반영된 것이다.
 - 실제 산출물은 `output/playwright/s2-5-content-hub/content-hub-results.json` 과 `content-hub-page.png` 이다.
 
+## 2026-03-11 S2-6 리텐션 검증 메모
+
+- 리텐션은 `라이브 dry run API + 로컬 fixture 렌더링` 2단 검증이 가장 안정적이다.
+- workflow 검증은 `/webhook/student-retention` 에 `dry_run=true` 로 completion, dormant 각각 따로 호출해 `raw_count` 와 `skipped_missing_email` 을 함께 확인한다.
+- 이번 기준 통과 값:
+  - completion `raw_count=1`, `count=0`, `skipped_missing_email=1`
+  - dormant `raw_count=1`, `count=0`, `skipped_missing_email=1`
+- UI 검증 최소 세트:
+  - `retentionVisible=true`
+  - `noticeTitle` 표시
+  - `monthlyTitle` 표시
+  - `streakCount=3`
+  - `earnedBadges` 에 `Starter Loop`
+  - `consoleErrors=[]`
+- 실제 산출물은 `output/playwright/s2-6-retention/retention-results.json` 과 `mypage-retention.png` 이다.
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

@@ -51,19 +51,67 @@
 
 - Current Owner: CODEX
 - Mode: WRITE
-- Started At: 2026-03-11 20:25:00 KST
+- Started At: 2026-03-11 12:05:34 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S2-6 커뮤니티 리텐션 1차 구현 진행 중
+- Working Scope: [CODEX-LEAD] 파트너클래스 S2-6 커뮤니티 리텐션 정리 후 S2-7 파트너 이탈 감지 자동화 진행
 - Active Subdirectory: pressco21/파트너클래스
 
 ## Files In Progress
 - `파트너클래스/마이페이지/Index.html`
 - `파트너클래스/마이페이지/css.css`
 - `파트너클래스/마이페이지/js.js`
+- `파트너클래스/상세/js.js`
 - `파트너클래스/n8n-workflows/WF-RETENTION-student-lifecycle.json`
+- `scripts/partnerclass-s2-6-generate-retention-workflow.js`
+- `scripts/partnerclass-s2-6-deploy-retention.js`
+- `scripts/partnerclass-s2-6-retention-runner.js`
 - `docs/파트너클래스/community-retention-guide.md`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S2-6 커뮤니티 리텐션 1차 완료 (CODEX)
+- 프론트
+  - `파트너클래스/마이페이지/Index.html`
+  - `파트너클래스/마이페이지/css.css`
+  - `파트너클래스/마이페이지/js.js`
+    - 예약 리스트 위에 리텐션 영역 추가
+    - 월간 수강 리포트, 연속 수강 배지, 완료 축하/후기 감사 notice 구현
+    - 후기 후 감사 메시지 dismiss, 최근 완료 클래스 기반 notice, 3/5/10회 배지 구조 추가
+  - `파트너클래스/상세/js.js`
+    - 후기 등록 성공 시 `pressco21_review_thanks_v1` localStorage hook 저장
+- 워크플로우 / 스크립트
+  - `파트너클래스/n8n-workflows/WF-RETENTION-student-lifecycle.json`
+  - `scripts/partnerclass-s2-6-generate-retention-workflow.js`
+  - `scripts/partnerclass-s2-6-deploy-retention.js`
+  - `scripts/partnerclass-s2-6-retention-runner.js`
+    - 신규 `WF-RETENTION Student Lifecycle` 배포
+    - 매일 09:15 스케줄 + `/webhook/student-retention` 수동 dry run 경로 추가
+    - 전일 수강 완료 / 30일 휴면 대상을 읽고 `COMPLETE_SENT`, `DORMANT_30_SENT` 플래그 기준으로 자동화
+    - NocoDB 날짜 필터 제약을 피해 `status=COMPLETED` 집합 조회 후 Code 노드에서 날짜 재필터링
+- 문서 / 메모리
+  - `docs/파트너클래스/community-retention-guide.md` 신규 추가
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+  - `.claude/agent-memory/n8n-debugger/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- 검증
+  - `node --check 파트너클래스/마이페이지/js.js`
+  - `node --check 파트너클래스/상세/js.js`
+  - `node --check scripts/partnerclass-s2-6-generate-retention-workflow.js`
+  - `node --check scripts/partnerclass-s2-6-deploy-retention.js`
+  - `node --check scripts/partnerclass-s2-6-retention-runner.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+    - `xmlns=\"http://www.w3.org/2000/svg\"` 는 false positive
+  - 라이브 dry run:
+    - 완료 경로 `completion_raw_count=1`, `completion_count=0`, `completion_skipped_missing_email=1`
+    - 휴면 경로 `dormant_raw_count=1`, `dormant_count=0`, `dormant_skipped_missing_email=1`
+  - Playwright 검증:
+    - `output/playwright/s2-6-retention/retention-results.json`
+    - `output/playwright/s2-6-retention/mypage-retention.png`
+    - `retentionVisible=true`, `streakCount=3`, `earnedBadges=Starter Loop`, `consoleErrors=[]`
 
 ### [CODEX-LEAD] Phase 3 S2-5 콘텐츠 허브 4영역 완료 (CODEX)
 - 프론트
@@ -1553,7 +1601,7 @@
 
 #### 현재 다음 태스크
 
-- `S2-6 커뮤니티 리텐션 7장치`
+- `S2-7 파트너 이탈 감지 자동화`
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
@@ -1651,6 +1699,8 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S2-2 협회 제안서 페이지와 어드민 URL 생성기는 로컬 fixture 기준으로 검증됐지만, 실배포 전까지는 실제 MakeShop page id가 없어서 라이브 URL은 확정되지 않음
 - S2-3 전국 탐색 IA 확장은 로컬 fixture + Playwright 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 전까지는 실제 2606/2607 페이지와 `/partnermap` 실자산 연동을 라이브에서 다시 확인해야 함
 - S2-4 분리 후 `getSchedules / getRemainingSeats` 는 운영에서 준비 완료됐지만, 아직 프론트 호출처는 없다. S2-5 이후 콘텐츠/협회 read action 추가 시 `WF-01C` 또는 별도 WF 로 확장 방향을 유지해야 한다.
+- S2-6 리텐션 자동화는 dry run 과 스케줄 경로 기준으로는 검증됐지만, 운영 레거시 완료 예약 일부에 `student_email`, `student_name` 이 비어 있어 실제 발송 대상 수가 `skip` 으로 잡히는 상태다.
+- S2-6 `student-retention` 웹훅은 수동 실호출 시 `200` 빈 본문 케이스가 남아 있어, 현재 운영 기준선은 dry run 응답과 예약 실행 로그다.
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
 - `scripts/partnerclass-live-smoke.js` 는 현재 FAQ 기대 개수가 여전히 `5` 기준이라, 상세 FAQ를 라이브 반영한 뒤에는 스모크 기대값을 `15` 로 맞춰야 함
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함

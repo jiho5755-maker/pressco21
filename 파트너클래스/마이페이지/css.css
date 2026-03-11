@@ -159,6 +159,270 @@
     letter-spacing: -0.03em;
 }
 
+/* 리텐션 레이어 */
+#partnerclass-my-bookings .mb-retention {
+    margin-bottom: 28px;
+}
+
+#partnerclass-my-bookings .mb-retention__notice {
+    margin-bottom: 14px;
+}
+
+#partnerclass-my-bookings .mb-retention-notice {
+    position: relative;
+    overflow: hidden;
+    padding: 22px 22px 20px;
+    border-radius: 22px;
+    border: 1px solid rgba(125, 150, 117, 0.18);
+    background: linear-gradient(135deg, rgba(47, 66, 52, 0.98) 0%, rgba(96, 118, 97, 0.96) 52%, rgba(210, 188, 148, 0.92) 100%);
+    color: #fff;
+    box-shadow: var(--mb-shadow-md);
+}
+
+#partnerclass-my-bookings .mb-retention-notice::before {
+    content: '';
+    position: absolute;
+    top: -34px;
+    right: -26px;
+    width: 160px;
+    height: 160px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 72%);
+}
+
+#partnerclass-my-bookings .mb-retention-notice__eyebrow {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 6px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.14em;
+    color: rgba(255, 255, 255, 0.72);
+}
+
+#partnerclass-my-bookings .mb-retention-notice__title {
+    position: relative;
+    z-index: 1;
+    margin: 0 0 8px;
+    font-size: 24px;
+    font-weight: 700;
+    line-height: 1.35;
+    letter-spacing: -0.02em;
+}
+
+#partnerclass-my-bookings .mb-retention-notice__desc {
+    position: relative;
+    z-index: 1;
+    margin: 0;
+    max-width: 620px;
+    font-size: 14px;
+    color: rgba(255, 255, 255, 0.84);
+}
+
+#partnerclass-my-bookings .mb-retention-notice__actions {
+    position: relative;
+    z-index: 1;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px;
+    margin-top: 18px;
+}
+
+#partnerclass-my-bookings .mb-retention-dismiss {
+    position: absolute;
+    top: 14px;
+    right: 14px;
+    z-index: 2;
+    width: 34px;
+    height: 34px;
+    border: 0;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.14);
+    color: #fff;
+    font-size: 18px;
+    cursor: pointer;
+}
+
+#partnerclass-my-bookings .mb-retention__grid {
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+    gap: 14px;
+}
+
+#partnerclass-my-bookings .mb-retention-card {
+    min-width: 0;
+    padding: 22px;
+    border-radius: 22px;
+    border: 1px solid var(--mb-border);
+    background: linear-gradient(180deg, #ffffff 0%, #fbfaf7 100%);
+    box-shadow: var(--mb-shadow-sm);
+}
+
+#partnerclass-my-bookings .mb-retention-card--report {
+    background: linear-gradient(180deg, #ffffff 0%, #f7fbf5 100%);
+}
+
+#partnerclass-my-bookings .mb-retention-card--badge {
+    background: linear-gradient(180deg, #fffdf8 0%, #fbf5ee 100%);
+}
+
+#partnerclass-my-bookings .mb-retention-card__eyebrow {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--mb-primary);
+}
+
+#partnerclass-my-bookings .mb-retention-card__title {
+    margin: 0 0 6px;
+    font-size: 24px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--mb-text);
+}
+
+#partnerclass-my-bookings .mb-retention-card__desc {
+    margin: 0;
+    font-size: 14px;
+    color: var(--mb-text-muted);
+}
+
+#partnerclass-my-bookings .mb-report-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 18px;
+}
+
+#partnerclass-my-bookings .mb-report-metric {
+    padding: 16px;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.82);
+    border: 1px solid rgba(125, 150, 117, 0.12);
+}
+
+#partnerclass-my-bookings .mb-report-metric__label {
+    margin: 0 0 8px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--mb-text-muted);
+}
+
+#partnerclass-my-bookings .mb-report-metric__value {
+    margin: 0;
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    color: var(--mb-text);
+}
+
+#partnerclass-my-bookings .mb-report-metric__sub {
+    margin: 6px 0 0;
+    font-size: 13px;
+    color: var(--mb-text-muted);
+}
+
+#partnerclass-my-bookings .mb-report-footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    margin-top: 18px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(125, 150, 117, 0.12);
+}
+
+#partnerclass-my-bookings .mb-report-footer__text {
+    margin: 0;
+    font-size: 13px;
+    color: var(--mb-text-muted);
+}
+
+#partnerclass-my-bookings .mb-streak-hero {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 14px;
+    margin-top: 18px;
+}
+
+#partnerclass-my-bookings .mb-streak-hero__count {
+    margin: 0;
+    font-size: 48px;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: var(--mb-text);
+}
+
+#partnerclass-my-bookings .mb-streak-hero__label {
+    margin: 0 0 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--mb-text-muted);
+}
+
+#partnerclass-my-bookings .mb-streak-hero__next {
+    margin: 0;
+    font-size: 13px;
+    color: var(--mb-gold);
+    font-weight: 700;
+}
+
+#partnerclass-my-bookings .mb-badge-track {
+    margin-top: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+#partnerclass-my-bookings .mb-badge-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(196, 149, 106, 0.18);
+    background: rgba(255, 255, 255, 0.82);
+}
+
+#partnerclass-my-bookings .mb-badge-item.is-earned {
+    background: linear-gradient(180deg, #fff6eb 0%, #fffdf7 100%);
+    border-color: rgba(196, 149, 106, 0.35);
+}
+
+#partnerclass-my-bookings .mb-badge-item__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    border-radius: 14px;
+    background: #f1ede7;
+    color: var(--mb-text-muted);
+    font-size: 18px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+#partnerclass-my-bookings .mb-badge-item.is-earned .mb-badge-item__mark {
+    background: #ffe6c8;
+    color: #9f5a2d;
+}
+
+#partnerclass-my-bookings .mb-badge-item__title {
+    margin: 0;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--mb-text);
+}
+
+#partnerclass-my-bookings .mb-badge-item__desc {
+    margin: 4px 0 0;
+    font-size: 13px;
+    color: var(--mb-text-muted);
+}
+
 /* 섹션 */
 #partnerclass-my-bookings .mb-booking-list {
     display: flex;
@@ -633,6 +897,10 @@
         font-size: 26px;
     }
 
+    #partnerclass-my-bookings .mb-retention__grid {
+        grid-template-columns: 1fr;
+    }
+
     #partnerclass-my-bookings .mb-followup__hero {
         flex-direction: column;
         align-items: flex-start;
@@ -658,6 +926,28 @@
 
     #partnerclass-my-bookings .mb-summary {
         grid-template-columns: 1fr;
+    }
+
+    #partnerclass-my-bookings .mb-retention-notice {
+        padding: 20px 18px 18px;
+    }
+
+    #partnerclass-my-bookings .mb-retention-card {
+        padding: 18px;
+    }
+
+    #partnerclass-my-bookings .mb-report-grid {
+        grid-template-columns: 1fr;
+    }
+
+    #partnerclass-my-bookings .mb-report-footer,
+    #partnerclass-my-bookings .mb-streak-hero {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+
+    #partnerclass-my-bookings .mb-streak-hero__count {
+        font-size: 40px;
     }
 
     #partnerclass-my-bookings .mb-section__header {

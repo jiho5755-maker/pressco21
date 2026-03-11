@@ -144,3 +144,12 @@
 - 파트너 grade 는 과거 데이터 호환을 위해 `SILVER/GOLD/PLATINUM -> BLOOM/GARDEN/ATELIER` alias 를 먼저 정규화한다.
 - 전용 콘텐츠 테이블은 향후 `F300` 에서 붙이고, 현재 허브는 탐색/영업용 1차 레이어로 본다.
 - 운영 기준 문서는 `docs/파트너클래스/content-hub-guide.md` 이다.
+
+## 2026-03-11 S2-6 학생 리텐션 자동화 구조
+
+- 리텐션 1차는 신규 CRM 테이블 없이 `my-bookings + class-api + completed bookings` 조합으로 먼저 구현했다.
+- 프론트는 `파트너클래스/마이페이지/*` 에서 월간 리포트, streak badge, review thanks notice 를 로컬 상태와 기존 예약 응답에서 계산한다.
+- 백엔드는 신규 `WF-RETENTION Student Lifecycle` 로 분리했고, 스케줄 트리거와 `/webhook/student-retention` 수동 dry run 을 함께 제공한다.
+- NocoDB 날짜 eq 필터 제약 때문에 완료 예약은 `status=COMPLETED` 집합을 먼저 읽고 Code 노드에서 날짜 재계산하는 구조를 채택했다.
+- 레거시 완료 예약에 `student_email` 누락이 남아 있어 자동화는 현재 `raw_count` 와 `skipped_missing_email` 을 함께 보여주는 운영 구조로 본다.
+- 운영 기준 문서는 `docs/파트너클래스/community-retention-guide.md` 이다.

@@ -76,6 +76,8 @@
   - S2-3 기준 목록 3탭, 지도 보기, 파트너맵 통합 셸, 상세 content_type 분기 구조와 로컬 검증 결과 정리
 - `content-hub-guide.md`
   - S2-5 기준 콘텐츠 허브 4영역, `getContentHub` API, 기존 Classes+Partners 합성 방식, Playwright 검증 결과 정리
+- `community-retention-guide.md`
+  - S2-6 기준 월간 리포트, 연속 배지, 후기 감사 메시지, 수강 완료/휴면 자동화 WF와 검증 결과 정리
 
 ### QA / 검증
 

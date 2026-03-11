@@ -36,3 +36,11 @@ curl -s -X POST https://n8n.pressco21.com/webhook/class-api \
 - 운영 셸 환경에 stale `N8N_API_KEY` 가 남아 있을 수 있어, 자동화 스크립트는 `.secrets.env` 값을 우선 사용해야 한다.
 - 라우터 응답에는 내부 `_status` 를 그대로 노출하지 말고, 응답 코드에만 사용한 뒤 외부 본문에서는 제거해야 baseline 회귀 비교가 맞는다.
 - 새 `WF-01B Schedule Read API` 는 NocoDB HTTP Request credential(`PRESSCO21-NocoDB`) 누락 시 200 빈 본문처럼 보이면서 execution status 는 error 로 남는다.
+
+## 2026-03-11 S2-6 리텐션 WF 디버깅 메모
+
+- `WF-RETENTION Student Lifecycle` 는 병렬 fan-in 대신 순차 NocoDB 조회 구조로 두는 편이 안정적이었다.
+- NocoDB `class_date eq 'YYYY-MM-DD'` 필터가 이 환경에서 안정적으로 동작하지 않아, 완료 예약은 `status=COMPLETED` 집합 조회 후 Code 노드에서 날짜를 거른다.
+- KST 기준 완료/휴면 날짜 계산은 로컬 타임존 Date 객체보다 UTC helper 를 써야 하루 밀림이 없다.
+- 현재 운영 `ADMIN_API_TOKEN` 은 저장소 랜덤값이 아니라 구형 토큰 `pressco21-admin-2026` 기준으로만 수동 웹훅 인증이 통과한다.
+- 수동 실호출은 `200` 빈 본문 케이스가 남아 있으므로, 운영 검증 기준은 dry run 응답과 예약 실행 로그를 우선한다.

@@ -1629,6 +1629,7 @@
 
             if (data && data.success) {
                 // 성공: 토스트 + 폼 숨김 + 목록 새로고침
+                storeReviewThanksState(payload.class_id, classData && classData.class_name ? classData.class_name : '');
                 showReviewToast('\uD6C4\uAE30\uAC00 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uC801\uB9BD\uAE08 1,000\uC6D0\uC774 \uC9C0\uAE09\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
                 hideReviewForm();
                 refreshReviewList();
@@ -1674,6 +1675,18 @@
         var form = document.getElementById('reviewForm');
         if (form) {
             form.style.display = 'none';
+        }
+    }
+
+    function storeReviewThanksState(classId, className) {
+        try {
+            localStorage.setItem('pressco21_review_thanks_v1', JSON.stringify({
+                class_id: classId || '',
+                class_name: className || '',
+                at: new Date().toISOString()
+            }));
+        } catch (err) {
+            return;
         }
     }
 

@@ -97,6 +97,11 @@ interface PayableLedgerEntry {
   bookName?: string
 }
 
+interface RefundPendingEntry {
+  customer: Customer
+  refundPendingAmount: number
+}
+
 // ─── 입금 확인 다이얼로그 ───────────────────────
 interface PaymentDialogProps {
   invoice: Invoice | null
@@ -553,6 +558,12 @@ interface LegacyPayableDialogProps {
   onSaved: () => void
 }
 
+interface RefundPendingDialogProps {
+  target: RefundPendingEntry | null
+  onClose: () => void
+  onSaved: () => void
+}
+
 function LegacyPayableDialog({ target, onClose, onSaved }: LegacyPayableDialogProps) {
   const qc = useQueryClient()
   const [amount, setAmount] = useState(0)
@@ -763,6 +774,219 @@ function LegacyPayableDialog({ target, onClose, onSaved }: LegacyPayableDialogPr
   )
 }
 
+function RefundPendingDialog({ target, onClose, onSaved }: RefundPendingDialogProps) {
+  const qc = useQueryClient()
+  const [amount, setAmount] = useState(0)
+  const [method, setMethod] = useState('계좌이체')
+  const [isSaving, setIsSaving] = useState(false)
+
+  if (!target) return null
+
+  const currentTarget = target
+  const maxAmount = currentTarget.refundPendingAmount
+  const activeOperator = loadActiveWorkOperatorProfile()
+  const metaState = parseCustomerAccountingMeta(currentTarget.customer.memo as string | undefined)
+
+  function applyCustomerMemoLocally(customerId: number, nextMemo: string) {
+    const nextCustomer = { ...currentTarget.customer, memo: nextMemo }
+    qc.setQueryData<Customer | null>(['customer', customerId], nextCustomer)
+    qc.setQueryData<Customer[] | undefined>(['receivable-link-customers'], (prev) => (
+      Array.isArray(prev)
+        ? prev.map((customer) => (customer.Id === customerId ? { ...customer, memo: nextMemo } : customer))
+        : prev
+    ))
+    qc.setQueryData<Customer[] | undefined>(['transactions-customer-directory'], (prev) => (
+      Array.isArray(prev)
+        ? prev.map((customer) => (customer.Id === customerId ? { ...customer, memo: nextMemo } : customer))
+        : prev
+    ))
+    qc.setQueryData<Customer[] | undefined>(['customer-detail-link-customers'], (prev) => (
+      Array.isArray(prev)
+        ? prev.map((customer) => (customer.Id === customerId ? { ...customer, memo: nextMemo } : customer))
+        : prev
+    ))
+  }
+
+  async function refreshRefundViews(customerId: number) {
+    await Promise.all([
+      qc.invalidateQueries({ queryKey: ['customers'] }),
+      qc.invalidateQueries({ queryKey: ['customer', customerId] }),
+      qc.invalidateQueries({ queryKey: ['transactions-customer-directory'] }),
+      qc.invalidateQueries({ queryKey: ['customer-detail-link-customers'] }),
+      qc.invalidateQueries({ queryKey: ['receivables'] }),
+      qc.invalidateQueries({ queryKey: ['receivable-link-customers'] }),
+      qc.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(customerId)] }),
+      qc.invalidateQueries({ queryKey: ['transactions'] }),
+      qc.invalidateQueries({ queryKey: ['transactions-crm'] }),
+      qc.invalidateQueries({ queryKey: ['dash-receivables'] }),
+      qc.invalidateQueries({ queryKey: ['dash-payable-customers'] }),
+      qc.invalidateQueries({
+      predicate: (q) => {
+        const key = q.queryKey[0]
+        return typeof key === 'string' && (key.startsWith('dash-') || key.startsWith('period-') || key.startsWith('calendar-'))
+      },
+    }),
+    ])
+  }
+
+  async function handleRefundComplete() {
+    if (amount <= 0) {
+      toast.error('환불액을 입력해주세요.')
+      return
+    }
+    if (amount > maxAmount) {
+      toast.error(`환불대기 금액(${maxAmount.toLocaleString()}원)보다 많이 처리할 수 없습니다.`)
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const nextMemo = appendCustomerAccountingEvent(
+        currentTarget.customer.memo as string | undefined,
+        {
+          type: 'refund_paid',
+          amount,
+          date: todayDate(),
+          method,
+          operator: activeOperator?.operatorName,
+          accountId: activeOperator?.id,
+          accountLabel: activeOperator?.label,
+          createdAt: currentTimestamp(),
+          note: '환불대기에서 환불 완료',
+        },
+        { refundPendingBalance: Math.max(0, metaState.refundPendingBalance - amount) },
+      )
+      applyCustomerMemoLocally(currentTarget.customer.Id, nextMemo)
+      await updateCustomer(currentTarget.customer.Id, { memo: nextMemo })
+      await refreshRefundViews(currentTarget.customer.Id)
+      toast.success('환불 완료로 반영했습니다.')
+      onSaved()
+    } catch (error) {
+      console.error(error)
+      toast.error('환불 완료 처리 중 오류가 발생했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleRefundClear() {
+    if (!confirm('환불대기 금액을 해제하시겠습니까? 실제 송금 없이 대기 금액만 제거합니다.')) return
+    setIsSaving(true)
+    try {
+      const nextMemo = appendCustomerAccountingEvent(
+        currentTarget.customer.memo as string | undefined,
+        {
+          type: 'refund_pending_cleared',
+          amount: maxAmount,
+          date: todayDate(),
+          method,
+          operator: activeOperator?.operatorName,
+          accountId: activeOperator?.id,
+          accountLabel: activeOperator?.label,
+          createdAt: currentTimestamp(),
+          note: '환불대기 해제',
+        },
+        { refundPendingBalance: 0 },
+      )
+      applyCustomerMemoLocally(currentTarget.customer.Id, nextMemo)
+      await updateCustomer(currentTarget.customer.Id, { memo: nextMemo })
+      await refreshRefundViews(currentTarget.customer.Id)
+      toast.success('환불대기 금액을 해제했습니다.')
+      onSaved()
+    } catch (error) {
+      console.error(error)
+      toast.error('환불대기 해제 중 오류가 발생했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={!!target} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>환불대기 처리</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="bg-gray-50 rounded-md p-3 space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">거래처</span>
+              <span className="font-medium">{currentTarget.customer.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">현재 작업 계정</span>
+              <span className="font-medium">{activeOperator?.label ?? '미설정'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">환불대기 금액</span>
+              <span className="font-bold text-amber-700">{maxAmount.toLocaleString()}원</span>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">환불액</Label>
+            <Input
+              type="number"
+              value={amount || ''}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              placeholder={`최대 ${maxAmount.toLocaleString()}원`}
+              className="mt-1"
+              autoFocus
+            />
+          </div>
+
+          <div>
+            <Label className="text-xs">처리방법</Label>
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="계좌이체">계좌이체</SelectItem>
+                <SelectItem value="현금">현금</SelectItem>
+                <SelectItem value="카드취소">카드취소</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {amount > 0 && (
+            <div className="bg-amber-50 rounded-md p-2 text-xs text-amber-800">
+              처리 후 환불대기:{' '}
+              <span className={maxAmount - amount > 0 ? 'font-bold text-amber-700' : 'font-bold text-green-700'}>
+                {(maxAmount - amount).toLocaleString()}원
+              </span>
+            </div>
+          )}
+
+          <div className="rounded-md border bg-gray-50 px-3 py-2 text-xs text-muted-foreground">
+            환불 완료는 실제 송금된 금액만 반영하고, 환불대기 해제는 송금 없이 대기 금액만 제거할 때 사용합니다.
+          </div>
+
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="ghost" onClick={onClose} disabled={isSaving}>
+              취소
+            </Button>
+            <Button
+              variant="outline"
+              onClick={handleRefundClear}
+              disabled={isSaving}
+            >
+              환불대기 해제
+            </Button>
+            <Button
+              onClick={handleRefundComplete}
+              disabled={isSaving || amount <= 0}
+              className="bg-[#c0841a] hover:bg-[#a56f12] text-white"
+            >
+              {isSaving ? '처리 중...' : '환불 완료'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
 interface ReceivablesProps {
   mode?: 'receivable' | 'payable'
 }
@@ -774,11 +998,12 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const [paymentTarget, setPaymentTarget] = useState<Invoice | null>(null)
   const [legacyPaymentTarget, setLegacyPaymentTarget] = useState<LegacyPaymentTarget | null>(null)
   const [legacyPayableTarget, setLegacyPayableTarget] = useState<LegacyPayableTarget | null>(null)
+  const [refundPendingTarget, setRefundPendingTarget] = useState<RefundPendingEntry | null>(null)
   const [customerSearch, setCustomerSearch] = useState(() => searchParams.get('customer') ?? '')
   const [customerIdFilter, setCustomerIdFilter] = useState(() => searchParams.get('customerId') ?? '')
-  const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy' | 'payable'>(() => {
+  const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy' | 'payable' | 'refund'>(() => {
     const tab = searchParams.get('tab')
-    if (tab === 'crm' || tab === 'legacy' || tab === 'payable' || tab === 'all') return tab
+    if (tab === 'crm' || tab === 'legacy' || tab === 'payable' || tab === 'refund' || tab === 'all') return tab
     return mode === 'payable' ? 'payable' : 'all'
   })
   const [asOfDate, setAsOfDate] = useState(() => {
@@ -795,7 +1020,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     const nextCustomerId = searchParams.get('customerId') ?? ''
     setCustomerIdFilter((prev) => (prev === nextCustomerId ? prev : nextCustomerId))
     const nextTab = searchParams.get('tab')
-    const normalizedTab = nextTab === 'crm' || nextTab === 'legacy' || nextTab === 'payable' || nextTab === 'all'
+    const normalizedTab = nextTab === 'crm' || nextTab === 'legacy' || nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all'
       ? nextTab
       : mode === 'payable' ? 'payable' : 'all'
     setSourceTab((prev) => (prev === normalizedTab ? prev : normalizedTab))
@@ -804,6 +1029,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     setPaymentTarget(null)
     setLegacyPaymentTarget(null)
     setLegacyPayableTarget(null)
+    setRefundPendingTarget(null)
   }, [asOfDate])
 
   const { data: invoices = [], isLoading, isError } = useQuery({
@@ -892,6 +1118,15 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       .filter((entry) => entry.payableAmount > 0)
       .sort((left, right) => right.payableAmount - left.payableAmount)
   }, [customersForLink, fiscalSnapshots, legacySnapshots])
+  const refundPendingLedger = useMemo<RefundPendingEntry[]>(() => (
+    customersForLink
+      .map((customer) => ({
+        customer,
+        refundPendingAmount: parseCustomerAccountingMeta(customer.memo as string | undefined).refundPendingBalance,
+      }))
+      .filter((entry) => entry.refundPendingAmount > 0)
+      .sort((left, right) => right.refundPendingAmount - left.refundPendingAmount)
+  ), [customersForLink])
 
   function applyAsOfDate(nextValue: string) {
     const normalized = nextValue || todayDate()
@@ -935,6 +1170,14 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       (entry.bookName ?? '').toLowerCase().includes(normalizedSearch)
     )
   })
+  const filteredRefundPendingLedger = refundPendingLedger.filter((entry) => {
+    if (customerIdFilter && String(entry.customer.Id) !== customerIdFilter) return false
+    if (!normalizedSearch) return true
+    return (
+      entry.customer.name?.toLowerCase().includes(normalizedSearch) ||
+      (entry.customer.book_name as string | undefined)?.toLowerCase().includes(normalizedSearch)
+    )
+  })
 
   // 에이징 집계는 CRM 명세표 기준으로만 관리한다.
   const aging = AGING_BUCKETS.map((bucket) => {
@@ -955,6 +1198,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const filteredLegacyTotal = filteredLegacyLedger.reduce((sum, entry) => sum + entry.legacyBaseline, 0)
   const filteredCrmTotal = filteredCrmLedger.reduce((sum, entry) => sum + entry.crmRemaining, 0)
   const filteredPayableTotal = filteredPayableLedger.reduce((sum, entry) => sum + entry.payableAmount, 0)
+  const filteredRefundPendingTotal = filteredRefundPendingLedger.reduce((sum, entry) => sum + entry.refundPendingAmount, 0)
   const criticalCount = filteredInvoices.filter((inv) => {
     const days = getDaysSince(inv.invoice_date, asOfDate)
     return days > 90
@@ -988,10 +1232,12 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const legacySummaryLabel = isPayableMode ? '기존 장부 받을 돈' : '기존 장부 받을 돈'
   const crmSummaryLabel = isPayableMode ? '새 입력 받을 돈' : '새 입력 받을 돈'
   const payableSummaryLabel = isPayableMode ? '총 줄 돈' : '총 줄 돈'
+  const refundSummaryLabel = '환불대기'
   const allTabLabel = isPayableMode ? '전체 정산' : '전체 정산'
   const crmTabLabel = '새 입력 받을 돈'
   const legacyTabLabel = '기존 장부 받을 돈'
   const payableTabLabel = '기존 장부 줄 돈'
+  const refundTabLabel = '환불대기'
 
   if (isLoading)
     return (
@@ -1031,6 +1277,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             {' / '}기존 장부 받을 돈 {filteredLegacyTotal.toLocaleString()}원
             {' / '}새 입력 받을 돈 {filteredCrmTotal.toLocaleString()}원
             {' / '}총 줄 돈 <span className="font-medium text-blue-700">{filteredPayableTotal.toLocaleString()}원</span>
+            {' / '}환불대기 <span className="font-medium text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</span>
             {criticalCount > 0 && (
               <span className="ml-2 text-amber-600">
                 <AlertCircle className="inline h-3.5 w-3.5 mr-0.5" />
@@ -1092,7 +1339,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         )}
       </div>
 
-      <div className="mb-4 grid gap-3 md:grid-cols-4">
+      <div className="mb-4 grid gap-3 md:grid-cols-5">
         <div className="rounded-lg border bg-white px-4 py-3">
           <p className="text-xs text-muted-foreground">{totalSummaryLabel}</p>
           <p className={`mt-1 text-base font-semibold ${isPayableMode ? 'text-blue-700' : 'text-red-600'}`}>
@@ -1116,6 +1363,11 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           <p className="text-xs text-muted-foreground">{payableSummaryLabel}</p>
           <p className="mt-1 text-base font-semibold text-blue-700">{filteredPayableTotal.toLocaleString()}원</p>
           <p className="mt-1 text-xs text-muted-foreground">{filteredPayableLedger.length}개 고객</p>
+        </div>
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <p className="text-xs text-muted-foreground">{refundSummaryLabel}</p>
+          <p className="mt-1 text-base font-semibold text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</p>
+          <p className="mt-1 text-xs text-muted-foreground">{filteredRefundPendingLedger.length}개 고객</p>
         </div>
       </div>
 
@@ -1173,7 +1425,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       <Tabs
         value={sourceTab}
         onValueChange={(value) => {
-          const nextValue = value as 'all' | 'crm' | 'legacy' | 'payable'
+          const nextValue = value as 'all' | 'crm' | 'legacy' | 'payable' | 'refund'
           setSourceTab(nextValue)
           const nextParams = new URLSearchParams(searchParams)
           if (nextValue === 'all') nextParams.delete('tab')
@@ -1186,6 +1438,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           <TabsTrigger value="crm">{crmTabLabel}</TabsTrigger>
           <TabsTrigger value="legacy">{legacyTabLabel}</TabsTrigger>
           <TabsTrigger value="payable">{payableTabLabel}</TabsTrigger>
+          <TabsTrigger value="refund">{refundTabLabel}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
@@ -1495,6 +1748,63 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             </table>
           </div>
         </TabsContent>
+
+        <TabsContent value="refund">
+          <div className="rounded-lg border bg-white overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">환불대기 금액</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
+                  <th className="w-36" />
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRefundPendingLedger.length === 0 && (
+                  <tr>
+                    <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+                      환불대기 건이 없습니다.
+                    </td>
+                  </tr>
+                )}
+                {filteredRefundPendingLedger.map((entry) => (
+                  <tr
+                    key={entry.customer.Id}
+                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                    onClick={() => navigate(`/customers/${entry.customer.Id}`)}
+                  >
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium">{entry.customer.name}</div>
+                      {entry.customer.book_name && entry.customer.book_name !== entry.customer.name && (
+                        <div className="mt-0.5 text-xs text-muted-foreground">{entry.customer.book_name as string}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-medium text-amber-700">
+                      {entry.refundPendingAmount.toLocaleString()}원
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      초과 입금 또는 정산 조정으로 생성된 대기 금액
+                    </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          setRefundPendingTarget(entry)
+                        }}
+                      >
+                        환불 처리
+                      </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
       </Tabs>
 
       {/* 입금 다이얼로그 */}
@@ -1512,6 +1822,11 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         target={legacyPayableTarget}
         onClose={() => setLegacyPayableTarget(null)}
         onSaved={() => setLegacyPayableTarget(null)}
+      />
+      <RefundPendingDialog
+        target={refundPendingTarget}
+        onClose={() => setRefundPendingTarget(null)}
+        onSaved={() => setRefundPendingTarget(null)}
       />
     </div>
   )

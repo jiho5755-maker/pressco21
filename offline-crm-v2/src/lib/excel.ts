@@ -53,6 +53,25 @@ export function exportReceivables(invoices: Invoice[], baseDate = new Date().toI
   downloadXlsx(data, '미수금현황')
 }
 
+export interface OutgoingLedgerExportRow {
+  customerName: string
+  kind: string
+  amount: number
+  note?: string
+  bookName?: string
+}
+
+export function exportOutgoingLedger(rows: OutgoingLedgerExportRow[], filename = '지급현황'): void {
+  const data = rows.map((row) => ({
+    거래처: row.customerName,
+    지급구분: row.kind,
+    금액: row.amount,
+    장부명: row.bookName ?? '',
+    비고: row.note ?? '',
+  }))
+  downloadXlsx(data, filename)
+}
+
 export function exportTxHistory(txs: TxHistory[], filename = '거래내역'): void {
   const data = txs.map((tx) => ({
     거래일: tx.tx_date?.slice(0, 10) ?? '',

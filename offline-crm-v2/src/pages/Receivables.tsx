@@ -11,7 +11,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/u
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { getAllCustomers, getAllInvoices, getCustomer, updateCustomer, updateInvoice, recalcCustomerStats } from '@/lib/api'
 import type { Customer, Invoice } from '@/lib/api'
-import { exportReceivables } from '@/lib/excel'
+import { exportOutgoingLedger, exportReceivables } from '@/lib/excel'
 import {
   getFiscalBalanceSnapshots,
   getLegacyCustomerSnapshots,
@@ -1346,7 +1346,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             )}
           </p>
         </div>
-        {!isPayableMode && (
+        {!isPayableMode ? (
           <Button
             variant="outline"
             size="sm"
@@ -1362,6 +1362,25 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           >
             <Download className="h-4 w-4" />
             엑셀 내보내기
+          </Button>
+        ) : (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportOutgoingLedger(
+              filteredOutgoingLedger.map((entry) => ({
+                customerName: entry.customerName,
+                kind: entry.kind === 'payable' ? '기존 장부 줄 돈' : '환불대기',
+                amount: entry.amount,
+                note: entry.note,
+                bookName: entry.bookName,
+              })),
+              '지급예정현황',
+            )}
+            className="gap-1"
+          >
+            <Download className="h-4 w-4" />
+            지급 현황 내보내기
           </Button>
         )}
       </div>

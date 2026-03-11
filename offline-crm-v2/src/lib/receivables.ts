@@ -1,5 +1,5 @@
 import type { Customer, Invoice } from '@/lib/api'
-import type { LegacyCustomerSnapshotPayload } from '@/lib/legacySnapshots'
+import type { FiscalBalanceSnapshotPayload, LegacyCustomerSnapshotPayload } from '@/lib/legacySnapshots'
 import { getLegacyReceivableBaselineFromSnapshots } from '@/lib/legacySnapshots'
 import { getPaymentStatusAsOf, getRemainingAmountAsOf } from '@/lib/reporting'
 
@@ -136,11 +136,12 @@ export function buildCustomerReceivableLedger(
   customers: Customer[],
   invoices: ResolvedReceivableInvoice[],
   snapshots?: LegacyCustomerSnapshotPayload,
+  fiscalSnapshots?: FiscalBalanceSnapshotPayload,
 ): CustomerReceivableLedger[] {
   const ledgerByCustomerId = new Map<number, CustomerReceivableLedger>()
 
   for (const customer of customers) {
-    const legacyBaseline = getLegacyReceivableBaselineFromSnapshots(customer, snapshots)
+    const legacyBaseline = getLegacyReceivableBaselineFromSnapshots(customer, snapshots, fiscalSnapshots)
     if (legacyBaseline <= 0) continue
 
     ledgerByCustomerId.set(customer.Id, {

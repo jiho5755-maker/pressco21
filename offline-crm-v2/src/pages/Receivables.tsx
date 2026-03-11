@@ -13,6 +13,7 @@ import { getAllCustomers, getAllInvoices, getCustomer, updateCustomer, updateInv
 import type { Customer, Invoice } from '@/lib/api'
 import { exportReceivables } from '@/lib/excel'
 import {
+  getFiscalBalanceSnapshots,
   getLegacyCustomerSnapshots,
   getLegacyReceivableBaseline,
   parseLegacyReceivableMemo,
@@ -269,7 +270,7 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
       return
     }
     if (amount > maxAmount) {
-      toast.error(`레거시 미수금(${maxAmount.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
+      toast.error(`기존 장부 미수금(${maxAmount.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
       return
     }
 
@@ -294,11 +295,11 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
       await recalcCustomerStats(legacyTarget.customer.Id)
       await refreshReceivableViews(legacyTarget.customer.Id)
 
-      toast.success('레거시 미수금 입금 처리가 반영되었습니다.')
+      toast.success('기존 장부 미수금 입금 처리가 반영되었습니다.')
       onSaved()
     } catch (error) {
       console.error(error)
-      toast.error('레거시 미수금 입금 처리 중 오류가 발생했습니다.')
+      toast.error('기존 장부 미수금 입금 처리 중 오류가 발생했습니다.')
     } finally {
       setIsSaving(false)
     }
@@ -320,11 +321,11 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
       await recalcCustomerStats(legacyTarget.customer.Id)
       await refreshReceivableViews(legacyTarget.customer.Id)
       setEditingEntryIndex(null)
-      toast.success('레거시 입금 기록을 취소했습니다.')
+      toast.success('기존 장부 입금 기록을 취소했습니다.')
       onSaved()
     } catch (error) {
       console.error(error)
-      toast.error('레거시 입금 기록 취소 중 오류가 발생했습니다.')
+      toast.error('기존 장부 입금 기록 취소 중 오류가 발생했습니다.')
     } finally {
       setIsSaving(false)
     }
@@ -334,7 +335,7 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
     <Dialog open={!!target} onOpenChange={(open) => { if (!open) onClose() }}>
       <DialogContent className="max-w-sm">
         <DialogHeader>
-          <DialogTitle>레거시 미수 입금 확인</DialogTitle>
+          <DialogTitle>기존 장부 미수 입금 확인</DialogTitle>
         </DialogHeader>
         <div className="space-y-4 py-2">
           <div className="bg-gray-50 rounded-md p-3 space-y-1 text-sm">
@@ -343,7 +344,7 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
               <span className="font-medium">{legacyTarget.customer.name}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">레거시 미수금</span>
+              <span className="text-muted-foreground">기존 장부 미수금</span>
               <span className="font-bold text-red-600">{remaining.toLocaleString()}원</span>
             </div>
           </div>
@@ -378,7 +379,7 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
 
           {amount > 0 && (
             <div className="bg-blue-50 rounded-md p-2 text-xs text-blue-700">
-              입금 후 레거시 잔액:{' '}
+              입금 후 기존 장부 미수:{' '}
               <span className={remaining - amount > 0 ? 'text-red-600 font-bold' : 'text-green-600 font-bold'}>
                 {(remaining - amount).toLocaleString()}원
               </span>
@@ -387,7 +388,7 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
 
           {memoState.settlements.length > 0 && (
             <div className="rounded-md border p-3 space-y-2">
-              <div className="text-xs font-medium text-muted-foreground">기존 레거시 입금 이력</div>
+              <div className="text-xs font-medium text-muted-foreground">기존 장부 입금 이력</div>
               {memoState.settlements.map((entry, index) => (
                 <div key={`${entry.date}-${entry.amount}-${index}`} className="flex items-center justify-between gap-2 text-xs">
                   <div>
@@ -496,6 +497,11 @@ export function Receivables() {
     queryFn: getLegacyCustomerSnapshots,
     staleTime: Infinity,
   })
+  const { data: fiscalSnapshots } = useQuery({
+    queryKey: ['receivable-fiscal-snapshots'],
+    queryFn: getFiscalBalanceSnapshots,
+    staleTime: Infinity,
+  })
   const customerById = new Map(customersForLink.map((customer) => [customer.Id, customer]))
   const isTodayView = asOfDate === todayDate()
   const resolvedInvoices: ResolvedReceivableInvoice[] = useMemo(
@@ -512,8 +518,8 @@ export function Receivables() {
       asOfStatus: inv.asOfStatus,
     })), [asOfDate, resolvedInvoices])
   const receivableLedger = useMemo(
-    () => buildCustomerReceivableLedger(customersForLink, resolvedInvoices, legacySnapshots),
-    [customersForLink, legacySnapshots, resolvedInvoices],
+    () => buildCustomerReceivableLedger(customersForLink, resolvedInvoices, legacySnapshots, fiscalSnapshots),
+    [customersForLink, fiscalSnapshots, legacySnapshots, resolvedInvoices],
   )
 
   function applyAsOfDate(nextValue: string) {
@@ -606,7 +612,7 @@ export function Receivables() {
       </div>
     )
 
-  if (!legacySnapshots || customersForLink.length === 0)
+  if (!legacySnapshots || !fiscalSnapshots || customersForLink.length === 0)
     return (
       <div className="p-6 text-muted-foreground">
         미수금 기준 고객을 불러오는 중...
@@ -621,8 +627,8 @@ export function Receivables() {
           <h2 className="text-2xl font-bold">미수금 관리</h2>
           <p className="text-sm text-muted-foreground mt-1">
             총 <span className="font-medium text-red-600">{filteredTotalReceivable.toLocaleString()}원</span>
-            {' / '}레거시 {filteredLegacyTotal.toLocaleString()}원
-            {' / '}CRM {filteredCrmTotal.toLocaleString()}원
+            {' / '}기존 장부 {filteredLegacyTotal.toLocaleString()}원
+            {' / '}새 입력 {filteredCrmTotal.toLocaleString()}원
             {criticalCount > 0 && (
               <span className="ml-2 text-amber-600">
                 <AlertCircle className="inline h-3.5 w-3.5 mr-0.5" />
@@ -688,15 +694,15 @@ export function Receivables() {
         <div className="rounded-lg border bg-white px-4 py-3">
           <p className="text-xs text-muted-foreground">총 미수금</p>
           <p className="mt-1 text-base font-semibold text-red-600">{filteredTotalReceivable.toLocaleString()}원</p>
-          <p className="mt-1 text-xs text-muted-foreground">레거시 + CRM 합산</p>
+          <p className="mt-1 text-xs text-muted-foreground">기존 장부 + 새 입력 합산</p>
         </div>
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">레거시 미수</p>
+          <p className="text-xs text-muted-foreground">기존 장부 미수</p>
           <p className="mt-1 text-base font-semibold text-red-600">{filteredLegacyTotal.toLocaleString()}원</p>
           <p className="mt-1 text-xs text-muted-foreground">{filteredLegacyLedger.length}개 고객</p>
         </div>
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">CRM 미수</p>
+          <p className="text-xs text-muted-foreground">새 입력 미수</p>
           <p className="mt-1 text-base font-semibold text-red-600">{filteredCrmTotal.toLocaleString()}원</p>
           <p className="mt-1 text-xs text-muted-foreground">{filteredInvoices.length}개 열린 명세표</p>
         </div>
@@ -705,7 +711,7 @@ export function Receivables() {
       {customerBreakdown && (
         <div className="mb-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-lg border bg-white px-4 py-3">
-            <p className="text-xs text-muted-foreground">레거시 baseline</p>
+            <p className="text-xs text-muted-foreground">이월 미수</p>
             <p className={`mt-1 text-base font-semibold ${customerBreakdown.legacyBaseline > 0 ? 'text-red-600' : customerBreakdown.legacyBaseline < 0 ? 'text-blue-700' : ''}`}>
               {customerBreakdown.legacyBaseline.toLocaleString()}원
             </p>
@@ -714,7 +720,7 @@ export function Receivables() {
             </p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
-            <p className="text-xs text-muted-foreground">기준일 CRM 미수</p>
+            <p className="text-xs text-muted-foreground">기준일 새 입력 미수</p>
             <p className={`mt-1 text-base font-semibold ${breakdownCrmReceivable > 0 ? 'text-red-600' : breakdownCrmReceivable < 0 ? 'text-blue-700' : ''}`}>
               {breakdownCrmReceivable.toLocaleString()}원
             </p>
@@ -748,8 +754,8 @@ export function Receivables() {
       <Tabs value={sourceTab} onValueChange={(value) => setSourceTab(value as 'all' | 'crm' | 'legacy')}>
         <TabsList className="mb-4">
           <TabsTrigger value="all">전체</TabsTrigger>
-          <TabsTrigger value="crm">CRM 명세표</TabsTrigger>
-          <TabsTrigger value="legacy">레거시 잔액</TabsTrigger>
+          <TabsTrigger value="crm">새 입력 명세표</TabsTrigger>
+          <TabsTrigger value="legacy">기존 장부 미수</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
@@ -758,8 +764,8 @@ export function Receivables() {
               <thead>
                 <tr className="border-b bg-gray-50">
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">레거시</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">CRM</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">새 입력</th>
                   <th className="text-right px-4 py-3 font-medium text-muted-foreground">총 미수금</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">구분</th>
                 </tr>
@@ -796,7 +802,7 @@ export function Receivables() {
                       {entry.totalRemaining.toLocaleString()}원
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {entry.source === 'both' ? '레거시 + CRM' : entry.source === 'legacy' ? '레거시' : 'CRM'}
+                      {entry.source === 'both' ? '기존 장부 + 새 입력' : entry.source === 'legacy' ? '기존 장부' : '새 입력'}
                     </td>
                   </tr>
                 ))}
@@ -837,7 +843,7 @@ export function Receivables() {
 
           {filteredInvoices.length === 0 ? (
             <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
-              해당 기준일까지의 CRM 미수 명세표가 없습니다.
+              해당 기준일까지의 새 입력 미수 명세표가 없습니다.
             </div>
           ) : (
             <div className="rounded-lg border bg-white overflow-hidden">
@@ -936,7 +942,7 @@ export function Receivables() {
               <thead>
                 <tr className="border-b bg-gray-50">
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">레거시 미수금</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부 미수금</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
                   <th className="w-28" />
                 </tr>
@@ -945,7 +951,7 @@ export function Receivables() {
                 {filteredLegacyLedger.length === 0 && (
                   <tr>
                     <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
-                      레거시 미수 고객이 없습니다.
+                      기존 장부 미수 고객이 없습니다.
                     </td>
                   </tr>
                 )}
@@ -967,7 +973,7 @@ export function Receivables() {
                       {entry.legacyBaseline.toLocaleString()}원
                     </td>
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {entry.crmRemaining > 0 ? `CRM 미수 ${entry.crmRemaining.toLocaleString()}원 별도 보유` : '레거시 원장 기준'}
+                      {entry.crmRemaining > 0 ? `새 입력 미수 ${entry.crmRemaining.toLocaleString()}원 별도 보유` : '기존 장부 기준'}
                     </td>
                     <td className="px-4 py-2.5">
                       <Button

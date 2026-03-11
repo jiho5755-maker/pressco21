@@ -64,6 +64,17 @@ export interface LegacyCustomerSnapshotPayload {
   customerListByName: Record<string, LegacyCustomerListSnapshot[]>
 }
 
+export interface FiscalBalanceYearSnapshot {
+  receivablesByLegacyId: Record<string, number>
+  payablesByLegacyId: Record<string, number>
+}
+
+export interface FiscalBalanceSnapshotPayload {
+  generatedAt: string
+  currentFiscalYear: number
+  years: Record<string, FiscalBalanceYearSnapshot>
+}
+
 export interface LegacySnapshotMatchTarget {
   legacy_id?: string | number
   name?: string
@@ -90,6 +101,7 @@ interface LegacyReceivableMemoState {
 const LEGACY_RECEIVABLE_META_PREFIX = '[LEGACY_RECEIVABLE_META]'
 
 let legacySnapshotPromise: Promise<LegacyCustomerSnapshotPayload> | null = null
+let fiscalBalanceSnapshotPromise: Promise<FiscalBalanceSnapshotPayload> | null = null
 
 function normalizeLegacyCompareText(value: string | undefined) {
   return (value ?? '')
@@ -272,23 +284,83 @@ export async function getLegacyCustomerSnapshots(): Promise<LegacyCustomerSnapsh
   return legacySnapshotPromise
 }
 
+export async function getFiscalBalanceSnapshots(): Promise<FiscalBalanceSnapshotPayload> {
+  if (!fiscalBalanceSnapshotPromise) {
+    fiscalBalanceSnapshotPromise = fetch('/data/fiscal-balance-snapshots.json')
+      .then((response) => {
+        if (!response.ok) throw new Error('회기 잔액 스냅샷을 불러오지 못했습니다.')
+        return response.json() as Promise<FiscalBalanceSnapshotPayload>
+      })
+      .catch((error) => {
+        fiscalBalanceSnapshotPromise = null
+        throw error
+      })
+  }
+  return fiscalBalanceSnapshotPromise
+}
+
+function getCurrentFiscalSnapshot(payload: FiscalBalanceSnapshotPayload | undefined): FiscalBalanceYearSnapshot | undefined {
+  if (!payload) return undefined
+  return payload.years?.[String(payload.currentFiscalYear)]
+}
+
 export async function getLegacyBalanceBaseline(customer: LegacySnapshotMatchTarget | undefined): Promise<number> {
   const snapshots = await getLegacyCustomerSnapshots()
   const { snapshot } = deriveLegacyTradebookSnapshot(customer, snapshots)
   return parseInteger(snapshot?.balance)
 }
 
+function isLegacyReceivableSnapshot(snapshot: LegacyTradebookSnapshot | undefined): boolean {
+  if (!snapshot) return false
+  if ((snapshot.report_print ?? '').trim() === '거래종료') return false
+  return parseInteger(snapshot.balance) < 0
+}
+
+function isLegacyPayableSnapshot(snapshot: LegacyTradebookSnapshot | undefined): boolean {
+  if (!snapshot) return false
+  if ((snapshot.report_print ?? '').trim() === '거래종료') return false
+  return parseInteger(snapshot.balance) > 0
+}
+
 export async function getLegacyReceivableBaseline(customer: LegacySnapshotMatchTarget | undefined): Promise<number> {
-  const baseline = await getLegacyBalanceBaseline(customer)
+  const [snapshots, fiscalSnapshots] = await Promise.all([
+    getLegacyCustomerSnapshots(),
+    getFiscalBalanceSnapshots(),
+  ])
+  const { snapshot } = deriveLegacyTradebookSnapshot(customer, snapshots)
+  const fiscalYearSnapshot = getCurrentFiscalSnapshot(fiscalSnapshots)
+  const fiscalAmount = snapshot?.legacy_id ? fiscalYearSnapshot?.receivablesByLegacyId?.[snapshot.legacy_id] : undefined
+  const baseline = typeof fiscalAmount === 'number'
+    ? fiscalAmount
+    : (isLegacyReceivableSnapshot(snapshot) ? Math.abs(parseInteger(snapshot?.balance)) : 0)
+  if (!baseline) return 0
   const settledAmount = getLegacyReceivableSettledAmount(customer)
-  return Math.max(0, Math.abs(baseline) - settledAmount)
+  return Math.max(0, baseline - settledAmount)
 }
 
 export function getLegacyReceivableBaselineFromSnapshots(
   customer: LegacySnapshotMatchTarget | undefined,
   snapshots: LegacyCustomerSnapshotPayload | undefined,
+  fiscalSnapshots?: FiscalBalanceSnapshotPayload,
 ): number {
   const { snapshot } = deriveLegacyTradebookSnapshot(customer, snapshots)
+  const fiscalYearSnapshot = getCurrentFiscalSnapshot(fiscalSnapshots)
+  const fiscalAmount = snapshot?.legacy_id ? fiscalYearSnapshot?.receivablesByLegacyId?.[snapshot.legacy_id] : undefined
+  if (typeof fiscalAmount !== 'number' && !isLegacyReceivableSnapshot(snapshot)) return 0
   const settledAmount = getLegacyReceivableSettledAmount(customer)
-  return Math.max(0, Math.abs(parseInteger(snapshot?.balance)) - settledAmount)
+  const baseline = typeof fiscalAmount === 'number' ? fiscalAmount : Math.abs(parseInteger(snapshot?.balance))
+  return Math.max(0, baseline - settledAmount)
+}
+
+export function getLegacyPayableBaselineFromSnapshots(
+  customer: LegacySnapshotMatchTarget | undefined,
+  snapshots: LegacyCustomerSnapshotPayload | undefined,
+  fiscalSnapshots?: FiscalBalanceSnapshotPayload,
+): number {
+  const { snapshot } = deriveLegacyTradebookSnapshot(customer, snapshots)
+  const fiscalYearSnapshot = getCurrentFiscalSnapshot(fiscalSnapshots)
+  const fiscalAmount = snapshot?.legacy_id ? fiscalYearSnapshot?.payablesByLegacyId?.[snapshot.legacy_id] : undefined
+  if (typeof fiscalAmount === 'number') return fiscalAmount
+  if (!isLegacyPayableSnapshot(snapshot)) return 0
+  return parseInteger(snapshot?.balance)
 }

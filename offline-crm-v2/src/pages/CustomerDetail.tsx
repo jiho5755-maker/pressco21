@@ -17,8 +17,10 @@ import { getAllCustomers, getAllInvoices, getCustomer, getTxHistory, updateCusto
 import type { Customer, Invoice } from '@/lib/api'
 import {
   deriveLegacyTradebookSnapshot,
+  getFiscalBalanceSnapshots,
   getLegacyCustomerSnapshots,
   getLegacyReceivableBaselineFromSnapshots,
+  getLegacyPayableBaselineFromSnapshots,
   parseLegacyReceivableMemo,
   serializeLegacyReceivableMemo,
 } from '@/lib/legacySnapshots'
@@ -94,17 +96,6 @@ function thisMonthStart() {
 function toNullableText(value: string): string | null {
   const trimmed = value.trim()
   return trimmed ? trimmed : null
-}
-
-function parseLegacyAmount(value: string | undefined): number {
-  const normalized = (value ?? '').replace(/,/g, '').trim()
-  if (!normalized) return 0
-  const parsed = Number(normalized)
-  return Number.isFinite(parsed) ? Math.trunc(parsed) : 0
-}
-
-function normalizeReceivableBaseline(value: number): number {
-  return Math.abs(value)
 }
 
 // ── 거래내역 쿼리 (모든 tx_type, 페이지네이션) ──────────
@@ -198,6 +189,11 @@ export function CustomerDetail() {
   const { data: legacySnapshots } = useQuery<LegacyCustomerSnapshotPayload>({
     queryKey: ['legacy-customer-snapshots'],
     queryFn: getLegacyCustomerSnapshots,
+    staleTime: Infinity,
+  })
+  const { data: fiscalSnapshots } = useQuery({
+    queryKey: ['legacy-fiscal-balance-snapshots'],
+    queryFn: getFiscalBalanceSnapshots,
     staleTime: Infinity,
   })
 
@@ -427,7 +423,7 @@ export function CustomerDetail() {
       txType: '입금',
       amount: entry.amount,
       memo: [
-        '레거시 미수 입금',
+        '기존 장부 미수 입금',
         entry.method ? `방법: ${entry.method}` : '',
         entry.operator ? `입력: ${entry.operator}` : '',
         entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
@@ -487,7 +483,7 @@ export function CustomerDetail() {
         amount: row.amount,
         slipNo: row.slipNo,
         memo: row.memo,
-        sourceLabel: row.isCrm ? 'CRM' : '레거시',
+        sourceLabel: row.isCrm ? '새 입력' : '기존 장부',
       })),
       `${customer?.name ?? '고객'}_거래내역`,
     )
@@ -534,8 +530,9 @@ export function CustomerDetail() {
   const outstandingBalance = (customer.outstanding_balance as number | undefined) ?? 0
   const { snapshot: legacyTradebook, matchReason: legacyTradebookMatchReason } = deriveLegacyTradebookSnapshot(customer, legacySnapshots)
   const legacyCustomerList = (customer.name ? legacySnapshots?.customerListByName?.[customer.name] : undefined) ?? []
-  const legacyBalanceBaseline = normalizeReceivableBaseline(parseLegacyAmount(legacyTradebook?.balance))
-  const currentLegacyReceivable = getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots)
+  const legacyBalanceBaseline = getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
+  const currentLegacyReceivable = getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
+  const currentLegacyPayable = getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
   const legacyMemoState = parseLegacyReceivableMemo(customer.memo as string | undefined)
   const crmOutstandingBalance = todayResolvedInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0)
   const invoiceNameVariants = Array.from(
@@ -572,7 +569,7 @@ export function CustomerDetail() {
       return
     }
     if (amount > currentLegacyReceivable) {
-      toast.error(`레거시 미수금(${currentLegacyReceivable.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
+      toast.error(`기존 장부 미수금(${currentLegacyReceivable.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
       return
     }
 
@@ -596,10 +593,10 @@ export function CustomerDetail() {
       await recalcCustomerStats(customerId)
       await refreshCustomerViews()
       setLegacyPaymentAmount('')
-      toast.success('레거시 입금이 반영되었습니다')
+      toast.success('기존 장부 입금이 반영되었습니다')
     } catch (error) {
       console.error(error)
-      toast.error('레거시 입금 처리 중 오류가 발생했습니다')
+      toast.error('기존 장부 입금 처리 중 오류가 발생했습니다')
     } finally {
       setSavingLegacyPayment(false)
     }
@@ -621,10 +618,10 @@ export function CustomerDetail() {
       await updateCustomer(customerId, { memo: nextMemo })
       await recalcCustomerStats(customerId)
       await refreshCustomerViews()
-      toast.success('레거시 입금 기록을 취소했습니다')
+      toast.success('기존 장부 입금 기록을 취소했습니다')
     } catch (error) {
       console.error(error)
-      toast.error('레거시 입금 기록 취소 중 오류가 발생했습니다')
+      toast.error('기존 장부 입금 기록 취소 중 오류가 발생했습니다')
     } finally {
       setSavingLegacyPayment(false)
       setEditingLegacySettlementIndex(null)
@@ -684,7 +681,7 @@ export function CustomerDetail() {
             <button
               onClick={() => recalcBalance()}
               disabled={recalcing}
-              title="CRM + 레거시 기준 통계 재계산 (미수금·총매출·최종거래일)"
+              title="새 입력 + 기존 장부 기준 통계 재계산 (미수금·총매출·최종거래일)"
               className="absolute top-1.5 right-1.5 p-1 rounded-full text-muted-foreground hover:text-[#3d6b4a] hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
             >
               <RefreshCw className={`h-3 w-3 ${recalcing ? 'animate-spin' : ''}`} />
@@ -695,7 +692,7 @@ export function CustomerDetail() {
 
       <div className="mb-6 grid gap-3 md:grid-cols-3">
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">레거시 baseline</p>
+          <p className="text-xs text-muted-foreground">이월 미수</p>
           <p className={`mt-1 text-base font-semibold ${legacyBalanceBaseline > 0 ? 'text-red-600' : legacyBalanceBaseline < 0 ? 'text-blue-700' : ''}`}>
             {legacyBalanceBaseline.toLocaleString()}원
           </p>
@@ -704,12 +701,12 @@ export function CustomerDetail() {
           </p>
         </div>
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">CRM 미수</p>
+          <p className="text-xs text-muted-foreground">새 입력 미수</p>
           <p className={`mt-1 text-base font-semibold ${crmOutstandingBalance > 0 ? 'text-red-600' : crmOutstandingBalance < 0 ? 'text-blue-700' : ''}`}>
             {crmOutstandingBalance.toLocaleString()}원
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            CRM 명세표 기준 미수 증감분
+            새 입력 명세표 기준 미수 증감분
           </p>
         </div>
         <div className="rounded-lg border border-[#d9e4d5] bg-[#f7faf6] px-4 py-3">
@@ -718,7 +715,7 @@ export function CustomerDetail() {
             {outstandingBalance.toLocaleString()}원
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
-            레거시 baseline + CRM 미수
+            이월 미수 + 새 입력 미수
           </p>
         </div>
       </div>
@@ -760,7 +757,7 @@ export function CustomerDetail() {
           <TabsTrigger value="history">거래내역</TabsTrigger>
           <TabsTrigger value="chart">매출차트</TabsTrigger>
           <TabsTrigger value="invoices">명세표 · 기간매출</TabsTrigger>
-          <TabsTrigger value="legacy">레거시 백업 원본</TabsTrigger>
+          <TabsTrigger value="legacy">기존 장부 원본</TabsTrigger>
         </TabsList>
 
         {/* ─── 기본정보 ─── */}
@@ -1049,8 +1046,8 @@ export function CustomerDetail() {
             <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-blue-700 mt-1">
               <span><span className="font-medium">출고</span> — 거래명세표 발행 (CRM) 또는 기존 출고 기록</span>
               <span><span className="font-medium">입금</span> — 수금 처리 시 (명세표의 입금액)</span>
-              <span><span className="font-medium">반입</span> — 반품/반입 건 (레거시 데이터)</span>
-              <span><span className="font-medium">메모</span> — 참고사항 기재 (레거시 데이터)</span>
+              <span><span className="font-medium">반입</span> — 반품/반입 건 (기존 장부 데이터)</span>
+              <span><span className="font-medium">메모</span> — 참고사항 기재 (기존 장부 데이터)</span>
             </div>
             <p className="text-blue-600 pt-0.5">
               <span className="font-medium">[CRM]</span> 배지 = 이 시스템에서 발행한 명세표 · 배지 없음 = 기존 거래 데이터
@@ -1084,7 +1081,7 @@ export function CustomerDetail() {
                       amount: row.amount,
                       slipNo: row.slipNo,
                       memo: row.memo,
-                      sourceLabel: row.isCrm ? 'CRM' : '레거시',
+                      sourceLabel: row.isCrm ? '새 입력' : '기존 장부',
                     })),
                   )
                 }
@@ -1147,7 +1144,7 @@ export function CustomerDetail() {
                 <p className="mt-1 text-sm font-semibold">{historySummary.crmCount.toLocaleString()}건</p>
               </div>
               <div className="rounded-md bg-gray-50 px-3 py-2">
-                <p className="text-xs text-muted-foreground">레거시 행</p>
+                <p className="text-xs text-muted-foreground">기존 장부 행</p>
                 <p className="mt-1 text-sm font-semibold">{historySummary.legacyCount.toLocaleString()}건</p>
               </div>
             </div>
@@ -1213,7 +1210,7 @@ export function CustomerDetail() {
           {txPage && txPage.pageInfo.totalRows > TX_PAGE && (
             <div className="flex items-center justify-between mt-3">
               <span className="text-sm text-muted-foreground">
-                레거시 데이터 {txOffset + 1}–{Math.min(txOffset + TX_PAGE, txPage.pageInfo.totalRows)} /{' '}
+                기존 장부 데이터 {txOffset + 1}–{Math.min(txOffset + TX_PAGE, txPage.pageInfo.totalRows)} /{' '}
                 {txPage.pageInfo.totalRows}건
               </span>
               <div className="flex gap-2">
@@ -1242,7 +1239,7 @@ export function CustomerDetail() {
         <TabsContent value="chart">
           <Card>
             <CardHeader>
-              <CardTitle className="text-base">연도별 출고 매출 (레거시)</CardTitle>
+              <CardTitle className="text-base">연도별 출고 매출 (기존 장부)</CardTitle>
             </CardHeader>
             <CardContent>
               {chartData.length === 0 ? (
@@ -1265,7 +1262,7 @@ export function CustomerDetail() {
                 </ResponsiveContainer>
               )}
               <p className="text-xs text-muted-foreground mt-2">
-                * 레거시 출고 건 기준 집계. 최대 1,000건까지 표시됩니다.
+                * 기존 장부 출고 건 기준 집계. 최대 1,000건까지 표시됩니다.
               </p>
             </CardContent>
           </Card>
@@ -1356,15 +1353,15 @@ export function CustomerDetail() {
                 {
                   label: '합계 매출',
                   value: `${periodStats.totalSales.toLocaleString()}원`,
-                  sub: `CRM ${periodStats.crmCount}건 + 레거시 ${periodStats.legacyCount}건`,
+                  sub: `새 입력 ${periodStats.crmCount}건 + 기존 장부 ${periodStats.legacyCount}건`,
                   red: false,
                 },
-                { label: 'CRM 명세표', value: `${periodStats.crmSales.toLocaleString()}원`, sub: `${periodStats.crmCount}건`, red: false },
-                { label: '레거시 출고', value: `${periodStats.legacySales.toLocaleString()}원`, sub: `${periodStats.legacyCount}건 (최대 1,000건)`, red: false },
+                { label: '새 입력 명세표', value: `${periodStats.crmSales.toLocaleString()}원`, sub: `${periodStats.crmCount}건`, red: false },
+                { label: '기존 장부 출고', value: `${periodStats.legacySales.toLocaleString()}원`, sub: `${periodStats.legacyCount}건 (최대 1,000건)`, red: false },
                 {
                   label: '기간 미수금',
                   value: `${periodStats.outstanding.toLocaleString()}원`,
-                  sub: 'CRM 명세표 기준',
+                  sub: '새 입력 명세표 기준',
                   red: periodStats.outstanding > 0,
                 },
               ].map((s) => (
@@ -1381,8 +1378,8 @@ export function CustomerDetail() {
 
           {/* CRM 명세표 목록 */}
           <div className="rounded-lg border bg-white overflow-hidden mb-4">
-            <div className="px-4 py-2.5 border-b bg-gray-50 flex items-center gap-2">
-              <span className="text-xs font-semibold text-[#3d6b4a]">CRM 거래명세표</span>
+              <div className="px-4 py-2.5 border-b bg-gray-50 flex items-center gap-2">
+                <span className="text-xs font-semibold text-[#3d6b4a]">새 입력 거래명세표</span>
               <span className="text-xs text-muted-foreground">{filteredInvoices.length}건</span>
             </div>
             <table className="w-full text-sm">
@@ -1457,7 +1454,7 @@ export function CustomerDetail() {
           {filteredLegacyTx.length > 0 && (
             <div className="rounded-lg border bg-white overflow-hidden">
               <div className="px-4 py-2.5 border-b bg-gray-50 flex items-center gap-2">
-                <span className="text-xs font-semibold text-muted-foreground">레거시 출고 내역</span>
+                <span className="text-xs font-semibold text-muted-foreground">기존 장부 출고 내역</span>
                 <span className="text-xs text-muted-foreground">{filteredLegacyTx.length}건</span>
               </div>
               <table className="w-full text-sm">
@@ -1490,14 +1487,20 @@ export function CustomerDetail() {
           <div className="grid gap-4">
             <Card>
               <CardHeader>
-                <CardTitle className="text-base">레거시 미수 관리</CardTitle>
+                <CardTitle className="text-base">기존 장부 미수 관리</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-4">
                   <div className="rounded-lg border bg-white px-4 py-3">
-                    <p className="text-xs text-muted-foreground">레거시 원본 미수</p>
+                    <p className="text-xs text-muted-foreground">기존 장부 원본 미수</p>
                     <p className={`mt-1 text-base font-semibold ${legacyBalanceBaseline > 0 ? 'text-red-600' : ''}`}>
                       {legacyBalanceBaseline.toLocaleString()}원
+                    </p>
+                  </div>
+                  <div className="rounded-lg border bg-white px-4 py-3">
+                    <p className="text-xs text-muted-foreground">현재 기존 장부 미지급금</p>
+                    <p className={`mt-1 text-base font-semibold ${currentLegacyPayable > 0 ? 'text-blue-700' : 'text-muted-foreground'}`}>
+                      {currentLegacyPayable.toLocaleString()}원
                     </p>
                   </div>
                   <div className="rounded-lg border bg-white px-4 py-3">
@@ -1507,7 +1510,7 @@ export function CustomerDetail() {
                     </p>
                   </div>
                   <div className="rounded-lg border bg-[#f7faf6] px-4 py-3">
-                    <p className="text-xs text-muted-foreground">현재 레거시 미수</p>
+                    <p className="text-xs text-muted-foreground">현재 기존 장부 미수</p>
                     <p className={`mt-1 text-base font-semibold ${currentLegacyReceivable > 0 ? 'text-red-600' : 'text-green-700'}`}>
                       {currentLegacyReceivable.toLocaleString()}원
                     </p>
@@ -1517,7 +1520,7 @@ export function CustomerDetail() {
                 <div className="rounded-lg border p-4 space-y-3">
                   <div className="flex items-center justify-between gap-4 flex-wrap">
                     <div>
-                      <p className="text-sm font-medium">레거시 입금 확인</p>
+                      <p className="text-sm font-medium">기존 장부 입금 확인</p>
                       <p className="text-xs text-muted-foreground">
                         최대 입금 가능액 {currentLegacyReceivable.toLocaleString()}원
                       </p>
@@ -1557,11 +1560,11 @@ export function CustomerDetail() {
 
                 <div className="rounded-lg border p-4 space-y-3">
                   <div>
-                    <p className="text-sm font-medium">레거시 입금 이력</p>
+                    <p className="text-sm font-medium">기존 장부 입금 이력</p>
                     <p className="text-xs text-muted-foreground">잘못 입력한 건은 여기서 바로 취소할 수 있습니다.</p>
                   </div>
                   {legacyMemoState.settlements.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">아직 반영된 레거시 입금 이력이 없습니다.</p>
+                    <p className="text-sm text-muted-foreground">아직 반영된 기존 장부 입금 이력이 없습니다.</p>
                   ) : (
                     <div className="space-y-2">
                       {legacyMemoState.settlements.map((entry, index) => (

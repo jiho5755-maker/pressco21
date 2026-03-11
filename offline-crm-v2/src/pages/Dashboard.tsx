@@ -17,7 +17,7 @@ import {
   type PresetKey,
   yoyColor,
 } from '@/lib/reporting'
-import { getLegacyCustomerSnapshots } from '@/lib/legacySnapshots'
+import { getFiscalBalanceSnapshots, getLegacyCustomerSnapshots } from '@/lib/legacySnapshots'
 import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
 
 // accounting-specialist 정의 임계값
@@ -117,7 +117,7 @@ export function Dashboard() {
   const { data: receivablesData } = useQuery({
     queryKey: ['dash-receivables'],
     queryFn: async () => {
-      const [customers, invoices, snapshots] = await Promise.all([
+      const [customers, invoices, snapshots, fiscalSnapshots] = await Promise.all([
         getAllCustomers({
           where: '(outstanding_balance,gt,0)',
           fields: 'Id,name,book_name,legacy_id,mobile,email,business_no,memo,outstanding_balance',
@@ -128,10 +128,11 @@ export function Dashboard() {
           fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status',
         }),
         getLegacyCustomerSnapshots(),
+        getFiscalBalanceSnapshots(),
       ])
       const asOfDate = new Date().toISOString().slice(0, 10)
       const resolvedInvoices = buildResolvedReceivableInvoices(invoices, customers, asOfDate)
-      return buildCustomerReceivableLedger(customers, resolvedInvoices, snapshots)
+      return buildCustomerReceivableLedger(customers, resolvedInvoices, snapshots, fiscalSnapshots)
     },
     staleTime: 2 * 60_000,
   })
@@ -324,27 +325,27 @@ export function Dashboard() {
           title="이번 달 매출"
           value={`${fmt(combinedThisMonthSales)}원`}
           sub={thisMonthCrmSales > 0 && thisMonthSales > 0
-            ? `레거시 ${thisMonthCount}건 + CRM ${thisMonthInvoices}건`
+            ? `기존 장부 ${thisMonthCount}건 + 새 입력 ${thisMonthInvoices}건`
             : `${combinedThisMonthCount}건 출고`
           }
         />
         <KpiCard
           title="미수금 총액"
           value={`${fmt(totalReceivables)}원`}
-          sub={`레거시 ${fmt(legacyReceivables)}원 / CRM ${fmt(crmReceivables)}원`}
+          sub={`기존 장부 ${fmt(legacyReceivables)}원 / 새 입력 ${fmt(crmReceivables)}원`}
           valueClass={totalRecColor}
           icon={totalReceivables >= TOTAL_RECEIVABLE_WARNING ? <AlertTriangle className="h-4 w-4 text-amber-500" /> : undefined}
         />
         <KpiCard
           title="미수금 고객 수"
           value={`${receivableCustomers}곳`}
-          sub="레거시 + CRM 합산"
+          sub="기존 장부 + 새 입력 합산"
           valueClass={receivableCustomers > 10 ? 'text-amber-600' : ''}
         />
         <KpiCard
           title="매출 성장률"
           value={`${combinedGrowthPct >= 0 ? '+' : ''}${combinedGrowthPct.toFixed(1)}%`}
-          sub="전월 대비 (레거시+CRM 통합)"
+          sub="전월 대비 (기존 장부+새 입력 통합)"
           valueClass={growthColor(combinedGrowthPct)}
           icon={<GrowthIcon pct={combinedGrowthPct} />}
         />
@@ -539,7 +540,7 @@ export function Dashboard() {
             sub={
               yoyGrowthPct !== null
                 ? `전년 ${CUR_YEAR - 1}년 ${CUR_MONTH}월 대비`
-                : `레거시+CRM 통합`
+                : `기존 장부+새 입력 통합`
             }
             valueClass={yoyGrowthPct !== null ? yoyColor(yoyGrowthPct) : ''}
             icon={yoyGrowthPct !== null ? <GrowthIcon pct={yoyGrowthPct} /> : undefined}
@@ -557,7 +558,7 @@ export function Dashboard() {
           <Card>
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-semibold">
-                {dateRange.label} 일별 매출 (레거시+CRM)
+                {dateRange.label} 일별 매출 (기존 장부+새 입력)
               </CardTitle>
             </CardHeader>
             <CardContent>

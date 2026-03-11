@@ -2,13 +2,14 @@
 """
 얼마에요 고객 원본 스냅샷을 정적 JSON으로 내보낸다.
 
-- 얼마에요 거래처.xls → legacy_id 기준 원본 보존
-- 고객리스트 전체자료.xls → name 기준 원본 보존
+- 2026 거래처.xls → legacy_id 기준 최신 장부 원본 보존
+- 2024~2026 고객리스트.xls → name 기준 연락처 원본 보존
 """
 
 from __future__ import annotations
 
 import json
+import unicodedata
 from datetime import datetime
 from pathlib import Path
 
@@ -17,6 +18,26 @@ import xlrd
 
 BASE_DIR = Path("/Users/jangjiho/Downloads/얼마에요 백업파일")
 OUT_PATH = Path(__file__).resolve().parents[1] / "public" / "data" / "legacy-customer-snapshots.json"
+
+
+def normalize_file_name(value: str) -> str:
+    return unicodedata.normalize("NFC", value)
+
+
+def find_file(target_name: str) -> Path:
+    normalized_target = normalize_file_name(target_name)
+    for path in BASE_DIR.iterdir():
+        if path.is_file() and normalize_file_name(path.name) == normalized_target:
+            return path
+    raise FileNotFoundError(target_name)
+
+
+def find_tradebook_file_2026() -> Path:
+    preferred = "2026 거래처 최신본.xls"
+    try:
+        return find_file(preferred)
+    except FileNotFoundError:
+        return find_file("2026 거래처.xls")
 
 
 def clean(value):
@@ -29,7 +50,7 @@ def clean(value):
 
 
 def export_tradebook():
-    wb = xlrd.open_workbook(str(BASE_DIR / "얼마에요 거래처.xls"))
+    wb = xlrd.open_workbook(str(find_tradebook_file_2026()))
     sh = wb.sheet_by_index(0)
     by_legacy_id = {}
     for r in range(1, sh.nrows):
@@ -82,31 +103,32 @@ def export_tradebook():
 
 
 def export_customer_list():
-    wb = xlrd.open_workbook(str(BASE_DIR / "고객리스트 전체자료.xls"))
-    sh = wb.sheet_by_index(0)
     by_name: dict[str, list[dict[str, str]]] = {}
-    for r in range(1, sh.nrows):
-        row = sh.row_values(r)
-        name = clean(row[5]) or clean(row[4])
-        if not name:
-            continue
-        by_name.setdefault(name, []).append({
-            "serial_no": clean(row[0]),
-            "business_no": clean(row[1]),
-            "customer_group": clean(row[2]),
-            "registered_at": clean(row[3]),
-            "customer_name": clean(row[4]),
-            "company_department": clean(row[5]),
-            "zip": clean(row[6]),
-            "address1": clean(row[7]),
-            "address2": clean(row[8]),
-            "note": clean(row[9]),
-            "reference": clean(row[10]),
-            "phone_company": clean(row[11]),
-            "phone_home": clean(row[12]),
-            "mobile": clean(row[13]),
-            "email": clean(row[14]),
-        })
+    for year in (2024, 2025, 2026):
+        wb = xlrd.open_workbook(str(find_file(f"{year} 고객리스트.xls")))
+        sh = wb.sheet_by_index(0)
+        for r in range(1, sh.nrows):
+            row = sh.row_values(r)
+            name = clean(row[5]) or clean(row[4])
+            if not name:
+                continue
+            by_name.setdefault(name, []).append({
+                "serial_no": clean(row[0]),
+                "business_no": clean(row[1]),
+                "customer_group": clean(row[2]),
+                "registered_at": clean(row[3]),
+                "customer_name": clean(row[4]),
+                "company_department": clean(row[5]),
+                "zip": clean(row[6]),
+                "address1": clean(row[7]),
+                "address2": clean(row[8]),
+                "note": clean(row[9]),
+                "reference": clean(row[10]),
+                "phone_company": clean(row[11]),
+                "phone_home": clean(row[12]),
+                "mobile": clean(row[13]),
+                "email": clean(row[14]),
+            })
     return by_name
 
 

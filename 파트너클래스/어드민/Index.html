@@ -400,6 +400,72 @@
             <div class="ad-empty" id="emptyAffilStats" style="display:none">
                 <p>집계 내역이 없습니다.</p>
             </div>
+
+            <div class="ad-event-calendar">
+                <div class="ad-panel__header" style="margin-top: 32px">
+                    <div>
+                        <h2 class="ad-panel__title">연간 이벤트 캘린더</h2>
+                        <p class="ad-proposal-builder__desc">협회/세미나 레이어에서 노출할 12개월 이벤트를 동기화하고 D-14 알림 대상을 미리 점검합니다.</p>
+                    </div>
+                    <div class="ad-panel__actions">
+                        <select id="eventCalendarYear" class="ad-select">
+                            <option value="2026">2026년</option>
+                            <option value="2027">2027년</option>
+                        </select>
+                        <select id="eventCalendarAffiliation" class="ad-select">
+                            <option value="">전체 협회</option>
+                        </select>
+                        <input type="date" id="eventAlertPreviewDate" value="2026-03-11" class="ad-input" style="width:180px">
+                        <button type="button" class="ad-btn ad-btn--secondary" id="btnSyncEventCalendar">연간 캘린더 동기화</button>
+                        <button type="button" class="ad-btn ad-btn--primary" id="btnPreviewEventAlerts">D-14 알림 점검</button>
+                    </div>
+                </div>
+
+                <div class="ad-affil-summary ad-affil-summary--events">
+                    <div class="ad-affil-summary__item">
+                        <span class="ad-affil-summary__label">연간 등록 일정</span>
+                        <span class="ad-affil-summary__value" id="eventCalendarTotalCount">-</span>
+                    </div>
+                    <div class="ad-affil-summary__item">
+                        <span class="ad-affil-summary__label">다가오는 일정</span>
+                        <span class="ad-affil-summary__value" id="eventCalendarUpcomingCount">-</span>
+                    </div>
+                    <div class="ad-affil-summary__item">
+                        <span class="ad-affil-summary__label">D-14 예정 일정</span>
+                        <span class="ad-affil-summary__value" id="eventCalendarDueCount">-</span>
+                    </div>
+                </div>
+
+                <div class="ad-event-calendar__result" id="eventAlertResult">
+                    연간 이벤트 캘린더를 불러오면 점검 결과가 여기에 표시됩니다.
+                </div>
+
+                <div class="ad-table-wrap" id="tableWrapEventCalendar">
+                    <table class="ad-table">
+                        <thead>
+                            <tr>
+                                <th>월</th>
+                                <th>협회</th>
+                                <th>이벤트명</th>
+                                <th>일정</th>
+                                <th>장소</th>
+                                <th>D-day</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyEventCalendar">
+                            <!-- JS 동적 렌더링 -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="ad-empty" id="emptyEventCalendar" style="display:none">
+                    <p>연간 이벤트 데이터가 없습니다.</p>
+                </div>
+                <div class="ad-loading" id="loadingEventCalendar" style="display:none">
+                    <div class="ad-spinner"></div>
+                    <p>연간 이벤트 캘린더를 불러오는 중...</p>
+                </div>
+            </div>
         </div>
 
     </div><!-- /#adMain -->

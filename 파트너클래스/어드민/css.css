@@ -609,6 +609,46 @@
     flex-wrap: wrap;
 }
 
+.admin-dashboard .ad-event-calendar {
+    margin-top: 24px;
+    padding: 24px;
+    border: 1px solid var(--ad-border-light);
+    border-radius: var(--ad-radius-lg);
+    background: linear-gradient(180deg, #f9fbf6 0%, #ffffff 100%);
+    box-shadow: var(--ad-shadow-sm);
+}
+
+.admin-dashboard .ad-affil-summary--events {
+    margin-bottom: 16px;
+}
+
+.admin-dashboard .ad-event-calendar__result {
+    margin-bottom: 16px;
+    padding: 14px 16px;
+    border-radius: var(--ad-radius-sm);
+    border: 1px solid var(--ad-border);
+    background: #ffffff;
+    color: var(--ad-text);
+    font-size: 13px;
+    line-height: 1.7;
+    white-space: pre-line;
+}
+
+.admin-dashboard .ad-event-calendar__result--success {
+    border-color: rgba(76, 175, 80, 0.24);
+    background: #f4fbf4;
+}
+
+.admin-dashboard .ad-event-calendar__result--warning {
+    border-color: rgba(224, 156, 64, 0.28);
+    background: #fff8ef;
+}
+
+.admin-dashboard .ad-event-calendar__result--error {
+    border-color: rgba(220, 72, 72, 0.24);
+    background: #fff5f5;
+}
+
 /* ----------------------------------------
    10. 정산 요약
    ---------------------------------------- */

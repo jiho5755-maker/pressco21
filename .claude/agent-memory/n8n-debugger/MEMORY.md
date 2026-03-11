@@ -83,3 +83,10 @@ curl -s -X POST https://n8n.pressco21.com/webhook/class-api \
 - YouTube RSS parsing 은 XML parser 없이도 충분하지만, `<entry>` 단위 split 후 `title/videoId/published/thumbnail/description` 5개를 직접 추출하는 편이 샌드박스 호환성이 좋다.
 - Gemini 분류는 실패해도 workflow 전체를 깨뜨리지 말고 heuristic fallback 으로 내려가야 한다.
 - `WF-01C getContentHub` 는 imported content 가 0건일 때 기존 fallback 을 그대로 유지해야 기존 허브 화면이 비지 않는다.
+
+## 2026-03-11 S3-6 이벤트 캘린더 WF 디버깅 메모
+
+- `WF-EVENT D14 Auto Alert` 가 `$env.ADMIN_API_TOKEN` 만 쓰면 live 런타임과 저장소 값 차이 때문에 unauthorized 가 날 수 있다. 현재 운영 기준은 legacy bearer `pressco21-admin-2026` 직접 사용이다.
+- `WF-01C getSeminars` code node 는 존재하지 않는 `Parse Request` 노드를 참조하면 빈 200 응답처럼 보이면서 execution 은 error 로 남는다. 요청 body 참조는 `$('Webhook').first().json` 기준으로 맞춘다.
+- `syncAnnualCalendar` 검증은 `created/updated` 수치보다 `months_covered=1~12` 와 `seminar_id=SEM_{AFFILIATION}_CAL_YYYYMM_01` 패턴을 같이 보는 편이 정확하다.
+- live 기준 `runD14Alerts(today=2026-03-11, dry_run=true)` 정상값은 `due_event_count=1`, `partner_target_count=6`, `admin_target_count=1` 이다.

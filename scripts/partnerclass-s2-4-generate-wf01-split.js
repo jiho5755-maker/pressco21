@@ -4,6 +4,7 @@
 var fs = require('fs');
 var path = require('path');
 var contentHubCodeBuilder = require('./lib/partnerclass-content-hub-response');
+var seminarResponseBuilder = require('./lib/partnerclass-seminar-response');
 
 var REPO_ROOT = path.resolve(__dirname, '..');
 var DEFAULT_CLASS_SOURCE = path.join(REPO_ROOT, '파트너클래스', 'n8n-workflows', 'WF-01A-class-read.json');
@@ -404,6 +405,7 @@ function buildAffiliationReadWorkflow(source, nodeMap) {
     });
     switchNode.parameters.rules.values = [
         buildWebhookActionRule('getAffiliations', 'getAffiliations'),
+        buildWebhookActionRule('getSeminars', 'getSeminars'),
         buildWebhookActionRule('getContentHub', 'getContentHub')
     ];
     switchNode.parameters.options = switchNode.parameters.options || { fallbackOutput: 'extra' };
@@ -417,6 +419,65 @@ function buildAffiliationReadWorkflow(source, nodeMap) {
     }
 
     workflow.nodes.push(
+        {
+            parameters: {
+                method: 'GET',
+                url: '=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/m9gh6baz3vow966',
+                authentication: 'genericCredentialType',
+                genericAuthType: 'httpHeaderAuth',
+                sendQuery: true,
+                queryParameters: {
+                    parameters: [
+                        {
+                            name: 'fields',
+                            value: 'seminar_id,affiliation_code,title,description,seminar_date,seminar_time,location,capacity,status,image_url'
+                        },
+                        {
+                            name: 'limit',
+                            value: '240'
+                        },
+                        {
+                            name: 'sort',
+                            value: 'seminar_date,seminar_time'
+                        }
+                    ]
+                },
+                options: {}
+            },
+            id: 'wf01c-seminars-get',
+            name: 'NocoDB Get Seminars',
+            type: 'n8n-nodes-base.httpRequest',
+            typeVersion: 4.2,
+            position: [900, 620],
+            credentials: {
+                httpHeaderAuth: {
+                    id: 'JmXQGe9254wG4qVZ',
+                    name: 'PRESSCO21-NocoDB'
+                }
+            }
+        },
+        {
+            parameters: {
+                jsCode: seminarResponseBuilder.buildSeminarResponseCode()
+            },
+            id: 'wf01c-seminars-build',
+            name: 'Build Seminars Response',
+            type: 'n8n-nodes-base.code',
+            typeVersion: 2,
+            position: [1140, 620]
+        },
+        {
+            parameters: {
+                respondWith: 'json',
+                responseBody: '={{ $json }}',
+                options: {}
+            },
+            id: 'wf01c-seminars-respond',
+            name: 'Respond getSeminars',
+            type: 'n8n-nodes-base.respondToWebhook',
+            typeVersion: 1.1,
+            position: [1380, 620]
+        },
         {
             parameters: {
                 method: 'GET',
@@ -551,6 +612,7 @@ function buildAffiliationReadWorkflow(source, nodeMap) {
     workflow.connections['Switch Action'] = {
         main: [
             [{ node: 'Check Affiliations Cache', type: 'main', index: 0 }],
+            [{ node: 'NocoDB Get Seminars', type: 'main', index: 0 }],
             [{ node: 'NocoDB Get Content Classes', type: 'main', index: 0 }],
             [{ node: 'Unknown Action Error', type: 'main', index: 0 }]
         ]
@@ -569,6 +631,12 @@ function buildAffiliationReadWorkflow(source, nodeMap) {
     };
     workflow.connections['Store Affiliations Cache'] = {
         main: [[{ node: 'Respond getAffiliations', type: 'main', index: 0 }]]
+    };
+    workflow.connections['NocoDB Get Seminars'] = {
+        main: [[{ node: 'Build Seminars Response', type: 'main', index: 0 }]]
+    };
+    workflow.connections['Build Seminars Response'] = {
+        main: [[{ node: 'Respond getSeminars', type: 'main', index: 0 }]]
     };
     workflow.connections['NocoDB Get Content Classes'] = {
         main: [[{ node: 'NocoDB Get Content Partners', type: 'main', index: 0 }]]

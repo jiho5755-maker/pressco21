@@ -1,0 +1,1112 @@
+{
+  "id": "h90HfqDSZHp318oR",
+  "name": "WF-EVENT Yearly Calendar Admin",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "wfevent-admin-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        320
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "partnerclass-event-calendar-admin",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "webhookId": "partnerclass-event-calendar-admin"
+    },
+    {
+      "id": "wfevent-admin-parse",
+      "name": "Parse Action & Auth",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        320
+      ],
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst headers = input.headers || {};\nconst body = input.body || {};\nconst authHeader = headers.authorization || headers.Authorization || \"\";\nconst token = typeof authHeader === \"string\" && authHeader.indexOf(\"Bearer \") === 0 ? authHeader.substring(7).trim() : \"\";\nconst expectedToken = $env.ADMIN_API_TOKEN || \"\";\nconst legacyToken = \"pressco21-admin-2026\";\nconst valid = !!token && ((expectedToken && token === expectedToken) || token === legacyToken);\nconst currentDate = new Date();\nconst currentYear = currentDate.getFullYear();\nconst today = String(body.today || \"\").trim() || currentDate.toISOString().slice(0, 10);\nconst year = Math.max(2026, Number(body.year || currentYear) || currentYear);\nconst action = valid ? String(body.action || \"\").trim() : \"_unauthorized\";\nconst dryRun = body.dry_run === true || String(body.dry_run || \"\").toLowerCase() === \"true\" || String(body.mode || \"\").toLowerCase() === \"dry_run\";\nreturn [{\n  json: {\n    _mode: valid ? \"process\" : \"unauthorized\",\n    _action: action,\n    year: year,\n    today: today,\n    dry_run: dryRun,\n    affiliation_code: String(body.affiliation_code || body.affiliationCode || \"\").trim(),\n    requested_by: String(body.requested_by || \"admin\").trim() || \"admin\"\n  }\n}];"
+      }
+    },
+    {
+      "id": "wfevent-admin-route-mode",
+      "name": "Route Mode",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        700,
+        320
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._mode }}",
+                    "rightValue": "unauthorized",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "unauthorized"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._mode }}",
+                    "rightValue": "process",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "process"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-unauthorized",
+      "name": "Build Unauthorized Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        940,
+        160
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { success: false, error: { code: \"UNAUTHORIZED\", message: \"관리자 인증이 필요합니다.\" }, timestamp: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "wfevent-admin-route-action",
+      "name": "Route Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        940,
+        380
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._action }}",
+                    "rightValue": "syncAnnualCalendar",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "syncAnnualCalendar"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._action }}",
+                    "rightValue": "runD14Alerts",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "runD14Alerts"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-get-affiliations",
+      "name": "Get Active Affiliations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/m1y7q68q1zlrvv6",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "sort",
+              "value": "affiliation_code"
+            },
+            {
+              "name": "fields",
+              "value": "affiliation_code,name,status"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-get-existing",
+      "name": "Get Existing Seminars (Sync)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        200
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/m9gh6baz3vow966",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "400"
+            },
+            {
+              "name": "sort",
+              "value": "seminar_date,seminar_time"
+            },
+            {
+              "name": "fields",
+              "value": "Id,seminar_id,affiliation_code,title,seminar_date,seminar_time,status"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-sync",
+      "name": "Build Sync Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const payload = $(\"Parse Action & Auth\").first().json || {};\nconst affiliationResponse = $(\"Get Active Affiliations\").first().json || {};\nconst existingResponse = $(\"Get Existing Seminars (Sync)\").first().json || {};\nconst templates = [{\"month\":1,\"day\":17,\"time\":\"19:30\",\"location\":\"온라인 라이브\",\"capacity\":120,\"season_key\":\"NEW_YEAR\",\"season_label\":\"신년\",\"title_suffix\":\"신년 플라워 트렌드 킥오프\",\"summary\":\"신년 클래스 트렌드와 연간 운영 방향을 공유하는 오프닝 세션\",\"description\":\"신년 시즌 운영 방향, 대표 카테고리 트렌드, 연간 협회 일정 운영 팁을 한 번에 정리합니다.\",\"audience\":\"파트너 · 협회원\",\"image_url\":\"https://dummyimage.com/1200x800/e7ece3/3d2c1e.jpg&text=Annual+Event+01\"},{\"month\":2,\"day\":21,\"time\":\"14:00\",\"location\":\"서울 성수동 파트너클래스 라운지\",\"capacity\":40,\"season_key\":\"GRADUATION\",\"season_label\":\"졸업 시즌\",\"title_suffix\":\"졸업식 플라워 부케 시즌 세미나\",\"summary\":\"졸업 시즌 판매 포인트와 부케 클래스 운영 팁을 공유하는 세션\",\"description\":\"졸업·입학 시즌 수요를 겨냥한 부케 클래스 상품 구성, 재료 준비, 후기 유도 시나리오를 함께 다룹니다.\",\"audience\":\"파트너 · 강사\",\"image_url\":\"https://dummyimage.com/1200x800/f0e1d5/3d2c1e.jpg&text=Annual+Event+02\"},{\"month\":3,\"day\":25,\"time\":\"19:00\",\"location\":\"온라인 라이브\",\"capacity\":160,\"season_key\":\"SPRING_OPEN\",\"season_label\":\"봄 시즌\",\"title_suffix\":\"봄 시즌 클래스 운영 점검 세미나\",\"summary\":\"5월 수요 전에 수강생 전환 흐름을 정비하는 봄 시즌 점검 세션\",\"description\":\"어버이날·웨딩 시즌 직전, 전국 수강생 유입과 예약 전환을 높이기 위한 클래스 운영 포인트를 정리합니다.\",\"audience\":\"파트너 · 운영팀\",\"image_url\":\"https://dummyimage.com/1200x800/e5edd7/3d2c1e.jpg&text=Annual+Event+03\"},{\"month\":4,\"day\":18,\"time\":\"14:00\",\"location\":\"서울 성수동 파트너클래스 라운지\",\"capacity\":48,\"season_key\":\"PARENTS_DAY\",\"season_label\":\"가정의 달 준비\",\"title_suffix\":\"어버이날 선물 클래스 기획 워크숍\",\"summary\":\"가정의 달 선물 수요에 맞춘 체험형 클래스 설계 워크숍\",\"description\":\"어버이날 꽃선물, 용돈박스, 키트 연동 클래스 기획과 홍보 카피를 실무 중심으로 점검합니다.\",\"audience\":\"파트너 · 협회원\",\"image_url\":\"https://dummyimage.com/1200x800/f4ead8/3d2c1e.jpg&text=Annual+Event+04\"},{\"month\":5,\"day\":22,\"time\":\"19:30\",\"location\":\"온라인 라이브\",\"capacity\":140,\"season_key\":\"WEDDING\",\"season_label\":\"웨딩 시즌\",\"title_suffix\":\"웨딩 시즌 부케 매출 점프 세미나\",\"summary\":\"웨딩 클래스와 웨딩 키트 판매를 함께 키우는 성장 세션\",\"description\":\"웨딩 클래스 패키지 구성, 추천 상품 묶음, 예약 후 재구매 동선을 실제 사례 중심으로 공유합니다.\",\"audience\":\"파트너 · 협회원\",\"image_url\":\"https://dummyimage.com/1200x800/efe2e8/3d2c1e.jpg&text=Annual+Event+05\"},{\"month\":6,\"day\":19,\"time\":\"14:00\",\"location\":\"경기 성남 파트너 스튜디오\",\"capacity\":36,\"season_key\":\"SUMMER\",\"season_label\":\"여름 시즌\",\"title_suffix\":\"여름 온라인 클래스 전환 세미나\",\"summary\":\"비수기 구간에 온라인 클래스와 키트 판매를 엮는 전환 세션\",\"description\":\"오프라인 수요가 줄어드는 구간에 온라인 강의, 라이브 세션, 키트 재구매 흐름을 묶는 운영안을 정리합니다.\",\"audience\":\"파트너 · 운영팀\",\"image_url\":\"https://dummyimage.com/1200x800/dbe8ea/3d2c1e.jpg&text=Annual+Event+06\"},{\"month\":7,\"day\":24,\"time\":\"19:30\",\"location\":\"온라인 라이브\",\"capacity\":180,\"season_key\":\"VACATION\",\"season_label\":\"여름 방학\",\"title_suffix\":\"방학 시즌 원데이 클래스 확장 세미나\",\"summary\":\"방학 시즌 원데이 클래스와 가족 단위 체험을 늘리는 세션\",\"description\":\"지역 검색 유입, 방학 특화 카테고리, 가족 동반 체험 패키지를 활용한 예약 확장 전략을 다룹니다.\",\"audience\":\"파트너 · 강사\",\"image_url\":\"https://dummyimage.com/1200x800/d7ebe5/3d2c1e.jpg&text=Annual+Event+07\"},{\"month\":8,\"day\":21,\"time\":\"14:00\",\"location\":\"서울 강남 오프라인 세미나홀\",\"capacity\":60,\"season_key\":\"CHUSEOK_PREP\",\"season_label\":\"추석 준비\",\"title_suffix\":\"추석 선물 키트 사전 준비 세미나\",\"summary\":\"추석 시즌 전용 상품과 클래스 홍보를 사전 정비하는 세션\",\"description\":\"추석 전용 키트, 기업 선물 수요, 협회원 전용 상품 노출 전략을 협회와 함께 설계합니다.\",\"audience\":\"파트너 · 협회원\",\"image_url\":\"https://dummyimage.com/1200x800/f2e2c6/3d2c1e.jpg&text=Annual+Event+08\"},{\"month\":9,\"day\":12,\"time\":\"19:00\",\"location\":\"온라인 라이브\",\"capacity\":150,\"season_key\":\"CHUSEOK\",\"season_label\":\"추석 시즌\",\"title_suffix\":\"추석 시즌 재구매 리텐션 세미나\",\"summary\":\"추석 시즌 이후 재구매와 후기 전환을 높이는 리텐션 세션\",\"description\":\"명절 시즌 이후 재료 재구매, 후기 리워드, 연말 행사로 이어지는 고객 리텐션 구조를 점검합니다.\",\"audience\":\"운영팀 · 파트너\",\"image_url\":\"https://dummyimage.com/1200x800/eadfc9/3d2c1e.jpg&text=Annual+Event+09\"},{\"month\":10,\"day\":23,\"time\":\"14:00\",\"location\":\"부산 해운대 파트너 스튜디오\",\"capacity\":44,\"season_key\":\"AUTUMN\",\"season_label\":\"가을 시즌\",\"title_suffix\":\"가을 전시·플리마켓 운영 세미나\",\"summary\":\"지역 행사와 협회 일정을 클래스 허브 안에서 홍보하는 가을 세션\",\"description\":\"오프라인 행사, 플리마켓, 협회 전시 일정 홍보를 자사몰과 연결해 전환을 만드는 운영안을 정리합니다.\",\"audience\":\"협회 · 파트너\",\"image_url\":\"https://dummyimage.com/1200x800/e9d8c7/3d2c1e.jpg&text=Annual+Event+10\"},{\"month\":11,\"day\":20,\"time\":\"19:30\",\"location\":\"온라인 라이브\",\"capacity\":180,\"season_key\":\"CHRISTMAS_PREP\",\"season_label\":\"크리스마스 준비\",\"title_suffix\":\"크리스마스 클래스 사전 오픈 세미나\",\"summary\":\"크리스마스 예약 오픈과 시즌 상품 묶음 전략을 공유하는 세션\",\"description\":\"연말 시즌 예약 오픈 일정, 후기 이벤트, 기프트형 상품 묶음 운영을 한 번에 점검합니다.\",\"audience\":\"파트너 · 운영팀\",\"image_url\":\"https://dummyimage.com/1200x800/e5ddd9/3d2c1e.jpg&text=Annual+Event+11\"},{\"month\":12,\"day\":12,\"time\":\"14:00\",\"location\":\"서울 성수동 파트너클래스 라운지\",\"capacity\":56,\"season_key\":\"YEAR_END\",\"season_label\":\"연말 시즌\",\"title_suffix\":\"연말 결산과 내년 준비 세미나\",\"summary\":\"연말 운영 결산과 다음 해 캘린더 초안을 정리하는 마감 세션\",\"description\":\"연말 운영 리포트, 협회 성과 공유, 다음 해 시즌 캘린더 초안을 한 자리에서 정리합니다.\",\"audience\":\"협회 · 운영팀 · 파트너\",\"image_url\":\"https://dummyimage.com/1200x800/e3e6ef/3d2c1e.jpg&text=Annual+Event+12\"}];\n\nfunction pad2(value) { return String(value).padStart(2, \"0\"); }\nfunction normalizeStatus(value) {\n  const upper = String(value || \"\").replace(/\\s+/g, \" \").trim().toUpperCase();\n  if (!upper) return \"ACTIVE\";\n  if (upper === \"ACTIVE\" || upper === \"OPEN\") return \"ACTIVE\";\n  return upper;\n}\nfunction buildDescription(affiliationName, template) {\n  return \"<p>\" + affiliationName + \" 협회와 PRESSCO21이 함께 운영하는 \" + template.season_label + \" 세미나입니다.</p>\"\n    + \"<p>\" + template.description + \"</p>\"\n    + \"<p>대상: \" + template.audience + \"</p>\";\n}\nfunction buildRow(affiliation, year, template) {\n  return {\n    seminar_id: \"SEM_\" + affiliation.affiliation_code + \"_CAL_\" + String(year) + pad2(template.month) + \"_01\",\n    affiliation_code: affiliation.affiliation_code,\n    title: affiliation.name + \" \" + template.title_suffix,\n    description: buildDescription(affiliation.name, template),\n    seminar_date: String(year) + \"-\" + pad2(template.month) + \"-\" + pad2(template.day),\n    seminar_time: template.time,\n    location: template.location,\n    capacity: template.capacity,\n    status: \"ACTIVE\",\n    image_url: template.image_url\n  };\n}\n\nconst affiliations = (affiliationResponse.list || []).filter((row) => normalizeStatus(row.status || \"ACTIVE\") === \"ACTIVE\" && row.affiliation_code).map((row) => ({\n  affiliation_code: String(row.affiliation_code || \"\").trim(),\n  name: String(row.name || row.affiliation_code || \"\").trim() || String(row.affiliation_code || \"\").trim()\n}));\nconst existingMap = {};\nconst items = [];\nlet i;\nlet j;\n\n(existingResponse.list || []).forEach((row) => {\n  existingMap[String(row.seminar_id || \"\").trim()] = row;\n});\n\nfor (i = 0; i < affiliations.length; i += 1) {\n  for (j = 0; j < templates.length; j += 1) {\n    const row = buildRow(affiliations[i], payload.year, templates[j]);\n    const existing = existingMap[row.seminar_id];\n    items.push({\n      json: {\n        _dryRun: payload.dry_run,\n        _operation: existing && existing.Id ? \"update\" : \"create\",\n        _rowId: existing && existing.Id ? existing.Id : \"\",\n        payload: row\n      }\n    });\n  }\n}\nif (!items.length) {\n  return [{ json: { _dryRun: payload.dry_run, _operation: \"noop\", _rowId: \"\", payload: null } }];\n}\nreturn items;"
+      }
+    },
+    {
+      "id": "wfevent-admin-sync-route",
+      "name": "Route Sync Mode",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1920,
+        200
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._dryRun === true }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "dryRun"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._dryRun === false }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "apply"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-upsert",
+      "name": "Upsert Seminar Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2160,
+        240
+      ],
+      "parameters": {
+        "method": "={{ $json._rowId ? \"PATCH\" : \"POST\" }}",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/m9gh6baz3vow966{{ $json._rowId ? (\"/\" + $json._rowId) : \"\" }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.payload) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-sync-response",
+      "name": "Build Sync Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        200
+      ],
+      "parameters": {
+        "jsCode": "const payload = $(\"Parse Action & Auth\").first().json || {};\nconst rows = $(\"Build Sync Items\").all().map((item) => item.json || {}).filter((item) => item.payload);\nconst created = rows.filter((item) => item._operation === \"create\").length;\nconst updated = rows.filter((item) => item._operation === \"update\").length;\nreturn [{\n  json: {\n    success: true,\n    data: {\n      year: payload.year,\n      dry_run: rows.length ? !!rows[0]._dryRun : !!payload.dry_run,\n      affiliation_count: Array.from(new Set(rows.map((item) => item.payload.affiliation_code))).length,\n      target_count: rows.length,\n      created: created,\n      updated: updated,\n      months_covered: Array.from(new Set(rows.map((item) => Number(String(item.payload.seminar_date || \"\").slice(5, 7))))).sort((a, b) => a - b),\n      preview: rows.slice(0, 6).map((item) => ({\n        seminar_id: item.payload.seminar_id,\n        title: item.payload.title,\n        seminar_date: item.payload.seminar_date,\n        affiliation_code: item.payload.affiliation_code\n      }))\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      }
+    },
+    {
+      "id": "wfevent-admin-get-seminars",
+      "name": "Get Seminars (Alert)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1200,
+        520
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/m9gh6baz3vow966",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "400"
+            },
+            {
+              "name": "sort",
+              "value": "seminar_date,seminar_time"
+            },
+            {
+              "name": "fields",
+              "value": "seminar_id,affiliation_code,title,description,seminar_date,seminar_time,location,capacity,status"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-get-partners",
+      "name": "Get Partners (Alert)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1440,
+        520
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "500"
+            },
+            {
+              "name": "sort",
+              "value": "partner_code"
+            },
+            {
+              "name": "fields",
+              "value": "partner_code,partner_name,email,status"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-get-logs",
+      "name": "Get Email Logs",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1680,
+        520
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "1000"
+            },
+            {
+              "name": "sort",
+              "value": "-CreatedAt"
+            },
+            {
+              "name": "fields",
+              "value": "recipient,email_type,status,error_message,CreatedAt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-alert-plan",
+      "name": "Get Event Alert Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        520
+      ],
+      "parameters": {
+        "jsCode": "const payload = $(\"Parse Action & Auth\").first().json || {};\nconst seminarsResponse = $(\"Get Seminars (Alert)\").first().json || {};\nconst partnersResponse = $(\"Get Partners (Alert)\").first().json || {};\nconst logsResponse = $(\"Get Email Logs\").first().json || {};\nconst ADMIN_EMAIL = \"pressco21@foreverlove.co.kr\";\nfunction parseDate(value) {\n  const text = String(value || \"\").trim();\n  const parts = text.split(\"-\");\n  if (parts.length !== 3) return null;\n  return new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));\n}\nfunction diffDays(dateA, dateB) {\n  if (!dateA || !dateB) return null;\n  return Math.round((dateA.getTime() - dateB.getTime()) / 86400000);\n}\nfunction normalizeStatus(value) {\n  const upper = String(value || \"\").replace(/\\s+/g, \" \").trim().toUpperCase();\n  if (!upper) return \"DRAFT\";\n  if (upper === \"ACTIVE\" || upper === \"OPEN\") return \"ACTIVE\";\n  return upper;\n}\nfunction escapeHtml(value) {\n  return String(value || \"\")\n    .replace(/&/g, \"&amp;\")\n    .replace(/</g, \"&lt;\")\n    .replace(/>/g, \"&gt;\")\n    .replace(/\"/g, \"&quot;\")\n    .replace(/'/g, \"&#39;\");\n}\nfunction stripHtml(value) {\n  return String(value || \"\").replace(/<[^>]+>/g, \" \").replace(/\\s+/g, \" \").trim();\n}\nfunction buildSubject(target) {\n  return target.recipient_type === \"ADMIN\"\n    ? \"[PRESSCO21] D-14 이벤트 알림 - \" + target.title\n    : \"[PRESSCO21] 2주 뒤 예정된 이벤트를 확인해주세요 - \" + target.title;\n}\nfunction buildHtml(target) {\n  const intro = target.recipient_type === \"ADMIN\"\n    ? \"관리자용 일정 확인 메일입니다. 14일 뒤 예정된 이벤트를 다시 점검해주세요.\"\n    : \"파트너 운영팀에서 14일 뒤 예정된 시즌 이벤트를 다시 안내드립니다. 일정 홍보와 수강생 유입 준비를 시작해주세요.\";\n  return \"<!DOCTYPE html><html lang=\\\"ko\\\"><head><meta charset=\\\"UTF-8\\\" /></head><body style=\\\"margin:0;padding:0;background:#f7f5f1;font-family:Pretendard,Apple SD Gothic Neo,Malgun Gothic,sans-serif;\\\">\"\n    + \"<table width=\\\"100%\\\" cellpadding=\\\"0\\\" cellspacing=\\\"0\\\" border=\\\"0\\\" style=\\\"padding:24px 0;background:#f7f5f1;\\\"><tr><td align=\\\"center\\\">\"\n    + \"<table width=\\\"640\\\" cellpadding=\\\"0\\\" cellspacing=\\\"0\\\" border=\\\"0\\\" style=\\\"max-width:640px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;\\\">\"\n    + \"<tr><td style=\\\"padding:28px 32px;background:#334538;color:#ffffff;\\\"><p style=\\\"margin:0 0 8px;font-size:12px;letter-spacing:0.12em;opacity:0.72;\\\">EVENT CALENDAR</p><h1 style=\\\"margin:0;font-size:28px;\\\">D-14 일정 알림</h1></td></tr>\"\n    + \"<tr><td style=\\\"padding:28px 32px;\\\"><p style=\\\"margin:0 0 14px;font-size:15px;line-height:1.8;color:#3a3a3a;\\\">\" + escapeHtml(intro) + \"</p>\"\n    + \"<table width=\\\"100%\\\" cellpadding=\\\"0\\\" cellspacing=\\\"0\\\" border=\\\"0\\\" style=\\\"border:1px solid #e7e0d8;border-radius:10px;background:#fbfaf7;margin:0 0 20px;\\\">\"\n    + \"<tr><td style=\\\"padding:20px 24px;\\\"><p style=\\\"margin:0 0 8px;font-size:13px;color:#7a7367;\\\">협회</p><p style=\\\"margin:0 0 12px;font-size:24px;font-weight:700;color:#2f4234;\\\">\" + escapeHtml(target.affiliation_code) + \"</p>\"\n    + \"<p style=\\\"margin:0 0 6px;font-size:14px;color:#333;\\\"><strong>\" + escapeHtml(target.title) + \"</strong></p>\"\n    + \"<p style=\\\"margin:0 0 6px;font-size:14px;color:#555;\\\">일정: \" + escapeHtml(target.seminar_date) + \" \" + escapeHtml(target.seminar_time || \"-\") + \"</p>\"\n    + \"<p style=\\\"margin:0 0 6px;font-size:14px;color:#555;\\\">장소: \" + escapeHtml(target.location || \"온라인/추후 안내\") + \"</p>\"\n    + \"<p style=\\\"margin:0;font-size:14px;color:#555;\\\">요약: \" + escapeHtml(stripHtml(target.description || \"\")) + \"</p></td></tr></table>\"\n    + \"<p style=\\\"margin:0;font-size:13px;line-height:1.8;color:#7a7367;\\\">PRESSCO21 파트너클래스 이벤트 캘린더 기준 알림입니다.</p>\"\n    + \"</td></tr></table></td></tr></table></body></html>\";\n}\n\nconst today = parseDate(payload.today);\nconst partners = (partnersResponse.list || []).filter((row) => normalizeStatus(row.status || \"ACTIVE\") === \"ACTIVE\" && row.email).map((row) => ({\n  partner_code: String(row.partner_code || \"\").trim(),\n  partner_name: String(row.partner_name || row.partner_code || \"\").trim(),\n  recipient_email: String(row.email || \"\").trim()\n}));\nconst partnerEmailsSeen = {};\nconst uniquePartners = partners.filter((row) => {\n  if (!row.recipient_email || partnerEmailsSeen[row.recipient_email]) return false;\n  partnerEmailsSeen[row.recipient_email] = true;\n  return true;\n});\nconst sentKeys = {};\n(logsResponse.list || []).forEach((row) => {\n  const emailType = String(row.email_type || \"\").trim();\n  const recipient = String(row.recipient || row.recipient_email || \"\").trim();\n  const status = String(row.status || \"\").trim().toUpperCase();\n  const errorMessage = String(row.error_message || \"\").trim();\n  const parts = errorMessage.split(\"|\");\n  if (emailType === \"EVENT_D14\" && status === \"SENT\" && recipient && parts.length >= 2) {\n    sentKeys[recipient + \"|\" + parts[1].trim()] = true;\n  }\n});\n\nconst dueEvents = (seminarsResponse.list || []).map((row) => ({\n  seminar_id: String(row.seminar_id || \"\").trim(),\n  affiliation_code: String(row.affiliation_code || \"\").trim(),\n  title: String(row.title || \"\").trim(),\n  description: String(row.description || \"\").trim(),\n  seminar_date: String(row.seminar_date || \"\").trim(),\n  seminar_time: String(row.seminar_time || \"\").trim(),\n  location: String(row.location || \"\").trim(),\n  capacity: Number(row.capacity || 0),\n  status: normalizeStatus(row.status || \"\")\n})).filter((row) => {\n  const eventDate = parseDate(row.seminar_date);\n  const dayDiff = diffDays(eventDate, today);\n  if (row.status !== \"ACTIVE\" || dayDiff !== 14) return false;\n  if (payload.affiliation_code && row.affiliation_code !== payload.affiliation_code) return false;\n  return true;\n}).map((row) => {\n  row.d_day = 14;\n  return row;\n});\n\nconst sendTargets = [];\ndueEvents.forEach((eventRow) => {\n  uniquePartners.forEach((partner) => {\n    const dedupeKey = partner.recipient_email + \"|\" + eventRow.seminar_id;\n    if (sentKeys[dedupeKey]) return;\n    sendTargets.push({\n      alert_id: eventRow.seminar_id,\n      affiliation_code: eventRow.affiliation_code,\n      title: eventRow.title,\n      description: eventRow.description,\n      seminar_date: eventRow.seminar_date,\n      seminar_time: eventRow.seminar_time,\n      location: eventRow.location,\n      recipient_type: \"PARTNER\",\n      recipient_email: partner.recipient_email,\n      recipient_name: partner.partner_name\n    });\n  });\n  if (!sentKeys[ADMIN_EMAIL + \"|\" + eventRow.seminar_id]) {\n    sendTargets.push({\n      alert_id: eventRow.seminar_id,\n      affiliation_code: eventRow.affiliation_code,\n      title: eventRow.title,\n      description: eventRow.description,\n      seminar_date: eventRow.seminar_date,\n      seminar_time: eventRow.seminar_time,\n      location: eventRow.location,\n      recipient_type: \"ADMIN\",\n      recipient_email: ADMIN_EMAIL,\n      recipient_name: \"PRESSCO21 운영팀\"\n    });\n  }\n});\n\nsendTargets.forEach((target) => {\n  target.subject = buildSubject(target);\n  target.html = buildHtml(target);\n});\n\nreturn [{\n  json: {\n    success: true,\n    dry_run: payload.dry_run,\n    today: payload.today,\n    due_events: dueEvents,\n    send_targets: sendTargets,\n    summary: {\n      due_event_count: dueEvents.length,\n      partner_target_count: sendTargets.filter((item) => item.recipient_type === \"PARTNER\").length,\n      admin_target_count: sendTargets.filter((item) => item.recipient_type === \"ADMIN\").length,\n      total_target_count: sendTargets.length\n    },\n    _telegramMessage: \"[이벤트 D-14] today=\" + payload.today + \" / due=\" + dueEvents.length + \" / target=\" + sendTargets.length,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      }
+    },
+    {
+      "id": "wfevent-admin-alert-route",
+      "name": "Route Alert Mode",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        2160,
+        520
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.dry_run === true }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "dryRun"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ($json.send_targets || []).length === 0 }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "noTargets"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.dry_run === false && ($json.send_targets || []).length > 0 }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "send"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-dryrun",
+      "name": "Build Dry Run Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        420
+      ],
+      "parameters": {
+        "jsCode": "const plan = $input.first().json || {}; return [{ json: { success: true, data: { today: plan.today, summary: plan.summary || {}, due_events: plan.due_events || [], preview: (plan.send_targets || []).slice(0, 5).map((item) => ({ alert_id: item.alert_id, recipient_email: item.recipient_email, recipient_type: item.recipient_type })) }, timestamp: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "wfevent-admin-no-targets",
+      "name": "Build No Targets Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        520
+      ],
+      "parameters": {
+        "jsCode": "const plan = $input.first().json || {}; return [{ json: { success: true, data: { today: plan.today, summary: plan.summary || {}, due_events: plan.due_events || [], send_results: [] }, timestamp: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "wfevent-admin-email-items",
+      "name": "Build Email Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        640
+      ],
+      "parameters": {
+        "jsCode": "const plan = $input.first().json || {};\nreturn (plan.send_targets || []).map((item) => ({ json: item }));"
+      }
+    },
+    {
+      "id": "wfevent-admin-send-email",
+      "name": "Send Annual Event Email",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [
+        2640,
+        640
+      ],
+      "parameters": {
+        "fromEmail": "pressco21@foreverlove.co.kr",
+        "toEmail": "={{ $json.recipient_email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.html }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "smtp": {
+          "id": "31jTm9BU7iyj0pVx",
+          "name": "PRESSCO21 SMTP"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-email-result",
+      "name": "Build Email Result Items",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2880,
+        640
+      ],
+      "parameters": {
+        "jsCode": "const sourceItems = $(\"Build Email Items\").all();\nconst sendItems = $input.all();\nconst rows = [];\nlet i;\nfor (i = 0; i < sourceItems.length; i += 1) {\n  const source = sourceItems[i] && sourceItems[i].json ? sourceItems[i].json : {};\n  const send = sendItems[i] && sendItems[i].json ? sendItems[i].json : {};\n  const sendError = send.error || \"\";\n  rows.push({\n    json: Object.assign({}, source, {\n      send_status: sendError ? \"FAILED\" : \"SENT\",\n      send_error: typeof sendError === \"string\" ? sendError : (sendError && sendError.message ? sendError.message : \"\")\n    })\n  });\n}\nreturn rows;"
+      }
+    },
+    {
+      "id": "wfevent-admin-log-email",
+      "name": "Log Email History",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        3120,
+        640
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ recipient: $json.recipient_email, email_type: \"EVENT_D14\", status: $json.send_status, error_message: \"EVENT_D14|\" + $json.alert_id + \"|\" + $json.recipient_type + ($json.send_status === \"FAILED\" && $json.send_error ? (\"|\" + $json.send_error) : \"\") }) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-send-response",
+      "name": "Build Alert Send Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3360,
+        640
+      ],
+      "parameters": {
+        "jsCode": "const plan = $(\"Get Event Alert Plan\").first().json || {};\nconst rows = $(\"Build Email Result Items\").all().map((item) => item.json || {});\nconst sentCount = rows.filter((item) => String(item.send_status || \"\").toUpperCase() === \"SENT\").length;\nconst failedRows = rows.filter((item) => String(item.send_status || \"\").toUpperCase() === \"FAILED\");\nconst failedCount = failedRows.length;\nconst response = {\n  success: failedCount === 0,\n  data: {\n    today: plan.today,\n    due_events: plan.due_events || [],\n    summary: {\n      due_event_count: plan.summary ? plan.summary.due_event_count : 0,\n      total_target_count: rows.length,\n      sent_count: sentCount,\n      failed_count: failedCount\n    },\n    send_results: rows.map((item) => ({\n      alert_id: item.alert_id,\n      recipient_email: item.recipient_email,\n      recipient_type: item.recipient_type,\n      send_status: item.send_status,\n      send_error: item.send_error || \"\"\n    }))\n  },\n  timestamp: new Date().toISOString()\n};\nif (failedCount > 0) {\n  response.error = {\n    code: \"EVENT_ALERT_EMAIL_FAILED\",\n    message: \"이벤트 D-14 알림 메일 발송 중 일부 실패가 발생했습니다.\"\n  };\n}\nresponse._telegramMessage = \"[이벤트 D-14] due=\" + (plan.summary ? plan.summary.due_event_count : 0) + \" / sent=\" + sentCount + \" / failed=\" + failedCount;\nreturn [{ json: response }];"
+      }
+    },
+    {
+      "id": "wfevent-admin-telegram",
+      "name": "Telegram Summary",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        3600,
+        640
+      ],
+      "parameters": {
+        "operation": "sendMessage",
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+        "text": "={{ $json._telegramMessage }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21 Telegram Bot"
+        }
+      }
+    },
+    {
+      "id": "wfevent-admin-invalid",
+      "name": "Build Invalid Action Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        820
+      ],
+      "parameters": {
+        "jsCode": "const action = String($(\"Parse Action & Auth\").first().json._action || \"\").trim(); return [{ json: { success: false, error: { code: \"INVALID_ACTION\", message: \"지원하지 않는 action입니다: \" + action }, timestamp: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "wfevent-admin-respond",
+      "name": "Respond Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3840,
+        520
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type, Authorization"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Action & Auth",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Action & Auth": {
+      "main": [
+        [
+          {
+            "node": "Route Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Mode": {
+      "main": [
+        [
+          {
+            "node": "Build Unauthorized Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Route Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Unauthorized Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Action": {
+      "main": [
+        [
+          {
+            "node": "Get Active Affiliations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Get Seminars (Alert)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Invalid Action Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Active Affiliations": {
+      "main": [
+        [
+          {
+            "node": "Get Existing Seminars (Sync)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Existing Seminars (Sync)": {
+      "main": [
+        [
+          {
+            "node": "Build Sync Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Sync Items": {
+      "main": [
+        [
+          {
+            "node": "Route Sync Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Sync Mode": {
+      "main": [
+        [
+          {
+            "node": "Build Sync Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Upsert Seminar Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Sync Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upsert Seminar Row": {
+      "main": [
+        [
+          {
+            "node": "Build Sync Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Sync Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Invalid Action Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Seminars (Alert)": {
+      "main": [
+        [
+          {
+            "node": "Get Partners (Alert)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Partners (Alert)": {
+      "main": [
+        [
+          {
+            "node": "Get Email Logs",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Email Logs": {
+      "main": [
+        [
+          {
+            "node": "Get Event Alert Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Event Alert Plan": {
+      "main": [
+        [
+          {
+            "node": "Route Alert Mode",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Route Alert Mode": {
+      "main": [
+        [
+          {
+            "node": "Build Dry Run Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build No Targets Response",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Email Items",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build No Targets Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Dry Run Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build No Targets Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email Items": {
+      "main": [
+        [
+          {
+            "node": "Send Annual Event Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send Annual Event Email": {
+      "main": [
+        [
+          {
+            "node": "Build Email Result Items",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Email Result Items": {
+      "main": [
+        [
+          {
+            "node": "Log Email History",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Log Email History": {
+      "main": [
+        [
+          {
+            "node": "Build Alert Send Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Alert Send Response": {
+      "main": [
+        [
+          {
+            "node": "Telegram Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram Summary": {
+      "main": [
+        [
+          {
+            "node": "Respond Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

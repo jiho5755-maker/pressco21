@@ -96,6 +96,8 @@
   - S3-3 기준 마이페이지 구독 파일럿, live `tbl_Subscriptions`, `WF-SUB`, 내부 주문 ref 생성 기준과 Playwright 검증 결과 정리
 - `scalability-verification-guide.md`
   - S3-4 기준 live read 부하 테스트, 10만 row synthetic benchmark, 병목 해석과 확장 우선순위 정리
+- `annual-event-calendar-guide.md`
+  - S3-6 기준 12개월 이벤트 템플릿, `getSeminars`, 연간 캘린더 sync, D-14 알림 workflow, 어드민 UI와 Playwright 검증 결과 정리
 
 ### QA / 검증
 

@@ -517,6 +517,61 @@
     - `output/playwright/s3-5-content-import/content-import-results.json`
     - `output/playwright/s3-5-content-import/content-import-hub.png`
 
+### [CODEX-LEAD] Phase 3 S3-6 12개월 연간 이벤트 캘린더 완료 (CODEX)
+- 워크플로우 / 스크립트
+  - `scripts/lib/partnerclass-annual-event-templates.js`
+  - `scripts/lib/partnerclass-seminar-response.js`
+  - `scripts/partnerclass-s2-4-generate-wf01-split.js`
+  - `scripts/partnerclass-s3-6-sync-event-calendar.js`
+  - `scripts/partnerclass-s3-6-generate-event-workflows.js`
+  - `scripts/partnerclass-s3-6-deploy-event-workflows.js`
+  - `scripts/partnerclass-s3-6-event-calendar-runner.js`
+  - `파트너클래스/n8n-workflows/WF-01C-affiliation-read.json`
+  - `파트너클래스/n8n-workflows/WF-01-class-api.json`
+  - `파트너클래스/n8n-workflows/WF-EVENT-yearly-calendar-admin.json`
+  - `파트너클래스/n8n-workflows/WF-EVENT-d14-auto-alert.json`
+    - `WF-01C Affiliation Read API` live 재배포: `AbazwCdqQ9XdA48G`
+    - `WF-01 Class API` live 재배포: `WabRAcHmcCdOpPzJ`
+    - `WF-EVENT Yearly Calendar Admin` live 배포: `h90HfqDSZHp318oR`
+    - `WF-EVENT D14 Auto Alert` live 배포: `4kLd9MDEIPgSgf2g`
+- 메이크샵
+  - `파트너클래스/목록/js.js`
+    - `협회·세미나 / 혜택·이벤트` 탭에서 `class-api getSeminars` 실데이터 우선 사용
+  - `파트너클래스/어드민/Index.html`
+  - `파트너클래스/어드민/css.css`
+  - `파트너클래스/어드민/js.js`
+    - 협회 관리 탭에 연간 이벤트 캘린더 관리 섹션 추가
+- 문서 / 메모리
+  - `docs/파트너클래스/annual-event-calendar-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/n8n-debugger/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+- 검증
+  - `node --check`
+    - `scripts/lib/partnerclass-annual-event-templates.js`
+    - `scripts/lib/partnerclass-seminar-response.js`
+    - `scripts/partnerclass-s3-6-sync-event-calendar.js`
+    - `scripts/partnerclass-s3-6-generate-event-workflows.js`
+    - `scripts/partnerclass-s3-6-deploy-event-workflows.js`
+    - `scripts/partnerclass-s3-6-event-calendar-runner.js`
+    - `scripts/partnerclass-s2-4-generate-wf01-split.js`
+    - `파트너클래스/목록/js.js`
+    - `파트너클래스/어드민/js.js`
+  - 메이크샵 정적 검증:
+    - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/목록/js.js 파트너클래스/어드민/js.js 파트너클래스/어드민/Index.html 파트너클래스/어드민/css.css`
+  - 라이브 검증:
+    - `syncAnnualCalendar(year=2026, dry_run=false)` -> `updated=12`, `months_covered=1~12`
+    - `class-api getSeminars(year=2026)` -> `total=14`, `months_covered=1~12`
+    - `runD14Alerts(today=2026-03-11, dry_run=true)` -> `due_event_count=1`, `partner_target_count=6`, `admin_target_count=1`
+  - Playwright:
+    - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-6-event-calendar-runner.js`
+  - 산출물:
+    - `output/playwright/s3-6-event-calendar/event-calendar-results.json`
+    - `output/playwright/s3-6-event-calendar/admin-event-calendar.png`
+
 ### [CODEX] offline-crm-v2 작업 계정 분리 로그 보강 완료 (CODEX)
 - CRM
   - `offline-crm-v2/src/lib/settings.ts`
@@ -2144,10 +2199,12 @@
 
 #### 현재 다음 태스크
 
-- `S3-6 12개월 연간 이벤트 캘린더`
-- `S2-7 파트너 이탈 감지 자동화` 는 구현/검증 완료, 운영 SMTP + Telegram chat_id blocker 해소 시 최종 수락 기준 닫기
-- `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
-- 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
+- Phase 3 S0-1 ~ S3-6 구현은 모두 완료
+- 다음 실제 진행은 `메이크샵 디자인편집기 실배포 + 운영 브라우저 재검증` 묶음
+- 운영 blocker 추적:
+  - `S2-7 파트너 이탈 감지 자동화` SMTP + Telegram credential
+  - `S1-5 정산 자동화 WF-SETTLE` SMTP credential
+  - `S3-6 연간 이벤트 캘린더` 실제 메일 발송은 같은 SMTP 상태 영향을 받음
 
 #### 실행 순서
 
@@ -2258,6 +2315,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S2-11 Phase 3-2 통합 테스트는 로컬 fixture + live API + n8n execution log 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 후 실제 `2606/2607/2608/2609` 흐름을 live 브라우저에서 한 번 더 확인해야 한다.
 - S3-1 신규 테이블 4종은 live NocoDB 기준으로 생성/검증까지 끝났지만, `.secrets.env` 수정 금지 원칙 때문에 새 table id 는 코드/문서에서만 관리되고 환경변수로는 아직 승격하지 않았다.
 - S2-4 분리 후 `getSchedules / getRemainingSeats` 는 운영에서 준비 완료됐지만, 아직 프론트 호출처는 없다. S2-5 이후 콘텐츠/협회 read action 추가 시 `WF-01C` 또는 별도 WF 로 확장 방향을 유지해야 한다.
+- S3-6 연간 이벤트 캘린더는 live `syncAnnualCalendar`, `getSeminars`, `runD14Alerts dry_run` 까지 통과했고 auto workflow 도 active 이지만, 실제 메일 발송은 운영 SMTP credential 상태에 따라 실패할 수 있다. 메이크샵 실배포 전까지는 협회/세미나 탭의 최종 시각 검증도 남아 있다.
 - S2-6 리텐션 자동화는 dry run 과 스케줄 경로 기준으로는 검증됐지만, 운영 레거시 완료 예약 일부에 `student_email`, `student_name` 이 비어 있어 실제 발송 대상 수가 `skip` 으로 잡히는 상태다.
 - S2-6 `student-retention` 웹훅은 수동 실호출 시 `200` 빈 본문 케이스가 남아 있어, 현재 운영 기준선은 dry run 응답과 예약 실행 로그다.
 - S2-7 파트너 이탈 감지 자동화는 현재 dry run, risk 판정, `last_active_at` 갱신, 실패 로그 저장까지 검증됐지만 운영 `PRESSCO21 SMTP` credential 이 `535` 로 실패해 실제 파트너 메일은 발송되지 않는다.

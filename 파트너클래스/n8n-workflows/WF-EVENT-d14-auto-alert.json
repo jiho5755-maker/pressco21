@@ -1,0 +1,100 @@
+{
+  "id": "4kLd9MDEIPgSgf2g",
+  "name": "WF-EVENT D14 Auto Alert",
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "nodes": [
+    {
+      "id": "wfevent-auto-schedule",
+      "name": "Schedule Daily 09:15",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        260
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "15 9 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wfevent-auto-call",
+      "name": "Call Event Calendar Admin",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        520,
+        260
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/partnerclass-event-calendar-admin",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer pressco21-admin-2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: \"runD14Alerts\", dry_run: false, requested_by: \"auto_schedule\" }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "wfevent-auto-summary",
+      "name": "Build Auto Alert Summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        260
+      ],
+      "parameters": {
+        "jsCode": "const response = $input.first().json || {}; let body = response.body; try { if (typeof body === \"string\") body = JSON.parse(body); } catch (error) {} return [{ json: { statusCode: Number(response.statusCode || 200), body: body || {}, timestamp: new Date().toISOString() } }];"
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Daily 09:15": {
+      "main": [
+        [
+          {
+            "node": "Call Event Calendar Admin",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call Event Calendar Admin": {
+      "main": [
+        [
+          {
+            "node": "Build Auto Alert Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

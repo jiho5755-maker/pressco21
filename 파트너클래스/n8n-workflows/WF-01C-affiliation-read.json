@@ -58,6 +58,29 @@
                 "conditions": [
                   {
                     "leftValue": "={{ ($json.body && $json.body.action) || $json.action || \"\" }}",
+                    "rightValue": "getSeminars",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "getSeminars"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ ($json.body && $json.body.action) || $json.action || \"\" }}",
                     "rightValue": "getContentHub",
                     "operator": {
                       "type": "string",
@@ -298,6 +321,95 @@
     {
       "parameters": {
         "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/m9gh6baz3vow966",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "seminar_id,affiliation_code,title,description,seminar_date,seminar_time,location,capacity,status,image_url"
+            },
+            {
+              "name": "limit",
+              "value": "240"
+            },
+            {
+              "name": "sort",
+              "value": "seminar_date,seminar_time"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf01c-seminars-get",
+      "name": "NocoDB Get Seminars",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        620
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-01C: getSeminars - 협회 세미나/이벤트 목록 응답\n// ===================================================\n\nconst requestItem = $('Webhook').first().json || {};\nconst response = $input.first().json;\nconst seminarList = Array.isArray(response.list) ? response.list : [];\nconst body = requestItem.body || {};\nconst year = Number(body.year || 0);\nconst month = Number(body.month || 0);\nconst affiliationCode = String(body.affiliationCode || body.affiliation_code || '').trim();\nconst limit = Math.max(1, Math.min(60, Number(body.limit || 24) || 24));\n\nfunction pad2(value) {\n  return String(value).padStart(2, '0');\n}\n\nfunction toUtcDate(value) {\n  const text = String(value || '').trim();\n  const parts = text.split('-');\n  if (parts.length !== 3) return null;\n  return new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));\n}\n\nfunction getTodayKst() {\n  const now = new Date();\n  const utcTime = now.getTime() + now.getTimezoneOffset() * 60000;\n  return new Date(utcTime + 9 * 60 * 60000);\n}\n\nfunction diffDays(dateA, dateB) {\n  if (!dateA || !dateB) return null;\n  return Math.round((dateA.getTime() - dateB.getTime()) / 86400000);\n}\n\nfunction normalizeStatus(raw) {\n  const upper = String(raw || '').replace(/\\s+/g, ' ').trim().toUpperCase();\n  if (!upper) return 'DRAFT';\n  if (upper === 'ACTIVE' || upper === 'OPEN') return 'ACTIVE';\n  if (upper === 'PAUSED') return 'PAUSED';\n  if (upper === 'CLOSED' || upper === 'COMPLETED') return 'COMPLETED';\n  return upper;\n}\n\nfunction monthLabel(monthNumber) {\n  return monthNumber ? (String(monthNumber) + '월') : '-';\n}\n\nfunction seasonLabel(monthNumber) {\n  if (monthNumber === 2 || monthNumber === 3) return '졸업 시즌';\n  if (monthNumber === 4 || monthNumber === 5) return '가정의 달';\n  if (monthNumber === 5 || monthNumber === 6) return '웨딩 시즌';\n  if (monthNumber === 8 || monthNumber === 9) return '추석 시즌';\n  if (monthNumber === 11 || monthNumber === 12) return '크리스마스 시즌';\n  if (monthNumber === 7) return '방학 시즌';\n  return '정기 세미나';\n}\n\nconst today = toUtcDate(getTodayKst().toISOString().slice(0, 10));\n\nconst rows = seminarList.map((item) => {\n  const date = toUtcDate(item.seminar_date || '');\n  const monthNumber = date ? (date.getUTCMonth() + 1) : 0;\n  return {\n    seminar_id: item.seminar_id || '',\n    affiliation_code: item.affiliation_code || '',\n    title: item.title || '',\n    description: item.description || '',\n    seminar_date: item.seminar_date || '',\n    seminar_time: item.seminar_time || '',\n    location: item.location || '',\n    capacity: Number(item.capacity || 0),\n    status: normalizeStatus(item.status || ''),\n    image_url: item.image_url || '',\n    month: monthNumber,\n    month_label: monthLabel(monthNumber),\n    season_label: seasonLabel(monthNumber),\n    d_day: date ? diffDays(date, today) : null\n  };\n});\n\nlet filtered = rows.filter((item) => item.status === 'ACTIVE');\nif (year > 0) {\n  filtered = filtered.filter((item) => String(item.seminar_date || '').slice(0, 4) === String(year));\n}\nif (month > 0) {\n  filtered = filtered.filter((item) => item.month === month);\n}\nif (affiliationCode) {\n  filtered = filtered.filter((item) => item.affiliation_code === affiliationCode);\n}\n\nfiltered.sort((a, b) => {\n  const dateA = String(a.seminar_date || '') + ' ' + String(a.seminar_time || '');\n  const dateB = String(b.seminar_date || '') + ' ' + String(b.seminar_time || '');\n  return dateA.localeCompare(dateB);\n});\n\nconst limited = filtered.slice(0, limit);\nconst monthsCovered = [];\nconst seenMonths = {};\nlimited.forEach((item) => {\n  if (item.month && !seenMonths[item.month]) {\n    seenMonths[item.month] = true;\n    monthsCovered.push(item.month);\n  }\n});\n\nreturn [{\n  json: {\n    success: true,\n    data: limited,\n    total: filtered.length,\n    summary: {\n      year: year || null,\n      month: month || null,\n      affiliation_code: affiliationCode || '',\n      months_covered: monthsCovered,\n      upcoming_count: limited.filter((item) => item.d_day !== null && item.d_day >= 0).length,\n      due_in_14_days: limited.filter((item) => item.d_day === 14).length\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf01c-seminars-build",
+      "name": "Build Seminars Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf01c-seminars-respond",
+      "name": "Respond getSeminars",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1380,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
         "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mpvsno4or6asbxk",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
@@ -484,6 +596,13 @@
         ],
         [
           {
+            "node": "NocoDB Get Seminars",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "NocoDB Get Content Classes",
             "type": "main",
             "index": 0
@@ -565,6 +684,28 @@
         [
           {
             "node": "Respond getAffiliations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Get Seminars": {
+      "main": [
+        [
+          {
+            "node": "Build Seminars Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Seminars Response": {
+      "main": [
+        [
+          {
+            "node": "Respond getSeminars",
             "type": "main",
             "index": 0
           }

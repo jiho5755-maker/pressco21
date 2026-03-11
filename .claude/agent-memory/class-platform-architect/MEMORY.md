@@ -210,6 +210,14 @@
 - 콘텐츠 허브 응답은 imported content 가 있으면 `trends / guides / featured_message` 에 우선 반영하고, 없으면 기존 `Classes + Partners` fallback 으로 내려간다.
 - 운영 기준 문서는 `docs/파트너클래스/content-repurposing-sop-guide.md` 이다.
 
+## 2026-03-11 S3-6 연간 이벤트 캘린더 구조 확정
+
+- 협회 레이어의 시즌 운영 축은 이제 `tbl_Seminars` 기반 12개월 연간 이벤트 캘린더로 고정한다.
+- 협회/세미나 탐색 데이터는 `WF-EVENT syncAnnualCalendar -> tbl_Seminars -> WF-01C getSeminars -> 목록/어드민 UI` 흐름으로 본다.
+- D-14 운영 알림은 `WF-EVENT Yearly Calendar Admin` 이 대상 계산을 맡고, `WF-EVENT D14 Auto Alert` 가 매일 09:15 자동 호출하는 2단 구조다.
+- 운영 인증은 현재 live 기준으로 legacy token `pressco21-admin-2026` 이 가장 안정적이므로 자동 호출도 같은 토큰을 직접 사용한다.
+- 운영 기준 문서는 `docs/파트너클래스/annual-event-calendar-guide.md` 이다.
+
 ## 2026-03-11 S2-3 전국 탐색 IA 구조 확정
 
 - 목록 2606은 이제 `전체 클래스 / 협회·세미나 / 혜택·이벤트` 3탭 구조로 본다.

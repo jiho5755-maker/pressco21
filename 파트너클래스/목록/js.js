@@ -2765,6 +2765,12 @@
     /** 협회 데이터 캐시 */
     var affilDataCache = null;
 
+    /** 세미나 데이터 캐시 */
+    var seminarDataCache = null;
+
+    /** 세미나 로딩 중 여부 */
+    var seminarDataLoading = false;
+
     /** 현재 활성 탭 */
     var activeCatalogTab = 'classes';
 
@@ -2821,6 +2827,7 @@
 
         if (targetTab === 'affiliations' || targetTab === 'benefits') {
             loadAffiliations();
+            loadSeminars();
         }
 
         if (targetTab === 'benefits') {
@@ -2900,6 +2907,50 @@
             });
     }
 
+    function loadSeminars() {
+        var currentYear = new Date().getFullYear();
+
+        if (seminarDataCache) {
+            renderSeminarFeed(currentDisplayClasses, affilDataCache, seminarDataCache);
+            return;
+        }
+
+        if (seminarDataLoading) {
+            return;
+        }
+
+        seminarDataLoading = true;
+
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                action: 'getSeminars',
+                year: currentYear,
+                limit: 24
+            })
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(function(data) {
+                seminarDataLoading = false;
+                if (data && data.success && data.data) {
+                    seminarDataCache = data.data;
+                } else {
+                    seminarDataCache = [];
+                }
+                renderSeminarFeed(currentDisplayClasses, affilDataCache, seminarDataCache);
+            })
+            .catch(function(err) {
+                seminarDataLoading = false;
+                seminarDataCache = [];
+                console.error('[ClassCatalog] 세미나 API 호출 실패:', err);
+                renderSeminarFeed(currentDisplayClasses, affilDataCache, seminarDataCache);
+            });
+    }
+
     function updateAffiliationBadges(affiliations) {
         var badge = document.getElementById('affilBadge');
         var benefitBadge = document.getElementById('benefitBadge');
@@ -2928,7 +2979,7 @@
             if (empty) empty.style.display = '';
             if (seminarGrid) seminarGrid.innerHTML = '';
             if (seminarEmpty) seminarEmpty.style.display = '';
-            updateAffiliationSummary([], []);
+            updateAffiliationSummary([], [], seminarDataCache);
             return;
         }
 
@@ -2939,7 +2990,7 @@
         }
         if (grid) grid.innerHTML = html;
 
-        renderSeminarFeed(currentDisplayClasses, affiliations);
+        renderSeminarFeed(currentDisplayClasses, affiliations, seminarDataCache);
     }
 
     /**
@@ -2992,8 +3043,8 @@
             '</div>';
     }
 
-    function updateAffiliationSummary(classes, affiliations) {
-        var seminarItems = buildSeminarItems(classes, affiliations);
+    function updateAffiliationSummary(classes, affiliations, seminars) {
+        var seminarItems = buildSeminarItems(classes, affiliations, seminars);
         var seminarCountEl = document.getElementById('affilSeminarCount');
         var associationCountEl = document.getElementById('affilAssociationCount');
         var benefitCountEl = document.getElementById('affilMemberBenefitCount');
@@ -3003,11 +3054,71 @@
         if (benefitCountEl) benefitCountEl.textContent = formatNumber(buildBenefitItems(classes, affiliations).length);
     }
 
-    function buildSeminarItems(classes, affiliations) {
+    function stripSeminarHtml(value) {
+        return String(value || '').replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+    }
+
+    function getDdayLabel(dayValue) {
+        if (dayValue === null || typeof dayValue === 'undefined' || isNaN(Number(dayValue))) {
+            return '';
+        }
+        if (Number(dayValue) === 0) return 'D-Day';
+        if (Number(dayValue) > 0) return 'D-' + Number(dayValue);
+        return '종료';
+    }
+
+    function formatSeminarDateLabel(dateText, timeText) {
+        var rawDate = String(dateText || '').trim();
+        var rawTime = String(timeText || '').trim();
+        if (!rawDate) {
+            return rawTime || '일정 확인';
+        }
+        return rawTime ? rawDate + ' ' + rawTime : rawDate;
+    }
+
+    function getSeminarRegionLabel(location) {
+        var text = String(location || '').trim();
+        if (!text) return '전국';
+        if (text.indexOf('온라인') !== -1) return '온라인';
+        if (text.indexOf('서울') !== -1) return '서울';
+        if (text.indexOf('경기') !== -1) return '경기';
+        if (text.indexOf('부산') !== -1) return '부산';
+        if (text.indexOf('인천') !== -1) return '인천';
+        return text;
+    }
+
+    function buildSeminarItems(classes, affiliations, seminars) {
         var items = [];
         var sourceClasses = classes || [];
         var sourceAffils = affiliations || [];
+        var sourceSeminars = seminars || [];
         var i;
+
+        if (sourceSeminars.length > 0) {
+            for (i = 0; i < sourceSeminars.length; i++) {
+                var seminar = sourceSeminars[i];
+                var dayValue = typeof seminar.d_day === 'number' ? seminar.d_day : null;
+                if (dayValue !== null && dayValue < -1) {
+                    continue;
+                }
+                items.push({
+                    title: seminar.title || '',
+                    desc: stripSeminarHtml(seminar.description || '') || '협회 세미나 일정과 시즌 운영 포인트를 함께 확인하세요.',
+                    typeLabel: seminar.season_label || '협회 세미나',
+                    affiliation: seminar.affiliation_code || '',
+                    region: getSeminarRegionLabel(seminar.location || ''),
+                    price: 0,
+                    detailUrl: buildPartnerMapUrl({ keyword: seminar.affiliation_code || seminar.title || '' }),
+                    mapUrl: buildPartnerMapUrl({ keyword: seminar.location || seminar.affiliation_code || seminar.title || '' }),
+                    primaryStat: formatSeminarDateLabel(seminar.seminar_date, seminar.seminar_time),
+                    secondaryStat: getDdayLabel(dayValue) || '일정 확인'
+                });
+            }
+
+            items.sort(function(a, b) {
+                return String(a.primaryStat || '').localeCompare(String(b.primaryStat || ''));
+            });
+        }
 
         for (i = 0; i < sourceClasses.length; i++) {
             var cls = sourceClasses[i];
@@ -3021,7 +3132,9 @@
                     region: getDisplayRegionName(cls.region || cls.location || ''),
                     price: cls.price || 0,
                     detailUrl: '/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || ''),
-                    mapUrl: buildPartnerMapSearchUrl(cls)
+                    mapUrl: buildPartnerMapSearchUrl(cls),
+                    primaryStat: getDisplayRegionName(cls.region || cls.location || ''),
+                    secondaryStat: cls.price > 0 ? formatPrice(cls.price) + '원부터' : '혜택 안내 확인'
                 });
             }
         }
@@ -3036,22 +3149,24 @@
                     region: '\uC804\uAD6D',
                     price: 0,
                     detailUrl: buildPartnerMapUrl({ keyword: sourceAffils[i].name || '' }),
-                    mapUrl: buildPartnerMapUrl({ keyword: sourceAffils[i].name || '' })
+                    mapUrl: buildPartnerMapUrl({ keyword: sourceAffils[i].name || '' }),
+                    primaryStat: '연간 일정 운영',
+                    secondaryStat: '혜택 안내 확인'
                 });
             }
         }
 
-        return items.slice(0, 6);
+        return items;
     }
 
-    function renderSeminarFeed(classes, affiliations) {
+    function renderSeminarFeed(classes, affiliations, seminars) {
         var seminarGrid = document.getElementById('seminarGrid');
         var seminarEmpty = document.getElementById('seminarEmpty');
-        var items = buildSeminarItems(classes, affiliations);
+        var items = buildSeminarItems(classes, affiliations, seminars).slice(0, 6);
         var html = '';
         var i;
 
-        updateAffiliationSummary(classes, affiliations);
+        updateAffiliationSummary(classes, affiliations, seminars);
 
         if (!seminarGrid || !seminarEmpty) return;
 
@@ -3071,8 +3186,8 @@
                 + '<h4 class="seminar-card__name">' + escapeHtml(items[i].title) + '</h4>'
                 + '<p class="seminar-card__desc">' + escapeHtml(items[i].desc) + '</p>'
                 + '<div class="seminar-card__stats">'
-                + (items[i].region ? '<span>' + escapeHtml(items[i].region) + '</span>' : '')
-                + (items[i].price > 0 ? '<span>' + formatPrice(items[i].price) + '\uC6D0\uBD80\uD130</span>' : '<span>\uD61C\uD0DD \uC548\uB0B4 \uD655\uC778</span>')
+                + (items[i].primaryStat ? '<span>' + escapeHtml(items[i].primaryStat) + '</span>' : '')
+                + (items[i].secondaryStat ? '<span>' + escapeHtml(items[i].secondaryStat) + '</span>' : (items[i].price > 0 ? '<span>' + formatPrice(items[i].price) + '\uC6D0\uBD80\uD130</span>' : '<span>\uD61C\uD0DD \uC548\uB0B4 \uD655\uC778</span>'))
                 + '</div>'
                 + '<div class="seminar-card__actions">'
                 + '<a href="' + escapeHtml(items[i].detailUrl) + '" class="seminar-card__link seminar-card__link--primary">\uC790\uC138\uD788 \uBCF4\uAE30</a>'

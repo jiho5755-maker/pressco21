@@ -12,6 +12,7 @@
        ======================================== */
     var ADMIN_API_URL = 'https://n8n.pressco21.com/webhook/admin-api';
     var SETTLEMENT_API_URL = 'https://n8n.pressco21.com/webhook/settlement-batch';
+    var EVENT_ADMIN_API_URL = 'https://n8n.pressco21.com/webhook/partnerclass-event-calendar-admin';
     // 관리자 그룹명 목록 (메이크샵 회원등급명과 일치해야 함)
     var ADMIN_GROUP_NAMES = ['관리자', '운영자', '대표'];
     // 관리자 그룹 레벨 하한선
@@ -32,6 +33,7 @@
     var modalCallback = null;
     var selectedSettlements = {};
     var affiliationRecords = [];
+    var eventCalendarRecords = [];
 
     function normalizeClassFilterStatus(status) {
         var value = String(status || '').toUpperCase().trim();
@@ -72,6 +74,7 @@
         bindFilters();
         bindSettlementControls();
         bindProposalBuilder();
+        bindEventCalendarControls();
         loadSummary();
         loadTab('applications');
     }
@@ -111,6 +114,21 @@
     function settlementFetch(payload, callback) {
         var xhr = new XMLHttpRequest();
         xhr.open('POST', SETTLEMENT_API_URL, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Authorization', 'Bearer ' + ADMIN_TOKEN);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                var resp = null;
+                try { resp = JSON.parse(xhr.responseText); } catch(e) {}
+                callback(xhr.status, resp);
+            }
+        };
+        xhr.send(JSON.stringify(payload));
+    }
+
+    function eventAdminFetch(payload, callback) {
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', EVENT_ADMIN_API_URL, true);
         xhr.setRequestHeader('Content-Type', 'application/json');
         xhr.setRequestHeader('Authorization', 'Bearer ' + ADMIN_TOKEN);
         xhr.onreadystatechange = function() {
@@ -234,6 +252,7 @@
                 break;
             case 'affiliations':
                 loadAdminAffiliations();
+                loadEventCalendar();
                 break;
         }
     }
@@ -791,6 +810,7 @@
 
         affiliationRecords = list || [];
         populateProposalBuilderOptions(affiliationRecords);
+        populateEventCalendarAffiliationOptions(affiliationRecords);
 
         if (!list || list.length === 0) {
             if (tableWrap) tableWrap.style.display = 'none';
@@ -821,6 +841,7 @@
             html += '</tr>';
         }
         if (tbody) tbody.innerHTML = html;
+        loadEventCalendar();
     }
 
     function bindProposalBuilder() {
@@ -1066,6 +1087,294 @@
             textarea.select();
         }
         callback(false);
+    }
+
+    function bindEventCalendarControls() {
+        var yearEl = document.getElementById('eventCalendarYear');
+        var affiliationEl = document.getElementById('eventCalendarAffiliation');
+        var syncBtn = document.getElementById('btnSyncEventCalendar');
+        var previewBtn = document.getElementById('btnPreviewEventAlerts');
+
+        if (yearEl) {
+            yearEl.addEventListener('change', function() {
+                loadEventCalendar();
+            });
+        }
+
+        if (affiliationEl) {
+            affiliationEl.addEventListener('change', function() {
+                loadEventCalendar();
+            });
+        }
+
+        if (syncBtn) {
+            syncBtn.addEventListener('click', function() {
+                syncEventCalendar();
+            });
+        }
+
+        if (previewBtn) {
+            previewBtn.addEventListener('click', function() {
+                previewEventAlerts();
+            });
+        }
+    }
+
+    function populateEventCalendarAffiliationOptions(list) {
+        var selectEl = document.getElementById('eventCalendarAffiliation');
+        var currentValue = selectEl ? selectEl.value : '';
+        var html = '<option value="">전체 협회</option>';
+        var i;
+
+        if (!selectEl) return;
+
+        for (i = 0; i < (list || []).length; i++) {
+            html += '<option value="' + escapeAttr(list[i].affiliation_code || '') + '">' + escapeHtml(list[i].name || list[i].affiliation_code || '-') + '</option>';
+        }
+
+        selectEl.innerHTML = html;
+        if (currentValue) {
+            selectEl.value = currentValue;
+        }
+    }
+
+    function getEventCalendarYearValue() {
+        var yearEl = document.getElementById('eventCalendarYear');
+        var year = Number(yearEl ? yearEl.value : '');
+        return year || 2026;
+    }
+
+    function getEventCalendarAffiliationValue() {
+        var el = document.getElementById('eventCalendarAffiliation');
+        return el ? String(el.value || '').trim() : '';
+    }
+
+    function getEventAlertPreviewDate() {
+        var el = document.getElementById('eventAlertPreviewDate');
+        if (!el || !el.value) {
+            return '2026-03-11';
+        }
+        return String(el.value || '').trim();
+    }
+
+    function calculateDday(dateStr) {
+        var parts = String(dateStr || '').trim().split('-');
+        var todayParts = getEventAlertPreviewDate().split('-');
+        var eventDate;
+        var todayDate;
+        var diff;
+
+        if (parts.length !== 3 || todayParts.length !== 3) {
+            return null;
+        }
+
+        eventDate = Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+        todayDate = Date.UTC(Number(todayParts[0]), Number(todayParts[1]) - 1, Number(todayParts[2]));
+        diff = Math.round((eventDate - todayDate) / 86400000);
+        return diff;
+    }
+
+    function getDdayLabel(dayValue) {
+        if (dayValue === null || typeof dayValue === 'undefined' || isNaN(Number(dayValue))) return '-';
+        if (Number(dayValue) === 0) return 'D-Day';
+        if (Number(dayValue) > 0) return 'D-' + Number(dayValue);
+        return '종료';
+    }
+
+    function getEventStatusClass(status) {
+        var normalized = String(status || '').toUpperCase();
+        if (normalized === 'ACTIVE' || normalized === 'OPEN') return 'ad-status--active';
+        if (normalized === 'PAUSED') return 'ad-status--pending';
+        if (normalized === 'COMPLETED' || normalized === 'CLOSED') return 'ad-status--inactive';
+        return 'ad-status--pending';
+    }
+
+    function updateEventCalendarSummary(list) {
+        var totalEl = document.getElementById('eventCalendarTotalCount');
+        var upcomingEl = document.getElementById('eventCalendarUpcomingCount');
+        var dueEl = document.getElementById('eventCalendarDueCount');
+        var total = (list || []).length;
+        var upcoming = 0;
+        var due = 0;
+        var i;
+
+        for (i = 0; i < total; i += 1) {
+            var dDay = calculateDday(list[i].seminar_date);
+            if (dDay !== null && dDay >= 0) {
+                upcoming += 1;
+            }
+            if (dDay === 14) {
+                due += 1;
+            }
+        }
+
+        if (totalEl) totalEl.textContent = total;
+        if (upcomingEl) upcomingEl.textContent = upcoming;
+        if (dueEl) dueEl.textContent = due;
+    }
+
+    function setEventAlertResult(message, type) {
+        var box = document.getElementById('eventAlertResult');
+        if (!box) return;
+
+        box.className = 'ad-event-calendar__result';
+        if (type) {
+            box.className += ' ad-event-calendar__result--' + type;
+        }
+        box.textContent = message;
+    }
+
+    function loadEventCalendar() {
+        var year = getEventCalendarYearValue();
+        var affiliationCode = getEventCalendarAffiliationValue();
+        var body = { action: 'getSeminars', year: year, limit: 60 };
+
+        if (affiliationCode) {
+            body.affiliationCode = affiliationCode;
+        }
+
+        showLoading('EventCalendar');
+
+        fetch(CLASS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
+            .then(function(resp) {
+                hideLoading('EventCalendar');
+                if (resp && resp.success && resp.data) {
+                    renderEventCalendar(resp.data);
+                } else {
+                    renderEventCalendar([]);
+                }
+            })
+            .catch(function(err) {
+                hideLoading('EventCalendar');
+                renderEventCalendar([]);
+                setEventAlertResult('연간 이벤트 캘린더 로드 실패: ' + err.message, 'error');
+            });
+    }
+
+    function renderEventCalendar(list) {
+        var tbody = document.getElementById('tbodyEventCalendar');
+        var tableWrap = document.getElementById('tableWrapEventCalendar');
+        var emptyEl = document.getElementById('emptyEventCalendar');
+        var rows = list || [];
+        var html = '';
+        var i;
+
+        eventCalendarRecords = rows.slice();
+        updateEventCalendarSummary(rows);
+
+        if (!rows.length) {
+            if (tableWrap) tableWrap.style.display = 'none';
+            if (emptyEl) emptyEl.style.display = '';
+            return;
+        }
+
+        if (tableWrap) tableWrap.style.display = '';
+        if (emptyEl) emptyEl.style.display = 'none';
+
+        rows.sort(function(a, b) {
+            return String(a.seminar_date || '').localeCompare(String(b.seminar_date || ''));
+        });
+
+        for (i = 0; i < rows.length; i += 1) {
+            var row = rows[i];
+            var monthLabel = row.month_label || (String(row.seminar_date || '').slice(5, 7).replace(/^0/, '') + '월');
+            var dDay = calculateDday(row.seminar_date);
+            html += '<tr>';
+            html += '<td>' + escapeHtml(monthLabel) + '</td>';
+            html += '<td>' + escapeHtml(row.affiliation_code || '-') + '</td>';
+            html += '<td><strong>' + escapeHtml(row.title || '-') + '</strong></td>';
+            html += '<td>' + escapeHtml((row.seminar_date || '-') + ' ' + (row.seminar_time || '')) + '</td>';
+            html += '<td>' + escapeHtml(row.location || '-') + '</td>';
+            html += '<td>' + escapeHtml(getDdayLabel(dDay)) + '</td>';
+            html += '<td><span class="ad-status ' + getEventStatusClass(row.status) + '">' + escapeHtml(row.status || 'ACTIVE') + '</span></td>';
+            html += '</tr>';
+        }
+
+        if (tbody) tbody.innerHTML = html;
+        if (!eventCalendarRecords.length) {
+            setEventAlertResult('연간 이벤트 캘린더를 불러오면 점검 결과가 여기에 표시됩니다.', '');
+        }
+    }
+
+    function syncEventCalendar() {
+        var year = getEventCalendarYearValue();
+
+        setEventAlertResult('연간 이벤트 캘린더를 동기화하고 있습니다...', 'warning');
+        eventAdminFetch({
+            action: 'syncAnnualCalendar',
+            year: year,
+            dry_run: false,
+            requested_by: memberId || 'admin'
+        }, function(status, resp) {
+            if (resp && resp.success && resp.data) {
+                setEventAlertResult(
+                    year + ' 연간 캘린더 동기화 완료\n'
+                    + '- 대상 협회: ' + (resp.data.affiliation_count || 0) + '곳\n'
+                    + '- 대상 일정: ' + (resp.data.target_count || 0) + '건\n'
+                    + '- 신규 생성: ' + (resp.data.created || 0) + '건\n'
+                    + '- 업데이트: ' + (resp.data.updated || 0) + '건',
+                    'success'
+                );
+                showToast('연간 이벤트 캘린더 동기화 완료', 'success');
+                loadEventCalendar();
+            } else {
+                setEventAlertResult('연간 이벤트 캘린더 동기화 실패\n' + getErrorMessage(resp, '알 수 없는 오류'), 'error');
+                showToast('연간 이벤트 캘린더 동기화 실패', 'error');
+            }
+        });
+    }
+
+    function previewEventAlerts() {
+        var year = getEventCalendarYearValue();
+        var affiliationCode = getEventCalendarAffiliationValue();
+        var today = getEventAlertPreviewDate();
+        var payload = {
+            action: 'runD14Alerts',
+            year: year,
+            today: today,
+            dry_run: true,
+            requested_by: memberId || 'admin'
+        };
+
+        if (affiliationCode) {
+            payload.affiliation_code = affiliationCode;
+        }
+
+        setEventAlertResult('D-14 알림 대상을 점검하고 있습니다...', 'warning');
+
+        eventAdminFetch(payload, function(status, resp) {
+            var summary = resp && resp.data ? resp.data.summary || {} : {};
+            var preview = resp && resp.data && resp.data.preview ? resp.data.preview : [];
+            var lines = [];
+            var i;
+
+            if (resp && resp.success && resp.data) {
+                lines.push(today + ' 기준 D-14 알림 점검');
+                lines.push('- 해당 일정: ' + (summary.due_event_count || 0) + '건');
+                lines.push('- 파트너 알림 대상: ' + (summary.partner_target_count || 0) + '건');
+                lines.push('- 관리자 알림 대상: ' + (summary.admin_target_count || 0) + '건');
+                lines.push('- 총 발송 예정: ' + (summary.total_target_count || 0) + '건');
+                if (preview.length) {
+                    lines.push('');
+                    for (i = 0; i < preview.length; i += 1) {
+                        lines.push((i + 1) + '. ' + (preview[i].alert_id || '-') + ' / ' + (preview[i].recipient_type || '-') + ' / ' + (preview[i].recipient_email || '-'));
+                    }
+                }
+                setEventAlertResult(lines.join('\n'), 'success');
+                showToast('D-14 알림 점검 완료', 'success');
+            } else {
+                setEventAlertResult('D-14 알림 점검 실패\n' + getErrorMessage(resp, '알 수 없는 오류'), 'error');
+                showToast('D-14 알림 점검 실패', 'error');
+            }
+        });
     }
 
     function loadAffilStats() {

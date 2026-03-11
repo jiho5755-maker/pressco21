@@ -219,6 +219,20 @@
   - 생성 후 진행 중 구독 `2건`
   - 해지 후 진행 중 구독 `1건`
 
+## 2026-03-11 S3-6 연간 이벤트 캘린더 검증 메모
+
+- 이 태스크는 `live sync + live getSeminars + live D-14 dry-run + 로컬 Playwright 어드민 UI` 4단으로 보는 편이 가장 정확하다.
+- 최소 통과 세트:
+  - `syncAnnualCalendar(year=2026, dry_run=false)` 결과 `months_covered=1~12`
+  - `class-api getSeminars(year=2026)` 결과 `months_covered=1~12`, `due_in_14_days=1`
+  - `runD14Alerts(today=2026-03-11, dry_run=true)` 결과 `due_event_count=1`, `total_target_count=7`
+  - 로컬 어드민 UI에서 이벤트 row `14`, D-14 점검 결과 텍스트 노출
+- Playwright 검증 러너:
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-6-event-calendar-runner.js`
+- 실제 산출물:
+  - `output/playwright/s3-6-event-calendar/event-calendar-results.json`
+  - `output/playwright/s3-6-event-calendar/admin-event-calendar.png`
+
 ## 2026-03-11 S3-4 확장성 검증 메모
 
 - 이 태스크는 `live infra snapshot + live API load + same-host synthetic DB benchmark` 3단으로 보는 편이 가장 정확하다.

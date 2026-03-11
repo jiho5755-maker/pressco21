@@ -41,6 +41,13 @@
 - 상세 2607은 `GENERAL / AFFILIATION / EVENT` fixture 각각에서 상단 eyebrow, trust chip, 파트너맵 링크 존재 여부를 같이 본다.
 - 실제 산출물 기준 파일은 `output/playwright/s2-3-ia/s2-3-results.json` 과 `output/playwright/s2-3-ia/*.png` 이다.
 
+## 2026-03-11 S2-4 WF-01 분리 회귀 메모
+
+- baseline 비교는 분리 전 `class-api` 응답을 먼저 저장한 뒤, 분리 후 `timestamp` 와 내부 `_status` 를 제외하고 본문 동등성으로 비교한다.
+- 최소 회귀 세트는 `getClasses`, `getClassDetail`, `getCategories`, `getAffiliations`, `INVALID_ACTION` 5개다.
+- 신규 action 검증은 `getSchedules`, `getRemainingSeats` 를 같은 `class-api` 라우터로 직접 호출해 `200 + success=true` 만 우선 확인하면 된다.
+- 이번 작업의 Playwright 검증은 브라우저 렌더링보다 `APIRequestContext` 가 더 적합했다. 결과 파일은 `output/playwright/s2-4-wf01/playwright-results.json` 이다.
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

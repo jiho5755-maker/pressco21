@@ -29,3 +29,10 @@ curl -s -X POST https://n8n.pressco21.com/webhook/class-api \
   -H "Content-Type: application/json" \
   -d '{"action": "getCategories"}'
 ```
+## 2026-03-11 S2-4 WF-01 분리 디버깅 메모
+
+- n8n public API create 는 `name/nodes/connections/settings` 만 허용한다. `staticData/pinData/tags` 를 같이 보내면 `request/body must NOT have additional properties` 로 실패한다.
+- 이 환경의 workflow update 메서드는 `PATCH` 가 아니라 `PUT /api/v1/workflows/{id}` 로 동작한다.
+- 운영 셸 환경에 stale `N8N_API_KEY` 가 남아 있을 수 있어, 자동화 스크립트는 `.secrets.env` 값을 우선 사용해야 한다.
+- 라우터 응답에는 내부 `_status` 를 그대로 노출하지 말고, 응답 코드에만 사용한 뒤 외부 본문에서는 제거해야 baseline 회귀 비교가 맞는다.
+- 새 `WF-01B Schedule Read API` 는 NocoDB HTTP Request credential(`PRESSCO21-NocoDB`) 누락 시 200 빈 본문처럼 보이면서 execution status 는 error 로 남는다.

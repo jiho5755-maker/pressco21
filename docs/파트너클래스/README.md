@@ -49,7 +49,9 @@
 - `phase2-deployment-check.md`
 - `affiliation-db-guide.md`
 - `WF-01-switch-map.md`
-  - WF-01 공개 API의 action 분기, 입력 파라미터, 응답 구조, 호출 페이지 정리
+  - 2026-03-10 기준 monolith source map 문서. 분리 전 액션 맵과 입력/출력 기준선 정리
+- `WF-01-split-guide.md`
+  - S2-4 기준 router + WF-01A/B/C 분리 구조, 운영 ID, 배포/회귀 검증 결과 정리
 - `kit-link-integration-guide.md`
   - S1-1 기준 키트 JSON 구조, 화면 반영 범위, WF-01/05/16/20 연동 방식, 라이브 DB 제약 정리
 - `detail-ux-upgrade-guide.md`

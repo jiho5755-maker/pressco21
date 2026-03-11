@@ -2,6 +2,9 @@
 
 작성일: 2026-03-10
 
+> 이 문서는 `S2-4` 분리 전 monolith 기준 source map 이다.
+> 현재 운영 구조는 `WF-01-split-guide.md` 를 우선 참고한다.
+
 대상 워크플로우: `파트너클래스/n8n-workflows/WF-01-class-api.json`
 
 운영 ID: `WabRAcHmcCdOpPzJ`

@@ -9,15 +9,28 @@
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "wf01-webhook",
+      "id": "wf01-router-webhook",
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [
         220,
-        300
+        320
       ],
       "webhookId": "class-api"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-01 Router: action -> 하위 워크플로우 라우팅 정보 구성\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input || {};\nconst action = String(body.action || '').trim();\n\nconst classReadActions = new Set(['getClasses', 'getClassDetail', 'getCategories']);\nconst scheduleReadActions = new Set(['getSchedules', 'getRemainingSeats']);\nconst affiliationReadActions = new Set(['getAffiliations', 'getSeminars', 'getAffiliationDetail', 'getVocabulary']);\n\nlet routeGroup = 'invalid';\nif (classReadActions.has(action)) {\n  routeGroup = 'classRead';\n} else if (scheduleReadActions.has(action)) {\n  routeGroup = 'scheduleRead';\n} else if (affiliationReadActions.has(action)) {\n  routeGroup = 'affiliationRead';\n}\n\nreturn [{\n  json: {\n    _action: action,\n    _routeGroup: routeGroup,\n    _forwardBody: body\n  }\n}];"
+      },
+      "id": "wf01-router-parse",
+      "name": "Parse Route Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        320
+      ]
     },
     {
       "parameters": {
@@ -34,8 +47,8 @@
                 "combinator": "and",
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.body.action }}",
-                    "rightValue": "getClasses",
+                    "leftValue": "={{ $json._routeGroup }}",
+                    "rightValue": "classRead",
                     "operator": {
                       "type": "string",
                       "operation": "equals"
@@ -44,7 +57,7 @@
                 ]
               },
               "renameOutput": true,
-              "outputKey": "getClasses"
+              "outputKey": "classRead"
             },
             {
               "conditions": {
@@ -57,8 +70,8 @@
                 "combinator": "and",
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.body.action }}",
-                    "rightValue": "getClassDetail",
+                    "leftValue": "={{ $json._routeGroup }}",
+                    "rightValue": "scheduleRead",
                     "operator": {
                       "type": "string",
                       "operation": "equals"
@@ -67,7 +80,7 @@
                 ]
               },
               "renameOutput": true,
-              "outputKey": "getClassDetail"
+              "outputKey": "scheduleRead"
             },
             {
               "conditions": {
@@ -80,8 +93,8 @@
                 "combinator": "and",
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.body.action }}",
-                    "rightValue": "getCategories",
+                    "leftValue": "={{ $json._routeGroup }}",
+                    "rightValue": "affiliationRead",
                     "operator": {
                       "type": "string",
                       "operation": "equals"
@@ -90,30 +103,7 @@
                 ]
               },
               "renameOutput": true,
-              "outputKey": "getCategories"
-            },
-            {
-              "conditions": {
-                "options": {
-                  "version": 2,
-                  "leftValue": "",
-                  "caseSensitive": true,
-                  "typeValidation": "loose"
-                },
-                "combinator": "and",
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.body.action }}",
-                    "rightValue": "getAffiliations",
-                    "operator": {
-                      "type": "string",
-                      "operation": "equals"
-                    }
-                  }
-                ]
-              },
-              "renameOutput": true,
-              "outputKey": "getAffiliations"
+              "outputKey": "affiliationRead"
             }
           ]
         },
@@ -121,592 +111,122 @@
           "fallbackOutput": "extra"
         }
       },
-      "id": "wf01-switch",
-      "name": "Switch Action",
+      "id": "wf01-router-switch",
+      "name": "Switch Route Group",
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
       "position": [
-        440,
-        300
+        700,
+        320
       ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-01-A: getClasses - 클래스 목록 조회\n// 레거시/신규 상태값을 모두 읽되 응답은 정규화된 값으로 반환\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\nfunction splitValues(raw) {\n  return String(raw || '')\n    .split(',')\n    .map((item) => String(item || '').replace(/\\s+/g, ' ').trim())\n    .filter((item) => item.length > 0);\n}\n\nfunction unique(values) {\n  const seen = new Set();\n  const result = [];\n  for (const value of values) {\n    if (!value || seen.has(value)) continue;\n    seen.add(value);\n    result.push(value);\n  }\n  return result;\n}\n\nfunction normalizeLevel(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.includes('입문') || text.includes('초급')) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.includes('중급')) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.includes('심화') || text.includes('고급')) return 'ADVANCED';\n  if (upper === 'ALL_LEVELS' || text.includes('전체')) return 'ALL_LEVELS';\n  return upper;\n}\n\nfunction normalizeRegion(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  if (!text) return '';\n  const upper = text.toUpperCase();\n  const primary = text.split(' ')[0];\n  const map = {\n    '서울': 'SEOUL',\n    '경기': 'GYEONGGI',\n    '경기도': 'GYEONGGI',\n    '인천': 'INCHEON',\n    '부산': 'BUSAN',\n    '대구': 'DAEGU',\n    '대전': 'DAEJEON',\n    '광주': 'GWANGJU',\n    '울산': 'ULSAN',\n    '세종': 'SEJONG',\n    '강원': 'GANGWON',\n    '강원도': 'GANGWON',\n    '충북': 'CHUNGBUK',\n    '충청북도': 'CHUNGBUK',\n    '충남': 'CHUNGNAM',\n    '충청남도': 'CHUNGNAM',\n    '전북': 'JEONBUK',\n    '전라북도': 'JEONBUK',\n    '전남': 'JEONNAM',\n    '전라남도': 'JEONNAM',\n    '경북': 'GYEONGBUK',\n    '경상북도': 'GYEONGBUK',\n    '경남': 'GYEONGNAM',\n    '경상남도': 'GYEONGNAM',\n    '제주': 'JEJU',\n    '제주도': 'JEJU',\n    '온라인': 'ONLINE',\n    '기타': 'OTHER'\n  };\n  if (map[text]) return map[text];\n  if (map[primary]) return map[primary];\n  if (upper === 'ONLINE' || lowerContains(text, 'online')) return 'ONLINE';\n  return map[upper] || upper;\n}\n\nfunction lowerContains(text, keyword) {\n  return String(text || '').toLowerCase().includes(String(keyword || '').toLowerCase());\n}\n\nconst categories = unique(splitValues(body.category));\nconst levels = unique(splitValues(body.level || body.difficulty).map(normalizeLevel).filter(Boolean));\nconst classTypes = unique(splitValues(body.type));\nconst regions = unique(splitValues(body.region).map(normalizeRegion).filter(Boolean));\nconst sort = String(body.sort || 'latest').trim() || 'latest';\nconst page = Math.max(parseInt(body.page, 10) || 1, 1);\nconst limit = Math.min(Math.max(parseInt(body.limit, 10) || 20, 1), 50);\nconst maxPrice = Math.min(Math.max(parseInt(body.maxPrice, 10) || 200000, 0), 200000000);\nconst search = String(body.search || body.q || '').replace(/\\s+/g, ' ').trim();\n\nreturn [{\n  json: {\n    page,\n    limit,\n    sort,\n    _params: {\n      categories,\n      levels,\n      classTypes,\n      regions,\n      sort,\n      page,\n      limit,\n      maxPrice,\n      search\n    }\n  }\n}];"
-      },
-      "id": "wf01-parse-classes",
-      "name": "Parse getClasses Params",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        660,
-        140
-      ]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mpvsno4or6asbxk",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "limit",
-              "value": "=1000"
-            },
-            {
-              "name": "fields",
-              "value": "class_id,makeshop_product_id,class_name,category,level,price,duration_min,max_students,thumbnail_url,location,region,tags,class_count,avg_rating,partner_code,type,status,kit_enabled"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "wf01-nocodb-classes",
-      "name": "NocoDB Get Classes",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        880,
-        140
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "JmXQGe9254wG4qVZ",
-          "name": "NocoDB API Token"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "where",
-              "value": "(status,eq,active)"
-            },
-            {
-              "name": "fields",
-              "value": "partner_code,partner_name,grade,location,avg_rating,instagram_url,portfolio_url"
-            },
-            {
-              "name": "limit",
-              "value": "1000"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "wf01-nocodb-partners-for-classes",
-      "name": "NocoDB Get Partners (Join)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        880,
-        340
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "JmXQGe9254wG4qVZ",
-          "name": "NocoDB API Token"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mschd3d81ad88fb",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "where",
-              "value": "=(status,eq,active)"
-            },
-            {
-              "name": "fields",
-              "value": "class_id,capacity,booked_count,schedule_date"
-            },
-            {
-              "name": "limit",
-              "value": "1000"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "wf01-nocodb-schedules-for-list",
-      "name": "NocoDB Get Schedules for List",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        880,
-        500
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "JmXQGe9254wG4qVZ",
-          "name": "NocoDB API Token"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// ===================================================\n// 클래스 목록 + 파트너 정보 + 잔여석 조인 + 정규화 + 필터/정렬/페이지네이션\n// ===================================================\n\nconst classesResponse = $('NocoDB Get Classes').first().json;\nconst partnersResponse = $('NocoDB Get Partners (Join)').first().json;\nconst schedulesResponse = $('NocoDB Get Schedules for List').first().json;\nconst params = $('Parse getClasses Params').first().json._params || {};\n\nconst classesList = classesResponse.list || [];\nconst partnersList = partnersResponse.list || [];\nconst schedulesList = schedulesResponse.list || [];\n\nfunction normalizeStatus(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (!text) return 'DRAFT';\n  if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'ACTIVE';\n  if (upper === 'PAUSED' || text.toLowerCase() === 'paused') return 'PAUSED';\n  if (upper === 'PENDING_REVIEW' || upper === 'INACTIVE' || text.toLowerCase() === 'pending') return 'PENDING_REVIEW';\n  if (upper === 'REJECTED' || text.toLowerCase() === 'closed') return 'REJECTED';\n  if (upper === 'ARCHIVED') return 'ARCHIVED';\n  return upper;\n}\n\nfunction normalizeLevel(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.includes('입문') || text.includes('초급')) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.includes('중급')) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.includes('심화') || text.includes('고급')) return 'ADVANCED';\n  if (upper === 'ALL_LEVELS' || text.includes('전체')) return 'ALL_LEVELS';\n  return upper;\n}\n\nfunction normalizeRegion(rawRegion, rawLocation, rawType) {\n  const fromRegion = String(rawRegion || '').replace(/\\s+/g, ' ').trim();\n  const text = fromRegion || String(rawLocation || '').replace(/\\s+/g, ' ').trim();\n  const type = String(rawType || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const primary = text.split(' ')[0];\n  const map = {\n    '서울': 'SEOUL',\n    '경기': 'GYEONGGI',\n    '경기도': 'GYEONGGI',\n    '인천': 'INCHEON',\n    '부산': 'BUSAN',\n    '대구': 'DAEGU',\n    '대전': 'DAEJEON',\n    '광주': 'GWANGJU',\n    '울산': 'ULSAN',\n    '세종': 'SEJONG',\n    '강원': 'GANGWON',\n    '강원도': 'GANGWON',\n    '충북': 'CHUNGBUK',\n    '충청북도': 'CHUNGBUK',\n    '충남': 'CHUNGNAM',\n    '충청남도': 'CHUNGNAM',\n    '전북': 'JEONBUK',\n    '전라북도': 'JEONBUK',\n    '전남': 'JEONNAM',\n    '전라남도': 'JEONNAM',\n    '경북': 'GYEONGBUK',\n    '경상북도': 'GYEONGBUK',\n    '경남': 'GYEONGNAM',\n    '경상남도': 'GYEONGNAM',\n    '제주': 'JEJU',\n    '제주도': 'JEJU',\n    '온라인': 'ONLINE',\n    '기타': 'OTHER'\n  };\n  if (type.includes('온라인') || text.includes('온라인') || upper === 'ONLINE' || upper.includes('ONLINE')) return 'ONLINE';\n  if (!text) return '';\n  if (map[text]) return map[text];\n  if (map[primary]) return map[primary];\n  return map[upper] || upper;\n}\n\nfunction normalizePartnerGrade(raw) {\n  const upper = String(raw || '').toUpperCase().trim();\n  const alias = { SILVER: 'BLOOM', GOLD: 'GARDEN', PLATINUM: 'ATELIER' };\n  return alias[upper] || upper;\n}\n\nfunction hasRegionMatch(classRegion, filterRegions) {\n  if (!filterRegions || filterRegions.length === 0) return true;\n  if (!classRegion) return false;\n  if (filterRegions.includes(classRegion)) return true;\n\n  if (filterRegions.includes('OTHER')) {\n    const standard = ['SEOUL','GYEONGGI','INCHEON','BUSAN','DAEGU','DAEJEON','GWANGJU','ULSAN','SEJONG','GANGWON','CHUNGBUK','CHUNGNAM','JEONBUK','JEONNAM','GYEONGBUK','GYEONGNAM','JEJU','ONLINE'];\n    return standard.indexOf(classRegion) === -1;\n  }\n\n  return false;\n}\n\nconst today = new Date().toISOString().slice(0, 10);\nconst remainingMap = {};\nfor (const s of schedulesList) {\n  const cid = s.class_id || '';\n  if (!cid || s.schedule_date < today) continue;\n  const remaining = Math.max((Number(s.capacity) || 0) - (Number(s.booked_count) || 0), 0);\n  if (!remainingMap[cid]) {\n    remainingMap[cid] = { total_remaining: 0, schedule_count: 0, next_date: s.schedule_date };\n  }\n  remainingMap[cid].total_remaining += remaining;\n  remainingMap[cid].schedule_count += 1;\n  if (s.schedule_date < remainingMap[cid].next_date) {\n    remainingMap[cid].next_date = s.schedule_date;\n  }\n}\n\nconst partnerMap = {};\nfor (const p of partnersList) {\n  partnerMap[p.partner_code] = {\n    partner_name: p.partner_name || '',\n    grade: normalizePartnerGrade(p.grade || ''),\n    location: p.location || '',\n    avg_rating: Number(p.avg_rating) || 0\n  };\n}\n\nlet classes = classesList.map((c) => {\n  let partnerCode = '';\n  if (Array.isArray(c.partner_code) && c.partner_code.length > 0) {\n    partnerCode = c.partner_code[0].partner_code || c.partner_code[0].Title || c.partner_code[0].Id || '';\n  } else if (typeof c.partner_code === 'string') {\n    partnerCode = c.partner_code;\n  }\n\n  const partnerInfo = partnerMap[partnerCode] || { partner_name: '', grade: '', location: '', avg_rating: 0 };\n  const status = normalizeStatus(c.status || '');\n  const level = normalizeLevel(c.level || '');\n  const region = normalizeRegion(c.region || '', c.location || '', c.type || '');\n  const price = Number(c.price) || 0;\n\n  return {\n    class_id: c.class_id || '',\n    makeshop_product_id: c.makeshop_product_id || '',\n    class_name: c.class_name || '',\n    category: c.category || '',\n    level,\n    price,\n    duration_min: Number(c.duration_min) || 0,\n    max_students: Number(c.max_students) || 0,\n    thumbnail_url: c.thumbnail_url || '',\n    location: c.location || '',\n    region,\n    tags: c.tags || '',\n    type: c.type || '',\n    status,\n    class_count: Number(c.class_count) || 0,\n    avg_rating: Number(c.avg_rating) || 0,\n    partner_name: partnerInfo.partner_name,\n    partner_code: partnerCode,\n    partner_grade: partnerInfo.grade,\n    kit_enabled: Number(c.kit_enabled) || 0,\n    total_remaining: (remainingMap[c.class_id] || {}).total_remaining || 0,\n    schedule_count: (remainingMap[c.class_id] || {}).schedule_count || 0,\n    next_date: (remainingMap[c.class_id] || {}).next_date || ''\n  };\n});\n\nclasses = classes.filter((c) => c.status === 'ACTIVE');\n\nif (params.categories && params.categories.length > 0) {\n  classes = classes.filter((c) => params.categories.includes(c.category || ''));\n}\nif (params.levels && params.levels.length > 0) {\n  classes = classes.filter((c) => params.levels.includes(c.level || ''));\n}\nif (params.classTypes && params.classTypes.length > 0) {\n  classes = classes.filter((c) => params.classTypes.includes(c.type || ''));\n}\nif (params.regions && params.regions.length > 0) {\n  classes = classes.filter((c) => hasRegionMatch(c.region, params.regions));\n}\nif (params.maxPrice && params.maxPrice < 200000000) {\n  classes = classes.filter((c) => (Number(c.price) || 0) <= params.maxPrice);\n}\nif (params.search) {\n  const query = params.search.toLowerCase();\n  classes = classes.filter((c) => {\n    return [c.class_name, c.partner_name, c.category, c.location, c.tags]\n      .join(' ')\n      .toLowerCase()\n      .includes(query);\n  });\n}\n\nswitch (params.sort) {\n  case 'popular':\n    classes.sort((a, b) => (b.class_count || 0) - (a.class_count || 0));\n    break;\n  case 'rating':\n    classes.sort((a, b) => (b.avg_rating || 0) - (a.avg_rating || 0));\n    break;\n  case 'price_asc':\n    classes.sort((a, b) => (a.price || 0) - (b.price || 0));\n    break;\n  case 'price_desc':\n    classes.sort((a, b) => (b.price || 0) - (a.price || 0));\n    break;\n  case 'latest':\n  default:\n    classes.sort((a, b) => String(b.class_id || '').localeCompare(String(a.class_id || '')));\n    break;\n}\n\nconst totalCount = classes.length;\nconst limit = params.limit || 20;\nconst page = params.page || 1;\nconst totalPages = Math.max(Math.ceil(totalCount / limit), 1);\nconst startIdx = (page - 1) * limit;\nconst pagedClasses = classes.slice(startIdx, startIdx + limit);\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      classes: pagedClasses,\n      page,\n      limit,\n      total: totalCount,\n      totalPages\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
-      },
-      "id": "wf01-merge-classes",
-      "name": "Merge Classes + Partners",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1100,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/class-api-read",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json._forwardBody) }}",
         "options": {
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Content-Type",
-                "value": "application/json; charset=utf-8"
-              },
-              {
-                "name": "Access-Control-Allow-Origin",
-                "value": "https://foreverlove.co.kr"
-              }
-            ]
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
           }
         }
       },
-      "id": "wf01-respond-classes",
-      "name": "Respond getClasses",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        1320,
-        240
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "// ===================================================\n// WF-01-B: getClassDetail 파라미터 검증\n// ===================================================\n\nconst body = $input.first().json.body;\nconst classId = (body.id || '').trim();\n\nif (!classId) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'MISSING_PARAMS', message: 'id 파라미터가 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    classId,\n    _error: false\n  }\n}];"
-      },
-      "id": "wf01-parse-detail",
-      "name": "Parse getClassDetail Params",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        660,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true
-          },
-          "conditions": [
-            {
-              "leftValue": "={{ $json._error }}",
-              "rightValue": false,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
-            }
-          ]
-        }
-      },
-      "id": "wf01-if-detail-valid",
-      "name": "IF Detail Params Valid",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
-      "position": [
-        840,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mpvsno4or6asbxk",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "where",
-              "value": "=(class_id,eq,{{ $json.classId }})"
-            },
-            {
-              "name": "limit",
-              "value": "1"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "wf01-nocodb-class-detail",
-      "name": "NocoDB Get Class Detail",
+      "id": "wf01-router-call-class",
+      "name": "Call WF-01A Class Read",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        1040,
-        260
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "JmXQGe9254wG4qVZ",
-          "name": "NocoDB API Token"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// ===================================================\n// 클래스 상세 응답 구성\n// NocoDB 조회 결과 + 파트너 공개 정보 포함\n// ===================================================\n\nconst response = $input.first().json;\nconst classesList = response.list || [];\n\nif (classesList.length === 0) {\n  return [{\n    json: {\n      success: false,\n      error: { code: 'CLASS_NOT_FOUND', message: '해당 클래스를 찾을 수 없습니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst c = classesList[0];\n\n// 커리큘럼 JSON 파싱\nlet curriculum = [];\nif (c.curriculum_json) {\n  try {\n    curriculum = JSON.parse(c.curriculum_json);\n  } catch (e) {\n    // 파싱 실패 시 빈 배열\n  }\n}\n\n// 이미지 URL 배열 변환 (콤마 구분)\nlet images = [];\nif (c.image_urls) {\n  images = c.image_urls.split(',').map(u => u.trim()).filter(u => u.length > 0);\n}\n\n// 일정 JSON 파싱\nlet schedules = [];\nif (c.schedules_json) {\n  try {\n    const parsed = JSON.parse(c.schedules_json);\n    if (Array.isArray(parsed)) schedules = parsed;\n  } catch (e) {}\n}\n\n// 재료 상품 ID 배열\nlet materialsProductIds = [];\nif (c.materials_product_ids) {\n  materialsProductIds = c.materials_product_ids.split(',').map(id => id.trim()).filter(id => id.length > 0);\n}\n\n// partner_code 추출 (Links 필드 또는 문자열)\nlet partnerCode = '';\nif (Array.isArray(c.partner_code) && c.partner_code.length > 0) {\n  partnerCode = c.partner_code[0].partner_code || c.partner_code[0].Title || '';\n} else if (typeof c.partner_code === 'string') {\n  partnerCode = c.partner_code;\n}\n\nreturn [{\n  json: {\n    _classData: {\n      class_id: c.class_id || '',\n      makeshop_product_id: c.makeshop_product_id || '',\n      class_name: c.class_name || '',\n      category: c.category || '',\n      level: c.level || '',\n      price: Number(c.price) || 0,\n      materials_price: Number(c.materials_price) || 0,\n      duration_min: Number(c.duration_min) || 0,\n      max_students: Number(c.max_students) || 0,\n      description: c.description || '',\n      curriculum,\n      instructor_bio: c.instructor_bio || '',\n      thumbnail_url: c.thumbnail_url || '',\n      images,\n      youtube_video_id: c.youtube_video_id || '',\n      location: c.location || '',\n      materials_included: c.materials_included || '',\n      materials_product_ids: materialsProductIds,\n      tags: c.tags || '',\n      type: c.type || '',\n      class_count: Number(c.class_count) || 0,\n      avg_rating: Number(c.avg_rating) || 0,\n      schedules\n    },\n    _partnerCode: partnerCode,\n    _needPartner: true\n  }\n}];"
-      },
-      "id": "wf01-format-detail",
-      "name": "Format Class Detail",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1260,
-        260
+        980,
+        160
       ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "where",
-              "value": "=(partner_code,eq,{{ $json._partnerCode }})"
-            },
-            {
-              "name": "fields",
-              "value": "partner_code,partner_name,grade,location,avg_rating,instagram_url,portfolio_url"
-            },
-            {
-              "name": "limit",
-              "value": "1"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "wf01-nocodb-partner-detail",
-      "name": "NocoDB Get Partner (Detail)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1480,
-        260
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "JmXQGe9254wG4qVZ",
-          "name": "NocoDB API Token"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mschd3d81ad88fb",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "where",
-              "value": "=(class_id,eq,{{ $('Format Class Detail').first().json._classData.class_id }})~and(status,eq,active)"
-            },
-            {
-              "name": "sort",
-              "value": "schedule_date,schedule_time"
-            },
-            {
-              "name": "limit",
-              "value": "50"
-            },
-            {
-              "name": "fields",
-              "value": "schedule_id,class_id,schedule_date,schedule_time,capacity,booked_count,status"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "wf01-nocodb-schedules-detail",
-      "name": "NocoDB Get Schedules for Detail",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        1700,
-        260
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "JmXQGe9254wG4qVZ",
-          "name": "NocoDB API Token"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// ===================================================\n// 클래스 상세 + 파트너 + 일정 정보 결합 -> 최종 응답\n// ===================================================\n\nconst classResponse = $('NocoDB Get Class Detail').first().json;\nconst classesList = classResponse.list || [];\n\nif (classesList.length === 0) {\n  return [{ json: { success: false, error: { code: 'CLASS_NOT_FOUND', message: '해당 클래스를 찾을 수 없습니다.' }, timestamp: new Date().toISOString() } }];\n}\n\nfunction normalizeStatus(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (!text) return 'DRAFT';\n  if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'ACTIVE';\n  if (upper === 'PAUSED' || text.toLowerCase() === 'paused') return 'PAUSED';\n  if (upper === 'PENDING_REVIEW' || upper === 'INACTIVE' || text.toLowerCase() === 'pending') return 'PENDING_REVIEW';\n  if (upper === 'REJECTED' || text.toLowerCase() === 'closed') return 'REJECTED';\n  if (upper === 'ARCHIVED') return 'ARCHIVED';\n  return upper;\n}\n\nfunction normalizeLevel(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return '';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.includes('입문') || text.includes('초급')) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.includes('중급')) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || lower === 'expert' || text.includes('심화') || text.includes('고급')) return 'ADVANCED';\n  if (upper === 'ALL_LEVELS' || text.includes('전체')) return 'ALL_LEVELS';\n  return upper;\n}\n\nfunction normalizeRegion(rawRegion, rawLocation, rawType) {\n  const fromRegion = String(rawRegion || '').replace(/\\s+/g, ' ').trim();\n  const text = fromRegion || String(rawLocation || '').replace(/\\s+/g, ' ').trim();\n  const type = String(rawType || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const primary = text.split(' ')[0];\n  const map = {\n    '서울': 'SEOUL','경기': 'GYEONGGI','경기도': 'GYEONGGI','인천': 'INCHEON','부산': 'BUSAN','대구': 'DAEGU','대전': 'DAEJEON','광주': 'GWANGJU','울산': 'ULSAN','세종': 'SEJONG','강원': 'GANGWON','강원도': 'GANGWON','충북': 'CHUNGBUK','충청북도': 'CHUNGBUK','충남': 'CHUNGNAM','충청남도': 'CHUNGNAM','전북': 'JEONBUK','전라북도': 'JEONBUK','전남': 'JEONNAM','전라남도': 'JEONNAM','경북': 'GYEONGBUK','경상북도': 'GYEONGBUK','경남': 'GYEONGNAM','경상남도': 'GYEONGNAM','제주': 'JEJU','제주도': 'JEJU','온라인': 'ONLINE','기타': 'OTHER'\n  };\n  if (type.includes('온라인') || text.includes('온라인') || upper === 'ONLINE' || upper.includes('ONLINE')) return 'ONLINE';\n  if (!text) return '';\n  if (map[text]) return map[text];\n  if (map[primary]) return map[primary];\n  return map[upper] || upper;\n}\n\nfunction normalizePartnerGrade(raw) {\n  const upper = String(raw || '').toUpperCase().trim();\n  const alias = { SILVER: 'BLOOM', GOLD: 'GARDEN', PLATINUM: 'ATELIER' };\n  return alias[upper] || upper;\n}\n\nfunction extractBrandUid(raw) {\n  const text = String(raw || '').replace(/\\s+/g, '').trim();\n  const match = text.match(/[?&]branduid=([^&#]+)/i);\n  if (match && match[1]) return decodeURIComponent(match[1]);\n  if (/^[A-Za-z0-9_-]{4,64}$/.test(text)) return text;\n  return '';\n}\n\nfunction normalizeKitProductUrl(raw) {\n  const text = String(raw || '').trim();\n  if (!text) return '';\n  const brandUid = extractBrandUid(text);\n  if (brandUid) {\n    return '/shop/shopdetail.html?branduid=' + encodeURIComponent(brandUid);\n  }\n  if (/^https?:\\/\\//i.test(text) || text.indexOf('/shop/') === 0) {\n    return text;\n  }\n  return '';\n}\n\nfunction normalizeKitItems(raw) {\n  let parsed = [];\n  try { parsed = raw ? JSON.parse(raw) : []; } catch(e) {}\n  if (!Array.isArray(parsed)) return [];\n  return parsed.map((item) => ({\n    name: String(item && item.name || '').trim(),\n    product_url: normalizeKitProductUrl(item && (item.product_url || item.product_code || '')),\n    quantity: Math.min(Math.max(parseInt(item && item.quantity, 10) || 1, 1), 99),\n    price: Math.max(parseInt(item && item.price, 10) || 0, 0),\n    branduid: extractBrandUid(item && (item.product_url || item.product_code || ''))\n  })).filter((item) => item.name || item.product_url || item.branduid);\n}\n\nconst c = classesList[0];\nlet curriculum = [];\ntry { if (c.curriculum_json) curriculum = JSON.parse(c.curriculum_json); } catch(e) {}\n\nlet images = [];\nif (c.image_urls) images = c.image_urls.split(',').map((u) => u.trim()).filter((u) => u.length > 0);\n\nlet materialsProductIds = [];\nif (c.materials_product_ids) materialsProductIds = c.materials_product_ids.split(',').map((id) => id.trim()).filter((id) => id.length > 0);\n\nconst schedulesResponse = $input.first().json;\nconst schedulesList = schedulesResponse.list || [];\nconst schedules = schedulesList.map((s) => ({\n  schedule_id: s.schedule_id,\n  schedule_date: s.schedule_date,\n  schedule_time: s.schedule_time,\n  capacity: s.capacity || 8,\n  booked_count: s.booked_count || 0,\n  remaining: (s.capacity || 8) - (s.booked_count || 0)\n}));\n\nconst partnerResponse = $('NocoDB Get Partner (Detail)').first().json;\nconst partnerList = partnerResponse.list || [];\nlet partner = { partner_code: '', partner_name: '', grade: '', location: '', avg_rating: 0, instagram_url: '', portfolio_url: '' };\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n  partner = {\n    partner_code: p.partner_code || '',\n    partner_name: p.partner_name || '',\n    grade: normalizePartnerGrade(p.grade || ''),\n    location: p.location || '',\n    region: normalizeRegion('', p.location || '', ''),\n    avg_rating: Number(p.avg_rating) || 0,\n    instagram_url: p.instagram_url || '',\n    portfolio_url: p.portfolio_url || ''\n  };\n}\n\nreturn [{ json: {\n  success: true,\n  data: {\n    class_id: c.class_id || '', makeshop_product_id: c.makeshop_product_id || '',\n    class_name: c.class_name || '', category: c.category || '', level: normalizeLevel(c.level || ''),\n    status: normalizeStatus(c.status || ''), region: normalizeRegion(c.region || '', c.location || '', c.type || ''),\n    price: Number(c.price) || 0, materials_price: Number(c.materials_price) || 0,\n    duration_min: Number(c.duration_min) || 0, max_students: Number(c.max_students) || 0,\n    description: c.description || '', curriculum, instructor_bio: c.instructor_bio || '',\n    thumbnail_url: c.thumbnail_url || '', images, youtube_video_id: c.youtube_video_id || '',\n    location: c.location || '', materials_included: c.materials_included || '',\n    materials_product_ids: materialsProductIds, tags: c.tags || '', type: c.type || '',\n    class_count: Number(c.class_count) || 0, avg_rating: Number(c.avg_rating) || 0,\n    schedules, partner,\n    kit_enabled: Number(c.kit_enabled) || 0,\n    kit_items: normalizeKitItems(c.kit_items)\n  },\n  timestamp: new Date().toISOString()\n} }];"
-      },
-      "id": "wf01-build-detail-response",
-      "name": "Build Detail Response",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        1920,
-        260
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/class-api-schedule",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json._forwardBody) }}",
         "options": {
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Content-Type",
-                "value": "application/json; charset=utf-8"
-              }
-            ]
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
           }
         }
       },
-      "id": "wf01-respond-detail",
-      "name": "Respond getClassDetail",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        2140,
-        260
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
-        "options": {
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Content-Type",
-                "value": "application/json; charset=utf-8"
-              }
-            ]
-          }
-        }
-      },
-      "id": "wf01-respond-detail-error",
-      "name": "Respond Detail Error",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        1040,
-        420
-      ]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mpvsno4or6asbxk",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "fields",
-              "value": "category,status"
-            },
-            {
-              "name": "limit",
-              "value": "1000"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "wf01-nocodb-categories",
-      "name": "NocoDB Get Active Classes (Categories)",
+      "id": "wf01-router-call-schedule",
+      "name": "Call WF-01B Schedule Read",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        660,
-        500
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "JmXQGe9254wG4qVZ",
-          "name": "NocoDB API Token"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// ===================================================\n// WF-01-C: getCategories - 카테고리 목록 + 건수 집계\n// ACTIVE / active 클래스를 모두 포함해 카운트 후 응답합니다.\n// ===================================================\n\nconst response = $input.first().json;\nconst classesList = response.list || [];\n\nfunction normalizeStatus(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'ACTIVE';\n  return upper;\n}\n\nconst categories = {};\nfor (const c of classesList) {\n  if (normalizeStatus(c.status || '') !== 'ACTIVE') continue;\n  const cat = String(c.category || '').trim();\n  if (cat) {\n    categories[cat] = (categories[cat] || 0) + 1;\n  }\n}\n\nconst categoryList = Object.entries(categories)\n  .map(([name, classCount]) => ({ name, class_count: classCount }))\n  .sort((a, b) => b.class_count - a.class_count);\n\nreturn [{\n  json: {\n    success: true,\n    data: categoryList,\n    timestamp: new Date().toISOString()\n  }\n}];"
-      },
-      "id": "wf01-aggregate-categories",
-      "name": "Aggregate Categories",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        880,
-        500
+        980,
+        320
       ]
     },
     {
       "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/class-api-affiliation",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json._forwardBody) }}",
         "options": {
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Content-Type",
-                "value": "application/json; charset=utf-8"
-              }
-            ]
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
           }
         }
       },
-      "id": "wf01-respond-categories",
-      "name": "Respond getCategories",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
+      "id": "wf01-router-call-affiliation",
+      "name": "Call WF-01C Affiliation Read",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
       "position": [
-        1100,
-        500
+        980,
+        480
       ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// Fallback: 알 수 없는 action 에러 응답\n// ===================================================\n\nconst action = ($input.first().json.body || {}).action || '';\n\nreturn [{\n  json: {\n    success: false,\n    error: {\n      code: 'INVALID_ACTION',\n      message: `알 수 없는 요청입니다: ${action}`\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// Router downstream 응답 포맷 정리\n// ===================================================\n\nconst response = $input.first().json || {};\nlet body = response.body;\nconst statusCode = Number(response.statusCode || 200);\n\nif (typeof body === 'string') {\n  try {\n    body = JSON.parse(body);\n  } catch (error) {\n    body = {\n      success: false,\n      _status: 502,\n      error: {\n        code: 'DOWNSTREAM_RESPONSE_PARSE_FAILED',\n        message: '하위 워크플로우 응답을 해석하지 못했습니다.'\n      },\n      timestamp: new Date().toISOString()\n    };\n  }\n}\n\nif (!body || typeof body !== 'object') {\n  body = {\n    success: false,\n    _status: statusCode || 502,\n    error: {\n      code: 'EMPTY_DOWNSTREAM_RESPONSE',\n      message: '하위 워크플로우 응답이 비어 있습니다.'\n    },\n    timestamp: new Date().toISOString()\n  };\n}\n\nif (typeof body._status === 'undefined') {\n  body._status = statusCode || 200;\n}\n\nreturn [{ json: body }];"
       },
-      "id": "wf01-fallback",
+      "id": "wf01-router-unwrap",
+      "name": "Unwrap Routed Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1240,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// Router fallback: 지원하지 않는 action\n// ===================================================\n\nconst action = String($input.first().json._action || '').trim();\n\nreturn [{\n  json: {\n    success: false,\n    _status: 400,\n    error: {\n      code: 'INVALID_ACTION',\n      message: action ? `알 수 없는 요청입니다: ${action}` : '지원하지 않는 action입니다.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf01-router-invalid",
       "name": "Unknown Action Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        660,
-        660
+        980,
+        700
       ]
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ $json }}",
+        "responseBody": "={{ (() => { const payload = JSON.parse(JSON.stringify($json)); delete payload._status; return payload; })() }}",
         "options": {
-          "responseCode": 400,
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Content-Type",
-                "value": "application/json; charset=utf-8"
-              }
-            ]
-          }
-        }
-      },
-      "id": "wf01-respond-fallback",
-      "name": "Respond Error",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [
-        880,
-        660
-      ]
-    },
-    {
-      "parameters": {
-        "method": "GET",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/m1y7q68q1zlrvv6",
-        "authentication": "genericCredentialType",
-        "genericAuthType": "httpHeaderAuth",
-        "sendQuery": true,
-        "queryParameters": {
-          "parameters": [
-            {
-              "name": "where",
-              "value": "(status,eq,active)"
-            },
-            {
-              "name": "fields",
-              "value": "affiliation_code,name,logo_url,discount_rate,target_1,incentive_1,target_2,incentive_2,target_3,incentive_3,contact_name,memo"
-            },
-            {
-              "name": "limit",
-              "value": "100"
-            },
-            {
-              "name": "sort",
-              "value": "-CreatedAt"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "wf01-nocodb-affiliations",
-      "name": "NocoDB Get Affiliations",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        660,
-        820
-      ],
-      "credentials": {
-        "httpHeaderAuth": {
-          "id": "JmXQGe9254wG4qVZ",
-          "name": "NocoDB API Token"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "jsCode": "// ===================================================\n// WF-01-D: getAffiliations - 협회 목록 응답\n// ===================================================\n\nconst response = $input.first().json;\nconst affiliList = response.list || [];\n\nconst affiliations = affiliList.map(a => ({\n  affiliation_code: a.affiliation_code || '',\n  name: a.name || '',\n  logo_url: a.logo_url || '',\n  discount_rate: Number(a.discount_rate) || 0,\n  incentive_tiers: [\n    { target: Number(a.target_1) || 5000000, incentive: Number(a.incentive_1) || 250000 },\n    { target: Number(a.target_2) || 10000000, incentive: Number(a.incentive_2) || 500000 },\n    { target: Number(a.target_3) || 20000000, incentive: Number(a.incentive_3) || 1200000 }\n  ],\n  contact_name: a.contact_name || '',\n  memo: a.memo || ''\n}));\n\nreturn [{\n  json: {\n    success: true,\n    data: affiliations,\n    total: affiliations.length,\n    timestamp: new Date().toISOString()\n  }\n}];"
-      },
-      "id": "wf01-format-affiliations",
-      "name": "Format Affiliations",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [
-        880,
-        820
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ $json }}",
-        "options": {
+          "responseCode": "={{ $json._status || 200 }}",
           "responseHeaders": {
             "entries": [
               {
@@ -716,18 +236,63 @@
               {
                 "name": "Access-Control-Allow-Origin",
                 "value": "https://foreverlove.co.kr"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
               }
             ]
           }
         }
       },
-      "id": "wf01-respond-affiliations",
-      "name": "Respond getAffiliations",
+      "id": "wf01-router-respond-success",
+      "name": "Respond Routed Success",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1100,
-        820
+        1480,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ (() => { const payload = JSON.parse(JSON.stringify($json)); delete payload._status; return payload; })() }}",
+        "options": {
+          "responseCode": "={{ $json._status || 400 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf01-router-respond-error",
+      "name": "Respond Routed Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1240,
+        700
       ]
     }
   ],
@@ -736,39 +301,43 @@
       "main": [
         [
           {
-            "node": "Switch Action",
+            "node": "Parse Route Request",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "Switch Action": {
+    "Parse Route Request": {
       "main": [
         [
           {
-            "node": "Parse getClasses Params",
+            "node": "Switch Route Group",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Route Group": {
+      "main": [
+        [
+          {
+            "node": "Call WF-01A Class Read",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "Parse getClassDetail Params",
+            "node": "Call WF-01B Schedule Read",
             "type": "main",
             "index": 0
           }
         ],
         [
           {
-            "node": "NocoDB Get Active Classes (Categories)",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "NocoDB Get Affiliations",
+            "node": "Call WF-01C Affiliation Read",
             "type": "main",
             "index": 0
           }
@@ -782,161 +351,44 @@
         ]
       ]
     },
-    "Parse getClasses Params": {
+    "Call WF-01A Class Read": {
       "main": [
         [
           {
-            "node": "NocoDB Get Classes",
+            "node": "Unwrap Routed Response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "NocoDB Get Classes": {
+    "Call WF-01B Schedule Read": {
       "main": [
         [
           {
-            "node": "NocoDB Get Partners (Join)",
+            "node": "Unwrap Routed Response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "NocoDB Get Partners (Join)": {
+    "Call WF-01C Affiliation Read": {
       "main": [
         [
           {
-            "node": "NocoDB Get Schedules for List",
+            "node": "Unwrap Routed Response",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "NocoDB Get Schedules for List": {
+    "Unwrap Routed Response": {
       "main": [
         [
           {
-            "node": "Merge Classes + Partners",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Merge Classes + Partners": {
-      "main": [
-        [
-          {
-            "node": "Respond getClasses",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Parse getClassDetail Params": {
-      "main": [
-        [
-          {
-            "node": "IF Detail Params Valid",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "IF Detail Params Valid": {
-      "main": [
-        [
-          {
-            "node": "NocoDB Get Class Detail",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "Respond Detail Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NocoDB Get Class Detail": {
-      "main": [
-        [
-          {
-            "node": "Format Class Detail",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Class Detail": {
-      "main": [
-        [
-          {
-            "node": "NocoDB Get Partner (Detail)",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NocoDB Get Partner (Detail)": {
-      "main": [
-        [
-          {
-            "node": "NocoDB Get Schedules for Detail",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NocoDB Get Schedules for Detail": {
-      "main": [
-        [
-          {
-            "node": "Build Detail Response",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Build Detail Response": {
-      "main": [
-        [
-          {
-            "node": "Respond getClassDetail",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NocoDB Get Active Classes (Categories)": {
-      "main": [
-        [
-          {
-            "node": "Aggregate Categories",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Aggregate Categories": {
-      "main": [
-        [
-          {
-            "node": "Respond getCategories",
+            "node": "Respond Routed Success",
             "type": "main",
             "index": 0
           }
@@ -947,29 +399,7 @@
       "main": [
         [
           {
-            "node": "Respond Error",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "NocoDB Get Affiliations": {
-      "main": [
-        [
-          {
-            "node": "Format Affiliations",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Format Affiliations": {
-      "main": [
-        [
-          {
-            "node": "Respond getAffiliations",
+            "node": "Respond Routed Error",
             "type": "main",
             "index": 0
           }
@@ -981,16 +411,6 @@
     "executionOrder": "v1"
   },
   "staticData": null,
-  "tags": [
-    {
-      "name": "PRESSCO21"
-    },
-    {
-      "name": "Class API"
-    },
-    {
-      "name": "Phase 2"
-    }
-  ],
+  "tags": [],
   "pinData": {}
 }

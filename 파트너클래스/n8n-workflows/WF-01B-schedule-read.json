@@ -1,0 +1,264 @@
+{
+  "id": "XQrogmHQABMM0atp",
+  "name": "WF-01B Schedule Read API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "class-api-schedule",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf01b-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "class-api-schedule"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-01B Step 1: 스케줄 조회 요청 검증\n// 지원 액션: getSchedules, getRemainingSeats\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input || {};\nconst action = String(body.action || '').trim();\nconst classId = String(body.classId || body.id || '').trim();\nconst allowedActions = new Set(['getSchedules', 'getRemainingSeats']);\n\nif (!allowedActions.has(action)) {\n  return [{\n    json: {\n      _error: true,\n      _status: 400,\n      success: false,\n      error: {\n        code: 'INVALID_ACTION',\n        message: '지원하지 않는 schedule action입니다.'\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nif (!classId) {\n  return [{\n    json: {\n      _error: true,\n      _status: 200,\n      success: false,\n      error: {\n        code: 'MISSING_PARAMS',\n        message: 'classId 또는 id 파라미터가 필요합니다.'\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    action,\n    classId,\n    _error: false\n  }\n}];"
+      },
+      "id": "wf01b-parse",
+      "name": "Parse Schedule Params",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._error }}",
+              "rightValue": false,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ]
+        }
+      },
+      "id": "wf01b-if-valid",
+      "name": "IF Schedule Params Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mschd3d81ad88fb",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "=(class_id,eq,{{ $json.classId }})~and(status,eq,active)"
+            },
+            {
+              "name": "sort",
+              "value": "schedule_date,schedule_time"
+            },
+            {
+              "name": "limit",
+              "value": "50"
+            },
+            {
+              "name": "fields",
+              "value": "schedule_id,class_id,schedule_date,schedule_time,capacity,booked_count,status"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf01b-get-schedules",
+      "name": "NocoDB Get Schedules",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        220
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-01B Step 2: 스케줄 응답 구성\n// ===================================================\n\nconst payload = $('Parse Schedule Params').first().json;\nconst response = $input.first().json;\nconst scheduleList = Array.isArray(response.list) ? response.list : [];\n\nfunction normalizeStatus(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'ACTIVE';\n  if (upper === 'CANCELLED' || text.toLowerCase() === 'cancelled') return 'CANCELLED';\n  return upper || 'UNKNOWN';\n}\n\nconst schedules = scheduleList.map((row) => {\n  const capacity = Number(row.capacity || 0);\n  const bookedCount = Number(row.booked_count || 0);\n  const remaining = Math.max(capacity - bookedCount, 0);\n  return {\n    schedule_id: row.schedule_id || '',\n    class_id: row.class_id || payload.classId,\n    schedule_date: row.schedule_date || '',\n    schedule_time: row.schedule_time || '',\n    capacity: capacity,\n    booked_count: bookedCount,\n    remaining: remaining,\n    status: normalizeStatus(row.status || '')\n  };\n});\n\nconst summary = schedules.reduce((acc, row) => {\n  acc.schedule_count += 1;\n  acc.total_capacity += Number(row.capacity || 0);\n  acc.total_booked += Number(row.booked_count || 0);\n  acc.total_remaining += Number(row.remaining || 0);\n  if (!acc.next_schedule && row.schedule_date) {\n    acc.next_schedule = {\n      schedule_id: row.schedule_id,\n      schedule_date: row.schedule_date,\n      schedule_time: row.schedule_time,\n      remaining: row.remaining\n    };\n  }\n  return acc;\n}, {\n  class_id: payload.classId,\n  schedule_count: 0,\n  total_capacity: 0,\n  total_booked: 0,\n  total_remaining: 0,\n  next_schedule: null\n});\n\nif (payload.action === 'getSchedules') {\n  return [{\n    json: {\n      success: true,\n      data: {\n        class_id: payload.classId,\n        schedules: schedules\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    success: true,\n    data: Object.assign({}, summary, { schedules: schedules }),\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf01b-format",
+      "name": "Format Schedule Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ (() => { const payload = JSON.parse(JSON.stringify($json)); delete payload._status; return payload; })() }}",
+        "options": {
+          "responseCode": "={{ $json._status || 200 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf01b-respond-success",
+      "name": "Respond Schedule",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1380,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ (() => { const payload = JSON.parse(JSON.stringify($json)); delete payload._status; return payload; })() }}",
+        "options": {
+          "responseCode": "={{ $json._status || 400 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf01b-respond-error",
+      "name": "Respond Schedule Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        900,
+        420
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Parse Schedule Params",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Schedule Params": {
+      "main": [
+        [
+          {
+            "node": "IF Schedule Params Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Schedule Params Valid": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Get Schedules",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Schedule Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Get Schedules": {
+      "main": [
+        [
+          {
+            "node": "Format Schedule Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Schedule Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Schedule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {}
+}

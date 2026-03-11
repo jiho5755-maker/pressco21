@@ -126,3 +126,11 @@
 - 상세 2607은 `GENERAL / AFFILIATION / EVENT` 3가지 content profile 로 상단 identity, trust chip, 예약 노트를 분기한다.
 - `content_type`, `delivery_mode`, `class_format` 값이 실데이터에 아직 없더라도 기존 `type/tags/affiliation_code` 로 폴백 추론해 기존 클래스를 깨지 않게 한다.
 - 운영 기준 문서는 `docs/파트너클래스/nationwide-discovery-ia-guide.md` 이다.
+
+## 2026-03-11 S2-4 WF-01 공개 API 분리
+
+- 공개 read API는 이제 `라우터 + 3개 하위 워크플로우` 구조다.
+- 라우터 `WF-01 Class API` 는 기존 `/webhook/class-api` URL을 유지하고 action 기준으로 `WF-01A/B/C` 에 전달한다.
+- `WF-01A` 는 `getClasses / getClassDetail / getCategories`, `WF-01B` 는 `getSchedules / getRemainingSeats`, `WF-01C` 는 `getAffiliations` 를 담당한다.
+- 분리 후에도 기존 5개 회귀 시나리오(`classes/detail/categories/affiliations/invalid`) 응답 본문은 baseline 과 동일하게 유지됐다.
+- 운영 기준 문서는 `docs/파트너클래스/WF-01-split-guide.md` 이다.

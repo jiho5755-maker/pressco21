@@ -51,20 +51,58 @@
 
 - Current Owner: CODEX
 - Mode: WRITE
-- Started At: 2026-03-11 19:10:00 KST
+- Started At: 2026-03-11 20:25:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S2-4 WF-01 분리 구현 중
+- Working Scope: [CODEX-LEAD] 파트너클래스 S2-5 콘텐츠 허브 구현 준비 중
 - Active Subdirectory: pressco21/파트너클래스
 
 ## Files In Progress
-- `파트너클래스/n8n-workflows/WF-01-class-api.json`
-- `파트너클래스/n8n-workflows/WF-01A-class-read.json`
-- `파트너클래스/n8n-workflows/WF-01B-schedule-read.json`
+- `파트너클래스/콘텐츠허브/Index.html`
+- `파트너클래스/콘텐츠허브/css.css`
+- `파트너클래스/콘텐츠허브/js.js`
 - `파트너클래스/n8n-workflows/WF-01C-affiliation-read.json`
-- `docs/파트너클래스/WF-01-split-guide.md`
-- `scripts/partnerclass-s2-4-*.js`
+- `docs/파트너클래스/content-hub-guide.md`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S2-4 WF-01 God Workflow 분리 완료 (CODEX)
+- n8n 워크플로우
+  - `파트너클래스/n8n-workflows/WF-01-class-api.json`
+    - 기존 `/webhook/class-api` 라우터 유지, action 기준 하위 WF 전달 구조로 변경
+  - `파트너클래스/n8n-workflows/WF-01A-class-read.json`
+    - `getClasses / getClassDetail / getCategories` 전담 read WF 추가
+  - `파트너클래스/n8n-workflows/WF-01B-schedule-read.json`
+    - `getSchedules / getRemainingSeats` 전담 read WF 추가
+  - `파트너클래스/n8n-workflows/WF-01C-affiliation-read.json`
+    - `getAffiliations` 전담 read WF 추가
+- 자동화 스크립트
+  - `scripts/partnerclass-s2-4-generate-wf01-split.js`
+    - monolith source 기준으로 router/A/B/C JSON 생성
+  - `scripts/partnerclass-s2-4-deploy-wf01-split.js`
+    - n8n public API create/update/activate + backup 자동화
+- 운영 배포 결과
+  - `WF-01A Class Read API` → `Ebmgvd68MJfv5vRt`
+  - `WF-01B Schedule Read API` → `XQrogmHQABMM0atp`
+  - `WF-01C Affiliation Read API` → `AbazwCdqQ9XdA48G`
+  - 라우터 `WF-01 Class API` → `WabRAcHmcCdOpPzJ` 유지
+- 문서 / 메모리
+  - `docs/파트너클래스/WF-01-split-guide.md` 신규 추가
+  - `docs/파트너클래스/WF-01-switch-map.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/n8n-debugger/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- 검증
+  - baseline 비교:
+    - `output/playwright/s2-4-wf01/baseline/pre-split-baseline.json`
+    - `output/playwright/s2-4-wf01/compare.json`
+    - `getClasses / getClassDetail / getCategories / getAffiliations / INVALID_ACTION` 본문 동일 확인
+  - 신규 action:
+    - `getSchedules(id=CL_202602_662)` → `200 / success=true`
+    - `getRemainingSeats(id=CL_202602_662)` → `200 / success=true`
+  - Playwright request 검증:
+    - `output/playwright/s2-4-wf01/playwright-results.json`
 
 ### [CODEX-LEAD] Phase 3 S2-3 IA 확장 완료 (CODEX)
 - 프론트
@@ -1477,7 +1515,7 @@
 
 #### 현재 다음 태스크
 
-- `S2-4 WF-01 God Workflow 분리`
+- `S2-5 콘텐츠 허브 4영역`
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
@@ -1574,6 +1612,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S2-1 파트너 신청 세일즈 랜딩(2609)은 로컬 fixture 기준으로 CTA/반응형이 검증됐지만, 메이크샵 디자인편집기 실배포 후 라이브 스크롤과 모바일 하단 고정 CTA를 다시 확인해야 함
 - S2-2 협회 제안서 페이지와 어드민 URL 생성기는 로컬 fixture 기준으로 검증됐지만, 실배포 전까지는 실제 MakeShop page id가 없어서 라이브 URL은 확정되지 않음
 - S2-3 전국 탐색 IA 확장은 로컬 fixture + Playwright 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 전까지는 실제 2606/2607 페이지와 `/partnermap` 실자산 연동을 라이브에서 다시 확인해야 함
+- S2-4 분리 후 `getSchedules / getRemainingSeats` 는 운영에서 준비 완료됐지만, 아직 프론트 호출처는 없다. S2-5 이후 콘텐츠/협회 read action 추가 시 `WF-01C` 또는 별도 WF 로 확장 방향을 유지해야 한다.
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
 - `scripts/partnerclass-live-smoke.js` 는 현재 FAQ 기대 개수가 여전히 `5` 기준이라, 상세 FAQ를 라이브 반영한 뒤에는 스모크 기대값을 `15` 로 맞춰야 함
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함

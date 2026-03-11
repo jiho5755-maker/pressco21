@@ -1,0 +1,278 @@
+{
+  "id": "AbazwCdqQ9XdA48G",
+  "name": "WF-01C Affiliation Read API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "class-api-affiliation",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf01-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "class-api-affiliation"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "getAffiliations",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "getAffiliations"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "wf01-switch",
+      "name": "Switch Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/m1y7q68q1zlrvv6",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(status,eq,active)"
+            },
+            {
+              "name": "fields",
+              "value": "affiliation_code,name,logo_url,discount_rate,target_1,incentive_1,target_2,incentive_2,target_3,incentive_3,contact_name,memo"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            },
+            {
+              "name": "sort",
+              "value": "-CreatedAt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf01-nocodb-affiliations",
+      "name": "NocoDB Get Affiliations",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        820
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-01-D: getAffiliations - 협회 목록 응답\n// ===================================================\n\nconst response = $input.first().json;\nconst affiliList = response.list || [];\n\nconst affiliations = affiliList.map(a => ({\n  affiliation_code: a.affiliation_code || '',\n  name: a.name || '',\n  logo_url: a.logo_url || '',\n  discount_rate: Number(a.discount_rate) || 0,\n  incentive_tiers: [\n    { target: Number(a.target_1) || 5000000, incentive: Number(a.incentive_1) || 250000 },\n    { target: Number(a.target_2) || 10000000, incentive: Number(a.incentive_2) || 500000 },\n    { target: Number(a.target_3) || 20000000, incentive: Number(a.incentive_3) || 1200000 }\n  ],\n  contact_name: a.contact_name || '',\n  memo: a.memo || ''\n}));\n\nreturn [{\n  json: {\n    success: true,\n    data: affiliations,\n    total: affiliations.length,\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf01-format-affiliations",
+      "name": "Format Affiliations",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf01-respond-affiliations",
+      "name": "Respond getAffiliations",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1100,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// Fallback: 알 수 없는 action 에러 응답\n// ===================================================\n\nconst action = ($input.first().json.body || {}).action || '';\n\nreturn [{\n  json: {\n    success: false,\n    error: {\n      code: 'INVALID_ACTION',\n      message: `알 수 없는 요청입니다: ${action}`\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf01-fallback",
+      "name": "Unknown Action Error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        660,
+        660
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf01-respond-fallback",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        880,
+        660
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Action": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Get Affiliations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Unknown Action Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Get Affiliations": {
+      "main": [
+        [
+          {
+            "node": "Format Affiliations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Format Affiliations": {
+      "main": [
+        [
+          {
+            "node": "Respond getAffiliations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Unknown Action Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "pinData": {}
+}

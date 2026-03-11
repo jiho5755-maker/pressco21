@@ -53,19 +53,57 @@
 - Mode: WRITE
 - Started At: 2026-03-11 12:05:34 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S2-6 커뮤니티 리텐션 정리 후 S2-7 파트너 이탈 감지 자동화 진행
+- Working Scope: [CODEX-LEAD] 파트너클래스 S2-7 파트너 이탈 감지 자동화 정리 후 S2-8 3계층 캐싱 착수 준비
 - Active Subdirectory: pressco21/파트너클래스
 
 ## Files In Progress
-- `파트너클래스/마이페이지/Index.html`
-- `파트너클래스/마이페이지/css.css`
-- `파트너클래스/마이페이지/js.js`
-- `파트너클래스/상세/js.js`
-- `파트너클래스/n8n-workflows/WF-RETENTION-student-lifecycle.json`
-- `scripts/partnerclass-s2-6-generate-retention-workflow.js`
-- `scripts/partnerclass-s2-6-deploy-retention.js`
-- `scripts/partnerclass-s2-6-retention-runner.js`
-- `docs/파트너클래스/community-retention-guide.md`
+- `파트너클래스/n8n-workflows/WF-02-partner-auth-api.json`
+- `파트너클래스/n8n-workflows/WF-CHURN-partner-risk-monitor.json`
+- `scripts/server/partnerclass-s2-7-add-last-active-field.sh`
+- `scripts/partnerclass-s2-7-patch-partner-auth.js`
+- `scripts/partnerclass-s2-7-generate-churn-workflow.js`
+- `scripts/partnerclass-s2-7-deploy-workflows.js`
+- `scripts/partnerclass-s2-7-churn-runner.js`
+- `docs/파트너클래스/partner-churn-monitor-guide.md`
+- `ROADMAP.md`
+
+### [CODEX-LEAD] Phase 3 S2-7 파트너 이탈 감지 자동화 1차 완료 (CODEX)
+- 워크플로우 / 스크립트
+  - `scripts/server/partnerclass-s2-7-add-last-active-field.sh`
+    - `tbl_Partners.last_active_at` 물리 컬럼 추가, 기존 row 초기값 채움
+  - `scripts/partnerclass-s2-7-patch-partner-auth.js`
+    - `WF-02` 를 POST 전용으로 정리
+    - `Switch v3.2 rules.values` 보정
+    - `getPartnerDashboard` 수집 경로를 직렬화
+    - `last_active_at` 갱신을 code `fetch` 대신 NocoDB credential PATCH 노드로 교체
+  - `scripts/partnerclass-s2-7-generate-churn-workflow.js`
+    - 신규 `WF-CHURN Partner Risk Monitor` 생성
+    - `Get Partners -> Get Classes -> Get Schedules -> Get Reviews -> Get Email Logs` 직렬 수집 구조 적용
+    - 이메일 로그 스키마를 `recipient / email_type / status / error_message` 기준으로 보정
+    - `Telegram Summary` 에러가 최종 응답을 덮지 않도록 `Restore Final Response` 경로 추가
+    - 메일 실패 시 `PARTNER_CHURN_EMAIL_FAILED` 구조화 오류 반환
+  - `scripts/partnerclass-s2-7-deploy-workflows.js`
+  - `scripts/partnerclass-s2-7-churn-runner.js`
+  - `파트너클래스/n8n-workflows/WF-02-partner-auth-api.json`
+  - `파트너클래스/n8n-workflows/WF-CHURN-partner-risk-monitor.json`
+- 문서 / 메모리
+  - `docs/파트너클래스/partner-churn-monitor-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/n8n-debugger/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- 검증
+  - 서버 스크립트 실행 결과 `last_active_at 채워진 파트너 수 = 6`
+  - `POST /webhook/partner-auth` 정상 JSON 응답 + `last_active_at` row 갱신 확인
+  - dry run
+    - 현재일 `2026-03-11` → `risk_count=0`
+    - 미래일 `2026-06-15` → `risk_count=1`
+  - send mode
+    - `PARTNER_CHURN_EMAIL_FAILED` 구조화 오류 응답 확인
+    - `tbl_EmailLogs` 실패 row 적재 확인 (`PARTNER_NOTIFY / FAILED`)
+  - Playwright request 검증:
+    - `output/playwright/s2-7-partner-churn/churn-results.json`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
 
@@ -1601,7 +1639,8 @@
 
 #### 현재 다음 태스크
 
-- `S2-7 파트너 이탈 감지 자동화`
+- `S2-8 3계층 캐싱 도입`
+- `S2-7 파트너 이탈 감지 자동화` 는 구현/검증 완료, 운영 SMTP + Telegram chat_id blocker 해소 시 최종 수락 기준 닫기
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 
@@ -1701,6 +1740,8 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S2-4 분리 후 `getSchedules / getRemainingSeats` 는 운영에서 준비 완료됐지만, 아직 프론트 호출처는 없다. S2-5 이후 콘텐츠/협회 read action 추가 시 `WF-01C` 또는 별도 WF 로 확장 방향을 유지해야 한다.
 - S2-6 리텐션 자동화는 dry run 과 스케줄 경로 기준으로는 검증됐지만, 운영 레거시 완료 예약 일부에 `student_email`, `student_name` 이 비어 있어 실제 발송 대상 수가 `skip` 으로 잡히는 상태다.
 - S2-6 `student-retention` 웹훅은 수동 실호출 시 `200` 빈 본문 케이스가 남아 있어, 현재 운영 기준선은 dry run 응답과 예약 실행 로그다.
+- S2-7 파트너 이탈 감지 자동화는 현재 dry run, risk 판정, `last_active_at` 갱신, 실패 로그 저장까지 검증됐지만 운영 `PRESSCO21 SMTP` credential 이 `535` 로 실패해 실제 파트너 메일은 발송되지 않는다.
+- S2-7 `Telegram Summary` 는 최종 응답을 더 이상 덮지 않지만, 운영 `TELEGRAM_CHAT_ID` 가 비어 있어 실제 관리자 전송은 실패한다.
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
 - `scripts/partnerclass-live-smoke.js` 는 현재 FAQ 기대 개수가 여전히 `5` 기준이라, 상세 FAQ를 라이브 반영한 뒤에는 스모크 기대값을 `15` 로 맞춰야 함
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함

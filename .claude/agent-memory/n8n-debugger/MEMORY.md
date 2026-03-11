@@ -44,3 +44,15 @@ curl -s -X POST https://n8n.pressco21.com/webhook/class-api \
 - KST 기준 완료/휴면 날짜 계산은 로컬 타임존 Date 객체보다 UTC helper 를 써야 하루 밀림이 없다.
 - 현재 운영 `ADMIN_API_TOKEN` 은 저장소 랜덤값이 아니라 구형 토큰 `pressco21-admin-2026` 기준으로만 수동 웹훅 인증이 통과한다.
 - 수동 실호출은 `200` 빈 본문 케이스가 남아 있으므로, 운영 검증 기준은 dry run 응답과 예약 실행 로그를 우선한다.
+
+## 2026-03-11 S2-7 파트너 이탈 감지 디버깅 메모
+
+- `WF-02`, `WF-CHURN` 모두 fan-in 병렬 구조에서 `Node 'X' hasn't been executed` 오류가 났고, 해결책은 순차 체인으로 바꾸는 것이었다.
+- `WF-02` 에서 code node 직접 `fetch` PATCH 는 운영 row 반영이 불안정했다. 같은 PATCH 도 NocoDB credential HTTP Request 노드로 바꾸면 정상 저장됐다.
+- `tbl_Settlements` 는 `created_date` 가 아니라 `CreatedAt` 을 사용한다.
+- `tbl_EmailLogs` 실제 스키마는 `recipient / email_type / status / error_message / CreatedAt / UpdatedAt` 이다.
+- `tbl_EmailLogs.email_type` 는 select 옵션 제약이 있어서 churn 전용 타입을 직접 넣을 수 없고, `PARTNER_NOTIFY` + `error_message` 태그 방식으로 우회해야 한다.
+- Telegram 노드 `onError=continueRegularOutput` 는 그대로 Respond 노드에 연결하면 에러 아이템이 최종 JSON 을 덮어쓴다. 별도 `Restore Final Response` 노드가 필요하다.
+- 2026-03-11 기준 운영 blocker:
+  - `PRESSCO21 SMTP` → `535 Username and Password not accepted`
+  - `TELEGRAM_CHAT_ID` 비어 있음

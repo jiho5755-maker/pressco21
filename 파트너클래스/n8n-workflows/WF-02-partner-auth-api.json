@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "GET",
+        "httpMethod": "POST",
         "path": "partner-auth",
         "responseMode": "responseNode",
         "options": {}
@@ -12,97 +12,150 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [220, 400],
+      "position": [
+        220,
+        400
+      ],
       "webhookId": "partner-auth"
     },
     {
       "parameters": {
         "rules": {
-          "rules": [
+          "values": [
             {
               "conditions": {
-                "options": { "caseSensitive": false },
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.query.action }}",
+                    "leftValue": "={{ $json.body.action || $json.query.action || \"\" }}",
                     "rightValue": "getPartnerAuth",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ]
               },
-              "renameOutput": "getPartnerAuth"
+              "renameOutput": true,
+              "outputKey": "getPartnerAuth"
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false },
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.query.action }}",
+                    "leftValue": "={{ $json.body.action || $json.query.action || \"\" }}",
                     "rightValue": "getPartnerDashboard",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ]
               },
-              "renameOutput": "getPartnerDashboard"
+              "renameOutput": true,
+              "outputKey": "getPartnerDashboard"
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false },
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.query.action }}",
+                    "leftValue": "={{ $json.body.action || $json.query.action || \"\" }}",
                     "rightValue": "getPartnerApplicationStatus",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ]
               },
-              "renameOutput": "getPartnerApplicationStatus"
+              "renameOutput": true,
+              "outputKey": "getPartnerApplicationStatus"
             },
             {
               "conditions": {
-                "options": { "caseSensitive": false },
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.query.action }}",
+                    "leftValue": "={{ $json.body.action || $json.query.action || \"\" }}",
                     "rightValue": "getEducationStatus",
-                    "operator": { "type": "string", "operation": "equals" }
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
                   }
                 ]
               },
-              "renameOutput": "getEducationStatus"
+              "renameOutput": true,
+              "outputKey": "getEducationStatus"
             }
-          ],
-          "fallbackOutput": {
-            "id": "fallback"
-          }
+          ]
         },
-        "options": {}
+        "options": {
+          "fallbackOutput": "extra"
+        }
       },
       "id": "wf02-switch",
       "name": "Switch Action",
       "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
-      "position": [440, 400]
+      "typeVersion": 3.2,
+      "position": [
+        440,
+        400
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// getPartnerAuth 파라미터 검증\n// ===================================================\n\nconst query = $input.first().json.query;\nconst memberId = (query.member_id || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    memberId,\n    _error: false\n  }\n}];"
+        "jsCode": "// ===================================================\n// getPartnerAuth 파라미터 검증\n// ===================================================\n\nconst payload = $input.first().json.body || $input.first().json.query || {};\nconst memberId = String(payload.member_id || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    memberId,\n    _error: false\n  }\n}];"
       },
       "id": "wf02-parse-auth",
       "name": "Parse Auth Params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 140]
+      "position": [
+        660,
+        140
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._error }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -111,7 +164,10 @@
       "name": "IF Auth Params Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [840, 140]
+      "position": [
+        840,
+        140
+      ]
     },
     {
       "parameters": {
@@ -122,8 +178,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -132,7 +194,10 @@
       "name": "NocoDB Find Partner",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1060, 80],
+      "position": [
+        1060,
+        80
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -142,23 +207,31 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// getPartnerAuth 응답 구성\n// 파트너 존재 -> 파트너 정보 반환\n// 파트너 미존재 -> tbl_Applications 조회하여 상태 분기\n// ===================================================\n\nconst partnerResponse = $input.first().json;\nconst partnerList = partnerResponse.list || [];\nconst memberId = $('Parse Auth Params').first().json.memberId;\n\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n\n  // 파트너 정보 반환 (pending/inactive 포함, 프론트에서 상태별 안내)\n  return [{\n    json: {\n      _needAppCheck: false,\n      success: true,\n      data: {\n        is_partner: true,\n        member_id: memberId,\n        partner_code: p.partner_code || '',\n        partner_name: p.partner_name || '',\n        grade: p.grade || 'SILVER',\n        commission_rate: Number(p.commission_rate) || 0,\n        reserve_rate: Number(p.reserve_rate) || 0,\n        education_completed: p.education_completed === true || p.education_completed === 'true' || p.education_completed === 'Y' || p.education_completed === 'y',\n        status: p.status || 'active'\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// 파트너 미존재 -> 신청 테이블 확인 필요\nreturn [{\n  json: {\n    _needAppCheck: true,\n    memberId\n  }\n}];"
+        "jsCode": "// ===================================================\n// getPartnerAuth 응답 구성 + last_active_at 갱신\n// 파트너 존재 -> 파트너 정보 반환\n// 파트너 미존재 -> tbl_Applications 조회하여 상태 분기\n// ===================================================\n\nconst partnerResponse = $input.first().json;\nconst partnerList = partnerResponse.list || [];\nconst memberId = $('Parse Auth Params').first().json.memberId;\n\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n  const nowIso = new Date().toISOString();\n\n  return [{\n    json: {\n      _needAppCheck: false,\n      _touchPartnerId: p.Id || p.id || null,\n      success: true,\n      data: {\n        is_partner: true,\n        member_id: memberId,\n        partner_code: p.partner_code || '',\n        partner_name: p.partner_name || '',\n        grade: p.grade || 'SILVER',\n        commission_rate: Number(p.commission_rate) || 0,\n        reserve_rate: Number(p.reserve_rate) || 0,\n        education_completed: p.education_completed === true || p.education_completed === 'true' || p.education_completed === 'Y' || p.education_completed === 'y',\n        status: p.status || 'active',\n        last_active_at: nowIso\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _needAppCheck: true,\n    memberId\n  }\n}];"
       },
       "id": "wf02-check-partner",
       "name": "Check Partner Exists",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1280, 80]
+      "position": [
+        1280,
+        80
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._needAppCheck }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -167,7 +240,10 @@
       "name": "IF Need App Check",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1480, 80]
+      "position": [
+        1480,
+        80
+      ]
     },
     {
       "parameters": {
@@ -178,9 +254,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
-            { "name": "sort", "value": "-applied_date" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})"
+            },
+            {
+              "name": "sort",
+              "value": "-applied_date"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -189,7 +274,10 @@
       "name": "NocoDB Find Application",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1700, 40],
+      "position": [
+        1700,
+        40
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -205,7 +293,10 @@
       "name": "Build Not Partner Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1920, 40]
+      "position": [
+        1920,
+        40
+      ]
     },
     {
       "parameters": {
@@ -214,7 +305,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -223,7 +317,10 @@
       "name": "Respond getPartnerAuth",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2140, 80]
+      "position": [
+        2140,
+        80
+      ]
     },
     {
       "parameters": {
@@ -232,7 +329,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -241,27 +341,38 @@
       "name": "Respond Auth Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1060, 220]
+      "position": [
+        1060,
+        220
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// getPartnerDashboard 파라미터 검증\n// ===================================================\n\nconst query = $input.first().json.query;\nconst memberId = (query.member_id || '').trim();\nconst month = (query.month || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// 기본 월: 현재 월\nconst now = new Date();\nconst defaultMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');\nconst targetMonth = month || defaultMonth;\n\nreturn [{\n  json: {\n    memberId,\n    targetMonth,\n    _error: false\n  }\n}];"
+        "jsCode": "// ===================================================\n// getPartnerDashboard 파라미터 검증\n// ===================================================\n\nconst payload = $input.first().json.body || $input.first().json.query || {};\nconst memberId = String(payload.member_id || '').trim();\nconst month = String(payload.month || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst now = new Date();\nconst defaultMonth = now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0');\nconst targetMonth = month || defaultMonth;\n\nreturn [{\n  json: {\n    memberId,\n    targetMonth,\n    _error: false\n  }\n}];"
       },
       "id": "wf02-parse-dashboard",
       "name": "Parse Dashboard Params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 340]
+      "position": [
+        660,
+        340
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._error }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -270,7 +381,10 @@
       "name": "IF Dashboard Params Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [840, 340]
+      "position": [
+        840,
+        340
+      ]
     },
     {
       "parameters": {
@@ -281,8 +395,14 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -291,7 +411,10 @@
       "name": "NocoDB Auth Partner (Dashboard)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1060, 300],
+      "position": [
+        1060,
+        300
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -301,23 +424,31 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 대시보드: 파트너 인증 확인 + partner_code 추출\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst memberId = $('Parse Dashboard Params').first().json.memberId;\nconst targetMonth = $('Parse Dashboard Params').first().json.targetMonth;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_PARTNER', message: '파트너로 등록되지 않은 회원입니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst p = partnerList[0];\n\nif (p.status !== 'active') {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'PARTNER_INACTIVE', message: '비활성 상태의 파트너 계정입니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _error: false,\n    partnerCode: p.partner_code,\n    targetMonth,\n    partner: {\n      partner_code: p.partner_code || '',\n      partner_name: p.partner_name || '',\n      grade: p.grade || 'SILVER',\n      commission_rate: Number(p.commission_rate) || 0,\n      reserve_rate: Number(p.reserve_rate) || 0,\n      class_count: Number(p.class_count) || 0,\n      avg_rating: Number(p.avg_rating) || 0\n    }\n  }\n}];"
+        "jsCode": "// ===================================================\n// 대시보드: 파트너 인증 확인 + partner_code 추출 + last_active_at 갱신\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst memberId = $('Parse Dashboard Params').first().json.memberId;\nconst targetMonth = $('Parse Dashboard Params').first().json.targetMonth;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_PARTNER', message: '파트너로 등록되지 않은 회원입니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst p = partnerList[0];\n\nif (p.status !== 'active') {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'PARTNER_INACTIVE', message: '비활성 상태의 파트너 계정입니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst nowIso = new Date().toISOString();\n\nreturn [{\n  json: {\n    _error: false,\n    _touchPartnerId: p.Id || p.id || null,\n    partnerCode: p.partner_code,\n    memberId,\n    targetMonth,\n    partner: {\n      partner_code: p.partner_code || '',\n      partner_name: p.partner_name || '',\n      grade: p.grade || 'SILVER',\n      commission_rate: Number(p.commission_rate) || 0,\n      reserve_rate: Number(p.reserve_rate) || 0,\n      class_count: Number(p.class_count) || 0,\n      avg_rating: Number(p.avg_rating) || 0,\n      last_active_at: nowIso\n    }\n  }\n}];"
       },
       "id": "wf02-auth-dashboard",
       "name": "Auth Dashboard Partner",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1280, 300]
+      "position": [
+        1280,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._error }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -326,7 +457,10 @@
       "name": "IF Dashboard Auth OK",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1480, 300]
+      "position": [
+        1480,
+        300
+      ]
     },
     {
       "parameters": {
@@ -337,9 +471,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(partner_code,eq,{{ $json.partnerCode }})" },
-            { "name": "fields", "value": "class_id,class_name,category,price,status,class_count,avg_rating" },
-            { "name": "limit", "value": "200" }
+            {
+              "name": "where",
+              "value": "=(partner_code,eq,{{ $json.partnerCode }})"
+            },
+            {
+              "name": "fields",
+              "value": "class_id,class_name,category,price,status,class_count,avg_rating"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            }
           ]
         },
         "options": {}
@@ -348,7 +491,10 @@
       "name": "NocoDB Get My Classes",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1700, 240],
+      "position": [
+        1700,
+        240
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -365,9 +511,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(partner_code,eq,{{ $json.partnerCode }})" },
-            { "name": "fields", "value": "settlement_id,order_id,class_id,order_amount,commission_amount,reserve_amount,class_date,status,created_date" },
-            { "name": "limit", "value": "1000" }
+            {
+              "name": "where",
+              "value": "=(partner_code,eq,{{ $('Auth Dashboard Partner').first().json.partnerCode }})"
+            },
+            {
+              "name": "fields",
+              "value": "settlement_id,order_id,class_id,order_amount,commission_amount,reserve_amount,class_date,status,CreatedAt,UpdatedAt"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            }
           ]
         },
         "options": {}
@@ -376,7 +531,10 @@
       "name": "NocoDB Get Settlements",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1700, 400],
+      "position": [
+        1700,
+        400
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -386,13 +544,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 대시보드 응답 구성: 파트너 + 클래스 + 정산 집계\n// ===================================================\n\nconst partnerData = $('Auth Dashboard Partner').first().json;\nconst classesResponse = $('NocoDB Get My Classes').first().json;\nconst settlementsResponse = $('NocoDB Get Settlements').first().json;\n\nconst partner = partnerData.partner;\nconst targetMonth = partnerData.targetMonth;\n\n// 클래스 목록\nconst myClasses = (classesResponse.list || []).map(c => ({\n  class_id: c.class_id || '',\n  class_name: c.class_name || '',\n  category: c.category || '',\n  price: Number(c.price) || 0,\n  status: c.status || '',\n  class_count: Number(c.class_count) || 0,\n  avg_rating: Number(c.avg_rating) || 0\n}));\n\n// 정산 내역 (해당 월 필터링)\nconst allSettlements = settlementsResponse.list || [];\n\n// 해당 월 필터 (class_date 기준 YYYY-MM)\nconst monthSettlements = allSettlements.filter(s => {\n  const classDate = (s.class_date || s.created_date || '').substring(0, 7);\n  return classDate === targetMonth;\n});\n\n// 월별 집계\nlet totalRevenue = 0;\nlet totalCommission = 0;\nlet totalReserve = 0;\nlet completedCount = 0;\nlet pendingCount = 0;\nlet failedCount = 0;\n\nconst items = monthSettlements.map(s => {\n  const orderAmount = Number(s.order_amount) || 0;\n  const commissionAmount = Number(s.commission_amount) || 0;\n  const reserveAmount = Number(s.reserve_amount) || 0;\n  const status = (s.status || '').toUpperCase();\n\n  totalRevenue += orderAmount;\n  totalCommission += commissionAmount;\n  totalReserve += reserveAmount;\n\n  if (status === 'COMPLETED') completedCount++;\n  else if (status === 'PENDING' || status === 'PROCESSING' || status === 'PENDING_SETTLEMENT') pendingCount++;\n  else if (status === 'FAILED') failedCount++;\n\n  return {\n    settlement_id: s.settlement_id || '',\n    order_id: s.order_id || '',\n    class_id: s.class_id || '',\n    order_amount: orderAmount,\n    commission_amount: commissionAmount,\n    reserve_amount: reserveAmount,\n    class_date: (s.class_date || '').substring(0, 10),\n    status\n  };\n});\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      partner,\n      classes: myClasses,\n      settlement: {\n        month: targetMonth,\n        total_revenue: totalRevenue,\n        total_commission: totalCommission,\n        total_reserve: totalReserve,\n        completed_count: completedCount,\n        pending_count: pendingCount,\n        failed_count: failedCount,\n        items\n      }\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// 대시보드 응답 구성: 파트너 + 클래스 + 정산 집계\n// ===================================================\n\nconst partnerData = $('Auth Dashboard Partner').first().json;\nconst classesResponse = $('NocoDB Get My Classes').first().json;\nconst settlementsResponse = $('NocoDB Get Settlements').first().json;\n\nconst partner = partnerData.partner;\nconst targetMonth = partnerData.targetMonth;\n\n// 클래스 목록\nconst myClasses = (classesResponse.list || []).map(c => ({\n  class_id: c.class_id || '',\n  class_name: c.class_name || '',\n  category: c.category || '',\n  price: Number(c.price) || 0,\n  status: c.status || '',\n  class_count: Number(c.class_count) || 0,\n  avg_rating: Number(c.avg_rating) || 0\n}));\n\n// 정산 내역 (해당 월 필터링)\nconst allSettlements = settlementsResponse.list || [];\nconst monthSettlements = allSettlements.filter(s => {\n  const classDate = String(s.class_date || s.CreatedAt || s.UpdatedAt || '').substring(0, 7);\n  return classDate === targetMonth;\n});\n\n// 월별 집계\nlet totalRevenue = 0;\nlet totalCommission = 0;\nlet totalReserve = 0;\nlet completedCount = 0;\nlet pendingCount = 0;\nlet failedCount = 0;\n\nconst items = monthSettlements.map(s => {\n  const orderAmount = Number(s.order_amount) || 0;\n  const commissionAmount = Number(s.commission_amount) || 0;\n  const reserveAmount = Number(s.reserve_amount) || 0;\n  const status = String(s.status || '').toUpperCase();\n\n  totalRevenue += orderAmount;\n  totalCommission += commissionAmount;\n  totalReserve += reserveAmount;\n\n  if (status === 'COMPLETED') completedCount += 1;\n  else if (status === 'PENDING' || status === 'PROCESSING' || status === 'PENDING_SETTLEMENT') pendingCount += 1;\n  else if (status === 'FAILED') failedCount += 1;\n\n  return {\n    settlement_id: s.settlement_id || '',\n    order_id: s.order_id || '',\n    class_id: s.class_id || '',\n    order_amount: orderAmount,\n    commission_amount: commissionAmount,\n    reserve_amount: reserveAmount,\n    class_date: String(s.class_date || s.CreatedAt || '').substring(0, 10),\n    status\n  };\n});\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      partner,\n      classes: myClasses,\n      settlement: {\n        month: targetMonth,\n        total_revenue: totalRevenue,\n        total_commission: totalCommission,\n        total_reserve: totalReserve,\n        completed_count: completedCount,\n        pending_count: pendingCount,\n        failed_count: failedCount,\n        items\n      }\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf02-build-dashboard",
       "name": "Build Dashboard Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1920, 320]
+      "position": [
+        1920,
+        320
+      ]
     },
     {
       "parameters": {
@@ -401,7 +562,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -410,7 +574,10 @@
       "name": "Respond Dashboard",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2140, 320]
+      "position": [
+        2140,
+        320
+      ]
     },
     {
       "parameters": {
@@ -419,7 +586,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -428,27 +598,38 @@
       "name": "Respond Dashboard Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1700, 480]
+      "position": [
+        1700,
+        480
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// getPartnerApplicationStatus 처리\n// member_id로 파트너 여부 -> 신청 이력 조회\n// ===================================================\n\nconst query = $input.first().json.query;\nconst memberId = (query.member_id || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _done: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    memberId,\n    _done: false\n  }\n}];"
+        "jsCode": "// ===================================================\n// getPartnerApplicationStatus 처리\n// member_id로 파트너 여부 -> 신청 이력 조회\n// ===================================================\n\nconst payload = $input.first().json.body || $input.first().json.query || {};\nconst memberId = String(payload.member_id || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _done: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    memberId,\n    _done: false\n  }\n}];"
       },
       "id": "wf02-parse-app-status",
       "name": "Parse AppStatus Params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 520]
+      "position": [
+        660,
+        520
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._done }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -457,7 +638,10 @@
       "name": "IF AppStatus Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [840, 520]
+      "position": [
+        840,
+        520
+      ]
     },
     {
       "parameters": {
@@ -468,9 +652,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
-            { "name": "fields", "value": "partner_code,grade,status" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})"
+            },
+            {
+              "name": "fields",
+              "value": "partner_code,grade,status"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -479,7 +672,10 @@
       "name": "NocoDB Partner (AppStatus)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1060, 480],
+      "position": [
+        1060,
+        480
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -495,17 +691,25 @@
       "name": "Check Partner (AppStatus)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1280, 480]
+      "position": [
+        1280,
+        480
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._isPartner }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -514,7 +718,10 @@
       "name": "IF Not Partner (App)",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1480, 480]
+      "position": [
+        1480,
+        480
+      ]
     },
     {
       "parameters": {
@@ -525,9 +732,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
-            { "name": "sort", "value": "-applied_date" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})"
+            },
+            {
+              "name": "sort",
+              "value": "-applied_date"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -536,7 +752,10 @@
       "name": "NocoDB Find Application (AppStatus)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1700, 540],
+      "position": [
+        1700,
+        540
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -552,7 +771,10 @@
       "name": "Build AppStatus Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1920, 540]
+      "position": [
+        1920,
+        540
+      ]
     },
     {
       "parameters": {
@@ -561,7 +783,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -570,27 +795,38 @@
       "name": "Respond AppStatus",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2140, 520]
+      "position": [
+        2140,
+        520
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// getEducationStatus 처리\n// member_id로 파트너 조회 -> education 필드 반환\n// ===================================================\n\nconst query = $input.first().json.query;\nconst memberId = (query.member_id || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _done: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    memberId,\n    _done: false\n  }\n}];"
+        "jsCode": "// ===================================================\n// getEducationStatus 처리\n// member_id로 파트너 조회 -> education 필드 반환\n// ===================================================\n\nconst payload = $input.first().json.body || $input.first().json.query || {};\nconst memberId = String(payload.member_id || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _done: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    memberId,\n    _done: false\n  }\n}];"
       },
       "id": "wf02-parse-education",
       "name": "Parse Education Params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 720]
+      "position": [
+        660,
+        720
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._done }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -599,7 +835,10 @@
       "name": "IF Education Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [840, 720]
+      "position": [
+        840,
+        720
+      ]
     },
     {
       "parameters": {
@@ -610,9 +849,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
-            { "name": "fields", "value": "partner_code,education_completed,education_date,education_score" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})"
+            },
+            {
+              "name": "fields",
+              "value": "partner_code,education_completed,education_date,education_score"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -621,7 +869,10 @@
       "name": "NocoDB Partner (Education)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1060, 680],
+      "position": [
+        1060,
+        680
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -637,7 +888,10 @@
       "name": "Build Education Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1280, 680]
+      "position": [
+        1280,
+        680
+      ]
     },
     {
       "parameters": {
@@ -646,7 +900,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -655,7 +912,10 @@
       "name": "Respond Education",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1480, 680]
+      "position": [
+        1480,
+        680
+      ]
     },
     {
       "parameters": {
@@ -664,7 +924,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -673,27 +936,36 @@
       "name": "Respond Education Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1060, 800]
+      "position": [
+        1060,
+        800
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Fallback: 알 수 없는 action\nconst action = ($input.first().json.query || {}).action || '';\nreturn [{\n  json: {\n    success: false,\n    error: {\n      code: 'INVALID_ACTION',\n      message: `알 수 없는 요청입니다: ${action}`\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// Fallback: 알 수 없는 action\nconst payload = $input.first().json.body || $input.first().json.query || {};\nconst action = String(payload.action || '');\nreturn [{\n  json: {\n    success: false,\n    error: {\n      code: 'INVALID_ACTION',\n      message: '알 수 없는 요청입니다: ' + action\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf02-fallback",
       "name": "Unknown Action Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 900]
+      "position": [
+        660,
+        900
+      ]
     },
     {
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
         "options": {
-          "responseCode": "400",
+          "responseCode": 400,
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -702,244 +974,480 @@
       "name": "Respond Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [880, 900]
+      "position": [
+        880,
+        900
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4/{{ $json._touchPartnerId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ last_active_at: $json.data.last_active_at || new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "wf02-touch-auth",
+      "name": "NocoDB Touch Partner (Auth)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1700,
+        140
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4/{{ $json._touchPartnerId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ last_active_at: $json.partner.last_active_at || new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "wf02-touch-dashboard",
+      "name": "NocoDB Touch Partner (Dashboard)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1700,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
     }
   ],
   "connections": {
     "Webhook": {
       "main": [
         [
-          { "node": "Switch Action", "type": "main", "index": 0 }
+          {
+            "node": "Switch Action",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Switch Action": {
       "main": [
         [
-          { "node": "Parse Auth Params", "type": "main", "index": 0 }
+          {
+            "node": "Parse Auth Params",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Parse Dashboard Params", "type": "main", "index": 0 }
+          {
+            "node": "Parse Dashboard Params",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Parse AppStatus Params", "type": "main", "index": 0 }
+          {
+            "node": "Parse AppStatus Params",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Parse Education Params", "type": "main", "index": 0 }
+          {
+            "node": "Parse Education Params",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Unknown Action Error", "type": "main", "index": 0 }
+          {
+            "node": "Unknown Action Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Parse Auth Params": {
       "main": [
         [
-          { "node": "IF Auth Params Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF Auth Params Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Auth Params Valid": {
       "main": [
         [
-          { "node": "NocoDB Find Partner", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Find Partner",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Auth Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Auth Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Find Partner": {
       "main": [
         [
-          { "node": "Check Partner Exists", "type": "main", "index": 0 }
+          {
+            "node": "Check Partner Exists",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Partner Exists": {
       "main": [
         [
-          { "node": "IF Need App Check", "type": "main", "index": 0 }
+          {
+            "node": "IF Need App Check",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Need App Check": {
       "main": [
         [
-          { "node": "NocoDB Find Application", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Find Application",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond getPartnerAuth", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Touch Partner (Auth)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Find Application": {
       "main": [
         [
-          { "node": "Build Not Partner Response", "type": "main", "index": 0 }
+          {
+            "node": "Build Not Partner Response",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Not Partner Response": {
       "main": [
         [
-          { "node": "Respond getPartnerAuth", "type": "main", "index": 0 }
+          {
+            "node": "Respond getPartnerAuth",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Parse Dashboard Params": {
       "main": [
         [
-          { "node": "IF Dashboard Params Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF Dashboard Params Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Dashboard Params Valid": {
       "main": [
         [
-          { "node": "NocoDB Auth Partner (Dashboard)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Auth Partner (Dashboard)",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Dashboard Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Dashboard Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Auth Partner (Dashboard)": {
       "main": [
         [
-          { "node": "Auth Dashboard Partner", "type": "main", "index": 0 }
+          {
+            "node": "Auth Dashboard Partner",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Auth Dashboard Partner": {
       "main": [
         [
-          { "node": "IF Dashboard Auth OK", "type": "main", "index": 0 }
+          {
+            "node": "IF Dashboard Auth OK",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Dashboard Auth OK": {
       "main": [
         [
-          { "node": "NocoDB Get My Classes", "type": "main", "index": 0 },
-          { "node": "NocoDB Get Settlements", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Touch Partner (Dashboard)",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Dashboard Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Dashboard Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get My Classes": {
       "main": [
         [
-          { "node": "Build Dashboard Response", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Settlements",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Settlements": {
       "main": [
         [
-          { "node": "Build Dashboard Response", "type": "main", "index": 0 }
+          {
+            "node": "Build Dashboard Response",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Dashboard Response": {
       "main": [
         [
-          { "node": "Respond Dashboard", "type": "main", "index": 0 }
+          {
+            "node": "Respond Dashboard",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Parse AppStatus Params": {
       "main": [
         [
-          { "node": "IF AppStatus Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF AppStatus Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF AppStatus Valid": {
       "main": [
         [
-          { "node": "NocoDB Partner (AppStatus)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Partner (AppStatus)",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond AppStatus", "type": "main", "index": 0 }
+          {
+            "node": "Respond AppStatus",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Partner (AppStatus)": {
       "main": [
         [
-          { "node": "Check Partner (AppStatus)", "type": "main", "index": 0 }
+          {
+            "node": "Check Partner (AppStatus)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Check Partner (AppStatus)": {
       "main": [
         [
-          { "node": "IF Not Partner (App)", "type": "main", "index": 0 }
+          {
+            "node": "IF Not Partner (App)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Not Partner (App)": {
       "main": [
         [
-          { "node": "NocoDB Find Application (AppStatus)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Find Application (AppStatus)",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond AppStatus", "type": "main", "index": 0 }
+          {
+            "node": "Respond AppStatus",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Find Application (AppStatus)": {
       "main": [
         [
-          { "node": "Build AppStatus Response", "type": "main", "index": 0 }
+          {
+            "node": "Build AppStatus Response",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build AppStatus Response": {
       "main": [
         [
-          { "node": "Respond AppStatus", "type": "main", "index": 0 }
+          {
+            "node": "Respond AppStatus",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Parse Education Params": {
       "main": [
         [
-          { "node": "IF Education Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF Education Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Education Valid": {
       "main": [
         [
-          { "node": "NocoDB Partner (Education)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Partner (Education)",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Education Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Education Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Partner (Education)": {
       "main": [
         [
-          { "node": "Build Education Response", "type": "main", "index": 0 }
+          {
+            "node": "Build Education Response",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Education Response": {
       "main": [
         [
-          { "node": "Respond Education", "type": "main", "index": 0 }
+          {
+            "node": "Respond Education",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Unknown Action Error": {
       "main": [
         [
-          { "node": "Respond Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Touch Partner (Dashboard)": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Get My Classes",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Touch Partner (Auth)": {
+      "main": [
+        [
+          {
+            "node": "Respond getPartnerAuth",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -949,9 +1457,16 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "PRESSCO21" },
-    { "name": "Partner Auth" },
-    { "name": "Phase 2" }
+    {
+      "name": "PRESSCO21"
+    },
+    {
+      "name": "Partner Auth"
+    },
+    {
+      "name": "Phase 2"
+    }
   ],
-  "pinData": {}
+  "pinData": {},
+  "id": "aAc4lFdxuibp5UJ1"
 }

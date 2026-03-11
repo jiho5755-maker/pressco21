@@ -78,6 +78,19 @@
   - `consoleErrors=[]`
 - 실제 산출물은 `output/playwright/s2-6-retention/retention-results.json` 과 `mypage-retention.png` 이다.
 
+## 2026-03-11 S2-7 파트너 이탈 감지 검증 메모
+
+- 이 태스크는 `partner-auth touch 검증 + churn dry run + churn send mode` 3단으로 보는 편이 가장 정확하다.
+- 최소 통과 세트:
+  - `POST /webhook/partner-auth` 이후 `tbl_Partners.last_active_at` 갱신
+  - `dry_run today=2026-03-11` → `risk_count=0`
+  - `dry_run today=2026-06-15` → `risk_count>=1`
+- send mode 는 현재 운영 credential blocker 때문에 성공 발송이 아니라 `구조화된 실패 반환` 이 기준선이다.
+  - 기대 응답: `success=false`, `error.code=PARTNER_CHURN_EMAIL_FAILED`
+  - 기대 로그: `tbl_EmailLogs` 에 `PARTNER_NOTIFY / FAILED`
+- Telegram 실패는 현재 응답 본문을 더 이상 오염시키지 않아야 한다.
+- 실제 산출물은 `output/playwright/s2-7-partner-churn/churn-results.json` 이다.
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

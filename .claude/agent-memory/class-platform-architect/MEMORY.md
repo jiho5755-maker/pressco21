@@ -153,3 +153,12 @@
 - NocoDB 날짜 eq 필터 제약 때문에 완료 예약은 `status=COMPLETED` 집합을 먼저 읽고 Code 노드에서 날짜 재계산하는 구조를 채택했다.
 - 레거시 완료 예약에 `student_email` 누락이 남아 있어 자동화는 현재 `raw_count` 와 `skipped_missing_email` 을 함께 보여주는 운영 구조로 본다.
 - 운영 기준 문서는 `docs/파트너클래스/community-retention-guide.md` 이다.
+
+## 2026-03-11 S2-7 파트너 이탈 감지 구조
+
+- 파트너 활동 추적의 기준 필드는 `tbl_Partners.last_active_at` 이다.
+- `WF-02 partner-auth` 는 인증/대시보드 조회 시 NocoDB credential PATCH 노드로 `last_active_at` 를 갱신한다.
+- `WF-CHURN Partner Risk Monitor` 는 `partners -> classes -> schedules -> reviews -> email logs` 직렬 수집 후 risk plan 을 계산한다.
+- 이메일 로그는 기존 테이블 제약 때문에 `email_type=PARTNER_NOTIFY` 로 저장하고, 실제 churn stage 와 `alert_id` 는 `error_message` 에 태깅한다.
+- send 모드는 이제 최종 응답을 텔레그램 에러가 덮지 않으며, 메일 실패 시 `PARTNER_CHURN_EMAIL_FAILED` 로 구조화해서 돌려준다.
+- 운영 기준 문서는 `docs/파트너클래스/partner-churn-monitor-guide.md` 이다.

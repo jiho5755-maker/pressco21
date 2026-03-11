@@ -159,6 +159,20 @@
 - Phase 3-2는 로컬 fixture + live API 통합 검증까지 완료된 상태로 보고, 다음 확장 단계는 `S3-1 신규 테이블 4종` 이다.
 - 운영 기준 문서는 `docs/파트너클래스/phase3-2-integration-test.md` 이다.
 
+## 2026-03-11 S3-1 스케일업 스키마 4종 생성
+
+- Phase 3-3 진입점으로 live NocoDB에 `tbl_Seminars`, `tbl_Affiliation_Products`, `tbl_Affiliation_Content`, `tbl_Vocabulary` 4개 테이블을 선반영했다.
+- 스키마 생성은 수동 SQL 이 아니라 `scripts/partnerclass-s3-1-create-tables.js` 기준 meta API 로 고정했다.
+- 스크립트는 `create or reuse table -> add missing columns -> sample rows upsert` 순서로 동작해 재실행 가능하다.
+- 기준 샘플 협회는 `KPFA_001 / 한국꽃공예협회` 이다.
+- 실제 live table id:
+  - `tbl_Seminars`: `m9gh6baz3vow966`
+  - `tbl_Affiliation_Products`: `mm75dgbohhth2ll`
+  - `tbl_Affiliation_Content`: `mit4xyrzn4s81b9`
+  - `tbl_Vocabulary`: `mhf2e1hqj5vqmi5`
+- 이후 `협회/세미나`, `협회원 혜택`, `용어 표준화` 구현은 이 4개 테이블을 우선 데이터 소스로 본다.
+- 운영 기준 문서는 `docs/파트너클래스/s3-1-schema-guide.md` 이다.
+
 ## 2026-03-11 S2-3 전국 탐색 IA 구조 확정
 
 - 목록 2606은 이제 `전체 클래스 / 협회·세미나 / 혜택·이벤트` 3탭 구조로 본다.

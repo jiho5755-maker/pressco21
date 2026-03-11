@@ -86,6 +86,8 @@
   - S2-9 기준 묶음 키트 상품 생성, `강의만/키트 포함` 선택 UI, WF-05 주문 분기, 로컬/라이브 검증 결과 정리
 - `demo-simulation-guide.md`
   - S2-10 기준 데모 배치 데이터 생성/정리 스크립트, live NocoDB 입력 결과, 수강생/파트너/관리자 Playwright 검증 결과 정리
+- `s3-1-schema-guide.md`
+  - S3-1 기준 신규 NocoDB 4개 테이블 생성 스크립트, 실제 table id, 샘플 row, Playwright API 검증 결과 정리
 
 ### QA / 검증
 

@@ -166,6 +166,26 @@
   - `output/playwright/s2-11-phase3-2/sales-landing-flow.png`
   - `output/playwright/s2-11-phase3-2/affiliation-b2b-flow.png`
 
+## 2026-03-11 S3-1 신규 스키마 검증 메모
+
+- 이 태스크는 `생성 스크립트 1차 실행 -> 재실행 idempotency 확인 -> Playwright API 재검증` 3단으로 보는 편이 가장 정확하다.
+- 생성 러너:
+  - `node scripts/partnerclass-s3-1-create-tables.js`
+- Playwright 검증 러너:
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-1-schema-runner.js`
+- 최소 통과 세트:
+  - `tbl_Seminars`, `tbl_Affiliation_Products`, `tbl_Affiliation_Content`, `tbl_Vocabulary` 4개 table 존재
+  - 각 table 의 필수 컬럼 존재
+  - 샘플 row 일치
+    - seminars `2/2`
+    - affiliation products `3/3`
+    - affiliation content `3/3`
+    - vocabulary `8/8`
+  - 생성 스크립트 2차 실행 시 추가 insert 없이 update 로만 동작
+- 실제 산출물:
+  - `output/playwright/s3-1-schema/schema-create-results.json`
+  - `output/playwright/s3-1-schema/schema-results.json`
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

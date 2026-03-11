@@ -51,13 +51,47 @@
 
 - Current Owner: IDLE
 - Mode: IDLE
-- Started At: 2026-03-11 17:05:00 KST
+- Started At: -
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S2-11 완료, 다음 태스크 대기
-- Active Subdirectory: pressco21/파트너클래스
+- Working Scope: -
+- Active Subdirectory: -
 
 ## Files In Progress
 - 없음
+
+### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
+- 스크립트 / 문서
+  - `scripts/partnerclass-s3-1-create-tables.js`
+    - live NocoDB meta API 기준 `create/reuse table -> add missing columns -> sample rows upsert` 자동화
+  - `scripts/partnerclass-s3-1-schema-runner.js`
+    - Playwright `APIRequestContext` 로 4개 신규 table, 필수 컬럼, 샘플 row 재검증
+  - `docs/파트너클래스/s3-1-schema-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- live 생성 결과
+  - `tbl_Seminars`: `m9gh6baz3vow966`
+  - `tbl_Affiliation_Products`: `mm75dgbohhth2ll`
+  - `tbl_Affiliation_Content`: `mit4xyrzn4s81b9`
+  - `tbl_Vocabulary`: `mhf2e1hqj5vqmi5`
+  - 기준 협회 row: `KPFA_001 / 한국꽃공예협회`
+- 검증
+  - `node --check scripts/partnerclass-s3-1-create-tables.js`
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node --check scripts/partnerclass-s3-1-schema-runner.js`
+  - `node scripts/partnerclass-s3-1-create-tables.js`
+  - `node scripts/partnerclass-s3-1-create-tables.js` 2차 재실행
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-1-schema-runner.js`
+  - 결과:
+    - 샘플 row 매칭:
+      - seminars `2/2`
+      - affiliation products `3/3`
+      - affiliation content `3/3`
+      - vocabulary `8/8`
+    - 2차 재실행 시 신규 insert 없이 update 만 수행되어 idempotent 확인
+  - 산출물:
+    - `output/playwright/s3-1-schema/schema-create-results.json`
+    - `output/playwright/s3-1-schema/schema-results.json`
 
 ### [CODEX-LEAD] Phase 3 S2-9 묶음 키트 + 선택형 완료 (CODEX)
 - 메이크샵
@@ -258,6 +292,28 @@
     - `output/playwright/s2-7-partner-churn/churn-results.json`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
+- 스크립트 / 문서
+  - `scripts/partnerclass-s3-1-create-tables.js`
+  - `scripts/partnerclass-s3-1-schema-runner.js`
+  - `docs/파트너클래스/s3-1-schema-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- 구현
+  - live NocoDB meta API 로 `tbl_Seminars`, `tbl_Affiliation_Products`, `tbl_Affiliation_Content`, `tbl_Vocabulary` 4개 테이블 생성
+  - 기존 테이블이 있으면 재사용하고 누락 컬럼은 add-column API 로 보강하는 idempotent 구조로 고정
+  - 샘플 row 는 `KPFA_001 / 한국꽃공예협회` 기준으로 upsert
+- 검증
+  - `node scripts/partnerclass-s3-1-create-tables.js`
+  - `node scripts/partnerclass-s3-1-create-tables.js` 2차 재실행
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-1-schema-runner.js`
+  - 결과:
+    - 4개 테이블 생성 완료
+    - 샘플 row 매칭: seminars `2/2`, affiliation products `3/3`, affiliation content `3/3`, vocabulary `8/8`
+    - 2차 재실행 시 추가 insert 없이 update 만 수행되어 idempotent 확인
 
 ### [CODEX-LEAD] Phase 3 S2-6 커뮤니티 리텐션 1차 완료 (CODEX)
 - 프론트
@@ -1791,7 +1847,7 @@
 
 #### 현재 다음 태스크
 
-- `S3-1 NocoDB 4개 신규 테이블`
+- `S3-2 등급별 비금전적 인센티브`
 - `S2-7 파트너 이탈 감지 자동화` 는 구현/검증 완료, 운영 SMTP + Telegram chat_id blocker 해소 시 최종 수락 기준 닫기
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
@@ -1895,6 +1951,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S2-10 데모 배치는 live NocoDB에 입력됐지만 클래스 상태를 `closed` 로 묶어 공개 노출은 막았다. 실제 메이크샵 live 화면에서 데모로 쓰려면 디자인편집기 반영 또는 별도 demo page 구성이 추가로 필요하다.
 - S2-10 파트너 액션보드 숫자는 내부 계산상 `예약 건수`와 `수업 수`가 섞일 수 있어, 현재 데모 수락 기준은 숫자 자체보다 카드 활성과 탭 이동에 둔다.
 - S2-11 Phase 3-2 통합 테스트는 로컬 fixture + live API + n8n execution log 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 후 실제 `2606/2607/2608/2609` 흐름을 live 브라우저에서 한 번 더 확인해야 한다.
+- S3-1 신규 테이블 4종은 live NocoDB 기준으로 생성/검증까지 끝났지만, `.secrets.env` 수정 금지 원칙 때문에 새 table id 는 코드/문서에서만 관리되고 환경변수로는 아직 승격하지 않았다.
 - S2-4 분리 후 `getSchedules / getRemainingSeats` 는 운영에서 준비 완료됐지만, 아직 프론트 호출처는 없다. S2-5 이후 콘텐츠/협회 read action 추가 시 `WF-01C` 또는 별도 WF 로 확장 방향을 유지해야 한다.
 - S2-6 리텐션 자동화는 dry run 과 스케줄 경로 기준으로는 검증됐지만, 운영 레거시 완료 예약 일부에 `student_email`, `student_name` 이 비어 있어 실제 발송 대상 수가 `skip` 으로 잡히는 상태다.
 - S2-6 `student-retention` 웹훅은 수동 실호출 시 `200` 빈 본문 케이스가 남아 있어, 현재 운영 기준선은 dry run 응답과 예약 실행 로그다.

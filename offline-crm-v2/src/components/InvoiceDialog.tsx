@@ -334,6 +334,8 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
   const [previewUrl, setPreviewUrl] = useState('')
   const [previewPages, setPreviewPages] = useState(1)
   const previewIframeRef = useRef<HTMLIFrameElement>(null)
+  const saveActionRef = useRef<() => Promise<void>>(async () => {})
+  const closeActionRef = useRef<() => void>(() => {})
 
   // 고객 검색
   const [customerInput, setCustomerInput] = useState('')
@@ -589,15 +591,15 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
       if (e.key === 'Escape') {
         // 드롭다운 열린 경우 먼저 닫기
         if (showProductDrop) { setShowProductDrop(null); setDropdownIdx(-1); return }
-        handleClose()
+        closeActionRef.current()
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        if (!showProductDrop) void handleSave()
+        if (!showProductDrop) void saveActionRef.current()
       }
     }
     document.addEventListener('keydown', handler)
     return () => document.removeEventListener('keydown', handler)
-  }, [open, isDirty, showProductDrop])
+  }, [open, showProductDrop])
 
   // 고객 선택
   function selectCustomer(c: Customer) {
@@ -889,6 +891,10 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
     onClose()
   }, [isDirty, onClose])
 
+  useEffect(() => {
+    closeActionRef.current = handleClose
+  }, [handleClose])
+
   // 저장
   async function handleSave() {
     if (!form.customer_name?.trim()) {
@@ -1020,6 +1026,10 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
       setIsSaving(false)
     }
   }
+
+  useEffect(() => {
+    saveActionRef.current = handleSave
+  }, [handleSave])
 
   // 인쇄 데이터 빌더
   function buildPrintData() {

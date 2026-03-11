@@ -49,12 +49,12 @@
 
 ## Session Lock
 
-- Current Owner: NONE
-- Mode: IDLE
-- Started At: -
+- Current Owner: IDLE
+- Mode: —
+- Started At: 2026-03-11 23:25:00 KST
 - Branch: main
-- Working Scope: handoff only; next session may resume from Next Step
-- Active Subdirectory: -
+- Working Scope: offline-crm-v2 P1 2차: InvoiceDialog 저장 클로저 보정 + 예치금 사용 검증
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
 - 없음
@@ -332,6 +332,27 @@
     - `TEST-ACCOUNTING-*` 임시 고객/명세표 생성 후 수금 관리에서 `1,100원 미수 -> 1,500원 입금 -> 초과 400원 예치금 보관` 토스트 확인
     - 고객 상세에서 `예치금 400원` 카드 반영 확인
     - 고객 상세 거래내역에서 `예치금 적립` 행 노출 확인
+  - 테스트 데이터 정리:
+    - `TEST-ACCOUNTING-*` 고객/명세표/품목 전부 삭제 완료
+- 배포
+  - `https://crm.pressco21.com` 재배포 완료
+
+### [CODEX-LEAD] offline-crm-v2 P1 2차 구현 완료: 예치금 사용 저장 클로저 보정 + E2E 재검증 (2026-03-11)
+- 변경 파일
+  - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+  - `AI_SYNC.md`
+- 변경 내용
+  - `Ctrl+Enter` 저장 단축키가 예전 `handleSave` 클로저를 잡고 있던 문제 수정
+  - 최신 입력값 기준으로 저장되도록 `saveActionRef / closeActionRef` 구조로 변경
+  - 이 보정으로 예치금 사용, 품목 금액, 현재 잔액이 저장 시점 최신 상태로 반영되도록 정리
+- 검증
+  - `npm run build`
+  - `bash deploy/deploy.sh`
+  - 로컬 Playwright 실검증:
+    - `1,100원 미수 -> 1,500원 입금 -> 초과 400원 예치금 적립`
+    - 신규 명세표에서 `예치금 사용 300원`
+    - 고객 상세 `예치금 100원`
+    - 고객 거래내역 `예치금 적립`, `예치금 사용` 둘 다 표시 확인
   - 테스트 데이터 정리:
     - `TEST-ACCOUNTING-*` 고객/명세표/품목 전부 삭제 완료
 - 배포
@@ -2288,7 +2309,6 @@
 
 ## Next Step
 
-- [CODEX-LEAD] offline-crm-v2 P1 2차: 명세표 저장 후 `예치금 사용` 이벤트와 고객 잔액 차감이 항상 저장되는지 E2E 기준으로 재검증하고 보완
 - [CODEX-LEAD] offline-crm-v2 P1 2차: `환불대기` 전용 처리 화면/완료 버튼 추가
 - [CODEX-LEAD] offline-crm-v2 Phase 2: 단계형 내비게이션 가이드 투어로 전환
 - [CODEX-LEAD] offline-crm-v2 농협 입금 자동화 1차 기술 검토: 수집 경로, 보안, 승인 큐 구조

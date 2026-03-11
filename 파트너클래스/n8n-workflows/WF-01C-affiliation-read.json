@@ -34,7 +34,7 @@
                 "combinator": "and",
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.body.action }}",
+                    "leftValue": "={{ ($json.body && $json.body.action) || $json.action || \"\" }}",
                     "rightValue": "getAffiliations",
                     "operator": {
                       "type": "string",
@@ -57,7 +57,7 @@
                 "combinator": "and",
                 "conditions": [
                   {
-                    "leftValue": "={{ $json.body.action }}",
+                    "leftValue": "={{ ($json.body && $json.body.action) || $json.action || \"\" }}",
                     "rightValue": "getContentHub",
                     "operator": {
                       "type": "string",
@@ -144,7 +144,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ $json }}",
+        "responseBody": "={{ (() => { const payload = JSON.parse(JSON.stringify($json)); delete payload._cacheStatus; return payload; })() }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -173,7 +173,7 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
       "position": [
-        1100,
+        1320,
         820
       ]
     },
@@ -225,6 +225,74 @@
       "position": [
         880,
         660
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const workflowStaticData = $getWorkflowStaticData('global');\nconst cacheStore = workflowStaticData.presscoCache || {};\nconst entry = cacheStore['getAffiliations_v1'];\n\nif (entry && entry.payload && Number(entry.expires_at || 0) > Date.now()) {\n  return [{ json: Object.assign({ _cacheStatus: 'HIT' }, entry.payload) }];\n}\n\nreturn [{ json: { _cacheStatus: 'MISS' } }];"
+      },
+      "id": "wf01-affiliations-cache-check",
+      "name": "Check Affiliations Cache",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._cacheStatus }}",
+                    "rightValue": "HIT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "cacheHit"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "wf01-affiliations-cache-switch",
+      "name": "Switch Affiliations Cache",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        660,
+        820
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const workflowStaticData = $getWorkflowStaticData('global');\nconst payload = $input.first().json;\n\nif (payload && payload.success) {\n  if (!workflowStaticData.presscoCache) {\n    workflowStaticData.presscoCache = {};\n  }\n  workflowStaticData.presscoCache['getAffiliations_v1'] = {\n    payload: JSON.parse(JSON.stringify(payload)),\n    cached_at: new Date().toISOString(),\n    expires_at: Date.now() + 3600000\n  };\n}\n\nreturn [{ json: payload }];"
+      },
+      "id": "wf01-affiliations-cache-store",
+      "name": "Store Affiliations Cache",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        820
       ]
     },
     {
@@ -373,7 +441,7 @@
       "main": [
         [
           {
-            "node": "NocoDB Get Affiliations",
+            "node": "Check Affiliations Cache",
             "type": "main",
             "index": 0
           }
@@ -409,7 +477,7 @@
       "main": [
         [
           {
-            "node": "Respond getAffiliations",
+            "node": "Store Affiliations Cache",
             "type": "main",
             "index": 0
           }
@@ -421,6 +489,46 @@
         [
           {
             "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check Affiliations Cache": {
+      "main": [
+        [
+          {
+            "node": "Switch Affiliations Cache",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Affiliations Cache": {
+      "main": [
+        [
+          {
+            "node": "Respond getAffiliations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB Get Affiliations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Store Affiliations Cache": {
+      "main": [
+        [
+          {
+            "node": "Respond getAffiliations",
             "type": "main",
             "index": 0
           }

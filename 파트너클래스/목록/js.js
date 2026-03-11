@@ -12,11 +12,26 @@
     /** n8n 웹훅 엔드포인트 (WF-01 클래스 API) */
     var GAS_URL = 'https://n8n.pressco21.com/webhook/class-api';
 
-    /** 캐시 유효 시간: 1시간 (밀리초) */
-    var CACHE_TTL = 60 * 60 * 1000;
+    /** 클래스 목록 캐시 유효 시간: 5분 (밀리초) */
+    var CATALOG_CACHE_TTL = 5 * 60 * 1000;
 
-    /** localStorage 캐시 키 접두사 */
-    var CACHE_PREFIX = 'classCatalog_';
+    /** 카테고리/협회 설정 캐시 유효 시간: 1시간 (밀리초) */
+    var SETTINGS_CACHE_TTL = 60 * 60 * 1000;
+
+    /** localStorage 클래스 캐시 키 접두사 */
+    var CATALOG_CACHE_PREFIX = 'classCatalog_';
+
+    /** localStorage 설정 캐시 키 접두사 */
+    var SETTINGS_CACHE_PREFIX = 'classSettings_';
+
+    /** 클래스 캐시 버전 키 */
+    var CATALOG_CACHE_VERSION_KEY = 'pressco21_catalog_cache_version';
+
+    /** 설정 캐시 버전 키 */
+    var SETTINGS_CACHE_VERSION_KEY = 'pressco21_catalog_settings_cache_version';
+
+    /** 초기 캐시 버전 */
+    var DEFAULT_CACHE_VERSION = 'v1';
 
     /** 페이지당 클래스 수 */
     var PAGE_LIMIT = 20;
@@ -159,7 +174,7 @@
 
         // 캐시 확인
         var cacheKey = buildCacheKey(filters);
-        var cached = getCached(cacheKey);
+        var cached = getCatalogCached(cacheKey);
         if (cached) {
             handleClassesResponse(cached);
             return;
@@ -220,7 +235,7 @@
 
                 if (data && data.success) {
                     // 캐시 저장
-                    setCache(cacheKey, data);
+                    setCatalogCache(cacheKey, data);
                     handleClassesResponse(data);
                 } else {
                     renderError();
@@ -294,7 +309,7 @@
      * 카테고리 목록 로드 (필터 동적 생성용)
      */
     function loadCategories() {
-        var cached = getCached('categories');
+        var cached = getSettingsCached('categories');
         if (cached) {
             renderCategoryFilters(cached);
             return;
@@ -314,7 +329,7 @@
                     var cats = data.data.map(function(c) {
                         return (typeof c === 'object' && c !== null) ? c.name : c;
                     });
-                    setCache('categories', cats);
+                    setSettingsCache('categories', cats);
                     renderCategoryFilters(cats);
                 }
             })
@@ -469,14 +484,32 @@
      * @param {string} key - 캐시 키
      * @returns {*|null} 캐시된 데이터 또는 null
      */
-    function getCached(key) {
+    function readCacheVersion(versionKey) {
         try {
-            var raw = localStorage.getItem(CACHE_PREFIX + key);
+            var version = localStorage.getItem(versionKey);
+            if (!version) {
+                version = DEFAULT_CACHE_VERSION;
+                localStorage.setItem(versionKey, version);
+            }
+            return version;
+        } catch (e) {
+            return DEFAULT_CACHE_VERSION;
+        }
+    }
+
+    function buildScopedCacheStorageKey(prefix, versionKey, key) {
+        return prefix + readCacheVersion(versionKey) + '_' + key;
+    }
+
+    function getScopedCached(prefix, versionKey, key, ttl) {
+        try {
+            var raw = localStorage.getItem(buildScopedCacheStorageKey(prefix, versionKey, key));
             if (!raw) return null;
 
             var entry = JSON.parse(raw);
-            if (Date.now() - entry.timestamp > CACHE_TTL) {
-                localStorage.removeItem(CACHE_PREFIX + key);
+            var effectiveTtl = entry.ttl || ttl;
+            if (Date.now() - entry.timestamp > effectiveTtl) {
+                localStorage.removeItem(buildScopedCacheStorageKey(prefix, versionKey, key));
                 return null;
             }
             return entry.data;
@@ -490,17 +523,36 @@
      * @param {string} key - 캐시 키
      * @param {*} data - 저장할 데이터
      */
-    function setCache(key, data) {
+    function setScopedCache(prefix, versionKey, key, data, ttl) {
         try {
             var entry = {
                 timestamp: Date.now(),
+                ttl: ttl,
                 data: data
             };
-            localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(entry));
+            localStorage.setItem(buildScopedCacheStorageKey(prefix, versionKey, key), JSON.stringify(entry));
         } catch (e) {
             // localStorage 용량 초과 시 기존 캐시 정리
-            clearExpiredCache();
+            clearExpiredCache(prefix, versionKey, ttl);
         }
+    }
+
+    function getCatalogCached(key) {
+        return getScopedCached(CATALOG_CACHE_PREFIX, CATALOG_CACHE_VERSION_KEY, key, CATALOG_CACHE_TTL);
+    }
+
+    function setCatalogCache(key, data) {
+        setScopedCache(CATALOG_CACHE_PREFIX, CATALOG_CACHE_VERSION_KEY, key, data, CATALOG_CACHE_TTL);
+        clearExpiredCache(CATALOG_CACHE_PREFIX, CATALOG_CACHE_VERSION_KEY, CATALOG_CACHE_TTL);
+    }
+
+    function getSettingsCached(key) {
+        return getScopedCached(SETTINGS_CACHE_PREFIX, SETTINGS_CACHE_VERSION_KEY, key, SETTINGS_CACHE_TTL);
+    }
+
+    function setSettingsCache(key, data) {
+        setScopedCache(SETTINGS_CACHE_PREFIX, SETTINGS_CACHE_VERSION_KEY, key, data, SETTINGS_CACHE_TTL);
+        clearExpiredCache(SETTINGS_CACHE_PREFIX, SETTINGS_CACHE_VERSION_KEY, SETTINGS_CACHE_TTL);
     }
 
     /**
@@ -531,16 +583,22 @@
     /**
      * 만료된 캐시 항목 정리
      */
-    function clearExpiredCache() {
+    function clearExpiredCache(prefix, versionKey, ttl) {
         try {
             var keysToRemove = [];
+            var activeVersionPrefix = prefix + readCacheVersion(versionKey) + '_';
             for (var i = 0; i < localStorage.length; i++) {
                 var key = localStorage.key(i);
-                if (key && key.indexOf(CACHE_PREFIX) === 0) {
+                if (key && key.indexOf(prefix) === 0) {
+                    if (key.indexOf(activeVersionPrefix) !== 0) {
+                        keysToRemove.push(key);
+                        continue;
+                    }
                     var raw = localStorage.getItem(key);
                     if (raw) {
                         var entry = JSON.parse(raw);
-                        if (Date.now() - entry.timestamp > CACHE_TTL) {
+                        var effectiveTtl = entry.ttl || ttl;
+                        if (Date.now() - entry.timestamp > effectiveTtl) {
                             keysToRemove.push(key);
                         }
                     }
@@ -799,7 +857,7 @@
         // 찜(관심) 하트 버튼
         html += '<button type="button" class="wishlist-btn" data-class-id="' + classId + '" '
             + 'aria-label="' + className + ' \uCC1C\uD558\uAE30">'
-            + '<svg class="wishlist-btn__icon" viewBox="0 0 18 18" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">'
+            + '<svg class="wishlist-btn__icon" viewBox="0 0 18 18" aria-hidden="true">'
             + '<path class="wishlist-btn__outline" d="M9 15.5s-6.5-4.35-6.5-8.18A3.32 3.32 0 0 1 5.82 4C7.2 4 8.35 4.82 9 5.96 9.65 4.82 10.8 4 12.18 4A3.32 3.32 0 0 1 15.5 7.32C15.5 11.15 9 15.5 9 15.5z" fill="none" stroke="currentColor" stroke-width="1.2"/>'
             + '<path class="wishlist-btn__filled" d="M9 15.5s-6.5-4.35-6.5-8.18A3.32 3.32 0 0 1 5.82 4C7.2 4 8.35 4.82 9 5.96 9.65 4.82 10.8 4 12.18 4A3.32 3.32 0 0 1 15.5 7.32C15.5 11.15 9 15.5 9 15.5z" fill="currentColor" stroke="currentColor" stroke-width="1.2" style="display:none"/>'
             + '</svg>'
@@ -904,14 +962,14 @@
      */
     function renderStars(rating) {
         var html = '';
-        var fullStarSvg = '<svg class="class-card__star class-card__star--filled" viewBox="0 0 14 14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">'
+        var fullStarSvg = '<svg class="class-card__star class-card__star--filled" viewBox="0 0 14 14" fill="currentColor">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/>'
             + '</svg>';
         /* 반별: defs를 개별 SVG에 넣지 않고, renderCards()에서 한 번 선언한 공유 gradient 참조 */
-        var halfStarSvg = '<svg class="class-card__star class-card__star--half" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">'
+        var halfStarSvg = '<svg class="class-card__star class-card__star--half" viewBox="0 0 14 14">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z" fill="url(#ccHalfStarGrad)"/>'
             + '</svg>';
-        var emptyStarSvg = '<svg class="class-card__star class-card__star--empty" viewBox="0 0 14 14" fill="currentColor" xmlns="http://www.w3.org/2000/svg">'
+        var emptyStarSvg = '<svg class="class-card__star class-card__star--empty" viewBox="0 0 14 14" fill="currentColor">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/>'
             + '</svg>';
 
@@ -2482,7 +2540,7 @@
         if (!grid) return;
 
         grid.innerHTML = '<div style="text-align:center;padding:60px 24px;grid-column:1/-1;">'
-            + '<svg width="64" height="64" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" style="opacity:0.3;margin-bottom:16px;">'
+            + '<svg width="64" height="64" viewBox="0 0 18 18" fill="none" style="opacity:0.3;margin-bottom:16px;">'
             + '<path d="M9 15.5s-6.5-4.35-6.5-8.18A3.32 3.32 0 0 1 5.82 4C7.2 4 8.35 4.82 9 5.96 9.65 4.82 10.8 4 12.18 4A3.32 3.32 0 0 1 15.5 7.32C15.5 11.15 9 15.5 9 15.5z" stroke="#999" stroke-width="1"/>'
             + '</svg>'
             + '<p style="font-size:15px;color:#333;font-weight:500;margin:0 0 6px;">'
@@ -2742,6 +2800,16 @@
         if (affilDataCache) {
             renderAffiliations(affilDataCache);
             renderBenefitsPanel(currentDisplayClasses, affilDataCache);
+            updateAffiliationBadges(affilDataCache);
+            return;
+        }
+
+        var cached = getSettingsCached('affiliations');
+        if (cached) {
+            affilDataCache = cached;
+            renderAffiliations(cached);
+            renderBenefitsPanel(currentDisplayClasses, cached);
+            updateAffiliationBadges(cached);
             return;
         }
 
@@ -2766,18 +2834,10 @@
                 if (loading) loading.style.display = 'none';
                 if (data && data.success && data.data) {
                     affilDataCache = data.data;
+                    setSettingsCache('affiliations', data.data);
                     renderAffiliations(data.data);
                     renderBenefitsPanel(currentDisplayClasses, data.data);
-                    // 뱃지 업데이트
-                    var badge = document.getElementById('affilBadge');
-                    var benefitBadge = document.getElementById('benefitBadge');
-                    var benefitCount = buildBenefitItems(currentDisplayClasses, data.data).length;
-                    if (badge) {
-                        badge.textContent = data.total > 0 ? data.total : '';
-                    }
-                    if (benefitBadge) {
-                        benefitBadge.textContent = benefitCount > 0 ? benefitCount : '';
-                    }
+                    updateAffiliationBadges(data.data);
                 } else {
                     if (empty) empty.style.display = '';
                 }
@@ -2787,6 +2847,19 @@
                 if (empty) empty.style.display = '';
                 console.error('[ClassCatalog] 협회 API 호출 실패:', err);
             });
+    }
+
+    function updateAffiliationBadges(affiliations) {
+        var badge = document.getElementById('affilBadge');
+        var benefitBadge = document.getElementById('benefitBadge');
+        var benefitCount = buildBenefitItems(currentDisplayClasses, affiliations).length;
+
+        if (badge) {
+            badge.textContent = affiliations && affiliations.length > 0 ? affiliations.length : '';
+        }
+        if (benefitBadge) {
+            benefitBadge.textContent = benefitCount > 0 ? benefitCount : '';
+        }
     }
 
     /**

@@ -25,6 +25,12 @@
     /** localStorage 캐시 키 접두사 */
     var CACHE_PREFIX = 'classDetail_';
 
+    /** 목록 캐시 키 접두사 */
+    var CATALOG_CACHE_PREFIX = 'classCatalog_';
+
+    /** 목록 캐시 버전 키 */
+    var CATALOG_CACHE_VERSION_KEY = 'pressco21_catalog_cache_version';
+
     /** 최소 인원 */
     var MIN_QUANTITY = 1;
 
@@ -286,6 +292,35 @@
             for (var j = 0; j < keysToRemove.length; j++) {
                 localStorage.removeItem(keysToRemove[j]);
             }
+        } catch (e) { /* 무시 */ }
+    }
+
+    function clearStorageByPrefix(prefix) {
+        try {
+            var keysToRemove = [];
+            for (var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                if (key && key.indexOf(prefix) === 0) {
+                    keysToRemove.push(key);
+                }
+            }
+            for (var j = 0; j < keysToRemove.length; j++) {
+                localStorage.removeItem(keysToRemove[j]);
+            }
+        } catch (e) { /* 무시 */ }
+    }
+
+    function invalidateDetailCache(classId) {
+        if (!classId) return;
+        try {
+            localStorage.removeItem(CACHE_PREFIX + classId);
+        } catch (e) { /* 무시 */ }
+    }
+
+    function invalidateCatalogCaches() {
+        clearStorageByPrefix(CATALOG_CACHE_PREFIX);
+        try {
+            localStorage.setItem(CATALOG_CACHE_VERSION_KEY, String(Date.now()));
         } catch (e) { /* 무시 */ }
     }
 
@@ -1440,7 +1475,7 @@
         for (var i = 1; i <= 5; i++) {
             html += '<button type="button" class="star-rating__btn" data-value="' + i + '" '
                 + 'aria-label="' + i + '\uC810" role="radio" aria-checked="false">'
-                + '<svg class="star-rating__icon" width="28" height="28" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">'
+                + '<svg class="star-rating__icon" width="28" height="28" viewBox="0 0 14 14">'
                 + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/>'
                 + '</svg></button>';
         }
@@ -1699,7 +1734,8 @@
         if (!classId) return;
 
         // 캐시 무효화
-        try { localStorage.removeItem(CACHE_PREFIX + classId); } catch (e) { /* 무시 */ }
+        invalidateDetailCache(classId);
+        invalidateCatalogCaches();
 
         // 재요청
         fetch(GAS_URL, {
@@ -2178,6 +2214,8 @@
             if (!resData || !resData.success) {
                 console.warn('[Booking] WF-04 \uc2e4\ud328, \ud3f4\ubc31 \uc774\ub3d9:', resData);
             }
+            invalidateDetailCache(bookingData.class_id);
+            invalidateCatalogCaches();
             alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
             goToCheckout(info.brandUid, info.participants, info.productName, info.brandCode, info.xCode, info.mCode);
         })
@@ -2186,6 +2224,8 @@
             if (mobileBtn) mobileBtn.disabled = false;
             // 네트워크 오류 -> 폴백으로 결제 페이지 이동
             console.warn('[Booking] \ub124\ud2b8\uc6cc\ud06c \uc624\ub958, \ud3f4\ubc31 \uc774\ub3d9:', err);
+            invalidateDetailCache(bookingData.class_id);
+            invalidateCatalogCaches();
             alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
             goToCheckout(info.brandUid, info.participants, info.productName, info.brandCode, info.xCode, info.mCode);
         });
@@ -2930,11 +2970,11 @@
         var w = size || 16;
 
         // 별점 색상: filled=#b89b5e(골드), empty=#e0e0e0
-        var fullSvg = '<svg class="' + cssClass + ' ' + cssClass + '--filled" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="#b89b5e" xmlns="http://www.w3.org/2000/svg">'
+        var fullSvg = '<svg class="' + cssClass + ' ' + cssClass + '--filled" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="#b89b5e">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
-        var halfSvg = '<svg class="' + cssClass + ' ' + cssClass + '--half" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">'
+        var halfSvg = '<svg class="' + cssClass + ' ' + cssClass + '--half" width="' + w + '" height="' + w + '" viewBox="0 0 14 14">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z" fill="url(#cdHalfStarGrad)"/></svg>';
-        var emptySvg = '<svg class="' + cssClass + ' ' + cssClass + '--empty" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="#e0e0e0" xmlns="http://www.w3.org/2000/svg">'
+        var emptySvg = '<svg class="' + cssClass + ' ' + cssClass + '--empty" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="#e0e0e0">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
 
         for (var i = 1; i <= 5; i++) {
@@ -3136,7 +3176,7 @@
                 var errorEl = document.getElementById('detailError');
                 if (errorEl) errorEl.style.display = 'none';
                 // 캐시 제거 후 재시도
-                try { localStorage.removeItem(CACHE_PREFIX + classId); } catch (e) { /* 무시 */ }
+                invalidateDetailCache(classId);
                 fetchClassDetail(classId);
             });
         }

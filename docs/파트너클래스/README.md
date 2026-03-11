@@ -80,6 +80,8 @@
   - S2-6 기준 월간 리포트, 연속 배지, 후기 감사 메시지, 수강 완료/휴면 자동화 WF와 검증 결과 정리
 - `partner-churn-monitor-guide.md`
   - S2-7 기준 `last_active_at` 갱신, 주간 파트너 이탈 감지 WF, 이메일 로그 스키마 보정, dry run/Playwright 검증 결과 정리
+- `cache-layering-guide.md`
+  - S2-8 기준 목록 5분 cache, 설정 1시간 cache, 상세 액션 후 version key 무효화, WF-01A/C staticData cache 검증 결과 정리
 
 ### QA / 검증
 

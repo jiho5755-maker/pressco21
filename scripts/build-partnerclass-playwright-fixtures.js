@@ -22,7 +22,9 @@ var pages = [
         css: path.join(repoRoot, '파트너클래스', '상세', 'css.css'),
         js: path.join(repoRoot, '파트너클래스', '상세', 'js.js'),
         output: path.join(outputDir, 'detail.html'),
-        replacements: []
+        replacements: [
+            { from: '<!--/user_id/-->', to: 'member-test-001' }
+        ]
     },
     {
         key: 'mypage',

@@ -50,22 +50,60 @@
 ## Session Lock
 
 - Current Owner: CODEX
-- Mode: WRITE
+- Mode: IDLE
 - Started At: 2026-03-11 12:05:34 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S2-7 파트너 이탈 감지 자동화 정리 후 S2-8 3계층 캐싱 착수 준비
+- Working Scope: [CODEX-LEAD] 파트너클래스 S2-8 완료, 다음 태스크 S2-9 준비
 - Active Subdirectory: pressco21/파트너클래스
 
 ## Files In Progress
-- `파트너클래스/n8n-workflows/WF-02-partner-auth-api.json`
-- `파트너클래스/n8n-workflows/WF-CHURN-partner-risk-monitor.json`
-- `scripts/server/partnerclass-s2-7-add-last-active-field.sh`
-- `scripts/partnerclass-s2-7-patch-partner-auth.js`
-- `scripts/partnerclass-s2-7-generate-churn-workflow.js`
-- `scripts/partnerclass-s2-7-deploy-workflows.js`
-- `scripts/partnerclass-s2-7-churn-runner.js`
-- `docs/파트너클래스/partner-churn-monitor-guide.md`
-- `ROADMAP.md`
+- 없음
+
+### [CODEX-LEAD] Phase 3 S2-8 3계층 캐싱 도입 완료 (CODEX)
+- 프론트
+  - `파트너클래스/목록/js.js`
+    - 목록 `5분`, 카테고리/협회 `1시간` cache 분리
+    - `classCatalog_*`, `classSettings_*`, version key(`pressco21_catalog_cache_version`, `pressco21_catalog_settings_cache_version`) 도입
+    - `getAffiliations` localStorage cache 추가
+  - `파트너클래스/상세/js.js`
+    - 후기/예약 성공 시 상세 cache 삭제 + 목록 cache prefix 삭제 + catalog version key 갱신
+- 워크플로우 / 스크립트
+  - `scripts/partnerclass-s2-4-generate-wf01-split.js`
+    - split generator 기본 source 를 `WF-01A/B/C + router` 개별 파일 기준으로 재정렬
+    - `WF-01A getCategories`, `WF-01C getAffiliations` 에 `Check Cache -> Switch Cache -> Store Cache` 구조 추가
+    - cache 분기는 `IF` 대신 `Switch(HIT/MISS)` 로 안정화
+  - `파트너클래스/n8n-workflows/WF-01A-class-read.json`
+  - `파트너클래스/n8n-workflows/WF-01C-affiliation-read.json`
+  - `scripts/build-partnerclass-playwright-fixtures.js`
+    - detail fixture `user_id` 치환 추가
+  - `scripts/partnerclass-s2-8-cache-runner.js`
+- 문서 / 메모리
+  - `docs/파트너클래스/cache-layering-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/n8n-debugger/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- 검증
+  - 메이크샵 정적 검증:
+    - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/목록/js.js 파트너클래스/상세/js.js`
+  - 로컬 Playwright:
+    - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s2-8-cache-runner.js`
+    - 결과: `output/playwright/s2-8-cache/cache-results.json`, `cache-flow.png`
+    - 확인값:
+      - 첫 목록 진입 `getClassesList=1`, `getCategories=1`
+      - 재진입 시 추가 호출 없음
+      - 협회 탭 첫 진입 `getAffiliations=1`, 재진입 시 추가 호출 없음
+      - 상세 후기 등록 후 `catalogVersion` 갱신 + `classCatalog_*` 삭제
+      - TTL 강제 만료 후 `getClassesList/getCategories/getAffiliations` 각각 재호출
+  - 라이브 n8n:
+    - `node scripts/partnerclass-s2-4-deploy-wf01-split.js`
+    - `POST /webhook/class-api-read { action: "getCategories" }` 정상
+    - `POST /webhook/class-api-affiliation { action: "getAffiliations" }` 정상
+    - `POST /webhook/class-api { action: "getCategories" | "getAffiliations" }` 정상
+    - execution log 기준 warm miss 1회 후 cache-hit branch only 확인
+      - categories miss `49046`, hit `49047`, `49051`
+      - affiliations miss `49048`, hit `49049`, `49053`
 
 ### [CODEX-LEAD] Phase 3 S2-7 파트너 이탈 감지 자동화 1차 완료 (CODEX)
 - 워크플로우 / 스크립트
@@ -1639,7 +1677,7 @@
 
 #### 현재 다음 태스크
 
-- `S2-8 3계층 캐싱 도입`
+- `S2-9 키트 연동 Step 2 — 묶음 키트 + 선택형`
 - `S2-7 파트너 이탈 감지 자동화` 는 구현/검증 완료, 운영 SMTP + Telegram chat_id blocker 해소 시 최종 수락 기준 닫기
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
@@ -1737,6 +1775,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S2-1 파트너 신청 세일즈 랜딩(2609)은 로컬 fixture 기준으로 CTA/반응형이 검증됐지만, 메이크샵 디자인편집기 실배포 후 라이브 스크롤과 모바일 하단 고정 CTA를 다시 확인해야 함
 - S2-2 협회 제안서 페이지와 어드민 URL 생성기는 로컬 fixture 기준으로 검증됐지만, 실배포 전까지는 실제 MakeShop page id가 없어서 라이브 URL은 확정되지 않음
 - S2-3 전국 탐색 IA 확장은 로컬 fixture + Playwright 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 전까지는 실제 2606/2607 페이지와 `/partnermap` 실자산 연동을 라이브에서 다시 확인해야 함
+- S2-8 목록/상세 캐시 분리와 version key 무효화는 로컬 fixture + 라이브 n8n 기준으로 검증됐지만, 메이크샵 디자인편집기 실배포 전까지는 실제 2606/2607 페이지에서 같은 브라우저 복귀 동작을 한 번 더 확인해야 함
 - S2-4 분리 후 `getSchedules / getRemainingSeats` 는 운영에서 준비 완료됐지만, 아직 프론트 호출처는 없다. S2-5 이후 콘텐츠/협회 read action 추가 시 `WF-01C` 또는 별도 WF 로 확장 방향을 유지해야 한다.
 - S2-6 리텐션 자동화는 dry run 과 스케줄 경로 기준으로는 검증됐지만, 운영 레거시 완료 예약 일부에 `student_email`, `student_name` 이 비어 있어 실제 발송 대상 수가 `skip` 으로 잡히는 상태다.
 - S2-6 `student-retention` 웹훅은 수동 실호출 시 `200` 빈 본문 케이스가 남아 있어, 현재 운영 기준선은 dry run 응답과 예약 실행 로그다.

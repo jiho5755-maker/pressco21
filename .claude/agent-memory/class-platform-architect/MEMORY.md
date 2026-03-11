@@ -119,6 +119,18 @@
 - 로컬 fixture 빌더는 이제 `affiliation-proposal.html` 도 조립하므로 협회 제안서도 배포 전 Playwright 검증이 가능하다.
 - 운영 기준 문서는 `docs/파트너클래스/affiliation-b2b-proposal-tool-guide.md` 이다.
 
+## 2026-03-11 S2-8 3계층 캐시 구조 확정
+
+- 목록 읽기 성능은 `L1 localStorage + L2 n8n staticData + L3 NocoDB` 3계층으로 고정한다.
+- 브라우저 캐시는 하나로 뭉개지 않고 `classCatalog_*` 와 `classSettings_*` 로 분리한다.
+- TTL 기준:
+  - 목록 `5분`
+  - 카테고리/협회 설정 `1시간`
+- 상세 페이지에서 데이터가 바뀌는 액션(후기/예약)이 끝나면 `pressco21_catalog_cache_version` 을 갱신해 목록 캐시를 강제로 새로 읽게 한다.
+- `WF-01A` 는 `getCategories`, `WF-01C` 는 `getAffiliations` 만 staticData cache 대상이다.
+- 라이브 검증 기준은 `응답 정상 + warm miss 1회 후 cache-hit branch only` 이다.
+- 운영 기준 문서는 `docs/파트너클래스/cache-layering-guide.md` 이다.
+
 ## 2026-03-11 S2-3 전국 탐색 IA 구조 확정
 
 - 목록 2606은 이제 `전체 클래스 / 협회·세미나 / 혜택·이벤트` 3탭 구조로 본다.

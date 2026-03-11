@@ -91,6 +91,25 @@
 - Telegram 실패는 현재 응답 본문을 더 이상 오염시키지 않아야 한다.
 - 실제 산출물은 `output/playwright/s2-7-partner-churn/churn-results.json` 이다.
 
+## 2026-03-11 S2-8 3계층 캐시 검증 메모
+
+- 이 태스크는 `로컬 Playwright fixture 검증 + 라이브 WF execution path 검증` 2단으로 보는 편이 가장 정확하다.
+- 로컬 최소 통과 세트:
+  - 첫 목록 진입 `getClassesList=1`, `getCategories=1`
+  - 같은 목록 재진입 시 추가 호출 없음
+  - 협회 탭 첫 진입 `getAffiliations=1`
+  - 같은 협회 탭 재진입 시 추가 호출 없음
+  - 상세 후기 등록 후 `catalogVersion` 변경 + `classCatalog_*` 비움
+  - TTL 강제 만료 후 `getClassesList/getCategories/getAffiliations` 각각 1회씩 재호출
+- 로컬 산출물:
+  - `output/playwright/s2-8-cache/cache-results.json`
+  - `output/playwright/s2-8-cache/cache-flow.png`
+- 라이브 최소 통과 세트:
+  - `POST /webhook/class-api-read { action: "getCategories" }` 정상 JSON
+  - `POST /webhook/class-api-affiliation { action: "getAffiliations" }` 정상 JSON
+  - 실행 로그에서 warm miss 1회 후 cache-hit branch only 확인
+- 이 환경에서는 workflow API의 staticData 조회보다 execution runData path 검증이 더 신뢰할 만하다.
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

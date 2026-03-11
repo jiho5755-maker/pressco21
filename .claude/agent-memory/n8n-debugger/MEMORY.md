@@ -56,3 +56,14 @@ curl -s -X POST https://n8n.pressco21.com/webhook/class-api \
 - 2026-03-11 기준 운영 blocker:
   - `PRESSCO21 SMTP` → `535 Username and Password not accepted`
   - `TELEGRAM_CHAT_ID` 비어 있음
+
+## 2026-03-11 S2-8 WF-01 캐시 디버깅 메모
+
+- `WF-01A/WF-01C` cache 분기에서 `IF` 노드 boolean 비교는 miss payload `{}` 를 true branch 로 보내는 이상 동작이 있었다.
+- cache hit 판정은 `IF` 대신 `Switch` 로 `HIT/MISS` 문자열을 나누는 편이 안정적이다.
+- cache check code node 는 hit 시 `_cacheStatus: 'HIT' + payload`, miss 시 `_cacheStatus: 'MISS'` 만 내보낸다.
+- 외부 응답 본문에는 `_cacheStatus` 를 남기지 말고 `Respond to Webhook` 의 `responseBody` 표현식에서 제거한다.
+- `GET /api/v1/workflows/{id}` 응답에서는 staticData 가 비어 보일 수 있다. 이 환경에서는 `executions?includeData=true` 의 node path 로 cache hit 여부를 확인하는 편이 정확했다.
+- 라이브 검증 기준:
+  - warm miss 1회: `NocoDB Get ... -> Store ... Cache`
+  - 이후 hit: `Check Cache -> Switch Cache -> Respond` 만 실행

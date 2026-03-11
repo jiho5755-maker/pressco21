@@ -5,19 +5,37 @@ var fs = require('fs');
 var path = require('path');
 
 var REPO_ROOT = path.resolve(__dirname, '..');
-var DEFAULT_SOURCE = path.join(REPO_ROOT, '파트너클래스', 'n8n-workflows', 'WF-01-class-api.json');
+var DEFAULT_CLASS_SOURCE = path.join(REPO_ROOT, '파트너클래스', 'n8n-workflows', 'WF-01A-class-read.json');
+var DEFAULT_SCHEDULE_SOURCE = path.join(REPO_ROOT, '파트너클래스', 'n8n-workflows', 'WF-01B-schedule-read.json');
+var DEFAULT_AFFILIATION_SOURCE = path.join(REPO_ROOT, '파트너클래스', 'n8n-workflows', 'WF-01C-affiliation-read.json');
+var DEFAULT_ROUTER_SOURCE = path.join(REPO_ROOT, '파트너클래스', 'n8n-workflows', 'WF-01-class-api.json');
 var DEFAULT_TARGET_DIR = path.join(REPO_ROOT, '파트너클래스', 'n8n-workflows');
 
 function parseArgs(argv) {
     var result = {
-        source: DEFAULT_SOURCE,
+        classSource: DEFAULT_CLASS_SOURCE,
+        scheduleSource: DEFAULT_SCHEDULE_SOURCE,
+        affiliationSource: DEFAULT_AFFILIATION_SOURCE,
+        routerSource: DEFAULT_ROUTER_SOURCE,
         targetDir: DEFAULT_TARGET_DIR
     };
     var i;
 
     for (i = 2; i < argv.length; i += 1) {
         if (argv[i] === '--source' && argv[i + 1]) {
-            result.source = path.resolve(argv[i + 1]);
+            result.classSource = path.resolve(argv[i + 1]);
+            i += 1;
+        } else if (argv[i] === '--class-source' && argv[i + 1]) {
+            result.classSource = path.resolve(argv[i + 1]);
+            i += 1;
+        } else if (argv[i] === '--schedule-source' && argv[i + 1]) {
+            result.scheduleSource = path.resolve(argv[i + 1]);
+            i += 1;
+        } else if (argv[i] === '--affiliation-source' && argv[i + 1]) {
+            result.affiliationSource = path.resolve(argv[i + 1]);
+            i += 1;
+        } else if (argv[i] === '--router-source' && argv[i + 1]) {
+            result.routerSource = path.resolve(argv[i + 1]);
             i += 1;
         } else if (argv[i] === '--target-dir' && argv[i + 1]) {
             result.targetDir = path.resolve(argv[i + 1]);
@@ -116,6 +134,153 @@ function setResponseHeaders(node, allowOrigin) {
     };
 }
 
+function buildWebhookActionRule(action, outputKey) {
+    return {
+        conditions: {
+            options: {
+                version: 2,
+                leftValue: '',
+                caseSensitive: true,
+                typeValidation: 'loose'
+            },
+            combinator: 'and',
+            conditions: [
+                {
+                    leftValue: '={{ ($json.body && $json.body.action) || $json.action || "" }}',
+                    rightValue: action,
+                    operator: {
+                        type: 'string',
+                        operation: 'equals'
+                    }
+                }
+            ]
+        },
+        renameOutput: true,
+        outputKey: outputKey
+    };
+}
+
+function buildWorkflowCacheCheckNode(name, id, cacheKey, position) {
+    return {
+        parameters: {
+            jsCode: [
+                'const workflowStaticData = $getWorkflowStaticData(\'global\');',
+                'const cacheStore = workflowStaticData.presscoCache || {};',
+                'const entry = cacheStore[\'' + cacheKey + '\'];',
+                '',
+                'if (entry && entry.payload && Number(entry.expires_at || 0) > Date.now()) {',
+                '  return [{ json: Object.assign({ _cacheStatus: \'HIT\' }, entry.payload) }];',
+                '}',
+                '',
+                'return [{ json: { _cacheStatus: \'MISS\' } }];'
+            ].join('\n')
+        },
+        id: id,
+        name: name,
+        type: 'n8n-nodes-base.code',
+        typeVersion: 2,
+        position: position
+    };
+}
+
+function buildCacheStatusSwitchNode(name, id, position) {
+    return {
+        parameters: {
+            rules: {
+                values: [
+                    {
+                        conditions: {
+                            options: {
+                                version: 2,
+                                leftValue: '',
+                                caseSensitive: true,
+                                typeValidation: 'loose'
+                            },
+                            combinator: 'and',
+                            conditions: [
+                                {
+                                    leftValue: '={{ $json._cacheStatus }}',
+                                    rightValue: 'HIT',
+                                    operator: {
+                                        type: 'string',
+                                        operation: 'equals'
+                                    }
+                                }
+                            ]
+                        },
+                        renameOutput: true,
+                        outputKey: 'cacheHit'
+                    }
+                ]
+            },
+            options: {
+                fallbackOutput: 'extra'
+            }
+        },
+        id: id,
+        name: name,
+        type: 'n8n-nodes-base.switch',
+        typeVersion: 3.2,
+        position: position
+    };
+}
+
+function buildWorkflowCacheStoreNode(name, id, cacheKey, ttlMs, position) {
+    return {
+        parameters: {
+            jsCode: [
+                'const workflowStaticData = $getWorkflowStaticData(\'global\');',
+                'const payload = $input.first().json;',
+                '',
+                'if (payload && payload.success) {',
+                '  if (!workflowStaticData.presscoCache) {',
+                '    workflowStaticData.presscoCache = {};',
+                '  }',
+                '  workflowStaticData.presscoCache[\'' + cacheKey + '\'] = {',
+                '    payload: JSON.parse(JSON.stringify(payload)),',
+                '    cached_at: new Date().toISOString(),',
+                '    expires_at: Date.now() + ' + String(ttlMs),
+                '  };',
+                '}',
+                '',
+                'return [{ json: payload }];'
+            ].join('\n')
+        },
+        id: id,
+        name: name,
+        type: 'n8n-nodes-base.code',
+        typeVersion: 2,
+        position: position
+    };
+}
+
+function buildBooleanIfNode(name, id, leftValue, position) {
+    return {
+        parameters: {
+            conditions: {
+                options: {
+                    caseSensitive: true
+                },
+                conditions: [
+                    {
+                        leftValue: leftValue,
+                        rightValue: true,
+                        operator: {
+                            type: 'boolean',
+                            operation: 'equals'
+                        }
+                    }
+                ]
+            }
+        },
+        id: id,
+        name: name,
+        type: 'n8n-nodes-base.if',
+        typeVersion: 2,
+        position: position
+    };
+}
+
 function buildClassReadWorkflow(source, nodeMap) {
     var names = [
         'Webhook',
@@ -141,10 +306,14 @@ function buildClassReadWorkflow(source, nodeMap) {
         'Unknown Action Error',
         'Respond Error'
     ];
-    var workflow = buildBaseWorkflow('WF-01A Class Read API', '', source.settings);
+    var workflow = buildBaseWorkflow('WF-01A Class Read API', source.id || '', source.settings);
     var nodes = pickNodes(nodeMap, names);
+    var checkCategoriesCacheNode = buildWorkflowCacheCheckNode('Check Categories Cache', 'wf01-categories-cache-check', 'getCategories_v1', [460, 500]);
+    var categoriesCacheSwitchNode = buildCacheStatusSwitchNode('Switch Categories Cache', 'wf01-categories-cache-switch', [660, 500]);
+    var storeCategoriesCacheNode = buildWorkflowCacheStoreNode('Store Categories Cache', 'wf01-categories-cache-store', 'getCategories_v1', 60 * 60 * 1000, [1100, 500]);
     var webhookNode;
     var switchNode;
+    var respondCategoriesNode;
 
     workflow.nodes = nodes;
     workflow.connections = pickConnections(source, names);
@@ -159,13 +328,37 @@ function buildClassReadWorkflow(source, nodeMap) {
         return node.name === 'Switch Action';
     });
     switchNode.parameters.rules.values = switchNode.parameters.rules.values.slice(0, 3);
+    switchNode.parameters.options = switchNode.parameters.options || { fallbackOutput: 'extra' };
+    workflow.nodes.push(checkCategoriesCacheNode, categoriesCacheSwitchNode, storeCategoriesCacheNode);
+    respondCategoriesNode = workflow.nodes.find(function (node) {
+        return node.name === 'Respond getCategories';
+    });
+    if (respondCategoriesNode) {
+        respondCategoriesNode.position = [1320, 500];
+        respondCategoriesNode.parameters.responseBody = '={{ (() => { const payload = JSON.parse(JSON.stringify($json)); delete payload._cacheStatus; return payload; })() }}';
+    }
     workflow.connections['Switch Action'] = {
         main: [
             [{ node: 'Parse getClasses Params', type: 'main', index: 0 }],
             [{ node: 'Parse getClassDetail Params', type: 'main', index: 0 }],
-            [{ node: 'NocoDB Get Active Classes (Categories)', type: 'main', index: 0 }],
+            [{ node: 'Check Categories Cache', type: 'main', index: 0 }],
             [{ node: 'Unknown Action Error', type: 'main', index: 0 }]
         ]
+    };
+    workflow.connections['Check Categories Cache'] = {
+        main: [[{ node: 'Switch Categories Cache', type: 'main', index: 0 }]]
+    };
+    workflow.connections['Switch Categories Cache'] = {
+        main: [
+            [{ node: 'Respond getCategories', type: 'main', index: 0 }],
+            [{ node: 'NocoDB Get Active Classes (Categories)', type: 'main', index: 0 }]
+        ]
+    };
+    workflow.connections['Aggregate Categories'] = {
+        main: [[{ node: 'Store Categories Cache', type: 'main', index: 0 }]]
+    };
+    workflow.connections['Store Categories Cache'] = {
+        main: [[{ node: 'Respond getCategories', type: 'main', index: 0 }]]
     };
 
     workflow.nodes.forEach(function (node) {
@@ -187,10 +380,14 @@ function buildAffiliationReadWorkflow(source, nodeMap) {
         'Unknown Action Error',
         'Respond Error'
     ];
-    var workflow = buildBaseWorkflow('WF-01C Affiliation Read API', '', source.settings);
+    var workflow = buildBaseWorkflow('WF-01C Affiliation Read API', source.id || '', source.settings);
     var nodes = pickNodes(nodeMap, names);
+    var checkAffiliationsCacheNode = buildWorkflowCacheCheckNode('Check Affiliations Cache', 'wf01-affiliations-cache-check', 'getAffiliations_v1', [460, 820]);
+    var affiliationsCacheSwitchNode = buildCacheStatusSwitchNode('Switch Affiliations Cache', 'wf01-affiliations-cache-switch', [660, 820]);
+    var storeAffiliationsCacheNode = buildWorkflowCacheStoreNode('Store Affiliations Cache', 'wf01-affiliations-cache-store', 'getAffiliations_v1', 60 * 60 * 1000, [1100, 820]);
     var webhookNode;
     var switchNode;
+    var respondAffiliationsNode;
 
     workflow.nodes = nodes;
     workflow.connections = pickConnections(source, names);
@@ -205,31 +402,18 @@ function buildAffiliationReadWorkflow(source, nodeMap) {
         return node.name === 'Switch Action';
     });
     switchNode.parameters.rules.values = [
-        clone(switchNode.parameters.rules.values[3]),
-        {
-            conditions: {
-                options: {
-                    version: 2,
-                    leftValue: '',
-                    caseSensitive: true,
-                    typeValidation: 'loose'
-                },
-                combinator: 'and',
-                conditions: [
-                    {
-                        leftValue: '={{ $json.body.action }}',
-                        rightValue: 'getContentHub',
-                        operator: {
-                            type: 'string',
-                            operation: 'equals'
-                        }
-                    }
-                ]
-            },
-            renameOutput: true,
-            outputKey: 'getContentHub'
-        }
+        buildWebhookActionRule('getAffiliations', 'getAffiliations'),
+        buildWebhookActionRule('getContentHub', 'getContentHub')
     ];
+    switchNode.parameters.options = switchNode.parameters.options || { fallbackOutput: 'extra' };
+    workflow.nodes.push(checkAffiliationsCacheNode, affiliationsCacheSwitchNode, storeAffiliationsCacheNode);
+    respondAffiliationsNode = workflow.nodes.find(function (node) {
+        return node.name === 'Respond getAffiliations';
+    });
+    if (respondAffiliationsNode) {
+        respondAffiliationsNode.position = [1320, 820];
+        respondAffiliationsNode.parameters.responseBody = '={{ (() => { const payload = JSON.parse(JSON.stringify($json)); delete payload._cacheStatus; return payload; })() }}';
+    }
 
     workflow.nodes.push(
         {
@@ -595,10 +779,25 @@ function buildAffiliationReadWorkflow(source, nodeMap) {
 
     workflow.connections['Switch Action'] = {
         main: [
-            [{ node: 'NocoDB Get Affiliations', type: 'main', index: 0 }],
+            [{ node: 'Check Affiliations Cache', type: 'main', index: 0 }],
             [{ node: 'NocoDB Get Content Classes', type: 'main', index: 0 }],
             [{ node: 'Unknown Action Error', type: 'main', index: 0 }]
         ]
+    };
+    workflow.connections['Check Affiliations Cache'] = {
+        main: [[{ node: 'Switch Affiliations Cache', type: 'main', index: 0 }]]
+    };
+    workflow.connections['Switch Affiliations Cache'] = {
+        main: [
+            [{ node: 'Respond getAffiliations', type: 'main', index: 0 }],
+            [{ node: 'NocoDB Get Affiliations', type: 'main', index: 0 }]
+        ]
+    };
+    workflow.connections['Format Affiliations'] = {
+        main: [[{ node: 'Store Affiliations Cache', type: 'main', index: 0 }]]
+    };
+    workflow.connections['Store Affiliations Cache'] = {
+        main: [[{ node: 'Respond getAffiliations', type: 'main', index: 0 }]]
     };
     workflow.connections['NocoDB Get Content Classes'] = {
         main: [[{ node: 'NocoDB Get Content Partners', type: 'main', index: 0 }]]
@@ -620,7 +819,7 @@ function buildAffiliationReadWorkflow(source, nodeMap) {
 }
 
 function buildScheduleReadWorkflow(source) {
-    var workflow = buildBaseWorkflow('WF-01B Schedule Read API', '', source.settings);
+    var workflow = buildBaseWorkflow('WF-01B Schedule Read API', source.id || '', source.settings);
 
     workflow.nodes = [
         {
@@ -1262,12 +1461,14 @@ function buildRouterWorkflow(source) {
 
 function main() {
     var args = parseArgs(process.argv);
-    var source = readJson(args.source);
-    var nodeMap = indexNodes(source);
-    var classReadWorkflow = buildClassReadWorkflow(source, nodeMap);
-    var scheduleReadWorkflow = buildScheduleReadWorkflow(source);
-    var affiliationReadWorkflow = buildAffiliationReadWorkflow(source, nodeMap);
-    var routerWorkflow = buildRouterWorkflow(source);
+    var classSource = readJson(args.classSource);
+    var scheduleSource = readJson(args.scheduleSource);
+    var affiliationSource = readJson(args.affiliationSource);
+    var routerSource = readJson(args.routerSource);
+    var classReadWorkflow = buildClassReadWorkflow(classSource, indexNodes(classSource));
+    var scheduleReadWorkflow = buildScheduleReadWorkflow(scheduleSource);
+    var affiliationReadWorkflow = buildAffiliationReadWorkflow(affiliationSource, indexNodes(affiliationSource));
+    var routerWorkflow = buildRouterWorkflow(routerSource);
 
     if (!fs.existsSync(args.targetDir)) {
         fs.mkdirSync(args.targetDir, { recursive: true });

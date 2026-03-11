@@ -102,6 +102,17 @@ interface RefundPendingEntry {
   refundPendingAmount: number
 }
 
+interface OutgoingLedgerEntry {
+  key: string
+  customerId: number | null
+  customerName: string
+  amount: number
+  kind: 'payable' | 'refund'
+  note: string
+  bookName?: string
+  customer?: Customer
+}
+
 // ─── 입금 확인 다이얼로그 ───────────────────────
 interface PaymentDialogProps {
   invoice: Invoice | null
@@ -994,6 +1005,7 @@ interface ReceivablesProps {
 // ─── 수금/지급 관리 메인 ───────────────────────────
 export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const navigate = useNavigate()
+  const isPayableMode = mode === 'payable'
   const [searchParams, setSearchParams] = useSearchParams()
   const [paymentTarget, setPaymentTarget] = useState<Invoice | null>(null)
   const [legacyPaymentTarget, setLegacyPaymentTarget] = useState<LegacyPaymentTarget | null>(null)
@@ -1003,8 +1015,12 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const [customerIdFilter, setCustomerIdFilter] = useState(() => searchParams.get('customerId') ?? '')
   const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy' | 'payable' | 'refund'>(() => {
     const tab = searchParams.get('tab')
+    if (isPayableMode) {
+      if (tab === 'payable' || tab === 'refund' || tab === 'all') return tab
+      return 'all'
+    }
     if (tab === 'crm' || tab === 'legacy' || tab === 'payable' || tab === 'refund' || tab === 'all') return tab
-    return mode === 'payable' ? 'payable' : 'all'
+    return 'all'
   })
   const [asOfDate, setAsOfDate] = useState(() => {
     const value = searchParams.get('asOf')
@@ -1020,11 +1036,11 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     const nextCustomerId = searchParams.get('customerId') ?? ''
     setCustomerIdFilter((prev) => (prev === nextCustomerId ? prev : nextCustomerId))
     const nextTab = searchParams.get('tab')
-    const normalizedTab = nextTab === 'crm' || nextTab === 'legacy' || nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all'
-      ? nextTab
-      : mode === 'payable' ? 'payable' : 'all'
+    const normalizedTab = isPayableMode
+      ? (nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all' ? nextTab : 'all')
+      : (nextTab === 'crm' || nextTab === 'legacy' || nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all' ? nextTab : 'all')
     setSourceTab((prev) => (prev === normalizedTab ? prev : normalizedTab))
-  }, [mode, searchParams])
+  }, [isPayableMode, searchParams])
   useEffect(() => {
     setPaymentTarget(null)
     setLegacyPaymentTarget(null)
@@ -1127,6 +1143,30 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       .filter((entry) => entry.refundPendingAmount > 0)
       .sort((left, right) => right.refundPendingAmount - left.refundPendingAmount)
   ), [customersForLink])
+  const outgoingLedger = useMemo<OutgoingLedgerEntry[]>(() => {
+    const payables = payableLedger.map((entry) => ({
+      key: `payable-${entry.legacyId}`,
+      customerId: entry.customerId,
+      customerName: entry.customerName,
+      amount: entry.payableAmount,
+      kind: 'payable' as const,
+      note: entry.customerId ? '기존 장부 기준 지급 확인 대상' : '고객관리 연결 없음',
+      bookName: entry.bookName,
+      customer: entry.customerId ? customerById.get(entry.customerId) : undefined,
+    }))
+    const refunds = refundPendingLedger.map((entry) => ({
+      key: `refund-${entry.customer.Id}`,
+      customerId: entry.customer.Id,
+      customerName: entry.customer.name ?? `고객 ${entry.customer.Id}`,
+      amount: entry.refundPendingAmount,
+      kind: 'refund' as const,
+      note: '초과 입금 또는 정산 조정으로 생성된 환불 예정 금액',
+      bookName: entry.customer.book_name as string | undefined,
+      customer: entry.customer,
+    }))
+
+    return [...payables, ...refunds].sort((left, right) => right.amount - left.amount)
+  }, [customerById, payableLedger, refundPendingLedger])
 
   function applyAsOfDate(nextValue: string) {
     const normalized = nextValue || todayDate()
@@ -1178,6 +1218,14 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       (entry.customer.book_name as string | undefined)?.toLowerCase().includes(normalizedSearch)
     )
   })
+  const filteredOutgoingLedger = outgoingLedger.filter((entry) => {
+    if (customerIdFilter && String(entry.customerId ?? '') !== customerIdFilter) return false
+    if (!normalizedSearch) return true
+    return (
+      entry.customerName.toLowerCase().includes(normalizedSearch) ||
+      (entry.bookName ?? '').toLowerCase().includes(normalizedSearch)
+    )
+  })
 
   // 에이징 집계는 CRM 명세표 기준으로만 관리한다.
   const aging = AGING_BUCKETS.map((bucket) => {
@@ -1199,6 +1247,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const filteredCrmTotal = filteredCrmLedger.reduce((sum, entry) => sum + entry.crmRemaining, 0)
   const filteredPayableTotal = filteredPayableLedger.reduce((sum, entry) => sum + entry.payableAmount, 0)
   const filteredRefundPendingTotal = filteredRefundPendingLedger.reduce((sum, entry) => sum + entry.refundPendingAmount, 0)
+  const filteredTotalOutgoing = filteredPayableTotal + filteredRefundPendingTotal
   const criticalCount = filteredInvoices.filter((inv) => {
     const days = getDaysSince(inv.invoice_date, asOfDate)
     return days > 90
@@ -1208,6 +1257,9 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     : 0
   const breakdownCurrentBalance = customerBreakdown?.customer.outstanding_balance ?? 0
   const breakdownPayableBaseline = customerBreakdown?.payableBaseline ?? 0
+  const breakdownRefundPending = customerBreakdown
+    ? parseCustomerAccountingMeta(customerBreakdown.customer.memo as string | undefined).refundPendingBalance
+    : 0
   const receivableLinkSummary = filteredInvoices.reduce((summary, invoice) => {
     const linkedCustomer = resolveInvoiceCustomer(invoice, customersForLink) ?? (typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined)
     const invoiceName = invoice.customer_name?.trim()
@@ -1223,17 +1275,16 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     return summary
   }, { orphanCount: 0, splitCount: 0 })
 
-  const isPayableMode = mode === 'payable'
   const pageTitle = isPayableMode ? '지급 관리' : '수금 관리'
   const pageDescription = isPayableMode
-    ? '기존 장부 기준으로 지금 줄 돈을 확인하고 지급 이력을 관리합니다.'
+    ? '기존 장부 줄 돈과 환불 예정 금액을 함께 확인하고 지급 이력을 관리합니다.'
     : '기존 장부와 새 입력 기준으로 지금 받을 돈을 확인하고 수금 이력을 관리합니다.'
-  const totalSummaryLabel = isPayableMode ? '총 줄 돈' : '총 받을 돈'
+  const totalSummaryLabel = isPayableMode ? '총 지급 예정' : '총 받을 돈'
   const legacySummaryLabel = isPayableMode ? '기존 장부 받을 돈' : '기존 장부 받을 돈'
   const crmSummaryLabel = isPayableMode ? '새 입력 받을 돈' : '새 입력 받을 돈'
-  const payableSummaryLabel = isPayableMode ? '총 줄 돈' : '총 줄 돈'
+  const payableSummaryLabel = isPayableMode ? '기존 장부 줄 돈' : '총 줄 돈'
   const refundSummaryLabel = '환불대기'
-  const allTabLabel = isPayableMode ? '전체 정산' : '전체 정산'
+  const allTabLabel = isPayableMode ? '전체 지급' : '전체 정산'
   const crmTabLabel = '새 입력 받을 돈'
   const legacyTabLabel = '기존 장부 받을 돈'
   const payableTabLabel = '기존 장부 줄 돈'
@@ -1272,12 +1323,21 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           <p className="text-sm text-muted-foreground mt-1">
             {totalSummaryLabel}{' '}
             <span className={`font-medium ${isPayableMode ? 'text-blue-700' : 'text-red-600'}`}>
-              {(isPayableMode ? filteredPayableTotal : filteredTotalReceivable).toLocaleString()}원
+              {(isPayableMode ? filteredTotalOutgoing : filteredTotalReceivable).toLocaleString()}원
             </span>
-            {' / '}기존 장부 받을 돈 {filteredLegacyTotal.toLocaleString()}원
-            {' / '}새 입력 받을 돈 {filteredCrmTotal.toLocaleString()}원
-            {' / '}총 줄 돈 <span className="font-medium text-blue-700">{filteredPayableTotal.toLocaleString()}원</span>
-            {' / '}환불대기 <span className="font-medium text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</span>
+            {isPayableMode ? (
+              <>
+                {' / '}기존 장부 줄 돈 <span className="font-medium text-blue-700">{filteredPayableTotal.toLocaleString()}원</span>
+                {' / '}환불대기 <span className="font-medium text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</span>
+              </>
+            ) : (
+              <>
+                {' / '}기존 장부 받을 돈 {filteredLegacyTotal.toLocaleString()}원
+                {' / '}새 입력 받을 돈 {filteredCrmTotal.toLocaleString()}원
+                {' / '}총 줄 돈 <span className="font-medium text-blue-700">{filteredPayableTotal.toLocaleString()}원</span>
+                {' / '}환불대기 <span className="font-medium text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</span>
+              </>
+            )}
             {criticalCount > 0 && (
               <span className="ml-2 text-amber-600">
                 <AlertCircle className="inline h-3.5 w-3.5 mr-0.5" />
@@ -1286,22 +1346,24 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             )}
           </p>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          onClick={() => exportReceivables(
-            filteredInvoices.map((inv) => ({
-              ...inv,
-              paid_amount: inv.asOfPaidAmount,
-              payment_status: inv.asOfStatus,
-            })),
-            asOfDate,
-          )}
-          className="gap-1"
-        >
-          <Download className="h-4 w-4" />
-          엑셀 내보내기
-        </Button>
+        {!isPayableMode && (
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => exportReceivables(
+              filteredInvoices.map((inv) => ({
+                ...inv,
+                paid_amount: inv.asOfPaidAmount,
+                payment_status: inv.asOfStatus,
+              })),
+              asOfDate,
+            )}
+            className="gap-1"
+          >
+            <Download className="h-4 w-4" />
+            엑셀 내보내기
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-3 mb-4 flex-wrap">
@@ -1339,79 +1401,120 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         )}
       </div>
 
-      <div className="mb-4 grid gap-3 md:grid-cols-5">
-        <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">{totalSummaryLabel}</p>
-          <p className={`mt-1 text-base font-semibold ${isPayableMode ? 'text-blue-700' : 'text-red-600'}`}>
-            {(isPayableMode ? filteredPayableTotal : filteredTotalReceivable).toLocaleString()}원
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            {isPayableMode ? '기존 장부 지급 확인 대상 합계' : '기존 장부 + 새 입력 합산'}
-          </p>
-        </div>
-        <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">{legacySummaryLabel}</p>
-          <p className="mt-1 text-base font-semibold text-red-600">{filteredLegacyTotal.toLocaleString()}원</p>
-          <p className="mt-1 text-xs text-muted-foreground">{filteredLegacyLedger.length}개 고객</p>
-        </div>
-        <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">{crmSummaryLabel}</p>
-          <p className="mt-1 text-base font-semibold text-red-600">{filteredCrmTotal.toLocaleString()}원</p>
-          <p className="mt-1 text-xs text-muted-foreground">{filteredInvoices.length}개 열린 명세표</p>
-        </div>
-        <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">{payableSummaryLabel}</p>
-          <p className="mt-1 text-base font-semibold text-blue-700">{filteredPayableTotal.toLocaleString()}원</p>
-          <p className="mt-1 text-xs text-muted-foreground">{filteredPayableLedger.length}개 고객</p>
-        </div>
-        <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">{refundSummaryLabel}</p>
-          <p className="mt-1 text-base font-semibold text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</p>
-          <p className="mt-1 text-xs text-muted-foreground">{filteredRefundPendingLedger.length}개 고객</p>
-        </div>
-      </div>
-
-      {customerBreakdown && (
-        <div className="mb-4 grid gap-3 md:grid-cols-4">
+      {isPayableMode ? (
+        <div className="mb-4 grid gap-3 md:grid-cols-3">
           <div className="rounded-lg border bg-white px-4 py-3">
-            <p className="text-xs text-muted-foreground">이월 미수</p>
-            
-            <p className={`mt-1 text-base font-semibold ${customerBreakdown.legacyBaseline > 0 ? 'text-red-600' : customerBreakdown.legacyBaseline < 0 ? 'text-blue-700' : ''}`}>
-              {customerBreakdown.legacyBaseline.toLocaleString()}원
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {customerBreakdown.customer.name} 원본 잔액
-            </p>
+            <p className="text-xs text-muted-foreground">{totalSummaryLabel}</p>
+            <p className="mt-1 text-base font-semibold text-blue-700">{filteredTotalOutgoing.toLocaleString()}원</p>
+            <p className="mt-1 text-xs text-muted-foreground">줄 돈 + 환불 예정 합계</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
-            <p className="text-xs text-muted-foreground">기준일 새 입력 미수</p>
-            <p className={`mt-1 text-base font-semibold ${breakdownCrmReceivable > 0 ? 'text-red-600' : breakdownCrmReceivable < 0 ? 'text-blue-700' : ''}`}>
-              {breakdownCrmReceivable.toLocaleString()}원
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              {asOfDate} 기준 미수 명세표 합계
-            </p>
+            <p className="text-xs text-muted-foreground">{payableSummaryLabel}</p>
+            <p className="mt-1 text-base font-semibold text-blue-700">{filteredPayableTotal.toLocaleString()}원</p>
+            <p className="mt-1 text-xs text-muted-foreground">{filteredPayableLedger.length}개 고객</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
-            <p className="text-xs text-muted-foreground">기존 장부 미지급금</p>
-            <p className={`mt-1 text-base font-semibold ${breakdownPayableBaseline > 0 ? 'text-blue-700' : 'text-muted-foreground'}`}>
-              {breakdownPayableBaseline.toLocaleString()}원
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">현재 회기 장부 기준</p>
+            <p className="text-xs text-muted-foreground">{refundSummaryLabel}</p>
+            <p className="mt-1 text-base font-semibold text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</p>
+            <p className="mt-1 text-xs text-muted-foreground">{filteredRefundPendingLedger.length}개 고객</p>
           </div>
-          <div className="rounded-lg border border-[#d9e4d5] bg-[#f7faf6] px-4 py-3">
-            <p className="text-xs text-muted-foreground">현재 고객 잔액</p>
-            <p className={`mt-1 text-base font-semibold ${breakdownCurrentBalance > 0 ? 'text-red-600' : breakdownCurrentBalance < 0 ? 'text-blue-700' : ''}`}>
-              {breakdownCurrentBalance.toLocaleString()}원
-            </p>
-            <p className="mt-1 text-xs text-muted-foreground">
-              운영 고객 카드 저장값{!isTodayView ? ' (오늘 기준)' : ''}
-            </p>
+        </div>
+      ) : (
+        <div className="mb-4 grid gap-3 md:grid-cols-5">
+          <div className="rounded-lg border bg-white px-4 py-3">
+            <p className="text-xs text-muted-foreground">{totalSummaryLabel}</p>
+            <p className="mt-1 text-base font-semibold text-red-600">{filteredTotalReceivable.toLocaleString()}원</p>
+            <p className="mt-1 text-xs text-muted-foreground">기존 장부 + 새 입력 합산</p>
+          </div>
+          <div className="rounded-lg border bg-white px-4 py-3">
+            <p className="text-xs text-muted-foreground">{legacySummaryLabel}</p>
+            <p className="mt-1 text-base font-semibold text-red-600">{filteredLegacyTotal.toLocaleString()}원</p>
+            <p className="mt-1 text-xs text-muted-foreground">{filteredLegacyLedger.length}개 고객</p>
+          </div>
+          <div className="rounded-lg border bg-white px-4 py-3">
+            <p className="text-xs text-muted-foreground">{crmSummaryLabel}</p>
+            <p className="mt-1 text-base font-semibold text-red-600">{filteredCrmTotal.toLocaleString()}원</p>
+            <p className="mt-1 text-xs text-muted-foreground">{filteredInvoices.length}개 열린 명세표</p>
+          </div>
+          <div className="rounded-lg border bg-white px-4 py-3">
+            <p className="text-xs text-muted-foreground">{payableSummaryLabel}</p>
+            <p className="mt-1 text-base font-semibold text-blue-700">{filteredPayableTotal.toLocaleString()}원</p>
+            <p className="mt-1 text-xs text-muted-foreground">{filteredPayableLedger.length}개 고객</p>
+          </div>
+          <div className="rounded-lg border bg-white px-4 py-3">
+            <p className="text-xs text-muted-foreground">{refundSummaryLabel}</p>
+            <p className="mt-1 text-base font-semibold text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</p>
+            <p className="mt-1 text-xs text-muted-foreground">{filteredRefundPendingLedger.length}개 고객</p>
           </div>
         </div>
       )}
 
-      {(receivableLinkSummary.orphanCount > 0 || receivableLinkSummary.splitCount > 0) && (
+      {customerBreakdown && (
+        isPayableMode ? (
+          <div className="mb-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border bg-white px-4 py-3">
+              <p className="text-xs text-muted-foreground">기존 장부 줄 돈</p>
+              <p className={`mt-1 text-base font-semibold ${breakdownPayableBaseline > 0 ? 'text-blue-700' : 'text-muted-foreground'}`}>
+                {breakdownPayableBaseline.toLocaleString()}원
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">현재 회기 장부 기준</p>
+            </div>
+            <div className="rounded-lg border bg-white px-4 py-3">
+              <p className="text-xs text-muted-foreground">환불대기</p>
+              <p className={`mt-1 text-base font-semibold ${breakdownRefundPending > 0 ? 'text-amber-700' : 'text-muted-foreground'}`}>
+                {breakdownRefundPending.toLocaleString()}원
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">초과 입금 환불 예정 금액</p>
+            </div>
+            <div className="rounded-lg border border-[#d9e4d5] bg-[#f7faf6] px-4 py-3">
+              <p className="text-xs text-muted-foreground">총 지급 예정</p>
+              <p className="mt-1 text-base font-semibold text-blue-700">
+                {(breakdownPayableBaseline + breakdownRefundPending).toLocaleString()}원
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">줄 돈 + 환불대기 합계</p>
+            </div>
+          </div>
+        ) : (
+          <div className="mb-4 grid gap-3 md:grid-cols-4">
+            <div className="rounded-lg border bg-white px-4 py-3">
+              <p className="text-xs text-muted-foreground">이월 미수</p>
+              <p className={`mt-1 text-base font-semibold ${customerBreakdown.legacyBaseline > 0 ? 'text-red-600' : customerBreakdown.legacyBaseline < 0 ? 'text-blue-700' : ''}`}>
+                {customerBreakdown.legacyBaseline.toLocaleString()}원
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {customerBreakdown.customer.name} 원본 잔액
+              </p>
+            </div>
+            <div className="rounded-lg border bg-white px-4 py-3">
+              <p className="text-xs text-muted-foreground">기준일 새 입력 미수</p>
+              <p className={`mt-1 text-base font-semibold ${breakdownCrmReceivable > 0 ? 'text-red-600' : breakdownCrmReceivable < 0 ? 'text-blue-700' : ''}`}>
+                {breakdownCrmReceivable.toLocaleString()}원
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {asOfDate} 기준 미수 명세표 합계
+              </p>
+            </div>
+            <div className="rounded-lg border bg-white px-4 py-3">
+              <p className="text-xs text-muted-foreground">기존 장부 미지급금</p>
+              <p className={`mt-1 text-base font-semibold ${breakdownPayableBaseline > 0 ? 'text-blue-700' : 'text-muted-foreground'}`}>
+                {breakdownPayableBaseline.toLocaleString()}원
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">현재 회기 장부 기준</p>
+            </div>
+            <div className="rounded-lg border border-[#d9e4d5] bg-[#f7faf6] px-4 py-3">
+              <p className="text-xs text-muted-foreground">현재 고객 잔액</p>
+              <p className={`mt-1 text-base font-semibold ${breakdownCurrentBalance > 0 ? 'text-red-600' : breakdownCurrentBalance < 0 ? 'text-blue-700' : ''}`}>
+                {breakdownCurrentBalance.toLocaleString()}원
+              </p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                운영 고객 카드 저장값{!isTodayView ? ' (오늘 기준)' : ''}
+              </p>
+            </div>
+          </div>
+        )
+      )}
+
+      {!isPayableMode && (receivableLinkSummary.orphanCount > 0 || receivableLinkSummary.splitCount > 0) && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {receivableLinkSummary.orphanCount > 0 && (
             <div>고객관리 연결이 없는 분리 거래명 미수 {receivableLinkSummary.orphanCount}건</div>
@@ -1435,63 +1538,143 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       >
         <TabsList className="mb-4">
           <TabsTrigger value="all">{allTabLabel}</TabsTrigger>
-          <TabsTrigger value="crm">{crmTabLabel}</TabsTrigger>
-          <TabsTrigger value="legacy">{legacyTabLabel}</TabsTrigger>
+          {!isPayableMode && <TabsTrigger value="crm">{crmTabLabel}</TabsTrigger>}
+          {!isPayableMode && <TabsTrigger value="legacy">{legacyTabLabel}</TabsTrigger>}
           <TabsTrigger value="payable">{payableTabLabel}</TabsTrigger>
           <TabsTrigger value="refund">{refundTabLabel}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
-          <div className="rounded-lg border bg-white overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">새 입력</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">총 미수금</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">구분</th>
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLedger.length === 0 && (
-                  <tr>
-                    <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
-                      해당 기준일까지의 미수금이 없습니다.
-                    </td>
+          {isPayableMode ? (
+            <div className="rounded-lg border bg-white overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">지급 구분</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">금액</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
+                    <th className="w-28" />
                   </tr>
-                )}
-                {filteredLedger.map((entry) => (
-                  <tr
-                    key={entry.customerId}
-                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => navigate(`/customers/${entry.customerId}`)}
-                  >
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium">{entry.customerName}</div>
-                      {entry.aliases.length > 0 && (
-                        <div className="mt-0.5 text-xs text-amber-700">
-                          분리 거래명: {entry.aliases.join(', ')}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-xs">
-                      {entry.legacyBaseline > 0 ? `${entry.legacyBaseline.toLocaleString()}원` : '-'}
-                    </td>
-                    <td className="px-4 py-2.5 text-right text-xs">
-                      {entry.crmRemaining > 0 ? `${entry.crmRemaining.toLocaleString()}원` : '-'}
-                    </td>
-                    <td className="px-4 py-2.5 text-right font-medium text-red-600">
-                      {entry.totalRemaining.toLocaleString()}원
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {entry.source === 'both' ? '기존 장부 + 새 입력' : entry.source === 'legacy' ? '기존 장부' : '새 입력'}
-                    </td>
+                </thead>
+                <tbody>
+                  {filteredOutgoingLedger.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+                        지급 예정 건이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                  {filteredOutgoingLedger.map((entry) => (
+                    <tr
+                      key={entry.key}
+                      className={`border-b last:border-b-0 hover:bg-gray-50 ${entry.customerId ? 'cursor-pointer' : ''}`}
+                      onClick={() => {
+                        if (entry.customerId) navigate(`/customers/${entry.customerId}`)
+                      }}
+                    >
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium">{entry.customerName}</div>
+                        {entry.bookName && entry.bookName !== entry.customerName && (
+                          <div className="mt-0.5 text-xs text-muted-foreground">{entry.bookName}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-xs">
+                        <span className={entry.kind === 'payable' ? 'font-medium text-blue-700' : 'font-medium text-amber-700'}>
+                          {entry.kind === 'payable' ? '기존 장부 줄 돈' : '환불대기'}
+                        </span>
+                      </td>
+                      <td className={`px-4 py-2.5 text-right font-medium ${entry.kind === 'payable' ? 'text-blue-700' : 'text-amber-700'}`}>
+                        {entry.amount.toLocaleString()}원
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {entry.note}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          disabled={entry.kind === 'payable' && !entry.customerId}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            if (entry.kind === 'payable') {
+                              if (!entry.customerId) return
+                              const customer = customerById.get(entry.customerId)
+                              if (!customer) {
+                                toast.error('고객 정보를 찾을 수 없습니다.')
+                                return
+                              }
+                              setLegacyPayableTarget({ customer, payableAmount: entry.amount })
+                              return
+                            }
+                            if (!entry.customer) return
+                            setRefundPendingTarget({
+                              customer: entry.customer,
+                              refundPendingAmount: entry.amount,
+                            })
+                          }}
+                        >
+                          {entry.kind === 'payable' ? '지급 확인' : '환불 처리'}
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-white overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">새 입력</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">총 미수금</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">구분</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filteredLedger.length === 0 && (
+                    <tr>
+                      <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+                        해당 기준일까지의 미수금이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                  {filteredLedger.map((entry) => (
+                    <tr
+                      key={entry.customerId}
+                      className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => navigate(`/customers/${entry.customerId}`)}
+                    >
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium">{entry.customerName}</div>
+                        {entry.aliases.length > 0 && (
+                          <div className="mt-0.5 text-xs text-amber-700">
+                            분리 거래명: {entry.aliases.join(', ')}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-xs">
+                        {entry.legacyBaseline > 0 ? `${entry.legacyBaseline.toLocaleString()}원` : '-'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right text-xs">
+                        {entry.crmRemaining > 0 ? `${entry.crmRemaining.toLocaleString()}원` : '-'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium text-red-600">
+                        {entry.totalRemaining.toLocaleString()}원
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {entry.source === 'both' ? '기존 장부 + 새 입력' : entry.source === 'legacy' ? '기존 장부' : '새 입력'}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </TabsContent>
 
         <TabsContent value="crm" className="space-y-4">

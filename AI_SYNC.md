@@ -73,6 +73,8 @@
 - `offline-crm-v2/src/components/layout/AppGuideWidget.tsx`
 - `offline-crm-v2/src/lib/appGuide.ts`
 - `offline-crm-v2/src/pages/Settings.tsx`
+- `offline-crm-v2/docs/accounting-upgrade-prd-v2-2026-03-11.md`
+- `offline-crm-v2/docs/accounting-upgrade-p1-spec-2026-03-11.md`
 
 ### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
 - 스크립트 / 문서
@@ -377,6 +379,24 @@
     - `화면 가이드` 플로팅 버튼이 유지되는 것 확인
 - 배포
   - `offline-crm-v2` `bash deploy/deploy.sh` 재배포 완료
+
+### [CODEX] offline-crm-v2 초단순 실무형 회계프로그램 PRD v2 + P1 기능명세 완료 (CODEX)
+- 문서
+  - `offline-crm-v2/docs/accounting-upgrade-prd-v2-2026-03-11.md`
+    - 기존 기능을 유지하면서 `쉬운 입력 + 정확한 돈 관리 + 제출 가능한 장부 출력` 중심으로 재정의
+    - 핵심 화면을 `고객 관리 / 수금 관리 / 지급 관리 / 거래원장` 4축으로 정리
+    - 돈 개념을 `받을 돈 / 줄 돈 / 예치금 / 환불대기` 4개로 단순화
+  - `offline-crm-v2/docs/accounting-upgrade-p1-spec-2026-03-11.md`
+    - 초과 입금 처리
+    - 예치금
+    - 환불대기
+    - 명세표 예치금 사용
+    - 거래원장 유형 확장
+    을 구현 단위로 상세화
+- 결정
+  - 복잡한 ERP 방향은 지양
+  - 기존 기능은 유지
+  - 세무 제출용 출력과 실수 방지 중심으로 확장
 
 ### [CODEX-LEAD] Phase 3 S3-3 키트 구독 파일럿 완료 (CODEX)
 - 메이크샵
@@ -2175,8 +2195,8 @@
 
 ## Next Step
 
-- [CODEX-LEAD] offline-crm-v2 Phase 3 수금/지급 다이얼로그 영향 안내 강화
-- [CODEX-LEAD] offline-crm-v2 Phase 4 역할별 가이드 투어 확장
+- [CODEX-LEAD] offline-crm-v2 P1 구현 착수: 초과 입금 처리 팝업
+- [CODEX-LEAD] offline-crm-v2 P1 구현 착수: 예치금/환불대기 데이터 구조 설계
 - [CODEX-LEAD] offline-crm-v2 농협 입금 자동화 1차 기술 검토: 수집 경로, 보안, 승인 큐 구조
 - [CODEX] CRM 수금/지급 실제 로그인 계정 체계가 필요해지면 localStorage 작업 계정 방식에서 서버 세션 기반 로그로 승격
 - [CODEX] CRM 운영 사용 중 신규 분리 고객/분리 거래명 케이스가 생기면 동일 정책으로 누적 정리
@@ -2288,6 +2308,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - CRM 미수금 `전체`/`레거시` 탭은 고객 단위 집계이고 `CRM` 탭만 명세표 단위라, 엑셀 내보내기 포맷은 아직 CRM 명세표 기준만 지원함
 - CRM `지급 관리` 1차는 기존 장부 기준 줄 돈을 다루는 단계이며, 공급처별 독립 지급 원장/지급 예정일/상태 배지는 아직 Phase 3 이후 작업이 필요함
 - CRM 인앱 가이드는 현재 화면 단위 1차 버전이라, 역할별 분기와 단계형 투어는 아직 추가 구현이 필요함
+- 예치금/환불대기/초과 입금 처리는 아직 설계 문서 단계이며, 실제 잔액 필드/이벤트 로그 구조는 다음 구현에서 확정해야 함
 - 이번 UX 수정은 아직 메이크샵에 저장되지 않았으므로, 실제 라이브 재검증 전까지는 기존 `/member/login.html` 및 선물하기 동작이 남아 있을 수 있음
 - 클래스 실상품 `branduid=12195642` 기준 상품 상세에는 native `.btn-gift` 링크가 노출되지 않아, 상품 설정상 선물하기가 비활성인 경우 프론트는 `basket.action` 기반 선물 주문 진입으로만 폴백함
 - `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음

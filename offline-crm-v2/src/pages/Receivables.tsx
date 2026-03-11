@@ -226,6 +226,10 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
             </div>
           )}
 
+          <div className="rounded-md border bg-gray-50 px-3 py-2 text-xs text-muted-foreground">
+            처리 전 확인: 입금액, 현재 작업 계정, 저장 후 줄어들 잔액을 확인하세요.
+          </div>
+
           <div className="flex gap-2 justify-end pt-2">
             <Button variant="ghost" onClick={onClose} disabled={isSaving}>
               취소
@@ -410,6 +414,10 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
               </span>
             </div>
           )}
+
+          <div className="rounded-md border bg-gray-50 px-3 py-2 text-xs text-muted-foreground">
+            처리 전 확인: 기존 장부 금액 초과 여부와 현재 작업 계정을 확인하고, 저장 후 수금 관리와 고객 상세가 같이 바뀌는지 보세요.
+          </div>
 
           {memoState.settlements.length > 0 && (
             <div className="rounded-md border p-3 space-y-2">
@@ -622,6 +630,10 @@ function LegacyPayableDialog({ target, onClose, onSaved }: LegacyPayableDialogPr
               </span>
             </div>
           )}
+
+          <div className="rounded-md border bg-gray-50 px-3 py-2 text-xs text-muted-foreground">
+            처리 전 확인: 지급액, 현재 작업 계정, 저장 후 거래원장에 지급 행이 같이 남는지 확인하세요.
+          </div>
 
           {memoState.settlements.length > 0 && (
             <div className="rounded-md border p-3 space-y-2">

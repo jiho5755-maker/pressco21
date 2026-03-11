@@ -1,4 +1,5 @@
 import { Outlet } from 'react-router-dom'
+import { AppGuideWidget } from './AppGuideWidget'
 import { Sidebar } from './Sidebar'
 
 export function Layout() {
@@ -7,6 +8,7 @@ export function Layout() {
       <Sidebar />
       <main className="flex-1 overflow-auto">
         <Outlet />
+        <AppGuideWidget />
       </main>
     </div>
   )

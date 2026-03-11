@@ -12,6 +12,7 @@ import {
   saveSettingsToServer,
 } from '@/lib/api'
 import type { CrmSettings } from '@/lib/api'
+import { resetAllGuides } from '@/lib/appGuide'
 import { Cloud, CloudOff, Loader2 } from 'lucide-react'
 
 // print.ts 인터페이스 확장 (설정 전용 추가 필드)
@@ -508,6 +509,25 @@ export function Settings() {
               <label htmlFor="default-taxable" className="text-sm">
                 새 품목 기본값: 과세 (10%)
               </label>
+            </div>
+            <div className="rounded-lg border bg-gray-50 px-4 py-3">
+              <p className="text-sm font-medium text-gray-900">사용 가이드</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                수금 관리, 지급 관리, 고객 관리, 거래원장 화면은 처음 진입 시 화면별 도움말이 뜹니다.
+                다시 보고 싶으면 아래 버튼으로 초기화할 수 있습니다.
+              </p>
+              <Button
+                type="button"
+                variant="outline"
+                size="sm"
+                className="mt-3"
+                onClick={() => {
+                  resetAllGuides()
+                  toast.success('화면별 사용 가이드를 다시 볼 수 있게 초기화했습니다')
+                }}
+              >
+                화면 가이드 다시보기 초기화
+              </Button>
             </div>
           </div>
         </section>

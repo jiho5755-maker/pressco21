@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { saveCompanyInfo } from '@/lib/print'
 import type { CompanyInfo } from '@/lib/print'
 import {
@@ -28,6 +29,11 @@ interface SettingsData extends CompanyInfo {
   price4_rate?: number  // VIP특가 (기본 15%)
   price5_rate?: number  // 엠버서더 (기본 20%)
   legacy_settlement_operator?: string
+  operator_profile_1_label?: string
+  operator_profile_1_name?: string
+  operator_profile_2_label?: string
+  operator_profile_2_name?: string
+  active_operator_profile_id?: string
 }
 
 const SETTINGS_KEY = 'pressco21-crm-settings'
@@ -51,6 +57,7 @@ function saveSettingsLocal(data: SettingsData): void {
   localStorage.setItem(SETTINGS_KEY, JSON.stringify(data))
   // print.ts와 호환되도록 CompanyInfo도 동기 저장
   saveCompanyInfo(data)
+  window.dispatchEvent(new CustomEvent('crm-settings-changed'))
 }
 
 // NocoDB ↔ localStorage 필드 매핑 (SettingsData → CrmSettings)
@@ -417,12 +424,78 @@ export function Settings() {
         <section>
           <SectionTitle>시스템 설정</SectionTitle>
           <div className="space-y-4">
-            <Field label="레거시 수금 작업자명" hint="레거시 미수 입금/취소 기록에 남길 이름입니다. 이 브라우저에 저장됩니다.">
+            <Field label="기본 기록명" hint="작업 계정 기록명이 비어 있을 때만 사용하는 하위 호환 기본값입니다.">
               <Input
                 value={data.legacy_settlement_operator ?? ''}
                 onChange={(e) => set('legacy_settlement_operator', e.target.value)}
-                placeholder="예: 장지호"
+                placeholder="예: 공용 담당자"
               />
+            </Field>
+            <div className="grid grid-cols-2 gap-4">
+              <Field label="작업 계정 1 표시명" hint="로그와 사이드바에 보이는 계정 이름입니다.">
+                <Input
+                  value={data.operator_profile_1_label ?? ''}
+                  onChange={(e) => set('operator_profile_1_label', e.target.value)}
+                  placeholder="예: pressco21"
+                />
+              </Field>
+              <Field label="작업 계정 1 기록명" hint="수금/지급 이력에 남길 담당자명입니다.">
+                <Input
+                  value={data.operator_profile_1_name ?? data.legacy_settlement_operator ?? ''}
+                  onChange={(e) => {
+                    const nextValue = e.target.value
+                    setData((prev) => {
+                      const updated = {
+                        ...prev,
+                        operator_profile_1_name: nextValue,
+                        legacy_settlement_operator: prev.operator_profile_1_name === prev.legacy_settlement_operator
+                          ? nextValue
+                          : prev.legacy_settlement_operator,
+                      }
+                      saveSettingsLocal(updated)
+                      debounceSave(updated)
+                      return updated
+                    })
+                  }}
+                  placeholder="예: 장지호"
+                />
+              </Field>
+              <Field label="작업 계정 2 표시명" hint="두 번째 작업 계정을 별도로 구분합니다.">
+                <Input
+                  value={data.operator_profile_2_label ?? ''}
+                  onChange={(e) => set('operator_profile_2_label', e.target.value)}
+                  placeholder="예: jang040300"
+                />
+              </Field>
+              <Field label="작업 계정 2 기록명" hint="두 번째 계정의 로그 표시 이름입니다.">
+                <Input
+                  value={data.operator_profile_2_name ?? ''}
+                  onChange={(e) => set('operator_profile_2_name', e.target.value)}
+                  placeholder="예: 김담당"
+                />
+              </Field>
+            </div>
+            <Field label="현재 작업 계정" hint="이 브라우저에서 저장하는 수금/지급 로그에 남길 계정입니다.">
+              <Select
+                value={data.active_operator_profile_id ?? 'operator-1'}
+                onValueChange={(value) => set('active_operator_profile_id', value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="작업 계정을 선택하세요" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="operator-1">
+                    {(data.operator_profile_1_label ?? '').trim() || '계정 1'}
+                    {' · '}
+                    {(data.operator_profile_1_name ?? data.legacy_settlement_operator ?? '').trim() || '기록명 미설정'}
+                  </SelectItem>
+                  <SelectItem value="operator-2">
+                    {(data.operator_profile_2_label ?? '').trim() || '계정 2'}
+                    {' · '}
+                    {(data.operator_profile_2_name ?? '').trim() || '기록명 미설정'}
+                  </SelectItem>
+                </SelectContent>
+              </Select>
             </Field>
             <div className="flex items-center gap-3">
               <input

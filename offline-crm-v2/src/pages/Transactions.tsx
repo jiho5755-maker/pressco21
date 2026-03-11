@@ -230,8 +230,9 @@ export function Transactions() {
         tax: 0,
         slip_no: entry.createdAt ?? entry.date,
         memo: [
-          '레거시 미수 입금',
+          '기존 장부 미수 입금',
           entry.method ? `방법: ${entry.method}` : '',
+          entry.accountLabel ? `계정: ${entry.accountLabel}` : '',
           entry.operator ? `입력: ${entry.operator}` : '',
           entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
         ].filter(Boolean).join(' · '),
@@ -457,8 +458,8 @@ export function Transactions() {
     // 전체 탭
     return [
       { value: 'ALL', label: '모든 유형' },
-      { value: '출고', label: '출고 (레거시)' },
-      { value: '출고(CRM)', label: '출고 (CRM명세표)' },
+      { value: '출고', label: '출고 (기존 장부)' },
+      { value: '출고(CRM)', label: '출고 (새 입력 명세표)' },
       { value: '입금', label: '입금' },
       { value: '반입', label: '반입' },
       { value: '메모', label: '메모' },
@@ -467,8 +468,8 @@ export function Transactions() {
 
   // ── 헤더 건수 표시 ──
   const headerCount = useMemo(() => {
-    if (activeTab === 'legacy') return `레거시 ${serverLegacyTotal.toLocaleString()}건`
-    if (activeTab === 'crm') return `CRM ${serverCrmTotal.toLocaleString()}건`
+    if (activeTab === 'legacy') return `기존 장부 ${serverLegacyTotal.toLocaleString()}건`
+    if (activeTab === 'crm') return `새 입력 ${serverCrmTotal.toLocaleString()}건`
     const total = (skipLegacy ? 0 : serverLegacyTotal + legacySettlementRows.length) + (skipCrm ? 0 : serverCrmTotal)
     return `전체 ${total.toLocaleString()}건`
   }, [activeTab, serverLegacyTotal, serverCrmTotal, legacySettlementRows.length, skipLegacy, skipCrm])
@@ -493,8 +494,8 @@ export function Transactions() {
       <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
         <TabsList>
           <TabsTrigger value="all">전체</TabsTrigger>
-          <TabsTrigger value="legacy">레거시 거래</TabsTrigger>
-          <TabsTrigger value="crm">CRM 명세표</TabsTrigger>
+          <TabsTrigger value="legacy">기존 장부 거래</TabsTrigger>
+          <TabsTrigger value="crm">새 입력 명세표</TabsTrigger>
         </TabsList>
       </Tabs>
 
@@ -569,18 +570,18 @@ export function Transactions() {
       {/* 안내 배너 */}
       {activeTab === 'all' && (
         <div className="mb-3 text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
-          레거시 거래내역과 CRM 거래명세표를 날짜순으로 통합 표시합니다.
+          기존 장부 거래내역과 새 입력 거래명세표를 날짜순으로 통합 표시합니다.
           행을 클릭하면 당시 거래 상세와 묶음 내역을 확인할 수 있습니다.
         </div>
       )}
       {activeTab === 'legacy' && (
         <div className="mb-3 text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
-          레거시 장부 원본 데이터입니다. 고객 검색 시 레거시 미수 입금 이력도 함께 표시됩니다.
+          기존 장부 원본 데이터입니다. 고객 검색 시 기존 장부 입금 이력도 함께 표시됩니다.
         </div>
       )}
       {activeTab === 'crm' && (
         <div className="mb-3 text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
-          CRM에서 생성한 거래명세표입니다.
+          이 시스템에서 새로 입력한 거래명세표입니다.
         </div>
       )}
 
@@ -588,8 +589,8 @@ export function Transactions() {
       {partialError && (
         <div className="mb-3 flex items-center gap-2 text-xs text-amber-700 bg-amber-50 border border-amber-200 rounded-md px-3 py-2">
           <AlertTriangle className="h-4 w-4 shrink-0" />
-          {legacyError ? '레거시 거래내역' : 'CRM 명세표'} 데이터를 불러오지 못했습니다.
-          {legacyError ? ' CRM 명세표만 ' : ' 레거시 데이터만 '}표시 중입니다.
+          {legacyError ? '기존 장부 거래내역' : '새 입력 명세표'} 데이터를 불러오지 못했습니다.
+          {legacyError ? ' 새 입력 명세표만 ' : ' 기존 장부 데이터만 '}표시 중입니다.
         </div>
       )}
 

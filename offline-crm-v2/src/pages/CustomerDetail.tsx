@@ -32,7 +32,7 @@ import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constan
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 import { buildResolvedReceivableInvoices, resolveInvoiceCustomer } from '@/lib/receivables'
-import { loadLegacySettlementOperator } from '@/lib/settings'
+import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import { exportUnifiedTransactions } from '@/lib/excel'
 
 // ── 기본정보 편집 폼 ──────────────────────────────────────
@@ -425,6 +425,7 @@ export function CustomerDetail() {
       memo: [
         '기존 장부 미수 입금',
         entry.method ? `방법: ${entry.method}` : '',
+        entry.accountLabel ? `계정: ${entry.accountLabel}` : '',
         entry.operator ? `입력: ${entry.operator}` : '',
         entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
       ].filter(Boolean).join(' · '),
@@ -534,6 +535,7 @@ export function CustomerDetail() {
   const currentLegacyReceivable = getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
   const currentLegacyPayable = getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
   const legacyMemoState = parseLegacyReceivableMemo(customer.memo as string | undefined)
+  const activeOperatorProfile = loadActiveWorkOperatorProfile()
   const crmOutstandingBalance = todayResolvedInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0)
   const invoiceNameVariants = Array.from(
     new Set(
@@ -575,13 +577,16 @@ export function CustomerDetail() {
 
     setSavingLegacyPayment(true)
     try {
+      const activeOperator = loadActiveWorkOperatorProfile()
       const nextSettlements = [
         ...legacyMemoState.settlements,
         {
           amount,
           date: todayStr(),
           method: legacyPaymentMethod,
-          operator: loadLegacySettlementOperator() || undefined,
+          accountId: activeOperator?.id,
+          accountLabel: activeOperator?.label,
+          operator: activeOperator?.operatorName,
           createdAt: currentTimestamp(),
         },
       ]
@@ -1524,6 +1529,10 @@ export function CustomerDetail() {
                       <p className="text-xs text-muted-foreground">
                         최대 입금 가능액 {currentLegacyReceivable.toLocaleString()}원
                       </p>
+                      <p className="text-xs text-muted-foreground">
+                        현재 작업 계정 {activeOperatorProfile?.label ?? '미설정'}
+                        {activeOperatorProfile?.operatorName ? ` · ${activeOperatorProfile.operatorName}` : ''}
+                      </p>
                     </div>
                     {currentLegacyReceivable === 0 && legacyMemoState.settledAmount > 0 && (
                       <p className="text-xs text-green-700">완납 처리됨. 아래 이력에서 취소 후 다시 입력할 수 있습니다.</p>
@@ -1573,6 +1582,7 @@ export function CustomerDetail() {
                             <span>{entry.date}</span>
                             <span className="ml-2 font-medium">{entry.amount.toLocaleString()}원</span>
                             {entry.method ? <span className="ml-2 text-muted-foreground">{entry.method}</span> : null}
+                            {entry.accountLabel ? <span className="ml-2 text-muted-foreground">계정: {entry.accountLabel}</span> : null}
                             {entry.operator ? <span className="ml-2 text-muted-foreground">입력: {entry.operator}</span> : null}
                             {entry.createdAt ? <span className="ml-2 text-muted-foreground">{entry.createdAt.slice(0, 16).replace('T', ' ')}</span> : null}
                           </div>

@@ -88,6 +88,8 @@ export interface LegacySnapshotMatchTarget {
 export interface LegacyReceivableSettlementEntry {
   amount: number
   date: string
+  accountId?: string
+  accountLabel?: string
   method?: string
   operator?: string
   createdAt?: string
@@ -139,6 +141,8 @@ function sanitizeSettlementEntry(entry: Partial<LegacyReceivableSettlementEntry>
   return {
     amount,
     date,
+    accountId: typeof entry.accountId === 'string' && entry.accountId.trim() ? entry.accountId.trim() : undefined,
+    accountLabel: typeof entry.accountLabel === 'string' && entry.accountLabel.trim() ? entry.accountLabel.trim() : undefined,
     method: typeof entry.method === 'string' && entry.method.trim() ? entry.method.trim() : undefined,
     operator: typeof entry.operator === 'string' && entry.operator.trim() ? entry.operator.trim() : undefined,
     createdAt: typeof entry.createdAt === 'string' && entry.createdAt.trim() ? entry.createdAt.trim() : undefined,

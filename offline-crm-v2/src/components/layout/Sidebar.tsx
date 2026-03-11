@@ -1,19 +1,37 @@
 import { NavLink } from 'react-router-dom'
+import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
+import { loadActiveWorkOperatorProfile } from '@/lib/settings'
+import type { WorkOperatorProfile } from '@/lib/settings'
 
 const menuItems = [
   { path: '/',             label: '대시보드',    icon: '📊' },
   { path: '/customers',    label: '고객 관리',   icon: '👥' },
-  { path: '/invoices',     label: '거래명세표',  icon: '📋' },
+  { path: '/invoices',     label: '명세표 작성',  icon: '📋' },
   { path: '/products',     label: '제품 관리',   icon: '📦' },
   { path: '/suppliers',    label: '공급처',      icon: '🏭' },
-  { path: '/transactions', label: '거래 내역',   icon: '📈' },
+  { path: '/transactions', label: '거래/명세표 조회',   icon: '📈' },
   { path: '/receivables',  label: '미수금',      icon: '💰' },
   { path: '/calendar',     label: '캘린더',      icon: '📅' },
   { path: '/settings',     label: '설정',        icon: '⚙️' },
 ]
 
 export function Sidebar() {
+  const [activeOperator, setActiveOperator] = useState<WorkOperatorProfile | null>(() => loadActiveWorkOperatorProfile())
+
+  useEffect(() => {
+    const refresh = () => setActiveOperator(loadActiveWorkOperatorProfile())
+    refresh()
+    window.addEventListener('storage', refresh)
+    window.addEventListener('focus', refresh)
+    window.addEventListener('crm-settings-changed', refresh)
+    return () => {
+      window.removeEventListener('storage', refresh)
+      window.removeEventListener('focus', refresh)
+      window.removeEventListener('crm-settings-changed', refresh)
+    }
+  }, [])
+
   return (
     <aside
       className="w-60 min-h-screen flex flex-col"
@@ -52,6 +70,13 @@ export function Sidebar() {
 
       {/* 하단 정보 */}
       <div className="px-6 py-4 border-t border-white/10">
+        {activeOperator ? (
+          <div className="mb-3 rounded-md border border-white/10 bg-white/5 px-3 py-2">
+            <p className="text-[11px] text-white/50">현재 작업 계정</p>
+            <p className="mt-0.5 text-xs font-medium text-white">{activeOperator.label}</p>
+            <p className="text-[11px] text-white/50">{activeOperator.operatorName}</p>
+          </div>
+        ) : null}
         <p className="text-xs text-white/40">Offline CRM v2.0</p>
       </div>
     </aside>

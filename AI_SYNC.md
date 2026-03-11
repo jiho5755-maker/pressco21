@@ -49,12 +49,12 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
+- Current Owner: IDLE
+- Mode: —
 - Started At: 2026-03-11 16:11:25 KST
 - Branch: main
-- Working Scope: Phase 3 S3-2 closeout + S3-3 kickoff
-- Active Subdirectory: pressco21
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
 - `docs/파트너클래스/grade-incentive-guide.md`
@@ -298,6 +298,25 @@
     - `output/playwright/s2-7-partner-churn/churn-results.json`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX] offline-crm-v2 작업 계정 분리 로그 보강 완료 (CODEX)
+- CRM
+  - `offline-crm-v2/src/lib/settings.ts`
+  - `offline-crm-v2/src/lib/legacySnapshots.ts`
+  - `offline-crm-v2/src/pages/Settings.tsx`
+  - `offline-crm-v2/src/pages/Receivables.tsx`
+  - `offline-crm-v2/src/pages/CustomerDetail.tsx`
+  - `offline-crm-v2/src/pages/Transactions.tsx`
+  - `offline-crm-v2/src/components/layout/Sidebar.tsx`
+- 구현
+  - 작업 계정 2개를 로컬 설정에 등록하고 현재 작업 계정을 선택하는 구조 추가
+  - 기존 장부 수금 로그에 `계정`, `입력자`, `시각`을 함께 저장하도록 메타 스키마 확장
+  - 미수금 관리, 고객 상세, 거래/명세표 조회에서 분리된 작업 계정 로그가 그대로 보이도록 연결
+  - 사이드바 하단에 현재 작업 계정 표시 추가
+- 검증
+  - `npm run build`
+  - `bash deploy/deploy.sh`
+  - 운영 반영: `https://crm.pressco21.com`
 
 ### [CODEX-LEAD] Phase 3 S3-2 등급별 비금전적 인센티브 완료 (CODEX)
 - 메이크샵
@@ -1883,6 +1902,7 @@
 
 ## Next Step
 
+- [CODEX] CRM 수금/지급 실제 로그인 계정 체계가 필요해지면 localStorage 작업 계정 방식에서 서버 세션 기반 로그로 승격
 - [CODEX] CRM 운영 사용 중 신규 분리 고객/분리 거래명 케이스가 생기면 동일 정책으로 누적 정리
 - [CODEX] CRM 운영 데이터 직접 수정 사고 대비 `서상견`과 같은 핵심 분리 고객 복구 절차를 스크립트화하거나 관리자 백업 체크리스트로 문서화
 - [CODEX] CRM 고객 제출용 거래내역 확인서 실제 대외 전달 1회 검토 후 문구/표현 미세조정
@@ -1982,6 +2002,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 
 ## Known Risks
 
+- CRM 작업 계정 로그는 아직 실제 로그인 인증이 아니라 브라우저별 로컬 설정 기반이므로, 같은 PC/브라우저를 여러 사람이 공유하면 현재 선택된 작업 계정으로 기록됨
 - CRM 운영 반영은 완료했지만, Basic Auth 자격증명 제약으로 운영 브라우저 화면의 최종 시각 검증은 아직 못 했음
 - CRM 운영 DB를 사용자가 직접 수정할 수 있는 상태라, 동일한 데이터 훼손이 반복되면 고객/명세표 수동 복구가 다시 필요할 수 있음
 - CRM 미수금 `전체`/`레거시` 탭은 고객 단위 집계이고 `CRM` 탭만 명세표 단위라, 엑셀 내보내기 포맷은 아직 CRM 명세표 기준만 지원함

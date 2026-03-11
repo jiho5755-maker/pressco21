@@ -21,7 +21,7 @@ import {
   serializeLegacyReceivableMemo,
 } from '@/lib/legacySnapshots'
 import { getPaidAmountAsOf } from '@/lib/reporting'
-import { loadLegacySettlementOperator } from '@/lib/settings'
+import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import {
   buildCustomerReceivableLedger,
   buildResolvedReceivableInvoices,
@@ -256,6 +256,7 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
   const remaining = legacyTarget.ledger.legacyBaseline
   const memoState = parseLegacyReceivableMemo(legacyTarget.customer.memo as string | undefined)
   const maxAmount = remaining
+  const activeOperator = loadActiveWorkOperatorProfile()
 
   async function refreshReceivableViews(customerId: number) {
     qc.invalidateQueries({ queryKey: ['customers'] })
@@ -292,7 +293,9 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
           amount,
           date: todayDate(),
           method,
-          operator: loadLegacySettlementOperator() || undefined,
+          accountId: activeOperator?.id,
+          accountLabel: activeOperator?.label,
+          operator: activeOperator?.operatorName,
           createdAt: currentTimestamp(),
         },
       ]
@@ -354,6 +357,10 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
               <span className="font-medium">{legacyTarget.customer.name}</span>
             </div>
             <div className="flex justify-between">
+              <span className="text-muted-foreground">현재 작업 계정</span>
+              <span className="font-medium">{activeOperator?.label ?? '미설정'}</span>
+            </div>
+            <div className="flex justify-between">
               <span className="text-muted-foreground">기존 장부 미수금</span>
               <span className="font-bold text-red-600">{remaining.toLocaleString()}원</span>
             </div>
@@ -405,6 +412,7 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
                     <span>{entry.date}</span>
                     <span className="ml-2 font-medium">{entry.amount.toLocaleString()}원</span>
                     {entry.method ? <span className="ml-2 text-muted-foreground">{entry.method}</span> : null}
+                    {entry.accountLabel ? <span className="ml-2 text-muted-foreground">계정: {entry.accountLabel}</span> : null}
                     {entry.operator ? <span className="ml-2 text-muted-foreground">입력: {entry.operator}</span> : null}
                     {entry.createdAt ? <span className="ml-2 text-muted-foreground">{entry.createdAt.slice(0, 16).replace('T', ' ')}</span> : null}
                   </div>

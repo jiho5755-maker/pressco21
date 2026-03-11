@@ -53,17 +53,55 @@
 - Mode: WRITE
 - Started At: 2026-03-11 20:25:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S2-5 콘텐츠 허브 구현 준비 중
+- Working Scope: [CODEX-LEAD] 파트너클래스 S2-6 커뮤니티 리텐션 1차 구현 진행 중
 - Active Subdirectory: pressco21/파트너클래스
 
 ## Files In Progress
-- `파트너클래스/콘텐츠허브/Index.html`
-- `파트너클래스/콘텐츠허브/css.css`
-- `파트너클래스/콘텐츠허브/js.js`
-- `파트너클래스/n8n-workflows/WF-01C-affiliation-read.json`
-- `docs/파트너클래스/content-hub-guide.md`
+- `파트너클래스/마이페이지/Index.html`
+- `파트너클래스/마이페이지/css.css`
+- `파트너클래스/마이페이지/js.js`
+- `파트너클래스/n8n-workflows/WF-RETENTION-student-lifecycle.json`
+- `docs/파트너클래스/community-retention-guide.md`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S2-5 콘텐츠 허브 4영역 완료 (CODEX)
+- 프론트
+  - `파트너클래스/콘텐츠허브/Index.html`
+  - `파트너클래스/콘텐츠허브/css.css`
+  - `파트너클래스/콘텐츠허브/js.js`
+    - 히어로, 요약 수치, 4개 섹션(`클래스 하이라이트 / 파트너 인터뷰 / 꽃 트렌드 / 초보자 가이드`), 하단 CTA 구현
+    - 스크롤 내비게이션, 로딩/에러/재시도 상태, `2606/2607/2609` 연결 구조 정리
+- API / 스크립트
+  - `파트너클래스/n8n-workflows/WF-01-class-api.json`
+  - `파트너클래스/n8n-workflows/WF-01C-affiliation-read.json`
+  - `scripts/partnerclass-s2-4-generate-wf01-split.js`
+    - `action=getContentHub` 추가
+    - 기존 `tbl_Classes + tbl_Partners` 데이터에서 `summary / featured_message / highlights / partner_stories / trends / guides` 합성
+    - 등급 alias `SILVER/GOLD/PLATINUM -> BLOOM/GARDEN/ATELIER` 정규화
+  - `scripts/build-partnerclass-playwright-fixtures.js`
+    - `content-hub.html` fixture 추가
+- 문서 / 메모리
+  - `docs/파트너클래스/content-hub-guide.md` 신규 추가
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+  - `.claude/agent-memory/makeshop-planning-expert/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- 검증
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+  - `node --check 파트너클래스/콘텐츠허브/js.js`
+  - `node --check scripts/partnerclass-s2-4-generate-wf01-split.js`
+  - `node --check scripts/build-partnerclass-playwright-fixtures.js`
+  - 라이브 `class-api action=getContentHub` 응답 확인
+    - `summary.total_classes=7`
+    - `summary.total_partners=3`
+    - `summary.total_beginner_classes=5`
+    - `summary.total_regions=2`
+  - Playwright 실데이터 주입 검증:
+    - `output/playwright/s2-5-content-hub/content-hub-results.json`
+    - `output/playwright/s2-5-content-hub/content-hub-page.png`
 
 ### [CODEX-LEAD] Phase 3 S2-4 WF-01 God Workflow 분리 완료 (CODEX)
 - n8n 워크플로우
@@ -1515,7 +1553,7 @@
 
 #### 현재 다음 태스크
 
-- `S2-5 콘텐츠 허브 4영역`
+- `S2-6 커뮤니티 리텐션 7장치`
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
 

@@ -48,6 +48,20 @@
 - 신규 action 검증은 `getSchedules`, `getRemainingSeats` 를 같은 `class-api` 라우터로 직접 호출해 `200 + success=true` 만 우선 확인하면 된다.
 - 이번 작업의 Playwright 검증은 브라우저 렌더링보다 `APIRequestContext` 가 더 적합했다. 결과 파일은 `output/playwright/s2-4-wf01/playwright-results.json` 이다.
 
+## 2026-03-11 S2-5 콘텐츠 허브 검증 메모
+
+- 허브는 로컬 fixture 에 라이브 `getContentHub` 응답을 주입하는 방식으로 검증하는 편이 가장 안정적이다.
+- 최소 확인 세트는 `summary 수치 4개 + featured_message + 4개 섹션 카드 수` 다.
+- 이번 기준 통과 값:
+  - `totalClasses=7`
+  - `totalPartners=3`
+  - `highlightCount=4`
+  - `storyCount=3`
+  - `trendCount=3`
+  - `guideCount=4`
+- 첫 스토리 카드의 등급 라벨이 `BLOOM` 으로 보이면 grade alias 정규화까지 정상 반영된 것이다.
+- 실제 산출물은 `output/playwright/s2-5-content-hub/content-hub-results.json` 과 `content-hub-page.png` 이다.
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

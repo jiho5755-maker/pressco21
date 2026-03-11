@@ -45,6 +45,29 @@
               },
               "renameOutput": true,
               "outputKey": "getAffiliations"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.action }}",
+                    "rightValue": "getContentHub",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "getContentHub"
             }
           ]
         },
@@ -203,6 +226,135 @@
         880,
         660
       ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mpvsno4or6asbxk",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "class_id,class_name,category,level,price,duration_min,thumbnail_url,location,region,tags,class_count,avg_rating,partner_code,type,status,kit_enabled"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            },
+            {
+              "name": "sort",
+              "value": "-CreatedAt"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf01c-content-classes",
+      "name": "NocoDB Get Content Classes",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        420
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(status,eq,active)"
+            },
+            {
+              "name": "fields",
+              "value": "partner_code,partner_name,grade,location,avg_rating,instagram_url,portfolio_url"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf01c-content-partners",
+      "name": "NocoDB Get Content Partners",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1140,
+        420
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// WF-01C: getContentHub - 콘텐츠 허브 4영역 응답 생성\n// 기존 Classes + Partners 데이터만으로 하이라이트/인터뷰/트렌드/가이드를 구성\n// ===================================================\n\nconst classResponse = $('NocoDB Get Content Classes').first().json;\nconst partnerResponse = $('NocoDB Get Content Partners').first().json;\nconst classesList = classResponse.list || [];\nconst partnersList = partnerResponse.list || [];\n\nfunction normalizeStatus(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (!text) return 'DRAFT';\n  if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'ACTIVE';\n  if (upper === 'PAUSED' || text.toLowerCase() === 'paused') return 'PAUSED';\n  if (upper === 'PENDING_REVIEW' || upper === 'INACTIVE' || text.toLowerCase() === 'pending') return 'PENDING_REVIEW';\n  if (upper === 'REJECTED' || text.toLowerCase() === 'closed') return 'REJECTED';\n  return upper;\n}\n\nfunction normalizeLevel(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  const lower = text.toLowerCase();\n  if (!text) return 'ALL_LEVELS';\n  if (upper === 'BEGINNER' || lower === 'beginner' || lower === 'basic' || text.indexOf('입문') !== -1 || text.indexOf('초급') !== -1) return 'BEGINNER';\n  if (upper === 'INTERMEDIATE' || lower === 'intermediate' || text.indexOf('중급') !== -1) return 'INTERMEDIATE';\n  if (upper === 'ADVANCED' || lower === 'advanced' || text.indexOf('심화') !== -1 || text.indexOf('고급') !== -1) return 'ADVANCED';\n  return 'ALL_LEVELS';\n}\n\nfunction normalizeRegion(raw) {\n  const text = String(raw || '').replace(/\\s+/g, ' ').trim();\n  const upper = text.toUpperCase();\n  if (!text) return 'NATIONWIDE';\n  if (upper === 'SEOUL' || text.indexOf('서울') !== -1) return 'SEOUL';\n  if (upper === 'GYEONGGI' || text.indexOf('경기') !== -1) return 'GYEONGGI';\n  if (upper === 'INCHEON' || text.indexOf('인천') !== -1) return 'INCHEON';\n  if (upper === 'BUSAN' || text.indexOf('부산') !== -1) return 'BUSAN';\n  if (upper === 'ONLINE' || text.indexOf('온라인') !== -1) return 'ONLINE';\n  return upper;\n}\n\nfunction getRegionLabel(code) {\n  const labels = { SEOUL: '서울', GYEONGGI: '경기', INCHEON: '인천', BUSAN: '부산', ONLINE: '온라인', NATIONWIDE: '전국' };\n  return labels[code] || code || '전국';\n}\n\nfunction getLevelLabel(code) {\n  const labels = { BEGINNER: '입문', INTERMEDIATE: '중급', ADVANCED: '심화', ALL_LEVELS: '누구나' };\n  return labels[code] || '누구나';\n}\n\nfunction getTypeLabel(raw) {\n  const text = String(raw || '').trim();\n  if (!text) return '원데이';\n  if (text.toUpperCase() === 'ONLINE' || text.indexOf('온라인') !== -1) return '온라인';\n  return text;\n}\n\nfunction normalizeGrade(raw) {\n  const upper = String(raw || 'BLOOM').toUpperCase();\n  if (upper === 'SILVER') return 'BLOOM';\n  if (upper === 'GOLD') return 'GARDEN';\n  if (upper === 'PLATINUM') return 'ATELIER';\n  return upper || 'BLOOM';\n}\n\nfunction topCategory(classes) {\n  const counts = {};\n  let best = '';\n  let bestCount = 0;\n  classes.forEach((item) => {\n    const category = String(item.category || '').trim() || '꽃 공예';\n    counts[category] = (counts[category] || 0) + 1;\n    if (counts[category] > bestCount) {\n      best = category;\n      bestCount = counts[category];\n    }\n  });\n  return best || '꽃 공예';\n}\n\nfunction buildGuideChecklist(item, levelLabel) {\n  const list = [];\n  const duration = Number(item.duration_min || 0);\n  list.push(levelLabel + ' 난이도에서 시작하기 좋은 클래스');\n  if (duration > 0) {\n    list.push('예상 수업 시간 ' + duration + '분');\n  }\n  if (Number(item.kit_enabled || 0) === 1) {\n    list.push('재료 연동 상품 확인 가능');\n  } else {\n    list.push('상세 페이지에서 준비물 안내 확인');\n  }\n  list.push(getRegionLabel(item.regionCode) + '에서 예약 가능한 클래스');\n  return list;\n}\n\nconst activeClasses = classesList\n  .map((item) => ({\n    class_id: item.class_id || '',\n    class_name: item.class_name || '',\n    category: String(item.category || '').trim() || '꽃 공예',\n    levelCode: normalizeLevel(item.level || ''),\n    levelLabel: getLevelLabel(normalizeLevel(item.level || '')),\n    price: Number(item.price || 0),\n    duration_min: Number(item.duration_min || 0),\n    thumbnail_url: item.thumbnail_url || '',\n    location: item.location || '',\n    regionCode: normalizeRegion(item.region || item.location || ''),\n    regionLabel: getRegionLabel(normalizeRegion(item.region || item.location || '')),\n    tags: item.tags || '',\n    class_count: Number(item.class_count || 0),\n    avg_rating: Number(item.avg_rating || 0),\n    partner_code: item.partner_code || '',\n    typeLabel: getTypeLabel(item.type || ''),\n    status: normalizeStatus(item.status || ''),\n    kit_enabled: Number(item.kit_enabled || 0)\n  }))\n  .filter((item) => item.status === 'ACTIVE');\n\nconst partnerMap = {};\npartnersList.forEach((item) => {\n  partnerMap[item.partner_code] = {\n    partner_code: item.partner_code || '',\n    partner_name: item.partner_name || '',\n    grade: normalizeGrade(item.grade || 'BLOOM'),\n    location: item.location || '',\n    avg_rating: Number(item.avg_rating || 0),\n    instagram_url: item.instagram_url || '',\n    portfolio_url: item.portfolio_url || ''\n  };\n});\n\nconst partnerClassesMap = {};\nactiveClasses.forEach((item) => {\n  if (!partnerClassesMap[item.partner_code]) partnerClassesMap[item.partner_code] = [];\n  partnerClassesMap[item.partner_code].push(item);\n});\n\nconst summary = {\n  total_classes: activeClasses.length,\n  total_partners: Object.keys(partnerClassesMap).length,\n  total_beginner_classes: activeClasses.filter((item) => item.levelCode === 'BEGINNER').length,\n  total_regions: Array.from(new Set(activeClasses.map((item) => item.regionCode).filter(Boolean))).length\n};\n\nconst highlights = activeClasses\n  .slice()\n  .sort((a, b) => {\n    if (b.avg_rating !== a.avg_rating) return b.avg_rating - a.avg_rating;\n    if (b.class_count !== a.class_count) return b.class_count - a.class_count;\n    return a.price - b.price;\n  })\n  .slice(0, 4)\n  .map((item) => ({\n    class_id: item.class_id,\n    title: item.class_name,\n    category: item.category,\n    partner_name: (partnerMap[item.partner_code] || {}).partner_name || '',\n    region_label: item.regionLabel,\n    price: item.price,\n    avg_rating: item.avg_rating,\n    type_label: item.typeLabel,\n    level_label: item.levelLabel,\n    thumbnail_url: item.thumbnail_url,\n    highlight_copy: item.regionLabel + '에서 예약 가능한 ' + item.category + ' 추천 클래스'\n  }));\n\nconst partnerStories = partnersList\n  .map((partner) => {\n    const related = partnerClassesMap[partner.partner_code] || [];\n    const beginnerCount = related.filter((item) => item.levelCode === 'BEGINNER').length;\n    const mainCategory = topCategory(related);\n    const regionLabel = getRegionLabel(normalizeRegion(partner.location || (related[0] && related[0].regionCode) || ''));\n    let gradeCopy = '첫 수업부터 신뢰를 쌓는 파트너';\n    if (normalizeGrade(partner.grade || '') === 'AMBASSADOR') gradeCopy = '협업과 멘토링까지 확장하는 대표 파트너';\n    else if (normalizeGrade(partner.grade || '') === 'ATELIER') gradeCopy = '콘텐츠 허브 인터뷰 대상 파트너';\n    else if (normalizeGrade(partner.grade || '') === 'GARDEN') gradeCopy = '재수강이 쌓이는 성장 파트너';\n    return {\n      partner_code: partner.partner_code || '',\n      partner_name: partner.partner_name || '',\n      grade: normalizeGrade(partner.grade || 'BLOOM'),\n      region_label: regionLabel,\n      class_count: related.length,\n      avg_rating: Number(partner.avg_rating || 0),\n      featured_category: mainCategory,\n      headline: regionLabel + '에서 만나는 ' + (partner.partner_name || '파트너'),\n      quote: (partner.partner_name || '파트너') + ' 파트너는 ' + mainCategory + ' 중심으로 수강생이 다시 찾는 수업 흐름을 만들고 있습니다.',\n      focus_points: [\n        gradeCopy,\n        beginnerCount > 0 ? '입문 클래스 ' + beginnerCount + '개 운영' : '중급 이상 클래스 운영',\n        partner.instagram_url ? '인스타그램 포트폴리오 확인 가능' : 'PRESSCO21 허브 안에서 작품 맥락 노출'\n      ],\n      search_keyword: partner.partner_name || ''\n    };\n  })\n  .filter((item) => item.class_count > 0)\n  .sort((a, b) => {\n    if (b.class_count !== a.class_count) return b.class_count - a.class_count;\n    return b.avg_rating - a.avg_rating;\n  })\n  .slice(0, 4);\n\nconst categoryBuckets = {};\nactiveClasses.forEach((item) => {\n  if (!categoryBuckets[item.category]) categoryBuckets[item.category] = [];\n  categoryBuckets[item.category].push(item);\n});\n\nconst trends = Object.keys(categoryBuckets)\n  .map((category) => {\n    const items = categoryBuckets[category];\n    const regionList = Array.from(new Set(items.map((item) => item.regionLabel))).slice(0, 3);\n    return {\n      title: category + ' 트렌드',\n      eyebrow: items.length + '개 클래스가 쌓인 주제',\n      description: category + ' 카테고리의 활성 클래스가 ' + items.length + '개 있고, ' + regionList.join(', ') + ' 중심으로 탐색됩니다.',\n      category: category,\n      class_count: items.length,\n      chips: regionList.length ? regionList : ['전국']\n    };\n  })\n  .sort((a, b) => b.class_count - a.class_count)\n  .slice(0, 4);\n\nconst guides = activeClasses\n  .filter((item) => item.levelCode === 'BEGINNER')\n  .slice()\n  .sort((a, b) => {\n    if (b.avg_rating !== a.avg_rating) return b.avg_rating - a.avg_rating;\n    return a.price - b.price;\n  })\n  .slice(0, 4)\n  .map((item) => ({\n    class_id: item.class_id,\n    title: item.class_name,\n    category: item.category,\n    partner_name: (partnerMap[item.partner_code] || {}).partner_name || '',\n    region_label: item.regionLabel,\n    price: item.price,\n    level_label: item.levelLabel,\n    checklist: buildGuideChecklist(item, item.levelLabel)\n  }));\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      summary: summary,\n      highlights: highlights,\n      partner_stories: partnerStories,\n      trends: trends,\n      guides: guides,\n      featured_message: highlights[0] ? highlights[0].highlight_copy : '전국 파트너 클래스와 콘텐츠를 한 허브에서 탐색하세요.',\n      updated_at: new Date().toISOString()\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+      },
+      "id": "wf01c-content-build",
+      "name": "Build Content Hub Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1380,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf01c-content-respond",
+      "name": "Respond getContentHub",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1620,
+        420
+      ]
     }
   ],
   "connections": {
@@ -222,6 +374,13 @@
         [
           {
             "node": "NocoDB Get Affiliations",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB Get Content Classes",
             "type": "main",
             "index": 0
           }
@@ -262,6 +421,39 @@
         [
           {
             "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Get Content Classes": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Get Content Partners",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Get Content Partners": {
+      "main": [
+        [
+          {
+            "node": "Build Content Hub Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Content Hub Response": {
+      "main": [
+        [
+          {
+            "node": "Respond getContentHub",
             "type": "main",
             "index": 0
           }

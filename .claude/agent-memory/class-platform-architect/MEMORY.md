@@ -134,3 +134,13 @@
 - `WF-01A` 는 `getClasses / getClassDetail / getCategories`, `WF-01B` 는 `getSchedules / getRemainingSeats`, `WF-01C` 는 `getAffiliations` 를 담당한다.
 - 분리 후에도 기존 5개 회귀 시나리오(`classes/detail/categories/affiliations/invalid`) 응답 본문은 baseline 과 동일하게 유지됐다.
 - 운영 기준 문서는 `docs/파트너클래스/WF-01-split-guide.md` 이다.
+
+## 2026-03-11 S2-5 콘텐츠 허브 read 레이어 확장
+
+- `WF-01C` 는 이제 `getAffiliations` 뿐 아니라 `getContentHub` 도 담당한다.
+- `getContentHub` 는 신규 테이블 없이 `tbl_Classes + tbl_Partners` 를 합성해 허브형 읽기 응답을 만든다.
+- 응답 구조는 `summary / featured_message / highlights / partner_stories / trends / guides` 로 고정했다.
+- 허브는 별도 API endpoint 를 늘리지 않고 기존 `class-api` 라우터의 action 확장으로 유지했다.
+- 파트너 grade 는 과거 데이터 호환을 위해 `SILVER/GOLD/PLATINUM -> BLOOM/GARDEN/ATELIER` alias 를 먼저 정규화한다.
+- 전용 콘텐츠 테이블은 향후 `F300` 에서 붙이고, 현재 허브는 탐색/영업용 1차 레이어로 본다.
+- 운영 기준 문서는 `docs/파트너클래스/content-hub-guide.md` 이다.

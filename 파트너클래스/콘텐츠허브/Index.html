@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>콘텐츠 허브 | PRESSCO21 포에버러브</title>
+    <meta name="description" content="파트너 스토리, 클래스 하이라이트, 꽃 트렌드, 초보자 가이드를 한 곳에서 탐색하는 PRESSCO21 콘텐츠 허브입니다.">
+    <meta name="keywords" content="꽃 공예 콘텐츠, 파트너 인터뷰, 클래스 하이라이트, 꽃 트렌드, 초보자 가이드">
+    <meta property="og:title" content="콘텐츠 허브 | PRESSCO21 포에버러브">
+    <meta property="og:description" content="전국 클래스 탐색과 파트너 스토리, 계절 큐레이션, 초보자 가이드를 한 허브에서 확인하세요.">
+    <meta property="og:type" content="website">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+</head>
+<body>
+
+<div class="partner-content-hub" id="partnerContentHub">
+    <header class="pch-hero">
+        <div class="pch-hero__inner">
+            <div class="pch-hero__copy">
+                <p class="pch-hero__eyebrow">PRESSCO21 Editorial Hub</p>
+                <h1 class="pch-hero__title">수강생이 탐색하고 싶은 흐름을<br>콘텐츠로 먼저 보여줍니다</h1>
+                <p class="pch-hero__desc">전국 클래스, 파트너 스토리, 계절 큐레이션, 초보자 가이드를 하나의 허브로 묶어 예약 직전의 망설임을 줄이고 다음 행동까지 자연스럽게 이어줍니다.</p>
+                <div class="pch-hero__actions">
+                    <a class="pch-btn pch-btn--primary" href="/shop/page.html?id=2606">전체 클래스 보기</a>
+                    <a class="pch-btn pch-btn--secondary" href="/shop/page.html?id=2609">파트너 제휴 보기</a>
+                </div>
+            </div>
+            <aside class="pch-hero__aside">
+                <p class="pch-hero__aside-label">이번 허브에서 가장 먼저 보여줄 이야기</p>
+                <h2 class="pch-hero__aside-title" id="pchFeatureMessage">전국 파트너 클래스와 콘텐츠를 한 허브에서 탐색하세요.</h2>
+                <div class="pch-summary">
+                    <div class="pch-summary__item">
+                        <span class="pch-summary__label">활성 클래스</span>
+                        <strong class="pch-summary__value" id="pchTotalClasses">0</strong>
+                    </div>
+                    <div class="pch-summary__item">
+                        <span class="pch-summary__label">활성 파트너</span>
+                        <strong class="pch-summary__value" id="pchTotalPartners">0</strong>
+                    </div>
+                    <div class="pch-summary__item">
+                        <span class="pch-summary__label">입문 클래스</span>
+                        <strong class="pch-summary__value" id="pchTotalBeginner">0</strong>
+                    </div>
+                    <div class="pch-summary__item">
+                        <span class="pch-summary__label">탐색 지역</span>
+                        <strong class="pch-summary__value" id="pchTotalRegions">0</strong>
+                    </div>
+                </div>
+            </aside>
+        </div>
+    </header>
+
+    <nav class="pch-nav" aria-label="콘텐츠 섹션 이동">
+        <button type="button" class="pch-nav__btn is-active" data-scroll-target="hubHighlightsSection">클래스 하이라이트</button>
+        <button type="button" class="pch-nav__btn" data-scroll-target="hubStoriesSection">파트너 인터뷰</button>
+        <button type="button" class="pch-nav__btn" data-scroll-target="hubTrendsSection">꽃 트렌드</button>
+        <button type="button" class="pch-nav__btn" data-scroll-target="hubGuidesSection">초보자 가이드</button>
+    </nav>
+
+    <div class="pch-state pch-state--loading" id="pchLoading">
+        <div class="pch-state__panel">
+            <p class="pch-state__eyebrow">Loading Hub</p>
+            <h2 class="pch-state__title">콘텐츠 허브를 구성하고 있습니다.</h2>
+            <p class="pch-state__desc">파트너 스토리와 클래스 큐레이션을 불러오는 중입니다.</p>
+        </div>
+    </div>
+
+    <div class="pch-state pch-state--error" id="pchError" style="display:none;">
+        <div class="pch-state__panel">
+            <p class="pch-state__eyebrow">Load Failed</p>
+            <h2 class="pch-state__title">콘텐츠 허브를 불러오지 못했습니다.</h2>
+            <p class="pch-state__desc">잠시 후 다시 시도하거나, 전체 클래스 페이지에서 먼저 탐색을 시작해 주세요.</p>
+            <button type="button" class="pch-btn pch-btn--primary" id="pchRetryBtn">다시 시도</button>
+        </div>
+    </div>
+
+    <main class="pch-main" id="pchContent" style="display:none;">
+        <section class="pch-section" id="hubHighlightsSection">
+            <div class="pch-section__head">
+                <p class="pch-section__eyebrow">CLASS HIGHLIGHTS</p>
+                <h2 class="pch-section__title">지금 바로 구미가 당기는 대표 클래스</h2>
+                <p class="pch-section__desc">수강생이 실제로 비교하기 쉬운 가격, 지역, 난이도, 파트너 정보를 한 장 안에서 빠르게 읽을 수 있게 정리합니다.</p>
+            </div>
+            <div class="pch-card-grid pch-card-grid--highlights" id="pchHighlightsGrid"></div>
+        </section>
+
+        <section class="pch-section" id="hubStoriesSection">
+            <div class="pch-section__head">
+                <p class="pch-section__eyebrow">PARTNER STORIES</p>
+                <h2 class="pch-section__title">강사와 공방의 맥락이 보이는 인터뷰형 카드</h2>
+                <p class="pch-section__desc">클래스만 나열하지 않고, 누가 어떤 스타일의 수업을 운영하는지와 어떤 단계의 파트너인지까지 함께 보여줍니다.</p>
+            </div>
+            <div class="pch-story-grid" id="pchStoriesGrid"></div>
+        </section>
+
+        <section class="pch-section" id="hubTrendsSection">
+            <div class="pch-section__head">
+                <p class="pch-section__eyebrow">FLOWER TRENDS</p>
+                <h2 class="pch-section__title">지금 많이 움직이는 카테고리를 큐레이션으로 제안</h2>
+                <p class="pch-section__desc">클래스 데이터에서 실제로 쌓이는 주제를 바탕으로 계절감과 지역감을 함께 읽을 수 있게 구성합니다.</p>
+            </div>
+            <div class="pch-trend-grid" id="pchTrendsGrid"></div>
+        </section>
+
+        <section class="pch-section" id="hubGuidesSection">
+            <div class="pch-section__head">
+                <p class="pch-section__eyebrow">BEGINNER GUIDE</p>
+                <h2 class="pch-section__title">처음 배우는 수강생이 안심할 수 있는 출발점</h2>
+                <p class="pch-section__desc">입문 난이도, 예상 시간, 준비물 흐름을 가이드 카드로 정리해 예약 전 부담을 낮춥니다.</p>
+            </div>
+            <div class="pch-guide-grid" id="pchGuidesGrid"></div>
+        </section>
+
+        <section class="pch-cta-strip">
+            <div class="pch-cta-strip__copy">
+                <p class="pch-cta-strip__eyebrow">NEXT STEP</p>
+                <h2 class="pch-cta-strip__title">콘텐츠를 읽었다면 이제 바로 탐색하거나, 파트너로 합류할 수 있습니다.</h2>
+            </div>
+            <div class="pch-cta-strip__actions">
+                <a class="pch-btn pch-btn--primary" href="/shop/page.html?id=2606">전국 클래스 탐색</a>
+                <a class="pch-btn pch-btn--secondary" href="/shop/page.html?id=2609">파트너 신청</a>
+            </div>
+        </section>
+    </main>
+</div>
+
+</body>
+</html>

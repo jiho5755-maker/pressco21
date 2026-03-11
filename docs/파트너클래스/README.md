@@ -74,6 +74,8 @@
   - S2-2 기준 협회 제안서 페이지, ROI 시뮬레이터, 어드민 URL 생성기 구조와 로컬 검증 결과 정리
 - `nationwide-discovery-ia-guide.md`
   - S2-3 기준 목록 3탭, 지도 보기, 파트너맵 통합 셸, 상세 content_type 분기 구조와 로컬 검증 결과 정리
+- `content-hub-guide.md`
+  - S2-5 기준 콘텐츠 허브 4영역, `getContentHub` API, 기존 Classes+Partners 합성 방식, Playwright 검증 결과 정리
 
 ### QA / 검증
 

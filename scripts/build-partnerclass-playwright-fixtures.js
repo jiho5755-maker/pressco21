@@ -63,6 +63,14 @@ var pages = [
         replacements: []
     },
     {
+        key: 'content-hub',
+        html: path.join(repoRoot, '파트너클래스', '콘텐츠허브', 'Index.html'),
+        css: path.join(repoRoot, '파트너클래스', '콘텐츠허브', 'css.css'),
+        js: path.join(repoRoot, '파트너클래스', '콘텐츠허브', 'js.js'),
+        output: path.join(outputDir, 'content-hub.html'),
+        replacements: []
+    },
+    {
         key: 'admin',
         html: path.join(repoRoot, '파트너클래스', '어드민', 'Index.html'),
         css: path.join(repoRoot, '파트너클래스', '어드민', 'css.css'),

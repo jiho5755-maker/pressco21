@@ -49,32 +49,15 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: —
+- Current Owner: NONE
+- Mode: IDLE
+- Started At: -
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: handoff only; next session may resume from Next Step
+- Active Subdirectory: -
 
 ## Files In Progress
-- `AI_SYNC.md`
-- `ROADMAP.md`
-- `docs/파트너클래스/*`
-- `scripts/*`
-- `offline-crm-v2/docs/accounting-upgrade-prd-2026-03-11.md`
-- `offline-crm-v2/docs/accounting-upgrade-roadmap-2026-03-11.md`
-- `offline-crm-v2/src/lib/legacySnapshots.ts`
-- `offline-crm-v2/src/pages/Receivables.tsx`
-- `offline-crm-v2/src/pages/CustomerDetail.tsx`
-- `offline-crm-v2/src/pages/Transactions.tsx`
-- `offline-crm-v2/src/pages/Dashboard.tsx`
-- `offline-crm-v2/src/components/TransactionDetailDialog.tsx`
-- `offline-crm-v2/src/components/layout/Layout.tsx`
-- `offline-crm-v2/src/components/layout/AppGuideWidget.tsx`
-- `offline-crm-v2/src/lib/appGuide.ts`
-- `offline-crm-v2/src/pages/Settings.tsx`
-- `offline-crm-v2/docs/accounting-upgrade-prd-v2-2026-03-11.md`
-- `offline-crm-v2/docs/accounting-upgrade-p1-spec-2026-03-11.md`
+- 없음
 
 ### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
 - 스크립트 / 문서
@@ -309,6 +292,38 @@
     - `output/playwright/s2-7-partner-churn/churn-results.json`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX] Playwright MCP 안정화 및 세션 재기동 가이드 추가 (2026-03-11)
+- 목적
+  - Codex 내장 Playwright MCP가 `Transport closed`로 끊기던 이슈를 다음 세션에서 바로 복구 가능하게 정리
+- 확인 결과
+  - `@playwright/mcp` 자체 설치 문제는 아니었고, 기본 브라우저 경로에서 `chrome-headless-shell` 크래시 흔적 확인
+  - macOS crash report:
+    - `~/Library/Logs/DiagnosticReports/Retired/chrome-headless-shell-2026-03-10-*.ips`
+  - 현재 대화 세션의 MCP 런타임은 이미 죽어 있어 tool call은 계속 `Transport closed`가 날 수 있음
+  - 새 Codex 세션에서는 Playwright MCP 정상 기동 확인:
+    - `https://example.com` title 확인
+    - `https://www.foreverlove.co.kr/shop/page.html?id=2606` title 확인
+- 로컬 설정 기준
+  - global codex config:
+    - `~/.codex/config.toml`
+  - project local mcp config:
+    - `.mcp.json`
+  - 권장 args:
+    - `-y @playwright/mcp@0.0.68 --browser chrome --headless --isolated --output-dir /Users/jangjiho/workspace/pressco21/output/playwright/mcp`
+- 새 문서
+  - `docs/playwright-mcp-setup.md`
+    - 원인
+    - 잔여 프로세스 정리 명령
+    - `codex mcp list/get` 확인 명령
+    - 새 세션 `codex exec` 검증 예시
+- 검증 명령
+  - `codex mcp list`
+  - `codex mcp get playwright`
+  - `codex exec --dangerously-bypass-approvals-and-sandbox -C /Users/jangjiho/workspace/pressco21 -m gpt-5.4 "Use the Playwright MCP tool to open https://example.com and reply with only the page title."`
+  - `codex exec --dangerously-bypass-approvals-and-sandbox -C /Users/jangjiho/workspace/pressco21 -m gpt-5.4 "Use the Playwright MCP tool to open https://www.foreverlove.co.kr/shop/page.html?id=2606 and reply with only the page title."`
+- 커밋
+  - `5920fdb` `[codex] docs: record playwright mcp setup`
 
 ### [CODEX] offline-crm-v2 회계 고도화 PRD/로드맵 수립 완료 (CODEX)
 - 문서
@@ -2221,6 +2236,11 @@
 
 - Phase 3 S0-1 ~ S3-6 구현은 모두 완료
 - 다음 실제 진행은 `메이크샵 디자인편집기 실배포 + 운영 브라우저 재검증` 묶음
+- 다음 세션 시작 직후 할 일
+  - 현재 대화 세션의 MCP는 stale 상태일 수 있으므로 Codex 새 세션 또는 앱 재시작 후 진행
+  - `codex mcp get playwright`로 설정 확인
+  - 필요 시 `docs/playwright-mcp-setup.md` 절차대로 잔여 프로세스 정리
+  - 이후 라이브 검증은 가능하면 내장 Playwright MCP 기준으로 재개
 - 운영 blocker 추적:
   - `S2-7 파트너 이탈 감지 자동화` SMTP + Telegram credential
   - `S1-5 정산 자동화 WF-SETTLE` SMTP credential
@@ -2361,3 +2381,4 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - 실관리자 계정 자격증명은 리포지토리에서 확인되지 않았고, `id=8011` 양성 최종 검증 전 별도 제공이 필요함
 - `makeshop-d4-dev`는 `/Users/jangjiho/workspace/AGENTS.md`를 기준 문서로 참조하므로, 해당 경로가 바뀌면 스킬 안내도 함께 갱신해야 함
 - 어드민 권한 판정은 이제 `group_name` 일치 또는 `group_level >= 9`면 통과하므로, 다른 최고등급 회원이 의도치 않게 열리지 않는지 운영 정책 확인 필요
+- 현재 이 대화 세션의 내장 Playwright MCP는 stale 상태일 수 있다. 설정은 복구됐지만, 같은 세션에서는 여전히 `Transport closed`가 날 수 있으므로 새 Codex 세션 또는 앱 재시작 후 재검증하는 편이 안전하다.

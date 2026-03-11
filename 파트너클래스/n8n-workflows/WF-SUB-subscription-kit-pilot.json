@@ -1,0 +1,131 @@
+{
+  "name": "WF-SUB Subscription Kit Pilot",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "subscription-kit",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wfsub-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        220
+      ],
+      "webhookId": "subscription-kit"
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\n\nconst input = $input.first().json || {};\nconst body = input.body || input || {};\nconst action = String(body.action || '').trim();\n\nfunction requestJson(hostname, path, method, bodyValue, headers) {\n  return new Promise((resolve, reject) => {\n    const options = {\n      hostname: hostname,\n      path: path,\n      method: method,\n      headers: headers || {}\n    };\n    const req = https.request(options, (res) => {\n      let data = '';\n      res.on('data', chunk => data += chunk);\n      res.on('end', () => {\n        let parsed = null;\n        try { parsed = data ? JSON.parse(data) : null; } catch (error) { parsed = { raw: data }; }\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error(method + ' ' + path + ' failed: ' + res.statusCode + ' ' + JSON.stringify(parsed)));\n          return;\n        }\n        resolve(parsed);\n      });\n    });\n    req.on('error', reject);\n    if (typeof bodyValue !== \"undefined\") {\n      req.write(JSON.stringify(bodyValue));\n    }\n    req.end();\n  });\n}\n\nfunction metaRequest(method, suffix, bodyValue) {\n  return requestJson('nocodb.pressco21.com', '/api/v2/meta/bases/' + $env.NOCODB_PROJECT_ID + suffix, method, bodyValue, {\n    'xc-token': $env.NOCODB_API_TOKEN,\n    'Content-Type': 'application/json'\n  });\n}\n\nfunction dataRequest(tableId, method, suffix, bodyValue) {\n  return requestJson('nocodb.pressco21.com', '/api/v1/db/data/noco/' + $env.NOCODB_PROJECT_ID + '/' + tableId + (suffix || ''), method, bodyValue, {\n    'xc-token': $env.NOCODB_API_TOKEN,\n    'Content-Type': 'application/json'\n  });\n}\n\nasync function findSubscriptionsTableId() {\n  const result = await metaRequest('GET', '/tables');\n  const list = Array.isArray(result.list) ? result.list : [];\n  const match = list.find((item) => item && item.title === 'tbl_Subscriptions');\n  return match ? match.id : '';\n}\n\nfunction sanitizeText(value, maxLen) {\n  const text = String(value || '').replace(/[\\u0000-\\b\\u000b\\f\\u000e-\\u001f]/g, '').trim();\n  return text.substring(0, maxLen || 200);\n}\n\nfunction toNumber(value, fallback) {\n  const num = Number(value);\n  return isNaN(num) ? (fallback || 0) : num;\n}\n\nfunction parseArray(value) {\n  if (Array.isArray(value)) return value;\n  if (!value) return [];\n  try {\n    const parsed = JSON.parse(value);\n    return Array.isArray(parsed) ? parsed : [];\n  } catch (error) {\n    return [];\n  }\n}\n\nfunction encodeWhereValue(value) {\n  return encodeURIComponent(String(value || ''));\n}\n\nfunction isValidDate(value) {\n  return /^\\d{4}-\\d{2}-\\d{2}$/.test(String(value || ''));\n}\n\nfunction isValidMonth(value) {\n  return /^\\d{4}-\\d{2}$/.test(String(value || ''));\n}\n\nfunction isValidEmail(value) {\n  return /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(String(value || '').trim());\n}\n\nfunction nowIso() {\n  return new Date().toISOString();\n}\n\nfunction todayString() {\n  const now = new Date();\n  return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');\n}\n\nfunction createSubscriptionId() {\n  const now = new Date();\n  const stamp = String(now.getFullYear())\n    + String(now.getMonth() + 1).padStart(2, '0')\n    + String(now.getDate()).padStart(2, '0')\n    + String(now.getHours()).padStart(2, '0')\n    + String(now.getMinutes()).padStart(2, '0')\n    + String(now.getSeconds()).padStart(2, '0');\n  const rand = String(Math.floor(Math.random() * 9000) + 1000);\n  return 'SUBS_' + stamp + '_' + rand;\n}\n\nfunction formatMonth(dateText) {\n  const value = isValidDate(dateText) ? dateText : todayString();\n  return String(value).slice(0, 7);\n}\n\nfunction computeNextOrderDate(deliveryDay, baseDateText, cycleMonths) {\n  const day = Math.min(Math.max(parseInt(deliveryDay, 10) || 5, 1), 28);\n  const monthsToAdd = Math.max(parseInt(cycleMonths, 10) || 1, 1);\n  const base = isValidDate(baseDateText) ? new Date(baseDateText + \"T00:00:00+09:00\") : new Date();\n  const candidate = new Date(base.getFullYear(), base.getMonth() + monthsToAdd, 1);\n  const maxDay = new Date(candidate.getFullYear(), candidate.getMonth() + 1, 0).getDate();\n  candidate.setDate(Math.min(day, maxDay));\n  return candidate.getFullYear() + '-' + String(candidate.getMonth() + 1).padStart(2, '0') + '-' + String(candidate.getDate()).padStart(2, '0');\n}\n\nfunction normalizePreviewItems(value) {\n  const list = parseArray(value);\n  return list.slice(0, 5).map((item) => sanitizeText(item, 40)).filter(Boolean);\n}\n\nfunction extractBrandUid(raw) {\n  const text = String(raw || '').replace(/\\s+/g, '').trim();\n  const match = text.match(/[?&]branduid=([^&#]+)/i);\n  if (match && match[1]) return decodeURIComponent(match[1]);\n  if (/^[A-Za-z0-9_-]{4,64}$/.test(text)) return text;\n  return '';\n}\n\nfunction mapSubscriptionRow(row) {\n  return {\n    subscription_id: row.subscription_id || '',\n    member_id: row.member_id || '',\n    class_id: row.class_id || '',\n    class_name: row.class_name || '',\n    partner_code: row.partner_code || '',\n    partner_name: row.partner_name || '',\n    kit_bundle_branduid: row.kit_bundle_branduid || '',\n    regular_price: toNumber(row.regular_price, 0),\n    subscriber_price: toNumber(row.subscriber_price, 0),\n    preview_items: normalizePreviewItems(row.preview_items_json || \"[]\"),\n    delivery_day: toNumber(row.delivery_day, 5),\n    status: row.status || '',\n    next_order_date: row.next_order_date || '',\n    last_order_date: row.last_order_date || '',\n    last_order_ref: row.last_order_ref || '',\n    last_batch_month: row.last_batch_month || '',\n    order_count: toNumber(row.order_count, 0),\n    shipping_zipcode: row.shipping_zipcode || '',\n    shipping_address1: row.shipping_address1 || '',\n    shipping_address2: row.shipping_address2 || '',\n    cancelled_at: row.cancelled_at || ''\n  };\n}\n\nasync function listSubscriptions(tableId, memberId) {\n  const query = '?where=(member_id,eq,' + encodeWhereValue(memberId) + ')&sort=-CreatedAt&limit=100';\n  const result = await dataRequest(tableId, 'GET', query);\n  return (result.list || []).map(mapSubscriptionRow);\n}\n\nfunction splitSubscriptions(list) {\n  const active = [];\n  const inactive = [];\n  let totalSavings = 0;\n  let i = 0;\n\n  for (i = 0; i < list.length; i += 1) {\n    if (String(list[i].status || '') === 'ACTIVE') {\n      active.push(list[i]);\n      totalSavings += Math.max((list[i].regular_price || 0) - (list[i].subscriber_price || 0), 0);\n    } else {\n      inactive.push(list[i]);\n    }\n  }\n\n  return { active, inactive, totalSavings };\n}\n\nasync function createSubscription(tableId) {\n  const memberId = sanitizeText(body.member_id, 100);\n  const classId = sanitizeText(body.class_id, 100);\n  const className = sanitizeText(body.class_name, 120);\n  const memberName = sanitizeText(body.member_name, 60);\n  const memberEmail = sanitizeText(body.member_email, 120);\n  const memberPhone = sanitizeText(body.member_phone, 40);\n  const partnerCode = sanitizeText(body.partner_code, 60);\n  const partnerName = sanitizeText(body.partner_name, 60);\n  const kitBundleBrandUid = extractBrandUid(body.kit_bundle_branduid || \"\");\n  const regularPrice = Math.max(toNumber(body.regular_price, 0), 0);\n  const subscriberPrice = Math.max(toNumber(body.subscriber_price, 0), 0);\n  const deliveryDay = Math.min(Math.max(parseInt(body.delivery_day, 10) || 5, 1), 28);\n  const nextOrderDate = isValidDate(body.next_order_date) ? body.next_order_date : computeNextOrderDate(deliveryDay, todayString(), 1);\n  const previewItems = normalizePreviewItems(body.preview_items || []);\n  const zipcode = sanitizeText(body.shipping_zipcode, 20);\n  const address1 = sanitizeText(body.shipping_address1, 180);\n  const address2 = sanitizeText(body.shipping_address2, 180);\n  const notes = sanitizeText(body.notes, 300);\n\n  if (!memberId || !classId || !className || !memberName || !memberPhone || !kitBundleBrandUid || !address1 || !zipcode) {\n    return { success: false, message: '필수 항목이 누락되었습니다.', statusCode: 400 };\n  }\n  if (!isValidEmail(memberEmail)) {\n    return { success: false, message: '이메일 형식이 올바르지 않습니다.', statusCode: 400 };\n  }\n\n  const duplicateWhere = '?where=(member_id,eq,' + encodeWhereValue(memberId) + ')~and(class_id,eq,' + encodeWhereValue(classId) + ')~and(status,eq,ACTIVE)&limit=1';\n  const duplicate = await dataRequest(tableId, 'GET', duplicateWhere);\n  if (duplicate.list && duplicate.list.length > 0) {\n    return { success: false, message: '이미 진행 중인 구독이 있습니다.', statusCode: 409 };\n  }\n\n  const payload = {\n    subscription_id: createSubscriptionId(),\n    member_id: memberId,\n    member_name: memberName,\n    member_email: memberEmail,\n    member_phone: memberPhone,\n    class_id: classId,\n    class_name: className,\n    partner_code: partnerCode,\n    partner_name: partnerName,\n    kit_bundle_branduid: kitBundleBrandUid,\n    regular_price: regularPrice,\n    subscriber_price: subscriberPrice,\n    preview_items_json: JSON.stringify(previewItems),\n    delivery_day: deliveryDay,\n    cycle_months: 1,\n    status: 'ACTIVE',\n    next_order_date: nextOrderDate,\n    last_order_date: '',\n    last_order_ref: '',\n    last_batch_month: '',\n    order_count: 0,\n    shipping_zipcode: zipcode,\n    shipping_address1: address1,\n    shipping_address2: address2,\n    started_at: nowIso(),\n    cancelled_at: '',\n    notes: notes\n  };\n\n  const created = await dataRequest(tableId, 'POST', '', payload);\n  return {\n    success: true,\n    message: 'subscription created',\n    data: mapSubscriptionRow(created),\n    statusCode: 201\n  };\n}\n\nasync function cancelSubscription(tableId) {\n  const memberId = sanitizeText(body.member_id, 100);\n  const subscriptionId = sanitizeText(body.subscription_id, 120);\n  const where = '?where=(member_id,eq,' + encodeWhereValue(memberId) + ')~and(subscription_id,eq,' + encodeWhereValue(subscriptionId) + ')&limit=1';\n  const found = await dataRequest(tableId, 'GET', where);\n  const row = found.list && found.list[0] ? found.list[0] : null;\n\n  if (!row) {\n    return { success: false, message: '구독 정보를 찾지 못했습니다.', statusCode: 404 };\n  }\n  if (String(row.status || '') !== 'ACTIVE') {\n    return { success: false, message: '이미 해지된 구독입니다.', statusCode: 409 };\n  }\n\n  const patched = await dataRequest(tableId, 'PATCH', '/' + row.Id, { status: 'CANCELLED', cancelled_at: nowIso() });\n  return {\n    success: true,\n    message: 'subscription cancelled',\n    data: mapSubscriptionRow(patched),\n    statusCode: 200\n  };\n}\n\nasync function runMonthlyBatch(tableId) {\n  const targetMonth = isValidMonth(body.month) ? body.month : formatMonth(body.target_date);\n  const asOfDate = isValidDate(body.target_date) ? body.target_date : (targetMonth + '-28');\n  const filterMemberId = sanitizeText(body.member_id, 100);\n  const dryRun = body.dry_run === true || body.dry_run === 1 || body.dry_run === \"1\" || body.dry_run === \"true\";\n  let query = '?where=(status,eq,ACTIVE)&limit=200';\n  let rows = [];\n  let dueRows = [];\n  let generated = [];\n  let i = 0;\n\n  if (filterMemberId) {\n    query = '?where=(status,eq,ACTIVE)~and(member_id,eq,' + encodeWhereValue(filterMemberId) + ')&limit=200';\n  }\n\n  rows = (await dataRequest(tableId, 'GET', query)).list || [];\n  dueRows = rows.filter((row) => {\n    const nextDate = String(row.next_order_date || '').substring(0, 10);\n    const lastBatchMonth = String(row.last_batch_month || '');\n    return nextDate && nextDate <= asOfDate && lastBatchMonth !== targetMonth;\n  });\n\n  for (i = 0; i < dueRows.length; i += 1) {\n    const row = dueRows[i];\n    const orderRef = 'SUBORD_' + targetMonth.replace('-', '') + '_' + sanitizeText(row.subscription_id, 120);\n    const nextOrderDate = computeNextOrderDate(row.delivery_day, row.next_order_date || asOfDate, row.cycle_months || 1);\n\n    generated.push({\n      subscription_id: row.subscription_id || '',\n      class_id: row.class_id || '',\n      class_name: row.class_name || '',\n      next_order_date: nextOrderDate,\n      last_order_ref: orderRef\n    });\n\n    if (!dryRun) {\n      await dataRequest(tableId, 'PATCH', '/' + row.Id, {\n        last_order_date: asOfDate,\n        last_order_ref: orderRef,\n        last_batch_month: targetMonth,\n        next_order_date: nextOrderDate,\n        order_count: Math.max(toNumber(row.order_count, 0), 0) + 1\n      });\n    }\n  }\n\n  return {\n    success: true,\n    message: dryRun ? \"batch dry run complete\" : \"batch complete\",\n    data: {\n      month: targetMonth,\n      target_date: asOfDate,\n      dry_run: dryRun,\n      total_candidates: rows.length,\n      generated_count: generated.length,\n      generated: generated\n    },\n    statusCode: 200\n  };\n}\n\ntry {\n  if (!action) {\n    return [{ json: { success: false, message: 'action required', statusCode: 400 } }];\n  }\n\n  const tableId = await findSubscriptionsTableId();\n  if (!tableId) {\n    return [{ json: { success: false, message: 'tbl_Subscriptions not found', statusCode: 500 } }];\n  }\n\n  if (action === 'listSubscriptions') {\n    const memberId = sanitizeText(body.member_id, 100);\n    if (!memberId) {\n      return [{ json: { success: false, message: 'member_id required', statusCode: 400 } }];\n    }\n    const list = await listSubscriptions(tableId, memberId);\n    const grouped = splitSubscriptions(list);\n    return [{ json: {\n      success: true,\n      message: 'ok',\n      data: {\n        active: grouped.active,\n        inactive: grouped.inactive,\n        total_savings: grouped.totalSavings\n      },\n      statusCode: 200\n    } }];\n  }\n\n  if (action === 'createSubscription') {\n    return [{ json: await createSubscription(tableId) }];\n  }\n\n  if (action === 'cancelSubscription') {\n    return [{ json: await cancelSubscription(tableId) }];\n  }\n\n  if (action === 'runMonthlyBatch') {\n    return [{ json: await runMonthlyBatch(tableId) }];\n  }\n\n  return [{ json: { success: false, message: 'unknown action', statusCode: 400 } }];\n} catch (error) {\n  return [{ json: { success: false, message: 'Internal error: ' + error.message, statusCode: 500 } }];\n}"
+      },
+      "id": "wfsub-handler",
+      "name": "Handle Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({success: $json.success, message: $json.message, data: $json.data}) }}",
+        "options": {
+          "responseCode": "={{ $json.statusCode || 200 }}"
+        }
+      },
+      "id": "wfsub-respond",
+      "name": "Respond",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        720,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 6 1 * *"
+            }
+          ]
+        }
+      },
+      "id": "wfsub-schedule",
+      "name": "Schedule Monthly Batch",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        520
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/subscription-kit",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: \"runMonthlyBatch\", source: \"schedule\" }) }}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "wfsub-trigger-batch",
+      "name": "Trigger Monthly Batch",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        520
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Handle Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Handle Request": {
+      "main": [
+        [
+          {
+            "node": "Respond",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Schedule Monthly Batch": {
+      "main": [
+        [
+          {
+            "node": "Trigger Monthly Batch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "BpyDxiaCb1PwVInY"
+}

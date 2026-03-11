@@ -50,20 +50,14 @@
 ## Session Lock
 
 - Current Owner: IDLE
-- Mode: —
-- Started At: 2026-03-11 16:11:25 KST
+- Mode: IDLE
+- Started At: -
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: -
+- Active Subdirectory: -
 
 ## Files In Progress
-- `docs/파트너클래스/grade-incentive-guide.md`
-- `docs/파트너클래스/README.md`
-- `ROADMAP.md`
-- `AI_SYNC.md`
-- `.claude/agent-memory/class-platform-architect/MEMORY.md`
-- `.claude/agent-memory/qa-test-expert/MEMORY.md`
-- `.claude/agent-memory/sales-partnership-specialist/MEMORY.md`
+- 없음
 
 ### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
 - 스크립트 / 문서
@@ -298,6 +292,57 @@
     - `output/playwright/s2-7-partner-churn/churn-results.json`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S3-3 키트 구독 파일럿 완료 (CODEX)
+- 메이크샵
+  - `파트너클래스/마이페이지/Index.html`
+  - `파트너클래스/마이페이지/css.css`
+  - `파트너클래스/마이페이지/js.js`
+    - 수강생 마이페이지에 `진행 중인 구독 / 시작 가능한 클래스 / 신청 폼` 3레이어 추가
+    - 완료 수업 + 키트 데이터 기반 구독 추천, 신청, 해지 플로우 구현
+- 워크플로우 / 스크립트
+  - `scripts/partnerclass-s3-3-create-subscriptions-table.js`
+  - `scripts/partnerclass-s3-3-generate-subscription-workflow.js`
+  - `scripts/partnerclass-s3-3-deploy-subscription-workflow.js`
+  - `scripts/partnerclass-s3-3-subscription-runner.js`
+  - `파트너클래스/n8n-workflows/WF-SUB-subscription-kit-pilot.json`
+    - live NocoDB `tbl_Subscriptions` 생성: `mtyaeamavml7www`
+    - live `WF-SUB Subscription Kit Pilot` 배포: `BpyDxiaCb1PwVInY`
+    - 지원 action: `listSubscriptions / createSubscription / cancelSubscription / runMonthlyBatch`
+    - 월간 배치 자동 생성은 `SUBORD_YYYYMM_SUBS_*` 내부 주문 ref 기준으로 고정
+- 문서 / 메모리
+  - `docs/파트너클래스/subscription-pilot-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+  - `.claude/agent-memory/ecommerce-business-expert/MEMORY.md`
+- 검증
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+    - `http://www.w3.org/2000/svg` 는 SVG namespace false positive
+  - `node --check`
+    - `파트너클래스/마이페이지/js.js`
+    - `scripts/partnerclass-s3-3-create-subscriptions-table.js`
+    - `scripts/partnerclass-s3-3-generate-subscription-workflow.js`
+    - `scripts/partnerclass-s3-3-deploy-subscription-workflow.js`
+    - `scripts/partnerclass-s3-3-subscription-runner.js`
+  - Playwright:
+    - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-3-subscription-runner.js`
+    - 로컬 UI 결과:
+      - 진행 중 구독 `1 -> 2 -> 1`
+      - 생성 메시지 `월간 키트 구독이 시작되었습니다. 다음 발송일은 2026.03.25 입니다.`
+      - 해지 메시지 `구독이 해지되었습니다. 마지막 생성 주문 이력은 유지됩니다.`
+    - live API 결과:
+      - create `201`
+      - list active `1`
+      - dry run generated `1`
+      - batch generated `1`
+      - last order ref `SUBORD_202603_SUBS_*`
+      - cancel `200`
+    - 산출물:
+      - `output/playwright/s3-3-subscription/table-create-results.json`
+      - `output/playwright/s3-3-subscription/subscription-results.json`
+      - `output/playwright/s3-3-subscription/mypage-subscription-flow.png`
 
 ### [CODEX] offline-crm-v2 작업 계정 분리 로그 보강 완료 (CODEX)
 - CRM
@@ -1923,7 +1968,7 @@
 
 #### 현재 다음 태스크
 
-- `S3-3 키트 구독 모델 파일럿`
+- `S3-4 서버 확장성 검증 (파트너 300명+)`
 - `S2-7 파트너 이탈 감지 자동화` 는 구현/검증 완료, 운영 SMTP + Telegram chat_id blocker 해소 시 최종 수락 기준 닫기
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
@@ -2011,6 +2056,8 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음
 - 상세 페이지 선물하기는 메이크샵 네이티브 장바구니 POST로 맞췄지만, 실제 선물 가능 상품 설정 여부에 따라 최종 동작이 달라질 수 있어 실상품 1건 재검증 필요
 - S3-2 등급 인센티브는 로컬 fixture + Playwright 검증까지 완료됐지만, 메이크샵 디자인편집기 실배포 전이라 운영 `2606/2607/2608` 최종 시각 검증은 아직 남아 있음
+- S3-3 구독 파일럿의 월간 자동 생성은 내부 운영용 `SUBORD_*` ref 기준이며, 메이크샵 실제 정기결제/주문 생성과는 아직 연결되지 않음
+- S3-3 마이페이지 구독 UI 역시 메이크샵 디자인편집기에는 아직 저장되지 않았으므로 운영 화면 검증은 실배포 후 다시 필요함
 - `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 저장 전까지 라이브 반영되지 않음
 - 라이브 `admin-api`는 현재 리포지토리의 랜덤 `ADMIN_API_TOKEN`이 아니라 구형 토큰 `pressco21-admin-2026` 기준으로만 인증이 통과함
 - `파트너클래스/어드민/js.js`의 `PENDING_REVIEW` 정렬 보정은 아직 메이크샵 디자인편집기에 저장되지 않아 라이브 어드민 UI에는 반영되지 않음

@@ -12,6 +12,7 @@
 
     var BOOKINGS_URL = 'https://n8n.pressco21.com/webhook/my-bookings';
     var CLASS_API_URL = 'https://n8n.pressco21.com/webhook/class-api';
+    var SUBSCRIPTION_API_URL = 'https://n8n.pressco21.com/webhook/subscription-kit';
     var DETAIL_PAGE_URL = '/shop/page.html?id=2607&class_id=';
     var REVIEW_THANKS_KEY = 'pressco21_review_thanks_v1';
 
@@ -22,6 +23,10 @@
     var memberId = '';
     var catalogCache = null;
     var detailCache = {};
+    var latestBookings = [];
+    var latestContext = getEmptyContext();
+    var latestSubscriptions = getEmptySubscriptionState();
+    var selectedSubscriptionProfile = null;
 
     /* ========================================
        초기화
@@ -30,6 +35,7 @@
     function init() {
         var memberEl = document.getElementById('mbMemberId');
         bindRetentionEvents();
+        bindSubscriptionEvents();
 
         if (memberEl) {
             memberId = (memberEl.textContent || '').trim();
@@ -55,16 +61,28 @@
             .then(function(data) {
                 var bookings = (data && data.success && data.data && data.data.bookings) ? data.data.bookings : [];
                 return buildRepurchaseContext(bookings).then(function(context) {
-                    var retention = buildRetentionModel(bookings, context);
-                    showLoading(false);
-                    renderRetention(retention);
-                    renderBookings(bookings, context);
+                    latestBookings = bookings;
+                    latestContext = context;
+                    return fetchSubscriptions().catch(function() {
+                        return getEmptySubscriptionState();
+                    }).then(function(subscriptions) {
+                        var retention = buildRetentionModel(bookings, context);
+                        latestSubscriptions = subscriptions;
+                        showLoading(false);
+                        renderRetention(retention);
+                        renderSubscriptions(bookings, context, subscriptions);
+                        renderBookings(bookings, context);
+                    });
                 });
             })
             .catch(function(err) {
                 showLoading(false);
                 console.error('[MyBookings] API 오류:', err);
+                latestBookings = [];
+                latestContext = getEmptyContext();
+                latestSubscriptions = getEmptySubscriptionState();
                 renderRetention(getEmptyRetentionModel());
+                renderSubscriptions([], getEmptyContext(), getEmptySubscriptionState());
                 renderBookings([], getEmptyContext());
             });
     }
@@ -152,6 +170,22 @@
             .catch(function() {
                 return null;
             });
+    }
+
+    function fetchSubscriptions() {
+        return fetchJson(SUBSCRIPTION_API_URL, {
+            action: 'listSubscriptions',
+            member_id: memberId
+        }).then(function(data) {
+            if (!data || !data.success || !data.data) {
+                return getEmptySubscriptionState();
+            }
+            return {
+                active: Array.isArray(data.data.active) ? data.data.active : [],
+                inactive: Array.isArray(data.data.inactive) ? data.data.inactive : [],
+                totalSavings: Number(data.data.total_savings) || 0
+            };
+        });
     }
 
     function fetchJson(url, body) {
@@ -244,6 +278,260 @@
 
         monthlyCard.innerHTML = renderMonthlyReportCard(retention.monthly);
         badgeCard.innerHTML = renderBadgeBoardCard(retention.badges);
+    }
+
+    function renderSubscriptions(bookings, context, subscriptions) {
+        var area = document.getElementById('mbSubscriptionArea');
+        var hero = document.getElementById('mbSubscriptionHero');
+        var listPanel = document.getElementById('mbSubscriptionListPanel');
+        var recommendationPanel = document.getElementById('mbSubscriptionRecommendationPanel');
+        var model = buildSubscriptionModel(bookings, context, subscriptions);
+
+        latestSubscriptions = subscriptions || getEmptySubscriptionState();
+
+        if (!area || !hero || !listPanel || !recommendationPanel) {
+            return;
+        }
+
+        if (!model.visible) {
+            area.style.display = 'none';
+            closeSubscriptionForm();
+            clearSubscriptionFeedback();
+            return;
+        }
+
+        area.style.display = '';
+        hero.innerHTML = renderSubscriptionHero(model);
+        listPanel.innerHTML = renderSubscriptionListPanel(model);
+        recommendationPanel.innerHTML = renderSubscriptionRecommendationPanel(model);
+
+        if (selectedSubscriptionProfile && !findRecommendationByClassId(model.recommendations, selectedSubscriptionProfile.class_id)) {
+            closeSubscriptionForm();
+        } else if (selectedSubscriptionProfile) {
+            renderSubscriptionForm(selectedSubscriptionProfile);
+        }
+    }
+
+    function renderSubscriptionHero(model) {
+        return ''
+            + '<p class="mb-subscription-hero__eyebrow">KIT SUBSCRIPTION PILOT</p>'
+            + '<h2 class="mb-subscription-hero__title">한 번 배운 꽃 재료를 매월 시즌 키트로 이어받아보세요.</h2>'
+            + '<p class="mb-subscription-hero__desc">'
+            + escapeHtml(model.heroText)
+            + '</p>';
+    }
+
+    function renderSubscriptionListPanel(model) {
+        var html = '';
+        var items = model.activeSubscriptions || [];
+        var i = 0;
+
+        html += '<p class="mb-subscription-panel__eyebrow">ACTIVE SUBSCRIPTIONS</p>';
+        html += '<h2 class="mb-subscription-panel__title">진행 중인 구독</h2>';
+        html += '<p class="mb-subscription-panel__desc">다음 발송일, 최근 생성 주문, 월간 예상 절감액을 한 화면에서 확인합니다.</p>';
+        html += '<div class="mb-subscription-panel__summary">';
+        html += buildSubscriptionMetric('진행 중', formatNumber(model.activeCount) + '건');
+        html += buildSubscriptionMetric('다음 발송', model.nextShipmentText);
+        html += buildSubscriptionMetric('예상 절감', formatPrice(model.totalSavings) + '원');
+        html += '</div>';
+
+        if (!items.length) {
+            html += '<div class="mb-subscription-empty">아직 진행 중인 구독이 없습니다. 수강 완료 클래스 중 재료 키트가 있는 수업부터 파일럿을 시작해보세요.</div>';
+            return html;
+        }
+
+        html += '<div class="mb-subscription-list">';
+        for (i = 0; i < items.length; i++) {
+            html += renderActiveSubscriptionCard(items[i]);
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function renderSubscriptionRecommendationPanel(model) {
+        var html = '';
+        var items = model.recommendations || [];
+        var i = 0;
+
+        html += '<p class="mb-subscription-panel__eyebrow">RECOMMENDED START</p>';
+        html += '<h2 class="mb-subscription-panel__title">시작 가능한 클래스</h2>';
+        html += '<p class="mb-subscription-panel__desc">수강 완료 이력이 있고 재료 구성이 있는 클래스만 파일럿 추천 대상으로 보여줍니다.</p>';
+
+        if (!items.length) {
+            html += '<div class="mb-subscription-empty">재료 키트 구독으로 전환할 수 있는 완료 수업이 아직 없습니다. 키트 포함 수업을 먼저 들어보세요.</div>';
+            return html;
+        }
+
+        html += '<div class="mb-subscription-recommendations">';
+        for (i = 0; i < items.length; i++) {
+            html += renderRecommendationCard(items[i]);
+        }
+        html += '</div>';
+        return html;
+    }
+
+    function renderActiveSubscriptionCard(item) {
+        var nextOrderText = item.next_order_date ? formatDateLabel(item.next_order_date) : '미정';
+        var lastOrderText = item.last_order_ref ? item.last_order_ref : '아직 생성 없음';
+        var priceText = formatPrice(item.subscriber_price) + '원';
+        var chips = [];
+        var html = '';
+        var i = 0;
+
+        chips.push('<span class="mb-subscription-card__chip">매월 ' + escapeHtml(String(item.delivery_day || '5')) + '일</span>');
+        chips.push('<span class="mb-subscription-card__chip">다음 발송 ' + nextOrderText + '</span>');
+        chips.push('<span class="mb-subscription-card__chip">최근 주문 ' + escapeHtml(lastOrderText) + '</span>');
+
+        html += '<div class="mb-subscription-card">';
+        html += '<div class="mb-subscription-card__top">';
+        html += '<div>';
+        html += '<h3 class="mb-subscription-card__title">' + escapeHtml(item.class_name || '월간 키트 구독') + '</h3>';
+        html += '<p class="mb-subscription-card__meta">' + escapeHtml(item.partner_name || '') + ' · 구독가 ' + priceText + '</p>';
+        html += '</div>';
+        html += '<span class="mb-subscription-card__badge">ACTIVE</span>';
+        html += '</div>';
+        html += '<div class="mb-subscription-card__chips">';
+        for (i = 0; i < chips.length; i++) {
+            html += chips[i];
+        }
+        html += '</div>';
+        html += '<div class="mb-subscription-card__kit-list">' + renderSubscriptionKitItems(item.preview_items || []) + '</div>';
+        html += '<div class="mb-subscription-card__actions">';
+        html += '<button type="button" class="mb-subscription-card__button is-secondary" data-subscription-cancel="' + escapeHtml(item.subscription_id || '') + '">구독 해지</button>';
+        html += '</div>';
+        html += '</div>';
+        return html;
+    }
+
+    function renderRecommendationCard(item) {
+        var html = '';
+
+        html += '<div class="mb-subscription-card">';
+        html += '<div class="mb-subscription-card__top">';
+        html += '<div>';
+        html += '<h3 class="mb-subscription-card__title">' + escapeHtml(item.class_name || '') + '</h3>';
+        html += '<p class="mb-subscription-card__meta">' + escapeHtml(item.partner_name || '') + ' · 정가 ' + formatPrice(item.regular_price) + '원 · 구독가 ' + formatPrice(item.subscriber_price) + '원</p>';
+        html += '</div>';
+        html += '<span class="mb-subscription-card__badge">PILOT</span>';
+        html += '</div>';
+        html += '<div class="mb-subscription-card__chips">';
+        html += '<span class="mb-subscription-card__chip">' + escapeHtml(item.category || '꽃 공예') + '</span>';
+        html += '<span class="mb-subscription-card__chip">월 최대 ' + formatPrice(item.savings) + '원 절감</span>';
+        html += '</div>';
+        html += '<div class="mb-subscription-card__kit-list">' + renderSubscriptionKitItems(item.preview_items || []) + '</div>';
+        html += '<div class="mb-subscription-card__actions">';
+        html += '<button type="button" class="mb-subscription-card__button" data-subscription-open="' + escapeHtml(item.class_id || '') + '">이 수업으로 구독 시작</button>';
+        html += '<a href="' + getDetailUrl(item.class_id) + '" class="mb-inline-btn mb-inline-btn--ghost">상세 다시 보기</a>';
+        html += '</div>';
+        html += '</div>';
+        return html;
+    }
+
+    function renderSubscriptionKitItems(items) {
+        var html = '';
+        var i = 0;
+
+        if (!items || !items.length) {
+            return '<span class="mb-subscription-card__kit-item">시즌 재료 구성은 신청 후 확정됩니다.</span>';
+        }
+
+        for (i = 0; i < items.length; i++) {
+            html += '<span class="mb-subscription-card__kit-item">' + escapeHtml(items[i]) + '</span>';
+        }
+        return html;
+    }
+
+    function buildSubscriptionMetric(label, value) {
+        return ''
+            + '<div class="mb-subscription-metric">'
+            + '<p class="mb-subscription-metric__label">' + escapeHtml(label) + '</p>'
+            + '<p class="mb-subscription-metric__value">' + escapeHtml(value) + '</p>'
+            + '</div>';
+    }
+
+    function renderSubscriptionForm(profile) {
+        var wrap = document.getElementById('mbSubscriptionFormWrap');
+        var title = document.getElementById('mbSubscriptionFormTitle');
+        var summary = document.getElementById('mbSubscriptionFormSummary');
+
+        if (!wrap || !profile) {
+            return;
+        }
+
+        selectedSubscriptionProfile = profile;
+        wrap.style.display = '';
+
+        if (title) {
+            title.textContent = (profile.class_name || '월간 키트') + ' 구독 신청';
+        }
+        if (summary) {
+            summary.innerHTML = ''
+                + '<p class="mb-subscription-form__summary-title">' + escapeHtml(profile.class_name || '') + '</p>'
+                + '<p class="mb-subscription-form__summary-desc">'
+                + escapeHtml(profile.partner_name || '')
+                + ' · 정가 ' + formatPrice(profile.regular_price) + '원 · 구독가 ' + formatPrice(profile.subscriber_price) + '원 · 첫 발송일 '
+                + formatDateLabel(computeFirstDeliveryDate(Number(getFieldValue('mbSubscriptionDeliveryDay') || 5)))
+                + '</p>';
+        }
+
+        setFieldValue('mbSubscriptionClassId', profile.class_id || '');
+        setFieldValue('mbSubscriptionBranduid', profile.kit_bundle_branduid || '');
+        setFieldValue('mbSubscriptionClassName', profile.class_name || '');
+        setFieldValue('mbSubscriptionPartnerName', profile.partner_name || '');
+        setFieldValue('mbSubscriptionPartnerCode', profile.partner_code || '');
+        setFieldValue('mbSubscriptionRegularPrice', profile.regular_price || 0);
+        setFieldValue('mbSubscriptionSubscriberPrice', profile.subscriber_price || 0);
+
+        if (!getFieldValue('mbSubscriptionMemberName')) {
+            setFieldValue('mbSubscriptionMemberName', profile.member_name || '');
+        }
+        if (!getFieldValue('mbSubscriptionMemberEmail')) {
+            setFieldValue('mbSubscriptionMemberEmail', profile.member_email || '');
+        }
+        focusFirstSubscriptionInput();
+    }
+
+    function closeSubscriptionForm() {
+        var wrap = document.getElementById('mbSubscriptionFormWrap');
+        var form = document.getElementById('mbSubscriptionForm');
+
+        selectedSubscriptionProfile = null;
+        if (wrap) {
+            wrap.style.display = 'none';
+        }
+        if (form) {
+            form.reset();
+        }
+        setFieldValue('mbSubscriptionClassId', '');
+        setFieldValue('mbSubscriptionBranduid', '');
+        setFieldValue('mbSubscriptionClassName', '');
+        setFieldValue('mbSubscriptionPartnerName', '');
+        setFieldValue('mbSubscriptionPartnerCode', '');
+        setFieldValue('mbSubscriptionRegularPrice', '');
+        setFieldValue('mbSubscriptionSubscriberPrice', '');
+    }
+
+    function setSubscriptionFeedback(message, type) {
+        var feedback = document.getElementById('mbSubscriptionFeedback');
+
+        if (!feedback) {
+            return;
+        }
+
+        if (!message) {
+            feedback.style.display = 'none';
+            feedback.className = 'mb-subscription__feedback';
+            feedback.textContent = '';
+            return;
+        }
+
+        feedback.style.display = '';
+        feedback.className = 'mb-subscription__feedback ' + (type === 'error' ? 'is-error' : 'is-success');
+        feedback.textContent = message;
+    }
+
+    function clearSubscriptionFeedback() {
+        setSubscriptionFeedback('', '');
     }
 
     function renderMonthlyReportCard(monthly) {
@@ -638,6 +926,157 @@
         return cards.join('');
     }
 
+    function buildSubscriptionModel(bookings, context, subscriptions) {
+        var completedBookings = getCompletedBookings(bookings || []);
+        var active = subscriptions && subscriptions.active ? subscriptions.active : [];
+        var recommendations = buildSubscriptionRecommendations(completedBookings, context, active);
+        var nextShipment = getNextShipment(active);
+        var totalSavings = Number(subscriptions && subscriptions.totalSavings) || sumSubscriptionSavings(active);
+
+        return {
+            visible: active.length > 0 || recommendations.length > 0,
+            activeSubscriptions: active,
+            activeCount: active.length,
+            recommendations: recommendations,
+            nextShipmentText: nextShipment ? formatDateLabel(nextShipment) : '예정 없음',
+            totalSavings: totalSavings,
+            heroText: active.length
+                ? '현재 ' + active.length + '건이 진행 중이며, 가장 가까운 발송일은 ' + (nextShipment ? formatDateLabel(nextShipment) : '미정') + ' 입니다.'
+                : '수강 완료 수업의 재료 구성을 매월 다시 받을 수 있도록 파일럿을 엽니다.'
+        };
+    }
+
+    function buildSubscriptionRecommendations(completedBookings, context, activeSubscriptions) {
+        var usedClassMap = {};
+        var result = [];
+        var i = 0;
+        var j = 0;
+        var booking = null;
+        var detailData = null;
+        var profile = null;
+
+        context = context || getEmptyContext();
+
+        for (i = 0; i < activeSubscriptions.length; i++) {
+            usedClassMap[String(activeSubscriptions[i].class_id || '')] = true;
+        }
+
+        for (j = 0; j < completedBookings.length; j++) {
+            booking = completedBookings[j];
+            detailData = context.detailByClassId[booking.class_id] || null;
+            profile = buildSubscriptionProfile(booking, detailData);
+
+            if (!profile || usedClassMap[profile.class_id]) {
+                continue;
+            }
+
+            usedClassMap[profile.class_id] = true;
+            result.push(profile);
+
+            if (result.length >= 4) {
+                break;
+            }
+        }
+
+        return result;
+    }
+
+    function buildSubscriptionProfile(booking, detailData) {
+        var kitItems = getKitItems(detailData);
+        var kitBrandUid = '';
+        var regularPrice = 0;
+        var subscriberPrice = 0;
+        var previewItems = [];
+        var i = 0;
+        var rawItem = null;
+        var name = '';
+
+        if (!detailData) {
+            return null;
+        }
+
+        kitBrandUid = extractBrandUid(detailData.kit_bundle_branduid || '');
+        if (!kitBrandUid && kitItems.length) {
+            kitBrandUid = extractBrandUid(kitItems[0].product_url || '');
+        }
+
+        if (!kitBrandUid) {
+            return null;
+        }
+
+        for (i = 0; i < kitItems.length; i++) {
+            regularPrice += Math.max(Number(kitItems[i].price) || 0, 0) * Math.max(Number(kitItems[i].quantity) || 1, 1);
+            rawItem = kitItems[i];
+            name = String(rawItem.name || '').trim();
+            if (name && previewItems.length < 3) {
+                previewItems.push(name);
+            }
+        }
+
+        if (regularPrice <= 0) {
+            return null;
+        }
+
+        subscriberPrice = Math.max(Math.round(regularPrice * 0.9 / 100) * 100, 1000);
+
+        return {
+            class_id: detailData.class_id || booking.class_id || '',
+            class_name: detailData.class_name || booking.class_name || '',
+            partner_name: getPartnerName(detailData, booking),
+            partner_code: detailData.partner && detailData.partner.partner_code ? detailData.partner.partner_code : '',
+            category: detailData.category || '꽃 공예',
+            kit_bundle_branduid: kitBrandUid,
+            regular_price: regularPrice,
+            subscriber_price: subscriberPrice,
+            savings: Math.max(regularPrice - subscriberPrice, 0),
+            preview_items: previewItems,
+            member_name: booking.student_name || '',
+            member_email: booking.student_email || ''
+        };
+    }
+
+    function getNextShipment(activeSubscriptions) {
+        var nextDate = '';
+        var i = 0;
+        var value = '';
+
+        for (i = 0; i < activeSubscriptions.length; i++) {
+            value = String(activeSubscriptions[i].next_order_date || '').substring(0, 10);
+            if (!value) {
+                continue;
+            }
+            if (!nextDate || value < nextDate) {
+                nextDate = value;
+            }
+        }
+
+        return nextDate;
+    }
+
+    function sumSubscriptionSavings(activeSubscriptions) {
+        var total = 0;
+        var i = 0;
+
+        for (i = 0; i < activeSubscriptions.length; i++) {
+            total += Math.max((Number(activeSubscriptions[i].regular_price) || 0) - (Number(activeSubscriptions[i].subscriber_price) || 0), 0);
+        }
+
+        return total;
+    }
+
+    function findRecommendationByClassId(list, classId) {
+        var target = String(classId || '');
+        var i = 0;
+
+        for (i = 0; i < list.length; i++) {
+            if (String(list[i].class_id || '') === target) {
+                return list[i];
+            }
+        }
+
+        return null;
+    }
+
     function getStreakCount(completedBookings) {
         var sorted = completedBookings.slice().sort(function(a, b) {
             return (b.class_date || '') < (a.class_date || '') ? -1 : 1;
@@ -866,6 +1305,175 @@
         });
     }
 
+    function bindSubscriptionEvents() {
+        document.addEventListener('click', function(event) {
+            var target = event.target;
+            var openClassId = '';
+            var cancelId = '';
+
+            if (!target) {
+                return;
+            }
+
+            openClassId = target.getAttribute('data-subscription-open') || '';
+            cancelId = target.getAttribute('data-subscription-cancel') || '';
+
+            if (openClassId) {
+                openSubscriptionByClassId(openClassId);
+                return;
+            }
+
+            if (cancelId) {
+                event.preventDefault();
+                if (window.confirm('이 구독을 해지하시겠습니까? 다음 발송부터 중단됩니다.')) {
+                    cancelSubscription(cancelId);
+                }
+                return;
+            }
+
+            if (target.id === 'mbSubscriptionFormClose' || target.id === 'mbSubscriptionFormCancel') {
+                event.preventDefault();
+                closeSubscriptionForm();
+            }
+        });
+
+        document.addEventListener('change', function(event) {
+            var target = event.target;
+            if (target && target.id === 'mbSubscriptionDeliveryDay' && selectedSubscriptionProfile) {
+                renderSubscriptionForm(selectedSubscriptionProfile);
+            }
+        });
+
+        document.addEventListener('submit', function(event) {
+            var form = event.target;
+            if (form && form.id === 'mbSubscriptionForm') {
+                event.preventDefault();
+                handleSubscriptionSubmit();
+            }
+        });
+    }
+
+    function openSubscriptionByClassId(classId) {
+        var model = buildSubscriptionModel(latestBookings, latestContext, latestSubscriptions);
+        var profile = findRecommendationByClassId(model.recommendations || [], classId);
+
+        clearSubscriptionFeedback();
+        if (profile) {
+            renderSubscriptionForm(profile);
+        }
+    }
+
+    function handleSubscriptionSubmit() {
+        var submitButton = document.getElementById('mbSubscriptionFormSubmit');
+        var payload = buildSubscriptionPayload();
+
+        if (!payload) {
+            return;
+        }
+
+        if (submitButton) {
+            submitButton.disabled = true;
+        }
+
+        clearSubscriptionFeedback();
+        fetchJson(SUBSCRIPTION_API_URL, payload)
+            .then(function(data) {
+                if (!data || !data.success) {
+                    throw new Error((data && data.message) || '구독 저장에 실패했습니다.');
+                }
+
+                setSubscriptionFeedback('월간 키트 구독이 시작되었습니다. 다음 발송일은 ' + formatDateLabel(data.data.next_order_date || '') + ' 입니다.', 'success');
+                closeSubscriptionForm();
+                refreshSubscriptions();
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+            })
+            .catch(function(error) {
+                setSubscriptionFeedback(error && error.message ? error.message : '구독 저장에 실패했습니다.', 'error');
+                if (submitButton) {
+                    submitButton.disabled = false;
+                }
+            });
+    }
+
+    function cancelSubscription(subscriptionId) {
+        fetchJson(SUBSCRIPTION_API_URL, {
+            action: 'cancelSubscription',
+            member_id: memberId,
+            subscription_id: subscriptionId
+        })
+            .then(function(data) {
+                if (!data || !data.success) {
+                    throw new Error((data && data.message) || '구독 해지에 실패했습니다.');
+                }
+
+                setSubscriptionFeedback('구독이 해지되었습니다. 마지막 생성 주문 이력은 유지됩니다.', 'success');
+                refreshSubscriptions();
+            })
+            .catch(function(error) {
+                setSubscriptionFeedback(error && error.message ? error.message : '구독 해지에 실패했습니다.', 'error');
+            });
+    }
+
+    function refreshSubscriptions() {
+        fetchSubscriptions()
+            .then(function(subscriptions) {
+                latestSubscriptions = subscriptions;
+                renderSubscriptions(latestBookings, latestContext, subscriptions);
+            })
+            .catch(function() {
+                renderSubscriptions(latestBookings, latestContext, getEmptySubscriptionState());
+            });
+    }
+
+    function buildSubscriptionPayload() {
+        var classId = getFieldValue('mbSubscriptionClassId');
+        var branduid = getFieldValue('mbSubscriptionBranduid');
+        var className = getFieldValue('mbSubscriptionClassName');
+        var memberName = getFieldValue('mbSubscriptionMemberName');
+        var memberEmail = getFieldValue('mbSubscriptionMemberEmail');
+        var phone = getFieldValue('mbSubscriptionPhone');
+        var zipcode = getFieldValue('mbSubscriptionZipcode');
+        var address1 = getFieldValue('mbSubscriptionAddress1');
+        var address2 = getFieldValue('mbSubscriptionAddress2');
+        var deliveryDay = Number(getFieldValue('mbSubscriptionDeliveryDay') || 5);
+        var regularPrice = Number(getFieldValue('mbSubscriptionRegularPrice') || 0);
+        var subscriberPrice = Number(getFieldValue('mbSubscriptionSubscriberPrice') || 0);
+        var nextOrderDate = computeFirstDeliveryDate(deliveryDay);
+
+        if (!classId || !branduid || !className) {
+            setSubscriptionFeedback('구독 대상 클래스를 다시 선택해주세요.', 'error');
+            return null;
+        }
+        if (!memberName || !memberEmail || !phone || !zipcode || !address1) {
+            setSubscriptionFeedback('이름, 이메일, 연락처, 우편번호, 주소를 모두 입력해주세요.', 'error');
+            return null;
+        }
+
+        return {
+            action: 'createSubscription',
+            member_id: memberId,
+            member_name: memberName,
+            member_email: memberEmail,
+            member_phone: phone,
+            class_id: classId,
+            class_name: className,
+            partner_name: getFieldValue('mbSubscriptionPartnerName'),
+            partner_code: getFieldValue('mbSubscriptionPartnerCode'),
+            kit_bundle_branduid: branduid,
+            regular_price: regularPrice,
+            subscriber_price: subscriberPrice,
+            preview_items: selectedSubscriptionProfile && selectedSubscriptionProfile.preview_items ? selectedSubscriptionProfile.preview_items : [],
+            delivery_day: deliveryDay,
+            next_order_date: nextOrderDate,
+            shipping_zipcode: zipcode,
+            shipping_address1: address1,
+            shipping_address2: address2,
+            notes: getFieldValue('mbSubscriptionNotes')
+        };
+    }
+
     function showArea(id) {
         var areas = ['mbNoticeArea', 'mbMainArea'];
         var i = 0;
@@ -895,6 +1503,14 @@
             catalogClasses: [],
             detailByClassId: {},
             relatedByClassId: {}
+        };
+    }
+
+    function getEmptySubscriptionState() {
+        return {
+            active: [],
+            inactive: [],
+            totalSavings: 0
         };
     }
 
@@ -932,6 +1548,24 @@
     function getTodayString() {
         var today = new Date();
         return today.getFullYear() + '-' + padZero(today.getMonth() + 1) + '-' + padZero(today.getDate());
+    }
+
+    function computeFirstDeliveryDate(deliveryDay) {
+        var today = new Date();
+        var year = today.getFullYear();
+        var month = today.getMonth();
+        var candidate = null;
+        var maxDay = 28;
+        var day = Math.min(Math.max(parseInt(deliveryDay, 10) || 5, 1), 28);
+
+        candidate = new Date(year, month, day);
+        if (candidate.getTime() <= today.getTime()) {
+            candidate = new Date(year, month + 1, day);
+        }
+
+        maxDay = new Date(candidate.getFullYear(), candidate.getMonth() + 1, 0).getDate();
+        candidate.setDate(Math.min(day, maxDay));
+        return candidate.getFullYear() + '-' + padZero(candidate.getMonth() + 1) + '-' + padZero(candidate.getDate());
     }
 
     function getMonthKey(date) {
@@ -982,6 +1616,38 @@
 
     function normalizeText(str) {
         return String(str || '').replace(/\s+/g, '').toLowerCase();
+    }
+
+    function extractBrandUid(raw) {
+        var text = String(raw || '').replace(/\s+/g, '').trim();
+        var match = text.match(/[?&]branduid=([^&#]+)/i);
+
+        if (match && match[1]) {
+            return decodeURIComponent(match[1]);
+        }
+        if (/^[A-Za-z0-9_-]{4,64}$/.test(text)) {
+            return text;
+        }
+        return '';
+    }
+
+    function getFieldValue(id) {
+        var el = document.getElementById(id);
+        return el ? String(el.value || '').trim() : '';
+    }
+
+    function setFieldValue(id, value) {
+        var el = document.getElementById(id);
+        if (el) {
+            el.value = value == null ? '' : String(value);
+        }
+    }
+
+    function focusFirstSubscriptionInput() {
+        var el = document.getElementById('mbSubscriptionMemberName');
+        if (el && typeof el.focus === 'function') {
+            el.focus();
+        }
     }
 
     function escapeHtml(str) {

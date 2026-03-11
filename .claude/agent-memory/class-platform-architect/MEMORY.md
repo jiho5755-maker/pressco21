@@ -182,6 +182,15 @@
 - `GARDEN` 은 추천 파트너, `ATELIER` 는 인터뷰 후보, `AMBASSADOR` 는 멘토 파트너라는 공개 서사 구조를 유지한다.
 - 운영 기준 문서는 `docs/파트너클래스/grade-incentive-guide.md` 이다.
 
+## 2026-03-11 S3-3 키트 구독 파일럿 구조 확정
+
+- 구독 파일럿은 `메이크샵 정기결제`까지 가지 않고 `마이페이지 관리 + live subscription table + 월간 내부 주문 ref 생성` 까지를 완성선으로 본다.
+- live NocoDB 신규 테이블은 `tbl_Subscriptions (mtyaeamavml7www)` 이다.
+- 신규 워크플로우 `WF-SUB Subscription Kit Pilot (BpyDxiaCb1PwVInY)` 는 `list/create/cancel/runMonthlyBatch` 만 담당하고 기존 예약/정산 흐름과 분리한다.
+- 월간 자동 생성 결과물은 현재 `SUBORD_YYYYMM_SUBS_*` 형식의 내부 운영 ref 다.
+- 수강생 표면에서는 완료 수업 + kit data 를 조합해 추천 구독 후보를 만들고, 이미 ACTIVE 인 동일 클래스는 추천에서 제외한다.
+- 운영 기준 문서는 `docs/파트너클래스/subscription-pilot-guide.md` 이다.
+
 ## 2026-03-11 S2-3 전국 탐색 IA 구조 확정
 
 - 목록 2606은 이제 `전체 클래스 / 협회·세미나 / 혜택·이벤트` 3탭 구조로 본다.

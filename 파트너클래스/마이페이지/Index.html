@@ -72,6 +72,77 @@
             </div>
         </section>
 
+        <!-- 키트 구독 파일럿 -->
+        <section class="mb-subscription" id="mbSubscriptionArea" style="display:none;">
+            <div class="mb-subscription__hero" id="mbSubscriptionHero"></div>
+            <div class="mb-subscription__feedback" id="mbSubscriptionFeedback" style="display:none;"></div>
+            <div class="mb-subscription__grid">
+                <article class="mb-subscription-panel" id="mbSubscriptionListPanel"></article>
+                <article class="mb-subscription-panel" id="mbSubscriptionRecommendationPanel"></article>
+            </div>
+            <div class="mb-subscription-form-wrap" id="mbSubscriptionFormWrap" style="display:none;">
+                <form class="mb-subscription-form" id="mbSubscriptionForm">
+                    <div class="mb-subscription-form__header">
+                        <div>
+                            <p class="mb-subscription-form__eyebrow">KIT SUBSCRIPTION</p>
+                            <h2 class="mb-subscription-form__title" id="mbSubscriptionFormTitle">월간 키트 구독 신청</h2>
+                        </div>
+                        <button type="button" class="mb-subscription-form__close" id="mbSubscriptionFormClose" aria-label="구독 신청 닫기">x</button>
+                    </div>
+                    <input type="hidden" id="mbSubscriptionClassId" value="">
+                    <input type="hidden" id="mbSubscriptionBranduid" value="">
+                    <input type="hidden" id="mbSubscriptionClassName" value="">
+                    <input type="hidden" id="mbSubscriptionPartnerName" value="">
+                    <input type="hidden" id="mbSubscriptionPartnerCode" value="">
+                    <input type="hidden" id="mbSubscriptionRegularPrice" value="">
+                    <input type="hidden" id="mbSubscriptionSubscriberPrice" value="">
+                    <div class="mb-subscription-form__summary" id="mbSubscriptionFormSummary"></div>
+                    <div class="mb-subscription-form__grid">
+                        <label class="mb-subscription-field">
+                            <span class="mb-subscription-field__label">구독자 이름</span>
+                            <input type="text" id="mbSubscriptionMemberName" class="mb-subscription-field__input" maxlength="40" placeholder="수령인 이름">
+                        </label>
+                        <label class="mb-subscription-field">
+                            <span class="mb-subscription-field__label">이메일</span>
+                            <input type="email" id="mbSubscriptionMemberEmail" class="mb-subscription-field__input" maxlength="80" placeholder="name@example.com">
+                        </label>
+                        <label class="mb-subscription-field">
+                            <span class="mb-subscription-field__label">연락처</span>
+                            <input type="text" id="mbSubscriptionPhone" class="mb-subscription-field__input" maxlength="20" placeholder="01012345678">
+                        </label>
+                        <label class="mb-subscription-field">
+                            <span class="mb-subscription-field__label">배송일</span>
+                            <select id="mbSubscriptionDeliveryDay" class="mb-subscription-field__input">
+                                <option value="5">매월 5일</option>
+                                <option value="15">매월 15일</option>
+                                <option value="25">매월 25일</option>
+                            </select>
+                        </label>
+                        <label class="mb-subscription-field">
+                            <span class="mb-subscription-field__label">우편번호</span>
+                            <input type="text" id="mbSubscriptionZipcode" class="mb-subscription-field__input" maxlength="10" placeholder="우편번호">
+                        </label>
+                        <label class="mb-subscription-field mb-subscription-field--wide">
+                            <span class="mb-subscription-field__label">주소</span>
+                            <input type="text" id="mbSubscriptionAddress1" class="mb-subscription-field__input" maxlength="120" placeholder="기본 주소">
+                        </label>
+                        <label class="mb-subscription-field mb-subscription-field--wide">
+                            <span class="mb-subscription-field__label">상세 주소</span>
+                            <input type="text" id="mbSubscriptionAddress2" class="mb-subscription-field__input" maxlength="120" placeholder="상세 주소">
+                        </label>
+                        <label class="mb-subscription-field mb-subscription-field--wide">
+                            <span class="mb-subscription-field__label">요청 메모</span>
+                            <textarea id="mbSubscriptionNotes" class="mb-subscription-field__textarea" rows="3" maxlength="300" placeholder="문 앞 배송, 부재 시 연락 등"></textarea>
+                        </label>
+                    </div>
+                    <div class="mb-subscription-form__actions">
+                        <button type="button" class="mb-inline-btn mb-inline-btn--ghost" id="mbSubscriptionFormCancel">취소</button>
+                        <button type="submit" class="mb-inline-btn mb-inline-btn--primary" id="mbSubscriptionFormSubmit">구독 시작하기</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
         <!-- 예약 목록 -->
         <div id="mbBookingList" class="mb-booking-list">
             <!-- JS: 예약 카드 동적 렌더링 -->

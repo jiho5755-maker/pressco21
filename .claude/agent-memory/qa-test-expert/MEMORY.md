@@ -206,6 +206,32 @@
   - `output/playwright/s3-2-incentives/detail-related-priority.png`
   - `output/playwright/s3-2-incentives/content-hub-story-priority.png`
 
+## 2026-03-11 S3-3 키트 구독 파일럿 검증 메모
+
+- 이 태스크는 `MakeShop 정적 가드 + 로컬 Playwright UI + live API create/list/batch/cancel` 3단으로 보는 편이 가장 정확하다.
+- 정적 검증:
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+  - `http://www.w3.org/2000/svg` 는 SVG namespace false positive 로 본다.
+- 로컬 UI 최소 통과 세트:
+  - 히어로 타이틀 노출
+  - 진행 중 구독 `1건`
+  - 추천 구독 `1건`
+  - 생성 후 진행 중 구독 `2건`
+  - 해지 후 진행 중 구독 `1건`
+- live API 최소 통과 세트:
+  - create `201`
+  - list active `1`
+  - dry run generated `1`
+  - batch generated `1`
+  - `last_order_ref` 가 `SUBORD_202603_SUBS_*` 패턴
+  - cancel `200`
+- Playwright 검증 러너:
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-3-subscription-runner.js`
+- 실제 산출물:
+  - `output/playwright/s3-3-subscription/table-create-results.json`
+  - `output/playwright/s3-3-subscription/subscription-results.json`
+  - `output/playwright/s3-3-subscription/mypage-subscription-flow.png`
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

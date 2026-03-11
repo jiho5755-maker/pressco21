@@ -29,17 +29,20 @@ S2-5에서 추가한 콘텐츠 허브는 수강생이 예약 전에 `왜 이 플
 
 ## 데이터 소스
 
-이번 1차 구현은 신규 콘텐츠 테이블 없이 기존 데이터만 사용한다.
+S2-5 1차 구현은 신규 콘텐츠 테이블 없이 기존 데이터만 사용했다.
 
 - `tbl_Classes`
 - `tbl_Partners`
 
-이유:
+S3-5부터는 아래 테이블이 추가 소스로 붙었다.
 
-- S2-5는 허브 UX를 먼저 검증하는 단계다.
-- 전용 콘텐츠 테이블은 Phase 3-3 `F300`에서 확장 예정이다.
+- `tbl_Affiliation_Content`
 
-따라서 현재 `partner_stories / trends / guides` 는 실제 운영 데이터에서 합성한 큐레이션 응답이다. 에디토리얼 CMS가 붙기 전까지는 이 구조를 임시 운영 기준으로 본다.
+현재 운영 기준:
+
+- `partner_stories` 는 여전히 `Classes + Partners` 합성
+- `trends / guides / featured_message` 는 `Affiliation_Content` 가 있으면 우선 사용
+- imported content 가 없을 때만 기존 클래스 합성 fallback 으로 내려간다
 
 ## API 구조
 
@@ -60,6 +63,7 @@ S2-5에서 추가한 콘텐츠 허브는 수강생이 예약 전에 `왜 이 플
 - `partner_stories`
 - `trends`
 - `guides`
+- `imported_content_preview`
 
 등급 값은 과거 데이터 호환을 위해 아래 alias 를 같이 정규화한다.
 
@@ -109,4 +113,5 @@ Playwright 검증:
 
 - 아직 메이크샵 디자인편집기 실배포는 하지 않았다.
 - 따라서 로컬 fixture + 라이브 API 기준 검증만 완료된 상태다.
+- S3-5 이후 실제 허브 데이터는 `WF-CONTENT -> tbl_Affiliation_Content -> WF-01C` 경로로 자동 유입된다.
 - 실배포 시에는 새 page id 확정, 모바일 스크롤 내비, 실제 링크 이동을 다시 확인해야 한다.

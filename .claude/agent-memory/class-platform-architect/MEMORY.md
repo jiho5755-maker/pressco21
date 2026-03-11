@@ -202,6 +202,14 @@
 - 같은 하드웨어의 SQLite 10만 row indexed query 는 충분히 빠르므로, 우선 과제는 인프라 교체보다 `cache 강화 + read path 분리 + hot query index/view 점검` 이다.
 - 운영 기준 문서는 `docs/파트너클래스/scalability-verification-guide.md` 이다.
 
+## 2026-03-11 S3-5 콘텐츠 재활용 레이어 확정
+
+- 협회/허브용 콘텐츠는 이제 `WF-CONTENT -> tbl_Affiliation_Content -> WF-01C getContentHub` 경로로 운영한다.
+- `WF-CONTENT Affiliation Content Import (gWllBlMjRvePQZg3)` 는 기본적으로 YouTube RSS 를 읽고, optional RSS feed 도 추가로 읽을 수 있다.
+- 분류는 `Gemini Flash 우선 + heuristic fallback` 으로 두고 결과는 `NOTICE / EVENT / GUIDE / NEWS` 로 저장한다.
+- 콘텐츠 허브 응답은 imported content 가 있으면 `trends / guides / featured_message` 에 우선 반영하고, 없으면 기존 `Classes + Partners` fallback 으로 내려간다.
+- 운영 기준 문서는 `docs/파트너클래스/content-repurposing-sop-guide.md` 이다.
+
 ## 2026-03-11 S2-3 전국 탐색 IA 구조 확정
 
 - 목록 2606은 이제 `전체 클래스 / 협회·세미나 / 혜택·이벤트` 3탭 구조로 본다.

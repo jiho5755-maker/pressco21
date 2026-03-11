@@ -75,3 +75,11 @@ curl -s -X POST https://n8n.pressco21.com/webhook/class-api \
 - `WF-17` 는 단일 상품 생성 WF 가 아니라 `_productKind=CLASS|KIT_BUNDLE` 2단 생성 구조로 보는 편이 맞다.
 - `WF-17` 두 번째 키트 상품 생성 단계에서는 클래스 오픈 메일을 다시 보내지 않도록 `IF Product Kind Class` 분기가 필요하다.
 - `WF-05` 키트 처리 여부는 단일 row 가 아니라 `order_id` 로 주문 라인을 묶어 판정해야 한다. 같은 주문 안에 기대 `bundle_branduid` 가 실제로 있을 때만 키트 후속 처리를 태운다.
+
+## 2026-03-11 S3-5 콘텐츠 수집 WF 디버깅 메모
+
+- `respondToWebhook` 노드는 schedule trigger 경로와 직접 연결하지 않는 편이 안전하다. schedule/webhook 경로를 분리한 2개 code node 구성이 더 안정적이었다.
+- n8n code string 검증은 JSON 파일 자체가 아니라 `vm.Script('(async function(){ ... })')` 래핑으로 보는 편이 정확하다.
+- YouTube RSS parsing 은 XML parser 없이도 충분하지만, `<entry>` 단위 split 후 `title/videoId/published/thumbnail/description` 5개를 직접 추출하는 편이 샌드박스 호환성이 좋다.
+- Gemini 분류는 실패해도 workflow 전체를 깨뜨리지 말고 heuristic fallback 으로 내려가야 한다.
+- `WF-01C getContentHub` 는 imported content 가 0건일 때 기존 fallback 을 그대로 유지해야 기존 허브 화면이 비지 않는다.

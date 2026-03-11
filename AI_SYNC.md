@@ -50,11 +50,11 @@
 ## Session Lock
 
 - Current Owner: CODEX
-- Mode: —
-- Started At: 2026-03-11 17:05:00 KST
+- Mode: WRITE
+- Started At: 2026-03-11 17:20:00 KST
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: offline-crm-v2 Phase 1 지급 처리 엔진 구현
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
 - `AI_SYNC.md`
@@ -63,6 +63,12 @@
 - `scripts/*`
 - `offline-crm-v2/docs/accounting-upgrade-prd-2026-03-11.md`
 - `offline-crm-v2/docs/accounting-upgrade-roadmap-2026-03-11.md`
+- `offline-crm-v2/src/lib/legacySnapshots.ts`
+- `offline-crm-v2/src/pages/Receivables.tsx`
+- `offline-crm-v2/src/pages/CustomerDetail.tsx`
+- `offline-crm-v2/src/pages/Transactions.tsx`
+- `offline-crm-v2/src/pages/Dashboard.tsx`
+- `offline-crm-v2/src/components/TransactionDetailDialog.tsx`
 
 ### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
 - 스크립트 / 문서
@@ -404,6 +410,54 @@
     - Oracle Free Tier는 즉시 교체 대상이 아니지만 `100 concurrent read stable` 기준으로는 아직 엔터프라이즈급 아님
   - 산출물:
     - `output/playwright/s3-4-scalability/scalability-results.json`
+
+### [CODEX-LEAD] Phase 3 S3-5 SNS/YouTube 콘텐츠 재활용 SOP 완료 (CODEX)
+- 워크플로우 / 스크립트
+  - `scripts/lib/partnerclass-content-import-handler.js`
+  - `scripts/lib/partnerclass-content-hub-response.js`
+  - `scripts/partnerclass-s2-4-generate-wf01-split.js`
+  - `scripts/partnerclass-s3-5-generate-content-import-workflow.js`
+  - `scripts/partnerclass-s3-5-deploy-content-import-workflow.js`
+  - `scripts/partnerclass-s3-5-content-import-runner.js`
+  - `파트너클래스/n8n-workflows/WF-CONTENT-affiliation-content-import.json`
+  - `파트너클래스/n8n-workflows/WF-01C-affiliation-read.json`
+    - `WF-CONTENT Affiliation Content Import` live 배포: `gWllBlMjRvePQZg3`
+    - `WF-01C Affiliation Read API` live 재배포: `AbazwCdqQ9XdA48G`
+    - `WF-01 Class API` live 재배포: `WabRAcHmcCdOpPzJ`
+- 문서 / 메모리
+  - `docs/파트너클래스/content-repurposing-sop-guide.md`
+  - `docs/파트너클래스/content-hub-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/n8n-debugger/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+  - `.claude/agent-memory/sales-partnership-specialist/MEMORY.md`
+- 검증
+  - `node --check`
+    - `scripts/lib/partnerclass-content-hub-response.js`
+    - `scripts/lib/partnerclass-content-import-handler.js`
+    - `scripts/partnerclass-s2-4-generate-wf01-split.js`
+    - `scripts/partnerclass-s3-5-generate-content-import-workflow.js`
+    - `scripts/partnerclass-s3-5-deploy-content-import-workflow.js`
+    - `scripts/partnerclass-s3-5-content-import-runner.js`
+  - workflow code string syntax check:
+    - `WF-01C Build Content Hub Response`
+    - `WF-CONTENT Import From Schedule / Import From Webhook`
+  - Playwright + live API:
+    - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-5-content-import-runner.js`
+    - dry run:
+      - `youtube_count=3`
+      - preview 3건 확인
+    - apply:
+      - `created=3`
+      - imported title 3건 live 저장
+    - content hub:
+      - `imported_content_count >= 1`
+      - `trendTitles` 에 실제 YouTube 제목 반영 확인
+  - 산출물:
+    - `output/playwright/s3-5-content-import/content-import-results.json`
+    - `output/playwright/s3-5-content-import/content-import-hub.png`
 
 ### [CODEX] offline-crm-v2 작업 계정 분리 로그 보강 완료 (CODEX)
 - CRM
@@ -2032,7 +2086,7 @@
 
 #### 현재 다음 태스크
 
-- `S3-5 SNS/YouTube 콘텐츠 재활용 SOP`
+- `S3-6 12개월 연간 이벤트 캘린더`
 - `S2-7 파트너 이탈 감지 자동화` 는 구현/검증 완료, 운영 SMTP + Telegram chat_id blocker 해소 시 최종 수락 기준 닫기
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행

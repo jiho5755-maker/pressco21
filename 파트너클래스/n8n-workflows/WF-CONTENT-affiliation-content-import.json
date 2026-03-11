@@ -1,0 +1,167 @@
+{
+  "name": "WF-CONTENT Affiliation Content Import",
+  "nodes": [
+    {
+      "id": "wfcontent-schedule",
+      "name": "Schedule Daily 05:10",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        220,
+        220
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "10 5 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "wfcontent-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        420
+      ],
+      "webhookId": "partnerclass-content-import",
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "partnerclass-content-import",
+        "responseMode": "responseNode",
+        "options": {}
+      }
+    },
+    {
+      "id": "wfcontent-schedule-handler",
+      "name": "Import From Schedule",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        220
+      ],
+      "parameters": {
+        "jsCode": "\nconst https = require('https');\n\nconst input = $input.first().json || {};\nconst body = input.body || input || {};\n\nconst PROJECT_ID = $env.NOCODB_PROJECT_ID;\nconst TOKEN = $env.NOCODB_API_TOKEN;\nconst CONTENT_TABLE_ID = 'mit4xyrzn4s81b9';\nconst DEFAULT_CHANNEL_ID = $env.YOUTUBE_CHANNEL_ID || 'UCOt_7gyvjqHBw304hU4-FUw';\nconst GEMINI_KEY = $env.GEMINI_API_KEY || '';\n\nfunction sanitizeText(value, maxLen) {\n  return String(value || '').replace(/[\\u0000-\\b\\u000b\\f\\u000e-\\u001f]/g, '').replace(/\\s+/g, ' ').trim().substring(0, maxLen || 500);\n}\n\nfunction decodeEntities(text) {\n  return String(text || '')\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>')\n    .replace(/&amp;/gi, '&')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;/gi, \"'\")\n    .replace(/&nbsp;/gi, ' ');\n}\n\nfunction stripHtml(text) {\n  return sanitizeText(\n    decodeEntities(String(text || '')\n      .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n      .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n      .replace(/<[^>]+>/g, ' ')),\n    4000\n  );\n}\n\nfunction toDateText(value) {\n  const date = new Date(value || Date.now());\n  if (isNaN(date.getTime())) {\n    const now = new Date();\n    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');\n  }\n  return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');\n}\n\nfunction requestRaw(url) {\n  return new Promise((resolve, reject) => {\n    https.get(url, (res) => {\n      let data = '';\n      res.on('data', (chunk) => { data += chunk; });\n      res.on('end', () => {\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error('GET ' + url + ' failed: ' + res.statusCode));\n          return;\n        }\n        resolve(data);\n      });\n    }).on('error', reject);\n  });\n}\n\nfunction requestJson(url, method, payload) {\n  return new Promise((resolve, reject) => {\n    const bodyText = payload ? JSON.stringify(payload) : '';\n    const req = https.request(url, {\n      method: method,\n      headers: {\n        'xc-token': TOKEN,\n        'Content-Type': 'application/json'\n      }\n    }, (res) => {\n      let data = '';\n      res.on('data', (chunk) => { data += chunk; });\n      res.on('end', () => {\n        let parsed = null;\n        try {\n          parsed = data ? JSON.parse(data) : null;\n        } catch (error) {\n          parsed = { raw: data };\n        }\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error(method + ' ' + url + ' failed: ' + res.statusCode + ' ' + JSON.stringify(parsed)));\n          return;\n        }\n        resolve(parsed);\n      });\n    });\n    req.on('error', reject);\n    if (bodyText) {\n      req.write(bodyText);\n    }\n    req.end();\n  });\n}\n\nfunction dataUrl(suffix) {\n  return 'https://nocodb.pressco21.com/api/v1/db/data/noco/' + PROJECT_ID + '/' + CONTENT_TABLE_ID + suffix;\n}\n\nfunction parseGenericFeed(xml, feedName, limit) {\n  const items = [];\n  const blocks = String(xml || '').split(/<item[\\s>]|<entry[\\s>]/i).slice(1);\n  let i = 0;\n\n  function matchBlock(block, regex, fallback) {\n    const matched = block.match(regex);\n    return matched && matched[1] ? matched[1].trim() : (fallback || '');\n  }\n\n  for (i = 0; i < blocks.length && items.length < limit; i += 1) {\n    const block = blocks[i];\n    const title = decodeEntities(matchBlock(block, /<title[^>]*>([\\s\\S]*?)<\\/title>/i, ''));\n    let link = matchBlock(block, /<link[^>]*>([\\s\\S]*?)<\\/link>/i, '');\n    const attrLink = matchBlock(block, /<link[^>]*href=\"([^\"]+)\"/i, '');\n    const description = decodeEntities(matchBlock(block, /<description[^>]*>([\\s\\S]*?)<\\/description>/i, matchBlock(block, /<summary[^>]*>([\\s\\S]*?)<\\/summary>/i, '')));\n    const published = matchBlock(block, /<pubDate[^>]*>([\\s\\S]*?)<\\/pubDate>/i, matchBlock(block, /<published[^>]*>([\\s\\S]*?)<\\/published>/i, matchBlock(block, /<updated[^>]*>([\\s\\S]*?)<\\/updated>/i, '')));\n    const imageUrl = matchBlock(block, /<media:thumbnail[^>]*url=\"([^\"]+)\"/i, matchBlock(block, /<enclosure[^>]*url=\"([^\"]+)\"/i, ''));\n\n    if (!link && attrLink) {\n      link = attrLink;\n    }\n    if (!title || !description) {\n      continue;\n    }\n\n    items.push({\n      source_type: 'RSS',\n      source_name: feedName || 'RSS',\n      source_url: sanitizeText(link, 500),\n      title: sanitizeText(title, 180),\n      body_text: sanitizeText(stripHtml(description), 2000),\n      image_url: sanitizeText(imageUrl, 500),\n      publish_date: toDateText(published),\n      external_id: sanitizeText((feedName || 'rss') + '::' + (link || title), 240)\n    });\n  }\n\n  return items;\n}\n\nfunction parseYouTubeFeed(xml, limit) {\n  const entries = [];\n  const blocks = String(xml || '').split(/<entry>/i).slice(1);\n  let i = 0;\n\n  function matchBlock(block, regex, fallback) {\n    const matched = block.match(regex);\n    return matched && matched[1] ? matched[1].trim() : (fallback || '');\n  }\n\n  for (i = 0; i < blocks.length && entries.length < limit; i += 1) {\n    const block = blocks[i];\n    const videoId = matchBlock(block, /<yt:videoId>([^<]+)<\\/yt:videoId>/i, '');\n    const title = decodeEntities(matchBlock(block, /<title[^>]*>([\\s\\S]*?)<\\/title>/i, ''));\n    const description = decodeEntities(matchBlock(block, /<media:description>([\\s\\S]*?)<\\/media:description>/i, ''));\n    const published = matchBlock(block, /<published>([^<]+)<\\/published>/i, '');\n    const thumbnail = matchBlock(block, /<media:thumbnail[^>]*url=\"([^\"]+)\"/i, '');\n\n    if (!videoId || !title) {\n      continue;\n    }\n\n    entries.push({\n      source_type: 'YOUTUBE',\n      source_name: 'PRESSCO21 YouTube',\n      source_url: 'https://www.youtube.com/watch?v=' + videoId,\n      title: sanitizeText(title, 180),\n      body_text: sanitizeText(stripHtml(description), 2000),\n      image_url: sanitizeText(thumbnail || ('https://img.youtube.com/vi/' + videoId + '/sddefault.jpg'), 500),\n      publish_date: toDateText(published),\n      external_id: sanitizeText(videoId, 120)\n    });\n  }\n\n  return entries;\n}\n\nfunction heuristicContentType(title, bodyText) {\n  const text = (String(title || '') + ' ' + String(bodyText || '')).toLowerCase();\n  if (text.indexOf('세미나') !== -1 || text.indexOf('모집') !== -1 || text.indexOf('신청') !== -1 || text.indexOf('웨비나') !== -1 || text.indexOf('라이브') !== -1 || text.indexOf('event') !== -1) {\n    return 'EVENT';\n  }\n  if (text.indexOf('가이드') !== -1 || text.indexOf('팁') !== -1 || text.indexOf('노하우') !== -1 || text.indexOf('준비물') !== -1 || text.indexOf('how to') !== -1 || text.indexOf('튜토리얼') !== -1) {\n    return 'GUIDE';\n  }\n  if (text.indexOf('공지') !== -1 || text.indexOf('안내') !== -1 || text.indexOf('휴무') !== -1 || text.indexOf('변경') !== -1 || text.indexOf('마감') !== -1 || text.indexOf('배송') !== -1) {\n    return 'NOTICE';\n  }\n  return 'NEWS';\n}\n\nfunction heuristicCategory(title, bodyText) {\n  const text = (String(title || '') + ' ' + String(bodyText || '')).toLowerCase();\n  if (text.indexOf('압화') !== -1 || text.indexOf('드라이') !== -1 || text.indexOf('프리저브') !== -1) return '압화';\n  if (text.indexOf('레진') !== -1) return '레진';\n  if (text.indexOf('캔들') !== -1) return '캔들';\n  if (text.indexOf('부케') !== -1 || text.indexOf('꽃다발') !== -1) return '부케';\n  return '꽃 공예';\n}\n\nfunction escapeHtml(text) {\n  return String(text || '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction buildBodyHtml(item, summary, category) {\n  return '<p>' + escapeHtml(summary) + '</p>'\n    + '<p><strong>분류</strong>: ' + escapeHtml(category) + '</p>'\n    + '<p><strong>출처</strong>: ' + escapeHtml(item.source_name || item.source_type || '콘텐츠') + '</p>'\n    + (item.source_url ? '<p><a href=\"' + escapeHtml(item.source_url) + '\" target=\"_blank\" rel=\"noopener\">원문 보기</a></p>' : '')\n    + '<div>' + escapeHtml(item.body_text || summary) + '</div>';\n}\n\nasync function classifyWithGemini(item) {\n  if (!GEMINI_KEY) {\n    return null;\n  }\n\n  return new Promise((resolve) => {\n    const prompt = [\n      '당신은 꽃공예 콘텐츠 편집자입니다.',\n      '아래 콘텐츠를 NOTICE / EVENT / GUIDE / NEWS 중 하나로 분류하고 80자 이내 요약을 만드세요.',\n      'JSON으로만 응답하세요.',\n      '{\"content_type\":\"GUIDE\",\"category\":\"압화\",\"summary\":\"...\"}',\n      '',\n      '제목: ' + sanitizeText(item.title, 180),\n      '본문: ' + sanitizeText(item.body_text, 1200)\n    ].join('\\n');\n    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' + GEMINI_KEY;\n    const payload = {\n      contents: [{ role: 'user', parts: [{ text: prompt }] }],\n      generationConfig: { temperature: 0.1, maxOutputTokens: 180, thinkingConfig: { thinkingBudget: 0 } }\n    };\n    const req = https.request(url, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' }\n    }, (res) => {\n      let data = '';\n      res.on('data', (chunk) => { data += chunk; });\n      res.on('end', () => {\n        try {\n          const parsed = JSON.parse(data || '{}');\n          const parts = (((parsed.candidates || [])[0] || {}).content || {}).parts || [];\n          let text = '';\n          parts.forEach((part) => {\n            if (part && part.text) {\n              text += part.text;\n            }\n          });\n          const matched = text.match(/\\{[\\s\\S]*\\}/);\n          if (!matched) {\n            resolve(null);\n            return;\n          }\n          resolve(JSON.parse(matched[0]));\n        } catch (error) {\n          resolve(null);\n        }\n      });\n    });\n    req.on('error', () => resolve(null));\n    req.write(JSON.stringify(payload));\n    req.end();\n  });\n}\n\nasync function main() {\n  const affiliationCode = sanitizeText(body.affiliation_code || 'KPFA_001', 60) || 'KPFA_001';\n  const limit = Math.max(1, Math.min(parseInt(body.limit, 10) || 5, 10));\n  const dryRun = body.dry_run === true || body.dry_run === 'true';\n  const genericFeedText = sanitizeText(body.rss_urls || $env.PARTNERCLASS_CONTENT_RSS_URLS || '', 2000);\n  const genericFeeds = genericFeedText ? genericFeedText.split(',').map((item) => item.trim()).filter(Boolean) : [];\n  const youtubeUrl = 'https://www.youtube.com/feeds/videos.xml?channel_id=' + encodeURIComponent(sanitizeText(body.youtube_channel_id || DEFAULT_CHANNEL_ID, 120));\n  const fetchedItems = [];\n  const feedStats = { youtube_count: 0, rss_count: 0 };\n  const writtenTitles = [];\n  let aiClassifiedCount = 0;\n\n  const youtubeXml = await requestRaw(youtubeUrl);\n  const youtubeItems = parseYouTubeFeed(youtubeXml, limit);\n  feedStats.youtube_count = youtubeItems.length;\n  Array.prototype.push.apply(fetchedItems, youtubeItems);\n\n  for (let i = 0; i < genericFeeds.length; i += 1) {\n    try {\n      const xml = await requestRaw(genericFeeds[i]);\n      const parsedItems = parseGenericFeed(xml, 'RSS Feed ' + (i + 1), limit);\n      feedStats.rss_count += parsedItems.length;\n      Array.prototype.push.apply(fetchedItems, parsedItems);\n    } catch (error) {\n    }\n  }\n\n  const existingRows = await requestJson(dataUrl('?limit=200'), 'GET');\n  const existingList = existingRows.list || [];\n  const existingMap = {};\n  existingList.forEach((row) => {\n    existingMap[(row.affiliation_code || '') + '||' + (row.title || '')] = row;\n  });\n\n  let created = 0;\n  let updated = 0;\n  const normalizedItems = [];\n\n  for (let j = 0; j < fetchedItems.length; j += 1) {\n    const item = fetchedItems[j];\n    const aiResult = j < 5 ? await classifyWithGemini(item) : null;\n    if (aiResult) {\n      aiClassifiedCount += 1;\n    }\n    const contentType = sanitizeText((aiResult && aiResult.content_type) || heuristicContentType(item.title, item.body_text), 20).toUpperCase() || 'NEWS';\n    const category = sanitizeText((aiResult && aiResult.category) || heuristicCategory(item.title, item.body_text), 40) || '꽃 공예';\n    const summary = sanitizeText((aiResult && aiResult.summary) || item.body_text || item.title, 160) || item.title;\n    const payload = {\n      affiliation_code: affiliationCode,\n      content_type: contentType,\n      title: sanitizeText(item.title, 180),\n      body: buildBodyHtml(item, summary, category),\n      image_url: sanitizeText(item.image_url, 500),\n      publish_date: toDateText(item.publish_date),\n      status: 'PUBLISHED'\n    };\n    const uniqueKey = affiliationCode + '||' + payload.title;\n    const existing = existingMap[uniqueKey];\n\n    normalizedItems.push({\n      title: payload.title,\n      content_type: payload.content_type,\n      publish_date: payload.publish_date,\n      source_type: item.source_type,\n      source_url: item.source_url,\n      category: category\n    });\n\n    if (dryRun) {\n      continue;\n    }\n\n    if (existing && existing.Id) {\n      await requestJson(dataUrl('/' + existing.Id), 'PATCH', payload);\n      updated += 1;\n    } else {\n      await requestJson(dataUrl(''), 'POST', payload);\n      created += 1;\n    }\n\n    writtenTitles.push(payload.title);\n  }\n\n  return {\n    success: true,\n    data: {\n      dry_run: dryRun,\n      affiliation_code: affiliationCode,\n      fetched_total: fetchedItems.length,\n      youtube_count: feedStats.youtube_count,\n      rss_count: feedStats.rss_count,\n      ai_enabled: !!GEMINI_KEY,\n      ai_classified_count: aiClassifiedCount,\n      created: created,\n      updated: updated,\n      written_titles: writtenTitles,\n      preview: normalizedItems.slice(0, 5)\n    },\n    timestamp: new Date().toISOString()\n  };\n}\n\ntry {\n  return [{ json: await main() }];\n} catch (error) {\n  return [{\n    json: {\n      success: false,\n      error: {\n        code: 'CONTENT_IMPORT_FAILED',\n        message: error && error.message ? error.message : String(error)\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n"
+      }
+    },
+    {
+      "id": "wfcontent-schedule-done",
+      "name": "Schedule Result",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        820,
+        220
+      ],
+      "parameters": {
+        "jsCode": "return [{ json: { success: true, source: 'schedule', data: $json.data || null, timestamp: new Date().toISOString() } }];"
+      }
+    },
+    {
+      "id": "wfcontent-webhook-handler",
+      "name": "Import From Webhook",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        420
+      ],
+      "parameters": {
+        "jsCode": "\nconst https = require('https');\n\nconst input = $input.first().json || {};\nconst body = input.body || input || {};\n\nconst PROJECT_ID = $env.NOCODB_PROJECT_ID;\nconst TOKEN = $env.NOCODB_API_TOKEN;\nconst CONTENT_TABLE_ID = 'mit4xyrzn4s81b9';\nconst DEFAULT_CHANNEL_ID = $env.YOUTUBE_CHANNEL_ID || 'UCOt_7gyvjqHBw304hU4-FUw';\nconst GEMINI_KEY = $env.GEMINI_API_KEY || '';\n\nfunction sanitizeText(value, maxLen) {\n  return String(value || '').replace(/[\\u0000-\\b\\u000b\\f\\u000e-\\u001f]/g, '').replace(/\\s+/g, ' ').trim().substring(0, maxLen || 500);\n}\n\nfunction decodeEntities(text) {\n  return String(text || '')\n    .replace(/&lt;/gi, '<')\n    .replace(/&gt;/gi, '>')\n    .replace(/&amp;/gi, '&')\n    .replace(/&quot;/gi, '\"')\n    .replace(/&#39;/gi, \"'\")\n    .replace(/&nbsp;/gi, ' ');\n}\n\nfunction stripHtml(text) {\n  return sanitizeText(\n    decodeEntities(String(text || '')\n      .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n      .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n      .replace(/<[^>]+>/g, ' ')),\n    4000\n  );\n}\n\nfunction toDateText(value) {\n  const date = new Date(value || Date.now());\n  if (isNaN(date.getTime())) {\n    const now = new Date();\n    return now.getFullYear() + '-' + String(now.getMonth() + 1).padStart(2, '0') + '-' + String(now.getDate()).padStart(2, '0');\n  }\n  return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');\n}\n\nfunction requestRaw(url) {\n  return new Promise((resolve, reject) => {\n    https.get(url, (res) => {\n      let data = '';\n      res.on('data', (chunk) => { data += chunk; });\n      res.on('end', () => {\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error('GET ' + url + ' failed: ' + res.statusCode));\n          return;\n        }\n        resolve(data);\n      });\n    }).on('error', reject);\n  });\n}\n\nfunction requestJson(url, method, payload) {\n  return new Promise((resolve, reject) => {\n    const bodyText = payload ? JSON.stringify(payload) : '';\n    const req = https.request(url, {\n      method: method,\n      headers: {\n        'xc-token': TOKEN,\n        'Content-Type': 'application/json'\n      }\n    }, (res) => {\n      let data = '';\n      res.on('data', (chunk) => { data += chunk; });\n      res.on('end', () => {\n        let parsed = null;\n        try {\n          parsed = data ? JSON.parse(data) : null;\n        } catch (error) {\n          parsed = { raw: data };\n        }\n        if (res.statusCode < 200 || res.statusCode >= 300) {\n          reject(new Error(method + ' ' + url + ' failed: ' + res.statusCode + ' ' + JSON.stringify(parsed)));\n          return;\n        }\n        resolve(parsed);\n      });\n    });\n    req.on('error', reject);\n    if (bodyText) {\n      req.write(bodyText);\n    }\n    req.end();\n  });\n}\n\nfunction dataUrl(suffix) {\n  return 'https://nocodb.pressco21.com/api/v1/db/data/noco/' + PROJECT_ID + '/' + CONTENT_TABLE_ID + suffix;\n}\n\nfunction parseGenericFeed(xml, feedName, limit) {\n  const items = [];\n  const blocks = String(xml || '').split(/<item[\\s>]|<entry[\\s>]/i).slice(1);\n  let i = 0;\n\n  function matchBlock(block, regex, fallback) {\n    const matched = block.match(regex);\n    return matched && matched[1] ? matched[1].trim() : (fallback || '');\n  }\n\n  for (i = 0; i < blocks.length && items.length < limit; i += 1) {\n    const block = blocks[i];\n    const title = decodeEntities(matchBlock(block, /<title[^>]*>([\\s\\S]*?)<\\/title>/i, ''));\n    let link = matchBlock(block, /<link[^>]*>([\\s\\S]*?)<\\/link>/i, '');\n    const attrLink = matchBlock(block, /<link[^>]*href=\"([^\"]+)\"/i, '');\n    const description = decodeEntities(matchBlock(block, /<description[^>]*>([\\s\\S]*?)<\\/description>/i, matchBlock(block, /<summary[^>]*>([\\s\\S]*?)<\\/summary>/i, '')));\n    const published = matchBlock(block, /<pubDate[^>]*>([\\s\\S]*?)<\\/pubDate>/i, matchBlock(block, /<published[^>]*>([\\s\\S]*?)<\\/published>/i, matchBlock(block, /<updated[^>]*>([\\s\\S]*?)<\\/updated>/i, '')));\n    const imageUrl = matchBlock(block, /<media:thumbnail[^>]*url=\"([^\"]+)\"/i, matchBlock(block, /<enclosure[^>]*url=\"([^\"]+)\"/i, ''));\n\n    if (!link && attrLink) {\n      link = attrLink;\n    }\n    if (!title || !description) {\n      continue;\n    }\n\n    items.push({\n      source_type: 'RSS',\n      source_name: feedName || 'RSS',\n      source_url: sanitizeText(link, 500),\n      title: sanitizeText(title, 180),\n      body_text: sanitizeText(stripHtml(description), 2000),\n      image_url: sanitizeText(imageUrl, 500),\n      publish_date: toDateText(published),\n      external_id: sanitizeText((feedName || 'rss') + '::' + (link || title), 240)\n    });\n  }\n\n  return items;\n}\n\nfunction parseYouTubeFeed(xml, limit) {\n  const entries = [];\n  const blocks = String(xml || '').split(/<entry>/i).slice(1);\n  let i = 0;\n\n  function matchBlock(block, regex, fallback) {\n    const matched = block.match(regex);\n    return matched && matched[1] ? matched[1].trim() : (fallback || '');\n  }\n\n  for (i = 0; i < blocks.length && entries.length < limit; i += 1) {\n    const block = blocks[i];\n    const videoId = matchBlock(block, /<yt:videoId>([^<]+)<\\/yt:videoId>/i, '');\n    const title = decodeEntities(matchBlock(block, /<title[^>]*>([\\s\\S]*?)<\\/title>/i, ''));\n    const description = decodeEntities(matchBlock(block, /<media:description>([\\s\\S]*?)<\\/media:description>/i, ''));\n    const published = matchBlock(block, /<published>([^<]+)<\\/published>/i, '');\n    const thumbnail = matchBlock(block, /<media:thumbnail[^>]*url=\"([^\"]+)\"/i, '');\n\n    if (!videoId || !title) {\n      continue;\n    }\n\n    entries.push({\n      source_type: 'YOUTUBE',\n      source_name: 'PRESSCO21 YouTube',\n      source_url: 'https://www.youtube.com/watch?v=' + videoId,\n      title: sanitizeText(title, 180),\n      body_text: sanitizeText(stripHtml(description), 2000),\n      image_url: sanitizeText(thumbnail || ('https://img.youtube.com/vi/' + videoId + '/sddefault.jpg'), 500),\n      publish_date: toDateText(published),\n      external_id: sanitizeText(videoId, 120)\n    });\n  }\n\n  return entries;\n}\n\nfunction heuristicContentType(title, bodyText) {\n  const text = (String(title || '') + ' ' + String(bodyText || '')).toLowerCase();\n  if (text.indexOf('세미나') !== -1 || text.indexOf('모집') !== -1 || text.indexOf('신청') !== -1 || text.indexOf('웨비나') !== -1 || text.indexOf('라이브') !== -1 || text.indexOf('event') !== -1) {\n    return 'EVENT';\n  }\n  if (text.indexOf('가이드') !== -1 || text.indexOf('팁') !== -1 || text.indexOf('노하우') !== -1 || text.indexOf('준비물') !== -1 || text.indexOf('how to') !== -1 || text.indexOf('튜토리얼') !== -1) {\n    return 'GUIDE';\n  }\n  if (text.indexOf('공지') !== -1 || text.indexOf('안내') !== -1 || text.indexOf('휴무') !== -1 || text.indexOf('변경') !== -1 || text.indexOf('마감') !== -1 || text.indexOf('배송') !== -1) {\n    return 'NOTICE';\n  }\n  return 'NEWS';\n}\n\nfunction heuristicCategory(title, bodyText) {\n  const text = (String(title || '') + ' ' + String(bodyText || '')).toLowerCase();\n  if (text.indexOf('압화') !== -1 || text.indexOf('드라이') !== -1 || text.indexOf('프리저브') !== -1) return '압화';\n  if (text.indexOf('레진') !== -1) return '레진';\n  if (text.indexOf('캔들') !== -1) return '캔들';\n  if (text.indexOf('부케') !== -1 || text.indexOf('꽃다발') !== -1) return '부케';\n  return '꽃 공예';\n}\n\nfunction escapeHtml(text) {\n  return String(text || '')\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction buildBodyHtml(item, summary, category) {\n  return '<p>' + escapeHtml(summary) + '</p>'\n    + '<p><strong>분류</strong>: ' + escapeHtml(category) + '</p>'\n    + '<p><strong>출처</strong>: ' + escapeHtml(item.source_name || item.source_type || '콘텐츠') + '</p>'\n    + (item.source_url ? '<p><a href=\"' + escapeHtml(item.source_url) + '\" target=\"_blank\" rel=\"noopener\">원문 보기</a></p>' : '')\n    + '<div>' + escapeHtml(item.body_text || summary) + '</div>';\n}\n\nasync function classifyWithGemini(item) {\n  if (!GEMINI_KEY) {\n    return null;\n  }\n\n  return new Promise((resolve) => {\n    const prompt = [\n      '당신은 꽃공예 콘텐츠 편집자입니다.',\n      '아래 콘텐츠를 NOTICE / EVENT / GUIDE / NEWS 중 하나로 분류하고 80자 이내 요약을 만드세요.',\n      'JSON으로만 응답하세요.',\n      '{\"content_type\":\"GUIDE\",\"category\":\"압화\",\"summary\":\"...\"}',\n      '',\n      '제목: ' + sanitizeText(item.title, 180),\n      '본문: ' + sanitizeText(item.body_text, 1200)\n    ].join('\\n');\n    const url = 'https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent?key=' + GEMINI_KEY;\n    const payload = {\n      contents: [{ role: 'user', parts: [{ text: prompt }] }],\n      generationConfig: { temperature: 0.1, maxOutputTokens: 180, thinkingConfig: { thinkingBudget: 0 } }\n    };\n    const req = https.request(url, {\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json' }\n    }, (res) => {\n      let data = '';\n      res.on('data', (chunk) => { data += chunk; });\n      res.on('end', () => {\n        try {\n          const parsed = JSON.parse(data || '{}');\n          const parts = (((parsed.candidates || [])[0] || {}).content || {}).parts || [];\n          let text = '';\n          parts.forEach((part) => {\n            if (part && part.text) {\n              text += part.text;\n            }\n          });\n          const matched = text.match(/\\{[\\s\\S]*\\}/);\n          if (!matched) {\n            resolve(null);\n            return;\n          }\n          resolve(JSON.parse(matched[0]));\n        } catch (error) {\n          resolve(null);\n        }\n      });\n    });\n    req.on('error', () => resolve(null));\n    req.write(JSON.stringify(payload));\n    req.end();\n  });\n}\n\nasync function main() {\n  const affiliationCode = sanitizeText(body.affiliation_code || 'KPFA_001', 60) || 'KPFA_001';\n  const limit = Math.max(1, Math.min(parseInt(body.limit, 10) || 5, 10));\n  const dryRun = body.dry_run === true || body.dry_run === 'true';\n  const genericFeedText = sanitizeText(body.rss_urls || $env.PARTNERCLASS_CONTENT_RSS_URLS || '', 2000);\n  const genericFeeds = genericFeedText ? genericFeedText.split(',').map((item) => item.trim()).filter(Boolean) : [];\n  const youtubeUrl = 'https://www.youtube.com/feeds/videos.xml?channel_id=' + encodeURIComponent(sanitizeText(body.youtube_channel_id || DEFAULT_CHANNEL_ID, 120));\n  const fetchedItems = [];\n  const feedStats = { youtube_count: 0, rss_count: 0 };\n  const writtenTitles = [];\n  let aiClassifiedCount = 0;\n\n  const youtubeXml = await requestRaw(youtubeUrl);\n  const youtubeItems = parseYouTubeFeed(youtubeXml, limit);\n  feedStats.youtube_count = youtubeItems.length;\n  Array.prototype.push.apply(fetchedItems, youtubeItems);\n\n  for (let i = 0; i < genericFeeds.length; i += 1) {\n    try {\n      const xml = await requestRaw(genericFeeds[i]);\n      const parsedItems = parseGenericFeed(xml, 'RSS Feed ' + (i + 1), limit);\n      feedStats.rss_count += parsedItems.length;\n      Array.prototype.push.apply(fetchedItems, parsedItems);\n    } catch (error) {\n    }\n  }\n\n  const existingRows = await requestJson(dataUrl('?limit=200'), 'GET');\n  const existingList = existingRows.list || [];\n  const existingMap = {};\n  existingList.forEach((row) => {\n    existingMap[(row.affiliation_code || '') + '||' + (row.title || '')] = row;\n  });\n\n  let created = 0;\n  let updated = 0;\n  const normalizedItems = [];\n\n  for (let j = 0; j < fetchedItems.length; j += 1) {\n    const item = fetchedItems[j];\n    const aiResult = j < 5 ? await classifyWithGemini(item) : null;\n    if (aiResult) {\n      aiClassifiedCount += 1;\n    }\n    const contentType = sanitizeText((aiResult && aiResult.content_type) || heuristicContentType(item.title, item.body_text), 20).toUpperCase() || 'NEWS';\n    const category = sanitizeText((aiResult && aiResult.category) || heuristicCategory(item.title, item.body_text), 40) || '꽃 공예';\n    const summary = sanitizeText((aiResult && aiResult.summary) || item.body_text || item.title, 160) || item.title;\n    const payload = {\n      affiliation_code: affiliationCode,\n      content_type: contentType,\n      title: sanitizeText(item.title, 180),\n      body: buildBodyHtml(item, summary, category),\n      image_url: sanitizeText(item.image_url, 500),\n      publish_date: toDateText(item.publish_date),\n      status: 'PUBLISHED'\n    };\n    const uniqueKey = affiliationCode + '||' + payload.title;\n    const existing = existingMap[uniqueKey];\n\n    normalizedItems.push({\n      title: payload.title,\n      content_type: payload.content_type,\n      publish_date: payload.publish_date,\n      source_type: item.source_type,\n      source_url: item.source_url,\n      category: category\n    });\n\n    if (dryRun) {\n      continue;\n    }\n\n    if (existing && existing.Id) {\n      await requestJson(dataUrl('/' + existing.Id), 'PATCH', payload);\n      updated += 1;\n    } else {\n      await requestJson(dataUrl(''), 'POST', payload);\n      created += 1;\n    }\n\n    writtenTitles.push(payload.title);\n  }\n\n  return {\n    success: true,\n    data: {\n      dry_run: dryRun,\n      affiliation_code: affiliationCode,\n      fetched_total: fetchedItems.length,\n      youtube_count: feedStats.youtube_count,\n      rss_count: feedStats.rss_count,\n      ai_enabled: !!GEMINI_KEY,\n      ai_classified_count: aiClassifiedCount,\n      created: created,\n      updated: updated,\n      written_titles: writtenTitles,\n      preview: normalizedItems.slice(0, 5)\n    },\n    timestamp: new Date().toISOString()\n  };\n}\n\ntry {\n  return [{ json: await main() }];\n} catch (error) {\n  return [{\n    json: {\n      success: false,\n      error: {\n        code: 'CONTENT_IMPORT_FAILED',\n        message: error && error.message ? error.message : String(error)\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n"
+      }
+    },
+    {
+      "id": "wfcontent-respond",
+      "name": "Respond Result",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        820,
+        420
+      ],
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://foreverlove.co.kr"
+              },
+              {
+                "name": "Access-Control-Allow-Headers",
+                "value": "Content-Type"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "POST, OPTIONS"
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Daily 05:10": {
+      "main": [
+        [
+          {
+            "node": "Import From Schedule",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Import From Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import From Schedule": {
+      "main": [
+        [
+          {
+            "node": "Schedule Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Import From Webhook": {
+      "main": [
+        [
+          {
+            "node": "Respond Result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "id": "gWllBlMjRvePQZg3"
+}

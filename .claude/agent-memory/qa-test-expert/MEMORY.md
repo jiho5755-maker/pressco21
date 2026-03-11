@@ -246,6 +246,26 @@
   - 다음 QA 기준은 `cache 강화 후 동일 시나리오 재측정` 으로 잡는 편이 맞다.
 - 산출물:
   - `output/playwright/s3-4-scalability/scalability-results.json`
+
+## 2026-03-11 S3-5 콘텐츠 재활용 검증 메모
+
+- 이 태스크는 `workflow 생성/배포 + live import webhook + content hub Playwright 렌더링` 3단으로 보는 편이 가장 정확하다.
+- 실행 러너:
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-5-content-import-runner.js`
+- 최소 통과 세트:
+  - dry run 에서 `youtube_count > 0`
+  - apply 에서 `created + updated > 0`
+  - `getContentHub` 응답에 `summary.imported_content_count >= 1`
+  - `imported_content_preview.length >= 1`
+  - 허브 trend 카드 제목에 imported title 이 최소 1건 노출
+- 이번 기준 결과:
+  - dry run `youtube_count=3`
+  - apply `created=3`
+  - overlap title 1건 이상 확인
+  - trendTitles 에 imported YouTube 제목 2건 이상 노출
+- 산출물:
+  - `output/playwright/s3-5-content-import/content-import-results.json`
+  - `output/playwright/s3-5-content-import/content-import-hub.png`
 - live API 최소 통과 세트:
   - create `201`
   - list active `1`

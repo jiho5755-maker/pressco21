@@ -126,20 +126,59 @@
 
     function renderStories(items) {
         var container = document.getElementById('pchStoriesGrid');
+        var list = (items || []).slice().sort(compareStoryPriority);
         var html = '';
         var i;
 
         if (!container) return;
-        if (!items || !items.length) {
+        if (!list.length) {
             container.innerHTML = '<div class="pch-empty">아직 스토리 카드로 노출할 파트너 데이터가 없습니다.</div>';
             return;
         }
 
-        for (i = 0; i < items.length; i += 1) {
-            html += buildStoryCard(items[i]);
+        for (i = 0; i < list.length; i += 1) {
+            html += buildStoryCard(list[i]);
         }
 
         container.innerHTML = html;
+    }
+
+    function normalizePartnerGrade(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        var alias = {
+            SILVER: 'BLOOM',
+            GOLD: 'GARDEN',
+            PLATINUM: 'ATELIER'
+        };
+
+        return alias[text] || text || 'BLOOM';
+    }
+
+    function getPartnerGradeMeta(raw) {
+        var grade = normalizePartnerGrade(raw);
+        var metaMap = {
+            BLOOM: { key: 'bloom', label: 'BLOOM', weight: 1, spotlight: '' },
+            GARDEN: { key: 'garden', label: 'GARDEN', weight: 2, spotlight: '추천 파트너' },
+            ATELIER: { key: 'atelier', label: 'ATELIER', weight: 3, spotlight: '인터뷰 후보' },
+            AMBASSADOR: { key: 'ambassador', label: 'AMBASSADOR', weight: 4, spotlight: '멘토 파트너' }
+        };
+
+        return metaMap[grade] || metaMap.BLOOM;
+    }
+
+    function compareStoryPriority(a, b) {
+        var aMeta = getPartnerGradeMeta(a && a.grade);
+        var bMeta = getPartnerGradeMeta(b && b.grade);
+        var classDiff = (parseInt(b && b.class_count, 10) || 0) - (parseInt(a && a.class_count, 10) || 0);
+
+        if (bMeta.weight !== aMeta.weight) {
+            return bMeta.weight - aMeta.weight;
+        }
+        if (classDiff !== 0) {
+            return classDiff;
+        }
+
+        return String(a && a.partner_name || '').localeCompare(String(b && b.partner_name || ''));
     }
 
     function renderTrends(items) {
@@ -214,13 +253,19 @@
     }
 
     function buildStoryCard(item) {
+        var gradeMeta = getPartnerGradeMeta(item.grade);
+        var spotlight = gradeMeta.spotlight
+            ? '<span class="pch-story-card__spotlight">' + escapeHtml(gradeMeta.spotlight) + '</span>'
+            : '';
+
         return ''
-            + '<article class="pch-story-card">'
+            + '<article class="pch-story-card pch-story-card--' + gradeMeta.key + '">'
             + '<div class="pch-story-card__body">'
-            + '<span class="pch-story-card__eyebrow">' + escapeHtml(item.grade || 'BLOOM') + '</span>'
+            + '<span class="pch-story-card__eyebrow pch-story-card__eyebrow--' + gradeMeta.key + '">' + escapeHtml(gradeMeta.label) + '</span>'
             + '<h3 class="pch-story-card__title">' + escapeHtml(item.headline || item.partner_name || '') + '</h3>'
             + '<p class="pch-story-card__meta">' + escapeHtml(item.region_label || '전국') + ' · ' + escapeHtml(item.featured_category || '꽃 공예') + ' · 클래스 ' + formatNumber(item.class_count || 0) + '개</p>'
             + '<p class="pch-story-card__quote">' + escapeHtml(item.quote || '') + '</p>'
+            + spotlight
             + '<div class="pch-story-card__tags">' + buildTagList(item.focus_points || []) + '</div>'
             + '<div class="pch-story-card__footer">'
             + '<span class="pch-link">파트너 보기</span>'

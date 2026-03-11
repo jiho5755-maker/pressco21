@@ -2273,6 +2273,7 @@
 
         // 등급 진행률 게이지 렌더링
         renderGradeGauge(settlement);
+        renderGradeBenefits(settlement);
 
         if (!tableWrap) return;
 
@@ -2596,6 +2597,164 @@
             + '</div>';
 
         container.innerHTML = titleHtml + gaugeHtml + infoHtml + tierHtml;
+    }
+
+    function renderGradeBenefits(settlement) {
+        var container = document.getElementById('pdGradeBenefits');
+        var grade = getDisplayGrade();
+        var rank = getGradeRank(grade);
+        var meta = getGradeMeta(grade);
+        var totalClasses = Number(settlement.total_classes || settlement.cumulative_classes || 0);
+        var avgRating = Number(settlement.avg_rating || partnerData.avg_rating || 0);
+        var tiers = [
+            {
+                code: 'GARDEN',
+                title: '\uCD94\uCC9C \uB808\uC774\uC5B4 \uC6B0\uC120 \uB178\uCD9C',
+                desc: 'GARDEN \uD30C\uD2B8\uB108\uB294 \uCD94\uCC9C \uBAA9\uB85D\uACFC \uAD00\uB828 \uD074\uB798\uC2A4 \uCE74\uB4DC\uC5D0\uC11C \uBA3C\uC800 \uBCF4\uC785\uB2C8\uB2E4.',
+                points: [
+                    '\uD504\uB85C\uD544 \uBC30\uC9C0 \uAC15\uD654',
+                    '\uCD94\uCC9C \uBAA9\uB85D \uC0C1\uB2E8 \uC6B0\uC120 \uC815\uB82C',
+                    '\uC2E0\uB8B0\uD615 \uD074\uB798\uC2A4 \uD5C8\uBE0C\uC5D0\uC11C \uC6B0\uC120 \uB178\uCD9C'
+                ],
+                hint: '\uC644\uB8CC 10\uAC74 + \uD3C9\uC810 4.0 \uC774\uC0C1'
+            },
+            {
+                code: 'ATELIER',
+                title: '\uCF58\uD150\uCE20 \uD5C8\uBE0C \uC778\uD130\uBDF0 + \uBC30\uB108 \uD6C4\uBCF4',
+                desc: 'ATELIER \uD30C\uD2B8\uB108\uB294 \uCF58\uD150\uCE20 \uD5C8\uBE0C \uC778\uD130\uBDF0 \uD6C4\uBCF4\uC640 \uC790\uC0AC\uBAB0 \uBC30\uB108 \uD6C4\uBCF4\uAD70\uC73C\uB85C \uAD00\uB9AC\uB429\uB2C8\uB2E4.',
+                points: [
+                    '\uCF58\uD150\uCE20 \uD5C8\uBE0C \uC2A4\uD1A0\uB9AC \uCE74\uB4DC \uC6B0\uC120 \uB178\uCD9C',
+                    '\uBE0C\uB79C\uB4DC \uC2A4\uD1A0\uB9AC \uC778\uD130\uBDF0 \uAE30\uD68C',
+                    '\uD611\uD68C/\uC138\uBBF8\uB098 \uC5F0\uACB0\uD615 \uD64D\uBCF4 \uCE74\uB4DC \uB178\uCD9C'
+                ],
+                hint: '\uC644\uB8CC 30\uAC74 + \uD3C9\uC810 4.3 \uC774\uC0C1'
+            },
+            {
+                code: 'AMBASSADOR',
+                title: '\uBA58\uD1A0 \uD30C\uD2B8\uB108 + \uACF5\uB3D9 \uC138\uBBF8\uB098',
+                desc: 'AMBASSADOR \uD30C\uD2B8\uB108\uB294 \uC2E0\uADDC \uD30C\uD2B8\uB108 \uC628\uBCF4\uB529 \uBA58\uD1A0\uC640 \uACF5\uB3D9 \uC138\uBBF8\uB098 \uAE30\uD68D \uD6C4\uBCF4\uAC00 \uB429\uB2C8\uB2E4.',
+                points: [
+                    '\uC2E0\uADDC \uD30C\uD2B8\uB108 \uBA58\uD1A0\uB9C1 \uAD8C\uD55C',
+                    '\uBA54\uC778/\uCF58\uD150\uCE20 \uD5C8\uBE0C \uB300\uD45C \uB178\uCD9C',
+                    '\uD611\uD68C \uC138\uBBF8\uB098 \uACF5\uB3D9 \uAE30\uD68D \uD6C4\uBCF4'
+                ],
+                hint: '\uC644\uB8CC 50\uAC74 + \uC2E0\uADDC \uD30C\uD2B8\uB108 \uCD94\uCC9C 3\uBA85'
+            }
+        ];
+        var unlockedCount = 0;
+        var summaryHtml = '';
+        var tierHtml = '';
+        var i;
+
+        if (!container) return;
+
+        for (i = 0; i < tiers.length; i++) {
+            if (getGradeRank(tiers[i].code) <= rank) {
+                unlockedCount++;
+            }
+            tierHtml += buildGradeTierCard(tiers[i], grade);
+        }
+
+        summaryHtml = '<section class="pd-grade-benefits__summary">'
+            + '<p class="pd-grade-benefits__eyebrow">Non-Monetary Incentives</p>'
+            + '<h3 class="pd-grade-benefits__title">' + escapeHtml(meta.title) + '</h3>'
+            + '<p class="pd-grade-benefits__desc">' + escapeHtml(meta.summary) + '</p>'
+            + '<div class="pd-grade-benefits__metrics">'
+            + '<div class="pd-grade-benefits__metric"><strong>' + totalClasses + '</strong><span>\uB204\uC801 \uC644\uB8CC \uC218\uC5C5</span></div>'
+            + '<div class="pd-grade-benefits__metric"><strong>' + (avgRating > 0 ? avgRating.toFixed(1) : '-') + '</strong><span>\uD3C9\uADE0 \uD3C9\uC810</span></div>'
+            + '<div class="pd-grade-benefits__metric"><strong>' + unlockedCount + '</strong><span>\uD65C\uC131 \uD61C\uD0DD \uB808\uC774\uC5B4</span></div>'
+            + '</div>'
+            + '<div class="pd-grade-benefits__highlight">'
+            + '<span class="pd-grade-benefits__highlight-label">' + escapeHtml(meta.badgeLabel) + '</span>'
+            + '<h4 class="pd-grade-benefits__highlight-title">' + escapeHtml(meta.highlightTitle) + '</h4>'
+            + '<p class="pd-grade-benefits__highlight-copy">' + escapeHtml(meta.highlightCopy) + '</p>'
+            + '</div>'
+            + '</section>';
+
+        container.innerHTML = summaryHtml
+            + '<section class="pd-grade-benefits__tiers">'
+            + '<p class="pd-grade-benefits__eyebrow">\uB4F1\uAE09\uBCC4 \uC131\uC7A5 \uD61C\uD0DD</p>'
+            + '<div class="pd-grade-benefits__tier-grid">' + tierHtml + '</div>'
+            + '</section>';
+    }
+
+    function buildGradeTierCard(tier, currentGrade) {
+        var tierRank = getGradeRank(tier.code);
+        var currentRank = getGradeRank(currentGrade);
+        var cardClass = 'pd-grade-tier-card is-locked';
+        var stateText = '\uC7A0\uAE08';
+        var listHtml = '';
+        var i;
+
+        if (tierRank < currentRank) {
+            cardClass = 'pd-grade-tier-card is-unlocked';
+            stateText = '\uD65C\uC131';
+        } else if (tierRank === currentRank) {
+            cardClass = 'pd-grade-tier-card is-current';
+            stateText = '\uD604\uC7AC \uB4F1\uAE09';
+        }
+
+        for (i = 0; i < tier.points.length; i++) {
+            listHtml += '<li>' + escapeHtml(tier.points[i]) + '</li>';
+        }
+
+        return '<article class="' + cardClass + '">'
+            + '<div class="pd-grade-tier-card__top">'
+            + '<span class="pd-grade-tier-card__badge pd-grade-tier-card__badge--' + tier.code.toLowerCase() + '">' + escapeHtml(tier.code) + '</span>'
+            + '<span class="pd-grade-tier-card__state">' + escapeHtml(stateText) + '</span>'
+            + '</div>'
+            + '<h4 class="pd-grade-tier-card__title">' + escapeHtml(tier.title) + '</h4>'
+            + '<p class="pd-grade-tier-card__desc">' + escapeHtml(tier.desc) + '</p>'
+            + '<ul class="pd-grade-tier-card__list">' + listHtml + '</ul>'
+            + '<p class="pd-grade-tier-card__meta">\uB2EC\uC131 \uAE30\uC900: ' + escapeHtml(tier.hint) + '</p>'
+            + '</article>';
+    }
+
+    function getGradeMeta(grade) {
+        var metaMap = {
+            BLOOM: {
+                title: 'BLOOM \uB2E8\uACC4\uC5D0\uC11C\uB294 \uC2E0\uB8B0 \uAE30\uBC18\uC744 \uBA3C\uC800 \uC313\uC2B5\uB2C8\uB2E4.',
+                summary: '\uD504\uB85C\uD544, \uC218\uC5C5 \uD488\uC9C8, \uD6C4\uAE30 \uD750\uB984\uC744 \uC815\uB9AC\uD574 GARDEN \uC6B0\uC120 \uB178\uCD9C \uAD6C\uAC04\uC73C\uB85C \uC62C\uB77C\uAC00\uB294 \uAC83\uC774 \uD604\uC7AC \uBAA9\uD45C\uC785\uB2C8\uB2E4.',
+                badgeLabel: 'BLOOM BUILD-UP',
+                highlightTitle: '\uB2E4\uC74C \uBAA9\uD45C\uB294 GARDEN \uC6B0\uC120 \uB178\uCD9C\uC785\uB2C8\uB2E4.',
+                highlightCopy: '\uC644\uB8CC \uC218\uC5C5\uACFC \uD3C9\uC810\uC744 \uC548\uC815\uC801\uC73C\uB85C \uC313\uC73C\uBA74 \uCD94\uCC9C \uBAA9\uB85D\uACFC \uAD00\uB828 \uD074\uB798\uC2A4 \uB808\uC774\uC5B4\uC5D0\uC11C \uB354 \uC790\uC8FC \uBCF4\uC774\uAC8C \uB429\uB2C8\uB2E4.'
+            },
+            GARDEN: {
+                title: 'GARDEN \uD30C\uD2B8\uB108\uB294 \uCD94\uCC9C \uB808\uC774\uC5B4\uC5D0\uC11C \uBA3C\uC800 \uB178\uCD9C\uB429\uB2C8\uB2E4.',
+                summary: '\uC218\uAC15\uC0DD\uC774 \uBCF4\uB294 \uCD94\uCC9C \uCE74\uB4DC\uC640 \uAD00\uB828 \uD074\uB798\uC2A4 \uB808\uC774\uC5B4\uC5D0\uC11C \uC6B0\uC120 \uC21C\uC704\uB97C \uBC1B\uC544 \uC2E0\uB8B0 \uAE30\uBC18 \uC720\uC785\uC774 \uB298\uC5B4\uB0A9\uB2C8\uB2E4.',
+                badgeLabel: 'GARDEN PRIORITY',
+                highlightTitle: '\uD604\uC7AC \uD504\uB85C\uD544 \uBC30\uC9C0\uC640 \uCD94\uCC9C \uBAA9\uB85D \uC6B0\uC120 \uB178\uCD9C\uC774 \uD65C\uC131\uD654\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.',
+                highlightCopy: '\uC9C0\uAE08\uBD80\uD130\uB294 \uD6C4\uAE30\uC640 \uC644\uC131\uB3C4 \uB192\uC740 \uC218\uC5C5 \uC6B4\uC601 \uAE30\uB85D\uC744 \uC313\uC544 ATELIER \uC2A4\uD1A0\uB9AC \uB808\uC774\uC5B4\uB85C \uB118\uC5B4\uAC00\uB294 \uAC83\uC774 \uD575\uC2EC\uC785\uB2C8\uB2E4.'
+            },
+            ATELIER: {
+                title: 'ATELIER \uD30C\uD2B8\uB108\uB294 \uBE0C\uB79C\uB4DC \uC2A4\uD1A0\uB9AC \uB808\uC774\uC5B4\uAE4C\uC9C0 \uD655\uC7A5\uB429\uB2C8\uB2E4.',
+                summary: '\uCF58\uD150\uCE20 \uD5C8\uBE0C \uC778\uD130\uBDF0 \uCE74\uB4DC, \uC790\uC0AC\uBAB0 \uBC30\uB108 \uD6C4\uBCF4, \uD611\uD68C \uCF58\uD150\uCE20 \uC5F0\uACB0 \uAE30\uD68C\uAC00 \uC5F4\uB9AC\uB294 \uAD6C\uAC04\uC785\uB2C8\uB2E4.',
+                badgeLabel: 'ATELIER STORY',
+                highlightTitle: '\uCF58\uD150\uCE20 \uD5C8\uBE0C \uC778\uD130\uBDF0\uC640 \uC2A4\uD1A0\uB9AC \uBC30\uB108 \uD6C4\uBCF4\uAD70\uC5D0 \uD3EC\uD568\uB429\uB2C8\uB2E4.',
+                highlightCopy: '\uC9C0\uAE08\uBD80\uD130\uB294 \uB2E8\uC21C \uB178\uCD9C\uC744 \uB118\uC5B4 \uB300\uD45C \uC0AC\uB840\uB85C \uB2E4\uB904\uC9C8 \uC218 \uC788\uB3C4\uB85D \uC2DC\uADF8\uB2C8\uCC98 \uC218\uC5C5\uACFC \uC6B4\uC601 \uBC29\uC2DD\uC744 \uC815\uB9AC\uD558\uB294 \uB2E8\uACC4\uC785\uB2C8\uB2E4.'
+            },
+            AMBASSADOR: {
+                title: 'AMBASSADOR \uD30C\uD2B8\uB108\uB294 \uC0DD\uD0DC\uACC4 \uB300\uD45C \uC5ED\uD560\uC744 \uB9E1\uC2B5\uB2C8\uB2E4.',
+                summary: '\uC2E0\uADDC \uD30C\uD2B8\uB108 \uBA58\uD1A0\uB9C1, \uACF5\uB3D9 \uC138\uBBF8\uB098 \uAE30\uD68D, \uBA54\uC778 \uB300\uD45C \uB178\uCD9C\uAE4C\uC9C0 \uD3EC\uD568\uB418\uB294 \uCD5C\uC0C1\uC704 \uD30C\uD2B8\uB108 \uB808\uC774\uC5B4\uC785\uB2C8\uB2E4.',
+                badgeLabel: 'AMBASSADOR LEAD',
+                highlightTitle: '\uBA58\uD1A0 \uD30C\uD2B8\uB108\uC640 \uACF5\uB3D9 \uC138\uBBF8\uB098 \uD6C4\uBCF4 \uAD8C\uD55C\uC774 \uD65C\uC131\uD654\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.',
+                highlightCopy: '\uC774\uC81C \uC6B4\uC601 \uC131\uACFC\uB97C \uB118\uC5B4 \uD30C\uD2B8\uB108 \uC0DD\uD0DC\uACC4 \uD655\uC7A5\uACFC \uD611\uD68C \uACF5\uB3D9 \uAE30\uD68D\uAE4C\uC9C0 \uB9AC\uB4DC\uD558\uB294 \uC5ED\uD560\uC744 \uB9E1\uAC8C \uB429\uB2C8\uB2E4.'
+            }
+        };
+
+        return metaMap[grade] || metaMap.BLOOM;
+    }
+
+    function getGradeRank(rawGrade) {
+        var grade = String(rawGrade || '').toUpperCase();
+        var rankMap = {
+            BLOOM: 0,
+            GARDEN: 1,
+            ATELIER: 2,
+            AMBASSADOR: 3
+        };
+
+        return rankMap[grade] || 0;
     }
 
     /**

@@ -658,6 +658,11 @@
         var tags = String(cls.tags || '');
         var affiliationText = [cls.affiliation_code || '', tags, cls.class_name || '', cls.category || ''].join(' ');
         var contentMeta = resolveContentTypeMeta(cls);
+        var gradeMeta = getPartnerGradeMeta(cls.partner_grade);
+
+        if (gradeMeta.weight >= 2) {
+            badges.push({ key: 'grade-' + gradeMeta.key, label: gradeMeta.label });
+        }
 
         if (isNewClassBadge(cls.class_id)) {
             badges.push({ key: 'new', label: '\uC2E0\uADDC' });
@@ -2246,6 +2251,52 @@
         return map[label] || String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
     }
 
+    function normalizePartnerGrade(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        var alias = {
+            SILVER: 'BLOOM',
+            GOLD: 'GARDEN',
+            PLATINUM: 'ATELIER'
+        };
+
+        return alias[text] || text || 'BLOOM';
+    }
+
+    function getPartnerGradeMeta(raw) {
+        var grade = normalizePartnerGrade(raw);
+        var metaMap = {
+            BLOOM: { key: 'bloom', label: 'BLOOM', chipLabel: 'BLOOM 파트너', weight: 1 },
+            GARDEN: { key: 'garden', label: 'GARDEN', chipLabel: 'GARDEN 우선', weight: 2 },
+            ATELIER: { key: 'atelier', label: 'ATELIER', chipLabel: 'ATELIER 인터뷰', weight: 3 },
+            AMBASSADOR: { key: 'ambassador', label: 'AMBASSADOR', chipLabel: 'AMBASSADOR 멘토', weight: 4 }
+        };
+
+        return metaMap[grade] || metaMap.BLOOM;
+    }
+
+    function comparePartnerExposure(a, b) {
+        var aMeta = getPartnerGradeMeta(a && a.partner_grade);
+        var bMeta = getPartnerGradeMeta(b && b.partner_grade);
+        var ratingDiff = (parseFloat(b && b.avg_rating) || 0) - (parseFloat(a && a.avg_rating) || 0);
+        var reviewDiff = (parseInt(b && b.class_count, 10) || 0) - (parseInt(a && a.class_count, 10) || 0);
+        var seatDiff = (parseInt(b && b.total_remaining, 10) || 0) - (parseInt(a && a.total_remaining, 10) || 0);
+
+        if (bMeta.weight !== aMeta.weight) {
+            return bMeta.weight - aMeta.weight;
+        }
+        if (ratingDiff !== 0) {
+            return ratingDiff;
+        }
+        if (reviewDiff !== 0) {
+            return reviewDiff;
+        }
+        if (seatDiff !== 0) {
+            return seatDiff;
+        }
+
+        return String(a && a.class_name || '').localeCompare(String(b && b.class_name || ''));
+    }
+
     function normalizedContains(source, keyword) {
         var normalizedSource = String(source || '').replace(/\s+/g, '').toLowerCase();
         var normalizedKeyword = String(keyword || '').replace(/\s+/g, '').toLowerCase();
@@ -3097,7 +3148,7 @@
         var items = buildBenefitItems(classes, affiliations);
         var recommended = (classes || []).filter(function(cls) {
             return parseInt(cls.kit_enabled, 10) === 1 || resolveContentTypeMeta(cls).key !== 'general';
-        }).slice(0, 6);
+        }).slice().sort(comparePartnerExposure).slice(0, 6);
         var html = '';
         var i;
 
@@ -3155,9 +3206,14 @@
         var meta = resolveContentTypeMeta(cls);
         var region = getDisplayRegionName(cls.region || cls.location || '');
         var desc = meta.desc;
+        var gradeMeta = getPartnerGradeMeta(cls.partner_grade);
+        var gradeChip = gradeMeta.weight >= 2
+            ? '<span class="benefit-class-card__chip benefit-class-card__chip--grade benefit-class-card__chip--' + gradeMeta.key + '">' + escapeHtml(gradeMeta.chipLabel) + '</span>'
+            : '';
 
         return '<article class="benefit-class-card">'
             + '<div class="benefit-class-card__meta">'
+            + gradeChip
             + '<span class="benefit-class-card__chip">' + escapeHtml(meta.label) + '</span>'
             + (region ? '<span class="benefit-class-card__chip">' + escapeHtml(region) + '</span>' : '')
             + '</div>'

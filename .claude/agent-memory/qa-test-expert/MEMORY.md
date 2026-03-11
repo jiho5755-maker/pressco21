@@ -186,6 +186,26 @@
   - `output/playwright/s3-1-schema/schema-create-results.json`
   - `output/playwright/s3-1-schema/schema-results.json`
 
+## 2026-03-11 S3-2 등급 인센티브 검증 메모
+
+- 이 태스크는 `MakeShop 정적 가드 + 로컬 Playwright fixture 검증` 2단으로 보는 편이 가장 정확하다.
+- 정적 검증:
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+  - `http://www.w3.org/2000/svg` 는 SVG namespace false positive 로 본다.
+- 최소 통과 세트:
+  - 대시보드 수익 탭에서 `ATELIER PARTNER` 배지와 등급 혜택 카드 3장 노출
+  - 목록 혜택 레일 첫 카드가 `AMBASSADOR` 등급 카드로 정렬
+  - 상세 연관 추천 첫 카드 태그에 `ATELIER` 이상 등급 노출
+  - 콘텐츠 허브 첫 스토리가 `AMBASSADOR / 멘토 파트너` 로 노출
+- Playwright 검증 러너:
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-2-incentive-runner.js`
+- 실제 산출물:
+  - `output/playwright/s3-2-incentives/incentive-results.json`
+  - `output/playwright/s3-2-incentives/partner-grade-benefits.png`
+  - `output/playwright/s3-2-incentives/list-benefit-priority.png`
+  - `output/playwright/s3-2-incentives/detail-related-priority.png`
+  - `output/playwright/s3-2-incentives/content-hub-story-priority.png`
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

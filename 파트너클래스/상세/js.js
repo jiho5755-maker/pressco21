@@ -51,6 +51,29 @@
         'PLATINUM': { label: 'ATELIER \uD30C\uD2B8\uB108', css: 'atelier' }
     };
 
+    function normalizePartnerGrade(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        var alias = {
+            SILVER: 'BLOOM',
+            GOLD: 'GARDEN',
+            PLATINUM: 'ATELIER'
+        };
+
+        return alias[text] || text || 'BLOOM';
+    }
+
+    function getPartnerGradeMeta(raw) {
+        var grade = normalizePartnerGrade(raw);
+        var metaMap = {
+            BLOOM: { label: 'BLOOM', weight: 1 },
+            GARDEN: { label: 'GARDEN', weight: 2 },
+            ATELIER: { label: 'ATELIER', weight: 3 },
+            AMBASSADOR: { label: 'AMBASSADOR', weight: 4 }
+        };
+
+        return metaMap[grade] || metaMap.BLOOM;
+    }
+
 
     /* ========================================
        상태 관리
@@ -3885,10 +3908,12 @@
         var score = 0;
         var candidatePartnerCode = candidate.partner_code || (candidate.partner && candidate.partner.partner_code) || '';
         var candidatePartnerName = candidate.partner_name || (candidate.partner && (candidate.partner.partner_name || candidate.partner.name)) || '';
+        var candidatePartnerGrade = candidate.partner_grade || (candidate.partner && candidate.partner.grade) || '';
         var candidateRegion = getPrimaryRegion(candidate.region || candidate.location || (candidate.partner && (candidate.partner.region || candidate.partner.location)) || '');
         var candidateLevel = normalizeLevelValue(candidate.level || '');
         var candidateRating = parseFloat(candidate.avg_rating) || 0;
         var candidateSeats = getRelatedRemainingSeats(candidate);
+        var candidateGradeMeta = getPartnerGradeMeta(candidatePartnerGrade);
 
         if (current.category && candidate.category === current.category) score += 50;
         if (current.level && candidateLevel === current.level) score += 20;
@@ -3896,6 +3921,7 @@
         if (current.partnerCode && candidatePartnerCode && candidatePartnerCode === current.partnerCode) score += 25;
         if (!current.partnerCode && current.partnerName && candidatePartnerName === current.partnerName) score += 20;
         if (candidateSeats > 0) score += Math.min(candidateSeats, 10);
+        score += candidateGradeMeta.weight * 6;
         score += Math.round(candidateRating * 3);
 
         return score;
@@ -4610,6 +4636,7 @@
             var cId = escapeHtml(c.class_id || c.id || '');
             var cName = escapeHtml(c.class_name || '');
             var cCategory = escapeHtml(c.category || '');
+            var cGrade = getPartnerGradeMeta(c.partner_grade || (c.partner && c.partner.grade) || '');
             var cLevel = escapeHtml(c.level || '');
             var cRegion = escapeHtml(getPrimaryRegion(c.location || (c.partner && (c.partner.location || c.partner.region)) || ''));
             var cPrice = formatPrice(c.price || 0);
@@ -4632,6 +4659,9 @@
             }
             if (cLevel || cRegion || cRemaining > 0) {
                 html += '<div class="cd-related-card__tags">';
+                if (cGrade.weight >= 2) {
+                    html += '<span class="cd-related-card__tag">' + escapeHtml(cGrade.label) + '</span>';
+                }
                 if (cLevel) {
                     html += '<span class="cd-related-card__tag">' + cLevel + '</span>';
                 }

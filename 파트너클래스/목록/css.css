@@ -904,6 +904,21 @@
     color: #A07812;
 }
 
+.class-catalog .class-card__trust-badge--grade-garden {
+    background: #e7f5ea;
+    color: #426b4a;
+}
+
+.class-catalog .class-card__trust-badge--grade-atelier {
+    background: #e8efff;
+    color: #315a99;
+}
+
+.class-catalog .class-card__trust-badge--grade-ambassador {
+    background: #fdebf1;
+    color: #8f3a4c;
+}
+
 /* 메타 정보 행 */
 .class-catalog .class-card__meta {
     display: flex;
@@ -3025,6 +3040,22 @@
     color: var(--cc-text-light);
     font-size: 11px;
     font-weight: 700;
+}
+
+.class-catalog .benefit-class-card__chip--grade {
+    color: #ffffff;
+}
+
+.class-catalog .benefit-class-card__chip--garden {
+    background: #507c58;
+}
+
+.class-catalog .benefit-class-card__chip--atelier {
+    background: #315a99;
+}
+
+.class-catalog .benefit-class-card__chip--ambassador {
+    background: #8f3a4c;
 }
 
 .class-catalog .benefit-class-card__name {

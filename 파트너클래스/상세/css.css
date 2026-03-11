@@ -1093,14 +1093,34 @@
     color: #666666;
 }
 
+.class-detail .instructor-grade--bloom {
+    background: #f7ebd3;
+    color: #8f6a28;
+}
+
 .class-detail .instructor-grade--gold {
     background: #f5e6c8;
     color: #b89b5e;
 }
 
+.class-detail .instructor-grade--garden {
+    background: #e7f5ea;
+    color: #456f4d;
+}
+
 .class-detail .instructor-grade--platinum {
     background: #e8f0fe;
     color: #4a6cf7;
+}
+
+.class-detail .instructor-grade--atelier {
+    background: #e8efff;
+    color: #315a99;
+}
+
+.class-detail .instructor-grade--ambassador {
+    background: #fdebf1;
+    color: #8f3a4c;
 }
 
 .class-detail .instructor-region {

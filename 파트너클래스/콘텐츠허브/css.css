@@ -377,6 +377,21 @@
     color: var(--pch-copper);
 }
 
+.partner-content-hub .pch-story-card__eyebrow--garden {
+    background: rgba(80, 124, 88, 0.14);
+    color: #426b4a;
+}
+
+.partner-content-hub .pch-story-card__eyebrow--atelier {
+    background: rgba(49, 90, 153, 0.14);
+    color: #315a99;
+}
+
+.partner-content-hub .pch-story-card__eyebrow--ambassador {
+    background: rgba(143, 58, 76, 0.14);
+    color: #8f3a4c;
+}
+
 .partner-content-hub .pch-card__title,
 .partner-content-hub .pch-story-card__title,
 .partner-content-hub .pch-trend-card__title,
@@ -403,6 +418,21 @@
     margin: 14px 0 0;
     font-size: 14px;
     line-height: 1.8;
+    color: var(--pch-ink-soft);
+}
+
+.partner-content-hub .pch-story-card__spotlight {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    margin-top: 16px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(22, 50, 40, 0.07);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--pch-ink-soft);
 }
 

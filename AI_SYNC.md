@@ -49,15 +49,21 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: IDLE
-- Started At: -
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-11 16:11:25 KST
 - Branch: main
-- Working Scope: -
-- Active Subdirectory: -
+- Working Scope: Phase 3 S3-2 closeout + S3-3 kickoff
+- Active Subdirectory: pressco21
 
 ## Files In Progress
-- 없음
+- `docs/파트너클래스/grade-incentive-guide.md`
+- `docs/파트너클래스/README.md`
+- `ROADMAP.md`
+- `AI_SYNC.md`
+- `.claude/agent-memory/class-platform-architect/MEMORY.md`
+- `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- `.claude/agent-memory/sales-partnership-specialist/MEMORY.md`
 
 ### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
 - 스크립트 / 문서
@@ -292,6 +298,56 @@
     - `output/playwright/s2-7-partner-churn/churn-results.json`
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
+
+### [CODEX-LEAD] Phase 3 S3-2 등급별 비금전적 인센티브 완료 (CODEX)
+- 메이크샵
+  - `파트너클래스/파트너/Index.html`
+  - `파트너클래스/파트너/css.css`
+  - `파트너클래스/파트너/js.js`
+    - 수익 탭 내부 `등급 혜택` 패널 추가
+    - 현재 등급 배지, 현재 혜택 하이라이트, 상위 등급 비교 카드 3장 노출
+  - `파트너클래스/목록/css.css`
+  - `파트너클래스/목록/js.js`
+    - `GARDEN` 이상 등급 칩 추가
+    - 추천 레일 우선순위를 `partner_grade > avg_rating > class_count > total_remaining` 로 정렬
+  - `파트너클래스/상세/css.css`
+  - `파트너클래스/상세/js.js`
+    - 연관 클래스 추천 점수에 등급 가중치 추가
+    - `GARDEN` 이상 등급 태그 우선 노출
+  - `파트너클래스/콘텐츠허브/css.css`
+  - `파트너클래스/콘텐츠허브/js.js`
+    - 파트너 스토리 등급 우선 정렬
+    - `추천 파트너 / 인터뷰 후보 / 멘토 파트너` 스포트라이트 라벨 추가
+- 스크립트 / 문서 / 메모리
+  - `scripts/partnerclass-s3-2-incentive-runner.js`
+  - `docs/파트너클래스/grade-incentive-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+  - `.claude/agent-memory/sales-partnership-specialist/MEMORY.md`
+- 검증
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...`
+    - `http://www.w3.org/2000/svg` 는 SVG namespace false positive
+  - `node --check`:
+    - `파트너클래스/파트너/js.js`
+    - `파트너클래스/목록/js.js`
+    - `파트너클래스/상세/js.js`
+    - `파트너클래스/콘텐츠허브/js.js`
+    - `scripts/partnerclass-s3-2-incentive-runner.js`
+  - Playwright:
+    - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-2-incentive-runner.js`
+    - 결과:
+      - `ATELIER PARTNER` 배지 노출
+      - 혜택 레일 첫 카드 `앰배서더 온라인 세미나`
+      - 상세 연관 추천 첫 태그 `ATELIER`
+      - 콘텐츠 허브 첫 스토리 `AMBASSADOR / 멘토 파트너`
+    - 산출물:
+      - `output/playwright/s3-2-incentives/incentive-results.json`
+      - `output/playwright/s3-2-incentives/partner-grade-benefits.png`
+      - `output/playwright/s3-2-incentives/list-benefit-priority.png`
+      - `output/playwright/s3-2-incentives/detail-related-priority.png`
+      - `output/playwright/s3-2-incentives/content-hub-story-priority.png`
 
 ### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
 - 스크립트 / 문서
@@ -1847,7 +1903,7 @@
 
 #### 현재 다음 태스크
 
-- `S3-2 등급별 비금전적 인센티브`
+- `S3-3 키트 구독 모델 파일럿`
 - `S2-7 파트너 이탈 감지 자동화` 는 구현/검증 완료, 운영 SMTP + Telegram chat_id blocker 해소 시 최종 수락 기준 닫기
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
@@ -1933,6 +1989,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - 클래스 실상품 `branduid=12195642` 기준 상품 상세에는 native `.btn-gift` 링크가 노출되지 않아, 상품 설정상 선물하기가 비활성인 경우 프론트는 `basket.action` 기반 선물 주문 진입으로만 폴백함
 - `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음
 - 상세 페이지 선물하기는 메이크샵 네이티브 장바구니 POST로 맞췄지만, 실제 선물 가능 상품 설정 여부에 따라 최종 동작이 달라질 수 있어 실상품 1건 재검증 필요
+- S3-2 등급 인센티브는 로컬 fixture + Playwright 검증까지 완료됐지만, 메이크샵 디자인편집기 실배포 전이라 운영 `2606/2607/2608` 최종 시각 검증은 아직 남아 있음
 - `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 저장 전까지 라이브 반영되지 않음
 - 라이브 `admin-api`는 현재 리포지토리의 랜덤 `ADMIN_API_TOKEN`이 아니라 구형 토큰 `pressco21-admin-2026` 기준으로만 인증이 통과함
 - `파트너클래스/어드민/js.js`의 `PENDING_REVIEW` 정렬 보정은 아직 메이크샵 디자인편집기에 저장되지 않아 라이브 어드민 UI에는 반영되지 않음

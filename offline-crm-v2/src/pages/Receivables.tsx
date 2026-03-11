@@ -22,6 +22,11 @@ import {
   serializeLegacyPayableMemo,
   serializeLegacyReceivableMemo,
 } from '@/lib/legacySnapshots'
+import {
+  appendCustomerAccountingEvent,
+  getInvoiceDepositUsedAmount,
+  parseCustomerAccountingMeta,
+} from '@/lib/accountingMeta'
 import { getPaidAmountAsOf } from '@/lib/reporting'
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import {
@@ -59,7 +64,7 @@ function getDaysSince(dateStr: string | undefined, baseDate = todayDate()): numb
 }
 
 function calcRemaining(inv: Invoice): number {
-  return (inv.total_amount ?? 0) - (inv.paid_amount ?? 0)
+  return Math.max(0, (inv.total_amount ?? 0) - (inv.paid_amount ?? 0) - getInvoiceDepositUsedAmount(inv.memo as string | undefined))
 }
 
 interface ReceivableSnapshot extends Invoice {
@@ -103,15 +108,16 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
   const qc = useQueryClient()
   const [amount, setAmount] = useState(0)
   const [method, setMethod] = useState('계좌이체')
+  const [overpaymentAction, setOverpaymentAction] = useState<'deposit' | 'refund'>('deposit')
   const [isSaving, setIsSaving] = useState(false)
-
-  if (!invoice) return null
-
-  const remaining = calcRemaining(invoice)
-  const prevPaid = invoice.paid_amount ?? 0
-  const total = invoice.total_amount ?? 0
-  const newPaid = prevPaid + amount
-  const newRemaining = remaining - amount
+  const invoiceId = invoice?.Id ?? 0
+  const remaining = invoice ? calcRemaining(invoice) : 0
+  const prevPaid = invoice?.paid_amount ?? 0
+  const total = invoice?.total_amount ?? 0
+  const effectivePaidAmount = Math.min(amount, remaining)
+  const overflowAmount = Math.max(0, amount - remaining)
+  const newPaid = Math.min(total, prevPaid + effectivePaidAmount)
+  const newRemaining = Math.max(0, remaining - effectivePaidAmount)
   // payment_status: 이번 명세표 total 기준으로만 판정 (InvoiceDialog.calcStatus와 동일 기준)
   // prevBal은 이전 명세표에 귀속된 채무이므로 완납 여부에 포함하지 않음
   const newPaymentStatus: string =
@@ -119,14 +125,45 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
     : newPaid >= total ? 'paid'
     : newPaid > 0 ? 'partial'
     : 'unpaid'
+  const { data: linkedCustomer } = useQuery({
+    queryKey: ['receivable-payment-customer', invoiceId, invoice?.customer_id],
+    queryFn: () => invoice?.customer_id ? getCustomer(invoice.customer_id as number) : Promise.resolve(null),
+    enabled: !!invoice?.customer_id,
+    staleTime: 30 * 1000,
+  })
+  const customerMeta = parseCustomerAccountingMeta(linkedCustomer?.memo as string | undefined)
+  const activeOperator = loadActiveWorkOperatorProfile()
+
+  if (!invoice) return null
+
+  async function refreshPaymentViews(customerId?: number) {
+    qc.invalidateQueries({ queryKey: ['receivables'] })
+    qc.invalidateQueries({ queryKey: ['receivable-link-customers'] })
+    qc.invalidateQueries({ queryKey: ['invoices'] })
+    qc.invalidateQueries({ queryKey: ['invoice', invoice!.Id] })
+    qc.invalidateQueries({ queryKey: ['transactions'] })
+    qc.invalidateQueries({ queryKey: ['transactions-crm'] })
+    qc.invalidateQueries({ queryKey: ['transactions-customer-directory'] })
+    qc.invalidateQueries({ queryKey: ['customers'] })
+    if (customerId) {
+      qc.invalidateQueries({ queryKey: ['customer', customerId] })
+      qc.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(customerId)] })
+    }
+    qc.invalidateQueries({
+      predicate: (q) => {
+        const k = q.queryKey[0]
+        return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-') || k.startsWith('calendar-'))
+      },
+    })
+  }
 
   async function handleSave() {
     if (amount <= 0) {
       toast.error('입금액을 입력해주세요.')
       return
     }
-    if (amount > remaining) {
-      toast.error(`미수금(${remaining.toLocaleString()}원)보다 많이 입금할 수 없습니다.`)
+    if (amount > remaining && !linkedCustomer) {
+      toast.error('초과 입금 처리에는 연결된 고객 정보가 필요합니다.')
       return
     }
     setIsSaving(true)
@@ -138,27 +175,41 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
         payment_status: newPaymentStatus,
         payment_method: method,
       })
-      qc.invalidateQueries({ queryKey: ['receivables'] })
-      qc.invalidateQueries({ queryKey: ['receivable-link-customers'] })
-      qc.invalidateQueries({ queryKey: ['invoices'] })
-      // 해당 명세표 개별 캐시 무효화 (InvoiceDialog에서 다시 열 때 갱신 반영)
-      qc.invalidateQueries({ queryKey: ['invoice', invoice!.Id] })
-      // 거래내역 갱신
-      qc.invalidateQueries({ queryKey: ['transactions'] })
-      qc.invalidateQueries({ queryKey: ['transactions-crm'] })
-      // 고객 미수금 재계산 + 대시보드 전체 갱신
+
+      if (overflowAmount > 0 && linkedCustomer) {
+        const nextMemo = appendCustomerAccountingEvent(
+          linkedCustomer.memo as string | undefined,
+          {
+            type: overpaymentAction === 'deposit' ? 'deposit_added' : 'refund_pending_added',
+            amount: overflowAmount,
+            date: todayDate(),
+            method,
+            operator: activeOperator?.operatorName,
+            accountId: activeOperator?.id,
+            accountLabel: activeOperator?.label,
+            createdAt: currentTimestamp(),
+            relatedInvoiceId: invoiceId,
+            note: `초과 입금 ${overflowAmount.toLocaleString()}원`,
+          },
+          overpaymentAction === 'deposit'
+            ? { depositBalance: customerMeta.depositBalance + overflowAmount }
+            : { refundPendingBalance: customerMeta.refundPendingBalance + overflowAmount },
+        )
+        await updateCustomer(linkedCustomer.Id, { memo: nextMemo })
+      }
+
       if (invoice!.customer_id) {
         try { await recalcCustomerStats(invoice!.customer_id as number) } catch {}
-        qc.invalidateQueries({ queryKey: ['customers'] })
       }
-      // 대시보드 + 기간 리포트 전체 갱신
-      qc.invalidateQueries({
-        predicate: (q) => {
-          const k = q.queryKey[0]
-          return typeof k === 'string' && (k.startsWith('dash-') || k.startsWith('period-') || k.startsWith('calendar-'))
-        },
-      })
+      await refreshPaymentViews(typeof invoice?.customer_id === 'number' ? invoice.customer_id : undefined)
       onSaved()
+      toast.success(
+        overflowAmount > 0
+          ? overpaymentAction === 'deposit'
+            ? '초과 입금을 예치금으로 보관했습니다.'
+            : '초과 입금을 환불대기로 등록했습니다.'
+          : '입금 처리가 반영되었습니다.',
+      )
     } catch (e) {
       console.error(e)
       toast.error('저장 중 오류가 발생했습니다.')
@@ -201,6 +252,29 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
             />
           </div>
 
+          {overflowAmount > 0 && (
+            <div className="rounded-md border border-amber-200 bg-amber-50 px-3 py-3 space-y-2">
+              <div className="text-xs font-medium text-amber-900">
+                초과 입금 {overflowAmount.toLocaleString()}원이 감지되었습니다.
+              </div>
+              <div>
+                <Label className="text-xs">초과 입금 처리 방식</Label>
+                <Select value={overpaymentAction} onValueChange={(value: 'deposit' | 'refund') => setOverpaymentAction(value)}>
+                  <SelectTrigger className="mt-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="deposit">예치금으로 보관</SelectItem>
+                    <SelectItem value="refund">환불대기로 등록</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <p className="text-xs text-amber-800">
+                현재 예치금 {customerMeta.depositBalance.toLocaleString()}원 · 환불대기 {customerMeta.refundPendingBalance.toLocaleString()}원
+              </p>
+            </div>
+          )}
+
           <div>
             <Label className="text-xs">입금방법</Label>
             <Select value={method} onValueChange={setMethod}>
@@ -223,11 +297,16 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
                 {newRemaining.toLocaleString()}원
               </span>
               {newPaymentStatus === 'paid' && ' → 완납 처리'}
+              {overflowAmount > 0 && (
+                <span className="ml-2 text-amber-700">
+                  · 초과 {overflowAmount.toLocaleString()}원 {overpaymentAction === 'deposit' ? '예치금 보관' : '환불대기'}
+                </span>
+              )}
             </div>
           )}
 
           <div className="rounded-md border bg-gray-50 px-3 py-2 text-xs text-muted-foreground">
-            처리 전 확인: 입금액, 현재 작업 계정, 저장 후 줄어들 잔액을 확인하세요.
+            처리 전 확인: 입금액, 초과 입금 처리 방식, 현재 작업 계정, 저장 후 줄어들 잔액을 확인하세요.
           </div>
 
           <div className="flex gap-2 justify-end pt-2">
@@ -733,7 +812,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       getAllInvoices({
         where: '(payment_status,eq,unpaid)~or(payment_status,eq,partial)',
         sort: '-invoice_date',
-        fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status,current_balance',
+        fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status,current_balance,memo',
       }),
     staleTime: 2 * 60 * 1000,
   })

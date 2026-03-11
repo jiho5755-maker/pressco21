@@ -12,6 +12,8 @@ import { Separator } from '@/components/ui/separator'
 import {
   createInvoice,
   updateInvoice,
+  updateCustomer,
+  getCustomer,
   getInvoice,
   getInvoices,
   getItems,
@@ -30,6 +32,13 @@ import { GRADE_COLORS } from '@/lib/constants'
 import { loadDefaultTaxableSetting } from '@/lib/settings'
 import { ProductPickerDialog } from '@/components/ProductPickerDialog'
 import { useDebounce } from '@/hooks/useDebounce'
+import {
+  appendCustomerAccountingEvent,
+  getDisplayMemo,
+  getInvoiceDepositUsedAmount,
+  parseCustomerAccountingMeta,
+  serializeInvoiceAccountingMeta,
+} from '@/lib/accountingMeta'
 
 // ─── 라인 아이템 ───────────────────────────────
 interface ItemRow {
@@ -318,6 +327,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null)
   // 고객 주소 선택 (address1 ~ addressN 동적)
   const [selectedAddrKey, setSelectedAddrKey] = useState<string>('address1')
+  const [depositUseAmount, setDepositUseAmount] = useState(0)
 
   // 인쇄 미리보기
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -473,6 +483,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
       setCustomerDropdownIdx(-1)
       setItems([newRow(defaultTaxable)])
       setExistingItemIds([])
+      setDepositUseAmount(0)
       setDraftMeta(loadInvoiceDraft())
       return
     }
@@ -502,6 +513,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
       setSelectedAddrKey('address1')
       setShowCustomerDrop(false)
       setCustomerDropdownIdx(-1)
+      setDepositUseAmount(isCopy ? 0 : getInvoiceDepositUsedAmount(existingInvoice.memo as string | undefined))
     }
     if (existingItems) {
       const rows: ItemRow[] = existingItems.list.map((it) => ({
@@ -544,7 +556,10 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
   const grandTotal = supplyTotal + taxTotal
   const prevBal = form.previous_balance ?? 0
   const paidAmt = form.paid_amount ?? 0
-  const curBal = prevBal + grandTotal - paidAmt
+  const activeCustomerAccounting = parseCustomerAccountingMeta((currentCustomer ?? selectedCustomer)?.memo as string | undefined)
+  const availableDeposit = activeCustomerAccounting.depositBalance
+  const appliedDeposit = Math.min(depositUseAmount, prevBal + grandTotal, availableDeposit)
+  const curBal = prevBal + grandTotal - paidAmt - appliedDeposit
 
   // 바깥 클릭 시 드롭다운 닫기
   useEffect(() => {
@@ -887,9 +902,12 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
     }
     setIsSaving(true)
     try {
-      const status = calcStatus(paidAmt, prevBal, grandTotal)
+      const status = calcStatus(paidAmt + appliedDeposit, prevBal, grandTotal)
       const sourceCustomer = currentCustomer ?? selectedCustomer
       const customerSnapshot = sourceCustomer ? buildCustomerSnapshot(sourceCustomer, selectedAddrKey) : undefined
+      const nextInvoiceMemo = serializeInvoiceAccountingMeta(form.memo as string | undefined, {
+        depositUsedAmount: appliedDeposit,
+      })
       const invoicePayload: Partial<Invoice> = {
         ...form,
         ...(customerSnapshot ?? {}),
@@ -899,6 +917,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
         total_amount: grandTotal,
         current_balance: curBal,
         payment_status: status,
+        memo: nextInvoiceMemo,
       }
 
       let invId: number
@@ -939,6 +958,32 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
 
       // 잔액 재계산
       if (form.customer_id) {
+        if (appliedDeposit > 0) {
+          const latestCustomer = await getCustomer(form.customer_id)
+          const previousDepositUsed = invoiceId && !isCopy
+            ? getInvoiceDepositUsedAmount(existingInvoice?.memo as string | undefined)
+            : 0
+          const deltaDepositUsed = appliedDeposit - previousDepositUsed
+          if (deltaDepositUsed !== 0) {
+            const sourceMeta = parseCustomerAccountingMeta(latestCustomer.memo as string | undefined)
+            const nextDepositBalance = deltaDepositUsed > 0
+              ? Math.max(0, sourceMeta.depositBalance - deltaDepositUsed)
+              : sourceMeta.depositBalance + Math.abs(deltaDepositUsed)
+            const nextCustomerMemo = appendCustomerAccountingEvent(
+              latestCustomer.memo as string | undefined,
+              {
+                type: deltaDepositUsed > 0 ? 'deposit_used' : 'deposit_added',
+                amount: Math.abs(deltaDepositUsed),
+                date: normalizeInvoiceDate(form.invoice_date),
+                method: deltaDepositUsed > 0 ? '예치금 사용' : '예치금 원복',
+                relatedInvoiceId: invId,
+                note: customerInput || customerSnapshot?.customer_name || form.customer_name,
+              },
+              { depositBalance: nextDepositBalance },
+            )
+            await updateCustomer(form.customer_id, { memo: nextCustomerMemo })
+          }
+        }
         try { await recalcCustomerStats(form.customer_id) } catch {}
       }
 
@@ -998,7 +1043,8 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
         total_amount: grandTotal,
         previous_balance: prevBal,
         paid_amount: paidAmt,
-        memo: form.memo,
+        memo: getDisplayMemo(form.memo as string | undefined),
+        deposit_used_amount: appliedDeposit,
       },
       rows: effectiveItems.map((r) => ({
         product_name: r.product_name,
@@ -1333,13 +1379,44 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
             <div>
               <Label className="text-xs">비고</Label>
               <Input
-                value={form.memo ?? ''}
+                value={getDisplayMemo(form.memo as string | undefined)}
                 onChange={(e) => { setForm((f) => ({ ...f, memo: e.target.value })); setIsDirty(true) }}
                 placeholder="비고 (선택)"
                 className="mt-1"
               />
             </div>
           </div>
+
+          {selectedCustomer && (
+            <div className="grid grid-cols-3 gap-3">
+              <div className="rounded-md border bg-[#f7faf6] px-3 py-2">
+                <p className="text-xs text-muted-foreground">사용 가능 예치금</p>
+                <p className="mt-1 text-sm font-semibold text-emerald-700">{availableDeposit.toLocaleString()}원</p>
+              </div>
+              <div>
+                <Label className="text-xs">예치금 사용</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  max={Math.min(availableDeposit, prevBal + grandTotal)}
+                  value={depositUseAmount || ''}
+                  onChange={(e) => {
+                    const nextValue = sanitizeAmount(e.target.value)
+                    setDepositUseAmount(Math.min(nextValue, availableDeposit, prevBal + grandTotal))
+                    setIsDirty(true)
+                  }}
+                  placeholder="0"
+                  className="mt-1"
+                />
+              </div>
+              <div className="rounded-md border bg-gray-50 px-3 py-2">
+                <p className="text-xs text-muted-foreground">예치금 반영 후 잔액</p>
+                <p className={`mt-1 text-sm font-semibold ${curBal > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                  {curBal.toLocaleString()}원
+                </p>
+              </div>
+            </div>
+          )}
 
           <Separator />
 

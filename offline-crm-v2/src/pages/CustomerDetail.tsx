@@ -36,6 +36,7 @@ import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 import { buildResolvedReceivableInvoices, resolveInvoiceCustomer } from '@/lib/receivables'
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import { exportUnifiedTransactions } from '@/lib/excel'
+import { getDisplayMemo, mergeDisplayMemo, parseCustomerAccountingMeta } from '@/lib/accountingMeta'
 
 // ── 기본정보 편집 폼 ──────────────────────────────────────
 interface InfoForm {
@@ -76,7 +77,7 @@ function buildInfoForm(c: Customer): InfoForm {
     customer_status: c.customer_status ?? '',
     price_tier: String(c.price_tier ?? 1),
     discount_rate: String(c.discount_rate ?? ''),
-    memo: (c.memo as string) ?? '',
+    memo: getDisplayMemo(c.memo as string | undefined),
     addresses: addresses.length > 0 ? addresses : [''],
   }
 }
@@ -242,7 +243,7 @@ export function CustomerDetail() {
         customer_status: toNullableText(infoForm.customer_status),
         price_tier: infoForm.price_tier ? Number(infoForm.price_tier) : null,
         discount_rate: infoForm.discount_rate.trim() ? Number(infoForm.discount_rate) : null,
-        memo: toNullableText(infoForm.memo),
+        memo: toNullableText(mergeDisplayMemo(customer?.memo as string | undefined, infoForm.memo)),
         ...addrPayload,
       } as Partial<Customer>
 
@@ -458,8 +459,42 @@ export function CustomerDetail() {
       isCrm: false,
     }))
 
+    const accountingRows: Row[] = parseCustomerAccountingMeta(customer?.memo as string | undefined).events.map((entry, index) => {
+      const txTypeMap: Record<string, string> = {
+        deposit_added: '예치금 적립',
+        deposit_used: '예치금 사용',
+        refund_pending_added: '환불대기',
+        refund_paid: '환불',
+        refund_pending_cleared: '환불대기 해제',
+      }
+      return {
+        key: `accounting-${index}`,
+        source: 'legacySettlement',
+        recordId: -(20000 + index + 1),
+        date: entry.date,
+        legacyBookId: customerLegacyId,
+        txType: txTypeMap[entry.type] ?? '메모',
+        amount: entry.amount,
+        memo: [
+          entry.type === 'deposit_added' ? '초과 입금 예치금 보관' : '',
+          entry.type === 'deposit_used' ? '예치금으로 명세표 차감' : '',
+          entry.type === 'refund_pending_added' ? '초과 입금 환불대기 등록' : '',
+          entry.type === 'refund_paid' ? '환불 완료' : '',
+          entry.type === 'refund_pending_cleared' ? '환불대기 해제' : '',
+          entry.method ? `방법: ${entry.method}` : '',
+          entry.accountLabel ? `계정: ${entry.accountLabel}` : '',
+          entry.operator ? `입력: ${entry.operator}` : '',
+          entry.relatedInvoiceId ? `명세표: #${entry.relatedInvoiceId}` : '',
+          entry.note ? `메모: ${entry.note}` : '',
+          entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
+        ].filter(Boolean).join(' · '),
+        slipNo: entry.createdAt ?? entry.date,
+        isCrm: false,
+      }
+    })
+
     // 날짜 내림차순 정렬 후 상위 100건
-    return [...invRows, ...legacySettlementRows, ...legacyPayableRows, ...txRows]
+    return [...invRows, ...legacySettlementRows, ...legacyPayableRows, ...accountingRows, ...txRows]
       .sort((a, b) => {
         const dateCompare = b.date.localeCompare(a.date)
         if (dateCompare !== 0) return dateCompare
@@ -561,8 +596,10 @@ export function CustomerDetail() {
   const currentLegacyPayable = getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
   const legacyMemoState = parseLegacyReceivableMemo(customer.memo as string | undefined)
   const legacyPayableMemoState = parseLegacyPayableMemo(customer.memo as string | undefined)
+  const customerAccountingMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
   const activeOperatorProfile = loadActiveWorkOperatorProfile()
   const crmOutstandingBalance = todayResolvedInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0)
+  const customerDisplayMemo = getDisplayMemo(customer.memo as string | undefined)
   const invoiceNameVariants = Array.from(
     new Set(
       invoiceData
@@ -789,7 +826,7 @@ export function CustomerDetail() {
         </div>
       </div>
 
-      <div className="mb-6 grid gap-3 md:grid-cols-3">
+      <div className="mb-6 grid gap-3 md:grid-cols-5">
         <div className="rounded-lg border bg-white px-4 py-3">
           <p className="text-xs text-muted-foreground">이월 미수</p>
           <p className={`mt-1 text-base font-semibold ${legacyBalanceBaseline > 0 ? 'text-red-600' : legacyBalanceBaseline < 0 ? 'text-blue-700' : ''}`}>
@@ -815,6 +852,24 @@ export function CustomerDetail() {
           </p>
           <p className="mt-1 text-xs text-muted-foreground">
             이월 미수 + 새 입력 미수
+          </p>
+        </div>
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <p className="text-xs text-muted-foreground">예치금</p>
+          <p className={`mt-1 text-base font-semibold ${customerAccountingMeta.depositBalance > 0 ? 'text-emerald-700' : ''}`}>
+            {customerAccountingMeta.depositBalance.toLocaleString()}원
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            다음 주문에 차감할 선입금
+          </p>
+        </div>
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <p className="text-xs text-muted-foreground">환불대기</p>
+          <p className={`mt-1 text-base font-semibold ${customerAccountingMeta.refundPendingBalance > 0 ? 'text-amber-700' : ''}`}>
+            {customerAccountingMeta.refundPendingBalance.toLocaleString()}원
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            고객에게 돌려줄 예정 금액
           </p>
         </div>
       </div>
@@ -909,7 +964,7 @@ export function CustomerDetail() {
                     { label: '단가등급', value: customer.price_tier ? `Tier ${customer.price_tier}` : undefined },
                     { label: '최초거래일', value: customer.first_order_date?.slice(0, 10) },
                     { label: '최종거래일', value: customer.last_order_date?.slice(0, 10) },
-                    { label: '메모', value: (customer.memo as string) },
+                    { label: '메모', value: customerDisplayMemo },
                   ].map(({ label, value }) => (
                     <div key={label} className="flex flex-col gap-0.5">
                       <dt className="font-medium text-muted-foreground text-xs">{label}</dt>
@@ -1149,6 +1204,8 @@ export function CustomerDetail() {
               <span><span className="font-medium">출고</span> — 거래명세표 발행 (CRM) 또는 기존 출고 기록</span>
               <span><span className="font-medium">입금</span> — 수금 처리 시 (명세표의 입금액 또는 기존 장부 수금)</span>
               <span><span className="font-medium">지급</span> — 기존 장부 미지급금 지급 처리</span>
+              <span><span className="font-medium">예치금 적립</span> — 초과 입금을 다음 주문용으로 보관</span>
+              <span><span className="font-medium">환불대기</span> — 초과 입금을 돌려주기 전 임시 보관</span>
               <span><span className="font-medium">반입</span> — 반품/반입 건 (기존 장부 데이터)</span>
               <span><span className="font-medium">메모</span> — 참고사항 기재 (기존 장부 데이터)</span>
             </div>
@@ -1213,6 +1270,10 @@ export function CustomerDetail() {
                   <SelectItem value="출고">출고</SelectItem>
                   <SelectItem value="입금">입금</SelectItem>
                   <SelectItem value="지급">지급</SelectItem>
+                  <SelectItem value="예치금 적립">예치금 적립</SelectItem>
+                  <SelectItem value="예치금 사용">예치금 사용</SelectItem>
+                  <SelectItem value="환불대기">환불대기</SelectItem>
+                  <SelectItem value="환불">환불</SelectItem>
                   <SelectItem value="반입">반입</SelectItem>
                   <SelectItem value="메모">메모</SelectItem>
                 </SelectContent>
@@ -1519,7 +1580,7 @@ export function CustomerDetail() {
                       amount: inv.total_amount ?? 0,
                       tax: inv.tax_amount ?? 0,
                       slipNo: inv.invoice_no,
-                      memo: inv.memo ?? '',
+                      memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
                     <td className="px-4 py-2 font-mono text-xs text-muted-foreground">

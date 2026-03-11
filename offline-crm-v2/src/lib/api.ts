@@ -10,6 +10,7 @@
  */
 
 import { getLegacyReceivableBaseline } from '@/lib/legacySnapshots'
+import { getInvoiceDepositUsedAmount } from '@/lib/accountingMeta'
 
 // n8n Webhook 프록시 URL
 const PROXY_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://n8n.pressco21.com/webhook/crm-proxy'
@@ -578,7 +579,7 @@ export async function recalcCustomerStats(customerId: number): Promise<void> {
       where: `(customer_id,eq,${customerId})`,
       sort: '-invoice_date',
       limit: 1000,
-      fields: 'Id,invoice_date,total_amount,paid_amount,payment_status',
+      fields: 'Id,invoice_date,total_amount,paid_amount,payment_status,memo',
     },
   })
 
@@ -591,7 +592,10 @@ export async function recalcCustomerStats(customerId: number): Promise<void> {
     if (inv.payment_status !== 'paid') {
       // 미수금: 개별 레코드 단위로 음수 방어 (선입금/초과입금 케이스 처리)
       // 동일 고객의 초과입금이 다른 명세표 미수금을 상쇄하지 않도록 0 하한 적용
-      const invOutstanding = Math.max(0, (inv.total_amount ?? 0) - (inv.paid_amount ?? 0))
+      const invOutstanding = Math.max(
+        0,
+        (inv.total_amount ?? 0) - (inv.paid_amount ?? 0) - getInvoiceDepositUsedAmount(inv.memo as string | undefined),
+      )
       outstanding += invOutstanding
     }
   }

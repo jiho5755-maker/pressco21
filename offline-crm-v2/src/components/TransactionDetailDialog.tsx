@@ -6,6 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { getInvoice, getItems, getTxHistory, sanitizeSearchTerm } from '@/lib/api'
 import type { Invoice, InvoiceItem, TxHistory } from '@/lib/api'
+import { getDisplayMemo } from '@/lib/accountingMeta'
 
 export interface TransactionPreview {
   source: 'crm' | 'legacy' | 'legacySettlement'
@@ -287,12 +288,12 @@ function CrmTransactionContent({
             {renderKeyValue('입금액', formatCurrency(effectiveInvoice.paid_amount))}
             {renderKeyValue('품목 수량 합계', `${getItemQuantity(items).toLocaleString()}개`)}
           </div>
-          {effectiveInvoice.memo ? (
+          {getDisplayMemo(effectiveInvoice.memo as string | undefined) ? (
             <>
               <Separator />
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground">메모</p>
-                <p className="text-sm whitespace-pre-wrap break-words">{effectiveInvoice.memo}</p>
+                <p className="text-sm whitespace-pre-wrap break-words">{getDisplayMemo(effectiveInvoice.memo as string | undefined)}</p>
               </div>
             </>
           ) : null}

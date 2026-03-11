@@ -14,6 +14,7 @@ import { getAllCustomers, getAllInvoices, getInvoice, getItems, deleteInvoice, b
 import type { Customer, Invoice } from '@/lib/api'
 import { exportCourierInvoices } from '@/lib/excel'
 import { printDuplexViaIframe } from '@/lib/print'
+import { getDisplayMemo } from '@/lib/accountingMeta'
 
 const PAGE_SIZE = 25
 
@@ -416,7 +417,7 @@ export function Invoices() {
           total_amount: latestInvoice.total_amount,
           previous_balance: latestInvoice.previous_balance,
           paid_amount: latestInvoice.paid_amount,
-          memo: latestInvoice.memo,
+          memo: getDisplayMemo(latestInvoice.memo as string | undefined),
         },
         itemsData.list.map((it) => ({
           product_name: it.product_name,
@@ -594,7 +595,7 @@ export function Invoices() {
                       amount: inv.total_amount ?? 0,
                       tax: inv.tax_amount ?? 0,
                       slipNo: inv.invoice_no,
-                      memo: inv.memo ?? '',
+                      memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
                     {inv.invoice_no ?? '-'}
@@ -611,7 +612,7 @@ export function Invoices() {
                       amount: inv.total_amount ?? 0,
                       tax: inv.tax_amount ?? 0,
                       slipNo: inv.invoice_no,
-                      memo: inv.memo ?? '',
+                      memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
                     <div className="font-medium">{inv.customer_name ?? '-'}</div>
@@ -644,7 +645,7 @@ export function Invoices() {
                       amount: inv.total_amount ?? 0,
                       tax: inv.tax_amount ?? 0,
                       slipNo: inv.invoice_no,
-                      memo: inv.memo ?? '',
+                      memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
                     {inv.invoice_date?.slice(0, 10) ?? '-'}
@@ -661,7 +662,7 @@ export function Invoices() {
                       amount: inv.total_amount ?? 0,
                       tax: inv.tax_amount ?? 0,
                       slipNo: inv.invoice_no,
-                      memo: inv.memo ?? '',
+                      memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
                     {inv.supply_amount != null ? `${inv.supply_amount.toLocaleString()}원` : '-'}
@@ -678,7 +679,7 @@ export function Invoices() {
                       amount: inv.total_amount ?? 0,
                       tax: inv.tax_amount ?? 0,
                       slipNo: inv.invoice_no,
-                      memo: inv.memo ?? '',
+                      memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
                     {inv.total_amount != null ? `${inv.total_amount.toLocaleString()}원` : '-'}
@@ -695,7 +696,7 @@ export function Invoices() {
                       amount: inv.total_amount ?? 0,
                       tax: inv.tax_amount ?? 0,
                       slipNo: inv.invoice_no,
-                      memo: inv.memo ?? '',
+                      memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
                     {inv.paid_amount != null && inv.paid_amount > 0
@@ -714,7 +715,7 @@ export function Invoices() {
                       amount: inv.total_amount ?? 0,
                       tax: inv.tax_amount ?? 0,
                       slipNo: inv.invoice_no,
-                      memo: inv.memo ?? '',
+                      memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
                     {st ? (

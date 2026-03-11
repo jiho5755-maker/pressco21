@@ -11,6 +11,7 @@ import type { TxHistory, Invoice, Customer } from '@/lib/api'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 import { parseLegacyPayableMemo, parseLegacyReceivableMemo } from '@/lib/legacySnapshots'
+import { parseCustomerAccountingMeta, getDisplayMemo } from '@/lib/accountingMeta'
 
 const PAGE_SIZE = 50
 
@@ -30,6 +31,11 @@ const TX_TYPE_STYLE: Record<string, { bg: string; text: string }> = {
   '출고(CRM)': { bg: '#e0e7ff', text: '#4338ca' },
   입금: { bg: '#dcfce7', text: '#15803d' },
   지급: { bg: '#dbeafe', text: '#1d4ed8' },
+  '예치금 적립': { bg: '#d1fae5', text: '#047857' },
+  '예치금 사용': { bg: '#ecfccb', text: '#4d7c0f' },
+  환불대기: { bg: '#fef3c7', text: '#b45309' },
+  환불: { bg: '#fee2e2', text: '#b91c1c' },
+  '환불대기 해제': { bg: '#e5e7eb', text: '#4b5563' },
   반입: { bg: '#fef3c7', text: '#b45309' },
   메모: { bg: '#f1f5f9', text: '#64748b' },
 }
@@ -77,7 +83,7 @@ function invoiceToRow(inv: Invoice): UnifiedRow {
     amount: inv.total_amount ?? 0,
     tax: inv.tax_amount ?? 0,
     slip_no: inv.invoice_no ?? '',
-    memo: inv.memo ?? '',
+    memo: getDisplayMemo(inv.memo as string | undefined),
     source: 'crm',
   }
 }
@@ -259,7 +265,41 @@ export function Transactions() {
         ].filter(Boolean).join(' · '),
         source: 'legacySettlement' as const,
       }))
-      return [...receivableRows, ...payableRows]
+      const accountingRows = parseCustomerAccountingMeta(customer.memo as string | undefined).events.map((entry, index) => {
+        const txTypeMap: Record<string, string> = {
+          deposit_added: '예치금 적립',
+          deposit_used: '예치금 사용',
+          refund_pending_added: '환불대기',
+          refund_paid: '환불',
+          refund_pending_cleared: '환불대기 해제',
+        }
+        return {
+          id: `accounting-${customer.Id}-${index}`,
+          recordId: -(customer.Id * 1000000 + index + 1),
+          customer_id: customer.Id,
+          tx_date: entry.createdAt ?? entry.date,
+          customer_name: customer.name?.trim() || customer.book_name?.trim() || '',
+          legacy_book_id: legacyBookId || undefined,
+          tx_type: txTypeMap[entry.type] ?? '메모',
+          amount: entry.amount,
+          tax: 0,
+          slip_no: entry.createdAt ?? entry.date,
+          memo: [
+            entry.type === 'deposit_added' ? '초과 입금 예치금 보관' : '',
+            entry.type === 'deposit_used' ? '예치금으로 명세표 차감' : '',
+            entry.type === 'refund_pending_added' ? '초과 입금 환불대기 등록' : '',
+            entry.type === 'refund_paid' ? '환불 완료' : '',
+            entry.method ? `방법: ${entry.method}` : '',
+            entry.accountLabel ? `계정: ${entry.accountLabel}` : '',
+            entry.operator ? `입력: ${entry.operator}` : '',
+            entry.relatedInvoiceId ? `명세표: #${entry.relatedInvoiceId}` : '',
+            entry.note ? `메모: ${entry.note}` : '',
+            entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
+          ].filter(Boolean).join(' · '),
+          source: 'legacySettlement' as const,
+        }
+      })
+      return [...receivableRows, ...payableRows, ...accountingRows]
     })
   ), [customerDirectory])
 
@@ -296,7 +336,7 @@ export function Transactions() {
   // ── skipLegacy / skipCrm 판별 ──
   const useLegacyClientSearch = !!debouncedSearch && matchedLegacyIds.length > 0
   const skipLegacy = activeTab === 'crm' || typeFilter === '출고(CRM)'
-  const skipCrm = activeTab === 'legacy' || ['입금', '지급', '반입', '메모'].includes(typeFilter)
+  const skipCrm = activeTab === 'legacy' || ['입금', '지급', '예치금 적립', '예치금 사용', '환불대기', '환불', '환불대기 해제', '반입', '메모'].includes(typeFilter)
 
   const isServerPaginated = (activeTab === 'legacy' || activeTab === 'crm') && !useLegacyClientSearch
 
@@ -473,6 +513,11 @@ export function Transactions() {
         { value: 'ALL', label: '모든 유형' },
         { value: '출고', label: '출고' },
         { value: '입금', label: '입금' },
+        { value: '지급', label: '지급' },
+        { value: '예치금 적립', label: '예치금 적립' },
+        { value: '예치금 사용', label: '예치금 사용' },
+        { value: '환불대기', label: '환불대기' },
+        { value: '환불', label: '환불' },
         { value: '반입', label: '반입' },
         { value: '메모', label: '메모' },
       ]
@@ -484,6 +529,10 @@ export function Transactions() {
       { value: '출고(CRM)', label: '출고 (새 입력 명세표)' },
       { value: '입금', label: '입금' },
       { value: '지급', label: '지급' },
+      { value: '예치금 적립', label: '예치금 적립' },
+      { value: '예치금 사용', label: '예치금 사용' },
+      { value: '환불대기', label: '환불대기' },
+      { value: '환불', label: '환불' },
       { value: '반입', label: '반입' },
       { value: '메모', label: '메모' },
     ]

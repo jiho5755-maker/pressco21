@@ -1,4 +1,5 @@
 import type { Invoice, TxHistory } from '@/lib/api'
+import { getInvoiceDepositUsedAmount } from '@/lib/accountingMeta'
 
 export type PresetKey = 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear'
 
@@ -157,16 +158,17 @@ export function getPaidAmountAsOf(invoice: Invoice, asOfDate: string): number {
   const invoiceDate = normalizeDate(invoice.invoice_date)
   if (!invoiceDate || invoiceDate > asOfDate) return 0
 
+  const depositUsedAmount = Math.max(0, getInvoiceDepositUsedAmount(invoice.memo as string | undefined))
   const paidAmount = Math.max(0, invoice.paid_amount ?? 0)
-  if (paidAmount <= 0) return 0
+  if (paidAmount <= 0 && depositUsedAmount <= 0) return 0
 
   const paidDate = normalizeDate(invoice.paid_date)
   if (!paidDate) {
     // paid_date가 비어 있으면 생성 시점에 바로 수금된 건으로 간주한다.
-    return paidAmount
+    return paidAmount + depositUsedAmount
   }
 
-  return paidDate <= asOfDate ? paidAmount : 0
+  return paidDate <= asOfDate ? paidAmount + depositUsedAmount : depositUsedAmount
 }
 
 export function getRemainingAmountAsOf(invoice: Invoice, asOfDate: string): number {

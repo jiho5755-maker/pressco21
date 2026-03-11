@@ -293,6 +293,50 @@
 
 ## Last Changes (2026-03-09 ~ 2026-03-11)
 
+### [CODEX-LEAD] offline-crm-v2 P1 1차 구현 완료: 초과 입금/예치금/환불대기/거래원장 확장 (2026-03-11)
+- 변경 파일
+  - `offline-crm-v2/src/lib/accountingMeta.ts`
+  - `offline-crm-v2/src/lib/reporting.ts`
+  - `offline-crm-v2/src/lib/api.ts`
+  - `offline-crm-v2/src/pages/Receivables.tsx`
+  - `offline-crm-v2/src/pages/CustomerDetail.tsx`
+  - `offline-crm-v2/src/pages/Transactions.tsx`
+  - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+  - `offline-crm-v2/src/pages/Invoices.tsx`
+  - `offline-crm-v2/src/components/TransactionDetailDialog.tsx`
+- 변경 내용
+  - 고객 메모/명세표 메모 기반 회계 메타 유틸 추가:
+    - 고객 단위 `예치금`, `환불대기`, 정산 이벤트 저장
+    - 명세표 단위 `예치금 사용액` 저장
+    - 화면 표시 시 숨김 메타 라인 자동 제거
+  - 수금 관리 `입금 확인`에 초과 입금 처리 추가:
+    - 미수 초과액 감지
+    - `예치금 보관` / `환불대기 등록` 선택
+    - 고객 메모에 이벤트와 작업 계정 로그 저장
+  - 고객 상세 정산 카드 확장:
+    - `예치금`
+    - `환불대기`
+  - 거래원장/거래내역 확장:
+    - `예치금 적립`
+    - `예치금 사용`
+    - `환불대기`
+    - `환불`
+  - 명세표 작성 화면 1차 확장:
+    - 고객 예치금 잔액 표시
+    - 예치금 사용 입력 필드 추가
+    - 인쇄/상세 메모에는 숨김 메타를 노출하지 않도록 정리
+- 검증
+  - `npm run build`
+  - `bash deploy/deploy.sh`
+  - 로컬 Playwright 실검증:
+    - `TEST-ACCOUNTING-*` 임시 고객/명세표 생성 후 수금 관리에서 `1,100원 미수 -> 1,500원 입금 -> 초과 400원 예치금 보관` 토스트 확인
+    - 고객 상세에서 `예치금 400원` 카드 반영 확인
+    - 고객 상세 거래내역에서 `예치금 적립` 행 노출 확인
+  - 테스트 데이터 정리:
+    - `TEST-ACCOUNTING-*` 고객/명세표/품목 전부 삭제 완료
+- 배포
+  - `https://crm.pressco21.com` 재배포 완료
+
 ### [CODEX] Playwright MCP 안정화 및 세션 재기동 가이드 추가 (2026-03-11)
 - 목적
   - Codex 내장 Playwright MCP가 `Transport closed`로 끊기던 이슈를 다음 세션에서 바로 복구 가능하게 정리
@@ -2208,16 +2252,54 @@
   - `offline-crm-v2/src/pages/Transactions.tsx`
   - `offline-crm-v2/src/lib/api.ts`
 
+### [CODEX-LEAD] Phase 3 메이크샵 실배포 준비 + 라이브 스모크 보강 (CODEX)
+- 실행 일시: 2026-03-11 23:08 KST ~ 2026-03-11 23:18 KST
+- 변경 파일
+  - `scripts/partnerclass-live-smoke.js`
+  - `파트너클래스/상세/js.js`
+  - `docs/파트너클래스/phase3-makeshop-live-deploy-checklist-2026-03-11.md`
+  - `docs/파트너클래스/README.md`
+  - `codex-skills/partnerclass-live-qa/references/runbook.md`
+- 변경 내용
+  - 라이브 스모크 러너를 현재 운영 DOM 구조에 맞게 보정:
+    - 목록 카드가 `a > article.class-card` 구조여도 상세 진입 가능하도록 수정
+    - 첫 카드가 예약 불가 테스트 클래스여도 `datePicker` 활성 상태인 첫 상세를 골라 일정/FAQ 시나리오를 수행하도록 변경
+    - 상세 FAQ 기대값을 `5개 고정`에서 `검색 입력 visible + 카테고리 칩 6개 이상 + FAQ 10~15개` 기준으로 상향
+  - Phase 3 메이크샵 실배포 체크리스트 문서 추가:
+    - 고정 page id `2606/2607/2608/2609/2610/8009/8010/8011`
+    - 신규 page id 필요 자산 `콘텐츠허브`, `협회제안서`
+    - 메인페이지 `메인페이지/파트너클래스-홈개편` 별도 반영 메모
+  - 상세 지역 링크 정규화 보정:
+    - `서울시`, `경기도`, `제주특별자치도` 등 운영 location 문자열이 `서울`, `경기`, `제주`로 매핑되도록 `getPrimaryRegion`, `getRegionFilterValue` 보정
+    - 상세 탐색 링크가 `/shop/page.html?id=2606&region=기타`로 잘못 나가던 케이스를 저장소 코드에서 수정
+- 검증
+  - `node --check scripts/partnerclass-live-smoke.js`
+  - `node --check 파트너클래스/상세/js.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/상세/js.js`
+  - 라이브 스모크:
+    - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-live-smoke.js`
+    - 결과: `11 PASS / 2 FAIL / 1 SKIP`
+    - 산출물: `output/playwright/partnerclass-20260310-fix/partnerclass-live-results.json`
+    - 주요 실패:
+      - `상세 FAQ/잔여석 정합성`: 라이브 `2607`에 FAQ 검색 입력/확장 UI가 아직 없어 최신 상세 UI가 실배포되지 않은 상태로 판단
+      - `상세 분류 링크 회귀`: 라이브 `CL_202602_662`가 `region=기타` 링크를 생성. 저장소 코드는 수정 완료됐지만 메이크샵 `2607`에는 아직 미반영
+    - 스킵:
+      - 파트너 로그인 시나리오 전체는 `PARTNER_MEMBER_ID`, `PARTNER_MEMBER_PASSWORD` 미제공으로 건너뜀
+
 ## Next Step
 
-- [CODEX-LEAD] offline-crm-v2 P1 구현 착수: 초과 입금 처리 팝업
-- [CODEX-LEAD] offline-crm-v2 P1 구현 착수: 예치금/환불대기 데이터 구조 설계
+- [CODEX-LEAD] offline-crm-v2 P1 2차: 명세표 저장 후 `예치금 사용` 이벤트와 고객 잔액 차감이 항상 저장되는지 E2E 기준으로 재검증하고 보완
+- [CODEX-LEAD] offline-crm-v2 P1 2차: `환불대기` 전용 처리 화면/완료 버튼 추가
+- [CODEX-LEAD] offline-crm-v2 Phase 2: 단계형 내비게이션 가이드 투어로 전환
 - [CODEX-LEAD] offline-crm-v2 농협 입금 자동화 1차 기술 검토: 수집 경로, 보안, 승인 큐 구조
 - [CODEX] CRM 수금/지급 실제 로그인 계정 체계가 필요해지면 localStorage 작업 계정 방식에서 서버 세션 기반 로그로 승격
 - [CODEX] CRM 운영 사용 중 신규 분리 고객/분리 거래명 케이스가 생기면 동일 정책으로 누적 정리
 - [CODEX] CRM 운영 데이터 직접 수정 사고 대비 `서상견`과 같은 핵심 분리 고객 복구 절차를 스크립트화하거나 관리자 백업 체크리스트로 문서화
 - [CODEX] CRM 고객 제출용 거래내역 확인서 실제 대외 전달 1회 검토 후 문구/표현 미세조정
 - [CODEX] CRM 송장 자동 다운로드 결과물을 실제 택배 업로드 양식에 1회 대입 검증
+- [CODEX-LEAD] 메이크샵 디자인편집기 `2607` 상세에 최신 `Index.html/css.css/js.js` 실배포 후 라이브 스모크 재실행
+- [CODEX-LEAD] `2606/2608/2609/8009/8010/8011/2610`을 `docs/파트너클래스/phase3-makeshop-live-deploy-checklist-2026-03-11.md` 순서대로 저장
+- [CODEX-LEAD] 파트너 로그인 계정과 실관리자 계정 확보 후 `partnerclass-live-smoke.js` 전체 시나리오 재검증
 
 ### [CODEX-LEAD] 파트너클래스 Phase 3 전체 구현 (독립 프로젝트)
 
@@ -2328,7 +2410,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - CRM 미수금 `전체`/`레거시` 탭은 고객 단위 집계이고 `CRM` 탭만 명세표 단위라, 엑셀 내보내기 포맷은 아직 CRM 명세표 기준만 지원함
 - CRM `지급 관리` 1차는 기존 장부 기준 줄 돈을 다루는 단계이며, 공급처별 독립 지급 원장/지급 예정일/상태 배지는 아직 Phase 3 이후 작업이 필요함
 - CRM 인앱 가이드는 현재 화면 단위 1차 버전이라, 역할별 분기와 단계형 투어는 아직 추가 구현이 필요함
-- 예치금/환불대기/초과 입금 처리는 아직 설계 문서 단계이며, 실제 잔액 필드/이벤트 로그 구조는 다음 구현에서 확정해야 함
+- 예치금/환불대기/초과 입금 처리는 1차 구현이 들어갔지만, 명세표 저장 후 `예치금 사용` 이벤트가 모든 입력 경로에서 안정적으로 누적되는지는 추가 E2E 보강이 더 필요함
 - 이번 UX 수정은 아직 메이크샵에 저장되지 않았으므로, 실제 라이브 재검증 전까지는 기존 `/member/login.html` 및 선물하기 동작이 남아 있을 수 있음
 - 클래스 실상품 `branduid=12195642` 기준 상품 상세에는 native `.btn-gift` 링크가 노출되지 않아, 상품 설정상 선물하기가 비활성인 경우 프론트는 `basket.action` 기반 선물 주문 진입으로만 폴백함
 - `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음
@@ -2362,7 +2444,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S2-7 파트너 이탈 감지 자동화는 현재 dry run, risk 판정, `last_active_at` 갱신, 실패 로그 저장까지 검증됐지만 운영 `PRESSCO21 SMTP` credential 이 `535` 로 실패해 실제 파트너 메일은 발송되지 않는다.
 - S2-7 `Telegram Summary` 는 최종 응답을 더 이상 덮지 않지만, 운영 `TELEGRAM_CHAT_ID` 가 비어 있어 실제 관리자 전송은 실패한다.
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
-- `scripts/partnerclass-live-smoke.js` 는 현재 FAQ 기대 개수가 여전히 `5` 기준이라, 상세 FAQ를 라이브 반영한 뒤에는 스모크 기대값을 `15` 로 맞춰야 함
+- `scripts/partnerclass-live-smoke.js` 는 최신 상세 DOM 기준(`FAQ 검색 입력 + 카테고리 칩 6개 이상 + FAQ 10~15개`)으로 갱신됐다. 따라서 현재 라이브 `2607`에서 이 시나리오가 실패하면 스크립트 문제가 아니라 상세 FAQ 확장 UI가 아직 미배포된 상태로 본다.
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함
 - `PRD-파트너클래스-플랫폼-고도화.md`, `commission-policy.md`, 일부 구현 문서는 아직 예전 등급/수수료 표현이 남아 있으므로 서비스 방향 판단은 `docs/파트너클래스/README.md`와 `shared-service-identity.md`를 우선해야 함
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음

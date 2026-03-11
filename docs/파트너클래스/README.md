@@ -84,6 +84,8 @@
   - S2-8 기준 목록 5분 cache, 설정 1시간 cache, 상세 액션 후 version key 무효화, WF-01A/C staticData cache 검증 결과 정리
 - `kit-bundle-selection-guide.md`
   - S2-9 기준 묶음 키트 상품 생성, `강의만/키트 포함` 선택 UI, WF-05 주문 분기, 로컬/라이브 검증 결과 정리
+- `demo-simulation-guide.md`
+  - S2-10 기준 데모 배치 데이터 생성/정리 스크립트, live NocoDB 입력 결과, 수강생/파트너/관리자 Playwright 검증 결과 정리
 
 ### QA / 검증
 

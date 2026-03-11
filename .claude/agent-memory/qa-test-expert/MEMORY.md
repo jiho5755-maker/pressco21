@@ -127,6 +127,27 @@
   - 활성 클래스 `getClassDetail(id)` 응답에 `kit_bundle_branduid` 필드 포함
   - 원격 `WF-17` 에 `IF Product Kind Class`, `WF-05` 에 `Filter Class Orders / Process Kit Order`, `WF-20` 에 `Process Edit` 존재
 
+## 2026-03-11 S2-10 데모 시뮬레이션 검증 메모
+
+- 이 태스크는 `live NocoDB 배치 입력 검증 + 로컬 Playwright 시연 검증` 2단으로 보는 편이 가장 정확하다.
+- live 최소 통과 세트:
+  - `PC_DEMO_*=5`
+  - `CL_DEMO_*=15`
+  - `SCH_DEMO_*=30`
+  - `STL_DEMO_*=50`
+  - `RV_DEMO_*=30`
+- 로컬 Playwright 최소 통과 세트:
+  - 학생 목록 15개, 서울 필터 후 3개
+  - 상세 예약 `WITH_KIT`, 장바구니 요청 2건
+  - 파트너 액션 보드 3카드 모두 1건 이상
+  - 파트너 액션 클릭 후 일정/후기 탭 이동
+  - 관리자 정산 탭 요약/이력 노출, 정산 실행 실패 토스트 확인
+- 산출물:
+  - `output/playwright/s2-10-demo/demo-results.json`
+  - `output/playwright/s2-10-demo/demo-student-flow.png`
+  - `output/playwright/s2-10-demo/demo-partner-flow.png`
+  - `output/playwright/s2-10-demo/demo-admin-flow.png`
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

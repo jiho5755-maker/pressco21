@@ -141,6 +141,16 @@
 - `WF-17` 은 클래스 상품 생성 후 묶음 키트 상품 생성까지 책임지고, `WF-05` 는 실제 주문에 키트 상품이 같이 결제됐을 때만 후속 키트 처리를 탄다.
 - 운영 기준 문서는 `docs/파트너클래스/kit-bundle-selection-guide.md` 이다.
 
+## 2026-03-11 S2-10 데모 데이터 구조 확정
+
+- 파트너 섭외 데모는 live 메이크샵 노출보다 `live NocoDB + 로컬 fixture 시연` 조합으로 먼저 간다.
+- 데모 배치는 `[TEST][DEMO]` prefix 와 `PC_DEMO_/CL_DEMO_/SCH_DEMO_/STL_DEMO_/RV_DEMO_` 식별자를 사용한다.
+- live NocoDB에는 입력하되 클래스 상태는 `closed` 로 두어 공개 목록 노출을 막는다.
+- enum 제약 때문에 저장값과 데모 표시값을 일부 분리한다:
+  - 파트너 grade 저장 `SILVER/GOLD/PLATINUM`, 표시 `BLOOM/GARDEN/ATELIER`
+  - 클래스 category/region 은 저장용 legacy 값과 데모 표시값을 분리
+- 운영 기준 문서는 `docs/파트너클래스/demo-simulation-guide.md` 이다.
+
 ## 2026-03-11 S2-3 전국 탐색 IA 구조 확정
 
 - 목록 2606은 이제 `전체 클래스 / 협회·세미나 / 혜택·이벤트` 3탭 구조로 본다.

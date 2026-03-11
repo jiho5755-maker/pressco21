@@ -49,12 +49,12 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: IDLE
-- Started At: 2026-03-11 16:18:00 KST
+- Current Owner: IDLE
+- Mode: —
+- Started At: 2026-03-11 16:45:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S2-2 협회 B2B 영업 도구 완료
-- Active Subdirectory: pressco21
+- Working Scope: [CODEX] offline-crm-v2 서상견 운영 데이터 복구 완료
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
 - (none)
@@ -206,6 +206,24 @@
 - 검증/배포
   - 각 수정 단계마다 `npm run build` 통과 확인.
   - 운영 `https://crm.pressco21.com`에 반복 배포 완료.
+
+### [CODEX] offline-crm-v2 서상견 운영 데이터 긴급 복구 (CODEX)
+- 실행 일시: 2026-03-11 16:45 KST ~ 2026-03-11 16:58 KST
+- 원인
+  - 2026-03-11 오늘자 운영 데이터 수정으로 `서상견 님` 대표 고객과 `서상견 님 (단양)` 분리 고객/명세표가 훼손됨.
+- 복구 내용
+  - 서버 DB 사전 백업 추가: `~/nocodb/nocodb_data/noco.db.pre-seosanggyeon-restore-20260311-1654`
+  - `nc__w6f___tbl_Customers`
+    - `15827`을 `서상견 님` + `book_name=서상견 님 (단양,김순자)` 상태로 복구
+    - 삭제된 분리 고객 `15838` (`서상견 님 (단양)`) 재삽입
+  - `nc__w6f___tbl_Invoices`
+    - 삭제된 `INV-20260310-095155`, `INV-20260310-095704` 재삽입
+  - `nc__w6f___tbl_InvoiceItems`
+    - 삭제된 품목 행 `117~127` 재삽입
+- 검증
+  - 운영 DB 직접 조회로 고객 `15827`, `15838` 및 명세표 `15`, `16` 복구 확인
+  - CRM 프록시 API 조회로 `서상견 님`, `서상견 님 (단양)`, 두 명세표 노출 확인
+  - `bash deploy/deploy.sh` 재실행 완료
 
 ### [CODEX-LEAD] Phase 3 S1-7 파트너 온보딩 체크리스트 UX 완료 (CODEX)
 - 프론트
@@ -1398,6 +1416,7 @@
 ## Next Step
 
 - [CODEX] CRM 운영 사용 중 신규 분리 고객/분리 거래명 케이스가 생기면 동일 정책으로 누적 정리
+- [CODEX] CRM 운영 데이터 직접 수정 사고 대비 `서상견`과 같은 핵심 분리 고객 복구 절차를 스크립트화하거나 관리자 백업 체크리스트로 문서화
 - [CODEX] CRM 고객 제출용 거래내역 확인서 실제 대외 전달 1회 검토 후 문구/표현 미세조정
 - [CODEX] CRM 송장 자동 다운로드 결과물을 실제 택배 업로드 양식에 1회 대입 검증
 
@@ -1495,6 +1514,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 ## Known Risks
 
 - CRM 운영 반영은 완료했지만, Basic Auth 자격증명 제약으로 운영 브라우저 화면의 최종 시각 검증은 아직 못 했음
+- CRM 운영 DB를 사용자가 직접 수정할 수 있는 상태라, 동일한 데이터 훼손이 반복되면 고객/명세표 수동 복구가 다시 필요할 수 있음
 - CRM 미수금 `전체`/`레거시` 탭은 고객 단위 집계이고 `CRM` 탭만 명세표 단위라, 엑셀 내보내기 포맷은 아직 CRM 명세표 기준만 지원함
 - 이번 UX 수정은 아직 메이크샵에 저장되지 않았으므로, 실제 라이브 재검증 전까지는 기존 `/member/login.html` 및 선물하기 동작이 남아 있을 수 있음
 - 클래스 실상품 `branduid=12195642` 기준 상품 상세에는 native `.btn-gift` 링크가 노출되지 않아, 상품 설정상 선물하기가 비활성인 경우 프론트는 `basket.action` 기반 선물 주문 진입으로만 폴백함

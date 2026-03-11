@@ -49,15 +49,18 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
+- Current Owner: CODEX
 - Mode: IDLE
-- Started At: -
+- Started At: 2026-03-11 16:36:00 KST
 - Branch: main
-- Working Scope: -
-- Active Subdirectory: -
+- Working Scope: Waiting for next task
+- Active Subdirectory: pressco21
 
 ## Files In Progress
-- 없음
+- `AI_SYNC.md`
+- `ROADMAP.md`
+- `docs/파트너클래스/*`
+- `scripts/*`
 
 ### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
 - 스크립트 / 문서
@@ -340,9 +343,49 @@
       - last order ref `SUBORD_202603_SUBS_*`
       - cancel `200`
     - 산출물:
-      - `output/playwright/s3-3-subscription/table-create-results.json`
+    - `output/playwright/s3-3-subscription/table-create-results.json`
       - `output/playwright/s3-3-subscription/subscription-results.json`
       - `output/playwright/s3-3-subscription/mypage-subscription-flow.png`
+
+### [CODEX-LEAD] Phase 3 S3-4 서버 확장성 검증 완료 (CODEX)
+- 스크립트 / 문서 / 메모리
+  - `scripts/partnerclass-s3-4-scalability-runner.js`
+    - live 서버 스냅샷, live row count, `class-api` read 부하 테스트, server-side SQLite 10만 row benchmark 자동 수집
+  - `docs/파트너클래스/scalability-verification-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+  - `.claude/agent-memory/devops-monitoring-expert/MEMORY.md`
+- 검증
+  - `node --check scripts/partnerclass-s3-4-scalability-runner.js`
+  - `node scripts/partnerclass-s3-4-scalability-runner.js`
+  - 결과:
+    - live row count:
+      - partners `11`
+      - classes `26`
+      - schedules `36`
+      - settlements `114`
+      - reviews `32`
+      - subscriptions `0`
+    - load test:
+      - `10c/5s`: success `32/32`, avg `1733.03ms`, p95 `2283ms`
+      - `50c/5s`: success `50/50`, avg `6845.9ms`, p95 `7287ms`
+      - `100c/10s catalog`: success `1/100`, successRate `1.00%`
+      - `100c/10s detail`: success `0/100`, successRate `0.00%`
+      - `100c/10s mixed`: success `0/100`, successRate `0.00%`
+    - post-load:
+      - `n8n` memory `320.7MiB -> 717.1MiB`
+      - `nocodb` memory `247.3MiB -> 340.2MiB`
+      - load average `0.03 -> 2.35`
+    - synthetic SQLite 100k:
+      - insert `402.69ms`
+      - indexed catalog/detail/partner query avg `0.04ms / 0.03ms / 0.03ms`
+  - 판정:
+    - 현재 병목은 RAM보다 `n8n public read queue + webhook orchestration`
+    - Oracle Free Tier는 즉시 교체 대상이 아니지만 `100 concurrent read stable` 기준으로는 아직 엔터프라이즈급 아님
+  - 산출물:
+    - `output/playwright/s3-4-scalability/scalability-results.json`
 
 ### [CODEX] offline-crm-v2 작업 계정 분리 로그 보강 완료 (CODEX)
 - CRM
@@ -1968,7 +2011,7 @@
 
 #### 현재 다음 태스크
 
-- `S3-4 서버 확장성 검증 (파트너 300명+)`
+- `S3-5 SNS/YouTube 콘텐츠 재활용 SOP`
 - `S2-7 파트너 이탈 감지 자동화` 는 구현/검증 완료, 운영 SMTP + Telegram chat_id blocker 해소 시 최종 수락 기준 닫기
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행

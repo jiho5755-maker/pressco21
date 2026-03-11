@@ -218,6 +218,34 @@
   - 추천 구독 `1건`
   - 생성 후 진행 중 구독 `2건`
   - 해지 후 진행 중 구독 `1건`
+
+## 2026-03-11 S3-4 확장성 검증 메모
+
+- 이 태스크는 `live infra snapshot + live API load + same-host synthetic DB benchmark` 3단으로 보는 편이 가장 정확하다.
+- 실행 러너:
+  - `node scripts/partnerclass-s3-4-scalability-runner.js`
+- 최소 통과 세트:
+  - live server snapshot 수집 성공
+  - live row count 수집 성공
+  - `10c/5s`, `50c/5s`, `100c/10s` read scenario 결과 저장
+  - post-load snapshot 으로 `n8n/nocodb` 메모리 증가량 확인
+  - SQLite 100k benchmark 결과 저장
+- 이번 기준 결과:
+  - `catalog_read_10c_5s`: successRate `100%`, p95 `2283ms`
+  - `catalog_read_50c_5s`: successRate `100%`, p95 `7287ms`
+  - `catalog_read_100c_10s`: successRate `1.00%`
+  - `detail_read_100c_10s`: successRate `0.00%`
+  - `mixed_read_100c_10s`: successRate `0.00%`
+  - `n8n` memory `320.7MiB -> 717.1MiB`
+  - SQLite indexed avg:
+    - catalog `0.04ms`
+    - detail `0.03ms`
+    - partner `0.03ms`
+- 판단:
+  - 현재 실패는 DB capacity 보다 public read orchestration 한계에 가깝다.
+  - 다음 QA 기준은 `cache 강화 후 동일 시나리오 재측정` 으로 잡는 편이 맞다.
+- 산출물:
+  - `output/playwright/s3-4-scalability/scalability-results.json`
 - live API 최소 통과 세트:
   - create `201`
   - list active `1`

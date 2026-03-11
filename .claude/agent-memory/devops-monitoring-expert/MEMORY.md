@@ -25,3 +25,27 @@
 ## 텔레그램 알림 채널
 - TELEGRAM_CHAT_ID: 7713811206
 - WF-ERROR 워크플로우를 통해 n8n 오류 자동 알림 설정 완료
+
+## 2026-03-11 S3-4 확장성 검증 결과
+
+- 기준 러너:
+  - `node scripts/partnerclass-s3-4-scalability-runner.js`
+- idle 스냅샷:
+  - `n8n` `320.7MiB`
+  - `nocodb` `247.3MiB`
+  - available memory `9.0GiB`
+- post-load 스냅샷:
+  - `n8n` `717.1MiB`
+  - `nocodb` `340.2MiB`
+  - load average `0.03 -> 2.35`
+- 부하 결과:
+  - `10c/5s`: 100%
+  - `50c/5s`: 100%, avg `6845.9ms`
+  - `100c/10s`: successRate `0~1%`, local abort timeout 다수
+- 같은 서버 SQLite 100k indexed query 는 `0.03~0.04ms` 수준이라 DB 엔진 자체보다 `n8n public read queue` 가 병목으로 판단된다.
+- 운영 우선순위:
+  - public read cache 강화
+  - hot read path 분리
+  - 필요 시 read worker 또는 상위 CPU 스펙 검토
+- 참조 문서:
+  - `docs/파트너클래스/scalability-verification-guide.md`

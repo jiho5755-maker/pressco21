@@ -92,6 +92,8 @@
   - S3-2 기준 등급별 비금전적 인센티브 UI, 목록/상세/콘텐츠 허브 우선 노출 규칙, Playwright 검증 결과 정리
 - `subscription-pilot-guide.md`
   - S3-3 기준 마이페이지 구독 파일럿, live `tbl_Subscriptions`, `WF-SUB`, 내부 주문 ref 생성 기준과 Playwright 검증 결과 정리
+- `scalability-verification-guide.md`
+  - S3-4 기준 live read 부하 테스트, 10만 row synthetic benchmark, 병목 해석과 확장 우선순위 정리
 
 ### QA / 검증
 

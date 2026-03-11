@@ -191,6 +191,17 @@
 - 수강생 표면에서는 완료 수업 + kit data 를 조합해 추천 구독 후보를 만들고, 이미 ACTIVE 인 동일 클래스는 추천에서 제외한다.
 - 운영 기준 문서는 `docs/파트너클래스/subscription-pilot-guide.md` 이다.
 
+## 2026-03-11 S3-4 서버 확장성 판단 기준 확정
+
+- Oracle Free Tier 현재 스펙은 idle 기준 여유가 있다. 지금 당장 서버 이전이 1순위는 아니다.
+- live read burst 한계는 DB row 수보다 `n8n public read queue + webhook orchestration` 에서 먼저 드러난다.
+- 실측 기준:
+  - `10c/5s` 는 통과
+  - `50c/5s` 도 통과하지만 avg `6s+`
+  - `100c/10s` 는 successRate `42~68%` 수준으로 엔터프라이즈 기준 미달
+- 같은 하드웨어의 SQLite 10만 row indexed query 는 충분히 빠르므로, 우선 과제는 인프라 교체보다 `cache 강화 + read path 분리 + hot query index/view 점검` 이다.
+- 운영 기준 문서는 `docs/파트너클래스/scalability-verification-guide.md` 이다.
+
 ## 2026-03-11 S2-3 전국 탐색 IA 구조 확정
 
 - 목록 2606은 이제 `전체 클래스 / 협회·세미나 / 혜택·이벤트` 3탭 구조로 본다.

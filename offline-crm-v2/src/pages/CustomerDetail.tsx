@@ -21,7 +21,9 @@ import {
   getLegacyCustomerSnapshots,
   getLegacyReceivableBaselineFromSnapshots,
   getLegacyPayableBaselineFromSnapshots,
+  parseLegacyPayableMemo,
   parseLegacyReceivableMemo,
+  serializeLegacyPayableMemo,
   serializeLegacyReceivableMemo,
 } from '@/lib/legacySnapshots'
 import type {
@@ -144,6 +146,7 @@ function useCustomerTxAll(legacyId: string | undefined, name: string | undefined
 const TX_TYPE_STYLE: Record<string, string> = {
   출고: 'bg-blue-50 text-blue-700',
   입금: 'bg-green-50 text-green-700',
+  지급: 'bg-blue-50 text-blue-700',
   반입: 'bg-orange-50 text-orange-700',
   메모: 'bg-gray-50 text-gray-600',
 }
@@ -164,8 +167,11 @@ export function CustomerDetail() {
   const [historyDateTo, setHistoryDateTo] = useState(todayStr)
   const [legacyPaymentAmount, setLegacyPaymentAmount] = useState('')
   const [legacyPaymentMethod, setLegacyPaymentMethod] = useState('계좌이체')
+  const [legacyPayableAmount, setLegacyPayableAmount] = useState('')
+  const [legacyPayableMethod, setLegacyPayableMethod] = useState('계좌이체')
   const [savingLegacyPayment, setSavingLegacyPayment] = useState(false)
   const [editingLegacySettlementIndex, setEditingLegacySettlementIndex] = useState<number | null>(null)
+  const [editingLegacyPayableIndex, setEditingLegacyPayableIndex] = useState<number | null>(null)
 
   // 기본정보 편집 상태
   const [infoEditMode, setInfoEditMode] = useState(false)
@@ -433,8 +439,27 @@ export function CustomerDetail() {
       isCrm: false,
     }))
 
+    const legacyPayableRows: Row[] = parseLegacyPayableMemo(customer?.memo as string | undefined).settlements.map((entry, index) => ({
+      key: `legacy-payable-${index}`,
+      source: 'legacySettlement',
+      recordId: -(10000 + index + 1),
+      date: entry.date,
+      legacyBookId: customerLegacyId,
+      txType: '지급',
+      amount: entry.amount,
+      memo: [
+        '기존 장부 미지급금 지급',
+        entry.method ? `방법: ${entry.method}` : '',
+        entry.accountLabel ? `계정: ${entry.accountLabel}` : '',
+        entry.operator ? `입력: ${entry.operator}` : '',
+        entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
+      ].filter(Boolean).join(' · '),
+      slipNo: entry.createdAt ?? entry.date,
+      isCrm: false,
+    }))
+
     // 날짜 내림차순 정렬 후 상위 100건
-    return [...invRows, ...legacySettlementRows, ...txRows]
+    return [...invRows, ...legacySettlementRows, ...legacyPayableRows, ...txRows]
       .sort((a, b) => {
         const dateCompare = b.date.localeCompare(a.date)
         if (dateCompare !== 0) return dateCompare
@@ -535,6 +560,7 @@ export function CustomerDetail() {
   const currentLegacyReceivable = getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
   const currentLegacyPayable = getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
   const legacyMemoState = parseLegacyReceivableMemo(customer.memo as string | undefined)
+  const legacyPayableMemoState = parseLegacyPayableMemo(customer.memo as string | undefined)
   const activeOperatorProfile = loadActiveWorkOperatorProfile()
   const crmOutstandingBalance = todayResolvedInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0)
   const invoiceNameVariants = Array.from(
@@ -555,6 +581,7 @@ export function CustomerDetail() {
       queryClient.invalidateQueries({ queryKey: ['receivable-link-customers'] }),
       queryClient.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(customerId)] }),
       queryClient.invalidateQueries({ queryKey: ['dash-receivables'] }),
+      queryClient.invalidateQueries({ queryKey: ['dash-payable-customers'] }),
     ])
     await queryClient.invalidateQueries({
       predicate: (query) => {
@@ -630,6 +657,73 @@ export function CustomerDetail() {
     } finally {
       setSavingLegacyPayment(false)
       setEditingLegacySettlementIndex(null)
+    }
+  }
+
+  async function handleLegacyPayableSave() {
+    const amount = Math.trunc(Number(legacyPayableAmount))
+    if (!Number.isFinite(amount) || amount <= 0) {
+      toast.error('지급액을 입력해주세요')
+      return
+    }
+    if (amount > currentLegacyPayable) {
+      toast.error(`기존 장부 미지급금(${currentLegacyPayable.toLocaleString()}원)보다 많이 지급할 수 없습니다.`)
+      return
+    }
+
+    setSavingLegacyPayment(true)
+    try {
+      const activeOperator = loadActiveWorkOperatorProfile()
+      const nextSettlements = [
+        ...legacyPayableMemoState.settlements,
+        {
+          amount,
+          date: todayStr(),
+          method: legacyPayableMethod,
+          accountId: activeOperator?.id,
+          accountLabel: activeOperator?.label,
+          operator: activeOperator?.operatorName,
+          createdAt: currentTimestamp(),
+        },
+      ]
+      const nextMemo = serializeLegacyPayableMemo(customer!.memo as string | undefined, {
+        settledAmount: legacyPayableMemoState.settledAmount + amount,
+        settlements: nextSettlements,
+      })
+      await updateCustomer(customerId, { memo: nextMemo })
+      await refreshCustomerViews()
+      setLegacyPayableAmount('')
+      toast.success('기존 장부 지급이 반영되었습니다')
+    } catch (error) {
+      console.error(error)
+      toast.error('기존 장부 지급 처리 중 오류가 발생했습니다')
+    } finally {
+      setSavingLegacyPayment(false)
+    }
+  }
+
+  async function handleLegacyPayableCancel(index: number) {
+    const settlement = legacyPayableMemoState.settlements[index]
+    if (!settlement) return
+    if (!confirm(`${settlement.date} ${settlement.amount.toLocaleString()}원 지급 기록을 취소하시겠습니까?`)) return
+
+    setSavingLegacyPayment(true)
+    setEditingLegacyPayableIndex(index)
+    try {
+      const nextSettlements = legacyPayableMemoState.settlements.filter((_, settlementIndex) => settlementIndex !== index)
+      const nextMemo = serializeLegacyPayableMemo(customer!.memo as string | undefined, {
+        settledAmount: nextSettlements.reduce((sum, entry) => sum + entry.amount, 0),
+        settlements: nextSettlements,
+      })
+      await updateCustomer(customerId, { memo: nextMemo })
+      await refreshCustomerViews()
+      toast.success('기존 장부 지급 기록을 취소했습니다')
+    } catch (error) {
+      console.error(error)
+      toast.error('기존 장부 지급 기록 취소 중 오류가 발생했습니다')
+    } finally {
+      setSavingLegacyPayment(false)
+      setEditingLegacyPayableIndex(null)
     }
   }
 
@@ -727,7 +821,10 @@ export function CustomerDetail() {
 
       <div className="mb-6 flex flex-wrap gap-2">
         <Button size="sm" variant="outline" onClick={() => navigate(`/receivables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}`)}>
-          미수금 보기
+          수금 관리
+        </Button>
+        <Button size="sm" variant="outline" onClick={() => navigate(`/payables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}&tab=payable`)}>
+          지급 관리
         </Button>
         <Button size="sm" variant="outline" onClick={() => navigate(`/transactions?customer=${encodeURIComponent(customer.name ?? '')}`)}>
           거래/명세표 조회
@@ -1050,7 +1147,8 @@ export function CustomerDetail() {
             <p className="font-medium text-blue-800">거래내역 기재 기준</p>
             <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-blue-700 mt-1">
               <span><span className="font-medium">출고</span> — 거래명세표 발행 (CRM) 또는 기존 출고 기록</span>
-              <span><span className="font-medium">입금</span> — 수금 처리 시 (명세표의 입금액)</span>
+              <span><span className="font-medium">입금</span> — 수금 처리 시 (명세표의 입금액 또는 기존 장부 수금)</span>
+              <span><span className="font-medium">지급</span> — 기존 장부 미지급금 지급 처리</span>
               <span><span className="font-medium">반입</span> — 반품/반입 건 (기존 장부 데이터)</span>
               <span><span className="font-medium">메모</span> — 참고사항 기재 (기존 장부 데이터)</span>
             </div>
@@ -1114,6 +1212,7 @@ export function CustomerDetail() {
                   <SelectItem value="ALL">모든 유형</SelectItem>
                   <SelectItem value="출고">출고</SelectItem>
                   <SelectItem value="입금">입금</SelectItem>
+                  <SelectItem value="지급">지급</SelectItem>
                   <SelectItem value="반입">반입</SelectItem>
                   <SelectItem value="메모">메모</SelectItem>
                 </SelectContent>
@@ -1568,6 +1667,51 @@ export function CustomerDetail() {
                 </div>
 
                 <div className="rounded-lg border p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-4 flex-wrap">
+                    <div>
+                      <p className="text-sm font-medium">기존 장부 지급 확인</p>
+                      <p className="text-xs text-muted-foreground">
+                        최대 지급 가능액 {currentLegacyPayable.toLocaleString()}원
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        현재 작업 계정 {activeOperatorProfile?.label ?? '미설정'}
+                        {activeOperatorProfile?.operatorName ? ` · ${activeOperatorProfile.operatorName}` : ''}
+                      </p>
+                    </div>
+                    {currentLegacyPayable === 0 && legacyPayableMemoState.settledAmount > 0 && (
+                      <p className="text-xs text-green-700">완납 처리됨. 아래 이력에서 취소 후 다시 입력할 수 있습니다.</p>
+                    )}
+                  </div>
+                  <div className="grid gap-3 md:grid-cols-[1fr_180px_auto]">
+                    <Input
+                      type="number"
+                      value={legacyPayableAmount}
+                      onChange={(event) => setLegacyPayableAmount(event.target.value)}
+                      placeholder={`최대 ${currentLegacyPayable.toLocaleString()}원`}
+                      disabled={savingLegacyPayment || currentLegacyPayable <= 0}
+                    />
+                    <Select value={legacyPayableMethod} onValueChange={setLegacyPayableMethod} disabled={savingLegacyPayment}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="현금">현금</SelectItem>
+                        <SelectItem value="계좌이체">계좌이체</SelectItem>
+                        <SelectItem value="카드">카드</SelectItem>
+                        <SelectItem value="수표">수표</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Button
+                      onClick={() => void handleLegacyPayableSave()}
+                      disabled={savingLegacyPayment || currentLegacyPayable <= 0 || !legacyPayableAmount}
+                      className="bg-[#4b7bec] hover:bg-[#3867d6] text-white"
+                    >
+                      {savingLegacyPayment ? '처리 중...' : '지급 확인'}
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border p-4 space-y-3">
                   <div>
                     <p className="text-sm font-medium">기존 장부 입금 이력</p>
                     <p className="text-xs text-muted-foreground">잘못 입력한 건은 여기서 바로 취소할 수 있습니다.</p>
@@ -1595,6 +1739,41 @@ export function CustomerDetail() {
                             onClick={() => void handleLegacySettlementCancel(index)}
                           >
                             {savingLegacyPayment && editingLegacySettlementIndex === index ? '처리 중...' : '취소'}
+                          </Button>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-lg border p-4 space-y-3">
+                  <div>
+                    <p className="text-sm font-medium">기존 장부 지급 이력</p>
+                    <p className="text-xs text-muted-foreground">잘못 입력한 건은 여기서 바로 취소할 수 있습니다.</p>
+                  </div>
+                  {legacyPayableMemoState.settlements.length === 0 ? (
+                    <p className="text-sm text-muted-foreground">아직 반영된 기존 장부 지급 이력이 없습니다.</p>
+                  ) : (
+                    <div className="space-y-2">
+                      {legacyPayableMemoState.settlements.map((entry, index) => (
+                        <div key={`${entry.date}-${entry.amount}-${index}`} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                          <div className="text-sm">
+                            <span>{entry.date}</span>
+                            <span className="ml-2 font-medium">{entry.amount.toLocaleString()}원</span>
+                            {entry.method ? <span className="ml-2 text-muted-foreground">{entry.method}</span> : null}
+                            {entry.accountLabel ? <span className="ml-2 text-muted-foreground">계정: {entry.accountLabel}</span> : null}
+                            {entry.operator ? <span className="ml-2 text-muted-foreground">입력: {entry.operator}</span> : null}
+                            {entry.createdAt ? <span className="ml-2 text-muted-foreground">{entry.createdAt.slice(0, 16).replace('T', ' ')}</span> : null}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-600"
+                            disabled={savingLegacyPayment}
+                            onClick={() => void handleLegacyPayableCancel(index)}
+                          >
+                            {savingLegacyPayment && editingLegacyPayableIndex === index ? '처리 중...' : '취소'}
                           </Button>
                         </div>
                       ))}

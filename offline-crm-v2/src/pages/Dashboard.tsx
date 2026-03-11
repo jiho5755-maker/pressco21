@@ -17,7 +17,7 @@ import {
   type PresetKey,
   yoyColor,
 } from '@/lib/reporting'
-import { getFiscalBalanceSnapshots, getLegacyCustomerSnapshots } from '@/lib/legacySnapshots'
+import { getFiscalBalanceSnapshots, getLegacyCustomerSnapshots, getLegacyPayableBaselineFromSnapshots } from '@/lib/legacySnapshots'
 import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
 
 // accounting-specialist 정의 임계값
@@ -141,6 +141,18 @@ export function Dashboard() {
     queryFn: getFiscalBalanceSnapshots,
     staleTime: Infinity,
   })
+  const { data: legacySnapshots } = useQuery({
+    queryKey: ['dash-legacy-snapshots'],
+    queryFn: getLegacyCustomerSnapshots,
+    staleTime: Infinity,
+  })
+  const { data: payableCustomersData = [] } = useQuery({
+    queryKey: ['dash-payable-customers'],
+    queryFn: () => getAllCustomers({
+      fields: 'Id,legacy_id,memo',
+    }),
+    staleTime: 10 * 60_000,
+  })
   // 기간 리포트: 수금률+객단가용 (invoices)
   // invoice_date가 Text 타입 → 날짜 필터 없이 최신 순 가져와서 클라이언트 필터링
   // 1000건으로 제한 (1년치 이상 → 올해 전체 기준 충분)
@@ -209,15 +221,16 @@ export function Dashboard() {
     [receivablesData]
   )
   const totalPayables = useMemo(() => {
-    const year = String(fiscalSnapshots?.currentFiscalYear ?? '')
-    const payables = fiscalSnapshots?.years?.[year]?.payablesByLegacyId ?? {}
-    return Object.values(payables).reduce((sum, amount) => sum + amount, 0)
-  }, [fiscalSnapshots])
+    return payableCustomersData.reduce(
+      (sum, customer) => sum + getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots),
+      0,
+    )
+  }, [fiscalSnapshots, legacySnapshots, payableCustomersData])
   const payableCustomers = useMemo(() => {
-    const year = String(fiscalSnapshots?.currentFiscalYear ?? '')
-    const payables = fiscalSnapshots?.years?.[year]?.payablesByLegacyId ?? {}
-    return Object.keys(payables).length
-  }, [fiscalSnapshots])
+    return payableCustomersData.filter(
+      (customer) => getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots) > 0,
+    ).length
+  }, [fiscalSnapshots, legacySnapshots, payableCustomersData])
 
   // 이번 달 명세표 건수 — periodInvoicesRaw에서 클라이언트 필터링
   const thisMonthInvoices = useMemo(

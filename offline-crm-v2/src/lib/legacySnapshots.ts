@@ -100,7 +100,13 @@ interface LegacyReceivableMemoState {
   settlements: LegacyReceivableSettlementEntry[]
 }
 
+interface LegacyPayableMemoState {
+  settledAmount: number
+  settlements: LegacyReceivableSettlementEntry[]
+}
+
 const LEGACY_RECEIVABLE_META_PREFIX = '[LEGACY_RECEIVABLE_META]'
+const LEGACY_PAYABLE_META_PREFIX = '[LEGACY_PAYABLE_META]'
 
 let legacySnapshotPromise: Promise<LegacyCustomerSnapshotPayload> | null = null
 let fiscalBalanceSnapshotPromise: Promise<FiscalBalanceSnapshotPayload> | null = null
@@ -149,19 +155,19 @@ function sanitizeSettlementEntry(entry: Partial<LegacyReceivableSettlementEntry>
   }
 }
 
-export function parseLegacyReceivableMemo(memo?: string): LegacyReceivableMemoState {
+function parseLegacyLedgerMemo(memo: string | undefined, prefix: string): LegacyReceivableMemoState {
   const normalizedMemo = normalizeMemo(memo)
   const metaLine = normalizedMemo
     .split('\n')
     .map((line) => line.trim())
-    .find((line) => line.startsWith(LEGACY_RECEIVABLE_META_PREFIX))
+    .find((line) => line.startsWith(prefix))
 
   if (!metaLine) {
     return { settledAmount: 0, settlements: [] }
   }
 
   try {
-    const parsed = JSON.parse(metaLine.slice(LEGACY_RECEIVABLE_META_PREFIX.length).trim()) as {
+    const parsed = JSON.parse(metaLine.slice(prefix.length).trim()) as {
       settledAmount?: number
       settlements?: Partial<LegacyReceivableSettlementEntry>[]
     }
@@ -176,6 +182,14 @@ export function parseLegacyReceivableMemo(memo?: string): LegacyReceivableMemoSt
   } catch {
     return { settledAmount: 0, settlements: [] }
   }
+}
+
+export function parseLegacyReceivableMemo(memo?: string): LegacyReceivableMemoState {
+  return parseLegacyLedgerMemo(memo, LEGACY_RECEIVABLE_META_PREFIX)
+}
+
+export function parseLegacyPayableMemo(memo?: string): LegacyPayableMemoState {
+  return parseLegacyLedgerMemo(memo, LEGACY_PAYABLE_META_PREFIX)
 }
 
 export function serializeLegacyReceivableMemo(
@@ -206,8 +220,40 @@ export function serializeLegacyReceivableMemo(
   return [...lines, metaLine].join('\n').trim()
 }
 
+export function serializeLegacyPayableMemo(
+  memo: string | undefined,
+  nextState: LegacyPayableMemoState,
+): string {
+  const normalizedMemo = normalizeMemo(memo)
+  const lines = normalizedMemo
+    .split('\n')
+    .filter((line) => line.trim() && !line.trim().startsWith(LEGACY_PAYABLE_META_PREFIX))
+
+  const sanitizedSettlements = nextState.settlements
+    .map(sanitizeSettlementEntry)
+    .filter((entry): entry is LegacyReceivableSettlementEntry => entry !== null)
+
+  if (sanitizedSettlements.length === 0 && nextState.settledAmount <= 0) {
+    return lines.join('\n').trim()
+  }
+
+  const metaLine = `${LEGACY_PAYABLE_META_PREFIX} ${JSON.stringify({
+    settledAmount: Math.max(
+      parseInteger(nextState.settledAmount),
+      sanitizedSettlements.reduce((sum, entry) => sum + entry.amount, 0),
+    ),
+    settlements: sanitizedSettlements,
+  })}`
+
+  return [...lines, metaLine].join('\n').trim()
+}
+
 export function getLegacyReceivableSettledAmount(customer: LegacySnapshotMatchTarget | undefined): number {
   return parseLegacyReceivableMemo(customer?.memo).settledAmount
+}
+
+export function getLegacyPayableSettledAmount(customer: LegacySnapshotMatchTarget | undefined): number {
+  return parseLegacyPayableMemo(customer?.memo).settledAmount
 }
 
 export function deriveLegacyTradebookSnapshot(
@@ -364,7 +410,10 @@ export function getLegacyPayableBaselineFromSnapshots(
   const { snapshot } = deriveLegacyTradebookSnapshot(customer, snapshots)
   const fiscalYearSnapshot = getCurrentFiscalSnapshot(fiscalSnapshots)
   const fiscalAmount = snapshot?.legacy_id ? fiscalYearSnapshot?.payablesByLegacyId?.[snapshot.legacy_id] : undefined
-  if (typeof fiscalAmount === 'number') return fiscalAmount
-  if (!isLegacyPayableSnapshot(snapshot)) return 0
-  return parseInteger(snapshot?.balance)
+  const baseline = typeof fiscalAmount === 'number'
+    ? fiscalAmount
+    : (isLegacyPayableSnapshot(snapshot) ? parseInteger(snapshot?.balance) : 0)
+  if (!baseline) return 0
+  const settledAmount = getLegacyPayableSettledAmount(customer)
+  return Math.max(0, baseline - settledAmount)
 }

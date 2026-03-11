@@ -17,7 +17,9 @@ import {
   getLegacyCustomerSnapshots,
   getLegacyPayableBaselineFromSnapshots,
   getLegacyReceivableBaseline,
+  parseLegacyPayableMemo,
   parseLegacyReceivableMemo,
+  serializeLegacyPayableMemo,
   serializeLegacyReceivableMemo,
 } from '@/lib/legacySnapshots'
 import { getPaidAmountAsOf } from '@/lib/reporting'
@@ -75,6 +77,11 @@ interface CustomerReceivableBreakdown {
 interface LegacyPaymentTarget {
   customer: Customer
   ledger: CustomerReceivableLedger
+}
+
+interface LegacyPayableTarget {
+  customer: Customer
+  payableAmount: number
 }
 
 interface PayableLedgerEntry {
@@ -267,6 +274,7 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
     qc.invalidateQueries({ queryKey: ['receivable-link-customers'] })
     qc.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(customerId)] })
     qc.invalidateQueries({ queryKey: ['dash-receivables'] })
+    qc.invalidateQueries({ queryKey: ['dash-payable-customers'] })
     qc.invalidateQueries({
       predicate: (q) => {
         const key = q.queryKey[0]
@@ -452,15 +460,236 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
   )
 }
 
-// ─── 미수금 관리 메인 ───────────────────────────
-export function Receivables() {
+interface LegacyPayableDialogProps {
+  target: LegacyPayableTarget | null
+  onClose: () => void
+  onSaved: () => void
+}
+
+function LegacyPayableDialog({ target, onClose, onSaved }: LegacyPayableDialogProps) {
+  const qc = useQueryClient()
+  const [amount, setAmount] = useState(0)
+  const [method, setMethod] = useState('계좌이체')
+  const [isSaving, setIsSaving] = useState(false)
+  const [editingEntryIndex, setEditingEntryIndex] = useState<number | null>(null)
+
+  if (!target) return null
+  const payableTarget = target
+
+  const memoState = parseLegacyPayableMemo(payableTarget.customer.memo as string | undefined)
+  const maxAmount = payableTarget.payableAmount
+  const activeOperator = loadActiveWorkOperatorProfile()
+
+  async function refreshPayableViews(customerId: number) {
+    qc.invalidateQueries({ queryKey: ['customers'] })
+    qc.invalidateQueries({ queryKey: ['customer', customerId] })
+    qc.invalidateQueries({ queryKey: ['transactions-customer-directory'] })
+    qc.invalidateQueries({ queryKey: ['customer-detail-link-customers'] })
+    qc.invalidateQueries({ queryKey: ['receivables'] })
+    qc.invalidateQueries({ queryKey: ['receivable-link-customers'] })
+    qc.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(customerId)] })
+    qc.invalidateQueries({ queryKey: ['dash-receivables'] })
+    qc.invalidateQueries({ queryKey: ['dash-fiscal-snapshots'] })
+    qc.invalidateQueries({ queryKey: ['dash-payable-customers'] })
+    qc.invalidateQueries({
+      predicate: (q) => {
+        const key = q.queryKey[0]
+        return typeof key === 'string' && (key.startsWith('dash-') || key.startsWith('period-') || key.startsWith('calendar-'))
+      },
+    })
+  }
+
+  async function handleSave() {
+    if (amount <= 0) {
+      toast.error('지급액을 입력해주세요.')
+      return
+    }
+    if (amount > maxAmount) {
+      toast.error(`기존 장부 미지급금(${maxAmount.toLocaleString()}원)보다 많이 지급할 수 없습니다.`)
+      return
+    }
+
+    setIsSaving(true)
+    try {
+      const nextSettlements = [
+        ...memoState.settlements,
+        {
+          amount,
+          date: todayDate(),
+          method,
+          accountId: activeOperator?.id,
+          accountLabel: activeOperator?.label,
+          operator: activeOperator?.operatorName,
+          createdAt: currentTimestamp(),
+        },
+      ]
+      const nextMemo = serializeLegacyPayableMemo(payableTarget.customer.memo as string | undefined, {
+        settledAmount: memoState.settledAmount + amount,
+        settlements: nextSettlements,
+      })
+      await updateCustomer(payableTarget.customer.Id, { memo: nextMemo })
+      await refreshPayableViews(payableTarget.customer.Id)
+      toast.success('기존 장부 지급 처리가 반영되었습니다.')
+      onSaved()
+    } catch (error) {
+      console.error(error)
+      toast.error('기존 장부 지급 처리 중 오류가 발생했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  async function handleDeleteSettlement(index: number) {
+    const settlement = memoState.settlements[index]
+    if (!settlement) return
+    if (!confirm(`${settlement.date} ${settlement.amount.toLocaleString()}원 지급 기록을 취소하시겠습니까?`)) return
+
+    setIsSaving(true)
+    try {
+      const nextSettlements = memoState.settlements.filter((_, settlementIndex) => settlementIndex !== index)
+      const nextMemo = serializeLegacyPayableMemo(payableTarget.customer.memo as string | undefined, {
+        settledAmount: nextSettlements.reduce((sum, entry) => sum + entry.amount, 0),
+        settlements: nextSettlements,
+      })
+      await updateCustomer(payableTarget.customer.Id, { memo: nextMemo })
+      await refreshPayableViews(payableTarget.customer.Id)
+      setEditingEntryIndex(null)
+      toast.success('기존 장부 지급 기록을 취소했습니다.')
+      onSaved()
+    } catch (error) {
+      console.error(error)
+      toast.error('기존 장부 지급 기록 취소 중 오류가 발생했습니다.')
+    } finally {
+      setIsSaving(false)
+    }
+  }
+
+  return (
+    <Dialog open={!!target} onOpenChange={(open) => { if (!open) onClose() }}>
+      <DialogContent className="max-w-sm">
+        <DialogHeader>
+          <DialogTitle>기존 장부 지급 확인</DialogTitle>
+        </DialogHeader>
+        <div className="space-y-4 py-2">
+          <div className="bg-gray-50 rounded-md p-3 space-y-1 text-sm">
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">거래처</span>
+              <span className="font-medium">{payableTarget.customer.name}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">현재 작업 계정</span>
+              <span className="font-medium">{activeOperator?.label ?? '미설정'}</span>
+            </div>
+            <div className="flex justify-between">
+              <span className="text-muted-foreground">기존 장부 미지급금</span>
+              <span className="font-bold text-blue-700">{maxAmount.toLocaleString()}원</span>
+            </div>
+          </div>
+
+          <div>
+            <Label className="text-xs">지급액</Label>
+            <Input
+              type="number"
+              value={amount || ''}
+              onChange={(e) => setAmount(Number(e.target.value))}
+              placeholder={`최대 ${maxAmount.toLocaleString()}원`}
+              className="mt-1"
+              autoFocus
+            />
+            <p className="mt-1 text-xs text-muted-foreground">최대 지급 가능액: {maxAmount.toLocaleString()}원</p>
+          </div>
+
+          <div>
+            <Label className="text-xs">지급방법</Label>
+            <Select value={method} onValueChange={setMethod}>
+              <SelectTrigger className="mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="현금">현금</SelectItem>
+                <SelectItem value="계좌이체">계좌이체</SelectItem>
+                <SelectItem value="카드">카드</SelectItem>
+                <SelectItem value="수표">수표</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+
+          {amount > 0 && (
+            <div className="bg-blue-50 rounded-md p-2 text-xs text-blue-700">
+              지급 후 기존 장부 미지급금:{' '}
+              <span className={maxAmount - amount > 0 ? 'text-blue-700 font-bold' : 'text-green-600 font-bold'}>
+                {(maxAmount - amount).toLocaleString()}원
+              </span>
+            </div>
+          )}
+
+          {memoState.settlements.length > 0 && (
+            <div className="rounded-md border p-3 space-y-2">
+              <div className="text-xs font-medium text-muted-foreground">기존 장부 지급 이력</div>
+              {memoState.settlements.map((entry, index) => (
+                <div key={`${entry.date}-${entry.amount}-${index}`} className="flex items-center justify-between gap-2 text-xs">
+                  <div>
+                    <span>{entry.date}</span>
+                    <span className="ml-2 font-medium">{entry.amount.toLocaleString()}원</span>
+                    {entry.method ? <span className="ml-2 text-muted-foreground">{entry.method}</span> : null}
+                    {entry.accountLabel ? <span className="ml-2 text-muted-foreground">계정: {entry.accountLabel}</span> : null}
+                    {entry.operator ? <span className="ml-2 text-muted-foreground">입력: {entry.operator}</span> : null}
+                    {entry.createdAt ? <span className="ml-2 text-muted-foreground">{entry.createdAt.slice(0, 16).replace('T', ' ')}</span> : null}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 px-2 text-xs text-red-500 hover:text-red-600"
+                    disabled={isSaving}
+                    onClick={() => {
+                      setEditingEntryIndex(index)
+                      void handleDeleteSettlement(index)
+                    }}
+                  >
+                    {editingEntryIndex === index && isSaving ? '처리 중...' : '취소'}
+                  </Button>
+                </div>
+              ))}
+            </div>
+          )}
+
+          <div className="flex gap-2 justify-end pt-2">
+            <Button variant="ghost" onClick={onClose} disabled={isSaving}>
+              취소
+            </Button>
+            <Button
+              onClick={handleSave}
+              disabled={isSaving || amount <= 0}
+              className="bg-[#4b7bec] hover:bg-[#3867d6] text-white"
+            >
+              {isSaving ? '처리 중...' : '지급 확인'}
+            </Button>
+          </div>
+        </div>
+      </DialogContent>
+    </Dialog>
+  )
+}
+
+interface ReceivablesProps {
+  mode?: 'receivable' | 'payable'
+}
+
+// ─── 수금/지급 관리 메인 ───────────────────────────
+export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [paymentTarget, setPaymentTarget] = useState<Invoice | null>(null)
   const [legacyPaymentTarget, setLegacyPaymentTarget] = useState<LegacyPaymentTarget | null>(null)
+  const [legacyPayableTarget, setLegacyPayableTarget] = useState<LegacyPayableTarget | null>(null)
   const [customerSearch, setCustomerSearch] = useState(() => searchParams.get('customer') ?? '')
   const [customerIdFilter, setCustomerIdFilter] = useState(() => searchParams.get('customerId') ?? '')
-  const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy' | 'payable'>('all')
+  const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy' | 'payable'>(() => {
+    const tab = searchParams.get('tab')
+    if (tab === 'crm' || tab === 'legacy' || tab === 'payable' || tab === 'all') return tab
+    return mode === 'payable' ? 'payable' : 'all'
+  })
   const [asOfDate, setAsOfDate] = useState(() => {
     const value = searchParams.get('asOf')
     return isValidCalendarDate(value) ? value : todayDate()
@@ -474,10 +703,16 @@ export function Receivables() {
     setCustomerSearch((prev) => (prev === nextCustomer ? prev : nextCustomer))
     const nextCustomerId = searchParams.get('customerId') ?? ''
     setCustomerIdFilter((prev) => (prev === nextCustomerId ? prev : nextCustomerId))
-  }, [searchParams])
+    const nextTab = searchParams.get('tab')
+    const normalizedTab = nextTab === 'crm' || nextTab === 'legacy' || nextTab === 'payable' || nextTab === 'all'
+      ? nextTab
+      : mode === 'payable' ? 'payable' : 'all'
+    setSourceTab((prev) => (prev === normalizedTab ? prev : normalizedTab))
+  }, [mode, searchParams])
   useEffect(() => {
     setPaymentTarget(null)
     setLegacyPaymentTarget(null)
+    setLegacyPayableTarget(null)
   }, [asOfDate])
 
   const { data: invoices = [], isLoading, isError } = useQuery({
@@ -489,19 +724,6 @@ export function Receivables() {
         fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status,current_balance',
       }),
     staleTime: 2 * 60 * 1000,
-  })
-  const { data: customerBreakdown } = useQuery<CustomerReceivableBreakdown | null>({
-    queryKey: ['receivable-customer-breakdown', customerIdFilter],
-    enabled: !!customerIdFilter,
-    queryFn: async () => {
-      const customer = await getCustomer(Number(customerIdFilter))
-      return {
-        customer,
-        legacyBaseline: await getLegacyReceivableBaseline(customer),
-        payableBaseline: getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots),
-      }
-    },
-    staleTime: 10 * 60 * 1000,
   })
   const { data: customersForLink = [] } = useQuery({
     queryKey: ['receivable-link-customers'],
@@ -519,6 +741,19 @@ export function Receivables() {
     queryKey: ['receivable-fiscal-snapshots'],
     queryFn: getFiscalBalanceSnapshots,
     staleTime: Infinity,
+  })
+  const { data: customerBreakdown } = useQuery<CustomerReceivableBreakdown | null>({
+    queryKey: ['receivable-customer-breakdown', customerIdFilter, fiscalSnapshots?.currentFiscalYear ?? ''],
+    enabled: !!customerIdFilter && !!legacySnapshots && !!fiscalSnapshots,
+    queryFn: async () => {
+      const customer = await getCustomer(Number(customerIdFilter))
+      return {
+        customer,
+        legacyBaseline: await getLegacyReceivableBaseline(customer),
+        payableBaseline: getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots),
+      }
+    },
+    staleTime: 10 * 60 * 1000,
   })
   const customerById = new Map(customersForLink.map((customer) => [customer.Id, customer]))
   const isTodayView = asOfDate === todayDate()
@@ -552,14 +787,18 @@ export function Receivables() {
       .map(([legacyId, amount]) => {
         const customer = customerByLegacyId.get(legacyId)
         const tradebook = legacySnapshots?.tradebookByLegacyId?.[legacyId]
+        const payableAmount = customer
+          ? getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
+          : amount
         return {
           customerId: customer?.Id ?? null,
           legacyId,
           customerName: customer?.name?.trim() || tradebook?.name?.trim() || tradebook?.book_name?.trim() || `장부 ${legacyId}`,
-          payableAmount: amount,
+          payableAmount,
           bookName: customer?.book_name?.trim() || tradebook?.book_name?.trim() || undefined,
         }
       })
+      .filter((entry) => entry.payableAmount > 0)
       .sort((left, right) => right.payableAmount - left.payableAmount)
   }, [customersForLink, fiscalSnapshots, legacySnapshots])
 
@@ -649,6 +888,20 @@ export function Receivables() {
     return summary
   }, { orphanCount: 0, splitCount: 0 })
 
+  const isPayableMode = mode === 'payable'
+  const pageTitle = isPayableMode ? '지급 관리' : '수금 관리'
+  const pageDescription = isPayableMode
+    ? '기존 장부 기준으로 지금 줄 돈을 확인하고 지급 이력을 관리합니다.'
+    : '기존 장부와 새 입력 기준으로 지금 받을 돈을 확인하고 수금 이력을 관리합니다.'
+  const totalSummaryLabel = isPayableMode ? '총 줄 돈' : '총 받을 돈'
+  const legacySummaryLabel = isPayableMode ? '기존 장부 받을 돈' : '기존 장부 받을 돈'
+  const crmSummaryLabel = isPayableMode ? '새 입력 받을 돈' : '새 입력 받을 돈'
+  const payableSummaryLabel = isPayableMode ? '총 줄 돈' : '총 줄 돈'
+  const allTabLabel = isPayableMode ? '전체 정산' : '전체 정산'
+  const crmTabLabel = '새 입력 받을 돈'
+  const legacyTabLabel = '기존 장부 받을 돈'
+  const payableTabLabel = '기존 장부 줄 돈'
+
   if (isLoading)
     return (
       <div className="p-6 text-muted-foreground">
@@ -675,12 +928,18 @@ export function Receivables() {
       {/* 헤더 */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold">미수금 관리</h2>
+          <h2 className="text-2xl font-bold">{pageTitle}</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            총 <span className="font-medium text-red-600">{filteredTotalReceivable.toLocaleString()}원</span>
-            {' / '}기존 장부 {filteredLegacyTotal.toLocaleString()}원
-            {' / '}새 입력 {filteredCrmTotal.toLocaleString()}원
-            {' / '}미지급금 <span className="font-medium text-blue-700">{filteredPayableTotal.toLocaleString()}원</span>
+            {pageDescription}
+          </p>
+          <p className="text-sm text-muted-foreground mt-1">
+            {totalSummaryLabel}{' '}
+            <span className={`font-medium ${isPayableMode ? 'text-blue-700' : 'text-red-600'}`}>
+              {(isPayableMode ? filteredPayableTotal : filteredTotalReceivable).toLocaleString()}원
+            </span>
+            {' / '}기존 장부 받을 돈 {filteredLegacyTotal.toLocaleString()}원
+            {' / '}새 입력 받을 돈 {filteredCrmTotal.toLocaleString()}원
+            {' / '}총 줄 돈 <span className="font-medium text-blue-700">{filteredPayableTotal.toLocaleString()}원</span>
             {criticalCount > 0 && (
               <span className="ml-2 text-amber-600">
                 <AlertCircle className="inline h-3.5 w-3.5 mr-0.5" />
@@ -744,22 +1003,26 @@ export function Receivables() {
 
       <div className="mb-4 grid gap-3 md:grid-cols-4">
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">총 미수금</p>
-          <p className="mt-1 text-base font-semibold text-red-600">{filteredTotalReceivable.toLocaleString()}원</p>
-          <p className="mt-1 text-xs text-muted-foreground">기존 장부 + 새 입력 합산</p>
+          <p className="text-xs text-muted-foreground">{totalSummaryLabel}</p>
+          <p className={`mt-1 text-base font-semibold ${isPayableMode ? 'text-blue-700' : 'text-red-600'}`}>
+            {(isPayableMode ? filteredPayableTotal : filteredTotalReceivable).toLocaleString()}원
+          </p>
+          <p className="mt-1 text-xs text-muted-foreground">
+            {isPayableMode ? '기존 장부 지급 확인 대상 합계' : '기존 장부 + 새 입력 합산'}
+          </p>
         </div>
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">기존 장부 미수</p>
+          <p className="text-xs text-muted-foreground">{legacySummaryLabel}</p>
           <p className="mt-1 text-base font-semibold text-red-600">{filteredLegacyTotal.toLocaleString()}원</p>
           <p className="mt-1 text-xs text-muted-foreground">{filteredLegacyLedger.length}개 고객</p>
         </div>
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">새 입력 미수</p>
+          <p className="text-xs text-muted-foreground">{crmSummaryLabel}</p>
           <p className="mt-1 text-base font-semibold text-red-600">{filteredCrmTotal.toLocaleString()}원</p>
           <p className="mt-1 text-xs text-muted-foreground">{filteredInvoices.length}개 열린 명세표</p>
         </div>
         <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">총 미지급금</p>
+          <p className="text-xs text-muted-foreground">{payableSummaryLabel}</p>
           <p className="mt-1 text-base font-semibold text-blue-700">{filteredPayableTotal.toLocaleString()}원</p>
           <p className="mt-1 text-xs text-muted-foreground">{filteredPayableLedger.length}개 고객</p>
         </div>
@@ -769,6 +1032,7 @@ export function Receivables() {
         <div className="mb-4 grid gap-3 md:grid-cols-4">
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">이월 미수</p>
+            
             <p className={`mt-1 text-base font-semibold ${customerBreakdown.legacyBaseline > 0 ? 'text-red-600' : customerBreakdown.legacyBaseline < 0 ? 'text-blue-700' : ''}`}>
               {customerBreakdown.legacyBaseline.toLocaleString()}원
             </p>
@@ -815,12 +1079,22 @@ export function Receivables() {
         </div>
       )}
 
-      <Tabs value={sourceTab} onValueChange={(value) => setSourceTab(value as 'all' | 'crm' | 'legacy' | 'payable')}>
+      <Tabs
+        value={sourceTab}
+        onValueChange={(value) => {
+          const nextValue = value as 'all' | 'crm' | 'legacy' | 'payable'
+          setSourceTab(nextValue)
+          const nextParams = new URLSearchParams(searchParams)
+          if (nextValue === 'all') nextParams.delete('tab')
+          else nextParams.set('tab', nextValue)
+          setSearchParams(nextParams, { replace: true })
+        }}
+      >
         <TabsList className="mb-4">
-          <TabsTrigger value="all">전체</TabsTrigger>
-          <TabsTrigger value="crm">새 입력 명세표</TabsTrigger>
-          <TabsTrigger value="legacy">기존 장부 미수</TabsTrigger>
-          <TabsTrigger value="payable">기존 장부 미지급금</TabsTrigger>
+          <TabsTrigger value="all">{allTabLabel}</TabsTrigger>
+          <TabsTrigger value="crm">{crmTabLabel}</TabsTrigger>
+          <TabsTrigger value="legacy">{legacyTabLabel}</TabsTrigger>
+          <TabsTrigger value="payable">{payableTabLabel}</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
@@ -1073,12 +1347,13 @@ export function Receivables() {
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
                   <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부 미지급금</th>
                   <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
+                  <th className="w-28" />
                 </tr>
               </thead>
               <tbody>
                 {filteredPayableLedger.length === 0 && (
                   <tr>
-                    <td colSpan={3} className="px-4 py-12 text-center text-muted-foreground">
+                    <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
                       기존 장부 미지급금 고객이 없습니다.
                     </td>
                   </tr>
@@ -1103,6 +1378,26 @@ export function Receivables() {
                     <td className="px-4 py-2.5 text-xs text-muted-foreground">
                       {entry.customerId ? '고객 상세에서 원본 장부와 같이 확인' : '고객관리 연결 없음'}
                     </td>
+                    <td className="px-4 py-2.5 text-right">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                        disabled={!entry.customerId}
+                        onClick={(event) => {
+                          event.stopPropagation()
+                          if (!entry.customerId) return
+                          const customer = customerById.get(entry.customerId)
+                          if (!customer) {
+                            toast.error('고객 정보를 찾을 수 없습니다.')
+                            return
+                          }
+                          setLegacyPayableTarget({ customer, payableAmount: entry.payableAmount })
+                        }}
+                      >
+                        지급 확인
+                      </Button>
+                    </td>
                   </tr>
                 ))}
               </tbody>
@@ -1121,6 +1416,11 @@ export function Receivables() {
         target={legacyPaymentTarget}
         onClose={() => setLegacyPaymentTarget(null)}
         onSaved={() => setLegacyPaymentTarget(null)}
+      />
+      <LegacyPayableDialog
+        target={legacyPayableTarget}
+        onClose={() => setLegacyPayableTarget(null)}
+        onSaved={() => setLegacyPayableTarget(null)}
       />
     </div>
   )

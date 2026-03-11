@@ -10,7 +10,7 @@ import { getAllCustomers, getTxHistory, getInvoices, sanitizeSearchTerm } from '
 import type { TxHistory, Invoice, Customer } from '@/lib/api'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
-import { parseLegacyReceivableMemo } from '@/lib/legacySnapshots'
+import { parseLegacyPayableMemo, parseLegacyReceivableMemo } from '@/lib/legacySnapshots'
 
 const PAGE_SIZE = 50
 
@@ -29,6 +29,7 @@ const TX_TYPE_STYLE: Record<string, { bg: string; text: string }> = {
   출고: { bg: '#dbeafe', text: '#1d4ed8' },
   '출고(CRM)': { bg: '#e0e7ff', text: '#4338ca' },
   입금: { bg: '#dcfce7', text: '#15803d' },
+  지급: { bg: '#dbeafe', text: '#1d4ed8' },
   반입: { bg: '#fef3c7', text: '#b45309' },
   메모: { bg: '#f1f5f9', text: '#64748b' },
 }
@@ -218,7 +219,7 @@ export function Transactions() {
   const legacySettlementRows = useMemo(() => (
     customerDirectory.flatMap((customer: Customer) => {
       const legacyBookId = customer.legacy_id != null ? String(customer.legacy_id).trim() : ''
-      return parseLegacyReceivableMemo(customer.memo as string | undefined).settlements.map((entry, index) => ({
+      const receivableRows = parseLegacyReceivableMemo(customer.memo as string | undefined).settlements.map((entry, index) => ({
         id: `legacy-settlement-${customer.Id}-${index}`,
         recordId: -(customer.Id * 1000 + index + 1),
         customer_id: customer.Id,
@@ -238,6 +239,27 @@ export function Transactions() {
         ].filter(Boolean).join(' · '),
         source: 'legacySettlement' as const,
       }))
+      const payableRows = parseLegacyPayableMemo(customer.memo as string | undefined).settlements.map((entry, index) => ({
+        id: `legacy-payable-${customer.Id}-${index}`,
+        recordId: -(customer.Id * 100000 + index + 1),
+        customer_id: customer.Id,
+        tx_date: entry.createdAt ?? entry.date,
+        customer_name: customer.name?.trim() || customer.book_name?.trim() || '',
+        legacy_book_id: legacyBookId || undefined,
+        tx_type: '지급',
+        amount: entry.amount,
+        tax: 0,
+        slip_no: entry.createdAt ?? entry.date,
+        memo: [
+          '기존 장부 미지급금 지급',
+          entry.method ? `방법: ${entry.method}` : '',
+          entry.accountLabel ? `계정: ${entry.accountLabel}` : '',
+          entry.operator ? `입력: ${entry.operator}` : '',
+          entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
+        ].filter(Boolean).join(' · '),
+        source: 'legacySettlement' as const,
+      }))
+      return [...receivableRows, ...payableRows]
     })
   ), [customerDirectory])
 
@@ -274,7 +296,7 @@ export function Transactions() {
   // ── skipLegacy / skipCrm 판별 ──
   const useLegacyClientSearch = !!debouncedSearch && matchedLegacyIds.length > 0
   const skipLegacy = activeTab === 'crm' || typeFilter === '출고(CRM)'
-  const skipCrm = activeTab === 'legacy' || ['입금', '반입', '메모'].includes(typeFilter)
+  const skipCrm = activeTab === 'legacy' || ['입금', '지급', '반입', '메모'].includes(typeFilter)
 
   const isServerPaginated = (activeTab === 'legacy' || activeTab === 'crm') && !useLegacyClientSearch
 
@@ -461,6 +483,7 @@ export function Transactions() {
       { value: '출고', label: '출고 (기존 장부)' },
       { value: '출고(CRM)', label: '출고 (새 입력 명세표)' },
       { value: '입금', label: '입금' },
+      { value: '지급', label: '지급' },
       { value: '반입', label: '반입' },
       { value: '메모', label: '메모' },
     ]

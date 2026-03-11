@@ -144,8 +144,10 @@ export function TransactionDetailDialog({ open, transaction, onClose }: Transact
     const params = new URLSearchParams()
     if (effectiveCustomerName) params.set('customer', effectiveCustomerName)
     if (effectiveCustomerId) params.set('customerId', String(effectiveCustomerId))
+    const targetPath = transaction?.txType === '지급' ? '/payables' : '/receivables'
+    if (transaction?.txType === '지급') params.set('tab', 'payable')
     onClose()
-    navigate(`/receivables?${params.toString()}`)
+    navigate(`${targetPath}?${params.toString()}`)
   }
 
   return (
@@ -156,7 +158,11 @@ export function TransactionDetailDialog({ open, transaction, onClose }: Transact
             <span>거래 상세</span>
             {transaction ? (
               <span className="text-xs font-normal text-muted-foreground">
-                {transaction.source === 'crm' ? 'CRM 명세표 기준' : transaction.source === 'legacySettlement' ? '레거시 수금 이력 기준' : '레거시 장부 기준'}
+                {transaction.source === 'crm'
+                  ? '새 입력 명세표 기준'
+                  : transaction.source === 'legacySettlement'
+                    ? `기존 장부 ${transaction.txType === '지급' ? '지급' : '수금'} 이력 기준`
+                    : '기존 장부 기준'}
               </span>
             ) : null}
           </DialogTitle>
@@ -217,7 +223,7 @@ export function TransactionDetailDialog({ open, transaction, onClose }: Transact
               onClick={goToReceivables}
               disabled={!effectiveCustomerName}
             >
-              미수금 보기
+              {transaction?.txType === '지급' ? '정산 보기' : '미수금 보기'}
             </Button>
           </div>
           <Button variant="outline" onClick={onClose}>닫기</Button>

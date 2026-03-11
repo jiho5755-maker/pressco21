@@ -75,7 +75,8 @@ function App() {
             <Route path="products" element={<Products />} />
             <Route path="suppliers" element={<Suppliers />} />
             <Route path="transactions" element={<Transactions />} />
-            <Route path="receivables" element={<Receivables />} />
+            <Route path="receivables" element={<Receivables mode="receivable" />} />
+            <Route path="payables" element={<Receivables mode="payable" />} />
             <Route path="settings" element={<Settings />} />
             <Route path="calendar" element={<Calendar />} />
           </Route>

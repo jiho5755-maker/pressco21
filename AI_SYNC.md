@@ -49,12 +49,12 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-11 17:20:00 KST
+- Current Owner: IDLE
+- Mode: —
+- Started At: —
 - Branch: main
-- Working Scope: offline-crm-v2 Phase 1 지급 처리 엔진 구현
-- Active Subdirectory: offline-crm-v2
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
 - `AI_SYNC.md`
@@ -319,6 +319,40 @@
     - 원장님 농협 계좌 입금 자동 반영
   - 구현 순서는 `수금/지급 처리 엔진 분리 -> 화면 구조 재설계 -> 직원 가이드 투어 -> 농협 계좌 자동화`
   - 자동 수금은 첫 단계에서 완전 자동이 아니라 `후보 매칭 + 승인 가능한 반자동`을 원칙으로 함
+
+### [CODEX] offline-crm-v2 Phase 1 지급 처리 엔진 + Phase 2 화면 구조 1차 완료 (CODEX)
+- 코드
+  - `offline-crm-v2/src/lib/legacySnapshots.ts`
+    - 기존 장부 미지급금 메모 파서/직렬화 추가
+    - 지급 반영액을 차감한 현재 줄 돈 계산 지원
+  - `offline-crm-v2/src/pages/Receivables.tsx`
+    - 기존 장부 지급 확인/취소 다이얼로그 추가
+    - 대시보드/고객상세/거래원장과 동일한 지급 로그 무효화 처리 연결
+    - `/receivables`를 수금 관리, `/payables`를 지급 관리 진입점으로 분리
+    - 지급 관리 기본 탭/화면 문구/카드 구조 1차 정리
+    - 고객별 지급 요약 카드 쿼리 의존성 보정
+  - `offline-crm-v2/src/pages/CustomerDetail.tsx`
+    - 고객 상세 빠른 액션에 `수금 관리`, `지급 관리` 분리
+    - 기존 장부 원본 탭에 지급 확인/취소/이력 UI 추가
+    - 거래내역 필터에 `지급` 포함
+  - `offline-crm-v2/src/pages/Transactions.tsx`
+    - 기존 장부 지급 이력을 `지급` 행으로 병합
+    - 거래/명세표 조회에서 지급 검색/상세 가능
+  - `offline-crm-v2/src/components/TransactionDetailDialog.tsx`
+    - 지급 거래 상세에서 `정산 보기` 클릭 시 `/payables`로 이동
+  - `offline-crm-v2/src/pages/Dashboard.tsx`
+    - 기존 장부 지급 반영 후 총 미지급금 카드가 즉시 줄어들도록 계산 보정
+  - `offline-crm-v2/src/App.tsx`
+  - `offline-crm-v2/src/components/layout/Sidebar.tsx`
+    - `수금 관리`, `지급 관리` 별도 메뉴 진입 추가
+- 검증
+  - `npm run build`
+  - Playwright MCP 실사용 검증
+    - `강민숙 님` 기준 `기존 장부 지급 확인 100원 -> 지급 관리/거래원장/고객상세 반영 -> 취소 -> 200원 원복`
+    - 지급 거래 상세 팝업의 `정산 보기`가 `/payables?customerId=...&tab=payable`로 이동하는 것 확인
+    - `/payables` 진입 시 메뉴/제목/카드/탭이 지급 업무 기준으로 보이는 것 확인
+- 배포
+  - `offline-crm-v2` `bash deploy/deploy.sh` 재배포 완료
 
 ### [CODEX-LEAD] Phase 3 S3-3 키트 구독 파일럿 완료 (CODEX)
 - 메이크샵
@@ -2062,8 +2096,8 @@
 
 ## Next Step
 
-- [CODEX-LEAD] offline-crm-v2 Phase 1 지급 처리 엔진 설계 착수
-- [CODEX-LEAD] offline-crm-v2 지급 관리 화면 IA와 데이터 모델 초안 작성
+- [CODEX-LEAD] offline-crm-v2 Phase 3 실수 방지 UX 고도화 착수
+- [CODEX-LEAD] offline-crm-v2 Phase 4 직원 인앱 가이드 투어 설계/구현
 - [CODEX-LEAD] offline-crm-v2 농협 입금 자동화 1차 기술 검토: 수집 경로, 보안, 승인 큐 구조
 - [CODEX] CRM 수금/지급 실제 로그인 계정 체계가 필요해지면 localStorage 작업 계정 방식에서 서버 세션 기반 로그로 승격
 - [CODEX] CRM 운영 사용 중 신규 분리 고객/분리 거래명 케이스가 생기면 동일 정책으로 누적 정리
@@ -2171,6 +2205,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - CRM 운영 반영은 완료했지만, Basic Auth 자격증명 제약으로 운영 브라우저 화면의 최종 시각 검증은 아직 못 했음
 - CRM 운영 DB를 사용자가 직접 수정할 수 있는 상태라, 동일한 데이터 훼손이 반복되면 고객/명세표 수동 복구가 다시 필요할 수 있음
 - CRM 미수금 `전체`/`레거시` 탭은 고객 단위 집계이고 `CRM` 탭만 명세표 단위라, 엑셀 내보내기 포맷은 아직 CRM 명세표 기준만 지원함
+- CRM `지급 관리` 1차는 기존 장부 기준 줄 돈을 다루는 단계이며, 공급처별 독립 지급 원장/지급 예정일/상태 배지는 아직 Phase 3 이후 작업이 필요함
 - 이번 UX 수정은 아직 메이크샵에 저장되지 않았으므로, 실제 라이브 재검증 전까지는 기존 `/member/login.html` 및 선물하기 동작이 남아 있을 수 있음
 - 클래스 실상품 `branduid=12195642` 기준 상품 상세에는 native `.btn-gift` 링크가 노출되지 않아, 상품 설정상 선물하기가 비활성인 경우 프론트는 `basket.action` 기반 선물 주문 진입으로만 폴백함
 - `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음

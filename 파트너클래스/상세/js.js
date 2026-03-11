@@ -74,6 +74,19 @@
     /** 현재 클래스의 일정 목록 (tbl_Schedules) */
     var classSchedules = [];
 
+    /** 예약 옵션 코드 */
+    var BOOKING_MODE_CLASS_ONLY = 'CLASS_ONLY';
+    var BOOKING_MODE_WITH_KIT = 'WITH_KIT';
+
+    /** 현재 선택된 예약 방식 */
+    var selectedBookingMode = BOOKING_MODE_CLASS_ONLY;
+
+    /** 예약 옵션 상태 */
+    var bookingOptionState = {
+        classOnly: null,
+        withKit: null
+    };
+
     /** 후기 작성 선택 별점 */
     var reviewRating = 0;
 
@@ -217,6 +230,7 @@
 
         // 전체 렌더링
         renderAll(classData);
+        hydrateKitBundlePrice(classData);
 
         // 로딩 숨기고 콘텐츠 표시
         hideLoading();
@@ -1839,9 +1853,10 @@
         var priceEl = document.getElementById('bookingPrice');
         var maxEl = document.getElementById('bookingMax');
         var profile = resolveContentProfile(data || {});
+        var selection = getCurrentBookingSelection(data);
 
         var className = escapeHtml(data.class_name || '');
-        var price = data.price || 0;
+        var price = selection.unitPrice;
         var avgRating = getAverageRatingValue(data);
         var classCount = getReviewCountValue(data);
         var maxStudents = parseInt(data.max_students) || DEFAULT_MAX_STUDENTS;
@@ -1860,13 +1875,15 @@
                     + '</div>';
             }
             html += '<div>'
-                + '<span class="booking-info__price">' + formatPrice(price) + '<span class="booking-info__price-unit">\uC6D0</span></span>'
+                + '<span class="booking-info__price"><span id="bookingHeadlinePriceAmount">' + formatPrice(price) + '</span><span class="booking-info__price-unit">\uC6D0</span></span>'
                 + '<span class="booking-info__price-per">/1\uC778</span>'
                 + '</div>'
                 + '<p class="booking-info__note">' + escapeHtml(profile.bookingNote) + '</p>'
                 + buildExploreLinksHtml(data, 'sidebar');
             infoEl.innerHTML = html;
         }
+
+        renderBookingOptionSelector(data);
 
         // 최대 인원 표시
         if (maxEl) {
@@ -1880,6 +1897,203 @@
         initBookingPanel(data);
     }
 
+    function getKitBundleBrandUid(data) {
+        if (!data) return '';
+        return extractBrandUidFromValue(data.kit_bundle_branduid || data.kitBundleBranduid || '');
+    }
+
+    function getKitBundleEstimate(data) {
+        var total = 0;
+        var items = Array.isArray(data && data.kit_items) ? data.kit_items : [];
+        var i = 0;
+        for (i = 0; i < items.length; i++) {
+            total += Math.max(parseInt(items[i] && items[i].price, 10) || 0, 0) * Math.max(parseInt(items[i] && items[i].quantity, 10) || 1, 1);
+        }
+        return total;
+    }
+
+    function buildBookingOptionState(data) {
+        var classUnitPrice = Math.max(parseInt(data && data.price, 10) || 0, 0);
+        var kitBundleBrandUid = getKitBundleBrandUid(data);
+        var kitEstimate = getKitBundleEstimate(data);
+        var existingWithKit = bookingOptionState.withKit;
+        var liveBundlePrice = 0;
+        var priceSource = kitEstimate > 0 ? 'estimate' : 'pending';
+
+        if (existingWithKit && existingWithKit.brandUid === kitBundleBrandUid && parseInt(existingWithKit.bundleUnitPrice, 10) > 0) {
+            liveBundlePrice = Math.max(parseInt(existingWithKit.bundleUnitPrice, 10) || 0, 0);
+            priceSource = existingWithKit.priceSource || priceSource;
+        }
+
+        bookingOptionState.classOnly = {
+            mode: BOOKING_MODE_CLASS_ONLY,
+            available: true,
+            unitPrice: classUnitPrice,
+            classUnitPrice: classUnitPrice,
+            bundleUnitPrice: 0,
+            label: '\uAC15\uC758\uB9CC \uC218\uAC15',
+            description: '\uC218\uC5C5 \uC608\uC57D\uACFC \uACB0\uC81C\uB9CC \uC9C4\uD589\uD569\uB2C8\uB2E4.'
+        };
+
+        bookingOptionState.withKit = {
+            mode: BOOKING_MODE_WITH_KIT,
+            available: !!kitBundleBrandUid,
+            brandUid: kitBundleBrandUid,
+            classUnitPrice: classUnitPrice,
+            bundleUnitPrice: liveBundlePrice || kitEstimate,
+            unitPrice: classUnitPrice + (liveBundlePrice || kitEstimate),
+            label: '\uD0A4\uD2B8 \uD3EC\uD568 \uC218\uAC15',
+            description: kitBundleBrandUid
+                ? '\uAC15\uC758 \uC0C1\uD488\uACFC \uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC744 \uD568\uAED8 \uB2F4\uC544 \uC900\uBE44\uAE4C\uC9C0 \uD55C \uBC88\uC5D0 \uC9C4\uD589\uD569\uB2C8\uB2E4.'
+                : '\uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488 \uC5F0\uB3D9 \uD6C4 \uC120\uD0DD \uAC00\uB2A5\uD569\uB2C8\uB2E4.',
+            priceSource: priceSource
+        };
+
+        if (selectedBookingMode === BOOKING_MODE_WITH_KIT && !bookingOptionState.withKit.available) {
+            selectedBookingMode = BOOKING_MODE_CLASS_ONLY;
+        }
+    }
+
+    function getCurrentBookingSelection(data) {
+        if (!bookingOptionState.classOnly) {
+            buildBookingOptionState(data || classData || {});
+        }
+
+        if (selectedBookingMode === BOOKING_MODE_WITH_KIT && bookingOptionState.withKit && bookingOptionState.withKit.available) {
+            return bookingOptionState.withKit;
+        }
+
+        return bookingOptionState.classOnly || {
+            mode: BOOKING_MODE_CLASS_ONLY,
+            available: true,
+            unitPrice: Math.max(parseInt(data && data.price, 10) || 0, 0),
+            classUnitPrice: Math.max(parseInt(data && data.price, 10) || 0, 0),
+            bundleUnitPrice: 0
+        };
+    }
+
+    function canSelectWithKit() {
+        return !!(bookingOptionState.withKit && bookingOptionState.withKit.available && bookingOptionState.withKit.brandUid);
+    }
+
+    function canGiftCurrentSelection() {
+        return selectedBookingMode !== BOOKING_MODE_WITH_KIT;
+    }
+
+    function renderBookingOptionSelector(data) {
+        var area = document.getElementById('bookingOptionArea');
+        var listEl = document.getElementById('bookingOptionList');
+        var hintEl = document.getElementById('bookingOptionHint');
+        var classOnly;
+        var withKit;
+        var html;
+
+        if (!area || !listEl || !hintEl) return;
+
+        buildBookingOptionState(data || {});
+        classOnly = bookingOptionState.classOnly;
+        withKit = bookingOptionState.withKit;
+
+        if (!(data && parseInt(data.kit_enabled, 10) === 1)) {
+            area.style.display = 'none';
+            return;
+        }
+
+        html = '';
+        html += buildBookingOptionCardHtml(classOnly, selectedBookingMode === BOOKING_MODE_CLASS_ONLY, '');
+        html += buildBookingOptionCardHtml(
+            withKit,
+            selectedBookingMode === BOOKING_MODE_WITH_KIT,
+            withKit.available ? '\uCD94\uCC9C' : '\uC900\uBE44\uC911'
+        );
+        listEl.innerHTML = html;
+        area.style.display = '';
+        hintEl.textContent = withKit.available
+            ? '\uD0A4\uD2B8 \uD3EC\uD568 \uC120\uD0DD \uC2DC \uAC15\uC758 \uC0C1\uD488\uACFC \uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC774 \uD568\uAED8 \uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uAE41\uB2C8\uB2E4.'
+            : '\uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC774 \uC5F0\uB3D9\uB418\uBA74 \uD0A4\uD2B8 \uD3EC\uD568 \uC608\uC57D\uC744 \uBC14\uB85C \uC120\uD0DD\uD560 \uC218 \uC788\uC5B4\uC694.';
+
+        bindBookingOptionEvents();
+        updateBookingNotice();
+        updateBookingHeadlinePrice();
+    }
+
+    function buildBookingOptionCardHtml(option, isSelected, badgeText) {
+        var priceText = option.unitPrice > 0 ? formatPrice(option.unitPrice) + '\uC6D0 /1\uC778' : '\uAC00\uACA9 \uD655\uC778 \uC911';
+        var className = 'booking-option__card';
+        if (isSelected) className += ' is-selected';
+        if (!option.available) className += ' is-disabled';
+
+        return '<button type="button" class="' + className + '" data-booking-mode="' + escapeHtml(option.mode) + '"' + (option.available ? '' : ' disabled') + '>'
+            + '<span class="booking-option__radio" aria-hidden="true"></span>'
+            + '<span class="booking-option__body">'
+            + '<span class="booking-option__title-row">'
+            + '<span class="booking-option__title">' + escapeHtml(option.label) + '</span>'
+            + (badgeText ? '<span class="booking-option__badge">' + escapeHtml(badgeText) + '</span>' : '')
+            + '</span>'
+            + '<span class="booking-option__price">' + escapeHtml(priceText) + '</span>'
+            + '<span class="booking-option__desc">' + escapeHtml(option.description) + '</span>'
+            + '</span>'
+            + '</button>';
+    }
+
+    function bindBookingOptionEvents() {
+        var buttons = document.querySelectorAll('.class-detail .booking-option__card[data-booking-mode]');
+        var i = 0;
+        for (i = 0; i < buttons.length; i++) {
+            buttons[i].addEventListener('click', function() {
+                var mode = this.getAttribute('data-booking-mode') || BOOKING_MODE_CLASS_ONLY;
+                if (mode === BOOKING_MODE_WITH_KIT && !canSelectWithKit()) {
+                    return;
+                }
+                selectedBookingMode = mode;
+                renderBookingOptionSelector(classData || {});
+                updatePriceDisplay();
+                validateBooking();
+            });
+        }
+    }
+
+    function updateBookingNotice() {
+        var noticeEl = document.getElementById('bookingNotice');
+        if (!noticeEl) return;
+
+        if (selectedBookingMode === BOOKING_MODE_WITH_KIT) {
+            noticeEl.textContent = '\uD0A4\uD2B8 \uD3EC\uD568 \uC120\uD0DD \uC2DC \uAC15\uC758 \uC0C1\uD488\uACFC \uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC744 \uD568\uAED8 \uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uC544 \uACB0\uC81C\uB97C \uC9C4\uD589\uD569\uB2C8\uB2E4.';
+            return;
+        }
+
+        noticeEl.textContent = '\uC608\uC57D \uD655\uC815 \uC804 \uACB0\uC81C\uAC00 \uC9C4\uD589\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.';
+    }
+
+    function updateBookingHeadlinePrice() {
+        var amountEl = document.getElementById('bookingHeadlinePriceAmount');
+        var selection = getCurrentBookingSelection(classData || {});
+        if (!amountEl) return;
+        amountEl.textContent = formatPrice(selection.unitPrice || 0);
+    }
+
+    function hydrateKitBundlePrice(data) {
+        var bundleBrandUid = getKitBundleBrandUid(data);
+
+        if (!bundleBrandUid) return;
+
+        resolveShopProductMeta(bundleBrandUid)
+            .then(function(meta) {
+                var bundlePrice = Math.max(parseInt(meta && meta.priceValue, 10) || 0, 0);
+                if (!bookingOptionState.withKit || !bundlePrice) return;
+
+                bookingOptionState.withKit.bundleUnitPrice = bundlePrice;
+                bookingOptionState.withKit.unitPrice = bookingOptionState.withKit.classUnitPrice + bundlePrice;
+                bookingOptionState.withKit.priceSource = 'live';
+                renderBookingOptionSelector(data || {});
+                updatePriceDisplay();
+                validateBooking();
+            })
+            .catch(function(err) {
+                console.warn('[ClassDetail] \uBB36\uC74C \uD0A4\uD2B8 \uAC00\uACA9 \uD655\uC778 \uC2E4\uD328:', err);
+            });
+    }
+
 
     /* ========================================
        예약 패널 인터랙션
@@ -1890,7 +2104,7 @@
      * @param {Object} data
      */
     function initBookingPanel(data) {
-        var price = data.price || 0;
+        var price = getCurrentBookingSelection(data).unitPrice;
         var maxStudents = parseInt(data.max_students) || DEFAULT_MAX_STUDENTS;
 
         // tbl_Schedules 기반 일정 저장
@@ -1924,7 +2138,7 @@
                     onChange: function(selectedDates, dateStr) {
                         selectedDate = dateStr;
                         selectedScheduleId = '';
-                        renderTimeSlots(dateStr, price);
+                        renderTimeSlots(dateStr);
                         validateBooking();
                     }
                 });
@@ -1941,7 +2155,7 @@
                 if (selectedQuantity > MIN_QUANTITY) {
                     selectedQuantity--;
                     if (valueEl) valueEl.textContent = selectedQuantity;
-                    updatePriceDisplay(price);
+                    updatePriceDisplay();
                     updateCounterButtons(maxStudents);
                 }
             });
@@ -1952,7 +2166,7 @@
                 if (selectedQuantity < maxStudents) {
                     selectedQuantity++;
                     if (valueEl) valueEl.textContent = selectedQuantity;
-                    updatePriceDisplay(price);
+                    updatePriceDisplay();
                     updateCounterButtons(maxStudents);
                 }
             });
@@ -1999,16 +2213,23 @@
      * @param {number} unitPrice
      */
     function updatePriceDisplay(unitPrice) {
+        var selection = getCurrentBookingSelection(classData || {});
         var priceEl = document.getElementById('bookingPrice');
-        var totalPrice = unitPrice * selectedQuantity;
+        var actualUnitPrice = typeof unitPrice === 'number' ? unitPrice : selection.unitPrice;
+        var totalPrice = actualUnitPrice * selectedQuantity;
         var mobilePrice = document.getElementById('mobilePrice');
         var mobilePriceUnit = document.getElementById('mobilePriceUnit');
+        var mobileLabel = document.querySelector('.booking-bar-mobile__label');
+        var lineLabel = selectedBookingMode === BOOKING_MODE_WITH_KIT ? '\uD0A4\uD2B8 \uD3EC\uD568' : '\uAC15\uC758 \uB9CC';
 
         if (priceEl) {
             var html = '<div class="booking-price__row">'
-                + '<span>' + formatPrice(unitPrice) + '\uC6D0 x ' + selectedQuantity + '\uBA85</span>'
+                + '<span>' + lineLabel + ' ' + formatPrice(actualUnitPrice) + '\uC6D0 x ' + selectedQuantity + '\uBA85</span>'
                 + '<span>' + formatPrice(totalPrice) + '\uC6D0</span>'
                 + '</div>'
+                + (selection.bundleUnitPrice > 0 && selectedBookingMode === BOOKING_MODE_WITH_KIT
+                    ? '<div class="booking-price__row"><span>\uD0A4\uD2B8 \uCD94\uAC00 \uAE08\uC561</span><span>1\uC778 ' + formatPrice(selection.bundleUnitPrice) + '\uC6D0</span></div>'
+                    : '')
                 + '<div class="booking-price__row booking-price__total">'
                 + '<span>\uCD1D \uACB0\uC81C \uAE08\uC561</span>'
                 + '<span class="booking-price__total-value">' + formatPrice(totalPrice) + '\uC6D0</span>'
@@ -2023,6 +2244,10 @@
         if (mobilePriceUnit) {
             mobilePriceUnit.textContent = '/' + selectedQuantity + '\uBA85';
         }
+        if (mobileLabel) {
+            mobileLabel.textContent = selectedBookingMode === BOOKING_MODE_WITH_KIT ? '\uD0A4\uD2B8 \uD3EC\uD568 \uCD1D\uC561' : '\uCD1D \uACB0\uC81C \uC608\uC0C1';
+        }
+        updateBookingHeadlinePrice();
     }
 
     /**
@@ -2030,7 +2255,7 @@
      * @param {string} dateStr - YYYY-MM-DD
      * @param {number} unitPrice - 수강료
      */
-    function renderTimeSlots(dateStr, unitPrice) {
+    function renderTimeSlots(dateStr) {
         var container = document.getElementById('timeSlots');
         if (!container) {
             // 시간대 컨테이너가 없으면 datePicker 다음에 동적 생성
@@ -2083,7 +2308,7 @@
                     if (valueEl) valueEl.textContent = selectedQuantity;
                 }
                 updateCounterButtons(remaining);
-                updatePriceDisplay(unitPrice);
+                updatePriceDisplay();
                 validateBooking();
             });
         }
@@ -2098,18 +2323,21 @@
         var mobileBtn = document.getElementById('mobileBookingBtn');
         var mobileGiftBtn = document.getElementById('mobileGiftBtn');
         var isValid = !!(selectedDate && selectedScheduleId);
+        var canGift = isValid && canGiftCurrentSelection();
 
         if (submitBtn) {
             submitBtn.disabled = !isValid;
         }
         if (giftBtn) {
-            giftBtn.disabled = !isValid;
+            giftBtn.disabled = !canGift;
+            giftBtn.classList[canGift ? 'remove' : 'add']('is-blocked');
         }
         if (mobileBtn) {
             mobileBtn.disabled = !isValid;
         }
         if (mobileGiftBtn) {
-            mobileGiftBtn.disabled = !isValid;
+            mobileGiftBtn.disabled = !canGift;
+            mobileGiftBtn.classList[canGift ? 'remove' : 'add']('is-blocked');
         }
     }
 
@@ -2120,6 +2348,16 @@
      * 3. WF-04 POST -> NocoDB 예약 기록 -> 안내 alert -> 결제 페이지 이동
      */
     function handleBookingClick() {
+        var selection;
+        var classBrandUid;
+        var brandCode;
+        var xCode;
+        var mCode;
+        var classUnitPrice;
+        var classTotalPrice;
+        var productName;
+        var successMessage;
+
         if (!classData) return;
 
         // 비로그인 처리: confirm -> login.html 이동
@@ -2144,35 +2382,47 @@
             return;
         }
 
+        selection = getCurrentBookingSelection(classData);
+
         // 메이크샵 상품 정보: 개인결제 카테고리 (xcode=personal)
-        var brandUid = classData.makeshop_product_id;
-        if (!brandUid) {
+        classBrandUid = classData.makeshop_product_id;
+        if (!classBrandUid) {
             showToast('\ud301\uc815 \ucebc\ub798\uc2a4\uc758 \uc5f0\ub3d9 \uc0c1\ud488\uc774 \uc900\ube44\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4. \uc7a0\uc2dc \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.', 'error');
-            if (submitBtn) submitBtn.disabled = false;
-            if (mobileBtn) mobileBtn.disabled = false;
             return;
         }
-        var brandCode = classData.makeshop_brandcode || 'personal';
-        var xCode = classData.makeshop_xcode || 'personal';
-        var mCode = classData.makeshop_mcode || '';
+        if (selectedBookingMode === BOOKING_MODE_WITH_KIT && !canSelectWithKit()) {
+            showToast('\uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC774 \uC5F0\uB3D9\uB418\uBA74 \uD0A4\uD2B8 \uD3EC\uD568 \uC608\uC57D\uC744 \uC120\uD0DD\uD560 \uC218 \uC788\uC5B4\uC694.', 'error');
+            return;
+        }
+
+        brandCode = classData.makeshop_brandcode || 'personal';
+        xCode = classData.makeshop_xcode || 'personal';
+        mCode = classData.makeshop_mcode || '';
 
         // 수강료 계산
-        var unitPrice = classData.price || 50000;
-        var totalPrice = unitPrice * selectedQuantity;
-        var productName = classData.title || classData.class_name || '\uc555\ud654 \uae30\ubcf8 \uac15\uc758 \ud074\ub798\uc2a4';
+        classUnitPrice = Math.max(parseInt(classData.price, 10) || 0, 0) || 50000;
+        classTotalPrice = classUnitPrice * selectedQuantity;
+        productName = classData.title || classData.class_name || '\uc555\ud654 \uae30\ubcf8 \uac15\uc758 \ud074\ub798\uc2a4';
+        successMessage = selectedBookingMode === BOOKING_MODE_WITH_KIT
+            ? '\uC608\uC57D\uC774 \uC811\uC218\uB418\uC5C8\uC2B5\uB2C8\uB2E4.\n\uAC15\uC758 \uC0C1\uD488\uACFC \uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC744 \uD568\uAED8 \uB2F4\uC544 \uC7A5\uBC14\uAD6C\uB2C8\uB85C \uC774\uB3D9\uD569\uB2C8\uB2E4.'
+            : '\uC608\uC57D\uC774 \uC811\uC218\uB418\uC5C8\uC2B5\uB2C8\uB2E4.\n\uACB0\uC81C \uD398\uC774\uC9C0\uB85C \uC774\uB3D9\uD569\uB2C8\uB2E4.';
 
         // WF-04 예약 기록 + 결제 페이지 이동
         submitBooking({
             className: productName,
             date: selectedDate,
             participants: selectedQuantity,
-            totalPrice: totalPrice,
-            brandUid: brandUid,
+            classOrderAmount: classTotalPrice,
+            displayTotalPrice: selection.unitPrice * selectedQuantity,
+            classBrandUid: classBrandUid,
+            kitBundleBrandUid: selection.brandUid || '',
             brandCode: brandCode,
             xCode: xCode,
             mCode: mCode,
             productName: productName,
-            productPrice: unitPrice
+            productPrice: classUnitPrice,
+            bookingMode: selectedBookingMode,
+            successMessage: successMessage
         });
     }
 
@@ -2188,7 +2438,9 @@
             booking_date: info.date,
             schedule_id: selectedScheduleId,
             participants: info.participants,
-            amount: info.totalPrice
+            amount: info.classOrderAmount,
+            booking_mode: info.bookingMode,
+            kit_bundle_branduid: info.kitBundleBrandUid || ''
         };
 
         // 버튼 비활성화
@@ -2216,8 +2468,8 @@
             }
             invalidateDetailCache(bookingData.class_id);
             invalidateCatalogCaches();
-            alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-            goToCheckout(info.brandUid, info.participants, info.productName, info.brandCode, info.xCode, info.mCode);
+            alert(info.successMessage || '\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.');
+            goToCheckout(info);
         })
         .catch(function(err) {
             if (submitBtn) submitBtn.disabled = false;
@@ -2226,8 +2478,8 @@
             console.warn('[Booking] \ub124\ud2b8\uc6cc\ud06c \uc624\ub958, \ud3f4\ubc31 \uc774\ub3d9:', err);
             invalidateDetailCache(bookingData.class_id);
             invalidateCatalogCaches();
-            alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-            goToCheckout(info.brandUid, info.participants, info.productName, info.brandCode, info.xCode, info.mCode);
+            alert(info.successMessage || '\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.');
+            goToCheckout(info);
         });
     }
 
@@ -2295,8 +2547,19 @@
      *   (brandcode는 상품마다 다름: 000000000160, 000000000161 ...)
      * - 일반상품: brandCode/xCode/mCode 그대로 사용
      */
-    function goToCheckout(brandUid, qty, productName, brandCode, xCode, mCode) {
+    function goToCheckout(info) {
+        var brandUid = info.classBrandUid;
+        var qty = info.participants;
+        var productName = info.productName;
+        var brandCode = info.brandCode;
+        var xCode = info.xCode;
+        var mCode = info.mCode;
         var xC = xCode || 'personal';
+
+        if (info.bookingMode === BOOKING_MODE_WITH_KIT && info.kitBundleBrandUid) {
+            goToPackageCheckout(brandUid, info.kitBundleBrandUid, qty);
+            return;
+        }
 
         if (xC === 'personal') {
             // shopdetail.html fetch → brandcode 추출 → basket.action.html POST (수량 반영)
@@ -2324,6 +2587,36 @@
 
         // 일반상품: basket.action.html POST
         doBasketPost(brandUid, qty, productName, brandCode, xC, mCode || '001');
+    }
+
+    function goToPackageCheckout(classBrandUid, kitBrandUid, qty) {
+        resolveShopProductMeta(classBrandUid)
+            .then(function(classMeta) {
+                if (!classMeta || !classMeta.brandCode) {
+                    throw new Error('class meta not found');
+                }
+                return submitBasketAdd(classMeta, qty);
+            })
+            .then(function() {
+                return resolveShopProductMeta(kitBrandUid);
+            })
+            .then(function(kitMeta) {
+                if (!kitMeta || !kitMeta.brandCode) {
+                    throw new Error('kit meta not found');
+                }
+                return submitBasketAdd(kitMeta, qty);
+            })
+            .then(function() {
+                window.location.href = '/shop/basket.html';
+            })
+            .catch(function(err) {
+                console.warn('[ClassDetail] \uD0A4\uD2B8 \uD3EC\uD568 \uC7A5\uBC14\uAD6C\uB2C8 \uC774\uB3D9 \uC2E4\uD328:', err);
+                if (classBrandUid) {
+                    window.location.href = '/shop/shopdetail.html?branduid=' + String(classBrandUid);
+                    return;
+                }
+                window.location.href = '/shop/basket.html';
+            });
     }
 
 
@@ -2794,6 +3087,11 @@
     function handleGiftClick() {
         if (!classData) return;
 
+        if (!canGiftCurrentSelection()) {
+            showToast('\uD0A4\uD2B8 \uD3EC\uD568 \uC120\uBB3C\uD558\uAE30\uB294 \uC900\uBE44 \uC911\uC785\uB2C8\uB2E4. \uAC15\uC758\uB9CC \uC120\uD0DD \uD6C4 \uC774\uC6A9\uD574\uC8FC\uC138\uC694.', 'error');
+            return;
+        }
+
         if (!memberId) {
             if (confirm('\uc120\ubb3c\ud558\uae30\ub294 \ub85c\uadf8\uc778 \ud6c4 \uc774\uc6a9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\n\ub85c\uadf8\uc778 \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
                 window.location.href = buildLoginUrl(window.location.href);
@@ -2865,7 +3163,7 @@
             if (isBusy) {
                 buttons[i].disabled = true;
             } else {
-                buttons[i].disabled = !(selectedDate && selectedScheduleId);
+                buttons[i].disabled = !(selectedDate && selectedScheduleId && canGiftCurrentSelection());
             }
         }
     }
@@ -3619,9 +3917,36 @@
                 var stoIdMatch = html.match(/sto_id:'([^']+)'/);
                 var titleEl = doc.querySelector('.goods--title');
                 var nativeGiftUrl = '';
+                var priceValue = 0;
+                var priceSelectors = [
+                    'input[name="price"]',
+                    'input[name="sellprice"]',
+                    '#price',
+                    '.goods-price strong',
+                    '.goods_price strong',
+                    '.price strong',
+                    '.price'
+                ];
+                var priceIndex = 0;
 
                 for (var i = 0; i < inputs.length; i++) {
                     fields[inputs[i].name] = inputs[i].value || '';
+                }
+
+                function parsePriceText(raw) {
+                    var match = String(raw || '').replace(/,/g, '').match(/(\d{3,})/);
+                    return match ? (parseInt(match[1], 10) || 0) : 0;
+                }
+
+                priceValue = parsePriceText(fields.price || fields.sellprice || '');
+                if (!priceValue) {
+                    for (priceIndex = 0; priceIndex < priceSelectors.length; priceIndex++) {
+                        var priceNode = doc.querySelector(priceSelectors[priceIndex]);
+                        if (priceNode) {
+                            priceValue = parsePriceText(priceNode.value || priceNode.textContent || '');
+                        }
+                        if (priceValue) break;
+                    }
                 }
 
                 if (nativeGiftLink) {
@@ -3644,7 +3969,8 @@
                     cartFree: fields.cart_free || '',
                     stoId: stoIdMatch ? stoIdMatch[1] : '1',
                     productName: titleEl ? titleEl.textContent.trim() : (classData && classData.class_name ? classData.class_name : '\uD30C\uD2B8\uB108 \uD074\uB798\uC2A4'),
-                    nativeGiftUrl: nativeGiftUrl
+                    nativeGiftUrl: nativeGiftUrl,
+                    priceValue: priceValue
                 };
             });
     }

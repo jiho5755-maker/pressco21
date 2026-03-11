@@ -67,3 +67,11 @@ curl -s -X POST https://n8n.pressco21.com/webhook/class-api \
 - 라이브 검증 기준:
   - warm miss 1회: `NocoDB Get ... -> Store ... Cache`
   - 이후 hit: `Check Cache -> Switch Cache -> Respond` 만 실행
+
+## 2026-03-11 S2-9 묶음 키트 WF 디버깅 메모
+
+- `WF-01A getClassDetail` 파라미터명은 `class_id` 가 아니라 `id` 다. 라이브 상세 확인도 `id` 로 호출해야 한다.
+- `tbl_Classes` 는 `kit_bundle_branduid` 물리 컬럼과 `nc_columns_v2` 메타를 둘 다 추가해야 NocoDB UI 와 API 가 같이 맞는다.
+- `WF-17` 는 단일 상품 생성 WF 가 아니라 `_productKind=CLASS|KIT_BUNDLE` 2단 생성 구조로 보는 편이 맞다.
+- `WF-17` 두 번째 키트 상품 생성 단계에서는 클래스 오픈 메일을 다시 보내지 않도록 `IF Product Kind Class` 분기가 필요하다.
+- `WF-05` 키트 처리 여부는 단일 row 가 아니라 `order_id` 로 주문 라인을 묶어 판정해야 한다. 같은 주문 안에 기대 `bundle_branduid` 가 실제로 있을 때만 키트 후속 처리를 태운다.

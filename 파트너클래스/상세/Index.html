@@ -276,6 +276,14 @@
                     <!-- JS: 동적 렌더링 -->
                 </div>
 
+                <div class="booking-option" id="bookingOptionArea" style="display:none;">
+                    <p class="booking-label">예약 방식</p>
+                    <div class="booking-option__list" id="bookingOptionList">
+                        <!-- JS: 강의만 / 키트 포함 옵션 렌더링 -->
+                    </div>
+                    <p class="booking-option__hint" id="bookingOptionHint"></p>
+                </div>
+
                 <!-- 날짜 선택 -->
                 <div class="booking-date">
                     <label class="booking-label" for="datePicker">
@@ -329,7 +337,7 @@
                 </div>
 
                 <!-- 안내 문구 -->
-                <p class="booking-notice">예약 확정 전 결제가 진행되지 않습니다.</p>
+                <p class="booking-notice" id="bookingNotice">예약 확정 전 결제가 진행되지 않습니다.</p>
 
                 <!-- 공유 버튼 -->
                 <div class="cd-share-wrap" id="cdShareWrap">

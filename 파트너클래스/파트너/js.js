@@ -1442,6 +1442,11 @@
             + ' \uC7AC\uB8CC\uD0A4\uD2B8 \uC790\uB3D9 \uBC30\uC1A1'
             + '</label>'
             + '<p class="pd-kit-help">\uC0C1\uD488 \uC0C1\uC138 URL \uB610\uB294 branduid\uB97C \uB123\uC73C\uBA74 \uC0C1\uC138 \uD398\uC774\uC9C0\uC5D0\uC11C \uBC14\uB85C \uC5F0\uACB0\uB429\uB2C8\uB2E4.</p>'
+            + '<div id="editKitBundleWrap"' + (parseInt(cls.kit_enabled) !== 1 ? ' style="display:none"' : '') + '>'
+            + '<label class="pd-form-label">\uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488 branduid</label>'
+            + '<input type="text" id="editKitBundleBranduid" class="pd-form-input" value="' + escapeAttr(cls.kit_bundle_branduid || '') + '" placeholder="12345678 \uB610\uB294 \uC0C1\uD488 URL">'
+            + '<p class="pd-kit-help">\uBE44\uC6CC\uB450\uBA74 \uC2B9\uC778 \uD6C4 \uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC744 \uC5F0\uB3D9\uD560 \uC218 \uC788\uC5B4\uC694.</p>'
+            + '</div>'
             + '<div id="editKitItems" class="pd-kit-items"' + (parseInt(cls.kit_enabled) !== 1 ? ' style="display:none"' : '') + '></div>'
             + '<button type="button" id="editAddKitItem" class="pd-btn pd-btn--outline pd-btn--sm"' + (parseInt(cls.kit_enabled) !== 1 ? ' style="display:none"' : '') + '>+ \uD0A4\uD2B8 \uD56D\uBAA9 \uCD94\uAC00</button>'
             + '</div>'
@@ -1474,11 +1479,13 @@
         var kitToggle = document.getElementById('editKitEnabled');
         var kitItemsArea = document.getElementById('editKitItems');
         var kitAddBtn = document.getElementById('editAddKitItem');
+        var kitBundleWrap = document.getElementById('editKitBundleWrap');
         if (kitToggle) {
             kitToggle.addEventListener('change', function() {
                 var show = kitToggle.checked;
                 if (kitItemsArea) kitItemsArea.style.display = show ? '' : 'none';
                 if (kitAddBtn) kitAddBtn.style.display = show ? '' : 'none';
+                if (kitBundleWrap) kitBundleWrap.style.display = show ? '' : 'none';
                 if (show && !kitItemsArea.querySelector('.pd-kit-row')) {
                     addEditKitRow(kitItemsArea, '', '', 1);
                 }
@@ -1542,6 +1549,10 @@
 
         if (!/^https?:\/\//i.test(value)) return '';
         return value;
+    }
+
+    function normalizeKitBundleBrandUid(raw) {
+        return extractKitBrandUid(raw);
     }
 
     function addEditKitRow(container, name, productUrl, qty, price) {
@@ -1645,6 +1656,8 @@
         var classId = (document.getElementById('editClassId') || {}).value;
         if (!classId) return;
         var isKitEnabled = (document.getElementById('editKitEnabled') || {}).checked;
+        var rawBundleBrandUid = (document.getElementById('editKitBundleBranduid') || {}).value || '';
+        var bundleBrandUid = isKitEnabled ? normalizeKitBundleBrandUid(rawBundleBrandUid) : '';
 
         if (isKitEnabled) {
             var kitValidation = validateEditKitItems();
@@ -1653,6 +1666,10 @@
                     kitValidation.field.focus();
                 }
                 showToast(kitValidation.message, 'error');
+                return;
+            }
+            if (rawBundleBrandUid && !bundleBrandUid) {
+                showToast('\uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC740 branduid \uB610\uB294 \uC790\uC0AC\uBAB0 \uC0C1\uD488 URL \uD615\uC2DD\uC73C\uB85C \uC785\uB825\uD574\uC8FC\uC138\uC694.', 'error');
                 return;
             }
         } else {
@@ -1670,7 +1687,8 @@
             description: (document.getElementById('editDescription') || {}).value || '',
             instructor_bio: (document.getElementById('editInstructorBio') || {}).value || '',
             kit_enabled: isKitEnabled ? 1 : 0,
-            kit_items: isKitEnabled ? collectEditKitItems() : []
+            kit_items: isKitEnabled ? collectEditKitItems() : [],
+            kit_bundle_branduid: bundleBrandUid
         };
 
         showLoading();
@@ -1697,6 +1715,7 @@
                         myClasses[i].instructor_bio = updateData.instructor_bio;
                         myClasses[i].kit_enabled = updateData.kit_enabled;
                         myClasses[i].kit_items = JSON.stringify(updateData.kit_items);
+                        myClasses[i].kit_bundle_branduid = updateData.kit_bundle_branduid;
                         break;
                     }
                 }
@@ -3513,9 +3532,9 @@
      */
     function renderStars(rating, prefix) {
         var html = '';
-        var filled = '<svg class="' + prefix + '__star ' + prefix + '__star--filled" viewBox="0 0 14 14" width="14" height="14" fill="#F5A623" xmlns="http://www.w3.org/2000/svg">'
+        var filled = '<svg class="' + prefix + '__star ' + prefix + '__star--filled" viewBox="0 0 14 14" width="14" height="14" fill="#F5A623">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
-        var empty = '<svg class="' + prefix + '__star ' + prefix + '__star--empty" viewBox="0 0 14 14" width="14" height="14" fill="#DDD" xmlns="http://www.w3.org/2000/svg">'
+        var empty = '<svg class="' + prefix + '__star ' + prefix + '__star--empty" viewBox="0 0 14 14" width="14" height="14" fill="#DDD">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
 
         for (var i = 1; i <= 5; i++) {

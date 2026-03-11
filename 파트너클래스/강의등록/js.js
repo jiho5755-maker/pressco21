@@ -282,6 +282,7 @@
 
         toggle.addEventListener('change', function() {
             area.style.display = toggle.checked ? '' : 'none';
+            clearFieldError('crKitBundleBranduid');
             if (toggle.checked && !document.querySelector('.class-register .cr-kit-item')) {
                 addKitItem();
             }
@@ -373,6 +374,10 @@
         var link = document.createElement('a');
         link.href = value;
         return link.href || '';
+    }
+
+    function normalizeKitBundleBrandUid(raw) {
+        return extractKitBrandUid(raw);
     }
 
     /**
@@ -621,6 +626,7 @@
         var maxStudentsVal = parseInt(getVal('crMaxStudents'), 10);
         var priceVal = parseInt(getVal('crPrice'), 10);
         var kitEnabled = document.getElementById('crKitEnabled') && document.getElementById('crKitEnabled').checked ? 1 : 0;
+        var kitBundleBrandUid = kitEnabled ? normalizeKitBundleBrandUid(getVal('crKitBundleBranduid')) : '';
 
         return {
             member_id:          memberId,
@@ -642,7 +648,8 @@
             contact_kakao:      getVal('crContactKakao'),
             schedules:          collectSchedules(),
             kit_enabled:        kitEnabled,
-            kit_items:          kitEnabled ? collectKitItems() : []
+            kit_items:          kitEnabled ? collectKitItems() : [],
+            kit_bundle_branduid: kitBundleBrandUid
         };
     }
 
@@ -744,8 +751,15 @@
                     kitValidation.field.scrollIntoView({ behavior: 'smooth', block: 'center' });
                 }
             }
+
+            var bundleRaw = getVal('crKitBundleBranduid');
+            if (bundleRaw && !normalizeKitBundleBrandUid(bundleRaw)) {
+                showFieldError('crKitBundleBranduid', '묶음 키트 상품은 자사몰 상품 링크 또는 branduid 형식으로 입력해주세요.');
+                valid = false;
+            }
         } else {
             clearKitValidationState();
+            clearFieldError('crKitBundleBranduid');
         }
 
         // 약관 동의

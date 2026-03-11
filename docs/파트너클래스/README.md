@@ -82,6 +82,8 @@
   - S2-7 기준 `last_active_at` 갱신, 주간 파트너 이탈 감지 WF, 이메일 로그 스키마 보정, dry run/Playwright 검증 결과 정리
 - `cache-layering-guide.md`
   - S2-8 기준 목록 5분 cache, 설정 1시간 cache, 상세 액션 후 version key 무효화, WF-01A/C staticData cache 검증 결과 정리
+- `kit-bundle-selection-guide.md`
+  - S2-9 기준 묶음 키트 상품 생성, `강의만/키트 포함` 선택 UI, WF-05 주문 분기, 로컬/라이브 검증 결과 정리
 
 ### QA / 검증
 

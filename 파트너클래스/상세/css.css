@@ -1867,6 +1867,125 @@
     padding-top: 16px;
 }
 
+.class-detail .booking-option {
+    margin-bottom: 20px;
+}
+
+.class-detail .booking-option__list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.class-detail .booking-option__card {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    padding: 14px 14px 14px 16px;
+    border: 1px solid var(--cd-border);
+    border-radius: 12px;
+    background: var(--cd-bg-card);
+    cursor: pointer;
+    transition: border-color var(--cd-transition), box-shadow var(--cd-transition), background var(--cd-transition);
+    text-align: left;
+}
+
+.class-detail .booking-option__card:hover {
+    border-color: var(--cd-primary);
+}
+
+.class-detail .booking-option__card.is-selected {
+    border-color: var(--cd-primary);
+    box-shadow: 0 8px 20px rgba(76, 111, 104, 0.12);
+    background: #f8fbf7;
+}
+
+.class-detail .booking-option__card.is-disabled {
+    cursor: default;
+    opacity: 0.68;
+    background: #f7f4f0;
+}
+
+.class-detail .booking-option__radio {
+    width: 18px;
+    height: 18px;
+    border-radius: 50%;
+    border: 1.5px solid var(--cd-border);
+    margin-top: 2px;
+    flex-shrink: 0;
+    position: relative;
+}
+
+.class-detail .booking-option__card.is-selected .booking-option__radio {
+    border-color: var(--cd-primary);
+}
+
+.class-detail .booking-option__card.is-selected .booking-option__radio::after {
+    content: '';
+    position: absolute;
+    top: 3px;
+    left: 3px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cd-primary);
+}
+
+.class-detail .booking-option__body {
+    flex: 1;
+    min-width: 0;
+}
+
+.class-detail .booking-option__title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin-bottom: 6px;
+}
+
+.class-detail .booking-option__title {
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cd-text-dark);
+}
+
+.class-detail .booking-option__price {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--cd-brown);
+    white-space: nowrap;
+}
+
+.class-detail .booking-option__desc {
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--cd-text-light);
+}
+
+.class-detail .booking-option__badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 24px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(196, 149, 106, 0.12);
+    color: var(--cd-brown);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.01em;
+}
+
+.class-detail .booking-option__hint {
+    margin: 8px 0 0;
+    font-size: 12px;
+    line-height: 1.6;
+    color: var(--cd-text-light);
+}
+
 /* 날짜/인원 선택 공통 */
 .class-detail .booking-label {
     display: flex;
@@ -2128,6 +2247,11 @@
     cursor: default;
     box-shadow: none;
     transform: none;
+}
+
+.class-detail .booking-gift.is-blocked {
+    background: #ece7e0;
+    color: #9b8d80;
 }
 
 .class-detail .booking-link-row {

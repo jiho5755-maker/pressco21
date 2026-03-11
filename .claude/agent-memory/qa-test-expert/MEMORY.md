@@ -110,6 +110,23 @@
   - 실행 로그에서 warm miss 1회 후 cache-hit branch only 확인
 - 이 환경에서는 workflow API의 staticData 조회보다 execution runData path 검증이 더 신뢰할 만하다.
 
+## 2026-03-11 S2-9 묶음 키트 선택형 검증 메모
+
+- 이 태스크는 `로컬 Playwright 결제 분기 검증 + 라이브 스키마/워크플로우 구조 검증` 2단으로 보는 편이 가장 정확하다.
+- 로컬 최소 통과 세트:
+  - 옵션 카드 2개 렌더링
+  - `CLASS_ONLY` 예약: `amount=52000`, 장바구니 1건
+  - `WITH_KIT` 예약: `amount=52000`, `kit_bundle_branduid=KIT9001`, 장바구니 2건
+  - `WITH_KIT` 선택 시 선물하기 비활성
+  - 상세 금액이 실상품가 hydrate 기준 `75,000원` 으로 갱신
+- 로컬 산출물:
+  - `output/playwright/s2-9-kit-bundle/kit-bundle-results.json`
+  - `output/playwright/s2-9-kit-bundle/kit-bundle-flow.png`
+- 라이브 최소 통과 세트:
+  - `tbl_Classes.kit_bundle_branduid` 컬럼과 NocoDB 메타 존재
+  - 활성 클래스 `getClassDetail(id)` 응답에 `kit_bundle_branduid` 필드 포함
+  - 원격 `WF-17` 에 `IF Product Kind Class`, `WF-05` 에 `Filter Class Orders / Process Kit Order`, `WF-20` 에 `Process Edit` 존재
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

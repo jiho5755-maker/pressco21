@@ -900,6 +900,13 @@
 .class-register .cr-kit-items {
     margin-top: 4px;
 }
+.class-register .cr-kit-bundle {
+    margin-bottom: 12px;
+    padding: 14px 16px;
+    background: #f6f3ee;
+    border: 1px solid #e5ddd3;
+    border-radius: 10px;
+}
 .class-register .cr-kit-items__hint {
     margin: 0 0 12px;
     font-size: 12px;

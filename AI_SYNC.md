@@ -49,15 +49,67 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
+- Current Owner: IDLE
 - Mode: IDLE
-- Started At: 2026-03-11 12:05:34 KST
+- Started At: 2026-03-11 14:23:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S2-8 완료, 다음 태스크 S2-9 준비
+- Working Scope: [CODEX-LEAD] 파트너클래스 S2-9 완료, 다음 태스크 대기
 - Active Subdirectory: pressco21/파트너클래스
 
 ## Files In Progress
 - 없음
+
+### [CODEX-LEAD] Phase 3 S2-9 묶음 키트 + 선택형 완료 (CODEX)
+- 메이크샵
+  - `파트너클래스/강의등록/Index.html`, `css.css`, `js.js`
+    - `kit_bundle_branduid` 입력 추가
+  - `파트너클래스/상세/Index.html`, `css.css`, `js.js`
+    - `강의만 수강 / 키트 포함 수강` 선택 UI 추가
+    - 실상품 상세가 hydrate 로 묶음 키트 가격 보정
+    - `WITH_KIT` 선택 시 선물하기 비활성, 클래스 상품 + 키트 상품 동시 장바구니 처리
+  - `파트너클래스/파트너/js.js`
+    - 클래스 수정 모달에 묶음 키트 branduid 편집 추가
+- 워크플로우 / 서버
+  - `scripts/server/partnerclass-s2-9-add-kit-bundle-field.sh`
+    - `tbl_Classes.kit_bundle_branduid` 물리 컬럼, 메타, 기본 view 컬럼 추가
+  - `scripts/partnerclass-s2-9-patch-workflows.js`
+    - `WF-01A/WF-05/WF-16/WF-17/WF-20` S2-9 구조 패치 스크립트 추가
+  - `scripts/partnerclass-s2-9-deploy-workflows.js`
+    - 위 5개 WF 백업 + 재배포 자동화
+  - `파트너클래스/n8n-workflows/WF-01A-class-read.json`
+    - 상세 응답에 `kit_bundle_branduid` 추가
+  - `파트너클래스/n8n-workflows/WF-05-order-polling-batch.json`
+    - `order_id` 기준 클래스/묶음키트 동시 주문 판정, 키트 처리 분기 추가
+  - `파트너클래스/n8n-workflows/WF-16-class-register.json`
+    - `kit_bundle_branduid` 저장 지원
+  - `파트너클래스/n8n-workflows/WF-17-class-approve-auto.json`
+    - 클래스 상품 생성 후 묶음 키트 상품 2단 생성 분기 추가
+  - `파트너클래스/n8n-workflows/WF-20-class-edit.json`
+    - 묶음 키트 branduid 수정/초기화 지원
+- 문서 / 메모리
+  - `docs/파트너클래스/kit-bundle-selection-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/n8n-debugger/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+- 검증
+  - 메이크샵 정적 검증:
+    - `python3 codex-skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/상세/js.js 파트너클래스/강의등록/js.js 파트너클래스/파트너/js.js`
+  - 로컬 Playwright:
+    - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s2-9-kit-bundle-runner.js`
+    - 결과: `output/playwright/s2-9-kit-bundle/kit-bundle-results.json`, `kit-bundle-flow.png`
+    - 확인값:
+      - `CLASS_ONLY`: `amount=52000`, 장바구니 1건
+      - `WITH_KIT`: `amount=52000`, `kit_bundle_branduid=KIT9001`, 장바구니 2건
+      - `WITH_KIT` 시 선물하기 비활성
+      - 실상품 상세가 hydrate 로 최종 금액 `75,000원` 확인
+  - 라이브 반영:
+    - `ssh ... < scripts/server/partnerclass-s2-9-add-kit-bundle-field.sh`
+    - `node scripts/partnerclass-s2-9-deploy-workflows.js`
+    - 활성 클래스 `CL_202602_662` 기준 `getClassDetail(id)` 응답에 `kit_bundle_branduid` 필드 포함 확인
+    - n8n API 기준 `WF-17 IF Product Kind Class`, `WF-05 Filter Class Orders / Process Kit Order`, `WF-20 Process Edit` 존재 확인
 
 ### [CODEX-LEAD] Phase 3 S2-8 3계층 캐싱 도입 완료 (CODEX)
 - 프론트
@@ -1677,7 +1729,7 @@
 
 #### 현재 다음 태스크
 
-- `S2-9 키트 연동 Step 2 — 묶음 키트 + 선택형`
+- `S2-10 테스트 데이터 시뮬레이션 (파트너 섭외 데모)`
 - `S2-7 파트너 이탈 감지 자동화` 는 구현/검증 완료, 운영 SMTP + Telegram chat_id blocker 해소 시 최종 수락 기준 닫기
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
@@ -1776,6 +1828,8 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S2-2 협회 제안서 페이지와 어드민 URL 생성기는 로컬 fixture 기준으로 검증됐지만, 실배포 전까지는 실제 MakeShop page id가 없어서 라이브 URL은 확정되지 않음
 - S2-3 전국 탐색 IA 확장은 로컬 fixture + Playwright 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 전까지는 실제 2606/2607 페이지와 `/partnermap` 실자산 연동을 라이브에서 다시 확인해야 함
 - S2-8 목록/상세 캐시 분리와 version key 무효화는 로컬 fixture + 라이브 n8n 기준으로 검증됐지만, 메이크샵 디자인편집기 실배포 전까지는 실제 2606/2607 페이지에서 같은 브라우저 복귀 동작을 한 번 더 확인해야 함
+- S2-9 묶음 키트 선택형은 로컬 Playwright, 라이브 스키마, 라이브 WF 구조까지는 검증됐지만 메이크샵 디자인편집기 실배포 전까지는 실제 2607/2608/강의등록 라이브 화면에서 한 번 더 확인해야 함
+- S2-9 라이브 활성 클래스 중 `kit_enabled=1` 실제 운영 데이터가 아직 없어, 묶음 키트 상품 자동 생성과 실제 주문 후처리는 현재 구조 검증까지만 끝난 상태임
 - S2-4 분리 후 `getSchedules / getRemainingSeats` 는 운영에서 준비 완료됐지만, 아직 프론트 호출처는 없다. S2-5 이후 콘텐츠/협회 read action 추가 시 `WF-01C` 또는 별도 WF 로 확장 방향을 유지해야 한다.
 - S2-6 리텐션 자동화는 dry run 과 스케줄 경로 기준으로는 검증됐지만, 운영 레거시 완료 예약 일부에 `student_email`, `student_name` 이 비어 있어 실제 발송 대상 수가 `skip` 으로 잡히는 상태다.
 - S2-6 `student-retention` 웹훅은 수동 실호출 시 `200` 빈 본문 케이스가 남아 있어, 현재 운영 기준선은 dry run 응답과 예약 실행 로그다.

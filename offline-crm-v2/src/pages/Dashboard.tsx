@@ -136,6 +136,11 @@ export function Dashboard() {
     },
     staleTime: 2 * 60_000,
   })
+  const { data: fiscalSnapshots } = useQuery({
+    queryKey: ['dash-fiscal-snapshots'],
+    queryFn: getFiscalBalanceSnapshots,
+    staleTime: Infinity,
+  })
   // 기간 리포트: 수금률+객단가용 (invoices)
   // invoice_date가 Text 타입 → 날짜 필터 없이 최신 순 가져와서 클라이언트 필터링
   // 1000건으로 제한 (1년치 이상 → 올해 전체 기준 충분)
@@ -203,6 +208,16 @@ export function Dashboard() {
     () => (receivablesData ?? []).reduce((sum, customer) => sum + customer.crmRemaining, 0),
     [receivablesData]
   )
+  const totalPayables = useMemo(() => {
+    const year = String(fiscalSnapshots?.currentFiscalYear ?? '')
+    const payables = fiscalSnapshots?.years?.[year]?.payablesByLegacyId ?? {}
+    return Object.values(payables).reduce((sum, amount) => sum + amount, 0)
+  }, [fiscalSnapshots])
+  const payableCustomers = useMemo(() => {
+    const year = String(fiscalSnapshots?.currentFiscalYear ?? '')
+    const payables = fiscalSnapshots?.years?.[year]?.payablesByLegacyId ?? {}
+    return Object.keys(payables).length
+  }, [fiscalSnapshots])
 
   // 이번 달 명세표 건수 — periodInvoicesRaw에서 클라이언트 필터링
   const thisMonthInvoices = useMemo(
@@ -319,7 +334,7 @@ export function Dashboard() {
       </div>
 
       {/* ── KPI 카드 8개 ── */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Row 1: 돈 관련 */}
         <KpiCard
           title="이번 달 매출"
@@ -341,6 +356,12 @@ export function Dashboard() {
           value={`${receivableCustomers}곳`}
           sub="기존 장부 + 새 입력 합산"
           valueClass={receivableCustomers > 10 ? 'text-amber-600' : ''}
+        />
+        <KpiCard
+          title="미지급금 총액"
+          value={`${fmt(totalPayables)}원`}
+          sub={`${payableCustomers}곳 기준`}
+          valueClass={totalPayables > 0 ? 'text-blue-700' : ''}
         />
         <KpiCard
           title="매출 성장률"

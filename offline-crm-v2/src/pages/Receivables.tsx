@@ -15,6 +15,7 @@ import { exportReceivables } from '@/lib/excel'
 import {
   getFiscalBalanceSnapshots,
   getLegacyCustomerSnapshots,
+  getLegacyPayableBaselineFromSnapshots,
   getLegacyReceivableBaseline,
   parseLegacyReceivableMemo,
   serializeLegacyReceivableMemo,
@@ -68,11 +69,20 @@ interface ReceivableSnapshot extends Invoice {
 interface CustomerReceivableBreakdown {
   customer: Customer
   legacyBaseline: number
+  payableBaseline: number
 }
 
 interface LegacyPaymentTarget {
   customer: Customer
   ledger: CustomerReceivableLedger
+}
+
+interface PayableLedgerEntry {
+  customerId: number | null
+  legacyId: string
+  customerName: string
+  payableAmount: number
+  bookName?: string
 }
 
 // ─── 입금 확인 다이얼로그 ───────────────────────
@@ -442,7 +452,7 @@ export function Receivables() {
   const [legacyPaymentTarget, setLegacyPaymentTarget] = useState<LegacyPaymentTarget | null>(null)
   const [customerSearch, setCustomerSearch] = useState(() => searchParams.get('customer') ?? '')
   const [customerIdFilter, setCustomerIdFilter] = useState(() => searchParams.get('customerId') ?? '')
-  const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy'>('all')
+  const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy' | 'payable'>('all')
   const [asOfDate, setAsOfDate] = useState(() => {
     const value = searchParams.get('asOf')
     return isValidCalendarDate(value) ? value : todayDate()
@@ -480,6 +490,7 @@ export function Receivables() {
       return {
         customer,
         legacyBaseline: await getLegacyReceivableBaseline(customer),
+        payableBaseline: getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots),
       }
     },
     staleTime: 10 * 60 * 1000,
@@ -487,7 +498,6 @@ export function Receivables() {
   const { data: customersForLink = [] } = useQuery({
     queryKey: ['receivable-link-customers'],
     queryFn: () => getAllCustomers({
-      where: '(outstanding_balance,gt,0)',
       fields: 'Id,name,book_name,legacy_id,mobile,email,business_no,memo,outstanding_balance',
     }),
     staleTime: 10 * 60 * 60 * 1000,
@@ -521,6 +531,29 @@ export function Receivables() {
     () => buildCustomerReceivableLedger(customersForLink, resolvedInvoices, legacySnapshots, fiscalSnapshots),
     [customersForLink, fiscalSnapshots, legacySnapshots, resolvedInvoices],
   )
+  const payableLedger = useMemo<PayableLedgerEntry[]>(() => {
+    const currentFiscalYear = String(fiscalSnapshots?.currentFiscalYear ?? '')
+    const payablesByLegacyId = fiscalSnapshots?.years?.[currentFiscalYear]?.payablesByLegacyId ?? {}
+    const customerByLegacyId = new Map(
+      customersForLink
+        .filter((customer) => customer.legacy_id != null)
+        .map((customer) => [String(customer.legacy_id), customer]),
+    )
+
+    return Object.entries(payablesByLegacyId)
+      .map(([legacyId, amount]) => {
+        const customer = customerByLegacyId.get(legacyId)
+        const tradebook = legacySnapshots?.tradebookByLegacyId?.[legacyId]
+        return {
+          customerId: customer?.Id ?? null,
+          legacyId,
+          customerName: customer?.name?.trim() || tradebook?.name?.trim() || tradebook?.book_name?.trim() || `장부 ${legacyId}`,
+          payableAmount: amount,
+          bookName: customer?.book_name?.trim() || tradebook?.book_name?.trim() || undefined,
+        }
+      })
+      .sort((left, right) => right.payableAmount - left.payableAmount)
+  }, [customersForLink, fiscalSnapshots, legacySnapshots])
 
   function applyAsOfDate(nextValue: string) {
     const normalized = nextValue || todayDate()
@@ -556,6 +589,14 @@ export function Receivables() {
       entry.aliases.some((alias) => alias.toLowerCase().includes(normalizedSearch))
     )
   })
+  const filteredPayableLedger = payableLedger.filter((entry) => {
+    if (customerIdFilter && String(entry.customerId ?? '') !== customerIdFilter) return false
+    if (!normalizedSearch) return true
+    return (
+      entry.customerName.toLowerCase().includes(normalizedSearch) ||
+      (entry.bookName ?? '').toLowerCase().includes(normalizedSearch)
+    )
+  })
 
   // 에이징 집계는 CRM 명세표 기준으로만 관리한다.
   const aging = AGING_BUCKETS.map((bucket) => {
@@ -575,6 +616,7 @@ export function Receivables() {
   const filteredTotalReceivable = filteredLedger.reduce((sum, entry) => sum + entry.totalRemaining, 0)
   const filteredLegacyTotal = filteredLegacyLedger.reduce((sum, entry) => sum + entry.legacyBaseline, 0)
   const filteredCrmTotal = filteredCrmLedger.reduce((sum, entry) => sum + entry.crmRemaining, 0)
+  const filteredPayableTotal = filteredPayableLedger.reduce((sum, entry) => sum + entry.payableAmount, 0)
   const criticalCount = filteredInvoices.filter((inv) => {
     const days = getDaysSince(inv.invoice_date, asOfDate)
     return days > 90
@@ -583,6 +625,7 @@ export function Receivables() {
     ? filteredInvoices.reduce((sum, inv) => sum + inv.asOfRemaining, 0)
     : 0
   const breakdownCurrentBalance = customerBreakdown?.customer.outstanding_balance ?? 0
+  const breakdownPayableBaseline = customerBreakdown?.payableBaseline ?? 0
   const receivableLinkSummary = filteredInvoices.reduce((summary, invoice) => {
     const linkedCustomer = resolveInvoiceCustomer(invoice, customersForLink) ?? (typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined)
     const invoiceName = invoice.customer_name?.trim()
@@ -629,6 +672,7 @@ export function Receivables() {
             총 <span className="font-medium text-red-600">{filteredTotalReceivable.toLocaleString()}원</span>
             {' / '}기존 장부 {filteredLegacyTotal.toLocaleString()}원
             {' / '}새 입력 {filteredCrmTotal.toLocaleString()}원
+            {' / '}미지급금 <span className="font-medium text-blue-700">{filteredPayableTotal.toLocaleString()}원</span>
             {criticalCount > 0 && (
               <span className="ml-2 text-amber-600">
                 <AlertCircle className="inline h-3.5 w-3.5 mr-0.5" />
@@ -690,7 +734,7 @@ export function Receivables() {
         )}
       </div>
 
-      <div className="mb-4 grid gap-3 md:grid-cols-3">
+      <div className="mb-4 grid gap-3 md:grid-cols-4">
         <div className="rounded-lg border bg-white px-4 py-3">
           <p className="text-xs text-muted-foreground">총 미수금</p>
           <p className="mt-1 text-base font-semibold text-red-600">{filteredTotalReceivable.toLocaleString()}원</p>
@@ -706,10 +750,15 @@ export function Receivables() {
           <p className="mt-1 text-base font-semibold text-red-600">{filteredCrmTotal.toLocaleString()}원</p>
           <p className="mt-1 text-xs text-muted-foreground">{filteredInvoices.length}개 열린 명세표</p>
         </div>
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <p className="text-xs text-muted-foreground">총 미지급금</p>
+          <p className="mt-1 text-base font-semibold text-blue-700">{filteredPayableTotal.toLocaleString()}원</p>
+          <p className="mt-1 text-xs text-muted-foreground">{filteredPayableLedger.length}개 고객</p>
+        </div>
       </div>
 
       {customerBreakdown && (
-        <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <div className="mb-4 grid gap-3 md:grid-cols-4">
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">이월 미수</p>
             <p className={`mt-1 text-base font-semibold ${customerBreakdown.legacyBaseline > 0 ? 'text-red-600' : customerBreakdown.legacyBaseline < 0 ? 'text-blue-700' : ''}`}>
@@ -727,6 +776,13 @@ export function Receivables() {
             <p className="mt-1 text-xs text-muted-foreground">
               {asOfDate} 기준 미수 명세표 합계
             </p>
+          </div>
+          <div className="rounded-lg border bg-white px-4 py-3">
+            <p className="text-xs text-muted-foreground">기존 장부 미지급금</p>
+            <p className={`mt-1 text-base font-semibold ${breakdownPayableBaseline > 0 ? 'text-blue-700' : 'text-muted-foreground'}`}>
+              {breakdownPayableBaseline.toLocaleString()}원
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">현재 회기 장부 기준</p>
           </div>
           <div className="rounded-lg border border-[#d9e4d5] bg-[#f7faf6] px-4 py-3">
             <p className="text-xs text-muted-foreground">현재 고객 잔액</p>
@@ -751,11 +807,12 @@ export function Receivables() {
         </div>
       )}
 
-      <Tabs value={sourceTab} onValueChange={(value) => setSourceTab(value as 'all' | 'crm' | 'legacy')}>
+      <Tabs value={sourceTab} onValueChange={(value) => setSourceTab(value as 'all' | 'crm' | 'legacy' | 'payable')}>
         <TabsList className="mb-4">
           <TabsTrigger value="all">전체</TabsTrigger>
           <TabsTrigger value="crm">새 입력 명세표</TabsTrigger>
           <TabsTrigger value="legacy">기존 장부 미수</TabsTrigger>
+          <TabsTrigger value="payable">기존 장부 미지급금</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="space-y-4">
@@ -992,6 +1049,51 @@ export function Receivables() {
                       >
                         입금 확인
                       </Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </TabsContent>
+
+        <TabsContent value="payable">
+          <div className="rounded-lg border bg-white overflow-hidden">
+            <table className="w-full text-sm">
+              <thead>
+                <tr className="border-b bg-gray-50">
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
+                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부 미지급금</th>
+                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredPayableLedger.length === 0 && (
+                  <tr>
+                    <td colSpan={3} className="px-4 py-12 text-center text-muted-foreground">
+                      기존 장부 미지급금 고객이 없습니다.
+                    </td>
+                  </tr>
+                )}
+                {filteredPayableLedger.map((entry) => (
+                  <tr
+                    key={entry.legacyId}
+                    className={`border-b last:border-b-0 hover:bg-gray-50 ${entry.customerId ? 'cursor-pointer' : ''}`}
+                    onClick={() => {
+                      if (entry.customerId) navigate(`/customers/${entry.customerId}`)
+                    }}
+                  >
+                    <td className="px-4 py-2.5">
+                      <div className="font-medium">{entry.customerName}</div>
+                      {entry.bookName && entry.bookName !== entry.customerName && (
+                        <div className="mt-0.5 text-xs text-muted-foreground">{entry.bookName}</div>
+                      )}
+                    </td>
+                    <td className="px-4 py-2.5 text-right font-medium text-blue-700">
+                      {entry.payableAmount.toLocaleString()}원
+                    </td>
+                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                      {entry.customerId ? '고객 상세에서 원본 장부와 같이 확인' : '고객관리 연결 없음'}
                     </td>
                   </tr>
                 ))}

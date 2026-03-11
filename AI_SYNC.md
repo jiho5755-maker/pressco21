@@ -51,9 +51,9 @@
 
 - Current Owner: IDLE
 - Mode: IDLE
-- Started At: 2026-03-11 15:02:00 KST
+- Started At: 2026-03-11 17:05:00 KST
 - Branch: main
-- Working Scope: [CODEX-LEAD] 파트너클래스 S2-10 완료, 다음 태스크 대기
+- Working Scope: [CODEX-LEAD] 파트너클래스 S2-11 완료, 다음 태스크 대기
 - Active Subdirectory: pressco21/파트너클래스
 
 ## Files In Progress
@@ -145,6 +145,33 @@
     - 상세 예약 `WITH_KIT`, 장바구니 2건
     - 파트너 액션 보드 3카드 활성
     - 관리자 정산 탭 요약/이력 + 실패 토스트 확인
+
+### [CODEX-LEAD] Phase 3 S2-11 Phase 3-2 통합 테스트 완료 (CODEX)
+- 스크립트 / 문서
+  - `scripts/partnerclass-s2-11-growth-integration-runner.js`
+    - `S2-10 demo runner`, `S2-8 cache runner` 재실행
+    - 세일즈 랜딩 신청, 협회 B2B 제안/ROI, 혜택 허브 검증
+    - live `WF-01` router/split 회귀 비교
+    - live n8n execution API 기준 `L3 staticData cache miss -> hit` 검증
+  - `docs/파트너클래스/phase3-2-integration-test.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+  - `.claude/agent-memory/sales-partnership-specialist/MEMORY.md`
+- 검증
+  - `node --check scripts/partnerclass-s2-11-growth-integration-runner.js`
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s2-11-growth-integration-runner.js`
+  - 결과: `output/playwright/s2-11-phase3-2/phase3-2-results.json`
+  - 핵심 확인값:
+    - 파트너 신청 success id `APP_S2_11_001`
+    - 데모 온보딩 `3/5 완료`, 첫 예약 `WITH_KIT`, 장바구니 `2건`
+    - 협회 제안서 `35,280,000원 / 3단계`, 혜택 카드 `5개`
+    - L1 repeat hit `100%`
+    - L2 categories/affiliations repeat hit `100%`
+    - L3 categories miss/hit execution `49214/49215`, affiliations `49216/49217`
+    - `WF-01` router/split `getClasses/getClassDetail/getCategories/getAffiliations/getContentHub/getSchedules/getRemainingSeats` body 일치
+- 문서: `docs/파트너클래스/phase3-2-integration-test.md`
 
 ### [CODEX-LEAD] Phase 3 S2-8 3계층 캐싱 도입 완료 (CODEX)
 - 프론트
@@ -1764,7 +1791,7 @@
 
 #### 현재 다음 태스크
 
-- `S2-11 Phase 3-2 통합 테스트`
+- `S3-1 NocoDB 4개 신규 테이블`
 - `S2-7 파트너 이탈 감지 자동화` 는 구현/검증 완료, 운영 SMTP + Telegram chat_id blocker 해소 시 최종 수락 기준 닫기
 - `S1-5 정산 자동화 WF-SETTLE` 는 구현 완료, 운영 SMTP credential 보정 후 최종 수락 기준 닫기
 - 이후 수강생 탐색 UX 구현은 `전국 오프라인/온라인 허브 + 파트너맵 통합` 기준으로 진행
@@ -1867,6 +1894,7 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S2-9 라이브 활성 클래스 중 `kit_enabled=1` 실제 운영 데이터가 아직 없어, 묶음 키트 상품 자동 생성과 실제 주문 후처리는 현재 구조 검증까지만 끝난 상태임
 - S2-10 데모 배치는 live NocoDB에 입력됐지만 클래스 상태를 `closed` 로 묶어 공개 노출은 막았다. 실제 메이크샵 live 화면에서 데모로 쓰려면 디자인편집기 반영 또는 별도 demo page 구성이 추가로 필요하다.
 - S2-10 파트너 액션보드 숫자는 내부 계산상 `예약 건수`와 `수업 수`가 섞일 수 있어, 현재 데모 수락 기준은 숫자 자체보다 카드 활성과 탭 이동에 둔다.
+- S2-11 Phase 3-2 통합 테스트는 로컬 fixture + live API + n8n execution log 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 후 실제 `2606/2607/2608/2609` 흐름을 live 브라우저에서 한 번 더 확인해야 한다.
 - S2-4 분리 후 `getSchedules / getRemainingSeats` 는 운영에서 준비 완료됐지만, 아직 프론트 호출처는 없다. S2-5 이후 콘텐츠/협회 read action 추가 시 `WF-01C` 또는 별도 WF 로 확장 방향을 유지해야 한다.
 - S2-6 리텐션 자동화는 dry run 과 스케줄 경로 기준으로는 검증됐지만, 운영 레거시 완료 예약 일부에 `student_email`, `student_name` 이 비어 있어 실제 발송 대상 수가 `skip` 으로 잡히는 상태다.
 - S2-6 `student-retention` 웹훅은 수동 실호출 시 `200` 빈 본문 케이스가 남아 있어, 현재 운영 기준선은 dry run 응답과 예약 실행 로그다.

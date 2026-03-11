@@ -92,6 +92,8 @@
 - `partnerclass-live-test-matrix-2026-03-09.md`
 - `phase3-1-integration-test.md`
   - S1-1~S1-8 로컬 Playwright 통합 검증, 픽스처 빌드/러너 실행 방법, 2026-03-11 결과
+- `phase3-2-integration-test.md`
+  - S2-1~S2-11 로컬 fixture + live API 통합 검증, L1/L2/L3 cache 측정, WF-01 router/split 회귀 결과
 - `phase2-e2e.md`
 - `phase2-integration-test.md`
 - `phase2-v2-integration-test.md`

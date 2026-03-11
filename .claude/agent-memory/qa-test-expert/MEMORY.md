@@ -148,6 +148,24 @@
   - `output/playwright/s2-10-demo/demo-partner-flow.png`
   - `output/playwright/s2-10-demo/demo-admin-flow.png`
 
+## 2026-03-11 S2-11 Phase 3-2 통합 테스트 메모
+
+- 이 태스크는 `세일즈/협회/캐시/API 회귀` 를 한 러너에서 묶는 방식이 가장 효율적이었다.
+- 최소 통과 세트:
+  - 파트너 신청 success id 노출
+  - 데모 온보딩 `3/5 완료`
+  - 데모 첫 예약 `WITH_KIT`, 장바구니 `2건`
+  - 협회 제안서 ROI `35,280,000원 / 3단계`
+  - 혜택 카드 `5개`
+  - L1/L2 repeat hit `100%`
+  - L3 categories/affiliations miss -> hit execution 확인
+  - WF-01 router/split `classes/detail/categories/affiliations/contentHub/schedules/remaining` body 일치
+- L3 cache 검증은 n8n execution API 상세(`includeData=true`)에서 runData node 목록으로 판단한다.
+- 실제 산출물:
+  - `output/playwright/s2-11-phase3-2/phase3-2-results.json`
+  - `output/playwright/s2-11-phase3-2/sales-landing-flow.png`
+  - `output/playwright/s2-11-phase3-2/affiliation-b2b-flow.png`
+
 ## Phase 2.6 운영 인프라 테스트 핵심 패턴 (Task 302 확립)
 
 - **체크리스트 분업 4레이어**: phase2-deployment-check.md(인프라) + phase2-v2-integration-test.md(기능플로우) + phase2-e2e.md(신규UX+보안) + **phase2.6-ops.md(백업/모니터링/SSL/관리WF)**

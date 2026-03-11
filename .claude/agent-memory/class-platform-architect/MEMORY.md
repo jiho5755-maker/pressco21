@@ -151,6 +151,14 @@
   - 클래스 category/region 은 저장용 legacy 값과 데모 표시값을 분리
 - 운영 기준 문서는 `docs/파트너클래스/demo-simulation-guide.md` 이다.
 
+## 2026-03-11 S2-11 Phase 3-2 통합 검증 기준
+
+- 성장 가속 구간의 통합 기준은 `세일즈 랜딩 -> 신청 -> 온보딩 -> 첫 수업 -> 정산`, `협회 제안서 -> ROI -> 혜택 허브`, `L1/L2/L3 cache`, `WF-01 router/split 회귀` 4축이다.
+- 메인 검증 러너는 `scripts/partnerclass-s2-11-growth-integration-runner.js` 이고, 내부에서 `S2-10 demo`, `S2-8 cache` 결과를 다시 묶는다.
+- L3 cache 는 latency 추정이 아니라 n8n execution API 기준으로 `miss execution -> Store Cache`, `hit execution -> NocoDB read bypass` 까지 확인하는 방식을 기준으로 삼는다.
+- Phase 3-2는 로컬 fixture + live API 통합 검증까지 완료된 상태로 보고, 다음 확장 단계는 `S3-1 신규 테이블 4종` 이다.
+- 운영 기준 문서는 `docs/파트너클래스/phase3-2-integration-test.md` 이다.
+
 ## 2026-03-11 S2-3 전국 탐색 IA 구조 확정
 
 - 목록 2606은 이제 `전체 클래스 / 협회·세미나 / 혜택·이벤트` 3탭 구조로 본다.

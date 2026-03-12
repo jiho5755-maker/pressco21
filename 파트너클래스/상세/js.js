@@ -3844,7 +3844,7 @@
         if (params.level) {
             query.push('level=' + encodeURIComponent(params.level));
         }
-        if (params.region) {
+        if (params.region && params.region !== '\uC804\uAD6D') {
             query.push('region=' + encodeURIComponent(params.region));
         }
         if (params.q) {
@@ -3893,29 +3893,31 @@
     function buildPartnerMapUrl(params) {
         var query = [];
         var searchQuery = buildPartnerMapSearchQuery(params);
+        var base = isLocalDetailPreview()
+            ? '/output/playwright/fixtures/partnerclass/partnermap-shell.html'
+            : '/shop/page.html?id=2602';
 
-        if (!searchQuery) return '';
-
-        if (!isLocalDetailPreview()) {
-            return 'https://map.kakao.com/link/search/' + encodeURIComponent(searchQuery);
-        }
-
-        if (params.region) {
+        if (params.region && params.region !== '\uC804\uAD6D') {
             query.push('region=' + encodeURIComponent(params.region));
         }
         if (params.category) {
             query.push('category=' + encodeURIComponent(params.category));
         }
-        if (params.keyword) {
-            query.push('keyword=' + encodeURIComponent(params.keyword));
-        }
-        if (params.partner) {
-            query.push('partner=' + encodeURIComponent(params.partner));
+        if (isLocalDetailPreview()) {
+            if (params.keyword) {
+                query.push('keyword=' + encodeURIComponent(params.keyword));
+            }
+            if (params.partner) {
+                query.push('partner=' + encodeURIComponent(params.partner));
+            }
+            if (searchQuery) {
+                query.push('query=' + encodeURIComponent(searchQuery));
+            }
+        } else if (searchQuery) {
+            query.push('search=' + encodeURIComponent(params.partner || params.keyword || params.location || searchQuery));
         }
 
-        query.push('query=' + encodeURIComponent(searchQuery));
-
-        return '/output/playwright/fixtures/partnerclass/partnermap-shell.html?' + query.join('&');
+        return base + (query.length ? '?' + query.join('&') : '');
     }
 
     function buildInfoBadge(label, className, href, ariaLabel) {

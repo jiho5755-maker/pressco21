@@ -1107,6 +1107,18 @@ if (typeof window !== 'undefined') {
         this.referencePoint = null;  // GPS 기준점 (주소 검색 또는 GPS)
     }
 
+    function createEmptyFilters() {
+        return {
+            category: [],
+            region: [],
+            association: [],
+            partnerType: [],
+            favorites: false,
+            search: '',
+            addressSearch: ''
+        };
+    }
+
     // ========================================
     // 초기화
     // ========================================
@@ -1377,6 +1389,9 @@ if (typeof window !== 'undefined') {
             // 검색: 문자열
             self.currentFilters[type] = value;
         } else {
+            if (!Array.isArray(self.currentFilters[type])) {
+                self.currentFilters[type] = [];
+            }
             // 모든 필터 (카테고리, 지역, 협회, 파트너 유형): 다중 선택 (토글 방식)
             if (value === 'all') {
                 // "전체" 클릭 시 모든 선택 해제
@@ -1728,7 +1743,18 @@ if (typeof window !== 'undefined') {
         Object.keys(self.currentFilters).forEach(function(type) {
             var value = self.currentFilters[type];
 
-            if (value !== 'all' && value !== '' && value !== false) {
+            if (Array.isArray(value)) {
+                value.forEach(function(item) {
+                    badges.push({
+                        type: type,
+                        value: item,
+                        label: self.getFilterLabel(type, item)
+                    });
+                });
+                return;
+            }
+
+            if (value !== '' && value !== false) {
                 var label = self.getFilterLabel(type, value);
                 badges.push({
                     type: type,
@@ -1792,7 +1818,15 @@ if (typeof window !== 'undefined') {
 
         Object.keys(self.currentFilters).forEach(function(type) {
             var value = self.currentFilters[type];
-            if (value !== 'all' && value !== '' && value !== false) {
+
+            if (Array.isArray(value)) {
+                if (value.length > 0) {
+                    params.set(type, value.join(','));
+                }
+                return;
+            }
+
+            if (value !== '' && value !== false) {
                 params.set(type, value);
             }
         });
@@ -1815,14 +1849,46 @@ if (typeof window !== 'undefined') {
 
         params.forEach(function(value, key) {
             if (self.currentFilters.hasOwnProperty(key)) {
-                self.currentFilters[key] = value === 'true' ? true : value;
+                if (Array.isArray(self.currentFilters[key])) {
+                    self.currentFilters[key] = String(value || '')
+                        .split(',')
+                        .map(function(item) { return item.trim(); })
+                        .filter(function(item) { return !!item; });
+                } else if (key === 'favorites') {
+                    self.currentFilters[key] = (value === 'true' || value === '1');
+                } else {
+                    self.currentFilters[key] = value;
+                }
             }
         });
 
         // UI 동기화
         Object.keys(self.currentFilters).forEach(function(type) {
             var value = self.currentFilters[type];
-            if (value !== 'all' && value !== '' && value !== false) {
+
+            if (Array.isArray(value)) {
+                var group = document.getElementById('pm-filter-' + type);
+                if (!group) return;
+
+                var buttons = group.querySelectorAll('.filter-btn');
+                buttons.forEach(function(button) { button.classList.remove('active'); });
+
+                if (!value.length) {
+                    var allBtn = group.querySelector('.filter-btn[data-filter-value="all"]');
+                    if (allBtn) allBtn.classList.add('active');
+                    return;
+                }
+
+                value.forEach(function(item) {
+                    var selectedBtn = group.querySelector('.filter-btn[data-filter-type="' + type + '"][data-filter-value="' + item + '"]');
+                    if (selectedBtn) {
+                        selectedBtn.classList.add('active');
+                    }
+                });
+                return;
+            }
+
+            if (value !== '' && value !== false) {
                 var btn = document.querySelector('.filter-btn[data-filter-type="' + type + '"][data-filter-value="' + value + '"]');
                 if (btn) {
                     var siblings = btn.parentElement.querySelectorAll('.filter-btn');
@@ -1843,14 +1909,7 @@ if (typeof window !== 'undefined') {
     FilterService.prototype.resetFilters = function() {
         var self = this;
 
-        self.currentFilters = {
-            category: 'all',
-            region: 'all',
-            association: 'all',
-            partnerType: 'all',
-            favorites: false,
-            search: ''
-        };
+        self.currentFilters = createEmptyFilters();
 
         // UI 리셋
         var allBtns = document.querySelectorAll('.filter-btn');
@@ -1860,6 +1919,16 @@ if (typeof window !== 'undefined') {
                 btn.classList.add('active');
             }
         });
+
+        var searchInput = document.getElementById('pm-search-input');
+        if (searchInput) {
+            searchInput.value = '';
+        }
+
+        var addressInput = document.getElementById('pm-address-search-input');
+        if (addressInput) {
+            addressInput.value = '';
+        }
 
         self.applyFilters();
         self.updateUrlParams();
@@ -3961,4 +4030,3 @@ if (typeof window !== 'undefined') {
     };
 
 })(window);
-

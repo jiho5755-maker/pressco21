@@ -778,32 +778,34 @@
     function buildPartnerMapUrl(options) {
         var params = [];
         var query = buildPartnerMapSearchQuery(options);
+        var base = isLocalCatalogPreview()
+            ? '/output/playwright/fixtures/partnerclass/partnermap-shell.html'
+            : '/shop/page.html?id=2602';
 
-        if (!query) return '';
-
-        if (!isLocalCatalogPreview()) {
-            return 'https://map.kakao.com/link/search/' + encodeURIComponent(query);
-        }
-
-        if (options && options.region) {
+        if (options && options.region && options.region !== '\uC804\uAD6D') {
             params.push('region=' + encodeURIComponent(options.region));
         }
         if (options && options.category) {
             params.push('category=' + encodeURIComponent(options.category));
         }
-        if (options && options.keyword) {
-            params.push('keyword=' + encodeURIComponent(options.keyword));
-        }
-        if (options && options.partner) {
-            params.push('partner=' + encodeURIComponent(options.partner));
-        }
-        if (options && options.classId) {
-            params.push('class_id=' + encodeURIComponent(options.classId));
+        if (isLocalCatalogPreview()) {
+            if (options && options.keyword) {
+                params.push('keyword=' + encodeURIComponent(options.keyword));
+            }
+            if (options && options.partner) {
+                params.push('partner=' + encodeURIComponent(options.partner));
+            }
+            if (options && options.classId) {
+                params.push('class_id=' + encodeURIComponent(options.classId));
+            }
+            if (query) {
+                params.push('query=' + encodeURIComponent(query));
+            }
+        } else if (query) {
+            params.push('search=' + encodeURIComponent(options.partner || options.keyword || options.location || query));
         }
 
-        params.push('query=' + encodeURIComponent(query));
-
-        return '/output/playwright/fixtures/partnerclass/partnermap-shell.html?' + params.join('&');
+        return base + (params.length ? '?' + params.join('&') : '');
     }
 
     function buildPartnerMapSearchUrl(cls) {
@@ -814,14 +816,14 @@
             location: cls.location || '',
             region: getDisplayRegionName(cls.region || cls.location || ''),
             category: cls.category || '',
-            keyword: cls.class_name || '',
+            keyword: cls.partner_name || cls.location || '',
             partner: cls.partner_name || '',
             classId: cls.class_id || ''
         });
     }
 
     function buildCardMapEntryLabel(cls) {
-        return getDeliveryModeValue(cls) === 'ONLINE' ? '' : '\uC9C0\uB3C4\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30';
+        return getDeliveryModeValue(cls) === 'ONLINE' ? '' : '\uD30C\uD2B8\uB108\uB9F5\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30';
     }
 
     /**

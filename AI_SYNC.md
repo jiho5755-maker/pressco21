@@ -49,17 +49,15 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-13 00:01 KST
+- Current Owner: IDLE
+- Mode: IDLE
+- Started At: -
 - Branch: codex/partnerclass-e0-001-testdata-cleanup
-- Working Scope: [CODEX-LEAD] E0-002 파트너맵 경로 오판 교정 및 live 재검증
+- Working Scope: [CODEX-LEAD] E0-002 파트너맵 경로 교정 완료, 메이크샵 저장 대기
 - Active Subdirectory: /Users/jangjiho/workspace/pressco21/파트너클래스
 
 ## Files In Progress
-- AI_SYNC.md
-- 파트너클래스/목록/js.js
-- 파트너클래스/상세/js.js
+- (none)
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -92,6 +90,13 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- [CODEX-LEAD] E0-002 파트너맵 경로 오판 교정 완료.
+  - live 운영 파트너맵은 `/shop/page.html?id=2602` 임을 확인했고, `2606 목록/js.js`, `2607 상세/js.js` 의 지도 링크 생성 대상을 `/partnermap`/카카오 외부 검색이 아니라 `2602 파트너맵`으로 교정했다.
+  - live `2602`는 쿼리 파라미터가 붙으면 `self.currentFilters.category.every is not a function` 로 깨지는 기존 버그가 있었고, `파트너맵/js.js` 의 URL 동기화/로드/리셋 로직을 다중 선택 배열 구조에 맞게 보정했다.
+  - Playwright 검증:
+    - `https://www.foreverlove.co.kr/shop/page.html?id=2602` 실운영 파트너맵 존재 확인
+    - `id=2602&region=서울&category=압화&search=열혈남아공방` 접근 시 live 기존 버그 재현 확인
+    - live `2602` 페이지에서 `category=['압화'], region=['서울'], search='강남압화아트'` 상태를 직접 주입하면 필터 결과가 `1개`로 정상 동작함을 확인
 - offline-crm-v2 앱 내부 로그인 기능을 추가했다.
   - 로그인 페이지, 세션 가드, 로그아웃 버튼을 반영했고 `pressco21`(마스터) / `jhl9464`(직원) 계정으로 실로그인 검증을 완료했다.
   - 수금/지급 저장 로그의 작업 계정은 이제 설정 선택값이 아니라 현재 로그인 세션 기준으로 자동 기록된다.
@@ -99,10 +104,6 @@
 - [CODEX-LEAD] E0-006 live 재검증 완료.
   - Playwright 실계정 기준 `2608 수익 리포트`에 등급 성장 가이드만 남고 수수료율(%) 비교표/수치 노출은 제거됨을 확인.
   - `2607` 차단 화면도 `[object Object]` 대신 `해당 클래스를 찾을 수 없습니다.` 문구로 반영 확인.
-- [CODEX-LEAD] E0-002 파트너맵 403 임시 해결 로컬 반영 완료.
-  - `2606 목록/js.js`, `2607 상세/js.js` 의 `/partnermap` 링크 생성을 `https://map.kakao.com/link/search/...` 외부 검색 링크로 교체.
-  - 오프라인 클래스 지도 링크는 주소/공방명/클래스명 기반 검색어로 생성하고, 외부 링크는 새 탭으로 열리게 정리.
-  - 로컬 preview 에서는 기존 fixture shell 을 유지해 Playwright 회귀가 깨지지 않도록 처리.
 - [CODEX-LEAD] E0-001 테스트 데이터 공개 노출 차단 완료.
   - `WF-01A-class-read.json` live 재배포: 공개 목록은 `ACTIVE + 비테스트 + 활성 파트너`만 노출, 상세 direct access는 `CLASS_NOT_FOUND`로 차단, `demo=true`에서만 테스트 데이터 조회 가능.
   - live NocoDB 정리: 레거시 테스트 파트너 6건 `suspended`, 테스트 클래스 7건 `INACTIVE`, 활성 일정 3건 `cancelled` 처리.
@@ -136,13 +137,16 @@
 **즉시 남은 액션:**
 
 1. 메이크샵 저장 필요
+   - `2602 파트너맵`
+     - `파트너맵/js.js`
    - `2606 목록`
      - `파트너클래스/목록/js.js`
    - `2607 상세`
      - `파트너클래스/상세/js.js`
 2. 저장 후 Playwright live 재검증
-   - `2606` 오프라인 클래스의 `지도에서 공방 보기` 링크가 더 이상 403이 아닌 카카오 지도 검색으로 여는지 확인
-   - `2607` 강사 액션/탐색 링크의 지도 CTA가 새 탭 외부 지도 링크로 열리는지 확인
+   - `2602` 파트너맵이 `region/category/search` 쿼리로도 초기화 오류 없이 뜨는지 확인
+   - `2606` 오프라인 클래스 지도 CTA가 `2602 파트너맵`으로 열리고 403 없이 필터가 적용되는지 확인
+   - `2607` 강사 액션/탐색 링크의 지도 CTA가 `2602 파트너맵`으로 이동하는지 확인
 3. 다음 E0 태스크 착수
    - `E0-002` 파트너맵 403 해결
    - `E0-003` 목록 카드 레이아웃 파손 보정
@@ -177,7 +181,7 @@ Day 2~5: `E0-002`~`E0-013` (ROADMAP 순서대로)
 
 ## Known Risks
 - 공개 클래스가 현재 `0건`이라 `2606`은 빈 목록 상태다. 테스트 데이터 누수는 막혔지만, 실제 운영 클래스 승인 전까지 고객 탐색 UX는 약하다.
-- `2606`/`2607`의 지도 링크 교체는 아직 메이크샵에 저장되지 않았다. live에서는 기존 `/partnermap` 링크가 남아 있을 수 있다.
+- `2602 파트너맵`, `2606 목록`, `2607 상세`의 지도 경로 교정은 아직 메이크샵에 저장되지 않았다. live에서는 기존 `/partnermap` 경로와 `2602` 쿼리 파라미터 버그가 남아 있을 수 있다.
 - NocoDB 백업 스크립트는 수동 실행 기준 산출물 생성까지 확인했지만, 다음 정규 cron 실행(`2026-03-13 03:00 UTC`) 로그를 한 번 더 확인하는 편이 안전하다.
 - 현재 보안메일 비밀번호 규칙이 바뀌면 파서를 같이 수정해야 한다.
 - 동일 입금자명/금액 중복 케이스는 계속 검토 큐로 보내는 것이 안전하다.

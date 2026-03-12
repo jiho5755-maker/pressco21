@@ -49,15 +49,69 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: 2026-03-11 23:25:00 KST
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-12 16:32 KST
 - Branch: main
-- Working Scope: offline-crm-v2 P1 2차: InvoiceDialog 저장 클로저 보정 + 예치금 사용 검증
-- Active Subdirectory: offline-crm-v2
+- Working Scope: 파트너클래스 UX 개선 정적 검증 + 안전장치 보정
+- Active Subdirectory: /Users/jangjiho/workspace/pressco21
 
 ## Files In Progress
-- 없음
+- /Users/jangjiho/workspace/pressco21/AI_SYNC.md
+- /Users/jangjiho/workspace/pressco21/파트너클래스/상세/js.js
+
+### [CODEX-LEAD] 등급체계 변경 가드 + WF-10 교육 live 복구 완료 (CODEX)
+- 원인
+  - 등급체계 변경 리스크는 실제 장애 원인이었고, 저장 enum(`SILVER/GOLD/PLATINUM`)과 표시 등급(`BLOOM/GARDEN/ATELIER/AMBASSADOR`)이 다시 어긋나면 승인/승급 workflow가 재차 깨질 수 있다.
+  - live `WF-10`은 repo와 달리 아직 구버전(`score/total`) 웹훅이었고, answers 배열 방식이 실배포되지 않은 상태였다.
+  - live `WF-10`의 파트너 교육 완료 PATCH URL은 table id가 아니라 `tbl_Partners` literal 경로라 `ERR_TABLE_NOT_FOUND`로 실패했다.
+- 수정/배포
+  - `docs/파트너클래스/partner-grade-change-playbook.md`
+  - `scripts/partnerclass-grade-change-audit.js`
+  - `docs/파트너클래스/README.md`
+  - `파트너클래스/교육/js.js`
+  - `파트너클래스/n8n-workflows/WF-10-education-complete.json`
+  - live `WF-10 Education Complete (aOtPOKVwyVfCQ6fq)` 재배포 완료, 백업은 `output/n8n-backups/20260312-wf10-sync/`에 저장
+- 검증
+  - `node --check scripts/partnerclass-grade-change-audit.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/교육/js.js`
+  - `jq empty 파트너클래스/n8n-workflows/WF-10-education-complete.json`
+  - `node scripts/partnerclass-grade-change-audit.js`
+  - `POST /webhook/education-complete` with `member_id=jhl9464`, `answers[15]` -> `passed=true`, `score=15`
+  - `getEducationStatus(jhl9464)` -> `education_completed=Y`, `education_date=2026-03-12`, `education_score=15`
+  - Playwright live 검증:
+    - `2610` -> `교육을 이미 이수하셨습니다`
+    - `8009` -> 강의 등록 폼 전체 노출
+    - `2608` -> 온보딩 체크리스트에서 `교육 이수` 단계 `완료` 표시
+- 참고
+  - `파트너클래스/교육/js.js`의 Q15는 등급 순서 문항 대신 `강의 등록 전 필수 교육 이수` 문항으로 바꿨다. live 카피까지 맞추려면 메이크샵 `2610` JS 재저장이 한 번 더 필요하다.
+  - 증적 스크린샷:
+    - `output/playwright/mcp/2610-education-complete-jhl9464.png`
+    - `output/playwright/mcp/8009-registration-form-jhl9464.png`
+
+### [CODEX-LEAD] partner approval/auth live recovery 완료 (CODEX)
+- 원인
+  - live `WF-08`이 `tbl_Partners.grade` enum 제약(`SILVER/GOLD/PLATINUM`)과 충돌하는 `BLOOM`을 저장하려다 실패해서 신청은 `APPROVED`로 바뀌었지만 파트너 row 생성이 중간에 끊겼다.
+  - live `WF-02`는 `applied_date` 정렬 필드와 분기 노드 문제로 `getPartnerAuth/getPartnerApplicationStatus`가 잘못 응답했다.
+  - live `WF-ADMIN`은 `getApplications` 상태 필터를 무시하고 사실상 `PENDING`만 조회했다.
+- 수정/배포
+  - `파트너클래스/n8n-workflows/WF-02-partner-auth-api.json`
+  - `파트너클래스/n8n-workflows/WF-08-partner-approve.json`
+  - `파트너클래스/n8n-workflows/WF-ADMIN-admin-api.json`
+  - `파트너클래스/n8n-workflows/WF-13-grade-update.json`
+  - `scripts/partnerclass-s2-7-patch-partner-auth.js`
+  - live n8n API로 4개 워크플로우를 재배포했고 백업은 `output/n8n-backups/20260312-partner-auth-fix/`에 저장했다.
+- 복구 결과
+  - `admin-api getApplications(status=APPROVED)`가 정상 동작하고 `jhl9464` 승인 건이 관리자 UI `8011` 승인됨 필터에 노출된다.
+  - `approveApplication` 재실행으로 `jhl9464 -> PC_202603_001` 파트너 row 생성 완료 (`grade=SILVER`, `commission_rate=0.25`, `status=active`).
+  - `partner-auth getPartnerAuth/getPartnerApplicationStatus/getPartnerDashboard`가 live 기준 정상 JSON 응답으로 복구됐다.
+- 실사용 계정 검증
+  - 파트너 `jhl9464`: `2608` 대시보드 정상 진입, `8009`는 인증 실패가 아니라 `교육 이수 후 이용 가능합니다` 게이트로 정상 차단
+  - 일반 회원 `PRESSCO000`: `8010` 마이페이지 정상 진입
+  - 관리자 `jihoo5755`: `8011` 관리자 대시보드 정상 진입, 승인됨 필터에서 `이재혁 / 열혈남아공방` 확인
+- 참고
+  - 현재 live `admin-api` 인증은 여전히 구형 토큰 `pressco21-admin-2026` 기준이다.
+  - 기존에 이미 `강사회원`인 회원이 신청해도 이제 승인 복구가 가능하다. MakeShop 그룹 승격 여부와 무관하게 `tbl_Partners` row 생성/복구가 핵심이다.
 
 ### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
 - 스크립트 / 문서
@@ -291,7 +345,148 @@
   - Playwright request 검증:
     - `output/playwright/s2-7-partner-churn/churn-results.json`
 
-## Last Changes (2026-03-09 ~ 2026-03-11)
+## Last Changes (2026-03-09 ~ 2026-03-12)
+
+### [CODEX-LEAD] 메이크샵 저장 후 선택형 시작 가이드 live QA 완료 (2026-03-12)
+- 전제
+  - 사용자가 메이크샵 디자인편집기에서 `2608`, `8009`, `2610` 최신 파일 저장을 완료한 뒤 live 재검증을 진행했다.
+- 검증 결과
+  - 파트너 `jhl9464`
+    - `2608` 온보딩 체크리스트가 `0/4 완료`로 표시되고, `플랫폼 가이드`는 별도 완료 항목으로 노출된다.
+    - `8009`는 더 이상 교육 gate 없이 강의 등록 폼 전체가 바로 열린다.
+    - `2610`은 `파트너 시작 가이드`, `필수 절차는 아닙니다` 카피와 완료 힌트가 live 반영됐다.
+  - 일반 회원 `PRESSCO000`
+    - `8009`는 여전히 `파트너 전용 기능입니다` 게이트가 정상 노출된다.
+    - `2610`은 현재 일반 로그인 회원에게도 열린다. 현재 프론트 로직은 `미로그인 차단`만 하고 별도 파트너 권한 체크는 하지 않는다.
+- 증적
+  - `output/playwright/mcp/2608-optional-guide-live.png`
+  - `output/playwright/mcp/8009-form-live-after-guide-change.png`
+  - `output/playwright/mcp/2610-optional-guide-live.png`
+- 판단
+  - 저장 반영 자체는 완료됐다.
+  - `2610`을 `로그인 회원 공용 시작 가이드`로 둘지, `승인된 파트너 전용`으로 다시 제한할지만 다음 정책 결정 포인트다.
+
+### [CODEX-LEAD] 교육 필수 gate 제거 + 선택형 시작 가이드 전환 (2026-03-12)
+- 방향 변경
+  - 파트너 승인 후 `교육 이수`를 강제하지 않고, `플랫폼 시작 가이드`를 선택형 안내 서비스로 전환했다.
+- 변경 파일
+  - `파트너클래스/강의등록/Index.html`
+  - `파트너클래스/강의등록/css.css`
+  - `파트너클래스/강의등록/js.js`
+  - `파트너클래스/파트너/js.js`
+  - `파트너클래스/교육/Index.html`
+  - `파트너클래스/교육/css.css`
+  - `파트너클래스/교육/js.js`
+  - `파트너클래스/n8n-workflows/WF-10-education-complete.json`
+- 변경 내용
+  - `8009`는 이제 승인된 파트너면 바로 폼을 사용 가능하고, 미확인 계정에는 `2610` 시작 가이드 callout 만 노출한다.
+  - `2608` 온보딩은 `교육 이수`를 `플랫폼 가이드` 선택 단계로 바꿨고, 진행률/완료 판정에서 제외했다.
+  - `2610`은 필수 교육 페이지가 아니라 선택형 시작 가이드로 카피/상태/결과 문구를 전환했다.
+  - `WF-10`은 live 재배포까지 완료했고, pass/fail 응답이 score 기준으로 정확히 갈리도록 보강했다.
+- 검증
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/강의등록/js.js 파트너클래스/파트너/js.js 파트너클래스/교육/js.js`
+  - `node --check 파트너클래스/강의등록/js.js`
+  - `node --check 파트너클래스/파트너/js.js`
+  - `node --check 파트너클래스/교육/js.js`
+  - `jq empty 파트너클래스/n8n-workflows/WF-10-education-complete.json`
+  - live `WF-10 Education Complete (aOtPOKVwyVfCQ6fq)` 재배포, 백업: `output/n8n-backups/20260312-wf10-optional-guide/`
+  - webhook 검증:
+    - `jhl9464 + 정답 15개` -> `passed=true`, 새 가이드 완료 메시지
+    - `jhl9464 + score=1` -> `passed=false`, 새 재점검 메시지
+
+### [CODEX-LEAD] 파트너/회원/관리자 실계정 live QA 및 승인 데이터 불일치 확인 (2026-03-12)
+- 사용 계정
+  - 관리자: `jihoo5755`
+  - 파트너 후보: `jhl9464`
+  - 일반 회원: `PRESSCO000`
+- 확인 결과
+  - 관리자 계정은 수정된 비밀번호로 live 로그인 가능하며 `8011` 진입 정상.
+  - 파트너 계정 `jhl9464`는 메이크샵 로그인 정상, hidden DOM 기준 `group_name=강사회원`, `group_level=2` 로 회원그룹 변경도 반영됨.
+  - 그러나 `2608` 진입 시 `getPartnerAuth` 호출이 실패하고 `파트너 전용 페이지입니다` 안내만 노출됨.
+  - `partner-auth` 직접 호출 결과 `getPartnerAuth`, `getPartnerApplicationStatus`, `getPartnerDashboard` 는 `HTTP 200`이지만 body가 비어 있고, `getEducationStatus` 만 `{"is_partner":false,"member_id":"jhl9464"}` 를 반환함.
+  - `8011` UI와 `admin-api getApplications` 응답 어디에도 `jhl9464` 신청 건은 보이지 않았다. 필터를 `PENDING/APPROVED/REJECTED` 로 바꿔도 동일했다.
+  - `8009`는 파트너 인증 실패 warning 이 찍히는데도 폼 자체는 계속 노출된다.
+  - 일반 회원 `PRESSCO000`은 로그인 정상, `8010` 빈 수강내역 화면 정상, `2607&class_id=CL_202602_001` 상세 진입 정상 확인.
+- 판단
+  - 현재 live 는 `메이크샵 회원그룹 변경`과 `파트너 데이터 소스(tbl_Partners 또는 동등 데이터)` 생성이 분리돼 있다.
+  - `jhl9464`는 메이크샵상 강사회원으로 승격됐지만 파트너 인증 데이터에는 아직 없는 상태라 `2608` 접근이 막힌다.
+
+### [CODEX] CRM 자동입금 준비/입금 수집함 1차 완료 (2026-03-12)
+- 반영 파일
+  - `offline-crm-v2/src/pages/Settings.tsx`
+  - `offline-crm-v2/src/pages/DepositInbox.tsx`
+  - `offline-crm-v2/src/lib/autoDeposits.ts`
+  - `offline-crm-v2/src/lib/appGuide.ts`
+  - `offline-crm-v2/src/components/layout/AppGuideWidget.tsx`
+  - `offline-crm-v2/src/components/layout/Sidebar.tsx`
+  - `offline-crm-v2/src/App.tsx`
+- 내용
+  - 자동입금 준비 설정(은행/계좌/수집방식/자동매칭 기준) 저장 및 요약 카드 추가
+  - `입금 수집함` 신규 페이지 추가
+  - 농협 CSV/XLSX 업로드 → 자동 후보 매칭 → 입금 반영 흐름 구현
+  - 단계형 화면 가이드에 `입금 수집함` 추가
+- 검증
+  - `npm run build`
+  - Playwright 실검증
+    - 설정 > 자동입금 준비 값 저장/재조회 확인
+    - 입금 수집함 업로드 후 `정확 후보` 매칭 확인
+    - 테스트 명세표 `1,100원` 자동 입금 반영 후 수금 관리에서 미수 해소 확인
+  - `bash deploy/deploy.sh`
+- 배포
+  - `https://crm.pressco21.com`
+
+### [CODEX] CRM 자동입금 검토 큐 UI + `/crm-proxy` 연동 완료 (2026-03-12)
+- 변경 파일
+  - `offline-crm-v2/src/lib/api.ts`
+  - `offline-crm-v2/src/lib/autoDeposits.ts`
+  - `offline-crm-v2/src/pages/DepositInbox.tsx`
+  - `파트너클래스/n8n-workflows/WF-CRM-PROXY-nocodb-proxy.json`
+- 변경 내용
+  - `입금 수집함`에 `자동입금 검토 큐` 섹션 추가
+  - 부분 입금/초과 입금/미매칭 건을 CRM 화면에서 직접 확인하고 `검토 반영`, `검토 제외` 가능
+  - review queue 조회를 direct n8n webhook 대신 기존 same-origin `/crm-proxy` 경유로 변경
+  - `/crm-proxy`에 `autoDepositReviewQueue` 가상 테이블 액션을 추가해 queue `list/dismiss`를 프록시 처리
+- 검증
+  - `npm run build`
+  - `bash deploy/deploy.sh`
+  - Playwright 실브라우저 검증
+    - 운영 `https://crm.pressco21.com/deposit-inbox`
+    - `자동입금 검토 큐` 섹션/빈 상태 정상 렌더링 확인
+    - review row(`신재승`) 노출 후 `검토 제외` 처리 확인
+    - 임시 고객/명세표(`검토큐테스트289830`) 생성 → 부분 입금 review candidate 생성 → UI에서 `검토 반영` 실행
+    - 반영 후 invoice `paid_amount=300`, queue item `dismissed` 확인
+  - 테스트 고객/명세표/queue 정리 완료
+
+### [CODEX-LEAD] 파트너클래스 live admin/account feasibility 점검 (2026-03-11)
+- 확인 내용
+  - NHN Commerce 개발자센터 최신 Open API 스펙 PDF(`godomall5_openAPI_spec_v1.0_20250616.pdf`) 다운로드 경로와 로컬 레퍼런스 `makeshop-references/open-api.md`를 대조했다.
+  - 로컬 기준 회원 API는 `GET type=user` 조회와 `type=user_group_change`/`type=user process=modify` 성격의 수정만 확인되며, 신규 회원 생성 엔드포인트는 문서화되지 않았다.
+  - Playwright MCP로 `jihoo5755` 계정 로그인 후 live `8011` 접근을 재검증했다.
+  - hidden DOM 기준 `user_id=jihoo5755`, `group_name=관리자`, `group_level=10` 으로 치환되며 `8011` 메인 대시보드와 신청/정산 집계가 정상 로드됐다.
+  - 같은 계정으로 `2608`은 파트너 비인가 안내가 노출됐고, `8010`은 로그인 회원의 빈 수강내역 화면이 노출됐다.
+  - `8009`는 파트너 인증 체크 실패 warning 이 있으나 현재 live 에서는 폼이 계속 렌더링된다.
+- 판단
+  - 파트너/회원 테스트 계정은 Open API로 자동 생성하기보다, 메이크샵에서 일반 회원을 수동 생성한 뒤 필요 시 그룹 변경으로 운영하는 쪽이 현재 구조에 맞다.
+  - 관리자 어드민은 현재 메이크샵 로그인 세션 + 회원그룹(`관리자/운영자/대표` 또는 `group_level >= 9`)에 직접 묶여 있다.
+
+### [CODEX-LEAD] offline-crm-v2 P1 3차 구현 완료: 환불대기 처리 화면/즉시 반영 보정 (2026-03-11)
+- 변경 파일
+  - `offline-crm-v2/src/pages/Receivables.tsx`
+- 변경 내용
+  - `환불대기` 전용 탭 추가
+  - 초과 입금으로 생성된 환불대기 고객 목록/합계 표시
+  - `환불 처리` 다이얼로그에서 부분 환불, 잔액 계산, `환불대기 해제` 지원
+  - 고객 메모 기반 회계 메타를 캐시에 즉시 반영해 환불 후 금액이 새로고침 없이 바로 줄어들도록 보정
+  - URL `tab=refund` 동기화 누락 수정
+- 검증
+  - `npm run build`
+  - `bash deploy/deploy.sh`
+  - Playwright 실검증
+    - `1,100원 미수 -> 1,500원 입금 -> 초과 400원 환불대기 등록`
+    - 환불대기 탭에서 `300원 환불 완료` 후 즉시 `100원`으로 감소 확인
+    - `환불대기 해제` 후 목록 제거 확인
+    - 고객 상세 `거래내역`에 `환불대기`, `환불` 행 노출 확인
+  - 테스트용 `TEST-ACCOUNTING-REFUND-*` 데이터 정리 완료
 
 ### [CODEX-LEAD] offline-crm-v2 P1 1차 구현 완료: 초과 입금/예치금/환불대기/거래원장 확장 (2026-03-11)
 - 변경 파일
@@ -2307,9 +2502,45 @@
     - 스킵:
       - 파트너 로그인 시나리오 전체는 `PARTNER_MEMBER_ID`, `PARTNER_MEMBER_PASSWORD` 미제공으로 건너뜀
 
+### [CODEX-LEAD] Phase 3 메이크샵 실배포 후 Playwright MCP 라이브 확인 (CODEX)
+- 실행 일시: 2026-03-11 23:34 KST ~ 2026-03-11 23:39 KST
+- 검증 방식
+  - 내장 Playwright MCP로 `foreverlove.co.kr` 라이브 페이지 직접 탐색
+  - 저장 직후 핵심 공개 페이지와 이전 실패 지점을 우선 확인
+- 확인 결과
+  - `2607 상세`
+    - `CL_202602_001`에서 Trust Summary Bar, 포함 내역, `FAQ/문의` 탭 확장 UI live 반영 확인
+    - FAQ 검색 입력 visible, 카테고리 칩 `6개`, FAQ `15개` 확인
+    - 스크린샷: `output/playwright/mcp/2607-faq-after-live-deploy.png`
+  - `2607 상세`
+    - `CL_202602_662`에서 지역 탐색 링크가 `/shop/page.html?id=2606&region=%EC%84%9C%EC%9A%B8` 로 생성되는 것 확인
+    - 링크 클릭 후 `2606` 서울 필터 결과 `5건` 확인
+  - `2606 목록`
+    - 클래스 카드 `7건`, `협회 제휴`, `혜택` 탭 DOM 존재 확인
+  - `2609`, `2608`, `8009`
+    - 로그인 버튼 실제 클릭 시 모두 `/shop/member.html?type=login&returnUrl=...` 로 이동 확인
+  - `8010`
+    - 비로그인 안내 영역 노출 확인
+  - `8011`
+    - 비권한 차단 화면 노출 확인
+- 잔여 이슈
+  - 콘솔 에러:
+    - Kakao SDK integrity mismatch 로 `kakao.min.js` 차단
+    - Channel.io boot `401`
+  - 파트너 로그인/실관리자 양성 시나리오는 계정이 없어 이번 MCP 확인 범위에서 제외
+
 ## Next Step
 
-- [CODEX-LEAD] offline-crm-v2 P1 2차: `환불대기` 전용 처리 화면/완료 버튼 추가
+- [CODEX] 자동입금 검토 큐에서 고객 직접 재지정/명세표 직접 선택까지 가능한 2차 UI 보강
+- [CODEX] 실제 NH 입금 알림 메일 샘플 3~5건 수집 후 Gmail 파서 정규식 보정
+- [CODEX-LEAD] `2610`을 로그인 회원 공용 시작 가이드로 유지할지, 승인된 파트너 전용으로 다시 제한할지 정책 확정
+- [CODEX-LEAD] `2610`을 파트너 전용으로 돌릴 경우 `교육/js.js` 초기 진입부에 `getPartnerAuth` 또는 동등 권한 체크를 추가하고 live 재검증
+- [CODEX-LEAD] `WF-10` 내부 legacy 메일/텔레그램 노드는 현재 미사용 연결 상태이므로, 다음 정리 시 node 제거 또는 선택형 가이드 카피로 교체
+- [CODEX-LEAD] CRM 자동입금 2차: 업로드 파일 포맷 자동 판별 확장, 검토 필요 후보 수동 고객 지정, 반영 이력 다운로드 추가
+- [CODEX-LEAD] CRM 예치금/환불대기 2차: 명세표 작성에서 예치금 자동 제안 강화 및 환불대기 인쇄/엑셀 출력 보강
+- [CODEX-LEAD] CRM 회계 UX 2차: 입금 수집함과 수금 관리 간 상호 이동, 가이드 투어가 화면 액션을 덜 가리도록 위치/자동 접힘 개선
+
+- [CODEX-LEAD] offline-crm-v2 P1 4차: `환불대기`를 `지급 관리` 화면과 공급처/고객 정산 흐름에 자연스럽게 통합
 - [CODEX-LEAD] offline-crm-v2 Phase 2: 단계형 내비게이션 가이드 투어로 전환
 - [CODEX-LEAD] offline-crm-v2 농협 입금 자동화 1차 기술 검토: 수집 경로, 보안, 승인 큐 구조
 - [CODEX] CRM 수금/지급 실제 로그인 계정 체계가 필요해지면 localStorage 작업 계정 방식에서 서버 세션 기반 로그로 승격
@@ -2317,9 +2548,11 @@
 - [CODEX] CRM 운영 데이터 직접 수정 사고 대비 `서상견`과 같은 핵심 분리 고객 복구 절차를 스크립트화하거나 관리자 백업 체크리스트로 문서화
 - [CODEX] CRM 고객 제출용 거래내역 확인서 실제 대외 전달 1회 검토 후 문구/표현 미세조정
 - [CODEX] CRM 송장 자동 다운로드 결과물을 실제 택배 업로드 양식에 1회 대입 검증
-- [CODEX-LEAD] 메이크샵 디자인편집기 `2607` 상세에 최신 `Index.html/css.css/js.js` 실배포 후 라이브 스모크 재실행
-- [CODEX-LEAD] `2606/2608/2609/8009/8010/8011/2610`을 `docs/파트너클래스/phase3-makeshop-live-deploy-checklist-2026-03-11.md` 순서대로 저장
-- [CODEX-LEAD] 파트너 로그인 계정과 실관리자 계정 확보 후 `partnerclass-live-smoke.js` 전체 시나리오 재검증
+- [CODEX-LEAD] 교육 이수된 파트너 기준 `8009` 실제 강의 등록 저장 1회 검증하고, 생성되는 상품/클래스/NocoDB row를 점검
+- [CODEX-LEAD] 등급 리뉴얼 확정 시 `scripts/partnerclass-grade-change-audit.js`를 먼저 실행하고 `partner-grade-change-playbook.md` 순서대로 schema/workflow/UI를 갱신
+- [CODEX-LEAD] 관리자 운영을 메이크샵 내부 세션으로 계속 둘지, 분리 어드민으로 승격할지 결정 시 권한모델/감사로그/배포비용 비교안 문서화
+- [CODEX-LEAD] 신규 page id 대상 `콘텐츠허브`, `협회제안서`, 메인페이지 `메인페이지/파트너클래스-홈개편` 실반영 여부 결정
+- [CODEX] 카카오 SDK JS key / integrity mismatch 정리
 
 ### [CODEX-LEAD] 파트너클래스 Phase 3 전체 구현 (독립 프로젝트)
 
@@ -2431,31 +2664,32 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - CRM `지급 관리` 1차는 기존 장부 기준 줄 돈을 다루는 단계이며, 공급처별 독립 지급 원장/지급 예정일/상태 배지는 아직 Phase 3 이후 작업이 필요함
 - CRM 인앱 가이드는 현재 화면 단위 1차 버전이라, 역할별 분기와 단계형 투어는 아직 추가 구현이 필요함
 - 예치금/환불대기/초과 입금 처리는 1차 구현이 들어갔지만, 명세표 저장 후 `예치금 사용` 이벤트가 모든 입력 경로에서 안정적으로 누적되는지는 추가 E2E 보강이 더 필요함
-- 이번 UX 수정은 아직 메이크샵에 저장되지 않았으므로, 실제 라이브 재검증 전까지는 기존 `/member/login.html` 및 선물하기 동작이 남아 있을 수 있음
+- 메이크샵 디자인편집기 저장 후 Playwright MCP 기준으로 `2606/2607/2608/2609/8009/8010/8011` 공개 화면 반영은 확인됐고, 실계정 기준 `2608/8009/8010/8011` 및 `2610 선택형 시작 가이드` 검증도 끝났다. 남은 범위는 예약/주문/강의 등록 저장 이후의 deeper E2E다.
 - 클래스 실상품 `branduid=12195642` 기준 상품 상세에는 native `.btn-gift` 링크가 노출되지 않아, 상품 설정상 선물하기가 비활성인 경우 프론트는 `basket.action` 기반 선물 주문 진입으로만 폴백함
 - `메인페이지/파트너클래스-홈개편`은 기존 메인페이지를 복사한 별도 프로젝트 폴더이며, 아직 실제 메이크샵 메인에 저장되지는 않음
 - 상세 페이지 선물하기는 메이크샵 네이티브 장바구니 POST로 맞췄지만, 실제 선물 가능 상품 설정 여부에 따라 최종 동작이 달라질 수 있어 실상품 1건 재검증 필요
-- S3-2 등급 인센티브는 로컬 fixture + Playwright 검증까지 완료됐지만, 메이크샵 디자인편집기 실배포 전이라 운영 `2606/2607/2608` 최종 시각 검증은 아직 남아 있음
+- S3-2 등급 인센티브는 메이크샵 저장 후 공개 화면 기준 live 반영이 확인됐지만, 파트너 로그인 상태의 최종 확인은 아직 남아 있음
 - S3-3 구독 파일럿의 월간 자동 생성은 내부 운영용 `SUBORD_*` ref 기준이며, 메이크샵 실제 정기결제/주문 생성과는 아직 연결되지 않음
-- S3-3 마이페이지 구독 UI 역시 메이크샵 디자인편집기에는 아직 저장되지 않았으므로 운영 화면 검증은 실배포 후 다시 필요함
-- `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 저장 전까지 라이브 반영되지 않음
+- S3-3 마이페이지 구독 UI는 저장 반영 이후 비로그인 게이트까지는 확인됐지만, 실제 회원 로그인 상태의 운영 화면 검증은 다시 필요함
+- `파트너신청/js.js`, `상세/js.js`, `상세/css.css`, `목록/js.js`는 현재 메이크샵 저장 반영이 확인됐다.
 - 라이브 `admin-api`는 현재 리포지토리의 랜덤 `ADMIN_API_TOKEN`이 아니라 구형 토큰 `pressco21-admin-2026` 기준으로만 인증이 통과함
-- `파트너클래스/어드민/js.js`의 `PENDING_REVIEW` 정렬 보정은 아직 메이크샵 디자인편집기에 저장되지 않아 라이브 어드민 UI에는 반영되지 않음
-- S1-1 프론트 변경(강의등록/상세/파트너 수정 모달)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 화면 확인이 필요해지면 사용자 배포 후 재검증이 필요함
-- S1-2 상세 프론트 변경(Trust Summary Bar, 포함 내역, 모바일 CTA 바)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
-- S1-7 파트너 대시보드 온보딩 카드/모달도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 실제 2608 페이지 반영 시 사용자 배포 후 재검증이 필요함
-- S1-8 파트너 대시보드 액션 보드도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 실제 2608 페이지 반영 시 사용자 배포 후 재검증이 필요함
-- S1-4 마이페이지 프론트 변경(`파트너클래스/마이페이지/*`)도 아직 메이크샵 디자인편집기에는 저장되지 않았으므로, 라이브 검증이 필요해지면 사용자 배포 후 재검증이 필요함
+- `파트너클래스/어드민/js.js`는 메이크샵 저장 반영이 확인됐지만, `PENDING_REVIEW` 정렬 보정은 실관리자 권한으로 최종 확인이 필요하다.
+- S1-1 프론트 변경(강의등록/상세/파트너 수정 모달)은 저장 반영 후 공개 화면 기준으로 확인됐지만, 파트너 로그인 상태의 동작 검증은 남아 있음
+- `8009`는 현재 `education_completed=Y` 계정에서 실제 등록 폼 노출까지 확인됐지만, 실제 강의 등록 저장까지는 아직 미검증이다.
+- S1-2 상세 프론트 변경(Trust Summary Bar, 포함 내역, 모바일 CTA 바)은 live 반영을 확인했다. 다만 예약/선물하기의 로그인 상태별 최종 동작 검증은 남아 있음
+- S1-7 파트너 대시보드 온보딩 카드/모달은 실제 파트너 세션에서 기본 렌더링과 `교육 이수` 완료 상태까지 확인했지만, 프로필 편집/다음 액션 CTA의 실동작은 추가 검증이 필요함
+- S1-8 파트너 대시보드 액션 보드는 실제 파트너 세션에서 기본 렌더링까지 확인했지만, 예약/수익/후기 데이터가 생긴 상태의 카드 동작은 추가 검증이 필요함
+- S1-4 마이페이지 프론트 변경(`파트너클래스/마이페이지/*`)은 저장 반영 후 비로그인 게이트는 확인됐지만, 실제 회원 세션 기준 검증이 필요함
 - S1-9 통합 테스트는 로컬 fixture + Playwright 러너 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 후 동일 흐름을 라이브에서 한 번 더 확인해야 함
-- S2-1 파트너 신청 세일즈 랜딩(2609)은 로컬 fixture 기준으로 CTA/반응형이 검증됐지만, 메이크샵 디자인편집기 실배포 후 라이브 스크롤과 모바일 하단 고정 CTA를 다시 확인해야 함
+- S2-1 파트너 신청 세일즈 랜딩(2609)은 로그인 게이트와 실제 로그인 이동은 live 에서 확인됐다. 비로그인 상태에서는 게이트가 우선 노출되므로, 모바일 하단 고정 CTA의 실사용 확인은 별도 조건에서 다시 봐야 한다.
 - S2-2 협회 제안서 페이지와 어드민 URL 생성기는 로컬 fixture 기준으로 검증됐지만, 실배포 전까지는 실제 MakeShop page id가 없어서 라이브 URL은 확정되지 않음
-- S2-3 전국 탐색 IA 확장은 로컬 fixture + Playwright 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 전까지는 실제 2606/2607 페이지와 `/partnermap` 실자산 연동을 라이브에서 다시 확인해야 함
-- S2-8 목록/상세 캐시 분리와 version key 무효화는 로컬 fixture + 라이브 n8n 기준으로 검증됐지만, 메이크샵 디자인편집기 실배포 전까지는 실제 2606/2607 페이지에서 같은 브라우저 복귀 동작을 한 번 더 확인해야 함
-- S2-9 묶음 키트 선택형은 로컬 Playwright, 라이브 스키마, 라이브 WF 구조까지는 검증됐지만 메이크샵 디자인편집기 실배포 전까지는 실제 2607/2608/강의등록 라이브 화면에서 한 번 더 확인해야 함
+- S2-3 전국 탐색 IA 확장은 live `2606/2607` 공개 화면 기준으로는 반영이 확인됐지만, `/partnermap` 실자산 연동과 로그인 흐름 검증은 남아 있음
+- S2-8 목록/상세 캐시 분리와 version key 무효화는 live 반영 이후 같은 브라우저 복귀/액션 후 무효화 시나리오를 한 번 더 확인해야 함
+- S2-9 묶음 키트 선택형은 공개 화면 반영은 확인됐지만, 실제 로그인 상태 주문/장바구니 기준 검증은 아직 남아 있음
 - S2-9 라이브 활성 클래스 중 `kit_enabled=1` 실제 운영 데이터가 아직 없어, 묶음 키트 상품 자동 생성과 실제 주문 후처리는 현재 구조 검증까지만 끝난 상태임
 - S2-10 데모 배치는 live NocoDB에 입력됐지만 클래스 상태를 `closed` 로 묶어 공개 노출은 막았다. 실제 메이크샵 live 화면에서 데모로 쓰려면 디자인편집기 반영 또는 별도 demo page 구성이 추가로 필요하다.
 - S2-10 파트너 액션보드 숫자는 내부 계산상 `예약 건수`와 `수업 수`가 섞일 수 있어, 현재 데모 수락 기준은 숫자 자체보다 카드 활성과 탭 이동에 둔다.
-- S2-11 Phase 3-2 통합 테스트는 로컬 fixture + live API + n8n execution log 기준으로는 통과했지만, 메이크샵 디자인편집기 실배포 후 실제 `2606/2607/2608/2609` 흐름을 live 브라우저에서 한 번 더 확인해야 한다.
+- S2-11 Phase 3-2 통합 테스트는 메이크샵 저장 후 실제 `2606/2607/2608/2609` 공개 흐름까지는 live 브라우저에서 다시 확인했다. 남은 범위는 로그인 세션과 운영 계정 기반 최종 검증이다.
 - S3-1 신규 테이블 4종은 live NocoDB 기준으로 생성/검증까지 끝났지만, `.secrets.env` 수정 금지 원칙 때문에 새 table id 는 코드/문서에서만 관리되고 환경변수로는 아직 승격하지 않았다.
 - S2-4 분리 후 `getSchedules / getRemainingSeats` 는 운영에서 준비 완료됐지만, 아직 프론트 호출처는 없다. S2-5 이후 콘텐츠/협회 read action 추가 시 `WF-01C` 또는 별도 WF 로 확장 방향을 유지해야 한다.
 - S3-6 연간 이벤트 캘린더는 live `syncAnnualCalendar`, `getSeminars`, `runD14Alerts dry_run` 까지 통과했고 auto workflow 도 active 이지만, 실제 메일 발송은 운영 SMTP credential 상태에 따라 실패할 수 있다. 메이크샵 실배포 전까지는 협회/세미나 탭의 최종 시각 검증도 남아 있다.
@@ -2464,9 +2698,11 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - S2-7 파트너 이탈 감지 자동화는 현재 dry run, risk 판정, `last_active_at` 갱신, 실패 로그 저장까지 검증됐지만 운영 `PRESSCO21 SMTP` credential 이 `535` 로 실패해 실제 파트너 메일은 발송되지 않는다.
 - S2-7 `Telegram Summary` 는 최종 응답을 더 이상 덮지 않지만, 운영 `TELEGRAM_CHAT_ID` 가 비어 있어 실제 관리자 전송은 실패한다.
 - S1-5 정산 자동화는 라이브 집계/이력/API 응답까지는 검증됐지만, 운영 SMTP credential `PRESSCO21-SMTP-Naver` 가 `535` 로 실패해 실제 파트너 메일 발송은 아직 불가함
-- `scripts/partnerclass-live-smoke.js` 는 최신 상세 DOM 기준(`FAQ 검색 입력 + 카테고리 칩 6개 이상 + FAQ 10~15개`)으로 갱신됐다. 따라서 현재 라이브 `2607`에서 이 시나리오가 실패하면 스크립트 문제가 아니라 상세 FAQ 확장 UI가 아직 미배포된 상태로 본다.
+- `scripts/partnerclass-live-smoke.js` 는 최신 상세 DOM 기준(`FAQ 검색 입력 + 카테고리 칩 6개 이상 + FAQ 10~15개`)으로 갱신됐고, Playwright MCP 기준으로 현재 live `2607`에서도 이 기준을 충족함을 확인했다.
 - 라이브 `tbl_Classes` INSERT는 현재 `status=INACTIVE`, 소문자 `level`, `region 미저장` 제약이 있어, WF-16/WF-20을 수정할 때 이 우회 로직을 유지해야 함
 - `PRD-파트너클래스-플랫폼-고도화.md`, `commission-policy.md`, 일부 구현 문서는 아직 예전 등급/수수료 표현이 남아 있으므로 서비스 방향 판단은 `docs/파트너클래스/README.md`와 `shared-service-identity.md`를 우선해야 함
+- 등급체계가 리뉴얼되면 저장 enum, 표시 등급, 수수료율, 교육 퀴즈, 메일 카피가 함께 바뀌어야 한다. 현재 기준 변경 포인트는 `docs/파트너클래스/partner-grade-change-playbook.md`와 `scripts/partnerclass-grade-change-audit.js`에 정리했다.
+- `2610`은 현재 로그인 회원이면 일반 회원(`PRESSCO000`)에게도 열린다. 선택형 공용 가이드로는 문제없지만, 승인된 파트너 전용 페이지를 원하면 접근 제어를 다시 넣어야 한다.
 - 로그인 후 hidden 상태로 남던 3개 시나리오는 스모크 구조 수정으로 해소됐으며, 동일 계정 중복 로그인 시 기존 세션이 끊길 수 있음
 - 운영 `invoices` 테이블에는 아직 `paid_date`, `payment_method` 컬럼이 없어서, 과거 기준일 미수 재현은 현재 미수 스냅샷 기반 참고 수준에 머뭄.
 - 운영 `invoice_date`는 서버측 날짜 비교(`gte/lte`)가 안정적으로 동작하지 않아, 캘린더는 전체 명세표를 읽은 뒤 프론트에서 월/기간 필터링하는 구조를 사용 중.
@@ -2480,7 +2716,10 @@ Phase 3-3 (스케일업, 13~24주) — Phase 3-2 완료 후
 - 기존 tbl_Partners의 grade 필드가 SILVER로 되어 있어 프론트에서 BLOOM 매핑 처리 중
 - `docs/n8n-automation-efficiency-review-2026-03-09.md`는 분석/제언 문서이며, 아직 실제 이관이나 워크플로우 분할은 수행되지 않음
 - `codex-skills/partnerclass-live-qa`는 repo-local 스킬이라, 자동 트리거를 원하면 전역 Codex 스킬 디렉터리로 별도 설치가 필요함
-- 실관리자 계정 자격증명은 리포지토리에서 확인되지 않았고, `id=8011` 양성 최종 검증 전 별도 제공이 필요함
+- 메이크샵 Open API 최신 로컬/공식 스펙 기준 회원 생성 엔드포인트가 문서화돼 있지 않아, 일반 회원/파트너 테스트 계정은 수동 생성 후 제공받아야 한다.
+- `jihoo5755`는 live 기준 `group_name=관리자`, `group_level=10` 으로 `8011` 접근이 가능하지만, 현재 `2608` 파트너 인증 데이터와는 연결되지 않는다.
 - `makeshop-d4-dev`는 `/Users/jangjiho/workspace/AGENTS.md`를 기준 문서로 참조하므로, 해당 경로가 바뀌면 스킬 안내도 함께 갱신해야 함
 - 어드민 권한 판정은 이제 `group_name` 일치 또는 `group_level >= 9`면 통과하므로, 다른 최고등급 회원이 의도치 않게 열리지 않는지 운영 정책 확인 필요
 - 현재 이 대화 세션의 내장 Playwright MCP는 stale 상태일 수 있다. 설정은 복구됐지만, 같은 세션에서는 여전히 `Transport closed`가 날 수 있으므로 새 Codex 세션 또는 앱 재시작 후 재검증하는 편이 안전하다.
+- `교육 필수 gate 제거` 프론트 변경은 로컬 파일 기준으로 완료됐지만, 메이크샵 `2608/8009/2610` 저장 전까지 live 화면에는 구카피/구동선이 남아 있을 수 있다.
+- live `WF-10`은 선택형 가이드 응답과 score 판정까지 반영됐지만, 내부에 미사용 `Build Certificate Email / Build Retry Email / Build Pass Telegram` 노드는 아직 JSON에 남아 있다.

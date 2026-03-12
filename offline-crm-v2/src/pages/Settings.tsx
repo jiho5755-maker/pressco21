@@ -15,6 +15,7 @@ import {
 import type { CrmSettings } from '@/lib/api'
 import { resetAllGuides } from '@/lib/appGuide'
 import { Cloud, CloudOff, Loader2 } from 'lucide-react'
+import { loadAuthSession } from '@/lib/auth'
 
 // print.ts 인터페이스 확장 (설정 전용 추가 필드)
 interface SettingsData extends CompanyInfo {
@@ -60,7 +61,29 @@ function loadSettings(): SettingsData {
     const settings = localStorage.getItem(SETTINGS_KEY)
     if (settings) merged = { ...merged, ...JSON.parse(settings) }
   } catch {}
-  return merged as SettingsData
+  const profile1Label = typeof merged.operator_profile_1_label === 'string' && merged.operator_profile_1_label.trim()
+    ? merged.operator_profile_1_label
+    : '마스터 계정'
+  const profile1Name = typeof merged.operator_profile_1_name === 'string' && merged.operator_profile_1_name.trim()
+    ? merged.operator_profile_1_name
+    : '마스터 계정'
+  const profile2Label = typeof merged.operator_profile_2_label === 'string' && merged.operator_profile_2_label.trim()
+    ? merged.operator_profile_2_label
+    : '직원 계정'
+  const profile2Name = typeof merged.operator_profile_2_name === 'string' && merged.operator_profile_2_name.trim()
+    ? merged.operator_profile_2_name
+    : '직원 계정'
+  const activeOperatorProfileId = typeof merged.active_operator_profile_id === 'string' && merged.active_operator_profile_id.trim()
+    ? merged.active_operator_profile_id
+    : 'operator-1'
+  return {
+    ...merged,
+    operator_profile_1_label: profile1Label,
+    operator_profile_1_name: profile1Name,
+    operator_profile_2_label: profile2Label,
+    operator_profile_2_name: profile2Name,
+    active_operator_profile_id: activeOperatorProfileId,
+  } as SettingsData
 }
 
 function saveSettingsLocal(data: SettingsData): void {
@@ -128,6 +151,7 @@ export function Settings() {
   const [data, setData] = useState<SettingsData>(loadSettings)
   const [serverRowId, setServerRowId] = useState<number | null>(null)
   const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('idle')
+  const authSession = loadAuthSession()
 
   // 이미지 프리뷰 state
   const [logoPreview, setLogoPreview] = useState<string>('')
@@ -494,13 +518,14 @@ export function Settings() {
                 />
               </Field>
             </div>
-            <Field label="현재 작업 계정" hint="이 브라우저에서 저장하는 수금/지급 로그에 남길 계정입니다.">
+            <Field label="현재 작업 계정" hint="이제 작업 로그는 설정 선택값이 아니라 현재 로그인한 계정으로 자동 기록됩니다.">
               <Select
-                value={data.active_operator_profile_id ?? 'operator-1'}
-                onValueChange={(value) => set('active_operator_profile_id', value)}
+                value={authSession?.operatorProfileId ?? data.active_operator_profile_id ?? 'operator-1'}
+                onValueChange={() => {}}
+                disabled
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="작업 계정을 선택하세요" />
+                  <SelectValue placeholder="로그인 계정 기준" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="operator-1">
@@ -515,6 +540,11 @@ export function Settings() {
                   </SelectItem>
                 </SelectContent>
               </Select>
+              {authSession ? (
+                <p className="text-xs text-muted-foreground">
+                  현재 로그인: {authSession.displayName} ({authSession.username})
+                </p>
+              ) : null}
             </Field>
             <div className="flex items-center gap-3">
               <input

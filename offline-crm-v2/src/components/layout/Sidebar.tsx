@@ -1,8 +1,10 @@
-import { NavLink } from 'react-router-dom'
+import { NavLink, useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { cn } from '@/lib/utils'
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import type { WorkOperatorProfile } from '@/lib/settings'
+import { loadAuthSession, logoutAuthSession } from '@/lib/auth'
+import { Button } from '@/components/ui/button'
 
 const menuItems = [
   { path: '/',             label: '대시보드',    icon: '📊' },
@@ -19,20 +21,32 @@ const menuItems = [
 ]
 
 export function Sidebar() {
+  const navigate = useNavigate()
   const [activeOperator, setActiveOperator] = useState<WorkOperatorProfile | null>(() => loadActiveWorkOperatorProfile())
+  const [sessionLabel, setSessionLabel] = useState(() => loadAuthSession()?.username ?? '')
 
   useEffect(() => {
-    const refresh = () => setActiveOperator(loadActiveWorkOperatorProfile())
+    const refresh = () => {
+      setActiveOperator(loadActiveWorkOperatorProfile())
+      setSessionLabel(loadAuthSession()?.username ?? '')
+    }
     refresh()
     window.addEventListener('storage', refresh)
     window.addEventListener('focus', refresh)
     window.addEventListener('crm-settings-changed', refresh)
+    window.addEventListener('crm-auth-changed', refresh)
     return () => {
       window.removeEventListener('storage', refresh)
       window.removeEventListener('focus', refresh)
       window.removeEventListener('crm-settings-changed', refresh)
+      window.removeEventListener('crm-auth-changed', refresh)
     }
   }, [])
+
+  function handleLogout() {
+    logoutAuthSession()
+    navigate('/login', { replace: true })
+  }
 
   return (
     <aside
@@ -74,11 +88,19 @@ export function Sidebar() {
       <div className="px-6 py-4 border-t border-white/10">
         {activeOperator ? (
           <div className="mb-3 rounded-md border border-white/10 bg-white/5 px-3 py-2">
-            <p className="text-[11px] text-white/50">현재 작업 계정</p>
-            <p className="mt-0.5 text-xs font-medium text-white">{activeOperator.label}</p>
-            <p className="text-[11px] text-white/50">{activeOperator.operatorName}</p>
+            <p className="text-[11px] text-white/50">현재 로그인 계정</p>
+            <p className="mt-0.5 text-xs font-medium text-white">{activeOperator.operatorName}</p>
+            <p className="text-[11px] text-white/50">{activeOperator.label}{sessionLabel ? ` · ${sessionLabel}` : ''}</p>
           </div>
         ) : null}
+        <Button
+          variant="outline"
+          size="sm"
+          className="mb-3 w-full border-white/20 bg-transparent text-white hover:bg-white/10 hover:text-white"
+          onClick={handleLogout}
+        >
+          로그아웃
+        </Button>
         <p className="text-xs text-white/40">Offline CRM v2.0</p>
       </div>
     </aside>

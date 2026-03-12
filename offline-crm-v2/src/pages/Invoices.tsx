@@ -22,6 +22,14 @@ function isValidCalendarDate(value: string | null): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
 
+function getTodayDateString() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
 function useDebounce<T>(value: T, delay: number): T {
   const [dv, setDv] = useState<T>(value)
   useEffect(() => {
@@ -104,19 +112,20 @@ function buildCustomerPrintSnapshot(
 export function Invoices() {
   const qc = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
+  const today = useMemo(() => getTodayDateString(), [])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [dateFrom, setDateFrom] = useState(() => {
     const date = searchParams.get('date')
     const from = searchParams.get('from')
     if (isValidCalendarDate(date)) return date
-    return isValidCalendarDate(from) ? from : ''
+    return isValidCalendarDate(from) ? from : getTodayDateString()
   })
   const [dateTo, setDateTo] = useState(() => {
     const date = searchParams.get('date')
     const to = searchParams.get('to')
     if (isValidCalendarDate(date)) return date
-    return isValidCalendarDate(to) ? to : ''
+    return isValidCalendarDate(to) ? to : getTodayDateString()
   })
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -136,8 +145,8 @@ export function Invoices() {
     const normalizedDate = isValidCalendarDate(nextDate) ? nextDate : ''
     const nextFrom = searchParams.get('from')
     const nextTo = searchParams.get('to')
-    const normalizedFrom = normalizedDate || (isValidCalendarDate(nextFrom) ? nextFrom : '')
-    const normalizedTo = normalizedDate || (isValidCalendarDate(nextTo) ? nextTo : '')
+    const normalizedFrom = normalizedDate || (isValidCalendarDate(nextFrom) ? nextFrom : today)
+    const normalizedTo = normalizedDate || (isValidCalendarDate(nextTo) ? nextTo : today)
 
     setDateFrom((prev) => (prev === normalizedFrom ? prev : normalizedFrom))
     setDateTo((prev) => (prev === normalizedTo ? prev : normalizedTo))
@@ -166,7 +175,7 @@ export function Invoices() {
       nextParams.delete('new')
       setSearchParams(nextParams, { replace: true })
     }
-  }, [searchParams, setSearchParams])
+  }, [searchParams, setSearchParams, today])
 
   const params: Record<string, string | number> = {
     sort: '-invoice_date',
@@ -230,6 +239,18 @@ export function Invoices() {
   const totalRows = filteredInvoices.length
   const totalPages = Math.ceil(totalRows / PAGE_SIZE)
   const invoices = filteredInvoices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const filteredSalesAmount = useMemo(
+    () => filteredInvoices.reduce((sum, invoice) => sum + (invoice.total_amount ?? 0), 0),
+    [filteredInvoices],
+  )
+  const paidSalesAmount = useMemo(
+    () => filteredInvoices.reduce((sum, invoice) => sum + (invoice.paid_amount ?? 0), 0),
+    [filteredInvoices],
+  )
+  const outstandingSalesAmount = Math.max(filteredSalesAmount - paidSalesAmount, 0)
+  const isSingleDayView = Boolean(dateFrom && dateTo && dateFrom === dateTo)
+  const salesSummaryLabel = isSingleDayView ? '선택 날짜 총 매출' : '선택 기간 총 매출'
+  const salesSummaryDateLabel = isSingleDayView ? dateFrom : `${dateFrom} ~ ${dateTo}`
   const invoiceLinkSummary = useMemo(() => {
     let orphanCount = 0
     let splitCount = 0
@@ -506,7 +527,7 @@ export function Invoices() {
             onClick={() => {
               setSearch('')
               setStatusFilter('ALL')
-              applyDateRange('', '')
+              applyDateRange(today, today)
             }}
           >
             초기화
@@ -536,6 +557,28 @@ export function Invoices() {
         ) : (
           <span className="ml-2 text-[#3d6b4a]">필수 배송 정보 누락 없음</span>
         )}
+      </div>
+
+      <div className="mb-4 grid gap-3 md:grid-cols-3">
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <div className="text-xs text-muted-foreground">{salesSummaryLabel}</div>
+          <div className="mt-1 text-2xl font-semibold text-[#3d6b4a]">
+            {filteredSalesAmount.toLocaleString()}원
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">{salesSummaryDateLabel} 기준</div>
+        </div>
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <div className="text-xs text-muted-foreground">선택 기준 입금 합계</div>
+          <div className="mt-1 text-2xl font-semibold">{paidSalesAmount.toLocaleString()}원</div>
+          <div className="mt-1 text-xs text-muted-foreground">현재 필터 결과 {totalRows.toLocaleString()}건</div>
+        </div>
+        <div className="rounded-lg border bg-white px-4 py-3">
+          <div className="text-xs text-muted-foreground">선택 기준 남은 잔액</div>
+          <div className="mt-1 text-2xl font-semibold text-red-600">
+            {outstandingSalesAmount.toLocaleString()}원
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">기본 조회일은 항상 오늘({today})입니다</div>
+        </div>
       </div>
 
       {/* 테이블 */}

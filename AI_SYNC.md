@@ -49,15 +49,17 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: IDLE
-- Started At: -
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-13 00:01 KST
 - Branch: codex/partnerclass-e0-001-testdata-cleanup
-- Working Scope: [CODEX-LEAD] E0-006 live 확인 완료, E0-002 메이크샵 저장 대기
+- Working Scope: [CODEX-LEAD] E0-002 파트너맵 경로 오판 교정 및 live 재검증
 - Active Subdirectory: /Users/jangjiho/workspace/pressco21/파트너클래스
 
 ## Files In Progress
-- (none)
+- AI_SYNC.md
+- 파트너클래스/목록/js.js
+- 파트너클래스/상세/js.js
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -90,6 +92,10 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- offline-crm-v2 앱 내부 로그인 기능을 추가했다.
+  - 로그인 페이지, 세션 가드, 로그아웃 버튼을 반영했고 `pressco21`(마스터) / `jhl9464`(직원) 계정으로 실로그인 검증을 완료했다.
+  - 수금/지급 저장 로그의 작업 계정은 이제 설정 선택값이 아니라 현재 로그인 세션 기준으로 자동 기록된다.
+- offline-crm-v2 명세표 작성/관리 화면 기본 날짜를 오늘로 고정하고, 선택 날짜/기간 기준 총 매출·입금 합계·남은 잔액 요약 카드를 추가했다.
 - [CODEX-LEAD] E0-006 live 재검증 완료.
   - Playwright 실계정 기준 `2608 수익 리포트`에 등급 성장 가이드만 남고 수수료율(%) 비교표/수치 노출은 제거됨을 확인.
   - `2607` 차단 화면도 `[object Object]` 대신 `해당 클래스를 찾을 수 없습니다.` 문구로 반영 확인.
@@ -140,6 +146,9 @@
 3. 다음 E0 태스크 착수
    - `E0-002` 파트너맵 403 해결
    - `E0-003` 목록 카드 레이아웃 파손 보정
+4. offline-crm-v2 후속
+   - 로그인 세션 기반 저장 로그 문구를 고객 상세/수금·지급 팝업에서 더 명확히 정리
+   - 필요 시 비밀번호 변경 또는 계정 관리 UI를 별도 기능으로 분리
 
 **Day 1 처리 상태:**
 

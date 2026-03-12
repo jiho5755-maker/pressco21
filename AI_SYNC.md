@@ -51,13 +51,15 @@
 
 - Current Owner: IDLE
 - Mode: IDLE
-- Started At: -
+- Started At: 2026-03-13 00:15 KST
 - Branch: codex/partnerclass-e0-001-testdata-cleanup
-- Working Scope: [CODEX-LEAD] E0-002 파트너맵 경로 교정 완료, 메이크샵 저장 대기
+- Working Scope: [CODEX-LEAD] E0-002 live 확인 완료, E0-003 검증 완료, E0-004/E0-005 로컬 완료 후 메이크샵 저장 대기
 - Active Subdirectory: /Users/jangjiho/workspace/pressco21/파트너클래스
 
 ## Files In Progress
-- (none)
+- AI_SYNC.md
+- 파트너클래스/상세/js.js
+- 파트너클래스/상세/css.css
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -90,6 +92,23 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- [CODEX-LEAD] E0-004 상세 이미지 빈 상태 처리, E0-005 Trust Summary 빈 상태 처리 로컬 완료.
+  - `파트너클래스/상세/js.js`
+    - 갤러리 이미지가 없거나 `null/undefined/placeholder.com` 인 경우 인라인 카테고리 플레이스홀더를 렌더하도록 변경했다.
+    - 상단 Trust Summary Bar는 더 이상 `0명 / 0.0 / 0건`을 노출하지 않고, 검수/키트/환불 신뢰 배지와 함께 조건부 통계 또는 `새로 오픈한 클래스` 배지를 표시하도록 보정했다.
+    - 갤러리 Swiper는 `2장 이하`에서 loop 를 끄도록 보정해 local fixture warning 을 제거했다.
+  - `파트너클래스/상세/css.css`
+    - `detail-hero__placeholder*`, `detail-trust-bar__badge*`, `detail-trust-bar__new`, `detail-trust-bar__stat-group` 스타일과 모바일 축소 스타일을 추가했다.
+  - 로컬 검증:
+    - `node --check 파트너클래스/상세/js.js`
+    - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/상세/js.js 파트너클래스/상세/css.css`
+    - `node scripts/build-partnerclass-playwright-fixtures.js`
+    - Playwright fixture mock 검증
+      - 이미지 없음 + 수강/후기 0건 -> `detail-hero__placeholder--preserved`, `새로 오픈한 클래스`
+      - 이미지 2장 + 수강 12명 + 후기 7건 -> 플레이스홀더 미노출, `12명 / ★ 4.8 / 7건` 표시
+    - 증적:
+      - `output/playwright/mcp/e0-004-placeholder-detail.png`
+      - `output/playwright/mcp/e0-005-trust-stats-detail.png`
 - [CODEX-LEAD] E0-002 파트너맵 경로 오판 교정 완료.
   - live 운영 파트너맵은 `/shop/page.html?id=2602` 임을 확인했고, `2606 목록/js.js`, `2607 상세/js.js` 의 지도 링크 생성 대상을 `/partnermap`/카카오 외부 검색이 아니라 `2602 파트너맵`으로 교정했다.
   - live `2602`는 쿼리 파라미터가 붙으면 `self.currentFilters.category.every is not a function` 로 깨지는 기존 버그가 있었고, `파트너맵/js.js` 의 URL 동기화/로드/리셋 로직을 다중 선택 배열 구조에 맞게 보정했다.
@@ -137,19 +156,16 @@
 **즉시 남은 액션:**
 
 1. 메이크샵 저장 필요
-   - `2602 파트너맵`
-     - `파트너맵/js.js`
-   - `2606 목록`
-     - `파트너클래스/목록/js.js`
    - `2607 상세`
+     - `파트너클래스/상세/css.css`
      - `파트너클래스/상세/js.js`
 2. 저장 후 Playwright live 재검증
-   - `2602` 파트너맵이 `region/category/search` 쿼리로도 초기화 오류 없이 뜨는지 확인
-   - `2606` 오프라인 클래스 지도 CTA가 `2602 파트너맵`으로 열리고 403 없이 필터가 적용되는지 확인
-   - `2607` 강사 액션/탐색 링크의 지도 CTA가 `2602 파트너맵`으로 이동하는지 확인
+   - `2607`에서 이미지 없는 클래스가 카테고리 플레이스홀더로 보이는지 확인
+   - `2607` 상단 Trust Summary 가 `0/0/0` 대신 `새로 오픈한 클래스` 또는 조건부 통계로 나뉘는지 확인
+   - 상세 콘솔에 신규 JS 오류가 없는지 확인
 3. 다음 E0 태스크 착수
-   - `E0-002` 파트너맵 403 해결
-   - `E0-003` 목록 카드 레이아웃 파손 보정
+   - `E0-007` 모바일 필터 기본 닫힘
+   - `E0-008` 파트너 대시보드 getPartnerBookings/Reviews API 오류 정리
 4. offline-crm-v2 후속
    - 로그인 세션 기반 저장 로그 문구를 고객 상세/수금·지급 팝업에서 더 명확히 정리
    - 필요 시 비밀번호 변경 또는 계정 관리 UI를 별도 기능으로 분리
@@ -181,7 +197,8 @@ Day 2~5: `E0-002`~`E0-013` (ROADMAP 순서대로)
 
 ## Known Risks
 - 공개 클래스가 현재 `0건`이라 `2606`은 빈 목록 상태다. 테스트 데이터 누수는 막혔지만, 실제 운영 클래스 승인 전까지 고객 탐색 UX는 약하다.
-- `2602 파트너맵`, `2606 목록`, `2607 상세`의 지도 경로 교정은 아직 메이크샵에 저장되지 않았다. live에서는 기존 `/partnermap` 경로와 `2602` 쿼리 파라미터 버그가 남아 있을 수 있다.
+- `E0-004/E0-005`는 아직 메이크샵 `2607 상세`에 저장되지 않았다. live에서는 여전히 이미지 없음 fallback 과 `0/0/0` 표시가 남아 있을 수 있다.
+- 공개 live 데이터가 `0건`인 상태라 실제 운영 클래스에서 E0-004/E0-005 를 보려면 운영 클래스 1건이 다시 활성화되거나, 저장 후 Playwright route mock 으로만 확인해야 한다.
 - NocoDB 백업 스크립트는 수동 실행 기준 산출물 생성까지 확인했지만, 다음 정규 cron 실행(`2026-03-13 03:00 UTC`) 로그를 한 번 더 확인하는 편이 안전하다.
 - 현재 보안메일 비밀번호 규칙이 바뀌면 파서를 같이 수정해야 한다.
 - 동일 입금자명/금액 중복 케이스는 계속 검토 큐로 보내는 것이 안전하다.

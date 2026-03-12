@@ -474,6 +474,112 @@
         return parseInt(data.booked_count || data.booking_count, 10) || 0;
     }
 
+    function isUsableImageUrl(url) {
+        var text = String(url || '').replace(/\s+/g, ' ').trim();
+        var lowered;
+
+        if (!text) return false;
+
+        lowered = text.toLowerCase();
+        if (lowered === 'null' || lowered === 'undefined') return false;
+        if (lowered.indexOf('placeholder.com') > -1) return false;
+
+        return true;
+    }
+
+    function resolveDetailPlaceholderMeta(category) {
+        var raw = String(category || '').replace(/\s+/g, ' ').trim();
+        var normalized = raw.toLowerCase();
+
+        if (normalizedContains(raw, '\uC555\uD654') || normalized.indexOf('pressed') > -1) {
+            return {
+                key: 'pressed',
+                categoryLabel: raw || '\uC555\uD654',
+                title: '\uD55C \uC7A5 \uC2DD \uAF43 \uAE30\uB85D \uD074\uB798\uC2A4',
+                desc: '\uC0C1\uC138 \uC774\uBBF8\uC9C0\uB294 \uC900\uBE44 \uC911\uC774\uC9C0\uB9CC \uC218\uC5C5 \uC548\uB0B4\uC640 \uC77C\uC815\uC740 \uC815\uC0C1 \uD655\uC778\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.'
+            };
+        }
+        if (normalizedContains(raw, '\uBCF4\uC874\uD654') || normalized.indexOf('preserved') > -1) {
+            return {
+                key: 'preserved',
+                categoryLabel: raw || '\uBCF4\uC874\uD654',
+                title: '\uC624\uB798 \uAC04\uC9C1\uD558\uB294 \uD50C\uB77C\uC6CC \uC624\uBE0C\uC81C \uD074\uB798\uC2A4',
+                desc: '\uB300\uD45C \uC0C1\uC138 \uC774\uBBF8\uC9C0\uB294 \uC900\uBE44 \uC911\uC785\uB2C8\uB2E4. \uCEE4\uB9AC\uD050\uB7FC\uACFC \uC608\uC57D \uD750\uB984\uC740 \uADF8\uB300\uB85C \uC774\uC6A9\uD558\uC2E4 \uC218 \uC788\uC2B5\uB2C8\uB2E4.'
+            };
+        }
+        if (normalizedContains(raw, '\uB9AC\uC2A4') || normalized.indexOf('wreath') > -1) {
+            return {
+                key: 'wreath',
+                categoryLabel: raw || '\uB9AC\uC2A4',
+                title: '\uACC4\uC808 \uBB34\uB4DC\uB97C \uB2F4\uB294 \uB9AC\uC2A4 \uD074\uB798\uC2A4',
+                desc: '\uAC24\uB7EC\uB9AC \uC0AC\uC9C4\uC740 \uC900\uBE44 \uC911\uC774\uC9C0\uB9CC \uC900\uBE44\uBB3C\uACFC \uACF5\uBC29 \uC815\uBCF4\uB97C \uBA3C\uC800 \uD655\uC778\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.'
+            };
+        }
+        if (normalizedContains(raw, '\uBD80\uCF00') || normalized.indexOf('bouquet') > -1) {
+            return {
+                key: 'bouquet',
+                categoryLabel: raw || '\uBD80\uCF00',
+                title: '\uD578\uB4DC\uD0C0\uC774\uB4DC \uBD80\uCF00 \uD074\uB798\uC2A4',
+                desc: '\uB300\uD45C \uC774\uBBF8\uC9C0\uB294 \uC900\uBE44 \uC911\uC774\uC9C0\uB9CC \uAC00\uACA9, \uD3EC\uD568 \uB0B4\uC5ED, \uC608\uC57D \uC815\uBCF4\uB294 \uC815\uC0C1 \uD45C\uC2DC\uB429\uB2C8\uB2E4.'
+            };
+        }
+        if (normalizedContains(raw, '\uCF54\uC0AC\uC9C0') || normalizedContains(raw, '\uC18C\uD488') || normalizedContains(raw, '\uC545\uC138') || normalizedContains(raw, '\uC561\uC138') || normalized.indexOf('accessory') > -1) {
+            return {
+                key: 'accessory',
+                categoryLabel: raw || '\uD50C\uB77C\uC6CC \uC18C\uD488',
+                title: '\uC791\uC9C0\uB9CC \uC644\uC131\uB3C4 \uB192\uC740 \uD50C\uB77C\uC6CC \uC18C\uD488 \uD074\uB798\uC2A4',
+                desc: '\uC0C1\uC138 \uC774\uBBF8\uC9C0\uB294 \uC900\uBE44 \uC911\uC774\uC9C0\uB9CC \uC218\uC5C5 \uD750\uB984\uACFC \uC2E4\uC2B5 \uB09C\uC774\uB3C4\uB97C \uBA3C\uC800 \uD655\uC778\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.'
+            };
+        }
+        if (normalizedContains(raw, '\uAF43\uAF42\uC774') || normalizedContains(raw, '\uC5B4\uB808\uC778\uC9C0') || normalizedContains(raw, '\uC13C\uD130\uD53C\uC2A4') || normalized.indexOf('arrangement') > -1) {
+            return {
+                key: 'arrangement',
+                categoryLabel: raw || '\uC5B4\uB808\uC778\uC9C0',
+                title: '\uACF5\uAC04\uC744 \uCC44\uC6B0\uB294 \uD14C\uC774\uBE14 \uD50C\uB77C\uC6CC \uD074\uB798\uC2A4',
+                desc: '\uB300\uD45C \uC774\uBBF8\uC9C0\uB294 \uC900\uBE44 \uC911\uC785\uB2C8\uB2E4. \uC7A5\uC18C\uC640 \uC2E4\uC2B5 \uC548\uB0B4\uB97C \uBA3C\uC800 \uD655\uC778\uD558\uC138\uC694.'
+            };
+        }
+
+        return {
+            key: 'default',
+            categoryLabel: raw || '\uD50C\uB77C\uC6CC \uD074\uB798\uC2A4',
+            title: '\uB300\uD45C \uC774\uBBF8\uC9C0 \uC900\uBE44 \uC911',
+            desc: '\uC544\uC9C1 \uAC24\uB7EC\uB9AC\uB294 \uBE44\uC5B4 \uC788\uC9C0\uB9CC \uD074\uB798\uC2A4 \uC18C\uAC1C\uC640 \uC608\uC57D \uC815\uBCF4\uB294 \uC815\uC0C1 \uC774\uC6A9 \uAC00\uB2A5\uD569\uB2C8\uB2E4.'
+        };
+    }
+
+    function buildDetailPlaceholderHtml(data) {
+        var meta = resolveDetailPlaceholderMeta(data && data.category);
+
+        return ''
+            + '<div class="detail-hero__placeholder detail-hero__placeholder--' + escapeHtml(meta.key) + '">'
+            + '<span class="detail-hero__placeholder-badge">NEW</span>'
+            + '<div class="detail-hero__placeholder-art" aria-hidden="true">'
+            + '<span class="detail-hero__placeholder-shadow"></span>'
+            + '<span class="detail-hero__placeholder-petal detail-hero__placeholder-petal--1"></span>'
+            + '<span class="detail-hero__placeholder-petal detail-hero__placeholder-petal--2"></span>'
+            + '<span class="detail-hero__placeholder-petal detail-hero__placeholder-petal--3"></span>'
+            + '<span class="detail-hero__placeholder-petal detail-hero__placeholder-petal--4"></span>'
+            + '<span class="detail-hero__placeholder-core"></span>'
+            + '</div>'
+            + '<div class="detail-hero__placeholder-copy">'
+            + '<span class="detail-hero__placeholder-category">' + escapeHtml(meta.categoryLabel) + '</span>'
+            + '<strong>' + escapeHtml(meta.title) + '</strong>'
+            + '<span>' + escapeHtml(meta.desc) + '</span>'
+            + '</div>'
+            + '</div>';
+    }
+
+    function buildTrustBadgeHtml(text, modifier) {
+        return '<span class="detail-trust-bar__badge detail-trust-bar__badge--' + escapeHtml(modifier || 'default') + '">' + escapeHtml(text) + '</span>';
+    }
+
+    function buildTrustStatHtml(value, label, prefix) {
+        var displayValue = prefix ? String(prefix) + ' ' + String(value) : String(value);
+
+        return '<span class="detail-trust-bar__stat"><strong>' + escapeHtml(displayValue) + '</strong><span>' + escapeHtml(label) + '</span></span>';
+    }
+
     function getDeliveryModeValue(data) {
         var raw = String((data && (data.delivery_mode || data.class_format || data.format)) || '').replace(/\s+/g, ' ').trim().toUpperCase();
         var type = String((data && data.type) || '').replace(/\s+/g, ' ').trim();
@@ -568,20 +674,58 @@
         var bar = document.getElementById('detailTrustBar');
         var statsEl = document.getElementById('detailTrustBarStats');
         var profile = resolveContentProfile(data || {});
+        var bookedCount;
+        var avgRating;
+        var reviewCount;
+        var badgeHtml = '';
+        var statItems = [];
+        var statHtml = '';
+        var hasKit;
         if (!bar || !statsEl) return;
 
-        var bookedCount = getBookedCountValue(data);
-        var avgRating = getAverageRatingValue(data);
-        var reviewCount = getReviewCountValue(data);
-        var ratingText = avgRating > 0 ? avgRating.toFixed(1) : '0.0';
+        bookedCount = getBookedCountValue(data);
+        avgRating = getAverageRatingValue(data);
+        reviewCount = getReviewCountValue(data);
+        hasKit = hasKitPurchaseOption(data)
+            || parseInt(data && data.kit_enabled, 10) === 1
+            || String(data && data.materials_included || '').replace(/\s+/g, ' ').trim() === '\uD3EC\uD568';
+
+        badgeHtml += buildTrustBadgeHtml('PRESSCO21 \uAC80\uC218 \uC644\uB8CC', 'verified');
+        if (hasKit) {
+            badgeHtml += buildTrustBadgeHtml('\uC7AC\uB8CC/\uD0A4\uD2B8 \uC548\uB0B4', 'kit');
+        }
+        badgeHtml += buildTrustBadgeHtml('\uC218\uC5C5 3\uC77C \uC804 \uC804\uC561 \uD658\uBD88', 'refund');
+        if (bookedCount >= 30 && reviewCount >= 10) {
+            badgeHtml += buildTrustBadgeHtml('\uC778\uAE30 \uAC15\uC758', 'popular');
+        }
+
+        if (bookedCount >= 5) {
+            statItems.push(buildTrustStatHtml(formatPrice(bookedCount) + '\uBA85', '\uC218\uAC15', ''));
+        }
+        if (avgRating >= 3 && reviewCount >= 3) {
+            statItems.push(buildTrustStatHtml(avgRating.toFixed(1), '\uD3C9\uC810', '\u2605'));
+        }
+        if (reviewCount >= 3) {
+            statItems.push(buildTrustStatHtml(formatPrice(reviewCount) + '\uAC74', '\uD6C4\uAE30', ''));
+        }
+
+        if (statItems.length > 0) {
+            statHtml = '<div class="detail-trust-bar__stat-group">';
+            for (var i = 0; i < statItems.length; i++) {
+                if (i > 0) {
+                    statHtml += '<span class="detail-trust-bar__divider" aria-hidden="true"></span>';
+                }
+                statHtml += statItems[i];
+            }
+            statHtml += '</div>';
+        } else {
+            statHtml = '<span class="detail-trust-bar__new">\uC0C8\uB85C \uC624\uD508\uD55C \uD074\uB798\uC2A4</span>';
+        }
 
         statsEl.innerHTML = ''
             + '<span class="detail-trust-bar__chip">' + escapeHtml(profile.chip) + '</span>'
-            + '<span class="detail-trust-bar__stat"><strong>' + formatPrice(bookedCount) + '\uBA85</strong><span>\uC218\uAC15</span></span>'
-            + '<span class="detail-trust-bar__divider" aria-hidden="true"></span>'
-            + '<span class="detail-trust-bar__stat"><strong>\u2605 ' + ratingText + '</strong><span>\uD3C9\uC810</span></span>'
-            + '<span class="detail-trust-bar__divider" aria-hidden="true"></span>'
-            + '<span class="detail-trust-bar__stat"><strong>' + formatPrice(reviewCount) + '\uAC74</strong><span>\uD6C4\uAE30</span></span>';
+            + '<div class="detail-trust-bar__badges">' + badgeHtml + '</div>'
+            + statHtml;
 
         bar.style.display = '';
     }
@@ -689,67 +833,70 @@
     function renderGallery(data) {
         var slidesContainer = document.getElementById('gallerySlides');
         var thumbsContainer = document.getElementById('galleryThumbSlides');
+        var thumbsSection = document.querySelector('.class-detail .gallery-thumbs');
+        var images = [];
+        var slidesHtml = '';
+        var thumbsHtml = '';
+        var hasRealImages = false;
+        var i;
         if (!slidesContainer || !thumbsContainer) return;
 
         // 이미지 배열 구성 (썸네일 + 추가 이미지)
-        var images = [];
-        if (data.thumbnail_url) {
-            images.push(data.thumbnail_url);
+        if (isUsableImageUrl(data.thumbnail_url)) {
+            images.push(String(data.thumbnail_url).replace(/\s+/g, ' ').trim());
         }
         if (data.images && Array.isArray(data.images)) {
-            for (var i = 0; i < data.images.length; i++) {
-                if (data.images[i] && images.indexOf(data.images[i]) === -1) {
-                    images.push(data.images[i]);
+            for (i = 0; i < data.images.length; i++) {
+                if (isUsableImageUrl(data.images[i])) {
+                    var imageUrl = String(data.images[i]).replace(/\s+/g, ' ').trim();
+                    if (images.indexOf(imageUrl) === -1) {
+                        images.push(imageUrl);
+                    }
                 }
             }
         }
 
-        // 이미지가 없으면 플레이스홀더
-        if (images.length === 0) {
-            images.push('');
-        }
+        hasRealImages = images.length > 0;
 
         // 메인 슬라이드 생성
-        var slidesHtml = '';
-        for (var j = 0; j < images.length; j++) {
-            slidesHtml += '<div class="swiper-slide gallery-slide">';
-            if (images[j]) {
+        if (!hasRealImages) {
+            slidesHtml = '<div class="swiper-slide gallery-slide gallery-slide--placeholder">'
+                + buildDetailPlaceholderHtml(data)
+                + '</div>';
+        } else {
+            for (var j = 0; j < images.length; j++) {
+                slidesHtml += '<div class="swiper-slide gallery-slide">';
                 slidesHtml += '<img class="gallery-slide__img" src="' + escapeHtml(images[j])
                     + '" alt="' + escapeHtml(data.class_name || '') + ' \uC774\uBBF8\uC9C0 ' + (j + 1)
                     + '" loading="' + (j === 0 ? 'eager' : 'lazy') + '">';
-            } else {
-                slidesHtml += '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#999;font-size:14px;">\uC774\uBBF8\uC9C0 \uC900\uBE44\uC911</div>';
+                slidesHtml += '</div>';
             }
-            slidesHtml += '</div>';
         }
         slidesContainer.innerHTML = slidesHtml;
 
         // 썸네일 슬라이드 생성
-        var thumbsHtml = '';
-        for (var k = 0; k < images.length; k++) {
-            thumbsHtml += '<div class="swiper-slide gallery-thumb-slide">';
-            if (images[k]) {
+        if (hasRealImages) {
+            for (var k = 0; k < images.length; k++) {
+                thumbsHtml += '<div class="swiper-slide gallery-thumb-slide">';
                 thumbsHtml += '<img class="gallery-thumb-slide__img" src="' + escapeHtml(images[k])
                     + '" alt="" loading="lazy">';
+                thumbsHtml += '</div>';
             }
-            thumbsHtml += '</div>';
+        } else {
+            thumbsHtml = '';
         }
         thumbsContainer.innerHTML = thumbsHtml;
 
         // 이미지가 1장이면 썸네일 숨김
-        var thumbsSection = document.querySelector('.class-detail .gallery-thumbs');
-        if (thumbsSection && images.length <= 1) {
-            thumbsSection.style.display = 'none';
+        if (thumbsSection) {
+            thumbsSection.style.display = hasRealImages && images.length > 1 ? '' : 'none';
         }
 
         // Swiper 초기화
-        initSwiper(images.length);
+        initSwiper(hasRealImages ? images.length : 1);
 
         // 라이트박스용 이미지 배열 저장 (빈 플레이스홀더 제외)
-        galleryImages = [];
-        for (var m = 0; m < images.length; m++) {
-            if (images[m]) galleryImages.push(images[m]);
-        }
+        galleryImages = hasRealImages ? images.slice() : [];
 
         // 갤러리 이미지 클릭 이벤트 (라이트박스 열기)
         if (galleryImages.length > 0) {
@@ -763,6 +910,8 @@
     function bindGalleryClick() {
         var galleryEl = document.getElementById('galleryMain');
         if (!galleryEl) return;
+        if (galleryEl.getAttribute('data-lightbox-bound') === 'true') return;
+        galleryEl.setAttribute('data-lightbox-bound', 'true');
 
         // 이벤트 위임: 갤러리 컨테이너에 한 번만 바인딩
         galleryEl.addEventListener('click', function(e) {
@@ -789,21 +938,17 @@
      * @param {number} slideCount - 슬라이드 수
      */
     function initSwiper(slideCount) {
+        var navPrev = document.querySelector('.class-detail .gallery-nav--prev');
+        var navNext = document.querySelector('.class-detail .gallery-nav--next');
+        var paginationEl = document.querySelector('.class-detail .gallery-pagination');
+
         // 기존 인스턴스 파괴
         if (thumbsSwiper) { thumbsSwiper.destroy(true, true); thumbsSwiper = null; }
         if (gallerySwiper) { gallerySwiper.destroy(true, true); gallerySwiper = null; }
 
-        // 썸네일 Swiper
-        thumbsSwiper = new Swiper('#galleryThumbs', {
-            spaceBetween: 8,
-            slidesPerView: 'auto',
-            freeMode: true,
-            watchSlidesProgress: true
-        });
-
         // 메인 갤러리 Swiper
         var swiperConfig = {
-            loop: slideCount > 1,
+            loop: slideCount > 2,
             spaceBetween: 0,
             navigation: {
                 nextEl: '.class-detail .swiper-button-next',
@@ -812,20 +957,32 @@
             pagination: {
                 el: '.class-detail .gallery-pagination',
                 clickable: true
-            },
-            thumbs: {
-                swiper: thumbsSwiper
             }
         };
+
+        if (slideCount > 1) {
+            thumbsSwiper = new Swiper('#galleryThumbs', {
+                spaceBetween: 8,
+                slidesPerView: 'auto',
+                freeMode: true,
+                watchSlidesProgress: true
+            });
+            swiperConfig.thumbs = {
+                swiper: thumbsSwiper
+            };
+        }
 
         // 1장일 때 내비게이션 숨김
         if (slideCount <= 1) {
             swiperConfig.navigation = false;
             swiperConfig.pagination = false;
-            var navPrev = document.querySelector('.class-detail .gallery-nav--prev');
-            var navNext = document.querySelector('.class-detail .gallery-nav--next');
             if (navPrev) navPrev.style.display = 'none';
             if (navNext) navNext.style.display = 'none';
+            if (paginationEl) paginationEl.style.display = 'none';
+        } else {
+            if (navPrev) navPrev.style.display = '';
+            if (navNext) navNext.style.display = '';
+            if (paginationEl) paginationEl.style.display = '';
         }
 
         gallerySwiper = new Swiper('#galleryMain', swiperConfig);

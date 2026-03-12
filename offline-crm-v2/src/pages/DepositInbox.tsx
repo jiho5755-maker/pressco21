@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { getAllCustomers, getAllInvoices, getCustomer, updateCustomer, updateInvoice, recalcCustomerStats } from '@/lib/api'
 import type { Invoice } from '@/lib/api'
 import { getFiscalBalanceSnapshots, getLegacyCustomerSnapshots, parseLegacyReceivableMemo, serializeLegacyReceivableMemo } from '@/lib/legacySnapshots'
-import { parseCustomerAccountingMeta } from '@/lib/accountingMeta'
+import { appendCustomerAccountingEvent, parseCustomerAccountingMeta } from '@/lib/accountingMeta'
 import { loadActiveWorkOperatorProfile, loadStoredCrmSettings } from '@/lib/settings'
 import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
 import {
@@ -23,7 +23,6 @@ import {
   type AutoDepositInboxEntry,
   type AutoDepositReviewQueueItem,
 } from '@/lib/autoDeposits'
-
 function todayDate(): string {
   const formatter = new Intl.DateTimeFormat('sv-SE', {
     timeZone: 'Asia/Seoul',
@@ -200,9 +199,8 @@ export function DepositInbox() {
   }
 
   async function refreshAllViews(customerId?: number) {
-    await Promise.all([
+    const tasks: Promise<unknown>[] = [
       qc.invalidateQueries({ queryKey: ['customers'] }),
-      qc.invalidateQueries({ queryKey: ['customer', customerId] }),
       qc.invalidateQueries({ queryKey: ['receivables'] }),
       qc.invalidateQueries({ queryKey: ['receivable-link-customers'] }),
       qc.invalidateQueries({ queryKey: ['dash-receivables'] }),
@@ -218,7 +216,45 @@ export function DepositInbox() {
           return typeof key === 'string' && (key.startsWith('dash-') || key.startsWith('period-') || key.startsWith('calendar-'))
         },
       }),
-    ])
+    ]
+    if (customerId) {
+      tasks.push(qc.invalidateQueries({ queryKey: ['customer', customerId] }))
+      tasks.push(qc.invalidateQueries({ queryKey: ['receivable-customer-breakdown', String(customerId)] }))
+    }
+    await Promise.allSettled(tasks)
+  }
+
+  function getLiveCandidateDetails(candidate: AutoDepositCandidate): AutoDepositCandidate {
+    const customer = customers.find((item) => item.Id === candidate.customerId)
+    if (candidate.kind === 'invoice' && candidate.invoiceId) {
+      const invoice = resolvedInvoices.find((item) => item.Id === candidate.invoiceId)
+      if (invoice) {
+        return {
+          ...candidate,
+          key: candidate.key || `invoice-${candidate.invoiceId}`,
+          customerName: candidate.customerName || customer?.name?.trim() || invoice.customer_name?.trim() || invoice.resolvedCustomerName,
+          bookName: candidate.bookName ?? customer?.book_name?.trim(),
+          remainingAmount: invoice.asOfRemaining,
+        }
+      }
+    }
+    if (candidate.kind === 'legacy') {
+      const ledger = ledgers.find((item) => item.customerId === candidate.customerId)
+      if (ledger) {
+        return {
+          ...candidate,
+          key: candidate.key || `legacy-${candidate.customerId}`,
+          customerName: candidate.customerName || customer?.name?.trim() || ledger.customerName,
+          bookName: candidate.bookName ?? customer?.book_name?.trim(),
+          remainingAmount: ledger.legacyBaseline,
+        }
+      }
+    }
+    return {
+      ...candidate,
+      key: candidate.key || `${candidate.kind}-${candidate.invoiceId ?? candidate.customerId}`,
+      bookName: candidate.bookName ?? customer?.book_name?.trim(),
+    }
   }
 
   async function applyInvoiceCandidate(candidate: AutoDepositCandidate, entry: AutoDepositInboxEntry) {
@@ -244,10 +280,6 @@ export function DepositInbox() {
       payment_method: '계좌이체',
       paid_date: entry.date,
     })
-    if (invoice.customer_id) {
-      try { await recalcCustomerStats(invoice.customer_id as number) } catch {}
-    }
-    await refreshAllViews(typeof invoice.customer_id === 'number' ? invoice.customer_id : undefined)
   }
 
   async function applyLegacyCandidate(candidate: AutoDepositCandidate, entry: AutoDepositInboxEntry) {
@@ -269,8 +301,6 @@ export function DepositInbox() {
       ],
     })
     await updateCustomer(candidate.customerId, { memo: nextMemo })
-    await recalcCustomerStats(candidate.customerId)
-    await refreshAllViews(candidate.customerId)
   }
 
   async function handleApply(entry: AutoDepositInboxEntry, candidate: AutoDepositCandidate) {
@@ -301,16 +331,77 @@ export function DepositInbox() {
   }
 
   function getSelectedReviewCandidate(item: AutoDepositReviewQueueItem): AutoDepositCandidate | undefined {
-    const selectedKey = selectedReviewCandidates[item.queueId] ?? item.candidates[0]?.key
-    return item.candidates.find((candidate) => candidate.key === selectedKey) ?? item.candidates[0]
+    const hydratedCandidates = item.candidates.map(getLiveCandidateDetails)
+    const selectedKey = selectedReviewCandidates[item.queueId] ?? hydratedCandidates[0]?.key
+    return hydratedCandidates.find((candidate) => candidate.key === selectedKey) ?? hydratedCandidates[0]
+  }
+
+  async function applyOverpaymentReviewItem(item: AutoDepositReviewQueueItem, candidate: AutoDepositCandidate) {
+    if (!candidate.invoiceId) throw new Error('명세표 대상 정보가 없습니다.')
+    const invoice = await qc.ensureQueryData({
+      queryKey: ['invoice', candidate.invoiceId],
+      queryFn: () => getAllInvoices({ where: `(Id,eq,${candidate.invoiceId})`, limit: 1 }).then((rows) => rows[0] ?? null),
+    })
+    if (!invoice) throw new Error('명세표를 찾지 못했습니다.')
+
+    const customerId = typeof invoice.customer_id === 'number' ? invoice.customer_id : candidate.customerId
+    const customer = customerId ? await getCustomer(customerId) : null
+    if (!customer) throw new Error('초과 입금 처리에는 연결된 고객 정보가 필요합니다.')
+
+    const remaining = calcRemaining(invoice)
+    const overflowAmount = Math.max(0, item.amount - remaining)
+    const paidAmount = Math.min(item.amount, remaining)
+    const nextPaid = Math.min(invoice.total_amount ?? 0, (invoice.paid_amount ?? 0) + paidAmount)
+    const nextRemaining = Math.max(0, remaining - paidAmount)
+    const nextPaymentStatus = nextRemaining <= 0 ? 'paid' : nextPaid > 0 ? 'partial' : 'unpaid'
+
+    await updateInvoice(candidate.invoiceId, {
+      paid_amount: nextPaid,
+      current_balance: nextRemaining,
+      payment_status: nextPaymentStatus,
+      payment_method: '계좌이체',
+      paid_date: buildEntryFromReviewItem(item).date,
+    })
+
+    if (overflowAmount > 0) {
+      const customerMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
+      const nextMemo = appendCustomerAccountingEvent(
+        customer.memo as string | undefined,
+        {
+          type: 'deposit_added',
+          amount: overflowAmount,
+          date: buildEntryFromReviewItem(item).date,
+          method: '계좌이체',
+          operator: activeOperator?.operatorName,
+          accountId: activeOperator?.id,
+          accountLabel: activeOperator?.label,
+          createdAt: currentTimestamp(),
+          relatedInvoiceId: candidate.invoiceId,
+          note: `자동입금 검토 큐 초과 입금 ${overflowAmount.toLocaleString()}원`,
+        },
+        { depositBalance: customerMeta.depositBalance + overflowAmount },
+      )
+      await updateCustomer(customer.Id, { memo: nextMemo })
+    }
+    try { await recalcCustomerStats(customer.Id) } catch {}
   }
 
   async function handleApplyReviewItem(item: AutoDepositReviewQueueItem, candidate: AutoDepositCandidate) {
     setIsResolvingReviewKey(item.queueId)
     try {
-      await applyCandidate(buildEntryFromReviewItem(item), candidate)
+      const entry = buildEntryFromReviewItem(item)
+      const liveCandidate = getLiveCandidateDetails(candidate)
+      if (liveCandidate.kind === 'invoice' && (liveCandidate.remainingAmount ?? 0) > 0 && entry.amount > (liveCandidate.remainingAmount ?? 0)) {
+        await applyOverpaymentReviewItem(item, liveCandidate)
+      } else {
+        await applyCandidate(entry, liveCandidate)
+        if (liveCandidate.customerId) {
+          try { await recalcCustomerStats(liveCandidate.customerId) } catch {}
+        }
+      }
       await dismissAutoDepositReviewQueueItem(item.queueId, activeOperator?.label ?? 'manual', 'CRM 검토 큐에서 입금 반영 완료')
-      await Promise.all([refreshAllViews(candidate.customerId), refetchRemoteReviewQueue()])
+      await refreshAllViews(liveCandidate.customerId)
+      await refetchRemoteReviewQueue()
       toast.success('검토 큐 입금 반영을 완료했습니다.')
     } catch (error) {
       console.error(error)
@@ -470,11 +561,14 @@ export function DepositInbox() {
                             <SelectValue placeholder="후보 선택" />
                           </SelectTrigger>
                           <SelectContent>
-                            {item.candidates.map((candidate) => (
+                            {item.candidates.map((candidate) => {
+                              const liveCandidate = getLiveCandidateDetails(candidate)
+                              return (
                               <SelectItem key={candidate.key} value={candidate.key}>
-                                {candidate.customerName} · {candidate.kind === 'invoice' ? '새 입력 명세표' : '기존 장부'} · {(candidate.remainingAmount ?? item.amount).toLocaleString()}원
+                                {liveCandidate.customerName} · {liveCandidate.kind === 'invoice' ? '새 입력 명세표' : '기존 장부'} · {(liveCandidate.remainingAmount ?? item.amount).toLocaleString()}원
                               </SelectItem>
-                            ))}
+                              )
+                            })}
                           </SelectContent>
                         </Select>
                         {selectedCandidate ? (

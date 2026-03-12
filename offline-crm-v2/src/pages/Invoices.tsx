@@ -189,7 +189,7 @@ export function Invoices() {
   const { data: customersForLink = [] } = useQuery({
     queryKey: ['invoice-link-customers'],
     queryFn: () => getAllCustomers({
-      fields: 'Id,name,book_name,legacy_id,mobile,phone1,address1,address2,address3,address4,address5,address6,address7,address8,address9,address10',
+      fields: 'Id,name,book_name,legacy_id,mobile,phone1,address1,address2',
     }),
     staleTime: 10 * 60 * 1000,
   })

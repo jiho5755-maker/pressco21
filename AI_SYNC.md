@@ -53,13 +53,11 @@
 - Mode: IDLE
 - Started At: 2026-03-13 00:15 KST
 - Branch: codex/partnerclass-e0-001-testdata-cleanup
-- Working Scope: [CODEX-LEAD] E0-002 live 확인 완료, E0-003 검증 완료, E0-004/E0-005 로컬 완료 후 메이크샵 저장 대기
+- Working Scope: [CODEX-LEAD] E0-004/E0-005/E0-007/E0-008 live 확인 및 WF-03 복구 완료
 - Active Subdirectory: /Users/jangjiho/workspace/pressco21/파트너클래스
 
 ## Files In Progress
-- AI_SYNC.md
-- 파트너클래스/상세/js.js
-- 파트너클래스/상세/css.css
+- 없음
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -92,6 +90,25 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- [CODEX-LEAD] E0-004/E0-005 저장 반영 재확인, E0-007/H2 live 통과, E0-008/H3 live 복구 완료.
+  - `파트너클래스/n8n-workflows/WF-03-partner-data-api.json`
+    - Webhook를 `POST /partner-data` 기준으로 정리하고 `Switch Action`/파라미터 파서를 body 우선 방식으로 보정했다.
+    - `getPartnerBookings`는 `class_date gte/lte`를 NocoDB `where`에서 제거하고, 응답 빌드 단계에서 기간 필터를 후처리하도록 변경했다.
+    - `getPartnerReviews`는 잘못된 정렬 필드 `created_at` 대신 `CreatedAt` 기준으로 조회하고, 순차 실행 구조로 바꿔 빈 200 응답을 제거했다.
+    - `Bookings/Reviews` 모두 classes name map 조인을 순차 연결로 바꿔 응답 빌드 시 선행 노드 참조가 안정적으로 가능하도록 정리했다.
+  - live 재배포 / 백업
+    - `WF-03 Partner Data API (xXGyaVsakWmsP5Z1)`를 2회 재배포했고, 백업은 `output/n8n-backups/20260313-004950-wf03-fix/`, `output/n8n-backups/20260313-005128-wf03-fix-r2/`에 저장했다.
+    - 실행 로그 기준 기존 오류는 `Field 'created_at' not found`와 `class_date gte/lte not supported`였고, 2차 수정 후 직접 호출 기준 `getPartnerBookings/getPartnerReviews` 둘 다 정상 JSON 응답으로 복구됐다.
+  - Playwright live 검증
+    - `2607 상세` 저장 반영 재확인:
+      - route mock 기준 이미지 없는 클래스에서 카테고리 플레이스홀더 + `새로 오픈한 클래스` 배지 노출 확인
+      - 증적: `output/playwright/mcp/e0-004-live-placeholder-recheck-20260313.png`
+    - `2606 목록` 모바일 375px 기준 필터 패널 기본 닫힘 확인
+      - 증적: `output/playwright/mcp/e0-007-mobile-filter-recheck-20260313.png`
+    - 파트너 `jhl9464` 로그인 상태 `2608` 대시보드 확인
+      - 콘솔에서 `getPartnerBookings/getPartnerReviews`의 `Unexpected end of JSON input` 오류가 사라졌고, 남은 오류는 Channel.io `401` 1건뿐이다.
+      - `예약 현황` 탭은 예약 0건 empty state, `후기 관리` 탭은 후기 0건 empty state로 정상 렌더링됨을 확인했다.
+      - 증적: `output/playwright/mcp/e0-008-live-dashboard-tabs-ok-20260313.png`
 - [CODEX-LEAD] E0-004 상세 이미지 빈 상태 처리, E0-005 Trust Summary 빈 상태 처리 로컬 완료.
   - `파트너클래스/상세/js.js`
     - 갤러리 이미지가 없거나 `null/undefined/placeholder.com` 인 경우 인라인 카테고리 플레이스홀더를 렌더하도록 변경했다.
@@ -155,17 +172,16 @@
 
 **즉시 남은 액션:**
 
-1. 메이크샵 저장 필요
-   - `2607 상세`
-     - `파트너클래스/상세/css.css`
-     - `파트너클래스/상세/js.js`
-2. 저장 후 Playwright live 재검증
-   - `2607`에서 이미지 없는 클래스가 카테고리 플레이스홀더로 보이는지 확인
-   - `2607` 상단 Trust Summary 가 `0/0/0` 대신 `새로 오픈한 클래스` 또는 조건부 통계로 나뉘는지 확인
-   - 상세 콘솔에 신규 JS 오류가 없는지 확인
-3. 다음 E0 태스크 착수
-   - `E0-007` 모바일 필터 기본 닫힘
-   - `E0-008` 파트너 대시보드 getPartnerBookings/Reviews API 오류 정리
+1. 다음 E0 태스크 착수
+   - `E0-009` Kakao SDK integrity 수정
+   - `E0-010` ChannelIO 이중 로드 수정
+   - `E0-011` placeholder.com 404 제거
+   - `E0-012` 영어/한글 혼재 UI 정리
+   - `E0-013` 온보딩 체크리스트 항목 불일치 수정
+2. E0 체크리스트 갱신
+   - `C4`, `C5`, `H2`, `H3`를 ROADMAP v4.1 기준으로 `[x]` 처리
+3. 대시보드 실데이터 회귀 확인
+   - 예약/후기 실데이터가 생기면 `2608 예약 현황/후기 관리`의 비어있지 않은 상태도 한 번 더 확인
 4. offline-crm-v2 후속
    - 로그인 세션 기반 저장 로그 문구를 고객 상세/수금·지급 팝업에서 더 명확히 정리
    - 필요 시 비밀번호 변경 또는 계정 관리 UI를 별도 기능으로 분리
@@ -197,9 +213,12 @@ Day 2~5: `E0-002`~`E0-013` (ROADMAP 순서대로)
 
 ## Known Risks
 - 공개 클래스가 현재 `0건`이라 `2606`은 빈 목록 상태다. 테스트 데이터 누수는 막혔지만, 실제 운영 클래스 승인 전까지 고객 탐색 UX는 약하다.
-- `E0-004/E0-005`는 아직 메이크샵 `2607 상세`에 저장되지 않았다. live에서는 여전히 이미지 없음 fallback 과 `0/0/0` 표시가 남아 있을 수 있다.
-- 공개 live 데이터가 `0건`인 상태라 실제 운영 클래스에서 E0-004/E0-005 를 보려면 운영 클래스 1건이 다시 활성화되거나, 저장 후 Playwright route mock 으로만 확인해야 한다.
+- `E0-004/E0-005` 저장 반영 자체는 확인했지만, 공개 live 클래스가 `0건`이라 실제 운영 데이터 기준 검증은 route mock 방식에 의존하고 있다.
+- `getPartnerBookings/getPartnerReviews` 빈 200 장애는 복구됐지만, 현재 파트너 계정에 실제 예약/후기 데이터가 없어 non-empty UI 회귀는 아직 못 봤다.
 - NocoDB 백업 스크립트는 수동 실행 기준 산출물 생성까지 확인했지만, 다음 정규 cron 실행(`2026-03-13 03:00 UTC`) 로그를 한 번 더 확인하는 편이 안전하다.
+- 콘솔에는 외부 스크립트 이슈가 여전히 남아 있다.
+  - Kakao SDK integrity mismatch
+  - Channel.io boot `401`
 - 현재 보안메일 비밀번호 규칙이 바뀌면 파서를 같이 수정해야 한다.
 - 동일 입금자명/금액 중복 케이스는 계속 검토 큐로 보내는 것이 안전하다.
 - 브라우저에서 메일을 먼저 열어도 놓치지 않도록 collector는 수정했지만, 이미 놓친 과거 메일은 수동 재전송 또는 첨부 HTML 재처리가 필요하다.

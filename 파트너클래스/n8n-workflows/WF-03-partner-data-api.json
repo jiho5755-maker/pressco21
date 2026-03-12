@@ -3,7 +3,7 @@
   "nodes": [
     {
       "parameters": {
-        "httpMethod": "GET",
+        "httpMethod": "POST",
         "path": "partner-data",
         "responseMode": "responseNode",
         "options": {}
@@ -12,71 +12,65 @@
       "name": "Webhook",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [220, 300],
+      "position": [
+        220,
+        300
+      ],
       "webhookId": "partner-data"
     },
     {
       "parameters": {
+        "dataType": "string",
+        "value1": "={{ ($json.body && $json.body.action) ? $json.body.action : (($json.query && $json.query.action) ? $json.query.action : '') }}",
         "rules": {
           "rules": [
             {
-              "conditions": {
-                "options": { "caseSensitive": false },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.query.action }}",
-                    "rightValue": "getPartnerBookings",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ]
-              },
-              "renameOutput": "getPartnerBookings"
+              "value2": "getPartnerBookings"
             },
             {
-              "conditions": {
-                "options": { "caseSensitive": false },
-                "conditions": [
-                  {
-                    "leftValue": "={{ $json.query.action }}",
-                    "rightValue": "getPartnerReviews",
-                    "operator": { "type": "string", "operation": "equals" }
-                  }
-                ]
-              },
-              "renameOutput": "getPartnerReviews"
+              "value2": "getPartnerReviews"
             }
-          ],
-          "fallbackOutput": {
-            "id": "fallback"
-          }
+          ]
         },
+        "fallbackOutput": "extra",
         "options": {}
       },
       "id": "wf03-switch",
       "name": "Switch Action",
       "type": "n8n-nodes-base.switch",
-      "typeVersion": 3,
-      "position": [440, 300]
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// getPartnerBookings 파라미터 검증\n// ===================================================\n\nconst query = $input.first().json.query;\nconst memberId = (query.member_id || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst classId = (query.class_id || '').trim();\nconst dateFrom = (query.date_from || '').trim();\nconst dateTo = (query.date_to || '').trim();\nconst page = Math.max(parseInt(query.page) || 1, 1);\nconst limit = Math.min(Math.max(parseInt(query.limit) || 20, 1), 50);\n\n// 날짜 형식 검증 (YYYY-MM-DD)\nconst dateRegex = /^\\d{4}-\\d{2}-\\d{2}$/;\nif (dateFrom && !dateRegex.test(dateFrom)) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'MISSING_PARAMS', message: 'date_from은 YYYY-MM-DD 형식이어야 합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\nif (dateTo && !dateRegex.test(dateTo)) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'MISSING_PARAMS', message: 'date_to는 YYYY-MM-DD 형식이어야 합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    memberId,\n    classId,\n    dateFrom,\n    dateTo,\n    page,\n    limit,\n    _error: false\n  }\n}];"
+        "jsCode": "// ===================================================\n// getPartnerBookings 파라미터 검증\n// ===================================================\n\nconst _body = $input.first().json.body || {};\nconst _rawQuery = $input.first().json.query || {};\n// POST body 우선, 없으면 query string, 없으면 직접 json\nconst query = Object.keys(_body).length > 0 ? _body \n             : (Object.keys(_rawQuery).length > 0 ? _rawQuery \n             : $input.first().json);\nconst memberId = (query.member_id || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst classId = (query.class_id || '').trim();\nconst dateFrom = (query.date_from || '').trim();\nconst dateTo = (query.date_to || '').trim();\nconst page = Math.max(parseInt(query.page) || 1, 1);\nconst limit = Math.min(Math.max(parseInt(query.limit) || 20, 1), 50);\n\n// 날짜 형식 검증 (YYYY-MM-DD)\nconst dateRegex = /^\\d{4}-\\d{2}-\\d{2}$/;\nif (dateFrom && !dateRegex.test(dateFrom)) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'MISSING_PARAMS', message: 'date_from은 YYYY-MM-DD 형식이어야 합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\nif (dateTo && !dateRegex.test(dateTo)) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'MISSING_PARAMS', message: 'date_to는 YYYY-MM-DD 형식이어야 합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    memberId,\n    classId,\n    dateFrom,\n    dateTo,\n    page,\n    limit,\n    _error: false\n  }\n}];"
       },
       "id": "wf03-parse-bookings",
       "name": "Parse Bookings Params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 180]
+      "position": [
+        660,
+        180
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._error }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -85,7 +79,10 @@
       "name": "IF Bookings Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [840, 180]
+      "position": [
+        840,
+        180
+      ]
     },
     {
       "parameters": {
@@ -96,9 +93,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
-            { "name": "fields", "value": "partner_code,status" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})"
+            },
+            {
+              "name": "fields",
+              "value": "partner_code,status"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -107,7 +113,10 @@
       "name": "NocoDB Auth (Bookings)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1060, 120],
+      "position": [
+        1060,
+        120
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -117,23 +126,31 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 파트너 인증 확인 + where 파라미터 구성\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst params = $('Parse Bookings Params').first().json;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_PARTNER', message: '파트너로 등록되지 않은 회원입니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst p = partnerList[0];\nif (p.status !== 'active') {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'PARTNER_INACTIVE', message: '비활성 상태의 파트너 계정입니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// NocoDB where 조건 구성\nlet whereParts = [`(partner_code,eq,${p.partner_code})`];\nif (params.classId) {\n  whereParts.push(`(class_id,eq,${params.classId})`);\n}\nif (params.dateFrom) {\n  whereParts.push(`(class_date,gte,${params.dateFrom})`);\n}\nif (params.dateTo) {\n  whereParts.push(`(class_date,lte,${params.dateTo})`);\n}\n\nreturn [{\n  json: {\n    _error: false,\n    partnerCode: p.partner_code,\n    where: whereParts.join('~and'),\n    page: params.page,\n    limit: params.limit\n  }\n}];"
+        "jsCode": "// ===================================================\n// 파트너 인증 확인 + where 파라미터 구성\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst params = $('Parse Bookings Params').first().json;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_PARTNER', message: '파트너로 등록되지 않은 회원입니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst p = partnerList[0];\nif (p.status !== 'active') {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'PARTNER_INACTIVE', message: '비활성 상태의 파트너 계정입니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nlet whereParts = [`(partner_code,eq,${p.partner_code})`];\nif (params.classId) {\n  whereParts.push(`(class_id,eq,${params.classId})`);\n}\n\nreturn [{\n  json: {\n    _error: false,\n    partnerCode: p.partner_code,\n    where: whereParts.join('~and'),\n    page: params.page,\n    limit: params.limit,\n    dateFrom: params.dateFrom,\n    dateTo: params.dateTo\n  }\n}];"
       },
       "id": "wf03-auth-bookings",
       "name": "Auth & Build Where (Bookings)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1280, 120]
+      "position": [
+        1280,
+        120
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._error }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -142,7 +159,10 @@
       "name": "IF Auth Bookings OK",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1480, 120]
+      "position": [
+        1480,
+        120
+      ]
     },
     {
       "parameters": {
@@ -153,9 +173,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "={{ $json.where }}" },
-            { "name": "sort", "value": "-created_date" },
-            { "name": "limit", "value": "1000" }
+            {
+              "name": "where",
+              "value": "={{ $json.where }}"
+            },
+            {
+              "name": "sort",
+              "value": "-CreatedAt"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            }
           ]
         },
         "options": {}
@@ -164,7 +193,10 @@
       "name": "NocoDB Get Settlements (Bookings)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1700, 60],
+      "position": [
+        1700,
+        60
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -181,9 +213,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(partner_code,eq,{{ $json.partnerCode }})" },
-            { "name": "fields", "value": "class_id,class_name" },
-            { "name": "limit", "value": "200" }
+            {
+              "name": "where",
+              "value": "=(partner_code,eq,{{ $('Auth & Build Where (Bookings)').first().json.partnerCode }})"
+            },
+            {
+              "name": "fields",
+              "value": "class_id,class_name"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            }
           ]
         },
         "options": {}
@@ -192,7 +233,10 @@
       "name": "NocoDB Get Classes (Name Map)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1700, 220],
+      "position": [
+        1700,
+        220
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -202,13 +246,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 예약 목록 응답 구성: 수강생 정보 마스킹 + 페이징 + 집계\n// ===================================================\n\n// --- 마스킹 유틸리티 함수 ---\n\n// 전화번호 마스킹: 010-1234-5678 -> 010-****-5678\nfunction maskPhone(phone) {\n  if (!phone) return '';\n  const clean = String(phone).replace(/[^0-9]/g, '');\n  if (clean.length < 10) return phone;\n  const first3 = clean.substring(0, 3);\n  const last4 = clean.substring(clean.length - 4);\n  return `${first3}-****-${last4}`;\n}\n\n// 이름 마스킹: 홍길동 -> 홍**\nfunction maskName(name) {\n  if (!name) return '';\n  if (name.length <= 1) return name + '*';\n  return name.charAt(0) + '*'.repeat(name.length - 1);\n}\n\n// 이메일 마스킹: user@gmail.com -> use***@gmail.com\nfunction maskEmail(email) {\n  if (!email || !email.includes('@')) return email || '';\n  const [local, domain] = email.split('@');\n  const visible = local.substring(0, Math.min(3, local.length));\n  return `${visible}***@${domain}`;\n}\n\n// --- 데이터 처리 ---\n\nconst settlementsResponse = $('NocoDB Get Settlements (Bookings)').first().json;\nconst classesResponse = $('NocoDB Get Classes (Name Map)').first().json;\nconst authData = $('Auth & Build Where (Bookings)').first().json;\n\nconst settlements = settlementsResponse.list || [];\nconst classesList = classesResponse.list || [];\n\n// class_id -> class_name 맵\nconst classNameMap = {};\nfor (const c of classesList) {\n  if (c.class_id) {\n    classNameMap[c.class_id] = c.class_name || '';\n  }\n}\n\n// 집계 (전체 데이터 기준, 페이징 전)\nlet totalCount = settlements.length;\nlet completedCount = 0;\nlet pendingCount = 0;\n\n// 예약 목록 구성 (마스킹 적용)\nconst bookings = settlements.map(s => {\n  const status = (s.status || '').toUpperCase();\n  if (status === 'COMPLETED') completedCount++;\n  else if (status === 'PENDING' || status === 'PROCESSING' || status === 'PENDING_SETTLEMENT') pendingCount++;\n\n  // NocoDB Links 필드에서 class_id 추출\n  let classId = '';\n  if (Array.isArray(s.class_id) && s.class_id.length > 0) {\n    classId = s.class_id[0].class_id || s.class_id[0].Title || '';\n  } else if (typeof s.class_id === 'string') {\n    classId = s.class_id;\n  }\n\n  const bookingDate = (s.class_date || s.created_date || '').substring(0, 10);\n\n  return {\n    settlement_id: s.settlement_id || '',\n    order_id: s.order_id || '',\n    class_id: classId,\n    class_name: classNameMap[classId] || '',\n    booking_date: bookingDate,\n    schedule_date: (s.class_date || '').substring(0, 10),\n    student_name_masked: maskName(s.student_name || ''),\n    student_email_masked: maskEmail(s.student_email || ''),\n    student_phone_masked: maskPhone(s.student_phone || ''),\n    student_count: Number(s.student_count) || 1,\n    order_amount: Number(s.order_amount) || 0,\n    commission_amount: Number(s.commission_amount) || 0,\n    reserve_amount: Number(s.reserve_amount) || 0,\n    status,\n    created_date: s.created_date || ''\n  };\n});\n\n// 페이징\nconst page = authData.page;\nconst limit = authData.limit;\nconst totalPages = Math.ceil(totalCount / limit);\nconst startIdx = (page - 1) * limit;\nconst pagedBookings = bookings.slice(startIdx, startIdx + limit);\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      bookings: pagedBookings,\n      summary: {\n        total_count: totalCount,\n        completed_count: completedCount,\n        pending_count: pendingCount,\n        failed_count: totalCount - completedCount - pendingCount\n      },\n      pagination: {\n        page,\n        limit,\n        total_count: totalCount,\n        total_pages: totalPages\n      }\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// 예약 목록 응답 구성: 수강생 정보 마스킹 + 페이징 + 집계\n// ===================================================\n\nconst classesData = $input.first().json;\nconst settlementsData = $('NocoDB Get Settlements (Bookings)').first().json;\nconst authData = $('Auth & Build Where (Bookings)').first().json;\n\nfunction maskPhone(phone) {\n  if (!phone) return '';\n  const clean = String(phone).replace(/[^0-9]/g, '');\n  if (clean.length < 10) return phone;\n  return clean.substring(0, 3) + '-****-' + clean.substring(clean.length - 4);\n}\n\nfunction maskName(name) {\n  if (!name) return '';\n  if (name.length <= 1) return name + '*';\n  return name.charAt(0) + '*'.repeat(name.length - 1);\n}\n\nfunction maskEmail(email) {\n  if (!email || !email.includes('@')) return email || '';\n  const parts = email.split('@');\n  const local = parts[0] || '';\n  const domain = parts[1] || '';\n  const visible = local.substring(0, Math.min(3, local.length));\n  return visible + '***@' + domain;\n}\n\nfunction dateOnly(value) {\n  return String(value || '').substring(0, 10);\n}\n\nfunction extractClassId(value) {\n  if (Array.isArray(value) && value.length > 0) {\n    return value[0].class_id || value[0].Title || '';\n  }\n  if (typeof value === 'string') {\n    return value;\n  }\n  return '';\n}\n\nconst classNameMap = {};\n(classesData.list || []).forEach(function(c) {\n  if (c.class_id) {\n    classNameMap[c.class_id] = c.class_name || c.title || c.class_id;\n  }\n});\n\nconst allSettlements = settlementsData.list || [];\nconst filteredSettlements = allSettlements.filter(function(row) {\n  const rowDate = dateOnly(row.class_date || row.created_date || row.CreatedAt || '');\n  if (authData.dateFrom && (!rowDate || rowDate < authData.dateFrom)) {\n    return false;\n  }\n  if (authData.dateTo && (!rowDate || rowDate > authData.dateTo)) {\n    return false;\n  }\n  return true;\n});\n\nlet completedCount = 0;\nlet pendingCount = 0;\nconst bookings = filteredSettlements.map(function(s) {\n  const status = String(s.status || '').toUpperCase();\n  if (status === 'COMPLETED') completedCount++;\n  else if (status === 'PENDING' || status === 'PROCESSING' || status === 'PENDING_SETTLEMENT') pendingCount++;\n\n  const classId = extractClassId(s.class_id);\n\n  return {\n    settlement_id: s.settlement_id || '',\n    order_id: s.order_id || '',\n    class_id: classId,\n    class_name: classNameMap[classId] || '',\n    booking_date: dateOnly(s.class_date || s.created_date || s.CreatedAt || ''),\n    schedule_date: dateOnly(s.class_date || ''),\n    student_name_masked: maskName(s.student_name || ''),\n    student_email_masked: maskEmail(s.student_email || ''),\n    student_phone_masked: maskPhone(s.student_phone || ''),\n    student_count: Number(s.student_count) || 1,\n    order_amount: Number(s.order_amount) || 0,\n    commission_amount: Number(s.commission_amount) || 0,\n    reserve_amount: Number(s.reserve_amount) || 0,\n    status: status,\n    created_date: s.created_date || s.CreatedAt || ''\n  };\n});\n\nconst totalCount = bookings.length;\nconst page = authData.page;\nconst limit = authData.limit;\nconst totalPages = totalCount > 0 ? Math.ceil(totalCount / limit) : 0;\nconst startIdx = (page - 1) * limit;\nconst pagedBookings = bookings.slice(startIdx, startIdx + limit);\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      bookings: pagedBookings,\n      summary: {\n        total_count: totalCount,\n        completed_count: completedCount,\n        pending_count: pendingCount,\n        failed_count: totalCount - completedCount - pendingCount\n      },\n      pagination: {\n        page: page,\n        limit: limit,\n        total_count: totalCount,\n        total_pages: totalPages\n      }\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf03-build-bookings",
       "name": "Build Bookings Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1920, 140]
+      "position": [
+        1920,
+        140
+      ]
     },
     {
       "parameters": {
@@ -217,7 +264,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -226,7 +276,10 @@
       "name": "Respond Bookings",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2140, 140]
+      "position": [
+        2140,
+        140
+      ]
     },
     {
       "parameters": {
@@ -235,7 +288,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -244,27 +300,38 @@
       "name": "Respond Bookings Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1700, 300]
+      "position": [
+        1700,
+        300
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// getPartnerReviews 파라미터 검증\n// ===================================================\n\nconst query = $input.first().json.query;\nconst memberId = (query.member_id || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst classId = (query.class_id || '').trim();\nconst page = Math.max(parseInt(query.page) || 1, 1);\nconst limit = Math.min(Math.max(parseInt(query.limit) || 10, 1), 50);\n\nreturn [{\n  json: {\n    memberId,\n    classId,\n    page,\n    limit,\n    _error: false\n  }\n}];"
+        "jsCode": "// ===================================================\n// getPartnerReviews 파라미터 검증\n// ===================================================\n\nconst _body = $input.first().json.body || {};\nconst _rawQuery = $input.first().json.query || {};\n// POST body 우선, 없으면 query string, 없으면 직접 json\nconst query = Object.keys(_body).length > 0 ? _body \n             : (Object.keys(_rawQuery).length > 0 ? _rawQuery \n             : $input.first().json);\nconst memberId = (query.member_id || '').trim();\n\nif (!memberId) {\n  return [{\n    json: {\n      _error: true,\n      success: false,\n      error: { code: 'NOT_LOGGED_IN', message: '로그인이 필요합니다.' },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst classId = (query.class_id || '').trim();\nconst page = Math.max(parseInt(query.page) || 1, 1);\nconst limit = Math.min(Math.max(parseInt(query.limit) || 10, 1), 50);\n\nreturn [{\n  json: {\n    memberId,\n    classId,\n    page,\n    limit,\n    _error: false\n  }\n}];"
       },
       "id": "wf03-parse-reviews",
       "name": "Parse Reviews Params",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 440]
+      "position": [
+        660,
+        440
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._error }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -273,7 +340,10 @@
       "name": "IF Reviews Valid",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [840, 440]
+      "position": [
+        840,
+        440
+      ]
     },
     {
       "parameters": {
@@ -284,9 +354,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(member_id,eq,{{ $json.memberId }})" },
-            { "name": "fields", "value": "partner_code,status" },
-            { "name": "limit", "value": "1" }
+            {
+              "name": "where",
+              "value": "=(member_id,eq,{{ $json.memberId }})"
+            },
+            {
+              "name": "fields",
+              "value": "partner_code,status"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
           ]
         },
         "options": {}
@@ -295,7 +374,10 @@
       "name": "NocoDB Auth (Reviews)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1060, 400],
+      "position": [
+        1060,
+        400
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -311,17 +393,25 @@
       "name": "Auth & Build Where (Reviews)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1280, 400]
+      "position": [
+        1280,
+        400
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": {
+            "caseSensitive": true
+          },
           "conditions": [
             {
               "leftValue": "={{ $json._error }}",
               "rightValue": false,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
             }
           ]
         }
@@ -330,7 +420,10 @@
       "name": "IF Auth Reviews OK",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1480, 400]
+      "position": [
+        1480,
+        400
+      ]
     },
     {
       "parameters": {
@@ -341,9 +434,22 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "={{ $json.where }}" },
-            { "name": "sort", "value": "-created_at" },
-            { "name": "limit", "value": "1000" }
+            {
+              "name": "where",
+              "value": "={{ $json.where }}"
+            },
+            {
+              "name": "sort",
+              "value": "-CreatedAt"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            },
+            {
+              "name": "fields",
+              "value": "review_id,class_id,partner_code,reviewer_name,rating,content,image_urls,created_at,CreatedAt,partner_answer,answer_at"
+            }
           ]
         },
         "options": {}
@@ -352,7 +458,10 @@
       "name": "NocoDB Get Reviews",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1700, 380],
+      "position": [
+        1700,
+        380
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -369,9 +478,18 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "where", "value": "=(partner_code,eq,{{ $json.partnerCode }})" },
-            { "name": "fields", "value": "class_id,class_name" },
-            { "name": "limit", "value": "200" }
+            {
+              "name": "where",
+              "value": "=(partner_code,eq,{{ $('Auth & Build Where (Reviews)').first().json.partnerCode }})"
+            },
+            {
+              "name": "fields",
+              "value": "class_id,class_name"
+            },
+            {
+              "name": "limit",
+              "value": "200"
+            }
           ]
         },
         "options": {}
@@ -380,7 +498,10 @@
       "name": "NocoDB Get Classes (Reviews Name Map)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1700, 520],
+      "position": [
+        1700,
+        520
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "JmXQGe9254wG4qVZ",
@@ -390,13 +511,16 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 후기 목록 응답 구성: 별점 분포 + 마스킹 + 페이징\n// ===================================================\n\n// 이름 마스킹: 홍길동 -> 홍**\nfunction maskName(name) {\n  if (!name) return '';\n  if (name.length <= 1) return name + '*';\n  return name.charAt(0) + '*'.repeat(name.length - 1);\n}\n\n// --- 데이터 처리 ---\n\nconst reviewsResponse = $('NocoDB Get Reviews').first().json;\nconst classesResponse = $('NocoDB Get Classes (Reviews Name Map)').first().json;\nconst authData = $('Auth & Build Where (Reviews)').first().json;\n\nconst reviewsList = reviewsResponse.list || [];\nconst classesList = classesResponse.list || [];\n\n// class_id -> class_name 맵\nconst classNameMap = {};\nfor (const c of classesList) {\n  if (c.class_id) classNameMap[c.class_id] = c.class_name || '';\n}\n\n// 집계 변수\nlet totalRating = 0;\nconst ratingDist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };\nlet answeredCount = 0;\nlet unansweredCount = 0;\n\n// 후기 목록 구성\nconst reviews = reviewsList.map(r => {\n  const rating = Number(r.rating) || 0;\n  totalRating += rating;\n  if (rating >= 1 && rating <= 5) {\n    ratingDist[rating] = (ratingDist[rating] || 0) + 1;\n  }\n\n  const hasAnswer = (r.partner_answer || '').trim().length > 0;\n  if (hasAnswer) answeredCount++;\n  else unansweredCount++;\n\n  // NocoDB Links 필드에서 class_id 추출\n  let classId = '';\n  if (Array.isArray(r.class_id) && r.class_id.length > 0) {\n    classId = r.class_id[0].class_id || r.class_id[0].Title || '';\n  } else if (typeof r.class_id === 'string') {\n    classId = r.class_id;\n  }\n\n  return {\n    review_id: r.review_id || '',\n    class_id: classId,\n    class_name: classNameMap[classId] || '',\n    reviewer_name_masked: maskName(r.reviewer_name || ''),\n    rating,\n    content: r.content || '',\n    image_urls: r.image_urls || '',\n    created_at: r.created_at || '',\n    partner_answer: r.partner_answer || '',\n    answer_at: r.answer_at || '',\n    has_answer: hasAnswer\n  };\n});\n\n// 페이징\nconst totalCount = reviews.length;\nconst page = authData.page;\nconst limit = authData.limit;\nconst totalPages = Math.ceil(totalCount / limit);\nconst startIdx = (page - 1) * limit;\nconst pagedReviews = reviews.slice(startIdx, startIdx + limit);\n\n// 평균 별점 (소수점 1자리)\nconst avgRating = totalCount > 0\n  ? Math.round((totalRating / totalCount) * 10) / 10\n  : 0;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      reviews: pagedReviews,\n      summary: {\n        total_count: totalCount,\n        avg_rating: avgRating,\n        rating_distribution: ratingDist,\n        answered_count: answeredCount,\n        unanswered_count: unansweredCount\n      },\n      pagination: {\n        page,\n        limit,\n        total_count: totalCount,\n        total_pages: totalPages\n      }\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// 후기 목록 응답 구성: 별점 분포 + 마스킹 + 페이징\n// ===================================================\n\nconst classesData = $input.first().json;\nconst reviewsResponse = $('NocoDB Get Reviews').first().json;\nconst authData = $('Auth & Build Where (Reviews)').first().json;\n\nfunction maskName(name) {\n  if (!name) return '';\n  if (name.length <= 1) return name + '*';\n  return name.charAt(0) + '*'.repeat(name.length - 1);\n}\n\nfunction extractClassId(value) {\n  if (Array.isArray(value) && value.length > 0) {\n    return value[0].class_id || value[0].Title || '';\n  }\n  if (typeof value === 'string') {\n    return value;\n  }\n  return '';\n}\n\nconst classNameMap = {};\n(classesData.list || []).forEach(function(c) {\n  if (c.class_id) {\n    classNameMap[c.class_id] = c.class_name || '';\n  }\n});\n\nconst reviewsList = reviewsResponse.list || [];\nlet totalRating = 0;\nconst ratingDist = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };\nlet answeredCount = 0;\nlet unansweredCount = 0;\n\nconst reviews = reviewsList.map(function(r) {\n  const rating = Number(r.rating) || 0;\n  totalRating += rating;\n  if (rating >= 1 && rating <= 5) {\n    ratingDist[rating] = (ratingDist[rating] || 0) + 1;\n  }\n\n  const hasAnswer = String(r.partner_answer || '').trim().length > 0;\n  if (hasAnswer) answeredCount++;\n  else unansweredCount++;\n\n  const classId = extractClassId(r.class_id);\n\n  return {\n    review_id: r.review_id || '',\n    class_id: classId,\n    class_name: classNameMap[classId] || '',\n    reviewer_name_masked: maskName(r.reviewer_name || ''),\n    rating: rating,\n    content: r.content || '',\n    image_urls: r.image_urls || '',\n    created_at: r.created_at || r.CreatedAt || '',\n    partner_answer: r.partner_answer || '',\n    answer_at: r.answer_at || '',\n    has_answer: hasAnswer\n  };\n});\n\nconst totalCount = reviews.length;\nconst page = authData.page;\nconst limit = authData.limit;\nconst totalPages = totalCount > 0 ? Math.ceil(totalCount / limit) : 0;\nconst startIdx = (page - 1) * limit;\nconst pagedReviews = reviews.slice(startIdx, startIdx + limit);\nconst avgRating = totalCount > 0 ? Math.round((totalRating / totalCount) * 10) / 10 : 0;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      reviews: pagedReviews,\n      summary: {\n        total_count: totalCount,\n        avg_rating: avgRating,\n        rating_distribution: ratingDist,\n        answered_count: answeredCount,\n        unanswered_count: unansweredCount\n      },\n      pagination: {\n        page: page,\n        limit: limit,\n        total_count: totalCount,\n        total_pages: totalPages\n      }\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf03-build-reviews",
       "name": "Build Reviews Response",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1920, 440]
+      "position": [
+        1920,
+        440
+      ]
     },
     {
       "parameters": {
@@ -405,7 +529,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -414,7 +541,10 @@
       "name": "Respond Reviews",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2140, 440]
+      "position": [
+        2140,
+        440
+      ]
     },
     {
       "parameters": {
@@ -423,7 +553,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -432,7 +565,10 @@
       "name": "Respond Reviews Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1700, 600]
+      "position": [
+        1700,
+        600
+      ]
     },
     {
       "parameters": {
@@ -441,7 +577,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -450,7 +589,10 @@
       "name": "Respond Bookings Param Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1060, 280]
+      "position": [
+        1060,
+        280
+      ]
     },
     {
       "parameters": {
@@ -459,7 +601,10 @@
         "options": {
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -468,17 +613,23 @@
       "name": "Respond Reviews Param Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1060, 540]
+      "position": [
+        1060,
+        540
+      ]
     },
     {
       "parameters": {
-        "jsCode": "// Fallback: 알 수 없는 action\nconst action = ($input.first().json.query || {}).action || '';\nreturn [{\n  json: {\n    success: false,\n    error: {\n      code: 'INVALID_ACTION',\n      message: `알 수 없는 요청입니다: ${action}`\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// Fallback: 알 수 없는 action\nconst body = $input.first().json.body || {};\nconst query = $input.first().json.query || {};\nconst action = body.action || query.action || $input.first().json.action || '';\nreturn [{\n  json: {\n    success: false,\n    error: {\n      code: 'INVALID_ACTION',\n      message: `알 수 없는 요청입니다: ${action}`\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf03-fallback",
       "name": "Unknown Action Error",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 620]
+      "position": [
+        660,
+        620
+      ]
     },
     {
       "parameters": {
@@ -488,7 +639,10 @@
           "responseCode": "400",
           "responseHeaders": {
             "entries": [
-              { "name": "Content-Type", "value": "application/json; charset=utf-8" }
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              }
             ]
           }
         }
@@ -497,160 +651,261 @@
       "name": "Respond Error",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [880, 620]
+      "position": [
+        880,
+        620
+      ]
     }
   ],
   "connections": {
     "Webhook": {
       "main": [
         [
-          { "node": "Switch Action", "type": "main", "index": 0 }
+          {
+            "node": "Switch Action",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Switch Action": {
       "main": [
         [
-          { "node": "Parse Bookings Params", "type": "main", "index": 0 }
+          {
+            "node": "Parse Bookings Params",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Parse Reviews Params", "type": "main", "index": 0 }
+          {
+            "node": "Parse Reviews Params",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Unknown Action Error", "type": "main", "index": 0 }
+          {
+            "node": "Unknown Action Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Parse Bookings Params": {
       "main": [
         [
-          { "node": "IF Bookings Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF Bookings Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Bookings Valid": {
       "main": [
         [
-          { "node": "NocoDB Auth (Bookings)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Auth (Bookings)",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Bookings Param Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Bookings Param Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Auth (Bookings)": {
       "main": [
         [
-          { "node": "Auth & Build Where (Bookings)", "type": "main", "index": 0 }
+          {
+            "node": "Auth & Build Where (Bookings)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Auth & Build Where (Bookings)": {
       "main": [
         [
-          { "node": "IF Auth Bookings OK", "type": "main", "index": 0 }
+          {
+            "node": "IF Auth Bookings OK",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Auth Bookings OK": {
       "main": [
         [
-          { "node": "NocoDB Get Settlements (Bookings)", "type": "main", "index": 0 },
-          { "node": "NocoDB Get Classes (Name Map)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Settlements (Bookings)",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Bookings Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Bookings Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Settlements (Bookings)": {
       "main": [
         [
-          { "node": "Build Bookings Response", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Classes (Name Map)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Classes (Name Map)": {
       "main": [
         [
-          { "node": "Build Bookings Response", "type": "main", "index": 0 }
+          {
+            "node": "Build Bookings Response",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Bookings Response": {
       "main": [
         [
-          { "node": "Respond Bookings", "type": "main", "index": 0 }
+          {
+            "node": "Respond Bookings",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Parse Reviews Params": {
       "main": [
         [
-          { "node": "IF Reviews Valid", "type": "main", "index": 0 }
+          {
+            "node": "IF Reviews Valid",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Reviews Valid": {
       "main": [
         [
-          { "node": "NocoDB Auth (Reviews)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Auth (Reviews)",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Reviews Param Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Reviews Param Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Auth (Reviews)": {
       "main": [
         [
-          { "node": "Auth & Build Where (Reviews)", "type": "main", "index": 0 }
+          {
+            "node": "Auth & Build Where (Reviews)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Auth & Build Where (Reviews)": {
       "main": [
         [
-          { "node": "IF Auth Reviews OK", "type": "main", "index": 0 }
+          {
+            "node": "IF Auth Reviews OK",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "IF Auth Reviews OK": {
       "main": [
         [
-          { "node": "NocoDB Get Reviews", "type": "main", "index": 0 },
-          { "node": "NocoDB Get Classes (Reviews Name Map)", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Reviews",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "Respond Reviews Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Reviews Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Reviews": {
       "main": [
         [
-          { "node": "Build Reviews Response", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB Get Classes (Reviews Name Map)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB Get Classes (Reviews Name Map)": {
       "main": [
         [
-          { "node": "Build Reviews Response", "type": "main", "index": 0 }
+          {
+            "node": "Build Reviews Response",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Build Reviews Response": {
       "main": [
         [
-          { "node": "Respond Reviews", "type": "main", "index": 0 }
+          {
+            "node": "Respond Reviews",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Unknown Action Error": {
       "main": [
         [
-          { "node": "Respond Error", "type": "main", "index": 0 }
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
@@ -660,9 +915,16 @@
   },
   "staticData": null,
   "tags": [
-    { "name": "PRESSCO21" },
-    { "name": "Partner Data" },
-    { "name": "Phase 2" }
+    {
+      "name": "PRESSCO21"
+    },
+    {
+      "name": "Partner Data"
+    },
+    {
+      "name": "Phase 2"
+    }
   ],
-  "pinData": {}
+  "pinData": {},
+  "id": "xXGyaVsakWmsP5Z1"
 }

@@ -1400,21 +1400,7 @@
 
 
 /* ----------------------------------------
-   13-B-2. 수수료율 안내
-   ---------------------------------------- */
-.partner-dashboard .pd-gauge-info__commission {
-    margin: 8px 0 0;
-    font-size: 13px;
-    color: var(--pd-text-muted);
-}
-
-.partner-dashboard .pd-gauge-info__commission strong {
-    color: var(--pd-gold);
-    font-weight: 700;
-}
-
-/* ----------------------------------------
-   13-B-3. 등급 승급 조건 테이블
+   13-B-2. 등급 성장 가이드
    ---------------------------------------- */
 .partner-dashboard .pd-grade-tiers {
     margin-top: 20px;

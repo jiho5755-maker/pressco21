@@ -69,7 +69,12 @@ backup_nocodb_db() {
 
 backup_nocodb_volume() {
   local target_file="${BACKUP_DIR}/nocodb_data_${TIMESTAMP}.tar.gz"
-  tar -C "$NOCODB_HOST_DATA_DIR" -czf "$target_file" .
+  local tar_status=0
+
+  tar --warning=no-file-changed -C "$NOCODB_HOST_DATA_DIR" -czf "$target_file" . || tar_status=$?
+  if [ "$tar_status" -gt 1 ]; then
+    return "$tar_status"
+  fi
   [ -f "$target_file" ]
 }
 

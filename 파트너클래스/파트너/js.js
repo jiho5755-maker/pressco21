@@ -2515,7 +2515,7 @@
 
     /**
      * 등급 진행률 게이지 렌더링 (CSS only)
-     * 4등급 체계: BLOOM(25%) → GARDEN(20%) → ATELIER(15%) → AMBASSADOR(10%)
+     * 4등급 체계: BLOOM → GARDEN → ATELIER → AMBASSADOR
      * 승급 기준: 완료 건수 + 평점 (매월 1일 자동 심사)
      * @param {Object} settlement
      */
@@ -2526,7 +2526,6 @@
         var grade = getDisplayGrade();
         var totalClasses = Number(settlement.total_classes || settlement.cumulative_classes || 0);
         var avgRating = Number(settlement.avg_rating || partnerData.avg_rating || 0);
-        var commissionPct = getDisplayCommissionRate(grade);
 
         // 등급별 승급 기준 (완료 건수 + 평점)
         var nextGrade, target, ratingReq, currentLabel;
@@ -2592,33 +2591,30 @@
             + '<div class="pd-gauge-info__bar-fill" style="width:' + pct + '%"></div>'
             + '</div>';
 
-        // 수수료율 안내
-        infoHtml += '<p class="pd-gauge-info__commission">\uD604\uC7AC \uC218\uC218\uB8CC\uC728: <strong>' + commissionPct + '%</strong></p>';
-
         infoHtml += '</div>';
 
-        // 승급 조건 안내 테이블
+        // 비금전적 성장 가이드
         var tierHtml = '<div class="pd-grade-tiers">'
-            + '<h4 class="pd-grade-tiers__title">\uB4F1\uAE09 \uC2B9\uAE09 \uC870\uAC74</h4>'
+            + '<h4 class="pd-grade-tiers__title">\uB4F1\uAE09 \uC131\uC7A5 \uAC00\uC774\uB4DC</h4>'
             + '<table class="pd-grade-tiers__table">'
             + '<thead><tr>'
-            + '<th>\uB4F1\uAE09</th><th>\uC218\uC218\uB8CC</th><th>\uC870\uAC74</th>'
+            + '<th>\uB4F1\uAE09</th><th>\uC131\uC7A5 \uC870\uAC74</th><th>\uC6B4\uC601 \uD61C\uD0DD</th>'
             + '</tr></thead>'
             + '<tbody>'
             + '<tr' + (grade === 'BLOOM' ? ' class="pd-grade-tiers__current"' : '') + '>'
             + '<td><span class="pd-tier-badge pd-tier-badge--bloom">BLOOM</span></td>'
-            + '<td>25%</td><td>\uAE30\uBCF8 \uB4F1\uAE09</td></tr>'
+            + '<td>\uAE30\uBCF8 \uB4F1\uAE09</td><td>\uCCAB \uAC15\uC758 \uB4F1\uB85D \uAC00\uC774\uB4DC + \uC6B4\uC601 \uC628\uBCF4\uB529</td></tr>'
             + '<tr' + (grade === 'GARDEN' ? ' class="pd-grade-tiers__current"' : '') + '>'
             + '<td><span class="pd-tier-badge pd-tier-badge--garden">GARDEN</span></td>'
-            + '<td>20%</td><td>\uC644\uB8CC 10\uAC74 + \u2605 4.0</td></tr>'
+            + '<td>\uC644\uB8CC 10\uAC74 + \u2605 4.0</td><td>\uD504\uB85C\uD544 \uBC30\uC9C0 + \uC6B0\uC120 \uB178\uCD9C \uD6C4\uBCF4</td></tr>'
             + '<tr' + (grade === 'ATELIER' ? ' class="pd-grade-tiers__current"' : '') + '>'
             + '<td><span class="pd-tier-badge pd-tier-badge--atelier">ATELIER</span></td>'
-            + '<td>15%</td><td>\uC644\uB8CC 30\uAC74 + \u2605 4.3</td></tr>'
+            + '<td>\uC644\uB8CC 30\uAC74 + \u2605 4.3</td><td>\uCF58\uD150\uCE20 \uD5C8\uBE0C \uC778\uD130\uBD80 + \uAE30\uD68D\uC804 \uC6B0\uC120 \uD611\uC5C5</td></tr>'
             + '<tr' + (grade === 'AMBASSADOR' ? ' class="pd-grade-tiers__current"' : '') + '>'
             + '<td><span class="pd-tier-badge pd-tier-badge--ambassador">AMBASSADOR</span></td>'
-            + '<td>10%</td><td>\uC644\uB8CC 50\uAC74</td></tr>'
+            + '<td>\uC644\uB8CC 50\uAC74</td><td>\uBA58\uD1A0\uB9C1 + \uC138\uBBF8\uB098 \uACF5\uB3D9 \uAE30\uD68D</td></tr>'
             + '</tbody></table>'
-            + '<p class="pd-grade-tiers__note">\uB9E4\uC6D4 1\uC77C \uC790\uB3D9 \uC2EC\uC0AC \xB7 \uAC15\uB4F1 \uC5C6\uC74C</p>'
+            + '<p class="pd-grade-tiers__note">\uB9E4\uC6D4 1\uC77C \uC790\uB3D9 \uC2EC\uC0AC \xB7 \uC218\uC218\uB8CC \uC815\uCC45\uC740 \uB2F4\uB2F9\uC790\uAC00 \uAC1C\uBCC4 \uC548\uB0B4\uD569\uB2C8\uB2E4.</p>'
             + '</div>';
 
         container.innerHTML = titleHtml + gaugeHtml + infoHtml + tierHtml;
@@ -2783,7 +2779,7 @@
     }
 
     /**
-     * 운영 데이터가 구등급/신등급이 혼재해도 화면 표시는 실제 수수료율을 우선 기준으로 맞춘다.
+     * 운영 데이터가 구등급/신등급이 혼재해도 현재 등급을 안정적으로 계산한다.
      */
     function getDisplayGrade() {
         if (!partnerData) return 'BLOOM';
@@ -2811,19 +2807,6 @@
             PLATINUM: 'ATELIER'
         };
         return legacyNameMap[rawGrade] || 'BLOOM';
-    }
-
-    function getDisplayCommissionRate(grade) {
-        var liveRate = normalizePercent(partnerData ? partnerData.commission_rate : 0);
-        if (liveRate > 0) return liveRate;
-
-        var fallback = {
-            BLOOM: 25,
-            GARDEN: 20,
-            ATELIER: 15,
-            AMBASSADOR: 10
-        };
-        return fallback[grade] || 25;
     }
 
     function normalizePercent(value) {

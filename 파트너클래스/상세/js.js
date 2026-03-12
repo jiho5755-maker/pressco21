@@ -3534,11 +3534,18 @@
     function showError(msg) {
         hideLoading();
         var el = document.getElementById('detailError');
+        var errorText = msg;
+        if (msg && typeof msg === 'object') {
+            errorText = msg.message || msg.code || '';
+        }
+        if (!errorText) {
+            errorText = '잠시 후 다시 시도해 주세요.';
+        }
         if (el) {
             el.style.display = '';
             var descEl = el.querySelector('.detail-error__desc');
-            if (descEl && msg) {
-                descEl.textContent = msg;
+            if (descEl) {
+                descEl.textContent = errorText;
             }
         }
     }

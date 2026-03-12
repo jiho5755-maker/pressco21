@@ -49,15 +49,22 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: 2026-03-12 16:17:00 KST
-- Branch: main
-- Working Scope: offline-crm-v2 자동입금 부분/초과 입금 실입금 검증
-- Active Subdirectory: offline-crm-v2
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-12 16:21 KST
+- Branch: codex/partnerclass-e0-001-testdata-cleanup
+- Working Scope: [CODEX-LEAD] E0-001 완료, E0-006/E0-014 진행 중
+- Active Subdirectory: /Users/jangjiho/workspace/pressco21/파트너클래스
 
 ## Files In Progress
-- 없음
+- /Users/jangjiho/workspace/pressco21/AI_SYNC.md
+- /Users/jangjiho/workspace/pressco21/scripts/partnerclass-e0-001-cleanup-test-data.js
+- /Users/jangjiho/workspace/pressco21/scripts/partnerclass-e0-001-patch-class-read.js
+- /Users/jangjiho/workspace/pressco21/scripts/server/nocodb-daily-backup.sh
+- /Users/jangjiho/workspace/pressco21/파트너클래스/n8n-workflows/WF-01A-class-read.json
+- /Users/jangjiho/workspace/pressco21/파트너클래스/파트너/js.js
+- /Users/jangjiho/workspace/pressco21/파트너클래스/파트너/css.css
+- /Users/jangjiho/workspace/pressco21/파트너클래스/상세/js.js
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -90,6 +97,18 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- [CODEX-LEAD] E0-001 테스트 데이터 공개 노출 차단 완료.
+  - `WF-01A-class-read.json` live 재배포: 공개 목록은 `ACTIVE + 비테스트 + 활성 파트너`만 노출, 상세 direct access는 `CLASS_NOT_FOUND`로 차단, `demo=true`에서만 테스트 데이터 조회 가능.
+  - live NocoDB 정리: 레거시 테스트 파트너 6건 `suspended`, 테스트 클래스 7건 `INACTIVE`, 활성 일정 3건 `cancelled` 처리.
+  - API 검증: `getClasses` 공개 응답 `0건`, `CL_202602_662` 상세 `CLASS_NOT_FOUND`, `demo=true`에서 테스트 클래스 유지 확인.
+  - Playwright 검증: `2606` 공개 목록에서 테스트 카드 미노출, `2607&class_id=CL_202602_662`는 에러 화면으로 차단 확인.
+- [CODEX-LEAD] E0-014 NocoDB 일일 자동 백업 실패 수정 완료.
+  - 원인: `/home/ubuntu/scripts/backup.sh` 의 volume tar 단계가 `file changed as we read it` 경고를 실패로 처리.
+  - 수정: `scripts/server/nocodb-daily-backup.sh`에서 tar exit code 1 경고를 허용하도록 보정 후 서버 재설치 완료.
+  - 운영 확인: cron 유지, 수동 실행 성공 로그 `[2026-03-12 10:42:58] NocoDB 일일 백업 완료` 확인, 최신 백업 폴더 `/home/ubuntu/backups/20260312_104133/` 에 DB/volume/env/compose/manifest 생성 확인.
+- [CODEX-LEAD] E0-006 및 상세 에러 문구 보정은 로컬 반영 완료, 메이크샵 저장만 남음.
+  - `2608 파트너 대시보드`: 수수료율(%) 문구와 비교표 제거, 비금전적 등급 성장 가이드로 교체.
+  - `2607 상세`: 차단/로드 실패 시 에러 객체가 `[object Object]` 로 노출되던 문제를 문자열 메시지로 보정.
 - Gmail 보안메일 기반 자동입금 수집 경로를 live n8n에서 실동작 검증했다.
 - CRM 설정/입금 수집함에 `Gmail 보안메일 연동` 표기를 추가하고 운영 배포했다.
 - 명세표 발행 시 `items` 테이블 bulk POST 404를 재현했고, 라인아이템 저장을 개별 생성/삭제 방식으로 바꿔 운영 배포했다.
@@ -100,13 +119,58 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
-- 실제 농협 보안메일 3~5건으로 제목/본문 변형 포맷 추가 보정
-- 고객 상세에 `입금자명 별칭`을 더 적극적으로 등록해 정확 일치 자동반영률 높이기
-- NH API 승인 후 collector 수집원만 교체하고 intake 엔진은 그대로 재사용
-- 자동입금 검토 큐에서 부분 입금/초과 입금을 직원이 바로 확정 처리하는 운영 검증을 이어간다.
-- 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
+
+### [CODEX-LEAD] 파트너클래스 엔터프라이즈 고도화 — E0 Day 1 후속
+
+> **PRD**: `docs/파트너클래스/PRD-파트너클래스-엔터프라이즈-고도화-v6.md` (v6.1)
+> **ROADMAP**: `docs/파트너클래스/ROADMAP-엔터프라이즈-v4.md` (v4.1)
+> **Active Subdirectory**: `파트너클래스/`
+> **1차 목표**: E0 14건 완료 (1주) → E0 완료 게이트 통과 후 E1 착수
+
+**즉시 남은 액션:**
+
+1. 메이크샵 저장 필요
+   - `2608 파트너 대시보드`
+     - `파트너클래스/파트너/js.js`
+     - `파트너클래스/파트너/css.css`
+   - `2607 상세`
+     - `파트너클래스/상세/js.js`
+2. 저장 후 Playwright live 재검증
+   - `2608` 수수료율(%) 수치 미노출 확인
+   - `2607` 차단 메시지가 `[object Object]` 대신 정상 문구로 노출 확인
+3. 다음 E0 태스크 착수
+   - `E0-002` 파트너맵 403 해결
+   - `E0-003` 목록 카드 레이아웃 파손 보정
+
+**Day 1 처리 상태:**
+
+1. `E0-001` 테스트 데이터 제거 — 완료
+2. `E0-006` 수수료율 공개 위반 수정 — 로컬 완료, 메이크샵 저장 대기
+3. `E0-014` NocoDB 일일 자동 백업 — 완료
+
+Day 2~5: `E0-002`~`E0-013` (ROADMAP 순서대로)
+
+**작업 범위 파일:**
+- `파트너클래스/목록/js.js`, `css.css` — E0-003, E0-007
+- `파트너클래스/상세/js.js`, `css.css` — E0-004, E0-005, E0-011
+- `파트너클래스/파트너/js.js` — E0-006, E0-008, E0-012, E0-013
+- `파트너클래스/파트너맵/js.js` (또는 해당 파일) — E0-002, E0-009
+- `파트너클래스/` 공통 HTML — E0-010 (ChannelIO)
+
+**E0 완료 후 보고 방식:** ROADMAP v4.1 해당 태스크 체크박스를 `[x]`로 표시 + Last Changes 갱신
+
+---
+
+### (보류) offline-crm-v2 농협 보안메일 추가 검증
+- 실제 NH 보안메일 3~5건 변형 포맷 추가 보정
+- NH API 승인 후 collector 수집원만 교체 (intake 엔진은 재사용)
+- 자동입금 다중 명세표 우선순위 정책 구체화
+> ⚠️ 파트너클래스 E0 작업 중에는 `offline-crm-v2` 서브디렉토리와 격리 유지
 
 ## Known Risks
+- 공개 클래스가 현재 `0건`이라 `2606`은 빈 목록 상태다. 테스트 데이터 누수는 막혔지만, 실제 운영 클래스 승인 전까지 고객 탐색 UX는 약하다.
+- `2608` 수수료율 제거와 `2607` 에러 문구 보정은 아직 메이크샵에 저장되지 않았다. live UI에는 아직 이전 화면이 남아 있을 수 있다.
+- NocoDB 백업 스크립트는 수동 실행 기준 산출물 생성까지 확인했지만, 다음 정규 cron 실행(`2026-03-13 03:00 UTC`) 로그를 한 번 더 확인하는 편이 안전하다.
 - 현재 보안메일 비밀번호 규칙이 바뀌면 파서를 같이 수정해야 한다.
 - 동일 입금자명/금액 중복 케이스는 계속 검토 큐로 보내는 것이 안전하다.
 - 브라우저에서 메일을 먼저 열어도 놓치지 않도록 collector는 수정했지만, 이미 놓친 과거 메일은 수동 재전송 또는 첨부 HTML 재처리가 필요하다.

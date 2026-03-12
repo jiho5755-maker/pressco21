@@ -1,5 +1,5 @@
 /* ============================================
-   PRESSCO21 파트너 필수 교육 이수 - js.js
+   PRESSCO21 파트너 시작 가이드 - js.js
    메이크샵 D4 호환: IIFE, var, \${} 이스케이프
    CSS 스코핑: .partner-education
    n8n 웹훅: POST https://n8n.pressco21.com/webhook/education-complete
@@ -11,10 +11,10 @@
        설정값
        ======================================== */
 
-    /** WF-10 교육 이수 엔드포인트 */
+    /** WF-10 시작 가이드 완료 엔드포인트 */
     var EDUCATION_URL = 'https://n8n.pressco21.com/webhook/education-complete';
 
-    /** WF-02 파트너 인증 엔드포인트 (교육 상태 조회) */
+    /** WF-02 파트너 인증 엔드포인트 (가이드 확인 상태 조회) */
     var PARTNER_AUTH_URL = 'https://n8n.pressco21.com/webhook/partner-auth';
 
     /** 총 문항 수 (서버와 동일, 고정) */
@@ -28,7 +28,7 @@
         'dQw4w9WgXcQ'   // 영상 3: PRESSCO21 파트너 정책
     ];
 
-    /** 퀴즈 문항 데이터 (15문항, 4지 선다) */
+    /** 셀프 체크 문항 데이터 (15문항, 4지 선다) */
     var QUIZ_DATA = [
         /* ---- 1~5: 압화/보존화 기초 지식 ---- */
         {
@@ -162,12 +162,12 @@
             ]
         },
         {
-            question: 'PRESSCO21 파트너 등급 제도의 순서로 올바른 것은?',
+            question: '파트너가 강의 등록 전에 먼저 확인해두면 좋은 것은?',
             options: [
-                'BRONZE -> SILVER -> GOLD',
-                'SILVER -> GOLD -> PLATINUM',
-                'BASIC -> PREMIUM -> VIP',
-                'GOLD -> DIAMOND -> MASTER'
+                '메이크샵 회원등급 자동 승급',
+                '플랫폼 시작 가이드 확인',
+                '수강 후기 10건 확보',
+                '협회 제휴 등록'
             ]
         }
     ];
@@ -193,6 +193,9 @@
 
     /** YT API 로드 완료 여부 */
     var ytApiReady = false;
+
+    /** 가이드 확인 완료 여부 */
+    var guideCompleted = false;
 
 
     /* ========================================
@@ -221,14 +224,13 @@
             return;
         }
 
-        // 교육 이수 완료 여부 사전 체크
+        // 가이드 확인 완료 여부 사전 체크
         fetchEducationStatus(memberId, function(err, completed) {
-            if (!err && completed) {
-                showArea('peAlreadyArea');
-                return;
-            }
+            guideCompleted = !err && completed;
+
             // 콘텐츠 표시
             showArea('peContentArea');
+            toggleGuideHint(guideCompleted);
 
             // YouTube IFrame API 로드
             loadYouTubeAPI();
@@ -238,6 +240,10 @@
 
             // 이벤트 바인딩
             bindEvents();
+
+            if (guideCompleted) {
+                applyCompletedGuideState();
+            }
         });
     }
 
@@ -247,7 +253,7 @@
        ======================================== */
 
     /**
-     * 교육 이수 완료 여부 사전 조회
+     * 시작 가이드 확인 여부 사전 조회
      * @param {string} mid - 회원 ID
      * @param {Function} callback - function(err, isCompleted)
      */
@@ -260,11 +266,11 @@
         })
             .then(function(response) { return response.json(); })
             .then(function(resData) {
-                var completed = !!(resData && resData.success && resData.data && resData.data.education_completed);
+                var completed = normalizeGuideCompleted(resData && resData.success && resData.data ? resData.data.education_completed : false);
                 callback(null, completed);
             })
             .catch(function(err) {
-                console.warn('[PartnerEducation] 상태 조회 실패 (무시):', err);
+                console.warn('[PartnerGuide] 상태 조회 실패 (무시):', err);
                 callback(err, false);
             });
     }
@@ -553,7 +559,7 @@
        ======================================== */
 
     /**
-     * 교육 이수 POST 요청
+     * 시작 가이드 확인 POST 요청
      * @param {Object} data
      * @param {Function} callback - function(err, data)
      */
@@ -574,7 +580,7 @@
                 callback(null, resData);
             })
             .catch(function(err) {
-                console.error('[PartnerEducation] API 실패:', err);
+                console.error('[PartnerGuide] API 실패:', err);
                 callback(err, null);
             });
     }
@@ -599,7 +605,7 @@
             var titleEl = document.getElementById('peNotPartnerTitle');
             var descEl = document.getElementById('peNotPartnerDesc');
             if (titleEl) titleEl.textContent = '파트너 전용 페이지입니다';
-            if (descEl) descEl.textContent = '파트너 신청이 승인된 후 교육을 이수하실 수 있어요.';
+            if (descEl) descEl.textContent = '파트너 신청이 승인된 후 시작 가이드를 확인하실 수 있어요.';
             showArea('peNotPartnerArea');
             return;
         }
@@ -614,7 +620,7 @@
         }
 
         if (errorCode === 'INVALID_SCORE') {
-            showSubmitError('점수 데이터에 문제가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.');
+            showSubmitError('셀프 체크 데이터에 문제가 발생했습니다. 페이지를 새로고침 후 다시 시도해주세요.');
             return;
         }
 
@@ -666,6 +672,7 @@
      * @param {number} total
      */
     function showPassResult(score, total) {
+        guideCompleted = true;
         var scoreEl = document.getElementById('peResultPassScore');
         if (scoreEl) scoreEl.textContent = score + ' / ' + total + ' 정답';
 
@@ -686,7 +693,7 @@
      */
     function showFailResult(score, total) {
         var scoreEl = document.getElementById('peResultFailScore');
-        if (scoreEl) scoreEl.textContent = score + ' / ' + total + ' 정답 (11문항 이상 필요)';
+        if (scoreEl) scoreEl.textContent = score + ' / ' + total + ' 정답 (11문항 이상이면 확인 완료)';
 
         var passEl = document.getElementById('peResultPass');
         var failEl = document.getElementById('peResultFail');
@@ -721,6 +728,7 @@
 
         // 콘텐츠 영역 표시
         showArea('peContentArea');
+        toggleGuideHint(guideCompleted);
         updateProgress(2);
 
         // 퀴즈 영역으로 스크롤
@@ -784,6 +792,20 @@
             if (line2) line2.classList.add('is-done');
             if (step3) step3.classList.add('is-done');
         }
+    }
+
+    function toggleGuideHint(shouldShow) {
+        var hintEl = document.getElementById('peGuideHint');
+        if (hintEl) {
+            hintEl.style.display = shouldShow ? '' : 'none';
+        }
+    }
+
+    function applyCompletedGuideState() {
+        for (var i = 0; i < videoCompleted.length; i++) {
+            markVideoComplete(i);
+        }
+        updateProgress(3);
     }
 
 
@@ -864,6 +886,12 @@
             .replace(/>/g, '&gt;')
             .replace(/"/g, '&quot;')
             .replace(/'/g, '&#039;');
+    }
+
+    function normalizeGuideCompleted(value) {
+        if (value === true || value === 'true' || value === 'TRUE') return true;
+        if (value === 'Y' || value === 'y' || value === 'YES' || value === 'yes') return true;
+        return false;
     }
 
 

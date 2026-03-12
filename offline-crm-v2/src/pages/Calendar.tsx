@@ -282,7 +282,7 @@ export function Calendar() {
         <div>
           <h2 className="text-2xl font-bold">캘린더</h2>
           <p className="text-sm text-muted-foreground mt-1">
-            월간 달력은 명세표 기준, 상단 리포트는 레거시 거래내역 + CRM 명세표 통합 기준입니다.
+            월간 달력은 명세표 기준, 상단 리포트는 기존 장부 거래내역 + 새 입력 명세표 통합 기준입니다.
           </p>
         </div>
         <div className="flex items-center gap-2">

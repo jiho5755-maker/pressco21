@@ -135,6 +135,7 @@
         bindProfileEdit();
         bindOnboardingEvents();
         bindActionBoardEvents();
+        bindEmptyStateActions();
         bindCsvExport();
     }
 
@@ -351,7 +352,7 @@
         var token = ++onboardingLoadToken;
         var baseSignals = {
             hasProfile: isProfileCompleted(),
-            educationCompleted: isEducationCompleted(),
+            guideViewed: isGuideViewed(),
             hasClass: !!(myClasses && myClasses.length),
             hasSchedule: false,
             hasKit: false,
@@ -362,8 +363,8 @@
             if (token !== onboardingLoadToken) return;
 
             if (!err && data && data.success && data.data && data.data.is_partner !== false) {
-                baseSignals.educationCompleted = normalizeEducationCompleted(data.data.education_completed);
-                partnerData.education_completed = baseSignals.educationCompleted;
+                baseSignals.guideViewed = normalizeGuideCompleted(data.data.education_completed);
+                partnerData.education_completed = baseSignals.guideViewed;
             }
 
             inspectOnboardingClassSetup(myClasses, function(classSignals) {
@@ -455,12 +456,13 @@
                 completed: !!normalizedSignals.hasProfile
             },
             {
-                key: 'education',
-                title: '\uAD50\uC721 \uC774\uC218',
-                desc: '\uC6B4\uC601 \uAE30\uC900\uACFC \uC11C\uBE44\uC2A4 \uAC00\uC774\uB4DC\uB97C \uD655\uC778\uD558\uACE0 \uC774\uC218\uD574\uC8FC\uC138\uC694.',
-                tip: '\uD30C\uD2B8\uB108 \uAC00\uC774\uB4DC \uD398\uC774\uC9C0\uC5D0\uC11C \uAD50\uC721 \uC815\uCC45\uC744 \uD655\uC778\uD558\uBA74 \uC2EC\uC0AC\uAC00 \uB354 \uBE60\uB985\uB2C8\uB2E4.',
-                actionLabel: '\uAD50\uC721 \uD398\uC774\uC9C0 \uBCF4\uAE30',
-                completed: !!normalizedSignals.educationCompleted
+                key: 'guide',
+                title: '\uD50C\uB7AB\uD3FC \uAC00\uC774\uB4DC',
+                desc: '\uAC15\uC758 \uB4F1\uB85D, \uC77C\uC815 \uCD94\uAC00, \uD0A4\uD2B8 \uC5F0\uACB0, \uC815\uC0B0 \uD750\uB984\uC744 \uD55C \uBC88\uC5D0 \uD6D1\uC5B4\uBCF4\uC138\uC694.',
+                tip: '\uCC98\uC74C \uD30C\uD2B8\uB108 \uC6B4\uC601\uC774\uB77C\uBA74 \uAC00\uC774\uB4DC\uB97C \uD55C \uBC88 \uBCF4\uACE0 \uC2DC\uC791\uD558\uBA74 \uAC15\uC758 \uB4F1\uB85D\uACFC \uC2EC\uC0AC \uC900\uBE44\uAC00 \uB354 \uC218\uC6D4\uD574\uC9D1\uB2C8\uB2E4.',
+                actionLabel: '\uAC00\uC774\uB4DC \uBCF4\uAE30',
+                completed: !!normalizedSignals.guideViewed,
+                optional: true
             },
             {
                 key: 'class',
@@ -489,19 +491,23 @@
         ];
 
         var completedCount = 0;
+        var requiredCount = 0;
         var nextStep = null;
         for (var i = 0; i < steps.length; i++) {
-            if (steps[i].completed) {
+            if (!steps[i].optional) {
+                requiredCount++;
+            }
+            if (steps[i].completed && !steps[i].optional) {
                 completedCount++;
-            } else if (!nextStep) {
+            } else if (!steps[i].completed && !steps[i].optional && !nextStep) {
                 nextStep = steps[i];
                 steps[i].isCurrent = true;
             }
         }
 
-        var percent = Math.round((completedCount / steps.length) * 100);
-        var remainingCount = steps.length - completedCount;
-        var isComplete = completedCount === steps.length;
+        var percent = requiredCount > 0 ? Math.round((completedCount / requiredCount) * 100) : 100;
+        var remainingCount = Math.max(requiredCount - completedCount, 0);
+        var isComplete = completedCount === requiredCount;
         var cardTitle = isComplete
             ? '\uCCAB \uC608\uC57D\uC744 \uBC1B\uC744 \uC900\uBE44\uAC00 \uB05D\uB0AC\uC5B4\uC694'
             : '\uCCAB \uC608\uC57D\uAE4C\uC9C0 ' + remainingCount + '\uB2E8\uACC4\uB9CC \uB0A8\uC558\uC5B4\uC694';
@@ -512,13 +518,13 @@
             ? '\uCCAB \uC608\uC57D\uC744 \uBC1B\uC744 \uC900\uBE44\uAC00 \uB05D\uB0AC\uC5B4\uC694'
             : '\uC9C0\uAE08\uC740 ' + nextStep.title + '\uAC00 \uB2E4\uC74C \uD560 \uC77C\uC785\uB2C8\uB2E4.';
         var modalDesc = isComplete
-            ? '\uD504\uB85C\uD544, \uAD50\uC721, \uAC15\uC758, \uC77C\uC815, \uD0A4\uD2B8 \uC124\uC815\uC774 \uBAA8\uB450 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.'
+            ? '\uD504\uB85C\uD544, \uAC15\uC758, \uC77C\uC815, \uD0A4\uD2B8 \uC124\uC815\uC774 \uBAA8\uB450 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.'
             : '\uD55C \uBC88 \uC900\uBE44\uD574\uB450\uBA74 \uD64D\uBCF4, \uC608\uC57D, \uC6B4\uC601 \uD750\uB984\uC774 \uB354 \uB9E4\uB044\uB7FD\uAC8C \uC774\uC5B4\uC9D1\uB2C8\uB2E4.';
 
         return {
             steps: steps,
             completedCount: completedCount,
-            totalCount: steps.length,
+            totalCount: requiredCount,
             percent: percent,
             remainingCount: remainingCount,
             nextStep: nextStep,
@@ -528,10 +534,10 @@
             cardDesc: cardDesc,
             modalHeadline: modalHeadline,
             modalDesc: modalDesc,
-            progressText: completedCount + '/' + steps.length + ' \uC644\uB8CC',
+            progressText: completedCount + '/' + requiredCount + ' \uC644\uB8CC',
             tip: nextStep ? nextStep.tip : '\uC774\uC81C \uCCAB \uC608\uC57D\uB9CC \uAE30\uB2E4\uB9AC\uBA74 \uB429\uB2C8\uB2E4.',
             firstClassId: normalizedSignals.firstClassId || '',
-            completionDesc: '\uD504\uB85C\uD544, \uAD50\uC721, \uAC15\uC758, \uC77C\uC815, \uD0A4\uD2B8 \uC124\uC815\uC774 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC774\uC81C \uCCAB \uC608\uC57D\uB9CC \uAE30\uB2E4\uB9AC\uBA74 \uB429\uB2C8\uB2E4.'
+            completionDesc: '\uD504\uB85C\uD544, \uAC15\uC758, \uC77C\uC815, \uD0A4\uD2B8 \uC124\uC815\uC774 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC2DC\uC791 \uAC00\uC774\uB4DC\uB294 \uD544\uC694\uD560 \uB54C \uC5B8\uC81C\uB4E0 \uB2E4\uC2DC \uBCFC \uC218 \uC788\uC5B4\uC694.'
         };
     }
 
@@ -593,7 +599,7 @@
 
         for (var i = 0; i < list.length; i++) {
             var step = list[i];
-            var statusText = step.completed ? '\uC644\uB8CC' : (step.isCurrent ? '\uC9C0\uAE08 \uD558\uAE30' : '\uB300\uAE30');
+            var statusText = step.completed ? '\uC644\uB8CC' : (step.optional ? '\uC120\uD0DD' : (step.isCurrent ? '\uC9C0\uAE08 \uD558\uAE30' : '\uB300\uAE30'));
             var statusClass = step.completed ? 'pd-onboarding-step__status--done' : 'pd-onboarding-step__status--todo';
             var itemClass = 'pd-onboarding-step';
 
@@ -655,7 +661,7 @@
             return;
         }
 
-        if (stepKey === 'education') {
+        if (stepKey === 'guide') {
             window.location.href = '/shop/page.html?id=2610';
             return;
         }
@@ -721,11 +727,11 @@
         return !!(studioName && phone && introduction && (instagram || kakao));
     }
 
-    function isEducationCompleted() {
-        return normalizeEducationCompleted(partnerData ? partnerData.education_completed : false);
+    function isGuideViewed() {
+        return normalizeGuideCompleted(partnerData ? partnerData.education_completed : false);
     }
 
-    function normalizeEducationCompleted(value) {
+    function normalizeGuideCompleted(value) {
         if (value === true || value === 'true' || value === 'TRUE') return true;
         if (value === 'Y' || value === 'y' || value === 'YES' || value === 'yes') return true;
         return false;
@@ -1338,6 +1344,25 @@
             newClassBtn._pdBound = true;
             newClassBtn.addEventListener('click', function() {
                 openModal('pdNewClassModal');
+            });
+        }
+    }
+
+    function bindEmptyStateActions() {
+        var classBtn = document.getElementById('pdEmptyClassBtn');
+        var profileBtn = document.getElementById('pdEmptyProfileBtn');
+
+        if (classBtn && !classBtn._pdBound) {
+            classBtn._pdBound = true;
+            classBtn.addEventListener('click', function() {
+                openModal('pdNewClassModal');
+            });
+        }
+
+        if (profileBtn && !profileBtn._pdBound) {
+            profileBtn._pdBound = true;
+            profileBtn.addEventListener('click', function() {
+                openProfileModal();
             });
         }
     }

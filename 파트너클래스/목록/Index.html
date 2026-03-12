@@ -261,6 +261,28 @@
         <!-- 콘텐츠 영역 -->
         <main class="catalog-content">
 
+            <section class="catalog-search-strip" aria-label="클래스 검색">
+                <div class="catalog-search-strip__copy">
+                    <p class="catalog-search-strip__eyebrow">빠른 검색</p>
+                    <h2 class="catalog-search-strip__title">클래스명, 지역, 공방명으로 바로 찾아보세요.</h2>
+                    <p class="catalog-search-strip__desc">예: 서울 압화, 보존화 캔들, 열혈남아공방</p>
+                </div>
+                <form class="catalog-search-form" id="catalogSearchForm" role="search">
+                    <label class="sr-only" for="catalogSearchInput">클래스 검색</label>
+                    <div class="catalog-search-form__field">
+                        <svg class="catalog-search-form__icon" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M12.5 12.5L16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                        <input type="search" id="catalogSearchInput" class="catalog-search-form__input" placeholder="원하는 클래스, 지역, 공방명을 입력하세요" autocomplete="off">
+                    </div>
+                    <div class="catalog-search-form__actions">
+                        <button type="submit" class="catalog-search-form__submit">검색</button>
+                        <button type="button" class="catalog-search-form__reset" id="catalogSearchClear">초기화</button>
+                    </div>
+                </form>
+            </section>
+
             <section class="catalog-quick-filters" id="catalogQuickFilters" aria-label="빠른 탐색 필터">
                 <div class="quick-filter-group">
                     <span class="quick-filter-group__label">카테고리</span>

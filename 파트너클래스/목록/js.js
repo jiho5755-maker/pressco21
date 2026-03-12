@@ -119,6 +119,7 @@
 
         // 필터 이벤트 바인딩
         bindFilters();
+        bindSearchControls();
 
         // 정렬 이벤트 바인딩
         bindSort();
@@ -1018,6 +1019,67 @@
         }
     }
 
+    function bindSearchControls() {
+        var form = document.getElementById('catalogSearchForm');
+        var input = document.getElementById('catalogSearchInput');
+        var clearBtn = document.getElementById('catalogSearchClear');
+
+        if (form) {
+            form.addEventListener('submit', function(e) {
+                e.preventDefault();
+                applySearchQuery();
+            });
+        }
+
+        if (input) {
+            input.addEventListener('input', function() {
+                toggleSearchResetButton();
+            });
+        }
+
+        if (clearBtn) {
+            clearBtn.addEventListener('click', function() {
+                if (input) input.value = '';
+                applySearchQuery(true);
+            });
+        }
+    }
+
+    function applySearchQuery(forceReset) {
+        var input = document.getElementById('catalogSearchInput');
+        var nextQuery = input ? (input.value || '').trim() : '';
+
+        if (!forceReset && nextQuery === (currentFilters.search || '')) {
+            toggleSearchResetButton();
+            return;
+        }
+
+        currentFilters.search = nextQuery;
+        currentSearchQuery = nextQuery;
+        currentFilters.page = 1;
+        syncSearchUI();
+        updateFilterBadge();
+        updateActiveChips();
+        updateURLParams();
+        saveFilterState();
+        fetchClasses(currentFilters);
+    }
+
+    function syncSearchUI() {
+        var input = document.getElementById('catalogSearchInput');
+        if (input) {
+            input.value = currentFilters.search || '';
+        }
+        toggleSearchResetButton();
+    }
+
+    function toggleSearchResetButton() {
+        var input = document.getElementById('catalogSearchInput');
+        var clearBtn = document.getElementById('catalogSearchClear');
+        if (!clearBtn) return;
+        clearBtn.style.display = input && (input.value || '').trim() ? '' : 'none';
+    }
+
     /**
      * 필터 변경 시 호출 (디바운스 적용)
      */
@@ -1102,6 +1164,7 @@
         setCheckboxes('region', currentFilters.region || []);
         syncPriceRangeUI();
         syncQuickFilterState();
+        syncSearchUI();
     }
 
     function saveFilterState() {
@@ -1493,6 +1556,14 @@
             });
         }
 
+        if (currentFilters.search) {
+            allFilters.push({
+                filterKey: 'search',
+                value: currentFilters.search,
+                display: '\uAC80\uC0C9: ' + currentFilters.search
+            });
+        }
+
         for (var k = 0; k < allFilters.length; k++) {
             var f = allFilters[k];
             html += '<span class="filter-chip">'
@@ -1532,6 +1603,10 @@
                 updatePriceDisplay(200000);
                 updateSliderTrack(slider);
             }
+        } else if (filterKey === 'search') {
+            currentFilters.search = '';
+            currentSearchQuery = '';
+            syncSearchUI();
         } else {
             // 허용된 필터 키만 처리 (셀렉터 인젝션 방지)
             var allowedKeys = ['category', 'level', 'type', 'format', 'region'];
@@ -1591,6 +1666,7 @@
         count += (currentFilters.format || []).length;
         count += (currentFilters.region || []).length;
         if (currentFilters.maxPrice < 200000) count++;
+        if (currentFilters.search) count++;
 
         if (count > 0) {
             badge.textContent = count;
@@ -2002,6 +2078,7 @@
             }
 
             syncQuickFilterState();
+            syncSearchUI();
             updateFilterBadge();
             updateActiveChips();
         } catch (e) {

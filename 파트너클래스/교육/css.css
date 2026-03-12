@@ -1,5 +1,5 @@
 /* ============================================
-   PRESSCO21 파트너 필수 교육 이수 페이지
+   PRESSCO21 파트너 시작 가이드 페이지
    CSS 스코핑: .partner-education
    CSS 변수 접두사: --pe-
    브랜드 컬러: #3d2c1e / #b89b5e / #7d9675
@@ -181,6 +181,18 @@
     color: var(--pe-text-light);
     margin: 0;
     line-height: 1.7;
+}
+
+.partner-education .pe-guide-hint {
+    margin: 18px auto 0;
+    max-width: 560px;
+    padding: 14px 18px;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--pe-primary);
+    background: rgba(125, 150, 117, 0.08);
+    border: 1px solid rgba(125, 150, 117, 0.18);
+    border-radius: var(--pe-radius-sm);
 }
 
 

@@ -51,12 +51,21 @@ function main() {
     var switchNode = getNodeByName(workflow, 'Switch Action');
     var parseAuthNode = getNodeByName(workflow, 'Parse Auth Params');
     var authNode = getNodeByName(workflow, 'Check Partner Exists');
+    var ifNeedAppCheckNode = getNodeByName(workflow, 'IF Need App Check');
+    var authAppQueryNode = getNodeByName(workflow, 'NocoDB Find Application');
+    var buildNotPartnerNode = getNodeByName(workflow, 'Build Not Partner Response');
     var parseDashboardNode = getNodeByName(workflow, 'Parse Dashboard Params');
     var dashboardNode = getNodeByName(workflow, 'Auth Dashboard Partner');
+    var myClassesNode = getNodeByName(workflow, 'NocoDB Get My Classes');
     var settlementsNode = getNodeByName(workflow, 'NocoDB Get Settlements');
     var touchAuthNode;
+    var restoreAuthNode;
     var touchDashboardNode;
     var parseAppStatusNode = getNodeByName(workflow, 'Parse AppStatus Params');
+    var checkAppStatusNode = getNodeByName(workflow, 'Check Partner (AppStatus)');
+    var ifNotPartnerAppNode = getNodeByName(workflow, 'IF Not Partner (App)');
+    var appStatusQueryNode = getNodeByName(workflow, 'NocoDB Find Application (AppStatus)');
+    var buildAppStatusNode = getNodeByName(workflow, 'Build AppStatus Response');
     var parseEducationNode = getNodeByName(workflow, 'Parse Education Params');
     var unknownActionNode = getNodeByName(workflow, 'Unknown Action Error');
     var respondErrorNode = getNodeByName(workflow, 'Respond Error');
@@ -210,7 +219,6 @@ function main() {
         '',
         '  return [{',
         '    json: {',
-        '      _needAppCheck: false,',
         '      _touchPartnerId: p.Id || p.id || null,',
         '      success: true,',
         '      data: {',
@@ -234,6 +242,83 @@ function main() {
         '  json: {',
         '    _needAppCheck: true,',
         '    memberId',
+        '  }',
+        '}];'
+    ].join('\n');
+
+    ifNeedAppCheckNode.type = 'n8n-nodes-base.switch';
+    ifNeedAppCheckNode.typeVersion = 3.2;
+    ifNeedAppCheckNode.parameters = {
+        rules: {
+            values: [
+                {
+                    conditions: {
+                        options: {
+                            version: 2,
+                            leftValue: '',
+                            caseSensitive: true,
+                            typeValidation: 'loose'
+                        },
+                        combinator: 'and',
+                        conditions: [
+                            {
+                                leftValue: '={{ $json._needAppCheck ? "LOOKUP_APP" : "RESPOND_PARTNER" }}',
+                                rightValue: 'LOOKUP_APP',
+                                operator: {
+                                    type: 'string',
+                                    operation: 'equals'
+                                }
+                            }
+                        ]
+                    },
+                    renameOutput: true,
+                    outputKey: 'lookupApplication'
+                }
+            ]
+        },
+        options: {
+            fallbackOutput: 'extra'
+        }
+    };
+
+    authAppQueryNode.parameters.queryParameters.parameters[1].value = '-CreatedAt';
+
+    buildNotPartnerNode.parameters.jsCode = [
+        '// ===================================================',
+        '// 파트너 미등록 + 신청 상태 응답 구성',
+        '// ===================================================',
+        '',
+        'const appResponse = $input.first().json;',
+        'const appList = appResponse.list || [];',
+        "const memberId = $('Check Partner Exists').first().json.memberId;",
+        '',
+        'if (appList.length > 0) {',
+        '  const app = appList[0];',
+        '  return [{',
+        '    json: {',
+        '      success: true,',
+        '      data: {',
+        '        is_partner: false,',
+        '        member_id: memberId,',
+        "        status: 'pending',",
+        "        application_status: app.status || 'PENDING',",
+        "        applied_date: app.applied_date || app.CreatedAt || app.created_at || ''",
+        '      },',
+        '      timestamp: new Date().toISOString()',
+        '    }',
+        '  }];',
+        '}',
+        '',
+        '// 신청 이력도 없음',
+        'return [{',
+        '  json: {',
+        '    success: true,',
+        '    data: {',
+        '      is_partner: false,',
+        '      member_id: memberId,',
+        "      status: 'not_partner'",
+        '    },',
+        '    timestamp: new Date().toISOString()',
         '  }',
         '}];'
     ].join('\n');
@@ -352,6 +437,29 @@ function main() {
         }
     });
 
+    restoreAuthNode = upsertNode(workflow, {
+        parameters: {
+            jsCode: [
+                '// ===================================================',
+                '// getPartnerAuth: last_active_at PATCH 이후 원래 응답 복원',
+                '// ===================================================',
+                '',
+                "const authResponse = Object.assign({}, $('Check Partner Exists').first().json);",
+                'delete authResponse._touchPartnerId;',
+                'delete authResponse._needAppCheck;',
+                '',
+                'return [{',
+                '  json: authResponse',
+                '}];'
+            ].join('\n')
+        },
+        id: 'wf02-restore-auth-response',
+        name: 'Restore Auth Response',
+        type: 'n8n-nodes-base.code',
+        typeVersion: 2,
+        position: [1920, 140]
+    });
+
     touchDashboardNode = upsertNode(workflow, {
         parameters: {
             method: 'PATCH',
@@ -376,6 +484,17 @@ function main() {
         }
     });
 
+    myClassesNode.parameters.queryParameters.parameters = [
+        {
+            name: 'fields',
+            value: 'class_id,class_name,category,price,status,class_count,avg_rating,partner_code'
+        },
+        {
+            name: 'limit',
+            value: '200'
+        }
+    ];
+
     settlementsNode.parameters.queryParameters.parameters[0].value = '=(partner_code,eq,{{ $(\'Auth Dashboard Partner\').first().json.partnerCode }})';
     settlementsNode.parameters.queryParameters.parameters[1].value = 'settlement_id,order_id,class_id,order_amount,commission_amount,reserve_amount,class_date,status,CreatedAt,UpdatedAt';
 
@@ -391,8 +510,18 @@ function main() {
         'const partner = partnerData.partner;',
         'const targetMonth = partnerData.targetMonth;',
         '',
+        'function extractPartnerCode(raw) {',
+        "  if (Array.isArray(raw) && raw.length > 0) {",
+        "    return String(raw[0].partner_code || raw[0].Title || raw[0].title || raw[0].value || '').trim();",
+        '  }',
+        "  if (raw && typeof raw === 'object') {",
+        "    return String(raw.partner_code || raw.Title || raw.title || raw.value || '').trim();",
+        '  }',
+        "  return String(raw || '').trim();",
+        '}',
+        '',
         '// 클래스 목록',
-        'const myClasses = (classesResponse.list || []).map(c => ({',
+        "const myClasses = (classesResponse.list || []).filter(c => extractPartnerCode(c.partner_code) === String(partner.partner_code || '')).map(c => ({",
         "  class_id: c.class_id || '',",
         "  class_name: c.class_name || '',",
         "  category: c.category || '',",
@@ -493,6 +622,126 @@ function main() {
         '}];'
     ].join('\n');
 
+    checkAppStatusNode.parameters.jsCode = [
+        '// ===================================================',
+        '// 이미 파트너인지 확인',
+        '// boolean 플래그로 분기 안정화',
+        '// ===================================================',
+        '',
+        'const response = $input.first().json;',
+        'const partnerList = response.list || [];',
+        "const memberId = $('Parse AppStatus Params').first().json.memberId;",
+        '',
+        'if (partnerList.length > 0) {',
+        '  const p = partnerList[0];',
+        '  return [{',
+        '    json: {',
+        '      success: true,',
+        '      data: {',
+        '        is_partner: true,',
+        "        partner_code: p.partner_code || '',",
+        "        grade: p.grade || '',",
+        "        status: p.status || ''",
+        '      },',
+        '      timestamp: new Date().toISOString()',
+        '    }',
+        '  }];',
+        '}',
+        '',
+        '// 파트너 아님 -> 신청 조회 필요',
+        'return [{',
+        '  json: {',
+        '    _needsApplicationLookup: true,',
+        '    memberId',
+        '  }',
+        '}];'
+    ].join('\n');
+
+    ifNotPartnerAppNode.type = 'n8n-nodes-base.switch';
+    ifNotPartnerAppNode.typeVersion = 3.2;
+    ifNotPartnerAppNode.parameters = {
+        rules: {
+            values: [
+                {
+                    conditions: {
+                        options: {
+                            version: 2,
+                            leftValue: '',
+                            caseSensitive: true,
+                            typeValidation: 'loose'
+                        },
+                        combinator: 'and',
+                        conditions: [
+                            {
+                                leftValue: '={{ $json._needsApplicationLookup ? "LOOKUP_APP" : "RESPOND_PARTNER" }}',
+                                rightValue: 'LOOKUP_APP',
+                                operator: {
+                                    type: 'string',
+                                    operation: 'equals'
+                                }
+                            }
+                        ]
+                    },
+                    renameOutput: true,
+                    outputKey: 'lookupApplication'
+                }
+            ]
+        },
+        options: {
+            fallbackOutput: 'extra'
+        }
+    };
+
+    appStatusQueryNode.parameters.queryParameters.parameters[1].value = '-CreatedAt';
+
+    buildAppStatusNode.parameters.jsCode = [
+        '// ===================================================',
+        '// 파트너 신청 상태 응답 구성',
+        '// ===================================================',
+        '',
+        'const appResponse = $input.first().json;',
+        'const appList = appResponse.list || [];',
+        "const memberId = $('Check Partner (AppStatus)').first().json.memberId;",
+        '',
+        'if (appList.length === 0) {',
+        '  return [{',
+        '    json: {',
+        '      success: true,',
+        '      data: {',
+        '        is_partner: false,',
+        '        has_application: false,',
+        "        message: '파트너 신청 이력이 없습니다.'",
+        '      },',
+        '      timestamp: new Date().toISOString()',
+        '    }',
+        '  }];',
+        '}',
+        '',
+        'const app = appList[0];',
+        "let message = '';",
+        'switch (app.status) {',
+        "  case 'PENDING':  message = '신청이 심사 중입니다.'; break;",
+        "  case 'APPROVED': message = '신청이 승인되었습니다.'; break;",
+        "  case 'REJECTED': message = '신청이 반려되었습니다.'; break;",
+        "  default:         message = '신청 상태를 확인할 수 없습니다.';",
+        '}',
+        '',
+        'return [{',
+        '  json: {',
+        '    success: true,',
+        '    data: {',
+        '      is_partner: false,',
+        '      has_application: true,',
+        "      application_id: app.application_id || '',",
+        "      status: app.status || '',",
+        "      applied_date: app.applied_date || app.CreatedAt || app.created_at || '',",
+        '      message',
+        '    },',
+        '    timestamp: new Date().toISOString()',
+        '  }',
+        '}];'
+    ].join('\n');
+
     parseEducationNode.parameters.jsCode = [
         '// ===================================================',
         '// getEducationStatus 처리',
@@ -553,17 +802,31 @@ function main() {
             { node: 'NocoDB Get My Classes', type: 'main', index: 0 }
         ]]
     };
+    workflow.connections['IF Need App Check'].main[0] = [
+        { node: 'NocoDB Find Application', type: 'main', index: 0 }
+    ];
     workflow.connections['IF Need App Check'].main[1] = [
         { node: 'NocoDB Touch Partner (Auth)', type: 'main', index: 0 }
     ];
+    workflow.connections['IF Not Partner (App)'].main[0] = [
+        { node: 'NocoDB Find Application (AppStatus)', type: 'main', index: 0 }
+    ];
+    workflow.connections['IF Not Partner (App)'].main[1] = [
+        { node: 'Respond AppStatus', type: 'main', index: 0 }
+    ];
     workflow.connections['NocoDB Touch Partner (Auth)'] = {
+        main: [[
+            { node: 'Restore Auth Response', type: 'main', index: 0 }
+        ]]
+    };
+    workflow.connections['Restore Auth Response'] = {
         main: [[
             { node: 'Respond getPartnerAuth', type: 'main', index: 0 }
         ]]
     };
 
     writeJson(WORKFLOW_PATH, workflow);
-    console.log('Patched WF-02 partner auth workflow for POST, last_active_at touch, and sequential dashboard flow.');
+    console.log('Patched WF-02 partner auth workflow for auth/app status routing, application sort fields, and response restoration.');
 }
 
 main();

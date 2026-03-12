@@ -33,6 +33,8 @@
 - `brand-strategy-comprehensive.md`
 - `phase3-non-technical-test-guide.md`
   - 비전공자 기준으로 Phase 3 방향과 테스트 포인트를 이해하는 설명서
+- `claude-strategy-handoff-2026-03-12.md`
+  - 2026-03-12 live 기준선, 현재 문제점, Claude Code가 다음 고도화 전략 수립 시 봐야 할 질문과 전제 정리
 
 ### 운영 / 구현 가이드
 
@@ -92,6 +94,8 @@
   - S3-1 기준 신규 NocoDB 4개 테이블 생성 스크립트, 실제 table id, 샘플 row, Playwright API 검증 결과 정리
 - `grade-incentive-guide.md`
   - S3-2 기준 등급별 비금전적 인센티브 UI, 목록/상세/콘텐츠 허브 우선 노출 규칙, Playwright 검증 결과 정리
+- `partner-grade-change-playbook.md`
+  - 등급명/단계/수수료율/저장 enum 변경 시 수정해야 하는 workflow, UI, 교육, 운영 카피 체크포인트 정리
 - `subscription-pilot-guide.md`
   - S3-3 기준 마이페이지 구독 파일럿, live `tbl_Subscriptions`, `WF-SUB`, 내부 주문 ref 생성 기준과 Playwright 검증 결과 정리
 - `scalability-verification-guide.md`
@@ -102,6 +106,8 @@
 ### QA / 검증
 
 - `partnerclass-live-test-matrix-2026-03-09.md`
+- `phase3-makeshop-live-deploy-checklist-2026-03-11.md`
+  - Phase 3 완료 이후 메이크샵 디자인편집기 실배포 대상 page id, 신규 page 생성 필요 항목, 라이브 스모크 명령 정리
 - `phase3-1-integration-test.md`
   - S1-1~S1-8 로컬 Playwright 통합 검증, 픽스처 빌드/러너 실행 방법, 2026-03-11 결과
 - `phase3-2-integration-test.md`

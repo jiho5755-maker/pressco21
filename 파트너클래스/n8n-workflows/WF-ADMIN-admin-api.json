@@ -338,7 +338,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// case 0: getApplications - 파라미터 파싱\n// pending 상태의 파트너 신청 목록 조회\n// ===================================================\n\nconst params = $input.first().json._params || {};\nconst limit = Math.min(Math.max(parseInt(params.limit) || 50, 1), 200);\nconst offset = Math.max(parseInt(params.offset) || 0, 0);\n\nreturn [{\n  json: {\n    limit,\n    offset\n  }\n}];"
+        "jsCode": "// ===================================================\n// case 0: getApplications - 파라미터 파싱\n// 상태 필터(PENDING/APPROVED/REJECTED/ALL)를 그대로 반영\n// ===================================================\n\nconst params = $input.first().json._params || {};\nconst limit = Math.min(Math.max(parseInt(params.limit) || 50, 1), 200);\nconst offset = Math.max(parseInt(params.offset) || 0, 0);\nconst statusRaw = String(params.status || 'PENDING').trim().toUpperCase();\nconst status = statusRaw === 'APPROVED' || statusRaw === 'REJECTED' || statusRaw === 'PENDING' ? statusRaw : (statusRaw === 'ALL' ? 'ALL' : 'PENDING');\nconst where = status === 'ALL' ? '(Id,gt,0)' : '(status,eq,' + status + ')';\n\nreturn [{\n  json: {\n    limit,\n    offset,\n    status,\n    where\n  }\n}];"
       },
       "id": "wfadmin-parse-get-applications",
       "name": "Parse getApplications",
@@ -360,7 +360,7 @@
           "parameters": [
             {
               "name": "where",
-              "value": "(status,eq,PENDING)"
+              "value": "={{ $json.where }}"
             },
             {
               "name": "sort",

@@ -44,6 +44,7 @@ node scripts/partnerclass-live-smoke.js
 ## Known gotchas
 
 - Makeshop deployment must be reflected on `foreverlove.co.kr`; repo changes alone are not enough.
+- 상세 FAQ 시나리오는 최신 배포 기준으로 `검색 입력 visible`, `카테고리 칩 6개 이상`, `FAQ 10~15개`를 기대한다.
 - Repeated login with the same member account can invalidate an earlier browser context and cause false failures.
 - Record exact failure text and screenshot path in `AI_SYNC.md`.
 - If only one member scenario fails after other member scenarios pass, inspect script/session behavior before assuming a live regression.

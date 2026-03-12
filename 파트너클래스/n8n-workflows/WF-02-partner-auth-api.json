@@ -207,7 +207,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// getPartnerAuth 응답 구성 + last_active_at 갱신\n// 파트너 존재 -> 파트너 정보 반환\n// 파트너 미존재 -> tbl_Applications 조회하여 상태 분기\n// ===================================================\n\nconst partnerResponse = $input.first().json;\nconst partnerList = partnerResponse.list || [];\nconst memberId = $('Parse Auth Params').first().json.memberId;\n\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n  const nowIso = new Date().toISOString();\n\n  return [{\n    json: {\n      _needAppCheck: false,\n      _touchPartnerId: p.Id || p.id || null,\n      success: true,\n      data: {\n        is_partner: true,\n        member_id: memberId,\n        partner_code: p.partner_code || '',\n        partner_name: p.partner_name || '',\n        grade: p.grade || 'SILVER',\n        commission_rate: Number(p.commission_rate) || 0,\n        reserve_rate: Number(p.reserve_rate) || 0,\n        education_completed: p.education_completed === true || p.education_completed === 'true' || p.education_completed === 'Y' || p.education_completed === 'y',\n        status: p.status || 'active',\n        last_active_at: nowIso\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _needAppCheck: true,\n    memberId\n  }\n}];"
+        "jsCode": "// ===================================================\n// getPartnerAuth 응답 구성 + last_active_at 갱신\n// 파트너 존재 -> 파트너 정보 반환\n// 파트너 미존재 -> tbl_Applications 조회하여 상태 분기\n// ===================================================\n\nconst partnerResponse = $input.first().json;\nconst partnerList = partnerResponse.list || [];\nconst memberId = $('Parse Auth Params').first().json.memberId;\n\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n  const nowIso = new Date().toISOString();\n\n  return [{\n    json: {\n      _touchPartnerId: p.Id || p.id || null,\n      success: true,\n      data: {\n        is_partner: true,\n        member_id: memberId,\n        partner_code: p.partner_code || '',\n        partner_name: p.partner_name || '',\n        grade: p.grade || 'SILVER',\n        commission_rate: Number(p.commission_rate) || 0,\n        reserve_rate: Number(p.reserve_rate) || 0,\n        education_completed: p.education_completed === true || p.education_completed === 'true' || p.education_completed === 'Y' || p.education_completed === 'y',\n        status: p.status || 'active',\n        last_active_at: nowIso\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _needAppCheck: true,\n    memberId\n  }\n}];"
       },
       "id": "wf02-check-partner",
       "name": "Check Partner Exists",
@@ -220,26 +220,41 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true
-          },
-          "conditions": [
+        "rules": {
+          "values": [
             {
-              "leftValue": "={{ $json._needAppCheck }}",
-              "rightValue": true,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._needAppCheck ? \"LOOKUP_APP\" : \"RESPOND_PARTNER\" }}",
+                    "rightValue": "LOOKUP_APP",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "lookupApplication"
             }
           ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
         }
       },
       "id": "wf02-if-need-app-check",
       "name": "IF Need App Check",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
       "position": [
         1480,
         80
@@ -260,7 +275,7 @@
             },
             {
               "name": "sort",
-              "value": "-applied_date"
+              "value": "-CreatedAt"
             },
             {
               "name": "limit",
@@ -287,7 +302,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 파트너 미등록 + 신청 상태 응답 구성\n// ===================================================\n\nconst appResponse = $input.first().json;\nconst appList = appResponse.list || [];\nconst memberId = $('Check Partner Exists').first().json.memberId;\n\nif (appList.length > 0) {\n  const app = appList[0];\n  return [{\n    json: {\n      success: true,\n      data: {\n        is_partner: false,\n        member_id: memberId,\n        status: 'pending',\n        application_status: app.status || 'PENDING',\n        applied_date: app.applied_date || ''\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// 신청 이력도 없음\nreturn [{\n  json: {\n    success: true,\n    data: {\n      is_partner: false,\n      member_id: memberId,\n      status: 'not_partner'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// 파트너 미등록 + 신청 상태 응답 구성\n// ===================================================\n\nconst appResponse = $input.first().json;\nconst appList = appResponse.list || [];\nconst memberId = $('Check Partner Exists').first().json.memberId;\n\nif (appList.length > 0) {\n  const app = appList[0];\n  return [{\n    json: {\n      success: true,\n      data: {\n        is_partner: false,\n        member_id: memberId,\n        status: 'pending',\n        application_status: app.status || 'PENDING',\n        applied_date: app.applied_date || app.CreatedAt || app.created_at || ''\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// 신청 이력도 없음\nreturn [{\n  json: {\n    success: true,\n    data: {\n      is_partner: false,\n      member_id: memberId,\n      status: 'not_partner'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf02-build-not-partner",
       "name": "Build Not Partner Response",
@@ -472,12 +487,8 @@
         "queryParameters": {
           "parameters": [
             {
-              "name": "where",
-              "value": "=(partner_code,eq,{{ $json.partnerCode }})"
-            },
-            {
               "name": "fields",
-              "value": "class_id,class_name,category,price,status,class_count,avg_rating"
+              "value": "class_id,class_name,category,price,status,class_count,avg_rating,partner_code"
             },
             {
               "name": "limit",
@@ -544,7 +555,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 대시보드 응답 구성: 파트너 + 클래스 + 정산 집계\n// ===================================================\n\nconst partnerData = $('Auth Dashboard Partner').first().json;\nconst classesResponse = $('NocoDB Get My Classes').first().json;\nconst settlementsResponse = $('NocoDB Get Settlements').first().json;\n\nconst partner = partnerData.partner;\nconst targetMonth = partnerData.targetMonth;\n\n// 클래스 목록\nconst myClasses = (classesResponse.list || []).map(c => ({\n  class_id: c.class_id || '',\n  class_name: c.class_name || '',\n  category: c.category || '',\n  price: Number(c.price) || 0,\n  status: c.status || '',\n  class_count: Number(c.class_count) || 0,\n  avg_rating: Number(c.avg_rating) || 0\n}));\n\n// 정산 내역 (해당 월 필터링)\nconst allSettlements = settlementsResponse.list || [];\nconst monthSettlements = allSettlements.filter(s => {\n  const classDate = String(s.class_date || s.CreatedAt || s.UpdatedAt || '').substring(0, 7);\n  return classDate === targetMonth;\n});\n\n// 월별 집계\nlet totalRevenue = 0;\nlet totalCommission = 0;\nlet totalReserve = 0;\nlet completedCount = 0;\nlet pendingCount = 0;\nlet failedCount = 0;\n\nconst items = monthSettlements.map(s => {\n  const orderAmount = Number(s.order_amount) || 0;\n  const commissionAmount = Number(s.commission_amount) || 0;\n  const reserveAmount = Number(s.reserve_amount) || 0;\n  const status = String(s.status || '').toUpperCase();\n\n  totalRevenue += orderAmount;\n  totalCommission += commissionAmount;\n  totalReserve += reserveAmount;\n\n  if (status === 'COMPLETED') completedCount += 1;\n  else if (status === 'PENDING' || status === 'PROCESSING' || status === 'PENDING_SETTLEMENT') pendingCount += 1;\n  else if (status === 'FAILED') failedCount += 1;\n\n  return {\n    settlement_id: s.settlement_id || '',\n    order_id: s.order_id || '',\n    class_id: s.class_id || '',\n    order_amount: orderAmount,\n    commission_amount: commissionAmount,\n    reserve_amount: reserveAmount,\n    class_date: String(s.class_date || s.CreatedAt || '').substring(0, 10),\n    status\n  };\n});\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      partner,\n      classes: myClasses,\n      settlement: {\n        month: targetMonth,\n        total_revenue: totalRevenue,\n        total_commission: totalCommission,\n        total_reserve: totalReserve,\n        completed_count: completedCount,\n        pending_count: pendingCount,\n        failed_count: failedCount,\n        items\n      }\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// 대시보드 응답 구성: 파트너 + 클래스 + 정산 집계\n// ===================================================\n\nconst partnerData = $('Auth Dashboard Partner').first().json;\nconst classesResponse = $('NocoDB Get My Classes').first().json;\nconst settlementsResponse = $('NocoDB Get Settlements').first().json;\n\nconst partner = partnerData.partner;\nconst targetMonth = partnerData.targetMonth;\n\nfunction extractPartnerCode(raw) {\n  if (Array.isArray(raw) && raw.length > 0) {\n    return String(raw[0].partner_code || raw[0].Title || raw[0].title || raw[0].value || '').trim();\n  }\n  if (raw && typeof raw === 'object') {\n    return String(raw.partner_code || raw.Title || raw.title || raw.value || '').trim();\n  }\n  return String(raw || '').trim();\n}\n\n// 클래스 목록\nconst myClasses = (classesResponse.list || []).filter(c => extractPartnerCode(c.partner_code) === String(partner.partner_code || '')).map(c => ({\n  class_id: c.class_id || '',\n  class_name: c.class_name || '',\n  category: c.category || '',\n  price: Number(c.price) || 0,\n  status: c.status || '',\n  class_count: Number(c.class_count) || 0,\n  avg_rating: Number(c.avg_rating) || 0\n}));\n\n// 정산 내역 (해당 월 필터링)\nconst allSettlements = settlementsResponse.list || [];\nconst monthSettlements = allSettlements.filter(s => {\n  const classDate = String(s.class_date || s.CreatedAt || s.UpdatedAt || '').substring(0, 7);\n  return classDate === targetMonth;\n});\n\n// 월별 집계\nlet totalRevenue = 0;\nlet totalCommission = 0;\nlet totalReserve = 0;\nlet completedCount = 0;\nlet pendingCount = 0;\nlet failedCount = 0;\n\nconst items = monthSettlements.map(s => {\n  const orderAmount = Number(s.order_amount) || 0;\n  const commissionAmount = Number(s.commission_amount) || 0;\n  const reserveAmount = Number(s.reserve_amount) || 0;\n  const status = String(s.status || '').toUpperCase();\n\n  totalRevenue += orderAmount;\n  totalCommission += commissionAmount;\n  totalReserve += reserveAmount;\n\n  if (status === 'COMPLETED') completedCount += 1;\n  else if (status === 'PENDING' || status === 'PROCESSING' || status === 'PENDING_SETTLEMENT') pendingCount += 1;\n  else if (status === 'FAILED') failedCount += 1;\n\n  return {\n    settlement_id: s.settlement_id || '',\n    order_id: s.order_id || '',\n    class_id: s.class_id || '',\n    order_amount: orderAmount,\n    commission_amount: commissionAmount,\n    reserve_amount: reserveAmount,\n    class_date: String(s.class_date || s.CreatedAt || '').substring(0, 10),\n    status\n  };\n});\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      partner,\n      classes: myClasses,\n      settlement: {\n        month: targetMonth,\n        total_revenue: totalRevenue,\n        total_commission: totalCommission,\n        total_reserve: totalReserve,\n        completed_count: completedCount,\n        pending_count: pendingCount,\n        failed_count: failedCount,\n        items\n      }\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf02-build-dashboard",
       "name": "Build Dashboard Response",
@@ -685,7 +696,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 이미 파트너인지 확인\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst memberId = $('Parse AppStatus Params').first().json.memberId;\n\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n  return [{\n    json: {\n      _isPartner: true,\n      success: true,\n      data: {\n        is_partner: true,\n        partner_code: p.partner_code || '',\n        grade: p.grade || '',\n        status: p.status || ''\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// 파트너 아님 -> 신청 조회 필요\nreturn [{\n  json: {\n    _isPartner: false,\n    memberId\n  }\n}];"
+        "jsCode": "// ===================================================\n// 이미 파트너인지 확인\n// boolean 플래그로 분기 안정화\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst memberId = $('Parse AppStatus Params').first().json.memberId;\n\nif (partnerList.length > 0) {\n  const p = partnerList[0];\n  return [{\n    json: {\n      success: true,\n      data: {\n        is_partner: true,\n        partner_code: p.partner_code || '',\n        grade: p.grade || '',\n        status: p.status || ''\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\n// 파트너 아님 -> 신청 조회 필요\nreturn [{\n  json: {\n    _needsApplicationLookup: true,\n    memberId\n  }\n}];"
       },
       "id": "wf02-check-partner-appstatus",
       "name": "Check Partner (AppStatus)",
@@ -698,26 +709,41 @@
     },
     {
       "parameters": {
-        "conditions": {
-          "options": {
-            "caseSensitive": true
-          },
-          "conditions": [
+        "rules": {
+          "values": [
             {
-              "leftValue": "={{ $json._isPartner }}",
-              "rightValue": false,
-              "operator": {
-                "type": "boolean",
-                "operation": "equals"
-              }
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._needsApplicationLookup ? \"LOOKUP_APP\" : \"RESPOND_PARTNER\" }}",
+                    "rightValue": "LOOKUP_APP",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "lookupApplication"
             }
           ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
         }
       },
       "id": "wf02-if-not-partner-app",
       "name": "IF Not Partner (App)",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
       "position": [
         1480,
         480
@@ -738,7 +764,7 @@
             },
             {
               "name": "sort",
-              "value": "-applied_date"
+              "value": "-CreatedAt"
             },
             {
               "name": "limit",
@@ -765,7 +791,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// 파트너 신청 상태 응답 구성\n// ===================================================\n\nconst appResponse = $input.first().json;\nconst appList = appResponse.list || [];\nconst memberId = $('Check Partner (AppStatus)').first().json.memberId;\n\nif (appList.length === 0) {\n  return [{\n    json: {\n      success: true,\n      data: {\n        is_partner: false,\n        has_application: false,\n        message: '파트너 신청 이력이 없습니다.'\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst app = appList[0];\nlet message = '';\nswitch (app.status) {\n  case 'PENDING':  message = '신청이 심사 중입니다.'; break;\n  case 'APPROVED': message = '신청이 승인되었습니다.'; break;\n  case 'REJECTED': message = '신청이 반려되었습니다.'; break;\n  default:         message = '신청 상태를 확인할 수 없습니다.';\n}\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      is_partner: false,\n      has_application: true,\n      application_id: app.application_id || '',\n      status: app.status || '',\n      applied_date: app.applied_date || '',\n      message\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// 파트너 신청 상태 응답 구성\n// ===================================================\n\nconst appResponse = $input.first().json;\nconst appList = appResponse.list || [];\nconst memberId = $('Check Partner (AppStatus)').first().json.memberId;\n\nif (appList.length === 0) {\n  return [{\n    json: {\n      success: true,\n      data: {\n        is_partner: false,\n        has_application: false,\n        message: '파트너 신청 이력이 없습니다.'\n      },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst app = appList[0];\nlet message = '';\nswitch (app.status) {\n  case 'PENDING':  message = '신청이 심사 중입니다.'; break;\n  case 'APPROVED': message = '신청이 승인되었습니다.'; break;\n  case 'REJECTED': message = '신청이 반려되었습니다.'; break;\n  default:         message = '신청 상태를 확인할 수 없습니다.';\n}\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      is_partner: false,\n      has_application: true,\n      application_id: app.application_id || '',\n      status: app.status || '',\n      applied_date: app.applied_date || app.CreatedAt || app.created_at || '',\n      message\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf02-build-app-status",
       "name": "Build AppStatus Response",
@@ -1030,6 +1056,19 @@
           "name": "PRESSCO21-NocoDB"
         }
       }
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===================================================\n// getPartnerAuth: last_active_at PATCH 이후 원래 응답 복원\n// ===================================================\n\nconst authResponse = Object.assign({}, $('Check Partner Exists').first().json);\ndelete authResponse._touchPartnerId;\ndelete authResponse._needAppCheck;\n\nreturn [{\n  json: authResponse\n}];"
+      },
+      "id": "wf02-restore-auth-response",
+      "name": "Restore Auth Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        140
+      ]
     }
   ],
   "connections": {
@@ -1441,6 +1480,17 @@
       ]
     },
     "NocoDB Touch Partner (Auth)": {
+      "main": [
+        [
+          {
+            "node": "Restore Auth Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Restore Auth Response": {
       "main": [
         [
           {

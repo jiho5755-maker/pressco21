@@ -903,6 +903,15 @@
     line-height: 1.7;
 }
 
+.partner-dashboard .pd-empty__actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    margin-top: 18px;
+}
+
 
 /* ----------------------------------------
    10. 내 강의 탭 - 강의 카드

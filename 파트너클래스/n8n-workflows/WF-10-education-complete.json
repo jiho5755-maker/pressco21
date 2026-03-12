@@ -17,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-10 Step 1: POST 본문 파싱 + 서버사이드 채점\n// 필수 필드: member_id, answers (배열)\n// 보안: CORRECT_ANSWERS / PASS_THRESHOLD 서버 고정 상수\n// 클라이언트에서 score를 보내도 무시 (서버에서 직접 채점)\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\n// === 서버 고정 상수 (클라이언트 조작 방지) ===\nconst PASS_THRESHOLD = 11;   // 15문항 중 11문항 이상 정답 (73%)\nconst TOTAL_QUESTIONS = 15;\nconst CORRECT_ANSWERS = [\n  1,  // Q1: 꽃/식물을 건조압착해 평면 예술로 만드는 것\n  1,  // Q2: 특수 보존 용액으로 생화의 아름다움을 오래 보존\n  1,  // Q3: 얇고 수분 적은 꽃\n  3,  // Q4: 고온 스팀 건조법 (해당하지 않는 것)\n  2,  // Q5: 습기 차단, 직사광선 피해 서늘한 곳\n  0,  // Q6: 재료/장비 안내와 환기 철저\n  1,  // Q7: 4~8명\n  1,  // Q8: 2~3시간\n  1,  // Q9: 사전에 문자로 상세 안내\n  1,  // Q10: 건조/경화 시간 안내, 안전한 포장 안내\n  2,  // Q11: D+3 영업일 이내 적립금 지급\n  1,  // Q12: 관리자 검수/승인 후 활성화\n  1,  // Q13: 수업 전 전액 환불, 이후 규정에 따라\n  1,  // Q14: 감사 답글 작성 가능\n  1   // Q15: SILVER -> GOLD -> PLATINUM\n];\n\n// === 텍스트 정제 ===\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\n// === 필수 필드 추출 ===\nconst memberId = sanitizeText(body.member_id, 100);\nconst answersRaw = body.answers;\n\n// === 필수 필드 검증 ===\nif (!memberId) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'NOT_LOGGED_IN',\n          message: '로그인이 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === answers 배열 검증 ===\nif (!Array.isArray(answersRaw) || answersRaw.length !== TOTAL_QUESTIONS) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INVALID_SCORE',\n          message: 'answers는 ' + TOTAL_QUESTIONS + '개 요소를 가진 배열이어야 합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === 각 답변 값 검증 (0~3 정수) ===\nfor (let i = 0; i < answersRaw.length; i++) {\n  const val = Number(answersRaw[i]);\n  if (isNaN(val) || val < 0 || val > 3 || val !== Math.floor(val)) {\n    return [{\n      json: {\n        _valid: false,\n        _errorResponse: {\n          success: false,\n          error: {\n            code: 'INVALID_SCORE',\n            message: 'answers의 각 값은 0~3 사이의 정수여야 합니다.'\n          },\n          timestamp: new Date().toISOString()\n        }\n      }\n    }];\n  }\n}\n\n// === 서버사이드 채점 ===\nconst answers = answersRaw.map(Number);\nlet score = 0;\nfor (let i = 0; i < TOTAL_QUESTIONS; i++) {\n  if (answers[i] === CORRECT_ANSWERS[i]) score++;\n}\n\n// === 합격 여부 판정 (서버 고정 기준) ===\nconst passed = score >= PASS_THRESHOLD;\n\nreturn [{\n  json: {\n    _valid: true,\n    memberId,\n    score,\n    total: TOTAL_QUESTIONS,\n    passed,\n    passThreshold: PASS_THRESHOLD\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-10 Step 1: POST 본문 파싱 + 서버사이드 채점\n// 파트너 시작 가이드 셀프 체크 처리\n// 필수 필드: member_id, answers (배열)\n// 보안: CORRECT_ANSWERS / PASS_THRESHOLD 서버 고정 상수\n// 클라이언트에서 score를 보내도 무시 (서버에서 직접 채점)\n// ===================================================\n\nconst input = $input.first().json;\nconst body = input.body || input;\n\n// === 서버 고정 상수 (클라이언트 조작 방지) ===\nconst PASS_THRESHOLD = 11;   // 15문항 중 11문항 이상 정답 (73%)\nconst TOTAL_QUESTIONS = 15;\nconst CORRECT_ANSWERS = [\n  1,  // Q1: 꽃/식물을 건조압착해 평면 예술로 만드는 것\n  1,  // Q2: 특수 보존 용액으로 생화의 아름다움을 오래 보존\n  1,  // Q3: 얇고 수분 적은 꽃\n  3,  // Q4: 고온 스팀 건조법 (해당하지 않는 것)\n  2,  // Q5: 습기 차단, 직사광선 피해 서늘한 곳\n  0,  // Q6: 재료/장비 안내와 환기 철저\n  1,  // Q7: 4~8명\n  1,  // Q8: 2~3시간\n  1,  // Q9: 사전에 문자로 상세 안내\n  1,  // Q10: 건조/경화 시간 안내, 안전한 포장 안내\n  2,  // Q11: D+3 영업일 이내 적립금 지급\n  1,  // Q12: 관리자 검수/승인 후 활성화\n  1,  // Q13: 수업 전 전액 환불, 이후 규정에 따라\n  1,  // Q14: 감사 답글 작성 가능\n  1   // Q15: 강의 등록 전 플랫폼 시작 가이드 확인\n];\n\n// === 텍스트 정제 ===\nfunction sanitizeText(str, maxLen) {\n  if (!str) return '';\n  maxLen = maxLen || 500;\n  return String(str)\n    .replace(/[\\x00-\\x08\\x0B\\x0C\\x0E-\\x1F]/g, '')\n    .trim()\n    .substring(0, maxLen);\n}\n\n// === 필수 필드 추출 ===\nconst memberId = sanitizeText(body.member_id, 100);\nconst answersRaw = body.answers;\n\n// === 필수 필드 검증 ===\nif (!memberId) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'NOT_LOGGED_IN',\n          message: '로그인이 필요합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === answers 배열 검증 ===\nif (!Array.isArray(answersRaw) || answersRaw.length !== TOTAL_QUESTIONS) {\n  return [{\n    json: {\n      _valid: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'INVALID_SCORE',\n          message: 'answers는 ' + TOTAL_QUESTIONS + '개 요소를 가진 배열이어야 합니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\n// === 각 답변 값 검증 (0~3 정수) ===\nfor (let i = 0; i < answersRaw.length; i++) {\n  const val = Number(answersRaw[i]);\n  if (isNaN(val) || val < 0 || val > 3 || val !== Math.floor(val)) {\n    return [{\n      json: {\n        _valid: false,\n        _errorResponse: {\n          success: false,\n          error: {\n            code: 'INVALID_SCORE',\n            message: 'answers의 각 값은 0~3 사이의 정수여야 합니다.'\n          },\n          timestamp: new Date().toISOString()\n        }\n      }\n    }];\n  }\n}\n\n// === 서버사이드 채점 ===\nconst answers = answersRaw.map(Number);\nlet score = 0;\nfor (let i = 0; i < TOTAL_QUESTIONS; i++) {\n  if (answers[i] === CORRECT_ANSWERS[i]) score++;\n}\n\n// === 합격 여부 판정 (서버 고정 기준) ===\nconst passed = score >= PASS_THRESHOLD;\n\nreturn [{\n  json: {\n    _valid: true,\n    memberId,\n    score,\n    total: TOTAL_QUESTIONS,\n    passed,\n    passThreshold: PASS_THRESHOLD\n  }\n}];"
       },
       "id": "wf10-validate-input",
       "name": "Validate Input",
@@ -93,7 +93,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-10 Step 2: 파트너 인증 확인\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst validData = $('Validate Input').first().json;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _partnerFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'NOT_PARTNER',\n          message: '파트너로 등록되지 않은 회원입니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst partner = partnerList[0];\n\nif (partner.status !== 'active') {\n  return [{\n    json: {\n      _partnerFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'PARTNER_INACTIVE',\n          message: '비활성 상태의 파트너 계정입니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _partnerFound: true,\n    _partner: {\n      Id: partner.Id || partner.id,\n      partner_code: partner.partner_code || '',\n      partner_name: partner.partner_name || '',\n      member_id: partner.member_id || '',\n      email: partner.email || '',\n      grade: partner.grade || 'SILVER'\n    },\n    _input: validData\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-10 Step 2: 파트너 인증 확인\n// ===================================================\n\nconst response = $input.first().json;\nconst partnerList = response.list || [];\nconst validData = $('Validate Input').first().json;\n\nif (partnerList.length === 0) {\n  return [{\n    json: {\n      _partnerFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'NOT_PARTNER',\n          message: '파트너로 등록되지 않은 회원입니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nconst partner = partnerList[0];\n\nif (partner.status !== 'active') {\n  return [{\n    json: {\n      _partnerFound: false,\n      _errorResponse: {\n        success: false,\n        error: {\n          code: 'PARTNER_INACTIVE',\n          message: '비활성 상태의 파트너 계정입니다.'\n        },\n        timestamp: new Date().toISOString()\n      }\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    _partnerFound: true,\n    _passed: !!validData.passed,\n    _partner: {\n      Id: partner.Id || partner.id,\n      partner_code: partner.partner_code || '',\n      partner_name: partner.partner_name || '',\n      member_id: partner.member_id || '',\n      email: partner.email || '',\n      grade: partner.grade || 'SILVER',\n      education_completed: partner.education_completed || '',\n      education_date: partner.education_date || '',\n      education_score: partner.education_score || ''\n    },\n    _input: validData\n  }\n}];"
       },
       "id": "wf10-check-partner",
       "name": "Check Partner Auth",
@@ -143,12 +143,12 @@
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true },
+          "options": { "caseSensitive": true, "version": 2, "leftValue": "", "typeValidation": "loose" },
           "conditions": [
             {
-              "leftValue": "={{ $json._input.passed }}",
-              "rightValue": true,
-              "operator": { "type": "boolean", "operation": "equals" }
+              "leftValue": "={{ $json._input.score }}",
+              "rightValue": 11,
+              "operator": { "type": "number", "operation": "gte" }
             }
           ]
         }
@@ -162,12 +162,12 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/tbl_Partners/{{ $json._partner.Id }}",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4/{{ $json._partner.Id }}",
         "authentication": "genericCredentialType",
         "genericAuthType": "httpHeaderAuth",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ education_completed: 'Y', education_date: new Date().toISOString().split('T')[0], education_score: $json._input.score }) }}",
+        "jsonBody": "={{ JSON.stringify($json._input && $json._input.score >= $json._input.passThreshold ? { education_completed: 'Y', education_date: new Date().toISOString().split('T')[0], education_score: $json._input.score } : { education_completed: $json._partner.education_completed || '', education_date: $json._partner.education_date || '', education_score: $json._partner.education_score || '' }) }}",
         "options": {}
       },
       "id": "wf10-nocodb-update-partner",
@@ -248,7 +248,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-10 Step 4a: 합격 성공 응답 구성\n// ===================================================\n\nconst partnerData = $('Check Partner Auth').first().json;\nconst inputData = partnerData._input;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      passed: true,\n      score: inputData.score,\n      total: inputData.total,\n      message: '교육 이수가 완료되었습니다. 축하합니다!'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-10 Step 4a: 결과 응답 구성\n// IF 분기 오동작이 있어도 score 기준으로 최종 응답을 재판정한다.\n// ===================================================\n\nconst partnerData = $('Check Partner Auth').first().json;\nconst inputData = partnerData._input;\nconst passed = Number(inputData.score || 0) >= Number(inputData.passThreshold || 11);\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      passed: passed,\n      score: inputData.score,\n      total: inputData.total,\n      message: passed\n        ? '파트너 시작 가이드 확인이 완료되었습니다. 필요할 때 다시 보실 수 있어요.'\n        : '몇 가지 포인트만 더 확인하면 됩니다. 필요한 부분만 다시 보고 편하게 다시 점검해 주세요.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf10-build-pass-response",
       "name": "Build Pass Response",
@@ -309,7 +309,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===================================================\n// WF-10 Step 4b: 불합격 응답 구성\n// 따뜻한 격려 메시지\n// ===================================================\n\nconst partnerData = $('Check Partner Auth').first().json;\nconst inputData = partnerData._input;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      passed: false,\n      score: inputData.score,\n      total: inputData.total,\n      message: '아쉽게도 합격 기준에 미달했습니다. 재응시 횟수에 제한은 없으니 다시 도전해 보세요!'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+        "jsCode": "// ===================================================\n// WF-10 Step 4b: 미완료 응답 구성\n// ===================================================\n\nconst partnerData = $('Check Partner Auth').first().json;\nconst inputData = partnerData._input;\n\nreturn [{\n  json: {\n    success: true,\n    data: {\n      passed: false,\n      score: inputData.score,\n      total: inputData.total,\n      message: '몇 가지 포인트만 더 확인하면 됩니다. 필요한 부분만 다시 보고 편하게 다시 점검해 주세요.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
       },
       "id": "wf10-build-fail-response",
       "name": "Build Fail Response",
@@ -386,18 +386,16 @@
         ]
       ]
     },
-    "IF Passed": {
-      "main": [
-        [
-          { "node": "NocoDB Update Partner Education", "type": "main", "index": 0 },
-          { "node": "Build Certificate Email", "type": "main", "index": 0 },
-          { "node": "Build Pass Telegram", "type": "main", "index": 0 }
-        ],
-        [
-          { "node": "Build Retry Email", "type": "main", "index": 0 }
-        ]
+  "IF Passed": {
+    "main": [
+      [
+        { "node": "NocoDB Update Partner Education", "type": "main", "index": 0 }
+      ],
+      [
+        { "node": "Build Fail Response", "type": "main", "index": 0 }
       ]
-    },
+    ]
+  },
     "NocoDB Update Partner Education": {
       "main": [
         [
@@ -426,21 +424,7 @@
         ]
       ]
     },
-    "Build Retry Email": {
-      "main": [
-        [
-          { "node": "Send Retry Email", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Send Retry Email": {
-      "main": [
-        [
-          { "node": "Build Fail Response", "type": "main", "index": 0 }
-        ]
-      ]
-    },
-    "Build Fail Response": {
+  "Build Fail Response": {
       "main": [
         [
           { "node": "Respond Fail", "type": "main", "index": 0 }

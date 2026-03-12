@@ -27,6 +27,19 @@
     /** 제출 진행 중 중복 방지 */
     var isSubmitting = false;
 
+    /** 필수 입력 필드 ID */
+    var REQUIRED_FIELD_IDS = [
+        'crTitle',
+        'crCategory',
+        'crType',
+        'crDifficulty',
+        'crMaxStudents',
+        'crPrice',
+        'crDuration',
+        'crDescription',
+        'crAgreeTerms'
+    ];
+
 
     /* ========================================
        초기화
@@ -54,8 +67,8 @@
             return;
         }
 
-        // 파트너 인증 + 교육 이수 사전 체크
-        checkPartnerAndEducation(memberId, function(status) {
+        // 파트너 인증 사전 체크
+        checkPartnerAccess(memberId, function(status, authData) {
             if (status === 'NOT_PARTNER') {
                 showAlreadyArea(
                     '파트너 전용 기능입니다',
@@ -63,15 +76,9 @@
                 );
                 return;
             }
-            if (status === 'EDUCATION_REQUIRED') {
-                showAlreadyArea(
-                    '교육 이수 후 이용 가능합니다',
-                    '파트너 필수 교육을 이수하시면 강의 등록이 가능해요. 교육 페이지에서 먼저 이수해주세요.'
-                );
-                return;
-            }
             // 정상: 폼 표시
             showArea('crFormArea');
+            toggleGuideCallout(!normalizeGuideCompleted(authData && authData.education_completed));
             bindFormEvents();
         });
     }
@@ -82,11 +89,11 @@
        ======================================== */
 
     /**
-     * 파트너 인증 + 교육 이수 여부 확인
+     * 파트너 인증 여부 확인
      * @param {string} mid - 회원 ID
-     * @param {Function} callback - function(status) 'OK' | 'NOT_PARTNER' | 'EDUCATION_REQUIRED' | 'ERROR'
+     * @param {Function} callback - function(status, authData) 'OK' | 'NOT_PARTNER'
      */
-    function checkPartnerAndEducation(mid, callback) {
+    function checkPartnerAccess(mid, callback) {
         fetch(PARTNER_AUTH_URL, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
@@ -101,19 +108,15 @@
                 }
                 var data = resData.data || {};
                 if (!data.is_partner) {
-                    callback('NOT_PARTNER');
+                    callback('NOT_PARTNER', data);
                     return;
                 }
-                if (!data.education_completed) {
-                    callback('EDUCATION_REQUIRED');
-                    return;
-                }
-                callback('OK');
+                callback('OK', data);
             })
             .catch(function(err) {
                 console.warn('[ClassRegister] 파트너 인증 체크 실패 (폼 표시 진행):', err);
                 // 네트워크 오류 시 폼 표시 (UX 저하 방지)
-                callback('OK');
+                callback('OK', { education_completed: false });
             });
     }
 
@@ -137,6 +140,7 @@
         bindCharCounter('crScheduleDesc', 'crScheduleCharCount');
         bindCharCounter('crCurriculum', 'crCurriculumCharCount');
         bindCharCounter('crMaterials', 'crMaterialsCharCount');
+        bindFormHelper();
 
         // 동의 상세보기 토글
         var toggleBtns = document.querySelectorAll('.class-register .js-agree-toggle');
@@ -163,17 +167,110 @@
         bindImagePreview();
 
         // 입력 시 에러 초기화
-        var inputs = document.querySelectorAll('.class-register .cr-form__input, .class-register .cr-form__select, .class-register .cr-form__textarea');
+        var inputs = document.querySelectorAll('.class-register .cr-form__input, .class-register .cr-form__select, .class-register .cr-form__textarea, .class-register .cr-form__agree-check');
         for (var j = 0; j < inputs.length; j++) {
             (function(input) {
                 input.addEventListener('input', function() {
-                    clearFieldError(input.id);
+                    if (input.id) clearFieldError(input.id);
+                    updateFormHelper();
                 });
                 input.addEventListener('change', function() {
-                    clearFieldError(input.id);
+                    if (input.id) clearFieldError(input.id);
+                    updateFormHelper();
                 });
             })(inputs[j]);
         }
+
+        updateFormHelper();
+    }
+
+    function bindFormHelper() {
+        var buttons = document.querySelectorAll('.class-register .cr-form-helper__nav-btn[data-cr-scroll-target]');
+        var i = 0;
+        for (i = 0; i < buttons.length; i++) {
+            buttons[i].addEventListener('click', function() {
+                var targetId = this.getAttribute('data-cr-scroll-target');
+                var target = targetId ? document.getElementById(targetId) : null;
+                if (!target) return;
+                target.scrollIntoView({ behavior: 'smooth', block: 'start' });
+            });
+        }
+    }
+
+    function updateFormHelper() {
+        var totalRequired = REQUIRED_FIELD_IDS.length;
+        var requiredDone = countCompletedRequiredFields();
+        var scheduleReady = collectSchedules().length;
+        var basicReady = requiredDone >= 8;
+        var detailReady = !!(getVal('crScheduleDesc') || getVal('crCurriculum') || getVal('crImageUrl') || getVal('crMaterials') || getVal('crLocation') || scheduleReady > 0 || (document.getElementById('crKitEnabled') && document.getElementById('crKitEnabled').checked));
+        var contactReady = !!(getVal('crContactPhone') || getVal('crContactInstagram') || getVal('crContactKakao'));
+        var agreeReady = !!(document.getElementById('crAgreeTerms') && document.getElementById('crAgreeTerms').checked);
+        var titleEl = document.getElementById('crHelperTitle');
+        var descEl = document.getElementById('crHelperDesc');
+        var requiredCountEl = document.getElementById('crHelperRequiredCount');
+        var scheduleCountEl = document.getElementById('crHelperScheduleCount');
+        var barEl = document.getElementById('crHelperBar');
+        var progress = totalRequired ? Math.round((requiredDone / totalRequired) * 100) : 0;
+        var hint = '';
+
+        if (titleEl) titleEl.textContent = '필수 입력 ' + requiredDone + '/' + totalRequired + ' 완료';
+        if (requiredCountEl) requiredCountEl.textContent = String(requiredDone);
+        if (scheduleCountEl) scheduleCountEl.textContent = String(scheduleReady);
+        if (barEl) barEl.style.width = progress + '%';
+
+        if (requiredDone < 3) {
+            hint = '강의명, 카테고리, 강의 형태부터 입력하면 등록 준비가 빨라집니다.';
+        } else if (!basicReady) {
+            hint = '기본 강의 정보만 마치면 등록 준비의 절반 이상이 끝납니다.';
+        } else if (scheduleReady === 0) {
+            hint = '승인 후 바로 예약을 받으려면 수업 일정을 1개 이상 미리 넣어두세요.';
+        } else if (!contactReady) {
+            hint = '문의 채널까지 남기면 수강생이 더 안심하고 신청할 수 있습니다.';
+        } else if (!agreeReady) {
+            hint = '마지막으로 약관 동의를 체크하면 제출 준비가 끝납니다.';
+        } else {
+            hint = '제출 전 대표 이미지와 일정 안내를 한 번 더 확인해보세요.';
+        }
+
+        if (descEl) descEl.textContent = hint;
+
+        setHelperChipState('crHelperBasicChip', basicReady ? '기본 정보 완료' : '기본 정보 ' + Math.min(requiredDone, 8) + '/8', basicReady ? 'complete' : 'spotlight');
+        setHelperChipState('crHelperDetailChip', scheduleReady > 0 ? '일정 ' + scheduleReady + '개 준비' : '일정 추가 권장', scheduleReady > 0 ? 'complete' : '');
+        setHelperChipState('crHelperContactChip', contactReady ? '연락 채널 준비' : '연락 채널 추가 권장', contactReady ? 'complete' : '');
+        setHelperChipState('crHelperAgreeChip', agreeReady ? '약관 동의 완료' : '약관 동의 필요', agreeReady ? 'complete' : (!basicReady ? '' : 'spotlight'));
+    }
+
+    function countCompletedRequiredFields() {
+        var count = 0;
+        var i = 0;
+
+        for (i = 0; i < REQUIRED_FIELD_IDS.length; i++) {
+            if (isRequiredFieldCompleted(REQUIRED_FIELD_IDS[i])) {
+                count++;
+            }
+        }
+
+        return count;
+    }
+
+    function isRequiredFieldCompleted(fieldId) {
+        var value = '';
+        if (fieldId === 'crAgreeTerms') {
+            return !!(document.getElementById('crAgreeTerms') && document.getElementById('crAgreeTerms').checked);
+        }
+
+        value = getVal(fieldId);
+        return !!value;
+    }
+
+    function setHelperChipState(id, text, mode) {
+        var el = document.getElementById(id);
+        if (!el) return;
+        el.textContent = text;
+        el.classList.remove('is-complete');
+        el.classList.remove('is-spotlight');
+        if (mode === 'complete') el.classList.add('is-complete');
+        if (mode === 'spotlight') el.classList.add('is-spotlight');
     }
 
     /** 일정 항목 카운터 */
@@ -198,6 +295,7 @@
                 if (removeBtn) {
                     var entry = removeBtn.closest('.cr-schedule-entry');
                     if (entry) entry.remove();
+                    updateFormHelper();
                 }
             });
         }
@@ -238,6 +336,7 @@
         '</div>';
 
         container.appendChild(entry);
+        updateFormHelper();
     }
 
     /**
@@ -286,6 +385,7 @@
             if (toggle.checked && !document.querySelector('.class-register .cr-kit-item')) {
                 addKitItem();
             }
+            updateFormHelper();
         });
 
         // 키트 항목 추가 버튼
@@ -304,12 +404,14 @@
                 if (removeBtn) {
                     var item = removeBtn.closest('.cr-kit-item');
                     if (item) item.remove();
+                    updateFormHelper();
                 }
             });
             list.addEventListener('input', function(e) {
                 if (e.target && e.target.classList) {
                     e.target.classList.remove('is-error');
                 }
+                updateFormHelper();
             });
         }
     }
@@ -346,6 +448,7 @@
         '</div>';
 
         list.appendChild(item);
+        updateFormHelper();
     }
 
     function extractKitBrandUid(raw) {
@@ -866,6 +969,13 @@
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    function toggleGuideCallout(shouldShow) {
+        var el = document.getElementById('crGuideCallout');
+        if (el) {
+            el.style.display = shouldShow ? '' : 'none';
+        }
+    }
+
 
     /* ========================================
        에러 표시
@@ -903,6 +1013,12 @@
             var agreeError = document.getElementById('crAgreeTermsError');
             if (agreeError) agreeError.style.display = 'none';
         }
+    }
+
+    function normalizeGuideCompleted(value) {
+        if (value === true || value === 'true' || value === 'TRUE') return true;
+        if (value === 'Y' || value === 'y' || value === 'YES' || value === 'yes') return true;
+        return false;
     }
 
     /**

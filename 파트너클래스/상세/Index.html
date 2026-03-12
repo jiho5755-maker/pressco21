@@ -338,6 +338,16 @@
 
                 <!-- 안내 문구 -->
                 <p class="booking-notice" id="bookingNotice">예약 확정 전 결제가 진행되지 않습니다.</p>
+                <div class="booking-empty-state" id="bookingEmptyState" style="display:none;">
+                    <p class="booking-empty-state__title">현재 바로 예약 가능한 일정이 아직 열리지 않았어요.</p>
+                    <p class="booking-empty-state__desc" id="bookingEmptyStateDesc">비슷한 클래스부터 둘러보거나 문의 채널로 일정 오픈 여부를 확인해보세요.</p>
+                    <div class="booking-empty-state__actions">
+                        <a href="/shop/page.html?id=2606" class="booking-empty-state__link booking-empty-state__link--primary" id="bookingEmptyCategoryLink">비슷한 클래스 보기</a>
+                        <a href="/shop/page.html?id=2606" class="booking-empty-state__link" id="bookingEmptyRegionLink">같은 지역 클래스 보기</a>
+                        <a href="#tab-faq" class="booking-empty-state__link" id="bookingEmptyFaqLink">FAQ 먼저 보기</a>
+                        <a href="https://pf.kakao.com/_pressco21" target="_blank" rel="noopener" class="booking-empty-state__link">문의하기</a>
+                    </div>
+                </div>
 
                 <!-- 공유 버튼 -->
                 <div class="cd-share-wrap" id="cdShareWrap">

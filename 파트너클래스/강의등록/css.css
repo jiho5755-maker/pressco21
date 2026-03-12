@@ -351,6 +351,224 @@
     margin: 0;
 }
 
+.class-register .cr-guide-callout {
+    padding: 0 24px 24px;
+}
+
+.class-register .cr-guide-callout__inner {
+    max-width: 1120px;
+    margin: 0 auto;
+    padding: 24px 28px;
+    border: 1px solid #dfe8d7;
+    border-radius: 18px;
+    background: linear-gradient(135deg, #f7fbf4 0%, #fdf9f0 100%);
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+}
+
+.class-register .cr-guide-callout__copy {
+    max-width: 760px;
+}
+
+.class-register .cr-guide-callout__eyebrow {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: #7d9675;
+}
+
+.class-register .cr-guide-callout__title {
+    margin: 0 0 8px;
+    font-size: 22px;
+    line-height: 1.4;
+    color: #2f362b;
+}
+
+.class-register .cr-guide-callout__desc {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.7;
+    color: #5f645b;
+}
+
+.class-register .cr-guide-callout__btn {
+    flex-shrink: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 188px;
+    padding: 14px 22px;
+    border-radius: 999px;
+    background: #7d9675;
+    color: #fff;
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 700;
+    transition: opacity .2s ease, transform .2s ease;
+}
+
+.class-register .cr-guide-callout__btn:hover {
+    opacity: .92;
+    transform: translateY(-1px);
+}
+
+
+/* ----------------------------------------
+   5-B. 폼 진행도 가이드
+   ---------------------------------------- */
+.class-register .cr-form-helper {
+    position: sticky;
+    top: 20px;
+    z-index: 3;
+    margin-bottom: 18px;
+    padding: 20px 22px;
+    border: 1px solid rgba(125, 150, 117, 0.18);
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.96);
+    box-shadow: var(--cr-shadow-md);
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.class-register .cr-form-helper__top {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 18px;
+}
+
+.class-register .cr-form-helper__copy {
+    min-width: 0;
+}
+
+.class-register .cr-form-helper__eyebrow {
+    margin: 0 0 8px;
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    color: var(--cr-primary);
+}
+
+.class-register .cr-form-helper__title {
+    margin: 0 0 6px;
+    font-size: 22px;
+    line-height: 1.35;
+    color: var(--cr-text-dark);
+}
+
+.class-register .cr-form-helper__desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--cr-text-light);
+}
+
+.class-register .cr-form-helper__stats {
+    display: flex;
+    gap: 10px;
+    flex-shrink: 0;
+}
+
+.class-register .cr-form-helper__stat {
+    min-width: 84px;
+    padding: 10px 12px;
+    border-radius: 12px;
+    background: var(--cr-bg-warm);
+    text-align: center;
+}
+
+.class-register .cr-form-helper__stat strong {
+    display: block;
+    font-size: 20px;
+    line-height: 1.1;
+    color: var(--cr-text-dark);
+}
+
+.class-register .cr-form-helper__stat span {
+    display: block;
+    margin-top: 4px;
+    font-size: 11px;
+    font-weight: 700;
+    color: var(--cr-text-light);
+}
+
+.class-register .cr-form-helper__progress {
+    position: relative;
+    height: 8px;
+    margin-top: 16px;
+    border-radius: 999px;
+    background: #ebe5de;
+    overflow: hidden;
+}
+
+.class-register .cr-form-helper__progress span {
+    display: block;
+    width: 0;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #7d9675 0%, #b89b5e 100%);
+    transition: width 0.22s ease-out;
+}
+
+.class-register .cr-form-helper__chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.class-register .cr-form-helper__chip {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: #f3efe9;
+    color: #786e61;
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.class-register .cr-form-helper__chip.is-complete {
+    background: #edf6ea;
+    color: #4f7149;
+}
+
+.class-register .cr-form-helper__chip.is-spotlight {
+    background: #fff4df;
+    color: #9b6b18;
+}
+
+.class-register .cr-form-helper__nav {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 14px;
+}
+
+.class-register .cr-form-helper__nav-btn {
+    min-height: 38px;
+    padding: 0 14px;
+    border: 1px solid var(--cr-border);
+    border-radius: 999px;
+    background: #FFFFFF;
+    color: var(--cr-text);
+    font-family: var(--cr-font);
+    font-size: 13px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: border-color var(--cr-transition), color var(--cr-transition), transform var(--cr-transition);
+}
+
+.class-register .cr-form-helper__nav-btn:hover {
+    border-color: rgba(125, 150, 117, 0.42);
+    color: var(--cr-primary);
+    transform: translateY(-1px);
+}
+
 
 /* ----------------------------------------
    6. 폼 섹션
@@ -718,6 +936,26 @@
         align-items: flex-start;
     }
 
+    .class-register .cr-guide-callout__inner {
+        flex-direction: column;
+        align-items: flex-start;
+        padding: 22px 20px;
+    }
+
+    .class-register .cr-guide-callout__btn {
+        width: 100%;
+        justify-content: center;
+    }
+
+    .class-register .cr-form-helper {
+        position: static;
+        padding: 18px;
+    }
+
+    .class-register .cr-form-helper__top {
+        flex-direction: column;
+    }
+
     .class-register .cr-form-section {
         padding: 28px 16px 60px;
     }
@@ -752,6 +990,10 @@
         margin: 0 20px 20px;
     }
 
+    .class-register .cr-form-helper__stats {
+        width: 100%;
+    }
+
     .class-register .cr-success__steps {
         gap: 4px;
     }
@@ -774,6 +1016,14 @@
     .class-register .cr-success__step-arrow {
         transform: rotate(90deg);
         margin: -4px 0;
+    }
+
+    .class-register .cr-form-helper__nav {
+        flex-direction: column;
+    }
+
+    .class-register .cr-form-helper__nav-btn {
+        width: 100%;
     }
 }
 

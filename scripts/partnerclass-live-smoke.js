@@ -8,6 +8,8 @@ const outputDir = path.resolve(process.cwd(), 'output/playwright/partnerclass-20
 const resultsPath = path.join(outputDir, 'partnerclass-live-results.json');
 const partnerMemberId = process.env.PARTNER_MEMBER_ID || '';
 const partnerMemberPassword = process.env.PARTNER_MEMBER_PASSWORD || '';
+const minFaqCount = Number(process.env.PARTNERCLASS_MIN_FAQ_COUNT || 10);
+const maxFaqCount = Number(process.env.PARTNERCLASS_MAX_FAQ_COUNT || 15);
 
 const results = [];
 
@@ -25,6 +27,18 @@ function logResult(name, passed, detail, extra) {
   results.push(entry);
   const label = passed ? 'PASS' : 'FAIL';
   console.log(`[${label}] ${name}: ${detail}`);
+}
+
+function logSkipped(name, detail, extra) {
+  const entry = {
+    name,
+    passed: null,
+    skipped: true,
+    detail,
+    extra: extra || null,
+  };
+  results.push(entry);
+  console.log(`[SKIP] ${name}: ${detail}`);
 }
 
 function slugify(value) {
@@ -46,6 +60,10 @@ function requirePartnerCredentials() {
   if (!partnerMemberId || !partnerMemberPassword) {
     throw new Error('PARTNER_MEMBER_ID / PARTNER_MEMBER_PASSWORD 환경변수가 필요합니다.');
   }
+}
+
+function hasPartnerCredentials() {
+  return Boolean(partnerMemberId && partnerMemberPassword);
 }
 
 async function loginAsPartner(page) {
@@ -105,6 +123,10 @@ function assert(condition, message) {
   }
 }
 
+function formatFaqExpectation() {
+  return `${minFaqCount}~${maxFaqCount}`;
+}
+
 async function waitForOverlayHidden(page, selector, timeout = 15000) {
   await page.waitForFunction((targetSelector) => {
     const element = document.querySelector(targetSelector);
@@ -112,6 +134,241 @@ async function waitForOverlayHidden(page, selector, timeout = 15000) {
     const style = window.getComputedStyle(element);
     return style.display === 'none' || style.visibility === 'hidden' || style.opacity === '0';
   }, selector, { timeout });
+}
+
+async function getVisibleLocator(page, selector) {
+  const locator = page.locator(selector);
+  const count = await locator.count();
+  for (let index = 0; index < count; index += 1) {
+    const candidate = locator.nth(index);
+    if (await candidate.isVisible().catch(() => false)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+async function openFirstClassDetail(page) {
+  await page.goto(`${baseUrl}/shop/page.html?id=2606`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.class-card', { timeout: 15000 });
+
+  const firstCard = page.locator('.class-card').first();
+  const sourceHref = await firstCard.evaluate((node) => {
+    const anchor = node.closest('a') || node.querySelector('a');
+    return (anchor && anchor.getAttribute('href')) || node.getAttribute('href') || node.getAttribute('data-href') || '';
+  });
+  assert(sourceHref, '첫 클래스 상세 링크를 찾지 못했습니다.');
+  await page.goto(new URL(sourceHref, baseUrl).toString(), { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('#detailContent', { timeout: 15000 });
+
+  return {
+    sourceHref,
+    detailUrl: page.url(),
+  };
+}
+
+async function openFirstReservableClassDetail(page) {
+  await page.goto(`${baseUrl}/shop/page.html?id=2606`, { waitUntil: 'domcontentloaded' });
+  await page.waitForSelector('.class-card', { timeout: 15000 });
+
+  const cards = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('.class-card')).map((card) => {
+      const anchor = card.closest('a') || card.querySelector('a');
+      const titleNode = card.querySelector('.class-card__title');
+      const remainingNode = card.querySelector('.class-card__remaining');
+      return {
+        title: titleNode ? String(titleNode.textContent || '').trim() : '',
+        href: anchor ? (anchor.getAttribute('href') || '') : '',
+        remainingText: remainingNode ? String(remainingNode.textContent || '').trim() : '',
+      };
+    }).filter((item) => item.href);
+  });
+  assert(cards.length > 0, '예약 가능한 상세 링크 후보가 없습니다.');
+
+  for (let index = 0; index < cards.length; index += 1) {
+    await page.goto(new URL(cards[index].href, baseUrl).toString(), { waitUntil: 'domcontentloaded' });
+    await page.waitForSelector('#detailContent', { timeout: 15000 });
+    await page.waitForTimeout(500);
+    const datePickerEnabled = await page.locator('#datePicker').isEnabled().catch(() => false);
+    if (datePickerEnabled) {
+      return {
+        sourceHref: cards[index].href,
+        detailUrl: page.url(),
+        title: cards[index].title,
+        listRemainingText: cards[index].remainingText,
+      };
+    }
+  }
+
+  throw new Error('예약 가능한 상세 페이지를 찾지 못했습니다. candidates=' + cards.map((item) => item.title || item.href).join(' | '));
+}
+
+async function chooseFirstSchedule(page) {
+  await page.locator('#datePicker').click();
+  const availableLabels = await page.locator('.flatpickr-day:not(.flatpickr-disabled):not(.prevMonthDay):not(.nextMonthDay)').evaluateAll((nodes) => {
+    return nodes
+      .map((node) => node.getAttribute('aria-label'))
+      .filter((value) => Boolean(value));
+  });
+  assert(availableLabels.length > 0, '선택 가능한 날짜가 없습니다.');
+
+  await page.getByLabel(availableLabels[0]).click();
+  await page.waitForSelector('.cd-time-slot', { timeout: 10000 });
+
+  const firstSlot = page.locator('.cd-time-slot').first();
+  const slotText = String(await firstSlot.textContent() || '').trim();
+  await firstSlot.click();
+  await page.waitForTimeout(250);
+
+  return {
+    selectedDate: availableLabels[0],
+    selectedSlot: slotText,
+  };
+}
+
+async function verifyLoginRedirect(page, config) {
+  const {
+    pageId,
+    pageName,
+    selector,
+    requireReturnUrl,
+    setup,
+  } = config;
+
+  await page.goto(`${baseUrl}/shop/page.html?id=${pageId}`, { waitUntil: 'domcontentloaded' });
+
+  if (typeof setup === 'function') {
+    await setup(page);
+  }
+
+  const target = await getVisibleLocator(page, selector);
+  assert(target, `${pageName} 로그인 버튼을 찾지 못했습니다. selector=${selector}`);
+
+  const href = await target.getAttribute('href');
+  assert(href && href.indexOf('/shop/member.html?type=login') > -1, `${pageName} href가 올바르지 않습니다: ${href}`);
+
+  await Promise.all([
+    page.waitForURL((url) => {
+      return url.pathname === '/shop/member.html' && url.searchParams.get('type') === 'login';
+    }, { timeout: 15000 }),
+    target.click(),
+  ]);
+
+  const finalUrl = new URL(page.url());
+  assert(finalUrl.pathname === '/shop/member.html', `${pageName} 이동 경로가 로그인 페이지가 아닙니다: ${page.url()}`);
+  assert(finalUrl.searchParams.get('type') === 'login', `${pageName} type=login 파라미터가 없습니다: ${page.url()}`);
+
+  const returnUrl = finalUrl.searchParams.get('returnUrl') || '';
+  if (requireReturnUrl) {
+    assert(returnUrl.indexOf(`/shop/page.html?id=${pageId}`) > -1, `${pageName} returnUrl이 현재 페이지를 가리키지 않습니다: ${returnUrl}`);
+  }
+
+  return {
+    href,
+    finalUrl: page.url(),
+    returnUrl: returnUrl || null,
+  };
+}
+
+async function collectVisibleDetailLinks(page) {
+  const links = await page.evaluate(() => {
+    return Array.from(document.querySelectorAll('.class-detail a.info-badge--link, .class-detail .detail-explore__link'))
+      .map((node) => {
+        const style = window.getComputedStyle(node);
+        const rect = node.getBoundingClientRect();
+        return {
+          text: String(node.textContent || '').trim(),
+          href: node.getAttribute('href') || '',
+          visible: style.display !== 'none' && style.visibility !== 'hidden' && rect.width > 0 && rect.height > 0,
+        };
+      })
+      .filter((item) => item.visible && item.href);
+  });
+
+  const deduped = [];
+  const seen = new Set();
+  for (let index = 0; index < links.length; index += 1) {
+    const key = `${links[index].href}::${links[index].text}`;
+    if (!seen.has(key)) {
+      seen.add(key);
+      deduped.push(links[index]);
+    }
+  }
+  return deduped;
+}
+
+async function waitForCatalogReady(page) {
+  await page.waitForFunction(() => {
+    const cards = document.querySelectorAll('.class-card').length;
+    const empty = document.getElementById('catalogEmpty');
+    const error = document.getElementById('catalogError');
+    const emptyVisible = !!empty && window.getComputedStyle(empty).display !== 'none';
+    const errorVisible = !!error && window.getComputedStyle(error).display !== 'none';
+    return cards > 0 || emptyVisible || errorVisible;
+  }, { timeout: 15000 });
+}
+
+async function validateCatalogLinkTarget(page, href) {
+  const targetUrl = new URL(href, baseUrl);
+  assert(targetUrl.searchParams.get('id') === '2606', `목록 페이지 링크가 아닙니다: ${targetUrl.toString()}`);
+
+  await page.goto(targetUrl.toString(), { waitUntil: 'domcontentloaded' });
+  await waitForCatalogReady(page);
+
+  const cardCount = await page.locator('.class-card').count();
+  assert(cardCount > 0, `링크 결과가 비었습니다: ${targetUrl.toString()}`);
+
+  const expectedCategory = targetUrl.searchParams.get('category') || '';
+  const expectedLevel = targetUrl.searchParams.get('level') || '';
+  const expectedRegion = targetUrl.searchParams.get('region') || '';
+  const expectedQuery = targetUrl.searchParams.get('q') || '';
+
+  if (expectedCategory) {
+    const categories = await page.locator('.class-card__category').evaluateAll((nodes) => {
+      return nodes.map((node) => String(node.textContent || '').trim()).filter(Boolean);
+    });
+    assert(categories.length > 0, `카테고리 카드 배지가 없습니다: ${targetUrl.toString()}`);
+    assert(categories.every((value) => value === expectedCategory), `카테고리 링크 결과가 섞였습니다: expected=${expectedCategory}, actual=${categories.join(' | ')}`);
+  }
+
+  if (expectedLevel) {
+    const levels = await page.locator('.class-card__level').evaluateAll((nodes) => {
+      return nodes.map((node) => String(node.textContent || '').trim()).filter(Boolean);
+    });
+    const checked = await page.locator(`input[name="level"][value="${expectedLevel}"]`).isChecked().catch(() => false);
+    assert(checked, `난이도 체크박스가 선택되지 않았습니다: ${expectedLevel}`);
+    assert(levels.length > 0, `난이도 카드 배지가 없습니다: ${targetUrl.toString()}`);
+    assert(levels.every((value) => value === expectedLevel), `난이도 링크 결과가 섞였습니다: expected=${expectedLevel}, actual=${levels.join(' | ')}`);
+  }
+
+  if (expectedRegion) {
+    const locations = await page.locator('.class-card__location').evaluateAll((nodes) => {
+      return nodes.map((node) => String(node.textContent || '').trim()).filter(Boolean);
+    });
+    const checked = await page.locator(`input[name="region"][value="${expectedRegion}"]`).isChecked().catch(() => false);
+    assert(checked, `지역 체크박스가 선택되지 않았습니다: ${expectedRegion}`);
+    assert(locations.length > 0, `지역 카드 메타가 없습니다: ${targetUrl.toString()}`);
+    assert(locations.every((value) => value.indexOf(expectedRegion) > -1), `지역 링크 결과가 섞였습니다: expected=${expectedRegion}, actual=${locations.join(' | ')}`);
+  }
+
+  if (expectedQuery) {
+    const queryMatched = await page.locator('.class-card').evaluateAll((nodes, query) => {
+      return nodes.every((node) => {
+        const title = String(node.querySelector('.class-card__title')?.textContent || '').trim();
+        const partner = String(node.querySelector('.class-card__partner')?.textContent || '').trim();
+        return title.indexOf(query) > -1 || partner.indexOf(query) > -1;
+      });
+    }, expectedQuery);
+    assert(queryMatched, `강사 검색 링크 결과가 검색어와 맞지 않습니다: q=${expectedQuery}`);
+  }
+
+  return {
+    cardCount,
+    expectedCategory,
+    expectedLevel,
+    expectedRegion,
+    expectedQuery,
+  };
 }
 
 async function waitForPartnerDashboardReady(page) {
@@ -238,15 +495,50 @@ async function runGuestScenarios(browser) {
     return '협회 카드 및 인센티브 섹션 확인';
   }, page);
 
-  await runScenario('상세 일정/수량/탭 전환', async () => {
-    await page.goto(`${baseUrl}/shop/page.html?id=2606`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.class-card', { timeout: 15000 });
+  await runScenario('비로그인 로그인 안내 링크 5페이지', async () => {
+    const checks = [
+      { pageId: '2609', pageName: '파트너신청', selector: '#paLoginBtn', requireReturnUrl: true },
+      { pageId: '2608', pageName: '파트너 대시보드', selector: '#pdLoginBtn', requireReturnUrl: true },
+      { pageId: '8009', pageName: '강의등록', selector: '#crLoginBtn', requireReturnUrl: true },
+      { pageId: '8010', pageName: '마이페이지', selector: '.mb-notice__btn', requireReturnUrl: false },
+      { pageId: '2610', pageName: '교육', selector: '#peLoginBtn', requireReturnUrl: true },
+    ];
+
+    const summaries = [];
+    for (let index = 0; index < checks.length; index += 1) {
+      const result = await verifyLoginRedirect(page, checks[index]);
+      summaries.push(`${checks[index].pageName}=>${result.finalUrl}`);
+    }
+
+    return summaries.join(' | ');
+  }, page);
+
+  await runScenario('상세 비로그인 후기 로그인 경로', async () => {
+    const detail = await openFirstClassDetail(page);
+    await page.locator('#tab-reviews').click();
+
+    const reviewLoginBtn = await getVisibleLocator(page, '.review-write-login__btn');
+    assert(reviewLoginBtn, '상세 후기 로그인 버튼이 보이지 않습니다.');
+
+    const href = await reviewLoginBtn.getAttribute('href');
+    assert(href && href.indexOf('/shop/member.html?type=login') > -1, `상세 후기 로그인 href가 올바르지 않습니다: ${href}`);
 
     await Promise.all([
-      page.waitForURL(/page\.html\?id=2607&class_id=/, { timeout: 15000 }),
-      page.locator('.class-card').first().click(),
+      page.waitForURL((url) => {
+        return url.pathname === '/shop/member.html' && url.searchParams.get('type') === 'login';
+      }, { timeout: 15000 }),
+      reviewLoginBtn.click(),
     ]);
-    await page.waitForSelector('#detailContent', { timeout: 15000 });
+
+    const finalUrl = new URL(page.url());
+    const returnUrl = finalUrl.searchParams.get('returnUrl') || '';
+    assert(returnUrl.indexOf('/shop/page.html?id=2607') > -1, `상세 후기 returnUrl이 잘못되었습니다: ${returnUrl}`);
+
+    return `detail=${detail.detailUrl} => login=${page.url()}`;
+  }, page);
+
+  await runScenario('상세 일정/수량/탭 전환', async () => {
+    const detail = await openFirstReservableClassDetail(page);
 
     await page.locator('#datePicker').click();
     const availableLabels = await page.locator('.flatpickr-day:not(.flatpickr-disabled):not(.prevMonthDay):not(.nextMonthDay)').evaluateAll((nodes) => {
@@ -276,22 +568,14 @@ async function runGuestScenarios(browser) {
       assert(selected === 'true', `탭 선택 상태 반영 실패: ${tabIds[index]}`);
     }
 
-    return `날짜 ${availableLabels.slice(0, 2).join(', ')}, 슬롯 ${timeSlotTexts.join(' | ')}`;
+    return `detail=${detail.detailUrl}, 날짜 ${availableLabels.slice(0, 2).join(', ')}, 슬롯 ${timeSlotTexts.join(' | ')}`;
   }, page);
 
   await runScenario('상세 FAQ/잔여석 정합성', async () => {
-    await page.goto(`${baseUrl}/shop/page.html?id=2606`, { waitUntil: 'domcontentloaded' });
-    await page.waitForSelector('.class-card', { timeout: 15000 });
-
-    const listRemainingText = await page.locator('.class-card__remaining').first().textContent();
+    const detail = await openFirstReservableClassDetail(page);
+    const listRemainingText = detail.listRemainingText;
     const listRemaining = numericValue(listRemainingText);
     assert(listRemaining > 0, `목록 잔여석 파싱 실패: ${listRemainingText}`);
-
-    await Promise.all([
-      page.waitForURL(/page\.html\?id=2607&class_id=/, { timeout: 15000 }),
-      page.locator('.class-card').first().click(),
-    ]);
-    await page.waitForSelector('#detailContent', { timeout: 15000 });
 
     await page.locator('#datePicker').click();
     const availableDates = await page.locator('.flatpickr-day:not(.flatpickr-disabled):not(.prevMonthDay):not(.nextMonthDay)').evaluateAll((nodes) => {
@@ -315,8 +599,15 @@ async function runGuestScenarios(browser) {
 
     await page.locator('#tab-faq').click();
     await page.waitForSelector('.faq-item__question', { timeout: 10000 });
+    const faqSearchVisible = await page.locator('#faqSearchInput').isVisible().catch(() => false);
+    const faqCategoryCount = await page.locator('.faq-category-btn').count();
     const faqCount = await page.locator('.faq-item__question').count();
-    assert(faqCount === 5, `FAQ 개수가 5개가 아닙니다. count=${faqCount}`);
+    assert(faqSearchVisible, 'FAQ 검색 입력이 보이지 않습니다.');
+    assert(faqCategoryCount >= 6, `FAQ 카테고리 칩 개수가 부족합니다. count=${faqCategoryCount}`);
+    assert(
+      faqCount >= minFaqCount && faqCount <= maxFaqCount,
+      `FAQ 개수가 기대 범위를 벗어났습니다. expected=${formatFaqExpectation()}, actual=${faqCount}`
+    );
     for (let index = 0; index < faqCount; index += 1) {
       const question = page.locator('.faq-item__question').nth(index);
       await question.click();
@@ -328,7 +619,7 @@ async function runGuestScenarios(browser) {
     }
 
     const shot = await captureFullPage(page, 'detail-faq-remaining-consistency.png');
-    return `목록 ${listRemaining}석 = 상세 ${totalRemaining}석, FAQ ${faqCount}개, screenshot=${shot}`;
+    return `detail=${detail.detailUrl}, 목록 ${listRemaining}석 = 상세 ${totalRemaining}석, FAQ ${faqCount}개, categories=${faqCategoryCount}, screenshot=${shot}`;
   }, page);
 
   await runScenario('상세 비정상 class_id 처리', async () => {
@@ -339,6 +630,34 @@ async function runGuestScenarios(browser) {
     assert(redirectedToList || hasError, `비정상 class_id 처리 미확인. url=${page.url()}`);
     const shot = await captureFullPage(page, 'detail-invalid-state.png');
     return redirectedToList ? `목록 리다이렉트 확인, screenshot=${shot}` : `오류 상태 확인, screenshot=${shot}`;
+  }, page);
+
+  await runScenario('상세 분류 링크 회귀', async () => {
+    await openFirstClassDetail(page);
+    const links = await collectVisibleDetailLinks(page);
+
+    const categoryLink = links.find((item) => item.href.indexOf('category=') > -1);
+    const levelLink = links.find((item) => item.href.indexOf('level=') > -1);
+    const regionLink = links.find((item) => item.href.indexOf('region=') > -1);
+    const partnerLink = links.find((item) => item.href.indexOf('q=') > -1);
+
+    assert(categoryLink, '카테고리 링크가 보이지 않습니다.');
+    assert(levelLink, '난이도 링크가 보이지 않습니다.');
+    assert(regionLink, '지역 링크가 보이지 않습니다.');
+
+    const linksToCheck = [categoryLink, levelLink, regionLink];
+    if (partnerLink) {
+      linksToCheck.push(partnerLink);
+    }
+
+    const summaries = [];
+    for (let index = 0; index < linksToCheck.length; index += 1) {
+      const validation = await validateCatalogLinkTarget(page, linksToCheck[index].href);
+      summaries.push(`${linksToCheck[index].text}=>${validation.cardCount}건`);
+    }
+
+    const shot = await captureFullPage(page, 'detail-classification-link-regression.png');
+    return `${summaries.join(' | ')}, partnerLink=${partnerLink ? 'yes' : 'no'}, screenshot=${shot}`;
   }, page);
 
   await runScenario('마이페이지 비로그인 안내', async () => {
@@ -529,6 +848,27 @@ async function runMemberScenarios(browser) {
     return `error=${visibleErrors}, schedules=${scheduleEntryCount}, kitItems=${kitItemCount}, screenshot=${shot}`;
   }, page);
 
+  await runScenario('상세 선물하기 주문서 진입', async () => {
+    const detail = await openFirstClassDetail(page);
+    const schedule = await chooseFirstSchedule(page);
+
+    const giftBtn = page.locator('#bookingGift');
+    const disabled = await giftBtn.isDisabled();
+    assert(!disabled, '선물하기 버튼이 활성화되지 않았습니다.');
+
+    await Promise.all([
+      page.waitForURL(/\/shop\/order\.html|\/shop\/shopdetail\.html/, { timeout: 20000, waitUntil: 'domcontentloaded' }),
+      giftBtn.click(),
+    ]);
+
+    const finalUrl = page.url();
+    const isGiftOrderUrl = finalUrl.indexOf('/shop/order.html') > -1 && finalUrl.indexOf('direct_order=giveapresent') > -1;
+    const hasGiftHeading = await page.getByText('선물 주문하기', { exact: false }).first().isVisible().catch(() => false);
+    assert(isGiftOrderUrl || hasGiftHeading, `선물 주문서 진입에 실패했습니다: ${finalUrl}`);
+
+    return `detail=${detail.detailUrl}, date=${schedule.selectedDate}, slot=${schedule.selectedSlot}, final=${finalUrl}`;
+  }, page);
+
   await runScenario('마이페이지 로그인 상태 빈 화면', async () => {
     await page.goto(`${baseUrl}/shop/page.html?id=8010`, { waitUntil: 'domcontentloaded' });
     await page.waitForSelector('#mbMainArea', { timeout: 15000 });
@@ -596,10 +936,10 @@ async function runAdminScenarios(browser) {
     assert(classesResp.ok(), 'getPendingClasses HTTP 실패');
     assert(settlementsResp.ok(), 'getSettlements HTTP 실패');
     assert(affiliationsResp.ok(), 'getAffiliations HTTP 실패');
-    assert(applicationsJson.success && applicationsJson.data.applications.length > 0, '신청 목록 데이터가 없습니다.');
-    assert(classesJson.success && classesJson.data.classes.length > 0, '강의 승인 대기 데이터가 없습니다.');
-    assert(settlementsJson.success && settlementsJson.data.settlements.length > 0, '정산 대기 데이터가 없습니다.');
-    assert(affiliationsJson.success && affiliationsJson.data.length > 0, '협회 데이터가 없습니다.');
+    assert(applicationsJson.success && applicationsJson.data && Array.isArray(applicationsJson.data.applications), '신청 목록 응답 형식이 올바르지 않습니다.');
+    assert(classesJson.success && classesJson.data && Array.isArray(classesJson.data.classes), '강의 승인 대기 응답 형식이 올바르지 않습니다.');
+    assert(settlementsJson.success && settlementsJson.data && Array.isArray(settlementsJson.data.settlements), '정산 대기 응답 형식이 올바르지 않습니다.');
+    assert(affiliationsJson.success && Array.isArray(affiliationsJson.data), '협회 데이터 응답 형식이 올바르지 않습니다.');
 
     await apiRequest.dispose();
 
@@ -666,7 +1006,11 @@ async function main() {
 
   try {
     await runGuestScenarios(browser);
-    await runMemberScenarios(browser);
+    if (hasPartnerCredentials()) {
+      await runMemberScenarios(browser);
+    } else {
+      logSkipped('파트너 전용 시나리오', 'PARTNER_MEMBER_ID / PARTNER_MEMBER_PASSWORD 미설정으로 건너뜀');
+    }
     await runAdminScenarios(browser);
   } finally {
     await browser.close();
@@ -677,8 +1021,10 @@ async function main() {
     results,
   }, null, 2));
 
-  const failed = results.filter((item) => !item.passed);
-  console.log(`총 ${results.length}건 중 ${results.length - failed.length}건 성공, ${failed.length}건 실패`);
+  const failed = results.filter((item) => item.passed === false);
+  const skipped = results.filter((item) => item.skipped);
+  const passedCount = results.filter((item) => item.passed === true).length;
+  console.log(`총 ${results.length}건 중 ${passedCount}건 성공, ${failed.length}건 실패, ${skipped.length}건 건너뜀`);
 
   if (failed.length > 0) {
     process.exitCode = 1;

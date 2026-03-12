@@ -2323,6 +2323,68 @@
     line-height: 1.5;
 }
 
+.class-detail .booking-empty-state {
+    margin-top: 14px;
+    padding: 16px;
+    border: 1px solid var(--cd-border-light);
+    border-radius: var(--cd-radius-md);
+    background: linear-gradient(135deg, #f9faf6 0%, #fffaf2 100%);
+}
+
+.class-detail .booking-empty-state__title {
+    margin: 0 0 6px;
+    font-size: 14px;
+    font-weight: 700;
+    color: var(--cd-text-dark);
+    line-height: 1.5;
+}
+
+.class-detail .booking-empty-state__desc {
+    margin: 0;
+    font-size: 13px;
+    line-height: 1.7;
+    color: var(--cd-text-light);
+}
+
+.class-detail .booking-empty-state__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+}
+
+.class-detail .booking-empty-state__link {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 36px;
+    padding: 8px 12px;
+    border-radius: 999px;
+    border: 1px solid var(--cd-border);
+    background: rgba(255, 255, 255, 0.92);
+    color: var(--cd-text);
+    font-size: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: border-color var(--cd-transition), transform var(--cd-transition), color var(--cd-transition);
+}
+
+.class-detail .booking-empty-state__link:hover {
+    border-color: rgba(125, 150, 117, 0.55);
+    color: var(--cd-primary-dark);
+    transform: translateY(-1px);
+}
+
+.class-detail .booking-empty-state__link--primary {
+    background: var(--cd-primary-dark);
+    border-color: var(--cd-primary-dark);
+    color: #FFFFFF;
+}
+
+.class-detail .booking-empty-state__link--primary:hover {
+    color: #FFFFFF;
+}
+
 
 /* ----------------------------------------
    15-B. 공유 버튼 그룹
@@ -3767,5 +3829,13 @@
 
     .class-detail .booking-link-row {
         text-align: left;
+    }
+
+    .class-detail .booking-empty-state__actions {
+        flex-direction: column;
+    }
+
+    .class-detail .booking-empty-state__link {
+        width: 100%;
     }
 }

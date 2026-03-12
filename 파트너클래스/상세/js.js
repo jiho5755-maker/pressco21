@@ -2088,6 +2088,66 @@
         noticeEl.textContent = '\uC608\uC57D \uD655\uC815 \uC804 \uACB0\uC81C\uAC00 \uC9C4\uD589\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.';
     }
 
+    function toggleNoScheduleState(show, data) {
+        var emptyEl = document.getElementById('bookingEmptyState');
+        var descEl = document.getElementById('bookingEmptyStateDesc');
+        var categoryLink = document.getElementById('bookingEmptyCategoryLink');
+        var regionLink = document.getElementById('bookingEmptyRegionLink');
+        var faqLink = document.getElementById('bookingEmptyFaqLink');
+        var category = data && data.category ? String(data.category).trim() : '';
+        var region = getRegionFilterValue(data && (data.location || data.region || (data.partner && data.partner.location)) ? (data.location || data.region || (data.partner && data.partner.location)) : '');
+
+        if (!emptyEl) return;
+
+        if (!show) {
+            emptyEl.style.display = 'none';
+            return;
+        }
+
+        emptyEl.style.display = '';
+
+        if (descEl) {
+            descEl.textContent = '\uBE44\uC2B7\uD55C \uD074\uB798\uC2A4\uB97C \uBA3C\uC800 \uBE44\uAD50\uD574\uBCF4\uAC70\uB098, \uBB38\uC758 \uCC44\uB110\uB85C \uC77C\uC815 \uC624\uD508 \uC5EC\uBD80\uB97C \uD655\uC778\uD574\uBCF4\uC138\uC694.';
+        }
+
+        if (categoryLink) {
+            categoryLink.href = buildListPageUrl({ category: category });
+            categoryLink.textContent = category ? category + ' \uD074\uB798\uC2A4 \uB354 \uBCF4\uAE30' : '\uBE44\uC2B7\uD55C \uD074\uB798\uC2A4 \uBCF4\uAE30';
+        }
+
+        if (regionLink) {
+            if (region) {
+                regionLink.href = buildListPageUrl({ region: region });
+                regionLink.textContent = region + ' \uD074\uB798\uC2A4 \uBCF4\uAE30';
+                regionLink.style.display = '';
+            } else {
+                regionLink.style.display = 'none';
+            }
+        }
+
+        if (faqLink) {
+            if (!faqLink._cdBound) {
+                faqLink._cdBound = true;
+                faqLink.addEventListener('click', function(e) {
+                    var faqTabBtn = document.querySelector('.class-detail .detail-tab[data-tab="faq"]');
+                    var tabList = document.getElementById('detailTabs');
+
+                    e.preventDefault();
+
+                    if (faqTabBtn) {
+                        faqTabBtn.click();
+                    }
+
+                    if (tabList && tabList.scrollIntoView) {
+                        tabList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                        window.location.hash = 'tab-faq';
+                    }
+                });
+            }
+        }
+    }
+
     function updateBookingHeadlinePrice() {
         var amountEl = document.getElementById('bookingHeadlinePriceAmount');
         var selection = getCurrentBookingSelection(classData || {});
@@ -2150,7 +2210,9 @@
             if (enabledDates.length === 0) {
                 dateInput.placeholder = '\uB4F1\uB85D\uB41C \uC77C\uC815\uC774 \uC5C6\uC2B5\uB2C8\uB2E4';
                 dateInput.disabled = true;
+                toggleNoScheduleState(true, data);
             } else {
+                toggleNoScheduleState(false, data);
                 datePickerInstance = flatpickr(dateInput, {
                     locale: 'ko',
                     minDate: 'today',
@@ -3680,10 +3742,51 @@
             ONLINE: '\uC628\uB77C\uC778',
             OTHER: '\uAE30\uD0C0'
         };
+        var regionAliasMap = {
+            '\uC11C\uC6B8\uC2DC': '\uC11C\uC6B8',
+            '\uC11C\uC6B8\uD2B9\uBCC4\uC2DC': '\uC11C\uC6B8',
+            '\uACBD\uAE30\uB3C4': '\uACBD\uAE30',
+            '\uC778\uCC9C\uC2DC': '\uC778\uCC9C',
+            '\uC778\uCC9C\uAD11\uC5ED\uC2DC': '\uC778\uCC9C',
+            '\uBD80\uC0B0\uC2DC': '\uBD80\uC0B0',
+            '\uBD80\uC0B0\uAD11\uC5ED\uC2DC': '\uBD80\uC0B0',
+            '\uB300\uAD6C\uC2DC': '\uB300\uAD6C',
+            '\uB300\uAD6C\uAD11\uC5ED\uC2DC': '\uB300\uAD6C',
+            '\uB300\uC804\uC2DC': '\uB300\uC804',
+            '\uB300\uC804\uAD11\uC5ED\uC2DC': '\uB300\uC804',
+            '\uAD11\uC8FC\uC2DC': '\uAD11\uC8FC',
+            '\uAD11\uC8FC\uAD11\uC5ED\uC2DC': '\uAD11\uC8FC',
+            '\uC6B8\uC0B0\uC2DC': '\uC6B8\uC0B0',
+            '\uC6B8\uC0B0\uAD11\uC5ED\uC2DC': '\uC6B8\uC0B0',
+            '\uC138\uC885\uC2DC': '\uC138\uC885',
+            '\uC138\uC885\uD2B9\uBCC4\uC790\uCE58\uC2DC': '\uC138\uC885',
+            '\uAC15\uC6D0\uB3C4': '\uAC15\uC6D0',
+            '\uCDA9\uBD81': '\uCDA9\uBD81',
+            '\uCDA9\uCCAD\uBD81\uB3C4': '\uCDA9\uBD81',
+            '\uCDA9\uB0A8': '\uCDA9\uB0A8',
+            '\uCDA9\uCCAD\uB0A8\uB3C4': '\uCDA9\uB0A8',
+            '\uC804\uBD81\uB3C4': '\uC804\uBD81',
+            '\uC804\uB77C\uBD81\uB3C4': '\uC804\uBD81',
+            '\uC804\uB0A8\uB3C4': '\uC804\uB0A8',
+            '\uC804\uB77C\uB0A8\uB3C4': '\uC804\uB0A8',
+            '\uACBD\uBD81\uB3C4': '\uACBD\uBD81',
+            '\uACBD\uC0C1\uBD81\uB3C4': '\uACBD\uBD81',
+            '\uACBD\uB0A8\uB3C4': '\uACBD\uB0A8',
+            '\uACBD\uC0C1\uB0A8\uB3C4': '\uACBD\uB0A8',
+            '\uC81C\uC8FC\uB3C4': '\uC81C\uC8FC',
+            '\uC81C\uC8FC\uD2B9\uBCC4\uC790\uCE58\uB3C4': '\uC81C\uC8FC'
+        };
+        var alias;
 
         if (!text) return '';
         if (codeMap[upper]) return codeMap[upper];
         if (text.indexOf('\uC628\uB77C\uC778') > -1 || normalizedContains(text, 'online')) return '\uC628\uB77C\uC778';
+
+        for (alias in regionAliasMap) {
+            if (text === alias || text.indexOf(alias + ' ') === 0) {
+                return regionAliasMap[alias];
+            }
+        }
 
         var parts = text.split(' ');
         return parts[0];
@@ -3691,7 +3794,7 @@
 
     function getRegionFilterValue(raw) {
         var text = String(raw || '').replace(/\s+/g, ' ').trim();
-        var primary = text ? text.split(' ')[0] : '';
+        var primary = getPrimaryRegion(text);
         var allowed = {
             '\uC11C\uC6B8': true,
             '\uACBD\uAE30': true,

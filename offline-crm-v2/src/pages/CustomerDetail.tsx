@@ -36,7 +36,7 @@ import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 import { buildResolvedReceivableInvoices, resolveInvoiceCustomer } from '@/lib/receivables'
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import { exportUnifiedTransactions } from '@/lib/excel'
-import { getDisplayMemo, mergeDisplayMemo, parseCustomerAccountingMeta } from '@/lib/accountingMeta'
+import { getDisplayMemo, mergeDisplayMemo, parseCustomerAccountingMeta, replaceCustomerAccountingPreferences } from '@/lib/accountingMeta'
 
 // ── 기본정보 편집 폼 ──────────────────────────────────────
 interface InfoForm {
@@ -53,12 +53,16 @@ interface InfoForm {
   price_tier: string
   discount_rate: string
   memo: string
+  depositorAliases: string
+  autoDepositDisabled: boolean
+  autoDepositPriority: string
   addresses: string[]
 }
 
 const MAX_ADDRESS_FIELDS = 10
 
 function buildInfoForm(c: Customer): InfoForm {
+  const accountingMeta = parseCustomerAccountingMeta(c.memo as string | undefined)
   const addresses: string[] = []
   for (let i = 1; i <= MAX_ADDRESS_FIELDS; i++) {
     const v = c[`address${i}`] as string | undefined
@@ -78,6 +82,9 @@ function buildInfoForm(c: Customer): InfoForm {
     price_tier: String(c.price_tier ?? 1),
     discount_rate: String(c.discount_rate ?? ''),
     memo: getDisplayMemo(c.memo as string | undefined),
+    depositorAliases: accountingMeta.depositorAliases.join('\n'),
+    autoDepositDisabled: accountingMeta.autoDepositDisabled,
+    autoDepositPriority: accountingMeta.autoDepositPriority > 0 ? String(accountingMeta.autoDepositPriority) : '',
     addresses: addresses.length > 0 ? addresses : [''],
   }
 }
@@ -179,7 +186,7 @@ export function CustomerDetail() {
   const [infoForm, setInfoForm] = useState<InfoForm>({
     name: '', phone: '', mobile: '', email: '', biz_no: '', ceo_name: '',
     biz_type: '', biz_item: '', customer_type: '', customer_status: '',
-    price_tier: '1', discount_rate: '', memo: '', addresses: [''],
+    price_tier: '1', discount_rate: '', memo: '', depositorAliases: '', autoDepositDisabled: false, autoDepositPriority: '', addresses: [''],
   })
 
   // 기간 매출 필터 상태 (명세표 탭)
@@ -243,7 +250,19 @@ export function CustomerDetail() {
         customer_status: toNullableText(infoForm.customer_status),
         price_tier: infoForm.price_tier ? Number(infoForm.price_tier) : null,
         discount_rate: infoForm.discount_rate.trim() ? Number(infoForm.discount_rate) : null,
-        memo: toNullableText(mergeDisplayMemo(customer?.memo as string | undefined, infoForm.memo)),
+        memo: toNullableText(
+          replaceCustomerAccountingPreferences(
+            mergeDisplayMemo(customer?.memo as string | undefined, infoForm.memo),
+            {
+              depositorAliases: infoForm.depositorAliases
+                .split(/\r?\n|,/)
+                .map((value) => value.trim())
+                .filter(Boolean),
+              autoDepositDisabled: infoForm.autoDepositDisabled,
+              autoDepositPriority: infoForm.autoDepositPriority.trim() ? Number(infoForm.autoDepositPriority) : 0,
+            },
+          ),
+        ),
         ...addrPayload,
       } as Partial<Customer>
 
@@ -964,6 +983,9 @@ export function CustomerDetail() {
                     { label: '단가등급', value: customer.price_tier ? `Tier ${customer.price_tier}` : undefined },
                     { label: '최초거래일', value: customer.first_order_date?.slice(0, 10) },
                     { label: '최종거래일', value: customer.last_order_date?.slice(0, 10) },
+                    { label: '입금자명 별칭', value: customerAccountingMeta.depositorAliases.join(', ') },
+                    { label: '자동입금 제외', value: customerAccountingMeta.autoDepositDisabled ? '예' : '아니오' },
+                    { label: '자동입금 우선순위', value: customerAccountingMeta.autoDepositPriority > 0 ? `${customerAccountingMeta.autoDepositPriority}` : undefined },
                     { label: '메모', value: customerDisplayMemo },
                   ].map(({ label, value }) => (
                     <div key={label} className="flex flex-col gap-0.5">
@@ -1106,6 +1128,51 @@ export function CustomerDetail() {
                   </div>
 
                   {/* 메모 */}
+                  <div className="space-y-1">
+                    <Label className="text-xs">입금자명 별칭</Label>
+                    <Textarea
+                      value={infoForm.depositorAliases}
+                      onChange={(e) => setInfoForm((f) => ({ ...f, depositorAliases: e.target.value }))}
+                      placeholder={'예: 김순자\n정부지원금\n서상견(단양)'}
+                      className="text-sm resize-none"
+                      rows={3}
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      실제 입금자명이 고객명과 다를 때 한 줄씩 추가하세요. 자동입금 매칭에 우선 사용됩니다.
+                    </p>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-2 rounded-lg border border-dashed border-slate-200 px-3 py-3">
+                      <div className="space-y-1">
+                        <Label className="text-xs">자동입금 제외</Label>
+                        <p className="text-xs text-muted-foreground">
+                          거래종료 고객이나 자동 매칭되면 안 되는 고객은 제외로 두세요.
+                        </p>
+                      </div>
+                      <label className="flex items-center gap-2 text-sm">
+                        <input
+                          type="checkbox"
+                          checked={infoForm.autoDepositDisabled}
+                          onChange={(e) => setInfoForm((f) => ({ ...f, autoDepositDisabled: e.target.checked }))}
+                        />
+                        자동입금 후보에서 제외
+                      </label>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs">자동입금 우선순위</Label>
+                      <Input
+                        value={infoForm.autoDepositPriority}
+                        onChange={(e) => setInfoForm((f) => ({ ...f, autoDepositPriority: e.target.value.replace(/[^0-9]/g, '') }))}
+                        placeholder="기본 0, 숫자가 클수록 우선"
+                        className="h-8 text-sm"
+                      />
+                      <p className="text-xs text-muted-foreground">
+                        같은 이름 후보가 여러 명이면 높은 우선순위 고객을 먼저 추천합니다.
+                      </p>
+                    </div>
+                  </div>
+
                   <div className="space-y-1">
                     <Label className="text-xs">메모</Label>
                     <Textarea

@@ -14,6 +14,9 @@ export interface CustomerAccountingEvent {
 export interface CustomerAccountingMetaState {
   depositBalance: number
   refundPendingBalance: number
+  depositorAliases: string[]
+  autoDepositDisabled: boolean
+  autoDepositPriority: number
   events: CustomerAccountingEvent[]
 }
 
@@ -33,6 +36,20 @@ function parseInteger(value: unknown): number {
   if (typeof value !== 'string') return 0
   const parsed = Number(value.replace(/,/g, '').trim())
   return Number.isFinite(parsed) ? Math.trunc(parsed) : 0
+}
+
+function sanitizeAlias(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().replace(/\s+/g, ' ')
+  return normalized ? normalized : null
+}
+
+function sanitizeAliasList(values: unknown): string[] {
+  if (!Array.isArray(values)) return []
+  return values
+    .map(sanitizeAlias)
+    .filter((entry): entry is string => entry !== null)
+    .filter((entry, index, list) => list.indexOf(entry) === index)
 }
 
 function sanitizeEvent(entry: Partial<CustomerAccountingEvent>): CustomerAccountingEvent | null {
@@ -114,13 +131,16 @@ export function parseCustomerAccountingMeta(memo?: string): CustomerAccountingMe
     .find((line) => line.startsWith(CUSTOMER_ACCOUNTING_META_PREFIX))
 
   if (!metaLine) {
-    return { depositBalance: 0, refundPendingBalance: 0, events: [] }
+    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], autoDepositDisabled: false, autoDepositPriority: 0, events: [] }
   }
 
   try {
     const parsed = JSON.parse(metaLine.slice(CUSTOMER_ACCOUNTING_META_PREFIX.length).trim()) as {
       depositBalance?: number
       refundPendingBalance?: number
+      depositorAliases?: string[]
+      autoDepositDisabled?: boolean
+      autoDepositPriority?: number
       events?: Partial<CustomerAccountingEvent>[]
     }
     const events = Array.isArray(parsed.events)
@@ -129,10 +149,13 @@ export function parseCustomerAccountingMeta(memo?: string): CustomerAccountingMe
     return {
       depositBalance: Math.max(0, parseInteger(parsed.depositBalance)),
       refundPendingBalance: Math.max(0, parseInteger(parsed.refundPendingBalance)),
+      depositorAliases: sanitizeAliasList(parsed.depositorAliases),
+      autoDepositDisabled: parsed.autoDepositDisabled === true,
+      autoDepositPriority: Math.max(0, parseInteger(parsed.autoDepositPriority)),
       events,
     }
   } catch {
-    return { depositBalance: 0, refundPendingBalance: 0, events: [] }
+    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], autoDepositDisabled: false, autoDepositPriority: 0, events: [] }
   }
 }
 
@@ -146,13 +169,27 @@ export function serializeCustomerAccountingMeta(
     .map(sanitizeEvent)
     .filter((entry): entry is CustomerAccountingEvent => entry !== null)
 
-  if (nextState.depositBalance <= 0 && nextState.refundPendingBalance <= 0 && events.length === 0) {
+  const depositorAliases = sanitizeAliasList(nextState.depositorAliases)
+  const autoDepositDisabled = nextState.autoDepositDisabled === true
+  const autoDepositPriority = Math.max(0, parseInteger(nextState.autoDepositPriority))
+
+  if (
+    nextState.depositBalance <= 0 &&
+    nextState.refundPendingBalance <= 0 &&
+    depositorAliases.length === 0 &&
+    !autoDepositDisabled &&
+    autoDepositPriority <= 0 &&
+    events.length === 0
+  ) {
     return lines.join('\n').trim()
   }
 
   const metaLine = `${CUSTOMER_ACCOUNTING_META_PREFIX} ${JSON.stringify({
     depositBalance: Math.max(0, parseInteger(nextState.depositBalance)),
     refundPendingBalance: Math.max(0, parseInteger(nextState.refundPendingBalance)),
+    depositorAliases,
+    autoDepositDisabled,
+    autoDepositPriority,
     events,
   })}`
   return [...lines, metaLine].join('\n').trim()
@@ -161,13 +198,31 @@ export function serializeCustomerAccountingMeta(
 export function appendCustomerAccountingEvent(
   memo: string | undefined,
   entry: CustomerAccountingEvent,
-  patch?: Partial<Pick<CustomerAccountingMetaState, 'depositBalance' | 'refundPendingBalance'>>,
+  patch?: Partial<Pick<CustomerAccountingMetaState, 'depositBalance' | 'refundPendingBalance' | 'depositorAliases' | 'autoDepositDisabled' | 'autoDepositPriority'>>,
 ): string {
   const prev = parseCustomerAccountingMeta(memo)
   return serializeCustomerAccountingMeta(memo, {
     depositBalance: Math.max(0, patch?.depositBalance ?? prev.depositBalance),
     refundPendingBalance: Math.max(0, patch?.refundPendingBalance ?? prev.refundPendingBalance),
+    depositorAliases: patch?.depositorAliases ?? prev.depositorAliases,
+    autoDepositDisabled: patch?.autoDepositDisabled ?? prev.autoDepositDisabled,
+    autoDepositPriority: patch?.autoDepositPriority ?? prev.autoDepositPriority,
     events: [...prev.events, entry],
+  })
+}
+
+export function replaceCustomerAccountingPreferences(
+  memo: string | undefined,
+  patch: Pick<CustomerAccountingMetaState, 'depositorAliases' | 'autoDepositDisabled' | 'autoDepositPriority'>,
+): string {
+  const prev = parseCustomerAccountingMeta(memo)
+  return serializeCustomerAccountingMeta(memo, {
+    depositBalance: prev.depositBalance,
+    refundPendingBalance: prev.refundPendingBalance,
+    depositorAliases: patch.depositorAliases,
+    autoDepositDisabled: patch.autoDepositDisabled,
+    autoDepositPriority: patch.autoDepositPriority,
+    events: prev.events,
   })
 }
 

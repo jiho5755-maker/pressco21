@@ -1,6 +1,7 @@
 import * as XLSX from 'xlsx'
 import type { Customer } from '@/lib/api'
 import type { CustomerReceivableLedger, ResolvedReceivableInvoice } from '@/lib/receivables'
+import { parseCustomerAccountingMeta } from '@/lib/accountingMeta'
 
 export interface AutoDepositInboxEntry {
   id: string
@@ -27,6 +28,8 @@ export interface AutoDepositCandidate {
   remainingAmount?: number
   score: number
   reason: string
+  depositorAliases?: string[]
+  autoDepositPriority?: number
 }
 
 export interface AutoDepositMatchedEntry {
@@ -154,9 +157,11 @@ export function saveAutoDepositInbox(entries: AutoDepositInboxEntry[]): void {
 }
 
 function getCustomerLookupTokens(customer: Customer | undefined, ledger?: CustomerReceivableLedger, extraValues: Array<string | undefined> = []): string[] {
+  const accountingMeta = parseCustomerAccountingMeta(customer?.memo as string | undefined)
   return [
     customer?.name,
     customer?.book_name,
+    ...accountingMeta.depositorAliases,
     ...(ledger?.aliases ?? []),
     ...extraValues,
   ]
@@ -186,6 +191,8 @@ function createInvoiceCandidate(
     remainingAmount: invoice.asOfRemaining,
     score,
     reason,
+    depositorAliases: parseCustomerAccountingMeta(customer?.memo as string | undefined).depositorAliases,
+    autoDepositPriority: parseCustomerAccountingMeta(customer?.memo as string | undefined).autoDepositPriority,
   }
 }
 
@@ -208,6 +215,8 @@ function createLegacyCandidate(
     remainingAmount: ledger.legacyBaseline,
     score,
     reason,
+    depositorAliases: parseCustomerAccountingMeta(customer.memo as string | undefined).depositorAliases,
+    autoDepositPriority: parseCustomerAccountingMeta(customer.memo as string | undefined).autoDepositPriority,
   }
 }
 
@@ -235,9 +244,11 @@ export function buildAutoDepositMatchResults(
             const invoiceName = normalizeName(invoice.customer_name)
             return Boolean(invoiceName) && (itemName === invoiceName || itemBookName === invoiceName)
           })
+        const customerMeta = parseCustomerAccountingMeta(customer?.memo as string | undefined)
+        if (customerMeta.autoDepositDisabled) return null
         const lookupTokens = getCustomerLookupTokens(customer, undefined, [invoice.customer_name, invoice.resolvedCustomerName])
         const senderMatched = lookupTokens.some((token) => token && senderKey.includes(token))
-        const score = senderMatched ? 100 : 60
+        const score = (senderMatched ? 100 : 60) + Math.min(30, customerMeta.autoDepositPriority)
         return createInvoiceCandidate(
           entry,
           invoice,
@@ -255,9 +266,11 @@ export function buildAutoDepositMatchResults(
       .map((ledger) => {
         const customer = customerById.get(ledger.customerId)
         if (!customer) return null
+        const customerMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
+        if (customerMeta.autoDepositDisabled) return null
         const lookupTokens = getCustomerLookupTokens(customer, ledger)
         const senderMatched = lookupTokens.some((token) => token && senderKey.includes(token))
-        const score = senderMatched ? 95 : 55
+        const score = (senderMatched ? 95 : 55) + Math.min(30, customerMeta.autoDepositPriority)
         return createLegacyCandidate(
           entry,
           ledger,
@@ -273,17 +286,20 @@ export function buildAutoDepositMatchResults(
       .filter((ledger) => {
         const customer = customerById.get(ledger.customerId)
         if (!customer) return false
+        const customerMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
+        if (customerMeta.autoDepositDisabled) return false
         const lookupTokens = getCustomerLookupTokens(customer, ledger)
         return lookupTokens.some((token) => token && senderKey.includes(token))
       })
       .slice(0, 5)
       .map((ledger) => {
         const customer = customerById.get(ledger.customerId)!
+        const customerMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
         return createLegacyCandidate(
           entry,
           ledger,
           customer,
-          40,
+          40 + Math.min(30, customerMeta.autoDepositPriority),
           '입금자명과 고객명은 비슷하지만 금액이 완전히 같지는 않아 검토가 필요합니다.',
           'review',
         )

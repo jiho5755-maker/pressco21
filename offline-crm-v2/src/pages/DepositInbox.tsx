@@ -55,7 +55,6 @@ export function DepositInbox() {
   const [search, setSearch] = useState('')
   const activeOperator = loadActiveWorkOperatorProfile()
   const settings = loadStoredCrmSettings()
-
   const { data: customers = [] } = useQuery({
     queryKey: ['deposit-inbox-customers'],
     queryFn: () => getAllCustomers({ sort: 'name' }),
@@ -117,6 +116,18 @@ export function DepositInbox() {
     saveAutoDepositInbox(nextEntries)
   }
 
+  async function applyCandidate(entry: AutoDepositInboxEntry, candidate: AutoDepositCandidate) {
+    if (candidate.kind === 'invoice') await applyInvoiceCandidate(candidate, entry)
+    else await applyLegacyCandidate(candidate, entry)
+
+    return {
+      ...entry,
+      status: 'applied' as const,
+      appliedAt: currentTimestamp(),
+      appliedTargetKey: candidate.key,
+    }
+  }
+
   async function handleFilesSelected(fileList: FileList | null) {
     if (!fileList?.length) return
     const incoming: AutoDepositInboxEntry[] = []
@@ -130,7 +141,39 @@ export function DepositInbox() {
     }
     const deduped = [...incoming, ...entries].filter((entry, index, list) => list.findIndex((item) => item.id === entry.id) === index)
     persistEntries(deduped)
-    toast.success(`${incoming.length}건을 입금 수집함에 추가했습니다.`)
+
+    const latestSettings = loadStoredCrmSettings()
+    const shouldAutoApply = Boolean(latestSettings.auto_deposit_auto_apply_enabled)
+
+    if (shouldAutoApply) {
+      const matched = buildAutoDepositMatchResults(deduped, customers, resolvedInvoices, ledgers)
+      const exactTargets = matched.filter((item) =>
+        incoming.some((entry) => entry.id === item.entry.id) &&
+        item.status === 'exact' &&
+        item.candidates.length > 0
+      )
+
+      let appliedCount = 0
+      let nextEntries = deduped
+      for (const target of exactTargets) {
+        try {
+          const updated = await applyCandidate(target.entry, target.candidates[0])
+          nextEntries = nextEntries.map((entry) => entry.id === updated.id ? updated : entry)
+          appliedCount += 1
+        } catch (error) {
+          console.error(error)
+        }
+      }
+      persistEntries(nextEntries)
+      toast.success(
+        appliedCount > 0
+          ? `${incoming.length}건을 수집했고, 정확 일치 ${appliedCount}건은 자동 반영했습니다.`
+          : `${incoming.length}건을 입금 수집함에 추가했습니다.`,
+      )
+    } else {
+      toast.success(`${incoming.length}건을 입금 수집함에 추가했습니다.`)
+    }
+
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
@@ -210,19 +253,8 @@ export function DepositInbox() {
   async function handleApply(entry: AutoDepositInboxEntry, candidate: AutoDepositCandidate) {
     setIsApplyingKey(entry.id)
     try {
-      if (candidate.kind === 'invoice') await applyInvoiceCandidate(candidate, entry)
-      else await applyLegacyCandidate(candidate, entry)
-
-      const nextEntries = entries.map((item) => (
-        item.id === entry.id
-          ? {
-              ...item,
-              status: 'applied' as const,
-              appliedAt: currentTimestamp(),
-              appliedTargetKey: candidate.key,
-            }
-          : item
-      ))
+      const updated = await applyCandidate(entry, candidate)
+      const nextEntries = entries.map((item) => (item.id === entry.id ? updated : item))
       persistEntries(nextEntries)
       toast.success('입금 반영을 완료했습니다.')
     } catch (error) {
@@ -424,6 +456,16 @@ export function DepositInbox() {
                             {customerMeta ? (
                               <div className="mt-1 text-muted-foreground">
                                 예치금 {customerMeta.depositBalance.toLocaleString()}원 · 환불대기 {customerMeta.refundPendingBalance.toLocaleString()}원
+                              </div>
+                            ) : null}
+                            {customerMeta?.autoDepositPriority ? (
+                              <div className="mt-1 text-muted-foreground">
+                                자동입금 우선순위: {customerMeta.autoDepositPriority}
+                              </div>
+                            ) : null}
+                            {customerMeta?.depositorAliases?.length ? (
+                              <div className="mt-1 text-muted-foreground">
+                                입금자명 별칭: {customerMeta.depositorAliases.join(', ')}
                               </div>
                             ) : null}
                           </div>

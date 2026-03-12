@@ -49,22 +49,15 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-12 16:21 KST
+- Current Owner: IDLE
+- Mode: IDLE
+- Started At: -
 - Branch: codex/partnerclass-e0-001-testdata-cleanup
-- Working Scope: [CODEX-LEAD] E0-001 완료, E0-006/E0-014 진행 중
+- Working Scope: [CODEX-LEAD] E0-001/E0-014 완료, E0-006 메이크샵 저장 대기
 - Active Subdirectory: /Users/jangjiho/workspace/pressco21/파트너클래스
 
 ## Files In Progress
-- /Users/jangjiho/workspace/pressco21/AI_SYNC.md
-- /Users/jangjiho/workspace/pressco21/scripts/partnerclass-e0-001-cleanup-test-data.js
-- /Users/jangjiho/workspace/pressco21/scripts/partnerclass-e0-001-patch-class-read.js
-- /Users/jangjiho/workspace/pressco21/scripts/server/nocodb-daily-backup.sh
-- /Users/jangjiho/workspace/pressco21/파트너클래스/n8n-workflows/WF-01A-class-read.json
-- /Users/jangjiho/workspace/pressco21/파트너클래스/파트너/js.js
-- /Users/jangjiho/workspace/pressco21/파트너클래스/파트너/css.css
-- /Users/jangjiho/workspace/pressco21/파트너클래스/상세/js.js
+- (none)
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경

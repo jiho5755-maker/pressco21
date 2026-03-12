@@ -587,21 +587,33 @@ export const getItems = (invoiceId: number) =>
     },
   })
 
-export const bulkCreateItems = (items: Partial<InvoiceItem>[]) =>
-  proxyRequest<InvoiceItem[]>({
+export const createItem = (data: Partial<InvoiceItem>) =>
+  proxyRequest<InvoiceItem>({
     table: 'items',
     method: 'POST',
-    payload: items,
-    bulk: true,
+    payload: data,
   })
 
-export const bulkDeleteItems = (ids: number[]) =>
+export const deleteItem = (id: number) =>
   proxyRequest<void>({
     table: 'items',
     method: 'DELETE',
-    payload: ids.map((id) => ({ Id: id })),  // NocoDB bulk DELETE: [{Id:N},...] 형식 필요
-    bulk: true,
+    recordId: id,
   })
+
+export async function bulkCreateItems(items: Partial<InvoiceItem>[]) {
+  const created: InvoiceItem[] = []
+  for (const item of items) {
+    created.push(await createItem(item))
+  }
+  return created
+}
+
+export async function bulkDeleteItems(ids: number[]) {
+  for (const id of ids) {
+    await deleteItem(id)
+  }
+}
 
 // ─────────────────────────────────────────
 // 명세표 삭제 + 잔액 재계산

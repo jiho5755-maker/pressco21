@@ -1,5 +1,5 @@
 import * as XLSX from 'xlsx'
-import type { Customer } from '@/lib/api'
+import { dismissAutoDepositReviewQueue, getAutoDepositReviewQueue, type Customer } from '@/lib/api'
 import type { CustomerReceivableLedger, ResolvedReceivableInvoice } from '@/lib/receivables'
 import { parseCustomerAccountingMeta } from '@/lib/accountingMeta'
 
@@ -36,6 +36,35 @@ export interface AutoDepositMatchedEntry {
   entry: AutoDepositInboxEntry
   candidates: AutoDepositCandidate[]
   status: 'applied' | 'exact' | 'review' | 'unmatched'
+}
+
+export interface AutoDepositReviewQueueItem {
+  queueId: string
+  status: 'review' | 'unmatched' | 'resolved' | 'dismissed'
+  sender: string
+  amount: number
+  occurredAt: string
+  externalId?: string
+  source?: string
+  reason?: string
+  candidates: AutoDepositCandidate[]
+  createdAt?: string
+  updatedAt?: string
+  resolvedAt?: string | null
+  resolvedBy?: string | null
+  resolvedNote?: string | null
+}
+
+export interface AutoDepositReviewQueueResponse {
+  ok: boolean
+  items: AutoDepositReviewQueueItem[]
+  summary: {
+    total: number
+    review: number
+    unmatched: number
+    resolved: number
+    dismissed: number
+  }
 }
 
 const AUTO_DEPOSIT_INBOX_KEY = 'pressco21-auto-deposit-inbox-v1'
@@ -154,6 +183,21 @@ export function loadAutoDepositInbox(): AutoDepositInboxEntry[] {
 
 export function saveAutoDepositInbox(entries: AutoDepositInboxEntry[]): void {
   localStorage.setItem(AUTO_DEPOSIT_INBOX_KEY, JSON.stringify(entries))
+}
+
+export async function listAutoDepositReviewQueue(): Promise<AutoDepositReviewQueueResponse> {
+  const response = await getAutoDepositReviewQueue()
+  return {
+    ...response,
+    items: (response.items ?? []).map((item) => ({
+      ...item,
+      candidates: Array.isArray(item.candidates) ? item.candidates as AutoDepositCandidate[] : [],
+    })),
+  }
+}
+
+export async function dismissAutoDepositReviewQueueItem(queueId: string, resolvedBy: string, note?: string) {
+  return dismissAutoDepositReviewQueue(queueId, resolvedBy, note)
 }
 
 function getCustomerLookupTokens(customer: Customer | undefined, ledger?: CustomerReceivableLedger, extraValues: Array<string | undefined> = []): string[] {

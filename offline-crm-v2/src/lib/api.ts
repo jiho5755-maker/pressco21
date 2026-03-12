@@ -18,7 +18,7 @@ const PROXY_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://n8n.pressco21
 const CRM_API_KEY = import.meta.env.VITE_CRM_API_KEY || ''
 
 // 테이블 논리명 (n8n 프록시에서 Model ID로 변환)
-type TableName = 'customers' | 'products' | 'invoices' | 'items' | 'suppliers' | 'txHistory' | 'settings'
+type TableName = 'customers' | 'products' | 'invoices' | 'items' | 'suppliers' | 'txHistory' | 'settings' | 'autoDepositReviewQueue'
 
 // ─────────────────────────────────────────
 // n8n 프록시 요청 인터페이스
@@ -37,6 +37,35 @@ interface ProxyResponse<T> {
   data?: T
   error?: { code: string; message: string }
   timestamp: string
+}
+
+export interface AutoDepositReviewQueueRecord {
+  queueId: string
+  status: 'review' | 'unmatched' | 'resolved' | 'dismissed'
+  sender: string
+  amount: number
+  occurredAt: string
+  externalId?: string
+  source?: string
+  reason?: string
+  candidates?: unknown[]
+  createdAt?: string
+  updatedAt?: string
+  resolvedAt?: string | null
+  resolvedBy?: string | null
+  resolvedNote?: string | null
+}
+
+export interface AutoDepositReviewQueueListResponse {
+  ok: boolean
+  items: AutoDepositReviewQueueRecord[]
+  summary: {
+    total: number
+    review: number
+    unmatched: number
+    resolved: number
+    dismissed: number
+  }
 }
 
 // ─────────────────────────────────────────
@@ -78,6 +107,27 @@ async function proxyRequest<T>(req: ProxyRequest): Promise<T> {
 export interface ListResponse<T> {
   list: T[]
   pageInfo: { totalRows: number; page: number; pageSize: number; isLastPage: boolean }
+}
+
+export async function getAutoDepositReviewQueue(): Promise<AutoDepositReviewQueueListResponse> {
+  return proxyRequest<AutoDepositReviewQueueListResponse>({
+    table: 'autoDepositReviewQueue',
+    method: 'POST',
+    payload: { action: 'list' },
+  })
+}
+
+export async function dismissAutoDepositReviewQueue(queueId: string, resolvedBy: string, note?: string) {
+  return proxyRequest<{ ok: boolean }>({
+    table: 'autoDepositReviewQueue',
+    method: 'POST',
+    payload: {
+      action: 'dismiss',
+      queueId,
+      resolvedBy,
+      note: note ?? '',
+    },
+  })
 }
 
 async function fetchAllPages<T>(

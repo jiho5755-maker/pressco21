@@ -14,11 +14,14 @@ import { loadActiveWorkOperatorProfile, loadStoredCrmSettings } from '@/lib/sett
 import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
 import {
   buildAutoDepositMatchResults,
+  dismissAutoDepositReviewQueueItem,
+  listAutoDepositReviewQueue,
   loadAutoDepositInbox,
   parseAutoDepositFile,
   saveAutoDepositInbox,
   type AutoDepositCandidate,
   type AutoDepositInboxEntry,
+  type AutoDepositReviewQueueItem,
 } from '@/lib/autoDeposits'
 
 function todayDate(): string {
@@ -50,7 +53,9 @@ export function DepositInbox() {
   const fileInputRef = useRef<HTMLInputElement | null>(null)
   const [entries, setEntries] = useState<AutoDepositInboxEntry[]>(() => loadAutoDepositInbox())
   const [selectedCandidates, setSelectedCandidates] = useState<Record<string, string>>({})
+  const [selectedReviewCandidates, setSelectedReviewCandidates] = useState<Record<string, string>>({})
   const [isApplyingKey, setIsApplyingKey] = useState<string | null>(null)
+  const [isResolvingReviewKey, setIsResolvingReviewKey] = useState<string | null>(null)
   const [filter, setFilter] = useState<'all' | 'exact' | 'review' | 'unmatched' | 'applied'>('all')
   const [search, setSearch] = useState('')
   const activeOperator = loadActiveWorkOperatorProfile()
@@ -72,6 +77,12 @@ export function DepositInbox() {
     queryKey: ['deposit-inbox-fiscal-snapshots'],
     queryFn: getFiscalBalanceSnapshots,
     staleTime: 60 * 60 * 1000,
+  })
+  const { data: remoteReviewQueue, refetch: refetchRemoteReviewQueue } = useQuery({
+    queryKey: ['deposit-inbox-review-queue'],
+    queryFn: listAutoDepositReviewQueue,
+    staleTime: 15_000,
+    refetchInterval: 30_000,
   })
 
   const resolvedInvoices = useMemo(
@@ -110,6 +121,16 @@ export function DepositInbox() {
     unmatched: matchedEntries.filter((item) => item.status === 'unmatched').length,
     applied: matchedEntries.filter((item) => item.status === 'applied').length,
   }), [matchedEntries])
+
+  const remoteSummary = remoteReviewQueue?.summary ?? {
+    total: 0,
+    review: 0,
+    unmatched: 0,
+    resolved: 0,
+    dismissed: 0,
+  }
+
+  const remoteItems = (remoteReviewQueue?.items ?? []).filter((item) => item.status === 'review' || item.status === 'unmatched')
 
   function persistEntries(nextEntries: AutoDepositInboxEntry[]) {
     setEntries(nextEntries)
@@ -189,6 +210,7 @@ export function DepositInbox() {
       qc.invalidateQueries({ queryKey: ['transactions-customer-directory'] }),
       qc.invalidateQueries({ queryKey: ['deposit-inbox-customers'] }),
       qc.invalidateQueries({ queryKey: ['deposit-inbox-invoices'] }),
+      qc.invalidateQueries({ queryKey: ['deposit-inbox-review-queue'] }),
       qc.invalidateQueries({
         predicate: (q) => {
           const key = q.queryKey[0]
@@ -265,6 +287,52 @@ export function DepositInbox() {
     }
   }
 
+  function buildEntryFromReviewItem(item: AutoDepositReviewQueueItem): AutoDepositInboxEntry {
+    return {
+      id: item.queueId,
+      date: item.occurredAt?.slice(0, 10) || todayDate(),
+      sender: item.sender,
+      amount: item.amount,
+      note: item.reason || item.source || '자동입금 검토 큐',
+      sourceFile: item.source || '자동입금 검토 큐',
+      status: 'pending',
+    }
+  }
+
+  function getSelectedReviewCandidate(item: AutoDepositReviewQueueItem): AutoDepositCandidate | undefined {
+    const selectedKey = selectedReviewCandidates[item.queueId] ?? item.candidates[0]?.key
+    return item.candidates.find((candidate) => candidate.key === selectedKey) ?? item.candidates[0]
+  }
+
+  async function handleApplyReviewItem(item: AutoDepositReviewQueueItem, candidate: AutoDepositCandidate) {
+    setIsResolvingReviewKey(item.queueId)
+    try {
+      await applyCandidate(buildEntryFromReviewItem(item), candidate)
+      await dismissAutoDepositReviewQueueItem(item.queueId, activeOperator?.label ?? 'manual', 'CRM 검토 큐에서 입금 반영 완료')
+      await Promise.all([refreshAllViews(candidate.customerId), refetchRemoteReviewQueue()])
+      toast.success('검토 큐 입금 반영을 완료했습니다.')
+    } catch (error) {
+      console.error(error)
+      toast.error(error instanceof Error ? error.message : '검토 큐 입금 반영 중 오류가 발생했습니다.')
+    } finally {
+      setIsResolvingReviewKey(null)
+    }
+  }
+
+  async function handleDismissReviewItem(item: AutoDepositReviewQueueItem) {
+    setIsResolvingReviewKey(item.queueId)
+    try {
+      await dismissAutoDepositReviewQueueItem(item.queueId, activeOperator?.label ?? 'manual', 'CRM 검토 큐에서 제외 처리')
+      await refetchRemoteReviewQueue()
+      toast.success('검토 큐에서 제외했습니다.')
+    } catch (error) {
+      console.error(error)
+      toast.error(error instanceof Error ? error.message : '검토 큐 제외 처리 중 오류가 발생했습니다.')
+    } finally {
+      setIsResolvingReviewKey(null)
+    }
+  }
+
   function handleRemove(entryId: string) {
     persistEntries(entries.filter((entry) => entry.id !== entryId))
   }
@@ -315,6 +383,143 @@ export function DepositInbox() {
             <p className="mt-1 text-lg font-semibold text-gray-900">{card.value}</p>
           </div>
         ))}
+      </div>
+
+      <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+          <div>
+            <h3 className="text-sm font-semibold text-gray-900">자동입금 검토 큐</h3>
+            <p className="mt-1 text-xs text-muted-foreground">
+              이메일 자동수집에서 정확 일치하지 않은 입금은 여기로 들어옵니다. 부분 입금과 초과 입금은 이 화면에서 고객을 확정하세요.
+            </p>
+          </div>
+          <Button type="button" variant="outline" size="sm" onClick={() => void refetchRemoteReviewQueue()}>
+            <RefreshCw className="mr-2 h-4 w-4" />
+            검토 큐 새로고침
+          </Button>
+        </div>
+        <div className="mt-3 grid gap-3 md:grid-cols-4">
+          {[
+            { label: '대기 전체', value: `${remoteSummary.total}건` },
+            { label: '검토 필요', value: `${remoteSummary.review}건` },
+            { label: '미매칭', value: `${remoteSummary.unmatched}건` },
+            { label: '처리 완료/제외', value: `${remoteSummary.resolved + remoteSummary.dismissed}건` },
+          ].map((card) => (
+            <div key={card.label} className="rounded-lg border bg-gray-50 px-3 py-3">
+              <p className="text-xs text-muted-foreground">{card.label}</p>
+              <p className="mt-1 text-base font-semibold text-gray-900">{card.value}</p>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      <div className="rounded-xl border bg-white shadow-sm overflow-hidden">
+        <table className="min-w-full text-sm">
+          <thead className="bg-gray-50 text-left text-xs text-muted-foreground">
+            <tr>
+              <th className="px-4 py-3">입금시각</th>
+              <th className="px-4 py-3">입금자</th>
+              <th className="px-4 py-3">금액</th>
+              <th className="px-4 py-3">큐 상태</th>
+              <th className="px-4 py-3">후보</th>
+              <th className="px-4 py-3">처리</th>
+            </tr>
+          </thead>
+          <tbody>
+            {remoteItems.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  자동입금 검토 큐에 대기 중인 건이 없습니다.
+                </td>
+              </tr>
+            ) : remoteItems.map((item) => {
+              const selectedCandidate = getSelectedReviewCandidate(item)
+              return (
+                <tr key={item.queueId} className="border-t align-top">
+                  <td className="px-4 py-3 whitespace-nowrap">
+                    {(item.occurredAt || '').replace('T', ' ').slice(0, 16)}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="font-medium text-gray-900">{item.sender}</div>
+                    <div className="text-xs text-muted-foreground">{item.source || 'auto_deposit'}</div>
+                    {item.reason ? <div className="mt-1 text-xs text-muted-foreground">{item.reason}</div> : null}
+                  </td>
+                  <td className="px-4 py-3 font-semibold text-gray-900 whitespace-nowrap">{item.amount.toLocaleString()}원</td>
+                  <td className="px-4 py-3">
+                    <span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-medium ${
+                      item.status === 'review'
+                        ? 'bg-amber-100 text-amber-700'
+                        : item.status === 'unmatched'
+                          ? 'bg-slate-100 text-slate-600'
+                          : 'bg-blue-100 text-blue-700'
+                    }`}>
+                      {item.status === 'review' ? '검토 필요' : item.status === 'unmatched' ? '미매칭' : item.status}
+                    </span>
+                  </td>
+                  <td className="px-4 py-3 min-w-[320px]">
+                    {item.candidates.length === 0 ? (
+                      <p className="text-xs text-muted-foreground">후보를 찾지 못했습니다. 고객관리에서 별칭을 보강한 뒤 다시 확인하세요.</p>
+                    ) : (
+                      <div className="space-y-2">
+                        <Select
+                          value={selectedCandidate?.key}
+                          onValueChange={(value) => setSelectedReviewCandidates((prev) => ({ ...prev, [item.queueId]: value }))}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="후보 선택" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {item.candidates.map((candidate) => (
+                              <SelectItem key={candidate.key} value={candidate.key}>
+                                {candidate.customerName} · {candidate.kind === 'invoice' ? '새 입력 명세표' : '기존 장부'} · {(candidate.remainingAmount ?? item.amount).toLocaleString()}원
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        {selectedCandidate ? (
+                          <div className="rounded-md border bg-gray-50 px-3 py-2 text-xs text-gray-700">
+                            <div className="font-medium text-gray-900">
+                              {selectedCandidate.customerName}
+                              {selectedCandidate.bookName ? ` · ${selectedCandidate.bookName}` : ''}
+                            </div>
+                            <div className="mt-1">{selectedCandidate.reason}</div>
+                            <div className="mt-1 text-muted-foreground">
+                              {selectedCandidate.kind === 'invoice'
+                                ? `새 입력 명세표 ${selectedCandidate.invoiceNo ?? ''} 잔액 ${selectedCandidate.remainingAmount?.toLocaleString() ?? 0}원`
+                                : `기존 장부 받을 돈 ${selectedCandidate.remainingAmount?.toLocaleString() ?? 0}원`}
+                            </div>
+                          </div>
+                        ) : null}
+                      </div>
+                    )}
+                  </td>
+                  <td className="px-4 py-3">
+                    <div className="flex flex-col gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={!selectedCandidate || isResolvingReviewKey === item.queueId}
+                        onClick={() => selectedCandidate && void handleApplyReviewItem(item, selectedCandidate)}
+                      >
+                        {isResolvingReviewKey === item.queueId ? '처리 중...' : '검토 반영'}
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        className="text-red-500 hover:text-red-600"
+                        disabled={isResolvingReviewKey === item.queueId}
+                        onClick={() => void handleDismissReviewItem(item)}
+                      >
+                        검토 제외
+                      </Button>
+                    </div>
+                  </td>
+                </tr>
+              )
+            })}
+          </tbody>
+        </table>
       </div>
 
       <div className="rounded-xl border bg-white p-4 shadow-sm">

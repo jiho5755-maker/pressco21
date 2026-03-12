@@ -747,11 +747,43 @@
         return host === '127.0.0.1' || host === 'localhost';
     }
 
+    function isExternalLink(href) {
+        return /^https?:\/\//i.test(String(href || ''));
+    }
+
+    function buildExternalLinkAttrs(href) {
+        return isExternalLink(href) ? ' target="_blank" rel="noopener noreferrer"' : '';
+    }
+
+    function buildPartnerMapSearchQuery(options) {
+        var parts = [];
+        var seen = {};
+
+        function pushPart(value) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            if (!text || seen[text]) return;
+            seen[text] = true;
+            parts.push(text);
+        }
+
+        pushPart(options && options.location);
+        pushPart(options && options.partner);
+        pushPart(options && options.keyword);
+        pushPart(options && options.category);
+        pushPart(options && options.region);
+
+        return parts.join(' ').replace(/\s+/g, ' ').trim();
+    }
+
     function buildPartnerMapUrl(options) {
         var params = [];
-        var base = isLocalCatalogPreview()
-            ? '/output/playwright/fixtures/partnerclass/partnermap-shell.html'
-            : '/partnermap';
+        var query = buildPartnerMapSearchQuery(options);
+
+        if (!query) return '';
+
+        if (!isLocalCatalogPreview()) {
+            return 'https://map.kakao.com/link/search/' + encodeURIComponent(query);
+        }
 
         if (options && options.region) {
             params.push('region=' + encodeURIComponent(options.region));
@@ -769,7 +801,9 @@
             params.push('class_id=' + encodeURIComponent(options.classId));
         }
 
-        return base + (params.length ? '?' + params.join('&') : '');
+        params.push('query=' + encodeURIComponent(query));
+
+        return '/output/playwright/fixtures/partnerclass/partnermap-shell.html?' + params.join('&');
     }
 
     function buildPartnerMapSearchUrl(cls) {
@@ -777,6 +811,7 @@
         if (deliveryMode === 'ONLINE') return '';
 
         return buildPartnerMapUrl({
+            location: cls.location || '',
             region: getDisplayRegionName(cls.region || cls.location || ''),
             category: cls.category || '',
             keyword: cls.class_name || '',
@@ -786,7 +821,7 @@
     }
 
     function buildCardMapEntryLabel(cls) {
-        return getDeliveryModeValue(cls) === 'ONLINE' ? '' : '\uD30C\uD2B8\uB108\uB9F5\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30';
+        return getDeliveryModeValue(cls) === 'ONLINE' ? '' : '\uC9C0\uB3C4\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30';
     }
 
     /**
@@ -1966,7 +2001,7 @@
             + '<p class="catalog-map-spotlight__desc">' + escapeHtml((cls.partner_name || '\uD30C\uD2B8\uB108 \uACF5\uBC29') + ' | ' + priceText + ' | ' + resolveContentTypeMeta(cls).desc) + '</p>'
             + '<div class="catalog-map-spotlight__actions">'
             + '<a href="' + detailUrl + '" class="catalog-map-spotlight__link catalog-map-spotlight__link--primary">\uC0C1\uC138 \uBCF4\uAE30</a>'
-            + (mapUrl ? '<a href="' + escapeHtml(mapUrl) + '" class="catalog-map-spotlight__link catalog-map-spotlight__link--secondary">\uC9C0\uB3C4\uC5D0\uC11C \uBCF4\uAE30</a>' : '')
+            + (mapUrl ? '<a href="' + escapeHtml(mapUrl) + '"' + buildExternalLinkAttrs(mapUrl) + ' class="catalog-map-spotlight__link catalog-map-spotlight__link--secondary">\uC9C0\uB3C4\uC5D0\uC11C \uBCF4\uAE30</a>' : '')
             + '</div>'
             + '</article>';
     }
@@ -3267,8 +3302,8 @@
                 + (items[i].secondaryStat ? '<span>' + escapeHtml(items[i].secondaryStat) + '</span>' : (items[i].price > 0 ? '<span>' + formatPrice(items[i].price) + '\uC6D0\uBD80\uD130</span>' : '<span>\uD61C\uD0DD \uC548\uB0B4 \uD655\uC778</span>'))
                 + '</div>'
                 + '<div class="seminar-card__actions">'
-                + '<a href="' + escapeHtml(items[i].detailUrl) + '" class="seminar-card__link seminar-card__link--primary">\uC790\uC138\uD788 \uBCF4\uAE30</a>'
-                + (items[i].mapUrl ? '<a href="' + escapeHtml(items[i].mapUrl) + '" class="seminar-card__link seminar-card__link--secondary">\uD30C\uD2B8\uB108\uB9F5 \uC5F0\uACB0</a>' : '')
+                + '<a href="' + escapeHtml(items[i].detailUrl) + '"' + buildExternalLinkAttrs(items[i].detailUrl) + ' class="seminar-card__link seminar-card__link--primary">\uC790\uC138\uD788 \uBCF4\uAE30</a>'
+                + (items[i].mapUrl ? '<a href="' + escapeHtml(items[i].mapUrl) + '"' + buildExternalLinkAttrs(items[i].mapUrl) + ' class="seminar-card__link seminar-card__link--secondary">\uC9C0\uB3C4 \uC5F0\uACB0</a>' : '')
                 + '</div>'
                 + '</article>';
         }
@@ -3363,7 +3398,7 @@
                     + '<h3 class="benefit-card__title">' + escapeHtml(items[i].title) + '</h3>'
                     + '<p class="benefit-card__desc">' + escapeHtml(items[i].desc) + '</p>'
                     + '<div class="benefit-card__meta">' + renderBenefitChips(items[i].chips) + '</div>'
-                    + '<a href="' + escapeHtml(items[i].href || '/shop/page.html?id=2606') + '" class="benefit-card__link">\uD61C\uD0DD \uD750\uB984 \uBCF4\uAE30</a>'
+                    + '<a href="' + escapeHtml(items[i].href || '/shop/page.html?id=2606') + '"' + buildExternalLinkAttrs(items[i].href || '/shop/page.html?id=2606') + ' class="benefit-card__link">\uD61C\uD0DD \uD750\uB984 \uBCF4\uAE30</a>'
                     + '</article>';
             }
             benefitGrid.innerHTML = html;

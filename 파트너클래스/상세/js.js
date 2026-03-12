@@ -1092,13 +1092,15 @@
                 + '\uB2E4\uB978 \uD074\uB798\uC2A4 \uBCF4\uAE30</a>';
         }
         if (getDeliveryModeValue(data) !== 'ONLINE') {
-            html += '<a href="' + buildPartnerMapUrl({
+            var mapUrl = buildPartnerMapUrl({
+                location: data.location || '',
                 region: getPrimaryRegion(rawRegion),
                 category: data.category || '',
                 keyword: rawPartnerName || data.class_name || '',
                 partner: rawPartnerName || ''
-            }) + '" class="instructor-action-btn instructor-action-btn--outline">'
-                + '\uD30C\uD2B8\uB108\uB9F5\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30</a>';
+            });
+            html += '<a href="' + mapUrl + '"' + buildExternalLinkAttrs(mapUrl) + ' class="instructor-action-btn instructor-action-btn--outline">'
+                + '\uC9C0\uB3C4\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30</a>';
         }
         html += '</div>';
 
@@ -3860,11 +3862,43 @@
         return host === '127.0.0.1' || host === 'localhost';
     }
 
+    function isExternalLink(href) {
+        return /^https?:\/\//i.test(String(href || ''));
+    }
+
+    function buildExternalLinkAttrs(href) {
+        return isExternalLink(href) ? ' target="_blank" rel="noopener noreferrer"' : '';
+    }
+
+    function buildPartnerMapSearchQuery(params) {
+        var parts = [];
+        var seen = {};
+
+        function pushPart(value) {
+            var text = String(value || '').replace(/\s+/g, ' ').trim();
+            if (!text || seen[text]) return;
+            seen[text] = true;
+            parts.push(text);
+        }
+
+        pushPart(params && params.location);
+        pushPart(params && params.partner);
+        pushPart(params && params.keyword);
+        pushPart(params && params.category);
+        pushPart(params && params.region);
+
+        return parts.join(' ').replace(/\s+/g, ' ').trim();
+    }
+
     function buildPartnerMapUrl(params) {
         var query = [];
-        var base = isLocalDetailPreview()
-            ? '/output/playwright/fixtures/partnerclass/partnermap-shell.html'
-            : '/partnermap';
+        var searchQuery = buildPartnerMapSearchQuery(params);
+
+        if (!searchQuery) return '';
+
+        if (!isLocalDetailPreview()) {
+            return 'https://map.kakao.com/link/search/' + encodeURIComponent(searchQuery);
+        }
 
         if (params.region) {
             query.push('region=' + encodeURIComponent(params.region));
@@ -3879,14 +3913,16 @@
             query.push('partner=' + encodeURIComponent(params.partner));
         }
 
-        return base + (query.length ? '?' + query.join('&') : '');
+        query.push('query=' + encodeURIComponent(searchQuery));
+
+        return '/output/playwright/fixtures/partnerclass/partnermap-shell.html?' + query.join('&');
     }
 
     function buildInfoBadge(label, className, href, ariaLabel) {
         if (!label) return '';
 
         if (href) {
-            return '<a href="' + href + '" class="info-badge ' + className + ' info-badge--link" aria-label="' + escapeHtml(ariaLabel || label) + '">'
+            return '<a href="' + href + '"' + buildExternalLinkAttrs(href) + ' class="info-badge ' + className + ' info-badge--link" aria-label="' + escapeHtml(ariaLabel || label) + '">'
                 + escapeHtml(label)
                 + '</a>';
         }
@@ -3963,11 +3999,12 @@
         }
         if (getDeliveryModeValue(data) !== 'ONLINE') {
             pushLink(buildPartnerMapUrl({
+                location: data.location || '',
                 region: region,
                 category: data.category || '',
                 keyword: partnerName || data.class_name || '',
                 partner: partnerName
-            }), '\uD30C\uD2B8\uB108\uB9F5\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30');
+            }), '\uC9C0\uB3C4\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30');
         }
 
         if (links.length === 0) return '';
@@ -3977,7 +4014,7 @@
             + '<div class="detail-explore__links">';
 
         for (var i = 0; i < links.length && i < 3; i++) {
-            html += '<a href="' + links[i].href + '" class="detail-explore__link">' + escapeHtml(links[i].label) + '</a>';
+            html += '<a href="' + links[i].href + '"' + buildExternalLinkAttrs(links[i].href) + ' class="detail-explore__link">' + escapeHtml(links[i].label) + '</a>';
         }
 
         html += '</div></div>';

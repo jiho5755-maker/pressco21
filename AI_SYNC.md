@@ -51,10 +51,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: -
+- Started At: 2026-03-12 16:17:00 KST
 - Branch: main
-- Working Scope: -
-- Active Subdirectory: -
+- Working Scope: offline-crm-v2 자동입금 부분/초과 입금 실입금 검증
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
 - 없음
@@ -93,15 +93,20 @@
 - Gmail 보안메일 기반 자동입금 수집 경로를 live n8n에서 실동작 검증했다.
 - CRM 설정/입금 수집함에 `Gmail 보안메일 연동` 표기를 추가하고 운영 배포했다.
 - 명세표 발행 시 `items` 테이블 bulk POST 404를 재현했고, 라인아이템 저장을 개별 생성/삭제 방식으로 바꿔 운영 배포했다.
+- 실제 NH 보안메일 2건(`장지호 2,000원`, `장다경 5,000원`)을 첨부 HTML 기준으로 직접 복호화해 검증했다.
+- `장지호 2,000원`은 부분 입금 review, `장다경 5,000원`은 초과 입금 review로 intake 엔진이 정확히 분류함을 확인했다.
+- Gmail collector가 `UNSEEN` 메일만 읽도록 돼 있어 사용자가 메일을 먼저 열면 자동수집에서 누락되는 문제를 확인했고, 해당 필터를 제거해 재배포했다.
 
 ## Next Step
 - 실제 농협 보안메일 3~5건으로 제목/본문 변형 포맷 추가 보정
 - 고객 상세에 `입금자명 별칭`을 더 적극적으로 등록해 정확 일치 자동반영률 높이기
 - NH API 승인 후 collector 수집원만 교체하고 intake 엔진은 그대로 재사용
+- 자동입금 검토 큐에서 부분 입금/초과 입금을 직원이 바로 확정 처리하는 운영 검증을 이어간다.
 
 ## Known Risks
 - 현재 보안메일 비밀번호 규칙이 바뀌면 파서를 같이 수정해야 한다.
 - 동일 입금자명/금액 중복 케이스는 계속 검토 큐로 보내는 것이 안전하다.
+- 브라우저에서 메일을 먼저 열어도 놓치지 않도록 collector는 수정했지만, 이미 놓친 과거 메일은 수동 재전송 또는 첨부 HTML 재처리가 필요하다.
 
 ### [CODEX-LEAD] 등급체계 변경 가드 + WF-10 교육 live 복구 완료 (CODEX)
 - 원인
@@ -544,6 +549,15 @@
   - `output/playwright/mcp/8009-helper-still-8-of-9-live.png`
   - `output/playwright/mcp/2608-dashboard-class-after-wf02.png`
   - `output/playwright/mcp/8009-helper-9-of-9-live-ok.png`
+
+### [CODEX] Claude Code 전략 handoff 문서화 (2026-03-12)
+- 문서
+  - `docs/파트너클래스/claude-strategy-handoff-2026-03-12.md`
+  - `docs/파트너클래스/README.md`
+- 내용
+  - 2026-03-12 live 기준선, 실사용 검증 결과, 현재 문제점과 아쉬운 점, Claude Code가 다시 전략을 짤 때 봐야 할 질문을 한 문서로 정리했다.
+  - 다음 단계의 기획 리드는 다시 Claude Code가 맡는 것으로 가정하고, `Next Step`의 첫 항목을 Claude용 전략 재수립 태스크로 바꿨다.
+  - 판단 기준 문서 우선순위는 `shared-service-identity.md` -> `enterprise-elevation-strategy-2026-03-10.md` -> `PRD-파트너클래스-플랫폼-고도화.md` 순서를 다시 명시했다.
 
 ### [CODEX-LEAD] 파트너/회원/관리자 실계정 live QA 및 승인 데이터 불일치 확인 (2026-03-12)
 - 사용 계정
@@ -2682,6 +2696,10 @@
 
 ## Next Step
 
+- 파트너클래스 다음 고도화 전략을 Claude Code가 재수립
+  - 먼저 `docs/파트너클래스/claude-strategy-handoff-2026-03-12.md`, `docs/파트너클래스/shared-service-identity.md`, `docs/파트너클래스/enterprise-elevation-strategy-2026-03-10.md`, `docs/파트너클래스/PRD-파트너클래스-플랫폼-고도화.md` 순서로 읽기
+  - 현재 문제를 `고객 선택`, `파트너 첫 운영`, `관리자 운영 효율`, `운영 신뢰성` 4축으로 재분류
+  - Quick wins / Mid-term / Structural bets 3단 구조로 새 전략안 작성
 - [CODEX] 자동입금 검토 큐에서 고객 직접 재지정/명세표 직접 선택까지 가능한 2차 UI 보강
 - [CODEX] 실제 NH 입금 알림 메일 샘플 3~5건 수집 후 Gmail 파서 정규식 보정
 - [CODEX-LEAD] 관리자 기준 테스트 강의 `CL_202603_697` 를 승인/반려/삭제 중 어떤 상태로 정리할지 결정하고, 선택한 흐름으로 후속 E2E를 1회 더 검증

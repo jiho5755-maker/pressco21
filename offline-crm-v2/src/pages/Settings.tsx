@@ -613,7 +613,7 @@ export function Settings() {
               </Field>
             </div>
 
-            <Field label="입금 수집 방식" hint="실연동 전까지는 수동 업로드 또는 검토 전용으로 시작하는 것이 안전합니다.">
+            <Field label="입금 수집 방식" hint="현재는 Gmail 보안메일 연동으로도 운영할 수 있고, NH API 승인 후에는 수집원만 바꾸면 됩니다.">
               <Select
                 value={data.auto_deposit_source ?? 'manual_csv'}
                 onValueChange={(value) => set('auto_deposit_source', value)}
@@ -624,6 +624,7 @@ export function Settings() {
                 <SelectContent>
                   <SelectItem value="manual_csv">수동 파일 업로드</SelectItem>
                   <SelectItem value="review_only">검토 전용 연결</SelectItem>
+                  <SelectItem value="email_secure_mail">Gmail 보안메일 연동</SelectItem>
                   <SelectItem value="bank_api">은행 API 연동</SelectItem>
                 </SelectContent>
               </Select>
@@ -683,7 +684,13 @@ export function Settings() {
             <div className="rounded-lg border bg-[#f7faf6] px-4 py-3 text-sm">
               <p className="font-medium text-gray-900">현재 자동입금 운영 기준</p>
               <ul className="mt-2 space-y-1 text-xs text-muted-foreground">
-                <li>수집 방식: {(data.auto_deposit_source ?? 'manual_csv') === 'manual_csv' ? '수동 파일 업로드' : (data.auto_deposit_source ?? '') === 'review_only' ? '검토 전용 연결' : '은행 API 연동'}</li>
+                <li>수집 방식: {(data.auto_deposit_source ?? 'manual_csv') === 'manual_csv'
+                  ? '수동 파일 업로드'
+                  : (data.auto_deposit_source ?? '') === 'review_only'
+                    ? '검토 전용 연결'
+                    : (data.auto_deposit_source ?? '') === 'email_secure_mail'
+                      ? 'Gmail 보안메일 연동'
+                      : '은행 API 연동'}</li>
                 <li>자동매칭: {data.auto_deposit_exact_match_enabled ? '사용' : '미사용'}</li>
                 <li>자동반영: {data.auto_deposit_auto_apply_enabled ? '정확 일치만 자동반영' : '검토 후 수동 반영'}</li>
                 <li>계좌: {[data.auto_deposit_bank_name, data.auto_deposit_account_number, data.auto_deposit_account_holder].filter(Boolean).join(' / ') || '미설정'}</li>

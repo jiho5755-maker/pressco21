@@ -44,6 +44,7 @@ function calcRemaining(inv: Invoice): number {
 
 function getAutoDepositSourceLabel(value: string | undefined): string {
   if (value === 'bank_api') return '은행 API 연동'
+  if (value === 'email_secure_mail') return 'Gmail 보안메일 연동'
   if (value === 'review_only') return '검토 전용 연결'
   return '수동 파일 업로드'
 }

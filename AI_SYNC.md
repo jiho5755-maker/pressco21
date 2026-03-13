@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: IDLE
-- Started At: 2026-03-13 13:11 KST
+- Started At: 2026-03-13 13:54 KST
 - Branch: codex/partnerclass-e0-001-testdata-cleanup
 - Working Scope: -
 - Active Subdirectory: /Users/jangjiho/workspace/pressco21
@@ -131,6 +131,20 @@
     - `node --check 메인페이지/js.js`
     - `curl -X POST https://n8n.pressco21.com/webhook/class-api -H 'Content-Type: application/json' --data '{"action":"getClasses","sort":"popular","limit":8}'` -> `200`
     - 동일 요청을 `text/plain`으로 보내면 live에서 `400 INVALID_ACTION` 재현 확인
+- [CODEX] 메인페이지 디자이너 원형 복원, 기능 수정 최소화 완료.
+  - `메인페이지/Index.html`
+    - 디자이너 운영본 기준 `Learn & Shop`, `Partner Class Service`, `Partner/Affiliation/Booking` 레이블을 다시 복원했다.
+    - 배너, 카테고리, 파트너클래스 3카드 구조와 링크는 유지했다.
+  - `메인페이지/js.js`
+    - 메인 클래스 허브의 카피를 디자이너 운영본 기준 `PARTNER CLASS`, `QUICK SERVICE`로 복원했다.
+    - 기능 수정은 `class-api` 호출 `contentType: 'application/json'` 유지로 한정했다.
+  - `메인페이지/파트너클래스-홈개편/Index.html`
+  - `메인페이지/파트너클래스-홈개편/js.js`
+    - 별도 개편안 폴더도 동일하게 디자이너 카피를 복원하고 `class-api` 헤더 수정만 남겼다.
+  - 검증
+    - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 메인페이지/Index.html 메인페이지/js.js 메인페이지/파트너클래스-홈개편/Index.html 메인페이지/파트너클래스-홈개편/js.js`
+    - `node --check 메인페이지/js.js`
+    - `node --check 메인페이지/파트너클래스-홈개편/js.js`
 - [CODEX-LEAD] E0-009/E0-011/E0-012/E0-013 로컬 수정 완료, E0-010 원인 분리 완료.
   - `파트너클래스/상세/Index.html`
     - Kakao SDK integrity 값을 `2.7.2` 현재 배포 해시에 맞게 갱신했다.
@@ -237,13 +251,15 @@
 ### [CODEX] 메인페이지 메이크샵 저장 후 live QA
 
 1. 메이크샵 저장
+   - 메인페이지 운영본 `HTML` 탭: `메인페이지/Index.html`
    - 메인페이지 운영본 `JS` 탭: `메인페이지/js.js`
-   - 별도 개편안을 계속 유지 중이면 `메인페이지/파트너클래스-홈개편/js.js`도 함께 동기화
+   - 별도 개편안을 계속 유지 중이면 `메인페이지/파트너클래스-홈개편/Index.html`, `js.js`도 함께 동기화
 2. 저장 후 Playwright live 검증
+   - 메인페이지 제목/eyebrow가 디자이너 운영본 기준 `Learn & Shop`, `Partner Class Service`, `Partner/Affiliation/Booking`, `PARTNER CLASS`, `QUICK SERVICE`로 보이는지 확인
    - 메인 배너 3장 링크가 각각 `지원 폼`, `압화`, `레진공예`로 이동하는지 확인
    - 섹션01 카테고리/서브배너 링크와 `원데이 클래스` 아이템 진입 확인
-   - `파트너 클래스 서비스` 3카드 노출 및 `2609`, `2606&tab=affiliations`, `8010` 연결 확인
-   - 메인 클래스 진입점 카드/칩/지표가 더 이상 숨김 처리되지 않고 정상 렌더되는지 확인
+   - `Partner Class Service` 3카드 노출 및 `2609`, `2606&tab=affiliations`, `8010` 연결 확인
+   - 메인 클래스 진입점 카드/칩/지표가 `INVALID_ACTION` 없이 응답되는지 확인
 
 ### [CODEX-LEAD] 파트너클래스 엔터프라이즈 고도화 — E0 Day 2 저장 대기
 
@@ -312,8 +328,7 @@ Day 2~5: `E0-002`~`E0-013` (ROADMAP 순서대로)
 - 이번 turn 수정은 아직 메이크샵 저장 전이라 live에는 아래 현상이 남아 있을 수 있다.
   - `2607` Kakao SDK integrity mismatch
   - `2608` 온보딩 진행률 `1/4 완료` vs 5단계 모달 불일치
-  - `8009`, `2610`, 메인페이지 일부 영어 레이블
-  - 메인페이지 `via.placeholder.com` 404
+  - `8009`, `2610` 직전 저장본 기준 라벨/문구 잔존
 - `ChannelIO script included twice`와 `boot 401`은 현재 저장소의 개별 페이지 소스가 아니라 MakeShop 전역 플러그인/스크립트 설정에서 정리해야 할 가능성이 높다.
 - 현재 보안메일 비밀번호 규칙이 바뀌면 파서를 같이 수정해야 한다.
 - 동일 입금자명/금액 중복 케이스는 계속 검토 큐로 보내는 것이 안전하다.

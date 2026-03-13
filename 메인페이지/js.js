@@ -1260,7 +1260,7 @@
         html += '<div class="mce-container">';
         html += '<div class="mce-hero">';
         html += '<div class="mce-copy">';
-        html += '<span class="mce-eyebrow">파트너 클래스</span>';
+        html += '<span class="mce-eyebrow">PARTNER CLASS</span>';
         html += '<h3>우리 동네 꽃 공예 클래스를 찾아보세요</h3>';
         html += '<p>영상으로 익힌 꽃 공예를 전국 파트너 공방에서 직접 경험하세요. 원데이 체험, 온라인 수업, 협회 제휴 혜택까지 홈에서 바로 연결됩니다.</p>';
         html += buildQuickLinksHTML();
@@ -1270,7 +1270,7 @@
         html += '</div>';
         html += '</div>';
         html += '<aside class="mce-service-panel">';
-        html += '<span class="mce-panel-label">빠른 이동</span>';
+        html += '<span class="mce-panel-label">QUICK SERVICE</span>';
         html += '<h4 class="mce-panel-title">배우기, 참여하기, 예약 확인까지 한 번에</h4>';
         html += '<p class="mce-panel-copy">고객은 클래스 탐색으로, 강사는 지원과 운영으로, 기존 수강생은 마이페이지 확인으로 바로 이어지게 구성했습니다.</p>';
         html += buildServiceLinksHTML();

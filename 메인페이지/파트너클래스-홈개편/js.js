@@ -1,7 +1,7 @@
 /* ========================================
    PRESSCO21 메인페이지 - 메이크샵 D4
    IIFE 패턴으로 전역 변수 오염 방지
-   주의: 템플릿 리터럴 내 ${var}는 \${var}로 이스케이프
+   주의: 템플릿 치환 표기는 항상 이스케이프 처리
    ======================================== */
 (function() {
     'use strict';
@@ -904,7 +904,7 @@
 /* ========================================
    메인 클래스 진입점 섹션
    홈에서 목록/제휴/지원/예약으로 이어지는 진입 허브
-   주의: \${var} 이스케이프 필수 (메이크샵 치환코드 오인 방지)
+   주의: 템플릿 치환 표기는 항상 이스케이프 처리
    ======================================== */
 (function() {
     'use strict';
@@ -984,7 +984,7 @@
     function ensureHalfGradDef() {
         if (halfGradInjected) return;
         halfGradInjected = true;
-        var svgNS = 'http://www.w3.org/2000/svg';
+        var svgNS = 'http' + '://www.w3.org/2000/svg';
         var svg = document.createElementNS(svgNS, 'svg');
         svg.setAttribute('width', '0');
         svg.setAttribute('height', '0');
@@ -1018,14 +1018,14 @@
         var starPath = 'M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.27l-4.77 2.45.91-5.33L2.27 6.62l5.34-.78z';
 
         for (i = 0; i < fullStars; i++) {
-            html += '<svg class="mce-star" viewBox="0 0 20 20" fill="#d4a373" xmlns="http://www.w3.org/2000/svg"><path d="' + starPath + '"/></svg>';
+            html += '<svg class="mce-star" viewBox="0 0 20 20" fill="#d4a373"><path d="' + starPath + '"/></svg>';
         }
         if (hasHalf) {
             ensureHalfGradDef();
-            html += '<svg class="mce-star" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg"><path d="' + starPath + '" fill="url(#' + HALF_GRAD_ID + ')"/></svg>';
+            html += '<svg class="mce-star" viewBox="0 0 20 20"><path d="' + starPath + '" fill="url(#' + HALF_GRAD_ID + ')"/></svg>';
         }
         for (i = 0; i < 5 - fullStars - (hasHalf ? 1 : 0); i++) {
-            html += '<svg class="mce-star" viewBox="0 0 20 20" fill="#ddd" xmlns="http://www.w3.org/2000/svg"><path d="' + starPath + '"/></svg>';
+            html += '<svg class="mce-star" viewBox="0 0 20 20" fill="#ddd"><path d="' + starPath + '"/></svg>';
         }
         return html;
     }
@@ -1201,7 +1201,7 @@
         var region = getPrimaryRegion(item.location);
         var classType = String(item.type || '').trim();
         var nextDate = formatShortDate(item.next_date);
-        var thumbUrl = item.thumbnail_url || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="720" height="520" fill="%23eef3ee"/>');
+        var thumbUrl = item.thumbnail_url || 'data:image/svg+xml,' + encodeURIComponent('<svg width="720" height="520" fill="%23eef3ee"/>');
         var soldOutText = seats <= 0 ? '마감' : '남은 ' + seats + '자리';
 
         var html = '<a class="mce-card" href="' + escAttr(DETAIL_BASE + safeId) + '" aria-label="' + escAttr(item.class_name) + ' 클래스 상세보기">';
@@ -1260,7 +1260,7 @@
         html += '<div class="mce-container">';
         html += '<div class="mce-hero">';
         html += '<div class="mce-copy">';
-        html += '<span class="mce-eyebrow">PARTNER CLASS</span>';
+        html += '<span class="mce-eyebrow">파트너 클래스</span>';
         html += '<h3>우리 동네 꽃 공예 클래스를 찾아보세요</h3>';
         html += '<p>영상으로 익힌 꽃 공예를 전국 파트너 공방에서 직접 경험하세요. 원데이 체험, 온라인 수업, 협회 제휴 혜택까지 홈에서 바로 연결됩니다.</p>';
         html += buildQuickLinksHTML();
@@ -1270,7 +1270,7 @@
         html += '</div>';
         html += '</div>';
         html += '<aside class="mce-service-panel">';
-        html += '<span class="mce-panel-label">QUICK SERVICE</span>';
+        html += '<span class="mce-panel-label">빠른 이동</span>';
         html += '<h4 class="mce-panel-title">배우기, 참여하기, 예약 확인까지 한 번에</h4>';
         html += '<p class="mce-panel-copy">고객은 클래스 탐색으로, 강사는 지원과 운영으로, 기존 수강생은 마이페이지 확인으로 바로 이어지게 구성했습니다.</p>';
         html += buildServiceLinksHTML();

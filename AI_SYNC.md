@@ -53,7 +53,7 @@
 - Mode: IDLE
 - Started At: 2026-03-13 00:15 KST
 - Branch: codex/partnerclass-e0-001-testdata-cleanup
-- Working Scope: [CODEX-LEAD] E0-004/E0-005/E0-007/E0-008 live 확인 및 WF-03 복구 완료
+- Working Scope: [CODEX-LEAD] E0-009~E0-013 착수 (Kakao/placeholder/문구/온보딩/ChannelIO 점검)
 - Active Subdirectory: /Users/jangjiho/workspace/pressco21/파트너클래스
 
 ## Files In Progress
@@ -90,6 +90,36 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- [CODEX-LEAD] E0-009/E0-011/E0-012/E0-013 로컬 수정 완료, E0-010 원인 분리 완료.
+  - `파트너클래스/상세/Index.html`
+    - Kakao SDK integrity 값을 `2.7.2` 현재 배포 해시에 맞게 갱신했다.
+    - inline SVG의 `xmlns` 속성을 정리해 MakeShop 정적 검사 false positive를 제거했다.
+  - `파트너클래스/강의등록/Index.html`
+    - `START GUIDE`, `FORM GUIDE`를 각각 `시작 가이드`, `입력 가이드`로 교체했다.
+    - inline SVG namespace 속성을 제거해 D4 guard를 통과하도록 정리했다.
+  - `파트너클래스/교육/Index.html`
+    - 히어로 eyebrow를 `파트너 시작 가이드`로 통일했다.
+    - inline SVG namespace 속성을 제거해 D4 guard를 통과하도록 정리했다.
+  - `파트너클래스/파트너/js.js`
+    - 등급 배지를 `BLOOM PARTNER` 형식에서 `BLOOM 파트너` 형식으로 변경했다.
+    - 등급 혜택 배지 라벨을 한글 설명 중심(`성장 구간`, `우선 노출`, `스토리 확장`, `리더십`)으로 정리했다.
+    - 온보딩 진행률을 `필수 n/4 완료` 형식으로 바꿔, 선택 가이드가 포함된 5단계 모달과 카드 진행률이 충돌하지 않도록 보정했다.
+  - `메인페이지/Index.html`
+    - `Learn & Shop` 제목을 `배우고 바로 준비하기`로 바꾸고, `via.placeholder.com` 이미지 4건을 data URI 플레이스홀더로 교체했다.
+  - `메인페이지/파트너클래스-홈개편/Index.html`
+    - `Learn & Shop`, `Partner Class Service`, `Partner/Affiliation/Booking` 레이블을 한글 UI로 통일했다.
+    - `via.placeholder.com` 이미지 4건을 data URI 플레이스홀더로 교체했다.
+  - `메인페이지/파트너클래스-홈개편/js.js`
+    - `PARTNER CLASS`, `QUICK SERVICE` 레이블을 한글로 정리했다.
+    - SVG 문자열의 `xmlns`/주석 경고를 정리해 MakeShop guard 통과 상태로 만들었다.
+  - `E0-010 ChannelIO`
+    - 저장소 내 페이지 소스에서는 ChannelIO를 직접 중복 주입하는 코드를 찾지 못했다.
+    - live Playwright 기준 중복 메시지는 `https://cax.channel.io/makeshop/plugins/...js` 에서 발생했고, `boot` 요청은 `401`을 반환했다.
+    - 따라서 현재 남은 ChannelIO 이슈는 페이지 파일 수정이 아니라 MakeShop 전역 플러그인/스크립트 설정 점검이 우선이다.
+  - 검증
+    - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py ...` 대상 7개 파일 전체 `OK`
+    - `node --check 파트너클래스/파트너/js.js`
+    - `node --check 메인페이지/파트너클래스-홈개편/js.js`
 - [CODEX-LEAD] E0-004/E0-005 저장 반영 재확인, E0-007/H2 live 통과, E0-008/H3 live 복구 완료.
   - `파트너클래스/n8n-workflows/WF-03-partner-data-api.json`
     - Webhook를 `POST /partner-data` 기준으로 정리하고 `Switch Action`/파라미터 파서를 body 우선 방식으로 보정했다.
@@ -163,7 +193,7 @@
 
 ## Next Step
 
-### [CODEX-LEAD] 파트너클래스 엔터프라이즈 고도화 — E0 Day 1 후속
+### [CODEX-LEAD] 파트너클래스 엔터프라이즈 고도화 — E0 Day 2 저장 대기
 
 > **PRD**: `docs/파트너클래스/PRD-파트너클래스-엔터프라이즈-고도화-v6.md` (v6.1)
 > **ROADMAP**: `docs/파트너클래스/ROADMAP-엔터프라이즈-v4.md` (v4.1)
@@ -172,25 +202,34 @@
 
 **즉시 남은 액션:**
 
-1. 다음 E0 태스크 착수
-   - `E0-009` Kakao SDK integrity 수정
-   - `E0-010` ChannelIO 이중 로드 수정
-   - `E0-011` placeholder.com 404 제거
-   - `E0-012` 영어/한글 혼재 UI 정리
-   - `E0-013` 온보딩 체크리스트 항목 불일치 수정
-2. E0 체크리스트 갱신
-   - `C4`, `C5`, `H2`, `H3`를 ROADMAP v4.1 기준으로 `[x]` 처리
-3. 대시보드 실데이터 회귀 확인
-   - 예약/후기 실데이터가 생기면 `2608 예약 현황/후기 관리`의 비어있지 않은 상태도 한 번 더 확인
-4. offline-crm-v2 후속
-   - 로그인 세션 기반 저장 로그 문구를 고객 상세/수금·지급 팝업에서 더 명확히 정리
-   - 필요 시 비밀번호 변경 또는 계정 관리 UI를 별도 기능으로 분리
+1. 메이크샵 저장
+   - `2607 상세` `HTML` 탭: `파트너클래스/상세/Index.html`
+   - `8009 강의등록` `HTML` 탭: `파트너클래스/강의등록/Index.html`
+   - `2610 교육/가이드` `HTML` 탭: `파트너클래스/교육/Index.html`
+   - `2608 파트너 대시보드` `JS` 탭: `파트너클래스/파트너/js.js`
+   - 메인페이지 운영본 `HTML` 탭: `메인페이지/Index.html`
+   - 메인 개편안을 별도 페이지로 유지 중이면 `메인페이지/파트너클래스-홈개편/Index.html`, `js.js`도 동기화
+2. 저장 후 live QA
+   - `2607` 콘솔에서 Kakao integrity mismatch 제거 확인
+   - `2608` 온보딩 카드/모달 진행률 문구가 `필수 n/4 완료`로 맞는지 확인
+   - `8009`, `2610` 가이드 eyebrow 한글 반영 확인
+   - 메인페이지에서 `via.placeholder.com` 네트워크 요청 제거 확인
+3. E0 체크리스트 갱신
+   - 저장/QA 완료 후 `E0-009`, `E0-011`, `E0-012`, `E0-013`를 ROADMAP v4.1 기준 `[x]` 처리
+4. `E0-010` 별도 추적
+   - MakeShop 전역 footer 또는 Channel 플러그인 설정에서 중복 주입 여부 확인
+   - Channel boot `401` 원인(API key/플러그인 설정) 점검
 
 **Day 1 처리 상태:**
 
 1. `E0-001` 테스트 데이터 제거 — 완료
 2. `E0-006` 수수료율 공개 위반 수정 — 완료
 3. `E0-014` NocoDB 일일 자동 백업 — 완료
+4. `E0-009` Kakao SDK integrity 수정 — 로컬 완료, 저장 대기
+5. `E0-011` placeholder 404 제거 — 로컬 완료, 저장 대기
+6. `E0-012` 영어/한글 혼재 UI 정리 — 로컬 완료, 저장 대기
+7. `E0-013` 온보딩 체크리스트 불일치 수정 — 로컬 완료, 저장 대기
+8. `E0-010` ChannelIO 이중 로드 — 원인 분리 완료, 전역 설정 확인 필요
 
 Day 2~5: `E0-002`~`E0-013` (ROADMAP 순서대로)
 
@@ -216,9 +255,12 @@ Day 2~5: `E0-002`~`E0-013` (ROADMAP 순서대로)
 - `E0-004/E0-005` 저장 반영 자체는 확인했지만, 공개 live 클래스가 `0건`이라 실제 운영 데이터 기준 검증은 route mock 방식에 의존하고 있다.
 - `getPartnerBookings/getPartnerReviews` 빈 200 장애는 복구됐지만, 현재 파트너 계정에 실제 예약/후기 데이터가 없어 non-empty UI 회귀는 아직 못 봤다.
 - NocoDB 백업 스크립트는 수동 실행 기준 산출물 생성까지 확인했지만, 다음 정규 cron 실행(`2026-03-13 03:00 UTC`) 로그를 한 번 더 확인하는 편이 안전하다.
-- 콘솔에는 외부 스크립트 이슈가 여전히 남아 있다.
-  - Kakao SDK integrity mismatch
-  - Channel.io boot `401`
+- 이번 turn 수정은 아직 메이크샵 저장 전이라 live에는 아래 현상이 남아 있을 수 있다.
+  - `2607` Kakao SDK integrity mismatch
+  - `2608` 온보딩 진행률 `1/4 완료` vs 5단계 모달 불일치
+  - `8009`, `2610`, 메인페이지 일부 영어 레이블
+  - 메인페이지 `via.placeholder.com` 404
+- `ChannelIO script included twice`와 `boot 401`은 현재 저장소의 개별 페이지 소스가 아니라 MakeShop 전역 플러그인/스크립트 설정에서 정리해야 할 가능성이 높다.
 - 현재 보안메일 비밀번호 규칙이 바뀌면 파서를 같이 수정해야 한다.
 - 동일 입금자명/금액 중복 케이스는 계속 검토 큐로 보내는 것이 안전하다.
 - 브라우저에서 메일을 먼저 열어도 놓치지 않도록 collector는 수정했지만, 이미 놓친 과거 메일은 수동 재전송 또는 첨부 HTML 재처리가 필요하다.

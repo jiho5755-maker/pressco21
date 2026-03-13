@@ -51,10 +51,10 @@
 
 - Current Owner: IDLE
 - Mode: IDLE
-- Started At: 2026-03-13 00:15 KST
+- Started At: 2026-03-13 13:11 KST
 - Branch: codex/partnerclass-e0-001-testdata-cleanup
-- Working Scope: [CODEX-LEAD] E0-009~E0-013 착수 (Kakao/placeholder/문구/온보딩/ChannelIO 점검)
-- Active Subdirectory: /Users/jangjiho/workspace/pressco21/파트너클래스
+- Working Scope: -
+- Active Subdirectory: /Users/jangjiho/workspace/pressco21
 
 ## Files In Progress
 - 없음
@@ -90,6 +90,21 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- [CODEX] 메인페이지 운영본 교정 완료.
+  - `메인페이지/Index.html`
+    - 메인 배너를 `3장` 체계로 정리하고 실사용 링크(`지원 폼`, `압화`, `레진공예`)를 연결했다.
+    - 섹션01 카테고리/서브배너 링크를 실제 브랜드 카테고리 경로로 교정하고 `원데이 클래스` 진입 아이템을 추가했다.
+    - 기존 `Event` 2카드 구성을 `파트너 클래스 서비스` 3카드(`파트너 지원`, `협회 제휴`, `예약 확인`) 구조로 교체했다.
+  - `메인페이지/css.css`
+    - `category-list__item--class`, `event-card*` 스타일을 운영본에 반영했다.
+    - 메인 클래스 진입점 `.main-class-entry`를 개편본 기준 최신 구조로 동기화했다.
+    - `data:image/svg+xml` 안 `xmlns`를 제거해 MakeShop D4 가드의 `http://` false positive를 없앴다.
+  - `메인페이지/js.js`
+    - 메인 클래스 진입점 로직을 개편본 기준으로 교체해 `빠른 이동`, `퀵칩`, `지표 카드`, `4개 추천 클래스` 구조를 운영본에 반영했다.
+    - 등급 배지를 `BLOOM/GARDEN/ATELIER/AMBASSADOR` 체계와 legacy 저장값 양쪽을 모두 읽도록 유지했다.
+  - 검증
+    - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 메인페이지/Index.html 메인페이지/css.css 메인페이지/js.js`
+    - `node --check 메인페이지/js.js`
 - [CODEX-LEAD] E0-009/E0-011/E0-012/E0-013 로컬 수정 완료, E0-010 원인 분리 완료.
   - `파트너클래스/상세/Index.html`
     - Kakao SDK integrity 값을 `2.7.2` 현재 배포 해시에 맞게 갱신했다.
@@ -193,6 +208,18 @@
 
 ## Next Step
 
+### [CODEX] 메인페이지 메이크샵 저장 후 live QA
+
+1. 메이크샵 저장
+   - 메인페이지 운영본 `HTML` 탭: `메인페이지/Index.html`
+   - 메인페이지 운영본 `CSS` 탭: `메인페이지/css.css`
+   - 메인페이지 운영본 `JS` 탭: `메인페이지/js.js`
+2. 저장 후 Playwright live 검증
+   - 메인 배너 3장 링크가 각각 `지원 폼`, `압화`, `레진공예`로 이동하는지 확인
+   - 섹션01 카테고리/서브배너 링크와 `원데이 클래스` 아이템 진입 확인
+   - `파트너 클래스 서비스` 3카드 노출 및 `2609`, `2606&tab=affiliations`, `8010` 연결 확인
+   - 메인 클래스 진입점 카드/칩/지표가 live에서 정상 렌더되는지 확인
+
 ### [CODEX-LEAD] 파트너클래스 엔터프라이즈 고도화 — E0 Day 2 저장 대기
 
 > **PRD**: `docs/파트너클래스/PRD-파트너클래스-엔터프라이즈-고도화-v6.md` (v6.1)
@@ -251,6 +278,8 @@ Day 2~5: `E0-002`~`E0-013` (ROADMAP 순서대로)
 > ⚠️ 파트너클래스 E0 작업 중에는 `offline-crm-v2` 서브디렉토리와 격리 유지
 
 ## Known Risks
+- 이번 turn 수정은 아직 메이크샵 저장 전이라 메인페이지 live에는 기존 배너/이벤트/클래스 허브 구성이 남아 있을 수 있다.
+- 메인페이지 `js.js`는 n8n `class-api` 응답을 전제로 하므로, 저장 후 live QA에서 추천 클래스 카드가 비정상 응답 없이 렌더되는지 한 번 더 확인해야 한다.
 - 공개 클래스가 현재 `0건`이라 `2606`은 빈 목록 상태다. 테스트 데이터 누수는 막혔지만, 실제 운영 클래스 승인 전까지 고객 탐색 UX는 약하다.
 - `E0-004/E0-005` 저장 반영 자체는 확인했지만, 공개 live 클래스가 `0건`이라 실제 운영 데이터 기준 검증은 route mock 방식에 의존하고 있다.
 - `getPartnerBookings/getPartnerReviews` 빈 200 장애는 복구됐지만, 현재 파트너 계정에 실제 예약/후기 데이터가 없어 non-empty UI 회귀는 아직 못 봤다.

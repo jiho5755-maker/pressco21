@@ -1,7 +1,7 @@
 /* ========================================
    PRESSCO21 메인페이지 - 메이크샵 D4
    IIFE 패턴으로 전역 변수 오염 방지
-   주의: 템플릿 리터럴 내 ${var}는 \${var}로 이스케이프
+   주의: 템플릿 치환 표기는 항상 이스케이프 처리
    ======================================== */
 (function() {
     'use strict';
@@ -902,40 +902,43 @@
 })();
 
 /* ========================================
-   메인 클래스 진입점 섹션 (Task 315)
-   n8n 웹훅 POST API로 인기 클래스 3개를 로드하여
-   YouTube 섹션 아래에 동적 삽입
-   주의: \${var} 이스케이프 필수 (메이크샵 치환코드 오인 방지)
+   메인 클래스 진입점 섹션
+   홈에서 목록/제휴/지원/예약으로 이어지는 진입 허브
+   주의: 템플릿 치환 표기는 항상 이스케이프 처리
    ======================================== */
 (function() {
     'use strict';
 
-    /* ---- 설정 ---- */
     var N8N_CLASS_API = 'https://n8n.pressco21.com/webhook/class-api';
-    var CACHE_KEY = 'pressco21_popular_classes_v2';
-    var CACHE_TTL = 30 * 60 * 1000; /* 30분 */
-    var CLASS_LIMIT = 3;
+    var CACHE_KEY = 'pressco21_home_featured_classes_v3';
+    var CACHE_TTL = 30 * 60 * 1000;
+    var FETCH_LIMIT = 8;
+    var RENDER_LIMIT = 4;
     var DETAIL_BASE = '/shop/page.html?id=2607&class_id=';
     var LIST_URL = '/shop/page.html?id=2606';
+    var APPLY_URL = '/shop/page.html?id=2609';
+    var MYPAGE_URL = '/shop/page.html?id=8010';
+    var AFFILIATION_URL = '/shop/page.html?id=2606&tab=affiliations';
+    var HALF_GRAD_ID = 'mceHalfStarGrad';
+    var halfGradInjected = false;
 
-    /* ---- 유틸리티 (기존 IIFE와 독립) ---- */
     function escHTML(str) {
         if (!str) return '';
         var d = document.createElement('div');
-        d.appendChild(document.createTextNode(str));
+        d.appendChild(document.createTextNode(String(str)));
         return d.innerHTML;
     }
 
     function escAttr(str) {
         if (!str) return '';
-        return str.replace(/&/g, '&amp;')
-                  .replace(/"/g, '&quot;')
-                  .replace(/'/g, '&#39;')
-                  .replace(/</g, '&lt;')
-                  .replace(/>/g, '&gt;');
+        return String(str)
+            .replace(/&/g, '&amp;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;');
     }
 
-    /* class_id 검증: 영숫자, 하이픈, 언더스코어만 허용 (최대 64자) */
     function sanitizeClassId(id) {
         if (!id || typeof id !== 'string') return '';
         var clean = id.replace(/[^a-zA-Z0-9\-_]/g, '');
@@ -943,34 +946,63 @@
     }
 
     function formatPrice(num) {
-        if (!num && num !== 0) return '0';
         var parsed = Number(num);
         if (isNaN(parsed)) return '0';
         return parsed.toLocaleString('ko-KR');
     }
 
-    /* ---- 별점 SVG 생성 ---- */
-    var halfGradInjected = false;
-    var HALF_GRAD_ID = 'mceHalfStarGrad';
+    function formatShortDate(dateText) {
+        if (!dateText) return '';
+        var match = String(dateText).match(/^(\d{4})-(\d{2})-(\d{2})/);
+        if (!match) return '';
+        return match[2] + '.' + match[3];
+    }
+
+    function getPrimaryRegion(raw) {
+        if (!raw) return '';
+        var parts = String(raw).split(/[,\s/]+/).filter(function(part) {
+            return !!part;
+        });
+        if (parts.length === 0) return '';
+        if (parts[0] === '온라인') return '온라인';
+        return parts.slice(0, 2).join(' ');
+    }
+
+    function buildListHref(params) {
+        var pairs = ['id=2606'];
+        if (params) {
+            if (params.category) pairs.push('category=' + encodeURIComponent(params.category));
+            if (params.level) pairs.push('level=' + encodeURIComponent(params.level));
+            if (params.type) pairs.push('type=' + encodeURIComponent(params.type));
+            if (params.region) pairs.push('region=' + encodeURIComponent(params.region));
+            if (params.q) pairs.push('q=' + encodeURIComponent(params.q));
+            if (params.tab) pairs.push('tab=' + encodeURIComponent(params.tab));
+        }
+        return '/shop/page.html?' + pairs.join('&');
+    }
 
     function ensureHalfGradDef() {
         if (halfGradInjected) return;
         halfGradInjected = true;
-        var svgNS = 'http://www.w3.org/2000/svg';
+        var svgNS = 'http' + '://www.w3.org/2000/svg';
         var svg = document.createElementNS(svgNS, 'svg');
         svg.setAttribute('width', '0');
         svg.setAttribute('height', '0');
         svg.style.position = 'absolute';
         svg.style.visibility = 'hidden';
+
         var defs = document.createElementNS(svgNS, 'defs');
         var grad = document.createElementNS(svgNS, 'linearGradient');
         grad.setAttribute('id', HALF_GRAD_ID);
+
         var stop1 = document.createElementNS(svgNS, 'stop');
         stop1.setAttribute('offset', '50%');
         stop1.setAttribute('stop-color', '#d4a373');
+
         var stop2 = document.createElementNS(svgNS, 'stop');
         stop2.setAttribute('offset', '50%');
         stop2.setAttribute('stop-color', '#ddd');
+
         grad.appendChild(stop1);
         grad.appendChild(stop2);
         defs.appendChild(grad);
@@ -986,143 +1018,282 @@
         var starPath = 'M10 1l2.39 4.84 5.34.78-3.87 3.77.91 5.33L10 13.27l-4.77 2.45.91-5.33L2.27 6.62l5.34-.78z';
 
         for (i = 0; i < fullStars; i++) {
-            html += '<svg class="mce-star" viewBox="0 0 20 20" fill="#d4a373" xmlns="http://www.w3.org/2000/svg">' +
-                '<path d="' + starPath + '"/></svg>';
+            html += '<svg class="mce-star" viewBox="0 0 20 20" fill="#d4a373"><path d="' + starPath + '"/></svg>';
         }
         if (hasHalf) {
             ensureHalfGradDef();
-            html += '<svg class="mce-star" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">' +
-                '<path d="' + starPath + '" fill="url(#' + HALF_GRAD_ID + ')"/></svg>';
+            html += '<svg class="mce-star" viewBox="0 0 20 20"><path d="' + starPath + '" fill="url(#' + HALF_GRAD_ID + ')"/></svg>';
         }
-        var emptyStars = 5 - fullStars - (hasHalf ? 1 : 0);
-        for (i = 0; i < emptyStars; i++) {
-            html += '<svg class="mce-star" viewBox="0 0 20 20" fill="#ddd" xmlns="http://www.w3.org/2000/svg">' +
-                '<path d="' + starPath + '"/></svg>';
+        for (i = 0; i < 5 - fullStars - (hasHalf ? 1 : 0); i++) {
+            html += '<svg class="mce-star" viewBox="0 0 20 20" fill="#ddd"><path d="' + starPath + '"/></svg>';
         }
         return html;
     }
 
-    /* ---- 등급 배지 ---- */
     function gradeHTML(grade) {
         if (!grade) return '';
+        var normalized = String(grade).toUpperCase();
         var gradeMap = {
-            'SILVER': 'mce-grade-silver',
-            'GOLD': 'mce-grade-gold',
-            'PLATINUM': 'mce-grade-platinum'
+            'SILVER': 'mce-grade-bloom',
+            'BLOOM': 'mce-grade-bloom',
+            'GOLD': 'mce-grade-garden',
+            'GARDEN': 'mce-grade-garden',
+            'PLATINUM': 'mce-grade-atelier',
+            'ATELIER': 'mce-grade-atelier',
+            'AMBASSADOR': 'mce-grade-ambassador'
         };
-        var cls = gradeMap[grade.toUpperCase()] || 'mce-grade-silver';
-        return '<span class="mce-grade ' + cls + '">' + escHTML(grade) + '</span>';
+        return '<span class="mce-grade ' + (gradeMap[normalized] || 'mce-grade-bloom') + '">' + escHTML(grade) + '</span>';
     }
 
-    /* ---- 카드 HTML 생성 ---- */
-    function buildCardHTML(item) {
-        var rating = parseFloat(item.rating) || 0;
-        var reviewCount = parseInt(item.grade_count || item.review_count || 0, 10);
-        var seats = parseInt(item.remaining_seats, 10);
-        var isUrgent = !isNaN(seats) && seats > 0 && seats <= 5;
-        var isSoldOut = !isNaN(seats) && seats <= 0;
-
-        /* class_id 검증 후 안전한 값만 href에 사용 */
-        var safeId = sanitizeClassId(item.class_id);
-        if (!safeId) return '';
-
-        var html = '<a class="mce-card" href="' + escAttr(DETAIL_BASE + safeId) + '" aria-label="' + escAttr(item.class_name) + ' \uD074\uB798\uC2A4 \uC0C1\uC138\uBCF4\uAE30">';
-
-        /* 썸네일 (빈 URL 방지: placeholder SVG) */
-        var thumbUrl = item.thumbnail_url || 'data:image/svg+xml,' + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="400" height="300" fill="%23e8ede6"/>');
-        html += '<div class="mce-thumb">';
-        html += '<img src="' + escAttr(thumbUrl) + '" alt="' + escAttr(item.class_name) + '" loading="lazy">';
-        if (item.category) {
-            html += '<span class="mce-badge">' + escHTML(item.category) + '</span>';
-        }
-        if (isUrgent) {
-            html += '<span class="mce-urgent">\uB9C8\uAC10 \uC784\uBC15!</span>';
+    function buildQuickLinksHTML() {
+        var items = [
+            { label: '서울 클래스', href: buildListHref({ region: '서울' }) },
+            { label: '온라인 클래스', href: buildListHref({ type: '온라인' }) },
+            { label: '원데이 체험', href: buildListHref({ type: '원데이' }) },
+            { label: '입문 추천', href: buildListHref({ level: '입문' }) },
+            { label: '압화 클래스', href: buildListHref({ category: '압화' }) },
+            { label: '협회 제휴', href: AFFILIATION_URL, accent: true }
+        ];
+        var html = '<div class="mce-chip-row">';
+        for (var i = 0; i < items.length; i++) {
+            html += '<a class="mce-chip' + (items[i].accent ? ' mce-chip--accent' : '') + '" href="' + escAttr(items[i].href) + '">' + escHTML(items[i].label) + '</a>';
         }
         html += '</div>';
+        return html;
+    }
 
-        /* 정보 */
-        html += '<div class="mce-info">';
-        html += '<p class="mce-name">' + escHTML(item.class_name) + '</p>';
-
-        /* 강사 + 등급 */
-        html += '<div class="mce-instructor">';
-        html += '<span class="mce-instructor-name">' + escHTML(item.partner_name || '') + '</span>';
-        html += gradeHTML(item.grade || item.partner_grade || '');
+    function buildServiceLinksHTML() {
+        var items = [
+            {
+                href: LIST_URL,
+                title: '전체 클래스 탐색',
+                copy: '지역, 카테고리, 난이도별로 바로 비교하세요.'
+            },
+            {
+                href: APPLY_URL,
+                title: '강사로 참여하기',
+                copy: '공방 운영자와 강사회원이 바로 지원할 수 있습니다.'
+            },
+            {
+                href: MYPAGE_URL,
+                title: '예약 확인하기',
+                copy: '예약 내역과 후기 작성 상태를 한 번에 확인합니다.'
+            }
+        ];
+        var html = '<div class="mce-service-links">';
+        for (var i = 0; i < items.length; i++) {
+            html += '<a class="mce-service-link" href="' + escAttr(items[i].href) + '">';
+            html += '<span><strong>' + escHTML(items[i].title) + '</strong><span>' + escHTML(items[i].copy) + '</span></span>';
+            html += '<i class="mce-service-arrow" aria-hidden="true"></i>';
+            html += '</a>';
+        }
         html += '</div>';
+        return html;
+    }
 
-        /* 별점 */
-        html += '<div class="mce-rating">';
-        html += '<span class="mce-stars">' + createStarsSVG(rating) + '</span>';
-        html += '<span class="mce-review-count">(' + reviewCount + ')</span>';
-        html += '</div>';
+    function buildMetricPlaceholdersHTML() {
+        var html = '';
+        var labels = ['추천 클래스', '확인된 잔여석', '온라인 수업', '키트 연동'];
+        for (var i = 0; i < labels.length; i++) {
+            html += '<div class="mce-metric">';
+            html += '<span class="mce-metric-label">' + labels[i] + '</span>';
+            html += '<span class="mce-metric-value">-</span>';
+            html += '<span class="mce-metric-copy">데이터 로딩 중</span>';
+            html += '</div>';
+        }
+        return html;
+    }
 
-        /* 가격 */
-        html += '<div class="mce-price">' + formatPrice(item.price) + '\uC6D0</div>';
+    function buildMetricsHTML(classes) {
+        var seatTotal = 0;
+        var onlineCount = 0;
+        var kitCount = 0;
+        var i;
 
-        /* 남은 자리 */
-        if (!isNaN(seats)) {
-            if (isSoldOut) {
-                html += '<div class="mce-seats mce-seats-urgent">\uB9C8\uAC10</div>';
-            } else if (isUrgent) {
-                html += '<div class="mce-seats mce-seats-urgent">\uB0A8\uC740 ' + seats + '\uC790\uB9AC</div>';
-            } else {
-                html += '<div class="mce-seats">\uB0A8\uC740 ' + seats + '\uC790\uB9AC</div>';
+        for (i = 0; i < classes.length; i++) {
+            seatTotal += Math.max(Number(classes[i].total_remaining) || 0, 0);
+            if (String(classes[i].type || '').indexOf('온라인') > -1) {
+                onlineCount += 1;
+            }
+            if (Number(classes[i].kit_enabled) > 0) {
+                kitCount += 1;
             }
         }
 
-        html += '</div>'; /* /.mce-info */
-        html += '</a>'; /* /.mce-card */
+        var items = [
+            { label: '추천 클래스', value: classes.length + '개', copy: '홈에서 바로 살펴볼 수 있는 대표 수업' },
+            { label: '확인된 잔여석', value: seatTotal + '석', copy: '가장 빠른 일정 기준 잔여 좌석 합계' },
+            { label: '온라인 수업', value: onlineCount + '개', copy: '원격 수강 또는 온라인 진행 클래스' },
+            { label: '키트 연동', value: kitCount + '개', copy: '재료 키트 구매까지 이어지는 수업' }
+        ];
+
+        var html = '';
+        for (i = 0; i < items.length; i++) {
+            html += '<div class="mce-metric">';
+            html += '<span class="mce-metric-label">' + escHTML(items[i].label) + '</span>';
+            html += '<span class="mce-metric-value">' + escHTML(items[i].value) + '</span>';
+            html += '<span class="mce-metric-copy">' + escHTML(items[i].copy) + '</span>';
+            html += '</div>';
+        }
         return html;
     }
 
-    /* ---- 스켈레톤 HTML ---- */
-    function buildSkeletonHTML() {
-        var html = '<div class="mce-skeleton-grid">';
-        for (var i = 0; i < CLASS_LIMIT; i++) {
-            html += '<div class="mce-skeleton-card">' +
-                '<div class="mce-sk-thumb"></div>' +
-                '<div class="mce-sk-info">' +
-                '<div class="mce-sk-line mce-sk-line-full"></div>' +
-                '<div class="mce-sk-line mce-sk-line-medium"></div>' +
-                '<div class="mce-sk-line mce-sk-line-short"></div>' +
-                '</div></div>';
+    function pickFeaturedClasses(classes) {
+        var pool = [];
+        var picked = [];
+        var seenCategory = {};
+        var i;
+
+        for (i = 0; i < classes.length; i++) {
+            if (sanitizeClassId(classes[i].class_id)) {
+                pool.push(classes[i]);
+            }
+        }
+
+        pool.sort(function(a, b) {
+            var aSeats = Number(a.total_remaining) || 0;
+            var bSeats = Number(b.total_remaining) || 0;
+            if (bSeats !== aSeats) return bSeats - aSeats;
+            return (Number(b.avg_rating) || 0) - (Number(a.avg_rating) || 0);
+        });
+
+        for (i = 0; i < pool.length; i++) {
+            var category = String(pool[i].category || 'etc');
+            if (!seenCategory[category]) {
+                seenCategory[category] = true;
+                picked.push(pool[i]);
+            }
+            if (picked.length >= RENDER_LIMIT) break;
+        }
+
+        for (i = 0; i < pool.length && picked.length < RENDER_LIMIT; i++) {
+            if (picked.indexOf(pool[i]) === -1) {
+                picked.push(pool[i]);
+            }
+        }
+
+        return picked.slice(0, RENDER_LIMIT);
+    }
+
+    function buildThumbBadgesHTML(item, isUrgent) {
+        var html = '<div class="mce-thumb-badges">';
+        if (item.category) {
+            html += '<span class="mce-badge">' + escHTML(item.category) + '</span>';
+        }
+        if (Number(item.kit_enabled) > 0) {
+            html += '<span class="mce-kit">키트 연동</span>';
+        }
+        if (isUrgent) {
+            html += '<span class="mce-urgent">마감 임박</span>';
         }
         html += '</div>';
         return html;
     }
 
-    /* ---- 섹션 전체 HTML ---- */
+    function buildCardHTML(item) {
+        var safeId = sanitizeClassId(item.class_id);
+        if (!safeId) return '';
+
+        var rating = Number(item.avg_rating || item.rating) || 0;
+        var reviewCount = Number(item.review_count) || 0;
+        var seats = Math.max(Number(item.total_remaining) || Number(item.remaining_seats) || 0, 0);
+        var isUrgent = seats > 0 && seats <= 5;
+        var region = getPrimaryRegion(item.location);
+        var classType = String(item.type || '').trim();
+        var nextDate = formatShortDate(item.next_date);
+        var thumbUrl = item.thumbnail_url || 'data:image/svg+xml,' + encodeURIComponent('<svg width="720" height="520" fill="%23eef3ee"/>');
+        var soldOutText = seats <= 0 ? '마감' : '남은 ' + seats + '자리';
+
+        var html = '<a class="mce-card" href="' + escAttr(DETAIL_BASE + safeId) + '" aria-label="' + escAttr(item.class_name) + ' 클래스 상세보기">';
+        html += '<div class="mce-thumb">';
+        html += '<img src="' + escAttr(thumbUrl) + '" alt="' + escAttr(item.class_name) + '" loading="lazy">';
+        html += buildThumbBadgesHTML(item, isUrgent);
+        html += '</div>';
+        html += '<div class="mce-info">';
+        html += '<div class="mce-meta-row">';
+        if (region) {
+            html += '<span class="mce-region">' + escHTML(region) + '</span>';
+        }
+        if (classType) {
+            html += '<span class="mce-type">' + escHTML(classType) + '</span>';
+        }
+        html += '</div>';
+        html += '<p class="mce-name">' + escHTML(item.class_name) + '</p>';
+        html += '<div class="mce-instructor">';
+        html += '<span class="mce-instructor-name">' + escHTML(item.partner_name || '파트너 공방') + '</span>';
+        html += gradeHTML(item.grade || item.partner_grade || '');
+        html += '</div>';
+        html += '<div class="mce-rating">';
+        if (rating > 0) {
+            html += '<span class="mce-stars">' + createStarsSVG(rating) + '</span>';
+            html += '<span class="mce-review-count">' + escHTML(rating.toFixed(1)) + (reviewCount > 0 ? ' (' + escHTML(reviewCount) + ')' : '') + '</span>';
+        } else {
+            html += '<span class="mce-review-count">첫 수업 모집중</span>';
+        }
+        html += '</div>';
+        html += '<div class="mce-bottom-row">';
+        html += '<div class="mce-price">' + formatPrice(item.price) + '원</div>';
+        if (nextDate) {
+            html += '<div class="mce-review-count">가장 빠른 일정 ' + escHTML(nextDate) + '</div>';
+        }
+        html += '</div>';
+        html += '<div class="mce-sub-row">';
+        html += '<span>' + (item.level ? escHTML(item.level + ' 추천') : '바로 예약 가능') + '</span>';
+        html += '<span class="mce-seats' + (isUrgent || seats <= 0 ? ' mce-seats-urgent' : '') + '">' + escHTML(soldOutText) + '</span>';
+        html += '</div>';
+        html += '</div>';
+        html += '</a>';
+        return html;
+    }
+
+    function buildSkeletonHTML() {
+        var html = '<div class="mce-skeleton-grid">';
+        for (var i = 0; i < RENDER_LIMIT; i++) {
+            html += '<div class="mce-skeleton-card"><div class="mce-sk-thumb"></div><div class="mce-sk-info"><div class="mce-sk-line mce-sk-line-full"></div><div class="mce-sk-line mce-sk-line-medium"></div><div class="mce-sk-line mce-sk-line-short"></div></div></div>';
+        }
+        html += '</div>';
+        return html;
+    }
+
     function buildSectionHTML(isLoading) {
         var html = '<section class="main-class-entry" id="main-class-entry">';
         html += '<div class="mce-container">';
-        html += '<div class="mce-header">';
-        html += '<h3>\uC6B0\uB9AC \uB3D9\uB124 \uAF43 \uACF5\uC608 \uD074\uB798\uC2A4\uB97C \uCC3E\uC544\uBCF4\uC138\uC694</h3>';
-        html += '<p>30\uB144 \uC555\uD654 \uC804\uBB38\uAC00\uB4E4\uC774 \uC9C1\uC811 \uC9C4\uD589\uD558\uB294 \uD2B9\uBCC4\uD55C \uD074\uB798\uC2A4</p>';
+        html += '<div class="mce-hero">';
+        html += '<div class="mce-copy">';
+        html += '<span class="mce-eyebrow">파트너 클래스</span>';
+        html += '<h3>우리 동네 꽃 공예 클래스를 찾아보세요</h3>';
+        html += '<p>영상으로 익힌 꽃 공예를 전국 파트너 공방에서 직접 경험하세요. 원데이 체험, 온라인 수업, 협회 제휴 혜택까지 홈에서 바로 연결됩니다.</p>';
+        html += buildQuickLinksHTML();
+        html += '<div class="mce-button-row">';
+        html += '<a href="' + escAttr(LIST_URL) + '" class="mce-btn mce-btn--primary">전체 클래스 보기</a>';
+        html += '<a href="' + escAttr(AFFILIATION_URL) + '" class="mce-btn mce-btn--secondary">협회 제휴 보기</a>';
         html += '</div>';
-
-        if (isLoading) {
-            html += buildSkeletonHTML();
-        } else {
-            html += '<div class="mce-grid" id="mce-grid"></div>';
-        }
-
-        html += '<div class="mce-cta-wrap">';
-        html += '<a href="' + escAttr(LIST_URL) + '" class="mce-cta">\uC804\uCCB4 \uD074\uB798\uC2A4 \uBCF4\uAE30</a>';
+        html += '</div>';
+        html += '<aside class="mce-service-panel">';
+        html += '<span class="mce-panel-label">빠른 이동</span>';
+        html += '<h4 class="mce-panel-title">배우기, 참여하기, 예약 확인까지 한 번에</h4>';
+        html += '<p class="mce-panel-copy">고객은 클래스 탐색으로, 강사는 지원과 운영으로, 기존 수강생은 마이페이지 확인으로 바로 이어지게 구성했습니다.</p>';
+        html += buildServiceLinksHTML();
+        html += '</aside>';
+        html += '</div>';
+        html += '<div class="mce-metrics" id="mce-metrics">' + buildMetricPlaceholdersHTML() + '</div>';
+        html += isLoading ? buildSkeletonHTML() : '<div class="mce-grid" id="mce-grid"></div>';
+        html += '<div class="mce-footer-links">';
+        html += '<a href="' + escAttr(APPLY_URL) + '" class="mce-inline-link">강사 파트너 지원</a>';
+        html += '<a href="' + escAttr(MYPAGE_URL) + '" class="mce-inline-link">예약 확인 / 후기 작성</a>';
         html += '</div>';
         html += '</div>';
         html += '</section>';
         return html;
     }
 
-    /* ---- 섹션 삽입 위치 ---- */
     function insertSection(html) {
-        /* YouTube 섹션(#weekyoutube) 뒤에 삽입 */
+        if (document.getElementById('main-class-entry')) return true;
         var ytSection = document.querySelector('.youtube-section-v3');
         if (ytSection) {
             ytSection.insertAdjacentHTML('afterend', html);
             return true;
         }
-        /* YouTube 섹션 없으면 section04(Weekly Best) 뒤에 삽입 */
         var section04 = document.getElementById('section04');
         if (section04) {
             section04.insertAdjacentHTML('afterend', html);
@@ -1131,7 +1302,6 @@
         return false;
     }
 
-    /* ---- 캐시 관리 ---- */
     function getCachedData() {
         try {
             var raw = localStorage.getItem(CACHE_KEY);
@@ -1141,7 +1311,9 @@
                 return cached.data;
             }
             localStorage.removeItem(CACHE_KEY);
-        } catch (e) { /* localStorage 접근 불가 시 무시 */ }
+        } catch (e) {
+            return null;
+        }
         return null;
     }
 
@@ -1151,32 +1323,46 @@
                 ts: Date.now(),
                 data: data
             }));
-        } catch (e) { /* localStorage 용량 초과 시 무시 */ }
+        } catch (e) {
+            /* 캐시 저장 실패 무시 */
+        }
     }
 
-    /* ---- 카드 렌더링 ---- */
+    function renderMetrics(classes) {
+        var metricBox = document.getElementById('mce-metrics');
+        if (!metricBox) return;
+        metricBox.innerHTML = buildMetricsHTML(classes);
+    }
+
     function renderCards(classes) {
         var section = document.getElementById('main-class-entry');
         if (!section) return;
 
-        var skeletonGrid = section.querySelector('.mce-skeleton-grid');
-        var ctaWrap = section.querySelector('.mce-cta-wrap');
+        var featured = pickFeaturedClasses(classes);
+        if (!featured.length) {
+            hideSection();
+            return;
+        }
 
+        renderMetrics(featured);
+
+        var skeletonGrid = section.querySelector('.mce-skeleton-grid');
+        var footer = section.querySelector('.mce-footer-links');
         var gridHTML = '<div class="mce-grid" id="mce-grid">';
-        for (var i = 0; i < classes.length && i < CLASS_LIMIT; i++) {
-            gridHTML += buildCardHTML(classes[i]);
+
+        for (var i = 0; i < featured.length; i++) {
+            gridHTML += buildCardHTML(featured[i]);
         }
         gridHTML += '</div>';
 
         if (skeletonGrid) {
             skeletonGrid.insertAdjacentHTML('afterend', gridHTML);
             skeletonGrid.parentNode.removeChild(skeletonGrid);
-        } else if (ctaWrap) {
-            ctaWrap.insertAdjacentHTML('beforebegin', gridHTML);
+        } else if (footer) {
+            footer.insertAdjacentHTML('beforebegin', gridHTML);
         }
     }
 
-    /* ---- 섹션 숨김 (에러 시) ---- */
     function hideSection() {
         var section = document.getElementById('main-class-entry');
         if (section) {
@@ -1184,37 +1370,30 @@
         }
     }
 
-    /* ---- 데이터 로드 (n8n POST API) ---- */
     function loadClasses() {
-        /* 섹션 삽입 (스켈레톤 상태) */
-        var inserted = insertSection(buildSectionHTML(true));
-        if (!inserted) return;
+        if (!insertSection(buildSectionHTML(true))) return;
 
-        /* 캐시 확인 */
         var cached = getCachedData();
         if (cached && cached.length > 0) {
             renderCards(cached);
             return;
         }
 
-        /* n8n 웹훅 POST 호출 */
         $.ajax({
             url: N8N_CLASS_API,
             type: 'POST',
             contentType: 'text/plain',
             data: JSON.stringify({
                 action: 'getClasses',
-                status: 'active',
-                limit: CLASS_LIMIT
+                sort: 'popular',
+                limit: FETCH_LIMIT
             }),
             dataType: 'json',
             cache: false,
             timeout: 10000,
             success: function(res) {
-                /* n8n 응답 구조: { success: true, data: { classes: [...] } } */
                 var classes = null;
                 if (res && res.success && res.data) {
-                    /* data.classes 배열 또는 data 자체가 배열인 경우 모두 대응 */
                     if (Array.isArray(res.data.classes)) {
                         classes = res.data.classes;
                     } else if (Array.isArray(res.data)) {
@@ -1229,13 +1408,11 @@
                 }
             },
             error: function() {
-                /* API 오류 시 섹션 조용히 숨김 */
                 hideSection();
             }
         });
     }
 
-    /* ---- Intersection Observer로 뷰포트 진입 시 로드 ---- */
     function initClassSection() {
         if ('IntersectionObserver' in window) {
             var trigger = document.querySelector('.youtube-section-v3') || document.getElementById('section04');
@@ -1245,12 +1422,13 @@
             }
 
             var observer = new IntersectionObserver(function(entries) {
-                entries.forEach(function(entry) {
-                    if (entry.isIntersecting) {
+                for (var i = 0; i < entries.length; i++) {
+                    if (entries[i].isIntersecting) {
                         observer.disconnect();
                         loadClasses();
+                        return;
                     }
-                });
+                }
             }, {
                 rootMargin: '200px 0px'
             });
@@ -1260,7 +1438,6 @@
         }
     }
 
-    /* ---- 초기화 ---- */
     $(function() {
         initClassSection();
     });

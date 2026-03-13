@@ -49,15 +49,18 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: IDLE
-- Started At: 2026-03-13 13:54 KST
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-13 20:32 KST
 - Branch: codex/partnerclass-e0-001-testdata-cleanup
-- Working Scope: -
-- Active Subdirectory: /Users/jangjiho/workspace/pressco21
+- Working Scope: offline-crm-v2 기존 장부 거래 백업 기반 수정/숨김 기능 추가
+- Active Subdirectory: /Users/jangjiho/workspace/pressco21/offline-crm-v2
 
 ## Files In Progress
-- 없음
+- `offline-crm-v2/src/lib/api.ts`
+- `offline-crm-v2/src/pages/Transactions.tsx`
+- `offline-crm-v2/src/pages/CustomerDetail.tsx`
+- `파트너클래스/n8n-workflows/WF-CRM-PROXY-nocodb-proxy.json`
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -90,6 +93,14 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- [CODEX] offline-crm-v2 거래명세표 개별 할인 인쇄 표기 보강 완료.
+  - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+    - 인쇄 데이터 빌더가 `discount_amount`를 함께 전달하도록 연결했다.
+  - `offline-crm-v2/src/lib/print.ts`
+    - 거래명세표 마지막 페이지 합계 블록 아래에 `개별 할인` 전용 줄을 추가했다.
+    - 할인 금액은 `-금액` 형식으로 강조 표시되고, 할인 없을 때는 숨긴다.
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
 - [CODEX] offline-crm-v2 거래/명세표 조회 및 고객상세 거래내역 액션 보강 완료.
   - `offline-crm-v2/src/pages/Transactions.tsx`
     - CRM 행마다 관리 열에 `수정`, `삭제` 텍스트 버튼을 노출하도록 조정했다.
@@ -134,6 +145,7 @@
 - [CODEX] 메인페이지 디자이너 원형 복원, 기능 수정 최소화 완료.
   - `메인페이지/Index.html`
     - 디자이너 운영본 기준 `Learn & Shop`, `Partner Class Service`, `Partner/Affiliation/Booking` 레이블을 다시 복원했다.
+    - YouTube 관련 상품 placeholder 이미지도 `via.placeholder.com` 원본 형태로 되돌려 비파트너클래스 영역 코드 변경을 최소화했다.
     - 배너, 카테고리, 파트너클래스 3카드 구조와 링크는 유지했다.
   - `메인페이지/js.js`
     - 메인 클래스 허브의 카피를 디자이너 운영본 기준 `PARTNER CLASS`, `QUICK SERVICE`로 복원했다.
@@ -247,6 +259,12 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+
+### [CODEX] offline-crm-v2 할인 명세표 실화면 확인
+
+1. 명세표 작성/수정에서 `개별 할인`을 1건 이상 넣고 미리보기를 연다.
+2. 거래명세표 하단 합계 영역 아래에 `개별 할인 -금액` 줄이 노출되는지 확인한다.
+3. 필요하면 같은 변경을 운영 서버에 재배포한다.
 
 ### [CODEX] 메인페이지 메이크샵 저장 후 live QA
 

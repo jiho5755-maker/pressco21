@@ -1382,7 +1382,7 @@
         $.ajax({
             url: N8N_CLASS_API,
             type: 'POST',
-            contentType: 'text/plain',
+            contentType: 'application/json',
             data: JSON.stringify({
                 action: 'getClasses',
                 sort: 'popular',

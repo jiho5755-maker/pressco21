@@ -90,6 +90,27 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- [CODEX] offline-crm-v2 거래/명세표 조회 및 고객상세 거래내역 액션 보강 완료.
+  - `offline-crm-v2/src/pages/Transactions.tsx`
+    - CRM 행마다 관리 열에 `수정`, `삭제` 텍스트 버튼을 노출하도록 조정했다.
+    - 수정은 `InvoiceDialog`, 삭제는 라인아이템 삭제 후 명세표 삭제와 관련 쿼리 무효화까지 연결했다.
+  - `offline-crm-v2/src/pages/CustomerDetail.tsx`
+    - `거래내역` 탭의 기간별 거래내역 리스트 CRM 행마다 `수정`, `삭제` 버튼을 추가했다.
+    - `명세표 · 기간매출` 목록에도 동일한 `수정`, `삭제` 버튼을 추가했다.
+  - `offline-crm-v2/src/pages/Settings.tsx`
+    - 입금계좌/자동입금 계좌가 빈 서버 응답으로 덮어써지지 않도록 보존 로직을 추가했다.
+    - 페이지 이탈 시 로컬 설정 스냅샷이 남도록 보강했다.
+  - `offline-crm-v2/src/lib/defaultCompanyInfo.ts`
+  - `offline-crm-v2/src/App.tsx`
+  - `offline-crm-v2/src/lib/print.ts`
+    - 공용 기본 입금계좌 fallback(`농협은행 / 093-01-264177 / 이진선(프레스코21)`)을 추가해 다른 계정에서도 거래명세표 계좌가 비지 않도록 맞췄다.
+  - `offline-crm-v2/src/components/TransactionDetailDialog.tsx`
+  - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+    - `DialogDescription`을 추가해 Radix 접근성 경고를 제거했다.
+  - 검증
+    - `npm run build` 통과
+    - Playwright 실브라우저 검증: `이재혁(jhl9464)` 로그인 → `/customers/2223` 거래내역 탭 CRM 행 클릭/수정 버튼/상세 다이얼로그 정상, `/transactions` CRM 행 `수정`/`삭제` 버튼 노출 정상
+    - 브라우저 콘솔 메시지: Errors 0 / Warnings 0
 - [CODEX] 메인페이지 운영본 교정 완료.
   - `메인페이지/Index.html`
     - 메인 배너를 `3장` 체계로 정리하고 실사용 링크(`지원 폼`, `압화`, `레진공예`)를 연결했다.
@@ -102,9 +123,14 @@
   - `메인페이지/js.js`
     - 메인 클래스 진입점 로직을 개편본 기준으로 교체해 `빠른 이동`, `퀵칩`, `지표 카드`, `4개 추천 클래스` 구조를 운영본에 반영했다.
     - 등급 배지를 `BLOOM/GARDEN/ATELIER/AMBASSADOR` 체계와 legacy 저장값 양쪽을 모두 읽도록 유지했다.
+    - live 확인 중 `class-api`가 `400 INVALID_ACTION`을 반환하던 원인을 찾아 메인 허브 호출의 `contentType`을 `text/plain`에서 `application/json`으로 수정했다.
+  - `메인페이지/파트너클래스-홈개편/js.js`
+    - 동일한 `class-api` 헤더 문제를 같이 수정해 별도 개편안 폴더도 같은 버그가 남지 않도록 맞췄다.
   - 검증
     - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 메인페이지/Index.html 메인페이지/css.css 메인페이지/js.js`
     - `node --check 메인페이지/js.js`
+    - `curl -X POST https://n8n.pressco21.com/webhook/class-api -H 'Content-Type: application/json' --data '{"action":"getClasses","sort":"popular","limit":8}'` -> `200`
+    - 동일 요청을 `text/plain`으로 보내면 live에서 `400 INVALID_ACTION` 재현 확인
 - [CODEX-LEAD] E0-009/E0-011/E0-012/E0-013 로컬 수정 완료, E0-010 원인 분리 완료.
   - `파트너클래스/상세/Index.html`
     - Kakao SDK integrity 값을 `2.7.2` 현재 배포 해시에 맞게 갱신했다.
@@ -211,14 +237,13 @@
 ### [CODEX] 메인페이지 메이크샵 저장 후 live QA
 
 1. 메이크샵 저장
-   - 메인페이지 운영본 `HTML` 탭: `메인페이지/Index.html`
-   - 메인페이지 운영본 `CSS` 탭: `메인페이지/css.css`
    - 메인페이지 운영본 `JS` 탭: `메인페이지/js.js`
+   - 별도 개편안을 계속 유지 중이면 `메인페이지/파트너클래스-홈개편/js.js`도 함께 동기화
 2. 저장 후 Playwright live 검증
    - 메인 배너 3장 링크가 각각 `지원 폼`, `압화`, `레진공예`로 이동하는지 확인
    - 섹션01 카테고리/서브배너 링크와 `원데이 클래스` 아이템 진입 확인
    - `파트너 클래스 서비스` 3카드 노출 및 `2609`, `2606&tab=affiliations`, `8010` 연결 확인
-   - 메인 클래스 진입점 카드/칩/지표가 live에서 정상 렌더되는지 확인
+   - 메인 클래스 진입점 카드/칩/지표가 더 이상 숨김 처리되지 않고 정상 렌더되는지 확인
 
 ### [CODEX-LEAD] 파트너클래스 엔터프라이즈 고도화 — E0 Day 2 저장 대기
 

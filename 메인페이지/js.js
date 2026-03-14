@@ -69,10 +69,16 @@
        ======================================== */
     function initMoreButtons() {
         $(document).on('click', '.btn-wrap .btn-more', function(e) {
-            e.preventDefault();
             var btn = $(this);
             var tag = btn.data('tag');
-            if (!tag) return;
+            if (!tag) {
+                var href = btn.attr('href');
+                if (!href || href === '#none') {
+                    e.preventDefault();
+                }
+                return;
+            }
+            e.preventDefault();
             get_main_list(
                 tag,
                 btn.data('page'),

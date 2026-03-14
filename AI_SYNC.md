@@ -49,18 +49,15 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-13 20:32 KST
+- Current Owner: IDLE
+- Mode: IDLE
+- Started At: 2026-03-14 05:58 KST
 - Branch: codex/partnerclass-e0-001-testdata-cleanup
-- Working Scope: offline-crm-v2 기존 장부 거래 백업 기반 수정/숨김 기능 추가
-- Active Subdirectory: /Users/jangjiho/workspace/pressco21/offline-crm-v2
+- Working Scope: -
+- Active Subdirectory: /Users/jangjiho/workspace/pressco21
 
 ## Files In Progress
-- `offline-crm-v2/src/lib/api.ts`
-- `offline-crm-v2/src/pages/Transactions.tsx`
-- `offline-crm-v2/src/pages/CustomerDetail.tsx`
-- `파트너클래스/n8n-workflows/WF-CRM-PROXY-nocodb-proxy.json`
+- 없음
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -93,6 +90,42 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- [CODEX-LEAD] Gmail 자동입금 텔레그램 요약 알림 연동 완료.
+  - `scripts/deploy-crm-deposit-telegram.js`
+    - live n8n의 `WF-CRM-01 입금자동반영 엔진`, `WF-CRM-02 Gmail 입금알림 수집`을 fetch → backup → patch → redeploy 하는 스크립트를 추가했다.
+    - `WF-CRM-01` 응답 payload에 자동반영 상세(`exactActions`)를 포함시키고, `WF-CRM-02`에 `Build Telegram Deposit Summary`, `Telegram Deposit Summary` 노드를 추가하도록 구성했다.
+  - live 배포
+    - `WF-CRM-01 입금자동반영 엔진 -> TmB5jGa1bDMg5pBE`
+    - `WF-CRM-02 Gmail 입금알림 수집 -> 7ql6pPWlBoJhoZqH`
+    - backup: `output/n8n-backups/20260314-055641-crm-deposit-telegram`
+  - 검증
+    - `node --check scripts/deploy-crm-deposit-telegram.js`
+    - live workflow fetch 재확인:
+      - `WF-CRM-02`에 `Build Telegram Deposit Summary`, `Telegram Deposit Summary` 노드 존재
+      - `HTTP Call Intake Engine -> Build Telegram Deposit Summary` 연결 반영
+  - 참고
+    - 현재 저장소/환경에서는 고객별 Telegram chat ID 저장 구조를 찾지 못했다.
+    - 따라서 이번 자동화는 `TELEGRAM_CHAT_ID` 기준 내부/대표 채널 요약 알림까지 반영했고, 고객 개별 Telegram 발송은 후속 데이터 설계가 필요하다.
+- [CODEX] offline-crm-v2 기존 장부 거래 백업 기반 수정/삭제 기능 추가 및 배포 완료.
+  - `offline-crm-v2/src/lib/api.ts`
+    - `txHistoryOps` 가상 엔드포인트와 `updateLegacyTxHistory`, `deleteLegacyTxHistory`, `restoreLegacyTxHistory`, `getLegacyTxHistoryBackups` API를 추가했다.
+  - `offline-crm-v2/src/components/LegacyTxHistoryDialog.tsx`
+    - 기존 장부 거래를 백업 후 수정/삭제하는 공용 다이얼로그를 추가했다.
+  - `offline-crm-v2/src/pages/Transactions.tsx`
+    - `legacy` 원본 행에도 `수정`, `삭제` 버튼을 노출하고 완료 후 거래/고객 통계를 재검산하도록 연결했다.
+  - `offline-crm-v2/src/pages/CustomerDetail.tsx`
+    - `고객상세 > 거래내역` 탭의 기존 장부 원본 행에도 동일한 `수정`, `삭제` 흐름을 추가했다.
+  - `파트너클래스/n8n-workflows/WF-CRM-PROXY-nocodb-proxy.json`
+    - `txHistoryOps` 요청을 `crm-tx-history-ops` 워크플로우로 프록시하고 `x-crm-key`를 전달하도록 확장했다.
+  - `파트너클래스/n8n-workflows/WF-CRM-tx-history-ops.json`
+    - 원본 조회 → staticData 백업 적재 → NocoDB 수정/삭제/복구를 처리하는 전용 워크플로우를 추가했다.
+  - `scripts/deploy-crm-txhistory-workflows.js`
+    - CRM 프록시/기존 장부 ops 워크플로우를 함께 배포하는 스크립트를 추가했다.
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
+    - n8n 워크플로우 배포 완료: `WF-CRM-PROXY NocoDB Proxy -> pKtxMPJfqiJKA0Rk`, `WF-CRM Legacy Tx History Ops -> XvmYpQt7pOAlYiin`
+    - 직접 호출 검증: `crm-tx-history-ops` `listBackups` 200 OK, `https://crm.pressco21.com/crm-proxy` 경유 `txHistoryOps` `listBackups` 200 OK
+    - `bash offline-crm-v2/deploy/deploy.sh` 운영 배포 완료
 - [CODEX] offline-crm-v2 거래명세표 개별 할인 인쇄 표기 보강 완료.
   - `offline-crm-v2/src/components/InvoiceDialog.tsx`
     - 인쇄 데이터 빌더가 `discount_amount`를 함께 전달하도록 연결했다.
@@ -146,10 +179,12 @@
   - `메인페이지/Index.html`
     - 디자이너 운영본 기준 `Learn & Shop`, `Partner Class Service`, `Partner/Affiliation/Booking` 레이블을 다시 복원했다.
     - YouTube 관련 상품 placeholder 이미지도 `via.placeholder.com` 원본 형태로 되돌려 비파트너클래스 영역 코드 변경을 최소화했다.
+    - `btn-more` 링크를 디자이너 제공 운영 경로 기준으로 복구했다.
     - 배너, 카테고리, 파트너클래스 3카드 구조와 링크는 유지했다.
   - `메인페이지/js.js`
     - 메인 클래스 허브의 카피를 디자이너 운영본 기준 `PARTNER CLASS`, `QUICK SERVICE`로 복원했다.
     - 기능 수정은 `class-api` 호출 `contentType: 'application/json'` 유지로 한정했다.
+    - `btn-more` 클릭은 동적 더보기일 때만 JS가 가로채고, 일반 링크는 기본 이동이 되도록 분기했다.
   - `메인페이지/파트너클래스-홈개편/Index.html`
   - `메인페이지/파트너클래스-홈개편/js.js`
     - 별도 개편안 폴더도 동일하게 디자이너 카피를 복원하고 `class-api` 헤더 수정만 남겼다.
@@ -260,6 +295,18 @@
 
 ## Next Step
 
+### [CODEX-LEAD] Gmail 자동입금 텔레그램 실메일 QA
+
+1. 실제 NH 입금 메일 1건이 Gmail로 들어오게 해 `WF-CRM-02`가 실행되는지 확인한다.
+2. 텔레그램 채널에 `자동반영/검토/미매칭` 요약 메시지가 도착하는지 확인한다.
+3. 고객별 Telegram 발송이 필요하면 `customers` 또는 별도 연락처 테이블에 `telegram_chat_id` 저장 구조를 추가한다.
+
+### [CODEX] offline-crm-v2 기존 장부 수정/삭제 실데이터 QA
+
+1. 운영에서 기존 장부 원본 행 1건을 골라 `수정` 다이얼로그가 열리고 사유 입력이 강제되는지 확인한다.
+2. 실제 변경 전후에 거래내역/고객상세/대시보드 집계가 갱신되는지 확인한다.
+3. 필요하면 `listBackups`/`restore`를 노출하는 관리 UI를 후속으로 추가한다.
+
 ### [CODEX] offline-crm-v2 할인 명세표 실화면 확인
 
 1. 명세표 작성/수정에서 `개별 할인`을 1건 이상 넣고 미리보기를 연다.
@@ -275,6 +322,7 @@
 2. 저장 후 Playwright live 검증
    - 메인페이지 제목/eyebrow가 디자이너 운영본 기준 `Learn & Shop`, `Partner Class Service`, `Partner/Affiliation/Booking`, `PARTNER CLASS`, `QUICK SERVICE`로 보이는지 확인
    - 메인 배너 3장 링크가 각각 `지원 폼`, `압화`, `레진공예`로 이동하는지 확인
+   - `section02` 첫 `더보기` 버튼이 `/shop/shopbrand.html?xcode=056&type=X`로 실제 이동하는지 확인
    - 섹션01 카테고리/서브배너 링크와 `원데이 클래스` 아이템 진입 확인
    - `Partner Class Service` 3카드 노출 및 `2609`, `2606&tab=affiliations`, `8010` 연결 확인
    - 메인 클래스 진입점 카드/칩/지표가 `INVALID_ACTION` 없이 응답되는지 확인

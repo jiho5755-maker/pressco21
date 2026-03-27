@@ -1,0 +1,135 @@
+{
+  "name": "WF-CRM-02 Gmail 입금알림 수집",
+  "nodes": [
+    {
+      "parameters": {
+        "mailbox": "INBOX",
+        "postProcessAction": "nothing",
+        "format": "simple",
+        "downloadAttachments": true,
+        "dataPropertyAttachmentsPrefixName": "attachment_",
+        "options": {
+          "customEmailConfig": "[]",
+          "trackLastMessageId": true,
+          "forceReconnect": 30
+        }
+      },
+      "id": "email-trigger-imap",
+      "name": "Email Trigger (IMAP)",
+      "type": "n8n-nodes-base.emailReadImap",
+      "typeVersion": 2.1,
+      "position": [
+        240,
+        280
+      ],
+      "credentials": {
+        "imap": {
+          "id": "qbXbw1umtmbPrgfJ",
+          "name": "PRESSCO21 Gmail IMAP Test"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const SECURE_MAIL_PASSWORD = '610227';\n\nfunction stripHtml(value) {\n  return String(value ?? '')\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, ' ')\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, ' ')\n    .replace(/<br\\s*\\/?>/gi, '\\n')\n    .replace(/<\\/(tr|p|div|li|td|th|h\\d)>/gi, '\\n')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&amp;/g, '&')\n    .replace(/\\r/g, '')\n    .replace(/\\n\\s+/g, '\\n')\n    .replace(/[ \\t]+/g, ' ')\n    .replace(/\\n+/g, '\\n')\n    .trim();\n}\n\nfunction parseAmount(value) {\n  const parsed = Number(String(value ?? '').replace(/[^\\d-]/g, ''));\n  return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : 0;\n}\n\nfunction normalizeDateOnly(value) {\n  const text = String(value ?? '').trim();\n  const match = text.match(/(\\d{4})[./-](\\d{1,2})[./-](\\d{1,2})/);\n  if (!match) return '';\n  return match[1] + '-' + match[2].padStart(2, '0') + '-' + match[3].padStart(2, '0');\n}\n\nfunction formatOccurredAt(dateOnly, fallbackDate) {\n  if (!dateOnly) {\n    const fallback = new Date(fallbackDate || Date.now());\n    return fallback.toISOString();\n  }\n  const fallback = fallbackDate ? new Date(fallbackDate) : new Date();\n  const hour = String(Number.isFinite(fallback.getHours()) ? fallback.getHours() : 0).padStart(2, '0');\n  const minute = String(Number.isFinite(fallback.getMinutes()) ? fallback.getMinutes() : 0).padStart(2, '0');\n  const second = String(Number.isFinite(fallback.getSeconds()) ? fallback.getSeconds() : 0).padStart(2, '0');\n  return dateOnly + 'T' + hour + ':' + minute + ':' + second + '+09:00';\n}\n\nfunction parsePlainSender(text) {\n  const patterns = [\n    /입금자명[:\\s]*([^\\n|/]+)/i,\n    /보낸분[:\\s]*([^\\n|/]+)/i,\n    /의뢰인[:\\s]*([^\\n|/]+)/i,\n    /보내는분[:\\s]*([^\\n|/]+)/i,\n    /예금주[:\\s]*([^\\n|/]+)/i,\n  ];\n  for (const pattern of patterns) {\n    const match = text.match(pattern);\n    if (match) return String(match[1]).trim();\n  }\n  return '';\n}\n\nfunction parsePlainOccurredAt(text, fallbackDate) {\n  const patterns = [\n    /(\\d{4})[./-](\\d{1,2})[./-](\\d{1,2})\\s+(\\d{1,2}):(\\d{2})(?::(\\d{2}))?/,\n    /(\\d{4})년\\s*(\\d{1,2})월\\s*(\\d{1,2})일\\s*(\\d{1,2}):(\\d{2})(?::(\\d{2}))?/,\n  ];\n  for (const pattern of patterns) {\n    const match = text.match(pattern);\n    if (!match) continue;\n    const year = match[1];\n    const month = match[2].padStart(2, '0');\n    const day = match[3].padStart(2, '0');\n    const hour = match[4].padStart(2, '0');\n    const minute = match[5].padStart(2, '0');\n    const second = String(match[6] ?? '00').padStart(2, '0');\n    return year + '-' + month + '-' + day + 'T' + hour + ':' + minute + ':' + second + '+09:00';\n  }\n  const date = new Date(fallbackDate || Date.now());\n  return date.toISOString();\n}\n\nfunction isVestMailSecureHtml(value) {\n  const text = String(value ?? '');\n  return text.includes('VestMail') || text.includes('YettieSoft') || text.includes('window.doAction=N') || text.includes('농협 통합 메시징 서비스');\n}\n\nfunction decryptVestMailSecureHtml(secureHtml, password) {\n  const scripts = [...String(secureHtml).matchAll(/<script[^>]*>([\\s\\S]*?)<\\/script>/gi)].map((match) => match[1]);\n  if (scripts.length === 0) return '';\n\n  class Element {\n    constructor(id = '') {\n      this.id = id;\n      this.style = {};\n      this.children = [];\n      this.innerHTML = '';\n      this.value = '';\n      this.parentNode = { removeChild: () => {} };\n      this.contentWindow = {\n        document: {\n          open() {},\n          write(value) { this._written = value; },\n          close() {},\n          body: { scrollHeight: 0, scrollWidth: 0 },\n        },\n      };\n    }\n    appendChild(child) {\n      this.children.push(child);\n      return child;\n    }\n    removeChild(child) {\n      this.children = this.children.filter((entry) => entry !== child);\n    }\n  }\n\n  const elements = new Map();\n  function getElement(id) {\n    if (!elements.has(id)) elements.set(id, new Element(id));\n    return elements.get(id);\n  }\n\n  ['password', 'inputform', '__p', 'org', 'pop_content', 'ly_header', 'ly_body2', 'noscript', 'progressdlg'].forEach(getElement);\n  const body = new Element('body');\n  const document = {\n    body,\n    documentElement: { lang: 'ko' },\n    getElementById(id) { return getElement(id); },\n    createElement(tag) { return new Element(tag); },\n    write(value) { this._written = (this._written || '') + value; },\n    close() {},\n  };\n\n  const timers = [];\n  const context = {\n    console,\n    document,\n    navigator: {\n      platform: 'Win32',\n      userAgent: 'Mozilla/5.0 Chrome/122.0.0.0',\n      language: 'ko-KR',\n      browserLanguage: 'ko-KR',\n      userLanguage: 'ko-KR',\n    },\n    location: { href: '' },\n    URL: {\n      createObjectURL(blob) {\n        context.__blob = blob;\n        return 'blob:vestmail';\n      },\n    },\n    Blob: globalThis.Blob ?? class BlobMock {\n      constructor(parts = [], options = {}) {\n        this.parts = parts;\n        this.type = options.type ?? '';\n      }\n    },\n    Uint8Array: globalThis.Uint8Array,\n    atob: (value) => Buffer.from(value, 'base64').toString('binary'),\n    btoa: (value) => Buffer.from(value, 'binary').toString('base64'),\n    alert: (message) => {\n      context.__alerts = (context.__alerts || []).concat([String(message ?? '')]);\n    },\n    setTimeout: (fn) => {\n      if (typeof fn === 'function') timers.push(fn);\n      return timers.length;\n    },\n    clearTimeout: () => {},\n    decodeURI,\n    unescape,\n    escape,\n    PDFView: undefined,\n    vestmail_onstart: () => {},\n    vestmail_onend: () => {},\n    event: { keyCode: 13 },\n    org: getElement('org'),\n    pop_content: getElement('pop_content'),\n  };\n\n  context.window = context;\n  context.self = context;\n\n  const boot = new Function('context', 'with (context) { ' + scripts.join('\\n') + '; return window.doAction; }');\n  const doAction = boot(context);\n  if (typeof doAction !== 'function') return '';\n\n  getElement('password').value = String(password ?? '');\n  doAction();\n\n  let steps = 0;\n  while (timers.length && steps < 200) {\n    const task = timers.shift();\n    task();\n    steps += 1;\n  }\n\n  return String(document._written ?? '');\n}\n\nfunction extractDepositsFromSecureMailContent(decryptedHtml, fallbackDate, subject, messageId, from) {\n  const text = stripHtml(decryptedHtml);\n  const lines = text\n    .split('\\n')\n    .map((line) => line.trim())\n    .filter(Boolean);\n\n  const deposits = [];\n  for (let index = 0; index < lines.length; index += 1) {\n    const rowHeader = lines[index];\n    const headerMatch = rowHeader.match(/^(\\d+)\\s+(\\d{4}[/-]\\d{2}[/-]\\d{2})$/);\n    if (!headerMatch) continue;\n\n    const kind = lines[index + 1] ?? '';\n    const amountText = lines[index + 2] ?? '';\n    const balanceText = lines[index + 3] ?? '';\n    const branch = lines[index + 4] ?? '';\n    const bank = lines[index + 5] ?? '';\n    const sender = lines[index + 6] ?? '';\n    if (kind !== '입금' || !sender) continue;\n\n    const amount = parseAmount(amountText);\n    if (amount <= 0) continue;\n\n    const occurredDate = normalizeDateOnly(headerMatch[2]);\n    const occurredAt = formatOccurredAt(occurredDate, fallbackDate);\n    deposits.push({\n      sender,\n      amount,\n      occurredAt,\n      note: [subject, bank, branch, balanceText].filter(Boolean).join(' / '),\n      externalId: (messageId || 'secure-mail') + '-' + headerMatch[1],\n      rawFrom: from,\n      rawSubject: subject,\n      secureMailType: 'vestmail_attachment',\n    });\n  }\n\n  return deposits;\n}\n\nfunction extractDepositFromPlainMail(text, fallbackDate, subject, messageId, from) {\n  const sender = parsePlainSender(text);\n  const amountPatterns = [\n    /입금(?:금액)?[:\\s]*([0-9,]+)\\s*원?/i,\n    /거래금액[:\\s]*([0-9,]+)\\s*원?/i,\n    /금액[:\\s]*([0-9,]+)\\s*원?/i,\n    /([0-9,]+)\\s*원\\s*입금/i,\n  ];\n  let amount = 0;\n  for (const pattern of amountPatterns) {\n    const match = text.match(pattern);\n    if (match) {\n      amount = parseAmount(match[1]);\n      break;\n    }\n  }\n  if (!sender || amount <= 0) return [];\n\n  return [{\n    sender,\n    amount,\n    occurredAt: parsePlainOccurredAt(text, fallbackDate),\n    note: subject,\n    externalId: messageId || ('email-' + Date.now() + '-' + amount),\n    rawFrom: from,\n    rawSubject: subject,\n    secureMailType: 'plain_mail',\n  }];\n}\n\nconst item = $input.first();\nconst emailJson = item.json ?? {};\nconst binary = item.binary ?? {};\nconst subject = String(emailJson.subject ?? '');\nconst from = String(emailJson.from?.text ?? emailJson.from ?? '');\nconst messageId = String(emailJson.messageId ?? emailJson['message-id'] ?? emailJson.attributes?.uid ?? '');\nconst fallbackDate = emailJson.date;\n\nlet secureHtml = '';\nconst directHtmlCandidates = [\n  String(emailJson.textHtml ?? ''),\n  String(emailJson.html ?? ''),\n  String(emailJson.text ?? ''),\n];\n\nfor (const candidate of directHtmlCandidates) {\n  if (candidate && isVestMailSecureHtml(candidate)) {\n    secureHtml = candidate;\n    break;\n  }\n}\n\nif (!secureHtml) {\n  for (const [binaryKey, binaryValue] of Object.entries(binary)) {\n    const fileName = String(binaryValue.fileName ?? binaryKey ?? '');\n    const mimeType = String(binaryValue.mimeType ?? '');\n    let attachmentText = '';\n    const rawData = typeof binaryValue.data === 'string' ? binaryValue.data : '';\n    if (rawData === 'filesystem-v2') {\n      try {\n        if (this?.helpers?.getBinaryDataBuffer) {\n          const buffer = await this.helpers.getBinaryDataBuffer(0, binaryKey);\n          attachmentText = Buffer.from(buffer).toString('utf8');\n        }\n      } catch {}\n    } else if (rawData) {\n      attachmentText = Buffer.from(rawData, 'base64').toString('utf8');\n    }\n    if (!attachmentText) continue;\n    if (fileName.toLowerCase().endsWith('.html') || mimeType.includes('text/html') || isVestMailSecureHtml(attachmentText)) {\n      if (isVestMailSecureHtml(attachmentText)) {\n        secureHtml = attachmentText;\n        break;\n      }\n    }\n  }\n}\n\nlet deposits = [];\nif (secureHtml) {\n  const decryptedHtml = decryptVestMailSecureHtml(secureHtml, SECURE_MAIL_PASSWORD);\n  if (decryptedHtml) {\n    deposits = extractDepositsFromSecureMailContent(decryptedHtml, fallbackDate, subject, messageId, from);\n  }\n}\n\nif (deposits.length === 0) {\n  const textPlain = String(emailJson.textPlain ?? emailJson.text ?? '');\n  const textHtml = String(emailJson.textHtml ?? emailJson.html ?? '');\n  const mergedText = [subject, stripHtml(textPlain), stripHtml(textHtml)].filter(Boolean).join('\\n');\n  deposits = extractDepositFromPlainMail(mergedText, fallbackDate, subject, messageId, from);\n}\n\nif (deposits.length === 0) {\n  return [];\n}\n\nreturn [{\n  json: {\n    source: secureHtml ? 'email_secure_mail' : 'email_imap',\n    deposits,\n  },\n}];"
+      },
+      "id": "code-parse-email",
+      "name": "Code: Parse Deposit Email",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.deposits || []).length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-has-deposits",
+      "name": "IF Has Deposits",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        720,
+        280
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/crm-auto-deposit-intake",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-call-intake-engine",
+      "name": "HTTP Call Intake Engine",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        200
+      ]
+    }
+  ],
+  "connections": {
+    "Email Trigger (IMAP)": {
+      "main": [
+        [
+          {
+            "node": "Code: Parse Deposit Email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Parse Deposit Email": {
+      "main": [
+        [
+          {
+            "node": "IF Has Deposits",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Has Deposits": {
+      "main": [
+        [
+          {
+            "node": "HTTP Call Intake Engine",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {}
+}

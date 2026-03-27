@@ -1,0 +1,160 @@
+{
+  "name": "F030b SNS 콘텐츠 주간 리포트",
+  "nodes": [
+    {
+      "id": "f030b-0001-4aaa-bbbb-000000000001",
+      "name": "매주 일요일 20:00 KST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 11 * * 0"
+            }
+          ]
+        }
+      },
+      "notes": "매주 일요일 20:00 KST (= UTC 11:00)에 실행. 이번 주 현황 + 다음 주 계획 + 마케팅 포인트를 리포트합니다."
+    },
+    {
+      "id": "f030b-0002-4aaa-bbbb-000000000002",
+      "name": "주간 날짜 계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [260, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// KST 기준 이번 주(월~오늘), 다음 주(월~일) 날짜 범위 계산\nconst KST_OFFSET = 9 * 60 * 60 * 1000;\nconst now = new Date(Date.now() + KST_OFFSET);\nconst pad = (n) => String(n).padStart(2, '0');\nconst fmt = (d) => d.getUTCFullYear() + '-' + pad(d.getUTCMonth() + 1) + '-' + pad(d.getUTCDate());\n\n// 오늘 요일 (0=일, 1=월, ..., 6=토)\nconst dayOfWeek = now.getUTCDay();\n\n// 이번 주 월요일 (일요일 실행이므로 6일 전)\nconst thisMonday = new Date(now.getTime() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1) * 24 * 60 * 60 * 1000);\nconst thisMondayStr = fmt(thisMonday);\nconst todayStr = fmt(now);\n\n// 다음 주 월요일 ~ 일요일\nconst nextMonday = new Date(thisMonday.getTime() + 7 * 24 * 60 * 60 * 1000);\nconst nextSunday = new Date(nextMonday.getTime() + 6 * 24 * 60 * 60 * 1000);\nconst nextMondayStr = fmt(nextMonday);\nconst nextSundayStr = fmt(nextSunday);\n\n// 현재 월 (1~12)\nconst currentMonth = now.getUTCMonth() + 1;\n\nreturn [{ json: {\n  thisMonday: thisMondayStr,\n  today: todayStr,\n  nextMonday: nextMondayStr,\n  nextSunday: nextSundayStr,\n  currentMonth: currentMonth\n} }];"
+      },
+      "notes": "이번 주 월요일~오늘, 다음 주 월~일 날짜 범위를 YYYY-MM-DD 형식으로 계산합니다."
+    },
+    {
+      "id": "f030b-0003-4aaa-bbbb-000000000003",
+      "name": "이번 주 콘텐츠 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [540, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/312d119f-a669-8101-8340-dc7991e3e805/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { and: [{ property: '발행 예정일', date: { on_or_after: $json.thisMonday } }, { property: '발행 예정일', date: { on_or_before: $json.today } }] }, sorts: [{ property: '발행 예정일', direction: 'ascending' }], page_size: 100 }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3",
+          "name": "Notion API"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Notion 콘텐츠 캘린더 DB에서 이번 주 월요일~오늘 범위의 모든 콘텐츠를 조회합니다."
+    },
+    {
+      "id": "f030b-0004-4aaa-bbbb-000000000004",
+      "name": "다음 주 콘텐츠 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [820, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/312d119f-a669-8101-8340-dc7991e3e805/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { and: [{ property: '발행 예정일', date: { on_or_after: $('주간 날짜 계산').first().json.nextMonday } }, { property: '발행 예정일', date: { on_or_before: $('주간 날짜 계산').first().json.nextSunday } }] }, sorts: [{ property: '발행 예정일', direction: 'ascending' }], page_size: 100 }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3",
+          "name": "Notion API"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Notion 콘텐츠 캘린더 DB에서 다음 주 월~일 범위의 모든 콘텐츠를 조회합니다."
+    },
+    {
+      "id": "f030b-0005-4aaa-bbbb-000000000005",
+      "name": "주간 리포트 조합",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1100, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 이번 주 현황 + 다음 주 계획 + 마케팅 포인트를 텔레그램 메시지로 조합\nconst dateInfo = $('주간 날짜 계산').first().json;\nconst thisWeekData = $('이번 주 콘텐츠 조회').first().json;\nconst nextWeekData = $input.first().json; // 직전 노드(다음 주 조회) 결과\n\nconst thisWeekItems = thisWeekData.results || [];\nconst nextWeekItems = nextWeekData.results || [];\n\n// 에러 체크\nif (thisWeekData.error || nextWeekData.error) {\n  const errMsg = thisWeekData.error || nextWeekData.error;\n  return [{ json: { text: '[F030b] Notion API 오류: ' + (errMsg.message || JSON.stringify(errMsg)) } }];\n}\n\n// 헬퍼: Notion 페이지에서 필드 추출\nfunction extractFields(page) {\n  const props = page.properties || {};\n  const titleProp = props['콘텐츠 제목'];\n  const title = titleProp?.title?.[0]?.plain_text || '(제목 없음)';\n  const channelProp = props['발행 채널'];\n  const channelList = channelProp?.multi_select?.map(s => s.name) || [];\n  const channels = channelList.join(', ') || '채널 미지정';\n  const statusProp = props['상태'];\n  const status = statusProp?.select?.name || '상태 없음';\n  const dateProp = props['발행 예정일'];\n  const dateStr = dateProp?.date?.start || '';\n  return { title, channels, channelList, status, date: dateStr };\n}\n\n// 요일 매핑\nconst dayNames = ['일', '월', '화', '수', '목', '금', '토'];\nfunction getDayName(dateStr) {\n  if (!dateStr) return '?';\n  const d = new Date(dateStr + 'T00:00:00+09:00');\n  return dayNames[d.getDay()];\n}\n\n// === 이번 주 현황 ===\nlet completedCount = 0;\nlet inProgressCount = 0;\nconst channelCount = {};\n\nthisWeekItems.forEach(page => {\n  const f = extractFields(page);\n  if (f.status === '발행 완료') {\n    completedCount++;\n  } else {\n    inProgressCount++;\n  }\n  f.channelList.forEach(ch => {\n    channelCount[ch] = (channelCount[ch] || 0) + 1;\n  });\n});\n\nconst channelSummary = Object.entries(channelCount)\n  .map(([ch, cnt]) => ch + ' ' + cnt)\n  .join(' | ') || '없음';\n\n// === 다음 주 예정 ===\nconst nextWeekByDay = {};\nnextWeekItems.forEach(page => {\n  const f = extractFields(page);\n  const day = getDayName(f.date);\n  if (!nextWeekByDay[day]) nextWeekByDay[day] = [];\n  nextWeekByDay[day].push(f);\n});\n\n// === 웨딩 시즌 이벤트 달력 ===\nconst seasonEvents = {\n  1: '설날 연휴 (신년 선물)',\n  2: '발렌타인데이 (2/14)',\n  3: '화이트데이 (3/14), 졸업/입학 시즌',\n  4: '봄 웨딩 성수기 시작',\n  5: '어버이날 (5/8), 스승의날 (5/15), 가정의달 -> 최성수기',\n  6: '여름 웨딩',\n  9: '추석 (매년 다름)',\n  10: '가을 웨딩 성수기',\n  11: '빼빼로데이 (11/11)',\n  12: '크리스마스 (12/25)'\n};\n\n// === 메시지 조립 ===\nlet msg = '\\uD83D\\uDCCA SNS 콘텐츠 주간 리포트\\n\\n';\n\n// 이번 주 현황\nmsg += '\\uD83D\\uDCCC 이번 주 현황 (' + thisWeekItems.length + '건 계획 / ' + completedCount + '건 완료)\\n';\nmsg += '\\u2705 완료: ' + completedCount + '건\\n';\nmsg += '\\u23F3 진행중/기획: ' + inProgressCount + '건\\n';\nmsg += '\\uD83D\\uDCCB 채널별: ' + channelSummary + '\\n';\n\n// 다음 주 예정\nmsg += '\\n\\uD83D\\uDCC5 다음 주 예정 (' + nextWeekItems.length + '건)\\n';\nif (nextWeekItems.length > 0) {\n  const dayOrder = ['월', '화', '수', '목', '금', '토', '일'];\n  dayOrder.forEach(day => {\n    if (nextWeekByDay[day]) {\n      nextWeekByDay[day].forEach(f => {\n        msg += '\\u2022 ' + day + ' - ' + f.channels + ' | ' + f.title + '\\n';\n      });\n    }\n  });\n} else {\n  msg += '다음 주 예정 없음 \\u2014 콘텐츠를 미리 등록해두세요\\n';\n}\n\n// 마케팅 포인트\nconst currentMonth = dateInfo.currentMonth;\nconst eventText = seasonEvents[currentMonth];\nmsg += '\\n\\uD83C\\uDFAF 이번 달 마케팅 포인트:\\n';\nif (eventText) {\n  msg += '\\u2022 ' + eventText + '\\n';\n} else {\n  msg += '\\u2022 ' + currentMonth + '월: 특별 이벤트 없음 (자체 프로모션 기획 추천)\\n';\n}\n\nreturn [{ json: { text: msg.trim() } }];"
+      },
+      "notes": "이번 주 현황(완료/진행중/채널별) + 다음 주 예정(요일별) + 월별 마케팅 포인트를 조합합니다. 웨딩 시즌 이벤트 캘린더가 하드코딩되어 있습니다."
+    },
+    {
+      "id": "f030b-0006-4aaa-bbbb-000000000006",
+      "name": "텔레그램 주간 리포트",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1380, 300],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "notes": "조합된 주간 리포트 메시지를 텔레그램으로 발송합니다."
+    }
+  ],
+  "connections": {
+    "매주 일요일 20:00 KST": {
+      "main": [
+        [{ "node": "주간 날짜 계산", "type": "main", "index": 0 }]
+      ]
+    },
+    "주간 날짜 계산": {
+      "main": [
+        [{ "node": "이번 주 콘텐츠 조회", "type": "main", "index": 0 }]
+      ]
+    },
+    "이번 주 콘텐츠 조회": {
+      "main": [
+        [{ "node": "다음 주 콘텐츠 조회", "type": "main", "index": 0 }]
+      ]
+    },
+    "다음 주 콘텐츠 조회": {
+      "main": [
+        [{ "node": "주간 리포트 조합", "type": "main", "index": 0 }]
+      ]
+    },
+    "주간 리포트 조합": {
+      "main": [
+        [{ "node": "텔레그램 주간 리포트", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "SNS콘텐츠" }, { "name": "homepage-automation" }]
+}

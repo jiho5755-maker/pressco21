@@ -1,0 +1,449 @@
+{
+  "name": "정부지원사업_행정서류자동생성",
+  "nodes": [
+    {
+      "id": "doc-node-001",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 */4 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "doc-node-002",
+      "name": "NocoDB 신청의향 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(신청의향,eq,true)~and(상태,eq,데이터 수집)"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "doc-node-003",
+      "name": "Code 신청의향 체크",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rawItems = $input.all();\nconst targets = [];\nfor (const raw of rawItems) {\n  if (raw.json.list && Array.isArray(raw.json.list)) {\n    for (const record of raw.json.list) {\n      targets.push(record);\n    }\n  }\n}\nreturn [{ json: { count: targets.length, targets } }];"
+      }
+    },
+    {
+      "id": "doc-node-004",
+      "name": "IF 대상 있음",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-doc-count",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "doc-node-005",
+      "name": "NoOp 없음",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [960, 460],
+      "parameters": {}
+    },
+    {
+      "id": "doc-node-006",
+      "name": "Code 대상 아이템화",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 180],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const { targets } = $input.first().json;\nreturn targets.map(t => ({ json: t }));"
+      }
+    },
+    {
+      "id": "doc-node-007",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1200, 180],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "doc-node-008",
+      "name": "Code 서류 프롬프트",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 60],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const f = $input.first().json;\nconst systemPrompt = '당신은 정부지원사업 행정 서류 작성 전문가입니다. 요청한 JSON 형식으로만 응답하세요.';\nconst userPrompt = `다음 정부지원사업에 신청하려고 합니다.\\n\\n사업명: ${f['지원사업이름'] || ''}\\n주관기관: ${f['소관기관'] || ''}\\n카테고리: ${f['카테고리'] || '기타'}\\n지원 내용: ${f['적합이유'] || ''}\\n신청 난이도: ${f['신청난이도'] || '중'}\\n예상 지원규모: ${f['예상지원규모'] || '미상'}\\n예상 필요서류: ${f['필요서류_예측'] || ''}\\n\\n[신청 기업 정보]\\n상호: Pressco21 (foreverlove.co.kr)\\n업종: 꽃/생활소품 온라인 도소매\\n규모: 소기업, 직원 8인\\n소재지: 서울 송파구\\n\\n다음 두 가지를 JSON으로 반환해주세요:\\n1. required_docs: 필요 서류 목록 (배열)\\n2. business_plan_outline: 사업계획서 초안 항목 3가지 (각 100자 이내)\\n\\n형식:{\"required_docs\": [\"서류1\", \"서류2\"], \"business_plan_outline\": [\"항목1 내용\", \"항목2 내용\", \"항목3 내용\"]}`;\n\nreturn [{ json: {\n  systemPrompt,\n  userPrompt,\n  _recordId: f['Id'] || 0,\n  _bizName: f['지원사업이름'] || '',\n  _agency: f['소관기관'] || '',\n  _link: f['신청Link'] || '',\n  _적합이유: f['적합이유'] || '',\n  _핵심신청자격: f['핵심신청자격'] || '',\n  _예상지원규모: f['예상지원규모'] || ''\n} }];"
+      }
+    },
+    {
+      "id": "doc-node-009",
+      "name": "Gemini 서류 분석",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [1680, 60],
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $('Code 서류 프롬프트').item.json.systemPrompt }}",
+              "role": "model"
+            },
+            {
+              "content": "={{ $('Code 서류 프롬프트').item.json.userPrompt }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qC5YRvdMTRVPbAmQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "doc-node-010",
+      "name": "Code 서류 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1920, 60],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst promptData = $('Code 서류 프롬프트').item.json;\n\nfunction extractText(resp) {\n  if (resp.candidates?.[0]?.content?.parts?.[0]?.text) return resp.candidates[0].content.parts[0].text;\n  if (resp.content?.parts?.[0]?.text) return resp.content.parts[0].text;\n  if (resp.parts?.[0]?.text) return resp.parts[0].text;\n  if (typeof resp.text === 'string') return resp.text;\n  return '';\n}\n\nconst text = extractText(response);\nlet requiredDocs = [];\nlet businessPlanOutline = [];\n\ntry {\n  const codeBlock = text.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n  let jsonStr = codeBlock ? codeBlock[1] : '';\n  if (!jsonStr) { const obj = text.match(/\\{[\\s\\S]*\\}/); if (obj) jsonStr = obj[0]; }\n  if (jsonStr) {\n    const parsed = JSON.parse(jsonStr.trim());\n    requiredDocs = parsed.required_docs || [];\n    businessPlanOutline = parsed.business_plan_outline || [];\n  }\n} catch (e) {}\n\nif (requiredDocs.length === 0) {\n  requiredDocs = ['사업자등록증 사본', '법인등기부등본', '대표자 신분증 사본', '직전연도 재무제표', '4대보험 가입자명부'];\n}\n\nconst docList = requiredDocs.map((d, i) => `${i+1}. ${d}`).join('\\n');\nconst outlineList = businessPlanOutline.map((o, i) => `${i+1}. ${o}`).join('\\n');\nconst linkText = promptData._link ? `\\n\\n🔗 <a href=\"${promptData._link}\">공고 원문 보기</a>` : '';\n\nconst telegramText = `📋 <b>[행정서류 체크리스트]</b>\\n${promptData._bizName}\\n${promptData._agency}\\n\\n<b>📁 필요 서류</b>\\n${docList}\\n\\n<b>📝 사업계획서 초안 방향</b>\\n${outlineList || '내용 없음'}\\n\\n⚠️ <i>AI 생성 초안 — 담당자 검토/수정 필요</i>${linkText}`;\n\nreturn [{ json: {\n  _recordId: promptData._recordId,\n  _bizName: promptData._bizName,\n  _agency: promptData._agency,\n  _link: promptData._link,\n  _적합이유: promptData._적합이유,\n  _핵심신청자격: promptData._핵심신청자격,\n  _예상지원규모: promptData._예상지원규모,\n  telegramText,\n  docsCount: requiredDocs.length\n} }];"
+      }
+    },
+    {
+      "id": "doc-node-011",
+      "name": "NocoDB 상태 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2160, 60],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "=[{\"Id\":{{ $json._recordId }},\"상태\":\"작성 중\",\"서류_진행상태\":\"미시작\"}]",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "doc-node-015",
+      "name": "Code 사업계획서 프롬프트",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, 60],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const parsed = $('Code 서류 파싱').item.json;\n\nconst systemPrompt = '당신은 중소기업 정부지원사업 사업계획서 작성 전문가입니다. 요청한 JSON 형식으로만 응답하세요.';\n\nconst userPrompt = `다음 정부지원사업 신청용 사업계획서 초안을 작성해주세요.\\n\\n지원사업: ${parsed._bizName}\\n주관기관: ${parsed._agency}\\n지원내용: ${parsed._적합이유 || ''}\\n핵심자격: ${parsed._핵심신청자격 || ''}\\n예상지원규모: ${parsed._예상지원규모 || ''}\\n\\n[신청기업 정보]\\n- 상호: Pressco21 (foreverlove.co.kr)\\n- 업종: 꽃/생활소품 온라인 도소매\\n- 규모: 소기업, 직원 8인\\n- 소재지: 서울 송파구\\n- 주요현황: 자사몰 운영 + SNS마케팅 + 제휴강사플랫폼 운영\\n\\n다음 JSON 형식으로만 응답하세요:\\n{\"문서제목\":\"사업명 포함 제목\",\"사업개요\":\"200자이내\",\"현황분석\":\"200자이내\",\"추진계획\":\"200자이내\",\"기대효과\":\"200자이내\",\"예산계획\":\"100자이내\"}`;\n\nreturn [{ json: {\n  systemPrompt,\n  userPrompt,\n  _recordId: parsed._recordId,\n  _bizName: parsed._bizName,\n  _agency: parsed._agency,\n  _link: parsed._link,\n  _docsCount: parsed.docsCount || 0,\n  _telegramText: parsed.telegramText\n} }];"
+      }
+    },
+    {
+      "id": "doc-node-016",
+      "name": "Gemini 사업계획서",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [2640, 60],
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $('Code 사업계획서 프롬프트').item.json.systemPrompt }}",
+              "role": "model"
+            },
+            {
+              "content": "={{ $('Code 사업계획서 프롬프트').item.json.userPrompt }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qC5YRvdMTRVPbAmQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "doc-node-017",
+      "name": "Code 사업계획서 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2880, 60],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst promptData = $('Code 사업계획서 프롬프트').item.json;\n\nfunction extractText(resp) {\n  if (resp.candidates?.[0]?.content?.parts?.[0]?.text) return resp.candidates[0].content.parts[0].text;\n  if (resp.content?.parts?.[0]?.text) return resp.content.parts[0].text;\n  if (resp.parts?.[0]?.text) return resp.parts[0].text;\n  if (typeof resp.text === 'string') return resp.text;\n  return '';\n}\n\nconst text = extractText(response);\n\nlet plan = {\n  문서제목: `${promptData._bizName} - 사업계획서 초안`,\n  사업개요: '(생성 실패)',\n  현황분석: '(생성 실패)',\n  추진계획: '(생성 실패)',\n  기대효과: '(생성 실패)',\n  예산계획: '(생성 실패)'\n};\n\ntry {\n  const codeBlock = text.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n  let jsonStr = codeBlock ? codeBlock[1] : '';\n  if (!jsonStr) { const obj = text.match(/\\{[\\s\\S]*\\}/); if (obj) jsonStr = obj[0]; }\n  if (jsonStr) {\n    const parsed = JSON.parse(jsonStr.trim());\n    plan = { ...plan, ...parsed };\n  }\n} catch (e) {}\n\nconst today = new Date().toISOString().slice(0, 10);\n\nconst fullContent = `${plan['문서제목']}\\n작성일: ${today}  |  주관기관: ${promptData._agency}\\n\\n═══════════════════════════════════\\n\\n1. 사업 개요\\n${plan['사업개요']}\\n\\n2. 현황 분석\\n${plan['현황분석']}\\n\\n3. 추진 계획\\n${plan['추진계획']}\\n\\n4. 기대 효과\\n${plan['기대효과']}\\n\\n5. 예산 계획\\n${plan['예산계획']}\\n\\n═══════════════════════════════════\\n⚠ AI 생성 초안 — 담당자 검토 및 수정 필요\\n신청 링크: ${promptData._link || '미제공'}\\n`;\n\nreturn [{ json: {\n  _recordId: promptData._recordId,\n  _bizName: promptData._bizName,\n  _agency: promptData._agency,\n  _link: promptData._link,\n  _telegramText: promptData._telegramText,\n  docTitle: plan['문서제목'],\n  fullContent,\n  today\n} }];"
+      }
+    },
+    {
+      "id": "doc-node-018",
+      "name": "Google Docs 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3120, 60],
+      "parameters": {
+        "method": "POST",
+        "url": "https://docs.googleapis.com/v1/documents",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\"title\": $json.docTitle}) }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "49ff74cd-f8de-48b4-bbfd-1b0bd8333e75",
+          "name": "Pressco21-GoogleDocs"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "doc-node-019",
+      "name": "Google Docs 사업계획서 삽입",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3360, 60],
+      "parameters": {
+        "method": "POST",
+        "url": "=https://docs.googleapis.com/v1/documents/{{ $json.documentId }}:batchUpdate",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDocsOAuth2Api",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\"requests\": [{\"insertText\": {\"location\": {\"index\": 1}, \"text\": $('Code 사업계획서 파싱').item.json.fullContent}}]}) }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleDocsOAuth2Api": {
+          "id": "49ff74cd-f8de-48b4-bbfd-1b0bd8333e75",
+          "name": "Pressco21-GoogleDocs"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "doc-node-020",
+      "name": "NocoDB 문서링크 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3600, 60],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "=[{\"Id\":{{ $('Code 사업계획서 파싱').item.json._recordId }},\"문서_링크\":\"https://docs.google.com/document/d/{{ $('Google Docs 생성').item.json.documentId }}/edit\",\"서류_진행상태\":\"초안생성완료\",\"문서_생성일시\":\"{{ $('Code 사업계획서 파싱').item.json.today }}\"}]",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "doc-node-012",
+      "name": "Telegram 서류 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [3840, 60],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $('Code 사업계획서 파싱').item.json._telegramText + '\\n\\n📄 <b>사업계획서 초안 (Google Docs)</b>\\n<a href=\"https://docs.google.com/document/d/' + $('Google Docs 생성').item.json.documentId + '/edit\">문서 열기</a>' }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "doc-node-013",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [4080, 60],
+      "parameters": {
+        "amount": 3,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "doc-node-014",
+      "name": "NoOp 완료",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1440, 300],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "NocoDB 신청의향 조회", "type": "main", "index": 0 }]]
+    },
+    "NocoDB 신청의향 조회": {
+      "main": [[{ "node": "Code 신청의향 체크", "type": "main", "index": 0 }]]
+    },
+    "Code 신청의향 체크": {
+      "main": [[{ "node": "IF 대상 있음", "type": "main", "index": 0 }]]
+    },
+    "IF 대상 있음": {
+      "main": [
+        [{ "node": "Code 대상 아이템화", "type": "main", "index": 0 }],
+        [{ "node": "NoOp 없음", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code 대상 아이템화": {
+      "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]]
+    },
+    "Loop Over Items": {
+      "main": [
+        [{ "node": "Code 서류 프롬프트", "type": "main", "index": 0 }],
+        [{ "node": "NoOp 완료", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code 서류 프롬프트": {
+      "main": [[{ "node": "Gemini 서류 분석", "type": "main", "index": 0 }]]
+    },
+    "Gemini 서류 분석": {
+      "main": [[{ "node": "Code 서류 파싱", "type": "main", "index": 0 }]]
+    },
+    "Code 서류 파싱": {
+      "main": [[{ "node": "NocoDB 상태 업데이트", "type": "main", "index": 0 }]]
+    },
+    "NocoDB 상태 업데이트": {
+      "main": [[{ "node": "Code 사업계획서 프롬프트", "type": "main", "index": 0 }]]
+    },
+    "Code 사업계획서 프롬프트": {
+      "main": [[{ "node": "Gemini 사업계획서", "type": "main", "index": 0 }]]
+    },
+    "Gemini 사업계획서": {
+      "main": [[{ "node": "Code 사업계획서 파싱", "type": "main", "index": 0 }]]
+    },
+    "Code 사업계획서 파싱": {
+      "main": [[{ "node": "Google Docs 생성", "type": "main", "index": 0 }]]
+    },
+    "Google Docs 생성": {
+      "main": [[{ "node": "Google Docs 사업계획서 삽입", "type": "main", "index": 0 }]]
+    },
+    "Google Docs 사업계획서 삽입": {
+      "main": [[{ "node": "NocoDB 문서링크 업데이트", "type": "main", "index": 0 }]]
+    },
+    "NocoDB 문서링크 업데이트": {
+      "main": [[{ "node": "Telegram 서류 알림", "type": "main", "index": 0 }]]
+    },
+    "Telegram 서류 알림": {
+      "main": [[{ "node": "Wait", "type": "main", "index": 0 }]]
+    },
+    "Wait": {
+      "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

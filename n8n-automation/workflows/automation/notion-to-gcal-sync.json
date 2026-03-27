@@ -1,0 +1,188 @@
+{
+  "name": "[F5] 노션 → 구글 캘린더 역방향 동기화",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 5 }]
+        }
+      },
+      "id": "node-f5-schedule",
+      "name": "5분 폴링",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// KST 기준 5분 전 시각 계산\nconst fiveMinAgo = new Date(Date.now() - 5*60*1000).toISOString();\nreturn [{ json: { fiveMinAgo } }];"
+      },
+      "id": "node-f5-calc-time",
+      "name": "5분 전 시각 계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.notion.com/v1/databases/30bd119f-a669-81d0-8730-d824b7bc948c/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { and: [{ timestamp: 'last_edited_time', last_edited_time: { after: $json.fiveMinAgo } }, { property: '시간 ', date: { is_not_empty: true } }] }, page_size: 20 }) }}"
+      },
+      "id": "node-f5-query-notion",
+      "name": "노션 할 일 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// [from-gcal] 태그 항목 제외 (F2에서 구글캘린더→노션 생성된 것, 무한루프 방지)\n// 각 항목의 제목/날짜/메모/gcalId 추출\nconst results = $input.first().json.results || [];\n\nconst filtered = results.filter(r => {\n  const memoArr = r.properties['메모']?.rich_text || [];\n  const memoText = memoArr.map(t => t.plain_text).join('');\n  return !memoText.includes('[from-gcal]');\n});\n\nif (filtered.length === 0) {\n  return [];\n}\n\nreturn filtered.map(r => {\n  const titleArr = r.properties['할 일']?.title || [];\n  const title = titleArr.map(t => t.plain_text).join('') || '(제목 없음)';\n  const dateField = r.properties['시간 ']?.date;\n  const dateStart = dateField?.start || null;\n  const memoArr = r.properties['메모']?.rich_text || [];\n  const memo = memoArr.map(t => t.plain_text).join('');\n\n  // 메모에서 [gcal:이벤트ID] 추출\n  const gcalMatch = memo.match(/\\[gcal:([^\\]]+)\\]/);\n  const gcalId = gcalMatch ? gcalMatch[1] : null;\n\n  // 이벤트 요약 (프로젝트 관계가 있으면 이상적이지만 복잡도 절감을 위해 제목만 사용)\n  const summary = title;\n\n  return {\n    json: {\n      pageId: r.id,\n      title,\n      summary,\n      dateStart,\n      gcalId,\n      memo\n    }\n  };\n});"
+      },
+      "id": "node-f5-filter",
+      "name": "[from-gcal] 필터 + 데이터 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 구글 캘린더 이벤트 body 준비\n// dateStart 형식에 따라 all-day 또는 timed 이벤트 구분\nconst d = $json;\nconst dateStart = d.dateStart;\n\nlet start, end;\nif (dateStart && dateStart.includes('T')) {\n  // 시간 포함 이벤트 (예: 2026-02-25T14:00:00+09:00)\n  const startMs = new Date(dateStart).getTime();\n  const endMs = startMs + 60*60*1000; // +1시간\n  const endISO = new Date(endMs).toISOString().replace('.000Z', '+00:00');\n  // KST offset 복원\n  const endKST = dateStart.replace(/T.*/, '') + 'T' + new Date(endMs).toISOString().substring(11, 19) + '+09:00';\n  start = { dateTime: dateStart, timeZone: 'Asia/Seoul' };\n  end = { dateTime: endKST, timeZone: 'Asia/Seoul' };\n} else if (dateStart) {\n  // 종일 이벤트 (예: 2026-02-25)\n  start = { date: dateStart };\n  end = { date: dateStart };\n} else {\n  // dateStart 없음 → 스킵\n  return [];\n}\n\nreturn [{\n  json: {\n    ...d,\n    gcalEventBody: {\n      summary: d.summary,\n      start,\n      end\n    }\n  }\n}];"
+      },
+      "id": "node-f5-prepare-event",
+      "name": "이벤트 body 준비",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-gcal-exists",
+              "leftValue": "={{ $json.gcalId }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-f5-if-gcal",
+      "name": "gcalId 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "method": "PATCH",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/primary/events/{{ $json.gcalId }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.gcalEventBody) }}"
+      },
+      "id": "node-f5-update-gcal",
+      "name": "구글 캘린더 이벤트 수정",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 180],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "method": "POST",
+        "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.gcalEventBody) }}"
+      },
+      "id": "node-f5-create-gcal",
+      "name": "구글 캘린더 이벤트 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 420],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 새로 생성된 구글 캘린더 이벤트 ID를 노션 메모에 기록\nconst createdEvent = $input.first().json;\nconst gcalEventId = createdEvent.id;\n\nif (!gcalEventId) {\n  // 이벤트 생성 실패 → 스킵\n  return [];\n}\n\n// 이전 단계(이벤트 body 준비)에서 pageId, memo 참조\nconst prev = $('이벤트 body 준비').first().json;\nconst oldMemo = prev.memo || '';\n// 기존 메모 앞에 [gcal:이벤트ID] 추가\nconst newMemo = `[gcal:${gcalEventId}]${oldMemo ? ' ' + oldMemo : ''}`;\n\nreturn [{\n  json: {\n    pageId: prev.pageId,\n    newMemo,\n    gcalEventId\n  }\n}];"
+      },
+      "id": "node-f5-extract-id",
+      "name": "이벤트ID 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 420]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $json.pageId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Authorization", "value": "Bearer YOUR_NOTION_API_TOKEN" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ properties: { '메모': { rich_text: [{ text: { content: $json.newMemo } }] } } }) }}"
+      },
+      "id": "node-f5-update-notion",
+      "name": "노션 메모 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 420],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "5분 폴링": { "main": [[{ "node": "5분 전 시각 계산", "type": "main", "index": 0 }]] },
+    "5분 전 시각 계산": { "main": [[{ "node": "노션 할 일 조회", "type": "main", "index": 0 }]] },
+    "노션 할 일 조회": { "main": [[{ "node": "[from-gcal] 필터 + 데이터 추출", "type": "main", "index": 0 }]] },
+    "[from-gcal] 필터 + 데이터 추출": { "main": [[{ "node": "이벤트 body 준비", "type": "main", "index": 0 }]] },
+    "이벤트 body 준비": { "main": [[{ "node": "gcalId 있음?", "type": "main", "index": 0 }]] },
+    "gcalId 있음?": {
+      "main": [
+        [{ "node": "구글 캘린더 이벤트 수정", "type": "main", "index": 0 }],
+        [{ "node": "구글 캘린더 이벤트 생성", "type": "main", "index": 0 }]
+      ]
+    },
+    "구글 캘린더 이벤트 생성": { "main": [[{ "node": "이벤트ID 추출", "type": "main", "index": 0 }]] },
+    "이벤트ID 추출": { "main": [[{ "node": "노션 메모 업데이트", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }]
+}

@@ -1,0 +1,350 @@
+{
+  "name": "정부지원사업_이벤트기반탐색",
+  "nodes": [
+    {
+      "id": "ev-node-001",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 * * 1"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "ev-node-002",
+      "name": "NocoDB 미처리이벤트 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m5bh1vt0khkxhxw/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(처리상태,eq,미처리)"
+            },
+            {
+              "name": "limit",
+              "value": "50"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ev-node-003",
+      "name": "Code 이벤트 체크",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rawItems = $input.all();\nconst events = [];\nfor (const raw of rawItems) {\n  if (raw.json.list && Array.isArray(raw.json.list)) {\n    for (const record of raw.json.list) {\n      events.push(record);\n    }\n  }\n}\nreturn [{ json: { count: events.length, events } }];"
+      }
+    },
+    {
+      "id": "ev-node-004",
+      "name": "IF 이벤트 있음",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [720, 300],
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-event-count",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": { "type": "number", "operation": "gt" }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "ev-node-005",
+      "name": "NoOp 없음",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [960, 460],
+      "parameters": {}
+    },
+    {
+      "id": "ev-node-006",
+      "name": "Code 이벤트 아이템화",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 180],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const { events } = $input.first().json;\nreturn events.map(e => ({ json: e }));"
+      }
+    },
+    {
+      "id": "ev-node-007",
+      "name": "Loop Over Items",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [1200, 180],
+      "parameters": {
+        "batchSize": 1,
+        "options": {}
+      }
+    },
+    {
+      "id": "ev-node-008",
+      "name": "Code 이벤트 프롬프트",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 60],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const f = $input.first().json;\nconst systemPrompt = '당신은 정부지원사업 검색 전문가입니다. 요청한 JSON 형식으로만 응답하세요.';\nconst userPrompt = `회사에서 다음 이벤트가 발생했습니다.\\n\\n이벤트명: ${f['이벤트명'] || ''}\\n이벤트유형: ${f['이벤트유형'] || ''}\\n상세내용: ${f['상세내용'] || ''}\\n\\n이 상황에 적합한 정부지원사업을 찾기 위한 검색 키워드를 5~7개 추출해주세요.\\n\\n반드시 JSON 형식으로만 반환:{\"keywords\": [\"키워드1\", \"키워드2\", \"키워드3\"]}`;\n\nreturn [{ json: {\n  systemPrompt,\n  userPrompt,\n  _eventId: f['Id'] || 0,\n  _eventName: f['이벤트명'] || '',\n  _eventType: f['이벤트유형'] || '',\n  _eventDetail: f['상세내용'] || ''\n} }];"
+      }
+    },
+    {
+      "id": "ev-node-009",
+      "name": "Gemini 이벤트 분석",
+      "type": "@n8n/n8n-nodes-langchain.googleGemini",
+      "typeVersion": 1.1,
+      "position": [1680, 60],
+      "parameters": {
+        "modelId": {
+          "__rl": true,
+          "value": "models/gemini-2.5-flash",
+          "mode": "list",
+          "cachedResultName": "models/gemini-2.5-flash"
+        },
+        "messages": {
+          "values": [
+            {
+              "content": "={{ $('Code 이벤트 프롬프트').item.json.systemPrompt }}",
+              "role": "model"
+            },
+            {
+              "content": "={{ $('Code 이벤트 프롬프트').item.json.userPrompt }}"
+            }
+          ]
+        },
+        "builtInTools": {},
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qC5YRvdMTRVPbAmQ",
+          "name": "Google Gemini(PaLM) Api account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "ev-node-010",
+      "name": "Code 키워드 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1920, 60],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst promptData = $('Code 이벤트 프롬프트').item.json;\n\nfunction extractText(resp) {\n  if (resp.candidates?.[0]?.content?.parts?.[0]?.text) return resp.candidates[0].content.parts[0].text;\n  if (resp.content?.parts?.[0]?.text) return resp.content.parts[0].text;\n  if (resp.parts?.[0]?.text) return resp.parts[0].text;\n  if (typeof resp.text === 'string') return resp.text;\n  return '';\n}\n\nconst text = extractText(response);\nlet keywords = [];\ntry {\n  const codeBlock = text.match(/```json\\s*([\\s\\S]*?)\\s*```/i);\n  let jsonStr = codeBlock ? codeBlock[1] : '';\n  if (!jsonStr) { const obj = text.match(/\\{[\\s\\S]*\\}/); if (obj) jsonStr = obj[0]; }\n  if (jsonStr) {\n    const parsed = JSON.parse(jsonStr.trim());\n    keywords = parsed.keywords || [];\n  }\n} catch (e) {}\n\nif (keywords.length === 0) {\n  const fallbackMap = {\n    'HR': ['고용지원금', '채용지원', '인력지원', '육아휴직', '출산'],\n    '사업확장': ['온라인마케팅', '디지털전환', '수출지원', '사업화'],\n    '인증': ['인증지원', '인증취득', '기업인증'],\n    '재무': ['자금지원', '융자', '정책자금', '경영안정']\n  };\n  keywords = fallbackMap[promptData._eventType] || [promptData._eventName];\n}\n\nreturn [{ json: {\n  keywords,\n  _eventId: promptData._eventId,\n  _eventName: promptData._eventName,\n  _eventType: promptData._eventType,\n  _eventDetail: promptData._eventDetail\n} }];"
+      }
+    },
+    {
+      "id": "ev-node-011",
+      "name": "NocoDB 최근공고 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2160, 60],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(관련도점수,gte,50)~and(상태,eq,데이터 수집)"
+            },
+            {
+              "name": "limit",
+              "value": "300"
+            },
+            {
+              "name": "fields",
+              "value": "Id,지원사업이름,소관기관,관련도점수,신청Link,카테고리,적합이유,추천이유_상세,마감일"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ev-node-012",
+      "name": "Code 키워드 매칭 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2400, 60],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const kwData = $('Code 키워드 파싱').item.json;\nconst { keywords, _eventId, _eventName } = kwData;\nconst rawItems = $input.all();\n\n// NocoDB list 확장\nconst records = [];\nfor (const raw of rawItems) {\n  if (raw.json.list && Array.isArray(raw.json.list)) {\n    for (const r of raw.json.list) records.push(r);\n  }\n}\n\n// 키워드 필터링\nconst matches = records.filter(r => {\n  const text = `${r['지원사업이름'] || ''} ${r['적합이유'] || ''} ${r['카테고리'] || ''} ${r['추천이유_상세'] || ''} ${r['소관기관'] || ''}`.toLowerCase();\n  return keywords.some(kw => text.includes(kw.toLowerCase()));\n}).sort((a, b) => (b['관련도점수'] || 0) - (a['관련도점수'] || 0));\n\nconst topMatches = matches.slice(0, 5);\nlet telegramText = '';\n\nif (topMatches.length === 0) {\n  telegramText = `💡 <b>${_eventName}</b> 이벤트 탐색 결과\\n\\n현재 수집된 공고 중 매칭 결과가 없습니다.\\n\\n🔍 검색 키워드: ${keywords.join(', ')}`;\n} else {\n  const matchLines = topMatches.map((m, i) => {\n    const link = m['신청Link'] ? `\\n   🔗 <a href=\"${m['신청Link']}\">신청 바로가기</a>` : '';\n    const deadline = m['마감일'] ? ` | 마감: ${m['마감일']}` : '';\n    return `${i+1}. <b>${m['지원사업이름']}</b>\\n   ${m['소관기관'] || ''} | 점수: ${m['관련도점수']}점${deadline}${link}`;\n  }).join('\\n\\n');\n  telegramText = `💡 <b>[이벤트 탐색] ${_eventName}</b>\\n\\n관련 지원사업 ${matches.length}건 발견! (상위 ${topMatches.length}건 표시)\\n\\n${matchLines}\\n\\n🔍 키워드: ${keywords.join(', ')}`;\n}\n\nreturn [{ json: { _eventId, _eventName, telegramText, matchCount: topMatches.length } }];"
+      }
+    },
+    {
+      "id": "ev-node-013",
+      "name": "Telegram 이벤트 추천",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2640, 60],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.telegramText }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ev-node-014",
+      "name": "NocoDB 이벤트 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [2880, 60],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m5bh1vt0khkxhxw/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "=[{\"Id\":{{ $json._eventId }},\"처리상태\":\"검색완료\",\"n8n_처리완료\":true}]",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "ev-node-015",
+      "name": "Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [3120, 60],
+      "parameters": {
+        "amount": 2,
+        "unit": "seconds"
+      }
+    },
+    {
+      "id": "ev-node-016",
+      "name": "NoOp 완료",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1440, 300],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [[{ "node": "NocoDB 미처리이벤트 조회", "type": "main", "index": 0 }]]
+    },
+    "NocoDB 미처리이벤트 조회": {
+      "main": [[{ "node": "Code 이벤트 체크", "type": "main", "index": 0 }]]
+    },
+    "Code 이벤트 체크": {
+      "main": [[{ "node": "IF 이벤트 있음", "type": "main", "index": 0 }]]
+    },
+    "IF 이벤트 있음": {
+      "main": [
+        [{ "node": "Code 이벤트 아이템화", "type": "main", "index": 0 }],
+        [{ "node": "NoOp 없음", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code 이벤트 아이템화": {
+      "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]]
+    },
+    "Loop Over Items": {
+      "main": [
+        [{ "node": "Code 이벤트 프롬프트", "type": "main", "index": 0 }],
+        [{ "node": "NoOp 완료", "type": "main", "index": 0 }]
+      ]
+    },
+    "Code 이벤트 프롬프트": {
+      "main": [[{ "node": "Gemini 이벤트 분석", "type": "main", "index": 0 }]]
+    },
+    "Gemini 이벤트 분석": {
+      "main": [[{ "node": "Code 키워드 파싱", "type": "main", "index": 0 }]]
+    },
+    "Code 키워드 파싱": {
+      "main": [[{ "node": "NocoDB 최근공고 조회", "type": "main", "index": 0 }]]
+    },
+    "NocoDB 최근공고 조회": {
+      "main": [[{ "node": "Code 키워드 매칭 포맷", "type": "main", "index": 0 }]]
+    },
+    "Code 키워드 매칭 포맷": {
+      "main": [[{ "node": "Telegram 이벤트 추천", "type": "main", "index": 0 }]]
+    },
+    "Telegram 이벤트 추천": {
+      "main": [[{ "node": "NocoDB 이벤트 업데이트", "type": "main", "index": 0 }]]
+    },
+    "NocoDB 이벤트 업데이트": {
+      "main": [[{ "node": "Wait", "type": "main", "index": 0 }]]
+    },
+    "Wait": {
+      "main": [[{ "node": "Loop Over Items", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

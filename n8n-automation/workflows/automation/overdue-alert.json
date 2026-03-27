@@ -1,0 +1,83 @@
+{
+  "name": "[F4] 밀린 업무 알림 (10:00)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "triggerAtHour": 10, "triggerAtMinute": 0 }
+          ]
+        }
+      },
+      "id": "node-schedule",
+      "name": "매일 10:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/30bd119f-a669-81d0-8730-d824b7bc948c/query",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const now = new Date(); const y = now.getFullYear(); const m = String(now.getMonth()+1).padStart(2,'0'); const d = String(now.getDate()).padStart(2,'0'); const today = y+'-'+m+'-'+d; return JSON.stringify({ filter: { and: [{ property: '목표날짜', date: { before: today } }, { property: '상태', status: { does_not_equal: '완료' } }, { property: '상태', status: { does_not_equal: '취소' } }] }, sorts: [{ property: '목표날짜', direction: 'ascending' }], page_size: 100 }); })() }}"
+      },
+      "id": "node-query-overdue",
+      "name": "밀린 업무 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 300],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "NOTION_HEADER_AUTH_ID",
+          "name": "Notion API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 밀린 업무 없으면 발송 안 함\nconst results = $input.first().json.results || [];\nif (results.length === 0) {\n  // 빈 배열 반환 → 다음 노드 실행 안 됨\n  return [];\n}\n\nconst now = new Date();\nconst today = new Date(now.getFullYear(), now.getMonth(), now.getDate());\n\nconst severe = []; // 3일+\nconst mild = [];   // 1~2일\n\nresults.forEach(item => {\n  const title = item.properties['할 일']?.title?.[0]?.plain_text || '(제목 없음)';\n  const dueStr = item.properties['목표날짜']?.date?.start;\n  if (!dueStr) return;\n  const due = new Date(dueStr);\n  const diffDays = Math.floor((today - due) / (1000*60*60*24));\n  const entry = { title, diffDays };\n  if (diffDays >= 3) severe.push(entry);\n  else mild.push(entry);\n});\n\nlet msg = '⚠️ 밀린 업무 알림\\n━━━━━━━━━━━━━━━━━━\\n';\n\nif (severe.length > 0) {\n  msg += '\\n🔴 3일+ 경과';\n  severe.forEach(e => { msg += `\\n  · ${e.title} (${e.diffDays}일)`; });\n}\nif (mild.length > 0) {\n  msg += '\\n\\n🟡 1~2일 경과';\n  mild.forEach(e => { msg += `\\n  · ${e.title} (${e.diffDays}일)`; });\n}\n\nmsg += `\\n\\n📊 총 ${results.length}건`;\nmsg += '\\n\\n💡 /완료 명령으로 처리하거나 노션에서 상태를 변경하세요';\n\nreturn [{ json: { text: msg } }];"
+      },
+      "id": "node-format",
+      "name": "알림 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "id": "node-send",
+      "name": "텔레그램 발송",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [660, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "TELEGRAM_CREDENTIAL_ID",
+          "name": "Telegram Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매일 10:00": { "main": [[{ "node": "밀린 업무 조회", "type": "main", "index": 0 }]] },
+    "밀린 업무 조회": { "main": [[{ "node": "알림 포맷", "type": "main", "index": 0 }]] },
+    "알림 포맷": { "main": [[{ "node": "텔레그램 발송", "type": "main", "index": 0 }]] }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }]
+}

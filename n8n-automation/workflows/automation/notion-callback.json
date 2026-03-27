@@ -1,0 +1,293 @@
+{
+  "name": "[F5] Telegram Callback - Notion 상태 변경",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram-callback",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Callback Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "telegram-callback"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Telegram callback_query 파싱\nconst body = $input.first().json.body || $input.first().json;\nconst callbackQuery = body.callback_query;\n\nif (!callbackQuery) {\n  return [{ json: { valid: false, error: 'callback_query 없음' } }];\n}\n\nconst callbackData = callbackQuery.data || '';\nconst colonIdx = callbackData.indexOf(':');\n\nif (colonIdx === -1) {\n  return [{\n    json: {\n      valid: false,\n      callbackQueryId: callbackQuery.id,\n      chatId: callbackQuery.message?.chat?.id,\n      messageId: callbackQuery.message?.message_id,\n      error: '잘못된 callback_data 형식'\n    }\n  }];\n}\n\nconst statusCode = callbackData.substring(0, colonIdx);\nconst pageId = callbackData.substring(colonIdx + 1);\n\n// 상태 코드 매핑\nconst statusMap = {\n  'done': '완료',\n  'inprogress': '진행 중',\n  'pin': '핀'\n};\n\nconst notionStatus = statusMap[statusCode];\nconst statusIcon = { '완료': '\\u2705', '진행 중': '\\ud83d\\udd35', '핀': '\\ud83d\\udccc' };\n\nif (!notionStatus) {\n  return [{\n    json: {\n      valid: false,\n      callbackQueryId: callbackQuery.id,\n      error: `알 수 없는 상태 코드: ${statusCode}`\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    valid: true,\n    callbackQueryId: callbackQuery.id,\n    chatId: callbackQuery.message?.chat?.id,\n    messageId: callbackQuery.message?.message_id,\n    pageId,\n    statusCode,\n    notionStatus,\n    statusIcon: statusIcon[notionStatus] || '\\ud83d\\udd04',\n    originalText: callbackQuery.message?.text || ''\n  }\n}];"
+      },
+      "id": "node-parse-callback",
+      "name": "callback_data 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-valid-check",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-valid-check",
+      "name": "유효한 Callback?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $json.callbackQueryId, text: $json.statusIcon + ' ' + $json.notionStatus + ' 처리 중...' }) }}",
+        "options": {}
+      },
+      "id": "node-answer-callback",
+      "name": "Telegram 즉시 응답",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://api.notion.com/v1/pages/{{ $('callback_data 파싱').first().json.pageId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Notion-Version",
+              "value": "2022-06-28"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            },
+            {
+              "name": "Authorization",
+              "value": "Bearer YOUR_NOTION_API_TOKEN"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ properties: { '상태': { status: { name: $('callback_data 파싱').first().json.notionStatus } } } }) }}",
+        "options": {}
+      },
+      "id": "node-notion-patch",
+      "name": "Notion 상태 변경",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 200],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-notion-success",
+              "leftValue": "={{ $json.error ? false : true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-notion-success",
+      "name": "Notion 성공?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/editMessageText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const d = $('callback_data 파싱').first().json; return JSON.stringify({ chat_id: d.chatId, message_id: d.messageId, text: d.originalText + '\\n' + d.statusIcon + ' ' + d.notionStatus + ' 처리 완료', reply_markup: JSON.stringify({ inline_keyboard: [] }) }); })() }}",
+        "options": {}
+      },
+      "id": "node-edit-message",
+      "name": "버튼 제거 및 완료 표시",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 160],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('callback_data 파싱').first().json.callbackQueryId, text: '\\u274c 처리 실패. 다시 시도해주세요.' }) }}",
+        "options": {}
+      },
+      "id": "node-error-response",
+      "name": "오류 응답",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 280],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $json.callbackQueryId || '', text: '\\u26a0\\ufe0f 처리할 수 없는 요청입니다.' }) }}",
+        "options": {}
+      },
+      "id": "node-invalid-response",
+      "name": "무효 응답",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Callback Webhook": {
+      "main": [
+        [
+          {
+            "node": "callback_data 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "callback_data 파싱": {
+      "main": [
+        [
+          {
+            "node": "유효한 Callback?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "유효한 Callback?": {
+      "main": [
+        [
+          {
+            "node": "Telegram 즉시 응답",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "무효 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram 즉시 응답": {
+      "main": [
+        [
+          {
+            "node": "Notion 상태 변경",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion 상태 변경": {
+      "main": [
+        [
+          {
+            "node": "Notion 성공?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion 성공?": {
+      "main": [
+        [
+          {
+            "node": "버튼 제거 및 완료 표시",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "오류 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "active": false,
+  "tags": [],
+  "pinData": {}
+}

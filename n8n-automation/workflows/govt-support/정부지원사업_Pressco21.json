@@ -1,0 +1,3907 @@
+{
+  "updatedAt": "2026-03-02T16:22:31.241Z",
+  "createdAt": "2026-02-24T15:16:48.712Z",
+  "id": "7MXN1lNCR3b7VcLF",
+  "name": "정부지원사업 자동수집 Pressco21",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "isUpdate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json._action }}",
+                    "rightValue": "update"
+                  },
+                  {
+                    "id": "hasRecordId",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists"
+                    },
+                    "leftValue": "={{ $json._nocodbId }}",
+                    "rightValue": ""
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "update"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "isCreate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "leftValue": "={{ $json._action }}",
+                    "rightValue": "update"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "create"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "75dc1c8d-984d-4a81-8589-46501ab01ced",
+      "name": "고관련 저장 분기",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        32,
+        128
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "isUpdate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json._action }}",
+                    "rightValue": "update"
+                  },
+                  {
+                    "id": "hasRecordId",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists"
+                    },
+                    "leftValue": "={{ $json._nocodbId }}",
+                    "rightValue": ""
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "update"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "isCreate",
+                    "operator": {
+                      "type": "string",
+                      "operation": "notEquals"
+                    },
+                    "leftValue": "={{ $json._action }}",
+                    "rightValue": "update"
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "create"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "1841b947-8a78-432b-8354-28e45c2eeebf",
+      "name": "검토 저장 분기",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        32,
+        512
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "9fa93a75-677a-439e-894d-eaec37d19284",
+      "name": "Loop Over Items (고관련)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        480,
+        128
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "76d1917c-df37-4214-a486-915a3a34a201",
+      "name": "Wait (고관련)",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        704,
+        -16
+      ],
+      "webhookId": "b4aa1771-b906-4957-b286-a8dc90c0a77f",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=🔥 <b>고관련 지원사업 알림</b>\n\n📌 <b>사업명:</b> {{ $('고관련 저장 분기').item.json['지원사업이름'] ?? '미상' }}\n🏢 <b>소관기관:</b> {{ $('고관련 저장 분기').item.json['소관기관'] ?? '미상' }}\n📍 <b>지역:</b> {{ $('고관련 저장 분기').item.json['지역'] ?? '전국' }}\n📅 <b>마감일:</b> {{ $('고관련 저장 분기').item.json['마감일'] ?? '미정' }}\n\n📊 <b>관련도:</b> {{ $('고관련 저장 분기').item.json['관련도점수'] ?? 'N/A' }}/100\n✅ <b>자격:</b> {{ $('고관련 저장 분기').item.json['신청자격_충족여부'] ?? '' }} | <b>성공가능성:</b> {{ $('고관련 저장 분기').item.json['신청성공가능성'] ?? '' }}\n📝 <b>AI 분석:</b>\n{{ $('고관련 저장 분기').item.json['관련도이유'] ?? '' }}\n\n🔗 <b>공고 원문:</b> {{ $('고관련 저장 분기').item.json['신청Link'] ?? '' }}\n🚀 <b>서류 준비:</b> https://hub.pressco21.com/#announcements",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "aca88f92-21bb-4986-b913-51aec06ac951",
+      "name": "Send a message (고관련)",
+      "type": "n8n-nodes-base.telegram",
+      "maxTries": 5,
+      "position": [
+        928,
+        128
+      ],
+      "webhookId": "1c655257-069e-43b8-ac01-40aac9a9cc6d",
+      "retryOnFail": true,
+      "typeVersion": 1.2,
+      "waitBetweenTries": 5000,
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "id": "75bbf402-daad-44cf-be8f-35a99c75f10f",
+      "name": "Loop Over Items (검토)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "position": [
+        480,
+        512
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "amount": 3
+      },
+      "id": "5207ff91-3471-4216-a9d9-39e8b26fd80a",
+      "name": "Wait (검토)",
+      "type": "n8n-nodes-base.wait",
+      "position": [
+        704,
+        288
+      ],
+      "webhookId": "341bb579-2878-4391-80f7-2d6aab014b62",
+      "typeVersion": 1.1
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=🧐 <b>검토 권장 지원사업 알림</b>\n\n📌 <b>사업명:</b> {{ $('검토 저장 분기').item.json['지원사업이름'] ?? '미상' }}\n🏢 <b>소관기관:</b> {{ $('검토 저장 분기').item.json['소관기관'] ?? '미상' }}\n📍 <b>지역:</b> {{ $('검토 저장 분기').item.json['지역'] ?? '전국' }}\n📅 <b>마감일:</b> {{ $('검토 저장 분기').item.json['마감일'] ?? '미정' }}\n\n📊 <b>관련도:</b> {{ $('검토 저장 분기').item.json['관련도점수'] ?? 'N/A' }}/100\n📝 <b>AI 분석:</b>\n{{ $('검토 저장 분기').item.json['관련도이유'] ?? '' }}\n\n🔗 <b>공고 원문:</b> {{ $('검토 저장 분기').item.json['신청Link'] ?? '' }}\n🚀 <b>서류 준비:</b> https://hub.pressco21.com/#announcements",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "26979341-906b-4827-8116-d6da352d0ff3",
+      "name": "Send a message (검토)",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        928,
+        512
+      ],
+      "webhookId": "94d87e42-e0bf-41d8-9a0f-53a0b224c73c",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "1b1b31be-207d-4379-b629-9fb04120bd60",
+      "name": "매일 09:00 실행",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "position": [
+        -3232,
+        400
+      ],
+      "typeVersion": 1.2
+    },
+    {
+      "parameters": {
+        "url": "https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "crtfcKey",
+              "value": "FmSrV3"
+            },
+            {
+              "name": "dataType",
+              "value": "json"
+            },
+            {
+              "name": "searchCnt",
+              "value": "200"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "e3f249a1-a919-4989-8ac2-4c3d1d61c8a5",
+      "name": "기업마당 API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -3008,
+        -48
+      ],
+      "typeVersion": 4.2,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://apis.data.go.kr/B552735/kisedKstartupService01/getAnnouncementInformation01",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "serviceKey",
+              "value": "o3ctdOjpDZCBH6p07MrXdir+hK/pG3hU1WcncvtnK+qTHGV79hy/MSHPr10om9luHvYCMuL7aJG2UV7hkt9gHA=="
+            },
+            {
+              "name": "perPage",
+              "value": "100"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            },
+            {
+              "name": "returnType",
+              "value": "json"
+            },
+            {
+              "name": "Rcrt_prgs_yn",
+              "value": "Y"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "d43af30b-561a-4206-a958-194393ba9597",
+      "name": "K-Startup API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -3008,
+        144
+      ],
+      "typeVersion": 4.2,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "url": "https://api.odcloud.kr/api/gov24/v3/serviceList",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "serviceKey",
+              "value": "o3ctdOjpDZCBH6p07MrXdir+hK/pG3hU1WcncvtnK+qTHGV79hy/MSHPr10om9luHvYCMuL7aJG2UV7hkt9gHA=="
+            },
+            {
+              "name": "perPage",
+              "value": "100"
+            },
+            {
+              "name": "page",
+              "value": "1"
+            },
+            {
+              "name": "cond[서비스명::LIKE]",
+              "value": "중소기업"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "cc68ac0f-0b68-4372-989a-de035135727f",
+      "name": "보조금24 API",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -3008,
+        336
+      ],
+      "typeVersion": 4.2,
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 기업마당 API 응답 정규화\n// 실제 구조: { jsonArray: [ {pblancId, pblancNm, ...}, {...} ] }\n\nconst items = $input.first().json;\nconst normalized = [];\n\ntry {\n  // jsonArray가 배열로 직접 들어옴 (item 없음)\n  const data = items.jsonArray || [];\n  const dataArray = Array.isArray(data) ? data : [data];\n  \n  console.log(`기업마당 데이터 수: ${dataArray.length}`);\n  \n  for (const item of dataArray) {\n    // pblancId 필드 확인\n    if (!item.pblancId) {\n      console.log('pblancId 없음:', Object.keys(item).slice(0, 5));\n      continue;\n    }\n    \n    // 날짜 파싱: \"20260107 ~ 20260205\" 형식\n    let startDate = null;\n    let endDate = null;\n    if (item.reqstBeginEndDe) {\n      const dates = item.reqstBeginEndDe.split('~').map(d => d.trim());\n      if (dates[0] && dates[0].length >= 8) {\n        const d = dates[0].replace(/[^0-9]/g, '').slice(0, 8);\n        startDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n      }\n      if (dates[1] && dates[1].length >= 8) {\n        const d = dates[1].replace(/[^0-9]/g, '').slice(0, 8);\n        endDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n      }\n    }\n    \n    // 지역 추출 (hashTags에서)\n    const regions = ['서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충북','충남','전북','전남','경북','경남','제주'];\n    const hashTags = item.hashTags || item.hashtags || '';\n    const region = hashTags.split(',').find(t => regions.includes(t.trim())) || '전국';\n    \n    // ✅ 게시일시_raw: creatPnttm(등록/게시일시 후보)\n    const postedRaw = item.creatPnttm || item.createdDt || item.creatDt || null;\n\n    normalized.push({\n      json: {\n        공고ID: `BIZINFO_${item.pblancId}`,\n        지원사업이름: item.pblancNm || '',\n        소관기관: item.jrsdInsttNm || '',\n        수행기관: item.excInsttNm || '',\n        지원분야: item.pldirSportRealmLclasCodeNm || '',\n        지원대상: item.trgetNm || '',\n        사업개요: item.bsnsSumryCn || '',\n        지역: region,\n        신청시작일: startDate,\n        마감일: endDate,\n        신청방법: item.reqstMthPapersCn || '',\n        신청Link: item.pblancUrl ? (item.pblancUrl.startsWith('http') ? item.pblancUrl : 'https://www.bizinfo.go.kr' + item.pblancUrl) : '',\n        지원금액: '',\n        수집출처: '기업마당',\n\n        게시일시_raw: postedRaw,\n        게시일시_source: postedRaw ? 'creatPnttm' : ''\n      }\n    });\n  }\n  \n  console.log(`기업마당 정규화 완료: ${normalized.length}건`);\n  \n} catch (e) {\n  console.log('기업마당 파싱 오류:', e.message);\n}\n\nreturn normalized.length > 0 ? normalized : [{ json: { _empty: true, source: '기업마당', error: '데이터 없음' } }];"
+      },
+      "id": "ef929410-b3ea-48de-a7a1-17d03276377f",
+      "name": "기업마당 정규화",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -2784,
+        -48
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// K-Startup API 응답 정규화\n// 실제 구조: { data: [ {pbanc_sn, biz_pbanc_nm, pbanc_rcpt_bgng_dt, ...} ] }\n// 필드명이 스네이크케이스임\n\nconst items = $input.first().json;\nconst normalized = [];\n\ntry {\n  // data 배열로 직접 들어옴\n  const data = items.data || items.response?.body?.items?.item || [];\n  const dataArray = Array.isArray(data) ? data : [data];\n  \n  console.log(`K-Startup 데이터 수: ${dataArray.length}`);\n  if (dataArray[0]) {\n    console.log('K-Startup 샘플 필드:', Object.keys(dataArray[0]).slice(0, 10));\n  }\n  \n  for (const item of dataArray) {\n    // pbanc_sn 또는 id 필드 확인\n    const id = item.pbanc_sn || item.id || item.pbancId;\n    if (!id) {\n      continue;\n    }\n    \n    // 날짜 파싱: \"20260108\" 형식\n    let startDate = null;\n    let endDate = null;\n    \n    const startRaw = item.pbanc_rcpt_bgng_dt || item.reqstBeginDe || '';\n    const endRaw = item.pbanc_rcpt_end_dt || item.reqstEndDe || '';\n    \n    if (startRaw && String(startRaw).length >= 8) {\n      const d = String(startRaw).replace(/[^0-9]/g, '').slice(0, 8);\n      startDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n    }\n    if (endRaw && String(endRaw).length >= 8) {\n      const d = String(endRaw).replace(/[^0-9]/g, '').slice(0, 8);\n      endDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n    }\n\n    // ✅ 게시일시_raw 후보:\n    // - 만약 API가 별도의 등록/게시일 필드를 제공하면 그것을 우선\n    // - 없으면 현실적으로 pbanc_rcpt_bgng_dt(접수시작일)를 fallback으로 사용\n    const postedRaw =\n      item.pbanc_rgst_dt ||\n      item.pbanc_reg_dt ||\n      item.reg_dt ||\n      item.created_dt ||\n      item.creat_dt ||\n      item.pbanc_rcpt_bgng_dt ||\n      null;\n\n    const postedSource =\n      item.pbanc_rgst_dt ? 'pbanc_rgst_dt' :\n      item.pbanc_reg_dt ? 'pbanc_reg_dt' :\n      item.reg_dt ? 'reg_dt' :\n      item.created_dt ? 'created_dt' :\n      item.creat_dt ? 'creat_dt' :\n      item.pbanc_rcpt_bgng_dt ? 'pbanc_rcpt_bgng_dt' :\n      '';\n    \n    normalized.push({\n      json: {\n        공고ID: `KSTARTUP_${id}`,\n        지원사업이름: item.biz_pbanc_nm || item.pbancNm || '',\n        소관기관: item.biz_prch_dprt_nm || item.mngtInsttNm || '',\n        수행기관: item.sprv_inst || '',\n        지원분야: item.supt_biz_clsfc || item.sportFldNm || '',\n        지원대상: item.biz_trgt_age || item.trgetCn || '',\n        사업개요: item.pbanc_ctnt || item.bsnsSumryCn || '',\n        지역: item.supt_regin || item.sportRgnNm || '전국',\n        신청시작일: startDate,\n        마감일: endDate,\n        신청방법: item.aply_mthd_etc_istc || '',\n        신청Link: item.detl_pg_url || item.pbancUrl || '',\n        지원금액: '',\n        수집출처: 'K-Startup',\n\n        게시일시_raw: postedRaw,\n        게시일시_source: postedSource\n      }\n    });\n  }\n  \n  console.log(`K-Startup 정규화 완료: ${normalized.length}건`);\n  \n} catch (e) {\n  console.log('K-Startup 파싱 오류:', e.message);\n}\n\nreturn normalized.length > 0 ? normalized : [{ json: { _empty: true, source: 'K-Startup', error: '데이터 없음' } }];"
+      },
+      "id": "71736bd2-f797-4012-a133-a70311c9234d",
+      "name": "K-Startup 정규화",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -2784,
+        144
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// 보조금24 API 응답 정규화 (게시일 기준 = 수정일시 우선)\n// - '등록일시', '수정일시' 둘 다 존재하는 경우가 많으므로, \"어제~지금\" 기준은 수정일시로 운영\n// - 수정일시가 없으면 등록일시로 fallback\n\nconst items = $input.first().json;\nconst normalized = [];\n\ntry {\n  const data = items.data || items.response?.body?.items?.item || [];\n  const dataArray = Array.isArray(data) ? data : [data];\n\n  console.log(`보조금24 데이터 수: ${dataArray.length}`);\n\n  for (const item of dataArray) {\n    const id = item['서비스ID'] || item.servId || item.id;\n    if (!id) continue;\n\n    const createdRaw =\n      item['등록일시'] ||\n      item['등록일자'] ||\n      item['등록일'] ||\n      null;\n\n    const updatedRaw =\n      item['수정일시'] ||\n      item['수정일자'] ||\n      item['수정일'] ||\n      null;\n\n    // ✅ 게시일시_raw = 수정일시 우선\n    const postedRaw = updatedRaw || createdRaw || null;\n    const postedSource = updatedRaw ? '수정일시' : createdRaw ? '등록일시' : '';\n\n    normalized.push({\n      json: {\n        공고ID: `SUBSIDY24_${id}`,\n        지원사업이름: item['서비스명'] || item.servNm || '',\n        소관기관: item['소관기관명'] || item.jurMnofNm || '',\n        수행기관: item['소관기관유형'] || item.jurOrgNm || '',\n        지원분야: item['서비스분야'] || item.svcCtgryNm || '',\n        지원대상: item['지원대상'] || item.trgterIndvdlArray || '',\n        사업개요: item['서비스목적요약'] || item.servDgst || '',\n        지역: item['사용자구분'] || item.ctpvNm || '전국',\n        신청시작일: null,\n        마감일: null,\n        신청방법: item['신청방법'] || item.aplyMtdNm || '',\n        신청Link: item['상세조회URL'] || item.servDtlLink || '',\n        지원금액: item['지원내용'] || item.sprtCycNm || '',\n        수집출처: '보조금24',\n\n        // ✅ 게시/기준값\n        게시일시_raw: postedRaw,\n        게시일시_source: postedSource,\n\n        // ✅ 업데이트 감지/디버깅용 원천 값\n        수정일시_raw: updatedRaw,\n        등록일시_raw: createdRaw\n      }\n    });\n  }\n\n  console.log(`보조금24 정규화 완료: ${normalized.length}건`);\n} catch (e) {\n  console.log('보조금24 파싱 오류:', e.message);\n}\n\nreturn normalized.length > 0\n  ? normalized\n  : [{ json: { _empty: true, source: '보조금24', error: '데이터 없음' } }];"
+      },
+      "id": "57fb28d5-95c4-47d8-9aaa-deb30e28fa4c",
+      "name": "보조금24 정규화",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -2784,
+        336
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "numberInputs": 3
+      },
+      "id": "cea7dd20-c30f-4b8b-ae1f-f5c9b1f044f7",
+      "name": "3개 API 통합",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        -2560,
+        128
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "공고ID,Id"
+            },
+            {
+              "name": "limit",
+              "value": "10000"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "02e9da12-9bdb-4d8d-b3c2-ecbac2a9558a",
+      "name": "기존 공고ID 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -2560,
+        480
+      ],
+      "typeVersion": 4.2,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "e6c7bae7-013a-4bad-a932-ea9c4f377884",
+      "name": "기존ID와 통합1",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        -2336,
+        320
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "jsCode": "\n// NocoDB 지원 - 기존 공고ID 조회가 NocoDB HTTP 응답(list 배열)으로 옴\n// _fromNocoDB: true 로 기존 레코드 식별\n\nconst rawItems = $input.all();\n\n// NocoDB list 응답 확장: {list: [...]} → 개별 아이템\nconst allItems = [];\nfor (const rawItem of rawItems) {\n  const j = rawItem.json;\n  if (j && j.list && Array.isArray(j.list)) {\n    // NocoDB HTTP GET 응답 - list 배열 확장\n    for (const record of j.list) {\n      allItems.push({ json: { _fromNocoDB: true, 공고ID: record.공고ID, Id: record.Id } });\n    }\n  } else if (j && j._fromNocoDB) {\n    allItems.push(rawItem);\n  } else {\n    allItems.push(rawItem);\n  }\n}\n\nconst KST_OFFSET_MS = 9 * 60 * 60 * 1000;\nconst nowUtcMs = Date.now();\nconst nowKst = new Date(nowUtcMs + KST_OFFSET_MS);\nconst y = nowKst.getUTCFullYear();\nconst m = nowKst.getUTCMonth();\nconst d = nowKst.getUTCDate();\n\nconst LOOKBACK_DAYS_DEFAULT = 14;  // 초기 적재용 (이후 7로 변경)\nconst LOOKBACK_DAYS_SUBSIDY24 = 30;\nconst FORCE_FULL_SYNC_ALL = false;\nconst FORCE_FULL_SYNC_SUBSIDY24 = false;\n\nconst startUtcMsDefault = Date.UTC(y, m, d - LOOKBACK_DAYS_DEFAULT, 0, 0, 0) - KST_OFFSET_MS;\nconst startUtcMsSubsidy24 = Date.UTC(y, m, d - LOOKBACK_DAYS_SUBSIDY24, 0, 0, 0) - KST_OFFSET_MS;\nconst endUtcMs = nowUtcMs;\n\nfunction parseToUtcMs(raw) {\n  if (raw === null || raw === undefined) return null;\n  const s0 = String(raw).trim();\n  if (!s0) return null;\n  if (/Z$|GMT|[+-]\\d{2}:?\\d{2}$/.test(s0)) {\n    const t = Date.parse(s0);\n    return Number.isFinite(t) ? t : null;\n  }\n  const m1 = s0.match(/^(\\d{4})-(\\d{2})-(\\d{2})(?:[T\\s]+(\\d{2}):(\\d{2})(?::(\\d{2}))?(?:\\.\\d+)?)?$/);\n  if (m1) {\n    return Date.UTC(+m1[1],+m1[2]-1,+m1[3],+(m1[4]||0),+(m1[5]||0),+(m1[6]||0)) - KST_OFFSET_MS;\n  }\n  // 14자리: YYYYMMDDHHmmss (보조금24 등)\n  const m14 = s0.match(/^(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(\\d{2})$/);\n  if (m14) return Date.UTC(+m14[1],+m14[2]-1,+m14[3],+m14[4],+m14[5],+m14[6]) - KST_OFFSET_MS;\n  // 8자리: YYYYMMDD (기업마당 등)\n  const m8 = s0.match(/^(\\d{4})(\\d{2})(\\d{2})$/);\n  if (m8) return Date.UTC(+m8[1],+m8[2]-1,+m8[3]) - KST_OFFSET_MS;\n  const t = Date.parse(s0);\n  return Number.isFinite(t) ? t : null;\n}\n\n// NocoDB 기존 레코드 맵: 공고ID → NocoDB Id(정수)\nconst existingMap = new Map();\nfor (const item of allItems) {\n  const j = item.json;\n  if (!j || !j._fromNocoDB) continue;\n  const fullId = String(j.공고ID || '').trim();\n  if (!fullId) continue;\n  existingMap.set(fullId, { recordId: j.Id });\n}\n\nconsole.log(`기존 공고 수(NocoDB): ${existingMap.size}`);\n\nfunction guessSource(j) {\n  if (j?.수집출처) return String(j.수집출처);\n  const id = String(j?.공고ID || '');\n  if (id.startsWith('SUBSIDY24_')) return '보조금24';\n  if (id.startsWith('KSTARTUP_')) return 'K-Startup';\n  if (id.startsWith('BIZINFO_')) return '기업마당';\n  return 'unknown';\n}\n\nconst seenIds = new Set();\nconst out = [];\nconst stats = { inTotal: allItems.length, inAnnouncements: 0, outTotal: 0, bySourceOut: {}, dropped: {} };\n\nfor (const item of allItems) {\n  const j = item.json;\n  if (!j || j._fromNocoDB) continue;\n\n  const fullIdRaw = j.공고ID;\n  if (!fullIdRaw || !String(fullIdRaw).trim()) continue;\n  stats.inAnnouncements++;\n\n  const fullId = String(fullIdRaw).trim();\n  if (seenIds.has(fullId)) { stats.dropped.duplicateInRun = (stats.dropped.duplicateInRun||0)+1; continue; }\n  seenIds.add(fullId);\n\n  const title = j.지원사업이름;\n  if (!title || !String(title).trim()) continue;\n\n  const source = guessSource(j);\n  const isSubsidy24 = source === '보조금24' || fullId.startsWith('SUBSIDY24_');\n\n  const postedRaw = j.게시일시_raw ?? j.수정일시_raw ?? j.등록일시_raw ?? null;\n  if (!postedRaw) continue;\n\n  const postedUtcMs = parseToUtcMs(postedRaw);\n  if (postedUtcMs === null) continue;\n\n  const startUtcMs = isSubsidy24 ? startUtcMsSubsidy24 : startUtcMsDefault;\n  const bypassWindow = FORCE_FULL_SYNC_ALL || (FORCE_FULL_SYNC_SUBSIDY24 && isSubsidy24);\n  // 마감일 체크: endDate가 오늘 이후이면 만료되지 않은 공고\n  const endDateRaw = j.마감일시_raw ?? j.접수마감일_raw ?? j.endDate ?? null;\n  const endDateUtcMs = endDateRaw ? parseToUtcMs(endDateRaw) : null;\n  const todayStartUtcMs = Date.UTC(y, m, d, 0, 0, 0) - KST_OFFSET_MS;\n  const isNotExpired = endDateUtcMs !== null && endDateUtcMs >= todayStartUtcMs;\n  const isRecentPost = !bypassWindow ? (postedUtcMs >= startUtcMs && postedUtcMs <= endUtcMs) : true;\n  \n  // 게시일이 14일 이내 OR 마감일이 오늘 이후 → 둘 중 하나면 통과\n  if (!isRecentPost && !isNotExpired) continue;\n\n  const existing = existingMap.get(fullId);\n\n  if (!existing) {\n    out.push({ json: { ...j, _action: 'create' } });\n  } else {\n    out.push({ json: { ...j, _action: 'update', _nocodbId: String(existing.recordId) } });\n  }\n\n  stats.bySourceOut[source] = (stats.bySourceOut[source] || 0) + 1;\n}\n\nstats.outTotal = out.length;\nconsole.log('필터 결과:', stats.outTotal, '/ bySource:', stats.bySourceOut);\n\nif (out.length === 0) {\n  return [{ json: { _noNewItems: true, message: '신규/업데이트 공고 없음', debug: stats } }];\n}\nreturn out;\n"
+      },
+      "id": "5126a164-bdd6-472c-949c-043a3d19fa52",
+      "name": "중복제거 & 신규필터1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -2112,
+        320
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 1,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "has-id",
+              "operator": {
+                "type": "string",
+                "operation": "exists"
+              },
+              "leftValue": "={{ $json.공고ID }}",
+              "rightValue": ""
+            },
+            {
+              "id": "not-empty",
+              "operator": {
+                "type": "boolean",
+                "operation": "notEquals"
+              },
+              "leftValue": "={{ $json._noNewItems }}",
+              "rightValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "e3d6e7e1-ce84-4cd3-9dfd-03e21417c983",
+      "name": "유효 공고만1",
+      "type": "n8n-nodes-base.filter",
+      "position": [
+        -1888,
+        320
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "jsCode": "// 사전 필터링 v5 - 지역 필터 복원 (2026-03-03)\n// 변경: 서울/전국/수도권 대상이 아닌 타 지역 전용 공고 제외\nconst items = $input.all();\n\n// 제외 키워드: 업종 자체가 완전히 무관한 경우만\nconst EXCLUDE_INDUSTRIES = ['농업', '어업', '축산', '임업', '광업', '수산업', '어민', '농민', '축산농가', '선박', '조선'];\n\n// 허용 지역: 이 중 하나라도 포함되면 통과\nconst ALLOW_REGIONS = ['전국', '서울', '수도권'];\n\nconst filtered = [];\nfor (const item of items) {\n  const d = item.json;\n  if (!d.공고ID || !d.지원사업이름) continue;\n\n  // 제목 + 지원대상 + 지원분야 통합 텍스트\n  const txt = (\n    (d.지원사업이름 || '') + ' ' +\n    (d.지원대상 || '') + ' ' +\n    (d.지원분야 || '')\n  ).toLowerCase();\n\n  // 완전 무관 업종이면 제외\n  const isIrrelevant = EXCLUDE_INDUSTRIES.some(kw => txt.includes(kw));\n  if (isIrrelevant) continue;\n\n  // 지역 필터: 지역 필드가 있고 비어있지 않은 경우만 확인\n  const region = (d.지역 || '').trim();\n  if (region) {\n    const isAllowedRegion = ALLOW_REGIONS.some(r => region.includes(r));\n    if (!isAllowedRegion) continue; // 부산/경기/충남 등 타 지역 전용 공고 제외\n  }\n\n  filtered.push(item);\n}\n\nreturn filtered.length === 0 ? [{ json: { _noItems: true } }] : filtered;"
+      },
+      "id": "b513de21-2c4e-4492-bec6-d39fc273fadf",
+      "name": "사전 필터링1",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -1648,
+        -112
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "url": "https://nocodb.pressco21.com/api/v2/tables/mptlhf2fqskxwkk/records",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(활성여부,eq,1)"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "709d2b82-f2ac-4a42-9cdf-3a6a7a9cc71e",
+      "name": "회사정보 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1664,
+        656
+      ],
+      "typeVersion": 4.2,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {},
+      "id": "d7d0b340-bded-4440-aee4-743c44c43262",
+      "name": "회사정보 통합1",
+      "type": "n8n-nodes-base.merge",
+      "position": [
+        -1440,
+        416
+      ],
+      "typeVersion": 3
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "gte70",
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "leftValue": "={{ $json.관련도점수 }}",
+                    "rightValue": 70
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "고관련"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "gte30",
+                    "operator": {
+                      "type": "number",
+                      "operation": "gte"
+                    },
+                    "leftValue": "={{ $json.관련도점수 }}",
+                    "rightValue": 30
+                  },
+                  {
+                    "id": "lt70",
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    },
+                    "leftValue": "={{ $json.관련도점수 }}",
+                    "rightValue": 70
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "검토"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "lt30",
+                    "operator": {
+                      "type": "number",
+                      "operation": "lt"
+                    },
+                    "leftValue": "={{ $json.관련도점수 }}",
+                    "rightValue": 30
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "저관련"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "444b08b6-8c6c-4fff-a181-31ec4b079423",
+      "name": "관련도 분기",
+      "type": "n8n-nodes-base.switch",
+      "position": [
+        -192,
+        400
+      ],
+      "typeVersion": 3.2
+    },
+    {
+      "parameters": {},
+      "id": "879cf5a8-dedc-463e-9ac7-75bf0845a804",
+      "name": "저관련 스킵",
+      "type": "n8n-nodes-base.noOp",
+      "position": [
+        192,
+        928
+      ],
+      "typeVersion": 1
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "공고ID",
+              "value": "={{ $json.공고ID }}"
+            },
+            {
+              "name": "지원사업이름",
+              "value": "={{ $json.지원사업이름 }}"
+            },
+            {
+              "name": "소관기관",
+              "value": "={{ $json.소관기관 }}"
+            },
+            {
+              "name": "지역",
+              "value": "={{ $json.지역 }}"
+            },
+            {
+              "name": "마감일",
+              "value": "={{ $json.마감일 }}"
+            },
+            {
+              "name": "신청Link",
+              "value": "={{ $json.신청Link }}"
+            },
+            {
+              "name": "관련도점수",
+              "value": "={{ $json.관련도점수 }}"
+            },
+            {
+              "name": "관련도등급",
+              "value": "={{ $json.관련도등급 }}"
+            },
+            {
+              "name": "적합이유",
+              "value": "={{ $json.적합이유 }}"
+            },
+            {
+              "name": "신청팁",
+              "value": "={{ $json.신청팁 }}"
+            },
+            {
+              "name": "카테고리",
+              "value": "={{ $json.카테고리 }}"
+            },
+            {
+              "name": "신청난이도",
+              "value": "={{ $json.신청난이도 }}"
+            },
+            {
+              "name": "예상지원규모",
+              "value": "={{ $json.예상지원규모 }}"
+            },
+            {
+              "name": "필요서류_예측",
+              "value": "={{ $json.필요서류_예측 }}"
+            },
+            {
+              "name": "추천이유_상세",
+              "value": "={{ $json.추천이유_상세 }}"
+            },
+            {
+              "name": "상태",
+              "value": "데이터 수집"
+            },
+            {
+              "name": "수집일시",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "공고원문",
+              "value": "={{ $json.사업개요 }}"
+            },
+            {
+              "name": "출처",
+              "value": "={{ $json.수집출처 }}"
+            },
+            {
+              "name": "원문내용",
+              "value": "={{ $json.원문내용 }}"
+            },
+            {
+              "name": "원문_크롤링여부",
+              "value": "={{ $json.원문_크롤링여부 }}"
+            },
+            {
+              "name": "신청자격_충족여부",
+              "value": "={{ $json.신청자격_충족여부 }}"
+            },
+            {
+              "name": "신청성공가능성",
+              "value": "={{ $json.신청성공가능성 }}"
+            },
+            {
+              "name": "핵심신청자격",
+              "value": "={{ $json.핵심신청자격 }}"
+            },
+            {
+              "name": "첨부파일URL",
+              "value": "={{ $json.첨부파일URL }}"
+            },
+            {
+              "name": "첨부파일_HWPX여부",
+              "value": "={{ $json[\"첨부파일_HWPX여부\"] }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "0c4e6ac6-45d9-4195-a747-de8ff64a1680",
+      "name": "고관련 저장3",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        256,
+        -64
+      ],
+      "typeVersion": 4.2,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            {
+              "name": "공고ID",
+              "value": "={{ $json.공고ID }}"
+            },
+            {
+              "name": "지원사업이름",
+              "value": "={{ $json.지원사업이름 }}"
+            },
+            {
+              "name": "소관기관",
+              "value": "={{ $json.소관기관 }}"
+            },
+            {
+              "name": "지역",
+              "value": "={{ $json.지역 }}"
+            },
+            {
+              "name": "마감일",
+              "value": "={{ $json.마감일 }}"
+            },
+            {
+              "name": "신청Link",
+              "value": "={{ $json.신청Link }}"
+            },
+            {
+              "name": "관련도점수",
+              "value": "={{ $json.관련도점수 }}"
+            },
+            {
+              "name": "관련도등급",
+              "value": "={{ $json.관련도등급 }}"
+            },
+            {
+              "name": "적합이유",
+              "value": "={{ $json.적합이유 }}"
+            },
+            {
+              "name": "신청팁",
+              "value": "={{ $json.신청팁 }}"
+            },
+            {
+              "name": "카테고리",
+              "value": "={{ $json.카테고리 }}"
+            },
+            {
+              "name": "신청난이도",
+              "value": "={{ $json.신청난이도 }}"
+            },
+            {
+              "name": "예상지원규모",
+              "value": "={{ $json.예상지원규모 }}"
+            },
+            {
+              "name": "필요서류_예측",
+              "value": "={{ $json.필요서류_예측 }}"
+            },
+            {
+              "name": "추천이유_상세",
+              "value": "={{ $json.추천이유_상세 }}"
+            },
+            {
+              "name": "상태",
+              "value": "데이터 수집"
+            },
+            {
+              "name": "수집일시",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "name": "공고원문",
+              "value": "={{ $json.사업개요 }}"
+            },
+            {
+              "name": "출처",
+              "value": "={{ $json.수집출처 }}"
+            },
+            {
+              "name": "원문내용",
+              "value": "={{ $json.원문내용 }}"
+            },
+            {
+              "name": "원문_크롤링여부",
+              "value": "={{ $json.원문_크롤링여부 }}"
+            },
+            {
+              "name": "신청자격_충족여부",
+              "value": "={{ $json.신청자격_충족여부 }}"
+            },
+            {
+              "name": "신청성공가능성",
+              "value": "={{ $json.신청성공가능성 }}"
+            },
+            {
+              "name": "핵심신청자격",
+              "value": "={{ $json.핵심신청자격 }}"
+            },
+            {
+              "name": "첨부파일URL",
+              "value": "={{ $json.첨부파일URL }}"
+            },
+            {
+              "name": "첨부파일_HWPX여부",
+              "value": "={{ $json[\"첨부파일_HWPX여부\"] }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "3e997082-d822-435e-ac4e-0b49f6a4351c",
+      "name": "고관련 저장4",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        256,
+        320
+      ],
+      "typeVersion": 4.2,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\n  \"Id\": $json._nocodbId,\n  \"관련도점수\": $json._s2_관련도점수 || $json.관련도점수,\n  \"관련도등급\": $json._s2_관련도등급 || $json.관련도등급,\n  \"적합이유\": $json._s2_적합이유 || \"\",\n  \"신청팁\": $json._s2_신청팁 || \"\",\n  \"카테고리\": $json._s2_카테고리 || \"\",\n  \"신청난이도\": $json._s2_신청난이도 || \"\",\n  \"예상지원규모\": $json._s2_예상지원규모 || \"\",\n  \"추천이유_상세\": $json._s2_추천이유_상세 || \"\",\n  \"신청자격_충족여부\": $json._s2_신청자격_충족여부 || \"\",\n  \"신청성공가능성\": $json._s2_신청성공가능성 || \"\",\n  \"첨부파일URL\": $json.첨부파일URL || \"\",\n  \"첨부파일_HWPX여부\": $json[\"첨부파일_HWPX여부\"] || false\n}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "05f12df5-858c-45e2-812d-f959a378dd5f",
+      "name": "고관련 업데이트1",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        256,
+        128
+      ],
+      "typeVersion": 4.2,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify({\n  \"Id\": $json._nocodbId,\n  \"관련도점수\": $json._s2_관련도점수 || $json.관련도점수,\n  \"관련도등급\": $json._s2_관련도등급 || $json.관련도등급,\n  \"적합이유\": $json._s2_적합이유 || \"\",\n  \"신청팁\": $json._s2_신청팁 || \"\",\n  \"카테고리\": $json._s2_카테고리 || \"\",\n  \"신청난이도\": $json._s2_신청난이도 || \"\",\n  \"예상지원규모\": $json._s2_예상지원규모 || \"\",\n  \"추천이유_상세\": $json._s2_추천이유_상세 || \"\",\n  \"신청자격_충족여부\": $json._s2_신청자격_충족여부 || \"\",\n  \"신청성공가능성\": $json._s2_신청성공가능성 || \"\",\n  \"첨부파일URL\": $json.첨부파일URL || \"\",\n  \"첨부파일_HWPX여부\": $json[\"첨부파일_HWPX여부\"] || false\n}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "a7b6f396-1929-46d1-8456-1042e9c69655",
+      "name": "고관련 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        256,
+        512
+      ],
+      "typeVersion": 4.2,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nif (items.length > 0) return [];\nconst today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });\nreturn [{ json: { isEmpty: true, 수집일: today } }];"
+      },
+      "id": "56190385-b883-4282-bb73-3c3594179b1d",
+      "name": "신규없음 체크",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -1904,
+        528
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=📋 <b>정부지원사업 일일 리포트</b>\n📅 {{ $json.수집일 }}\n\n⚪ 오늘 신규 공고 없음",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "c5d0d3f0-785b-4def-920a-94c83b21710c",
+      "name": "신규없음 Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        -1680,
+        528
+      ],
+      "webhookId": "90be5ea4-272e-4b43-bcc7-e09223ea0ee3",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const allItems = $input.all();\nconst counts = { 고관련: 0, 검토: 0, 저관련: 0 };\nfor (const item of allItems) {\n  const grade = item.json.관련도등급;\n  if (grade === '고관련') counts.고관련++;\n  else if (grade === '검토') counts.검토++;\n  else counts.저관련++;\n}\nconst total = allItems.length;\nconst today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });\nconst summaryText = `📋 <b>정부지원사업 일일 리포트</b>\\n📅 ${today}\\n\\n🔥 긴급검토: ${counts.고관련}건\\n🧐 검토권장: ${counts.검토}건\\n⚪ 저관련: ${counts.저관련}건\\n\\n📊 총 분석: ${total}건`;\nreturn [{ json: { summaryText, counts, total, today } }];"
+      },
+      "id": "f9eb3a38-55fb-4842-b2b5-796c40444dc2",
+      "name": "일일 요약 집계",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -208,
+        640
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.summaryText }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "8f25d5ab-1d19-4a1b-b1f3-8fa679823aa1",
+      "name": "일일 요약 Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "position": [
+        176,
+        704
+      ],
+      "webhookId": "d817c061-f3ed-47d9-a3b7-9d3dc44f83c5",
+      "typeVersion": 1.2,
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "url": "={{ $json.신청Link }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          },
+          "timeout": 10000
+        }
+      },
+      "id": "c8a1b2d3-e4f5-6789-abcd-100000000001",
+      "name": "공고 원문 크롤링",
+      "type": "n8n-nodes-base.httpRequest",
+      "position": [
+        -1216,
+        192
+      ],
+      "typeVersion": 4.2,
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 공고 원문 HTML 파싱 + 이전 공고 데이터 병합 + 첨부파일 URL 추출\n// HTTP Request의 continueOnFail=true이므로 크롤링 실패 시에도 동작\n\nconst crawlResult = $json;\n\n// 이전 노드(회사정보 통합1)에서 공고 원본 데이터 가져오기\nlet originalData = {};\ntry {\n  originalData = $('회사정보 통합1').item.json;\n} catch (e) {\n  originalData = {};\n}\n\n// 크롤링된 HTML에서 텍스트 추출\nlet rawHtml = '';\nlet crawlSuccess = false;\n\ntry {\n  rawHtml = crawlResult.data || crawlResult.body || '';\n  if (typeof rawHtml === 'object') rawHtml = JSON.stringify(rawHtml);\n  crawlSuccess = rawHtml.length > 100;\n} catch (e) {\n  rawHtml = '';\n  crawlSuccess = false;\n}\n\n// === 첨부파일 URL 추출 ===\nconst attachments = [];\nlet hasHwpx = false;\n\nif (crawlSuccess) {\n  // 기업마당/보조금24/K-Startup 공통 패턴\n  const attachRegex = /href=[\"']([^\"']*(?:getImageFile|FileDown|download|atchFileId|fileDown|downloadFile|getFile)[^\"']*)/gi;\n  let match;\n  while ((match = attachRegex.exec(rawHtml)) !== null) {\n    let url = match[1];\n    // 상대 URL → 절대 URL 변환\n    if (url.startsWith('/')) {\n      try {\n        const link = originalData['신청Link'] || 'https://www.bizinfo.go.kr';\n        const baseUrl = link.match(/^https?:\\/\\/[^/]+/);\n        if (baseUrl) url = baseUrl[0] + url;\n      } catch (e) {}\n    }\n    if (!attachments.includes(url)) attachments.push(url);\n  }\n\n  // .hwp/.hwpx 직접 링크 패턴\n  const hwpLinkRegex = /href=[\"']([^\"']*\\.hwp[x]?(?:\\?[^\"']*)?)/gi;\n  while ((match = hwpLinkRegex.exec(rawHtml)) !== null) {\n    let url = match[1];\n    if (url.startsWith('/')) {\n      try {\n        const link = originalData['신청Link'] || 'https://www.bizinfo.go.kr';\n        const baseUrl = link.match(/^https?:\\/\\/[^/]+/);\n        if (baseUrl) url = baseUrl[0] + url;\n      } catch (e) {}\n    }\n    if (!attachments.includes(url)) attachments.push(url);\n  }\n\n  // hwpx 파일 존재 여부 확인\n  hasHwpx = attachments.some(u => /\\.hwpx/i.test(u) || u.includes('atchFileId'));\n}\n\nlet extractedText = '';\nif (crawlSuccess) {\n  extractedText = rawHtml\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n    .replace(/<nav[\\s\\S]*?<\\/nav>/gi, '')\n    .replace(/<header[\\s\\S]*?<\\/header>/gi, '')\n    .replace(/<footer[\\s\\S]*?<\\/footer>/gi, '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/\\s{2,}/g, ' ')\n    .trim();\n\n  // 2,000자 제한 (Phase 8: 3,000→2,000 축소 — Gemini 입력 토큰 절약)\n  if (extractedText.length > 2000) {\n    extractedText = extractedText.substring(0, 2000) + '...(생략)';\n  }\n}\n\nconst finalText = extractedText || '원문 크롤링 실패 - API 요약 정보만 사용';\nconst didCrawl = !!(extractedText && extractedText !== '원문 크롤링 실패 - API 요약 정보만 사용');\n\nreturn {\n  json: {\n    ...originalData,\n    원문내용: finalText,\n    원문_크롤링여부: didCrawl,\n    첨부파일URL: attachments.length > 0 ? JSON.stringify(attachments) : '',\n    '첨부파일_HWPX여부': hasHwpx,\n  }\n};"
+      },
+      "id": "c8a1b2d3-e4f5-6789-abcd-100000000002",
+      "name": "원문 파싱 & 데이터 병합",
+      "type": "n8n-nodes-base.code",
+      "position": [
+        -1216,
+        0
+      ],
+      "typeVersion": 2
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 프레스코21 최적화 키워드 점수화 v5.2 (2026-03-19)\n// 변경: 실 데이터 기반 + 지역 prefix 강제 필터\n// 변경: 고용/절세/서울 키워드 추가 (Phase 8 Quick Win)\n\nconst HIGH_TITLE = 20, HIGH_BODY = 10;\nconst MID_TITLE  = 10, MID_BODY  = 5;\nconst PENALTY    = -15;\n\n// HIGH (공고명 +20점, 내용 +10점) — 핵심 자격·관심사\nconst HIGH_KW = [\n  // 기업 규모/유형\n  '소상공인', '소기업', '중소기업', '자영업', '1인기업',\n  // 여성기업 (인증 보유 → 자격 있음)\n  '여성기업', '여성창업', '여성CEO',\n  // 핵심 업종\n  '화훼', '꽃', '플라워', '원예', '공예', '공예품', '기념품', '답례품', '웨딩',\n  // 전자상거래·온라인 (기존 + 추가)\n  '전자상거래', '온라인', '쇼핑몰', 'e커머스', '이커머스', '자사몰',\n  '통신판매', '라이브커머스', '오픈마켓', '스마트스토어', '온라인판매', '온라인쇼핑',\n  // 마케팅·판로 (최우선 관심)\n  '판로', '마케팅', 'SNS', '광고', '홍보', '콘텐츠', '브랜드',\n  // 유통 (MID→HIGH: 온라인 쇼핑몰 핵심 연관)\n  '유통', '유통채널',\n  // 디지털전환\n  '디지털', 'IT', '스마트',\n  // 역량강화·교육\n  '교육', '훈련', '역량강화', '컨설팅',\n  // 지역 (송파구 가락동)\n  '서울', '송파',\n  // 고용지원 (직원 유지·안정 관련)\n  '일자리안정자금', '두루누리', '사회보험료', '고용지원금', '고용안정', '워라밸', '근로환경',\n  // 절세·세제혜택\n  '세액감면', '조세지원', '세제혜택', '절세', '세무', '부가세', '법인세',\n  // 서울 지역 지원기관\n  '서울형', 'SBA', '서울산업진흥원', '송파구', '강남구', '서울시',\n];\n\n// MID (공고명 +10점, 내용 +5점) — 보조 관심사\nconst MID_KW = [\n  // 수출 (언젠간 관심, 지금은 아님)\n  '수출', '해외진출', '글로벌',\n  // 창업 (26년 업력 → 창업 전용 공고 대부분 해당 없음)\n  '창업', '스타트업',\n  // 기타 관련\n  '플랫폼', '물류',\n  // 사람 특성 (청년 직원 2~4명 있음)\n  '청년',\n  // 지역\n  '수도권',\n  // 사회경제\n  '사회적기업',\n  // 고용 보조 (교육·인력 양성)\n  '직업훈련', '직무능력', '인력양성',\n  // 경영안정\n  '경영안정', '자금지원',\n];\n\n// LOW (출현시 -15점) — 자격 없거나 무관 업종\nconst LOW_KW = [\n  // 완전 무관 업종\n  '농업', '수산', '어업', '임업', '광업',\n  '건설', '토목', '건축',\n  '의료', '병원', '제약', '바이오',\n  '자동차', '중장비', '조선',\n  // R&D (꽃/공예 도소매는 기술개발 공고 해당 없음)\n  'R&D', '연구개발', '기술개발',\n  // 벤처 (벤처기업 인증 없음)\n  '벤처',\n  // 신규 고용/채용 (당분간 채용 계획 없음)\n  '신규채용', '신규고용', '채용보조금',\n  // 지역 전용 (서울 외)\n  '부산', '대구', '인천', '광주', '대전', '울산', '세종',\n  '강원', '충북', '충남', '전북', '전남', '경북', '경남', '제주',\n  // 대기업/중견기업 전용\n  '중견기업', '대기업', '상장사',\n  // 제조업 전용 (도소매업과 무관)\n  '제조업', '제조', '생산', '스마트공장', '뿌리기업', '뿌리산업',\n  // 특수 업종\n  '문화예술', '관광', '영화', '게임', '방송',\n];\n\nconst results = [];\nfor (const item of $input.all()) {\n\n// === 지역 공고 강제 필터 (v5.2) ===\n// [경기], [부산] 등 서울/전국 외 지역 prefix → 강제 0점\nconst titleRaw = item.json['지원사업이름'] || '';\nconst regionMatch = titleRaw.match(/^\\[([^\\]]+)\\]/);\nif (regionMatch) {\n  const region = regionMatch[1];\n  const allowedRegions = ['서울', '전국'];\n  if (!allowedRegions.some(r => region.includes(r))) {\n    results.push({ json: { ...item.json, kwScore: 0 } });\n    continue;\n  }\n}\n  const title = (item.json['지원사업이름'] || '') + ' ' + (item.json['지원대상'] || '');\n  const body  = (item.json['사업개요'] || '') + ' ' + (item.json['지원분야'] || '');\n\n  let score = 0;\n  HIGH_KW.forEach(kw => {\n    if (title.includes(kw)) score += HIGH_TITLE;\n    else if (body.includes(kw)) score += HIGH_BODY;\n  });\n  MID_KW.forEach(kw => {\n    if (title.includes(kw)) score += MID_TITLE;\n    else if (body.includes(kw)) score += MID_BODY;\n  });\n  LOW_KW.forEach(kw => {\n    if (title.includes(kw) || body.includes(kw)) score += PENALTY;\n  });\n\n  results.push({ json: { ...item.json, kwScore: Math.max(0, score) } });\n}\nreturn results;"
+      },
+      "id": "a878edb6-8bc9-4b4e-b08d-6529151b6dee",
+      "name": "키워드 점수화",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1632,
+        96
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 키워드 점수 기준 상위 30건 선별 - Gemini 413 오류 방지\nconst items = $input.all();\nconst sorted = [...items].sort((a, b) => (b.json.kwScore || 0) - (a.json.kwScore || 0));\nconst TOP_N = 30;\nconst top = sorted.slice(0, TOP_N);\n// 로그: 점수 분포 확인용\nconst totalCount = items.length;\nconst selectedCount = top.length;\nconst scores = top.map(i => i.json.kwScore || 0);\nconst minScore = scores.length > 0 ? Math.min(...scores) : 0;\nconst maxScore = scores.length > 0 ? Math.max(...scores) : 0;\nconsole.log('전체 ' + totalCount + '건 중 상위 ' + selectedCount + '건 선별 (점수 범위: ' + minScore + '~' + maxScore + ')');\nreturn top.map(item => ({ json: item.json }));"
+      },
+      "id": "aa4bbf5a-831c-4216-81b3-83036fd2c738",
+      "name": "상위 30건 선별",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1632,
+        256
+      ]
+    },
+    {
+      "name": "Stage1 데이터 준비",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -1216,
+        416
+      ],
+      "parameters": {
+        "jsCode": "// Stage1 데이터 준비: 원문 파싱 결과를 배치 처리용으로 변환 (v1)\nconst allItems = $input.all();\n\n// 공고 데이터만 추출 (공고ID가 있는 것)\nconst announcements = allItems.filter(item => item.json.공고ID && item.json.지원사업이름);\n\nif (announcements.length === 0) {\n  return [{ json: { _noItems: true } }];\n}\n\n// 각 공고를 개별 아이템으로 반환 (SplitInBatches에서 5건씩 처리)\nreturn announcements.map(item => ({\n  json: {\n    공고ID: item.json.공고ID,\n    지원사업이름: item.json.지원사업이름,\n    소관기관: (item.json.소관기관 || '').substring(0, 30),\n    지원대상: (item.json.지원대상 || '').substring(0, 100),\n    지원분야: (item.json.지원분야 || '').substring(0, 50),\n    사업개요: (item.json.사업개요 || '').substring(0, 150),\n    지역: item.json.지역 || '전국',\n    원문내용: (item.json.원문내용 || '').substring(0, 2000),\n    원문_크롤링여부: item.json.원문_크롤링여부 || false,\n    신청Link: item.json.신청Link || '',\n    마감일: item.json.마감일 || '',\n    수집출처: item.json.수집출처 || '',\n    첨부파일URL: item.json.첨부파일URL || '',\n    '첨부파일_HWPX여부': item.json['첨부파일_HWPX여부'] || false,\n    kwScore: item.json.kwScore || 0,\n  }\n}));"
+      },
+      "id": "stage1-data-prep"
+    },
+    {
+      "name": "Stage1 배치 (5건)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        -1000,
+        416
+      ],
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "id": "stage1-batch"
+    },
+    {
+      "name": "Stage1 프롬프트 생성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -780,
+        416
+      ],
+      "parameters": {
+        "jsCode": "// Stage1: 공고 원문 구조화 프롬프트 생성 (배치 5건)\nconst batchItems = $input.all();\n\nconst batchList = batchItems.map(item => ({\n  idx: item.json.공고ID,\n  사업명: item.json.지원사업이름,\n  원문: (item.json.원문내용 || item.json.사업개요 || '정보 없음').substring(0, 2000),\n}));\n\nconst systemPrompt = '당신은 정부지원사업 공고 원문 파서입니다. 반드시 순수 JSON 배열만 반환하고, 마크다운 코드블록 없이 [ 로 시작하여 ] 로 끝나야 합니다.';\n\nconst userPrompt = '아래 ' + batchList.length + '개 공고의 원문에서 핵심 정보를 JSON으로 구조화하세요.\\n\\n' +\n  batchList.map((item, i) => '[공고 ' + (i+1) + ']\\n- 사업명: ' + item.사업명 + '\\n- 원문: ' + item.원문).join('\\n\\n') +\n  '\\n\\n출력: [{\"idx\":\"공고ID\",\"사업목적\":\"\",\"지원대상\":\"\",\"지원내용\":\"\",\"신청기간\":\"\",\"필요서류\":[],\"신청방법\":\"\",\"제한사항\":\"\",\"첨부서식목록\":[],\"파싱품질\":\"상/중/하\"},...]\\n\\n순수 JSON 배열만 출력하세요.';\n\nconst fullPrompt = systemPrompt + '\\n\\n' + userPrompt;\n\n// 페이로드 크기 체크 (50KB 초과 시 원문 축소)\nlet payload = JSON.stringify({\n  contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],\n  generationConfig: { maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 0 } }\n});\n\nif (payload.length > 50000) {\n  // 원문을 1000자로 재절단\n  const shortList = batchItems.map(item => ({\n    idx: item.json.공고ID,\n    사업명: item.json.지원사업이름,\n    원문: (item.json.원문내용 || item.json.사업개요 || '정보 없음').substring(0, 1000),\n  }));\n  const shortPrompt = systemPrompt + '\\n\\n' +\n    '아래 ' + shortList.length + '개 공고의 원문에서 핵심 정보를 JSON으로 구조화하세요.\\n\\n' +\n    shortList.map((item, i) => '[공고 ' + (i+1) + ']\\n- 사업명: ' + item.사업명 + '\\n- 원문: ' + item.원문).join('\\n\\n') +\n    '\\n\\n출력: [{\"idx\":\"공고ID\",\"사업목적\":\"\",\"지원대상\":\"\",\"지원내용\":\"\",\"신청기간\":\"\",\"필요서류\":[],\"신청방법\":\"\",\"제한사항\":\"\",\"첨부서식목록\":[],\"파싱품질\":\"상/중/하\"},...]\\n\\n순수 JSON 배열만 출력하세요.';\n  payload = JSON.stringify({\n    contents: [{ role: 'user', parts: [{ text: shortPrompt }] }],\n    generationConfig: { maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 0 } }\n  });\n}\n\nreturn [{ json: { requestBody: payload, _batchIds: batchItems.map(i => i.json.공고ID) } }];"
+      },
+      "id": "stage1-prompt"
+    },
+    {
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.requestBody }}",
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qC5YRvdMTRVPbAmQ",
+          "name": "Gemini (WF#1)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "name": "Stage1 Gemini 호출",
+      "position": [
+        -560,
+        416
+      ],
+      "id": "stage1-gemini"
+    },
+    {
+      "name": "Stage1 응답 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -340,
+        416
+      ],
+      "parameters": {
+        "jsCode": "// Stage1 응답 파싱: Gemini 구조화 결과를 원본 데이터에 병합\nconst response = $input.first();\nconst batchIds = response.json._batchIds || [];\n\n// Gemini 응답에서 텍스트 추출\nfunction extractText(r) {\n  if (!r) return '';\n  const j = r.json || r;\n  if (j.candidates && j.candidates[0] && j.candidates[0].content) {\n    return j.candidates[0].content.parts[0].text || '';\n  }\n  if (j.text) return j.text;\n  const str = JSON.stringify(j);\n  const m = str.match(/\"text\"\\s*:\\s*\"([\\s\\S]*?)\"/);\n  return m ? m[1].replace(/\\\\n/g, '\\n').replace(/\\\\\"/g, '\"') : '';\n}\n\nconst text = extractText(response);\n\n// JSON 배열 파싱\nlet parsed = [];\ntry {\n  const codeBlockMatch = text.match(/```(?:json)?\\s*(\\[[\\s\\S]*?\\])\\s*```/);\n  const jsonStr = codeBlockMatch ? codeBlockMatch[1] : (text.match(/\\[[\\s\\S]*\\]/) || ['[]'])[0];\n  parsed = JSON.parse(jsonStr);\n} catch (e) {\n  parsed = [];\n}\n\n// Stage1 배치 분할 노드에서 원본 데이터 가져오기\nconst batchItems = $('Stage1 배치 (5건)').all();\n\n// 구조화 결과를 원본에 병합\nconst structMap = {};\nfor (const item of parsed) {\n  structMap[String(item.idx)] = item;\n}\n\nreturn batchItems.map(orig => {\n  const s = structMap[String(orig.json.공고ID)] || {};\n  return {\n    json: {\n      ...orig.json,\n      _s1_사업목적: s.사업목적 || '',\n      _s1_지원대상: s.지원대상 || '',\n      _s1_지원내용: s.지원내용 || '',\n      _s1_신청기간: s.신청기간 || '',\n      _s1_필요서류: JSON.stringify(s.필요서류 || []),\n      _s1_신청방법: s.신청방법 || '',\n      _s1_제한사항: s.제한사항 || '',\n      _s1_첨부서식목록: JSON.stringify(s.첨부서식목록 || []),\n      _s1_파싱품질: s.파싱품질 || '하',\n    }\n  };\n});"
+      },
+      "id": "stage1-parse"
+    },
+    {
+      "name": "Stage1 Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        -120,
+        416
+      ],
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "stage1-wait",
+      "webhookId": "stage1-wait-webhook"
+    },
+    {
+      "name": "Stage1 결과 집계",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        100,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Stage1 결과 집계: 모든 배치의 구조화 결과를 하나로 모음\n// SplitInBatches 완료 출력(output 0)으로부터 수집\nconst allItems = $input.all();\n// 이미 모든 배치 결과가 집계되어 들어옴\nreturn allItems.map(item => ({ json: item.json }));"
+      },
+      "id": "stage1-aggregate"
+    },
+    {
+      "name": "Stage2 배치 (5건)",
+      "type": "n8n-nodes-base.splitInBatches",
+      "typeVersion": 3,
+      "position": [
+        300,
+        300
+      ],
+      "parameters": {
+        "batchSize": 5,
+        "options": {}
+      },
+      "id": "stage2-batch"
+    },
+    {
+      "name": "Stage2 프롬프트 생성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        520,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Stage2 v3: 자격매칭 + 종합평가 프롬프트 생성 (배치 5건)\n// NocoDB 회사 프로파일 동적 로드 (43개 필드)\nlet profile = {};\ntry {\n  const companyItems = $('회사정보 조회').all();\n  if (companyItems.length > 0) {\n    const raw = companyItems[0].json;\n    if (raw.list && raw.list.length > 0) profile = raw.list[0];\n    else profile = raw;\n  }\n} catch (e) {}\n\nconst g = (k, d) => profile[k] || d;\n\nconst batchItems = $input.all();\nconst batchList = batchItems.map(item => ({\n  id: item.json.공고ID,\n  제목: item.json.지원사업이름,\n  사업목적: item.json._s1_사업목적 || '',\n  지원대상_구조화: item.json._s1_지원대상 || item.json.지원대상 || '',\n  지원내용: item.json._s1_지원내용 || '',\n  신청기간: item.json._s1_신청기간 || '',\n  제한사항: item.json._s1_제한사항 || '',\n  지역: item.json.지역 || '전국',\n}));\n\n// 어필포인트 JSON 파싱 → 구조화 텍스트 변환\nlet appealText = '';\ntry {\n  const ap = JSON.parse(g('어필포인트_JSON', '{}'));\n  const lines = Object.entries(ap).map(([k, v]) => '- ' + k.replace(/_/g,' ') + ': ' + v['어필1'] + ' / ' + v['핵심수치']);\n  appealText = lines.join('\\n');\n} catch (e) { appealText = '(미등록)'; }\n\nconst systemPrompt = '당신은 Pressco21의 정부지원사업 전략 분석가입니다. 반드시 순수 JSON 배열만 반환하고, 마크다운 코드블록 없이 [ 로 시작하여 ] 로 끝나야 합니다.';\n\nconst companyBlock = '[회사 현황]\\n' +\n  '회사명: ' + g('회사명','프레스코21') + ' / 사업자등록번호: ' + g('사업자등록번호','215-05-52221') + '\\n' +\n  '업종: ' + g('업종','꽃·공예 도소매업') + '\\n' +\n  '업태: ' + g('업태','도소매, 제조, 전자상거래') + ' / 종목: ' + g('종목','꽃, 전자상거래 소매업') + '\\n' +\n  '업종코드: ' + g('업종코드','525101') + ' (전자상거래 소매업)\\n' +\n  '대표: ' + g('대표자','이진선 (여성, 만 65세)') + '\\n' +\n  '창업: ' + g('업력','1999.12 (26년)') + '\\n' +\n  '소재지: ' + g('소재지','서울 송파구') + '\\n' +\n  '직원: ' + g('직원','8명') + '\\n' +\n  '연매출: ' + g('연매출','11.6억') + ' / 매출총이익률: ' + g('매출총이익률','59.3') + '%\\n' +\n  '부채비율: ' + g('부채비율','27.2') + '% (매우 건전)\\n' +\n  '자가부동산: 221평 (토지+건물 15.67억 매입)\\n\\n' +\n  '[보유 인증/실적]\\n' +\n  '- 인증: ' + g('보유인증','여성기업인증, 소기업확인서') + '\\n' +\n  '- 특허: ' + g('보유특허_건수','4') + '건 (실용신안 3건 + 특허 1건)\\n' +\n  '- 국무총리 표창 (2010), 모범여성기업인 (2005)\\n' +\n  '- 공공납품: ' + g('공공납품_실적','16곳') + '\\n' +\n  '- 대기업: ' + g('대기업_납품','LG생활건강, 삼성화재') + '\\n' +\n  '- 수출: ' + g('수출_규모','약 500만원') + ', 50여개국 국제교류\\n' +\n  '- 사회공헌: ' + g('사회공헌_실적','장애인복지관 교육, 기부 4587만') + '\\n' +\n  '- IT자동화: n8n 14개 WF + AI챗봇 자체 구축\\n' +\n  '- 콘텐츠: 유튜브 2160구독/467영상, MBC/KBS/SBS 출연\\n' +\n  '- 정부지원 수혜이력: ' + g('정부지원_수혜이력','없음 (첫 신청)') + '\\n' +\n  '- 판매채널: ' + g('판매채널','자사몰, 스마트스토어, 쿠팡, 11번가') + '\\n' +\n  '- 관심 분야: ' + g('최우선관심','마케팅·판로 확대') + '\\n' +\n  '- 추가 관심: ' + g('추가관심','디지털전환, 역량강화, 수출');\n\nconst typeBlock = '[공고 유형별 자격 판단 기준]\\n' +\n  '1. 여성기업 지원: 인증 보유 + 26년 여성 대표 → 매우 높은 적합도 (85점+)\\n' +\n  '2. 소상공인 마케팅/판로/전자상거래: 자사몰+오픈마켓 운영 → 높은 적합도 (75점+)\\n' +\n  '3. 디지털전환: n8n+AI 자동화 자체 구축 실적 → 높은 적합도 (75점+)\\n' +\n  '4. 고용지원/워라밸: 8명 안정고용, 출산휴가 운영 → 높은 적합도 (70점+)\\n' +\n  '5. 콘텐츠/마케팅 지원: YT 467영상 + 방송출연 → 높은 적합도 (70점+)\\n' +\n  '6. 컨설팅/멘토링: 26년 업력 + 10000명 강사양성 → 중간 적합도 (60점+)\\n' +\n  '7. 수출/해외진출: 소규모 수출 + 국제교류 → 중간 적합도 (50점+)\\n' +\n  '8. R&D/기술개발: 특허 4건 있으나 주업종 아님 → 조건부 (40~60점)\\n' +\n  '9. 제조업 전용: 업태에 제조 포함되나 주매출 도소매 → 신중 판단 (30~50점)\\n' +\n  '10. 창업초기 전용 (3년이내): 업력 26년 → 자격 없음 (0점)';\n\nconst disqualifyBlock = '[절대 부적합 → 0~10점]\\n' +\n  '- 창업 3년 이내 조건\\n' +\n  '- 농업/수산/광업/건설/의료/자동차 전용\\n' +\n  '- 비서울 지역 전용 (경기/부산/대구 등)\\n' +\n  '- 중견기업/대기업 대상\\n' +\n  '- 스마트공장/제조 전용\\n' +\n  '- 신규채용 필수 조건 (채용 계획 없음)';\n\nconst bonusBlock = '[우대 조건 → 보너스 점수 고려]\\n' +\n  '- 여성기업 키워드 포함 → +15점\\n' +\n  '- 소상공인 + 마케팅/판로 → +10점\\n' +\n  '- 전자상거래 + 디지털전환 → +10점\\n' +\n  '- 서울/송파 지역 한정 → +5점\\n' +\n  '- 정부지원 첫 신청 우대 명시 → +5점';\n\nconst userPrompt = companyBlock + '\\n\\n' + typeBlock + '\\n\\n' + disqualifyBlock + '\\n\\n' + bonusBlock +\n  '\\n\\n[어필 포인트 요약]\\n' + appealText +\n  '\\n\\n[공고 ' + batchList.length + '건 - Stage1 구조화 결과]\\n' + JSON.stringify(batchList) +\n  '\\n\\n각 공고에 대해 아래 JSON 배열 반환:\\n' +\n  '[{\"id\":\"공고ID\",\"관련도점수\":정수0~100,\"관련도등급\":\"고관련/검토/저관련\",\"신청자격_충족여부\":\"충족/부분충족/미충족\",' +\n  '\"불일치항목\":[],\"적합이유\":\"\",\"신청팁\":\"\",\"카테고리\":\"\",\"신청난이도\":\"상/중/하\",' +\n  '\"예상지원규모\":\"\",\"신청성공가능성\":\"높음/보통/낮음\",\"추천이유_상세\":\"\",\"핵심신청자격\":\"\"}]\\n\\n' +\n  '점수: 고관련=70+, 검토=40~69, 저관련=0~39. 자격 불일치는 반드시 39점 이하.';\n\nconst fullPrompt = systemPrompt + '\\n\\n' + userPrompt;\n\nconst payload = JSON.stringify({\n  contents: [{ role: 'user', parts: [{ text: fullPrompt }] }],\n  generationConfig: { maxOutputTokens: 8192, thinkingConfig: { thinkingBudget: 0 } }\n});\n\nreturn [{ json: { requestBody: payload, _batchIds: batchItems.map(i => i.json.공고ID) } }];"
+      },
+      "id": "stage2-prompt"
+    },
+    {
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googlePalmApi",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ $json.requestBody }}",
+        "options": {}
+      },
+      "credentials": {
+        "googlePalmApi": {
+          "id": "qC5YRvdMTRVPbAmQ",
+          "name": "Gemini (WF#1)"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "retryOnFail": true,
+      "maxTries": 2,
+      "waitBetweenTries": 5000,
+      "name": "Stage2 Gemini 호출",
+      "position": [
+        740,
+        300
+      ],
+      "id": "stage2-gemini"
+    },
+    {
+      "name": "Stage2 응답 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ],
+      "parameters": {
+        "jsCode": "// Stage2 응답 파싱: Gemini 평가 결과를 원본 데이터에 병합\nconst response = $input.first();\n\nfunction extractText(r) {\n  if (!r) return '';\n  const j = r.json || r;\n  if (j.candidates && j.candidates[0] && j.candidates[0].content) {\n    return j.candidates[0].content.parts[0].text || '';\n  }\n  if (j.text) return j.text;\n  const str = JSON.stringify(j);\n  const m = str.match(/\"text\"\\s*:\\s*\"([\\s\\S]*?)\"/);\n  return m ? m[1].replace(/\\\\n/g, '\\n').replace(/\\\\\"/g, '\"') : '';\n}\n\nconst text = extractText(response);\n\nlet parsed = [];\ntry {\n  const codeBlockMatch = text.match(/```(?:json)?\\s*(\\[[\\s\\S]*?\\])\\s*```/);\n  const jsonStr = codeBlockMatch ? codeBlockMatch[1] : (text.match(/\\[[\\s\\S]*\\]/) || ['[]'])[0];\n  parsed = JSON.parse(jsonStr);\n} catch (e) {\n  parsed = [];\n}\n\n// Stage2 배치에서 원본 데이터 가져오기\nconst batchItems = $('Stage2 배치 (5건)').all();\n\nconst scoreMap = {};\nfor (const item of parsed) {\n  scoreMap[String(item.id)] = item;\n}\n\nreturn batchItems.map(orig => {\n  const sd = scoreMap[String(orig.json.공고ID)] || {};\n  const score = Number(sd.관련도점수 ?? 0);\n  const grade = score >= 70 ? '고관련' : score >= 30 ? '검토' : '저관련';\n  return {\n    json: {\n      ...orig.json,\n      관련도점수: score,\n      관련도등급: grade,\n      관련도이유: sd.적합이유 || '',\n      적합이유: sd.적합이유 || '',\n      신청팁: sd.신청팁 || '',\n      카테고리: sd.카테고리 || '',\n      신청난이도: sd.신청난이도 || '',\n      예상지원규모: sd.예상지원규모 || '',\n      필요서류_예측: orig.json._s1_필요서류 || '[]',\n      추천이유_상세: sd.추천이유_상세 || '',\n      신청자격_충족여부: sd.신청자격_충족여부 || '',\n      신청성공가능성: sd.신청성공가능성 || '',\n      핵심신청자격: sd.핵심신청자격 || '',\n    }\n  };\n});"
+      },
+      "id": "stage2-parse"
+    },
+    {
+      "name": "Stage2 Wait",
+      "type": "n8n-nodes-base.wait",
+      "typeVersion": 1.1,
+      "position": [
+        1180,
+        300
+      ],
+      "parameters": {
+        "amount": 10,
+        "unit": "seconds"
+      },
+      "id": "stage2-wait",
+      "webhookId": "stage2-wait-webhook"
+    },
+    {
+      "name": "Stage2 결과 집계",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1400,
+        180
+      ],
+      "parameters": {
+        "jsCode": "// Stage2 결과 집계: 모든 배치의 평가 결과를 최종 출력\nconst allItems = $input.all();\nreturn allItems.map(item => ({ json: item.json }));"
+      },
+      "id": "stage2-aggregate"
+    }
+  ],
+  "connections": {
+    "고관련 저장 분기": {
+      "main": [
+        [
+          {
+            "node": "고관련 업데이트1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "고관련 저장3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "검토 저장 분기": {
+      "main": [
+        [
+          {
+            "node": "고관련 업데이트",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "고관련 저장4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items (고관련)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait (고관련)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (고관련)": {
+      "main": [
+        [
+          {
+            "node": "Send a message (고관련)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message (고관련)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items (고관련)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Loop Over Items (검토)": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Wait (검토)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Wait (검토)": {
+      "main": [
+        [
+          {
+            "node": "Send a message (검토)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Send a message (검토)": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items (검토)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "매일 09:00 실행": {
+      "main": [
+        [
+          {
+            "node": "기업마당 API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "K-Startup API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "보조금24 API",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "기존 공고ID 조회",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "회사정보 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "기업마당 API": {
+      "main": [
+        [
+          {
+            "node": "기업마당 정규화",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "K-Startup API": {
+      "main": [
+        [
+          {
+            "node": "K-Startup 정규화",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "보조금24 API": {
+      "main": [
+        [
+          {
+            "node": "보조금24 정규화",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "기업마당 정규화": {
+      "main": [
+        [
+          {
+            "node": "3개 API 통합",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "K-Startup 정규화": {
+      "main": [
+        [
+          {
+            "node": "3개 API 통합",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "보조금24 정규화": {
+      "main": [
+        [
+          {
+            "node": "3개 API 통합",
+            "type": "main",
+            "index": 2
+          }
+        ]
+      ]
+    },
+    "기존 공고ID 조회": {
+      "main": [
+        [
+          {
+            "node": "기존ID와 통합1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "기존ID와 통합1": {
+      "main": [
+        [
+          {
+            "node": "중복제거 & 신규필터1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "중복제거 & 신규필터1": {
+      "main": [
+        [
+          {
+            "node": "유효 공고만1",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "신규없음 체크",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "유효 공고만1": {
+      "main": [
+        [
+          {
+            "node": "사전 필터링1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "사전 필터링1": {
+      "main": [
+        [
+          {
+            "node": "키워드 점수화",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "회사정보 조회": {
+      "main": [
+        [
+          {
+            "node": "회사정보 통합1",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "회사정보 통합1": {
+      "main": [
+        [
+          {
+            "node": "공고 원문 크롤링",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관련도 분기": {
+      "main": [
+        [
+          {
+            "node": "고관련 저장 분기",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "검토 저장 분기",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "저관련 스킵",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "고관련 저장3": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items (고관련)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "고관련 저장4": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items (검토)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "고관련 업데이트1": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items (고관련)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "고관련 업데이트": {
+      "main": [
+        [
+          {
+            "node": "Loop Over Items (검토)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "신규없음 체크": {
+      "main": [
+        [
+          {
+            "node": "신규없음 Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "일일 요약 집계": {
+      "main": [
+        [
+          {
+            "node": "일일 요약 Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "공고 원문 크롤링": {
+      "main": [
+        [
+          {
+            "node": "원문 파싱 & 데이터 병합",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "원문 파싱 & 데이터 병합": {
+      "main": [
+        [
+          {
+            "node": "Stage1 데이터 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "3개 API 통합": {
+      "main": [
+        [
+          {
+            "node": "기존ID와 통합1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "키워드 점수화": {
+      "main": [
+        [
+          {
+            "node": "상위 30건 선별",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "상위 30건 선별": {
+      "main": [
+        [
+          {
+            "node": "회사정보 통합1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage1 데이터 준비": {
+      "main": [
+        [
+          {
+            "node": "Stage1 배치 (5건)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage1 배치 (5건)": {
+      "main": [
+        [
+          {
+            "node": "Stage1 결과 집계",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stage1 프롬프트 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage1 프롬프트 생성": {
+      "main": [
+        [
+          {
+            "node": "Stage1 Gemini 호출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage1 Gemini 호출": {
+      "main": [
+        [
+          {
+            "node": "Stage1 응답 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage1 응답 파싱": {
+      "main": [
+        [
+          {
+            "node": "Stage1 Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage1 Wait": {
+      "main": [
+        [
+          {
+            "node": "Stage1 배치 (5건)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage1 결과 집계": {
+      "main": [
+        [
+          {
+            "node": "Stage2 배치 (5건)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage2 배치 (5건)": {
+      "main": [
+        [
+          {
+            "node": "Stage2 결과 집계",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Stage2 프롬프트 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage2 프롬프트 생성": {
+      "main": [
+        [
+          {
+            "node": "Stage2 Gemini 호출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage2 Gemini 호출": {
+      "main": [
+        [
+          {
+            "node": "Stage2 응답 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage2 응답 파싱": {
+      "main": [
+        [
+          {
+            "node": "Stage2 Wait",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage2 Wait": {
+      "main": [
+        [
+          {
+            "node": "Stage2 배치 (5건)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Stage2 결과 집계": {
+      "main": [
+        [
+          {
+            "node": "관련도 분기",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "일일 요약 집계",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:매일 09:00 실행": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": {},
+  "versionId": "77d9e07a-f68d-4e7e-9906-41c9c103d33d",
+  "activeVersionId": "77d9e07a-f68d-4e7e-9906-41c9c103d33d",
+  "versionCounter": 192,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-02-24T15:16:48.712Z",
+      "createdAt": "2026-02-24T15:16:48.712Z",
+      "role": "workflow:owner",
+      "workflowId": "7MXN1lNCR3b7VcLF",
+      "projectId": "DIT0WAQj00qvNJUL",
+      "project": {
+        "updatedAt": "2026-02-28T07:51:06.297Z",
+        "createdAt": "2026-02-23T16:25:57.845Z",
+        "id": "DIT0WAQj00qvNJUL",
+        "name": "Unnamed Project",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-03-02T16:22:31.246Z",
+    "createdAt": "2026-03-02T16:22:31.246Z",
+    "versionId": "77d9e07a-f68d-4e7e-9906-41c9c103d33d",
+    "workflowId": "7MXN1lNCR3b7VcLF",
+    "nodes": [
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "isUpdate",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json._action }}",
+                      "rightValue": "update"
+                    },
+                    {
+                      "id": "hasRecordId",
+                      "operator": {
+                        "type": "string",
+                        "operation": "exists"
+                      },
+                      "leftValue": "={{ $json._nocodbId }}",
+                      "rightValue": ""
+                    }
+                  ]
+                },
+                "renameOutput": true,
+                "outputKey": "update"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "isCreate",
+                      "operator": {
+                        "type": "string",
+                        "operation": "notEquals"
+                      },
+                      "leftValue": "={{ $json._action }}",
+                      "rightValue": "update"
+                    }
+                  ]
+                },
+                "renameOutput": true,
+                "outputKey": "create"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "75dc1c8d-984d-4a81-8589-46501ab01ced",
+        "name": "고관련 저장 분기",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          32,
+          128
+        ],
+        "typeVersion": 3.2
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "isUpdate",
+                      "operator": {
+                        "type": "string",
+                        "operation": "equals"
+                      },
+                      "leftValue": "={{ $json._action }}",
+                      "rightValue": "update"
+                    },
+                    {
+                      "id": "hasRecordId",
+                      "operator": {
+                        "type": "string",
+                        "operation": "exists"
+                      },
+                      "leftValue": "={{ $json._nocodbId }}",
+                      "rightValue": ""
+                    }
+                  ]
+                },
+                "renameOutput": true,
+                "outputKey": "update"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "isCreate",
+                      "operator": {
+                        "type": "string",
+                        "operation": "notEquals"
+                      },
+                      "leftValue": "={{ $json._action }}",
+                      "rightValue": "update"
+                    }
+                  ]
+                },
+                "renameOutput": true,
+                "outputKey": "create"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "1841b947-8a78-432b-8354-28e45c2eeebf",
+        "name": "검토 저장 분기",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          32,
+          512
+        ],
+        "typeVersion": 3.2
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "9fa93a75-677a-439e-894d-eaec37d19284",
+        "name": "Loop Over Items (고관련)",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          480,
+          128
+        ],
+        "typeVersion": 3
+      },
+      {
+        "parameters": {
+          "amount": 3
+        },
+        "id": "76d1917c-df37-4214-a486-915a3a34a201",
+        "name": "Wait (고관련)",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          704,
+          -16
+        ],
+        "webhookId": "b4aa1771-b906-4957-b286-a8dc90c0a77f",
+        "typeVersion": 1.1
+      },
+      {
+        "parameters": {
+          "chatId": "7713811206",
+          "text": "=🔥 <b>고관련 지원사업 알림</b>\n\n📌 <b>사업명:</b> {{ $json.fields?.['지원 사업 이름'] ?? $json['지원사업이름'] ?? '미상' }}\n🏢 <b>소관기관:</b> {{ $json.fields?.['소관기관'] ?? $json['소관기관'] ?? '미상' }}\n📍 <b>지역:</b> {{ $json.fields?.['지역'] ?? $json['지역'] ?? '전국' }}\n\n📊 <b>관련도:</b> {{ $json.fields?.['관련 지수'] ?? $json['관련도점수'] ?? 'N/A' }}/100 | <b>성공가능성:</b> {{ $json['신청성공가능성'] ?? '-' }} | <b>카테고리:</b> {{ $json['카테고리'] ?? '-' }}\n✅ <b>자격:</b> {{ $json['신청자격_충족여부'] ?? '확인필요' }}\n\n📝 <b>AI 분석:</b>\n{{ $json.fields?.['선정 근거'] ?? $json['AI분석'] ?? '' }}\n\n📋 <b>핵심 자격요건:</b>\n{{ $json['핵심신청자격'] ?? '' }}\n\n🔗 <b>신청 링크:</b> {{ $json.fields?.['URL'] ?? $json['신청Link'] ?? '' }}",
+          "additionalFields": {
+            "parse_mode": "HTML"
+          }
+        },
+        "id": "aca88f92-21bb-4986-b913-51aec06ac951",
+        "name": "Send a message (고관련)",
+        "type": "n8n-nodes-base.telegram",
+        "maxTries": 5,
+        "position": [
+          928,
+          128
+        ],
+        "webhookId": "1c655257-069e-43b8-ac01-40aac9a9cc6d",
+        "retryOnFail": true,
+        "typeVersion": 1.2,
+        "waitBetweenTries": 5000,
+        "credentials": {
+          "telegramApi": {
+            "id": "1",
+            "name": "Telegram Bot API"
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "options": {}
+        },
+        "id": "75bbf402-daad-44cf-be8f-35a99c75f10f",
+        "name": "Loop Over Items (검토)",
+        "type": "n8n-nodes-base.splitInBatches",
+        "position": [
+          480,
+          512
+        ],
+        "typeVersion": 3
+      },
+      {
+        "parameters": {
+          "amount": 3
+        },
+        "id": "5207ff91-3471-4216-a9d9-39e8b26fd80a",
+        "name": "Wait (검토)",
+        "type": "n8n-nodes-base.wait",
+        "position": [
+          704,
+          288
+        ],
+        "webhookId": "341bb579-2878-4391-80f7-2d6aab014b62",
+        "typeVersion": 1.1
+      },
+      {
+        "parameters": {
+          "chatId": "7713811206",
+          "text": "=🧐 <b>검토 권장 지원사업 알림</b>\n\n📌 <b>사업명:</b> {{ $json.fields?.['지원 사업 이름'] ?? $json['지원사업이름'] ?? '미상' }}\n🏢 <b>소관기관:</b> {{ $json.fields?.['소관기관'] ?? $json['소관기관'] ?? '미상' }}\n📍 <b>지역:</b> {{ $json.fields?.['지역'] ?? $json['지역'] ?? '전국' }}\n\n📊 <b>관련도:</b> {{ $json.fields?.['관련 지수'] ?? $json['관련도점수'] ?? 'N/A' }}/100 | <b>성공가능성:</b> {{ $json['신청성공가능성'] ?? '-' }}\n✅ <b>자격:</b> {{ $json['신청자격_충족여부'] ?? '확인필요' }}\n\n📝 <b>AI 분석:</b>\n{{ $json.fields?.['선정 근거'] ?? $json['AI분석'] ?? '' }}\n\n🔗 <b>신청 링크:</b> {{ $json.fields?.['URL'] ?? $json['신청Link'] ?? '' }}",
+          "additionalFields": {
+            "parse_mode": "HTML"
+          }
+        },
+        "id": "26979341-906b-4827-8116-d6da352d0ff3",
+        "name": "Send a message (검토)",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          928,
+          512
+        ],
+        "webhookId": "94d87e42-e0bf-41d8-9a0f-53a0b224c73c",
+        "typeVersion": 1.2,
+        "credentials": {
+          "telegramApi": {
+            "id": "1",
+            "name": "Telegram Bot API"
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "field": "cronExpression",
+                "expression": "0 9 * * *"
+              }
+            ]
+          }
+        },
+        "id": "1b1b31be-207d-4379-b629-9fb04120bd60",
+        "name": "매일 09:00 실행",
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "position": [
+          -3232,
+          400
+        ],
+        "typeVersion": 1.2
+      },
+      {
+        "parameters": {
+          "url": "https://www.bizinfo.go.kr/uss/rss/bizinfoApi.do",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "crtfcKey",
+                "value": "FmSrV3"
+              },
+              {
+                "name": "dataType",
+                "value": "json"
+              },
+              {
+                "name": "searchCnt",
+                "value": "100"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "e3f249a1-a919-4989-8ac2-4c3d1d61c8a5",
+        "name": "기업마당 API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -3008,
+          -48
+        ],
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "url": "https://apis.data.go.kr/B552735/kisedKstartupService01/getAnnouncementInformation01",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "serviceKey",
+                "value": "o3ctdOjpDZCBH6p07MrXdir+hK/pG3hU1WcncvtnK+qTHGV79hy/MSHPr10om9luHvYCMuL7aJG2UV7hkt9gHA=="
+              },
+              {
+                "name": "perPage",
+                "value": "100"
+              },
+              {
+                "name": "page",
+                "value": "1"
+              },
+              {
+                "name": "returnType",
+                "value": "json"
+              },
+              {
+                "name": "Rcrt_prgs_yn",
+                "value": "Y"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "d43af30b-561a-4206-a958-194393ba9597",
+        "name": "K-Startup API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -3008,
+          144
+        ],
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "url": "https://api.odcloud.kr/api/gov24/v3/serviceList",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "serviceKey",
+                "value": "o3ctdOjpDZCBH6p07MrXdir+hK/pG3hU1WcncvtnK+qTHGV79hy/MSHPr10om9luHvYCMuL7aJG2UV7hkt9gHA=="
+              },
+              {
+                "name": "perPage",
+                "value": "100"
+              },
+              {
+                "name": "page",
+                "value": "1"
+              },
+              {
+                "name": "lifeArray",
+                "value": "중소기업,창업"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "cc68ac0f-0b68-4372-989a-de035135727f",
+        "name": "보조금24 API",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -3008,
+          336
+        ],
+        "typeVersion": 4.2,
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// 기업마당 API 응답 정규화\n// 실제 구조: { jsonArray: [ {pblancId, pblancNm, ...}, {...} ] }\n\nconst items = $input.first().json;\nconst normalized = [];\n\ntry {\n  // jsonArray가 배열로 직접 들어옴 (item 없음)\n  const data = items.jsonArray || [];\n  const dataArray = Array.isArray(data) ? data : [data];\n  \n  console.log(`기업마당 데이터 수: ${dataArray.length}`);\n  \n  for (const item of dataArray) {\n    // pblancId 필드 확인\n    if (!item.pblancId) {\n      console.log('pblancId 없음:', Object.keys(item).slice(0, 5));\n      continue;\n    }\n    \n    // 날짜 파싱: \"20260107 ~ 20260205\" 형식\n    let startDate = null;\n    let endDate = null;\n    if (item.reqstBeginEndDe) {\n      const dates = item.reqstBeginEndDe.split('~').map(d => d.trim());\n      if (dates[0] && dates[0].length >= 8) {\n        const d = dates[0].replace(/[^0-9]/g, '').slice(0, 8);\n        startDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n      }\n      if (dates[1] && dates[1].length >= 8) {\n        const d = dates[1].replace(/[^0-9]/g, '').slice(0, 8);\n        endDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n      }\n    }\n    \n    // 지역 추출 (hashTags에서)\n    const regions = ['서울','부산','대구','인천','광주','대전','울산','세종','경기','강원','충북','충남','전북','전남','경북','경남','제주'];\n    const hashTags = item.hashTags || item.hashtags || '';\n    const region = hashTags.split(',').find(t => regions.includes(t.trim())) || '전국';\n    \n    // ✅ 게시일시_raw: creatPnttm(등록/게시일시 후보)\n    const postedRaw = item.creatPnttm || item.createdDt || item.creatDt || null;\n\n    normalized.push({\n      json: {\n        공고ID: `BIZINFO_${item.pblancId}`,\n        지원사업이름: item.pblancNm || '',\n        소관기관: item.jrsdInsttNm || '',\n        수행기관: item.excInsttNm || '',\n        지원분야: item.pldirSportRealmLclasCodeNm || '',\n        지원대상: item.trgetNm || '',\n        사업개요: item.bsnsSumryCn || '',\n        지역: region,\n        신청시작일: startDate,\n        마감일: endDate,\n        신청방법: item.reqstMthPapersCn || '',\n        신청Link: item.pblancUrl ? (item.pblancUrl.startsWith('http') ? item.pblancUrl : 'https://www.bizinfo.go.kr' + item.pblancUrl) : '',\n        지원금액: '',\n        수집출처: '기업마당',\n\n        게시일시_raw: postedRaw,\n        게시일시_source: postedRaw ? 'creatPnttm' : ''\n      }\n    });\n  }\n  \n  console.log(`기업마당 정규화 완료: ${normalized.length}건`);\n  \n} catch (e) {\n  console.log('기업마당 파싱 오류:', e.message);\n}\n\nreturn normalized.length > 0 ? normalized : [{ json: { _empty: true, source: '기업마당', error: '데이터 없음' } }];"
+        },
+        "id": "ef929410-b3ea-48de-a7a1-17d03276377f",
+        "name": "기업마당 정규화",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2784,
+          -48
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "jsCode": "// K-Startup API 응답 정규화\n// 실제 구조: { data: [ {pbanc_sn, biz_pbanc_nm, pbanc_rcpt_bgng_dt, ...} ] }\n// 필드명이 스네이크케이스임\n\nconst items = $input.first().json;\nconst normalized = [];\n\ntry {\n  // data 배열로 직접 들어옴\n  const data = items.data || items.response?.body?.items?.item || [];\n  const dataArray = Array.isArray(data) ? data : [data];\n  \n  console.log(`K-Startup 데이터 수: ${dataArray.length}`);\n  if (dataArray[0]) {\n    console.log('K-Startup 샘플 필드:', Object.keys(dataArray[0]).slice(0, 10));\n  }\n  \n  for (const item of dataArray) {\n    // pbanc_sn 또는 id 필드 확인\n    const id = item.pbanc_sn || item.id || item.pbancId;\n    if (!id) {\n      continue;\n    }\n    \n    // 날짜 파싱: \"20260108\" 형식\n    let startDate = null;\n    let endDate = null;\n    \n    const startRaw = item.pbanc_rcpt_bgng_dt || item.reqstBeginDe || '';\n    const endRaw = item.pbanc_rcpt_end_dt || item.reqstEndDe || '';\n    \n    if (startRaw && String(startRaw).length >= 8) {\n      const d = String(startRaw).replace(/[^0-9]/g, '').slice(0, 8);\n      startDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n    }\n    if (endRaw && String(endRaw).length >= 8) {\n      const d = String(endRaw).replace(/[^0-9]/g, '').slice(0, 8);\n      endDate = `${d.slice(0,4)}-${d.slice(4,6)}-${d.slice(6,8)}`;\n    }\n\n    // ✅ 게시일시_raw 후보:\n    // - 만약 API가 별도의 등록/게시일 필드를 제공하면 그것을 우선\n    // - 없으면 현실적으로 pbanc_rcpt_bgng_dt(접수시작일)를 fallback으로 사용\n    const postedRaw =\n      item.pbanc_rgst_dt ||\n      item.pbanc_reg_dt ||\n      item.reg_dt ||\n      item.created_dt ||\n      item.creat_dt ||\n      item.pbanc_rcpt_bgng_dt ||\n      null;\n\n    const postedSource =\n      item.pbanc_rgst_dt ? 'pbanc_rgst_dt' :\n      item.pbanc_reg_dt ? 'pbanc_reg_dt' :\n      item.reg_dt ? 'reg_dt' :\n      item.created_dt ? 'created_dt' :\n      item.creat_dt ? 'creat_dt' :\n      item.pbanc_rcpt_bgng_dt ? 'pbanc_rcpt_bgng_dt' :\n      '';\n    \n    normalized.push({\n      json: {\n        공고ID: `KSTARTUP_${id}`,\n        지원사업이름: item.biz_pbanc_nm || item.pbancNm || '',\n        소관기관: item.biz_prch_dprt_nm || item.mngtInsttNm || '',\n        수행기관: item.sprv_inst || '',\n        지원분야: item.supt_biz_clsfc || item.sportFldNm || '',\n        지원대상: item.biz_trgt_age || item.trgetCn || '',\n        사업개요: item.pbanc_ctnt || item.bsnsSumryCn || '',\n        지역: item.supt_regin || item.sportRgnNm || '전국',\n        신청시작일: startDate,\n        마감일: endDate,\n        신청방법: item.aply_mthd_etc_istc || '',\n        신청Link: item.detl_pg_url || item.pbancUrl || '',\n        지원금액: '',\n        수집출처: 'K-Startup',\n\n        게시일시_raw: postedRaw,\n        게시일시_source: postedSource\n      }\n    });\n  }\n  \n  console.log(`K-Startup 정규화 완료: ${normalized.length}건`);\n  \n} catch (e) {\n  console.log('K-Startup 파싱 오류:', e.message);\n}\n\nreturn normalized.length > 0 ? normalized : [{ json: { _empty: true, source: 'K-Startup', error: '데이터 없음' } }];"
+        },
+        "id": "71736bd2-f797-4012-a133-a70311c9234d",
+        "name": "K-Startup 정규화",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2784,
+          144
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "jsCode": "// 보조금24 API 응답 정규화 (게시일 기준 = 수정일시 우선)\n// - '등록일시', '수정일시' 둘 다 존재하는 경우가 많으므로, \"어제~지금\" 기준은 수정일시로 운영\n// - 수정일시가 없으면 등록일시로 fallback\n\nconst items = $input.first().json;\nconst normalized = [];\n\ntry {\n  const data = items.data || items.response?.body?.items?.item || [];\n  const dataArray = Array.isArray(data) ? data : [data];\n\n  console.log(`보조금24 데이터 수: ${dataArray.length}`);\n\n  for (const item of dataArray) {\n    const id = item['서비스ID'] || item.servId || item.id;\n    if (!id) continue;\n\n    const createdRaw =\n      item['등록일시'] ||\n      item['등록일자'] ||\n      item['등록일'] ||\n      null;\n\n    const updatedRaw =\n      item['수정일시'] ||\n      item['수정일자'] ||\n      item['수정일'] ||\n      null;\n\n    // ✅ 게시일시_raw = 수정일시 우선\n    const postedRaw = updatedRaw || createdRaw || null;\n    const postedSource = updatedRaw ? '수정일시' : createdRaw ? '등록일시' : '';\n\n    normalized.push({\n      json: {\n        공고ID: `SUBSIDY24_${id}`,\n        지원사업이름: item['서비스명'] || item.servNm || '',\n        소관기관: item['소관기관명'] || item.jurMnofNm || '',\n        수행기관: item['소관기관유형'] || item.jurOrgNm || '',\n        지원분야: item['서비스분야'] || item.svcCtgryNm || '',\n        지원대상: item['지원대상'] || item.trgterIndvdlArray || '',\n        사업개요: item['서비스목적요약'] || item.servDgst || '',\n        지역: item['사용자구분'] || item.ctpvNm || '전국',\n        신청시작일: null,\n        마감일: null,\n        신청방법: item['신청방법'] || item.aplyMtdNm || '',\n        신청Link: item['상세조회URL'] || item.servDtlLink || '',\n        지원금액: item['지원내용'] || item.sprtCycNm || '',\n        수집출처: '보조금24',\n\n        // ✅ 게시/기준값\n        게시일시_raw: postedRaw,\n        게시일시_source: postedSource,\n\n        // ✅ 업데이트 감지/디버깅용 원천 값\n        수정일시_raw: updatedRaw,\n        등록일시_raw: createdRaw\n      }\n    });\n  }\n\n  console.log(`보조금24 정규화 완료: ${normalized.length}건`);\n} catch (e) {\n  console.log('보조금24 파싱 오류:', e.message);\n}\n\nreturn normalized.length > 0\n  ? normalized\n  : [{ json: { _empty: true, source: '보조금24', error: '데이터 없음' } }];"
+        },
+        "id": "57fb28d5-95c4-47d8-9aaa-deb30e28fa4c",
+        "name": "보조금24 정규화",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2784,
+          336
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "numberInputs": 3
+        },
+        "id": "cea7dd20-c30f-4b8b-ae1f-f5c9b1f044f7",
+        "name": "3개 API 통합",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          -2560,
+          128
+        ],
+        "typeVersion": 3
+      },
+      {
+        "parameters": {
+          "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "fields",
+                "value": "공고ID,Id"
+              },
+              {
+                "name": "limit",
+                "value": "10000"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "xc-token",
+                "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "02e9da12-9bdb-4d8d-b3c2-ecbac2a9558a",
+        "name": "기존 공고ID 조회",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -2560,
+          480
+        ],
+        "typeVersion": 4.2,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {},
+        "id": "e6c7bae7-013a-4bad-a932-ea9c4f377884",
+        "name": "기존ID와 통합1",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          -2336,
+          320
+        ],
+        "typeVersion": 3
+      },
+      {
+        "parameters": {
+          "jsCode": "\n// NocoDB 지원 - 기존 공고ID 조회가 NocoDB HTTP 응답(list 배열)으로 옴\n// _fromNocoDB: true 로 기존 레코드 식별\n\nconst rawItems = $input.all();\n\n// NocoDB list 응답 확장: {list: [...]} → 개별 아이템\nconst allItems = [];\nfor (const rawItem of rawItems) {\n  const j = rawItem.json;\n  if (j && j.list && Array.isArray(j.list)) {\n    // NocoDB HTTP GET 응답 - list 배열 확장\n    for (const record of j.list) {\n      allItems.push({ json: { _fromNocoDB: true, 공고ID: record.공고ID, Id: record.Id } });\n    }\n  } else if (j && j._fromNocoDB) {\n    allItems.push(rawItem);\n  } else {\n    allItems.push(rawItem);\n  }\n}\n\nconst KST_OFFSET_MS = 9 * 60 * 60 * 1000;\nconst nowUtcMs = Date.now();\nconst nowKst = new Date(nowUtcMs + KST_OFFSET_MS);\nconst y = nowKst.getUTCFullYear();\nconst m = nowKst.getUTCMonth();\nconst d = nowKst.getUTCDate();\n\nconst LOOKBACK_DAYS_DEFAULT = 14;  // 초기 적재용 (이후 7로 변경)\nconst LOOKBACK_DAYS_SUBSIDY24 = 30;\nconst FORCE_FULL_SYNC_ALL = false;\nconst FORCE_FULL_SYNC_SUBSIDY24 = false;\n\nconst startUtcMsDefault = Date.UTC(y, m, d - LOOKBACK_DAYS_DEFAULT, 0, 0, 0) - KST_OFFSET_MS;\nconst startUtcMsSubsidy24 = Date.UTC(y, m, d - LOOKBACK_DAYS_SUBSIDY24, 0, 0, 0) - KST_OFFSET_MS;\nconst endUtcMs = nowUtcMs;\n\nfunction parseToUtcMs(raw) {\n  if (raw === null || raw === undefined) return null;\n  const s0 = String(raw).trim();\n  if (!s0) return null;\n  if (/Z$|GMT|[+-]\\d{2}:?\\d{2}$/.test(s0)) {\n    const t = Date.parse(s0);\n    return Number.isFinite(t) ? t : null;\n  }\n  const m1 = s0.match(/^(\\d{4})-(\\d{2})-(\\d{2})(?:[T\\s]+(\\d{2}):(\\d{2})(?::(\\d{2}))?(?:\\.\\d+)?)?$/);\n  if (m1) {\n    return Date.UTC(+m1[1],+m1[2]-1,+m1[3],+(m1[4]||0),+(m1[5]||0),+(m1[6]||0)) - KST_OFFSET_MS;\n  }\n  // 14자리: YYYYMMDDHHmmss (보조금24 등)\n  const m14 = s0.match(/^(\\d{4})(\\d{2})(\\d{2})(\\d{2})(\\d{2})(\\d{2})$/);\n  if (m14) return Date.UTC(+m14[1],+m14[2]-1,+m14[3],+m14[4],+m14[5],+m14[6]) - KST_OFFSET_MS;\n  // 8자리: YYYYMMDD (기업마당 등)\n  const m8 = s0.match(/^(\\d{4})(\\d{2})(\\d{2})$/);\n  if (m8) return Date.UTC(+m8[1],+m8[2]-1,+m8[3]) - KST_OFFSET_MS;\n  const t = Date.parse(s0);\n  return Number.isFinite(t) ? t : null;\n}\n\n// NocoDB 기존 레코드 맵: 공고ID → NocoDB Id(정수)\nconst existingMap = new Map();\nfor (const item of allItems) {\n  const j = item.json;\n  if (!j || !j._fromNocoDB) continue;\n  const fullId = String(j.공고ID || '').trim();\n  if (!fullId) continue;\n  existingMap.set(fullId, { recordId: j.Id });\n}\n\nconsole.log(`기존 공고 수(NocoDB): ${existingMap.size}`);\n\nfunction guessSource(j) {\n  if (j?.수집출처) return String(j.수집출처);\n  const id = String(j?.공고ID || '');\n  if (id.startsWith('SUBSIDY24_')) return '보조금24';\n  if (id.startsWith('KSTARTUP_')) return 'K-Startup';\n  if (id.startsWith('BIZINFO_')) return '기업마당';\n  return 'unknown';\n}\n\nconst seenIds = new Set();\nconst out = [];\nconst stats = { inTotal: allItems.length, inAnnouncements: 0, outTotal: 0, bySourceOut: {}, dropped: {} };\n\nfor (const item of allItems) {\n  const j = item.json;\n  if (!j || j._fromNocoDB) continue;\n\n  const fullIdRaw = j.공고ID;\n  if (!fullIdRaw || !String(fullIdRaw).trim()) continue;\n  stats.inAnnouncements++;\n\n  const fullId = String(fullIdRaw).trim();\n  if (seenIds.has(fullId)) { stats.dropped.duplicateInRun = (stats.dropped.duplicateInRun||0)+1; continue; }\n  seenIds.add(fullId);\n\n  const title = j.지원사업이름;\n  if (!title || !String(title).trim()) continue;\n\n  const source = guessSource(j);\n  const isSubsidy24 = source === '보조금24' || fullId.startsWith('SUBSIDY24_');\n\n  const postedRaw = j.게시일시_raw ?? j.수정일시_raw ?? j.등록일시_raw ?? null;\n  if (!postedRaw) continue;\n\n  const postedUtcMs = parseToUtcMs(postedRaw);\n  if (postedUtcMs === null) continue;\n\n  const startUtcMs = isSubsidy24 ? startUtcMsSubsidy24 : startUtcMsDefault;\n  const bypassWindow = FORCE_FULL_SYNC_ALL || (FORCE_FULL_SYNC_SUBSIDY24 && isSubsidy24);\n  // 마감일 체크: endDate가 오늘 이후이면 만료되지 않은 공고\n  const endDateRaw = j.마감일시_raw ?? j.접수마감일_raw ?? j.endDate ?? null;\n  const endDateUtcMs = endDateRaw ? parseToUtcMs(endDateRaw) : null;\n  const todayStartUtcMs = Date.UTC(y, m, d, 0, 0, 0) - KST_OFFSET_MS;\n  const isNotExpired = endDateUtcMs !== null && endDateUtcMs >= todayStartUtcMs;\n  const isRecentPost = !bypassWindow ? (postedUtcMs >= startUtcMs && postedUtcMs <= endUtcMs) : true;\n  \n  // 게시일이 14일 이내 OR 마감일이 오늘 이후 → 둘 중 하나면 통과\n  if (!isRecentPost && !isNotExpired) continue;\n\n  const existing = existingMap.get(fullId);\n\n  if (!existing) {\n    out.push({ json: { ...j, _action: 'create' } });\n  } else {\n    out.push({ json: { ...j, _action: 'update', _nocodbId: existing.recordId } });\n  }\n\n  stats.bySourceOut[source] = (stats.bySourceOut[source] || 0) + 1;\n}\n\nstats.outTotal = out.length;\nconsole.log('필터 결과:', stats.outTotal, '/ bySource:', stats.bySourceOut);\n\nif (out.length === 0) {\n  return [{ json: { _noNewItems: true, message: '신규/업데이트 공고 없음', debug: stats } }];\n}\nreturn out;\n"
+        },
+        "id": "5126a164-bdd6-472c-949c-043a3d19fa52",
+        "name": "중복제거 & 신규필터1",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -2112,
+          320
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "version": 1,
+              "leftValue": "",
+              "caseSensitive": true,
+              "typeValidation": "strict"
+            },
+            "combinator": "and",
+            "conditions": [
+              {
+                "id": "has-id",
+                "operator": {
+                  "type": "string",
+                  "operation": "exists"
+                },
+                "leftValue": "={{ $json.공고ID }}",
+                "rightValue": ""
+              },
+              {
+                "id": "not-empty",
+                "operator": {
+                  "type": "boolean",
+                  "operation": "notEquals"
+                },
+                "leftValue": "={{ $json._noNewItems }}",
+                "rightValue": true
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "e3d6e7e1-ce84-4cd3-9dfd-03e21417c983",
+        "name": "유효 공고만1",
+        "type": "n8n-nodes-base.filter",
+        "position": [
+          -1888,
+          320
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "jsCode": "// 사전 필터링 v4 - Gemini 배치 최적화: 완전 무관 업종만 제외, 지역 제한 없음\n// 목표: 최대한 많은 공고를 Gemini에게 전달하여 AI가 직접 관련성 판단\nconst items = $input.all();\n\n// 제외 키워드: 업종 자체가 완전히 무관한 경우만 (꽃/공예 도소매와 절대 무관)\nconst EXCLUDE_INDUSTRIES = ['농업', '어업', '축산', '임업', '광업', '수산업', '어민', '농민', '축산농가', '선박', '조선'];\n\nconst filtered = [];\nfor (const item of items) {\n  const d = item.json;\n  if (!d.공고ID || !d.지원사업이름) continue;\n\n  // 제목 + 지원대상 + 지원분야 통합 텍스트\n  const txt = (\n    (d.지원사업이름 || '') + ' ' +\n    (d.지원대상 || '') + ' ' +\n    (d.지원분야 || '')\n  ).toLowerCase();\n\n  // 완전 무관 업종이면 제외\n  const isIrrelevant = EXCLUDE_INDUSTRIES.some(kw => txt.includes(kw));\n  if (isIrrelevant) continue;\n\n  filtered.push(item);\n}\n\nreturn filtered.length === 0 ? [{ json: { _noItems: true } }] : filtered;"
+        },
+        "id": "b513de21-2c4e-4492-bec6-d39fc273fadf",
+        "name": "사전 필터링1",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1648,
+          -112
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "url": "https://nocodb.pressco21.com/api/v2/tables/mptlhf2fqskxwkk/records",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "where",
+                "value": "(활성여부,eq,1)"
+              },
+              {
+                "name": "limit",
+                "value": "1"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "xc-token",
+                "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "709d2b82-f2ac-4a42-9cdf-3a6a7a9cc71e",
+        "name": "회사정보 조회",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1664,
+          656
+        ],
+        "typeVersion": 4.2,
+        "continueOnFail": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {},
+        "id": "d7d0b340-bded-4440-aee4-743c44c43262",
+        "name": "회사정보 통합1",
+        "type": "n8n-nodes-base.merge",
+        "position": [
+          -1440,
+          416
+        ],
+        "typeVersion": 3
+      },
+      {
+        "parameters": {
+          "jsCode": "// 배치 프롬프트 생성 - 전체 공고를 단일 Gemini 호출로 분류 (무료 RPM 최적화)\nconst allItems = $input.all();\n\n// 회사 프로파일 추출 (NocoDB 또는 하드코딩 폴백)\nlet cp = {\n  회사명: 'Pressco21',\n  업종: '꽃/공예 도소매',\n  소재지: '서울특별시',\n  직원수: 8,\n  연매출_억원: 3.2,\n  주요사업: '꽃 도매, 조화, 공예용품, 온라인몰 운영, 파트너 클래스',\n  현재_고민사항: '온라인 채널 확장, 직원 교육 체계화',\n};\n\nfor (const item of allItems) {\n  const j = item.json;\n  if (j.list && Array.isArray(j.list) && j.list.length > 0) {\n    const p = j.list[0];\n    if (p.회사명) { cp = { ...cp, ...p }; break; }\n  }\n  if (j.회사명 && j.업종) { cp = { ...cp, ...j }; break; }\n}\n\n// 공고 아이템 추출\nconst announcements = allItems.filter(item => item.json.공고ID && item.json.지원사업이름);\n\nif (announcements.length === 0) {\n  return [{ json: { _noItems: true } }];\n}\n\n// 배치 분류용 경량 배열 (토큰 절약)\nconst batchList = announcements.map(item => ({\n  id: item.json.공고ID,\n  제목: item.json.지원사업이름,\n  기관: (item.json.소관기관 || '').substring(0, 30),\n  대상: (item.json.지원대상 || '').substring(0, 80),\n  분야: (item.json.지원분야 || '').substring(0, 50),\n  지역: item.json.지역 || '전국',\n}));\n\nconst systemPrompt = '당신은 정부지원사업 전문 분석가입니다. 반드시 순수 JSON 배열만 반환하고, 마크다운 코드블록 없이 [ 로 시작하여 ] 로 끝나야 합니다.';\n\nconst userPrompt = '다음 ' + batchList.length + '개 정부지원사업 공고를 아래 회사 기준으로 관련도 분류하세요.\\n\\n[회사 정보]\\n- 회사명: ' + cp.회사명 + '\\n- 업종: ' + cp.업종 + '\\n- 소재지: ' + cp.소재지 + '\\n- 직원수: ' + cp.직원수 + '명\\n- 연매출: ' + cp.연매출_억원 + '억원\\n- 주요사업: ' + cp.주요사업 + '\\n- 현재고민: ' + (cp.현재_고민사항 || '') + '\\n\\n[공고 목록]\\n' + JSON.stringify(batchList) + '\\n\\n위 ' + batchList.length + '개 공고 각각에 대해 아래 형식의 JSON 배열만 반환하세요:\\n[{\"id\":\"공고ID\",\"점수\":정수0~100,\"등급\":\"고관련 또는 검토 또는 저관련\",\"이유\":\"한줄요약\"},...]\\n\\n점수기준: 고관련=70이상, 검토=30~69, 저관련=0~29\\n자격요건 불일치(농업인 전용 등)는 반드시 0~10점 부여.';\n\nreturn [{\n  json: {\n    _batchMode: true,\n    _batchCount: announcements.length,\n    _announcements: announcements.map(i => i.json),\n    systemPrompt: systemPrompt,\n    userPrompt: userPrompt,\n    fullPrompt: systemPrompt + \"\\n\\n\" + userPrompt,\n  }\n}];"
+        },
+        "id": "326cd41e-bba2-42a2-80c5-bc81f687ce77",
+        "name": "Gemini 프롬프트 생성",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1216,
+          416
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googlePalmApi",
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{ $json.requestBody }}",
+          "options": {}
+        },
+        "id": "7e074d2e-1e4c-45b3-8d84-fe6e2ac4ce31",
+        "name": "gemini 분석1",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          -768,
+          416
+        ],
+        "credentials": {
+          "googlePalmApi": {
+            "id": "qC5YRvdMTRVPbAmQ",
+            "name": "Google Gemini(PaLM) Api account"
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// Gemini 배치 응답 파싱 v4 - 상위 30건 선별에서 직접 원본 데이터 조회 후 1→N 확장\nconst responses = $input.all();\n\n// 원본 공고 데이터: 상위 30건 선별 노드에서 직접 조회\nconst rawAnnouncements = $('상위 30건 선별').all().map(item => item.json);\n\nfunction extractText(response) {\n  if (!response) return '';\n  const j = response.json || response;\n  if (j.text) return j.text;\n  if (j.candidates?.[0]?.content?.parts?.[0]?.text) return j.candidates[0].content.parts[0].text;\n  if (j.content?.parts?.[0]?.text) return j.content.parts[0].text;\n  const str = JSON.stringify(j);\n  const m = str.match(/\"text\"\\s*:\\s*\"([\\s\\S]*?)\"/);\n  return m ? m[1].replace(/\\\\n/g, '\\n').replace(/\\\\\"/g, '\"') : '';\n}\n\n// Gemini 응답에서 텍스트 추출\nconst firstResponse = responses[0];\nconst text = extractText(firstResponse);\n\n// JSON 배열 파싱 (코드블록 우선)\nlet jsonStr = '';\nconst codeBlockMatch = text.match(/```(?:json)?\\s*(\\[[\\s\\S]*?\\])\\s*```/);\nif (codeBlockMatch) {\n  jsonStr = codeBlockMatch[1];\n} else {\n  const arrMatch = text.match(/\\[[\\s\\S]*\\]/);\n  if (arrMatch) jsonStr = arrMatch[0];\n}\n\nif (!jsonStr || rawAnnouncements.length === 0) {\n  return rawAnnouncements.map(ann => ({\n    json: { ...ann, 관련도점수: 0, 관련도등급: '저관련', 관련도이유: 'Gemini 응답 파싱 실패' }\n  }));\n}\n\nlet batchScores;\ntry {\n  batchScores = JSON.parse(jsonStr);\n} catch (e) {\n  return rawAnnouncements.map(ann => ({\n    json: { ...ann, 관련도점수: 0, 관련도등급: '저관련', 관련도이유: 'JSON 파싱 오류: ' + e.message }\n  }));\n}\n\n// scoreMap 생성 (공고ID → 점수 데이터)\nconst scoreMap = {};\nfor (const item of batchScores) {\n  scoreMap[String(item.id)] = item;\n}\n\n// 원본 공고 데이터에 점수 병합하여 반환\nreturn rawAnnouncements.map(ann => {\n  const sd = scoreMap[String(ann.공고ID)] || {};\n  const score = Number(sd.점수 ?? 0);\n  const grade = score >= 70 ? '고관련' : score >= 30 ? '검토' : '저관련';\n  return {\n    json: {\n      ...ann,\n      관련도점수: score,\n      관련도등급: grade,\n      관련도이유: sd.이유 || '',\n    }\n  };\n});"
+        },
+        "id": "1fde2dcd-379b-4d33-817a-b5c4474480b0",
+        "name": "Gemini 응답 파싱",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -416,
+          416
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "rules": {
+            "values": [
+              {
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "gte70",
+                      "operator": {
+                        "type": "number",
+                        "operation": "gte"
+                      },
+                      "leftValue": "={{ $json.관련도점수 }}",
+                      "rightValue": 70
+                    }
+                  ]
+                },
+                "renameOutput": true,
+                "outputKey": "고관련"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "gte30",
+                      "operator": {
+                        "type": "number",
+                        "operation": "gte"
+                      },
+                      "leftValue": "={{ $json.관련도점수 }}",
+                      "rightValue": 30
+                    },
+                    {
+                      "id": "lt70",
+                      "operator": {
+                        "type": "number",
+                        "operation": "lt"
+                      },
+                      "leftValue": "={{ $json.관련도점수 }}",
+                      "rightValue": 70
+                    }
+                  ]
+                },
+                "renameOutput": true,
+                "outputKey": "검토"
+              },
+              {
+                "conditions": {
+                  "options": {
+                    "version": 2,
+                    "leftValue": "",
+                    "caseSensitive": true,
+                    "typeValidation": "strict"
+                  },
+                  "combinator": "and",
+                  "conditions": [
+                    {
+                      "id": "lt30",
+                      "operator": {
+                        "type": "number",
+                        "operation": "lt"
+                      },
+                      "leftValue": "={{ $json.관련도점수 }}",
+                      "rightValue": 30
+                    }
+                  ]
+                },
+                "renameOutput": true,
+                "outputKey": "저관련"
+              }
+            ]
+          },
+          "options": {}
+        },
+        "id": "444b08b6-8c6c-4fff-a181-31ec4b079423",
+        "name": "관련도 분기",
+        "type": "n8n-nodes-base.switch",
+        "position": [
+          -192,
+          400
+        ],
+        "typeVersion": 3.2
+      },
+      {
+        "parameters": {},
+        "id": "879cf5a8-dedc-463e-9ac7-75bf0845a804",
+        "name": "저관련 스킵",
+        "type": "n8n-nodes-base.noOp",
+        "position": [
+          192,
+          928
+        ],
+        "typeVersion": 1
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "xc-token",
+                "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "공고ID",
+                "value": "={{ $json.공고ID }}"
+              },
+              {
+                "name": "지원사업이름",
+                "value": "={{ $json.지원사업이름 }}"
+              },
+              {
+                "name": "소관기관",
+                "value": "={{ $json.소관기관 }}"
+              },
+              {
+                "name": "지역",
+                "value": "={{ $json.지역 }}"
+              },
+              {
+                "name": "마감일",
+                "value": "={{ $json.마감일 }}"
+              },
+              {
+                "name": "신청Link",
+                "value": "={{ $json.신청Link }}"
+              },
+              {
+                "name": "관련도점수",
+                "value": "={{ $json.관련도점수 }}"
+              },
+              {
+                "name": "관련도등급",
+                "value": "={{ $json.관련도등급 }}"
+              },
+              {
+                "name": "적합이유",
+                "value": "={{ $json.적합이유 }}"
+              },
+              {
+                "name": "신청팁",
+                "value": "={{ $json.신청팁 }}"
+              },
+              {
+                "name": "카테고리",
+                "value": "={{ $json.카테고리 }}"
+              },
+              {
+                "name": "신청난이도",
+                "value": "={{ $json.신청난이도 }}"
+              },
+              {
+                "name": "예상지원규모",
+                "value": "={{ $json.예상지원규모 }}"
+              },
+              {
+                "name": "필요서류_예측",
+                "value": "={{ $json.필요서류_예측 }}"
+              },
+              {
+                "name": "추천이유_상세",
+                "value": "={{ $json.추천이유_상세 }}"
+              },
+              {
+                "name": "상태",
+                "value": "데이터 수집"
+              },
+              {
+                "name": "수집일시",
+                "value": "={{ $now.toISO() }}"
+              },
+              {
+                "name": "공고원문",
+                "value": "={{ $json.사업개요 }}"
+              },
+              {
+                "name": "출처",
+                "value": "={{ $json.수집출처 }}"
+              },
+              {
+                "name": "원문내용",
+                "value": "={{ $json.원문내용 }}"
+              },
+              {
+                "name": "원문_크롤링여부",
+                "value": "={{ $json.원문_크롤링여부 }}"
+              },
+              {
+                "name": "신청자격_충족여부",
+                "value": "={{ $json.신청자격_충족여부 }}"
+              },
+              {
+                "name": "신청성공가능성",
+                "value": "={{ $json.신청성공가능성 }}"
+              },
+              {
+                "name": "핵심신청자격",
+                "value": "={{ $json.핵심신청자격 }}"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "0c4e6ac6-45d9-4195-a747-de8ff64a1680",
+        "name": "고관련 저장3",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          256,
+          -64
+        ],
+        "typeVersion": 4.2,
+        "continueOnFail": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "xc-token",
+                "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "bodyParameters": {
+            "parameters": [
+              {
+                "name": "공고ID",
+                "value": "={{ $json.공고ID }}"
+              },
+              {
+                "name": "지원사업이름",
+                "value": "={{ $json.지원사업이름 }}"
+              },
+              {
+                "name": "소관기관",
+                "value": "={{ $json.소관기관 }}"
+              },
+              {
+                "name": "지역",
+                "value": "={{ $json.지역 }}"
+              },
+              {
+                "name": "마감일",
+                "value": "={{ $json.마감일 }}"
+              },
+              {
+                "name": "신청Link",
+                "value": "={{ $json.신청Link }}"
+              },
+              {
+                "name": "관련도점수",
+                "value": "={{ $json.관련도점수 }}"
+              },
+              {
+                "name": "관련도등급",
+                "value": "={{ $json.관련도등급 }}"
+              },
+              {
+                "name": "적합이유",
+                "value": "={{ $json.적합이유 }}"
+              },
+              {
+                "name": "신청팁",
+                "value": "={{ $json.신청팁 }}"
+              },
+              {
+                "name": "카테고리",
+                "value": "={{ $json.카테고리 }}"
+              },
+              {
+                "name": "신청난이도",
+                "value": "={{ $json.신청난이도 }}"
+              },
+              {
+                "name": "예상지원규모",
+                "value": "={{ $json.예상지원규모 }}"
+              },
+              {
+                "name": "필요서류_예측",
+                "value": "={{ $json.필요서류_예측 }}"
+              },
+              {
+                "name": "추천이유_상세",
+                "value": "={{ $json.추천이유_상세 }}"
+              },
+              {
+                "name": "상태",
+                "value": "데이터 수집"
+              },
+              {
+                "name": "수집일시",
+                "value": "={{ $now.toISO() }}"
+              },
+              {
+                "name": "공고원문",
+                "value": "={{ $json.사업개요 }}"
+              },
+              {
+                "name": "출처",
+                "value": "={{ $json.수집출처 }}"
+              },
+              {
+                "name": "원문내용",
+                "value": "={{ $json.원문내용 }}"
+              },
+              {
+                "name": "원문_크롤링여부",
+                "value": "={{ $json.원문_크롤링여부 }}"
+              },
+              {
+                "name": "신청자격_충족여부",
+                "value": "={{ $json.신청자격_충족여부 }}"
+              },
+              {
+                "name": "신청성공가능성",
+                "value": "={{ $json.신청성공가능성 }}"
+              },
+              {
+                "name": "핵심신청자격",
+                "value": "={{ $json.핵심신청자격 }}"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "3e997082-d822-435e-ac4e-0b49f6a4351c",
+        "name": "고관련 저장4",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          256,
+          320
+        ],
+        "typeVersion": 4.2,
+        "continueOnFail": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "xc-token",
+                "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{ $json._patchBody }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "05f12df5-858c-45e2-812d-f959a378dd5f",
+        "name": "고관련 업데이트1",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          256,
+          128
+        ],
+        "typeVersion": 4.2,
+        "continueOnFail": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "xc-token",
+                "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+              },
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{ $json._patchBody }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "a7b6f396-1929-46d1-8456-1042e9c69655",
+        "name": "고관련 업데이트",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          256,
+          512
+        ],
+        "typeVersion": 4.2,
+        "continueOnFail": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "jsCode": "const items = $input.all();\nif (items.length > 0) return [];\nconst today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });\nreturn [{ json: { isEmpty: true, 수집일: today } }];"
+        },
+        "id": "56190385-b883-4282-bb73-3c3594179b1d",
+        "name": "신규없음 체크",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1904,
+          528
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "chatId": "7713811206",
+          "text": "=📋 <b>정부지원사업 일일 리포트</b>\n📅 {{ $json.수집일 }}\n\n⚪ 오늘 신규 공고 없음",
+          "additionalFields": {
+            "parse_mode": "HTML"
+          }
+        },
+        "id": "c5d0d3f0-785b-4def-920a-94c83b21710c",
+        "name": "신규없음 Telegram",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          -1680,
+          528
+        ],
+        "webhookId": "90be5ea4-272e-4b43-bcc7-e09223ea0ee3",
+        "typeVersion": 1.2,
+        "credentials": {
+          "telegramApi": {
+            "id": "1",
+            "name": "Telegram Bot API"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const allItems = $input.all();\nconst counts = { 고관련: 0, 검토: 0, 저관련: 0 };\nfor (const item of allItems) {\n  const grade = item.json.관련도등급;\n  if (grade === '고관련') counts.고관련++;\n  else if (grade === '검토') counts.검토++;\n  else counts.저관련++;\n}\nconst total = allItems.length;\nconst today = new Date().toLocaleDateString('ko-KR', { timeZone: 'Asia/Seoul', year: 'numeric', month: '2-digit', day: '2-digit' });\nconst summaryText = `📋 <b>정부지원사업 일일 리포트</b>\\n📅 ${today}\\n\\n🔥 긴급검토: ${counts.고관련}건\\n🧐 검토권장: ${counts.검토}건\\n⚪ 저관련: ${counts.저관련}건\\n\\n📊 총 분석: ${total}건`;\nreturn [{ json: { summaryText, counts, total, today } }];"
+        },
+        "id": "f9eb3a38-55fb-4842-b2b5-796c40444dc2",
+        "name": "일일 요약 집계",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -208,
+          640
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "chatId": "7713811206",
+          "text": "={{ $json.summaryText }}",
+          "additionalFields": {
+            "parse_mode": "HTML"
+          }
+        },
+        "id": "8f25d5ab-1d19-4a1b-b1f3-8fa679823aa1",
+        "name": "일일 요약 Telegram",
+        "type": "n8n-nodes-base.telegram",
+        "position": [
+          176,
+          704
+        ],
+        "webhookId": "d817c061-f3ed-47d9-a3b7-9d3dc44f83c5",
+        "typeVersion": 1.2,
+        "credentials": {
+          "telegramApi": {
+            "id": "1",
+            "name": "Telegram Bot API"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "url": "={{ $json.신청Link }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "text"
+              }
+            },
+            "timeout": 10000
+          }
+        },
+        "id": "c8a1b2d3-e4f5-6789-abcd-100000000001",
+        "name": "공고 원문 크롤링",
+        "type": "n8n-nodes-base.httpRequest",
+        "position": [
+          -1216,
+          192
+        ],
+        "typeVersion": 4.2,
+        "continueOnFail": true,
+        "onError": "continueRegularOutput"
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForEachItem",
+          "jsCode": "// 공고 원문 HTML 파싱 + 이전 공고 데이터 병합\n// HTTP Request의 continueOnFail=true이므로 크롤링 실패 시에도 동작\n\nconst crawlResult = $json;\n\n// 이전 노드(회사정보 통합1)에서 공고 원본 데이터 가져오기\nlet originalData = {};\ntry {\n  originalData = $('회사정보 통합1').item.json;\n} catch (e) {\n  // 회사정보 통합1 참조 실패 시 현재 아이템에서 공고 데이터 추출\n  originalData = {};\n}\n\n// 크롤링된 HTML에서 텍스트 추출\nlet rawHtml = '';\nlet crawlSuccess = false;\n\ntry {\n  // HTTP Request 성공 시 data 필드에 HTML이 들어옴\n  rawHtml = crawlResult.data || crawlResult.body || '';\n  if (typeof rawHtml === 'object') rawHtml = JSON.stringify(rawHtml);\n  crawlSuccess = rawHtml.length > 100; // 최소 100자 이상이면 유의미한 응답\n} catch (e) {\n  rawHtml = '';\n  crawlSuccess = false;\n}\n\nlet extractedText = '';\nif (crawlSuccess) {\n  // 스크립트/스타일/태그 제거\n  extractedText = rawHtml\n    .replace(/<script[\\s\\S]*?<\\/script>/gi, '')\n    .replace(/<style[\\s\\S]*?<\\/style>/gi, '')\n    .replace(/<nav[\\s\\S]*?<\\/nav>/gi, '')\n    .replace(/<header[\\s\\S]*?<\\/header>/gi, '')\n    .replace(/<footer[\\s\\S]*?<\\/footer>/gi, '')\n    .replace(/<[^>]+>/g, ' ')\n    .replace(/&nbsp;/g, ' ')\n    .replace(/&lt;/g, '<')\n    .replace(/&gt;/g, '>')\n    .replace(/&amp;/g, '&')\n    .replace(/&quot;/g, '\"')\n    .replace(/&#39;/g, \"'\")\n    .replace(/\\s{2,}/g, ' ')\n    .trim();\n  \n  // 3,000자 제한 (Gemini 입력 토큰 절약)\n  if (extractedText.length > 3000) {\n    extractedText = extractedText.substring(0, 3000) + '...(생략)';\n  }\n}\n\nconst finalText = extractedText || '원문 크롤링 실패 - API 요약 정보만 사용';\nconst didCrawl = !!(extractedText && extractedText !== '원문 크롤링 실패 - API 요약 정보만 사용');\n\n// 원본 공고 데이터 + 크롤링 결과 병합\nreturn {\n  json: {\n    ...originalData,\n    원문내용: finalText,\n    원문_크롤링여부: didCrawl\n  }\n};"
+        },
+        "id": "c8a1b2d3-e4f5-6789-abcd-100000000002",
+        "name": "원문 파싱 & 데이터 병합",
+        "type": "n8n-nodes-base.code",
+        "position": [
+          -1216,
+          0
+        ],
+        "typeVersion": 2
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "// HTTP Body 준비 - Gemini API 요청 바디 생성 (경량화)\nconst item = $input.first();\nconst payload = {\n  contents: [{\n    role: 'user',\n    parts: [{ text: item.json.fullPrompt }]\n  }],\n  generationConfig: {\n    maxOutputTokens: 20000,\n    thinkingConfig: { thinkingBudget: 0 }\n  }\n};\nreturn [{ json: { requestBody: JSON.stringify(payload) } }];"
+        },
+        "id": "0f9bd37f-c55c-4900-9e35-d63c8f5b8128",
+        "name": "HTTP Body 준비",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1008,
+          416
+        ]
+      },
+      {
+        "parameters": {
+          "mode": "runOnceForAllItems",
+          "jsCode": "const HIGH_TITLE = 20, HIGH_BODY = 10;\nconst MID_TITLE = 10, MID_BODY = 5;\nconst PENALTY = -15;\n\nconst HIGH_KW = ['소상공인','소기업','중소기업','자영업','1인기업',\n  '전자상거래','온라인','쇼핑몰','e커머스','이커머스',\n  '디지털','IT','스마트','판로','마케팅','브랜드',\n  '수출','해외진출','글로벌','서울','수도권',\n  '교육','훈련','역량강화','컨설팅','창업','스타트업','벤처'];\n\nconst MID_KW = ['유통','콘텐츠','플랫폼','SNS','광고','홍보',\n  '여성기업','청년','사회적기업'];\n\nconst LOW_KW = ['농업','수산','어업','임업','광업',\n  '건설','토목','건축','의료','병원','제약','바이오',\n  '자동차','중장비','조선','R&D','연구개발','기술개발'];\n\nconst results = [];\nfor (const item of $input.all()) {\n  const title = (item.json['공고명'] || '') + ' ' + (item.json['지원대상'] || '');\n  const body = (item.json['지원내용'] || '') + ' ' + (item.json['신청자격'] || '');\n\n  let score = 0;\n  HIGH_KW.forEach(kw => {\n    if (title.includes(kw)) score += HIGH_TITLE;\n    else if (body.includes(kw)) score += HIGH_BODY;\n  });\n  MID_KW.forEach(kw => {\n    if (title.includes(kw)) score += MID_TITLE;\n    else if (body.includes(kw)) score += MID_BODY;\n  });\n  LOW_KW.forEach(kw => {\n    if (title.includes(kw) || body.includes(kw)) score += PENALTY;\n  });\n\n  results.push({ json: { ...item.json, kwScore: Math.max(0, score) } });\n}\nreturn results;"
+        },
+        "id": "a878edb6-8bc9-4b4e-b08d-6529151b6dee",
+        "name": "키워드 점수화",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1632,
+          96
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// 키워드 점수 기준 상위 30건 선별 - Gemini 413 오류 방지\nconst items = $input.all();\nconst sorted = [...items].sort((a, b) => (b.json.kwScore || 0) - (a.json.kwScore || 0));\nconst TOP_N = 30;\nconst top = sorted.slice(0, TOP_N);\n// 로그: 점수 분포 확인용\nconst totalCount = items.length;\nconst selectedCount = top.length;\nconst scores = top.map(i => i.json.kwScore || 0);\nconst minScore = scores.length > 0 ? Math.min(...scores) : 0;\nconst maxScore = scores.length > 0 ? Math.max(...scores) : 0;\nconsole.log('전체 ' + totalCount + '건 중 상위 ' + selectedCount + '건 선별 (점수 범위: ' + minScore + '~' + maxScore + ')');\nreturn top.map(item => ({ json: item.json }));"
+        },
+        "id": "aa4bbf5a-831c-4216-81b3-83036fd2c738",
+        "name": "상위 30건 선별",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          -1632,
+          256
+        ]
+      }
+    ],
+    "connections": {
+      "고관련 저장 분기": {
+        "main": [
+          [
+            {
+              "node": "고관련 업데이트1",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "고관련 저장3",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "검토 저장 분기": {
+        "main": [
+          [
+            {
+              "node": "고관련 업데이트",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "고관련 저장4",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items (고관련)": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Wait (고관련)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait (고관련)": {
+        "main": [
+          [
+            {
+              "node": "Send a message (고관련)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send a message (고관련)": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items (고관련)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Loop Over Items (검토)": {
+        "main": [
+          [],
+          [
+            {
+              "node": "Wait (검토)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Wait (검토)": {
+        "main": [
+          [
+            {
+              "node": "Send a message (검토)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Send a message (검토)": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items (검토)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "매일 09:00 실행": {
+        "main": [
+          [
+            {
+              "node": "기업마당 API",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "K-Startup API",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "보조금24 API",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "기존 공고ID 조회",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "회사정보 조회",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "기업마당 API": {
+        "main": [
+          [
+            {
+              "node": "기업마당 정규화",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "K-Startup API": {
+        "main": [
+          [
+            {
+              "node": "K-Startup 정규화",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "보조금24 API": {
+        "main": [
+          [
+            {
+              "node": "보조금24 정규화",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "기업마당 정규화": {
+        "main": [
+          [
+            {
+              "node": "3개 API 통합",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "K-Startup 정규화": {
+        "main": [
+          [
+            {
+              "node": "3개 API 통합",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "보조금24 정규화": {
+        "main": [
+          [
+            {
+              "node": "3개 API 통합",
+              "type": "main",
+              "index": 2
+            }
+          ]
+        ]
+      },
+      "기존 공고ID 조회": {
+        "main": [
+          [
+            {
+              "node": "기존ID와 통합1",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "기존ID와 통합1": {
+        "main": [
+          [
+            {
+              "node": "중복제거 & 신규필터1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "중복제거 & 신규필터1": {
+        "main": [
+          [
+            {
+              "node": "유효 공고만1",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "신규없음 체크",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "유효 공고만1": {
+        "main": [
+          [
+            {
+              "node": "사전 필터링1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "사전 필터링1": {
+        "main": [
+          [
+            {
+              "node": "키워드 점수화",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "회사정보 조회": {
+        "main": [
+          [
+            {
+              "node": "회사정보 통합1",
+              "type": "main",
+              "index": 1
+            }
+          ]
+        ]
+      },
+      "회사정보 통합1": {
+        "main": [
+          [
+            {
+              "node": "공고 원문 크롤링",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Gemini 프롬프트 생성": {
+        "main": [
+          [
+            {
+              "node": "HTTP Body 준비",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "gemini 분석1": {
+        "main": [
+          [
+            {
+              "node": "Gemini 응답 파싱",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Gemini 응답 파싱": {
+        "main": [
+          [
+            {
+              "node": "관련도 분기",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "일일 요약 집계",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "관련도 분기": {
+        "main": [
+          [
+            {
+              "node": "고관련 저장 분기",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "검토 저장 분기",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "저관련 스킵",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "고관련 저장3": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items (고관련)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "고관련 저장4": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items (검토)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "고관련 업데이트1": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items (고관련)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "고관련 업데이트": {
+        "main": [
+          [
+            {
+              "node": "Loop Over Items (검토)",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "신규없음 체크": {
+        "main": [
+          [
+            {
+              "node": "신규없음 Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "일일 요약 집계": {
+        "main": [
+          [
+            {
+              "node": "일일 요약 Telegram",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "공고 원문 크롤링": {
+        "main": [
+          [
+            {
+              "node": "원문 파싱 & 데이터 병합",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "원문 파싱 & 데이터 병합": {
+        "main": [
+          [
+            {
+              "node": "Gemini 프롬프트 생성",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "3개 API 통합": {
+        "main": [
+          [
+            {
+              "node": "기존ID와 통합1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "HTTP Body 준비": {
+        "main": [
+          [
+            {
+              "node": "gemini 분석1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "키워드 점수화": {
+        "main": [
+          [
+            {
+              "node": "상위 30건 선별",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "상위 30건 선별": {
+        "main": [
+          [
+            {
+              "node": "회사정보 통합1",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Admin User",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-03-02T16:22:31.354Z",
+        "id": 694,
+        "workflowId": "7MXN1lNCR3b7VcLF",
+        "versionId": "77d9e07a-f68d-4e7e-9906-41c9c103d33d",
+        "event": "deactivated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      },
+      {
+        "createdAt": "2026-03-02T16:22:31.524Z",
+        "id": 695,
+        "workflowId": "7MXN1lNCR3b7VcLF",
+        "versionId": "77d9e07a-f68d-4e7e-9906-41c9c103d33d",
+        "event": "activated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      }
+    ]
+  }
+}

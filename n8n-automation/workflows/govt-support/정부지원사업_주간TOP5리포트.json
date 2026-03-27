@@ -1,0 +1,219 @@
+{
+  "name": "GS-805 주간 TOP5 공고 리포트",
+  "nodes": [
+    {
+      "id": "32691b62-4641-48be-a913-0ca72bee57c0",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [250, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 8 * * 5"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "8309f8d8-19bf-46a4-97a9-ec0756b200f3",
+      "name": "이번 주 날짜 범위 계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 이번 주 월요일 ~ 금요일 날짜 범위 계산 (yyyy-MM-dd 형식)\nconst now = new Date();\nconst dayOfWeek = now.getUTCDay(); // 0=일, 1=월, ..., 5=금\nconst daysFromMonday = dayOfWeek === 0 ? 6 : dayOfWeek - 1;\n\nconst monday = new Date(now);\nmonday.setUTCDate(now.getUTCDate() - daysFromMonday);\nmonday.setUTCHours(0, 0, 0, 0);\n\n// yyyy-MM-dd 형식 (NocoDB where절 호환)\nconst pad = (n) => String(n).padStart(2, '0');\nconst mondayStr = monday.getUTCFullYear() + '-' + pad(monday.getUTCMonth() + 1) + '-' + pad(monday.getUTCDate());\n\nconst weekStartKST = new Date(monday.getTime() + 9 * 60 * 60 * 1000);\nconst weekLabel = weekStartKST.toLocaleDateString('ko-KR', { month: 'long', day: 'numeric' });\n\nreturn [{\n  json: {\n    weekStart: mondayStr,\n    weekLabel: weekLabel + ' 주'\n  }\n}];"
+      }
+    },
+    {
+      "id": "cd46e448-f9d3-4dc0-89ff-ed714319b9b8",
+      "name": "NocoDB 이번 주 공고 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [710, 300],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "=(수집일시,gte,{{ $json.weekStart }})~and(상태,neq,기간만료)~and(관련도점수,gte,50)"
+            },
+            {
+              "name": "sort",
+              "value": "-관련도점수"
+            },
+            {
+              "name": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "continueOnFail": true
+    },
+    {
+      "id": "c138c47d-be2d-4c8d-9ba2-8ce0b22017d3",
+      "name": "TOP5 선별 + 메시지 조립",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [940, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const inputData = $input.first().json;\nconst records = inputData.list || [];\nconst weekLabel = $('이번 주 날짜 범위 계산').first().json.weekLabel;\n\n// NocoDB 에러 시 빈 배열 처리\nif (inputData.error || inputData.msg) {\n  return [{ json: { message: '이번 주 신규 수집된 고관련 공고가 없습니다.\\n\\n(관련도 50점 이상 + 기간만료 제외 기준)', hasData: false, count: 0 } }];\n}\n\n// 관련도점수 내림차순, 동점시 신청성공가능성 우선\nconst priority = { '높음': 3, '보통': 2, '낮음': 1 };\nconst sorted = [...records].sort((a, b) => {\n  const scoreDiff = (b['관련도점수'] || 0) - (a['관련도점수'] || 0);\n  if (scoreDiff !== 0) return scoreDiff;\n  return (priority[b['신청성공가능성']] || 0) - (priority[a['신청성공가능성']] || 0);\n});\n\nconst top5 = sorted.slice(0, 5);\nconst hasData = top5.length > 0;\n\nif (!hasData) {\n  return [{ json: { message: '이번 주 신규 수집된 고관련 공고가 없습니다.\\n\\n(관련도 50점 이상 + 기간만료 제외 기준)', hasData: false, count: 0 } }];\n}\n\nconst today = new Date();\nconst todayKST = new Date(today.getTime() + 9 * 60 * 60 * 1000);\nconst dateStr = todayKST.toLocaleDateString('ko-KR');\n\nlet msg = '<b>[주간 TOP5 정부지원사업 리포트]</b>\\n';\nmsg += '<i>' + dateStr + ' | ' + weekLabel + '</i>\\n';\nmsg += '총 ' + records.length + '건 수집, 상위 ' + top5.length + '건 요약\\n';\nmsg += '━━━━━━━━━━━━━━━━━━━━━━━━━━━\\n\\n';\n\ntop5.forEach((rec, idx) => {\n  const deadline = rec['마감일'] ? new Date(rec['마감일']) : null;\n  let ddayStr = '마감일 미상';\n  if (deadline) {\n    const dday = Math.ceil((deadline - today) / 86400000);\n    if (dday < 0) ddayStr = '마감';\n    else if (dday === 0) ddayStr = 'D-Day';\n    else ddayStr = 'D-' + dday;\n  }\n\n  msg += '<b>' + (idx + 1) + '. ' + (rec['지원사업이름'] || '-') + '</b>\\n';\n  msg += '   ' + (rec['소관기관'] || '-') + ' | ' + ddayStr + '\\n';\n  msg += '   관련도: ' + (rec['관련도점수'] || 0) + '점 | 성공가능성: ' + (rec['신청성공가능성'] || '-') + ' | ' + (rec['카테고리'] || '-') + '\\n';\n  \n  if (rec['예상지원규모']) msg += '   지원규모: ' + rec['예상지원규모'] + '\\n';\n  if (rec['신청자격_충족여부']) msg += '   자격충족: ' + rec['신청자격_충족여부'] + '\\n';\n  if (rec['핵심신청자격']) {\n    const qual = rec['핵심신청자격'].length > 80 ? rec['핵심신청자격'].substring(0, 80) + '...' : rec['핵심신청자격'];\n    msg += '   핵심자격: ' + qual + '\\n';\n  }\n  if (rec['신청Link']) msg += '   <a href=\"' + rec['신청Link'] + '\">공고 보기</a>\\n';\n  \n  if (idx < top5.length - 1) msg += '\\n';\n});\n\nmsg += '\\n━━━━━━━━━━━━━━━━━━━━━━━━━━━\\n';\nmsg += '<i>NocoDB에서 신청의향=true 변경 시 서류 자동 생성</i>';\n\nreturn [{ json: { message: msg, hasData: true, count: top5.length } }];"
+      }
+    },
+    {
+      "id": "220efd47-0386-4815-9806-92648021b208",
+      "name": "이번 주 공고 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1170, 300],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "13660a7b-2bf5-4908-9003-4e8323ddde3d",
+              "leftValue": "={{ $json.hasData }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "0c746631-22fc-4c51-aeb1-04e2cf0a01f5",
+      "name": "Telegram 주간 TOP5 리포트",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1420, 200],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "id": "ffe28f8d-49d3-4b4d-8789-dff828944308",
+      "name": "Telegram 이번 주 공고 없음",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1420, 420],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          {
+            "node": "이번 주 날짜 범위 계산",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이번 주 날짜 범위 계산": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 이번 주 공고 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 이번 주 공고 조회": {
+      "main": [
+        [
+          {
+            "node": "TOP5 선별 + 메시지 조립",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "TOP5 선별 + 메시지 조립": {
+      "main": [
+        [
+          {
+            "node": "이번 주 공고 있음?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이번 주 공고 있음?": {
+      "main": [
+        [
+          {
+            "node": "Telegram 주간 TOP5 리포트",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram 이번 주 공고 없음",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

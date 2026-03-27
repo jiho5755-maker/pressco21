@@ -1,0 +1,113 @@
+{
+  "name": "F050c: 상품 검색 Tool (서브 WF)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "execute-trigger",
+      "name": "When Executed by Another Workflow",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI Agent가 전달한 query를 추출하고 URL을 생성\n// ToolWorkflow input 구조: { query: '...' }\nconst raw = $input.first().json;\nconst query = (raw.query || raw.keyword || raw.input || '').trim();\n\nif (!query) {\n  return [{ json: { url: '', query: '', isEmpty: true } }];\n}\n\n// 한글 포함 keyword URL 인코딩\nconst encodedKeyword = encodeURIComponent(query);\nconst url = 'https://www.foreverlove.co.kr/list/open_api.html?mode=search&type=product&keyword=' + encodedKeyword + '&limit=5';\n\nreturn [{ json: { url: url, query: query, isEmpty: false } }];"
+      },
+      "id": "code-prepare-url",
+      "name": "Code: 검색 URL 준비",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Shopkey",
+              "value": "MAKESHOP_SHOPKEY_PLACEHOLDER"
+            },
+            {
+              "name": "Licensekey",
+              "value": "MAKESHOP_LICENSEKEY_PLACEHOLDER"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "id": "http-makeshop-search",
+      "name": "메이크샵 상품 검색",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 메이크샵 상품 검색 결과 파싱\n// 응답 구조: { return_code, totalCount, list: [{ uid, product_name, sellprice, display, sell_accept }] }\n// n8n HTTP Request 노드가 JSON을 문자열(data 키)로 반환하는 경우 파싱 처리\nconst query = $('Code: 검색 URL 준비').first().json.query || '';\nconst isEmpty = $('Code: 검색 URL 준비').first().json.isEmpty;\nconst baseUrl = 'https://www.foreverlove.co.kr';\nconst fallbackUrl = baseUrl + '/goods/goods_search.php?keyword=' + encodeURIComponent(query);\n\n// query가 비어있는 경우\nif (isEmpty || !query) {\n  return [{ json: { response: '검색할 상품명을 알려주시면 찾아드릴게요 🌸' } }];\n}\n\nconst rawInput = $input.first().json;\n// n8n이 응답 본문을 data 문자열로 감싸는 경우 JSON.parse 처리\nconst searchResult = (rawInput.data && typeof rawInput.data === 'string')\n  ? JSON.parse(rawInput.data)\n  : rawInput;\n\n// 검색 실패 처리\nif (searchResult.error || (searchResult.return_code && searchResult.return_code !== '0000')) {\n  return [{ json: { response: '상품 검색에 일시적인 오류가 발생했어요 🌿 자사몰에서 직접 검색해 보세요!\\n' + fallbackUrl } }];\n}\n\nconst list = searchResult.list || [];\n\n// 판매 중이고 진열된 상품만 필터링\nconst available = list.filter(function(p) {\n  return p.display === 'Y' && p.sell_accept === 'Y';\n});\n\nif (available.length === 0) {\n  return [{ json: { response: '\"' + query + '\" 검색 결과가 없어요 🌿 다른 키워드로 자사몰에서 찾아보세요!\\n' + fallbackUrl } }];\n}\n\n// 상위 3개 상품 포맷\nconst top3 = available.slice(0, 3);\nconst lines = top3.map(function(p) {\n  const name = p.product_name || '상품명 없음';\n  const price = p.sellprice ? Number(p.sellprice).toLocaleString('ko-KR') + '원' : '';\n  const url = p.uid ? baseUrl + '/goods/goods_view.php?goodsno=' + p.uid : '';\n  return name + (price ? ' — ' + price : '') + (url ? '\\n' + url : '');\n});\n\nconst response = '\"' + query + '\" 관련 상품이에요 🌸\\n\\n' + lines.join('\\n\\n');\nreturn [{ json: { response: response } }];"
+      },
+      "id": "code-parse-products",
+      "name": "Code: 검색 결과 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "When Executed by Another Workflow": {
+      "main": [
+        [
+          {
+            "node": "Code: 검색 URL 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: 검색 URL 준비": {
+      "main": [
+        [
+          {
+            "node": "메이크샵 상품 검색",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메이크샵 상품 검색": {
+      "main": [
+        [
+          {
+            "node": "Code: 검색 결과 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null
+}

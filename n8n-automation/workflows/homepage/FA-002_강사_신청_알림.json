@@ -1,0 +1,293 @@
+{
+  "updatedAt": "2026-02-26T07:10:00.000Z",
+  "createdAt": "2026-02-24T13:59:50.305Z",
+  "id": "ovWkhq7E0ZqvjBIZ",
+  "name": "FA-002 강사 신청 알림",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "id": "node-schedule",
+      "name": "1시간 스케줄",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "hours",
+              "hoursInterval": 1
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "node-query",
+      "name": "NocoDB 신규 신청 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        440,
+        300
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(n8n_신청알림,eq,0)"
+            },
+            {
+              "name": "limit",
+              "value": "100"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "node-split",
+      "name": "레코드 분리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const response = $input.first().json;\nconst records = response.list || [];\nconst blockedStatuses = new Set(['승인대기', '승인완료', '반려']);\n\nfunction isTrueish(value) {\n  return value === true || value === 1 || value === '1';\n}\n\nreturn records\n  .filter((record) => {\n    const status = String(record['진행 상태'] || '').trim();\n    return !isTrueish(record['n8n_신청알림'])\n      && !isTrueish(record['n8n_처리완료'])\n      && !blockedStatuses.has(status);\n  })\n  .map((record) => ({ json: record }));"
+      }
+    },
+    {
+      "id": "node-message",
+      "name": "메시지 조립",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const items = $input.all();\nconst count = items.length;\n\nif (count === 0) {\n  return [{ json: { count: 0, message: '', ids: [] } }];\n}\n\nconst lines = items.map((item, i) => {\n  const f = item.json;\n  const name = f['성함'] || '이름없음';\n  const tel = f['연락처'] || '-';\n  const userId = f['자사몰 ID'] || '미입력';\n  const email = f['이메일 주소'] || '-';\n  return (i + 1) + '. ' + name + ' | ' + tel + ' | ' + userId + ' | ' + email;\n});\n\nconst message = '\\uD83D\\uDD95 \\uAC15\\uC0AC \\uC2E0\\uCCAD ' + count + '\\uAC74 \\uC811\\uC218\\n\\n' + lines.join('\\n') + '\\n\\nNocoDB\\uC5D0\\uC11C \\uC2B9\\uC778 \\uCC98\\uB9AC\\uD574\\uC8FC\\uC138\\uC694.';\nconst ids = items.map((item) => item.json.Id).filter((id) => Number.isInteger(id));\n\nreturn [{ json: { count, message, ids } }];"
+      }
+    },
+    {
+      "id": "node-if",
+      "name": "신규 신청 있는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1160,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "c1",
+              "leftValue": "={{ $json.count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "node-telegram",
+      "name": "텔레그램 신청 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1400,
+        200
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      },
+      "parameters": {
+        "chatId": "-5154731145",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      }
+    },
+    {
+      "id": "node-expand-ids",
+      "name": "알림 발송 대상 분리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        200
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const ids = $('메시지 조립').first().json.ids || [];\nreturn ids.map((id) => ({ json: { id } }));"
+      }
+    },
+    {
+      "id": "node-http",
+      "name": "NocoDB 신청알림 발송 표시",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1880,
+        200
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt/' + $json.id }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ 'n8n_신청알림': true }) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          }
+        }
+      }
+    }
+  ],
+  "connections": {
+    "1시간 스케줄": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 신규 신청 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 신규 신청 조회": {
+      "main": [
+        [
+          {
+            "node": "레코드 분리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "레코드 분리": {
+      "main": [
+        [
+          {
+            "node": "메시지 조립",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메시지 조립": {
+      "main": [
+        [
+          {
+            "node": "신규 신청 있는가",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "신규 신청 있는가": {
+      "main": [
+        [
+          {
+            "node": "텔레그램 신청 알림",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "텔레그램 신청 알림": {
+      "main": [
+        [
+          {
+            "node": "알림 발송 대상 분리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "알림 발송 대상 분리": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 신청알림 발송 표시",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null
+}

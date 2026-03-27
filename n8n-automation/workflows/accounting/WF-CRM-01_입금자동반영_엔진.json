@@ -1,0 +1,636 @@
+{
+  "name": "WF-CRM-01 입금자동반영 엔진",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm-auto-deposit-intake",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://crm.pressco21.com,https://n8n.pressco21.com"
+        }
+      },
+      "id": "webhook-auto-deposit-intake",
+      "name": "Webhook: Auto Deposit Intake",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "crm-auto-deposit-intake"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm-auto-deposit-review-queue",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://crm.pressco21.com,https://n8n.pressco21.com"
+        }
+      },
+      "id": "webhook-review-queue-api",
+      "name": "Webhook: Review Queue API",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        760
+      ],
+      "webhookId": "crm-auto-deposit-review-queue"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/mffgxkftaeppyk0",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "fields",
+              "value": "Id,name,book_name,mobile,email,business_no,legacy_id,memo,outstanding_balance"
+            },
+            {
+              "name": "limit",
+              "value": "20000"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-customers",
+      "name": "NocoDB Get Customers",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        80
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/ml81i9mcuw0pjzk",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(payment_status,eq,unpaid)~or(payment_status,eq,partial)"
+            },
+            {
+              "name": "fields",
+              "value": "Id,customer_id,customer_name,invoice_no,invoice_date,total_amount,paid_amount,current_balance,payment_status,memo"
+            },
+            {
+              "name": "limit",
+              "value": "20000"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-open-invoices",
+      "name": "NocoDB Get Open Invoices",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        240
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://crm.pressco21.com/data/legacy-customer-snapshots.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-legacy-snapshots",
+      "name": "HTTP Get Legacy Snapshots",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        400
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "zFo3GRfYLWPaouyK",
+          "name": "PRESSCO21 CRM BasicAuth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://crm.pressco21.com/data/fiscal-balance-snapshots.json",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpBasicAuth",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-get-fiscal-snapshots",
+      "name": "HTTP Get Fiscal Snapshots",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        480,
+        560
+      ],
+      "credentials": {
+        "httpBasicAuth": {
+          "id": "zFo3GRfYLWPaouyK",
+          "name": "PRESSCO21 CRM BasicAuth"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const sourceNode = $('Webhook: Auto Deposit Intake').first();\nconst raw = sourceNode.json.body ?? sourceNode.json ?? {};\nconst deposits = Array.isArray(raw.deposits) ? raw.deposits : [];\n\nfunction digitsOnly(value) {\n  return String(value ?? '').replace(/\\D/g, '');\n}\n\nfunction parseInteger(value) {\n  if (typeof value === 'number') return Number.isFinite(value) ? Math.trunc(value) : 0;\n  const parsed = Number(String(value ?? '').replace(/,/g, '').replace(/원/g, '').trim());\n  return Number.isFinite(parsed) ? Math.trunc(parsed) : 0;\n}\n\nfunction normalizeName(value) {\n  return String(value ?? '')\n    .toLowerCase()\n    .replace(/\\s+/g, '')\n    .replace(/[()\\-.,/]/g, '')\n    .replace(/님/g, '')\n    .replace(/회장/g, '')\n    .replace(/이사장/g, '')\n    .replace(/대표/g, '')\n    .trim();\n}\n\nfunction normalizeBusinessNo(value) {\n  return String(value ?? '').replace(/\\D/g, '');\n}\n\nfunction normalizeDate(value) {\n  const text = String(value ?? '').trim();\n  const iso = text.match(/(\\d{4})-(\\d{2})-(\\d{2})/);\n  if (iso) return iso[0];\n  const dotted = text.match(/(\\d{4})[./](\\d{1,2})[./](\\d{1,2})/);\n  if (dotted) return dotted[1] + '-' + dotted[2].padStart(2, '0') + '-' + dotted[3].padStart(2, '0');\n  return '';\n}\n\nfunction parseCustomerAccountingMeta(memo) {\n  const prefix = '[ACCOUNTING_CUSTOMER_META]';\n  const line = String(memo ?? '')\n    .split('\\n')\n    .map((entry) => entry.trim())\n    .find((entry) => entry.startsWith(prefix));\n  if (!line) {\n    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], autoDepositDisabled: false, autoDepositPriority: 0, events: [] };\n  }\n  try {\n    const parsed = JSON.parse(line.slice(prefix.length).trim());\n    const aliases = Array.isArray(parsed.depositorAliases)\n      ? parsed.depositorAliases.map((entry) => String(entry ?? '').trim()).filter(Boolean)\n      : [];\n    return {\n      depositBalance: Math.max(0, parseInteger(parsed.depositBalance)),\n      refundPendingBalance: Math.max(0, parseInteger(parsed.refundPendingBalance)),\n      depositorAliases: aliases,\n      autoDepositDisabled: parsed.autoDepositDisabled === true,\n      autoDepositPriority: Math.max(0, parseInteger(parsed.autoDepositPriority)),\n      events: Array.isArray(parsed.events) ? parsed.events : [],\n    };\n  } catch {\n    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], autoDepositDisabled: false, autoDepositPriority: 0, events: [] };\n  }\n}\n\nfunction parseLegacyReceivableMemo(memo) {\n  const prefix = '[LEGACY_RECEIVABLE_META]';\n  const line = String(memo ?? '')\n    .split('\\n')\n    .map((entry) => entry.trim())\n    .find((entry) => entry.startsWith(prefix));\n  if (!line) {\n    return { settledAmount: 0, settlements: [] };\n  }\n  try {\n    const parsed = JSON.parse(line.slice(prefix.length).trim());\n    const settlements = Array.isArray(parsed.settlements) ? parsed.settlements : [];\n    const settledAmount = Math.max(\n      parseInteger(parsed.settledAmount),\n      settlements.reduce((sum, entry) => sum + Math.max(0, parseInteger(entry.amount)), 0),\n    );\n    return { settledAmount, settlements };\n  } catch {\n    return { settledAmount: 0, settlements: [] };\n  }\n}\n\nfunction serializeLegacyReceivableMemo(memo, nextState) {\n  const prefix = '[LEGACY_RECEIVABLE_META]';\n  const visibleLines = String(memo ?? '')\n    .replace(/\\r\\n/g, '\\n')\n    .split('\\n')\n    .filter((line) => line.trim() && !line.trim().startsWith(prefix));\n  const settlements = Array.isArray(nextState.settlements) ? nextState.settlements : [];\n  if (settlements.length === 0 && parseInteger(nextState.settledAmount) <= 0) {\n    return visibleLines.join('\\n').trim();\n  }\n  const payload = {\n    settledAmount: Math.max(\n      parseInteger(nextState.settledAmount),\n      settlements.reduce((sum, entry) => sum + Math.max(0, parseInteger(entry.amount)), 0),\n    ),\n    settlements,\n  };\n  return [...visibleLines, prefix + ' ' + JSON.stringify(payload)].join('\\n').trim();\n}\n\nfunction parseInvoiceDepositUsedAmount(memo) {\n  const prefix = '[ACCOUNTING_INVOICE_META]';\n  const line = String(memo ?? '')\n    .split('\\n')\n    .map((entry) => entry.trim())\n    .find((entry) => entry.startsWith(prefix));\n  if (!line) return 0;\n  try {\n    const parsed = JSON.parse(line.slice(prefix.length).trim());\n    return Math.max(0, parseInteger(parsed.depositUsedAmount));\n  } catch {\n    return 0;\n  }\n}\n\nfunction getCustomerLookupTokens(customer, extraValues = []) {\n  const meta = parseCustomerAccountingMeta(customer.memo);\n  return [\n    customer.name,\n    customer.book_name,\n    ...meta.depositorAliases,\n    ...extraValues,\n  ]\n    .map(normalizeName)\n    .filter(Boolean);\n}\n\nfunction buildLegacyReceivableBaseline(customer, tradebookByLegacyId, fiscalPayload) {\n  const legacyId = String(customer.legacy_id ?? '').trim();\n  if (!legacyId) return 0;\n  const snapshot = tradebookByLegacyId?.[legacyId];\n  if (!snapshot) return 0;\n  if (String(snapshot.report_print ?? '').trim() === '거래종료') return 0;\n  const fiscalYear = fiscalPayload?.years?.[String(fiscalPayload.currentFiscalYear)];\n  const fiscalAmount = fiscalYear?.receivablesByLegacyId?.[legacyId];\n  const rawBaseline = typeof fiscalAmount === 'number'\n    ? fiscalAmount\n    : Math.abs(Math.min(0, parseInteger(snapshot.balance)));\n  if (!rawBaseline) return 0;\n  const memoState = parseLegacyReceivableMemo(customer.memo);\n  return Math.max(0, rawBaseline - memoState.settledAmount);\n}\n\nconst customers = $('NocoDB Get Customers').first().json.list ?? [];\nconst invoices = $('NocoDB Get Open Invoices').first().json.list ?? [];\nconst legacySnapshots = $('HTTP Get Legacy Snapshots').first().json ?? {};\nconst fiscalSnapshots = $('HTTP Get Fiscal Snapshots').first().json ?? {};\n\nconst tradebookByLegacyId = legacySnapshots.tradebookByLegacyId ?? {};\nconst currentFiscalYearPayload = fiscalSnapshots ?? {};\n\nconst customerById = new Map(customers.map((customer) => [Number(customer.Id), customer]));\nconst outstandingByCustomer = new Map(customers.map((customer) => [Number(customer.Id), Math.max(0, parseInteger(customer.outstanding_balance))]));\nconst legacyMemoByCustomer = new Map(customers.map((customer) => [Number(customer.Id), String(customer.memo ?? '')]));\n\nconst normalizedDeposits = deposits\n  .map((deposit, index) => {\n    const amount = Math.max(0, parseInteger(deposit.amount));\n    const sender = String(deposit.sender ?? '').trim();\n    const occurredAt = String(deposit.occurredAt ?? '').trim();\n    const occurredDate = normalizeDate(occurredAt);\n    if (!amount || !sender || !occurredDate) return null;\n    return {\n      index,\n      sender,\n      senderKey: normalizeName(sender),\n      amount,\n      occurredAt,\n      occurredDate,\n      note: String(deposit.note ?? '').trim(),\n      externalId: String(deposit.externalId ?? '').trim() || ('deposit-' + index + '-' + amount + '-' + occurredDate),\n      raw: deposit,\n    };\n  })\n  .filter(Boolean);\n\nconst exactActions = [];\nconst reviewEntries = [];\nconst unmatchedEntries = [];\nconst appliedCustomerIds = new Set();\n\nfor (const deposit of normalizedDeposits) {\n  const invoiceCandidates = invoices\n    .map((invoice) => {\n      const customerId = Number(invoice.customer_id ?? 0);\n      if (!customerId) return null;\n      const fallbackRemaining = Math.max(\n        0,\n        parseInteger(invoice.total_amount) - parseInteger(invoice.paid_amount) - parseInvoiceDepositUsedAmount(invoice.memo),\n      );\n      const customer = customerById.get(customerId) ?? {\n        Id: customerId,\n        name: String(invoice.customer_name ?? '').trim(),\n        book_name: '',\n        memo: '',\n        outstanding_balance: fallbackRemaining,\n      };\n      const customerMeta = parseCustomerAccountingMeta(customer.memo);\n      if (customerMeta.autoDepositDisabled) return null;\n      const remaining = fallbackRemaining;\n      const tokens = getCustomerLookupTokens(customer, [invoice.customer_name]);\n      const senderMatched = tokens.some((token) => token && deposit.senderKey.includes(token));\n      const exactAmountMatched = remaining === deposit.amount;\n      const partialAmountMatched = senderMatched && remaining > 0 && deposit.amount > 0 && deposit.amount < remaining;\n      const overAmountMatched = senderMatched && remaining > 0 && deposit.amount > remaining;\n      if (!exactAmountMatched && !partialAmountMatched && !overAmountMatched) return null;\n      const score = (senderMatched ? 100 : 60) + Math.min(30, customerMeta.autoDepositPriority);\n      return {\n        key: 'invoice-' + invoice.Id,\n        kind: 'invoice',\n        confidence: exactAmountMatched && (senderMatched || invoices.filter((candidate) => {\n          const candidateRemaining = Math.max(\n            0,\n            parseInteger(candidate.total_amount) - parseInteger(candidate.paid_amount) - parseInvoiceDepositUsedAmount(candidate.memo),\n          );\n          return candidateRemaining === deposit.amount;\n        }).length === 1) ? 'exact' : 'review',\n        score,\n        customerId,\n        customerName: customer.name,\n        invoiceId: Number(invoice.Id),\n        invoiceNo: invoice.invoice_no,\n        reason: partialAmountMatched\n          ? '입금자명은 맞지만 금액이 일부만 들어와 부분 입금 검토가 필요합니다.'\n          : overAmountMatched\n          ? '입금자명은 맞지만 금액이 명세표 잔액보다 커서 초과 입금 검토가 필요합니다.'\n          : senderMatched\n          ? '입금자명과 고객명이 맞고 열린 명세표 잔액과 금액이 같습니다.'\n          : '열린 명세표 잔액과 입금 금액이 같습니다.',\n      };\n    })\n    .filter(Boolean);\n\n  const legacyCandidates = customers\n    .map((customer) => {\n      const customerMeta = parseCustomerAccountingMeta(customer.memo);\n      if (customerMeta.autoDepositDisabled) return null;\n      const legacyBaseline = buildLegacyReceivableBaseline(customer, tradebookByLegacyId, currentFiscalYearPayload);\n      const tokens = getCustomerLookupTokens(customer);\n      const senderMatched = tokens.some((token) => token && deposit.senderKey.includes(token));\n      const exactAmountMatched = legacyBaseline === deposit.amount;\n      const partialAmountMatched = senderMatched && legacyBaseline > 0 && deposit.amount > 0 && deposit.amount < legacyBaseline;\n      const overAmountMatched = senderMatched && legacyBaseline > 0 && deposit.amount > legacyBaseline;\n      if (!exactAmountMatched && !partialAmountMatched && !overAmountMatched) return null;\n      const score = (senderMatched ? 95 : 55) + Math.min(30, customerMeta.autoDepositPriority);\n      return {\n        key: 'legacy-' + customer.Id,\n        kind: 'legacy',\n        confidence: exactAmountMatched && (senderMatched || customers.filter((candidate) => buildLegacyReceivableBaseline(candidate, tradebookByLegacyId, currentFiscalYearPayload) === deposit.amount).length === 1) ? 'exact' : 'review',\n        score,\n        customerId: Number(customer.Id),\n        customerName: customer.name,\n        reason: partialAmountMatched\n          ? '입금자명은 맞지만 기존 장부 받을 돈보다 적게 들어와 부분 입금 검토가 필요합니다.'\n          : overAmountMatched\n          ? '입금자명은 맞지만 기존 장부 받을 돈보다 많이 들어와 초과 입금 검토가 필요합니다.'\n          : senderMatched\n          ? '입금자명과 고객명이 맞고 기존 장부 받을 돈과 금액이 같습니다.'\n          : '기존 장부 받을 돈과 입금 금액이 같습니다.',\n      };\n    })\n    .filter(Boolean);\n\n  const candidates = [...invoiceCandidates, ...legacyCandidates]\n    .sort((left, right) => right.score - left.score)\n    .filter((candidate, index, list) => list.findIndex((entry) => entry.key === candidate.key) === index);\n\n  const best = candidates[0];\n  const hasUniqueBest = best && (!candidates[1] || best.score > candidates[1].score);\n\n  if (best && best.confidence === 'exact' && hasUniqueBest) {\n    const customer = customerById.get(best.customerId) ?? (best.kind === 'invoice'\n      ? {\n          Id: best.customerId,\n          name: best.customerName,\n          book_name: '',\n          memo: '',\n          outstanding_balance: deposit.amount,\n        }\n      : null);\n    if (!customer) {\n      unmatchedEntries.push({\n        sender: deposit.sender,\n        amount: deposit.amount,\n        occurredAt: deposit.occurredAt,\n        externalId: deposit.externalId,\n        reason: '고객 정보를 찾지 못했습니다.',\n      });\n      continue;\n    }\n\n    const currentOutstanding = outstandingByCustomer.get(best.customerId) ?? Math.max(0, parseInteger(customer.outstanding_balance));\n    const nextOutstanding = Math.max(0, currentOutstanding - deposit.amount);\n    outstandingByCustomer.set(best.customerId, nextOutstanding);\n    appliedCustomerIds.add(best.customerId);\n\n    if (best.kind === 'invoice') {\n      const invoice = invoices.find((entry) => Number(entry.Id) === best.invoiceId);\n      const previousPaid = parseInteger(invoice?.paid_amount);\n      exactActions.push({\n        kind: 'invoice',\n        deposit,\n        customerId: best.customerId,\n        customerName: best.customerName,\n        invoiceId: best.invoiceId,\n        invoiceNo: best.invoiceNo,\n        invoicePatch: {\n          paid_amount: previousPaid + deposit.amount,\n          current_balance: 0,\n          payment_status: 'paid',\n          payment_method: '계좌이체',\n          paid_date: deposit.occurredDate,\n        },\n        customerPatch: {\n          outstanding_balance: nextOutstanding,\n        },\n        reason: best.reason,\n      });\n      continue;\n    }\n\n    const previousMemo = legacyMemoByCustomer.get(best.customerId) ?? String(customer.memo ?? '');\n    const memoState = parseLegacyReceivableMemo(previousMemo);\n    const nextMemo = serializeLegacyReceivableMemo(previousMemo, {\n      settledAmount: memoState.settledAmount + deposit.amount,\n      settlements: [\n        ...memoState.settlements,\n        {\n          amount: deposit.amount,\n          date: deposit.occurredDate,\n          method: '계좌이체',\n          operator: '자동입금',\n          accountLabel: 'email_imap',\n          createdAt: new Date().toISOString(),\n        },\n      ],\n    });\n    legacyMemoByCustomer.set(best.customerId, nextMemo);\n    exactActions.push({\n      kind: 'legacy',\n      deposit,\n      customerId: best.customerId,\n      customerName: best.customerName,\n      customerPatch: {\n        outstanding_balance: nextOutstanding,\n        memo: nextMemo,\n      },\n      reason: best.reason,\n    });\n    continue;\n  }\n\n  if (candidates.length > 0) {\n    reviewEntries.push({\n      sender: deposit.sender,\n      amount: deposit.amount,\n      occurredAt: deposit.occurredAt,\n      externalId: deposit.externalId,\n      candidates: candidates.slice(0, 3).map((candidate) => ({\n        kind: candidate.kind,\n        customerId: candidate.customerId,\n        customerName: candidate.customerName,\n        invoiceId: candidate.invoiceId ?? null,\n        invoiceNo: candidate.invoiceNo ?? null,\n        reason: candidate.reason,\n        score: candidate.score,\n      })),\n    });\n  } else {\n    unmatchedEntries.push({\n      sender: deposit.sender,\n      amount: deposit.amount,\n      occurredAt: deposit.occurredAt,\n      externalId: deposit.externalId,\n      reason: '정확히 일치하는 고객이나 미수 금액을 찾지 못했습니다.',\n    });\n  }\n}\n\nreturn [{\n  json: {\n    source: String(raw.source ?? 'unknown'),\n    exactActions,\n    reviewEntries,\n    unmatchedEntries,\n    appliedCustomerIds: Array.from(appliedCustomerIds),\n    summary: {\n      total: normalizedDeposits.length,\n      exact: exactActions.length,\n      review: reviewEntries.length,\n      unmatched: unmatchedEntries.length,\n    },\n  },\n}];"
+      },
+      "id": "code-build-plan",
+      "name": "Code: Build Deposit Plan",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const plan = $input.first().json;\nconst staticData = $getWorkflowStaticData('global');\nconst now = new Date().toISOString();\nconst queue = Array.isArray(staticData.reviewQueue) ? staticData.reviewQueue : [];\n\nfunction normalizeQueueId(entry, status) {\n  const externalId = String(entry.externalId ?? '').trim();\n  if (externalId) return externalId;\n  return [status, String(entry.sender ?? '').trim(), String(entry.amount ?? 0), String(entry.occurredAt ?? '').trim()].join('::');\n}\n\nfunction upsertQueueEntry(status, entry) {\n  const queueId = normalizeQueueId(entry, status);\n  const nextItem = {\n    queueId,\n    status,\n    sender: String(entry.sender ?? '').trim(),\n    amount: Number(entry.amount ?? 0) || 0,\n    occurredAt: String(entry.occurredAt ?? '').trim(),\n    externalId: String(entry.externalId ?? '').trim(),\n    source: String(plan.source ?? 'unknown'),\n    reason: String(entry.reason ?? '').trim(),\n    candidates: Array.isArray(entry.candidates) ? entry.candidates : [],\n    updatedAt: now,\n    createdAt: now,\n    resolvedAt: null,\n    resolvedBy: null,\n    resolvedNote: null,\n  };\n\n  const existingIndex = queue.findIndex((item) => item.queueId === queueId);\n  if (existingIndex >= 0) {\n    const prev = queue[existingIndex];\n    if (prev.status === 'resolved' || prev.status === 'dismissed') return 0;\n    queue[existingIndex] = {\n      ...prev,\n      ...nextItem,\n      createdAt: prev.createdAt ?? now,\n    };\n    return 1;\n  }\n\n  queue.unshift(nextItem);\n  return 1;\n}\n\nlet upserted = 0;\nfor (const entry of plan.reviewEntries || []) upserted += upsertQueueEntry('review', entry);\nfor (const entry of plan.unmatchedEntries || []) upserted += upsertQueueEntry('unmatched', entry);\n\nstaticData.reviewQueue = queue.slice(0, 500);\n\nreturn [{\n  json: {\n    ...plan,\n    queueSummary: {\n      upserted,\n      pending: staticData.reviewQueue.filter((item) => item.status === 'review' || item.status === 'unmatched').length,\n      total: staticData.reviewQueue.length,\n    },\n  },\n}];"
+      },
+      "id": "code-persist-review-queue",
+      "name": "Code: Persist Review Queue",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.exactActions || []).length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-has-exact-actions",
+      "name": "IF Has Exact Actions",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const plan = $('Code: Persist Review Queue').first().json;\nreturn (plan.exactActions || []).map((action) => ({ json: action }));"
+      },
+      "id": "code-split-actions",
+      "name": "Code: Split Exact Actions",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.kind }}",
+              "rightValue": "invoice",
+              "operator": {
+                "type": "string",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-invoice-action",
+      "name": "IF Invoice Action",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/ml81i9mcuw0pjzk/{{$json.invoiceId}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.invoicePatch }}"
+      },
+      "id": "http-update-invoice",
+      "name": "NocoDB Update Invoice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1860,
+        140
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/mffgxkftaeppyk0/{{$(\"Code: Split Exact Actions\").item.json.customerId}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($(\"Code: Split Exact Actions\").item.json.customerPatch) }}"
+      },
+      "id": "http-update-customer-after-invoice",
+      "name": "NocoDB Update Customer After Invoice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        140
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/mffgxkftaeppyk0/{{$json.customerId}}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json.customerPatch }}"
+      },
+      "id": "http-update-customer-legacy",
+      "name": "NocoDB Update Customer Legacy",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1860,
+        320
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "PRESSCO21-NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const plan = $('Code: Persist Review Queue').first().json;\nreturn [{ json: {\n  ok: true,\n  source: plan.source,\n  summary: plan.summary,\n  queueSummary: plan.queueSummary ?? null,\n  reviewEntries: plan.reviewEntries,\n  unmatchedEntries: plan.unmatchedEntries,\n}}];"
+      },
+      "id": "code-response-payload",
+      "name": "Code: Response Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1420,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://crm.pressco21.com"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-intake",
+      "name": "Respond: Intake Summary",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1640,
+        420
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst req = $input.first().json;\nconst body = req.body ?? req ?? {};\nconst query = req.query ?? {};\nconst queue = Array.isArray(staticData.reviewQueue) ? staticData.reviewQueue : [];\nconst action = String(body.action ?? query.action ?? 'list').trim() || 'list';\nconst queueId = String(body.queueId ?? query.queueId ?? '').trim();\nconst now = new Date().toISOString();\n\nfunction summarize(items) {\n  return {\n    total: items.length,\n    review: items.filter((item) => item.status === 'review').length,\n    unmatched: items.filter((item) => item.status === 'unmatched').length,\n    resolved: items.filter((item) => item.status === 'resolved').length,\n    dismissed: items.filter((item) => item.status === 'dismissed').length,\n  };\n}\n\nif (action === 'list') {\n  return [{\n    json: {\n      ok: true,\n      items: [...queue].sort((a, b) => String(b.updatedAt ?? '').localeCompare(String(a.updatedAt ?? ''))),\n      summary: summarize(queue),\n    },\n  }];\n}\n\nif (action === 'dismiss') {\n  const index = queue.findIndex((item) => item.queueId === queueId);\n  if (index < 0) {\n    return [{ json: { ok: false, error: 'QUEUE_NOT_FOUND' } }];\n  }\n  queue[index] = {\n    ...queue[index],\n    status: 'dismissed',\n    resolvedAt: now,\n    resolvedBy: String(body.resolvedBy ?? 'manual').trim() || 'manual',\n    resolvedNote: String(body.note ?? '').trim() || null,\n    updatedAt: now,\n  };\n  staticData.reviewQueue = queue;\n  return [{ json: { ok: true, item: queue[index], summary: summarize(queue) } }];\n}\n\nif (action === 'restore') {\n  const index = queue.findIndex((item) => item.queueId === queueId);\n  if (index < 0) {\n    return [{ json: { ok: false, error: 'QUEUE_NOT_FOUND' } }];\n  }\n  queue[index] = {\n    ...queue[index],\n    status: queue[index].candidates?.length ? 'review' : 'unmatched',\n    resolvedAt: null,\n    resolvedBy: null,\n    resolvedNote: null,\n    updatedAt: now,\n  };\n  staticData.reviewQueue = queue;\n  return [{ json: { ok: true, item: queue[index], summary: summarize(queue) } }];\n}\n\nif (action === 'clearResolved') {\n  staticData.reviewQueue = queue.filter((item) => !['resolved', 'dismissed'].includes(item.status));\n  return [{ json: { ok: true, summary: summarize(staticData.reviewQueue) } }];\n}\n\nreturn [{ json: { ok: false, error: 'UNSUPPORTED_ACTION', action } }];"
+      },
+      "id": "code-handle-review-queue-request",
+      "name": "Code: Handle Review Queue Request",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        760
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://crm.pressco21.com"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-review-queue",
+      "name": "Respond: Review Queue",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        700,
+        760
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook: Auto Deposit Intake": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Get Customers",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook: Review Queue API": {
+      "main": [
+        [
+          {
+            "node": "Code: Handle Review Queue Request",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Get Customers": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Get Open Invoices",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Get Open Invoices": {
+      "main": [
+        [
+          {
+            "node": "HTTP Get Legacy Snapshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Get Legacy Snapshots": {
+      "main": [
+        [
+          {
+            "node": "HTTP Get Fiscal Snapshots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "HTTP Get Fiscal Snapshots": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Deposit Plan",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Deposit Plan": {
+      "main": [
+        [
+          {
+            "node": "Code: Persist Review Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Persist Review Queue": {
+      "main": [
+        [
+          {
+            "node": "IF Has Exact Actions",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Has Exact Actions": {
+      "main": [
+        [
+          {
+            "node": "Code: Split Exact Actions",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code: Response Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Split Exact Actions": {
+      "main": [
+        [
+          {
+            "node": "IF Invoice Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Invoice Action": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Update Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB Update Customer Legacy",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Update Invoice": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Update Customer After Invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Update Customer After Invoice": {
+      "main": [
+        [
+          {
+            "node": "Code: Response Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Update Customer Legacy": {
+      "main": [
+        [
+          {
+            "node": "Code: Response Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Response Payload": {
+      "main": [
+        [
+          {
+            "node": "Respond: Intake Summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Handle Review Queue Request": {
+      "main": [
+        [
+          {
+            "node": "Respond: Review Queue",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {}
+}

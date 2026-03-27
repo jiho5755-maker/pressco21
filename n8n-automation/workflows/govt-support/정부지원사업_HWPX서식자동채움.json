@@ -1,0 +1,362 @@
+{
+  "name": "정부지원사업 HWPX 서식 자동채움 (WF#8)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "wf8-hwpx-fill",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "wf8-trigger",
+      "name": "Webhook Trigger",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        300
+      ],
+      "webhookId": "wf8-hwpx-fill"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 입력 파싱: 공고ID 추출 (JSON + text/plain 모두 지원)\nconst raw = $input.first().json;\nlet announcementId = '';\n\n// JSON body에서 직접\nif (raw.body && raw.body.announcementId) {\n  announcementId = raw.body.announcementId;\n} else if (raw.announcementId) {\n  announcementId = raw.announcementId;\n} else if (raw.id) {\n  announcementId = raw.id;\n} else if (typeof raw.body === 'string') {\n  // text/plain으로 온 경우 JSON 파싱 시도\n  try {\n    const parsed = JSON.parse(raw.body);\n    announcementId = parsed.announcementId || parsed.id || '';\n  } catch(e) {\n    // 숫자만 들어온 경우\n    announcementId = raw.body.trim();\n  }\n}\n\nif (!announcementId) {\n  throw new Error('announcementId가 필요합니다');\n}\n\nreturn [{ json: { announcementId: Number(announcementId) || announcementId } }];"
+      },
+      "id": "wf8-parse-input",
+      "name": "Code 입력 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/m9pvnifrpmwmbvs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "=(Id,eq,{{ $json.announcementId }})"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf8-nocodb-announcement",
+      "name": "NocoDB 공고 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vyw7FAboYUzOK48Q",
+          "name": "NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 공고 데이터 추출 + 첨부파일URL 파싱\nconst records = $input.first().json.list || [];\nif (records.length === 0) {\n  throw new Error('공고를 찾을 수 없습니다');\n}\n\nconst record = records[0];\nlet attachUrls = [];\ntry {\n  if (record['첨부파일URL']) {\n    attachUrls = JSON.parse(record['첨부파일URL']);\n  }\n} catch(e) {\n  if (typeof record['첨부파일URL'] === 'string') {\n    attachUrls = [record['첨부파일URL']];\n  }\n}\n\nconst hwpxUrls = attachUrls.filter(u => /\\.hwpx/i.test(u) || u.includes('atchFileId'));\n\nreturn [{ json: {\n  id: record.Id,\n  사업명: record['지원사업이름'] || '',\n  소관기관: record['소관기관'] || '',\n  지원내용: record['추천이유_상세'] || record['적합이유'] || '',\n  예상지원규모: record['예상지원규모'] || '',\n  신청Link: record['신청Link'] || '',\n  첨부파일URLs: hwpxUrls,\n  hasHWPX: hwpxUrls.length > 0,\n  필요서류: record['필요서류_예측'] || record['필요서류_실제'] || '',\n} }];"
+      },
+      "id": "wf8-parse-announcement",
+      "name": "Code 공고 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        880,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "hwpx-check",
+              "leftValue": "={{ $json.hasHWPX }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "wf8-if-hwpx",
+      "name": "IF HWPX 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [
+        1100,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mptlhf2fqskxwkk",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "wf8-company-profile",
+      "name": "NocoDB 회사프로파일 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        400
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vyw7FAboYUzOK48Q",
+          "name": "NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 회사 프로파일 + 공고 URL → fill-by-url 요청 body 생성\n\nconst profileData = $input.first().json;\nconst profileRecords = profileData.list || [profileData];\nconst profile = profileRecords[0] || {};\n\nlet announcement;\ntry {\n  announcement = $('Code 공고 파싱').first().json;\n} catch(e) {\n  announcement = { 사업명: '알수없음', 소관기관: '', 첨부파일URLs: [] };\n}\n\nconst hwpxUrl = (announcement.첨부파일URLs || [])[0] || '';\n\nconst fieldMap = {\n  '기업명': profile['회사명'] || '프레스코21',\n  '회사명': profile['회사명'] || '프레스코21',\n  '상호': profile['회사명'] || '프레스코21',\n  '대표자명': profile['대표자명'] || '이진선',\n  '대표자': profile['대표자명'] || '이진선',\n  '대표자 명': profile['대표자명'] || '이진선',\n  '사업자등록번호': profile['사업자번호'] || '215-05-52221',\n  '사업장 주소': profile['소재지'] || '서울특별시 송파구 가락동',\n  '주소': profile['소재지'] || '서울특별시 송파구 가락동',\n  '업태': profile['업태'] || '도소매업',\n  '업종': profile['종목'] || '꽃 및 생활소품',\n  '종목': profile['종목'] || '꽃 및 생활소품',\n  '상시근로자': profile['상시근로자수'] || '8',\n  '직원수': profile['상시근로자수'] || '8',\n  '임직원 수': profile['상시근로자수'] || '8',\n  '이메일': profile['이메일'] || 'pressco21@foreverlove.co.kr',\n  '연락처': profile['전화번호'] || '',\n  '전화번호': profile['전화번호'] || '',\n  '홈페이지': profile['웹사이트'] || 'https://foreverlove.co.kr',\n  '홈페이지 주소': profile['웹사이트'] || 'https://foreverlove.co.kr',\n};\n\n// 회사 정보를 간결하게 정리\nconst companyInfo = [\n  (profile['회사명'] || '프레스코21') + ' | 대표: ' + (profile['대표자명'] || '이진선') + '(1961년생,여성)',\n  '사업자: ' + (profile['사업자번호'] || '215-05-52221'),\n  '업종: ' + (profile['업태'] || '도소매업') + '/' + (profile['종목'] || '꽃 및 생활소품,무역'),\n  '소재지: ' + (profile['소재지'] || '서울특별시 송파구 가락동 98-2'),\n  '직원 ' + (profile['상시근로자수'] || '8') + '명(여성5명/남성3명, 청년2명/청년외6명)',\n  '연매출 약 ' + (profile['연간매출액'] || '10억원') + ' | 1999년 12월 창업(26년)',\n  '여성기업인증, 소기업확인서 보유',\n  '담당자: 장지호(경영기획팀장) 02-407-5755 pressco21@foreverlove.co.kr',\n  '자사몰 foreverlove.co.kr + 스마트스토어/쿠팡/11번가 (5개 채널)',\n  '유튜브 2,160구독 467영상 | 인스타그램 1,683팔로워',\n  '주요사업: 압화/드라이플라워/프리저브드플라워/레진공예/하바리움 온라인 도소매',\n  '2026년 파트너클래스 교육플랫폼 론칭 | n8n 업무자동화/AI챗봇 자체 구축',\n  '시차출퇴근제 운영(디자인기획팀3명) | 재택근무 주1회 시행',\n  '육아휴직 2025년 여성1명(복직완료) | 출산휴가 2025년 여성1명',\n].join('\\n');\n\nconst requestBody = {\n  announcement_name: announcement.사업명 || '',\n  announcement_id: announcement.id || 0,\n  hwpx_url: hwpxUrl,\n  auto_fill: true,\n  company_info: companyInfo,\n  announcement_info: (announcement.사업명 || '') + ' - ' + (announcement.지원내용 || ''),\n  replacements: {},  // AI auto_fill이 전부 처리\n  return_type: 'report'\n};\n\nreturn [{ json: {\n  requestBody,\n  hwpxUrl,\n  announcement,\n} }];"
+      },
+      "id": "wf8-build-mappings",
+      "name": "Code 매핑 생성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1760,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// fill-by-url 응답에서 리포트 생성 + 다운로드 링크\nconst result = $input.first().json;\nconst mappingData = $('Code 매핑 생성').first().json;\nconst announcement = mappingData.announcement || {};\n\nconst isSuccess = result.success === true;\nconst mappedCount = result.mapped_count || 0;\nconst totalFields = result.total_form_fields || 0;\nconst folder = result.folder || '';\nconst downloadUrl = result.download_url || '';\n\nlet msg;\nif (isSuccess) {\n  const filledLabels = (result.fill_report || {}).table_filled || [];\n  const labelList = filledLabels.map(f => f.label).join(', ');\n  msg = '<b>HWPX 서식 자동 채움 완료</b>\\n\\n' +\n    '<b>공고:</b> ' + (announcement.사업명 || '') + '\\n' +\n    '<b>기관:</b> ' + (announcement.소관기관 || '') + '\\n' +\n    '<b>매핑:</b> ' + mappedCount + '/' + totalFields + '개 필드 자동 채움\\n' +\n    '<b>채운 항목:</b> ' + (labelList || '없음') + '\\n' +\n    '<b>폴더:</b> ' + folder + '\\n\\n' +\n    '서술형 항목은 반드시 검토 후 수정하세요';\n} else {\n  const errorMsg = result.error || '';\n  msg = '<b>HWPX 서식 채움 실패</b>\\n\\n' +\n    '<b>공고:</b> ' + (announcement.사업명 || '') + '\\n' +\n    '<b>오류:</b> ' + (typeof errorMsg === 'string' ? errorMsg : JSON.stringify(errorMsg).substring(0, 200));\n}\n\nreturn [{ json: { message: msg, chatId: '7713811206' } }];"
+      },
+      "id": "wf8-report",
+      "name": "Code 결과 리포트",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "wf8-telegram",
+      "name": "Telegram 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2420,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=이 공고에는 HWPX 양식이 없습니다.\n\n공고: {{ $('Code 공고 파싱').first().json.사업명 }}\n\n기존 WF#5 Google Docs 참고 초안을 활용하세요.",
+        "additionalFields": {}
+      },
+      "id": "wf8-no-hwpx",
+      "name": "Telegram HWPX없음 안내",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        450
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://hwpx-service:8090/fill-by-url",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.requestBody) }}",
+        "options": {}
+      },
+      "id": "wf8-fill-by-url",
+      "name": "hwpx-service fill-by-url",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1980,
+        300
+      ],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "Webhook Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code 입력 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code 입력 파싱": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 공고 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 공고 조회": {
+      "main": [
+        [
+          {
+            "node": "Code 공고 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code 공고 파싱": {
+      "main": [
+        [
+          {
+            "node": "IF HWPX 있음?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF HWPX 있음?": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 회사프로파일 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram HWPX없음 안내",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 회사프로파일 조회": {
+      "main": [
+        [
+          {
+            "node": "Code 매핑 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code 매핑 생성": {
+      "main": [
+        [
+          {
+            "node": "hwpx-service fill-by-url",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code 결과 리포트": {
+      "main": [
+        [
+          {
+            "node": "Telegram 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram 알림": {
+      "main": [
+        []
+      ]
+    },
+    "Telegram HWPX없음 안내": {
+      "main": [
+        []
+      ]
+    },
+    "hwpx-service fill-by-url": {
+      "main": [
+        [
+          {
+            "node": "Code 결과 리포트",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [],
+  "triggerCount": 0,
+  "updatedAt": "2026-03-19T00:00:00.000Z",
+  "versionId": "1"
+}

@@ -1,0 +1,160 @@
+{
+  "name": "F030a SNS 콘텐츠 일일 리마인더",
+  "nodes": [
+    {
+      "id": "f030a-0001-4aaa-bbbb-000000000001",
+      "name": "매일 21:00 KST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 12 * * *"
+            }
+          ]
+        }
+      },
+      "notes": "매일 21:00 KST (= UTC 12:00)에 실행. 내일 발행 예정 콘텐츠 + 오늘 미완성 콘텐츠를 확인합니다."
+    },
+    {
+      "id": "f030a-0002-4aaa-bbbb-000000000002",
+      "name": "날짜 계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// KST 기준 오늘/내일 날짜 계산\nconst KST_OFFSET = 9 * 60 * 60 * 1000;\nconst now = new Date(Date.now() + KST_OFFSET);\nconst pad = (n) => String(n).padStart(2, '0');\n\nconst todayStr = now.getUTCFullYear() + '-' + pad(now.getUTCMonth() + 1) + '-' + pad(now.getUTCDate());\n\nconst tomorrow = new Date(now.getTime() + 24 * 60 * 60 * 1000);\nconst tomorrowStr = tomorrow.getUTCFullYear() + '-' + pad(tomorrow.getUTCMonth() + 1) + '-' + pad(tomorrow.getUTCDate());\n\nreturn [{ json: { today: todayStr, tomorrow: tomorrowStr } }];"
+      },
+      "notes": "KST 기준 오늘/내일 날짜를 YYYY-MM-DD 형식으로 계산합니다."
+    },
+    {
+      "id": "f030a-0003-4aaa-bbbb-000000000003",
+      "name": "내일 예정 콘텐츠 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [500, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/312d119f-a669-8101-8340-dc7991e3e805/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { and: [{ property: '\uBC1C\uD589 \uC608\uC815\uC77C', date: { equals: $('날짜 계산').first().json.tomorrow } }, { property: '\uC0C1\uD0DC', select: { does_not_equal: '\uBC1C\uD589 \uC644\uB8CC' } }] }, sorts: [{ property: '\uBC1C\uD589 \uC608\uC815\uC77C', direction: 'ascending' }], page_size: 100 }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3",
+          "name": "Notion API"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Notion 콘텐츠 캘린더 DB에서 '발행 예정일 = 내일 & 상태 != 발행 완료'인 항목을 조회합니다."
+    },
+    {
+      "id": "f030a-0004-4aaa-bbbb-000000000004",
+      "name": "오늘 미완성 콘텐츠 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [760, 300],
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.notion.com/v1/databases/312d119f-a669-8101-8340-dc7991e3e805/query",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Notion-Version", "value": "2022-06-28" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ filter: { and: [{ property: '\uBC1C\uD589 \uC608\uC815\uC77C', date: { on_or_before: $('날짜 계산').first().json.today } }, { or: [{ property: '\uC0C1\uD0DC', select: { equals: '\uAE30\uD68D' } }, { property: '\uC0C1\uD0DC', select: { equals: '\uC81C\uC791 \uC911' } }] }] }, sorts: [{ property: '\uBC1C\uD589 \uC608\uC815\uC77C', direction: 'ascending' }], page_size: 100 }) }}",
+        "options": {}
+      },
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "3",
+          "name": "Notion API"
+        }
+      },
+      "onError": "continueRegularOutput",
+      "notes": "Notion 콘텐츠 캘린더 DB에서 '발행 예정일 <= 오늘 & 상태 = 기획 or 제작 중'인 미완성 항목을 조회합니다."
+    },
+    {
+      "id": "f030a-0005-4aaa-bbbb-000000000005",
+      "name": "메시지 조합",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1020, 300],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 내일 예정 + 오늘 미완성 결과를 합쳐서 텔레그램 메시지 생성\n// 순차 실행이므로 $() 참조로 이전 노드 결과에 접근\nconst tomorrowData = $('내일 예정 콘텐츠 조회').first().json;\nconst todayData = $input.first().json; // 직전 노드(오늘 미완성) 결과\n\nconst tomorrowItems = tomorrowData.results || [];\nconst todayIncomplete = todayData.results || [];\n\n// 에러 체크 (Notion API 실패 시)\nif (tomorrowData.error || todayData.error) {\n  const errMsg = tomorrowData.error || todayData.error;\n  return [{ json: { text: '[F030a] Notion API 오류: ' + (errMsg.message || JSON.stringify(errMsg)) } }];\n}\n\n// 헬퍼: Notion 페이지에서 필드 추출\nfunction extractFields(page) {\n  const props = page.properties || {};\n  const titleProp = props['콘텐츠 제목'];\n  const title = titleProp?.title?.[0]?.plain_text || '(제목 없음)';\n  const channelProp = props['발행 채널'];\n  const channels = channelProp?.multi_select?.map(s => s.name).join(', ') || '채널 미지정';\n  const statusProp = props['상태'];\n  const status = statusProp?.select?.name || '상태 없음';\n  return { title, channels, status };\n}\n\nlet msg = '';\n\n// --- 내일 발행 예정 ---\nmsg += '\\uD83D\\uDCC5 내일 발행 예정 콘텐츠\\n\\n';\n\nif (tomorrowItems.length > 0) {\n  msg += '\\uD83D\\uDCE3 내일 발행 예정: ' + tomorrowItems.length + '건\\n';\n  tomorrowItems.forEach(page => {\n    const f = extractFields(page);\n    msg += '\\u2022 ' + f.channels + ' | ' + f.title + ' [' + f.status + ']\\n';\n  });\n} else {\n  msg += '\\u2705 내일 예정된 발행 없음\\n';\n}\n\n// --- 오늘 미완성 (발행일 지남) ---\nif (todayIncomplete.length > 0) {\n  msg += '\\n\\u26A0\\uFE0F 오늘 미완성 (발행일 지남):\\n';\n  todayIncomplete.forEach(page => {\n    const f = extractFields(page);\n    msg += '\\u2022 ' + f.channels + ' | ' + f.title + '\\n';\n  });\n}\n\nreturn [{ json: { text: msg.trim() } }];"
+      },
+      "notes": "내일 예정 콘텐츠($() 참조)와 오늘 미완성 콘텐츠($input)를 합쳐서 텔레그램 메시지를 조합합니다."
+    },
+    {
+      "id": "f030a-0006-4aaa-bbbb-000000000006",
+      "name": "텔레그램 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1260, 300],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "notes": "조합된 일일 리마인더 메시지를 텔레그램으로 발송합니다."
+    }
+  ],
+  "connections": {
+    "매일 21:00 KST": {
+      "main": [
+        [{ "node": "날짜 계산", "type": "main", "index": 0 }]
+      ]
+    },
+    "날짜 계산": {
+      "main": [
+        [{ "node": "내일 예정 콘텐츠 조회", "type": "main", "index": 0 }]
+      ]
+    },
+    "내일 예정 콘텐츠 조회": {
+      "main": [
+        [{ "node": "오늘 미완성 콘텐츠 조회", "type": "main", "index": 0 }]
+      ]
+    },
+    "오늘 미완성 콘텐츠 조회": {
+      "main": [
+        [{ "node": "메시지 조합", "type": "main", "index": 0 }]
+      ]
+    },
+    "메시지 조합": {
+      "main": [
+        [{ "node": "텔레그램 알림", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "SNS콘텐츠" }, { "name": "homepage-automation" }]
+}

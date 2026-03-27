@@ -1,0 +1,99 @@
+version: "3.8"
+
+# ============================================================
+# n8n Staging 환경 (운영과 완전 격리)
+#
+# 배포 방법:
+#   cd /home/ubuntu/n8n-staging
+#   docker compose up -d
+#
+# 중지 방법:
+#   docker compose down
+#
+# 주의:
+#   - 운영 n8n과 DB가 완전 분리됨 (별도 PostgreSQL 컨테이너)
+#   - restart: unless-stopped → 서버 재시작 시 수동으로 올려야 함
+#   - 운영은 restart: always (차이점!)
+# ============================================================
+
+services:
+
+  # ── Staging PostgreSQL (운영 DB와 완전 분리) ──
+  postgres-staging:
+    image: postgres:15-alpine
+    container_name: n8n-staging-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: n8n_staging
+      POSTGRES_USER: n8n_staging
+      POSTGRES_PASSWORD: ${POSTGRES_STAGING_PASSWORD}
+    volumes:
+      - postgres-staging-data:/var/lib/postgresql/data
+    networks:
+      - n8n-staging-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U n8n_staging -d n8n_staging"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Staging n8n ──
+  n8n-staging:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: n8n-staging
+    restart: unless-stopped
+    ports:
+      # 외부 직접 노출 없음 (Nginx가 프록시)
+      - "127.0.0.1:5679:5678"
+    environment:
+      # 기본 설정
+      N8N_HOST: n8n-staging.pressco21.com
+      N8N_PORT: 5678
+      N8N_PROTOCOL: https
+      WEBHOOK_URL: https://n8n-staging.pressco21.com/
+
+      # 운영과 다른 암호화 키 (보안 격리)
+      N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY_STAGING}
+
+      # DB 연결 (Staging 전용 PostgreSQL)
+      DB_TYPE: postgresdb
+      DB_POSTGRESDB_HOST: postgres-staging
+      DB_POSTGRESDB_PORT: 5432
+      DB_POSTGRESDB_DATABASE: n8n_staging
+      DB_POSTGRESDB_USER: n8n_staging
+      DB_POSTGRESDB_PASSWORD: ${POSTGRES_STAGING_PASSWORD}
+
+      # 메모리 제한 (운영 4096의 절반)
+      NODE_OPTIONS: --max-old-space-size=2048
+
+      # 로그
+      N8N_LOG_LEVEL: info
+
+      # 타임존
+      GENERIC_TIMEZONE: Asia/Seoul
+      TZ: Asia/Seoul
+
+      # 실행 이력 보관 (Staging은 짧게)
+      EXECUTIONS_DATA_MAX_AGE: 7
+      EXECUTIONS_DATA_PRUNE: true
+
+    depends_on:
+      postgres-staging:
+        condition: service_healthy
+    networks:
+      - n8n-staging-network
+    volumes:
+      - n8n-staging-data:/home/node/.n8n
+
+# ── 볼륨 ──
+volumes:
+  postgres-staging-data:
+    name: n8n-staging-postgres-data
+  n8n-staging-data:
+    name: n8n-staging-data
+
+# ── 네트워크 (운영 네트워크와 완전 분리) ──
+networks:
+  n8n-staging-network:
+    name: n8n-staging-network
+    driver: bridge

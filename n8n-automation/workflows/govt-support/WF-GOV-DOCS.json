@@ -1,0 +1,796 @@
+{
+  "id": "ux3M3l2TqBcY755K",
+  "name": "WF-GOV-DOCS 서류허브 API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "gov-docs/dashboard",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-dash-trigger",
+      "name": "GET Dashboard",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "gov-docs-dashboard",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 대시보드: Applications + CommonFiles 통계 + 최근 공고\nconst https = require('https');\nconst now = new Date().toISOString();\nconst token = '7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc';\n\nfunction nocoGet(path) {\n  return new Promise((resolve) => {\n    const encodedPath = path.replace(/[가-힣ㄱ-ㅎㅏ-ㅣ]+/g, m => encodeURIComponent(m));\n    https.get({ hostname: 'nocodb.pressco21.com', path: '/api/v1/db/data/noco/poey1yrm1r6sthf/' + encodedPath, headers: { 'xc-token': token } }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ list: [] }); } });\n    }).on('error', () => resolve({ list: [] }));\n  });\n}\n\ntry {\n  const [apps, files, anns] = await Promise.all([\n    nocoGet('m7wl4cjcwsylwvr?sort=-created_at&limit=10'),\n    nocoGet('mib4o5cqaufc49y?limit=50'),\n    nocoGet('m9pvnifrpmwmbvs?where=(관련도점수,gte,70)&sort=-관련도점수&limit=5')\n  ]);\n\n  const appList = (apps.list || []).map(a => ({\n    id: a.Id, announcement_title: a.announcement_title, agency: a.agency,\n    status: a.status, deadline: a.deadline, total_docs: a.total_docs || 0,\n    ready_docs: a.ready_docs || 0, progress_pct: a.progress_pct || 0\n  }));\n\n  const fileList = files.list || [];\n  const today = new Date();\n  let valid = 0, expired = 0, expiring = 0;\n  fileList.forEach(f => {\n    if (!f.expiry_date) { valid++; return; }\n    const exp = new Date(f.expiry_date);\n    const days = Math.ceil((exp - today) / 86400000);\n    if (days < 0) expired++;\n    else if (days <= 30) expiring++;\n    else valid++;\n  });\n\n  const annList = (anns.list || []).slice(0, 5).map(a => ({\n    id: a.Id, title: a['지원사업이름'] || '', agency: a['소관기관'] || '',\n    score: a['관련도점수'] || 0, deadline: a['마감일'] || '',\n    support_amount: a['예상지원규모'] || '', reason: (a['적합이유'] || '').slice(0, 80)\n  }));\n\n  return [{ json: {\n    applications: appList,\n    common_files: { total: fileList.length, valid, expired, expiring_soon: expiring },\n    recent_announcements: annList,\n    _generated_at: now\n  } }];\n} catch(e) {\n  return [{ json: {\n    applications: [], common_files: { total: 0, valid: 0, expired: 0, expiring_soon: 0 },\n    recent_announcements: [], _generated_at: now, _error: e.message\n  } }];\n}"
+      },
+      "id": "gd-dash-data",
+      "name": "Code Dashboard",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "gov-docs/common-files",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-cf-trigger",
+      "name": "GET CommonFiles",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        500
+      ],
+      "webhookId": "gov-docs-common-files",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mib4o5cqaufc49y",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "50"
+            },
+            {
+              "name": "sort",
+              "value": "-uploaded_at"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "gd-cf-query",
+      "name": "NocoDB CommonFiles",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        500
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vyw7FAboYUzOK48Q",
+          "name": "NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const records = $input.first().json.list || [];\nconst files = records.map(r => ({\n  Id: r.Id, file_name: r.file_name || '', file_type: r.file_type || '',\n  file_url: r.file_url || '', file_size: r.file_size || 0,\n  uploaded_at: r.uploaded_at || '', expiry_date: r.expiry_date || '',\n  is_active: r.is_active || false, notes: r.notes || ''\n}));\nreturn [{ json: { files } }];"
+      },
+      "id": "gd-cf-format",
+      "name": "Code CF Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gov-docs/common-files/upload",
+        "responseMode": "lastNode",
+        "options": {
+          "rawBody": true
+        },
+        "authentication": "headerAuth"
+      },
+      "id": "gd-upload-trigger",
+      "name": "POST Upload",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        650
+      ],
+      "webhookId": "gov-docs-upload",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 파일 업로드: binary → /tmp/ 저장 → mc cp → NocoDB 기록\nconst { execSync } = require('child_process');\nconst fs = require('fs');\nconst mc = '/home/node/.n8n/mc';\n\nconst items = $input.all();\nconst binaryKeys = Object.keys(items[0].binary || {});\nif (binaryKeys.length === 0) {\n  return [{ json: { error: 'No file uploaded' } }];\n}\n\nconst binaryData = items[0].binary[binaryKeys[0]];\nconst originalName = binaryData.fileName || 'upload.pdf';\nconst mimeType = binaryData.mimeType || 'application/pdf';\nconst fileSize = binaryData.fileSize || 0;\n\n// body에서 file_type 추출\nconst body = items[0].json.body || items[0].json || {};\nconst fileType = body.file_type || '기타';\n\n// 파일명 안전하게 변환\nconst safeName = originalName.replace(/[^a-zA-Z0-9._-]/g, '_');\nconst timestamp = Date.now();\nconst minioFileName = timestamp + '_' + safeName;\nconst tmpPath = '/tmp/' + minioFileName;\nconst minioPath = 'gov-docs/common/' + minioFileName;\n\n// binary를 파일로 저장\nconst buf = await this.helpers.getBinaryDataBuffer(0, binaryKeys[0]);\nfs.writeFileSync(tmpPath, buf);\n\n// MinIO 업로드\ntry {\n  execSync(mc + ' cp \"' + tmpPath + '\" \"minio/images/' + minioPath + '\"', { timeout: 30000 });\n} catch(e) {\n  return [{ json: { error: 'MinIO upload failed: ' + e.message } }];\n}\n\n// 임시 파일 삭제\ntry { fs.unlinkSync(tmpPath); } catch(e) {}\n\nconst fileUrl = 'https://img.pressco21.com/images/' + minioPath;\nconst now = new Date().toISOString();\n\nreturn [{ json: {\n  file_name: originalName,\n  file_type: fileType,\n  minio_path: minioPath,\n  file_url: fileUrl,\n  file_size: buf.length,\n  uploaded_at: now,\n  is_active: true,\n  _action: 'save_to_nocodb'\n} }];"
+      },
+      "id": "gd-upload-process",
+      "name": "Code Upload Process",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        650
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mib4o5cqaufc49y",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ file_name: $json.file_name, file_type: $json.file_type, minio_path: $json.minio_path, file_url: $json.file_url, file_size: $json.file_size, uploaded_at: $json.uploaded_at, is_active: $json.is_active }) }}",
+        "options": {}
+      },
+      "id": "gd-upload-save",
+      "name": "NocoDB Save File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        650
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vyw7FAboYUzOK48Q",
+          "name": "NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const saved = $input.first().json;\nreturn [{ json: { success: true, file_id: saved.Id, file_url: saved.file_url || $('Code Upload Process').first().json.file_url } }];"
+      },
+      "id": "gd-upload-resp",
+      "name": "Code Upload Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        650
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "gov-docs/announcements",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-ann-trigger",
+      "name": "GET Announcements",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        850
+      ],
+      "webhookId": "gov-docs-announcements",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/m9pvnifrpmwmbvs",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(관련도점수,gte,70)"
+            },
+            {
+              "name": "sort",
+              "value": "-관련도점수"
+            },
+            {
+              "name": "limit",
+              "value": "20"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "gd-ann-query",
+      "name": "NocoDB Announcements",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        420,
+        850
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vyw7FAboYUzOK48Q",
+          "name": "NocoDB"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const records = $input.first().json.list || [];\nconst all = records.map(r => ({\n  id: r.Id, title: r['지원사업이름'] || '', agency: r['소관기관'] || '',\n  score: r['관련도점수'] || 0, deadline: r['마감일'] || '',\n  support_amount: r['예상지원규모'] || '', reason: (r['적합이유'] || '').slice(0, 100),\n  url: r['신청Link'] || '',\n  category: r['카테고리'] || '', difficulty: r['신청난이도'] || '',\n  qualification: r['신청자격_충족여부'] || '', success_chance: r['신청성공가능성'] || '',\n  tip: r['신청팁'] || '', docs_predict: r['필요서류_예측'] || ''\n}));\n// 제목 기준 중복 제거 (점수 가장 높은 1건만 유지)\nconst seen = {};\nconst announcements = [];\nfor (const a of all) {\n  if (!seen[a.title] || a.score > seen[a.title].score) {\n    seen[a.title] = a;\n  }\n}\nfor (const key of Object.keys(seen)) { announcements.push(seen[key]); }\nannouncements.sort((a, b) => b.score - a.score);\nreturn [{ json: { announcements } }];"
+      },
+      "id": "gd-ann-format",
+      "name": "Code Ann Format",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        640,
+        850
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gov-docs/applications/start",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-start-trigger",
+      "name": "POST Start Application",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        1050
+      ],
+      "webhookId": "gov-docs-start",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 공고 신청 시작: 공고 조회 → 체크리스트 생성\nconst http = require('http');\nconst https = require('https');\nconst body = $input.first().json.body || $input.first().json || {};\nconst annId = body.announcement_id;\nif (!annId) return [{ json: { error: 'announcement_id required' } }];\n\nconst token = '7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc';\nconst baseHost = 'nocodb.pressco21.com';\nconst basePath = '/api/v1/db/data/noco/poey1yrm1r6sthf';\n\nfunction nocoGet(path) {\n  return new Promise((resolve) => {\n    const encodedPath = path.replace(/[가-힣ㄱ-ㅎㅏ-ㅣ]+/g, m => encodeURIComponent(m));\n    https.get({ hostname: baseHost, path: basePath + '/' + encodedPath, headers: { 'xc-token': token } }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ list: [] }); } });\n    }).on('error', () => resolve({ list: [] }));\n  });\n}\n\nfunction nocoPost(path, bodyData) {\n  return new Promise((resolve) => {\n    const postData = JSON.stringify(bodyData);\n    const req = https.request({\n      hostname: baseHost, path: basePath + '/' + path, method: 'POST',\n      headers: { 'xc-token': token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }\n    }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({}); } });\n    });\n    req.on('error', () => resolve({}));\n    req.write(postData);\n    req.end();\n  });\n}\n\ntry {\n  const annRes = await nocoGet('m9pvnifrpmwmbvs?where=(Id,eq,' + annId + ')&limit=1');\n  const ann = (annRes.list || [])[0];\n  if (!ann) return [{ json: { error: 'Announcement not found' } }];\n\n  const cfRes = await nocoGet('mib4o5cqaufc49y?where=(is_active,eq,1)&limit=50');\n  const commonFiles = cfRes.list || [];\n\n  const igRes = await nocoGet('m5tq5tlf9mv61uv?limit=50');\n  const issueGuides = igRes.list || [];\n\n  const checklist = [];\n  let order = 1;\n\n  const commonDocs = ['사업자등록증', '재무제표', '4대보험', '법인등기부'];\n  commonDocs.forEach(docName => {\n    const match = commonFiles.find(f => f.file_type === docName);\n    checklist.push({ doc_name: docName, category: 'AUTO_COPY', status: match ? 'READY' : 'MISSING', common_file_id: match ? match.Id : null, file_url: match ? match.file_url : '', sort_order: order++ });\n  });\n\n  ['사업계획서', '참여인력현황표'].forEach(docName => {\n    checklist.push({ doc_name: docName, category: 'AI_GENERATE', status: 'PENDING', ai_template: docName, sort_order: order++ });\n  });\n\n  ['납세증명서', '건강보험 완납증명', '지방세 완납증명'].forEach(docName => {\n    const guide = issueGuides.find(g => g.doc_name === docName);\n    checklist.push({ doc_name: docName, category: 'MANUAL_ISSUE', status: 'PENDING', issue_url: guide ? guide.issue_url : '', issue_guide: guide ? guide.guide_text : '', sort_order: order++ });\n  });\n\n  const readyCount = checklist.filter(c => c.status === 'READY').length;\n  const totalCount = checklist.length;\n  const pct = Math.round(readyCount / totalCount * 100);\n\n  const appData = { announcement_id: ann.Id, announcement_title: ann['지원사업이름'] || '', agency: ann['소관기관'] || '', status: 'PREPARING', deadline: ann['마감일'] || '', total_docs: totalCount, ready_docs: readyCount, progress_pct: pct, announcement_url: ann['신청Link'] || '', created_at: new Date().toISOString() };\n  const appRecord = await nocoPost('m7wl4cjcwsylwvr', appData);\n  const appId = appRecord.Id;\n\n  for (const item of checklist) {\n    item.application_id = appId;\n    await nocoPost('mfqjk3vc66ui0yg', item);\n  }\n\n  // Telegram 알림\n  const tgMsg = '📋 서류 준비 시작\\n\\n' +\n    '공고: ' + (appData.announcement_title || '').slice(0, 40) + '\\n' +\n    '기관: ' + (appData.agency || '') + '\\n' +\n    '마감: ' + (appData.deadline || '미정') + '\\n' +\n    '필요 서류: ' + totalCount + '건 (자동배치: ' + readyCount + '건)\\n' +\n    '\\nhub.pressco21.com/#application/' + appId;\n  try {\n    https.get('https://api.telegram.org/bot7713811206:AAGpR2BBfXJnBfPQkQZBVWXoGBWNFp7BEKg/sendMessage?chat_id=-5154731145&text=' + encodeURIComponent(tgMsg.replace(/\\\\n/g, '\\n')), () => {});\n  } catch(e) {}\n\n  const _tgMsg = '📋 서류 준비 시작\\n' + '공고: ' + (appData.announcement_title || '').slice(0, 40) + '\\n' + '기관: ' + (appData.agency || '') + '\\n' + '마감: ' + (appData.deadline || '미정') + '\\n' + '필요 서류: ' + totalCount + '건 (자동배치: ' + readyCount + '건)' + '\\nhub.pressco21.com/#application/' + appId;\n\n  // Telegram 알림 (fire-and-forget 내부 webhook 호출)\n  try {\n    const tgData = JSON.stringify({ message: _tgMsg });\n    const tgReq = http.request({ hostname: '127.0.0.1', port: 5678, path: '/webhook/gov-tg-notify', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(tgData) } }, () => {});\n    tgReq.on('error', () => {});\n    tgReq.write(tgData);\n    tgReq.end();\n  } catch(e) {}\n\n  return [{ json: { success: true, application_id: appId, announcement_title: appData.announcement_title, checklist_count: totalCount, ready_count: readyCount, progress_pct: pct, _tg_msg: '📋 서류 준비 시작\\n공고: ' + (appData.announcement_title || '').slice(0, 40) + '\\n기관: ' + (appData.agency || '') + '\\n마감: ' + (appData.deadline || '미정') + '\\n필요 서류: ' + totalCount + '건 (자동배치: ' + readyCount + '건)\\nhub.pressco21.com/#application/' + appId } }];\n} catch(e) {\n  return [{ json: { error: e.message } }];\n}"
+      },
+      "id": "gd-start-process",
+      "name": "Code Start Application",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        1050
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "gov-docs/applications",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-apps-trigger",
+      "name": "GET Applications",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        1200
+      ],
+      "webhookId": "gov-docs-applications",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\nconst token = '7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc';\n\nfunction nocoGet(path) {\n  return new Promise((resolve) => {\n    const encodedPath = path.replace(/[가-힣ㄱ-ㅎㅏ-ㅣ]+/g, m => encodeURIComponent(m));\n    https.get({ hostname: 'nocodb.pressco21.com', path: '/api/v1/db/data/noco/poey1yrm1r6sthf/' + encodedPath, headers: { 'xc-token': token } }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ list: [] }); } });\n    }).on('error', () => resolve({ list: [] }));\n  });\n}\n\nconst data = await nocoGet('m7wl4cjcwsylwvr?sort=-created_at&limit=20');\nconst apps = (data.list || []).map(a => ({\n  id: a.Id, announcement_title: a.announcement_title, agency: a.agency,\n  status: a.status, deadline: a.deadline, total_docs: a.total_docs || 0,\n  ready_docs: a.ready_docs || 0, progress_pct: a.progress_pct || 0\n}));\nreturn [{ json: { applications: apps } }];"
+      },
+      "id": "gd-apps-data",
+      "name": "Code Applications",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        1200
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "gov-docs/application",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-app-trigger",
+      "name": "GET Application Detail",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        1350
+      ],
+      "webhookId": "gov-docs-app-detail",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\nconst token = '7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc';\nconst baseHost = 'nocodb.pressco21.com';\nconst basePath = '/api/v1/db/data/noco/poey1yrm1r6sthf';\n\nconst query = $input.first().json.query || {};\nconst appId = query.id || '';\nif (!appId) return [{ json: { error: 'appId required (use ?id=N)' } }];\n\nfunction nocoGet(path) {\n  return new Promise((resolve) => {\n    const encodedPath = path.replace(/[가-힣ㄱ-ㅎㅏ-ㅣ]+/g, m => encodeURIComponent(m));\n    https.get({ hostname: baseHost, path: basePath + '/' + encodedPath, headers: { 'xc-token': token } }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ list: [] }); } });\n    }).on('error', () => resolve({ list: [] }));\n  });\n}\n\nfunction nocoReq(method, path, bodyData) {\n  return new Promise((resolve) => {\n    const postData = JSON.stringify(bodyData);\n    const req = https.request({\n      hostname: baseHost, path: basePath + '/' + path, method,\n      headers: { 'xc-token': token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }\n    }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({}); } });\n    });\n    req.on('error', () => resolve({}));\n    req.write(postData);\n    req.end();\n  });\n}\n\ntry {\n  const [appRes, clRes] = await Promise.all([\n    nocoGet('m7wl4cjcwsylwvr?where=(Id,eq,' + appId + ')&limit=1'),\n    nocoGet('mfqjk3vc66ui0yg?where=(application_id,eq,' + appId + ')&sort=sort_order&limit=50')\n  ]);\n\n  const app = (appRes.list || [])[0] || {};\n\n  // 보관소 파일 조회 (AUTO_COPY 자동 재매칭용)\n  const cfRes = await nocoGet('mib4o5cqaufc49y?where=(is_active,eq,1)&limit=50');\n  const commonFiles = cfRes.list || [];\n\n  const rawChecklist = clRes.list || [];\n  // AUTO_COPY MISSING 항목 자동 재매칭\n  let updatedCount = 0;\n  for (const c of rawChecklist) {\n    if (c.category === 'AUTO_COPY' && c.status === 'MISSING') {\n      const match = commonFiles.find(f => f.file_type === c.doc_name);\n      if (match) {\n        c.status = 'READY';\n        c.file_url = match.file_url || '';\n        c.common_file_id = match.Id;\n        // NocoDB 업데이트\n        await nocoReq('PATCH', 'mfqjk3vc66ui0yg/' + c.Id, { status: 'READY', file_url: match.file_url, common_file_id: match.Id });\n        updatedCount++;\n      }\n    }\n  }\n  // 진행률 재계산\n  if (updatedCount > 0) {\n    const ready = rawChecklist.filter(c => c.status === 'READY' || c.status === 'SUBMITTED').length;\n    const pct = Math.round(ready / rawChecklist.length * 100);\n    await nocoReq('PATCH', 'm7wl4cjcwsylwvr/' + appId, { ready_docs: ready, progress_pct: pct });\n    app.ready_docs = ready;\n    app.progress_pct = pct;\n  }\n\n  const checklist = rawChecklist.map(c => ({\n    Id: c.Id, doc_name: c.doc_name, category: c.category,\n    status: c.status, file_url: c.file_url || '',\n    issue_url: c.issue_url || '', issue_guide: c.issue_guide || '',\n    ai_template: c.ai_template || '', sort_order: c.sort_order\n  }));\n\n  // AI 분석 데이터 조회 (정부지원공고 테이블에서 공고 제목으로 매칭)\n  let aiData = {};\n  if (app.announcement_title) {\n    try {\n      const aiRes = await nocoGet('m9pvnifrpmwmbvs?where=' + encodeURIComponent('(지원사업이름,eq,' + app.announcement_title + ')') + '&limit=1');\n      const aiRec = (aiRes.list || [])[0];\n      if (aiRec) {\n        aiData = {\n          ai_score: aiRec['관련도점수'] || 0,\n          ai_reason: aiRec['적합이유'] || '',\n          ai_tip: aiRec['신청팁'] || '',\n          ai_qualification: aiRec['신청자격_충족여부'] || '',\n          ai_success: aiRec['신청성공가능성'] || '',\n          ai_docs: aiRec['필요서류_예측'] || ''\n        };\n      }\n    } catch(e) {}\n  }\n\n  return [{ json: {\n    application: {\n      id: app.Id, announcement_title: app.announcement_title, agency: app.agency,\n      status: app.status, deadline: app.deadline, total_docs: app.total_docs,\n      ready_docs: app.ready_docs, progress_pct: app.progress_pct,\n      submission_method: app.submission_method || '', submission_notes: app.submission_notes || '',\n      announcement_url: app.announcement_url || '',\n      hwpx_form_url: app.hwpx_form_url || '',\n      ...aiData\n    },\n    checklist\n  } }];\n} catch(e) {\n  return [{ json: { error: e.message } }];\n}"
+      },
+      "id": "gd-app-data",
+      "name": "Code App Detail",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        1350
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "PATCH",
+        "path": "gov-docs/checklist",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-cl-patch-trigger",
+      "name": "PATCH Checklist",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        1500
+      ],
+      "webhookId": "gov-docs-checklist-patch",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\nconst token = '7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc';\nconst baseHost = 'nocodb.pressco21.com';\nconst basePath = '/api/v1/db/data/noco/poey1yrm1r6sthf';\n\n// query param에서 itemId 추출\nconst query = $input.first().json.query || {};\nconst body = $input.first().json.body || {};\nconst itemId = query.id;\n\nif (!itemId) return [{ json: { error: 'itemId required (use ?id=N)' } }];\n\nfunction nocoGet(path) {\n  return new Promise((resolve) => {\n    const encodedPath = path.replace(/[가-힣ㄱ-ㅎㅏ-ㅣ]+/g, m => encodeURIComponent(m));\n    https.get({ hostname: baseHost, path: basePath + '/' + encodedPath, headers: { 'xc-token': token } }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ list: [] }); } });\n    }).on('error', () => resolve({ list: [] }));\n  });\n}\n\nfunction nocoReq(method, path, bodyData) {\n  return new Promise((resolve) => {\n    const postData = JSON.stringify(bodyData);\n    const req = https.request({\n      hostname: baseHost, path: basePath + '/' + path, method,\n      headers: { 'xc-token': token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }\n    }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({}); } });\n    });\n    req.on('error', () => resolve({}));\n    req.write(postData);\n    req.end();\n  });\n}\n\ntry {\n  // 체크리스트 항목 업데이트\n  const updateData = {};\n  if (body.status) updateData.status = body.status;\n  if (body.status === 'READY') updateData.completed_at = new Date().toISOString();\n\n  await nocoReq('PATCH', 'mfqjk3vc66ui0yg/' + itemId, updateData);\n\n  // 해당 항목의 application_id 조회\n  const itemRes = await nocoGet('mfqjk3vc66ui0yg?where=(Id,eq,' + itemId + ')&limit=1');\n  const item = (itemRes.list || [])[0];\n  if (!item) return [{ json: { success: true } }];\n\n  // 진행률 재계산\n  const appId = item.application_id;\n  const clRes = await nocoGet('mfqjk3vc66ui0yg?where=(application_id,eq,' + appId + ')&limit=50');\n  const all = clRes.list || [];\n  const ready = all.filter(c => c.status === 'READY' || c.status === 'SUBMITTED').length;\n  const pct = Math.round(ready / all.length * 100);\n\n  // Application 진행률 업데이트\n  await nocoReq('PATCH', 'm7wl4cjcwsylwvr/' + appId, { ready_docs: ready, progress_pct: pct });\n\n  return [{ json: { success: true, ready_docs: ready, progress_pct: pct } }];\n} catch(e) {\n  return [{ json: { error: e.message } }];\n}"
+      },
+      "id": "gd-cl-patch-data",
+      "name": "Code Checklist Patch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        1500
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gov-docs/common-files/delete",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-cf-del-trigger",
+      "name": "POST Delete CF",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        1650
+      ],
+      "webhookId": "gov-docs-cf-delete",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\nconst { execSync } = require('child_process');\nconst token = '7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc';\nconst baseHost = 'nocodb.pressco21.com';\nconst basePath = '/api/v1/db/data/noco/poey1yrm1r6sthf';\nconst mc = '/home/node/.n8n/mc';\n\nconst query = $input.first().json.query || {};\nconst fileId = query.id;\nif (!fileId) return [{ json: { error: 'id required' } }];\n\nfunction nocoGet(path) {\n  return new Promise((resolve) => {\n    https.get({ hostname: baseHost, path: basePath + '/' + path, headers: { 'xc-token': token } }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ list: [] }); } });\n    }).on('error', () => resolve({ list: [] }));\n  });\n}\n\nfunction nocoDel(path) {\n  return new Promise((resolve) => {\n    const req = https.request({ hostname: baseHost, path: basePath + '/' + path, method: 'DELETE', headers: { 'xc-token': token } }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => resolve(data));\n    });\n    req.on('error', () => resolve(''));\n    req.end();\n  });\n}\n\ntry {\n  // 파일 정보 조회\n  const res = await nocoGet('mib4o5cqaufc49y?where=(Id,eq,' + fileId + ')&limit=1');\n  const file = (res.list || [])[0];\n  if (!file) return [{ json: { error: 'File not found' } }];\n\n  // MinIO에서 파일 삭제\n  if (file.minio_path) {\n    try { execSync(mc + ' rm \"minio/images/' + file.minio_path + '\"', { timeout: 10000 }); } catch(e) {}\n  }\n\n  // NocoDB 레코드 삭제\n  await nocoDel('mib4o5cqaufc49y/' + fileId);\n\n  return [{ json: { success: true, deleted_id: fileId } }];\n} catch(e) {\n  return [{ json: { error: e.message } }];\n}"
+      },
+      "id": "gd-cf-del-data",
+      "name": "Code Delete CF",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        1650
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gov-docs/checklist/generate",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-gen-trigger",
+      "name": "POST Generate Doc",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        1800
+      ],
+      "webhookId": "gov-docs-generate",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// AI 서류 생성 v3: 분석 → 필드 3분류 → 정형(table_fill) + 서술형(Gemini→table_fill) + 플레이스홀더(text_replace) → /full-pipeline\nconst http = require('http');\nconst https = require('https');\nconst { execSync } = require('child_process');\nconst fs = require('fs');\nconst token = '7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc';\nconst baseHost = 'nocodb.pressco21.com';\nconst basePath = '/api/v1/db/data/noco/poey1yrm1r6sthf';\nconst mc = '/home/node/.n8n/mc';\nlet GEMINI_KEY = '';\n\nconst query = $input.first().json.query || {};\nconst checklistId = query.id;\nif (!checklistId) return [{ json: { error: 'id required' } }];\n\nfunction nocoGet(path) {\n  return new Promise((resolve) => {\n    const encodedPath = path.replace(/[가-힣ㄱ-ㅎㅏ-ㅣ]+/g, m => encodeURIComponent(m));\n    https.get({ hostname: baseHost, path: basePath + '/' + encodedPath, headers: { 'xc-token': token } }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ list: [] }); } });\n    }).on('error', () => resolve({ list: [] }));\n  });\n}\n\nfunction nocoReq(method, path, bodyData) {\n  return new Promise((resolve) => {\n    const postData = JSON.stringify(bodyData);\n    const req = https.request({\n      hostname: baseHost, path: basePath + '/' + path, method,\n      headers: { 'xc-token': token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }\n    }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({}); } });\n    });\n    req.on('error', () => resolve({}));\n    req.write(postData);\n    req.end();\n  });\n}\n\nfunction httpPostMultipart(hostname, port, urlPath, filePath, formFields) {\n  return new Promise((resolve, reject) => {\n    const boundary = '----FormBoundary' + Date.now();\n    const fileData = fs.readFileSync(filePath);\n    const fileName = filePath.split('/').pop();\n    let bodyParts = [];\n    bodyParts.push(Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"file\"; filename=\"' + fileName + '\"\\r\\nContent-Type: application/octet-stream\\r\\n\\r\\n'));\n    bodyParts.push(fileData);\n    bodyParts.push(Buffer.from('\\r\\n'));\n    for (const [key, value] of Object.entries(formFields)) {\n      bodyParts.push(Buffer.from('--' + boundary + '\\r\\nContent-Disposition: form-data; name=\"' + key + '\"\\r\\n\\r\\n' + value + '\\r\\n'));\n    }\n    bodyParts.push(Buffer.from('--' + boundary + '--\\r\\n'));\n    const body = Buffer.concat(bodyParts);\n    const req = http.request({\n      hostname, port, path: urlPath, method: 'POST',\n      headers: { 'Content-Type': 'multipart/form-data; boundary=' + boundary, 'Content-Length': body.length }\n    }, (res) => {\n      const chunks = [];\n      res.on('data', c => chunks.push(c));\n      res.on('end', () => {\n        const buf = Buffer.concat(chunks);\n        const ct = res.headers['content-type'] || '';\n        if (ct.includes('json')) {\n          try { resolve({ type: 'json', data: JSON.parse(buf.toString()) }); }\n          catch(e) { resolve({ type: 'text', data: buf.toString() }); }\n        } else {\n          resolve({ type: 'binary', data: buf, contentType: ct });\n        }\n      });\n    });\n    req.on('error', reject);\n    req.write(body);\n    req.end();\n  });\n}\n\nfunction callGemini(prompt) {\n  return new Promise((resolve, reject) => {\n    const payload = JSON.stringify({\n      contents: [{ role: 'user', parts: [{ text: prompt }] }],\n      generationConfig: { maxOutputTokens: 16384, temperature: 0.3 }\n    });\n    const req = https.request({\n      hostname: 'generativelanguage.googleapis.com',\n      path: '/v1beta/models/gemini-2.5-flash:generateContent?key=' + GEMINI_KEY,\n      method: 'POST',\n      headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(payload) }\n    }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => {\n        try {\n          const j = JSON.parse(data);\n          const text = j.candidates[0].content.parts[0].text || '';\n          resolve(text);\n        } catch(e) { reject(new Error('Gemini parse error: ' + data.slice(0, 200))); }\n      });\n    });\n    req.on('error', reject);\n    req.write(payload);\n    req.end();\n  });\n}\n\ntry {\n  // === Step 1: 체크리스트 GENERATING ===\n  await nocoReq('PATCH', 'mfqjk3vc66ui0yg/' + checklistId, { status: 'GENERATING' });\n  const clRes = await nocoGet('mfqjk3vc66ui0yg?where=(Id,eq,' + checklistId + ')&limit=1');\n  const item = (clRes.list || [])[0];\n  if (!item) return [{ json: { error: 'Checklist item not found' } }];\n\n  // === Step 2: Application + 회사정보 조회 ===\n  const appRes = await nocoGet('m7wl4cjcwsylwvr?where=(Id,eq,' + item.application_id + ')&limit=1');\n  const app = (appRes.list || [])[0] || {};\n  const hwpxUrl = app.hwpx_form_url || '';\n  if (!hwpxUrl) {\n    await nocoReq('PATCH', 'mfqjk3vc66ui0yg/' + checklistId, { status: 'PENDING' });\n    return [{ json: { success: false, message: '빈 양식 파일이 업로드되지 않았습니다. 공고 첨부파일에서 신청서 양식만 분리하여 업로드해주세요.' } }];\n  }\n\n  // 회사정보 조회 (Gemini API 키 포함)\n  const cpRes = await nocoGet('mptlhf2fqskxwkk?where=(' + encodeURIComponent('활성여부') + ',eq,1)&limit=1');\n  const cp = (cpRes.list || [])[0] || {};\n  GEMINI_KEY = cp['gemini_api_key'] || '';\n\n  // === Step 3: MinIO에서 HWPX 다운로드 ===\n  const srcPath = hwpxUrl.replace('https://img.pressco21.com/', '');\n  const localHwpx = '/tmp/gen_src_' + Date.now() + '.hwpx';\n  try {\n    execSync(mc + ' cp \"minio/' + srcPath + '\" \"' + localHwpx + '\"', { timeout: 30000 });\n  } catch(e) {\n    await nocoReq('PATCH', 'mfqjk3vc66ui0yg/' + checklistId, { status: 'PENDING' });\n    return [{ json: { error: 'HWPX 다운로드 실패: ' + e.message } }];\n  }\n\n  // === Step 4: hwpx-service /analyze → 필드 3분류 ===\n  const analyzeResult = await httpPostMultipart('hwpx-service', 8090, '/analyze', localHwpx, {});\n  let formFields = [];\n  let textFields = [];\n  if (analyzeResult.type === 'json' && analyzeResult.data) {\n    formFields = analyzeResult.data.form_fields || [];\n    textFields = analyzeResult.data.fields || [];\n  }\n\n  // 정형 필드 자동 매핑 (회사 프로파일 → table_fill)\n  const cpMap = {\n    '회사명': cp['회사명'] || '프레스코21',\n    '업체명': cp['회사명'] || '프레스코21',\n    '상호': cp['회사명'] || '프레스코21',\n    '기업명': cp['회사명'] || '프레스코21',\n    '사업자등록번호': cp['사업자등록번호'] || '215-05-52221',\n    '대표자': '이진선', '대표자명': '이진선', '대표이사': '이진선',\n    '업종': cp['업종'] || '꽃·공예 도소매업',\n    '업태': cp['업태'] || '도소매, 제조, 전자상거래',\n    '종목': cp['종목'] || '꽃, 전자상거래 소매업',\n    '업종코드': cp['업종코드'] || '525101',\n    '소재지': cp['소재지'] || '서울특별시 송파구 송이로 15길 33 가락2차쌍용상가 201호',\n    '주소': cp['소재지'] || '서울특별시 송파구 송이로 15길 33 가락2차쌍용상가 201호',\n    '사업장소재지': cp['소재지'] || '서울특별시 송파구 송이로 15길 33 가락2차쌍용상가 201호',\n    '전화번호': '02-403-4012', '전화': '02-403-4012', '연락처': '02-403-4012',\n    '팩스': '02-3403-8395', '팩스번호': '02-3403-8395',\n    '이메일': 'pressco21@foreverlove.co.kr', 'E-mail': 'pressco21@foreverlove.co.kr',\n    '홈페이지': 'foreverlove.co.kr',\n    '설립일': '1999-12-12', '설립년도': '1999',\n    '종업원수': cp['직원'] || '8명', '직원수': cp['직원'] || '8명', '상시근로자수': cp['직원'] || '8명',\n    '담당자': '장지호', '담당자명': '장지호',\n    '담당자연락처': '010-5201-8900', '담당자 전화번호': '010-5201-8900',\n    '담당자이메일': 'pressco21@foreverlove.co.kr',\n    '매출액': cp['연매출'] || '11.6억',\n    '자본금': cp['자본금'] || '',\n  };\n\n  // 서술형 필드 라벨 패턴\n  const NARRATIVE_KEYWORDS = ['사업개요', '사업내용', '추진계획', '추진일정',\n    '기대효과', '지원동기', '아이템', '소개', '현황', '목적',\n    '자금계획', '역량', '경력', '시장분석', '사업전망', '사업목적',\n    '추진목표', '사업배경', '필요성', '활용방안', '성장전략',\n    '핵심역량', '차별성', '경쟁력', '기술개발', '연구개발'];\n\n  const tableFill = {};     // table_fill 모드: 라벨 옆 빈칸 채우기\n  const textReplace = {};   // text_replace 모드: 플레이스홀더 치환\n  const narrativeFields = []; // Gemini가 작성할 서술형 필드\n\n  // formFields (표 안의 빈칸) 분류\n  for (const f of formFields) {\n    const label = (f.label || '').trim();\n    if (!label) continue;\n\n    // 정형 필드: cpMap에 직접 매칭\n    const cpKey = Object.keys(cpMap).find(k => label.includes(k) || k.includes(label));\n    if (cpKey) {\n      tableFill[label] = cpMap[cpKey];\n      continue;\n    }\n\n    // 서술형 필드: NARRATIVE_KEYWORDS에 매칭\n    const isNarrative = NARRATIVE_KEYWORDS.some(kw => label.includes(kw));\n    if (isNarrative) {\n      narrativeFields.push({ label, cell_width: f.cell_width || f.width || '' });\n      continue;\n    }\n\n    // 그 외: 빈칸이지만 매칭 불가 → Gemini에 위임\n    narrativeFields.push({ label, cell_width: f.cell_width || f.width || '' });\n  }\n\n  // textFields (플레이스홀더 패턴) 분류\n  for (const f of textFields) {\n    const text = (f.text || f.matched_text || '').trim();\n    if (!text) continue;\n    // {xxx} 또는 ( ) 같은 플레이스홀더 패턴\n    if (text.match(/\\{.+\\}/) || text.match(/\\(\\s*\\)/)) {\n      const cpKey = Object.keys(cpMap).find(k => text.includes(k));\n      if (cpKey) textReplace[text] = cpMap[cpKey];\n    }\n  }\n\n  // === Step 5: 공고 분석 데이터 조회 ===\n  let annDetail = {};\n  if (app.announcement_title) {\n    const searchTitle = app.announcement_title.slice(0, 20);\n    const annRes = await nocoGet('m9pvnifrpmwmbvs?where=' + encodeURIComponent('(지원사업이름,like,%' + searchTitle + '%)') + '&limit=1');\n    annDetail = (annRes.list || [])[0] || {};\n  }\n\n  // === Step 6: Gemini로 서술형 콘텐츠 생성 ===\n  let narrativeCount = 0;\n  if (narrativeFields.length > 0 && GEMINI_KEY) {\n    const companyBlock = '회사명: ' + (cp['회사명'] || '프레스코21') +\n      '\\n사업자등록번호: ' + (cp['사업자등록번호'] || '215-05-52221') +\n      '\\n대표자: 이진선 (여성, 만 65세)' +\n      '\\n업종: ' + (cp['업종'] || '꽃·공예 도소매업') +\n      '\\n업태: ' + (cp['업태'] || '도소매, 제조, 전자상거래') +\n      '\\n종목: ' + (cp['종목'] || '꽃, 전자상거래 소매업') +\n      '\\n소재지: ' + (cp['소재지'] || '서울특별시 송파구 송이로 15길 33 가락2차쌍용상가 201호') +\n      '\\n설립: 1999년 12월 (업력 26년)' +\n      '\\n직원: ' + (cp['직원'] || '8명') +\n      '\\n연매출: ' + (cp['연매출'] || '11.6억') + ' / 매출총이익률: ' + (cp['매출총이익률'] || '59.3') + '%' +\n      '\\n부채비율: ' + (cp['부채비율'] || '27.2') + '%' +\n      '\\n보유인증: ' + (cp['보유인증'] || '여성기업인증, 소기업확인서') +\n      '\\n특허: ' + (cp['보유특허_건수'] || '4') + '건' +\n      '\\n공공납품: ' + (cp['공공납품_실적'] || '16곳') +\n      '\\n수출: ' + (cp['수출국가'] || '일본, 중국, 대만, 미국 4개국') +\n      '\\n유튜브: ' + (cp['유튜브_영상수'] || '467') + '개 영상, 구독자 ' + (cp['유튜브_구독자'] || '1.1만') +\n      '\\n핵심경쟁력: ' + (cp['핵심경쟁력'] || '26년 업력, 여성기업, 4건 특허, 16곳 공공납품, 자체 브랜드 foreverlove') +\n      '\\n대표 수상: ' + (cp['대표_수상'] || '국무총리 표창(2022), 여성가족부장관 표창(2015)') +\n      '\\n담당자: 장지호 (경영기획팀장, 010-5201-8900)';\n\n    const annBlock = '공고명: ' + (annDetail['지원사업이름'] || app.announcement_title || '') +\n      '\\n소관기관: ' + (annDetail['소관기관'] || app.agency || '') +\n      '\\n카테고리: ' + (annDetail['카테고리'] || '') +\n      '\\n적합이유: ' + (annDetail['적합이유'] || '') +\n      '\\n신청팁: ' + (annDetail['신청팁'] || '') +\n      '\\n추천이유: ' + (annDetail['추천이유_상세'] || '') +\n      '\\n신청자격: ' + (annDetail['핵심신청자격'] || '') +\n      '\\n지원내용: ' + (annDetail['예상지원규모'] || '');\n\n    const fieldsDesc = narrativeFields.map(f => '- ' + f.label + (f.cell_width ? ' (빈칸 크기: ' + f.cell_width + ')' : '')).join('\\n');\n\n    const geminiPrompt = '당신은 정부지원사업 신청서 작성 전문가입니다.\\n' +\n      '아래 공고에 맞춰 신청서 양식의 서술형 항목을 작성해주세요.\\n\\n' +\n      '[공고 정보]\\n' + annBlock + '\\n\\n' +\n      '[신청 회사 정보]\\n' + companyBlock + '\\n\\n' +\n      '[작성 대상 필드]\\n' + fieldsDesc + '\\n\\n' +\n      '[작성 규칙]\\n' +\n      '1. PSST 프레임워크: Problem(업계/시장 문제) → Solution(우리 회사 해결책) → Scale-up(확장 계획) → Team(팀 역량)\\n' +\n      '2. 모든 문장에 구체적 수치 포함 (26년 업력, 8명 직원, 11.6억 매출, 특허 4건 등 실제 데이터)\\n' +\n      '3. 금지어: \"혁신적\", \"차별화된\", \"~할 예정이다\", \"세계 최고\", \"독보적\" 등 추상적/과장 표현 금지\\n' +\n      '4. 공고 키워드를 자연스럽게 3회 이상 반복 사용\\n' +\n      '5. 각 필드별 300~1000자 범위로 작성\\n' +\n      '6. 한국어 공문서 톤: 정중하고 격식 있는 문체 (~하였습니다, ~바 있습니다)\\n' +\n      '7. 금액은 실제 회사 재무 데이터 기반으로만 작성\\n\\n' +\n      '반드시 아래 JSON 형식으로만 반환하세요. 마크다운 코드블록 없이 { 로 시작:\\n' +\n      '{\\n  \"필드라벨\": \"작성된 내용\",\\n  \"다른 필드\": \"작성된 내용\"\\n}';\n\n    try {\n      const geminiResponse = await callGemini(geminiPrompt);\n      // JSON 추출\n      const jsonMatch = geminiResponse.match(/\\`\\`\\`(?:json)?\\s*([\\s\\S]*?)\\`\\`\\`/) || [null, geminiResponse];\n      let jsonStr = jsonMatch[1] || geminiResponse;\n      const braceMatch = jsonStr.match(/\\{[\\s\\S]*\\}/);\n      if (braceMatch) jsonStr = braceMatch[0];\n      const aiContent = JSON.parse(jsonStr);\n\n      // 서술형 결과를 tableFill에 추가\n      for (const [label, content] of Object.entries(aiContent)) {\n        if (content && typeof content === 'string' && content.length > 0) {\n          tableFill[label] = content;\n          narrativeCount++;\n        }\n      }\n    } catch(e) {\n      // Gemini 실패 시: 정형 필드만으로 진행 (서술형 비어있는 채로)\n      // 에러 로그만 남기고 계속 진행\n    }\n  }\n\n  // Gemini 없이도 정형 필드 최소한 채우기\n  if (Object.keys(tableFill).length === 0 && Object.keys(textReplace).length === 0) {\n    // 최소 폴백: cpMap 전체를 tableFill로\n    Object.assign(tableFill, cpMap);\n  }\n\n  const totalMatched = Object.keys(tableFill).length + Object.keys(textReplace).length;\n\n  // === Step 7: hwpx-service /full-pipeline (table_fill + text_replace 결합) ===\n  const replacements = {};\n  if (Object.keys(tableFill).length > 0) replacements.table_fill = tableFill;\n  if (Object.keys(textReplace).length > 0) replacements.text_replace = textReplace;\n\n  const fillResult = await httpPostMultipart('hwpx-service', 8090, '/full-pipeline', localHwpx, {\n    replacements: JSON.stringify(replacements)\n  });\n\n  try { fs.unlinkSync(localHwpx); } catch(e) {}\n\n  if (fillResult.type === 'json' && fillResult.data && fillResult.data.error) {\n    await nocoReq('PATCH', 'mfqjk3vc66ui0yg/' + checklistId, { status: 'PENDING' });\n    return [{ json: { error: fillResult.data.error } }];\n  }\n\n  // === Step 8: MinIO 저장 ===\n  const docName = item.doc_name || 'document';\n  const ts = Date.now();\n  const outPath = '/tmp/gen_out_' + ts + '.hwpx';\n  const minioPath = 'gov-docs/generated/' + item.application_id + '/' + ts + '.hwpx';\n\n  if (fillResult.type === 'binary') {\n    fs.writeFileSync(outPath, fillResult.data);\n  } else {\n    await nocoReq('PATCH', 'mfqjk3vc66ui0yg/' + checklistId, { status: 'PENDING' });\n    return [{ json: { error: 'hwpx-service가 파일을 반환하지 않았습니다' } }];\n  }\n\n  try {\n    execSync(mc + ' cp \"' + outPath + '\" \"minio/images/' + minioPath + '\"', { timeout: 30000 });\n  } catch(e) {\n    await nocoReq('PATCH', 'mfqjk3vc66ui0yg/' + checklistId, { status: 'PENDING' });\n    return [{ json: { error: 'MinIO upload failed: ' + e.message } }];\n  }\n  try { fs.unlinkSync(outPath); } catch(e) {}\n\n  const fileUrl = 'https://img.pressco21.com/images/' + minioPath;\n\n  // === Step 9: 체크리스트 READY + 진행률 ===\n  await nocoReq('PATCH', 'mfqjk3vc66ui0yg/' + checklistId, {\n    status: 'READY', file_url: fileUrl, completed_at: new Date().toISOString()\n  });\n  const allRes = await nocoGet('mfqjk3vc66ui0yg?where=(application_id,eq,' + item.application_id + ')&limit=50');\n  const all = allRes.list || [];\n  const ready = all.filter(c => c.status === 'READY' || c.status === 'SUBMITTED').length;\n  const pct = Math.round(ready / all.length * 100);\n  await nocoReq('PATCH', 'm7wl4cjcwsylwvr/' + item.application_id, { ready_docs: ready, progress_pct: pct });\n\n  // === Step 10: Telegram 알림 ===\n  const structuredCount = Object.keys(tableFill).length - narrativeCount;\n  const msg = '📄 AI 서류 생성 완료\\n\\n' +\n    '공고: ' + (app.announcement_title || '').slice(0, 30) + '\\n' +\n    '서류: ' + docName + '\\n' +\n    '정형 필드: ' + structuredCount + '개\\n' +\n    '서술형 AI 생성: ' + narrativeCount + '개\\n' +\n    '플레이스홀더: ' + Object.keys(textReplace).length + '개\\n' +\n    '진행률: ' + pct + '%\\n\\n' +\n    '다운로드:\\n' + fileUrl;\n  try {\n    const tgData = JSON.stringify({ message: msg });\n    const tgReq = http.request({ hostname: '127.0.0.1', port: 5678, path: '/webhook/gov-tg-notify', method: 'POST', headers: { 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(tgData) } }, () => {});\n    tgReq.on('error', () => {});\n    tgReq.write(tgData);\n    tgReq.end();\n  } catch(e) {}\n\n  return [{ json: {\n    success: true, doc_name: docName, file_url: fileUrl,\n    fields_structured: structuredCount,\n    fields_narrative: narrativeCount,\n    fields_placeholder: Object.keys(textReplace).length,\n    fields_total: totalMatched, progress_pct: pct\n  } }];\n} catch(e) {\n  await nocoReq('PATCH', 'mfqjk3vc66ui0yg/' + checklistId, { status: 'PENDING' }).catch(() => {});\n  return [{ json: { error: e.message } }];\n}\n"
+      },
+      "id": "gd-gen-data",
+      "name": "Code Generate Doc",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        1800
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "PATCH",
+        "path": "gov-docs/application",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-app-patch-trigger",
+      "name": "PATCH Application",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        1950
+      ],
+      "webhookId": "gov-docs-app-patch",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\nconst token = '7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc';\nconst query = $input.first().json.query || {};\nconst body = $input.first().json.body || {};\nconst appId = query.id;\nif (!appId) return [{ json: { error: 'id required' } }];\n\nconst updateData = {};\nif (body.hwpx_form_url !== undefined) updateData.hwpx_form_url = body.hwpx_form_url;\nif (body.submission_method !== undefined) updateData.submission_method = body.submission_method;\nif (body.submission_notes !== undefined) updateData.submission_notes = body.submission_notes;\n\nif (Object.keys(updateData).length === 0) return [{ json: { error: 'no fields to update' } }];\n\nreturn new Promise((resolve) => {\n  const postData = JSON.stringify(updateData);\n  const req = https.request({\n    hostname: 'nocodb.pressco21.com',\n    path: '/api/v1/db/data/noco/poey1yrm1r6sthf/m7wl4cjcwsylwvr/' + appId,\n    method: 'PATCH',\n    headers: { 'xc-token': token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(postData) }\n  }, (res) => {\n    let data = '';\n    res.on('data', c => data += c);\n    res.on('end', () => resolve([{ json: { success: true, updated: updateData } }]));\n  });\n  req.on('error', (e) => resolve([{ json: { error: e.message } }]));\n  req.write(postData);\n  req.end();\n});"
+      },
+      "id": "gd-app-patch-data",
+      "name": "Code App Patch",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        1950
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gov-docs/application/upload-form",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-upload-form-trigger",
+      "name": "POST Upload Form",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        2250
+      ],
+      "webhookId": "gov-docs-upload-form",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// HWPX 양식 파일 업로드: binary → MinIO → Application hwpx_form_url 업데이트\nconst { execSync } = require('child_process');\nconst fs = require('fs');\nconst https = require('https');\nconst token = '7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc';\nconst mc = '/home/node/.n8n/mc';\n\nconst items = $input.all();\nconst body = items[0].json.body || items[0].json || {};\nconst appId = body.application_id;\nif (!appId) return [{ json: { error: 'application_id required' } }];\n\n// binary 접근 (common-files/upload 패턴과 동일)\nconst binaryKeys = Object.keys(items[0].binary || {});\nif (binaryKeys.length === 0) return [{ json: { error: 'No file uploaded' } }];\n\nconst binaryData = items[0].binary[binaryKeys[0]];\nconst fileName = binaryData.fileName || 'form.hwpx';\nconst safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_');\nconst timestamp = Date.now();\nconst tmpPath = '/tmp/form_' + timestamp + '_' + safeName;\n\ntry {\n  const buf = await this.helpers.getBinaryDataBuffer(0, binaryKeys[0]);\n  fs.writeFileSync(tmpPath, buf);\n\n  const minioPath = 'gov-docs/forms/' + appId + '/' + timestamp + '_' + safeName;\n  execSync(mc + ' cp \"' + tmpPath + '\" \"minio/images/' + minioPath + '\"', { timeout: 30000 });\n  try { fs.unlinkSync(tmpPath); } catch(e) {}\n\n  const fileUrl = 'https://img.pressco21.com/images/' + minioPath;\n\n  // Application의 hwpx_form_url 업데이트\n  const updateData = JSON.stringify({ hwpx_form_url: fileUrl });\n  await new Promise((resolve) => {\n    const req = https.request({\n      hostname: 'nocodb.pressco21.com',\n      path: '/api/v1/db/data/noco/poey1yrm1r6sthf/m7wl4cjcwsylwvr/' + appId,\n      method: 'PATCH',\n      headers: { 'xc-token': token, 'Content-Type': 'application/json', 'Content-Length': Buffer.byteLength(updateData) }\n    }, (res) => { let d = ''; res.on('data', c => d += c); res.on('end', () => resolve(d)); });\n    req.on('error', () => resolve(''));\n    req.write(updateData);\n    req.end();\n  });\n\n  return [{ json: { success: true, file_url: fileUrl, file_name: fileName } }];\n} catch(e) {\n  try { fs.unlinkSync(tmpPath); } catch(ex) {}\n  return [{ json: { error: e.message } }];\n}"
+      },
+      "id": "gd-upload-form-data",
+      "name": "Code Upload Form",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        2250
+      ]
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "gov-docs/application/organize",
+        "responseMode": "lastNode",
+        "options": {},
+        "authentication": "headerAuth"
+      },
+      "id": "gd-organize-trigger",
+      "name": "POST Organize",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        2100
+      ],
+      "webhookId": "gov-docs-organize",
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "MtlCVHLXfI9bKTZu",
+          "name": "Gov Hub API Key"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const https = require('https');\nconst { execSync } = require('child_process');\nconst token = '7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc';\nconst baseHost = 'nocodb.pressco21.com';\nconst basePath = '/api/v1/db/data/noco/poey1yrm1r6sthf';\nconst mc = '/home/node/.n8n/mc';\n\nconst query = $input.first().json.query || {};\nconst appId = query.id;\nif (!appId) return [{ json: { error: 'id required' } }];\n\nfunction nocoGet(path) {\n  return new Promise((resolve) => {\n    const encodedPath = path.replace(/[가-힣ㄱ-ㅎㅏ-ㅣ]+/g, m => encodeURIComponent(m));\n    https.get({ hostname: baseHost, path: basePath + '/' + encodedPath, headers: { 'xc-token': token } }, (res) => {\n      let data = '';\n      res.on('data', c => data += c);\n      res.on('end', () => { try { resolve(JSON.parse(data)); } catch(e) { resolve({ list: [] }); } });\n    }).on('error', () => resolve({ list: [] }));\n  });\n}\n\ntry {\n  // 1. Application + Checklist 조회\n  const [appRes, clRes] = await Promise.all([\n    nocoGet('m7wl4cjcwsylwvr?where=(Id,eq,' + appId + ')&limit=1'),\n    nocoGet('mfqjk3vc66ui0yg?where=(application_id,eq,' + appId + ')&sort=sort_order&limit=50')\n  ]);\n\n  const app = (appRes.list || [])[0] || {};\n  const checklist = (clRes.list || []).filter(c => (c.status === 'READY' || c.status === 'SUBMITTED') && c.file_url);\n\n  if (checklist.length === 0) return [{ json: { success: false, message: '준비 완료된 서류가 없습니다.' } }];\n\n  // 2. 폴더명 생성 (공고ID_공고명)\n  const title = (app.announcement_title || 'untitled').replace(/[^a-zA-Z0-9가-힣_ -]/g, '').slice(0, 30);\n  const folderName = appId + '_' + title;\n  const minioFolder = 'images/gov-docs/packages/' + folderName + '/';\n\n  // 3. 각 파일을 번호순으로 복사\n  const organized = [];\n  for (let i = 0; i < checklist.length; i++) {\n    const item = checklist[i];\n    const num = String(i + 1).padStart(2, '0');\n    const ext = (item.file_url || '').split('.').pop() || 'pdf';\n    const safeName = (item.doc_name || 'doc').replace(/[^a-zA-Z0-9가-힣_.-]/g, '_');\n    const destName = num + '_' + safeName + '.' + ext;\n\n    // MinIO 소스 경로 추출 (URL → MinIO path)\n    const srcPath = item.file_url.replace('https://img.pressco21.com/', '');\n    \n    try {\n      execSync(mc + ' cp \"minio/' + srcPath + '\" \"minio/' + minioFolder + destName + '\"', { timeout: 30000 });\n      organized.push({ name: destName, url: 'https://img.pressco21.com/' + minioFolder + destName, doc_name: item.doc_name });\n    } catch(e) {\n      organized.push({ name: destName, error: e.message, doc_name: item.doc_name });\n    }\n  }\n\n  const folderUrl = 'https://img.pressco21.com/' + minioFolder;\n\n  return [{ json: {\n    success: true,\n    folder_url: folderUrl,\n    folder_name: folderName,\n    files: organized,\n    total: organized.length,\n    errors: organized.filter(f => f.error).length\n  } }];\n} catch(e) {\n  return [{ json: { error: e.message } }];\n}"
+      },
+      "id": "gd-organize-data",
+      "name": "Code Organize",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        2100
+      ]
+    }
+  ],
+  "connections": {
+    "GET Dashboard": {
+      "main": [
+        [
+          {
+            "node": "Code Dashboard",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET CommonFiles": {
+      "main": [
+        [
+          {
+            "node": "NocoDB CommonFiles",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB CommonFiles": {
+      "main": [
+        [
+          {
+            "node": "Code CF Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Upload": {
+      "main": [
+        [
+          {
+            "node": "Code Upload Process",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code Upload Process": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Save File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Save File": {
+      "main": [
+        [
+          {
+            "node": "Code Upload Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Announcements": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Announcements",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Announcements": {
+      "main": [
+        [
+          {
+            "node": "Code Ann Format",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Start Application": {
+      "main": [
+        [
+          {
+            "node": "Code Start Application",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Applications": {
+      "main": [
+        [
+          {
+            "node": "Code Applications",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "GET Application Detail": {
+      "main": [
+        [
+          {
+            "node": "Code App Detail",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH Checklist": {
+      "main": [
+        [
+          {
+            "node": "Code Checklist Patch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Delete CF": {
+      "main": [
+        [
+          {
+            "node": "Code Delete CF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Generate Doc": {
+      "main": [
+        [
+          {
+            "node": "Code Generate Doc",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "PATCH Application": {
+      "main": [
+        [
+          {
+            "node": "Code App Patch",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Organize": {
+      "main": [
+        [
+          {
+            "node": "Code Organize",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "POST Upload Form": {
+      "main": [
+        [
+          {
+            "node": "Code Upload Form",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

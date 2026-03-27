@@ -1,0 +1,939 @@
+{
+  "name": "정부지원사업_텔레그램허브",
+  "nodes": [
+    {
+      "id": "hub-node-001",
+      "name": "Telegram Trigger",
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        0,
+        300
+      ],
+      "parameters": {
+        "updates": [
+          "message"
+        ],
+        "additionalFields": {}
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "webhookId": "govt-support-hub-webhook"
+    },
+    {
+      "id": "hub-node-002",
+      "name": "Code 명령어 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const msg = $input.first().json.message || $input.first().json;\nconst text = (msg.text || '').trim();\nconst chatId = msg.chat?.id || msg.from?.id || '';\n\n// 보안: 허용된 채팅 ID만 처리\nconst allowedChatIds = ['7713811206'];\nif (!allowedChatIds.includes(String(chatId))) {\n  return [{ json: { command: 'unauthorized', args: '', chatId } }];\n}\n\nconst parts = text.split(/\\s+/);\nconst rawCmd = (parts[0] || '').toLowerCase();\nconst args = parts.slice(1).join(' ');\n\n// 명령어 정규화\nlet command = 'help';\nif (rawCmd === '/검색' || rawCmd === '/search') command = '/검색';\nelse if (rawCmd === '/요약' || rawCmd === '/summary') command = '/요약';\nelse if (rawCmd === '/이벤트' || rawCmd === '/event') command = '/이벤트';\nelse if (rawCmd === '/상태' || rawCmd === '/status') command = '/상태';\nelse if (rawCmd === '/신청' || rawCmd === '/apply') command = '/신청';\nelse if (rawCmd === '/서류' || rawCmd === '/docs') command = '/서류';\n  else if (rawCmd === '/서식채움' || rawCmd === '/fill') command = '/서식채움';\nelse if (rawCmd.startsWith('/')) command = 'unknown';\n\nreturn [{ json: { command, args, chatId: String(chatId), originalText: text } }];"
+      }
+    },
+    {
+      "id": "hub-node-003",
+      "name": "Switch 명령어",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "/검색",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cmd-search"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "검색"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "/요약",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cmd-summary"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "요약"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "/이벤트",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cmd-event"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "이벤트"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "/상태",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cmd-status"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "상태"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "/신청",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cmd-apply"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "신청"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "/서류",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "id": "cmd-docs"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "서류"
+            },
+            {
+              "outputKey": "서식채움",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "cmd-fill",
+                    "leftValue": "={{ $json.command }}",
+                    "rightValue": "/서식채움",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      }
+    },
+    {
+      "id": "hub-node-010",
+      "name": "NocoDB 검색 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        -60
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "=(지원사업이름,like,%{{ $json.args }}%)~or(적합이유,like,%{{ $json.args }}%)~or(카테고리,like,%{{ $json.args }}%)"
+            },
+            {
+              "name": "limit",
+              "value": "10"
+            },
+            {
+              "name": "sort",
+              "value": "-관련도점수"
+            },
+            {
+              "name": "fields",
+              "value": "Id,지원사업이름,소관기관,관련도점수,신청Link,카테고리,마감일,적합이유"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-011",
+      "name": "Code 검색 결과 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        -60
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rawItems = $input.all();\nconst cmdData = $('Code 명령어 파싱').first().json;\nconst records = [];\nfor (const raw of rawItems) {\n  if (raw.json.list && Array.isArray(raw.json.list)) {\n    for (const r of raw.json.list) records.push(r);\n  }\n}\n\nif (records.length === 0) {\n  return [{ json: { chatId: cmdData.chatId, telegramText: `🔍 <b>\"${cmdData.args}\"</b> 검색 결과\\n\\n관련 공고를 찾지 못했습니다.` } }];\n}\n\nconst lines = records.map((r, i) => {\n  const link = r['신청Link'] ? ` | <a href=\"${r['신청Link']}\">신청</a>` : '';\n  const deadline = r['마감일'] ? `\\n   마감: ${r['마감일']}` : '';\n  return `${i+1}. <b>${r['지원사업이름']}</b>\\n   ${r['소관기관'] || ''} | ${r['관련도점수']}점${deadline}${link}`;\n}).join('\\n\\n');\n\nconst text = `🔍 <b>\"${cmdData.args}\"</b> 검색 결과 (${records.length}건)\\n\\n${lines}`;\nreturn [{ json: { chatId: cmdData.chatId, telegramText: text } }];"
+      }
+    },
+    {
+      "id": "hub-node-012",
+      "name": "Telegram 검색 결과",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        -60
+      ],
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.telegramText }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-020",
+      "name": "NocoDB 오늘 수집 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        120
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "=(수집일시,gte,={{ $today.toFormat('yyyy-MM-dd') }})"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            },
+            {
+              "name": "fields",
+              "value": "Id,관련도점수,상태,출처,카테고리"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-021",
+      "name": "Code 요약 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        120
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rawItems = $input.all();\nconst cmdData = $('Code 명령어 파싱').first().json;\nconst records = [];\nfor (const raw of rawItems) {\n  if (raw.json.list && Array.isArray(raw.json.list)) {\n    for (const r of raw.json.list) records.push(r);\n  }\n}\n\nconst total = records.length;\nconst high = records.filter(r => (r['관련도점수'] || 0) >= 70).length;\nconst mid = records.filter(r => { const s = r['관련도점수'] || 0; return s >= 30 && s < 70; }).length;\nconst low = total - high - mid;\n\nconst sourceCount = {};\nrecords.forEach(r => {\n  const src = r['출처'] || '기타';\n  sourceCount[src] = (sourceCount[src] || 0) + 1;\n});\nconst srcText = Object.entries(sourceCount).map(([k, v]) => `${k}:${v}`).join(' | ');\n\nconst today = new Date().toLocaleDateString('ko-KR', { year: 'numeric', month: 'long', day: 'numeric' });\nconst text = `📊 <b>${today} 수집 요약</b>\\n\\n총 수집: <b>${total}건</b>\\n\\n🔥 긴급검토(70점↑): ${high}건\\n🧐 검토권장(30~69): ${mid}건\\n⚪ 저관련(30점↓): ${low}건\\n\\n📡 소스: ${srcText || '없음'}`;\n\nreturn [{ json: { chatId: cmdData.chatId, telegramText: text } }];"
+      }
+    },
+    {
+      "id": "hub-node-022",
+      "name": "Telegram 요약",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        120
+      ],
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.telegramText }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-030",
+      "name": "NocoDB 이벤트 등록",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        300
+      ],
+      "parameters": {
+        "method": "POST",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m5bh1vt0khkxhxw/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={\"이벤트명\":\"{{ $json.args }}\",\"이벤트유형\":\"기타\",\"상세내용\":\"{{ $json.args }}\",\"처리상태\":\"미처리\",\"등록일시\":\"{{ $now.toISO() }}\"}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-031",
+      "name": "Telegram 이벤트 등록 완료",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        300
+      ],
+      "parameters": {
+        "chatId": "={{ $('Code 명령어 파싱').first().json.chatId }}",
+        "text": "=✅ 이벤트 등록 완료!\n\n📌 <b>{{ $('Code 명령어 파싱').first().json.args }}</b>\n\n매주 월요일 자동 탐색 스케줄에 포함됩니다.\n지금 바로 탐색하려면 잠시 후 결과를 확인하세요.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-040",
+      "name": "NocoDB 상태 통계 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        460
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "limit",
+              "value": "200"
+            },
+            {
+              "name": "fields",
+              "value": "Id,관련도점수"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-042",
+      "name": "Code 상태 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        460
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rawItems = $input.all();\nconst cmdData = $('Code 명령어 파싱').first().json;\n\nconst records = [];\nfor (const raw of rawItems) {\n  if (raw.json.list && Array.isArray(raw.json.list)) {\n    for (const r of raw.json.list) records.push(r);\n  }\n}\n\nconst totalCount = rawItems[0]?.json?.pageInfo?.totalRows || records.length;\nconst highCount = records.filter(r => (r['관련도점수'] || 0) >= 70).length;\nconst midCount = records.filter(r => { const s = r['관련도점수'] || 0; return s >= 30 && s < 70; }).length;\n\nconst now = new Date().toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });\nconst text = `🔧 <b>시스템 상태</b>\\n\\n⏰ 확인 시각: ${now}\\n\\n📊 <b>공고 현황 (최근 200건 기준)</b>\\n총 수집 공고: ${totalCount}건\\n🔥 긴급검토(70점↑): ${highCount}건\\n🧐 검토권장(30~69): ${midCount}건\\n\\n⚙️ <b>운영 중 워크플로우</b>\\n• 자동수집: 매일 09:00\\n• 마감임박 재알림: 매일 09:30\\n• 이벤트 탐색: 매주 월요일 09:00\\n• 행정서류 생성: 매 4시간\\n• 월간리포트: 매월 1일\\n\\n💬 <b>사용 가능 명령어</b>\\n/검색 {키워드} - 공고 검색\\n/요약 - 오늘 수집 현황\\n/이벤트 {내용} - 이벤트 등록\\n/신청 {공고ID} - 신청의향 표시\\n/서류 - 서류 진행 현황\\n/상태 - 시스템 현황`;\n\nreturn [{ json: { chatId: cmdData.chatId, telegramText: text } }];"
+      }
+    },
+    {
+      "id": "hub-node-043",
+      "name": "Telegram 상태",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        460
+      ],
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.telegramText }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-050",
+      "name": "NocoDB 신청의향 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        640
+      ],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "=[{\"Id\":{{ $json.args }},\"신청의향\":true}]",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-051",
+      "name": "Telegram 신청의향 완료",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        640
+      ],
+      "parameters": {
+        "chatId": "={{ $('Code 명령어 파싱').first().json.chatId }}",
+        "text": "=✅ 공고 ID {{ $('Code 명령어 파싱').first().json.args }}에 신청의향이 표시되었습니다.\n\n행정서류 자동생성 워크플로우가 4시간 내 처리합니다.\n진행 상황은 /서류 명령어로 확인하세요.",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-060",
+      "name": "NocoDB 서류 현황 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        820
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "(신청의향,eq,true)"
+            },
+            {
+              "name": "limit",
+              "value": "20"
+            },
+            {
+              "name": "sort",
+              "value": "-수집일시"
+            },
+            {
+              "name": "fields",
+              "value": "Id,지원사업이름,소관기관,서류_진행상태,문서_링크,문서_생성일시,상태"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-061",
+      "name": "Code 서류 현황 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        820
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rawItems = $input.all();\nconst cmdData = $('Code 명령어 파싱').first().json;\n\nconst records = [];\nfor (const raw of rawItems) {\n  if (raw.json.list && Array.isArray(raw.json.list)) {\n    for (const r of raw.json.list) records.push(r);\n  }\n}\n\nif (records.length === 0) {\n  const text = `📋 <b>서류 작업 현황</b>\\n\\n신청의향 표시된 공고가 없습니다.\\n\\n/신청 {공고ID} 명령어로 신청의향을 표시하면\\n행정서류가 자동 생성됩니다.`;\n  return [{ json: { chatId: cmdData.chatId, telegramText: text } }];\n}\n\nconst statusIcon = {\n  '미시작': '⏳',\n  '초안생성완료': '✅',\n  '검토중': '🔍',\n  '제출완료': '🎉',\n  '포기': '❌'\n};\n\nconst lines = records.map((r, i) => {\n  const status = r['서류_진행상태'] || '미시작';\n  const icon = statusIcon[status] || '⏳';\n  const docLink = r['문서_링크'] ? `\\n   📄 <a href=\"${r['문서_링크']}\">사업계획서 초안 보기</a>` : '';\n  const date = r['문서_생성일시'] ? `\\n   📅 ${String(r['문서_생성일시']).slice(0, 10)}` : '';\n  return `${i+1}. <b>${r['지원사업이름']}</b>\\n   ${r['소관기관'] || ''} | ${icon} ${status}${date}${docLink}`;\n}).join('\\n\\n');\n\nconst text = `📋 <b>서류 작업 현황</b> (${records.length}건)\\n\\n${lines}\\n\\n💡 서류 진행상태: 미시작→초안생성완료→검토중→제출완료`;\nreturn [{ json: { chatId: cmdData.chatId, telegramText: text } }];"
+      }
+    },
+    {
+      "id": "hub-node-062",
+      "name": "Telegram 서류 현황",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1200,
+        820
+      ],
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.telegramText }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "disable_web_page_preview": true
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "hub-node-090",
+      "name": "Telegram 도움말",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        720,
+        1000
+      ],
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "🤖 <b>정부지원사업 봇 도움말</b>\n\n사용 가능한 명령어:\n\n🔍 /검색 {키워드}\n예) /검색 출산휴가\n→ 관련 공고를 검색합니다\n\n📊 /요약\n→ 오늘 수집된 공고 현황을 요약합니다\n\n💡 /이벤트 {내용}\n예) /이벤트 신규채용 2명 계획\n→ 회사 이벤트를 등록하고 관련 공고를 탐색합니다\n\n📋 /신청 {공고ID}\n예) /신청 12345\n→ 해당 공고에 신청의향을 표시합니다 (서류 자동 생성)\n\n📄 /서류\n→ 신청의향 공고의 서류 작업 진행 현황을 확인합니다\n\n🔧 /상태\n→ 시스템 운영 현황을 확인합니다",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/wf8-hwpx-fill",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({announcementId: Number($json.args) || 0}) }}",
+        "options": {}
+      },
+      "id": "hub-fill-01",
+      "name": "WF#8 서식채움 호출",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1540,
+        700
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=서식 자동 채움을 시작합니다.\n공고 ID: {{ $('Code 명령어 파싱').first().json.args }}\n\n처리 중... 완료되면 별도 알림이 갑니다.",
+        "additionalFields": {}
+      },
+      "id": "hub-fill-02",
+      "name": "Telegram 서식채움 시작",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1320,
+        700
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Telegram Trigger": {
+      "main": [
+        [
+          {
+            "node": "Code 명령어 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code 명령어 파싱": {
+      "main": [
+        [
+          {
+            "node": "Switch 명령어",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch 명령어": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 검색 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB 오늘 수집 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB 이벤트 등록",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB 상태 통계 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB 신청의향 업데이트",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB 서류 현황 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram 서식채움 시작",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Telegram 도움말",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 검색 조회": {
+      "main": [
+        [
+          {
+            "node": "Code 검색 결과 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code 검색 결과 포맷": {
+      "main": [
+        [
+          {
+            "node": "Telegram 검색 결과",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 오늘 수집 조회": {
+      "main": [
+        [
+          {
+            "node": "Code 요약 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code 요약 포맷": {
+      "main": [
+        [
+          {
+            "node": "Telegram 요약",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 이벤트 등록": {
+      "main": [
+        [
+          {
+            "node": "Telegram 이벤트 등록 완료",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 상태 통계 조회": {
+      "main": [
+        [
+          {
+            "node": "Code 상태 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code 상태 포맷": {
+      "main": [
+        [
+          {
+            "node": "Telegram 상태",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 신청의향 업데이트": {
+      "main": [
+        [
+          {
+            "node": "Telegram 신청의향 완료",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 서류 현황 조회": {
+      "main": [
+        [
+          {
+            "node": "Code 서류 현황 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code 서류 현황 포맷": {
+      "main": [
+        [
+          {
+            "node": "Telegram 서류 현황",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Telegram 서식채움 시작": {
+      "main": [
+        [
+          {
+            "node": "WF#8 서식채움 호출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

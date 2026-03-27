@@ -1,0 +1,665 @@
+{
+  "name": "정부지원사업 마감임박 재알림",
+  "nodes": [
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000001",
+      "name": "Schedule Trigger",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 0 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "gs806-node-0002",
+      "name": "NocoDB 마감임박 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 160],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "=(관련도점수,gte,70)~and(상태,eq,데이터 수집)~and(마감일,gte,={{ $today.toFormat('yyyy-MM-dd') }})~and(마감일,lte,={{ $today.plus({days:8}).toFormat('yyyy-MM-dd') }})"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            },
+            {
+              "name": "fields",
+              "value": "Id,지원사업이름,마감일,관련도점수,신청Link,카테고리,마감알림_단계,상태"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "gs806-node-0003",
+      "name": "D-Day 계산 및 분류",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [560, 160],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const rawItems = $input.all();\n\n// NocoDB 리스트 응답 확장\nconst items = [];\nfor (const raw of rawItems) {\n  if (raw.json.list && Array.isArray(raw.json.list)) {\n    for (const record of raw.json.list) {\n      items.push({ json: record });\n    }\n  } else if (!raw.json.error) {\n    items.push(raw);\n  }\n}\n\nif (items.length === 0) return [{ json: { hasAlerts: false, alerts: [] } }];\n\n// KST 기준 오늘 날짜\nconst kstOffset = 9 * 60 * 60 * 1000;\nconst today = new Date(Date.now() + kstOffset);\ntoday.setUTCHours(0, 0, 0, 0);\n\nconst alerts = [];\n\nfor (const item of items) {\n  const f = item.json;\n  const deadlineStr = f['마감일'] || '';\n  if (!deadlineStr) continue;\n\n  const deadline = new Date(deadlineStr + 'T00:00:00+09:00');\n  const dday = Math.ceil((deadline - today) / (1000 * 60 * 60 * 24));\n  const currentStage = (f['마감알림_단계'] || '').trim();\n\n  // ddayGroup 분류\n  let ddayGroup;\n  if (dday < 0) ddayGroup = 'expired';\n  else if (dday === 0) ddayGroup = 'today';\n  else if (dday === 1) ddayGroup = 'd1';\n  else if (dday <= 3) ddayGroup = 'd3';\n  else if (dday <= 7) ddayGroup = 'd7';\n  else ddayGroup = 'normal';\n\n  // 중복 알림 방지: 이미 해당 단계 알림을 보냈으면 스킵\n  // 단, 더 긴급한 단계로는 재알림 가능\n  // 긴급도 순서: D-7 < D-3 < D-1 < D-0\n  const stageOrder = { '': 0, 'D-7': 1, 'D-3': 2, 'D-1': 3, 'D-0': 4 };\n  const targetStageMap = { 'd7': 'D-7', 'd3': 'D-3', 'd1': 'D-1', 'today': 'D-0' };\n  const targetStage = targetStageMap[ddayGroup] || '';\n\n  // expired나 normal은 알림 불필요 (expired는 별도 처리)\n  if (ddayGroup === 'normal') continue;\n  if (ddayGroup === 'expired') {\n    alerts.push({\n      이름: f['지원사업이름'] || '',\n      마감일: deadlineStr,\n      dday: dday,\n      ddayGroup: ddayGroup,\n      점수: f['관련도점수'] || 0,\n      카테고리: f['카테고리'] || '',\n      URL: f['신청Link'] || '',\n      recordId: f['Id'] || 0,\n      targetStage: '',\n      skipAlert: true\n    });\n    continue;\n  }\n\n  // 이미 동일 또는 더 긴급한 단계 알림 발송 완료 시 스킵\n  const currentOrder = stageOrder[currentStage] || 0;\n  const targetOrder = stageOrder[targetStage] || 0;\n  if (currentOrder >= targetOrder) continue;\n\n  alerts.push({\n    이름: f['지원사업이름'] || '',\n    마감일: deadlineStr,\n    dday: dday,\n    ddayGroup: ddayGroup,\n    점수: f['관련도점수'] || 0,\n    카테고리: f['카테고리'] || '',\n    URL: f['신청Link'] || '',\n    recordId: f['Id'] || 0,\n    targetStage: targetStage,\n    skipAlert: false\n  });\n}\n\nreturn alerts.map(a => ({ json: a }));"
+      }
+    },
+    {
+      "id": "gs806-node-0004",
+      "name": "IF 알림 건수 체크",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [820, 160],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-gs806-count",
+              "leftValue": "={{ $input.all().length }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "gs806-node-0005",
+      "name": "Switch ddayGroup",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [1080, 60],
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "outputKey": "d1",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.ddayGroup }}",
+                    "rightValue": "d1",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "d3",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.ddayGroup }}",
+                    "rightValue": "d3",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "d7",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.ddayGroup }}",
+                    "rightValue": "d7",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "today",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.ddayGroup }}",
+                    "rightValue": "today",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            },
+            {
+              "outputKey": "expired",
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.ddayGroup }}",
+                    "rightValue": "expired",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              }
+            }
+          ]
+        },
+        "options": {
+          "allMatchingOutputs": false
+        }
+      }
+    },
+    {
+      "id": "gs806-node-0010",
+      "name": "Telegram D-1",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1400, -200],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=\ud83d\udea8 <b>[긴급] {{ $json['이름'] }}</b>\n\n내일 마감입니다! 신청 준비 최종 확인하세요.\n\n\ud83d\udcca 관련도: {{ $json['점수'] }}점 | 카테고리: {{ $json['카테고리'] }}\n\ud83d\udcc5 마감일: {{ $json['마감일'] }}\n\ud83d\udd17 <a href=\"{{ $json.URL }}\">공고 바로가기</a>",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "gs806-node-0011",
+      "name": "NocoDB PATCH D-1",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1700, -200],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify([{Id: $json.recordId, '마감알림_단계': 'D-1'}]) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "gs806-node-0020",
+      "name": "Telegram D-3",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1400, -20],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=\u26a0\ufe0f <b>[주의] {{ $json['이름'] }}</b>\n\n3일 후 마감 (D-3). 서류 준비를 시작하세요.\n\n\ud83d\udcca 관련도: {{ $json['점수'] }}점 | 카테고리: {{ $json['카테고리'] }}\n\ud83d\udcc5 마감일: {{ $json['마감일'] }}\n\ud83d\udd17 <a href=\"{{ $json.URL }}\">공고 바로가기</a>",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "gs806-node-0021",
+      "name": "NocoDB PATCH D-3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1700, -20],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify([{Id: $json.recordId, '마감알림_단계': 'D-3'}]) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "gs806-node-0030",
+      "name": "Telegram D-7",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1400, 160],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=\ud83d\udcc5 <b>[일정] {{ $json['이름'] }}</b>\n\n7일 후 마감 (D-7). 검토를 권장합니다.\n\n\ud83d\udcca 관련도: {{ $json['점수'] }}점 | 카테고리: {{ $json['카테고리'] }}\n\ud83d\udcc5 마감일: {{ $json['마감일'] }}\n\ud83d\udd17 <a href=\"{{ $json.URL }}\">공고 바로가기</a>",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "gs806-node-0031",
+      "name": "NocoDB PATCH D-7",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1700, 160],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify([{Id: $json.recordId, '마감알림_단계': 'D-7'}]) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "gs806-node-0040",
+      "name": "Telegram D-0",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1400, 340],
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=\ud83d\udd25 <b>[오늘 마감] {{ $json['이름'] }}</b>\n\n오늘이 마감일입니다! 지금 바로 신청 또는 포기를 결정하세요.\n\n\ud83d\udcca 관련도: {{ $json['점수'] }}점\n\ud83d\udcc5 마감일: {{ $json['마감일'] }}\n\ud83d\udd17 <a href=\"{{ $json.URL }}\">공고 바로가기</a>",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "gs806-node-0041",
+      "name": "NocoDB PATCH D-0",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1700, 340],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify([{Id: $json.recordId, '마감알림_단계': 'D-0'}]) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "gs806-node-0050",
+      "name": "NocoDB 기간만료 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1400, 520],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify([{Id: $json.recordId, '상태': '기간만료'}]) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "gs806-node-0009",
+      "name": "NoOp 종료",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1080, 400],
+      "parameters": {}
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000010",
+      "name": "NocoDB 기간만료 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [300, 600],
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            }
+          ]
+        },
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "=(상태,eq,데이터 수집)~and(마감일,notempty,)~and(마감일,lt,={{ $today.toFormat('yyyy-MM-dd') }})"
+            },
+            {
+              "name": "limit",
+              "value": "1000"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000011",
+      "name": "IF 기간만료 건수",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [560, 600],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-expired-count",
+              "leftValue": "={{ $json.list ? $json.list.length : 0 }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000012",
+      "name": "NocoDB 기간만료 벌크 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [820, 520],
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/m9pvnifrpmwmbvs/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "SIxKK9NtvgsQeLnMQcxbi5pNJGF7tJhnrv6LLGFl"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.list.map(r => ({Id: r.Id, '상태': '기간만료'}))) }}",
+        "options": {}
+      },
+      "onError": "continueRegularOutput"
+    },
+    {
+      "id": "a1b2c3d4-1111-4aaa-bbbb-000000000013",
+      "name": "NoOp 기간만료 종료",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [820, 700],
+      "parameters": {}
+    }
+  ],
+  "connections": {
+    "Schedule Trigger": {
+      "main": [
+        [
+          { "node": "NocoDB 마감임박 조회", "type": "main", "index": 0 },
+          { "node": "NocoDB 기간만료 조회", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB 마감임박 조회": {
+      "main": [
+        [
+          { "node": "D-Day 계산 및 분류", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "D-Day 계산 및 분류": {
+      "main": [
+        [
+          { "node": "IF 알림 건수 체크", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF 알림 건수 체크": {
+      "main": [
+        [
+          { "node": "Switch ddayGroup", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "NoOp 종료", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Switch ddayGroup": {
+      "main": [
+        [
+          { "node": "Telegram D-1", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Telegram D-3", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Telegram D-7", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "Telegram D-0", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "NocoDB 기간만료 업데이트", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Telegram D-1": {
+      "main": [
+        [
+          { "node": "NocoDB PATCH D-1", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Telegram D-3": {
+      "main": [
+        [
+          { "node": "NocoDB PATCH D-3", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Telegram D-7": {
+      "main": [
+        [
+          { "node": "NocoDB PATCH D-7", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "Telegram D-0": {
+      "main": [
+        [
+          { "node": "NocoDB PATCH D-0", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "NocoDB 기간만료 조회": {
+      "main": [
+        [
+          { "node": "IF 기간만료 건수", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "IF 기간만료 건수": {
+      "main": [
+        [
+          { "node": "NocoDB 기간만료 벌크 업데이트", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "NoOp 기간만료 종료", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

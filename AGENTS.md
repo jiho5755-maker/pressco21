@@ -42,6 +42,15 @@ Claude Code가 기획/개발을 완료한 후, Codex CLI가 후속 관리를 담
 
 ---
 
+## 회사 지식 (작업 시작 전 참조)
+
+회사에 대한 이해가 필요한 작업 시 아래를 먼저 읽는다:
+- **회사 프로파일**: `company-profile.md` (741줄, 사업/직원/고객/브랜드/제품/역사 전부)
+- **브랜드 전략**: `docs/파트너클래스/brand-strategy-comprehensive.md`
+- **수정 규칙**: company-profile.md만 수정 → NocoDB/WF/HWPX에 동기화
+
+---
+
 ## 공통 금지 사항 (모드 무관)
 
 1. **인증키 파일 수정** — `.secrets.env`, `.secrets`, `.env.local` 수정 금지 (읽기만 가능)
@@ -206,6 +215,19 @@ pressco21/
 | CRM 배포 | `cd offline-crm-v2 && bash deploy/deploy.sh` |
 
 > 주의: 모드 A에서는 서버 배포를 하지 않습니다. 모드 B에서만 필요 시 사용.
+
+## n8n 워크플로우 자동화 (모드 B에서 사용 가능)
+
+n8n 워크플로우 JSON을 생성하거나 수정할 때는 반드시 아래를 참조:
+
+1. **노드 구현체**: `/Users/jangjiho/Desktop/n8n-main/packages/nodes-base/` — 정확한 노드 파라미터 참조
+2. **기존 WF JSON 패턴**: `n8n-automation/workflows/` — 30+ 운영 중 워크플로우
+3. **WF 빌더 가이드**: `/Users/jangjiho/Desktop/n8n-main/.claude/agents/n8n-workflow-builder.md`
+4. **노드 카탈로그**: `/Users/jangjiho/Desktop/n8n-main/.claude/agents/n8n-nodes-index.md`
+
+**배포**: `bash n8n-automation/_tools/deploy.sh <WF_ID> <JSON_경로>`
+**인증키**: `n8n-automation/.secrets` → `N8N_API_KEY`
+**n8n-main 폴더**: 읽기 전용 지식 라이브러리. 파일 추가/수정 금지.
 
 ---
 

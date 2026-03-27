@@ -1106,9 +1106,10 @@ export function InvoiceDialog({
   function handlePreview() {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     const { inv, rows } = buildPrintData()
-    const url = buildDuplexBlobUrl(inv, rows)
+    const documentType = inv.receipt_type === '견적서' ? 'estimate' : 'invoice'
+    const url = buildDuplexBlobUrl(inv, rows, { documentType })
     setPreviewUrl(url)
-    setPreviewPages(getPreviewPageCount(rows.length))
+    setPreviewPages(getPreviewPageCount(rows.length, documentType))
     setPreviewOpen(true)
   }
 

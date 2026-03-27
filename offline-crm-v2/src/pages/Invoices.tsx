@@ -1,7 +1,7 @@
 import { useState, useEffect, useMemo } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
-import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2, Pencil } from 'lucide-react'
+import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2, Pencil, FileText } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
@@ -20,6 +20,14 @@ const PAGE_SIZE = 25
 
 function isValidCalendarDate(value: string | null): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
+}
+
+function getTodayDateString() {
+  const now = new Date()
+  const year = now.getFullYear()
+  const month = String(now.getMonth() + 1).padStart(2, '0')
+  const day = String(now.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
 }
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -84,19 +92,20 @@ function buildCustomerPrintSnapshot(
 export function Invoices() {
   const qc = useQueryClient()
   const [searchParams, setSearchParams] = useSearchParams()
+  const today = useMemo(() => getTodayDateString(), [])
   const [search, setSearch] = useState('')
   const [statusFilter, setStatusFilter] = useState('ALL')
   const [dateFrom, setDateFrom] = useState(() => {
     const date = searchParams.get('date')
     const from = searchParams.get('from')
     if (isValidCalendarDate(date)) return date
-    return isValidCalendarDate(from) ? from : ''
+    return isValidCalendarDate(from) ? from : getTodayDateString()
   })
   const [dateTo, setDateTo] = useState(() => {
     const date = searchParams.get('date')
     const to = searchParams.get('to')
     if (isValidCalendarDate(date)) return date
-    return isValidCalendarDate(to) ? to : ''
+    return isValidCalendarDate(to) ? to : getTodayDateString()
   })
   const [page, setPage] = useState(1)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -118,8 +127,8 @@ export function Invoices() {
     const normalizedDate = isValidCalendarDate(nextDate) ? nextDate : ''
     const nextFrom = searchParams.get('from')
     const nextTo = searchParams.get('to')
-    const normalizedFrom = normalizedDate || (isValidCalendarDate(nextFrom) ? nextFrom : '')
-    const normalizedTo = normalizedDate || (isValidCalendarDate(nextTo) ? nextTo : '')
+    const normalizedFrom = normalizedDate || (isValidCalendarDate(nextFrom) ? nextFrom : today)
+    const normalizedTo = normalizedDate || (isValidCalendarDate(nextTo) ? nextTo : today)
 
     setDateFrom((prev) => (prev === normalizedFrom ? prev : normalizedFrom))
     setDateTo((prev) => (prev === normalizedTo ? prev : normalizedTo))
@@ -157,7 +166,7 @@ export function Invoices() {
       nextParams.delete('customerName')
       setSearchParams(nextParams, { replace: true })
     }
-  }, [searchParams, setSearchParams])
+  }, [searchParams, setSearchParams, today])
 
   const params: Record<string, string | number> = {
     sort: '-invoice_date',
@@ -380,7 +389,7 @@ export function Invoices() {
     await runCourierExport()
   }
 
-  async function handlePrint(inv: Invoice) {
+  async function handlePrint(inv: Invoice, documentType: 'invoice' | 'estimate' = 'invoice') {
     try {
       const [latestInvoice, itemsData] = await Promise.all([
         getInvoice(inv.Id),
@@ -401,7 +410,7 @@ export function Invoices() {
         {
           invoice_no: latestInvoice.invoice_no,
           invoice_date: latestInvoice.invoice_date,
-          receipt_type: latestInvoice.receipt_type ?? '영수',
+          receipt_type: documentType === 'estimate' ? '견적서' : '거래명세표',
           customer_name: latestInvoice.customer_name ?? currentCustomer?.name,
           customer_phone: customerSnapshot.customer_phone ?? (latestInvoice.customer_phone as string),
           customer_address: customerSnapshot.customer_address ?? (latestInvoice.customer_address as string),
@@ -424,6 +433,7 @@ export function Invoices() {
           supply_amount: it.supply_amount,
           tax_amount: it.tax_amount,
         })),
+        { documentType },
       )
     } catch {
       toast.error('인쇄 데이터를 불러오지 못했습니다')
@@ -452,7 +462,7 @@ export function Invoices() {
             {isCourierExporting ? '생성 중...' : '택배 송장 자동 다운로드'}
           </Button>
           <Button
-            onClick={() => openCreate((dateFrom && dateFrom === dateTo) ? dateFrom : undefined)}
+            onClick={() => openCreate((dateFrom && dateFrom === dateTo) ? dateFrom : today)}
             className="bg-[#7d9675] hover:bg-[#6a8462] text-white gap-1"
           >
             <Plus className="h-4 w-4" />
@@ -503,7 +513,7 @@ export function Invoices() {
             onClick={() => {
               setSearch('')
               setStatusFilter('ALL')
-              applyDateRange('', '')
+              applyDateRange(today, today)
             }}
           >
             초기화
@@ -547,7 +557,7 @@ export function Invoices() {
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">합계금액</th>
               <th className="text-right px-4 py-3 font-medium text-muted-foreground">입금</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">수금</th>
-              <th className="w-32" />
+              <th className="w-64 text-center px-4 py-3 font-medium text-muted-foreground">출력/관리</th>
             </tr>
           </thead>
           <tbody>
@@ -723,7 +733,7 @@ export function Invoices() {
                   </td>
                   {/* 인라인 액션 버튼 */}
                   <td className="px-2 py-3">
-                    <div className="flex gap-1 justify-end">
+                    <div className="flex items-center gap-1 justify-end">
                       <Button
                         variant="ghost"
                         size="sm"
@@ -734,13 +744,24 @@ export function Invoices() {
                         <Pencil className="h-3.5 w-3.5" />
                       </Button>
                       <Button
-                        variant="ghost"
+                        variant="outline"
                         size="sm"
-                        className="h-7 w-7 p-0"
-                        title="인쇄"
-                        onClick={(e) => { e.stopPropagation(); void handlePrint(inv) }}
+                        className="h-7 px-2 text-xs border-[#d8e4d6] text-gray-700 hover:bg-gray-50"
+                        title="거래명세표 인쇄"
+                        onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'invoice') }}
                       >
                         <Printer className="h-3.5 w-3.5" />
+                        <span className="ml-1">명세표</span>
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="h-7 px-2 text-xs border-[#d8e4d6] text-[#3d6b4a] hover:bg-[#f5faf4]"
+                        title="견적서 인쇄"
+                        onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'estimate') }}
+                      >
+                        <FileText className="h-3.5 w-3.5" />
+                        <span className="ml-1">견적서</span>
                       </Button>
                       <Button
                         variant="ghost"

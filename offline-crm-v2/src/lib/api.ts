@@ -226,7 +226,7 @@ const NULLABLE_CUSTOMER_TEXT_FIELDS = new Set([
   ...Array.from({ length: 10 }, (_, index) => `address${index + 1}`),
 ])
 
-const RECEIPT_TYPE_SET = new Set(['영수', '청구', '영수(청구)'])
+const RECEIPT_TYPE_SET = new Set(['거래명세표', '견적서', '영수', '청구', '영수(청구)'])
 const PAYMENT_STATUS_SET = new Set(['paid', 'partial', 'unpaid'])
 
 function normalizeReceiptType(value: unknown): string | undefined {

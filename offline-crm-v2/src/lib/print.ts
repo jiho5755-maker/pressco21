@@ -38,8 +38,10 @@ export interface PrintInvoice {
   supply_amount?: number
   tax_amount?: number
   total_amount?: number
+  discount_amount?: number
   previous_balance?: number
   paid_amount?: number
+  current_balance_override?: number
   memo?: string
 }
 
@@ -50,6 +52,12 @@ export interface PrintItem {
   unit_price?: number
   supply_amount?: number
   tax_amount?: number
+}
+
+export type PrintDocumentType = 'invoice' | 'estimate'
+
+interface PrintDocumentOptions {
+  documentType?: PrintDocumentType
 }
 
 const COMPANY_INFO_KEY = 'pressco21-crm-v2'
@@ -123,6 +131,8 @@ function esc(str: string): string {
 // 그 이상부터는 자동 분할 + zoom 축소를 함께 사용한다.
 const ITEMS_FIRST_PAGE = 20
 const ITEMS_CONT_PAGE = 20
+const ESTIMATE_ITEMS_FIRST_PAGE = 14
+const ESTIMATE_ITEMS_CONT_PAGE = 18
 const DUPLEX_HALF_TARGET_MM = 132
 const DUPLEX_HALF_TARGET_PX = DUPLEX_HALF_TARGET_MM * (96 / 25.4)
 // Chrome/Edge PDF 저장에서 A4 정확히 297mm를 꽉 채우면 마지막 빈 페이지가 붙는 경우가 있어
@@ -313,7 +323,11 @@ function buildInvoicePageHtml(
 }
 
 /** 품목 수 기준 총 페이지 수 (미리보기 iframe 높이 계산용) */
-export function getPreviewPageCount(itemCount: number): number {
+export function getPreviewPageCount(itemCount: number, documentType: PrintDocumentType = 'invoice'): number {
+  if (documentType === 'estimate') {
+    if (itemCount <= ESTIMATE_ITEMS_FIRST_PAGE) return 1
+    return 1 + Math.ceil((itemCount - ESTIMATE_ITEMS_FIRST_PAGE) / ESTIMATE_ITEMS_CONT_PAGE)
+  }
   if (itemCount <= ITEMS_FIRST_PAGE) return 1
   return 1 + Math.ceil((itemCount - ITEMS_FIRST_PAGE) / ITEMS_CONT_PAGE)
 }
@@ -326,6 +340,17 @@ function splitItemsToPages(items: PrintItem[]): PrintItem[][] {
   while (offset < items.length) {
     pages.push(items.slice(offset, offset + ITEMS_CONT_PAGE))
     offset += ITEMS_CONT_PAGE
+  }
+  return pages
+}
+
+function splitEstimateItemsToPages(items: PrintItem[]): PrintItem[][] {
+  if (items.length <= ESTIMATE_ITEMS_FIRST_PAGE) return [items]
+  const pages: PrintItem[][] = [items.slice(0, ESTIMATE_ITEMS_FIRST_PAGE)]
+  let offset = ESTIMATE_ITEMS_FIRST_PAGE
+  while (offset < items.length) {
+    pages.push(items.slice(offset, offset + ESTIMATE_ITEMS_CONT_PAGE))
+    offset += ESTIMATE_ITEMS_CONT_PAGE
   }
   return pages
 }
@@ -354,6 +379,112 @@ function buildDuplexInvoiceHtml(inv: PrintInvoice, items: PrintItem[]): string {
       '</div></div>' +
       '</div>'
     )
+  }).join('')
+}
+
+function buildEstimatePageHtml(
+  inv: PrintInvoice,
+  pageItems: PrintItem[],
+  opts: PageOptions,
+  startIndex: number,
+): string {
+  const c = loadCompanyInfo()
+  const effectiveLogo = c.logo_url || _logoFallback
+  const effectiveStamp = c.stamp_url || _stampFallback
+  const logoHtml = effectiveLogo
+    ? `<img src="${effectiveLogo}" alt="로고" class="est-logo-img" />`
+    : `<div class="est-logo-text">${esc(c.company ?? '')}</div>`
+  const stampHtml = effectiveStamp
+    ? `<img src="${effectiveStamp}" alt="도장" class="est-stamp-img" />`
+    : ''
+  const pageLabel = opts.totalPages > 1 ? ` / ${opts.pageNum}p` : ''
+  const itemCapacity = opts.isFirst ? ESTIMATE_ITEMS_FIRST_PAGE : ESTIMATE_ITEMS_CONT_PAGE
+  const blankCount = opts.isLast ? Math.max(0, itemCapacity - pageItems.length) : 0
+  const noteText = inv.memo?.trim() || c.invoice_footer?.trim() || '견적 금액과 납품 조건은 협의 후 확정됩니다.'
+
+  const itemRowsHtml =
+    pageItems
+      .map((item, index) =>
+        '<tr>' +
+        `<td class="t-center">${startIndex + index + 1}</td>` +
+        `<td>${esc(item.product_name ?? '')}</td>` +
+        `<td class="t-center">${esc(item.unit ?? '')}</td>` +
+        `<td class="t-right">${(item.quantity ?? 0).toLocaleString()}</td>` +
+        `<td class="t-right">${(item.unit_price ?? 0).toLocaleString()}</td>` +
+        `<td class="t-right">${(item.supply_amount ?? 0).toLocaleString()}</td>` +
+        `<td class="t-right">${(item.tax_amount ?? 0).toLocaleString()}</td>` +
+        `<td class="t-right">${((item.supply_amount ?? 0) + (item.tax_amount ?? 0)).toLocaleString()}</td>` +
+        '</tr>'
+      )
+      .join('') +
+    Array(blankCount).fill('<tr class="est-blank"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')
+
+  return (
+    '<section class="est-page">' +
+    '<div class="est-shell">' +
+    '<div class="est-top">' +
+    `<div class="est-logo">${logoHtml}</div>` +
+    `<div class="est-title-wrap"><div class="est-title">견 적 서</div><div class="est-sub">${esc(inv.invoice_no ?? '')}${pageLabel}</div></div>` +
+    '<div class="est-meta">' +
+    `<div><span>견적일자</span><strong>${esc(inv.invoice_date ?? '')}</strong></div>` +
+    `<div><span>유효기간</span><strong>${esc(inv.invoice_date ?? '')}</strong></div>` +
+    '</div>' +
+    '</div>' +
+    '<table class="est-party-table">' +
+    '<thead><tr><th colspan="4">공 급 자</th><th colspan="4">공 급 받 는 자</th></tr></thead>' +
+    '<tbody>' +
+    `<tr><td class="est-label">상호</td><td>${esc(c.company ?? '')}</td><td class="est-label">대표자</td><td>${esc(c.ceo ?? '')}</td><td class="est-label">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="est-label">대표자</td><td>${esc(inv.customer_ceo_name ?? inv.manager ?? '')}</td></tr>` +
+    `<tr><td class="est-label">사업자번호</td><td>${esc(c.bizno ?? '')}</td><td class="est-label">전화</td><td>${esc(c.phone ?? '')}</td><td class="est-label">사업자번호</td><td>${esc(inv.customer_bizno ?? '')}</td><td class="est-label">전화</td><td>${esc(inv.customer_phone ?? '')}</td></tr>` +
+    `<tr><td class="est-label">주소</td><td colspan="3">${esc(c.address ?? '')}</td><td class="est-label">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
+    `<tr><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(c.bizType, c.bizItem))}</td><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(inv.customer_biz_type, inv.customer_biz_item))}</td></tr>` +
+    '</tbody>' +
+    '</table>' +
+    '<table class="est-items-table">' +
+    '<thead><tr><th style="width:6%">No</th><th style="width:34%">품명</th><th style="width:8%">단위</th><th style="width:8%">수량</th><th style="width:12%">단가</th><th style="width:12%">공급가액</th><th style="width:8%">세액</th><th style="width:12%">합계</th></tr></thead>' +
+    `<tbody>${itemRowsHtml}</tbody>` +
+    '</table>' +
+    (opts.isLast
+      ? '<div class="est-bottom">' +
+        '<div class="est-note-block">' +
+        '<div class="est-note-title">비고</div>' +
+        `<div class="est-note-text">${esc(noteText)}</div>` +
+        '</div>' +
+        '<div class="est-summary-block">' +
+        '<table class="est-summary-table">' +
+        `<tr><th>공급가액</th><td>${(inv.supply_amount ?? 0).toLocaleString()}원</td></tr>` +
+        `<tr><th>세액</th><td>${(inv.tax_amount ?? 0).toLocaleString()}원</td></tr>` +
+        `<tr class="est-grand-row"><th>총 견적금액</th><td>${(inv.total_amount ?? 0).toLocaleString()}원</td></tr>` +
+        '</table>' +
+        (formatBankInfo(c) ? `<div class="est-bank">입금계좌 ${esc(formatBankInfo(c))}</div>` : '') +
+        '</div>' +
+        '</div>' +
+        '<div class="est-signature">' +
+        '<div class="est-signature-text">상기와 같이 견적드립니다.</div>' +
+        '<div class="est-signature-right">' +
+        '<span class="est-signature-label">대표자</span>' +
+        `<span class="est-signature-name">${esc(c.ceo ?? '')}</span>` +
+        `<span class="est-stamp-wrap">${stampHtml}</span>` +
+        '</div>' +
+        '</div>'
+      : '<div class="est-continue">다음 페이지에 품목이 계속됩니다.</div>') +
+    '</div>' +
+    '</section>'
+  )
+}
+
+function buildEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string {
+  const pages = splitEstimateItemsToPages(items)
+  const totalPages = pages.length
+
+  return pages.map((pageItems, index) => {
+    const opts: PageOptions = {
+      pageNum: index + 1,
+      totalPages,
+      isFirst: index === 0,
+      isLast: index === totalPages - 1,
+    }
+    const startIndex = index === 0 ? 0 : ESTIMATE_ITEMS_FIRST_PAGE + (index - 1) * ESTIMATE_ITEMS_CONT_PAGE
+    return buildEstimatePageHtml(inv, pageItems, opts, startIndex)
   }).join('')
 }
 
@@ -461,23 +592,81 @@ const DUPLEX_CSS = [
   '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
 ].join('\n')
 
+const ESTIMATE_CSS = [
+  '@page { size: A4 portrait; margin: 10mm; }',
+  "body { margin:0; font-family:'Malgun Gothic','맑은 고딕',sans-serif; color:#111; background:#fff; }",
+  '* { box-sizing:border-box; }',
+  '.est-page { width:190mm; min-height:277mm; page-break-after:always; }',
+  '.est-page:last-child { page-break-after:auto; }',
+  '.est-shell { border:1px solid #9ca3af; padding:7mm 7mm 6mm; min-height:277mm; display:flex; flex-direction:column; }',
+  '.est-top { display:grid; grid-template-columns: 120px 1fr 150px; align-items:center; gap:10px; margin-bottom:8px; }',
+  '.est-logo { min-height:34px; display:flex; align-items:center; }',
+  '.est-logo-img { max-height:34px; max-width:110px; object-fit:contain; }',
+  '.est-logo-text { font-weight:700; color:#3d6b4a; }',
+  '.est-title-wrap { text-align:center; }',
+  '.est-title { font-size:18pt; font-weight:800; letter-spacing:8px; }',
+  '.est-sub { margin-top:2px; font-size:8pt; color:#6b7280; }',
+  '.est-meta { border:1px solid #9ca3af; font-size:8pt; }',
+  '.est-meta div { display:flex; justify-content:space-between; padding:4px 6px; border-bottom:1px solid #d1d5db; }',
+  '.est-meta div:last-child { border-bottom:none; }',
+  '.est-meta span { color:#6b7280; }',
+  '.est-party-table, .est-items-table, .est-summary-table { width:100%; border-collapse:collapse; }',
+  '.est-party-table { margin-bottom:8px; }',
+  '.est-party-table th, .est-party-table td, .est-items-table th, .est-items-table td, .est-summary-table th, .est-summary-table td { border:1px solid #9ca3af; padding:4px 5px; font-size:8pt; }',
+  '.est-party-table th, .est-items-table th, .est-summary-table th, .est-label { background:#f3f4f6; font-weight:700; }',
+  '.est-items-table { flex:1; }',
+  '.est-items-table td:nth-child(2) { font-weight:600; }',
+  '.est-blank td { height:22px; }',
+  '.est-bottom { display:grid; grid-template-columns: 1fr 170px; gap:10px; margin-top:8px; }',
+  '.est-note-block { border:1px solid #9ca3af; min-height:76px; }',
+  '.est-note-title { background:#f3f4f6; border-bottom:1px solid #9ca3af; padding:4px 6px; font-size:8pt; font-weight:700; }',
+  '.est-note-text { padding:6px; font-size:8pt; line-height:1.5; white-space:pre-wrap; }',
+  '.est-summary-block { display:flex; flex-direction:column; gap:6px; }',
+  '.est-summary-table th { width:70px; }',
+  '.est-summary-table td { text-align:right; font-weight:700; }',
+  '.est-grand-row th, .est-grand-row td { background:#edf6ea; font-size:9pt; }',
+  '.est-bank { border:1px solid #9ca3af; padding:6px; font-size:7.8pt; line-height:1.4; }',
+  '.est-signature { margin-top:10px; display:flex; justify-content:space-between; align-items:flex-end; font-size:8.2pt; }',
+  '.est-signature-right { display:flex; align-items:flex-end; gap:6px; }',
+  '.est-signature-label { font-weight:700; }',
+  '.est-signature-name { min-width:56px; text-align:center; border-bottom:1px solid #6b7280; }',
+  '.est-stamp-wrap { display:inline-flex; width:42px; height:42px; align-items:center; justify-content:center; }',
+  '.est-stamp-img { max-width:42px; max-height:42px; object-fit:contain; opacity:0.92; }',
+  '.est-continue { margin-top:8px; text-align:right; font-size:8pt; color:#6b7280; }',
+  '.t-right { text-align:right; }',
+  '.t-center { text-align:center; }',
+  '@media print { img { -webkit-print-color-adjust:exact; print-color-adjust:exact; } }',
+].join('\n')
+
 // 미리보기 + 인쇄 공통 Blob URL 생성 (호출자가 revokeObjectURL 책임)
-export function buildDuplexBlobUrl(inv: PrintInvoice, items: PrintItem[]): string {
-  const duplexHtml = buildDuplexInvoiceHtml(inv, items)
-  const fitScript = buildDuplexFitScript()
+export function buildDuplexBlobUrl(
+  inv: PrintInvoice,
+  items: PrintItem[],
+  options: PrintDocumentOptions = {},
+): string {
+  const documentType = options.documentType ?? 'invoice'
+  const isEstimate = documentType === 'estimate'
+  const duplexHtml = isEstimate ? buildEstimateHtml(inv, items) : buildDuplexInvoiceHtml(inv, items)
+  const fitScript = isEstimate ? '' : buildDuplexFitScript()
+  const css = isEstimate ? ESTIMATE_CSS : DUPLEX_CSS
   const fullHtml =
     '<!DOCTYPE html><html><head><meta charset="UTF-8">' +
-    '<style>' + DUPLEX_CSS + '</style>' +
+    '<style>' + css + '</style>' +
     '</head><body>' +
     duplexHtml +
-    '<script>' + fitScript + '<\/script>' +
+    (fitScript ? '<script>' + fitScript + '<\/script>' : '') +
     '</body></html>'
   return URL.createObjectURL(new Blob([fullHtml], { type: 'text/html;charset=utf-8' }))
 }
 
-export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): void {
-  const blobUrl = buildDuplexBlobUrl(inv, items)
-  const pages = getPreviewPageCount(items.length)
+export function printDuplexViaIframe(
+  inv: PrintInvoice,
+  items: PrintItem[],
+  options: PrintDocumentOptions = {},
+): void {
+  const documentType = options.documentType ?? 'invoice'
+  const blobUrl = buildDuplexBlobUrl(inv, items, options)
+  const pages = getPreviewPageCount(items.length, documentType)
 
   const iframe = document.createElement('iframe')
   iframe.style.cssText =
@@ -487,8 +676,10 @@ export function printDuplexViaIframe(inv: PrintInvoice, items: PrintItem[]): voi
 
   iframe.addEventListener('load', () => {
     setTimeout(() => {
-      const fitFn = (iframe.contentWindow as (Window & { __fitDuplexPrint?: () => void }) | null)?.__fitDuplexPrint
-      fitFn?.()
+      if (documentType !== 'estimate') {
+        const fitFn = (iframe.contentWindow as (Window & { __fitDuplexPrint?: () => void }) | null)?.__fitDuplexPrint
+        fitFn?.()
+      }
       iframe.contentWindow?.print()
       URL.revokeObjectURL(blobUrl)
       setTimeout(() => {

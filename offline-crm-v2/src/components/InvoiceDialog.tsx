@@ -73,6 +73,14 @@ interface RecentCustomerOption {
 }
 
 const INVOICE_DRAFT_KEY = 'pressco21-crm-invoice-draft-v1'
+const DEFAULT_RECEIPT_TYPE = '거래명세표'
+const RECEIPT_TYPE_OPTIONS = [
+  { value: '거래명세표', label: '거래명세표' },
+  { value: '견적서', label: '견적서' },
+  { value: '영수', label: '영수' },
+  { value: '청구', label: '청구' },
+  { value: '영수(청구)', label: '영수(청구)' },
+] as const
 
 function newRow(taxable = loadDefaultTaxableSetting()): ItemRow {
   return {
@@ -317,7 +325,7 @@ export function InvoiceDialog({
   const [form, setForm] = useState<Partial<Invoice>>({
     invoice_date: normalizeInvoiceDate(initialInvoiceDate),
     invoice_no: generateInvoiceNo(),
-    receipt_type: '영수',
+    receipt_type: DEFAULT_RECEIPT_TYPE,
     previous_balance: 0,
     paid_amount: 0,
     payment_method: '현금',
@@ -484,7 +492,7 @@ export function InvoiceDialog({
       setForm({
         invoice_date: normalizeInvoiceDate(initialInvoiceDate),
         invoice_no: generateInvoiceNo(),
-        receipt_type: '영수',
+        receipt_type: DEFAULT_RECEIPT_TYPE,
         previous_balance: 0,
         paid_amount: 0,
         payment_method: '현금',
@@ -504,7 +512,7 @@ export function InvoiceDialog({
     if (existingInvoice) {
       const normalizedExistingInvoice = {
         ...existingInvoice,
-        receipt_type: existingInvoice.receipt_type ?? '영수',
+        receipt_type: existingInvoice.receipt_type ?? DEFAULT_RECEIPT_TYPE,
       }
       if (isCopy) {
         // 복사: 새 번호 + 오늘 날짜, 수금 초기화
@@ -748,8 +756,9 @@ export function InvoiceDialog({
   const productQuery = useDebounce(productQueryRaw, 200)
   const { data: productSearchResult } = useProductSearch(productQuery)
 
-  // 품목 선택 시에는 품목명/단위만 채우고, 단가/과세 기본값은 현재 행 상태를 유지한다.
+  // 품목 선택 시에는 품목명/단위와 거래처 단가만 채우고, 과세 기본값은 현재 행 상태를 유지한다.
   function selectProduct(rowKey: string, product: Product) {
+    const price = getPriceForCustomer(product, selectedCustomer)
     setItems((prev) =>
       prev.map((r) => {
         if (r._key !== rowKey) return r
@@ -757,6 +766,7 @@ export function InvoiceDialog({
           ...r,
           product_name: product.name ?? '',
           unit: product.unit ?? '개',
+          unit_price: price,
         })
       }),
     )
@@ -823,6 +833,7 @@ export function InvoiceDialog({
     const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : loadDefaultTaxableSetting()
     const newRows: ItemRow[] = products.map((p) => {
       const row = newRow(defaultTaxable)
+      row.unit_price = getPriceForCustomer(p, selectedCustomer)
       row.product_name = p.name ?? ''
       row.unit = p.unit ?? '개'
       return calcRow(row)
@@ -884,7 +895,7 @@ export function InvoiceDialog({
     setForm({
       invoice_date: draft.form.invoice_date ?? today(),
       invoice_no: draft.form.invoice_no ?? generateInvoiceNo(),
-      receipt_type: draft.form.receipt_type ?? '영수',
+      receipt_type: draft.form.receipt_type ?? DEFAULT_RECEIPT_TYPE,
       previous_balance: draft.form.previous_balance ?? 0,
       paid_amount: draft.form.paid_amount ?? 0,
       payment_method: draft.form.payment_method ?? '현금',
@@ -1064,7 +1075,7 @@ export function InvoiceDialog({
       inv: {
         invoice_no: form.invoice_no,
         invoice_date: form.invoice_date,
-        receipt_type: form.receipt_type ?? '영수',
+        receipt_type: form.receipt_type ?? DEFAULT_RECEIPT_TYPE,
         customer_name: customerInput || customerSnapshot?.customer_name || form.customer_name,
         customer_phone: customerSnapshot?.customer_phone ?? (form.customer_phone as string),
         customer_address: customerSnapshot?.customer_address ?? (form.customer_address as string),
@@ -1397,16 +1408,18 @@ export function InvoiceDialog({
             <div>
               <Label className="text-xs">구분</Label>
               <Select
-                value={form.receipt_type ?? '영수'}
+                value={form.receipt_type ?? DEFAULT_RECEIPT_TYPE}
                 onValueChange={(v) => { setForm((f) => ({ ...f, receipt_type: v })); setIsDirty(true) }}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="영수">영수</SelectItem>
-                  <SelectItem value="청구">청구</SelectItem>
-                  <SelectItem value="영수(청구)">영수(청구)</SelectItem>
+                  {RECEIPT_TYPE_OPTIONS.map((option) => (
+                    <SelectItem key={option.value} value={option.value}>
+                      {option.label}
+                    </SelectItem>
+                  ))}
                 </SelectContent>
               </Select>
             </div>

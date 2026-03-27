@@ -15,6 +15,7 @@ export interface CustomerAccountingMetaState {
   depositBalance: number
   refundPendingBalance: number
   depositorAliases: string[]
+  addressLabels: string[]
   autoDepositDisabled: boolean
   autoDepositPriority: number
   events: CustomerAccountingEvent[]
@@ -26,6 +27,12 @@ export interface InvoiceAccountingMetaState {
 
 const CUSTOMER_ACCOUNTING_META_PREFIX = '[ACCOUNTING_CUSTOMER_META]'
 const INVOICE_ACCOUNTING_META_PREFIX = '[ACCOUNTING_INVOICE_META]'
+const HIDDEN_MEMO_PREFIXES = [
+  '[LEGACY_RECEIVABLE_META]',
+  '[LEGACY_PAYABLE_META]',
+  CUSTOMER_ACCOUNTING_META_PREFIX,
+  INVOICE_ACCOUNTING_META_PREFIX,
+]
 
 function normalizeMemo(value: string | undefined): string {
   return (value ?? '').replace(/\r\n/g, '\n')
@@ -50,6 +57,17 @@ function sanitizeAliasList(values: unknown): string[] {
     .map(sanitizeAlias)
     .filter((entry): entry is string => entry !== null)
     .filter((entry, index, list) => list.indexOf(entry) === index)
+}
+
+function sanitizeAddressLabel(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().replace(/\s+/g, ' ')
+  return normalized ? normalized : null
+}
+
+function sanitizeAddressLabelList(values: unknown): string[] {
+  if (!Array.isArray(values)) return []
+  return values.map(sanitizeAddressLabel).filter((entry): entry is string => entry !== null)
 }
 
 function sanitizeEvent(entry: Partial<CustomerAccountingEvent>): CustomerAccountingEvent | null {
@@ -89,17 +107,40 @@ function stripMetaLine(memo: string, prefix: string): string[] {
     .filter((line) => line.trim() && !line.trim().startsWith(prefix))
 }
 
+function findHiddenMemoPrefixIndex(line: string): number {
+  let result = -1
+  for (const prefix of HIDDEN_MEMO_PREFIXES) {
+    const index = line.indexOf(prefix)
+    if (index === -1) continue
+    if (result === -1 || index < result) result = index
+  }
+  return result
+}
+
+function stripHiddenMemoSuffix(line: string): string {
+  const index = findHiddenMemoPrefixIndex(line)
+  if (index === -1) return line.trimEnd()
+  if (index === 0) return ''
+  return line.slice(0, index).trimEnd()
+}
+
+function extractHiddenMemoLines(memo: string | undefined): string[] {
+  const hiddenLines: string[] = []
+  for (const rawLine of normalizeMemo(memo).split('\n')) {
+    const index = findHiddenMemoPrefixIndex(rawLine)
+    if (index === -1) continue
+    const hiddenLine = rawLine.slice(index).trim()
+    if (!hiddenLine) continue
+    if (!hiddenLines.includes(hiddenLine)) hiddenLines.push(hiddenLine)
+  }
+  return hiddenLines
+}
+
 export function getDisplayMemo(memo?: string): string {
   return normalizeMemo(memo)
     .split('\n')
-    .filter((line) => {
-      const trimmed = line.trim()
-      return (
-        trimmed &&
-        !trimmed.startsWith(CUSTOMER_ACCOUNTING_META_PREFIX) &&
-        !trimmed.startsWith(INVOICE_ACCOUNTING_META_PREFIX)
-      )
-    })
+    .map(stripHiddenMemoSuffix)
+    .filter((line) => line.trim())
     .join('\n')
     .trim()
 }
@@ -107,20 +148,9 @@ export function getDisplayMemo(memo?: string): string {
 export function mergeDisplayMemo(baseMemo: string | undefined, displayMemo: string | undefined): string {
   const visibleLines = normalizeMemo(displayMemo)
     .split('\n')
-    .map((line) => line.trimEnd())
+    .map(stripHiddenMemoSuffix)
     .filter((line) => line.trim())
-  const hiddenLines = normalizeMemo(baseMemo)
-    .split('\n')
-    .map((line) => line.trimEnd())
-    .filter((line) => {
-      const trimmed = line.trim()
-      return (
-        trimmed.startsWith('[LEGACY_RECEIVABLE_META]') ||
-        trimmed.startsWith('[LEGACY_PAYABLE_META]') ||
-        trimmed.startsWith(CUSTOMER_ACCOUNTING_META_PREFIX) ||
-        trimmed.startsWith(INVOICE_ACCOUNTING_META_PREFIX)
-      )
-    })
+  const hiddenLines = extractHiddenMemoLines(baseMemo)
   return [...visibleLines, ...hiddenLines].join('\n').trim()
 }
 
@@ -131,7 +161,7 @@ export function parseCustomerAccountingMeta(memo?: string): CustomerAccountingMe
     .find((line) => line.startsWith(CUSTOMER_ACCOUNTING_META_PREFIX))
 
   if (!metaLine) {
-    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], autoDepositDisabled: false, autoDepositPriority: 0, events: [] }
+    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], addressLabels: [], autoDepositDisabled: false, autoDepositPriority: 0, events: [] }
   }
 
   try {
@@ -139,6 +169,7 @@ export function parseCustomerAccountingMeta(memo?: string): CustomerAccountingMe
       depositBalance?: number
       refundPendingBalance?: number
       depositorAliases?: string[]
+      addressLabels?: string[]
       autoDepositDisabled?: boolean
       autoDepositPriority?: number
       events?: Partial<CustomerAccountingEvent>[]
@@ -150,12 +181,13 @@ export function parseCustomerAccountingMeta(memo?: string): CustomerAccountingMe
       depositBalance: Math.max(0, parseInteger(parsed.depositBalance)),
       refundPendingBalance: Math.max(0, parseInteger(parsed.refundPendingBalance)),
       depositorAliases: sanitizeAliasList(parsed.depositorAliases),
+      addressLabels: sanitizeAddressLabelList(parsed.addressLabels),
       autoDepositDisabled: parsed.autoDepositDisabled === true,
       autoDepositPriority: Math.max(0, parseInteger(parsed.autoDepositPriority)),
       events,
     }
   } catch {
-    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], autoDepositDisabled: false, autoDepositPriority: 0, events: [] }
+    return { depositBalance: 0, refundPendingBalance: 0, depositorAliases: [], addressLabels: [], autoDepositDisabled: false, autoDepositPriority: 0, events: [] }
   }
 }
 
@@ -170,6 +202,7 @@ export function serializeCustomerAccountingMeta(
     .filter((entry): entry is CustomerAccountingEvent => entry !== null)
 
   const depositorAliases = sanitizeAliasList(nextState.depositorAliases)
+  const addressLabels = sanitizeAddressLabelList(nextState.addressLabels)
   const autoDepositDisabled = nextState.autoDepositDisabled === true
   const autoDepositPriority = Math.max(0, parseInteger(nextState.autoDepositPriority))
 
@@ -177,6 +210,7 @@ export function serializeCustomerAccountingMeta(
     nextState.depositBalance <= 0 &&
     nextState.refundPendingBalance <= 0 &&
     depositorAliases.length === 0 &&
+    addressLabels.length === 0 &&
     !autoDepositDisabled &&
     autoDepositPriority <= 0 &&
     events.length === 0
@@ -188,6 +222,7 @@ export function serializeCustomerAccountingMeta(
     depositBalance: Math.max(0, parseInteger(nextState.depositBalance)),
     refundPendingBalance: Math.max(0, parseInteger(nextState.refundPendingBalance)),
     depositorAliases,
+    addressLabels,
     autoDepositDisabled,
     autoDepositPriority,
     events,
@@ -198,13 +233,14 @@ export function serializeCustomerAccountingMeta(
 export function appendCustomerAccountingEvent(
   memo: string | undefined,
   entry: CustomerAccountingEvent,
-  patch?: Partial<Pick<CustomerAccountingMetaState, 'depositBalance' | 'refundPendingBalance' | 'depositorAliases' | 'autoDepositDisabled' | 'autoDepositPriority'>>,
+  patch?: Partial<Pick<CustomerAccountingMetaState, 'depositBalance' | 'refundPendingBalance' | 'depositorAliases' | 'addressLabels' | 'autoDepositDisabled' | 'autoDepositPriority'>>,
 ): string {
   const prev = parseCustomerAccountingMeta(memo)
   return serializeCustomerAccountingMeta(memo, {
     depositBalance: Math.max(0, patch?.depositBalance ?? prev.depositBalance),
     refundPendingBalance: Math.max(0, patch?.refundPendingBalance ?? prev.refundPendingBalance),
     depositorAliases: patch?.depositorAliases ?? prev.depositorAliases,
+    addressLabels: patch?.addressLabels ?? prev.addressLabels,
     autoDepositDisabled: patch?.autoDepositDisabled ?? prev.autoDepositDisabled,
     autoDepositPriority: patch?.autoDepositPriority ?? prev.autoDepositPriority,
     events: [...prev.events, entry],
@@ -213,13 +249,14 @@ export function appendCustomerAccountingEvent(
 
 export function replaceCustomerAccountingPreferences(
   memo: string | undefined,
-  patch: Pick<CustomerAccountingMetaState, 'depositorAliases' | 'autoDepositDisabled' | 'autoDepositPriority'>,
+  patch: Pick<CustomerAccountingMetaState, 'depositorAliases' | 'addressLabels' | 'autoDepositDisabled' | 'autoDepositPriority'>,
 ): string {
   const prev = parseCustomerAccountingMeta(memo)
   return serializeCustomerAccountingMeta(memo, {
     depositBalance: prev.depositBalance,
     refundPendingBalance: prev.refundPendingBalance,
     depositorAliases: patch.depositorAliases,
+    addressLabels: patch.addressLabels,
     autoDepositDisabled: patch.autoDepositDisabled,
     autoDepositPriority: patch.autoDepositPriority,
     events: prev.events,

@@ -34,7 +34,7 @@ function normalizeLookup(value?: string | null): string {
 }
 
 function extractAliasRoot(value?: string | null): string {
-  return normalizeLookup((value ?? '').split('(')[0])
+  return normalizeLookup((value ?? '').replace(/\([^)]*\)/g, ' '))
 }
 
 function findCustomerByAlias(invoiceName: string, customers: Customer[]): Customer | null {
@@ -55,7 +55,7 @@ function findCustomerByAlias(invoiceName: string, customers: Customer[]): Custom
       invoiceRoot === customerName ||
       normalizedInvoiceName.includes(customerName) ||
       customerBookName.includes(normalizedInvoiceName) ||
-      customerBookName.includes(invoiceRoot)
+      (Boolean(invoiceRoot) && customerBookName.includes(invoiceRoot))
     )
   })
 

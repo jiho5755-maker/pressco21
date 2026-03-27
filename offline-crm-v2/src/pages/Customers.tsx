@@ -29,7 +29,7 @@ function normalizeLookup(value?: string | null): string {
 }
 
 function extractAliasRoot(value?: string | null): string {
-  return normalizeLookup((value ?? '').split('(')[0])
+  return normalizeLookup((value ?? '').replace(/\([^)]*\)/g, ' '))
 }
 
 function resolveSplitInvoiceAliases(customer: Customer, invoices: Invoice[]): string[] {
@@ -52,7 +52,7 @@ function resolveSplitInvoiceAliases(customer: Customer, invoices: Invoice[]): st
       (invoiceName === customerName || invoiceRoot === customerName || invoiceName.includes(customerName))
     const linkedByBookName =
       Boolean(customerBookName) &&
-      (customerBookName.includes(invoiceName) || customerBookName.includes(invoiceRoot))
+      (customerBookName.includes(invoiceName) || (Boolean(invoiceRoot) && customerBookName.includes(invoiceRoot)))
 
     if (linkedById || linkedByName || linkedByBookName) {
       aliases.add(rawInvoiceName)

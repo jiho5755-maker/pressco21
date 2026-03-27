@@ -222,6 +222,7 @@ const NULLABLE_CUSTOMER_TEXT_FIELDS = new Set([
   'business_item',
   'business_address',
   'memo',
+  'extra_addresses',
   ...Array.from({ length: 10 }, (_, index) => `address${index + 1}`),
 ])
 
@@ -261,6 +262,7 @@ export interface Customer {
   address8?: string
   address9?: string
   address10?: string
+  extra_addresses?: string | null
   customer_type?: string
   customer_status?: string
   member_grade?: string
@@ -302,7 +304,60 @@ function normalizeCustomerRecord(customer: Customer): Customer {
     business_type: pickFirstString(customer.business_type, customer.biz_type),
     biz_item: pickFirstString(customer.biz_item, customer.business_item),
     business_item: pickFirstString(customer.business_item, customer.biz_item),
+    extra_addresses: typeof customer.extra_addresses === 'string' ? customer.extra_addresses : null,
   }
+}
+
+function normalizeCustomerAddressText(value: unknown): string | null {
+  if (typeof value !== 'string') return null
+  const trimmed = value.trim()
+  return trimmed ? trimmed : null
+}
+
+export function parseCustomerExtraAddresses(customer: Customer | null | undefined): string[] {
+  if (!customer?.extra_addresses || typeof customer.extra_addresses !== 'string') return []
+  try {
+    const parsed = JSON.parse(customer.extra_addresses) as unknown
+    if (!Array.isArray(parsed)) return []
+    return parsed
+      .map(normalizeCustomerAddressText)
+      .filter((value): value is string => value !== null)
+  } catch {
+    return []
+  }
+}
+
+export function getCustomerAddressEntries(
+  customer: Customer | null | undefined,
+): Array<{ key: string; value: string }> {
+  if (!customer) return []
+
+  const entries: Array<{ key: string; value: string }> = []
+  const primary = normalizeCustomerAddressText(customer.address1)
+  const secondary = normalizeCustomerAddressText(customer.address2)
+
+  if (primary) entries.push({ key: 'address1', value: primary })
+  if (secondary) entries.push({ key: 'address2', value: secondary })
+
+  for (const [index, value] of parseCustomerExtraAddresses(customer).entries()) {
+    if (entries.some((entry) => entry.value === value)) continue
+    entries.push({ key: `extra_addresses:${index}`, value })
+  }
+
+  return entries
+}
+
+export function getCustomerAddressValueByKey(
+  customer: Customer | null | undefined,
+  addressKey?: string,
+): string {
+  const entries = getCustomerAddressEntries(customer)
+  if (entries.length === 0) return ''
+  if (addressKey) {
+    const exact = entries.find((entry) => entry.key === addressKey)
+    if (exact) return exact.value
+  }
+  return entries[0]?.value ?? ''
 }
 
 function normalizeCustomerList(result: ListResponse<Customer>): ListResponse<Customer> {

@@ -1,5 +1,6 @@
 import { NavLink } from 'react-router-dom'
 import { useEffect, useState } from 'react'
+import { AppGuideWidget } from './AppGuideWidget'
 import { cn } from '@/lib/utils'
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import type { WorkOperatorProfile } from '@/lib/settings'
@@ -72,6 +73,9 @@ export function Sidebar() {
 
       {/* 하단 정보 */}
       <div className="px-6 py-4 border-t border-white/10">
+        <div className="mb-3">
+          <AppGuideWidget />
+        </div>
         {activeOperator ? (
           <div className="mb-3 rounded-md border border-white/10 bg-white/5 px-3 py-2">
             <p className="text-[11px] text-white/50">현재 작업 계정</p>

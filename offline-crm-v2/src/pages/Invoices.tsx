@@ -10,7 +10,7 @@ import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, D
 import { InvoiceDialog } from '@/components/InvoiceDialog'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
-import { getAllCustomers, getAllInvoices, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink } from '@/lib/api'
+import { getAllCustomers, getAllInvoices, getCustomerAddressEntries, getCustomerAddressValueByKey, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink } from '@/lib/api'
 import type { Customer, Invoice } from '@/lib/api'
 import { exportCourierInvoices } from '@/lib/excel'
 import { printDuplexViaIframe } from '@/lib/print'
@@ -42,48 +42,28 @@ function getCustomerPrimaryPhone(customer: Customer | null | undefined): string 
 }
 
 function getCustomerAddressKeys(customer: Customer | null | undefined): string[] {
-  if (!customer) return []
-  const keys: string[] = []
-  for (let i = 1; i <= 10; i++) {
-    const key = `address${i}`
-    const value = (customer[key] as string | undefined)?.trim()
-    if (value) keys.push(key)
-  }
-  return keys
+  return getCustomerAddressEntries(customer).map((entry) => entry.key)
 }
 
 function getCustomerAddressByKey(customer: Customer | null | undefined, addressKey?: string): string {
   if (!customer) return ''
   const keys = getCustomerAddressKeys(customer)
   if (addressKey && keys.includes(addressKey)) {
-    const base = ((customer[addressKey] as string | undefined) ?? '').trim()
-    if (addressKey === 'address1') {
-      const detail = ((customer.address2 as string | undefined) ?? '').trim()
-      return [base, detail].filter(Boolean).join(' ')
-    }
-    return base
+    return getCustomerAddressValueByKey(customer, addressKey)
   }
   if (keys.length === 0) return ''
-  const firstKey = keys[0]
-  const base = (((customer[firstKey] as string | undefined) ?? '').trim())
-  if (firstKey === 'address1') {
-    const detail = ((customer.address2 as string | undefined) ?? '').trim()
-    return [base, detail].filter(Boolean).join(' ')
-  }
-  return base
+  return getCustomerAddressValueByKey(customer, keys[0])
 }
 
 function getCustomerAddress(customer: Customer | null | undefined, preferredAddress?: string): string {
   if (!customer) return ''
   const trimmedPreferred = preferredAddress?.trim()
-  let firstAddress = ''
-  for (let i = 1; i <= 10; i++) {
-    const value = (customer[`address${i}`] as string | undefined)?.trim()
-    if (!value) continue
-    if (!firstAddress) firstAddress = value
-    if (trimmedPreferred && value === trimmedPreferred) return value
+  const entries = getCustomerAddressEntries(customer)
+  if (trimmedPreferred) {
+    const matched = entries.find((entry) => entry.value === trimmedPreferred)
+    if (matched) return matched.value
   }
-  return firstAddress
+  return entries[0]?.value ?? ''
 }
 
 function buildCustomerPrintSnapshot(
@@ -123,6 +103,8 @@ export function Invoices() {
   const [selectedId, setSelectedId] = useState<number | undefined>(undefined)
   const [copySourceId, setCopySourceId] = useState<number | undefined>(undefined)
   const [initialInvoiceDate, setInitialInvoiceDate] = useState<string | undefined>(undefined)
+  const [initialCustomerId, setInitialCustomerId] = useState<number | undefined>(undefined)
+  const [initialCustomerName, setInitialCustomerName] = useState<string | undefined>(undefined)
   const [deletingId, setDeletingId] = useState<number | null>(null)
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionPreview | null>(null)
   const [isCourierExporting, setIsCourierExporting] = useState(false)
@@ -157,13 +139,22 @@ export function Invoices() {
     }
 
     if (searchParams.get('new') === '1') {
+      const initialCustomerParam = Number(searchParams.get('customerId'))
+      const nextCustomerId = Number.isFinite(initialCustomerParam) && initialCustomerParam > 0
+        ? initialCustomerParam
+        : undefined
+      const nextCustomerName = searchParams.get('customerName')?.trim() || undefined
       setSelectedId(undefined)
       setCopySourceId(undefined)
       setInitialInvoiceDate(normalizedDate || normalizedFrom || undefined)
+      setInitialCustomerId(nextCustomerId)
+      setInitialCustomerName(nextCustomerName)
       setDialogOpen(true)
 
       const nextParams = new URLSearchParams(searchParams)
       nextParams.delete('new')
+      nextParams.delete('customerId')
+      nextParams.delete('customerName')
       setSearchParams(nextParams, { replace: true })
     }
   }, [searchParams, setSearchParams])
@@ -189,7 +180,7 @@ export function Invoices() {
   const { data: customersForLink = [] } = useQuery({
     queryKey: ['invoice-link-customers'],
     queryFn: () => getAllCustomers({
-      fields: 'Id,name,book_name,legacy_id,mobile,phone1,address1,address2',
+      fields: 'Id,name,book_name,legacy_id,mobile,phone1,address1,address2,extra_addresses',
     }),
     staleTime: 10 * 60 * 1000,
   })
@@ -266,6 +257,8 @@ export function Invoices() {
     setSelectedId(undefined)
     setCopySourceId(undefined)
     setInitialInvoiceDate(date || undefined)
+    setInitialCustomerId(undefined)
+    setInitialCustomerName(undefined)
     setDialogOpen(true)
   }
 
@@ -273,6 +266,8 @@ export function Invoices() {
     setSelectedId(id)
     setCopySourceId(undefined)
     setInitialInvoiceDate(undefined)
+    setInitialCustomerId(undefined)
+    setInitialCustomerName(undefined)
     setDialogOpen(true)
   }
 
@@ -280,6 +275,8 @@ export function Invoices() {
     setSelectedId(undefined)
     setCopySourceId(id)
     setInitialInvoiceDate(undefined)
+    setInitialCustomerId(undefined)
+    setInitialCustomerName(undefined)
     setDialogOpen(true)
   }
 
@@ -811,17 +808,23 @@ export function Invoices() {
           invoiceId={selectedId}
           copySourceId={copySourceId}
           initialInvoiceDate={initialInvoiceDate}
+          initialCustomerId={initialCustomerId}
+          initialCustomerName={initialCustomerName}
           onClose={() => {
             setDialogOpen(false)
             setSelectedId(undefined)
             setCopySourceId(undefined)
             setInitialInvoiceDate(undefined)
+            setInitialCustomerId(undefined)
+            setInitialCustomerName(undefined)
           }}
           onSaved={() => {
             setDialogOpen(false)
             setSelectedId(undefined)
             setCopySourceId(undefined)
             setInitialInvoiceDate(undefined)
+            setInitialCustomerId(undefined)
+            setInitialCustomerName(undefined)
             void refetch()
           }}
         />

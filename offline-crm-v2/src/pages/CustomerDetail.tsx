@@ -13,7 +13,7 @@ import { Label } from '@/components/ui/label'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { getAllCustomers, getAllInvoices, getCustomer, getTxHistory, updateCustomer, recalcCustomerStats, sanitizeSearchTerm } from '@/lib/api'
+import { getAllCustomers, getAllInvoices, getCustomer, getCustomerAddressEntries, getTxHistory, updateCustomer, recalcCustomerStats, sanitizeSearchTerm } from '@/lib/api'
 import type { Customer, Invoice } from '@/lib/api'
 import {
   deriveLegacyTradebookSnapshot,
@@ -56,18 +56,21 @@ interface InfoForm {
   depositorAliases: string
   autoDepositDisabled: boolean
   autoDepositPriority: string
-  addresses: string[]
+  addressFields: Array<{ label: string; value: string }>
 }
 
 const MAX_ADDRESS_FIELDS = 10
 
+function defaultAddressLabel(index: number): string {
+  return index === 0 ? '기본 주소' : `배송지 ${index + 1}`
+}
+
 function buildInfoForm(c: Customer): InfoForm {
   const accountingMeta = parseCustomerAccountingMeta(c.memo as string | undefined)
-  const addresses: string[] = []
-  for (let i = 1; i <= MAX_ADDRESS_FIELDS; i++) {
-    const v = c[`address${i}`] as string | undefined
-    if (v) addresses.push(v)
-  }
+  const addressFields = getCustomerAddressEntries(c).map((entry, index) => ({
+    label: accountingMeta.addressLabels[index] ?? defaultAddressLabel(index),
+    value: entry.value,
+  }))
   return {
     name: c.name ?? '',
     phone: c.phone ?? c.phone1 ?? '',
@@ -85,7 +88,7 @@ function buildInfoForm(c: Customer): InfoForm {
     depositorAliases: accountingMeta.depositorAliases.join('\n'),
     autoDepositDisabled: accountingMeta.autoDepositDisabled,
     autoDepositPriority: accountingMeta.autoDepositPriority > 0 ? String(accountingMeta.autoDepositPriority) : '',
-    addresses: addresses.length > 0 ? addresses : [''],
+    addressFields: addressFields.length > 0 ? addressFields : [{ label: defaultAddressLabel(0), value: '' }],
   }
 }
 
@@ -186,7 +189,7 @@ export function CustomerDetail() {
   const [infoForm, setInfoForm] = useState<InfoForm>({
     name: '', phone: '', mobile: '', email: '', biz_no: '', ceo_name: '',
     biz_type: '', biz_item: '', customer_type: '', customer_status: '',
-    price_tier: '1', discount_rate: '', memo: '', depositorAliases: '', autoDepositDisabled: false, autoDepositPriority: '', addresses: [''],
+    price_tier: '1', discount_rate: '', memo: '', depositorAliases: '', autoDepositDisabled: false, autoDepositPriority: '', addressFields: [{ label: defaultAddressLabel(0), value: '' }],
   })
 
   // 기간 매출 필터 상태 (명세표 탭)
@@ -228,12 +231,19 @@ export function CustomerDetail() {
     mutationFn: () => {
       const trimmedName = infoForm.name.trim()
       if (!trimmedName) throw new Error('거래처명을 입력해주세요')
+      const normalizedAddressFields = infoForm.addressFields
+        .map((field, index) => ({
+          label: field.label.trim() || defaultAddressLabel(index),
+          value: field.value.trim(),
+        }))
+        .filter((field) => field.value)
 
-      // 주소 필드 동적 구성 (address1~address10, 삭제된 슬롯은 null로 명시)
-      const addrPayload: Record<string, unknown> = {}
-      for (let i = 1; i <= MAX_ADDRESS_FIELDS; i++) {
-        const value = infoForm.addresses[i - 1] ?? ''
-        addrPayload[`address${i}`] = toNullableText(value)
+      const addrPayload = {
+        address1: toNullableText(normalizedAddressFields[0]?.value ?? ''),
+        address2: toNullableText(normalizedAddressFields[1]?.value ?? ''),
+        extra_addresses: normalizedAddressFields.length > 2
+          ? JSON.stringify(normalizedAddressFields.slice(2).map((field) => field.value))
+          : null,
       }
 
       const customerPatch = {
@@ -258,6 +268,7 @@ export function CustomerDetail() {
                 .split(/\r?\n|,/)
                 .map((value) => value.trim())
                 .filter(Boolean),
+              addressLabels: normalizedAddressFields.map((field) => field.label),
               autoDepositDisabled: infoForm.autoDepositDisabled,
               autoDepositPriority: infoForm.autoDepositPriority.trim() ? Number(infoForm.autoDepositPriority) : 0,
             },
@@ -903,7 +914,15 @@ export function CustomerDetail() {
         <Button size="sm" variant="outline" onClick={() => navigate(`/transactions?customer=${encodeURIComponent(customer.name ?? '')}`)}>
           거래/명세표 조회
         </Button>
-        <Button size="sm" className="bg-[#7d9675] hover:bg-[#6a8462] text-white" onClick={() => navigate('/invoices?new=1')}>
+        <Button
+          size="sm"
+          className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
+          onClick={() =>
+            navigate(
+              `/invoices?new=1&customerId=${customerId}&customerName=${encodeURIComponent(customer.name ?? '')}`,
+            )
+          }
+        >
           <Plus className="mr-1 h-3.5 w-3.5" />
           명세표 작성
         </Button>
@@ -994,26 +1013,28 @@ export function CustomerDetail() {
                     </div>
                   ))}
                   {/* 주소 목록 */}
-                  {(() => {
-                    const addrs: string[] = []
-                    for (let i = 1; i <= MAX_ADDRESS_FIELDS; i++) {
-                      const v = customer[`address${i}`] as string | undefined
-                      if (v) addrs.push(v)
-                    }
-                    if (addrs.length === 0) return (
-                      <div className="flex flex-col gap-0.5 sm:col-span-2">
+	                  {(() => {
+	                    const addrs = getCustomerAddressEntries(customer).map((entry, index) => ({
+	                      label: customerAccountingMeta.addressLabels[index] ?? defaultAddressLabel(index),
+	                      value: entry.value,
+	                    }))
+	                    if (addrs.length === 0) return (
+	                      <div className="flex flex-col gap-0.5 sm:col-span-2">
                         <dt className="font-medium text-muted-foreground text-xs">주소</dt>
                         <dd className="text-sm text-muted-foreground">-</dd>
                       </div>
                     )
-                    return (
-                      <div className="flex flex-col gap-1 sm:col-span-2">
-                        <dt className="font-medium text-muted-foreground text-xs">주소</dt>
-                        {addrs.map((addr, i) => (
-                          <dd key={i} className="text-sm">{i > 0 && <span className="text-muted-foreground text-xs mr-1">(배송지{i + 1})</span>}{addr}</dd>
-                        ))}
-                      </div>
-                    )
+	                    return (
+	                      <div className="flex flex-col gap-1 sm:col-span-2">
+	                        <dt className="font-medium text-muted-foreground text-xs">주소</dt>
+	                        {addrs.map((addr, i) => (
+	                          <dd key={i} className="flex flex-wrap items-start gap-2 text-sm">
+	                            <span className="min-w-16 shrink-0 text-xs text-muted-foreground">{addr.label}</span>
+	                            <span className="flex-1">{addr.value}</span>
+	                          </dd>
+	                        ))}
+	                      </div>
+	                    )
                   })()}
                 </dl>
               ) : (
@@ -1082,46 +1103,59 @@ export function CustomerDetail() {
                   </div>
 
                   {/* 동적 주소 목록 */}
-                  <div className="space-y-2">
-                    <div className="flex items-center justify-between">
-                      <Label className="text-xs">주소 목록</Label>
+	                  <div className="space-y-2">
+	                    <div className="flex items-center justify-between">
+	                      <Label className="text-xs">주소 목록</Label>
                       <Button
                         type="button"
-                        size="sm"
-                        variant="outline"
-                        className="h-6 text-xs gap-1"
-                        onClick={() => setInfoForm((f) => ({ ...f, addresses: [...f.addresses, ''] }))}
-                        disabled={infoForm.addresses.length >= MAX_ADDRESS_FIELDS}
-                      >
-                        <Plus className="h-3 w-3" />
-                        주소 추가
-                      </Button>
-                    </div>
-                    {infoForm.addresses.map((addr, idx) => (
-                      <div key={idx} className="flex gap-2 items-center">
-                        <span className="text-xs text-muted-foreground w-16 shrink-0">
-                          {idx === 0 ? '기본 주소' : `배송지 ${idx + 1}`}
-                        </span>
-                        <Input
-                          value={addr}
-                          onChange={(e) => {
-                            const next = [...infoForm.addresses]
-                            next[idx] = e.target.value
-                            setInfoForm((f) => ({ ...f, addresses: next }))
-                          }}
-                          placeholder={`주소 ${idx + 1}`}
-                          className="h-8 text-sm flex-1"
-                        />
-                        {infoForm.addresses.length > 1 && (
-                          <Button
-                            type="button"
-                            size="icon"
-                            variant="ghost"
-                            className="h-8 w-8 text-muted-foreground hover:text-red-500"
-                            onClick={() => setInfoForm((f) => ({ ...f, addresses: f.addresses.filter((_, i) => i !== idx) }))}
-                          >
-                            <Trash2 className="h-3.5 w-3.5" />
-                          </Button>
+	                        size="sm"
+	                        variant="outline"
+	                        className="h-6 text-xs gap-1"
+	                        onClick={() => setInfoForm((f) => ({
+	                          ...f,
+	                          addressFields: [
+	                            ...f.addressFields,
+	                            { label: defaultAddressLabel(f.addressFields.length), value: '' },
+	                          ],
+	                        }))}
+	                        disabled={infoForm.addressFields.length >= MAX_ADDRESS_FIELDS}
+	                      >
+	                        <Plus className="h-3 w-3" />
+	                        주소 추가
+	                      </Button>
+	                    </div>
+	                    {infoForm.addressFields.map((field, idx) => (
+	                      <div key={idx} className="flex gap-2 items-center">
+	                        <Input
+	                          value={field.label}
+	                          onChange={(e) => {
+	                            const next = [...infoForm.addressFields]
+	                            next[idx] = { ...next[idx], label: e.target.value }
+	                            setInfoForm((f) => ({ ...f, addressFields: next }))
+	                          }}
+	                          placeholder="주소지 명"
+	                          className="h-8 text-sm w-32 shrink-0"
+	                        />
+	                        <Input
+	                          value={field.value}
+	                          onChange={(e) => {
+	                            const next = [...infoForm.addressFields]
+	                            next[idx] = { ...next[idx], value: e.target.value }
+	                            setInfoForm((f) => ({ ...f, addressFields: next }))
+	                          }}
+	                          placeholder="주소"
+	                          className="h-8 text-sm flex-1"
+	                        />
+	                        {infoForm.addressFields.length > 1 && (
+	                          <Button
+	                            type="button"
+	                            size="icon"
+	                            variant="ghost"
+	                            className="h-8 w-8 text-muted-foreground hover:text-red-500"
+	                            onClick={() => setInfoForm((f) => ({ ...f, addressFields: f.addressFields.filter((_, i) => i !== idx) }))}
+	                          >
+	                            <Trash2 className="h-3.5 w-3.5" />
+	                          </Button>
                         )}
                       </div>
                     ))}

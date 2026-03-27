@@ -22,6 +22,8 @@ import {
   getCustomers,
   getProducts,
   findCustomerByInvoiceLink,
+  getCustomerAddressEntries,
+  getCustomerAddressValueByKey,
   sanitizeSearchTerm,
   sanitizeAmount,
   recalcCustomerStats,
@@ -190,6 +192,8 @@ interface InvoiceDialogProps {
   invoiceId?: number
   copySourceId?: number   // 복사 시 소스 ID
   initialInvoiceDate?: string
+  initialCustomerId?: number
+  initialCustomerName?: string
   onClose: () => void
   onSaved: () => void
 }
@@ -240,19 +244,16 @@ function getTierLabel(tier: number): string {
   return labels[tier] ?? '소매가'
 }
 
+function defaultAddressLabel(index: number): string {
+  return index === 0 ? '기본 주소' : `배송지 ${index + 1}`
+}
+
 function getCustomerPrimaryPhone(customer: Customer | null | undefined): string {
   return (customer?.mobile ?? customer?.phone1 ?? customer?.phone ?? '') as string
 }
 
 function getCustomerAddressKeys(customer: Customer | null | undefined): string[] {
-  if (!customer) return []
-  const result: string[] = []
-  for (let i = 1; i <= 10; i++) {
-    const key = `address${i}`
-    const value = (customer[key] as string | undefined)?.trim()
-    if (value) result.push(key)
-  }
-  return result
+  return getCustomerAddressEntries(customer).map((entry) => entry.key)
 }
 
 function resolveCustomerAddressKey(
@@ -263,7 +264,7 @@ function resolveCustomerAddressKey(
   const keys = getCustomerAddressKeys(customer)
   const normalized = preferredAddress?.trim()
   if (normalized && customer) {
-    const matchedKey = keys.find((key) => ((customer[key] as string | undefined)?.trim() ?? '') === normalized)
+    const matchedKey = getCustomerAddressEntries(customer).find((entry) => entry.value === normalized)?.key
     if (matchedKey) return matchedKey
   }
   if (keys.includes(fallbackKey)) return fallbackKey
@@ -276,12 +277,7 @@ function getCustomerAddressValue(
 ): string {
   if (!customer) return ''
   const resolvedKey = resolveCustomerAddressKey(customer, undefined, addressKey)
-  const base = (((customer[resolvedKey] as string | undefined) ?? '') as string).trim()
-  if (resolvedKey === 'address1') {
-    const detail = ((customer.address2 as string | undefined) ?? '').trim()
-    return [base, detail].filter(Boolean).join(' ')
-  }
-  return base
+  return getCustomerAddressValueByKey(customer, resolvedKey)
 }
 
 function buildCustomerSnapshot(
@@ -302,7 +298,16 @@ function buildCustomerSnapshot(
 }
 
 // ─── 컴포넌트 ──────────────────────────────────
-export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDate, onClose, onSaved }: InvoiceDialogProps) {
+export function InvoiceDialog({
+  open,
+  invoiceId,
+  copySourceId,
+  initialInvoiceDate,
+  initialCustomerId,
+  initialCustomerName,
+  onClose,
+  onSaved,
+}: InvoiceDialogProps) {
   const isNew = !invoiceId && !copySourceId
   const isCopy = !!copySourceId
   const editId = invoiceId || copySourceId
@@ -450,6 +455,12 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
     enabled: open && !!(customerInput || form.customer_name || existingInvoice?.customer_name || form.customer_id || existingInvoice?.customer_id),
     staleTime: 0,
   })
+  const { data: initialCustomer } = useQuery({
+    queryKey: ['invoice-customer-initial', initialCustomerId],
+    queryFn: () => getCustomer(initialCustomerId!),
+    enabled: open && isNew && !isCopy && !!initialCustomerId,
+    staleTime: 0,
+  })
 
   // 다이얼로그 닫힐 때 드롭다운 정리 (portal 잔류 방지)
   useEffect(() => {
@@ -478,7 +489,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
         paid_amount: 0,
         payment_method: '현금',
       })
-      setCustomerInput('')
+      setCustomerInput(initialCustomerName ?? '')
       setSelectedCustomer(null)
       setSelectedAddrKey('address1')
       setShowCustomerDrop(false)
@@ -532,7 +543,7 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
       setItems(rows.length > 0 ? rows : [newRow(loadDefaultTaxableSetting())])
       setExistingItemIds(isCopy ? [] : existingItems.list.map((it) => it.Id))
     }
-  }, [open, isNew, isCopy, existingInvoice, existingItems, initialInvoiceDate])
+  }, [open, isNew, isCopy, existingInvoice, existingItems, initialInvoiceDate, initialCustomerName])
 
   useEffect(() => {
     if (!open || !currentCustomer) return
@@ -551,6 +562,22 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
       customer_name: currentCustomer.name ?? prev.customer_name,
     }))
   }, [open, currentCustomer, existingInvoice?.customer_address])
+
+  useEffect(() => {
+    if (!open || !isNew || isCopy || !initialCustomer) return
+    const nextAddressKey = resolveCustomerAddressKey(initialCustomer, undefined, 'address1')
+    const snapshot = buildCustomerSnapshot(initialCustomer, nextAddressKey)
+    setSelectedCustomer(initialCustomer)
+    setSelectedAddrKey(nextAddressKey)
+    setCustomerInput(initialCustomer.name ?? initialCustomerName ?? '')
+    setShowCustomerDrop(false)
+    setCustomerDropdownIdx(-1)
+    setForm((prev) => ({
+      ...prev,
+      ...snapshot,
+      previous_balance: initialCustomer.outstanding_balance ?? 0,
+    }))
+  }, [open, initialCustomer, initialCustomerName, isCopy, isNew])
 
   // 합계 자동 계산
   const supplyTotal = items.reduce((s, r) => s + r.supply_amount, 0)
@@ -651,10 +678,12 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
   }
 
   // 고객의 비어있지 않은 주소 필드 목록
-  function getCustomerAddresses(c: Customer): { key: string; label: string }[] {
-    return getCustomerAddressKeys(c).map((key) => ({
-      key,
-      label: `주소${key.replace('address', '')}`,
+  function getCustomerAddresses(c: Customer): { key: string; label: string; value: string }[] {
+    const meta = parseCustomerAccountingMeta(c.memo as string | undefined)
+    return getCustomerAddressEntries(c).map((entry, index) => ({
+      key: entry.key,
+      label: meta.addressLabels[index] ?? defaultAddressLabel(index),
+      value: entry.value,
     }))
   }
 
@@ -719,17 +748,15 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
   const productQuery = useDebounce(productQueryRaw, 200)
   const { data: productSearchResult } = useProductSearch(productQuery)
 
+  // 품목 선택 시에는 품목명/단위만 채우고, 단가/과세 기본값은 현재 행 상태를 유지한다.
   function selectProduct(rowKey: string, product: Product) {
-    const price = getPriceForCustomer(product, selectedCustomer)
     setItems((prev) =>
       prev.map((r) => {
         if (r._key !== rowKey) return r
         return calcRow({
           ...r,
           product_name: product.name ?? '',
-          unit_price: price,
           unit: product.unit ?? '개',
-          taxable: product.is_taxable ?? loadDefaultTaxableSetting(),
         })
       }),
     )
@@ -795,12 +822,9 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
   function handleMultiPicked(products: import('@/lib/api').Product[]) {
     const defaultTaxable = items.length > 0 ? items[items.length - 1].taxable : loadDefaultTaxableSetting()
     const newRows: ItemRow[] = products.map((p) => {
-      const price = getPriceForCustomer(p, selectedCustomer)
-      const row = newRow(p.is_taxable ?? defaultTaxable)
+      const row = newRow(defaultTaxable)
       row.product_name = p.name ?? ''
-      row.unit_price = price
       row.unit = p.unit ?? '개'
-      row.taxable = p.is_taxable ?? defaultTaxable
       return calcRow(row)
     })
     setItems((prev) => [...prev, ...newRows])
@@ -1309,12 +1333,21 @@ export function InvoiceDialog({ open, invoiceId, copySourceId, initialInvoiceDat
                 {(() => {
                   const addrList = getCustomerAddresses(selectedCustomer)
                   if (addrList.length <= 1) {
-                    return <span>{selectedCustomer.address1 ?? '-'}</span>
+                    const currentAddress = addrList[0]
+                    if (!currentAddress) return <span>-</span>
+                    return (
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="rounded bg-white px-2 py-0.5 text-[11px] text-[#3d6b4a]">
+                          {currentAddress.label}
+                        </span>
+                        <span>{currentAddress.value}</span>
+                      </div>
+                    )
                   }
                   return (
                     <div className="flex items-center gap-1 flex-wrap">
                       <Select value={selectedAddrKey} onValueChange={switchAddress}>
-                        <SelectTrigger className="h-6 text-xs py-0 px-2 w-20 border-[#7d9675]">
+                        <SelectTrigger className="h-6 min-w-24 max-w-32 text-xs py-0 px-2 border-[#7d9675]">
                           <SelectValue />
                         </SelectTrigger>
                         <SelectContent>

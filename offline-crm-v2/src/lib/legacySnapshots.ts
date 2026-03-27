@@ -138,6 +138,13 @@ function normalizeMemo(value: string | undefined): string {
   return (value ?? '').replace(/\r\n/g, '\n')
 }
 
+function stripLegacyMetaSuffix(line: string, prefix: string): string {
+  const index = line.indexOf(prefix)
+  if (index === -1) return line.trimEnd()
+  if (index === 0) return ''
+  return line.slice(0, index).trimEnd()
+}
+
 function sanitizeSettlementEntry(entry: Partial<LegacyReceivableSettlementEntry>): LegacyReceivableSettlementEntry | null {
   const amount = Math.max(0, parseInteger(entry.amount))
   const date = typeof entry.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(entry.date)
@@ -159,8 +166,11 @@ function parseLegacyLedgerMemo(memo: string | undefined, prefix: string): Legacy
   const normalizedMemo = normalizeMemo(memo)
   const metaLine = normalizedMemo
     .split('\n')
-    .map((line) => line.trim())
-    .find((line) => line.startsWith(prefix))
+    .map((line) => {
+      const index = line.indexOf(prefix)
+      return index >= 0 ? line.slice(index).trim() : ''
+    })
+    .find(Boolean)
 
   if (!metaLine) {
     return { settledAmount: 0, settlements: [] }
@@ -199,7 +209,8 @@ export function serializeLegacyReceivableMemo(
   const normalizedMemo = normalizeMemo(memo)
   const lines = normalizedMemo
     .split('\n')
-    .filter((line) => line.trim() && !line.trim().startsWith(LEGACY_RECEIVABLE_META_PREFIX))
+    .map((line) => stripLegacyMetaSuffix(line, LEGACY_RECEIVABLE_META_PREFIX))
+    .filter((line) => line.trim())
 
   const sanitizedSettlements = nextState.settlements
     .map(sanitizeSettlementEntry)
@@ -227,7 +238,8 @@ export function serializeLegacyPayableMemo(
   const normalizedMemo = normalizeMemo(memo)
   const lines = normalizedMemo
     .split('\n')
-    .filter((line) => line.trim() && !line.trim().startsWith(LEGACY_PAYABLE_META_PREFIX))
+    .map((line) => stripLegacyMetaSuffix(line, LEGACY_PAYABLE_META_PREFIX))
+    .filter((line) => line.trim())
 
   const sanitizedSettlements = nextState.settlements
     .map(sanitizeSettlementEntry)

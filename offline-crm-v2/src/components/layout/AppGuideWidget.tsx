@@ -21,18 +21,13 @@ export function AppGuideWidget() {
 
   const currentStep = guide?.steps[stepIndex] ?? null
   const isTourMode = Boolean(guide && open)
+  const showGuideHint = Boolean(guide && !open && !isGuideDismissed(guide.key))
 
   useEffect(() => {
+    setOpen(false)
     setStepIndex(0)
     setHighlightRect(null)
   }, [guide?.key])
-
-  useEffect(() => {
-    if (!guide) return
-    if (isGuideDismissed(guide.key)) return
-    const timer = window.setTimeout(() => setOpen(true), 300)
-    return () => window.clearTimeout(timer)
-  }, [guide])
 
   useEffect(() => {
     if (!isTourMode || !currentStep?.selector) {
@@ -73,10 +68,6 @@ export function AppGuideWidget() {
 
   if (!guide) return null
 
-  const dockClass = guide.dock === 'left'
-    ? 'left-[16rem] right-auto items-start'
-    : 'right-5 items-end'
-
   return (
     <>
       {isTourMode && highlightRect && (
@@ -91,13 +82,19 @@ export function AppGuideWidget() {
         />
       )}
 
-      <div className={`fixed bottom-5 z-50 flex max-w-sm flex-col gap-2 ${dockClass}`}>
-        <div className="rounded-full border bg-white/95 p-1 shadow-lg backdrop-blur">
+      <div className="relative flex w-full flex-col gap-3">
+        <div className="relative rounded-2xl border border-white/10 bg-white/95 p-1 shadow-lg backdrop-blur">
+          {showGuideHint && (
+            <>
+              <span className="absolute right-2 top-2 inline-flex h-2.5 w-2.5 rounded-full bg-[#7d9675]" />
+              <span className="absolute right-2 top-2 inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-[#7d9675]/70" />
+            </>
+          )}
           <Button
             type="button"
             variant="ghost"
             size="sm"
-            className="gap-2 rounded-full px-4"
+            className="w-full justify-start gap-2 rounded-xl px-4 text-[#1f3323] hover:bg-[#f5faf4]"
             onClick={() => setOpen((prev) => !prev)}
           >
             <LifeBuoy className="h-4 w-4" />
@@ -106,7 +103,7 @@ export function AppGuideWidget() {
         </div>
 
         {open && (
-          <div className="w-full rounded-2xl border bg-white p-4 shadow-2xl">
+          <div className="absolute bottom-full left-0 z-50 mb-3 w-[min(22rem,calc(100vw-3rem))] max-h-[min(32rem,calc(100vh-8rem))] overflow-y-auto rounded-2xl border bg-white p-4 shadow-2xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-[#7d9675]">Guide Tour</p>

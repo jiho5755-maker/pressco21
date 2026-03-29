@@ -49,17 +49,15 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-29 21:08:00 KST
+- Current Owner: IDLE
+- Mode: —
+- Started At: —
 - Branch: main
-- Working Scope: offline-crm-v2 견적서 빈 행 제거 및 다이얼로그 스크롤 복구 반영
-- Active Subdirectory: offline-crm-v2
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
-- offline-crm-v2/src/components/InvoiceDialog.tsx
-- offline-crm-v2/src/lib/print.ts
-- offline-crm-v2/../AI_SYNC.md
+- 없음
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -104,6 +102,7 @@
   - 로컬 브라우저에서 명세표 수정 다이얼로그 스크롤 복구 확인
   - `npm run build` → passed
   - `npm run test:regression` → 21 passed, 1 skipped
+  - 최종 운영 릴리스: `20260329212355-cdf1841`
 - offline-crm-v2 명세표 작성 다이얼로그의 하단 `입금/잔액` 블록을 계산 근거가 보이도록 재구성했다.
   - `src/components/InvoiceDialog.tsx`
   - 왼쪽은 `입금 처리` 입력 카드, 오른쪽은 `잔액 계산` 카드로 분리했다.

@@ -69,15 +69,15 @@ test('T2-02: 기존 명세표 목록 로드 확인', async ({ page }) => {
   await waitForTableLoaded(page)
   await assertNoApiError(page)
 
-  // 테이블 헤더 8개 확인 (액션 컬럼 포함)
+  // 테이블 헤더 5개 확인 (액션 컬럼 포함)
   const headers = page.locator('thead th')
-  await expect(headers).toHaveCount(8)
+  await expect(headers).toHaveCount(5)
 
   // 주요 헤더 텍스트 확인
-  await expect(page.getByRole('columnheader', { name: '발행번호' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: '발행정보' })).toBeVisible()
   await expect(page.getByRole('columnheader', { name: '거래처' })).toBeVisible()
-  await expect(page.getByRole('columnheader', { name: '합계금액' })).toBeVisible()
-  await expect(page.getByRole('columnheader', { name: '수금' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: '금액' })).toBeVisible()
+  await expect(page.getByRole('columnheader', { name: '수금 현황' })).toBeVisible()
 })
 
 test('T2-03: "새 명세표" 버튼 클릭 → Dialog 열림', async ({ page }) => {
@@ -255,7 +255,7 @@ test('T2-09: 완전한 데이터로 명세표 저장 → 목록에 반영', asyn
 
   // 발행번호 "TEST-E2E-PLAYWRIGHT" 행이 목록에 표시됨 (.first()로 중복 방지)
   await expect(
-    page.locator('td.font-mono.text-xs').filter({ hasText: testInvoiceNo }).first()
+    page.locator('tbody tr').filter({ hasText: testInvoiceNo }).first()
   ).toBeVisible({ timeout: API_TIMEOUT })
 })
 

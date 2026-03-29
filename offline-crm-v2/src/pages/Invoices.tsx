@@ -66,6 +66,17 @@ const STATUS_LABEL: Record<string, { label: string; cls: string }> = {
   unpaid:  { label: '미수금', cls: 'text-red-600' },
 }
 
+function formatAmount(value?: number | null) {
+  if (value == null) return '-'
+  return `${value.toLocaleString()}원`
+}
+
+function getOutstandingAmount(invoice: Invoice) {
+  const totalAmount = Number(invoice.total_amount ?? 0)
+  const paidAmount = Number(invoice.paid_amount ?? 0)
+  return Math.max(totalAmount - paidAmount, 0)
+}
+
 function getCustomerPrimaryPhone(customer: Customer | null | undefined): string {
   return (customer?.mobile ?? customer?.phone1 ?? customer?.phone ?? '') as string
 }
@@ -650,34 +661,31 @@ export function Invoices() {
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-gray-50">
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">발행번호</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">발행정보</th>
               <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground">발행일</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground">공급가액</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground">합계금액</th>
-              <th className="text-right px-4 py-3 font-medium text-muted-foreground">입금</th>
-              <th className="text-left px-4 py-3 font-medium text-muted-foreground">수금</th>
-              <th className="w-64 text-center px-4 py-3 font-medium text-muted-foreground">출력/관리</th>
+              <th className="text-right px-4 py-3 font-medium text-muted-foreground">금액</th>
+              <th className="text-left px-4 py-3 font-medium text-muted-foreground">수금 현황</th>
+              <th className="w-72 text-center px-4 py-3 font-medium text-muted-foreground">출력/관리</th>
             </tr>
           </thead>
           <tbody>
             {isLoading && (
               <tr>
-                <td colSpan={8} className="text-center py-12 text-muted-foreground">
+                <td colSpan={5} className="text-center py-12 text-muted-foreground">
                   불러오는 중...
                 </td>
               </tr>
             )}
             {isError && (
               <tr>
-                <td colSpan={8} className="text-center py-12 text-red-500">
+                <td colSpan={5} className="text-center py-12 text-red-500">
                   데이터를 불러오지 못했습니다.
                 </td>
               </tr>
             )}
             {!isLoading && !isError && invoices.length === 0 && (
               <tr>
-                <td colSpan={8} className="text-center py-12 text-muted-foreground">
+                <td colSpan={5} className="text-center py-12 text-muted-foreground">
                   발행된 명세표가 없습니다. 새 명세표를 만들어보세요.
                 </td>
               </tr>
@@ -685,13 +693,14 @@ export function Invoices() {
             {invoices.map((inv) => {
               const st = STATUS_LABEL[inv.payment_status ?? '']
               const isDeleting = deletingId === inv.Id
+              const outstandingAmount = getOutstandingAmount(inv)
               return (
                 <tr
                   key={inv.Id}
                   className="border-b last:border-b-0 hover:bg-gray-50 transition-colors"
                 >
                   <td
-                    className="px-4 py-3 font-mono text-xs text-muted-foreground cursor-pointer"
+                    className="px-4 py-3 align-top cursor-pointer"
                     onClick={() => setSelectedTransaction({
                       source: 'crm',
                       recordId: inv.Id,
@@ -705,10 +714,13 @@ export function Invoices() {
                       memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
-                    {inv.invoice_no ?? '-'}
+                    <div className="font-mono text-xs text-muted-foreground">{inv.invoice_no ?? '-'}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      발행일 {inv.invoice_date?.slice(0, 10) ?? '-'}
+                    </div>
                   </td>
                   <td
-                    className="px-4 py-3 font-medium cursor-pointer"
+                    className="px-4 py-3 align-top font-medium cursor-pointer"
                     onClick={() => setSelectedTransaction({
                       source: 'crm',
                       recordId: inv.Id,
@@ -741,7 +753,7 @@ export function Invoices() {
                     })()}
                   </td>
                   <td
-                    className="px-4 py-3 text-right text-muted-foreground text-xs cursor-pointer"
+                    className="px-4 py-3 align-top text-right cursor-pointer"
                     onClick={() => setSelectedTransaction({
                       source: 'crm',
                       recordId: inv.Id,
@@ -755,10 +767,16 @@ export function Invoices() {
                       memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
-                    {inv.invoice_date?.slice(0, 10) ?? '-'}
+                    <div className="font-semibold text-foreground">{formatAmount(inv.total_amount)}</div>
+                    <div className="mt-1 text-xs text-muted-foreground">
+                      공급가액 {formatAmount(inv.supply_amount)}
+                    </div>
+                    <div className="text-xs text-muted-foreground">
+                      세액 {formatAmount(inv.tax_amount)}
+                    </div>
                   </td>
                   <td
-                    className="px-4 py-3 text-right cursor-pointer"
+                    className="px-4 py-3 align-top cursor-pointer"
                     onClick={() => setSelectedTransaction({
                       source: 'crm',
                       recordId: inv.Id,
@@ -772,119 +790,80 @@ export function Invoices() {
                       memo: getDisplayMemo(inv.memo as string | undefined),
                     })}
                   >
-                    {inv.supply_amount != null ? `${inv.supply_amount.toLocaleString()}원` : '-'}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-right font-medium cursor-pointer"
-                    onClick={() => setSelectedTransaction({
-                      source: 'crm',
-                      recordId: inv.Id,
-                      date: inv.invoice_date?.slice(0, 10) ?? '',
-                      customerName: inv.customer_name ?? '',
-                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
-                      txType: '출고',
-                      amount: inv.total_amount ?? 0,
-                      tax: inv.tax_amount ?? 0,
-                      slipNo: inv.invoice_no,
-                      memo: getDisplayMemo(inv.memo as string | undefined),
-                    })}
-                  >
-                    {inv.total_amount != null ? `${inv.total_amount.toLocaleString()}원` : '-'}
-                  </td>
-                  <td
-                    className="px-4 py-3 text-right text-xs text-muted-foreground cursor-pointer"
-                    onClick={() => setSelectedTransaction({
-                      source: 'crm',
-                      recordId: inv.Id,
-                      date: inv.invoice_date?.slice(0, 10) ?? '',
-                      customerName: inv.customer_name ?? '',
-                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
-                      txType: '출고',
-                      amount: inv.total_amount ?? 0,
-                      tax: inv.tax_amount ?? 0,
-                      slipNo: inv.invoice_no,
-                      memo: getDisplayMemo(inv.memo as string | undefined),
-                    })}
-                  >
-                    {inv.paid_amount != null && inv.paid_amount > 0
-                      ? `${inv.paid_amount.toLocaleString()}원`
-                      : '-'}
-                  </td>
-                  <td
-                    className="px-4 py-3 cursor-pointer"
-                    onClick={() => setSelectedTransaction({
-                      source: 'crm',
-                      recordId: inv.Id,
-                      date: inv.invoice_date?.slice(0, 10) ?? '',
-                      customerName: inv.customer_name ?? '',
-                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
-                      txType: '출고',
-                      amount: inv.total_amount ?? 0,
-                      tax: inv.tax_amount ?? 0,
-                      slipNo: inv.invoice_no,
-                      memo: getDisplayMemo(inv.memo as string | undefined),
-                    })}
-                  >
-                    {st ? (
-                      <span className={`text-xs font-medium ${st.cls}`}>{st.label}</span>
-                    ) : (
-                      <span className="text-muted-foreground">-</span>
-                    )}
+                    <div className="flex items-center gap-2">
+                      {st ? (
+                        <span className={`rounded-full bg-muted px-2.5 py-1 text-xs font-medium ${st.cls}`}>{st.label}</span>
+                      ) : (
+                        <span className="text-muted-foreground">-</span>
+                      )}
+                      <span className="text-xs text-muted-foreground">
+                        잔액 {formatAmount(outstandingAmount)}
+                      </span>
+                    </div>
+                    <div className="mt-2 text-xs text-muted-foreground">
+                      입금 {formatAmount(inv.paid_amount && inv.paid_amount > 0 ? inv.paid_amount : null)}
+                    </div>
                   </td>
                   {/* 인라인 액션 버튼 */}
-                  <td className="px-2 py-3">
-                    <div className="flex flex-wrap items-center justify-end gap-2">
-                      <div className="flex items-center gap-1 rounded-xl border border-[#d8e4d6] bg-white p-1 shadow-sm">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 border-[#d8e4d6] px-2 text-xs text-gray-700 hover:bg-gray-50"
-                          title="거래명세표 인쇄"
-                          onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'invoice') }}
-                        >
-                          <Printer className="h-3.5 w-3.5" />
-                          <span className="ml-1">명세표</span>
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          className="h-7 border-[#d8e4d6] px-2 text-xs text-[#3d6b4a] hover:bg-[#f5faf4]"
-                          title="견적서 인쇄"
-                          onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'estimate') }}
-                        >
-                          <FileText className="h-3.5 w-3.5" />
-                          <span className="ml-1">견적서</span>
-                        </Button>
+                  <td className="px-2 py-3 align-top">
+                    <div className="flex flex-wrap items-start justify-end gap-2">
+                      <div className="rounded-xl border border-[#d8e4d6] bg-white p-1 shadow-sm">
+                        <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium text-[#5a7353]">출력</div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 border-[#d8e4d6] px-2 text-xs text-gray-700 hover:bg-gray-50"
+                            title="거래명세표 인쇄"
+                            onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'invoice') }}
+                          >
+                            <Printer className="h-3.5 w-3.5" />
+                            <span className="ml-1">명세표</span>
+                          </Button>
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            className="h-7 border-[#d8e4d6] px-2 text-xs text-[#3d6b4a] hover:bg-[#f5faf4]"
+                            title="견적서 인쇄"
+                            onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'estimate') }}
+                          >
+                            <FileText className="h-3.5 w-3.5" />
+                            <span className="ml-1">견적서</span>
+                          </Button>
+                        </div>
                       </div>
-                      <div className="flex items-center gap-1 rounded-xl bg-gray-50 px-1 py-1">
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          title="수정"
-                          onClick={(e) => { e.stopPropagation(); openEdit(inv.Id) }}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0"
-                          title="복사"
-                          onClick={(e) => { e.stopPropagation(); openCopy(inv.Id) }}
-                        >
-                          <Copy className="h-3.5 w-3.5" />
-                        </Button>
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
-                          title="삭제"
-                          disabled={isDeleting}
-                          onClick={(e) => { e.stopPropagation(); void handleDelete(inv) }}
-                        >
-                          <Trash2 className="h-3.5 w-3.5" />
-                        </Button>
+                      <div className="rounded-xl bg-gray-50 px-1 py-1">
+                        <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium text-muted-foreground">관리</div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            title="수정"
+                            onClick={(e) => { e.stopPropagation(); openEdit(inv.Id) }}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0"
+                            title="복사"
+                            onClick={(e) => { e.stopPropagation(); openCopy(inv.Id) }}
+                          >
+                            <Copy className="h-3.5 w-3.5" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
+                            title="삭제"
+                            disabled={isDeleting}
+                            onClick={(e) => { e.stopPropagation(); void handleDelete(inv) }}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </Button>
+                        </div>
                       </div>
                     </div>
                   </td>

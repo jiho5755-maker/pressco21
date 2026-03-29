@@ -35,6 +35,19 @@ export function AppGuideWidget() {
       return
     }
 
+    const selector = currentStep.selector
+    const target = document.querySelector(selector)
+    if (target instanceof HTMLElement) {
+      target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
+    }
+  }, [currentStep?.selector, isTourMode])
+
+  useEffect(() => {
+    if (!isTourMode || !currentStep?.selector) {
+      setHighlightRect(null)
+      return
+    }
+
     function syncHighlight() {
       const selector = currentStep?.selector
       if (!selector) {
@@ -46,7 +59,6 @@ export function AppGuideWidget() {
         setHighlightRect(null)
         return
       }
-      target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
       const rect = target.getBoundingClientRect()
       setHighlightRect({
         top: Math.max(0, rect.top - 8),
@@ -83,7 +95,9 @@ export function AppGuideWidget() {
       )}
 
       <div className="relative flex w-full flex-col gap-3">
-        <div className="relative rounded-2xl border border-white/10 bg-white/95 p-1 shadow-lg backdrop-blur">
+        <div className={`relative rounded-2xl border p-1 shadow-lg backdrop-blur transition-colors ${
+          open ? 'border-[#7d9675]/30 bg-[#f5faf4]' : 'border-white/10 bg-white/95'
+        }`}>
           {showGuideHint && (
             <>
               <span className="absolute right-2 top-2 inline-flex h-2.5 w-2.5 rounded-full bg-[#7d9675]" />
@@ -94,16 +108,21 @@ export function AppGuideWidget() {
             type="button"
             variant="ghost"
             size="sm"
-            className="w-full justify-start gap-2 rounded-xl px-4 text-[#1f3323] hover:bg-[#f5faf4]"
+            className="w-full justify-between rounded-xl px-4 text-[#1f3323] hover:bg-transparent"
             onClick={() => setOpen((prev) => !prev)}
           >
-            <LifeBuoy className="h-4 w-4" />
-            {open ? '가이드 숨기기' : '화면 가이드'}
+            <span className="flex items-center gap-2">
+              <LifeBuoy className="h-4 w-4" />
+              <span>{open ? '화면 가이드 열림' : '화면 가이드'}</span>
+            </span>
+            <span className="text-[11px] text-[#5d755f]">
+              {open ? '접기' : '열기'}
+            </span>
           </Button>
         </div>
 
         {open && (
-          <div className="absolute bottom-full left-0 z-50 mb-3 w-[min(22rem,calc(100vw-3rem))] max-h-[min(32rem,calc(100vh-8rem))] overflow-y-auto rounded-2xl border bg-white p-4 shadow-2xl">
+          <div className="w-full rounded-2xl border bg-white p-4 shadow-xl">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <p className="text-xs font-medium uppercase tracking-wide text-[#7d9675]">Guide Tour</p>

@@ -1127,6 +1127,7 @@ export function InvoiceDialog({
   }
 
   const titleLabel = isCopy ? '명세표 복사' : invoiceId ? '명세표 수정' : '새 명세표'
+  const saveButtonLabel = isSaving ? '저장 중...' : isCopy ? '복사 발행' : invoiceId ? '수정 저장' : '저장'
   const recentCustomerOptions: RecentCustomerOption[] = []
   const recentSeen = new Set<string>()
   for (const inv of recentCustomerInvoices?.list ?? []) {
@@ -1800,29 +1801,37 @@ export function InvoiceDialog({
           </div>
 
           {/* ─── 액션 버튼 ─── */}
-          <div className="flex items-center justify-between pt-2 border-t">
-            <div className="flex gap-2">
-              <Button variant="outline" onClick={handlePreview} className="gap-1">
-                <Printer className="h-4 w-4" />
-                인쇄 미리보기
-              </Button>
-              {isNew && !isCopy && (
-                <Button variant="outline" onClick={handleSaveDraft}>
-                  임시저장
+          <div className="sticky bottom-0 -mx-6 mt-2 border-t bg-white/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-white/85">
+            <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
+                <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
+                  <span className="rounded-full bg-gray-100 px-2 py-1">Ctrl+Enter 저장</span>
+                  <span className="rounded-full bg-gray-100 px-2 py-1">Esc 닫기</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  <Button size="sm" variant="outline" onClick={handlePreview} className="gap-1">
+                    <Printer className="h-4 w-4" />
+                    인쇄 미리보기
+                  </Button>
+                  {isNew && !isCopy && (
+                    <Button size="sm" variant="ghost" onClick={handleSaveDraft} className="text-muted-foreground">
+                      임시저장
+                    </Button>
+                  )}
+                </div>
+              </div>
+              <div className="flex justify-end gap-2">
+                <Button variant="outline" onClick={handleClose} disabled={isSaving}>
+                  취소
                 </Button>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button variant="ghost" onClick={handleClose} disabled={isSaving}>
-                취소
-              </Button>
-              <Button
-                onClick={handleSave}
-                disabled={isSaving}
-                className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
-              >
-                {isSaving ? '저장 중...' : isCopy ? '복사 발행' : invoiceId ? '수정 저장' : '명세표 발행'}
-              </Button>
+                <Button
+                  onClick={handleSave}
+                  disabled={isSaving}
+                  className="min-w-28 bg-[#7d9675] hover:bg-[#6a8462] text-white"
+                >
+                  {saveButtonLabel}
+                </Button>
+              </div>
             </div>
           </div>
         </div>

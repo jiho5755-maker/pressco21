@@ -188,7 +188,7 @@ test('T2-08: 거래처 없이 저장 시도 → 유효성 검사 경고', async 
   await waitForDialog(page, '새 명세표')
 
   // 거래처 입력 없이 저장 시도
-  const saveBtn = page.getByRole('button', { name: '명세표 발행' })
+  const saveBtn = page.getByRole('button', { name: '저장', exact: true })
   await saveBtn.click()
 
   // 토스트 경고 메시지 확인
@@ -232,7 +232,7 @@ test('T2-09: 완전한 데이터로 명세표 저장 → 목록에 반영', asyn
   await priceInput.press('Tab')
 
   // 4) 저장 버튼 클릭
-  const saveBtn = page.getByRole('button', { name: '명세표 발행' })
+  const saveBtn = page.getByRole('button', { name: '저장', exact: true })
   await expect(saveBtn).toBeEnabled()
   await saveBtn.click()
 

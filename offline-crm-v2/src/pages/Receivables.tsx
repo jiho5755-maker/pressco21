@@ -58,6 +58,10 @@ function currentTimestamp(): string {
   return new Date().toISOString()
 }
 
+function getDefaultReceivableTab(isPayableMode: boolean): 'all' | 'crm' {
+  return isPayableMode ? 'all' : 'crm'
+}
+
 function getDaysSince(dateStr: string | undefined, baseDate = todayDate()): number {
   if (!dateStr) return 0
   return Math.max(0, Math.floor((new Date(baseDate).getTime() - new Date(dateStr).getTime()) / 86400000))
@@ -1015,12 +1019,13 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const [customerIdFilter, setCustomerIdFilter] = useState(() => searchParams.get('customerId') ?? '')
   const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy' | 'payable' | 'refund'>(() => {
     const tab = searchParams.get('tab')
+    const defaultTab = getDefaultReceivableTab(isPayableMode)
     if (isPayableMode) {
       if (tab === 'payable' || tab === 'refund' || tab === 'all') return tab
-      return 'all'
+      return defaultTab
     }
     if (tab === 'crm' || tab === 'legacy' || tab === 'payable' || tab === 'refund' || tab === 'all') return tab
-    return 'all'
+    return defaultTab
   })
   const [asOfDate, setAsOfDate] = useState(() => {
     const value = searchParams.get('asOf')
@@ -1036,9 +1041,10 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     const nextCustomerId = searchParams.get('customerId') ?? ''
     setCustomerIdFilter((prev) => (prev === nextCustomerId ? prev : nextCustomerId))
     const nextTab = searchParams.get('tab')
+    const defaultTab = getDefaultReceivableTab(isPayableMode)
     const normalizedTab = isPayableMode
-      ? (nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all' ? nextTab : 'all')
-      : (nextTab === 'crm' || nextTab === 'legacy' || nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all' ? nextTab : 'all')
+      ? (nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all' ? nextTab : defaultTab)
+      : (nextTab === 'crm' || nextTab === 'legacy' || nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all' ? nextTab : defaultTab)
     setSourceTab((prev) => (prev === normalizedTab ? prev : normalizedTab))
   }, [isPayableMode, searchParams])
   useEffect(() => {
@@ -1642,7 +1648,8 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           const nextValue = value as 'all' | 'crm' | 'legacy' | 'payable' | 'refund'
           setSourceTab(nextValue)
           const nextParams = new URLSearchParams(searchParams)
-          if (nextValue === 'all') nextParams.delete('tab')
+          const defaultTab = getDefaultReceivableTab(isPayableMode)
+          if (nextValue === defaultTab) nextParams.delete('tab')
           else nextParams.set('tab', nextValue)
           setSearchParams(nextParams, { replace: true })
         }}

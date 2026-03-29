@@ -546,6 +546,26 @@ export function Transactions() {
     return `전체 ${total.toLocaleString()}건`
   }, [activeTab, serverLegacyTotal, serverCrmTotal, legacySettlementRows.length, skipLegacy, skipCrm])
 
+  const activeScopeLabel = activeTab === 'legacy'
+    ? '기존 장부 거래'
+    : activeTab === 'crm'
+      ? '새 입력 명세표'
+      : '전체 거래'
+  const activeScopeDescription = activeTab === 'legacy'
+    ? '기존 장부 원본과 입금/지급 흐름을 함께 봅니다.'
+    : activeTab === 'crm'
+      ? '새로 입력한 명세표를 날짜순으로 확인합니다.'
+      : '기존 장부와 새 입력 명세표를 통합해서 봅니다.'
+  const periodSummary = dateFrom && dateTo
+    ? `${dateFrom} ~ ${dateTo}`
+    : dateFrom
+      ? `${dateFrom} 이후`
+      : dateTo
+        ? `${dateTo} 이전`
+        : '전체 기간'
+  const resultSummary = `${totalDisplay.toLocaleString()}건`
+  const filterStatus = hasFilter ? '필터 적용 중' : '기본 조회'
+
   return (
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
@@ -562,87 +582,166 @@ export function Transactions() {
         </Button>
       </div>
 
-      {/* 탭 */}
       <Tabs value={activeTab} onValueChange={handleTabChange} className="mb-4">
-        <TabsList data-guide-id="transactions-tabs">
-          <TabsTrigger value="all">전체</TabsTrigger>
-          <TabsTrigger value="legacy">기존 장부 거래</TabsTrigger>
-          <TabsTrigger value="crm">새 입력 명세표</TabsTrigger>
-        </TabsList>
+        <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">상태 요약</p>
+              <p className="text-xs text-muted-foreground">
+                지금 보고 있는 범위와 결과를 먼저 확인하고, 아래 조회 조건으로 좁혀보세요.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-full bg-[#f7f5ef] px-3 py-1 font-medium text-[#836b2c]">
+                {activeScopeLabel}
+              </span>
+              <span className="rounded-full bg-[#f4f7f1] px-3 py-1 font-medium text-[#4f6748]">
+                {resultSummary}
+              </span>
+              <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700">
+                {periodSummary}
+              </span>
+              <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                {filterStatus}
+              </span>
+            </div>
+          </div>
+          <div className="mt-4 grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border bg-[#fcfcfb] px-4 py-3">
+              <p className="text-xs text-muted-foreground">현재 범위</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{activeScopeLabel}</p>
+              <p className="mt-1 text-xs text-muted-foreground">{activeScopeDescription}</p>
+            </div>
+            <div className="rounded-lg border bg-[#fcfcfb] px-4 py-3">
+              <p className="text-xs text-muted-foreground">현재 결과</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{resultSummary}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {hasFilter ? '검색과 필터가 반영된 결과입니다.' : '기본 조회 조건으로 보고 있습니다.'}
+              </p>
+            </div>
+            <div className="rounded-lg border bg-[#fcfcfb] px-4 py-3">
+              <p className="text-xs text-muted-foreground">조회 기간</p>
+              <p className="mt-1 text-sm font-semibold text-foreground">{periodSummary}</p>
+              <p className="mt-1 text-xs text-muted-foreground">
+                {activeTab === 'all'
+                  ? '전체 탭은 최근 3개월 기준으로 빠르게 훑습니다.'
+                  : '개별 탭은 같은 기간을 그대로 적용합니다.'}
+              </p>
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm" data-guide-id="transactions-filters">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">조회 조건</p>
+                <p className="text-xs text-muted-foreground">
+                  검색어, 탭, 유형, 기간을 먼저 고르고 필요한 거래만 좁혀서 확인하세요.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="rounded-full bg-[#f7f5ef] px-3 py-1 font-medium text-[#836b2c]">
+                  {activeTab === 'all' ? '통합 보기' : activeTab === 'legacy' ? '기존 장부' : '새 입력'}
+                </span>
+                <span className="rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600">
+                  {headerCount}
+                </span>
+              </div>
+            </div>
+
+            <TabsList data-guide-id="transactions-tabs" className="w-full justify-start">
+              <TabsTrigger value="all">전체</TabsTrigger>
+              <TabsTrigger value="legacy">기존 장부 거래</TabsTrigger>
+              <TabsTrigger value="crm">새 입력 명세표</TabsTrigger>
+            </TabsList>
+
+            {activeTab === 'all' && (
+              <div className="flex flex-wrap items-center gap-2 rounded-lg bg-[#fafaf8] px-3 py-2">
+                <span className="text-xs text-muted-foreground">기간 빠른 선택</span>
+                {[
+                  { key: '3months', label: '최근 3개월' },
+                  { key: 'thisMonth', label: '이번달' },
+                  { key: 'lastMonth', label: '지난달' },
+                  { key: 'thisYear', label: '올해' },
+                ].map(({ key, label }) => (
+                  <Button
+                    key={key}
+                    variant="outline"
+                    size="sm"
+                    className="h-7 text-xs px-2.5"
+                    onClick={() => applyPreset(key)}
+                  >
+                    {label}
+                  </Button>
+                ))}
+              </div>
+            )}
+
+            <div className="grid gap-3 lg:grid-cols-12">
+              <div className="lg:col-span-5">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">거래처 검색</label>
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    placeholder="거래처명/메모/전표번호 검색..."
+                    value={search}
+                    onChange={(e) => setSearch(e.target.value)}
+                    className="pl-9"
+                  />
+                </div>
+              </div>
+              {typeOptions.length > 0 && (
+                <div className="lg:col-span-2">
+                  <label className="mb-1.5 block text-xs font-medium text-muted-foreground">유형</label>
+                  <Select value={typeFilter} onValueChange={setTypeFilter}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="유형" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {typeOptions.map((o) => (
+                        <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              <div className="lg:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">시작일</label>
+                <Input
+                  type="date"
+                  value={dateFrom}
+                  onChange={(e) => setDateFrom(e.target.value)}
+                  title="시작일"
+                />
+              </div>
+              <div className="lg:col-span-2">
+                <label className="mb-1.5 block text-xs font-medium text-muted-foreground">종료일</label>
+                <Input
+                  type="date"
+                  value={dateTo}
+                  onChange={(e) => setDateTo(e.target.value)}
+                  title="종료일"
+                />
+              </div>
+              <div className="flex items-end lg:col-span-1">
+                {hasFilter ? (
+                  <Button variant="ghost" size="sm" onClick={resetFilters} className="w-full lg:w-auto">
+                    초기화
+                  </Button>
+                ) : (
+                  <div className="hidden lg:block" />
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
       </Tabs>
 
-      {/* 퀵 프리셋 (전체 탭) */}
-      {activeTab === 'all' && (
-        <div className="flex gap-2 mb-3">
-          <span className="text-xs text-muted-foreground flex items-center mr-1">기간:</span>
-          {[
-            { key: '3months', label: '최근 3개월' },
-            { key: 'thisMonth', label: '이번달' },
-            { key: 'lastMonth', label: '지난달' },
-            { key: 'thisYear', label: '올해' },
-          ].map(({ key, label }) => (
-            <Button
-              key={key}
-              variant="outline"
-              size="sm"
-              className="h-7 text-xs px-2.5"
-              onClick={() => applyPreset(key)}
-            >
-              {label}
-            </Button>
-          ))}
-        </div>
-      )}
-
-      {/* 필터 */}
-      <div className="flex gap-3 mb-4 flex-wrap" data-guide-id="transactions-filters">
-        <div className="relative flex-1 min-w-48 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="거래처명 검색..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
-        </div>
-        {typeOptions.length > 0 && (
-          <Select value={typeFilter} onValueChange={setTypeFilter}>
-            <SelectTrigger className="w-40">
-              <SelectValue placeholder="유형" />
-            </SelectTrigger>
-            <SelectContent>
-              {typeOptions.map((o) => (
-                <SelectItem key={o.value} value={o.value}>{o.label}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => setDateFrom(e.target.value)}
-          className="w-36"
-          title="시작일"
-        />
-        <span className="flex items-center text-muted-foreground text-sm">~</span>
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(e) => setDateTo(e.target.value)}
-          className="w-36"
-          title="종료일"
-        />
-        {hasFilter && (
-          <Button variant="ghost" size="sm" onClick={resetFilters}>
-            초기화
-          </Button>
-        )}
-      </div>
-
-      {/* 안내 배너 */}
-      {activeTab === 'all' && (
-        <div className="mb-3 text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
-          기존 장부 거래내역과 새 입력 거래명세표를 날짜순으로 통합 표시합니다.
+        {/* 안내 배너 */}
+        {activeTab === 'all' && (
+          <div className="mb-3 text-xs text-muted-foreground bg-blue-50 border border-blue-100 rounded-md px-3 py-2">
+            기존 장부 거래내역과 새 입력 거래명세표를 날짜순으로 통합 표시합니다.
           행을 클릭하면 당시 거래 상세와 묶음 내역을 확인할 수 있습니다.
         </div>
       )}

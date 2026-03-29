@@ -111,6 +111,7 @@ export function Customers() {
   const totalRows = data?.pageInfo?.totalRows ?? 0
   const totalPages = Math.ceil(totalRows / PAGE_SIZE)
   const customers = data?.list ?? []
+  const hasActiveFilters = Boolean(search.trim()) || typeFilter !== 'ALL' || statusFilter !== 'ALL' || gradeFilter !== 'ALL'
 
   const { data: invoiceAliases = [] } = useQuery({
     queryKey: ['customer-split-invoice-aliases'],
@@ -176,58 +177,102 @@ export function Customers() {
       </div>
 
       {/* 필터 */}
-      <div className="flex gap-3 mb-4 flex-wrap" data-guide-id="customers-filters">
-        <div className="relative flex-1 min-w-48 max-w-xs" data-guide-id="customers-search">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="거래처명/얼마에요 구분명 검색..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+      <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm" data-guide-id="customers-filters">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">조회 조건</p>
+              <p className="text-xs text-muted-foreground">
+                거래처명, 구분명, 연락처 기준으로 고객을 찾고 유형·상태·등급을 빠르게 좁혀보세요.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-full bg-[#f4f7f1] px-3 py-1 font-medium text-[#4f6748]">
+                현재 {totalRows.toLocaleString()}명
+              </span>
+              <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
+                {hasActiveFilters ? '필터 적용 중' : '기본 조회 상태'}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.35fr)_150px_140px_140px_auto]">
+            <div className="space-y-2" data-guide-id="customers-search">
+              <label className="text-xs font-medium text-muted-foreground">고객 검색</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="거래처명/얼마에요 구분명/연락처 검색..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">고객 유형</label>
+              <Select value={typeFilter} onValueChange={setTypeFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="고객 유형" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">모든 유형</SelectItem>
+                  {Object.entries(CUSTOMER_TYPE_LABELS).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">상태</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="상태" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">모든 상태</SelectItem>
+                  <SelectItem value="ACTIVE">활성</SelectItem>
+                  <SelectItem value="DORMANT">휴면</SelectItem>
+                  <SelectItem value="CHURNED">이탈</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">등급</label>
+              <Select value={gradeFilter} onValueChange={setGradeFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="등급" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">모든 등급</SelectItem>
+                  {Object.entries(GRADE_COLORS).map(([k, v]) => (
+                    <SelectItem key={k} value={k}>{v.label}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              {hasActiveFilters ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full xl:w-auto"
+                  onClick={() => { setSearch(''); setTypeFilter('ALL'); setStatusFilter('ALL'); setGradeFilter('ALL') }}
+                >
+                  초기화
+                </Button>
+              ) : (
+                <div className="w-full rounded-lg border border-dashed px-3 py-2 text-center text-xs text-muted-foreground">
+                  전체 고객 보기
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <Select value={typeFilter} onValueChange={setTypeFilter}>
-          <SelectTrigger className="w-36">
-            <SelectValue placeholder="고객 유형" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">모든 유형</SelectItem>
-            {Object.entries(CUSTOMER_TYPE_LABELS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-28">
-            <SelectValue placeholder="상태" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">모든 상태</SelectItem>
-            <SelectItem value="ACTIVE">활성</SelectItem>
-            <SelectItem value="DORMANT">휴면</SelectItem>
-            <SelectItem value="CHURNED">이탈</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={gradeFilter} onValueChange={setGradeFilter}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="등급" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">모든 등급</SelectItem>
-            {Object.entries(GRADE_COLORS).map(([k, v]) => (
-              <SelectItem key={k} value={k}>{v.label}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {(typeFilter !== 'ALL' || statusFilter !== 'ALL' || gradeFilter !== 'ALL' || search) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => { setSearch(''); setTypeFilter('ALL'); setStatusFilter('ALL'); setGradeFilter('ALL') }}
-          >
-            초기화
-          </Button>
-        )}
       </div>
 
       {/* 테이블 */}

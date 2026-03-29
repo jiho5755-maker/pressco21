@@ -58,8 +58,8 @@ function currentTimestamp(): string {
   return new Date().toISOString()
 }
 
-function getDefaultReceivableTab(isPayableMode: boolean): 'all' | 'crm' {
-  return isPayableMode ? 'all' : 'crm'
+function getDefaultSourceTab(isPayableMode: boolean): 'crm' | 'payable' {
+  return isPayableMode ? 'payable' : 'crm'
 }
 
 function getDaysSince(dateStr: string | undefined, baseDate = todayDate()): number {
@@ -1019,7 +1019,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const [customerIdFilter, setCustomerIdFilter] = useState(() => searchParams.get('customerId') ?? '')
   const [sourceTab, setSourceTab] = useState<'all' | 'crm' | 'legacy' | 'payable' | 'refund'>(() => {
     const tab = searchParams.get('tab')
-    const defaultTab = getDefaultReceivableTab(isPayableMode)
+    const defaultTab = getDefaultSourceTab(isPayableMode)
     if (isPayableMode) {
       if (tab === 'payable' || tab === 'refund' || tab === 'all') return tab
       return defaultTab
@@ -1041,7 +1041,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     const nextCustomerId = searchParams.get('customerId') ?? ''
     setCustomerIdFilter((prev) => (prev === nextCustomerId ? prev : nextCustomerId))
     const nextTab = searchParams.get('tab')
-    const defaultTab = getDefaultReceivableTab(isPayableMode)
+    const defaultTab = getDefaultSourceTab(isPayableMode)
     const normalizedTab = isPayableMode
       ? (nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all' ? nextTab : defaultTab)
       : (nextTab === 'crm' || nextTab === 'legacy' || nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all' ? nextTab : defaultTab)
@@ -1648,7 +1648,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           const nextValue = value as 'all' | 'crm' | 'legacy' | 'payable' | 'refund'
           setSourceTab(nextValue)
           const nextParams = new URLSearchParams(searchParams)
-          const defaultTab = getDefaultReceivableTab(isPayableMode)
+          const defaultTab = getDefaultSourceTab(isPayableMode)
           if (nextValue === defaultTab) nextParams.delete('tab')
           else nextParams.set('tab', nextValue)
           setSearchParams(nextParams, { replace: true })

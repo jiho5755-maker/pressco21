@@ -49,15 +49,18 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: 2026-03-30 00:05:00 KST
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-30 00:32:00 KST
 - Branch: main
-- Working Scope: 화면 가이드 Help drawer 전환 및 명세표 작성/출력 UX 후속 정리
+- Working Scope: 화면 가이드 말풍선 포커스 보정 및 명세표 작성 최근 거래처 UX 정리
 - Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
-- 없음
+- `offline-crm-v2/src/components/layout/AppGuideWidget.tsx`
+- `offline-crm-v2/src/components/InvoiceDialog.tsx`
+- `offline-crm-v2/tests/01-customers.spec.ts`
+- `offline-crm-v2/tests/02-invoices.spec.ts`
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경

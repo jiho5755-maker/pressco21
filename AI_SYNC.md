@@ -49,15 +49,20 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: —
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-29 21:45:00 KST
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: 견적서 유효기간 14일 자동화 및 사업자번호/전화 자동 포맷 보정
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
-- 없음
+- offline-crm-v2/src/lib/formatters.ts
+- offline-crm-v2/src/lib/print.ts
+- offline-crm-v2/src/components/CustomerDialog.tsx
+- offline-crm-v2/src/components/SupplierDialog.tsx
+- offline-crm-v2/src/pages/CustomerDetail.tsx
+- offline-crm-v2/src/pages/Settings.tsx
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경

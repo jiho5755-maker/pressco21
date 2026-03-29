@@ -24,6 +24,7 @@ export interface CompanyInfo {
 }
 
 import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
+import { addDaysToDate, formatBusinessNumber, formatDisplayDate, formatPhoneNumber } from '@/lib/formatters'
 
 export interface PrintInvoice {
   invoice_no?: string
@@ -167,6 +168,11 @@ function buildInvoicePageHtml(
   startIndex: number,
 ): string {
   const c = loadCompanyInfo()
+  const invoiceDate = formatDisplayDate(inv.invoice_date)
+  const companyBizno = formatBusinessNumber(c.bizno)
+  const customerBizno = formatBusinessNumber(inv.customer_bizno)
+  const companyPhone = formatPhoneNumber(c.phone)
+  const customerPhone = formatPhoneNumber(inv.customer_phone)
   const capacity = opts.isFirst ? ITEMS_FIRST_PAGE : ITEMS_CONT_PAGE
   const blankCount = opts.isLast ? Math.max(0, Math.min(8, capacity) - pageItems.length) : 0
 
@@ -224,7 +230,7 @@ function buildInvoicePageHtml(
       '<table class="inv-tbl inv-meta-tbl"><tr>' +
       `<td class="inv-ml">발행번호</td><td class="inv-mv">${esc(inv.invoice_no ?? '')}</td>` +
       `<td class="inv-ml">구분</td><td class="inv-mv t-center">${esc(inv.receipt_type ?? DEFAULT_RECEIPT_TYPE)}</td>` +
-      `<td class="inv-ml">거래일자</td><td class="inv-mv">${esc(inv.invoice_date ?? '')}</td>` +
+      `<td class="inv-ml">거래일자</td><td class="inv-mv">${esc(invoiceDate)}</td>` +
       '</tr></table>' +
       '<table class="inv-tbl inv-party-tbl">' +
       '<colgroup>' +
@@ -241,18 +247,18 @@ function buildInvoicePageHtml(
       `<tr><td class="inv-pl">상호</td><td>${esc(c.company ?? '')}</td><td class="inv-pl">대표자</td><td>${esc(c.ceo ?? '')}</td>` +
       `<td class="inv-party-div"></td>` +
       `<td class="inv-pl">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="inv-pl">대표자</td><td>${esc(inv.customer_ceo_name ?? inv.manager ?? '')}</td></tr>` +
-      `<tr><td class="inv-pl">사업자번호</td><td colspan="3">${esc(c.bizno ?? '')}</td>` +
+      `<tr><td class="inv-pl">사업자번호</td><td colspan="3">${esc(companyBizno)}</td>` +
       `<td class="inv-party-div"></td>` +
-      `<td class="inv-pl">사업자번호</td><td colspan="3">${esc(inv.customer_bizno ?? '')}</td></tr>` +
+      `<td class="inv-pl">사업자번호</td><td colspan="3">${esc(customerBizno)}</td></tr>` +
       `<tr><td class="inv-pl">주소</td><td colspan="3">${esc(c.address ?? '')}</td>` +
       `<td class="inv-party-div"></td>` +
       `<td class="inv-pl">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
       `<tr><td class="inv-pl">업태/종목</td><td colspan="3">${esc(c.bizType ?? '')}&nbsp;/&nbsp;${esc(c.bizItem ?? '')}</td>` +
       `<td class="inv-party-div"></td>` +
       `<td class="inv-pl">업태/종목</td><td colspan="3">${esc(formatBizInfo(inv.customer_biz_type, inv.customer_biz_item))}</td></tr>` +
-      `<tr><td class="inv-pl">전화</td><td colspan="3">${esc(c.phone ?? '')}</td>` +
+      `<tr><td class="inv-pl">전화</td><td colspan="3">${esc(companyPhone)}</td>` +
       `<td class="inv-party-div"></td>` +
-      `<td class="inv-pl">전화</td><td colspan="3">${esc(inv.customer_phone ?? '')}</td></tr>` +
+      `<td class="inv-pl">전화</td><td colspan="3">${esc(customerPhone)}</td></tr>` +
       '</tbody></table>'
   } else {
     // ── 속지 페이지: 간략 헤더 ──
@@ -391,6 +397,12 @@ function buildEstimatePageHtml(
   startIndex: number,
 ): string {
   const c = loadCompanyInfo()
+  const invoiceDate = formatDisplayDate(inv.invoice_date)
+  const validUntil = addDaysToDate(inv.invoice_date, 14) || invoiceDate
+  const companyBizno = formatBusinessNumber(c.bizno)
+  const customerBizno = formatBusinessNumber(inv.customer_bizno)
+  const companyPhone = formatPhoneNumber(c.phone)
+  const customerPhone = formatPhoneNumber(inv.customer_phone)
   const effectiveLogo = c.logo_url || _logoFallback
   const effectiveStamp = c.stamp_url || _stampFallback
   const logoHtml = effectiveLogo
@@ -425,15 +437,15 @@ function buildEstimatePageHtml(
     `<div class="est-logo">${logoHtml}</div>` +
     `<div class="est-title-wrap"><div class="est-title">견 적 서</div><div class="est-sub">${esc(inv.invoice_no ?? '')}${pageLabel}</div></div>` +
     '<div class="est-meta">' +
-    `<div><span>견적일자</span><strong>${esc(inv.invoice_date ?? '')}</strong></div>` +
-    `<div><span>유효기간</span><strong>${esc(inv.invoice_date ?? '')}</strong></div>` +
+    `<div><span>견적일자</span><strong>${esc(invoiceDate)}</strong></div>` +
+    `<div><span>유효기간</span><strong>${esc(validUntil)}</strong></div>` +
     '</div>' +
     '</div>' +
     '<table class="est-party-table">' +
     '<thead><tr><th colspan="4">공 급 자</th><th colspan="4">공 급 받 는 자</th></tr></thead>' +
     '<tbody>' +
     `<tr><td class="est-label">상호</td><td>${esc(c.company ?? '')}</td><td class="est-label">대표자</td><td>${esc(c.ceo ?? '')}</td><td class="est-label">상호</td><td>${esc(inv.customer_name ?? '')}</td><td class="est-label">대표자</td><td>${esc(inv.customer_ceo_name ?? inv.manager ?? '')}</td></tr>` +
-    `<tr><td class="est-label">사업자번호</td><td>${esc(c.bizno ?? '')}</td><td class="est-label">전화</td><td>${esc(c.phone ?? '')}</td><td class="est-label">사업자번호</td><td>${esc(inv.customer_bizno ?? '')}</td><td class="est-label">전화</td><td>${esc(inv.customer_phone ?? '')}</td></tr>` +
+    `<tr><td class="est-label">사업자번호</td><td>${esc(companyBizno)}</td><td class="est-label">전화</td><td>${esc(companyPhone)}</td><td class="est-label">사업자번호</td><td>${esc(customerBizno)}</td><td class="est-label">전화</td><td>${esc(customerPhone)}</td></tr>` +
     `<tr><td class="est-label">주소</td><td colspan="3">${esc(c.address ?? '')}</td><td class="est-label">주소</td><td colspan="3">${esc(inv.customer_address ?? '')}</td></tr>` +
     `<tr><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(c.bizType, c.bizItem))}</td><td class="est-label">업태/종목</td><td colspan="3">${esc(formatBizInfo(inv.customer_biz_type, inv.customer_biz_item))}</td></tr>` +
     '</tbody>' +
@@ -832,7 +844,7 @@ export function printPeriodReport(
     (crmInvoices.length === 0 && legacyTx.length === 0
       ? `<div class="nodata">해당 기간에 거래내역이 없습니다.</div>`
       : '') +
-    `<div class="footer">${esc(c.company ?? '')}${c.phone ? ` | 전화: ${esc(c.phone)}` : ''}</div>` +
+    `<div class="footer">${esc(c.company ?? '')}${c.phone ? ` | 전화: ${esc(formatPhoneNumber(c.phone))}` : ''}</div>` +
     `</body></html>`
 
   const iframe = document.createElement('iframe')
@@ -933,7 +945,7 @@ export function printCustomerTransactionStatement(
       : `<div class="empty">선택한 조건에 해당하는 거래내역이 없습니다.</div>`) +
     `</div>` +
     `<div class="note">본 문서는 CRM에 기록된 거래내역을 기준으로 생성된 확인용 출력물입니다. 필요 시 발행번호 또는 날짜를 기준으로 추가 확인할 수 있습니다.</div>` +
-    `<div class="footer">${esc(c.company ?? '')}${c.phone ? ` | 전화 ${esc(c.phone)}` : ''}</div>` +
+    `<div class="footer">${esc(c.company ?? '')}${c.phone ? ` | 전화 ${esc(formatPhoneNumber(c.phone))}` : ''}</div>` +
     `</div></body></html>`
 
   const iframe = document.createElement('iframe')

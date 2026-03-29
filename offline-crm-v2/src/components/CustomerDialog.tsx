@@ -9,6 +9,7 @@ import { Separator } from '@/components/ui/separator'
 import { createCustomer, updateCustomer } from '@/lib/api'
 import type { Customer } from '@/lib/api'
 import { CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
+import { formatBusinessNumber, formatPhoneNumber } from '@/lib/formatters'
 
 interface CustomerDialogProps {
   open: boolean
@@ -27,7 +28,16 @@ export function CustomerDialog({ open, customer, onClose, onSaved }: CustomerDia
 
   useEffect(() => {
     if (!open) return
-    setForm(isNew ? { customer_status: 'ACTIVE', price_tier: 1 } : { ...customer, phone: customer?.phone ?? customer?.phone1 })
+    setForm(
+      isNew
+        ? { customer_status: 'ACTIVE', price_tier: 1 }
+        : {
+            ...customer,
+            phone: formatPhoneNumber(customer?.phone ?? customer?.phone1),
+            mobile: formatPhoneNumber(customer?.mobile as string | undefined),
+            biz_no: formatBusinessNumber(customer?.biz_no),
+          },
+    )
   }, [open, customer, isNew])
 
   function set<K extends keyof Customer>(key: K, value: Customer[K]) {
@@ -42,7 +52,14 @@ export function CustomerDialog({ open, customer, onClose, onSaved }: CustomerDia
     }
     setIsSaving(true)
     try {
-      const payload = { ...form, name: trimmedName, phone1: form.phone ?? form.phone1 }
+      const payload = {
+        ...form,
+        name: trimmedName,
+        phone: formatPhoneNumber(form.phone ?? form.phone1),
+        phone1: formatPhoneNumber(form.phone ?? form.phone1),
+        mobile: formatPhoneNumber(form.mobile as string | undefined),
+        biz_no: formatBusinessNumber(form.biz_no),
+      }
       if (isNew) {
         await createCustomer(payload)
         toast.success('고객이 등록되었습니다')
@@ -80,11 +97,11 @@ export function CustomerDialog({ open, customer, onClose, onSaved }: CustomerDia
             </div>
             <div>
               <Label className="text-xs">전화</Label>
-              <Input value={form.phone ?? ''} onChange={(e) => set('phone', e.target.value)} placeholder="02-0000-0000" className="mt-1" />
+              <Input value={form.phone ?? ''} onChange={(e) => set('phone', formatPhoneNumber(e.target.value))} placeholder="02-0000-0000" className="mt-1" />
             </div>
             <div>
               <Label className="text-xs">핸드폰</Label>
-              <Input value={form.mobile ?? ''} onChange={(e) => set('mobile', e.target.value)} placeholder="010-0000-0000" className="mt-1" />
+              <Input value={form.mobile ?? ''} onChange={(e) => set('mobile', formatPhoneNumber(e.target.value))} placeholder="010-0000-0000" className="mt-1" />
             </div>
             <div>
               <Label className="text-xs">이메일</Label>
@@ -156,7 +173,7 @@ export function CustomerDialog({ open, customer, onClose, onSaved }: CustomerDia
           <div className="grid grid-cols-2 gap-3">
             <div>
               <Label className="text-xs">사업자번호</Label>
-              <Input value={form.biz_no ?? ''} onChange={(e) => set('biz_no', e.target.value)} placeholder="000-00-00000" className="mt-1" />
+              <Input value={form.biz_no ?? ''} onChange={(e) => set('biz_no', formatBusinessNumber(e.target.value))} placeholder="000-00-00000" className="mt-1" />
             </div>
             <div>
               <Label className="text-xs">대표자</Label>

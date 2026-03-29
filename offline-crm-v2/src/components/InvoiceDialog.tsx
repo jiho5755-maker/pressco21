@@ -33,6 +33,7 @@ import { buildDuplexBlobUrl, getPreviewPageCount } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
 import { DEFAULT_RECEIPT_TYPE, isEstimateReceiptType, RECEIPT_TYPE_OPTIONS } from '@/lib/invoiceDefaults'
 import { loadDefaultTaxableSetting } from '@/lib/settings'
+import { formatBusinessNumber, formatPhoneNumber, normalizeDateInput } from '@/lib/formatters'
 import { ProductPickerDialog } from '@/components/ProductPickerDialog'
 import { useDebounce } from '@/hooks/useDebounce'
 import {
@@ -166,7 +167,8 @@ function today(): string {
 }
 
 function normalizeInvoiceDate(value?: string): string {
-  if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)) return value
+  const normalized = normalizeDateInput(value)
+  if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized
   return today()
 }
 
@@ -249,7 +251,7 @@ function defaultAddressLabel(index: number): string {
 }
 
 function getCustomerPrimaryPhone(customer: Customer | null | undefined): string {
-  return (customer?.mobile ?? customer?.phone1 ?? customer?.phone ?? '') as string
+  return formatPhoneNumber((customer?.mobile ?? customer?.phone1 ?? customer?.phone ?? '') as string)
 }
 
 function getCustomerAddressKeys(customer: Customer | null | undefined): string[] {
@@ -290,7 +292,7 @@ function buildCustomerSnapshot(
     customer_phone: getCustomerPrimaryPhone(customer),
     customer_address: getCustomerAddressValue(customer, addressKey),
     customer_address_key: addressKey,
-    customer_bizno: customer.biz_no,
+    customer_bizno: formatBusinessNumber(customer.biz_no),
     customer_ceo_name: customer.ceo_name as string | undefined,
     customer_biz_type: customer.biz_type as string | undefined,
     customer_biz_item: customer.biz_item as string | undefined,

@@ -37,6 +37,7 @@ import { buildResolvedReceivableInvoices, resolveInvoiceCustomer } from '@/lib/r
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import { exportUnifiedTransactions } from '@/lib/excel'
 import { getDisplayMemo, mergeDisplayMemo, parseCustomerAccountingMeta, replaceCustomerAccountingPreferences } from '@/lib/accountingMeta'
+import { formatBusinessNumber, formatPhoneNumber } from '@/lib/formatters'
 
 // ── 기본정보 편집 폼 ──────────────────────────────────────
 interface InfoForm {
@@ -73,10 +74,10 @@ function buildInfoForm(c: Customer): InfoForm {
   }))
   return {
     name: c.name ?? '',
-    phone: c.phone ?? c.phone1 ?? '',
-    mobile: (c.mobile as string) ?? '',
+    phone: formatPhoneNumber(c.phone ?? c.phone1 ?? ''),
+    mobile: formatPhoneNumber((c.mobile as string) ?? ''),
     email: c.email ?? '',
-    biz_no: c.biz_no ?? '',
+    biz_no: formatBusinessNumber(c.biz_no ?? ''),
     ceo_name: (c.ceo_name as string) ?? '',
     biz_type: (c.biz_type as string) ?? '',
     biz_item: (c.biz_item as string) ?? '',
@@ -248,11 +249,11 @@ export function CustomerDetail() {
 
       const customerPatch = {
         name: trimmedName,
-        phone: toNullableText(infoForm.phone),
-        phone1: toNullableText(infoForm.phone),
-        mobile: toNullableText(infoForm.mobile),
+        phone: toNullableText(formatPhoneNumber(infoForm.phone)),
+        phone1: toNullableText(formatPhoneNumber(infoForm.phone)),
+        mobile: toNullableText(formatPhoneNumber(infoForm.mobile)),
         email: toNullableText(infoForm.email),
-        biz_no: toNullableText(infoForm.biz_no),
+        biz_no: toNullableText(formatBusinessNumber(infoForm.biz_no)),
         ceo_name: toNullableText(infoForm.ceo_name),
         biz_type: toNullableText(infoForm.biz_type),
         biz_item: toNullableText(infoForm.biz_item),
@@ -991,10 +992,10 @@ export function CustomerDetail() {
               {!infoEditMode ? (
                 <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
                   {[
-                    { label: '전화', value: customer.phone ?? customer.phone1 },
-                    { label: '모바일', value: (customer.mobile as string) },
+                    { label: '전화', value: formatPhoneNumber(customer.phone ?? customer.phone1) },
+                    { label: '모바일', value: formatPhoneNumber(customer.mobile as string) },
                     { label: '이메일', value: customer.email },
-                    { label: '사업자번호', value: customer.biz_no },
+                    { label: '사업자번호', value: formatBusinessNumber(customer.biz_no) },
                     { label: '담당자', value: (customer.ceo_name as string) },
                     { label: '업태/종목', value: [(customer.biz_type as string), (customer.biz_item as string)].filter(Boolean).join(' / ') || undefined },
                     { label: '고객유형', value: CUSTOMER_TYPE_LABELS[customer.customer_type ?? ''] ?? customer.customer_type },
@@ -1055,7 +1056,15 @@ export function CustomerDetail() {
                         <Label className="text-xs">{label}</Label>
                         <Input
                           value={infoForm[key]}
-                          onChange={(e) => setInfoForm((f) => ({ ...f, [key]: e.target.value }))}
+                          onChange={(e) => setInfoForm((f) => ({
+                            ...f,
+                            [key]:
+                              key === 'phone' || key === 'mobile'
+                                ? formatPhoneNumber(e.target.value)
+                                : key === 'biz_no'
+                                  ? formatBusinessNumber(e.target.value)
+                                  : e.target.value,
+                          }))}
                           placeholder={placeholder}
                           className="h-8 text-sm"
                         />

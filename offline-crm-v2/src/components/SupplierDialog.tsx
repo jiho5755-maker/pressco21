@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { createSupplier, updateSupplier } from '@/lib/api'
 import type { Supplier } from '@/lib/api'
+import { formatBusinessNumber, formatPhoneNumber } from '@/lib/formatters'
 
 interface SupplierDialogProps {
   open: boolean
@@ -22,7 +23,16 @@ export function SupplierDialog({ open, supplier, onClose, onSaved }: SupplierDia
 
   useEffect(() => {
     if (!open) return
-    setForm(isNew ? { is_active: true } : { ...supplier })
+    setForm(
+      isNew
+        ? { is_active: true }
+        : {
+            ...supplier,
+            business_no: formatBusinessNumber(supplier?.business_no),
+            phone1: formatPhoneNumber(supplier?.phone1),
+            mobile: formatPhoneNumber(supplier?.mobile),
+          },
+    )
   }, [open, supplier, isNew])
 
   function set<K extends keyof Supplier>(key: K, value: Supplier[K]) {
@@ -36,11 +46,17 @@ export function SupplierDialog({ open, supplier, onClose, onSaved }: SupplierDia
     }
     setIsSaving(true)
     try {
+      const payload = {
+        ...form,
+        business_no: formatBusinessNumber(form.business_no),
+        phone1: formatPhoneNumber(form.phone1),
+        mobile: formatPhoneNumber(form.mobile),
+      }
       if (isNew) {
-        await createSupplier(form)
+        await createSupplier(payload)
         toast.success('공급처가 등록되었습니다')
       } else {
-        await updateSupplier(supplier!.Id, form)
+        await updateSupplier(supplier!.Id, payload)
         toast.success('공급처가 수정되었습니다')
       }
       onSaved()
@@ -72,15 +88,15 @@ export function SupplierDialog({ open, supplier, onClose, onSaved }: SupplierDia
             </div>
             <div>
               <Label className="text-xs">사업자번호</Label>
-              <Input value={form.business_no ?? ''} onChange={(e) => set('business_no', e.target.value)} placeholder="000-00-00000" className="mt-1" />
+              <Input value={form.business_no ?? ''} onChange={(e) => set('business_no', formatBusinessNumber(e.target.value))} placeholder="000-00-00000" className="mt-1" />
             </div>
             <div>
               <Label className="text-xs">전화</Label>
-              <Input value={form.phone1 ?? ''} onChange={(e) => set('phone1', e.target.value)} placeholder="02-0000-0000" className="mt-1" />
+              <Input value={form.phone1 ?? ''} onChange={(e) => set('phone1', formatPhoneNumber(e.target.value))} placeholder="02-0000-0000" className="mt-1" />
             </div>
             <div>
               <Label className="text-xs">핸드폰</Label>
-              <Input value={form.mobile ?? ''} onChange={(e) => set('mobile', e.target.value)} placeholder="010-0000-0000" className="mt-1" />
+              <Input value={form.mobile ?? ''} onChange={(e) => set('mobile', formatPhoneNumber(e.target.value))} placeholder="010-0000-0000" className="mt-1" />
             </div>
             <div>
               <Label className="text-xs">이메일</Label>

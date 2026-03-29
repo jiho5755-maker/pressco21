@@ -14,6 +14,7 @@ import {
 } from '@/lib/api'
 import type { CrmSettings } from '@/lib/api'
 import { resetAllGuides } from '@/lib/appGuide'
+import { formatBusinessNumber, formatPhoneNumber } from '@/lib/formatters'
 import { Cloud, CloudOff, Loader2 } from 'lucide-react'
 
 // print.ts 인터페이스 확장 (설정 전용 추가 필드)
@@ -75,8 +76,8 @@ function toServerPayload(data: SettingsData): Partial<CrmSettings> {
   return {
     company: data.company,
     ceo: data.ceo,
-    bizno: data.bizno,
-    phone: data.phone,
+    bizno: formatBusinessNumber(data.bizno),
+    phone: formatPhoneNumber(data.phone),
     email: data.email,
     bizType: data.bizType,
     bizItem: data.bizItem,
@@ -310,15 +311,15 @@ export function Settings() {
             </Field>
             <Field label="사업자번호">
               <Input
-                value={data.bizno ?? ''}
-                onChange={(e) => set('bizno', e.target.value)}
+                value={formatBusinessNumber(data.bizno ?? '')}
+                onChange={(e) => set('bizno', formatBusinessNumber(e.target.value))}
                 placeholder="000-00-00000"
               />
             </Field>
             <Field label="전화">
               <Input
-                value={data.phone ?? ''}
-                onChange={(e) => set('phone', e.target.value)}
+                value={formatPhoneNumber(data.phone ?? '')}
+                onChange={(e) => set('phone', formatPhoneNumber(e.target.value))}
                 placeholder="02-0000-0000"
               />
             </Field>

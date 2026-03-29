@@ -23,6 +23,8 @@ export interface CompanyInfo {
   invoice_footer?: string
 }
 
+import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
+
 export interface PrintInvoice {
   invoice_no?: string
   invoice_date?: string
@@ -221,7 +223,7 @@ function buildInvoicePageHtml(
       '</div>' +
       '<table class="inv-tbl inv-meta-tbl"><tr>' +
       `<td class="inv-ml">발행번호</td><td class="inv-mv">${esc(inv.invoice_no ?? '')}</td>` +
-      `<td class="inv-ml">구분</td><td class="inv-mv t-center">${esc(inv.receipt_type ?? '영수')}</td>` +
+      `<td class="inv-ml">구분</td><td class="inv-mv t-center">${esc(inv.receipt_type ?? DEFAULT_RECEIPT_TYPE)}</td>` +
       `<td class="inv-ml">거래일자</td><td class="inv-mv">${esc(inv.invoice_date ?? '')}</td>` +
       '</tr></table>' +
       '<table class="inv-tbl inv-party-tbl">' +
@@ -301,7 +303,7 @@ function buildInvoicePageHtml(
         ? `<div class="inv-paynote">${payNoteLines.map((line) => esc(line)).join('<br />')}</div>`
         : '') +
       '<div class="inv-sig">' +
-      `<span class="inv-sig-text">위 금액을 정히 ${esc(inv.receipt_type ?? '영수')}합니다.</span>` +
+      `<span class="inv-sig-text">위 금액을 정히 ${esc(inv.receipt_type ?? DEFAULT_RECEIPT_TYPE)}합니다.</span>` +
       '<div class="inv-sig-right">' +
       '<span class="inv-sig-label">대표자</span>' +
       '<div class="inv-sig-name-wrap">' +

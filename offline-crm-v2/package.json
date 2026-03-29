@@ -13,6 +13,7 @@
     "test:e2e:debug": "playwright test --debug",
     "test:e2e:report": "playwright show-report",
     "test:crm-009": "playwright test --reporter=list",
+    "test:regression": "playwright test tests/01-customers.spec.ts tests/02-invoices.spec.ts",
     "test:customers": "playwright test tests/01-customers.spec.ts",
     "test:invoices": "playwright test tests/02-invoices.spec.ts",
     "test:dashboard": "playwright test tests/03-dashboard.spec.ts"

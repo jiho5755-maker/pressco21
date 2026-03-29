@@ -2,7 +2,8 @@
  * Playwright 테스트 공통 헬퍼
  * PRESSCO21 Offline CRM v2
  */
-import { Page, expect } from '@playwright/test'
+import { APIRequestContext, Page, expect } from '@playwright/test'
+import { DEFAULT_RECEIPT_TYPE } from '../src/lib/invoiceDefaults'
 
 // ─── 상수 ───────────────────────────────────────────────
 
@@ -16,6 +17,110 @@ export const ROUTES = {
 
 /** NocoDB API가 실제 데이터를 반환할 때까지 최대 대기 시간 (ms) */
 export const API_TIMEOUT = 20_000
+export const TEST_INVOICE_PREFIX = 'TEST-E2E-PLAYWRIGHT-'
+
+const CRM_PROXY_PATH = '/crm-proxy'
+const CRM_API_KEY = process.env.VITE_CRM_API_KEY || '6e154a8fa69c067c096b237f6432456451b2cb7fd107cf7d10d98025edc420e8'
+
+interface ProxyRequest {
+  table: 'invoices' | 'items'
+  method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
+  recordId?: number
+  params?: Record<string, string | number>
+  payload?: unknown
+  bulk?: boolean
+}
+
+interface ProxyResponse<T> {
+  success: boolean
+  data?: T
+  error?: { code: string; message: string }
+}
+
+interface ListResponse<T> {
+  list: T[]
+}
+
+interface InvoiceCleanupRow {
+  Id: number
+  invoice_no?: string
+}
+
+interface ItemCleanupRow {
+  Id: number
+}
+
+export function getTodayDateString(): string {
+  return new Date().toISOString().slice(0, 10)
+}
+
+export { DEFAULT_RECEIPT_TYPE }
+
+async function proxyRequest<T>(request: APIRequestContext, req: ProxyRequest): Promise<T> {
+  const res = await request.post(CRM_PROXY_PATH, {
+    headers: {
+      'Content-Type': 'application/json',
+      'x-crm-key': CRM_API_KEY,
+    },
+    data: {
+      table: req.table,
+      method: req.method || 'GET',
+      recordId: req.recordId,
+      params: req.params,
+      payload: req.payload,
+      bulk: req.bulk,
+    },
+  })
+
+  if (!res.ok()) {
+    throw new Error(`Proxy Error ${res.status()}: ${await res.text()}`)
+  }
+
+  const json = await res.json() as ProxyResponse<T>
+  if (!json.success) {
+    throw new Error(`[${json.error?.code || 'PROXY_ERROR'}] ${json.error?.message || 'Unknown proxy error'}`)
+  }
+
+  return json.data as T
+}
+
+export async function cleanupTestInvoices(request: APIRequestContext, prefix = TEST_INVOICE_PREFIX): Promise<void> {
+  const result = await proxyRequest<ListResponse<InvoiceCleanupRow>>(request, {
+    table: 'invoices',
+    params: {
+      limit: 500,
+      sort: '-Id',
+      fields: 'Id,invoice_no',
+    },
+  })
+
+  const matches = result.list.filter((row) => row.invoice_no?.startsWith(prefix))
+
+  for (const invoice of matches) {
+    const items = await proxyRequest<ListResponse<ItemCleanupRow>>(request, {
+      table: 'items',
+      params: {
+        where: `(invoice_id,eq,${invoice.Id})`,
+        limit: 200,
+        fields: 'Id',
+      },
+    })
+
+    for (const item of items.list) {
+      await proxyRequest<void>(request, {
+        table: 'items',
+        method: 'DELETE',
+        recordId: item.Id,
+      })
+    }
+
+    await proxyRequest<void>(request, {
+      table: 'invoices',
+      method: 'DELETE',
+      recordId: invoice.Id,
+    })
+  }
+}
 
 // ─── 네비게이션 헬퍼 ─────────────────────────────────────
 

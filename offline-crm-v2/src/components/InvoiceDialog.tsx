@@ -31,6 +31,7 @@ import {
 import type { Invoice, Customer, Product } from '@/lib/api'
 import { buildDuplexBlobUrl, getPreviewPageCount } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
+import { DEFAULT_RECEIPT_TYPE, isEstimateReceiptType, RECEIPT_TYPE_OPTIONS } from '@/lib/invoiceDefaults'
 import { loadDefaultTaxableSetting } from '@/lib/settings'
 import { ProductPickerDialog } from '@/components/ProductPickerDialog'
 import { useDebounce } from '@/hooks/useDebounce'
@@ -73,15 +74,6 @@ interface RecentCustomerOption {
 }
 
 const INVOICE_DRAFT_KEY = 'pressco21-crm-invoice-draft-v1'
-const DEFAULT_RECEIPT_TYPE = '거래명세표'
-const RECEIPT_TYPE_OPTIONS = [
-  { value: '거래명세표', label: '거래명세표' },
-  { value: '견적서', label: '견적서' },
-  { value: '영수', label: '영수' },
-  { value: '청구', label: '청구' },
-  { value: '영수(청구)', label: '영수(청구)' },
-] as const
-
 function newRow(taxable = loadDefaultTaxableSetting()): ItemRow {
   return {
     _key: Math.random().toString(36).slice(2),
@@ -1106,7 +1098,7 @@ export function InvoiceDialog({
   function handlePreview() {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     const { inv, rows } = buildPrintData()
-    const documentType = inv.receipt_type === '견적서' ? 'estimate' : 'invoice'
+    const documentType = isEstimateReceiptType(inv.receipt_type) ? 'estimate' : 'invoice'
     const url = buildDuplexBlobUrl(inv, rows, { documentType })
     setPreviewUrl(url)
     setPreviewPages(getPreviewPageCount(rows.length, documentType))

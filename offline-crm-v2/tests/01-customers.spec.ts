@@ -11,6 +11,7 @@
  *   T1-07  고객 행 클릭 → 상세 페이지 이동
  *   T1-08  상세 페이지 4탭 표시 확인
  *   T1-09  뒤로가기 버튼으로 목록 복귀
+ *   T1-10  고객 상세 → 명세표 작성 시 고객/주소 라벨 프리필
  */
 import { test, expect } from '@playwright/test'
 import {
@@ -77,7 +78,7 @@ test('T1-04: 검색 필터 동작 — 키워드 입력 후 결과 반영', async
   await waitForTableLoaded(page)
 
   // 검색 input에 키워드 입력
-  const searchInput = page.getByPlaceholder('거래처명 검색...')
+  const searchInput = page.locator('input[placeholder*="거래처명"]').first()
   await searchInput.fill('학교')
 
   // debounce 400ms 대기 후 API 재호출 → 로딩 대기
@@ -202,4 +203,22 @@ test('T1-09: 상세 페이지 뒤로가기 버튼으로 목록 복귀', async ({
   // 고객 목록으로 돌아옴
   await expect(page).toHaveURL('/customers')
   await expect(page.getByRole('heading', { name: '고객 관리' })).toBeVisible()
+})
+
+test('T1-10: 고객 상세 → 명세표 작성 시 고객/주소 라벨 프리필', async ({ page }) => {
+  await page.goto('/customers/86')
+  await expect(page.getByRole('heading', { name: '송윤경 회장님' })).toBeVisible({ timeout: API_TIMEOUT })
+
+  await page.getByRole('button', { name: '명세표 작성' }).click()
+  await expect(page).toHaveURL(/\/invoices/)
+  await expect(page.getByRole('dialog').getByText('새 거래명세표')).toBeVisible({ timeout: API_TIMEOUT })
+
+  const dialog = page.getByRole('dialog')
+  await expect(dialog.getByPlaceholder('거래처명 검색...')).toHaveValue('송윤경 회장님')
+  await expect(dialog.getByRole('combobox').filter({ hasText: '기본 주소' })).toBeVisible()
+
+  await dialog.getByRole('combobox').filter({ hasText: '기본 주소' }).click()
+  await expect(page.getByRole('option', { name: '윤미라' })).toBeVisible()
+  await expect(page.getByRole('option', { name: '홈플러스 강동점' })).toBeVisible()
+  await expect(page.getByRole('option', { name: '집' })).toBeVisible()
 })

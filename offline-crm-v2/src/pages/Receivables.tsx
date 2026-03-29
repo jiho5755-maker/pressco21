@@ -1048,8 +1048,8 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     setRefundPendingTarget(null)
   }, [asOfDate])
 
-  const { data: invoices = [], isLoading, isError } = useQuery({
-    queryKey: ['receivables', asOfDate],
+  const { data: invoices = [], isLoading: isInvoicesLoading, isError: isInvoicesError } = useQuery({
+    queryKey: ['receivables'],
     queryFn: () =>
       getAllInvoices({
         where: '(payment_status,eq,unpaid)~or(payment_status,eq,partial)',
@@ -1058,19 +1058,19 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       }),
     staleTime: 2 * 60 * 1000,
   })
-  const { data: customersForLink = [] } = useQuery({
+  const { data: customersForLink = [], isLoading: isCustomersLoading } = useQuery({
     queryKey: ['receivable-link-customers'],
     queryFn: () => getAllCustomers({
       fields: 'Id,name,book_name,legacy_id,mobile,email,business_no,memo,outstanding_balance',
     }),
     staleTime: 10 * 60 * 60 * 1000,
   })
-  const { data: legacySnapshots } = useQuery({
+  const { data: legacySnapshots, isLoading: isLegacySnapshotsLoading } = useQuery({
     queryKey: ['receivable-legacy-snapshots'],
     queryFn: getLegacyCustomerSnapshots,
     staleTime: Infinity,
   })
-  const { data: fiscalSnapshots } = useQuery({
+  const { data: fiscalSnapshots, isLoading: isFiscalSnapshotsLoading } = useQuery({
     queryKey: ['receivable-fiscal-snapshots'],
     queryFn: getFiscalBalanceSnapshots,
     staleTime: Infinity,
@@ -1089,6 +1089,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     staleTime: 10 * 60 * 1000,
   })
   const customerById = new Map(customersForLink.map((customer) => [customer.Id, customer]))
+  const isReferenceDataLoading = isCustomersLoading || isLegacySnapshotsLoading || isFiscalSnapshotsLoading
   const isTodayView = asOfDate === todayDate()
   const resolvedInvoices: ResolvedReceivableInvoice[] = useMemo(
     () => buildResolvedReceivableInvoices(invoices, customersForLink, asOfDate),
@@ -1295,25 +1296,68 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const basisDateToneClass = isTodayView
     ? 'bg-[#f4f7f1] text-[#4f6748]'
     : 'bg-amber-50 text-amber-700'
+  const visibleTabs: Array<{
+    value: 'all' | 'crm' | 'legacy' | 'payable' | 'refund'
+    label: string
+    description: string
+    count: number
+    hint: string
+  }> = [
+    {
+      value: 'all',
+      label: allTabLabel,
+      description: isPayableMode
+        ? '줄 돈과 환불대기를 한 번에 모아서 봅니다.'
+        : '고객별로 기존 장부와 새 입력 미수를 함께 봅니다.',
+      count: primaryResultCount,
+      hint: isPayableMode ? '거래처 행을 눌러 상세 또는 지급 처리로 이어집니다.' : '한 고객의 전체 잔액 흐름을 먼저 파악할 때 적합합니다.',
+    },
+    ...(!isPayableMode
+      ? [
+          {
+            value: 'crm' as const,
+            label: crmTabLabel,
+            description: '새로 발행한 명세표 기준 미수만 따로 봅니다.',
+            count: filteredInvoices.length,
+            hint: isTodayView ? '오늘 기준에서만 바로 입금 확인이 가능합니다.' : '과거 기준일에서는 조회만 가능합니다.',
+          },
+          {
+            value: 'legacy' as const,
+            label: legacyTabLabel,
+            description: '이월된 기존 장부 잔액만 따로 확인합니다.',
+            count: filteredLegacyLedger.length,
+            hint: '레거시 장부 잔액 확인이나 이월 입금 처리 확인에 적합합니다.',
+          },
+        ]
+      : []),
+    {
+      value: 'payable',
+      label: payableTabLabel,
+      description: '고객별 기존 장부 미지급금만 모아서 봅니다.',
+      count: filteredPayableLedger.length,
+      hint: '필요한 경우 고객 상세로 이동해 원본 장부와 함께 확인할 수 있습니다.',
+    },
+    {
+      value: 'refund',
+      label: refundTabLabel,
+      description: '초과 입금 등으로 생긴 환불대기 금액만 봅니다.',
+      count: filteredRefundPendingLedger.length,
+      hint: '환불 처리 버튼으로 바로 정산을 마무리할 수 있습니다.',
+    },
+  ]
+  const activeTabMeta = visibleTabs.find((tab) => tab.value === sourceTab) ?? visibleTabs[0]
 
-  if (isLoading)
+  if (isInvoicesLoading)
     return (
       <div className="p-6 text-muted-foreground">
         불러오는 중...
       </div>
     )
 
-  if (isError)
+  if (isInvoicesError)
     return (
       <div className="p-6 text-red-500">
         데이터를 불러오지 못했습니다.
-      </div>
-    )
-
-  if (!legacySnapshots || !fiscalSnapshots || customersForLink.length === 0)
-    return (
-      <div className="p-6 text-muted-foreground">
-        미수금 기준 고객을 불러오는 중...
       </div>
     )
 
@@ -1447,35 +1491,52 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         </div>
       </div>
 
+      {isReferenceDataLoading && (
+        <div className="mb-4 rounded-lg border border-[#d9e4d5] bg-[#f7faf6] px-4 py-3 text-sm text-muted-foreground">
+          고객 연결과 기존 장부 기준 데이터를 불러오는 중입니다.
+          {!isPayableMode && ' 새 입력 받을 돈 탭은 먼저 확인할 수 있습니다.'}
+        </div>
+      )}
+
       {isPayableMode ? (
         <div className="mb-4 grid gap-3 md:grid-cols-3" data-guide-id="payables-summary">
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{totalSummaryLabel}</p>
-            <p className="mt-1 text-base font-semibold text-blue-700">{filteredTotalOutgoing.toLocaleString()}원</p>
-            <p className="mt-1 text-xs text-muted-foreground">줄 돈 + 환불 예정 합계</p>
+            <p className="mt-1 text-base font-semibold text-blue-700">
+              {isReferenceDataLoading ? '불러오는 중...' : `${filteredTotalOutgoing.toLocaleString()}원`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '고객/장부 기준 정리 중' : '줄 돈 + 환불 예정 합계'}</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{payableSummaryLabel}</p>
-            <p className="mt-1 text-base font-semibold text-blue-700">{filteredPayableTotal.toLocaleString()}원</p>
-            <p className="mt-1 text-xs text-muted-foreground">{filteredPayableLedger.length}개 고객</p>
+            <p className="mt-1 text-base font-semibold text-blue-700">
+              {isReferenceDataLoading ? '불러오는 중...' : `${filteredPayableTotal.toLocaleString()}원`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '지급 대상 계산 중' : `${filteredPayableLedger.length}개 고객`}</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{refundSummaryLabel}</p>
-            <p className="mt-1 text-base font-semibold text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</p>
-            <p className="mt-1 text-xs text-muted-foreground">{filteredRefundPendingLedger.length}개 고객</p>
+            <p className="mt-1 text-base font-semibold text-amber-700">
+              {isReferenceDataLoading ? '불러오는 중...' : `${filteredRefundPendingTotal.toLocaleString()}원`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '환불대기 계산 중' : `${filteredRefundPendingLedger.length}개 고객`}</p>
           </div>
         </div>
       ) : (
         <div className="mb-4 grid gap-3 md:grid-cols-5" data-guide-id="receivables-summary">
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{totalSummaryLabel}</p>
-            <p className="mt-1 text-base font-semibold text-red-600">{filteredTotalReceivable.toLocaleString()}원</p>
-            <p className="mt-1 text-xs text-muted-foreground">기존 장부 + 새 입력 합산</p>
+            <p className="mt-1 text-base font-semibold text-red-600">
+              {isReferenceDataLoading ? '불러오는 중...' : `${filteredTotalReceivable.toLocaleString()}원`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '기존 장부 연결 중' : '기존 장부 + 새 입력 합산'}</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{legacySummaryLabel}</p>
-            <p className="mt-1 text-base font-semibold text-red-600">{filteredLegacyTotal.toLocaleString()}원</p>
-            <p className="mt-1 text-xs text-muted-foreground">{filteredLegacyLedger.length}개 고객</p>
+            <p className="mt-1 text-base font-semibold text-red-600">
+              {isReferenceDataLoading ? '불러오는 중...' : `${filteredLegacyTotal.toLocaleString()}원`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '이월 미수 계산 중' : `${filteredLegacyLedger.length}개 고객`}</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{crmSummaryLabel}</p>
@@ -1484,18 +1545,22 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{payableSummaryLabel}</p>
-            <p className="mt-1 text-base font-semibold text-blue-700">{filteredPayableTotal.toLocaleString()}원</p>
-            <p className="mt-1 text-xs text-muted-foreground">{filteredPayableLedger.length}개 고객</p>
+            <p className="mt-1 text-base font-semibold text-blue-700">
+              {isReferenceDataLoading ? '불러오는 중...' : `${filteredPayableTotal.toLocaleString()}원`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '미지급금 계산 중' : `${filteredPayableLedger.length}개 고객`}</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{refundSummaryLabel}</p>
-            <p className="mt-1 text-base font-semibold text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</p>
-            <p className="mt-1 text-xs text-muted-foreground">{filteredRefundPendingLedger.length}개 고객</p>
+            <p className="mt-1 text-base font-semibold text-amber-700">
+              {isReferenceDataLoading ? '불러오는 중...' : `${filteredRefundPendingTotal.toLocaleString()}원`}
+            </p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '환불대기 계산 중' : `${filteredRefundPendingLedger.length}개 고객`}</p>
           </div>
         </div>
       )}
 
-      {customerBreakdown && (
+      {customerBreakdown && !isReferenceDataLoading && (
         isPayableMode ? (
           <div className="mb-4 grid gap-3 md:grid-cols-3">
             <div className="rounded-lg border bg-white px-4 py-3">
@@ -1560,7 +1625,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         )
       )}
 
-      {!isPayableMode && (receivableLinkSummary.orphanCount > 0 || receivableLinkSummary.splitCount > 0) && (
+      {!isPayableMode && !isReferenceDataLoading && (receivableLinkSummary.orphanCount > 0 || receivableLinkSummary.splitCount > 0) && (
         <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-900">
           {receivableLinkSummary.orphanCount > 0 && (
             <div>고객관리 연결이 없는 분리 거래명 미수 {receivableLinkSummary.orphanCount}건</div>
@@ -1582,16 +1647,64 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           setSearchParams(nextParams, { replace: true })
         }}
       >
-        <TabsList className="mb-4" data-guide-id="receivables-tabs">
-          <TabsTrigger value="all">{allTabLabel}</TabsTrigger>
-          {!isPayableMode && <TabsTrigger value="crm">{crmTabLabel}</TabsTrigger>}
-          {!isPayableMode && <TabsTrigger value="legacy">{legacyTabLabel}</TabsTrigger>}
-          <TabsTrigger value="payable">{payableTabLabel}</TabsTrigger>
-          <TabsTrigger value="refund">{refundTabLabel}</TabsTrigger>
-        </TabsList>
+        <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">정산 구간</p>
+                <p className="text-xs text-muted-foreground">
+                  전체 흐름을 먼저 보고, 필요하면 탭으로 범위를 좁혀서 확인하세요.
+                </p>
+              </div>
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="rounded-full bg-[#f7f5ef] px-3 py-1 font-medium text-[#836b2c]">
+                  {isReferenceDataLoading && activeTabMeta.value !== 'crm'
+                    ? '연결 데이터 준비 중'
+                    : `${activeTabMeta.label} ${activeTabMeta.count.toLocaleString()}건`}
+                </span>
+                <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
+                  기준일 {asOfDate}
+                </span>
+              </div>
+            </div>
+
+            <TabsList className="h-auto flex-wrap justify-start gap-2 bg-transparent p-0" data-guide-id="receivables-tabs">
+              {visibleTabs.map((tab) => (
+                <TabsTrigger
+                  key={tab.value}
+                  value={tab.value}
+                  className="rounded-full border bg-white px-3 py-1.5 text-xs text-muted-foreground shadow-none data-[state=active]:border-[#7d9675] data-[state=active]:bg-[#f4f7f1] data-[state=active]:text-[#4f6748]"
+                >
+                  {tab.label}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+
+            <div className="rounded-lg border border-[#e8eee4] bg-[#f9fbf7] px-4 py-3">
+              <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">{activeTabMeta.label}</p>
+                  <p className="text-xs text-muted-foreground">{activeTabMeta.description}</p>
+                </div>
+                <div className="text-xs text-muted-foreground lg:max-w-[360px]">
+                  {activeTabMeta.hint}
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
 
         <TabsContent value="all" className="space-y-4">
-          {isPayableMode ? (
+          <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
+            {isPayableMode
+              ? '거래처 기준으로 줄 돈과 환불대기를 함께 보여주며, 우측 버튼에서 실제 처리로 이어집니다.'
+              : '거래처별 이월 잔액과 새 입력 미수를 함께 보여줘 현재 총 잔액을 가장 빠르게 파악할 수 있습니다.'}
+          </div>
+          {isReferenceDataLoading ? (
+            <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
+              고객 연결과 기존 장부 기준을 정리하는 중입니다.
+            </div>
+          ) : isPayableMode ? (
             <div className="rounded-lg border bg-white overflow-hidden" data-guide-id="payables-table">
               <table className="w-full text-sm">
                 <thead>
@@ -1724,6 +1837,9 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         </TabsContent>
 
         <TabsContent value="crm" className="space-y-4">
+          <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
+            발행번호 기준으로 미수 명세표를 직접 확인하는 영역입니다. 경과일이 길수록 색이 진하게 표시되고, 오늘 기준에서만 바로 입금 확인을 진행할 수 있습니다.
+          </div>
           <div className="rounded-lg border bg-white overflow-hidden">
             <div className="px-4 py-3 border-b bg-gray-50">
               <span className="text-sm font-medium">에이징 분석</span>
@@ -1848,191 +1964,218 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           )}
         </TabsContent>
 
-        <TabsContent value="legacy">
-          <div className="rounded-lg border bg-white overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부 미수금</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
-                  <th className="w-28" />
-                </tr>
-              </thead>
-              <tbody>
-                {filteredLegacyLedger.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
-                      기존 장부 미수 고객이 없습니다.
-                    </td>
-                  </tr>
-                )}
-                {filteredLegacyLedger.map((entry) => (
-                  <tr
-                    key={entry.customerId}
-                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => navigate(`/customers/${entry.customerId}`)}
-                  >
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium">{entry.customerName}</div>
-                      {entry.aliases.length > 0 && (
-                        <div className="mt-0.5 text-xs text-amber-700">
-                          분리 거래명: {entry.aliases.join(', ')}
-                        </div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-right font-medium text-red-600">
-                      {entry.legacyBaseline.toLocaleString()}원
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {entry.crmRemaining > 0 ? `새 입력 미수 ${entry.crmRemaining.toLocaleString()}원 별도 보유` : '기존 장부 기준'}
-                    </td>
-                    <td className="px-4 py-2.5">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          const customer = customerById.get(entry.customerId)
-                          if (!customer) {
-                            toast.error('고객 정보를 찾을 수 없습니다.')
-                            return
-                          }
-                          setLegacyPaymentTarget({ customer, ledger: entry })
-                        }}
-                      >
-                        입금 확인
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <TabsContent value="legacy" className="space-y-4">
+          <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
+            새 명세표와 분리해서, 예전 장부에서 넘어온 이월 미수만 따로 보는 영역입니다.
           </div>
+          {isReferenceDataLoading ? (
+            <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
+              기존 장부 기준 고객 데이터를 불러오는 중입니다.
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-white overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부 미수금</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
+                    <th className="w-28" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredLegacyLedger.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+                        기존 장부 미수 고객이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                  {filteredLegacyLedger.map((entry) => (
+                    <tr
+                      key={entry.customerId}
+                      className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => navigate(`/customers/${entry.customerId}`)}
+                    >
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium">{entry.customerName}</div>
+                        {entry.aliases.length > 0 && (
+                          <div className="mt-0.5 text-xs text-amber-700">
+                            분리 거래명: {entry.aliases.join(', ')}
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium text-red-600">
+                        {entry.legacyBaseline.toLocaleString()}원
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {entry.crmRemaining > 0 ? `새 입력 미수 ${entry.crmRemaining.toLocaleString()}원 별도 보유` : '기존 장부 기준'}
+                      </td>
+                      <td className="px-4 py-2.5">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            const customer = customerById.get(entry.customerId)
+                            if (!customer) {
+                              toast.error('고객 정보를 찾을 수 없습니다.')
+                              return
+                            }
+                            setLegacyPaymentTarget({ customer, ledger: entry })
+                          }}
+                        >
+                          입금 확인
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="payable">
-          <div className="rounded-lg border bg-white overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부 미지급금</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
-                  <th className="w-28" />
-                </tr>
-              </thead>
-              <tbody>
-                {filteredPayableLedger.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
-                      기존 장부 미지급금 고객이 없습니다.
-                    </td>
-                  </tr>
-                )}
-                {filteredPayableLedger.map((entry) => (
-                  <tr
-                    key={entry.legacyId}
-                    className={`border-b last:border-b-0 hover:bg-gray-50 ${entry.customerId ? 'cursor-pointer' : ''}`}
-                    onClick={() => {
-                      if (entry.customerId) navigate(`/customers/${entry.customerId}`)
-                    }}
-                  >
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium">{entry.customerName}</div>
-                      {entry.bookName && entry.bookName !== entry.customerName && (
-                        <div className="mt-0.5 text-xs text-muted-foreground">{entry.bookName}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-right font-medium text-blue-700">
-                      {entry.payableAmount.toLocaleString()}원
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      {entry.customerId ? '고객 상세에서 원본 장부와 같이 확인' : '고객관리 연결 없음'}
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        disabled={!entry.customerId}
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          if (!entry.customerId) return
-                          const customer = customerById.get(entry.customerId)
-                          if (!customer) {
-                            toast.error('고객 정보를 찾을 수 없습니다.')
-                            return
-                          }
-                          setLegacyPayableTarget({ customer, payableAmount: entry.payableAmount })
-                        }}
-                      >
-                        지급 확인
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <TabsContent value="payable" className="space-y-4">
+          <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
+            고객에게 돌려줘야 하거나 지급해야 하는 기존 장부 금액만 모아 봅니다. 고객 연결이 있으면 상세 화면으로 바로 이어집니다.
           </div>
+          {isReferenceDataLoading ? (
+            <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
+              지급 예정 고객 데이터를 불러오는 중입니다.
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-white overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부 미지급금</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
+                    <th className="w-28" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredPayableLedger.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+                        기존 장부 미지급금 고객이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                  {filteredPayableLedger.map((entry) => (
+                    <tr
+                      key={entry.legacyId}
+                      className={`border-b last:border-b-0 hover:bg-gray-50 ${entry.customerId ? 'cursor-pointer' : ''}`}
+                      onClick={() => {
+                        if (entry.customerId) navigate(`/customers/${entry.customerId}`)
+                      }}
+                    >
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium">{entry.customerName}</div>
+                        {entry.bookName && entry.bookName !== entry.customerName && (
+                          <div className="mt-0.5 text-xs text-muted-foreground">{entry.bookName}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium text-blue-700">
+                        {entry.payableAmount.toLocaleString()}원
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        {entry.customerId ? '고객 상세에서 원본 장부와 같이 확인' : '고객관리 연결 없음'}
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          disabled={!entry.customerId}
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            if (!entry.customerId) return
+                            const customer = customerById.get(entry.customerId)
+                            if (!customer) {
+                              toast.error('고객 정보를 찾을 수 없습니다.')
+                              return
+                            }
+                            setLegacyPayableTarget({ customer, payableAmount: entry.payableAmount })
+                          }}
+                        >
+                          지급 확인
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </TabsContent>
 
-        <TabsContent value="refund">
-          <div className="rounded-lg border bg-white overflow-hidden">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground">환불대기 금액</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
-                  <th className="w-36" />
-                </tr>
-              </thead>
-              <tbody>
-                {filteredRefundPendingLedger.length === 0 && (
-                  <tr>
-                    <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
-                      환불대기 건이 없습니다.
-                    </td>
-                  </tr>
-                )}
-                {filteredRefundPendingLedger.map((entry) => (
-                  <tr
-                    key={entry.customer.Id}
-                    className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
-                    onClick={() => navigate(`/customers/${entry.customer.Id}`)}
-                  >
-                    <td className="px-4 py-2.5">
-                      <div className="font-medium">{entry.customer.name}</div>
-                      {entry.customer.book_name && entry.customer.book_name !== entry.customer.name && (
-                        <div className="mt-0.5 text-xs text-muted-foreground">{entry.customer.book_name as string}</div>
-                      )}
-                    </td>
-                    <td className="px-4 py-2.5 text-right font-medium text-amber-700">
-                      {entry.refundPendingAmount.toLocaleString()}원
-                    </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                      초과 입금 또는 정산 조정으로 생성된 대기 금액
-                    </td>
-                    <td className="px-4 py-2.5 text-right">
-                      <Button
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                        onClick={(event) => {
-                          event.stopPropagation()
-                          setRefundPendingTarget(entry)
-                        }}
-                      >
-                        환불 처리
-                      </Button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+        <TabsContent value="refund" className="space-y-4">
+          <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
+            초과 입금이나 정산 조정으로 생긴 환불대기 금액만 모아 관리하는 영역입니다.
           </div>
+          {isReferenceDataLoading ? (
+            <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
+              환불대기 고객 데이터를 불러오는 중입니다.
+            </div>
+          ) : (
+            <div className="rounded-lg border bg-white overflow-hidden">
+              <table className="w-full text-sm">
+                <thead>
+                  <tr className="border-b bg-gray-50">
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
+                    <th className="text-right px-4 py-3 font-medium text-muted-foreground">환불대기 금액</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
+                    <th className="w-36" />
+                  </tr>
+                </thead>
+                <tbody>
+                  {filteredRefundPendingLedger.length === 0 && (
+                    <tr>
+                      <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+                        환불대기 건이 없습니다.
+                      </td>
+                    </tr>
+                  )}
+                  {filteredRefundPendingLedger.map((entry) => (
+                    <tr
+                      key={entry.customer.Id}
+                      className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                      onClick={() => navigate(`/customers/${entry.customer.Id}`)}
+                    >
+                      <td className="px-4 py-2.5">
+                        <div className="font-medium">{entry.customer.name}</div>
+                        {entry.customer.book_name && entry.customer.book_name !== entry.customer.name && (
+                          <div className="mt-0.5 text-xs text-muted-foreground">{entry.customer.book_name as string}</div>
+                        )}
+                      </td>
+                      <td className="px-4 py-2.5 text-right font-medium text-amber-700">
+                        {entry.refundPendingAmount.toLocaleString()}원
+                      </td>
+                      <td className="px-4 py-2.5 text-xs text-muted-foreground">
+                        초과 입금 또는 정산 조정으로 생성된 대기 금액
+                      </td>
+                      <td className="px-4 py-2.5 text-right">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs"
+                          onClick={(event) => {
+                            event.stopPropagation()
+                            setRefundPendingTarget(entry)
+                          }}
+                        >
+                          환불 처리
+                        </Button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
         </TabsContent>
       </Tabs>
 

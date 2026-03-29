@@ -13,7 +13,11 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 TIMESTAMP="$(date +%Y%m%d%H%M%S)"
 GIT_SHA="$(git -C "$PROJECT_DIR" rev-parse --short HEAD)"
-RELEASE_ID="${TIMESTAMP}-${GIT_SHA}"
+DIRTY_SUFFIX=""
+if [ -n "$(git -C "$PROJECT_DIR" status --porcelain --untracked-files=no)" ]; then
+  DIRTY_SUFFIX="-dirty"
+fi
+RELEASE_ID="${TIMESTAMP}-${GIT_SHA}${DIRTY_SUFFIX}"
 REMOTE_RELEASE_DIR="${REMOTE_RELEASE_ROOT}/${RELEASE_ID}"
 
 echo "=== PRESSCO21 CRM v2 릴리스 배포 시작 ==="

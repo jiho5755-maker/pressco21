@@ -445,6 +445,7 @@ function buildEstimatePageHtml(
     '<thead><tr><th style="width:6%">No</th><th style="width:34%">품명</th><th style="width:8%">단위</th><th style="width:8%">수량</th><th style="width:12%">단가</th><th style="width:12%">공급가액</th><th style="width:8%">세액</th><th style="width:12%">합계</th></tr></thead>' +
     `<tbody>${itemRowsHtml}</tbody>` +
     '</table>' +
+    '<div class="est-footer">' +
     (opts.isLast
       ? '<div class="est-bottom">' +
         '<div class="est-note-block">' +
@@ -469,6 +470,7 @@ function buildEstimatePageHtml(
         '</div>' +
         '</div>'
       : '<div class="est-continue">다음 페이지에 품목이 계속됩니다.</div>') +
+    '</div>' +
     '</div>' +
     '</section>'
   )
@@ -614,12 +616,15 @@ const ESTIMATE_CSS = [
   '.est-meta span { color:#6b7280; }',
   '.est-party-table, .est-items-table, .est-summary-table { width:100%; border-collapse:collapse; }',
   '.est-party-table { margin-bottom:8px; }',
-  '.est-party-table th, .est-party-table td, .est-items-table th, .est-items-table td, .est-summary-table th, .est-summary-table td { border:1px solid #9ca3af; padding:4px 5px; font-size:8pt; }',
+  '.est-party-table th, .est-party-table td, .est-summary-table th, .est-summary-table td { border:1px solid #9ca3af; padding:4px 5px; font-size:8pt; }',
+  '.est-items-table th, .est-items-table td { border:1px solid #9ca3af; font-size:7.7pt; }',
+  '.est-items-table th { padding:3px 4px; line-height:1.15; }',
+  '.est-items-table td { padding:2px 4px; line-height:1.15; height:22px; }',
   '.est-party-table th, .est-items-table th, .est-summary-table th, .est-label { background:#f3f4f6; font-weight:700; }',
-  '.est-items-table { flex:1; }',
-  '.est-items-table td:nth-child(2) { font-weight:600; }',
-  '.est-blank td { height:22px; }',
-  '.est-bottom { display:grid; grid-template-columns: 1fr 170px; gap:10px; margin-top:8px; }',
+  '.est-items-table td:nth-child(2) { font-weight:600; font-size:7.9pt; }',
+  '.est-blank td { height:14px; padding:0; }',
+  '.est-footer { margin-top:auto; padding-top:8px; }',
+  '.est-bottom { display:grid; grid-template-columns: 1fr 170px; gap:10px; }',
   '.est-note-block { border:1px solid #9ca3af; min-height:76px; }',
   '.est-note-title { background:#f3f4f6; border-bottom:1px solid #9ca3af; padding:4px 6px; font-size:8pt; font-weight:700; }',
   '.est-note-text { padding:6px; font-size:8pt; line-height:1.5; white-space:pre-wrap; }',
@@ -628,7 +633,7 @@ const ESTIMATE_CSS = [
   '.est-summary-table td { text-align:right; font-weight:700; }',
   '.est-grand-row th, .est-grand-row td { background:#edf6ea; font-size:9pt; }',
   '.est-bank { border:1px solid #9ca3af; padding:6px; font-size:7.8pt; line-height:1.4; }',
-  '.est-signature { margin-top:10px; display:flex; justify-content:space-between; align-items:flex-end; font-size:8.2pt; }',
+  '.est-signature { margin-top:8px; display:flex; justify-content:space-between; align-items:flex-end; font-size:8.2pt; }',
   '.est-signature-right { display:flex; align-items:flex-end; gap:6px; }',
   '.est-signature-label { font-weight:700; }',
   '.est-signature-name { min-width:56px; text-align:center; border-bottom:1px solid #6b7280; }',

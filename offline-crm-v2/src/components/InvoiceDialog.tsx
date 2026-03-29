@@ -1705,9 +1705,23 @@ export function InvoiceDialog({
           </div>
 
           {/* ─── 입금 + 미수금 ─── */}
-          <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-3">
-              <div className="grid grid-cols-2 gap-2">
+          <div className="grid grid-cols-1 gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+            <div className="rounded-lg border bg-white p-4">
+              <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-medium">입금 처리</p>
+                  <p className="text-[11px] text-muted-foreground">
+                    실제 받은 금액과 수단만 입력하면 잔액은 오른쪽에서 자동 계산됩니다.
+                  </p>
+                </div>
+                {selectedCustomer && appliedDeposit > 0 && (
+                  <span className="rounded-full bg-[#edf6ea] px-2.5 py-1 text-[11px] text-[#3d6b4a]">
+                    예치금 {appliedDeposit.toLocaleString()}원 사용 중
+                  </span>
+                )}
+              </div>
+
+              <div className="mt-3 grid grid-cols-1 gap-3 md:grid-cols-2">
                 <div>
                   <Label className="text-xs">입금액</Label>
                   <Input
@@ -1737,24 +1751,42 @@ export function InvoiceDialog({
               </div>
             </div>
 
-            <div className="bg-gray-50 rounded-md p-3 space-y-1 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground text-xs">전잔액</span>
-                <span>{prevBal.toLocaleString()}원</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground text-xs">출고액</span>
-                <span>{grandTotal.toLocaleString()}원</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground text-xs">입금액</span>
-                <span>-{paidAmt.toLocaleString()}원</span>
-              </div>
-              <div className="flex justify-between border-t pt-1 mt-1">
-                <span className="text-xs font-medium">현잔액</span>
-                <span className={`font-bold ${curBal > 0 ? 'text-red-600' : 'text-green-600'}`}>
-                  {curBal.toLocaleString()}원
-                </span>
+            <div className="rounded-lg border bg-gray-50 p-4">
+              <p className="text-sm font-medium">잔액 계산</p>
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                전잔액과 이번 출고액에서 입금액, 예치금 사용액을 차감한 결과입니다.
+              </p>
+
+              <div className="mt-3 space-y-2 text-sm">
+                <div className="flex items-center justify-between rounded-md bg-white px-3 py-2">
+                  <span className="text-xs text-muted-foreground">전잔액</span>
+                  <span>{prevBal.toLocaleString()}원</span>
+                </div>
+                <div className="flex items-center justify-between rounded-md bg-white px-3 py-2">
+                  <span className="text-xs text-muted-foreground">이번 출고액</span>
+                  <span>+ {grandTotal.toLocaleString()}원</span>
+                </div>
+                <div className="flex items-center justify-between rounded-md bg-white px-3 py-2">
+                  <span className="text-xs text-muted-foreground">입금액</span>
+                  <span>- {paidAmt.toLocaleString()}원</span>
+                </div>
+                {selectedCustomer && (
+                  <div className="flex items-center justify-between rounded-md bg-white px-3 py-2">
+                    <span className="text-xs text-muted-foreground">예치금 사용</span>
+                    <span>- {appliedDeposit.toLocaleString()}원</span>
+                  </div>
+                )}
+                <div className={`rounded-md px-3 py-3 ${curBal > 0 ? 'bg-[#fff1f2]' : 'bg-[#edf6ea]'}`}>
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium">현잔액</span>
+                    <span className={`text-lg font-bold ${curBal > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                      {curBal.toLocaleString()}원
+                    </span>
+                  </div>
+                  <p className={`mt-1 text-[11px] ${curBal > 0 ? 'text-red-500' : 'text-green-700/80'}`}>
+                    {curBal > 0 ? '미수금이 남아 있습니다.' : '즉시 정산 가능한 상태입니다.'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>

@@ -49,15 +49,16 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: —
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-29 21:02:00 KST
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: offline-crm-v2 명세표 작성 화면 입금/잔액 블록 UX 개선
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
-- 없음
+- offline-crm-v2/src/components/InvoiceDialog.tsx
+- offline-crm-v2/../AI_SYNC.md
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -90,6 +91,15 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- offline-crm-v2 명세표 작성 다이얼로그의 하단 `입금/잔액` 블록을 계산 근거가 보이도록 재구성했다.
+  - `src/components/InvoiceDialog.tsx`
+  - 왼쪽은 `입금 처리` 입력 카드, 오른쪽은 `잔액 계산` 카드로 분리했다.
+  - 잔액 계산 카드에 `전잔액 / 이번 출고액 / 입금액 / 예치금 사용 / 현잔액`을 모두 표시해 계산식이 바로 보이게 했다.
+  - 예치금을 쓰는 경우 상단 안내 배지와 계산 항목이 같이 보여 실제 반영 금액을 혼동하지 않게 했다.
+- 검증
+  - 로컬 브라우저에서 `/invoices?from=2026-03-27&to=2026-03-27` → 수정 다이얼로그 하단 블록 확인
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
 - offline-crm-v2 명세표 작성 다이얼로그 상단 UX를 입력 순서 기준으로 정리했다.
   - `src/components/InvoiceDialog.tsx`
   - 다이얼로그를 `헤더 고정 + 본문 스크롤` 구조로 바꿔 상단과 본문 경계를 분명히 했다.
@@ -210,7 +220,8 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
-- 명세표 작성 다이얼로그의 하단 `입금/잔액` 블록도 같은 기준으로 정보 위계를 다시 정리한다.
+- 명세표 작성 다이얼로그의 저장/인쇄 액션 버튼 위계도 같은 기준으로 정리할지 검토한다.
+- 실제 운영 데이터 기준으로 예치금 사용 고객 1건을 열어 계산 표시가 직원 눈높이에 맞는지 한 번 더 확인한다.
 - 명세표 품목 테이블에서 모바일 또는 좁은 폭 대응이 더 필요한지 확인한다.
 - 견적서와 거래명세표 인쇄물을 분리된 UX 개선 트랙으로 관리한다.
 - 인쇄 회귀까지 잡을 수 있게 견적서 미리보기 스냅샷 또는 DOM 기반 검증을 추가할지 결정한다.

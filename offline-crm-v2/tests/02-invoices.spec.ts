@@ -57,7 +57,7 @@ test('T2-01: 거래명세표 페이지 접속 및 헤더 확인', async ({ page 
 
   // "새 명세표" 버튼과 송장 엑셀 버튼 표시 확인
   await expect(page.getByRole('button', { name: /새 명세표/ })).toBeVisible()
-  await expect(page.getByRole('button', { name: /택배 송장 자동 다운로드/ })).toBeVisible()
+  await expect(page.getByRole('button', { name: /송장 엑셀|택배 송장 자동 다운로드/ })).toBeVisible()
 
   const today = getTodayDateString()
   const pageDateInputs = page.locator('main input[type="date"]')

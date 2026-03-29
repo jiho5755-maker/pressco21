@@ -524,7 +524,7 @@ export function Invoices() {
             className="gap-1"
           >
             <Download className="h-4 w-4" />
-            {isCourierExporting ? '생성 중...' : '택배 송장 자동 다운로드'}
+            {isCourierExporting ? '생성 중...' : '송장 엑셀'}
           </Button>
           <Button
             onClick={() => openCreate((dateFrom && dateFrom === dateTo) ? dateFrom : today)}
@@ -638,8 +638,10 @@ export function Invoices() {
                   초기화
                 </Button>
               ) : (
-                <div className="w-full rounded-lg border border-dashed px-3 py-2 text-center text-xs text-muted-foreground">
-                  기본 조회 상태
+                <div className="flex h-full w-full items-end xl:justify-end">
+                  <span className="rounded-full bg-muted px-3 py-2 text-xs text-muted-foreground">
+                    기본 조회
+                  </span>
                 </div>
               )}
             </div>
@@ -734,22 +736,30 @@ export function Invoices() {
                 ) : null}
               </button>
 
-              <div className="mt-3 grid gap-2 rounded-lg bg-[#f8faf7] p-3 text-[11px] sm:grid-cols-2">
-                <div>
-                  <div className="text-muted-foreground">공급</div>
-                  <div className="mt-1 font-medium text-foreground">{formatAmount(inv.supply_amount)}</div>
+              <div className="mt-3 rounded-lg bg-[#f8faf7] p-3">
+                <div className="grid grid-cols-2 gap-3 text-[11px]">
+                  <div>
+                    <div className="text-muted-foreground">합계</div>
+                    <div className="mt-1 text-sm font-semibold text-foreground">{formatAmount(inv.total_amount)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">잔액</div>
+                    <div className="mt-1 text-sm font-semibold text-foreground">{formatAmount(outstandingAmount)}</div>
+                  </div>
                 </div>
-                <div>
-                  <div className="text-muted-foreground">세액</div>
-                  <div className="mt-1 font-medium text-foreground">{formatAmount(inv.tax_amount)}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">입금</div>
-                  <div className="mt-1 font-medium text-foreground">{formatAmount(inv.paid_amount && inv.paid_amount > 0 ? inv.paid_amount : null)}</div>
-                </div>
-                <div>
-                  <div className="text-muted-foreground">잔액</div>
-                  <div className="mt-1 font-medium text-foreground">{formatAmount(outstandingAmount)}</div>
+                <div className="mt-3 grid grid-cols-3 gap-3 text-[11px]">
+                  <div>
+                    <div className="text-muted-foreground">공급가액</div>
+                    <div className="mt-1 font-medium text-foreground">{formatAmount(inv.supply_amount)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">세액</div>
+                    <div className="mt-1 font-medium text-foreground">{formatAmount(inv.tax_amount)}</div>
+                  </div>
+                  <div>
+                    <div className="text-muted-foreground">입금액</div>
+                    <div className="mt-1 font-medium text-foreground">{formatAmount(inv.paid_amount && inv.paid_amount > 0 ? inv.paid_amount : null)}</div>
+                  </div>
                 </div>
               </div>
 
@@ -781,32 +791,35 @@ export function Invoices() {
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 justify-center rounded-lg bg-gray-50"
+                    className="h-8 justify-center gap-1 rounded-lg bg-gray-50 text-xs"
                     title="수정"
                     onClick={(e) => { e.stopPropagation(); openEdit(inv.Id) }}
                   >
                     <Pencil className="h-3.5 w-3.5" />
+                    <span>수정</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 justify-center rounded-lg bg-gray-50"
+                    className="h-8 justify-center gap-1 rounded-lg bg-gray-50 text-xs"
                     title="복사"
                     onClick={(e) => { e.stopPropagation(); openCopy(inv.Id) }}
                   >
                     <Copy className="h-3.5 w-3.5" />
+                    <span>복사</span>
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-8 justify-center rounded-lg bg-gray-50 text-red-400 hover:text-red-600"
+                    className="h-8 justify-center gap-1 rounded-lg bg-gray-50 text-xs text-red-400 hover:text-red-600"
                     title="삭제"
                     disabled={isDeleting}
                     onClick={(e) => { e.stopPropagation(); void handleDelete(inv) }}
                   >
                     <Trash2 className="h-3.5 w-3.5" />
+                    <span>삭제</span>
                   </Button>
-                  </div>
+                </div>
               </div>
             </div>
           )

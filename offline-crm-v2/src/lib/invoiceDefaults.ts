@@ -1,15 +1,23 @@
-export const DEFAULT_RECEIPT_TYPE = '거래명세표'
+export const DEFAULT_RECEIPT_TYPE = '청구'
 
 export const RECEIPT_TYPE_OPTIONS = [
-  { value: '거래명세표', label: '거래명세표' },
-  { value: '견적서', label: '견적서' },
-  { value: '영수', label: '영수' },
   { value: '청구', label: '청구' },
-  { value: '영수(청구)', label: '영수(청구)' },
+  { value: '영수', label: '영수' },
 ] as const
 
 export const RECEIPT_TYPE_VALUES = RECEIPT_TYPE_OPTIONS.map((option) => option.value)
 
-export function isEstimateReceiptType(value?: string | null): boolean {
-  return value === '견적서'
+const RECEIPT_TYPE_SET = new Set<string>(RECEIPT_TYPE_VALUES)
+const LEGACY_RECEIPT_TYPE_MAP: Record<string, string> = {
+  거래명세표: '청구',
+  견적서: '청구',
+  '영수(청구)': '청구',
+}
+
+export function normalizeReceiptTypeValue(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  if (!trimmed) return undefined
+  if (RECEIPT_TYPE_SET.has(trimmed)) return trimmed
+  return LEGACY_RECEIPT_TYPE_MAP[trimmed]
 }

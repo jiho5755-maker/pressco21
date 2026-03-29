@@ -31,7 +31,7 @@ import {
 import type { Invoice, Customer, Product } from '@/lib/api'
 import { buildDuplexBlobUrl, getPreviewPageCount } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
-import { DEFAULT_RECEIPT_TYPE, isEstimateReceiptType, RECEIPT_TYPE_OPTIONS } from '@/lib/invoiceDefaults'
+import { DEFAULT_RECEIPT_TYPE, normalizeReceiptTypeValue, RECEIPT_TYPE_OPTIONS } from '@/lib/invoiceDefaults'
 import { loadDefaultTaxableSetting } from '@/lib/settings'
 import { formatBusinessNumber, formatPhoneNumber, normalizeDateInput } from '@/lib/formatters'
 import { ProductPickerDialog } from '@/components/ProductPickerDialog'
@@ -170,6 +170,10 @@ function normalizeInvoiceDate(value?: string): string {
   const normalized = normalizeDateInput(value)
   if (/^\d{4}-\d{2}-\d{2}$/.test(normalized)) return normalized
   return today()
+}
+
+function normalizeReceiptType(value?: string | null): string {
+  return normalizeReceiptTypeValue(value) ?? DEFAULT_RECEIPT_TYPE
 }
 
 function generateInvoiceNo(): string {
@@ -319,7 +323,7 @@ export function InvoiceDialog({
   const [form, setForm] = useState<Partial<Invoice>>({
     invoice_date: normalizeInvoiceDate(initialInvoiceDate),
     invoice_no: generateInvoiceNo(),
-    receipt_type: DEFAULT_RECEIPT_TYPE,
+    receipt_type: normalizeReceiptType(DEFAULT_RECEIPT_TYPE),
     previous_balance: 0,
     paid_amount: 0,
     payment_method: '현금',
@@ -486,7 +490,7 @@ export function InvoiceDialog({
       setForm({
         invoice_date: normalizeInvoiceDate(initialInvoiceDate),
         invoice_no: generateInvoiceNo(),
-        receipt_type: DEFAULT_RECEIPT_TYPE,
+        receipt_type: normalizeReceiptType(DEFAULT_RECEIPT_TYPE),
         previous_balance: 0,
         paid_amount: 0,
         payment_method: '현금',
@@ -506,7 +510,7 @@ export function InvoiceDialog({
     if (existingInvoice) {
       const normalizedExistingInvoice = {
         ...existingInvoice,
-        receipt_type: existingInvoice.receipt_type ?? DEFAULT_RECEIPT_TYPE,
+        receipt_type: normalizeReceiptType(existingInvoice.receipt_type),
       }
       if (isCopy) {
         // 복사: 새 번호 + 오늘 날짜, 수금 초기화
@@ -889,7 +893,7 @@ export function InvoiceDialog({
     setForm({
       invoice_date: draft.form.invoice_date ?? today(),
       invoice_no: draft.form.invoice_no ?? generateInvoiceNo(),
-      receipt_type: draft.form.receipt_type ?? DEFAULT_RECEIPT_TYPE,
+      receipt_type: normalizeReceiptType(draft.form.receipt_type as string | undefined),
       previous_balance: draft.form.previous_balance ?? 0,
       paid_amount: draft.form.paid_amount ?? 0,
       payment_method: draft.form.payment_method ?? '현금',
@@ -945,6 +949,7 @@ export function InvoiceDialog({
       })
       const invoicePayload: Partial<Invoice> = {
         ...form,
+        receipt_type: normalizeReceiptType(form.receipt_type as string | undefined),
         ...(customerSnapshot ?? {}),
         customer_name: customerInput || customerSnapshot?.customer_name || form.customer_name,
         supply_amount: supplyTotal,
@@ -1069,7 +1074,7 @@ export function InvoiceDialog({
       inv: {
         invoice_no: form.invoice_no,
         invoice_date: form.invoice_date,
-        receipt_type: form.receipt_type ?? DEFAULT_RECEIPT_TYPE,
+        receipt_type: normalizeReceiptType(form.receipt_type as string | undefined),
         customer_name: customerInput || customerSnapshot?.customer_name || form.customer_name,
         customer_phone: customerSnapshot?.customer_phone ?? (form.customer_phone as string),
         customer_address: customerSnapshot?.customer_address ?? (form.customer_address as string),
@@ -1100,7 +1105,7 @@ export function InvoiceDialog({
   function handlePreview() {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     const { inv, rows } = buildPrintData()
-    const documentType = isEstimateReceiptType(inv.receipt_type) ? 'estimate' : 'invoice'
+    const documentType = 'invoice'
     const url = buildDuplexBlobUrl(inv, rows, { documentType })
     setPreviewUrl(url)
     setPreviewPages(getPreviewPageCount(rows.length, documentType))
@@ -1121,7 +1126,7 @@ export function InvoiceDialog({
     previewIframeRef.current?.contentWindow?.print()
   }
 
-  const titleLabel = isCopy ? '명세표 복사' : invoiceId ? '명세표 수정' : '새 거래명세표'
+  const titleLabel = isCopy ? '명세표 복사' : invoiceId ? '명세표 수정' : '새 명세표'
   const recentCustomerOptions: RecentCustomerOption[] = []
   const recentSeen = new Set<string>()
   for (const inv of recentCustomerInvoices?.list ?? []) {
@@ -1154,6 +1159,7 @@ export function InvoiceDialog({
       }
     }}>
       <DialogContent
+        showCloseButton={!previewOpen}
         className="flex max-w-5xl h-[92vh] max-h-[92vh] flex-col overflow-hidden p-0 gap-0"
         onKeyDown={(e) => {
           if (e.altKey && e.key === 'Enter') { e.preventDefault(); addItem() }
@@ -1417,8 +1423,8 @@ export function InvoiceDialog({
             <div className={selectedCustomer ? 'md:col-span-2' : ''}>
               <Label className="text-xs">구분</Label>
               <Select
-                value={form.receipt_type ?? DEFAULT_RECEIPT_TYPE}
-                onValueChange={(v) => { setForm((f) => ({ ...f, receipt_type: v })); setIsDirty(true) }}
+                value={normalizeReceiptType(form.receipt_type as string | undefined)}
+                onValueChange={(v) => { setForm((f) => ({ ...f, receipt_type: normalizeReceiptType(v) })); setIsDirty(true) }}
               >
                 <SelectTrigger className="mt-1">
                   <SelectValue />
@@ -1886,8 +1892,8 @@ export function InvoiceDialog({
 
     {/* ─── 인쇄 미리보기 모달 ─── */}
     {previewOpen && (
-      <Dialog open onOpenChange={(v) => { if (!v) closePreview() }}>
-        <DialogContent className="max-w-3xl w-full p-0 gap-0 overflow-hidden" style={{ maxHeight: '95vh' }}>
+        <Dialog open onOpenChange={(v) => { if (!v) closePreview() }}>
+        <DialogContent showCloseButton={false} className="max-w-3xl w-full p-0 gap-0 overflow-hidden" style={{ maxHeight: '95vh' }}>
           <DialogHeader className="px-4 py-3 border-b bg-gray-50 flex-row items-center justify-between space-y-0">
             <DialogTitle className="text-sm font-semibold flex items-center gap-2">
               <Printer className="h-4 w-4 text-[#7d9675]" />

@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Search, ChevronLeft, ChevronRight, Download, Printer, Copy, Trash2, Pencil, FileText } from 'lucide-react'
@@ -15,6 +15,7 @@ import type { Customer, Invoice } from '@/lib/api'
 import { exportCourierInvoices } from '@/lib/excel'
 import { printDuplexViaIframe } from '@/lib/print'
 import { getDisplayMemo } from '@/lib/accountingMeta'
+import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
 
 const PAGE_SIZE = 25
 
@@ -118,20 +119,28 @@ export function Invoices() {
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionPreview | null>(null)
   const [isCourierExporting, setIsCourierExporting] = useState(false)
   const [showCourierConfirm, setShowCourierConfirm] = useState(false)
+  const didInitDateSyncRef = useRef(false)
 
   const debouncedSearch = useDebounce(search, 400)
   useEffect(() => setPage(1), [debouncedSearch, statusFilter, dateFrom, dateTo])
 
   useEffect(() => {
     const nextDate = searchParams.get('date')
-    const normalizedDate = isValidCalendarDate(nextDate) ? nextDate : ''
     const nextFrom = searchParams.get('from')
     const nextTo = searchParams.get('to')
+    const normalizedDate = isValidCalendarDate(nextDate) ? nextDate : ''
+    const hasExplicitDateParam = Boolean(normalizedDate || isValidCalendarDate(nextFrom) || isValidCalendarDate(nextTo))
     const normalizedFrom = normalizedDate || (isValidCalendarDate(nextFrom) ? nextFrom : today)
     const normalizedTo = normalizedDate || (isValidCalendarDate(nextTo) ? nextTo : today)
 
-    setDateFrom((prev) => (prev === normalizedFrom ? prev : normalizedFrom))
-    setDateTo((prev) => (prev === normalizedTo ? prev : normalizedTo))
+    if (!didInitDateSyncRef.current) {
+      setDateFrom((prev) => (prev === normalizedFrom ? prev : normalizedFrom))
+      setDateTo((prev) => (prev === normalizedTo ? prev : normalizedTo))
+      didInitDateSyncRef.current = true
+    } else if (hasExplicitDateParam) {
+      setDateFrom((prev) => (prev === normalizedFrom ? prev : normalizedFrom))
+      setDateTo((prev) => (prev === normalizedTo ? prev : normalizedTo))
+    }
 
     const editParam = searchParams.get('edit')
     const editId = editParam ? Number(editParam) : NaN
@@ -410,7 +419,7 @@ export function Invoices() {
         {
           invoice_no: latestInvoice.invoice_no,
           invoice_date: latestInvoice.invoice_date,
-          receipt_type: documentType === 'estimate' ? '견적서' : '거래명세표',
+          receipt_type: latestInvoice.receipt_type ?? DEFAULT_RECEIPT_TYPE,
           customer_name: latestInvoice.customer_name ?? currentCustomer?.name,
           customer_phone: customerSnapshot.customer_phone ?? (latestInvoice.customer_phone as string),
           customer_address: customerSnapshot.customer_address ?? (latestInvoice.customer_address as string),

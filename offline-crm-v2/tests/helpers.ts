@@ -191,7 +191,7 @@ export async function assertKpiCard(page: Page, title: string): Promise<void> {
 /**
  * Dialog가 열릴 때까지 대기
  * @param page Playwright Page 객체
- * @param titleText Dialog 제목 텍스트 (예: '새 거래명세표')
+ * @param titleText Dialog 제목 텍스트 (예: '새 명세표')
  */
 export async function waitForDialog(page: Page, titleText: string): Promise<void> {
   await expect(

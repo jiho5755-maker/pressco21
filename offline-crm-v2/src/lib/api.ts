@@ -11,7 +11,7 @@
 
 import { getLegacyReceivableBaseline } from '@/lib/legacySnapshots'
 import { getInvoiceDepositUsedAmount } from '@/lib/accountingMeta'
-import { RECEIPT_TYPE_VALUES } from '@/lib/invoiceDefaults'
+import { normalizeReceiptTypeValue } from '@/lib/invoiceDefaults'
 
 // n8n Webhook 프록시 URL
 const PROXY_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://n8n.pressco21.com/webhook/crm-proxy'
@@ -227,12 +227,10 @@ const NULLABLE_CUSTOMER_TEXT_FIELDS = new Set([
   ...Array.from({ length: 10 }, (_, index) => `address${index + 1}`),
 ])
 
-const RECEIPT_TYPE_SET = new Set<string>(RECEIPT_TYPE_VALUES)
 const PAYMENT_STATUS_SET = new Set(['paid', 'partial', 'unpaid'])
 
 function normalizeReceiptType(value: unknown): string | undefined {
-  if (typeof value !== 'string') return undefined
-  return RECEIPT_TYPE_SET.has(value) ? value : undefined
+  return normalizeReceiptTypeValue(value)
 }
 
 function normalizePaymentStatus(value: unknown): string | undefined {

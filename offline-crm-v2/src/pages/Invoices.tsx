@@ -25,10 +25,30 @@ function isValidCalendarDate(value: string | null): value is string {
 
 function getTodayDateString() {
   const now = new Date()
-  const year = now.getFullYear()
-  const month = String(now.getMonth() + 1).padStart(2, '0')
-  const day = String(now.getDate()).padStart(2, '0')
+  return formatCalendarDate(now)
+}
+
+function formatCalendarDate(date: Date) {
+  const year = date.getFullYear()
+  const month = String(date.getMonth() + 1).padStart(2, '0')
+  const day = String(date.getDate()).padStart(2, '0')
   return `${year}-${month}-${day}`
+}
+
+function toLocalDate(dateString: string) {
+  const [year, month, day] = dateString.split('-').map(Number)
+  return new Date(year, month - 1, day)
+}
+
+function shiftCalendarDate(dateString: string, offsetDays: number) {
+  const nextDate = toLocalDate(dateString)
+  nextDate.setDate(nextDate.getDate() + offsetDays)
+  return formatCalendarDate(nextDate)
+}
+
+function getMonthStartDateString(dateString: string) {
+  const currentDate = toLocalDate(dateString)
+  return formatCalendarDate(new Date(currentDate.getFullYear(), currentDate.getMonth(), 1))
 }
 
 function useDebounce<T>(value: T, delay: number): T {
@@ -239,6 +259,16 @@ export function Invoices() {
   const totalRows = filteredInvoices.length
   const totalPages = Math.ceil(totalRows / PAGE_SIZE)
   const invoices = filteredInvoices.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+  const quickDateRanges = useMemo(
+    () => [
+      { key: 'today', label: '오늘', from: today, to: today },
+      { key: 'recentWeek', label: '최근 7일', from: shiftCalendarDate(today, -6), to: today },
+      { key: 'thisMonth', label: '이번달', from: getMonthStartDateString(today), to: today },
+    ],
+    [today],
+  )
+  const activeQuickRange = quickDateRanges.find((range) => range.from === dateFrom && range.to === dateTo)?.key ?? null
+  const hasActiveFilters = statusFilter !== 'ALL' || Boolean(search.trim()) || dateFrom !== today || dateTo !== today
   const invoiceLinkSummary = useMemo(() => {
     let orphanCount = 0
     let splitCount = 0
@@ -481,53 +511,114 @@ export function Invoices() {
       </div>
 
       {/* 필터 */}
-      <div className="flex gap-3 mb-4 flex-wrap">
-        <div className="relative flex-1 min-w-48 max-w-xs">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
-          <Input
-            placeholder="거래처명 검색..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-9"
-          />
+      <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">조회 조건</p>
+              <p className="text-xs text-muted-foreground">
+                거래처명을 찾고, 기간과 수금 상태를 좁혀서 필요한 명세표만 빠르게 보세요.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-full bg-[#f4f7f1] px-3 py-1 font-medium text-[#4f6748]">
+                현재 {totalRows.toLocaleString()}건
+              </span>
+              <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
+                기간 {dateFrom} ~ {dateTo}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_minmax(420px,1fr)_150px_auto]">
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">거래처 검색</label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
+                <Input
+                  placeholder="거래처명으로 검색..."
+                  value={search}
+                  onChange={(e) => setSearch(e.target.value)}
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">조회 기간</label>
+              <div className="flex flex-col gap-2">
+                <div className="flex flex-wrap gap-2">
+                  {quickDateRanges.map((range) => {
+                    const isActive = activeQuickRange === range.key
+                    return (
+                      <Button
+                        key={range.key}
+                        type="button"
+                        variant={isActive ? 'default' : 'outline'}
+                        size="sm"
+                        className={isActive ? 'bg-[#7d9675] hover:bg-[#6a8462] text-white' : 'text-muted-foreground'}
+                        onClick={() => applyDateRange(range.from, range.to)}
+                      >
+                        {range.label}
+                      </Button>
+                    )
+                  })}
+                </div>
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+                  <Input
+                    type="date"
+                    value={dateFrom}
+                    onChange={(e) => applyDateRange(e.target.value, dateTo)}
+                    className="sm:w-[170px]"
+                  />
+                  <span className="hidden text-sm text-muted-foreground sm:inline-flex">~</span>
+                  <Input
+                    type="date"
+                    value={dateTo}
+                    onChange={(e) => applyDateRange(dateFrom, e.target.value)}
+                    className="sm:w-[170px]"
+                  />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <label className="text-xs font-medium text-muted-foreground">수금 상태</label>
+              <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="수금 상태" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="ALL">모든 상태</SelectItem>
+                  <SelectItem value="paid">완납</SelectItem>
+                  <SelectItem value="partial">부분수금</SelectItem>
+                  <SelectItem value="unpaid">미수금</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex items-end">
+              {hasActiveFilters ? (
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className="w-full xl:w-auto"
+                  onClick={() => {
+                    setSearch('')
+                    setStatusFilter('ALL')
+                    applyDateRange(today, today)
+                  }}
+                >
+                  초기화
+                </Button>
+              ) : (
+                <div className="w-full rounded-lg border border-dashed px-3 py-2 text-center text-xs text-muted-foreground">
+                  기본 조회 상태
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-        <Input
-          type="date"
-          value={dateFrom}
-          onChange={(e) => applyDateRange(e.target.value, dateTo)}
-          className="w-[170px]"
-        />
-        <span className="flex items-center text-muted-foreground text-sm">~</span>
-        <Input
-          type="date"
-          value={dateTo}
-          onChange={(e) => applyDateRange(dateFrom, e.target.value)}
-          className="w-[170px]"
-        />
-        <Select value={statusFilter} onValueChange={setStatusFilter}>
-          <SelectTrigger className="w-32">
-            <SelectValue placeholder="수금 상태" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="ALL">모든 상태</SelectItem>
-            <SelectItem value="paid">완납</SelectItem>
-            <SelectItem value="partial">부분수금</SelectItem>
-            <SelectItem value="unpaid">미수금</SelectItem>
-          </SelectContent>
-        </Select>
-        {(statusFilter !== 'ALL' || search || dateFrom || dateTo) && (
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => {
-              setSearch('')
-              setStatusFilter('ALL')
-              applyDateRange(today, today)
-            }}
-          >
-            초기화
-          </Button>
-        )}
       </div>
 
       {(invoiceLinkSummary.orphanCount > 0 || invoiceLinkSummary.splitCount > 0) && (

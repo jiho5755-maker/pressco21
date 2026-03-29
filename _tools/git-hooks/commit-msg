@@ -1,0 +1,62 @@
+#!/bin/bash
+# commit-msg hook: 커밋 메시지 형식 검증
+# 허용 패턴: [codex] <한국어>, <type>: <한국어>, [harness] <설명>, Merge ..., WIP: ...
+
+MSG_FILE="$1"
+MSG=$(head -1 "$MSG_FILE")
+
+# 1줄 100자 초과 차단
+if [ ${#MSG} -gt 100 ]; then
+  echo "오류: 커밋 메시지 1줄이 100자를 초과합니다 (${#MSG}자)."
+  echo "  100자 이내로 줄여주세요."
+  exit 1
+fi
+
+# Merge 커밋 허용
+if echo "$MSG" | grep -qE '^Merge '; then
+  exit 0
+fi
+
+# WIP 허용
+if echo "$MSG" | grep -qE '^WIP: '; then
+  exit 0
+fi
+
+# Co-Authored-By 줄만 있는 경우 본문 확인
+# [codex] 패턴
+if echo "$MSG" | grep -qE '^\[codex\] '; then
+  # 한국어 1글자 이상 포함 확인
+  if echo "$MSG" | grep -qP '[\p{Hangul}]' 2>/dev/null || echo "$MSG" | grep -q '[가-힣]'; then
+    exit 0
+  else
+    echo "오류: [codex] 커밋 메시지에 한국어가 포함되어야 합니다."
+    exit 1
+  fi
+fi
+
+# [harness] 패턴
+if echo "$MSG" | grep -qE '^\[harness\] '; then
+  exit 0
+fi
+
+# <type>: <설명> 패턴
+if echo "$MSG" | grep -qE '^(feat|fix|refactor|docs|test|chore|style|perf): '; then
+  # 한국어 1글자 이상 포함 확인
+  if echo "$MSG" | grep -qP '[\p{Hangul}]' 2>/dev/null || echo "$MSG" | grep -q '[가-힣]'; then
+    exit 0
+  else
+    echo "오류: 커밋 메시지에 한국어 설명이 포함되어야 합니다."
+    echo "  예시: feat: 파트너클래스 등급 시스템 구현"
+    exit 1
+  fi
+fi
+
+echo "오류: 커밋 메시지 형식이 올바르지 않습니다."
+echo "  허용 패턴:"
+echo "    [codex] <한국어 설명>"
+echo "    <type>: <한국어 설명>  (type: feat|fix|refactor|docs|test|chore|style|perf)"
+echo "    [harness] <설명>"
+echo "    Merge ..."
+echo "    WIP: ..."
+echo "  현재 메시지: $MSG"
+exit 1

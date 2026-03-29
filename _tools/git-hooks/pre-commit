@@ -1,0 +1,69 @@
+#!/bin/bash
+# pre-commit hook: 메이크샵 ${var} 이스케이프 검증 + CSS 전역 셀렉터 경고
+# 설치: bash _tools/install-hooks.sh
+
+# 메이크샵 경로 패턴
+MAKESHOP_PATHS="makeshop-skin/|메인페이지/|파트너클래스/|간편 구매/|브랜드스토리/"
+
+# 제외 경로
+EXCLUDE_PATHS="n8n-automation/|offline-crm-v2/|node_modules/|mcp-shrimp-task-manager/"
+
+ERRORS=0
+
+# staging된 JS 파일 검사
+for FILE in $(git diff --cached --name-only --diff-filter=ACM | grep '\.js$'); do
+  # 제외 경로 건너뛰기
+  if echo "$FILE" | grep -qE "$EXCLUDE_PATHS"; then
+    continue
+  fi
+
+  # 메이크샵 경로만 검사
+  if echo "$FILE" | grep -qE "$MAKESHOP_PATHS"; then
+    # 백틱 내 이스케이프 안 된 ${...} 탐지
+    # 패턴: 백슬래시가 앞에 없는 ${...}
+    STAGED_CONTENT=$(git show ":$FILE" 2>/dev/null)
+    MATCHES=$(echo "$STAGED_CONTENT" | grep -n '[^\\]\${' 2>/dev/null || true)
+    # 줄 시작이 ${인 경우도 탐지
+    MATCHES2=$(echo "$STAGED_CONTENT" | grep -n '^\${' 2>/dev/null || true)
+
+    if [ -n "$MATCHES" ] || [ -n "$MATCHES2" ]; then
+      echo "오류: 이스케이프 안 된 \${...} 발견 → $FILE"
+      echo "  메이크샵 편집기에서 '데이터 수정 실패' 원인이 됩니다."
+      echo "  해결: \${variable} → \\\${variable} 로 이스케이프하세요."
+      if [ -n "$MATCHES" ]; then
+        echo "$MATCHES" | head -5 | sed 's/^/  /'
+      fi
+      if [ -n "$MATCHES2" ]; then
+        echo "$MATCHES2" | head -5 | sed 's/^/  /'
+      fi
+      ERRORS=$((ERRORS + 1))
+    fi
+  fi
+done
+
+# staging된 CSS 파일 전역 셀렉터 경고
+for FILE in $(git diff --cached --name-only --diff-filter=ACM | grep '\.css$'); do
+  if echo "$FILE" | grep -qE "$EXCLUDE_PATHS"; then
+    continue
+  fi
+
+  if echo "$FILE" | grep -qE "$MAKESHOP_PATHS"; then
+    STAGED_CONTENT=$(git show ":$FILE" 2>/dev/null)
+    GLOBAL_SELECTORS=$(echo "$STAGED_CONTENT" | grep -nE '^\s*(body|html|\*)\s*\{' 2>/dev/null || true)
+
+    if [ -n "$GLOBAL_SELECTORS" ]; then
+      echo "경고: 전역 CSS 셀렉터 발견 → $FILE"
+      echo "  기존 상점 스타일과 충돌할 수 있습니다. CSS 스코핑을 권장합니다."
+      echo "$GLOBAL_SELECTORS" | head -3 | sed 's/^/  /'
+      # 경고만, 차단 안 함
+    fi
+  fi
+done
+
+if [ "$ERRORS" -gt 0 ]; then
+  echo ""
+  echo "커밋이 차단되었습니다. 위 오류를 수정 후 다시 시도하세요."
+  exit 1
+fi
+
+exit 0

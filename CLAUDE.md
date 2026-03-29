@@ -1,3 +1,4 @@
+<!-- HARNESS-META: v3.2 | 2026-03-29 | Claude Code -->
 # PRESSCO21 프로젝트 CLAUDE 지침
 
 ## AI handoff first

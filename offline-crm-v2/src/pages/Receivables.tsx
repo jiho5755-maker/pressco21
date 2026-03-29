@@ -1310,7 +1310,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         ? '줄 돈과 환불대기를 한 번에 모아서 봅니다.'
         : '고객별로 기존 장부와 새 입력 미수를 함께 봅니다.',
       count: primaryResultCount,
-      hint: isPayableMode ? '거래처 행을 눌러 상세 또는 지급 처리로 이어집니다.' : '한 고객의 전체 잔액 흐름을 먼저 파악할 때 적합합니다.',
+      hint: isPayableMode ? '행 설명을 보고 바로 송금 기록이나 환불 정리로 이어갈 수 있습니다.' : '한 고객의 전체 잔액 흐름을 먼저 파악할 때 적합합니다.',
     },
     ...(!isPayableMode
       ? [
@@ -1335,14 +1335,14 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       label: payableTabLabel,
       description: '고객별 기존 장부 미지급금만 모아서 봅니다.',
       count: filteredPayableLedger.length,
-      hint: '필요한 경우 고객 상세로 이동해 원본 장부와 함께 확인할 수 있습니다.',
+      hint: '고객 연결이 있으면 바로 송금 기록으로 이어지고, 없으면 먼저 고객 연결이 필요합니다.',
     },
     {
       value: 'refund',
       label: refundTabLabel,
       description: '초과 입금 등으로 생긴 환불대기 금액만 봅니다.',
       count: filteredRefundPendingLedger.length,
-      hint: '환불 처리 버튼으로 바로 정산을 마무리할 수 있습니다.',
+      hint: '실제 환불 송금이 끝났거나 환불대기만 해제할 때 이 탭에서 마무리합니다.',
     },
   ]
   const activeTabMeta = visibleTabs.find((tab) => tab.value === sourceTab) ?? visibleTabs[0]
@@ -1697,7 +1697,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         <TabsContent value="all" className="space-y-4">
           <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
             {isPayableMode
-              ? '거래처 기준으로 줄 돈과 환불대기를 함께 보여주며, 우측 버튼에서 실제 처리로 이어집니다.'
+              ? '거래처 기준으로 줄 돈과 환불대기를 함께 보여주며, 오른쪽에서 바로 송금 기록 또는 환불 정리로 이어집니다.'
               : '거래처별 이월 잔액과 새 입력 미수를 함께 보여줘 현재 총 잔액을 가장 빠르게 파악할 수 있습니다.'}
           </div>
           {isReferenceDataLoading ? (
@@ -1710,9 +1710,9 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                 <thead>
                   <tr className="border-b bg-gray-50">
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">지급 구분</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">처리 구분</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">금액</th>
-                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
+                    <th className="text-left px-4 py-3 font-medium text-muted-foreground">다음 작업</th>
                     <th className="w-28" />
                   </tr>
                 </thead>
@@ -1739,7 +1739,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-xs">
-                        <span className={entry.kind === 'payable' ? 'font-medium text-blue-700' : 'font-medium text-amber-700'}>
+                        <span className={`inline-flex rounded-full px-2 py-0.5 font-medium ${entry.kind === 'payable' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
                           {entry.kind === 'payable' ? '기존 장부 줄 돈' : '환불대기'}
                         </span>
                       </td>
@@ -1747,12 +1747,16 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                         {entry.amount.toLocaleString()}원
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                        {entry.note}
+                        {entry.kind === 'payable'
+                          ? entry.customerId
+                            ? '원본 장부 확인 후 송금 기록'
+                            : '고객관리 연결부터 필요'
+                          : '환불 송금 또는 대기 해제'}
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant={entry.kind === 'payable' ? 'default' : 'outline'}
                           className="h-7 text-xs"
                           disabled={entry.kind === 'payable' && !entry.customerId}
                           onClick={(event) => {
@@ -1774,7 +1778,9 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                             })
                           }}
                         >
-                          {entry.kind === 'payable' ? '지급 확인' : '환불 처리'}
+                          {entry.kind === 'payable'
+                            ? entry.customerId ? '송금 기록' : '연결 필요'
+                            : '환불 정리'}
                         </Button>
                       </td>
                     </tr>
@@ -2039,7 +2045,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
 
         <TabsContent value="payable" className="space-y-4">
           <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
-            고객에게 돌려줘야 하거나 지급해야 하는 기존 장부 금액만 모아 봅니다. 고객 연결이 있으면 상세 화면으로 바로 이어집니다.
+            고객에게 돌려줘야 하거나 지급해야 하는 기존 장부 금액만 따로 보고, 송금 기록이 필요한 건을 정리하는 영역입니다.
           </div>
           {isReferenceDataLoading ? (
             <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
@@ -2082,12 +2088,12 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                         {entry.payableAmount.toLocaleString()}원
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                        {entry.customerId ? '고객 상세에서 원본 장부와 같이 확인' : '고객관리 연결 없음'}
+                        {entry.customerId ? '원본 장부 확인 후 송금 기록' : '고객관리 연결 필요'}
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         <Button
                           size="sm"
-                          variant="outline"
+                          variant={entry.customerId ? 'default' : 'outline'}
                           className="h-7 text-xs"
                           disabled={!entry.customerId}
                           onClick={(event) => {
@@ -2101,7 +2107,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                             setLegacyPayableTarget({ customer, payableAmount: entry.payableAmount })
                           }}
                         >
-                          지급 확인
+                          {entry.customerId ? '송금 기록' : '연결 필요'}
                         </Button>
                       </td>
                     </tr>
@@ -2114,7 +2120,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
 
         <TabsContent value="refund" className="space-y-4">
           <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
-            초과 입금이나 정산 조정으로 생긴 환불대기 금액만 모아 관리하는 영역입니다.
+            초과 입금이나 정산 조정으로 생긴 환불대기 금액만 따로 보고, 실제 환불 완료나 대기 해제를 마무리하는 영역입니다.
           </div>
           {isReferenceDataLoading ? (
             <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
@@ -2155,7 +2161,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                         {entry.refundPendingAmount.toLocaleString()}원
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
-                        초과 입금 또는 정산 조정으로 생성된 대기 금액
+                        실제 환불 송금 후 완료하거나 대기만 해제할 수 있습니다.
                       </td>
                       <td className="px-4 py-2.5 text-right">
                         <Button
@@ -2167,7 +2173,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                             setRefundPendingTarget(entry)
                           }}
                         >
-                          환불 처리
+                          환불 정리
                         </Button>
                       </td>
                     </tr>

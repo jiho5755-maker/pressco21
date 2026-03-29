@@ -51,10 +51,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-29 20:15:00 KST
+- Started At: —
 - Branch: main
 - Working Scope: —
-- Active Subdirectory: offline-crm-v2
+- Active Subdirectory: —
 
 ## Files In Progress
 - 없음
@@ -90,6 +90,22 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- offline-crm-v2에 비전공자도 따라갈 수 있는 AI 표준 개발 문서를 추가했다.
+  - `docs/ai-senior-workflow.md`: 작업 브리프 → 기존 정상 동작 고정 → 작은 범위 수정 → 자동 검증 → 릴리스형 배포 → 운영 스모크 체크 흐름을 설명
+  - `docs/templates/ai-task-brief.md`: 작업명/목표/영향 화면/수정 파일/건드리면 안 되는 동작/검증/배포 여부만 적는 짧은 템플릿 추가
+- 운영 배포를 덮어쓰기 방식에서 릴리스 승격 방식으로 전환했다.
+  - `deploy/deploy-release.sh`: `/var/www/releases/crm/<release-id>`에 새 빌드를 올리고 `/var/www/crm`, `/var/www/crm-current` 심볼릭 링크를 새 릴리스로 전환
+  - `deploy/rollback-release.sh`: 원하는 release id로 즉시 롤백
+  - `package.json`: `npm run deploy:release`, `npm run deploy:rollback -- <release-id>` 스크립트 추가
+- 첫 릴리스형 배포를 실제 운영에 적용했다.
+  - Release ID: `20260329204531-3960346`
+  - 운영 서버 확인: `/var/www/crm`와 `/var/www/crm-current` 모두 새 릴리스를 가리킴
+  - 운영 URL `https://crm.pressco21.com`는 Basic Auth 앞단에서 `401 Unauthorized`로 정상 응답
+- 검증
+  - `npm run test:regression` → 21 passed, 1 skipped
+  - `npm run build` → passed
+  - `bash -n deploy/deploy-release.sh`
+  - `bash -n deploy/rollback-release.sh`
 - offline-crm-v2 운영 회귀를 실브라우저로 다시 점검했다. `2026-03-29` 기준 운영 `/invoices`, `/customers/86`에서 고객 프리필, 주소 라벨, 명세표/견적서 실행 버튼, 품목 자동완성 단가 입력, 사이드바 가이드 동선을 직접 확인했다.
 - 명세표 기본값/출력 기본값이 다시 흩어지지 않도록 `src/lib/invoiceDefaults.ts`를 추가했다. `거래명세표` 기본 구분과 허용 구분 목록을 `InvoiceDialog`, `api`, `print`가 공통으로 사용하게 정리했다.
 - `src/lib/print.ts`의 레거시 fallback `영수`를 `거래명세표` 기준으로 맞췄다. 구분값이 비어 있는 인쇄 경로에서도 현재 운영 기본값과 출력값이 어긋나지 않는다.
@@ -171,6 +187,9 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- 견적서 출력물의 행 높이/빈 행 밀도를 조정해 일반적인 문서 밀도로 정리한다.
+- 회귀 위험이 큰 흐름부터 작업 브리프를 실제로 붙여서 운영한다.
+- 새 릴리스형 배포 스크립트 기준으로 다음 CRM 배포부터 `npm run deploy:release`를 기본 경로로 사용한다.
 - 견적서 문서의 `유효기간`을 별도 필드로 둘지, 현재처럼 `견적일자`와 동일하게 둘지 운영 규칙 확정
 - 목록의 `명세표`/`견적서` 버튼을 실제 인쇄 직전까지 눌렀을 때 브라우저 인쇄 다이얼로그 전 단계 미리보기까지 원하는 양식으로 열리는지 한 번 더 확인
 - `목록에서 선택` 다중 품목 추가 경로도 `고객 단가 자동입력 + 과세 유지` 회귀 기준으로 같은 테스트를 추가할지 결정
@@ -184,6 +203,8 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- 첫 릴리스형 배포는 정상 전환됐지만, 이후 운영자가 `deploy/deploy.sh` 구형 덮어쓰기 스크립트를 다시 쓰면 릴리스 구조를 우회하게 된다. 앞으로는 `deploy/deploy-release.sh`를 기본으로 써야 한다.
+- `npm run deploy:rollback`은 release id를 인자로 받아야 하므로, 실제 사용 시 `npm run deploy:rollback -- <release-id>` 형식을 지켜야 한다.
 - 현재 견적서 `유효기간`은 별도 데이터 필드가 없어 `견적일자`와 동일하게 출력된다. 유효기간 운영 규칙이 따로 필요하면 필드 추가가 맞다.
 - 명세표 목록 기본 날짜를 오늘로 고정했기 때문에, 사용자는 첫 진입 시 과거 문서를 바로 못 볼 수 있다. 이는 요청 의도에는 맞지만 과거 전체 조회 동선과는 트레이드오프다.
 - 현재 구분 값은 `거래명세표/견적서`와 레거시 `영수/청구/영수(청구)`를 함께 허용한다. 출력물/조회 필터가 신규 값까지 모두 기대대로 다루는지 운영 재확인이 필요하다.
@@ -477,4 +498,3 @@
     - `tbl_EmailLogs` 실패 row 적재 확인 (`PARTNER_NOTIFY / FAILED`)
   - Playwright request 검증:
     - `output/playwright/s2-7-partner-churn/churn-results.json`
-

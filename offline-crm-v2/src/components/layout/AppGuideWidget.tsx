@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
-import { BookOpen, LifeBuoy, RefreshCcw } from 'lucide-react'
+import { ArrowRight, BookOpen, Crosshair, LifeBuoy, RefreshCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { APP_GUIDES, dismissGuide, getGuideForPath, isGuideDismissed } from '@/lib/appGuide'
 
 interface HighlightRect {
@@ -11,6 +12,19 @@ interface HighlightRect {
   height: number
 }
 
+function getHighlightRect(selector?: string): HighlightRect | null {
+  if (!selector) return null
+  const target = document.querySelector(selector)
+  if (!(target instanceof HTMLElement)) return null
+  const rect = target.getBoundingClientRect()
+  return {
+    top: Math.max(0, rect.top - 8),
+    left: Math.max(0, rect.left - 8),
+    width: rect.width + 16,
+    height: rect.height + 16,
+  }
+}
+
 export function AppGuideWidget() {
   const location = useLocation()
   const navigate = useNavigate()
@@ -18,19 +32,20 @@ export function AppGuideWidget() {
   const [open, setOpen] = useState(false)
   const [stepIndex, setStepIndex] = useState(0)
   const [highlightRect, setHighlightRect] = useState<HighlightRect | null>(null)
+  const [focusMode, setFocusMode] = useState(false)
 
   const currentStep = guide?.steps[stepIndex] ?? null
-  const isTourMode = Boolean(guide && open)
   const showGuideHint = Boolean(guide && !open && !isGuideDismissed(guide.key))
 
   useEffect(() => {
     setOpen(false)
     setStepIndex(0)
+    setFocusMode(false)
     setHighlightRect(null)
   }, [guide?.key])
 
   useEffect(() => {
-    if (!isTourMode || !currentStep?.selector) {
+    if (!open || !focusMode || !currentStep?.selector) {
       setHighlightRect(null)
       return
     }
@@ -40,49 +55,39 @@ export function AppGuideWidget() {
     if (target instanceof HTMLElement) {
       target.scrollIntoView({ block: 'center', inline: 'nearest', behavior: 'smooth' })
     }
-  }, [currentStep?.selector, isTourMode])
+    const timer = window.setTimeout(() => {
+      setHighlightRect(getHighlightRect(selector))
+    }, 120)
+    return () => window.clearTimeout(timer)
+  }, [currentStep?.selector, focusMode, open])
 
   useEffect(() => {
-    if (!isTourMode || !currentStep?.selector) {
+    if (!open || !focusMode || !currentStep?.selector) {
       setHighlightRect(null)
       return
     }
 
+    const selector = currentStep.selector
+
     function syncHighlight() {
-      const selector = currentStep?.selector
-      if (!selector) {
-        setHighlightRect(null)
-        return
-      }
-      const target = document.querySelector(selector)
-      if (!(target instanceof HTMLElement)) {
-        setHighlightRect(null)
-        return
-      }
-      const rect = target.getBoundingClientRect()
-      setHighlightRect({
-        top: Math.max(0, rect.top - 8),
-        left: Math.max(0, rect.left - 8),
-        width: rect.width + 16,
-        height: rect.height + 16,
-      })
+      setHighlightRect(getHighlightRect(selector))
     }
 
-    const timer = window.setTimeout(syncHighlight, 80)
     window.addEventListener('resize', syncHighlight)
     window.addEventListener('scroll', syncHighlight, true)
     return () => {
-      window.clearTimeout(timer)
       window.removeEventListener('resize', syncHighlight)
       window.removeEventListener('scroll', syncHighlight, true)
     }
-  }, [currentStep?.selector, isTourMode])
+  }, [currentStep?.selector, focusMode, open])
 
   if (!guide) return null
 
+  const otherGuides = APP_GUIDES.filter((item) => item.key !== guide.key)
+
   return (
     <>
-      {isTourMode && highlightRect && (
+      {open && focusMode && highlightRect && (
         <div
           className="pointer-events-none fixed z-40 rounded-2xl border-2 border-[#7d9675] bg-transparent shadow-[0_0_0_9999px_rgba(15,23,42,0.12)] transition-all duration-200"
           style={{
@@ -94,141 +99,187 @@ export function AppGuideWidget() {
         />
       )}
 
-      <div className="relative flex w-full flex-col gap-3">
-        <div className={`relative rounded-2xl border p-1 shadow-lg backdrop-blur transition-colors ${
-          open ? 'border-[#7d9675]/30 bg-[#f5faf4]' : 'border-white/10 bg-white/95'
-        }`}>
+      <div className="w-full">
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="relative flex w-full items-center justify-between rounded-2xl border border-white/10 bg-white/95 px-4 py-3 text-left shadow-lg transition hover:border-[#7d9675]/40 hover:bg-[#f6faf5]"
+        >
           {showGuideHint && (
             <>
-              <span className="absolute right-2 top-2 inline-flex h-2.5 w-2.5 rounded-full bg-[#7d9675]" />
-              <span className="absolute right-2 top-2 inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-[#7d9675]/70" />
+              <span className="absolute right-3 top-3 inline-flex h-2.5 w-2.5 rounded-full bg-[#7d9675]" />
+              <span className="absolute right-3 top-3 inline-flex h-2.5 w-2.5 animate-ping rounded-full bg-[#7d9675]/70" />
             </>
           )}
-          <Button
-            type="button"
-            variant="ghost"
-            size="sm"
-            className="w-full justify-between rounded-xl px-4 text-[#1f3323] hover:bg-transparent"
-            onClick={() => setOpen((prev) => !prev)}
-          >
-            <span className="flex items-center gap-2">
+          <span className="flex min-w-0 items-center gap-3">
+            <span className="flex h-9 w-9 items-center justify-center rounded-full bg-[#edf6ea] text-[#3d6b4a]">
               <LifeBuoy className="h-4 w-4" />
-              <span>{open ? '화면 가이드 열림' : '화면 가이드'}</span>
             </span>
-            <span className="text-[11px] text-[#5d755f]">
-              {open ? '접기' : '열기'}
+            <span className="min-w-0">
+              <span className="block text-sm font-semibold text-[#1f3323]">화면 도움말</span>
+              <span className="block truncate text-[11px] text-[#5d755f]">{guide.title.replace(' 가이드', '')}</span>
             </span>
-          </Button>
-        </div>
+          </span>
+          <span className="text-[11px] font-medium text-[#5d755f]">열기</span>
+        </button>
+      </div>
 
-        {open && (
-          <div className="w-full rounded-2xl border bg-white p-4 shadow-xl">
+      <Dialog
+        open={open}
+        onOpenChange={(nextOpen) => {
+          setOpen(nextOpen)
+          if (!nextOpen) {
+            setFocusMode(false)
+            setHighlightRect(null)
+          }
+        }}
+      >
+        <DialogContent
+          showCloseButton={false}
+          className="left-auto right-0 top-0 flex h-screen max-h-screen w-full max-w-[440px] translate-x-0 translate-y-0 flex-col gap-0 rounded-none border-l p-0 sm:rounded-none"
+        >
+          <DialogHeader className="border-b px-5 py-4">
             <div className="flex items-start justify-between gap-3">
               <div>
-                <p className="text-xs font-medium uppercase tracking-wide text-[#7d9675]">Guide Tour</p>
-                <h3 className="mt-1 flex items-center gap-2 text-base font-semibold text-gray-900">
+                <p className="text-xs font-medium uppercase tracking-[0.18em] text-[#7d9675]">Help Drawer</p>
+                <DialogTitle className="mt-1 flex items-center gap-2 text-lg text-gray-900">
                   <BookOpen className="h-4 w-4 text-[#7d9675]" />
                   {guide.title}
-                </h3>
+                </DialogTitle>
+                <DialogDescription className="mt-2 text-sm leading-6">
+                  {guide.summary}
+                </DialogDescription>
               </div>
               <Button type="button" variant="ghost" size="sm" onClick={() => setOpen(false)}>
                 닫기
               </Button>
             </div>
+          </DialogHeader>
 
-            <div className="mt-4 rounded-xl border bg-[#f7faf6] px-4 py-3">
-              <p className="text-sm text-gray-700">{guide.summary}</p>
+          <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+            <div className="rounded-2xl border bg-[#f7faf6] p-4">
+              <p className="text-xs font-medium text-[#5d755f]">이 화면에서 많이 하는 일</p>
+              <p className="mt-1 text-sm text-gray-700">
+                단계는 오른쪽 도움말에서 먼저 읽고, 필요한 순간에만 `화면에서 보기`를 눌러 위치를 확인하는 방식입니다.
+              </p>
             </div>
 
-            <div className="mt-4 rounded-xl border bg-white px-4 py-4">
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-medium text-[#7d9675]">
-                  {stepIndex + 1} / {guide.steps.length}
-                </p>
-                <div className="flex gap-1">
-                  {guide.steps.map((step, index) => (
-                    <button
-                      key={step.title}
-                      type="button"
-                      className={`h-2.5 w-2.5 rounded-full ${index === stepIndex ? 'bg-[#7d9675]' : 'bg-gray-200'}`}
-                      onClick={() => setStepIndex(index)}
-                      aria-label={`${index + 1}단계 이동`}
-                    />
-                  ))}
+            <div className="mt-4 space-y-2">
+              {guide.steps.map((step, index) => {
+                const isActive = index === stepIndex
+                return (
+                  <button
+                    key={step.title}
+                    type="button"
+                    onClick={() => setStepIndex(index)}
+                    className={`w-full rounded-2xl border px-4 py-3 text-left transition ${
+                      isActive
+                        ? 'border-[#7d9675]/40 bg-[#f5faf4]'
+                        : 'border-gray-200 bg-white hover:border-[#7d9675]/30 hover:bg-[#fafcf9]'
+                    }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <span className={`mt-0.5 flex h-6 w-6 items-center justify-center rounded-full text-xs font-semibold ${
+                        isActive ? 'bg-[#7d9675] text-white' : 'bg-gray-100 text-gray-600'
+                      }`}>
+                        {index + 1}
+                      </span>
+                      <span className="min-w-0">
+                        <span className="block text-sm font-semibold text-gray-900">{step.title}</span>
+                        <span className="mt-1 block text-xs leading-5 text-muted-foreground">{step.description}</span>
+                      </span>
+                    </div>
+                  </button>
+                )
+              })}
+            </div>
+
+            <div className="mt-4 rounded-2xl border bg-white p-4">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-medium text-[#5d755f]">현재 선택한 단계</p>
+                  <p className="mt-1 text-sm font-semibold text-gray-900">{currentStep?.title}</p>
                 </div>
+                <span className="rounded-full bg-[#edf6ea] px-2.5 py-1 text-[11px] font-medium text-[#3d6b4a]">
+                  {stepIndex + 1} / {guide.steps.length}
+                </span>
               </div>
+              <p className="mt-2 text-sm leading-6 text-muted-foreground">{currentStep?.description}</p>
 
-              <p className="mt-3 text-sm font-semibold text-gray-900">{currentStep?.title}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{currentStep?.description}</p>
-
-              <div className="mt-4 flex items-center justify-between gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  size="sm"
-                  onClick={() => setStepIndex((prev) => Math.max(0, prev - 1))}
-                  disabled={stepIndex === 0}
-                >
-                  이전
-                </Button>
-                <Button
-                  type="button"
-                  size="sm"
-                  className="bg-[#7d9675] text-white hover:bg-[#6a8462]"
-                  onClick={() => setStepIndex((prev) => Math.min(guide.steps.length - 1, prev + 1))}
-                  disabled={stepIndex === guide.steps.length - 1}
-                >
-                  다음
-                </Button>
-              </div>
-            </div>
-
-            <div className="mt-4 rounded-xl border bg-gray-50 px-4 py-3">
-              <p className="text-xs font-medium text-gray-700">빠른 이동</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {APP_GUIDES.map((item) => {
-                  const path =
-                    item.key === 'deposit-inbox' ? '/deposit-inbox'
-                    : item.key === 'receivables' ? '/receivables'
-                    : item.key === 'payables' ? '/payables'
-                    : item.key === 'customers' ? '/customers'
-                    : '/transactions'
-                  return (
-                    <Button
-                      key={item.key}
-                      type="button"
-                      size="sm"
-                      variant={item.key === guide.key ? 'default' : 'outline'}
-                      className={item.key === guide.key ? 'bg-[#7d9675] text-white hover:bg-[#6a8462]' : ''}
-                      onClick={() => {
-                        setStepIndex(0)
-                        navigate(path)
-                      }}
-                    >
-                      {item.title.replace(' 가이드', '')}
-                    </Button>
-                  )
-                })}
+              <div className="mt-4 flex flex-wrap gap-2">
+                {currentStep?.selector ? (
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="gap-2 bg-[#7d9675] text-white hover:bg-[#6a8462]"
+                    onClick={() => setFocusMode(true)}
+                  >
+                    <Crosshair className="h-4 w-4" />
+                    화면에서 보기
+                  </Button>
+                ) : null}
+                {focusMode && (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      setFocusMode(false)
+                      setHighlightRect(null)
+                    }}
+                  >
+                    강조 끄기
+                  </Button>
+                )}
               </div>
             </div>
 
-            <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+            <div className="mt-4 rounded-2xl border bg-white p-4">
+              <p className="text-xs font-medium text-[#5d755f]">빠른 이동</p>
+              <div className="mt-3 space-y-2">
+                {otherGuides.map((item) => (
+                  <button
+                    key={item.key}
+                    type="button"
+                    onClick={() => {
+                      setStepIndex(0)
+                      setFocusMode(false)
+                      setHighlightRect(null)
+                      navigate(item.path)
+                    }}
+                    className="flex w-full items-center justify-between rounded-xl border border-gray-200 px-3 py-2.5 text-left text-sm text-gray-700 transition hover:border-[#7d9675]/30 hover:bg-[#fafcf9]"
+                  >
+                    <span>{item.title.replace(' 가이드', '')}</span>
+                    <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t px-5 py-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
               <Button
                 type="button"
                 variant="ghost"
-                className="gap-2"
+                className="gap-2 text-muted-foreground"
                 onClick={() => {
                   dismissGuide(guide.key)
                   setOpen(false)
+                  setFocusMode(false)
+                  setHighlightRect(null)
                 }}
               >
                 <RefreshCcw className="h-4 w-4" />
                 이 화면은 다시 숨기기
               </Button>
+              <p className="text-[11px] text-muted-foreground">
+                본문을 막지 않고 필요할 때만 열리는 도움말 방식입니다.
+              </p>
             </div>
           </div>
-        )}
-      </div>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

@@ -6,6 +6,7 @@ export interface AppGuideStep {
 
 export interface AppGuideScreen {
   key: string
+  path: string
   title: string
   summary: string
   dock?: 'left' | 'right'
@@ -56,6 +57,7 @@ export function resetAllGuides() {
 export const APP_GUIDES: AppGuideScreen[] = [
   {
     key: 'deposit-inbox',
+    path: '/deposit-inbox',
     title: '입금 수집함 가이드',
     summary: '농협 파일을 먼저 올리고, 자동으로 잡힌 후보를 검토한 뒤 안전하게 입금 반영하는 화면입니다.',
     dock: 'left',
@@ -68,6 +70,7 @@ export const APP_GUIDES: AppGuideScreen[] = [
   },
   {
     key: 'receivables',
+    path: '/receivables',
     title: '수금 관리 가이드',
     summary: '받을 돈을 확인하고 입금 처리, 취소, 고객 이동을 가장 빠르게 처리하는 화면입니다.',
     dock: 'left',
@@ -80,6 +83,7 @@ export const APP_GUIDES: AppGuideScreen[] = [
   },
   {
     key: 'payables',
+    path: '/payables',
     title: '지급 관리 가이드',
     summary: '줄 돈을 확인하고 지급 처리, 취소, 거래 이력을 관리하는 화면입니다.',
     dock: 'left',
@@ -92,6 +96,7 @@ export const APP_GUIDES: AppGuideScreen[] = [
   },
   {
     key: 'customers',
+    path: '/customers',
     title: '고객 관리 가이드',
     summary: '고객을 찾고, 상세에서 수금/지급/거래 흐름을 한 번에 확인하는 시작 화면입니다.',
     dock: 'left',
@@ -104,6 +109,7 @@ export const APP_GUIDES: AppGuideScreen[] = [
   },
   {
     key: 'transactions',
+    path: '/transactions',
     title: '거래원장 가이드',
     summary: '출고, 입금, 지급, 반입이 시간순으로 보이는 통합 원장입니다.',
     dock: 'left',

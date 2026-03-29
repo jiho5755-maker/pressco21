@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Printer, X, Copy, LayoutList } from 'lucide-react'
 import { toast } from 'sonner'
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
@@ -1170,8 +1170,10 @@ export function InvoiceDialog({
           <DialogTitle className="flex items-center gap-2">
             {isCopy && <Copy className="h-4 w-4 text-muted-foreground" />}
             {titleLabel}
-            <span className="text-xs font-normal text-muted-foreground ml-1">품목명→수량→단가 / 단가Enter=다음행 / Ctrl+Enter=저장 / Esc=닫기</span>
           </DialogTitle>
+          <DialogDescription className="mt-1 text-xs">
+            거래처와 품목을 입력하면 하단에서 잔액 계산과 인쇄 미리보기를 바로 확인할 수 있습니다.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
@@ -1804,10 +1806,9 @@ export function InvoiceDialog({
           <div className="sticky bottom-0 -mx-6 mt-2 border-t bg-white/95 px-6 py-4 backdrop-blur supports-[backdrop-filter]:bg-white/85">
             <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
               <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:gap-3">
-                <div className="flex flex-wrap items-center gap-2 text-[11px] text-muted-foreground">
-                  <span className="rounded-full bg-gray-100 px-2 py-1">Ctrl+Enter 저장</span>
-                  <span className="rounded-full bg-gray-100 px-2 py-1">Esc 닫기</span>
-                </div>
+                <p className="text-[11px] text-muted-foreground">
+                  단축키: Ctrl+Enter 저장 / Esc 닫기
+                </p>
                 <div className="flex flex-wrap gap-2">
                   <Button size="sm" variant="outline" onClick={handlePreview} className="gap-1">
                     <Printer className="h-4 w-4" />

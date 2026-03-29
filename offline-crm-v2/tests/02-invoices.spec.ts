@@ -14,6 +14,7 @@
  *   T2-10  저장된 명세표 클릭 → 수정 Dialog 열림
  *   T2-11  목록 우측 실행 버튼에 명세표/견적서 표시
  *   T2-12  품목 자동완성 선택 시 고객 단가 입력 + 과세 유지
+ *   T2-13  빠른 기간 버튼 선택 시 날짜 입력값 동기화
  *
  * 주의: T2-09는 실제 NocoDB에 데이터를 생성합니다.
  *       afterEach 훅에서 TEST-E2E-PLAYWRIGHT- prefix 데이터를 자동 정리합니다.
@@ -30,6 +31,16 @@ import {
   waitForDialog,
   API_TIMEOUT,
 } from './helpers'
+
+function shiftCalendarDate(dateString: string, offsetDays: number) {
+  const [year, month, day] = dateString.split('-').map(Number)
+  const nextDate = new Date(year, month - 1, day)
+  nextDate.setDate(nextDate.getDate() + offsetDays)
+  const nextYear = nextDate.getFullYear()
+  const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0')
+  const nextDay = String(nextDate.getDate()).padStart(2, '0')
+  return `${nextYear}-${nextMonth}-${nextDay}`
+}
 
 // 테스트 전 거래명세표 페이지로 이동
 test.beforeEach(async ({ page }) => {
@@ -314,4 +325,17 @@ test('T2-12: 품목 자동완성 선택 시 고객 단가 입력 + 과세 유지
   const unitPriceInput = firstRow.locator('input[type="number"]').nth(1)
   await expect(unitPriceInput).toHaveValue('14760')
   await expect(taxableCheckbox).not.toBeChecked()
+})
+
+test('T2-13: 빠른 기간 버튼 선택 시 날짜 입력값 동기화', async ({ page }) => {
+  const today = getTodayDateString()
+  const dateInputs = page.locator('main input[type="date"]')
+
+  await page.getByRole('button', { name: '최근 7일' }).click()
+  await expect(dateInputs.nth(0)).toHaveValue(shiftCalendarDate(today, -6))
+  await expect(dateInputs.nth(1)).toHaveValue(today)
+
+  await page.getByRole('button', { name: '오늘' }).click()
+  await expect(dateInputs.nth(0)).toHaveValue(today)
+  await expect(dateInputs.nth(1)).toHaveValue(today)
 })

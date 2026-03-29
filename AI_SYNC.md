@@ -49,20 +49,15 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-29 21:45:00 KST
+- Current Owner: IDLE
+- Mode: —
+- Started At: —
 - Branch: main
-- Working Scope: 견적서 유효기간 14일 자동화 및 사업자번호/전화 자동 포맷 보정
-- Active Subdirectory: offline-crm-v2
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
-- offline-crm-v2/src/lib/formatters.ts
-- offline-crm-v2/src/lib/print.ts
-- offline-crm-v2/src/components/CustomerDialog.tsx
-- offline-crm-v2/src/components/SupplierDialog.tsx
-- offline-crm-v2/src/pages/CustomerDetail.tsx
-- offline-crm-v2/src/pages/Settings.tsx
+- 없음
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -95,6 +90,26 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- offline-crm-v2 견적서 출력의 `유효기간`을 `견적일자 + 14일`로 자동 계산하도록 보정했다.
+  - `src/lib/print.ts`
+  - 견적서 상단 메타에서 `유효기간`은 발행일과 동일값이 아니라 `invoice_date` 기준 14일 뒤 날짜로 출력된다.
+  - 사업자번호/전화 표기도 견적서와 거래명세표 인쇄물 모두 일반적인 하이픈 형식으로 맞췄다.
+- offline-crm-v2 입력 포맷 공통 함수를 추가하고 고객/공급처/설정/고객상세 편집에 자동 포맷을 연결했다.
+  - `src/lib/formatters.ts`
+  - `src/components/CustomerDialog.tsx`
+  - `src/components/SupplierDialog.tsx`
+  - `src/pages/Settings.tsx`
+  - `src/pages/CustomerDetail.tsx`
+  - `src/components/InvoiceDialog.tsx`
+  - 전화/휴대폰은 `01098485520 → 010-9848-5520`, 사업자번호는 `2150552221 → 215-05-52221`처럼 입력 중 자동 변환된다.
+  - 명세표 다이얼로그 고객 스냅샷과 날짜 정규화도 같은 공통 포맷 기준을 쓰게 맞췄다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
+  - 로컬 브라우저에서 설정 화면 raw 숫자 입력 시 자동 하이픈 포맷 확인
+  - 운영 릴리스 배포 완료: `20260329213816-8acbe77`
+  - 서버 확인: `/var/www/crm`, `/var/www/crm-current` 모두 `20260329213816-8acbe77` 릴리스 가리킴
+  - `curl -I -L https://crm.pressco21.com` → Basic Auth 앞단 `401 Unauthorized` 정상 응답
 - offline-crm-v2 견적서 출력에서 빈 행을 제거하고, 하단 비고/합계/서명 영역이 실제 품목 뒤로 바로 이어지게 바꿨다.
   - `src/lib/print.ts`
   - 기존처럼 남는 줄을 표에 억지로 채우지 않고, 실제 품목 수만큼만 렌더링한다.
@@ -238,7 +253,6 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
-- 견적서의 `유효기간`을 별도 필드로 둘지 계속 같은 날짜로 둘지 운영 규칙을 정한다.
 - 견적서/명세표 액션 버튼 영역도 저장 우선순위 기준으로 한 번 더 정리할지 검토한다.
 - 명세표 작성 다이얼로그의 저장/인쇄 액션 버튼 위계도 같은 기준으로 정리할지 검토한다.
 - 실제 운영 데이터 기준으로 예치금 사용 고객 1건을 열어 계산 표시가 직원 눈높이에 맞는지 한 번 더 확인한다.
@@ -247,7 +261,6 @@
 - 인쇄 회귀까지 잡을 수 있게 견적서 미리보기 스냅샷 또는 DOM 기반 검증을 추가할지 결정한다.
 - 회귀 위험이 큰 흐름부터 작업 브리프를 실제로 붙여서 운영한다.
 - 새 릴리스형 배포 스크립트 기준으로 다음 CRM 배포부터 `npm run deploy:release`를 기본 경로로 사용한다.
-- 견적서 문서의 `유효기간`을 별도 필드로 둘지, 현재처럼 `견적일자`와 동일하게 둘지 운영 규칙 확정
 - 목록의 `명세표`/`견적서` 버튼을 실제 인쇄 직전까지 눌렀을 때 브라우저 인쇄 다이얼로그 전 단계 미리보기까지 원하는 양식으로 열리는지 한 번 더 확인
 - `목록에서 선택` 다중 품목 추가 경로도 `고객 단가 자동입력 + 과세 유지` 회귀 기준으로 같은 테스트를 추가할지 결정
 - 필요하면 이번 회귀 검증 스크립트(`npm run test:regression`)를 배포 전 체크리스트에 포함
@@ -263,7 +276,7 @@
 - 견적서 품목 수가 매우 많아 2페이지 이상 넘어가는 케이스는 이번에 직접 실브라우저로 확인하지 않았다. 다만 구조상 첫 페이지/속지 분기 로직은 건드리지 않았다.
 - 첫 릴리스형 배포는 정상 전환됐지만, 이후 운영자가 `deploy/deploy.sh` 구형 덮어쓰기 스크립트를 다시 쓰면 릴리스 구조를 우회하게 된다. 앞으로는 `deploy/deploy-release.sh`를 기본으로 써야 한다.
 - `npm run deploy:rollback`은 release id를 인자로 받아야 하므로, 실제 사용 시 `npm run deploy:rollback -- <release-id>` 형식을 지켜야 한다.
-- 현재 견적서 `유효기간`은 별도 데이터 필드가 없어 `견적일자`와 동일하게 출력된다. 유효기간 운영 규칙이 따로 필요하면 필드 추가가 맞다.
+- 현재 견적서 `유효기간`은 별도 데이터 필드 없이 `견적일자 + 14일` 규칙으로 계산한다. 거래처별 다른 유효기간 정책이 필요해지면 별도 필드 추가가 맞다.
 - 명세표 목록 기본 날짜를 오늘로 고정했기 때문에, 사용자는 첫 진입 시 과거 문서를 바로 못 볼 수 있다. 이는 요청 의도에는 맞지만 과거 전체 조회 동선과는 트레이드오프다.
 - 현재 구분 값은 `거래명세표/견적서`와 레거시 `영수/청구/영수(청구)`를 함께 허용한다. 출력물/조회 필터가 신규 값까지 모두 기대대로 다루는지 운영 재확인이 필요하다.
 - 품목 선택 정책이 최근 두 번 바뀌었기 때문에, 앞으로는 `단가 자동입력 + 과세 유지`를 회귀 기준으로 테스트로 고정하는 편이 안전하다.

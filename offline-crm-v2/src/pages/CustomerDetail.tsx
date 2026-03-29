@@ -631,6 +631,30 @@ export function CustomerDetail() {
   const activeOperatorProfile = loadActiveWorkOperatorProfile()
   const crmOutstandingBalance = todayResolvedInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0)
   const customerDisplayMemo = getDisplayMemo(customer.memo as string | undefined)
+  const infoAddressEntries = getCustomerAddressEntries(customer).map((entry, index) => ({
+    label: customerAccountingMeta.addressLabels[index] ?? defaultAddressLabel(index),
+    value: entry.value,
+  }))
+  const contactInfoItems = [
+    { label: '전화', value: formatPhoneNumber(customer.phone ?? customer.phone1) },
+    { label: '모바일', value: formatPhoneNumber(customer.mobile as string) },
+    { label: '이메일', value: customer.email },
+    { label: '입금자명 별칭', value: customerAccountingMeta.depositorAliases.join(', ') },
+  ]
+  const businessInfoItems = [
+    { label: '사업자번호', value: formatBusinessNumber(customer.biz_no) },
+    { label: '담당자', value: customer.ceo_name as string | undefined },
+    { label: '업태/종목', value: [(customer.biz_type as string), (customer.biz_item as string)].filter(Boolean).join(' / ') || undefined },
+    { label: '고객유형', value: CUSTOMER_TYPE_LABELS[customer.customer_type ?? ''] ?? customer.customer_type },
+  ]
+  const operationInfoItems = [
+    { label: '상태', value: STATUS_COLORS[customer.customer_status ?? '']?.label ?? customer.customer_status },
+    { label: '단가등급', value: customer.price_tier ? `Tier ${customer.price_tier}` : undefined },
+    { label: '최초거래일', value: customer.first_order_date?.slice(0, 10) },
+    { label: '최종거래일', value: customer.last_order_date?.slice(0, 10) },
+    { label: '자동입금 제외', value: customerAccountingMeta.autoDepositDisabled ? '예' : '아니오' },
+    { label: '자동입금 우선순위', value: customerAccountingMeta.autoDepositPriority > 0 ? `${customerAccountingMeta.autoDepositPriority}` : undefined },
+  ]
   const invoiceNameVariants = Array.from(
     new Set(
       invoiceData
@@ -905,28 +929,38 @@ export function CustomerDetail() {
         </div>
       </div>
 
-      <div className="mb-6 flex flex-wrap gap-2">
-        <Button size="sm" variant="outline" onClick={() => navigate(`/receivables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}`)}>
-          수금 관리
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => navigate(`/payables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}&tab=payable`)}>
-          지급 관리
-        </Button>
-        <Button size="sm" variant="outline" onClick={() => navigate(`/transactions?customer=${encodeURIComponent(customer.name ?? '')}`)}>
-          거래/명세표 조회
-        </Button>
-        <Button
-          size="sm"
-          className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
-          onClick={() =>
-            navigate(
-              `/invoices?new=1&customerId=${customerId}&customerName=${encodeURIComponent(customer.name ?? '')}`,
-            )
-          }
-        >
-          <Plus className="mr-1 h-3.5 w-3.5" />
-          명세표 작성
-        </Button>
+      <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">빠른 작업</p>
+            <p className="text-xs text-muted-foreground">
+              이 고객 기준으로 바로 명세표를 만들거나 수금·지급·거래내역 화면으로 이동할 수 있습니다.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              size="sm"
+              className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
+              onClick={() =>
+                navigate(
+                  `/invoices?new=1&customerId=${customerId}&customerName=${encodeURIComponent(customer.name ?? '')}`,
+                )
+              }
+            >
+              <Plus className="mr-1 h-3.5 w-3.5" />
+              명세표 작성
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/receivables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}`)}>
+              수금 관리
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/payables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}&tab=payable`)}>
+              지급 관리
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate(`/transactions?customer=${encodeURIComponent(customer.name ?? '')}`)}>
+              거래/명세표 조회
+            </Button>
+          </div>
+        </div>
       </div>
 
       {((customer.book_name && customer.book_name !== customer.name) || invoiceNameVariants.length > 0) && (
@@ -990,54 +1024,70 @@ export function CustomerDetail() {
 
               {/* ── 읽기 모드 ── */}
               {!infoEditMode ? (
-                <dl className="grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-3 text-sm">
-                  {[
-                    { label: '전화', value: formatPhoneNumber(customer.phone ?? customer.phone1) },
-                    { label: '모바일', value: formatPhoneNumber(customer.mobile as string) },
-                    { label: '이메일', value: customer.email },
-                    { label: '사업자번호', value: formatBusinessNumber(customer.biz_no) },
-                    { label: '담당자', value: (customer.ceo_name as string) },
-                    { label: '업태/종목', value: [(customer.biz_type as string), (customer.biz_item as string)].filter(Boolean).join(' / ') || undefined },
-                    { label: '고객유형', value: CUSTOMER_TYPE_LABELS[customer.customer_type ?? ''] ?? customer.customer_type },
-                    { label: '상태', value: STATUS_COLORS[customer.customer_status ?? '']?.label ?? customer.customer_status },
-                    { label: '단가등급', value: customer.price_tier ? `Tier ${customer.price_tier}` : undefined },
-                    { label: '최초거래일', value: customer.first_order_date?.slice(0, 10) },
-                    { label: '최종거래일', value: customer.last_order_date?.slice(0, 10) },
-                    { label: '입금자명 별칭', value: customerAccountingMeta.depositorAliases.join(', ') },
-                    { label: '자동입금 제외', value: customerAccountingMeta.autoDepositDisabled ? '예' : '아니오' },
-                    { label: '자동입금 우선순위', value: customerAccountingMeta.autoDepositPriority > 0 ? `${customerAccountingMeta.autoDepositPriority}` : undefined },
-                    { label: '메모', value: customerDisplayMemo },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex flex-col gap-0.5">
-                      <dt className="font-medium text-muted-foreground text-xs">{label}</dt>
-                      <dd className="text-sm">{value || <span className="text-muted-foreground">-</span>}</dd>
+                <div className="space-y-4">
+                  <div className="grid gap-4 lg:grid-cols-3">
+                    <div className="rounded-lg border bg-[#fbfcfb] p-4">
+                      <h5 className="text-sm font-semibold text-foreground">연락처</h5>
+                      <dl className="mt-3 space-y-3 text-sm">
+                        {contactInfoItems.map(({ label, value }) => (
+                          <div key={label} className="flex flex-col gap-0.5">
+                            <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+                            <dd>{value || <span className="text-muted-foreground">-</span>}</dd>
+                          </div>
+                        ))}
+                      </dl>
                     </div>
-                  ))}
-                  {/* 주소 목록 */}
-	                  {(() => {
-	                    const addrs = getCustomerAddressEntries(customer).map((entry, index) => ({
-	                      label: customerAccountingMeta.addressLabels[index] ?? defaultAddressLabel(index),
-	                      value: entry.value,
-	                    }))
-	                    if (addrs.length === 0) return (
-	                      <div className="flex flex-col gap-0.5 sm:col-span-2">
-                        <dt className="font-medium text-muted-foreground text-xs">주소</dt>
-                        <dd className="text-sm text-muted-foreground">-</dd>
-                      </div>
-                    )
-	                    return (
-	                      <div className="flex flex-col gap-1 sm:col-span-2">
-	                        <dt className="font-medium text-muted-foreground text-xs">주소</dt>
-	                        {addrs.map((addr, i) => (
-	                          <dd key={i} className="flex flex-wrap items-start gap-2 text-sm">
-	                            <span className="min-w-16 shrink-0 text-xs text-muted-foreground">{addr.label}</span>
-	                            <span className="flex-1">{addr.value}</span>
-	                          </dd>
-	                        ))}
-	                      </div>
-	                    )
-                  })()}
-                </dl>
+
+                    <div className="rounded-lg border bg-[#fbfcfb] p-4">
+                      <h5 className="text-sm font-semibold text-foreground">사업자 · 분류</h5>
+                      <dl className="mt-3 space-y-3 text-sm">
+                        {businessInfoItems.map(({ label, value }) => (
+                          <div key={label} className="flex flex-col gap-0.5">
+                            <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+                            <dd>{value || <span className="text-muted-foreground">-</span>}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+
+                    <div className="rounded-lg border bg-[#fbfcfb] p-4">
+                      <h5 className="text-sm font-semibold text-foreground">운영 정보</h5>
+                      <dl className="mt-3 space-y-3 text-sm">
+                        {operationInfoItems.map(({ label, value }) => (
+                          <div key={label} className="flex flex-col gap-0.5">
+                            <dt className="text-xs font-medium text-muted-foreground">{label}</dt>
+                            <dd>{value || <span className="text-muted-foreground">-</span>}</dd>
+                          </div>
+                        ))}
+                      </dl>
+                    </div>
+                  </div>
+
+                  <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
+                    <div className="rounded-lg border p-4">
+                      <h5 className="text-sm font-semibold text-foreground">주소 목록</h5>
+                      {infoAddressEntries.length === 0 ? (
+                        <p className="mt-3 text-sm text-muted-foreground">등록된 주소가 없습니다.</p>
+                      ) : (
+                        <div className="mt-3 space-y-3">
+                          {infoAddressEntries.map((addr, index) => (
+                            <div key={`${addr.label}-${index}`} className="flex flex-col gap-1 rounded-lg bg-[#f8faf7] px-3 py-3 sm:flex-row sm:items-start sm:gap-3">
+                              <span className="min-w-20 text-xs font-medium text-muted-foreground">{addr.label}</span>
+                              <span className="text-sm">{addr.value}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="rounded-lg border p-4">
+                      <h5 className="text-sm font-semibold text-foreground">운영 메모</h5>
+                      <p className="mt-3 whitespace-pre-wrap text-sm">
+                        {customerDisplayMemo || <span className="text-muted-foreground">등록된 메모가 없습니다.</span>}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               ) : (
                 /* ── 편집 모드 ── */
                 <div className="space-y-4">

@@ -1152,12 +1152,12 @@ export function InvoiceDialog({
       }
     }}>
       <DialogContent
-        className="max-w-4xl max-h-[90vh] overflow-y-auto"
+        className="max-w-5xl max-h-[92vh] overflow-hidden p-0 gap-0"
         onKeyDown={(e) => {
           if (e.altKey && e.key === 'Enter') { e.preventDefault(); addItem() }
         }}
       >
-        <DialogHeader>
+        <DialogHeader className="border-b px-6 py-4">
           <DialogTitle className="flex items-center gap-2">
             {isCopy && <Copy className="h-4 w-4 text-muted-foreground" />}
             {titleLabel}
@@ -1165,7 +1165,7 @@ export function InvoiceDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 pb-2">
+        <div className="space-y-4 overflow-y-auto px-6 py-5">
           {isNew && !isCopy && draftMeta && (
             <div className="rounded-md border border-[#d8e4d6] bg-[#f5faf4] px-3 py-2 text-sm flex items-center justify-between gap-3">
               <div>
@@ -1186,9 +1186,9 @@ export function InvoiceDialog({
           )}
 
           {/* ─── 거래처 + 발행정보 ─── */}
-          <div className="grid grid-cols-3 gap-3">
+          <div className="grid grid-cols-1 gap-3 md:grid-cols-12">
             {/* 거래처 자동완성 */}
-            <div className="relative" ref={customerDropRef}>
+            <div className="relative md:col-span-6" ref={customerDropRef}>
               <Label className="text-xs">거래처 *</Label>
               <Input
                 placeholder="거래처명 검색..."
@@ -1305,7 +1305,7 @@ export function InvoiceDialog({
               )}
             </div>
 
-            <div>
+            <div className="md:col-span-3">
               <Label className="text-xs">발행일</Label>
               <Input
                 type="date"
@@ -1315,7 +1315,7 @@ export function InvoiceDialog({
               />
             </div>
 
-            <div>
+            <div className="md:col-span-3">
               <Label className="text-xs">발행번호</Label>
               <Input
                 value={form.invoice_no ?? ''}
@@ -1327,78 +1327,92 @@ export function InvoiceDialog({
 
           {/* 거래처 카드 (선택 시) */}
           {selectedCustomer && (
-            <div className="bg-gray-50 rounded-md px-3 py-2 text-xs flex flex-wrap gap-4">
-              <div>
-                <span className="text-muted-foreground">전화: </span>
-                <span>{getCustomerPrimaryPhone(selectedCustomer) || '-'}</span>
-              </div>
-              <div className="flex items-center gap-1 flex-wrap">
-                <span className="text-muted-foreground">주소: </span>
-                {(() => {
-                  const addrList = getCustomerAddresses(selectedCustomer)
-                  if (addrList.length <= 1) {
-                    const currentAddress = addrList[0]
-                    if (!currentAddress) return <span>-</span>
-                    return (
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <span className="rounded bg-white px-2 py-0.5 text-[11px] text-[#3d6b4a]">
-                          {currentAddress.label}
-                        </span>
-                        <span>{currentAddress.value}</span>
-                      </div>
-                    )
-                  }
-                  return (
-                    <div className="flex items-center gap-1 flex-wrap">
-                      <Select value={selectedAddrKey} onValueChange={switchAddress}>
-                        <SelectTrigger className="h-6 min-w-24 max-w-32 text-xs py-0 px-2 border-[#7d9675]">
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {addrList.map(({ key, label }) => (
-                            <SelectItem key={key} value={key} className="text-xs">
-                              {label}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <span className="max-w-[200px] truncate">{(form.customer_address as string) ?? '-'}</span>
-                      <span className="text-[11px] text-[#3d6b4a]">선택된 주소로 송장 다운로드</span>
-                    </div>
-                  )
-                })()}
-              </div>
-              <div className="flex items-center gap-1">
-                <span className="text-muted-foreground">단가등급: </span>
+            <div className="rounded-lg border bg-[#f7faf6] p-3">
+              <div className="flex flex-wrap items-center gap-2 text-xs">
+                <span className="rounded-full bg-white px-2.5 py-1 text-gray-700">
+                  전화 {getCustomerPrimaryPhone(selectedCustomer) || '-'}
+                </span>
                 {(() => {
                   const tier = selectedCustomer.price_tier ?? 1
                   const grade = selectedCustomer.is_ambassador ? 'AMBASSADOR' : (selectedCustomer.member_grade ?? 'MEMBER')
                   const g = GRADE_COLORS[grade]
                   return g ? (
-                    <span className="px-1.5 py-0.5 rounded text-white text-xs" style={{ backgroundColor: g.bg }}>
-                      {getTierLabel(tier)} ({g.label})
+                    <span className="rounded-full px-2.5 py-1 text-white" style={{ backgroundColor: g.bg }}>
+                      {getTierLabel(tier)} · {g.label}
                     </span>
-                  ) : <span>{getTierLabel(tier)}</span>
+                  ) : (
+                    <span className="rounded-full bg-white px-2.5 py-1 text-gray-700">
+                      단가등급 {getTierLabel(tier)}
+                    </span>
+                  )
                 })()}
-              </div>
-              {/* 최근 거래 5건 */}
-              {recentInvoices?.list && recentInvoices.list.length > 0 && (
-                <div className="w-full">
-                  <span className="text-muted-foreground font-medium">최근 거래: </span>
-                  <span className="space-x-3">
-                    {recentInvoices.list.map((inv) => (
-                      <span key={inv.Id} className="text-muted-foreground">
-                        {inv.invoice_date?.slice(0, 10)} {inv.total_amount?.toLocaleString()}원
-                      </span>
-                    ))}
+                {typeof selectedCustomer.outstanding_balance === 'number' && selectedCustomer.outstanding_balance > 0 && (
+                  <span className="rounded-full bg-[#fff1f2] px-2.5 py-1 text-red-600">
+                    미수 {selectedCustomer.outstanding_balance.toLocaleString()}원
                   </span>
+                )}
+              </div>
+
+              <div className="mt-3 grid gap-3 md:grid-cols-[minmax(0,1fr)_260px]">
+                <div className="rounded-md bg-white/80 px-3 py-2">
+                  <p className="text-[11px] font-medium text-muted-foreground">배송 주소</p>
+                  <div className="mt-1 flex items-center gap-2 flex-wrap text-xs">
+                    {(() => {
+                      const addrList = getCustomerAddresses(selectedCustomer)
+                      if (addrList.length <= 1) {
+                        const currentAddress = addrList[0]
+                        if (!currentAddress) return <span>-</span>
+                        return (
+                          <>
+                            <span className="rounded bg-[#edf6ea] px-2 py-0.5 text-[11px] text-[#3d6b4a]">
+                              {currentAddress.label}
+                            </span>
+                            <span className="text-gray-700">{currentAddress.value}</span>
+                          </>
+                        )
+                      }
+                      return (
+                        <>
+                          <Select value={selectedAddrKey} onValueChange={switchAddress}>
+                            <SelectTrigger className="h-7 min-w-24 max-w-36 text-xs py-0 px-2 border-[#7d9675] bg-white">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              {addrList.map(({ key, label }) => (
+                                <SelectItem key={key} value={key} className="text-xs">
+                                  {label}
+                                </SelectItem>
+                              ))}
+                            </SelectContent>
+                          </Select>
+                          <span className="min-w-0 flex-1 text-gray-700 break-all">{(form.customer_address as string) ?? '-'}</span>
+                          <span className="text-[11px] text-[#3d6b4a]">선택 주소로 송장 출력</span>
+                        </>
+                      )
+                    })()}
+                  </div>
                 </div>
-              )}
+
+                <div className="rounded-md bg-white/80 px-3 py-2">
+                  <p className="text-[11px] font-medium text-muted-foreground">최근 거래</p>
+                  {recentInvoices?.list && recentInvoices.list.length > 0 ? (
+                    <div className="mt-1 flex flex-wrap gap-1.5">
+                      {recentInvoices.list.map((inv) => (
+                        <span key={inv.Id} className="rounded-full bg-gray-50 px-2 py-0.5 text-[11px] text-gray-600">
+                          {inv.invoice_date?.slice(5, 10)} · {inv.total_amount?.toLocaleString()}원
+                        </span>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">최근 거래 없음</p>
+                  )}
+                </div>
+              </div>
             </div>
           )}
 
-          <div className="grid grid-cols-3 gap-3">
-            <div>
+          <div className={`grid grid-cols-1 gap-3 ${selectedCustomer ? 'md:grid-cols-12' : 'md:grid-cols-3'}`}>
+            <div className={selectedCustomer ? 'md:col-span-2' : ''}>
               <Label className="text-xs">구분</Label>
               <Select
                 value={form.receipt_type ?? DEFAULT_RECEIPT_TYPE}
@@ -1416,7 +1430,7 @@ export function InvoiceDialog({
                 </SelectContent>
               </Select>
             </div>
-            <div>
+            <div className={selectedCustomer ? 'md:col-span-2' : ''}>
               <Label className="text-xs">전잔액</Label>
               <Input
                 type="number"
@@ -1425,24 +1439,8 @@ export function InvoiceDialog({
                 className="mt-1"
               />
             </div>
-            <div>
-              <Label className="text-xs">비고</Label>
-              <Input
-                value={getDisplayMemo(form.memo as string | undefined)}
-                onChange={(e) => { setForm((f) => ({ ...f, memo: e.target.value })); setIsDirty(true) }}
-                placeholder="비고 (선택)"
-                className="mt-1"
-              />
-            </div>
-          </div>
-
-          {selectedCustomer && (
-            <div className="grid grid-cols-3 gap-3">
-              <div className="rounded-md border bg-[#f7faf6] px-3 py-2">
-                <p className="text-xs text-muted-foreground">사용 가능 예치금</p>
-                <p className="mt-1 text-sm font-semibold text-emerald-700">{availableDeposit.toLocaleString()}원</p>
-              </div>
-              <div>
+            {selectedCustomer && (
+              <div className="md:col-span-2">
                 <Label className="text-xs">예치금 사용</Label>
                 <Input
                   type="number"
@@ -1458,6 +1456,24 @@ export function InvoiceDialog({
                   className="mt-1"
                 />
               </div>
+            )}
+            <div className={selectedCustomer ? 'md:col-span-6' : ''}>
+              <Label className="text-xs">비고</Label>
+              <Input
+                value={getDisplayMemo(form.memo as string | undefined)}
+                onChange={(e) => { setForm((f) => ({ ...f, memo: e.target.value })); setIsDirty(true) }}
+                placeholder="비고 (선택)"
+                className="mt-1"
+              />
+            </div>
+          </div>
+
+          {selectedCustomer && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="rounded-md border bg-[#f7faf6] px-3 py-2">
+                <p className="text-xs text-muted-foreground">사용 가능 예치금</p>
+                <p className="mt-1 text-sm font-semibold text-emerald-700">{availableDeposit.toLocaleString()}원</p>
+              </div>
               <div className="rounded-md border bg-gray-50 px-3 py-2">
                 <p className="text-xs text-muted-foreground">예치금 반영 후 잔액</p>
                 <p className={`mt-1 text-sm font-semibold ${curBal > 0 ? 'text-red-600' : 'text-green-700'}`}>
@@ -1471,11 +1487,16 @@ export function InvoiceDialog({
 
           {/* ─── 품목 테이블 ─── */}
           <div>
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-sm font-medium">
-                품목 목록 <span className="text-muted-foreground font-normal text-xs">({items.length}개)</span>
-              </span>
-              <div className="flex gap-2">
+            <div className="mb-2 flex flex-col gap-2 md:flex-row md:items-start md:justify-between">
+              <div>
+                <span className="text-sm font-medium">
+                  품목 목록 <span className="text-muted-foreground font-normal text-xs">({items.length}개)</span>
+                </span>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  품목명 자동완성을 고르면 고객 단가가 들어가고, 과세 상태는 현재 행 기준으로 유지됩니다.
+                </p>
+              </div>
+              <div className="flex flex-wrap gap-2">
                 <Button
                   size="sm"
                   variant="outline"
@@ -1493,7 +1514,7 @@ export function InvoiceDialog({
               </div>
             </div>
             <div className="rounded-md border overflow-x-auto">
-              <table className="w-full text-sm">
+              <table className="w-full table-fixed text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
                     <th className="text-left px-2 py-2 font-medium text-xs text-muted-foreground w-[28%]">품목명</th>

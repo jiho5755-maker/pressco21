@@ -233,6 +233,14 @@ test('T1-11: 고객 화면 도움말 드로어 열림/닫힘 확인', async ({ p
   await expect(page.getByText('이 화면에서 많이 하는 일')).toBeVisible()
   await expect(page.getByRole('button', { name: '화면에서 보기' })).toBeVisible()
 
+  await page.getByRole('button', { name: '화면에서 보기' }).click()
+  await expect(page.locator('[data-guide-id="guide-focus-bubble"]')).toBeVisible()
+  await expect(page.locator('[data-guide-id="guide-focus-close"]')).toBeVisible()
+  await page.locator('[data-guide-id="guide-focus-close"]').click()
+  await expect(page.locator('[data-guide-id="guide-focus-bubble"]')).toHaveCount(0)
+
+  await guideButton.click()
+  await expect(page.getByRole('heading', { name: '고객 관리 가이드' })).toBeVisible({ timeout: API_TIMEOUT })
   await page.getByRole('button', { name: '닫기' }).click()
   await expect(page.getByRole('heading', { name: '고객 관리 가이드' })).toHaveCount(0)
 })

@@ -49,18 +49,15 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
+- Current Owner: IDLE
+- Mode: —
 - Started At: 2026-03-30 00:32:00 KST
 - Branch: main
 - Working Scope: 화면 가이드 말풍선 포커스 보정 및 명세표 작성 최근 거래처 UX 정리
 - Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
-- `offline-crm-v2/src/components/layout/AppGuideWidget.tsx`
-- `offline-crm-v2/src/components/InvoiceDialog.tsx`
-- `offline-crm-v2/tests/01-customers.spec.ts`
-- `offline-crm-v2/tests/02-invoices.spec.ts`
+- 없음
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -93,6 +90,23 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- offline-crm-v2 화면 가이드 포커스 방식을 `검은 블러 오버레이`에서 `가벼운 말풍선 안내`로 바꿨다.
+  - `src/components/layout/AppGuideWidget.tsx`
+  - `화면에서 보기`를 누르면 Help drawer는 접히고, 해당 요소 옆에 작은 말풍선으로 현재 단계 설명이 뜨도록 바꿨다.
+  - 강한 블러/차단막은 제거하고, 대상 요소는 연한 테두리 강조만 남겨 실제 화면이 더 잘 보이게 정리했다.
+  - 말풍선 안에서 `이전 / 다음 / 강조 끄기 / 도움말 열기`를 바로 쓸 수 있게 했다.
+- offline-crm-v2 새 명세표 시작 화면의 최근 거래처 영역을 더 단정하게 줄였다.
+  - `src/components/InvoiceDialog.tsx`
+  - 최근 거래처 칩은 최대 4개만 보이게 줄였고, `최근 거래처 빠른 선택` 박스로 묶어 첫 진입 화면이 덜 산만하게 보이게 정리했다.
+- 회귀 테스트도 새 가이드 포커스 흐름 기준으로 같이 보정했다.
+  - `tests/01-customers.spec.ts`
+  - `화면 도움말 열기 → 화면에서 보기 → 말풍선 표시 → 강조 끄기 → 도움말 다시 열기` 흐름을 자동 검증한다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - 고객 관리에서 검은 블러 없이 말풍선 포커스 노출 확인
+    - 명세표 작성 첫 화면 최근 거래처 영역 밀도 확인
 - offline-crm-v2 화면 가이드를 사이드바 인라인 패널에서 `Help drawer` 방식으로 바꿨다.
   - `src/components/layout/AppGuideWidget.tsx`
   - `src/lib/appGuide.ts`
@@ -365,7 +379,7 @@
 ## Next Step
 - 새 `Help drawer` 기준으로 실제 운영 사용감만 한 번 더 보고, 문구나 단계 수를 줄일지 결정한다.
 - `명세표 작성/관리` 상단 필터 영역을 실제 운영 사용감 기준으로 한 번 더 보고, 필요하면 모바일 폭에서 줄바꿈과 라벨 밀도만 미세조정한다.
-- 명세표 작성 다이얼로그에서 최근 거래처 칩 노출 기준을 더 줄일지 검토한다.
+- 명세표 작성 다이얼로그에서 최근 거래처 칩을 거래처 유형/최근 금액 기준으로 더 똑똑하게 추리는지 검토한다.
 - 목록 화면 우측 실행 버튼 묶음의 밀도와 버튼 라벨 길이도 같은 기준으로 다듬을지 검토한다.
 - 실제 Safari에서 견적서 인쇄 1페이지 유지 여부를 운영 환경에서 한 번 더 확인한다.
 - 인쇄 회귀까지 잡을 수 있게 견적서 DOM 기반 검증 또는 스냅샷 테스트를 추가할지 결정한다.
@@ -384,6 +398,7 @@
 
 ## Known Risks
 - Help drawer는 구조적으로는 안정화됐지만, 현재는 여전히 화면별 단계 수가 다소 긴 편이다. 운영 사용감에서 “길다”는 피드백이 나오면 단계 압축이 필요할 수 있다.
+- 현재 말풍선 포커스는 단계 설명과 대상 위치를 동시에 보여주는 데 집중한 상태다. 단계가 아주 많은 화면에서는 말풍선보다 간단한 한 줄 안내가 더 나을 수도 있다.
 - 이번 WebKit 확인은 생성된 견적서 DOM의 `.est-page` 수와 렌더 구조 기준이다. 실제 Safari 시스템 인쇄 대화상자에서 용지 설정에 따라 어떻게 보이는지는 운영 브라우저에서 한 번 더 보는 편이 가장 안전하다.
 - `명세표 작성/관리` 상단 필터 카드에 빠른 기간 버튼을 넣었기 때문에, 모바일에서는 버튼 줄바꿈 밀도가 사용감에 영향을 줄 수 있다. 운영 화면에서 한 번 더 보는 편이 안전하다.
 - 가이드 투어는 단계 변경 시에는 여전히 해당 요소로 한 번 이동한다. 이건 의도된 동작이지만, 특정 화면에서 너무 급하게 움직인다고 느끼면 이동 방식만 따로 완화할 여지가 있다.

@@ -1146,7 +1146,7 @@ export function InvoiceDialog({
       invoiceDate: inv.invoice_date,
       outstandingBalance: inv.current_balance ?? inv.previous_balance,
     })
-    if (recentCustomerOptions.length >= 6) break
+    if (recentCustomerOptions.length >= 4) break
   }
   const showRecentCustomers = isNew && !isCopy && !selectedCustomer && customerInput.trim().length === 0
 
@@ -1260,22 +1260,29 @@ export function InvoiceDialog({
                 className="mt-1"
               />
               {showRecentCustomers && (
-                <div className="mt-2 flex flex-wrap gap-2">
-                  <span className="text-xs text-muted-foreground py-1">최근 거래처</span>
+                <div className="mt-2 rounded-xl border border-dashed border-[#d8e4d6] bg-[#f8fbf7] px-3 py-2">
+                  <div className="flex items-center justify-between gap-3">
+                    <span className="text-[11px] font-medium text-[#5d755f]">최근 거래처 빠른 선택</span>
+                    <span className="text-[11px] text-muted-foreground">최근 거래 기준 최대 4개</span>
+                  </div>
                   {isRecentCustomerLoading && (
-                    <span className="text-xs text-muted-foreground py-1">불러오는 중...</span>
+                    <span className="mt-2 block text-xs text-muted-foreground">불러오는 중...</span>
                   )}
-                  {!isRecentCustomerLoading && recentCustomerOptions.map((option) => (
-                    <button
-                      key={option.key}
-                      type="button"
-                      onClick={() => { void selectRecentCustomer(option) }}
-                      className="rounded-full border px-2.5 py-1 text-xs text-gray-700 hover:border-[#7d9675] hover:text-[#3d6b4a] hover:bg-[#f5faf4]"
-                    >
-                      {option.customerName}
-                      {option.invoiceDate ? <span className="ml-1 text-muted-foreground">{option.invoiceDate.slice(5, 10)}</span> : null}
-                    </button>
-                  ))}
+                  {!isRecentCustomerLoading && (
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {recentCustomerOptions.map((option) => (
+                        <button
+                          key={option.key}
+                          type="button"
+                          onClick={() => { void selectRecentCustomer(option) }}
+                          className="rounded-full border bg-white px-2.5 py-1 text-xs text-gray-700 hover:border-[#7d9675] hover:text-[#3d6b4a] hover:bg-[#f5faf4]"
+                        >
+                          <span>{option.customerName}</span>
+                          {option.invoiceDate ? <span className="ml-1 text-muted-foreground">{option.invoiceDate.slice(5, 10)}</span> : null}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
               )}
               {showCustomerDrop && customerSearchResult?.list && customerSearchResult.list.length > 0 && (

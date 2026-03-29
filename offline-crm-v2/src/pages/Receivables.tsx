@@ -1289,6 +1289,12 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const legacyTabLabel = '기존 장부 받을 돈'
   const payableTabLabel = '기존 장부 줄 돈'
   const refundTabLabel = '환불대기'
+  const hasCustomerFilter = Boolean(customerSearch || customerIdFilter)
+  const primaryResultCount = isPayableMode ? filteredOutgoingLedger.length : filteredLedger.length
+  const primaryResultLabel = isPayableMode ? '지급 예정' : '조회 고객'
+  const basisDateToneClass = isTodayView
+    ? 'bg-[#f4f7f1] text-[#4f6748]'
+    : 'bg-amber-50 text-amber-700'
 
   if (isLoading)
     return (
@@ -1319,31 +1325,6 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           <h2 className="text-2xl font-bold">{pageTitle}</h2>
           <p className="text-sm text-muted-foreground mt-1">
             {pageDescription}
-          </p>
-          <p className="text-sm text-muted-foreground mt-1">
-            {totalSummaryLabel}{' '}
-            <span className={`font-medium ${isPayableMode ? 'text-blue-700' : 'text-red-600'}`}>
-              {(isPayableMode ? filteredTotalOutgoing : filteredTotalReceivable).toLocaleString()}원
-            </span>
-            {isPayableMode ? (
-              <>
-                {' / '}기존 장부 줄 돈 <span className="font-medium text-blue-700">{filteredPayableTotal.toLocaleString()}원</span>
-                {' / '}환불대기 <span className="font-medium text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</span>
-              </>
-            ) : (
-              <>
-                {' / '}기존 장부 받을 돈 {filteredLegacyTotal.toLocaleString()}원
-                {' / '}새 입력 받을 돈 {filteredCrmTotal.toLocaleString()}원
-                {' / '}총 줄 돈 <span className="font-medium text-blue-700">{filteredPayableTotal.toLocaleString()}원</span>
-                {' / '}환불대기 <span className="font-medium text-amber-700">{filteredRefundPendingTotal.toLocaleString()}원</span>
-              </>
-            )}
-            {criticalCount > 0 && (
-              <span className="ml-2 text-amber-600">
-                <AlertCircle className="inline h-3.5 w-3.5 mr-0.5" />
-                90일 초과 {criticalCount}건
-              </span>
-            )}
           </p>
         </div>
         {!isPayableMode ? (
@@ -1385,39 +1366,85 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         )}
       </div>
 
-      <div className="flex items-center gap-3 mb-4 flex-wrap">
-        <div className="relative min-w-[220px]" data-guide-id="receivables-search">
-          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <Input
-            value={customerSearch}
-            onChange={(e) => applyCustomerFilter(e.target.value, customerIdFilter)}
-            placeholder="거래처명 필터"
-            className="pl-9 w-[240px]"
-          />
+      <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <p className="text-sm font-semibold text-foreground">조회 조건</p>
+              <p className="text-xs text-muted-foreground">
+                거래처와 기준일을 먼저 정하고, 필요한 정산 구간만 빠르게 확인하세요.
+              </p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
+                기준일 {asOfDate}
+              </span>
+              <span className={`rounded-full px-3 py-1 font-medium ${basisDateToneClass}`}>
+                {isTodayView ? '오늘 기준' : '과거 조회'}
+              </span>
+              <span className="rounded-full bg-[#f7f5ef] px-3 py-1 font-medium text-[#836b2c]">
+                {primaryResultLabel} {primaryResultCount.toLocaleString()}건
+              </span>
+              {criticalCount > 0 && !isPayableMode && (
+                <span className="inline-flex items-center gap-1 rounded-full bg-amber-50 px-3 py-1 font-medium text-amber-700">
+                  <AlertCircle className="h-3.5 w-3.5" />
+                  90일 초과 {criticalCount}건
+                </span>
+              )}
+            </div>
+          </div>
+
+          <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_210px_auto]">
+            <div className="space-y-2" data-guide-id="receivables-search">
+              <Label htmlFor="receivables-search" className="text-xs font-medium text-muted-foreground">
+                거래처 검색
+              </Label>
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  id="receivables-search"
+                  value={customerSearch}
+                  onChange={(e) => applyCustomerFilter(e.target.value, customerIdFilter)}
+                  placeholder="거래처명 또는 분리 거래명으로 찾기"
+                  className="pl-9"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="receivables-asof" className="text-xs font-medium text-muted-foreground">
+                기준일
+              </Label>
+              <Input
+                id="receivables-asof"
+                type="date"
+                value={asOfDate}
+                onChange={(e) => applyAsOfDate(e.target.value)}
+                className="w-full"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <span className="text-xs font-medium text-muted-foreground">빠른 작업</span>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button variant={isTodayView ? 'secondary' : 'ghost'} size="sm" onClick={() => applyAsOfDate(todayDate())}>
+                  오늘 기준
+                </Button>
+                {hasCustomerFilter && (
+                  <Button variant="ghost" size="sm" onClick={() => applyCustomerFilter('')}>
+                    거래처 필터 해제
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          {!isTodayView && (
+            <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
+              과거 기준일은 조회 전용입니다. 실제 입금 처리와 잔액 반영은 오늘 기준에서만 진행됩니다.
+            </div>
+          )}
         </div>
-        <div className="flex items-center gap-2">
-          <Label htmlFor="receivables-asof" className="text-xs text-muted-foreground">기준일</Label>
-          <Input
-            id="receivables-asof"
-            type="date"
-            value={asOfDate}
-            onChange={(e) => applyAsOfDate(e.target.value)}
-            className="w-[170px]"
-          />
-        </div>
-        <Button variant="ghost" size="sm" onClick={() => applyAsOfDate(todayDate())}>
-          오늘 기준
-        </Button>
-        {(customerSearch || customerIdFilter) && (
-          <Button variant="ghost" size="sm" onClick={() => applyCustomerFilter('')}>
-            거래처 필터 해제
-          </Button>
-        )}
-        {!isTodayView && (
-          <span className="text-xs text-muted-foreground">
-            과거 기준일은 조회 전용입니다. 입금 처리는 오늘 기준에서만 가능합니다.
-          </span>
-        )}
       </div>
 
       {isPayableMode ? (

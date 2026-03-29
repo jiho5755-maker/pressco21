@@ -49,15 +49,17 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: —
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-29 21:08:00 KST
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: offline-crm-v2 견적서 빈 행 제거 및 다이얼로그 스크롤 복구 반영
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
-- 없음
+- offline-crm-v2/src/components/InvoiceDialog.tsx
+- offline-crm-v2/src/lib/print.ts
+- offline-crm-v2/../AI_SYNC.md
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -90,6 +92,18 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- offline-crm-v2 견적서 출력에서 빈 행을 제거하고, 하단 비고/합계/서명 영역이 실제 품목 뒤로 바로 이어지게 바꿨다.
+  - `src/lib/print.ts`
+  - 기존처럼 남는 줄을 표에 억지로 채우지 않고, 실제 품목 수만큼만 렌더링한다.
+  - 하단 요약 블록을 페이지 맨 아래로 밀던 `auto` 여백도 제거해 중간 공백이 크지 않게 조정했다.
+- 명세표 작성 다이얼로그의 내부 스크롤도 함께 복구했다.
+  - `src/components/InvoiceDialog.tsx`
+  - `DialogContent`를 `flex column` 구조로 바꾸고, 본문 영역에 `min-h-0 flex-1 overflow-y-auto`를 적용해 하단까지 다시 내려가게 했다.
+- 검증
+  - 로컬 브라우저에서 견적서 `인쇄 미리보기` 확인: 품목 6개 뒤에 빈 행 없이 비고/합계가 바로 이어짐
+  - 로컬 브라우저에서 명세표 수정 다이얼로그 스크롤 복구 확인
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
 - offline-crm-v2 명세표 작성 다이얼로그의 하단 `입금/잔액` 블록을 계산 근거가 보이도록 재구성했다.
   - `src/components/InvoiceDialog.tsx`
   - 왼쪽은 `입금 처리` 입력 카드, 오른쪽은 `잔액 계산` 카드로 분리했다.
@@ -220,6 +234,8 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- 견적서의 `유효기간`을 별도 필드로 둘지 계속 같은 날짜로 둘지 운영 규칙을 정한다.
+- 견적서/명세표 액션 버튼 영역도 저장 우선순위 기준으로 한 번 더 정리할지 검토한다.
 - 명세표 작성 다이얼로그의 저장/인쇄 액션 버튼 위계도 같은 기준으로 정리할지 검토한다.
 - 실제 운영 데이터 기준으로 예치금 사용 고객 1건을 열어 계산 표시가 직원 눈높이에 맞는지 한 번 더 확인한다.
 - 명세표 품목 테이블에서 모바일 또는 좁은 폭 대응이 더 필요한지 확인한다.

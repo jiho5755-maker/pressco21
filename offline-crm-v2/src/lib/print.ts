@@ -400,8 +400,6 @@ function buildEstimatePageHtml(
     ? `<img src="${effectiveStamp}" alt="도장" class="est-stamp-img" />`
     : ''
   const pageLabel = opts.totalPages > 1 ? ` / ${opts.pageNum}p` : ''
-  const itemCapacity = opts.isFirst ? ESTIMATE_ITEMS_FIRST_PAGE : ESTIMATE_ITEMS_CONT_PAGE
-  const blankCount = opts.isLast ? Math.max(0, itemCapacity - pageItems.length) : 0
   const noteText = inv.memo?.trim() || c.invoice_footer?.trim() || '견적 금액과 납품 조건은 협의 후 확정됩니다.'
 
   const itemRowsHtml =
@@ -418,8 +416,7 @@ function buildEstimatePageHtml(
         `<td class="t-right">${((item.supply_amount ?? 0) + (item.tax_amount ?? 0)).toLocaleString()}</td>` +
         '</tr>'
       )
-      .join('') +
-    Array(blankCount).fill('<tr class="est-blank"><td></td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>').join('')
+      .join('')
 
   return (
     '<section class="est-page">' +
@@ -622,8 +619,7 @@ const ESTIMATE_CSS = [
   '.est-items-table td { padding:2px 4px; line-height:1.15; height:22px; }',
   '.est-party-table th, .est-items-table th, .est-summary-table th, .est-label { background:#f3f4f6; font-weight:700; }',
   '.est-items-table td:nth-child(2) { font-weight:600; font-size:7.9pt; }',
-  '.est-blank td { height:14px; padding:0; }',
-  '.est-footer { margin-top:auto; padding-top:8px; }',
+  '.est-footer { padding-top:8px; }',
   '.est-bottom { display:grid; grid-template-columns: 1fr 170px; gap:10px; }',
   '.est-note-block { border:1px solid #9ca3af; min-height:76px; }',
   '.est-note-title { background:#f3f4f6; border-bottom:1px solid #9ca3af; padding:4px 6px; font-size:8pt; font-weight:700; }',

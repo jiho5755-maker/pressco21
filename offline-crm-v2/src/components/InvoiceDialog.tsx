@@ -1152,7 +1152,7 @@ export function InvoiceDialog({
       }
     }}>
       <DialogContent
-        className="max-w-5xl max-h-[92vh] overflow-hidden p-0 gap-0"
+        className="flex max-w-5xl h-[92vh] max-h-[92vh] flex-col overflow-hidden p-0 gap-0"
         onKeyDown={(e) => {
           if (e.altKey && e.key === 'Enter') { e.preventDefault(); addItem() }
         }}
@@ -1165,7 +1165,7 @@ export function InvoiceDialog({
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4 overflow-y-auto px-6 py-5">
+        <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-6 py-5">
           {isNew && !isCopy && draftMeta && (
             <div className="rounded-md border border-[#d8e4d6] bg-[#f5faf4] px-3 py-2 text-sm flex items-center justify-between gap-3">
               <div>

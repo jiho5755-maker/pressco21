@@ -1,8 +1,9 @@
 # PRD: 플로라(Flora) AI 비서 고도화 v1.0
 
-> 작성일: 2026-03-26 | 갱신: 2026-03-27 Phase C v2 확정
-> 상태: Phase A+B 완료, Phase C 착수 준비
+> 작성일: 2026-03-26 | 갱신: 2026-03-27 Phase C v2 확정 + C-Step1 완료 반영
+> 상태: Phase A+B ✅, Phase C-Step1 ✅, C-Step2 착수 준비
 > Phase C v2: 팀미팅 + 기술 검증 완료, 단일 봇 + GPT-5.4 공유 구조 확정
+> 문서 위치: `docs/Phase-C/` (법무 3종 + 직원 가이드)
 > 이전 세션 참조: `openclaw-server.md` (메모리)
 
 ---
@@ -46,9 +47,11 @@
 - 메모리 자동 동기화: 1시간마다 (launchd)
 
 ### AI 모델
-- Primary: `openai-codex/gpt-5.4` (ChatGPT Pro $200)
-- Fallback 1: `openai-codex/gpt-5.4-mini`
-- Fallback 2: `anthropic/claude-sonnet-4-6`
+- **에이전트 대화**: `openai-codex/gpt-5.4` (ChatGPT Pro $200)
+  - owner fallback: gpt-5.4-mini → claude-sonnet-4-6
+  - staff fallback: gpt-5.4-mini → gemini-2.5-flash
+- **게이트웨이 시스템**: `anthropic/claude-opus-4-6` (라우팅/내부 처리용, 대화 모델과 별도)
+- **Gemini**: systemd env에 API 키 세팅 완료 (비상 fallback용)
 
 ---
 
@@ -358,24 +361,29 @@ B-006: 토큰 사용량 로깅 시스템 ✅ (skills/token-logger/ + log-tokens.
 
 ### Phase C (2026-03-27~ , v2 확정)
 
-**C-Step 1: 기반 작업 (1주)**
+**C-Step 1: 기반 작업 (완료 2026-03-27)** ✅
 ```
-C-001: 법무 문서 작성 (보안서약서, AI정책, 접근 권한 매트릭스)
-C-002: openclaw.json 멀티 에이전트 재구성 (owner + staff 분리)
-C-003: staff 에이전트 workspace 생성 (SOUL.md + 권한 매트릭스)
-C-004: PII 마스킹 스킬 구현 (skills/pii-masker/)
-C-005: 대화 로그 시스템 구축 (n8n WF + NocoDB conversation_logs)
-C-006: Playwright 좀비 프로세스 정리 + price-monitor.js 버그 수정
-C-007: Gemini API 키 서버 세팅 (비상 fallback용)
+C-001: 법무 문서 작성 ✅ (docs/Phase-C/01~03)
+C-002: openclaw.json 멀티 에이전트 재구성 ✅ (owner+staff, 현재 전체→owner 단일 라우팅)
+C-003: staff 에이전트 workspace 생성 ✅ (SOUL.md+권한+PII)
+C-004: PII 마스킹 스킬 구현 ✅ (workspace-staff/skills/pii-masker/)
+C-005: 대화 로그 시스템 구축 ✅ (n8n WF UC4f2SxSmutEzdOT + NocoDB m6r9su436vk75w4)
+C-006: Playwright 좀비 방지 ✅ (price-monitor.js 5분 글로벌 타임아웃 + try/finally)
+C-007: Gemini API 키 서버 세팅 ✅ (systemd env + models.json google provider)
 ```
 
-**C-Step 2: 교육 준비 + 파일럿 (2~3주)**
+**C-Step 2: 교육 준비 + 파일럿 (2~3주, 진행 중)**
 ```
-C-008: 직원 Chat ID 수집 (이재혁, 원장님, 영상팀장, 웹디자이너)
-C-009: 직원용 프롬프트 템플릿 + 데모 영상 제작
-C-010: 이재혁 과장 파일럿 (allowFrom 추가, CS 응대 테스트)
-C-011: 디자이너/영상팀장 ChatGPT 앱 도입 (병렬 진행)
-C-012: 보안서약서 서명 수집
+C-008: 직원 Chat ID 수집 — 원장님 ✅ / 이재혁,영상팀장,웹디자이너 대기
+        → 직원 설정 가이드: docs/Phase-C/직원-텔레그램-설정-가이드.md
+        → 자동화 스크립트: scripts/flora-add-staff.sh (Chat ID만 넣으면 즉시 등록)
+C-009: 직원용 프롬프트 템플릿 ✅ (docs/Phase-C/prompt-templates/ 3개 역할별)
+        → 루나(이재혁/CS물류), 로즈(영상/콘텐츠), 아이비(디자인/카피)
+        → 데모 영상 제작은 실제 파일럿 테스트 시 녹화 예정
+C-010: 이재혁 과장 파일럿 — staff 스킬 3개 준비 완료 (cs-triage, order-lookup, pii-masker)
+        → Chat ID 수집 후 flora-add-staff.sh 실행 → 바로 테스트 가능
+C-011: 디자이너/영상팀장 ChatGPT 앱 도입 (C-010 파일럿 후 병렬 진행)
+C-012: 보안서약서 서명 수집 — 문서 준비 완료 (docs/Phase-C/01-보안서약서.md)
 ```
 
 **C-Step 3: 확산 + 안정화 (1~2개월)**
@@ -426,26 +434,49 @@ journalctl --user -u openclaw-gateway -f
 ```
 
 ### OpenClaw 멀티 에이전트 설정 (Phase C 구조)
+
+**현재 서버 설정 (C-Step 1):** 전체 telegram → owner 라우팅 (직원 미등록)
 ```json
 {
   "agents": {
-    "defaults": { "workspace": "~/.openclaw/workspace" },
+    "defaults": {
+      "workspace": "/home/ubuntu/.openclaw/workspace",
+      "compaction": { "mode": "safeguard" },
+      "maxConcurrent": 2,
+      "subagents": { "maxConcurrent": 4 }
+    },
     "list": [
       {
         "id": "owner",
-        "workspace": "~/.openclaw/workspace-owner",
-        "model": { "primary": "openai-codex/gpt-5.4", "fallbacks": ["openai-codex/gpt-5.4-mini"] }
+        "workspace": "/home/ubuntu/.openclaw/workspace-owner",
+        "model": {
+          "primary": "openai-codex/gpt-5.4",
+          "fallbacks": ["openai-codex/gpt-5.4-mini", "anthropic/claude-sonnet-4-6"]
+        }
       },
       {
         "id": "staff",
-        "workspace": "~/.openclaw/workspace-staff",
-        "model": { "primary": "openai-codex/gpt-5.4", "fallbacks": ["google/gemini-2.5-flash"] }
+        "workspace": "/home/ubuntu/.openclaw/workspace-staff",
+        "model": {
+          "primary": "openai-codex/gpt-5.4",
+          "fallbacks": ["openai-codex/gpt-5.4-mini", "google/gemini-2.5-flash"]
+        }
       }
     ]
   },
   "bindings": [
-    { "agentId": "owner", "match": { "channel": "telegram", "peer": { "id": "tg:7713811206" } } },
-    { "agentId": "staff", "match": { "channel": "telegram" } }
+    { "type": "route", "agentId": "owner", "match": { "channel": "telegram" } }
+  ]
+}
+```
+
+**C-Step 2 목표 설정:** peer-specific 라우팅으로 변경 (직원 Chat ID 수집 후)
+```json
+{
+  "bindings": [
+    { "type": "route", "agentId": "owner", "match": { "channel": "telegram", "peer": { "id": "tg:7713811206" } } },
+    { "type": "route", "agentId": "owner", "match": { "channel": "telegram", "peer": { "id": "tg:8606163783" } } },
+    { "type": "route", "agentId": "staff", "match": { "channel": "telegram" } }
   ]
 }
 ```

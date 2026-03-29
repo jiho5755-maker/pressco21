@@ -1,0 +1,90 @@
+# bigmatch 가상태그
+
+
+## 빅매치 상품
+<!--/bigmatch_main_image/-->
+<!--/bigmatch_mobile_content/-->
+<!--/bigmatch_mobile_main_image/-->
+<!--/bigmatch_mobile_prod_image_1/-->
+<!--/bigmatch_mobile_prod_image_2/-->
+<!--/bigmatch_product_type/-->
+<!--/bigmatch_prod_desc_1/-->
+<!--/bigmatch_prod_desc_2/-->
+<!--/bigmatch_prod_name_1/-->
+<!--/bigmatch_prod_name_2/-->
+<!--/bigmatch_subject/-->
+<!--/link_bigmatch_prod_detail_1/-->
+<!--/link_bigmatch_prod_detail_2/-->
+<!--/select_bigmatch_list/-->
+
+## 상품 비교 BAR
+<!--/bigmatch_recmd_1/-->
+<!--/bigmatch_recmd_2/-->
+<!--/bigmatch_recmd_percent_1/-->
+<!--/bigmatch_recmd_percent_2/-->
+<!--/bigmatch_total_count/-->
+<!--/radio_bigmatch_prod_1/-->
+<!--/radio_bigmatch_prod_2/-->
+
+## 추천자 입력 정보
+<!--/form_bigmatch/-->
+<!--/input_bigmatch_password/-->
+<!--/input_bigmatch_writer/-->
+<!--/link_bigmatch_recmd/-->
+<!--/text_bigmatch_content/-->
+
+## 1번 상품 추천 목록
+<!--/bigmatch_comment_1@content/-->
+<!--/bigmatch_comment_1@date/-->
+<!--/bigmatch_comment_1@link_delete/-->
+<!--/bigmatch_comment_1@royal_icon/-->
+<!--/bigmatch_comment_1@writer/-->
+<!--/loop_bigmatch_comment_1/-->
+
+## 1번 상품 추천 목록 페이징 표시
+<!--/if_pager_bigmatch_comment_1::page@current/-->
+<!--/loop_pager_bigmatch_comment_1::page/-->
+<!--/pager_bigmatch_comment_1::count/-->
+<!--/pager_bigmatch_comment_1::current/-->
+<!--/pager_bigmatch_comment_1::current@link/-->
+<!--/pager_bigmatch_comment_1::first/-->
+<!--/pager_bigmatch_comment_1::first@link/-->
+<!--/pager_bigmatch_comment_1::last/-->
+<!--/pager_bigmatch_comment_1::last@link/-->
+<!--/pager_bigmatch_comment_1::next/-->
+<!--/pager_bigmatch_comment_1::next@link/-->
+<!--/pager_bigmatch_comment_1::page/-->
+<!--/pager_bigmatch_comment_1::page@link/-->
+<!--/pager_bigmatch_comment_1::page_count/-->
+<!--/pager_bigmatch_comment_1::prev/-->
+<!--/pager_bigmatch_comment_1::prev@link/-->
+
+## 2번 상품 추천 목록
+<!--/bigmatch_comment_2@content/-->
+<!--/bigmatch_comment_2@date/-->
+<!--/bigmatch_comment_2@link_delete/-->
+<!--/bigmatch_comment_2@royal_icon/-->
+<!--/bigmatch_comment_2@writer/-->
+<!--/loop_bigmatch_comment_2/-->
+
+## 2번 상품 추천 목록 페이징 표시
+<!--/if_pager_bigmatch_comment_2::page@current/-->
+<!--/loop_pager_bigmatch_comment_2::page/-->
+<!--/pager_bigmatch_comment_2::count/-->
+<!--/pager_bigmatch_comment_2::current/-->
+<!--/pager_bigmatch_comment_2::current@link/-->
+<!--/pager_bigmatch_comment_2::first/-->
+<!--/pager_bigmatch_comment_2::first@link/-->
+<!--/pager_bigmatch_comment_2::last/-->
+<!--/pager_bigmatch_comment_2::last@link/-->
+<!--/pager_bigmatch_comment_2::next/-->
+<!--/pager_bigmatch_comment_2::next@link/-->
+<!--/pager_bigmatch_comment_2::page/-->
+<!--/pager_bigmatch_comment_2::page@link/-->
+<!--/pager_bigmatch_comment_2::page_count/-->
+<!--/pager_bigmatch_comment_2::prev/-->
+<!--/pager_bigmatch_comment_2::prev@link/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/shop_id/-->

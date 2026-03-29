@@ -1,0 +1,34 @@
+# neogift_list 가상태그
+
+
+## 기타
+<!--/block_layer_gift_cate/-->
+<!--/block_layer_gift_group/-->
+<!--/block_layer_gift_prd/-->
+<!--/gift_list@condition/-->
+<!--/gift_list@condition@gift_add_price/-->
+<!--/gift_list@condition@gift_count/-->
+<!--/gift_list@condition@gift_min_price/-->
+<!--/gift_list@condition@plus_buy/-->
+<!--/gift_list@condition@plus_gift/-->
+<!--/gift_list@condition@product/-->
+<!--/gift_list@condition@product@gift_condition_name/-->
+<!--/gift_list@condition@product@image_s/-->
+<!--/gift_list@condition@product@link/-->
+<!--/gift_list@condition@product@mobile_image/-->
+<!--/gift_list@condition@product@name/-->
+<!--/gift_list@condition_cate@cate_name/-->
+<!--/gift_list@condition_group@group_name/-->
+<!--/gift_list@condition_prd@prd_link/-->
+<!--/gift_list@condition_prd@prd_name/-->
+<!--/gift_list@gift_condition_text/-->
+<!--/gift_list@gift_condition_type/-->
+<!--/gift_list@gift_date/-->
+<!--/gift_list@gift_name/-->
+<!--/gift_list@gift_type_text/-->
+<!--/gift_list@user_target/-->
+<!--/gift_list@user_target_type/-->
+<!--/if_gift_list@condition@product@gift_soldout/-->
+<!--/loop_gift_list/-->
+<!--/loop_gift_list@product/-->
+<!--/shop_id/-->

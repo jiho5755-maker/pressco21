@@ -1,0 +1,63 @@
+# subs_basket 가상태그
+
+
+## 상품관련
+<!--/loop_provider/-->
+<!--/loop_provider@basket/-->
+<!--/provider@basket@checkbox_multi_basket/-->
+<!--/provider@basket@delivery/-->
+<!--/provider@basket@form/-->
+<!--/provider@basket@icons/-->
+<!--/provider@basket@input_quantity/-->
+<!--/provider@basket@link_del/-->
+<!--/provider@basket@link_option_modify/-->
+<!--/provider@basket@link_quantity_down/-->
+<!--/provider@basket@link_quantity_up/-->
+<!--/provider@basket@link_quantity_update/-->
+<!--/provider@basket@link_subs_edit/-->
+<!--/provider@basket@link_wish/-->
+<!--/provider@basket@name/-->
+<!--/provider@basket@option/-->
+<!--/provider@basket@point/-->
+<!--/provider@basket@price_sell/-->
+<!--/provider@basket@reserve/-->
+<!--/provider@basket@subs_cycle/-->
+<!--/provider@basket@subs_delivery_date/-->
+<!--/provider@basket@subs_week/-->
+<!--/provider@is_provider/-->
+<!--/provider@total_delivery/-->
+<!--/provider@total_delivery_add/-->
+<!--/provider@total_price/-->
+<!--/provider@total_price_sell/-->
+<!--/provider@total_reserve/-->
+<!--/provider@total_vat/-->
+
+## 신청관련
+<!--/link_clear_basket/-->
+<!--/link_shopping/-->
+<!--/link_subs_apply/-->
+<!--/link_subs_basket/-->
+
+## 금액관련
+<!--/block_group_sale_price/-->
+<!--/block_none_groupsale_total_price_sell/-->
+<!--/block_total_delivery/-->
+<!--/block_total_delivery_add/-->
+<!--/block_total_reserve/-->
+<!--/block_total_vat/-->
+<!--/none_groupsale_total_price_sell/-->
+<!--/total_price/-->
+<!--/total_reserve/-->
+
+## 기타
+<!--/block_cart_free/-->
+<!--/checkbox_multi_all/-->
+<!--/delivery_message/-->
+<!--/if_cart_free/-->
+<!--/link_normal_basket/-->
+<!--/provider@basket@subs_cycle_type/-->
+<!--/provider@basket@subs_day/-->
+<!--/radio_subs_choice/-->
+<!--/user_normal_basket_count/-->
+<!--/user_subs_basket_count/-->
+<!--/use_subs/-->

@@ -1,0 +1,36 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container store-wrapper">
+    <div class="community-content">
+        <div class="page-title-wrap">
+            <h2>커뮤니티</h2>
+        </div>
+        <nav>
+            <ul class="community-list">
+                <!--/if_all_board_list/-->
+                <!--/loop_all_board_list/-->
+                <li><a href="<!--/all_board_list@link/-->"><!--/all_board_list@name/--></a></li>
+                <!--/end_loop/-->
+                <!--/end_if/-->
+                <!--/if_link_review/-->
+                <li><a href="<!--/link_review/-->">사용후기 모음</a></li>
+                <!--/end_if/-->
+                <!--/if_link_faq/-->
+                <li><a href="<!--/link_faq/-->">FAQ</a></li>
+                <!--/end_if/-->
+                <!--/if_not_login/-->
+                <!--/if_link_m2m_question/-->
+                <li class="vs"><a href="<!--/link_m2m_question/-->">1:1 게시판</a></li>
+                <!--/end_if/-->
+                <!--/end_if/-->
+                <!--/if_link_send_mail/-->
+                <li><a href="<!--/link_send_mail/-->">메일문의</a></li>
+                <!--/end_if/-->
+            </ul>
+        </nav>
+    </div>
+</main>
+<!-- // container -->
+
+<!--/include_footer(1)/-->

@@ -1,0 +1,13 @@
+# join_type 가상태그
+
+
+## 기타
+<!--/form_sns_join/-->
+<!--/link_join_company/-->
+<!--/link_join_person/-->
+<!--/link_join_simple/-->
+<!--/link_login_apple/-->
+<!--/link_login_facebook/-->
+<!--/link_login_kakao/-->
+<!--/link_login_naver/-->
+<!--/shop_id/-->

@@ -1,0 +1,61 @@
+<!--/block_smartcalendar/-->
+<div class="layer-smart-calendar modal-wrap">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">날짜 선택</span>
+            <a href="javascript:smartcalendar_close();" class="btn-modal-close"></a>
+        </div>
+        <div class="modal-body">
+            <div class="calendar-wrap">
+                <div class="calendar-header">
+                    <!--/if_link_smartcalendar_prev/--><a href="<!--/link_smartcalendar_prev/-->" class="nav-btn prev"></a><!--/end_if/-->
+                    <span class="month"><!--/smartcalendar_year_text/-->.<!--/smartcalendar_month_text/--></span>
+                    <!--/if_link_smartcalendar_next/--><a href="<!--/link_smartcalendar_next/-->" class="nav-btn next"></a><!--/end_if/-->
+                </div>
+                <div class="calendar-content">
+                    <div class="calendar-days">
+                        <div class="sc-sun">일</div>
+                        <div>월</div>
+                        <div>화</div>
+                        <div>수</div>
+                        <div>목</div>
+                        <div>금</div>
+                        <div class="sc-sat">토</div>
+                    </div>
+                    <div class="calendar-dates">
+                        <!--/loop_smartcalendar/-->
+                        <div class="date <!--/if_smartcalendar@week(일)/-->sc-sun <!--/else_if_smartcalendar@week(토)/-->sc-sat <!--/end_if/--><!--/if_smartcalendar@type(disable)/-->sc-disable<!--/end_if/-->">
+                            <!--/if_smartcalendar@type(active)/-->
+                            <a class="sc-link<!--/if_smartcalendar@select/--> sc-now<!--/end_if/-->"
+                                href="<!--/smartcalendar@link_select_date/-->">링크</a>
+                            <!--/end_if/-->
+                            <div class="sc-day">
+                                <!--/smartcalendar@day/-->
+                                <!--/if_smartcalendar@day_text/-->
+                                <span><!--/smartcalendar@day_text/--></span>
+                                <!--/end_if/-->
+                            </div>
+                            <!--/if_smartcalendar@type(except)/-->
+                            <div title="주문마감" class="sc-band sc-end">주문마감</div>
+                            <!--/end_if/-->
+                            <!--/if_smartcalendar@type(active)/-->
+                            <a title="신청가능" class="sc-band sc-possible" href="<!--/smartcalendar@link_select_date/-->">신청가능</a>
+                            <!--/end_if/-->
+                        </div>
+                        <!--/end_loop/-->
+                    </div>
+                </div>
+                <div class="calendar-footer">
+                    <ul class="notice bullet">
+                        <li>· 고객님께서 제품을 받고자하는 날짜를 선택해주세요.</li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <a href="<!--/link_select_date_mobile/-->" class="btn btn-primary"><span>확인</span></a>
+            <a href="javascript:smartcalendar_close();" class="btn btn-white"><span>취소</span></a>
+        </div>
+    </div>
+</div>
+<!--/end_block/-->

@@ -1,0 +1,39 @@
+/* 회원탈퇴 */
+.withdrawal { 
+    --text-lg: .875rem; /* 14px */
+    --text-sm: .813rem; /* 13px */
+    --text-xs: .75rem; /* 12px */
+ }
+.withdrawal .message { margin: 40px 0; padding: 24px 0; border-style: solid; border-width: 1px 0 1px 0; border-color: var(--cw-color-30); font-size: var(--text-lg); text-align: center; }
+.withdrawal .message p { color: var(--cw-color-80); }
+.withdrawal .message strong { display:inline-block; padding-top: 4px; font-weight: 600; }
+.withdrawal .message br { display: none; }
+.form-wrapper { margin-top: 40px; padding: 10px 0 0; border-top: 1px solid var(--cw-heading-color); }
+.form-wrapper .form-group { display: flex; align-items: center; padding: 10px 0; font-size: var(--text-lg);}
+.form-wrapper .form-group:first-child { padding-bottom: 20px; border-bottom: 1px solid var(--cw-color-30); }
+.form-wrapper .form-group#user-reason-group { margin-top: 10px; border-bottom: 1px solid var(--cw-color-30); }
+.form-wrapper .form-group .form-title { flex: 1 0 120px; }
+.form-wrapper .form-group .form-content { flex: 1 1 100%; position: relative; }
+.form-wrapper .form-group .form-content textarea { width: 100%; height: 200px; resize: none; }
+.form-content .reason-select { display: flex; flex-direction: column; gap: 20px; }
+.form-content .reason-select .form-check-input { margin-right: 8px; }
+.btn-withdrawal { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 8px; margin: 40px 0; }
+.btn-withdrawal .btn { width: 300px; }
+.count { position: absolute; right: 10px; bottom: 7%; color: var(--cw-color-80); font-size:  var(--text-xs); }
+.count span { color: var(--cw-heading-color); }
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .withdrawal .message { margin-top: 0; }
+}
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .withdrawal .message { margin-top: 0; font-size: var(--text-sm); }
+    .withdrawal .message br { display: block; }
+    .form-content .reason-select { flex-direction: row; flex-wrap: wrap; gap: 16px; }
+    .form-group .form-check { padding-left: 0; }
+    .form-group .form-title { display: none; }
+    .form-content .reason-select .form-check-input { margin-left: 0; }
+    .btn-withdrawal .btn { width: 100%; }
+}

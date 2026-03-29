@@ -1,0 +1,23 @@
+# useinfo 가상태그
+
+
+## 배송관련
+<!--/date_delivery_bank_max/-->
+<!--/date_delivery_bank_min/-->
+<!--/date_delivery_card_max/-->
+<!--/date_delivery_card_min/-->
+<!--/date_delivery_max/-->
+<!--/date_delivery_min/-->
+<!--/return1/-->
+<!--/return2/-->
+<!--/shop_delivery/-->
+
+## 상점 정보
+<!--/shop_addr/-->
+<!--/shop_email/-->
+<!--/shop_name/-->
+<!--/shop_tel/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/shop_id/-->

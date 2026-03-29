@@ -1,0 +1,49 @@
+.page-title-wrap h2 { line-height: 40px; }
+.cw-boardlist .post { position: relative; display: flex; justify-content: space-between; align-items: center; padding: var(--cw-size-20) 0; border-bottom: 1px solid var(--cw-color-30); }
+.cw-boardlist .notice .subject { gap: var(--cw-size-8); align-items: center; }
+.cw-boardlist .subject { display: flex; flex: 1 var(--cw-size-200); flex-grow: 1; row-gap: var(--cw-size-2); padding-right: var(--cw-size-20); font-size: var(--cw-size-13); line-height: var(--cw-size-20); color: var(--cw-heading-color); word-break: break-all; }
+.cw-boardlist .subject .round-text { display: inline-block; line-height: var(--cw-size-18); padding: 0 var(--cw-size-10); font-size: var(--cw-size-11); font-weight: 600; border: 1px solid var(--cw-heading-color); border-radius: var(--cw-size-20); word-break: keep-all; }
+.cw-boardlist .subject a { color: var(--cw-heading-color); }
+
+.cw-boardtitle { font-weight: 700; padding-top: var(--cw-size-60); font-size: var(--cw-size-24); line-height: var(--cw-size-32); color: var(--cw-heading-color); }
+.cw-boardwrite { margin-top: var(--cw-size-40); border-top: 1px solid var(--cw-heading-color); }
+.cw-boardwrite .write-title { font-size: var(--cw-size-14); font-weight: 700; color: var(--cw-heading-color); margin-bottom: var(--cw-size-10); }
+.cw-boardwrite .write-info { display: grid; grid-template-columns: var(--cw-size-120) auto; align-items: center; row-gap: var(--cw-size-20); padding: var(--cw-size-20) 0; border-bottom: 1px solid var(--cw-color-30); font-size: var(--cw-size-14); }
+.cw-boardwrite .write-info dt { font-weight: 400; }
+.cw-boardwrite .write-info dd.name { font-weight: 600; font-size: var(--cw-size-14) !important; }
+.cw-boardwrite .write-info dd :where(.cw-textfield, .cw-select-box) { width: var(--cw-size-400); }
+.cw-boardwrite .write-info dd .cw-textfield { width: 100%; }
+.cw-boardwrite .write-info dd.file { display: flex; align-items: center; column-gap: var(--cw-size-6); }
+.cw-boardwrite .write-info dd.file .cw-textfield { width: 305px; }
+.cw-boardwrite .write-info dd.file .MS_input_file_button { width: 91px; white-space: nowrap;}
+.cw-boardwrite .agree-title { margin-top: var(--cw-size-40); padding-bottom: var(--cw-size-12); font-size: var(--cw-size-18); font-weight: 700; line-height: var(--cw-size-26); border-bottom: 1px solid var(--cw-heading-color); }
+.cw-boardwrite .agree-wrap { display: grid; row-gap: var(--cw-size-10); padding: var(--cw-size-20) 0; font-size: var(--cw-size-14); border-bottom: 1px solid var(--cw-color-30); }
+.cw-boardwrite .agree-wrap .cw-textfield { width: 100%; height: var(--cw-size-80); overflow-y: scroll; }
+.cw-boardwrite .agree-wrap .msg { color: var(--cw-color-80); }
+.cw-boardwrite .agree-wrap .agree { font-weight: 600; }
+.cw-boardwrite .privercy-agree { margin-top: var(--cw-size-20); font-size: var(--cw-size-14); }
+.cw-boardwrite .privercy-agree li > span { margin-right: var(--cw-size-10); }
+.cw-boardwrite .privercy-agree li .msg { color: var(--cw-color-80); }
+.cw-boardbtns { display: flex; justify-content: center; align-items: center; gap: var(--cw-size-8); padding: var(--cw-size-40) 0; }
+.cw-boardbtns a { width: var(--cw-size-300); }
+
+@media (max-width: 991.98px) {
+    .page-title-wrap { justify-content: flex-end; margin-top: 20px; }
+    .page-title-wrap h2 { display: none; }
+    .content-body,
+    .cw-boardwrite { margin-top: var(--cw-size-20) !important; }
+}
+
+@media (max-width: 553.98px) {
+    .page-title-wrap { justify-content: flex-end; margin-top: 20px; }
+    .page-title-wrap h2 { display: none; }
+    .page-title-wrap .btn { width: 100%; }
+    .cw-boardwrite .write-info { display: block; font-size: var(--cw-size-13); }
+    .cw-boardwrite .write-info dt { margin-bottom: var(--cw-size-6); }
+    .cw-boardwrite .write-info dd { margin-bottom: var(--cw-size-20); }
+    .cw-boardwrite .write-info dd:last-child { margin-bottom: 0; }
+    .cw-boardwrite .write-info dd :where(.cw-textfield, .cw-select-box),
+    .cw-boardwrite .write-info dd.file .cw-textfield { width: 100%; }
+    .cw-boardbtns { display: grid; justify-content: normal; }
+    .cw-boardbtns .btn { width: 100%; }
+}

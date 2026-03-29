@@ -1,0 +1,240 @@
+<!--/include_header(1)/-->
+
+<div class="container board-wrapper">
+    <h2 class="cw-boardtitle"><!--/now_board_name/--></h2>
+    <div class="cw-wrapper">
+        <!--/if_is_postscript_list/-->
+        <div class="cw-boardlist">
+            <!--/if_list/-->
+                <div class="post header">
+                    <span class="number">번호</span>
+                    <span class="subject items-center">제목</span>
+                    <span class="writer">작성자</span>
+                    <span class="date">작성일</span>
+                    <span class="read">조회</span>
+                    <!--/if_is_recommend/--><span class="recommend">추천</span><!--/end_if/-->
+                </div>
+                <!--/if_oneline_notice/-->
+                <div class="post notice">
+                    <div class="subject">
+                        <span class="round-text">공지</span>
+                        <!--/oneline_notice/-->
+                    </div>
+                </div>
+                <!--/end_if/-->
+                <!--/if_notice_list/-->
+                    <!--/loop_notice_list/-->
+                    <div class="post notice">
+                        <div class="subject">
+                            <span class="round-text">공지</span>
+                            <p>
+                                <!--/if_notice_list@subtitle/-->[<!--/notice_list@subtitle/-->]<!--/end_if/-->
+                                <!--/notag/notice_list@subject/-->
+                                <!--/if_notice_list@comment_cnt/-->(<!--/notice_list@comment_cnt/-->)<!--/end_if/-->
+                                <!--/if_notice_list@new_icon_image/--><img src="<!--/notice_list@new_icon_image/-->"><!--/end_if/-->
+                                <!--/if_notice_list@hit_icon_image/--><img src="<!--/notice_list@hit_icon_image/-->"><!--/end_if/-->
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <span class="writer"><!--/notice_list@writer/--></span>
+                            <span class="date"><!--/date(%Y.%M.%D)/notice_list@date_write/--></span>
+                            <span class="read"><!--/number/notice_list@cnt_read/--></span>
+                            <!--/if_notice_list@cnt_recommend/--><span class="recommend"><!--/number/notice_list@cnt_recommend/--></span><!--/end_if/-->
+                        </div>
+                        <a href="<!--/notice_list@link/-->" class="link">공지 링크</a>
+                    </div>
+                    <!--/end_loop/-->
+                <!--/end_if/-->
+                <!--/loop_list(10)/-->
+                <div class="post<!--/if_list@product_image_s/--> img<!--/end_if/--><!--/if_list@depth(+1)/--> reply reply<!--/list@depth/--><!--/end_if/-->">
+                    <div class="number"><!--/number/list@number/--></div>
+                    <div class="reply-image">
+                        <!--/if_list@depth(+1)/-->
+                        <p class="ico-reply">
+                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_reply.svg" alt="답변">
+                        </p>
+                        <!--/end_if/-->
+                        <!--/if_list@product_image_s/-->
+                        <p class="image">
+                            <a href="<!--/list@link_product/-->"><img src="<!--/list@product_image_s/-->" alt="상품이미지"></a>
+                        </p>
+                        <!--/end_if/-->
+                    </div>
+                    <div class="infos">
+                        <div class="subject">
+                            <!--/if_is_review_score/-->
+                            <p>
+                                <a href="<!--/list@link_product/-->"><!--/list@review_score/--></a>
+                            </p>
+                            <!--/end_if/-->
+                            <!--/if_not_link/-->
+                                <!--/if_list@product_name/-->
+                                <p class="product">
+                                    <a href="<!--/list@link_product/-->"><!--/list@product_name/--></a>
+                                </p>
+                                <!--/end_if/-->
+                            <!--/end_if/-->
+                            <p>
+                                <a href="<!--/list@link/-->">
+                                    <!--/if_list@is_original_del/-->* 아래 답변의 최초게시물을 게시자가 삭제하였습니다.<br><!--/end_if/-->
+                                    <!--/if_list@list_icon_image/--><img src="<!--/list@list_icon_image/-->"><!--/end_if/-->
+                                    <!--/if_list@is_mobile_write/--><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_mobile.svg" alt="모바일" width="14" height="14"><!--/end_if/-->
+                                    <!--/if_list@subtitle/-->[<!--/notag/list@subtitle/-->]<!--/end_if/-->
+                                    <!--/if_list@link/--><!--/notag/list@subject/--><!--/else/--><!--/list@spam_subject/--><!--/end_if/-->
+                                    <!--/if_list@comment_cnt/-->(<!--/list@comment_cnt/-->)<!--/end_if/-->
+                                    <!--/if_list@attach_image/--><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_camera.svg" alt="첨부파일" width="14" height="14"><!--/end_if/-->
+                                    <!--/if_list@reply_status/--><span class="complete"><!--/list@reply_status/--></span><!--/end_if/-->
+                                    <!--/if_list@new_icon_image/--><img src="<!--/list@new_icon_image/-->"><!--/end_if/-->
+                                    <!--/if_list@hit_icon_image/--><img src="<!--/list@hit_icon_image/-->"><!--/end_if/-->
+                                </a>
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <span class="writer">
+                                <!--/if_list@img_admin_icon/-->
+                                    <img src="<!--/list@img_admin_icon/-->" alt="관리자 아이콘">
+                                <!--/else/-->
+                                    <!--/if_list@user_icon_image/--><img src="<!--/list@user_icon_image/-->" alt="회원 등급 아이콘" width="14" height="14"> <!--/end_if/--><!--/list@writer/-->
+                                <!--/end_if/-->
+                            </span>
+                            <span class="date"><!--/date(%Y.%M.%D)/list@date_write/--></span>
+                            <span class="read"><!--/number/list@cnt_read/--></span>
+                            <!--/if_list@cnt_recommend/--><span class="recommend"><!--/number/list@cnt_recommend/--></span><!--/end_if/-->
+                        </div>
+                    </div>
+                </div>
+                <!--/end_loop/-->
+            <!--/else/-->
+                <div class="post none">등록/검색된 게시글이 없습니다.</div>
+            <!--/end_if/-->
+        </div>
+        <!--/else/-->
+        <div class="cw-boardlist gallery">
+            <!--/if_list/-->
+                <!--/if_oneline_notice/-->
+                <div class="post notice">
+                    <div class="subject">
+                        <span class="round-text">공지</span>
+                        <!--/oneline_notice/-->
+                    </div>
+                </div>
+                <!--/end_if/-->
+                <!--/if_notice_list/-->
+                    <!--/loop_notice_list/-->
+                    <div class="post notice">
+                        <div class="subject">
+                            <span class="round-text">공지</span>
+                            <p>
+                                <!--/if_notice_list@subtitle/-->[<!--/notice_list@subtitle/-->]<!--/end_if/-->
+                                <!--/notag/notice_list@subject/-->
+                                <!--/if_notice_list@comment_cnt/-->(<!--/notice_list@comment_cnt/-->)<!--/end_if/-->
+                                <!--/if_notice_list@new_icon_image/--><img src="<!--/notice_list@new_icon_image/-->"><!--/end_if/-->
+                                <!--/if_notice_list@hit_icon_image/--><img src="<!--/notice_list@hit_icon_image/-->"><!--/end_if/-->
+                            </p>
+                        </div>
+                        <div class="text-end">
+                            <span class="writer"><!--/notice_list@writer/--></span>
+                            <span class="date"><!--/date(%Y.%M.%D)/notice_list@date_write/--></span>
+                        </div>
+                        <a href="<!--/notice_list@link/-->" class="link">공지 링크</a>
+                    </div>
+                    <!--/end_loop/-->
+                <!--/end_if/-->
+                <ul class="gallery">
+                    <!--/loop_list(12)/-->
+                    <li>
+                        <div class="subject">
+                            <div class="image<!--/if_not_list@attach_image/--> noimg<!--/end_if/-->">
+                                <!--/if_list@attach_image/-->
+                                <img src="<!--/list@attach_image/-->" class="img" alt="이미지">
+                                <!--/else/-->
+                                <img src="//skin.makeshop.co.kr/skin/rw_shop/images/noimage.svg" alt="이미지">
+                                <!--/end_if/-->
+                            </div>
+                            <!--/if_list@review_score/-->
+                            <div class="score">
+                                <!--/if_list@product_image_s/--><img src="<!--/list@product_image_s/-->" width="52"><!--/else/--><img src="//skin.makeshop.co.kr/skin/rw_shop/images/noimage.svg" width="52" class="noimage"><!--/end_if/-->
+                                <p>
+                                    <!--/list@review_score/-->
+                                    <span class="pname"><!--/list@product_name/--></span>
+                                </p>
+                            </div>
+                            <!--/end_if/-->
+                            <div class="name">
+                                <!--/if_list@subtitle/-->[<!--/list@subtitle/-->]<!--/end_if/-->
+                                <!--/notag/list@subject/-->
+                                <!--/if_list@comment_cnt/-->(<!--/list@comment_cnt/-->)<!--/end_if/-->
+                                <!--/if_list@new_icon_image/--><img src="<!--/list@new_icon_image/-->"><!--/end_if/-->
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <p>
+                                <span class="writer">
+                                    <!--/if_list@img_admin_icon/-->
+                                        <img src="<!--/list@img_admin_icon/-->" alt="관리자 아이콘">
+                                    <!--/else/-->
+                                        <!--/if_list@user_icon_image/--><img src="<!--/list@user_icon_image/-->" alt="회원 등급 아이콘" width="14" height="14"> <!--/end_if/--><!--/list@writer/-->
+                                    <!--/end_if/-->
+                                </span>
+                                <span class="date"><!--/date(%Y.%M.%D)/list@date_write/--></span>
+                            </p>
+                            <p>
+                                <span class="read"><!--/number/list@cnt_read/--></span>
+                                <!--/if_list@cnt_recommend/--><span class="recommend"><!--/number/list@cnt_recommend/--></span><!--/end_if/-->
+                            </p>
+                        </div>
+                        <!--/if_list@link/--><a href="<!--/list@link/-->" class="link"></a><!--/end_if/-->
+                    </li>
+                    <!--/end_loop/-->
+                </ul>
+            <!--/else/-->
+                <div class="post none">등록/검색된 게시글이 없습니다.</div>
+            <!--/end_if/-->
+        </div>
+        <!--/end_if/-->
+        <div class="cw-paging">
+            <!--/if_pager_list::prev/-->
+            <a href="<!--/pager_list::prev@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_left.svg" alt="이전" width="16" height="16" /></a>
+            <!--/end_if/-->
+            <!--/if_pager_list/-->
+                <!--/loop_pager_list::page(5)/-->
+                    <!--/if_pager_list::page@current/-->
+                    <a href="javascript:return false;" class="active"><!--/pager_list::page/--></a>
+                    <!--/else/-->
+                    <a href="<!--/pager_list::page@link/-->"><!--/pager_list::page/--></a>
+                    <!--/end_if/-->
+                <!--/end_loop/-->
+            <!--/end_if/-->
+            <!--/if_pager_list::next/-->
+            <a href="<!--/pager_list::next@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_right.svg" alt="다음" width="16" height="16" /></a>
+            <!--/end_if/-->
+        </div>
+        <!--/if_link_write/-->
+        <div class="cw-boardbtns">
+            <a href="<!--/link_write/-->" class="btn btn-primary btn-lg"><span>글쓰기</span></a>
+            <!--/if_link_board_more/--><a href="<!--/link_board_more/-->" class="btn btn-white btn-lg"><span>전체 목록보기</span></a><!--/end_if/-->
+            <!--/if_link_postscript_gallery/-->
+                <!--/if_is_postscript_list/-->
+                <a href="<!--/link_postscript_gallery/-->" class="btn btn-white btn-lg"><span>갤러리형으로 보기</span></a>
+                <!--/else/-->
+                <a href="<!--/link_postscript_list/-->" class="btn btn-white btn-lg"><span>리스트형으로 보기</span></a>
+                <!--/end_if/-->
+            <!--/end_if/-->
+        </div>
+        <!--/end_if/-->
+        <div class="cw-boardsearch">
+            <!--/form_board/-->
+                <!--/select_search_type(cw-select-box)/-->
+                <!--/input_keyword(cw-textfield)/-->
+                <a href="<!--/link_search/-->" class="btn btn-primary"><span>검색</span></a>
+            <!--/end_form/-->
+        </div>
+    </div>
+</div>
+
+<!--/include_footer(1)/-->
+
+<script type="text/javascript">
+// 반응형 상단 타이틀
+changeNaviTitleText('<!--/now_board_name/-->');
+</script>

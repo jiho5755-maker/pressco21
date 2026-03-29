@@ -1,0 +1,52 @@
+# login 가상태그
+
+
+## 로그인 화면
+<!--/link_back/-->
+<!--/link_home/-->
+
+## 회원 그룹
+<!--/group_level/-->
+
+## 회원 로그인
+<!--/block_login_fail_no_id/-->
+<!--/block_login_fail_no_match/-->
+<!--/block_login_fail_wrap/-->
+<!--/checkbox_auto_login/-->
+<!--/checkbox_save_id/-->
+<!--/checkbox_security/-->
+<!--/form_login/-->
+<!--/if_login/-->
+<!--/input_login_id/-->
+<!--/input_login_pw/-->
+<!--/input_powerapp_invite/-->
+<!--/link_join/-->
+<!--/link_login_button/-->
+<!--/link_login_fail_close/-->
+<!--/link_logout_button/-->
+
+## 회원정보
+<!--/remain_coupon_count/-->
+
+## 잉글리쉬 HTML
+<!--/shop_language/-->
+
+## 인클루드태그
+<!--/include_footer/-->
+<!--/include_header/-->
+
+## 상점 정보
+<!--/shop_id/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/if_company_user/-->
+<!--/if_cookie_support/-->
+<!--/link_login_apple/-->
+<!--/link_login_facebook/-->
+<!--/link_login_kakao/-->
+<!--/link_login_naver/-->
+<!--/recent_login_apple/-->
+<!--/recent_login_facebook/-->
+<!--/recent_login_kakao/-->
+<!--/recent_login_naver/-->

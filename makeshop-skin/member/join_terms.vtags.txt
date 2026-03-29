@@ -1,0 +1,65 @@
+# join_terms 가상태그
+
+
+## 약관 동의 여부
+<!--/checkbox_all_agree/-->
+<!--/form_agree/-->
+<!--/link_agree/-->
+<!--/link_reject/-->
+<!--/use_auth/-->
+
+## 이용약관
+<!--/checkbox_contract_ok/-->
+<!--/radio_contract_no/-->
+<!--/radio_contract_ok/-->
+
+## 개인정보 처리방침
+<!--/block_privercy_policy/-->
+<!--/checkbox_privercy_ok/-->
+<!--/if_new_privercy_type/-->
+<!--/link_policy_close/-->
+<!--/link_privercy_policy_view/-->
+<!--/privercy_mail/-->
+<!--/privercy_name/-->
+<!--/privercy_terms/-->
+<!--/privercy_terms1/-->
+<!--/privercy_terms2/-->
+<!--/privercy_terms3/-->
+<!--/radio_privercy_no/-->
+<!--/radio_privercy_ok/-->
+<!--/summary_privercy_terms/-->
+<!--/summary_privercy_terms1/-->
+<!--/summary_privercy_terms2/-->
+<!--/summary_privercy_terms3/-->
+
+## 개인정보의 제3자 제공
+<!--/block_third_party/-->
+<!--/checkbox_third_party_ok/-->
+<!--/if_third_party/-->
+<!--/link_third_party_view/-->
+<!--/summary_third_party_terms/-->
+<!--/third_party_terms/-->
+
+## 개인정보 처리위탁안내
+<!--/summary_trust_terms/-->
+<!--/trust_terms/-->
+
+## 쇼핑몰 약관
+<!--/block_contract_term/-->
+<!--/contract_terms/-->
+<!--/date_terms/-->
+<!--/link_contract_view/-->
+<!--/summary_contract_terms/-->
+
+## 상점 정보
+<!--/shop_name/-->
+<!--/shop_tel/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/include_header/-->
+<!--/new_privacy_agree/-->
+<!--/new_privacy_terms/-->
+<!--/new_privacy_terms2/-->
+<!--/new_privacy_terms_layer/-->
+<!--/shop_id/-->

@@ -1,0 +1,130 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container board-wrapper">
+    <div class="content-body">
+        <div class="page-title-wrap txt-l flex justify-between">
+            <h2>1:1 게시판</h2>
+            <!--/if_link_faq/--><a href="<!--/link_faq/-->" class="btn btn-white"><span>FAQ바로가기</span></a><!--/end_if/-->
+        </div>
+        <!--/form_m2m_write/-->
+        <div class="cw-boardwrite">
+            <!--/if_m2m_notice(+1)/-->
+            <div class="cw-boardlist">
+                <!--/loop_m2m_notice/-->
+                <div class="post notice">
+                    <span class="subject">
+                        <span class="round-text">공지</span>
+                        <a href="<!--/m2m_notice@link/-->"><!--/m2m_notice@subject/--></a>
+                    </span>
+                </div>
+                <!--/end_loop/-->
+            </div>
+            <!--/end_if/-->
+            <dl class="write-info">
+                <dt>이름</dt>
+                <dd class="name">
+                    <!--/if_is_guest/-->
+                        <!--/input_user_name(comm)/-->
+                    <!--/else/-->
+                        <!--/user_name/-->
+                    <!--/end_if/-->
+                </dd>
+                <dt>이메일</dt>
+                <dd><!--/input_email(cw-textfield)/--></dd>
+                <dt>연락처</dt>
+                <dd><!--/input_phone(cw-textfield)/--></dd>
+            </dl>
+            <dl class="write-info">
+                <!--/if_select_category/-->
+                <dt>분류</dt>
+                <dd><!--/select_category(cw-select-box)/--></dd>
+                <!--/end_if/-->
+                <dt>제목</dt>
+                <dd><!--/input_subject(cw-textfield)/--></dd>
+                <dt>내용</dt>
+                <dd><!--/text_content(cw-textfield)/--></dd>
+                <!--/if_file_attach/-->
+                <dt>첨부</dt>
+                <dd class="file">
+                    <!--/file_attach(cw-textfield)/-->
+                </dd>
+                <!--/end_if/-->
+            </dl>
+            <!--/if_is_guest/-->
+            <!--/if_use_privacy/-->
+            <div><!--/new_privacy_terms/--></div>
+            <!--/else/-->
+            <!--/if_new_privercy_type/-->
+            <ul class="privercy-agree">
+                <li>
+                    <span>개인정보 수집에 대한 동의</span>
+                    <div class="form-check form-check-inline">
+                        <label><!--/radio_privercy_ok/--> 동의</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <label><!--/radio_privercy_no/--> 동의안함</label>
+                    </div>
+                    <a href="<!--/link_privercy_policy_view/-->" target="_blank" class="btn btn-gray btn-xs"><span>약관보기</span></a>
+                </li>
+            </ul>
+            <!--/if_third_party/-->
+            <ul class="privercy-agree">
+                <li>
+                    <span>개인정보 제3자 동의</span>
+                    <div class="form-check form-check-inline">
+                        <label><!--/radio_third_party_ok/--> 동의</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <label><!--/radio_third_party_no/--> 동의안함</label>
+                    </div>
+                    <a href="<!--/link_third_party_view/-->" target="_blank" class="btn btn-gray btn-xs"><span>약관보기</span></a>
+                </li>
+            </ul>
+            <!--/end_if/-->
+            <!--/if_trust/-->
+            <ul class="privercy-agree">
+                <li>
+                    <span>개인정보 처리위탁안내동의</span>
+                    <div class="form-check form-check-inline">
+                        <label><!--/radio_trust_ok/--> 동의</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <label><!--/radio_trust_no/--> 동의안함</label>
+                    </div>
+                    <a href="<!--/link_trust_view/-->" target="_blank" class="btn btn-gray btn-xs"><span>약관보기</span></a>
+                </li>
+            </ul>
+            <!--/end_if/-->
+            <!--/else/-->
+            <ul class="privercy-agree">
+                <li>
+                    <span>개인정보 수집에 대한 동의</span>
+                    <div class="form-check form-check-inline">
+                        <label><!--/radio_privercy_ok/--> 동의</label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <label><!--/radio_privercy_no/--> 동의안함</label>
+                    </div>
+                    <a href="<!--/link_privercy_policy_view/-->" target="_blank" class="btn btn-gray btn-xs"><span>약관보기</span></a>
+                </li>
+            </ul>
+            <!--/end_if/-->
+            <!--/end_if/-->
+            <!--/end_if/-->
+        </div>
+    
+        <div class="cw-boardbtns">
+            <!--/if_link_m2m_ok/-->
+                <a href="<!--/link_m2m_ok/-->" class="btn btn-primary btn-lg"><span>문의하기</span></a>
+            <!--/end_if/-->
+            <!--/if_not_is_guest/-->
+                <a href="#none" class="btn btn-white btn-lg"><span>목록보기</span></a>
+            <!--/end_if/-->
+        </div>
+        <!--/end_form/-->
+    </div>
+</main>
+<!-- // container -->
+
+<!--/include_footer(1)/-->

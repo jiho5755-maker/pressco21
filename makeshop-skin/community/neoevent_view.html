@@ -1,0 +1,25 @@
+<!--/include_header(1)/-->
+
+<div class="container neoevent-wrapper">
+    <h2 class="cw-neoeventtitle">이벤트</h2>
+    <div class="cw-wrapper">
+        <div class="cw-neoeventview">
+            <dl class="view-info">
+                <dt><!--/notag/title/--></dt>
+                <dd>기간 : <!--/date(%Y.%M.%D %H:%i)/apply_start/--> ~ <!--/date(%Y.%M.%D %H:%i)/apply_end/--></dd>
+            </dl>
+            <!--/if_contents_map/-->
+            <div class="view-contents txt-c"><!--/contents_map/--></div>
+            <!--/else/-->
+            <div class="view-contents"><!--/contents_html/--></div>
+            <!--/end_if/-->
+        </div>
+        <!--/if_link_apply/-->
+        <div class="cw-neoeventbtns">
+            <a href="<!--/link_apply/-->" class="btn btn-primary btn-lg"><span>신청하기</span></a>
+        </div>
+        <!--/end_if/-->
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

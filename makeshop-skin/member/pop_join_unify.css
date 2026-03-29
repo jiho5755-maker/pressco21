@@ -1,0 +1,93 @@
+/* 가입순서 */
+.join-step { display: flex; flex-wrap:wrap; gap: 48px; align-items: center; justify-content: center; padding: 24px 0; text-align: center; }
+.join-step li { position: relative; }
+.join-step li:not(:last-child)::after { position: absolute; right: -32px; top: 27px; width: 16px; height: 16px; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_step.svg') no-repeat; content: ''; }
+.join-step li .icon { display: block; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; background: var(--cw-color-10); }
+.join-step li p { padding-top: 4px; font-size: .875rem; color: var(--cw-color-60); }
+.join-step li.active .icon { background: var(--cw-point-color-pri); }
+.join-step li.active p { font-weight: 600; color: var(--cw-heading-color); }
+
+/* 입력폼 */
+.join-content { max-width: 670px; margin: 0 auto; padding-bottom: 120px; }
+.join-wrap .tit-box { display: flex; align-items: center; font-size: .875rem; gap: 6px; margin-bottom: 40px; padding-bottom: 10px; border-bottom: 1px solid var(--cw-heading-color); background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_collapse.svg') right center no-repeat; cursor: pointer; }
+.join-wrap .tit-box strong { font-size: 1.125rem; }
+.join-wrap .tit-box.active { margin-bottom: 0; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_expand.svg') right center no-repeat; }
+.join-form { display: none; margin: 10px 0 30px; padding-bottom: 10px; border-bottom: 1px solid var(--cw-color-30); }
+.join-form .form-group { display: flex; padding: 10px 0 6px; align-items: center; }
+.join-form .form-group .form-title { flex: 1 0 120px; margin-top: -6px; font-size: .875rem; }
+.join-form .form-group .form-content { flex: 1 1 100%; font-size: .875rem; }
+.join-form .form-group .form-content .form-check-label { margin-right: 16px; }
+.join-form .form-group .form-content .form-check-input { float: left; margin-right: 8px; margin-top: 0; }
+.join-form .form-group .form-content .cw-textfield { width:100% !important; max-width: 400px; }
+.join-form .form-group .form-content .flex { display: flex; gap: 10px 6px; align-items: center; flex-wrap: wrap; max-width: 400px; }
+.join-form .form-group .form-content .flex select,
+.join-form .form-group .form-content .flex input { flex: 1 1 0; }
+.join-form .form-group .form-content .message { padding-top: 6px; color: var(--cw-point-color); font-size: .813rem; }
+.join-form .form-group .form-content.gender dl { display: flex; }
+.join-form .form-group .form-content.gender dl dd input { margin-right: 8px; }
+.join-form .form-group .form-content #email { max-width: 100%; }
+.join-form .form-group .form-content #email1,
+.join-form .form-group .form-content #direct_email { max-width: 187px; margin-top: 0 !important; }
+.join-form .form-group .form-content #direct_email { flex: 0 0 auto; }
+.join-form .form-group .form-content #direct_email input { width: 100% !important; }
+.join-form .form-group .form-content .MS_email { flex: 1 1 100% !important; margin-right: 0 !important; }
+.join-form .form-group .form-content .zipcode { display: flex; gap: 6px; align-items: center; max-width: 400px; }
+.join-form .form-group .form-content .zipcode .cw-textfield { flex: 1 1 0; }
+.join-form .form-group .form-content .zipcode .cw-textfield .btn { flex: 1 1 auto; white-space: nowrap; }
+.join-form .form-group .form-content .zipcode + div .cw-textfield { margin-top: 10px; }
+.join-form .form-group .form-content .address .cw-textfield { max-width: 100% !important; }
+.join-form .form-group .form-content .sns-wrap { max-width: 400px; --cw-border-radius: 4px; --cw-border-color: var(--cw-color-30); --cw-padding-y: 8px; --cw-padding-x: 12px; --cw-font-size: 14px; --cw-line-height: 22px; padding: var(--cw-padding-y) var(--cw-padding-x); border: 1px solid var(--cw-border-color); border-radius: var(--cw-border-radius); font-size: var(--cw-font-size); font-weight: 700; color: var(--cw-heading-color); line-height: var(--cw-line-height); text-align: center;}
+.join-form .form-group .form-content .sns-wrap.facebook { background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/sns_facebook.svg') no-repeat 16px center; } 
+.join-form .form-group .form-content .sns-wrap.naver { background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/sns_naver.svg') no-repeat 16px center; } 
+.join-form .form-group .form-content .sns-wrap.kakaotalk { background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/sns_kakaotalk.svg') no-repeat 16px center; } 
+.join-form .form-group .form-content .sns-wrap.apple { background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/sns_apple.svg') no-repeat 16px center; }
+.join-form .form-group .form-content .sns-wrap .btn-disconnect { width:16px; height:16px; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_delete.svg') no-repeat 50% 50%; border:0; font-size: 0; text-indent: -9999px; }
+.join-form .form-group .form-content .sns-wrap a { color: var(--cw-heading-color); }
+.btn-join-wrap { display: flex; align-items: center; justify-content: center; margin: 40px 0; }
+.btn-join-wrap .btn { width: auto; min-width: 300px; }
+
+/* 우편번호 찾기 레이어 */
+.join-content .step-comm { display: none; }
+#popAddrSearch .addr_type { margin-top: 20px; text-align: center; }
+#popAddrSearch .form-check-label { margin-right: 16px; font-size: .875rem; }
+#popAddrSearch .form-check-label:last-child { margin-right: 0; }
+#popAddrSearch .form-check-input:checked[type=radio] { background-size: 11px 11px; }
+#popAddrSearch .msg-wrap { margin: 20px 0; font-size: .875rem; text-align: center; }
+#popAddrSearch .msg-wrap .msg01-highlight { color: var(--cw-point-color); font-weight: 600; }
+#popAddrSearch .flex { display: flex; gap: 6px; padding: 10px 0; }
+#popAddrSearch .search-form span { flex: 1 1 0; }
+#popAddrSearch .search-form span input { width: 100%; }
+#popAddrSearch .search-form .search { max-width: 68px; margin-top: 0; }
+#popAddrSearch .sub-tit { padding: 10px 0 6px; font-size: .813rem; }
+#popAddrSearch #searchStep02 .addr-list { width: 100%; margin-bottom: 10px; }
+#popAddrSearch .btn-primary { width: 100%; margin-top: 20px; }
+#popAddrSearch .detail-addr .flex { padding-top: 0; }
+#popAddrSearch .detail-addr .cw-textfield { width: 100%; }
+#popAddrSearch .detail-addr .py-10 { padding: 10px 0; }
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .join-step { padding: 0 0 40px; }
+    .join-form .form-group .form-content .cw-textfield { max-width: 100%; }
+    .join-form .form-group .form-content .flex,
+	.join-form .form-group .form-content .zipcode { max-width: 100%; }
+    .join-form .form-group .form-content #email1,
+    .join-form .form-group .form-content #direct_email { flex: 1 1 30%; max-width: 100%; }
+}
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .join-step { padding: 0 0 40px; gap: 40px; }
+    .join-step li::after { right: -28px; }
+    .join-step li p { font-size: .813rem; }
+    .join-form .form-group { flex-direction: column; align-items: baseline; gap: 6px; }
+	.join-form .form-group .form-title,
+	.join-form .form-group .form-content { flex: 1 1 100%; width: 100%; }
+	.join-form .form-group .form-content .cw-textfield { max-width: 100%; }
+	.join-form .form-group .form-content .flex,
+	.join-form .form-group .form-content .zipcode { max-width: 100%; }
+    .join-form .form-group .form-content #email1,
+    .join-form .form-group .form-content #direct_email { flex: 1 1 30%; max-width: 100%; }
+    .btn-join-wrap .btn { width: 100%; min-width: auto; }
+    .join-form .form-group .form-content .sns-wrap { max-width: 100%; }
+}

@@ -1,0 +1,26 @@
+.attendance-wrapper { width: var(--cw-size-670); padding: 0; }
+.cw-attendancetitle { font-weight: 700; padding-top: var(--cw-size-60); font-size: var(--cw-size-24); line-height: var(--cw-size-32); color: var(--cw-heading-color); text-align: center; }
+.cw-attendancecomment .attendance-title { display: flex; align-items: center; justify-content: space-between; font-size: var(--cw-size-18); font-weight: 700; color: var(--cw-heading-color); padding-bottom: var(--cw-size-12); margin-top: var(--cw-size-60); line-height: var(--cw-size-26); border-bottom: 1px solid var(--cw-heading-color); }
+.cw-attendancecomment .attendance-guide { display: flex; flex-direction: column; align-items: center; column-gap: var(--cw-size-4); padding: var(--cw-size-24) 0; margin-top: var(--cw-size-40); border-top: 1px solid var(--cw-color-30); border-bottom: 1px solid var(--cw-color-30); font-size: var(--cw-size-14); line-height: var(--cw-size-20); text-align: center; }
+.cw-attendancecomment .opinion-write { display: flex; align-items: center; justify-content: center; column-gap: var(--cw-size-6); padding: var(--cw-size-20) 0; border-bottom: 1px solid var(--cw-color-30); }
+.cw-attendancecomment .opinion-write .cw-textfield { width: 100%; }
+.cw-attendancecomment .opinion-write .btn { flex: none; width: var(--cw-size-70); }
+.cw-attendancecomment .opinion-list .post { display: flex; align-items: center; justify-content: space-between; row-gap: var(--cw-size-4); padding: var(--cw-size-20) 0; border-bottom: 1px solid var(--cw-color-30); font-size: var(--cw-size-14); line-height: var(--cw-size-20); word-break: break-all; }
+.cw-attendancecomment .opinion-list .post .text-end { flex: none; }
+.cw-attendancecomment .opinion-list .post .text-end :where(.id, .date) { display: inline-block; width: var(--cw-size-100); color: var(--cw-color-80); text-align: right; }
+.cw-attendancecomment .opinion-list .post .text-end .id { text-align: center; }
+.cw-attendancecomment .opinion-list .post.none { justify-content: center; }
+.cw-attendancecomment .cw-paging { margin-top: var(--cw-size-20); }
+
+@media (max-width: 991.98px) {
+    .attendance-wrapper { width: var(--cw-size-470); }
+    .cw-attendancetitle { display: none; }
+}
+@media (max-width: 767.98px) {
+    .attendance-wrapper { width: 100%; padding-left: calc(var(--bs-gutter-x) * 0.5); padding-right: calc(var(--bs-gutter-x) * 0.5); }
+    .cw-attendancecomment .attendance-title { margin-top: var(--cw-size-40); padding-bottom: var(--cw-size-10); font-size: var(--cw-size-16); line-height: var(--cw-size-24); }
+    .cw-attendancecomment .attendance-guide li { font-size: var(--cw-size-12); line-height: var(--cw-size-16); }
+    .cw-attendancecomment .opinion-list .post { display: grid; font-size: var(--cw-size-13); line-height: var(--cw-size-18); }
+    .cw-attendancecomment .opinion-list .post .text-end :where(.id, .date) { width: auto; }
+    .cw-attendancecomment .opinion-list .post .text-end .id::after { content: ' '; margin: 0 var(--cw-size-8); display: inline-block; width: 1px; height: var(--cw-size-12); vertical-align: middle; background-color: var(--cw-color-30); }
+}

@@ -1,0 +1,80 @@
+<!--/include_header(1)/-->
+
+<div class="container agree-wrapper">
+    <h2 class="cw-agreetitle"><!--/title/--></h2>
+    <div class="cw-wrapper">
+        <!--/form_agree/-->
+        <div class="cw-agreecnts">
+            <p class="agree-guide"><!--/nl2br/agree_content/--></p>
+            <!--/if_privacy/-->            
+            <div class="agree-title">개인정보 수집·이용</div>
+            <div class="agree-wrap">
+                <textarea name="" class="cw-textfield" readonly><!--/privacy_content/--></textarea>
+                <div class="agree">
+                    <div class="form-check form-check-inline">
+                        <label class="form-check-label">
+                            <!--/radio_privacy_ok(form-check-input)/--> 동의합니다.
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <label class="form-check-label">
+                            <!--/radio_privacy_no(form-check-input)/--> 동의하지 않습니다.
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <!--/end_if/-->
+            <!--/if_third/-->
+            <div class="agree-title">개인정보 제3자 제공</div>
+            <div class="agree-wrap">
+                <textarea name="" class="cw-textfield" readonly><!--/third_content/--></textarea>
+                <div class="agree">
+                    <div class="form-check form-check-inline">
+                        <label class="form-check-label">
+                            <!--/radio_third_ok(form-check-input)/--> 동의합니다.
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <label class="form-check-label">
+                            <!--/radio_third_no(form-check-input)/--> 동의하지 않습니다.
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <!--/end_if/-->
+            <!--/if_trust/-->
+            <div class="agree-title">개인정보 처리위탁</div>
+            <div class="agree-wrap">
+                <textarea name="" class="cw-textfield" readonly><!--/trust_content/--></textarea>
+                <div class="agree">
+                    <div class="form-check form-check-inline">
+                        <label class="form-check-label">
+                            <!--/radio_trust_ok(form-check-input)/--> 동의합니다.
+                        </label>
+                    </div>
+                    <div class="form-check form-check-inline">
+                        <label class="form-check-label" for="flexCheckChecked6">
+                            <!--/radio_trust_no(form-check-input)/--> 동의하지 않습니다.
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <!--/end_if/-->
+        </div>
+        <div class="cw-agreebtns">
+            <a href="<!--/link_ok/-->" class="btn btn-primary btn-lg"><span>확인</span></a>
+        </div>
+        <!--/end_form/-->
+    </div>
+</div>
+
+<!--/include_footer(1)/-->
+
+<script type="text/javascript">
+// 상단 타이틀 변경
+<!--/if_title/-->
+changeNaviTitleText('<!--/title/-->');
+<!--/else/-->
+changeNaviTitleText('개인정보 위탁동의');
+<!--/end_if/-->
+</script>

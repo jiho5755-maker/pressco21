@@ -1,0 +1,16 @@
+# attendance 가상태그
+
+
+## 출석체크 달력
+<!--/attendance_calendar/-->
+<!--/attendance_success_condition/-->
+<!--/link_attendance_ok/-->
+<!--/link_next_month/-->
+<!--/link_prev_month/-->
+<!--/this_month/-->
+<!--/this_year/-->
+
+## 인클루드 태그
+
+## 기타
+<!--/attendance_continuity_count/-->

@@ -1,0 +1,535 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container mypage-wrapper smMypage">
+    <div class="row">
+        <!--/if_login/-->
+        <!-- Sidebar -->
+        <!--/include_header(2)/-->
+        <!-- // Sidebar -->
+        <!--/end_if/-->
+
+        <!-- Content -->
+        <div class="content col-lg-10 col-md-12 col-sm-12">
+            <div id="myReturn" class="content-body">
+                <div class="page-title-wrap txt-l">
+                    <h2>주문 반품 요청</h2>
+                </div>
+                <div class="order-info">
+                    <div class="sub-title first">
+                        <h3>주문 정보</h3>
+                    </div>
+                    <div class="order-summary">
+                        <p class="order-date"><span>주문일자</span> <strong><!--/order_date/--></strong></p>
+                        <p class="order-number"><span>주문번호</span> <strong><!--/ordernum/--></strong></p>
+                    </div>
+                </div>
+                <!--/form_claim/-->
+                <!-- 상품 정보 -->
+                <div class="sub-title">
+                    <h3>상품 선택</h3>
+                </div>
+                <!--/loop_provider/-->
+                <div class="product-info">
+                    <!--/if_provider@order_type(PROVIDER)/-->
+                    <div class="seller">
+                        <span class="seller-name"><!--/provider@provider_name/--></span>
+                    </div>
+                    <!--/end_if/-->
+                    <!--/loop_provider@delivery/-->
+                    <div class="order-delivery">
+                        <div class="delivery-summary">
+                            <div class="flex-base form-check form-check-inline">
+                                <!--/provider@delivery@checkbox_all/-->
+                            </div>
+                            <span class="delivery-num">배송번호 <strong><!--/provider@delivery@deli_num/--></strong></span>
+                        </div>
+                    </div>
+                    <!-- 상품 목록 -->
+                    <div class="product-list">
+                        <!--/loop_provider@delivery@product/-->
+                        <div class="item-wrap">
+                            <div class="goods-wrap">
+                                <div class="flex-base goods-image">
+                                    <div class="flex form-check form-check-inline">
+                                        <!--/provider@delivery@product@checkbox/-->
+                                    </div>
+                                    <a href="<!--/provider@delivery@product@link/-->">
+                                        <img src="<!--/provider@delivery@product@mobile_image/-->" alt="상품 이미지">
+                                    </a>
+                                </div>
+                                <div class="goods-details">
+                                    <p class="title">
+                                        <!--/provider@delivery@product@name/-->
+                                        <!--/if_provider@delivery@product@is_gift/-->
+                                        <span class="gift">사은품</span>
+                                        <!--/end_if/-->
+                                    </p>
+                                    <div class="option">
+                                        <p><!--/provider@delivery@product@option/--></p>
+                                    </div>
+                                </div>
+                                <div class="goods-price">
+                                <!--/if_not_provider@delivery@product@is_gift/-->
+                                    <strong><!--/number/provider@delivery@product@pay_price/--></strong>원
+                                <!--/end_if/-->
+                                </div>
+                                <div class="goods-qty">
+                                    <!--/provider@delivery@product@amount/-->
+                                </div>
+                            </div>
+                        </div>
+                        <!--/end_loop/-->
+                    </div>
+                    <!--/end_loop/-->
+                </div>
+                <!--/end_loop/-->
+                <!-- 선택상품 구매금액 -->
+                <div class="payinfo-wrap">
+                    <div class="order-price">
+                        <ul>
+                            <li>
+                                <!--/if_claim_deli_price(+1)/-->
+                                <div class="price-row">
+                                    <button type="button" class="btn-view-more">배송비</button>
+                                    <p><!--/number/claim_deli_price/-->원</p>
+                                </div>
+                                <!--/end_if/-->
+                                <div class="view-list">
+                                    <!--/if_normal_delivery_price(+1)/-->
+                                    <dl>
+                                        <dt>기본 배송비</dt>
+                                        <dd>+<!--/number/normal_delivery_price/-->원</dd>
+                                    </dl>
+                                    <!--/end_if/-->
+                                    <!--/if_add_delivery_price(+1)/-->
+                                    <dl>
+                                        <dt>추가 배송비</dt>
+                                        <dd>+<!--/number/add_delivery_price/-->원</dd>
+                                    </dl>
+                                    <!--/end_if/-->
+                                    <!--/if_area_delivery_price(+1)/-->
+                                    <dl>
+                                        <dt>지역별 배송비</dt>
+                                        <dd>+<!--/number/area_delivery_price/-->원</dd>
+                                    </dl>
+                                    <!--/end_if/-->
+                                    <!--/if_quick_delivery_price(+1)/-->
+                                    <dl>
+                                        <dt>당일 배송비</dt>
+                                        <dd>+<!--/number/quick_delivery_price/-->원</dd>
+                                    </dl>
+                                    <!--/end_if/-->
+                                    <!--/if_provider_delivery_price(+1)/-->
+                                    <dl>
+                                        <dt>공급자 배송비</dt>
+                                        <dd>+<!--/number/provider_delivery_price/-->원</dd>
+                                    </dl>
+                                    <!--/end_if/-->
+                                    <!--/if_ems_delivery_price(+1)/-->
+                                    <dl>
+                                        <dt>해외 배송비</dt>
+                                        <dd>+<!--/number/ems_delivery_price/-->원</dd>
+                                    </dl>
+                                    <!--/end_if/-->
+                                </div>
+                            </li>
+                            <li>
+                                <div class="price-row">
+                                    <span>적립금</span>
+                                    <p><!--/number/claim_reserve/-->원</p>
+                                </div>
+                            </li>
+                            <!--/if_claim_emoney(+1)/-->
+                            <li>
+                                <div class="price-row">
+                                    <span>예치금</span>
+                                    <p><!--/number/claim_emoney/-->원</p>
+                                </div>
+                            </li>
+                            <!--/end_if/-->
+                            <!--/if_claim_discount_price(+1)/-->
+                            <li>
+                                <div class="price-row">
+                                    <span>할인</span>
+                                    <p><!--/number/claim_discount_price/-->원</p>
+                                </div>
+                            </li>
+                            <!--/end_if/-->
+                            <!--/if_claim_add_price(+1)/-->
+                            <li>
+                                <div class="price-row">
+                                    <span>추가금액</span>
+                                    <p><!--/number/claim_add_price/-->원</p>
+                                </div>
+                            </li>
+                            <!--/end_if/-->
+                        </ul>
+                    </div>
+                    <div class="total-price">
+                        <ul>
+                            <li class="first">
+                                <div class="price-row">
+                                    <span>선택상품 구매금액</span>
+                                    <p><strong class="point-color"><!--/claim_select_price/--></strong>원</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- // 선택상품 구매금액 -->
+                <!-- 반품 사유 -->
+                <div class="sub-title">
+                    <h3>반품 사유</h3>
+                </div>
+                <!--/if_select_claim_reason/-->
+                <div class="form-wrapper">
+                    <div class="form-group bd-line-0">
+                        <span class="form-title">사유 선택</span>
+                        <div class="form-content">
+                            <!--/select_claim_reason/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title">상세 내용</span>
+                        <div class="form-content">
+                            <!--/textarea_claim_reason/-->
+                        </div>
+                    </div>
+                </div>
+                <!--/end_if/-->
+                <!-- // 반품 사유 -->
+                <!--/block_refund_price_calculate/-->
+                <div class="btn-wrap">
+                    <a href="<!--/link_refund_price_calculate/-->" class="btn btn-white btn-lg"><span>환불 예상금액
+                            조회</span></a>
+                </div>
+                <!--/end_block/-->
+
+                <!--/block_refund_method/-->
+                <!-- 환불 수단 -->
+                <div class="sub-title">
+                    <h3>환불 수단</h3>
+                </div>
+                <div class="form-wrapper">
+                    <div class="form-group">
+                        <span class="form-title none">수단 선택</span>
+                        <div class="form-content flex-base gap-12">
+                            <div class="form-check form-check-inline">
+                                <!--/radio_refund_method/-->
+                            </div>
+                        </div>
+                    </div>
+                    <!--/block_refund_bank/-->
+                    <div class="form-group bd-line">
+                        <span class="form-title required">은행명</span>
+                        <div class="form-content">
+                            <!--/input_refund_bank_name/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title required">예금주</span>
+                        <div class="form-content">
+                            <!--/input_refund_account_holder/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title required">계좌번호</span>
+                        <div class="form-content">
+                            <!--/input_refund_account_number/-->
+                        </div>
+                    </div>
+                    <!--/end_block/-->
+                </div>
+                <ul class="notice bullet">
+                    <!--/if_pay_method(PG에스크로)/-->
+                    <!--/block_refund_escrow/-->
+                    <li>· <!--/checkbox_pg_escrow_agree/--> 환불을 위하여 성명, 은행명, 계좌번호를 수집하며, 5년간 처리에 동의합니다.</li>
+                    <li>· 에스크로 결제로 입금한 경우 PG사를 통해 자동으로 환불됩니다.</li>
+                    <!--/end_block/-->
+                    <!--/block_refund_bank/-->
+                    <li>· <span class="cw-point-color">*</span>은 필수입력 값입니다. 환불 정보를 정확히 입력하셔야 환불이 가능합니다.</li>
+                    <!--/end_block/-->
+                    <!--/else_if_pay_method(계좌이체)/-->
+                    <li>· 실시간 계좌이체의 경우 입금하신 계좌로 PG사를 통해 자동으로 환불됩니다.</li>
+                    <!--/else_if_pay_method(네이버페이)/-->
+                    <li>· 네이버페이로 결제한 주문은 네이버페이로만 환불이 가능합니다.</li>
+                    <!--/else/-->
+                    <!--/block_refund_bank/-->
+                    <li>· <span class="cw-point-color">*</span> 은 필수입력 값입니다.</li>
+                    <li>· 환불 정보를 정확히 입력하셔야 환불이 가능합니다.</li>
+                    <!--/end_block/-->
+                    <!--/end_if/-->
+                    <!--/if_refund_policy/-->
+                    <li>· <!--/refund_policy/--></li>
+                    <!--/end_if/-->
+                </ul>
+                <!-- // 환불 수단 -->
+                <!--/end_block/-->
+
+                <!--/block_refund_info/-->
+                <!-- 환불 정보 -->
+                <div class="sub-title">
+                    <h3>환불 정보</h3>
+                </div>
+                <div class="payinfo-wrap refund-wrap">
+                    <div class="order-price">
+                        <ul>
+                            <!--/if_pay_method/-->
+                            <li>
+                                <div class="price-row">
+                                    <span><!--/pay_method/--></span>
+                                    <p><!--/refund_method_price/-->원</p>
+                                </div>
+                            </li>
+                            <!--/end_if/-->
+                            <!--/if_refund_reserve/-->
+                            <li>
+                                <div class="price-row">
+                                    <span>적립금</span>
+                                    <p><!--/refund_reserve/-->원</p>
+                                </div>
+                            </li>
+                            <!--/end_if/-->
+                            <!--/if_refund_emoney/-->
+                            <li>
+                                <div class="price-row">
+                                    <span>예치금</span>
+                                    <p><!--/refund_emoney/-->원</p>
+                                </div>
+                            </li>
+                            <!--/end_if/-->
+                            <li>
+                                <div class="price-row">
+                                    <span>배송비</span>
+                                    <p><!--/refund_deli_price/-->원</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="total-price">
+                        <ul>
+                            <li class="first">
+                                <div class="price-row">
+                                    <span>환불 예상금액</span>
+                                    <p><strong class="point-color"><!--/refund_total_price/--></strong>원</p>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="price-row">
+                                    <span>환불수단</span>
+                                    <p><!--/refund_method/--></p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <ul class="notice bullet">
+                    <li>· 취소 또는 반품할 상품이 맞는지 정확히 확인해 주세요.</li>
+                    <li>· 전체취소 또는 전체반품이 아닌 경우 카드종류, 결제방식에 따라 카드 부분취소가 불가능할 수도 있습니다.</li>
+                    <li>· 배송비, 주문서 할인, 추가금액 등에 의해 환불 금액은 변경될 수 있습니다.</li>
+                    <li>· 주문결제 시 사용한 결제 수단에 따라 환불 방법과 소요기한이 차이가 있을 수 있습니다.</li>
+                    <!--/if_return_policy/-->
+                    <li>· <!--/return_policy/--></li>
+                    <!--/end_if/-->
+                </ul>
+                <!-- // 환불 정보 -->
+                <!--/end_block/-->
+
+                <!--/block_return_type/-->
+                <!-- 반품 방법 -->
+                <div class="sub-title">
+                    <h3>반품 방법</h3>
+                </div>
+                <div class="form-wrapper">
+                    <div class="form-group bd-line-b">
+                        <span class="form-title none">수단 선택</span>
+                        <div class="form-content flex-base gap-12">
+                            <div class="form-check form-check-inline">
+                                <!--/radio_return_type/-->
+                            </div>
+                        </div>
+                    </div>
+                    <!--/block_return_type_customer/-->
+                    <div class="form-group">
+                        <span class="form-title">회수 송장번호</span>
+                        <div class="form-content">
+                            <!--/input_return_type_customer_delinum/-->
+                        </div>
+                    </div>
+                    <!--/end_block/-->
+                    <!--/block_return_type_contract/-->
+                    <div class="form-group">
+                        <span class="form-title">택배사 선택</span>
+                        <div class="form-content">
+                            <!--/select_return_type_contract_delicom/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title">신청자</span>
+                        <div class="form-content">
+                            <!--/input_return_type_contract_name/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title">반품 요청 메시지</span>
+                        <div class="form-content">
+                            <!--/textarea_return_type_contract_request/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title">신청자 반품주소</span>
+                        <div class="form-content">
+                            <div class="zipcode">
+                                <!--/input_return_type_contract_zip/-->
+                                <a href="<!--/link_return_type_contract_zip/-->" class="btn btn-primary btn-zipcode"><span>우편번호 찾기</span></a>
+                            </div>
+                            <div class="address">
+                                <!--/input_return_type_contract_addr1/-->
+                                <!--/input_return_type_contract_addr2/-->
+                                <div class="form-check">
+                                    <label class="form-check-label"><!--/checkbox_same_return_type_contract_addr/--> 주문
+                                        배송 정보와 동일</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--/end_block/-->
+                </div>
+                <ul class="notice bullet">
+                    <!--/block_return_type_customer_msg/-->
+                    <li>· 개별반품은 타택배, 개별적으로 반품 시 선택해 주세요.</li>
+                    <!--/end_block/-->
+                    <!--/block_return_type_contract_msg/-->
+                    <li>· 지정된 택배사 반품은 상점에서 이용중인 택배사에서 상품을 수거하기 위해 고객님께 찾아갑니다.</li>
+                    <!--/end_block/-->
+                    <!--/block_return_type_shop_msg/-->
+                    <li>· 쇼핑몰로 접수 요청 선택 시 쇼핑몰에서 택배를 직접 수거하도록 요청합니다.</li>
+                    <!--/end_block/-->
+                    <li>· 상품별로 각각 반품 요청을 할 경우 반송비가 중복 발생할 수 있습니다.</li>
+                    <!--/if_return_type_policy/-->
+                    <li><!--/return_type_policy/--></li>
+                    <!--/end_if/-->
+                </ul>
+                <!-- // 반품 방법 -->
+                <!--/end_block/-->
+                <div class="btn-wrap">
+                    <a href="<!--/link_claim_request/-->" class="btn btn-primary btn-lg"><span>반품 요청하기</span></a>
+                </div>
+                <!--/end_form/-->
+            </div>
+        </div>
+        <!-- // Content -->
+    </div>
+    <!-- 배송지 검색 레이어 START -->
+    <!--/block_order_addr/-->
+    <div class="layer-addr-search modal-wrap">
+        <div class="pop-body modal-content">
+            <div class="modal-header">
+                <span class="modal-title">배송지 검색</span>
+                <a href="<!--/link_addr_close/-->" class="btn-pop-close btn-modal-close"></a>
+            </div>
+            <div class="pop-cont modal-body">
+                <!--/block_order_search_addr/-->
+                <div class="search-form">
+                    <div class="addr-type">
+                        <!--/if_radio_addr_type_number/-->
+                        <label class="form-check-label">
+                            <!--/radio_addr_type_number/--> 지번 검색
+                        </label>
+                        <!--/end_if/-->
+                        <!--/if_radio_addr_type_load/-->
+                        <label class="form-check-label">
+                            <!--/radio_addr_type_load/--> 도로명 검색
+                        </label>
+                        <!--/end_if/-->
+                        <!--/if_radio_addr_type_number_to_load/-->
+                        <label class="form-check-label">
+                            <!--/radio_addr_type_number_to_load/--> 지번+도로명 검색
+                        </label>
+                        <!--/end_if/-->
+                    </div>
+                    <!--/if_block_addr_type_number/-->
+                    <!--/block_addr_type_number/-->
+                    <div class="addr-msg">
+                        <p><strong class="point-color">동(읍/면/리)</strong>명을 2글자 이상 입력하세요.</p>
+                        <p>예) 삼성1동, 가산1동</p>
+                        <p><!--/addr_search_type_text/--></p>
+                    </div>
+                    <!--/end_block/-->
+                    <!--/end_if/-->
+                    <!--/if_block_addr_type_load/-->
+                    <!--/block_addr_type_load/-->
+                    <div class="addr-msg">
+                        <p><strong class="point-color">도로명(건물명)</strong>을 2글자 이상 입력하세요.</p>
+                        <p>예)강남대로100길, 가산디지털1로</p>
+                        <p><!--/addr_search_type_text/--></p>
+                    </div>
+                    <!--/end_block/-->
+                    <!--/end_if/-->
+                    <!--/if_block_addr_type_number_to_load/-->
+                    <!--/block_addr_type_number_to_load/-->
+                    <div class="addr-msg">
+                        <p><strong class="point-color">도로명(건물명)</strong>을 두 단어 이상 입력하세요.</p>
+                        <p>예) 가산동 우림라이온스밸리, 압구정 로데오</p>
+                        <p><!--/addr_search_type_text/--></p>
+                    </div>
+                    <!--/end_block/-->
+                    <!--/end_if/-->
+                    <!--/form_addr_search/-->
+                    <div class="addr-select">
+                        <div class="zipcode">
+                            <!--/input_search_addr_text/-->
+                            <button class="btn btn-primary" type="submit" onclick="<!--/link_addr_search/-->">검색</button>
+                        </div>
+                        <div class="addr-list">
+                            <label>주소 선택</label>
+                            <!--/select_addr/-->
+                        </div>
+                    </div>
+                    <!--/end_form/-->
+                </div>
+                <div class="modal-footer">
+                    <a href="<!--/link_addr_select_ok/-->" class="btn btn-primary btn-lg">다음</a>
+                </div>
+                <!--/end_block/-->
+                <!--/block_order_detail_addr/-->
+                <!--/form_detail_addr/-->
+                <div class="search-form detail-addr">
+                    <div class="addr-msg">
+                        <p><strong class="point-color">상세주소</strong>를 입력해주세요.</p>
+                    </div>
+                    <div class="addr-select">
+                        <div class="addr-list">
+                            <label>우편번호</label>
+                            <div class="flex-base">
+                                <!--/if_input_search_post/-->
+                                <!--/input_search_post/-->
+                                <!--/else/-->
+                                <!--/input_search_post1/-->
+                                -
+                                <!--/input_search_post2/-->
+                                <!--/end_if/-->
+                            </div>
+                        </div>
+                        <div class="addr-list">
+                            <label>주소</label>
+                            <!--/input_search_address1/-->
+                            <!--/input_search_address2/-->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="<!--/link_addr_ok/-->" class="btn btn-primary btn-lg">확인</a>
+                </div>
+                <!--/end_form/-->
+                <!--/end_block/-->
+            </div>
+        </div>
+    </div>
+    <!--/end_block/-->
+    <!-- // 배송지 검색 레이어 END -->
+</main>
+<!-- //container -->
+
+<!--/include_footer(1)/-->

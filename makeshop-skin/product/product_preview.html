@@ -1,0 +1,431 @@
+<!--/form_product/-->
+<div class="pop-detail cnt">
+    <div class="row goods-wrapper">
+        <div class="col-lg-6 col-md-12 col-sm-12 goods-imgs">
+            <div class="btn-share">
+            <!--/if_link_scrap_fb/-->
+                <a href="<!--/link_scrap_fb/-->">
+                    <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_facebook.svg" alt="페이스북" />
+                </a>
+            <!--/end_if/-->
+            <!--/if_link_scrap_tw/-->
+                <a href="<!--/link_scrap_tw/-->">
+                    <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_twitter.svg" alt="트위터" />
+                </a>
+            <!--/end_if/-->
+            <!--/if_link_scrap_ka/-->
+                <a href="<!--/link_scrap_ka/-->">
+                    <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_kakatalk.svg" alt="카카오톡" />
+                </a>
+             <!--/end_if/-->
+             <!--/if_link_scrap_ks/-->
+                <a href="<!--/link_scrap_ks/-->">
+                    <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_story.svg" alt="카카오스토리" />
+                </a>
+             <!--/end_if/-->
+                <a href="javascript:void(0);" id="copyToClipboard" data-copy="<!--/link_copy_product_detail/-->">
+                    <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_link.svg" alt="링크 공유" />
+                </a>
+            </div>
+            <div class="goods-imgs--view">
+                <!--/if_image_m/-->
+                <img src="<!--/image_m/-->" alt="" class="img-fluid">
+                <!--/else/-->
+                <img src="/images/common/m_noimage.png" alt="상품 섬네일" class="detail_image" />
+                <!--/end_if/-->
+            </div>
+            <div class="btn-detail">
+                <a href="<!--/link_product_detail/-->" class="btn btn-gray btn-sm">상세정보 보기</a>
+            </div>
+        </div>
+
+        <div class="col-lg-5 col-md-12 col-sm-12 goods-infos">
+            <div class="infos--group">
+                <div class="goods--icon">
+                    <!--/icons/--> <!--/subs_icon/--> <!--/promotion_icon_mobile/--> <!--/present_icon/--> <!--/quick_delivery_icon/-->
+                </div>
+                <p class="goods--title"><!--/notag/name/--></p>
+                <p class="goods--subtitle"><!--/subname/--></p>
+                <div class="goods--price-wrap">
+                    <div class="prices">
+                        <!--/if_price_replace/-->
+                            <!--/price_replace/-->
+                        <!--/else/-->
+                            <!--/if_dc_price_sell/-->
+                            <span class="price"><strong><!--/block_dc_price_sell/--><!--/number/dc_price_sell/--><!--/end_block/--></strong>원</span>
+                            <span class="original"><strong><!--/number/price_sell/--></strong>원</span>
+                            <span class="discount"><!--/sell_discount_rate/-->%</span>
+                            <!--/else_if_price_consumer(+1)/-->
+                            <span class="price"><strong><!--/number/price_sell/--></strong>원</span>
+                            <span class="original"><strong><!--/number/price_consumer/--></strong>원</span>
+                                <!--/if_consumer_discount_rate(+1)/-->
+                                <span class="discount"><!--/consumer_discount_rate/-->%</span>
+                                <!--/end_if/-->
+                            <!--/else/-->
+                            <span class="price"><strong><!--/number/price_sell/--></strong>원</span>
+                            <!--/end_if/-->
+                        <!--/end_if/-->
+                    </div>
+                    <div class="share">
+                        <!--/if_link_wish_toggle/--><a href="<!--/link_wish_toggle/-->"><!--/block_btn_wish/--><!--/end_block/--></a><!--/end_if/-->
+                    </div>
+                </div>
+            </div>
+
+            <div class="infos--group is-mobile">
+                <!--/if_bundle_discount_price/-->
+                <div class="infos--row">
+                    <span class="info-title">묶음할인</span>
+                    <span class="info-content cw-point-color"><!--/number/bundle_discount_price/-->원</span>
+                </div>
+                <!--/end_if/-->
+                <!--/if_link_subs/-->
+                <div class="infos--row">
+                    <span class="info-title">정기배송가</span>
+                    <span class="info-content"><!--/number/subs_price/-->원</span>
+                    <a href="#none" class="info-link btn-coupon">혜택보기</a>
+                    <div class="modal-wrap layer-benefit view-wrap">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <span class="modal-title">정기배송 할인 혜택</span>
+                                <a href="#none" id="view_close" class="btn-modal-close"></a>
+                            </div>
+                            <div class="modal-body">
+                                <ul class="list">
+                                    <!--/loop_subs_discount_turn_info/-->
+                                    <li>
+                                        <!--/if_subs_discount_turn_info@last_turn/-->
+                                        · <!--/subs_discount_turn_info@turn/-->회차 이상
+                                        <!--/else/-->
+                                        · <!--/subs_discount_turn_info@turn/-->회차
+                                        <!--/end_if/-->
+                                        <span class="fc-point"><!--/subs_discount_turn_info@discount/-->%</span> 할인
+                                        (<!--/number/subs_discount_turn_info@discount_price/-->원)
+                                    </li>
+                                    <!--/end_loop/-->
+                                </ul>
+                                <p class="msg">* 할인 예상가이며, 결제시점의 판매가와 할인율에 따라서 결제 가격은 변동될 수 있습니다.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--/end_if/-->
+                <!--/if_link_benefit/-->
+                <div class="infos--row">
+                    <span class="info-title">쿠폰할인</span>
+                    <span class="info-content cw-point-color"><!--/if_coupon_discount_price(+1)/-->-<!--/end_if/--><!--/number/coupon_discount_price/-->원</span>
+                    <a href="<!--/link_benefit/-->" class="btn-coupon info-link">혜택보기</a>
+                </div>
+                <!--/else/-->
+                <!--/if_discount_promotion_title/-->
+                <div class="infos--row">
+                    <span class="info-title">혜택</span>
+                    <span class="info-content"><!--/discount_promotion_title/--></span>
+                    <a href="#none" class="btn-view info-link">혜택보기</a>
+                    <!-- 혜택보기 레이어 -->
+                    <div class="modal-wrap layer-benefit view-wrap">
+                        <div class="modal-content">
+                            <div class="modal-header">
+                                <span class="modal-title"><!--/discount_promotion_title/--></span>
+                                <a href="#none" id="view_close" class="btn-modal-close"></a>
+                            </div>
+                            <div class="modal-body">
+                                <p class="mb-10">동일상품 구매 시, <!--/if_discount_promotion_option_apply/-->옵션
+                                    포함<!--/else/-->옵션 제외<!--/end_if/--></p>
+                                <ul class="list">
+                                    <!--/loop_bulk_info/-->
+                                    <li>· <!--/bulk_info@min_stock/--> ~ <!--/bulk_info@max_stock/-->개 개당
+                                        <span class="fc-point">
+                                            <!--/if_discount_promotion_discount_type(WON)/--><!--/number/bulk_info@price/-->원
+                                            <!--/else/--><!--/bulk_info@percent/-->%<!--/end_if/--> 할인
+                                        </span>
+                                    </li>
+                                    <!--/end_loop/-->
+                                </ul>
+                                <p class="msg">* 할인적용금액은 장바구니에서 확인해주세요.</p>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- // 혜택보기 레이어 -->
+                </div>
+                <!--/end_if/-->
+                <!--/end_if/-->
+                <!--/if_reserve(+1)/-->
+                <div class="infos--row">
+                    <span class="info-title">적립금</span>
+                    <span class="info-content"><!--/number/reserve/--><!--/reserve_unit/--></span>
+                </div>
+                <!--/end_if/-->
+            </div>
+            <!--/if_not_is_bundle/-->
+            <!--/if_not_is_package/-->
+            <div class="option-layer">
+                <div class="option-layer-content">
+                    <!-- 하이브리드 옵션  -->
+                    <!--/if_hybrid_option/-->
+                    <div class="infos--group">
+                        <!--/loop_hybrid_option/-->
+                        <div class="infos--col cw-mb-20">
+                            <span class="info-title">
+                                <!--/hybrid_option@title/-->
+                                <!--/if_hybrid_option@min_quantity/-->(최소
+                                <!--/hybrid_option@min_quantity/-->개<!--/if_not_hybrid_option@max_quantity/-->선택가능)<!--/end_if/--><!--/end_if/-->
+                                <!--/if_hybrid_option@max_quantity/--><!--/if_not_hybrid_option@min_quantity/-->(<!--/end_if/-->
+                                ~ 최대 <!--/hybrid_option@max_quantity/-->개 선택가능)<!--/end_if/-->
+                            </span>
+                            <div class="info-content">
+		                        <!--/loop_hybrid_option@option/-->
+	                            <div class="<!--/if_hybrid_option@option@soldout/-->lst-soldout<!--/end_if/--> MS_HybridOptItem option-check-md">
+	                                <!--/hybrid_option@option@checkbox/-->
+	                                <span class="prdimg img">
+                                        <!--/hybrid_option@option@opt_s_img/-->
+                                        <!--/if_hybrid_option@option@soldout/-->
+                                        <span class="soldout-bg"></span>
+                                        <span class="soldout">품절</span>
+                                        <!--/end_if/-->
+                                    </span>
+	                                <span class="name"><!--/hybrid_option@option@title/--></span>
+	                                <span class="price"><!--/hybrid_option@option@opt_price/--></span>
+                                    <span class="prdnote"><!--/hybrid_option@option@note/--></span>
+	                            </div>
+		                        <!--/end_loop/-->
+                            </div>
+                        </div>
+                        <!--/end_loop/-->
+                    </div>
+                    <div class="MK_optAddWrap_line"></div>
+                    <div class="MK_optAddWrap">
+                        <div id="MK_innerOptWrap">
+                            <div id="MK_innerOptScroll">
+                                <div id="MK_innerOpt_01" class="MK_inner-opt-cm infos--group">
+                                    <div id="basic_0" class="goods--options ">
+                                        <div class="MK_p-name goods-name"><!--/name/--></div>
+                                        <div class="MK_qty-ctrl">
+                                            <div class="info-content goods-quantity">
+                                                <div class="btn-group">
+                                                    <a href="<!--/hybrid_link_quantity_down/-->" class="btn-minus">
+                                                        <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_minus.svg" alt="빼기">
+                                                    </a>
+                                                    <!--/hybrid_input_quantity/-->
+                                                    <a href="<!--/hybrid_link_quantity_up/-->" class="btn-plus">
+                                                        <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_plus.svg" alt="더하기">
+                                                    </a>
+                                                </div>
+                                                <strong class="MK_price quantity-price">
+                                                    <span id="MK_p_price_basic_0">
+                                                        <!--/if_hybrid_price_replace/-->
+                                                        <!--/hybrid_price_replace/-->
+                                                        <!--/else/-->
+                                                        <!--/number/price_sell/-->원
+                                                        <!--/end_if/-->
+                                                    </span>
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="MK_optAddWrap_div"></div>
+                    <div class="MK_optAddWrap">
+                        <!--/hybrid_option_box/-->
+                    </div>
+                    <div class="MK_optAddWrap_div"></div>
+                    <div class="MK_optAddWrap">
+                        <div id="MK_optAddWrapList">
+                            <!--/if_hybrid_option_list/-->
+                            <div class="infos--group">
+                                <!--/hybrid_option_list/-->
+                            </div>
+                            <!--/end_if/-->
+                        </div>
+                    </div>
+                    <!--/end_if/-->
+                    <!-- // 하이브리드 옵션 -->
+                    
+                    <!--/if_option/-->
+                    <div class="infos--group">
+                        <!--/loop_option/-->
+                        <!--/if_option@oneclick_list/-->
+                        <div class="infos--col cw-mb-20">
+                            <span class="info-title"><!--/option@title/--><!--/option@oneclick_value/--></span>
+                            <div class="info-content">
+                                <!--/option@oneclick_list/-->
+                            </div>
+                        </div>
+                        <!--/else/-->
+                        <div class="infos--row">
+                            <span class="info-title"><!--/option@title/--></span>
+                            <div class="info-content">
+                                <!--/option@select/-->
+                            </div>
+                        </div>
+                        <!--/end_if/-->
+                        <!--/end_loop/-->
+                    </div>
+                    <!--/end_if/-->
+
+                    <!--/if_is_unify_option/-->
+                    <!--/if_option_add/-->
+                    <div class="infos--group sm-bottom">
+                        <div class="group-title">+ 추가 옵션 선택</div>
+                        <!--/loop_option_add/-->
+                        <div class="infos--row">
+                            <span class="info-title"><!--/option_add@title/--></span>
+                            <span class="info-content">
+                                <!--/option_add@select/-->
+                            </span>
+                        </div>
+                        <div class="infos--row">
+                            <span class="info-title">수량</span>
+                            <div class="info-content">
+                                <div class="btn-group">
+                                    <a href="<!--/option_add@link_quantity_down/-->" class="btn-minus"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_minus.svg" alt="빼기"></a>
+                                    <!--/option_add@input_quantity/-->
+                                    <a href="<!--/option_add@link_quantity_up/-->" class="btn-plus"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_plus.svg" alt="더하기"></a>
+                                </div>
+                            </div>
+                        </div>
+                        <!--/end_loop/-->
+                    </div>
+                    <!--/end_if/-->
+                    <!--/end_if/-->
+                    
+                    <!--/if_not_hybrid_option/-->
+                    <div class="MK_optAddWrap_line"></div>
+                    <div class="MK_optAddWrap">
+                        <div id="MK_innerOptWrap">
+                            <div id="MK_innerOptScroll">
+                                <div id="MK_innerOpt_01" class="MK_inner-opt-cm infos--group">
+                                    <div id="basic_0" class="goods--options ">
+                                        <div class="MK_p-name goods-name"><!--/name/--></div>
+                                        <div class="MK_qty-ctrl">
+                                            <div class="info-content goods-quantity">
+                                                <div class="btn-group">
+                                                    <a href="<!--/link_quantity_down/-->" class="btn-minus">
+                                                        <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_minus.svg" alt="빼기">
+                                                    </a>
+                                                    <!--/input_quantity/-->
+                                                    <a href="<!--/link_quantity_up/-->" class="btn-plus">
+                                                        <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_plus.svg" alt="더하기">
+                                                    </a>
+                                                </div>
+                                                <strong class="MK_price quantity-price">
+                                                    <span id="MK_p_price_basic_0">
+                                                        <!--/if_dc_price_sell(+1)/-->
+                                                        <!--/block_dc_price_sell/--><!--/number/dc_price_sell/--><!--/end_block/-->원
+                                                        <!--/else/-->
+                                                        <!--/number/price_sell/-->원
+                                                        <!--/end_if/-->
+                                                    </span>
+                                                </strong>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--/end_if/-->
+
+                    <!--/if_option_price_sell/-->
+                    <div class="infos--group none-border">
+                        <div class="goods--total">
+                            <span class="total-txt">총 상품 금액</span>
+                            <span class="total-price"><strong><!--/number/option_price_sell/--></strong>원</span>
+                        </div>
+                    </div>
+                    <!--/end_if/-->
+                    <div class="soldout-area">
+                        <!--/if_soldout/-->
+                            <!--/if_is_short_soldout/-->
+                            <span id="soldout_once" class="soldout_once">
+                                <img src="<!--/image_short_soldout/-->" alt="일시품절">
+                            </span> 
+                            <!--/end_if/-->
+                        <!--/end_if/-->
+                        <!--/if_link_short_soldout_sms/-->
+                        <a href="<!--/link_short_soldout_sms/-->" class="btn_soldout_anchor">
+                            <span class="MK_btn-sms box-shadow-03"><img src="<!--/image_short_soldout_sms/-->" alt=""></span>
+                        </a>
+                        <!--/end_if/-->
+                    </div>
+                    <!--/if_soldout/-->
+                        <!--/if_not_is_short_soldout/-->
+                        <div class="soldout-msg">품절</div>
+                        <!--/end_if/-->
+                    <!--/end_if/-->
+                    <!--/if_not_soldout/-->
+                        <!--/if_cart_free/-->
+                        <p>
+                            <a href="<!--/link_basket/-->" class="btn btn-white btn-lg btn-delivery"><span>장바구니</span></a>
+                        </p>
+                        <!--/else/-->
+                        <div class="goods--btns">
+                            <a href="<!--/link_basket/-->" class="btn btn-white btn-lg"><span>장바구니</span></a>
+                            <a href="<!--/link_immediate/-->" class="btn btn-primary btn-lg"><span>구매하기</span></a>
+                        </div>
+                        <!--/if_link_subs/-->
+                        <p>
+                            <a href="<!--/link_subs/-->" class="btn btn-gray btn-lg btn-delivery"><span>정기배송 신청</span></a>
+                        </p>
+                        <!--/end_if/-->
+                        <!--/end_if/-->
+                    <!--/end_if/-->
+                    <!--/if_is_smartpickup/-->
+                    <p>
+                        <a href="<!--/link_smartpickup/-->" class="btn btn-gray btn-lg btn-smartpickup">스마트픽업</a>
+                    </p>
+                    <!--/end_if/-->
+                    <!--/if_is_smartpickup_outer/--><p class="flex-right btn-smartpickup-store"><a href="<!--/link_smartpickup_stock/-->">스마트 픽업 매장 재고 확인</a></p><!--/end_if/-->
+                </div><!-- .option-layer-content -->
+            </div><!-- .option-layer -->
+            <!--/end_if/-->
+            <!--/end_if/-->
+            <!--/if_bundle_product/-->
+                <!--/loop_bundle_product/-->
+            <div class="infos--group">
+                <div class="bundle-wrap">
+                    <div class="bundle-image">
+                        <img src="<!--/bundle_product@image/-->" alt="상품 이미지">
+                    </div>
+                    <div class="bundle-details">
+                        <p class="title"><!--/bundle_product@name/--></p>
+                    </div>
+                </div>
+            </div>
+                <!--/end_loop/-->
+            <p>
+                <a href="<!--/link_product_detail/-->" class="btn btn-white btn-lg btn-detail-info">상품 상세 정보 보기</a>
+            </p>
+            <!--/end_if/-->
+            <!--/if_package_product/-->
+                <!--/loop_package_product/-->
+            <div class="infos--group">
+                <div class="bundle-wrap">
+                    <div class="bundle-image">
+                        <img src="<!--/package_product@image/-->" alt="상품 이미지">
+                    </div>
+                    <div class="bundle-details">
+                        <p class="title"><!--/package_product@name/--></p>
+                    </div>
+                </div>
+            </div>
+                <!--/end_loop/-->
+            <p>
+                <a href="<!--/link_product_detail/-->" class="btn btn-white btn-lg btn-detail-info">상품 상세 정보 보기</a>
+            </p>
+            <!--/end_if/-->
+        </div><!-- .goods-infos -->
+    </div>
+    <a class="close-layer" href="<!--/link_close/-->">
+        <div class="pop-close-btn">
+            <p class="x1"></p>
+            <p class="x2"></p>
+        </div>
+    </a>
+</div>
+<div class="overlay"></div>
+<div class="copy-toast">복사되었습니다.</div>
+<!--/end_form/-->

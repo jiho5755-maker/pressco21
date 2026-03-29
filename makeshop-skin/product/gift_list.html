@@ -1,0 +1,42 @@
+<!--/include_header(1)/-->
+
+<div class="container gift-wrapper">
+    <h2 class="cw-gifttitle">사은품 리스트</h2>
+    <div class="cw-wrapper">
+        <div class="cw-giftlist">
+            <!--/if_gift/-->
+            <ul class="list-contents">
+                <!--/loop_gift/-->
+                <li>
+                    <div class="subject">
+                        <div class="image<!--/if_not_gift@image/--> noimg<!--/end_if/-->">
+                            <!--/if_gift@image/-->
+                            <img src="<!--/gift@image/-->" class="img" alt="이미지">
+                            <!--/else/-->
+                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/noimage.svg" alt="이미지">
+                            <!--/end_if/-->
+                        </div>
+                        <div class="name"><!--/notag/gift@name/--></div>
+                        <div class="price"><!--/number/gift@price_start/-->원 이상 <!--/if_gift@price_end/--><!--/number/gift@price_end/-->원 이하 <!--/end_if/-->구매</div>
+                        <!--/if_gift@option/-->
+                        <div class="option">
+                        <!--/loop_gift@option/-->
+                            <p>
+                                <span><!--/gift@option@title/--></span>
+                                <!--/gift@option@select(cw-select-box)/-->
+                            </p>
+                        <!--/end_loop/-->
+                        </div>
+                        <!--/end_if/-->
+                    </div>
+                </li>
+                <!--/end_loop/-->
+            </ul>
+            <!--/else/-->
+            <div class="list-none">등록된 사은품이 없습니다.</div>
+            <!--/end_if/-->
+        </div>
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

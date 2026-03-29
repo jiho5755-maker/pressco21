@@ -1,0 +1,13 @@
+# mp_withdraw 가상태그
+
+
+## 회원 탈퇴
+<!--/link_withdraw_cancel/-->
+<!--/link_withdraw_ok/-->
+<!--/text_withdraw_reason/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/if_user_withdraw_use/-->
+<!--/shop_id/-->
+<!--/user_withdraw_reason/-->

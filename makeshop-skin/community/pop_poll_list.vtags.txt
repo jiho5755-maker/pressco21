@@ -1,0 +1,5 @@
+# pop_poll_list 가상태그
+
+
+## 기타
+<!--/shop_id/-->

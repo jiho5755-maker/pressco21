@@ -1,0 +1,74 @@
+<!--/include_header(1)/-->
+
+<div class="container board-wrapper">
+    <h2 class="cw-gallerytitle"><!--/now_board_name/--></h2>
+    <div class="cw-wrapper">
+        <!--/form_write/-->
+        <div class="cw-gallerywrite">            
+            <dl class="write-info line">
+                <!--/if_input_name/-->
+                <dt>이름</dt>
+                <dd><!--/input_name(cw-textfield)/--></dd>
+                <!--/end_if/-->
+                <!--/if_input_password/-->
+                <dt>비밀번호</dt>
+                <dd>
+                    <!--/input_password(cw-textfield)/-->
+                    <!--/if_is_auto_lock/--><div class="auto-lock">자동 잠금 기능</div><!--/end_if/-->
+                    <!--/if_input_lock_checkbox/-->
+                    <div class="form-check">                     
+                        <label class="form-check-label">
+                        <!--/input_lock_checkbox/--> 잠금 사용
+                        </label>
+                    </div>
+                    <!--/end_if/-->
+                </dd>
+                <!--/end_if/-->
+                <!--/if_input_email/-->
+                <dt>이메일</dt>
+                <dd><!--/input_email(cw-textfield)/--></dd>
+                <!--/end_if/-->
+            </dl>
+            <dl class="write-info">
+                <!--/if_select_header/-->
+                <dt>분류</dt>
+                <dd>
+                    <!--/select_header(cw-select-box)/-->
+                </dd>
+                <!--/end_if/-->
+                <!--/if_input_subject/-->
+                <dt>제목</dt>
+                <dd>
+                    <!--/input_subject(cw-textfield)/-->
+                </dd>
+                <!--/end_if/-->
+                <dt>내용</dt>
+                <dd>
+                    <!--/text_content(cw-textfield)/-->
+                </dd>
+                <dt>첨부</dt>
+                <dd class="file">
+                    <!--/file_attach(cw-textfield)/--><a href="<!--/link_file_upload/-->" class="btn btn-gray"><span>파일첨부</span></a>
+                </dd>
+            </dl>
+            <!--/if_not_login/-->
+                <!--/if_use_privacy/-->
+                <div><!--/new_privacy_terms/--></div>
+                <!--/end_if/-->
+            <!--/end_if/-->
+        </div>
+
+        <div class="cw-gallerybtns">
+            <!--/if_link_write_ok/--><a href="<!--/link_write_ok/-->" class="btn btn-primary btn-lg"><span>글쓰기</span></a><!--/end_if/-->
+            <!--/if_link_list/--><a href="<!--/link_list/-->" class="btn btn-white btn-lg"><span>목록보기</span></a><!--/end_if/-->
+        </div>
+        <!--/end_form/-->
+    </div>
+</div>
+
+<!--/include_footer(1)/-->
+
+<script type="text/javascript">
+// 반응형 상단 타이틀
+changeNaviTitleText('<!--/now_board_name/-->');
+</script>

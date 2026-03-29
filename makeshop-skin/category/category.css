@@ -1,0 +1,4 @@
+.navCategory {margin-top:18px;}
+nav li {border-bottom:1px solid #ccc; position:relative;}
+nav li a {display: block; height: 35px; line-height:35px; padding:0 0 0 20px; margin-right: 40px;}
+nav li .fa {position: absolute; top:0; right: 0; width: 40px; text-align: center; height: 35px; line-height:35px;}

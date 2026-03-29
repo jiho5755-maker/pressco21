@@ -1,0 +1,21 @@
+# shopinfo 가상태그
+
+
+## 이용약관
+<!--/contract_terms/-->
+<!--/if_new_privercy_type/-->
+<!--/link_contract_view/-->
+<!--/link_privercy_policy_view/-->
+<!--/privercy_name/-->
+<!--/privercy_terms/-->
+
+## 상점 정보
+<!--/company_num/-->
+<!--/img_logo_escrow/-->
+<!--/report_num/-->
+<!--/shop_addr/-->
+<!--/shop_cstime/-->
+<!--/shop_email/-->
+<!--/shop_fax/-->
+
+## 기타

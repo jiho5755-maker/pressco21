@@ -1,0 +1,36 @@
+# select_agree 가상태그
+
+
+## 기타
+<!--/addr_search_type_text/-->
+<!--/block_addr_type_load/-->
+<!--/block_addr_type_number/-->
+<!--/block_addr_type_number_to_load/-->
+<!--/block_join_addr/-->
+<!--/block_join_detail_addr/-->
+<!--/block_join_search_addr/-->
+<!--/form_addr_search/-->
+<!--/form_detail_addr/-->
+<!--/form_selection_article/-->
+<!--/input_search_address1/-->
+<!--/input_search_address2/-->
+<!--/input_search_addr_text/-->
+<!--/input_search_post/-->
+<!--/input_search_post1/-->
+<!--/input_search_post2/-->
+<!--/link_addr_close/-->
+<!--/link_addr_ok/-->
+<!--/link_addr_search/-->
+<!--/link_addr_select_ok/-->
+<!--/link_selection_article_cancel/-->
+<!--/link_selection_article_ok/-->
+<!--/radio_addr_type_load/-->
+<!--/radio_addr_type_number/-->
+<!--/radio_addr_type_number_to_load/-->
+<!--/selection_article_agreement/-->
+<!--/selection_article_agreement@link/-->
+<!--/selection_article_agreement@name/-->
+<!--/selection_article_agreement_message/-->
+<!--/selection_article_input/-->
+<!--/selection_article_terms/-->
+<!--/select_addr/-->

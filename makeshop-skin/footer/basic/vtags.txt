@@ -1,0 +1,45 @@
+# footer_1 가상태그
+
+
+## 빅매치 배너
+<!--/bigmatch@banner/-->
+<!--/bigmatch@link/-->
+<!--/bigmatch@subject/-->
+<!--/loop_bigmatch/-->
+
+## 마이페이지
+
+## 메뉴 링크
+<!--/link_attendance/-->
+<!--/link_community/-->
+<!--/link_privacy/-->
+<!--/link_useinfo/-->
+
+## 상점 정보
+<!--/company_addr/-->
+<!--/company_name/-->
+<!--/company_number/-->
+<!--/company_owner/-->
+<!--/link_store_info/-->
+<!--/loop_shop_account/-->
+<!--/loop_shop_cs/-->
+<!--/online_sale_number/-->
+<!--/privacy_charge/-->
+<!--/shop_account@value/-->
+<!--/shop_cs@value/-->
+<!--/shop_fax/-->
+<!--/shop_name/-->
+<!--/shop_tel/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/btn_kakaopf/-->
+<!--/link_contract/-->
+<!--/link_gift_list/-->
+<!--/link_m2m_question/-->
+<!--/link_new_barotalk/-->
+<!--/link_off_store_info/-->
+<!--/link_send_mail/-->
+<!--/shop_email/-->
+<!--/shop_id/-->
+<!--/sms_app/-->

@@ -1,0 +1,24 @@
+# event 가상태그
+
+
+## 이벤트
+<!--/attach_image/-->
+<!--/content/-->
+<!--/link_close/-->
+<!--/link_show_term/-->
+<!--/title/-->
+
+## 상점 정보
+<!--/shop_id/-->
+
+## 잉글리쉬 HTML
+<!--/shop_language/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/checkbox_show_term/-->
+<!--/event_list@attach_image/-->
+<!--/event_list@click_attach_image/-->
+<!--/if_is_image_swipe/-->
+<!--/image_swipe_term/-->
+<!--/loop_event_list/-->

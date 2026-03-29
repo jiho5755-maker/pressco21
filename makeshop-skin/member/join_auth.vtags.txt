@@ -1,0 +1,24 @@
+# join_auth 가상태그
+
+
+## 휴대폰 인증
+<!--/link_mobile_auth/-->
+<!--/link_mobile_info/-->
+<!--/radio_auth_mobile/-->
+
+## 아이핀 인증
+<!--/link_ipin_auth/-->
+<!--/link_ipin_info/-->
+<!--/radio_auth_ipin/-->
+
+## 인증
+<!--/radio_auth_pass/-->
+<!--/use_auth/-->
+
+## 기타
+<!--/auth_method/-->
+<!--/auth_method@image/-->
+<!--/auth_method@link/-->
+<!--/auth_method@title/-->
+<!--/link_next/-->
+<!--/required_company_item/-->

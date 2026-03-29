@@ -1,0 +1,55 @@
+/* BASIC css start */
+#simpleReview input[type="text"],
+#simpleReview textarea { width: 100%; background: #fff; box-sizing: border-box; -webkit-appearance: none; -webkit-border-radius: 0; }
+#simpleReview { padding: 15px; }
+#simpleReview .prd_title { position: relative; margin-top: 15px; padding-top: 0; color: #777; font-size: .875em; letter-spacing: -1px; text-align: center; }
+#simpleReview .prd_title em { color: #000; font-style: normal; font-size: 1.125em; font-weight: bold; }
+#simpleReview .prd { margin-top: 25px; text-align: center; }
+#simpleReview .prd .slide-wrap { height: 177px; position: relative; }
+#simpleReview .prd .slide-wrap .btn { position: absolute; top: 50%; width: 18px; height: 34px; margin-top: -17px; border: 0; background: 0; }
+#simpleReview .prd .slide-wrap .btn img { width: 18px; height: 34px; }
+#simpleReview .prd .slide-wrap .prev { left: 0; }
+#simpleReview .prd .slide-wrap .next { right: 0; }
+#simpleReview .prd .slide { position: absolute; top: 0; left: 50%; width: 193px; height: 177px; overflow: hidden; margin-left: -96px; }
+#simpleReview .prd .slide ul { width: 1351px; }
+#simpleReview .prd .slide ul:after { content: ""; display: block; clear: both; }
+#simpleReview .prd .slide li { float: left; width: 193px; height: 177px; list-style: none; }
+#simpleReview .prd .slide li img { width: 100%; height: 100%; }
+#simpleReview .prd .page { margin-top: 8px; display: inline-block; padding: 5px 10px; background: #3e3e3e; color: #777; font-size: .75em; }
+#simpleReview .prd .page strong { font-size: 1.25em; }
+#simpleReview .prd .page strong.now { color: #fff; }
+#simpleReview .prd .tit { margin-top: 8px; color: #000; font-size: 1em; font-weight: bold; letter-spacing: -1px; }
+#simpleReview .prd .tit .price { display: inline-block; padding-left: 6px; color: #777; font-size: .875em; }
+#simpleReview .info { position: relative; margin-top: 25px; padding-right: 60px; text-align: left; }
+#simpleReview .info .score { position: absolute; top: 0; right: 0; width: 55px; height: 120px; border: 1px solid #dadada; background: #fff; text-align: center; color: #777; box-sizing: border-box; }
+#simpleReview .info .score.single dt { margin-top: 40px; }
+#simpleReview .info .score dt { margin-top: 15px; font-size: .875em; }
+#simpleReview .info .score dd { margin-top: 2px; font-size: 1em; font-weight: bold; }
+#simpleReview .info .frm input[type=text] { height: 25px; line-height: 25px; padding: 0 5px; border: 1px solid #dadada; color: #777; font-size: .875em; }
+#simpleReview .info .frm select { width: 100%; height: 25px; line-height: 25px; color: #777; font-size: .875em; }
+#simpleReview .info .frm textarea { height: 90px; margin-top: 5px; padding: 5px; border: 1px solid #dadada; color: #777; font-size: .875em; }
+#simpleReview .info .frm select.select_header { margin-bottom: 5px; }
+#simpleReview .info .frm.triple textarea { height: 60px; }
+#simpleReview .info .attach { position: relative; clear: both; margin-top: 5px; }
+#simpleReview .info .attach input[type=text] { height: 25px; line-height: 25px; padding: 0 5px; border: 1px solid #dadada; color: #777; }
+#simpleReview .info .attach a { position: absolute; top: 0; right: -60px; width: 55px; height: 25px; line-height: 25px; background: #a6a6a6; color: #fff; font-size: .75em; text-align: center; border-radius: 5px; }
+#simpleReview .grade { margin-top: 5px; }
+#simpleReview .grade li { position: relative; margin-top: 5px; padding-left: 50px; list-style: none; }
+#simpleReview .grade span { position: absolute; top: 0; left: 0; line-height: 25px; color: #777; font-size: .875em; }
+#simpleReview .grade select { height: 25px; line-height: 25px; }
+#simpleReview .addinfo #addinfo_text { margin-top: 5px; padding-left: 8px;  }
+#simpleReview .addinfo { margin-top: 5px; color: #777; width:100%; }
+#simpleReview .addinfo td { font-size: .75em; color: #777; }
+#simpleReview .addinfo span { display: inline-block; margin-right: 18px; line-height: 25px; font-size: 1.125em; }
+#simpleReview .addinfo select { height: 25px; line-height: 25px; }
+#simpleReview .addinfo input[type=text] { height: 25px; line-height: 25px; padding: 0 5px; border: 1px solid #dadada; color: #777; width:200px; }
+#simpleReview .btn-c { margin-top: 15px; text-align: center; }
+#simpleReview .btn-c a { display: inline-block; height: 40px; line-height: 40px; padding: 0 40px; background: #595959; color: #fff; font-size: .875em; font-weight: bold; letter-spacing: -1px; border-radius: 5px; }
+#simpleReview .no_review { height: 500px; padding-top: 25px; text-align: center; }
+
+#simpleReview .lock { margin-top: 10px; line-height: 25px; color: #777; font-size: .875em; }
+#simpleReview .lock input { height: 25px; line-height: 25px; padding: 0 5px; border: 1px solid #dadada; color: #777; font-size: .875em; }
+#simpleReview .lock label { margin-right:5px; }
+/* BASIC css end */
+
+

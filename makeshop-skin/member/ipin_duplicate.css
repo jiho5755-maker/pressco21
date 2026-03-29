@@ -1,0 +1,15 @@
+/* 인증 중복 확인 */
+.auth-dup-wrap { max-width: 670px; margin: 0 auto; }
+.auth-dup-wrap .auth-status { margin-top: 40px; padding: 24px 0; border-top: 1px solid var(--cw-color-30); border-bottom: 1px solid var(--cw-color-30); }
+.auth-dup-wrap .auth-status p { text-align: center; font-weight: 600; }
+.auth-dup-wrap .auth-status p:not(:first-child) { margin-top: 10px; font-size: .875rem;}
+.auth-dup-wrap .btn-dup { display: flex; flex-direction: column; gap: 8px; justify-content: center; align-items: center; margin: 40px auto 0;}
+.auth-dup-wrap .btn-dup a { width: 300px; }
+
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .auth-dup-wrap .auth-status p { font-size: .875rem; }
+    .auth-dup-wrap .auth-status p:not(:first-child) { font-size: .813rem; }
+    .auth-dup-wrap .btn-dup a { width: 100%; }
+}

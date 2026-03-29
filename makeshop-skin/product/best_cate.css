@@ -1,0 +1,34 @@
+.full-wrapper { max-width: none; --bs-gutter-x: var(--cw-size-200); }
+.products-title { font-weight: 700; padding-top: var(--cw-size-60); font-size: var(--cw-size-24); line-height: var(--cw-size-32); color: var(--cw-heading-color); }
+.rank-wrapper { margin: var(--cw-size-48) 0 var(--cw-size-80); }
+.rank-wrapper .title-btns { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--cw-size-16); }
+.rank-wrapper .title-btns span { font-size: var(--cw-size-18); font-weight: 700; line-height: var(--cw-size-26); }
+.rank-wrapper .title-btns a { display: inline-block; width: var(--cw-size-28); height: var(--cw-size-28); }
+.rank-wrapper .title-btns a.disable { opacity: .3; }
+.rank-wrapper .prds-list--item .prds--ranking { background-color: var(--cw-color-60); }
+.rank-wrapper .prds-list--item:nth-child(-n+3) .prds--ranking { background-color: var(--cw-point-color-pri); }
+.rank-wrapper .rank-scrollbar { display: none; }
+.products-wrapper { padding-top: var(--cw-size-40); }
+.products-wrapper .prds-list { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: var(--cw-size-60) var(--cw-size-20); }
+.products-wrapper .prds-btn { margin-top: var(--cw-size-60); text-align: center; }
+.products-wrapper .prds-btn a { width: var(--cw-size-300); height: var(--cw-size-46); line-height: var(--cw-size-46); }
+.products-wrapper .list-none { margin-top: var(--cw-size-60); text-align: center; }
+
+@media (max-width: 991.98px) {
+    .full-wrapper { --bs-gutter-x: var(--cw-size-48); }
+    .products-title { display: none; }
+    .rank-wrapper { margin-top: var(--cw-size-40); }
+    .rank-wrapper .title-btns { margin-bottom: var(--cw-size-12); }
+    .products-wrapper .prds-list { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: var(--cw-size-60) var(--cw-size-16); }
+}
+@media (max-width: 767.98px) {
+    .full-wrapper { --bs-gutter-x: var(--cw-size-32); }
+    .rank-wrapper { margin-top: var(--cw-size-32); margin-bottom: var(--cw-size-60); }
+    .rank-wrapper .title-btns { margin-bottom: var(--cw-size-8); }
+    .rank-wrapper .title-btns span { font-size: var(--cw-size-16); line-height: var(--cw-size-24); }
+    .rank-wrapper .title-btns .rank-btn { display: none; }
+    .rank-wrapper .prds-list { padding-bottom: var(--cw-size-20); }
+    .rank-wrapper .rank-scrollbar { display: block; --swiper-scrollbar-size: var(--cw-size-2); --swiper-scrollbar-drag-bg-color: var(--cw-color-80); --swiper-scrollbar-bottom: 0; left: 0; }
+    .products-wrapper .prds-list { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cw-size-40) var(--cw-size-8); }
+    .products-wrapper .prds-btn a { width: 100%; }
+}

@@ -1,0 +1,173 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container mypage-wrapper myOrder">
+    <div class="row">
+        <!--/if_login/-->
+        <!-- Sidebar -->
+        <!--/include_header(2)/-->
+        <!-- // Sidebar -->
+        <!--/end_if/-->
+
+        <!-- Content -->
+        <div class="content col-lg-10 col-md-12 col-sm-12">
+            <div class="content-body">
+                <div class="page-title-wrap txt-l">
+                    <h2>주문/배송 조회</h2>
+                </div>
+                <div class="form-date-wrap">
+                    <div class="cw-date">
+                        <div class="btn-date">
+                            <a href="<!--/link_date_day/-->" class="btn btn-sm <!--/active_date_day/-->">오늘</a>
+                            <a href="<!--/link_date_week/-->" class="btn btn-sm <!--/active_date_week/-->">일주일</a>
+                            <a href="<!--/link_date_month/-->" class="btn btn-sm <!--/active_date_month/-->">1개월</a>
+                            <a href="<!--/link_date_month3/-->" class="btn btn-sm <!--/active_date_month3/-->">3개월</a>
+                            <a href="<!--/link_date_year/-->" class="btn btn-sm <!--/active_date_year/-->">1년</a>
+                        </div>
+                        <div class="input-date">
+                            <!--/input_search_date_start(cw-textfield)/-->
+                            ~
+                            <!--/input_search_date_end(cw-textfield)/-->
+                            <a href="<!--/link_search_button/-->" class="btn btn-primary btn-sm">조회</a>
+                        </div>
+                    </div>
+                </div>
+                <div class="sub-title pt-0">
+                    <h3>주문 내역</h3>
+                </div>
+                <!--/block_order/-->
+                <!--/if_order_list/-->
+                <!--/loop_order_list/-->
+                <!-- 상품 정보 -->
+                <div class="item-wrap">
+                    <div class="order-info">
+                        <div class="flex-base">
+                            <span><!--/date(%Y.%M.%D)/order_list@order_date/--></span>
+                            <!--/if_order_list@is_present/-->
+                            <span class="gift">선물</span>
+                            <!--/end_if/-->
+                        </div>
+                        <!--/if_order_list@link_all_smorder/--><a href="<!--/order_list@link_all_smorder/-->" class="link-plus"><span>상세보기</span></a><!--/end_if/-->
+                    </div>
+                    <!--/loop_order_list@product/-->
+                    <div class="goods-wrap">
+                        <!--/if_order_list@product@mobile_image/-->
+                        <div class="goods-image">
+                            <a href="<!--/order_list@product@link/-->">
+                                <div class="goods-imgs">
+                                <!--/if_is_mobile/-->
+                                    <!--/if_order_list@product@mobile_image/-->
+                                    <img src="<!--/order_list@product@mobile_image/-->" alt="상품 이미지">
+                                    <!--/end_if/-->
+                                <!--/else/-->
+                                    <!--/if_order_list@product@image_m/-->
+                                    <img src="<!--/order_list@product@image_m/-->" alt="상품 이미지">
+                                    <!--/end_if/-->
+                                <!--/end_if/-->
+                                </div>
+                            </a>
+                        </div>
+                        <!--/end_if/-->
+                        <div class="goods-details">
+                            <strong class="state"><!--/order_list@product@state/--></strong>
+                            <p class="title">
+                                <!--/notag/order_list@product@brandname/--> / <!--/order_list@product@amount/-->개
+                                <!--/if_order_list@product@is_gift/-->
+                                <span class="gift">사은품</span>
+                                <!--/end_if/-->
+                            </p>
+                            <!--/if_order_list@product@option/-->
+                            <div class="option">
+                                <p><!--/order_list@product@option/--></p>
+                            </div>
+                            <!--/end_if/-->
+                        </div>
+                        <div class="goods-price">
+                            <!--/if_not_order_list@product@is_gift/-->
+                            <strong><!--/number/order_list@product@price/--></strong>원
+                            <!--/end_if/-->
+                        </div>
+                        <div class="goods-btns">
+                            <!--/if_order_list@product@link_delivery/-->
+                            <a href="#" class="btn btn-white btn-xs pop-layer-open">배송조회</a>
+                            <!-- 배송조회 레이어 팝업 -->
+                            <div class="layer-delivery-wrap modal-wrap">
+                                <div class="pop-body modal-content">
+                                    <div class="modal-header">
+                                        <span class="modal-title">배송조회</span>
+                                        <a href="#none" class="btn-pop-close btn-modal-close"></a>
+                                    </div>
+                                    <div class="pop-cont modal-body">
+                                        <ul>
+                                            <li class="<!--/if_order_list@product@state(상품준비)/-->on<!--/end_if/-->">
+                                                <span class="bullet"></span>
+                                                <p>상품준비</p>
+                                            </li>
+                                            <li class="<!--/if_order_list@product@state(배송준비)/-->on<!--/end_if/-->">
+                                                <span class="bullet"></span>
+                                                <p>배송준비</p>
+                                            </li>
+                                            <li class="<!--/if_order_list@product@state(배송중)/-->on<!--/end_if/-->">
+                                                <span class="bullet"></span>
+                                                <p>배송중</p>
+                                            </li>
+                                            <li
+                                                class="<!--/if_order_list@product@state(배송완료)/-->on<!--/else_if_order_list@product@state(거래완료)/-->on<!--/end_if/-->">
+                                                <span class="bullet"></span>
+                                                <p>배송완료</p>
+                                            </li>
+                                        </ul>
+                                        <div class="pop-list-wrap">
+                                            <div class="delivery-company">
+                                                <span class="title">배송사</span>
+                                                <div><strong><!--/order_list@product@company/--></strong></div>
+                                            </div>
+                                            <div class="delivery-number">
+                                                <span class="title">송장번호</span>
+                                                <div class="flex w-full">
+                                                    <strong id="invoice"><!--/order_list@product@num/--></strong>
+                                                    <a href="<!--/order_list@product@link_copy_deli_num/-->" class="btn btn-gray btn-xs btn-copy"><span id="invoice-copy">복사</span></a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div class="flex btn-delivery">
+                                            <a href="<!--/order_list@product@link_delivery/-->" class="btn btn-primary btn-lg w-full">배송조회</a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <!--/end_if/-->
+                            <!--/if_order_list@product@review_write_link/-->
+                            <a href="<!--/order_list@product@review_write_link/-->" class="btn btn-gray btn-xs">리뷰작성</a>
+                            <!--/end_if/-->
+                            <!--/if_order_list@product@link_basket/-->
+                            <a href="<!--/order_list@product@link_basket/-->" class="btn btn-gray btn-xs">다시담기</a>
+                            <!--/end_if/-->
+                        </div>
+                    </div>
+                    <!--/end_loop/-->
+                </div>
+                <!-- // 상품 정보 -->
+                <!--/end_loop/-->
+                <!--/else/-->
+                <div class="empty">
+                    <p>고객님의 주문서가 없습니다.</p>
+                </div>
+                <!--/end_if/-->
+                <!--/end_block/-->
+
+                <!--/block_order_more/-->
+                <div class="cw-btn-more">
+                    <a href="<!--/link_more_order/-->" class="btn btn-gray">
+                        <span>더보기</span>
+                    </a>
+                </div>
+                <!--/end_block/-->
+            </div>
+        </div>
+        <!-- // Content -->
+    </div>
+</main>
+<!-- // container -->
+
+<!--/include_footer(1)/-->

@@ -1,0 +1,13 @@
+# cs_center 가상태그
+
+
+## 은행정보
+<!--/loop_shop_bank_account/-->
+<!--/shop_bank_account@value/-->
+<!--/shop_cstime/-->
+
+## 상점 정보
+
+## 기타
+<!--/link_back/-->
+<!--/link_home/-->

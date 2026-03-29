@@ -1,0 +1,82 @@
+#container .sub-title h4.event { background: url(/images/d3/m_01/bull/board_list_match@2x.png) no-repeat 10px center; background-size: 16px 16px; }
+#bigMatch #community .board-list { margin: 0 15px; border-top: 0; }
+#bigMatch #community .board-list li:last-child { border-bottom: 0; }
+#bigMatch .sub-title.h33 { line-height: 33px; border-bottom: 1px solid #8b8b8b; }
+#bigMatch .sub-title h4.find { background: #bfc2ca url(/images/d3/m_01/bull/order_list_h5@2x.gif) no-repeat 10px center; background-size: 13px 13px; border-top: 1px solid #8b8b8b; color: #fff; }
+#bigMatch .sub-title h4.em { color: #333; font-size: .875em; }
+#bigMatch .ename { margin: 5px 14px; }
+#bigMatch .ename select { width: 100%; }
+#bigMatch .bigmatch-mobile-img img { width : 100%; }
+#bigMatch .desc { margin: 10px 10px 0; padding: 10px 2px; border: 1px solid #e1e1e1; background-color: #f1f1f1; }
+#bigMatch .desc p { text-align: center; font-size: small; }
+#bigMatch .desc .bner { margin-top: 8px; }
+#bigMatch .desc .bner img { width: 100%; }
+#bigMatch .vswrap { overflow: hidden; margin: 5px 10px 0; padding: 10px 14px; border: 1px solid #e1e1e1; background-color: #f1f1f1; }
+#bigMatch .vswrap .prd, 
+#bigMatch .vswrap .vs { float: left; }
+#bigMatch .vswrap .prd { width: 40%; }
+#bigMatch .vswrap .vs { width: 20%; padding-top: 50px; text-align: center; font-size: 24px; font-weight: bold; }
+#bigMatch .vswrap .prd dt { border: 1px solid #c0c0c0; }
+#bigMatch .vswrap .prd dt img { width: 100%; }
+#bigMatch .vswrap .prd dd { padding: 8px 6px 0; font-size: small; }
+#bigMatch .vswrap .prd dd span { display: block; }
+#bigMatch .vswrap .prd dd span.dsc { overflow: hidden; color: #929191; font-size: smaller; }
+#bigMatch .prog { position: relative; height: 13px; margin: 10px 10px 0; border-left: 2px solid #333; border-right: 2px solid #333; }
+#bigMatch .prog .bar { position: absolute; top: 3px; right: 0; width: 100%; height: 7px; background-color: #232323; }
+#bigMatch .prog .bar.red { background-color: #ff0000; left: 0; }
+#bigMatch .both { overflow: hidden; position: relative; margin-bottom: 18px; }
+#bigMatch .both .fl,
+#bigMatch .both .fr { width: 50%; text-align: center; }
+#bigMatch .both .fl strong,
+#bigMatch .both .fr strong { font-size: 24px; }
+#bigMatch .both .fl { float: left; }
+#bigMatch .both .fr { float: right; }
+#bigMatch .both .fc-red { color: #f00; }
+#bigMatch .both .txt { position: absolute; top: 6px; left: 50%; width: 120px; margin-left: -60px; text-align: center; color: #333; font-size: small; letter-spacing: -1px; }
+#bigMatch .frm { margin: 10px 8px; }
+#bigMatch .frm .both { margin-bottom: 0; }
+#bigMatch .frm .both .fl, #bigMatch .frm .both .fr { font-size: small; }
+#bigMatch .frm .row { margin-top: 8px; }
+#bigMatch .frm input[type=text],
+#bigMatch .frm input[type=password],
+#bigMatch .frm textarea { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; -o-box-sizing: border-box; box-sizing: border-box; border: 1px solid #888; }
+#bigMatch .frm input[type=text], #bigMatch .frm input[type=password] { width: 98%; height: 20px; }
+#bigMatch .frm .fl input[type=text] { margin-right: 2%; }
+#bigMatch .frm .fr input[type=password] { margin-left: 2%; }
+#bigMatch .frm textarea { width: 100%; height: 60px; }
+#bigMatch .reply {margin: 20px 10px 0; }
+#bigMatch .reply .tab { overflow: hidden; }
+#bigMatch .reply .tab li { float: left; width: 50%; height:32px; line-height:32px; list-style: none; background-color: #f9f9f9; border: 1px solid #b5bcc4; -webkit-box-sizing: border-box; -moz-box-sizing: border-box; -o-box-sizing: border-box; box-sizing: border-box; }
+#bigMatch .reply .tab li:first-child { border-right: 0; }
+#bigMatch .reply .tab li.now { background-color: #fff; border-bottom: 0;}
+#bigMatch .reply .tab li a { display: block; color: #858585; font-size: small; text-align: center; }
+#bigMatch .reply .tab li.now a { color: #000; font-weight: bold;}
+#bigMatch .reply .lst li { position: relative; padding:18px 14px; border: 1px solid #b5bcc4; border-top: 0; color: #707070;}
+#bigMatch .reply .lst li .cont { width: 100%; overflow: hidden; text-overflow: ellipsis; margin-top: 10px;}
+#bigMatch .reply .lst li .sub { position: absolute; top:17px; right: 12px; }
+#bigMatch .reply .lst li .sub span {}
+#bigMatch .reply .lst li .sub span.date {color: #b0b0b0; margin-right: 15px;}
+#bigMatch .reply .lst li .sub .del {background-color: #919191; color: #fff;  display: inline-block; width: 20px; height: 20px; text-align: center; vertical-align: middle; line-height: 20px;}
+#bigMatch .progress { position: relative; height: 13px; text-align: center; padding-top: 14px;}
+#bigMatch .progress .bar { position: absolute; top: 3px; right: 0; width: 100%; height: 7px; background-color: #949494; }
+#bigMatch .progress .bar.red { background-color: #ff0000; left: 0; }
+#bigMatch .dsc_progress {margin-top:15px; color:#949494;}
+#bigMatch .dsc_progress span {width: 50%; text-align: center; display: inline-block; font-size:1.250em;}
+#bigMatch .bigMatchRecmd {padding:0 10px;}
+#bigMatch .bigMatchRecmd label {width:50%; display: inline-block; text-align: center;}
+#bigMatch .bigMatchRecmd .clearFix {margin-top:10px;}
+#bigMatch .bigMatchRecmd .MS_input_txt {width:49%;}
+#bigMatch .bigMatchRecmd input[name=hname] {float:left;}
+#bigMatch .bigMatchRecmd input[name=pwd] {float:right;}
+#bigMatch .bigmatch_width {width:100%; margin:10px 0;}
+#bigMatch h4 {background-color:#464646; color:#fff; padding:5px 10px; margin:10px 0 14px;}
+#bigMatch .select_bigmatch {padding:10px;}
+#bigMatch .select_bigmatch select {width:100%;}
+#bigMatch .bigMatchTop {background-color:#f9f9f9; padding-bottom:20px;}
+#bigMatch .bigMatchTop .bigMatchTopBox {padding:0 10px;}
+#bigMatch .dsc_bigMatch {background-color:#fff; text-align:center; padding:10px 0 20px; margin:20px 0;}
+#bigMatch .prd_bigmatch {text-align:center;}
+#bigMatch .prd_bigmatch a {width:34%; display:block; float:left; padding:0 8%;}
+#bigMatch .prd_bigmatch img {width:100%;}
+#bigMatch .vs {position: absolute; top: 50%; font-size:1.667em; left: 50%; margin-left:-8px;}
+#bigMatch .red {color:#ff0000;}

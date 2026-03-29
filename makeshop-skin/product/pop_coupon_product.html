@@ -1,0 +1,52 @@
+<div class="modal-wrap layer-coupon-product">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">
+            <!--/if_coupon_apply_type(PRODUCT)/-->상품<!--/end_if/-->
+            <!--/if_coupon_apply_type(BASKET)/-->장바구니<!--/end_if/-->
+            <!--/if_coupon_apply_type(DELIVERY)/-->배송비<!--/end_if/-->
+            쿠폰 사용 가능 <!--/if_coupon_popup_type(USEGROUP)/-->그룹<!--/else/-->상품<!--/end_if/--></span>
+            <a href="<!--/link_close/-->" class="btn-modal-close"></a>
+        </div>
+        <div class="modal-body">
+            <!--/if_coupon_product_list/-->
+                <!--/if_coupon_popup_type(USEGROUP)/-->
+                <dl class="product-list pcp-scroll">
+                   <dt>사용 가능 그룹 목록 - <!--/number/coupon_product_count/-->개</dt>
+                    <!--/loop_coupon_product_list/-->
+                    <dd><!--/notag/coupon_product_list@group_name/--></dd>
+                    <!--/end_loop/-->
+                </dl>
+                <!--/else/-->
+                <dl class="product-list">
+                    <dt>사용 가능 상품 목록 - <!--/number/coupon_product_count/-->개</dt>
+                    <!--/loop_coupon_product_list(5)/-->
+                    <dd><a href="<!--/coupon_product_list@link/-->"><!--/notag/coupon_product_list@name/--></a></dd>
+                    <!--/end_loop/-->
+                </dl>
+                <div class="cw-paging">
+                    <!--/if_pager_coupon_product_list::prev/-->
+                    <a href="<!--/pager_coupon_product_list::prev@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_left.svg" alt="이전"
+                        width="16" height="16" /></a>
+                    <!--/end_if/-->
+                    <!--/if_pager_coupon_product_list/-->
+                    <!--/loop_pager_coupon_product_list::page/-->
+                    <!--/if_pager_coupon_product_list::page@current/-->
+                    <a class="active"><!--/pager_coupon_product_list::page/--></a>
+                    <!--/else/-->
+                    <a href="<!--/pager_coupon_product_list::page@link/-->"><!--/pager_coupon_product_list::page/--></a>
+                    <!--/end_if/-->
+                    <!--/end_loop/-->
+                    <!--/end_if/-->
+                    <!--/if_pager_coupon_product_list::next/-->
+                    <a href="<!--/pager_coupon_product_list::next@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_right.svg" alt="다음"
+                        width="16" height="16" /></a>
+                <!--/end_if/-->
+                </div>
+                <!--/end_if/-->
+            <!--/else/-->
+            <div class="soldout"><!--/if_coupon_popup_type(USEGROUP)/-->조회되는 그룹이 없습니다.<!--/else/-->쿠폰 사용 가능 상품이 품절 되었습니다.<!--/end_if/--></div>
+            <!--/end_if/-->
+        </div>
+    </div>
+</div>

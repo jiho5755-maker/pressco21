@@ -1,0 +1,619 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>관리자 대시보드 | PRESSCO21 포에버러브</title>
+    <meta name="description" content="PRESSCO21 파트너클래스 관리자 전용 페이지. 파트너 신청, 강의 승인, 정산 관리.">
+    <meta name="robots" content="noindex, nofollow">
+
+    <!-- Pretendard 웹폰트 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+    <!-- Noto Serif KR 타이틀 폰트 — 메인 사이트 일관성 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
+    <!-- PRESSCO21 공통 모듈 (유틸리티, API 래퍼, 캐시) -->
+    <script src="https://img.pressco21.com/images/assets/pressco21-core.js?v=2.1"></script>
+</head>
+<body>
+
+<!-- ============================================
+     관리자 대시보드 페이지
+     CSS 스코핑: .admin-dashboard
+     페이지 ID: 8011
+     ============================================ -->
+<div class="admin-dashboard">
+
+    <!-- 1. 숨김 가상태그 span (JS에서 읽기용) -->
+    <span id="adMemberId" style="display:none"><!--/user_id/--></span>
+    <span id="adGroupName" style="display:none"><!--/group_name/--></span>
+    <span id="adGroupLevel" style="display:none"><!--/group_level/--></span>
+
+    <!-- 2. 비인가 안내 영역 (기본 표시, 관리자 인증 후 숨김) -->
+    <div id="adUnauthorized" class="ad-notice">
+        <div class="ad-notice__inner">
+            <div class="ad-notice__icon">
+                <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                    <circle cx="32" cy="32" r="22" stroke="#b0b0b0" stroke-width="2" fill="none"/>
+                    <path d="M32 20v16M32 42v2" stroke="#b0b0b0" stroke-width="3" stroke-linecap="round"/>
+                </svg>
+            </div>
+            <h2 class="ad-notice__title">접근 권한이 없습니다</h2>
+            <p class="ad-notice__desc">이 페이지는 관리자 전용입니다.</p>
+            <a href="/" class="ad-notice__btn">홈으로 돌아가기</a>
+        </div>
+    </div>
+
+    <!-- 3. 메인 컨텐츠 (관리자 인증 후 표시) -->
+    <div id="adMain" style="display:none">
+
+        <!-- 헤더 -->
+        <header class="ad-header">
+            <h1 class="ad-header__title">관리자 대시보드</h1>
+            <p class="ad-header__desc">파트너 신청, 강의 승인, 정산을 관리합니다.</p>
+        </header>
+
+        <!-- 요약 카드 -->
+        <div class="ad-summary">
+            <div class="ad-summary__card" id="summaryApplications">
+                <div class="ad-summary__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M6 20c0-3.314 2.686-6 6-6s6 2.686 6 6"/></svg>
+                </div>
+                <div class="ad-summary__info">
+                    <span class="ad-summary__label">파트너 신청 대기</span>
+                    <span class="ad-summary__count" id="countApplications">-</span>
+                </div>
+            </div>
+            <div class="ad-summary__card" id="summaryClasses">
+                <div class="ad-summary__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="16" rx="2"/><path d="M3 10h18"/></svg>
+                </div>
+                <div class="ad-summary__info">
+                    <span class="ad-summary__label">강의 승인 대기</span>
+                    <span class="ad-summary__count" id="countClasses">-</span>
+                </div>
+            </div>
+            <div class="ad-summary__card" id="summarySettlements">
+                <div class="ad-summary__icon">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                </div>
+                <div class="ad-summary__info">
+                    <span class="ad-summary__label">정산 대기</span>
+                    <span class="ad-summary__count" id="countSettlements">-</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 탭 네비게이션 -->
+        <nav class="ad-tabs" role="tablist">
+            <button class="ad-tabs__btn ad-tabs__btn--active" role="tab" aria-selected="true" data-tab="applications">
+                파트너 신청
+                <span class="ad-tabs__badge" id="badgeApplications"></span>
+            </button>
+            <button class="ad-tabs__btn" role="tab" aria-selected="false" data-tab="classes">
+                강의 승인
+                <span class="ad-tabs__badge" id="badgeClasses"></span>
+            </button>
+            <button class="ad-tabs__btn" role="tab" aria-selected="false" data-tab="settlements">
+                정산 현황
+                <span class="ad-tabs__badge" id="badgeSettlements"></span>
+            </button>
+            <button class="ad-tabs__btn" role="tab" aria-selected="false" data-tab="affiliations">
+                협회 관리
+                <span class="ad-tabs__badge" id="badgeAffiliations"></span>
+            </button>
+            <button class="ad-tabs__btn" role="tab" aria-selected="false" data-tab="auditlog" id="tabBtnAuditlog" aria-controls="panelAuditlog">
+                활동 로그
+                <span class="ad-tabs__badge" id="badgeAuditlog"></span>
+            </button>
+        </nav>
+
+        <!-- 탭 패널 1: 파트너 신청 -->
+        <div class="ad-panel" id="panelApplications" role="tabpanel">
+            <div class="ad-panel__header">
+                <h2 class="ad-panel__title">파트너 신청 목록</h2>
+                <div class="ad-panel__actions">
+                    <select id="filterAppStatus" class="ad-select">
+                        <option value="PENDING">대기중</option>
+                        <option value="APPROVED">승인됨</option>
+                        <option value="REJECTED">거부됨</option>
+                    </select>
+                    <button class="ad-btn ad-btn--approve ad-btn--sm" id="btnBatchApproveApp" style="display:none">일괄 승인</button>
+                    <button class="ad-btn ad-btn--reject ad-btn--sm" id="btnBatchRejectApp" style="display:none">일괄 거부</button>
+                </div>
+            </div>
+            <div class="ad-table-wrap" id="tableWrapApplications">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="appCheckAll" class="ad-checkbox"></th>
+                            <th>신청일</th>
+                            <th>이름</th>
+                            <th>공방명</th>
+                            <th>전문분야</th>
+                            <th>지역</th>
+                            <th>액션</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyApplications">
+                        <!-- JS 동적 렌더링 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="ad-empty" id="emptyApplications" style="display:none">
+                <p>대기 중인 신청이 없습니다.</p>
+            </div>
+            <div class="ad-loading" id="loadingApplications" style="display:none">
+                <div class="ad-spinner"></div>
+                <p>불러오는 중...</p>
+            </div>
+        </div>
+
+        <!-- 탭 패널 2: 강의 승인 -->
+        <div class="ad-panel" id="panelClasses" role="tabpanel" style="display:none">
+            <div class="ad-panel__header">
+                <h2 class="ad-panel__title">강의 승인 목록</h2>
+                <div class="ad-panel__actions">
+                    <select id="filterClassStatus" class="ad-select">
+                        <option value="INACTIVE">대기중</option>
+                        <option value="active">승인됨</option>
+                        <option value="closed">거부됨</option>
+                    </select>
+                    <button class="ad-btn ad-btn--approve ad-btn--sm" id="btnBatchApproveClass" style="display:none">일괄 승인</button>
+                    <button class="ad-btn ad-btn--reject ad-btn--sm" id="btnBatchRejectClass" style="display:none">일괄 거부</button>
+                </div>
+            </div>
+            <div class="ad-table-wrap" id="tableWrapClasses">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="classCheckAll" class="ad-checkbox"></th>
+                            <th>등록일</th>
+                            <th>강의명</th>
+                            <th>파트너</th>
+                            <th>카테고리</th>
+                            <th>수업형태</th>
+                            <th>수강료</th>
+                            <th>액션</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyClasses">
+                        <!-- JS 동적 렌더링 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="ad-empty" id="emptyClasses" style="display:none">
+                <p>대기 중인 강의가 없습니다.</p>
+            </div>
+            <div class="ad-loading" id="loadingClasses" style="display:none">
+                <div class="ad-spinner"></div>
+                <p>불러오는 중...</p>
+            </div>
+        </div>
+
+        <!-- 탭 패널 3: 정산 현황 -->
+        <div class="ad-panel" id="panelSettlements" role="tabpanel" style="display:none">
+            <div class="ad-panel__header">
+                <h2 class="ad-panel__title">정산 현황</h2>
+                <div class="ad-panel__actions">
+                    <select id="filterSettlementStatus" class="ad-select">
+                        <option value="PENDING_SETTLEMENT">정산 대기</option>
+                        <option value="COMPLETED">정산 완료</option>
+                    </select>
+                    <input type="month" id="settlementMonth" value="2026-03" style="height:40px;padding:0 12px;border:1px solid #d9d2c3;border-radius:6px;background:#fff;color:#333;font:inherit">
+                    <select id="settlementCycle" class="ad-select">
+                        <option value="FIRST_HALF">전반 (1일~15일)</option>
+                        <option value="SECOND_HALF">후반 (16일~말일)</option>
+                    </select>
+                    <button class="ad-btn ad-btn--secondary" id="btnRunSettlement">
+                        정산 실행
+                    </button>
+                    <button class="ad-btn ad-btn--primary" id="btnBatchSettle" style="display:none">
+                        선택 일괄 정산
+                    </button>
+                </div>
+            </div>
+            <!-- 정산 요약 -->
+            <div class="ad-settle-summary" id="settleSummary" style="display:none">
+                <div class="ad-settle-summary__item">
+                    <span class="ad-settle-summary__label">총 주문 금액</span>
+                    <span class="ad-settle-summary__value" id="settleOrderTotal">0원</span>
+                </div>
+                <div class="ad-settle-summary__item">
+                    <span class="ad-settle-summary__label">수수료 합계</span>
+                    <span class="ad-settle-summary__value" id="settleCommission">0원</span>
+                </div>
+                <div class="ad-settle-summary__item">
+                    <span class="ad-settle-summary__label">파트너 지급액</span>
+                    <span class="ad-settle-summary__value ad-settle-summary__value--highlight" id="settlePartnerTotal">0원</span>
+                </div>
+            </div>
+            <div class="ad-table-wrap" id="tableWrapSettlements">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th><input type="checkbox" id="settleCheckAll" class="ad-checkbox"></th>
+                            <th>주문일</th>
+                            <th>파트너</th>
+                            <th>강의명</th>
+                            <th>주문 금액</th>
+                            <th>수수료율</th>
+                            <th>파트너 지급액</th>
+                            <th>상태</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodySettlements">
+                        <!-- JS 동적 렌더링 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="ad-empty" id="emptySettlements" style="display:none">
+                <p>정산 내역이 없습니다.</p>
+            </div>
+            <div class="ad-loading" id="loadingSettlements" style="display:none">
+                <div class="ad-spinner"></div>
+                <p>불러오는 중...</p>
+            </div>
+
+            <div class="ad-panel__header" style="margin-top: 32px">
+                <div>
+                    <h2 class="ad-panel__title">정산서 발송 이력</h2>
+                    <p id="settlementHistoryMeta" style="margin:8px 0 0;color:#7a7367;font-size:13px;line-height:1.6">선택한 월 기준으로 파트너 정산서 발송 결과를 확인합니다.</p>
+                </div>
+            </div>
+            <div class="ad-table-wrap" id="tableWrapSettlementHistory">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>정산 구간</th>
+                            <th>파트너</th>
+                            <th>등급</th>
+                            <th>수업 수</th>
+                            <th>총 주문 금액</th>
+                            <th>총 적립금</th>
+                            <th>최근 발송</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodySettlementHistory">
+                        <!-- JS 동적 렌더링 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="ad-empty" id="emptySettlementHistory" style="display:none">
+                <p>선택한 월의 정산서 이력이 없습니다.</p>
+            </div>
+            <div class="ad-loading" id="loadingSettlementHistory" style="display:none">
+                <div class="ad-spinner"></div>
+                <p>정산서 이력을 불러오는 중...</p>
+            </div>
+        </div>
+
+        <!-- 탭 패널 4: 협회 관리 -->
+        <div class="ad-panel" id="panelAffiliations" role="tabpanel" style="display:none">
+            <div class="ad-panel__header">
+                <h2 class="ad-panel__title">제휴 협회 목록</h2>
+            </div>
+            <!-- 협회 요약 -->
+            <div class="ad-affil-summary" id="affilSummaryAdmin">
+                <div class="ad-affil-summary__item">
+                    <span class="ad-affil-summary__label">총 제휴 협회</span>
+                    <span class="ad-affil-summary__value" id="affilTotalCount">-</span>
+                </div>
+            </div>
+
+            <div class="ad-proposal-builder">
+                <div class="ad-panel__header">
+                    <div>
+                        <h2 class="ad-panel__title">협회 제안서 URL 생성</h2>
+                        <p class="ad-proposal-builder__desc">협회명을 선택하고 예상 수치만 조정하면 제안서 미리보기 URL을 바로 만들 수 있습니다.</p>
+                    </div>
+                </div>
+                <div class="ad-proposal-builder__grid">
+                    <div class="ad-proposal-builder__form">
+                        <div class="ad-proposal-builder__field">
+                            <label class="ad-proposal-builder__label" for="proposalAffiliationSelect">협회 선택</label>
+                            <select id="proposalAffiliationSelect" class="ad-select">
+                                <option value="">협회를 선택하세요</option>
+                            </select>
+                        </div>
+                        <div class="ad-proposal-builder__field ad-proposal-builder__field--half">
+                            <div>
+                                <label class="ad-proposal-builder__label" for="proposalAffiliationName">협회명</label>
+                                <input type="text" id="proposalAffiliationName" class="ad-input" placeholder="협회명">
+                            </div>
+                            <div>
+                                <label class="ad-proposal-builder__label" for="proposalPageId">실배포 페이지 ID</label>
+                                <input type="text" id="proposalPageId" class="ad-input" placeholder="예: 2611">
+                            </div>
+                        </div>
+                        <div class="ad-proposal-builder__field">
+                            <label class="ad-proposal-builder__label" for="proposalLogoUrl">로고 URL</label>
+                            <input type="url" id="proposalLogoUrl" class="ad-input" placeholder="https://...">
+                        </div>
+                        <div class="ad-proposal-builder__field ad-proposal-builder__field--triple">
+                            <div>
+                                <label class="ad-proposal-builder__label" for="proposalMemberCount">협회원 수</label>
+                                <input type="number" id="proposalMemberCount" class="ad-input" min="1" step="1" value="120">
+                            </div>
+                            <div>
+                                <label class="ad-proposal-builder__label" for="proposalMonthlyStudents">월 예상 수강 인원</label>
+                                <input type="number" id="proposalMonthlyStudents" class="ad-input" min="1" step="1" value="24">
+                            </div>
+                            <div>
+                                <label class="ad-proposal-builder__label" for="proposalAvgOrderAmount">평균 재료 구매액</label>
+                                <input type="number" id="proposalAvgOrderAmount" class="ad-input" min="1000" step="1000" value="45000">
+                            </div>
+                        </div>
+                        <p class="ad-proposal-builder__hint" id="proposalBenefitSummary">협회 선택 시 할인율과 인센티브 구간이 자동 반영됩니다.</p>
+                    </div>
+                    <div class="ad-proposal-builder__result">
+                        <div class="ad-proposal-builder__result-head">
+                            <p class="ad-proposal-builder__result-label" id="proposalUrlModeLabel">로컬 미리보기 URL</p>
+                            <p class="ad-proposal-builder__result-meta" id="proposalTierSummary">1단계 250,000원 / 2단계 500,000원 / 3단계 1,200,000원</p>
+                        </div>
+                        <textarea id="proposalGeneratedUrl" class="ad-proposal-builder__textarea" readonly>협회를 선택하면 URL이 생성됩니다.</textarea>
+                        <div class="ad-proposal-builder__actions">
+                            <button type="button" class="ad-btn ad-btn--primary" id="btnPreviewProposal">제안서 미리보기</button>
+                            <button type="button" class="ad-btn ad-btn--secondary" id="btnCopyProposalUrl">URL 복사</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="ad-table-wrap" id="tableWrapAffiliations">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>협회 코드</th>
+                            <th>협회명</th>
+                            <th>담당자</th>
+                            <th>할인율</th>
+                            <th>1단계</th>
+                            <th>2단계</th>
+                            <th>3단계</th>
+                            <th>상태</th>
+                            <th>제안서</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyAffiliations">
+                        <!-- JS 동적 렌더링 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="ad-empty" id="emptyAffiliations" style="display:none">
+                <p>등록된 협회가 없습니다.</p>
+            </div>
+            <div class="ad-loading" id="loadingAffiliations" style="display:none">
+                <div class="ad-spinner"></div>
+                <p>불러오는 중...</p>
+            </div>
+
+            <!-- 월간 집계 현황 -->
+            <div class="ad-panel__header" style="margin-top: 32px">
+                <h2 class="ad-panel__title">월간 집계 현황</h2>
+            </div>
+            <div class="ad-table-wrap" id="tableWrapAffilStats">
+                <table class="ad-table">
+                    <thead>
+                        <tr>
+                            <th>연/월</th>
+                            <th>협회</th>
+                            <th>월간 구매액</th>
+                            <th>구매 회원수</th>
+                            <th>누적액</th>
+                            <th>인센티브 레벨</th>
+                            <th>인센티브 금액</th>
+                            <th>지급 여부</th>
+                        </tr>
+                    </thead>
+                    <tbody id="tbodyAffilStats">
+                        <!-- JS 동적 렌더링 -->
+                    </tbody>
+                </table>
+            </div>
+            <div class="ad-empty" id="emptyAffilStats" style="display:none">
+                <p>집계 내역이 없습니다.</p>
+            </div>
+
+            <div class="ad-event-calendar">
+                <div class="ad-panel__header" style="margin-top: 32px">
+                    <div>
+                        <h2 class="ad-panel__title">연간 이벤트 캘린더</h2>
+                        <p class="ad-proposal-builder__desc">협회/세미나 레이어에서 노출할 12개월 이벤트를 동기화하고 D-14 알림 대상을 미리 점검합니다.</p>
+                    </div>
+                    <div class="ad-panel__actions">
+                        <select id="eventCalendarYear" class="ad-select">
+                            <option value="2026">2026년</option>
+                            <option value="2027">2027년</option>
+                        </select>
+                        <select id="eventCalendarAffiliation" class="ad-select">
+                            <option value="">전체 협회</option>
+                        </select>
+                        <input type="date" id="eventAlertPreviewDate" value="2026-03-11" class="ad-input" style="width:180px">
+                        <button type="button" class="ad-btn ad-btn--secondary" id="btnSyncEventCalendar">연간 캘린더 동기화</button>
+                        <button type="button" class="ad-btn ad-btn--primary" id="btnPreviewEventAlerts">D-14 알림 점검</button>
+                    </div>
+                </div>
+
+                <div class="ad-affil-summary ad-affil-summary--events">
+                    <div class="ad-affil-summary__item">
+                        <span class="ad-affil-summary__label">연간 등록 일정</span>
+                        <span class="ad-affil-summary__value" id="eventCalendarTotalCount">-</span>
+                    </div>
+                    <div class="ad-affil-summary__item">
+                        <span class="ad-affil-summary__label">다가오는 일정</span>
+                        <span class="ad-affil-summary__value" id="eventCalendarUpcomingCount">-</span>
+                    </div>
+                    <div class="ad-affil-summary__item">
+                        <span class="ad-affil-summary__label">D-14 예정 일정</span>
+                        <span class="ad-affil-summary__value" id="eventCalendarDueCount">-</span>
+                    </div>
+                </div>
+
+                <div class="ad-event-calendar__result" id="eventAlertResult">
+                    연간 이벤트 캘린더를 불러오면 점검 결과가 여기에 표시됩니다.
+                </div>
+
+                <div class="ad-table-wrap" id="tableWrapEventCalendar">
+                    <table class="ad-table">
+                        <thead>
+                            <tr>
+                                <th>월</th>
+                                <th>협회</th>
+                                <th>이벤트명</th>
+                                <th>일정</th>
+                                <th>장소</th>
+                                <th>D-day</th>
+                                <th>상태</th>
+                            </tr>
+                        </thead>
+                        <tbody id="tbodyEventCalendar">
+                            <!-- JS 동적 렌더링 -->
+                        </tbody>
+                    </table>
+                </div>
+                <div class="ad-empty" id="emptyEventCalendar" style="display:none">
+                    <p>연간 이벤트 데이터가 없습니다.</p>
+                </div>
+                <div class="ad-loading" id="loadingEventCalendar" style="display:none">
+                    <div class="ad-spinner"></div>
+                    <p>연간 이벤트 캘린더를 불러오는 중...</p>
+                </div>
+            </div>
+
+            <!-- 7단계 영업 시나리오 가이드 -->
+            <div class="ad-sales-guide">
+                <div class="ad-panel__header" style="margin-top: 32px">
+                    <div>
+                        <h2 class="ad-panel__title">B2B 영업 시나리오 가이드</h2>
+                        <p class="ad-proposal-builder__desc">협회 제휴 유치를 위한 7단계 영업 프로세스입니다. 각 단계별 액션을 순서대로 진행하세요.</p>
+                    </div>
+                </div>
+                <div class="ad-sales-guide__steps" id="salesGuideSteps">
+                    <div class="ad-sales-guide__step">
+                        <div class="ad-sales-guide__step-num">1</div>
+                        <div class="ad-sales-guide__step-body">
+                            <h4 class="ad-sales-guide__step-title">타겟 협회 리서치</h4>
+                            <p class="ad-sales-guide__step-desc">꽃 공예 관련 협회(플라워아트, 보존화, 압화 등) 리스트 수집. 협회 규모(회원 수), 활동 빈도(세미나/전시), 지역 거점을 파악합니다.</p>
+                        </div>
+                    </div>
+                    <div class="ad-sales-guide__step">
+                        <div class="ad-sales-guide__step-num">2</div>
+                        <div class="ad-sales-guide__step-body">
+                            <h4 class="ad-sales-guide__step-title">1차 접촉 (콜드 아웃리치)</h4>
+                            <p class="ad-sales-guide__step-desc">협회 사무국 또는 회장님께 전화/이메일로 제휴 의향 타진. "재료 할인 + 인센티브 프로그램"을 핵심 혜택으로 간략 소개합니다.</p>
+                        </div>
+                    </div>
+                    <div class="ad-sales-guide__step">
+                        <div class="ad-sales-guide__step-num">3</div>
+                        <div class="ad-sales-guide__step-body">
+                            <h4 class="ad-sales-guide__step-title">맞춤 제안서 발송</h4>
+                            <p class="ad-sales-guide__step-desc">위의 "제안서 URL 생성" 도구로 협회별 맞춤 제안서를 생성하여 발송합니다. 협회 로고, 예상 인원, 시뮬레이션 수치를 반영하세요.</p>
+                        </div>
+                    </div>
+                    <div class="ad-sales-guide__step">
+                        <div class="ad-sales-guide__step-num">4</div>
+                        <div class="ad-sales-guide__step-body">
+                            <h4 class="ad-sales-guide__step-title">대면 미팅 / 시연</h4>
+                            <p class="ad-sales-guide__step-desc">관심을 보이는 협회에 대면 미팅을 제안합니다. 파트너클래스 플랫폼 시연, 재료 키트 샘플 제공, 세부 조건 협의를 진행합니다.</p>
+                        </div>
+                    </div>
+                    <div class="ad-sales-guide__step">
+                        <div class="ad-sales-guide__step-num">5</div>
+                        <div class="ad-sales-guide__step-body">
+                            <h4 class="ad-sales-guide__step-title">계약 체결</h4>
+                            <p class="ad-sales-guide__step-desc">할인율, 인센티브 단계, 이벤트 지원 범위 등 세부 조건을 확정하고 제휴 계약을 체결합니다. NocoDB 협회 테이블에 등록합니다.</p>
+                        </div>
+                    </div>
+                    <div class="ad-sales-guide__step">
+                        <div class="ad-sales-guide__step-num">6</div>
+                        <div class="ad-sales-guide__step-body">
+                            <h4 class="ad-sales-guide__step-title">온보딩 실행</h4>
+                            <p class="ad-sales-guide__step-desc">협회원 인증 시스템 연동, 전용 할인 코드 발급, 첫 이벤트 기획. 협회 소식지/단톡방을 통해 파트너클래스를 홍보합니다.</p>
+                        </div>
+                    </div>
+                    <div class="ad-sales-guide__step">
+                        <div class="ad-sales-guide__step-num">7</div>
+                        <div class="ad-sales-guide__step-body">
+                            <h4 class="ad-sales-guide__step-title">관계 유지 및 성장</h4>
+                            <p class="ad-sales-guide__step-desc">월별 실적 리포트 공유, 인센티브 정산, 분기별 미팅으로 파트너십을 유지합니다. 이벤트 캘린더를 공동 운영하며 지속적으로 확대합니다.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 탭 패널 5: 활동 로그 -->
+        <div class="ad-panel" id="panelAuditlog" role="tabpanel" style="display:none">
+            <div class="ad-panel__header">
+                <h2 class="ad-panel__title">활동 로그</h2>
+            </div>
+            <div class="ad-filter-bar" id="auditFilterBar">
+                <select id="auditFilterAction" class="ad-select">
+                    <option value="">전체 액션</option>
+                    <option value="APPROVE">승인</option>
+                    <option value="REJECT">거부</option>
+                    <option value="CREATE">생성</option>
+                    <option value="UPDATE">수정</option>
+                    <option value="SETTLE">정산</option>
+                </select>
+                <select id="auditFilterTarget" class="ad-select">
+                    <option value="">전체 대상</option>
+                    <option value="PARTNER">파트너</option>
+                    <option value="CLASS">강의</option>
+                    <option value="BOOKING">예약</option>
+                    <option value="SETTLEMENT">정산</option>
+                </select>
+                <input type="date" id="auditDateFrom" class="ad-input ad-input--date">
+                <span class="ad-filter-sep">~</span>
+                <input type="date" id="auditDateTo" class="ad-input ad-input--date">
+                <button type="button" class="ad-btn ad-btn--sm ad-btn--secondary" id="btnAuditSearch">조회</button>
+            </div>
+            <div id="auditTableWrap" class="ad-table-wrap"></div>
+            <div id="loadingAuditlog" class="ad-loading" style="display:none">
+                <div class="ad-spinner"></div>
+                <p>불러오는 중...</p>
+            </div>
+            <div id="emptyAuditlog" class="ad-empty" style="display:none">
+                <p class="ad-empty__text">활동 기록이 없습니다.</p>
+            </div>
+        </div>
+
+        <!-- 슬라이드 패널 (상세 보기) -->
+        <div class="ad-slide-panel" id="adSlidePanel">
+            <div class="ad-slide-panel__backdrop" id="slidePanelBackdrop"></div>
+            <div class="ad-slide-panel__body">
+                <div class="ad-slide-panel__header">
+                    <h3 id="slidePanelTitle">상세 정보</h3>
+                    <button id="slidePanelClose" class="ad-slide-panel__close" aria-label="닫기">&times;</button>
+                </div>
+                <div class="ad-slide-panel__content" id="slidePanelContent"></div>
+                <div class="ad-slide-panel__footer" id="slidePanelFooter"></div>
+            </div>
+        </div>
+
+    </div><!-- /#adMain -->
+
+    <!-- 4. 확인 모달 (공용) -->
+    <div class="ad-modal" id="adModal" style="display:none">
+        <div class="ad-modal__backdrop" id="modalBackdrop"></div>
+        <div class="ad-modal__content">
+            <h3 class="ad-modal__title" id="modalTitle"></h3>
+            <div class="ad-modal__body" id="modalBody"></div>
+            <textarea class="ad-modal__note" id="modalNote" placeholder="메모 (선택사항)" rows="3"></textarea>
+            <div class="ad-modal__actions">
+                <button class="ad-btn ad-btn--secondary" id="modalCancel">취소</button>
+                <button class="ad-btn ad-btn--primary" id="modalConfirm">확인</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 5. 토스트 알림 -->
+    <div class="ad-toast-container" id="adToastContainer"></div>
+
+</div><!-- /.admin-dashboard -->
+
+<link rel="stylesheet" href="/shop/page_css.html?id=8011">
+<script src="/shop/page_js.html?id=8011"></script>
+
+</body>
+</html>

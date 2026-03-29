@@ -1,0 +1,35 @@
+/* 예치금 내역 */
+.info-summary { display: flex; gap: 24px; align-items: center; margin-top: 40px; padding: 24px 0; border-top: 1px solid var(--cw-heading-color); border-bottom: 1px solid var(--cw-color-30); }
+.info-summary .info-item { display: flex; justify-content: space-between; align-items: baseline; flex: 1 1 50%; }
+.info-summary .info-item.border-line { padding-left: 24px; border-left: 1px solid var(--cw-color-30); }
+.info-summary .info-item:first-child span { color: var(--cw-heading-color); font-size: 1rem; }
+.info-summary .info-item span { color: var(--cw-color-80); font-size: .813rem; }
+.info-summary .info-item .fc-point { color: var(--cw-point-color); font-size: 1.125rem; }
+.cw-board-list { margin-top: 60px; }
+.cw-board-list .post { display: grid;  grid-template-columns: 12% auto 25%; justify-content: normal; align-items: center; }
+.cw-board-list .post span { font-size: .875rem; }
+.cw-board-list .text-start { display: flex; align-items: center; }
+.cw-board-list .text-end { display: flex; justify-content: flex-end; gap: 10px; text-align: right; }
+.cw-board-list .date { width:120px; text-align: left; }
+.cw-board-list .period { padding: 0 5%; color: var(--cw-color-60); text-align: left; }
+.cw-board-list .subject { text-align: left; margin-right: 20px; font-weight: 600; }
+.cw-board-list .status { width: 100%; text-align: left; }
+.cw-board-list .value { text-align: right; font-weight: 600; white-space: nowrap; }
+.cw-board-list .value i { font-weight: normal; }
+.cw-board-list em,
+.cw-board-list i { font-style: normal; }
+
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .info-summary { flex-wrap: wrap; gap: 10px; padding: 20px 0; }
+	.info-summary .info-item.border-line { border-left: 0; padding-left: 0; }
+    .cw-board-list .post { grid-template-columns: auto auto; grid-template-rows: auto auto; }
+	.cw-board-list .post span { font-size: .8125rem; }
+	.cw-board-list .text-start { grid-column: 1; grid-row: 1; display: flex; flex-wrap: wrap; }
+	.cw-board-list .text-start .date { width: auto; }
+	.cw-board-list .text-start span:not(:first-child)::before { border-left: 1px solid var(--cw-color-30); padding-left: 8px; margin-left: 8px; content: ''; }
+	.cw-board-list .subject { grid-column: 1; grid-row: 2; display: flex; flex-direction: column; }
+	.cw-board-list .text-end { grid-column: 2; grid-row: 1 / span 2; display: flex; flex-direction: column; justify-content: center; align-items: flex-end; margin-top: 0; }
+	.cw-board-list .text-end .status { width: auto; text-align: right; }
+}

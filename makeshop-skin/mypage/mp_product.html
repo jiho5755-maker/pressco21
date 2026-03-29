@@ -1,0 +1,126 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main id="myWish" class="container mypage-wrapper">
+    <div class="row">
+        <!-- Sidebar -->
+        <!--/include_header(2)/-->
+
+        <!-- Content -->
+        <div class="col-lg-10 col-md-12 col-sm-12 content">
+            <div class="content-body">
+                <div class="page-title-wrap txt-l">
+                    <h2>관심 상품</h2>
+                </div>
+                <div class="tab-wrapper--contents">
+                    <ul class="tab-navi--links">
+                        <li class="active">
+                            <a href="<!--/link_wish_product/-->">
+                                <span>관심 상품<em>(<span><!--/wish_count/--></span>)</em></span>
+                            </a>
+                        </li>
+                        <!--/if_wish_category_use/-->
+                        <li class="">
+                            <a href="<!--/link_wish_category/-->">
+                                <span>관심 분류<em>(<span><!--/wish_category_count/--></span>)</em></span>
+                            </a>
+                        </li>
+                        <!--/else/-->
+                        <li class="disabled"><a href="javascript:void(0);"></a></li>
+                        <!--/end_if/-->
+                    </ul>
+                    <!-- 탭1. 관심상품 -->
+                    <div class="products-wrapper">
+                        <div class="category-section">
+                            <!--/if_product/-->
+                            <div class="prds-list gallery">
+                                <!--/loop_product/-->
+                                <div class="prds-list--item">
+                                    <div class="prds--image">
+                                        <a href="<!--/product@link_detail/-->">
+                                            <span class="goods-imgs">
+                                            <!--/if_is_mobile/-->
+                                                <!--/if_product@mobile_image/-->
+                                                <img src="<!--/product@mobile_image/-->" alt="상품 이미지">
+                                                <!--/end_if/-->
+                                            <!--/else/-->
+                                                <!--/if_product@image_m/-->
+                                                <img src="<!--/product@image_m/-->" alt="상품 이미지">
+                                                <!--/end_if/-->
+                                            <!--/end_if/-->
+                                            </span>
+                                        </a>
+                                        <a href="<!--/product@link_delete/-->" class="ico-wish">
+                                            <span class="my-wish-list wish-on"></span>
+                                            <span class="my-wish-count"><!--/product@wish_count/--></span>
+                                        </a>
+                                    </div>
+                                    <div class="prds--name">
+                                        <a href="<!--/product@link_detail/-->"><!--/notag/product@name/--></a>
+                                    </div>
+                                    <!--/if_product@engname/-->
+                                    <div class="prds--engname"><!--/product@engname/--></div>
+                                    <!--/end_if/-->
+                                    <!--/if_product@subname/-->
+                                    <div class="prds--subname"><!--/product@subname/--></div>
+                                    <!--/end_if/-->
+                                    <div class="option"><!--/product@option_desc/--></div>
+                                    <div class="prds--price-wrap">
+                                        <div class="prices">
+                                            <!--/if_product@price_discount/-->
+                                            <div class="price">
+                                                    <strong><!--/number/product@price_discount/-->원</strong>
+                                                <!--/if_product@price(+1)/-->
+                                                <span class="original"><del><!--/number/product@price/-->원</del></span>
+                                                <!--/end_if/-->
+                                            </div>
+                                            <!--/else/-->
+                                            <div class="price">
+                                                <strong><!--/number/product@price/-->원</strong>
+                                                <!--/if_product@price_consumer(+1)/-->
+                                                <span class="original"><del><!--/number/product@price_consumer/-->원</del></span>
+                                                <!--/end_if/-->
+                                            </div>
+                                            <!--/end_if/-->
+                                        </div>
+                                    </div>
+                                    <div class="prds--icons">
+                                        <!--/if_product@icons/--><!--/product@icons/--><!--/end_if/-->
+                                    </div>
+                                    <div class="product-goods-end">
+                                        <a href="<!--/product@link_basket/-->" class="btn btn-gray">장바구니 담기</a>
+                                    </div>
+                                </div>
+                                <!--/end_loop/-->
+                            </div>
+                            <!--/else/-->
+                            <div class="empty">관심 상품 내역이 없습니다.</div>
+                            <!--/end_if/-->
+                        </div>
+                        <div class="cw-paging">
+                            <!--/if_pager_product::prev/-->
+                            <a href="<!--/pager_product::prev@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_left.svg" alt="이전" width="16" height="16" /></a>
+                            <!--/end_if/-->
+                            <!--/if_pager_product/-->
+                            <!--/loop_pager_product::page(5)/-->
+                            <!--/if_pager_product::page@current/-->
+                            <a href="javascript:return false;" class="active"><!--/pager_product::page/--></a>
+                            <!--/else/-->
+                            <a href="<!--/pager_product::page@link/-->"><!--/pager_product::page/--></a>
+                            <!--/end_if/-->
+                            <!--/end_loop/-->
+                            <!--/end_if/-->
+                            <!--/if_pager_product::next/-->
+                            <a href="<!--/pager_product::next@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_right.svg" alt="다음" width="16" height="16" /></a>
+                            <!--/end_if/-->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- .content -->
+    </div>
+</main>
+<!-- //container -->
+
+<!--/include_footer(1)/-->

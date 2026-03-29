@@ -1,0 +1,64 @@
+# mp_reserve 가상태그
+
+
+## 적립금
+<!--/reserve@content/-->
+<!--/reserve@date/-->
+<!--/reserve@price/-->
+
+## 적립금 검색
+<!--/form_reserve/-->
+<!--/input_search_date_end/-->
+<!--/input_search_date_start/-->
+<!--/link_search_button/-->
+
+## 적립금 지급 내역 페이징
+<!--/if_pager_reserve::page@current/-->
+<!--/loop_pager_reserve::page/-->
+<!--/pager_reserve::count/-->
+<!--/pager_reserve::current/-->
+<!--/pager_reserve::current@link/-->
+<!--/pager_reserve::first/-->
+<!--/pager_reserve::first@link/-->
+<!--/pager_reserve::last/-->
+<!--/pager_reserve::next/-->
+<!--/pager_reserve::next@link/-->
+<!--/pager_reserve::page/-->
+<!--/pager_reserve::page@link/-->
+<!--/pager_reserve::page_count/-->
+<!--/pager_reserve::prev/-->
+<!--/pager_reserve::prev@link/-->
+
+## 적립금 지급 내역
+<!--/loop_reserve/-->
+
+## 회원 정보
+<!--/attendance_reserve/-->
+<!--/img_user/-->
+<!--/usable_reserve/-->
+<!--/user_basket_quantity/-->
+<!--/user_email/-->
+<!--/user_name/-->
+<!--/user_nickname/-->
+<!--/user_reserve/-->
+
+## 회원 그룹
+<!--/group_icon/-->
+<!--/group_image/-->
+
+## 인클루드 태그
+<!--/include_header/-->
+
+## 회원 로그인
+<!--/if_login/-->
+
+## 상점 정보
+<!--/shop_id/-->
+<!--/shop_name/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/group_level/-->
+<!--/group_name/-->
+<!--/idx/-->
+<!--/if_company_user/-->

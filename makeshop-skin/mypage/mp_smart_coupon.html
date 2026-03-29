@@ -1,0 +1,384 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container mypage-wrapper myCoupon">
+    <div class="row">
+        <!-- Sidebar -->
+        <!--/include_header(2)/-->
+        <!-- // Sidebar -->
+
+        <!-- Content -->
+        <div class="content col-lg-10 col-md-12 col-sm-12">
+            <div class="content-body">
+                <div class="page-title-wrap txt-l">
+                    <h2>쿠폰내역</h2>
+                    <h3>쿠폰 인증번호 등록하기</h3>
+                </div>
+                <!--/form_coupon/-->
+                <div class="coupon-num">
+                    <div class="flex justify-center items-center">
+                        <!--/input_coupon_number(cw-textfield)/-->
+                        <a href="<!--/link_coupon_insert/-->" class="btn btn-primary"><span>등록</span></a>
+                    </div>
+                    <p>· 오프라인, 이메일, 모바일을 통해 발급 받으신 쿠폰인증번호를 입력해주시면 발급 가능합니다.</p>
+                </div>
+                <!--/end_form/-->
+                <div class="tab-wrapper--contents">
+                    <ul class="tab-navi--links">
+                        <li class="active">
+                            <a href="<!--/link_view_coupon_list/-->">
+                                <span>보유 쿠폰<em>(<!--/block_coupon_count/--><!--/number/coupon_count/--><!--/end_block/-->)</em></span>
+                            </a>
+                        </li>
+                        <li>
+                            <a href="<!--/link_view_down_coupon_list/-->">
+                                <span>다운로드 가능<em>(<!--/block_down_coupon_count/--><!--/number/down_coupon_count/--><!--/end_block/-->)</em></span>
+                            </a>
+                        </li>
+                    </ul>
+                    <div class="mycouponWrap">
+                        <!-- 보유 쿠폰 -->
+                        <!--/block_coupon_list/-->
+                        <!--/if_coupon_list/-->
+                        <div class="select-sort flex justify-end">
+                            <!--/select_coupon_sort/-->
+                        </div>
+                        <div class="coupon-lists">
+                            <!--/loop_coupon_list/-->
+                            <!--/if_coupon_list@image/-->
+                            <div class="coupon c-images">
+                                <span class="c-image"><img src="<!--/coupon_list@image/-->" /></span>
+                            </div>
+                            <!--/else/-->
+                            <div class="coupon sc-style<!--/coupon_list@style_num/--> <!--/if_coupon_list@coupon_type(RESERVE)/-->sc-reserve<!--/end_if/-->">
+                                <div class="coupon--info">
+                                    <p class="coupon--name">
+                                        <!--/coupon_list@name/-->
+                                    </p>
+                                    <p class="coupon--price <!--/if_coupon_list@coupon_type(RESERVE)/-->fc-black<!--/end_if/-->">
+                                        <!--/if_coupon_list@apply_type(DELIVERY)/-->
+                                        <!--/if_coupon_list@discount_price(+1)/-->배송비 <!--/number/coupon_list@discount_price/-->원
+                                        할인
+                                        <!--/else/-->
+                                        무료배송
+                                        <!--/end_if/-->
+                                        <!--/else/-->
+                                        <!--/if_coupon_list@coupon_type(DISCOUNT)/-->
+                                        <!--/if_coupon_list@discount_price/--><!--/number/coupon_list@discount_price/-->원
+                                        할인<!--/end_if/-->
+                                        <!--/if_coupon_list@discount_rate/--><!--/coupon_list@discount_rate/-->%
+                                        할인<!--/end_if/-->
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@coupon_type(RESERVE)/-->
+                                        <!--/if_coupon_list@reserve_price/--><!--/number/coupon_list@reserve_price/-->원
+                                        적립<!--/end_if/-->
+                                        <!--/if_coupon_list@reserve_rate/--><!--/coupon_list@reserve_rate/-->%
+                                        적립<!--/end_if/-->
+                                        <!--/end_if/-->
+                                        <!--/end_if/-->
+                                    </p>
+                                    <p class="coupon--desc <!--/if_coupon_list@apply_type(DELIVERY)/-->use-delivery<!--/end_if/-->">
+                                        <!--/if_coupon_list@explain/-->
+                                        <!--/coupon_list@explain/--><br>
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@valid_price/-->
+                                        상품 금액 <!--/number/coupon_list@valid_price/-->원이상 구매 시 사용 가능<br>
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@valid_total_price/-->
+                                        상품 금액 합계
+                                        <!--/number/coupon_list@valid_total_price/--><!--/if_coupon_list@is_delivery_price/-->(<!--/if_coupon_list@provider_range(ALL)/-->본사
+                                        <!--/end_if/-->배송비 포함)<!--/end_if/-->원이상 구매 시 사용 가능<br>
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@coupon_type(DISCOUNT)/-->
+                                        <!--/if_coupon_list@discount_max_price/-->
+                                        최대 할인 금액 <!--/number/coupon_list@discount_max_price/-->원<br>
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@discount_max_rate/-->
+                                        최대 할인율 <!--/coupon_list@discount_max_rate/-->%<br>
+                                        <!--/end_if/-->
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@coupon_type(RESERVE)/-->
+                                        <!--/if_coupon_list@reserve_max_price/-->
+                                        최대 적립 금액 <!--/number/coupon_list@reserve_max_price/-->원<br>
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@reserve_max_rate/-->
+                                        최대 적립율 <!--/coupon_list@reserve_max_rate/-->%<br>
+                                        <!--/end_if/-->
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@use_duplication(N)/-->
+                                        쿠폰 중복 사용 불가능<br>
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@use_group_benefit(N)/-->
+                                        회원 추가 혜택 제외<br>
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@use_reserve(N)/-->
+                                        적립금 동시 사용 불가<br>
+                                        <!--/end_if/-->
+                                    </p>
+                                    <!--/if_coupon_list@payment/-->
+                                    <div class="coupon--payment">
+                                        <div>결제수단 :
+                                            <!--/loop_coupon_list@payment(3)/-->
+                                            <!--/if_idx(3)/-->
+                                            <a href="#" class="btn-payment-more"></a>
+                                        <!--/else/-->
+                                        <!--/if_idx(2)/-->,<!--/end_if/-->
+                                        <!--/coupon_list@payment@name/-->
+                                        <!--/end_if/-->
+                                        <!--/end_loop/-->
+                                        </div>
+                                        <div class="pay-list">
+                                            <!--/loop_coupon_list@payment/-->
+                                            <!--/if_idx(+3)/-->, <!--/coupon_list@payment@name/--><!--/end_if/-->
+                                            <!--/if_idx(5,8,11,14)/--><br /><!--/end_if/-->
+                                            <!--/end_loop/-->
+                                        </div>
+                                    </div>
+                                    <!--/end_if/-->
+                                    <div class="coupon--date">
+                                        <!--/if_coupon_list@link_popup_item/-->
+                                        <a href="<!--/coupon_list@link_popup_item/-->" class="coupon--item layer-open">적용 가능 상품<span class="link"></span></a>
+                                        <!--/else/-->
+                                            <!--/if_coupon_list@use_except_condition/-->
+                                                전상품 적용 가능 (단, 일부 상품 제외)
+                                            <!--/else/-->
+                                                전상품 적용 가능
+                                            <!--/end_if/-->
+                                        <!--/end_if/-->
+                                        <!--/if_coupon_list@use_end_date/-->
+                                        <!--/if_coupon_list@use_dday(-10)/-->
+                                        <!--/if_coupon_list@use_dday(0)/-->
+                                        <span class="date-txt">D-Day</span>
+                                        <!--/else/-->
+                                        <span class="date-txt">D-<!--/coupon_list@use_dday/--></span>
+                                        <!--/end_if/-->
+                                        <!--/else/-->
+                                        <span class="date-txt"><!--/date(%y/%M/%D)/coupon_list@use_end_date/-->까지</span>
+                                        <!--/end_if/-->
+                                        <!--/else/-->
+                                        <span class="date-txt"><!--/date(%y/%M/%D)/coupon_list@use_start_date/--> ~</span>
+                                        <!--/end_if/-->
+                                    </div>
+                                </div>
+                                <div class="coupon--btns coupon-device">
+                                    <!--/if_not_coupon_list@is_all_device/-->
+                                    <!--/if_coupon_list@is_use_pc/-->
+                                    <p>PC</p>
+                                    <!--/end_if/-->
+                                    <!--/if_coupon_list@is_use_mobile/-->
+                                    <p>MOBILE</p>
+                                    <!--/end_if/-->
+                                    <!--/if_coupon_list@is_use_app/-->
+                                    <p>APP</p>
+                                    <!--/end_if/-->
+                                    <!--/else/-->
+                                    <p>전체</p>
+                                    <!--/end_if/-->
+                                </div>
+                            </div>
+                            <!--/end_if/-->
+                            <!--/end_loop/-->
+                        </div>
+                        <div class="cw-paging">
+                            <!--/if_pager_coupon_list::prev/-->
+                            <a href="<!--/pager_coupon_list::prev@link/-->"><img
+                                    src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_left.svg" alt="이전" width="16"
+                                    height="16" /></a>
+                            <!--/end_if/-->
+                            <!--/if_pager_coupon_list/-->
+                            <!--/loop_pager_coupon_list::page/-->
+                            <!--/if_pager_coupon_list::page@current/-->
+                            <a href="<!--/pager_coupon_list::page@link/-->" class="active"><!--/pager_coupon_list::page/--></a>
+                            <!--/else/-->
+                            <a href="<!--/pager_coupon_list::page@link/-->"><!--/pager_coupon_list::page/--></a>
+                            <!--/end_if/-->
+                            <!--/end_loop/-->
+                            <!--/end_if/-->
+                            <!--/if_pager_coupon_list::next/-->
+                            <a href="<!--/pager_coupon_list::next@link/-->"><img
+                                    src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_right.svg" alt="다음" width="16"
+                                    height="16" /></a>
+                            <!--/end_if/-->
+                        </div>
+                        <!--/else/-->
+                        <div class="empty">보유 쿠폰이 없습니다.</div>
+                        <!--/end_if/-->
+                        <!--/end_block/-->
+                        <!-- //보유 쿠폰 -->
+                
+                        <!-- 다운로드 가능 -->
+                        <!--/block_down_coupon_list/-->
+                        <!--/if_down_coupon_list/-->
+                        <div class="btn-down flex justify-end">
+                            <!--/if_link_down_coupon_all/-->
+                            <a href="<!--/link_down_coupon_all/-->" class="btn btn-primary">
+                                한번에 다운받기 <span class="down"></span>
+                            </a>
+                            <!--/end_if/-->
+                        </div>
+                        <div class="coupon-lists">
+                            <!--/loop_down_coupon_list/-->
+                            <!--/if_down_coupon_list@image/-->
+                            <div class="coupon c-images">
+                                <!--/if_down_coupon_list@link_down/-->
+                                <a class="c-image" href="<!--/down_coupon_list@link_down/-->"><img src="<!--/down_coupon_list@image/-->" /></a>
+                                <!--/else/-->
+                                <span class="c-image"><img src="<!--/down_coupon_list@image/-->" /></span>
+                                <!--/end_if/-->
+                            </div>
+                            <!--/else/-->
+                            <div class="coupon sc-style<!--/down_coupon_list@style_num/--> <!--/if_down_coupon_list@coupon_type(RESERVE)/-->sc-reserve<!--/end_if/--> <!--/if_down_coupon_list@link_product/-->sc-img-style<!--/end_if/-->">
+                                <div class="coupon--info">
+                                    <p class="coupon--name">
+                                        <!--/down_coupon_list@name/-->
+                                    </p>
+                                    <p class="coupon--price <!--/if_down_coupon_list@coupon_type(RESERVE)/-->fc-black<!--/end_if/-->">
+                                        <!--/if_down_coupon_list@apply_type(DELIVERY)/-->
+                                        <!--/if_down_coupon_list@discount_price(+1)/-->배송비
+                                        <!--/number/down_coupon_list@discount_price/-->원
+                                        할인<!--/else/-->무료배송<!--/end_if/-->
+                                        <!--/else/-->
+                                        <!--/if_down_coupon_list@coupon_type(DISCOUNT)/-->
+                                        <!--/if_down_coupon_list@discount_price/--><!--/number/down_coupon_list@discount_price/-->원
+                                        할인<!--/end_if/-->
+                                        <!--/if_down_coupon_list@discount_rate/--><!--/down_coupon_list@discount_rate/-->%
+                                        할인<!--/end_if/-->
+                                        <!--/end_if/-->
+                                        <!--/if_down_coupon_list@coupon_type(RESERVE)/-->
+                                        <!--/if_down_coupon_list@reserve_price/--><!--/number/down_coupon_list@reserve_price/-->원
+                                        적립<!--/end_if/-->
+                                        <!--/if_down_coupon_list@reserve_rate/--><!--/down_coupon_list@reserve_rate/-->%
+                                        적립<!--/end_if/-->
+                                        <!--/end_if/-->
+                                        <!--/end_if/-->
+                                    </p>
+                                    <p class="coupon--desc">
+                                        <!--/if_down_coupon_list@explain/-->
+                                        <!--/down_coupon_list@explain/--><br>
+                                        <!--/end_if/-->
+                                        <!--/if_down_coupon_list@valid_price/-->
+                                        상품 금액 <!--/number/down_coupon_list@valid_price/-->원이상 구매 시 사용 가능<br>
+                                        <!--/end_if/-->
+                                        <!--/if_down_coupon_list@valid_total_price/-->
+                                        상품 금액 합계
+                                        <!--/number/down_coupon_list@valid_total_price/--><!--/if_down_coupon_list@is_delivery_price/-->(<!--/if_down_coupon_list@provider_range(ALL)/-->본사
+                                        <!--/end_if/-->배송비 포함)<!--/end_if/-->원이상 구매 시 사용 가능<br>
+                                        <!--/end_if/-->
+                                        <!--/if_down_coupon_list@coupon_type(DISCOUNT)/-->
+                                        <!--/if_down_coupon_list@discount_max_price/-->
+                                        최대 할인 금액 <!--/number/down_coupon_list@discount_max_price/-->원<br>
+                                        <!--/end_if/-->
+                                        <!--/if_down_coupon_list@discount_max_rate/-->
+                                        최대 할인율 <!--/down_coupon_list@discount_max_rate/-->%<br>
+                                        <!--/end_if/-->
+                                        <!--/end_if/-->
+                                        <!--/if_down_coupon_list@coupon_type(RESERVE)/-->
+                                        <!--/if_down_coupon_list@reserve_max_price/-->
+                                        최대 적립 금액 <!--/number/down_coupon_list@reserve_max_price/-->원<br>
+                                        <!--/end_if/-->
+                                        <!--/if_down_coupon_list@reserve_max_rate/-->
+                                        최대 적립율 <!--/down_coupon_list@reserve_max_rate/-->%<br>
+                                        <!--/end_if/-->
+                                        <!--/end_if/-->
+                                        <!--/if_down_coupon_list@use_duplication(N)/-->
+                                        쿠폰 중복 사용 불가능<br>
+                                        <!--/end_if/-->
+                                        <!--/if_down_coupon_list@use_group_benefit(N)/-->
+                                        회원 추가 혜택 제외<br>
+                                        <!--/end_if/-->
+                                        <!--/if_down_coupon_list@use_reserve(N)/-->
+                                        적립금 동시 사용 불가<br>
+                                        <!--/end_if/-->
+                                    </p>
+                                    <!--/if_down_coupon_list@payment/-->
+                                    <div class="coupon--payment">
+                                        <div>결제수단 :
+                                            <!--/loop_down_coupon_list@payment(3)/-->
+                                            <!--/if_idx(3)/-->
+                                            <span class="btn-payment-more"></span>
+                                        <!--/else/-->
+                                        <!--/if_idx(2)/-->,<!--/end_if/-->
+                                        <!--/down_coupon_list@payment@name/-->
+                                        <!--/end_if/-->
+                                        <!--/end_loop/-->
+                                        </div>
+                                        <div class="pay-list">
+                                            <!--/loop_down_coupon_list@payment/-->
+                                            <!--/if_idx(+3)/-->, <!--/down_coupon_list@payment@name/--><!--/end_if/-->
+                                            <!--/if_idx(5,8,11,14)/--><br /><!--/end_if/-->
+                                            <!--/end_loop/-->
+                                        </div>
+                                    </div>
+                                    <!--/end_if/-->
+                                    <div class="coupon--date">
+                                        <!--/if_down_coupon_list@link_popup_item/-->
+                                        <a href="<!--/down_coupon_list@link_popup_item/-->" class="coupon--item layer-open">적용 가능 상품<span class="link"></span></a>
+                                        <!--/else/-->
+                                            <!--/if_down_coupon_list@use_except_condition/-->
+                                                전상품 적용 가능 (단, 일부 상품 제외)
+                                            <!--/else/-->
+                                                전상품 적용 가능
+                                            <!--/end_if/-->
+                                        <!--/end_if/-->
+                                        <span class="date-txt"><!--/date(%y/%M/%D)/down_coupon_list@down_start_date/--> ~
+                                        <!--/if_down_coupon_list@down_end_date/--><!--/date(%y/%M/%D)/down_coupon_list@down_end_date/--></span><!--/end_if/--></span>
+                                    </div>
+                                </div>
+                                <div class="coupon--btns coupon-device">
+                                    <!--/if_not_down_coupon_list@is_all_device/-->
+                                    <!--/if_down_coupon_list@is_use_pc/-->
+                                    <p>PC</p>
+                                    <!--/end_if/-->
+                                    <!--/if_down_coupon_list@is_use_mobile/-->
+                                    <p>MOBILE</p>
+                                    <!--/end_if/-->
+                                    <!--/if_down_coupon_list@is_use_app/-->
+                                    <p>APP</p>
+                                    <!--/end_if/-->
+                                    <!--/else/-->
+                                    <p>전체</p>
+                                    <!--/end_if/-->
+                                    <a href="<!--/down_coupon_list@link_down/-->" class="coupon--btn">
+                                        다운로드
+                                    </a>
+                                    <!--/if_down_coupon_list@count_limit(+2)/-->
+                                    <div class="txt-limit">
+                                        (<!--/down_coupon_list@count_received/-->/<!--/down_coupon_list@count_limit/-->)
+                                    </div><!--/end_if/-->
+                                </div>
+                            </div>
+                            <!--/end_if/-->
+                            <!--/end_loop/-->
+                        </div>
+                        <div class="cw-paging">
+                            <!--/if_pager_down_coupon_list::prev/-->
+                            <a href="<!--/pager_down_coupon_list::prev@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_left.svg" alt="이전" width="16" height="16" /></a>
+                            <!--/end_if/-->
+                            <!--/if_pager_down_coupon_list/-->
+                            <!--/loop_pager_down_coupon_list::page/-->
+                            <!--/if_pager_down_coupon_list::page@current/-->
+                            <a href="<!--/pager_down_coupon_list::page@link/-->"
+                                class="active"><!--/pager_down_coupon_list::page/--></a>
+                            <!--/else/-->
+                            <a href="<!--/pager_down_coupon_list::page@link/-->"><!--/pager_down_coupon_list::page/--></a>
+                            <!--/end_if/-->
+                            <!--/end_loop/-->
+                            <!--/end_if/-->
+                            <!--/if_pager_down_coupon_list::next/-->
+                            <a href="<!--/pager_down_coupon_list::next@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_right.svg" alt="다음" width="16" height="16" /></a>
+                            <!--/end_if/-->
+                        </div>
+                        <!--/else/-->
+                        <div class="empty">다운로드 가능한 쿠폰이 없습니다.</div>
+                        <!--/end_if/-->
+                        <!--/end_block/-->
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- // Content -->
+    </div>
+</main>
+<!-- //container -->
+
+<!--/include_footer(1)/-->

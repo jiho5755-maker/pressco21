@@ -1,0 +1,68 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container mypage-wrapper myEmoney">
+    <div class="row">
+        <!-- Sidebar -->
+        <!--/include_header(2)/-->
+        <!-- // Sidebar -->
+
+        <!-- Content -->
+        <div class="content col-lg-10 col-md-12 col-sm-12">
+            <div class="content-body">
+                <div class="page-title-wrap txt-l">
+                    <h2>예치금 내역</h2>
+                </div>
+                <div class="info-summary">
+                    <p class="info-item">
+                        <span><strong>총 보유 예치금</strong></span>
+                        <span><strong class="fc-point"><!--/if_user_deposit(+1)/--><!--/number/user_deposit/--><!--/else/-->0<!--/end_if/--></strong>원</span>
+                    </p>
+                </div>
+                <ul class="notice bullet">
+                    <li>· 보유하신 예치금은 주문서 작성 시 사용할 수 있습니다.</li>
+                </ul>
+                <div class="cw-simpleboard cw-board-list">
+                    <!--/if_deposit_list/-->
+                    <!--/loop_deposit_list/-->
+                    <div class="post">
+                        <div class="text-start">
+                            <span class="date"><!--/date(%Y.%M.%D)/deposit_list@date/--></span>
+                        </div>
+                        <span class="subject"><!--/deposit_list@content/--></span>
+                        <div class="text-end">
+                            <span class="value"><!--/number/deposit_list@price/-->원</span>
+                        </div>
+                    </div>
+                    <!--/end_loop/-->
+                    <!--/else/-->
+                    <div class="empty">
+                        <p>예치금 내역이 없습니다.</p>
+                    </div>
+                    <!--/end_if/-->
+                </div>
+                <div class="cw-paging">
+                    <!--/if_pager_deposit_list::prev/-->
+                    <a href="<!--/pager_deposit_list::prev@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_left.svg" alt="이전" width="16" height="16" /></a>
+                    <!--/end_if/-->
+                    <!--/if_pager_deposit_list/-->
+                    <!--/loop_pager_deposit_list::page(5)/-->
+                        <!--/if_pager_deposit_list::page@current/-->
+                        <a href="javascript:return false;" class="active"><!--/pager_deposit_list::page/--></a>
+                        <!--/else/-->
+                        <a href="<!--/pager_deposit_list::page@link/-->"><!--/pager_deposit_list::page/--></a>
+                        <!--/end_if/-->
+                    <!--/end_loop/-->
+                    <!--/end_if/-->
+                    <!--/if_pager_deposit_list::next/-->
+                    <a href="<!--/pager_deposit_list::next@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_right.svg" alt="다음" width="16" height="16" /></a>
+                    <!--/end_if/-->
+                </div>
+            </div>
+        </div>
+        <!-- // Content -->
+    </div>
+</main>
+<!-- // container -->
+
+<!--/include_footer(1)/-->

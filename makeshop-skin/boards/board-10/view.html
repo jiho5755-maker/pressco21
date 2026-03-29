@@ -1,0 +1,394 @@
+<!--/include_header(1)/-->
+
+<div class="container board-wrapper">
+    <h2 class="cw-boardtitle"><!--/now_board_name/--></h2>
+    <div class="cw-wrapper">
+        <div class="cw-boardview">
+            <!--/if_link/-->
+            <dl class="view-prd">
+                <dt><img src="<!--/image_s/-->"></dt>
+                <dd class="name"><!--/notag/name(100)/--></dd>
+                <dd class="price"><strong><!--/number/price_sell/--></strong>원</dd>
+                <a href="<!--/link/-->"></a>
+            </dl>
+            <!--/end_if/-->
+            <dl class="view-info">
+                <dt><!--/if_subtitle/-->[<!--/subtitle/-->]<!--/end_if/--><!--/notag/subject/--></dt>
+                <dd>
+                    <p>
+                        <span class="author"><!--/writer/--></span>
+                        <!--/if_write_date/--><!--/date(%Y.%M.%D)/write_date/--><!--/end_if/-->
+                    </p>
+                    <p class="txt-r">
+                        조회수 <!--/number/hit/-->
+                        <!--/if_is_recommend/--><span class="count">추천수 <!--/number/recommend_count/--></span><!--/end_if/-->
+                    </p>
+                    <!--/if_qna_ordernum/-->
+                    <p class="ordernum">주문번호 <!--/qna_ordernum/--></p>
+                    <!--/end_if/-->
+                    <!--/if_score/-->
+                    <p class="score">
+                        <!--/loop_score/-->
+                        <span><!--/score@title/--> <!--/score@icon/--></span>
+                        <!--/end_loop/-->
+                    </p>
+                    <!--/end_if/-->
+                    <!--/if_link_report_popup/-->
+                    <p class="txt-r" style="<!--/if_not_score/-->grid-column: 1/3;<!--/end_if/-->">
+                        <a href="javascript:void(0);" onclick="<!--/link_report_popup/-->">신고/차단</a>
+                    </p>
+                    <!--/end_if/-->
+                </dd>
+            </dl>
+            <!--/if_add_info/-->
+            <dl class="view-addinfo">
+                <!--/loop_add_info/-->
+                <dt><!--/add_info@title/--></dt>
+                <dd><!--/add_info@content/--></dd>
+                <!--/end_loop/-->
+            </dl>
+            <!--/end_if/-->
+            <div class="view-contents">
+                <!--/if_attach_image/-->
+                <div class="attach">
+                    <!--/if_attach_image_size/-->
+                    <img width="<!--/attach_image_size/-->" src="<!--/attach_image/-->">
+                    <!--/else/-->
+                    <img src="<!--/attach_image/-->">
+                    <!--/end_if/-->
+                </div>
+                <!--/end_if/-->
+                <!--/if_attach_image2/-->
+                <div class="attach">
+                    <!--/if_attach_image_size2/-->
+                    <img width="<!--/attach_image_size2/-->" src="<!--/attach_image2/-->">
+                    <!--/else/-->
+                    <img src="<!--/attach_image2/-->">
+                    <!--/end_if/-->
+                </div>
+                <!--/end_if/-->
+                <!--/if_attach_image3/-->
+                <div class="attach">
+                    <!--/if_attach_image_size3/-->
+                    <img width="<!--/attach_image_size3/-->" src="<!--/attach_image3/-->">
+                    <!--/else/-->
+                    <img src="<!--/attach_image3/-->">
+                    <!--/end_if/-->
+                </div>
+                <!--/end_if/-->
+                <!--/if_attach_image4/-->
+                <div class="attach">
+                    <!--/if_attach_image_size4/-->
+                    <img width="<!--/attach_image_size4/-->" src="<!--/attach_image4/-->">
+                    <!--/else/-->
+                    <img src="<!--/attach_image4/-->">
+                    <!--/end_if/-->
+                </div>
+                <!--/end_if/-->
+                <!--/content/-->
+                <div class="sns">
+                    <!--/if_link_scrap_fb/-->
+                    <a href="#none" onclick="<!--/link_scrap_fb/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_facebook.svg" alt="페이스북"></a>
+                    <!--/end_if/-->
+                    <!--/if_link_scrap_tw/-->
+                    <a href="#none" onclick="<!--/link_scrap_tw/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_twitter.svg" alt="엑스"></a>
+                    <!--/end_if/-->
+                    <!--/if_link_scrap_ka/-->
+                    <a href="<!--/link_scrap_ka/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_kakatalk.svg" alt="카카오톡"></a>
+                    <!--/end_if/-->
+                    <!--/if_link_scrap_ks/-->
+                    <a href="<!--/link_scrap_ks/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_story.svg" alt="카카오스토리"></a>
+                    <!--/end_if/-->
+                    <!--/if_link_scrap_url/-->
+                    <a href="<!--/link_scrap_url/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_link.svg" alt="URL"></a>
+                    <!--/end_if/-->
+                    <!--/if_link_scrap/-->
+                    <a href="<!--/link_scrap/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/share_scrap.svg" alt="스크랩"></a>
+                    <!--/end_if/-->
+                </div>
+            </div>
+            <!--/if_recommend_product/-->
+            <div class="view-recommend">
+                <div class="view-title">게시글 관련상품</div>
+                <div class="prds-list gallery">
+                    <!--/loop_recommend_product/-->
+                    <div class="prds-list--item">
+                        <div class="prds--image">
+                            <img src="<!--/recommend_product@image_m/-->" alt="상품 이미지" />
+                        </div>
+                        <div class="prds--wrap">
+                            <div class="prds--name"><!--/recommend_product@name/--></div>
+                            <!--/if_recommend_product@engname/-->
+                            <div class="prds--engname"><!--/recommend_product@engname/--></div>
+                            <!--/end_if/-->
+                            <div class="prds--price-wrap">
+                                <div class="prices">
+                                    <!--/if_recommend_product@price_sell/--><span class="price"><strong><!--/number/recommend_product@price_sell/--></strong>원</span><!--/end_if/-->
+                                    <!--/if_recommend_product@price_consumer(+1)/--><span class="original"><span><!--/number/recommend_product@price_consumer/--></span>원</span><!--/end_if/-->
+                                </div>
+                            </div>
+                        </div>
+                        <a href="<!--/recommend_product@link/-->" class="link">상품링크</a>
+                    </div>
+                    <!--/end_loop/-->
+                </div><!-- .prds-list -->
+            </div>
+            <!--/end_if/-->
+            <!--/if_is_reply_score_use/-->
+            <div class="score-write">
+                <div class="view-title">답변 만족도 평가</div>
+                <dl>
+                    <!--/if_is_reply_score_flag/-->
+                    <dd>
+                        <div class="sco-lst-txtr">
+                            <div class="score-date">
+                                <span><!--/reply_score_value2/--></span>
+                                <span class="date"><!--/reply_score_date/--></span>
+                            </div>
+                            <div class="sco-txt"><!--/reply_score_text/--></div>
+                        </div>
+                    </dd>
+                    <!--/else/-->
+                    <dd>
+                        <div class="sco-wrt-des">
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" value="" id="flexCheckDefault5">
+                                <label class="form-check-label" for="flexCheckDefault5">
+                                    <!--/reply_score_type_5/-->
+                                </label>
+                                <!--/radio_reply_score_5/-->
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" value="" id="flexCheckDefault4">
+                                <label class="form-check-label" for="flexCheckDefault4">
+                                    <!--/reply_score_type_4/-->
+                                </label>
+                                <!--/radio_reply_score_4/-->
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" value="" id="flexCheckDefault3">
+                                <label class="form-check-label" for="flexCheckDefault3">
+                                    <!--/reply_score_type_3/-->
+                                </label>
+                                <!--/radio_reply_score_3/-->
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" value="" id="flexCheckDefault2">
+                                <label class="form-check-label" for="flexCheckDefault2">
+                                    <!--/reply_score_type_2/-->
+                                </label>
+                                <!--/radio_reply_score_2/-->
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" value="" id="flexCheckDefault1">
+                                <label class="form-check-label" for="flexCheckDefault1">
+                                    <!--/reply_score_type_1/-->
+                                </label>
+                                <!--/radio_reply_score_1/-->
+                            </div>
+                        </div>
+                        <div class="sco-wrt-txtr">
+                            <!--/reply_score_textarea(cw-textfield)/-->
+                            <!--/if_link_reply_score/--><a href="javascript:void(0);" onclick="<!--/link_reply_score/-->" class="btn btn-gray"><span>작성하기</span></a><!--/end_if/-->
+                        </div>
+                    </dd>
+                    <!--/end_if/-->
+                </dl>
+            </div>
+            <!--/end_if/-->
+            <!--/if_block_comment/-->
+            <div class="comment-write">
+                <div class="view-title">댓글쓰기</div>
+                <!--/form_comment/-->
+                <dl>
+                    <dd>
+                        <span class="cw-textfield"><!--/input_nickname(cw-textfield)/--></span>
+                        <!--/input_password(cw-textfield)/-->
+                    </dd>
+                    <dd class="textarea-btn">
+                        <!--/text_comment(cw-textfield)/-->
+                        <a href="<!--/link_comment/-->" class="btn btn-gray"><span>댓글쓰기</span></a>
+                    </dd>
+                    <!--/if_link_file_upload/-->
+                    <dd class="comment-file">
+                        <div class="file-info">
+                            <img src="" alt="">
+                            <button type="button" class="btn-del" onclick="<!--/link_delete_img/-->">삭제</button>
+                        </div>
+                        <div class="flex-box">
+                            <!--/file_attach(input_style2)/-->
+                            <a href="<!--/link_file_upload/-->" class="btn btn-gray btn-sm"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_camera.svg" width="16" height="16"><span>이미지 첨부</span></a>
+                            <span>이미지 첨부 버튼을 클릭하세요.(JPG, JPEG, PNG, GIF만 허용)</span>
+                        </div>
+                    </dd>
+                    <!--/end_if/-->
+                    <!--/if_checkbox_secret/-->
+                    <dd>
+                        <div class="form-check">
+                            <label class="form-check-label"><!--/checkbox_secret(form-check-input)/--> 운영자만 보기</label>
+                        </div>
+                    </dd>
+                    <!--/end_if/-->
+                </dl>
+                <!--/if_not_login/-->
+                    <!--/if_use_privacy/-->
+                        <div><!--/new_privacy_terms/--></div>
+                    <!--/end_if/-->
+                <!--/end_if/-->
+                <!--/block_prevent_auto_input/--><!--/end_block/-->
+                <!--/end_form/-->
+            </div>
+            <!--/end_if/-->
+            <!--/block_comment/-->
+            <!--/if_comment/-->
+            <div class="comment-list">
+                <!--/loop_comment/-->
+                <dl>
+                    <dt>
+                        <span>
+                            <!--/if_comment@is_mobile_write/--><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_mobile.svg" alt="모바일" width="14" height="14"><!--/end_if/-->
+                            <!--/if_comment@icon_sub_manager/--><!--/comment@icon_sub_manager/--><!--/else/--><!--/comment@writer/--><!--/end_if/-->
+                            <!--/if_comment@write_date/--><span class="date"><!--/date(%Y.%M.%D)/comment@write_date/--></span><!--/end_if/-->
+                            <!--/if_comment@link_comment_recommend_click/--><a href="javascript:void(0);" onclick="<!--/comment@link_comment_recommend_click/-->" class="recommend"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_thumb_up.svg" width="12"><!--/comment@comment_recommend_cnt/--></a>
+                            <!--/else_if_comment@comment_recommend_cnt/-->
+                            <span class="recommend"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_thumb_up.svg" width="12"><!--/comment@comment_recommend_cnt/--></span>
+                            <!--/end_if/-->
+                        </span>
+                        <span>
+                            <!--/if_comment@link_comment_click/--><a href="javascript:void(0);" onclick="<!--/comment@link_comment_click/-->" class="btn btn-gray btn-xs"><span>댓글</span></a><!--/end_if/-->
+                            <!--/if_comment@link_del_click/--><a href="javascript:void(0);" onclick="<!--/comment@link_del_click/-->" class="btn btn-gray btn-xs"><span>삭제</span></a><!--/end_if/-->
+                            <!--/if_comment@link_report_popup/--><a href="javascript:void(0);" onclick="<!--/comment@link_report_popup/-->" class="btn btn-gray btn-xs"><span>신고/차단</span></a><!--/end_if/-->
+                        </span>
+                    </dt>
+                    <dd style="<!--/if_comment@depth(+1)/-->margin-left: <!--/comment@depth/-->0px;<!--/end_if/-->" class="<!--/if_comment@depth(+1)/-->reply<!--/end_if/-->">
+                        <!--/if_comment@depth(+1)/--><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_reply.svg" alt="댓글"><!--/end_if/-->
+                        <div>
+                            <!--/if_comment@link_attach_img/--><div class="img-comment-file"><img src="<!--/comment@link_attach_img/-->" alt=""></div><!--/end_if/-->
+                            <!--/comment@content/-->
+                        </div>
+                    </dd>
+                </dl>
+                <!--/end_loop/-->
+            </div>
+            <!--/end_if/-->
+            <!--/end_block/-->
+            <div class="comment-btns">
+                <!--/if_link_edit/--><a href="<!--/link_edit/-->" class="btn btn-gray"><span>수정</span></a><!--/end_if/-->
+                <!--/if_link_del/--><a href="<!--/link_del/-->" class="btn btn-gray"><span>삭제</span></a><!--/end_if/-->
+                <!--/if_link_answer/--><a href="<!--/link_answer/-->" class="btn btn-gray"><span>답변</span></a><!--/end_if/-->
+                <!--/if_is_recommend/--><a href="<!--/link_recommend/-->" class="btn btn-gray"><span>추천</span></a><!--/end_if/-->
+            </div>
+        </div>
+        <div class="cw-boardbtns">
+            <!--/if_link_write/--><a href="<!--/link_write/-->" class="btn btn-primary btn-lg"><span>글쓰기</span></a><!--/end_if/-->
+            <!--/if_link_list/--><a href="<!--/link_list/-->" class="btn btn-white btn-lg"><span>목록보기</span></a><!--/end_if/-->
+        </div>
+        <!--/if_list_type(chain)/-->
+        <!-- 다른 게시글 이전다음글 -->
+        <div class="cw-boardchain">
+            <ul>
+                <!--/if_link_prev_article/-->
+                <li>
+                    <strong>이전글</strong>
+                    <!--/if_prev_article_product_name/-->
+                    <a href="<!--/link_prev_article_product/-->">[<!--/prev_article_product_name/-->]</a>
+                    <!--/end_if/-->
+                    <a href="<!--/link_prev_article/-->">
+                        <!--/if_prev_article_subtitle/-->[<!--/prev_article_subtitle/-->]<!--/end_if/--><!--/notag/prev_article_subject/--> <!--/if_prev_article_comment_count(+1)/-->(<!--/prev_article_comment_count/-->)<!--/end_if/-->
+                    </a>
+                </li>
+                <!--/end_if/-->
+                <!--/if_link_next_article/-->
+                <li>
+                    <strong>다음글</strong>
+                    <!--/if_next_article_product_name/-->
+                    <a href="<!--/link_next_article_product/-->">[<!--/next_article_product_name/-->]</a>
+                    <!--/end_if/-->
+                    <a href="<!--/link_next_article/-->">
+                        <!--/if_next_article_subtitle/-->[<!--/next_article_subtitle/-->]<!--/end_if/--><!--/notag/next_article_subject/--> <!--/if_next_article_comment_count(+1)/-->(<!--/next_article_comment_count/-->)<!--/end_if/-->
+                    </a>
+                </li>
+                <!--/end_if/-->
+            </ul>
+        </div>
+        <!-- //다른 게시글 이전다음글 -->
+        <!--/else/-->
+        <!-- 다른 게시글 리스트 -->
+        <div class="cw-boardlist">
+            <ul>
+                <!--/if_list/-->
+                <!--/loop_list/-->
+                <li>
+                    <!--/if_list@head_icon_image/--><img src="<!--/list@head_icon_image/-->" style="margin-left: <!--/list@depth/-->0px"><!--/end_if/-->
+                    <!--/if_list@list_icon_image/--><img src="<!--/list@list_icon_image/-->"><!--/end_if/-->
+                    <!--/if_list@product_name/--><strong><!--/notag/list@product_name(20,...)/--></strong><!--/end_if/-->
+                    <a href="<!--/list@link/-->">
+                        <!--/if_list@subtitle/-->[<!--/list@subtitle/-->]<!--/end_if/--><!--/notag/list@subject/-->
+                        <!--/if_list@comment_cnt/-->(<!--/list@comment_cnt/-->)<!--/end_if/-->
+                        <!--/if_list@new_icon_image/--><img src="<!--/list@new_icon_image/-->" /><!--/end_if/-->
+                        <!--/if_list@hit_icon_image/--><img src="<!--/list@hit_icon_image/-->" /><!--/end_if/-->
+                    </a>
+                </li>
+                <!--/end_loop/-->
+                <!--/else/-->
+                <li>관련 목록이 없습니다.</li>
+                <!--/end_if/-->
+            </ul>
+        </div>
+        <!-- //다른 게시글 리스트 -->
+        <!--/end_if/-->
+    </div>
+    <!--/if_block_comment_write/-->
+        <!--/block_comment_write/-->
+        <div class="comment-write">
+            <div class="title-close">
+                <p id="MS_comment_title_text" class="title">댓글쓰기</p>
+                <a href="<!--/link_close_comment_write/-->" class="btn-close"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_delete.svg" alt="닫기"></a>
+            </div>
+            <dl>
+                <dd>
+                    <span class="cw-textfield"><!--/input_nickname(cw-textfield)/--></span>
+                    <!--/input_password(cw-textfield)/-->
+                </dd>
+                <dd class="textarea-btn">
+                    <!--/text_comment(cw-textfield)/-->
+                    <a href="<!--/link_comment/-->" class="btn btn-gray"><span>댓글쓰기</span></a>
+                </dd>
+                <!--/if_link_file_upload/-->
+                <dd class="comment-file">
+                    <div class="file-info">
+                        <img src="" alt="">
+                        <button type="button" class="btn-del" onclick="<!--/link_delete_img/-->">삭제</button>
+                    </div>
+                    <div class="flex-box">
+                        <!--/file_attach(input_style2)/-->
+                        <a href="<!--/link_file_upload/-->" class="btn btn-gray btn-sm"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_camera.svg" width="16" height="16"><span>이미지 첨부</span></a>
+                        <span>이미지 첨부 버튼을 클릭하세요.(JPG, JPEG, PNG, GIF만 허용)</span>
+                    </div>
+                </dd>
+                <!--/end_if/-->
+                <!--/if_checkbox_secret/-->
+                <dd>
+                    <div class="form-check">
+                        <label class="form-check-label"><!--/checkbox_secret(form-check-input)/--> 운영자만 보기</label>
+                    </div>
+                </dd>
+                <!--/end_if/-->
+            </dl>
+            <!--/if_not_login/-->
+                <!--/if_use_privacy/-->
+                    <div><!--/new_privacy_terms/--></div>
+                <!--/end_if/-->
+            <!--/end_if/-->
+            <!--/block_prevent_auto_input_reply/--><!--/end_block/-->
+        </div>
+        <!--/end_block/-->
+    <!--/end_if/-->
+</div>
+
+<!--/include_footer(1)/-->
+
+<script type="text/javascript">
+// 반응형 상단 타이틀
+changeNaviTitleText('<!--/now_board_name/-->');
+</script>

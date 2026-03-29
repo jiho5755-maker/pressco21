@@ -1,0 +1,65 @@
+<!-- 본문 -->
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=2.0, minimum-scale=1.0">
+<!-- container -->
+<div id="container">
+    <!-- contents -->
+    <div id="contents">
+        <!-- main -->
+        <main id="product-popup">
+            <div class="popup">
+                <div class="pop">
+                    <h3><!--/notag/name/--></h3>
+                    <div class="txt">
+                        <div class="shopdetailItemPopup">
+                            <p class="shopdetailItemZoom">상세 정보를 확대해 보실 수 있습니다.</p>
+                        </div>
+
+                    <!--/if_area_type(num1)/-->
+                        <div class="detail-item">
+                            <!--/mobile_detail/-->
+                        </div>
+                    <!--/end_if/-->
+
+                    <!--/if_area_type(num2)/-->
+                        <!--/if_product_info/-->
+                        <div id="productWrap">
+                            <h3 class="tb-tit">상품고시정보</h3>
+                            <table>
+                                <colgroup>
+                                    <col width="150" /><col width="*" />
+                                </colgroup>
+                                <!--/loop_product_info/-->
+                                <tr>
+                                    <th><!--/product_info@title/--></th>
+                                    <td><!--/product_info@content/--></td>
+                                </tr>
+                                <!--/end_loop/-->
+                            </table>
+                        </div>
+                        <!--/end_if/-->
+                    <!--/end_if/-->
+
+                    <!--/if_area_type(num3)/-->
+					    <!--/if_detail_common/-->
+                        <div class="detail-item">
+                            <!--/detail_common/-->
+                        </div>
+						<!--/end_if/-->
+                    <!--/end_if/-->
+                    </div>
+                </div>
+            </div>
+        </main>
+        <!-- //main -->
+    </div>
+    <!-- //contents -->
+</div>
+<!-- //container -->
+<!-- //본문 -->
+
+<!-- 고정버튼 -->
+<div class="btn_fixed">
+    <a href="<!--/link_product_back/-->" class="fixed_close"><span class="fa fa-times fa-2x"></span></a>
+    <a href="#product-popup" class="fixed_up"><span class="fa fa-arrow-up fa-2x"></span></a>
+</div>
+<!-- //고정버튼 -->

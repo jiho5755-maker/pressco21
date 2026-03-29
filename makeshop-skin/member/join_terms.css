@@ -1,0 +1,31 @@
+/* 가입순서 */
+.join-step { display: flex; flex-wrap:wrap; gap: 48px; align-items: center; justify-content: center; padding: 24px 0; text-align: center; }
+.join-step li { position: relative; }
+.join-step li:not(:last-child)::after { position: absolute; right: -32px; top: 27px; width: 16px; height: 16px; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_step.svg') no-repeat; content: ''; }
+.join-step li .icon { display: block; width: 48px; height: 48px; line-height: 48px; border-radius: 50%; background: var(--cw-color-10); }
+.join-step li p { padding-top: 4px; font-size: .875rem; color: var(--cw-color-60); }
+.join-step li.active .icon { background: var(--cw-point-color-pri); }
+.join-step li.active p { font-weight: 600; color: var(--cw-heading-color); }
+
+.btn-agree { display: flex; align-items: center; justify-content: center; }
+.btn-agree .btn { margin: 40px 0; width: 300px; }
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .join-step { padding: 0 0 24px; }
+}
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .join-step { padding: 0 0 24px; gap: 40px; }
+    .join-step li::after { right: -28px; }
+    .join-step li p { font-size: .813rem; }
+    .form-terms .all-check ul li { font-size: .75rem; }
+    .form-terms label,
+    .form-terms .join-terms .form-check { font-size: .813rem; }
+}
+
+/* 모바일 */
+@media (max-width: 480px) {
+    .btn-agree .btn { width: 100%; }
+}

@@ -1,0 +1,176 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container mypage-wrapper myMain">
+    <div class="row">
+        <!-- Sidebar -->
+        <!--/include_header(2)/-->
+        <!-- // Sidebar -->
+
+        <!-- Content -->
+        <div class="content col-lg-10 col-md-12 col-sm-12">
+            <div class="content-body">
+                <div class="member">
+                    <div class="user-info">
+                        <span class="img"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_mypage_user.svg" alt=""></span>
+                        <div>
+                            <!--/if_group/-->
+                            <strong><!--/user_name/--></strong>님은 <!--/group_name/-->회원입니다.
+                            <!--/if_buy_benefit_message/-->
+                            <p><strong><!--/number/min_buy_price/-->원 이상 <!--/buy_method/-->구매시</strong>, <!--/buy_benefit_message/--></p>
+                            <!--/end_if/-->
+                            <!--/else/-->
+                            <strong><!--/user_name/--></strong>님의 쇼핑정보
+                            <!--/end_if/-->
+                        </div>
+                    </div>
+                    <ul class="user-stats">
+                        <!--/if_user_reserve/-->
+                        <li>
+                            <span>적립금</span>
+                            <a href="<!--/link_reserve/-->"><strong><!--/number/user_reserve/--></strong></a>
+                        </li>
+                        <!--/end_if/-->
+                        <!--/if_money/-->
+                        <li>
+                            <span>예치금</span>
+                            <a href="<!--/link_money/-->"><strong><!--/number/money/--></strong></a>
+                        </li>
+                        <!--/end_if/-->
+                        <!--/if_usable_point/-->
+                        <li>
+                            <span>포인트</span>
+                            <a href="<!--/link_point/-->"><strong><!--/number/usable_point/--></strong></a>
+                        </li>
+                        <!--/end_if/-->
+                        <!--/if_coupon_count/-->
+                        <li>
+                            <span>쿠폰</span>
+                            <a href="<!--/link_coupon/-->"><strong><!--/coupon_count/--></strong></a>
+                        </li>
+                        <!--/end_if/-->
+                    </ul>
+                </div>
+                <div class="sub-title block">
+                    <h3>주문 현황 <span>(최근 3개월)</span></h3>
+                    <a href="<!--/link_order/-->" class="flex-right link-arrow">전체보기</a>
+                </div>
+                <div class="order-status">
+                    <ul>
+                        <li>
+                            <span>주문접수</span>
+                            <strong><!--/three_month_order_ready/--></strong>
+                        </li>
+                        <li>
+                            <span>결제완료</span>
+                            <strong><!--/three_month_order_ok/--></strong>
+                        </li>
+                        <li>
+                            <span>상품준비중</span>
+                            <strong><!--/three_month_delivery_ready/--></strong>
+                        </li>
+                        <li>
+                            <span>배송중</span>
+                            <strong class="cw-point-color"><!--/three_month_delivery_ing/--></strong>
+                        </li>
+                        <li>
+                            <span>배송완료</span>
+                            <strong><!--/three_month_delivery_ok/--></strong>
+                        </li>
+                    </ul>
+                </div>
+                <div class="cw-simpleboard order-list">
+                    <!--/if_order_list/-->
+                    <!--/loop_order_list(5)/-->
+                    <div class="post">
+                        <span class="cw-col-1"><!--/order_list@order_date/--></span>
+                        <!--/if_order_list@is_present/-->
+                        <span class="cw-col-2">
+                            <span class="gift">선물</span> <!--/order_list@brand_name/-->
+                            <!--/if_order_list@is_subs_order/-->
+                            <img src="/images/common/btn_subs_order.jpg" alt="정기배송 결제" title="정기배송 결제" />
+                            <!--/end_if/-->
+                        </span>
+                        <!--/else/-->
+                        <span class="cw-col-2"><!--/order_list@brand_name/--></span>
+                        <!--/end_if/-->
+                        <div class="cw-col-group">
+                            <span class="cw-col-3 txt-c"><!--/number/order_list@order_price/-->원</span>
+                            <a href="<!--/order_list@link_smorder/-->" class="link-plus"><span class="cw-col-4">상세보기</span></a>
+                        </div>
+                    </div>
+                    <!--/end_loop/-->
+                    <!--/else/-->
+                    <div class="post no-data">주문 내역이 없습니다.</div>
+                    <!--/end_if/-->
+                </div>
+                <!-- .order-list -->
+                <section class="content-list">
+                    <div class="sub-title">
+                        <h3>게시글 내역</h3>
+                        <a href="<!--/link_mypage_article/-->" class="flex-right link-arrow">전체보기</a>
+                    </div>
+                    <div class="cw-simpleboard board-list">
+                        <!--/if_my_list/-->
+                        <!--/loop_my_list(5)/-->
+                        <div class="post">
+                            <span class="cw-col-1"><!--/date(%Y.%M.%D)/my_list@date/--></span>
+                            <span class="cw-col-2"><a href="<!--/my_list@link/-->"><!--/if_my_list@subject/--><!--/my_list@subject/--><!--/else/-->제목없음<!--/end_if/--></a></span>
+                            <span class="cw-col-3 txt-r"><a href="<!--/my_list@link_board/-->"><!--/my_list@board_name/--></a></span>
+                        </div>
+                        <!--/end_loop/-->
+                        <!--/else/-->
+                        <div class="post no-data">작성된 게시글이 없습니다.</div>
+                        <!--/end_if/-->
+                    </div>
+                </section>
+                <section class="content-list">
+                <div class="sub-title">
+                    <h3>관심상품</h3>
+                    <a href="<!--/link_wish/-->" class="flex-right link-arrow">전체보기</a>
+                </div>
+                <div class="goods-list">
+                    <!--/loop_wishlist_product(6)/-->
+                    <div class="goods-list--item">
+                        <div class="item-image"><img src="<!--/wishlist_product@image_m/-->" alt="상품 섬네일" title="상품 섬네일" /></div>
+                        <p class="goods--title sm"><!--/wishlist_product@name/--></p>
+                        <p class="goods--subtitle sm"><!--/wishlist_product@subname/--></p>
+                        <div class="goods--price-wrap sm">
+                            <div class="prices">
+                                <!--/if_wishlist_product@price_replace/-->
+                                <!--/wishlist_product@price_replace/-->
+                                <!--/else_if_wishlist_product@is_soldout/-->
+                                Sold Out
+                                <!--/else/-->
+                                <!--/if_wishlist_product@price_discount/-->
+                                <span class="price"><strong><!--/number/wishlist_product@price_discount/--></strong>원</span>
+                                <span class="original"><!--/number/wishlist_product@price_sell/-->원</span>
+                                <!--/if_wishlist_product@discount_info(+1)/-->
+                                <span class="discount"><!--/wishlist_product@discount_info/--></span>
+                                <!--/end_if/-->
+                                <!--/else/-->
+                                <span class="price"><strong><!--/number/wishlist_product@price_sell/--></strong>원</span>
+                                <!--/if_wishlist_product@price_consumer(+1)/-->
+                                <span class="original"><!--/number/wishlist_product@price_consumer/-->원</span>
+                                <!--/end_if/-->
+                                <!--/if_wishlist_product@consumer_discount_rate(+1)/-->
+                                <span class="discount"><!--/number/wishlist_product@consumer_discount_rate/-->%</span>
+                                <!--/end_if/-->
+                                <!--/end_if/-->
+                                <!--/end_if/-->
+                            </div>
+                        </div>
+                        <a href="<!--/wishlist_product@link/-->" class="link">상품링크</a>
+                    </div><!-- .goods-list--item -->
+                    <!--/end_loop/-->
+                </div>
+                <!-- .goods-list -->
+                </section>
+            </div>
+        </div>
+        <!-- // Content -->
+    </div>
+</main>
+<!-- // container -->
+
+<!--/include_footer(1)/-->

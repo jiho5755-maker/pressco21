@@ -1,0 +1,167 @@
+<!--/include_header(1)/-->
+
+<main id="gift_list" class="container">
+    <div class="flex">
+        <h2 class="cw-heading">고객 사은품</h2>
+        <div class="btns-all ml-auto flex gap-4">
+            <a href="#none" class="btn btn-gray btn-sm all-open"><span>전체 열기</span></a>
+            <a href="#none" class="btn btn-gray btn-sm all-close"><span>전체 닫기</span></a>
+        </div>
+    </div>
+    <!--/if_gift_list/-->
+        <!--/loop_gift_list/-->
+        <div class="cw-gift">
+            <div class="gift-header">
+                <h3 class="gift-title"><!--/gift_list@gift_name/--></h3>
+                <span class="gift-subtitle"><!--/gift_list@gift_type_text/--> / <!--/gift_list@user_target/--> / <!--/gift_list@gift_condition_text/--></span>
+                <a href="#" class="btn-dropdown"></a>
+            </div>
+            <section>
+                <div class="gift-section">
+                    <div class="gift-row">
+                        <div class="gift-label">사은품 종류</div>
+                        <div class="gift-content">
+                            <p class="gift-value">금액별 사은품</p>
+                        </div>
+                    </div>
+                    <div class="gift-row">
+                        <div class="gift-label">지급 대상</div>
+                        <div class="gift-content">
+                            <p class="gift-value"><!--/gift_list@user_target/--></p>
+                            <!--/if_gift_list@user_target_type/-->
+                            <a href="#" data="<!--/gift_list@user_target_type/-->" class="btn btn-gray btn-xs gift-layer-open">상세</a>
+                            <!--/end_if/-->
+                        </div>
+                    </div>
+                    <div class="gift-row">
+                        <div class="gift-label">구매 조건</div>
+                        <div class="gift-content">
+                            <p class="gift-value"><!--/gift_list@gift_condition_text/--></p>
+                            <!--/if_gift_list@gift_condition_type/-->
+                            <a href="#" data="<!--/gift_list@gift_condition_type/-->" class="btn btn-gray btn-xs gift-layer-open">상세</a>
+                            <!--/end_if/-->
+                        </div>
+                    </div>
+                    <div class="gift-row">
+                        <div class="gift-label">진행 기간</div>
+                        <div class="gift-content">
+                            <p class="gift-value"><!--/gift_list@gift_date/--></p>
+                        </div>
+                    </div>
+                </div>
+                <!--/if_gift_list@condition/-->
+                    <!--/loop_gift_list@condition/-->
+                        <!--/if_gift_list@condition@plus_buy/-->
+                        <div class="gift-section">
+                            <div class="gift-row">
+                                <div class="gift-label">지급기준</div>
+                                <div class="gift-content">
+                                    <p class="gift-value"><!--/gift_list@condition@plus_buy/-->+<!--/gift_list@condition@plus_gift/--></p>
+                                </div>
+                            </div>
+                            <div class="gift-row">
+                                <div class="gift-label">사은품 혜택</div>
+                                <div class="gift-content">
+                                    <p class="gift-value">구매 조건에 따라 이벤트 상품을 <span class="text-point"><!--/gift_list@condition@plus_buy/-->개 구매 시, 동일 상품을 <!--/gift_list@condition@plus_gift/-->개 추가</span>로 드립니다.</p>
+                                </div>
+                            </div>
+                        </div>
+                        <!--/end_if/-->
+                        <!--/if_gift_list@condition@gift_min_price/-->
+                        <div class="gift-section">
+                            <div class="gift-row">
+                                <div class="gift-label">지급기준</div>
+                                <div class="gift-content">
+                                    <p class="gift-value">
+                                        <!--/number/gift_list@condition@gift_min_price/-->원 이상 구매
+                                        <!--/if_gift_list@condition@gift_count/-->
+                                        (<!--/gift_list@condition@gift_count/-->개 선택 가능)
+                                        <!--/end_if/-->
+                                    </p>
+                                </div>
+                            </div>
+                            <div class="gift-row">
+                                <div class="gift-label">사은품 혜택</div>
+                                <div class="gift-content">
+                                    <!--/if_gift_list@condition@gift_add_price/-->
+                                    <p class="gift-value">상품 금액의 <span class="text-point"><!--/gift_list@condition@gift_add_price/--></span> 받으실 수 있습니다.</p>
+                                    <!--/end_if/-->
+                                    <!--/if_gift_list@condition@product/-->
+                                    <div class="gift-grid">
+                                        <!--/loop_gift_list@condition@product/-->
+                                        <a href="<!--/gift_list@condition@product@link/-->" target="_blank" title="<!--/gift_list@condition@product@name/-->" class="gift-item">
+                                            <div class="gift-image">
+                                                <!--/if_is_mobile/--><img src="<!--/gift_list@condition@product@mobile_image/-->"><!--/else/--><img src="<!--/gift_list@condition@product@image_s/-->"><!--/end_if/-->
+                                            </div>
+                                            <span class="gift-text"><!--/gift_list@condition@product@gift_condition_name/--></span>
+                                        </a>
+                                        <!--/end_loop/-->
+                                    </div>
+                                    <!--/end_if/-->
+                                </div>
+                            </div>
+                        </div>
+                        <!--/end_if/-->
+                    <!--/end_loop/-->
+                <!--/end_if/-->
+            </section>
+            <!--회원 그룹 레이어-->
+            <!--/block_layer_gift_group/-->
+                <div class="layer-header">
+                    <h3 class="layer-title">이벤트 대상 회원 그룹</h3>
+                    <a href="#" class="layer-close gift-layer-close"></a>
+                </div>
+                <div class="layer-content">
+                    <div class="member-group-label">회원 그룹</div>
+                    <!--/loop_gift_list@condition_group/-->
+                    <div class="member-group-item"><!--/gift_list@condition_group@group_name/--></div>
+                    <!--/end_loop/-->
+                </div>
+                <div class="layer-footer">
+                    <a href="#" class="btn btn-primary gift-layer-close">확인</a>
+                </div>
+            <!--/end_block/--><!-- .layer-gift-group -->
+            <!--특정 분류 레이어-->
+            <!--/block_layer_gift_cate/-->
+                <div class="layer-header">
+                    <h3 class="layer-title"><!--/gift_list@gift_condition_text/--></h3>
+                    <a href="#" class="layer-close gift-layer-close"></a>
+                </div>
+                <div class="layer-content">
+                    <div class="member-group-label">상품 분류</div>
+                    <!--/loop_gift_list@condition_cate/-->
+                    <div class="member-group-item"><!--/gift_list@condition_cate@cate_name/--></div>
+                    <!--/end_loop/-->
+                </div>
+                <div class="layer-footer">
+                    <a href="#" class="btn btn-primary gift-layer-close">확인</a>
+                </div>
+            <!--/end_block/--><!-- .layer-gift-cate -->
+            <!--특정 상품 레이어-->
+            <!--/block_layer_gift_prd/-->
+                <div class="layer-header">
+                    <h3 class="layer-title"><!--/gift_list@gift_condition_text/--></h3>
+                    <a href="#" class="layer-close gift-layer-close"></a>
+                </div>
+                <div class="layer-content">
+                    <div class="member-group-label">상품명</div>
+                    <!--/loop_gift_list@condition_prd/-->
+                    <div class="member-group-item"><a href="<!--/gift_list@condition_prd@prd_link/-->" target="_blank"><!--/gift_list@condition_prd@prd_name/--></a></div>
+                    <!--/end_loop/-->
+                </div>
+                <div class="layer-footer">
+                    <a href="#" class="btn btn-primary gift-layer-close">확인</a>
+                </div>
+            <!--/end_block/--><!-- .layer-gift-prd -->
+        </div><!-- .cw-gift -->
+        <!--/end_loop/-->
+    <!--/else/-->
+    <div class="cw-gift">
+        <div class="gift-section-none">
+            등록된 사은품이 없습니다.
+        </div>
+    </div><!-- .cw-gift -->
+    <!--/end_if/-->
+</main><!-- #gift_list -->
+
+<!--/include_footer(1)/-->

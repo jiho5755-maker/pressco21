@@ -1,0 +1,167 @@
+<div id="layer-opt-ctrl" class="modal-wrap">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">선택사항 변경/추가</span>
+            <a href="<!--/link_cancle/-->" class="btn-modal-close"></a>
+        </div>
+        <!--/form_option/-->
+        <div class="modal-body">
+            <div class="pro-wrap">
+                <div class="thumb"><a href="<!--/link_product_detail/-->" target="_blank"><img src="<!--/image_s/-->" alt=""></a></div>
+                <div class="pro-info">
+                    <p class="pro-name"><!--/name/--> <!--/if_mobile_name/-->[<!--/mobile_name/-->]<!--/end_if/--> <!--/if_engname/-->(<!--/engname/-->)<!--/end_if/--></p>
+                    <p class="pro-price"><strong><!--/number/price_sell/--></strong>원</p>
+                </div>
+            </div>
+            <div class="option-wrap">
+                <!--/if_hybrid_option/-->
+                <div class="infos--group">                
+                    <!--/loop_hybrid_option/-->
+                    <div class="infos--col cw-mb-20">
+                        <span class="info-title"><!--/hybrid_option@title/--></span>
+                        <div class="info-content">
+                            <!--/loop_hybrid_option@option/-->        
+                            <a href="#none" class="MS_HybridOptItem option-check-md">
+                                <!--/hybrid_option@option@checkbox/-->
+                                <span class="img"><!--/hybrid_option@option@opt_s_img/--><!--/if_hybrid_option@option@soldout/--><span class="soldout-bg"></span><span class="soldout">품절</span><!--/end_if/--></span>
+
+                                <span class="name"><!--/hybrid_option@option@title/--></span>
+                                <span class="price"><!--/hybrid_option@option@opt_price/--></span>
+                            </a>
+                            <!--/end_loop/-->  
+                        </div>
+                    </div>
+                    <!--/end_loop/-->  
+                </div>
+                <!--/end_if/-->
+                <!--/if_not_multi_option_box/-->
+                <div class="infos--group">
+                    <div class="infos--row">
+                        <span class="info-title">수량</span>
+                        <div class="info-content">
+                            <div class="btn-group">
+                                <a href="<!--/link_quantity_down/-->" class="btn-minus"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_minus.svg" alt="빼기"></a>
+                                <!--/input_quantity/-->
+                            <a href="<!--/link_quantity_up/-->" class="btn-plus"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_plus.svg" alt="더하기"></a>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <!--/end_if/-->
+                <!--/if_option/-->
+                <div class="infos--group">
+                    <!--/loop_option/-->
+                        <!--/if_option@oneclick_list/-->        
+                        <div class="infos--col cw-mb-20 ">
+                            <span class="info-title tit"><!--/option@title/--> <span class="selected-text"><!--/option@oneclick_value/--></span></span>
+                            <div class="info-content sm-gap ">
+                                <!--/option@oneclick_list/-->
+                            </div>
+                        </div>
+                        <!--/else/-->
+                        <div class="infos--row cw-mb-20 ">
+                            <span class="info-title tit"><!--/option@title/--></span>
+                            <div class="info-content sm-gap ">
+                                <!--/option@select/-->
+                            </div>
+                        </div>                    
+                        <!--/end_if/-->
+                    <!--/end_loop/-->
+                    <!--/if_not_hybrid_option/-->
+                        <!--/if_link_option_select_complete/-->
+                        <div class="infos--row">
+                            <div class="info-content">
+                                <a href="<!--/link_option_select_complete/-->" class="btn btn-white btn-xs cw-f-right btn-selected"><span>선택완료</span></a>
+                            </div>
+                        </div>
+                        <!--/end_if/--> 
+                    <!--/end_if/-->
+                </div>
+                <!--/end_if/-->
+                <!--/if_bundle_product/-->
+                <div class="infos--group">
+                    <!--/loop_bundle_product/-->
+                    <div class="infos--col bundle-wrap">
+                        <div class="bundle-img pro-wrap">
+                            <div class="thumb"><img class="MS_prod_img_s" src="<!--/bundle_product@image/-->" alt=""></div>
+                            <div class="pro-info">
+                                <p class="pro-name"><strong><!--/bundle_product@name/--></strong></p>
+                                <p class="pro-price"><strong><!--/number/bundle_product@sell_price/--></strong>원</p>
+                                <span class="sub-txt"><!--/bundle_product@amount/-->개씩 구매되는 상품</span>
+                            </div>
+                        </div>        
+                        <!--/loop_bundle_product@option/-->
+                        <div class="infos--row">
+                            <div class="info-title"><!--/bundle_product@option@title/--><!--/bundle_product@option@oneclick_value/--></div>
+                            <div class="info-content">
+                            <!--/if_bundle_product@option@oneclick_list/-->
+                                <!--/bundle_product@option@oneclick_list/-->
+                                <!--/bundle_product@option@oneclick_select/-->
+                            <!--/else/-->
+                            <!--/bundle_product@option@select/-->
+                            <!--/end_if/-->
+                            </div>
+                            <!--/if_bundle_product@option@link_option_select_complete/-->
+                            <a href="<!--/bundle_product@option@link_option_select_complete/-->"><img src="/images/d3/modern_simple/btn/btn_h18_select_complete.gif" title="옵션 선택 완료" alt="옵션 선택 완료" /></a>
+                            <!--/end_if/-->
+                        </div>
+                        <!--/end_loop/-->
+                    </div>
+                    <!--/end_loop/-->
+                </div>
+                <!--/end_if/-->
+                <!--/if_option_add/-->
+                <div class="infos--group sm-bottom">
+                    <div class="group-title">+ 추가 옵션 선택</div>
+                    <!--/loop_option_add/-->
+                    <div class="infos--row">
+                        <span class="info-title"><!--/option_add@title/--></span>
+                        <span class="info-content">
+                            <!--/option_add@select/-->
+                        </span>
+                    </div>
+                    <!--/if_not_multi_option_box/-->
+                    <div class="infos--row">
+                        <span class="info-title">수량</span>
+                        <div class="info-content">
+                            <div class="btn-group">
+                                <a href="<!--/option_add@link_quantity_down/-->" class="btn-minus"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_minus.svg" alt="빼기"></a>
+                                <!--/option_add@input_quantity/-->
+                                <a href="<!--/option_add@link_quantity_up/-->" class="btn-plus"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_plus.svg" alt="더하기"></a>
+                            </div>
+                        </div>
+                    </div>
+                    <!--/end_if/-->
+                    <!--/end_loop/-->
+                </div>
+                <!--/end_if/-->
+                <div>
+                    <!--/if_hybrid_option_list/-->
+                        <!--/hybrid_option_list/-->
+                    <!--/else/-->
+                    <!--/if_multi_option_box/-->
+                        <!--/multi_option_box/-->
+                        <!--/multi_option_add_box/-->
+                    <!--/end_if/-->
+                    <!--/end_if/-->
+                </div>
+
+                <div id="MK_innerOptWrap" class="infos--group none-border opt-total">
+                    <!--/if_hybrid_option/-->
+                    <div id="MK_innerOptPrice" class="goods--options-text">상품금액 <span id="MK_txt-prd"></span>원 + 기본옵션 <span id="MK_txt-opt"></span>원 </div>
+                    <div id="MK_innerOptAdd"><span id="MK_opt_txt">+ 추가옵션 <span id="MK_txt-add"></span>원</span></div>
+                    <!--/end_if/-->
+                    <div class="goods--total">
+                        <span class="total-txt opt-p-tit">총 상품 금액</span>
+                        <span class="total-price opt-p-total"><strong><!--/multi_option_total_price/--></strong><span class="opt-p-won">원</span></span>
+                    </div>
+                </div>
+            </div><!-- // END option-wrap -->
+        </div>
+        <div class="modal-footer">
+            <a href="<!--/link_save/-->" class="btn btn-primary"><span>변경하기</span></a>
+            <a href="<!--/link_cancle/-->" class="btn btn-white"><span>취소</span></a>
+        </div>
+        <!--/end_form/-->
+    </div>
+</div>

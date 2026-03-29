@@ -1,0 +1,255 @@
+.logo-wrap {
+    display: none;
+}
+
+.none-data {
+    text-align:center;
+}
+
+.header-menu {
+    position: fixed;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: calc(80% - 100px);
+    z-index: 5;
+}
+
+.header-menu a {
+    display: block;
+    height: 64px;
+    line-height: 64px;
+    font-weight: 600;
+    font-size: 22px;
+    text-align: center;
+    color: #FFFFFF;
+}
+
+.detail-menu ul {
+    display: flex;
+    flex-wrap: wrap;
+}
+
+.detail-menu ul li {
+    width: 33.3333%;
+}
+
+.detail-menu ul li a {
+    display: flex;
+    align-items: center;
+    min-height: 49px;
+    padding: 0 15px;
+    font-weight: 400;
+    font-size: 14px;
+    color: #000000;
+    word-break: keep-all;
+}
+
+
+.detail-menu ul li.active a {
+    color: var(--color-primary);
+}
+
+.shopbrand hr {
+    display: block;
+    width: 100%;
+    height: 4px;
+    border: 0;
+    margin: 0;
+    padding: 0;
+    background: var(--color-gray-light);
+}
+
+.list_array {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    border: 0;
+    height: auto;
+    margin: 25px 0 20px;
+    padding: 40px 16px 15px;
+    border-top: 1px solid #F2F2F2;
+}
+
+.list_array .list_arrayLeft {
+    margin: 0;
+}
+
+.list_array .list_arrayLeft select {
+    height: 32px;
+    border: 1px solid #dddddd;
+    border-radius: 5px;
+    padding:0 15px;
+}
+
+.title {
+    display: block;
+    font-weight: 800;
+    font-size: 20px;
+    text-align: center;
+    margin: 30px 0 25px;
+}
+
+.swiper-wrapper.product-list-wrap {
+    padding-bottom: 45px !important;
+}
+
+.swiper-wrapper.product-list-wrap {
+    display: flex;
+    height: 600px;
+}
+
+.swiper-wrapper.product-list-wrap .item-list .thumb {
+    max-height: 200px;
+}
+
+.swiper-wrapper.product-list-wrap .main_icons {
+    height: 100%;
+}
+
+.swiper-wrapper.product-list-wrap .item-list .thumb a {
+    display: block;
+    height: 200px;
+}
+
+.product-list-wrap .item-list .thumb img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+}
+
+.swiper-slide img {
+    display: none;
+}
+
+.swiper-initialized img {
+    display: block;
+}
+
+.swiper-pagination-bullet-active {
+    background: #000000 !important;
+}
+
+.cate-wrap .bcate {
+    font-weight: 800;
+    font-size: 26px;
+    line-height: 1;
+    text-align: center;
+    margin: 80px 0 40px;
+}
+
+.list_array .item-order { float: right }
+.list_array .item-order li { float: left; padding: 0 15px; line-height:12px; border-right:1px solid #ddd }
+.list_array .item-order li.nobg { padding-right:0; border-right:none }
+.list_array .item-order li a {
+    font-weight: 400;
+    font-size: 14px;
+    line-height: 100%;
+    color: #666666;
+}
+
+.list_array .item-order li a .on {
+    color: #000000;
+}
+
+/* 154행 시작: 버튼 영역 강제 노출 및 위치 조정 */
+#MS_product_more_btn_area .more {
+    display: block !important;    /* 숨김 방지 */
+    visibility: visible !important;
+    margin-top: 60px !important;  /* 위쪽 여백 충분히 확보 */
+    margin-bottom: 60px !important;
+    text-align: center !important;
+    clear: both !important;
+}
+
+/* 154행: 버튼 영역 위치 조정 */
+#MS_product_more_btn_area .more {
+    display: block !important;
+    visibility: visible !important;
+    margin-top: 60px !important;
+    margin-bottom: 60px !important;
+    text-align: center !important;
+    clear: both !important;
+}
+
+/* 159행: 버튼 본체 (55px 고정) */
+#MS_product_more_btn_area .more a {
+    display: inline-flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    width: 65px !important;
+    height: 65px !important;
+    background-color: transparent !important;
+    border-radius: 50% !important;
+    margin: 0 auto !important;
+    position: relative !important;
+    overflow: hidden !important;
+    cursor: pointer !important;
+    border: none !important;
+    font-size: 0 !important;
+    transition: background-color 0.3s ease !important;
+    /* [추가] 버튼 자체의 크기 변화 방지 */
+    transform: scale(1) !important; 
+}
+
+/* 175행: 내부 아이콘 설정 */
+#MS_product_more_btn_area .more a::after {
+    content: '' !important;
+    display: block !important;
+    width: 100% !important;
+    height: 100% !important;
+    background: url('https://jewoo.img4.kr/2026/homepage/Icon/btn-more-icon_hover.png') no-repeat center !important;
+    background-size: contain !important;
+    /* transition에서 transform의 부드러운 효과 유지 */
+    transition: transform 0.3s ease-in-out, background-image 0.3s ease !important;
+}
+
+/* 마우스 올렸을 때(hover) 상태 */
+#MS_product_more_btn_area .more a:hover {
+    background-color: transparent !important;
+    /* [추가] 혹시 모를 외부 scale 간섭 차단 */
+    transform: scale(1) !important; 
+}
+
+#MS_product_more_btn_area .more a:hover::after {
+    background-image: url('https://jewoo.img4.kr/2026/homepage/Icon/btn-more-icon.png') !important;
+    /* [수정] 회전은 하되, 크기는 1배율(scale)로 고정 */
+    transform: rotate(90deg) scale(1) !important;
+}
+
+
+
+@media (min-width: 768px) {
+    .swiper-wrapper.product-list-wrap {
+        height: auto;
+    }
+
+    .swiper-wrapper.product-list-wrap .item-list .thumb, .swiper-wrapper.product-list-wrap .item-list .thumb a {
+        height: auto;
+        max-height: 100%;
+    }
+
+    .list_array {
+        padding-top: 0;
+        border-top: 0;
+    }
+
+    .container-wrap {
+        margin-bottom: 80px;
+    }
+
+    #contents {
+        max-width: 1760px;
+        margin: 0 auto;
+    }
+    .tab-nav-wrap ul {
+    background: #e2e8dd !important;
+}
+
+.tab-nav-wrap ul li.active button {
+    background: #b7c9ad !important;
+    color: #fff !important;
+}
+}
+
+

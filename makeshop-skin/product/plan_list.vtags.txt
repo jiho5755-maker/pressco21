@@ -1,0 +1,23 @@
+# plan_list 가상태그
+
+
+## 기타
+<!--/block_plan/-->
+<!--/block_plan_more_area/-->
+<!--/form_plan/-->
+<!--/input_keyword/-->
+<!--/link_more_plan/-->
+<!--/link_search/-->
+<!--/plan_list/-->
+<!--/plan_list@brand_cnt/-->
+<!--/plan_list@end_date/-->
+<!--/plan_list@link/-->
+<!--/plan_list@name/-->
+<!--/plan_list@plan_id/-->
+<!--/plan_list@reg_date/-->
+<!--/plan_list@start_date/-->
+<!--/plan_list@status/-->
+<!--/plan_list@title_image/-->
+<!--/radio_name/-->
+<!--/select_search_type/-->
+<!--/view_type/-->

@@ -1,0 +1,1535 @@
+/* ============================================
+   PRESSCO21 파트너 신청 페이지
+   CSS 스코핑: .partner-apply
+   CSS 변수 접두사: --pa-
+   브랜드 컬러: #425b51 (포레스트 그린), #d4a373 (골드)
+   반응형: ~768px / 768~992px / 992px~
+   ============================================ */
+
+/* ----------------------------------------
+   0. CSS 변수
+   ---------------------------------------- */
+.partner-apply {
+    --pa-primary: #425b51;
+    --pa-gold: #d4a373;
+    --pa-gold-light: #e8c9a8;
+    --pa-gold-bg: #faf6ee;
+    --pa-green: #425b51;
+    --pa-bg: #FAF8F5;
+    --pa-bg-card: #FFFFFF;
+    --pa-bg-warm: #f8f5f0;
+    --pa-text: #333333;
+    --pa-text-light: #777777;
+    --pa-text-dark: #1a1a1a;
+    --pa-border: #E8E2DB;
+    --pa-border-focus: #b89b5e;
+    --pa-error: #e53935;
+    --pa-error-bg: #fff5f5;
+    --pa-shadow-sm: 0 1px 3px rgba(61, 44, 30, 0.06);
+    --pa-shadow-md: 0 4px 16px rgba(61, 44, 30, 0.08);
+    --pa-radius-sm: 8px;
+    --pa-radius-md: 12px;
+    --pa-transition: 0.22s ease-out;
+    --pa-font: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
+
+    font-family: var(--pa-font);
+    background-color: var(--pa-bg);
+    color: var(--pa-text);
+    line-height: 1.6;
+    box-sizing: border-box;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    min-height: 100vh;
+}
+
+.partner-apply *,
+.partner-apply *::before,
+.partner-apply *::after {
+    box-sizing: border-box;
+}
+
+
+/* ----------------------------------------
+   1. 미로그인/이미파트너 안내
+   ---------------------------------------- */
+.partner-apply .pa-notice {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 30vh;
+    padding: 60px 24px;
+}
+
+.partner-apply .pa-notice__inner {
+    text-align: center;
+    max-width: 440px;
+}
+
+.partner-apply .pa-notice__icon {
+    margin-bottom: 24px;
+    opacity: 0.85;
+}
+
+.partner-apply .pa-notice__title {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--pa-text-dark);
+    margin: 0 0 12px;
+    letter-spacing: -0.02em;
+}
+
+.partner-apply .pa-notice__desc {
+    font-size: 15px;
+    color: var(--pa-text-light);
+    margin: 0 0 28px;
+    line-height: 1.7;
+}
+
+.partner-apply .pa-notice__btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 14px 36px;
+    background: var(--pa-primary);
+    color: #FFFFFF;
+    font-family: var(--pa-font);
+    font-size: 15px;
+    font-weight: 600;
+    border: none;
+    border-radius: var(--pa-radius-sm);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--pa-transition), transform var(--pa-transition);
+}
+
+.partner-apply .pa-notice__btn:hover {
+    background: var(--pa-gold);
+    transform: translateY(-1px);
+}
+
+
+/* ----------------------------------------
+   2. 신청 완료 화면
+   ---------------------------------------- */
+.partner-apply .pa-success {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 80vh;
+    padding: 40px 24px;
+}
+
+.partner-apply .pa-success__inner {
+    text-align: center;
+    max-width: 520px;
+    width: 100%;
+}
+
+.partner-apply .pa-success__icon {
+    margin-bottom: 24px;
+}
+
+.partner-apply .pa-success__title {
+    font-size: 26px;
+    font-weight: 700;
+    color: var(--pa-text-dark);
+    margin: 0 0 12px;
+    letter-spacing: -0.03em;
+}
+
+.partner-apply .pa-success__desc {
+    font-size: 15px;
+    color: var(--pa-text-light);
+    margin: 0 0 28px;
+    line-height: 1.75;
+}
+
+.partner-apply .pa-success__id-box {
+    background: var(--pa-gold-bg);
+    border: 1.5px solid var(--pa-gold);
+    border-radius: var(--pa-radius-sm);
+    padding: 16px 24px;
+    margin-bottom: 28px;
+}
+
+.partner-apply .pa-success__id-label {
+    font-size: 12px;
+    color: var(--pa-text-light);
+    margin: 0 0 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.partner-apply .pa-success__id-value {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--pa-gold);
+    margin: 0;
+    letter-spacing: 0.03em;
+}
+
+.partner-apply .pa-success__steps {
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 32px;
+    flex-wrap: wrap;
+}
+
+.partner-apply .pa-success__step {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    min-width: 80px;
+}
+
+.partner-apply .pa-success__step-num {
+    width: 32px;
+    height: 32px;
+    background: var(--pa-gold);
+    color: #fff;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.partner-apply .pa-success__step-text {
+    font-size: 12px;
+    color: var(--pa-text-light);
+    line-height: 1.5;
+}
+
+.partner-apply .pa-success__step-text small {
+    display: block;
+    font-size: 11px;
+    color: var(--pa-gold);
+}
+
+.partner-apply .pa-success__step-arrow {
+    font-size: 18px;
+    color: var(--pa-border);
+    margin-top: 6px;
+}
+
+.partner-apply .pa-success__btn {
+    display: inline-flex;
+    align-items: center;
+    padding: 14px 36px;
+    background: var(--pa-primary);
+    color: #FFFFFF;
+    font-family: var(--pa-font);
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: var(--pa-radius-sm);
+    text-decoration: none;
+    cursor: pointer;
+    transition: background-color var(--pa-transition), transform var(--pa-transition);
+}
+
+.partner-apply .pa-success__btn:hover {
+    background: var(--pa-gold);
+    transform: translateY(-1px);
+}
+
+
+/* ----------------------------------------
+   3. 히어로 섹션 (리디자인)
+   ---------------------------------------- */
+.partner-apply .pa-hero {
+    background: linear-gradient(160deg, #2c3e30 0%, var(--pa-primary) 40%, #3a5448 100%);
+    padding: 80px 24px 64px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+}
+
+.partner-apply .pa-hero::before {
+    content: '';
+    position: absolute;
+    top: -40%;
+    right: -20%;
+    width: 500px;
+    height: 500px;
+    background: radial-gradient(circle, rgba(212,163,115,0.08) 0%, transparent 70%);
+    pointer-events: none;
+}
+
+.partner-apply .pa-hero__inner {
+    max-width: 720px;
+    margin: 0 auto;
+    position: relative;
+    z-index: 1;
+}
+
+.partner-apply .pa-hero__eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--pa-gold);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin: 0 0 20px;
+}
+
+.partner-apply .pa-hero__title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 38px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 20px;
+    letter-spacing: -0.03em;
+    line-height: 1.35;
+}
+
+.partner-apply .pa-hero__desc {
+    font-size: 17px;
+    color: rgba(255,255,255,0.75);
+    margin: 0 0 36px;
+    line-height: 1.8;
+}
+
+.partner-apply .pa-hero__actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 14px;
+    margin-bottom: 40px;
+    flex-wrap: wrap;
+}
+
+.partner-apply .pa-hero__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px 36px;
+    font-family: var(--pa-font);
+    font-size: 16px;
+    font-weight: 700;
+    border-radius: var(--pa-radius-sm);
+    cursor: pointer;
+    transition: all var(--pa-transition);
+    text-decoration: none;
+    border: none;
+    letter-spacing: -0.01em;
+}
+
+.partner-apply .pa-hero__btn--primary {
+    background: var(--pa-gold);
+    color: #FFFFFF;
+}
+
+.partner-apply .pa-hero__btn--primary:hover {
+    background: #c49563;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(212,163,115,0.3);
+}
+
+.partner-apply .pa-hero__btn--ghost {
+    background: transparent;
+    color: rgba(255,255,255,0.85);
+    border: 1.5px solid rgba(255,255,255,0.3);
+}
+
+.partner-apply .pa-hero__btn--ghost:hover {
+    border-color: rgba(255,255,255,0.6);
+    color: #FFFFFF;
+}
+
+.partner-apply .pa-hero__trust {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 24px;
+    flex-wrap: wrap;
+}
+
+.partner-apply .pa-hero__trust-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 13px;
+    color: rgba(255,255,255,0.6);
+}
+
+.partner-apply .pa-hero__trust-item svg {
+    flex-shrink: 0;
+}
+
+
+/* ----------------------------------------
+   4. 세일즈 섹션 공통
+   ---------------------------------------- */
+.partner-apply .pa-sales-section {
+    padding: 72px 24px;
+}
+
+.partner-apply .pa-section-head {
+    max-width: 680px;
+    margin: 0 auto 48px;
+    text-align: center;
+}
+
+.partner-apply .pa-section-head__eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--pa-gold);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin: 0 0 12px;
+}
+
+.partner-apply .pa-section-head__title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--pa-text-dark);
+    margin: 0 0 14px;
+    letter-spacing: -0.02em;
+    line-height: 1.4;
+}
+
+.partner-apply .pa-section-head__desc {
+    font-size: 15px;
+    color: var(--pa-text-light);
+    margin: 0;
+    line-height: 1.75;
+}
+
+
+/* ----------------------------------------
+   4a. 3가지 가치 섹션
+   ---------------------------------------- */
+.partner-apply .pa-value {
+    background: var(--pa-bg);
+}
+
+.partner-apply .pa-value__grid {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.partner-apply .pa-value__card {
+    background: var(--pa-bg-card);
+    border-radius: var(--pa-radius-md);
+    padding: 36px 28px;
+    box-shadow: var(--pa-shadow-sm);
+    border: 1px solid var(--pa-border);
+    transition: box-shadow var(--pa-transition), transform var(--pa-transition);
+}
+
+.partner-apply .pa-value__card:hover {
+    box-shadow: var(--pa-shadow-md);
+    transform: translateY(-3px);
+}
+
+.partner-apply .pa-value__icon {
+    margin-bottom: 20px;
+}
+
+.partner-apply .pa-value__card-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--pa-text-dark);
+    margin: 0 0 10px;
+}
+
+.partner-apply .pa-value__card-desc {
+    font-size: 14px;
+    color: var(--pa-text-light);
+    line-height: 1.7;
+    margin: 0 0 18px;
+}
+
+.partner-apply .pa-value__card-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.partner-apply .pa-value__card-list li {
+    font-size: 13px;
+    color: var(--pa-text);
+    padding: 6px 0 6px 20px;
+    position: relative;
+    line-height: 1.5;
+}
+
+.partner-apply .pa-value__card-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 12px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--pa-gold-light);
+    border: 1.5px solid var(--pa-gold);
+}
+
+
+/* ----------------------------------------
+   4b. 프로세스 5단계 섹션
+   ---------------------------------------- */
+.partner-apply .pa-process {
+    background: var(--pa-gold-bg);
+}
+
+.partner-apply .pa-process__rail {
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.partner-apply .pa-process__step {
+    display: flex;
+    gap: 20px;
+    align-items: flex-start;
+}
+
+.partner-apply .pa-process__num-wrap {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    flex-shrink: 0;
+}
+
+.partner-apply .pa-process__num {
+    width: 40px;
+    height: 40px;
+    background: var(--pa-primary);
+    color: #FFFFFF;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 16px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.partner-apply .pa-process__connector {
+    display: block;
+    width: 2px;
+    height: 40px;
+    background: linear-gradient(to bottom, var(--pa-primary), var(--pa-gold-light));
+}
+
+.partner-apply .pa-process__content {
+    padding-bottom: 32px;
+}
+
+.partner-apply .pa-process__step:last-child .pa-process__content {
+    padding-bottom: 0;
+}
+
+.partner-apply .pa-process__title {
+    display: block;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--pa-text-dark);
+    margin-bottom: 4px;
+    line-height: 40px;
+}
+
+.partner-apply .pa-process__desc {
+    font-size: 14px;
+    color: var(--pa-text-light);
+    margin: 0;
+    line-height: 1.65;
+}
+
+
+/* ----------------------------------------
+   4c. 등급 혜택 섹션
+   ---------------------------------------- */
+.partner-apply .pa-growth {
+    background: var(--pa-bg);
+}
+
+.partner-apply .pa-growth__rail {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+}
+
+.partner-apply .pa-growth__card {
+    background: var(--pa-bg-card);
+    border-radius: var(--pa-radius-md);
+    padding: 28px 22px;
+    border: 1.5px solid var(--pa-border);
+    transition: box-shadow var(--pa-transition), transform var(--pa-transition);
+    position: relative;
+}
+
+.partner-apply .pa-growth__card:hover {
+    box-shadow: var(--pa-shadow-md);
+    transform: translateY(-2px);
+}
+
+.partner-apply .pa-growth__card--bloom {
+    border-color: #b8d4b0;
+}
+
+.partner-apply .pa-growth__card--garden {
+    border-color: #a8c8a0;
+}
+
+.partner-apply .pa-growth__card--atelier {
+    border-color: var(--pa-gold-light);
+}
+
+.partner-apply .pa-growth__card--ambassador {
+    border-color: var(--pa-gold);
+    background: linear-gradient(180deg, #fdfbf7 0%, var(--pa-gold-bg) 100%);
+}
+
+.partner-apply .pa-growth__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--pa-text-light);
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+    margin-bottom: 12px;
+}
+
+.partner-apply .pa-growth__badge-dot {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pa-gold);
+}
+
+.partner-apply .pa-growth__grade {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--pa-primary);
+    letter-spacing: 2px;
+    margin: 0 0 4px;
+}
+
+.partner-apply .pa-growth__title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--pa-text-dark);
+    margin: 0 0 8px;
+}
+
+.partner-apply .pa-growth__desc {
+    font-size: 13px;
+    color: var(--pa-text-light);
+    line-height: 1.65;
+    margin: 0 0 14px;
+}
+
+.partner-apply .pa-growth__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    border-top: 1px solid var(--pa-border);
+    padding-top: 12px;
+}
+
+.partner-apply .pa-growth__list li {
+    font-size: 12px;
+    color: var(--pa-text);
+    padding: 4px 0 4px 16px;
+    position: relative;
+    line-height: 1.5;
+}
+
+.partner-apply .pa-growth__list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--pa-gold-light);
+}
+
+.partner-apply .pa-growth__fee-note {
+    text-align: center;
+    font-size: 13px;
+    color: var(--pa-text-light);
+    margin: 32px 0 0;
+    padding: 14px 20px;
+    background: var(--pa-bg-card);
+    border: 1px solid var(--pa-border);
+    border-radius: var(--pa-radius-sm);
+    max-width: 480px;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+
+/* ----------------------------------------
+   4d. 파트너 후기 섹션
+   ---------------------------------------- */
+.partner-apply .pa-social {
+    background: var(--pa-bg-warm);
+}
+
+.partner-apply .pa-social__grid {
+    max-width: 1000px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 24px;
+}
+
+.partner-apply .pa-social__card {
+    background: var(--pa-bg-card);
+    border-radius: var(--pa-radius-md);
+    padding: 28px 24px;
+    box-shadow: var(--pa-shadow-sm);
+    border: 1px solid var(--pa-border);
+}
+
+.partner-apply .pa-social__stars {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 16px;
+}
+
+.partner-apply .pa-social__quote {
+    font-size: 14px;
+    color: var(--pa-text);
+    line-height: 1.75;
+    margin: 0 0 20px;
+    padding: 0;
+    border: none;
+    font-style: normal;
+}
+
+.partner-apply .pa-social__author {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.partner-apply .pa-social__author-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: var(--pa-primary);
+    color: #FFFFFF;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    font-weight: 700;
+    flex-shrink: 0;
+}
+
+.partner-apply .pa-social__author-name {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--pa-text-dark);
+    margin: 0;
+}
+
+.partner-apply .pa-social__author-info {
+    font-size: 12px;
+    color: var(--pa-text-light);
+    margin: 2px 0 0;
+}
+
+
+/* ----------------------------------------
+   4e. 최종 CTA 섹션
+   ---------------------------------------- */
+.partner-apply .pa-final-cta {
+    background: linear-gradient(160deg, #2c3e30 0%, var(--pa-primary) 50%, #3a5448 100%);
+    padding: 72px 24px;
+    text-align: center;
+}
+
+.partner-apply .pa-final-cta__inner {
+    max-width: 560px;
+    margin: 0 auto;
+}
+
+.partner-apply .pa-final-cta__eyebrow {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--pa-gold);
+    letter-spacing: 4px;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+}
+
+.partner-apply .pa-final-cta__title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 30px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 16px;
+    line-height: 1.4;
+    letter-spacing: -0.02em;
+}
+
+.partner-apply .pa-final-cta__desc {
+    font-size: 15px;
+    color: rgba(255,255,255,0.7);
+    margin: 0 0 32px;
+    line-height: 1.7;
+}
+
+.partner-apply .pa-final-cta__btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 18px 48px;
+    background: var(--pa-gold);
+    color: #FFFFFF;
+    font-family: var(--pa-font);
+    font-size: 17px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--pa-radius-sm);
+    cursor: pointer;
+    transition: all var(--pa-transition);
+    letter-spacing: -0.01em;
+}
+
+.partner-apply .pa-final-cta__btn:hover {
+    background: #c49563;
+    transform: translateY(-2px);
+    box-shadow: 0 8px 24px rgba(212,163,115,0.3);
+}
+
+
+/* ----------------------------------------
+   4f. 플로팅 CTA
+   ---------------------------------------- */
+.partner-apply .pa-float-cta {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    z-index: 900;
+    background: rgba(66,91,81,0.97);
+    border-top: 1px solid rgba(255,255,255,0.1);
+    padding: 12px 24px;
+    transform: translateY(100%);
+    transition: transform 0.35s ease-out;
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+}
+
+.partner-apply .pa-float-cta.is-visible {
+    transform: translateY(0);
+}
+
+.partner-apply .pa-float-cta__inner {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.partner-apply .pa-float-cta__text {
+    font-size: 14px;
+    color: rgba(255,255,255,0.8);
+    margin: 0;
+}
+
+.partner-apply .pa-float-cta__btn {
+    flex-shrink: 0;
+    padding: 12px 28px;
+    background: var(--pa-gold);
+    color: #FFFFFF;
+    font-family: var(--pa-font);
+    font-size: 14px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--pa-radius-sm);
+    cursor: pointer;
+    transition: background var(--pa-transition);
+    white-space: nowrap;
+}
+
+.partner-apply .pa-float-cta__btn:hover {
+    background: #c49563;
+}
+
+
+/* ----------------------------------------
+   5b. 수강 이수자 우대 배지
+   ---------------------------------------- */
+.partner-apply .pa-cert-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 14px;
+    background: #edf5eb;
+    color: #3a6b35;
+    font-size: 13px;
+    font-weight: 600;
+    border-radius: 20px;
+    margin: 8px 0 4px;
+}
+
+/* ----------------------------------------
+   5b. 폼 사이드바 & 인트로
+   ---------------------------------------- */
+.partner-apply .pa-form-section__inner {
+    max-width: 800px;
+    margin: 0 auto;
+    display: flex;
+    gap: 32px;
+    align-items: flex-start;
+}
+
+.partner-apply .pa-form-side {
+    flex: 0 0 280px;
+    position: sticky;
+    top: 24px;
+}
+
+.partner-apply .pa-form-side__card {
+    background: var(--pa-bg-card);
+    border: 1px solid var(--pa-border);
+    border-radius: var(--pa-radius-md);
+    padding: 24px;
+    margin-bottom: 16px;
+}
+
+.partner-apply .pa-form-side__card--soft {
+    background: var(--pa-gold-bg);
+    border-color: var(--pa-gold-light);
+}
+
+.partner-apply .pa-form-side__eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--pa-gold);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 0 0 10px;
+}
+
+.partner-apply .pa-form-side__title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--pa-text-dark);
+    margin: 0 0 14px;
+}
+
+.partner-apply .pa-form-side__title--sm {
+    font-size: 15px;
+}
+
+.partner-apply .pa-form-side__list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.partner-apply .pa-form-side__item {
+    font-size: 13px;
+    color: var(--pa-text);
+    padding: 6px 0 6px 16px;
+    position: relative;
+    line-height: 1.6;
+}
+
+.partner-apply .pa-form-side__item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 13px;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--pa-gold);
+}
+
+.partner-apply .pa-form-side__desc {
+    font-size: 13px;
+    color: var(--pa-text-light);
+    margin: 0;
+    line-height: 1.7;
+}
+
+.partner-apply .pa-form__intro {
+    padding: 36px 40px;
+    border-bottom: 1px solid var(--pa-border);
+}
+
+.partner-apply .pa-form__intro-eyebrow {
+    font-size: 10px;
+    font-weight: 600;
+    color: var(--pa-gold);
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    margin: 0 0 8px;
+}
+
+.partner-apply .pa-form__intro-title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--pa-text-dark);
+    margin: 0 0 8px;
+}
+
+.partner-apply .pa-form__intro-desc {
+    font-size: 14px;
+    color: var(--pa-text-light);
+    margin: 0;
+    line-height: 1.65;
+}
+
+@media (max-width: 768px) {
+    .partner-apply .pa-form-section__inner {
+        flex-direction: column;
+    }
+
+    .partner-apply .pa-form-side {
+        flex: 1;
+        position: static;
+    }
+
+    .partner-apply .pa-form__intro {
+        padding: 28px 20px;
+    }
+}
+
+
+/* ----------------------------------------
+   6. 폼 섹션
+   ---------------------------------------- */
+.partner-apply .pa-form-section {
+    padding: 48px 24px 80px;
+}
+
+.partner-apply .pa-form {
+    background: var(--pa-bg-card);
+    border-radius: var(--pa-radius-md);
+    box-shadow: var(--pa-shadow-md);
+    overflow: hidden;
+}
+
+/* 폼 섹션 블록 */
+.partner-apply .pa-form__section {
+    padding: 36px 40px;
+    border-bottom: 1px solid var(--pa-border);
+}
+
+.partner-apply .pa-form__section:last-child {
+    border-bottom: none;
+}
+
+.partner-apply .pa-form__section-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--pa-text-dark);
+    margin: 0 0 6px;
+    letter-spacing: -0.02em;
+}
+
+.partner-apply .pa-form__section-desc {
+    font-size: 13px;
+    color: var(--pa-text-light);
+    margin: 0 0 24px;
+}
+
+/* 필드 */
+.partner-apply .pa-form__field {
+    margin-bottom: 20px;
+}
+
+.partner-apply .pa-form__field:last-child {
+    margin-bottom: 0;
+}
+
+.partner-apply .pa-form__row {
+    display: flex;
+    gap: 20px;
+}
+
+.partner-apply .pa-form__row--half > .pa-form__field {
+    flex: 1;
+    min-width: 0;
+    margin-bottom: 0;
+}
+
+/* 라벨 */
+.partner-apply .pa-form__label {
+    display: block;
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--pa-text-dark);
+    margin-bottom: 8px;
+}
+
+.partner-apply .pa-form__required {
+    color: var(--pa-error);
+    margin-left: 2px;
+}
+
+/* 입력 필드 공통 */
+.partner-apply .pa-form__input,
+.partner-apply .pa-form__select,
+.partner-apply .pa-form__textarea {
+    width: 100%;
+    padding: 11px 14px;
+    border: 1.5px solid var(--pa-border);
+    border-radius: var(--pa-radius-sm);
+    font-family: var(--pa-font);
+    font-size: 15px;
+    color: var(--pa-text);
+    background: var(--pa-bg-card);
+    transition: border-color var(--pa-transition), box-shadow var(--pa-transition);
+    outline: none;
+    -webkit-appearance: none;
+    appearance: none;
+}
+
+.partner-apply .pa-form__input::placeholder,
+.partner-apply .pa-form__textarea::placeholder {
+    color: #C0B9B0;
+}
+
+.partner-apply .pa-form__input:focus,
+.partner-apply .pa-form__select:focus,
+.partner-apply .pa-form__textarea:focus {
+    border-color: var(--pa-border-focus);
+    box-shadow: 0 0 0 3px rgba(184, 155, 94, 0.15);
+}
+
+.partner-apply .pa-form__input.is-error,
+.partner-apply .pa-form__select.is-error,
+.partner-apply .pa-form__textarea.is-error {
+    border-color: var(--pa-error);
+    box-shadow: 0 0 0 3px rgba(229, 57, 53, 0.12);
+}
+
+/* select 화살표 */
+.partner-apply .pa-form__select {
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 14px center;
+    padding-right: 36px;
+    cursor: pointer;
+}
+
+/* textarea */
+.partner-apply .pa-form__textarea {
+    resize: vertical;
+    min-height: 120px;
+    line-height: 1.65;
+}
+
+.partner-apply .pa-form__char-count {
+    font-size: 12px;
+    color: var(--pa-text-light);
+    text-align: right;
+    margin: 5px 0 0;
+}
+
+/* 에러 메시지 */
+.partner-apply .pa-form__error {
+    font-size: 13px;
+    color: var(--pa-error);
+    margin: 6px 0 0;
+}
+
+/* 전체 에러 */
+.partner-apply .pa-form__global-error {
+    margin: 0 40px 24px;
+    padding: 14px 20px;
+    background: var(--pa-error-bg);
+    border: 1px solid rgba(229, 57, 53, 0.3);
+    border-radius: var(--pa-radius-sm);
+    font-size: 14px;
+    color: var(--pa-error);
+    line-height: 1.6;
+}
+
+
+/* ----------------------------------------
+   7. 동의 섹션
+   ---------------------------------------- */
+.partner-apply .pa-form__section--agree {
+    background: var(--pa-bg-warm);
+}
+
+.partner-apply .pa-form__agree-item {
+    margin-bottom: 16px;
+}
+
+.partner-apply .pa-form__agree-item:last-child {
+    margin-bottom: 0;
+}
+
+.partner-apply .pa-form__agree-label {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    cursor: pointer;
+}
+
+/* 커스텀 체크박스 */
+.partner-apply .pa-form__agree-check {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.partner-apply .pa-form__agree-box {
+    flex-shrink: 0;
+    width: 20px;
+    height: 20px;
+    border: 1.5px solid var(--pa-border);
+    border-radius: 4px;
+    background: var(--pa-bg-card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: border-color var(--pa-transition), background-color var(--pa-transition);
+    margin-top: 1px;
+}
+
+.partner-apply .pa-form__agree-check:checked + .pa-form__agree-box {
+    background: var(--pa-primary);
+    border-color: var(--pa-primary);
+}
+
+.partner-apply .pa-form__agree-check:checked + .pa-form__agree-box::after {
+    content: '';
+    display: block;
+    width: 10px;
+    height: 6px;
+    border-left: 2px solid #fff;
+    border-bottom: 2px solid #fff;
+    transform: rotate(-45deg) translateY(-1px);
+}
+
+.partner-apply .pa-form__agree-text {
+    font-size: 14px;
+    color: var(--pa-text);
+    line-height: 1.55;
+}
+
+.partner-apply .pa-form__agree-detail-btn {
+    background: none;
+    border: none;
+    padding: 0;
+    font-size: 13px;
+    color: var(--pa-gold);
+    cursor: pointer;
+    text-decoration: underline;
+    font-family: var(--pa-font);
+    margin-left: 4px;
+}
+
+.partner-apply .pa-form__agree-detail {
+    margin: 10px 0 0 30px;
+    padding: 12px 16px;
+    background: var(--pa-bg-card);
+    border: 1px solid var(--pa-border);
+    border-radius: var(--pa-radius-sm);
+    font-size: 13px;
+    color: var(--pa-text-light);
+    line-height: 1.7;
+}
+
+.partner-apply .pa-form__agree-detail p {
+    margin: 0 0 4px;
+}
+
+.partner-apply .pa-form__agree-detail p:last-child {
+    margin: 0;
+}
+
+
+/* ----------------------------------------
+   8. 제출 버튼 영역
+   ---------------------------------------- */
+.partner-apply .pa-form__submit-area {
+    padding: 32px 40px 40px;
+    text-align: center;
+    background: var(--pa-bg-card);
+}
+
+.partner-apply .pa-form__submit-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    padding: 16px 56px;
+    background: var(--pa-primary);
+    color: #FFFFFF;
+    font-family: var(--pa-font);
+    font-size: 16px;
+    font-weight: 700;
+    border: none;
+    border-radius: var(--pa-radius-sm);
+    cursor: pointer;
+    transition: background-color var(--pa-transition), transform var(--pa-transition);
+    min-width: 240px;
+    letter-spacing: -0.01em;
+}
+
+.partner-apply .pa-form__submit-btn:hover:not(:disabled) {
+    background: var(--pa-gold);
+    transform: translateY(-1px);
+}
+
+.partner-apply .pa-form__submit-btn:disabled {
+    opacity: 0.7;
+    cursor: not-allowed;
+    transform: none;
+}
+
+.partner-apply .pa-form__submit-note {
+    font-size: 13px;
+    color: var(--pa-text-light);
+    margin: 12px 0 0;
+}
+
+
+/* ----------------------------------------
+   9. 스피너 애니메이션
+   ---------------------------------------- */
+@keyframes paSpin {
+    0%   { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+.partner-apply .pa-spinner {
+    animation: paSpin 0.8s linear infinite;
+    display: block;
+}
+
+
+/* ----------------------------------------
+   10. 로딩 오버레이
+   ---------------------------------------- */
+.partner-apply .pa-loading-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(255,255,255,0.75);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 9999;
+}
+
+
+/* ----------------------------------------
+   11. 반응형 — 992px 이하
+   ---------------------------------------- */
+@media (max-width: 992px) {
+    .partner-apply .pa-value__grid {
+        grid-template-columns: 1fr;
+        max-width: 520px;
+    }
+
+    .partner-apply .pa-growth__rail {
+        grid-template-columns: repeat(2, 1fr);
+    }
+
+    .partner-apply .pa-social__grid {
+        grid-template-columns: 1fr;
+        max-width: 520px;
+    }
+}
+
+
+/* ----------------------------------------
+   12. 반응형 — 768px 이하
+   ---------------------------------------- */
+@media (max-width: 768px) {
+    /* 히어로 */
+    .partner-apply .pa-hero {
+        padding: 56px 20px 48px;
+    }
+
+    .partner-apply .pa-hero__title {
+        font-size: 28px;
+    }
+
+    .partner-apply .pa-hero__desc {
+        font-size: 15px;
+    }
+
+    .partner-apply .pa-hero__desc br {
+        display: none;
+    }
+
+    .partner-apply .pa-hero__actions {
+        flex-direction: column;
+        gap: 10px;
+    }
+
+    .partner-apply .pa-hero__btn {
+        width: 100%;
+        max-width: 320px;
+    }
+
+    .partner-apply .pa-hero__trust {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    /* 세일즈 섹션 공통 */
+    .partner-apply .pa-sales-section {
+        padding: 52px 20px;
+    }
+
+    .partner-apply .pa-section-head {
+        margin-bottom: 36px;
+    }
+
+    .partner-apply .pa-section-head__title {
+        font-size: 24px;
+    }
+
+    .partner-apply .pa-section-head__desc br {
+        display: none;
+    }
+
+    /* 등급 */
+    .partner-apply .pa-growth__rail {
+        grid-template-columns: 1fr;
+        max-width: 400px;
+    }
+
+    /* CTA */
+    .partner-apply .pa-final-cta {
+        padding: 56px 20px;
+    }
+
+    .partner-apply .pa-final-cta__title {
+        font-size: 24px;
+    }
+
+    .partner-apply .pa-final-cta__title br {
+        display: none;
+    }
+
+    .partner-apply .pa-final-cta__btn {
+        width: 100%;
+        max-width: 320px;
+    }
+
+    /* 플로팅 CTA */
+    .partner-apply .pa-float-cta__text {
+        display: none;
+    }
+
+    .partner-apply .pa-float-cta__inner {
+        justify-content: center;
+    }
+
+    .partner-apply .pa-float-cta__btn {
+        width: 100%;
+        text-align: center;
+        padding: 14px 24px;
+    }
+
+    /* 폼 */
+    .partner-apply .pa-form-section {
+        padding: 28px 16px 60px;
+    }
+
+    .partner-apply .pa-form__section {
+        padding: 28px 20px;
+    }
+
+    .partner-apply .pa-form__row--half {
+        flex-direction: column;
+        gap: 0;
+    }
+
+    .partner-apply .pa-form__row--half > .pa-form__field {
+        margin-bottom: 20px;
+    }
+
+    .partner-apply .pa-form__row--half > .pa-form__field:last-child {
+        margin-bottom: 0;
+    }
+
+    .partner-apply .pa-form__submit-area {
+        padding: 24px 20px 32px;
+    }
+
+    .partner-apply .pa-form__submit-btn {
+        width: 100%;
+        padding: 16px 24px;
+    }
+
+    .partner-apply .pa-form__global-error {
+        margin: 0 20px 20px;
+    }
+
+    /* 성공 화면 */
+    .partner-apply .pa-success__steps {
+        gap: 4px;
+    }
+
+    .partner-apply .pa-success__step-arrow {
+        font-size: 14px;
+        margin-top: 4px;
+    }
+}
+
+
+/* ----------------------------------------
+   13. 반응형 — 480px 이하
+   ---------------------------------------- */
+@media (max-width: 480px) {
+    .partner-apply .pa-hero__title {
+        font-size: 24px;
+    }
+
+    .partner-apply .pa-section-head__title {
+        font-size: 21px;
+    }
+
+    .partner-apply .pa-final-cta__title {
+        font-size: 21px;
+    }
+
+    .partner-apply .pa-success__steps {
+        flex-direction: column;
+        align-items: center;
+    }
+
+    .partner-apply .pa-success__step-arrow {
+        transform: rotate(90deg);
+        margin: -4px 0;
+    }
+
+    .partner-apply .pa-value__card {
+        padding: 28px 20px;
+    }
+
+    .partner-apply .pa-growth__card {
+        padding: 24px 18px;
+    }
+
+    .partner-apply .pa-social__card {
+        padding: 24px 20px;
+    }
+}

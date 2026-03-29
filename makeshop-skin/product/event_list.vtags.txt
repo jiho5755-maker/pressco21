@@ -1,0 +1,14 @@
+# event_list 가상태그
+
+
+## 이벤트 목록
+<!--/event_list@end_date/-->
+<!--/event_list@image/-->
+<!--/event_list@link/-->
+<!--/event_list@start_date/-->
+<!--/event_list@title/-->
+<!--/loop_event_list/-->
+
+## 기타
+<!--/link_back/-->
+<!--/link_home/-->

@@ -1,0 +1,37 @@
+# pop_soldout_alarm 가상태그
+
+
+## 기타
+<!--/exist_mobile_num/-->
+<!--/form_soldout_alarm/-->
+<!--/hybrid_option@option@checkbox/-->
+<!--/hybrid_option@option@opt_s_img/-->
+<!--/hybrid_option@option@quantity_input/-->
+<!--/hybrid_option@option@soldout/-->
+<!--/hybrid_option@option@title/-->
+<!--/hybrid_option@title/-->
+<!--/hybrid_option_list/-->
+<!--/input_mobile2/-->
+<!--/input_mobile3/-->
+<!--/input_name/-->
+<!--/is_unify_option/-->
+<!--/link_apply_alarm/-->
+<!--/link_cancel_alarm/-->
+<!--/link_option_select_complete/-->
+<!--/loop_hybrid_option/-->
+<!--/loop_hybrid_option@option/-->
+<!--/loop_option/-->
+<!--/loop_option_add/-->
+<!--/multi_option_add_box/-->
+<!--/multi_option_box/-->
+<!--/name/-->
+<!--/option@oneclick_list/-->
+<!--/option@oneclick_value/-->
+<!--/option@select/-->
+<!--/option@title/-->
+<!--/option_add@select/-->
+<!--/option_add@title/-->
+<!--/select_mobile1/-->
+<!--/shop_id/-->
+<!--/storage_period/-->
+<!--/use_option/-->

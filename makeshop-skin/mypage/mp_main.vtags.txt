@@ -1,0 +1,109 @@
+# mp_main 가상태그
+
+
+## 회원 그룹
+<!--/add_buy_benefit_message/-->
+<!--/add_min_buy_price/-->
+<!--/group_icon/-->
+<!--/group_image/-->
+<!--/group_name/-->
+<!--/if_group_free_delivery/-->
+
+## 다음 그룹
+<!--/if_group/-->
+<!--/next_group_benefit/-->
+<!--/next_group_icon/-->
+<!--/next_group_image/-->
+<!--/next_group_name/-->
+<!--/next_group_order_gap/-->
+<!--/next_group_price_gap/-->
+
+## 마이페이지
+
+## 주문 관련
+<!--/buy_benefit_message/-->
+<!--/buy_method/-->
+<!--/link_order/-->
+<!--/min_buy_price/-->
+<!--/order_price/-->
+<!--/order_total_price/-->
+
+## 회원 로그인
+<!--/if_login/-->
+
+## 회원 정보
+<!--/coupon_count/-->
+<!--/group_reserve_message/-->
+<!--/img_user/-->
+<!--/join_date/-->
+<!--/last_login_date/-->
+<!--/money/-->
+<!--/order_count/-->
+<!--/remain_coupon_count/-->
+<!--/usable_point/-->
+<!--/user_basket_quantity/-->
+<!--/user_deposit/-->
+<!--/user_email/-->
+<!--/user_greeting/-->
+<!--/user_name/-->
+<!--/user_nickname/-->
+<!--/user_reserve/-->
+<!--/wish_count/-->
+
+## 메뉴 링크
+<!--/link_coupon/-->
+<!--/link_money/-->
+<!--/link_mypage_today_product/-->
+<!--/link_point/-->
+<!--/link_reserve/-->
+<!--/link_subs/-->
+<!--/link_wish/-->
+<!--/link_withdraw/-->
+
+## sms 관련
+
+## 인클루드 태그
+<!--/include_footer/-->
+<!--/include_header/-->
+
+## 상점 정보
+<!--/shop_id/-->
+<!--/shop_name/-->
+
+## 잉글리쉬 HTML
+<!--/shop_language/-->
+
+## 기타
+<!--/attendance_count/-->
+<!--/autogroup_order_total_price/-->
+<!--/banner_plan/-->
+<!--/idx/-->
+<!--/if_attendance/-->
+<!--/if_company_user/-->
+<!--/if_link_mypage_present/-->
+<!--/if_new_join_type/-->
+<!--/is_sm_order/-->
+<!--/link_down_coupon/-->
+<!--/link_mypage_mp_review/-->
+<!--/link_my_board_scrap/-->
+<!--/link_recmd_invite/-->
+<!--/link_shoppay/-->
+<!--/m2m_list_cnt/-->
+<!--/my_list@comment/-->
+<!--/my_list@reply_status/-->
+<!--/order_list@brname/-->
+<!--/order_list@is_subs_order/-->
+<!--/shoppay_name/-->
+<!--/this_year_order_price/-->
+<!--/three_month_claim_all/-->
+<!--/three_month_delivery_ing/-->
+<!--/three_month_delivery_ok/-->
+<!--/three_month_delivery_ready/-->
+<!--/three_month_order_all/-->
+<!--/three_month_order_ok/-->
+<!--/three_month_order_ready/-->
+<!--/user_address/-->
+<!--/user_id/-->
+<!--/user_mobile/-->
+<!--/user_tel/-->
+<!--/wishlist_product@consumer_discount_rate/-->

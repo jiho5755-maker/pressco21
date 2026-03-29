@@ -1,0 +1,209 @@
+<div id="estimate">
+    <div class="btn_new_window">
+        <!--/block_estimate_screen/-->
+        <span>
+            <a href="<!--/link_estimate_print/-->" class="btn btn-primary btn-sm">인쇄하기</a>
+            <!--/if_link_send_mail/-->
+            <a href="<!--/link_send_mail/-->" class="btn btn-gray btn-sm">메일로 보내기</a>
+            <!--/end_if/-->
+            <a href="<!--/link_close/-->" class="btn btn-gray btn-sm">닫기</a>
+        </span>
+        <!--/end_block/-->
+    </div>
+    <div class="estimate-wrap">
+        <div class="estimate-title">견 적 서</div>
+        <div class="companyinfo">
+            <div class="info-box">
+                <p>
+                    <span><!--/date(%Y년 %M월 %D일)/today_date/--></span>
+                </p>
+                <p class="flex items-center gap-6">
+                    <span><!--/input_user_name/--></span>
+                    <span class="underline">님</span>
+                    <span>귀하</span>
+                </p>
+                <p>아래와 같이 견적합니다.</p>
+            </div>
+            <div class="info-tbl">
+                <div class="info-title">공급자</div>
+                <div class="info-wrap">
+                    <dl>
+                        <dt>상호명</dt>
+                        <dd><!--/company_name/--></dd>
+                    </dl>
+                    <dl>
+                        <dt>사업자</dt>
+                        <dd><!--/company_number/--></dd>
+                        <dt>대표자</dt>
+                        <dd>
+                            <!--/company_owner/-->
+                            <!--/if_img_ingam/-->
+                            <span class="img-stamp">
+                                <img src="<!--/img_ingam/-->" alt="인감도장 이미지">
+                            </span>
+                            <!--/end_if/-->
+                        </dd>
+                    </dl>
+                    <dl>
+                        <dt>주 소</dt>
+                        <dd><!--/company_addr/--></dd>
+                    </dl>
+                    <dl>
+                        <dt>업 태</dt>
+                        <dd><!--/company_biz/--></dd>
+                    </dl>
+                    <dl>
+                        <dt>종 목</dt>
+                        <dd><!--/company_item/--></dd>
+                    </dl>
+                    <dl>
+                        <dt>전 화</dt>
+                        <dd><!--/shop_tel/--></dd>
+                    </dl>
+                </div>
+            </div>
+        </div>
+        <div class="estimate-price">
+            <strong>합계금액 (<!--/if_vat_included/-->공급가액+부가세<!--/else/-->부가세 별도<!--/end_if/-->)</strong>
+            <div class="price-txt flex items-center gap-20">
+                <span>일금</span>
+                <span><!--/total_price_kor/-->원정</span>
+                <span class="price-won">(<span class="won">&#x20A9;</span><!--/number/total_price/-->원)</span>
+            </div>
+        </div>
+        <!-- 견적서 내용 -->
+        <div class="estimate-detail">
+            <div class="list-hearder">
+                <span>번호</span>
+                <span>품명</span>
+                <span>제조사</span>
+                <span>수량</span>
+                <span>단가</span>
+                <span>공급가액</span>
+            </div>
+            <!--/loop_estimate_product/-->
+            <div class="list-body">
+                <span><!--/estimate_product@number/--></span>
+                <span class="pro-name"><!--/estimate_product@name/--></span>
+                <ul>
+                    <li>
+                        <span class="is-mobile">제조사:</span>
+                        <span><!--/estimate_product@manufacture/--></span>
+                    </li>
+                    <li>
+                        <span class="is-mobile">수량:</span>
+                        <span><!--/number/estimate_product@amount/--></span>
+                    </li>
+                    <li>
+                        <span class="is-mobile">단가:</span>
+                        <span><!--/number/estimate_product@price/--></span>
+                    </li>
+                    <li>
+                        <span class="is-mobile">공급가액:</span>
+                        <span><!--/number/estimate_product@supply_price/--></span>
+                    </li>
+                </ul>
+            </div>
+            <!--/if_estimate_product@option/-->
+            <!--/loop_estimate_product@option/-->
+            <div class="list-body option-list">
+                <span class="ico-opt"></span>
+                <span class="pro-name"><!--/estimate_product@option@name/--></span>
+                <ul>
+                    <li>
+                        <span class="is-mobile">수량:</span>
+                        <span><!--/number/estimate_product@option@amount/--></span>
+                    </li>
+                    <li>
+                        <span class="is-mobile">단가:</span>
+                        <span><!--/number/estimate_product@option@price/--></span>
+                    </li>
+                    <li>
+                        <span class="is-mobile">공급가액:</span>
+                        <span><!--/number/estimate_product@option@supply_price/--></span>
+                    </li>
+                </ul>
+            </div>
+            <!--/end_loop/-->
+            <!--/end_if/-->
+            <!--/end_loop/-->
+            <!--/if_estimate_blank_text/-->
+            <div class="list-body empty">
+                ** 이 하 여 백 **
+            </div>
+            <!--/end_if/-->
+            <!--/if_estimate_blank/-->
+            <!--/loop_estimate_blank/-->
+            <div class="list-body empty"> &nbsp;</div>
+            <!--/end_loop/-->
+            <!--/end_if/-->
+        </div>
+        <!-- // 견적서 내용 -->
+        <!-- 합계 -->
+        <div class="estimate-total-price">
+            <!--/if_total_supply_price/-->
+            <p>
+                <span>상품금액</span>
+                <strong><!--/number/total_supply_price/--></strong>
+            </p>
+            <!--/end_if/-->
+            <!--/if_total_vat/-->
+            <p>
+                <span>부가세</span>
+                <strong><!--/number/total_vat/--></strong>
+            </p>
+            <!--/end_if/-->
+            <p>
+                <span>배송비</span>
+                <strong><!--/number/total_delivery/--></strong>
+            </p>
+            <!--/if_total_sale_price/-->
+            <p>
+                <span>할인금액</span>
+                <strong><!--/number/total_sale_price/--></strong>
+            </p>
+            <!--/end_if/-->
+            <!--/if_total_add_price(+1)/-->
+            <p>
+                <span>추가금액</span>
+                <strong><!--/number/total_add_price/--></strong>
+            </p>
+            <!--/end_if/-->
+            <!--/if_group_sale_price(+1)/-->
+            <p>
+                <span>그룹할인</span>
+                <strong><!--/number/group_sale_price/--></strong>
+            </p>
+            <!--/end_if/-->
+            <p>
+                <span>합계</span>
+                <strong><!--/number/total_price/--></strong>
+            </p>
+        </div>
+
+        <!-- 비고 -->
+        <div class="estimate-info note">
+            <span>비고</span>
+            <div><!--/estimate_message/--></div>
+        </div>
+        
+        <!-- 입금 계좌 -->
+        <!--/if_shop_account/-->
+        <div class="estimate-info bank-info">
+            <span>입금계좌</span>
+            <div><!--/shop_account/--></div>
+        </div>
+        <!--/end_if/-->
+    </div>
+    <!--/block_estimate_screen/-->
+    <div class="flex-right btn_new_window btn-bottom">
+        <span>
+            <a href="<!--/link_estimate_print/-->" class="btn btn-primary btn-sm">인쇄하기</a>
+            <!--/if_link_send_mail/-->
+            <a href="<!--/link_send_mail/-->" class="btn btn-gray btn-sm">메일로 보내기</a>
+            <!--/end_if/-->
+            <a href="<!--/link_close/-->" class="btn btn-gray btn-sm">닫기</a>
+        </span>
+    </div>
+    <!--/end_block/-->
+</div>

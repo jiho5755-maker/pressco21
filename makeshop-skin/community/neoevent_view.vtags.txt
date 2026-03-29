@@ -1,0 +1,20 @@
+# neoevent_view 가상태그
+
+
+## 기타
+<!--/apply_count_limit/-->
+<!--/apply_count_type/-->
+<!--/apply_end/-->
+<!--/apply_product/-->
+<!--/apply_start/-->
+<!--/apply_type/-->
+<!--/contents_html/-->
+<!--/contents_image/-->
+<!--/event_code/-->
+<!--/event_no/-->
+<!--/link_apply/-->
+<!--/list_image/-->
+<!--/status/-->
+<!--/status_code/-->
+<!--/target_type/-->
+<!--/title/-->

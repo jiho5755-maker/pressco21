@@ -1,0 +1,9 @@
+# user_agree 가상태그
+
+
+## 기타
+<!--/form_agree/-->
+<!--/link_agree/-->
+<!--/link_join/-->
+<!--/link_select_agree/-->
+<!--/new_privacy_terms/-->

@@ -1,0 +1,243 @@
+<!--/include_header(1)/-->
+
+<main id="subs-complete" class="container">
+
+    <h2 class="heading">정기배송 신청 완료</h2>
+
+    <div class="row order-wrapper">
+    
+        <div class="col-lg-8 col-md-12 order-goods">
+            <div class="complete-msg">
+                <p>정기배송 신청이 완료되었습니다.</p>
+                <p class="subs-num">정기배송 신청번호 <b><!--/subs_number/--></b></p>
+            </div>
+            <!-- 상품정보 -->
+            <div class="order-content goods">
+                <div class="order-title">
+                    정기배송 상품
+                    <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_expand.svg" alt="" class="toggle-btn">
+                </div> 
+                
+                <div class="product-count">
+                    <span class="first-pname">
+                    <!--/loop_order_product/-->
+                        <!--/if_idx(1)/-->
+                            <em><!--/notag/order_product@name/--></em>
+                        <!--/end_if/-->
+                    <!--/end_loop/-->
+                    </span> 포함 총
+                    <b class="qty"></b>건
+                </div>
+                
+                <div class="product-wrap">
+                    <div class="product-wrap--inner">
+                        <ul class="order-list">
+                            <!--/loop_order_product/-->
+                            <li>
+                                <div class="list-left">
+                                    <a href="<!--/order_product@link/-->"><img src="<!--/order_product@image_s/-->" class="response100" alt="<!--/order_product@name(50)/-->" /></a>
+                                </div>
+                                <div class="list-right">
+                                    <div class="p-info">
+                                        <p class="p-name"><!--/order_product@name(50)/--> / <!--/number/order_product@amount/-->개</p>
+                                        <!--/if_order_product@option/-->
+                                        <p class="p-option"><!--/order_product@option/--></p>
+                                        <!--/end_if/-->
+                                        <div class="p-price">
+                                            <p class="dc-price">
+                                                <b><!--/number/order_product@total_price/--></b>원
+                                            </p>
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="p-reserve">
+                                        <!--/if_order_product@reserve/-->적립금 <!--/number/order_product@reserve/--><br/><!--/end_if/-->
+                                        <!--/if_order_product@point/-->포인트 <!--/number/order_product@point/--><!--/end_if/-->
+                                    </div>
+                                    
+                                    <div class="p-subs">
+                                        <!--/if_order_product@subs_cycle/-->
+                                        <div class="subs-period">
+                                            <!--/if_order_product@subs_cycle_type(WEEK)/-->
+                                            <p><!--/order_product@subs_cycle/-->주 간격으로 <!--/order_product@subs_week/--> 배송</p>
+                                            <!--/end_if/-->
+                                            <!--/if_order_product@subs_cycle_type(MONTH)/-->
+                                            <p><!--/order_product@subs_cycle/-->개월 간격으로 <!--/order_product@subs_day/--> 배송</p>
+                                            <!--/end_if/-->
+                                        </div>
+                                        <!--/end_if/-->
+                                        <div class="subs-date">
+                                            <p><!--/order_product@subs_first_delivery_date/--> 첫 정기배송 예정일</p>
+                                        </div>
+                                    </div>
+                                    
+                                </div>
+                            </li>
+                            <!--/end_loop/-->
+                        </ul>
+                    </div>
+                </div>
+            </div>
+            <!-- //상품정보 -->
+            
+            <!-- 자동 결제 설정 정보 -->
+            <div class="order-content card">
+                <div class="order-title">자동 결제 설정</div>
+                <div class="order-detail">
+                    <table>
+                        <colgroup>
+                            <col width="120" />
+                            <col width="*" />
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <th>자동결제카드</th>
+                                <td><!--/bill_card_name/--></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- 자동 결제 설정 정보 -->
+            
+            <!-- 신청자 정보 -->
+            <div class="order-content sender">
+                <div class="order-title">신청자 정보</div>
+                <div class="order-detail">
+                    <table>
+                        <colgroup>
+                            <col width="120" />
+                            <col width="*" />
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <th>이름/연락처</th>
+                                <td><!--/sender/-->/<!--/sender_tel/--></td>
+                            </tr>
+                            <tr>
+                                <th>이메일</th>
+                                <td><!--/sender_email/--></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- //신청자 정보 -->
+            
+            <!-- 배송지 정보 -->
+            <div class="order-content delivery">
+                <div class="order-title">배송지 정보</div>
+                <div class="order-detail">
+                    <table>
+                        <colgroup>
+                            <col width="120" />
+                            <col width="*" />
+                        </colgroup>
+                        <tbody>
+                            <tr>
+                                <th>이름</th>
+                                <td><!--/receiver/--></td>
+                            </tr>
+                            <tr>
+                                <th>연락처</th>
+                                <td><!--/receiver_mobile/--> / <!--/receiver_tel/--></td>
+                            </tr>
+                            <tr>
+                                <th>주소</th>
+                                <td><!--/receiver_addr/--></td>
+                            </tr>
+                            <tr>
+                                <th>주문메세지</th>
+                                <td>
+                                    <!--/order_message/-->&nbsp;
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>배송메세지</th>
+                                <td>
+                                    <!--/delivery_message/-->&nbsp;
+                                </td>
+                            </tr> 
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <!-- //배송지 정보 -->
+            
+            <div class="order-info">
+                <div class="desc">
+                    <p>· 정기배송 신청금액은 현재 시점의 금액이며, 정기배송 자동결제 시점에는 금액이 변경될 수 있으니 쇼핑에 참고해주세요.</p>
+                    <p>· 정기배송 예정일 2일 전에 자동결제가 진행됩니다.</p>
+                    <p>· 정기배송일이 공휴일 및 택배사 휴무일인 경우 정기배송일 전·후로 배송될 수 있습니다.</p>
+                    <p>· 정기배송 스케쥴/결제정보 변경은 <em class="point-color">마이페이지 &gt; 정기배송 관리</em> 에서 가능합니다.</p>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 결제 정보 -->
+        <div class="col-lg-3 col-md-12 offset-lg-1 offset-md-0 order-pay">
+            <div class="order-pay--total">
+                <div class="cw-subtitle">결제 정보</div>
+                <div class="pay-info--box">
+                    <dl>
+                        <dt>총 상품 금액</dt>
+                        <dd><b><!--/number/subs_product_price/--></b>원</dd>
+                    </dl>
+                    <dl>
+                        <dt>배송비</dt>
+                        <dd><b>+<!--/number/subs_delivery_price/--></b>원</dd>
+                    </dl>
+                    <dl>
+                        <dt>할인금액 <!--/if_subs_sale_total_price(+1)/--><a href="#total-discount-list" class="fa btn-angle"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/dc_info_icon.svg" alt="할인내역"></a><!--/end_if/--></dt>
+                        <dd><b>-<!--/number/subs_sale_total_price/--></b>원</dd>
+                    </dl>
+                    <div id="total-discount-list" style="display:none;">
+                        <!--/if_subs_product_discount_price/-->
+                        <dl>
+                            <dt>ㄴ 기간할인</dt>
+                            <dd>-<!--/number/subs_product_discount_price/-->원</dd>
+                        </dl>
+                        <!--/end_if/-->
+                        <!--/if_subs_bulk_sale_price/-->
+                        <dl>
+                            <dt>ㄴ 대량구매할인</dt>
+                            <dd>-<!--/number/subs_bulk_sale_price/-->원</dd>      
+                        </dl>
+                        <!--/end_if/-->  
+                        <!--/if_subs_group_prd_sale_price/-->
+                        <dl>
+                            <dt>ㄴ 상품별 그룹할인</dt>
+                            <dd>-<!--/number/subs_group_prd_sale_price/-->원</dd>
+                        </dl>
+                        <!--/end_if/-->
+                        <!--/if_subs_subs_sale_price/-->
+                        <dl>
+                            <dt>ㄴ 정기배송할인</dt>
+                            <dd>-<!--/number/subs_subs_sale_price/-->원</dd>      
+                        </dl>
+                        <!--/end_if/-->          
+                        <!--/if_subs_group_price/-->
+                        <dl>
+                            <dt>ㄴ 그룹 추가할인</dt>
+                            <dd>-<!--/number/subs_group_price/-->원</dd>
+                        </dl>
+                        <!--/end_if/-->
+                    </div>
+                    <span class="MK_total_price">                                    
+                        <p class="pay-total">총 정기배송 신청금액 <span class="ml-auto"><strong><!--/number/subs_total_price/--></strong>원</span></p>
+                        <!--/if_subs_tax_price(+1)/-->
+                            <span class="txt-reserve">부가세 <!--/number/subs_tax_price/-->원 포함</span>
+                        <!--/end_if/-->
+                    </span>
+                </div>
+            </div>
+            
+            <div class="all-ok">
+                <a href="<!--/link_complete/-->" class="btn btn-primary btn-lg btn-pay">정기배송 신청 확인</a>
+            </div>
+        </div>
+        <!-- //결제 정보 -->
+    </div>
+</main>
+
+<!--/include_footer(1)/-->

@@ -1,0 +1,46 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<div class="container join-wrapper">
+    <div class="join-content">
+        <div class="page-title-wrap">
+            <h2>회원가입</h2>
+            <!--/if_not_link_join_company/-->
+            <p>SNS계정이 없으신 경우 일반 회원가입을 통해<br>회원가입을 진행할 수 있습니다.</p>
+            <!--/end_if/-->
+            <p>목적에 맞는 유형을 선택해서 가입을 진행해주시기를 바랍니다.<br>유형에 따라 가입 절차 및 항목에 차이가 있을 수 있습니다.</p>
+        </div>
+        <div class="join-type">
+            <!--/if_link_join_company/-->
+            <div class="btn-join">
+                <a href="<!--/link_join_person/-->" class="btn btn-primary btn-lg">일반회원 가입하기</a>
+                <a href="<!--/link_join_company/-->" class="btn btn-white btn-lg">기업회원 가입하기</a>
+            </div>
+            <!--/else/-->
+            <div class="btn-join">
+                <!--/if_link_join_simple/-->
+                <a href="<!--/link_join_simple/-->" class="btn btn-primary btn-lg">간편회원 가입하기</a>
+                <!--/else/-->
+                <a href="<!--/link_join_person/-->" class="btn btn-primary btn-lg">일반회원 가입하기</a>
+                <!--/end_if/-->
+            </div>
+            <!--/end_if/-->
+            <!--/form_sns_join/-->
+            <!--/if_use_login_sns/-->
+            <div class="sns-wrap">
+                <p class="sns-title"><span>SNS로 간편하게 가입하기</span></p>
+                <div class="sns-btns">
+                    <!--/if_link_join_kakao/--><a href="<!--/link_join_kakao/-->" class="kakaotalk">카카오로 가입하기</a><!--/end_if/-->
+                    <!--/if_link_join_naver/--><a href="<!--/link_join_naver/-->" class="naver">네이버로 가입하기</a><!--/end_if/-->
+                    <!--/if_link_join_facebook/--><a href="<!--/link_join_facebook/-->" class="facebook">페이스북으로 가입하기</a><!--/end_if/-->
+                    <!--/if_link_join_apple/--><a href="<!--/link_join_apple/-->" class="apple">Apple로 가입하기</a><!--/end_if/-->
+                </div>
+            </div>
+            <!--/end_if/-->
+            <!--/end_form/-->
+        </div>
+    </div>
+</div>
+<!-- //container -->
+
+<!--/include_footer(1)/-->

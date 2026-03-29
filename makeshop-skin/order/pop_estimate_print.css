@@ -1,0 +1,80 @@
+#estimate { position: relative; font-family: 'Pretendard', 'Noto Sans KR', 'Malgun Gothic', sans-serif; }
+.btn_new_window {display: flex; padding: 10px; justify-content: flex-end; align-items: center; gap: 6px; border-top: 1px solid var(--cw-color-20); border-bottom: 1px solid var(--cw-color-20); background: var(--cw-color-10); }
+.btn_new_window.btn-bottom { position: absolute; bottom: -90px; width: 100%; border-top: 1px solid var(--cw-color-20); border-bottom: 0; }
+.btn_new_window .btn { min-width: 90px; }
+.estimate-wrap { width: 700px; margin: 0 auto; }
+.estimate-title { margin-top: 40px; font-size: var(--cw-size-28); font-weight: 700; text-align: center; }
+.companyinfo { display: flex; margin-top: 20px; padding: 16px 0; border-top: 1px solid var(--cw-heading-color); }
+.companyinfo .info-box { display: flex; flex-direction: column; gap: 12px; align-items: center; text-align: center; font-size: var(--cw-size-14); min-width: 220px; justify-content: center; }
+.companyinfo .info-box input { padding: 0 10px; width: 100px; height: 30px; border-radius: var(--Btn_Input_round, 4px); border: 1px solid var(--cw-color-30); background: var(--cw-color-white); }
+.companyinfo .info-box .underline { text-decoration: underline; }
+.companyinfo .info-tbl { padding-left: 30px; border-left: 1px solid var(--cw-color-30); }
+.companyinfo .info-tbl .info-title { margin-bottom: 8px; font-size: var(--cw-size-16); font-weight: 600; }
+.companyinfo .info-tbl .info-wrap dl { position: relative; display: flex; align-items: center;  font-size: var(--cw-size-13); margin-bottom: 4px; }
+.companyinfo .info-tbl .info-wrap dl dt { flex: 0 0 42px; max-width: 42px; color: var(--cw-color-80); font-weight: 400; }
+.companyinfo .info-tbl .info-wrap dl dd { display: flex; align-items: center; gap: 6px; flex: 1 0 180px; margin: 0; }
+.companyinfo .info-tbl .info-wrap dl dd .img-stamp { position: absolute; right:0; bottom: 0; }
+.estimate-price { display: flex; align-items: center; border-top: 1px solid var(--cw-color-30); border-bottom: 1px solid var(--cw-color-30); font-size: var(--cw-size-14); font-weight: 600; padding: 1px 0; }
+.estimate-price strong { display: flex; align-items: center; justify-content: center; width: 220px; font-weight: 600; padding: 10px 0; background: var(--cw-color-10); text-align: center; }
+.estimate-price .price-txt { flex: 1; justify-content: center; flex-wrap: wrap; }
+.estimate-price .price-txt span { white-space: nowrap; }
+.estimate-price .price-won .won { display: inline-block; margin-right: 10px; }
+.estimate-detail { margin: 20px 0; border-top: 1px solid var(--cw-heading-color); }
+.estimate-detail .list-hearder { display: grid; grid-template-columns: 48px auto repeat(4, 90px); align-items: center; padding: 10px 0; border-bottom: 1px solid var(--cw-color-30); text-align: center; font-size: var(--cw-size-13); }
+.estimate-detail .list-body { display: grid; grid-template-columns: 48px auto auto; padding: 10px 0; border-bottom: 1px solid var(--cw-color-30); text-align: center; font-size: var(--cw-size-13); } 
+.estimate-detail .list-body.empty { display: flex; align-items: center; justify-content: center; }
+.estimate-detail .list-body .pro-name { font-weight: 600; text-align: left; }
+.estimate-detail .list-body .MK_bundle_product_name,
+.estimate-detail .list-body.option-list .pro-name { font-weight: 400; }
+.estimate-detail .list-body .MS_option_price, 
+.estimate-detail .list-body .pro-name .color{ color: var(--cw-error-color); }
+.estimate-detail .list-body ul { display: flex; justify-content: end; align-items: center; }
+.estimate-detail .list-body ul li { width: 90px; }
+.estimate-detail .list-body .is-mobile { display: none; }
+.estimate-detail .list-body .ico-opt {
+    width: 6px;
+    height: 6px;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='6' height='6' viewBox='0 0 6 6' fill='none'%3E%3Cpath d='M0.5 0.5V5.5H5.5' stroke='%23999999' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");
+    background-size: contain;
+    background-repeat: no-repeat;
+    display: inline-block;
+    margin: 6px auto;
+}
+.estimate-total-price { display: flex; flex-direction: column; width: 350px; margin-left: auto; border-top: 1px solid var(--cw-heading-color); }
+.estimate-total-price p { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--cw-color-30); font-size: var(--cw-size-13); }
+.estimate-total-price strong { font-weight: 600; }
+.estimate-info { display: flex; align-items: stretch; margin-top: 20px; border-top: 1px solid var(--cw-color-30); border-bottom: 1px solid var(--cw-color-30); font-size: var(--cw-size-13); padding: 1px 0; }
+.estimate-info span { display: flex; justify-content: center; align-items: center; width: 80px; min-height: 80px; background: var(--cw-color-10); text-align: center; font-weight: 600; }
+.estimate-info div { display: flex; padding: 10px; min-height: 80px; }
+.estimate-info:last-child { margin: 0 0 40px; border-top: 0; }
+
+/* 모바일 */
+@media (max-width: 480px) {
+    #estimate { overflow: hidden; }
+    .estimate-wrap { width: 100%; padding: 0 16px; }
+    .companyinfo { flex-direction: column; gap: 16px; }
+    .companyinfo .info-tbl { padding: 16px 0 0; border-left: 0; border-top: 1px solid var(--cw-color-30); }
+    .estimate-price { flex-direction: column; }
+    .estimate-price strong { width: 100%; }
+    .estimate-price .price-txt { width: 100%; padding: 10px 0; border-top: 1px solid var(--cw-color-30); }
+    .estimate-detail .list-hearder { display: none; }
+    .estimate-detail .list-body .is-mobile { display: inline-block; }
+    .estimate-total-price { width: 100%; }
+    .estimate-detail .list-body { grid-template-columns: 48px auto; grid-template-rows: auto auto; }
+    .estimate-detail .list-body .pro-name { grid-column: 2 / 3; }
+    .estimate-detail .list-body ul { grid-column: 2 / 3; justify-content: flex-start; flex-wrap: wrap; margin-top: 2px; }
+    .estimate-detail .list-body ul li { width: auto; margin-right: 12px; display: inline-flex; white-space: nowrap; gap: 4px; }
+    .estimate-info { flex-direction: column; }
+    .estimate-info span { width: 100%; min-height: 40px; border-bottom: 1px solid var(--cw-color-30); }
+}
+
+/* 프린트 전용 */
+@media print {
+    @page { size: A4 portrait; margin: 10mm; }
+    .btn_new_window { display: none !important; }
+}
+
+/* 화면 전용 */
+@media screen {
+    .btn_new_window { display: flex; }
+}

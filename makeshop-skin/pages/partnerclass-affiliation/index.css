@@ -1,0 +1,831 @@
+/* ============================================
+   PRESSCO21 협회 전용 랜딩 페이지 (제안서)
+   CSS 스코핑: .affiliation-landing
+   CSS 변수 접두사: --al-
+   브랜드 컬러: #425b51 (포레스트 그린), #d4a373 (골드)
+   반응형: ~768px / 768~992px / 992px~
+   ============================================ */
+
+/* ----------------------------------------
+   0. CSS 변수
+   ---------------------------------------- */
+.affiliation-landing {
+    --al-primary: #425b51;
+    --al-primary-light: #668f7e;
+    --al-primary-dark: #2a3c34;
+    --al-gold: #d4a373;
+    --al-gold-light: #e8d5c4;
+    --al-gold-dark: #b88a5e;
+    --al-bg: #fdfbf7;
+    --al-bg-warm: #faf6ef;
+    --al-bg-card: #ffffff;
+    --al-bg-section-alt: #f5f0e8;
+    --al-text: #333333;
+    --al-text-light: #777777;
+    --al-text-dark: #1a1a1a;
+    --al-border: #e8e2db;
+    --al-border-light: #f0ebe5;
+    --al-shadow-sm: 0 1px 3px rgba(107, 76, 59, 0.06);
+    --al-shadow-md: 0 4px 16px rgba(107, 76, 59, 0.08);
+    --al-shadow-lg: 0 8px 32px rgba(107, 76, 59, 0.12);
+    --al-radius-sm: 8px;
+    --al-radius-md: 12px;
+    --al-radius-lg: 16px;
+    --al-radius-xl: 24px;
+    --al-transition: 0.3s ease;
+    --al-font: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
+    --al-font-serif: 'Noto Serif KR', 'Georgia', serif;
+
+    font-family: var(--al-font);
+    background-color: var(--al-bg);
+    color: var(--al-text);
+    line-height: 1.7;
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+    -webkit-font-smoothing: antialiased;
+    overflow-x: hidden;
+}
+
+.affiliation-landing *,
+.affiliation-landing *::before,
+.affiliation-landing *::after {
+    box-sizing: border-box;
+}
+
+/* ----------------------------------------
+   1. 공통 섹션 구조
+   ---------------------------------------- */
+.affiliation-landing .al-section {
+    padding: 80px 20px;
+}
+
+.affiliation-landing .al-section__inner {
+    max-width: 960px;
+    margin: 0 auto;
+}
+
+.affiliation-landing .al-section__tag {
+    display: inline-block;
+    font-family: var(--al-font);
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 2px;
+    text-transform: uppercase;
+    color: var(--al-gold-dark);
+    background: linear-gradient(135deg, rgba(212, 163, 115, 0.12), rgba(212, 163, 115, 0.06));
+    border: 1px solid rgba(212, 163, 115, 0.25);
+    padding: 6px 16px;
+    border-radius: 20px;
+    margin-bottom: 16px;
+}
+
+.affiliation-landing .al-section__title {
+    font-family: var(--al-font-serif);
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--al-text-dark);
+    margin: 12px 0 16px;
+    line-height: 1.4;
+}
+
+.affiliation-landing .al-section__desc {
+    font-size: 15px;
+    color: var(--al-text-light);
+    line-height: 1.8;
+    margin: 0 0 40px;
+}
+
+/* ----------------------------------------
+   2. 히어로
+   ---------------------------------------- */
+.affiliation-landing .al-hero {
+    position: relative;
+    background: linear-gradient(160deg, var(--al-primary-dark) 0%, var(--al-primary) 50%, var(--al-primary-light) 100%);
+    color: #ffffff;
+    padding: 80px 20px 100px;
+    text-align: center;
+    overflow: hidden;
+}
+
+.affiliation-landing .al-hero__inner {
+    position: relative;
+    z-index: 2;
+    max-width: 720px;
+    margin: 0 auto;
+}
+
+.affiliation-landing .al-hero__deco {
+    position: absolute;
+    top: -30%;
+    right: -10%;
+    width: 400px;
+    height: 400px;
+    border-radius: 50%;
+    background: radial-gradient(circle, rgba(212, 163, 115, 0.15) 0%, transparent 70%);
+    z-index: 1;
+}
+
+.affiliation-landing .al-hero__logos {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+    margin-bottom: 32px;
+}
+
+.affiliation-landing .al-hero__logo {
+    height: 48px;
+    width: auto;
+    object-fit: contain;
+}
+
+.affiliation-landing .al-hero__logo--affil {
+    max-width: 160px;
+    background: rgba(255, 255, 255, 0.9);
+    padding: 6px 12px;
+    border-radius: 8px;
+}
+
+.affiliation-landing .al-hero__logo-sep {
+    font-size: 20px;
+    color: rgba(255, 255, 255, 0.5);
+    font-weight: 300;
+}
+
+.affiliation-landing .al-hero__eyebrow {
+    font-size: 12px;
+    font-weight: 600;
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    color: var(--al-gold-light);
+    margin: 0 0 16px;
+}
+
+.affiliation-landing .al-hero__title {
+    font-family: var(--al-font-serif);
+    font-size: 36px;
+    font-weight: 700;
+    line-height: 1.35;
+    margin: 0 0 16px;
+    word-break: keep-all;
+}
+
+.affiliation-landing .al-hero__subtitle {
+    font-size: 16px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.6;
+    margin: 0;
+}
+
+/* ----------------------------------------
+   3. 제안 개요
+   ---------------------------------------- */
+.affiliation-landing .al-overview {
+    background: var(--al-bg);
+}
+
+.affiliation-landing .al-overview__cards {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+}
+
+.affiliation-landing .al-overview__card {
+    background: var(--al-bg-card);
+    border: 1px solid var(--al-border-light);
+    border-radius: var(--al-radius-md);
+    padding: 28px 24px;
+    text-align: center;
+    transition: box-shadow var(--al-transition), transform var(--al-transition);
+}
+
+.affiliation-landing .al-overview__card:hover {
+    box-shadow: var(--al-shadow-md);
+    transform: translateY(-2px);
+}
+
+.affiliation-landing .al-overview__card-icon {
+    width: 48px;
+    height: 48px;
+    margin: 0 auto 16px;
+    color: var(--al-primary);
+}
+
+.affiliation-landing .al-overview__card-icon svg {
+    width: 100%;
+    height: 100%;
+}
+
+.affiliation-landing .al-overview__card-title {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--al-text-dark);
+    margin: 0 0 8px;
+}
+
+.affiliation-landing .al-overview__card-desc {
+    font-size: 13px;
+    color: var(--al-text-light);
+    line-height: 1.7;
+    margin: 0;
+}
+
+/* ----------------------------------------
+   4. 혜택 3가지
+   ---------------------------------------- */
+.affiliation-landing .al-benefits {
+    background: var(--al-bg-section-alt);
+}
+
+.affiliation-landing .al-benefits__list {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+}
+
+.affiliation-landing .al-benefits__item {
+    display: flex;
+    gap: 24px;
+    background: var(--al-bg-card);
+    border: 1px solid var(--al-border-light);
+    border-radius: var(--al-radius-lg);
+    padding: 32px;
+    transition: box-shadow var(--al-transition);
+}
+
+.affiliation-landing .al-benefits__item:hover {
+    box-shadow: var(--al-shadow-md);
+}
+
+.affiliation-landing .al-benefits__number {
+    flex-shrink: 0;
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-family: var(--al-font-serif);
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--al-gold-dark);
+    background: linear-gradient(135deg, rgba(212, 163, 115, 0.15), rgba(212, 163, 115, 0.05));
+    border: 1px solid rgba(212, 163, 115, 0.25);
+    border-radius: 50%;
+}
+
+.affiliation-landing .al-benefits__content {
+    flex: 1;
+    min-width: 0;
+}
+
+.affiliation-landing .al-benefits__title {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--al-text-dark);
+    margin: 0 0 8px;
+}
+
+.affiliation-landing .al-benefits__desc {
+    font-size: 14px;
+    color: var(--al-text-light);
+    line-height: 1.8;
+    margin: 0 0 16px;
+}
+
+/* 할인 배지 */
+.affiliation-landing .al-benefits__badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: linear-gradient(135deg, var(--al-primary) 0%, var(--al-primary-light) 100%);
+    color: #ffffff;
+    padding: 10px 20px;
+    border-radius: var(--al-radius-sm);
+}
+
+.affiliation-landing .al-benefits__badge-label {
+    font-size: 13px;
+    font-weight: 500;
+    opacity: 0.9;
+}
+
+.affiliation-landing .al-benefits__badge-value {
+    font-size: 20px;
+    font-weight: 700;
+}
+
+/* 인센티브 단계 카드 */
+.affiliation-landing .al-benefits__tiers {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+}
+
+.affiliation-landing .al-tier-card {
+    background: var(--al-bg-warm);
+    border: 1px solid var(--al-border);
+    border-radius: var(--al-radius-sm);
+    padding: 16px;
+    text-align: center;
+    transition: border-color var(--al-transition), box-shadow var(--al-transition);
+}
+
+.affiliation-landing .al-tier-card:hover {
+    border-color: var(--al-gold);
+    box-shadow: var(--al-shadow-sm);
+}
+
+.affiliation-landing .al-tier-card--active {
+    border-color: var(--al-gold);
+    background: linear-gradient(135deg, rgba(212, 163, 115, 0.08), rgba(212, 163, 115, 0.02));
+}
+
+.affiliation-landing .al-tier-card__step {
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    color: var(--al-gold-dark);
+    margin: 0 0 6px;
+}
+
+.affiliation-landing .al-tier-card__target {
+    font-size: 13px;
+    color: var(--al-text-light);
+    margin: 0 0 8px;
+    line-height: 1.5;
+}
+
+.affiliation-landing .al-tier-card__incentive {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--al-primary);
+    margin: 0;
+}
+
+/* 체크리스트 */
+.affiliation-landing .al-benefits__checklist {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 8px;
+}
+
+.affiliation-landing .al-benefits__checklist li {
+    font-size: 14px;
+    color: var(--al-text);
+    padding-left: 24px;
+    position: relative;
+    line-height: 1.7;
+}
+
+.affiliation-landing .al-benefits__checklist li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 6px;
+    width: 16px;
+    height: 16px;
+    border-radius: 50%;
+    background: var(--al-primary);
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: 10px;
+}
+
+/* ----------------------------------------
+   5. 시뮬레이션
+   ---------------------------------------- */
+.affiliation-landing .al-simulation {
+    background: var(--al-bg);
+}
+
+.affiliation-landing .al-simulation__grid {
+    display: grid;
+    grid-template-columns: 1fr 1.5fr;
+    gap: 32px;
+    align-items: start;
+}
+
+.affiliation-landing .al-simulation__sub-title {
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--al-text-dark);
+    margin: 0 0 16px;
+    padding-bottom: 12px;
+    border-bottom: 2px solid var(--al-border);
+}
+
+.affiliation-landing .al-simulation__inputs {
+    background: var(--al-bg-card);
+    border: 1px solid var(--al-border-light);
+    border-radius: var(--al-radius-md);
+    padding: 24px;
+}
+
+.affiliation-landing .al-simulation__input-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--al-border-light);
+}
+
+.affiliation-landing .al-simulation__input-row:last-child {
+    border-bottom: none;
+}
+
+.affiliation-landing .al-simulation__input-label {
+    font-size: 14px;
+    color: var(--al-text-light);
+}
+
+.affiliation-landing .al-simulation__input-value {
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--al-text-dark);
+}
+
+.affiliation-landing .al-simulation__results {
+    background: var(--al-bg-card);
+    border: 1px solid var(--al-border-light);
+    border-radius: var(--al-radius-md);
+    padding: 24px;
+}
+
+.affiliation-landing .al-simulation__result-cards {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.affiliation-landing .al-simulation__result-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 16px 20px;
+    background: var(--al-bg-warm);
+    border: 1px solid var(--al-border-light);
+    border-radius: var(--al-radius-sm);
+}
+
+.affiliation-landing .al-simulation__result-card--highlight {
+    background: linear-gradient(135deg, var(--al-primary) 0%, var(--al-primary-light) 100%);
+    border-color: transparent;
+    color: #ffffff;
+}
+
+.affiliation-landing .al-simulation__result-label {
+    font-size: 14px;
+}
+
+.affiliation-landing .al-simulation__result-card--highlight .al-simulation__result-label {
+    color: rgba(255, 255, 255, 0.85);
+}
+
+.affiliation-landing .al-simulation__result-value {
+    font-size: 18px;
+    font-weight: 700;
+    color: var(--al-text-dark);
+}
+
+.affiliation-landing .al-simulation__result-card--highlight .al-simulation__result-value {
+    color: #ffffff;
+}
+
+.affiliation-landing .al-simulation__note {
+    font-size: 12px;
+    color: var(--al-text-light);
+    margin: 16px 0 0;
+    line-height: 1.6;
+}
+
+/* ----------------------------------------
+   6. 성장 로드맵
+   ---------------------------------------- */
+.affiliation-landing .al-roadmap {
+    background: var(--al-bg-section-alt);
+}
+
+.affiliation-landing .al-roadmap__timeline {
+    position: relative;
+    padding-left: 40px;
+}
+
+.affiliation-landing .al-roadmap__timeline::before {
+    content: '';
+    position: absolute;
+    left: 15px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: linear-gradient(180deg, var(--al-gold) 0%, var(--al-primary-light) 100%);
+}
+
+.affiliation-landing .al-roadmap__step {
+    position: relative;
+    margin-bottom: 32px;
+}
+
+.affiliation-landing .al-roadmap__step:last-child {
+    margin-bottom: 0;
+}
+
+.affiliation-landing .al-roadmap__step-marker {
+    position: absolute;
+    left: -40px;
+    top: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1;
+}
+
+.affiliation-landing .al-roadmap__step-month {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    font-size: 10px;
+    font-weight: 700;
+    color: #ffffff;
+    background: var(--al-primary);
+    border-radius: 50%;
+    border: 3px solid var(--al-bg-section-alt);
+}
+
+.affiliation-landing .al-roadmap__step-content {
+    background: var(--al-bg-card);
+    border: 1px solid var(--al-border-light);
+    border-radius: var(--al-radius-md);
+    padding: 24px;
+    transition: box-shadow var(--al-transition);
+}
+
+.affiliation-landing .al-roadmap__step-content:hover {
+    box-shadow: var(--al-shadow-md);
+}
+
+.affiliation-landing .al-roadmap__step-title {
+    font-size: 17px;
+    font-weight: 700;
+    color: var(--al-text-dark);
+    margin: 0 0 12px;
+}
+
+.affiliation-landing .al-roadmap__step-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+
+.affiliation-landing .al-roadmap__step-list li {
+    font-size: 14px;
+    color: var(--al-text);
+    line-height: 1.8;
+    padding-left: 20px;
+    position: relative;
+}
+
+.affiliation-landing .al-roadmap__step-list li::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 10px;
+    width: 6px;
+    height: 6px;
+    background: var(--al-gold);
+    border-radius: 50%;
+}
+
+/* ----------------------------------------
+   7. CTA
+   ---------------------------------------- */
+.affiliation-landing .al-cta {
+    background: linear-gradient(160deg, var(--al-primary-dark) 0%, var(--al-primary) 100%);
+    color: #ffffff;
+    text-align: center;
+    padding: 80px 20px;
+}
+
+.affiliation-landing .al-cta__title {
+    font-family: var(--al-font-serif);
+    font-size: 26px;
+    font-weight: 700;
+    margin: 0 0 16px;
+    line-height: 1.4;
+}
+
+.affiliation-landing .al-cta__desc {
+    font-size: 15px;
+    color: rgba(255, 255, 255, 0.8);
+    line-height: 1.8;
+    margin: 0 0 36px;
+}
+
+.affiliation-landing .al-cta__contact {
+    display: flex;
+    justify-content: center;
+    gap: 32px;
+    flex-wrap: wrap;
+}
+
+.affiliation-landing .al-cta__contact-item {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: rgba(255, 255, 255, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.15);
+    border-radius: var(--al-radius-md);
+    padding: 16px 24px;
+    backdrop-filter: blur(4px);
+    transition: background var(--al-transition);
+}
+
+.affiliation-landing .al-cta__contact-item:hover {
+    background: rgba(255, 255, 255, 0.18);
+}
+
+.affiliation-landing .al-cta__contact-icon {
+    width: 24px;
+    height: 24px;
+    flex-shrink: 0;
+    color: var(--al-gold-light);
+}
+
+.affiliation-landing .al-cta__contact-label {
+    display: block;
+    font-size: 12px;
+    color: rgba(255, 255, 255, 0.6);
+    margin-bottom: 2px;
+}
+
+.affiliation-landing .al-cta__contact-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: #ffffff;
+    text-decoration: none;
+}
+
+.affiliation-landing .al-cta__contact-value:hover {
+    text-decoration: underline;
+}
+
+.affiliation-landing .al-cta__note {
+    font-size: 13px;
+    color: rgba(255, 255, 255, 0.6);
+    margin: 24px 0 0;
+    line-height: 1.6;
+}
+
+/* ----------------------------------------
+   8. 푸터
+   ---------------------------------------- */
+.affiliation-landing .al-footer {
+    text-align: center;
+    padding: 32px 20px;
+    background: var(--al-bg);
+    border-top: 1px solid var(--al-border-light);
+}
+
+.affiliation-landing .al-footer__text {
+    font-size: 13px;
+    color: var(--al-text-light);
+    margin: 0 0 4px;
+}
+
+.affiliation-landing .al-footer__text--sub {
+    font-size: 11px;
+    color: #aaa;
+}
+
+/* ----------------------------------------
+   9. 반응형 (992px 이하)
+   ---------------------------------------- */
+@media screen and (max-width: 992px) {
+    .affiliation-landing .al-hero__title {
+        font-size: 30px;
+    }
+
+    .affiliation-landing .al-section {
+        padding: 60px 20px;
+    }
+
+    .affiliation-landing .al-section__title {
+        font-size: 24px;
+    }
+
+    .affiliation-landing .al-overview__cards {
+        grid-template-columns: 1fr;
+        gap: 16px;
+    }
+
+    .affiliation-landing .al-simulation__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .affiliation-landing .al-benefits__tiers {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* ----------------------------------------
+   10. 반응형 (768px 이하)
+   ---------------------------------------- */
+@media screen and (max-width: 768px) {
+    .affiliation-landing .al-hero {
+        padding: 60px 16px 80px;
+    }
+
+    .affiliation-landing .al-hero__title {
+        font-size: 24px;
+    }
+
+    .affiliation-landing .al-hero__subtitle {
+        font-size: 14px;
+    }
+
+    .affiliation-landing .al-hero__logo {
+        height: 36px;
+    }
+
+    .affiliation-landing .al-section {
+        padding: 48px 16px;
+    }
+
+    .affiliation-landing .al-section__title {
+        font-size: 22px;
+    }
+
+    .affiliation-landing .al-section__desc {
+        font-size: 14px;
+        margin-bottom: 28px;
+    }
+
+    .affiliation-landing .al-benefits__item {
+        flex-direction: column;
+        gap: 16px;
+        padding: 24px 20px;
+    }
+
+    .affiliation-landing .al-benefits__number {
+        width: 40px;
+        height: 40px;
+        font-size: 16px;
+    }
+
+    .affiliation-landing .al-benefits__checklist {
+        grid-template-columns: 1fr;
+    }
+
+    .affiliation-landing .al-cta {
+        padding: 60px 16px;
+    }
+
+    .affiliation-landing .al-cta__title {
+        font-size: 22px;
+    }
+
+    .affiliation-landing .al-cta__contact {
+        flex-direction: column;
+        align-items: center;
+        gap: 16px;
+    }
+
+    .affiliation-landing .al-cta__contact-item {
+        width: 100%;
+        max-width: 320px;
+        justify-content: center;
+    }
+
+    .affiliation-landing .al-roadmap__timeline {
+        padding-left: 32px;
+    }
+
+    .affiliation-landing .al-roadmap__step-marker {
+        left: -32px;
+    }
+
+    .affiliation-landing .al-roadmap__step-month {
+        width: 28px;
+        height: 28px;
+        font-size: 9px;
+    }
+
+    .affiliation-landing .al-roadmap__step-content {
+        padding: 20px 16px;
+    }
+
+    .affiliation-landing .al-simulation__result-card {
+        flex-direction: column;
+        text-align: center;
+        gap: 4px;
+    }
+}

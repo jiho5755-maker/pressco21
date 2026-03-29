@@ -1,0 +1,22 @@
+#findAddress { gap: 20px; padding: 20px; }
+#findAddress .layer-title { font-size: var(--cw-size-18); font-weight: 700; border-bottom: 1px solid var(--cw-heading-color); padding-bottom: 12px; }
+#findAddress .tab-radio { display: flex; align-items: center; gap: 20px; padding-top: 20px; font-size: var(--cw-size-14); }
+#findAddress .tab-radio input { margin-right: 8px; }
+#findAddress .search-form { display: flex; align-items: center; gap: 6px; padding-top: 20px; }
+#findAddress .search-form span:first-child { flex: 1; }
+#findAddress .search-form span input { width: 100%; }
+#findAddress .search-txt { padding-top: 20px; font-size: var(--cw-size-13); }
+#findAddress .MS_addr_type_area { padding-bottom: 20px; border-bottom: 1px solid var(--cw-color-30); }
+#findAddress .btm-message { padding-top: 20px; }
+#findAddress .search-list { margin-top: 40px; }
+#findAddress .list-wrap { padding: 10px 0; border-bottom: 1px solid var(--cw-color-30); }
+#findAddress .list-wrap li { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 0; font-size: var(--cw-size-13); }
+#findAddress .list-wrap li a { color: var(--cw-heading-color); }
+#findAddress .info-txt { text-align: center; justify-content: center !important; color: var(--cw-heading-color); font-size: var(--cw-size-14) !important; font-weight: 600; }
+#findAddress .btm-txt { margin-top: 20px; font-size: var(--cw-size-13); }
+#findAddress .addr-sel { display: flex; gap: 4px; }
+#findAddress .bull-roadnum,
+#findAddress .bull-num { display: inline-block; width: 42px; height: 18px; margin-right: 6px; border-radius: 2px; font-size: var(--cw-size-11); font-weight: 600; color: var(--cw-color-80); text-align: center; }
+#findAddress .bull-roadnum { border: 1px solid var(--cw-color-30); }
+#findAddress .bull-num { margin-top: 4px; border: 1px solid var(--cw-color-30); background: var(--cw-color-10); }
+#findAddress .addr-sel .btn { white-space: nowrap; }

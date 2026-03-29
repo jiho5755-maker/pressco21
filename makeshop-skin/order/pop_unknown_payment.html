@@ -1,0 +1,25 @@
+<!--/include_header(1)/-->
+
+<div class="container unknown-wrapper">
+    <h2 class="cw-unknowntitle">미확인 입금자</h2>
+    <div class="cw-wrapper">
+        <div class="cw-unknownlist">
+            <!--/if_unknown_payment/-->
+            <ul>
+                <!--/loop_unknown_payment/-->
+                <li>
+                    <p class="date"><!--/date(%Y.%M.%D)/unknown_payment@date/--></p>
+                    <p class="name"><!--/unknown_payment@name/--></p>
+                    <p class="bank"><!--/unknown_payment@bank_name/--></p>
+                    <p class="price"><!--/number/unknown_payment@price/-->원</p>
+                </li>
+                <!--/end_loop/-->
+            </ul>
+            <!--/else/-->
+            <div class="list-none">데이터가 없습니다.</div>
+            <!--/end_if/-->
+        </div>
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

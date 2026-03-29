@@ -1,0 +1,68 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container login-wrapper">
+    <div class="login-wrap">
+        <div class="page-title-wrap txt-c">
+            <h2 class="pt-20">성인몰 쇼핑몰</h2>
+        </div>
+        <div class="adult-info">
+            <span class="ico-adult">19</span>
+            <p>본 정보 내용은 '청소년에게 유해한 정보'를 포함하고 있어 성인인증 절차를 거쳐야 합니다.</p>
+            <a href="about:blank" class="btn btn-white btn-sm">19세 미만 나가기</a>
+        </div>
+        <div class="login-form">
+            <!--/if_input_login_id/-->
+            <!--/form_login/-->
+            <div class="form-textfield">
+                <!--/input_login_id(cw-textfield)/-->
+                <!--/input_login_pw(cw-textfield)/-->
+            </div>
+            <div class="form-check form-check-inline">
+                <label class="form-check-label"><!--/checkbox_save_id/--> 아이디 저장</label>
+                <label class="form-check-label"><!--/checkbox_auto_login/--> 자동 로그인</label>
+                <label class="form-check-label"><!--/checkbox_security/--> 보안 로그인</label>
+            </div>
+            <div class="btn-login">
+                <a href="<!--/link_login_button/-->" class="btn btn-primary btn-lg">로그인</a>
+            </div>
+            <!--/end_form/-->
+            <!--/if_not_adult_auth_ok/-->
+            <div class="auth-wrap">
+                <!--/if_not_login/-->
+                <p class="auth-title"><span>비회원 성인인증</span></p>
+                <!--/end_if/-->
+                <div class="btn-auth flex-col">
+                    <!--/if_link_ipin_auth/--><a href="<!--/link_ipin_auth/-->" class="btn btn-white btn-lg">아이핀 인증</a><!--/end_if/-->
+                    <!--/if_link_mobile_auth/--><a href="<!--/link_mobile_auth/-->" class="btn btn-white btn-lg">휴대폰 인증</a><!--/end_if/-->
+                </div>
+            </div>
+            <!--/end_if/-->
+            <!--/else/-->
+            <div class="auth-wrap">
+                <!--/if_not_login/-->
+                <p class="auth-title"><span>비회원 성인인증</span></p>
+                <!--/end_if/-->
+                <div class="txt-auth">
+                    <h3>회원 추가 성인 인증</h3>
+                    <p>
+                        <!--/if_link_mobile_auth/-->
+                            휴대폰 <!--/if_link_ipin_auth/--> 또는 <!--/end_if/-->
+                        <!--/end_if/--> 
+                        <!--/if_link_ipin_auth/-->아이핀<!--/end_if/--> 인증을 통하여 본인인증을 하셔야 합니다.
+                    </p>
+                    <strong>인증 후 1년 동안은 추가 인증 없이 이용하실 수 있습니다.</strong>
+                    <p>인증버튼을 눌러 본인인증을 진행해 주세요.</p>
+                </div>
+                <div class="btn-auth flex-col">
+                    <!--/if_link_ipin_auth/--><a href="<!--/link_ipin_auth/-->" class="btn btn-white btn-lg">아이핀 인증</a><!--/end_if/-->
+                    <!--/if_link_mobile_auth/--><a href="<!--/link_mobile_auth/-->" class="btn btn-white btn-lg">휴대폰 인증</a><!--/end_if/-->
+                </div>
+            </div>
+            <!--/end_if/-->
+        </div>
+    </div>
+</main>
+<!-- //container -->
+
+<!--/include_footer(1)/-->

@@ -1,0 +1,26 @@
+# login_adult 가상태그
+
+
+## 로그인 관련
+<!--/block_login_fail_no_id/-->
+<!--/block_login_fail_no_match/-->
+<!--/block_login_fail_wrap/-->
+<!--/checkbox_auto_login/-->
+<!--/checkbox_save_id/-->
+<!--/checkbox_security/-->
+<!--/form_login/-->
+<!--/input_login_id/-->
+<!--/input_login_pw/-->
+<!--/link_login_button/-->
+<!--/link_login_fail_close/-->
+
+## 인증
+<!--/link_ipin_auth/-->
+<!--/link_mobile_auth/-->
+
+## 인클루드 태그
+
+## 기타
+<!--/if_cookie_support/-->
+<!--/loop_auth_method/-->
+<!--/shop_id/-->

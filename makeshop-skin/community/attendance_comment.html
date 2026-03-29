@@ -1,0 +1,58 @@
+<!--/include_header(1)/-->
+
+<div class="container attendance-wrapper">
+    <h2 class="cw-attendancetitle">출석체크</h2>
+    <div class="cw-wrapper">
+        <div class="cw-attendancecomment">
+            <div class="attendance-guide">
+                기간 : <!--/date(%M월 %D일)/start_date/--> ~ <!--/date(%M월 %D일)/end_date/--><br>
+                출석체크 참여자 : <!--/number/attendance_total/-->명
+            </div>
+            <div class="attendance-title">출석체크 댓글 작성</div>
+            <!--/form_comment/-->
+            <div class="opinion-write">
+                <!--/input_comment(cw-textfield)/-->
+                <a href="<!--/link_write/-->" class="btn btn-primary"><span>출석</span></a>
+            </div>
+            <!--/end_form/-->
+            <div class="attendance-title">
+                출석체크 목록
+                <a href="<!--/link_attendance/-->" class="btn btn-white btn-xs"><span>나의 출석표</span></a>
+            </div>
+            <div class="opinion-list">
+                <!--/if_comment_list/-->
+                    <!--/loop_comment_list/-->
+                    <div class="post">
+                        <div class="content"><!--/comment_list@comment/--></div>
+                        <div class="text-end">
+                            <span class="id"><!--/comment_list@user_id/--></span>
+                            <span class="date"><!--/date(%Y.%M.%D)/comment_list@reg_date/--></span>
+                        </div>
+                    </div>
+                    <!--/end_loop/-->
+                    <div class="cw-paging">
+                        <!--/if_pager_comment_list::prev/-->
+                        <a href="<!--/pager_comment_list::prev@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_skin/images/icons/ico_cheveron_left.svg" alt="이전" width="16" height="16" /></a>
+                        <!--/end_if/-->
+                        <!--/if_pager_comment_list/-->
+                            <!--/loop_pager_comment_list::page(5)/-->
+                                <!--/if_pager_comment_list::page@current/-->
+                                <a href="javascript:return false;" class="active"><!--/pager_comment_list::page/--></a>
+                                <!--/else/-->
+                                <a href="<!--/pager_comment_list::page@link/-->"><!--/pager_comment_list::page/--></a>
+                                <!--/end_if/-->
+                            <!--/end_loop/-->
+                        <!--/end_if/-->
+                        <!--/if_pager_comment_list::next/-->
+                        <a href="<!--/pager_comment_list::next@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_skin/images/icons/ico_cheveron_right.svg" alt="다음" width="16" height="16" /></a>
+                        <!--/end_if/-->
+                    </div>
+                <!--/else/-->
+                <div class="post none">작성된 댓글이 없습니다.</div>
+                <!--/end_if/-->
+            </div>
+        </div>
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

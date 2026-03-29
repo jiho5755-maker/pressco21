@@ -1,0 +1,19 @@
+.cw-shopinfotitle { font-weight: 700; padding-top: var(--cw-size-60); font-size: var(--cw-size-24); line-height: var(--cw-size-32); color: var(--cw-heading-color); }
+.cw-shopinfocnts { margin-top: var(--cw-size-40); }
+.cw-shopinfocnts dl { display: grid; grid-template-columns: var(--cw-size-160) auto; row-gap: var(--cw-size-20); padding: var(--cw-size-20) 0; border-top: 1px solid var(--cw-heading-color); border-bottom: 1px solid var(--cw-color-30); }
+.cw-shopinfocnts dl :where(dt, dd) { font-size: var(--cw-size-14); line-height: var(--cw-size-20); }
+.cw-shopinfocnts dl dt { font-weight: 400; }
+.cw-shopinfocnts dl dd { font-weight: 600; }
+.cw-shopinfobtns { display: flex; justify-content: center; align-items: center; gap: var(--cw-size-8); padding-top: var(--cw-size-40); }
+.cw-shopinfobtns a { width: var(--cw-size-300); }
+
+@media (max-width: 991.98px) {
+    .cw-shopinfotitle { display: none; }
+}
+@media (max-width: 767.98px) {
+    .cw-shopinfocnts dl { grid-template-columns: 1fr; row-gap: var(--cw-size-6); }
+    .cw-shopinfocnts dl dd { margin-bottom: var(--cw-size-14); }
+    .cw-shopinfocnts dl dd:last-child { margin-bottom: 0; }
+    .cw-shopinfobtns { flex-direction: column; }
+    .cw-shopinfobtns a { width: 100%; }
+}

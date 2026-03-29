@@ -1,0 +1,58 @@
+<!--/include_header(1)/-->
+
+<div class="container attendance-wrapper">
+    <h2 class="cw-attendancetitle">출석표</h2>
+    <div class="cw-wrapper">
+        <div class="cw-attendancecalender">
+            <div class="attendance-guide">
+                회원님께서는 현재 총 <span class="count"><!--/attendance_count/--></span>번 출석하셨습니다.
+                <div class="progress">
+                    <p style="width: <!--/attendance_success_percent/-->;"></p>
+                    <span>0%</span>
+                    <span>50%</span>
+                    <span>100%</span>
+                </div>
+            </div>
+            <div class="month-btn">
+                <a href="<!--/link_prev_month/-->" class="prev"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/btn_arrow_left.svg" alt="이전"></a>
+                <span class="date"><!--/this_year/-->.<!--/this_month/--></span>
+                <a href="<!--/link_next_month/-->" class="next"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/btn_arrow_right.svg" alt="다음"></a>
+            </div>
+            <div class="month-tbl">
+                <table summary="일, 월, 화, 수, 목, 금, 토">
+                    <caption>출석표 달력</caption>
+                    <colgroup>
+                        <col width="14%" />
+                        <col width="14%" />
+                        <col width="14%" />
+                        <col width="14%" />
+                        <col width="14%" />
+                        <col width="14%" />
+                        <col width="14%" />
+                    </colgroup>
+                    <thead>
+                        <tr>
+                            <th><div>일</div></th>
+                            <th><div>월</div></th>
+                            <th><div>화</div></th>
+                            <th><div>수</div></th>
+                            <th><div>목</div></th>
+                            <th><div>금</div></th>
+                            <th><div>토</div></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <!--/attendance_calendar/-->
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        <!--/if_link_attendance_ok/-->
+        <div class="cw-attendancebtns">
+            <a href="<!--/link_attendance_ok/-->" class="btn btn-primary btn-lg"><span>출석하기</span></a>
+        </div>
+        <!--/end_if/-->
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

@@ -1,0 +1,93 @@
+<div class="container gift-wrapper">
+    <h2 class="cw-gifttitle">사은품 선택</h2>
+    <div class="cw-wrapper">
+        <div class="cw-giftlist">
+            <!--/if_multiple/-->
+            <div class="point-qty">
+                <!--/if_gift_multi_point/-->
+                선택 가능한 사은품 포인트는 <span><!--/user_point/--></span>P 입니다.
+                <!--/end_if/-->
+                <!--/if_gift_multi_qty/-->
+                선택 가능한 사은품은 <span><!--/user_qty/--></span>개 입니다.
+                <!--/end_if/-->
+            </div>
+            <!--/end_if/-->
+            <!--/if_multiple/-->
+            <ul class="list-contents">
+                <!--/loop_gift/-->
+                <li>
+                    <!--/gift@form/-->
+                    <div class="subject">
+                        <div class="image<!--/if_not_gift@image/--> noimg<!--/end_if/-->">
+                            <!--/if_gift@image/-->
+                            <img src="<!--/gift@image/-->" class="img" alt="이미지">
+                            <!--/else/-->
+                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/noimage.svg" alt="이미지">
+                            <!--/end_if/-->
+                        </div>
+                        <!-- checkbox 개선 소스 gift@checkbox_choice -->
+                        <div class="name">
+                            <div class="form-check form-check-inline">
+                                <!--/gift@checkbox_choice/-->
+                                <!--/notag/gift@name/-->
+                            </div>
+                        </div>
+                        <div class="price"><!--/number/gift@price_start/-->원 이상 <!--/if_gift@price_end/--><!--/number/gift@price_end/-->원 이하 <!--/end_if/-->구매</div>
+                        <div class="option">
+                            <p>
+                                <span>수량</span>
+                                <!--/gift@select_count(cw-select-box)/-->
+                            </p>
+                            <!--/if_gift@option/-->
+                            <!--/loop_gift@option/-->
+                            <p>
+                                <span><!--/gift@option@title/--></span>
+                                <!--/gift@option@select(cw-select-box)/-->
+                            </p>
+                            <!--/end_loop/-->
+                            <!--/end_if/-->
+                        </div>
+                    </div>
+                    <!--/end_form/-->
+                </li>
+                <!--/end_loop/-->
+            </ul>
+            <div class="list-btn">
+                <a href="<!--/link_choice/-->" class="btn btn-lg btn-primary"><span>선택 완료</span></a>
+                <a href="<!--/link_close_gift/-->" class="btn btn-lg btn-white"><span>닫기</span></a>
+            </div>
+            <!--/else/-->
+            <ul class="list-contents">
+                <!--/loop_gift/-->
+                <li>
+                    <!--/gift@form/-->
+                    <div class="subject">
+                        <div class="image<!--/if_not_gift@image/--> noimg<!--/end_if/-->">
+                            <!--/if_gift@image/-->
+                            <img src="<!--/gift@image/-->" class="img" alt="이미지">
+                            <!--/else/-->
+                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/noimage.svg" alt="이미지">
+                            <!--/end_if/-->
+                        </div>
+                        <div class="name"><!--/notag/gift@name/--></div>
+                        <div class="price"><!--/number/gift@price_start/-->원 이상 <!--/if_gift@price_end/--><!--/number/gift@price_end/-->원 이하 <!--/end_if/-->구매</div>
+                        <!--/if_gift@option/-->
+                        <div class="option">
+                            <!--/loop_gift@option/-->
+                            <p>
+                                <span><!--/gift@option@title/--></span>
+                                <!--/gift@option@select(cw-select-box)/-->
+                            </p>
+                            <!--/end_loop/-->
+                        </div>
+                        <!--/end_if/-->
+                        <a href="<!--/gift@link_choice/-->" class="btn btn-white"><span>선택하기</span></a>
+                    </div>
+                    <!--/end_form/-->
+                </li>
+                <!--/end_loop/-->
+            </ul>
+            <!--/end_if/-->
+        </div>
+    </div>
+</div>

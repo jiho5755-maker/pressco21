@@ -1,0 +1,128 @@
+/* 마이페이지 - 주문 취소 요청 */
+.smMypage,
+.sm-popup-wrap {
+    --text-sm: .875rem; /* 14px */
+    --text-xs: .813rem; /* 13px */
+}
+.sub-title { display: flex; align-items: center; padding: 5rem 0 0.75rem 0; border-bottom:1px solid var(--cw-heading-color); }
+.sub-title h3 { font-weight: 700; font-size: 1.125rem; line-height: 26px; color: var(--cw-heading-color); }
+.sub-title h3 span { color: var(--cw-color-60); font-size: .813rem; font-weight: normal; }
+
+.smMypage .order-info .sub-title { padding-top: 40px; }
+.smMypage .order-summary { display: flex; gap: 12px; align-items: center; padding: 20px 0; font-size: var(--text-sm); border-bottom: 1px solid var(--cw-color-30); }
+.smMypage .order-summary > p { display: inline-flex; gap: 6px; align-items: center; }
+.smMypage .order-summary strong { display: inline-block; padding-left: 6px; font-size: var(--text-xs); }
+.smMypage .order-summary .order-number::before { display: inline-block; width: 1px; height: 14px; vertical-align: middle; margin-right: 6px; background: var(--cw-color-30); content: ''; }
+.smMypage .product-info .seller { padding: 24px 0 10px; border-bottom: 1px solid var(--cw-color-30); }
+.smMypage .product-info .seller-name { padding-left: 24px; font-weight: 700; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_mypage_store.svg') no-repeat 0 50%; }
+.smMypage .product-info .order-delivery { display: flex; justify-content: space-between; padding: 16px 0; border-bottom: 1px solid var(--cw-color-30); }
+.smMypage .product-info .order-delivery .btn { min-width: 68px; }
+.smMypage .product-info .delivery-summary { display: flex; gap: 20px; align-items: center; font-size: var(--text-sm); }
+.smMypage .product-info .delivery-summary strong { display: inline-block; padding-left: 6px; font-size: var(--text-xs); }
+.smMypage .product-info .delivery-summary .btn-toggle { width: 16px; height: 16px; text-indent: -9999px; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M12.6673 6L8.00065 10.6667L3.33398 6' stroke='%23121212' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat right 50%;  }
+.smMypage .product-info .delivery-summary .btn-toggle.active { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 16 16' fill='none'%3E%3Cpath d='M3.33268 10L7.99935 5.33333L12.666 10' stroke='%23121212' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E"); }
+.smMypage .product-info .product-list:not(:first-child) { margin: 0 0 16px; }
+.smMypage .item-wrap { padding: 16px 0; border-bottom: 1px solid var(--cw-color-30); }
+.smMypage .goods-wrap { display: grid; align-items: center; grid-template-columns: 140px auto 35% 90px; }
+.smMypage .goods-image { gap: 20px; width: 100%; height: 100%; }
+.smMypage .goods-image img { width: 80px; height: auto; }
+.smMypage .goods-details { display:flex; flex-direction: column; gap: 4px; max-width:400px; color: var(--cw-heading-color); }
+.smMypage .goods-details .state { font-size: .75rem; color: var(--cw-point-color); }
+.smMypage .goods-details .title { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-weight: 600; font-size: .875rem; word-break: break-all; }
+.smMypage .goods-details .title .gift { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: .687rem; background: var(--cw-color-10); overflow-wrap: break-word; word-break: keep-all; }
+.smMypage .goods-details .option { font-size: .813rem; color: var(--cw-color-80); }
+.smMypage .goods-price { text-align: center; font-size: var(--text-sm); color: var(--cw-heading-color); }
+.smMypage .goods-qty .cw-select-box { width: 100%; }
+.smMypage .product-info .form-check,
+.smMypage .product-info .form-check-input { margin: 0; padding: 0; }
+.smMypage .cw-select-box { width: 100%; }
+.smMypage .cw-textfield,
+.smMypage .cw-select-box { width: 400px; vertical-align: top; }
+.smMypage textarea.cw-textfield { width: 100%; }
+.smMypage .form-wrapper { padding: 10px 0; border-bottom: 1px solid var(--cw-color-30); }
+.smMypage .form-wrapper .form-group { display: flex; align-items: center; padding: 8px 0 10px; font-size: var(--text-sm); }
+.smMypage .form-wrapper .form-group.bd-line { margin-top: 10px; padding-top: 20px; border-top: 1px solid var(--cw-color-30); }
+.smMypage .form-wrapper .form-group.bd-line-0 { border-bottom: 0; margin-bottom: 0; padding-bottom: 10px; }
+.smMypage .form-wrapper .form-group .gap-12 { gap: 12px; }
+.smMypage .form-title { flex: 1 0 120px; }
+.smMypage .form-title.required::after { content: '*'; color: var(--cw-point-color); margin-left: 2px; }
+.smMypage .form-wrapper .form-group .form-content { flex: 1 1 100%; }
+.smMypage .form-wrapper .form-group .form-check-inline { display: flex; align-items: center; }
+.smMypage .form-wrapper .form-group .form-check-inline span { margin-right: 50px; white-space: nowrap; }
+.smMypage .form-check-input { margin-right: 8px; margin-top: 0px; }
+.smMypage .payinfo-wrap { display: grid; grid-template-columns: repeat(2, 1fr); gap: 24px; margin-top: 40px; padding: 24px 0; border-top: 1px solid var(--cw-heading-color); border-bottom: 1px solid var(--cw-color-30); }
+.smMypage .payinfo-wrap .total-price { padding-left: 24px; border-left: 1px solid var(--cw-color-30); }
+.smMypage .payinfo-wrap .price-row { display: flex; justify-content: space-between; align-items: center; }
+.smMypage .payinfo-wrap .view-list { display: none; flex-direction: column; gap: 8px; margin-top: 8px; }
+.smMypage .payinfo-wrap .view-list dl {display: flex; justify-content: space-between; align-items: center; gap: 20px; }
+.smMypage .payinfo-wrap .view-list dl dt { font-size: var(--text-xs); font-weight: normal; max-width: 220px; padding-left: 12px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='7' height='7' viewBox='0 0 7 7' fill='none'%3E%3Cpath d='M1.42916 1.28756V6.2373H6.37891' stroke='%23999999' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat 0 20%; }
+.smMypage .payinfo-wrap .view-list dl.last { padding-left: 20px; }
+.smMypage .payinfo-wrap .view-list dl dd { flex: 0 0 auto; text-align: right; }
+.smMypage .payinfo-wrap .btn-view-more { display: inline-block; padding: 4px 14px 0 0; border: 0; color: var(--cw-color-80); background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M10.168 4.5L6.66797 8L3.16797 4.5' stroke='%23121212' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat 100% 7px; }
+.smMypage .payinfo-wrap .btn-view-more.active { background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='13' height='12' viewBox='0 0 13 12' fill='none'%3E%3Cpath d='M3.16602 7.5L6.66602 4L10.166 7.5' stroke='%23121212' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E") no-repeat 100% 7px; }
+.smMypage .payinfo-wrap ul { display: flex; flex-direction: column; gap: 8px; }
+.smMypage .payinfo-wrap ul li { font-size: var(--text-xs); color: var(--cw-color-80); }
+.smMypage .payinfo-wrap ul li.first { font-size: var(--text-lg); font-weight: 700; color: var(--cw-heading-color); padding: 0 14px 0 0; }
+.smMypage .payinfo-wrap .total-price ul li.first { font-size: 1rem; padding-right: 0; }
+.smMypage .payinfo-wrap .total-price ul li.first p { font-weight: normal; }
+.smMypage .payinfo-wrap .total-price ul li.first strong.point-color { font-size: 1.125rem; color: var(--cw-point-color); }
+.smMypage .refund-wrap { border-top: 0; margin-top: 0; }
+.smMypage .btn-wrap { margin-top: 80px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.smMypage .btn-wrap .btn { width: 300px; }
+.smMypage .zipcode { display: flex; align-items: center; gap: 6px; margin-bottom: 10px; max-width: 400px; }
+.smMypage .zipcode .cw-textfield { width: calc(50% - 10px); }
+.smMypage .zipcode .btn { flex: 1 0 120px; }
+.smMypage .address { display: flex; flex-direction: column; gap: 10px; }
+.smMypage .address .form-check { display: flex; align-items: center; padding-left: 1.56rem; }
+.smMypage .address .form-check-label { font-size: var(--text-lg); font-weight: 600; }
+
+/* 레이어 팝업 (교환 요청) */
+.sm-popup-wrap { display: flex; }
+.sm_layer-wrap .modal-body p { margin-top: 20px; padding: 24px 0; border-top: 1px solid var(--cw-color-30); border-bottom: 1px solid var(--cw-color-30); text-align: center; font-size: var(--text-xs); }
+
+/* 하이브리드 옵션 */
+.basket-option-dlist li,
+.basket-option-dlist dd { padding: 4px 0 0!important; white-space: nowrap; }
+.basket-option-dlist img { display: inline-block; margin-right: 8px; width: 24px; height: 24px; }
+.MS_option_price { color: var(--cw-point-color); }
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .smMypage .sub-title { display: flex; padding-top: 60px; }
+    .smMypage .sub-title.first  { padding-top: 0 }
+    .smMypage .payinfo-wrap { grid-template-columns: repeat(1, 1fr); gap: 20px; padding: 20px 0; }
+    .smMypage .payinfo-wrap .total-price { padding: 20px 0 0; border-left: 0; border-top: 1px solid var(--cw-color-30); }
+}
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .smMypage,
+    .sm-popup-wrap {
+        --text-sm: .813rem; /* 13px */
+        --text-xs: .75rem; /* 12px */
+    }
+    .smMypage .sub-title { display: flex; padding-top: 60px; }
+    .smMypage .sub-title.first  { padding-top: 0 }
+    .smMypage .order-summary > p span { display: none; }
+    .smMypage .product-info .seller { padding: 16px 0 10px; }
+    .smMypage .product-info .delivery-summary { gap: 12px; }
+    .smMypage .product-info .product-list .item-wrap .goods-wrap { grid-template-columns: 120px auto; gap: 2px; }
+    .smMypage .product-info .product-list .item-wrap .goods-image { grid-row: 1 / 4; gap: 12px; }
+    .smMypage .product-info .product-list .item-wrap .goods-image img { width: 72px; height: auto; }
+    .smMypage .item-wrap .goods-price { text-align: left; }
+    .smMypage .goods-qty .cw-select-box { margin-top: 4px; max-width: 90px; }
+    .smMypage .payinfo-wrap { grid-template-columns: repeat(1, 1fr); gap: 20px; padding: 20px 0; }
+    .smMypage .payinfo-wrap .total-price { padding: 20px 0 0 0; border-left: 0; border-top: 1px solid var(--cw-color-30); }
+    .smMypage .form-wrapper .form-group .form-title { display: block; flex: 1 1 100%; width: 100%; }
+    .smMypage .form-wrapper .form-group .form-content { width: 100%; }
+    .smMypage .form-wrapper .form-group .form-check-inline span { margin-right: 35px; }
+    .smMypage .cw-textfield, 
+    .smMypage .cw-select-box { width: 100%; }
+    .smMypage .btn-wrap { margin-top: 60px; }
+    .smMypage .form-wrapper .form-group { flex-direction: column; gap: 6px; }
+    .smMypage .form-wrapper .form-group .form-title.none { display: none; }
+    .smMypage .form-group .form-check { padding-left: 1.75em; min-height: 1.25rem; }
+    .smMypage .zipcode { max-width: 100%; }
+    .smMypage .notice li { font-size: var(--text-xs); }
+    .sm-popup-wrap .sm_layer-wrap { max-width: 100%; }
+}   

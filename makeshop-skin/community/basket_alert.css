@@ -1,0 +1,27 @@
+#cartPop { display: flex; }
+#cartPop .basket-cont { margin-top: 20px; }
+#cartPop .basket-cont .basket-list { display: flex; align-items: center; gap: 16px; font-size: var(--cw-size-13); }
+#cartPop .basket-cont .basket-list dt a { display: block; width: 80px; height: auto; }
+#cartPop .basket-cont .basket-list dt img { width: 100%; height: auto; object-fit: contain; }
+#cartPop .basket-cont .btn-wrap { margin-top: 20px; display: flex; align-items: center; gap: 8px; }
+#cartPop .basket-cont .btn-wrap a { width: 100%; }
+#cartPop .recommend-wrap .tit-recommend { padding: 40px 0 12px; font-size: var(--cw-size-18); font-weight: 700; border-bottom: 1px solid var(--cw-heading-color); }
+#cartPop .recommend-item { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin: 20px 0; }
+#cartPop .recommend-item .basket-list .thumb img { width: 100%; height: auto; }
+#cartPop .recommend-item .basket-list .prd-info p { padding-top: 12px; font-size: var(--cw-size-13); }
+#cartPop .recommend-item .basket-list .prd-info span { font-size: var(--cw-size-12); }
+#cartPop .recommend-item .basket-list .prd-info .price { font-size: var(--cw-size-14); }
+#cartPop .recommend-wrap .empty { padding: 24px 0; margin-bottom: 20px; border-bottom: 1px solid var(--cw-color-30); font-size: var(--cw-size-14); font-weight: 600; text-align: center; }
+#cartPop .recommend-paging { display: flex; align-items: center; justify-content: center; gap: 4px; font-size: var(--cw-size-14); color: var(--cw-color-60); }
+#cartPop .recommend-paging li a.prev,
+#cartPop .recommend-paging li a.next { display: inline-block; width: 16px; height: auto; text-indent:-9999px; padding: 0 14px; }
+#cartPop .recommend-paging li a.prev { background:url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/btn_arrow_left.svg) no-repeat center center / 16px auto; }
+#cartPop .recommend-paging li a.next { background:url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/btn_arrow_right.svg) no-repeat center center / 16px auto; }
+#cartPop .recommend-paging li #current_page { color: var(--cw-heading-color); font-weight: 600; }
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    #cartPop .basket-cont .basket-list { font-size: var(--cw-size-12); }
+    #cartPop .recommend-wrap .tit-recommend { padding: 40px 0 10px; font-size: var(--cw-size-16); }
+    #cartPop .recommend-wrap .empty { font-size: var(--cw-size-13); }
+}

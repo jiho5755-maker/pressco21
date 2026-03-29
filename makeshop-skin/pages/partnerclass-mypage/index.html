@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>내 수강 내역 | PRESSCO21 포에버러브</title>
+    <meta name="description" content="PRESSCO21 파트너클래스에서 수강한 내역을 확인하세요.">
+    <meta name="robots" content="noindex, nofollow">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+    <!-- Noto Serif KR 타이틀 폰트 — 메인 사이트 일관성 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
+    <!-- PRESSCO21 공통 모듈 (유틸리티, API 래퍼, 캐시) -->
+    <script src="https://img.pressco21.com/images/assets/pressco21-core.js?v=2.1"></script>
+</head>
+<body>
+
+<!-- ============================================
+     수강생 마이페이지 — 예약 내역
+     CSS 스코핑: .my-bookings
+     ============================================ -->
+<div id="partnerclass-my-bookings" class="my-bookings">
+
+    <!-- 숨김 가상태그 (회원 ID) -->
+    <span id="mbMemberId" style="display:none"><!--/user_id/--></span>
+
+    <!-- 1. 미로그인 안내 -->
+    <div id="mbNoticeArea" style="display:none">
+        <div class="mb-notice">
+            <div class="mb-notice__inner">
+                <div class="mb-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="32" cy="24" r="10" stroke="#3d2c1e" stroke-width="2" fill="none"/>
+                        <path d="M12 52c0-11.046 8.954-20 20-20s20 8.954 20 20" stroke="#3d2c1e" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="mb-notice__title">로그인이 필요합니다</h2>
+                <p class="mb-notice__desc">수강 내역 확인은 로그인 후 이용하실 수 있어요.</p>
+                <a href="/shop/member.html?type=login" class="mb-notice__btn">로그인하기</a>
+            </div>
+        </div>
+    </div>
+
+    <!-- 2. 메인 콘텐츠 -->
+    <div id="mbMainArea" style="display:none">
+
+        <!-- 페이지 헤더 -->
+        <header class="mb-header">
+            <div class="mb-header__inner">
+                <h1 class="mb-header__title">내 수강 내역</h1>
+                <p class="mb-header__desc">수강 예정 일정부터 수강 완료 후 후기, 재료 재구매, 같은 강사의 다음 수업까지 한곳에서 이어보세요.</p>
+            </div>
+        </header>
+
+        <!-- 요약 카드 -->
+        <div class="mb-summary">
+            <div class="mb-summary__card">
+                <p class="mb-summary__label">전체</p>
+                <p class="mb-summary__value" id="mbTotalCount">0</p>
+            </div>
+            <div class="mb-summary__card">
+                <p class="mb-summary__label">예정</p>
+                <p class="mb-summary__value" id="mbUpcomingCount">0</p>
+            </div>
+            <div class="mb-summary__card">
+                <p class="mb-summary__label">완료</p>
+                <p class="mb-summary__value" id="mbCompletedCount">0</p>
+            </div>
+        </div>
+
+        <!-- 후기 미작성 알림 배너 (E2-010 리텐션) -->
+        <div class="mb-review-alert" id="mbReviewAlert" style="display:none;" role="status">
+            <div class="mb-review-alert__inner">
+                <div class="mb-review-alert__icon" aria-hidden="true">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/>
+                    </svg>
+                </div>
+                <div class="mb-review-alert__text">
+                    <p class="mb-review-alert__title" id="mbReviewAlertTitle">후기를 남겨주세요</p>
+                    <p class="mb-review-alert__desc" id="mbReviewAlertDesc">수강 완료 클래스의 후기를 작성하면 다음 수강 시 할인 혜택을 받을 수 있어요.</p>
+                </div>
+                <button type="button" class="mb-review-alert__close" id="mbReviewAlertClose" aria-label="알림 닫기">
+                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
+                </button>
+            </div>
+        </div>
+
+        <!-- 리텐션 레이어 -->
+        <section class="mb-retention" id="mbRetentionArea" style="display:none;">
+            <div class="mb-retention__notice" id="mbRetentionNotice" style="display:none;"></div>
+            <div class="mb-retention__grid">
+                <article class="mb-retention-card mb-retention-card--report" id="mbMonthlyReportCard"></article>
+                <article class="mb-retention-card mb-retention-card--badge" id="mbBadgeBoardCard"></article>
+            </div>
+        </section>
+
+        <!-- 키트 구독 파일럿 -->
+        <section class="mb-subscription" id="mbSubscriptionArea" style="display:none;">
+            <div class="mb-subscription__hero" id="mbSubscriptionHero"></div>
+            <div class="mb-subscription__feedback" id="mbSubscriptionFeedback" style="display:none;"></div>
+            <div class="mb-subscription__grid">
+                <article class="mb-subscription-panel" id="mbSubscriptionListPanel"></article>
+                <article class="mb-subscription-panel" id="mbSubscriptionRecommendationPanel"></article>
+            </div>
+            <div class="mb-subscription-form-wrap" id="mbSubscriptionFormWrap" style="display:none;">
+                <form class="mb-subscription-form" id="mbSubscriptionForm">
+                    <div class="mb-subscription-form__header">
+                        <div>
+                            <p class="mb-subscription-form__eyebrow">KIT SUBSCRIPTION</p>
+                            <h2 class="mb-subscription-form__title" id="mbSubscriptionFormTitle">월간 키트 구독 신청</h2>
+                        </div>
+                        <button type="button" class="mb-subscription-form__close" id="mbSubscriptionFormClose" aria-label="구독 신청 닫기">x</button>
+                    </div>
+                    <input type="hidden" id="mbSubscriptionClassId" value="">
+                    <input type="hidden" id="mbSubscriptionBranduid" value="">
+                    <input type="hidden" id="mbSubscriptionClassName" value="">
+                    <input type="hidden" id="mbSubscriptionPartnerName" value="">
+                    <input type="hidden" id="mbSubscriptionPartnerCode" value="">
+                    <input type="hidden" id="mbSubscriptionRegularPrice" value="">
+                    <input type="hidden" id="mbSubscriptionSubscriberPrice" value="">
+                    <div class="mb-subscription-form__summary" id="mbSubscriptionFormSummary"></div>
+                    <div class="mb-subscription-form__grid">
+                        <label class="mb-subscription-field">
+                            <span class="mb-subscription-field__label">구독자 이름</span>
+                            <input type="text" id="mbSubscriptionMemberName" class="mb-subscription-field__input" maxlength="40" placeholder="수령인 이름">
+                        </label>
+                        <label class="mb-subscription-field">
+                            <span class="mb-subscription-field__label">이메일</span>
+                            <input type="email" id="mbSubscriptionMemberEmail" class="mb-subscription-field__input" maxlength="80" placeholder="name@example.com">
+                        </label>
+                        <label class="mb-subscription-field">
+                            <span class="mb-subscription-field__label">연락처</span>
+                            <input type="text" id="mbSubscriptionPhone" class="mb-subscription-field__input" maxlength="20" placeholder="01012345678">
+                        </label>
+                        <label class="mb-subscription-field">
+                            <span class="mb-subscription-field__label">배송일</span>
+                            <select id="mbSubscriptionDeliveryDay" class="mb-subscription-field__input">
+                                <option value="5">매월 5일</option>
+                                <option value="15">매월 15일</option>
+                                <option value="25">매월 25일</option>
+                            </select>
+                        </label>
+                        <label class="mb-subscription-field">
+                            <span class="mb-subscription-field__label">우편번호</span>
+                            <input type="text" id="mbSubscriptionZipcode" class="mb-subscription-field__input" maxlength="10" placeholder="우편번호">
+                        </label>
+                        <label class="mb-subscription-field mb-subscription-field--wide">
+                            <span class="mb-subscription-field__label">주소</span>
+                            <input type="text" id="mbSubscriptionAddress1" class="mb-subscription-field__input" maxlength="120" placeholder="기본 주소">
+                        </label>
+                        <label class="mb-subscription-field mb-subscription-field--wide">
+                            <span class="mb-subscription-field__label">상세 주소</span>
+                            <input type="text" id="mbSubscriptionAddress2" class="mb-subscription-field__input" maxlength="120" placeholder="상세 주소">
+                        </label>
+                        <label class="mb-subscription-field mb-subscription-field--wide">
+                            <span class="mb-subscription-field__label">요청 메모</span>
+                            <textarea id="mbSubscriptionNotes" class="mb-subscription-field__textarea" rows="3" maxlength="300" placeholder="문 앞 배송, 부재 시 연락 등"></textarea>
+                        </label>
+                    </div>
+                    <div class="mb-subscription-form__actions">
+                        <button type="button" class="mb-inline-btn mb-inline-btn--ghost" id="mbSubscriptionFormCancel">취소</button>
+                        <button type="submit" class="mb-inline-btn mb-inline-btn--primary" id="mbSubscriptionFormSubmit">구독 시작하기</button>
+                    </div>
+                </form>
+            </div>
+        </section>
+
+        <!-- 예약 목록 -->
+        <div id="mbBookingList" class="mb-booking-list">
+            <!-- JS: 예약 카드 동적 렌더링 -->
+        </div>
+
+        <!-- 강사 도전 배너 (완료 카드 1개+ 시 표시) -->
+        <div id="mbGrowthBanner" class="mb-growth-banner" style="display:none"></div>
+
+        <!-- 빈 상태 -->
+        <div id="mbEmptyState" class="mb-empty" style="display:none">
+            <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="mb-empty__icon">
+                <rect x="8" y="12" width="48" height="40" rx="6" stroke="#C4956A" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>
+                <path d="M20 8v10M44 8v10M8 24h48" stroke="#C4956A" stroke-width="1.5" stroke-linecap="round"/>
+            </svg>
+            <h3 class="mb-empty__title">아직 수강 내역이 없어요</h3>
+            <p class="mb-empty__desc">전국 오프라인 클래스와 온라인 강의를 둘러보고, 첫 수업부터 재료 재구매까지 이어지는 흐름을 시작해보세요.</p>
+            <a href="/shop/page.html?id=2606" class="mb-empty__btn">클래스 둘러보기</a>
+        </div>
+
+    </div>
+
+    <!-- 3. 로딩 오버레이 -->
+    <div id="mbLoadingOverlay" class="mb-loading" style="display:none" aria-live="polite" aria-label="로딩 중">
+        <svg class="mb-spinner" viewBox="0 0 40 40" width="40" height="40" aria-hidden="true">
+            <circle cx="20" cy="20" r="16" stroke="#E8E2DB" stroke-width="3" fill="none"/>
+            <path d="M36 20a16 16 0 00-16-16" stroke="#7d9675" stroke-width="3" stroke-linecap="round">
+                <animateTransform attributeName="transform" type="rotate" from="0 20 20" to="360 20 20" dur="0.8s" repeatCount="indefinite"/>
+            </path>
+        </svg>
+    </div>
+
+    <!-- 수료증 인쇄 전용 (화면 비표시, @media print에서만 노출) -->
+    <div id="mbCertificateArea" class="mb-certificate" style="display:none"></div>
+
+</div><!-- /.my-bookings -->
+
+</body>
+</html>

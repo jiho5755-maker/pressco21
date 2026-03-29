@@ -1,0 +1,17 @@
+# mp_point 가상태그
+
+
+## 기타
+<!--/banner_plan/-->
+<!--/if_company_user/-->
+<!--/if_use_trans_point/-->
+<!--/input_trans_point/-->
+<!--/input_trans_reserve/-->
+<!--/link_point_trans/-->
+<!--/point_trans_least/-->
+<!--/point_trans_unit/-->
+<!--/shop_id/-->
+<!--/shop_name/-->
+<!--/user_basket_quantity/-->
+<!--/user_name/-->
+<!--/user_trans_point/-->

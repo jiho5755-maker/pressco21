@@ -1,0 +1,7 @@
+# pop_simple_review 가상태그
+
+
+## 기타
+<!--/mobile_image/-->
+<!--/product_engname/-->
+<!--/product_mobile_name/-->

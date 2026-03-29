@@ -1,0 +1,20 @@
+# gift_list 가상태그
+
+
+## 사은품 목록
+<!--/gift@code/-->
+<!--/gift@image/-->
+<!--/gift@name/-->
+<!--/loop_gift/-->
+
+## 사은품 옵션
+<!--/gift@option@select/-->
+<!--/gift@option@title/-->
+<!--/loop_gift@option/-->
+
+## 사은품 선택 가격 범위
+<!--/gift@price_end/-->
+<!--/gift@price_start/-->
+
+## 기타
+<!--/shop_id/-->

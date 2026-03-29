@@ -1,0 +1,123 @@
+<link rel="stylesheet" href="//skin.makeshop.co.kr/skin/rw_shop/css/cowave-swiper-bundle.css" />
+
+
+<div class="header-container--md">
+    <a href="javascript:history.back();" class="back-btn"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_left.svg" alt="뒤로"></a>
+    <div class="navi-title"><span><!--/notag/name/--></span></div>
+    <div class="navi-btns">
+        <a href="<!--/link_basket/-->" class="basket">
+            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_basket.svg" alt="장바구니">
+            <!--/if_user_basket_quantity/-->
+            <span class="notification"><!--/user_basket_quantity/--></span>
+            <!--/end_if/-->
+        </a>
+    </div>
+</div>
+
+<!-- container -->
+<main id="product-popup" class="container">
+    <div class="detail-info">
+        <!--/if_photo_gallery/-->
+        <div class="row no-gutters">
+            <div class="col-12 info-wrap product-item-wrapper">
+                <div class="item-wrap cowave-swiper">
+                    <div class="items cowave-swiper-wrapper">
+                        <!--/loop_photo_gallery/-->
+                        <div class="cowave-swiper-slide"><img src="<!--/photo_gallery@image/-->" alt=""></div>
+                        <!--/end_loop/-->
+                    </div>
+                    <div class="pagination">
+                        <div class="cowave-swiper-pagination-custom"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!--/end_if/-->
+        <p class="icon-text"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_hand_finger.svg" alt="확대보기">상세 정보를 확대해 보실 수 있습니다.</p>
+        <div class="detail-image">
+            <!--/mobile_detail/-->
+        </div>
+        <!-- s: 상품 일반정보(상품정보제공 고시) -->
+        <!--/if_product_info_list/-->
+        <div class="info-section specs">
+            <!--/loop_product_info_list/-->
+            <div class="info-title"><!--/if_product_info_list@product_name/--><!--/notag/product_info_list@product_name/--><!--/else/-->상품고시정보<!--/end_if/--></div>
+            <!--/loop_product_info_list@product_info/-->
+            <div class="info-content">
+                <span><!--/product_info_list@product_info@title/--></span>
+                <strong><!--/product_info_list@product_info@content/--></strong>
+            </div>
+            <!--/end_loop/-->
+            <!--/end_loop/-->
+        </div>
+        <!--/end_if/-->
+        <!-- e: 상품 일반정보(상품정보제공 고시) -->
+        <!--/if_product_common_info/-->
+        <div class="info-section policy">
+            <div class="info-title">교환/반품/환불/취소</div>
+            <!--/loop_product_common_info/-->
+            <div class="info-content">
+                <!--/if_product_common_info@provider/-->
+                <dl>
+                    <dt>공급관련 정보</dt>
+                    <dd><!--/product_common_info@provider/--></dd>
+                </dl>
+                <!--/end_if/-->
+                <!--/if_product_common_info@revocation/-->
+                <dl>
+                    <dt>청약철회 및 계약해제</dt>
+                    <dd><!--/product_common_info@revocation/--></dd>
+                </dl>
+                <!--/end_if/-->
+                <!--/if_product_common_info@refund/-->
+                <dl>
+                    <dt>교환/반품/보증 조건과 절차</dt>
+                    <dd><!--/product_common_info@refund/--></dd>
+                </dl>
+                <!--/end_if/-->
+                <!--/if_product_common_info@conflict/-->
+                <dl>
+                    <dt>분쟁처리 사항</dt>
+                    <dd><!--/product_common_info@conflict/--></dd>
+                </dl>
+                <!--/end_if/-->
+                <!--/if_product_common_info@business/-->
+                <dl>
+                    <dt>거래약관</dt>
+                    <dd><!--/product_common_info@business/--></dd>
+                </dl>
+                <!--/end_if/-->
+                <!--/if_product_common_info@image/-->
+                <div>
+                    <a href="<!--/product_common_info@link_image/-->" target="<!--/product_common_info@target_image/-->">
+                        <img src="<!--/product_common_info@image/-->" align="absmiddle" border="0" />
+                    </a>
+                </div>
+                <!--/end_if/-->
+                <!--/if_product_common_info@html/-->
+                <div>
+                    <!--/product_common_info@html/-->
+                </div>
+                <!--/end_if/-->
+            </div>
+            <!--/end_loop/-->
+        </div>
+        <!--/end_if/-->
+        <!--/if_product_common_info_product_html/-->
+        <div class="info-section">
+            <div class="info-content">
+                <!--/product_common_info_product_html/-->
+            </div>
+        </div>
+        <!--/end_if/-->
+    </div>
+    <!-- 고정버튼 -->
+    <div class="btn-floating">
+        <a href="javascript:close_this_popup();" class="fixed-close">닫기</a>
+        <a href="#product-popup" class="fixed-top">위로</a>
+    </div>
+    <!-- //고정버튼 -->
+</main>
+<!-- //container -->
+
+<script src="//skin.makeshop.co.kr/skin/rw_shop/js/cowave-swiper-bundle.js"></script>

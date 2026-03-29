@@ -1,0 +1,51 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container join-wrapper">
+    <div class="join-content">
+        <div class="page-title-wrap">
+            <h2>회원가입</h2>
+        </div>
+        <ul class="join-step">
+            <li>
+                <span class="icon"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_join_step1.svg" alt=""></span>
+                <p>약관동의</p>
+            </li>
+            <!--/if_use_auth/-->
+            <li class="active">
+                <span class="icon"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_join_step2_on.svg" alt=""></span>
+                <p>가입인증</p>
+            </li>
+            <!--/end_if/-->
+            <li>
+                <span class="icon"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_join_step3.svg" alt=""></span>
+                <p>정보입력</p>
+            </li>
+            <li>
+                <span class="icon"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_join_step4.svg" alt=""></span>
+                <p>가입완료</p>
+            </li>
+        </ul>
+        <!--/if_use_auth/-->
+        <div class="auth-wrap">
+            <div class="txt-wrap">
+                <strong>회원가입을 위해 본인인증이 필요합니다.</strong>
+                <p>인증 수단을 선택하고 본인인증을 해주세요.</p>
+            </div>
+            <div class="btn-auth">
+                <!--/if_auth_method/-->
+                <!--/loop_auth_method/-->
+                <a href="<!--/auth_method@link/-->">
+                    <span><img src="<!--/auth_method@image/-->" alt=""></span>
+                    <p><!--/auth_method@title/--></p>
+                </a>
+                <!--/end_loop/-->
+                <!--/end_if/-->
+            </div>
+        </div>
+        <!--/end_if/-->
+    </div>
+</main>
+<!-- // container -->
+
+<!--/include_footer(1)/-->

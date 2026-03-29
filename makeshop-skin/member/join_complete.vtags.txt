@@ -1,0 +1,18 @@
+# join_complete 가상태그
+
+
+## 회원 가입 완료
+<!--/link_join_ok/-->
+
+## 회원 정보
+<!--/user_name/-->
+
+## 인증 여부
+<!--/use_auth/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/include_header/-->
+<!--/link_order_join/-->
+<!--/shop_id/-->
+<!--/shop_name/-->

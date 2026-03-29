@@ -1,0 +1,27 @@
+# guest_receivepresent 가상태그
+
+
+## 기타
+<!--/block_option_area/-->
+<!--/block_option_layer/-->
+<!--/card_type/-->
+<!--/if_order_product@is_bundle/-->
+<!--/link_no_present/-->
+<!--/link_present/-->
+<!--/loop_order_product/-->
+<!--/loop_order_product@bundle_option/-->
+<!--/order_product@amount/-->
+<!--/order_product@bundle_option@amount/-->
+<!--/order_product@bundle_option@link_change_option/-->
+<!--/order_product@bundle_option@option/-->
+<!--/order_product@image_s/-->
+<!--/order_product@link/-->
+<!--/order_product@link_change_option/-->
+<!--/order_product@mobile_name/-->
+<!--/order_product@name/-->
+<!--/order_product@option/-->
+<!--/order_product@present_mobile_name/-->
+<!--/present_approval_enddate/-->
+<!--/present_list@present_num/-->
+<!--/present_message/-->
+<!--/present_sender_time/-->

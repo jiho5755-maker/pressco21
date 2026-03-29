@@ -1,0 +1,37 @@
+@keyframes fadeInUp {
+	0% {
+		opacity: 0;
+		transform: translate3d(0, 100%, 0);
+	}
+	to {
+		opacity: 1;
+		transform: translateZ(0);
+	}
+}
+#popup-gift {
+    --text-sm: .875rem; /* 14px */
+    --text-xs: .813rem; /* 13px */
+}
+#popup-gift { position: relative; width:90%; padding: 30px 20px; border-radius: 10px; background: #fff; text-align: center; animation: fadeInUp 1s; }
+#popup-gift .l-close { position: absolute; top: 10px; right: 10px; width: 24px; height: 24px; background: url('/images/common/btn_h37_close.gif') no-repeat center center; background-size: 18px; }
+#popup-gift .l-tit { padding-bottom: 190px; line-height: 26px; font-size:1.125rem ; font-weight: bold; background: url('/images/common/bull_h288_gift.png') no-repeat center 75px; background-size: 175px 144px; }
+#popup-gift .l-gift { font-size: var(--text-sm); }
+#popup-gift .l-gift strong { font-weight: 600; }
+#popup-gift .l-txt { margin: 4px 0 20px; font-size: var(--text-sm); }
+#popup-gift .guest { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; }
+#popup-gift .guest .l-txt { margin: 0; font-size: var(--text-sm); }
+#popup-gift .guest a { font-size: var(--text-sm); color: var(--cw-heading-color); font-weight: 700; border-bottom: 1px solid var(--cw-heading-color); }
+#popup-gift .btn { width: 100%; }
+
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    #popup-gift {
+        --text-sm: .813rem; /* 13px */
+        --text-xs: .75rem; /* 13px */
+    }
+    #popup-gift .l-tit  { font-size: 1rem; }
+    #popup-gift .guest .l-txt,
+    #popup-gift .guest a { font-size: .875rem; }
+}
+

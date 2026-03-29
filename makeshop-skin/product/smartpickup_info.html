@@ -1,0 +1,61 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container store-wrapper">
+    <!-- Content -->
+    <div class="content">
+        <div class="page-title-wrap">
+            <h2 class="txt-l">매장안내</h2>
+        </div>
+        <div id="storeWrap" class="content-body">
+            <div class="row">
+                <!-- 매장 리스트 -->
+                <div class="col-lg-4 col-12 order-2">
+                    <div class="store-info-wrap">
+                        <div class="store-search">
+                            <div class="search-box">
+                                <!--/input_search/-->
+                                <a href="<!--/link_search/-->" class="btn-search"></a>
+                            </div>
+                        </div>
+                        <p class="store-count count"></p>
+                        <ul class="store-list-wrap">
+                        <!--/block_store_list/-->
+                            <!--/if_store_list/-->
+                            <!--/loop_store_list(11)/-->
+                            <li class="list-info">
+                                <div class="name">
+                                    <span class="ico-map"></span>
+                                    <strong><!--/store_list@store_name/--></strong>
+                                    <!--/store_list@store_range/-->
+                                </div>
+                                <div class="address"><!--/store_list@store_addr/--></div>
+                                <div class="tel"><!--/store_list@store_tel/--></div>
+                                <!--/store_list@store_open/-->
+                                <!--/store_list@store_close/-->
+                            </li>
+                            <!--/end_loop/-->
+                            <!--/else/-->
+                            <li class="empty">검색된 매장이 없습니다.</li>
+                            <!--/end_if/-->
+                        <!--/end_block/-->
+                        </ul>
+                        <div class="cw-btn-more btn-more">
+                            <a href="<!--/more_store_list/-->" class="btn btn-gray">
+                                <span>더보기</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+                <!-- 지도 영역 -->
+                <div class="col-lg-8 col-12 order-1">
+                    <div class="flex items-center justify-center"><!--/main_map/--></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Content -->
+</main>
+<!-- // container -->
+
+<!--/include_footer(1)/-->

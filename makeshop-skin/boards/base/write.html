@@ -1,0 +1,146 @@
+<!--/include_header(1)/-->
+
+<div class="container board-wrapper">
+    <h2 class="cw-boardtitle"><!--/now_board_name/--></h2>
+    <div class="cw-wrapper">
+        <!--/form_write/-->
+        <div class="cw-boardwrite">
+            <!--/if_link/-->
+            <dl class="write-prd">
+                <dt><img src="<!--/image_s/-->"></dt>
+                <dd class="name"><!--/notag/name(100)/--></dd>
+                <dd class="price"><strong><!--/number/price_sell/--></strong>원</dd>
+                <a href="<!--/link/-->" class="link">상품 링크</a>
+            </dl>
+            <!--/end_if/-->
+            <dl class="write-info line">
+                <!--/if_input_name/-->
+                <dt>이름</dt>
+                <dd><!--/input_name(cw-textfield)/--></dd>
+                <!--/end_if/-->
+                <!--/if_input_password/-->
+                <dt>비밀번호</dt>
+                <dd>
+                    <!--/input_password(cw-textfield)/-->
+                    <!--/if_is_auto_lock/--><div class="auto-lock">자동 잠금 기능</div><!--/end_if/-->
+                    <!--/if_input_lock_checkbox/-->
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <!--/input_lock_checkbox/--> 잠금 사용
+                        </label>
+                    </div>
+                    <!--/end_if/-->
+                </dd>
+                <!--/end_if/-->
+                <!--/if_input_email/-->
+                <dt>이메일</dt>
+                <dd><!--/input_email(cw-textfield)/--></dd>
+                <!--/end_if/-->
+                <!--/if_input_qna_ordernum/-->
+                <dt>주문번호</dt>
+                <dd>
+                    <div class="myorder">
+                        <div class="input-group">
+                            <!--/input_qna_ordernum(cw-textfield)/-->
+                            <!--/if_mode_write/-->
+                            <span id="ordernumclear"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_x.svg" width="18" height="18" alt="주문번호 삭제"></span>
+                            <a href="#myorderlayer" class="btn btn-primary layer-open"><span>주문내역 조회</span></a>
+                            <!--/end_if/-->
+                        </div>
+                        <!--/if_mode_write/-->
+                        <!-- 주문 조회 레이어 -->
+                        <div id="myorderlayer">
+                            <div class="layer modal-wrap">
+                                <div class="layer-pop modal-content">
+                                    <div class="tit-fix modal-header">
+                                        <span class="modal-title">주문내역조회</span>
+                                        <a href="#myorderlayer" class="close btn-modal-close layer-close"></a>
+                                    </div>
+                                    <div class="txt modal-body">
+                                        <ul class="tab">
+                                            <li class="now"><a href="javascript:void(0);" class="month_1">1개월</a></li>
+                                            <li><a href="javascript:void(0);" class="month_3">3개월</a></li>
+                                            <li><a href="javascript:void(0);" class="month_6">6개월</a></li>
+                                            <li><a href="javascript:void(0);" class="month_12">12개월</a></li>
+                                        </ul>
+                                        <!--/block_order_list/-->
+                                        <div class="tabwrap">
+                                            <ul>
+                                                <!--/if_order_list/-->
+                                                    <!--/loop_order_list/-->
+                                                    <li>
+                                                        <dl>
+                                                            <dt><!--/order_list@product_name/--></dt>
+                                                            <dd>주문번호 <!--/order_list@ordernum/--></dd>
+                                                            <dd><!--/number/order_list@price/-->원 <span class="date"><!--/order_list@order_date/--></span></dd>
+                                                        </dl>
+                                                        <a href="<!--/order_list@link_product_name/-->" class="link"></a>
+                                                    </li>
+                                                    <!--/end_loop/-->
+                                                <!--/else/-->
+                                                    <li class="list-none">주문내역이 없습니다.</li>
+                                                <!--/end_if/-->
+                                            </ul>
+                                        </div>
+                                        <!--/end_block/-->
+                                        <div class="btn-more txt-c">
+                                            <a href="<!--/link_order_list_more/-->" class="btn btn-gray btn-md order_list_more">
+                                                <span>더보기</span>
+                                                <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_down.svg" width="12" height="12">
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        <!-- //주문 조회 레이어 -->
+                        <!--/end_if/-->
+                    </div>
+                </dd>
+                <!--/end_if/-->
+            </dl>
+            <!--/if_add_info_html/-->
+            <div class="write-info">
+                <!--/add_info_html/-->
+            </div>
+            <!--/end_if/-->
+            <dl class="write-info">
+                <!--/if_select_header/-->
+                <dt>분류</dt>
+                <dd><!--/select_header(cw-select-box)/--></dd>
+                <!--/end_if/-->
+                <!--/if_input_subject/-->
+                <dt>제목</dt>
+                <dd><!--/input_subject(cw-textfield)/--></dd>
+                <!--/end_if/-->
+                <dt>내용</dt>
+                <dd><!--/text_content(cw-textfield)/--></dd>
+                <dt>첨부</dt>
+                <dd class="file"><!--/file_attach(cw-textfield)/--><a href="<!--/link_file_upload/-->" class="btn btn-gray"><span>파일첨부</span></a></dd>
+                <!--/if_score/-->
+                <!--/loop_score/-->
+                <dt><!--/score@title/--></dt>
+                <dd><!--/score@icon_select/--></p></dd>
+                <!--/end_loop/-->
+                <!--/end_if/-->
+            </dl>
+            <!--/if_not_login/-->
+                <!--/if_use_privacy/-->
+                <div><!--/new_privacy_terms/--></div>
+                <!--/end_if/-->
+            <!--/end_if/-->
+        </div>
+        <div class="cw-boardbtns">
+            <!--/if_link_write_ok/--><a href="<!--/link_write_ok/-->" class="btn btn-primary btn-lg"><span>글쓰기</span></a><!--/end_if/-->
+            <!--/if_link_list/--><a href="<!--/link_list/-->" class="btn btn-white btn-lg"><span>목록보기</span></a><!--/end_if/-->
+        </div>
+        <!--/end_form/-->
+    </div>
+</div>
+
+<!--/include_footer(1)/-->
+
+<script type="text/javascript">
+// 반응형 상단 타이틀
+changeNaviTitleText('<!--/now_board_name/-->');
+</script>

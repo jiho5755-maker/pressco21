@@ -1,0 +1,30 @@
+/* 관심상품 */
+a { color: var(--cw-heading-color); }
+.tab-navi--links { margin: 20px 0 0; }
+.tab-navi--links li { height: 60px; width: 50%; }
+.category-header { display: flex; align-items: center; justify-content: space-between; margin-top: var(--cw-size-40); }
+.category-header .category-side { display: flex; align-items: center; column-gap: 8px; font-size: var(--cw-size-18); font-weight: 700; }
+.category-header .category-count { display: flex; align-items: center; justify-content: center; height: var(--cw-size-24); padding: 0 var(--cw-size-12) 0 var(--cw-size-30); border: 1px solid var(--cw-color-30); border-radius: 999px; font-size: var(--cw-size-12); font-weight: 400; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_heart.svg') no-repeat 10px center / 14px; }
+.category-header .category-count.count-on { background-image: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_heart_fill.svg'); }
+.category-header .view-all { padding-right: 14px; font-size: var(--cw-size-14); color: var(--cw-heading-color); font-weight: 600; background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_link_arrow.svg) no-repeat right center; }
+.products-wrapper .prds-list { display: grid; grid-template-columns: repeat(4, 1fr); gap: 60px 20px; padding: 20px 0 60px 0; }
+.products-wrapper .prds-list .prds-list--item .product-goods-end { margin-top: var(--cw-size-12); }
+.products-wrapper .prds-list .prds-list--item .product-goods-end .btn { width: 100%; }
+.products-wrapper .prds-list .option { font-size: var(--cw-size-13); color: var(--cw-color-60); }
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    #myWish .content-body { margin-top: 1.25rem; }
+}
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    #myWish .content-body { margin-top: 1.25rem; }
+    .tab-navi--links { margin: 0; }
+    .tab-navi--links li { height: 48px; }
+    .tab-navi--links li a { padding: 14px 0; }
+    .tab-navi--links li em { font-size: .75rem; }
+    .category-header .category-side { font-size: var(--cw-size-16); }
+    .products-wrapper .prds-list { grid-template-columns: repeat(2, 1fr); gap: 40px 10px; }
+    .category-header .view-all { font-size: var(--cw-size-13); }
+}

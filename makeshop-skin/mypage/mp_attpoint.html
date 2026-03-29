@@ -1,0 +1,56 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container mypage-wrapper myReserve">
+    <div class="row">
+        <!-- Sidebar -->
+        <!--/include_header(2)/-->
+        <!-- // Sidebar -->
+
+        <!-- Content -->
+        <div class="content col-lg-10 col-md-12 col-sm-12">
+            <div class="content-body">
+                <div class="page-title-wrap txt-l">
+                    <h2>출석체크 적립금 내역</h2>
+                </div>
+                <div class="info-summary">
+                    <p class="info-item">
+                        <span><strong>총 보유 적립금</strong></span>
+                        <span><strong class="fc-point"><!--/number/user_reserve/--></strong>원</span>
+                    </p>
+                    <p class="info-item border-line">
+                        <span>출석체크 누적 적립금</span>
+                        <span><!--/number/attendance_reserve/-->원</span>
+                    </p>
+                </div>
+                <ul class="notice bullet">
+                    <li>· 출석체크 이벤트로 적립된 총 금액은 출석체크 이벤트를 통해 단순 누적된 적립금의 총합입니다.</li>
+                    <li>· 적립금 사용 여부에 따라, 총 적립금 보유액과는 차이가 발생할 수 있습니다.</li>
+                </ul>
+                <div class="cw-simpleboard cw-board-list">
+                    <!--/if_attendance/-->
+                    <!--/loop_attendance/-->
+                    <div class="post">
+                        <div class="text-start">
+                            <span class="date"><!--/date(%Y.%M.%D)/attendance@date/--></span>
+                        </div>
+                        <span class="subject">출석체크 적립금</span>
+                        <div class="text-end">
+                            <span class="value"><!--/number/attendance@price/--></span>
+                        </div>
+                    </div>
+                    <!--/end_loop/-->
+                    <!--/else/-->
+                    <div class="empty">
+                        <p>적립금 내역이 없습니다.</p>
+                    </div>
+                    <!--/end_if/-->
+                </div>
+            </div>
+        </div>
+        <!-- // Content -->
+    </div>
+</main>
+<!-- //container -->
+
+<!--/include_footer(1)/-->

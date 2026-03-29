@@ -1,0 +1,652 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>파트너 클래스 목록 | PRESSCO21 포에버러브</title>
+    <meta name="description" content="PRESSCO21 파트너 공방의 압화, 보존화 클래스를 탐색하세요. 원데이, 정기, 온라인 클래스를 지역별, 카테고리별로 검색할 수 있습니다.">
+    <meta name="keywords" content="압화 클래스, 보존화 원데이클래스, 꽃 공예 수업, 드라이플라워 체험, PRESSCO21 파트너">
+    <meta property="og:title" content="파트너 클래스 목록 | PRESSCO21 포에버러브">
+    <meta property="og:description" content="전국 파트너 공방에서 진행하는 압화, 보존화, 캔들, 리스 클래스를 한눈에 비교하고 예약하세요.">
+    <meta property="og:type" content="website">
+
+    <!-- Pretendard 웹폰트 -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
+    <!-- Noto Serif KR 타이틀 폰트 — 메인 사이트 일관성 -->
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
+    <!-- PRESSCO21 공통 모듈 (유틸리티, API 래퍼, 캐시) -->
+    <script src="https://img.pressco21.com/images/assets/pressco21-core.js?v=2.1"></script>
+</head>
+<body>
+
+<!-- ============================================
+     파트너 클래스 목록 페이지
+     CSS 스코핑: .class-catalog
+     ============================================ -->
+<div class="class-catalog">
+
+    <!-- 페이지 헤더 -->
+    <header class="catalog-header">
+        <div class="catalog-header__inner">
+            <nav class="catalog-breadcrumb" aria-label="페이지 경로">
+                <a href="/">HOME</a>
+                <span class="catalog-breadcrumb__sep" aria-hidden="true">/</span>
+                <span class="catalog-breadcrumb__current">파트너 클래스</span>
+            </nav>
+            <h1 class="catalog-header__title">Partner Class</h1>
+            <p class="catalog-header__subtitle">전국 파트너 공방에서 만나는 꽃 공예의 세계</p>
+            <p class="catalog-header__count result-count" aria-live="polite">
+                <!-- JS로 동적 업데이트: "총 N개의 클래스" -->
+            </p>
+        </div>
+    </header>
+
+    <!-- 탭 네비게이션 -->
+    <nav class="catalog-tabs" role="tablist" aria-label="콘텐츠 탭">
+        <button class="catalog-tabs__btn catalog-tabs__btn--active" role="tab" aria-selected="true" data-tab="classes" id="tabClasses">
+            전체 클래스
+        </button>
+        <button class="catalog-tabs__btn" role="tab" aria-selected="false" data-tab="affiliations" id="tabAffiliations">
+            협회/세미나
+            <span class="catalog-tabs__badge" id="affilBadge"></span>
+        </button>
+        <button class="catalog-tabs__btn" role="tab" aria-selected="false" data-tab="benefits" id="tabBenefits">
+            혜택·이벤트
+            <span class="catalog-tabs__badge" id="benefitBadge"></span>
+        </button>
+    </nav>
+
+    <!-- 클래스 탭 콘텐츠 (기본 표시) -->
+    <div class="catalog-tab-panel" id="panelClasses" role="tabpanel">
+
+    <!-- 모바일 필터 토글 버튼 -->
+    <button class="filter-toggle" type="button" aria-label="필터 열기" aria-expanded="false" aria-controls="filterPanel">
+        <svg class="filter-toggle__icon" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M1 3h16M4 9h10M6 15h6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+        </svg>
+        <span class="filter-toggle__text">필터</span>
+        <span class="filter-toggle__badge" aria-label="적용된 필터 수"></span>
+    </button>
+
+    <!-- 메인 레이아웃: 사이드바 + 콘텐츠 -->
+    <div class="catalog-layout">
+
+        <!-- 필터 오버레이 (모바일 드로어용) -->
+        <div class="filter-overlay" aria-hidden="true"></div>
+
+        <!-- 필터 패널 (데스크탑: 사이드바 / 모바일: 하단 드로어) -->
+        <aside id="filterPanel" class="filter-panel" role="complementary" aria-label="클래스 필터">
+            <!-- 모바일 드로어 헤더 -->
+            <div class="filter-panel__header">
+                <h2 class="filter-panel__title">필터</h2>
+                <button class="filter-panel__close" type="button" aria-label="필터 닫기">
+                    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M5 5l10 10M15 5L5 15" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/>
+                    </svg>
+                </button>
+            </div>
+
+            <!-- 필터 본문 -->
+            <div class="filter-panel__body">
+
+                <!-- 지역 필터 -->
+                <fieldset class="filter-group">
+                    <legend class="filter-group__title">
+                        <button class="filter-group__toggle" type="button" aria-expanded="true">
+                            지역
+                            <svg class="filter-group__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </legend>
+                    <div class="filter-group__content">
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="region" value="">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">전국</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="region" value="서울">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">서울</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="region" value="경기">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">경기</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="region" value="인천">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">인천</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="region" value="부산">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">부산</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="region" value="대구">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">대구</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="region" value="기타">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">기타 지역</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <!-- 카테고리 필터 (JS로 동적 생성) -->
+                <fieldset class="filter-group">
+                    <legend class="filter-group__title">
+                        <button class="filter-group__toggle" type="button" aria-expanded="true">
+                            카테고리
+                            <svg class="filter-group__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </legend>
+                    <div class="filter-group__content" id="categoryFilters">
+                        <!-- JS: getCategories API 응답 기반 체크박스 동적 생성 -->
+                        <div class="filter-skeleton-line"></div>
+                        <div class="filter-skeleton-line"></div>
+                        <div class="filter-skeleton-line"></div>
+                    </div>
+                </fieldset>
+
+                <!-- 수업 형태 필터 -->
+                <fieldset class="filter-group">
+                    <legend class="filter-group__title">
+                        <button class="filter-group__toggle" type="button" aria-expanded="true">
+                            수업 형태
+                            <svg class="filter-group__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </legend>
+                    <div class="filter-group__content">
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="type" value="원데이">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">원데이</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="type" value="정기">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">정기</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="type" value="온라인">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">온라인</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <!-- 난이도 필터 -->
+                <fieldset class="filter-group">
+                    <legend class="filter-group__title">
+                        <button class="filter-group__toggle" type="button" aria-expanded="true">
+                            난이도
+                            <svg class="filter-group__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </legend>
+                    <div class="filter-group__content">
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="level" value="입문">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">입문</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="level" value="중급">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">중급</span>
+                        </label>
+                        <label class="filter-checkbox">
+                            <input type="checkbox" name="level" value="심화">
+                            <span class="filter-checkbox__mark"></span>
+                            <span class="filter-checkbox__label">심화</span>
+                        </label>
+                    </div>
+                </fieldset>
+
+                <!-- 가격대 필터 -->
+                <fieldset class="filter-group">
+                    <legend class="filter-group__title">
+                        <button class="filter-group__toggle" type="button" aria-expanded="true">
+                            가격대
+                            <svg class="filter-group__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                                <path d="M3 5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                    </legend>
+                    <div class="filter-group__content">
+                        <div class="price-range">
+                            <input
+                                type="range"
+                                id="priceRange"
+                                class="price-range__slider"
+                                min="0"
+                                max="200000"
+                                step="10000"
+                                value="200000"
+                                aria-label="최대 가격"
+                            >
+                            <div class="price-range__labels">
+                                <span class="price-range__min">0원</span>
+                                <span class="price-range__value" id="priceRangeValue">200,000원</span>
+                            </div>
+                        </div>
+                    </div>
+                </fieldset>
+
+            </div>
+
+            <!-- 필터 하단 액션 -->
+            <div class="filter-panel__footer">
+                <button class="filter-reset" type="button">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M1 1v4h4M13 13V9H9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M11.5 5A5.5 5.5 0 0 0 2 3.5L1 5M2.5 9a5.5 5.5 0 0 0 9.5 1.5L13 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    초기화
+                </button>
+                <button class="filter-apply" type="button">
+                    클래스 보기
+                </button>
+            </div>
+        </aside>
+
+        <!-- 콘텐츠 영역 -->
+        <main class="catalog-content">
+
+            <section class="catalog-search-strip" aria-label="클래스 검색">
+                <div class="catalog-search-strip__copy">
+                    <p class="catalog-search-strip__eyebrow">빠른 검색</p>
+                    <h2 class="catalog-search-strip__title">클래스명, 지역, 공방명으로 바로 찾아보세요.</h2>
+                    <p class="catalog-search-strip__desc">예: 서울 압화, 보존화 캔들, 열혈남아공방</p>
+                </div>
+                <form class="catalog-search-form" id="catalogSearchForm" role="search">
+                    <label class="sr-only" for="catalogSearchInput">클래스 검색</label>
+                    <div class="catalog-search-form__field">
+                        <svg class="catalog-search-form__icon" width="18" height="18" viewBox="0 0 18 18" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="8" cy="8" r="5.5" stroke="currentColor" stroke-width="1.5"/>
+                            <path d="M12.5 12.5L16 16" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                        </svg>
+                        <input type="search" id="catalogSearchInput" class="catalog-search-form__input" placeholder="원하는 클래스, 지역, 공방명을 입력하세요" autocomplete="off">
+                    </div>
+                    <div class="catalog-search-form__actions">
+                        <button type="submit" class="catalog-search-form__submit">검색</button>
+                        <button type="button" class="catalog-search-form__reset" id="catalogSearchClear">초기화</button>
+                    </div>
+                </form>
+            </section>
+
+            <section class="catalog-quick-filters" id="catalogQuickFilters" aria-label="빠른 탐색 필터">
+                <div class="quick-filter-group">
+                    <span class="quick-filter-group__label">카테고리</span>
+                    <div class="quick-filter-group__chips">
+                        <button type="button" class="quick-filter-chip" data-quick-key="category" data-value="압화">압화</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="category" data-value="보존화">보존화</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="category" data-value="캔들">캔들</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="category" data-value="리스">리스</button>
+                    </div>
+                </div>
+
+                <div class="quick-filter-group">
+                    <span class="quick-filter-group__label">지역</span>
+                    <div class="quick-filter-group__chips">
+                        <button type="button" class="quick-filter-chip" data-quick-key="region" data-value="서울">서울</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="region" data-value="경기">경기</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="region" data-value="부산">부산</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="region" data-value="대구">대구</button>
+                    </div>
+                </div>
+
+                <div class="quick-filter-group">
+                    <span class="quick-filter-group__label">형태</span>
+                    <div class="quick-filter-group__chips">
+                        <button type="button" class="quick-filter-chip quick-filter-chip--single" data-quick-key="format" data-value="오프라인">오프라인</button>
+                        <button type="button" class="quick-filter-chip quick-filter-chip--single" data-quick-key="format" data-value="온라인">온라인</button>
+                    </div>
+                </div>
+
+                <div class="quick-filter-group">
+                    <span class="quick-filter-group__label">가격대</span>
+                    <div class="quick-filter-group__chips">
+                        <button type="button" class="quick-filter-chip quick-filter-chip--single" data-quick-key="maxPrice" data-value="50000">5만원 이하</button>
+                        <button type="button" class="quick-filter-chip quick-filter-chip--single" data-quick-key="maxPrice" data-value="100000">10만원 이하</button>
+                    </div>
+                </div>
+
+                <div class="quick-filter-group">
+                    <span class="quick-filter-group__label">난이도</span>
+                    <div class="quick-filter-group__chips">
+                        <button type="button" class="quick-filter-chip" data-quick-key="level" data-value="입문">입문</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="level" data-value="중급">중급</button>
+                        <button type="button" class="quick-filter-chip" data-quick-key="level" data-value="심화">심화</button>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 상단 정렬/뷰 바 -->
+            <div class="sort-bar">
+                <div class="sort-bar__left">
+                    <!-- 활성 필터 칩 (JS 동적 생성) -->
+                    <div class="active-filters" id="activeFilters" aria-label="적용된 필터">
+                        <!-- 예: <span class="filter-chip">서울 <button>&times;</button></span> -->
+                    </div>
+                </div>
+                <div class="sort-bar__center">
+                    <!-- 찜한 클래스만 보기 토글 -->
+                    <button class="wishlist-filter-btn" id="wishlistFilterBtn" type="button" aria-pressed="false">
+                        <svg class="wishlist-filter-btn__heart" viewBox="0 0 18 18" fill="currentColor" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M9 15.5s-6.5-4.35-6.5-8.18A3.32 3.32 0 0 1 5.82 4C7.2 4 8.35 4.82 9 5.96 9.65 4.82 10.8 4 12.18 4A3.32 3.32 0 0 1 15.5 7.32C15.5 11.15 9 15.5 9 15.5z"/>
+                        </svg>
+                        <span class="wishlist-filter-btn__text">찜한 클래스</span>
+                        <span class="wishlist-filter-btn__count" id="wishlistCount" style="display:none;">0</span>
+                    </button>
+                </div>
+                <div class="sort-bar__right">
+                    <label for="sortSelect" class="sr-only">정렬 기준</label>
+                    <select id="sortSelect" class="sort-select">
+                        <option value="latest">최신순</option>
+                        <option value="popular">인기순</option>
+                        <option value="rating">별점순</option>
+                        <option value="price_asc">가격 낮은순</option>
+                        <option value="price_desc">가격 높은순</option>
+                    </select>
+                </div>
+            </div>
+
+            <section class="catalog-discovery" id="catalogDiscovery" aria-label="탐색 방식 전환">
+                <div class="catalog-discovery__copy">
+                    <p class="catalog-discovery__eyebrow">전국 탐색 허브</p>
+                    <h2 class="catalog-discovery__title" id="catalogDiscoveryTitle">원하는 카테고리와 지역을 고르고, 오프라인은 지도에서 바로 비교하세요.</h2>
+                    <p class="catalog-discovery__desc" id="catalogDiscoveryDesc">오프라인 클래스는 파트너맵 기반으로 가까운 공방을 같이 탐색하고, 온라인 클래스는 리스트에서 바로 일정과 가격을 비교할 수 있습니다.</p>
+                </div>
+                <div class="catalog-view-toggle" id="catalogViewToggle" role="tablist" aria-label="클래스 보기 방식">
+                    <button type="button" class="catalog-view-toggle__btn is-active" id="viewListBtn" data-view="list" role="tab" aria-selected="true">리스트 보기</button>
+                    <button type="button" class="catalog-view-toggle__btn" id="viewMapBtn" data-view="map" role="tab" aria-selected="false">지도 보기</button>
+                </div>
+            </section>
+
+            <section class="catalog-map-panel" id="catalogMapPanel" style="display:none;" aria-label="오프라인 클래스 지도 탐색">
+                <div class="catalog-map-panel__hero">
+                    <div class="catalog-map-panel__summary">
+                        <p class="catalog-map-panel__eyebrow">오프라인 클래스 탐색</p>
+                        <h2 class="catalog-map-panel__title" id="catalogMapTitle">전국 파트너 공방을 지도에서 살펴보세요.</h2>
+                        <p class="catalog-map-panel__desc" id="catalogMapDesc">현재 필터 기준으로 가까운 지역 수업을 먼저 확인하고, 관심 공방으로 바로 이동할 수 있습니다.</p>
+                    </div>
+                    <div class="catalog-map-panel__stats" id="catalogMapStats" aria-live="polite">
+                        <!-- JS: 지도 요약 -->
+                    </div>
+                </div>
+                <div class="catalog-map-panel__frame-wrap">
+                    <iframe class="catalog-map-panel__frame" id="catalogMapFrame" title="파트너맵 통합 미리보기" loading="lazy"></iframe>
+                </div>
+                <div class="catalog-map-panel__notice" id="catalogMapNotice"></div>
+                <div class="catalog-map-panel__spotlights" id="catalogMapSpotlights">
+                    <!-- JS: 오프라인 클래스 하이라이트 -->
+                </div>
+            </section>
+
+            <!-- 클래스 카드 그리드 -->
+            <div class="class-grid" id="classGrid" role="list" aria-label="클래스 목록">
+                <!-- JS: 스켈레톤 UI 또는 실제 카드 렌더링 -->
+            </div>
+
+            <!-- 빈 결과 (기본 숨김, JS 토글) -->
+            <div class="catalog-empty" id="catalogEmpty" style="display:none;" role="status">
+                <div class="catalog-empty__icon">
+                    <!-- 압화(꽃) 모티프 SVG 일러스트 -->
+                    <svg width="120" height="120" viewBox="0 0 120 120" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <!-- 배경 원 -->
+                        <circle cx="60" cy="60" r="56" stroke="#E8E2DB" stroke-width="1.5" stroke-dasharray="8 5" opacity="0.6"/>
+                        <!-- 줄기 -->
+                        <path d="M60 72v22" stroke="#7d9675" stroke-width="2.5" stroke-linecap="round"/>
+                        <!-- 잎사귀 왼쪽 -->
+                        <path d="M60 82c-4-2-10-1-13 4s-1 8 2 9c2-2 7-6 9-9l2-4z" fill="#D4E5D0" stroke="#7d9675" stroke-width="1.2" stroke-linejoin="round"/>
+                        <!-- 잎사귀 오른쪽 -->
+                        <path d="M60 78c4-2 10-1 13 4s1 8-2 9c-2-2-7-6-9-9l-2-4z" fill="#D4E5D0" stroke="#7d9675" stroke-width="1.2" stroke-linejoin="round"/>
+                        <!-- 꽃잎 5장 (압화 느낌) -->
+                        <path d="M60 28c-4 0-8 5-8 14s5 16 8 18c3-2 8-9 8-18s-4-14-8-14z" fill="#F5EDE4" stroke="#C4956A" stroke-width="1.3" opacity="0.9"/>
+                        <path d="M44 42c-3-3-9-2-12 4s-2 13 1 14c3-1 8-7 9-12l2-6z" fill="#E8D5C4" stroke="#C4956A" stroke-width="1.2" opacity="0.85"/>
+                        <path d="M76 42c3-3 9-2 12 4s2 13-1 14c-3-1-8-7-9-12l-2-6z" fill="#E8D5C4" stroke="#C4956A" stroke-width="1.2" opacity="0.85"/>
+                        <path d="M48 56c-3 1-6 6-4 12s7 10 9 9c0-3-1-9-3-13l-2-8z" fill="#D4E5D0" stroke="#7d9675" stroke-width="1.1" opacity="0.8"/>
+                        <path d="M72 56c3 1 6 6 4 12s-7 10-9 9c0-3 1-9 3-13l2-8z" fill="#D4E5D0" stroke="#7d9675" stroke-width="1.1" opacity="0.8"/>
+                        <!-- 꽃 중심 -->
+                        <circle cx="60" cy="48" r="6" fill="#C4956A" opacity="0.5"/>
+                        <circle cx="60" cy="48" r="3" fill="#b89b5e" opacity="0.7"/>
+                    </svg>
+                </div>
+                <p class="catalog-empty__subtitle">아직 이 조건에 맞는 클래스가 없어요</p>
+                <p class="catalog-empty__desc">다른 조건으로 검색해 보시거나, 전체 클래스를 둘러보세요.</p>
+                <button class="catalog-empty__reset" type="button">
+                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <path d="M1 1v4h4M13 13V9H9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                        <path d="M11.5 5A5.5 5.5 0 0 0 2 3.5L1 5M2.5 9a5.5 5.5 0 0 0 9.5 1.5L13 9" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                    전체 클래스 보기
+                </button>
+            </div>
+
+            <!-- 에러 상태 (기본 숨김, JS 토글) -->
+            <div class="catalog-error" id="catalogError" style="display:none;" role="alert">
+                <p class="catalog-error__title">클래스 정보를 불러올 수 없습니다</p>
+                <p class="catalog-error__desc">잠시 후 다시 시도해 주세요.</p>
+                <button class="catalog-error__retry" type="button">다시 시도</button>
+            </div>
+
+            <!-- 페이지네이션 -->
+            <nav class="catalog-pagination" id="catalogPagination" aria-label="페이지 탐색" style="display:none;">
+                <!-- JS: 페이지 번호 동적 렌더링 -->
+            </nav>
+
+            <!-- 최근 본 클래스 (JS 동적 렌더링, 기본 숨김) -->
+            <section class="recent-section" id="recentSection" style="display:none;" aria-label="최근 본 클래스">
+                <div class="recent-section__header">
+                    <h2 class="recent-section__title">최근 본 클래스</h2>
+                    <button class="recent-section__clear" id="recentClearBtn" type="button">전체 삭제</button>
+                </div>
+                <div class="recent-scroll-container" id="recentScrollContainer">
+                    <!-- JS: 최근 본 클래스 카드 동적 렌더링 -->
+                </div>
+            </section>
+
+            <!-- 콘텐츠 허브 연결 배너 (E2-010 리텐션) -->
+            <section class="catalog-content-hub-banner" aria-label="콘텐츠 허브 안내">
+                <div class="catalog-content-hub-banner__inner">
+                    <div class="catalog-content-hub-banner__icon" aria-hidden="true">
+                        <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/>
+                            <path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/>
+                        </svg>
+                    </div>
+                    <div class="catalog-content-hub-banner__text">
+                        <p class="catalog-content-hub-banner__title">꽃공예 이야기가 궁금하세요?</p>
+                        <p class="catalog-content-hub-banner__desc">파트너 강사의 작품 세계, 수강생 후기, 입문 가이드를 콘텐츠 허브에서 만나보세요.</p>
+                    </div>
+                    <a href="/shop/page.html?id=2611" class="catalog-content-hub-banner__btn">
+                        콘텐츠 허브 방문하기
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+                    </a>
+                </div>
+            </section>
+
+        </main>
+
+    </div><!-- /.catalog-layout -->
+
+    </div><!-- /#panelClasses -->
+
+    <!-- 협회 제휴 탭 콘텐츠 (기본 숨김) -->
+    <div class="catalog-tab-panel" id="panelAffiliations" role="tabpanel" style="display:none">
+        <div class="affil-section">
+            <!-- 협회 제휴 소개 -->
+            <div class="affil-hero">
+                <div class="affil-hero__inner">
+                    <h2 class="affil-hero__title">협회/세미나 허브</h2>
+                    <p class="affil-hero__desc">협회 일정, 세미나, 회원 대상 클래스를 한 화면에서 묶어 보여주는 허브입니다. 수강생은 행사를 쉽게 찾고, 협회는 일정과 혜택을 함께 홍보할 수 있습니다.</p>
+                </div>
+            </div>
+
+            <div class="affil-seminar-strip" id="affilSeminarStrip">
+                <div class="affil-seminar-strip__metric">
+                    <strong id="affilSeminarCount">0</strong>
+                    <span>세미나/이벤트</span>
+                </div>
+                <div class="affil-seminar-strip__metric">
+                    <strong id="affilAssociationCount">0</strong>
+                    <span>제휴 협회</span>
+                </div>
+                <div class="affil-seminar-strip__metric">
+                    <strong id="affilMemberBenefitCount">0</strong>
+                    <span>회원 혜택 포인트</span>
+                </div>
+            </div>
+
+            <div class="seminar-feed">
+                <div class="seminar-feed__header">
+                    <h3 class="seminar-feed__title">지금 주목할 협회 일정과 세미나</h3>
+                    <p class="seminar-feed__desc">기존 클래스 데이터와 제휴 협회 정보를 묶어 세미나형 콘텐츠를 우선 노출합니다.</p>
+                </div>
+                <div class="seminar-feed__grid" id="seminarGrid">
+                    <!-- JS: 세미나 카드 -->
+                </div>
+                <div class="seminar-feed__empty" id="seminarEmpty" style="display:none">
+                    <p>준비된 세미나가 없습니다. 제휴 협회와 신규 일정을 조율 중입니다.</p>
+                </div>
+            </div>
+
+            <!-- 혜택 요약 -->
+            <div class="affil-benefits">
+                <div class="affil-benefits__card">
+                    <div class="affil-benefits__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M20.59 13.41l-7.17 7.17a2 2 0 0 1-2.83 0L2 12V2h10l8.59 8.59a2 2 0 0 1 0 2.82z"/><line x1="7" y1="7" x2="7.01" y2="7"/></svg>
+                    </div>
+                    <h3 class="affil-benefits__title">협회원 전용 할인</h3>
+                    <p class="affil-benefits__desc">전 상품 10~20% 할인 쿠폰 제공</p>
+                </div>
+                <div class="affil-benefits__card">
+                    <div class="affil-benefits__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2v20M17 5H9.5a3.5 3.5 0 000 7h5a3.5 3.5 0 010 7H6"/></svg>
+                    </div>
+                    <h3 class="affil-benefits__title">연간 인센티브</h3>
+                    <p class="affil-benefits__desc">구매 누적액 기반 협회 운영비 지원</p>
+                </div>
+                <div class="affil-benefits__card">
+                    <div class="affil-benefits__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg>
+                    </div>
+                    <h3 class="affil-benefits__title">무료 홍보 채널</h3>
+                    <p class="affil-benefits__desc">협회 행사를 4,000+ 회원에게 노출</p>
+                </div>
+                <div class="affil-benefits__card">
+                    <div class="affil-benefits__icon">
+                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M16 21v-2a4 4 0 00-4-4H5a4 4 0 00-4 4v2"/><circle cx="8.5" cy="7" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+                    </div>
+                    <h3 class="affil-benefits__title">파트너 우선 심사</h3>
+                    <p class="affil-benefits__desc">협회 인증 강사 간소화 승인</p>
+                </div>
+            </div>
+
+            <!-- 인센티브 단계표 -->
+            <div class="affil-incentive-table">
+                <h3 class="affil-incentive-table__title">인센티브 달성 기준</h3>
+                <div class="affil-incentive-table__grid">
+                    <div class="affil-incentive-table__tier">
+                        <span class="affil-incentive-table__level">1단계</span>
+                        <span class="affil-incentive-table__target">연 500만원 이상</span>
+                        <span class="affil-incentive-table__reward">25만원 지원</span>
+                    </div>
+                    <div class="affil-incentive-table__tier">
+                        <span class="affil-incentive-table__level">2단계</span>
+                        <span class="affil-incentive-table__target">연 1,000만원 이상</span>
+                        <span class="affil-incentive-table__reward">50만원 지원</span>
+                    </div>
+                    <div class="affil-incentive-table__tier">
+                        <span class="affil-incentive-table__level">3단계</span>
+                        <span class="affil-incentive-table__target">연 2,000만원 이상</span>
+                        <span class="affil-incentive-table__reward">120만원 지원</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 제휴 협회 목록 (JS 동적 렌더링) -->
+            <div class="affil-list">
+                <h3 class="affil-list__title">제휴 협회</h3>
+                <div class="affil-list__grid" id="affilGrid">
+                    <!-- JS: 협회 카드 동적 렌더링 -->
+                </div>
+                <div class="affil-list__empty" id="affilEmpty" style="display:none">
+                    <p>현재 제휴 협회를 준비 중입니다.</p>
+                    <p>제휴 문의: <a href="mailto:pressco5755@naver.com">pressco5755@naver.com</a></p>
+                </div>
+                <div class="affil-list__loading" id="affilLoading" style="display:none">
+                    <div class="ad-spinner"></div>
+                    <p>불러오는 중...</p>
+                </div>
+            </div>
+
+            <!-- 제휴 문의 CTA -->
+            <div class="affil-cta">
+                <h3 class="affil-cta__title">협회 제휴를 원하시나요?</h3>
+                <p class="affil-cta__desc">비용 부담 없이 협회원에게 실질적인 혜택을 제공할 수 있습니다. 언제든 연락주세요.</p>
+                <a href="mailto:pressco5755@naver.com" class="affil-cta__btn">제휴 문의하기</a>
+            </div>
+        </div>
+    </div><!-- /#panelAffiliations -->
+
+    <div class="catalog-tab-panel" id="panelBenefits" role="tabpanel" style="display:none">
+        <div class="benefit-section">
+            <div class="benefit-hero">
+                <div class="benefit-hero__copy">
+                    <p class="benefit-hero__eyebrow">협회원 혜택 허브</p>
+                    <h2 class="benefit-hero__title">회원 전용 혜택과 이벤트를 자사몰 구매 흐름까지 자연스럽게 연결합니다.</h2>
+                    <p class="benefit-hero__desc">협회별 전용 할인, 시그니처 제품 노출, 수강 후 재료 재구매, 온라인/오프라인 이벤트를 한 곳에서 보여주는 레이어입니다.</p>
+                </div>
+                <div class="benefit-hero__stats" id="benefitHeroStats">
+                    <!-- JS: 혜택 통계 -->
+                </div>
+            </div>
+
+            <div class="benefit-grid" id="benefitGrid">
+                <!-- JS: 혜택 카드 -->
+            </div>
+
+            <section class="benefit-class-rail" id="benefitClassRail">
+                <div class="benefit-class-rail__header">
+                    <h3 class="benefit-class-rail__title">혜택과 함께 보면 좋은 클래스</h3>
+                    <p class="benefit-class-rail__desc">협회 연계 클래스, 재료키트 포함 수업, 이벤트성 클래스를 함께 제안합니다.</p>
+                </div>
+                <div class="benefit-class-rail__grid" id="benefitClassGrid">
+                    <!-- JS: 추천 클래스 -->
+                </div>
+                <div class="benefit-class-rail__empty" id="benefitClassEmpty" style="display:none">
+                    <p>추천할 클래스 데이터를 준비 중입니다.</p>
+                </div>
+            </section>
+        </div>
+    </div><!-- /#panelBenefits -->
+
+    <!-- Schema.org ItemList (JS 동적 주입) -->
+    <script type="application/ld+json" id="schemaItemList">
+    {
+        "@context": "https://schema.org",
+        "@type": "ItemList",
+        "name": "PRESSCO21 파트너 클래스 목록",
+        "numberOfItems": 0,
+        "itemListElement": []
+    }
+    </script>
+
+</div><!-- /.class-catalog -->
+
+
+</body>
+</html>

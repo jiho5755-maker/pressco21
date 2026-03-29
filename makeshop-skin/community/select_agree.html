@@ -1,0 +1,131 @@
+<!--/include_header(1)/-->
+
+<div class="container select-wrapper">
+    <h2 class="cw-selecttitle">추가 정보 동의 및 입력</h2>
+    <div class="cw-wrapper">
+        <div class="cw-selectcnts tabWrap">
+            <dl class="message title">
+                <dt>쇼핑몰 이용에 필요한 추가 정보를 수집합니다.<br>아래 항목을 선택하여, 정보를 입력해주세요.</dt>
+                <dd>* 정보를 입력하지 않아도 쇼핑몰은 이용할 수 있습니다.<br>단, 쇼핑몰에서 제공하는 혜택의 지급 대상에서 제외될 수 있습니다.</dd>
+            </dl>
+            <!--/if_selection_article_agreement/-->
+            <div class="tab-wrap">
+                <!--/loop_selection_article_agreement/-->
+                <a href="<!--/selection_article_agreement@link/-->"><!--/selection_article_agreement@name/--></a>
+                <!--/end_loop/-->
+            </div>
+            <!--/end_if/-->
+            <div id="tabWrap" class="hidden">
+                <!--/form_selection_article/-->
+                <div class="form-list">
+                    <!--/selection_article_terms/-->
+                    <!--/selection_article_input/-->
+                </div><!-- .form-list -->
+                <!--/end_form/-->
+                <div class="cw-selectbtns">
+                    <a href="<!--/link_selection_article_ok/-->" class="btn btn-primary btn-lg"><span>입력 정보, 동의하고 저장하기</span></a>
+                    <a href="<!--/link_selection_article_cancel/-->" class="btn btn-white btn-lg"><span>취소하기</span></a>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 우편번호 찾기 레이어 -->
+    <!--/block_join_addr/-->
+    <div class="modal-wrap" id="popAddrSearch">
+        <div class="modal-content">
+            <div class="modal-header">
+                <span class="modal-title">배송지 검색</span>
+                <a href="<!--/link_addr_close/-->" class="btn-modal-close"></a>
+            </div>
+            <div class="modal-body">
+                <!--/block_join_search_addr/-->
+                <p class="addr_type">
+                    <!--/if_radio_addr_type_number/-->
+                    <label class="form-check-label"><!--/radio_addr_type_number/--> 지번 주소</label>
+                    <!--/end_if/-->
+                    <!--/if_radio_addr_type_load/-->
+                    <label class="form-check-label"><!--/radio_addr_type_load/--> 도로명 검색</label>
+                    <!--/end_if/-->
+                    <!--/if_radio_addr_type_number_to_load/-->
+                    <label class="form-check-label"><!--/radio_addr_type_number_to_load/--> 지번+도로명 검색</label>
+                    <!--/end_if/-->
+                </p>
+                <!--/if_block_addr_type_number/-->
+                <!--/block_addr_type_number/-->
+                <div class="msg-wrap">
+                    <p class="msg01"><span class="msg01-highlight">동(읍/면/리)</span>명을 2글자 이상 입력하세요.</p>
+                    <p class="msg02">예) 삼성동, 가산동</p>
+                    <p class="msg03"><!--/addr_search_type_text/--></p>
+                </div>
+                <!--/end_block/-->
+                <!--/end_if/-->
+                <!--/block_addr_type_load/-->
+                <div class="msg-wrap">
+                    <p class="msg01 bold"><span class="msg01-highlight">도로명(건물명)</span>을 2글자 이상 입력하세요.</p>
+                    <p class="msg02">예)강남대로100길, 가산디지털1로</p>
+                    <p class="msg03"><!--/addr_search_type_text/--></p>
+                </div>
+                <!--/end_block/-->
+                <!--/block_addr_type_number_to_load/-->
+                <div class="msg-wrap">
+                    <p class="msg01 bold"><span class="msg01-highlight">동/번지(건물명)</span>을 두 단어 이상 입력하세요.</p>
+                    <p class="msg02">예) 가산동 우림라이온스밸리, 압구정 로데오</p>
+                    <p class="msg03"><!--/addr_search_type_text/--></p>
+                </div>
+                <!--/end_block/-->
+                <div class="search-form">
+                    <!--/form_addr_search/-->
+                    <fieldset>
+                        <legend>우편번호 검색 폼</legend>
+                        <div class="flex">
+                            <span class="keyword"><!--/input_search_addr_text/--></span>
+                            <a href="<!--/link_addr_search/-->" class="btn btn-primary search">검색</a>
+                        </div>
+                    </fieldset>
+                    <!--/end_form/-->
+                </div>
+                <div id="searchStep02">
+                    <p class="sub-tit">주소 선택</p>
+                    <!--/select_addr(cw-textfield)/-->
+                    <div>
+                        <a href="<!--/link_addr_select_ok/-->" class="btn btn-primary"><span>다음</span></a>
+                    </div>
+                </div>
+                <!--/end_block/-->
+                <!--/block_join_detail_addr/-->
+                <div class="msg-wrap">
+                    <p><span class="msg01-highlight">상세 주소</span>를 입력해주세요.</p>
+                </div>
+                <div class="detail-addr">
+                    <!--/form_detail_addr/-->
+                    <fieldset>
+                        <legend>상세 주소 입력 폼</legend>
+                        <p class="sub-tit">우편번호</p>
+                        <div class="flex">
+                            <!--/if_input_search_post/-->
+                                <!--/input_search_post(cw-textfield)/-->
+                            <!--/else/-->
+                                <!--/input_search_post1(cw-textfield)/-->
+                                -
+                                <!--/input_search_post2(cw-textfield)/-->
+                            <!--/end_if/-->
+                        </div>
+                        <p class="sub-tit">주소</p>
+                        <div>
+                            <p><!--/input_search_address1(cw-textfield)/--></p>
+                            <p class="py-10"><!--/input_search_address2(cw-textfield)/--></p>
+                        </div>
+                        <a href="<!--/link_addr_ok/-->" class="btn btn-primary">확인</a>
+                    </fieldset>
+                    <!--/end_form/-->
+                </div>
+                <!--/end_block/-->
+            </div>
+        </div>
+        <!--/end_block/-->
+    </div>
+    <!-- // 우편번호 찾기 레이어 -->
+</div>
+
+<!--/include_footer(1)/-->

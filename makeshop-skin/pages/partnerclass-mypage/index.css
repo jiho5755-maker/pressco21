@@ -1,0 +1,541 @@
+/* ============================================
+   PRESSCO21 수강생 마이페이지 — 예약 내역
+   CSS 스코핑: .my-bookings
+   CSS 변수 접두사: --mb-
+   브랜드 컬러: #425b51 (포레스트 그린), #d4a373 (골드)
+   ============================================ */
+
+/* ── 0. CSS 변수 (스코핑된 커스텀 프로퍼티) ── */
+.my-bookings {
+    --mb-primary: #425b51;
+    --mb-primary-light: #668f7e;
+    --mb-primary-dark: #2a3c34;
+    --mb-gold: #d4a373;
+    --mb-gold-light: #e8c9a8;
+    --mb-bg: #fdfbf7;
+    --mb-bg-card: #FFFFFF;
+    --mb-bg-warm: #faf8f5;
+    --mb-text: #2a3c34;
+    --mb-text-light: #777777;
+    --mb-text-muted: #999999;
+    --mb-border: #E8E2DB;
+    --mb-border-light: #F0EBE5;
+    --mb-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
+    --mb-shadow-hover: 0 2px 12px rgba(0, 0, 0, 0.06);
+    --mb-radius-sm: 8px;
+    --mb-radius-md: 12px;
+    --mb-transition: 0.2s ease-out;
+    --mb-font: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
+}
+
+/* ── 1. 기본 리셋 ── */
+.my-bookings {
+    font-family: var(--mb-font);
+    color: var(--mb-text);
+    line-height: 1.6;
+    box-sizing: border-box;
+    max-width: 800px;
+    margin: 0 auto;
+    padding: 24px 16px 60px;
+}
+
+.my-bookings *, .my-bookings *::before, .my-bookings *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+/* ── 2. 미로그인 안내 ── */
+.mb-notice {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    padding: 40px 16px;
+}
+
+.mb-notice__inner {
+    text-align: center;
+    max-width: 360px;
+}
+
+.mb-notice__icon {
+    margin-bottom: 24px;
+    opacity: 0.6;
+}
+
+.mb-notice__title {
+    font-size: 20px;
+    font-weight: 700;
+    color: var(--mb-text);
+    margin-bottom: 8px;
+}
+
+.mb-notice__desc {
+    font-size: 14px;
+    color: var(--mb-text-light);
+    margin-bottom: 28px;
+}
+
+.mb-notice__btn {
+    display: inline-block;
+    padding: 12px 32px;
+    background: var(--mb-primary);
+    color: #fff;
+    font-size: 15px;
+    font-weight: 600;
+    border-radius: var(--mb-radius-sm);
+    text-decoration: none;
+    transition: background var(--mb-transition);
+}
+
+.mb-notice__btn:hover {
+    background: var(--mb-primary-dark);
+}
+
+/* ── 3. 페이지 헤더 ── */
+.mb-header {
+    margin-bottom: 24px;
+}
+
+.mb-header__inner {
+    padding: 0 4px;
+}
+
+.mb-header__title {
+    font-family: 'Noto Serif KR', serif;
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--mb-text);
+    margin-bottom: 4px;
+}
+
+.mb-header__desc {
+    font-size: 14px;
+    color: var(--mb-text-light);
+}
+
+/* ── 4. 요약 카드 ── */
+.mb-summary {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 28px;
+}
+
+.mb-summary__card {
+    flex: 1;
+    background: var(--mb-bg-warm);
+    border: 1px solid var(--mb-border);
+    border-radius: var(--mb-radius-md);
+    padding: 16px;
+    text-align: center;
+}
+
+.mb-summary__label {
+    font-size: 13px;
+    color: var(--mb-text-light);
+    margin-bottom: 4px;
+}
+
+.mb-summary__value {
+    font-size: 28px;
+    font-weight: 700;
+    color: var(--mb-text);
+}
+
+/* ── 4b. 후기 미작성 알림 배너 (E2-010 리텐션) ── */
+.mb-review-alert {
+    margin-bottom: 16px;
+}
+
+.mb-review-alert__inner {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    background: linear-gradient(135deg, rgba(212, 163, 115, 0.08) 0%, rgba(212, 163, 115, 0.15) 100%);
+    border: 1px solid var(--mb-gold-light);
+    border-radius: var(--mb-radius-md);
+    padding: 14px 16px;
+}
+
+.mb-review-alert__icon {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    background: var(--mb-gold-light);
+    color: var(--mb-gold);
+}
+
+.mb-review-alert__text {
+    flex: 1;
+    min-width: 0;
+}
+
+.mb-review-alert__title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mb-text);
+    margin-bottom: 2px;
+}
+
+.mb-review-alert__desc {
+    font-size: 12px;
+    color: var(--mb-text-light);
+    line-height: 1.4;
+}
+
+.mb-review-alert__close {
+    flex-shrink: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    background: none;
+    border: none;
+    border-radius: 50%;
+    color: var(--mb-text-light);
+    cursor: pointer;
+    transition: background var(--mb-transition);
+}
+
+.mb-review-alert__close:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+
+/* ── 5. 예약 카드 ── */
+.mb-booking-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.mb-booking-card {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    align-items: flex-start;
+    background: var(--mb-bg-card);
+    border: 1px solid var(--mb-border);
+    border-radius: var(--mb-radius-md);
+    padding: 20px;
+    transition: box-shadow var(--mb-transition);
+}
+
+.mb-booking-card:hover {
+    box-shadow: var(--mb-shadow-hover);
+}
+
+.mb-booking-card--past {
+    opacity: 0.85;
+}
+.mb-booking-card--past:hover {
+    opacity: 1;
+}
+
+.mb-booking-card__left {
+    flex: 1;
+    min-width: 0;
+}
+
+.mb-booking-card__right {
+    text-align: right;
+    flex-shrink: 0;
+    margin-left: 16px;
+}
+
+.mb-badge {
+    display: inline-block;
+    font-size: 12px;
+    font-weight: 600;
+    padding: 3px 10px;
+    border-radius: 20px;
+    margin-bottom: 8px;
+}
+
+.mb-badge--upcoming {
+    background: #edf5eb;
+    color: #5a8a50;
+}
+
+.mb-badge--completed {
+    background: #f0ece8;
+    color: var(--mb-text-light);
+}
+
+/* 수강 완료 CTA 버튼 영역 */
+.mb-booking-card__actions {
+    display: flex;
+    gap: 8px;
+    padding-top: 10px;
+    margin-top: 10px;
+    border-top: 1px solid var(--mb-border);
+    width: 100%;
+}
+.mb-cta-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 6px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 6px;
+    text-decoration: none;
+    transition: background 0.2s, color 0.2s;
+}
+.mb-cta-btn--repurchase {
+    background: var(--mb-primary);
+    color: #fff;
+}
+.mb-cta-btn--repurchase:hover {
+    background: var(--mb-primary-dark, #2a3c34);
+}
+.mb-cta-btn--review {
+    background: transparent;
+    color: var(--mb-gold, #d4a373);
+    border: 1px solid var(--mb-gold, #d4a373);
+}
+.mb-cta-btn--review:hover {
+    background: var(--mb-gold, #d4a373);
+    color: #fff;
+}
+
+.mb-booking-card__title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--mb-text);
+    margin-bottom: 4px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.mb-booking-card__partner {
+    font-size: 13px;
+    color: var(--mb-text-light);
+}
+
+.mb-booking-card__date {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--mb-text);
+    margin-bottom: 4px;
+}
+
+.mb-booking-card__people {
+    font-size: 13px;
+    color: var(--mb-text-light);
+    margin-bottom: 2px;
+}
+
+.mb-booking-card__amount {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--mb-gold);
+}
+
+/* ── 5b. 수료증 발급 버튼 ── */
+.mb-cta-btn--certificate {
+    background: var(--mb-gold);
+    color: #fff;
+}
+.mb-cta-btn--certificate:hover {
+    background: var(--mb-gold-light);
+    color: var(--mb-text);
+}
+
+/* ── 5c. 강사 도전 배너 ── */
+.mb-growth-banner {
+    margin-top: 24px;
+    background: linear-gradient(135deg, var(--mb-primary) 0%, var(--mb-primary-light) 100%);
+    border-radius: var(--mb-radius-md);
+    padding: 28px 24px;
+    text-align: center;
+}
+.mb-growth-banner__title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #fff;
+    margin-bottom: 6px;
+}
+.mb-growth-banner__desc {
+    font-size: 14px;
+    color: rgba(255,255,255,0.82);
+    margin-bottom: 16px;
+    line-height: 1.6;
+}
+.mb-growth-banner__btn {
+    display: inline-block;
+    padding: 10px 28px;
+    background: #fff;
+    color: var(--mb-primary);
+    font-size: 14px;
+    font-weight: 700;
+    border-radius: var(--mb-radius-sm);
+    text-decoration: none;
+    transition: background var(--mb-transition), transform var(--mb-transition);
+}
+.mb-growth-banner__btn:hover {
+    background: var(--mb-gold-light);
+    transform: translateY(-1px);
+}
+
+/* ── 5d. 수료증 인쇄 전용 ── */
+.mb-certificate {
+    display: none;
+}
+
+@media print {
+    /* 화면 요소 숨기고 수료증만 표시 */
+    .my-bookings > *:not(.mb-certificate) {
+        display: none !important;
+    }
+    .mb-certificate {
+        display: block !important;
+        padding: 40px;
+        text-align: center;
+        font-family: 'Noto Serif KR', serif;
+    }
+    .mb-cert__frame {
+        border: 3px double #425b51;
+        border-radius: 8px;
+        padding: 48px 40px;
+        max-width: 600px;
+        margin: 0 auto;
+    }
+    .mb-cert__logo {
+        font-size: 14px;
+        font-weight: 700;
+        color: #425b51;
+        letter-spacing: 3px;
+        margin-bottom: 24px;
+    }
+    .mb-cert__heading {
+        font-size: 28px;
+        font-weight: 700;
+        color: #2a3c34;
+        margin-bottom: 32px;
+    }
+    .mb-cert__info {
+        font-size: 15px;
+        color: #333;
+        line-height: 2;
+        margin-bottom: 32px;
+    }
+    .mb-cert__date {
+        font-size: 13px;
+        color: #777;
+        margin-top: 24px;
+    }
+    .mb-cert__org {
+        font-size: 14px;
+        font-weight: 600;
+        color: #425b51;
+        margin-top: 16px;
+    }
+}
+
+/* ── 6. 빈 상태 ── */
+.mb-empty {
+    text-align: center;
+    padding: 60px 16px;
+}
+
+.mb-empty__icon {
+    margin-bottom: 20px;
+    opacity: 0.5;
+}
+
+.mb-empty__title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--mb-text);
+    margin-bottom: 8px;
+}
+
+.mb-empty__desc {
+    font-size: 14px;
+    color: var(--mb-text-light);
+    margin-bottom: 24px;
+}
+
+.mb-empty__btn {
+    display: inline-block;
+    padding: 12px 28px;
+    background: #fff;
+    color: var(--mb-primary);
+    font-size: 14px;
+    font-weight: 600;
+    border: 1.5px solid var(--mb-primary);
+    border-radius: var(--mb-radius-sm);
+    text-decoration: none;
+    transition: background var(--mb-transition), color var(--mb-transition);
+}
+
+.mb-empty__btn:hover {
+    background: var(--mb-primary);
+    color: #fff;
+}
+
+/* ── 7. 로딩 오버레이 ── */
+.mb-loading {
+    position: fixed;
+    inset: 0;
+    z-index: 9999;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(250, 248, 245, 0.7);
+    backdrop-filter: blur(2px);
+}
+
+/* ── 8. 반응형 ── */
+@media (max-width: 767px) {
+    .my-bookings {
+        padding: 16px 12px 48px;
+    }
+
+    .mb-header__title {
+        font-size: 20px;
+    }
+
+    .mb-summary {
+        gap: 8px;
+    }
+
+    .mb-summary__card {
+        padding: 12px 8px;
+    }
+
+    .mb-summary__value {
+        font-size: 22px;
+    }
+
+    .mb-booking-card {
+        flex-direction: column;
+        gap: 12px;
+        padding: 16px;
+    }
+
+    .mb-booking-card__right {
+        text-align: left;
+        margin-left: 0;
+        display: flex;
+        gap: 12px;
+        align-items: center;
+        flex-wrap: wrap;
+    }
+
+    .mb-booking-card__date {
+        margin-bottom: 0;
+    }
+
+    .mb-booking-card__people {
+        margin-bottom: 0;
+    }
+}

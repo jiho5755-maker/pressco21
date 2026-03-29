@@ -1,0 +1,133 @@
+# board_jewoo_board7_write 가상태그
+
+
+## 글쓰기
+<!--/add_info_html/-->
+<!--/input_email/-->
+<!--/input_font_weight_checkbox/-->
+<!--/input_lock_checkbox/-->
+<!--/input_name/-->
+<!--/input_password/-->
+<!--/input_subject/-->
+<!--/is_admin_password/-->
+<!--/is_auto_lock/-->
+<!--/link_write_ok/-->
+<!--/select_font_color/-->
+<!--/select_font_size/-->
+<!--/select_header/-->
+<!--/text_content/-->
+
+## 게시판
+<!--/form_write/-->
+<!--/is_reply/-->
+<!--/link_list/-->
+<!--/loop_top_board_list/-->
+<!--/now_board_name/-->
+<!--/top_board_list@link/-->
+<!--/top_board_list@name/-->
+
+## 게시판 파일
+<!--/file_attach/-->
+<!--/file_attach2/-->
+<!--/file_attach3/-->
+<!--/file_attach4/-->
+<!--/link_file_upload/-->
+<!--/link_file_upload2/-->
+<!--/link_file_upload3/-->
+<!--/link_file_upload4/-->
+
+## 평점
+<!--/loop_score/-->
+<!--/radio_score/-->
+<!--/score@icon/-->
+<!--/score@title/-->
+
+## 상품
+<!--/free_delivery_icon/-->
+<!--/icons/-->
+<!--/image_s/-->
+<!--/link/-->
+<!--/mobile_icons/-->
+<!--/mobile_name/-->
+<!--/name/-->
+<!--/price_sell/-->
+
+## 이용약관
+<!--/if_new_privercy_type/-->
+<!--/if_third_party/-->
+<!--/if_trust/-->
+<!--/link_trust_view/-->
+<!--/new_privacy_terms/-->
+<!--/privercy_mail/-->
+<!--/privercy_name/-->
+<!--/privercy_terms/-->
+<!--/privercy_terms1/-->
+<!--/privercy_terms2/-->
+<!--/privercy_terms3/-->
+<!--/radio_privercy_no/-->
+<!--/radio_third_party_no/-->
+<!--/radio_third_party_ok/-->
+<!--/radio_trust_no/-->
+<!--/radio_trust_ok/-->
+<!--/third_party_terms/-->
+<!--/trust_terms/-->
+
+## 검색 관련
+<!--/form_search/-->
+<!--/input_search_word/-->
+<!--/link_search_button/-->
+
+## 회원그룹
+<!--/group_icon/-->
+<!--/group_image/-->
+<!--/group_level/-->
+<!--/group_name/-->
+
+## 회원 정보
+<!--/img_user/-->
+<!--/user_basket_quantity/-->
+<!--/user_basket_quantity/-->
+<!--/user_deposit/-->
+<!--/user_email/-->
+<!--/user_greeting/-->
+<!--/user_id/-->
+<!--/user_name/-->
+<!--/user_nickname/-->
+<!--/user_reserve/-->
+
+## 회원 로그인
+<!--/checkbox_save_id/-->
+<!--/checkbox_security/-->
+<!--/form_login/-->
+<!--/if_login/-->
+<!--/input_login_id/-->
+<!--/input_login_pw/-->
+<!--/link_join/-->
+<!--/link_login_button/-->
+
+## 인클루드 태그
+<!--/include_footer/-->
+<!--/include_header/-->
+
+## 상점 정보
+<!--/shop_id/-->
+
+## 기타
+<!--/add_info@description/-->
+<!--/add_info@input_title/-->
+<!--/add_info@input_value/-->
+<!--/banner_plan/-->
+<!--/block_order_list/-->
+<!--/engname/-->
+<!--/idx/-->
+<!--/if_company_user/-->
+<!--/if_mode_write/-->
+<!--/input_qna_ordernum/-->
+<!--/loop_order_list/-->
+<!--/order_count/-->
+<!--/order_list@link_product_name/-->
+<!--/order_list@ordernum/-->
+<!--/order_list@order_date/-->
+<!--/order_list@price/-->
+<!--/order_list@product_name/-->
+<!--/score@icon_select/-->

@@ -1,0 +1,113 @@
+.gift-accept {
+    --text-sm: .875rem; /* 14px */
+    --text-xs: .813rem; /* 13px */
+}
+img { max-width: 100%; height: auto; }
+.sub-title { display: flex; align-items: center; padding: 60px 0 10px 0; border-bottom:1px solid var(--cw-heading-color); }
+.sub-title.first { padding-top: 40px; }
+.sub-title h3 { font-size: 1rem; font-weight: 700; }
+.gift-accept .gift-wrap { border-bottom: 1px solid var(--cw-color-30); }
+.gift-accept .gift-card { display: flex; flex-direction: column; gap: 10px; max-width: 400px; margin: 20px auto 20px; }
+.gift-accept .gift-card .card-txts { line-height: 0; }
+.gift-accept .gift-card textarea { width: 100%; height: 84px; }
+.gift-accept .item-wrap { padding: 0; border-bottom: 1px solid var(--cw-color-30); }
+.gift-accept .item-wrap .goods-wrap { display: flex; align-items: center; padding: 1rem 0; }
+.gift-accept .item-wrap .goods-image img { width: 80px; height: auto; }
+.gift-accept .item-wrap .goods-content-wrap { display: flex; flex: 1; flex-direction: column; justify-content: space-between; padding-left: 20px; }
+.gift-accept .item-wrap .goods-details { display:flex; flex-direction: column; gap: 4px; max-width:400px; color: var(--cw-heading-color); }
+.gift-accept .item-wrap .goods-details .title { font-weight: 600; font-size: var(--text-sm); }
+.gift-accept .item-wrap .goods-details .option { font-size: var(--text-xs); color: var(--cw-color-80); display: block; white-space: normal; overflow-wrap: break-word; word-break: break-all; }
+.gift-accept .item-wrap .goods-btns { margin-top: 8px; }
+.info-section { padding: 10px 0; border-bottom: 1px solid var(--cw-color-30); }
+.info-section .info-field { display:flex; align-items: center; padding: 10px 0; font-size: var(--text-sm); }
+.info-section .info-field .label { min-width: 120px; }
+.info-section .info-field .value { font-weight: 600; }
+.btn-list-link { margin-top: 80px; display: flex; align-items: center; justify-content: center; gap: 8px; }
+.btn-list-link .btn { width: 300px; }
+
+/* 옵션변경 레이어 */
+.layer-option-edit .modal-body { padding-top: 20px; }
+.infos--group:not(:last-child) { padding-bottom: 1rem; }
+.infos--col { display: flex; flex-direction: column; gap: 6px; }
+.infos--col .info-title { font-size: .875rem; color: var(--cw-heading-color); }
+.infos--col .info-title .selected-text { margin-left: 8px; color: var(--cw-point-color); font-size: .8125rem;}
+.infos--col .info-content { display: flex; flex-wrap: wrap; font-size: .875rem; color: var(--cw-color-80); }
+.infos--col .info-content.sm-gap { gap: 12px; }
+.infos--col .info-content.none-gap { gap: 0; }
+.infos--col .option-text span { color: var(--color); }
+.infos--col .option-text {
+    --border-color: var(--cw-color-30);
+    --color: var(--cw-color-80);
+    display: inline-block;
+    border: 1px solid var(--border-color);
+    font-size: .8125rem;
+    color: var(--color);
+    text-decoration: none;
+    line-height: 18px;
+}
+.infos--col .option-text a {
+    padding: 4px 8px;
+}
+.infos--col .option-text.MK-oneclick-sel {
+    --border-color: var(--cw-heading-color);
+    --color: var(--cw-heading-color);
+}
+.infos--col .option-check {
+    --border-color: #00000026;
+    position: relative;
+    display: inline-block;
+    width: 36px; height: 36px;
+    border: 1px solid var(--border-color);
+}
+.infos--col .option-check span { display: inline-block; width: 100%; height: 100%; }
+.infos--col .option-check img { vertical-align: unset; width: 100%; height: 100%; }
+.infos--col .option-check.MK-oneclick-sel {
+    --border-color: var(--cw-heading-color);
+}
+.infos--col .option-check.MK-oneclick-sel::after {
+    content: '';
+    position: absolute;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: #ffffff99 url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_check.svg) no-repeat center center / 20px;
+}
+.layer-option-edit .modal-footer { margin-top: 30px; } 
+
+.MK-oneclick-color { width:50px; height: 50px; } 
+.MK-oneclick-color a { padding: 2px; }
+.MK-oneclick-color span { width: 44px;height: 44px; }
+.MK-oneclick-color .mk-oo-sel span { width: 27px; height: 27px; }
+.MK-oneclick-list li.MK-oneclick-dis a { filter:alpha(opacity=50); -moz-opacity:.5; opacity:.5; }
+
+.MK-oneclick-li > a > img{ width: 50px; height: 50px; }
+.MK_qty-ctrl { margin-bottom: 10px !important; }
+.MK_qty-ctrl a.MK_btn-up { background-position:0 0 !important; margin:0 4px !important; }
+.MK_qty-ctrl a.MK_btn-dw { background-position:0 -26px !important; }
+
+/* 원클릭옵션 */
+.MK-oneclick-list { display: flex; flex-wrap: wrap; gap: 12px; font-size: .875rem; color: var(--cw-color-80); }
+.MK-oneclick-list li.MK-oneclick-image a,
+.MK-oneclick-list li.MK-oneclick-color a { --border-color: #00000026; position: relative; display: inline-block; width: 38px; height: 38px; border: 1px solid var(--border-color); color: var(--cw-color-80); }
+.MK-oneclick-list li.MK-oneclick-sel a { --border-color: var(--cw-heading-color); }
+.MK-oneclick-list li.MK-oneclick-sel a::after { content: ''; position: absolute; top: 0; left: 0; right: 0; bottom: 0; background: #ffffff99 url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_check.svg) no-repeat center center / 20px; }
+.MK-oneclick-list li a span { display: inline-block; text-align: center; vertical-align: middle; }
+.MK-oneclick-list li a img { width: 100%; height:100%;}
+.MK-oneclick-list li.MK-oneclick-color span { width: 36px; height: 36px; }
+.MK-oneclick-list li.MK-oneclick-text a { --border-color: var(--cw-color-30); --color: var(--cw-color-80); position: relative; display: inline-block; min-width: 40px; padding: 3px 8px; border: 1px solid var(--border-color); font-size: .8125rem; color: var(--color); text-decoration: none; text-align: center; line-height: 18px; }
+.MK-oneclick-value { color: var(--cw-point-color); font-size: .8125rem; }
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .btn-list-link { margin-top: 60px; }
+}
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .gift-accept {
+        --text-sm: .813rem; /* 13px */
+        --text-xs: .75rem; /* 13px */
+    }
+    .info-section .info-field { flex-direction: column; align-items: flex-start; gap: 6px; }
+    .info-section .info-field .label { font-size: var(--text-sm); }
+    .btn-list-link { margin-top: 60px; flex-direction: column; }
+    .btn-list-link .btn { width: 100%; }
+}

@@ -1,0 +1,26 @@
+# mp_attpoint 가상태그
+
+
+## 출석체크 적립금
+<!--/attendance@date/-->
+<!--/attendance@price/-->
+<!--/attendance_reserve/-->
+<!--/loop_attendance/-->
+
+## 회원 정보
+<!--/user_basket_quantity/-->
+<!--/user_name/-->
+<!--/user_reserve/-->
+
+## 인클루드 태그
+<!--/include_footer/-->
+<!--/include_header/-->
+
+## 상점정보
+<!--/shop_id/-->
+<!--/shop_name/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/if_company_user/-->
+<!--/next_group_price_gap/-->

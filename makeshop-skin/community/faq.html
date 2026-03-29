@@ -1,0 +1,67 @@
+<!--/include_header(1)/-->
+
+<div class="container faq-wrapper">
+    <h2 class="cw-faqtitle">
+        <span>FAQ</span>
+        <!--/if_link_m2m_question/--><a href="<!--/link_m2m_question/-->" class="btn btn-white btn-sm"><span>1:1게시판</span></a><!--/end_if/-->
+    </h2>
+    <div class="cw-wrapper">
+        <!--/form_search_faq/-->
+        <div class="cw-faqsearch">
+            <dl class="search-keywords">
+                <dt><!--/select_category(cw-select-box)/--></dt>
+                <dd>
+                    <!--/input_keyword(cw-textfield)/-->
+                    <a href="<!--/link_search_faq/-->" class="btn-search"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_search.svg" alt="검색"></a>
+                </dd>
+                <!--/if_best_keyword/-->
+                <dt>인기 검색어</dt>
+                <dd>
+                    <!--/loop_best_keyword/-->
+                    <a href="<!--/best_keyword@link/-->" class="keyword"><!--/best_keyword@keyword/--></a>
+                    <!--/end_loop/-->
+                </dd>
+                <!--/end_if/-->
+            </dl>
+        </div>
+        <!--/if_category/-->
+        <div class="cw-faqtab">
+            <!--/loop_category/-->
+            <a href="<!--/category@link/-->" class="<!--/category@key/--> <!--/if_category@is_now/-->on<!--/else/--><!--/end_if/-->"><!--/category@name/--></a>
+            <!--/end_loop/-->
+        </div>
+        <!--/end_if/-->
+        <div class="cw-faqlist">
+            <!--/if_faq(+1)/-->
+                <!--/loop_faq/-->
+                <div class="question" uid="<!--/faq@uid/-->">
+                    <span>[<!--/faq@category/-->]</span> <!--/faq@subject/-->
+                </div>
+                <div class="answer">
+                    <!--/faq@answer/-->
+                </div>
+                <!--/end_loop/-->
+            <!--/end_if/-->
+        </div>
+        <div class="cw-paging">
+            <!--/if_pager_faq::prev/-->
+            <a href="<!--/pager_faq::prev@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_left.svg" alt="이전" width="16" height="16" /></a>
+            <!--/end_if/-->
+            <!--/if_pager_faq/-->
+                <!--/loop_pager_faq::page(5)/-->
+                    <!--/if_pager_faq::page@current/-->
+                    <a href="<!--/pager_faq::current@link/-->" class="active"><!--/pager_faq::current/--></a>
+                    <!--/else/-->
+                    <a href="<!--/pager_faq::page@link/-->"><!--/pager_faq::page/--></a>
+                    <!--/end_if/-->
+                <!--/end_loop/-->
+            <!--/end_if/-->
+            <!--/if_pager_faq::next/-->
+            <a href="<!--/pager_faq::next@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_right.svg" alt="다음" width="16" height="16" /></a>
+            <!--/end_if/-->
+        </div>
+        <!--/end_form/-->
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

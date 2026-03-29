@@ -1,0 +1,143 @@
+<div id="product_benefit">
+    <div class="layer modal-wrap">
+        <div class="layer-pop modal-content">
+            <div class="tit-fix modal-header">
+                <span class="modal-title">사용가능한 쿠폰을 확인하세요.</span>
+                <a href="<!--/link_close/-->" class="close btn-modal-close"></a>
+            </div>
+            <div class="txt modal-body">
+                <!--/if_is_smart_coupon/-->
+                <ul class="coupon-list">
+                    <!--/if_down_coupon_list/-->
+                        <!--/loop_down_coupon_list/-->
+                            <!--/if_down_coupon_list@image/-->
+                            <li>
+                                <span class="c-image">
+                                <!--/if_down_coupon_list@link_down/-->
+                                    <a href="<!--/down_coupon_list@link_down/-->"><img src="<!--/down_coupon_list@image/-->" /></a>
+                                <!--/end_if/-->
+                                </span>
+                            </li>
+                            <!--/else/-->
+                            <li  class="sc-style<!--/down_coupon_list@style_num/--> <!--/if_down_coupon_list@coupon_type(RESERVE)/-->sc-reserve<!--/end_if/-->">
+                                <div class="c-info">
+                                    <p class="c-name"><!--/down_coupon_list@name/--></p>
+                                    <p class="c-price"><span>
+                                        <!--/number/down_coupon_list@benefit_price/-->원 <!--/if_down_coupon_list@coupon_type(DISCOUNT)/-->할인<!--/else/-->적립<!--/end_if/-->
+                                    </span></p>
+                                    <!--/if_down_coupon_list@explain/--><p class="c-txt"><!--/down_coupon_list@explain/--></p><!--/end_if/-->
+                                </div>
+                                <div class="sc-btn-down"><span>
+                                    <!--/if_down_coupon_list@is_down_complete/-->
+                                        <!--/if_down_coupon_list@is_use_complete/-->
+                                            <span class="sc-complete">사용<br />완료</span>
+                                        <!--/else/-->
+                                            <span class="sc-complete">발급<br />완료</span>
+                                        <!--/end_if/-->
+                                    <!--/else/-->
+                                        <!--/if_down_coupon_list@count_limit(+2)/-->
+                                            <a href="<!--/down_coupon_list@link_down/-->"><span>다운로드</span> <strong class="num"><em><!--/down_coupon_list@count_received/--></em>/<!--/down_coupon_list@count_limit/--></strong></a>
+                                        <!--/else/-->
+                                            <a href="<!--/down_coupon_list@link_down/-->"><span>다운로드</span></a>
+                                        <!--/end_if/-->
+                                    <!--/end_if/-->
+                                </span></div>
+                            </li>
+                            <!--/end_if/-->
+                        <!--/end_loop/-->
+                    <!--/else/-->
+                        <li class="none">적용 가능한 쿠폰이 없습니다.</li>
+                    <!--/end_if/-->
+                </ul>
+                <!--/end_if/-->
+
+                <h4>혜택 정보</h4>
+                <ul class="product-discount-list">
+                    <!--/if_is_discount_benefit/-->
+                        <!--/if_discount_price/-->
+                        <li>
+                            <strong class="product-discount-txt"><span class="product-discount-price"><!--/number/discount_price/-->원 할인</span> <!--/discount_message/--> 할인</strong>
+                            <p class="product-discount-period"><!--/discount_date_start/--> ~ <!--/discount_date_end/--></p>
+                        </li> 
+                        <!--/end_if/-->
+                        <!--/if_group_prd_discount_price/-->
+                        <li>
+                            <strong class="product-discount-txt"><span class="product-discount-price"><!--/number/group_prd_discount_price/-->원 할인</span> <!--/discount_group_name/--> 할인</strong>
+                        </li>
+                        <!--/end_if/-->
+                        <!--/if_is_promotion_bulk/-->
+                        <li>
+                            <div class="promotion-discount-txt"> 
+                                <span class="promotion-discount-min-info fc-red">
+                                    <!--/if_discount_promotion_discount_type(WON)/--><!--/discount_promotion_min_price/-->원
+                                    <!--/else/--><!--/discount_promotion_min_percent/-->%<!--/end_if/--> 할인~
+                                </span>
+                                <strong><!--/discount_promotion_title/--></strong>
+                                <div class="view-wrap">
+                                    <a href="#none" class="btn-view"><span>더보기</span></a>
+                                </div> 
+                            </div>
+                            <p class="promotion-discount-period"><!--/discount_promotion_date_start/--> ~ <!--/discount_promotion_date_end/--></p>
+                        </li>
+                        <!--/end_if/-->
+                    <!--/else/-->
+                        <li class="none">상품에 적용된 혜택이 없습니다.</li>
+                    <!--/end_if/-->
+                </ul>
+                <ul class="layer-view">
+                    <li>· <!--/if_discount_promotion_option_apply/-->옵션 포함<!--/else/-->옵션 제외<!--/end_if/--></li>                         
+                    <!--/loop_bulk_info/-->
+                        <li>· <!--/bulk_info@min_stock/--> ~ <!--/bulk_info@max_stock/-->개
+                            <span>
+                                <!--/if_discount_promotion_discount_type(WON)/-->개당 <span class="fc-red"><!--/bulk_info@price/-->원 할인</span>
+                                <!--/else/--><span class="fc-red"><!--/bulk_info@percent/-->% 할인</span><!--/end_if/-->
+                            </span>
+                        </li>
+                    <!--/end_loop/-->
+                    <li class="layer-info">* 할인적용금액은 장바구니에서<br>확인해주세요.</li>
+                </ul>
+
+                <!--/if_buy_coupon/-->
+                <h4>쿠폰 지급 혜택</h4>
+                <ul class="coupon-buy-list">
+                    <!--/loop_buy_coupon/-->
+                    <li><strong class="coupon-buy-name">
+                        <!--/if_buy_coupon@coupon_type(DISCOUNT)/-->
+                            <span class="coupon-buy-price fc-red">
+                            <!--/if_buy_coupon@discount_price/--><!--/if_buy_coupon@apply_type(DELIVERY)/-->배송비 <!--/end_if/--><!--/number/buy_coupon@discount_price/-->원 할인<!--/end_if/-->
+                            <!--/if_buy_coupon@discount_rate/--><!--/buy_coupon@discount_rate/-->% 할인<!--/end_if/-->
+                            </span>
+                        <!--/end_if/-->
+                        <!--/if_buy_coupon@coupon_type(RESERVE)/-->
+                            <span class="coupon-buy-price fc-blue">
+                            <!--/if_buy_coupon@reserve_price/--><!--/number/buy_coupon@reserve_price/-->원 적립<!--/end_if/-->
+                            <!--/if_buy_coupon@reserve_rate/--><!--/buy_coupon@reserve_rate/-->% 적립<!--/end_if/-->
+                            </span>
+                        <!--/end_if/-->
+                        <!--/if_buy_coupon@coupon_type(FREE)/--><span class="coupon-opt-price fc-red">무료배송</span><!--/end_if/-->
+                        <!--/buy_coupon@name/--></strong>
+                        <!--/if_buy_coupon@issue_type(PRICE)/-->
+                            <p class="coupon-buy-txt">
+                            <!--/if_buy_coupon@issue_price_type(ALL)/-->
+                                상품 구매시 발급
+                            <!--/else/-->
+                                <!--/if_buy_coupon@issue_price(+1)/--><!--/number/buy_coupon@issue_price/-->원 이상 <!--/end_if/-->
+                                <!--/if_buy_coupon@issue_end_price(+1)/--><!--/number/buy_coupon@issue_end_price/-->원 이하<!--/end_if/-->
+                                <!--/if_buy_coupon@is_issue_delivery_price/-->(배송비 포함)<!--/end_if/-->
+                                구매시 발급
+                            <!--/end_if/-->
+                            </p>
+                        <!--/end_if/-->
+                    </li>
+                    <!--/end_loop/-->
+                </ul>
+                <!--/end_if/-->
+                <p class="notice">* 할인 금액은 예상 금액으로 구매 조건 등에 따라 달라질 수 있습니다.</p>
+
+                <!--/if_not_login/-->
+                <div class="btn-pb-join"><a href="<!--/link_join/-->">회원가입</a></div>
+                <!--/end_if/-->
+            </div>
+        </div>
+    </div>
+</div><!-- #product_benefit-->

@@ -1,0 +1,108 @@
+<!--/include_header(1)/-->
+
+<!-- 본문 -->
+<!-- container -->
+<div id="container">
+    <!-- contents -->
+    <div id="contents">
+        <!-- main -->
+        <main id="review-list">
+            <div class="h_title">
+                <h3>미등록 리뷰보기</h3>
+            </div>
+
+            <section class="reviewList">
+                <div id="tabWrap">
+                    <ul class="review-tab">
+                        <li id="mp_rv_tab1" class="now"><a href="#review1Wrap">작성 가능한 리뷰(<!--/number/possible_review_count/-->)</a></li>
+                        <li id="mp_rv_tab2"><a href="#review2Wrap">작성한 리뷰(<!--/number/completed_review_count/-->)</a></li>
+                    </ul>
+                </div>
+                <div id="contWrap">
+                
+                
+                
+                    <div id="review1Wrap" class="mp_rv_tab-content">
+                        <div class="">
+                        <!--/block_possible_review/-->
+                        <!--/if_possible_review/-->
+                        <!--/loop_possible_review(3)/-->
+                            <ul class="list clearFix">
+                                <li>
+                                    <a href="<!--/possible_review@link_product/-->" class="img"><img src="<!--/possible_review@mobile_image/-->" alt="" style="width:100%;height:100%;" /></a>
+                                    <dl>
+                                        <!--/if_possible_review@option/-->
+                                        <dt class="name"><a href="<!--/possible_review@link_product/-->"><!--/possible_review@name/--></a></dt>
+                                        <dd class="name mb15"><!--/possible_review@option/--></dd>
+                                        <!--/else/-->
+                                        <dt class="name mb15"><a href="<!--/possible_review@link_product/-->"><!--/possible_review@name/--></a></dt>
+                                        <!--/end_if/-->
+                                        <dd><!--/date(%Y-%M-%D)/possible_review@pay_date/--></dd>
+                                        <dd><!--/number/possible_review@price/-->원</dd>
+                                        <dd><a href="<!--/possible_review@link_write/-->" class="btn-rev-write">리뷰쓰기</a></dd>
+                                    </dl>
+                                </li>
+                            </ul>
+                        <!--/end_loop/-->
+                        <!--/else/-->
+                        <div class="none-data"> 
+                            <i class="fa fa-exclamation-triangle fa-2x"></i>
+                            <p>작성 가능한 리뷰가 없습니다.</p>
+                        </div>
+                        <!--/end_if/-->
+                        <!--/end_block/-->
+                        </div>
+                        <div class="MK_possible_more btns"> 
+                            <a href="<!--/link_more_possible_review/-->" class="btn-more">더보기 ▼</a>
+                        </div>
+                    </div>
+                    
+                    
+                    
+                    <div id="review2Wrap" class="mp_rv_tab-content">
+                        <div class="">
+                        <!--/block_completed_review/-->
+                        <!--/if_completed_review/-->
+                        <!--/loop_completed_review(3)/-->
+                            <ul class="list clearFix">
+                                <li>
+                                    <a href="<!--/completed_review@link_product/-->" class="img"><img src="<!--/completed_review@mobile_image/-->" alt="" style="width:100%;height:100%;" /></a>
+                                    <dl>
+                                        <!--/if_completed_review@option/-->
+                                        <dt class="name"><a href="<!--/completed_review@link_product/-->"><!--/completed_review@name/--></a></dt>
+                                        <dd class="name mb15"><!--/completed_review@option/--></dd>
+                                        <!--/else/-->
+                                        <dt class="name mb15"><a href="<!--/completed_review@link_product/-->"><!--/completed_review@name/--></a></dt>
+                                        <!--/end_if/-->
+                                        <dd><!--/date(%Y-%M-%D)/completed_review@pay_date/--></dd>
+                                        <dd><!--/number/completed_review@price/-->원</dd>
+                                        <dd><a href="<!--/completed_review@link_view/-->" class="btn-rev-write">리뷰보기</a></dd>
+                                    </dl>
+                                </li>
+                            </ul>
+                        <!--/end_loop/-->
+                        <!--/else/-->
+                        <div class="none-data"> 
+                            <i class="fa fa-exclamation-triangle fa-2x"></i>
+                            <p>작성한 리뷰가 없습니다.</p>
+                        </div>
+                        <!--/end_if/-->
+                        <!--/end_block/-->
+                        </div>
+                        <div class="MK_completed_more btns"> 
+                            <a href="<!--/link_more_completed_review/-->" class="btn-more">더보기 ▼</a>
+                        </div>
+                    </div>
+                    
+                    
+                </div>
+            </section>
+        </main>
+        <!-- //main -->
+    </div>
+    <!-- //contents -->
+</div>
+<!-- //container -->
+<!-- //본문 -->
+
+<!--/include_footer(1)/-->

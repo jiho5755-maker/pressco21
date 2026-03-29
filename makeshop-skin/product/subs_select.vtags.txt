@@ -1,0 +1,26 @@
+# subs_select 가상태그
+
+
+## 기타
+<!--/block_subs_apply/-->
+<!--/block_subs_delivery_date/-->
+<!--/form_subs_select/-->
+<!--/if_is_apply/-->
+<!--/if_subs_cycle_type/-->
+<!--/link_subs_apply/-->
+<!--/link_subs_cancel/-->
+<!--/loop_subs_list_data/-->
+<!--/loop_subs_week/-->
+<!--/subs_cycle/-->
+<!--/subs_cycle_month/-->
+<!--/subs_day/-->
+<!--/subs_delivery_date/-->
+<!--/subs_list_data@bill_card_name/-->
+<!--/subs_list_data@cycle/-->
+<!--/subs_list_data@cycle_type/-->
+<!--/subs_list_data@day/-->
+<!--/subs_list_data@next_delivery/-->
+<!--/subs_list_data@product_name/-->
+<!--/subs_list_data@radio_subs_choice/-->
+<!--/subs_list_data@week/-->
+<!--/subs_week@week/-->

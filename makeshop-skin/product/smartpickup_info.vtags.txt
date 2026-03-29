@@ -1,0 +1,28 @@
+# smartpickup_info 가상태그
+
+
+## 기타
+<!--/block_store_list/-->
+<!--/input_search/-->
+<!--/link_search/-->
+<!--/map/-->
+<!--/more_store_list/-->
+<!--/pager/-->
+<!--/pager_first/-->
+<!--/pager_last/-->
+<!--/pager_next/-->
+<!--/pager_prev/-->
+<!--/store_list/-->
+<!--/store_list@store_addr/-->
+<!--/store_list@store_close/-->
+<!--/store_list@store_distance/-->
+<!--/store_list@store_img/-->
+<!--/store_list@store_map/-->
+<!--/store_list@store_name/-->
+<!--/store_list@store_open/-->
+<!--/store_list@store_range/-->
+<!--/store_list@store_tel/-->
+<!--/store_list@store_type/-->
+<!--/store_list@store_url/-->
+<!--/store_list@store_url_target/-->
+<!--/total_store_count/-->

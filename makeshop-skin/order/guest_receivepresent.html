@@ -1,0 +1,95 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container gift-wrapper">
+    <div class="community-content gift-accept">
+        <div class="sub-title first">
+            <h3>선물 메세지</h3>
+        </div>
+        <div class="gift-wrap">
+            <div class="gift-card">
+                <div class="card-img">
+                    <img src="<!--/card_type/-->" alt="">
+                </div>
+                <div class="card-txts">
+                    <textarea name="" readonly="" class="cw-textfield"><!--/present_message/--></textarea>
+                </div>
+            </div>
+        </div>
+        <div class="sub-title">
+            <h3>선물상품</h3>
+        </div>
+        <div class="product-list">
+            <!--/loop_order_product/-->
+            <div class="item-wrap">
+                <div class="goods-wrap">
+                    <div class="goods-image">
+                        <a href="<!--/order_product@link/-->"><img src="<!--/order_product@image_s/-->" alt="상품 이미지"></a>
+                    </div>
+                    <div class="goods-content-wrap">
+                        <div class="goods-details">
+                            <p class="title">
+                                <span class="name"><!--/notag/order_product@name/--></span> 
+                                <span class="amountCount">/ <!--/order_product@amount/-->개</span>
+                            </p>
+                            <div class="option">
+                            <!--/if_order_product@is_bundle/-->
+                                <!--/loop_order_product@bundle_option/-->
+                                <!--/block_option_area/-->
+                                <!--/order_product@bundle_option@option/--> /
+                                (<!--/order_product@bundle_option@amount/-->개)
+                                <!--/end_block/-->
+                                <!--/if_order_product@bundle_option@link_change_option/-->
+                                    <!--/order_product@bundle_option@link_change_option/-->
+                                <!--/end_if/-->
+                                <br/>
+                                <!--/end_loop/-->
+                            <!--/else/-->
+                                <!--/block_option_area/-->
+                                <!--/order_product@option/-->
+                                <!--/end_block/-->
+                                <!--/if_order_product@option/-->
+                                <!--/order_product@link_change_option/-->
+                                <!--/end_if/-->
+                            <!--/end_if/-->
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <!--/end_loop/-->
+        </div>
+        <div class="sub-title">
+            <h3>선물정보</h3>
+        </div>
+        <div class="info-section">
+            <div class="info-field">
+                <span class="label">선물번호</span>
+                <span class="value"><!--/present_num/--></span>
+            </div>
+            <div class="info-field">
+                <span class="label">선물수신일</span>
+                <span class="value"><!--/present_sender_time/--></span>
+            </div>
+            <div class="info-field">
+                <span class="label">만료예정일</span>
+                <span class="value"><!--/present_approval_enddate/--></span>
+            </div>
+        </div>
+        <div class="btn-list-link">
+            <a href="#" onclick="<!--/link_present/-->" class="btn btn-primary btn-lg"><span>선물수락</span></a>
+            <a href="#" onclick="<!--/link_no_present/-->" class="btn btn-white btn-lg"><span>거절하기</span></a>
+        </div>
+
+        <!--/if_block_option_layer/-->
+        <!-- (레이어) 옵션변경 -->
+        <!--/block_option_layer/--><!--/end_block/-->
+        <!-- //(레이어) 옵션변경 -->
+        <!--/end_if/-->
+
+
+    </div>
+</main>
+<!-- // container -->
+
+<!--/include_footer(1)/-->

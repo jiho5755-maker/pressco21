@@ -1,0 +1,33 @@
+# neoevent_list 가상태그
+
+
+## 기타
+<!--/block_event_list/-->
+<!--/event@apply_end/-->
+<!--/event@apply_start/-->
+<!--/event@apply_type/-->
+<!--/event@event_code/-->
+<!--/event@event_no/-->
+<!--/event@link_view/-->
+<!--/event@list_image/-->
+<!--/event@num/-->
+<!--/event@status/-->
+<!--/event@status_code/-->
+<!--/event@title/-->
+<!--/event_list/-->
+<!--/event_list@apply_end/-->
+<!--/event_list@apply_start/-->
+<!--/event_list@apply_type/-->
+<!--/event_list@event_code/-->
+<!--/event_list@event_no/-->
+<!--/event_list@link_view/-->
+<!--/event_list@list_image/-->
+<!--/event_list@num/-->
+<!--/event_list@status/-->
+<!--/event_list@status_code/-->
+<!--/event_list@title/-->
+<!--/ev_status/-->
+<!--/link_more_event/-->
+<!--/link_tab_all/-->
+<!--/link_tab_end/-->
+<!--/link_tab_ing/-->

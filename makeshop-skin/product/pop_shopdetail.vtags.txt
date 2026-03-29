@@ -1,0 +1,50 @@
+# pop_shopdetail 가상태그
+
+
+## 포토갤러리
+<!--/loop_photo_gallery/-->
+<!--/photo_gallery@image/-->
+
+## 상품 정보
+<!--/detail/-->
+<!--/detail_common/-->
+<!--/loop_product_info/-->
+<!--/mobile_detail/-->
+<!--/mobile_name/-->
+<!--/mobile_shop_policy/-->
+<!--/name/-->
+<!--/product_info@content/-->
+<!--/product_info@title/-->
+<!--/product_info_list/-->
+<!--/product_info_list@product_info/-->
+<!--/product_info_list@product_info@content/-->
+<!--/product_info_list@product_info@title/-->
+<!--/product_info_list@product_name/-->
+
+## 기타
+<!--/block_rental_prepayment/-->
+<!--/block_total_rental_price/-->
+<!--/bundle_discount_price/-->
+<!--/engname/-->
+<!--/if_link_rental_buy/-->
+<!--/if_not_is_rental_product/-->
+<!--/link_rental_buy/-->
+<!--/loop_product_common_info/-->
+<!--/loop_product_common_info_event/-->
+<!--/product_common_info@business/-->
+<!--/product_common_info@conflict/-->
+<!--/product_common_info@html/-->
+<!--/product_common_info@image/-->
+<!--/product_common_info@link_image/-->
+<!--/product_common_info@provider/-->
+<!--/product_common_info@refund/-->
+<!--/product_common_info@revocation/-->
+<!--/product_common_info@target_image/-->
+<!--/product_common_info_event@html/-->
+<!--/product_common_info_event@image/-->
+<!--/product_common_info_event@link_image/-->
+<!--/product_common_info_event@target_image/-->
+<!--/product_common_info_event_product_html/-->
+<!--/product_common_info_product_html/-->
+<!--/rental_period@period_txt/-->
+<!--/rental_period@radio_rental_period/-->

@@ -1,0 +1,29 @@
+# mp_smart_reserve 가상태그
+
+
+## 기타
+<!--/form_reserve/-->
+<!--/form_smart_reserve/-->
+<!--/group_icon/-->
+<!--/group_image/-->
+<!--/group_level/-->
+<!--/group_name/-->
+<!--/input_search_date_end/-->
+<!--/is_save_type/-->
+<!--/link_calendar_date_start/-->
+<!--/link_search_button/-->
+<!--/loop_reserve/-->
+<!--/reserve@content/-->
+<!--/reserve@date/-->
+<!--/reserve@expire_date/-->
+<!--/reserve@price/-->
+<!--/reserve@rest_price/-->
+<!--/reserve@status/-->
+<!--/reserve@type/-->
+<!--/reserve@type_name/-->
+<!--/select_sort/-->
+<!--/usable_reserve/-->
+<!--/user_expire_reserve/-->
+<!--/user_reserve/-->
+<!--/use_smart_reserve/-->
+<!--/view_type/-->

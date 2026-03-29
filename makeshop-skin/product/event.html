@@ -1,0 +1,31 @@
+<div id="popup-event">
+    <div class="layer-content">
+        <div class="content-wrap">
+            <!--/if_is_image_swipe/-->
+            <div class="swiper popevtSwiper <!--/image_swipe_term/-->">
+                <div class="swiper-wrapper">
+                <!--/loop_event_list/-->
+                    <div class="swiper-slide swiper-img-init"><!--/if_event_list@click_attach_image/--><a href="javascript:void(0);" onclick="<!--/event_list@click_attach_image/-->"><!--/end_if/--><img src="<!--/event_list@attach_image/-->" /><!--/if_event_list@click_attach_image/--></a><!--/end_if/--></div>
+                <!--/end_loop/-->
+                </div>
+                <div class="swiper-pagination popevt-pagination"></div>
+            </div>
+            <!--/else/-->
+                <!--/if_attach_image/-->
+                <div class="attach-img">
+                    <!--/if_click_attach_image/-->
+                    <a href="javascript:void(0);" onclick="<!--/click_attach_image/-->"><img src="<!--/attach_image/-->" /></a>
+                    <!--/else/-->
+                    <img src="<!--/attach_image/-->" />
+                    <!--/end_if/-->
+                </div>
+                <!--/end_if/-->
+            <!--/end_if/-->
+            <!--/if_content/--><div class="txt-box"><!--/content/--></div><!--/end_if/-->
+        </div>
+        <div class="content-btns">
+            <a href="<!--/link_show_term/-->"><!--/link_show_term_desc/--></a>
+            <a href="<!--/link_close/-->" class="pop_close">닫기</a>
+        </div>
+    </div>
+</div>

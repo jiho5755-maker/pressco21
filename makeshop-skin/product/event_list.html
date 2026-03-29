@@ -1,0 +1,33 @@
+<!--/include_header(1)/-->
+
+<div class="container event-wrapper">
+    <h2 class="cw-eventtitle">이벤트</h2>
+    <div class="cw-wrapper">
+        <div class="cw-eventlist">
+            <!--/if_event_list/-->
+            <ul class="list-contents">
+                <!--/loop_event_list/-->
+                <li>
+                    <div class="subject">
+                        <p class="image<!--/if_not_event_list@image/--> noimg<!--/end_if/-->">
+                            <!--/if_event_list@image/-->
+                            <img src="<!--/event_list@image/-->" class="img" alt="이미지">
+                            <!--/else/-->
+                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/noimage.svg" alt="이미지">
+                            <!--/end_if/-->
+                        </p>
+                        <p class="title"><!--/notag/event_list@title/--></p>
+                        <p class="date"><!--/date(%Y.%M.%D)/event_list@start_date/--> ~ <!--/date(%Y.%M.%D)/event_list@end_date/--></p>
+                    </div>
+                    <!--/if_event_list@link/--><a href="<!--/event_list@link/-->" class="link"></a><!--/end_if/-->
+                </li>
+                <!--/end_loop/-->
+            </ul>
+            <!--/else/-->
+            <div class="list-none">진행중인 이벤트가 없습니다.</div>
+            <!--/end_if/-->
+        </div>
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

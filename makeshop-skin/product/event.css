@@ -1,0 +1,18 @@
+#popup-event .layer-content { overflow: hidden; display: flex; flex-direction: column; width: 100%; height: auto; border-radius: var(--cw-size-12); font-size: var(--cw-size-14); line-height: var(--cw-size-20); background-color: var(--cw-color-white); text-align: center; box-shadow: 0 0 12px 0 rgba(0, 0, 0, 0.10); }
+#popup-event .layer-content .content-wrap .swiper .swiper-slide { display: flex; align-items: center; justify-content: center; }
+#popup-event .layer-content .content-wrap .swiper .swiper-slide img { max-width: 100%; }
+#popup-event .layer-content .content-wrap .swiper .swiper-pagination { width: 100%; bottom: 0; display: flex; align-items: center; justify-content: center; gap: var(--cw-size-6); padding: var(--cw-size-8) var(--cw-size-20); }
+#popup-event .layer-content .content-wrap .swiper .swiper-pagination .swiper-pagination-switch { width: var(--cw-size-8); height: var(--cw-size-8); border-radius: var(--cw-size-10); background-color: var(--cw-heading-color); opacity: 0.4; }
+#popup-event .layer-content .content-wrap .swiper .swiper-pagination .swiper-pagination-switch.swiper-active-switch { opacity: 1; }
+#popup-event .layer-content .content-wrap .attach-img a { display: flex; align-items: center; justify-content: center; }
+#popup-event .layer-content .content-wrap .attach-img img { max-width: 100%; }
+#popup-event .layer-content .content-wrap .txt-box { padding: var(--cw-size-16) var(--cw-size-20); border-bottom: 1px solid var(--cw-color-30); color: var(--cw-color-80); text-align: center; }
+#popup-event .layer-content .content-btns { display: flex; align-items: center; justify-content: space-between; padding: var(--cw-size-16) var(--cw-size-20); background-color: var(--cw-color-10); }
+#popup-event .layer-content .content-btns a { color: var(--cw-heading-color); }
+#popup-event .layer-content .content-btns a:first-of-type { display: flex; align-items: center; padding-left: 0; color: var(--cw-color-80); }
+
+@media (max-width: 991.98px) {
+    div[oneframe-detail-type="FULL"] .event_inner > div { position: absolute; bottom: 0; }
+    #popup-event .layer-content { position: absolute; top: auto; bottom: 0; border-bottom-left-radius: 0; border-bottom-right-radius: 0; font-size: var(--cw-size-13); line-height: var(--cw-size-18); }
+    #popup-event .layer-content .content-btns { padding: var(--cw-size-9) var(--cw-size-20); }
+}

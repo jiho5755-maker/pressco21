@@ -1,0 +1,50 @@
+# subs_complete 가상태그
+
+
+## 상품리스트
+<!--/loop_order_product/-->
+<!--/order_product@amount/-->
+<!--/order_product@engname/-->
+<!--/order_product@image_s/-->
+<!--/order_product@link/-->
+<!--/order_product@mobile_image/-->
+<!--/order_product@name/-->
+<!--/order_product@option/-->
+<!--/order_product@point/-->
+<!--/order_product@provider_icon/-->
+<!--/order_product@reserve/-->
+<!--/order_product@subs_cycle/-->
+<!--/order_product@subs_first_delivery_date/-->
+<!--/order_product@subs_week/-->
+<!--/order_product@total_price/-->
+
+## 신청정보
+<!--/bill_card_name/-->
+<!--/delivery_message/-->
+<!--/order_message/-->
+<!--/receiver/-->
+<!--/receiver_addr/-->
+<!--/receiver_mobile/-->
+<!--/receiver_tel/-->
+<!--/receiver_zip/-->
+<!--/sender/-->
+<!--/subs_number/-->
+
+## 정기배송 신청 금액
+<!--/subs_delivery_price/-->
+<!--/subs_group_prd_sale_price/-->
+<!--/subs_group_price/-->
+<!--/subs_product_discount_price/-->
+<!--/subs_product_price/-->
+<!--/subs_sale_total_price/-->
+<!--/subs_subs_sale_price/-->
+<!--/subs_tax_price/-->
+<!--/subs_total_price/-->
+<!--/total_reserve/-->
+
+## 기타
+<!--/link_complete/-->
+<!--/link_home/-->
+<!--/order_product@subs_cycle_type/-->
+<!--/order_product@subs_day/-->
+<!--/subs_bulk_sale_price/-->

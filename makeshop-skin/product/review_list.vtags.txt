@@ -1,0 +1,135 @@
+# review_list 가상태그
+
+
+## 우수 리뷰
+<!--/best_review@attach_icon/-->
+<!--/best_review@attach_image/-->
+<!--/best_review@content/-->
+<!--/best_review@date_write/-->
+<!--/best_review@group_icon/-->
+<!--/best_review@id_content/-->
+<!--/best_review@link_delete/-->
+<!--/best_review@link_modify/-->
+<!--/best_review@link_product/-->
+<!--/best_review@mobile_name/-->
+<!--/best_review@number/-->
+<!--/best_review@product_image_s/-->
+<!--/best_review@product_mobile_image/-->
+<!--/best_review@product_name/-->
+<!--/best_review@product_subname/-->
+<!--/best_review@reply/-->
+<!--/best_review@score@icon/-->
+<!--/best_review@score@title/-->
+<!--/best_review@score_text/-->
+<!--/best_review@subject/-->
+<!--/best_review@writer/-->
+<!--/if_best_review@reply/-->
+<!--/loop_best_review/-->
+<!--/loop_best_review@score/-->
+
+## 리뷰
+<!--/file_review_attach/-->
+<!--/form_review/-->
+<!--/form_search_review/-->
+<!--/if_review@reply/-->
+<!--/input_review_writer/-->
+<!--/link_review_more/-->
+<!--/link_review_write/-->
+<!--/loop_review/-->
+<!--/loop_review@score/-->
+<!--/review@attach_icon/-->
+<!--/review@attach_image/-->
+<!--/review@content/-->
+<!--/review@date_write/-->
+<!--/review@group_icon/-->
+<!--/review@id_content/-->
+<!--/review@link/-->
+<!--/review@link_delete/-->
+<!--/review@link_product/-->
+<!--/review@link_target/-->
+<!--/review@mobile_name/-->
+<!--/review@number/-->
+<!--/review@product_image_s/-->
+<!--/review@product_mobile_image/-->
+<!--/review@product_name/-->
+<!--/review@product_subname/-->
+<!--/review@reply/-->
+<!--/review@score@icon/-->
+<!--/review@score@title/-->
+<!--/review@score_text/-->
+<!--/review@subject/-->
+<!--/review@writer/-->
+<!--/text_review_content/-->
+
+## 평점
+<!--/loop_review_score/-->
+<!--/review_score@icon/-->
+<!--/review_score@title/-->
+
+## 리뷰 리스트 페이징
+<!--/if_pager_review::page@current/-->
+<!--/loop_pager_review::page/-->
+<!--/pager_review::count/-->
+<!--/pager_review::current/-->
+<!--/pager_review::current@link/-->
+<!--/pager_review::first/-->
+<!--/pager_review::first@link/-->
+<!--/pager_review::last/-->
+<!--/pager_review::last@link/-->
+<!--/pager_review::next/-->
+<!--/pager_review::next@link/-->
+<!--/pager_review::page/-->
+<!--/pager_review::page@link/-->
+<!--/pager_review::page_count/-->
+<!--/pager_review::prev/-->
+<!--/pager_review::prev@link/-->
+
+## 상품 정보
+<!--/block_prevent_auto_input/-->
+<!--/if_product/-->
+<!--/input_product_name/-->
+<!--/mobile_name/-->
+<!--/mobile_product_icons/-->
+<!--/product_icons/-->
+<!--/product_image_s/-->
+<!--/product_link/-->
+<!--/product_mobile_image/-->
+<!--/product_name/-->
+<!--/product_price_sell/-->
+<!--/product_reserve/-->
+<!--/product_subname/-->
+<!--/select_product/-->
+
+## 분류 선택
+<!--/select_cate1/-->
+<!--/select_cate2/-->
+<!--/select_cate3/-->
+
+## 공지사항
+<!--/loop_notice/-->
+<!--/notice@content/-->
+<!--/notice@date_write/-->
+
+## 잉글리쉬 HTML
+<!--/shop_language/-->
+
+## 인클루드 태그
+<!--/include_footer/-->
+<!--/include_header/-->
+
+## 상점 정보
+<!--/shop_id/-->
+
+## 회원 로그인
+<!--/if_login/-->
+
+## 검색
+<!--/link_search/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/best_review@product_engname/-->
+<!--/engname/-->
+<!--/idx/-->
+<!--/if_company_user/-->
+<!--/review@product_engname/-->

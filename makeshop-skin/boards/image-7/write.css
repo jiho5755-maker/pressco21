@@ -1,0 +1,32 @@
+.cw-gallerytitle { font-weight: 700; padding-top: var(--cw-size-60); font-size: var(--cw-size-24); line-height: var(--cw-size-32); color: var(--cw-heading-color); }
+.cw-gallerywrite { margin-top: var(--cw-size-40); }
+.cw-gallerywrite .write-title { font-size: var(--cw-size-14); font-weight: 700; color: var(--cw-heading-color); margin-bottom: var(--cw-size-10); }
+.cw-gallerywrite .write-info { display: grid; grid-template-columns: var(--cw-size-120) auto; align-items: center; row-gap: var(--cw-size-20); padding: var(--cw-size-20) 0; border-bottom: 1px solid var(--cw-color-30); font-size: var(--cw-size-14); }
+.cw-gallerywrite .write-info.line { border-top: 1px solid var(--cw-heading-color); }
+.cw-gallerywrite .write-info dt { font-weight: 400; }
+.cw-gallerywrite .write-info dd :where(.cw-textfield, .cw-select-box) { width: var(--cw-size-400); }
+.cw-gallerywrite .write-info dd textarea.cw-textfield { width: 100%; height: var(--cw-size-200); }
+.cw-gallerywrite .write-info dd .auto-lock { margin-top: var(--cw-size-6); color: var(--cw-point-color); }
+.cw-gallerywrite .write-info dd .form-check { margin-top: var(--cw-size-10); }
+.cw-gallerywrite .write-info dd.file { display: flex; align-items: center; column-gap: var(--cw-size-6); }
+.cw-gallerywrite .write-info dd.file .cw-textfield { width: 305px; }
+.cw-gallerywrite .write-info dd.file a { min-width: 91px; }
+.cw-gallerywrite .agree { margin-top: var(--cw-size-20); font-size: var(--cw-size-14); }
+.cw-gallerywrite .agree li > span { margin-right: var(--cw-size-10); }
+.cw-gallerywrite .agree li .msg { color: var(--cw-color-80); }
+.cw-gallerybtns { display: flex; justify-content: center; align-items: center; gap: var(--cw-size-8); padding-top: var(--cw-size-40); }
+.cw-gallerybtns a { width: var(--cw-size-300); }
+
+@media (max-width: 991.98px) {
+    .cw-gallerytitle { display: none; }
+}
+@media (max-width: 767.98px) {
+    .cw-gallerywrite .write-info { display: block; }
+    .cw-gallerywrite .write-info dt { margin-bottom: var(--cw-size-6); }
+    .cw-gallerywrite .write-info dd { margin-bottom: var(--cw-size-20); }
+    .cw-gallerywrite .write-info dd:last-child { margin-bottom: 0; }    
+    .cw-gallerywrite .write-info dd :where(.cw-textfield, .cw-select-box),
+    .cw-gallerywrite .write-info dd.file .cw-textfield { width: 100%; }
+    .cw-gallerybtns { display: grid; justify-content: normal; }
+    .cw-gallerybtns .btn { width: 100%; }
+}

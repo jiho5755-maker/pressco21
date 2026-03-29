@@ -1,0 +1,793 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container mypage-wrapper smMypage">
+    <div class="row">
+        <!-- Sidebar -->
+        <!--/include_header(2)/-->
+
+        <!-- Content -->
+        <div class="content col-lg-10 col-md-12 col-sm-12">
+            <div id="myTrade" class="content-body">
+                <!--/form_claim/-->
+                <div class="page-title-wrap txt-l">
+                    <h2>주문 교환 요청</h2>
+                </div>
+                <div class="order-info">
+                    <div class="sub-title first">
+                        <h3>주문 정보</h3>
+                    </div>
+                    <div class="order-summary">
+                        <p class="order-date"><span>주문일자</span> <strong><!--/order_date/--></strong></p>
+                        <p class="order-number"><span>주문번호</span> <strong><!--/ordernum/--></strong></p>
+                    </div>
+                </div>
+                <!-- 상품 정보 -->
+                <div class="sub-title">
+                    <h3>교환 전 상품</h3>
+                </div>
+                <!--/loop_provider/-->
+                <div class="product-info">
+                    <!--/if_provider@order_type(PROVIDER)/-->
+                    <div class="seller">
+                        <span class="seller-name"><!--/provider@provider_name/--></span>
+                    </div>
+                    <!--/end_if/-->
+                    <!--/loop_provider@delivery/-->
+                    <div class="order-delivery">
+                        <div class="delivery-summary">
+                            <div class="flex-base form-check form-check-inline">
+                                <label class="form-check-label"><!--/provider@delivery@checkbox_all/--></label>
+                            </div>
+                            <span class="delivery-num">배송번호 <strong><!--/provider@delivery@deli_num/--></strong></span>
+                        </div>
+                    </div>
+                    <!-- 상품 목록 -->
+                    <div class="product-list">
+                        <!--/loop_provider@delivery@product/-->
+                        <div class="item-wrap">
+                            <div class="goods-wrap">
+                                <div class="flex-base goods-image">
+                                    <div class="flex form-check form-check-inline">
+                                        <label class="form-check-label"><!--/provider@delivery@product@checkbox/--></label>
+                                    </div>
+                                    <a href="<!--/provider@delivery@product@link/-->">
+                                        <!--/if_provider@delivery@product@image_s/-->
+                                        <img src="<!--/provider@delivery@product@image_s/-->" alt="상품 이미지">
+                                        <!--/else/-->
+                                        <img src="/images/common/m_noimage.png">
+                                        <!--/end_if/-->
+                                    </a>
+                                </div>
+                                <div class="goods-details">
+                                    <div class="title">
+                                        <!--/if_provider@delivery@product@is_gift/-->
+                                        <span class="gift">선물</span>
+                                        <!--/end_if/-->
+                                        <!--/provider@delivery@product@name/-->
+                                    </div>
+                                    <!--/if_provider@delivery@product@option/-->
+                                    <div class="option">
+                                        <!--/provider@delivery@product@option/-->
+                                    </div>
+                                    <!--/end_if/-->
+                                    <div class="goods-price">
+                                        <strong><!--/number/provider@delivery@product@pay_price/--></strong>원
+                                    </div>
+                                </div>
+                                <div class="goods-stock">
+                                    교환 전 수량 : <!--/provider@delivery@product@trade_stock/-->개
+                                </div>
+                                <div class="goods-qty">
+                                    <div class="btn-group">
+                                        <!--/provider@delivery@product@trade_multi_stock_down/-->
+                                        <!--/provider@delivery@product@trade_multi_amount/-->
+                                        <!--/provider@delivery@product@trade_multi_stock_up/-->
+                                        <span style="text-indent: -9999px; display:none;"><!--/provider@delivery@product@stock/--></span>
+                                    </div>
+                                    <a href="<!--/provider@delivery@product@link_trade_stock_sync/-->" class="btn btn-gray btn-sm">요청수량변경</a>
+                                </div>
+                            </div>
+                        </div>
+                        <!--/end_loop/-->
+                    </div>
+                    <!--/end_loop/-->
+                </div>
+                <!--/end_loop/-->
+                
+                <!-- 교환 희망 상품 선택 -->
+                <div class="sub-title">
+                    <h3>교환 희망 상품</h3>
+                </div>
+                <div class="trade-product">
+                    <!--/block_trade_list/-->
+                        <!--/if_trade_name/-->
+                            <!--/block_trade_product/-->
+                            <div class="item-wrap">
+                                <div class="trade-wrap">
+                                    <strong class="state">교환상품</strong>
+                                    <div class="goods-wrap">
+                                        <div class="goods-image">
+                                            <a href="<!--/link_trade_product/-->"><img src="<!--/trade_image_s/-->" alt="상품 이미지"></a>
+                                        </div>
+                                        <div class="goods-details">
+                                            <!--/if_is_trade_bundle_product(Y)/-->
+                                            <div class="bundle-title">
+                                                <strong>* 묶음상품은 각 구성상품 별 교환이 가능합니다.</strong>
+                                                <p>- 변경 버튼 클릭 시, 선택 버튼이 활성화됩니다.</p>
+                                            </div>
+                                            <!--/else/-->
+                                            <div class="title"><!--/trade_name/--></div>
+                                            <!--/if_trade_product_option/-->
+                                            <div class="option">
+                                                <p><!--/trade_product_option/--></p>
+                                            </div>
+                                            <!--/end_if/-->
+                                            <!--/end_if/-->
+                                        </div>
+                                        <div class="goods-stock">
+                                            <div class="stock-txt">
+                                                <label>교환 요청 수량</label>
+                                                <!--/trade_product_stock_sync/-->개
+                                            </div>
+                                            <!--/if_is_trade_multi_list(Y)/-->
+                                                <!--/if_link_trade_option_modify/-->
+                                                <div class="trade-btn">
+                                                    <a href="<!--/link_trade_option_modify/-->" class="btn btn-primary btn-sm">교환희망상품 추가</a>
+                                                </div>
+                                                <!--/end_if/-->
+                                            <!--/end_if/-->
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                                <!--/if_is_trade_multi_list(Y)/-->
+                                    <!--/block_trade_part_product/-->
+                                    <!--/end_block/-->
+                                <!--/else/-->
+                                    <!--/block_trade_product/-->
+                                        <!--/if_is_trade_bundle_product(Y)/-->
+                                            <div class="item-wrap">
+                                                <div class="goods-wrap">
+                                                    <div class="goods-image">
+                                                        <a href="<!--/link_trade_product/-->"><!--/block_trade_image_view/--><img src="<!--/trade_image_s/-->" alt="상품 이미지"><!--/end_block/--></a>
+                                                    </div>
+                                                    <div class="goods-details">
+                                                        <div class="title"><!--/block_trade_name_view/--><!--/trade_name/--><!--/end_block/--></div>
+                                                        <!--/loop_trade_bundle/-->
+                                                        <div class="quantity option bundle-text">
+                                                            <span class="bundle-text">- <!--/trade_bundle@product_name/-->
+                                                                <!--/if_trade_bundle@option/-->: [<!--/trade_bundle@option/-->]<!--/end_if/-->
+                                                                (<!--/trade_bundle@stock/-->개)</span>
+                                                            <!--/trade_bundle@trade_bundle_option_view/-->
+                                                        </div>
+                                                        <div class="quantity option bundle-text">
+                                                            <!--/if_trade_bundle@link_trade_bundle_option_modify/-->
+                                                            <a href="<!--/trade_bundle@link_trade_bundle_option_modify/-->" class="bundle-btn-option btn-opacity btn btn-white btn-xs">선택</a>
+                                                            <!--/end_if/-->
+                                                        </div>
+                                                        <!--/end_loop/-->
+                                                        <div class="goods-price">
+                                                            <strong><!--/trade_price/--></strong>원
+                                                        </div>
+                                                    </div>
+                                                    <div class="goods-stock bundle-stock">
+                                                        <span>교환 변경 수량 : <!--/input_trade_amount/-->개</span>
+                                                        <a href="<!--/link_trade_option_modify/-->" class="bundle-btn-stock btn-opacity btn btn-white btn-sm">수량선택</a>
+                                                    </div>
+                                                    <div class="goods-qty">
+                                                        <!--/trade_bundle_option_check/-->
+                                                        <a href="<!--/link_trade_product_remove/-->" data-target="popup1" class="btn btn-white btn-sm">삭제</a>
+                                                    </div>
+                                                    <!--/block_trade_option_view/--><!--/trade_option/--><!--/end_block/-->
+                                                </div>
+                                            </div>
+                                        <!--/else/-->
+                                            <div class="item-wrap"> 
+                                                <div class="goods-wrap">
+                                                    <div class="goods-image">
+                                                        <!--/block_trade_image_view/--><a href="<!--/link_trade_product/-->"><img src="<!--/trade_image_s/-->" alt="상품 이미지"></a><!--/end_block/-->
+                                                    </div>
+                                                    <div class="goods-details">
+                                                        <div class="title"><!--/block_trade_name_view/--><!--/trade_name/--><!--/end_block/--></div>
+                                                        <div class="option">
+                                                            <!--/block_trade_option_view/-->
+                                                        </div>
+                                                        <!--/if_trade_option/-->
+                                                        <div class="option">
+                                                            <p><!--/trade_option/--></p>
+                                                        </div>
+                                                        <!--/end_if/-->
+                                                        <!--/end_block/-->
+                                                        <div class="goods-price">
+                                                            <strong><!--/trade_price/--></strong>원
+                                                        </div>
+                                                    </div>
+                                                    <div class="goods-stock">교환 변경 수량 : <!--/input_trade_amount/-->개</div>
+                                                    <div class="goods-qty">
+                                                        <!--/if_link_trade_option_modify/-->
+                                                        <a href="<!--/link_trade_option_modify/-->" data-target="popup1" class="btn btn-primary btn-sm pop-layer-open">변경</a>
+                                                        <!--/end_if/-->
+                                                        <a href="<!--/link_trade_product_remove/-->" class="btn btn-white btn-sm">삭제</a>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        <!--/end_if/-->
+                                    <!--/end_block/-->
+                                <!--/end_if/-->
+                            <!--/end_block/-->
+                        <!--/else/-->
+                        <div class="empty">
+                            <p>상단에서 교환 전 상품을 선택하면,<br class="mo_ver"> 같은 상품이 자동으로 교환 희망 상품으로 지정됩니다.</p>
+                        </div>
+                        <!--/end_if/-->
+                    <!--/end_block/-->
+                </div>
+                <!-- // 교환희망상품 선택 -->
+        
+                <!-- 교환 사유 -->
+                <div class="sub-title">
+                    <h3>교환 사유</h3>
+                </div>
+                <div class="form-wrapper">
+                    <!--/if_select_claim_reason/-->
+                    <div class="form-group bd-line-0">
+                        <span class="form-title">사유 선택</span>
+                        <div class="form-content">
+                            <!--/select_claim_reason/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title">상세 내용</span>
+                        <div class="form-content">
+                            <!--/textarea_claim_reason/-->
+                        </div>
+                    </div>
+                    <!--/end_if/-->
+                </div>
+                <!-- // 교환 사유 -->
+        
+                <!-- 결제 정보 -->
+                <div class="sub-title">
+                    <h3>결제 정보</h3>
+                </div>
+                <div class="payinfo-wrap">
+                    <div class="order-price">
+                        <ul>
+                            <li class="first">
+                                <div class="price-row">
+                                    <span>최초 주문금액</span>
+                                    <p><!--/claim_select_price/-->원</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="dc-price">
+                        <ul>
+                            <li class="first">
+                                <div class="price-row">
+                                    <span>교환 상품금액</span>
+                                    <p><!--/claim_total_price/-->원</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="total-price">
+                        <ul>
+                            <li class="first">
+                                <div class="price-row">
+                                    <!--/block_trade_refund_msg/-->환불 예정금액<!--/end_block/--><!--/block_trade_repay_msg/-->재결제 예정금액<!--/end_block/-->
+                                    <p><strong class="point-color"><!--/claim_trade_price/--></strong>원</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <!-- // 결제 정보 -->
+
+                <!--/block_refund_price_calculate/-->
+                <div class="btn-wrap">
+                    <a href="<!--/link_refund_price_calculate/-->" class="btn btn-white btn-lg"><span>환불 예상금액 조회</span></a>
+                </div>
+                <!--/end_block/-->
+
+                <!--/block_refund_method/-->
+                <!-- 환불 수단 -->
+                <div class="sub-title">
+                    <h3>환불 수단</h3>
+                </div>
+                <div class="form-wrapper">
+                    <div class="form-group">
+                        <span class="form-title none">수단 선택</span>
+                        <div class="form-content flex-base gap-12">
+                            <div class="form-check form-check-inline">
+                                <!--/radio_refund_method/-->
+                            </div>
+                        </div>
+                    </div>
+                    <!--/block_refund_bank/-->
+                    <div class="form-group bd-line">
+                        <span class="form-title required">은행명</span>
+                        <div class="form-content">
+                            <!--/input_refund_bank_name/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title required">예금주</span>
+                        <div class="form-content">
+                            <!--/input_refund_account_holder/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title required">계좌번호</span>
+                        <div class="form-content">
+                            <!--/input_refund_account_number/-->
+                        </div>
+                    </div>
+                    <!--/end_block/-->
+                </div>
+                <ul class="notice bullet">
+                    <!--/if_pay_method(PG에스크로)/-->
+                    <!--/block_refund_escrow/-->
+                    <li>· <!--/checkbox_pg_escrow_agree/--> 환불을 위하여 성명, 은행명, 계좌번호를 수집하며, 5년간 처리에 동의합니다.</li>
+                    <li>· 에스크로 결제로 입금한 경우 PG사를 통해 자동으로 환불됩니다.</li>
+                    <!--/end_block/-->
+                    <!--/block_refund_bank/-->
+                    <li>· <span class="cw-point-color">*</span> 은 필수입력 값입니다. 환불 정보를 정확히 입력하셔야 환불이 가능합니다.</li>
+                    <!--/end_block/-->
+                    <!--/else_if_pay_method(계좌이체)/-->
+                    <li>· 실시간 계좌이체의 경우 입금하신 계좌로 PG사를 통해 자동으로 환불됩니다.</li>
+                    <!--/else_if_pay_method(네이버페이)/-->
+                    <li>· 네이버페이로 결제한 주문은 네이버페이로만 환불이 가능합니다.</li>
+                    <!--/else/-->
+                    <!--/block_refund_bank/-->
+                    <li>· <em class="cw-point-color">*</em> 은 필수입력 값입니다.</li>
+                    <li>· 환불 정보를 정확히 입력하셔야 환불이 가능합니다.</li>
+                    <!--/end_block/-->
+                    <!--/end_if/-->
+                    <!--/if_refund_policy/-->
+                    <li>· <!--/refund_policy/--></li>
+                    <!--/end_if/-->
+                </ul>
+                <!-- // 환불 수단 -->
+                <!--/end_block/-->   
+
+                <!--/block_refund_info/-->
+                <!-- 환불 정보 -->
+                <div class="sub-title">
+                    <h3>환불 정보</h3>
+                </div>
+                <div class="payinfo-wrap refund-wrap">
+                    <div class="order-price">
+                        <ul>
+                            <!--/if_pay_method/-->	
+                            <li>
+                                <div class="price-row">
+                                    <span><!--/pay_method/--></span>
+                                    <p><!--/refund_method_price/-->원</p>
+                                </div>
+                            </li>
+                            <!--/end_if/-->
+                            <!--/if_refund_reserve/-->
+                            <li>
+                                <div class="price-row">
+                                    <span>적립금</span>
+                                    <p><!--/refund_reserve/-->원</p>
+                                </div>
+                            </li>
+                            <!--/end_if/-->
+                            <!--/if_refund_emoney/-->
+                            <li>
+                                <div class="price-row">
+                                    <span>예치금</span>
+                                    <p><!--/refund_emoney/-->원</p>
+                                </div>
+                            </li>
+                            <!--/end_if/-->
+                            <li>
+                                <div class="price-row">
+                                    <span>배송비</span>
+                                    <p><!--/refund_deli_price/-->원</p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                    <div class="total-price">
+                        <ul>
+                            <li class="first">
+                                <div class="price-row">
+                                    <span>환불 예상금액</span>
+                                    <p><strong class="point-color"><!--/refund_total_price/--></strong>원</p>
+                                </div>
+                            </li>
+                            <li>
+                                <div class="price-row">
+                                    <span>환불수단</span>
+                                    <p><!--/refund_method/--></p>
+                                </div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <ul class="notice bullet">
+                    <li>· 교환할 상품이 맞는지 정확히 확인해 주세요.</li>
+                    <li>· 교환 선택 된 상품이 기존의 상품과 할인 쿠폰조건이 다른 경우 쿠폰이 승계가 되지 않습니다.</li>
+                    <!--/if_trade_policy/-->
+                    <li>· <!--/trade_policy/--></li>
+                    <!--/end_if/-->
+                </ul>
+                <!-- // 환불 정보 -->
+                <!--/end_block/-->  
+                
+                <!--/block_return_type/-->
+                <!-- 반품 방법 -->
+                <div class="sub-title">
+                    <h3>반품 방법</h3>
+                </div>
+                <div class="form-wrapper">
+                    <div class="form-group">
+                        <span class="form-title none">방법 선택</span>
+                        <div class="form-content flex-base gap-12">
+                            <!--/radio_return_type/-->
+                        </div>
+                    </div>
+                    <!--/block_return_type_customer/-->
+                    <div class="form-group">
+                        <span class="form-title">회수 송장번호</span>
+                        <div class="form-content">
+                            <!--/input_return_type_customer_delinum/-->
+                        </div>
+                    </div>
+                    <!--/end_block/-->
+                    <!--/block_return_type_contract/-->
+                    <div class="form-group">
+                        <span class="form-title">택배사 선택</span>
+                        <div class="form-content">
+                            <!--/select_return_type_contract_delicom/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title">신청자</span>
+                        <div class="form-content">
+                            <!--/input_return_type_contract_name/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title">반품 요청 메시지</span>
+                        <div class="form-content">
+                            <!--/textarea_return_type_contract_request/-->
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <span class="form-title">신청자 반품주소</span>
+                        <div class="form-content">
+                            <div class="zipcode">
+                                <!--/input_return_type_contract_zip/-->
+                                <a href="<!--/link_return_type_contract_zip/-->" class="btn btn-primary pop-layer-open" data-target="popup2"><span>우편번호 찾기</span></a>
+                            </div>
+                            <div class="address">
+                                <!--/input_return_type_contract_addr1/-->
+                                <!--/input_return_type_contract_addr2/-->
+                                <div class="form-check">
+                                    <label class="form-check-label"><!--/checkbox_same_return_type_contract_addr/--> 주문 배송 정보와 동일</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--/end_block/-->
+                </div>
+                <ul class="notice bullet">
+                    <!--/block_return_type_customer_msg/-->
+                    <li>· 개별반품은 타택배, 개별적으로 반품 시 선택해 주세요.</li>
+                    <!--/end_block/-->
+                    <!--/block_return_type_contract_msg/-->
+                    <li>· 고객이 쇼핑몰로 접수 요청 (=지정된 택배사 반품)을 선택하시면, 상점에서 이용 중인 택배사를 통해 상품 수거가 진행됩니다.</li>
+                    <!--/end_block/-->
+                    <!--/block_return_type_shop_msg/-->
+                    <li>· 쇼핑몰로 접수 요청 선택 시 쇼핑몰에서 택배를 직접 수거하도록 요청합니다.</li>
+                    <!--/end_block/-->
+                    <li>· 상품별로 각각 반품 요청을 할 경우 반송비가 중복 발생할 수 있습니다.</li>
+                    <!--/if_return_type_policy/-->							
+                    <li>· <!--/return_type_policy/--></li>
+                    <!--/end_if/-->
+                </ul>
+                <!-- // 반품 방법 -->
+                <!--/end_block/-->
+                <div class="btn-wrap">
+                    <a href="<!--/link_claim_request/-->" class="btn btn-primary btn-lg"><span>교환 요청하기</span></a>
+                </div>
+
+                <!-- 교환상품 선택 레이어 START -->
+                <!--/block_popup_trade_option/-->
+                <div class="opt-layer-wrap modal-wrap" data-popup="popup1">
+                    <div class="pop-body modal-content">
+                        <div class="modal-header">
+                            <span class="modal-title">교환 희망 상품 선택</span>
+                            <a href="<!--/link_trade_close/-->" class="btn-pop-close btn-modal-close"></a>
+                        </div>
+                        <div class="pop-cont modal-body">
+                            <!--/block_trade_type/-->
+                            <h3 class="section-title first">교환 방법</h3>
+                            <div class="section-wrap">
+                                <div class="form-wrapper">
+                                    <div class="form-group">
+                                        <div class="form-content flex-base">
+                                            <!--/radio_trade_type/-->
+                                        </div>
+                                    </div>
+                                </div>
+                                <!--/block_trade_search_product/-->
+                                <div class="search-wrap bd-line-b">
+                                    <!--/select_trade_search/-->
+                                    <div class="search-input">
+                                        <!--/input_trade_search_word/-->
+                                        <a href="<!--/link_trade_search/-->" class="btn btn-gray btn-search-item">검색</a>
+                                    </div>
+                                </div>
+                                <!--/if_trade_search_product/-->
+                                <div class="scroll-list">                                  
+                                    <!--/loop_trade_search_product/-->
+                                    <div class="goods-wrap">
+                                        <div class="goods-image">
+                                            <!--/trade_search_product@radio_choice/-->
+                                            <a href="<!--/trade_search_product@link/-->"><img src="<!--/trade_search_product@mobile_image/-->" alt="상품 이미지"></a>
+                                        </div>
+                                        <div class="goods-details">
+                                            <p class="title">
+                                                <!--/trade_search_product@name/-->
+                                            </p>
+                                            <p>
+                                                <strong><!--/number/trade_search_product@price/--></strong>원
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <!--/end_loop/-->
+                                </div>
+                                <!--/else/-->
+                                <div class="empty">상품을 검색해 주세요.</div>
+                                <!--/end_if/-->
+                                <!--/end_block/-->
+                            </div>
+                            <!--/end_block/-->
+                            
+                            <!--/block_trade_another_product/-->
+                            <h3 class="section-title">교환 희망 상품</h3>
+                            <div class="section-wrap">
+                                <div class="goods-wrap">
+                                    <div class="goods-image">
+                                        <a href="<!--/link_trade_another_product/-->"><img src="<!--/trade_another_product_mobile_image/-->" alt="상품 이미지"></a>
+                                    </div>
+                                    <div class="goods-details">
+                                        <p class="title">
+                                            <!--/trade_another_product_name/-->
+                                        </p>
+                                        <p class="price"><strong><!--/number/trade_another_product_price/--></strong>원</p>
+                                    </div>
+                                    <!--/block_trade_stock/-->
+                                    <div class="btn-group">
+                                        <a href="<!--/link_trade_stock_down/-->" class="btn-minus">
+                                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_minus.svg" alt="빼기">
+                                        </a>
+                                        <!--/input_trade_popup_stock/-->
+                                        <a href="<!--/link_trade_stock_up/-->" class="btn-plus">
+                                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_plus.svg" alt="더하기">
+                                        </a>
+                                    </div>
+                                    <!--/end_block/-->
+                                </div>
+                            </div>
+                            <!--/end_block/-->
+                            
+                            <!--/block_trade_option/-->
+                            <div class="MK_trade_basic_info">
+                                <h3 class="section-title">교환 희망 상품</h3>
+                                <div class="section-wrap">
+                                    <div class="goods-wrap">
+                                        <div class="goods-image">
+                                            <a href="<!--/link_trade_another_product/-->"><img src="<!--/trade_another_product_mobile_image/-->" alt="상품 이미지"></a>
+                                        </div>
+                                        <div class="goods-details">
+                                            <p class="title">
+                                                <!--/trade_another_product_name/-->
+                                            </p>
+                                            <p class="price"><strong><!--/number/trade_another_product_price/--></strong>원</p>
+                                        </div>
+                                        <!--/block_trade_stock/-->
+                                        <div class="btn-group">
+                                            <a href="<!--/link_trade_stock_down/-->" class="btn-minus">
+                                                <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_minus.svg" alt="빼기">
+                                            </a>
+                                            <!--/input_trade_popup_stock/-->
+                                            <a href="<!--/link_trade_stock_up/-->" class="btn-plus">
+                                                <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_plus.svg" alt="더하기">
+                                            </a>
+                                        </div>
+                                        <!--/end_block/-->
+                                    </div>
+                                </div>
+                            </div>
+                            <!--/block_trade_basic_option_div/-->
+                            <h3 class="section-title">옵션</h3>
+                            <div class="section-wrap opt-group">
+                                <!--/trade_basic_option/-->
+                                <!--/loop_trade_option/-->
+                                <div class="infos--col">
+                                    <span class="info-title"><!--/trade_option@title/--></span>
+                                    <!--/trade_option@select/-->
+                                </div>
+                                <!--/end_loop/-->
+                            </div>
+                            <!--/end_block/-->
+                            
+                            <!--/block_trade_addition_option_div/-->
+                            <h3 class="section-title">개별옵션</h3>
+                            <div class="section-wrap">
+                                <div class="form-wrapper">
+                                    <!--/loop_trade_option_addition/-->
+                                    <div class="form-group">
+                                        <span class="form-title"><!--/trade_option_addition@title/--></span>
+                                        <div class="form-content flex-base">
+                                            <!--/trade_option_addition@select/-->
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <span class="form-title">수량</span>
+                                        <div class="form-content flex-base">
+                                            <div class="btn-group">
+                                                <a href="<!--/trade_option_addition@basket_stock_down/-->" class="btn-minus">
+                                                    <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_minus.svg" alt="빼기">
+                                                </a>
+                                                <!--/trade_option_addition@stock/-->
+                                                <a href="<!--/trade_option_addition@basket_stock_up/-->" class="btn-plus">
+                                                    <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_plus.svg" alt="더하기">
+                                                </a>
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="form-group">
+                                        <span class="form-title">가격</span>
+                                        <div class="form-content flex-base">
+                                            <!--/trade_option_addition@addition_price_view/-->
+                                        </div>
+                                    </div>
+                                    <!--/end_loop/-->
+                                </div>
+                            </div>
+                            <!--/end_block/-->
+                            <!--/end_block/-->
+                            
+                            <div class="opt-trade_price">
+                                <strong>총 상품금액</strong>
+                                <p><strong class="cw-point-color"><!--/trade_popup_total_price/--></strong>원</p>
+                            </div>
+                            <ul class="notice bullet">
+                                <li>· 상품의 할인 여부에 따라 총 상품금액이 상이할 수 있습니다.</li>
+                            </ul>
+                        </div>
+                        <div class="modal-footer flex-base">
+                            <a href="<!--/link_trade_save/-->" class="btn btn-primary btn-lg">선택완료</a>
+                            <a href="<!--/link_trade_close/-->" class="btn btn btn-white btn-lg">닫기</a>
+                        </div>
+                    </div>
+                </div>
+                <!--/end_block/-->
+                <!-- // 교환상품 선택 레이어 END -->
+
+                <!--/end_form/-->
+            </div><!-- #myTrade -->
+        </div>
+        <!-- // Content -->
+    </div>
+    
+    <!-- 배송지 검색 레이어 START -->
+    <!--/block_order_addr/-->
+    <div class="layer-addr-search modal-wrap">
+        <div class="pop-body modal-content">
+            <div class="modal-header">
+                <span class="modal-title">배송지 검색</span>
+                <a href="<!--/link_addr_close/-->" class="btn-pop-close btn-modal-close"></a>
+            </div>
+            <div class="pop-cont modal-body">
+                <!--/block_order_search_addr/-->
+                <div class="search-form">
+                    <div class="addr-type">
+                        <!--/if_radio_addr_type_number/-->
+                        <label class="form-check-label">
+                            <!--/radio_addr_type_number/--> 지번 검색
+                        </label>
+                        <!--/end_if/-->
+                        <!--/if_radio_addr_type_load/-->
+                        <label class="form-check-label">
+                            <!--/radio_addr_type_load/--> 도로명 검색
+                        </label>
+                        <!--/end_if/-->
+                        <!--/if_radio_addr_type_number_to_load/-->
+                        <label class="form-check-label">
+                            <!--/radio_addr_type_number_to_load/--> 지번+도로명 검색
+                        </label>
+                        <!--/end_if/-->
+                    </div>
+                    <!--/if_block_addr_type_number/-->
+                    <!--/block_addr_type_number/-->
+                    <div class="addr-msg">
+                        <p><strong class="point-color">동(읍/면/리)</strong>명을 2글자 이상 입력하세요.</p>
+                        <p>예) 삼성1동, 가산1동</p>
+                        <p><!--/addr_search_type_text/--></p>
+                    </div>
+                    <!--/end_block/-->
+                    <!--/end_if/-->
+                    <!--/if_block_addr_type_load/-->
+                    <!--/block_addr_type_load/-->
+                    <div class="addr-msg">
+                        <p><strong class="point-color">도로명(건물명)</strong>을 2글자 이상 입력하세요.</p>
+                        <p>예)강남대로100길, 가산디지털1로</p>
+                        <p><!--/addr_search_type_text/--></p>
+                    </div>
+                    <!--/end_block/-->
+                    <!--/end_if/-->
+                    <!--/if_block_addr_type_number_to_load/-->
+                    <!--/block_addr_type_number_to_load/-->
+                    <div class="addr-msg">
+                        <p><strong class="point-color">도로명(건물명)</strong>을 두 단어 이상 입력하세요.</p>
+                        <p>예) 가산동 우림라이온스밸리, 압구정 로데오</p>
+                        <p><!--/addr_search_type_text/--></p>
+                    </div>
+                    <!--/end_block/-->
+                    <!--/end_if/-->
+                    <!--/form_addr_search/-->
+                    <div class="addr-select">
+                        <div class="zipcode">
+                            <!--/input_search_addr_text/-->
+                            <button class="btn btn-primary" type="submit" onclick="<!--/link_addr_search/-->">검색</button>
+                        </div>
+                        <div class="addr-list">
+                            <label>주소 선택</label>
+                            <!--/select_addr/-->
+                        </div>
+                    </div>
+                    <!--/end_form/-->
+                </div>
+                <div class="modal-footer">
+                    <a href="<!--/link_addr_select_ok/-->" class="btn btn-primary btn-lg">다음</a>
+                </div>
+                <!--/end_block/-->
+                <!--/block_order_detail_addr/-->
+                <!--/form_detail_addr/-->
+                <div class="search-form detail-addr">
+                    <div class="addr-msg">
+                        <p><strong class="point-color">상세주소</strong>를 입력해주세요.</p>
+                    </div>
+                    <div class="addr-select">
+                        <div class="addr-list">
+                            <label>우편번호</label>
+                            <div class="flex-base">
+                                <!--/if_input_search_post/-->
+                                <!--/input_search_post/-->
+                                <!--/else/-->
+                                <!--/input_search_post1/-->
+                                -
+                                <!--/input_search_post2/-->
+                                <!--/end_if/-->
+                            </div>
+                        </div>
+                        <div class="addr-list">
+                            <label>주소</label>
+                            <!--/input_search_address1/-->
+                            <!--/input_search_address2/-->
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <a href="<!--/link_addr_ok/-->" class="btn btn-primary btn-lg">확인</a>
+                </div>
+                <!--/end_form/-->
+                <!--/end_block/-->
+            </div>
+        </div>
+    </div>
+    <!--/end_block/-->
+    <!-- // 배송지 검색 레이어 END -->
+</main>
+<!-- // container -->
+
+<!--/include_footer(1)/-->

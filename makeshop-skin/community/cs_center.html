@@ -1,0 +1,39 @@
+<!--/include_header(1)/-->
+
+<div class="container cscenter-wrapper">
+    <h2 class="cw-cscentertitle">고객센터</h2>
+    <div class="cw-wrapper">
+        <div class="cw-cscentercnts">
+            <dl>
+                <dt><span>대표번호</span></dt>
+                <dd>
+                    <ul>
+                        <!--/loop_shop_tel_list/-->
+                        <li><a href="tel:<!--/shop_tel_list@value/-->"><!--/shop_tel_list@value/--></a></li>
+                        <!--/end_loop/-->
+                    </ul>
+                </dd>
+            </dl>
+            <dl>
+                <dt><span>상담시간</span></dt>
+                <dd>
+                    <ul>
+                        <li><!--/shop_cstime/--></li>
+                    </ul>
+                </dd>
+            </dl>
+            <dl>
+                <dt><span>은행정보</span></dt>
+                <dd>
+                    <ul>
+                        <!--/loop_shop_bank_account/-->
+                        <li><!--/shop_bank_account@value/--></li>
+                        <!--/end_loop/-->
+                    </ul>
+                </dd>
+            </dl>
+        </div>
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

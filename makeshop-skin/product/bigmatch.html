@@ -1,0 +1,214 @@
+<!--/include_header(1)/-->
+
+<!-- 본문 -->
+<!-- container -->
+<div id="container">
+    <!-- contents -->
+    <div id="contents">
+        <!-- main -->
+        <main id="bigMatch">
+            <div class="h_title">
+                <h3><!--/bigmatch_subject/--></h3>
+            </div>
+            <!--/form_bigmatch/-->
+            <div class="select_bigmatch">
+                <!--/select_bigmatch_list/-->
+            </div>
+            <!--/if_bigmatch_mobile_main_image/-->
+            <img src="<!--/bigmatch_mobile_main_image/-->" class="response100"/>
+            <!--/end_if/-->
+            <!-- bigMatchTop -->
+            <div class="bigMatchTop">
+                <!--/if_bigmatch_subject/-->
+                <h4><!--/bigmatch_subject/--></h4>
+                <!--/end_if/-->
+                <div class="bigMatchTopBox">
+                    <!--/if_bigmatch_mobile_content/-->
+                    <div class="dsc_bigMatch">
+                        <!--/bigmatch_mobile_content/-->
+                    </div>
+                    <!--/end_if/-->
+                    <div class="prd_bigmatch clearFix">
+                        <a href="<!--/link_bigmatch_prod_detail_1/-->">
+                        <figure>
+                            <img src="<!--/bigmatch_mobile_prod_image_1/-->" alt="" />
+                            <figcaption>
+                                <p>[1번 상품]</p>
+                                <p><!--/notag/bigmatch_prod_name_1/--></p>
+                                <p><!--/notag/bigmatch_prod_desc_1/--></p>
+                            </figcaption>
+                        </figure>
+                        </a>
+                        <span class="vs">vs</span>
+                        <a href="<!--/link_bigmatch_prod_detail_2/-->">
+                        <figure>
+                            <img src="<!--/bigmatch_mobile_prod_image_2/-->" alt="" />
+                            <figcaption>
+                                <p>[2번 상품]</p>
+                                <p><!--/notag/bigmatch_prod_name_2/--></p>
+                                <p><!--/notag/bigmatch_prod_desc_2/--></p>
+                            </figcaption>
+                        </figure>
+                        </a>
+                    </div>
+                    <div class="dsc_progress">
+                        <span class="red"><!--/bigmatch_recmd_1/-->%</span><span><!--/bigmatch_recmd_2/-->%</span>
+                    </div>
+                    <div class="progress">
+                        <span class="bar"></span><span class="bar red"></span>
+                        <p><!--/bigmatch_total_count/-->명 참여</p>
+                    </div>
+                </div>
+                <h4>추천 참여</h4>
+                <div class="bigMatchRecmd">
+                    <label><!--/radio_bigmatch_prod_1/--> 1번 상품</label><label><!--/radio_bigmatch_prod_2/--> 2번 상품</label>
+                    <div class="clearFix">
+                        <!--/if_input_bigmatch_writer/-->
+                        <!--/input_bigmatch_writer/-->
+                        <!--/end_if/-->
+                        <!--/if_input_bigmatch_password/-->
+                        <!--/input_bigmatch_password/-->
+                        <!--/end_if/-->
+                    </div>
+                    <!--/text_bigmatch_content/-->
+                    <a href="<!--/link_bigmatch_recmd/-->" class="btn_Red">추천하기</a>
+                </div>
+            </div>
+            <!-- //bigMatchTop -->
+            <!-- bigMatchBottom -->
+            <div class="bigMatchBottom">
+                <div class="reply">
+                    <ul class="tab">
+                        <!--/if_bigmatch_product_type(prd1)/-->
+                        <li class="now"><a href="#fPrd">1번 상품</a></li>
+                        <!--/else/-->
+                        <li><a href="#fPrd">1번 상품</a></li>
+                        <!--/end_if/-->
+                        <!--/if_bigmatch_product_type(prd2)/-->
+                        <li class="now"><a href="#sPrd">2번 상품</a></li>
+                        <!--/else/-->
+                        <li><a href="#sPrd">2번 상품</a></li>
+                        <!--/end_if/-->
+                    </ul>
+                    <!--/if_bigmatch_product_type(prd2)/-->
+                    <ul id="fPrd" class="lst" style="display: none">
+                    <!--/else/-->
+                    <ul id="fPrd" class="lst">
+                    <!--/end_if/-->
+                    <!--/if_bigmatch_comment_1/-->
+                        <!--/loop_bigmatch_comment_1/-->
+                        <li>
+                            <p class="name"><!--/bigmatch_comment_1@writer/--></p>
+                            <p class="cont"><!--/bigmatch_comment_1@content/--></p>
+                            <div class="sub">
+                                <span class="date"><!--/bigmatch_comment_1@date/--></span>
+                                <a href="<!--/bigmatch_comment_1@link_delete/-->" class="del"><span class="fa fa-times"></span></a>
+                            </div>
+                        </li>
+                        <!--/end_loop/-->
+                    <!--/else/-->
+                        <li>
+                            <center>추천 목록이 없습니다.</center>
+                        </li>
+                    <!--/end_if/-->
+                    </ul>
+                    <!--/if_bigmatch_product_type(prd1)/-->
+                    <ul id="sPrd" class="lst" style="display: none">
+                    <!--/else/-->
+                    <ul id="sPrd" class="lst">
+                    <!--/end_if/-->
+                    <!--/if_bigmatch_comment_2/-->
+                        <!--/loop_bigmatch_comment_2/-->
+                        <li>
+                            <p class="name"><!--/bigmatch_comment_2@writer/--></p>
+                            <p class="cont"><!--/bigmatch_comment_2@content/--></p>
+                            <div class="sub">
+                                <span class="date"><!--/bigmatch_comment_2@date/--></span>
+                                <a href="<!--/bigmatch_comment_2@link_delete/-->" class="del"><span class="fa fa-times"></span></a>
+                            </div>
+                        </li>
+                        <!--/end_loop/-->
+                    <!--/else/-->
+                        <li>
+                            <center>추천 목록이 없습니다.</center>
+                        </li>
+                    <!--/end_if/-->
+                    </ul>
+                </div>
+            </div>
+            <!-- //bigMatchBottom -->
+            <!--/if_bigmatch_product_type(prd2)/-->
+            <div class="paging" id="paging1" style="display: none">
+            <!--/else/-->
+            <div class="paging" id="paging1">
+            <!--/end_if/-->
+                <!--/if_pager_bigmatch_comment_1::prev/-->
+                <a href="<!--/pager_bigmatch_comment_1::prev@link/-->"><span class="fa fa-angle-left"></span></a>
+                <!--/end_if/-->
+                <!--/if_bigmatch_comment_1/-->
+                <!--/loop_pager_bigmatch_comment_1::page(5)/-->
+                <!--/if_pager_bigmatch_comment_1::page@current/-->
+                <a href="#none" class="now"><!--/pager_bigmatch_comment_1::page/--></a>
+                <!--/else/-->
+                <a href="<!--/pager_bigmatch_comment_1::page@link/-->"><!--/pager_bigmatch_comment_1::page/--></a>
+                <!--/end_if/-->
+                <!--/end_loop/-->
+                <!--/end_if/-->
+                <!--/if_pager_bigmatch_comment_1::next/-->
+                <a href="<!--/pager_bigmatch_comment_1::next@link/-->"><span class="fa fa-angle-right"></span></a>
+                <!--/end_if/-->
+            </div>
+            <!--/if_bigmatch_product_type(prd1)/-->
+            <div class="paging" id="paging2" style="display: none">
+            <!--/else/-->
+            <div class="paging" id="paging2">
+            <!--/end_if/-->
+                <!--/if_pager_bigmatch_comment_2::prev/-->
+                <a href="<!--/pager_bigmatch_comment_2::prev@link/-->"><span class="fa fa-angle-left"></span></a>
+                <!--/end_if/-->
+                <!--/if_bigmatch_comment_2/-->
+                <!--/loop_pager_bigmatch_comment_2::page(5)/-->
+                <!--/if_pager_bigmatch_comment_2::page@current/-->
+                <a href="#none" class="now"><!--/pager_bigmatch_comment_2::page/--></a>
+                <!--/else/-->
+                <a href="<!--/pager_bigmatch_comment_2::page@link/-->"><!--/pager_bigmatch_comment_2::page/--></a>
+                <!--/end_if/-->
+                <!--/end_loop/-->
+                <!--/end_if/-->
+                <!--/if_pager_bigmatch_comment_2::next/-->
+                <a href="<!--/pager_bigmatch_comment_2::next@link/-->"><span class="fa fa-angle-right"></span></a>
+                <!--/end_if/-->
+            </div>
+            <!--/end_form/-->
+        </main>
+        <!-- //main -->
+    </div>
+    <!-- //contents -->
+</div>
+<!-- //container -->
+<!-- //본문 -->
+
+<script type="text/javascript">
+$(function() {
+    $('#bigMatch .progress .red').css('width', <!--/bigmatch_recmd_percent_1/--> + '%');
+    // 답글 토글
+    $('#bigMatch .reply .tab li a').click(function(e) {
+        e.preventDefault();
+        $(this).parent().addClass('now').siblings().removeClass('now');
+        $(this.hash).show().siblings('.lst').hide();
+        var tab_name = $(this).attr('href');
+     
+        if (tab_name.charAt(1) == 's') {
+           // 2번 상품 클릭시, 페이징 컨트롤
+           $('#paging2').show();
+           $('#paging1').hide();
+        } else if (tab_name.charAt(1) == 'f') {
+           // 1번 상품 클릭시, 페이징 컨트롤
+           $('#paging1').show();
+           $('#paging2').hide();
+        }
+    });
+});
+</script>
+
+<!--/include_footer(1)/-->

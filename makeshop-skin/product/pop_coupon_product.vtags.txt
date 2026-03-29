@@ -1,0 +1,13 @@
+# pop_coupon_product 가상태그
+
+
+## 기타
+<!--/coupon_apply_type/-->
+<!--/coupon_name/-->
+<!--/coupon_popup_type/-->
+<!--/coupon_product_count/-->
+<!--/coupon_product_list@group_name/-->
+<!--/coupon_product_list@link/-->
+<!--/coupon_product_list@name/-->
+<!--/link_close/-->
+<!--/loop_coupon_product_list/-->

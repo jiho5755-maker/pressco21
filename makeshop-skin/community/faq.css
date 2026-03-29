@@ -1,0 +1,43 @@
+.cw-faqtitle { display: flex; align-items: center; justify-content: space-between; font-weight: 700; padding-top: var(--cw-size-60); font-size: var(--cw-size-24); line-height: var(--cw-size-32); color: var(--cw-heading-color); }
+.cw-faqsearch .search-keywords { display: grid; grid-template-columns: var(--cw-size-120) var(--cw-size-540); align-items: center; justify-content: center; gap: var(--cw-size-10) var(--cw-size-12); margin: var(--cw-size-40) 0 var(--cw-size-48); }
+.cw-faqsearch .search-keywords :where(dt, dd) { display: flex; align-items: center; min-height: var(--cw-size-40); font-size: var(--cw-size-14); }
+.cw-faqsearch .search-keywords dd:first-of-type { border-bottom: 1px solid var(--cw-color-30); }
+.cw-faqsearch .search-keywords dd:nth-of-type(2) { display: flex; flex-wrap: wrap; gap: var(--cw-size-6); }
+.cw-faqsearch .search-keywords .cw-select-box { width: 100%; padding-left: 0; border: 0; border-bottom: 1px solid var(--cw-color-30); border-radius: 0; }
+.cw-faqsearch .search-keywords .cw-textfield { width: var(--cw-size-500); border: 0; }
+.cw-faqsearch .search-keywords .btn-search { flex: none; display: inline-flex; align-items: center; justify-content: center; width: var(--cw-size-40); height: var(--cw-size-40); vertical-align: top; }
+.cw-faqsearch .search-keywords .btn-search img { width: var(--cw-size-24); height: var(--cw-size-24); }
+.cw-faqsearch .search-keywords .keyword { display: inline-flex; align-items: center; height: var(--cw-size-24); padding: 0 var(--cw-size-10); font-size: var(--cw-size-12); color: var(--cw-heading-color); border: 1px solid var(--cw-color-30); border-radius: var(--cw-size-20); }
+.cw-faqtab { display: flex; flex-wrap: wrap; row-gap: var(--cw-size-10); align-items: center; min-height: var(--cw-size-28); margin-bottom: var(--cw-size-12); }
+.cw-faqtab a { padding-right: var(--cw-size-16); color: var(--cw-color-80); font-size: var(--cw-size-14); line-height: var(--cw-size-20); }
+.cw-faqtab a.on { color: var(--cw-heading-color); font-weight: 700; }
+.cw-faqtab a:not(:first-child)::before { content: ''; display: inline-block; width: 1px; height: var(--cw-size-12); margin-right: var(--cw-size-16); background-color: var(--cw-color-30); vertical-align: middle; }
+.cw-faqlist { border-top: 1px solid var(--cw-heading-color); }
+.cw-faqlist .question { position: relative; display: flex; align-items: center; padding: var(--cw-size-16) 0; border-bottom: 1px solid var(--cw-color-30); color: var(--cw-color-80); font-size: var(--cw-size-14); cursor: pointer; }
+.cw-faqlist .question span { color: var(--cw-heading-color); margin-right: var(--cw-size-6); }
+.cw-faqlist .question.on { border-bottom: 0; }
+.cw-faqlist .question::after { content: ""; display: inline-block; width: var(--cw-size-20); height: var(--cw-size-20); background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_down.svg') no-repeat center center; background-size: contain; transition: transform 0.3s; position: absolute; right: 0; top: 50%; transform: translateY(-50%) rotate(0deg); }
+.cw-faqlist .question.on::after { transform: translateY(-50%) rotate(180deg); }
+.cw-faqlist .answer { display: none; padding: var(--cw-size-24); color: var(--cw-heading-color); font-size: var(--cw-size-14); line-height: var(--cw-size-20); border-bottom: 1px solid var(--cw-color-30); background-color: var(--cw-color-10); white-space: pre-line; }
+.cw-faqlist .answer.on { display: block; }
+.cw-paging { padding-top: var(--cw-size-20); }
+
+@media (max-width: 991.98px) {
+    .cw-faqtitle { justify-content: end; padding-top: var(--cw-size-20); }
+    .cw-faqtitle > span { display: none; }
+    .cw-faqsearch .search-keywords { grid-template-columns: var(--cw-size-120) 1fr; margin-top: var(--cw-size-20); }
+    .cw-faqsearch .search-keywords .cw-textfield { width: 100%; }
+}
+@media (max-width: 767.98px) {
+    .cw-faqsearch .search-keywords { margin-bottom: var(--cw-size-40); }
+    .cw-faqsearch .search-keywords :where(dt:nth-of-type(2), dd:nth-of-type(2)) { min-height: auto; }
+    .cw-faqsearch .search-keywords dd:nth-of-type(2) { grid-column: 1 / -1; }
+    .cw-faqtab { display: grid; grid-template-columns: repeat(3, 1fr); gap: 0; height: auto; margin-bottom: var(--cw-size-24); border-top: 1px solid var(--cw-color-30); border-left: 1px solid var(--cw-color-30); }
+    .cw-faqtab:not(:has(.category_2)) { grid-template-columns: repeat(2, 1fr); }
+    .cw-faqtab a { display: flex; align-items: center; justify-content: center; height: var(--cw-size-40); padding: 0; font-size: var(--cw-size-13); border-right: 1px solid var(--cw-color-30); border-bottom: 1px solid var(--cw-color-30); }
+    .cw-faqtab a:not(:first-child)::before { display: none; }
+    .cw-faqlist :where(.question, .answer) { font-size: var(--cw-size-13) !important; line-height: var(--cw-size-18) !important; }
+    .cw-faqlist .question { display: grid; row-gap: var(--cw-size-6); }
+    .cw-faqlist .question::after { width: var(--cw-size-16); height: var(--cw-size-16); }
+    .cw-faqlist .answer { padding: var(--cw-size-16); }
+}

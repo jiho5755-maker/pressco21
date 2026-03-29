@@ -1,0 +1,38 @@
+#smartCalendarPopup { display: none; }
+.layer-smart-calendar { display: flex; }
+.layer-smart-calendar .calendar-wrap { margin-top: 20px; }
+.layer-smart-calendar .calendar-header { display: flex; align-items: center; justify-content: center; gap: 20px; }
+.layer-smart-calendar .calendar-header::before { content: ''; display: block; width: 20px; height: 20px; }
+.layer-smart-calendar .calendar-header:has(.nav-btn.prev)::before { content: none; }
+.layer-smart-calendar .calendar-header .month { font-size: var(--cw-size-16); font-weight: 700; }
+.layer-smart-calendar .nav-btn { width: 20px; height: 20px; }
+.layer-smart-calendar .nav-btn.prev { background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/btn_arrow_left.svg) no-repeat left center / 20px auto; }
+.layer-smart-calendar .nav-btn.next { background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/btn_arrow_right.svg) no-repeat right center / 20px auto; }
+.layer-smart-calendar .calendar-content { display: flex; flex-direction: column; margin-top: 16px; }
+.layer-smart-calendar .calendar-days,
+.layer-smart-calendar .calendar-dates { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); font-size: var(--cw-size-13); }
+.layer-smart-calendar .calendar-days { text-align: center; height: 26px; line-height: 26px; color: var(--cw-color-60); }
+.layer-smart-calendar .calendar-dates .date { position: relative; padding: 4px 0; height: 60px; border-top: 1px solid var(--cw-color-20); font-size: var(--cw-size-12); text-align: center; }
+.layer-smart-calendar .calendar-dates .sc-link { position: absolute; top: 0; right: 0; bottom: 0; left: 0; text-indent: -9999px; z-index: 1; }
+.layer-smart-calendar .sc-day { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; text-indent: 0; }
+.layer-smart-calendar .sc-day span { color: var(--cw-error-color); }
+.layer-smart-calendar .sc-sat { color: var(--cw-point-color-blue); } 
+.layer-smart-calendar .sc-sun { color: var(--cw-error-color); }
+.layer-smart-calendar .sc-end { background: var(--cw-color-20); }
+.layer-smart-calendar .sc-possible { display: block; background: var(--cw-warning-40); }
+.layer-smart-calendar .sc-link.sc-now { border: 1px solid var(--cw-heading-color); }
+.layer-smart-calendar .sc-disable { background-color: var(--cw-color-10); color: var(--cw-color-40); }
+.layer-smart-calendar .calendar-footer { border-top: 1px solid var(--cw-color-20); }
+.layer-smart-calendar .notice { margin-top: .625rem; }
+.layer-smart-calendar .notice li { color: var(--cw-color-80); font-size: var(--cw-size-13); }
+.layer-smart-calendar .notice.bullet li { padding-left: 7px; text-indent: -7px; }
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .layer-smart-calendar .calendar-dates .date { font-size: var(--cw-size-11); }
+}
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .layer-smart-calendar .calendar-dates .date { font-size: var(--cw-size-10); }
+}

@@ -1,0 +1,80 @@
+<div id="findAddress">
+    <h2 class="layer-title">우편번호 찾기</h2>
+    <!--/form_addr_search/-->
+    <div class="tab-radio">
+        <!--/if_radio_addr_type_number/--><label><!--/radio_addr_type_number/--><span>지번주소</span></label><!--/end_if/-->
+        <!--/if_radio_addr_type_load/--><label><!--/radio_addr_type_load/--><span>도로명주소</span></label><!--/end_if/-->
+    </div>
+    <div id="lotNumber" class="form-address">
+        <fieldset>
+            <legend>지번 주소 찾기 폼</legend>
+            <div class="search-form">
+                <span><!--/input_search_addr_text/--></span>
+                <span><button type="button" class="btn-sch btn btn-primary" onclick="<!--/link_addr_search/-->">검색</button></span>
+            </div>
+            <div class="search-txt">
+                <span id="posttext">
+                    <!--/block_addr_type_load/-->
+                    두 단어 이상 검색 시 주소 찾기가 쉽습니다.(예:강남대로100길, 가산동 371-28)<br>
+                    지번(구주소)으로 검색하셔도, 도로명주소 체계로 자동변환 됩니다.
+                    <!--/end_block/-->
+                    <!--/block_addr_type_number/-->
+                    동을 입력하세요. (예: 압구정동, 2글자 이상 입력)
+                    <!--/end_block/-->
+                    <!--/if_post_search_type(oversea)/-->
+                    <div class="btm-message">해외 주소의 경우 "해외"를 입력하세요.<br>(To ship to foreign country, please enter
+                        "oversea")</div>
+                    <!--/else/-->
+                    <div class="btm-message">국내 주소만 입력이 가능합니다.</div>
+                    <!--/end_if/-->
+                </span>
+            </div>
+        </fieldset>
+    </div>
+    <!--/end_form/-->
+    <div class="search-list">
+        <!--/block_addr_search_result/-->
+        <h2 class="layer-title">검색결과</h2>
+        <ul class="list-wrap">
+            <!--/if_post_total_count(+1000)/-->
+            <li class="info-txt">1,000건 이상 검색되었습니다.<br> 검색단어를 추가하여 검색해주세요</li>
+            <!--/else_if_post_total_count(+1)/-->
+            <!--/loop_addr_result/-->
+            <li>
+                <!--/if_addr_result@link_load_addr/-->
+                <div class="addr">
+                    <a href="<!--/addr_result@link_select_addr/-->">
+                        (<!--/addr_result@old_post1/-->-<!--/addr_result@old_post2/-->)
+                        <!--/if_addr_result@new_post/-->(<!--/addr_result@new_post/-->)&nbsp;&nbsp;<!--/end_if/-->
+                        <!--/addr_result@load_addr/--><br>
+                    </a>
+                </div>
+                <!--/else/-->
+                <div class="addr2">
+                    <a href="<!--/addr_result@link_select_addr/-->">
+                        <span class="bull-roadnum">도로명</span>
+                        <span><!--/if_addr_result@new_post/-->(<!--/addr_result@new_post/-->)&nbsp;&nbsp;<!--/end_if/--> <!--/addr_result@load_addr/--><br></span>
+                        <span class="bull-num">지번</span>
+                        <span>(<!--/addr_result@old_post1/-->-<!--/addr_result@old_post2/-->)</span>
+                        <span><!--/addr_result@number_addr/--></span>
+                    </a>
+                </div>
+                <!--/end_if/-->
+                <div class="addr-sel">
+                    <!--/if_addr_result@link_load_addr/-->
+                    <button type="button" class="btn-sel btn btn-primary btn-xs" onclick="<!--/addr_result@link_select_addr/-->">선택</button>
+                    <button type="button" class="btn-sel-new old_sel btn-sel2 btn btn-white btn-xs" onclick="<!--/addr_result@link_load_addr/-->">신주소</button>
+                    <!--/else/-->
+                    <button type="button" class="btn-sel btn btn-primary btn-sm" onclick="<!--/addr_result@link_select_addr/-->">선택</button>
+                    <!--/end_if/-->
+                </div>
+            </li>
+            <!--/end_loop/-->
+            <!--/else/-->
+            <li class="info-txt">검색된 내용이 없습니다.</li>
+            <!--/end_if/-->
+        </ul>
+        <div class="btm-txt">우편번호를 선택 후 나머지 주소를 입력해 주세요.</div>
+        <!--/end_block/-->
+    </div>
+</div>

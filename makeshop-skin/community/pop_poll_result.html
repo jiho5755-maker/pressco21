@@ -1,0 +1,84 @@
+<!--/include_header(1)/-->
+
+<div class="container vote-wrapper">
+    <h2 class="cw-votetitle">투표 결과</h2>
+    <div class="cw-wrapper">
+        <div class="cw-voteresult">
+            <div class="result-title">
+                <p><!--/poll_title/--></p>
+                <p class="count">참여 <!--/poll_total/-->명</p>
+            </div>
+            <ul class="result-list">
+                <!--/loop_poll_data/-->
+                <li>
+                    <dl>
+                        <dt>
+                            <p><!--/poll_data@item/--></p>
+                            <p><!--/poll_data@percent/-->%</p>
+                        </dt>
+                        <dd>
+                            <div class="graph"><p class="bar" style="width:<!--/poll_data@percent/-->%;"></p></div>
+                        </dd>
+                        <dd class="count"><!--/poll_data@count/-->명</dd>
+                    </dl>
+                </li>
+                <!--/end_loop/-->
+            </ul>
+            <!--/if_form_opinion/-->
+            <div class="result-title">투표 주제에 대한 의견을 적어주시기 바랍니다.</div>
+            <!--/form_opinion/-->
+            <div class="opinion-write">
+                <!--/input_opinion_name(cw-textfield)/-->
+                <!--/input_opinion_message(cw-textfield)/-->
+                <a href="<!--/link_opinion/-->" class="btn btn-primary"><span>등록</span></a>
+            </div>
+            <!--/end_form/-->
+            <!--/end_if/-->
+            
+            <div class="result-title">투표 의견</div>           
+            <div class="opinion-list">
+                <!--/if_opinion/-->
+                <!--/loop_opinion/-->
+                <div class="post">
+                    <div class="content"><!--/opinion@message/--></div>
+                    <div class="text-end">
+                        <span class="author"><!--/opinion@name/--></span>
+                        <span class="date"><!--/date(%Y.%M.%D)/opinion@date/--></span>
+                    </div>
+                </div>
+                <!--/end_loop/-->
+                <!--/else/-->
+                <div class="post empty-list">
+                    <div class="content">등록된 의견이 없습니다.</div>
+                    <div class="text-end"></div>
+                </div>
+                <!--/end_if/-->
+            </div>
+            
+        </div>
+        <!--/if_pager_vote/-->
+        <div class="cw-paging">
+            <!--/if_pager_vote::prev/-->
+            <a href="<!--/pager_vote::prev@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_skin/images/icons/ico_cheveron_left.svg" alt="이전" width="16" height="16" /></a>
+            <!--/end_if/-->
+            <!--/if_pager_vote/-->
+                <!--/loop_pager_vote::page/-->
+                    <!--/if_pager_vote::page@current/-->
+                    <a href="javascript:return false;" class="active"><!--/pager_vote::page/--></a>
+                    <!--/else/-->
+                    <a href="<!--/pager_vote::page@link/-->"><!--/pager_vote::page/--></a>
+                    <!--/end_if/-->
+                <!--/end_loop/-->
+            <!--/end_if/-->
+            <!--/if_pager_vote::next/-->
+            <a href="<!--/pager_vote::next@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_skin/images/icons/ico_cheveron_right.svg" alt="다음" width="16" height="16" /></a>
+            <!--/end_if/-->
+        </div>
+        <!--/end_if/-->
+        <div class="cw-votebtns">
+            <a href="<!--/link_list/-->" class="btn btn-white btn-lg"><span>리스트 보기</span></a>
+        </div>       
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

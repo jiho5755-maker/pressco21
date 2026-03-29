@@ -1,0 +1,66 @@
+a { color: var(--cw-heading-color); }
+.ml-auto { margin-left: auto; }
+.cw-heading { font-size: 1.5rem; font-weight: 700; }
+.cw-gift {
+    margin-top: 40px; display: grid; position: relative;
+    .gift-header { display: flex; align-items: center; gap: 8px; padding-bottom: 8px; border-bottom: 1px solid var(--cw-heading-color); width: 100%; overflow: hidden; }
+    .gift-title { font-weight: 700; font-size: 1.125rem; flex-shrink: 0; }
+    .gift-subtitle { font-size: 0.813rem; color: var(--cw-color-60); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .gift-section { padding: 10px 0; border-bottom: 1px solid var(--cw-color-30); }
+    .gift-row { display: flex; padding: 10px 0; }
+    .gift-label { font-size: 0.875rem; min-width: 120px; flex-shrink: 0; }
+    .gift-content { flex: 1; display: flex; align-items: center; gap: 4px; flex-wrap: wrap; }
+    .gift-value { font-size: 0.875rem; font-weight: 600; }
+    .gift-grid { display: flex; flex-wrap: wrap; gap: 8px; width: 100%; }
+    .gift-item { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+    .gift-image { width: 90px; height: 90px; overflow: hidden; background-color: var(--cw-color-10); }
+    .gift-image img { width: 100%; height: 100%; object-fit: cover; }
+    .gift-text { font-size: 0.75rem; }
+    .gift-section-none { padding: 24px 0; border-top: 1px solid var(--cw-heading-color); border-bottom: 1px solid var(--cw-color-30); font-size: 0.875rem; font-weight: 600; text-align: center; }
+    .btn-dropdown { flex-shrink: 0; width: 24px; height: 24px; margin-left: auto; font-size: 0; background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_down.svg) no-repeat center center / 20px auto; transition: transform 0.3s ease; }
+    .btn-dropdown.closed { transform: rotate(180deg); }
+    .text-point { color: var(--cw-point-color); }
+}
+.layer-gift-style {
+    display: none; z-index: 9999; position: absolute; top: 15%; left: 16px; right: 16px; margin: 0 auto; padding: 18px 20px 20px; border-radius: 10px; background: var(--cw-color-white); border: 1px solid var(--cw-heading-color); box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15); animation: fadeIn 0.3s ease-in-out;
+    .layer-header { display: flex; align-items: center; }
+    .layer-title { font-weight: 700; font-size: 1.125rem; }
+    .layer-close { flex-shrink: 0; width: 24px; height: 24px; margin-left: auto; font-size: 0; background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/bullet_delete.svg) no-repeat center center / 22px auto; border: 0; }
+    .layer-content { margin-top: 20px; display: flex; flex-direction: column; }
+    .layer-footer { margin-top: 20px; }
+    .layer-footer .btn { width: 100%; }
+    .member-group-label { height: 40px; display: flex; align-items: center; justify-content: center; font-weight: 600; font-size: .813rem; background: var(--cw-color-10); border: 1px solid var(--cw-color-30); }
+    .member-group-item { display: flex; align-items: center; justify-content: center; text-align: center; padding: 10px; font-size: .813rem; border: 1px solid var(--cw-color-30); border-top: 0; }
+}
+/* for desktop and tablet */
+@media (min-width: 768px) {
+    .cw-gift {
+        .gift-row { align-items: center; }
+    }
+}
+/* for desktop */
+@media (min-width: 992px) {
+    .container { margin-top: 60px; }
+    .cw-gift { padding-bottom: 40px; }
+    .layer-gift-style { max-width: 440px; }
+}
+/* for tablet */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .layer-gift-style { max-width: 352px; }
+}
+/* for mobile */
+@media (max-width: 767.98px) {
+    .cw-gift {
+        .gift-title { font-size: 1rem; }
+        .gift-subtitle { font-size: 0.75rem; }
+        .gift-row { flex-direction: column; row-gap: 6px; }
+        .gift-label { font-size: 0.813rem; }
+    }
+    .layer-gift-style { max-width: 328px; }
+}
+/* for tablet and mobile */
+@media (max-width: 991.98px) {
+    .container { margin-top: 20px; }
+    .cw-heading { display: none; }
+    .cw-gift { padding-bottom: 20px; }
+}

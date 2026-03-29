@@ -1,0 +1,24 @@
+# basket_alert 가상태그
+
+
+## 기타
+<!--/basket_img/-->
+<!--/basket_img_l/-->
+<!--/basket_img_s/-->
+<!--/basket_link/-->
+<!--/basket_msg/-->
+<!--/block_next_page/-->
+<!--/block_paging/-->
+<!--/block_prev_page/-->
+<!--/continue_link/-->
+<!--/current_page/-->
+<!--/if_product_list/-->
+<!--/if_product_list@price_replace/-->
+<!--/if_use_related_product/-->
+<!--/layer_close_link/-->
+<!--/page_next_link/-->
+<!--/page_prev_link/-->
+<!--/product_list@image_l/-->
+<!--/product_list@image_m/-->
+<!--/product_list@image_s/-->
+<!--/total_page/-->

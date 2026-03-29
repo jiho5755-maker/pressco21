@@ -1,0 +1,21 @@
+# agree_new 가상태그
+
+
+## 기타
+<!--/agree_content/-->
+<!--/form_agree/-->
+<!--/if_privacy/-->
+<!--/if_third/-->
+<!--/if_trust/-->
+<!--/link_ok/-->
+<!--/privacy_content/-->
+<!--/radio_privacy_no/-->
+<!--/radio_privacy_ok/-->
+<!--/radio_third_no/-->
+<!--/radio_third_ok/-->
+<!--/radio_trust_no/-->
+<!--/radio_trust_ok/-->
+<!--/shop_id/-->
+<!--/third_content/-->
+<!--/title/-->
+<!--/trust_content/-->

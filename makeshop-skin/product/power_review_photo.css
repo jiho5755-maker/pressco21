@@ -1,0 +1,16 @@
+textarea,
+input[type=text], 
+input[type=password] { -webkit-box-sizing: border-box; -moz-box-sizing: border-box; box-sizing: border-box; padding: 0 5px; border: 1px solid #dadada; background: #fff; -webkit-border-radius: 1px; -webkit-appearance: none; }
+#pr-wrap .top { position: fixed; right: 10px; bottom: 20px; width: 44px; height: 43px; background: url(/images/d3/m_01/btn/btn_top@2x.png) no-repeat 0 0; background-size: 44px 43px; text-indent: -9999px; }
+#pr-wrap li {list-style:none;}
+#pr-container { position: relative; }
+
+/* header */
+#pr-header {  position:relative; border-bottom: 1px solid #e0e0e0; background: #fff; height: 48px; }
+#pr-header h1 { padding-left: 10px; color: #444; font-size: 1.125em; font-weight: bold; letter-spacing: -1px; line-height: 48px; }
+#pr-header .menu { z-index:100; display: none; position: absolute; top: 48px; left: 10px; width: 130px; border: 1px solid #dadada; border-top: 0; background: #fff; }
+#pr-header .menu li { height: 33px; }
+#pr-header .menu li a { display: block; height: 100%; line-height: 33px; padding-left: 10px; color: #808080; font-size: .875em; letter-spacing: -1px; }
+#pr-header .menu li a:hover { background: #f9f9f9; }
+#pr-header .list { position: absolute; top: 0; left: 0; width: 46px; height: 48px; background: url(/images/d3/m_01/btn/btn_list@2x.gif) no-repeat 50% 50%; background-size: 18px 16px; text-indent: -9999px; }
+#pr-header .side { position: absolute; top: 0; right: 0; width: 46px; height: 48px; background: url(/images/d3/m_01/btn/btn_side@2x.gif) no-repeat 50% 50%; background-size: 46px 48px; text-indent: -9999px; }

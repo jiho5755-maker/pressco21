@@ -1,0 +1,257 @@
+<!--/include_header(1)/-->
+
+<div class="container review-wrapper">
+    <h2 class="cw-reviewtitle">상품 리뷰</h2>
+    <div class="cw-wrapper">
+        <!-- 리뷰 등록 레이어 -->
+        <div id="review-write">
+            <!--/form_review/-->
+            <div class="layer modal-wrap">
+                <div class="layer-pop modal-content">
+                    <div class="tit-fix modal-header">
+                        <span class="modal-title">리뷰 등록</span>
+                        <a href="javascript:void(0);" onclick="$('#review-write .modal-wrap').hide();" class="close btn-modal-close"></a>
+                    </div>
+                    <div class="txt modal-body">
+                        <!--/input_review_writer(cw-textfield)/-->
+                        <!--/text_review_content(cw-textfield h80)/-->
+                        <div class="file_review">
+                            <!--/if_file_review_attach/-->
+                            <!--/file_review_attach(cw-textfield)/-->
+                            <!--/end_if/-->
+                        </div>
+                        <div class="review_scor">
+                            <!--/loop_review_score/-->
+                            <span><!--/review_score@title/--></span><!--/review_score@icon/-->
+                            <!--/end_loop/-->
+                        </div>
+                        <!--/block_prevent_auto_input/--><!--/end_block/-->
+                        <a href="<!--/link_review_write/-->" class="btn btn-primary btn-lg"><span>리뷰 등록</span></a>
+                    </div>
+                </div>
+            </div>
+            <!--/end_form/-->
+        </div>
+        <!-- //리뷰 등록 레이어 -->
+        <!--/if_product/-->
+            <dl class="review-prd">
+                <dt>
+                    <a href="<!--/product_link/-->">
+                        <!--/if_product_mobile_image/-->
+                            <img src="<!--/product_mobile_image/-->">
+                        <!--/else/-->
+                            <img src="/images/common/m_no_rep_image.png">
+                        <!--/end_if/-->
+                        <!--/notag/product_name/-->
+                    </a>
+                </dt>
+                <dd>
+                    <!--/if_is_mobile/-->
+                    <a href="javascript:void(0);" onclick="$('#review-write .modal-wrap').css('display', 'flex');" class="btn btn-primary"><span>리뷰 등록</span></a>
+                    <!--/end_if/-->
+                    <a href="<!--/link_review_more/-->" class="btn btn-white"><span>전체 리뷰 보기</span></a>
+                </dd>
+            </dl>
+            <div class="cw-reviewlist">
+                <!--/if_notice/-->
+                    <!--/loop_notice/-->
+                    <div class="post notice">
+                        <div class="subject">
+                            <span class="round-text">공지</span>
+                            <!--/notag/notice@content/-->
+                        </div>
+                        <div class="text-end">
+                            <span class="writer">관리자</span>
+                            <span class="date"><!--/date(%Y.%M.%D)/notice@date_write/--></span>
+                        </div>
+                    </div>
+                    <!--/end_loop/-->
+                <!--/end_if/-->
+                <!--/if_review/-->
+                    <!--/loop_review/-->
+                    <div class="post noimg" id="review<!--/idx/-->">
+                        <div class="infos">
+                            <div class="subject">
+                                <p class="product">
+                                    <a href="<!--/review@link_product/-->"><!--/notag/review@product_name/--></a>
+                                </p>
+                                <p>
+                                    <a href="javascript:void(0);" class="link-view">
+                                        <!--/if_review@reply/--><span class="complete">답글</span><!--/end_if/-->
+                                        <!--/if_review@is_mobile_write/--><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_mobile.svg" alt="모바일" width="14" height="14"><!--/end_if/-->
+                                        <!--/if_review@attach_image/--><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_camera.svg" alt="첨부파일" width="14" height="14"><!--/end_if/-->
+                                        <span class="clamp"><!--/notag/review@subject/--></span>
+                                    </a>
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <!--/if_review@score/-->
+                                <ul class="score">
+                                    <!--/loop_review@score/-->
+                                    <li>
+                                        <label><!--/review@score@title/--></label>
+                                        <label><!--/review@score@icon/--></label>
+                                    </li>
+                                    <!--/end_loop/-->
+                                </ul>
+                                <!--/end_if/-->
+                                <span class="writer"><!--/if_review@group_icon/--><img src="<!--/review@group_icon/-->" alt="관리자 아이콘"><!--/end_if/--><!--/review@writer/--></span>
+                                <span class="date"><!--/date(%Y.%M.%D %H:%i:%s)/review@date_write/--></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="post reply">
+                        <!--/if_review@attach_image/-->
+                        <div class="image"><img src="<!--/review@attach_image/-->" alt="첨부파일"></div>
+                        <!--/end_if/-->
+                        <div class="content"><!--/review@content/--></div>
+                        <div class="btns">
+                            <!--/if_review@link_modify/--><a href="<!--/review@link_modify/-->" class="btn btn-gray btn-xs btn-modify"><span>수정</span></a><!--/end_if/-->
+                            <!--/if_review@link_delete/--><a href="<!--/review@link_delete/-->" class="btn btn-gray btn-xs btn-delete"><span>삭제</span></a><!--/end_if/-->
+                            <!--/if_review@link_report_popup/--><a href="javascript:void(0);" onclick="<!--/review@link_report_popup/-->" class="btn btn-gray btn-xs btn-report"><span>신고/차단</span></a><!--/end_if/-->
+                        </div>
+                        <!--/if_review@reply/-->
+                        <div class="reply-content">
+                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_reply.svg" alt="답변">
+                            <div>
+                                <span class="round-text">답글</span>
+                                <!--/review@reply/-->
+                            </div>
+                        </div>
+                        <!--/end_if/-->
+                    </div>
+                    <!--/end_loop/-->
+                <!--/else/-->
+                <div class="post none">등록된 리뷰가 없습니다.</div>
+                <!--/end_if/-->
+            </div>
+        <!--/else/-->
+            <!--/form_search_review/-->
+            <div class="cw-reviewsearch">
+                <dl>
+                    <dt>분류별 검색</dt>
+                    <dd>
+                        <div class="cate">
+                            <!--/select_cate1(cw-select-box)/-->
+                            <!--/select_cate2(cw-select-box)/-->
+                            <!--/select_cate3(cw-select-box)/-->
+                        </div>
+                        <div class="product">
+                            <!--/select_product(cw-select-box)/-->
+                        </div>
+                    </dd>
+                    <dt>상품명 검색</dt>
+                    <dd>
+                        <div class="name">
+                            <!--/input_product_name(cw-textfield)/-->
+                            <a href="<!--/link_search/-->" class="btn btn-primary"><span>검색</span></a>
+                        </div>
+                    </dd>
+                </dl>
+            </div>
+            <!--/end_form/-->
+            <div class="cw-reviewlist">
+                <!--/if_notice/-->
+                    <!--/loop_notice/-->
+                    <div class="post notice">
+                        <div class="subject">
+                            <span class="round-text">공지</span>
+                            <!--/notag/notice@content/-->
+                        </div>
+                        <div class="text-end">
+                            <span class="writer">관리자</span>
+                            <span class="date"><!--/date(%Y.%M.%D)/notice@date_write/--></span>
+                        </div>
+                    </div>
+                    <!--/end_loop/-->
+                <!--/end_if/-->
+                <!--/if_review/-->
+                    <!--/loop_review/-->
+                    <div class="post img" id="review<!--/idx/-->">
+                        <div class="image">
+                            <!--/if_review@product_image_s/-->
+                            <a href="<!--/review@link_product/-->"><img src="<!--/review@product_image_s/-->" alt="상품 이미지"></a>
+                            <!--/end_if/-->
+                        </div>
+                        <div class="infos">
+                            <div class="subject">
+                                <p class="product">
+                                    <a href="<!--/review@link_product/-->"><!--/notag/review@product_name/--></a>
+                                </p>
+                                <p>
+                                    <a href="javascript:void(0);" class="link-view">
+                                        <!--/if_review@reply/--><span class="complete">답글</span><!--/end_if/-->
+                                        <!--/if_review@is_mobile_write/--><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_mobile.svg" alt="모바일" width="14" height="14"><!--/end_if/-->
+                                        <!--/if_review@attach_image/--><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_camera.svg" alt="첨부파일" width="14" height="14"><!--/end_if/-->
+                                        <span class="clamp"><!--/notag/review@subject/--></span>
+                                    </a>
+                                </p>
+                            </div>
+                            <div class="text-end">
+                                <!--/if_review@score/-->
+                                <ul class="score">
+                                    <!--/loop_review@score/-->
+                                    <li>
+                                        <label><!--/review@score@title/--></label>
+                                        <label><!--/review@score@icon/--></label>
+                                    </li>
+                                    <!--/end_loop/-->
+                                </ul>
+                                <!--/end_if/-->
+                                <span class="writer"><!--/if_review@group_icon/--><img src="<!--/review@group_icon/-->" alt="관리자 아이콘"><!--/end_if/--><!--/review@writer/--></span>
+                                <span class="date"><!--/date(%Y.%M.%D %H:%i:%s)/review@date_write/--></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="post reply">
+                        <!--/if_review@attach_image/-->
+                        <div class="attach-image"><img src="<!--/review@attach_image/-->" alt="첨부파일"></div>
+                        <!--/end_if/-->
+                        <div class="content"><!--/review@content/--></div>
+                        <div class="btns">
+                            <!--/if_review@link_modify/--><a href="<!--/review@link_modify/-->" class="btn btn-gray btn-xs btn-modify"><span>수정</span></a><!--/end_if/-->
+                            <!--/if_review@link_delete/--><a href="<!--/review@link_delete/-->" class="btn btn-gray btn-xs btn-delete"><span>삭제</span></a><!--/end_if/-->
+                            <!--/if_review@link_report_popup/--><a href="javascript:void(0);" onclick="<!--/review@link_report_popup/-->" class="btn btn-gray btn-xs btn-report"><span>신고/차단</span></a><!--/end_if/-->
+                        </div>
+                        <!--/if_review@reply/-->
+                        <div class="reply-content">
+                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_reply.svg" alt="답변">
+                            <div>
+                                <span class="round-text">답글</span>
+                                <!--/review@reply/-->
+                            </div>
+                        </div>
+                        <!--/end_if/-->
+                    </div>
+                    <!--/end_loop/-->
+                <!--/else/-->
+                <div class="post none">등록/검색된 리뷰가 없습니다.</div>
+                <!--/end_if/-->
+            </div>
+        <!--/end_if/-->
+        <div class="cw-paging">
+            <!--/if_pager_review::prev@link/-->
+            <a href="<!--/pager_review::prev@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_left.svg" alt="이전" width="16" height="16" /></a>
+            <!--/end_if/-->
+            <!--/if_pager_review/-->
+                <!--/loop_pager_review::page(5)/-->
+                    <!--/if_pager_review::page@current/-->
+                    <a href="<!--/pager_review::current@link/-->" class="active"><!--/pager_review::page/--></a>
+                    <!--/else/-->
+                    <a href="<!--/pager_review::page@link/-->"><!--/pager_review::page/--></a>
+                    <!--/end_if/-->
+                <!--/end_loop/-->
+            <!--/end_if/-->
+            <!--/if_pager_review::next@link/-->
+            <a href="<!--/pager_review::next@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_right.svg" alt="다음" width="16" height="16" /></a>
+            <!--/end_if/-->
+        </div>
+    </div>
+</div>
+
+<!--/include_footer(1)/-->
+
+<script type="text/javascript">
+// 반응형 상단 타이틀
+changeNaviTitleText('상품 리뷰');
+</script>

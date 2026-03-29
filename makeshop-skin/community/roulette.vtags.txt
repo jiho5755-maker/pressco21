@@ -1,0 +1,76 @@
+# roulette 가상태그
+
+
+## 룰렛 정보
+<!--/roulette_canvas/-->
+<!--/roulette_end_date/-->
+<!--/roulette_name/-->
+<!--/roulette_start_date/-->
+
+## 룰렛 유의 사항
+<!--/roulette_notice_txt/-->
+
+## 룰렛 댓글 영역
+<!--/block_comment_list/-->
+<!--/if_pager_roulette_comment_list/-->
+<!--/if_pager_roulette_comment_list::first/-->
+<!--/if_pager_roulette_comment_list::last/-->
+<!--/if_pager_roulette_comment_list::next/-->
+<!--/if_pager_roulette_comment_list::prev/-->
+<!--/if_roulette_comment_list@link_del/-->
+<!--/if_use_benefits_setting/-->
+<!--/if_use_layer_comment/-->
+<!--/if_use_roulette_comment/-->
+<!--/if_use_roulette_notice/-->
+<!--/input_comment/-->
+<!--/link_comment_insert/-->
+<!--/link_layer_comment_insert/-->
+<!--/link_start_roulette/-->
+<!--/loop_pager_roulette_comment_list::page/-->
+<!--/loop_roulette_comment_list/-->
+<!--/pager_roulette_comment_list::first@link/-->
+<!--/pager_roulette_comment_list::last@link/-->
+<!--/pager_roulette_comment_list::next@link/-->
+<!--/pager_roulette_comment_list::page/-->
+<!--/pager_roulette_comment_list::page@link/-->
+<!--/pager_roulette_comment_list::prev@link/-->
+<!--/roulette_comment_list@benefit/-->
+<!--/roulette_comment_list@comment/-->
+<!--/roulette_comment_list@date/-->
+<!--/roulette_comment_list@id/-->
+<!--/roulette_comment_list@link_del/-->
+<!--/textarea_comment/-->
+
+## 룰렛 당첨 팝업
+<!--/block_layer_benefit/-->
+<!--/block_roulette_layer/-->
+<!--/form_layer_comment/-->
+
+## 룰렛 추천 상품
+<!--/loop_roulette_recommend_product/-->
+<!--/loop_roulette_recommend_product@color/-->
+<!--/roulette_recommend_product@brand/-->
+<!--/roulette_recommend_product@color@code/-->
+<!--/roulette_recommend_product@color@name/-->
+<!--/roulette_recommend_product@image_l/-->
+<!--/roulette_recommend_product@image_m/-->
+<!--/roulette_recommend_product@image_s/-->
+<!--/roulette_recommend_product@is_soldout/-->
+<!--/roulette_recommend_product@link/-->
+<!--/roulette_recommend_product@mobile_discount_icon/-->
+<!--/roulette_recommend_product@mobile_icons/-->
+<!--/roulette_recommend_product@mobile_image/-->
+<!--/roulette_recommend_product@mobile_name/-->
+<!--/roulette_recommend_product@name/-->
+<!--/roulette_recommend_product@point_percent/-->
+<!--/roulette_recommend_product@point_price/-->
+<!--/roulette_recommend_product@point_unit/-->
+<!--/roulette_recommend_product@price_consumer/-->
+<!--/roulette_recommend_product@price_discount/-->
+<!--/roulette_recommend_product@price_replace/-->
+<!--/roulette_recommend_product@price_sell/-->
+<!--/roulette_recommend_product@reserve_percent/-->
+<!--/roulette_recommend_product@reserve_price/-->
+<!--/roulette_recommend_product@used_mobile_reserve/-->
+
+## 기타

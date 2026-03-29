@@ -1,0 +1,78 @@
+/* 마이페이지 - 쿠폰 */
+.myCoupon {
+    --text-sm: .813rem; /* 13px */
+    --text-xs: .75rem;/* 12px */
+}
+.fc-black { color: var(--cw-heading-color); }
+.myCoupon .coupon-num > div { padding: 20px 0; gap: 6px; border-top: 1px solid var(--cw-heading-color); background: var(--cw-color-10); }
+.myCoupon .coupon-num input { width: 320px; text-align: left !important; }
+.myCoupon .coupon-num a { flex-shrink: 0; }
+.myCoupon .coupon-num p { padding-top: 10px; font-size: var(--text-sm); color: var(--cw-color-80); }
+.myCoupon .tab-navi--links { margin-bottom: 0; }
+.myCoupon .select-sort { padding: 20px 0; }
+.myCoupon .select-sort select { width: 240px; }
+.myCoupon .tab-wrapper--contents { padding-top: 60px; }
+.myCoupon .tab-wrapper--content { display: none; padding-top: 0; }
+.myCoupon .tab-wrapper--content.active { display: block; }
+.myCoupon .coupon-lists { grid-template-columns: repeat(3, 1fr); grid-auto-rows: auto; align-items: start; margin-bottom: 20px; }
+.myCoupon .coupon--payment { font-size: var(--text-sm); }
+.myCoupon .coupon--payment .pay-list { display: none; }
+.myCoupon .coupon--payment .btn-payment-more { display: inline-block; width: 8px; height: 8px; margin-left: 2px; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_cheveron-down.svg') no-repeat 50% 50%; }
+.myCoupon .coupon--payment .btn-payment-more.active { background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_cheveron-up.svg') no-repeat 50% 50%; }
+.myCoupon .coupon--date { margin-top: 2px; padding-top: 10px; border-top: 1px solid var(--cw-color-30); font-size: var(--text-sm); color: var(--cw-color-80); }
+.myCoupon .coupon--date .date-txt::before { display: inline-flex; width: 1px; height: 14px; margin: 0 10px 0 6px; vertical-align: middle; background: var(--cw-color-30); content: ''; }
+.myCoupon .coupon--date a.coupon--item { display: inline-flex; align-items: center; gap: 2px; color: var(--cw-heading-color); }
+.myCoupon .coupon--date a.coupon--item span.link { display: inline-block; width: 12px; height: 12px; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_link_arrow.svg') no-repeat 50% 50%; }
+.myCoupon .coupon-device { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+.myCoupon .coupon-device p { text-align: center; font-size: var(--text-sm); color: var(--cw-color-60); }
+.myCoupon .coupon--btns a { font-size:0; text-indent:-9999px; display:inline-block; width:22px; height:22px; background:url('/images/common/ico_h11_down_black_l.png') no-repeat center center; }
+.myCoupon .btn-down { padding: 20px 0; }
+.myCoupon .btn-down a { display: inline-flex; align-items: center; justify-content: center; gap: 3px; width: 200px; }
+.myCoupon .btn-down a span.down { display: inline-block; width: 16px; height: 16px; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_download_wh.svg') no-repeat 50% 50%; }
+.myCoupon .layer-coupon-product dl.product-list { margin-top: 20px; border: 1px solid var(--cw-color-30); }
+.myCoupon .layer-coupon-product dt,
+.myCoupon .layer-coupon-product dd { padding: 10px; border-top: 1px solid var(--cw-color-30); color: var(--cw-color-80); font-size: var(--text-sm); text-align: center; }
+.myCoupon .layer-coupon-product dt { background: var(--cw-color-10);  color: var(--cw-heading-color); font-weight: 600; border-top: 0; }
+.myCoupon .layer-coupon-product .soldout { display: flex; align-items: center; justify-content: center; margin-top: 20px; padding: 24px 0; border-top: 1px solid var(--cw-heading-color); border-bottom: 1px solid var(--cw-color-30); font-size: .875rem; color: var(--cw-heading-color); font-weight: 600; }
+.coupon--btn { height: 24px; } 
+.txt-limit { margin-top: 2px; text-indent: 0; text-align: center; font-size: var(--text-xs); color: var(--cw-color-80); }
+
+/* 스마트 쿠폰 타입 */
+.myCoupon .sc-style1.sc-reserve .coupon--price { color:#3b6ce9; }
+.myCoupon .sc-style2 { border:1px solid var(--cw-color-white); background: #171940; }
+.myCoupon .sc-style2 p { color: var(--cw-color-white); }
+.myCoupon .sc-style2 p.c-txt { color: #999; }
+.myCoupon .sc-style2 .coupon--btns { background:#ff3a34; border:0; color: var(--cw-color-white); border-radius: 0 8px 8px 0; }
+.myCoupon .sc-style2 .coupon--date,
+.myCoupon .sc-style2 .coupon--date a.coupon--item { color: var(--cw-color-white); }
+.myCoupon .sc-style2 .coupon--date a.coupon--item span.link { background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_link_arrow_wh.svg') no-repeat 50% 50%; }
+.myCoupon .sc-style2 .coupon--btns a { background:url('/images/common/ico_h11_down_white_l.png') no-repeat center right; }
+.myCoupon .sc-style2 .coupon--btns span { color:#fff; }
+.myCoupon .sc-style2.sc-reserve .coupon--btns { background:#3b6ce9; color: var(--cw-color-white); }
+.myCoupon .sc-style3 { border-color: #272a4d; }
+.myCoupon .sc-style3 .coupon--price { color:#eb3697;}
+.myCoupon .sc-style3 .coupon--btns { background: #fff2f9; border-color: #272a4d; }
+.myCoupon .sc-style3 .coupon--btns p { color: #eb3697; }
+.myCoupon .sc-style3 .coupon--btns a { color: #eb3697; background:url('/images/common/ico_h11_down_pink_l.png') no-repeat center right; }
+.myCoupon .sc-style3.sc-reserve .coupon--price { color:#18b776; }
+.myCoupon .sc-style3.sc-reserve .coupon--btns p { color:#18b776; } 
+.myCoupon .sc-style3.sc-reserve .coupon--btns { background:#eefff7; }
+.myCoupon .sc-style3.sc-reserve .coupon--btns a { color:#18b776; background:url('/images/common/ico_h11_down_green_l.png') no-repeat center right; }
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    .myCoupon .coupon-lists { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .myCoupon .tab-wrapper--contents { padding-top: 40px; }
+    .myCoupon .tab-navi--links li a { font-size: .875rem; }
+    .myCoupon .coupon-num p { font-size: var(--text-xs); }
+    .myCoupon .coupon-num > div { padding: 10px 0 0; background: none; }
+    .myCoupon .coupon-num input { width: 100%; }
+    .myCoupon .coupon-lists { grid-template-columns: repeat(1, 1fr); }
+    .myCoupon .select-sort select,
+    .myCoupon .btn-down a { width: 100%; }
+    .myCoupon .coupon--payment { font-size: var(--text-xs); }
+}

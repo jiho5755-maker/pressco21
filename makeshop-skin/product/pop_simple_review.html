@@ -1,0 +1,71 @@
+<div id="simpleReview">
+
+    <!--/if_no_data/-->
+    <div class="no_review">
+        <strong>주문내역에 배송완료된<br>상품만 리뷰 작성이 가능합니다.</strong>
+    </div>
+    <!--/else/-->
+    <div class="prd_title"><strong><!--/user_name/--></strong> 고객님 구매상품 총 <em><!--/total_count/--></em>개 입니다.</div>
+    <div class="prd">
+        <div class="slide-wrap">
+            <div class="slide">
+                <ul>
+                    <li><img src="<!--/mobile_image/-->" alt="상품이미지" /></li>
+                </ul>
+            </div>
+            <a href="<!--/link_prev/-->" class="btn prev"><img src="/images/d3/m_01/btn/h66_prev.png" alt="이전" /></a>
+            <a href="<!--/link_next/-->" class="btn next"><img src="/images/d3/m_01/btn/h66_next.png" alt="다음" /></a>
+        </div>
+        <span class="page"><strong class="now"><!--/now_page/--></strong> / <strong class="tot"><!--/total_count/--></strong></span>
+        <p class="tit"><!--/product_name/--><!--/if_product_option/-->_<!--/product_option/--><!--/end_if/--><br><span class="price"><!--/number/product_price/-->원</span></p>
+    </div>
+    <!--/form_write/-->
+        <div class="info">
+            <div class="frm ">
+                <!--/if_select_header/--><!--/select_header(w-100)/--><!--/end_if/--><!--/input_subject/-->
+                <!--/text_content/-->
+            </div><!-- .frm -->
+            <!--/if_review_board_score_total/-->
+            <dl class="score">
+                <dt>리뷰</dt>
+                <dd><!--/review_board_count/--></dd>
+                <dt>평점</dt>
+                <dd><!--/review_board_score_total/--></dd>
+            </dl>
+            <!--/else/-->
+            <dl class="score single">
+                <dt>리뷰</dt>
+                <dd><!--/review_board_count/--></dd>
+            </dl>
+            <!--/end_if/-->
+            <!--/if_file_attach/-->
+            <div class="attach">
+                <!--/file_attach/-->
+                <a href="<!--/link_file_upload/-->">사진첨부</a>
+            </div>
+            <!--/end_if/-->
+        </div><!-- .info -->
+        <div class="lock">
+            <!--/if_input_password/--><label>비밀번호 <!--/input_password/--></label><!--/end_if/-->
+            <!--/if_is_auto_lock/--> 자동 잠금 기능<!--/end_if/--><!--/if_input_lock_checkbox/--><label><!--/input_lock_checkbox/--> 잠금 사용</label><!--/end_if/-->
+        </div>
+        <ul class="grade">
+            <!--/loop_score/-->
+            <li>
+                <span><!--/score@title/--></span>
+                <!--/score@select_icon/-->
+            </li>
+            <!--/end_loop/-->
+        </ul><!-- .grade -->
+        <!--/if_add_info_html/-->
+        <div class="addinfo">
+            <!--/add_info_html/-->
+        </div>
+        <!--/end_if/--> 
+        <div class="btn-c">
+            <a href="<!--/link_write_ok/-->">등록</a>
+        </div><!-- .btn-c -->
+    <!--/end_form/-->
+    <!--/end_if/-->
+</div><!-- #simpleReview -->
+

@@ -1,0 +1,77 @@
+/* 마이페이지 메인 */
+.member { display: flex; justify-content: space-between; align-items: center; padding: 1.25rem 0 1.25rem 1.25rem;  border-top: 1px solid var(--cw-heading-color); border-bottom: 1px solid var(--cw-color-30); }
+.member .user-info { display: flex; align-items: center; gap: 1rem; min-height: 5rem; font-size: 1.25rem; }
+.member .user-info .img { flex: 1 0 80px; display: block; width: 5rem; height: 5rem; padding-top: 1.4375rem; background: var(--cw-color-10); border-radius: 50%; text-align: center; }
+.member .user-info .img img { max-width: 100%; height: auto; }
+.member .user-info p { font-size: .813rem; }
+.member .user-info .MS_group_reserve_msg { font-weight: 700; }
+.member .user-stats { display: flex; justify-content: flex-end; width: 100%; max-width: 40.3125rem; }
+.member .user-stats li { flex: 1 1 calc(25% - 20px); max-width: calc(25% - 20px); border-left: 1px solid var(--cw-color-20); text-align: center; }
+.member .user-stats li:first-child { border-left: 0; }
+.member .user-stats span { display: block; margin-bottom: 2px; font-size: .875rem; color: var(--cw-color-60); }
+.member .user-stats a { color: var(--cw-heading-color); }
+.member .user-stats strong { font-size: 1.25rem; }
+.goods--price-wrap .prices .original { text-decoration: line-through; }
+.order-status { border-bottom: 1px solid var(--cw-color-30); padding: 1.25rem 0; }
+.order-status ul { display: grid; grid-template-columns: repeat(5, 1fr); align-items: center; justify-content: center; text-align: center; }
+.order-status ul li:not(:last-child) { padding-right: 24px; background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_order_step.svg) no-repeat right center / 24px 24px; }
+.order-status ul li span { display: block; margin-bottom: 2px; font-size: .875rem; color: var(--cw-color-60); }
+.order-status ul li strong { font-size: 1.25rem; } 
+.order-list { border-top: 0; }
+.cw-simpleboard { border-top: 0; }
+.cw-simpleboard .post span { display: inline-block; font-size: .875rem; }
+.cw-simpleboard .post .gift { padding: 0 6px; font-size: .687rem; font-weight: 600; border-radius: 20px; border: 1px solid var(--cw-heading-color); line-height: 18px; margin-right: 4px; }
+.cw-simpleboard .no-data { justify-content: center; font-size: .875rem; }
+.cw-simpleboard .cw-col-1,
+.cw-simpleboard .cw-col-3 { width: 7.5rem; color: var(--cw-color-80); }
+.cw-simpleboard .cw-col-2 { flex: 1; min-width: 0; word-break: break-all; }
+.cw-simpleboard .cw-col-2 a { color: var(--cw-heading-color); }
+.cw-simpleboard .cw-col-3 a { color: var(--cw-color-80); }
+.goods-list { display: grid; grid-template-columns: repeat(6, 1fr); gap: 20px; }
+.goods-list--item { width: 100%; }
+.goods-list--item .item-image img { width: 100%; height: auto; }
+
+/* 태블릿 + 모바일 공통 */
+@media (max-width: 991.98px) {
+    .sidebar { display: block !important; order: 2; }
+    .content { order: 1; }
+    .content-list,
+    .cw-simpleboard { display: none; }
+    .sub-title.block { display: flex; }
+    .sidebar-title { border-bottom: 1px solid var(--cw-heading-color); }
+    .myMain .sidebar-menu .sidebar-list li { 
+        padding: .75rem 0; 
+        border-bottom: 1px solid var(--cw-color-20); 
+    }
+    .member { flex-wrap: wrap; padding: 1.25rem 0; }
+    .member .user-stats { 
+        max-width: 100%; 
+        justify-content: space-between; 
+        margin-top: 1.25rem; 
+        padding-top: 1.25rem; 
+        border-top: 1px solid var(--cw-color-30); 
+    }
+    .member .user-stats li { max-width: 100%; }
+}
+
+/* 모바일 전용 */
+@media (max-width: 767.98px) {
+    .member .user-info,
+    .member .user-stats strong,
+    .order-status ul li strong { font-size: 1.125rem; }
+
+    .order-status ul li:not(:last-child) { 
+        padding-right: 16px; 
+        background-size: 16px 16px; 
+    }
+
+    .member .user-info p,
+    .member .user-stats span,
+    .sub-title h3 span,
+    .order-status ul li span { font-size: .75rem; }
+
+    .sub-title h3,
+    .sidebar-menu .sidebar-title { font-size: 1rem; }
+
+    .myMain a.link-arrow { font-size: .813rem; }
+}

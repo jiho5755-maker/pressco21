@@ -1,0 +1,14 @@
+.layer-coupon-product {
+    --text-sm: .813rem; /* 13px */
+    --text-xs: .75rem;/* 12px */
+}
+.layer-coupon-product { display: flex; }
+.layer-coupon-product dl.product-list { margin: 20px 0; border: 1px solid var(--cw-color-30); }
+.layer-coupon-product dt,
+.layer-coupon-product dd { padding: 10px; border-top: 1px solid var(--cw-color-30); color: var(--cw-color-80); font-size: var(--text-sm); text-align: center; overflow-wrap: break-word; }
+.layer-coupon-product dd a { color: var(--cw-color-80); font-size: var(--text-sm); }
+.layer-coupon-product dt { background: var(--cw-color-10);  color: var(--cw-heading-color); font-weight: 600; border-top: 0; }
+.layer-coupon-product .soldout { display: flex; align-items: center; justify-content: center; margin-top: 20px; padding: 24px 0; border-top: 1px solid var(--cw-heading-color); border-bottom: 1px solid var(--cw-color-30); font-size: .875rem; color: var(--cw-heading-color); font-weight: 600; }
+
+.layer-coupon-product .pcp-scroll { max-height: 300px; overflow-y: auto; }
+.layer-coupon-product .pcp-scroll dt { position: sticky; top: 0; background: #fff; z-index: 1; }

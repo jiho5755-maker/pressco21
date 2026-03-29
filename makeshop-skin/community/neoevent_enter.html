@@ -1,0 +1,221 @@
+<!--/include_header(1)/-->
+
+<div class="container neoevent-wrapper">
+    <h2 class="cw-neoeventtitle"><!--/title/--></h2>
+    <div class="cw-wrapper">
+        <!--/form_apply/-->
+        <div class="cw-neoevententer">
+            <!--/if_order_list/-->
+            <div class="write-title">주문내역</div>
+            <ul class="order-list">
+                <li>
+                    <div>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <input class="form-check-input select-all" type="checkbox" value="" name="selectall">
+                                <strong>전체</strong>
+                            </label>
+                        </div>
+                    </div>
+                </li>
+                <!--/loop_order_list/-->
+                <li>
+                    <div class="prd-name">
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label" >
+                                <!--/order_list@checkbox_ordernumid/--> <!--/order_list@product_name/-->
+                            </label>
+                        </div>
+                    </div>
+                    <div class="order-num">
+                        <span>주문번호 - </span><!--/order_list@ordernum/-->
+                    </div>
+                </li>                
+                <!--/end_loop/-->
+            </ul>
+            <!--/end_if/-->
+            <!--/if_input_list/-->
+            <div class="write-title">신청내용</div>
+            <dl class="write-info">
+                <!--/loop_input_list/-->
+                <dt><!--/input_list@input_desc/--></dt>
+                <dd><!--/input_list@input_value/--></dd>
+                <!--/end_loop/-->
+            </dl>
+            <!--/end_if/-->
+            <!--/if_user_info_list/-->
+            <div class="write-title">신청자정보</div>
+            <dl class="write-info info2" >
+                <!--/loop_user_info_list/-->
+                <dt><!--/user_info_list@apply_title/--></dt>
+                <dd><!--/user_info_list@apply_input/--></dd>
+                <!--/end_loop/-->
+            </dl>
+            <!--/end_if/-->
+            <!--/if_use_ad_privacy/-->
+            <div class="write-title">광고성 정보수신 동의</div>
+            <div class="terms-box">
+                <textarea name="" readonly="readonly" class="cw-textfield"><!--/ad_privacy_content/--></textarea>
+                <dl class="write-info info2">
+                    <!--/if_use_ad_privacy_email/-->
+                    <dt>이메일</dt>
+                    <dd>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <!--/radio_ad_privacy_email_ok/--> 동의합니다.
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <!--/radio_ad_privacy_email_no/--> 동의하지 않습니다.
+                            </label>
+                        </div>
+                    </dd>
+                    <!--/end_if/-->
+                    <!--/if_use_ad_privacy_sms/-->
+                    <dt>SMS</dt>
+                    <dd>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <!--/radio_ad_privacy_sms_ok/--> 동의합니다.
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                            <!--/radio_ad_privacy_sms_no/--> 동의하지 않습니다.
+                            </label>
+                        </div>
+                    </dd>
+                    <!--/end_if/-->
+                </dl>
+            </div>
+            <!--/end_if/-->
+            <!--/if_use_third_privacy/-->
+            <div class="write-title">개인정보 수집·이용</div>
+            <div class="terms-box">
+                <textarea name="" readonly="readonly" class="cw-textfield"><!--/third_privacy_content/--></textarea>
+                <dl class="write-info info2 grid-auto">
+                    <dd>
+                        <div class="form-check form-check-inline">
+                            <label class="form-check-label">
+                                <!--/radio_third_privacy_ok/--> 동의합니다.
+                            </label>
+                        </div>
+                        <div class="form-check form-check-inline">    
+                            <label class="form-check-label">
+                                <!--/radio_third_privacy_no/--> 동의하지 않습니다.
+                            </label>
+                        </div>
+                    </dd>
+                </dl>
+            </div>
+            <!--/end_if/-->
+        </div>
+        <div class="cw-neoeventbtns">
+            <a href="<!--/link_apply/-->" class="btn btn-primary btn-lg"><span>신청하기</span></a>
+            <a href="javascript:history.back();" class="btn btn-white btn-lg"><span>뒤로가기</span></a>
+        </div>
+        <!--/end_form/-->
+    </div>
+</div>
+<!-- 배송지 검색 -->
+<!--/if_is_mobile/-->
+<!--/block_order_addr/-->
+<div class="modal-wrap" id="popAddrSearch">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">배송지 검색</span>
+            <a href="<!--/link_addr_close/-->" class="btn-modal-close"></a>
+        </div>
+        <div class="modal-body">
+            <!--/block_order_search_addr/-->
+            <p class="addr_type">
+                <!--/if_radio_addr_type_number/-->
+                <label class="form-check-label"><!--/radio_addr_type_number/--> 지번 주소</label>
+                <!--/end_if/-->
+                <!--/if_radio_addr_type_load/-->
+                <label class="form-check-label"><!--/radio_addr_type_load/--> 도로명 검색</label>
+                <!--/end_if/-->
+                <!--/if_radio_addr_type_number_to_load/-->
+                <label class="form-check-label"><!--/radio_addr_type_number_to_load/--> 지번+도로명 검색</label>
+                <!--/end_if/-->
+            </p>
+            <!--/if_block_addr_type_number/-->
+            <!--/block_addr_type_number/-->
+            <div class="msg-wrap">
+                <p class="msg01"><span class="point-color">동(읍/면/리)</span>명을 2글자 이상 입력하세요.</p>
+                <p class="msg02">예) 삼성동, 가산동</p>
+                <p class="msg03"><!--/addr_search_type_text/--></p>
+            </div>
+            <!--/end_block/-->
+            <!--/end_if/-->
+            <!--/block_addr_type_load/-->
+            <div class="msg-wrap">
+                <p class="msg01 bold"><span class="point-color">도로명(건물명)</span>을 2글자 이상 입력하세요.</p>
+                <p class="msg02">예)강남대로100길, 가산디지털1로</p>
+                <p class="msg03"><!--/addr_search_type_text/--></p>
+            </div>
+            <!--/end_block/-->
+            <!--/block_addr_type_number_to_load/-->
+            <div class="msg-wrap">
+                <p class="msg01 bold"><span class="point-color">동/번지(건물명)</span>을 두 단어 이상 입력하세요.</p>
+                <p class="msg02">예) 가산동 우림라이온스밸리, 압구정 로데오</p>
+                <p class="msg03"><!--/addr_search_type_text/--></p>
+            </div>
+            <!--/end_block/-->
+            <div class="search-form">
+                <!--/form_addr_search/-->
+                <fieldset>
+                    <legend>우편번호 검색 폼</legend>
+                    <div class="flex">
+                        <span class="keyword"><!--/input_search_addr_text/--></span>
+                        <a href="<!--/link_addr_search/-->" class="btn btn-primary search">검색</a>
+                    </div>
+                </fieldset>
+                <!--/end_form/-->
+            </div>
+            <div id="searchStep02">
+                <p class="sub-tit">주소 선택</p>
+                <!--/select_addr(cw-textfield)/-->
+                <div>
+                    <a href="<!--/link_addr_select_ok/-->" class="btn btn-primary"><span>다음</span></a>
+                </div>
+            </div>
+            <!--/end_block/-->
+            <!--/block_order_detail_addr/-->
+            <div class="msg-wrap">
+                <p><span class="point-color">상세 주소</span>를 입력해주세요.</p>
+            </div>
+            <div class="detail-addr">
+                <!--/form_detail_addr/-->
+                <fieldset>
+                    <legend>상세 주소 입력 폼</legend>
+                    <p class="sub-tit">우편번호</p>
+                    <div class="flex">
+                        <!--/if_input_search_post/-->
+                            <!--/input_search_post(cw-textfield)/-->
+                        <!--/else/-->
+                            <!--/input_search_post1(cw-textfield)/--> 
+                            -
+                            <!--/input_search_post2(cw-textfield)/-->
+                        <!--/end_if/-->
+                    </div>
+                    <p class="sub-tit">주소</p>
+                    <div>
+                        <p><!--/input_search_address1(cw-textfield)/--></p>
+                        <p class="py-10"><!--/input_search_address2(cw-textfield)/--></p>
+                    </div>
+                    <a href="<!--/link_addr_ok/-->" class="btn btn-primary">확인</a>
+                </fieldset>
+                <!--/end_form/-->
+            </div>
+            <!--/end_block/-->
+        </div>
+    </div>
+</div>
+<!--/end_block/-->
+<!-- //배송지 검색 -->
+<!--/end_if/-->
+
+
+<!--/include_footer(1)/-->

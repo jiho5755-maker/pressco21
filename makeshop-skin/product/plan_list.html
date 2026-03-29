@@ -1,0 +1,63 @@
+<!--/include_header(1)/-->
+
+<div class="container plan-wrapper">
+    <h2 class="cw-plantitle">기획전</h2>
+    <div class="cw-wrapper">
+        <div class="cw-planlist">
+            <div class="list-tab">
+                <a href="/m/plan_list.html" class="<!--/if_view_type(ALL)/-->now<!--/end_if/-->">전체</a>
+                <a href="/m/plan_list.html?view_type=hold" class="<!--/if_view_type(hold)/-->now<!--/end_if/-->">대기</a>
+                <a href="/m/plan_list.html?view_type=ing" class="<!--/if_view_type(ing)/-->now<!--/end_if/-->">진행중</a>
+                <a href="/m/plan_list.html?view_type=end" class="<!--/if_view_type(end)/-->now<!--/end_if/-->">종료</a>
+            </div>
+            <div class="search-wrap">
+                <!--/form_plan/-->
+                <div class="item-search">
+                    <!--/select_search_type(cw-select-box)/-->
+                    <!--/input_keyword(cw-textfield)/-->
+                    <a href="<!--/link_search/-->" class="btn btn-primary"><span>검색</span></a>
+                </div>
+                <!--/end_form/-->
+            </div>
+            <!--/block_plan/-->
+            <!--/if_plan_list/-->
+            <ul class="list-contents">
+                <!--/loop_plan_list/-->
+                <li>
+                    <div class="subject">
+                        <p class="image<!--/if_not_plan_list@title_image/--> noimg<!--/end_if/-->">
+                            <!--/if_plan_list@title_image/-->
+                            <img src="<!--/plan_list@title_image/-->" class="img" alt="이미지">
+                            <!--/else/-->
+                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/noimage.svg" alt="이미지">
+                            <!--/end_if/-->
+                            <!--/if_plan_list@status(end)/-->
+                            <span class="status"><!--/plan_list@status/--></span>
+                            <!--/end_if/-->
+                        </p>
+                        <p class="name"><!--/notag/plan_list@name/--></p>
+                        <p class="date"><!--/date(%Y/%M/%D)/plan_list@start_date/--> ~ <!--/date(%Y/%M/%D)/plan_list@end_date/-->까지</p>
+                        <p class="reg"><!--/date(%Y.%M.%D)/plan_list@reg_date/--></p>
+                    </div>
+                    <!--/if_plan_list@link/--><a href="<!--/plan_list@link/-->" class="link"></a><!--/end_if/-->
+                </li>
+                <!--/end_loop/-->
+            </ul>
+            <!--/else/-->
+            <div class="list-none">
+                <span class="subject">
+                    <p>해당하는 기획전이 없습니다.</p>
+                </span>
+            </div>
+            <!--/end_if/-->
+            <!--/end_block/-->
+        </div>
+        <!--/block_plan_more_area/-->
+        <div class="cw-planbtns">
+            <a href="<!--/link_more_plan/-->" class="btn btn-gray btn-lg"><span>더보기</span></a>
+        </div>
+        <!--/end_block/-->
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

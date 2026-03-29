@@ -1,0 +1,112 @@
+/* 쿠폰존 */
+#couponZone {
+    --text-sm: .875rem; /* 14px */
+    --text-xs: .813rem; /* 13px */
+}
+.hidden { display: none; }
+.page-title-wrap { text-align: left; }
+.sub-title { display: flex; align-items: center; padding: 80px 0 12px 0; border-bottom:1px solid var(--cw-heading-color); }
+.sub-title h3 { font-weight: 700; font-size: 1.125rem; line-height: 26px; color: var(--cw-heading-color); }
+#couponZone .member { display: flex; justify-content: space-between; align-items: center; margin-top: 40px; padding: 20px 0 20px 20px;  border-top: 1px solid var(--cw-heading-color); border-bottom: 1px solid var(--cw-color-30); }
+#couponZone .member .user-info { display: flex; align-items: center; gap: 16px; min-height: 5rem; font-size: 1.25rem; }
+#couponZone .member .user-info .img { flex: 1 0 60px; display: block; width: 60px; height: 60px; padding-top: 12px; background: var(--cw-color-10); border-radius: 50%; text-align: center; }
+#couponZone .member .user-info .img img { max-width: 100%; height: auto; }
+#couponZone .member .user-info p { font-size: var(--text-xs); }
+#couponZone .member .user-info .MS_group_reserve_msg { font-weight: 700; }
+#couponZone .member .user-stats { display: flex; justify-content: flex-end; width: 100%; max-width: 645px; }
+#couponZone .member .user-stats li { flex: 1 1 calc(25% - 20px); max-width: calc(25% - 20px); padding:0 20px; border-left: 1px solid var(--cw-color-20); text-align: center; }
+#couponZone .member .user-stats li:first-child { border-left: 0; }
+#couponZone .member .user-stats span { display: block; margin-bottom: 2px; font-size: var(--text-sm); color: var(--cw-color-60); white-space: nowrap; }
+#couponZone .member .user-stats a { color: var(--cw-heading-color); }
+#couponZone .member .user-stats strong { font-size: 1.25rem; }
+#couponZone .member.guest { display: flex; flex-direction: column; justify-content: center; gap: 16px; align-items: center; padding: 28px 0; text-align: center; }
+#couponZone .member.guest p { font-weight: 600; }
+#couponZone .member.guest .btn-member a { width: 180px; }
+#couponZone .coupon-num div { padding: 20px 0; gap: 6px; background: var(--cw-color-10); }
+#couponZone .coupon-num input { width: 320px; text-align: left !important; }
+#couponZone .coupon-num a { flex-shrink: 0; }
+#couponZone .coupon-num p { padding-top: 10px; font-size: var(--text-xs); color: var(--cw-color-80); }
+#couponZone .coupon-sort .cw-select-box { padding: 0 26px 0 10px; line-height: 28px; width: 120px; font-size: .813rem; background-size: 1rem; }
+#couponZone .coupon-lists { grid-template-columns: repeat(4, 1fr); grid-auto-rows: auto; align-items: start; padding-top: 20px; }
+#couponZone .c-images { padding: 0; }
+#couponZone .c-image img { display: block; width: 100%; height: auto; border-radius: 8px; }
+#couponZone .product-img { float: left; width: 56px; height: 56px; margin-right: 12px; border-radius: 50%; overflow: hidden; }
+#couponZone .product-img a,
+#couponZone .product-img img { display: block; width: 100%; height: 100%; }
+#couponZone .product-img img { object-fit: cover; }
+#couponZone .coupon--name { margin-bottom: 8px; }
+#couponZone .coupon--date { font-size: var(--text-sm); color: var(--cw-color-80); }
+#couponZone .coupon--date a.coupon--item { display: inline-flex; align-items: center; padding-right: 10px; gap: 2px; color: var(--cw-heading-color); }
+#couponZone .coupon--date a.coupon--item span.link { display: inline-block; width: 12px; height: 12px; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_link_arrow.svg') no-repeat 50% 50%; }
+#couponZone .coupon-use { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 5px; }
+#couponZone .coupon-use p { text-align: center; font-size: var(--text-xs); color: var(--cw-color-60); }
+#couponZone .coupon-use a { display: inline-block; width: 18px; height: 22px; }
+#couponZone .btn-all-down { display: flex; justify-content: space-between; align-items: center; padding-top: 20px; }
+#couponZone .btn-all-down p { font-weight: 600; }
+#couponZone .btn-all-down a { display: inline-flex; align-items: center; justify-content: center; gap: 6px; width: 200px; }
+#couponZone .btn-all-down a span.down { display: inline-block; width: 16px; height: 16px; background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_download_wh.svg') no-repeat 50% 50%; }
+#couponZone .coupon--btns a { font-size:0; text-indent:-9999px; display:inline-block; width:22px; height:22px; background:url('/images/common/ico_h11_down_black_l.png') no-repeat center center; }
+#couponZone .sc-style1.sc-reserve .coupon--price { color:#3b6ce9; }
+#couponZone .sc-style2 { border:1px solid var(--cw-color-white); background: #171940; }
+#couponZone .sc-style2 p { color: var(--cw-color-white); }
+#couponZone .sc-style2 p.c-txt { color: #999; }
+#couponZone .sc-style2 .coupon--btns { background:#ff3a34; border:0; color: var(--cw-color-white); border-radius: 0 8px 8px 0; }
+#couponZone .sc-style2 .coupon--date,
+#couponZone .sc-style2 .coupon--date a.coupon--item { color: var(--cw-color-white); }
+#couponZone .sc-style2 .coupon--date a.coupon--item span.link { background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_link_arrow_wh.svg') no-repeat 50% 50%; }
+#couponZone .sc-style2 .coupon--btns a { background:url('/images/common/ico_h11_down_white_l.png') no-repeat center right; }
+#couponZone .sc-style2 .coupon--btns span { color:#fff; }
+#couponZone .sc-style2.sc-reserve .coupon--btns { background:#3b6ce9; color: var(--cw-color-white); }
+#couponZone .sc-style3 { border-color: #272a4d; }
+#couponZone .sc-style3 .coupon--price { color:#eb3697;}
+#couponZone .sc-style3 .coupon--btns { background: #fff2f9; border-color: #272a4d; }
+#couponZone .sc-style3 .coupon--btns p { color: #eb3697; }
+#couponZone .sc-style3 .coupon--btns a { color: #eb3697; background:url('/images/common/ico_h11_down_pink_l.png') no-repeat center right; }
+#couponZone .sc-style3.sc-reserve .coupon--price { color:#18b776; }
+#couponZone .sc-style3.sc-reserve .coupon--btns p { color:#18b776; } 
+#couponZone .sc-style3.sc-reserve .coupon--btns { background:#eefff7; }
+#couponZone .sc-style3.sc-reserve .coupon--btns a { color:#18b776; background:url('/images/common/ico_h11_down_green_l.png') no-repeat center right; }
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) { 
+    .page-title-wrap { margin-top: 40px; }
+	.page-title-wrap h2 { display: none; }
+    .sub-title { padding-top: 60px; }
+    #couponZone .member { flex-wrap: wrap; padding: 20px 0; }
+    #couponZone .member .user-info { padding: 0 20px; }
+	#couponZone .member .user-stats { max-width: 100%; justify-content: space-between; margin-top: 20px; padding-top: 20px; border-top: 1px solid var(--cw-color-30); }
+	#couponZone .member .user-stats li { max-width: 100%; }
+    #couponZone .coupon-lists { grid-template-columns: repeat(2, 1fr); }
+}
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .page-title-wrap { margin-top: 40px; }
+	.page-title-wrap h2 { display: none; }
+    .sub-title { padding: 40px 0 10px; }
+    #couponZone {
+        --text-sm: .813rem; /* 13px */
+        --text-xs: .75rem; /* 12px */
+    }
+    #couponZone .member { flex-wrap: wrap; padding: 16px 0; }
+    #couponZone .member .user-info { font-size: 1.125rem; padding: 0 16px; gap: 12px; }
+	#couponZone .member .user-stats { max-width: 100%; justify-content: space-between; margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--cw-color-30); }
+	#couponZone .member .user-stats li { flex: 1 1 0; max-width: 100%; padding: 0; }
+    #couponZone .member .user-stats span { font-size: var(--text-xs); }
+    #couponZone .member .user-stats strong { font-size: 1.125rem; }
+    #couponZone .member.guest { padding: 20px 0; gap: 12px; }
+    #couponZone .member.guest p { font-size: .875rem; }
+    #couponZone .member.guest .btn-member,
+    #couponZone .member.guest .btn-member a { width: 100%; }
+    #couponZone .coupon-num div { padding: 10px 0; background: none; }
+    #couponZone .coupon-num input { width: 100%; }
+    #couponZone .coupon-num p { padding-top: 0; }
+    #couponZone .btn-all-down { flex-wrap: wrap; justify-content: center; gap: 10px; }
+    #couponZone .btn-all-down p { font-size: .875rem; }
+    #couponZone .btn-all-down a { width: 100%; }
+    #couponZone .coupon-lists { grid-template-columns: repeat(1, 1fr); }
+    #couponZone .coupon--name { margin-bottom: 6px; font-size: var(--text-sm); }
+    #couponZone .coupon--price { font-size: 1.125rem; line-height: 26px; }
+    #couponZone .coupon--desc { font-size: var(--text-xs); }
+    #couponZone .coupon--date { font-size: var(--text-xs); }
+}

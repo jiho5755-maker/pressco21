@@ -1,0 +1,106 @@
+# best_cate 가상태그
+
+
+## 분류별 베스트 상품
+<!--/best_product_[CATE1_CODE]@brand/-->
+<!--/best_product_[CATE1_CODE]@engname/-->
+<!--/best_product_[CATE1_CODE]@etc/-->
+<!--/best_product_[CATE1_CODE]@free_delivery_icon/-->
+<!--/best_product_[CATE1_CODE]@icons/-->
+<!--/best_product_[CATE1_CODE]@image_l/-->
+<!--/best_product_[CATE1_CODE]@image_m/-->
+<!--/best_product_[CATE1_CODE]@image_s/-->
+<!--/best_product_[CATE1_CODE]@is_short_soldout/-->
+<!--/best_product_[CATE1_CODE]@is_soldout/-->
+<!--/best_product_[CATE1_CODE]@link/-->
+<!--/best_product_[CATE1_CODE]@mobile_image/-->
+<!--/best_product_[CATE1_CODE]@name/-->
+<!--/best_product_[CATE1_CODE]@price_consumer/-->
+<!--/best_product_[CATE1_CODE]@price_replace/-->
+<!--/best_product_[CATE1_CODE]@price_sell/-->
+<!--/best_product_[CATE1_CODE]@quick_delivery_icon/-->
+<!--/best_product_[CATE1_CODE]@ranking/-->
+<!--/best_product_[CATE1_CODE]@reserve_percent/-->
+<!--/best_product_[CATE1_CODE]@reserve_price/-->
+<!--/best_product_[CATE1_CODE]@review_count/-->
+<!--/best_product_[CATE1_CODE]@subname/-->
+<!--/best_product_[CATE1_CODE]@uid/-->
+<!--/loop_best_product_[CATE1_CODE]/-->
+
+## 분류별 베스트 상품 기간할인
+<!--/best_product_[CATE1_CODE]@discount_date_end/-->
+<!--/best_product_[CATE1_CODE]@discount_date_start/-->
+<!--/best_product_[CATE1_CODE]@discount_icon/-->
+<!--/best_product_[CATE1_CODE]@discount_info/-->
+<!--/best_product_[CATE1_CODE]@discount_remain_daytime/-->
+<!--/best_product_[CATE1_CODE]@discount_remain_sec_time/-->
+<!--/best_product_[CATE1_CODE]@discount_remain_term/-->
+<!--/best_product_[CATE1_CODE]@is_term_discount/-->
+<!--/best_product_[CATE1_CODE]@mobile_discount_icon/-->
+<!--/best_product_[CATE1_CODE]@price_discount/-->
+<!--/if_best_product_[CATE1_CODE]@discount_apply_type/-->
+
+## 분류별 베스트 상품 색상 표시
+<!--/best_product_[CATE1_CODE]@color@code/-->
+<!--/best_product_[CATE1_CODE]@color@name/-->
+<!--/loop_best_product_[CATE1_CODE]@color/-->
+
+## 판매 순위 상품
+<!--/loop_rank_product/-->
+<!--/rank_product@brand/-->
+<!--/rank_product@engname/-->
+<!--/rank_product@etc/-->
+<!--/rank_product@free_delivery_icon/-->
+<!--/rank_product@icons/-->
+<!--/rank_product@image_l/-->
+<!--/rank_product@image_m/-->
+<!--/rank_product@image_s/-->
+<!--/rank_product@link/-->
+<!--/rank_product@mobile_image/-->
+<!--/rank_product@name/-->
+<!--/rank_product@price_consumer/-->
+<!--/rank_product@price_replace/-->
+<!--/rank_product@price_sell/-->
+<!--/rank_product@quick_delivery_icon/-->
+<!--/rank_product@ranking/-->
+<!--/rank_product@reserve_percent/-->
+<!--/rank_product@reserve_price/-->
+<!--/rank_product@review_count/-->
+<!--/rank_product@subname/-->
+<!--/rank_product@uid/-->
+
+## 판매 순위 상품 기간할인
+<!--/if_rank_product@discount_apply_type/-->
+<!--/rank_product@discount_date_end/-->
+<!--/rank_product@discount_date_start/-->
+<!--/rank_product@discount_icon/-->
+<!--/rank_product@discount_info/-->
+<!--/rank_product@discount_message/-->
+<!--/rank_product@discount_price_difference/-->
+<!--/rank_product@discount_remain_daytime/-->
+<!--/rank_product@discount_remain_sec_time/-->
+<!--/rank_product@discount_remain_term/-->
+<!--/rank_product@is_term_discount/-->
+<!--/rank_product@mobile_discount_icon/-->
+<!--/rank_product@price_discount/-->
+
+## 판매 순위 상품 색상 표시
+<!--/loop_rank_product@color/-->
+<!--/rank_product@color@code/-->
+<!--/rank_product@color@name/-->
+
+## 회원 정보
+<!--/user_name/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/best_product_[CATE1_CODE]@hits/-->
+<!--/best_product_[CATE1_CODE]@link_preview/-->
+<!--/best_product_[CATE1_CODE]@mobile_name/-->
+<!--/best_product_[CATE1_CODE]@order_stock/-->
+<!--/rank_product@hits/-->
+<!--/rank_product@link_preview/-->
+<!--/rank_product@mobile_name/-->
+<!--/rank_product@order_stock/-->
+<!--/recmd_review@attach_image2/-->
+<!--/shop_id/-->

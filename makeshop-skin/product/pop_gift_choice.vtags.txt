@@ -1,0 +1,24 @@
+# pop_gift_choice 가상태그
+
+
+## 다중 사은품 기능 조건
+<!--/if_gift_multi_point/-->
+<!--/if_gift_multi_qty/-->
+<!--/if_multiple/-->
+<!--/user_point/-->
+<!--/user_qty/-->
+
+## 사은품 목록
+<!--/gift@checkbox_choice/-->
+<!--/gift@form/-->
+<!--/gift@link_choice/-->
+<!--/gift@point/-->
+<!--/gift@select_count/-->
+<!--/link_close_gift/-->
+
+## 사은품 선택
+<!--/link_choice/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/shop_id/-->

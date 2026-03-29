@@ -1,0 +1,10 @@
+#pr-header { position: relative; width: 100%; height: 48px; border-bottom: 1px solid #e0e0e0; background: #fff; }
+#pr-header li {list-style:none;}
+#pr-header .side { position: absolute; top: 0; right: 0; width: 46px; height: 48px; background: url(/images/d3/m_01/btn/btn_side@2x.gif) no-repeat 50% 50%; background-size: 46px 48px; text-indent: -9999px; }
+#pr-header h1 { padding-left: 10px; color: #444; font-size: 1.125em; font-weight: bold; letter-spacing: -1px; line-height: 48px; }
+#pr-header .menu { z-index:100; display: none; position: absolute; top: 48px; left: 10px; width: 130px; border: 1px solid #dadada; border-top: 0; background: #fff; }
+#pr-header .menu li { height: 33px; }
+#pr-header .menu li a { display: block; height: 100%; line-height: 33px; padding-left: 10px; color: #808080; font-size: .875em; letter-spacing: -1px; }
+#pr-header .menu li a:hover { background: #f9f9f9; }
+#pr-header .list { position: absolute; top: 0; left: 0; width: 46px; height: 48px; background: url(/images/d3/m_01/btn/btn_list@2x.gif) no-repeat 50% 50%; background-size: 18px 16px; text-indent: -9999px; }
+#pr-header .side { position: absolute; top: 0; right: 0; width: 46px; height: 48px; background: url(/images/d3/m_01/btn/btn_side@2x.gif) no-repeat 50% 50%; background-size: 46px 48px; text-indent: -9999px; }

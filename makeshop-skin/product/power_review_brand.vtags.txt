@@ -1,0 +1,7 @@
+# power_review_brand 가상태그
+
+
+## 기타
+<!--/link_power_review_photo/-->
+<!--/power_review_list_brand/-->
+<!--/shop_id/-->

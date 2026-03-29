@@ -1,0 +1,23 @@
+#product-popup { display: block; position: relative; }
+#product-popup .popup .pop h3 { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; padding-right: 45px; }
+#product-popup .info-wrap { position: relative; width: auto; margin: 15px auto; padding: 0 15px; }
+#product-popup .info-wrap .item-wrap { border: 1px solid #e3e3e3; width: 100%; overflow: hidden; }
+#product-popup .shopdetailItemPopup {text-align: center; margin: 22px auto; }
+#product-popup .shopdetailItemPopup .shopdetailItemZoom {width:245px; height: 60px; padding: 0 0 0 75px; background: url("/images/d3/m_04/bg_hand@2x.gif") no-repeat 20px center; background-size: 50px auto; text-align: left; line-height: 60px; margin:10px auto;}
+#product-popup .detail-item {width:100%; margin:0 auto;}
+#product-popup .detail-item img { max-width: 100%; height: auto; }
+#product-popup .detail-item table { width: 100% !important; }
+
+/* 상품 일반정보(상품정보제공 고시) */
+#productWrap {margin:20px 0;}
+#productWrap h3.tb-tit { text-align: left; background-color: #fff; padding: 0;}
+#productWrap table {width: 100%; border-collapse: collapse; border-width:2px 0 2px 0; border-color: #4a4a4a; border-style: solid; table-layout: fixed; }
+#productWrap table th { border-right: 1px solid #cbcbcb; border-bottom: 1px solid #cbcbcb; background-color: #f1f1f1; color: #5d5d5d; text-align: left; padding: 10px 0 10px 15px; }
+#productWrap table td { color: #5d5d5d; border-bottom: 1px solid #cbcbcb; word-break: break-all; text-align: left; padding: 10px 0 10px 15px; }
+/* //상품 일반정보(상품정보제공 고시) */
+
+/* 고정버튼 */
+.btn_fixed {position:fixed; bottom:20px; right:20px;}
+.btn_fixed .fixed_close {width:38px; padding:5px 0; display: block; border:1px solid #cbcbcb; background-color:rgba(255,255,255,0.6); text-align:center; box-shadow: 0px 1px 1px #e3e3e3; border-radius: 5px 5px 0 0; margin-bottom:3px;}
+.btn_fixed .fixed_up {width:38px; padding:5px 0; display: block; border:1px solid #cbcbcb; background-color:rgba(255,255,255,0.6); text-align:center; box-shadow: 0px 1px 1px #e3e3e3; border-radius: 0 0 5px 5px;}
+/* //고정버튼 */

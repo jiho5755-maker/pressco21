@@ -1,0 +1,51 @@
+/* 로그인 관련 */
+.login-wrap { max-width: 440px; width:100%; margin:0 auto; padding-bottom: 120px; }
+.login-wrap .page-title-wrap { text-align: left; }
+.login-wrap .page-title-wrap h2 { line-height: 32px; }
+.login-wrap .page-title-wrap p { padding-top: 6px; }
+.login-wrap .form-textfield { display: flex; flex-direction: column; gap: 12px; padding-top: 24px; }
+.login-wrap .form-textfield input { width: 100%; }
+.login-wrap .form-check { display: flex; flex-wrap: wrap; gap: 30px; padding-top: 12px; }
+.login-wrap .form-check .form-check-label { margin-right: 16px; font-size: .875rem; }
+.login-wrap .btn-link { display: flex; align-items: center; justify-content: center; }
+.login-wrap .btn-link a { position: relative; color: var(--cw-heading-color); padding: 0 20px; font-size: .875rem; text-decoration: none; }
+.login-wrap .btn-link a:not(:last-child)::after { position: absolute; right: 0; top: 50%; transform: translateY(-50%); display: inline-block; width:1px; height: 14px; background: var(--cw-color-30); content: ''; }
+.login-wrap .btn-login { display: flex; flex-direction: column; gap: 8px; padding: 24px 0; }
+.login-wrap .sns-wrap { padding-top: 60px; }
+.login-wrap .form-check-label { margin-right: 16px; }
+.login-wrap .form-check-input { float: left; margin-right: 8px; }
+.MS_login_id,
+.MS_login_pw { height: inherit !important; }
+
+/* 성인 인증 */
+.auth-wrap { padding-top: 40px; }
+.auth-title { position: relative; color: var(--cw-color-70); font-size: .875rem; margin-bottom: 10px; }
+.auth-title::before { display: block; height: 1px; background: var(--cw-color-30); content: ''; }
+.auth-title span { position: absolute; left:50%; top:50%; transform: translate(-50%, -50%); text-align: center; padding: 0 10px; background: var(--cw-color-white); }
+.adult-info { display: grid; grid-template-columns: 48px auto; margin-top: 20px; padding: 20px 0; border-top: 1px solid var(--cw-color-30); border-bottom: 1px solid var(--cw-color-30);}
+.adult-info .ico-adult { display: flex; justify-content: center; align-items: center; width: 48px; height: 48px; border: 2px solid var(--bs-danger); border-radius: 50%; font-size: 1.5rem; font-weight: 700; text-align: center;}
+.adult-info p { padding: 0 0 8px 16px; font-size: .875rem; word-break: keep-all; white-space: pre-wrap;}
+.adult-info .btn { grid-column: span 2; margin: 0 auto;}
+.txt-auth { margin-top: 20px; text-align: center; font-size: .875rem; }
+.txt-auth h3 { padding-bottom: 12px; font-size: 1.125rem; font-weight: 700; }
+.txt-auth p { color: var(--cw-color-80); }
+.txt-auth p:last-child { margin-top: 10px; }
+.btn-auth { display: flex; gap: 8px; padding: 20px 0;}
+
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    footer,
+    .fixed-menu--md { display: none !important; }
+}
+
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    footer,
+    .fixed-menu--md { display: none !important; }
+    .login-wrap .form-check { gap: 8px 20px; margin-right: 0; }
+    .login-wrap .form-check .form-check-label:last-child { margin-right: 0; }
+    .login-wrap .form-check .form-check-label { font-size: .813rem; }
+}
+

@@ -1,0 +1,129 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<div class="container join-wrapper">
+    <div class="join-content">
+        <!--/form_join/-->
+        <div class="page-title-wrap">
+            <h2><!--/if_login/-->회원 정보 변경<!--/else/-->회원가입<!--/end_if/--></h2>
+        </div>
+        <ul class="join-step">
+            <li class="active">
+                <span class="icon"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_join_step3_on.svg" alt=""></span>
+                <p>정보입력</p>
+            </li>
+            <li>
+                <span class="icon"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_join_step4.svg" alt=""></span>
+                <p>가입완료</p>
+            </li>
+        </ul>
+        <div class="join-wrap">
+            <!-- 기본 정보 입력폼 -->
+            <div class="join-form">
+                <div class="form-group">
+                    <span class="form-title">이름</span>
+                    <div class="form-content">
+                        <!--/input_user_name(cw-textfield aaaa)/-->
+                        <p class="message"><!--/name_check_msg/--></p>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <span class="form-title">이메일</span>
+                    <div class="form-content">
+                        <div class="flex">
+                            <!--/input_email(cw-textfield)/-->
+                        </div>
+                        <p class="message"><!--/email_check_msg/--></p>
+                    </div>
+                </div>
+                <!--/if_input_mobile/-->
+                <div class="form-group">
+                    <span class="form-title">휴대폰</span>
+                    <div class="form-content">
+                        <div class="flex">
+                            <!--/input_mobile(cw-textfield)/-->
+                            <!--/if_input_sms_auth/-->
+                                <div>
+                                    <span <!--/sms_auth_div/-->><a href="<!--/link_sms_auth/-->" class="btn btn-primary">인증</a></span>
+                                    <span <!--/sms_reauth_div/-->><a href="<!--/link_sms_reauth/-->" class="btn btn-primary">재인증</a></span>
+                                </div>
+                            <!--/end_if/-->
+                        </div>
+                    </div>
+                </div>
+                <!--/if_input_sms_auth/-->
+                <div class="form-group">
+                    <span class="form-title">SMS 인증번호</span>
+                    <div class="form-content">
+                        <div class="flex">
+                            <!--/input_sms_auth(cw-textfield)/-->
+                            <a href="<!--/link_check_sms/-->" class="btn btn-primary">확인</a>
+                        </div>
+                    </div>
+                </div>
+                <!--/end_if/-->
+                <!--/end_if/-->
+                <!--/if_input_birth/-->
+                <div class="form-group">
+                    <span class="form-title">생년월일</span>
+                    <div class="form-content">
+                        <div class="flex">
+                            <!--/input_birth(cw-select-box)/-->
+                        </div>
+                        <p class="message"><!--/birth_check_msg/--></p>
+                    </div>
+                </div>
+                <!--/end_if/-->
+                <!--/if_input_gender/-->
+                <div class="form-group">
+                    <span class="form-title">성별</span>
+                    <div class="form-content gender">
+                        <!--/input_gender/-->
+                        <p class="message"><!--/gender_check_msg/--></p>
+                    </div>
+                </div>
+                <!--/end_if/-->
+                <!--/if_input_recommend/-->
+                <div class="form-group">
+                    <span class="form-title">추천인 ID</span>
+                    <div class="form-content">
+                        <!--/input_recommend(cw-textfield)/-->
+                        <p class="message"><!--/recommend_id_check_msg/--></p>
+                    </div>
+                </div>
+                <!--/end_if/-->
+                <!--/if_input_app_recommend/-->
+                <div class="form-group">
+                    <span class="form-title">앱 초대회원 ID</span>
+                    <div class="form-content">
+                        <!--/input_app_recommend(cw-textfield)/-->
+                        <p class="message"><!--/app_recommend_id_check_msg/--></p>
+                    </div>
+                </div>
+                <!--/end_if/-->
+            </div>
+            <!-- // 기본 정보 입력폼 -->
+        </div>
+        <div class="join-msg">
+            <!--/if_user_age_check/-->
+            <div class="form-check user_age_wrap">
+                <label class="form-check-label"><!--/user_age_check/--><strong>만 14세 이상입니다. (필수)</strong></label>
+            </div>
+            <!--/end_if/-->
+            <p>* 회원가입에 필요한 최소한의 정보만 입력 받음으로써, 고객님의 개인정보 수집을 최소화하고 편리한 회원가입을 제공합니다.</p>
+        </div>
+        <!-- 약관 영역 -->
+        <!--/if_use_privacy/-->
+        <div class="form-terms">
+            <!--/new_privacy_terms/-->
+        </div>
+        <!--/end_if/-->
+        <!-- // 약관 영역 -->
+        <div class="btn-join-wrap">
+            <a href="<!--/link_join/-->" class="btn btn-primary btn-lg"><span><!--/if_login/-->수정하기<!--/else/-->가입하기<!--/end_if/--></span></a>
+        </div>
+        <!--/end_form/-->
+    </div>
+</div>
+<!-- //container -->
+<!--/include_footer(1)/-->

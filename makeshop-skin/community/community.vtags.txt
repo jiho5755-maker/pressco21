@@ -1,0 +1,15 @@
+# community 가상태그
+
+
+## 빅매치 배너
+<!--/bigmatch@banner/-->
+<!--/bigmatch@link/-->
+<!--/bigmatch@subject/-->
+
+## 출석체크
+
+## 페이지 링크
+<!--/link_faq/-->
+<!--/link_review/-->
+
+## 기타

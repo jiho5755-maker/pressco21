@@ -1,0 +1,71 @@
+# best_product 가상태그
+
+
+## 베스트 상품 기간할인
+<!--/best_product@discount_date_end/-->
+<!--/best_product@discount_date_start/-->
+<!--/best_product@discount_icon/-->
+<!--/best_product@discount_info/-->
+<!--/best_product@discount_message/-->
+<!--/best_product@discount_price_difference/-->
+<!--/best_product@discount_remain_daytime/-->
+<!--/best_product@discount_remain_sec_time/-->
+<!--/best_product@discount_remain_term/-->
+<!--/best_product@is_term_discount/-->
+<!--/best_product@mobile_discount_icon/-->
+<!--/best_product@price_discount/-->
+<!--/if_best_product@discount_apply_type/-->
+
+## 베스트 상품 색상 표시
+<!--/best_product@color@code/-->
+<!--/best_product@color@name/-->
+<!--/loop_best_product@color/-->
+
+## 베스트 상품
+<!--/best_product@brand/-->
+<!--/best_product@engname/-->
+<!--/best_product@etc/-->
+<!--/best_product@icons/-->
+<!--/best_product@image_l/-->
+<!--/best_product@image_m/-->
+<!--/best_product@image_s/-->
+<!--/best_product@is_short_soldout/-->
+<!--/best_product@is_soldout/-->
+<!--/best_product@link/-->
+<!--/best_product@mobile_image/-->
+<!--/best_product@name/-->
+<!--/best_product@price_consumer/-->
+<!--/best_product@price_replace/-->
+<!--/best_product@price_sell/-->
+<!--/best_product@quick_delivery_icon/-->
+<!--/best_product@ranking/-->
+<!--/best_product@reserve_percent/-->
+<!--/best_product@reserve_price/-->
+<!--/best_product@subname/-->
+<!--/best_product@uid/-->
+<!--/loop_best_product/-->
+
+## 상품 관련
+<!--/block_best_product/-->
+<!--/block_product_more/-->
+<!--/link_more_best_product_list/-->
+<!--/list_end_num/-->
+<!--/list_start_num/-->
+
+## 회원 정보
+<!--/user_name/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/best_product@hits/-->
+<!--/best_product@link_preview/-->
+<!--/best_product@mobile_name/-->
+<!--/best_product@order_stock/-->
+<!--/best_product@power_review_count/-->
+<!--/best_product@power_review_score/-->
+<!--/best_product@power_review_score_number/-->
+<!--/best_product@review_count/-->
+<!--/best_product@usergroup_price/-->
+<!--/block_current_page_cnt/-->
+<!--/block_total_page_cnt/-->
+<!--/shop_id/-->

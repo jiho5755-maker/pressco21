@@ -1,0 +1,43 @@
+# attendance_comment 가상태그
+
+
+## 출석체크
+<!--/attendance_continuity_count/-->
+<!--/attendance_total/-->
+<!--/comment_list@comment/-->
+<!--/comment_list@num/-->
+<!--/comment_list@reg_date/-->
+<!--/comment_list@user_id/-->
+<!--/end_date/-->
+<!--/form_comment/-->
+<!--/input_comment/-->
+<!--/link_attendance/-->
+<!--/link_write/-->
+<!--/loop_pager_comment_list::page/-->
+<!--/start_date/-->
+
+## 출석체크 페이징
+<!--/attendance_count/-->
+<!--/if_pager_comment_list::page@current/-->
+<!--/pager_comment_list::count/-->
+<!--/pager_comment_list::current/-->
+<!--/pager_comment_list::current@link/-->
+<!--/pager_comment_list::first/-->
+<!--/pager_comment_list::first@link/-->
+<!--/pager_comment_list::last/-->
+<!--/pager_comment_list::last@link/-->
+<!--/pager_comment_list::next/-->
+<!--/pager_comment_list::next@link/-->
+<!--/pager_comment_list::page/-->
+<!--/pager_comment_list::page@link/-->
+<!--/pager_comment_list::page_count/-->
+<!--/pager_comment_list::prev/-->
+<!--/pager_comment_list::prev@link/-->
+
+## 인클루드 태그
+<!--/include_footer/-->
+<!--/include_header/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/shop_id/-->

@@ -1,0 +1,13 @@
+# pop_unknown_payment 가상태그
+
+
+## 입금 정보
+<!--/loop_unknown_payment/-->
+<!--/unknown_payment@bank_name/-->
+<!--/unknown_payment@date/-->
+<!--/unknown_payment@name/-->
+<!--/unknown_payment@price/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/shop_id/-->

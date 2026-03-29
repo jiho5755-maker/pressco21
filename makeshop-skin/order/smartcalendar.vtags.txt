@@ -1,0 +1,23 @@
+# smartcalendar 가상태그
+
+
+## 스마트캘린더 관련
+<!--/block_smartcalendar/-->
+<!--/link_select_date_mobile/-->
+<!--/link_smartcalendar_close/-->
+<!--/link_smartcalendar_next/-->
+<!--/link_smartcalendar_prev/-->
+<!--/loop_smartcalendar/-->
+<!--/smartcalendar@day/-->
+<!--/smartcalendar@day_text/-->
+<!--/smartcalendar@link_select_date/-->
+<!--/smartcalendar@num/-->
+<!--/smartcalendar@select/-->
+<!--/smartcalendar@type/-->
+<!--/smartcalendar@week/-->
+<!--/smartcalendar_month_text/-->
+<!--/smartcalendar_type/-->
+<!--/smartcalendar_year_text/-->
+
+## 기타
+<!--/shop_id/-->

@@ -1,0 +1,25 @@
+# power_review_photo 가상태그
+
+
+## 기타
+<!--/link_power_review_brand/-->
+<!--/loop_power_review_best/-->
+<!--/power_review_best@attach_rectangle/-->
+<!--/power_review_best@attach_square/-->
+<!--/power_review_best@attach_thumbnail/-->
+<!--/power_review_best@cnt_read/-->
+<!--/power_review_best@content/-->
+<!--/power_review_best@date_write/-->
+<!--/power_review_best@image_m/-->
+<!--/power_review_best@image_s/-->
+<!--/power_review_best@link_product/-->
+<!--/power_review_best@link_view/-->
+<!--/power_review_best@mobile_image/-->
+<!--/power_review_best@product_name/-->
+<!--/power_review_best@product_review_count/-->
+<!--/power_review_best@product_score_avg/-->
+<!--/power_review_best@score/-->
+<!--/power_review_best@score_number/-->
+<!--/power_review_best@writer/-->
+<!--/power_review_list_photo/-->
+<!--/shop_id/-->

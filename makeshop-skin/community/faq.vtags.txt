@@ -1,0 +1,80 @@
+# faq 가상태그
+
+
+## 게시판 관련
+<!--/board_[BOARD_CODE]/-->
+<!--/board_[BOARD_CODE]@cnt_read/-->
+<!--/board_[BOARD_CODE]@date_write/-->
+<!--/board_[BOARD_CODE]@group_icon/-->
+<!--/board_[BOARD_CODE]@hit_icon/-->
+<!--/board_[BOARD_CODE]@link/-->
+<!--/board_[BOARD_CODE]@new_icon/-->
+<!--/board_[BOARD_CODE]@number/-->
+<!--/board_[BOARD_CODE]@subject/-->
+<!--/board_[BOARD_CODE]@thumbnail/-->
+<!--/board_[BOARD_CODE]@writer/-->
+<!--/board_[BOARD_CODE]@writer_id/-->
+<!--/board_[BOARD_CODE]_title/-->
+<!--/link_m2m_question/-->
+
+## faq 관련
+<!--/faq@answer/-->
+<!--/faq@category/-->
+<!--/faq@num/-->
+<!--/faq@question/-->
+<!--/faq@subject/-->
+<!--/faq@uid/-->
+<!--/form_search_faq/-->
+<!--/input_keyword/-->
+<!--/link_search_faq/-->
+<!--/loop_faq/-->
+
+## fa페이징 표시
+<!--/if_pager_faq::page@current/-->
+<!--/loop_pager_faq::page/-->
+<!--/pager_faq::count/-->
+<!--/pager_faq::current/-->
+<!--/pager_faq::current@link/-->
+<!--/pager_faq::first/-->
+<!--/pager_faq::first@link/-->
+<!--/pager_faq::last/-->
+<!--/pager_faq::last@link/-->
+<!--/pager_faq::next/-->
+<!--/pager_faq::next@link/-->
+<!--/pager_faq::page/-->
+<!--/pager_faq::page@link/-->
+<!--/pager_faq::page_count/-->
+<!--/pager_faq::prev/-->
+<!--/pager_faq::prev@link/-->
+
+## 분류
+<!--/category@is_now/-->
+<!--/category@key/-->
+<!--/category@link/-->
+<!--/category@name/-->
+<!--/loop_category/-->
+<!--/select_category/-->
+
+## 잉글리쉬 HTML
+<!--/shop_language/-->
+
+## 인클루드 태그
+<!--/include_footer/-->
+<!--/include_header/-->
+
+## 베스트 키워드
+<!--/best_keyword@keyword/-->
+<!--/best_keyword@link/-->
+<!--/loop_best_keyword/-->
+
+## 회원 로그인
+<!--/if_login/-->
+
+## 상점 정보
+<!--/shop_id/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/board_[BOARD_CODE]@img_admin_icon/-->
+<!--/idx/-->
+<!--/if_company_user/-->

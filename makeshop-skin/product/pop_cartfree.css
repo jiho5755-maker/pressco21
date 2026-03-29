@@ -1,0 +1,13 @@
+/* 카트프리 팝업 CSS */
+.layer-cart-free { display: flex; background: none; }
+#MS_cartfree_product { height: 300px; overflow-y: auto; }
+.display-cart-free {display :none;}
+.display-cart-free .cf-desc { padding: 20px 0; }
+.display-cart-free #MK_cartfree_price { font-weight: 700; }
+.display-cart-free .cf-items { display: grid; grid-template-columns: repeat(2, 1fr); gap: 40px 8px; }
+.display-cart-free .cf-items .cf-thumb img { width: 100%; height: auto; }
+.display-cart-free .cf-items .cf-name { padding-top: 1rem; font-size: var(--cw-size-13); }
+.display-cart-free .cf-items .cf-price { font-size: var(--cw-size-14); }
+.display-cart-free .more-btn { width: 100%; max-width: none; margin-top: 20px; font-size: var(--cw-size-14); font-weight: 500; }
+.cf-text-wrap { margin-top: 20px; font-size: var(--cw-size-14); text-align: center; }
+.cf-text-wrap .cf-none, .cf-text-wrap .cf-ok, .cf-text-wrap .cf-no-use {display : none; }

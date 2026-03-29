@@ -1,0 +1,52 @@
+<!--/include_header(1)/-->
+
+<div class="container neoevent-wrapper">
+    <h2 class="cw-neoeventtitle">이벤트</h2>
+    <div class="cw-wrapper">
+        <div class="cw-neoeventlist">
+            <div class="list-tab">
+                <!--/if_link_tab_all/--><a href="<!--/link_tab_all/-->" class="<!--/if_ev_status(all)/-->now<!--/end_if/-->">전체 <!--/event@status/--></a><!--/end_if/-->
+                <!--/if_link_tab_ing/--><a href="<!--/link_tab_ing/-->" class="<!--/if_ev_status(ing)/-->now<!--/end_if/-->">진행중</a><!--/end_if/-->
+                <!--/if_link_tab_end/--><a href="<!--/link_tab_end/-->" class="<!--/if_ev_status(end)/-->now<!--/end_if/-->">종료</a><!--/end_if/-->
+            </div>
+            <!--/block_event_list/-->
+            <!--/if_event/-->
+            <ul class="list-contents">
+                <!--/loop_event/-->
+                <li>
+                    <div class="subject">
+                        <p class="image<!--/if_not_event@list_image/--> noimg<!--/end_if/-->">
+                            <!--/if_event@list_image/-->
+                            <img src="<!--/event@list_image/-->" class="img" alt="이미지">
+                            <!--/else/-->
+                            <img src="//skin.makeshop.co.kr/skin/rw_shop/images/noimage.svg" alt="이미지">
+                            <!--/end_if/-->
+                            <!--/if_event@status(종료)/-->
+                            <span class="status"><!--/event@status/--></span>
+                            <!--/end_if/-->
+                        </p>
+                        <p class="title"><!--/notag/event@title/--></p>
+                        <p class="date"><!--/date(%Y.%M.%D %H:%i)/event@apply_start/--> ~ <!--/date(%Y.%M.%D %H:%i)/event@apply_end/--></p>
+                    </div>
+                    <!--/if_event@link_view/--><a href="<!--/event@link_view/-->" class="link"></a><!--/end_if/-->
+                </li>
+                <!--/end_loop/-->
+            </ul>
+            <!--/else/-->
+            <div class="list-none">
+                <span class="subject">
+                    <p>해당하는 이벤트가 없습니다.</p>
+                </span>
+            </div>
+            <!--/end_if/-->
+            <!--/end_block/-->
+        </div>
+        <!--/block_more_event/-->
+        <div class="cw-neoeventbtns">
+            <a href="<!--/link_more_event/-->" class="btn btn-gray btn-lg"><span>더보기</span></a>
+        </div>
+        <!--/end_block/-->
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

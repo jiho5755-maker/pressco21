@@ -1,0 +1,37 @@
+.attendance-wrapper { width: var(--cw-size-670); padding: 0; }
+.cw-attendancetitle { font-weight: 700; padding-top: var(--cw-size-60); font-size: var(--cw-size-24); line-height: var(--cw-size-32); color: var(--cw-heading-color); text-align: center; }
+.cw-attendancecalender .attendance-title { font-size: var(--cw-size-18); font-weight: 700; color: var(--cw-heading-color); padding-bottom: var(--cw-size-12); margin-top: var(--cw-size-60); line-height: var(--cw-size-26); border-bottom: 1px solid var(--cw-heading-color); }
+.cw-attendancecalender .attendance-guide { padding: var(--cw-size-20) 0 var(--cw-size-40); margin-top: var(--cw-size-40); border-top: 1px solid var(--cw-heading-color); border-bottom: 1px solid var(--cw-color-30); font-size: var(--cw-size-14); line-height: var(--cw-size-20); text-align: center; }
+.cw-attendancecalender .attendance-guide .count { color: var(--cw-point-color); }
+.cw-attendancecalender .attendance-guide .progress { position: relative; display: flex; justify-content: space-between; height: var(--cw-size-6); margin-top: var(--cw-size-8); background: var(--cw-color-10); border-radius: 999px; }
+.cw-attendancecalender .attendance-guide .progress p { position: absolute; top: 0; left: 0; height: var(--cw-size-6); background: var(--cw-heading-color); border-radius: 999px; }
+.cw-attendancecalender .attendance-guide .progress span { margin-top: var(--cw-size-10); font-size: var(--cw-size-13); line-height: var(--cw-size-18); color: var(--cw-color-60); }
+.cw-attendancecalender .month-btn { display: flex; align-items: center; justify-content: center; column-gap: var(--cw-size-20); margin: var(--cw-size-60) 0 var(--cw-size-24); font-size: var(--cw-size-20); font-weight: 700; line-height: var(--cw-size-28); }
+.cw-attendancecalender .month-tbl table { width: 100%; }
+.cw-attendancecalender .month-tbl :where(th, td) { border-bottom: 1px solid var(--cw-color-30); font-size: var(--cw-size-13); font-weight: 400; line-height: var(--cw-size-18); }
+.cw-attendancecalender .month-tbl th div { padding: var(--cw-size-4) 0; color: var(--cw-color-60); text-align: center; }
+.cw-attendancecalender .month-tbl td div { height: var(--cw-size-90); padding: var(--cw-size-6); color: var(--cw-heading-color); text-align: left; box-sizing: border-box; }
+.cw-attendancecalender .month-tbl td div .stamp { display: block; width: 100%; height: 100%; }
+.cw-attendancecalender .month-tbl td div .stamp.attend { background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_stamp_attend.svg) no-repeat center 60% /var(--cw-size-36); } /* 출석했을 때 */
+.cw-attendancecalender .month-tbl td div .stamp.absence { background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_stamp_absence.svg) no-repeat center 60% /var(--cw-size-36); } /* 결석했을 때 */
+.cw-attendancecalender .month-tbl td div .stamp.achieve { background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_stamp_achieve.svg) no-repeat center 60% /var(--cw-size-36); } /* 달성 예정일 */
+.cw-attendancecalender .month-tbl td div .stamp.complete { background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_stamp_complete.svg) no-repeat center 60% /var(--cw-size-36); } /* 달성 완료일 */
+.cw-attendancebtns { display: flex; justify-content: center; align-items: center; gap: var(--cw-size-8); padding-top: var(--cw-size-60); }
+.cw-attendancebtns a { width: var(--cw-size-300); }
+
+@media (max-width: 991.98px) {
+    .attendance-wrapper { width: var(--cw-size-470); }
+    .cw-attendancetitle { display: none; }
+}
+@media (max-width: 767.98px) {
+    .attendance-wrapper { width: 100%; padding-left: calc(var(--bs-gutter-x) * 0.5); padding-right: calc(var(--bs-gutter-x) * 0.5); }
+    .cw-attendancecalender .attendance-title { margin-top: var(--cw-size-40); padding-bottom: var(--cw-size-10); font-size: var(--cw-size-16); line-height: var(--cw-size-24); }
+    .cw-attendancecalender .attendance-guide { font-size: var(--cw-size-13); line-height: var(--cw-size-18); }
+    .cw-attendancecalender .attendance-guide .progress span { font-size: var(--cw-size-12); line-height: var(--cw-size-16); }
+    .cw-attendancecalender .month-btn { margin: var(--cw-size-40) 0 var(--cw-size-16); font-size: var(--cw-size-16); line-height: var(--cw-size-24); }
+    .cw-attendancecalender .month-btn a img { width: var(--cw-size-20); height: var(--cw-size-20); }
+    .cw-attendancecalender .month-tbl td { font-size: var(--cw-size-12); line-height: var(--cw-size-16); }
+    .cw-attendancecalender .month-tbl td div { height: var(--cw-size-80); padding: var(--cw-size-6) var(--cw-size-5); }
+    .cw-attendancebtns { padding-top: var(--cw-size-40); }
+    .cw-attendancebtns a { width: 100%; }
+}

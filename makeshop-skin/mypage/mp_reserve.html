@@ -1,0 +1,82 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container mypage-wrapper myReserve">
+    <div class="row">
+        <!-- Sidebar -->
+        <!--/include_header(2)/-->
+        <!-- // Sidebar -->
+
+        <!-- Content -->
+        <div class="content col-lg-10 col-md-12 col-sm-12">
+            <div class="content-body">
+                <div class="page-title-wrap txt-l">
+                    <h2>적립금 내역</h2>
+                </div>
+                <div class="info-summary">
+                    <p class="info-item">
+                        <span><strong>총 보유 적립금</strong></span>
+                        <span><strong class="fc-point"><!--/number/user_reserve/--></strong>원</span>
+                    </p>
+                    <p class="info-item border-line">
+                        <span>출석체크 누적 적립금</span>
+                        <span><!--/number/attendance_reserve/-->원</span>
+                    </p>
+                </div>
+                <ul class="notice bullet">
+                    <li>· 적립된 금액이 <!--/number/usable_reserve/-->원 이상 누적되었을때, 사용하실수 있습니다.</li>
+                    <li>· 결제 시 적립금 사용 여부를 확인할 수 있는 안내문이 나옵니다.</li>
+                </ul>
+                <!--/if_form_reserve/-->
+                <!--/form_reserve/-->
+                <div class="form-date-wrap">
+                    <div class="cw-date">
+                        <!--/input_search_date_start/--> ~ <!--/input_search_date_end/-->
+                        <a href="<!--/link_search_button/-->" class="btn btn-primary btn-sm"><span>조회</span></a>
+                    </div>
+                </div>
+                <!--/end_form/-->
+                <!--/end_if/-->
+                <div class="cw-simpleboard cw-board-list">
+                    <!--/if_reserve/-->
+                    <!--/loop_reserve/-->
+                    <div class="post">
+                        <div class="text-start">
+                            <span class="date"><!--/date(%Y.%M.%D)/reserve@date/--></span>
+                        </div>
+                        <span class="subject"><!--/reserve@content/--></span>
+                        <div class="text-end">
+                            <span class="value"><!--/number/reserve@price/--></span>
+                        </div>
+                    </div>
+                    <!--/end_loop/-->
+                    <!--/else/-->
+                    <div class="empty">
+                        <p>적립금 내역이 없습니다.</p>
+                    </div>
+                    <!--/end_if/-->
+                </div>
+                <div class="cw-paging">
+                    <!--/if_pager_reserve::prev/--><a href="<!--/pager_reserve::prev@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_left.svg" alt="이전" width="16" height="16" /></a>
+                    <!--/end_if/-->
+                    <!--/if_pager_reserve/-->
+                    <!--/loop_pager_reserve::page(5)/-->
+                        <!--/if_pager_reserve::page@current/-->
+                        <a href="javascript:return false;" class="active"><!--/pager_reserve::page/--></a>
+                        <!--/else/-->
+                        <a href="<!--/pager_reserve::page@link/-->"><!--/pager_reserve::page/--></a>
+                        <!--/end_if/-->
+                    <!--/end_loop/-->
+                    <!--/end_if/-->
+                    <!--/if_pager_reserve::next/-->
+                    <a href="<!--/pager_reserve::next@link/-->"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_right.svg" alt="다음" width="16" height="16" /></a>
+                    <!--/end_if/-->
+                </div>
+            </div>
+        </div>
+        <!-- // Content -->
+    </div>
+</main>
+<!-- //container -->
+
+<!--/include_footer(1)/-->

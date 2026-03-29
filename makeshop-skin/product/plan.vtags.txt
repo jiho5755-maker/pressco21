@@ -1,0 +1,100 @@
+# plan 가상태그
+
+
+## 기획전 상품 리스트
+<!--/plan_product@brand/-->
+<!--/plan_product@engname/-->
+<!--/plan_product@etc/-->
+<!--/plan_product@free_delivery_icon/-->
+<!--/plan_product@icons/-->
+<!--/plan_product@image_l/-->
+<!--/plan_product@image_m/-->
+<!--/plan_product@image_s/-->
+<!--/plan_product@is_short_soldout/-->
+<!--/plan_product@is_soldout/-->
+<!--/plan_product@link/-->
+<!--/plan_product@mobile_icons/-->
+<!--/plan_product@mobile_image/-->
+<!--/plan_product@mobile_name/-->
+<!--/plan_product@name/-->
+<!--/plan_product@price_consumer/-->
+<!--/plan_product@price_replace/-->
+<!--/plan_product@price_sell/-->
+<!--/plan_product@quick_delivery_icon/-->
+<!--/plan_product@reserve_percent/-->
+<!--/plan_product@reserve_price/-->
+<!--/plan_product@review_count/-->
+<!--/plan_product@subname/-->
+<!--/plan_product@uid/-->
+
+## 기획전 상품 리스트 색상
+<!--/plan_product@color@code/-->
+<!--/plan_product@color@name/-->
+
+## 상품
+<!--/plan_product@point_unit/-->
+<!--/plan_product@used_mobile_reserve/-->
+
+## 상단 타이틀
+<!--/img_plan_title/-->
+<!--/img_plan_title_mobile/-->
+<!--/plan_title_html/-->
+<!--/plan_title_html_mobile/-->
+
+## 기획전 하위분류
+<!--/loop_plan_category/-->
+<!--/plan_category@brand_cnt/-->
+<!--/plan_category@idx/-->
+<!--/plan_category@link/-->
+<!--/plan_category@name/-->
+<!--/select_plan_category_list/-->
+
+## 기획전 상품
+<!--/block_plan_product/-->
+<!--/loop_plan_product/-->
+<!--/plan_product@point_price/-->
+
+## 페이지 여부
+<!--/if_plan_page_type_all/-->
+<!--/if_plan_page_type_category/-->
+
+## 기획전
+<!--/banner_plan/-->
+<!--/loop_plan_product@color/-->
+<!--/now_plan_category_name/-->
+<!--/plan_name/-->
+<!--/select_plan_list/-->
+
+## 기타
+<!--/block_current_page_cnt/-->
+<!--/block_total_page_cnt/-->
+<!--/link_scrap_fb/-->
+<!--/link_scrap_ka/-->
+<!--/link_scrap_tw/-->
+<!--/link_scrap_url/-->
+<!--/plan_category_product@product@hits/-->
+<!--/plan_category_product@product@order_stock/-->
+<!--/plan_product@discount_date_end/-->
+<!--/plan_product@discount_date_start/-->
+<!--/plan_product@discount_icon/-->
+<!--/plan_product@discount_info/-->
+<!--/plan_product@discount_message/-->
+<!--/plan_product@discount_percent/-->
+<!--/plan_product@discount_price_difference/-->
+<!--/plan_product@discount_remain_sec_time/-->
+<!--/plan_product@discount_remain_term/-->
+<!--/plan_product@hits/-->
+<!--/plan_product@is_term_discount/-->
+<!--/plan_product@link_pop_product_benefit/-->
+<!--/plan_product@link_preview/-->
+<!--/plan_product@manufacture/-->
+<!--/plan_product@mobile_discount_icon/-->
+<!--/plan_product@mobile_label_icons/-->
+<!--/plan_product@model/-->
+<!--/plan_product@order_stock/-->
+<!--/plan_product@power_review_count/-->
+<!--/plan_product@power_review_score/-->
+<!--/plan_product@power_review_score_number/-->
+<!--/plan_product@price_discount/-->
+<!--/plan_product@style_code/-->
+<!--/shop_id/-->

@@ -1,0 +1,16 @@
+# pop_event_detail 가상태그
+
+
+## 이벤트
+<!--/content/-->
+<!--/link_event_list/-->
+
+## sns 스크랩
+<!--/link_scrap_fb/-->
+<!--/link_scrap_ka/-->
+<!--/link_scrap_ks/-->
+<!--/link_scrap_tw/-->
+
+## 인클루드 태그
+
+## 기타

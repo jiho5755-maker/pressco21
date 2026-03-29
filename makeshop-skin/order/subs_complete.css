@@ -1,0 +1,180 @@
+/* 공통 */
+.point-color {color: var(--cw-point-color) !important;}
+body .header-container--md .navi-btns a.home {display:inline-block;}
+
+#subs-complete {color: var(--cw-heading-color);}
+#subs-complete .heading {font-size: var(--cw-size-24); font-weight: 700; margin-top: 60px; }
+#subs-complete .order-wrapper {margin-top: 40px;}
+#subs-complete .order-content {margin-top:80px; border-bottom: 1px solid var(--cw-color-30);}
+#subs-complete .order-content h5 {font-weight:600; padding: 10px 0;}
+#subs-complete .order-content table {width:100%;}
+#subs-complete .order-content thead {text-align:left;}
+#subs-complete .order-content tbody tr {height:40px;}
+#subs-complete .order-content tbody th {text-align:left; font-size: var(--text-sm); font-weight:400; vetical-align:middle;} 
+#subs-complete .order-content tbody td {font-size: var(--text-sm); font-weight:600;}
+#subs-complete .order-content tbody td input[type="text"] {max-width: var(--form-max-width); width:100%;}
+#subs-complete .order-content .layout-flex {max-width: var(--form-max-width); margin-top:10px; gap:4px;}
+#subs-complete .order-content .layout-flex * {flex:1;}
+#subs-complete .order-title {border-bottom: 1px solid var(--cw-heading-color); font-size: var(--cw-size-18); font-weight:700; padding-bottom:11px;}
+#subs-complete .order-title label {font-size: var(--text-sm); float: right; display: flex; align-items: center; gap: 5px; margin-top:3px;}
+#subs-complete .order-title .toggle-btn {float: right; margin-top: 5px; cursor:pointer;}
+#subs-complete .order-title.active .toggle-btn {transform: rotate(180deg);}
+#subs-complete .order-detail {padding: 10px 0;}
+#subs-complete .btn-angle.active img {transform: rotate(180deg);}
+
+
+/* 주문상태 */
+#subs-complete .complete-msg {text-align:center; border-top: 1px solid var(--cw-color-30); border-bottom: 1px solid var(--cw-color-30); padding:24px 0;}
+#subs-complete .complete-msg p {font-size: var(--cw-size-16); font-weight:600; margin-bottom:3px;}
+#subs-complete .complete-msg .subs-num {font-size: var(--text-sm); font-weight:400;}
+#subs-complete .complete-msg .subs-num b {color: var(--cw-point-color); font-weight:400;}
+
+
+/* 주문상품 */
+#subs-complete .first-pname em {font-style: normal;}
+#subs-complete .first-pname em:nth-child(n+2) {display:none;}
+#subs-complete .product-count {font-size: var(--text-sm); text-align:center; line-height:58px; border-bottom: 1px solid var(--cw-color-20); display:none;}
+#subs-complete .product-count b {color: var(--cw-point-color-pri);}
+#subs-complete .provider-title {padding:23px 0 10px; font-size: var(--cw-size-16); font-weight:700;}
+#subs-complete .provider-title img {vertical-align:sub;}
+#subs-complete .order-list li {border-top: 1px solid var(--cw-color-30); display: flex; padding: 16px 0; align-items: center;}
+#subs-complete .list-left {width:80px; }
+#subs-complete .list-left a { display:block; }
+#subs-complete .list-left a img { width:100%;}
+#subs-complete .list-right {flex: 1; display:flex; align-items: center; padding-left:20px;}
+#subs-complete .list-right .p-info {flex: 1;}
+#subs-complete .list-right .p-info .p-name {font-size: var(--text-sm); font-weight:600;}
+#subs-complete .list-right .p-info .p-option {font-size: var(--text-xs); color: var(--cw-color-80); padding: 3px 0 4px;}
+#subs-complete .list-right .p-info .p-price {position: relative;}
+#subs-complete .list-right .p-info .p-price .dc-price {font-size: var(--cw-size-14);}
+#subs-complete .list-right .p-reserve {flex: 0 0 12.2%; text-align: center; font-size: var(--text-xs); color: var(--cw-color-80);}
+#subs-complete .list-right .p-reserve div {display:inline-block;}
+#subs-complete .list-right .p-reserve span img {display:none;}
+#subs-complete .p-subs {flex: 0 0 29.3%; text-align: right;}
+#subs-complete .p-subs .subs-period {font-size: var(--text-xs); color: var(--cw-color-80);}
+#subs-complete .p-subs .subs-date {font-size: var(--text-xs);}
+
+
+/* 자동 결제 설정 정보 */
+#subs-complete .complete-info { margin-bottom:15px; }
+#subs-complete .complete-info table {width:100%; margin-top: 20px;}
+#subs-complete .complete-info thead th { padding:7px 10px; border-top:1px solid #464646; text-align:left; }
+#subs-complete .complete-info tbody { border-top:1px solid #cecece; border-bottom:1px solid #cecece; }
+#subs-complete .complete-info tbody th { background:#f5f5f5; font-weight:normal; }
+#subs-complete .complete-info tbody th,
+#subs-complete .complete-info tbody td { border-top:1px solid #dedede; }
+#subs-complete .complete-info th {text-align:left; padding-left:10px; }
+#subs-complete .complete-info td {padding:6px 10px;}
+#subs-complete .complete-info .pd10 { padding:10px; }
+#subs-complete .complete-info-txt { padding:0 10px; }
+#subs-complete .complete-info-txt li { padding-left:10px; text-indent:-8px; }
+#subs-complete .btn_next { margin-top:15px; }
+#subs-complete .btn_next a { display:inline-block; width:49%; }
+#subs-complete .btn_next a.btn_Black { margin-left:2px; }
+
+
+/* 안내문구 */
+.order-info {padding:10px 0 0;}
+.order-info select {width:100%;}
+.order-info p {font-size: var(--text-xs); color: var(--cw-color-80); margin-bottom:4px;}
+.order-info p:last-child {margin-bottom:0;}
+.order-info p em {font-style: normal;}
+
+
+/* 우측 결제 정보 */
+.order-pay {position:sticky; top:120px; align-self: start; max-height: 80vh; overflow-y: scroll; -ms-overflow-style: none;}
+.order-pay::-webkit-scrollbar {display: none;} 
+.order-pay .order-pay--total {border:1px solid var(--cw-color-20); border-radius: var(--bs-border-radius-sm); padding:30px;}
+.order-pay .order-pay--total .cw-subtitle {font-size: var(--cw-size-18); }
+.order-pay .order-pay--total .pay-info--box {display: flex; flex-direction: column; gap: 12px; margin-top: 10px; border-top: 1px solid var(--cw-heading-color); padding: 20px 0 0; font-size: var(--text-sm); font-weight: 600; color: var(--cw-color-60);}
+.order-pay .order-pay--total .pay-info--box dl {display:flex; justify-content: space-between;}
+.order-pay .order-pay--total .pay-info--box dl dt {font-weight: 600; color: var(--cw-color-60);}
+.order-pay .order-pay--total .pay-info--box dl dd {color: var(--cw-heading-color); font-weight:400;}
+.order-pay .order-pay--total .pay-info--box dl dd .op-total {font-weight:600;}
+.order-pay .order-pay--total .pay-info--box #total-discount-list dl {margin-bottom:6px;}
+.order-pay .order-pay--total .pay-info--box #total-discount-list dl:last-child {margin-bottom:6px;}
+.order-pay .order-pay--total .pay-info--box #total-discount-list dl dt {font-size: var(--cw-size-12); color: var(--cw-color-60);}
+.order-pay .order-pay--total .pay-info--box #total-discount-list dl dd {font-size: var(--cw-size-12); color: var(--cw-color-60);}
+.MK_total_price {border-top: 1px solid var(--cw-color-30); padding-top: 20px;}
+.MK_total_price .pay-total {display:flex; align-items:center; justify-content: space-between; font-weight:700; font-size: var(--cw-size-16); color: var(--cw-heading-color); }
+.MK_total_price .txt-reserve {float:right; font-size: var(--cw-size-13); font-weight:400; } 
+.MK_total_price .ml-auto {font-weight:400;}
+.MK_total_price .ml-auto strong {font-size: var(--cw-size-20); color: var(--cw-point-color); font-weight:700;}
+#block_all_expect_reserve {display:block; text-align:right; font-weight:400; font-size: var(--text-xs); margin-top:2px;}
+
+
+/* 동의 */
+.all-ok {display:block; margin-top:20px; display:flex;}
+.all-ok .all-ok--price {width:30%; display:none; color: var(--cw-color-white); position: relative;}
+.all-ok .all-ok--price p {white-space:nowrap;}
+.all-ok .all-ok--price > span {font-size: var(--text-sm);}
+.all-ok .all-ok--price p span {font-weight:700; font-size: var(--cw-size-16);}
+.all-ok > a {flex:1; text-align:center;}
+
+
+
+/* PC , 태블릿 */
+@media (min-width: 768px) {
+    :root {
+        --form-max-width: 400px;
+        --text-sm: .875rem; /* 14px */
+        --text-xs: .813rem; /* 13px */
+    }
+    #subs-order {
+        --text-sm: .875rem; /* 14px */
+        --text-xs: .813rem; /* 13px */
+    }
+}
+
+/* 태블릿 */
+@media (min-width: 768px) and (max-width: 991.98px) {
+    /* 공통 */
+    #subs-complete .order-content {margin-top:60px;}
+    #subs-complete .heading {display:none;}
+    
+    /* 우측 결제 정보 */
+    .order-pay {position: static; max-height:100%; overflow-y:inherit; margin-top:60px;}
+    .order-pay .order-pay--total {margin-bottom:60px; padding:0; border:none;}
+    .order-pay .order-agree--total {padding:0; border:none;}
+    
+    /* 동의 */
+    .all-ok {max-width: 300px; margin: 20px auto 0;}
+}
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    :root {
+        --form-max-width: 100%;
+        --text-sm: .813rem; /* 13px */
+        --text-xs: .75rem; /* 12px */
+    }
+    #subs-complete {
+        --text-sm: .813rem; /* 13px */
+        --text-xs: .75rem; /* 12px */
+    }
+    
+    /* 공통 */
+    #subs-complete .heading {display:none;}
+    #subs-complete .order-title {font-size: var(--cw-size-16);}
+    #subs-complete .order-content tbody tr {margin-bottom:20px; height:auto; display:block;}
+    #subs-complete .order-content tbody tr:last-child {margin-bottom:0;}
+    #subs-complete .order-content tbody tr th {display:block; padding-bottom:6px;}
+    #subs-complete .order-content tbody tr td {display:block;}
+    #subs-complete .order-detail {padding:20px 0;}
+    
+    /* 주문상태 */
+    #subs-complete .complete-msg p {font-size: var(--cw-size-14);}
+    
+    /* 주문상품 */
+    #subs-complete .order-list li {position: relative; padding: 16px 0 74px;}
+    #subs-complete .list-right {display:block;}
+    #subs-complete .list-right .p-reserve {text-align:left;}
+    #subs-complete .list-right .p-reserve span:after {content:''; display:inline-block; width:1px; height:14px; background: var(--cw-color-30);}
+    #subs-complete .list-right .p-reserve br {display:none;}
+    #subs-complete .p-subs {text-align: left; position: absolute; bottom: 16px; width: 100%; left: 0; border-top: 1px solid var(--cw-color-20); padding-top: 12px;}
+    
+    /* 우측 결제 정보 */
+    .order-pay {position: static; max-height:100%; overflow-y:inherit; margin-top:60px;}
+    .order-pay .order-pay--total {margin-bottom:60px; padding:0; border:none;}
+    .order-pay .order-agree--total {padding:0; border:none;}
+}

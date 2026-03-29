@@ -1,0 +1,117 @@
+<!--/include_header(1)/-->
+<!-- container -->
+<main class="container mypage-wrapper guest-gift-order">
+    <div class="row">
+
+        <!-- Content -->
+        <div class="content">
+            <div class="content-body">
+                <div class="page-title-wrap txt-l">
+                    <h2>선물 주문 조회</h2>
+                </div>
+                <div class="sub-title first">
+                    <h3>선물 메세지</h3>
+                </div>
+                <div class="gift-wrap">
+                    <div class="gift-card">
+                        <div class="card-img">
+                            <img src="<!--/card_type/-->" alt="">
+                        </div>
+                        <div class="card-txts">
+                            <textarea name="" readonly="" class="cw-textfield"><!--/present_message/--></textarea>
+                        </div>
+                    </div>
+                </div>
+                <div class="sub-title">
+                    <h3>선물상품</h3>
+                </div>
+                <div class="product-list">
+                    <!--/loop_order_product/-->
+                    <div class="item-wrap">
+                        <div class="goods-wrap">
+                            <div class="goods-image">
+                                <a href="<!--/order_product@link/-->"><img src="<!--/order_product@image_s/-->" alt="<!--/notag/order_product@name/-->"></a>
+                            </div>
+                            <div class="goods-content-wrap">
+                                <div class="goods-details">
+                                    <p class="title">
+                                        <!--/notag/order_product@name/--> / <!--/order_product@amount/-->개
+                                    </p>
+                                    <div class="option">
+                                        <p>
+                                        <!--/if_order_product@is_bundle/-->
+                                            <!--/loop_order_product@bundle_option/-->
+                                                <!--/order_product@bundle_option@option/--> / (<!--/order_product@bundle_option@amount/-->개)
+                                                </br>
+                                            <!--/end_loop/-->
+                                        <!--/else/-->
+                                                <!--/order_product@option/-->
+                                        <!--/end_if/-->
+                                        </p>
+                                    </div>
+                                </div>
+                                <div class="goods-btns">
+                                    <!--/if_order_product@order_status(배송중)/-->
+                                    <a href="<!--/order_product@link_delivery/-->" class="btn btn-gray btn-xs btn-delivery">배송조회</a>
+                                    <!--/end_if/-->
+                                    <!--/if_order_product@order_status(배송완료)/-->
+                                    <a href="<!--/order_product@link_delivery/-->" class="btn btn-gray btn-xs btn-delivery">배송조회</a>
+                                    <!--/end_if/-->
+                                    <!--/if_order_product@link_review_board_present/-->
+                                    <a href="<!--/order_product@link_review_board_present/-->" class="btn btn-gray btn-xs btn-review">리뷰작성</a>
+                                    <!--/end_if/-->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <!--/end_loop/-->
+                </div>
+                <div class="sub-title">
+                    <h3>선물정보</h3>
+                </div>
+                <div class="info-section">
+                    <!--/loop_order_product(1)/-->
+                    <div class="info-field">
+                        <span class="label">선물번호</span>
+                        <span class="value"><!--/present_num/--></span>
+                    </div>
+                    <div class="info-field">
+                        <span class="label">선물수신일</span>
+                        <span class="value"><!--/present_sender_time/--></span>
+                    </div>
+                    <div class="info-field">
+                        <span class="label">선물사용일</span>
+                        <span class="value"><!--/present_use_time/--></span>
+                    </div>
+                    <div class="info-field">
+                        <span class="label">주문상태</span>
+                        <span class="value"><!--/order_product@present_status/--></span>
+                    </div>
+                    <div class="info-field">
+                        <span class="label">이름/연락처</span>
+                        <span class="value"><!--/delivery_recevier_name/--> / <!--/order_product@receiver_mobile/--></span>
+                    </div>
+                    <!--/if_order_product@delivery_address/-->
+                    <div class="info-field">
+                        <span class="label">배송지 정보</span>
+                        <span class="value"><!--/order_product@delivery_address/--></span>
+                    </div>
+                    <!--/end_if/-->
+                    <div class="info-field">
+                        <span class="label">배송 메세지</span>
+                        <span class="value"><!--/order_product@delivery_msg/--></span>
+                    </div>
+                    <!--/end_loop/-->
+                </div>
+            </div>
+        </div>
+        <!-- // Content -->
+    </div>
+</main>
+<!-- // container -->
+
+
+
+
+
+<!--/include_footer(1)/-->

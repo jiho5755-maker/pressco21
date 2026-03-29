@@ -1,0 +1,197 @@
+<!--/block_gift/-->
+<section id="gift_list">
+    <div class="cw-gift">
+        <div class="gift-header">
+            <h3 class="gift-title">사은품 선택</h3>
+        </div>
+        <!--/if_gift_type_count(+2)/-->
+        <section>
+            <div class="gift-section border-none">
+                <div class="gift-row">
+                    <div class="gift-label">사은품 종류</div>
+                    <div class="gift-content gap-10">
+                        <!--/if_input_gift_select_product/-->
+                        <div class="form-check form-check-inline">
+                            <!--/input_gift_select_product(form-check-input)/-->
+                            <label class="form-check-label">일반 사은품</label>
+                        </div>
+                        <!--/end_if/-->
+                        <!--/if_input_gift_select_reserve/-->
+                        <div class="form-check form-check-inline">
+                            <!--/input_gift_select_reserve(form-check-input)/-->
+                            <label class="form-check-label">추가 적립</label>
+                        </div>
+                        <!--/end_if/-->
+                        <!--/if_input_gift_select_discount/-->
+                        <div class="form-check form-check-inline">
+                            <!--/input_gift_select_discount(form-check-input)/-->
+                            <label class="form-check-label">추가 할인</label>
+                        </div>
+                        <!--/end_if/-->
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!--/end_if/-->
+        <!--일반 사은품-->
+        <!--/if_gift_list/-->
+        <!--/block_gift_product/-->
+        <section id="MS_gift_product" class="giftkindWrap">
+            <div class="gift-section" style="margin-top: -20px">
+                <!--/if_gift_point_total/-->
+                <div class="gift-row">
+                    <div class="gift-label">사은품 포인트</div>
+                    <div class="gift-content gap-8">
+                        <div class="gift-value">사용 가능 <span class="text-point"><!--/number/gift_point_total/--> P</span></div>
+                        <span class="gift-bar"></span>
+                        <div class="gift-value">선택 <span class="text-point"><!--/block_gift_point_used/--><!--/number/gift_point_used/--><!--/end_block/--> P</span></div>
+                        <span class="gift-bar"></span>
+                        <div class="gift-value">잔여 <span class="text-point"><!--/block_gift_point_remain/--><!--/number/gift_point_remain/--><!--/end_block/--> P</span></div>
+                    </div>
+                </div>
+                <!--/end_if/-->
+            </div>
+            <div class="gift-section scroll">
+                <div class="gift-row">
+                    <div class="gift-label">사은품 선택</div>
+                    <div class="gift-content flex-col">
+                        <!--/loop_gift_list/-->
+                        <div class="flex flex-col gap-8">
+                            <div class="flex items-center gap-8">
+                                <span class="gift-value"><!--/gift_list@gift_name/--></span>
+                                <!--/if_gift_list@quantity_total/--><span class="gift-total"><span class="text-point"><!--/number/gift_list@quantity_total/-->개</span> 선택 가능</span><!--/end_if/-->
+                            </div>
+                            <div class="gift-grid">
+                                <!--/loop_gift_list@product/-->
+                                <div class="gift-item" id="<!--/gift_list@product@id/-->">
+                                    <div class="gift-image"><a href="<!--/gift_list@product@link/-->" target="_blank"><img src="<!--/gift_list@product@image_m/-->" alt="사은품"></a></div>
+                                    <div class="gift-text txt-c line-clamp-2"><a href="<!--/gift_list@product@link/-->" target="_blank"><!--/gift_list@product@name/--></a></div>
+                                    <!--/if_gift_list@product@gift_point(+1)/--><div class="gift-text txt-c line-clamp-1"><strong><!--/number/gift_list@product@gift_point/--> P</strong></div><!--/end_if/-->
+                                    <!--/if_gift_list@product@plus_buy/--><div class="gift-text txt-c line-clamp-1"><strong><!--/gift_list@product@plus_buy/--> + <!--/gift_list@product@plus_gift/--> 사은품</strong></div><!--/end_if/-->
+                                    <!--/if_gift_list@product@gift_auto/--><div class="gift-text txt-c line-clamp-1"><strong>자동지급</strong></div><!--/end_if/-->
+                                    <!--/if_gift_list@product@checkbox_choice/--><div class="gift-chk form-check form-check-inline"><!--/gift_list@product@checkbox_choice/--></div><!--/end_if/-->
+                                    
+                                    <!--/if_gift_list@product@select_quantity/--><!--/gift_list@product@select_quantity(cw-select-box sm)/--><!--/end_if/-->
+                                    <!--/if_gift_list@product@option/--><div class="g-opt"><!--/gift_list@product@option/--></div><!--/end_if/-->
+                                </div>
+                                <!--/end_loop/-->
+                            </div>
+                        </div>
+                        <!--/end_loop/-->
+                    </div>
+                </div>
+            </div>
+            <div class="gift-more" style="display: none;">
+                <a href="javascript:void(0);" class="btn btn-gray">사은품 전체보기<span class="arrow-down"></span></a>
+            </div>
+        </section>
+        <!--/end_block/-->
+        <!--/end_if/-->
+        <!--추가 적립-->
+        <!--/if_gift_reserve_point(+1)/-->
+        <!--/block_gift_reserve/-->
+        <section id="MS_gift_reserve" class="giftkindWrap">
+            <div class="gift-section border-y">
+                <div class="gift-row">
+                    <div class="gift-label">사은품 선택</div>
+                    <div class="gift-content flex-col">
+                        <p class="gift-value">상품 금액의 <!--/if_gift_reserve_percent/--><span class="text-point"><!--/gift_reserve_percent/-->% 추가 적립 (<!--/number/gift_reserve_point/-->원)</span><!--/else/--><span class="text-point"><!--/number/gift_reserve_point/-->원 추가 적립</span><!--/end_if/--> 받으실 수 있습니다. 추가 적립 선택 시, 일반 사은품은 지급되지 않습니다.</p>
+                        <!--/if_gift_auto_product/-->
+                        <!--/block_gift_auto_product/-->
+                        <p class="gift-value w-full">자동 지급 사은품</p>
+                        <div class="gift-grid mt-8">
+                            <!--/loop_gift_auto_product/-->
+                            <div class="gift-item">
+                                <div class="gift-image"><a href="<!--/gift_auto_product@link/-->" target="_blank"></a><img src="<!--/gift_auto_product@image_m/-->" alt="사은품"></a></div>
+                                <p class="gift-text txt-c line-clamp-2"><a href="<!--/gift_auto_product@link/-->" target="_blank"><!--/gift_auto_product@name/--></a></p>
+                                <p class="gift-text txt-c line-clamp-1"><strong>자동지급</strong></p>
+                                <!--/if_gift_auto_product@select_quantity/--><!--/gift_auto_product@select_quantity(cw-select-box sm)/--><!--/end_if/-->
+                                <!--/if_gift_auto_product@option/--><div class="g-opt"><!--/gift_auto_product@option/--></div><!--/end_if/-->
+                            </div>
+                            <!--/end_loop/-->
+                        </div>
+                        <!--/end_block/-->
+                        <!--/end_if/-->
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!--/end_block/-->
+        <!--/end_if/-->
+        <!--추가 할인-->
+        <!--/if_gift_discount_point(+1)/-->
+        <!--/block_gift_discount/-->
+        <section id="MS_gift_discount" class="giftkindWrap">
+            <div class="gift-section border-y">
+                <div class="gift-row">
+                    <div class="gift-label">사은품 선택</div>
+                    <div class="gift-content flex-col">
+                        <p class="gift-value">상품 금액의 <!--/if_gift_discount_percent/--><span class="text-point"><!--/gift_discount_percent/-->% 추가 할인(<!--/number/gift_discount_point/-->원)</span><!--/else/--><span class="text-point"><!--/number/gift_discount_point/-->원 추가 할인</span><!--/end_if/--> 받으실 수 있습니다. 추가 할인 선택 시, 일반 사은품은 지급되지 않습니다.</p>
+                        <!--/if_gift_auto_product/-->
+                        <!--/block_gift_auto_product/-->
+                        <p class="gift-value w-full">자동 지급 사은품</p>
+                        <div class="gift-grid mt-8">
+                            <!--/loop_gift_auto_product/-->
+                            <div class="gift-item">
+                                <div class="gift-image"><a href="<!--/gift_auto_product@link/-->" target="_blank"></a><img src="<!--/gift_auto_product@image_m/-->" alt="사은품"></a></div>
+                                <p class="gift-text txt-c line-clamp-2"><a href="<!--/gift_auto_product@link/-->" target="_blank"><!--/gift_auto_product@name/--></a></p>
+                                <p class="gift-text txt-c line-clamp-1"><strong>자동지급</strong></p>
+                                <!--/if_gift_auto_product@select_quantity/--><!--/gift_auto_product@select_quantity(cw-select-box sm)/--><!--/end_if/-->
+                                <!--/if_gift_auto_product@option/--><div class="g-opt"><!--/gift_auto_product@option/--></div><!--/end_if/-->
+                            </div>
+                            <!--/end_loop/-->
+                        </div>
+                        <!--/end_block/-->
+                        <!--/end_if/-->
+                    </div>
+                </div>
+            </div>
+        </section>
+        <!--/end_block/-->
+        <!--/end_if/-->
+    </div>
+</section>
+<!--/end_block/-->
+
+<!--옵션 레이어-->
+<!--/block_popup_option/-->
+    <!--/form_option/-->
+    <div id="gift-layer-opt3" class="gift-layer-opt">
+        <!--/form_option/-->
+        <div class="layer-header">
+            <h3 class="layer-title">옵션 선택</h3>
+            <a href="<!--/link_close/-->" class="layer-close"></a>
+        </div>
+        <div class="layer-content">
+            <!--/if_option/-->
+            <!--/loop_option/-->
+            <div class="flex flex-col gap-6">
+                <p class="flex gap-8 text-13"><span class="MK-oneclick-title"><!--/option@title/--></span><!--/if_option@oneclick_list/--><!--/option@oneclick_value/--><!--/end_if/--></p>
+                <!--/if_option@oneclick_list/-->
+                    <!--/option@oneclick_list/-->
+                <!--/else/-->
+                    <!--/option@select/-->
+                <!--/end_if/-->
+            </div>
+            <!--/end_loop/-->
+            <div class="line"></div>
+            <!--/end_if/-->
+            <!--/if_link_option_select_complete/-->
+            <a href="<!--/link_option_select_complete/-->" class="btn btn-white btn-sm btn-opt-add"><span>추가</span></a>
+            <!--/end_if/-->
+            
+            <!--/if_multi_option_box/-->
+            <div class="flex flex-col gap-8">
+                <!--/multi_option_box/-->
+            </div>
+            <div class="line"></div>
+            <!--/end_if/-->
+        </div>
+        <div class="layer-footer">
+            <a href="<!--/link_save/-->" class="btn btn-primary"><span>선택 완료</span></a>
+            <a href="<!--/link_close/-->" class="btn btn-white"><span>닫기</span></a>
+        </div>
+        <!--/end_form/-->
+    </div>
+   <!--/end_form/-->
+<!--/end_block/-->

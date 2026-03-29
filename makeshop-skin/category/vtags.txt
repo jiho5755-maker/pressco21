@@ -1,0 +1,37 @@
+# category_1 가상태그
+
+
+## 중분류
+<!--/category1@category2@description/-->
+<!--/category1@category2@link/-->
+<!--/category1@category2@name/-->
+<!--/loop_category1@category2/-->
+
+## 대분류
+<!--/category1@description/-->
+<!--/category1@link/-->
+<!--/category1@name/-->
+
+## 회원그룹
+<!--/group_level/-->
+
+## 빅매치 배너
+<!--/loop_bigmatch/-->
+
+## 회원 로그인
+
+## 회원 정보
+
+## 인클루드 태그
+
+## 상점 정보
+
+## 잉글리쉬 HTML
+
+## 기타
+<!--/if_category1@is_basic/-->
+<!--/if_category1@is_virtual/-->
+<!--/link_best_cate/-->
+<!--/link_best_product/-->
+<!--/link_best_review/-->
+<!--/loop_category1/-->

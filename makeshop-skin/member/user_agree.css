@@ -1,0 +1,34 @@
+.join-wrapper { max-width: 670px; }
+.member-tab-wrap { margin-top: 20px; }
+.member-tab-wrap .tab-navi--links { margin-bottom: 0; }
+.member-tab-wrap .tab-navi--links li a { font-size: var(--cw-size-16); }
+.form-terms { margin-top: 0 !important; }
+.form-terms .join-terms { border-top: 0!important; }
+.form-terms label { cursor: pointer; font-weight: 600; font-size: var(--cw-size-14); }
+.form-terms .form-check { display: flex; gap: 8px; align-items: center; margin-bottom: 10px; }
+.form-check .form-check-input { margin-left: -28px; }
+.form-check .form-check-input:disabled { background-color: var(--cw-heading-color); }
+.form-terms .join-terms { display: flex; flex-direction: column; padding: 20px 0 10px; gap: 10px; border-bottom: 1px solid var(--cw-color-30); }
+.form-terms .join-terms textarea { width: 100%; height: 100px; padding: 10px; border: 0; background: var(--cw-color-10); font-size: var(--cw-size-12); color: var(--cw-color-80); }
+.form-terms .join-terms .terms-content { display: none; padding-bottom: 20px; }
+.form-terms .join-terms .terms-content.active { display: block; }
+.form-terms .join-terms .form-check { background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_cheveron-down.svg') right center no-repeat; cursor: pointer; }
+.form-terms .join-terms .form-check.active { background: url('//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_arrow_cheveron-up.svg') right center no-repeat; }
+.form-terms .join-terms .cw-tbl table { width: 100%; table-layout: fixed; border-spacing: 0; background: #fff; }
+.form-terms .join-terms .cw-tbl caption { display: none; }
+.form-terms .join-terms .cw-tbl th,
+.form-terms .join-terms .cw-tbl td { padding: 10px; border: 1px solid var(--cw-color-30); font-size: var(--cw-size-13); color: var(--cw-color-80); font-weight: normal; }
+.form-terms .join-terms .cw-tbl th { background: var(--cw-color-10); text-align: center; }
+.form-terms .join-terms .msg { margin-top: 10px; padding-left: 8px; text-indent: -8px; font-size: var(--cw-size-13); color: var(--cw-color-80); }
+.btn-agree { display: flex; align-items: center; justify-content: center; }
+.btn-agree .btn { margin: 40px 0; width: 300px; }
+
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .member-tab-wrap .tab-navi--links li a { font-size: var(--cw-size-14); }
+    .form-terms .join-terms { padding: 16px 0 6px; }
+    .form-terms label,
+    .form-terms .join-terms .form-check { font-size: var(--cw-size-13); }
+    .btn-agree .btn { width: 100%; }
+}

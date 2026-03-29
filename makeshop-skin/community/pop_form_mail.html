@@ -1,0 +1,42 @@
+<!--/include_header(1)/-->
+
+<div class="container mail-wrapper">
+    <h2 class="cw-mailtitle">메일 문의</h2>
+    <div class="cw-wrapper">
+        <div class="cw-maillist">
+            <!--/form_mail/-->
+            <dl class="write-info">
+                <!--/if_inquiry_email/-->
+                <dt>문의유형</dt>
+                <dd><!--/inquiry_email(cw-select-box)/--></dd>
+                <!--/end_if/-->
+                <!--/if_show_inquiry_email/-->
+                <dt>담당자 이메일</dt>
+                <dd><!--/shop_email/--></dd>
+                <!--/end_if/-->
+                <dt>이름</dt>
+                <dd><!--/input_nickname(cw-textfield)/--></dd>
+                <dt>이메일</dt>
+                <dd><!--/input_sender_email(cw-textfield)/--></dd><!-- 가상태그 내용 수정 필요 -->
+                <dt>제목</dt>
+                <dd><!--/input_subject(cw-textfield)/--></dd>
+                <dt>내용</dt>
+                <dd><!--/text_content(cw-textfield)/--></dd>
+                <dt>첨부파일</dt>
+                <dd><!--/file_attach/--></dd>
+            </dl>
+            <!--/if_not_use_privacy/-->
+                <div class="member-txt">문의하신 내용은 고객의 서비스 품질 향상을 위하여 회사가 서비스 제공기간 동안 보유할 수 있으며, 고객님의 이메일 정보는 문의사항에 대한 답변 회신 후 즉시 파기처리 합니다.</div>
+			<!--/end_if/-->
+			<!--/if_use_privacy/-->
+                <!--/new_privacy_terms/-->
+            <!--/end_if/-->
+            <!--/end_form/-->
+        </div>
+        <div class="cw-mailbtns">
+            <a href="<!--/link_send/-->" class="btn btn-primary btn-lg"><span>메일 보내기</span></a>
+        </div>
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

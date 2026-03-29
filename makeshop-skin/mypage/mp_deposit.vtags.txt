@@ -1,0 +1,37 @@
+# mp_deposit 가상태그
+
+
+## 예치금 목록
+<!--/deposit_list@content/-->
+<!--/deposit_list@date/-->
+<!--/deposit_list@price/-->
+
+## 예치금 목록 페이징 표시
+<!--/if_pager_deposit_list::page@current/-->
+<!--/loop_pager_deposit_list::page/-->
+<!--/pager_deposit_list::count/-->
+<!--/pager_deposit_list::current/-->
+<!--/pager_deposit_list::current@link/-->
+<!--/pager_deposit_list::first/-->
+<!--/pager_deposit_list::first@link/-->
+<!--/pager_deposit_list::last/-->
+<!--/pager_deposit_list::last@link/-->
+<!--/pager_deposit_list::next/-->
+<!--/pager_deposit_list::next@link/-->
+<!--/pager_deposit_list::page/-->
+<!--/pager_deposit_list::page@link/-->
+<!--/pager_deposit_list::page_count/-->
+<!--/pager_deposit_list::prev/-->
+<!--/pager_deposit_list::prev@link/-->
+
+## 회원 정보
+<!--/user_basket_quantity/-->
+<!--/user_deposit/-->
+<!--/user_name/-->
+
+## 기타
+<!--/banner_plan/-->
+<!--/if_company_user/-->
+<!--/include_header/-->
+<!--/shop_id/-->
+<!--/shop_name/-->

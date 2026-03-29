@@ -1,0 +1,100 @@
+<!--/form_subs_select/-->
+<!--/block_subs_apply/-->
+<div class="modal-wrap layer-subs-apply">
+    <div class="modal-content">
+        <div class="modal-header">
+            <span class="modal-title">정기배송일 설정</span>
+            <a href="<!--/link_subs_cancel/-->" class="btn-modal-close"></a>
+        </div>
+        <div class="modal-body">
+            <!--/if_subs_cycle_type(S)/-->
+            <div class="form-group">
+                <!--/if_subs_cycle/-->
+                <!--/if_subs_week/-->
+                <div class="form-list">
+                    <label>요일 선택</label>
+                    <!--/subs_cycle/-->
+                    <ul id="subs-week" class="days">
+                        <!--/loop_subs_week/-->
+                        <li><!--/subs_week@week/--></li>
+                        <!--/end_loop/-->
+                    </ul>
+                </div>
+                <!--/end_if/-->
+                <!--/end_if/-->
+                <!--/if_subs_cycle_month/-->
+                <div class="form-list">
+                    <label>날짜 선택</label>
+                    <div class="select-date">
+                        <!--/subs_cycle_month/-->
+                        <!--/subs_day/-->
+                    </div>
+                </div>
+                <!--/end_if/-->
+                <!--/block_subs_delivery_date/-->
+                <div class="first-delivery">
+                    첫 정기배송 예정일 : <strong class="cw-point-color"><!--/subs_delivery_date/--></strong>
+                </div>
+                <!--/end_block/-->
+            </div>
+            <!--/end_if/-->
+            <!--/if_subs_cycle_type(F)/-->
+            <div class="form-group pb-0">
+                <div class="form-list bd-line-0 pb-10">
+                    <div class="delivery-info">
+                        <p class="first-delivery"><strong class="cw-point-color"><!--/subs_delivery_date/--></strong>에 첫 배송됩니다.</p>
+                        <p><strong>상세 배송 예정일</strong></p>
+                        <p><!--/subs_select_days/--></p>
+                    </div>
+                </div>
+            </div>
+            <!--/end_if/-->
+            <!--/if_subs_list_data/-->
+            <div class="form-group">
+                <div class="form-title">기존 정기배송에 추가</div>
+                <div class="radio-group">
+                    <!--/loop_subs_list_data/-->
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <!--/subs_list_data@radio_subs_choice/-->
+                            <div class="label-body">
+                                <span class="name"><!--/subs_list_data@product_name/--></span>
+                                <!--/if_subs_list_data@cycle_type(WEEK)/-->
+                                <p class="desc"><!--/subs_list_data@cycle/-->주 간격으로 <!--/subs_list_data@week/-->배송</p>
+                                <!--/end_if/-->
+                                <!--/if_subs_list_data@cycle_type(MONTH)/-->
+                                <p class="desc"><!--/subs_list_data@cycle/-->개월 간격으로 <!--/subs_list_data@day/-->배송</p>
+                                <!--/end_if/-->
+                                <!--/if_subs_list_data@cycle_type(FIX)/-->
+                                <p class="desc">지정배송일</p>
+                                <!--/end_if/-->
+                                <p class="desc"><!--/subs_list_data@bill_card_name/-->로 자동 결제</p>
+                            </div>
+                        </label>
+                    </div>
+                    <!--/end_loop/-->
+                </div>
+            </div>
+            <div class="form-group">
+                <div class="form-title">신규 정기배송 신청</div>
+                <div class="radio-group">
+                    <div class="form-check">
+                        <label class="form-check-label">
+                            <!--/radio_subs_choice/-->
+                            <div class="label-body">
+                                <span class="name">(자동 결제카드 및 배송지 신규 설정)</span>
+                            </div>
+                        </label>
+                    </div>
+                </div>
+            </div>
+            <!--/end_if/-->
+        </div>
+        <div class="modal-footer">
+            <a href="<!--/link_subs_apply/-->" class="btn btn-primary btn-lg"><span><!--/if_is_apply/-->정기배송 신청<!--/else/-->확인<!--/end_if/--></span></a>
+            <a href="<!--/link_subs_cancel/-->" class="btn btn-white btn-lg"><span>취소</span></a>
+        </div>
+    </div>
+</div>
+<!--/end_block/-->
+<!--/end_form/-->

@@ -1,0 +1,33 @@
+<!--/include_header(1)/-->
+
+<div class="container vote-wrapper">
+    <h2 class="cw-votetitle">투표 리스트</h2>
+    <div class="cw-wrapper">
+        <div class="cw-votelist">
+            <!--/if_poll/-->
+            <ul>
+                <!--/loop_poll/-->
+                <li>
+                    <dl>
+                        <dt><span class="date"><!--/date(%Y.%M.%D)/poll@date/--></span><!--/if_poll@total/--><span class="total">투표 <!--/poll@total/--></span><!--/end_if/--></dt>
+                        <dd>
+                            <p><!--/poll@title/--></p>
+                            <p>
+                                <!--/if_poll@poll_state(R)/--><span class="vote-r">투표예약</span><!--/end_if/-->
+                                <!--/if_poll@poll_state(Y)/--><span class="vote-y">투표진행</span><!--/end_if/-->
+                                <!--/if_poll@poll_state(N)/--><span class="vote-n">투표종료</span><!--/end_if/-->
+                            </p>
+                        </dd>
+                    </dl>
+                    <a href="<!--/poll@link/-->" class="link"></a>
+                </li>
+                <!--/end_loop/-->
+            </ul>
+            <!--/else/-->
+            <div class="list-none">투표 리스트가 없습니다.</div>
+            <!--/end_if/-->
+        </div>
+    </div>
+</div>
+
+<!--/include_footer(1)/-->

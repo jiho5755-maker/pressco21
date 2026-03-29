@@ -1,0 +1,62 @@
+<!--/include_header(1)/-->
+
+<!-- container -->
+<main class="container mypage-wrapper withdrawal">
+    <div class="row">
+        <!-- Sidebar -->
+        <!--/include_header(2)/-->
+        <!-- // Sidebar -->
+
+        <!-- Content -->
+        <div class="content col-lg-10 col-md-12 col-sm-12">
+            <div class="content-body">
+                <div class="page-title-wrap txt-l">
+                    <h2>회원탈퇴 신청</h2>
+                </div>
+                <div class="message">
+                    <p>저희 쇼핑몰의 부족했던 점과 아쉬웠던 점을 적어주십시오.<br>더 좋은 모습으로 발전하도록 최선을 다하겠습니다.</p>
+                    <p>앞으로 더 나은 모습으로 고객님을 다시 만날 수 있도록 노력하겠습니다. 그동안 이용해주신 것을 진심으로 감사드립니다.</p>
+                    <strong>탈퇴 사유를 적어주시면 쇼핑몰 운영에 적극 반영하겠습니다.</strong>
+                </div>
+                <div class="form-wrapper">
+                    <!-- 정보 입력폼 -->
+                    <!--/if_user_withdraw_use/-->
+                    <div class="form-group">
+                        <span class="form-title">탈퇴 사유</span>
+                        <div class="form-content">
+                            <div class="form-check form-check-inline">
+                                <ul class="reason-select">
+                                    <!--/user_withdraw_reason/-->
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="form-group" id="user-reason-group">
+                        <span class="form-title">고객님의 의견</span>
+                        <div class="form-content">
+                            <!--/text_withdraw_reason(txt-area1)/-->
+                            <p class="count"><span>0</span> / 1000</p>
+                        </div>
+                    </div>
+                    <!--/else/-->
+                    <div class="form-group">
+                        <span class="form-title">고객님의 의견</span>
+                        <div class="form-content">
+                            <!--/text_withdraw_reason/-->
+                        </div>
+                    </div>
+                    <!--/end_if/-->
+                    <!-- 정보 입력폼 -->
+                </div>
+                <div class="btn-withdrawal">
+                    <a href="<!--/link_withdraw_ok/-->" class="btn btn-primary btn-lg"><span>회원탈퇴</span></a>
+                    <a href="<!--/link_withdraw_cancel/-->" class="btn btn-white btn-lg"><span>취소하기</span></a>
+                </div>
+            </div>
+        </div>
+        <!-- // Content -->
+    </div>
+</main>
+<!-- //container -->
+
+<!--/include_footer(1)/-->

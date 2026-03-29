@@ -1,0 +1,388 @@
+<!--//(주)커넥트웨이브에서 제작한 모든 이미지, 스킨은 저작권법으로 보호받으며 허가 없이 무단 사용, 복제, 변경, 재배포 등의 행위를 할 시 저작권법에 의거하여 법적인 처벌을 받을 수 있습니다.//-->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/poposnail61/min-sans@main/web/css/minsans-dynamic-subset.css">
+<link rel="stylesheet" href="//skin.makeshop.co.kr/skin/js/mySwiper11/mySwiper_11.css">
+<script type="text/javascript" src="//skin.makeshop.co.kr/skin/js/mySwiper11/mySwiper_11.js"></script>
+
+<!-- 상단 -->
+<header id="header">
+    <!--/if_head_banner/-->
+        <!--/head_banner/-->
+    <!--/end_if/-->
+    <div class="nav-wrap">
+        <div class="item-box left mo-only">
+            <button type="button" class="btn-menu">
+                <img src="//skin.makeshop.co.kr/skin/onstore/mo/images/ic_menu.png" alt="메뉴">
+            </button>
+        </div>
+        <h1 class="logo-wrap">
+            <a href="<!--/link_home/-->">
+                <img src="//jewoo.img4.kr/2026/homepage/header/logo_w.png" alt="로고">
+            </a>
+        </h1>
+        <div class="item-box right mo-only">
+            <a href="<!--/link_basket/-->">
+                <img src="//skin.makeshop.co.kr/skin/onstore/mo/images/ic_bag.png" alt="장바구니">
+            </a>
+        </div>
+        <ul class="nav">
+            <!--/loop_category1/-->
+            <li>
+                <a href="<!--/category1@link/-->"><!--/category1@name/--></a>
+                <div class="sub-menu-wrap">
+                    <ul>
+                        <!--/loop_category1@category2/-->
+                        <li>
+                            <a href="<!--/category1@category2@link/-->"><!--/category1@category2@name/--></a>
+                        </li>
+                        <!--/end_loop/-->
+                    </ul>
+                </div>
+            </li>
+            <!--/end_loop/-->
+        </ul>
+        <div class="item-box right">
+            <div class="search-wrap">
+                <button type="button" class="btn-link search"></button>
+                <div class="search-contents">
+                    <div class="search-box">
+                        <!--/form_search/-->
+                        <fieldset>
+                            <legend>상품 검색 폼</legend>
+                            <!--/input_search_word(search_auto_completion)/-->
+                            <a href="<!--/link_search_button/-->" class="btn-search"><img src="//skin.makeshop.co.kr/skin/onstore/pc/images/ic_search_black.png" alt=""></a>
+                            <button type="button" class="btn-close"><img src="//skin.makeshop.co.kr/skin/onstore/pc/images/ic_x.png" alt=""></button>
+                        </fieldset>
+                        <!--/end_form/-->
+                    </div>
+                </div>
+            </div>
+            <a href="<!--/link_mypage/-->" class="btn-link mypage"></a>
+            <a href="<!--/link_basket/-->" class="btn-link basket"></a>
+        </div>
+    </div>
+</header>
+<!-- //상단 -->
+<!--s: 메뉴-->
+<div class="menu-popup-wrap">
+    <div class="top-wrap">
+        <div class="item-box left">
+            <!--/if_login/-->
+            <p>
+                <strong>홍길동</strong>님, 반갑습니다
+            </p>
+            <!--/else/-->
+            <a href="<!--/link_login/-->" class="btn-login">
+                로그인
+            </a>
+            <!--/end_if/-->
+        </div>
+        <div class="item-box right">
+            <!--/if_login/-->
+            <a href="<!--/link_logout/-->" class="btn-logout">로그아웃</a>
+            <!--/end_if/-->
+            <button type="button" class="btn-close">
+                <img src="//skin.makeshop.co.kr/skin/onstore/mo/images/ic_menu_close.png" alt="닫기">
+            </button>
+        </div>
+    </div>
+    <div class="contents-wrap">
+        <div class="mypage-wrap">
+            <ul>
+                <li>
+                    <a href="<!--/link_mypage/-->">
+                        <img src="//skin.makeshop.co.kr/skin/onstore/mo/images/ic_my.png" alt="마이페이지">
+                        <span>마이페이지</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="<!--/link_order_list/-->">
+                        <img src="//skin.makeshop.co.kr/skin/onstore/mo/images/ic_credit_card.png" alt="주문조회">
+                        <span>주문조회</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="<!--/link_reserve/-->">
+                        <img src="//skin.makeshop.co.kr/skin/onstore/mo/images/ic_data.png" alt="적립금">
+                        <span>적립금</span>
+                    </a>
+                </li>
+                <li>
+                    <a href="<!--/link_coupon/-->">
+                        <img src="//skin.makeshop.co.kr/skin/onstore/mo/images/ic_ticket.png" alt="쿠폰">
+                        <span>쿠폰</span>
+                    </a>
+                </li>
+            </ul>
+        </div>
+        <div class="container-wrap">
+            <div class="search-wrap">
+                <div class="search">
+                    <div class="searchBox">
+                        <fieldset>
+                            <legend>검색 폼</legend>
+                            <!--/input_search_word(search_auto_completion)/-->
+                        </fieldset>
+                        <div class="search-auto-complete-list"></div>
+                    </div>
+                    <a href="<!--/link_search_button/-->" class="btn_search"><span class="fa fa-search fa-2x"></span></a>
+                </div>
+            </div>
+            <ul class="menu-list-wrap">
+                <!--/loop_category1/-->
+                <li class="menu-1depth">
+                    <!--/if_category1@category2/-->
+                    <a href="#none"><!--/category1@name/--></a>
+                    <ul class="menu-2depth">
+                        <!--/loop_category1@category2/-->
+                        <li>
+                            <a href="<!--/category1@category2@link/-->&viewtype=gallery" class="link"><!--/category1@category2@name/--></a>
+                        </li>
+                        <!--/end_loop/-->
+                    </ul>
+                    <!--/else/-->
+                    <a href="<!--/category1@link/-->" class="link"><!--/category1@name/--></a>
+                    <!--/end_if/-->
+                </li>
+                <!--/end_loop/-->
+            </ul>
+            <ul class="popup-footer-link">
+                <li>
+                    <a href="#none">공지사항</a>
+                </li>
+                <!--/if_link_faq/-->
+                <li><a href="<!--/link_faq/-->">FAQ</a></li>
+                <!--/end_if/-->
+                <!--/if_link_m2m_question/-->
+                <li><a href="<!--/link_m2m_question/-->">1:1 문의</a></li>
+                <!--/end_if/-->
+                <!--/if_link_review/-->
+                <li><a href="<!--/link_review/-->">사용후기 모음</a></li>
+                <!--/end_if/-->
+            </ul>
+        </div>
+
+    </div>
+    <div class="footer-wrap">
+        <a href="#" id="btnCenter" class="btn-center">고객센터 연결</a>
+        <a href="<!--/link_home/-->">홈으로 가기</a>
+    </div>
+</div>
+<!--e: 메뉴-->
+<!-- 카테고리 -->
+<aside>
+    <div class="asideTop">
+        <a href="#" id="category" class="act"><span class="fa fa-bars fa-2x"></span><br/>카테고리</a><a href="#" id="community"><span class="fa fa-pencil fa-2x"></span><br/>커뮤니티</a><!--/if_login/--><a href="#" id="mypage"><span class="fa fa-heart fa-2x"></span><br/>마이페이지</a><!--/end_if/-->
+    </div>
+    <div class="navCategory">
+        <nav>
+            <ul>
+                <!--/loop_category1/-->
+                <!--/if_category1@category2/-->
+                <li>
+                    <a href="<!--/category1@link/-->&viewtype=gallery"><!--/category1@name/--></a><span class="fa fa-angle-down"></span>
+                    <ul>
+                        <!--/loop_category1@category2/-->
+                        <!--/if_category1@category2@category3/-->
+                        <li>
+                            <a href="<!--/category1@category2@link/-->&viewtype=gallery"><!--/category1@category2@name/--></a><span class="fa">+</span>
+                            <ul>
+                                <!--/loop_category1@category2@category3/-->
+                                <li><a href="<!--/category1@category2@category3@link/-->&viewtype=gallery"><!--/category1@category2@category3@name/--></a></li>
+                                <!--/end_loop/-->
+                            </ul>
+                        </li>
+                        <!--/else/-->
+                        <li><a href="<!--/category1@category2@link/-->&viewtype=gallery"><!--/category1@category2@name/--></a></li>
+                        <!--/end_if/-->
+                        <!--/end_loop/-->
+                    </ul>
+                </li>
+                <!--/else/-->
+                <li><a href="<!--/category1@link/-->&viewtype=gallery"><!--/category1@name/--></a></li>
+                <!--/end_if/-->
+                <!--/end_loop/-->
+            </ul>
+        </nav>
+    </div>
+    <div class="navCommunity">
+        <nav>
+            <ul>
+                <!--/if_bigmatch/-->
+                <!--/loop_bigmatch/-->
+                <li><a href="<!--/bigmatch@link/-->"><!--/bigmatch@subject/--></a></li>
+                <!--/end_loop/-->
+                <!--/end_if/-->
+                <!--/if_all_board_list/-->
+                <!--/loop_all_board_list/-->
+                <li><a href="<!--/all_board_list@link/-->"><!--/notag/all_board_list@name/--></a></li>
+                <!--/end_loop/-->
+                <!--/end_if/-->
+                <!--/if_link_review/-->
+                <li><a href="<!--/link_review/-->">사용후기 모음</a></li>
+                <!--/end_if/-->
+                <!--/if_link_faq/-->
+                <li><a href="<!--/link_faq/-->">FAQ</a></li>
+                <!--/end_if/-->
+                <!--/if_not_login/-->
+                <!--/if_link_m2m_question/-->
+                <li><a href="<!--/link_m2m_question/-->">1:1 게시판</a></li>
+                <!--/end_if/-->
+                <!--/end_if/-->
+            </ul>
+        </nav>
+    </div>
+    <!--/if_login/-->
+    <div class="navMypage">
+        <nav>
+            <ul>
+                <li><a href="<!--/link_join_modify/-->">내 정보</a></li>
+                <li><a href="<!--/link_order_list/-->">주문 내역</a></li>
+                <!--/if_link_subs/-->
+                <li><a href="<!--/link_subs/-->">정기배송 관리</a></li>
+                <!--/end_if/-->
+                <!--/if_link_coupon/-->
+                <li><a href="<!--/link_coupon/-->">쿠폰 내역</a></li>
+                <!--/end_if/-->
+                <!--/if_link_reserve/-->
+                <li><a href="<!--/link_reserve/-->">적립금 내역</a></li>
+                <!--/end_if/-->
+                <!--/if_link_money/-->
+                <li><a href="<!--/link_money/-->">예치금 내역</a></li>
+                <!--/end_if/-->
+                <!--/if_link_point/-->
+                <li><a href="<!--/link_point/-->">포인트 내역</a></li>
+                <!--/end_if/-->
+                <!--/if_link_shoppay/-->
+                <li><a href="<!--/link_shoppay/-->"><!--/shoppay_name/--> 관리</a></li>
+                <!--/end_if/-->
+                <!--/if_link_attendance/-->
+                <li><a href="<!--/link_attendance/-->">출석체크</a></li>
+                <!--/end_if/-->
+                <!--/if_link_mypage_attendance/-->
+                <li><a href="<!--/link_mypage_attendance/-->">출석체크 적립금 내역</a></li>
+                <!--/end_if/-->
+                <li><a href="<!--/link_wishlist/-->">관심상품</a></li>
+                <li><a href="<!--/link_mypage_today_product/-->">최근 본 상품</a></li>
+                <!--/if_link_mypage_present/-->
+                <li><a href="<!--/link_mypage_present/-->">선물함</a></li>
+                <!--/end_if/-->
+                <!--/if_link_mypage_soldout/-->
+                <li><a href="<!--/link_mypage_soldout/-->">재입고 신청내역</a></li>
+                <!--/end_if/-->
+                <li><a href="<!--/link_mypage_article/-->">내 게시글</a></li>
+                <!--/if_link_m2m_question/-->
+                <li><a href="<!--/link_m2m_question/-->">1:1 문의</a></li>
+                <!--/end_if/-->
+                <!--/if_link_mypage_place/-->
+                <li><a href="<!--/link_mypage_place/-->">주소록 관리</a></li>
+                <!--/end_if/-->
+                <!--/if_link_withdraw/-->
+                <li><a href="<!--/link_withdraw/-->">회원 탈퇴 신청</a></li>
+                <!--/end_if/-->
+            </ul>
+        </nav>
+    </div>
+    <!--/end_if/-->
+    <div class="asideBottom">
+        <a class="tel" href="tel:<!--/shop_tel/-->"><!--/shop_tel/--> <span class="fa-stack fa-lg"><span class="fa fa-circle fa-stack-2x"></span><span class="fa fa-phone fa-stack-1x fa-inverse"></span></span></a>
+        <p>평일 10:00 ~ 18:00</p>
+        <p>점심 12:00 ~ 13:00</p>
+        <p>주말, 공휴일 휴무</p>
+        <p class="copyright"><!--/shop_name/-->&#169; All rights reserved.</p>
+    </div>
+</aside>
+<!-- //카테고리 -->
+
+<!-- 최근본 상품 -->
+<div id="ly_lastView">
+    <section class="h_layerTitle">
+        <h3>최근 조회하신 상품 목록 <span class="fa fa-times fa-2x"></span></h3>
+    </section>
+    <!--/if_view_product/-->
+    <section class="list_shopping3x">
+        <!--/block_view_product/-->
+        <ul>
+            <!--/loop_view_product_ajax(6)/-->
+            <li>
+                <a href="<!--/view_product_ajax@link/-->">
+                    <figure>
+                        <img src="<!--/view_product_ajax@mobile_image/-->" class="listPic" />
+                        <figcaption class="list_shoppingInfo">
+                            <p class="listName bold"><!--/notag/view_product_ajax@name/--></p>
+                        </figcaption>
+                    </figure>
+                </a>
+            </li>
+            <!--/end_loop/-->
+        </ul>
+        <!--/end_block/-->
+    </section>
+    <!--/else/-->
+    <p class="bold" style="text-align:center;">최근 조회하신 상품이 없습니다.</p>
+    <!--/end_if/-->
+</div>
+<!-- //최근본 상품 -->
+
+<style type="text/css">
+    <!--/if_login/-->
+    aside .asideTop a {width:33.33%;}
+    <!--/else/-->
+    aside .asideTop a {width:50%;}
+    <!--/end_if/-->
+</style>
+
+
+<!-- 고정 버튼  -->
+<div class="floating-wrap">
+    <!--/if_form_smart_finder/-->
+    <div class="floating-btns always-show">
+        <button type="button" class="floating-btn btn-smart-finder"></button>
+    </div>
+    <!--/end_if/-->
+</div>
+<!-- // 고정 버튼  -->
+
+
+<!-- 다찾다 검색 파인더 -->
+<!--/if_form_smart_finder/-->
+<!--/form_smart_finder/-->
+<div class="side-sfinder-wrap">
+    <div class="sfinder-header">
+        <div class="sfider-title">스마트 검색</div>
+        <button type="button" class="side-sfinder-close"></button>
+    </div>
+    <div class="side-sfinder-list">
+        <ul class="option">
+            <!--/loop_smart_finder/-->
+            <li>
+                <div class="option-title on"><!--/smart_finder@title/--></div>
+                <div class="finder-subs">
+                    <div class="<!--/if_smart_finder@class_name/--><!--/smart_finder@class_name/--><!--/else/-->class-none<!--/end_if/-->">
+                        <!--/loop_smart_finder@items(20)/-->
+                            <!--/smart_finder@items@name/-->
+                        <!--/end_loop/-->
+                    </div>
+                </div>
+                <!--/if_smart_finder@is_category/-->
+                <div class="finder-child-category">
+                    <div class="mobile-select-category"></div>
+                    <div class="finder-category2"></div>
+                </div>
+                <!--/end_if/-->
+            </li>
+            <!--/end_loop/-->
+        </ul>
+    </div>
+    <div class="side-sfinder-btns">
+        <a href="#none" class="btn btn-gray btn-lg reset"><span>초기화</span></a>
+        <button type="submit" class="btn btn-primary btn-lg"><span><span class="finder-count"></span>개 상품검색</span></button>
+    </div>
+</div>
+<!--/end_form/-->
+<!--/end_if/-->
+<!-- //다찾다 검색 파인더 -->
+
+<!--위로가기버튼 header.html-->
+<div class="scroll-top-wrap">
+    <button type="button"> <img src="//skin.makeshop.co.kr/skin/onstore/mo/images/ic_scrolltop.png" alt=""></button>
+</div>

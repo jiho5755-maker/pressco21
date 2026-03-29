@@ -1,0 +1,140 @@
+.layer-subs-apply { display: flex; }
+.modal-content { overflow-y: auto; max-height: 80vh; }
+.form-group:not(:first-child) { margin-top: 40px; }
+.form-list { display: flex; flex-direction: column; gap: 6px; padding: 20px 0; border-bottom: 1px solid var(--cw-color-30); }
+.form-list label { font-size: .813rem; }
+.days { display: grid; grid-template-columns: repeat(auto-fit, minmax(0, 1fr)); max-width: 300px; margin-top: 4px; border: 1px solid var(--cw-color-30); border-radius: 4px; }  
+.days a { display: block; text-align: center; height: 40px; line-height: 40px; font-size: .875rem; color: #333; border-left: 1px solid var(--cw-color-30); }
+.days li:first-child a { border-left: none; }
+.days a.on { background: var(--cw-heading-color); color: var(--cw-color-white); }
+.select-date { display: flex; justify-content: space-between; align-items: center; gap: 6px; }
+.select-date select,
+.select-date input { flex: 1; min-width: 110px; }
+.date-input { background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_calendar.svg) no-repeat right 10px center / 16px 16px; }
+.bd-line-0 { border: 0; }
+.pb-10 { padding-bottom: 10px; }
+.delivery-info { display: flex; flex-direction: column; justify-content: space-between; align-items: center; }
+.delivery-info p { font-size: .875rem; }
+.delivery-info p.first-delivery { margin: 0 0 10px; }
+.delivery-info p:last-child { font-size: .813rem; }
+.first-delivery { margin-top: 10px; padding-left: 24px; font-size: .875rem; background: url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_calendar.svg) no-repeat left center / 20px 20px; }
+.first-delivery strong { font-weight: 600; }
+.form-title { margin-bottom: 6px; padding-bottom: 12px; font-size: 1.125rem; font-weight: 700; border-bottom: 1px solid var(--cw-heading-color); }
+.radio-group .label-body { padding-left: 6px; }
+.radio-group .form-check { padding: 10px 0 10px 28px; font-size: .875rem; }
+.radio-group .name { font-size: .875rem; font-weight: 600; }
+.radio-group .desc { color: var(--cw-color-80); font-size: .813rem; }
+
+.layer-subs-apply .form-list select {
+    --cw-line-height: 18px;
+    --cw-font-size: .875rem;
+    padding: 10px 32px 10px 12px;
+    line-height: var(--cw-line-height);
+    color: var(--cw-heading-color);
+    font-size: var(--cw-font-size);
+    border: 1px solid var(--cw-color-30);
+    border-radius: var(--cw-border-radius);
+    -moz-appearance: none;
+    -webkit-appearance: none;
+    appearance: none;
+    background: #fff url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_down.svg) no-repeat right .625rem center;
+    cursor: pointer;
+    background-size: 1.25rem;
+}
+
+.select-date input {
+    --cw-border-radius: 4px;
+    --cw-border-color: var(--cw-color-30);
+    --cw-padding-y: 8px;
+    --cw-padding-x: 12px;
+    --cw-font-size: 14px;
+    --cw-line-height: 22px;
+    padding: var(--cw-padding-y) var(--cw-padding-x);
+    border: 1px solid var(--cw-border-color);
+    border-radius: var(--cw-border-radius);
+    font-size: var(--cw-font-size);
+    font-weight: 400;
+    color: var(--cw-heading-color);
+    line-height: var(--cw-line-height);
+    resize: none;
+}
+.layer-subs-apply input:focus {
+    --cw-border-color: var(--cw-color-50);
+    outline: 0;
+}
+.layer-subs-apply input:disabled {
+    opacity: .8;
+}
+
+.datepickers-container { z-index: 99999; }
+
+.form-check input {
+    float: left;
+    margin-left: -1.75em;
+}
+.form-check input {
+    --bs-form-check-bg: var(--bs-body-bg);
+    flex-shrink: 0;
+    width: 1.25rem;
+    height: 1.25rem;
+    margin-top: 0.1em;
+    vertical-align: top;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    appearance: none;
+    background-color: var(--bs-form-check-bg);
+    background-image: var(--bs-form-check-bg-image);
+    background-repeat: no-repeat;
+    background-position: center;
+    background-size: contain;
+    border: var(--bs-border-width) solid var(--bs-border-color);
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+}
+.form-check input[type=radio] {
+    border-radius: 50%;
+}
+.form-check input:active {
+    filter: brightness(90%);
+}
+.form-check input:focus {
+    /*
+    border-color: #86b7fe;
+    box-shadow: 0 0 0 0.25rem rgba(13, 110, 253, 0.25);
+    */
+    outline: 0;
+}
+.form-check input:checked {
+    background-color: var(--cw-heading-color);
+    border-color: var(--cw-heading-color);
+}
+.form-check input:checked[type=radio] {
+    background-color: #fff;
+    background-size: 10px 10px;
+    --bs-form-check-bg-image: url("//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_radio.svg");
+}
+.form-check input[type=checkbox]:indeterminate {
+    background-color: #0d6efd;
+    border-color: #0d6efd;
+    --bs-form-check-bg-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 20 20'%3e%3cpath fill='none' stroke='%23fff' stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M6 10h8'/%3e%3c/svg%3e");
+}
+.form-check input:disabled {
+    pointer-events: none;
+    filter: none;
+    opacity: 0.5;
+    background-color: #c2c2c2;
+}
+
+
+/* 모바일 */
+@media (max-width: 767.98px) {
+    .form-group:not(:first-child) { margin-top: 28px; }
+    .first-delivery { font-size: .813rem; }
+    .form-title { padding-bottom: 10px; font-size: 1rem; }
+    .radio-group .name { font-size: .813rem; }
+    .radio-group .desc { font-size: .75rem; }
+    .form-group:last-child { padding-bottom: 8px; }
+    .select-date { flex-direction: column; }
+    .select-date > * { width: 100%; }
+    .layer-subs-apply .modal-footer { flex-direction: column; }
+}

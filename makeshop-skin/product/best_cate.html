@@ -1,0 +1,234 @@
+<!--/include_header(1)/-->
+<link rel="stylesheet" href="//skin.makeshop.co.kr/skin/rw_shop/css/cowave-swiper-bundle.css" />
+
+<div class="container full-wrapper">
+    <h2 class="products-title">베스트 카테고리</h2>
+
+    <!--/if_rank_product/-->
+    <div class="rank-wrapper cowave-swiper">
+        <div class="title-btns">
+            <span>판매 순위 상품</span>
+            <div class="rank-btn">
+                <a href="javascript:void(0);" class="prev disable"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_left.svg" alt="이전" /></a>
+                <a href="javascript:void(0);" class="next"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_cheveron_right.svg" alt="다음" /></a>
+            </div>
+        </div>
+        <div class="prds-list gallery cowave-swiper-wrapper">
+            <!--/loop_rank_product(12)/-->
+            <div class="prds-list--item cowave-swiper-slide">
+                <div class="prds--image">
+                    <img src="<!--/rank_product@image_m/-->" alt="판매 순위 상품 이미지" />
+                    <a href="<!--/rank_product@link_wish_toggle/-->" class="ico-wish">
+                        <!--/rank_product@block_btn_wish/--><!--/end_block/-->
+                        <!--/rank_product@block_wish_count/--><!--/number/rank_product@wish_count/--><!--/end_block/-->
+                    </a>
+                </div>
+                <!--/if_rank_product@color/-->
+                <div class="prds--colorchip">
+                    <!--/loop_rank_product@color/-->
+                    <span class="rectangle" style="background: #<!--/rank_product@color@code/-->;" title="<!--/rank_product@color@name/-->"></span>
+                    <!--/end_loop/-->
+                </div>
+                <!--/end_if/-->
+                <div class="prds--name"><!--/rank_product@name/--></div>
+                <!--/if_rank_product@engname/-->
+                <div class="prds--engname"><!--/rank_product@engname/--></div>
+                <!--/end_if/-->
+                <!--/if_rank_product@subname/-->
+                <div class="prds--subname"><!--/rank_product@subname/--></div>
+                <!--/end_if/-->
+                <div class="prds--price-wrap">
+                    <!--/if_rank_product@price_replace/-->
+                        <div class="prices">
+                            <span class="price"><!--/rank_product@price_replace/--></span>
+                        </div>
+                    <!--/else_if_rank_product@is_soldout/-->
+                        <div class="prices">
+                            <span class="price">Sold Out</span>
+                        </div>
+                    <!--/else/-->
+                        <!--/if_rank_product@price_discount/-->
+                        <div class="prices <!--/if_rank_product@discount_percent(+1)/-->prices-grid<!--/end_if/-->">
+                            <span class="price"><strong><!--/number/rank_product@price_discount/--></strong>원</span>
+                            <span class="original"><span><!--/number/rank_product@price_sell/--></span>원</span>
+                            <!--/if_rank_product@discount_percent(+1)/-->
+                            <span class="discount"><!--/rank_product@discount_percent/-->%</span>
+                            <!--/end_if/-->
+                        </div>
+                        <!--/else/-->
+                        <div class="prices <!--/if_rank_product@consumer_discount_rate(+1)/-->prices-grid<!--/end_if/-->">
+                            <span class="price"><strong><!--/number/rank_product@price_sell/--></strong>원</span>
+                            <!--/if_rank_product@price_consumer(+1)/-->
+                            <span class="original"><span><!--/number/rank_product@price_consumer/--></span>원</span>
+                            <!--/end_if/-->
+                            <!--/if_rank_product@consumer_discount_rate(+1)/-->
+                            <span class="discount"><!--/rank_product@consumer_discount_rate/-->%</span>
+                            <!--/end_if/-->
+                        </div>
+                        <!--/end_if/-->
+                    <!--/end_if/-->
+                    <!--/if_rank_product@link_preview/-->
+                    <a href="<!--/rank_product@link_preview/-->" class="preview-btn"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_search.svg" width="20" height="20" alt="상품 미리보기"></a>
+                    <!--/end_if/-->
+                </div>
+                <div class="prds--price-wrap">
+                    <div class="prices in-txt">
+                        <!--/if_rank_product@reserve_price(+1)/-->
+                        <span class="normal-txt">적립금 <!--/number/rank_product@reserve_price/--></span>
+                        <!--/end_if/-->
+                        <!--/if_rank_product@point_price(+1)/-->
+                        <!--/if_rank_product@reserve_price(+1)/--><span class="column-line"></span><!--/end_if/-->
+                        <span class="normal-txt">포인트 <!--/number/rank_product@point_price/--><!--/rank_product@point_unit/--></span>
+                        <!--/end_if/-->
+                    </div>
+                </div>
+                <div class="prds--icons">
+                    <!--/if_rank_product@icons/--><!--/rank_product@icons/--><!--/end_if/--><!-- 모바일 전용 -->
+                    <!--/if_rank_product@subs_icon/--><!--/rank_product@subs_icon/--><!--/end_if/--><!-- 정기배송 -->
+                    <!--/if_rank_product@promotion_icon_mobile/--><!--/rank_product@promotion_icon_mobile/--><!--/end_if/--><!-- 할인프로모션 -->
+                    <!--/if_rank_product@present_icon/--><!--/rank_product@present_icon/--><!--/end_if/--><!-- 선물하기 -->
+                    <!--/if_rank_product@quick_delivery_icon/--><!--/rank_product@quick_delivery_icon/--><!--/end_if/--><!-- 당일 배송 -->
+                </div>
+                <div class="prds--more">
+                    <!--/if_rank_product@link_pop_product_benefit/-->
+                    <a href="<!--/rank_product@link_pop_product_benefit/-->" class="benefit-btn">
+                        <span class="benefit-btn--black">%</span>
+                        <span class="benefit-btn--white">혜택확인</span>
+                    </a>
+                    <!--/end_if/-->
+                </div>
+                <!--/if_rank_product@btn_option_preview/-->
+                <div class="option-detail">
+                    <!--/rank_product@btn_option_preview/-->
+                </div>
+                <!--/end_if/-->
+                <!--/if_rank_product@review_count(+1)/-->
+                <div class="prds--star">
+                    <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_solid_star.svg" width="12" height="12" alt="">
+                    <span class="prds--star-cnt"><!--/number/rank_product@review_count/--></span>
+                </div>
+                <!--/end_if/-->
+                <!--/if_rank_product@ranking/-->
+                <div class="prds--ranking"><!--/rank_product@ranking/--></div>
+                <!--/end_if/-->
+                <a href="<!--/rank_product@link/-->" class="link">상품링크</a>
+            </div>
+            <!--/end_loop/-->
+        </div><!-- .prds-list -->
+        <div class="cowave-swiper-scrollbar rank-scrollbar"></div>
+    </div>
+    <!--/end_if/-->
+
+    <div class="products-wrapper">
+        <!--/if_best_product_001/-->
+        <div class="prds-list gallery">
+            <!--/loop_best_product_001(24)/-->
+            <div class="prds-list--item">
+                <div class="prds--image">
+                    <img src="<!--/best_product_001@image_m/-->" alt="상품 이미지" />
+                    <a href="<!--/best_product_001@link_wish_toggle/-->" class="ico-wish">
+                        <!--/best_product_001@block_btn_wish/--><!--/end_block/-->
+                        <!--/best_product_001@block_wish_count/--><!--/number/best_product_001@wish_count/--><!--/end_block/-->
+                    </a>
+                </div>
+                <!--/if_best_product_001@color/-->
+                <div class="prds--colorchip">
+                    <!--/loop_best_product_001@color/-->
+                    <span class="rectangle" style="background: #<!--/best_product_001@color@code/-->;" title="<!--/best_product_001@color@name/-->"></span>
+                    <!--/end_loop/-->
+                </div>
+                <!--/end_if/-->
+                <div class="prds--name"><!--/best_product_001@name/--></div>
+                <!--/if_best_product_001@engname/-->
+                <div class="prds--engname"><!--/best_product_001@engname/--></div>
+                <!--/end_if/-->
+                <!--/if_best_product_001@subname/-->
+                <div class="prds--subname"><!--/best_product_001@subname/--></div>
+                <!--/end_if/-->
+                <div class="prds--price-wrap">
+                    <!--/if_best_product_001@price_replace/-->
+                        <div class="prices">
+                            <span class="price"><!--/best_product_001@price_replace/--></span>
+                        </div>
+                    <!--/else_if_best_product_001@is_soldout/-->
+                        <div class="prices">
+                            <span class="price">Sold Out</span>
+                        </div>
+                    <!--/else/-->
+                        <!--/if_best_product_001@price_discount/-->
+                        <div class="prices">
+                            <span class="price"><strong><!--/number/best_product_001@price_discount/--></strong>원</span>
+                            <span class="original"><span><!--/number/best_product_001@price_sell/--></span>원</span>
+                            <!--/if_best_product_001@discount_percent(+1)/-->
+                            <span class="discount"><!--/best_product_001@discount_percent/-->%</span>
+                            <!--/end_if/-->
+                        </div>
+                        <!--/else/-->
+                        <div class="prices">
+                            <span class="price"><strong><!--/number/best_product_001@price_sell/--></strong>원</span>
+                            <!--/if_best_product_001@price_consumer(+1)/-->
+                            <span class="original"><span><!--/number/best_product_001@price_consumer/--></span>원</span>
+                            <!--/end_if/-->
+                            <!--/if_best_product_001@consumer_discount_rate(+1)/-->
+                            <span class="discount"><!--/best_product_001@consumer_discount_rate/-->%</span>
+                            <!--/end_if/-->
+                        </div>
+                        <!--/end_if/-->
+                    <!--/end_if/-->
+                    <!--/if_best_product_001@link_preview/-->
+                    <a href="<!--/best_product_001@link_preview/-->" class="preview-btn"><img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_search.svg" width="20" height="20" alt="상품 미리보기"></a>
+                    <!--/end_if/-->
+                </div>
+                <div class="prds--price-wrap">
+                    <div class="prices in-txt">
+                        <!--/if_best_product_001@reserve_price(+1)/-->
+                        <span class="normal-txt">적립금 <!--/number/best_product_001@reserve_price/--></span>
+                        <!--/end_if/-->
+                        <!--/if_best_product_001@point_price(+1)/-->
+                        <!--/if_best_product_001@reserve_price(+1)/--><span class="column-line"></span><!--/end_if/-->
+                        <span class="normal-txt">포인트 <!--/number/best_product_001@point_price/--><!--/best_product_001@point_unit/--></span>
+                        <!--/end_if/-->
+                    </div>
+                </div>
+                <div class="prds--icons">
+                    <!--/if_best_product_001@icons/--><!--/best_product_001@icons/--><!--/end_if/--><!-- 모바일 전용 -->
+                    <!--/if_best_product_001@subs_icon/--><!--/best_product_001@subs_icon/--><!--/end_if/--><!-- 정기배송 -->
+                    <!--/if_best_product_001@promotion_icon_mobile/--><!--/best_product_001@promotion_icon_mobile/--><!--/end_if/--><!-- 할인프로모션 -->
+                    <!--/if_best_product_001@present_icon/--><!--/best_product_001@present_icon/--><!--/end_if/--><!-- 선물하기 -->
+                    <!--/if_best_product_001@quick_delivery_icon/--><!--/best_product_001@quick_delivery_icon/--><!--/end_if/--><!-- 당일배송 -->
+                </div>
+                <div class="prds--more">
+                    <!--/if_best_product_001@link_pop_product_benefit/-->
+                    <a href="<!--/best_product_001@link_pop_product_benefit/-->" class="benefit-btn">
+                        <span class="benefit-btn--black">%</span>
+                        <span class="benefit-btn--white">혜택확인</span>
+                    </a>
+                    <!--/end_if/-->
+                    <!--/if_not_best_product_001@is_soldout/-->
+                    <div class="option-detail">
+                        <!--/best_product_001@btn_option_preview/-->
+                    </div>
+                    <!--/end_if/-->
+                </div>
+                <!--/if_best_product_001@review_count(+1)/-->
+                <div class="prds--star">
+                    <img src="//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_solid_star.svg" width="12" height="12" alt="">
+                    <span class="prds--star-cnt"><!--/number/best_product_001@review_count/--></span>
+                </div>
+                <!--/end_if/-->
+                <!--/if_best_product_001@ranking/-->
+                <div class="prds--ranking"><!--/best_product_001@ranking/--></div>
+                <!--/end_if/-->
+                <a href="<!--/best_product_001@link/-->" class="link">상품링크</a>
+            </div>
+            <!--/end_loop/-->
+        </div><!-- .prds-list -->
+        <!--/else/-->
+            <div class="list-none">상품 준비 중입니다.</div>
+        <!--/end_if/-->
+    </div><!--.products-wrapper-->
+</div>
+
+<script src="//skin.makeshop.co.kr/skin/rw_shop/js/cowave-swiper-bundle.js"></script>
+
+<!--/include_footer(1)/-->

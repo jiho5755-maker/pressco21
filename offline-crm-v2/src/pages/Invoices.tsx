@@ -742,55 +742,59 @@ export function Invoices() {
                   </td>
                   {/* 인라인 액션 버튼 */}
                   <td className="px-2 py-3">
-                    <div className="flex items-center gap-1 justify-end">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        title="수정"
-                        onClick={(e) => { e.stopPropagation(); openEdit(inv.Id) }}
-                      >
-                        <Pencil className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-xs border-[#d8e4d6] text-gray-700 hover:bg-gray-50"
-                        title="거래명세표 인쇄"
-                        onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'invoice') }}
-                      >
-                        <Printer className="h-3.5 w-3.5" />
-                        <span className="ml-1">명세표</span>
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="h-7 px-2 text-xs border-[#d8e4d6] text-[#3d6b4a] hover:bg-[#f5faf4]"
-                        title="견적서 인쇄"
-                        onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'estimate') }}
-                      >
-                        <FileText className="h-3.5 w-3.5" />
-                        <span className="ml-1">견적서</span>
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0"
-                        title="복사"
-                        onClick={(e) => { e.stopPropagation(); openCopy(inv.Id) }}
-                      >
-                        <Copy className="h-3.5 w-3.5" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
-                        title="삭제"
-                        disabled={isDeleting}
-                        onClick={(e) => { e.stopPropagation(); void handleDelete(inv) }}
-                      >
-                        <Trash2 className="h-3.5 w-3.5" />
-                      </Button>
+                    <div className="flex flex-wrap items-center justify-end gap-2">
+                      <div className="flex items-center gap-1 rounded-xl border border-[#d8e4d6] bg-white p-1 shadow-sm">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 border-[#d8e4d6] px-2 text-xs text-gray-700 hover:bg-gray-50"
+                          title="거래명세표 인쇄"
+                          onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'invoice') }}
+                        >
+                          <Printer className="h-3.5 w-3.5" />
+                          <span className="ml-1">명세표</span>
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          className="h-7 border-[#d8e4d6] px-2 text-xs text-[#3d6b4a] hover:bg-[#f5faf4]"
+                          title="견적서 인쇄"
+                          onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'estimate') }}
+                        >
+                          <FileText className="h-3.5 w-3.5" />
+                          <span className="ml-1">견적서</span>
+                        </Button>
+                      </div>
+                      <div className="flex items-center gap-1 rounded-xl bg-gray-50 px-1 py-1">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          title="수정"
+                          onClick={(e) => { e.stopPropagation(); openEdit(inv.Id) }}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0"
+                          title="복사"
+                          onClick={(e) => { e.stopPropagation(); openCopy(inv.Id) }}
+                        >
+                          <Copy className="h-3.5 w-3.5" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-red-400 hover:text-red-600"
+                          title="삭제"
+                          disabled={isDeleting}
+                          onClick={(e) => { e.stopPropagation(); void handleDelete(inv) }}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
                     </div>
                   </td>
                 </tr>

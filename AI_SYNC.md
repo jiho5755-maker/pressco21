@@ -49,16 +49,15 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-29 20:58:00 KST
+- Current Owner: IDLE
+- Mode: —
+- Started At: —
 - Branch: main
-- Working Scope: offline-crm-v2 명세표 작성 화면 상단 정보 밀도 및 품목 입력 UX 개선
-- Active Subdirectory: offline-crm-v2
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
-- offline-crm-v2/src/components/InvoiceDialog.tsx
-- offline-crm-v2/../AI_SYNC.md
+- 없음
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -101,6 +100,7 @@
   - 로컬 브라우저에서 `/invoices?from=2026-03-27&to=2026-03-27` → 첫 행 수정 진입으로 새 상단 레이아웃 확인
   - `npm run build` → passed
   - `npm run test:regression` → 21 passed, 1 skipped
+  - 최종 운영 릴리스: `20260329210010-57b9b1a`
 - offline-crm-v2 견적서 출력 미리보기의 행 높이를 줄여 일반적인 문서 밀도로 정리했다.
   - `src/lib/print.ts`
   - 견적서 품목 테이블의 강제 확장 구조를 없애고, 하단 요약/서명은 `est-footer`로 페이지 하단에 고정했다.

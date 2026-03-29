@@ -490,6 +490,21 @@ export function Invoices() {
     }
   }
 
+  function openTransactionPreview(inv: Invoice) {
+    setSelectedTransaction({
+      source: 'crm',
+      recordId: inv.Id,
+      date: inv.invoice_date?.slice(0, 10) ?? '',
+      customerName: inv.customer_name ?? '',
+      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+      txType: '출고',
+      amount: inv.total_amount ?? 0,
+      tax: inv.tax_amount ?? 0,
+      slipNo: inv.invoice_no,
+      memo: getDisplayMemo(inv.memo as string | undefined),
+    })
+  }
+
   return (
     <div className="p-6">
       {/* 헤더 */}
@@ -656,8 +671,154 @@ export function Invoices() {
         )}
       </div>
 
+      <div className="space-y-4 md:hidden">
+        {isLoading && (
+          <div className="rounded-lg border bg-white px-4 py-12 text-center text-muted-foreground">
+            불러오는 중...
+          </div>
+        )}
+        {isError && (
+          <div className="rounded-lg border bg-white px-4 py-12 text-center text-red-500">
+            데이터를 불러오지 못했습니다.
+          </div>
+        )}
+        {!isLoading && !isError && invoices.length === 0 && (
+          <div className="rounded-lg border bg-white px-4 py-12 text-center text-muted-foreground">
+            발행된 명세표가 없습니다. 새 명세표를 만들어보세요.
+          </div>
+        )}
+        {!isLoading && !isError && invoices.map((inv) => {
+          const st = STATUS_LABEL[inv.payment_status ?? '']
+          const isDeleting = deletingId === inv.Id
+          const outstandingAmount = getOutstandingAmount(inv)
+          const linkedCustomer = typeof inv.customer_id === 'number' ? customerById.get(inv.customer_id) : undefined
+          const invoiceName = inv.customer_name?.trim()
+          const masterName = linkedCustomer?.name?.trim()
+          const masterBookName = linkedCustomer?.book_name?.trim()
+
+          return (
+            <div key={inv.Id} className="rounded-xl border bg-white p-4 shadow-sm">
+              <button
+                type="button"
+                className="w-full text-left"
+                onClick={() => openTransactionPreview(inv)}
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="font-medium text-foreground">{inv.customer_name ?? '-'}</div>
+                    <div className="mt-1 truncate font-mono text-[11px] text-muted-foreground">{inv.invoice_no ?? '-'}</div>
+                  </div>
+                  <div className="text-right text-xs text-muted-foreground">
+                    <div>{inv.invoice_date?.slice(0, 10) ?? '-'}</div>
+                    <div className="mt-1 font-semibold text-foreground">{formatAmount(inv.total_amount)}</div>
+                  </div>
+                </div>
+                {typeof inv.customer_id === 'number' && inv.customer_id > 0 && !linkedCustomer ? (
+                  <div className="mt-2 text-xs text-amber-700">고객관리 연결 없음 · 분리 거래명 유지</div>
+                ) : null}
+                {linkedCustomer && invoiceName && invoiceName !== masterName && invoiceName !== masterBookName ? (
+                  <div className="mt-2 text-xs text-amber-700">고객관리: {masterName || '-'} · 분리 거래명 유지</div>
+                ) : null}
+                {linkedCustomer && masterBookName && masterBookName !== masterName && invoiceName === masterBookName ? (
+                  <div className="mt-2 text-xs text-muted-foreground">얼마에요 구분명 기준</div>
+                ) : null}
+              </button>
+
+              <div className="mt-3 grid gap-2 rounded-lg bg-[#f8faf7] p-3 text-xs sm:grid-cols-2">
+                <div>
+                  <div className="text-muted-foreground">공급가액</div>
+                  <div className="mt-1 font-medium text-foreground">{formatAmount(inv.supply_amount)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">세액</div>
+                  <div className="mt-1 font-medium text-foreground">{formatAmount(inv.tax_amount)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">입금액</div>
+                  <div className="mt-1 font-medium text-foreground">{formatAmount(inv.paid_amount && inv.paid_amount > 0 ? inv.paid_amount : null)}</div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">잔액</div>
+                  <div className="mt-1 font-medium text-foreground">{formatAmount(outstandingAmount)}</div>
+                </div>
+              </div>
+
+              <div className="mt-3 flex items-center justify-between gap-3">
+                {st ? (
+                  <span className={`rounded-full bg-muted px-2.5 py-1 text-xs font-medium ${st.cls}`}>{st.label}</span>
+                ) : (
+                  <span className="text-xs text-muted-foreground">수금 상태 없음</span>
+                )}
+              </div>
+
+              <div className="mt-3 grid gap-2">
+                <div className="rounded-xl border border-[#d8e4d6] bg-white p-2 shadow-sm">
+                  <div className="mb-2 text-[11px] font-medium text-[#5a7353]">출력</div>
+                  <div className="grid grid-cols-2 gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-[#d8e4d6] text-xs text-gray-700 hover:bg-gray-50"
+                      title="거래명세표 인쇄"
+                      onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'invoice') }}
+                    >
+                      <Printer className="h-3.5 w-3.5" />
+                      <span className="ml-1">명세표</span>
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      className="h-8 border-[#d8e4d6] text-xs text-[#3d6b4a] hover:bg-[#f5faf4]"
+                      title="견적서 인쇄"
+                      onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'estimate') }}
+                    >
+                      <FileText className="h-3.5 w-3.5" />
+                      <span className="ml-1">견적서</span>
+                    </Button>
+                  </div>
+                </div>
+
+                <div className="rounded-xl bg-gray-50 p-2">
+                  <div className="mb-2 text-[11px] font-medium text-muted-foreground">관리</div>
+                  <div className="grid grid-cols-3 gap-2">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 justify-center"
+                      title="수정"
+                      onClick={(e) => { e.stopPropagation(); openEdit(inv.Id) }}
+                    >
+                      <Pencil className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 justify-center"
+                      title="복사"
+                      onClick={(e) => { e.stopPropagation(); openCopy(inv.Id) }}
+                    >
+                      <Copy className="h-3.5 w-3.5" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 justify-center text-red-400 hover:text-red-600"
+                      title="삭제"
+                      disabled={isDeleting}
+                      onClick={(e) => { e.stopPropagation(); void handleDelete(inv) }}
+                    >
+                      <Trash2 className="h-3.5 w-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+
       {/* 테이블 */}
-      <div className="rounded-lg border bg-white overflow-hidden">
+      <div className="hidden overflow-x-auto rounded-lg border bg-white md:block">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-gray-50">
@@ -701,18 +862,7 @@ export function Invoices() {
                 >
                   <td
                     className="px-4 py-3 align-top cursor-pointer"
-                    onClick={() => setSelectedTransaction({
-                      source: 'crm',
-                      recordId: inv.Id,
-                      date: inv.invoice_date?.slice(0, 10) ?? '',
-                      customerName: inv.customer_name ?? '',
-                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
-                      txType: '출고',
-                      amount: inv.total_amount ?? 0,
-                      tax: inv.tax_amount ?? 0,
-                      slipNo: inv.invoice_no,
-                      memo: getDisplayMemo(inv.memo as string | undefined),
-                    })}
+                    onClick={() => openTransactionPreview(inv)}
                   >
                     <div className="font-mono text-xs text-muted-foreground">{inv.invoice_no ?? '-'}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
@@ -721,18 +871,7 @@ export function Invoices() {
                   </td>
                   <td
                     className="px-4 py-3 align-top font-medium cursor-pointer"
-                    onClick={() => setSelectedTransaction({
-                      source: 'crm',
-                      recordId: inv.Id,
-                      date: inv.invoice_date?.slice(0, 10) ?? '',
-                      customerName: inv.customer_name ?? '',
-                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
-                      txType: '출고',
-                      amount: inv.total_amount ?? 0,
-                      tax: inv.tax_amount ?? 0,
-                      slipNo: inv.invoice_no,
-                      memo: getDisplayMemo(inv.memo as string | undefined),
-                    })}
+                    onClick={() => openTransactionPreview(inv)}
                   >
                     <div className="font-medium">{inv.customer_name ?? '-'}</div>
                     {(() => {
@@ -754,18 +893,7 @@ export function Invoices() {
                   </td>
                   <td
                     className="px-4 py-3 align-top text-right cursor-pointer"
-                    onClick={() => setSelectedTransaction({
-                      source: 'crm',
-                      recordId: inv.Id,
-                      date: inv.invoice_date?.slice(0, 10) ?? '',
-                      customerName: inv.customer_name ?? '',
-                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
-                      txType: '출고',
-                      amount: inv.total_amount ?? 0,
-                      tax: inv.tax_amount ?? 0,
-                      slipNo: inv.invoice_no,
-                      memo: getDisplayMemo(inv.memo as string | undefined),
-                    })}
+                    onClick={() => openTransactionPreview(inv)}
                   >
                     <div className="font-semibold text-foreground">{formatAmount(inv.total_amount)}</div>
                     <div className="mt-1 text-xs text-muted-foreground">
@@ -777,18 +905,7 @@ export function Invoices() {
                   </td>
                   <td
                     className="px-4 py-3 align-top cursor-pointer"
-                    onClick={() => setSelectedTransaction({
-                      source: 'crm',
-                      recordId: inv.Id,
-                      date: inv.invoice_date?.slice(0, 10) ?? '',
-                      customerName: inv.customer_name ?? '',
-                      customerId: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
-                      txType: '출고',
-                      amount: inv.total_amount ?? 0,
-                      tax: inv.tax_amount ?? 0,
-                      slipNo: inv.invoice_no,
-                      memo: getDisplayMemo(inv.memo as string | undefined),
-                    })}
+                    onClick={() => openTransactionPreview(inv)}
                   >
                     <div className="flex items-center gap-2">
                       {st ? (

@@ -524,54 +524,140 @@ export function Calendar() {
             <>
               <Card className="shadow-none">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold">{selectedDate} 실행 요약</CardTitle>
+                  <CardTitle className="text-sm font-semibold">{selectedDate} 빠른 확인</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">발행 건수</span>
-                    <span className="font-medium">{selectedSummary?.count ?? 0}건</span>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-2 sm:grid-cols-3">
+                    <div className="rounded-lg border bg-[#fcfcfb] px-3 py-3">
+                      <div className="text-xs text-muted-foreground">발행 건수</div>
+                      <div className="mt-1 text-sm font-semibold text-foreground">{selectedSummary?.count ?? 0}건</div>
+                    </div>
+                    <div className="rounded-lg border bg-[#fcfcfb] px-3 py-3">
+                      <div className="text-xs text-muted-foreground">총 매출</div>
+                      <div className="mt-1 text-sm font-semibold text-[#3d6b4a]">{(selectedSummary?.total ?? 0).toLocaleString()}원</div>
+                    </div>
+                    <div className="rounded-lg border bg-[#fcfcfb] px-3 py-3">
+                      <div className="text-xs text-muted-foreground">미수 명세표</div>
+                      <div className={`mt-1 text-sm font-semibold ${(selectedSummary?.unpaidCount ?? 0) > 0 ? 'text-red-500' : 'text-foreground'}`}>
+                        {selectedSummary?.unpaidCount ?? 0}건
+                      </div>
+                    </div>
                   </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">총 매출</span>
-                    <span className="font-semibold text-[#3d6b4a]">{(selectedSummary?.total ?? 0).toLocaleString()}원</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">미수 명세표</span>
-                    <span className={`font-medium ${(selectedSummary?.unpaidCount ?? 0) > 0 ? 'text-red-500' : ''}`}>
-                      {selectedSummary?.unpaidCount ?? 0}건
-                    </span>
+                  <div className="space-y-2">
+                    <p className="text-xs font-medium text-muted-foreground">바로 실행</p>
+                    <div className="grid grid-cols-1 gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="justify-start"
+                        onClick={() => navigate(`/invoices?date=${selectedDate}`)}
+                      >
+                        당일 명세표 보기
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="justify-start"
+                        onClick={() => navigate(`/receivables?asOf=${selectedDate}`)}
+                      >
+                        기준일 미수 보기
+                      </Button>
+                      <Button
+                        size="sm"
+                        className="justify-start bg-[#7d9675] text-white hover:bg-[#6a8462]"
+                        onClick={() => navigate(`/invoices?date=${selectedDate}&new=1`)}
+                      >
+                        이 날짜로 새 명세표 발행
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
 
               <Card className="shadow-none">
                 <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold">바로 실행</CardTitle>
+                  <CardTitle className="text-sm font-semibold">후속 확인</CardTitle>
                 </CardHeader>
-                <CardContent className="grid grid-cols-1 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="justify-start"
-                    onClick={() => navigate(`/invoices?date=${selectedDate}`)}
-                  >
-                    당일 명세표 보기
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="justify-start"
-                    onClick={() => navigate(`/receivables?asOf=${selectedDate}`)}
-                  >
-                    기준일 미수 보기
-                  </Button>
-                  <Button
-                    size="sm"
-                    className="justify-start bg-[#7d9675] text-white hover:bg-[#6a8462]"
-                    onClick={() => navigate(`/invoices?date=${selectedDate}&new=1`)}
-                  >
-                    이 날짜로 새 명세표 발행
-                  </Button>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-muted-foreground">기준일 미수 후속</p>
+                      {!actionPanelLoading && (
+                        <span className="text-xs text-muted-foreground">{selectedReceivables.length}건</span>
+                      )}
+                    </div>
+                    {actionPanelLoading ? (
+                      <p className="text-sm text-muted-foreground">후속 대상을 계산하는 중입니다.</p>
+                    ) : selectedReceivables.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">이 날짜 기준으로 남아 있는 미수 명세표가 없습니다.</p>
+                    ) : (
+                      selectedReceivables.slice(0, 3).map((invoice) => (
+                        <button
+                          key={`receivable-${invoice.Id}`}
+                          type="button"
+                          className="w-full rounded-md border px-3 py-2 text-left transition-colors hover:border-[#7d9675]"
+                          onClick={() => navigate(`/receivables?asOf=${selectedDate}`)}
+                        >
+                          <div className="flex items-start justify-between gap-2 text-xs">
+                            <div>
+                              <div className="font-medium text-sm">{invoice.customer_name || '거래처 미지정'}</div>
+                              <div className="mt-0.5 text-muted-foreground">
+                                {invoice.invoice_date?.slice(0, 10) || '-'} · {invoice.ageDays}일 경과
+                              </div>
+                            </div>
+                            <div className="text-right">
+                              <div className="font-semibold text-red-600">{invoice.remainingAmount.toLocaleString()}원</div>
+                              <div className="mt-0.5 text-muted-foreground">
+                                {invoice.paymentStatusAsOf === 'partial' ? '부분수금' : '미수금'} · {invoice.invoice_no?.slice(-8) || '-'}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="space-y-2 border-t pt-4">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-muted-foreground">현재 기준 재방문 추천</p>
+                      {!actionPanelLoading && (
+                        <span className="text-xs text-muted-foreground">{currentRevisitTargets.length}건</span>
+                      )}
+                    </div>
+                    {actionPanelLoading ? (
+                      <p className="text-sm text-muted-foreground">재방문 대상을 계산하는 중입니다.</p>
+                    ) : currentRevisitTargets.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">현재 기준으로 바로 연락할 재방문 대상이 없습니다.</p>
+                    ) : (
+                      currentRevisitTargets.slice(0, 3).map((customer) => (
+                        <button
+                          key={`revisit-${customer.Id ?? customer.name}`}
+                          type="button"
+                          className="w-full rounded-md border px-3 py-2 text-left transition-colors hover:border-[#7d9675]"
+                          onClick={() => {
+                            if (customer.Id) navigate(`/customers/${customer.Id}`)
+                          }}
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <div>
+                              <div className="font-medium text-sm">{customer.name}</div>
+                              <div className="mt-0.5 text-xs text-muted-foreground">
+                                {customer.phone || '연락처 없음'}
+                              </div>
+                            </div>
+                            <div className="text-right text-xs">
+                              <div className="font-medium">{customer.gapDays}일 무주문</div>
+                              <div className={`mt-0.5 ${(customer.outstanding_balance ?? 0) > 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
+                                {(customer.outstanding_balance ?? 0) > 0
+                                  ? `미수 ${(customer.outstanding_balance ?? 0).toLocaleString()}원`
+                                  : (customer.last_order_date?.slice(0, 10) ?? '-')}
+                              </div>
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
                 </CardContent>
               </Card>
 
@@ -579,7 +665,15 @@ export function Calendar() {
                 <CardHeader className="pb-2">
                   <CardTitle className="text-sm font-semibold">당일 명세표</CardTitle>
                 </CardHeader>
-                <CardContent className="space-y-2">
+                <CardContent className="grid grid-cols-1 gap-2">
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="justify-start px-0 text-xs text-muted-foreground"
+                    disabled
+                  >
+                    날짜를 클릭하면 당일 명세표와 기준일 미수, 재방문 대상을 함께 확인할 수 있습니다.
+                  </Button>
                   {selectedInvoices.length === 0 ? (
                     <p className="text-sm text-muted-foreground">이날 발행된 명세표가 없습니다.</p>
                   ) : (
@@ -590,89 +684,6 @@ export function Calendar() {
                 </CardContent>
               </Card>
 
-              <Card className="shadow-none">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold">기준일 미수 후속</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {actionPanelLoading ? (
-                    <p className="text-sm text-muted-foreground">후속 대상을 계산하는 중입니다.</p>
-                  ) : selectedReceivables.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">이 날짜 기준으로 남아 있는 미수 명세표가 없습니다.</p>
-                  ) : (
-                    selectedReceivables.map((invoice) => (
-                      <button
-                        key={`receivable-${invoice.Id}`}
-                        type="button"
-                        className="w-full rounded-md border px-3 py-2 text-left transition-colors hover:border-[#7d9675]"
-                        onClick={() => navigate(`/receivables?asOf=${selectedDate}`)}
-                      >
-                        <div className="flex items-start justify-between gap-2 text-xs">
-                          <div>
-                            <div className="font-medium text-sm">{invoice.customer_name || '거래처 미지정'}</div>
-                            <div className="mt-0.5 text-muted-foreground">
-                              {invoice.invoice_date?.slice(0, 10) || '-'} · {invoice.ageDays}일 경과
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <div className="font-semibold text-red-600">{invoice.remainingAmount.toLocaleString()}원</div>
-                            <div className="mt-0.5 text-muted-foreground">
-                              {invoice.paymentStatusAsOf === 'partial' ? '부분수금' : '미수금'} · {invoice.invoice_no?.slice(-8) || '-'}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-
-              <Card className="shadow-none">
-                <CardHeader className="pb-2">
-                  <CardTitle className="text-sm font-semibold">현재 기준 재방문 추천</CardTitle>
-                </CardHeader>
-                <CardContent className="space-y-2">
-                  {actionPanelLoading ? (
-                    <p className="text-sm text-muted-foreground">재방문 대상을 계산하는 중입니다.</p>
-                  ) : currentRevisitTargets.length === 0 ? (
-                    <p className="text-sm text-muted-foreground">현재 기준으로 바로 연락할 재방문 대상이 없습니다.</p>
-                  ) : (
-                    currentRevisitTargets.map((customer) => (
-                      <button
-                        key={`revisit-${customer.Id ?? customer.name}`}
-                        type="button"
-                        className="w-full rounded-md border px-3 py-2 text-left transition-colors hover:border-[#7d9675]"
-                        onClick={() => {
-                          if (customer.Id) navigate(`/customers/${customer.Id}`)
-                        }}
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <div>
-                            <div className="font-medium text-sm">{customer.name}</div>
-                            <div className="mt-0.5 text-xs text-muted-foreground">
-                              {customer.phone || '연락처 없음'}
-                            </div>
-                          </div>
-                          <div className="text-right text-xs">
-                            <div className="font-medium">{customer.gapDays}일 무주문</div>
-                            <div className={`mt-0.5 ${(customer.outstanding_balance ?? 0) > 0 ? 'text-red-500' : 'text-muted-foreground'}`}>
-                              {(customer.outstanding_balance ?? 0) > 0
-                                ? `미수 ${(customer.outstanding_balance ?? 0).toLocaleString()}원`
-                                : (customer.last_order_date?.slice(0, 10) ?? '-')}
-                            </div>
-                          </div>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </CardContent>
-              </Card>
-
-              <div className="space-y-2">
-                <p className="text-xs text-muted-foreground px-1">
-                  날짜를 클릭하면 당일 명세표와 기준일 미수, 재방문 대상을 함께 확인할 수 있습니다.
-                </p>
-              </div>
             </>
           ) : (
             <>

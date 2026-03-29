@@ -773,8 +773,89 @@ export function Transactions() {
         </div>
       )}
 
+      {/* 모바일 카드 */}
+      <div className="space-y-3 lg:hidden" data-guide-id="transactions-table">
+        {isLoading && (
+          <div className="rounded-lg border bg-white px-4 py-12 text-center text-muted-foreground">
+            불러오는 중...
+          </div>
+        )}
+        {isError && (
+          <div className="rounded-lg border bg-white px-4 py-12 text-center text-red-500">
+            데이터를 불러오지 못했습니다.
+          </div>
+        )}
+        {!isLoading && !isError && rows.length === 0 && (
+          <div className="rounded-lg border bg-white px-4 py-12 text-center text-muted-foreground">
+            조건에 맞는 거래내역이 없습니다. 검색어나 필터를 변경해보세요.
+          </div>
+        )}
+        {!isLoading && !isError && rows.map((row) => {
+          const style = TX_TYPE_STYLE[row.tx_type] ?? { bg: '#f1f5f9', text: '#64748b' }
+          return (
+            <button
+              key={row.id}
+              type="button"
+              className={`w-full rounded-xl border bg-white p-4 text-left shadow-sm transition-colors hover:border-[#7d9675] ${
+                row.source === 'crm' ? 'bg-indigo-50/20' : ''
+              }`}
+              onClick={() => setSelectedTransaction({
+                source: row.source,
+                recordId: row.recordId,
+                customerId: row.customer_id,
+                date: row.tx_date.slice(0, 10),
+                customerName: row.customer_name,
+                legacyBookId: row.legacy_book_id,
+                txType: row.tx_type,
+                amount: row.amount,
+                tax: row.tax,
+                slipNo: row.slip_no,
+                memo: row.memo,
+              })}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <div className="text-xs text-muted-foreground">{row.tx_date.slice(0, 10) || '-'}</div>
+                  <div className="mt-1 truncate text-sm font-semibold text-foreground">{row.customer_name || '-'}</div>
+                </div>
+                <div className="text-right">
+                  {row.tx_type && (
+                    <span
+                      className="inline-flex items-center rounded px-2 py-0.5 text-[11px] font-medium"
+                      style={{ backgroundColor: style.bg, color: style.text }}
+                    >
+                      {row.tx_type}
+                    </span>
+                  )}
+                  <div className="mt-1 text-sm font-semibold text-foreground">
+                    {row.amount > 0 ? `${row.amount.toLocaleString()}원` : '-'}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-3 rounded-lg bg-[#f8faf7] p-3 text-[11px]">
+                <div>
+                  <div className="text-muted-foreground">세액</div>
+                  <div className="mt-1 font-medium text-foreground">
+                    {row.tax > 0 ? `${row.tax.toLocaleString()}원` : '-'}
+                  </div>
+                </div>
+                <div>
+                  <div className="text-muted-foreground">전표/발행번호</div>
+                  <div className="mt-1 truncate font-mono text-foreground">
+                    {row.slip_no || '-'}
+                  </div>
+                </div>
+              </div>
+              <div className="mt-3 text-xs text-muted-foreground">
+                {row.memo || '비고 없음'}
+              </div>
+            </button>
+          )
+        })}
+      </div>
+
       {/* 테이블 */}
-      <div className="rounded-lg border bg-white overflow-hidden" data-guide-id="transactions-table">
+      <div className="hidden overflow-hidden rounded-lg border bg-white lg:block" data-guide-id="transactions-table">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b bg-gray-50">

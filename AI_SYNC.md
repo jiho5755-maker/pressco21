@@ -49,16 +49,15 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-29 21:02:00 KST
+- Current Owner: IDLE
+- Mode: —
+- Started At: —
 - Branch: main
-- Working Scope: offline-crm-v2 명세표 작성 화면 입금/잔액 블록 UX 개선
-- Active Subdirectory: offline-crm-v2
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
-- offline-crm-v2/src/components/InvoiceDialog.tsx
-- offline-crm-v2/../AI_SYNC.md
+- 없음
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -100,6 +99,7 @@
   - 로컬 브라우저에서 `/invoices?from=2026-03-27&to=2026-03-27` → 수정 다이얼로그 하단 블록 확인
   - `npm run build` → passed
   - `npm run test:regression` → 21 passed, 1 skipped
+  - 최종 운영 릴리스: `20260329210511-0109497`
 - offline-crm-v2 명세표 작성 다이얼로그 상단 UX를 입력 순서 기준으로 정리했다.
   - `src/components/InvoiceDialog.tsx`
   - 다이얼로그를 `헤더 고정 + 본문 스크롤` 구조로 바꿔 상단과 본문 경계를 분명히 했다.

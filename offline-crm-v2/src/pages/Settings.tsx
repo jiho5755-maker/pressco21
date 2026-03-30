@@ -105,15 +105,6 @@ function toServerPayload(data: SettingsData): Partial<CrmSettings> {
   }
 }
 
-function SectionTitle({ children }: { children: React.ReactNode }) {
-  return (
-    <div className="mb-4">
-      <h3 className="text-base font-semibold text-gray-800">{children}</h3>
-      <Separator className="mt-2" />
-    </div>
-  )
-}
-
 function Field({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) {
   return (
     <div className="space-y-1">
@@ -121,6 +112,29 @@ function Field({ label, hint, children }: { label: string; hint?: string; childr
       {hint && <p className="text-xs text-muted-foreground">{hint}</p>}
       {children}
     </div>
+  )
+}
+
+function SettingsSection({
+  id,
+  title,
+  description,
+  children,
+}: {
+  id: string
+  title: string
+  description?: string
+  children: React.ReactNode
+}) {
+  return (
+    <section id={id} className="rounded-xl border bg-white p-5 shadow-sm">
+      <div className="mb-5">
+        <h3 className="text-base font-semibold text-gray-900">{title}</h3>
+        {description ? <p className="mt-1 text-xs text-muted-foreground">{description}</p> : null}
+        <Separator className="mt-3" />
+      </div>
+      {children}
+    </section>
   )
 }
 
@@ -266,35 +280,77 @@ export function Settings() {
     error: '서버 연결 실패',
   }
 
+  const currentOperatorLabel = (() => {
+    const activeId = data.active_operator_profile_id ?? 'operator-1'
+    if (activeId === 'operator-2') {
+      return `${(data.operator_profile_2_label ?? '').trim() || '계정 2'} / ${(data.operator_profile_2_name ?? '').trim() || '기록명 미설정'}`
+    }
+    return `${(data.operator_profile_1_label ?? '').trim() || '계정 1'} / ${(data.operator_profile_1_name ?? data.legacy_settlement_operator ?? '').trim() || '기록명 미설정'}`
+  })()
+
+  const autoDepositSourceLabel =
+    data.auto_deposit_source === 'review_only'
+      ? '검토 전용 연결'
+      : data.auto_deposit_source === 'email_secure_mail'
+        ? 'Gmail 보안메일 연동'
+        : data.auto_deposit_source === 'bank_api'
+          ? '은행 API 연동'
+          : '수동 파일 업로드'
+
   return (
-    <div className="p-6 max-w-2xl">
-      <div className="flex items-center justify-between mb-6">
+    <div className="max-w-6xl p-6">
+      <div className="mb-6 flex flex-col gap-4 rounded-xl border bg-white p-4 shadow-sm lg:flex-row lg:items-start lg:justify-between">
         <div>
           <h2 className="text-2xl font-bold">설정</h2>
-          <div className="flex items-center gap-2 mt-1">
+          <div className="mt-1 flex items-center gap-2">
             <p className="text-sm text-muted-foreground">거래명세표 및 시스템 환경을 설정합니다</p>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
               <SyncIcon />
               {syncLabel[syncStatus]}
             </span>
           </div>
+          <p className="mt-2 text-xs text-muted-foreground">
+            공급자 정보, 인쇄물, 작업 계정, 자동입금 기준을 여기서 한 번에 관리합니다.
+          </p>
         </div>
-        <Button
-          onClick={handleSave}
-          disabled={syncStatus === 'saving'}
-          className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
-        >
-          {syncStatus === 'saving' ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
-          저장
-        </Button>
+        <div className="flex flex-wrap items-center gap-2">
+          <a href="#company-info" className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">공급자 정보</a>
+          <a href="#print-settings" className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">인쇄 설정</a>
+          <a href="#system-settings" className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">시스템 설정</a>
+          <a href="#auto-deposit" className="rounded-full bg-muted px-3 py-1 text-xs text-muted-foreground">자동입금 준비</a>
+          <Button
+            onClick={handleSave}
+            disabled={syncStatus === 'saving'}
+            className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
+          >
+            {syncStatus === 'saving' ? <Loader2 className="mr-1 h-4 w-4 animate-spin" /> : null}
+            저장
+          </Button>
+        </div>
+      </div>
+
+      <div className="mb-6 grid gap-4 md:grid-cols-3">
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">서버 동기화 상태</p>
+          <div className="mt-2 flex items-center gap-2">
+            <SyncIcon />
+            <p className="text-sm font-semibold">{syncLabel[syncStatus]}</p>
+          </div>
+        </div>
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">현재 작업 계정</p>
+          <p className="mt-2 text-sm font-semibold text-gray-900">{currentOperatorLabel}</p>
+        </div>
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <p className="text-xs text-muted-foreground">자동입금 수집 방식</p>
+          <p className="mt-2 text-sm font-semibold text-gray-900">{autoDepositSourceLabel}</p>
+        </div>
       </div>
 
       <div className="space-y-8">
         {/* ─── 섹션 1: 공급자 정보 ─── */}
-        <section>
-          <SectionTitle>공급자 정보</SectionTitle>
-          <p className="text-xs text-muted-foreground mb-4">거래명세표 상단에 표시됩니다</p>
-          <div className="grid grid-cols-2 gap-4">
+        <SettingsSection id="company-info" title="공급자 정보" description="거래명세표와 견적서 상단에 표시됩니다.">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Field label="상호">
               <Input
                 value={data.company ?? ''}
@@ -352,12 +408,11 @@ export function Settings() {
               />
             </Field>
           </div>
-        </section>
+        </SettingsSection>
 
         {/* ─── 섹션 2: 인쇄 설정 ─── */}
-        <section>
-          <SectionTitle>인쇄 설정</SectionTitle>
-          <div className="grid grid-cols-2 gap-6">
+        <SettingsSection id="print-settings" title="인쇄 설정" description="로고, 도장, 머릿글, 꼬릿글을 인쇄물에 반영합니다.">
+          <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <Field label="로고 이미지" hint="좌상단에 표시됩니다">
               <div className="space-y-2">
                 {logoPreview && (
@@ -409,13 +464,11 @@ export function Settings() {
               />
             </Field>
           </div>
-        </section>
+        </SettingsSection>
 
         {/* ─── 섹션 3: 입금 계좌 ─── */}
-        <section>
-          <SectionTitle>입금 계좌</SectionTitle>
-          <p className="text-xs text-muted-foreground mb-4">명세표 하단에 자동 표시됩니다</p>
-          <div className="grid grid-cols-3 gap-4">
+        <SettingsSection id="bank-info" title="입금 계좌" description="명세표 하단에 자동 표시됩니다.">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Field label="은행명">
               <Input
                 value={data.bank_name ?? ''}
@@ -438,11 +491,10 @@ export function Settings() {
               />
             </Field>
           </div>
-        </section>
+        </SettingsSection>
 
         {/* ─── 섹션 4: 시스템 설정 ─── */}
-        <section>
-          <SectionTitle>시스템 설정</SectionTitle>
+        <SettingsSection id="system-settings" title="시스템 설정" description="작업 계정, 기본 과세, 화면 가이드 기본 동작을 설정합니다.">
           <div className="space-y-4">
             <Field label="기본 기록명" hint="작업 계정 기록명이 비어 있을 때만 사용하는 하위 호환 기본값입니다.">
               <Input
@@ -451,7 +503,7 @@ export function Settings() {
                 placeholder="예: 공용 담당자"
               />
             </Field>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
               <Field label="작업 계정 1 표시명" hint="로그와 사이드바에 보이는 계정 이름입니다.">
                 <Input
                   value={data.operator_profile_1_label ?? ''}
@@ -549,15 +601,11 @@ export function Settings() {
               </Button>
             </div>
           </div>
-        </section>
+        </SettingsSection>
 
         {/* ─── 섹션 5: 단가등급 할인율 ─── */}
-        <section>
-          <SectionTitle>단가등급 할인율</SectionTitle>
-          <p className="text-xs text-muted-foreground mb-4">
-            소매가(price1) 대비 할인율. 제품 등록 시 소매가 입력 후 "할인율 자동계산" 버튼으로 적용됩니다.
-          </p>
-          <div className="grid grid-cols-2 gap-4">
+        <SettingsSection id="price-rates" title="단가등급 할인율" description='소매가(price1) 대비 할인율입니다. 제품 등록 시 "할인율 자동계산"에 사용됩니다.'>
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             {([
               { key: 'price2_rate' as const, label: '강사우대가 (뿌리/INSTRUCTOR)', defaultVal: 5 },
               { key: 'price3_rate' as const, label: '파트너도매가 (꽃밭/PARTNERS)', defaultVal: 12 },
@@ -581,16 +629,12 @@ export function Settings() {
               </Field>
             ))}
           </div>
-        </section>
+        </SettingsSection>
 
         {/* ─── 섹션 6: 자동입금 준비 ─── */}
-        <section>
-          <SectionTitle>자동입금 준비</SectionTitle>
-          <p className="text-xs text-muted-foreground mb-4">
-            원장님 농협 계좌 입금 자동화를 붙이기 전, 수집 방식과 자동 반영 기준을 먼저 고정합니다.
-          </p>
+        <SettingsSection id="auto-deposit" title="자동입금 준비" description="원장님 농협 계좌 입금 자동화를 붙이기 전, 수집 방식과 자동 반영 기준을 먼저 고정합니다.">
           <div className="space-y-4">
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
               <Field label="은행명">
                 <Input
                   value={data.auto_deposit_bank_name ?? ''}
@@ -703,7 +747,7 @@ export function Settings() {
               </div>
             </div>
           </div>
-        </section>
+        </SettingsSection>
       </div>
     </div>
   )

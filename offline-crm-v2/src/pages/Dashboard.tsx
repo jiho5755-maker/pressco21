@@ -398,25 +398,51 @@ export function Dashboard() {
   // ── 렌더링 ───────────────────────────────────────────────
   return (
     <div className="p-6 space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-2xl font-bold">대시보드</h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            기준: {CUR_YEAR}년 {CUR_MONTH}월
-          </p>
+      <div className="rounded-xl border bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div>
+            <h2 className="text-2xl font-bold">대시보드</h2>
+            <p className="mt-0.5 text-sm text-muted-foreground">
+              기준: {CUR_YEAR}년 {CUR_MONTH}월
+            </p>
+            <p className="mt-2 text-xs text-muted-foreground">
+              이번 달 핵심 현황과 기간 리포트를 한 화면에서 확인합니다.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            <span className="rounded-full bg-[#f4f7f1] px-3 py-1 font-medium text-[#4f6748]">
+              월간 매출 {fmt(combinedThisMonthSales)}원
+            </span>
+            <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
+              미수 {fmt(totalReceivables)}원
+            </span>
+            <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
+              활성 고객 {activeCustomers.toLocaleString()}명
+            </span>
+            <Button
+              variant="outline"
+              size="sm"
+              className="gap-1"
+              onClick={() => exportMonthlyAccountingSummary(monthlyAccountingSummary)}
+            >
+              <Download className="h-4 w-4" />
+              월별 회계 요약
+            </Button>
+          </div>
         </div>
-        <Button
-          variant="outline"
-          size="sm"
-          className="gap-1"
-          onClick={() => exportMonthlyAccountingSummary(monthlyAccountingSummary)}
-        >
-          <Download className="h-4 w-4" />
-          월별 회계 요약
-        </Button>
       </div>
 
       {/* ── KPI 카드 8개 ── */}
+      <div>
+        <div className="mb-3 flex items-center justify-between">
+          <div>
+            <h3 className="text-base font-semibold">월간 운영 현황</h3>
+            <p className="text-xs text-muted-foreground">
+              자금, 고객, 발행 현황을 월 기준으로 빠르게 확인합니다.
+            </p>
+          </div>
+        </div>
+      </div>
       <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
         {/* Row 1: 돈 관련 */}
         <KpiCard
@@ -595,27 +621,40 @@ export function Dashboard() {
       {/* ── 기간 매출 리포트 ── */}
       <div className="space-y-4 border-t pt-6">
         {/* 헤더 + 퀵 프리셋 */}
-        <div className="flex items-center justify-between flex-wrap gap-2">
-          <div>
-            <h3 className="text-base font-semibold">기간 매출 리포트</h3>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              {dateRange.label} ({dateRange.startDate} ~ {dateRange.endDate})
-            </p>
-          </div>
-          <div className="flex gap-1.5">
-            {(Object.keys(PRESET_LABELS) as PresetKey[]).map((p) => (
-              <button
-                key={p}
-                onClick={() => selectPreset(p)}
-                className={`text-xs px-3 py-1 rounded-md border transition-colors ${
-                  activePreset === p
-                    ? 'bg-[#7d9675] text-white border-[#7d9675]'
-                    : 'bg-white text-muted-foreground border-border hover:border-[#7d9675] hover:text-[#7d9675]'
-                }`}
-              >
-                {PRESET_LABELS[p]}
-              </button>
-            ))}
+        <div className="rounded-xl border bg-white p-4 shadow-sm">
+          <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+            <div>
+              <h3 className="text-base font-semibold">기간 매출 리포트</h3>
+              <p className="mt-0.5 text-xs text-muted-foreground">
+                {dateRange.label} ({dateRange.startDate} ~ {dateRange.endDate})
+              </p>
+              <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                <span className="rounded-full bg-[#f4f7f1] px-3 py-1 font-medium text-[#4f6748]">
+                  기간 매출 {fmt(periodCombinedSales)}원
+                </span>
+                <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
+                  명세표 {periodInvoiceList.length}건
+                </span>
+                <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
+                  수금률 {collectionRate.toFixed(1)}%
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-wrap gap-1.5">
+              {(Object.keys(PRESET_LABELS) as PresetKey[]).map((p) => (
+                <button
+                  key={p}
+                  onClick={() => selectPreset(p)}
+                  className={`text-xs px-3 py-1 rounded-md border transition-colors ${
+                    activePreset === p
+                      ? 'bg-[#7d9675] text-white border-[#7d9675]'
+                      : 'bg-white text-muted-foreground border-border hover:border-[#7d9675] hover:text-[#7d9675]'
+                  }`}
+                >
+                  {PRESET_LABELS[p]}
+                </button>
+              ))}
+            </div>
           </div>
         </div>
 

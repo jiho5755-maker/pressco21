@@ -51,10 +51,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-30 12:31:00 KST
+- Started At: 2026-03-30 19:31:35 KST
 - Branch: main
 - Working Scope: —
-- Active Subdirectory: n8n-automation/workflows/homepage
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
 - 없음
@@ -90,6 +90,41 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `offline-crm-v2` 현재 로컬 변경 기준으로 운영 CRM을 다시 배포했다.
+  - 실행
+    - `cd offline-crm-v2 && bash deploy/deploy.sh`
+  - 결과
+    - 로컬 프로덕션 빌드 성공
+    - 서버 `/var/www/crm` 업로드 성공
+    - `sudo nginx -t && sudo systemctl reload nginx` 성공
+  - 원격 확인
+    - `/var/www/crm/index.html`가 `assets/index-CCwNECQO.js`, `assets/index-BUtaOBv0.css`를 참조
+    - 서버 산출물 시각은 2026-03-30 10:32 UTC
+    - `https://crm.pressco21.com` 헤더 응답은 `401 Unauthorized`로 Basic Auth가 정상 유지됨
+- `offline-crm-v2` 명세표 작성/관리 상단에 선택 기간 총매출 요약을 추가했다.
+  - `src/pages/Invoices.tsx`
+  - 날짜 필터로 조회한 명세표 목록을 기준으로 총매출, 명세표 건수, 평균 객단가를 상단 카드에서 바로 보이게 정리했다.
+  - 거래처 검색이나 수금 상태 필터를 같이 쓰는 경우, 현재 좁혀진 결과 기준 합계라는 안내도 함께 노출한다.
+  - 검증: `cd offline-crm-v2 && npm run build` 통과
+- `offline-crm-v2` 기간 총매출 표시 변경을 운영 CRM에 배포했다.
+  - 실행
+    - `cd offline-crm-v2 && bash deploy/deploy.sh`
+  - 결과
+    - 로컬 프로덕션 빌드 성공
+    - 서버 `/var/www/crm` 업로드 성공
+    - `sudo nginx -t && sudo systemctl reload nginx` 성공
+  - 원격 확인
+    - `/var/www/crm/index.html`가 `index-mp5qfcH7.js`, `index-Blp1GPoD.css`를 참조
+    - `/var/www/crm/assets/index-mp5qfcH7.js` 업로드 시각 `2026-03-30 10:19 UTC` 확인
+- `offline-crm-v2` 고객 상세 거래내역 상단과 고객 제출용 인쇄에 `출고 기준 기간 총매출`을 추가했다.
+  - `offline-crm-v2/src/pages/CustomerDetail.tsx`
+    - 거래내역 상단 KPI를 `기간 총매출 / 조회 건수 / CRM 행 / 기존 장부 행` 기준으로 정리했다.
+    - 기간 총매출은 `txType === '출고'` 행만 합산하고, `새 입력 / 기존 장부` 출고 건수 분해를 함께 노출한다.
+  - `offline-crm-v2/src/lib/print.ts`
+    - `printCustomerTransactionStatement()` 상단 요약 카드의 두 번째 항목을 `거래 금액 합계` 대신 `기간 총매출`로 교체했다.
+    - 인쇄용 총매출도 동일하게 `출고` 행만 합산한다.
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
 - FA-001/FA-003 자동화 메일 워크플로우를 재점검하고 비정상 발송 경보를 라이브에 추가했다.
   - 점검 결과
     - 현재 메일 자동화는 `FA-001: 강사회원 등급 자동 변경`, `FA-003: 강사 반려 이메일 자동 발송` 두 개가 핵심이다.
@@ -629,6 +664,10 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX] /invoices 화면에서 실제 운영 데이터 기준으로 기간별 총매출 카드 수치가 목록 합계와 일치하는지 육안 확인`
+- `[CODEX] Basic Auth 뒤 운영 CRM에서 이번 배포 산출물(`index-CCwNECQO.js`) 기준으로 명세표 기간 총매출 카드가 기대대로 보이는지 확인`
+- `[CODEX] 인증 후 운영 CRM 화면에서 거래내역 상단 KPI와 고객 제출용 인쇄 헤더가 기대대로 보이는지 실제 고객 1건으로 육안 확인`
+- `[CODEX] offline-crm-v2 거래내역 화면과 고객 제출용 인쇄에서 새 `기간 총매출` 카드가 운영 의도와 맞는지 실제 고객 1건으로 확인`
 - `[CODEX] FA-001/FA-003 메일 가드가 실제 발송 건에서도 의도대로 동작하는지 다음 승인/반려 실건 1회씩 업무봇 경보 포함 운영 확인`
 - `[CODEX] FA-001/FA-002/FA-003 계열 워크플로우의 runOnceForEachItem Code 노드 반환 형태를 일괄 점검해 같은 유형의 반복 발송/미처리 버그를 예방`
 - 브랜치 점검은 지금처럼 기능 작업 마감 시점마다 `main 외 브랜치 존재 여부`를 먼저 확인하는 운영 루틴으로 굳힌다.
@@ -667,6 +706,10 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- 이번 배포는 커밋 기준이 아니라 현재 로컬 작업 트리 기준으로 올라갔다. 따라서 `src/pages/Invoices.tsx` 외에 워킹트리에 남아 있던 `src/pages/CustomerDetail.tsx`, `src/lib/print.ts` 변경도 함께 반영됐다.
+- 현재 총매출 카드는 `선택 기간 + 현재 검색/수금상태 필터` 기준으로 계산된다. 기간 전체 합계만 고정해서 보여야 하면 필터 기준을 별도로 분리해야 한다.
+- 서버 반영과 원격 산출물 교체는 확인했지만, Basic Auth 뒤 실제 운영 화면에서 `기간 총매출` 문구와 인쇄 헤더를 육안으로 다시 누르진 않았다.
+- 이번 `기간 총매출`은 요청 취지대로 `출고` 행만 합산한다. 만약 운영에서 입금/환불까지 포함한 `거래 금액 합계`를 계속 같이 봐야 하면 별도 보조 카드로 되돌려 붙여야 한다.
 - 이번 배포 후에는 빈 조회 경로와 라이브 정의 반영까지는 확인했지만, 새 static data 가드가 실제 승인/반려 실건에서 경보와 차단까지 기대대로 타는지는 다음 실건 1회 운영 확인이 남아 있다.
 - 과거 브랜치에 남아 있던 `Login/RequireAuth/ActivityLog` 계열은 이번에 안전성/완성도 기준으로 제외했다. 나중에 정말 필요해지면 현재 main 구조 기준으로 새로 설계해 넣는 편이 맞다.
 - `설정` 화면은 구조는 훨씬 명확해졌지만, 항목 수가 많아서 모바일에서는 여전히 길다. 현재는 데스크톱/노트북 기준 최적화가 우선이다.

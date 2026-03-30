@@ -248,6 +248,14 @@ export function Invoices() {
     }),
     [data, dateFrom, dateTo],
   )
+  const periodSalesAmount = useMemo(
+    () => filteredInvoices.reduce((sum, invoice) => sum + Number(invoice.total_amount ?? 0), 0),
+    [filteredInvoices],
+  )
+  const periodAverageAmount = useMemo(
+    () => (filteredInvoices.length > 0 ? Math.round(periodSalesAmount / filteredInvoices.length) : 0),
+    [filteredInvoices.length, periodSalesAmount],
+  )
   const courierWarning = useMemo(() => {
     let missingAddress = 0
     let missingPhone = 0
@@ -281,6 +289,7 @@ export function Invoices() {
   )
   const activeQuickRange = quickDateRanges.find((range) => range.from === dateFrom && range.to === dateTo)?.key ?? null
   const hasActiveFilters = statusFilter !== 'ALL' || Boolean(search.trim()) || dateFrom !== today || dateTo !== today
+  const hasDetailFilters = statusFilter !== 'ALL' || Boolean(search.trim())
   const invoiceLinkSummary = useMemo(() => {
     let orphanCount = 0
     let splitCount = 0
@@ -538,6 +547,35 @@ export function Invoices() {
       </div>
 
       {/* 필터 */}
+      <div className="mb-4 rounded-xl border border-[#d8e4d6] bg-[linear-gradient(135deg,#f7faf6_0%,#eef5ea_100%)] p-4 shadow-sm">
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+          <div>
+            <p className="text-xs font-semibold tracking-[0.18em] text-[#5a7353]">기간 총매출</p>
+            <p className="mt-2 text-3xl font-semibold tracking-tight text-[#233127]">
+              {periodSalesAmount.toLocaleString()}원
+            </p>
+            <p className="mt-1 text-sm text-[#5f6f60]">
+              {dateFrom} ~ {dateTo} 선택 기간 총매출
+            </p>
+          </div>
+          <div className="grid gap-2 sm:grid-cols-2">
+            <div className="rounded-lg border border-white/80 bg-white/80 px-4 py-3">
+              <p className="text-[11px] font-medium text-muted-foreground">명세표 건수</p>
+              <p className="mt-1 text-base font-semibold text-foreground">{filteredInvoices.length.toLocaleString()}건</p>
+            </div>
+            <div className="rounded-lg border border-white/80 bg-white/80 px-4 py-3">
+              <p className="text-[11px] font-medium text-muted-foreground">평균 객단가</p>
+              <p className="mt-1 text-base font-semibold text-foreground">{periodAverageAmount.toLocaleString()}원</p>
+            </div>
+          </div>
+        </div>
+        {hasDetailFilters && (
+          <p className="mt-3 text-xs text-[#5f6f60]">
+            거래처 검색과 수금 상태 필터가 같이 적용된 합계입니다.
+          </p>
+        )}
+      </div>
+
       <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm">
         <div className="flex flex-col gap-4">
           <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">

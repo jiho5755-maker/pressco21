@@ -13,6 +13,7 @@
 | `skin-push.js` | 스킨 푸시 스니펫 (hex 인코딩 방식) |
 | `pre-push-check.sh` | 스킨 푸시 전 사전 점검 (git/충돌/디자이너 영역) |
 | `merge-css.sh` | 디자이너-개발자 CSS 3-way 병합 도구 |
+| `add-page-mapping.sh` | 새 개별 페이지 추가 시 editor-map.json 매핑 + 폴더 생성 |
 | `MANUAL-PULL.md` | 수동 스킨 풀 (Chrome MCP 없을 때 fallback) |
 
 ## 퀵 레퍼런스

@@ -7,9 +7,9 @@
 
 ## 마지막 동기화
 
-- **pull 시각**: 2026-03-30 12:23
-- **pull 범위**: 부분 (main/main.css)
-- **pull 방법**: Chrome MCP blob 다운로드
+- **pull 시각**: 2026-03-30 12:37
+- **pull 범위**: 핵심 6개 페이지 (common, header, footer, main, shopdetail, shopbrand)
+- **pull 방법**: Chrome MCP blob 자동 다운로드
 - **push 시각**: (아직 없음)
 - **push 범위**: (전체/부분)
 
@@ -64,3 +64,4 @@
 |------|------|------|------|
 | 2026-03-30 | 시스템 구축 | - | _sync 시스템 초기 세팅 |
 | 2026-03-30 | pull | main/main.css | 디자이너 버튼 CSS 변경분 57줄 반영 (blob 다운로드 방식) |
+| 2026-03-30 | pull | 6개 페이지 17파일 | 핵심 영역 일괄 pull — 5파일 변경 감지(footer, main, shopdetail) |

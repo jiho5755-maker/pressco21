@@ -409,8 +409,10 @@ background: #ffffff99 url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_ch
 
     .goods--btns-purchase-grid .btn-easy-purchase .ico-chat-bubble,
     .goods--btns-purchase-grid .btn-naver-pay .ico-naver-n {
-        width: 18px;
-        height: 18px;
+        width: 60px !important;   /* 18px에서 40px 정도로 키움 */
+        height: 60px !important;
+        margin-top: -5px;        /* 버튼 높이에 맞춰 미세 조정 */
+        margin-bottom: -5px;
     }
 
     .goods--btns-purchase-grid .btn-naver-pay .ico-naver-n {

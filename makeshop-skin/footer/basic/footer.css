@@ -17,8 +17,11 @@
     gap: 21px;
 }
 
-#footer .bar-lis t-wrap a {
-    color: #FFFFFF;
+/* 💡 모바일 회사소개, 이용안내 등 하단 텍스트 흰색 강제 적용 */
+#footer .bar-list-wrap li,
+#footer .bar-list-wrap a,
+#footer .item-box.top .bar-list-wrap a {
+    color: #D5D5D5 !important;
 }
 
 #footer .bar-list-wrap + .bar-list-wrap {
@@ -53,15 +56,22 @@
     font-size: 12px;
 }
 
+
+
+
+
+
+
 #footer .item-box.bottom ul li {
-    font-size:12px;
+    font-size: 12px !important;
+    color: #BBBBBB !important; /* 기본 글자색을 회색으로 꽉 잡아줌 */
 }
 
 #footer .item-box.bottom ul li a {
     display: block;
     font-weight: 400;
     font-size: 12px;
-    color: #FFFFFF;
+    color: #BBBBBB;
 }
 
 #footer .item-box.center p {
@@ -84,6 +94,9 @@
 
 
 
+/* ===========================
+   여기서부터 PC 화면 전용 디자인
+   =========================== */
 @media (min-width: 768px) {
     #footer {
         background: var(--color-default);
@@ -143,7 +156,7 @@
     }
 
     #footer .copy {
-        margin-top: 20px;
+        margin-top: 0px;
         color: #BBBBBB;
         font-weight: 400;
         font-size: 12px;
@@ -170,6 +183,12 @@
         display: block;
         font-weight: 800;
         font-size: 18px;
-        margin-bottom: 14px;
+        margin-bottom: 3px;
     }
+}
+
+/* 대표자, 주소, 개인정보책임자 흰색 강제 적용 */
+#footer .text-white,
+#footer .text-white strong {
+    color: #FFFFFF !important;
 }

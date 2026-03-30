@@ -951,7 +951,9 @@ export function printCustomerTransactionStatement(
 ): void {
   const c = loadCompanyInfo()
   const today = new Date().toLocaleDateString('ko-KR')
-  const totalAmount = rows.reduce((sum, row) => sum + row.amount, 0)
+  const salesAmount = rows
+    .filter((row) => row.txType.includes('출고'))
+    .reduce((sum, row) => sum + row.amount, 0)
   const byType = {
     shipment: rows.filter((row) => row.txType.includes('출고')).length,
     payment: rows.filter((row) => row.txType === '입금').length,
@@ -1011,7 +1013,7 @@ export function printCustomerTransactionStatement(
     `</div>` +
     `<div class="summary">` +
     `<div class="card"><div class="label">조회 건수</div><div class="value">${rows.length.toLocaleString()}건</div></div>` +
-    `<div class="card"><div class="label">거래 금액 합계</div><div class="value">${totalAmount.toLocaleString()}원</div></div>` +
+    `<div class="card"><div class="label">기간 총매출</div><div class="value">${salesAmount.toLocaleString()}원</div></div>` +
     `<div class="card"><div class="label">출고 / 입금</div><div class="value">${byType.shipment} / ${byType.payment}</div></div>` +
     `<div class="card"><div class="label">반입 / 메모</div><div class="value">${byType.returnTx} / ${byType.memo}</div></div>` +
     `</div>` +

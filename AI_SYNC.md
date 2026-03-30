@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-30 19:31:35 KST
+- Started At: 2026-03-30 21:12:11 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: offline-crm-v2
@@ -90,6 +90,13 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `offline-crm-v2` 고객 상세 거래내역 상단과 고객 제출용 인쇄의 `기간 총매출` 정리를 마무리하고 `main` 반영 준비를 끝냈다.
+  - `src/pages/CustomerDetail.tsx`
+    - 거래내역 상단 요약을 `기간 총매출 / 조회 건수 / CRM 행 / 기존 장부 행` 기준으로 정리했다.
+    - 기간 총매출은 `출고` 행만 합산하고, 새 입력/기존 장부 출고 건수를 함께 노출한다.
+  - `src/lib/print.ts`
+    - 고객 제출용 기간 거래내역서 상단 요약도 `거래 금액 합계` 대신 `기간 총매출`로 맞췄다.
+  - 검증: `cd offline-crm-v2 && npm run build` 통과
 - `offline-crm-v2` 현재 로컬 변경 기준으로 운영 CRM을 다시 배포했다.
   - 실행
     - `cd offline-crm-v2 && bash deploy/deploy.sh`

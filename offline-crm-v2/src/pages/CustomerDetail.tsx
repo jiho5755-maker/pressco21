@@ -552,12 +552,20 @@ export function CustomerDetail() {
     })
   }, [mergedHistory, historySearch, historyTypeFilter, historyDateFrom, historyDateTo])
 
-  const historySummary = useMemo(() => ({
-    count: filteredHistory.length,
-    amount: filteredHistory.reduce((sum, row) => sum + row.amount, 0),
-    crmCount: filteredHistory.filter((row) => row.isCrm).length,
-    legacyCount: filteredHistory.filter((row) => !row.isCrm).length,
-  }), [filteredHistory])
+  const historySummary = useMemo(() => {
+    const salesRows = filteredHistory.filter((row) => row.txType === '출고')
+    const crmSalesCount = salesRows.filter((row) => row.isCrm).length
+
+    return {
+      count: filteredHistory.length,
+      salesAmount: salesRows.reduce((sum, row) => sum + row.amount, 0),
+      salesCount: salesRows.length,
+      crmCount: filteredHistory.filter((row) => row.isCrm).length,
+      legacyCount: filteredHistory.filter((row) => !row.isCrm).length,
+      crmSalesCount,
+      legacySalesCount: salesRows.length - crmSalesCount,
+    }
+  }, [filteredHistory])
 
   function resetHistoryFilters() {
     setHistorySearch('')
@@ -1455,14 +1463,17 @@ export function CustomerDetail() {
                 초기화
               </Button>
             </div>
-            <div className="mt-3 grid gap-3 md:grid-cols-4">
+            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+              <div className="rounded-md border border-[#d8e4d6] bg-[#f7fbf6] px-3 py-2">
+                <p className="text-xs text-muted-foreground">기간 총매출</p>
+                <p className="mt-1 text-sm font-semibold">{historySummary.salesAmount.toLocaleString()}원</p>
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  출고 {historySummary.salesCount.toLocaleString()}건 · 새 입력 {historySummary.crmSalesCount.toLocaleString()}건 / 기존 {historySummary.legacySalesCount.toLocaleString()}건
+                </p>
+              </div>
               <div className="rounded-md bg-gray-50 px-3 py-2">
                 <p className="text-xs text-muted-foreground">조회 건수</p>
                 <p className="mt-1 text-sm font-semibold">{historySummary.count.toLocaleString()}건</p>
-              </div>
-              <div className="rounded-md bg-gray-50 px-3 py-2">
-                <p className="text-xs text-muted-foreground">거래 금액 합계</p>
-                <p className="mt-1 text-sm font-semibold">{historySummary.amount.toLocaleString()}원</p>
               </div>
               <div className="rounded-md bg-gray-50 px-3 py-2">
                 <p className="text-xs text-muted-foreground">CRM 행</p>

@@ -87,6 +87,29 @@
     },
     {
       "parameters": {
+        "jsCode": "// 같은 신청 건의 성공 발송 이력이 있으면 자동 재발송 차단\nvar data = $('반려사유+이메일 있는가').item.json || {};\nvar staticData = $getWorkflowStaticData('global');\nvar ledger = staticData.mailSuccessLedger;\n\nif (!ledger || typeof ledger !== 'object' || Array.isArray(ledger)) {\n  ledger = {};\n}\n\nvar guardKey = 'FA-003:' + String(data.nocodb_id || '');\nvar lastSuccess = ledger[guardKey] || null;\n\nreturn {\n  json: {\n    ...data,\n    mailGuardKey: guardKey,\n    duplicateBlocked: !!lastSuccess,\n    lastSuccessAt: lastSuccess ? String(lastSuccess.sentAt || '') : '',\n    lastSuccessEmail: lastSuccess ? String(lastSuccess.email || '') : '',\n    lastSuccessName: lastSuccess ? String(lastSuccess.name || '') : ''\n  }\n};",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "8b5d785c-6f80-4d0f-81fd-2a0d5d4c2b7a",
+      "name": "중복 성공발송 가드",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{"value1": "={{ $json.duplicateBlocked }}", "value2": true, "operation": "equal"}]
+        }
+      },
+      "id": "c3b3e9d5-81b5-41e8-9b93-14663d07fd2e",
+      "name": "이미 성공발송 이력 있는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [1520, 300]
+    },
+    {
+      "parameters": {
         "fromEmail": "pressco5755@naver.com",
         "toEmail": "={{ $('반려사유+이메일 있는가').item.json.email }}",
         "subject": "[PRESSCO21] 강사회원 등업 신청 검토 결과 안내",
@@ -104,7 +127,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 이메일 발송 결과 확인 (continueOnFail 활성)\nvar item = $input.item.json || {};\nvar prevData = $('반려사유+이메일 있는가').item.json || {};\nvar errorMessage = '';\n\nif (typeof item.error === 'string' && item.error) {\n  errorMessage = item.error;\n} else if (Array.isArray(item.rejected) && item.rejected.length > 0) {\n  errorMessage = 'Rejected: ' + item.rejected.join(', ');\n}\n\nreturn {\n  json: {\n    nocodb_id: prevData.nocodb_id,\n    name: prevData.name,\n    email: prevData.email,\n    rejectionReason: prevData.rejectionReason,\n    retryCount: Number(prevData.retryCount || 0),\n    emailSuccess: errorMessage === '',\n    errorMessage: errorMessage\n  }\n};",
+        "jsCode": "// 이메일 발송 결과 확인 및 성공 발송 ledger 기록\nvar item = $input.item.json || {};\nvar prevData = $('중복 성공발송 가드').item.json || $('반려사유+이메일 있는가').item.json || {};\nvar errorMessage = '';\n\nif (typeof item.error === 'string' && item.error) {\n  errorMessage = item.error;\n} else if (Array.isArray(item.rejected) && item.rejected.length > 0) {\n  errorMessage = 'Rejected: ' + item.rejected.join(', ');\n}\n\nvar emailSuccess = errorMessage === '';\nvar staticData = $getWorkflowStaticData('global');\nvar ledger = staticData.mailSuccessLedger;\nif (!ledger || typeof ledger !== 'object' || Array.isArray(ledger)) {\n  ledger = {};\n}\nvar attemptLog = Array.isArray(staticData.mailAttemptLog) ? staticData.mailAttemptLog : [];\nvar sentAt = new Date(new Date().getTime() + 9 * 60 * 60 * 1000).toISOString();\nvar guardKey = String(prevData.mailGuardKey || ('FA-003:' + String(prevData.nocodb_id || '')));\n\nattemptLog.unshift({\n  key: guardKey,\n  workflow: 'FA-003',\n  status: emailSuccess ? 'success' : 'failed',\n  sentAt: sentAt,\n  recordId: String(prevData.nocodb_id || ''),\n  email: String(prevData.email || ''),\n  name: String(prevData.name || '')\n});\nstaticData.mailAttemptLog = attemptLog.slice(0, 200);\n\nif (emailSuccess) {\n  ledger[guardKey] = {\n    workflow: 'FA-003',\n    recordId: String(prevData.nocodb_id || ''),\n    email: String(prevData.email || ''),\n    name: String(prevData.name || ''),\n    subject: '[PRESSCO21] 강사회원 등업 신청 검토 결과 안내',\n    sentAt: sentAt\n  };\n  staticData.mailSuccessLedger = ledger;\n}\n\nreturn {\n  json: {\n    nocodb_id: prevData.nocodb_id,\n    name: prevData.name,\n    email: prevData.email,\n    rejectionReason: prevData.rejectionReason,\n    retryCount: Number(prevData.retryCount || 0),\n    emailSuccess: emailSuccess,\n    errorMessage: errorMessage\n  }\n};",
         "mode": "runOnceForEachItem"
       },
       "id": "fa003-n07b",
@@ -240,6 +263,41 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [1520, 500]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt/' + $('중복 성공발송 가드').item.json.nocodb_id }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\"n8n_반려알림\": true}) }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "xc-token", "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"},
+            {"name": "Content-Type", "value": "application/json"}
+          ]
+        },
+        "options": {}
+      },
+      "id": "0bfef58c-d9d0-4e8c-a786-77ef39f9fa6a",
+      "name": "NocoDB 중복발송 차단 기록",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1740, 500]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ '🚨 반려 이메일 자동 재발송 차단\\n\\n이름: ' + $('중복 성공발송 가드').item.json.name + '\\n이메일: ' + $('중복 성공발송 가드').item.json.email + '\\nNocoDB ID: ' + $('중복 성공발송 가드').item.json.nocodb_id + '\\n최근 성공 발송: ' + ($('중복 성공발송 가드').item.json.lastSuccessAt || '기록 없음') + '\\n\\n→ 같은 신청 건의 성공 발송 이력이 이미 있어 이번 발송을 차단하고 n8n_반려알림을 true로 갱신했습니다.' }}",
+        "additionalFields": {}
+      },
+      "id": "1e321d08-0cbc-4b52-90bf-ad36c60334f8",
+      "name": "텔레그램 중복 발송 경보",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1960, 500],
+      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
     }
   ],
   "connections": {
@@ -247,14 +305,17 @@
     "NocoDB 반려 미발송 조회": {"main": [[{"node": "레코드 분리", "type": "main", "index": 0}]]},
     "레코드 분리": {"main": [[{"node": "처리할 건 있는가", "type": "main", "index": 0}]]},
     "처리할 건 있는가": {"main": [[{"node": "반려사유+이메일 있는가", "type": "main", "index": 0}], [{"node": "처리 없음", "type": "main", "index": 0}]]},
-    "반려사유+이메일 있는가": {"main": [[{"node": "반려 이메일 발송", "type": "main", "index": 0}], [{"node": "텔레그램 보류 알림", "type": "main", "index": 0}]]},
+    "반려사유+이메일 있는가": {"main": [[{"node": "중복 성공발송 가드", "type": "main", "index": 0}], [{"node": "텔레그램 보류 알림", "type": "main", "index": 0}]]},
+    "중복 성공발송 가드": {"main": [[{"node": "이미 성공발송 이력 있는가", "type": "main", "index": 0}]]},
+    "이미 성공발송 이력 있는가": {"main": [[{"node": "NocoDB 중복발송 차단 기록", "type": "main", "index": 0}], [{"node": "반려 이메일 발송", "type": "main", "index": 0}]]},
     "반려 이메일 발송": {"main": [[{"node": "발송 결과 확인", "type": "main", "index": 0}]]},
     "발송 결과 확인": {"main": [[{"node": "발송 성공했는가", "type": "main", "index": 0}]]},
     "발송 성공했는가": {"main": [[{"node": "NocoDB 반려알림 표시", "type": "main", "index": 0}], [{"node": "실패 처리 판단", "type": "main", "index": 0}]]},
     "NocoDB 반려알림 표시": {"main": [[{"node": "텔레그램 발송 완료 알림", "type": "main", "index": 0}]]},
     "실패 처리 판단": {"main": [[{"node": "NocoDB retry 카운트 갱신", "type": "main", "index": 0}]]},
     "NocoDB retry 카운트 갱신": {"main": [[{"node": "텔레그램 실패 경보", "type": "main", "index": 0}]]},
-    "텔레그램 보류 알림": {"main": [[{"node": "NocoDB 보류 처리 완료", "type": "main", "index": 0}]]}
+    "텔레그램 보류 알림": {"main": [[{"node": "NocoDB 보류 처리 완료", "type": "main", "index": 0}]]},
+    "NocoDB 중복발송 차단 기록": {"main": [[{"node": "텔레그램 중복 발송 경보", "type": "main", "index": 0}]]}
   },
   "settings": {
     "executionOrder": "v1"

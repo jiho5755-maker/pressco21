@@ -323,6 +323,29 @@
     },
     {
       "parameters": {
+        "jsCode": "// 같은 신청 건의 승인 메일 성공 이력이 있으면 자동 재발송 차단\nvar data = $('그룹 변경 응답 파싱').item.json || {};\nvar staticData = $getWorkflowStaticData('global');\nvar ledger = staticData.mailSuccessLedger;\n\nif (!ledger || typeof ledger !== 'object' || Array.isArray(ledger)) {\n  ledger = {};\n}\n\nvar guardKey = 'FA-001:' + String(data.recordId || '');\nvar lastSuccess = ledger[guardKey] || null;\n\nreturn {\n  json: {\n    ...data,\n    mailGuardKey: guardKey,\n    duplicateBlocked: !!lastSuccess,\n    lastSuccessAt: lastSuccess ? String(lastSuccess.sentAt || '') : '',\n    lastSuccessEmail: lastSuccess ? String(lastSuccess.email || '') : '',\n    lastSuccessName: lastSuccess ? String(lastSuccess.name || '') : ''\n  }\n};",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "6d45c8ab-80b2-4f76-8d9b-d2d8f961fa1f",
+      "name": "승인 메일 중복 발송 가드",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4160, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{"value1": "={{ $json.duplicateBlocked }}", "value2": true, "operation": "equal"}]
+        }
+      },
+      "id": "d275ef43-9dd3-49c4-a6c0-6c77078e0b6d",
+      "name": "이미 승인 메일 성공발송 이력 있는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [4380, 100]
+    },
+    {
+      "parameters": {
         "fromEmail": "pressco5755@naver.com",
         "toEmail": "={{ $('그룹 변경 응답 파싱').item.json.email }}",
         "subject": "[PRESSCO21] 강사회원 등업이 완료되었습니다",
@@ -383,6 +406,55 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [3280, 480]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 승인 메일 발송 결과 기록 및 성공 발송 ledger 반영\nvar item = $input.item.json || {};\nvar prevData = $('승인 메일 중복 발송 가드').item.json || $('그룹 변경 응답 파싱').item.json || {};\nvar errorMessage = '';\n\nif (typeof item.error === 'string' && item.error) {\n  errorMessage = item.error;\n} else if (Array.isArray(item.rejected) && item.rejected.length > 0) {\n  errorMessage = 'Rejected: ' + item.rejected.join(', ');\n}\n\nvar emailSuccess = errorMessage === '';\nvar staticData = $getWorkflowStaticData('global');\nvar ledger = staticData.mailSuccessLedger;\nif (!ledger || typeof ledger !== 'object' || Array.isArray(ledger)) {\n  ledger = {};\n}\nvar attemptLog = Array.isArray(staticData.mailAttemptLog) ? staticData.mailAttemptLog : [];\nvar sentAt = new Date(new Date().getTime() + 9 * 60 * 60 * 1000).toISOString();\nvar guardKey = String(prevData.mailGuardKey || ('FA-001:' + String(prevData.recordId || '')));\n\nattemptLog.unshift({\n  key: guardKey,\n  workflow: 'FA-001',\n  status: emailSuccess ? 'success' : 'failed',\n  sentAt: sentAt,\n  recordId: String(prevData.recordId || ''),\n  email: String(prevData.email || ''),\n  name: String(prevData.name || '')\n});\nstaticData.mailAttemptLog = attemptLog.slice(0, 200);\n\nif (emailSuccess) {\n  ledger[guardKey] = {\n    workflow: 'FA-001',\n    recordId: String(prevData.recordId || ''),\n    email: String(prevData.email || ''),\n    name: String(prevData.name || ''),\n    subject: '[PRESSCO21] 강사회원 등업이 완료되었습니다',\n    sentAt: sentAt\n  };\n  staticData.mailSuccessLedger = ledger;\n}\n\nreturn {\n  json: {\n    recordId: prevData.recordId,\n    name: prevData.name,\n    email: prevData.email,\n    makeshopUserId: prevData.makeshopUserId,\n    association: prevData.association,\n    emailSuccess: emailSuccess,\n    errorMessage: errorMessage\n  }\n};",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "0e2b7a10-5cf1-4bc2-90fa-7998043bd56a",
+      "name": "승인 메일 결과 기록",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [4600, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{"value1": "={{ $json.emailSuccess }}", "value2": true, "operation": "equal"}]
+        }
+      },
+      "id": "0fd63b2d-e55d-4d2f-8d6d-b6b1ba3ef6a5",
+      "name": "승인 메일 성공했는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [4820, 0]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ '🚨 승인 이메일 자동 재발송 차단\\n\\n이름: ' + $('승인 메일 중복 발송 가드').item.json.name + '\\n이메일: ' + $('승인 메일 중복 발송 가드').item.json.email + '\\nNocoDB ID: ' + $('승인 메일 중복 발송 가드').item.json.recordId + '\\n최근 성공 발송: ' + ($('승인 메일 중복 발송 가드').item.json.lastSuccessAt || '기록 없음') + '\\n\\n→ 같은 신청 건의 승인 메일 성공 이력이 이미 있어 자동 재발송을 막았습니다.' }}",
+        "additionalFields": {}
+      },
+      "id": "7e5de9e1-4f5d-4a17-8d0b-b80b69ce4d41",
+      "name": "텔레그램 승인 메일 중복 경보",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [4600, 160],
+      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ '⚠️ 승인 이메일 발송 실패\\n\\n이름: ' + $('승인 메일 결과 기록').item.json.name + '\\n이메일: ' + $('승인 메일 결과 기록').item.json.email + '\\nNocoDB ID: ' + $('승인 메일 결과 기록').item.json.recordId + '\\n에러: ' + (($('승인 메일 결과 기록').item.json.errorMessage || '원인 미상').substring(0, 140)) + '\\n\\n→ 승인 처리는 완료됐고, 축하 메일만 실패했습니다. 필요 시 수동 발송을 확인해주세요.' }}",
+        "additionalFields": {}
+      },
+      "id": "f65dd55e-f4c8-4a4d-9e4a-6a43d56a5e75",
+      "name": "텔레그램 승인 메일 실패 경보",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [5040, 80],
+      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
     }
   ],
   "connections": {
@@ -405,7 +477,12 @@
     "그룹 변경 성공했는가": {"main": [[{"node": "NocoDB 처리완료 기록", "type": "main", "index": 0}], [{"node": "수동 처리 메시지 조립", "type": "main", "index": 0}]]},
     "NocoDB 처리완료 기록": {"main": [[{"node": "텔레그램 성공 알림", "type": "main", "index": 0}]]},
     "텔레그램 성공 알림": {"main": [[{"node": "이메일 있는가", "type": "main", "index": 0}]]},
-    "이메일 있는가": {"main": [[{"node": "승인 축하 이메일 발송", "type": "main", "index": 0}], []]},
+    "이메일 있는가": {"main": [[{"node": "승인 메일 중복 발송 가드", "type": "main", "index": 0}], []]},
+    "승인 메일 중복 발송 가드": {"main": [[{"node": "이미 승인 메일 성공발송 이력 있는가", "type": "main", "index": 0}]]},
+    "이미 승인 메일 성공발송 이력 있는가": {"main": [[{"node": "텔레그램 승인 메일 중복 경보", "type": "main", "index": 0}], [{"node": "승인 축하 이메일 발송", "type": "main", "index": 0}]]},
+    "승인 축하 이메일 발송": {"main": [[{"node": "승인 메일 결과 기록", "type": "main", "index": 0}]]},
+    "승인 메일 결과 기록": {"main": [[{"node": "승인 메일 성공했는가", "type": "main", "index": 0}]]},
+    "승인 메일 성공했는가": {"main": [[], [{"node": "텔레그램 승인 메일 실패 경보", "type": "main", "index": 0}]]},
     "수동 처리 메시지 조립": {"main": [[{"node": "텔레그램 수동 처리 요청", "type": "main", "index": 0}, {"node": "NocoDB 수동처리 기록", "type": "main", "index": 0}]]},
     "텔레그램 수동 처리 요청": {"main": [[]]}
   },

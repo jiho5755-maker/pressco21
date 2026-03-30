@@ -1,0 +1,3075 @@
+{
+  "_meta": {
+    "generated": "2026-03-30",
+    "totalFiles": 538,
+    "description": "로컬 파일 경로 → 메이크샵 편집기 위치 매핑 테이블"
+  },
+  "_common/common.css": {
+    "editorSection": "공통 CSS-js",
+    "tabIndex": 0,
+    "tabName": "CSS"
+  },
+  "_common/common.js": {
+    "editorSection": "공통 CSS-js",
+    "tabIndex": 1,
+    "tabName": "JS"
+  },
+  "boards/base/list.css": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo",
+    "subPage": "list"
+  },
+  "boards/base/list.html": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo",
+    "subPage": "list"
+  },
+  "boards/base/list.js": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo",
+    "subPage": "list"
+  },
+  "boards/base/password.css": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo",
+    "subPage": "password"
+  },
+  "boards/base/password.html": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo",
+    "subPage": "password"
+  },
+  "boards/base/password.js": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo",
+    "subPage": "password"
+  },
+  "boards/base/view.css": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo",
+    "subPage": "view"
+  },
+  "boards/base/view.html": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo",
+    "subPage": "view"
+  },
+  "boards/base/view.js": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo",
+    "subPage": "view"
+  },
+  "boards/base/write.css": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo",
+    "subPage": "write"
+  },
+  "boards/base/write.html": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo",
+    "subPage": "write"
+  },
+  "boards/base/write.js": {
+    "editorSection": "게시판 디자인 > 자유 게시판",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo",
+    "subPage": "write"
+  },
+  "boards/board-10/list.css": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board10",
+    "subPage": "list"
+  },
+  "boards/board-10/list.html": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board10",
+    "subPage": "list"
+  },
+  "boards/board-10/list.js": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board10",
+    "subPage": "list"
+  },
+  "boards/board-10/password.css": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board10",
+    "subPage": "password"
+  },
+  "boards/board-10/password.html": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board10",
+    "subPage": "password"
+  },
+  "boards/board-10/password.js": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board10",
+    "subPage": "password"
+  },
+  "boards/board-10/view.css": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board10",
+    "subPage": "view"
+  },
+  "boards/board-10/view.html": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board10",
+    "subPage": "view"
+  },
+  "boards/board-10/view.js": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board10",
+    "subPage": "view"
+  },
+  "boards/board-10/write.css": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board10",
+    "subPage": "write"
+  },
+  "boards/board-10/write.html": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board10",
+    "subPage": "write"
+  },
+  "boards/board-10/write.js": {
+    "editorSection": "게시판 디자인 > 파워리뷰 (상품리뷰)",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board10",
+    "subPage": "write"
+  },
+  "boards/board-11/list.css": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board11",
+    "subPage": "list"
+  },
+  "boards/board-11/list.html": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board11",
+    "subPage": "list"
+  },
+  "boards/board-11/list.js": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board11",
+    "subPage": "list"
+  },
+  "boards/board-11/password.css": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board11",
+    "subPage": "password"
+  },
+  "boards/board-11/password.html": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board11",
+    "subPage": "password"
+  },
+  "boards/board-11/password.js": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board11",
+    "subPage": "password"
+  },
+  "boards/board-11/view.css": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board11",
+    "subPage": "view"
+  },
+  "boards/board-11/view.html": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board11",
+    "subPage": "view"
+  },
+  "boards/board-11/view.js": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board11",
+    "subPage": "view"
+  },
+  "boards/board-11/write.css": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board11",
+    "subPage": "write"
+  },
+  "boards/board-11/write.html": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board11",
+    "subPage": "write"
+  },
+  "boards/board-11/write.js": {
+    "editorSection": "게시판 디자인 > 레지너스 정품 등록",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board11",
+    "subPage": "write"
+  },
+  "boards/board-2/list.css": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board2",
+    "subPage": "list"
+  },
+  "boards/board-2/list.html": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board2",
+    "subPage": "list"
+  },
+  "boards/board-2/list.js": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board2",
+    "subPage": "list"
+  },
+  "boards/board-2/password.css": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board2",
+    "subPage": "password"
+  },
+  "boards/board-2/password.html": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board2",
+    "subPage": "password"
+  },
+  "boards/board-2/password.js": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board2",
+    "subPage": "password"
+  },
+  "boards/board-2/view.css": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board2",
+    "subPage": "view"
+  },
+  "boards/board-2/view.html": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board2",
+    "subPage": "view"
+  },
+  "boards/board-2/view.js": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board2",
+    "subPage": "view"
+  },
+  "boards/board-2/write.css": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board2",
+    "subPage": "write"
+  },
+  "boards/board-2/write.html": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board2",
+    "subPage": "write"
+  },
+  "boards/board-2/write.js": {
+    "editorSection": "게시판 디자인 > 제작기법 공유",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board2",
+    "subPage": "write"
+  },
+  "boards/board-6/list.css": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board6",
+    "subPage": "list"
+  },
+  "boards/board-6/list.html": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board6",
+    "subPage": "list"
+  },
+  "boards/board-6/list.js": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board6",
+    "subPage": "list"
+  },
+  "boards/board-6/password.css": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board6",
+    "subPage": "password"
+  },
+  "boards/board-6/password.html": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board6",
+    "subPage": "password"
+  },
+  "boards/board-6/password.js": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board6",
+    "subPage": "password"
+  },
+  "boards/board-6/view.css": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board6",
+    "subPage": "view"
+  },
+  "boards/board-6/view.html": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board6",
+    "subPage": "view"
+  },
+  "boards/board-6/view.js": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board6",
+    "subPage": "view"
+  },
+  "boards/board-6/write.css": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board6",
+    "subPage": "write"
+  },
+  "boards/board-6/write.html": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board6",
+    "subPage": "write"
+  },
+  "boards/board-6/write.js": {
+    "editorSection": "게시판 디자인 > 민간자격 안내",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board6",
+    "subPage": "write"
+  },
+  "boards/board-7/list.css": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board7",
+    "subPage": "list"
+  },
+  "boards/board-7/list.html": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board7",
+    "subPage": "list"
+  },
+  "boards/board-7/list.js": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board7",
+    "subPage": "list"
+  },
+  "boards/board-7/password.css": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board7",
+    "subPage": "password"
+  },
+  "boards/board-7/password.html": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board7",
+    "subPage": "password"
+  },
+  "boards/board-7/password.js": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board7",
+    "subPage": "password"
+  },
+  "boards/board-7/view.css": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board7",
+    "subPage": "view"
+  },
+  "boards/board-7/view.html": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board7",
+    "subPage": "view"
+  },
+  "boards/board-7/view.js": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board7",
+    "subPage": "view"
+  },
+  "boards/board-7/write.css": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board7",
+    "subPage": "write"
+  },
+  "boards/board-7/write.html": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board7",
+    "subPage": "write"
+  },
+  "boards/board-7/write.js": {
+    "editorSection": "게시판 디자인 > 전시 및 행사안내",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board7",
+    "subPage": "write"
+  },
+  "boards/board-8/list.css": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board8",
+    "subPage": "list"
+  },
+  "boards/board-8/list.html": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board8",
+    "subPage": "list"
+  },
+  "boards/board-8/list.js": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board8",
+    "subPage": "list"
+  },
+  "boards/board-8/password.css": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board8",
+    "subPage": "password"
+  },
+  "boards/board-8/password.html": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board8",
+    "subPage": "password"
+  },
+  "boards/board-8/password.js": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board8",
+    "subPage": "password"
+  },
+  "boards/board-8/view.css": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board8",
+    "subPage": "view"
+  },
+  "boards/board-8/view.html": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board8",
+    "subPage": "view"
+  },
+  "boards/board-8/view.js": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board8",
+    "subPage": "view"
+  },
+  "boards/board-8/write.css": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board8",
+    "subPage": "write"
+  },
+  "boards/board-8/write.html": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board8",
+    "subPage": "write"
+  },
+  "boards/board-8/write.js": {
+    "editorSection": "게시판 디자인 > 프리저브드플라워",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board8",
+    "subPage": "write"
+  },
+  "boards/board-9/list.css": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board9",
+    "subPage": "list"
+  },
+  "boards/board-9/list.html": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board9",
+    "subPage": "list"
+  },
+  "boards/board-9/list.js": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board9",
+    "subPage": "list"
+  },
+  "boards/board-9/password.css": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board9",
+    "subPage": "password"
+  },
+  "boards/board-9/password.html": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board9",
+    "subPage": "password"
+  },
+  "boards/board-9/password.js": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board9",
+    "subPage": "password"
+  },
+  "boards/board-9/view.css": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board9",
+    "subPage": "view"
+  },
+  "boards/board-9/view.html": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board9",
+    "subPage": "view"
+  },
+  "boards/board-9/view.js": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board9",
+    "subPage": "view"
+  },
+  "boards/board-9/write.css": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_board9",
+    "subPage": "write"
+  },
+  "boards/board-9/write.html": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_board9",
+    "subPage": "write"
+  },
+  "boards/board-9/write.js": {
+    "editorSection": "게시판 디자인 > 플루이드아트",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_board9",
+    "subPage": "write"
+  },
+  "boards/image-10/list.css": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image10",
+    "subPage": "list"
+  },
+  "boards/image-10/list.html": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image10",
+    "subPage": "list"
+  },
+  "boards/image-10/list.js": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image10",
+    "subPage": "list"
+  },
+  "boards/image-10/password.css": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image10",
+    "subPage": "password"
+  },
+  "boards/image-10/password.html": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image10",
+    "subPage": "password"
+  },
+  "boards/image-10/password.js": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image10",
+    "subPage": "password"
+  },
+  "boards/image-10/view.css": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image10",
+    "subPage": "view"
+  },
+  "boards/image-10/view.html": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image10",
+    "subPage": "view"
+  },
+  "boards/image-10/view.js": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image10",
+    "subPage": "view"
+  },
+  "boards/image-10/write.css": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image10",
+    "subPage": "write"
+  },
+  "boards/image-10/write.html": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image10",
+    "subPage": "write"
+  },
+  "boards/image-10/write.js": {
+    "editorSection": "게시판 디자인 > 갤러리/생활소품",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image10",
+    "subPage": "write"
+  },
+  "boards/image-11/list.css": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image11",
+    "subPage": "list"
+  },
+  "boards/image-11/list.html": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image11",
+    "subPage": "list"
+  },
+  "boards/image-11/list.js": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image11",
+    "subPage": "list"
+  },
+  "boards/image-11/password.css": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image11",
+    "subPage": "password"
+  },
+  "boards/image-11/password.html": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image11",
+    "subPage": "password"
+  },
+  "boards/image-11/password.js": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image11",
+    "subPage": "password"
+  },
+  "boards/image-11/view.css": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image11",
+    "subPage": "view"
+  },
+  "boards/image-11/view.html": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image11",
+    "subPage": "view"
+  },
+  "boards/image-11/view.js": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image11",
+    "subPage": "view"
+  },
+  "boards/image-11/write.css": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image11",
+    "subPage": "write"
+  },
+  "boards/image-11/write.html": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image11",
+    "subPage": "write"
+  },
+  "boards/image-11/write.js": {
+    "editorSection": "게시판 디자인 > 갤러리/악세사리",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image11",
+    "subPage": "write"
+  },
+  "boards/image-7/list.css": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image7",
+    "subPage": "list"
+  },
+  "boards/image-7/list.html": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image7",
+    "subPage": "list"
+  },
+  "boards/image-7/list.js": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image7",
+    "subPage": "list"
+  },
+  "boards/image-7/password.css": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image7",
+    "subPage": "password"
+  },
+  "boards/image-7/password.html": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image7",
+    "subPage": "password"
+  },
+  "boards/image-7/password.js": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image7",
+    "subPage": "password"
+  },
+  "boards/image-7/view.css": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image7",
+    "subPage": "view"
+  },
+  "boards/image-7/view.html": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image7",
+    "subPage": "view"
+  },
+  "boards/image-7/view.js": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image7",
+    "subPage": "view"
+  },
+  "boards/image-7/write.css": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image7",
+    "subPage": "write"
+  },
+  "boards/image-7/write.html": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image7",
+    "subPage": "write"
+  },
+  "boards/image-7/write.js": {
+    "editorSection": "게시판 디자인 > 갤러리/레칸플라워",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image7",
+    "subPage": "write"
+  },
+  "boards/image-9/list.css": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image9",
+    "subPage": "list"
+  },
+  "boards/image-9/list.html": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image9",
+    "subPage": "list"
+  },
+  "boards/image-9/list.js": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image9",
+    "subPage": "list"
+  },
+  "boards/image-9/password.css": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image9",
+    "subPage": "password"
+  },
+  "boards/image-9/password.html": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image9",
+    "subPage": "password"
+  },
+  "boards/image-9/password.js": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image9",
+    "subPage": "password"
+  },
+  "boards/image-9/view.css": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image9",
+    "subPage": "view"
+  },
+  "boards/image-9/view.html": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image9",
+    "subPage": "view"
+  },
+  "boards/image-9/view.js": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image9",
+    "subPage": "view"
+  },
+  "boards/image-9/write.css": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "boardCode": "jewoo_image9",
+    "subPage": "write"
+  },
+  "boards/image-9/write.html": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "boardCode": "jewoo_image9",
+    "subPage": "write"
+  },
+  "boards/image-9/write.js": {
+    "editorSection": "게시판 디자인 > 갤러리/원목제품",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "boardCode": "jewoo_image9",
+    "subPage": "write"
+  },
+  "category/category.css": {
+    "editorSection": "중앙 디자인 > 카테고리 > 카테고리",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "category/category.html": {
+    "editorSection": "중앙 디자인 > 카테고리 > 카테고리",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "category/category_1.css": {
+    "editorSection": "중앙 디자인 > 카테고리 > 카테고리 (서브)",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "category/category_1.html": {
+    "editorSection": "중앙 디자인 > 카테고리 > 카테고리 (서브)",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/agree_new.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > agree_new",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/agree_new.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > agree_new",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/agree_new.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > agree_new",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/attendance.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > attendance",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/attendance.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > attendance",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/attendance.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > attendance",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/attendance_comment.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > attendance_comment",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/attendance_comment.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > attendance_comment",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/attendance_comment.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > attendance_comment",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/basket_alert.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > basket_alert",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/basket_alert.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > basket_alert",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/community.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > community",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/community.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > community",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/community.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > community",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/confirm_present.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > confirm_present",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/confirm_present.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > confirm_present",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/confirm_present.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > confirm_present",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/contract.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > contract",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/contract.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > contract",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/contract.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > contract",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/cs_center.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > cs_center",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/cs_center.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > cs_center",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/cs_center.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > cs_center",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/faq.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > faq",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/faq.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > faq",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/faq.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > faq",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/guest_receivepresent.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > guest_receivepresent",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/guest_receivepresent.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > guest_receivepresent",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/guest_receivepresent.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > guest_receivepresent",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/neoevent_enter.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > neoevent_enter",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/neoevent_enter.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > neoevent_enter",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/neoevent_enter.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > neoevent_enter",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/neoevent_list.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > neoevent_list",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/neoevent_list.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > neoevent_list",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/neoevent_list.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > neoevent_list",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/neoevent_view.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > neoevent_view",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/neoevent_view.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > neoevent_view",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/neoevent_view.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > neoevent_view",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/pop_form_mail.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_form_mail",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/pop_form_mail.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_form_mail",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/pop_form_mail.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_form_mail",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/pop_m2m_notice.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_m2m_notice",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/pop_m2m_notice.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_m2m_notice",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/pop_m2m_notice.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_m2m_notice",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/pop_m2m_write.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_m2m_write",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/pop_m2m_write.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_m2m_write",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/pop_m2m_write.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_m2m_write",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/pop_password.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_password",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/pop_password.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_password",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/pop_password.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_password",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/pop_poll_list.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_poll_list",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/pop_poll_list.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_poll_list",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/pop_poll_list.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_poll_list",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/pop_poll_result.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_poll_result",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/pop_poll_result.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_poll_result",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/pop_poll_result.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_poll_result",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/pop_post.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_post",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/pop_post.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_post",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/pop_post.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > pop_post",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/privacy.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > privacy",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/privacy.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > privacy",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/privacy.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > privacy",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/reconfirm_password.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > reconfirm_password",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/reconfirm_password.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > reconfirm_password",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/reconfirm_password.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > reconfirm_password",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/roulette.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > roulette",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/roulette.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > roulette",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/roulette.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > roulette",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/select_agree.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > select_agree",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/select_agree.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > select_agree",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/select_agree.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > select_agree",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/shopinfo.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > shopinfo",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/shopinfo.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > shopinfo",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/shopinfo.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > shopinfo",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "community/useinfo.css": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > useinfo",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "community/useinfo.html": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > useinfo",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "community/useinfo.js": {
+    "editorSection": "중앙 디자인 > 커뮤니티 > useinfo",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "footer/basic/footer.css": {
+    "editorSection": "상단/하단 디자인 > 하단 > 기본 하단 [C]",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "footer/basic/footer.html": {
+    "editorSection": "상단/하단 디자인 > 하단 > 기본 하단 [C]",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "footer/basic/footer.js": {
+    "editorSection": "상단/하단 디자인 > 하단 > 기본 하단 [C]",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "header/basic/header.css": {
+    "editorSection": "상단/하단 디자인 > 상단 > 기본 상단 [C]",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "header/basic/header.html": {
+    "editorSection": "상단/하단 디자인 > 상단 > 기본 상단 [C]",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "header/basic/header.js": {
+    "editorSection": "상단/하단 디자인 > 상단 > 기본 상단 [C]",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "header/mypage-common/header.css": {
+    "editorSection": "상단/하단 디자인 > 상단 > 마이페이지 공통 [C]",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "header/mypage-common/header.html": {
+    "editorSection": "상단/하단 디자인 > 상단 > 마이페이지 공통 [C]",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "main/main.css": {
+    "editorSection": "중앙 디자인 > 메인 > main",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "main/main.html": {
+    "editorSection": "중앙 디자인 > 메인 > main",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "main/main.js": {
+    "editorSection": "중앙 디자인 > 메인 > main",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/ipin_duplicate.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > ipin_duplicate",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/ipin_duplicate.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > ipin_duplicate",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/ipin_duplicate.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > ipin_duplicate",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/join_auth.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_auth",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/join_auth.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_auth",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/join_auth.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_auth",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/join_complete.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_complete",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/join_complete.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_complete",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/join_complete.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_complete",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/join_sns.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_sns",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/join_sns.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_sns",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/join_sns.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_sns",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/join_terms.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_terms",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/join_terms.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_terms",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/join_terms.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_terms",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/join_type.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_type",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/join_type.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_type",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/join_type.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_type",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/join_unify.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_unify",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/join_unify.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_unify",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/join_unify.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > join_unify",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/login.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > login",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/login.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > login",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/login.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > login",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/login_adult.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > login_adult",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/login_adult.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > login_adult",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/login_adult.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > login_adult",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/login_basket.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > login_basket",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/login_basket.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > login_basket",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/login_basket.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > login_basket",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/login_order.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > login_order",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/login_order.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > login_order",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/login_order.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > login_order",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/lost_password_result.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > lost_password_result",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/lost_password_result.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > lost_password_result",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/lost_password_result.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > lost_password_result",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/new_password.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > new_password",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/new_password.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > new_password",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/new_password.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > new_password",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/open.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > open",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/pop_join_unify.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > pop_join_unify",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/pop_join_unify.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > pop_join_unify",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/pop_join_unify.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > pop_join_unify",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "member/user_agree.css": {
+    "editorSection": "중앙 디자인 > 회원관련 > user_agree",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "member/user_agree.html": {
+    "editorSection": "중앙 디자인 > 회원관련 > user_agree",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "member/user_agree.js": {
+    "editorSection": "중앙 디자인 > 회원관련 > user_agree",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mobile-banner/main.css": {
+    "editorSection": "중앙 디자인 > 모바일 메인 배너 > main",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mobile-banner/main.html": {
+    "editorSection": "중앙 디자인 > 모바일 메인 배너 > main",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mobile-banner/main.js": {
+    "editorSection": "중앙 디자인 > 모바일 메인 배너 > main",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_attpoint.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_attpoint",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_attpoint.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_attpoint",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_attpoint.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_attpoint",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_category.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_category",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_category.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_category",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_category.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_category",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_claim.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_claim",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_claim.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_claim",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_claim.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_claim",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_deposit.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_deposit",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_deposit.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_deposit",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_deposit.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_deposit",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_grade.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_grade",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_grade.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_grade",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_grade.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_grade",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_info.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_info",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_info.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_info",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_info.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_info",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_main.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_main",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_main.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_main",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_main.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_main",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_order_cancel.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_cancel",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_order_cancel.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_cancel",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_order_cancel.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_cancel",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_order_oo.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_oo",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_order_oo.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_oo",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_order_oo.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_oo",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_order_return.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_return",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_order_return.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_return",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_order_return.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_return",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_order_trade.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_trade",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_order_trade.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_trade",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_order_trade.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_order_trade",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_ordersummary.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_ordersummary",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_ordersummary.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_ordersummary",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_ordersummary.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_ordersummary",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_point.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_point",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_point.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_point",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_point.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_point",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_present.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_present",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_present.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_present",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_present.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_present",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_product.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_product",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_product.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_product",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_product.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_product",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_qna.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_qna",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_qna.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_qna",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_qna.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_qna",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_recent.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_recent",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_recent.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_recent",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_recent.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_recent",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_reserve.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_reserve",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_reserve.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_reserve",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_reserve.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_reserve",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_review.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_review",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_review.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_review",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_review.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_review",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_smart_coupon.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_smart_coupon",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_smart_coupon.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_smart_coupon",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_smart_coupon.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_smart_coupon",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_smart_reserve.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_smart_reserve",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_smart_reserve.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_smart_reserve",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_smart_reserve.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_smart_reserve",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_subs_list.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_subs_list",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_subs_list.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_subs_list",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_subs_list.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_subs_list",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_subs_order.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_subs_order",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_subs_order.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_subs_order",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_subs_order.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_subs_order",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/mp_withdraw.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_withdraw",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/mp_withdraw.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_withdraw",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/mp_withdraw.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > mp_withdraw",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "mypage/pop_delivery_tracking.css": {
+    "editorSection": "중앙 디자인 > 마이페이지 > pop_delivery_tracking",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "mypage/pop_delivery_tracking.html": {
+    "editorSection": "중앙 디자인 > 마이페이지 > pop_delivery_tracking",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "mypage/pop_delivery_tracking.js": {
+    "editorSection": "중앙 디자인 > 마이페이지 > pop_delivery_tracking",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/basket.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > basket",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/basket.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > basket",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/basket.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > basket",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/basket_provider.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > basket_provider",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/basket_provider.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > basket_provider",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/basket_provider.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > basket_provider",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/confirm_present.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > confirm_present",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/confirm_present.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > confirm_present",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/confirm_present.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > confirm_present",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/guest_presentorder.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > guest_presentorder",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/guest_presentorder.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > guest_presentorder",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/guest_presentorder.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > guest_presentorder",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/guest_receivepresent.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > guest_receivepresent",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/guest_receivepresent.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > guest_receivepresent",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/guest_receivepresent.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > guest_receivepresent",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/order_complete_oo.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > order_complete_oo",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/order_complete_oo.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > order_complete_oo",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/order_complete_oo.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > order_complete_oo",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/order_pay.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > order_pay",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/order_pay.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > order_pay",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/order_pay.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > order_pay",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/pop_cart_option.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > pop_cart_option",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/pop_cart_option.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > pop_cart_option",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/pop_cart_option.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > pop_cart_option",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/pop_estimate_print.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > pop_estimate_print",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/pop_estimate_print.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > pop_estimate_print",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/pop_estimate_print.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > pop_estimate_print",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/pop_unknown_payment.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > pop_unknown_payment",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/pop_unknown_payment.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > pop_unknown_payment",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/pop_unknown_payment.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > pop_unknown_payment",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/smartcalendar.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > smartcalendar",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/smartcalendar.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > smartcalendar",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/smartcalendar.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > smartcalendar",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/subs_apply.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > subs_apply",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/subs_apply.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > subs_apply",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/subs_apply.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > subs_apply",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/subs_basket.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > subs_basket",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/subs_basket.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > subs_basket",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/subs_basket.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > subs_basket",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "order/subs_complete.css": {
+    "editorSection": "중앙 디자인 > 주문관련 > subs_complete",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "order/subs_complete.html": {
+    "editorSection": "중앙 디자인 > 주문관련 > subs_complete",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "order/subs_complete.js": {
+    "editorSection": "중앙 디자인 > 주문관련 > subs_complete",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "pages/brand/page.css": {
+    "editorSection": "개별 페이지 > brand",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "ownerZone": "shared"
+  },
+  "pages/brand/page.html": {
+    "editorSection": "개별 페이지 > brand",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "ownerZone": "shared"
+  },
+  "pages/brand/page.js": {
+    "editorSection": "개별 페이지 > brand",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "ownerZone": "shared"
+  },
+  "pages/partner-map/page.css": {
+    "editorSection": "개별 페이지 > partner-map",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "ownerZone": "shared"
+  },
+  "pages/partner-map/page.html": {
+    "editorSection": "개별 페이지 > partner-map",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "ownerZone": "shared"
+  },
+  "pages/partner-map/page.js": {
+    "editorSection": "개별 페이지 > partner-map",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "ownerZone": "shared"
+  },
+  "pages/partnerclass-admin/index.css": {
+    "editorSection": "개별 페이지 > partnerclass-admin",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "pageId": 8011,
+    "pageUrl": "page.html?id=8011",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-admin/index.html": {
+    "editorSection": "개별 페이지 > partnerclass-admin",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "pageId": 8011,
+    "pageUrl": "page.html?id=8011",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-admin/index.js": {
+    "editorSection": "개별 페이지 > partnerclass-admin",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "pageId": 8011,
+    "pageUrl": "page.html?id=8011",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-affiliation/index.css": {
+    "editorSection": "개별 페이지 > partnerclass-affiliation",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-affiliation/index.html": {
+    "editorSection": "개별 페이지 > partnerclass-affiliation",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-affiliation/index.js": {
+    "editorSection": "개별 페이지 > partnerclass-affiliation",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-apply/index.css": {
+    "editorSection": "개별 페이지 > partnerclass-apply",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "pageId": 2609,
+    "pageUrl": "page.html?id=2609",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-apply/index.html": {
+    "editorSection": "개별 페이지 > partnerclass-apply",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "pageId": 2609,
+    "pageUrl": "page.html?id=2609",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-apply/index.js": {
+    "editorSection": "개별 페이지 > partnerclass-apply",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "pageId": 2609,
+    "pageUrl": "page.html?id=2609",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-content/index.css": {
+    "editorSection": "개별 페이지 > partnerclass-content",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-content/index.html": {
+    "editorSection": "개별 페이지 > partnerclass-content",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-content/index.js": {
+    "editorSection": "개별 페이지 > partnerclass-content",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-detail/index.css": {
+    "editorSection": "개별 페이지 > partnerclass-detail",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "pageId": 2607,
+    "pageUrl": "page.html?id=2607",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-detail/index.html": {
+    "editorSection": "개별 페이지 > partnerclass-detail",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "pageId": 2607,
+    "pageUrl": "page.html?id=2607",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-detail/index.js": {
+    "editorSection": "개별 페이지 > partnerclass-detail",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "pageId": 2607,
+    "pageUrl": "page.html?id=2607",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-edu/index.css": {
+    "editorSection": "개별 페이지 > partnerclass-edu",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "pageId": 2610,
+    "pageUrl": "page.html?id=2610",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-edu/index.html": {
+    "editorSection": "개별 페이지 > partnerclass-edu",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "pageId": 2610,
+    "pageUrl": "page.html?id=2610",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-edu/index.js": {
+    "editorSection": "개별 페이지 > partnerclass-edu",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "pageId": 2610,
+    "pageUrl": "page.html?id=2610",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-list/index.css": {
+    "editorSection": "개별 페이지 > partnerclass-list",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "pageId": 2606,
+    "pageUrl": "page.html?id=2606",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-list/index.html": {
+    "editorSection": "개별 페이지 > partnerclass-list",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "pageId": 2606,
+    "pageUrl": "page.html?id=2606",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-list/index.js": {
+    "editorSection": "개별 페이지 > partnerclass-list",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "pageId": 2606,
+    "pageUrl": "page.html?id=2606",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-mypage/index.css": {
+    "editorSection": "개별 페이지 > partnerclass-mypage",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "pageId": 8010,
+    "pageUrl": "page.html?id=8010",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-mypage/index.html": {
+    "editorSection": "개별 페이지 > partnerclass-mypage",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "pageId": 8010,
+    "pageUrl": "page.html?id=8010",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-mypage/index.js": {
+    "editorSection": "개별 페이지 > partnerclass-mypage",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "pageId": 8010,
+    "pageUrl": "page.html?id=8010",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-partner/index.css": {
+    "editorSection": "개별 페이지 > partnerclass-partner",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "pageId": 2608,
+    "pageUrl": "page.html?id=2608",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-partner/index.html": {
+    "editorSection": "개별 페이지 > partnerclass-partner",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "pageId": 2608,
+    "pageUrl": "page.html?id=2608",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-partner/index.js": {
+    "editorSection": "개별 페이지 > partnerclass-partner",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "pageId": 2608,
+    "pageUrl": "page.html?id=2608",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-register/index.css": {
+    "editorSection": "개별 페이지 > partnerclass-register",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "pageId": 8009,
+    "pageUrl": "page.html?id=8009",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-register/index.html": {
+    "editorSection": "개별 페이지 > partnerclass-register",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "pageId": 8009,
+    "pageUrl": "page.html?id=8009",
+    "ownerZone": "developer"
+  },
+  "pages/partnerclass-register/index.js": {
+    "editorSection": "개별 페이지 > partnerclass-register",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "pageId": 8009,
+    "pageUrl": "page.html?id=8009",
+    "ownerZone": "developer"
+  },
+  "pages/resiners/page.css": {
+    "editorSection": "개별 페이지 > resiners",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "ownerZone": "shared"
+  },
+  "pages/resiners/page.html": {
+    "editorSection": "개별 페이지 > resiners",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "ownerZone": "shared"
+  },
+  "pages/resiners/page.js": {
+    "editorSection": "개별 페이지 > resiners",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "ownerZone": "shared"
+  },
+  "pages/test/page.css": {
+    "editorSection": "개별 페이지 > test",
+    "tabIndex": 1,
+    "tabName": "CSS",
+    "ownerZone": "shared"
+  },
+  "pages/test/page.html": {
+    "editorSection": "개별 페이지 > test",
+    "tabIndex": 0,
+    "tabName": "HTML",
+    "ownerZone": "shared"
+  },
+  "pages/test/page.js": {
+    "editorSection": "개별 페이지 > test",
+    "tabIndex": 2,
+    "tabName": "JS",
+    "ownerZone": "shared"
+  },
+  "product/best_cate.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 베스트 카테고리",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/best_cate.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 베스트 카테고리",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/best_cate.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 베스트 카테고리",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/best_product.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 베스트 상품",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/best_product.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 베스트 상품",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/best_product.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 베스트 상품",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/best_review.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 베스트 리뷰",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/best_review.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 베스트 리뷰",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/best_review.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 베스트 리뷰",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/bigmatch.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 빅매치",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/bigmatch.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 빅매치",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/bigmatch.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 빅매치",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/coupon_zone.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 쿠폰존",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/coupon_zone.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 쿠폰존",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/coupon_zone.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 쿠폰존",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/event.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 이벤트",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/event.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 이벤트",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/event.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 이벤트",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/event_list.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 이벤트 목록",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/event_list.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 이벤트 목록",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/event_list.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 이벤트 목록",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/gift_list.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 선물하기 목록",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/gift_list.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 선물하기 목록",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/gift_list.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 선물하기 목록",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/neogift_choice.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 네오선물 선택",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/neogift_choice.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 네오선물 선택",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/neogift_choice.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 네오선물 선택",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/neogift_choice_order.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 네오선물 주문",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/neogift_choice_order.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 네오선물 주문",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/neogift_choice_order.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 네오선물 주문",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/neogift_list.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 네오선물 목록",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/neogift_list.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 네오선물 목록",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/neogift_list.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 네오선물 목록",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/plan.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 기획전",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/plan.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 기획전",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/plan.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 기획전",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/plan_list.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 기획전 목록",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/plan_list.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 기획전 목록",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/plan_list.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 기획전 목록",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/pop_cartfree.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-무료배송",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/pop_cartfree.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-무료배송",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/pop_cartfree.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-무료배송",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/pop_coupon_product.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-쿠폰상품",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/pop_coupon_product.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-쿠폰상품",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/pop_event_detail.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-이벤트상세",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/pop_event_detail.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-이벤트상세",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/pop_event_detail.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-이벤트상세",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/pop_gift_choice.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-선물선택",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/pop_gift_choice.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-선물선택",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/pop_gift_choice.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-선물선택",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/pop_product_benefit.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-상품혜택",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/pop_product_benefit.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-상품혜택",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/pop_shopdetail.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-상품상세",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/pop_shopdetail.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-상품상세",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/pop_shopdetail.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-상품상세",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/pop_simple_review.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-간편리뷰",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/pop_simple_review.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-간편리뷰",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/pop_simple_review.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-간편리뷰",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/pop_soldout_alarm.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-품절알림",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/pop_soldout_alarm.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-품절알림",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/pop_soldout_alarm.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 팝업-품절알림",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/power_review.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 파워리뷰",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/power_review.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 파워리뷰",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/power_review.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 파워리뷰",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/power_review_brand.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 파워리뷰 브랜드",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/power_review_brand.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 파워리뷰 브랜드",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/power_review_brand.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 파워리뷰 브랜드",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/power_review_photo.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 파워리뷰 포토",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/power_review_photo.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 파워리뷰 포토",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/power_review_photo.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 파워리뷰 포토",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/product_preview.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 상품 미리보기",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/product_preview.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 상품 미리보기",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/review_list.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 리뷰 목록",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/review_list.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 리뷰 목록",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/review_list.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 리뷰 목록",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/shopbrand.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 브랜드관",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/shopbrand.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 브랜드관",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/shopbrand.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 브랜드관",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/shopdetail.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 상품 상세",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/shopdetail.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 상품 상세",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/shopdetail.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 상품 상세",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/shopdetail_addinfo.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 상품 상세 추가정보",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/shopdetail_addinfo.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 상품 상세 추가정보",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/shopdetail_addinfo.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 상품 상세 추가정보",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/shopsearch.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 검색 결과",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/shopsearch.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 검색 결과",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/shopsearch.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 검색 결과",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/smartpickup_info.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 스마트픽업 정보",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/smartpickup_info.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 스마트픽업 정보",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  },
+  "product/smartpickup_info.js": {
+    "editorSection": "중앙 디자인 > 상품관련 > 스마트픽업 정보",
+    "tabIndex": 2,
+    "tabName": "JS"
+  },
+  "product/subs_select.css": {
+    "editorSection": "중앙 디자인 > 상품관련 > 정기배송 선택",
+    "tabIndex": 1,
+    "tabName": "CSS"
+  },
+  "product/subs_select.html": {
+    "editorSection": "중앙 디자인 > 상품관련 > 정기배송 선택",
+    "tabIndex": 0,
+    "tabName": "HTML"
+  }
+}

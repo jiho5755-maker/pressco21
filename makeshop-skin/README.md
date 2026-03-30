@@ -127,15 +127,66 @@ document.querySelector('.CodeMirror').CodeMirror.getValue()
 
 ---
 
+## 동기화 시스템 (`_sync/`)
+
+편집기 ↔ 로컬 코드 동기화를 자동화하는 도구 모음.
+
+```
+[메이크샵 편집기] ←── skin-pull ──→ [로컬 makeshop-skin/]
+    (라이브)        skin-push         (git 추적)
+                    skin-diff
+```
+
+### 도구 목록
+
+| 파일 | 용도 |
+|------|------|
+| `_sync/editor-map.json` | 538개 파일 → 편집기 위치 매핑 테이블 |
+| `_sync/skin-pull.js` | Chrome MCP로 편집기 코드 자동 추출 |
+| `_sync/skin-push.js` | Chrome MCP로 편집기에 코드 삽입 |
+| `_sync/pre-push-check.sh` | push 전 충돌 감지 |
+| `_sync/merge-css.sh` | CSS 3-way 병합 (디자이너+개발자) |
+| `_sync/SYNC-STATUS.md` | 동기화 상태 추적 |
+| `_sync/MANUAL-PULL.md` | 수동 추출 절차서 |
+
+### 개발 워크플로우
+
+**개발 시작:**
+```
+1. skin-pull: 편집기 최신 코드 → 로컬
+2. git diff: 디자이너 변경분 확인
+3. git commit -m "sync: 편집기 코드 pull"
+4. 개발 시작
+```
+
+**개발 완료:**
+```
+1. git commit -m "feat: [작업내용]"
+2. pre-push-check: 디자이너 중간 수정 확인
+3. 변경 감지 시 → pull + 병합 → 재커밋
+4. skin-push: 로컬 → 편집기
+5. SYNC-STATUS.md 업데이트
+```
+
+### Claude Code 사용법
+
+- **pull**: 편집기 페이지 열고 → "이 페이지 pull 해줘"
+- **push**: "main.css push 해줘" (pre-push-check 자동 실행)
+- **전체**: "skin sync" → 전체 동기화 프로세스
+
+---
+
 ## 동기화 규칙
 
 1. **편집기 수정 후**: 해당 로컬 파일도 즉시 업데이트
 2. **로컬 작업 후**: 편집기에 붙여넣기 → 저장 (메이크샵 저장 주의사항 준수)
 3. **`${variable}` 이스케이프**: 편집기 저장 시 `\${variable}` 형태 유지
+4. **CSS 수정 주의**: 디자이너 영역 CSS 수정 시 반드시 최신 pull 후 작업
 
 ---
 
 ## 마지막 동기화
 
 > 최초 구조 생성: 2026-03-17
-> 코드 추출 완료: (추출 후 업데이트)
+> 동기화 시스템 구축: 2026-03-30
+> 동기화 상태: `_sync/SYNC-STATUS.md` 참조

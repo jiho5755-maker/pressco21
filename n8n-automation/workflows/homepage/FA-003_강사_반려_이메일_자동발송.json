@@ -104,7 +104,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 이메일 발송 결과 확인 (continueOnFail 활성)\nvar item = $input.first().json;\nvar prevData = $('반려사유+이메일 있는가').item.json;\nvar hasError = false;\n\n// continueOnFail 시 에러가 있으면 $json에 error 필드가 존재\nif (item.error || item.message || (item.code && item.code !== 200)) {\n  hasError = true;\n}\n\nreturn [{\n  json: {\n    nocodb_id: prevData.nocodb_id,\n    name: prevData.name,\n    email: prevData.email,\n    rejectionReason: prevData.rejectionReason,\n    retryCount: prevData.retryCount || 0,\n    emailSuccess: !hasError,\n    errorMessage: hasError ? (item.message || item.error || 'Unknown error') : ''\n  }\n}];",
+        "jsCode": "// 이메일 발송 결과 확인 (continueOnFail 활성)\nvar item = $input.item.json || {};\nvar prevData = $('반려사유+이메일 있는가').item.json || {};\nvar errorMessage = '';\n\nif (typeof item.error === 'string' && item.error) {\n  errorMessage = item.error;\n} else if (Array.isArray(item.rejected) && item.rejected.length > 0) {\n  errorMessage = 'Rejected: ' + item.rejected.join(', ');\n}\n\nreturn {\n  json: {\n    nocodb_id: prevData.nocodb_id,\n    name: prevData.name,\n    email: prevData.email,\n    rejectionReason: prevData.rejectionReason,\n    retryCount: Number(prevData.retryCount || 0),\n    emailSuccess: errorMessage === '',\n    errorMessage: errorMessage\n  }\n};",
         "mode": "runOnceForEachItem"
       },
       "id": "fa003-n07b",
@@ -162,7 +162,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 발송 실패: retry 카운트 증가, 3회 이상이면 데드레터\nvar data = $('발송 결과 확인').item.json;\nvar newRetry = (data.retryCount || 0) + 1;\nvar isDeadLetter = newRetry >= 3;\n\nreturn [{\n  json: {\n    nocodb_id: data.nocodb_id,\n    name: data.name,\n    email: data.email,\n    errorMessage: data.errorMessage,\n    newRetry: newRetry,\n    isDeadLetter: isDeadLetter\n  }\n}];",
+        "jsCode": "// 발송 실패: retry 카운트 증가, 3회 이상이면 데드레터\nvar data = $('발송 결과 확인').item.json || {};\nvar newRetry = Number(data.retryCount || 0) + 1;\nvar isDeadLetter = newRetry >= 3;\n\nreturn {\n  json: {\n    nocodb_id: data.nocodb_id,\n    name: data.name,\n    email: data.email,\n    errorMessage: data.errorMessage,\n    newRetry: newRetry,\n    isDeadLetter: isDeadLetter\n  }\n};",
         "mode": "runOnceForEachItem"
       },
       "id": "fa003-n12",

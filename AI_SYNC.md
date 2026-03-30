@@ -51,10 +51,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-30 10:32:00 KST
+- Started At: 2026-03-30 12:11:00 KST
 - Branch: main
 - Working Scope: —
-- Active Subdirectory: offline-crm-v2
+- Active Subdirectory: n8n-automation/workflows/homepage
 
 ## Files In Progress
 - 없음
@@ -90,6 +90,21 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- FA-003 강사 반려 이메일 반복 발송 긴급 수정 및 라이브 배포를 완료했다.
+  - 원인
+    - `n8n-automation/workflows/homepage/FA-003_강사_반려_이메일_자동발송.json`
+    - `발송 결과 확인`, `실패 처리 판단` Code 노드가 `runOnceForEachItem` 모드에서 배열을 반환하고 있어 n8n 검증 단계에서 `A 'json' property isn't an object [item 0]` 오류로 중단됐다.
+    - 그 결과 `n8n_반려알림` 플래그가 갱신되지 않아 같은 반려 건이 5분마다 다시 이메일 발송 대상으로 조회됐다.
+  - 조치
+    - `발송 결과 확인`을 단일 객체 반환으로 수정하고, 메일 발송 성공 판정을 `error`/`rejected` 기준으로 안전하게 정리했다.
+    - `실패 처리 판단`도 단일 객체 반환으로 수정해 retry/데드레터 분기가 실제 실패 시 정상 동작하도록 맞췄다.
+    - 운영 n8n API로 WF `Ks4JvBC06cEj6b8b`를 직접 PUT 배포했다.
+    - 라이브 백업 저장: `output/n8n-backups/20260330_121753-FA-003-live-backup.json`
+    - 반복 발송을 즉시 멈추기 위해 NocoDB 반려 레코드 `Id=231` (`황선화`)의 `n8n_반려알림`을 `1`로 갱신했다.
+  - 검증
+    - 라이브 워크플로우 재조회 시 두 Code 노드 수정 내용 반영 확인
+    - 반려 미발송 조회 조건 `(진행 상태=반려 AND n8n_반려알림=0 AND n8n_반려_retry<3)` 결과 `0건`
+    - 배포 후 재등록된 cron `47 */5 * * * *` 기준 2026-03-30 03:20:47 UTC 실행에서 `NocoDB 반려 미발송 조회` → `레코드 분리` 후 정상 종료, 이메일 노드 미진입 확인
 - 저장소 전체 브랜치 상태를 다시 점검했다.
   - `git branch -a -vv`, `git remote show origin`, `git branch --no-merged main`, `git branch -r --no-merged origin/main` 기준으로 확인했다.
   - 현재 로컬/원격 모두 `main`만 남아 있고, `main`에 머지되지 않은 추가 보조 브랜치는 없다.
@@ -589,6 +604,7 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX] FA-001/FA-002/FA-003 계열 워크플로우의 runOnceForEachItem Code 노드 반환 형태를 일괄 점검해 같은 유형의 반복 발송/미처리 버그를 예방`
 - 브랜치 점검은 지금처럼 기능 작업 마감 시점마다 `main 외 브랜치 존재 여부`를 먼저 확인하는 운영 루틴으로 굳힌다.
 - 브랜치에서만 남아 있는 작업이 생기면 완료 전에 반드시 main 반영 여부를 먼저 확인하고, 필요 없어진 브랜치는 바로 삭제한다.
 - CRM 핵심 탭 전반 UX 정리는 일단 완료로 보고, 다음에는 실제 운영 사용 중 나오는 불편을 받아 미세조정 위주로 대응한다.

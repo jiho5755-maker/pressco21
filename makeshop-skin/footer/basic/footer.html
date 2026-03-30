@@ -13,8 +13,8 @@
                 <li class="text-white"><strong>개인정보책임자 :</strong> <!--/privacy_charge/--></li>
                 <li class="text-white"><strong>E-mail :</strong> jhl9464@naver.com </li>
 
-            </ul><br><br><br>
-            <ul class="bar-list-wrap">
+            </ul>
+            <ul class="bar-list-wrap" style="margin-top:16px;">
                 <li>사업자번호 : <!--/company_number/--></li>
                 <li>통신판매 신고번호 : <!--/online_sale_number/--></li>
                 <li>호스팅제공자 : (주)커넥트웨이브</li>
@@ -53,7 +53,7 @@
                     <a href="/board/board.html?code=<!--/shop_id/-->">FAQ</a>
                 </li>
                 <li>
-                    <a href="/shop/mypage.html?mypage_type=mym2mboard">1:1 문의</a>
+                    <a href="#" onclick="if(window.ChannelIO){ChannelIO('showMessenger');}return false;">1:1 문의</a>
                 </li>
                 <li>
                     <a href="/shop/reviewmore.html">상품리뷰</a>
@@ -68,12 +68,12 @@
                 <li><!--/shop_cs@value/--></li>
                 <!--/end_loop/-->
             </ul>
-            <br><br>
-            
-            <p>bank info</p>
-            <strong style="margin-top: 0; margin-bottom: 5px !important;"><!--/loop_shop_account/-->
-            <ul><!--/shop_account@value/--></strong></ul>
 
+            <p style="margin-top:16px;">bank info</p>
+            <!--/loop_shop_account/-->
+            <ul class="bar-list-wrap">
+                <li><strong><!--/shop_account@value/--></strong></li>
+            </ul>
             <!--/end_loop/-->
         </div>
     </div>
@@ -101,9 +101,9 @@
             <p style="margin-bottom: 1px">고객센터</p>
             <strong><!--/shop_phone/--></strong>
             
-            <p style="margin-bottom: -5px; line-height: 1;">bank info</p>
-            <strong><!--/loop_shop_account/--></strong>
-            <strong style="display: block; line-height: 1.2; margin-top: -3.5px;"><!--/shop_account@value/--></strong>
+            <p style="margin-bottom:4px; line-height:1;">bank info</p>
+            <!--/loop_shop_account/-->
+            <strong style="display:block; line-height:1.4; margin-bottom:2px;"><!--/shop_account@value/--></strong>
             <!--/end_loop/-->
             
             <ul class="bar-list-wrap"style="margin-top: -5px;">

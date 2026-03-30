@@ -13,7 +13,7 @@
     align-items: center;
     padding: 0 15px;
     height: 64px;
-    background: #b7c9ad;
+    background: #e5eae3;
     transition: background 0.3s ease;
     position: relative;
 }
@@ -89,7 +89,7 @@
     width: 100%;
     height: 64px;
     padding: 0 15px;
-    background: #b7c9ad;
+    background: #e5eae3;
     box-sizing: border-box;
     z-index: 1;
 }
@@ -134,7 +134,7 @@
 
 .menu-popup-wrap .mypage-wrap {
     padding: 16px 15px;
-    background: #b7c9ad;
+    background: #e5eae3;
 }
 
 .menu-popup-wrap .mypage-wrap ul {
@@ -304,7 +304,7 @@
     width: 100%;
     height: 49px;
     line-height: 49px;
-    background: #b7c9ad;
+    background: #e5eae3;
     z-index: 1;
 }
 
@@ -477,8 +477,8 @@ aside .navCommunity {display:none;}
         max-width: 1760px;
         height: 64px;
         padding: 0 80px;
-        background: var(--color-default: #b7c9ad;);
-        background: #b7c9ad;
+        background: var(--color-default: #e5eae3;);
+        background: #e5eae3;
         border-radius: 10px;
         box-sizing: border-box;
         transition: all .5s;

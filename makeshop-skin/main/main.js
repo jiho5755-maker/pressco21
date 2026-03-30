@@ -1,7 +1,7 @@
 /* ========================================
    PRESSCO21 메인페이지 - 메이크샵 D4
    IIFE 패턴으로 전역 변수 오염 방지
-   주의: 템플릿 리터럴 내 ${var}는 \${var}로 이스케이프
+   주의: 템플릿 리터럴 내 \${var}는 반드시 이스케이프
    ======================================== */
    (function() {
     'use strict';
@@ -1442,4 +1442,181 @@
         initClassSection();
     });
 
+})();
+
+/* ========================================
+   팝업 슬라이드 통합 모듈
+   메이크샵 이벤트 팝업(서버 주입)을 1개 모달로 통합
+   ======================================== */
+(function() {
+    'use strict';
+
+    var POPUP_STORAGE_KEY = 'pc21_popup_hide_date';
+    var POPUP_SHOW_DELAY = 3000;
+
+    function isTodayHidden() {
+        try {
+            var saved = localStorage.getItem(POPUP_STORAGE_KEY);
+            if (!saved) return false;
+            var today = new Date().toISOString().slice(0, 10);
+            return saved === today;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    function hideToday() {
+        try {
+            var today = new Date().toISOString().slice(0, 10);
+            localStorage.setItem(POPUP_STORAGE_KEY, today);
+        } catch (e) { /* localStorage 불가 환경 무시 */ }
+    }
+
+    function collectPopups() {
+        var selectors = [
+            'div[id^="popup_layer"]',
+            'div.popup_layer',
+            'div.event_popup',
+            'div[id^="event_popup"]',
+            'div[class*="pop_layer"]'
+        ];
+        var found = [];
+        var seen = {};
+
+        for (var i = 0; i < selectors.length; i++) {
+            var els = document.querySelectorAll(selectors[i]);
+            for (var j = 0; j < els.length; j++) {
+                var el = els[j];
+                // 이미 처리했거나 빈 팝업 무시
+                if (seen[el.id || j + '_' + i]) continue;
+                if (!el.innerHTML.trim()) continue;
+                seen[el.id || j + '_' + i] = true;
+                found.push(el);
+            }
+        }
+        return found;
+    }
+
+    function buildUnifiedModal(popups) {
+        // 컨테이너
+        var overlay = document.createElement('div');
+        overlay.id = 'pc21-popup-overlay';
+        overlay.className = 'pc21-popup-overlay';
+
+        var modal = document.createElement('div');
+        modal.className = 'pc21-popup-modal';
+
+        // 닫기 버튼
+        var closeBtn = document.createElement('button');
+        closeBtn.className = 'pc21-popup-close';
+        closeBtn.setAttribute('aria-label', '팝업 닫기');
+        closeBtn.innerHTML = '&times;';
+
+        // Swiper 구조
+        var swiperContainer = document.createElement('div');
+        swiperContainer.className = 'swiper-container pc21-popup-swiper';
+
+        var swiperWrapper = document.createElement('div');
+        swiperWrapper.className = 'swiper-wrapper';
+
+        for (var i = 0; i < popups.length; i++) {
+            var slide = document.createElement('div');
+            slide.className = 'swiper-slide pc21-popup-slide';
+
+            // 원본 팝업 내용을 슬라이드로 이동
+            var clone = popups[i].cloneNode(true);
+            clone.style.cssText = 'position:static;display:block;width:auto;height:auto;left:auto;top:auto;z-index:auto;';
+            slide.appendChild(clone);
+            swiperWrapper.appendChild(slide);
+
+            // 원본 숨기기
+            popups[i].style.display = 'none';
+        }
+
+        swiperContainer.appendChild(swiperWrapper);
+
+        // 네비게이션 (2개 이상일 때만)
+        if (popups.length > 1) {
+            var prevBtn = document.createElement('div');
+            prevBtn.className = 'swiper-button-prev pc21-popup-nav';
+            var nextBtn = document.createElement('div');
+            nextBtn.className = 'swiper-button-next pc21-popup-nav';
+            var pagination = document.createElement('div');
+            pagination.className = 'swiper-pagination pc21-popup-dots';
+
+            swiperContainer.appendChild(prevBtn);
+            swiperContainer.appendChild(nextBtn);
+            swiperContainer.appendChild(pagination);
+        }
+
+        // 하단 "오늘 그만 보기"
+        var footer = document.createElement('div');
+        footer.className = 'pc21-popup-footer';
+        var hideBtn = document.createElement('button');
+        hideBtn.className = 'pc21-popup-hide-today';
+        hideBtn.textContent = '오늘 그만 보기';
+
+        footer.appendChild(hideBtn);
+        modal.appendChild(closeBtn);
+        modal.appendChild(swiperContainer);
+        modal.appendChild(footer);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        return { overlay: overlay, swiperContainer: swiperContainer, closeBtn: closeBtn, hideBtn: hideBtn };
+    }
+
+    function initPopupSlider() {
+        if (isTodayHidden()) return;
+
+        var popups = collectPopups();
+        if (popups.length === 0) return;
+
+        var parts = buildUnifiedModal(popups);
+
+        // Swiper 초기화
+        setTimeout(function() {
+            if (typeof Swiper !== 'undefined') {
+                new Swiper(parts.swiperContainer, {
+                    loop: popups.length > 1,
+                    autoplay: popups.length > 1 ? { delay: 5000, disableOnInteraction: true } : false,
+                    pagination: { el: '.pc21-popup-dots', clickable: true },
+                    navigation: { nextEl: '.swiper-button-next.pc21-popup-nav', prevEl: '.swiper-button-prev.pc21-popup-nav' }
+                });
+            }
+        }, 100);
+
+        // 페이드인 표시
+        setTimeout(function() {
+            parts.overlay.classList.add('pc21-popup-visible');
+        }, POPUP_SHOW_DELAY);
+
+        // 이벤트
+        function closeModal() {
+            parts.overlay.classList.remove('pc21-popup-visible');
+            setTimeout(function() {
+                if (parts.overlay.parentNode) {
+                    parts.overlay.parentNode.removeChild(parts.overlay);
+                }
+            }, 300);
+        }
+
+        parts.closeBtn.addEventListener('click', closeModal);
+        parts.overlay.addEventListener('click', function(e) {
+            if (e.target === parts.overlay) closeModal();
+        });
+        parts.hideBtn.addEventListener('click', function() {
+            hideToday();
+            closeModal();
+        });
+    }
+
+    // DOM 로드 후 약간 지연하여 서버 주입 팝업 감지
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', function() {
+            setTimeout(initPopupSlider, 500);
+        });
+    } else {
+        setTimeout(initPopupSlider, 500);
+    }
 })();

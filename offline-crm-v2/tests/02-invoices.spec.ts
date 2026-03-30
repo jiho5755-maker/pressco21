@@ -12,7 +12,7 @@
  *   T2-08  거래처 없이 저장 시도 → 유효성 검사 경고
  *   T2-09  완전한 데이터로 명세표 저장 → 목록에 반영
  *   T2-10  저장된 명세표 클릭 → 수정 Dialog 열림
- *   T2-11  목록 우측 실행 버튼에 명세표/견적서 표시
+ *   T2-11  목록 우측 실행 버튼에 명세표/견적서/납품서/청구서 표시
  *   T2-12  품목 자동완성 선택 시 고객 단가 입력 + 과세 유지
  *   T2-13  빠른 기간 버튼 선택 시 날짜 입력값 동기화
  *
@@ -289,7 +289,7 @@ test('T2-10: 저장된 명세표 클릭 → 수정 Dialog 열림', async ({ page
   await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: 5_000 })
 })
 
-test('T2-11: 목록 우측 실행 버튼에 명세표/견적서 표시', async ({ page }) => {
+test('T2-11: 목록 우측 실행 버튼에 명세표/견적서/납품서/청구서 표시', async ({ page }) => {
   const dateInputs = page.locator('main input[type="date"]')
   await dateInputs.nth(0).fill('2026-03-13')
   await dateInputs.nth(1).fill('2026-03-13')
@@ -302,6 +302,8 @@ test('T2-11: 목록 우측 실행 버튼에 명세표/견적서 표시', async (
 
   await expect(firstRow.getByRole('button', { name: '명세표' })).toBeVisible()
   await expect(firstRow.getByRole('button', { name: '견적서' })).toBeVisible()
+  await expect(firstRow.getByRole('button', { name: '납품서' })).toBeVisible()
+  await expect(firstRow.getByRole('button', { name: '청구서' })).toBeVisible()
 })
 
 test('T2-12: 품목 자동완성 선택 시 고객 단가 입력 + 과세 유지', async ({ page }) => {

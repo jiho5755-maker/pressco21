@@ -29,7 +29,8 @@ import {
   recalcCustomerStats,
 } from '@/lib/api'
 import type { Invoice, Customer, Product } from '@/lib/api'
-import { buildDuplexBlobUrl, getPreviewPageCount } from '@/lib/print'
+import { buildDuplexBlobUrl, getPreviewPageCount, PRINT_DOCUMENT_OPTIONS } from '@/lib/print'
+import type { PrintDocumentType } from '@/lib/print'
 import { GRADE_COLORS } from '@/lib/constants'
 import { DEFAULT_RECEIPT_TYPE, normalizeReceiptTypeValue, RECEIPT_TYPE_OPTIONS } from '@/lib/invoiceDefaults'
 import { loadDefaultTaxableSetting } from '@/lib/settings'
@@ -344,6 +345,7 @@ export function InvoiceDialog({
   const [previewOpen, setPreviewOpen] = useState(false)
   const [previewUrl, setPreviewUrl] = useState('')
   const [previewPages, setPreviewPages] = useState(1)
+  const [previewDocumentType, setPreviewDocumentType] = useState<PrintDocumentType>('invoice')
   const previewIframeRef = useRef<HTMLIFrameElement>(null)
   const saveActionRef = useRef<() => Promise<void>>(async () => {})
   const closeActionRef = useRef<() => void>(() => {})
@@ -1105,7 +1107,7 @@ export function InvoiceDialog({
   function handlePreview() {
     if (previewUrl) URL.revokeObjectURL(previewUrl)
     const { inv, rows } = buildPrintData()
-    const documentType = 'invoice'
+    const documentType = previewDocumentType
     const url = buildDuplexBlobUrl(inv, rows, { documentType })
     setPreviewUrl(url)
     setPreviewPages(getPreviewPageCount(rows.length, documentType))
@@ -1128,6 +1130,7 @@ export function InvoiceDialog({
 
   const titleLabel = isCopy ? '명세표 복사' : invoiceId ? '명세표 수정' : '새 명세표'
   const saveButtonLabel = isSaving ? '저장 중...' : isCopy ? '복사 발행' : invoiceId ? '수정 저장' : '저장'
+  const previewDocumentLabel = PRINT_DOCUMENT_OPTIONS.find((option) => option.value === previewDocumentType)?.label ?? '명세표'
   const recentCustomerOptions: RecentCustomerOption[] = []
   const recentSeen = new Set<string>()
   for (const inv of recentCustomerInvoices?.list ?? []) {
@@ -1817,9 +1820,24 @@ export function InvoiceDialog({
                   단축키: Ctrl+Enter 저장 / Esc 닫기
                 </p>
                 <div className="flex flex-wrap gap-2">
+                  <Select
+                    value={previewDocumentType}
+                    onValueChange={(value) => setPreviewDocumentType(value as PrintDocumentType)}
+                  >
+                    <SelectTrigger className="h-9 w-[132px] text-xs">
+                      <SelectValue placeholder="출력 양식" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {PRINT_DOCUMENT_OPTIONS.map((option) => (
+                        <SelectItem key={option.value} value={option.value}>
+                          {option.label}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                   <Button size="sm" variant="outline" onClick={handlePreview} className="gap-1">
                     <Printer className="h-4 w-4" />
-                    인쇄 미리보기
+                    {previewDocumentLabel} 미리보기
                   </Button>
                   {isNew && !isCopy && (
                     <Button size="sm" variant="ghost" onClick={handleSaveDraft} className="text-muted-foreground">
@@ -1914,7 +1932,7 @@ export function InvoiceDialog({
           <DialogHeader className="px-4 py-3 border-b bg-gray-50 flex-row items-center justify-between space-y-0">
             <DialogTitle className="text-sm font-semibold flex items-center gap-2">
               <Printer className="h-4 w-4 text-[#7d9675]" />
-              인쇄 미리보기
+              {previewDocumentLabel} 미리보기
               <span className="text-xs font-normal text-muted-foreground">로고·도장 포함 여부를 확인 후 인쇄하세요</span>
             </DialogTitle>
             <div className="flex items-center gap-2">

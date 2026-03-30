@@ -57,7 +57,18 @@ export interface PrintItem {
   tax_amount?: number
 }
 
-export type PrintDocumentType = 'invoice' | 'estimate'
+export type PrintDocumentType = 'invoice' | 'estimate' | 'delivery' | 'bill'
+
+interface PrintDocumentDefinition {
+  value: PrintDocumentType
+  label: string
+  title: string
+  compactTitle: string
+  dateLabel: string
+  metaLabel: string
+  metaValue: (inv: PrintInvoice) => string
+  signatureText: (inv: PrintInvoice) => string
+}
 
 interface PrintDocumentOptions {
   documentType?: PrintDocumentType
@@ -143,6 +154,58 @@ const DUPLEX_HALF_TARGET_PX = DUPLEX_HALF_TARGET_MM * (96 / 25.4)
 const PRINT_PAGE_HEIGHT_MM = 296.8
 const PRINT_HALF_HEIGHT_MM = PRINT_PAGE_HEIGHT_MM / 2
 
+const PRINT_DOCUMENT_DEFINITIONS: Record<PrintDocumentType, PrintDocumentDefinition> = {
+  invoice: {
+    value: 'invoice',
+    label: '명세표',
+    title: '거 래 명 세 표',
+    compactTitle: '거래명세표',
+    dateLabel: '거래일자',
+    metaLabel: '구분',
+    metaValue: (inv) => inv.receipt_type ?? DEFAULT_RECEIPT_TYPE,
+    signatureText: (inv) => `위 금액을 정히 ${inv.receipt_type ?? DEFAULT_RECEIPT_TYPE}합니다.`,
+  },
+  estimate: {
+    value: 'estimate',
+    label: '견적서',
+    title: '견 적 서',
+    compactTitle: '견적서',
+    dateLabel: '견적일자',
+    metaLabel: '유효기간',
+    metaValue: (inv) => addDaysToDate(inv.invoice_date, 14) || formatDisplayDate(inv.invoice_date),
+    signatureText: () => '상기와 같이 견적드립니다.',
+  },
+  delivery: {
+    value: 'delivery',
+    label: '납품서',
+    title: '납 품 서',
+    compactTitle: '납품서',
+    dateLabel: '납품일자',
+    metaLabel: '문서',
+    metaValue: () => '납품용',
+    signatureText: () => '위 물품을 정히 납품합니다.',
+  },
+  bill: {
+    value: 'bill',
+    label: '청구서',
+    title: '청 구 서',
+    compactTitle: '청구서',
+    dateLabel: '청구일자',
+    metaLabel: '문서',
+    metaValue: () => '청구용',
+    signatureText: () => '상기 금액을 정히 청구합니다.',
+  },
+}
+
+export const PRINT_DOCUMENT_OPTIONS = Object.values(PRINT_DOCUMENT_DEFINITIONS).map((definition) => ({
+  value: definition.value,
+  label: definition.label,
+}))
+
+function getPrintDocumentDefinition(documentType: PrintDocumentType): PrintDocumentDefinition {
+  return PRINT_DOCUMENT_DEFINITIONS[documentType]
+}
+
 function formatBizInfo(bizType?: string, bizItem?: string): string {
   return [bizType, bizItem].filter(Boolean).join(' / ')
 }
@@ -166,8 +229,10 @@ function buildInvoicePageHtml(
   copyType: string,
   opts: PageOptions,
   startIndex: number,
+  documentType: Exclude<PrintDocumentType, 'estimate'>,
 ): string {
   const c = loadCompanyInfo()
+  const document = getPrintDocumentDefinition(documentType)
   const invoiceDate = formatDisplayDate(inv.invoice_date)
   const companyBizno = formatBusinessNumber(c.bizno)
   const customerBizno = formatBusinessNumber(inv.customer_bizno)
@@ -224,13 +289,13 @@ function buildInvoicePageHtml(
     html +=
       '<div class="inv-header">' +
       `<div class="inv-logo">${logoHtml}</div>` +
-      `<div class="inv-title-area"><div class="inv-title">거 래 명 세 표</div><div class="inv-sub">(${esc(copyType)})${pageLabel}</div></div>` +
+      `<div class="inv-title-area"><div class="inv-title">${document.title}</div><div class="inv-sub">(${esc(copyType)})${pageLabel}</div></div>` +
       '<div></div>' +
       '</div>' +
       '<table class="inv-tbl inv-meta-tbl"><tr>' +
       `<td class="inv-ml">발행번호</td><td class="inv-mv">${esc(inv.invoice_no ?? '')}</td>` +
-      `<td class="inv-ml">구분</td><td class="inv-mv t-center">${esc(inv.receipt_type ?? DEFAULT_RECEIPT_TYPE)}</td>` +
-      `<td class="inv-ml">거래일자</td><td class="inv-mv">${esc(invoiceDate)}</td>` +
+      `<td class="inv-ml">${esc(document.metaLabel)}</td><td class="inv-mv t-center">${esc(document.metaValue(inv))}</td>` +
+      `<td class="inv-ml">${esc(document.dateLabel)}</td><td class="inv-mv">${esc(invoiceDate)}</td>` +
       '</tr></table>' +
       '<table class="inv-tbl inv-party-tbl">' +
       '<colgroup>' +
@@ -264,7 +329,7 @@ function buildInvoicePageHtml(
     // ── 속지 페이지: 간략 헤더 ──
     html +=
       '<div class="inv-cont-header">' +
-      '<div class="inv-cont-title">거 래 명 세 표</div>' +
+      `<div class="inv-cont-title">${document.compactTitle}</div>` +
       '<div class="inv-cont-info">' +
       `<span>발행번호: ${esc(inv.invoice_no ?? '')}</span>` +
       `<span>거래처: ${esc(inv.customer_name ?? '')}</span>` +
@@ -309,7 +374,7 @@ function buildInvoicePageHtml(
         ? `<div class="inv-paynote">${payNoteLines.map((line) => esc(line)).join('<br />')}</div>`
         : '') +
       '<div class="inv-sig">' +
-      `<span class="inv-sig-text">위 금액을 정히 ${esc(inv.receipt_type ?? DEFAULT_RECEIPT_TYPE)}합니다.</span>` +
+      `<span class="inv-sig-text">${esc(document.signatureText(inv))}</span>` +
       '<div class="inv-sig-right">' +
       '<span class="inv-sig-label">대표자</span>' +
       '<div class="inv-sig-name-wrap">' +
@@ -363,7 +428,11 @@ function splitEstimateItemsToPages(items: PrintItem[]): PrintItem[][] {
   return pages
 }
 
-function buildDuplexInvoiceHtml(inv: PrintInvoice, items: PrintItem[]): string {
+function buildDuplexInvoiceHtml(
+  inv: PrintInvoice,
+  items: PrintItem[],
+  documentType: Exclude<PrintDocumentType, 'estimate'>,
+): string {
   const pages = splitItemsToPages(items)
   const totalPages = pages.length
 
@@ -375,8 +444,8 @@ function buildDuplexInvoiceHtml(inv: PrintInvoice, items: PrintItem[]): string {
       isLast: i === totalPages - 1,
     }
     const startIndex = i === 0 ? 0 : ITEMS_FIRST_PAGE + (i - 1) * ITEMS_CONT_PAGE
-    const supplier = buildInvoicePageHtml(inv, pageItems, '공급자 보관용', opts, startIndex)
-    const recipient = buildInvoicePageHtml(inv, pageItems, '공급받는자 보관용', opts, startIndex)
+    const supplier = buildInvoicePageHtml(inv, pageItems, '공급자 보관용', opts, startIndex, documentType)
+    const recipient = buildInvoicePageHtml(inv, pageItems, '공급받는자 보관용', opts, startIndex, documentType)
     return (
       '<div class="inv-page-duplex">' +
       '<div class="inv-half top"><div class="inv-scale-wrap">' +
@@ -397,6 +466,7 @@ function buildEstimatePageHtml(
   startIndex: number,
 ): string {
   const c = loadCompanyInfo()
+  const document = getPrintDocumentDefinition('estimate')
   const invoiceDate = formatDisplayDate(inv.invoice_date)
   const validUntil = addDaysToDate(inv.invoice_date, 14) || invoiceDate
   const companyBizno = formatBusinessNumber(c.bizno)
@@ -435,10 +505,10 @@ function buildEstimatePageHtml(
     '<div class="est-shell">' +
     '<div class="est-top">' +
     `<div class="est-logo">${logoHtml}</div>` +
-    `<div class="est-title-wrap"><div class="est-title">견 적 서</div><div class="est-sub">${esc(inv.invoice_no ?? '')}${pageLabel}</div></div>` +
+    `<div class="est-title-wrap"><div class="est-title">${document.title}</div><div class="est-sub">${esc(inv.invoice_no ?? '')}${pageLabel}</div></div>` +
     '<div class="est-meta">' +
-    `<div><span>견적일자</span><strong>${esc(invoiceDate)}</strong></div>` +
-    `<div><span>유효기간</span><strong>${esc(validUntil)}</strong></div>` +
+    `<div><span>${esc(document.dateLabel)}</span><strong>${esc(invoiceDate)}</strong></div>` +
+    `<div><span>${esc(document.metaLabel)}</span><strong>${esc(validUntil)}</strong></div>` +
     '</div>' +
     '</div>' +
     '<table class="est-party-table">' +
@@ -471,7 +541,7 @@ function buildEstimatePageHtml(
         '</div>' +
         '</div>' +
         '<div class="est-signature">' +
-        '<div class="est-signature-text">상기와 같이 견적드립니다.</div>' +
+        `<div class="est-signature-text">${esc(document.signatureText(inv))}</div>` +
         '<div class="est-signature-right">' +
         '<span class="est-signature-label">대표자</span>' +
         `<span class="est-signature-name">${esc(c.ceo ?? '')}</span>` +
@@ -665,7 +735,9 @@ export function buildDuplexBlobUrl(
 ): string {
   const documentType = options.documentType ?? 'invoice'
   const isEstimate = documentType === 'estimate'
-  const duplexHtml = isEstimate ? buildEstimateHtml(inv, items) : buildDuplexInvoiceHtml(inv, items)
+  const duplexHtml = isEstimate
+    ? buildEstimateHtml(inv, items)
+    : buildDuplexInvoiceHtml(inv, items, documentType)
   const fitScript = isEstimate ? '' : buildDuplexFitScript()
   const css = isEstimate ? ESTIMATE_CSS : DUPLEX_CSS
   const fullHtml =

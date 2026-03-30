@@ -13,7 +13,8 @@ import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 import { getAllCustomers, getAllInvoices, getCustomerAddressEntries, getCustomerAddressValueByKey, getInvoice, getItems, deleteInvoice, bulkDeleteItems, recalcCustomerStats, sanitizeSearchTerm, findCustomerByInvoiceLink } from '@/lib/api'
 import type { Customer, Invoice } from '@/lib/api'
 import { exportCourierInvoices } from '@/lib/excel'
-import { printDuplexViaIframe } from '@/lib/print'
+import { PRINT_DOCUMENT_OPTIONS, printDuplexViaIframe } from '@/lib/print'
+import type { PrintDocumentType } from '@/lib/print'
 import { getDisplayMemo } from '@/lib/accountingMeta'
 import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
 
@@ -439,7 +440,7 @@ export function Invoices() {
     await runCourierExport()
   }
 
-  async function handlePrint(inv: Invoice, documentType: 'invoice' | 'estimate' = 'invoice') {
+  async function handlePrint(inv: Invoice, documentType: PrintDocumentType = 'invoice') {
     try {
       const [latestInvoice, itemsData] = await Promise.all([
         getInvoice(inv.Id),
@@ -765,26 +766,23 @@ export function Invoices() {
 
               <div className="mt-3 grid gap-2">
                 <div className="grid grid-cols-2 gap-2">
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 border-[#d8e4d6] text-xs text-gray-700 hover:bg-gray-50"
-                    title="거래명세표 인쇄"
-                    onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'invoice') }}
-                  >
-                    <Printer className="h-3.5 w-3.5" />
-                    <span className="ml-1">명세표</span>
-                  </Button>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    className="h-8 border-[#d8e4d6] text-xs text-[#3d6b4a] hover:bg-[#f5faf4]"
-                    title="견적서 인쇄"
-                    onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'estimate') }}
-                  >
-                    <FileText className="h-3.5 w-3.5" />
-                    <span className="ml-1">견적서</span>
-                  </Button>
+                  {PRINT_DOCUMENT_OPTIONS.map((option) => {
+                    const isEstimate = option.value === 'estimate'
+                    const Icon = isEstimate ? FileText : Printer
+                    return (
+                      <Button
+                        key={option.value}
+                        variant="outline"
+                        size="sm"
+                        className={`h-8 border-[#d8e4d6] text-xs ${isEstimate ? 'text-[#3d6b4a] hover:bg-[#f5faf4]' : 'text-gray-700 hover:bg-gray-50'}`}
+                        title={`${option.label} 인쇄`}
+                        onClick={(e) => { e.stopPropagation(); void handlePrint(inv, option.value) }}
+                      >
+                        <Icon className="h-3.5 w-3.5" />
+                        <span className="ml-1">{option.label}</span>
+                      </Button>
+                    )
+                  })}
                 </div>
 
                 <div className="grid grid-cols-3 gap-2">
@@ -935,27 +933,24 @@ export function Invoices() {
                     <div className="flex flex-wrap items-start justify-end gap-2">
                       <div className="rounded-xl border border-[#d8e4d6] bg-white p-1 shadow-sm">
                         <div className="px-2 pb-1 pt-0.5 text-[11px] font-medium text-[#5a7353]">출력</div>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 border-[#d8e4d6] px-2 text-xs text-gray-700 hover:bg-gray-50"
-                            title="거래명세표 인쇄"
-                            onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'invoice') }}
-                          >
-                            <Printer className="h-3.5 w-3.5" />
-                            <span className="ml-1">명세표</span>
-                          </Button>
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            className="h-7 border-[#d8e4d6] px-2 text-xs text-[#3d6b4a] hover:bg-[#f5faf4]"
-                            title="견적서 인쇄"
-                            onClick={(e) => { e.stopPropagation(); void handlePrint(inv, 'estimate') }}
-                          >
-                            <FileText className="h-3.5 w-3.5" />
-                            <span className="ml-1">견적서</span>
-                          </Button>
+                        <div className="grid grid-cols-2 gap-1">
+                          {PRINT_DOCUMENT_OPTIONS.map((option) => {
+                            const isEstimate = option.value === 'estimate'
+                            const Icon = isEstimate ? FileText : Printer
+                            return (
+                              <Button
+                                key={option.value}
+                                variant="outline"
+                                size="sm"
+                                className={`h-7 border-[#d8e4d6] px-2 text-xs ${isEstimate ? 'text-[#3d6b4a] hover:bg-[#f5faf4]' : 'text-gray-700 hover:bg-gray-50'}`}
+                                title={`${option.label} 인쇄`}
+                                onClick={(e) => { e.stopPropagation(); void handlePrint(inv, option.value) }}
+                              >
+                                <Icon className="h-3.5 w-3.5" />
+                                <span className="ml-1">{option.label}</span>
+                              </Button>
+                            )
+                          })}
                         </div>
                       </div>
                       <div className="rounded-xl bg-gray-50 px-1 py-1">

@@ -16,7 +16,7 @@
     <!-- Chart.js CDN (수익 시각화) -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
     <!-- PRESSCO21 공통 모듈 (유틸리티, API 래퍼, 캐시) -->
-    <script src="https://img.pressco21.com/images/assets/pressco21-core.js?v=2.1"></script>
+    <script src="https://img.pressco21.com/images/assets/pressco21-core.js"></script>
 </head>
 <body>
 
@@ -147,7 +147,7 @@
         <div id="pdOnboarding" class="pd-onboarding" style="display:none">
             <div class="pd-onboarding__header">
                 <h3 class="pd-onboarding__title">시작 가이드</h3>
-                <span id="pdOnboardProgress" class="pd-onboarding__progress">0/4</span>
+                <span id="pdOnboardProgress" class="pd-onboarding__progress">0/5</span>
                 <button type="button" id="pdOnboardDismiss" class="pd-onboarding__dismiss" aria-label="닫기">&times;</button>
             </div>
             <div class="pd-onboarding__bar">
@@ -157,6 +157,10 @@
                 <li class="pd-onboarding__item" data-step="profile">
                     <span class="pd-onboarding__check"></span>
                     <span class="pd-onboarding__text">프로필 정보 완성하기</span>
+                </li>
+                <li class="pd-onboarding__item" data-step="education">
+                    <span class="pd-onboarding__check"></span>
+                    <span class="pd-onboarding__text">파트너 시작 가이드 이수</span>
                 </li>
                 <li class="pd-onboarding__item" data-step="class">
                     <span class="pd-onboarding__check"></span>

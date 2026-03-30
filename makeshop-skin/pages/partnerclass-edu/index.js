@@ -17,7 +17,7 @@
     var fetchEducationStatus = PC.auth.checkEducationStatus;
 
     /** WF-10 교육 이수 엔드포인트 */
-    /* EDUCATION_URL은 PC.api.fetchPost('EDUCATION', ...) 로 대체 */
+    var EDUCATION_URL = PC.config.N8N_BASE + PC.endpoints.EDUCATION;
 
     /** 총 문항 수 (서버와 동일, 고정) */
     var TOTAL_QUESTIONS = 15;
@@ -201,24 +201,25 @@
        초기화
        ======================================== */
 
-    var PE_AREAS = ['peNoticeArea', 'peNotPartnerArea', 'peAlreadyArea', 'peContentArea', 'peResultArea'];
-
     function init() {
         // 로그인 버튼 JS 폴백
         var loginBtn = document.getElementById('peLoginBtn');
         if (loginBtn) {
             loginBtn.onclick = function(e) {
                 e.preventDefault();
-                PC.auth.redirectToLogin();
+                window.location.href = '/shop/member.html?type=login&returnUrl=' + encodeURIComponent(window.location.href);
             };
         }
 
         // 회원 ID 읽기 (가상태그)
-        memberId = PC.auth.getMemberId('peMemberId');
+        var memberEl = document.getElementById('peMemberId');
+        if (memberEl) {
+            memberId = (memberEl.textContent || '').trim();
+        }
 
         // 미로그인 처리
         if (!memberId) {
-            PC.ui.showArea('peNoticeArea', PE_AREAS);
+            showArea('peNoticeArea');
             return;
         }
 
@@ -535,12 +536,23 @@
      * @param {Function} callback - function(err, data)
      */
     function postEducation(data, callback) {
-        PC.api.fetchPost('EDUCATION', data)
+        fetch(EDUCATION_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            redirect: 'follow'
+        })
+            .then(function(response) {
+                if (!response.ok && response.status >= 500) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(function(resData) {
                 callback(null, resData);
             })
             .catch(function(err) {
-                console.error('[PartnerEducation] API 실패:', err.code || '', err.message || err);
+                console.error('[PartnerEducation] API 실패:', err);
                 callback(err, null);
             });
     }
@@ -706,7 +718,11 @@
      * @param {string} areaId
      */
     function showArea(areaId) {
-        PC.ui.showArea(areaId, PE_AREAS);
+        var areas = ['peNoticeArea', 'peNotPartnerArea', 'peAlreadyArea', 'peContentArea', 'peResultArea'];
+        for (var i = 0; i < areas.length; i++) {
+            var el = document.getElementById(areas[i]);
+            if (el) el.style.display = areas[i] === areaId ? '' : 'none';
+        }
     }
 
     /**
@@ -784,11 +800,13 @@
        ======================================== */
 
     function showLoading() {
-        PC.ui.showLoading('peLoadingOverlay');
+        var el = document.getElementById('peLoadingOverlay');
+        if (el) el.style.display = 'flex';
     }
 
     function hideLoading() {
-        PC.ui.hideLoading('peLoadingOverlay');
+        var el = document.getElementById('peLoadingOverlay');
+        if (el) el.style.display = 'none';
     }
 
     /**

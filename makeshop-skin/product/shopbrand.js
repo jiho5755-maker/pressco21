@@ -56,4 +56,105 @@ $(function(){
         $('.list_array').css('border-top', '0');
     }
 
+    // ===================================================
+    // 카테고리 UX 개선: 전체보기 + 컴팩트 보기 토글
+    // ===================================================
+    (function() {
+        // --- 1. + 버튼을 "전체 보기" 버튼으로 교체 ---
+        var moreArea = document.getElementById('MS_product_more_btn_area');
+        if (moreArea) {
+            // MutationObserver로 + 버튼 영역 변화 감시
+            var observer = new MutationObserver(function() {
+                var moreLink = moreArea.querySelector('.more a');
+                if (!moreLink || moreLink.dataset.enhanced) return;
+                moreLink.dataset.enhanced = 'true';
+
+                // "전체 보기" 래퍼 생성
+                var wrapper = document.createElement('div');
+                wrapper.className = 'pc21-loadall-wrap';
+                wrapper.innerHTML = '<button class="pc21-btn-loadall" type="button">' +
+                    '\uB098\uBA38\uC9C0 \uC804\uCCB4 \uBCF4\uAE30</button>';
+                moreArea.parentNode.insertBefore(wrapper, moreArea.nextSibling);
+
+                // "전체 보기" 클릭 시 + 버튼 반복 클릭
+                wrapper.querySelector('.pc21-btn-loadall').addEventListener('click', function() {
+                    var btn = this;
+                    btn.textContent = '\uBD88\uB7EC\uC624\uB294 \uC911...';
+                    btn.disabled = true;
+
+                    var clickInterval = setInterval(function() {
+                        var link = moreArea.querySelector('.more a');
+                        if (link && link.offsetParent !== null) {
+                            link.click();
+                        } else {
+                            clearInterval(clickInterval);
+                            btn.textContent = '\uBAA8\uB450 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4';
+                            setTimeout(function() { wrapper.style.display = 'none'; }, 1500);
+                        }
+                    }, 300);
+                });
+            });
+            observer.observe(moreArea, { childList: true, subtree: true, attributes: true });
+            // 초기 실행
+            observer.takeRecords();
+            var initLink = moreArea.querySelector('.more a');
+            if (initLink) {
+                initLink.dataset.enhanced = 'true';
+                var wrapper = document.createElement('div');
+                wrapper.className = 'pc21-loadall-wrap';
+                wrapper.innerHTML = '<button class="pc21-btn-loadall" type="button">' +
+                    '\uB098\uBA38\uC9C0 \uC804\uCCB4 \uBCF4\uAE30</button>';
+                moreArea.parentNode.insertBefore(wrapper, moreArea.nextSibling);
+
+                wrapper.querySelector('.pc21-btn-loadall').addEventListener('click', function() {
+                    var btn = this;
+                    btn.textContent = '\uBD88\uB7EC\uC624\uB294 \uC911...';
+                    btn.disabled = true;
+                    var clickInterval = setInterval(function() {
+                        var link = moreArea.querySelector('.more a');
+                        if (link && link.offsetParent !== null) {
+                            link.click();
+                        } else {
+                            clearInterval(clickInterval);
+                            btn.textContent = '\uBAA8\uB450 \uBD88\uB7EC\uC654\uC2B5\uB2C8\uB2E4';
+                            setTimeout(function() { wrapper.style.display = 'none'; }, 1500);
+                        }
+                    }, 300);
+                });
+            }
+        }
+
+        // --- 2. 컴팩트 보기 토글 버튼 ---
+        var listArray = document.querySelector('.list_array');
+        if (listArray) {
+            var toggleWrap = document.createElement('div');
+            toggleWrap.className = 'pc21-view-toggle';
+            toggleWrap.innerHTML =
+                '<button class="pc21-btn-view active" data-view="normal" type="button" title="\uAE30\uBCF8 \uBCF4\uAE30">' +
+                '<svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor"><rect x="0" y="0" width="8" height="8"/><rect x="10" y="0" width="8" height="8"/><rect x="0" y="10" width="8" height="8"/><rect x="10" y="10" width="8" height="8"/></svg></button>' +
+                '<button class="pc21-btn-view" data-view="compact" type="button" title="\uCEF4\uD329\uD2B8 \uBCF4\uAE30">' +
+                '<svg width="18" height="18" viewBox="0 0 18 18" fill="currentColor"><rect x="0" y="0" width="5" height="5"/><rect x="6.5" y="0" width="5" height="5"/><rect x="13" y="0" width="5" height="5"/><rect x="0" y="6.5" width="5" height="5"/><rect x="6.5" y="6.5" width="5" height="5"/><rect x="13" y="6.5" width="5" height="5"/><rect x="0" y="13" width="5" height="5"/><rect x="6.5" y="13" width="5" height="5"/><rect x="13" y="13" width="5" height="5"/></svg></button>';
+            listArray.appendChild(toggleWrap);
+
+            toggleWrap.addEventListener('click', function(e) {
+                var btn = e.target.closest('.pc21-btn-view');
+                if (!btn) return;
+                var view = btn.dataset.view;
+                var contents = document.getElementById('contents');
+                if (!contents) return;
+
+                toggleWrap.querySelectorAll('.pc21-btn-view').forEach(function(b) {
+                    b.classList.remove('active');
+                });
+                btn.classList.add('active');
+
+                if (view === 'compact') {
+                    contents.classList.add('pc21-compact-view');
+                } else {
+                    contents.classList.remove('pc21-compact-view');
+                }
+            });
+        }
+    })();
+
 });

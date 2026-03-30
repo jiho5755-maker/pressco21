@@ -219,6 +219,95 @@
 
 
 
+/* ===== 카테고리 UX 개선: 전체보기 + 컴팩트 보기 ===== */
+
+/* 전체 보기 버튼 */
+.pc21-loadall-wrap {
+    text-align: center;
+    margin: 30px 0 60px;
+}
+
+.pc21-btn-loadall {
+    display: inline-block;
+    padding: 14px 40px;
+    border: 2px solid #425b51;
+    border-radius: 30px;
+    background: transparent;
+    color: #425b51;
+    font-size: 15px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    letter-spacing: 0.5px;
+}
+
+.pc21-btn-loadall:hover {
+    background: #425b51;
+    color: #fff;
+}
+
+.pc21-btn-loadall:disabled {
+    border-color: #ccc;
+    color: #999;
+    cursor: wait;
+}
+
+/* 보기 토글 버튼 */
+.pc21-view-toggle {
+    display: flex;
+    gap: 4px;
+    margin-left: 12px;
+}
+
+.pc21-btn-view {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background: #fff;
+    color: #999;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.pc21-btn-view.active,
+.pc21-btn-view:hover {
+    border-color: #425b51;
+    color: #425b51;
+    background: #f5f9f7;
+}
+
+/* 컴팩트 보기 모드 */
+#contents.pc21-compact-view .MK_product_list .item-list .thumb a {
+    height: auto !important;
+    max-height: 150px !important;
+}
+
+#contents.pc21-compact-view .MK_product_list .item-list .prd-info .prd-name a {
+    font-size: 12px !important;
+}
+
+#contents.pc21-compact-view .MK_product_list .item-list .prd-info .prd-price .normal {
+    font-size: 13px !important;
+}
+
+#contents.pc21-compact-view .MK_product_list .item-list .prd-info .review-wrap {
+    display: none !important;
+}
+
+#contents.pc21-compact-view .MK_product_list .item-list .prd-info .prd-benefit {
+    display: none !important;
+}
+
+#contents.pc21-compact-view .MK_product_list .item-list .prd-info .prd-preview {
+    display: none !important;
+}
+
+/* ===== /카테고리 UX 개선 ===== */
+
 @media (min-width: 768px) {
     .swiper-wrapper.product-list-wrap {
         height: auto;
@@ -250,6 +339,19 @@
     background: #b7c9ad !important;
     color: #fff !important;
 }
+
+    /* PC 컴팩트 보기: 6열 그리드 */
+    #contents.pc21-compact-view .MK-product-item {
+        width: 16.6666% !important;
+    }
+
+    #contents.pc21-compact-view .MK_product_list .item-list {
+        margin-bottom: 15px !important;
+    }
+
+    #contents.pc21-compact-view .MK_product_list .item-list .prd-info {
+        padding: 5px 0 !important;
+    }
 }
 
 

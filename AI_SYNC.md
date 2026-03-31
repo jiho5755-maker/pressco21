@@ -49,19 +49,15 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
-- Started At: 2026-03-31 20:55:30 KST
+- Current Owner: IDLE
+- Mode: —
+- Started At: —
 - Branch: main
-- Working Scope: Flora 전문 비서 모드 자동 전환 규칙 및 전용 에이전트 분리 설계/반영
-- Active Subdirectory: openclaw-project-hub
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
-- AI_SYNC.md
-- openclaw-project-hub/03_openclaw_docs/flora-specialist-routing-policy.ko.md
-- openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json
-- openclaw-project-hub/06_scripts/sync-flora-mac-context.sh
-- openclaw-project-hub/07_openclaw_skills/flora-mac-copilot/SKILL.md
+- 없음
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -94,6 +90,31 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `openclaw-project-hub` Flora 전문 비서 자동 전환 규칙과 specialist agent 분리 구성을 추가했다.
+  - 추가/수정
+    - `openclaw-project-hub/03_openclaw_docs/flora-specialist-routing-policy.ko.md`
+      - `owner` 프론트도어 기준 전문 모드 전환 원칙과 specialist 역할 표를 문서화했다.
+    - `openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json`
+      - `executive / strategy / storefront / crm / automation / knowledge` 6개 모드의 키워드, 적용 상황, 응답 스타일, 워크스페이스 정의를 추가했다.
+    - `openclaw-project-hub/06_scripts/generate-flora-mac-meta-prompt.py`
+      - 라우팅 정책 JSON을 읽어 메타 프롬프트에 `자동 전환 규칙`과 `전문 모드 우선 선택` 원칙을 주입하도록 확장했다.
+    - `openclaw-project-hub/06_scripts/sync-flora-mac-context.sh`
+      - `routing-policy.json`, `routing-policy.md`, `flora-specialist-router` 스킬을 서버 `workspace-owner` 컨텍스트/스킬 디렉토리로 함께 동기화하도록 확장했다.
+    - `openclaw-project-hub/06_scripts/install-flora-specialist-agents.sh`
+      - 라우팅 정책 기준으로 specialist workspace 파일(`IDENTITY.md`, `AGENTS.md`, `USER.md`, `BOOTSTRAP.md`)을 생성하고 서버 에이전트를 설치/갱신하는 스크립트를 추가했다.
+    - `openclaw-project-hub/07_openclaw_skills/flora-mac-copilot/SKILL.md`
+      - 기존 owner 스킬이 라우팅 정책까지 읽고 전문 모드를 먼저 선택하도록 갱신했다.
+    - `openclaw-project-hub/07_openclaw_skills/flora-specialist-router/SKILL.md`
+      - owner가 `routing-policy / assistant-brief / analysis`를 근거로 `selectedMode`와 `selectedAgent`를 결정하는 전용 라우터 스킬을 추가했다.
+  - 서버 반영
+    - `/home/ubuntu/.openclaw/workspace-owner/context/flora-mac-harness/{routing-policy.json,routing-policy.md}` 동기화 완료
+    - `/home/ubuntu/.openclaw/workspace-owner/skills/flora-specialist-router/SKILL.md` 반영 완료
+    - specialist agent `flora-executive / flora-strategy / flora-storefront / flora-crm / flora-automation / flora-knowledge` 생성 완료
+  - 검증
+    - `bash openclaw-project-hub/06_scripts/sync-flora-mac-context.sh openclaw-project-hub/04_reference_json/flora-mac-harness.pressco21.json` 성공
+    - `bash openclaw-project-hub/06_scripts/install-flora-specialist-agents.sh openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json` 성공
+    - 서버 `openclaw skills list`에서 `flora-mac-copilot`, `flora-specialist-router` ready 확인
+    - `flora-crm` 직접 호출 테스트로 CRM 전용 답변이 specialist workspace 기준으로 생성되는 것 확인
 - **메이크샵 오픈 API 공식 문서 학습 & 스킬 고도화 (2026-03-31)**
   - 공식 문서(openapi.makeshop.co.kr/docs) 130+ 엔드포인트 직접 검증
   - open-api.md 고도화 (704→870줄): 에러코드 15개 보충, basket_status 40개 전수, 2025~2026 신규 필드
@@ -769,9 +790,9 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
-- `[CODEX-LEAD] Flora 전문 비서 6개 모드별 자동 전환 규칙표를 설계하고, 텔레그램 프롬프트 패턴별로 어느 모드를 우선 적용할지 라우팅 정책 문서화`
-- `[CODEX-LEAD] owner 기본 세션 대신 업무 목적별 전용 에이전트(예: storefront / crm / automation / strategy) 분리 여부 검토`
-- `[CODEX-LEAD] Flora 텔레그램 owner 실세션에서 맥북 인벤토리 기반 응답이 과거 메모리와 섞이지 않는지 2~3개 실제 질문으로 확인하고, 필요하면 owner 메모리 정리 또는 전용 로컬 코파일럿 에이전트 분리를 검토`
+- `[CODEX-LEAD] Flora 텔레그램 owner 실세션에서 2~3개 실제 질문으로 전문 모드 선택이 기대대로 보이는지 확인하고, 응답 첫 문단에 선택 모드가 자연스럽게 반영되는지 검증`
+- `[CODEX-LEAD] owner가 specialist를 내부적으로 호출하거나 응답 내부에서 handoff를 명시하는 방식 중 어떤 라우팅 UX가 더 안정적인지 비교하고 한 가지로 고정`
+- `[CODEX-LEAD] specialist별 추가 컨텍스트(예: CRM 운영 규칙, 메이크샵 실무 메모, n8n 운영 체크리스트)를 분리 주입할지 결정하고, 필요하면 각 workspace 전용 스킬/BOOTSTRAP를 더 세분화`
 - `[CODEX-LEAD] flora-mac-harness 인벤토리 범위를 실제 업무 루트 기준으로 추가 확대할지 결정하고, 필요 시 `recentFilesLimit`·`maxDepth`·루트 목록을 조정`
 - `[CODEX] 운영 CRM에서 명세표/견적서/납품서/청구서 각각 품목 11개 이상 데이터로 인쇄 미리보기를 열어, 문서별 분할 기준대로 페이지가 나뉘고 행 높이가 유지되는지 확인`
 - `[CODEX] 운영 CRM에서 '송윤경 회장님' 명세표 `INV-20260331-135928` 기준으로 목록 출력 / 송장 엑셀 두 경로가 모두 '윤미라' 주소로 내려오는지 사용자가 최종 확인`
@@ -818,6 +839,9 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- Flora 텔레그램 프론트도어는 아직 `owner` 단일 세션이다. specialist agent는 설치됐지만, 실제 텔레그램 응답이 완전 자동 handoff처럼 보이게 만드는 라우팅 UX 검증은 남아 있다.
+- `owner` 장기 메모리가 강하게 남아 있어, 맥북 인벤토리 기반 응답에 과거 메모리 표현이 일부 섞일 수 있다. 필요하면 owner 메모리 정리 또는 frontdoor 분리를 검토해야 한다.
+- specialist bootstrap은 현재 공통 `flora-mac-harness` 컨텍스트 스키마에 의존한다. 컨텍스트 파일명/구조가 바뀌면 installer와 specialist workspace를 같이 갱신해야 한다.
 - 현재 분석 프로파일은 인벤토리 파일명/최근 파일/루트명 기반 휴리스틱이므로, 프로젝트 성격이 미묘하게 바뀌면 분류 규칙도 같이 손봐야 한다.
 - owner 응답은 전문 비서 역할을 제안할 수 있는 수준까지 올라왔지만, 여전히 기존 메모리 문서를 함께 참조하는 경향이 있다. 전문 비서 모드의 일관성을 더 높이려면 라우팅 규칙이나 전용 에이전트 분리가 다음 단계다.
 - `owner` 장기 세션 메모리가 강해서, 현재는 새로 주입한 맥북 인벤토리/BOOTSTRAP 규칙이 있어도 과거 로컬 프로젝트 정보를 일부 섞어 답할 수 있다. 텔레그램 실세션에서 한두 번 더 확인하고 필요하면 세션/메모리 정리나 전용 에이전트 분리가 필요하다.

@@ -19,12 +19,14 @@ def main() -> int:
     parser.add_argument("--summary", required=True)
     parser.add_argument("--analysis")
     parser.add_argument("--assistant-brief")
+    parser.add_argument("--routing-policy")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
     inventory = load_json(Path(args.inventory).expanduser().resolve())
     summary = load_json(Path(args.summary).expanduser().resolve())
     analysis = load_json(Path(args.analysis).expanduser().resolve()) if args.analysis else None
+    routing_policy = load_json(Path(args.routing_policy).expanduser().resolve()) if args.routing_policy else None
     output = Path(args.output).expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -67,13 +69,23 @@ def main() -> int:
                 f"- {item.get('name')} | theme={item.get('theme')} | priority={item.get('priorityScore')}"
             )
         lines.append("")
+    if routing_policy:
+        lines.append("## 자동 전환 규칙")
+        lines.append(f"- frontdoor agent: {routing_policy.get('frontdoorAgentId', 'owner')}")
+        for item in routing_policy.get("modeSelectionRules", [])[:6]:
+            keywords = ", ".join(item.get("keywords", [])[:5])
+            lines.append(
+                f"- mode={item.get('modeId')} | agent={item.get('agentId')} | keywords={keywords}"
+            )
+        lines.append("")
     lines.append("## 응답 원칙")
     lines.append("1. 먼저 인벤토리에서 관련 프로젝트를 특정한다.")
     lines.append("2. 프로젝트 목적, 스택, 최근 흔적, 연관 문서를 짧게 요약한다.")
-    lines.append("3. 회사 운영 영향도, 대표 활동 패턴, 자동화 기회까지 함께 제안한다.")
-    lines.append("4. 중복 시스템, 병목, 미완성 흔적, 다음 우선순위를 제안한다.")
-    lines.append("5. 로그인 필요한 관리자 시스템은 직접 비밀번호를 요구하지 말고 세션 유지 방식이나 캡처 기반 분석으로 유도한다.")
-    lines.append("6. 인벤토리에 없는 정보는 없다고 말하고 추가 동기화 범위를 제안한다.")
+    lines.append("3. 먼저 어떤 전문 모드로 봐야 하는지 내부적으로 선택한다.")
+    lines.append("4. 회사 운영 영향도, 대표 활동 패턴, 자동화 기회까지 함께 제안한다.")
+    lines.append("5. 중복 시스템, 병목, 미완성 흔적, 다음 우선순위를 제안한다.")
+    lines.append("6. 로그인 필요한 관리자 시스템은 직접 비밀번호를 요구하지 말고 세션 유지 방식이나 캡처 기반 분석으로 유도한다.")
+    lines.append("7. 인벤토리에 없는 정보는 없다고 말하고 추가 동기화 범위를 제안한다.")
     lines.append("")
     lines.append("## 대표 프로젝트 샘플")
     for project in top_projects:

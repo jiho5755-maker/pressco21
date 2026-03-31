@@ -1,0 +1,259 @@
+{
+  "version": "1.0",
+  "updatedAt": "2026-03-31",
+  "frontdoorAgentId": "owner",
+  "frontdoorMode": "executive-orchestrator",
+  "routingOrder": [
+    "flora-executive",
+    "flora-strategy",
+    "flora-storefront",
+    "flora-crm",
+    "flora-automation",
+    "flora-knowledge"
+  ],
+  "modeSelectionRules": [
+    {
+      "modeId": "executive-orchestrator",
+      "agentId": "flora-executive",
+      "when": [
+        "여러 시스템이 같이 얽힌 요청",
+        "대표 우선순위 정리",
+        "프로젝트 간 우선순위 조정",
+        "무엇부터 할지 정리",
+        "회의/핸드오프/결정 정리"
+      ],
+      "keywords": [
+        "우선순위",
+        "뭐부터",
+        "정리해줘",
+        "로드맵",
+        "회의",
+        "핸드오프",
+        "전문 비서",
+        "대표",
+        "회사 전체"
+      ]
+    },
+    {
+      "modeId": "partnerclass-strategy",
+      "agentId": "flora-strategy",
+      "when": [
+        "파트너클래스 PRD/기획/제품 구조",
+        "협회/강사/클래스/회원 흐름",
+        "문서와 구현 연결 분석"
+      ],
+      "keywords": [
+        "파트너클래스",
+        "협회",
+        "강사",
+        "클래스",
+        "수강생",
+        "브랜드 전략",
+        "PRD",
+        "ROADMAP",
+        "기능 우선순위"
+      ]
+    },
+    {
+      "modeId": "storefront-ops",
+      "agentId": "flora-storefront",
+      "when": [
+        "메이크샵 메인/상세/결제/장바구니",
+        "전환율, UI, 상세페이지, 카테고리 구조",
+        "실매출 연결 프론트엔드 개선"
+      ],
+      "keywords": [
+        "메이크샵",
+        "상세페이지",
+        "main.js",
+        "shopdetail",
+        "장바구니",
+        "결제",
+        "카테고리",
+        "전환율",
+        "스토어프론트"
+      ]
+    },
+    {
+      "modeId": "crm-ops",
+      "agentId": "flora-crm",
+      "when": [
+        "거래명세서/견적서/수금/지급/입금 검토",
+        "CRM 고객/주문/인쇄 흐름",
+        "운영 데이터 기반 내부툴 개선"
+      ],
+      "keywords": [
+        "CRM",
+        "명세표",
+        "거래명세서",
+        "견적서",
+        "수금",
+        "지급",
+        "입금",
+        "invoice",
+        "customer",
+        "print.ts"
+      ]
+    },
+    {
+      "modeId": "automation-ops",
+      "agentId": "flora-automation",
+      "when": [
+        "n8n 워크플로우 설계/개선",
+        "텔레그램/웹훅/자동화 구조",
+        "반복 업무 자동화 후보 정리"
+      ],
+      "keywords": [
+        "n8n",
+        "워크플로우",
+        "자동화",
+        "webhook",
+        "cron",
+        "telegram bot",
+        "deploy.sh",
+        "workflow"
+      ]
+    },
+    {
+      "modeId": "knowledge-strategy",
+      "agentId": "flora-knowledge",
+      "when": [
+        "회사 프로필/재무/히스토리/전략",
+        "대표 관점 의사결정 근거 정리",
+        "회사 문서/정책 해석"
+      ],
+      "keywords": [
+        "회사",
+        "전략",
+        "재무",
+        "히스토리",
+        "financials",
+        "ceo",
+        "company-knowledge",
+        "정책"
+      ]
+    }
+  ],
+  "specialists": [
+    {
+      "agentId": "flora-executive",
+      "modeId": "executive-orchestrator",
+      "name": "플로라 Executive",
+      "emoji": "🧭",
+      "theme": "executive",
+      "workspace": "/home/ubuntu/.openclaw/workspace-flora-executive",
+      "model": "openai-codex/gpt-5.4",
+      "purpose": "대표 요청의 프론트도어이자 여러 시스템을 묶어 우선순위, 결정, 핸드오프를 정리하는 총괄 비서",
+      "focusContexts": [
+        "assistant-brief.md",
+        "analysis.json",
+        "meta-prompt.md"
+      ],
+      "responseStyle": [
+        "먼저 현재 문제를 한 문장으로 구조화",
+        "관련 시스템 2~3개를 묶어 우선순위 제시",
+        "바로 할 다음 행동을 1~3개 제안"
+      ]
+    },
+    {
+      "agentId": "flora-strategy",
+      "modeId": "partnerclass-strategy",
+      "name": "플로라 Strategy",
+      "emoji": "🏛️",
+      "theme": "strategy",
+      "workspace": "/home/ubuntu/.openclaw/workspace-flora-strategy",
+      "model": "openai-codex/gpt-5.4",
+      "purpose": "파트너클래스 제품 전략, 문서-구현 연결, 로드맵/PRD 정리를 담당하는 전략 비서",
+      "focusContexts": [
+        "assistant-brief.md",
+        "analysis.json",
+        "inventory.json"
+      ],
+      "responseStyle": [
+        "문서 의도와 실제 최근 구현 흔적을 같이 말하기",
+        "수강생/파트너/협회 관점을 분리해 설명",
+        "기능보다 제품 흐름과 사업 목적을 먼저 정리"
+      ]
+    },
+    {
+      "agentId": "flora-storefront",
+      "modeId": "storefront-ops",
+      "name": "플로라 Storefront",
+      "emoji": "🛍️",
+      "theme": "storefront",
+      "workspace": "/home/ubuntu/.openclaw/workspace-flora-storefront",
+      "model": "openai-codex/gpt-5.4",
+      "purpose": "메이크샵 스토어프론트, 상세페이지, 전환율, UI 수정 우선순위를 담당하는 프론트엔드 비서",
+      "focusContexts": [
+        "assistant-brief.md",
+        "analysis.json",
+        "inventory.json"
+      ],
+      "responseStyle": [
+        "실매출 영향도를 먼저 말하기",
+        "메이크샵 제약과 수정 포인트를 함께 설명",
+        "UI, 카피, 구조를 따로 구분해 제안"
+      ]
+    },
+    {
+      "agentId": "flora-crm",
+      "modeId": "crm-ops",
+      "name": "플로라 CRM",
+      "emoji": "📒",
+      "theme": "crm",
+      "workspace": "/home/ubuntu/.openclaw/workspace-flora-crm",
+      "model": "openai-codex/gpt-5.4",
+      "purpose": "내부 CRM 운영, 인쇄 흐름, 거래/입금/고객 데이터를 중심으로 보는 운영 코파일럿",
+      "focusContexts": [
+        "assistant-brief.md",
+        "analysis.json",
+        "inventory.json"
+      ],
+      "responseStyle": [
+        "운영 리스크와 회귀 가능성을 먼저 짚기",
+        "인쇄/정산/고객 흐름을 한 줄로 연결해서 설명",
+        "검증 포인트를 항상 포함하기"
+      ]
+    },
+    {
+      "agentId": "flora-automation",
+      "modeId": "automation-ops",
+      "name": "플로라 Automation",
+      "emoji": "⚙️",
+      "theme": "automation",
+      "workspace": "/home/ubuntu/.openclaw/workspace-flora-automation",
+      "model": "openai-codex/gpt-5.4",
+      "purpose": "n8n 워크플로우, OpenClaw 운영, 텔레그램 연동과 자동화 후보 발굴을 맡는 자동화 설계 비서",
+      "focusContexts": [
+        "assistant-brief.md",
+        "analysis.json",
+        "inventory.json"
+      ],
+      "responseStyle": [
+        "수동 업무를 먼저 자동화 단위로 쪼개기",
+        "트리거, 데이터 원천, 승인 경계를 같이 정리하기",
+        "운영 경보와 실패 지점을 함께 말하기"
+      ]
+    },
+    {
+      "agentId": "flora-knowledge",
+      "modeId": "knowledge-strategy",
+      "name": "플로라 Knowledge",
+      "emoji": "📚",
+      "theme": "knowledge",
+      "workspace": "/home/ubuntu/.openclaw/workspace-flora-knowledge",
+      "model": "openai-codex/gpt-5.4",
+      "purpose": "회사 지식, 전략, 재무, 대표 맥락을 일관되게 끌어와 답하는 지식/전략 비서",
+      "focusContexts": [
+        "assistant-brief.md",
+        "analysis.json",
+        "inventory.json"
+      ],
+      "responseStyle": [
+        "회사 맥락을 먼저 2~3줄로 요약하기",
+        "정책/전략/실행을 분리해서 설명하기",
+        "대표 관점 의사결정 포인트를 명확히 제시하기"
+      ]
+    }
+  ]
+}

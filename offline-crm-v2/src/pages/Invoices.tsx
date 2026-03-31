@@ -96,29 +96,54 @@ function getCustomerAddressByKey(customer: Customer | null | undefined, addressK
   return getCustomerAddressValueByKey(customer, keys[0])
 }
 
-function getCustomerAddress(customer: Customer | null | undefined, preferredAddress?: string): string {
-  if (!customer) return ''
-  const trimmedPreferred = preferredAddress?.trim()
-  const entries = getCustomerAddressEntries(customer)
-  if (trimmedPreferred) {
-    const matched = entries.find((entry) => entry.value === trimmedPreferred)
-    if (matched) return matched.value
-  }
-  return entries[0]?.value ?? ''
+function normalizeSnapshotValue(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return trimmed || undefined
 }
 
-function buildCustomerPrintSnapshot(
-  customer: Customer | null | undefined,
-  preferredAddress?: string,
+function mergeInvoiceSnapshot(
+  primary: Partial<Invoice> | null | undefined,
+  fallback: Partial<Invoice> | null | undefined,
 ): Partial<Invoice> {
-  if (!customer) return {}
   return {
-    customer_phone: getCustomerPrimaryPhone(customer),
-    customer_address: getCustomerAddress(customer, preferredAddress),
-    customer_bizno: customer.biz_no,
-    customer_ceo_name: customer.ceo_name as string | undefined,
-    customer_biz_type: customer.biz_type as string | undefined,
-    customer_biz_item: customer.biz_item as string | undefined,
+    ...(fallback ?? {}),
+    ...(primary ?? {}),
+    customer_name: primary?.customer_name ?? fallback?.customer_name,
+    customer_phone: primary?.customer_phone ?? fallback?.customer_phone,
+    customer_address: primary?.customer_address ?? fallback?.customer_address,
+    customer_address_key: primary?.customer_address_key ?? fallback?.customer_address_key,
+    customer_bizno: primary?.customer_bizno ?? fallback?.customer_bizno,
+    customer_ceo_name: primary?.customer_ceo_name ?? fallback?.customer_ceo_name,
+    customer_biz_type: primary?.customer_biz_type ?? fallback?.customer_biz_type,
+    customer_biz_item: primary?.customer_biz_item ?? fallback?.customer_biz_item,
+  }
+}
+
+function resolveInvoiceCustomerSnapshot(
+  invoice: Partial<Invoice> | null | undefined,
+  customer: Customer | null | undefined,
+): Partial<Invoice> {
+  const storedAddress = normalizeSnapshotValue(invoice?.customer_address)
+  const storedAddressKey = normalizeSnapshotValue(invoice?.customer_address_key)
+  const storedPhone = normalizeSnapshotValue(invoice?.customer_phone)
+  const storedBizNo = normalizeSnapshotValue(invoice?.customer_bizno)
+  const storedCeoName = normalizeSnapshotValue(invoice?.customer_ceo_name)
+  const storedBizType = normalizeSnapshotValue(invoice?.customer_biz_type)
+  const storedBizItem = normalizeSnapshotValue(invoice?.customer_biz_item)
+  const storedCustomerName = normalizeSnapshotValue(invoice?.customer_name)
+
+  const resolvedAddress = storedAddress || getCustomerAddressByKey(customer, storedAddressKey)
+
+  return {
+    customer_name: storedCustomerName ?? customer?.name,
+    customer_phone: storedPhone ?? getCustomerPrimaryPhone(customer),
+    customer_address: resolvedAddress,
+    customer_address_key: storedAddressKey,
+    customer_bizno: storedBizNo ?? normalizeSnapshotValue(customer?.biz_no) ?? normalizeSnapshotValue(customer?.business_no),
+    customer_ceo_name: storedCeoName ?? normalizeSnapshotValue(customer?.ceo_name),
+    customer_biz_type: storedBizType ?? normalizeSnapshotValue(customer?.biz_type) ?? normalizeSnapshotValue(customer?.business_type),
+    customer_biz_item: storedBizItem ?? normalizeSnapshotValue(customer?.biz_item) ?? normalizeSnapshotValue(customer?.business_item),
   }
 }
 
@@ -261,11 +286,9 @@ export function Invoices() {
     let missingPhone = 0
     for (const invoice of filteredInvoices) {
       const linkedCustomer = typeof invoice.customer_id === 'number' ? customerById.get(invoice.customer_id) : undefined
-      const resolvedAddress = (invoice.customer_address || '').trim()
-        || (linkedCustomer ? getCustomerAddressByKey(linkedCustomer, invoice.customer_address_key as string | undefined) : '')
-      const resolvedPhone = getCustomerPrimaryPhone(linkedCustomer) || invoice.customer_phone || ''
-      const hasAddress = Boolean(resolvedAddress.trim())
-      const hasPhone = Boolean(resolvedPhone.trim())
+      const resolvedSnapshot = resolveInvoiceCustomerSnapshot(invoice, linkedCustomer)
+      const hasAddress = Boolean(normalizeSnapshotValue(resolvedSnapshot.customer_address))
+      const hasPhone = Boolean(normalizeSnapshotValue(resolvedSnapshot.customer_phone))
       if (!hasAddress) missingAddress += 1
       if (!hasPhone) missingPhone += 1
     }
@@ -412,18 +435,16 @@ export function Invoices() {
           linkedCustomerCache.set(invoiceCustomerId, linkedCustomer ?? null)
         }
 
-        const receiverPhone = getCustomerPrimaryPhone(linkedCustomer) || latestInvoice.customer_phone || invoice.customer_phone || ''
-        const receiverAddressKey = (latestInvoice.customer_address_key as string | undefined)
-          ?? (invoice.customer_address_key as string | undefined)
-          ?? getCustomerAddressKeys(linkedCustomer)[0]
-        const receiverAddress = (latestInvoice.customer_address || invoice.customer_address || '').trim()
-          || getCustomerAddressByKey(linkedCustomer, receiverAddressKey)
+        const resolvedSnapshot = resolveInvoiceCustomerSnapshot(
+          mergeInvoiceSnapshot(latestInvoice, invoice),
+          linkedCustomer,
+        )
 
         return {
-          receiverName: latestInvoice.customer_name ?? invoice.customer_name ?? '',
-          receiverPhone,
-          receiverMobile: receiverPhone,
-          receiverAddress,
+          receiverName: resolvedSnapshot.customer_name ?? latestInvoice.customer_name ?? invoice.customer_name ?? '',
+          receiverPhone: resolvedSnapshot.customer_phone ?? '',
+          receiverMobile: resolvedSnapshot.customer_phone ?? '',
+          receiverAddress: resolvedSnapshot.customer_address ?? '',
           quantity: 1,
           deliveryMessage: '',
         }
@@ -462,16 +483,16 @@ export function Invoices() {
           latestInvoice.customer_name,
         )
       } catch {}
-      const customerSnapshot = buildCustomerPrintSnapshot(
+      const customerSnapshot = resolveInvoiceCustomerSnapshot(
+        mergeInvoiceSnapshot(latestInvoice, inv),
         currentCustomer,
-        latestInvoice.customer_address as string | undefined,
       )
       printDuplexViaIframe(
         {
           invoice_no: latestInvoice.invoice_no,
           invoice_date: latestInvoice.invoice_date,
           receipt_type: latestInvoice.receipt_type ?? DEFAULT_RECEIPT_TYPE,
-          customer_name: latestInvoice.customer_name ?? currentCustomer?.name,
+          customer_name: customerSnapshot.customer_name ?? latestInvoice.customer_name ?? currentCustomer?.name,
           customer_phone: customerSnapshot.customer_phone ?? (latestInvoice.customer_phone as string),
           customer_address: customerSnapshot.customer_address ?? (latestInvoice.customer_address as string),
           customer_bizno: customerSnapshot.customer_bizno ?? (latestInvoice.customer_bizno as string),

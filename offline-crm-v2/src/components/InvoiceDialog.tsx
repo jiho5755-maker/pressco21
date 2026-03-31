@@ -265,10 +265,15 @@ function getCustomerAddressKeys(customer: Customer | null | undefined): string[]
 
 function resolveCustomerAddressKey(
   customer: Customer | null | undefined,
+  preferredKey?: string,
   preferredAddress?: string,
   fallbackKey = 'address1',
 ): string {
   const keys = getCustomerAddressKeys(customer)
+  const normalizedPreferredKey = preferredKey?.trim()
+  if (normalizedPreferredKey && keys.includes(normalizedPreferredKey)) {
+    return normalizedPreferredKey
+  }
   const normalized = preferredAddress?.trim()
   if (normalized && customer) {
     const matchedKey = getCustomerAddressEntries(customer).find((entry) => entry.value === normalized)?.key
@@ -557,6 +562,7 @@ export function InvoiceDialog({
     if (!open || !currentCustomer) return
     const nextAddressKey = resolveCustomerAddressKey(
       currentCustomer,
+      (form.customer_address_key as string | undefined) ?? (existingInvoice?.customer_address_key as string | undefined),
       (form.customer_address as string | undefined) ?? (existingInvoice?.customer_address as string | undefined),
       selectedAddrKey || 'address1',
     )
@@ -573,7 +579,7 @@ export function InvoiceDialog({
 
   useEffect(() => {
     if (!open || !isNew || isCopy || !initialCustomer) return
-    const nextAddressKey = resolveCustomerAddressKey(initialCustomer, undefined, 'address1')
+    const nextAddressKey = resolveCustomerAddressKey(initialCustomer, 'address1')
     const snapshot = buildCustomerSnapshot(initialCustomer, nextAddressKey)
     setSelectedCustomer(initialCustomer)
     setSelectedAddrKey(nextAddressKey)
@@ -638,7 +644,7 @@ export function InvoiceDialog({
 
   // 고객 선택
   function selectCustomer(c: Customer) {
-    const nextAddressKey = resolveCustomerAddressKey(c, undefined, 'address1')
+    const nextAddressKey = resolveCustomerAddressKey(c, 'address1')
     const snapshot = buildCustomerSnapshot(c, nextAddressKey)
     setCustomerInput(c.name ?? '')
     setSelectedCustomer(c)

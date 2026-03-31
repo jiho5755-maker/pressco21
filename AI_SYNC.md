@@ -150,7 +150,8 @@
     - 핵심 발견: vtag page_type ≠ 편집기 page_type (product→shopdetail, category→shopbrand 등)
   - main.md 362→489줄, footer.md 37→60줄(100%), makeshop-js-api.md 146→222줄
   - constraints↔editor-errors SOT 확립, design-tokens↔brand-decisions 상호참조
-  - deprecated extract-codemirror.js 삭제, 커버리지 낮은 4개 파일에 실측 경고 추가
+  - deprecated extract-codemirror.js 삭제
+  - 커버리지 보강: category 272→406줄, product-detail 564→676줄, cart 346→418줄, order 393→483줄
 - (이전) **메이크샵 관리자 페이지 전면 분석 & 스킬 고도화 (2026-03-31)**
   - 관리자 메뉴 13개 섹션 분석: 디자인/프로모션/쿠폰/기획전/이벤트/게시판/카카오알림톡/회원그룹/통계/CRM/마케팅/배송/결제
   - 메모리 2개 신규: `makeshop-admin-editor-guide.md`(397줄), `makeshop-promotion-guide.md`(397줄)

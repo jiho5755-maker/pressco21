@@ -1,0 +1,52 @@
+{
+  "roots": [
+    {
+      "name": "workspace",
+      "path": "~/workspace",
+      "maxDepth": 4
+    },
+    {
+      "name": "docs",
+      "path": "~/Documents",
+      "maxDepth": 3
+    }
+  ],
+  "excludeGlobs": [
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/__pycache__/**",
+    "**/.DS_Store",
+    "**/.env",
+    "**/.env.*",
+    "**/.secrets",
+    "**/.secrets.*",
+    "**/*.pem",
+    "**/*.key",
+    "**/Library/**",
+    "**/Downloads/**",
+    "**/Pictures/**"
+  ],
+  "projectMarkers": [
+    ".git",
+    "package.json",
+    "pyproject.toml",
+    "requirements.txt",
+    "Cargo.toml",
+    "go.mod",
+    "pom.xml",
+    "README.md"
+  ],
+  "topFilesLimit": 12,
+  "recentFilesLimit": 8,
+  "output": {
+    "inventoryPath": "./output/flora-mac-harness/inventory.json",
+    "summaryPath": "./output/flora-mac-harness/summary.json",
+    "metaPromptPath": "./output/flora-mac-harness/meta-prompt.md"
+  }
+}
+

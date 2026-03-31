@@ -51,10 +51,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-31 17:04:40 KST
+- Started At: 2026-03-31 20:21:33 KST
 - Branch: main
 - Working Scope: —
-- Active Subdirectory: offline-crm-v2
+- Active Subdirectory: openclaw-project-hub
 
 ## Files In Progress
 - 없음
@@ -90,6 +90,39 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `openclaw-project-hub`에 Flora 맥북 코파일럿 하네스를 추가해, 로컬 맥북 프로젝트 인벤토리/요약/메타프롬프트를 생성하고 서버 `workspace-owner` 컨텍스트로 자동 동기화하는 기본 경로를 구축했다.
+  - 추가 파일
+    - `openclaw-project-hub/03_openclaw_docs/openclaw-flora-mac-copilot-harness-prd.ko.md`
+    - `openclaw-project-hub/04_reference_json/flora-mac-harness.config.example.json`
+    - `openclaw-project-hub/04_reference_json/flora-mac-harness.pressco21.json`
+    - `openclaw-project-hub/04_reference_json/com.pressco21.flora-mac-harness.plist`
+    - `openclaw-project-hub/06_scripts/build-flora-mac-inventory.py`
+    - `openclaw-project-hub/06_scripts/generate-flora-mac-meta-prompt.py`
+    - `openclaw-project-hub/06_scripts/install-flora-mac-harness-launchagent.sh`
+    - `openclaw-project-hub/06_scripts/sync-flora-mac-context.sh`
+    - `openclaw-project-hub/07_openclaw_skills/flora-mac-copilot/SKILL.md`
+  - 서버 반영
+    - `/home/ubuntu/.openclaw/workspace-owner/context/flora-mac-harness/{inventory.json,summary.json,meta-prompt.md}` 동기화 완료
+    - `/home/ubuntu/.openclaw/workspace-owner/skills/flora-mac-copilot/SKILL.md` 배포 완료
+    - `/home/ubuntu/.openclaw/workspace-owner/BOOTSTRAP.md`를 최신 `meta-prompt.md`로 동기화해 owner 기본 프롬프트에 로컬 코파일럿 규칙을 주입
+  - 검증
+    - `bash 06_scripts/sync-flora-mac-context.sh 04_reference_json/flora-mac-harness.pressco21.json` 성공
+    - `systemctl --user restart openclaw-gateway.service` 후 `openclaw skills list`에서 `flora-mac-copilot` ready 확인
+    - `openai-codex/gpt-5.4` owner agent 호출 성공 확인
+- `offline-crm-v2` 출력물 4종(명세표/견적서/납품서/청구서)에서 품목 10개 초과 시 행 높이를 줄이지 않고 다음 페이지로 넘기도록 분할 기준을 조정했다.
+  - `offline-crm-v2/src/lib/print.ts`
+    - `명세표/납품서/청구서` 공용 출력 엔진의 페이지당 품목 수를 `20개 → 10개`로 변경했다.
+    - `견적서` 출력은 반쪽 인쇄 문서와 같은 기준을 쓰지 않고, 단일 페이지일 때는 최대 14행을 유지하며 멀티페이지일 때는 중간 페이지 최대 18행, 마지막 페이지 최대 14행으로 분할되도록 전용 알고리즘으로 조정했다.
+    - 견적서는 마지막 페이지 하단의 비고/합계/서명 블록 높이를 먼저 보존하고, 앞 페이지들은 가능한 범위에서 더 넉넉하게 채우도록 페이지 수 계산, 품목 분할, 품목 번호 시작값을 함께 맞췄다.
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
+    - 실제 브라우저(Vite + Playwright) 검증 완료
+      - `명세표/납품서/청구서` 11개 품목: 각 2페이지 분할, 1페이지 10행 + 2페이지 1행, `zoom=1` 유지, 첫 행 높이 `18.52px`
+      - `견적서` 15개 품목: 2페이지 분할, `8행 + 7행`, 행 높이 `20px` 유지
+      - `견적서` 30개 품목: 2페이지 분할, `16행 + 14행`, 마지막 페이지에 합계/서명 블록 정상 유지
+    - 스크린샷
+      - `offline-crm-v2/output/playwright/print-validation-invoice11.png`
+      - `offline-crm-v2/output/playwright/print-validation-estimate30.png`
 - `offline-crm-v2` 명세표 수정 다이얼로그에서 배송지 셀렉트를 바꿔도 주소 문자열이 `address1`로 고정되던 버그를 수정했다.
   - `offline-crm-v2/src/components/InvoiceDialog.tsx`
     - `getCustomerAddressValue()`가 `resolveCustomerAddressKey()`에 예전 인자 순서로 값을 넘기던 부분을 바로잡아, 선택한 키(`address2`, `extra_addresses:*`)가 실제 주소 문자열에 즉시 반영되게 했다.
@@ -697,6 +730,9 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX-LEAD] Flora 텔레그램 owner 실세션에서 맥북 인벤토리 기반 응답이 과거 메모리와 섞이지 않는지 2~3개 실제 질문으로 확인하고, 필요하면 owner 메모리 정리 또는 전용 로컬 코파일럿 에이전트 분리를 검토`
+- `[CODEX-LEAD] flora-mac-harness 인벤토리 범위를 실제 업무 루트 기준으로 추가 확대할지 결정하고, 필요 시 `recentFilesLimit`·`maxDepth`·루트 목록을 조정`
+- `[CODEX] 운영 CRM에서 명세표/견적서/납품서/청구서 각각 품목 11개 이상 데이터로 인쇄 미리보기를 열어, 문서별 분할 기준대로 페이지가 나뉘고 행 높이가 유지되는지 확인`
 - `[CODEX] 운영 CRM에서 '송윤경 회장님' 명세표 `INV-20260331-135928` 기준으로 목록 출력 / 송장 엑셀 두 경로가 모두 '윤미라' 주소로 내려오는지 사용자가 최종 확인`
 - `[CODEX] 운영 CRM에서 '송윤경회장님' 명세표 1건으로 수정 다이얼로그 미리보기 / 목록 출력 / 송장 엑셀 다운로드 3경로의 주소가 모두 '윤미라 주소'로 일치하는지 확인`
 - `[CODEX] /invoices 화면에서 실제 운영 데이터 기준으로 기간별 총매출 카드 수치가 목록 합계와 일치하는지 육안 확인`
@@ -741,6 +777,9 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- `owner` 장기 세션 메모리가 강해서, 현재는 새로 주입한 맥북 인벤토리/BOOTSTRAP 규칙이 있어도 과거 로컬 프로젝트 정보를 일부 섞어 답할 수 있다. 텔레그램 실세션에서 한두 번 더 확인하고 필요하면 세션/메모리 정리나 전용 에이전트 분리가 필요하다.
+- 현재 Flora 맥북 코파일럿 인벤토리는 `pressco21` 업무 루트 위주 7개 프로젝트만 포함한다. 맥북 전체 자산을 대표하는 것은 아니며, 범위 밖 프로젝트는 동기화 대상 확대 전까지 근거 부족 상태다.
+- 로컬 Vite + Playwright 샘플 데이터 기준 브라우저 렌더는 확인했지만, 실제 운영 데이터에서 품목명 길이가 매우 긴 케이스나 메모가 긴 견적서까지 모두 확인한 것은 아니다.
 - `invoices` 테이블에는 고객 주소 컬럼이 실제로 없어, 명세표 선택 주소는 앞으로 `memo` 숨김 메타에 의존한다. 외부 스크립트가 메모를 통째로 덮어쓰면 주소 선택값도 같이 사라질 수 있다.
 - 이미 발행된 과거 명세표 중 주소 메타가 없는 건은 한 번 더 저장하거나 개별 메타 보정이 필요하다.
 - 이번 수정은 로컬 빌드로만 검증했고, 운영 데이터 실주소 케이스(`송윤경회장님 → 윤미라 주소`)는 아직 브라우저에서 3경로를 직접 눌러 확인하지 않았다.

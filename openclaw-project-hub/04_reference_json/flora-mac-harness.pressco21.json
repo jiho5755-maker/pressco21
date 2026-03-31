@@ -1,0 +1,89 @@
+{
+  "roots": [
+    {
+      "name": "openclaw-project-hub",
+      "path": "/Users/jangjiho/workspace/pressco21/openclaw-project-hub",
+      "maxDepth": 3
+    },
+    {
+      "name": "offline-crm-v2",
+      "path": "/Users/jangjiho/workspace/pressco21/offline-crm-v2",
+      "maxDepth": 4
+    },
+    {
+      "name": "partnerclass",
+      "path": "/Users/jangjiho/workspace/pressco21/파트너클래스",
+      "maxDepth": 4
+    },
+    {
+      "name": "makeshop-skin",
+      "path": "/Users/jangjiho/workspace/pressco21/makeshop-skin",
+      "maxDepth": 4
+    },
+    {
+      "name": "n8n-automation",
+      "path": "/Users/jangjiho/workspace/pressco21/n8n-automation",
+      "maxDepth": 4
+    },
+    {
+      "name": "company-knowledge",
+      "path": "/Users/jangjiho/workspace/pressco21/company-knowledge",
+      "maxDepth": 3
+    },
+    {
+      "name": "scripts",
+      "path": "/Users/jangjiho/workspace/pressco21/scripts",
+      "maxDepth": 3
+    },
+    {
+      "name": "docs",
+      "path": "/Users/jangjiho/workspace/pressco21/docs",
+      "maxDepth": 3
+    }
+  ],
+  "excludeGlobs": [
+    "**/.git/**",
+    "**/node_modules/**",
+    "**/.next/**",
+    "**/dist/**",
+    "**/build/**",
+    "**/.venv/**",
+    "**/venv/**",
+    "**/__pycache__/**",
+    "**/.DS_Store",
+    "**/.env",
+    "**/.env.*",
+    "**/.secrets",
+    "**/.secrets.*",
+    "**/*.pem",
+    "**/*.key",
+    "**/coverage/**",
+    "**/playwright-report/**",
+    "**/test-results/**",
+    "**/Library/**",
+    "**/Downloads/**",
+    "**/Pictures/**",
+    "**/메인페이지/기존 코드/**",
+    "**/간편 구매/기본코드/**",
+    "**/간편 구매/고급형 주문서 작성/**"
+  ],
+  "projectMarkers": [
+    ".git",
+    "package.json",
+    "pyproject.toml",
+    "requirements.txt",
+    "Cargo.toml",
+    "go.mod",
+    "pom.xml",
+    "README.md",
+    "AGENTS.md"
+  ],
+  "topFilesLimit": 12,
+  "recentFilesLimit": 10,
+  "output": {
+    "inventoryPath": "/Users/jangjiho/workspace/pressco21/output/flora-mac-harness/inventory.json",
+    "summaryPath": "/Users/jangjiho/workspace/pressco21/output/flora-mac-harness/summary.json",
+    "metaPromptPath": "/Users/jangjiho/workspace/pressco21/output/flora-mac-harness/meta-prompt.md"
+  }
+}
+

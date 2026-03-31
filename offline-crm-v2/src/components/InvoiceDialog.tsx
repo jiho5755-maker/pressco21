@@ -290,7 +290,7 @@ function getCustomerAddressValue(
   addressKey = 'address1',
 ): string {
   if (!customer) return ''
-  const resolvedKey = resolveCustomerAddressKey(customer, undefined, addressKey)
+  const resolvedKey = resolveCustomerAddressKey(customer, addressKey)
   return getCustomerAddressValueByKey(customer, resolvedKey)
 }
 

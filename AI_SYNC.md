@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-31 17:01:30 KST
+- Started At: 2026-03-31 17:04:40 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: offline-crm-v2
@@ -90,6 +90,12 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `offline-crm-v2` 명세표 수정 다이얼로그에서 배송지 셀렉트를 바꿔도 주소 문자열이 `address1`로 고정되던 버그를 수정했다.
+  - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+    - `getCustomerAddressValue()`가 `resolveCustomerAddressKey()`에 예전 인자 순서로 값을 넘기던 부분을 바로잡아, 선택한 키(`address2`, `extra_addresses:*`)가 실제 주소 문자열에 즉시 반영되게 했다.
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
+    - `cd offline-crm-v2 && bash deploy/deploy.sh` 완료
 - `offline-crm-v2` 명세표 선택 주소가 실제 `invoices` 컬럼에 저장되지 않는 구조를 확인하고, `memo` 숨김 메타로 주소 키를 저장/복원하도록 보정했다.
   - `offline-crm-v2/src/lib/accountingMeta.ts`
     - `[ACCOUNTING_INVOICE_META]`에 `customerAddressKey`를 함께 저장/파싱하도록 확장했다.

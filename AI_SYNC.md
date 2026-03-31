@@ -49,15 +49,19 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: 2026-03-31
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-03-31 20:55:30 KST
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: Flora 전문 비서 모드 자동 전환 규칙 및 전용 에이전트 분리 설계/반영
+- Active Subdirectory: openclaw-project-hub
 
 ## Files In Progress
-- 없음
+- AI_SYNC.md
+- openclaw-project-hub/03_openclaw_docs/flora-specialist-routing-policy.ko.md
+- openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json
+- openclaw-project-hub/06_scripts/sync-flora-mac-context.sh
+- openclaw-project-hub/07_openclaw_skills/flora-mac-copilot/SKILL.md
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -90,7 +94,13 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
-- **메이크샵 관리자 페이지 전면 분석 & 스킬 고도화 (2026-03-31)**
+- **메이크샵 오픈 API 공식 문서 학습 & 스킬 고도화 (2026-03-31)**
+  - 공식 문서(openapi.makeshop.co.kr/docs) 130+ 엔드포인트 직접 검증
+  - open-api.md 고도화 (704→870줄): 에러코드 15개 보충, basket_status 40개 전수, 2025~2026 신규 필드
+  - 기획전 CRUD API(2026-02 신규), SMS 수신 동의 수정 API 추가
+  - PRESSCO21 실전 n8n 패턴 5개 (강사등급/리뷰수집/쿠폰자동지급/CS수집/호출제한관리)
+  - SKILL.md API 빠른 참조 테이블 추가
+- (이전) **메이크샵 관리자 페이지 전면 분석 & 스킬 고도화 (2026-03-31)**
   - 관리자 메뉴 13개 섹션 분석: 디자인/프로모션/쿠폰/기획전/이벤트/게시판/카카오알림톡/회원그룹/통계/CRM/마케팅/배송/결제
   - 메모리 2개 신규: `makeshop-admin-editor-guide.md`(397줄), `makeshop-promotion-guide.md`(397줄)
   - 스킬 레퍼런스 2개 재작성: `shop-settings.md`(81→210줄), `admin-features.md`(113→260줄)

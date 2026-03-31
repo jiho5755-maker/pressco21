@@ -1576,12 +1576,10 @@
 
         // 이벤트
         function closePopup() {
-            overlay.style.display = 'none';
-            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-            document.body.removeAttribute('style');
-            document.documentElement.removeAttribute('style');
-            document.body.classList.remove('no-scroll', 'popup-open', 'modal-open');
-            void document.body.offsetHeight;
+            overlay.style.opacity = '0';
+            setTimeout(function() {
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            }, 300);
         }
 
         btnClose.addEventListener('click', function(e) { e.preventDefault(); closePopup(); });

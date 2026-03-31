@@ -251,6 +251,7 @@ if (typeof window !== 'undefined') {
 
             // 버전 확인
             if (parsedData.version !== this.config.cacheVersion) {
+                console.log('[Cache] 버전 불일치, 캐시 무효화');
                 this.clearCache();
                 return null;
             }
@@ -258,15 +259,18 @@ if (typeof window !== 'undefined') {
             // 만료 확인
             var now = Date.now();
             if (now - parsedData.timestamp > this.config.cacheDuration) {
+                console.log('[Cache] 만료됨, 캐시 무효화');
                 this.clearCache();
                 return null;
             }
 
             // 빈 배열 확인 (v2 로직)
             if (!parsedData.data || parsedData.data.length === 0) {
+                console.log('[Cache] 빈 배열, 캐시 무시');
                 return null;
             }
 
+            console.log('[Cache] 캐시 히트 (' + parsedData.data.length + '개 파트너)');
             return parsedData.data;
 
         } catch (error) {
@@ -289,6 +293,7 @@ if (typeof window !== 'undefined') {
             };
 
             localStorage.setItem(this.config.cacheKey, JSON.stringify(cacheData));
+            console.log('[Cache] 캐시 저장 완료 (' + partners.length + '개 파트너)');
             return true;
 
         } catch (error) {
@@ -303,6 +308,7 @@ if (typeof window !== 'undefined') {
     PartnerAPI.prototype.clearCache = function() {
         try {
             localStorage.removeItem(this.config.cacheKey);
+            console.log('[Cache] 캐시 삭제 완료');
         } catch (error) {
             console.error('[Cache] 캐시 삭제 오류:', error);
         }
@@ -329,9 +335,11 @@ if (typeof window !== 'undefined') {
             }
         }
 
+        console.log('[API] 파트너 데이터 로드 시작');
 
         // 테스트 데이터 모드 (개발용)
         if (self.config.useTestData) {
+            console.log('[API] 테스트 데이터 모드 활성화');
             return fetch(self.config.testDataPath)
                 .then(function(response) {
                     if (!response.ok) {
@@ -340,6 +348,7 @@ if (typeof window !== 'undefined') {
                     return response.json();
                 })
                 .then(function(rawPartners) {
+                    console.log('[API] 테스트 데이터 로드 완료:', rawPartners.length + '개');
                     return self.processPartnerData(rawPartners);
                 })
                 .catch(function(error) {
@@ -357,16 +366,19 @@ if (typeof window !== 'undefined') {
                 return response.json();
             })
             .then(function(data) {
+                console.log('[API] 응답 수신:', data);
 
                 // API 응답 구조 확인 (v2와 동일: data.partners 사용)
                 var rawPartners = data.partners || data;
 
+                console.log('[API] rawPartners:', rawPartners);
 
                 if (!Array.isArray(rawPartners)) {
                     console.error('[API] 잘못된 데이터 형식:', data);
                     return [];
                 }
 
+                console.log('[API] 파트너 수:', rawPartners.length);
 
                 // 데이터 가공 위임
                 return self.processPartnerData(rawPartners);
@@ -423,6 +435,7 @@ if (typeof window !== 'undefined') {
                 };
             });
 
+        console.log('[API] 가공 완료 (' + partners.length + '개 파트너)');
 
         // 캐시 저장
         self.setCache(partners);
@@ -492,16 +505,19 @@ if (typeof window !== 'undefined') {
         return new Promise(function(resolve, reject) {
             // SDK가 이미 로드된 경우
             if (window.naver && window.naver.maps) {
+                console.log('[Map] 네이버 지도 SDK 로드 확인');
                 resolve();
                 return;
             }
 
             // SDK 로드 대기 (최대 5초)
+            console.log('[Map] 네이버 지도 SDK 로드 대기 중...');
             var checkCount = 0;
             var checkInterval = setInterval(function() {
                 checkCount++;
                 if (window.naver && window.naver.maps) {
                     clearInterval(checkInterval);
+                    console.log('[Map] 네이버 지도 SDK 로드 완료');
                     resolve();
                 } else if (checkCount > 50) {
                     clearInterval(checkInterval);
@@ -589,6 +605,7 @@ if (typeof window !== 'undefined') {
             self.updateMarkerVisibility();
         });
 
+        console.log('[Map] 지도 초기화 완료');
         return self.map;
     };
 
@@ -642,6 +659,7 @@ if (typeof window !== 'undefined') {
             });
         });
 
+        console.log('[Map] 마커 생성 완료 (' + partners.length + '개)');
 
         // 가시성 업데이트
         self.updateMarkerVisibility();
@@ -966,6 +984,7 @@ if (typeof window !== 'undefined') {
             self.map.setZoom(zoom);
         }
 
+        console.log('[Map] 지도 이동:', { lat: lat, lng: lng, zoom: zoom });
     };
 
     /**
@@ -1119,6 +1138,7 @@ if (typeof window !== 'undefined') {
         // 초기 필터 적용 및 결과 카운트 업데이트
         self.applyFilters();
 
+        console.log('[Filter] 필터 초기화 완료');
     };
 
     /**
@@ -1493,6 +1513,7 @@ if (typeof window !== 'undefined') {
             resultCountElement.textContent = '전체 ' + self.filteredPartners.length + '개 업체';
         }
 
+        console.log('[Filter] 필터 적용 완료 (' + self.filteredPartners.length + '개 결과)');
     };
 
     // ========================================
@@ -1596,6 +1617,7 @@ if (typeof window !== 'undefined') {
             searchBtn.textContent = '검색 중...';
         }
 
+        console.log('[Filter] 주소 검색 시작:', address);
 
         // 네이버 지도 SDK 확인
         if (typeof naver === 'undefined' || !naver.maps || !naver.maps.Service) {
@@ -1636,6 +1658,7 @@ if (typeof window !== 'undefined') {
                 var lat = parseFloat(result.y);
                 var lng = parseFloat(result.x);
 
+                console.log('[Filter] 좌표 변환 완료:', { lat: lat, lng: lng, address: result.roadAddress || result.jibunAddress });
 
                 // 기준점 설정
                 self.setReferencePoint(lat, lng);
@@ -1684,6 +1707,7 @@ if (typeof window !== 'undefined') {
         if (window.UIService && window.uiService) {
             window.uiService.showToast(message, type);
         } else {
+            console.log('[Filter] Toast:', type, message);
         }
     };
 
@@ -1889,6 +1913,7 @@ if (typeof window !== 'undefined') {
             }
         });
 
+        console.log('[Filter] 필터 탭 스와이프 제스처 등록 완료');
     };
 
     /**
@@ -1951,6 +1976,7 @@ if (typeof window !== 'undefined') {
         // Fuse.js 검색 엔진 초기화
         if (typeof Fuse !== 'undefined') {
             self.fuse = new Fuse(partners, self.config.fuseOptions);
+            console.log('[Search] Fuse.js 검색 초기화 완료');
         } else {
             console.warn('[Search] Fuse.js가 로드되지 않음, 기본 검색 사용');
         }
@@ -2094,6 +2120,7 @@ if (typeof window !== 'undefined') {
             window.FilterService.setSearch(query);
         }
 
+        console.log('[Search] 검색 수행: ' + query + ' (' + resultCount + '개 결과)');
     };
 
     /**
@@ -2291,6 +2318,7 @@ if (typeof window !== 'undefined') {
             window.MapService.moveTo(partner);
         }
 
+        console.log('[Search] 자동완성 선택: ' + partner.name);
     };
 
     // ========================================
@@ -2418,6 +2446,7 @@ if (typeof window !== 'undefined') {
             }
         });
 
+        console.log('[UI] UI 초기화 완료');
     };
 
     // ========================================
@@ -2623,6 +2652,7 @@ if (typeof window !== 'undefined') {
             self.renderWithoutVirtualScroll(partners, listContainer);
         }
 
+        console.log('[UI] 파트너 리스트 렌더링 완료 (' + partners.length + '개, VirtualScroll: ' + useVirtualScroll + ')');
     };
 
     /**
@@ -3047,6 +3077,7 @@ if (typeof window !== 'undefined') {
             }
         });
 
+        console.log('[UI] 모달 스와이프 제스처 등록 완료');
     };
 
     // ========================================
@@ -3462,6 +3493,7 @@ if (typeof window !== 'undefined') {
             });
         });
 
+        console.log('[Ripple] Ripple 효과 초기화 완료 (' + buttons.length + '개 버튼)');
     }
 
     // ========================================
@@ -3488,6 +3520,7 @@ if (typeof window !== 'undefined') {
                     var lat = position.coords.latitude;
                     var lng = position.coords.longitude;
 
+                    console.log('[GPS] 현재 위치:', lat, lng);
 
                     // 지도 이동
                     if (mapService) {
@@ -3569,6 +3602,7 @@ if (typeof window !== 'undefined') {
             }
         });
 
+        console.log('[UI] 주소 검색 이벤트 설정 완료');
     }
 
     /**
@@ -3630,6 +3664,7 @@ if (typeof window !== 'undefined') {
             }
         });
 
+        console.log('[UI] 업체 목록 토글 버튼 설정 완료');
     }
 
     /**
@@ -3667,6 +3702,7 @@ if (typeof window !== 'undefined') {
             }
         });
 
+        console.log('[UI] 필터 토글 버튼 설정 완료');
     }
 
     // ========================================
@@ -3678,6 +3714,7 @@ if (typeof window !== 'undefined') {
      */
     function initPartnerMap() {
         try {
+            console.log('[Main] 파트너맵 v3 초기화 시작');
 
             // 0. 설정 검증
             var validation = CONFIG.validate();
@@ -3696,6 +3733,7 @@ if (typeof window !== 'undefined') {
 
             // 2. API 클라이언트 초기화
             apiClient = new window.PartnerAPI(CONFIG);
+            console.log('[Main] API 클라이언트 생성 완료');
 
             // 3. 네이버 지도 SDK 로드
             mapService = new window.MapService(CONFIG);
@@ -3705,12 +3743,15 @@ if (typeof window !== 'undefined') {
             mapService.loadSDK()
                 .then(function() {
                     // 4. 파트너 데이터 로드
+                    console.log('[Main] 파트너 데이터 로드 시작...');
                     return apiClient.loadPartnerData();
                 })
                 .then(function(partners) {
+                    console.log('[Main] 파트너 데이터 로드 완료 (' + partners.length + '개)');
 
                     // 5. 지도 초기화
                     mapService.init('naverMap');
+                    console.log('[Main] 지도 초기화 완료');
 
                     // 6. 필터 서비스 초기화
                     filterService = new window.FilterService(CONFIG);
@@ -3730,6 +3771,7 @@ if (typeof window !== 'undefined') {
                         analyticsService = new window.AnalyticsService(CONFIG);
                         window.analyticsInstance = analyticsService;  // 전역 인스턴스 등록
                         analyticsService.init('G-XXXXXXXXXX');  // 실제 GA4 측정 ID로 교체 필요
+                        console.log('[Main] Analytics 서비스 초기화 완료');
                     }
 
                     // 9. 마커 생성
@@ -3766,10 +3808,12 @@ if (typeof window !== 'undefined') {
                         // Pull to Refresh 활성화
                         touchService.enablePullToRefresh(document.body, {
                             onRefresh: function() {
+                                console.log('[Touch] Pull to Refresh 실행');
 
                                 // 파트너 데이터 새로고침
                                 return apiClient.loadPartnerData(true)
                                     .then(function(refreshedPartners) {
+                                        console.log('[Touch] 데이터 새로고침 완료:', refreshedPartners.length + '개');
 
                                         // 필터 서비스 업데이트
                                         if (filterService) {
@@ -3807,6 +3851,7 @@ if (typeof window !== 'undefined') {
                             touchService.enableDoubleTapZoom(mapService.map);
                         }
 
+                        console.log('[Main] 터치 서비스 초기화 완료');
                     }
 
                     // 13.6. FAB 서비스 초기화 (Mobile UX Phase 2)
@@ -3814,6 +3859,7 @@ if (typeof window !== 'undefined') {
                         var fabService = new window.FABService(CONFIG);
                         window.fabServiceInstance = fabService;  // 전역 인스턴스 등록
                         fabService.init();
+                        console.log('[Main] FAB 서비스 초기화 완료');
                     }
 
                     // 14. URL 파라미터 처리 (특정 파트너 직접 접근)
@@ -3825,6 +3871,7 @@ if (typeof window !== 'undefined') {
                     // 16. 성공 알림
                     uiService.showToast(partners.length + '개의 제휴 업체를 불러왔습니다.', 'success');
 
+                    console.log('[Main] 초기화 완료');
                 })
                 .catch(function(error) {
                     console.error('[Main] 초기화 실패:', error);
@@ -3875,6 +3922,7 @@ if (typeof window !== 'undefined') {
             });
 
             if (partner) {
+                console.log('[Main] URL 파라미터로 파트너 직접 접근:', partner.name);
 
                 // 모달 표시
                 setTimeout(function() {

@@ -355,6 +355,7 @@ $(function () {
             }
         });
 
+        console.log('네이버페이 결제형 모드 활성화');
     }
 });
 
@@ -458,7 +459,7 @@ $('.delivery-toggle').click(function(){
 
 // 추가 주문 정보
 document.querySelectorAll('.add-info input[type="checkbox"]').forEach(input => {
-  const label = document.querySelector('label[for="' + input.id + '"]');
+  const label = document.querySelector(`label[for="${input.id}"]`);
   if (label) {
     const wrapper = document.createElement("div");
     wrapper.className = "check-form";

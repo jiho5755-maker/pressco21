@@ -12,14 +12,12 @@
 
 ```css
 :root {
-  /* 브랜드 색상 — 로고 시안A 팔레트 (2026-03-30 업데이트) */
-  --color-primary:       #b4c6ab;   /* 메인 미디엄 그린 */
-  --color-primary-light: #e5eae3;   /* 서브 라이트 — 헤더 배경 */
-  --color-primary-sub:   #7c9374;   /* 서브 그린 — 호버/활성 */
-  --color-primary-dark:  #597051;   /* 메인 다크 그린 */
-  --color-dark:          #2b3d2f;   /* 폰트 다크 — 강조, 파트너 primary */
+  /* 브랜드 색상 */
+  --color-primary:       #7d9675;   /* 세이지 그린 — 메인 브랜드 */
+  --color-primary-light: #b7c9ad;   /* 밝은 세이지 — 헤더 배경 */
+  --color-dark:          #2c3e30;   /* 다크 그린 — 강조, 파트너 primary */
   --color-text:          #4a4a4a;   /* 본문 텍스트 */
-  --color-bg:            #fff9f0;   /* 크림 배경 */
+  --color-bg:            #fdfbf7;   /* 크림 아이보리 — 전체 배경 */
   --color-white:         #ffffff;
   --color-accent:        #d4a373;   /* 골드/테라코타 — 액센트, CTA */
 
@@ -98,21 +96,22 @@
 
 ## 3. 색상 팔레트
 
-### 3-1. 브랜드 색상 계열 (로고 시안A — 2026-03-30 업데이트)
+### 3-1. 브랜드 색상 계열
 
 | 이름 | 값 | 용도 |
 |------|-----|------|
-| Primary Light | `#e5eae3` | 서브 라이트, 헤더 배경, 연한 강조 |
-| Primary (미디엄) | `#b4c6ab` | 메인 브랜드, 버튼, 링크 |
-| Primary Sub | `#7c9374` | 서브 그린, 호버 |
-| Primary Dark | `#597051` | 메인 다크 그린, 활성 상태 |
-| Font Dark | `#2b3d2f` | 폰트 다크, 강조, 파트너 primary |
+| Primary (세이지) | `#7d9675` | 메인 브랜드, 버튼, 링크 |
+| Primary Light | `#b7c9ad` | 헤더 배경, 연한 강조 |
+| Primary Sub | `#8fa885` | 서브 그린, 호버 |
+| Primary Deep | `#5a7252` | 다크 호버, 활성 상태 |
+| Primary BG | `#e8ede6` | 그린 계열 배경 |
+| Dark Green | `#2c3e30` | 다크 강조, 파트너 primary |
 
 ### 3-2. 베이지/크림 계열 (배경)
 
 | 이름 | 값 | 용도 |
 |------|-----|------|
-| BG Main | `#fff9f0` | 전체 페이지 배경 |
+| BG Main | `#fdfbf7` | 전체 페이지 배경 |
 | BG Sub | `#f7f3eb` | 섹션 대체 배경 |
 | BG Warm | `#f6ead5` | 따뜻한 배경 강조 |
 
@@ -148,7 +147,7 @@
 
 .nav-wrap {
   height: 64px;
-  background: #e5eae3;  /* var(--color-primary-light) */
+  background: #b7c9ad;  /* var(--color-primary-light) */
 }
 
 /* 스크롤 시 */
@@ -189,14 +188,14 @@
 ```css
 /* Primary 버튼 */
 .btn-primary {
-  background: var(--color-primary);      /* #b4c6ab */
+  background: var(--color-primary);      /* #7d9675 */
   color: #ffffff;
   border-radius: var(--cw-border-radius); /* 4px */
 }
 
 /* Dark 버튼 (CTA) */
 .btn-dark {
-  background: var(--color-dark);         /* #2b3d2f */
+  background: var(--color-dark);         /* #2c3e30 */
   color: #ffffff;
 }
 
@@ -222,9 +221,9 @@
 ```css
 /* 그린 계열 — APPROVED, ACTIVE, ATELIER, AMBASSADOR */
 .badge-green {
-  background: #e5eae3;
-  color: #2b3d2f;
-  border: 1px solid #b4c6ab;
+  background: #e8ede6;
+  color: #2c3e30;
+  border: 1px solid #b7c9ad;
 }
 
 /* 골드 계열 — PENDING, GARDEN */
@@ -248,7 +247,7 @@
 .section-title {
   font-family: 'Noto Serif KR', serif;
   font-size: 28px;      /* 목록 페이지 헤더 (Phase B: 42px → 28px 조정) */
-  color: var(--color-dark);          /* #2b3d2f */
+  color: var(--color-dark);          /* #2c3e30 */
   text-align: center;
   margin-bottom: 40px;
 }
@@ -257,7 +256,7 @@
   font-family: 'Cormorant Garamond', serif;
   font-size: 14px;
   letter-spacing: 0.1em;
-  color: var(--color-primary);       /* #b4c6ab */
+  color: var(--color-primary);       /* #7d9675 */
   text-transform: uppercase;
 }
 ```
@@ -377,8 +376,8 @@ three_month_claim_all        ← 3개월 교환/반품
 
 | 항목 | 메인 기준 | 파트너클래스 현황 | 수정 여부 |
 |------|---------|--------------|---------|
-| 배경색 | `#fff9f0` | 일부 `#ffffff` | E0-003 수정 필요 |
-| 파트너 primary | `#2b3d2f` | 구버전 `#3d2c1e` → `#2b3d2f` 변경 | Phase B 완료 |
+| 배경색 | `#fdfbf7` | 일부 `#ffffff` | E0-003 수정 필요 |
+| 파트너 primary | `#2c3e30` | 구버전 `#3d2c1e` → `#2c3e30` 변경 | Phase B 완료 |
 | 타이틀 폰트 | Noto Serif KR | Phase B에서 적용 | Phase B 완료 |
 | 배지 색상 | 3색 체계 | Phase B에서 통일 | Phase B 완료 |
 | 섹션 타이틀 크기 | 28px | Phase B: 42px → 28px | Phase B 완료 |

@@ -170,9 +170,11 @@
         var cacheKey = buildCacheKey(filters);
         var cached = getCatalogCached(cacheKey);
         if (cached) {
+            console.log('[E2-007 캐시] HIT — 캐시에서 즉시 렌더링 (key: ' + cacheKey.substring(0, 20) + '...)');
             handleClassesResponse(cached);
             return;
         }
+        console.log('[E2-007 캐시] MISS — API 호출 (key: ' + cacheKey.substring(0, 20) + '...)');
 
         isLoading = true;
         renderSkeleton();
@@ -301,9 +303,11 @@
     function loadCategories() {
         var cached = getSettingsCached('categories');
         if (cached) {
+            console.log('[E2-007 캐시] 카테고리 HIT — localStorage 캐시 사용');
             renderCategoryFilters(cached);
             return;
         }
+        console.log('[E2-007 캐시] 카테고리 MISS — API 호출');
 
         PC.api.fetchPost('CLASS_API', { action: 'getCategories' }, { noRetry: true })
             .then(function(data) {

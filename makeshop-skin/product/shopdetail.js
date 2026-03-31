@@ -571,6 +571,7 @@
                     if (kakaopayButton) {
                         // 카카오페이 버튼 클릭 실행
                         kakaopayButton.click();
+                        console.log('카카오페이 결제 실행');
                     } else {
                         alert('카카오페이 결제가 활성화되지 않았습니다.\n메이크샵 관리자에서 카카오페이를 활성화해주세요.');
                         console.warn('카카오페이 버튼을 찾을 수 없습니다.');
@@ -608,6 +609,7 @@
                 if (sdkButton) {
                     // ── SDK 존재 → 비회원 → 주문형: 네이버페이 SDK 직접 실행 ──
                     sdkButton.click();
+                    console.log('네이버페이 주문형 결제 실행 (비회원)');
                 } else {
                     // ── SDK 없음 → 회원 → 결제형: 주문서로 이동, 네이버페이만 표시 ──
                     sessionStorage.setItem('pc21_pay_method', 'naverpay');
@@ -621,6 +623,7 @@
                             window.location.href = buyNowBtn.href;
                         }
                     }
+                    console.log('네이버페이 결제형 실행 (회원)');
                 }
             });
         }

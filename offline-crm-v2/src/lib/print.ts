@@ -141,12 +141,15 @@ function esc(str: string): string {
 }
 
 // ── 멀티페이지 상수 ──
-// 샘플 거래명세표(20행)는 한 장 안에 우선 맞추고,
-// 그 이상부터는 자동 분할 + zoom 축소를 함께 사용한다.
-const ITEMS_FIRST_PAGE = 20
-const ITEMS_CONT_PAGE = 20
-const ESTIMATE_ITEMS_FIRST_PAGE = 14
-const ESTIMATE_ITEMS_CONT_PAGE = 18
+// 거래명세표/납품서/청구서는 10행까지 고정 행 높이를 유지하고,
+// 11행부터는 다음 페이지로 넘겨 가독성을 보존한다.
+const ITEMS_FIRST_PAGE = 10
+const ITEMS_CONT_PAGE = 10
+// 견적서는 단일 문서라 중간 페이지는 더 넉넉하게 사용하되,
+// 마지막 페이지는 비고/합계/서명 블록 높이를 위해 여유를 남긴다.
+const ESTIMATE_ITEMS_SINGLE_PAGE = 14
+const ESTIMATE_ITEMS_MULTI_PAGE = 18
+const ESTIMATE_ITEMS_LAST_PAGE = 14
 const DUPLEX_HALF_TARGET_MM = 132
 const DUPLEX_HALF_TARGET_PX = DUPLEX_HALF_TARGET_MM * (96 / 25.4)
 // Chrome/Edge PDF 저장에서 A4 정확히 297mm를 꽉 채우면 마지막 빈 페이지가 붙는 경우가 있어
@@ -398,8 +401,7 @@ function buildInvoicePageHtml(
 /** 품목 수 기준 총 페이지 수 (미리보기 iframe 높이 계산용) */
 export function getPreviewPageCount(itemCount: number, documentType: PrintDocumentType = 'invoice'): number {
   if (documentType === 'estimate') {
-    if (itemCount <= ESTIMATE_ITEMS_FIRST_PAGE) return 1
-    return 1 + Math.ceil((itemCount - ESTIMATE_ITEMS_FIRST_PAGE) / ESTIMATE_ITEMS_CONT_PAGE)
+    return getEstimatePageItemCounts(itemCount).length
   }
   if (itemCount <= ITEMS_FIRST_PAGE) return 1
   return 1 + Math.ceil((itemCount - ITEMS_FIRST_PAGE) / ITEMS_CONT_PAGE)
@@ -417,14 +419,48 @@ function splitItemsToPages(items: PrintItem[]): PrintItem[][] {
   return pages
 }
 
-function splitEstimateItemsToPages(items: PrintItem[]): PrintItem[][] {
-  if (items.length <= ESTIMATE_ITEMS_FIRST_PAGE) return [items]
-  const pages: PrintItem[][] = [items.slice(0, ESTIMATE_ITEMS_FIRST_PAGE)]
-  let offset = ESTIMATE_ITEMS_FIRST_PAGE
-  while (offset < items.length) {
-    pages.push(items.slice(offset, offset + ESTIMATE_ITEMS_CONT_PAGE))
-    offset += ESTIMATE_ITEMS_CONT_PAGE
+function getEstimatePageItemCounts(itemCount: number): number[] {
+  if (itemCount <= ESTIMATE_ITEMS_SINGLE_PAGE) return [itemCount]
+
+  let pageCount = 2
+  while (itemCount > (pageCount - 1) * ESTIMATE_ITEMS_MULTI_PAGE + ESTIMATE_ITEMS_LAST_PAGE) {
+    pageCount += 1
   }
+
+  const counts: number[] = []
+  let remaining = itemCount
+
+  for (let pageIndex = 0; pageIndex < pageCount; pageIndex += 1) {
+    const pagesLeft = pageCount - pageIndex
+    if (pagesLeft === 1) {
+      counts.push(remaining)
+      break
+    }
+
+    const minRestItems = pagesLeft - 1
+    const maxRestCapacity = (pagesLeft - 2) * ESTIMATE_ITEMS_MULTI_PAGE + ESTIMATE_ITEMS_LAST_PAGE
+    const minCurrent = Math.max(1, remaining - maxRestCapacity)
+    const maxCurrent = Math.min(ESTIMATE_ITEMS_MULTI_PAGE, remaining - minRestItems)
+    const targetCurrent = Math.ceil(remaining / pagesLeft)
+    const current = Math.min(maxCurrent, Math.max(minCurrent, targetCurrent))
+
+    counts.push(current)
+    remaining -= current
+  }
+
+  return counts
+}
+
+function splitEstimateItemsToPages(items: PrintItem[]): PrintItem[][] {
+  const counts = getEstimatePageItemCounts(items.length)
+  const pages: PrintItem[][] = []
+  let offset = 0
+
+  counts.forEach((count) => {
+    pages.push(items.slice(offset, offset + count))
+    offset += count
+  })
+
   return pages
 }
 
@@ -566,7 +602,7 @@ function buildEstimateHtml(inv: PrintInvoice, items: PrintItem[]): string {
       isFirst: index === 0,
       isLast: index === totalPages - 1,
     }
-    const startIndex = index === 0 ? 0 : ESTIMATE_ITEMS_FIRST_PAGE + (index - 1) * ESTIMATE_ITEMS_CONT_PAGE
+    const startIndex = pages.slice(0, index).reduce((sum, pageItems) => sum + pageItems.length, 0)
     return buildEstimatePageHtml(inv, pageItems, opts, startIndex)
   }).join('')
 }
@@ -597,8 +633,8 @@ function buildDuplexFitScript(): string {
 
 /**
  * A4 이등분 인쇄 (iframe 기반, 멀티페이지)
- * - 첫 페이지 20개, 이후 페이지 20개 기준으로 자동 분할
- * - 기본 폰트는 가독성을 유지하되, overflow 시 half 영역 높이에 맞춰 zoom 축소
+ * - 첫 페이지 10개, 이후 페이지 10개 기준으로 자동 분할
+ * - 품목 수가 기준을 넘으면 다음 페이지로 넘기고, zoom 축소는 예외적인 overflow에서만 사용
  * - A4 상하 절반 레이아웃 기준으로 각 복사본을 동일하게 배치
  */
 // ─── 공통 CSS (미리보기 + 인쇄 공유) ────────────────────────────

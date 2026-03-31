@@ -90,6 +90,28 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `WF-CRM-01/02` 자동입금 흐름에서 동일 `externalId` 재수집 시 `자동반영 완료 → 미매칭`으로 뒤집히던 버그를 수정하고 라이브 검증까지 마쳤다.
+  - 원인
+    - `exact 자동반영` 경로에는 `externalId` 기준 idempotency가 없어, 같은 입금 이벤트가 다시 들어오면 첫 실행에서 잔액이 0이 된 뒤 두 번째 실행은 후보를 못 찾아 `unmatched`로 떨어질 수 있었다.
+  - 수정
+    - `scripts/deploy-crm-deposit-telegram.js`
+      - `WF-CRM-01 입금자동반영 엔진`
+        - `Code: Build Deposit Plan`에 `processedExactDepositIds` 기반 중복 차단과 `duplicateEntries` 분기를 추가했다.
+        - `Code: Persist Review Queue`가 exact 자동반영 성공 건의 `externalId`를 static data에 저장하도록 보강했다.
+        - `Code: Handle Review Queue Request` dismiss API에 `markProcessedExact` 옵션을 추가해, 이미 자동반영된 중복 `unmatched` 항목을 정리하면서 processed map도 수동 백필할 수 있게 했다.
+        - `Code: Response Payload`를 `deposit-telegram-v2`로 올리고 `duplicateEntries`를 응답에 포함시켰다.
+      - `WF-CRM-02 Gmail 입금알림 수집`
+        - `duplicate only` 실행이면 CRM 처리 텔레그램을 보내지 않도록 보강했다.
+        - 중복과 신규 처리 건이 섞인 경우에는 `처리: 중복 무시` 안내만 추가하도록 정리했다.
+  - 배포
+    - `node scripts/deploy-crm-deposit-telegram.js`로 두 workflow를 라이브 재배포했다.
+    - 백업: `output/n8n-backups/20260331-224837-crm-deposit-telegram`, `output/n8n-backups/20260331-225130-crm-deposit-telegram`
+  - 실검증
+    - 라이브 workflow 재조회 시 `processedExactDepositIds`, `duplicateEntries`, `markProcessedExact`, `deposit-telegram-v2`, `처리: 중복 무시` 반영 확인
+    - 잘못 올라온 `동그라미숲유 / 3,527,000원 / <1774942810901.33953@nbefumloap56>-1` 미매칭 큐 항목을 `markProcessedExact=true`로 dismiss 처리해 중복 exact 이벤트로 기록했다.
+    - 동일 payload를 `crm-auto-deposit-intake`에 재전송한 결과:
+      - `summary = { received: 1, total: 0, duplicate: 1, exact: 0, review: 0, unmatched: 0 }`
+      - `duplicateEntries[0].reason = 이미 자동반영이 완료된 입금 이벤트입니다.`
 - `openclaw-project-hub` Flora 텔레그램 프론트도어를 `owner`에서 `flora-frontdoor`로 분리하고, 실제 라우팅 검증까지 완료했다.
   - 추가/수정
     - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
@@ -821,6 +843,8 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX] 다음 실제 중복 수집 1건에서 CRM 처리 텔레그램이 더 이상 '미매칭'을 보내지 않고 조용히 무시되는지 운영 로그로 확인`
+- `[CODEX] 과거 exact 자동반영 건 중 중복으로 잘못 쌓인 unmatched 항목이 더 발견되면 review queue dismiss + markProcessedExact로 개별 백필`
 - `[CODEX-LEAD] 실제 텔레그램에서 flora-frontdoor에게 2~3개 실질문을 보내 사용감 기준으로 첫 문장/전문 관점/응답 길이가 기대와 맞는지 최종 확인`
 - `[CODEX-LEAD] flora-frontdoor가 specialist를 내부적으로 호출하는 방식과, frontdoor가 specialist 관점만 흉내 내는 방식 중 어떤 UX가 더 안정적인지 비교하고 하나로 고정`
 - `[CODEX-LEAD] specialist별 추가 컨텍스트(예: CRM 운영 규칙, 메이크샵 실무 메모, n8n 운영 체크리스트)를 분리 주입할지 결정하고, 필요하면 각 workspace 전용 스킬/BOOTSTRAP를 더 세분화`
@@ -870,6 +894,8 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- 이번 수정 이후 새 exact 자동반영 건부터는 `processedExactDepositIds`가 자동 누적되지만, 과거 exact 처리 이력은 일괄 백필하지 않았다. 이번에 신고된 `동그라미숲유` externalId만 수동 시드했다.
+- 과거 exact 처리 뒤 다시 수집된 기존 externalId는, 수동 `markProcessedExact` 백필이 없는 한 한 번 더 `unmatched`를 만들 수 있다.
 - 텔레그램 프론트도어는 이제 `flora-frontdoor`로 전환됐지만, 사용자가 실제 텔레그램에서 체감하는 답변 길이/톤/전문성은 아직 실사용 확인이 한 번 더 필요하다.
 - 기존 `owner`는 백업으로 남아 있다. 현재 텔레그램 route는 빠졌지만, 운영 중 혼선이 생기지 않게 `owner`와 `flora-frontdoor` 역할을 계속 분리해서 관리해야 한다.
 - 현재 frontdoor는 specialist 관점을 잘 드러내지만, 아직 실제 internal handoff를 하는 구조는 아니다. 필요하면 다음 단계에서 frontdoor -> specialist 실행 흐름을 붙여야 한다.

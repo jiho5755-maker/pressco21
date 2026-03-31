@@ -1471,18 +1471,37 @@
         } catch (e) {}
     }
 
-    function initPopupUnifier() {
-        var popups = document.querySelectorAll('[id^="MAKESHOPLY"]');
-        if (popups.length === 0) return;
+    // 팝업 강제 숨김 (inline !important + MutationObserver)
+    function forceHidePopups() {
+        var els = document.querySelectorAll('[id^="MAKESHOPLY"]');
+        for (var i = 0; i < els.length; i++) {
+            els[i].style.setProperty('display', 'none', 'important');
+            els[i].style.setProperty('visibility', 'hidden', 'important');
+        }
+    }
 
-        // 오늘 그만보기 시 CSS 클래스로 모든 팝업 숨기기 (늦게 주입돼도 확실히 숨김)
+    // 늦게 주입되는 팝업도 감시하여 숨김
+    function watchAndHidePopups() {
+        forceHidePopups();
+        var observer = new MutationObserver(function() { forceHidePopups(); });
+        observer.observe(document.body, { childList: true, subtree: true });
+        setTimeout(function() { observer.disconnect(); }, 30000);
+    }
+
+    function initPopupUnifier() {
+        // 오늘 그만보기 시 — CSS 클래스 + JS 강제 숨김 + MutationObserver
         if (isTodayHidden()) {
             document.body.classList.add('pc21-popups-hidden');
+            watchAndHidePopups();
             return;
         }
 
-        // CSS 클래스로 원본 팝업 숨기기 (MakeShop이 다시 보여줘도 !important로 차단)
+        var popups = document.querySelectorAll('[id^="MAKESHOPLY"]');
+        if (popups.length === 0) return;
+
+        // CSS 클래스로 원본 팝업 숨기기
         document.body.classList.add('pc21-popups-unified');
+        forceHidePopups();
 
         // 콘텐츠 추출
         var slideContents = [];

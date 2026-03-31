@@ -1577,6 +1577,23 @@
             setTimeout(function() {
                 if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
             }, 300);
+            // 원본 팝업의 닫기 링크를 호출하여 메이크샵 내부 상태 정리
+            for (var k = 0; k < popups.length; k++) {
+                var closeLink = popups[k].querySelector('a.pop_close, a:last-child');
+                if (closeLink && closeLink.href) {
+                    try {
+                        var fn = closeLink.getAttribute('href');
+                        if (fn && fn.indexOf('javascript:') === 0) {
+                            eval(fn.replace('javascript:', ''));
+                        }
+                    } catch(e) {}
+                }
+            }
+            // body 스크롤 복원 보장
+            document.body.style.overflow = '';
+            document.body.style.position = '';
+            document.body.style.touchAction = '';
+            document.documentElement.style.overflow = '';
         }
 
         btnClose.addEventListener('click', function(e) { e.preventDefault(); closePopup(); });

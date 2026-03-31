@@ -1443,3 +1443,164 @@
     });
 
 })();
+
+/* ========================================
+   팝업 슬라이드 통합 모듈
+   메이크샵 이벤트 팝업(MAKESHOPLY0, MAKESHOPLY1, ...)을
+   1개 모달 컨테이너에 Swiper 슬라이드로 통합
+   셀렉터: [id^="MAKESHOPLY"]
+   ======================================== */
+(function() {
+    'use strict';
+
+    var STORAGE_KEY = 'pc21_popup_unified_hide';
+
+    function isTodayHidden() {
+        try {
+            var saved = localStorage.getItem(STORAGE_KEY);
+            if (!saved) return false;
+            return saved === new Date().toISOString().slice(0, 10);
+        } catch (e) { return false; }
+    }
+
+    function setTodayHidden() {
+        try {
+            localStorage.setItem(STORAGE_KEY, new Date().toISOString().slice(0, 10));
+        } catch (e) {}
+    }
+
+    function initPopupUnifier() {
+        if (isTodayHidden()) {
+            // 오늘 그만보기 설정된 경우 모든 팝업 숨기기
+            var all = document.querySelectorAll('[id^="MAKESHOPLY"]');
+            for (var i = 0; i < all.length; i++) all[i].style.display = 'none';
+            return;
+        }
+
+        var popups = document.querySelectorAll('[id^="MAKESHOPLY"]');
+        if (popups.length < 2) return; // 1개 이하면 통합 불필요
+
+        // 원본 팝업 즉시 숨기기 (통합 모달보다 먼저)
+        for (var h = 0; h < popups.length; h++) {
+            popups[h].style.display = 'none';
+            popups[h].style.visibility = 'hidden';
+        }
+
+        // 통합 오버레이 생성
+        var overlay = document.createElement('div');
+        overlay.id = 'pc21-popup-overlay';
+        overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s ease;';
+
+        var modal = document.createElement('div');
+        modal.id = 'pc21-popup-modal';
+        modal.style.cssText = 'position:relative;max-width:520px;width:92%;max-height:85vh;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.2);';
+
+        // Swiper 구조
+        var swiperWrap = document.createElement('div');
+        swiperWrap.className = 'swiper';
+        swiperWrap.style.cssText = 'width:100%;overflow:hidden;';
+
+        var swiperWrapper = document.createElement('div');
+        swiperWrapper.className = 'swiper-wrapper';
+
+        // 각 팝업 콘텐츠를 슬라이드로 이동
+        for (var i = 0; i < popups.length; i++) {
+            var slide = document.createElement('div');
+            slide.className = 'swiper-slide';
+            slide.style.cssText = 'display:flex;align-items:center;justify-content:center;';
+
+            // 팝업 내부의 #popup-event 콘텐츠만 추출
+            var popEvt = popups[i].querySelector('#popup-event');
+            if (popEvt) {
+                var contentWrap = popEvt.querySelector('.content-wrap');
+                if (contentWrap) {
+                    var clone = contentWrap.cloneNode(true);
+                    // 이미지 max-width 보장
+                    var imgs = clone.querySelectorAll('img');
+                    for (var j = 0; j < imgs.length; j++) {
+                        imgs[j].style.maxWidth = '100%';
+                        imgs[j].style.height = 'auto';
+                    }
+                    slide.appendChild(clone);
+                }
+            }
+            swiperWrapper.appendChild(slide);
+        }
+
+        swiperWrap.appendChild(swiperWrapper);
+
+        // 페이지네이션
+        var pagination = document.createElement('div');
+        pagination.className = 'swiper-pagination';
+        pagination.style.cssText = 'text-align:center;padding:8px 0;';
+        swiperWrap.appendChild(pagination);
+
+        // 하단 버튼
+        var btnWrap = document.createElement('div');
+        btnWrap.style.cssText = 'display:flex;border-top:1px solid #eee;';
+
+        var btnHide = document.createElement('a');
+        btnHide.textContent = '오늘은 그만 보기';
+        btnHide.href = '#';
+        btnHide.style.cssText = 'flex:1;text-align:center;padding:14px 0;color:#888;font-size:14px;text-decoration:none;border-right:1px solid #eee;';
+
+        var btnClose = document.createElement('a');
+        btnClose.textContent = '닫기';
+        btnClose.href = '#';
+        btnClose.style.cssText = 'flex:1;text-align:center;padding:14px 0;color:#333;font-size:14px;font-weight:600;text-decoration:none;';
+
+        btnWrap.appendChild(btnHide);
+        btnWrap.appendChild(btnClose);
+
+        modal.appendChild(swiperWrap);
+        modal.appendChild(btnWrap);
+        overlay.appendChild(modal);
+        document.body.appendChild(overlay);
+
+        // Swiper 초기화
+        setTimeout(function() {
+            if (typeof Swiper !== 'undefined') {
+                new Swiper(swiperWrap, {
+                    loop: popups.length > 1,
+                    autoplay: { delay: 3000, disableOnInteraction: false },
+                    pagination: { el: pagination, clickable: true }
+                });
+            }
+        }, 100);
+
+        // 즉시 표시
+        overlay.style.opacity = '1';
+
+        // 이벤트
+        function closePopup() {
+            overlay.style.opacity = '0';
+            setTimeout(function() {
+                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            }, 300);
+        }
+
+        btnClose.addEventListener('click', function(e) { e.preventDefault(); closePopup(); });
+
+        // 오버레이 클릭으로 닫기 (드래그/스와이프 구분)
+        var mouseDownTarget = null;
+        overlay.addEventListener('mousedown', function(e) { mouseDownTarget = e.target; });
+        overlay.addEventListener('mouseup', function(e) {
+            // mousedown과 mouseup이 모두 오버레이 자체일 때만 닫기
+            if (e.target === overlay && mouseDownTarget === overlay) closePopup();
+            mouseDownTarget = null;
+        });
+
+        btnHide.addEventListener('click', function(e) {
+            e.preventDefault();
+            setTodayHidden();
+            closePopup();
+        });
+    }
+
+    // DOM 로드 후 즉시 실행 (메이크샵 팝업은 HTML에 포함되어 즉시 사용 가능)
+    if (document.readyState === 'loading') {
+        document.addEventListener('DOMContentLoaded', initPopupUnifier);
+    } else {
+        initPopupUnifier();
+    }
+})();

@@ -2847,3 +2847,45 @@
         animation: none;
     }
 }
+
+/* ========================================
+   팝업 통합 모달 — PC/모바일 반응형
+   ======================================== */
+
+/* 이미지 풀 너비 + 비율 유지 */
+#pc21-popup-overlay img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+}
+
+/* Swiper 도트 스타일 */
+#pc21-popup-overlay .swiper-pagination-bullet {
+    width: 8px;
+    height: 8px;
+    background: #aaa;
+    opacity: 0.5;
+}
+#pc21-popup-overlay .swiper-pagination-bullet-active {
+    background: #637561;
+    opacity: 1;
+}
+
+/* 모바일 최적화 */
+@media (max-width: 768px) {
+    #pc21-popup-modal {
+        width: 95% !important;
+        max-width: none !important;
+        max-height: 90vh !important;
+        border-radius: 10px !important;
+    }
+
+    /* 하단 버튼 터치 영역 확대 */
+    #pc21-popup-modal .content-btns a,
+    #pc21-popup-overlay a[href="#"] {
+        min-height: 48px;
+        line-height: 48px;
+        padding: 0 !important;
+        font-size: 15px;
+    }
+}

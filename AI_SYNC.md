@@ -51,10 +51,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-31 20:42:15 KST
+- Started At: 2026-03-31
 - Branch: main
 - Working Scope: —
-- Active Subdirectory: openclaw-project-hub
+- Active Subdirectory: —
 
 ## Files In Progress
 - 없음
@@ -90,7 +90,13 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
-- `openclaw-project-hub` Flora 맥북 코파일럿 하네스를 Phase 2 수준으로 확장해, 인벤토리 기반 `전문 비서 프로파일` 레이어를 추가했다.
+- **메이크샵 관리자 페이지 전면 분석 & 스킬 고도화 (2026-03-31)**
+  - 관리자 메뉴 13개 섹션 분석: 디자인/프로모션/쿠폰/기획전/이벤트/게시판/카카오알림톡/회원그룹/통계/CRM/마케팅/배송/결제
+  - 메모리 2개 신규: `makeshop-admin-editor-guide.md`(397줄), `makeshop-promotion-guide.md`(397줄)
+  - 스킬 레퍼런스 2개 재작성: `shop-settings.md`(81→210줄), `admin-features.md`(113→260줄)
+  - SKILL.md에 0-E 관리자 기능 참조 추가
+  - 핵심 발견: 쿠폰/기획전/이벤트 완전 미사용, 카카오 알림톡 주문/배송 템플릿 미등록, 강사회원 2,694명 혜택 없음
+- (이전) `openclaw-project-hub` Flora 맥북 코파일럿 하네스를 Phase 2 수준으로 확장해, 인벤토리 기반 `전문 비서 프로파일` 레이어를 추가했다.
   - 추가/수정
     - `openclaw-project-hub/06_scripts/analyze-flora-mac-context.py`
       - 로컬 프로젝트 인벤토리를 회사 운영 패턴, 프로젝트 테마, 우선순위, 추천 비서 역할로 재분류하는 분석기 추가

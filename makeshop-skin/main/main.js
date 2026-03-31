@@ -1,7 +1,7 @@
 /* ========================================
    PRESSCO21 메인페이지 - 메이크샵 D4
    IIFE 패턴으로 전역 변수 오염 방지
-   주의: 템플릿 리터럴 내 ${var}는 \${var}로 이스케이프
+   주의: 템플릿 리터럴 내 달러중괄호는 백슬래시 이스케이프 필수
    ======================================== */
    (function() {
     'use strict';
@@ -1445,9 +1445,11 @@
 })();
 
 /* ========================================
-   팝업 슬라이드 통합 모듈
-   메이크샵 이벤트 팝업(MAKESHOPLY0, MAKESHOPLY1, ...)을
-   1개 모달 컨테이너에 Swiper 슬라이드로 통합
+   팝업 슬라이드 통합 모듈 v2
+   - PC + 모바일 모두 지원
+   - 팝업 1개도 통합 모달로 표시
+   - iOS 스크롤 락 대응
+   - CSS 클래스 기반 원본 팝업 숨김
    셀렉터: [id^="MAKESHOPLY"]
    ======================================== */
 (function() {
@@ -1470,30 +1472,42 @@
     }
 
     function initPopupUnifier() {
+        var popups = document.querySelectorAll('[id^="MAKESHOPLY"]');
+        if (popups.length === 0) return;
+
+        // 오늘 그만보기 시 CSS 클래스로 모든 팝업 숨기기 (늦게 주입돼도 확실히 숨김)
         if (isTodayHidden()) {
-            // 오늘 그만보기 설정된 경우 모든 팝업 숨기기
-            var all = document.querySelectorAll('[id^="MAKESHOPLY"]');
-            for (var i = 0; i < all.length; i++) all[i].style.display = 'none';
+            document.body.classList.add('pc21-popups-hidden');
             return;
         }
 
-        // 모바일에서는 메이크샵 기본 팝업 시스템 사용 (768px 이하)
-        if (window.innerWidth <= 768) return;
+        // CSS 클래스로 원본 팝업 숨기기 (MakeShop이 다시 보여줘도 !important로 차단)
+        document.body.classList.add('pc21-popups-unified');
 
-        var popups = document.querySelectorAll('[id^="MAKESHOPLY"]');
-        if (popups.length < 2) return; // 1개 이하면 통합 불필요
-
-        // 원본 팝업 즉시 숨기기 (통합 모달보다 먼저)
-        for (var h = 0; h < popups.length; h++) {
-            popups[h].style.display = 'none';
-            popups[h].style.visibility = 'hidden';
+        // 콘텐츠 추출
+        var slideContents = [];
+        for (var k = 0; k < popups.length; k++) {
+            var popEvt = popups[k].querySelector('#popup-event');
+            var content = popEvt ? (popEvt.querySelector('.content-wrap') || popEvt) : popups[k];
+            if (content) {
+                var clone = content.cloneNode(true);
+                var imgs = clone.querySelectorAll('img');
+                for (var j = 0; j < imgs.length; j++) {
+                    imgs[j].style.maxWidth = '100%';
+                    imgs[j].style.height = 'auto';
+                    imgs[j].style.display = 'block';
+                }
+                slideContents.push(clone);
+            }
         }
+        if (slideContents.length === 0) return;
 
-        // 통합 오버레이 생성
+        // 오버레이
         var overlay = document.createElement('div');
         overlay.id = 'pc21-popup-overlay';
         overlay.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.5);z-index:99999;display:flex;align-items:center;justify-content:center;opacity:0;transition:opacity 0.3s ease;';
 
+        // 모달
         var modal = document.createElement('div');
         modal.id = 'pc21-popup-modal';
         modal.style.cssText = 'position:relative;max-width:520px;width:92%;max-height:85vh;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.2);';
@@ -1506,37 +1520,24 @@
         var swiperWrapper = document.createElement('div');
         swiperWrapper.className = 'swiper-wrapper';
 
-        // 각 팝업 콘텐츠를 슬라이드로 이동
-        for (var i = 0; i < popups.length; i++) {
+        for (var s = 0; s < slideContents.length; s++) {
             var slide = document.createElement('div');
             slide.className = 'swiper-slide';
             slide.style.cssText = 'display:flex;align-items:center;justify-content:center;';
-
-            // 팝업 내부의 #popup-event 콘텐츠만 추출
-            var popEvt = popups[i].querySelector('#popup-event');
-            if (popEvt) {
-                var contentWrap = popEvt.querySelector('.content-wrap');
-                if (contentWrap) {
-                    var clone = contentWrap.cloneNode(true);
-                    // 이미지 max-width 보장
-                    var imgs = clone.querySelectorAll('img');
-                    for (var j = 0; j < imgs.length; j++) {
-                        imgs[j].style.maxWidth = '100%';
-                        imgs[j].style.height = 'auto';
-                    }
-                    slide.appendChild(clone);
-                }
-            }
+            slide.appendChild(slideContents[s]);
             swiperWrapper.appendChild(slide);
         }
 
         swiperWrap.appendChild(swiperWrapper);
 
-        // 페이지네이션
-        var pagination = document.createElement('div');
-        pagination.className = 'swiper-pagination';
-        pagination.style.cssText = 'text-align:center;padding:8px 0;';
-        swiperWrap.appendChild(pagination);
+        // 페이지네이션 (2개 이상만)
+        var pagination = null;
+        if (slideContents.length > 1) {
+            pagination = document.createElement('div');
+            pagination.className = 'swiper-pagination';
+            pagination.style.cssText = 'text-align:center;padding:8px 0;';
+            swiperWrap.appendChild(pagination);
+        }
 
         // 하단 버튼
         var btnWrap = document.createElement('div');
@@ -1554,53 +1555,85 @@
 
         btnWrap.appendChild(btnHide);
         btnWrap.appendChild(btnClose);
-
         modal.appendChild(swiperWrap);
         modal.appendChild(btnWrap);
         overlay.appendChild(modal);
+
+        // iOS 스크롤 락: position:fixed + top:-scrollY 패턴
+        var savedScrollY = window.pageYOffset || document.documentElement.scrollTop;
+        document.body.style.position = 'fixed';
+        document.body.style.top = '-' + savedScrollY + 'px';
+        document.body.style.left = '0';
+        document.body.style.right = '0';
+        document.body.style.overflow = 'hidden';
+
         document.body.appendChild(overlay);
 
         // Swiper 초기화
         setTimeout(function() {
             if (typeof Swiper !== 'undefined') {
-                new Swiper(swiperWrap, {
-                    loop: popups.length > 1,
-                    autoplay: { delay: 3000, disableOnInteraction: false },
-                    pagination: { el: pagination, clickable: true }
-                });
+                var opts = {};
+                if (slideContents.length > 1) {
+                    opts.loop = true;
+                    opts.autoplay = { delay: 3000, disableOnInteraction: false };
+                    opts.pagination = { el: pagination, clickable: true };
+                }
+                new Swiper(swiperWrap, opts);
             }
         }, 100);
 
-        // 즉시 표시
-        overlay.style.opacity = '1';
+        // 페이드인
+        requestAnimationFrame(function() {
+            overlay.style.opacity = '1';
+        });
 
-        // 이벤트
+        // 닫기 함수
         function closePopup() {
             overlay.style.opacity = '0';
+            // 스크롤 복원
+            document.body.style.position = '';
+            document.body.style.top = '';
+            document.body.style.left = '';
+            document.body.style.right = '';
+            document.body.style.overflow = '';
+            window.scrollTo(0, savedScrollY);
             setTimeout(function() {
                 if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
             }, 300);
         }
 
         btnClose.addEventListener('click', function(e) { e.preventDefault(); closePopup(); });
+        btnHide.addEventListener('click', function(e) { e.preventDefault(); setTodayHidden(); closePopup(); });
 
-        // 오버레이 클릭으로 닫기 (드래그/스와이프 구분)
+        // PC: mousedown/mouseup 타겟 매칭으로 오버레이 클릭 닫기
         var mouseDownTarget = null;
         overlay.addEventListener('mousedown', function(e) { mouseDownTarget = e.target; });
         overlay.addEventListener('mouseup', function(e) {
-            // mousedown과 mouseup이 모두 오버레이 자체일 때만 닫기
             if (e.target === overlay && mouseDownTarget === overlay) closePopup();
             mouseDownTarget = null;
         });
 
-        btnHide.addEventListener('click', function(e) {
-            e.preventDefault();
-            setTodayHidden();
-            closePopup();
+        // 모바일: 터치 거리 체크 (스와이프 vs 탭 구분)
+        var touchStartX = 0, touchStartY = 0, touchMoved = false;
+        overlay.addEventListener('touchstart', function(e) {
+            if (e.target === overlay && e.touches.length > 0) {
+                touchStartX = e.touches[0].clientX;
+                touchStartY = e.touches[0].clientY;
+                touchMoved = false;
+            }
+        }, { passive: true });
+        overlay.addEventListener('touchmove', function(e) {
+            if (e.touches.length > 0) {
+                var dx = Math.abs(e.touches[0].clientX - touchStartX);
+                var dy = Math.abs(e.touches[0].clientY - touchStartY);
+                if (dx > 10 || dy > 10) touchMoved = true;
+            }
+        }, { passive: true });
+        overlay.addEventListener('touchend', function(e) {
+            if (e.target === overlay && !touchMoved) closePopup();
         });
     }
 
-    // DOM 로드 후 즉시 실행 (메이크샵 팝업은 HTML에 포함되어 즉시 사용 가능)
     if (document.readyState === 'loading') {
         document.addEventListener('DOMContentLoaded', initPopupUnifier);
     } else {

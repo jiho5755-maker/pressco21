@@ -2849,8 +2849,17 @@
 }
 
 /* ========================================
-   팝업 통합 모달 — PC/모바일 반응형
+   팝업 통합 모달 v2 — PC + 모바일
    ======================================== */
+
+/* 원본 팝업 강제 숨김 (CSS 클래스 기반 — MakeShop 재표시 차단) */
+body.pc21-popups-hidden [id^="MAKESHOPLY"],
+body.pc21-popups-unified [id^="MAKESHOPLY"] {
+    display: none !important;
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
+}
 
 /* 이미지 풀 너비 + 비율 유지 */
 #pc21-popup-overlay img {
@@ -2876,12 +2885,11 @@
     #pc21-popup-modal {
         width: 95% !important;
         max-width: none !important;
-        max-height: 90vh !important;
+        max-height: 85vh !important;
         border-radius: 10px !important;
     }
 
-    /* 하단 버튼 터치 영역 확대 */
-    #pc21-popup-modal .content-btns a,
+    /* 하단 버튼 터치 영역 확대 (최소 48px) */
     #pc21-popup-overlay a[href="#"] {
         min-height: 48px;
         line-height: 48px;

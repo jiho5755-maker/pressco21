@@ -1477,6 +1477,9 @@
             return;
         }
 
+        // 모바일에서는 메이크샵 기본 팝업 시스템 사용 (768px 이하)
+        if (window.innerWidth <= 768) return;
+
         var popups = document.querySelectorAll('[id^="MAKESHOPLY"]');
         if (popups.length < 2) return; // 1개 이하면 통합 불필요
 
@@ -1573,27 +1576,12 @@
 
         // 이벤트
         function closePopup() {
-            overlay.style.opacity = '0';
-            setTimeout(function() {
-                if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
-            }, 300);
-            // 원본 팝업의 닫기 링크를 호출하여 메이크샵 내부 상태 정리
-            for (var k = 0; k < popups.length; k++) {
-                var closeLink = popups[k].querySelector('a.pop_close, a:last-child');
-                if (closeLink && closeLink.href) {
-                    try {
-                        var fn = closeLink.getAttribute('href');
-                        if (fn && fn.indexOf('javascript:') === 0) {
-                            eval(fn.replace('javascript:', ''));
-                        }
-                    } catch(e) {}
-                }
-            }
-            // body 스크롤 복원 보장
-            document.body.style.overflow = '';
-            document.body.style.position = '';
-            document.body.style.touchAction = '';
-            document.documentElement.style.overflow = '';
+            overlay.style.display = 'none';
+            if (overlay.parentNode) overlay.parentNode.removeChild(overlay);
+            document.body.removeAttribute('style');
+            document.documentElement.removeAttribute('style');
+            document.body.classList.remove('no-scroll', 'popup-open', 'modal-open');
+            void document.body.offsetHeight;
         }
 
         btnClose.addEventListener('click', function(e) { e.preventDefault(); closePopup(); });

@@ -1455,53 +1455,24 @@
 (function() {
     'use strict';
 
-    var STORAGE_KEY = 'pc21_popup_unified_hide';
-
-    function isTodayHidden() {
-        try {
-            var saved = localStorage.getItem(STORAGE_KEY);
-            if (!saved) return false;
-            return saved === new Date().toISOString().slice(0, 10);
-        } catch (e) { return false; }
-    }
-
-    function setTodayHidden() {
-        try {
-            localStorage.setItem(STORAGE_KEY, new Date().toISOString().slice(0, 10));
-        } catch (e) {}
-    }
-
-    // 팝업 강제 숨김 (inline !important + MutationObserver)
-    function forceHidePopups() {
-        var els = document.querySelectorAll('[id^="MAKESHOPLY"]');
-        for (var i = 0; i < els.length; i++) {
-            els[i].style.setProperty('display', 'none', 'important');
-            els[i].style.setProperty('visibility', 'hidden', 'important');
-        }
-    }
-
-    // 늦게 주입되는 팝업도 감시하여 숨김
-    function watchAndHidePopups() {
-        forceHidePopups();
-        var observer = new MutationObserver(function() { forceHidePopups(); });
-        observer.observe(document.body, { childList: true, subtree: true });
-        setTimeout(function() { observer.disconnect(); }, 30000);
-    }
-
     function initPopupUnifier() {
-        // 오늘 그만보기 시 — CSS 클래스 + JS 강제 숨김 + MutationObserver
-        if (isTodayHidden()) {
-            document.body.classList.add('pc21-popups-hidden');
-            watchAndHidePopups();
-            return;
-        }
-
         var popups = document.querySelectorAll('[id^="MAKESHOPLY"]');
         if (popups.length === 0) return;
 
-        // CSS 클래스로 원본 팝업 숨기기
-        document.body.classList.add('pc21-popups-unified');
-        forceHidePopups();
+        // 각 팝업의 네이티브 "오늘 그만 보기" href 수집 (MAKESHOP_LY_NOVIEW 호출용)
+        var nativeHideHrefs = [];
+        for (var n = 0; n < popups.length; n++) {
+            var hideLink = popups[n].querySelector('a[href*="MAKESHOP_LY_NOVIEW(1"]');
+            if (hideLink) {
+                nativeHideHrefs.push(hideLink.getAttribute('href'));
+            }
+        }
+
+        // 원본 팝업 숨기기: style 태그 주입
+        var hideStyle = document.createElement('style');
+        hideStyle.id = 'pc21-popup-unified-style';
+        hideStyle.textContent = '[id^="MAKESHOPLY"] { display: none !important; visibility: hidden !important; }';
+        document.head.appendChild(hideStyle);
 
         // 콘텐츠 추출
         var slideContents = [];
@@ -1529,12 +1500,12 @@
         // 모달
         var modal = document.createElement('div');
         modal.id = 'pc21-popup-modal';
-        modal.style.cssText = 'position:relative;max-width:520px;width:92%;max-height:85vh;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.2);';
+        modal.style.cssText = 'position:relative;max-width:520px;width:92%;max-height:85vh;background:#fff;border-radius:12px;overflow:hidden;box-shadow:0 8px 32px rgba(0,0,0,0.2);display:flex;flex-direction:column;';
 
         // Swiper 구조
         var swiperWrap = document.createElement('div');
         swiperWrap.className = 'swiper';
-        swiperWrap.style.cssText = 'width:100%;overflow:hidden;';
+        swiperWrap.style.cssText = 'width:100%;overflow:hidden;flex:1;min-height:0;';
 
         var swiperWrapper = document.createElement('div');
         swiperWrapper.className = 'swiper-wrapper';
@@ -1560,7 +1531,7 @@
 
         // 하단 버튼
         var btnWrap = document.createElement('div');
-        btnWrap.style.cssText = 'display:flex;border-top:1px solid #eee;';
+        btnWrap.style.cssText = 'display:flex;border-top:1px solid #eee;flex-shrink:0;';
 
         var btnHide = document.createElement('a');
         btnHide.textContent = '오늘은 그만 보기';
@@ -1621,8 +1592,32 @@
             }, 300);
         }
 
-        btnClose.addEventListener('click', function(e) { e.preventDefault(); closePopup(); });
-        btnHide.addEventListener('click', function(e) { e.preventDefault(); setTodayHidden(); closePopup(); });
+        // MakeShop 네이티브 팝업 함수 실행 헬퍼
+        function execNativePopup(flag) {
+            // style 태그 제거 (네이티브 함수가 요소 조작 가능하도록)
+            var sty = document.getElementById('pc21-popup-unified-style');
+            if (sty) sty.parentNode.removeChild(sty);
+            // 각 팝업의 네이티브 링크 href 실행
+            var selector = 'a[href*="MAKESHOP_LY_NOVIEW(' + flag + '"]';
+            for (var pi = 0; pi < popups.length; pi++) {
+                var link = popups[pi].querySelector(selector);
+                if (link) {
+                    var code = link.getAttribute('href').replace(/^javascript:\s*/, '');
+                    try { (0, eval)(code); } catch(ex) {}
+                }
+            }
+        }
+
+        btnClose.addEventListener('click', function(e) {
+            e.preventDefault();
+            execNativePopup(0); // 닫기 (쿠키 미설정)
+            closePopup();
+        });
+        btnHide.addEventListener('click', function(e) {
+            e.preventDefault();
+            execNativePopup(1); // 오늘 그만 보기 (쿠키 설정)
+            closePopup();
+        });
 
         // PC: mousedown/mouseup 타겟 매칭으로 오버레이 클릭 닫기
         var mouseDownTarget = null;

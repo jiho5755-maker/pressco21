@@ -3326,7 +3326,7 @@ padding: 0 74px;
         background-color: #ffffff !important;
         color: #000000 !important;
     }
-    
+
     .nav-wrap a,
     #nav-wrap a,
     .nav-wrap button,
@@ -3336,3 +3336,114 @@ padding: 0 74px;
         color: #000000 !important;
     }
 }
+
+/* ============================================
+   Sprint 2A-3: 주문 흐름 단계 인디케이터
+   ============================================ */
+.order-step-indicator {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0;
+    padding: 24px 16px 8px;
+    margin-bottom: 16px;
+}
+.order-step {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    font-size: .875rem;
+    color: #aaa;
+    font-weight: 500;
+    white-space: nowrap;
+}
+.order-step-num {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: #e5eae3;
+    font-size: .75rem;
+    font-weight: 700;
+    color: #999;
+    flex-shrink: 0;
+}
+.order-step.active { color: #2b3d2f; font-weight: 700; }
+.order-step.active .order-step-num {
+    background: #597051;
+    color: #fff;
+}
+.order-step.done { color: #597051; }
+.order-step.done .order-step-num {
+    background: #597051;
+    color: #fff;
+}
+.order-step-arrow {
+    width: 40px;
+    height: 1px;
+    background: #ddd;
+    margin: 0 8px;
+    flex-shrink: 0;
+}
+.order-step.active ~ .order-step-arrow,
+.order-step-arrow:has(+ .order-step:not(.active):not(.done)) { background: #ddd; }
+.order-step.done + .order-step-arrow,
+.order-step.active + .order-step-arrow { background: #597051; }
+@media (max-width: 767.98px) {
+    .order-step-indicator { padding: 16px 12px 4px; }
+    .order-step { font-size: .75rem; gap: 4px; }
+    .order-step-num { width: 24px; height: 24px; font-size: .6875rem; }
+    .order-step-arrow { width: 24px; margin: 0 4px; }
+}
+
+/* ============================================
+   Sprint 2A-4: 장바구니 빈 상태 UX
+   ============================================ */
+.cart-empty-enhanced {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 16px;
+    padding: 60px 20px;
+    border-top: 1px solid var(--cw-heading-color);
+    border-bottom: 1px solid var(--cw-color-30);
+    text-align: center;
+}
+.cart-empty-enhanced svg { opacity: .5; }
+.cart-empty-enhanced .cart-empty-msg {
+    font-size: 1.125rem;
+    font-weight: 700;
+    color: #2b3d2f;
+}
+.cart-empty-enhanced .cart-empty-sub {
+    font-size: .875rem;
+    color: #888;
+}
+.cart-empty-btns {
+    display: flex;
+    gap: 10px;
+    margin-top: 8px;
+}
+.cart-empty-btns a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 24px;
+    border-radius: 8px;
+    font-size: .875rem;
+    font-weight: 600;
+    text-decoration: none;
+    transition: background .2s, color .2s;
+}
+.cart-empty-btns .btn-best {
+    background: #597051;
+    color: #fff;
+}
+.cart-empty-btns .btn-best:hover { background: #2b3d2f; }
+.cart-empty-btns .btn-continue {
+    background: #e5eae3;
+    color: #2b3d2f;
+}
+.cart-empty-btns .btn-continue:hover { background: #d4ddd0; }

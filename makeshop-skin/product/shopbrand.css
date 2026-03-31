@@ -354,4 +354,21 @@
     }
 }
 
-
+/* ============================================
+   Sprint 2A-5: 카테고리 미세 개선
+   ============================================ */
+/* 부제목 표시 보장 */
+.prd-subname {
+    display: block;
+    font-size: 13px;
+    color: #888;
+    margin-top: 4px;
+    line-height: 1.4;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+/* 혜택확인 아이콘 브랜드 컬러 (기존 녹색 대체) */
+.prd-benefit a img {
+    filter: hue-rotate(0deg) brightness(0.85);
+}

@@ -145,10 +145,12 @@
 - **메이크샵 스킬 전면 감사 & 고도화 (2026-03-31)**
   - 오픈 API: open-api.md 704→870줄 (에러코드 15개, 2025~2026 필드, n8n 패턴 5개)
   - 스킬 42개 파일 14,800줄 감사 → 중복 제거, 커버리지 보강, 인덱스 추가
-  - VTag INDEX.md 신규 (편집기 실측 main:575, header:98, footer:33, order:326)
-  - main.md 362→489줄, footer.md 37→60줄, makeshop-js-api.md 146→222줄
+  - VTag INDEX.md 전 페이지 실측 완료 (11개 page_type, 총 3,175+ 태그)
+    - shopbrand(687), shopdetail(647), main(575), order_pay(552), basket(288), header(98)
+    - 핵심 발견: vtag page_type ≠ 편집기 page_type (product→shopdetail, category→shopbrand 등)
+  - main.md 362→489줄, footer.md 37→60줄(100%), makeshop-js-api.md 146→222줄
   - constraints↔editor-errors SOT 확립, design-tokens↔brand-decisions 상호참조
-  - deprecated extract-codemirror.js 삭제
+  - deprecated extract-codemirror.js 삭제, 커버리지 낮은 4개 파일에 실측 경고 추가
 - (이전) **메이크샵 관리자 페이지 전면 분석 & 스킬 고도화 (2026-03-31)**
   - 관리자 메뉴 13개 섹션 분석: 디자인/프로모션/쿠폰/기획전/이벤트/게시판/카카오알림톡/회원그룹/통계/CRM/마케팅/배송/결제
   - 메모리 2개 신규: `makeshop-admin-editor-guide.md`(397줄), `makeshop-promotion-guide.md`(397줄)

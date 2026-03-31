@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-31 16:22:06 KST
+- Started At: 2026-03-31 17:01:30 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: offline-crm-v2
@@ -90,6 +90,19 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `offline-crm-v2` 명세표 선택 주소가 실제 `invoices` 컬럼에 저장되지 않는 구조를 확인하고, `memo` 숨김 메타로 주소 키를 저장/복원하도록 보정했다.
+  - `offline-crm-v2/src/lib/accountingMeta.ts`
+    - `[ACCOUNTING_INVOICE_META]`에 `customerAddressKey`를 함께 저장/파싱하도록 확장했다.
+  - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+    - 명세표 저장 시 선택 주소 키를 `memo` 메타에 저장하도록 변경했다.
+    - 명세표 수정 다이얼로그 재오픈 시 저장된 메타의 주소 키를 우선 복원하도록 맞췄다.
+  - `offline-crm-v2/src/pages/Invoices.tsx`
+    - 목록 출력 / 송장 엑셀 / 누락 경고 계산이 `memo` 메타의 `customerAddressKey`를 우선 읽어 현재 고객 주소를 다시 해석하도록 변경했다.
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
+    - `cd offline-crm-v2 && bash deploy/deploy.sh` 완료
+  - 운영 데이터 보정
+    - `송윤경 회장님` 최신 명세표 `INV-20260331-135928` (Id `71`)에 `[ACCOUNTING_INVOICE_META] {"customerAddressKey":"address2"}` 메타를 직접 저장해 `윤미라` 주소 선택값을 즉시 반영했다.
 - `offline-crm-v2` 명세표 주소 변경값이 인쇄/송장 경로마다 기본 주소로 되돌아가던 문제를 보정했다.
   - `offline-crm-v2/src/pages/Invoices.tsx`
     - 명세표 목록 출력과 송장 엑셀 생성 시 `customer_address` / `customer_address_key`로 저장된 명세표 스냅샷을 우선 사용하고, 비어 있을 때만 현재 고객 마스터 주소를 fallback 하도록 공통 해석 로직으로 정리했다.
@@ -678,6 +691,7 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX] 운영 CRM에서 '송윤경 회장님' 명세표 `INV-20260331-135928` 기준으로 목록 출력 / 송장 엑셀 두 경로가 모두 '윤미라' 주소로 내려오는지 사용자가 최종 확인`
 - `[CODEX] 운영 CRM에서 '송윤경회장님' 명세표 1건으로 수정 다이얼로그 미리보기 / 목록 출력 / 송장 엑셀 다운로드 3경로의 주소가 모두 '윤미라 주소'로 일치하는지 확인`
 - `[CODEX] /invoices 화면에서 실제 운영 데이터 기준으로 기간별 총매출 카드 수치가 목록 합계와 일치하는지 육안 확인`
 - `[CODEX] Basic Auth 뒤 운영 CRM에서 이번 배포 산출물(`index-CCwNECQO.js`) 기준으로 명세표 기간 총매출 카드가 기대대로 보이는지 확인`
@@ -721,6 +735,8 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- `invoices` 테이블에는 고객 주소 컬럼이 실제로 없어, 명세표 선택 주소는 앞으로 `memo` 숨김 메타에 의존한다. 외부 스크립트가 메모를 통째로 덮어쓰면 주소 선택값도 같이 사라질 수 있다.
+- 이미 발행된 과거 명세표 중 주소 메타가 없는 건은 한 번 더 저장하거나 개별 메타 보정이 필요하다.
 - 이번 수정은 로컬 빌드로만 검증했고, 운영 데이터 실주소 케이스(`송윤경회장님 → 윤미라 주소`)는 아직 브라우저에서 3경로를 직접 눌러 확인하지 않았다.
 - 이번 배포는 커밋 기준이 아니라 현재 로컬 작업 트리 기준으로 올라갔다. 따라서 `src/pages/Invoices.tsx` 외에 워킹트리에 남아 있던 `src/pages/CustomerDetail.tsx`, `src/lib/print.ts` 변경도 함께 반영됐다.
 - 현재 총매출 카드는 `선택 기간 + 현재 검색/수금상태 필터` 기준으로 계산된다. 기간 전체 합계만 고정해서 보여야 하면 필터 기준을 별도로 분리해야 한다.

@@ -15,7 +15,7 @@ import type { Customer, Invoice } from '@/lib/api'
 import { exportCourierInvoices } from '@/lib/excel'
 import { PRINT_DOCUMENT_OPTIONS, printDuplexViaIframe } from '@/lib/print'
 import type { PrintDocumentType } from '@/lib/print'
-import { getDisplayMemo } from '@/lib/accountingMeta'
+import { getDisplayMemo, getInvoiceCustomerAddressKey } from '@/lib/accountingMeta'
 import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
 
 const PAGE_SIZE = 25
@@ -126,6 +126,7 @@ function resolveInvoiceCustomerSnapshot(
 ): Partial<Invoice> {
   const storedAddress = normalizeSnapshotValue(invoice?.customer_address)
   const storedAddressKey = normalizeSnapshotValue(invoice?.customer_address_key)
+    ?? getInvoiceCustomerAddressKey(typeof invoice?.memo === 'string' ? invoice.memo : undefined)
   const storedPhone = normalizeSnapshotValue(invoice?.customer_phone)
   const storedBizNo = normalizeSnapshotValue(invoice?.customer_bizno)
   const storedCeoName = normalizeSnapshotValue(invoice?.customer_ceo_name)

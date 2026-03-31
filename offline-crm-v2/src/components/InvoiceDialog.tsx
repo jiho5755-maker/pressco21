@@ -40,7 +40,9 @@ import { useDebounce } from '@/hooks/useDebounce'
 import {
   appendCustomerAccountingEvent,
   getDisplayMemo,
+  getInvoiceCustomerAddressKey,
   getInvoiceDepositUsedAmount,
+  parseInvoiceAccountingMeta,
   parseCustomerAccountingMeta,
   serializeInvoiceAccountingMeta,
 } from '@/lib/accountingMeta'
@@ -515,9 +517,11 @@ export function InvoiceDialog({
     }
     setDraftMeta(null)
     if (existingInvoice) {
+      const invoiceMeta = parseInvoiceAccountingMeta(existingInvoice.memo as string | undefined)
       const normalizedExistingInvoice = {
         ...existingInvoice,
         receipt_type: normalizeReceiptType(existingInvoice.receipt_type),
+        customer_address_key: invoiceMeta.customerAddressKey ?? (existingInvoice.customer_address_key as string | undefined),
       }
       if (isCopy) {
         // 복사: 새 번호 + 오늘 날짜, 수금 초기화
@@ -536,7 +540,7 @@ export function InvoiceDialog({
       }
       setCustomerInput(existingInvoice.customer_name ?? '')
       setSelectedCustomer(null)
-      setSelectedAddrKey('address1')
+      setSelectedAddrKey(invoiceMeta.customerAddressKey ?? 'address1')
       setShowCustomerDrop(false)
       setCustomerDropdownIdx(-1)
       setDepositUseAmount(isCopy ? 0 : getInvoiceDepositUsedAmount(existingInvoice.memo as string | undefined))
@@ -562,7 +566,9 @@ export function InvoiceDialog({
     if (!open || !currentCustomer) return
     const nextAddressKey = resolveCustomerAddressKey(
       currentCustomer,
-      (form.customer_address_key as string | undefined) ?? (existingInvoice?.customer_address_key as string | undefined),
+      (form.customer_address_key as string | undefined)
+        ?? (existingInvoice?.customer_address_key as string | undefined)
+        ?? getInvoiceCustomerAddressKey(existingInvoice?.memo as string | undefined),
       (form.customer_address as string | undefined) ?? (existingInvoice?.customer_address as string | undefined),
       selectedAddrKey || 'address1',
     )
@@ -954,6 +960,7 @@ export function InvoiceDialog({
       const customerSnapshot = sourceCustomer ? buildCustomerSnapshot(sourceCustomer, selectedAddrKey) : undefined
       const nextInvoiceMemo = serializeInvoiceAccountingMeta(form.memo as string | undefined, {
         depositUsedAmount: appliedDeposit,
+        customerAddressKey: selectedAddrKey,
       })
       const invoicePayload: Partial<Invoice> = {
         ...form,

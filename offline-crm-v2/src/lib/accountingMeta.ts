@@ -23,6 +23,7 @@ export interface CustomerAccountingMetaState {
 
 export interface InvoiceAccountingMetaState {
   depositUsedAmount: number
+  customerAddressKey?: string
 }
 
 const CUSTOMER_ACCOUNTING_META_PREFIX = '[ACCOUNTING_CUSTOMER_META]'
@@ -274,8 +275,15 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
   try {
     const parsed = JSON.parse(metaLine.slice(INVOICE_ACCOUNTING_META_PREFIX.length).trim()) as {
       depositUsedAmount?: number
+      customerAddressKey?: string
     }
-    return { depositUsedAmount: Math.max(0, parseInteger(parsed.depositUsedAmount)) }
+    const customerAddressKey = typeof parsed.customerAddressKey === 'string' && parsed.customerAddressKey.trim()
+      ? parsed.customerAddressKey.trim()
+      : undefined
+    return {
+      depositUsedAmount: Math.max(0, parseInteger(parsed.depositUsedAmount)),
+      customerAddressKey,
+    }
   } catch {
     return { depositUsedAmount: 0 }
   }
@@ -287,15 +295,23 @@ export function serializeInvoiceAccountingMeta(
 ): string {
   const normalizedMemo = normalizeMemo(memo)
   const lines = stripMetaLine(normalizedMemo, INVOICE_ACCOUNTING_META_PREFIX)
-  if (nextState.depositUsedAmount <= 0) {
+  const customerAddressKey = typeof nextState.customerAddressKey === 'string' && nextState.customerAddressKey.trim()
+    ? nextState.customerAddressKey.trim()
+    : undefined
+  if (nextState.depositUsedAmount <= 0 && !customerAddressKey) {
     return lines.join('\n').trim()
   }
   const metaLine = `${INVOICE_ACCOUNTING_META_PREFIX} ${JSON.stringify({
     depositUsedAmount: Math.max(0, parseInteger(nextState.depositUsedAmount)),
+    customerAddressKey,
   })}`
   return [...lines, metaLine].join('\n').trim()
 }
 
 export function getInvoiceDepositUsedAmount(memo?: string): number {
   return parseInvoiceAccountingMeta(memo).depositUsedAmount
+}
+
+export function getInvoiceCustomerAddressKey(memo?: string): string | undefined {
+  return parseInvoiceAccountingMeta(memo).customerAddressKey
 }

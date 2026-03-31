@@ -83,7 +83,8 @@
   "output": {
     "inventoryPath": "/Users/jangjiho/workspace/pressco21/output/flora-mac-harness/inventory.json",
     "summaryPath": "/Users/jangjiho/workspace/pressco21/output/flora-mac-harness/summary.json",
+    "analysisPath": "/Users/jangjiho/workspace/pressco21/output/flora-mac-harness/analysis.json",
+    "assistantBriefPath": "/Users/jangjiho/workspace/pressco21/output/flora-mac-harness/assistant-brief.md",
     "metaPromptPath": "/Users/jangjiho/workspace/pressco21/output/flora-mac-harness/meta-prompt.md"
   }
 }
-

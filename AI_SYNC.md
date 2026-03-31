@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-03-31 20:21:33 KST
+- Started At: 2026-03-31 20:42:15 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: openclaw-project-hub
@@ -90,6 +90,29 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `openclaw-project-hub` Flora 맥북 코파일럿 하네스를 Phase 2 수준으로 확장해, 인벤토리 기반 `전문 비서 프로파일` 레이어를 추가했다.
+  - 추가/수정
+    - `openclaw-project-hub/06_scripts/analyze-flora-mac-context.py`
+      - 로컬 프로젝트 인벤토리를 회사 운영 패턴, 프로젝트 테마, 우선순위, 추천 비서 역할로 재분류하는 분석기 추가
+      - 산출물: `analysis.json`, `assistant-brief.md`
+    - `openclaw-project-hub/06_scripts/generate-flora-mac-meta-prompt.py`
+      - 분석 산출물을 읽어 전문 비서 모드, 핵심 시스템 우선순위, 회사 맞춤 응답 원칙을 메타 프롬프트에 주입하도록 확장
+    - `openclaw-project-hub/06_scripts/sync-flora-mac-context.sh`
+      - `analysis.json`, `assistant-brief.md` 생성/동기화 추가
+      - `BOOTSTRAP.md`를 최신 `meta-prompt.md`로 동기화하도록 유지
+    - `openclaw-project-hub/07_openclaw_skills/flora-mac-copilot/SKILL.md`
+      - "회사에 맞는 비서", "전문 비서", "대표 활동 패턴" 요청까지 읽도록 확장
+    - `openclaw-project-hub/04_reference_json/flora-mac-harness*.json`
+      - `analysisPath`, `assistantBriefPath` 출력 경로 추가
+    - `openclaw-project-hub/03_openclaw_docs/openclaw-flora-mac-copilot-harness-prd.ko.md`
+      - v1.1로 갱신, Phase 2 전문 비서 프로파일 범위 반영
+  - 서버 반영
+    - `/home/ubuntu/.openclaw/workspace-owner/context/flora-mac-harness/{analysis.json,assistant-brief.md}` 동기화 완료
+    - owner BOOTSTRAP에 전문 비서 모드가 반영된 최신 메타 프롬프트 주입
+  - 검증
+    - `bash 06_scripts/sync-flora-mac-context.sh 04_reference_json/flora-mac-harness.pressco21.json` 성공
+    - `assistant-brief.md`에서 6개 핵심 비서 역할 생성 확인
+    - owner agent 질의 `"우리 회사와 내 활동에 맞는 전문 비서 모드를 정리해줘"` 응답에서 전문 비서 역할 묶음 제안 확인
 - `openclaw-project-hub`에 Flora 맥북 코파일럿 하네스를 추가해, 로컬 맥북 프로젝트 인벤토리/요약/메타프롬프트를 생성하고 서버 `workspace-owner` 컨텍스트로 자동 동기화하는 기본 경로를 구축했다.
   - 추가 파일
     - `openclaw-project-hub/03_openclaw_docs/openclaw-flora-mac-copilot-harness-prd.ko.md`
@@ -730,6 +753,8 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX-LEAD] Flora 전문 비서 6개 모드별 자동 전환 규칙표를 설계하고, 텔레그램 프롬프트 패턴별로 어느 모드를 우선 적용할지 라우팅 정책 문서화`
+- `[CODEX-LEAD] owner 기본 세션 대신 업무 목적별 전용 에이전트(예: storefront / crm / automation / strategy) 분리 여부 검토`
 - `[CODEX-LEAD] Flora 텔레그램 owner 실세션에서 맥북 인벤토리 기반 응답이 과거 메모리와 섞이지 않는지 2~3개 실제 질문으로 확인하고, 필요하면 owner 메모리 정리 또는 전용 로컬 코파일럿 에이전트 분리를 검토`
 - `[CODEX-LEAD] flora-mac-harness 인벤토리 범위를 실제 업무 루트 기준으로 추가 확대할지 결정하고, 필요 시 `recentFilesLimit`·`maxDepth`·루트 목록을 조정`
 - `[CODEX] 운영 CRM에서 명세표/견적서/납품서/청구서 각각 품목 11개 이상 데이터로 인쇄 미리보기를 열어, 문서별 분할 기준대로 페이지가 나뉘고 행 높이가 유지되는지 확인`
@@ -777,6 +802,8 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- 현재 분석 프로파일은 인벤토리 파일명/최근 파일/루트명 기반 휴리스틱이므로, 프로젝트 성격이 미묘하게 바뀌면 분류 규칙도 같이 손봐야 한다.
+- owner 응답은 전문 비서 역할을 제안할 수 있는 수준까지 올라왔지만, 여전히 기존 메모리 문서를 함께 참조하는 경향이 있다. 전문 비서 모드의 일관성을 더 높이려면 라우팅 규칙이나 전용 에이전트 분리가 다음 단계다.
 - `owner` 장기 세션 메모리가 강해서, 현재는 새로 주입한 맥북 인벤토리/BOOTSTRAP 규칙이 있어도 과거 로컬 프로젝트 정보를 일부 섞어 답할 수 있다. 텔레그램 실세션에서 한두 번 더 확인하고 필요하면 세션/메모리 정리나 전용 에이전트 분리가 필요하다.
 - 현재 Flora 맥북 코파일럿 인벤토리는 `pressco21` 업무 루트 위주 7개 프로젝트만 포함한다. 맥북 전체 자산을 대표하는 것은 아니며, 범위 밖 프로젝트는 동기화 대상 확대 전까지 근거 부족 상태다.
 - 로컬 Vite + Playwright 샘플 데이터 기준 브라우저 렌더는 확인했지만, 실제 운영 데이터에서 품목명 길이가 매우 긴 케이스나 메모가 긴 견적서까지 모두 확인한 것은 아니다.

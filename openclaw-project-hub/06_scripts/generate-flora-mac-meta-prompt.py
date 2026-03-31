@@ -17,11 +17,14 @@ def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--inventory", required=True)
     parser.add_argument("--summary", required=True)
+    parser.add_argument("--analysis")
+    parser.add_argument("--assistant-brief")
     parser.add_argument("--output", required=True)
     args = parser.parse_args()
 
     inventory = load_json(Path(args.inventory).expanduser().resolve())
     summary = load_json(Path(args.summary).expanduser().resolve())
+    analysis = load_json(Path(args.analysis).expanduser().resolve()) if args.analysis else None
     output = Path(args.output).expanduser().resolve()
     output.parent.mkdir(parents=True, exist_ok=True)
 
@@ -36,6 +39,8 @@ def main() -> int:
     lines.append("`inventory.json`에 있는 `/Users/...` 경로는 설명용 메타데이터이며, 서버에서 직접 열 수 있는 파일 경로가 아니다.")
     lines.append("따라서 listed path의 README, package.json, 하위 파일을 직접 읽으려 하지 말고 동기화된 inventory/summary/meta-prompt만 근거로 사용한다.")
     lines.append("현재 스냅샷에 없는 다른 맥북 프로젝트 이름이나 과거 기억을 답변에 섞지 말고, 오직 이 인벤토리 범위 안에서만 답한다.")
+    if args.assistant_brief:
+        lines.append("추가로 `assistant-brief.md`의 전문 비서 역할 정의를 우선 반영한다.")
     lines.append("")
     lines.append("## 현재 인벤토리 요약")
     lines.append(f"- 프로젝트 수: {summary.get('projectCount', 0)}")
@@ -49,12 +54,26 @@ def main() -> int:
         lines.append(f"- 스택 분포: {stacks_text}")
     lines.append(f"- 위험 플래그 프로젝트 수: {summary.get('projectsWithRiskFlags', 0)}")
     lines.append("")
+    if analysis:
+        company_profile = analysis.get("companyProfile", {})
+        lines.append("## 전문 비서 모드")
+        lines.append(f"- 운영 패턴: {company_profile.get('operatingPattern', '미정')}")
+        for role in company_profile.get("recommendedAssistantRoles", [])[:5]:
+            lines.append(f"- 역할: {role.get('name')} ({role.get('priority')}) - {role.get('reason')}")
+        lines.append("")
+        lines.append("## 핵심 시스템 우선순위")
+        for item in analysis.get("insights", {}).get("coreProjects", [])[:5]:
+            lines.append(
+                f"- {item.get('name')} | theme={item.get('theme')} | priority={item.get('priorityScore')}"
+            )
+        lines.append("")
     lines.append("## 응답 원칙")
     lines.append("1. 먼저 인벤토리에서 관련 프로젝트를 특정한다.")
     lines.append("2. 프로젝트 목적, 스택, 최근 흔적, 연관 문서를 짧게 요약한다.")
-    lines.append("3. 중복 시스템, 병목, 미완성 흔적, 다음 우선순위를 제안한다.")
-    lines.append("4. 로그인 필요한 관리자 시스템은 직접 비밀번호를 요구하지 말고 세션 유지 방식이나 캡처 기반 분석으로 유도한다.")
-    lines.append("5. 인벤토리에 없는 정보는 없다고 말하고 추가 동기화 범위를 제안한다.")
+    lines.append("3. 회사 운영 영향도, 대표 활동 패턴, 자동화 기회까지 함께 제안한다.")
+    lines.append("4. 중복 시스템, 병목, 미완성 흔적, 다음 우선순위를 제안한다.")
+    lines.append("5. 로그인 필요한 관리자 시스템은 직접 비밀번호를 요구하지 말고 세션 유지 방식이나 캡처 기반 분석으로 유도한다.")
+    lines.append("6. 인벤토리에 없는 정보는 없다고 말하고 추가 동기화 범위를 제안한다.")
     lines.append("")
     lines.append("## 대표 프로젝트 샘플")
     for project in top_projects:
@@ -70,6 +89,7 @@ def main() -> int:
     lines.append("- 중복 시스템과 통합 우선순위 제안")
     lines.append("- 개발/운영 자동화 후보 정리")
     lines.append("- 문서화가 부족한 프로젝트의 PRD 초안 작성")
+    lines.append("- 대표 업무 패턴에 맞춘 전문 비서 역할 추천")
     lines.append("")
     lines.append("## 금지")
     lines.append("- 개인 파일, 인증서, 키체인, 비밀키를 보라고 유도하지 말 것")

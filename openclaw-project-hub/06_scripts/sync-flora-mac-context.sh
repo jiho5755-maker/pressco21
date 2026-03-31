@@ -36,6 +36,26 @@ print(Path(config["output"]["summaryPath"]).expanduser().resolve())
 PY
 )"
 
+ANALYSIS_PATH="$(python3 - <<'PY' "$CONFIG_PATH"
+import json, sys
+from pathlib import Path
+config_path = Path(sys.argv[1]).expanduser().resolve()
+with config_path.open() as handle:
+    config = json.load(handle)
+print(Path(config["output"].get("analysisPath", "./output/flora-mac-harness/analysis.json")).expanduser().resolve())
+PY
+)"
+
+ASSISTANT_BRIEF_PATH="$(python3 - <<'PY' "$CONFIG_PATH"
+import json, sys
+from pathlib import Path
+config_path = Path(sys.argv[1]).expanduser().resolve()
+with config_path.open() as handle:
+    config = json.load(handle)
+print(Path(config["output"].get("assistantBriefPath", "./output/flora-mac-harness/assistant-brief.md")).expanduser().resolve())
+PY
+)"
+
 META_PROMPT_PATH="$(python3 - <<'PY' "$CONFIG_PATH"
 import json, sys
 from pathlib import Path
@@ -46,9 +66,17 @@ print(Path(config["output"].get("metaPromptPath", "./output/flora-mac-harness/me
 PY
 )"
 
+python3 "$SCRIPT_DIR/analyze-flora-mac-context.py" \
+  --inventory "$INVENTORY_PATH" \
+  --summary "$SUMMARY_PATH" \
+  --analysis-output "$ANALYSIS_PATH" \
+  --brief-output "$ASSISTANT_BRIEF_PATH"
+
 python3 "$SCRIPT_DIR/generate-flora-mac-meta-prompt.py" \
   --inventory "$INVENTORY_PATH" \
   --summary "$SUMMARY_PATH" \
+  --analysis "$ANALYSIS_PATH" \
+  --assistant-brief "$ASSISTANT_BRIEF_PATH" \
   --output "$META_PROMPT_PATH"
 
 BOOTSTRAP_SOURCE="${BOOTSTRAP_SOURCE:-$META_PROMPT_PATH}"
@@ -56,6 +84,8 @@ BOOTSTRAP_SOURCE="${BOOTSTRAP_SOURCE:-$META_PROMPT_PATH}"
 ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$SERVER" "mkdir -p '$REMOTE_DIR' '$REMOTE_SKILL_DIR'"
 scp -i "$SSH_KEY" -o ConnectTimeout=10 "$INVENTORY_PATH" "$SERVER:$REMOTE_DIR/inventory.json"
 scp -i "$SSH_KEY" -o ConnectTimeout=10 "$SUMMARY_PATH" "$SERVER:$REMOTE_DIR/summary.json"
+scp -i "$SSH_KEY" -o ConnectTimeout=10 "$ANALYSIS_PATH" "$SERVER:$REMOTE_DIR/analysis.json"
+scp -i "$SSH_KEY" -o ConnectTimeout=10 "$ASSISTANT_BRIEF_PATH" "$SERVER:$REMOTE_DIR/assistant-brief.md"
 scp -i "$SSH_KEY" -o ConnectTimeout=10 "$META_PROMPT_PATH" "$SERVER:$REMOTE_DIR/meta-prompt.md"
 scp -i "$SSH_KEY" -o ConnectTimeout=10 "$SKILL_SOURCE" "$SERVER:$REMOTE_SKILL_DIR/SKILL.md"
 scp -i "$SSH_KEY" -o ConnectTimeout=10 "$BOOTSTRAP_SOURCE" "$SERVER:$REMOTE_BOOTSTRAP_PATH"
@@ -63,6 +93,8 @@ scp -i "$SSH_KEY" -o ConnectTimeout=10 "$BOOTSTRAP_SOURCE" "$SERVER:$REMOTE_BOOT
 echo "Synced:"
 echo "  - $INVENTORY_PATH -> $REMOTE_DIR/inventory.json"
 echo "  - $SUMMARY_PATH -> $REMOTE_DIR/summary.json"
+echo "  - $ANALYSIS_PATH -> $REMOTE_DIR/analysis.json"
+echo "  - $ASSISTANT_BRIEF_PATH -> $REMOTE_DIR/assistant-brief.md"
 echo "  - $META_PROMPT_PATH -> $REMOTE_DIR/meta-prompt.md"
 echo "  - $SKILL_SOURCE -> $REMOTE_SKILL_DIR/SKILL.md"
 echo "  - $BOOTSTRAP_SOURCE -> $REMOTE_BOOTSTRAP_PATH"

@@ -46,7 +46,8 @@
   "output": {
     "inventoryPath": "./output/flora-mac-harness/inventory.json",
     "summaryPath": "./output/flora-mac-harness/summary.json",
+    "analysisPath": "./output/flora-mac-harness/analysis.json",
+    "assistantBriefPath": "./output/flora-mac-harness/assistant-brief.md",
     "metaPromptPath": "./output/flora-mac-harness/meta-prompt.md"
   }
 }
-

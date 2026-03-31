@@ -90,6 +90,33 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `openclaw-project-hub` Flora 텔레그램 프론트도어를 `owner`에서 `flora-frontdoor`로 분리하고, 실제 라우팅 검증까지 완료했다.
+  - 추가/수정
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+      - `flora-frontdoor` 에이전트를 새로 만들고, owner의 운영 파일 중 필요한 최소 파일만 복제한 뒤 텔레그램 바인딩을 `flora-frontdoor`로 전환하는 설치 스크립트를 추가했다.
+      - `memory/`와 기존 owner 세션 흔적은 복제하지 않도록 정리해 새 frontdoor 세션을 깨끗하게 분리했다.
+    - `openclaw-project-hub/06_scripts/validate-flora-routing.sh`
+      - frontdoor 라우팅 질문 세트 6개를 자동 실행하고 `첫 문장 관점`, `memoryBleed`를 검사하는 검증 스크립트를 추가했다.
+    - `openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json`
+      - frontdoor agent를 `flora-frontdoor`로 변경하고, 각 모드별 `openingLead` 문구를 추가했다.
+    - `openclaw-project-hub/06_scripts/generate-flora-mac-meta-prompt.py`
+      - 메타 프롬프트에 frontdoor agent와 모드별 opening lead를 포함하고, 답변 첫 문장이 선택한 관점을 드러내도록 규칙을 강화했다.
+    - `openclaw-project-hub/07_openclaw_skills/flora-specialist-router/SKILL.md`
+      - 라우터 스킬이 첫 문장을 모드 관점 문구로 시작하도록 명문화했다.
+    - `openclaw-project-hub/07_openclaw_skills/flora-mac-copilot/SKILL.md`
+      - owner/frontdoor 응답이 첫 문장에서 전문 관점을 드러내도록 갱신했다.
+    - `openclaw-project-hub/03_openclaw_docs/flora-specialist-routing-policy.ko.md`
+      - frontdoor 구조를 `flora-frontdoor + specialists` 기준으로 갱신하고 설치/검증 스크립트 경로를 문서화했다.
+    - `openclaw-project-hub/03_openclaw_docs/flora-owner-routing-validation.ko.md`
+      - frontdoor 검증 기준, 실행 방법, 최신 6/6 PASS 결과를 문서화했다.
+  - 서버 반영
+    - `bash openclaw-project-hub/06_scripts/sync-flora-mac-context.sh openclaw-project-hub/04_reference_json/flora-mac-harness.pressco21.json` 재실행
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh` 실행으로 `flora-frontdoor` 설치 완료
+    - 텔레그램 route binding이 `owner`에서 `flora-frontdoor`로 전환됨
+  - 검증
+    - `bash openclaw-project-hub/06_scripts/validate-flora-routing.sh`
+    - 결과: `storefront / crm / automation / strategy / knowledge / executive` 6개 케이스 모두 `PASS`
+    - 리포트: `output/flora-routing-validation/owner-routing-validation-20260331_212701.md`
 - `openclaw-project-hub` Flora 전문 비서 자동 전환 규칙과 specialist agent 분리 구성을 추가했다.
   - 추가/수정
     - `openclaw-project-hub/03_openclaw_docs/flora-specialist-routing-policy.ko.md`
@@ -115,12 +142,13 @@
     - `bash openclaw-project-hub/06_scripts/install-flora-specialist-agents.sh openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json` 성공
     - 서버 `openclaw skills list`에서 `flora-mac-copilot`, `flora-specialist-router` ready 확인
     - `flora-crm` 직접 호출 테스트로 CRM 전용 답변이 specialist workspace 기준으로 생성되는 것 확인
-- **메이크샵 오픈 API 공식 문서 학습 & 스킬 고도화 (2026-03-31)**
-  - 공식 문서(openapi.makeshop.co.kr/docs) 130+ 엔드포인트 직접 검증
-  - open-api.md 고도화 (704→870줄): 에러코드 15개 보충, basket_status 40개 전수, 2025~2026 신규 필드
-  - 기획전 CRUD API(2026-02 신규), SMS 수신 동의 수정 API 추가
-  - PRESSCO21 실전 n8n 패턴 5개 (강사등급/리뷰수집/쿠폰자동지급/CS수집/호출제한관리)
-  - SKILL.md API 빠른 참조 테이블 추가
+- **메이크샵 스킬 전면 감사 & 고도화 (2026-03-31)**
+  - 오픈 API: open-api.md 704→870줄 (에러코드 15개, 2025~2026 필드, n8n 패턴 5개)
+  - 스킬 42개 파일 14,800줄 감사 → 중복 제거, 커버리지 보강, 인덱스 추가
+  - VTag INDEX.md 신규 (편집기 실측 main:575, header:98, footer:33, order:326)
+  - main.md 362→489줄, footer.md 37→60줄, makeshop-js-api.md 146→222줄
+  - constraints↔editor-errors SOT 확립, design-tokens↔brand-decisions 상호참조
+  - deprecated extract-codemirror.js 삭제
 - (이전) **메이크샵 관리자 페이지 전면 분석 & 스킬 고도화 (2026-03-31)**
   - 관리자 메뉴 13개 섹션 분석: 디자인/프로모션/쿠폰/기획전/이벤트/게시판/카카오알림톡/회원그룹/통계/CRM/마케팅/배송/결제
   - 메모리 2개 신규: `makeshop-admin-editor-guide.md`(397줄), `makeshop-promotion-guide.md`(397줄)
@@ -790,8 +818,8 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
-- `[CODEX-LEAD] Flora 텔레그램 owner 실세션에서 2~3개 실제 질문으로 전문 모드 선택이 기대대로 보이는지 확인하고, 응답 첫 문단에 선택 모드가 자연스럽게 반영되는지 검증`
-- `[CODEX-LEAD] owner가 specialist를 내부적으로 호출하거나 응답 내부에서 handoff를 명시하는 방식 중 어떤 라우팅 UX가 더 안정적인지 비교하고 한 가지로 고정`
+- `[CODEX-LEAD] 실제 텔레그램에서 flora-frontdoor에게 2~3개 실질문을 보내 사용감 기준으로 첫 문장/전문 관점/응답 길이가 기대와 맞는지 최종 확인`
+- `[CODEX-LEAD] flora-frontdoor가 specialist를 내부적으로 호출하는 방식과, frontdoor가 specialist 관점만 흉내 내는 방식 중 어떤 UX가 더 안정적인지 비교하고 하나로 고정`
 - `[CODEX-LEAD] specialist별 추가 컨텍스트(예: CRM 운영 규칙, 메이크샵 실무 메모, n8n 운영 체크리스트)를 분리 주입할지 결정하고, 필요하면 각 workspace 전용 스킬/BOOTSTRAP를 더 세분화`
 - `[CODEX-LEAD] flora-mac-harness 인벤토리 범위를 실제 업무 루트 기준으로 추가 확대할지 결정하고, 필요 시 `recentFilesLimit`·`maxDepth`·루트 목록을 조정`
 - `[CODEX] 운영 CRM에서 명세표/견적서/납품서/청구서 각각 품목 11개 이상 데이터로 인쇄 미리보기를 열어, 문서별 분할 기준대로 페이지가 나뉘고 행 높이가 유지되는지 확인`
@@ -839,8 +867,11 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
-- Flora 텔레그램 프론트도어는 아직 `owner` 단일 세션이다. specialist agent는 설치됐지만, 실제 텔레그램 응답이 완전 자동 handoff처럼 보이게 만드는 라우팅 UX 검증은 남아 있다.
-- `owner` 장기 메모리가 강하게 남아 있어, 맥북 인벤토리 기반 응답에 과거 메모리 표현이 일부 섞일 수 있다. 필요하면 owner 메모리 정리 또는 frontdoor 분리를 검토해야 한다.
+- 텔레그램 프론트도어는 이제 `flora-frontdoor`로 전환됐지만, 사용자가 실제 텔레그램에서 체감하는 답변 길이/톤/전문성은 아직 실사용 확인이 한 번 더 필요하다.
+- 기존 `owner`는 백업으로 남아 있다. 현재 텔레그램 route는 빠졌지만, 운영 중 혼선이 생기지 않게 `owner`와 `flora-frontdoor` 역할을 계속 분리해서 관리해야 한다.
+- 현재 frontdoor는 specialist 관점을 잘 드러내지만, 아직 실제 internal handoff를 하는 구조는 아니다. 필요하면 다음 단계에서 frontdoor -> specialist 실행 흐름을 붙여야 한다.
+- specialist agent는 설치돼 있고 frontdoor도 분리됐지만, 실제 텔레그램 응답을 완전한 자동 handoff처럼 보이게 만드는 라우팅 UX는 아직 다음 단계다.
+- `owner` 장기 메모리는 이제 텔레그램 frontdoor와 분리됐지만, 운영 확인이나 수동 호출 시 예전 문맥이 남아 있을 수 있다. 백업 에이전트로만 다루는 편이 안전하다.
 - specialist bootstrap은 현재 공통 `flora-mac-harness` 컨텍스트 스키마에 의존한다. 컨텍스트 파일명/구조가 바뀌면 installer와 specialist workspace를 같이 갱신해야 한다.
 - 현재 분석 프로파일은 인벤토리 파일명/최근 파일/루트명 기반 휴리스틱이므로, 프로젝트 성격이 미묘하게 바뀌면 분류 규칙도 같이 손봐야 한다.
 - owner 응답은 전문 비서 역할을 제안할 수 있는 수준까지 올라왔지만, 여전히 기존 메모리 문서를 함께 참조하는 경향이 있다. 전문 비서 모드의 일관성을 더 높이려면 라우팅 규칙이나 전용 에이전트 분리가 다음 단계다.

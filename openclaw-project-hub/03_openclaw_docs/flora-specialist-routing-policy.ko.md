@@ -3,12 +3,12 @@
 ## 목적
 
 플로라를 단일 `owner` 세션에 모든 문맥을 몰아넣는 구조에서 벗어나,
-`프론트도어 owner + specialist agent` 구조로 운영하기 위한 자동 전환 기준이다.
+`프론트도어 flora-frontdoor + specialist agent` 구조로 운영하기 위한 자동 전환 기준이다.
 
 ## 기본 원칙
 
-1. 텔레그램 DM은 계속 `owner`가 받는다.
-2. `owner`는 첫 응답 전에 요청을 전문 모드로 분류한다.
+1. 텔레그램 DM은 `flora-frontdoor`가 받는다.
+2. `flora-frontdoor`는 첫 응답 전에 요청을 전문 모드로 분류한다.
 3. 단일 도메인 심화 작업은 해당 specialist agent 관점으로 답하거나 내부적으로 그 모드로 전환한다.
 4. 여러 시스템을 묶는 요청은 `executive-orchestrator` 모드가 총괄한다.
 5. 비밀번호, OTP, 키 업로드를 유도하지 않는다.
@@ -53,10 +53,11 @@
 3. 관련 프로젝트/문서/시스템을 2~3개만 우선 연결한다.
 4. 다음 액션을 1~3개 제안한다.
 
-## owner 역할
+## frontdoor 역할
 
-- `owner`는 계속 텔레그램 프론트도어다.
-- `owner`는 직접 모든 세부 답변을 길게 하기보다 적절한 전문 모드로 시점을 맞추는 오케스트레이터 역할을 한다.
+- `flora-frontdoor`는 텔레그램 프론트도어다.
+- `flora-frontdoor`는 직접 모든 세부 답변을 길게 하기보다 적절한 전문 모드로 시점을 맞추는 오케스트레이터 역할을 한다.
+- 기존 `owner`는 백업/운영 확인용으로 남겨두고, 텔레그램 직접 바인딩은 기본적으로 `flora-frontdoor`에 둔다.
 
 ## specialist agent 역할
 
@@ -69,5 +70,8 @@
 
 ## 운영 메모
 
-- 초기에는 텔레그램 라우팅을 `owner` 하나로 유지하고, specialist는 내부 호출/직접 호출 대상 에이전트로 둔다.
+- frontdoor 설치/갱신은 `bash 06_scripts/install-flora-frontdoor-agent.sh`로 수행한다.
+- 검증은 `bash 06_scripts/validate-flora-routing.sh`로 수행한다.
+- `flora-frontdoor`는 새 세션을 기준으로 specialist 라우팅에 집중하고, 기존 `owner` 장기 메모리와 분리한다.
+- specialist는 내부 호출/직접 호출 대상 에이전트로 둔다.
 - 이후 OpenClaw 라우팅 훅이 안정되면 키워드/세션별 자동 handoff까지 확장할 수 있다.

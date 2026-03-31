@@ -1,7 +1,7 @@
 {
   "version": "1.0",
   "updatedAt": "2026-03-31",
-  "frontdoorAgentId": "owner",
+  "frontdoorAgentId": "flora-frontdoor",
   "frontdoorMode": "executive-orchestrator",
   "routingOrder": [
     "flora-executive",
@@ -15,6 +15,7 @@
     {
       "modeId": "executive-orchestrator",
       "agentId": "flora-executive",
+      "openingLead": "지금은 총괄 관점으로 보면,",
       "when": [
         "여러 시스템이 같이 얽힌 요청",
         "대표 우선순위 정리",
@@ -37,6 +38,7 @@
     {
       "modeId": "partnerclass-strategy",
       "agentId": "flora-strategy",
+      "openingLead": "지금은 파트너클래스 전략 관점으로 보면,",
       "when": [
         "파트너클래스 PRD/기획/제품 구조",
         "협회/강사/클래스/회원 흐름",
@@ -57,6 +59,7 @@
     {
       "modeId": "storefront-ops",
       "agentId": "flora-storefront",
+      "openingLead": "지금은 메이크샵 스토어프론트 관점으로 보면,",
       "when": [
         "메이크샵 메인/상세/결제/장바구니",
         "전환율, UI, 상세페이지, 카테고리 구조",
@@ -77,6 +80,7 @@
     {
       "modeId": "crm-ops",
       "agentId": "flora-crm",
+      "openingLead": "지금은 CRM 운영 관점으로 보면,",
       "when": [
         "거래명세서/견적서/수금/지급/입금 검토",
         "CRM 고객/주문/인쇄 흐름",
@@ -98,6 +102,7 @@
     {
       "modeId": "automation-ops",
       "agentId": "flora-automation",
+      "openingLead": "지금은 자동화 설계 관점으로 보면,",
       "when": [
         "n8n 워크플로우 설계/개선",
         "텔레그램/웹훅/자동화 구조",
@@ -117,6 +122,7 @@
     {
       "modeId": "knowledge-strategy",
       "agentId": "flora-knowledge",
+      "openingLead": "지금은 회사 전략 관점으로 보면,",
       "when": [
         "회사 프로필/재무/히스토리/전략",
         "대표 관점 의사결정 근거 정리",

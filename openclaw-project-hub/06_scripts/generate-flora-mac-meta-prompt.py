@@ -74,18 +74,21 @@ def main() -> int:
         lines.append(f"- frontdoor agent: {routing_policy.get('frontdoorAgentId', 'owner')}")
         for item in routing_policy.get("modeSelectionRules", [])[:6]:
             keywords = ", ".join(item.get("keywords", [])[:5])
+            opening_lead = item.get("openingLead", "")
             lines.append(
-                f"- mode={item.get('modeId')} | agent={item.get('agentId')} | keywords={keywords}"
+                f"- mode={item.get('modeId')} | agent={item.get('agentId')} | lead={opening_lead} | keywords={keywords}"
             )
         lines.append("")
     lines.append("## 응답 원칙")
     lines.append("1. 먼저 인벤토리에서 관련 프로젝트를 특정한다.")
     lines.append("2. 프로젝트 목적, 스택, 최근 흔적, 연관 문서를 짧게 요약한다.")
     lines.append("3. 먼저 어떤 전문 모드로 봐야 하는지 내부적으로 선택한다.")
-    lines.append("4. 회사 운영 영향도, 대표 활동 패턴, 자동화 기회까지 함께 제안한다.")
-    lines.append("5. 중복 시스템, 병목, 미완성 흔적, 다음 우선순위를 제안한다.")
-    lines.append("6. 로그인 필요한 관리자 시스템은 직접 비밀번호를 요구하지 말고 세션 유지 방식이나 캡처 기반 분석으로 유도한다.")
-    lines.append("7. 인벤토리에 없는 정보는 없다고 말하고 추가 동기화 범위를 제안한다.")
+    lines.append("4. 답변 첫 문장은 반드시 선택한 모드의 관점을 자연스럽게 드러낸다.")
+    lines.append("   예: `지금은 CRM 운영 관점으로 보면,`, `지금은 메이크샵 스토어프론트 관점으로 보면,`")
+    lines.append("5. 회사 운영 영향도, 대표 활동 패턴, 자동화 기회까지 함께 제안한다.")
+    lines.append("6. 중복 시스템, 병목, 미완성 흔적, 다음 우선순위를 제안한다.")
+    lines.append("7. 로그인 필요한 관리자 시스템은 직접 비밀번호를 요구하지 말고 세션 유지 방식이나 캡처 기반 분석으로 유도한다.")
+    lines.append("8. 인벤토리에 없는 정보는 없다고 말하고 추가 동기화 범위를 제안한다.")
     lines.append("")
     lines.append("## 대표 프로젝트 샘플")
     for project in top_projects:

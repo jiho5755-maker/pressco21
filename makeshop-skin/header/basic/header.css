@@ -538,7 +538,7 @@ aside .navCommunity {display:none;}
     }
 
     #header .nav-wrap .nav > li:hover > a, #header .nav-wrap .nav > li.active > a, #header .nav-wrap .sub-menu-wrap li > a:hover {
-        color: #637561 !important;
+        color: #e5eae3 !important;
     }
 
     #header .nav-wrap .nav > li:hover a + .sub-menu-wrap {
@@ -774,7 +774,7 @@ aside .navCommunity {display:none;}
 
   /* 기본 상단바 */
   #header .nav-wrap {
-    background: #637561 !important;
+    background: #e5eae3 !important;
   }
 
   /* 스크롤 fixed 상태에서도 같은 색 유지 (현재 #FFFFFF 덮어쓰기) */
@@ -782,7 +782,7 @@ aside .navCommunity {display:none;}
     background: #fff !important;
 }
   #header.fixed .nav-wrap .nav > li.active > a {
-    color: #637561 !important; /* <- 원하는 글자색으로 변경 */
+    color: #e5eae3 !important; /* <- 원하는 글자색으로 변경 */
   
 }
   
@@ -790,13 +790,13 @@ aside .navCommunity {display:none;}
 
 
 /* =========================
-   MOBILE: 상단바 색상을 PC와 동일하게 (#637561)
+   MOBILE: 상단바 색상을 PC와 동일하게 (#e5eae3)
    ========================= */
 @media (max-width: 767px) {
 
   /* 모바일 기본 상단바 (스크롤 전) */
   #header .nav-wrap {
-    background: #637561 !important;
+    background: #e5eae3 !important;
   }
 
   /* 모바일 fixed 상태(스크롤 후) - PC처럼 흰색 유지 */
@@ -806,12 +806,12 @@ aside .navCommunity {display:none;}
 
   /* 모바일 메뉴 팝업 상단바도 동일 색상 */
   .menu-popup-wrap .top-wrap {
-    background: #637561 !important;
+    background: #e5eae3 !important;
   }
 
   /* (선택) 팝업 내부에서 상단 색 묶음도 통일하고 싶으면 */
   .menu-popup-wrap .mypage-wrap,
   .menu-popup-wrap .footer-wrap {
-    background: #637561 !important;
+    background: #e5eae3 !important;
   }
 }

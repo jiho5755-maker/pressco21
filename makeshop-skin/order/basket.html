@@ -167,31 +167,24 @@
                 <!--/end_block/-->
                 <!--/end_if/-->
             </div>
-            <div class="cart-pay--btns order-btn">
-                <!--/if_link_giveapresent/--><a href="<!--/link_giveapresent/-->" class="btn btn-gray btn-lg btn-gift">선물하기</a><!--/end_if/-->
-                <a href="<!--/link_order/-->" class="btn btn-primary btn-lg btn-pay">주문하기</a>
+            <!-- 구매 버튼 그리드 (상세페이지 스타일) -->
+            <div class="cart-purchase-grid">
+                <a href="<!--/link_order/-->" class="btn-cart-purchase btn-cart-order"><span>구매하기</span></a>
+                <!--/if_btn_kakaopay/-->
+                <div class="btn-cart-purchase btn-cart-kakao"><!--/btn_kakaopay/--></div>
+                <!--/end_if/-->
+                <!--/if_btn_nhn/-->
+                <div class="btn-cart-purchase btn-cart-naver"><!--/btn_nhn/--></div>
+                <!--/end_if/-->
             </div>
-            <!-- 간편결제 -->
-            <div class="cart-quickpay">
-            <!--/if_btn_shoppay/-->
-                <!--/btn_shoppay/-->
-            <!--/end_if/-->
-            <!--/if_btn_kakaopay/-->
-                <!--/btn_kakaopay/-->
-            <!--/end_if/-->
-            <!--/if_btn_payco/-->
-                <!--/btn_payco/-->
-            <!--/end_if/-->
-            <!--/if_btn_nhn/-->
-                <div class="naver-checkout"><!--/btn_nhn/--></div>
-            <!--/end_if/-->
-            <!--/if_btn_app/-->
-                <div id="content">
-                <!--/btn_app/-->
-                </div>
-            <!--/end_if/-->
+            <!-- 기타 간편결제 (숨김 처리) -->
+            <div class="cart-quickpay-hidden">
+            <!--/if_btn_shoppay/--><!--/btn_shoppay/--><!--/end_if/-->
+            <!--/if_btn_payco/--><!--/btn_payco/--><!--/end_if/-->
+            <!--/if_btn_app/--><div id="content"><!--/btn_app/--></div><!--/end_if/-->
+            <!--/if_link_giveapresent/--><a href="<!--/link_giveapresent/-->" class="btn btn-gray btn-lg btn-gift">선물하기</a><!--/end_if/-->
             </div>
-            <!-- //간편결제 -->
+            <!-- //구매 버튼 -->
         </div><!-- .cart-pay -->
     </div><!-- .cw-cart -->
 

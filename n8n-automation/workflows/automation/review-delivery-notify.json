@@ -1,0 +1,214 @@
+{
+  "name": "WF-A: 배송 완료 알림톡 (알리고)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 18 * * *"
+            }
+          ]
+        }
+      },
+      "id": "a1000001-0001-4000-8000-000000000001",
+      "name": "매일 18:30 실행",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "order" },
+            { "name": "ver", "value": "2" },
+            { "name": "InquiryTimeFrom", "value": "={{ $now.minus({days:7}).toFormat('yyyy-MM-dd') }} 00:00:00" },
+            { "name": "InquiryTimeTo", "value": "={{ $now.toFormat('yyyy-MM-dd') }} 23:59:59" },
+            { "name": "orderStatus[]", "value": "Y" },
+            { "name": "limit", "value": "500" },
+            { "name": "fields", "value": "ordernum,order_date,sender,phone,userid,basket" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "a1000001-0001-4000-8000-000000000002",
+      "name": "배송완료 주문 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://nocodb.pressco21.com/api/v2/tables/' + $env.NOCODB_TABLE_REVIEW_NOTIFICATION + '/records' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(notification_type,eq,DELIVERY)" },
+            { "name": "limit", "value": "1000" },
+            { "name": "fields", "value": "order_id" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-auth", "value": "={{ $env.NOCODB_TOKEN }}" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "a1000001-0001-4000-8000-000000000003",
+      "name": "NocoDB 기발송 목록",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "const orderData = $('배송완료 주문 조회').first().json;\nconst sentData = $('NocoDB 기발송 목록').first().json;\n\n// 주문 목록 파싱\nconst orders = orderData.list || {};\nconst orderList = Array.isArray(orders) ? orders : Object.values(orders);\n\nif (orderList.length === 0) {\n  return [{ json: { empty: true, message: '배송완료 주문 없음' } }];\n}\n\n// 기발송 주문번호 Set\nconst sentIds = new Set();\nconst rows = sentData.list || [];\nfor (const row of rows) {\n  if (row.order_id) sentIds.add(row.order_id);\n}\n\n// 미발송 주문 필터\nconst results = [];\nfor (const entry of orderList) {\n  const order = entry.order || entry;\n  const ordernum = order.ordernum;\n  if (!ordernum || sentIds.has(ordernum)) continue;\n\n  const phone = (order.phone || '').trim();\n  if (!phone || phone.length < 10) continue;\n\n  // 상품명 추출 (첫번째 상품)\n  let productName = '주문 상품';\n  const products = entry.product || entry.basket || {};\n  const prodList = Array.isArray(products) ? products : Object.values(products);\n  if (prodList.length > 0) {\n    const first = prodList[0];\n    productName = first.product_name || first.brandname || '주문 상품';\n    if (prodList.length > 1) productName += ' 외 ' + (prodList.length - 1) + '건';\n  }\n\n  results.push({\n    json: {\n      order_id: ordernum,\n      customer_name: order.sender || '고객',\n      customer_phone: phone,\n      product_name: productName,\n      order_date: order.order_date\n    }\n  });\n}\n\nreturn results.length > 0 ? results : [{ json: { empty: true, message: '신규 발송 대상 없음' } }];"
+      },
+      "id": "a1000001-0001-4000-8000-000000000004",
+      "name": "미발송 주문 필터",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 100]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-empty",
+              "leftValue": "={{ $json.empty }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "notTrue" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "a1000001-0001-4000-8000-000000000005",
+      "name": "대상 있는지 체크",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [700, 100]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://kakaoapi.aligo.in/akv10/alimtalk/send/",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.ALIGO_API_KEY }}" },
+            { "name": "userid", "value": "={{ $env.ALIGO_USER_ID }}" },
+            { "name": "senderkey", "value": "={{ $env.ALIGO_SENDER_KEY }}" },
+            { "name": "tpl_code", "value": "={{ $env.ALIGO_TPL_DELIVERY }}" },
+            { "name": "sender", "value": "={{ $env.ALIGO_SENDER_PHONE }}" },
+            { "name": "receiver_1", "value": "={{ $json.customer_phone }}" },
+            { "name": "subject_1", "value": "배송 완료 안내" },
+            { "name": "message_1", "value": "={{ '[프레스코21] ' + $json.customer_name + '님, 주문하신 상품이 발송되었습니다.\\n\\n■ 주문번호: ' + $json.order_id + '\\n■ 상품: ' + $json.product_name + '\\n\\n' + $json.customer_name + '님의 소중한 후기를 기다립니다!\\n- 포토 후기: 500원 적립금\\n- 텍스트 후기: 200원 적립금\\n\\n감사합니다.' }}" },
+            { "name": "failover", "value": "Y" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "a1000001-0001-4000-8000-000000000006",
+      "name": "알리고 배송 알림톡",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [940, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://nocodb.pressco21.com/api/v2/tables/' + $env.NOCODB_TABLE_REVIEW_NOTIFICATION + '/records' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-auth", "value": "={{ $env.NOCODB_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({\n  order_id: $json.order_id,\n  customer_name: $json.customer_name,\n  customer_phone: $json.customer_phone,\n  notification_type: 'DELIVERY',\n  status: 'SUCCESS',\n  channel: 'ALIMTALK',\n  sent_at: $now.toISO()\n}) }}",
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "a1000001-0001-4000-8000-000000000007",
+      "name": "NocoDB 발송 기록",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1160, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.all();\nconst count = items.length;\nconst now = new Date().toISOString();\nconst message = `📦 배송 완료 알림톡 발송 완료\\n\\n✅ 발송: ${count}건\\n⏰ ${now}`;\nreturn [{ json: { message, count } }];"
+      },
+      "id": "a1000001-0001-4000-8000-000000000008",
+      "name": "통계 집계",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1380, 0]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $env.TELEGRAM_CHAT_ID || '-5154731145' }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "a1000001-0001-4000-8000-000000000009",
+      "name": "텔레그램 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1600, 0],
+      "credentials": {
+        "telegramApi": { "id": "RdFu3nsFuuO5NCff", "name": "Telegram Makeshop Bot" }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "a1000001-0001-4000-8000-000000000099",
+      "name": "대상 없음 종료",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [940, 200]
+    }
+  ],
+  "connections": {
+    "매일 18:30 실행": { "main": [[{ "node": "배송완료 주문 조회", "type": "main", "index": 0 }, { "node": "NocoDB 기발송 목록", "type": "main", "index": 0 }]] },
+    "배송완료 주문 조회": { "main": [[{ "node": "미발송 주문 필터", "type": "main", "index": 0 }]] },
+    "NocoDB 기발송 목록": { "main": [[{ "node": "미발송 주문 필터", "type": "main", "index": 0 }]] },
+    "미발송 주문 필터": { "main": [[{ "node": "대상 있는지 체크", "type": "main", "index": 0 }]] },
+    "대상 있는지 체크": { "main": [[{ "node": "알리고 배송 알림톡", "type": "main", "index": 0 }], [{ "node": "대상 없음 종료", "type": "main", "index": 0 }]] },
+    "알리고 배송 알림톡": { "main": [[{ "node": "NocoDB 발송 기록", "type": "main", "index": 0 }]] },
+    "NocoDB 발송 기록": { "main": [[{ "node": "통계 집계", "type": "main", "index": 0 }]] },
+    "통계 집계": { "main": [[{ "node": "텔레그램 알림", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "staticData": null,
+  "tags": [{ "name": "리뷰자동화" }, { "name": "알리고" }]
+}

@@ -198,6 +198,17 @@ function pickFirstNonBlankString(...values: unknown[]): string | undefined {
   return undefined
 }
 
+function normalizePositiveId(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return undefined
+    const parsed = Number(trimmed)
+    if (Number.isFinite(parsed) && parsed > 0) return parsed
+  }
+  return undefined
+}
+
 function hasOwn(obj: object, key: string): boolean {
   return Object.prototype.hasOwnProperty.call(obj, key)
 }
@@ -416,9 +427,10 @@ export async function findCustomerByInvoiceLink(
   customerId?: number,
   customerName?: string,
 ): Promise<Customer | null> {
-  if (typeof customerId === 'number' && customerId > 0) {
+  const normalizedCustomerId = normalizePositiveId(customerId)
+  if (normalizedCustomerId) {
     try {
-      return await getCustomer(customerId)
+      return await getCustomer(normalizedCustomerId)
     } catch {
       // Fall through to exact-name lookup for older invoices missing valid links.
     }
@@ -429,8 +441,10 @@ export async function findCustomerByInvoiceLink(
 
   const result = await getCustomers({
     where: `(name,eq,${safeName})`,
-    limit: 1,
+    limit: 2,
   })
+  const totalMatches = result.pageInfo?.totalRows ?? result.list.length
+  if (totalMatches !== 1) return null
   return result.list[0] ?? null
 }
 

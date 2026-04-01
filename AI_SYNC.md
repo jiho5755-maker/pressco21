@@ -90,6 +90,61 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `offline-crm-v2` 명세표 수정 다이얼로그에서 동명이인 고객이 이름만으로 다시 연결되며 잘못된 주소/연락처로 바뀌던 버그를 분석하고 수정했다.
+  - 확인
+    - 운영 데이터 기준 `INV-20260401-134932`는 `customer_id = 13191`(김수현 님 / 목포)로 저장돼 있었다.
+    - 같은 이름 `김수현 님` exact lookup은 3건이 잡히고, `limit: 1` 조회 시 첫 결과가 `7316`(김수현 님 / 성남)으로 반환됐다.
+    - 기존 `InvoiceDialog`는 편집/복사 다이얼로그 최초 진입 시 `selectedCustomer === null`인 상태에서 `customerInput`만 보고 ID 연결을 버려, 목포 고객 ID가 있어도 이름 재검색으로 성남 고객을 다시 잡는 흐름이었다.
+  - 변경
+    - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+      - 기존 명세표 편집/복사 시 `form.customer_id` / `existingInvoice.customer_id`를 우선 유지하고, 사용자가 입력명을 실제로 바꾼 경우에만 기존 링크를 끊도록 수정했다.
+      - 고객 자동완성 목록에 `book_name · 전화번호` 보조 식별자를 표시해 동명이인을 구분할 수 있게 했다.
+      - 고객 잔액 재계산/예치금 처리 단계에서 문자열 ID도 안전하게 숫자로 정규화하도록 보강했다.
+    - `offline-crm-v2/src/lib/api.ts`
+      - `findCustomerByInvoiceLink`가 이름만 같은 고객이 여러 명이면 더 이상 첫 번째 고객을 임의 선택하지 않고 `null`을 반환하도록 수정했다.
+  - 검증
+    - `npm run build`
+- `openclaw-project-hub`에 `플로라 단일 봇 + room별 runner` 구조의 Telegram room router를 추가했다.
+  - 추가
+    - `openclaw-project-hub/06_scripts/run-flora-telegram-room-router.js`
+      - 같은 플로라 봇으로 `executive / codex / claude` 방을 구분하고, room별로 `Claude CLI` 또는 `Codex CLI`를 호출하는 라우터를 추가했다.
+      - `/register <room> <code>`, `/rooms`, `/status`, `/session`, `/new`, `/run`, 일반 텍스트를 지원한다.
+      - 방별로 세션 ID를 따로 저장해 Codex/Claude 문맥이 서로 섞이지 않게 만들었다.
+    - `openclaw-project-hub/04_reference_json/flora-telegram-room-router.config.example.json`
+      - 플로라 봇 1개, 등록코드 1개, room 3개(`executive/codex/claude`)를 예시로 둔 설정 파일을 추가했다.
+    - `openclaw-project-hub/06_scripts/install-flora-telegram-room-router-launchagent.sh`
+      - launchd 기반 자동 실행 설치 스크립트를 추가했다.
+    - `openclaw-project-hub/03_openclaw_docs/flora-telegram-room-router-setup.ko.md`
+      - 비전공자 기준으로 3개 방 등록, healthcheck, 수동 실행, launchd 자동실행까지 따라할 수 있는 가이드를 추가했다.
+  - 검증
+    - `node --check openclaw-project-hub/06_scripts/run-flora-telegram-room-router.js`
+    - `node openclaw-project-hub/06_scripts/run-flora-telegram-room-router.js --help`
+    - `node openclaw-project-hub/06_scripts/run-flora-telegram-room-router.js --config openclaw-project-hub/04_reference_json/flora-telegram-room-router.config.example.json --healthcheck`
+      - 실제 플로라 봇 `@pressco21_openclaw_bot` 기준 통과
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-telegram-room-router-launchagent.sh`
+    - Claude CLI 비대화식 경로 확인
+      - `claude -p` 단건 실행 성공
+      - `claude -p --session-id <uuid>` 후 `claude -p -r <uuid>` resume로 세션 유지 성공
+- `OpenClaw` 텔레그램 실제 런타임 바인딩을 read-only로 점검했다.
+  - 확인
+    - `~/.codex/.omx-config.json` 기준 OpenClaw 응답 대상 텔레그램 `chatId`는 `7713811206`으로 설정돼 있다.
+    - Telegram Bot API `getChat(7713811206)` 결과, 현재 대상은 그룹방이 아니라 `Jiho Chang` 개인 `private chat`이다.
+    - `clawdbot status`, `clawdbot channels list/status`, `launchctl list` 기준 현재 로컬 gateway는 올라와 있지 않고 Telegram 채널도 `configured, disabled` 상태다.
+    - `clawdbot agents list --bindings` 기준 현재 런타임 에이전트는 `main = 플로라` 하나뿐이며, `flora-frontdoor` 같은 분리 라우팅 규칙은 실제 로컬 런타임에 반영돼 있지 않다.
+- `openclaw-project-hub`에 텔레그램 전용 `Codex CLI` 원격 브리지 MVP를 추가했다.
+  - 추가
+    - `openclaw-project-hub/06_scripts/run-codex-telegram-bridge.js`
+      - Telegram `getUpdates` polling, `/register`, `/status`, `/session`, `/new`, `/run`, 일반 텍스트 실행을 지원하는 단일 브리지 스크립트를 추가했다.
+      - 승인된 chat 별로 `Codex session id`를 저장해 같은 톡방에서 이어서 실행하도록 만들었다.
+      - 긴 응답 자동 분할, 상태/로그 파일 기록, `--healthcheck`, `--once` 옵션을 넣었다.
+    - `openclaw-project-hub/04_reference_json/codex-telegram-bridge.config.example.json`
+      - 봇 토큰/등록코드는 env에서 읽고, 상태 파일과 로그 파일은 workspace 아래에 저장하는 예시 설정을 추가했다.
+    - `openclaw-project-hub/03_openclaw_docs/codex-telegram-bridge-setup.ko.md`
+      - 전용 톡방 생성, BotFather 설정, privacy mode, `/register`, 실행 명령, 운영 팁까지 한 번에 따라 할 수 있게 문서화했다.
+  - 검증
+    - `node 06_scripts/run-codex-telegram-bridge.js --help`
+    - `node --check 06_scripts/run-codex-telegram-bridge.js`
+    - `PRESSCO21_CODEX_TELEGRAM_BOT_TOKEN='dummy-token' PRESSCO21_CODEX_TELEGRAM_REGISTER_CODE='dummy-code' node 06_scripts/run-codex-telegram-bridge.js --config 04_reference_json/codex-telegram-bridge.config.example.json --healthcheck`
 - `WF-CRM-01/02` 자동입금 흐름에서 동일 `externalId` 재수집 시 `자동반영 완료 → 미매칭`으로 뒤집히던 버그를 수정하고 라이브 검증까지 마쳤다.
   - 원인
     - `exact 자동반영` 경로에는 `externalId` 기준 idempotency가 없어, 같은 입금 이벤트가 다시 들어오면 첫 실행에서 잔액이 0이 된 뒤 두 번째 실행은 후보를 못 찾아 `unmatched`로 떨어질 수 있었다.
@@ -843,6 +898,15 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX] 운영 CRM에서 `INV-20260401-134932` 수정 다이얼로그를 다시 열어, 첫 진입부터 목포 김수현(전화 010-7104-1761 / 배송지 '목포시 해안로 173번길 27')로 유지되는지 브라우저에서 재확인`
+- `[CODEX-LEAD] 플로라 봇을 3개 텔레그램 방에 모두 초대하고, 각 방에서 `/register executive|codex|claude <등록코드>`를 보내 실제 room 매핑을 완료`
+- `[CODEX-LEAD] `flora-telegram-room-router.config.json`과 env 파일을 실제 값으로 만들고, launchd 설치 후 맥북 재로그인 없이 백그라운드 자동실행까지 확인`
+- `[CODEX-LEAD] 통합 비서 방 프롬프트를 회사 맞춤형으로 더 다듬고, 실제 운영 질문 2~3개로 사용감 확인`
+- `[CODEX-LEAD] OpenClaw를 실제로 계속 쓸 계획이면 로컬 clawdbot gateway를 다시 올리고, channels.telegram.enabled=true 상태와 launch agent 적재 여부를 먼저 복구`
+- `[CODEX-LEAD] 현재 개인 DM(7713811206)을 계속 중앙 프론트도어로 쓸지, 새 그룹방을 중앙방으로 바꿀지 결정한 뒤 chatId를 기준 설정에 반영`
+- `[CODEX-LEAD] 문서상 flora-frontdoor 분리 구조와 실제 런타임(main 단일 agent) 사이의 불일치를 해소`
+- `[CODEX-LEAD] Telegram에서 Codex 전용 그룹방 1개와 전용 봇 1개를 실제로 만들고, `/register` 후 자연어 2~3개를 보내 세션 유지와 응답 길이를 실사용 기준으로 확인`
+- `[CODEX-LEAD] 현재 Codex 브리지 흐름을 복제해 Claude Code 전용 방도 별도 토큰/별도 설정 파일로 분리`
 - `[CODEX] 다음 실제 중복 수집 1건에서 CRM 처리 텔레그램이 더 이상 '미매칭'을 보내지 않고 조용히 무시되는지 운영 로그로 확인`
 - `[CODEX] 과거 exact 자동반영 건 중 중복으로 잘못 쌓인 unmatched 항목이 더 발견되면 review queue dismiss + markProcessedExact로 개별 백필`
 - `[CODEX-LEAD] 실제 텔레그램에서 flora-frontdoor에게 2~3개 실질문을 보내 사용감 기준으로 첫 문장/전문 관점/응답 길이가 기대와 맞는지 최종 확인`
@@ -894,6 +958,17 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- 이번 수정은 이름만 같은 고객을 자동 연결하지 않도록 막았기 때문에, 동명이인이 있는 신규 자유입력 건은 사용자가 목록에서 고객을 명시 선택하지 않으면 고객 스냅샷(주소/전화)이 비어 있을 수 있다. 잘못된 고객으로 붙는 것보다는 안전하지만, 필요하면 다음 단계에서 '동명이인 선택 강제' UX를 추가하는 편이 낫다.
+- 이미 잘못 저장된 과거 명세표가 있다면 이번 패치가 자동 복구하지는 않는다. 해당 건은 올바른 고객으로 다시 열어 저장하거나 개별 데이터 보정이 필요하다.
+- 새 flora room router는 현재 텍스트 메시지만 다룬다. 파일 첨부, 이미지, 중간 스트리밍은 아직 없다.
+- 통합 비서 방은 현재 `Claude CLI + Flora preamble` 기반이다. 예전 clawdbot/main 세션의 장기 메모리 구조와는 다르므로 답변 스타일 차이가 날 수 있다.
+- room별 session state는 로컬 state 파일에 저장되므로, state 파일을 지우면 각 방의 이어진 문맥도 같이 초기화된다.
+- 현재 OpenClaw 텔레그램 대상은 그룹방이 아니라 개인 DM이다. 사용자는 그룹방으로 인식하고 있을 수 있어 운영 판단이 어긋날 수 있다.
+- 문서/설계는 `flora-frontdoor` 분리 구조를 가리키지만, 실제 로컬 런타임은 `main` 단일 에이전트라 설계와 운영 상태가 다르다.
+- 현재 로컬 gateway가 내려가 있어, 설정 파일이 남아 있어도 실제 텔레그램 응답은 지금 이 순간 동작하지 않을 수 있다.
+- 현재 Codex Telegram Bridge는 텍스트 명령만 지원한다. 파일 첨부, 이미지, 중간 스트리밍은 아직 없다.
+- 현재 브리지는 long polling 단일 프로세스 기준이다. 맥북에서 프로세스가 내려가면 텔레그램 방도 멈춘다.
+- 같은 봇 토큰을 다른 브리지 프로세스와 공유하면 `getUpdates` 큐 충돌이 날 수 있다. Codex 방과 Claude 방은 토큰을 분리하는 편이 안전하다.
 - 이번 수정 이후 새 exact 자동반영 건부터는 `processedExactDepositIds`가 자동 누적되지만, 과거 exact 처리 이력은 일괄 백필하지 않았다. 이번에 신고된 `동그라미숲유` externalId만 수동 시드했다.
 - 과거 exact 처리 뒤 다시 수집된 기존 externalId는, 수동 `markProcessedExact` 백필이 없는 한 한 번 더 `unmatched`를 만들 수 있다.
 - 텔레그램 프론트도어는 이제 `flora-frontdoor`로 전환됐지만, 사용자가 실제 텔레그램에서 체감하는 답변 길이/톤/전문성은 아직 실사용 확인이 한 번 더 필요하다.

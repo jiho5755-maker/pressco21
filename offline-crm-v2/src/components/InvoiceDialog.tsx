@@ -175,6 +175,17 @@ function normalizeInvoiceDate(value?: string): string {
   return today()
 }
 
+function normalizePositiveId(value: unknown): number | undefined {
+  if (typeof value === 'number' && Number.isFinite(value) && value > 0) return value
+  if (typeof value === 'string') {
+    const trimmed = value.trim()
+    if (!trimmed) return undefined
+    const parsed = Number(trimmed)
+    if (Number.isFinite(parsed) && parsed > 0) return parsed
+  }
+  return undefined
+}
+
 function normalizeReceiptType(value?: string | null): string {
   return normalizeReceiptTypeValue(value) ?? DEFAULT_RECEIPT_TYPE
 }
@@ -456,18 +467,28 @@ export function InvoiceDialog({
     queryFn: () => getItems(editId!),
     enabled: !!editId && open,
   })
+  const selectedCustomerId = normalizePositiveId(selectedCustomer?.Id)
+  const formCustomerId = normalizePositiveId(form.customer_id)
+  const existingCustomerId = normalizePositiveId(existingInvoice?.customer_id)
+  const trimmedCustomerInput = customerInput.trim()
+  const formCustomerName = typeof form.customer_name === 'string' ? form.customer_name.trim() : ''
+  const existingCustomerName = typeof existingInvoice?.customer_name === 'string' ? existingInvoice.customer_name.trim() : ''
+  const canReuseExistingCustomerLink =
+    trimmedCustomerInput.length === 0 ||
+    trimmedCustomerInput === existingCustomerName
+  const linkedCustomerId =
+    selectedCustomerId ??
+    formCustomerId ??
+    (canReuseExistingCustomerLink ? existingCustomerId : undefined)
+  const linkedCustomerName = trimmedCustomerInput || formCustomerName || existingCustomerName
   const { data: currentCustomer } = useQuery({
-    queryKey: ['invoice-customer-current', form.customer_id, existingInvoice?.customer_id, customerInput, existingInvoice?.customer_name],
+    queryKey: ['invoice-customer-current', linkedCustomerId, linkedCustomerName],
     queryFn: () =>
       findCustomerByInvoiceLink(
-        customerInput.trim() && customerInput.trim() !== (selectedCustomer?.name?.trim() ?? '')
-          ? undefined
-          : selectedCustomer?.Id ??
-            (typeof form.customer_id === 'number' ? form.customer_id : undefined) ??
-            existingInvoice?.customer_id,
-        customerInput || form.customer_name || existingInvoice?.customer_name,
+        linkedCustomerId,
+        linkedCustomerName,
       ),
-    enabled: open && !!(customerInput || form.customer_name || existingInvoice?.customer_name || form.customer_id || existingInvoice?.customer_id),
+    enabled: open && !!(linkedCustomerId || linkedCustomerName),
     staleTime: 0,
   })
   const { data: initialCustomer } = useQuery({
@@ -1012,9 +1033,10 @@ export function InvoiceDialog({
       }
 
       // 잔액 재계산
-      if (form.customer_id) {
+      const effectiveCustomerId = normalizePositiveId(form.customer_id)
+      if (effectiveCustomerId) {
         if (appliedDeposit > 0) {
-          const latestCustomer = await getCustomer(form.customer_id)
+          const latestCustomer = await getCustomer(effectiveCustomerId)
           const previousDepositUsed = invoiceId && !isCopy
             ? getInvoiceDepositUsedAmount(existingInvoice?.memo as string | undefined)
             : 0
@@ -1036,10 +1058,10 @@ export function InvoiceDialog({
               },
               { depositBalance: nextDepositBalance },
             )
-            await updateCustomer(form.customer_id, { memo: nextCustomerMemo })
+            await updateCustomer(effectiveCustomerId, { memo: nextCustomerMemo })
           }
         }
-        try { await recalcCustomerStats(form.customer_id) } catch {}
+        try { await recalcCustomerStats(effectiveCustomerId) } catch {}
       }
 
       qc.invalidateQueries({ queryKey: ['invoices'] })
@@ -1312,12 +1334,19 @@ export function InvoiceDialog({
                       onMouseEnter={() => setCustomerDropdownIdx(index)}
                       onMouseDown={() => selectCustomer(c)}
                     >
-                      <div className="flex items-center gap-2">
-                        <span className="font-medium">{c.name}</span>
-                        {c.price_tier && c.price_tier > 1 && (
-                          <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#e8f0e8', color: '#3d6b4a' }}>
-                            {getTierLabel(c.price_tier)}
-                          </span>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="font-medium">{c.name}</span>
+                          {c.price_tier && c.price_tier > 1 && (
+                            <span className="text-xs px-1.5 py-0.5 rounded" style={{ backgroundColor: '#e8f0e8', color: '#3d6b4a' }}>
+                              {getTierLabel(c.price_tier)}
+                            </span>
+                          )}
+                        </div>
+                        {(c.book_name || getCustomerPrimaryPhone(c)) && (
+                          <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
+                            {[c.book_name, getCustomerPrimaryPhone(c)].filter(Boolean).join(' · ')}
+                          </div>
                         )}
                       </div>
                       {c.outstanding_balance != null && c.outstanding_balance > 0 && (

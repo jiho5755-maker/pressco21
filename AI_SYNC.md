@@ -51,10 +51,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-01 14:55:08 KST
+- Started At: 2026-04-01 18:10:00 KST
 - Branch: main
 - Working Scope: —
-- Active Subdirectory: offline-crm-v2
+- Active Subdirectory: docs
 
 ## Files In Progress
 - `(none)`
@@ -90,6 +90,87 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `docs` 전사 기준 `고객운영 OS` PRD/로드맵 초안을 추가했다.
+  - 신규 문서
+    - `docs/PRD-고객운영OS-통합-v1.md`
+    - `docs/ROADMAP-고객운영OS-통합-v1.md`
+  - 핵심 정리
+    - `offline-crm-v2`를 중심 허브로 보고, 메이크샵/사방넷/오픈마켓/상담툴 데이터를 내부 기준으로 통합하는 프로그램 기준선을 고정했다.
+    - 기준 고객/주문/거래 저장소, 사방넷-first 수집 전략, 전화주문 Desk, Customer 360, 통합 매출 지표를 문서화했다.
+    - 한 번에 다 만드는 방식 대신 `기준선 고정 -> 사방넷 export PoC -> 통합 데이터층 -> CRM 허브 -> 전화주문 -> 분석/자동화` 단계 로드맵으로 분리했다.
+- `openclaw-project-hub` Oracle/로컬 모델 체인을 실제 용량 이슈 기준으로 최적화했다.
+  - 원인 확인
+    - Oracle `flora-frontdoor` 세션 `/home/ubuntu/.openclaw/agents/flora-frontdoor/sessions/b602d3a2-8239-40e1-82dc-59201e2f4dec.jsonl`에서 실제 `Selected model is at capacity` 흔적을 확인했다.
+    - 로컬 Codex CLI에서 직접 모델 지원 여부를 검증했다.
+      - 성공: `gpt-5.4-mini`
+      - 실패: `gpt-5-mini` (`ChatGPT account` 조합에서는 미지원)
+  - 로컬 맥북
+    - `openclaw-project-hub/04_reference_json/flora-local-dev-worker.config.json`
+    - `openclaw-project-hub/04_reference_json/flora-local-dev-worker.config.example.json`
+      - Codex worker fallback을 `gpt-5.4-mini`로 기본 설정했다.
+    - `launchctl kickstart -k gui/$(id -u)/com.pressco21.flora-local-dev-worker`로 worker 재기동 완료.
+  - Oracle live 설정
+    - `/home/ubuntu/.openclaw/openclaw.json`
+      - `owner`, `staff`, `flora-frontdoor`, `flora-executive`, `flora-strategy`, `flora-storefront`, `flora-crm`, `flora-automation`, `flora-knowledge`
+        - `primary: openai-codex/gpt-5.4`
+        - `fallbacks: [openai-codex/gpt-5.4-mini, anthropic/claude-opus-4-5, google/gemini-2.5-flash]`
+      - `flora-codex-room`, `flora-claude-room`
+        - `primary: openai-codex/gpt-5.4-mini`
+        - `fallbacks: [openai-codex/gpt-5.4, google/gemini-2.5-flash]`
+    - `systemctl --user restart openclaw-gateway.service` 후 `active` 확인.
+  - 재설치 스크립트 보강
+    - `openclaw-project-hub/06_scripts/install-flora-dev-dispatchers.sh`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/06_scripts/install-flora-specialist-agents.sh`
+    - `openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json`
+      - 재설치 시 다시 단일 `gpt-5.4`로 되돌아가지 않도록 model object + fallback 체인을 반영했다.
+  - 실검증
+    - local Codex CLI:
+      - `codex exec --skip-git-repo-check --full-auto -m gpt-5.4-mini '설명 없이 정확히 한 줄만 답하세요: mini-ok'` -> `mini-ok`
+    - dev worker queue:
+      - codex latest done `20260401T082425Z-f548e86f-11f7-4f45-b8c9-c3b1314a274e.json` -> `exitCode: 0`, `text: codex-model-chain-ok`
+      - worker log latest Claude task `fbae865a-6cef-4911-a762-f99a63d68cec` -> `exitCode: 0`, `text: claude-model-chain-ok`
+- `openclaw-project-hub` 로컬 Codex dev worker의 `resume` 실행 인자를 Codex CLI 실제 도움말에 맞춰 수정했다.
+  - `openclaw-project-hub/06_scripts/run-flora-local-dev-worker.js`
+    - `codex exec`와 `codex exec resume`의 옵션 차이를 분리했다.
+    - resume 경로에서는 지원되지 않는 `--color`, `-p/--profile`를 더 이상 붙이지 않도록 고쳤다.
+    - Telegram 전송은 Node `fetch` 대신 `curl -4`를 유지해 `ETIMEDOUT`에 덜 취약하게 두었다.
+    - `Selected model is at capacity` 류 문구를 감지하면 Codex 작업을 자동 재시도하도록 추가했다.
+  - `openclaw-project-hub/04_reference_json/flora-local-dev-worker.config.json`
+  - `openclaw-project-hub/04_reference_json/flora-local-dev-worker.config.example.json`
+    - `capacityRetryCount`, `capacityRetryDelayMs`, `fallbackModels` 설정 키를 명시했다.
+  - 실검증
+    - 수동 resume 호출:
+      - `codex exec resume --full-auto --skip-git-repo-check -o /tmp/flora-codex-test-last.txt 019d47b7-9dc1-7a72-b5f2-205f18596954 '설명 없이 정확히 한 줄만 답하세요: resume-ok'`
+      - 결과: `resume-ok`
+    - launchd `com.pressco21.flora-local-dev-worker` 재기동 후 Oracle 큐에 실제 테스트 작업 2건 주입
+      - Codex done: `20260401T073851Z-24890019-b362-481d-acf2-7246b9b8ba85.json` -> `exitCode: 0`, `text: codex-dev-worker-e2e-ok`
+      - Claude done: `20260401T073851Z-c4c0b5e0-5f6c-4c40-8bca-336bc838bcab.json` -> `exitCode: 0`, `text: claude-dev-worker-e2e-ok`
+- `openclaw-project-hub` 개발방 두 개의 Telegram 그룹 응답 조건을 `멘션 필요`에서 `항상 응답`으로 바꿨다.
+  - Oracle `~/.openclaw/openclaw.json`에서
+    - `channels.telegram.groups.-5198284773.requireMention = false`
+    - `channels.telegram.groups.-5043778307.requireMention = false`
+    로 반영했다.
+  - `openclaw-project-hub/06_scripts/install-flora-dev-dispatchers.sh`도 동일 설정을 쓰도록 수정했다.
+  - `systemctl --user restart openclaw-gateway.service` 후 active/running 확인.
+- `openclaw-project-hub` 텔레그램 구조를 `Oracle frontdoor + local dev worker` 기준으로 복구했다.
+  - Oracle
+    - `158.179.193.173`의 user service `openclaw-gateway.service`가 다시 정상 기동되도록 Telegram room binding에 `match.peer.kind = "group"`을 반영했다.
+    - 실제 binding 확인:
+      - `flora-frontdoor` -> `telegram`
+      - `flora-codex-room` -> `telegram peer=group:tg:-5198284773`
+      - `flora-claude-room` -> `telegram peer=group:tg:-5043778307`
+    - `openclaw doctor` 재실행 기준 Telegram `ok (@pressco21_openclaw_bot)` 및 agent 목록 정상 확인.
+  - 로컬 맥북
+    - `openclaw-project-hub/06_scripts/install-flora-dev-dispatchers.sh`
+      - Oracle에 쓰는 dev room binding JSON이 `peer.kind: "group"`을 항상 포함하도록 수정했다.
+    - `openclaw-project-hub/06_scripts/run-flora-local-dev-worker.js`
+      - Codex 세션 ID를 `stderr`의 `session id:` 라인과 JSON `thread_id` 이벤트까지 포함해 추출하도록 수정했다.
+    - launchd `com.pressco21.flora-local-dev-worker` 재기동 완료.
+  - 실검증
+    - Codex worker 큐 수동 주입 -> 완료 파일 기록 -> 응답 텍스트 `로컬 Codex worker 연결 정상` 확인
+    - Claude worker 큐 수동 주입 -> 완료 파일 기록 -> 응답 텍스트 `로컬 Claude worker 연결 정상` 확인
+    - Codex 후속 검증 1회 더 실행해 `openclaw-project-hub/07_openclaw_workspace/flora-local-dev-worker/state.json`에 sessionId `019d47b7-9dc1-7a72-b5f2-205f18596954` 저장 확인
 - `offline-crm-v2` 로그인 방식을 브라우저 Basic Auth에서 커스텀 세션 로그인으로 전환하고 운영 CRM에 배포했다.
   - 변경
     - `offline-crm-v2/scripts/server/crm_auth_server.py`
@@ -939,6 +1020,12 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX] 고객운영 OS PRD 기준으로 통합 테이블 상세 스키마(`customers`, `customer_identities`, `orders_raw`, `orders_unified`, `payments`, `shipments`)와 고객 매칭 규칙 세부안을 작성`
+- `[CODEX] 사방넷 export 자동화 PoC 범위를 실제 운영 기준으로 고정하고, 다운로드 항목/필드/저장 경로/백업 경로를 체크리스트로 문서화`
+- `[CODEX] 메이크샵 직접 보강이 필요한 필드와 사방넷만으로 충분한 필드를 분리해 2주 섀도우 런 검증표를 작성`
+- `[CODEX-LEAD] 실제 텔레그램에서 통합 비서 방 1건, Codex 방 1건, Claude 방 1건 자연어 요청을 보내 모델 fallback이 체감상 자연스럽게 동작하는지 확인`
+- `[CODEX-LEAD] 통합 비서 DM(7713811206)에서 기존 Oracle 메모 문맥이 원하는 수준으로 이어지는지 실제 업무 질문 1~2건으로 확인`
+- `[CODEX-LEAD] 필요하면 Oracle `flora-codex-room`/`flora-claude-room` workspace의 AGENTS 지시를 더 보수적으로 다듬어, 큐 등록 외 장문 응답을 더 강하게 금지`
 - `[CODEX] 운영 실제 두 계정 중 1개로 `https://crm.pressco21.com/login` 로그인 후, 메인 진입과 사이드바 `로그아웃` 버튼 왕복이 기대대로 동작하는지 최종 확인`
 - `[CODEX] 운영 CRM에서 `INV-20260401-134932` 수정 다이얼로그를 다시 열어, 첫 진입부터 목포 김수현(전화 010-7104-1761 / 배송지 '목포시 해안로 173번길 27')로 유지되는지 브라우저에서 재확인`
 - `[CODEX-LEAD] 플로라 봇을 3개 텔레그램 방에 모두 초대하고, 각 방에서 `/register executive|codex|claude <등록코드>`를 보내 실제 room 매핑을 완료`
@@ -1000,6 +1087,11 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- `고객운영 OS` 문서는 현재 Draft 기준선이다. 사방넷 export 실제 컬럼, 메이크샵 보강 필요 필드, 고객 병합 규칙을 실데이터로 검증하기 전까지는 구현 범위가 달라질 수 있다.
+- 현재 Codex/Claude 개발방은 `Oracle Telegram 수신 -> room dispatcher -> local worker queue -> 로컬 CLI` 구조다. room dispatcher와 local queue 주입, worker 완료까지는 검증했지만, 최종 체감 확인은 사용자가 텔레그램 방에서 직접 1회 더 보는 편이 안전하다.
+- local dev worker는 맥북이 켜져 있고 로그인 세션의 launchd가 살아 있어야만 개발방 응답을 보낸다. 통합 비서 방은 Oracle이 계속 처리하지만, Codex/Claude 방은 맥북이 잠들면 멈춘다.
+- Codex 모델 capacity 자동 재시도는 로컬 worker 단계에서만 동작한다. Oracle room dispatcher 자체가 모델 capacity로 멈추는 상황은 별도 튜닝 대상이다.
+- `gpt-5-mini`는 현재 ChatGPT account 기반 Codex CLI에서는 지원되지 않는다. OpenAI 쪽 fallback 표준은 지금 기준 `gpt-5.4-mini`가 안전하다.
 - 이번 실검증은 로컬 Vite 앱 + 운영 데이터 프록시 조합으로 수행했고, 운영 공개 URL은 Basic Auth 자격증명이 없어 여기서 직접 브라우저 진입하지는 못했다. 대신 서버 현재 릴리스 링크와 배포 산출물 해시까지 확인했다.
 - 이번 수정은 이름만 같은 고객을 자동 연결하지 않도록 막았기 때문에, 동명이인이 있는 신규 자유입력 건은 사용자가 목록에서 고객을 명시 선택하지 않으면 고객 스냅샷(주소/전화)이 비어 있을 수 있다. 잘못된 고객으로 붙는 것보다는 안전하지만, 필요하면 다음 단계에서 '동명이인 선택 강제' UX를 추가하는 편이 낫다.
 - 이미 잘못 저장된 과거 명세표가 있다면 이번 패치가 자동 복구하지는 않는다. 해당 건은 올바른 고객으로 다시 열어 저장하거나 개별 데이터 보정이 필요하다.

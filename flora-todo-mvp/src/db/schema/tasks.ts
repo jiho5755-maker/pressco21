@@ -6,7 +6,7 @@ export const tasks = pgTable("tasks", {
   title: text("title").notNull(),
   detailsJson: jsonb("details_json").$type<Record<string, unknown>>().notNull().default({}),
   status: text("status").notNull().default("todo"),
-  priority: text("priority").notNull().default("normal"),
+  priority: text("priority").notNull().default("p3"),
   category: text("category").notNull().default("inbox"),
   dueAt: timestamp("due_at", { withTimezone: true }),
   timeBucket: text("time_bucket"),

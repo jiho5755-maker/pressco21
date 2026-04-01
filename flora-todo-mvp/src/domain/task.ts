@@ -1,5 +1,5 @@
-export const taskStatuses = ["todo", "waiting", "done"] as const;
-export const taskPriorities = ["low", "normal", "high"] as const;
+export const taskStatuses = ["todo", "waiting", "needs_check", "in_progress", "done"] as const;
+export const taskPriorities = ["p1", "p2", "p3", "p4"] as const;
 export const reminderStatuses = ["pending", "sent", "cancelled"] as const;
 export const followupStatuses = ["open", "waiting", "done"] as const;
 

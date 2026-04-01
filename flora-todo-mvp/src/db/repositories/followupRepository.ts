@@ -32,6 +32,28 @@ export const followupRepository = {
     return createdFollowup;
   },
 
+  async createMany(inputs: CreateFollowupInput[]) {
+    if (inputs.length === 0) {
+      return [];
+    }
+
+    return db
+      .insert(followups)
+      .values(
+        inputs.map((input) => ({
+          id: input.id,
+          taskId: input.taskId,
+          subject: input.subject,
+          followupType: input.followupType ?? "manual",
+          waitingFor: input.waitingFor ?? null,
+          nextCheckAt: input.nextCheckAt ?? null,
+          status: input.status ?? "open",
+          lastNote: input.lastNote ?? null,
+        })),
+      )
+      .returning();
+  },
+
   async listByTaskId(taskId: string) {
     return db.select().from(followups).where(eq(followups.taskId, taskId));
   },

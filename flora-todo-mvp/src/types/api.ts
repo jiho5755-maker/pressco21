@@ -2,6 +2,7 @@ export type IngestRequestBody = {
   sourceChannel: string;
   sourceMessageId: string;
   text: string;
+  dryRun?: boolean;
 };
 
 export type SummaryResponse = {
@@ -10,5 +11,7 @@ export type SummaryResponse = {
   done: number;
   today: number;
   thisWeek: number;
+  topPriority: number;
+  upcoming: number;
   generatedAt: string;
 };

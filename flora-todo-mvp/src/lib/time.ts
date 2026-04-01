@@ -20,3 +20,9 @@ export function getEndOfWeek(now = new Date()) {
 
   return end;
 }
+
+export function getStartOfTomorrow(now = new Date()) {
+  const start = getStartOfToday(now);
+  start.setDate(start.getDate() + 1);
+  return start;
+}

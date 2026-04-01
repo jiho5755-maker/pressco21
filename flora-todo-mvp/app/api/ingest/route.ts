@@ -19,12 +19,13 @@ export async function POST(request: Request) {
       sourceChannel: body.sourceChannel,
       sourceMessageId: body.sourceMessageId,
       text: body.text,
+      dryRun: body.dryRun,
     });
 
     return Response.json(
       {
         ok: true,
-        task: result,
+        result,
       },
       { status: 201 },
     );

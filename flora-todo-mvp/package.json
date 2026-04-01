@@ -10,7 +10,9 @@
     "db:generate": "drizzle-kit generate",
     "db:migrate": "drizzle-kit migrate",
     "db:push": "drizzle-kit push",
-    "db:check": "tsx scripts/check-db.ts",
+    "db:check": "node --import tsx scripts/check-db.ts",
+    "demo:structure": "node --import tsx scripts/demo-structured.ts",
+    "seed:demo": "node --import tsx scripts/seed-demo.ts",
     "demo:ingest": "bash scripts/demo-ingest.sh",
     "demo:summary": "bash scripts/demo-summary.sh"
   },
@@ -23,6 +25,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.15.30",
+    "@types/react": "19.2.14",
     "dotenv": "^16.5.0",
     "drizzle-kit": "^0.31.4",
     "tsx": "^4.20.3",

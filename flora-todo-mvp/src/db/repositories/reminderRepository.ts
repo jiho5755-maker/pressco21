@@ -30,6 +30,27 @@ export const reminderRepository = {
     return createdReminder;
   },
 
+  async createMany(inputs: CreateReminderInput[]) {
+    if (inputs.length === 0) {
+      return [];
+    }
+
+    return db
+      .insert(reminders)
+      .values(
+        inputs.map((input) => ({
+          id: input.id,
+          taskId: input.taskId,
+          title: input.title,
+          remindAt: input.remindAt,
+          kind: input.kind ?? "manual",
+          message: input.message ?? null,
+          status: input.status ?? "pending",
+        })),
+      )
+      .returning();
+  },
+
   async listByTaskId(taskId: string) {
     return db.select().from(reminders).where(eq(reminders.taskId, taskId));
   },

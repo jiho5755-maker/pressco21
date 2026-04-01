@@ -330,6 +330,40 @@
     <!--/end_if/-->
     <!-- //관심상품 -->
 
+    <!-- 인기 상품 추천 (JS 기반) -->
+    <div class="pc21-recommend" id="pc21Recommend">
+        <h2 class="pc21-recommend-title">이런 상품은 어떠세요?</h2>
+        <div class="pc21-recommend-grid" id="pc21RecommendGrid"></div>
+    </div>
+    <script>
+    (function() {
+        var items = [
+            {name:'압화종합팩 / 1~2000원대', price:'1,200', bc:'056001000147'},
+            {name:'압화종합팩 / 3~4000원대', price:'3,000', bc:'056001000145'},
+            {name:'압화종합팩 / 레터링시리즈', price:'1,900', bc:'056001000152'},
+            {name:'압화부채만들기세트', price:'1,300', bc:'056011000002'},
+            {name:'핀셋/1p/종류선택', price:'500', bc:'056006000158'},
+            {name:'연필꽂이만들기세트/색상선택', price:'2,500', bc:'056011000006'},
+            {name:'하바리움 용기 모음전', price:'400', bc:'057002000053'},
+            {name:'열쇠고리(가방걸이) / 하트&티셔츠', price:'500', bc:'056003000300'},
+            {name:'손톱깍기/병따개겸용', price:'3,600', bc:'056003000289'},
+            {name:'압화종합팩 / 6~7000원대', price:'6,000', bc:'056001000143'}
+        ];
+        var grid = document.getElementById('pc21RecommendGrid');
+        if (!grid) return;
+        var html = '';
+        items.forEach(function(it) {
+            var link = '/shop/shopdetail.html?brandcode=' + it.bc;
+            var img = '/shopimages/jewoo/' + it.bc + '.jpg';
+            html += '<a href="' + link + '" class="pc21-recommend-item">' +
+                '<div class="pc21-recommend-img"><img src="' + img + '" alt="' + it.name + '" loading="lazy"></div>' +
+                '<p class="pc21-recommend-name">' + it.name + '</p>' +
+                '<p class="pc21-recommend-price">' + it.price + '원</p></a>';
+        });
+        grid.innerHTML = html;
+    })();
+    </script>
+
     <!-- 장바구니 추천상품 -->
     <!--/if_basket_appoint_product/-->
     <div class="swiper-container cowave-swiper recmd4">

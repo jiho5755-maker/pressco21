@@ -51,10 +51,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-01 18:10:00 KST
+- Started At: 2026-04-02 00:18:27 KST
 - Branch: main
 - Working Scope: —
-- Active Subdirectory: docs
+- Active Subdirectory: flora-todo-mvp
 
 ## Files In Progress
 - `(none)`
@@ -90,6 +90,43 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `flora-todo-mvp` Sprint 1 신규 프로젝트 스캐폴딩을 추가했다.
+  - 추가
+    - `flora-todo-mvp/package.json`
+    - `flora-todo-mvp/app/api/ingest/route.ts`
+    - `flora-todo-mvp/app/api/summary/route.ts`
+    - `flora-todo-mvp/src/db/schema/{tasks,reminders,followups}.ts`
+    - `flora-todo-mvp/src/db/repositories/{taskRepository,reminderRepository,followupRepository}.ts`
+    - `flora-todo-mvp/src/services/{ingestService,summaryService}.ts`
+    - `flora-todo-mvp/drizzle.config.ts`
+    - `flora-todo-mvp/docker-compose.yml`
+    - `flora-todo-mvp/scripts/check-db.ts`
+  - 핵심
+    - Next.js App Router 기반 로컬 웹앱 골격을 만들고 `POST /api/ingest`, `GET /api/summary` 기본형을 구현했다.
+    - 원문 보존 우선 원칙으로 `source_text`, `source_channel`, `source_message_id`를 `tasks` 스키마에 고정했다.
+    - Sprint 2 구조화 확장을 위해 Task / Reminder / Follow-up 스키마와 repository 경계를 분리했다.
+  - 검증/제약
+    - `git pull --ff-only` 완료
+    - Node/NPM은 `nvm` 로드 후 사용 가능 확인
+    - 샌드박스 제약으로 `docker compose up -d`는 Docker socket 권한 부족으로 실패
+    - 샌드박스 제약으로 `npm install`은 외부 패키지 접근 단계에서 완료 확인을 못 했다.
+- `docs` 고객운영 OS 상세 진단 문서를 추가했다.
+  - 신규 문서
+    - `docs/고객운영OS-상세계획-2026-04-01.md`
+  - 목적
+    - PRD/로드맵보다 더 실무적으로 `확정`, `검증 필요`, `미결정`, `Claude Code 진단 요청 포인트`를 한 문서에 모았다.
+  - 반영
+    - `docs/PRD-고객운영OS-통합-v1.md`
+    - `docs/ROADMAP-고객운영OS-통합-v1.md`
+    - 두 문서 상단에 상세 진단 메모 링크를 추가했다.
+- `docs` 고객운영 OS 문서의 시스템 경계를 `Customer OS Core + CRM v2 연동` 구조로 재정의했다.
+  - 수정 문서
+    - `docs/PRD-고객운영OS-통합-v1.md`
+    - `docs/ROADMAP-고객운영OS-통합-v1.md`
+  - 핵심 변경
+    - 기존 `offline-crm-v2 중심 확장` 뉘앙스를 제거하고, 별도 허브(`Customer OS Core`)가 기준 데이터를 소유하도록 수정했다.
+    - `CRM v2`는 명세표/입금/미수/전화주문을 처리하는 안정적 실무 앱으로 역할을 고정했다.
+    - 로드맵도 `통합 데이터층 -> Customer OS Portal 읽기 화면 -> CRM v2 브리지` 순서로 재정렬했다.
 - `docs` 전사 기준 `고객운영 OS` PRD/로드맵 초안을 추가했다.
   - 신규 문서
     - `docs/PRD-고객운영OS-통합-v1.md`
@@ -1020,6 +1057,11 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX-LEAD] flora-todo-mvp에서 패키지 설치가 가능한 환경에서 \`npm install -> npm run db:generate -> npm run db:migrate\`를 실행하고 실제 migration SQL을 커밋`
+- `[CODEX-LEAD] flora-todo-mvp 로컬 Postgres를 실제로 띄운 뒤 \`POST /api/ingest\`, \`GET /api/summary\`를 실호출해 응답/DB 적재를 검증`
+- `[CODEX] Claude Code 리뷰용으로 Customer OS Core 데이터 스키마 상세안과 사방넷 섀도우 런 검증표를 이어서 작성`
+- `[CODEX] Customer OS Core 상세 정보구조 문서 작성: 시스템 경계, 핵심 테이블, 고객 매칭 규칙, CRM v2 책임 분리표를 더 세분화`
+- `[CODEX] Customer OS Portal 화면 구조 초안과 CRM v2 deep link 흐름을 메뉴 단위로 정리`
 - `[CODEX] 고객운영 OS PRD 기준으로 통합 테이블 상세 스키마(`customers`, `customer_identities`, `orders_raw`, `orders_unified`, `payments`, `shipments`)와 고객 매칭 규칙 세부안을 작성`
 - `[CODEX] 사방넷 export 자동화 PoC 범위를 실제 운영 기준으로 고정하고, 다운로드 항목/필드/저장 경로/백업 경로를 체크리스트로 문서화`
 - `[CODEX] 메이크샵 직접 보강이 필요한 필드와 사방넷만으로 충분한 필드를 분리해 2주 섀도우 런 검증표를 작성`
@@ -1087,6 +1129,8 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- `flora-todo-mvp`는 코드 스캐폴딩까지 완료됐지만, 현재 샌드박스에서는 Docker daemon socket 접근이 막혀 로컬 Postgres 컨테이너 실기동 검증을 하지 못했다.
+- `flora-todo-mvp`는 현재 환경에서 `npm install` 완료 확인을 못 해서 `drizzle-kit generate/migrate`, `next build`, API 실호출까지는 아직 미검증 상태다.
 - `고객운영 OS` 문서는 현재 Draft 기준선이다. 사방넷 export 실제 컬럼, 메이크샵 보강 필요 필드, 고객 병합 규칙을 실데이터로 검증하기 전까지는 구현 범위가 달라질 수 있다.
 - 현재 Codex/Claude 개발방은 `Oracle Telegram 수신 -> room dispatcher -> local worker queue -> 로컬 CLI` 구조다. room dispatcher와 local queue 주입, worker 완료까지는 검증했지만, 최종 체감 확인은 사용자가 텔레그램 방에서 직접 1회 더 보는 편이 안전하다.
 - local dev worker는 맥북이 켜져 있고 로그인 세션의 launchd가 살아 있어야만 개발방 응답을 보낸다. 통합 비서 방은 Oracle이 계속 처리하지만, Codex/Claude 방은 맥북이 잠들면 멈춘다.

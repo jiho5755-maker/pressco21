@@ -35,6 +35,10 @@ export function Sidebar() {
     }
   }, [])
 
+  function handleLogout() {
+    window.location.href = '/auth/logout'
+  }
+
   return (
     <aside
       className="w-60 min-h-screen flex flex-col"
@@ -83,6 +87,13 @@ export function Sidebar() {
             <p className="text-[11px] text-white/50">{activeOperator.operatorName}</p>
           </div>
         ) : null}
+        <button
+          type="button"
+          onClick={handleLogout}
+          className="mb-3 flex w-full items-center justify-center rounded-md border border-white/10 bg-white/5 px-3 py-2 text-xs font-medium text-white/80 transition-colors hover:bg-white/10 hover:text-white"
+        >
+          로그아웃
+        </button>
         <p className="text-xs text-white/40">Offline CRM v2.0</p>
       </div>
     </aside>

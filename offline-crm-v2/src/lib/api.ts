@@ -40,6 +40,13 @@ interface ProxyResponse<T> {
   timestamp: string
 }
 
+function redirectToLogin() {
+  if (typeof window === 'undefined') return
+  const next = `${window.location.pathname}${window.location.search}${window.location.hash}`
+  const encodedNext = encodeURIComponent(next || '/')
+  window.location.href = `/login?next=${encodedNext}`
+}
+
 export interface AutoDepositReviewQueueRecord {
   queueId: string
   status: 'review' | 'unmatched' | 'resolved' | 'dismissed'
@@ -90,6 +97,9 @@ async function proxyRequest<T>(req: ProxyRequest): Promise<T> {
   })
 
   if (!res.ok) {
+    if (res.status === 401) {
+      redirectToLogin()
+    }
     throw new Error(`Proxy Error ${res.status}: ${await res.text()}`)
   }
 

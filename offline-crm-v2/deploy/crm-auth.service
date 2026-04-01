@@ -1,0 +1,19 @@
+[Unit]
+Description=PRESSCO21 CRM Auth Service
+After=network.target
+
+[Service]
+Type=simple
+User=root
+ExecStart=/usr/bin/python3 /opt/pressco21/crm-auth/crm_auth_server.py
+Restart=always
+RestartSec=2
+Environment=CRM_AUTH_BIND=127.0.0.1
+Environment=CRM_AUTH_PORT=9100
+Environment=CRM_AUTH_HTPASSWD_FILE=/etc/nginx/.htpasswd-crm
+Environment=CRM_AUTH_SECRET_FILE=/etc/pressco21-crm/auth-secret
+Environment=CRM_AUTH_COOKIE_NAME=pressco21_crm_session
+Environment=CRM_AUTH_SESSION_TTL=43200
+
+[Install]
+WantedBy=multi-user.target

@@ -9,6 +9,12 @@ SSH_KEY="$HOME/.ssh/oracle-n8n.key"
 REMOTE_RELEASE_ROOT="/var/www/releases/crm"
 REMOTE_CURRENT_LINK="/var/www/crm-current"
 REMOTE_PUBLIC_LINK="/var/www/crm"
+REMOTE_AUTH_ROOT="/opt/pressco21/crm-auth"
+REMOTE_AUTH_SCRIPT="${REMOTE_AUTH_ROOT}/crm_auth_server.py"
+REMOTE_AUTH_SERVICE="/etc/systemd/system/crm-auth.service"
+REMOTE_AUTH_SECRET_FILE="/etc/pressco21-crm/auth-secret"
+REMOTE_NGINX_CONFIG="/etc/nginx/sites-available/crm"
+REMOTE_UPLOAD_DIR="/tmp/pressco21-crm-deploy"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 TIMESTAMP="$(date +%Y%m%d%H%M%S)"
@@ -28,12 +34,17 @@ cd "$PROJECT_DIR"
 NODE_ENV=production npm run build
 echo "빌드 완료"
 
-echo "2/5 서버 릴리스 경로 준비 중..."
+echo "2/5 서버 릴리스 경로 및 인증 서비스 준비 중..."
 ssh -i "$SSH_KEY" "$SERVER" "bash -s" <<EOF
 set -euo pipefail
 
 sudo mkdir -p "$REMOTE_RELEASE_ROOT"
+sudo mkdir -p "$REMOTE_AUTH_ROOT"
+sudo mkdir -p "$(dirname "$REMOTE_AUTH_SECRET_FILE")"
+sudo mkdir -p "$REMOTE_UPLOAD_DIR"
 sudo chown -R ubuntu:ubuntu /var/www/releases
+sudo chown -R ubuntu:ubuntu "$REMOTE_AUTH_ROOT"
+sudo chown -R ubuntu:ubuntu "$REMOTE_UPLOAD_DIR"
 
 if [ -d "$REMOTE_PUBLIC_LINK" ] && [ ! -L "$REMOTE_PUBLIC_LINK" ]; then
   LEGACY_RELEASE="${REMOTE_RELEASE_ROOT}/legacy-${TIMESTAMP}"
@@ -46,24 +57,55 @@ fi
 
 mkdir -p "$REMOTE_RELEASE_DIR"
 rm -rf "$REMOTE_RELEASE_DIR"/*
+rm -rf "$REMOTE_UPLOAD_DIR"/*
 EOF
 echo "서버 준비 완료"
 
-echo "3/5 릴리스 업로드 중..."
+echo "3/5 릴리스 및 인증 서비스 업로드 중..."
 scp -i "$SSH_KEY" -r "$PROJECT_DIR/dist/"* "$SERVER:$REMOTE_RELEASE_DIR/"
+scp -i "$SSH_KEY" "$PROJECT_DIR/scripts/server/crm_auth_server.py" "$SERVER:$REMOTE_UPLOAD_DIR/crm_auth_server.py"
+scp -i "$SSH_KEY" "$PROJECT_DIR/deploy/crm-auth.service" "$SERVER:$REMOTE_UPLOAD_DIR/crm-auth.service"
+scp -i "$SSH_KEY" "$PROJECT_DIR/deploy/nginx-crm-secure.conf" "$SERVER:$REMOTE_UPLOAD_DIR/nginx-crm-secure.conf"
 echo "업로드 완료"
 
-echo "4/5 현재 릴리스 전환 중..."
+echo "4/5 현재 릴리스 및 인증 설정 전환 중..."
 ssh -i "$SSH_KEY" "$SERVER" "bash -s" <<EOF
 set -euo pipefail
 
 sudo ln -sfn "$REMOTE_RELEASE_DIR" "$REMOTE_CURRENT_LINK"
 sudo ln -sfn "$REMOTE_RELEASE_DIR" "$REMOTE_PUBLIC_LINK"
 
-if [ ! -f /etc/nginx/sites-available/crm ]; then
-  echo 'Nginx 설정 없음 - 수동 설정이 필요합니다'
-  exit 1
+sudo install -m 755 "$REMOTE_UPLOAD_DIR/crm_auth_server.py" "$REMOTE_AUTH_SCRIPT"
+sudo install -m 644 "$REMOTE_UPLOAD_DIR/crm-auth.service" "$REMOTE_AUTH_SERVICE"
+sudo install -m 644 "$REMOTE_UPLOAD_DIR/nginx-crm-secure.conf" "$REMOTE_NGINX_CONFIG"
+
+if [ ! -f "$REMOTE_AUTH_SECRET_FILE" ]; then
+  sudo python3 - <<'PY'
+from pathlib import Path
+import secrets
+
+target = Path("/etc/pressco21-crm/auth-secret")
+target.parent.mkdir(parents=True, exist_ok=True)
+target.write_bytes(secrets.token_bytes(32))
+target.chmod(0o600)
+PY
 fi
+
+sudo chown root:root "$REMOTE_AUTH_SCRIPT" "$REMOTE_AUTH_SERVICE" "$REMOTE_NGINX_CONFIG" "$REMOTE_AUTH_SECRET_FILE"
+sudo chmod 755 "$REMOTE_AUTH_SCRIPT"
+sudo chmod 644 "$REMOTE_AUTH_SERVICE" "$REMOTE_NGINX_CONFIG"
+sudo chmod 600 "$REMOTE_AUTH_SECRET_FILE"
+
+sudo systemctl daemon-reload
+sudo systemctl enable crm-auth.service >/dev/null
+sudo systemctl restart crm-auth.service
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  if curl -fsS http://127.0.0.1:9100/health >/dev/null; then
+    break
+  fi
+  sleep 1
+done
+curl -fsS http://127.0.0.1:9100/health >/dev/null
 
 sudo nginx -t
 sudo systemctl reload nginx

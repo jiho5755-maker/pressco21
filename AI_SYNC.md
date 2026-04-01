@@ -51,13 +51,13 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: —
+- Started At: 2026-04-01 14:55:08 KST
 - Branch: main
 - Working Scope: —
-- Active Subdirectory: —
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
-- 없음
+- `(none)`
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -90,6 +90,36 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `offline-crm-v2` 로그인 방식을 브라우저 Basic Auth에서 커스텀 세션 로그인으로 전환하고 운영 CRM에 배포했다.
+  - 변경
+    - `offline-crm-v2/scripts/server/crm_auth_server.py`
+      - 기존 `/etc/nginx/.htpasswd-crm` 계정을 그대로 검증하는 경량 Python auth server를 추가했다.
+      - `/login`, `/auth/login`, `/auth/logout`, `/auth/check`, `/health` 엔드포인트와 서명된 세션 쿠키를 구현했다.
+    - `offline-crm-v2/deploy/nginx-crm-secure.conf`
+      - 사이트 전체 Basic Auth를 제거하고 `auth_request` 기반 세션 인증 구조로 전환했다.
+      - 미인증 접근 시 `/login?next=...`로 정확히 복귀되도록 리다이렉트를 보정했다.
+    - `offline-crm-v2/deploy/crm-auth.service`
+      - auth server를 systemd로 운영하도록 서비스 유닛을 추가했다.
+    - `offline-crm-v2/deploy/deploy-release.sh`, `offline-crm-v2/deploy/deploy.sh`
+      - 릴리스 배포 시 auth server, nginx 설정, systemd 서비스, 비밀키 파일까지 함께 반영하도록 확장했다.
+      - auth server 재시작과 health check retry를 포함하도록 정리했다.
+    - `offline-crm-v2/src/components/layout/Sidebar.tsx`
+      - 하단에 `로그아웃` 버튼을 추가했다.
+    - `offline-crm-v2/src/lib/api.ts`
+      - 세션 만료로 `/crm-proxy`가 401을 반환하면 `/login?next=현재경로`로 보내도록 보강했다.
+  - 검증
+    - 로컬: `python3 -m py_compile scripts/server/crm_auth_server.py`
+    - 로컬: 임시 `.htpasswd`로 `로그인 -> 세션 통과 -> 로그아웃` 검증 완료
+    - 로컬: `npm run build`
+    - 운영 배포: `bash deploy/deploy-release.sh`
+      - Release ID: `20260401145349-b2f9259-dirty`
+    - 운영 확인
+      - `https://crm.pressco21.com/` -> `302 /login?next=%2F`
+      - `https://crm.pressco21.com/invoices?edit=75&mode=copy` -> `302 /login?next=%2Finvoices%3Fedit%3D75%26mode%3Dcopy`
+      - `https://crm.pressco21.com/login` -> `200 OK`
+      - `https://crm.pressco21.com/auth/health` -> `200 OK`
+      - Playwright 실브라우저로 운영 로그인 페이지 렌더 확인
+      - 증적 스크린샷: `offline-crm-v2/output/playwright/crm-login-page-20260401.png`
 - `offline-crm-v2` 명세표 동명이인 오매칭 수정 건을 실브라우저로 검증하고 운영 CRM에 배포했다.
   - 실검증
     - 로컬 `http://127.0.0.1:5173/invoices?edit=75`에서 `INV-20260401-134932` 수정 다이얼로그를 열어 확인
@@ -909,7 +939,7 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
-- `[CODEX] 운영 CRM Basic Auth 인증 후 `https://crm.pressco21.com/invoices?edit=75`에서 같은 명세표를 한 번 더 열어, 보호된 운영 화면에서도 목포 김수현 정보가 동일하게 보이는지 최종 육안 확인`
+- `[CODEX] 운영 실제 두 계정 중 1개로 `https://crm.pressco21.com/login` 로그인 후, 메인 진입과 사이드바 `로그아웃` 버튼 왕복이 기대대로 동작하는지 최종 확인`
 - `[CODEX] 운영 CRM에서 `INV-20260401-134932` 수정 다이얼로그를 다시 열어, 첫 진입부터 목포 김수현(전화 010-7104-1761 / 배송지 '목포시 해안로 173번길 27')로 유지되는지 브라우저에서 재확인`
 - `[CODEX-LEAD] 플로라 봇을 3개 텔레그램 방에 모두 초대하고, 각 방에서 `/register executive|codex|claude <등록코드>`를 보내 실제 room 매핑을 완료`
 - `[CODEX-LEAD] `flora-telegram-room-router.config.json`과 env 파일을 실제 값으로 만들고, launchd 설치 후 맥북 재로그인 없이 백그라운드 자동실행까지 확인`
@@ -1001,6 +1031,8 @@
 - 이번 배포는 커밋 기준이 아니라 현재 로컬 작업 트리 기준으로 올라갔다. 따라서 `src/pages/Invoices.tsx` 외에 워킹트리에 남아 있던 `src/pages/CustomerDetail.tsx`, `src/lib/print.ts` 변경도 함께 반영됐다.
 - 현재 총매출 카드는 `선택 기간 + 현재 검색/수금상태 필터` 기준으로 계산된다. 기간 전체 합계만 고정해서 보여야 하면 필터 기준을 별도로 분리해야 한다.
 - 서버 반영과 원격 산출물 교체는 확인했지만, Basic Auth 뒤 실제 운영 화면에서 `기간 총매출` 문구와 인쇄 헤더를 육안으로 다시 누르진 않았다.
+- 이번 로그인 전환은 기존 `/etc/nginx/.htpasswd-crm` 계정을 그대로 쓰므로 계정 추가/비밀번호 변경은 여전히 서버 파일 기준으로 관리해야 한다.
+- 운영 로그인 화면과 리다이렉트는 검증했지만, 실제 두 내부 계정의 live 비밀번호로 로그인/로그아웃 왕복까지는 아직 사용자가 한 번 확인하는 편이 안전하다.
 - 이번 `기간 총매출`은 요청 취지대로 `출고` 행만 합산한다. 만약 운영에서 입금/환불까지 포함한 `거래 금액 합계`를 계속 같이 봐야 하면 별도 보조 카드로 되돌려 붙여야 한다.
 - 이번 배포 후에는 빈 조회 경로와 라이브 정의 반영까지는 확인했지만, 새 static data 가드가 실제 승인/반려 실건에서 경보와 차단까지 기대대로 타는지는 다음 실건 1회 운영 확인이 남아 있다.
 - 과거 브랜치에 남아 있던 `Login/RequireAuth/ActivityLog` 계열은 이번에 안전성/완성도 기준으로 제외했다. 나중에 정말 필요해지면 현재 main 구조 기준으로 새로 설계해 넣는 편이 맞다.

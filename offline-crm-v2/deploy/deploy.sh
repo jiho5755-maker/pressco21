@@ -9,6 +9,12 @@ set -e
 SERVER="ubuntu@158.180.77.201"
 SSH_KEY="$HOME/.ssh/oracle-n8n.key"
 REMOTE_DIR="/var/www/crm"
+REMOTE_AUTH_ROOT="/opt/pressco21/crm-auth"
+REMOTE_AUTH_SCRIPT="${REMOTE_AUTH_ROOT}/crm_auth_server.py"
+REMOTE_AUTH_SERVICE="/etc/systemd/system/crm-auth.service"
+REMOTE_AUTH_SECRET_FILE="/etc/pressco21-crm/auth-secret"
+REMOTE_NGINX_CONFIG="/etc/nginx/sites-available/crm"
+REMOTE_UPLOAD_DIR="/tmp/pressco21-crm-deploy"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_DIR="$(dirname "$SCRIPT_DIR")"
 
@@ -23,19 +29,58 @@ echo "빌드 완료"
 
 # 2. 기존 파일 정리 + 업로드
 echo "2/4 서버 업로드 중..."
-ssh -i "$SSH_KEY" "$SERVER" "rm -rf $REMOTE_DIR/* 2>/dev/null; mkdir -p $REMOTE_DIR"
+ssh -i "$SSH_KEY" "$SERVER" "bash -s" <<EOF
+set -euo pipefail
+
+rm -rf "$REMOTE_DIR"/* 2>/dev/null || true
+mkdir -p "$REMOTE_DIR"
+sudo mkdir -p "$REMOTE_AUTH_ROOT" "$(dirname "$REMOTE_AUTH_SECRET_FILE")" "$REMOTE_UPLOAD_DIR"
+sudo chown -R ubuntu:ubuntu "$REMOTE_AUTH_ROOT" "$REMOTE_UPLOAD_DIR"
+rm -rf "$REMOTE_UPLOAD_DIR"/*
+EOF
 scp -i "$SSH_KEY" -r "$PROJECT_DIR/dist/"* "$SERVER:$REMOTE_DIR/"
+scp -i "$SSH_KEY" "$PROJECT_DIR/scripts/server/crm_auth_server.py" "$SERVER:$REMOTE_UPLOAD_DIR/crm_auth_server.py"
+scp -i "$SSH_KEY" "$PROJECT_DIR/deploy/crm-auth.service" "$SERVER:$REMOTE_UPLOAD_DIR/crm-auth.service"
+scp -i "$SSH_KEY" "$PROJECT_DIR/deploy/nginx-crm-secure.conf" "$SERVER:$REMOTE_UPLOAD_DIR/nginx-crm-secure.conf"
 
 echo "업로드 완료"
 
-# 3. Nginx 설정이 없으면 적용 (최초 배포 시)
+# 3. 인증 서비스 + Nginx 설정 반영
 echo "3/4 Nginx 확인..."
-ssh -i "$SSH_KEY" "$SERVER" "
-  if [ ! -f /etc/nginx/sites-available/crm ]; then
-    echo 'Nginx 설정 없음 - 수동 설정이 필요합니다'
-    exit 1
+ssh -i "$SSH_KEY" "$SERVER" "bash -s" <<EOF
+set -euo pipefail
+
+sudo install -m 755 "$REMOTE_UPLOAD_DIR/crm_auth_server.py" "$REMOTE_AUTH_SCRIPT"
+sudo install -m 644 "$REMOTE_UPLOAD_DIR/crm-auth.service" "$REMOTE_AUTH_SERVICE"
+sudo install -m 644 "$REMOTE_UPLOAD_DIR/nginx-crm-secure.conf" "$REMOTE_NGINX_CONFIG"
+
+if [ ! -f "$REMOTE_AUTH_SECRET_FILE" ]; then
+  sudo python3 - <<'PY'
+from pathlib import Path
+import secrets
+
+target = Path("/etc/pressco21-crm/auth-secret")
+target.parent.mkdir(parents=True, exist_ok=True)
+target.write_bytes(secrets.token_bytes(32))
+target.chmod(0o600)
+PY
+fi
+
+sudo chown root:root "$REMOTE_AUTH_SCRIPT" "$REMOTE_AUTH_SERVICE" "$REMOTE_NGINX_CONFIG" "$REMOTE_AUTH_SECRET_FILE"
+sudo chmod 755 "$REMOTE_AUTH_SCRIPT"
+sudo chmod 644 "$REMOTE_AUTH_SERVICE" "$REMOTE_NGINX_CONFIG"
+sudo chmod 600 "$REMOTE_AUTH_SECRET_FILE"
+sudo systemctl daemon-reload
+sudo systemctl enable crm-auth.service >/dev/null
+sudo systemctl restart crm-auth.service
+for attempt in 1 2 3 4 5 6 7 8 9 10; do
+  if curl -fsS http://127.0.0.1:9100/health >/dev/null; then
+    break
   fi
-"
+  sleep 1
+done
+curl -fsS http://127.0.0.1:9100/health >/dev/null
+EOF
 
 # 4. Nginx 재로드
 echo "4/4 Nginx 재로드..."

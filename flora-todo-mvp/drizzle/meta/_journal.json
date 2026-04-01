@@ -15,6 +15,13 @@
       "when": 1775058956589,
       "tag": "0001_majestic_gateway",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1775062290473,
+      "tag": "0002_careless_maelstrom",
+      "breakpoints": true
     }
   ]
 }

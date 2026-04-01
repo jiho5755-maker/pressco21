@@ -6,6 +6,7 @@ export type TemporalExtraction = {
   reminderAt: Date | null;
   matchedExpressions: string[];
   isDeadline: boolean;
+  isBeforeConstraint: boolean;
 };
 
 export type FollowupDraft = {
@@ -42,6 +43,8 @@ export type StructuredTaskDraft = {
 
 export type StructuredSegment = {
   sourceSegment: string;
+  segmentHash: string;
+  segmentIndex: number;
   task: StructuredTaskDraft;
   reminders: ReminderDraft[];
   followups: FollowupDraft[];
@@ -50,6 +53,11 @@ export type StructuredSegment = {
     matchedPriority: string[];
     matchedTemporal: string[];
     matchedFollowup: string[];
+    entities: {
+      people: string[];
+      companies: string[];
+      projects: string[];
+    };
   };
 };
 

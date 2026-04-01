@@ -76,9 +76,18 @@ function buildReminderAt(dueAt: Date, hasExplicitTime: boolean) {
   return setTime(dueAt, 9, 0);
 }
 
+function applyBeforeConstraint(dueAt: Date, hasExplicitTime: boolean) {
+  if (hasExplicitTime) {
+    return new Date(dueAt.getTime() - 60 * 60 * 1000);
+  }
+
+  return setTime(dueAt, 9, 0);
+}
+
 export function extractTemporalSignals(text: string, now = new Date()): TemporalExtraction {
   const matchedExpressions: string[] = [];
   const timeInfo = parseTime(text);
+  const isBeforeConstraint = text.includes("전에");
   let dueAt: Date | null = null;
   let timeBucket: string | null = null;
 
@@ -153,6 +162,11 @@ export function extractTemporalSignals(text: string, now = new Date()): Temporal
     matchedExpressions.push(text.includes("까지") ? "까지" : "안에");
   }
 
+  if (dueAt && isBeforeConstraint) {
+    dueAt = applyBeforeConstraint(dueAt, Boolean(timeInfo));
+    matchedExpressions.push("전에");
+  }
+
   const reminderAt =
     dueAt !== null
       ? buildReminderAt(
@@ -167,6 +181,7 @@ export function extractTemporalSignals(text: string, now = new Date()): Temporal
     reminderAt,
     matchedExpressions,
     isDeadline,
+    isBeforeConstraint,
   };
 }
 

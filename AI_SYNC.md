@@ -51,9 +51,9 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-02 00:49:34 KST
+- Started At: 2026-04-02 01:44:44 KST
 - Branch: main
-- Working Scope: —
+- Working Scope: flora-todo-mvp Sprint 2.5 운영 안정화
 - Active Subdirectory: flora-todo-mvp
 
 ## Files In Progress
@@ -90,6 +90,37 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `flora-todo-mvp` Sprint 2.5 운영 안정화 작업을 진행했다.
+  - 추가/수정
+    - `flora-todo-mvp/src/db/schema/{tasks,reminders,followups}.ts`
+      - `segment_hash`, `segment_index`, `reviewed_at`, `ignored_at`, `signature`와 unique 제약을 추가해 DB 레벨 dedupe 기반을 만들었다.
+    - `flora-todo-mvp/src/services/ingestService.ts`
+      - 같은 `source_channel + source_message_id + segment_hash` 재처리 시 create/update/skip/ignore로 idempotent 동작하도록 ingest 흐름을 재구성했다.
+      - 리뷰 완료 task는 재ingest 시 덮어쓰지 않도록 보호했다.
+    - `flora-todo-mvp/src/db/repositories/{taskRepository,reminderRepository,followupRepository}.ts`
+      - task patch/admin 수정, ignored 제외 summary 집계, child entity upsert 정리를 추가했다.
+    - `flora-todo-mvp/app/api/admin/review/route.ts`
+    - `flora-todo-mvp/app/api/admin/tasks/[id]/route.ts`
+    - `flora-todo-mvp/app/api/admin/reminders/[id]/route.ts`
+    - `flora-todo-mvp/app/api/admin/followups/[id]/route.ts`
+      - 운영 검수용 review/admin endpoint를 추가했다.
+    - `flora-todo-mvp/src/config/entity-aliases.ts`
+    - `flora-todo-mvp/src/lib/entity-extractor.ts`
+    - `flora-todo-mvp/src/lib/structured-parser.ts`
+      - 사람명/업체명/프로젝트명 alias 기반 추출을 넣고 `waiting_for`, `related_project`, follow-up 정밀도를 보강했다.
+    - `flora-todo-mvp/scripts/{verify-dedupe,verify-review,verify-entities,verify-sprint2}.ts`
+      - dedupe/review/entity 추출 회귀 확인 스크립트를 추가했다.
+    - `flora-todo-mvp/scripts/demo-structured.ts`
+    - `flora-todo-mvp/scripts/seed-demo.ts`
+    - `flora-todo-mvp/README.md`
+      - 구조화 전/후 비교, admin 검수, demo seed 실행 경로를 보강했다.
+    - `flora-todo-mvp/drizzle/0002_careless_maelstrom.sql`
+      - Sprint 2.5 스키마 변경 migration을 생성했다.
+  - 검증
+    - `npm run build` 통과
+    - `npm run verify:entities` 통과
+    - `npm run demo:structure` 통과
+    - `npm run db:check`, `npm run verify:dedupe`, `npm run verify:review`는 현재 샌드박스에서 `127.0.0.1:5432` 접근이 `EPERM`으로 막혀 DB 실검증은 미완료
 - `flora-todo-mvp` Sprint 2 구조화 파이프라인을 추가했다.
   - 변경
     - `flora-todo-mvp/src/lib/structured-parser.ts`
@@ -1081,6 +1112,9 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX-LEAD] flora-todo-mvp 로컬 Postgres가 실제로 떠 있는 환경에서 \`npm run db:migrate -> npm run verify:dedupe -> npm run verify:review\`를 실행해 Sprint 2.5 DB 실검증을 마무리`
+- `[CODEX-LEAD] flora-todo-mvp Sprint 3 전에 review endpoint를 얇은 내부 검수 페이지로 연결해 task/reminder/follow-up 수정 루프를 브라우저에서 확인`
+- `[CODEX-LEAD] flora-todo-mvp compound sentence에서 \`waiting_for\` 후보를 더 짧게 자르기 위한 후처리 규칙과 alias 사전 운영 편집 경로 추가`
 - `[CODEX-LEAD] flora-todo-mvp 로컬 터미널에서 실제 Postgres가 떠 있는 상태로 \`npm run db:migrate -> npm run db:check -> npm run seed:demo\`를 실행해 DB 적재 검증 마무리`
 - `[CODEX-LEAD] flora-todo-mvp Sprint 3에서 구조화 결과를 확인/수정할 수 있는 최소 UI와 ingest 결과 비교 화면 추가`
 - `[CODEX-LEAD] flora-todo-mvp 로컬 Postgres를 실제로 띄운 뒤 \`POST /api/ingest\`, \`GET /api/summary\`를 실호출해 응답/DB 적재를 검증`
@@ -1154,6 +1188,8 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- `flora-todo-mvp` Sprint 2.5는 서비스 레벨 + DB 레벨 dedupe 구조까지 반영됐지만, 현재 샌드박스에서는 로컬 TCP 접속이 막혀 동일 입력 재처리와 review 수정 후 summary 반영을 DB에서 끝까지 확인하지 못했다.
+- `flora-todo-mvp` 엔터티 추출은 alias/룰 기반이라 실무 메모에서는 꽤 안정적이지만, 긴 복문에서 `waiting_for`가 과도하게 길어지는 케이스는 후처리를 더 넣는 편이 안전하다.
 - `flora-todo-mvp` Sprint 2는 규칙 기반 구조화라서 예측 가능성은 높지만, 문장 의미를 깊게 추론하지는 않는다. 표현이 크게 달라지면 미탐/과소분해가 남을 수 있다.
 - `flora-todo-mvp`는 현재 샌드박스에서 로컬 DB 포트 접근이 막혀 있어 `db:migrate`, 실제 insert, summary DB 반영까지는 여기서 끝까지 검증하지 못했다.
 - `flora-todo-mvp`는 코드 스캐폴딩까지 완료됐지만, 현재 샌드박스에서는 Docker daemon socket 접근이 막혀 로컬 Postgres 컨테이너 실기동 검증을 하지 못했다.

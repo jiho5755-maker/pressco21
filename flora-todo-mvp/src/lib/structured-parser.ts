@@ -1,4 +1,6 @@
 import { TaskPriority, TaskStatus } from "@/src/domain/task";
+import { extractNamedEntities, inferRelatedProject, inferWaitingForFromEntities } from "@/src/lib/entity-extractor";
+import { buildSegmentHash } from "@/src/lib/fingerprint";
 import { deriveTaskTitle } from "@/src/lib/task-title";
 import { buildNextCheckAt, extractTemporalSignals } from "@/src/lib/date-extractor";
 import {
@@ -10,15 +12,17 @@ import {
 
 const compoundSeparators = [
   /\s+및\s+/,
+  /\s+하고\s+/,
   /\s+그리고\s+/,
   /\s+주고\s+/,
   /\s+도 같이\s+/,
+  /\s+같이\s+/,
   /,\s+/,
 ];
 
 const statusRules: Array<{ status: TaskStatus; patterns: RegExp[] }> = [
   { status: "waiting", patterns: [/대기/, /기다림/, /연락 대기/, /회신 대기/, /수신 대기/] },
-  { status: "needs_check", patterns: [/확인 필요/, /다시 확인/, /점검/] },
+  { status: "needs_check", patterns: [/확인 필요/, /다시 확인/, /점검/, /아직 못함/, /못함/] },
   { status: "in_progress", patterns: [/진행중/, /하고 있음/] },
   { status: "done", patterns: [/완료/, /끝남/] },
 ];
@@ -124,14 +128,15 @@ function extractWaitingFor(text: string, signal: string) {
 function extractFollowups(text: string, now = new Date(), dueAt: Date | null = null) {
   const followups: FollowupDraft[] = [];
   const matchedSignals: string[] = [];
+  const rawSignals = followupRules
+    .map((rule) => text.match(rule)?.[0] ?? null)
+    .filter((signal): signal is string => Boolean(signal));
 
-  for (const rule of followupRules) {
-    const match = text.match(rule);
-    if (!match) {
-      continue;
-    }
+  const filteredSignals = rawSignals.includes("나중에 확인")
+    ? rawSignals.filter((signal) => signal !== "다시 확인")
+    : rawSignals;
 
-    const signal = match[0];
+  for (const signal of filteredSignals) {
     matchedSignals.push(signal);
 
     followups.push({
@@ -152,11 +157,22 @@ function buildReminders(title: string, temporal: ReturnType<typeof extractTempor
   const reminders: ReminderDraft[] = [];
 
   if (temporal.dueAt && temporal.reminderAt) {
+    const kind = temporal.isBeforeConstraint
+      ? "prep"
+      : temporal.isDeadline
+        ? "deadline"
+        : "schedule";
+    const message = temporal.isBeforeConstraint
+      ? `${title} 사전 준비 확인`
+      : temporal.isDeadline
+        ? `${title} 마감 확인`
+        : `${title} 일정 확인`;
+
     reminders.push({
       title,
       remindAt: temporal.reminderAt,
-      kind: temporal.isDeadline ? "deadline" : "schedule",
-      message: temporal.isDeadline ? `${title} 마감 확인` : `${title} 일정 확인`,
+      kind,
+      message,
       status: "pending",
       sourceSignal: temporal.matchedExpressions.join(", "),
     });
@@ -168,18 +184,26 @@ function buildReminders(title: string, temporal: ReturnType<typeof extractTempor
 export function structureMemoText(text: string, now = new Date()): StructuredMemoResult {
   const { normalizedText, segments } = splitMemoText(text);
 
-  const structuredSegments: StructuredSegment[] = segments.map((segment) => {
+  const structuredSegments: StructuredSegment[] = segments.map((segment, index) => {
     const status = inferStatus(segment);
     const priority = inferPriority(segment);
     const temporal = extractTemporalSignals(segment, now);
+    const entities = extractNamedEntities(segment);
     const followupResult = extractFollowups(segment, now, temporal.dueAt);
-    const taskStatus = followupResult.followups.length > 0 && status.status === "todo" ? "waiting" : status.status;
-    const waitingFor = followupResult.followups[0]?.waitingFor ?? null;
+    const normalizedFollowups = followupResult.followups.map((followup) => ({
+      ...followup,
+      waitingFor: inferWaitingForFromEntities(segment, followup.waitingFor, entities),
+    }));
+    const taskStatus = normalizedFollowups.length > 0 && status.status === "todo" ? "waiting" : status.status;
+    const waitingFor = inferWaitingForFromEntities(segment, normalizedFollowups[0]?.waitingFor ?? null, entities);
     const title = deriveTaskTitle(segment);
     const reminders = buildReminders(title, temporal);
+    const relatedProject = inferRelatedProject(entities);
 
     return {
       sourceSegment: segment,
+      segmentHash: buildSegmentHash("preview", String(index), segment),
+      segmentIndex: index,
       task: {
         title,
         sourceSegment: segment,
@@ -189,7 +213,7 @@ export function structureMemoText(text: string, now = new Date()): StructuredMem
         dueAt: temporal.dueAt,
         timeBucket: temporal.timeBucket,
         waitingFor,
-        relatedProject: null,
+        relatedProject,
         detailsJson: {
           structuredVersion: 2,
           sourceSegment: segment,
@@ -197,15 +221,17 @@ export function structureMemoText(text: string, now = new Date()): StructuredMem
           matchedPriority: priority.matched,
           matchedTemporal: temporal.matchedExpressions,
           matchedFollowup: followupResult.matchedSignals,
+          entities,
         },
       },
       reminders,
-      followups: followupResult.followups,
+      followups: normalizedFollowups,
       debug: {
         matchedStatus: status.matched,
         matchedPriority: priority.matched,
         matchedTemporal: temporal.matchedExpressions,
         matchedFollowup: followupResult.matchedSignals,
+        entities,
       },
     };
   });

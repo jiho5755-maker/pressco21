@@ -13,6 +13,10 @@
     "db:check": "node --import tsx scripts/check-db.ts",
     "demo:structure": "node --import tsx scripts/demo-structured.ts",
     "seed:demo": "node --import tsx scripts/seed-demo.ts",
+    "verify:sprint2": "node --import tsx scripts/verify-sprint2.ts",
+    "verify:dedupe": "node --import tsx scripts/verify-dedupe.ts",
+    "verify:review": "node --import tsx scripts/verify-review.ts",
+    "verify:entities": "node --import tsx scripts/verify-entities.ts",
     "demo:ingest": "bash scripts/demo-ingest.sh",
     "demo:summary": "bash scripts/demo-summary.sh"
   },

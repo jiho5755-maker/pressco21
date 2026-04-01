@@ -16,7 +16,10 @@
       "name": "매주 월요일 09시",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 0]
+      "position": [
+        0,
+        0
+      ]
     },
     {
       "parameters": {
@@ -25,30 +28,61 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "mode", "value": "search" },
-            { "name": "type", "value": "order" },
-            { "name": "ver", "value": "2" },
-            { "name": "InquiryTimeFrom", "value": "={{ $now.minus({days:7}).toFormat('yyyy-MM-dd') }} 00:00:00" },
-            { "name": "InquiryTimeTo", "value": "={{ $now.minus({days:1}).toFormat('yyyy-MM-dd') }} 23:59:59" },
-            { "name": "limit", "value": "500" }
+            {
+              "name": "mode",
+              "value": "search"
+            },
+            {
+              "name": "type",
+              "value": "order"
+            },
+            {
+              "name": "ver",
+              "value": "2"
+            },
+            {
+              "name": "InquiryTimeFrom",
+              "value": "={{ $now.minus({days:7}).toFormat('yyyy-MM-dd') }} 00:00:00"
+            },
+            {
+              "name": "InquiryTimeTo",
+              "value": "={{ $now.minus({days:1}).toFormat('yyyy-MM-dd') }} 23:59:59"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
-            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+            {
+              "name": "Shopkey",
+              "value": "={{ $env.MAKESHOP_SHOPKEY }}"
+            },
+            {
+              "name": "Licensekey",
+              "value": "={{ $env.MAKESHOP_LICENSEKEY }}"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } }
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
         }
       },
       "id": "b3a00001-0001-4000-8000-000000000002",
       "name": "주문 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [240, 0]
+      "position": [
+        240,
+        0
+      ]
     },
     {
       "parameters": {
@@ -57,28 +91,53 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "mode", "value": "search" },
-            { "name": "type", "value": "user" },
-            { "name": "searchType", "value": "login" },
-            { "name": "limit", "value": "500" }
+            {
+              "name": "mode",
+              "value": "search"
+            },
+            {
+              "name": "type",
+              "value": "user"
+            },
+            {
+              "name": "searchType",
+              "value": "login"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
-            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+            {
+              "name": "Shopkey",
+              "value": "={{ $env.MAKESHOP_SHOPKEY }}"
+            },
+            {
+              "name": "Licensekey",
+              "value": "={{ $env.MAKESHOP_LICENSEKEY }}"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } }
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
         }
       },
       "id": "b3a00001-0001-4000-8000-000000000003",
       "name": "회원 통계",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [480, 0]
+      "position": [
+        480,
+        0
+      ]
     },
     {
       "parameters": {
@@ -87,38 +146,63 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "mode", "value": "search" },
-            { "name": "type", "value": "cart" },
-            { "name": "limit", "value": "500" }
+            {
+              "name": "mode",
+              "value": "search"
+            },
+            {
+              "name": "type",
+              "value": "cart"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
-            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+            {
+              "name": "Shopkey",
+              "value": "={{ $env.MAKESHOP_SHOPKEY }}"
+            },
+            {
+              "name": "Licensekey",
+              "value": "={{ $env.MAKESHOP_LICENSEKEY }}"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } }
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
         }
       },
       "id": "b3a00001-0001-4000-8000-000000000004",
       "name": "장바구니 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [720, 0]
+      "position": [
+        720,
+        0
+      ]
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// S3A-001: 주간 비즈니스 리포트 분석 엔진\n// MakeShop 오픈 API 데이터를 분석하여 주간 리포트 생성\n\nconst orderResp = $('주문 조회').first().json;\nconst memberResp = $('회원 통계').first().json;\nconst cartResp = $('장바구니 조회').first().json;\n\n// --- 데이터 파싱 (방어적) ---\nconst orders = orderResp.order || orderResp.list || [];\nconst members = memberResp.list || memberResp.user || [];\nconst carts = cartResp.list || cartResp.cart || [];\n\nconst weekStart = $now.minus({days:7}).toFormat('yyyy-MM-dd');\nconst weekEnd = $now.minus({days:1}).toFormat('yyyy-MM-dd');\n\n// --- 1. 매출 요약 ---\nlet totalRevenue = 0;\nlet orderCount = orders.length;\nconst orderByNum = {}; // 주문번호별 그룹핑\nconst productSales = {};\nconst trafficSources = {};\nlet pcCount = 0;\nlet mobileCount = 0;\nconst categoryRevenue = {};\nconst dailyRevenue = {};\nconst customerOrders = {}; // userid별 주문 횟수\n\nfor (const order of orders) {\n  const baskets = order.basket || [];\n  const isMobile = order.mobile === 'Y' || order.mobile === '1';\n\n  if (isMobile) mobileCount++;\n  else pcCount++;\n\n  // 유입 경로\n  const rawSource = order.link_url || '';\n  let source = '직접방문';\n  if (rawSource.includes('naver')) source = '네이버';\n  else if (rawSource.includes('google')) source = '구글';\n  else if (rawSource.includes('instagram')) source = '인스타그램';\n  else if (rawSource.includes('kakao')) source = '카카오';\n  else if (rawSource.includes('coupang')) source = '쿠팡';\n  else if (rawSource) source = '기타';\n  trafficSources[source] = (trafficSources[source] || 0) + 1;\n\n  // 고객 주문 횟수\n  const uid = order.userid || order.sender || 'guest';\n  customerOrders[uid] = (customerOrders[uid] || 0) + 1;\n\n  let orderTotal = 0;\n  for (const item of baskets) {\n    const price = parseInt(item.sell_price || item.price || 0);\n    const qty = parseInt(item.quantity || item.ea || 1);\n    const itemTotal = price * qty;\n    orderTotal += itemTotal;\n\n    // 상품별 매출 집계\n    const pName = item.product_name || item.pname || '알수없음';\n    if (!productSales[pName]) {\n      productSales[pName] = { name: pName, revenue: 0, quantity: 0 };\n    }\n    productSales[pName].revenue += itemTotal;\n    productSales[pName].quantity += qty;\n\n    // 카테고리별 매출\n    const cat = item.category_name || item.category || '미분류';\n    categoryRevenue[cat] = (categoryRevenue[cat] || 0) + itemTotal;\n  }\n\n  totalRevenue += orderTotal;\n\n  // 일별 매출\n  const day = (order.order_date || '').slice(0, 10);\n  if (day) {\n    dailyRevenue[day] = (dailyRevenue[day] || 0) + orderTotal;\n  }\n}\n\nconst avgOrderValue = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;\n\n// --- 2. TOP 10 베스트셀러 ---\nconst top10Products = Object.values(productSales)\n  .sort((a, b) => b.revenue - a.revenue)\n  .slice(0, 10);\n\n// --- 3. 고객 분석 ---\nconst uniqueCustomerCount = Object.keys(customerOrders).length;\nconst repeatBuyers = Object.values(customerOrders).filter(c => c > 1).length;\nconst repeatRate = uniqueCustomerCount > 0\n  ? Math.round((repeatBuyers / uniqueCustomerCount) * 1000) / 10\n  : 0;\n\n// 회원 그룹 분석 (회원 API 데이터)\nconst groupCounts = {};\nfor (const m of members) {\n  const g = m.group_name || '일반';\n  groupCounts[g] = (groupCounts[g] || 0) + 1;\n}\n\n// 신규 회원 (최근 7일 가입 추정: order_count <= 1)\nconst newMemberCount = members.filter(m => parseInt(m.order_count || 0) <= 1).length;\n\n// --- 4. 장바구니 이탈 TOP 5 ---\nconst cartProducts = {};\nfor (const cart of carts) {\n  const pName = cart.product_name || cart.pname || '알수없음';\n  cartProducts[pName] = (cartProducts[pName] || 0) + 1;\n}\nconst cartTop5 = Object.entries(cartProducts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5)\n  .map(([name, count]) => ({ name, count }));\n\n// --- 5. 유입 경로 정렬 ---\nconst trafficTop = Object.entries(trafficSources)\n  .sort((a, b) => b[1] - a[1]);\n\n// --- 6. 카테고리 TOP 5 ---\nconst categoryTop = Object.entries(categoryRevenue)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5);\n\n// --- 텔레그램 메시지 포맷팅 ---\nconst fmt = (n) => n.toLocaleString('ko-KR');\n\nlet msg = '📊 <b>PRESSCO21 주간 비즈니스 리포트</b>\\n';\nmsg += '━━━━━━━━━━━━━━━━━━\\n';\nmsg += '📅 ' + weekStart + ' ~ ' + weekEnd + '\\n\\n';\n\n// 매출 요약\nmsg += '💰 <b>매출 요약</b>\\n';\nmsg += '  총 매출: ' + fmt(totalRevenue) + '원\\n';\nmsg += '  주문 건수: ' + fmt(orderCount) + '건\\n';\nmsg += '  객단가: ' + fmt(avgOrderValue) + '원\\n';\nmsg += '  조회 데이터: 최대 500건 (API 제한)\\n\\n';\n\n// 기기별\nconst total = pcCount + mobileCount;\nmsg += '📱 <b>기기별 비율</b>\\n';\nif (total > 0) {\n  msg += '  PC: ' + pcCount + '건 (' + Math.round(pcCount/total*100) + '%)\\n';\n  msg += '  모바일: ' + mobileCount + '건 (' + Math.round(mobileCount/total*100) + '%)\\n\\n';\n} else {\n  msg += '  데이터 없음\\n\\n';\n}\n\n// TOP 10 베스트셀러\nmsg += '🏆 <b>TOP 10 베스트셀러</b>\\n';\ntop10Products.forEach((p, i) => {\n  const shortName = p.name.length > 20 ? p.name.slice(0, 20) + '..' : p.name;\n  msg += '  ' + (i+1) + '. ' + shortName + '\\n';\n  msg += '     ' + fmt(p.revenue) + '원 / ' + p.quantity + '개\\n';\n});\nmsg += '\\n';\n\n// 고객 분석\nmsg += '👥 <b>고객 분석</b>\\n';\nmsg += '  구매 고객: ' + uniqueCustomerCount + '명\\n';\nmsg += '  재구매: ' + repeatBuyers + '명 (' + repeatRate + '%)\\n';\nif (Object.keys(groupCounts).length > 0) {\n  msg += '  회원 그룹: ';\n  msg += Object.entries(groupCounts).map(([g,c]) => g + ' ' + c + '명').join(', ') + '\\n';\n}\nmsg += '\\n';\n\n// 유입 경로\nmsg += '🔗 <b>유입 경로</b>\\n';\ntrafficTop.forEach(([src, cnt]) => {\n  msg += '  ' + src + ': ' + cnt + '건\\n';\n});\nmsg += '\\n';\n\n// 카테고리 TOP 5\nif (categoryTop.length > 0) {\n  msg += '📂 <b>카테고리 매출 TOP 5</b>\\n';\n  categoryTop.forEach(([cat, rev]) => {\n    msg += '  ' + cat + ': ' + fmt(rev) + '원\\n';\n  });\n  msg += '\\n';\n}\n\n// 장바구니 이탈 TOP 5\nif (cartTop5.length > 0) {\n  msg += '🛒 <b>장바구니 TOP 5 (이탈 분석)</b>\\n';\n  cartTop5.forEach((item) => {\n    const shortName = item.name.length > 25 ? item.name.slice(0, 25) + '..' : item.name;\n    msg += '  ' + shortName + ': ' + item.count + '건\\n';\n  });\n  msg += '\\n';\n}\n\n// 일별 매출\nconst sortedDays = Object.entries(dailyRevenue).sort();\nif (sortedDays.length > 0) {\n  msg += '📈 <b>일별 매출</b>\\n';\n  sortedDays.forEach(([day, rev]) => {\n    const shortDay = day.slice(5); // MM-DD\n    msg += '  ' + shortDay + ': ' + fmt(rev) + '원\\n';\n  });\n}\n\nmsg += '\\n🤖 자동 생성 by n8n S3A-001';\n\n// --- NocoDB 스냅샷 데이터 ---\nconst snapshot = {\n  week_start: weekStart,\n  week_end: weekEnd,\n  total_revenue: totalRevenue,\n  order_count: orderCount,\n  avg_order_value: avgOrderValue,\n  new_customers: newMemberCount,\n  repeat_rate: repeatRate,\n  unique_customers: uniqueCustomerCount,\n  top_products: JSON.stringify(top10Products),\n  traffic_sources: JSON.stringify(Object.fromEntries(trafficTop)),\n  device_ratio: JSON.stringify({ pc: pcCount, mobile: mobileCount }),\n  cart_abandonment: JSON.stringify(cartTop5),\n  category_revenue: JSON.stringify(Object.fromEntries(categoryTop)),\n  daily_revenue: JSON.stringify(Object.fromEntries(sortedDays)),\n  data_note: 'limit=500, partial if >500 orders/week',\n  created_at: $now.toISO()\n};\n\nreturn [{ json: { message: msg, snapshot: snapshot } }];"
+        "jsCode": "// S3A-001: 주간 비즈니스 리포트 분석 엔진\n// MakeShop 오픈 API 데이터를 분석하여 주간 리포트 생성\n\nconst orderResp = $('주문 조회').first().json;\nconst memberResp = $('회원 통계').first().json;\nconst cartResp = $('장바구니 조회').first().json;\n\n// --- 데이터 파싱 (MakeShop API: list는 객체, 키=주문번호) ---\nfunction toArray(data) {\n  if (Array.isArray(data)) return data;\n  if (data && typeof data === 'object') return Object.values(data);\n  return [];\n}\nconst rawOrders = toArray(orderResp.list);\nconst orders = rawOrders.map(function(entry) {\n  var o = entry.order || entry;\n  o.basket = entry.basket || o.basket || [];\n  if (!Array.isArray(o.basket)) o.basket = Object.values(o.basket);\n  return o;\n});\nconst members = toArray(memberResp.list);\nconst carts = toArray(cartResp.list);\n\nconst weekStart = $now.minus({days:7}).toFormat('yyyy-MM-dd');\nconst weekEnd = $now.minus({days:1}).toFormat('yyyy-MM-dd');\n\n// --- 1. 매출 요약 ---\nlet totalRevenue = 0;\nlet orderCount = orders.length;\nconst orderByNum = {}; // 주문번호별 그룹핑\nconst productSales = {};\nconst trafficSources = {};\nlet pcCount = 0;\nlet mobileCount = 0;\nconst categoryRevenue = {};\nconst dailyRevenue = {};\nconst customerOrders = {}; // userid별 주문 횟수\n\nfor (const order of orders) {\n  const baskets = order.basket || [];\n  const isMobile = (order.pay_path || '').toUpperCase() === 'MOBILE';\n\n  if (isMobile) mobileCount++;\n  else pcCount++;\n\n  // 유입 경로\n  const rawSource = order.link_url || '';\n  let source = '직접방문';\n  if (rawSource.includes('naver')) source = '네이버';\n  else if (rawSource.includes('google')) source = '구글';\n  else if (rawSource.includes('instagram')) source = '인스타그램';\n  else if (rawSource.includes('kakao')) source = '카카오';\n  else if (rawSource.includes('coupang')) source = '쿠팡';\n  else if (rawSource) source = '기타';\n  trafficSources[source] = (trafficSources[source] || 0) + 1;\n\n  // 고객 주문 횟수\n  const uid = order.userid || order.sender || 'guest';\n  customerOrders[uid] = (customerOrders[uid] || 0) + 1;\n\n  // 주문 금액: pay_price 직접 사용 (basket 합산보다 정확)\n  var orderTotal = parseInt(order.pay_price || order.total_product_price || order.start_price || 0);\n  totalRevenue += orderTotal;\n\n  // basket 상품별 집계\n  for (var bi = 0; bi < baskets.length; bi++) {\n    var item = baskets[bi];\n    var price = parseInt(item.sell_price || item.price || item.product_price || 0);\n    var qty = parseInt(item.quantity || item.ea || item.basket_count || 1);\n    var itemTotal = price * qty;\n\n    var pName = item.product_name || item.pname || item.branduid || '알수없음';\n    if (!productSales[pName]) {\n      productSales[pName] = { name: pName, revenue: 0, quantity: 0 };\n    }\n    productSales[pName].revenue += itemTotal;\n    productSales[pName].quantity += qty;\n\n    var cat = item.category_name || item.category || '미분류';\n    categoryRevenue[cat] = (categoryRevenue[cat] || 0) + itemTotal;\n  }\n\n  // 일별 매출\n  const day = (order.order_date || '').slice(0, 10);\n  if (day) {\n    dailyRevenue[day] = (dailyRevenue[day] || 0) + orderTotal;\n  }\n}\n\nconst avgOrderValue = orderCount > 0 ? Math.round(totalRevenue / orderCount) : 0;\n\n// --- 2. TOP 10 베스트셀러 ---\nconst top10Products = Object.values(productSales)\n  .sort((a, b) => b.revenue - a.revenue)\n  .slice(0, 10);\n\n// --- 3. 고객 분석 ---\nconst uniqueCustomerCount = Object.keys(customerOrders).length;\nconst repeatBuyers = Object.values(customerOrders).filter(c => c > 1).length;\nconst repeatRate = uniqueCustomerCount > 0\n  ? Math.round((repeatBuyers / uniqueCustomerCount) * 1000) / 10\n  : 0;\n\n// 회원 그룹 분석 (회원 API 데이터)\nconst groupCounts = {};\nfor (const m of members) {\n  const g = m.group_name || '일반';\n  groupCounts[g] = (groupCounts[g] || 0) + 1;\n}\n\n// 신규 회원 (최근 7일 가입 추정: order_count <= 1)\nconst newMemberCount = members.filter(m => parseInt(m.order_count || 0) <= 1).length;\n\n// --- 4. 장바구니 이탈 TOP 5 ---\nconst cartProducts = {};\nfor (const cart of carts) {\n  const pName = cart.product_name || cart.pname || '알수없음';\n  cartProducts[pName] = (cartProducts[pName] || 0) + 1;\n}\nconst cartTop5 = Object.entries(cartProducts)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5)\n  .map(([name, count]) => ({ name, count }));\n\n// --- 5. 유입 경로 정렬 ---\nconst trafficTop = Object.entries(trafficSources)\n  .sort((a, b) => b[1] - a[1]);\n\n// --- 6. 카테고리 TOP 5 ---\nconst categoryTop = Object.entries(categoryRevenue)\n  .sort((a, b) => b[1] - a[1])\n  .slice(0, 5);\n\n// --- 텔레그램 메시지 포맷팅 ---\nconst fmt = (n) => n.toLocaleString('ko-KR');\n\nlet msg = '📊 <b>PRESSCO21 주간 비즈니스 리포트</b>\\n';\nmsg += '━━━━━━━━━━━━━━━━━━\\n';\nmsg += '📅 ' + weekStart + ' ~ ' + weekEnd + '\\n\\n';\n\n// 매출 요약\nmsg += '💰 <b>매출 요약</b>\\n';\nmsg += '  총 매출: ' + fmt(totalRevenue) + '원\\n';\nmsg += '  주문 건수: ' + fmt(orderCount) + '건\\n';\nmsg += '  객단가: ' + fmt(avgOrderValue) + '원\\n';\nmsg += '  조회 데이터: 최대 500건 (API 제한)\\n\\n';\n\n// 기기별\nconst total = pcCount + mobileCount;\nmsg += '📱 <b>기기별 비율</b>\\n';\nif (total > 0) {\n  msg += '  PC: ' + pcCount + '건 (' + Math.round(pcCount/total*100) + '%)\\n';\n  msg += '  모바일: ' + mobileCount + '건 (' + Math.round(mobileCount/total*100) + '%)\\n\\n';\n} else {\n  msg += '  데이터 없음\\n\\n';\n}\n\n// TOP 10 베스트셀러\nmsg += '🏆 <b>TOP 10 베스트셀러</b>\\n';\ntop10Products.forEach((p, i) => {\n  const shortName = p.name.length > 20 ? p.name.slice(0, 20) + '..' : p.name;\n  msg += '  ' + (i+1) + '. ' + shortName + '\\n';\n  msg += '     ' + fmt(p.revenue) + '원 / ' + p.quantity + '개\\n';\n});\nmsg += '\\n';\n\n// 고객 분석\nmsg += '👥 <b>고객 분석</b>\\n';\nmsg += '  구매 고객: ' + uniqueCustomerCount + '명\\n';\nmsg += '  재구매: ' + repeatBuyers + '명 (' + repeatRate + '%)\\n';\nif (Object.keys(groupCounts).length > 0) {\n  msg += '  회원 그룹: ';\n  msg += Object.entries(groupCounts).map(([g,c]) => g + ' ' + c + '명').join(', ') + '\\n';\n}\nmsg += '\\n';\n\n// 유입 경로\nmsg += '🔗 <b>유입 경로</b>\\n';\ntrafficTop.forEach(([src, cnt]) => {\n  msg += '  ' + src + ': ' + cnt + '건\\n';\n});\nmsg += '\\n';\n\n// 카테고리 TOP 5\nif (categoryTop.length > 0) {\n  msg += '📂 <b>카테고리 매출 TOP 5</b>\\n';\n  categoryTop.forEach(([cat, rev]) => {\n    msg += '  ' + cat + ': ' + fmt(rev) + '원\\n';\n  });\n  msg += '\\n';\n}\n\n// 장바구니 이탈 TOP 5\nif (cartTop5.length > 0) {\n  msg += '🛒 <b>장바구니 TOP 5 (이탈 분석)</b>\\n';\n  cartTop5.forEach((item) => {\n    const shortName = item.name.length > 25 ? item.name.slice(0, 25) + '..' : item.name;\n    msg += '  ' + shortName + ': ' + item.count + '건\\n';\n  });\n  msg += '\\n';\n}\n\n// 일별 매출\nconst sortedDays = Object.entries(dailyRevenue).sort();\nif (sortedDays.length > 0) {\n  msg += '📈 <b>일별 매출</b>\\n';\n  sortedDays.forEach(([day, rev]) => {\n    const shortDay = day.slice(5); // MM-DD\n    msg += '  ' + shortDay + ': ' + fmt(rev) + '원\\n';\n  });\n}\n\nmsg += '\\n🤖 자동 생성 by n8n S3A-001';\n\n// --- NocoDB 스냅샷 데이터 ---\nconst snapshot = {\n  week_start: weekStart,\n  week_end: weekEnd,\n  total_revenue: totalRevenue,\n  order_count: orderCount,\n  avg_order_value: avgOrderValue,\n  new_customers: newMemberCount,\n  repeat_rate: repeatRate,\n  unique_customers: uniqueCustomerCount,\n  top_products: JSON.stringify(top10Products),\n  traffic_sources: JSON.stringify(Object.fromEntries(trafficTop)),\n  device_ratio: JSON.stringify({ pc: pcCount, mobile: mobileCount }),\n  cart_abandonment: JSON.stringify(cartTop5),\n  category_revenue: JSON.stringify(Object.fromEntries(categoryTop)),\n  daily_revenue: JSON.stringify(Object.fromEntries(sortedDays)),\n  data_note: 'limit=500, partial if >500 orders/week',\n  created_at: $now.toISO()\n};\n\nreturn [{ json: { message: msg, snapshot: snapshot } }];"
       },
       "id": "b3a00001-0001-4000-8000-000000000005",
       "name": "분석 엔진",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [960, 0]
+      "position": [
+        960,
+        0
+      ]
     },
     {
       "parameters": {
@@ -127,22 +211,35 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "xc-auth", "value": "={{ $env.NOCODB_TOKEN }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "xc-token",
+              "value": "={{ $env.NOCODB_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify($json.snapshot) }}",
         "options": {
-          "response": { "response": { "responseFormat": "json" } }
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
         }
       },
       "id": "b3a00001-0001-4000-8000-000000000006",
       "name": "NocoDB 스냅샷 저장",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1200, 0]
+      "position": [
+        1200,
+        0
+      ]
     },
     {
       "parameters": {
@@ -156,7 +253,10 @@
       "name": "텔레그램 리포트",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1440, 0],
+      "position": [
+        1440,
+        0
+      ],
       "credentials": {
         "telegramApi": {
           "id": "RdFu3nsFuuO5NCff",
@@ -167,22 +267,70 @@
   ],
   "connections": {
     "매주 월요일 09시": {
-      "main": [[{ "node": "주문 조회", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "주문 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "주문 조회": {
-      "main": [[{ "node": "회원 통계", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "회원 통계",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "회원 통계": {
-      "main": [[{ "node": "장바구니 조회", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "장바구니 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "장바구니 조회": {
-      "main": [[{ "node": "분석 엔진", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "분석 엔진",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "분석 엔진": {
-      "main": [[{ "node": "NocoDB 스냅샷 저장", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "NocoDB 스냅샷 저장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     },
     "NocoDB 스냅샷 저장": {
-      "main": [[{ "node": "텔레그램 리포트", "type": "main", "index": 0 }]]
+      "main": [
+        [
+          {
+            "node": "텔레그램 리포트",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "active": false,
@@ -192,5 +340,6 @@
   "meta": {
     "templateCredsSetupCompleted": true
   },
-  "tags": []
+  "tags": [],
+  "id": "EPXKj5wQf5DJ45hc"
 }

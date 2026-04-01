@@ -16,8 +16,8 @@
 | 마이페이지/ | `pages/partnerclass-mypage/` | 8010 |
 | 어드민/ | `pages/partnerclass-admin/` | 8011 |
 | 교육/ | `pages/partnerclass-edu/` | 2610 |
-| 콘텐츠허브/ | `pages/partnerclass-content/` | (미배정) |
-| 협회제안서/ | `pages/partnerclass-affiliation/` | (미배정) |
+| 콘텐츠허브/ | `pages/partnerclass-content/` | 8014 |
+| 협회제안서/ | `pages/partnerclass-affiliation/` | 8015 |
 
 ## n8n 워크플로우
 

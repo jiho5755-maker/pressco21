@@ -10,27 +10,26 @@
        설정값
        ======================================== */
 
-    /* ── 공통 모듈 바인딩 (pressco21-core.js) ── */
-    var PC = window.PRESSCO21;
-    var escapeHtml = PC.util.escapeHtml;
-    var formatPrice = PC.util.formatPrice;
-
-    /** 페이지 URL 상수 */
-    var PAGE_LIST = PC.auth.pageUrl('LIST');
-    var PAGE_DETAIL = PC.auth.pageUrl('DETAIL');
-
     /** n8n 웹훅 엔드포인트 (WF-01 클래스 API) */
-    /* GAS_URL은 PC.api.fetchPost('CLASS_API', ...) 로 대체 */
+    var GAS_URL = 'https://n8n.pressco21.com/webhook/class-api';
 
     /** n8n WF-04 예약 기록 엔드포인트 */
-    /* BOOKING_URL은 PC.api.fetchPost('BOOKING', ...) 로 대체 */
+    var BOOKING_URL = 'https://n8n.pressco21.com/webhook/record-booking';
 
     /** n8n WF-15 후기 작성 엔드포인트 */
-    /* REVIEW_SUBMIT_URL은 PC.api.fetchPost('REVIEW_SUBMIT', ...) 로 대체 */
+    var REVIEW_SUBMIT_URL = 'https://n8n.pressco21.com/webhook/review-submit';
 
-    /** 캐시: PC.cache 사용 (prefix: 'detail', TTL: CATALOG 5분) */
-    var CACHE_TTL = PC.config.CACHE_TTL.CATALOG;
-    var CACHE_PREFIX = 'detail';
+    /** 캐시 유효 시간: 5분 (밀리초) */
+    var CACHE_TTL = 5 * 60 * 1000;
+
+    /** localStorage 캐시 키 접두사 */
+    var CACHE_PREFIX = 'classDetail_';
+
+    /** 목록 캐시 키 접두사 */
+    var CATALOG_CACHE_PREFIX = 'classCatalog_';
+
+    /** 목록 캐시 버전 키 */
+    var CATALOG_CACHE_VERSION_KEY = 'pressco21_catalog_cache_version';
 
     /** 최소 인원 */
     var MIN_QUANTITY = 1;
@@ -52,6 +51,29 @@
         'PLATINUM': { label: 'ATELIER \uD30C\uD2B8\uB108', css: 'atelier' }
     };
 
+    function normalizePartnerGrade(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        var alias = {
+            SILVER: 'BLOOM',
+            GOLD: 'GARDEN',
+            PLATINUM: 'ATELIER'
+        };
+
+        return alias[text] || text || 'BLOOM';
+    }
+
+    function getPartnerGradeMeta(raw) {
+        var grade = normalizePartnerGrade(raw);
+        var metaMap = {
+            BLOOM: { label: 'BLOOM', weight: 1 },
+            GARDEN: { label: 'GARDEN', weight: 2 },
+            ATELIER: { label: 'ATELIER', weight: 3 },
+            AMBASSADOR: { label: 'AMBASSADOR', weight: 4 }
+        };
+
+        return metaMap[grade] || metaMap.BLOOM;
+    }
+
 
     /* ========================================
        상태 관리
@@ -72,20 +94,21 @@
     /** 선택된 일정 ID */
     var selectedScheduleId = '';
 
-    /** 키트 포함 여부 ('class_only' | 'with_kit') */
-    var selectedKitOption = 'class_only';
-
-    /** 키트 가격 (kit_items 합산 또는 bundle 상품 가격) */
-    var kitTotalPrice = 0;
-
-    /** 묶음 키트 branduid (tbl_Classes.kit_bundle_branduid) */
-    var kitBundleBranduid = '';
-
-    /** 묶음 키트 상품 정보 (메이크샵에서 fetch) */
-    var kitBundleInfo = null;
-
     /** 현재 클래스의 일정 목록 (tbl_Schedules) */
     var classSchedules = [];
+
+    /** 예약 옵션 코드 */
+    var BOOKING_MODE_CLASS_ONLY = 'CLASS_ONLY';
+    var BOOKING_MODE_WITH_KIT = 'WITH_KIT';
+
+    /** 현재 선택된 예약 방식 */
+    var selectedBookingMode = BOOKING_MODE_CLASS_ONLY;
+
+    /** 예약 옵션 상태 */
+    var bookingOptionState = {
+        classOnly: null,
+        withKit: null
+    };
 
     /** 후기 작성 선택 별점 */
     var reviewRating = 0;
@@ -103,6 +126,17 @@
     /** 갤러리 이미지 배열 (라이트박스용) */
     var galleryImages = [];
 
+    /** FAQ 카테고리 순서 */
+    var FAQ_CATEGORY_ALL = '\uC804\uCCB4';
+    var FAQ_CATEGORY_ORDER = [FAQ_CATEGORY_ALL, '\uC218\uAC15', '\uD0A4\uD2B8\u00B7\uBC30\uC1A1', '\uD30C\uD2B8\uB108', '\uC815\uC0B0', '\uAE30\uD0C0'];
+
+    /** FAQ UI 상태 */
+    var faqState = {
+        items: [],
+        category: FAQ_CATEGORY_ALL,
+        keyword: ''
+    };
+
 
     /* ========================================
        초기화
@@ -116,12 +150,15 @@
 
         if (!classId) {
             // id 파라미터 없으면 목록으로 리다이렉트
-            window.location.href = PAGE_LIST;
+            window.location.href = '/shop/page.html?id=2606';
             return;
         }
 
         // 회원 ID 읽기 (가상태그)
-        memberId = PC.auth.getMemberId('cdMemberId');
+        var memberEl = document.getElementById('cdMemberId');
+        if (memberEl) {
+            memberId = (memberEl.textContent || '').trim();
+        }
 
         // 에러 재시도 버튼 바인딩
         bindErrorRetry(classId);
@@ -176,23 +213,28 @@
         // 로딩 표시
         showLoading();
 
-        PC.api.fetchPost('CLASS_API', { action: 'getClassDetail', id: classId })
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getClassDetail', id: classId })
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(function(data) {
                 if (data && data.success && data.data) {
                     setCache(cacheKey, data);
                     handleDetailResponse(data);
                 } else {
-                    var errMsg = '\uD074\uB798\uC2A4 \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.';
-                    if (data && data.error) {
-                        errMsg = typeof data.error === 'string' ? data.error : (data.error.message || errMsg);
-                    }
-                    showError(errMsg);
+                    showError(data && data.error ? data.error : '\uD074\uB798\uC2A4 \uC815\uBCF4\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.');
                 }
             })
             .catch(function(err) {
-                console.error('[ClassDetail] API \uD638\uCD9C \uC2E4\uD328:', err.code || '', err.message || err);
-                var catchMsg = (err && typeof err.message === 'string') ? err.message : '\uB124\uD2B8\uC6CC\uD06C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.';
-                showError(catchMsg);
+                console.error('[ClassDetail] API \uD638\uCD9C \uC2E4\uD328:', err);
+                showError('\uB124\uD2B8\uC6CC\uD06C \uC624\uB958\uAC00 \uBC1C\uC0DD\uD588\uC2B5\uB2C8\uB2E4. \uC7A0\uC2DC \uD6C4 \uB2E4\uC2DC \uC2DC\uB3C4\uD574 \uC8FC\uC138\uC694.');
             });
     }
 
@@ -211,6 +253,7 @@
 
         // 전체 렌더링
         renderAll(classData);
+        hydrateKitBundlePrice(classData);
 
         // 로딩 숨기고 콘텐츠 표시
         hideLoading();
@@ -237,11 +280,85 @@
      * @returns {*|null}
      */
     function getCached(key) {
-        return PC.cache.get(CACHE_PREFIX, key);
+        try {
+            var raw = localStorage.getItem(CACHE_PREFIX + key);
+            if (!raw) return null;
+            var entry = JSON.parse(raw);
+            if (Date.now() - entry.timestamp > CACHE_TTL) {
+                localStorage.removeItem(CACHE_PREFIX + key);
+                return null;
+            }
+            return entry.data;
+        } catch (e) {
+            return null;
+        }
     }
 
+    /**
+     * 데이터를 캐시에 저장
+     * @param {string} key
+     * @param {*} data
+     */
     function setCache(key, data) {
-        PC.cache.set(CACHE_PREFIX, key, data, CACHE_TTL);
+        try {
+            var entry = { timestamp: Date.now(), data: data };
+            localStorage.setItem(CACHE_PREFIX + key, JSON.stringify(entry));
+        } catch (e) {
+            clearExpiredCache();
+        }
+    }
+
+    /**
+     * 만료된 캐시 정리
+     */
+    function clearExpiredCache() {
+        try {
+            var keysToRemove = [];
+            for (var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                if (key && key.indexOf(CACHE_PREFIX) === 0) {
+                    var raw = localStorage.getItem(key);
+                    if (raw) {
+                        var entry = JSON.parse(raw);
+                        if (Date.now() - entry.timestamp > CACHE_TTL) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                }
+            }
+            for (var j = 0; j < keysToRemove.length; j++) {
+                localStorage.removeItem(keysToRemove[j]);
+            }
+        } catch (e) { /* 무시 */ }
+    }
+
+    function clearStorageByPrefix(prefix) {
+        try {
+            var keysToRemove = [];
+            for (var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                if (key && key.indexOf(prefix) === 0) {
+                    keysToRemove.push(key);
+                }
+            }
+            for (var j = 0; j < keysToRemove.length; j++) {
+                localStorage.removeItem(keysToRemove[j]);
+            }
+        } catch (e) { /* 무시 */ }
+    }
+
+    function invalidateDetailCache(classId) {
+        if (!classId) return;
+        try {
+            localStorage.removeItem(CACHE_PREFIX + classId);
+        } catch (e) { /* 무시 */ }
+    }
+
+    function invalidateCatalogCaches() {
+        clearStorageByPrefix(CATALOG_CACHE_PREFIX);
+        try {
+            localStorage.setItem(CATALOG_CACHE_VERSION_KEY, String(Date.now()));
+        } catch (e) { /* 무시 */ }
     }
 
 
@@ -254,14 +371,16 @@
      * @param {Object} data - 클래스 데이터
      */
     function renderAll(data) {
-        renderSection(function() { renderContentTypeIdentity(data); }, null, '');
         renderSection(function() { renderHeader(data); }, null, '');
+        renderSection(function() { renderTrustSummaryBar(data); }, null, '');
+        renderSection(function() { renderIdentity(data); }, null, '');
         renderSection(function() { renderGallery(data); }, null, '');
         renderSection(function() { renderBasicInfo(data); }, null, '');
+        renderSection(function() { renderIncludesSection(data); }, null, '');
         renderSection(function() { renderDescription(data); }, document.getElementById('descriptionContent'), '\uAC15\uC758 \uC18C\uAC1C\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.');
         renderSection(function() { renderCurriculum(data); }, document.getElementById('curriculumList'), '\uCEE4\uB9AC\uD050\uB7FC \uC815\uBCF4\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.');
         renderSection(function() { renderInstructor(data); }, document.getElementById('instructorCard'), '\uAC15\uC0AC \uC815\uBCF4\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.');
-        renderSection(function() { renderMaterials(data); }, null, '');
+        renderSection(function() { renderMaterials(data); updateKitPurchaseLinks(data); }, null, '');
         renderSection(function() { renderYoutube(data); }, null, '');
         renderSection(function() { renderReviews(data); }, null, '');
         renderSection(function() { renderReviewForm(data); }, null, '');
@@ -294,123 +413,6 @@
        개별 섹션 렌더링
        ======================================== */
 
-    /* ----------------------------------------
-       contentType 분기: Identity 섹션 렌더링
-       ---------------------------------------- */
-
-    /** content_type 정규화 (목록 JS와 동일 로직) */
-    function normalizeContentType(raw, cls) {
-        var text = String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
-        var tags = [cls && cls.tags, cls && cls.class_name, cls && cls.category, cls && cls.affiliation_code].join(' ');
-
-        if (text.indexOf('EVENT') > -1 || text.indexOf('SEMINAR') > -1) return 'EVENT';
-        if (text.indexOf('AFFILIATION') > -1 || text.indexOf('MEMBER') > -1) return 'AFFILIATION';
-        if (text === 'CLASS' || text === 'GENERAL') return 'GENERAL';
-        if (containsKw(tags, '\uC138\uBBF8\uB098') || containsKw(tags, '\uC774\uBCA4\uD2B8')) return 'EVENT';
-        if ((cls && cls.affiliation_code) || containsKw(tags, '\uD611\uD68C') || containsKw(tags, '\uD611\uD68C\uC6D0') || containsKw(tags, '\uC81C\uD734')) return 'AFFILIATION';
-        return 'GENERAL';
-    }
-
-    /** 키워드 포함 여부 헬퍼 */
-    function containsKw(text, keyword) {
-        return String(text || '').toLowerCase().indexOf(keyword.toLowerCase()) > -1;
-    }
-
-    /** contentType 메타 정보 빌드 */
-    function buildContentTypeMeta(data) {
-        var ct = normalizeContentType(data && data.content_type, data);
-        var meta = {
-            key: 'general',
-            cssClass: '',
-            eyebrow: '\uC77C\uBC18 \uD074\uB798\uC2A4',
-            title: '\uC608\uC57D \uC804\uC5D0 \uC774 \uD074\uB798\uC2A4\uC758 \uC131\uACA9\uACFC \uD61C\uD0DD\uC744 \uBA3C\uC800 \uD655\uC778\uD558\uC138\uC694.',
-            desc: '\uD6C4\uAE30, \uD3EC\uD568 \uB0B4\uC5ED, \uC77C\uC815\uC744 \uBCF4\uACE0 \uBC14\uB85C \uC608\uC57D\uD558\uB294 \uAE30\uBCF8 \uD074\uB798\uC2A4 \uD750\uB984\uC785\uB2C8\uB2E4.',
-            highlights: [
-                { strong: '\uD6C4\uAE30 \uD655\uC778', span: '\uC218\uAC15\uC0DD \uD6C4\uAE30\uB97C \uBCF4\uACE0 \uACB0\uC815\uD558\uC138\uC694' },
-                { strong: '\uD3EC\uD568 \uB0B4\uC5ED', span: '\uAC00\uACA9\uC5D0 \uBB50\uAC00 \uD3EC\uD568\uB418\uB294\uC9C0 \uD655\uC778' },
-                { strong: '\uC77C\uC815 \uC608\uC57D', span: '\uC6D0\uD558\uB294 \uB0A0\uC9DC\uC5D0 \uBC14\uB85C \uC608\uC57D' }
-            ]
-        };
-
-        if (ct === 'AFFILIATION') {
-            meta.key = 'affiliation';
-            meta.cssClass = 'class-detail--type-affiliation';
-            meta.eyebrow = '\uD611\uD68C \uC804\uC6A9 \uD074\uB798\uC2A4';
-            meta.title = '\uD611\uD68C \uC77C\uC815\uACFC \uD68C\uC6D0 \uD61C\uD0DD\uC774 \uD568\uAED8 \uC548\uB0B4\uB418\uB294 \uD074\uB798\uC2A4\uC785\uB2C8\uB2E4.';
-            meta.desc = '\uD611\uD68C\uC6D0 \uD560\uC778, \uC138\uBBF8\uB098 \uC77C\uC815, \uC804\uC6A9 \uD61C\uD0DD\uC744 \uD55C \uD654\uBA74\uC5D0\uC11C \uD655\uC778\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.';
-            meta.highlights = [
-                { strong: '\uD611\uD68C\uBA85', span: escapeHtml(data.affiliation_name || data.affiliation_code || '\uC81C\uD734 \uD611\uD68C') },
-                { strong: '\uD68C\uC6D0 \uD61C\uD0DD', span: '\uC804\uC6A9 \uD560\uC778 \uBC0F \uC778\uC13C\uD2F0\uBE0C' },
-                { strong: '\uC138\uBBF8\uB098 \uC77C\uC815', span: '\uD611\uD68C \uD589\uC0AC\uC640 \uC5F0\uACC4' }
-            ];
-        } else if (ct === 'EVENT') {
-            meta.key = 'event';
-            meta.cssClass = 'class-detail--type-event';
-            meta.eyebrow = '\uC138\uBBF8\uB098 / \uC774\uBCA4\uD2B8';
-            meta.title = '\uC774\uBCA4\uD2B8 \uAE30\uAC04\uACFC \uD61C\uD0DD \uB0B4\uC6A9\uC744 \uBA3C\uC800 \uD655\uC778\uD558\uC138\uC694.';
-            meta.desc = '\uC77C\uC815 \uBC0F \uACF5\uC9C0 \uBCC0\uB3D9\uC774 \uC911\uC694\uD55C \uD589\uC0AC\uD615 \uCF58\uD150\uCE20\uC785\uB2C8\uB2E4.';
-            meta.highlights = [
-                { strong: '\uC774\uBCA4\uD2B8 \uAE30\uAC04', span: '\uAE30\uAC04 \uB0B4 \uCC38\uC5EC \uBC29\uBC95 \uD655\uC778' },
-                { strong: '\uD61C\uD0DD \uB0B4\uC6A9', span: '\uCC38\uC5EC\uC790 \uD2B9\uBCC4 \uD61C\uD0DD' },
-                { strong: '\uCC38\uC5EC \uBC29\uBC95', span: '\uC608\uC57D \uB610\uB294 \uC2E0\uCCAD\uC73C\uB85C \uCC38\uC5EC' }
-            ];
-        }
-
-        return meta;
-    }
-
-    /**
-     * contentType Identity 섹션 렌더링
-     * GENERAL: 기본 클래스 흐름 유지 (identity 섹션 숨김)
-     * AFFILIATION / EVENT: identity 섹션 표시 + 래퍼 CSS 클래스 변경
-     */
-    function renderContentTypeIdentity(data) {
-        var meta = buildContentTypeMeta(data);
-        var wrapper = document.querySelector('.class-detail');
-        var section = document.getElementById('detailIdentity');
-
-        // 래퍼에 contentType CSS 클래스 적용 (CSS 변형 활성화)
-        if (wrapper) {
-            wrapper.classList.remove('class-detail--type-affiliation', 'class-detail--type-event');
-            if (meta.cssClass) {
-                wrapper.classList.add(meta.cssClass);
-            }
-        }
-
-        // GENERAL 타입: identity 섹션 숨김 (기존 클래스 상세 그대로)
-        if (meta.key === 'general') {
-            if (section) section.style.display = 'none';
-            return;
-        }
-
-        // AFFILIATION / EVENT: identity 섹션 표시
-        if (section) {
-            section.style.display = '';
-        }
-
-        var eyebrowEl = document.getElementById('detailIdentityEyebrow');
-        var titleEl = document.getElementById('detailIdentityTitle');
-        var descEl = document.getElementById('detailIdentityDesc');
-        var highlightsEl = document.getElementById('detailIdentityHighlights');
-
-        if (eyebrowEl) eyebrowEl.textContent = meta.eyebrow;
-        if (titleEl) titleEl.textContent = meta.title;
-        if (descEl) descEl.textContent = meta.desc;
-
-        if (highlightsEl && meta.highlights) {
-            var hl = '';
-            for (var i = 0; i < meta.highlights.length; i++) {
-                var h = meta.highlights[i];
-                hl += '<div class="detail-identity__highlight">'
-                    + '<strong>' + escapeHtml(h.strong) + '</strong>'
-                    + '<span>' + escapeHtml(h.span) + '</span>'
-                    + '</div>';
-            }
-            highlightsEl.innerHTML = hl;
-        }
-    }
-
-
     /**
      * Breadcrumb 헤더 렌더링
      */
@@ -420,21 +422,265 @@
             titleEl.textContent = data.class_name || '\uD074\uB798\uC2A4 \uC0C1\uC138';
         }
 
-        // contentType에 따라 breadcrumb 목록 링크에 탭 파라미터 추가
-        var ct = normalizeContentType(data && data.content_type, data);
-        if (ct === 'AFFILIATION' || ct === 'EVENT') {
-            var tabParam = ct === 'AFFILIATION' ? 'affiliations' : 'benefits';
-            var listLinks = document.querySelectorAll('.detail-breadcrumb a[href*="2606"]');
-            for (var i = 0; i < listLinks.length; i++) {
-                var href = listLinks[i].getAttribute('href') || '';
-                if (href.indexOf('tab=') === -1) {
-                    listLinks[i].setAttribute('href', href + (href.indexOf('?') > -1 ? '&' : '?') + 'tab=' + tabParam);
-                }
-            }
-        }
-
         // 페이지 타이틀 업데이트
         document.title = (data.class_name || '\uD074\uB798\uC2A4 \uC0C1\uC138') + ' | PRESSCO21 \uD3EC\uC5D0\uBC84\uB7EC\uBE0C';
+    }
+
+    function renderIdentity(data) {
+        var section = document.getElementById('detailIdentity');
+        var eyebrow = document.getElementById('detailIdentityEyebrow');
+        var title = document.getElementById('detailIdentityTitle');
+        var desc = document.getElementById('detailIdentityDesc');
+        var highlights = document.getElementById('detailIdentityHighlights');
+        var profile = resolveContentProfile(data || {});
+        var root = document.querySelector('.class-detail');
+        var html = '';
+        var i;
+
+        if (!section || !eyebrow || !title || !desc || !highlights || !root) return;
+
+        root.classList.remove('class-detail--type-general', 'class-detail--type-affiliation', 'class-detail--type-event');
+        root.classList.add('class-detail--type-' + profile.key);
+
+        eyebrow.textContent = profile.eyebrow;
+        title.textContent = profile.title;
+        desc.textContent = profile.desc;
+
+        for (i = 0; i < profile.highlights.length; i++) {
+            html += '<div class="detail-identity__highlight">'
+                + '<strong>' + escapeHtml(profile.highlights[i].title) + '</strong>'
+                + '<span>' + escapeHtml(profile.highlights[i].desc) + '</span>'
+                + '</div>';
+        }
+
+        highlights.innerHTML = html;
+        section.style.display = '';
+
+        var descTab = document.getElementById('tab-description');
+        if (descTab) {
+            descTab.textContent = profile.descriptionTabLabel;
+        }
+    }
+
+    function getAverageRatingValue(data) {
+        return parseFloat(data.avg_rating || data.rating_avg) || 0;
+    }
+
+    function getReviewCountValue(data) {
+        return parseInt(data.class_count || data.review_count, 10) || 0;
+    }
+
+    function getBookedCountValue(data) {
+        return parseInt(data.booked_count || data.booking_count, 10) || 0;
+    }
+
+    function getDeliveryModeValue(data) {
+        var raw = String((data && (data.delivery_mode || data.class_format || data.format)) || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        var type = String((data && data.type) || '').replace(/\s+/g, ' ').trim();
+
+        if (raw === 'ONLINE' || raw === 'OFFLINE' || raw === 'HYBRID') return raw;
+        if (type.toUpperCase() === 'ONLINE' || type.indexOf('\uC628\uB77C\uC778') > -1) return 'ONLINE';
+        if (type.toUpperCase() === 'HYBRID' || type.indexOf('\uD558\uC774\uBE0C\uB9AC\uB4DC') > -1) return 'HYBRID';
+        return 'OFFLINE';
+    }
+
+    function normalizeContentTypeValue(raw, data) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim().toUpperCase();
+        var joined = [data && data.tags, data && data.class_name, data && data.category, data && data.affiliation_code, data && data.type].join(' ');
+
+        if (text.indexOf('EVENT') > -1 || text.indexOf('SEMINAR') > -1) return 'EVENT';
+        if (text.indexOf('AFFILIATION') > -1 || text.indexOf('MEMBER') > -1) return 'AFFILIATION';
+        if (text === 'GENERAL' || text === 'CLASS') return 'GENERAL';
+        if (normalizedContains(joined, '\uC138\uBBF8\uB098') || normalizedContains(joined, '\uC774\uBCA4\uD2B8')) return 'EVENT';
+        if ((data && data.affiliation_code) || normalizedContains(joined, '\uD611\uD68C') || normalizedContains(joined, '\uD611\uD68C\uC6D0') || normalizedContains(joined, '\uC81C\uD734')) return 'AFFILIATION';
+        return 'GENERAL';
+    }
+
+    function resolveContentProfile(data) {
+        var contentType = normalizeContentTypeValue(data && data.content_type, data);
+        var deliveryMode = getDeliveryModeValue(data || {});
+        var profile = {
+            key: 'general',
+            chip: '\uC77C\uBC18 \uD074\uB798\uC2A4',
+            eyebrow: '\uC77C\uBC18 \uD074\uB798\uC2A4',
+            title: '\uC608\uC57D \uC804\uC5D0 \uD6C4\uAE30, \uD3EC\uD568 \uB0B4\uC5ED, \uC77C\uC815\uC744 \uD55C \uBC88\uC5D0 \uBCF4\uACE0 \uC120\uD0DD\uD560 \uC218 \uC788\uB294 \uD074\uB798\uC2A4\uC785\uB2C8\uB2E4.',
+            desc: '\uC218\uAC15\uC0DD\uC774 \uBE44\uAD50\uD558\uAE30 \uC26C\uC6B4 \uD6C4\uAE30, \uC7AC\uB8CC \uD3EC\uD568 \uC5EC\uBD80, \uAC15\uC0AC/\uACF5\uBC29 \uC815\uBCF4\uAC00 \uD55C \uD750\uB984\uC73C\uB85C \uC774\uC5B4\uC9D1\uB2C8\uB2E4.',
+            highlights: [
+                { title: '\uC2E0\uB8B0 \uBE44\uAD50', desc: '\uD6C4\uAE30, \uD3C9\uC810, \uD3EC\uD568 \uB0B4\uC5ED\uC744 \uD55C \uBC88\uC5D0 \uD655\uC778' },
+                { title: '\uC608\uC57D \uC989\uC2DC\uC131', desc: '\uC77C\uC815 \uC120\uD0DD \uD6C4 \uBC14\uB85C \uC608\uC57D\uACFC \uACB0\uC81C \uC9C4\uC785' },
+                { title: '\uC790\uC0AC\uBAB0 \uC5F0\uACB0', desc: '\uD544\uC694 \uC2DC \uC7AC\uB8CC/\uD0A4\uD2B8 \uD750\uB984\uAE4C\uC9C0 \uC790\uC5F0\uC2A4\uB7FD\uAC8C \uC774\uC5B4\uC9D0' }
+            ],
+            descriptionLead: '\uC77C\uBC18 \uC608\uC57D \uD074\uB798\uC2A4\uB85C, \uCC98\uC74C \uBCF4\uB294 \uC218\uAC15\uC0DD\uB3C4 \uC548\uC2EC\uD558\uACE0 \uC120\uD0DD\uD560 \uC218 \uC788\uB3C4\uB85D \uC815\uBCF4\uB97C \uC815\uB9AC\uD574\uB454 \uD398\uC774\uC9C0\uC785\uB2C8\uB2E4.',
+            bookingNote: '\uBC14\uB85C \uC608\uC57D\uD558\uB294 \uC218\uAC15\uC0DD\uC744 \uC704\uD55C \uAE30\uBCF8 \uC608\uC57D \uD750\uB984\uC785\uB2C8\uB2E4.',
+            descriptionTabLabel: '\uAC15\uC758 \uC18C\uAC1C'
+        };
+
+        if (contentType === 'AFFILIATION') {
+            profile.key = 'affiliation';
+            profile.chip = '\uD611\uD68C \uC804\uC6A9';
+            profile.eyebrow = '\uD611\uD68C \uC804\uC6A9 \uD074\uB798\uC2A4';
+            profile.title = '\uD611\uD68C \uC77C\uC815\uACFC \uD68C\uC6D0 \uD61C\uD0DD\uC774 \uD568\uAED8 \uBB36\uC778 \uD074\uB798\uC2A4\uC785\uB2C8\uB2E4.';
+            profile.desc = '\uD611\uD68C \uC18C\uC18D \uC218\uAC15\uC0DD\uC744 \uC704\uD55C \uD560\uC778, \uC138\uBBF8\uB098 \uC77C\uC815, \uC804\uC6A9 \uC7AC\uB8CC/\uC2DC\uADF8\uB2C8\uCC98 \uC81C\uD488 \uD750\uB984\uC744 \uAC19\uC774 \uC548\uB0B4\uD558\uAE30 \uC704\uD55C \uB808\uC774\uC5B4\uC785\uB2C8\uB2E4.';
+            profile.highlights = [
+                { title: '\uD68C\uC6D0 \uD61C\uD0DD', desc: '\uD611\uD68C/\uD68C\uC6D0 \uB300\uC0C1 \uD560\uC778\uACFC \uC6B0\uC120 \uC548\uB0B4 \uD3EC\uC778\uD2B8 \uD45C\uC2DC' },
+                { title: '\uC77C\uC815 \uBB36\uC74C', desc: '\uD074\uB798\uC2A4, \uD611\uD68C \uC2DC\uAC04\uD45C, \uC138\uBBF8\uB098 \uACF5\uC9C0 \uD750\uB984 \uB3D9\uC2DC \uC81C\uACF5' },
+                { title: '\uC7AC\uAD6C\uB9E4 \uC5F0\uACB0', desc: '\uD68C\uC6D0 \uC804\uC6A9 \uC0C1\uD488/\uC2DC\uADF8\uB2C8\uCC98 \uC81C\uD488\uC73C\uB85C \uC5F0\uACB0 \uD655\uC7A5' }
+            ];
+            profile.descriptionLead = '\uD611\uD68C \uB610\uB294 \uD611\uD68C\uC6D0 \uD750\uB984\uACFC \uC5F0\uACB0\uB41C \uD074\uB798\uC2A4\uB85C, \uC218\uAC15\uB9CC\uC774 \uC544\uB2C8\uB77C \uD61C\uD0DD\uACFC \uD589\uC0AC \uACF5\uC9C0\uAE4C\uC9C0 \uD568\uAED8 \uD655\uC778\uD558\uB294 \uBDF0\uC785\uB2C8\uB2E4.';
+            profile.bookingNote = '\uD611\uD68C \uB300\uC0C1 \uD61C\uD0DD/\uC804\uC6A9 \uC815\uCC45\uC774 \uC788\uC744 \uC218 \uC788\uC73C\uB2C8 \uC608\uC57D \uC804 \uC548\uB0B4 \uBB38\uAD6C\uB97C \uD55C \uBC88 \uB354 \uD655\uC778\uD558\uC138\uC694.';
+            profile.descriptionTabLabel = '\uD611\uD68C \uC548\uB0B4';
+        } else if (contentType === 'EVENT') {
+            profile.key = 'event';
+            profile.chip = '\uC138\uBBF8\uB098/\uC774\uBCA4\uD2B8';
+            profile.eyebrow = '\uC138\uBBF8\uB098 / \uC774\uBCA4\uD2B8 \uD074\uB798\uC2A4';
+            profile.title = '\uC88C\uC11D, \uACF5\uC9C0, \uC900\uBE44\uBB3C \uBCC0\uB3D9\uC774 \uC911\uC694\uD55C \uD589\uC0AC\uD615 \uCF58\uD150\uCE20\uC785\uB2C8\uB2E4.';
+            profile.desc = '\uCCB4\uD5D8\uD68C, \uC138\uBBF8\uB098, \uD2B9\uBCC4 \uC774\uBCA4\uD2B8 \uAC19\uC774 \uC77C\uC815 \uC911\uC2EC\uC73C\uB85C \uC6B4\uC601\uB418\uB294 \uCF58\uD150\uCE20\uB294 \uCD5C\uC2E0 \uACF5\uC9C0\uC640 \uCC38\uC5EC \uC548\uB0B4\uB97C \uBA3C\uC800 \uBCF4\uC5EC\uC918\uC57C \uD569\uB2C8\uB2E4.';
+            profile.highlights = [
+                { title: '\uACF5\uC9C0 \uC6B0\uC120', desc: '\uC77C\uC815 \uBCC0\uACBD, \uC8FC\uCC28, \uC900\uBE44\uBB3C \uACF5\uC9C0\uB97C \uC0C1\uB2E8\uC5D0 \uC9D1\uC911 \uD45C\uC2DC' },
+                { title: '\uD589\uC0AC \uCC38\uC5EC', desc: '\uCC38\uC5EC \uC790\uACA9, \uBAA8\uC9D1 \uD750\uB984, \uC77C\uC815 \uC120\uD0DD\uC744 \uC9C1\uAD00\uC801\uC73C\uB85C \uC5F0\uACB0' },
+                { title: '\uC9C0\uC5ED \uB3D9\uC120', desc: '\uC624\uD504\uB77C\uC778 \uD589\uC0AC\uB77C\uBA74 \uD30C\uD2B8\uB108\uB9F5/\uC9C0\uC5ED \uD0D0\uC0C9 \uBDF0\uB85C \uBC14\uB85C \uD655\uC7A5' }
+            ];
+            profile.descriptionLead = '\uD589\uC0AC\uD615 \uD074\uB798\uC2A4\uB85C, \uD6C4\uAE30\uBCF4\uB2E4 \uCD5C\uC2E0 \uC77C\uC815\uACFC \uCC38\uC5EC \uC548\uB0B4\uAC00 \uB354 \uC911\uC694\uD55C \uCF58\uD150\uCE20\uC785\uB2C8\uB2E4.';
+            profile.bookingNote = '\uC138\uBBF8\uB098/\uC774\uBCA4\uD2B8\uB294 \uC2E4\uC2DC\uAC04 \uACF5\uC9C0 \uBCC0\uB3D9\uC774 \uC788\uC744 \uC218 \uC788\uC73C\uB2C8 \uC2E0\uCCAD \uC804 \uC548\uB0B4 \uBB38\uAD6C\uB97C \uAF2D \uD655\uC778\uD558\uC138\uC694.';
+            profile.descriptionTabLabel = '\uD504\uB85C\uADF8\uB7A8 \uC548\uB0B4';
+        }
+
+        if (deliveryMode === 'ONLINE') {
+            profile.highlights[1] = { title: '\uC628\uB77C\uC778 \uCC38\uC5EC', desc: '\uC811\uC18D \uC548\uB0B4\uC640 \uC790\uB8CC \uC218\uB839 \uD750\uB984\uC744 \uC911\uC2EC\uC73C\uB85C \uD655\uC778' };
+        }
+
+        return profile;
+    }
+
+    function getClassTypeLabel(data) {
+        var mode = getDeliveryModeValue(data || {});
+        if (mode === 'ONLINE') return '\uC628\uB77C\uC778 \uC218\uC5C5';
+        if (mode === 'HYBRID') return '\uD558\uC774\uBE0C\uB9AC\uB4DC \uC218\uC5C5';
+        if (mode === 'OFFLINE') return '\uC624\uD504\uB77C\uC778 \uC218\uC5C5';
+        return '\uAC15\uC0AC \uC9C4\uD589 \uC218\uC5C5';
+    }
+
+    function hasKitPurchaseOption(data) {
+        return getMaterialKitItems(data).length > 0;
+    }
+
+    function renderTrustSummaryBar(data) {
+        var bar = document.getElementById('detailTrustBar');
+        var statsEl = document.getElementById('detailTrustBarStats');
+        var profile = resolveContentProfile(data || {});
+        if (!bar || !statsEl) return;
+
+        var bookedCount = getBookedCountValue(data);
+        var avgRating = getAverageRatingValue(data);
+        var reviewCount = getReviewCountValue(data);
+        var ratingText = avgRating > 0 ? avgRating.toFixed(1) : '0.0';
+
+        statsEl.innerHTML = ''
+            + '<span class="detail-trust-bar__chip">' + escapeHtml(profile.chip) + '</span>'
+            + '<span class="detail-trust-bar__stat"><strong>' + formatPrice(bookedCount) + '\uBA85</strong><span>\uC218\uAC15</span></span>'
+            + '<span class="detail-trust-bar__divider" aria-hidden="true"></span>'
+            + '<span class="detail-trust-bar__stat"><strong>\u2605 ' + ratingText + '</strong><span>\uD3C9\uC810</span></span>'
+            + '<span class="detail-trust-bar__divider" aria-hidden="true"></span>'
+            + '<span class="detail-trust-bar__stat"><strong>' + formatPrice(reviewCount) + '\uAC74</strong><span>\uD6C4\uAE30</span></span>';
+
+        bar.style.display = '';
+    }
+
+    function getIncludesItems(data) {
+        var items = [];
+        var materialItems = getMaterialKitItems(data);
+        var hasKit = materialItems.length > 0;
+        var materialsIncluded = String(data.materials_included || '').trim();
+        var certificateFlag = String(data.certificate_available || data.certificate_enabled || '').toUpperCase();
+        var profile = resolveContentProfile(data || {});
+
+        items.push({
+            title: '\uAC15\uC758',
+            status: '\uD3EC\uD568',
+            desc: getClassTypeLabel(data) + '\uACFC \uAE30\uBCF8 \uC218\uC5C5 \uC548\uB0B4\uAC00 \uD568\uAED8 \uC81C\uACF5\uB429\uB2C8\uB2E4.'
+        });
+
+        if (profile.key === 'affiliation') {
+            items.push({
+                title: '\uD68C\uC6D0 \uD61C\uD0DD',
+                status: '\uB300\uC0C1\uC790 \uD655\uC778',
+                desc: '\uD611\uD68C/\uD68C\uC6D0 \uD750\uB984\uC5D0 \uB9DE\uB294 \uD61C\uD0DD, \uD560\uC778, \uC804\uC6A9 \uC0C1\uD488 \uC548\uB0B4\uAC00 \uD568\uAED8 \uC81C\uACF5\uB429\uB2C8\uB2E4.'
+            });
+        } else if (profile.key === 'event') {
+            items.push({
+                title: '\uD589\uC0AC \uC548\uB0B4',
+                status: '\uC2E4\uC2DC\uAC04 \uD655\uC778',
+                desc: '\uC138\uBBF8\uB098/\uC774\uBCA4\uD2B8 \uC131\uACA9\uC758 \uC77C\uC815 \uBCC0\uACBD, \uC900\uBE44\uBB3C, \uCC38\uC5EC \uC548\uB0B4 \uBB38\uAD6C\uAC00 \uC6B0\uC120 \uC81C\uACF5\uB429\uB2C8\uB2E4.'
+            });
+        }
+
+        if (materialsIncluded === '\uD3EC\uD568') {
+            items.push({
+                title: '\uC7AC\uB8CC\uD0A4\uD2B8',
+                status: '\uD3EC\uD568',
+                desc: '\uC218\uC5C5\uC5D0 \uD544\uC694\uD55C \uC7AC\uB8CC\uAC00 \uC218\uAC15\uB8CC\uC5D0 \uD3EC\uD568\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.'
+            });
+        } else if (hasKit) {
+            items.push({
+                title: '\uC7AC\uB8CC\uD0A4\uD2B8',
+                status: '\uC120\uD0DD \uAD6C\uB9E4',
+                desc: '\uD544\uC694 \uC7AC\uB8CC\uB97C \uC790\uC0AC\uBAB0 \uC0C1\uD488 \uB9C1\uD06C\uB85C \uBC14\uB85C \uD655\uC778\uD558\uACE0 \uB530\uB85C \uB2F4\uC744 \uC218 \uC788\uC5B4\uC694.'
+            });
+        } else {
+            items.push({
+                title: '\uC7AC\uB8CC\uD0A4\uD2B8',
+                status: '\uBCC4\uB3C4 \uC548\uB0B4',
+                desc: '\uD544\uC694 \uC7AC\uB8CC\uB294 \uAC15\uC0AC \uC548\uB0B4\uC5D0 \uB530\uB77C \uAC1C\uBCC4 \uC900\uBE44 \uB610\uB294 \uD604\uC7A5 \uD655\uC778\uC73C\uB85C \uC9C4\uD589\uB429\uB2C8\uB2E4.'
+            });
+        }
+
+        if (certificateFlag === 'Y' || certificateFlag === '1' || certificateFlag === 'TRUE') {
+            items.push({
+                title: '\uC218\uB8CC\uC99D',
+                status: '\uC81C\uACF5',
+                desc: '\uC218\uAC15 \uC644\uB8CC \uD6C4 \uBC1C\uAE09 \uAE30\uC900\uC5D0 \uB9DE\uCDB0 \uC218\uB8CC\uC99D \uC548\uB0B4\uB97C \uBC1B\uC744 \uC218 \uC788\uC5B4\uC694.'
+            });
+        } else {
+            items.push({
+                title: '\uC218\uB8CC\uC99D',
+                status: '\uD074\uB798\uC2A4\uBCC4 \uC0C1\uC774',
+                desc: '\uC218\uB8CC\uC99D \uC81C\uACF5 \uC5EC\uBD80\uB294 \uAC15\uC0AC \uB610\uB294 \uD611\uD68C \uC6B4\uC601 \uC815\uCC45\uC5D0 \uB530\uB77C \uB2EC\uB77C\uC9D1\uB2C8\uB2E4.'
+            });
+        }
+
+        return items;
+    }
+
+    function renderIncludesSection(data) {
+        var grid = document.getElementById('detailIncludesGrid');
+        if (!grid) return;
+
+        var items = getIncludesItems(data);
+        var html = '';
+        for (var i = 0; i < items.length; i++) {
+            html += '<article class="detail-includes__item">'
+                + '<div class="detail-includes__item-top">'
+                + '<h3 class="detail-includes__item-title">' + escapeHtml(items[i].title) + '</h3>'
+                + '<span class="detail-includes__item-status">' + escapeHtml(items[i].status) + '</span>'
+                + '</div>'
+                + '<p class="detail-includes__item-desc">' + escapeHtml(items[i].desc) + '</p>'
+                + '</article>';
+        }
+
+        grid.innerHTML = html;
+    }
+
+    function updateKitPurchaseLinks(data) {
+        var hasKit = hasKitPurchaseOption(data);
+        var desktopLink = document.getElementById('bookingKitLink');
+        var mobileLink = document.getElementById('mobileKitLink');
+
+        if (desktopLink) {
+            desktopLink.style.display = hasKit ? '' : 'none';
+        }
+        if (mobileLink) {
+            mobileLink.style.display = hasKit ? '' : 'none';
+        }
     }
 
     /**
@@ -458,33 +704,21 @@
             }
         }
 
-        // 이미지가 없으면 카테고리 플레이스홀더
+        // 이미지가 없으면 플레이스홀더
         if (images.length === 0) {
-            images.push('__placeholder__');
+            images.push('');
         }
-
-        // 카테고리별 플레이스홀더 SVG
-        var placeholderSvg = '<div class="gallery-placeholder">'
-            + '<svg width="80" height="80" viewBox="0 0 80 80" fill="none" xmlns="http://www.w3.org/2000/svg">'
-            + '<rect x="10" y="20" width="60" height="45" rx="6" stroke="#c4b5a3" stroke-width="2" stroke-dasharray="6 4" fill="none"/>'
-            + '<circle cx="30" cy="36" r="6" stroke="#c4b5a3" stroke-width="1.5" fill="none"/>'
-            + '<path d="M12 55l16-14 10 8 12-10 18 16" stroke="#c4b5a3" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>'
-            + '</svg>'
-            + '<p class="gallery-placeholder__text">'
-            + escapeHtml(data.category || '') + ' 클래스</p>'
-            + '<p class="gallery-placeholder__sub">곧 수업 사진이 업데이트됩니다</p>'
-            + '</div>';
 
         // 메인 슬라이드 생성
         var slidesHtml = '';
         for (var j = 0; j < images.length; j++) {
             slidesHtml += '<div class="swiper-slide gallery-slide">';
-            if (images[j] && images[j] !== '__placeholder__') {
+            if (images[j]) {
                 slidesHtml += '<img class="gallery-slide__img" src="' + escapeHtml(images[j])
-                    + '" alt="' + escapeHtml(data.class_name || '') + ' 이미지 ' + (j + 1)
+                    + '" alt="' + escapeHtml(data.class_name || '') + ' \uC774\uBBF8\uC9C0 ' + (j + 1)
                     + '" loading="' + (j === 0 ? 'eager' : 'lazy') + '">';
             } else {
-                slidesHtml += placeholderSvg;
+                slidesHtml += '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#999;font-size:14px;">\uC774\uBBF8\uC9C0 \uC900\uBE44\uC911</div>';
             }
             slidesHtml += '</div>';
         }
@@ -605,8 +839,8 @@
         var duration = data.duration_min || 0;
         var durationText = formatDuration(duration);
         var price = formatPrice(data.price || 0);
-        var avgRating = parseFloat(data.avg_rating) || 0;
-        var classCount = parseInt(data.class_count) || 0;
+        var avgRating = getAverageRatingValue(data);
+        var classCount = getReviewCountValue(data);
         var location = escapeHtml(data.location || '');
         var maxStudents = parseInt(data.max_students) || DEFAULT_MAX_STUDENTS;
 
@@ -675,6 +909,10 @@
         if (mobilePrice) {
             mobilePrice.textContent = price + '\uC6D0';
         }
+        var mobilePriceUnit = document.getElementById('mobilePriceUnit');
+        if (mobilePriceUnit) {
+            mobilePriceUnit.textContent = '/1\uC778';
+        }
     }
 
     /**
@@ -682,36 +920,13 @@
      */
     function renderDescription(data) {
         var container = document.getElementById('descriptionContent');
+        var profile = resolveContentProfile(data || {});
         if (!container) return;
 
-        // 구조화 템플릿 우선 렌더링
-        var sections = data.template_sections;
-        if (sections && Array.isArray(sections) && sections.length > 0) {
-            var html = '';
-            // 기본 description이 있으면 먼저 표시
-            if (data.description) {
-                html += '<div class="desc-intro">' + sanitizeHtml(data.description) + '</div>';
-            }
-            // 구조화 섹션
-            var iconMap = {
-                'what_to_learn': '<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M9 2v14M4 6l5-4 5 4M4 12l5 4 5-4" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
-                'how_it_works': '<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><path d="M9 5v4l3 2" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
-                'recommended_for': '<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="currentColor" stroke-width="1.3"/><path d="M3 16c0-3.3 2.7-6 6-6s6 2.7 6 6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
-                'extra_info': '<svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="9" r="7" stroke="currentColor" stroke-width="1.3"/><path d="M9 8v5M9 5.5v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>'
-            };
-            for (var i = 0; i < sections.length; i++) {
-                var sec = sections[i];
-                var icon = iconMap[sec.key] || iconMap['extra_info'];
-                html += '<div class="desc-section">'
-                    + '<h4 class="desc-section__title">' + icon + ' ' + escapeHtml(sec.label) + '</h4>'
-                    + '<div class="desc-section__content">' + sanitizeHtml(sec.content) + '</div>'
-                    + '</div>';
-            }
-            container.innerHTML = html;
-        } else if (data.description) {
-            container.innerHTML = sanitizeHtml(data.description);
+        if (data.description) {
+            container.innerHTML = '<div class="section-unavailable" style="display:block;margin-bottom:18px;">' + escapeHtml(profile.descriptionLead) + '</div>' + sanitizeHtml(data.description);
         } else {
-            container.innerHTML = '<p class="section-unavailable">강의 소개가 준비되지 않았습니다.</p>';
+            container.innerHTML = '<p class="section-unavailable">' + escapeHtml(profile.descriptionLead) + '</p>';
         }
     }
 
@@ -828,37 +1043,12 @@
                 + '</p>';
         }
 
-        // 신뢰도 수치 (TrustSummary)
-        var avgRating = parseFloat(data.avg_rating) || 0;
-        var classCount = parseInt(data.class_count) || 0;
-        var trustHtml = '';
-        if (avgRating > 0 || classCount > 0) {
-            trustHtml = '<div class="instructor-trust">';
-            if (avgRating > 0) {
-                trustHtml += '<span class="instructor-trust__item">'
-                    + '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 1l1.76 3.57L13 5.24l-3 2.93.71 4.13L7 10.34 3.29 12.3 4 8.17 1 5.24l4.24-.67L7 1z" fill="#d4a373" stroke="#d4a373" stroke-width=".5"/></svg>'
-                    + ' ' + avgRating.toFixed(1) + '</span>';
-            }
-            if (classCount > 0) {
-                trustHtml += '<span class="instructor-trust__item">후기 ' + classCount + '건</span>';
-            }
-            trustHtml += '</div>';
-        } else {
-            // 후기·평점 없는 새 클래스용 배지
-            trustHtml = '<div class="instructor-trust">'
-                + '<span class="instructor-trust__item instructor-trust__item--new">'
-                + '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="5" stroke="#425b51" stroke-width="1.2" fill="none"/><path d="M7 4.5v3M7 9v.5" stroke="#425b51" stroke-width="1.2" stroke-linecap="round"/></svg>'
-                + ' 새로 오픈</span>'
-                + '</div>';
-        }
-
         var html = '<div class="instructor-profile">'
             + avatarHtml
             + '<div class="instructor-details">'
             + '<h3 class="instructor-name">' + name + '</h3>'
             + gradeHtml
             + regionHtml
-            + trustHtml
             + '</div>'
             + '</div>';
 
@@ -901,6 +1091,15 @@
             }) + '" class="instructor-action-btn instructor-action-btn--primary">'
                 + '\uB2E4\uB978 \uD074\uB798\uC2A4 \uBCF4\uAE30</a>';
         }
+        if (getDeliveryModeValue(data) !== 'ONLINE') {
+            html += '<a href="' + buildPartnerMapUrl({
+                region: getPrimaryRegion(rawRegion),
+                category: data.category || '',
+                keyword: rawPartnerName || data.class_name || '',
+                partner: rawPartnerName || ''
+            }) + '" class="instructor-action-btn instructor-action-btn--outline">'
+                + '\uD30C\uD2B8\uB108\uB9F5\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30</a>';
+        }
         html += '</div>';
 
         // 파트너 연락처 섹션 추가
@@ -909,53 +1108,247 @@
         container.innerHTML = html;
     }
 
+    function extractBrandUidFromValue(raw) {
+        var value = String(raw || '').replace(/\s+/g, '').trim();
+        var match = value.match(/[?&]branduid=([^&#]+)/i);
+        if (match && match[1]) {
+            return decodeURIComponent(match[1]);
+        }
+        if (/^[A-Za-z0-9_-]{4,64}$/.test(value)) {
+            return value;
+        }
+        return '';
+    }
+
+    function normalizeMaterialProductUrl(raw) {
+        var value = String(raw || '').trim();
+        if (!value) return '';
+
+        var brandUid = extractBrandUidFromValue(value);
+        if (brandUid) {
+            return '/shop/shopdetail.html?branduid=' + encodeURIComponent(brandUid);
+        }
+
+        if (/^https?:\/\//i.test(value) || value.indexOf('/shop/') === 0) {
+            return value;
+        }
+
+        return '';
+    }
+
+    function getMaterialKitItems(data) {
+        var sourceItems = Array.isArray(data.kit_items) ? data.kit_items : [];
+        var items = [];
+        var i;
+
+        if (sourceItems.length > 0) {
+            for (i = 0; i < sourceItems.length; i++) {
+                var item = sourceItems[i] || {};
+                var name = String(item.name || '').trim();
+                var productUrl = normalizeMaterialProductUrl(item.product_url || item.product_code || '');
+                var quantity = parseInt(item.quantity, 10);
+                var price = parseInt(item.price, 10);
+                var brandUid = extractBrandUidFromValue(productUrl || item.product_url || item.product_code || '');
+
+                if (!name && !productUrl && !brandUid) continue;
+
+                items.push({
+                    name: name || ('\uC7AC\uB8CC \uC0C1\uD488 ' + (i + 1)),
+                    product_url: productUrl || (brandUid ? '/shop/shopdetail.html?branduid=' + encodeURIComponent(brandUid) : ''),
+                    quantity: !isNaN(quantity) && quantity > 0 ? quantity : 1,
+                    price: !isNaN(price) && price > 0 ? price : 0,
+                    branduid: brandUid
+                });
+            }
+        }
+
+        if (items.length === 0 && Array.isArray(data.materials_product_ids)) {
+            for (i = 0; i < data.materials_product_ids.length; i++) {
+                var pid = String(data.materials_product_ids[i] || '').trim();
+                if (!pid) continue;
+                items.push({
+                    name: '\uC7AC\uB8CC \uC0C1\uD488 #' + pid,
+                    product_url: '/shop/shopdetail.html?branduid=' + encodeURIComponent(pid),
+                    quantity: 1,
+                    price: 0,
+                    branduid: pid
+                });
+            }
+        }
+
+        return items;
+    }
+
+    function getMaterialsNoteText(data, items) {
+        if (data.kit_enabled && parseInt(data.kit_enabled, 10) === 1 && items.length > 0) {
+            return '\uC218\uC5C5 \uD6C4 \uBCF5\uC2B5\uC774\uB098 \uCD94\uAC00 \uC81C\uC791\uC5D0 \uC4F0\uB294 \uC790\uC0AC\uBAB0 \uC7AC\uB8CC\uB97C \uD55C \uBC88\uC5D0 \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694. \uC218\uB7C9\uC740 1\uC778 \uAE30\uC900\uC73C\uB85C \uD45C\uC2DC\uB429\uB2C8\uB2E4.';
+        }
+        if (data.materials_included === '\uD3EC\uD568') {
+            return '\uC218\uAC15\uB8CC\uC5D0 \uAE30\uBCF8 \uC7AC\uB8CC\uAC00 \uD3EC\uD568\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4. \uB3D9\uC77C\uD55C \uC7AC\uB8CC\uB97C \uCD94\uAC00\uB85C \uAD6C\uB9E4\uD558\uB824\uBA74 \uC544\uB798 \uC0C1\uD488\uC744 \uD655\uC778\uD574\uC8FC\uC138\uC694.';
+        }
+        return '\uC218\uAC15 \uC804\uC5D0 \uBBF8\uB9AC \uC900\uBE44\uD558\uAC70\uB098 \uC218\uC5C5 \uD6C4 \uB2E4\uC2DC \uB9CC\uB4E4 \uB54C \uC4F0\uB294 \uC7AC\uB8CC\uB4E4\uC785\uB2C8\uB2E4.';
+    }
+
+    function setMaterialButtonBusy(button, isBusy, idleText) {
+        if (!button) return;
+        button.disabled = !!isBusy;
+        button.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+        button.textContent = isBusy ? '\uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uB294 \uC911...' : idleText;
+    }
+
+    function bindMaterialActions(items) {
+        var addAllBtn = document.getElementById('materialsAddAllBtn');
+        var grid = document.getElementById('materialsGrid');
+        if (addAllBtn) {
+            addAllBtn.addEventListener('click', function() {
+                handleMaterialAddAll(items, addAllBtn);
+            });
+        }
+        if (grid) {
+            grid.addEventListener('click', function(e) {
+                var btn = e.target.closest('.js-material-add');
+                if (!btn) return;
+
+                var brandUid = btn.getAttribute('data-branduid') || '';
+                var baseQty = parseInt(btn.getAttribute('data-quantity'), 10) || 1;
+                var totalQty = Math.max(baseQty * (selectedQuantity || 1), 1);
+
+                e.preventDefault();
+                if (!brandUid) {
+                    showToast('\uC774 \uC0C1\uD488\uC740 \uC7A5\uBC14\uAD6C\uB2C8 \uC5F0\uACB0 \uC815\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.', 'error');
+                    return;
+                }
+
+                setMaterialButtonBusy(btn, true, '\uC7A5\uBC14\uAD6C\uB2C8 \uB2F4\uAE30');
+                addKitProductToBasket(brandUid, totalQty)
+                    .then(function() {
+                        setMaterialButtonBusy(btn, false, '\uC7A5\uBC14\uAD6C\uB2C8 \uB2F4\uAE30');
+                        showToast('\uC7AC\uB8CC\uAC00 \uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uACBC\uC2B5\uB2C8\uB2E4.', 'success');
+                    })
+                    .catch(function(err) {
+                        console.warn('[ClassDetail] \uC7AC\uB8CC \uAC1C\uBCC4 \uB2F4\uAE30 \uC2E4\uD328:', err);
+                        setMaterialButtonBusy(btn, false, '\uC7A5\uBC14\uAD6C\uB2C8 \uB2F4\uAE30');
+                        showToast('\uC7AC\uB8CC\uB97C \uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uC9C0 \uBABB\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+                    });
+            });
+        }
+    }
+
+    function handleMaterialAddAll(items, button) {
+        var queue = [];
+        var i;
+        var successCount = 0;
+        var failCount = 0;
+
+        for (i = 0; i < items.length; i++) {
+            if (items[i].branduid) {
+                queue.push({
+                    branduid: items[i].branduid,
+                    quantity: Math.max((items[i].quantity || 1) * (selectedQuantity || 1), 1)
+                });
+            }
+        }
+
+        if (queue.length === 0) {
+            showToast('\uD55C \uBC88\uC5D0 \uB2F4\uC744 \uC218 \uC788\uB294 \uC790\uC0AC\uBAB0 \uC0C1\uD488 \uC815\uBCF4\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.', 'error');
+            return;
+        }
+
+        setMaterialButtonBusy(button, true, '\uC7AC\uB8CC \uD55C\uBC88\uC5D0 \uB2F4\uAE30');
+
+        (function run(index) {
+            if (index >= queue.length) {
+                setMaterialButtonBusy(button, false, '\uC7AC\uB8CC \uD55C\uBC88\uC5D0 \uB2F4\uAE30');
+                if (successCount > 0 && failCount === 0) {
+                    showToast('\uC7AC\uB8CC ' + successCount + '\uC885\uC744 \uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uC558\uC2B5\uB2C8\uB2E4.', 'success');
+                } else if (successCount > 0) {
+                    showToast('\uC77C\uBD80 \uC7AC\uB8CC\uB9CC \uB2F4\uACBC\uC2B5\uB2C8\uB2E4. \uC131\uACF5 ' + successCount + '\uAC1C, \uC2E4\uD328 ' + failCount + '\uAC1C', 'error');
+                } else {
+                    showToast('\uC7AC\uB8CC \uB2F4\uAE30\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.', 'error');
+                }
+                return;
+            }
+
+            addKitProductToBasket(queue[index].branduid, queue[index].quantity)
+                .then(function() {
+                    successCount++;
+                    run(index + 1);
+                })
+                .catch(function(err) {
+                    console.warn('[ClassDetail] \uC7AC\uB8CC \uD55C\uBC88\uC5D0 \uB2F4\uAE30 \uC2E4\uD328:', err);
+                    failCount++;
+                    run(index + 1);
+                });
+        })(0);
+    }
+
     /**
      * 수강에 필요한 재료 렌더링 (Graceful Degradation)
      */
     function renderMaterials(data) {
         var section = document.getElementById('detailMaterials');
-        if (!section) return;
+        var noteEl = document.getElementById('materialsNote');
+        var grid = document.getElementById('materialsGrid');
+        var items = getMaterialKitItems(data);
+        var html = '';
 
-        var productIds = data.materials_product_ids;
-        if (!productIds || !Array.isArray(productIds) || productIds.length === 0) {
-            // 재료 정보 없으면 섹션 숨김
+        if (!section || !noteEl || !grid) return;
+
+        if (!items || items.length === 0) {
             section.style.display = 'none';
             return;
         }
 
         section.style.display = '';
+        noteEl.textContent = getMaterialsNoteText(data, items);
 
-        var noteEl = document.getElementById('materialsNote');
-        if (noteEl) {
-            if (data.materials_included === '\uD3EC\uD568') {
-                noteEl.textContent = '\uC218\uAC15\uB8CC\uC5D0 \uC7AC\uB8CC\uAC00 \uD3EC\uD568\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4. \uCD94\uAC00 \uAD6C\uB9E4\uB97C \uC6D0\uD558\uC2DC\uBA74 \uC544\uB798 \uC0C1\uD488\uC744 \uCC38\uACE0\uD574 \uC8FC\uC138\uC694.';
-            } else {
-                noteEl.textContent = '\uC218\uAC15\uC5D0 \uD544\uC694\uD55C \uC7AC\uB8CC\uC785\uB2C8\uB2E4. \uBCC4\uB3C4 \uAD6C\uB9E4\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4.';
-            }
+        var addableCount = 0;
+        for (var i = 0; i < items.length; i++) {
+            if (items[i].branduid) addableCount++;
         }
 
-        var grid = document.getElementById('materialsGrid');
-        if (!grid) return;
+        if (addableCount > 0) {
+            html += '<div class="detail-materials__actions">'
+                + '<button type="button" class="detail-materials__action detail-materials__action--primary" id="materialsAddAllBtn">\uC7AC\uB8CC \uD55C\uBC88\uC5D0 \uB2F4\uAE30</button>'
+                + '<a href="/shop/basket.html" class="detail-materials__action detail-materials__action--secondary">\uC7A5\uBC14\uAD6C\uB2C8 \uBCF4\uAE30</a>'
+                + '</div>';
+        }
 
-        // 재료 카드 렌더링 (상품 상세 링크)
-        var html = '';
-        for (var i = 0; i < productIds.length; i++) {
-            var pid = escapeHtml(productIds[i]);
-            var productUrl = '/goods/goods_view.php?goodsNo=' + encodeURIComponent(pid);
+        html += '<div class="materials-grid__inner">';
+        for (i = 0; i < items.length; i++) {
+            var item = items[i];
+            var productUrl = item.product_url || '#';
+            var hasLink = !!item.product_url;
+            var hasBrandUid = !!item.branduid;
+            var priceText = item.price > 0 ? formatPrice(item.price) + '\uC6D0' : '\uAC00\uACA9 \uD655\uC778 \uD544\uC694';
 
-            html += '<a href="' + productUrl + '" class="material-card" target="_blank" rel="noopener">'
+            html += '<article class="material-card">'
                 + '<div class="material-card__thumb">'
-                + '<div style="position:absolute;inset:0;display:flex;align-items:center;justify-content:center;color:#aaa;font-size:12px;">'
-                + '\uC0C1\uD488 #' + pid
-                + '</div>'
+                + '<div class="material-card__thumb-label">\uC7AC\uB8CC KIT</div>'
+                + '<span class="material-card__qty">1\uC778 \uAE30\uC900 x ' + escapeHtml(String(item.quantity || 1)) + '</span>'
                 + '</div>'
                 + '<div class="material-card__body">'
-                + '<p class="material-card__name">\uC7AC\uB8CC \uC0C1\uD488 #' + pid + '</p>'
-                + '<span class="material-card__price">\uC0C1\uD488 \uD398\uC774\uC9C0 \uD655\uC778</span>'
-                + '</div>'
-                + '</a>';
+                + '<p class="material-card__name">' + escapeHtml(item.name || '') + '</p>'
+                + '<p class="material-card__meta">' + (hasLink ? '\uC790\uC0AC\uBAB0 \uC5F0\uACB0 \uC644\uB8CC' : '\uC6B4\uC601\uD300 \uD655\uC778 \uC911') + '</p>'
+                + '<div class="material-card__price">' + escapeHtml(priceText) + '</div>'
+                + '<div class="material-card__actions">';
+
+            if (hasLink) {
+                html += '<a href="' + escapeHtml(productUrl) + '" class="material-card__btn material-card__btn--link" target="_blank" rel="noopener">\uC0C1\uD488 \uBCF4\uAE30</a>';
+            } else {
+                html += '<span class="material-card__btn material-card__btn--disabled">\uB9C1\uD06C \uC900\uBE44 \uC911</span>';
+            }
+
+            if (hasBrandUid) {
+                html += '<button type="button" class="material-card__btn material-card__btn--cart js-material-add" data-branduid="' + escapeHtml(item.branduid) + '" data-quantity="' + escapeHtml(String(item.quantity || 1)) + '">\uC7A5\uBC14\uAD6C\uB2C8 \uB2F4\uAE30</button>';
+            }
+
+            html += '</div></div></article>';
         }
+        html += '</div>';
+
         grid.innerHTML = html;
+        bindMaterialActions(items);
     }
 
     /**
@@ -1119,7 +1512,7 @@
         for (var i = 1; i <= 5; i++) {
             html += '<button type="button" class="star-rating__btn" data-value="' + i + '" '
                 + 'aria-label="' + i + '\uC810" role="radio" aria-checked="false">'
-                + '<svg class="star-rating__icon" width="28" height="28" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">'
+                + '<svg class="star-rating__icon" width="28" height="28" viewBox="0 0 14 14">'
                 + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/>'
                 + '</svg></button>';
         }
@@ -1295,12 +1688,20 @@
             submitBtn.textContent = '\uB4F1\uB85D \uC911...';
         }
 
-        PC.api.fetchPost('REVIEW_SUBMIT', payload)
+        fetch(REVIEW_SUBMIT_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+        })
+        .then(function(response) {
+            return response.json();
+        })
         .then(function(data) {
             isSubmittingReview = false;
 
             if (data && data.success) {
                 // 성공: 토스트 + 폼 숨김 + 목록 새로고침
+                storeReviewThanksState(payload.class_id, classData && classData.class_name ? classData.class_name : '');
                 showReviewToast('\uD6C4\uAE30\uAC00 \uB4F1\uB85D\uB418\uC5C8\uC2B5\uB2C8\uB2E4. \uC801\uB9BD\uAE08 1,000\uC6D0\uC774 \uC9C0\uAE09\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
                 hideReviewForm();
                 refreshReviewList();
@@ -1349,6 +1750,18 @@
         }
     }
 
+    function storeReviewThanksState(classId, className) {
+        try {
+            localStorage.setItem('pressco21_review_thanks_v1', JSON.stringify({
+                class_id: classId || '',
+                class_name: className || '',
+                at: new Date().toISOString()
+            }));
+        } catch (err) {
+            return;
+        }
+    }
+
     /**
      * 후기 목록 새로고침 (캐시 무효화 + 재요청)
      */
@@ -1358,14 +1771,25 @@
         if (!classId) return;
 
         // 캐시 무효화
-        try { localStorage.removeItem('pc_' + PC.config.CACHE_VERSION + '_' + CACHE_PREFIX + '_' + classId); } catch (e) { /* 무시 */ }
+        invalidateDetailCache(classId);
+        invalidateCatalogCaches();
 
         // 재요청
-        PC.api.fetchPost('CLASS_API', { action: 'getClassDetail', id: classId }, { noRetry: true })
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getClassDetail', id: classId })
+        })
+        .then(function(response) {
+            if (!response.ok) return null;
+            return response.json();
+        })
         .then(function(data) {
             if (data && data.success && data.data) {
+                // 캐시 갱신
                 setCache(classId, data);
                 classData = data.data;
+                // 후기 섹션만 재렌더링
                 renderReviews(data.data);
             }
         })
@@ -1451,11 +1875,13 @@
         var infoEl = document.getElementById('bookingInfo');
         var priceEl = document.getElementById('bookingPrice');
         var maxEl = document.getElementById('bookingMax');
+        var profile = resolveContentProfile(data || {});
+        var selection = getCurrentBookingSelection(data);
 
         var className = escapeHtml(data.class_name || '');
-        var price = data.price || 0;
-        var avgRating = parseFloat(data.avg_rating) || 0;
-        var classCount = parseInt(data.class_count) || 0;
+        var price = selection.unitPrice;
+        var avgRating = getAverageRatingValue(data);
+        var classCount = getReviewCountValue(data);
         var maxStudents = parseInt(data.max_students) || DEFAULT_MAX_STUDENTS;
         var durationText = formatDuration(data.duration_min || 0);
         var starsHtml = renderStars(avgRating, 'info-star', 14);
@@ -1472,101 +1898,15 @@
                     + '</div>';
             }
             html += '<div>'
-                + '<span class="booking-info__price">' + formatPrice(price) + '<span class="booking-info__price-unit">\uC6D0</span></span>'
+                + '<span class="booking-info__price"><span id="bookingHeadlinePriceAmount">' + formatPrice(price) + '</span><span class="booking-info__price-unit">\uC6D0</span></span>'
                 + '<span class="booking-info__price-per">/1\uC778</span>'
-                + '</div>';
-
-            // 키트 선택 UI: bundle 방식(kit_bundle_branduid) 또는 기존 kit_items 방식
-            var hasBundle = !!(data.kit_bundle_branduid && String(data.kit_bundle_branduid).trim());
-            var hasKitItems = !!(data.kit_enabled && parseInt(data.kit_enabled, 10) === 1);
-            var kitEnabled = hasBundle || hasKitItems;
-
-            if (kitEnabled) {
-                // bundle이 있으면 branduid 저장, kit_items 합산은 폴백으로만 사용
-                kitBundleBranduid = hasBundle ? String(data.kit_bundle_branduid).trim() : '';
-
-                // 기존 kit_items 합산 (bundle이 없을 때 사용, bundle일 때는 fetch 후 덮어쓰기)
-                var kitItems = [];
-                try { kitItems = data.kit_items ? (typeof data.kit_items === 'string' ? JSON.parse(data.kit_items) : data.kit_items) : []; } catch(e) {}
-                kitTotalPrice = 0;
-                for (var ki = 0; ki < kitItems.length; ki++) {
-                    kitTotalPrice += parseInt(kitItems[ki].price || 0, 10) * parseInt(kitItems[ki].quantity || 1, 10);
-                }
-
-                // kit_info가 API 응답에 포함되어 있으면 우선 사용 (WF-01 확장 시)
-                if (data.kit_info && data.kit_info.price) {
-                    kitTotalPrice = parseInt(data.kit_info.price, 10) || kitTotalPrice;
-                    kitBundleInfo = data.kit_info;
-                }
-
-                // 키트 이름: bundle info가 있으면 실제 상품명, 없으면 기본
-                var kitDisplayName = (kitBundleInfo && kitBundleInfo.name)
-                    ? escapeHtml(kitBundleInfo.name) : '\uD0A4\uD2B8 \uD3EC\uD568';
-                var kitDescText = (kitBundleInfo && kitBundleInfo.name)
-                    ? escapeHtml(kitBundleInfo.name) + ' ' + formatPrice(kitTotalPrice) + '\uC6D0'
-                    : '\uC7AC\uB8CC\uD0A4\uD2B8 ' + formatPrice(kitTotalPrice) + '\uC6D0 \uD3EC\uD568';
-
-                html += '<div class="cd-kit-selector">'
-                    + '<p class="cd-kit-selector__label">\uC218\uAC15 \uBC29\uC2DD \uC120\uD0DD</p>'
-                    + '<label class="cd-kit-option cd-kit-option--selected" data-kit="class_only">'
-                    + '<input type="radio" name="kitOption" value="class_only" checked>'
-                    + '<span class="cd-kit-option__radio"></span>'
-                    + '<span class="cd-kit-option__body">'
-                    + '<span class="cd-kit-option__title">\uAC15\uC758\uB9CC</span>'
-                    + '<span class="cd-kit-option__price">' + formatPrice(price) + '\uC6D0</span>'
-                    + '</span>'
-                    + '</label>'
-                    + '<label class="cd-kit-option" data-kit="with_kit">'
-                    + '<input type="radio" name="kitOption" value="with_kit">'
-                    + '<span class="cd-kit-option__radio"></span>'
-                    + '<span class="cd-kit-option__body">'
-                    + '<span class="cd-kit-option__title">' + kitDisplayName + '</span>'
-                    + '<span class="cd-kit-option__price" id="kitOptionPrice">' + formatPrice(price + kitTotalPrice) + '\uC6D0</span>'
-                    + '<span class="cd-kit-option__desc" id="kitOptionDesc">' + kitDescText + '</span>'
-                    + '</span>'
-                    + '</label>'
-                    + '</div>';
-
-                // 묶음 키트 상품 정보 카드 (bundle branduid가 있으면 표시 영역 확보)
-                if (hasBundle) {
-                    html += '<div class="cd-kit-bundle-card" id="kitBundleCard" style="display:none;">'
-                        + '<div class="cd-kit-bundle-card__loading" id="kitBundleLoading">'
-                        + '<span class="cd-kit-bundle-card__spinner"></span>'
-                        + '<span>\uD0A4\uD2B8 \uC0C1\uD488 \uC815\uBCF4 \uBD88\uB7EC\uC624\uB294 \uC911...</span>'
-                        + '</div>'
-                        + '<div class="cd-kit-bundle-card__content" id="kitBundleContent" style="display:none;"></div>'
-                        + '</div>';
-                }
-            }
-
-            html += buildExploreLinksHtml(data, 'sidebar');
+                + '</div>'
+                + '<p class="booking-info__note">' + escapeHtml(profile.bookingNote) + '</p>'
+                + buildExploreLinksHtml(data, 'sidebar');
             infoEl.innerHTML = html;
-
-            // 키트 라디오 이벤트 바인딩
-            if (kitEnabled) {
-                var kitOptions = infoEl.querySelectorAll('.cd-kit-option');
-                for (var ko = 0; ko < kitOptions.length; ko++) {
-                    kitOptions[ko].addEventListener('click', function() {
-                        var val = this.getAttribute('data-kit');
-                        selectedKitOption = val;
-                        for (var kk = 0; kk < kitOptions.length; kk++) {
-                            kitOptions[kk].classList.toggle('cd-kit-option--selected', kitOptions[kk].getAttribute('data-kit') === val);
-                        }
-                        // 묶음 키트 카드 토글 (with_kit 선택 시만 강조)
-                        var bundleCard = document.getElementById('kitBundleCard');
-                        if (bundleCard) {
-                            bundleCard.classList.toggle('cd-kit-bundle-card--active', val === 'with_kit');
-                        }
-                        updatePriceDisplay(price);
-                    });
-                }
-
-                // bundle branduid가 있으면 비동기로 메이크샵 상품 정보 fetch
-                if (hasBundle) {
-                    fetchKitBundleInfo(kitBundleBranduid, price);
-                }
-            }
         }
+
+        renderBookingOptionSelector(data);
 
         // 최대 인원 표시
         if (maxEl) {
@@ -1580,6 +1920,263 @@
         initBookingPanel(data);
     }
 
+    function getKitBundleBrandUid(data) {
+        if (!data) return '';
+        return extractBrandUidFromValue(data.kit_bundle_branduid || data.kitBundleBranduid || '');
+    }
+
+    function getKitBundleEstimate(data) {
+        var total = 0;
+        var items = Array.isArray(data && data.kit_items) ? data.kit_items : [];
+        var i = 0;
+        for (i = 0; i < items.length; i++) {
+            total += Math.max(parseInt(items[i] && items[i].price, 10) || 0, 0) * Math.max(parseInt(items[i] && items[i].quantity, 10) || 1, 1);
+        }
+        return total;
+    }
+
+    function buildBookingOptionState(data) {
+        var classUnitPrice = Math.max(parseInt(data && data.price, 10) || 0, 0);
+        var kitBundleBrandUid = getKitBundleBrandUid(data);
+        var kitEstimate = getKitBundleEstimate(data);
+        var existingWithKit = bookingOptionState.withKit;
+        var liveBundlePrice = 0;
+        var priceSource = kitEstimate > 0 ? 'estimate' : 'pending';
+
+        if (existingWithKit && existingWithKit.brandUid === kitBundleBrandUid && parseInt(existingWithKit.bundleUnitPrice, 10) > 0) {
+            liveBundlePrice = Math.max(parseInt(existingWithKit.bundleUnitPrice, 10) || 0, 0);
+            priceSource = existingWithKit.priceSource || priceSource;
+        }
+
+        bookingOptionState.classOnly = {
+            mode: BOOKING_MODE_CLASS_ONLY,
+            available: true,
+            unitPrice: classUnitPrice,
+            classUnitPrice: classUnitPrice,
+            bundleUnitPrice: 0,
+            label: '\uAC15\uC758\uB9CC \uC218\uAC15',
+            description: '\uC218\uC5C5 \uC608\uC57D\uACFC \uACB0\uC81C\uB9CC \uC9C4\uD589\uD569\uB2C8\uB2E4.'
+        };
+
+        bookingOptionState.withKit = {
+            mode: BOOKING_MODE_WITH_KIT,
+            available: !!kitBundleBrandUid,
+            brandUid: kitBundleBrandUid,
+            classUnitPrice: classUnitPrice,
+            bundleUnitPrice: liveBundlePrice || kitEstimate,
+            unitPrice: classUnitPrice + (liveBundlePrice || kitEstimate),
+            label: '\uD0A4\uD2B8 \uD3EC\uD568 \uC218\uAC15',
+            description: kitBundleBrandUid
+                ? '\uAC15\uC758 \uC0C1\uD488\uACFC \uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC744 \uD568\uAED8 \uB2F4\uC544 \uC900\uBE44\uAE4C\uC9C0 \uD55C \uBC88\uC5D0 \uC9C4\uD589\uD569\uB2C8\uB2E4.'
+                : '\uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488 \uC5F0\uB3D9 \uD6C4 \uC120\uD0DD \uAC00\uB2A5\uD569\uB2C8\uB2E4.',
+            priceSource: priceSource
+        };
+
+        if (selectedBookingMode === BOOKING_MODE_WITH_KIT && !bookingOptionState.withKit.available) {
+            selectedBookingMode = BOOKING_MODE_CLASS_ONLY;
+        }
+    }
+
+    function getCurrentBookingSelection(data) {
+        if (!bookingOptionState.classOnly) {
+            buildBookingOptionState(data || classData || {});
+        }
+
+        if (selectedBookingMode === BOOKING_MODE_WITH_KIT && bookingOptionState.withKit && bookingOptionState.withKit.available) {
+            return bookingOptionState.withKit;
+        }
+
+        return bookingOptionState.classOnly || {
+            mode: BOOKING_MODE_CLASS_ONLY,
+            available: true,
+            unitPrice: Math.max(parseInt(data && data.price, 10) || 0, 0),
+            classUnitPrice: Math.max(parseInt(data && data.price, 10) || 0, 0),
+            bundleUnitPrice: 0
+        };
+    }
+
+    function canSelectWithKit() {
+        return !!(bookingOptionState.withKit && bookingOptionState.withKit.available && bookingOptionState.withKit.brandUid);
+    }
+
+    function canGiftCurrentSelection() {
+        return selectedBookingMode !== BOOKING_MODE_WITH_KIT;
+    }
+
+    function renderBookingOptionSelector(data) {
+        var area = document.getElementById('bookingOptionArea');
+        var listEl = document.getElementById('bookingOptionList');
+        var hintEl = document.getElementById('bookingOptionHint');
+        var classOnly;
+        var withKit;
+        var html;
+
+        if (!area || !listEl || !hintEl) return;
+
+        buildBookingOptionState(data || {});
+        classOnly = bookingOptionState.classOnly;
+        withKit = bookingOptionState.withKit;
+
+        if (!(data && parseInt(data.kit_enabled, 10) === 1)) {
+            area.style.display = 'none';
+            return;
+        }
+
+        html = '';
+        html += buildBookingOptionCardHtml(classOnly, selectedBookingMode === BOOKING_MODE_CLASS_ONLY, '');
+        html += buildBookingOptionCardHtml(
+            withKit,
+            selectedBookingMode === BOOKING_MODE_WITH_KIT,
+            withKit.available ? '\uCD94\uCC9C' : '\uC900\uBE44\uC911'
+        );
+        listEl.innerHTML = html;
+        area.style.display = '';
+        hintEl.textContent = withKit.available
+            ? '\uD0A4\uD2B8 \uD3EC\uD568 \uC120\uD0DD \uC2DC \uAC15\uC758 \uC0C1\uD488\uACFC \uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC774 \uD568\uAED8 \uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uAE41\uB2C8\uB2E4.'
+            : '\uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC774 \uC5F0\uB3D9\uB418\uBA74 \uD0A4\uD2B8 \uD3EC\uD568 \uC608\uC57D\uC744 \uBC14\uB85C \uC120\uD0DD\uD560 \uC218 \uC788\uC5B4\uC694.';
+
+        bindBookingOptionEvents();
+        updateBookingNotice();
+        updateBookingHeadlinePrice();
+    }
+
+    function buildBookingOptionCardHtml(option, isSelected, badgeText) {
+        var priceText = option.unitPrice > 0 ? formatPrice(option.unitPrice) + '\uC6D0 /1\uC778' : '\uAC00\uACA9 \uD655\uC778 \uC911';
+        var className = 'booking-option__card';
+        if (isSelected) className += ' is-selected';
+        if (!option.available) className += ' is-disabled';
+
+        return '<button type="button" class="' + className + '" data-booking-mode="' + escapeHtml(option.mode) + '"' + (option.available ? '' : ' disabled') + '>'
+            + '<span class="booking-option__radio" aria-hidden="true"></span>'
+            + '<span class="booking-option__body">'
+            + '<span class="booking-option__title-row">'
+            + '<span class="booking-option__title">' + escapeHtml(option.label) + '</span>'
+            + (badgeText ? '<span class="booking-option__badge">' + escapeHtml(badgeText) + '</span>' : '')
+            + '</span>'
+            + '<span class="booking-option__price">' + escapeHtml(priceText) + '</span>'
+            + '<span class="booking-option__desc">' + escapeHtml(option.description) + '</span>'
+            + '</span>'
+            + '</button>';
+    }
+
+    function bindBookingOptionEvents() {
+        var buttons = document.querySelectorAll('.class-detail .booking-option__card[data-booking-mode]');
+        var i = 0;
+        for (i = 0; i < buttons.length; i++) {
+            buttons[i].addEventListener('click', function() {
+                var mode = this.getAttribute('data-booking-mode') || BOOKING_MODE_CLASS_ONLY;
+                if (mode === BOOKING_MODE_WITH_KIT && !canSelectWithKit()) {
+                    return;
+                }
+                selectedBookingMode = mode;
+                renderBookingOptionSelector(classData || {});
+                updatePriceDisplay();
+                validateBooking();
+            });
+        }
+    }
+
+    function updateBookingNotice() {
+        var noticeEl = document.getElementById('bookingNotice');
+        if (!noticeEl) return;
+
+        if (selectedBookingMode === BOOKING_MODE_WITH_KIT) {
+            noticeEl.textContent = '\uD0A4\uD2B8 \uD3EC\uD568 \uC120\uD0DD \uC2DC \uAC15\uC758 \uC0C1\uD488\uACFC \uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC744 \uD568\uAED8 \uC7A5\uBC14\uAD6C\uB2C8\uC5D0 \uB2F4\uC544 \uACB0\uC81C\uB97C \uC9C4\uD589\uD569\uB2C8\uB2E4.';
+            return;
+        }
+
+        noticeEl.textContent = '\uC608\uC57D \uD655\uC815 \uC804 \uACB0\uC81C\uAC00 \uC9C4\uD589\uB418\uC9C0 \uC54A\uC2B5\uB2C8\uB2E4.';
+    }
+
+    function toggleNoScheduleState(show, data) {
+        var emptyEl = document.getElementById('bookingEmptyState');
+        var descEl = document.getElementById('bookingEmptyStateDesc');
+        var categoryLink = document.getElementById('bookingEmptyCategoryLink');
+        var regionLink = document.getElementById('bookingEmptyRegionLink');
+        var faqLink = document.getElementById('bookingEmptyFaqLink');
+        var category = data && data.category ? String(data.category).trim() : '';
+        var region = getRegionFilterValue(data && (data.location || data.region || (data.partner && data.partner.location)) ? (data.location || data.region || (data.partner && data.partner.location)) : '');
+
+        if (!emptyEl) return;
+
+        if (!show) {
+            emptyEl.style.display = 'none';
+            return;
+        }
+
+        emptyEl.style.display = '';
+
+        if (descEl) {
+            descEl.textContent = '\uBE44\uC2B7\uD55C \uD074\uB798\uC2A4\uB97C \uBA3C\uC800 \uBE44\uAD50\uD574\uBCF4\uAC70\uB098, \uBB38\uC758 \uCC44\uB110\uB85C \uC77C\uC815 \uC624\uD508 \uC5EC\uBD80\uB97C \uD655\uC778\uD574\uBCF4\uC138\uC694.';
+        }
+
+        if (categoryLink) {
+            categoryLink.href = buildListPageUrl({ category: category });
+            categoryLink.textContent = category ? category + ' \uD074\uB798\uC2A4 \uB354 \uBCF4\uAE30' : '\uBE44\uC2B7\uD55C \uD074\uB798\uC2A4 \uBCF4\uAE30';
+        }
+
+        if (regionLink) {
+            if (region) {
+                regionLink.href = buildListPageUrl({ region: region });
+                regionLink.textContent = region + ' \uD074\uB798\uC2A4 \uBCF4\uAE30';
+                regionLink.style.display = '';
+            } else {
+                regionLink.style.display = 'none';
+            }
+        }
+
+        if (faqLink) {
+            if (!faqLink._cdBound) {
+                faqLink._cdBound = true;
+                faqLink.addEventListener('click', function(e) {
+                    var faqTabBtn = document.querySelector('.class-detail .detail-tab[data-tab="faq"]');
+                    var tabList = document.getElementById('detailTabs');
+
+                    e.preventDefault();
+
+                    if (faqTabBtn) {
+                        faqTabBtn.click();
+                    }
+
+                    if (tabList && tabList.scrollIntoView) {
+                        tabList.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    } else {
+                        window.location.hash = 'tab-faq';
+                    }
+                });
+            }
+        }
+    }
+
+    function updateBookingHeadlinePrice() {
+        var amountEl = document.getElementById('bookingHeadlinePriceAmount');
+        var selection = getCurrentBookingSelection(classData || {});
+        if (!amountEl) return;
+        amountEl.textContent = formatPrice(selection.unitPrice || 0);
+    }
+
+    function hydrateKitBundlePrice(data) {
+        var bundleBrandUid = getKitBundleBrandUid(data);
+
+        if (!bundleBrandUid) return;
+
+        resolveShopProductMeta(bundleBrandUid)
+            .then(function(meta) {
+                var bundlePrice = Math.max(parseInt(meta && meta.priceValue, 10) || 0, 0);
+                if (!bookingOptionState.withKit || !bundlePrice) return;
+
+                bookingOptionState.withKit.bundleUnitPrice = bundlePrice;
+                bookingOptionState.withKit.unitPrice = bookingOptionState.withKit.classUnitPrice + bundlePrice;
+                bookingOptionState.withKit.priceSource = 'live';
+                renderBookingOptionSelector(data || {});
+                updatePriceDisplay();
+                validateBooking();
+            })
+            .catch(function(err) {
+                console.warn('[ClassDetail] \uBB36\uC74C \uD0A4\uD2B8 \uAC00\uACA9 \uD655\uC778 \uC2E4\uD328:', err);
+            });
+    }
+
 
     /* ========================================
        예약 패널 인터랙션
@@ -1590,7 +2187,7 @@
      * @param {Object} data
      */
     function initBookingPanel(data) {
-        var price = data.price || 0;
+        var price = getCurrentBookingSelection(data).unitPrice;
         var maxStudents = parseInt(data.max_students) || DEFAULT_MAX_STUDENTS;
 
         // tbl_Schedules 기반 일정 저장
@@ -1613,7 +2210,9 @@
             if (enabledDates.length === 0) {
                 dateInput.placeholder = '\uB4F1\uB85D\uB41C \uC77C\uC815\uC774 \uC5C6\uC2B5\uB2C8\uB2E4';
                 dateInput.disabled = true;
+                toggleNoScheduleState(true, data);
             } else {
+                toggleNoScheduleState(false, data);
                 datePickerInstance = flatpickr(dateInput, {
                     locale: 'ko',
                     minDate: 'today',
@@ -1624,7 +2223,7 @@
                     onChange: function(selectedDates, dateStr) {
                         selectedDate = dateStr;
                         selectedScheduleId = '';
-                        renderTimeSlots(dateStr, price);
+                        renderTimeSlots(dateStr);
                         validateBooking();
                     }
                 });
@@ -1641,7 +2240,7 @@
                 if (selectedQuantity > MIN_QUANTITY) {
                     selectedQuantity--;
                     if (valueEl) valueEl.textContent = selectedQuantity;
-                    updatePriceDisplay(price);
+                    updatePriceDisplay();
                     updateCounterButtons(maxStudents);
                 }
             });
@@ -1652,7 +2251,7 @@
                 if (selectedQuantity < maxStudents) {
                     selectedQuantity++;
                     if (valueEl) valueEl.textContent = selectedQuantity;
-                    updatePriceDisplay(price);
+                    updatePriceDisplay();
                     updateCounterButtons(maxStudents);
                 }
             });
@@ -1695,166 +2294,45 @@
     }
 
     /**
-     * 묶음 키트 상품 정보를 메이크샵에서 fetch
-     * shopdetail.html을 파싱하여 상품명, 가격, 이미지 추출
-     * @param {string} bundleBranduid - 메이크샵 상품 branduid
-     * @param {number} classPrice - 수강료 (키트포함 가격 갱신용)
-     */
-    function fetchKitBundleInfo(bundleBranduid, classPrice) {
-        var cardEl = document.getElementById('kitBundleCard');
-        var loadingEl = document.getElementById('kitBundleLoading');
-        var contentEl = document.getElementById('kitBundleContent');
-        if (!cardEl) return;
-
-        cardEl.style.display = '';
-
-        fetch('/shop/shopdetail.html?branduid=' + encodeURIComponent(bundleBranduid))
-            .then(function(resp) {
-                if (!resp.ok) throw new Error('HTTP ' + resp.status);
-                return resp.text();
-            })
-            .then(function(html) {
-                var parser = new DOMParser();
-                var doc = parser.parseFromString(html, 'text/html');
-
-                // 상품명 추출
-                var titleEl = doc.querySelector('.goods--title, .goods_name, h3.tit');
-                var productName = titleEl ? titleEl.textContent.trim() : '';
-
-                // 가격 추출 (판매가 우선)
-                var priceEl = doc.querySelector('.price .sell em, .goods_price .price, .sell_price .price');
-                var productPrice = 0;
-                if (priceEl) {
-                    productPrice = parseInt(priceEl.textContent.replace(/[^0-9]/g, ''), 10) || 0;
-                }
-                // 정규식 폴백: sell_price 또는 price 입력 필드
-                if (!productPrice) {
-                    var priceInput = doc.querySelector('input[name="sell_price"], input[name="price"]');
-                    if (priceInput) {
-                        productPrice = parseInt(priceInput.value.replace(/[^0-9]/g, ''), 10) || 0;
-                    }
-                }
-                // 추가 폴백: 메타 태그
-                if (!productPrice) {
-                    var metaPrice = doc.querySelector('meta[property="product:price:amount"]');
-                    if (metaPrice) {
-                        productPrice = parseInt(metaPrice.getAttribute('content'), 10) || 0;
-                    }
-                }
-
-                // 이미지 추출
-                var imgEl = doc.querySelector('.goods_image img, .detail_image img, .thumb img, img.goods_img');
-                var productImg = imgEl ? (imgEl.getAttribute('src') || '') : '';
-                // 상대 경로 보정
-                if (productImg && productImg.charAt(0) === '/') {
-                    productImg = window.location.origin + productImg;
-                }
-
-                // kitBundleInfo 저장
-                kitBundleInfo = {
-                    branduid: bundleBranduid,
-                    name: productName || '\uBB36\uC74C \uD0A4\uD2B8',
-                    price: productPrice,
-                    image: productImg,
-                    url: '/shop/shopdetail.html?branduid=' + encodeURIComponent(bundleBranduid)
-                };
-
-                // bundle 가격이 있으면 kitTotalPrice 업데이트
-                if (productPrice > 0) {
-                    kitTotalPrice = productPrice;
-                }
-
-                // 키트 옵션 라디오의 가격/설명 갱신
-                var kitPriceEl = document.getElementById('kitOptionPrice');
-                var kitDescEl = document.getElementById('kitOptionDesc');
-                if (kitPriceEl) {
-                    kitPriceEl.textContent = formatPrice(classPrice + kitTotalPrice) + '\uC6D0';
-                }
-                if (kitDescEl) {
-                    kitDescEl.textContent = escapeHtml(kitBundleInfo.name) + ' ' + formatPrice(kitTotalPrice) + '\uC6D0';
-                }
-
-                // 키트 카드 콘텐츠 렌더링
-                if (loadingEl) loadingEl.style.display = 'none';
-                if (contentEl) {
-                    var cardHtml = '';
-                    if (kitBundleInfo.image) {
-                        cardHtml += '<div class="cd-kit-bundle-card__thumb">'
-                            + '<img src="' + escapeHtml(kitBundleInfo.image)
-                            + '" alt="' + escapeHtml(kitBundleInfo.name) + '" loading="lazy">'
-                            + '</div>';
-                    }
-                    cardHtml += '<div class="cd-kit-bundle-card__info">'
-                        + '<p class="cd-kit-bundle-card__name">' + escapeHtml(kitBundleInfo.name) + '</p>'
-                        + '<p class="cd-kit-bundle-card__price">' + formatPrice(kitTotalPrice) + '\uC6D0</p>'
-                        + '<a href="' + escapeHtml(kitBundleInfo.url) + '" class="cd-kit-bundle-card__link" target="_blank" rel="noopener">'
-                        + '\uC0C1\uD488 \uC0C1\uC138 \uBCF4\uAE30'
-                        + '<svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">'
-                        + '<path d="M4.5 2.5l3.5 3.5-3.5 3.5" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>'
-                        + '</svg></a>'
-                        + '</div>';
-                    contentEl.innerHTML = cardHtml;
-                    contentEl.style.display = '';
-                }
-
-                // 가격 표시 갱신
-                updatePriceDisplay(classPrice);
-            })
-            .catch(function(err) {
-                console.warn('[ClassDetail] \uD0A4\uD2B8 \uC0C1\uD488 \uC815\uBCF4 \uBD88\uB7EC\uC624\uAE30 \uC2E4\uD328:', err);
-                // fetch 실패 시 카드 숨기고 기존 kit_items 가격 유지
-                if (loadingEl) loadingEl.style.display = 'none';
-                if (contentEl) {
-                    contentEl.innerHTML = '<p class="cd-kit-bundle-card__error">'
-                        + '\uD0A4\uD2B8 \uC815\uBCF4\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.'
-                        + '</p>';
-                    contentEl.style.display = '';
-                }
-            });
-    }
-
-    /**
      * 가격 표시 업데이트
      * @param {number} unitPrice
      */
     function updatePriceDisplay(unitPrice) {
+        var selection = getCurrentBookingSelection(classData || {});
         var priceEl = document.getElementById('bookingPrice');
-        if (!priceEl) return;
+        var actualUnitPrice = typeof unitPrice === 'number' ? unitPrice : selection.unitPrice;
+        var totalPrice = actualUnitPrice * selectedQuantity;
+        var mobilePrice = document.getElementById('mobilePrice');
+        var mobilePriceUnit = document.getElementById('mobilePriceUnit');
+        var mobileLabel = document.querySelector('.booking-bar-mobile__label');
+        var lineLabel = selectedBookingMode === BOOKING_MODE_WITH_KIT ? '\uD0A4\uD2B8 \uD3EC\uD568' : '\uAC15\uC758 \uB9CC';
 
-        var classTotal = unitPrice * selectedQuantity;
-        var kitAdd = selectedKitOption === 'with_kit' ? kitTotalPrice : 0;
-        var totalPrice = classTotal + kitAdd;
-
-        var html = '<div class="booking-price__row">'
-            + '<span>\uC218\uAC15\uB8CC ' + formatPrice(unitPrice) + '\uC6D0 x ' + selectedQuantity + '\uBA85</span>'
-            + '<span>' + formatPrice(classTotal) + '\uC6D0</span>'
-            + '</div>';
-
-        if (kitAdd > 0) {
-            var kitLabel = (kitBundleInfo && kitBundleInfo.name)
-                ? escapeHtml(kitBundleInfo.name) : '\uC7AC\uB8CC\uD0A4\uD2B8';
-            html += '<div class="booking-price__row">'
-                + '<span>' + kitLabel + '</span>'
-                + '<span>' + formatPrice(kitAdd) + '\uC6D0</span>'
+        if (priceEl) {
+            var html = '<div class="booking-price__row">'
+                + '<span>' + lineLabel + ' ' + formatPrice(actualUnitPrice) + '\uC6D0 x ' + selectedQuantity + '\uBA85</span>'
+                + '<span>' + formatPrice(totalPrice) + '\uC6D0</span>'
+                + '</div>'
+                + (selection.bundleUnitPrice > 0 && selectedBookingMode === BOOKING_MODE_WITH_KIT
+                    ? '<div class="booking-price__row"><span>\uD0A4\uD2B8 \uCD94\uAC00 \uAE08\uC561</span><span>1\uC778 ' + formatPrice(selection.bundleUnitPrice) + '\uC6D0</span></div>'
+                    : '')
+                + '<div class="booking-price__row booking-price__total">'
+                + '<span>\uCD1D \uACB0\uC81C \uAE08\uC561</span>'
+                + '<span class="booking-price__total-value">' + formatPrice(totalPrice) + '\uC6D0</span>'
                 + '</div>';
+
+            priceEl.innerHTML = html;
         }
 
-        html += '<div class="booking-price__row booking-price__total">'
-            + '<span>\uCD1D \uACB0\uC81C \uAE08\uC561</span>'
-            + '<span class="booking-price__total-value">' + formatPrice(totalPrice) + '\uC6D0</span>'
-            + '</div>';
-
-        priceEl.innerHTML = html;
-
-        // 모바일 하단 바 가격 동기화
-        var mobilePrice = document.getElementById('mobilePrice');
         if (mobilePrice) {
             mobilePrice.textContent = formatPrice(totalPrice) + '\uC6D0';
         }
-        var mobilePriceUnit = document.getElementById('mobilePriceUnit');
         if (mobilePriceUnit) {
-            mobilePriceUnit.textContent = kitAdd > 0 ? '/\uD0A4\uD2B8\uD3EC\uD568' : '/' + selectedQuantity + '\uC778';
+            mobilePriceUnit.textContent = '/' + selectedQuantity + '\uBA85';
         }
+        if (mobileLabel) {
+            mobileLabel.textContent = selectedBookingMode === BOOKING_MODE_WITH_KIT ? '\uD0A4\uD2B8 \uD3EC\uD568 \uCD1D\uC561' : '\uCD1D \uACB0\uC81C \uC608\uC0C1';
+        }
+        updateBookingHeadlinePrice();
     }
 
     /**
@@ -1862,7 +2340,7 @@
      * @param {string} dateStr - YYYY-MM-DD
      * @param {number} unitPrice - 수강료
      */
-    function renderTimeSlots(dateStr, unitPrice) {
+    function renderTimeSlots(dateStr) {
         var container = document.getElementById('timeSlots');
         if (!container) {
             // 시간대 컨테이너가 없으면 datePicker 다음에 동적 생성
@@ -1915,7 +2393,7 @@
                     if (valueEl) valueEl.textContent = selectedQuantity;
                 }
                 updateCounterButtons(remaining);
-                updatePriceDisplay(unitPrice);
+                updatePriceDisplay();
                 validateBooking();
             });
         }
@@ -1927,13 +2405,24 @@
     function validateBooking() {
         var submitBtn = document.getElementById('bookingSubmit');
         var giftBtn = document.getElementById('bookingGift');
+        var mobileBtn = document.getElementById('mobileBookingBtn');
+        var mobileGiftBtn = document.getElementById('mobileGiftBtn');
         var isValid = !!(selectedDate && selectedScheduleId);
+        var canGift = isValid && canGiftCurrentSelection();
 
         if (submitBtn) {
             submitBtn.disabled = !isValid;
         }
         if (giftBtn) {
-            giftBtn.disabled = !isValid;
+            giftBtn.disabled = !canGift;
+            giftBtn.classList[canGift ? 'remove' : 'add']('is-blocked');
+        }
+        if (mobileBtn) {
+            mobileBtn.disabled = !isValid;
+        }
+        if (mobileGiftBtn) {
+            mobileGiftBtn.disabled = !canGift;
+            mobileGiftBtn.classList[canGift ? 'remove' : 'add']('is-blocked');
         }
     }
 
@@ -1944,6 +2433,16 @@
      * 3. WF-04 POST -> NocoDB 예약 기록 -> 안내 alert -> 결제 페이지 이동
      */
     function handleBookingClick() {
+        var selection;
+        var classBrandUid;
+        var brandCode;
+        var xCode;
+        var mCode;
+        var classUnitPrice;
+        var classTotalPrice;
+        var productName;
+        var successMessage;
+
         if (!classData) return;
 
         // 비로그인 처리: confirm -> login.html 이동
@@ -1968,48 +2467,53 @@
             return;
         }
 
+        selection = getCurrentBookingSelection(classData);
+
         // 메이크샵 상품 정보: 개인결제 카테고리 (xcode=personal)
-        var brandUid = classData.makeshop_product_id;
-        if (!brandUid) {
+        classBrandUid = classData.makeshop_product_id;
+        if (!classBrandUid) {
             showToast('\ud301\uc815 \ucebc\ub798\uc2a4\uc758 \uc5f0\ub3d9 \uc0c1\ud488\uc774 \uc900\ube44\ub418\uc9c0 \uc54a\uc558\uc2b5\ub2c8\ub2e4. \uc7a0\uc2dc \ud6c4 \ub2e4\uc2dc \uc2dc\ub3c4\ud574\uc8fc\uc138\uc694.', 'error');
-            if (submitBtn) submitBtn.disabled = false;
-            if (mobileBtn) mobileBtn.disabled = false;
             return;
         }
-        var brandCode = classData.makeshop_brandcode || 'personal';
-        var xCode = classData.makeshop_xcode || 'personal';
-        var mCode = classData.makeshop_mcode || '';
-
-        // 수강료 계산 (키트 포함 시 합산)
-        var unitPrice = classData.price || 50000;
-        var kitAdd = selectedKitOption === 'with_kit' ? kitTotalPrice : 0;
-        var totalPrice = (unitPrice * selectedQuantity) + kitAdd;
-        var productName = classData.title || classData.class_name || '\uc555\ud654 \uae30\ubcf8 \uac15\uc758 \ud074\ub798\uc2a4';
-        if (selectedKitOption === 'with_kit') {
-            productName += ' (\uD0A4\uD2B8\uD3EC\uD568)';
+        if (selectedBookingMode === BOOKING_MODE_WITH_KIT && !canSelectWithKit()) {
+            showToast('\uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC774 \uC5F0\uB3D9\uB418\uBA74 \uD0A4\uD2B8 \uD3EC\uD568 \uC608\uC57D\uC744 \uC120\uD0DD\uD560 \uC218 \uC788\uC5B4\uC694.', 'error');
+            return;
         }
+
+        brandCode = classData.makeshop_brandcode || 'personal';
+        xCode = classData.makeshop_xcode || 'personal';
+        mCode = classData.makeshop_mcode || '';
+
+        // 수강료 계산
+        classUnitPrice = Math.max(parseInt(classData.price, 10) || 0, 0) || 50000;
+        classTotalPrice = classUnitPrice * selectedQuantity;
+        productName = classData.title || classData.class_name || '\uc555\ud654 \uae30\ubcf8 \uac15\uc758 \ud074\ub798\uc2a4';
+        successMessage = selectedBookingMode === BOOKING_MODE_WITH_KIT
+            ? '\uC608\uC57D\uC774 \uC811\uC218\uB418\uC5C8\uC2B5\uB2C8\uB2E4.\n\uAC15\uC758 \uC0C1\uD488\uACFC \uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC744 \uD568\uAED8 \uB2F4\uC544 \uC7A5\uBC14\uAD6C\uB2C8\uB85C \uC774\uB3D9\uD569\uB2C8\uB2E4.'
+            : '\uC608\uC57D\uC774 \uC811\uC218\uB418\uC5C8\uC2B5\uB2C8\uB2E4.\n\uACB0\uC81C \uD398\uC774\uC9C0\uB85C \uC774\uB3D9\uD569\uB2C8\uB2E4.';
 
         // WF-04 예약 기록 + 결제 페이지 이동
         submitBooking({
             className: productName,
             date: selectedDate,
             participants: selectedQuantity,
-            totalPrice: totalPrice,
-            brandUid: brandUid,
+            classOrderAmount: classTotalPrice,
+            displayTotalPrice: selection.unitPrice * selectedQuantity,
+            classBrandUid: classBrandUid,
+            kitBundleBrandUid: selection.brandUid || '',
             brandCode: brandCode,
             xCode: xCode,
             mCode: mCode,
             productName: productName,
-            productPrice: unitPrice,
-            kitIncluded: selectedKitOption === 'with_kit',
-            kitPrice: kitAdd,
-            kitBundleBranduid: (selectedKitOption === 'with_kit' && kitBundleBranduid) ? kitBundleBranduid : ''
+            productPrice: classUnitPrice,
+            bookingMode: selectedBookingMode,
+            successMessage: successMessage
         });
     }
 
     /**
      * WF-04 예약 기록 후 결제 페이지 이동
-     * @param {Object} info - className, date, participants, totalPrice, brandUid, kitBundleBranduid
+     * @param {Object} info - className, date, participants, totalPrice, brandUid
      */
     function submitBooking(info) {
         // WF-04 POST 예약 기록
@@ -2019,10 +2523,9 @@
             booking_date: info.date,
             schedule_id: selectedScheduleId,
             participants: info.participants,
-            amount: info.totalPrice,
-            kit_included: info.kitIncluded || false,
-            kit_price: info.kitPrice || 0,
-            kit_bundle_branduid: info.kitBundleBranduid || ''
+            amount: info.classOrderAmount,
+            booking_mode: info.bookingMode,
+            kit_bundle_branduid: info.kitBundleBrandUid || ''
         };
 
         // 버튼 비활성화
@@ -2031,7 +2534,16 @@
         if (submitBtn) submitBtn.disabled = true;
         if (mobileBtn) mobileBtn.disabled = true;
 
-        PC.api.fetchPost('BOOKING', bookingData)
+        fetch(BOOKING_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(bookingData),
+            redirect: 'follow'
+        })
+        .then(function(response) {
+            if (!response.ok) throw new Error('HTTP ' + response.status);
+            return response.json();
+        })
         .then(function(resData) {
             if (submitBtn) submitBtn.disabled = false;
             if (mobileBtn) mobileBtn.disabled = false;
@@ -2039,16 +2551,20 @@
             if (!resData || !resData.success) {
                 console.warn('[Booking] WF-04 \uc2e4\ud328, \ud3f4\ubc31 \uc774\ub3d9:', resData);
             }
-            alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-            goToCheckout(info.brandUid, info.participants, info.productName, info.brandCode, info.xCode, info.mCode);
+            invalidateDetailCache(bookingData.class_id);
+            invalidateCatalogCaches();
+            alert(info.successMessage || '\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.');
+            goToCheckout(info);
         })
         .catch(function(err) {
             if (submitBtn) submitBtn.disabled = false;
             if (mobileBtn) mobileBtn.disabled = false;
             // 네트워크 오류 -> 폴백으로 결제 페이지 이동
             console.warn('[Booking] \ub124\ud2b8\uc6cc\ud06c \uc624\ub958, \ud3f4\ubc31 \uc774\ub3d9:', err);
-            alert('\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.\n\uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4.');
-            goToCheckout(info.brandUid, info.participants, info.productName, info.brandCode, info.xCode, info.mCode);
+            invalidateDetailCache(bookingData.class_id);
+            invalidateCatalogCaches();
+            alert(info.successMessage || '\uc608\uc57d\uc774 \uc811\uc218\ub418\uc5c8\uc2b5\ub2c8\ub2e4.');
+            goToCheckout(info);
         });
     }
 
@@ -2116,8 +2632,19 @@
      *   (brandcode는 상품마다 다름: 000000000160, 000000000161 ...)
      * - 일반상품: brandCode/xCode/mCode 그대로 사용
      */
-    function goToCheckout(brandUid, qty, productName, brandCode, xCode, mCode) {
+    function goToCheckout(info) {
+        var brandUid = info.classBrandUid;
+        var qty = info.participants;
+        var productName = info.productName;
+        var brandCode = info.brandCode;
+        var xCode = info.xCode;
+        var mCode = info.mCode;
         var xC = xCode || 'personal';
+
+        if (info.bookingMode === BOOKING_MODE_WITH_KIT && info.kitBundleBrandUid) {
+            goToPackageCheckout(brandUid, info.kitBundleBrandUid, qty);
+            return;
+        }
 
         if (xC === 'personal') {
             // shopdetail.html fetch → brandcode 추출 → basket.action.html POST (수량 반영)
@@ -2147,6 +2674,36 @@
         doBasketPost(brandUid, qty, productName, brandCode, xC, mCode || '001');
     }
 
+    function goToPackageCheckout(classBrandUid, kitBrandUid, qty) {
+        resolveShopProductMeta(classBrandUid)
+            .then(function(classMeta) {
+                if (!classMeta || !classMeta.brandCode) {
+                    throw new Error('class meta not found');
+                }
+                return submitBasketAdd(classMeta, qty);
+            })
+            .then(function() {
+                return resolveShopProductMeta(kitBrandUid);
+            })
+            .then(function(kitMeta) {
+                if (!kitMeta || !kitMeta.brandCode) {
+                    throw new Error('kit meta not found');
+                }
+                return submitBasketAdd(kitMeta, qty);
+            })
+            .then(function() {
+                window.location.href = '/shop/basket.html';
+            })
+            .catch(function(err) {
+                console.warn('[ClassDetail] \uD0A4\uD2B8 \uD3EC\uD568 \uC7A5\uBC14\uAD6C\uB2C8 \uC774\uB3D9 \uC2E4\uD328:', err);
+                if (classBrandUid) {
+                    window.location.href = '/shop/shopdetail.html?branduid=' + String(classBrandUid);
+                    return;
+                }
+                window.location.href = '/shop/basket.html';
+            });
+    }
+
 
     /* ========================================
        FAQ / 문의 (Task 010)
@@ -2155,81 +2712,454 @@
     function renderFaqSection(data) {
         var faqList = document.getElementById('faqList');
         var faqContact = document.getElementById('faqContact');
-        if (!faqList || !faqContact) return;
+        var faqCategoryList = document.getElementById('faqCategoryList');
+        var faqSearchInput = document.getElementById('faqSearchInput');
+        var faqResultCount = document.getElementById('faqResultCount');
+        var faqEmpty = document.getElementById('faqEmpty');
+        if (!faqList || !faqContact || !faqCategoryList || !faqSearchInput || !faqResultCount || !faqEmpty) return;
 
-        var faqs = [
-            /* ---- 예약/결제 ---- */
-            { q: '\uc608\uc57d\uc740 \uc5b4\ub5bb\uac8c \ud558\ub098\uc694?', a: '\uc6d0\ud558\ub294 \ud074\ub798\uc2a4\uc758 \ub0a0\uc9dc\uc640 \uc2dc\uac04\uc744 \uc120\ud0dd\ud55c \ud6c4 \uc608\uc57d\ud558\uae30 \ubc84\ud2bc\uc744 \ub204\ub974\uba74 \uacb0\uc81c \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud569\ub2c8\ub2e4. \ud68c\uc6d0 \ub85c\uadf8\uc778 \ud6c4 \uc774\uc6a9 \uac00\ub2a5\ud569\ub2c8\ub2e4.' },
-            { q: '\uc218\uc5c5\uc744 \ucde8\uc18c\ud558\uace0 \uc2f6\uc5b4\uc694. \ud658\ubd88\uc774 \uac00\ub2a5\ud55c\uac00\uc694?', a: '\uc218\uc5c5 3\uc77c \uc804\uae4c\uc9c0 \uc804\uc561 \ud658\ubd88 \uac00\ub2a5\ud569\ub2c8\ub2e4. 2\uc77c \uc804 50%, 1\uc77c \uc804/\ub2f9\uc77c\uc740 \ud658\ubd88\uc774 \uc5b4\ub835\uc2b5\ub2c8\ub2e4. \uace0\uac1d\uc13c\ud130\ub85c \ubb38\uc758\ud574 \uc8fc\uc138\uc694.' },
-            { q: '\uc608\uc57d \uc778\uc6d0\uc744 \ubcc0\uacbd\ud560 \uc218 \uc788\ub098\uc694?', a: '\uc608\uc57d \ud6c4 \uc778\uc6d0 \ubcc0\uacbd\uc740 \uace0\uac1d\uc13c\ud130\ub97c \ud1b5\ud574 \uac00\ub2a5\ud569\ub2c8\ub2e4. \uc794\uc5ec\uc11d\uc774 \uc788\ub294 \uacbd\uc6b0\uc5d0\ub9cc \ucd94\uac00 \uac00\ub2a5\ud569\ub2c8\ub2e4.' },
-            { q: '\uacb0\uc81c \uc218\ub2e8\uc740 \ubb34\uc5c7\uc774 \uc788\ub098\uc694?', a: '\uc2e0\uc6a9\uce74\ub4dc, \ubb34\ud1b5\uc7a5 \uc785\uae08, \uac04\ud3b8\uacb0\uc81c(\uce74\uce74\uc624\ud398\uc774, \ub124\uc774\ubc84\ud398\uc774 \ub4f1)\ub85c \uacb0\uc81c \uac00\ub2a5\ud569\ub2c8\ub2e4.' },
-            /* ---- 재료/키트 ---- */
-            { q: '\uc7ac\ub8cc\ub294 \uc9c1\uc811 \uac00\uc838\uac00\uc57c \ud558\ub098\uc694?', a: '\ubaa8\ub4e0 \uc7ac\ub8cc\ub294 \uac15\uc0ac\uac00 \uc900\ube44\ud569\ub2c8\ub2e4. \uc7ac\ub8cc\ud0a4\ud2b8 \ud3ec\ud568 \ud074\ub798\uc2a4\ub294 \uc218\uc5c5 \uc804 \ubc30\uc1a1\ub429\ub2c8\ub2e4. \ud3b8\ud55c \ucc28\ub9bc\uc73c\ub85c \uc624\uc138\uc694!' },
-            { q: '\ud0a4\ud2b8 \ud3ec\ud568\uacfc \uac15\uc758\ub9cc\uc758 \ucc28\uc774\ub294 \ubb34\uc5c7\uc778\uac00\uc694?', a: '\ud0a4\ud2b8 \ud3ec\ud568\uc744 \uc120\ud0dd\ud558\uba74 \uc218\uc5c5\uc5d0 \ud544\uc694\ud55c \uc7ac\ub8cc\uac00 \uc0ac\uc804 \ubc30\uc1a1\ub429\ub2c8\ub2e4. \uac15\uc758\ub9cc \uc120\ud0dd \uc2dc \uc7ac\ub8cc\ub294 \ubcc4\ub3c4 \uad6c\ub9e4\ud558\uc154\uc57c \ud569\ub2c8\ub2e4.' },
-            { q: '\ud0a4\ud2b8 \ubc30\uc1a1\uc740 \uc5b8\uc81c \ub3c4\ucc29\ud558\ub098\uc694?', a: '\uc218\uc5c5 3\uc77c \uc804\uae4c\uc9c0 \ubc1c\uc1a1\ub418\uba70, \uc218\ub3c4\uad8c\uc740 \uc775\uc77c, \uc9c0\ubc29\uc740 2\uc77c \ub0b4 \ub3c4\ucc29\ud569\ub2c8\ub2e4. \ubc30\uc1a1 \uc644\ub8cc \uc2dc \ubb38\uc790\ub85c \uc548\ub0b4\ub4dc\ub9bd\ub2c8\ub2e4.' },
-            /* ---- 수업/참여 ---- */
-            { q: '\ucd08\ubcf4\uc790\ub3c4 \ucc38\uc5ec\ud560 \uc218 \uc788\ub098\uc694?', a: '\ub124, \ub300\ubd80\ubd84\uc758 \ud074\ub798\uc2a4\ub294 \ucd08\ubcf4\uc790\ub97c \uc704\ud574 \uad6c\uc131\ub418\uc5b4 \uc788\uc2b5\ub2c8\ub2e4. \ud074\ub798\uc2a4 \uc0c1\uc138\uc758 \ub09c\uc774\ub3c4 \ud45c\uc2dc\ub97c \ud655\uc778\ud574 \uc8fc\uc138\uc694.' },
-            { q: '\uc218\uc5c5 \uc2dc\uac04\uc740 \uc5bc\ub9c8\ub098 \uac78\ub9ac\ub098\uc694?', a: '\ud074\ub798\uc2a4\ub9c8\ub2e4 \ub2e4\ub974\uba70, \uc0c1\uc138 \ud398\uc774\uc9c0\uc758 \uc18c\uc694\uc2dc\uac04\uc744 \ud655\uc778\ud574 \uc8fc\uc138\uc694. \ubcf4\ud1b5 1\uc2dc\uac04 30\ubd84 ~ 3\uc2dc\uac04 \uc815\ub3c4\uc785\ub2c8\ub2e4.' },
-            { q: '\uc218\uc5c5 \uc7a5\uc18c\ub294 \uc5b4\ub514\uc778\uac00\uc694?', a: '\uac01 \ud074\ub798\uc2a4\uc758 \uc704\uce58 \uc815\ubcf4\ub97c \uc0c1\uc138 \ud398\uc774\uc9c0\uc5d0\uc11c \ud655\uc778\ud558\uc2e4 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \ud30c\ud2b8\ub108 \uacf5\ubc29\uc5d0\uc11c \uc9c4\ud589\ub418\uba70, \uc8fc\ucc28 \uc548\ub0b4\ub3c4 \ud568\uaed8 \uc81c\uacf5\ub429\ub2c8\ub2e4.' },
-            { q: '\uc644\uc131\ud55c \uc791\ud488\uc744 \uac00\uc838\uac08 \uc218 \uc788\ub098\uc694?', a: '\ub124, \uc218\uc5c5 \uc911 \ub9cc\ub4e0 \uc791\ud488\uc740 \ubaa8\ub450 \uac00\uc838\uac00\uc2e4 \uc218 \uc788\uc2b5\ub2c8\ub2e4. \uc791\ud488 \ubcf4\ud638\ub97c \uc704\ud55c \ud3ec\uc7a5\ub3c4 \uc81c\uacf5\ud569\ub2c8\ub2e4.' },
-            /* ---- 선물/단체 ---- */
-            { q: '\uc120\ubb3c\ud558\uae30\ub85c \uc608\uc57d\ud560 \uc218 \uc788\ub098\uc694?', a: '\ub124, \uc608\uc57d \uc2dc \uc120\ubb3c\ud558\uae30 \ubc84\ud2bc\uc744 \ub204\ub974\uba74 \uc120\ubb3c \ubc1b\uc744 \ubd84\uc758 \uc815\ubcf4\ub97c \uc785\ub825\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.' },
-            { q: '\ub2e8\uccb4 \uc218\uc5c5\ub3c4 \uac00\ub2a5\ud55c\uac00\uc694?', a: '5\uc778 \uc774\uc0c1 \ub2e8\uccb4 \uc218\uc5c5\uc740 \uac15\uc0ac\uc640 \ubcc4\ub3c4 \ud611\uc758\uac00 \ud544\uc694\ud569\ub2c8\ub2e4. \ubb38\uc758\ud558\uae30\ub97c \ud1b5\ud574 \uc5f0\ub77d\ud574 \uc8fc\uc138\uc694.' },
-            /* ---- 후기/기타 ---- */
-            { q: '\uc218\uc5c5 \ud6c4\uae30\ub294 \uc5b4\ub5bb\uac8c \uc791\uc131\ud558\ub098\uc694?', a: '\uc218\uc5c5 \uc644\ub8cc \ud6c4 \uc790\ub3d9\uc73c\ub85c \ud6c4\uae30 \uc791\uc131 \uc548\ub0b4\uac00 \ubc1c\uc1a1\ub429\ub2c8\ub2e4. \ub9c8\uc774\ud398\uc774\uc9c0\uc5d0\uc11c\ub3c4 \uc791\uc131\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.' },
-            { q: '\ud504\ub808\uc2a4\ucf5421\uc740 \uc5b4\ub5a4 \ud68c\uc0ac\uc778\uac00\uc694?', a: '30\ub144 \uc804\ud1b5\uc758 \uaf43 \uacf5\uc608 \uc7ac\ub8cc \uc804\ubb38 \uae30\uc5c5\uc785\ub2c8\ub2e4. \uc555\ud654, \ubcf4\uc874\ud654, \ud50c\ub8e8\uc774\ub4dc\uc544\ud2b8 \ub4f1 \ub2e4\uc591\ud55c \uaf43 \uacf5\uc608 \ubd84\uc57c\uc758 \uc804\ubb38 \uc7ac\ub8cc\ub97c \uc81c\uacf5\ud569\ub2c8\ub2e4.' }
-        ];
+        faqState.items = getResolvedFaqItems(data);
+        faqState.category = FAQ_CATEGORY_ALL;
+        faqState.keyword = '';
+        faqSearchInput.value = '';
 
-        var html = '';
-        for (var i = 0; i < faqs.length; i++) {
-            html += '<div class="faq-item">'
-                + '<button type="button" class="faq-item__question" aria-expanded="false">'
-                + '<span>Q. ' + escapeHtml(faqs[i].q) + '</span>'
-                + '<svg class="faq-item__arrow" width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true"><path d="M3 4.5l3 3 3-3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-                + '</button>'
-                + '<div class="faq-item__answer" style="display:none;">'
-                + '<p>' + escapeHtml(faqs[i].a) + '</p>'
-                + '</div>'
-                + '</div>';
+        bindFaqEvents();
+        renderFaqCategoryFilters();
+        renderFilteredFaqList();
+        renderFaqContact(data);
+    }
+
+    function getResolvedFaqItems(data) {
+        var rawFaqs = data ? (data.faq_items || data.faqItems || data.faq_items_json || data.faqItemsJson) : [];
+        var customItems = normalizeFaqItems(parseFaqItemsValue(rawFaqs));
+        var defaultItems = buildDefaultFaqItems(data || {});
+        var merged = mergeFaqItems(customItems, defaultItems);
+
+        if (merged.length > 15) {
+            merged = merged.slice(0, 15);
         }
-        faqList.innerHTML = html;
+        return merged;
+    }
 
-        // FAQ 아코디언 이벤트
-        faqList.addEventListener('click', function(e) {
-            var btn = e.target.closest('.faq-item__question');
-            if (!btn) return;
-            var item = btn.closest('.faq-item');
-            var answer = item.querySelector('.faq-item__answer');
-            var expanded = btn.getAttribute('aria-expanded') === 'true';
-            btn.setAttribute('aria-expanded', String(!expanded));
-            answer.style.display = expanded ? 'none' : 'block';
-        });
+    function parseFaqItemsValue(rawFaqs) {
+        if (!rawFaqs) return [];
+        if (Array.isArray(rawFaqs)) return rawFaqs;
 
-        // 문의 연락처
-        var contactPhone = (data.contact_phone) ? escapeHtml(data.contact_phone) : '010-9848-5520';
-        var contactKakao = (data.contact_kakao) ? escapeHtml(data.contact_kakao) : '';
-        var contactInstagram = (data.partner && data.partner.instagram_url) ? escapeHtml(data.partner.instagram_url) : '';
+        if (typeof rawFaqs === 'string') {
+            var text = rawFaqs.replace(/^\s+|\s+$/g, '');
+            if (!text) return [];
+            try {
+                var parsed = JSON.parse(text);
+                if (Array.isArray(parsed)) return parsed;
+                if (parsed && Array.isArray(parsed.items)) return parsed.items;
+                if (parsed && Array.isArray(parsed.faqs)) return parsed.faqs;
+            } catch (e) {
+                return [];
+            }
+        }
 
-        var contactHtml = '<h3 class="faq-contact__title">\ubb38\uc758\ud558\uae30</h3>'
+        if (rawFaqs && Array.isArray(rawFaqs.items)) return rawFaqs.items;
+        if (rawFaqs && Array.isArray(rawFaqs.faqs)) return rawFaqs.faqs;
+        return [];
+    }
+
+    function normalizeFaqItems(items) {
+        var normalized = [];
+        var i;
+
+        for (i = 0; i < items.length; i++) {
+            var item = items[i] || {};
+            var question = normalizeFaqText(item.q || item.question || item.title || item.name || '');
+            var answer = normalizeFaqText(item.a || item.answer || item.desc || item.body || item.text || '');
+            var category = normalizeFaqCategory(item.category || item.group || item.type || inferFaqCategory(question, answer));
+
+            if (!question || !answer) continue;
+
+            normalized.push({
+                category: category,
+                q: question,
+                a: answer
+            });
+        }
+
+        return normalized;
+    }
+
+    function buildDefaultFaqItems(data) {
+        var levelText = normalizeLevelValue(data.level || '');
+        var durationText = formatDuration(data.duration_min || 0);
+        var priceText = data.price ? formatPrice(data.price) + '\uC6D0' : '\uC0C1\uC138 \uD398\uC774\uC9C0 \uC548\uB0B4 \uAE08\uC561';
+        var classType = getClassTypeLabel(data);
+        var locationText = getFaqLocationText(data, classType);
+        var maxStudents = parseInt(data.max_students, 10);
+        var partnerName = (data.partner && (data.partner.partner_name || data.partner.name)) ? (data.partner.partner_name || data.partner.name) : 'PRESSCO21 \uD30C\uD2B8\uB108 \uACF5\uBC29';
+        var materialItems = getMaterialKitItems(data);
+        var hasKit = materialItems.length > 0;
+        var materialsNote = normalizeFaqText(getMaterialsNoteText(data, materialItems));
+        var includedItems = getIncludesItems(data);
+        var includedTitles = [];
+        var includesSummary = '';
+        var i;
+
+        if (isNaN(maxStudents) || maxStudents <= 0) {
+            maxStudents = DEFAULT_MAX_STUDENTS;
+        }
+
+        for (i = 0; i < includedItems.length; i++) {
+            if (includedItems[i] && includedItems[i].title) {
+                includedTitles.push(includedItems[i].title);
+            }
+        }
+        includesSummary = includedTitles.length > 0 ? normalizeFaqText(includedTitles.join(', ')) : '\uAC15\uC758, \uC7AC\uB8CC\uD0A4\uD2B8, \uC218\uB8CC \uC548\uB0B4';
+
+        return [
+            {
+                category: '\uC218\uAC15',
+                q: '\uCC98\uC74C \uBC30\uC6B0\uB294 \uC0AC\uB78C\uB3C4 \uCC38\uC5EC\uD560 \uC218 \uC788\uB098\uC694?',
+                a: (levelText ? '\uD604\uC7AC \uC774 \uC218\uC5C5\uC740 ' + levelText + ' \uB09C\uC774\uB3C4\uB85C \uC548\uB0B4\uB418\uACE0 \uC788\uACE0, ' : '') + '\uAC15\uC0AC\uAC00 \uB2E8\uACC4\uBCC4\uB85C \uC9C4\uD589\uD558\uAE30 \uB54C\uBB38\uC5D0 \uCD08\uBCF4\uC790\uB3C4 \uB530\uB77C\uC624\uAE30 \uC26C\uC6B4 \uAD6C\uC131\uC785\uB2C8\uB2E4. \uCC98\uC74C \uCC38\uC5EC\uD558\uB294 \uBD84\uC740 \uC218\uC5C5 \uC18C\uAC1C, \uCEE4\uB9AC\uD050\uB7FC, \uC18C\uC694 \uC2DC\uAC04' + (durationText ? ' ' + durationText : '') + '\uC744 \uD568\uAED8 \uBCF4\uACE0 \uC120\uD0DD\uD558\uC2DC\uBA74 \uC88B\uC2B5\uB2C8\uB2E4.'
+            },
+            {
+                category: '\uC218\uAC15',
+                q: '\uC218\uAC15\uB8CC\uC5D0 \uC5B4\uB5A4 \uB0B4\uC6A9\uC774 \uD3EC\uD568\uB418\uB098\uC694?',
+                a: '\uD604\uC7AC \uC548\uB0B4 \uAE08\uC561\uC740 ' + priceText + ' \uAE30\uC900\uC774\uBA70, \uAE30\uBCF8 \uAC15\uC758 \uC9C4\uD589\uACFC \uC218\uC5C5 \uC548\uB0B4\uAC00 \uD3EC\uD568\uB429\uB2C8\uB2E4. \uC0C1\uB2E8 \u2018\uC774 \uAC00\uACA9\uC5D0 \uD3EC\uD568\uB41C \uAC83\u2019 \uC601\uC5ED\uC5D0\uC11C ' + includesSummary + ' \uAD6C\uC131\uC744 \uBC14\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.'
+            },
+            {
+                category: '\uC218\uAC15',
+                q: '\uC624\uD504\uB77C\uC778\uACFC \uC628\uB77C\uC778 \uCC38\uC5EC \uBC29\uC2DD\uC740 \uC5B4\uB5BB\uAC8C \uD655\uC778\uD558\uB098\uC694?',
+                a: locationText + ' ' + classType + ' \uC720\uD615\uC740 \uD074\uB798\uC2A4 \uAE30\uBCF8 \uC815\uBCF4\uC640 \uC77C\uC815 \uC120\uD0DD \uC601\uC5ED\uC5D0\uC11C \uD568\uAED8 \uBCF4\uC2E4 \uC218 \uC788\uACE0, \uC628\uB77C\uC778 \uC218\uC5C5\uC740 \uC608\uC57D \uD655\uC815 \uD6C4 \uC811\uC18D \uC548\uB0B4\uAC00 \uBCC4\uB3C4\uB85C \uC81C\uACF5\uB429\uB2C8\uB2E4.'
+            },
+            {
+                category: '\uC218\uAC15',
+                q: '\uD55C \uBC88\uC5D0 \uBA87 \uBA85\uAE4C\uC9C0 \uC608\uC57D\uD560 \uC218 \uC788\uB098\uC694?',
+                a: '\uAE30\uBCF8 \uC608\uC57D \uC815\uC6D0\uC740 \uCD5C\uB300 ' + maxStudents + '\uBA85 \uAE30\uC900\uC73C\uB85C \uC6B4\uC601\uB429\uB2C8\uB2E4. \uB2E8\uCCB4 \uC218\uAC15, \uAE30\uC5C5/\uD611\uD68C \uC77C\uC815, \uCD94\uAC00 \uC778\uC6D0 \uC870\uC815\uC740 \uD558\uB2E8 \uBB38\uC758\uD558\uAE30\uC5D0\uC11C \uBA3C\uC800 \uC0C1\uB2F4\uD574 \uC8FC\uC138\uC694.'
+            },
+            {
+                category: '\uD0A4\uD2B8\u00B7\uBC30\uC1A1',
+                q: '\uC7AC\uB8CC\uB098 \uB3C4\uAD6C\uB294 \uB530\uB85C \uC900\uBE44\uD574\uC57C \uD558\uB098\uC694?',
+                a: materialsNote + (hasKit ? ' \uD604\uC7AC \uC790\uC0AC\uBAB0 \uC5F0\uB3D9 \uC7AC\uB8CC\uB294 ' + materialItems.length + '\uAC1C \uAE30\uC900\uC73C\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4, \uC218\uC5C5 \uC804 \uBBF8\uB9AC \uAD6C\uC131\uC744 \uBCF4\uACE0 \uC900\uBE44\uD560 \uC218 \uC788\uC2B5\uB2C8\uB2E4.' : '')
+            },
+            {
+                category: '\uD0A4\uD2B8\u00B7\uBC30\uC1A1',
+                q: '\uD0A4\uD2B8 \uD3EC\uD568 \uC218\uC5C5\uC774\uBA74 \uC5B8\uC81C \uBC30\uC1A1\uB418\uB098\uC694?',
+                a: '\uD0A4\uD2B8 \uD3EC\uD568 \uB610\uB294 \uC0AC\uC804 \uC900\uBE44\uAC00 \uD544\uC694\uD55C \uC218\uC5C5\uC740 \uC608\uC57D \uD655\uC815 \uD6C4 \uC77C\uC815\uC5D0 \uB9DE\uCD98 \uC21C\uCC28 \uC548\uB0B4\uC640 \uBC1C\uC1A1\uC774 \uC9C4\uD589\uB429\uB2C8\uB2E4. \uC624\uD504\uB77C\uC778 \uC218\uC5C5\uC740 \uD604\uC7A5 \uC900\uBE44 \uAE30\uC900, \uC628\uB77C\uC778 \uC218\uC5C5\uC740 \uD0DD\uBC30 \uBCF4\uB0B4\uAE30 \uC77C\uC815\uC744 \uD568\uAED8 \uC548\uB0B4\uD574 \uB4DC\uB9BD\uB2C8\uB2E4.'
+            },
+            {
+                category: '\uD0A4\uD2B8\u00B7\uBC30\uC1A1',
+                q: '\uBC30\uC1A1\uC9C0\uB97C \uBC14\uAFB8\uAC70\uB098 \uBD80\uC7AC\uC911 \uC218\uB839\uC774 \uAC71\uC815\uB3FC\uC694.',
+                a: '\uACB0\uC81C \uD6C4 \uBC1C\uC1A1 \uC804 \uB2E8\uACC4\uC5D0\uC11C \uBB38\uC758 \uCC44\uB110\uB85C \uC54C\uB824 \uC8FC\uC2DC\uBA74 \uBCC0\uACBD \uAC00\uB2A5 \uC5EC\uBD80\uB97C \uD655\uC778\uD574 \uB4DC\uB9BD\uB2C8\uB2E4. \uC774\uBBF8 \uCD9C\uACE0\uB41C \uB4A4\uC5D0\uB294 \uD0DD\uBC30\uC0AC \uC815\uCC45\uC5D0 \uB530\uB77C \uC870\uC815\uB418\uBBC0\uB85C \uAC00\uB2A5\uD55C \uD55C \uBE60\uB974\uAC8C \uC694\uCCAD\uD574 \uC8FC\uC138\uC694.'
+            },
+            {
+                category: '\uD0A4\uD2B8\u00B7\uBC30\uC1A1',
+                q: '\uBC1B\uC740 \uD0A4\uD2B8\uC5D0 \uB204\uB77D\uC774\uB098 \uD30C\uC190\uC774 \uC788\uC73C\uBA74 \uC5B4\uB5BB\uAC8C \uD558\uB098\uC694?',
+                a: '\uC0AC\uC9C4\uACFC \uD568\uAED8 \uC5F0\uB77D \uC8FC\uC2DC\uBA74 \uBB38\uC81C \uD655\uC778 \uD6C4 \uC7AC\uBC1C\uC1A1 \uB610\uB294 \uB300\uCCB4 \uC548\uB0B4\uB97C \uB3C4\uC640\uB4DC\uB9BD\uB2C8\uB2E4. \uC218\uC5C5 \uB2F9\uC77C \uC9C4\uD589\uC5D0 \uC601\uD5A5\uC774 \uC5C6\uB3C4\uB85D \uAC00\uB2A5\uD55C \uD55C \uBE60\uB974\uAC8C \uC811\uC218\uD574 \uC8FC\uC138\uC694.'
+            },
+            {
+                category: '\uD0A4\uD2B8\u00B7\uBC30\uC1A1',
+                q: '\uC218\uC5C5 \uD6C4 \uAC19\uC740 \uC7AC\uB8CC\uB97C \uB2E4\uC2DC \uAD6C\uB9E4\uD560 \uC218 \uC788\uB098\uC694?',
+                a: '\uC608. \uC0C1\uC138 \uD398\uC774\uC9C0 \uC7AC\uB8CC \uC139\uC158\uACFC \uC218\uAC15 \uC644\uB8CC \uD6C4 \uB9C8\uC774\uD398\uC774\uC9C0\uC5D0\uC11C \uAC19\uC740 \uC7AC\uB8CC \uB2E4\uC2DC \uBCF4\uAE30 \uB3D9\uC120\uC744 \uC81C\uACF5\uD569\uB2C8\uB2E4. \uB9C8\uC74C\uC5D0 \uB4E0 \uC7AC\uB8CC\uB294 \uC790\uC0AC\uBAB0 \uC0C1\uD488\uC73C\uB85C \uC790\uC5F0\uC2A4\uB7FD\uAC8C \uC774\uC5B4\uC11C \uAD6C\uB9E4\uD560 \uC218 \uC788\uC5B4\uC694.'
+            },
+            {
+                category: '\uD30C\uD2B8\uB108',
+                q: '\uC218\uC5C5\uC744 \uC9C4\uD589\uD558\uB294 \uAC15\uC0AC\uC640 \uACF5\uBC29\uC740 \uC5B4\uB5A4 \uAE30\uC900\uC73C\uB85C \uC120\uC815\uB418\uB098\uC694?',
+                a: 'PRESSCO21 \uD30C\uD2B8\uB108 \uAE30\uC900\uC73C\uB85C \uC6B4\uC601 \uAC00\uC774\uB4DC, \uACE0\uAC1D \uC751\uB300, \uC218\uC5C5 \uC18C\uAC1C \uD488\uC9C8\uC744 \uB9DE\uCD98 \uD30C\uD2B8\uB108\uAC00 \uC218\uC5C5\uC744 \uC6B4\uC601\uD569\uB2C8\uB2E4. \uD604\uC7AC \uD074\uB798\uC2A4\uB294 ' + normalizeFaqText(partnerName) + '\uAC00 \uC9C4\uD589\uD558\uBA70, \uC0C1\uC138 \uC18C\uAC1C\uC640 \uD6C4\uAE30\uB97C \uD1B5\uD574 \uC2A4\uD0C0\uC77C\uC744 \uBA3C\uC800 \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.'
+            },
+            {
+                category: '\uD30C\uD2B8\uB108',
+                q: '\uAC15\uC0AC\uB098 \uACF5\uBC29 \uC77C\uC815\uC774 \uBC14\uB00C\uBA74 \uC5B4\uB5BB\uAC8C \uC548\uB0B4\uB418\uB098\uC694?',
+                a: '\uC77C\uC815 \uBCC0\uACBD, \uC9C4\uD589 \uC7A5\uC18C \uC870\uC815, \uC6B4\uC601 \uC774\uC288\uAC00 \uBC1C\uC0DD\uD558\uBA74 \uB4F1\uB85D\uB41C \uC5F0\uB77D\uCC98\uB85C \uBA3C\uC800 \uC548\uB0B4\uB4DC\uB9AC\uACE0 \uAC00\uB2A5\uD55C \uB300\uCCB4 \uC77C\uC815\uC774\uB098 \uD6C4\uC18D \uC870\uCE58\uB97C \uD568\uAED8 \uC548\uB0B4\uD569\uB2C8\uB2E4. \uC0C1\uC138 \uD398\uC774\uC9C0\uC5D0\uC11C\uB3C4 \uB0A8\uC740 \uC88C\uC11D\uACFC \uC77C\uC815 \uC0C1\uD0DC\uB97C \uC2E4\uC2DC\uAC04\uC73C\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.'
+            },
+            {
+                category: '\uC815\uC0B0',
+                q: '\uCDE8\uC18C\uC640 \uD658\uBD88\uC740 \uC5B4\uB5A4 \uAE30\uC900\uC73C\uB85C \uCC98\uB9AC\uB418\uB098\uC694?',
+                a: '\uAE30\uBCF8 \uD658\uBD88 \uAE30\uC900\uC740 \uC218\uC5C5 3\uC77C \uC804\uAE4C\uC9C0 \uC804\uC561, 2\uC77C \uC804 50%, 1\uC77C \uC804\uACFC \uB2F9\uC77C\uC740 \uD658\uBD88\uC774 \uC5B4\uB824\uC6B4 \uC815\uCC45\uC744 \uAE30\uBCF8\uC73C\uB85C \uC801\uC6A9\uD569\uB2C8\uB2E4. \uC608\uC57D \uBCC0\uACBD\uC774\uB098 \uC608\uC678 \uC0C1\uD669\uC740 \uACE0\uAC1D\uC13C\uD130 \uD655\uC778 \uD6C4 \uBCC4\uB3C4 \uC548\uB0B4\uB418\uB2C8 \uBA3C\uC800 \uBB38\uC758\uD574 \uC8FC\uC138\uC694.'
+            },
+            {
+                category: '\uC815\uC0B0',
+                q: '\uD6C4\uAE30 \uC774\uBCA4\uD2B8\uB098 \uC801\uB9BD\uAE08 \uD61C\uD0DD\uC740 \uC5B8\uC81C \uBC18\uC601\uB418\uB098\uC694?',
+                a: '\uD6C4\uAE30 \uC791\uC131 \uD61C\uD0DD, \uC774\uBCA4\uD2B8 \uC801\uB9BD\uAE08, \uC7AC\uAD6C\uB9E4 \uD61C\uD0DD\uC740 \uC6B4\uC601 \uD655\uC778 \uD6C4 \uC21C\uCC28 \uBC18\uC601\uB429\uB2C8\uB2E4. \uC9C0\uAE09 \uD0C0\uC774\uBC0D\uC774 \uC815\uD574\uC9C4 \uD504\uB85C\uBAA8\uC158\uC740 \uC0C1\uC138 \uACF5\uC9C0\uC640 \uC54C\uB9BC \uBA54\uC2DC\uC9C0\uB85C \uB2E4\uC2DC \uC548\uB0B4\uD574 \uB4DC\uB9BD\uB2C8\uB2E4.'
+            },
+            {
+                category: '\uC815\uC0B0',
+                q: '\uD604\uAE08\uC601\uC218\uC99D\uC774\uB098 \uACB0\uC81C \uC99D\uBE59\uC740 \uBC1B\uC744 \uC218 \uC788\uB098\uC694?',
+                a: '\uC790\uC0AC\uBAB0 \uC8FC\uBB38 \uAE30\uC900\uC73C\uB85C \uACB0\uC81C \uB0B4\uC5ED \uD655\uC778\uC774 \uAC00\uB2A5\uD558\uBA70, \uD544\uC694 \uC2DC \uACE0\uAC1D\uC13C\uD130\uB97C \uD1B5\uD574 \uD604\uAE08\uC601\uC218\uC99D \uB610\uB294 \uAC00\uB2A5\uD55C \uBC94\uC704\uC758 \uACB0\uC81C \uC99D\uBE59 \uC548\uB0B4\uB97C \uBC1B\uC744 \uC218 \uC788\uC2B5\uB2C8\uB2E4.'
+            },
+            {
+                category: '\uAE30\uD0C0',
+                q: '\uC8FC\uCC28, \uB3D9\uBC18 \uCC38\uC5EC, \uB2E8\uCCB4 \uC218\uC5C5 \uBB38\uC758\uB294 \uC5B4\uB514\uB85C \uD558\uBA74 \uB418\uB098\uC694?',
+                a: '\uD558\uB2E8 \uBB38\uC758\uD558\uAE30\uC758 \uC804\uD654, \uCE74\uCE74\uC624\uD1A1, \uC778\uC2A4\uD0C0\uADF8\uB7A8 \uCC44\uB110 \uC911 \uD3B8\uD55C \uBC29\uC2DD\uC73C\uB85C \uB0A8\uACA8 \uC8FC\uC138\uC694. \uC8FC\uCC28 \uAC00\uB2A5 \uC5EC\uBD80, \uBCF4\uD638\uC790 \uB3D9\uBC18, \uAE30\uC5C5/\uD611\uD68C \uB2E8\uCCB4 \uC218\uC5C5 \uC870\uC728\uB3C4 \uAC19\uC740 \uCC44\uB110\uC5D0\uC11C \uC548\uB0B4\uD574 \uB4DC\uB9BD\uB2C8\uB2E4.'
+            }
+        ];
+    }
+
+    function mergeFaqItems(primaryItems, fallbackItems) {
+        var merged = [];
+        var seen = {};
+        var groups = [primaryItems || [], fallbackItems || []];
+        var i;
+        var j;
+
+        for (i = 0; i < groups.length; i++) {
+            for (j = 0; j < groups[i].length; j++) {
+                var item = groups[i][j];
+                var key = normalizeFaqText(item.q || '').toLowerCase();
+                if (!key || seen[key]) continue;
+                seen[key] = true;
+                merged.push(item);
+            }
+        }
+
+        return merged;
+    }
+
+    function normalizeFaqText(text) {
+        return String(text || '').replace(/\s+/g, ' ').replace(/^\s+|\s+$/g, '');
+    }
+
+    function normalizeFaqCategory(raw) {
+        var text = normalizeFaqText(raw);
+
+        if (!text) return '\uC218\uAC15';
+        if (text === FAQ_CATEGORY_ALL) return FAQ_CATEGORY_ALL;
+        if (normalizedContains(text, '\uD0A4\uD2B8') || normalizedContains(text, '\uBC30\uC1A1') || normalizedContains(text, '\uD0DD\uBC30') || normalizedContains(text, 'kit') || normalizedContains(text, 'delivery')) return '\uD0A4\uD2B8\u00B7\uBC30\uC1A1';
+        if (normalizedContains(text, '\uD30C\uD2B8\uB108') || normalizedContains(text, '\uAC15\uC0AC') || normalizedContains(text, '\uACF5\uBC29') || normalizedContains(text, '\uD611\uD68C') || normalizedContains(text, 'partner')) return '\uD30C\uD2B8\uB108';
+        if (normalizedContains(text, '\uC815\uC0B0') || normalizedContains(text, '\uD658\uBD88') || normalizedContains(text, '\uACB0\uC81C') || normalizedContains(text, '\uC801\uB9BD\uAE08') || normalizedContains(text, '\uC601\uC218\uC99D') || normalizedContains(text, 'payment') || normalizedContains(text, 'refund')) return '\uC815\uC0B0';
+        if (normalizedContains(text, '\uAE30\uD0C0') || normalizedContains(text, '\uB2E8\uCCB4') || normalizedContains(text, '\uC8FC\uCC28') || normalizedContains(text, 'etc')) return '\uAE30\uD0C0';
+        return '\uC218\uAC15';
+    }
+
+    function inferFaqCategory(question, answer) {
+        var text = normalizeFaqText(question + ' ' + answer);
+
+        if (!text) return '\uC218\uAC15';
+        if (normalizedContains(text, '\uD0A4\uD2B8') || normalizedContains(text, '\uBC30\uC1A1') || normalizedContains(text, '\uC7AC\uB8CC') || normalizedContains(text, '\uD0DD\uBC30')) return '\uD0A4\uD2B8\u00B7\uBC30\uC1A1';
+        if (normalizedContains(text, '\uD30C\uD2B8\uB108') || normalizedContains(text, '\uAC15\uC0AC') || normalizedContains(text, '\uACF5\uBC29') || normalizedContains(text, '\uD611\uD68C')) return '\uD30C\uD2B8\uB108';
+        if (normalizedContains(text, '\uD658\uBD88') || normalizedContains(text, '\uACB0\uC81C') || normalizedContains(text, '\uC801\uB9BD\uAE08') || normalizedContains(text, '\uC601\uC218\uC99D') || normalizedContains(text, '\uC815\uC0B0')) return '\uC815\uC0B0';
+        if (normalizedContains(text, '\uC8FC\uCC28') || normalizedContains(text, '\uB2E8\uCCB4') || normalizedContains(text, '\uB3D9\uBC18')) return '\uAE30\uD0C0';
+        return '\uC218\uAC15';
+    }
+
+    function getFaqLocationText(data, classType) {
+        var location = normalizeFaqText(data.location || '');
+
+        if (String(data.type || '').toUpperCase() === 'ONLINE' || normalizedContains(classType, '\uC628\uB77C\uC778')) {
+            return '\uC628\uB77C\uC778 \uC218\uC5C5\uC740 \uC608\uC57D \uD655\uC815 \uD6C4 \uC811\uC18D \uB9C1\uD06C\uC640 \uCC38\uC5EC \uBC29\uC2DD\uC744 \uBCC4\uB3C4\uB85C \uC548\uB0B4\uD574 \uB4DC\uB9BD\uB2C8\uB2E4.';
+        }
+
+        if (location) {
+            return '\uC218\uC5C5 \uC9C4\uD589 \uC7A5\uC18C\uB294 ' + location + ' \uAE30\uC900\uC73C\uB85C \uC548\uB0B4\uB418\uACE0 \uC788\uC5B4\uC694.';
+        }
+
+        return '\uC9C4\uD589 \uC7A5\uC18C\uC640 \uCC38\uC5EC \uBC29\uC2DD\uC740 \uC608\uC57D \uC804 \uC0C1\uC138 \uC815\uBCF4\uC5D0\uC11C \uD655\uC778\uD560 \uC218 \uC788\uACE0, \uD544\uC694 \uC2DC \uBCC4\uB3C4 \uC548\uB0B4\uAC00 \uD568\uAED8 \uC81C\uACF5\uB429\uB2C8\uB2E4.';
+    }
+
+    function bindFaqEvents() {
+        var faqList = document.getElementById('faqList');
+        var faqCategoryList = document.getElementById('faqCategoryList');
+        var faqSearchInput = document.getElementById('faqSearchInput');
+
+        if (faqCategoryList && faqCategoryList.getAttribute('data-bound') !== 'true') {
+            faqCategoryList.setAttribute('data-bound', 'true');
+            faqCategoryList.addEventListener('click', function(e) {
+                var button = e.target.closest('.faq-category-btn');
+                if (!button) return;
+
+                faqState.category = button.getAttribute('data-category') || FAQ_CATEGORY_ALL;
+                renderFaqCategoryFilters();
+                renderFilteredFaqList();
+            });
+        }
+
+        if (faqSearchInput && faqSearchInput.getAttribute('data-bound') !== 'true') {
+            faqSearchInput.setAttribute('data-bound', 'true');
+            faqSearchInput.addEventListener('input', function() {
+                faqState.keyword = normalizeFaqText(faqSearchInput.value);
+                renderFilteredFaqList();
+            });
+        }
+
+        if (faqList && faqList.getAttribute('data-bound') !== 'true') {
+            faqList.setAttribute('data-bound', 'true');
+            faqList.addEventListener('click', function(e) {
+                var button = e.target.closest('.faq-item__question');
+                if (!button) return;
+
+                var item = button.closest('.faq-item');
+                var answer = item ? item.querySelector('.faq-item__answer') : null;
+                var isExpanded = button.getAttribute('aria-expanded') === 'true';
+                var openButtons = faqList.querySelectorAll('.faq-item__question[aria-expanded="true"]');
+                var i;
+
+                for (i = 0; i < openButtons.length; i++) {
+                    if (openButtons[i] === button) continue;
+                    closeFaqItem(openButtons[i]);
+                }
+
+                if (isExpanded) {
+                    closeFaqItem(button);
+                    return;
+                }
+
+                button.setAttribute('aria-expanded', 'true');
+                if (item) item.classList.add('is-open');
+                if (answer) answer.removeAttribute('hidden');
+            });
+        }
+    }
+
+    function closeFaqItem(button) {
+        var item = button ? button.closest('.faq-item') : null;
+        var answer = item ? item.querySelector('.faq-item__answer') : null;
+        if (!button) return;
+
+        button.setAttribute('aria-expanded', 'false');
+        if (item) item.classList.remove('is-open');
+        if (answer) answer.setAttribute('hidden', 'hidden');
+    }
+
+    function renderFaqCategoryFilters() {
+        var faqCategoryList = document.getElementById('faqCategoryList');
+        var counts = getFaqCategoryCounts(faqState.items);
+        var html = '';
+        var i;
+
+        if (!faqCategoryList) return;
+
+        for (i = 0; i < FAQ_CATEGORY_ORDER.length; i++) {
+            var category = FAQ_CATEGORY_ORDER[i];
+            var count = category === FAQ_CATEGORY_ALL ? faqState.items.length : (counts[category] || 0);
+            if (category !== FAQ_CATEGORY_ALL && count === 0) continue;
+
+            html += '<button type="button" class="faq-category-btn' + (faqState.category === category ? ' is-active' : '') + '" data-category="' + escapeHtml(category) + '">'
+                + '<span class="faq-category-btn__label">' + escapeHtml(category) + '</span>'
+                + '<span class="faq-category-btn__count">' + escapeHtml(String(count)) + '</span>'
+                + '</button>';
+        }
+
+        faqCategoryList.innerHTML = html;
+    }
+
+    function getFaqCategoryCounts(items) {
+        var counts = {};
+        var i;
+
+        for (i = 0; i < items.length; i++) {
+            var category = normalizeFaqCategory(items[i].category || '');
+            counts[category] = (counts[category] || 0) + 1;
+        }
+
+        return counts;
+    }
+
+    function renderFilteredFaqList() {
+        var faqList = document.getElementById('faqList');
+        var faqEmpty = document.getElementById('faqEmpty');
+        var faqResultCount = document.getElementById('faqResultCount');
+        var filteredItems = filterFaqItems(faqState.items, faqState.category, faqState.keyword);
+        var html = '';
+        var i;
+
+        if (!faqList || !faqEmpty || !faqResultCount) return;
+
+        if (filteredItems.length === 0) {
+            faqList.innerHTML = '';
+            faqEmpty.style.display = 'block';
+            faqEmpty.innerHTML = '<p class="faq-empty__title">\uAC80\uC0C9 \uACB0\uACFC\uAC00 \uC5C6\uC5B4\uC694.</p>'
+                + '<p class="faq-empty__desc">\uD2B9\uC815 \uB2E8\uC5B4\uB97C \uBE7C\uAC70\uB098 \uB2E4\uB978 \uCE74\uD14C\uACE0\uB9AC\uB97C \uC120\uD0DD\uD574 \uBCF4\uC138\uC694. \uCC3E\uB294 \uB2F5\uC774 \uC5C6\uC73C\uBA74 \uD558\uB2E8 \uBB38\uC758 \uCC44\uB110\uC5D0\uC11C \uBC14\uB85C \uB3C4\uC640\uB4DC\uB9BD\uB2C8\uB2E4.</p>';
+        } else {
+            for (i = 0; i < filteredItems.length; i++) {
+                var item = filteredItems[i];
+                var answerId = 'faqAnswer' + i;
+                html += '<article class="faq-item" data-category="' + escapeHtml(item.category) + '">'
+                    + '<button type="button" class="faq-item__question" aria-expanded="false" aria-controls="' + answerId + '">'
+                    + '<span class="faq-item__question-copy">'
+                    + '<span class="faq-item__category">' + escapeHtml(item.category) + '</span>'
+                    + '<span class="faq-item__title">' + escapeHtml(item.q) + '</span>'
+                    + '</span>'
+                    + '<svg class="faq-item__arrow" width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M4 6l4 4 4-4" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>'
+                    + '</button>'
+                    + '<div class="faq-item__answer" id="' + answerId + '" hidden>'
+                    + '<p>' + escapeHtml(item.a) + '</p>'
+                    + '</div>'
+                    + '</article>';
+            }
+
+            faqList.innerHTML = html;
+            faqEmpty.style.display = 'none';
+            faqEmpty.innerHTML = '';
+        }
+
+        faqResultCount.textContent = buildFaqResultMessage(filteredItems.length, faqState.items.length, faqState.category, faqState.keyword);
+    }
+
+    function filterFaqItems(items, category, keyword) {
+        var filtered = [];
+        var normalizedKeyword = normalizeFaqText(keyword).toLowerCase();
+        var normalizedCategory = normalizeFaqCategory(category);
+        var i;
+
+        for (i = 0; i < items.length; i++) {
+            var item = items[i];
+            var haystack = (item.q + ' ' + item.a + ' ' + item.category).toLowerCase();
+            var sameCategory = normalizedCategory === FAQ_CATEGORY_ALL || normalizeFaqCategory(item.category) === normalizedCategory;
+            var matchesKeyword = !normalizedKeyword || haystack.indexOf(normalizedKeyword) > -1;
+
+            if (sameCategory && matchesKeyword) {
+                filtered.push(item);
+            }
+        }
+
+        return filtered;
+    }
+
+    function buildFaqResultMessage(filteredCount, totalCount, category, keyword) {
+        var parts = [];
+        var normalizedCategory = normalizeFaqCategory(category);
+
+        if (normalizedCategory !== FAQ_CATEGORY_ALL) {
+            parts.push(normalizedCategory);
+        } else {
+            parts.push('\uC804\uCCB4 FAQ');
+        }
+
+        if (keyword) {
+            parts.push('"' + keyword + '" \uAC80\uC0C9');
+        }
+
+        return parts.join(' / ') + ' \uAE30\uC900 ' + filteredCount + '\uAC1C \uD56D\uBAA9\uC774 \uBCF4\uC785\uB2C8\uB2E4. \uC804\uCCB4\uB294 ' + totalCount + '\uAC1C \uC785\uB2C8\uB2E4.';
+    }
+
+    function renderFaqContact(data) {
+        var faqContact = document.getElementById('faqContact');
+        var phoneRaw = normalizeFaqText(data.contact_phone || '');
+        var instagramRaw = normalizeFaqText(data.contact_instagram || (data.partner && data.partner.instagram_url) || '');
+        var kakaoRaw = normalizeFaqText(data.contact_kakao || '');
+        var phoneHref = 'tel:' + (phoneRaw || '010-9848-5520').replace(/[^0-9+]/g, '');
+        var phoneLabel = phoneRaw || '010-9848-5520';
+        var kakaoHref = /^https?:\/\//i.test(kakaoRaw) ? kakaoRaw : 'https://pf.kakao.com/_pressco21';
+        var contactHtml = '';
+
+        if (!faqContact) return;
+
+        contactHtml += '<h3 class="faq-contact__title">\uCC3E\uB294 \uB2F5\uC774 \uC5C6\uB2E4\uBA74 \uBC14\uB85C \uBB38\uC758\uD558\uC138\uC694</h3>'
             + '<div class="faq-contact__links">'
-            + '<a href="tel:' + contactPhone.replace(/-/g, '') + '" class="faq-contact__link faq-contact__link--phone">'
+            + '<a href="' + phoneHref + '" class="faq-contact__link faq-contact__link--phone">'
             + '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><path d="M6 7a7.5 7.5 0 003 3l1.35-1.35a.5.5 0 01.52-.12 5.7 5.7 0 001.78.28.5.5 0 01.5.5V12a.5.5 0 01-.5.5A10.5 10.5 0 013.5 3.35a.5.5 0 01.5-.5h2.68a.5.5 0 01.5.5 5.7 5.7 0 00.28 1.78.5.5 0 01-.12.52L6 7z" stroke-linecap="round" stroke-linejoin="round"/></svg>'
-            + '\uc804\ud654 \ubb38\uc758'
+            + '\uC804\uD654 \uBB38\uC758'
             + '</a>'
-            + '<a href="https://pf.kakao.com/_pressco21" target="_blank" rel="noopener" class="faq-contact__link faq-contact__link--kakao">'
+            + '<a href="' + escapeHtml(kakaoHref) + '" target="_blank" rel="noopener" class="faq-contact__link faq-contact__link--kakao">'
             + '<svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true"><path d="M12 3C6.48 3 2 6.58 2 11c0 2.84 1.65 5.36 4.16 6.94L5 21l4.38-2.35C10.22 18.88 11.1 19 12 19c5.52 0 10-3.58 10-8S17.52 3 12 3z"/></svg>'
-            + '\uce74\uce74\uc624\ud1a1 \ubb38\uc758'
+            + '\uCE74\uCE74\uC624\uD1A1 \uBB38\uC758'
             + '</a>';
 
-        if (contactInstagram) {
-            contactHtml += '<a href="' + contactInstagram + '" target="_blank" rel="noopener" class="faq-contact__link faq-contact__link--insta">'
+        if (instagramRaw) {
+            contactHtml += '<a href="' + escapeHtml(instagramRaw) + '" target="_blank" rel="noopener" class="faq-contact__link faq-contact__link--insta">'
                 + '<svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.3" aria-hidden="true"><rect x="2" y="2" width="12" height="12" rx="3" stroke-linecap="round" stroke-linejoin="round"/><circle cx="8" cy="8" r="2.5"/><circle cx="11.5" cy="4.5" r="0.7" fill="currentColor" stroke="none"/></svg>'
-                + '\uc778\uc2a4\ud0c0\uadf8\ub7a8'
+                + '\uC778\uC2A4\uD0C0\uADF8\uB7A8'
                 + '</a>';
         }
 
         contactHtml += '</div>'
-            + '<p class="faq-contact__hours">\uc6b4\uc601\uc2dc\uac04: \ud3c9\uc77c 10:00 ~ 18:00 (\uc8fc\ub9d0/\uacf5\ud734\uc77c \ud734\ubb34)</p>';
+            + '<p class="faq-contact__hours">\uC6B4\uC601\uC2DC\uAC04: \uD3C9\uC77C 10:00 ~ 18:00 (\uC8FC\uB9D0/\uACF5\uD734\uC77C \uD734\uBB34) | \uC5F0\uB77D\uCC98: ' + escapeHtml(phoneLabel) + ' | \uC77C\uC815 \uBCC0\uACBD, \uD0A4\uD2B8 \uBC30\uC1A1, \uB2E8\uCCB4 \uBB38\uC758\uAE4C\uC9C0 \uAC19\uC740 \uCC44\uB110\uC5D0\uC11C \uB3C4\uC640\uB4DC\uB9BD\uB2C8\uB2E4.</p>';
 
         faqContact.innerHTML = contactHtml;
     }
@@ -2241,6 +3171,11 @@
 
     function handleGiftClick() {
         if (!classData) return;
+
+        if (!canGiftCurrentSelection()) {
+            showToast('\uD0A4\uD2B8 \uD3EC\uD568 \uC120\uBB3C\uD558\uAE30\uB294 \uC900\uBE44 \uC911\uC785\uB2C8\uB2E4. \uAC15\uC758\uB9CC \uC120\uD0DD \uD6C4 \uC774\uC6A9\uD574\uC8FC\uC138\uC694.', 'error');
+            return;
+        }
 
         if (!memberId) {
             if (confirm('\uc120\ubb3c\ud558\uae30\ub294 \ub85c\uadf8\uc778 \ud6c4 \uc774\uc6a9\ud560 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\n\ub85c\uadf8\uc778 \ud398\uc774\uc9c0\ub85c \uc774\ub3d9\ud558\uc2dc\uaca0\uc2b5\ub2c8\uae4c?')) {
@@ -2298,17 +3233,24 @@
 
     function setGiftButtonBusy(isBusy) {
         var giftBtn = document.getElementById('bookingGift');
-        if (!giftBtn) return;
+        var mobileGiftBtn = document.getElementById('mobileGiftBtn');
+        var buttons = [];
+        var i = 0;
 
-        giftBtn.classList[isBusy ? 'add' : 'remove']('is-loading');
-        giftBtn.setAttribute('aria-busy', isBusy ? 'true' : 'false');
+        if (giftBtn) buttons.push(giftBtn);
+        if (mobileGiftBtn) buttons.push(mobileGiftBtn);
+        if (buttons.length === 0) return;
 
-        if (isBusy) {
-            giftBtn.disabled = true;
-            return;
+        for (i = 0; i < buttons.length; i++) {
+            buttons[i].classList[isBusy ? 'add' : 'remove']('is-loading');
+            buttons[i].setAttribute('aria-busy', isBusy ? 'true' : 'false');
+
+            if (isBusy) {
+                buttons[i].disabled = true;
+            } else {
+                buttons[i].disabled = !(selectedDate && selectedScheduleId && canGiftCurrentSelection());
+            }
         }
-
-        giftBtn.disabled = !(selectedDate && selectedScheduleId);
     }
 
 
@@ -2411,11 +3353,11 @@
         var w = size || 16;
 
         // 별점 색상: filled=#b89b5e(골드), empty=#e0e0e0
-        var fullSvg = '<svg class="' + cssClass + ' ' + cssClass + '--filled" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="#b89b5e" xmlns="http://www.w3.org/2000/svg">'
+        var fullSvg = '<svg class="' + cssClass + ' ' + cssClass + '--filled" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="#b89b5e">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
-        var halfSvg = '<svg class="' + cssClass + ' ' + cssClass + '--half" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" xmlns="http://www.w3.org/2000/svg">'
+        var halfSvg = '<svg class="' + cssClass + ' ' + cssClass + '--half" width="' + w + '" height="' + w + '" viewBox="0 0 14 14">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z" fill="url(#cdHalfStarGrad)"/></svg>';
-        var emptySvg = '<svg class="' + cssClass + ' ' + cssClass + '--empty" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="#e0e0e0" xmlns="http://www.w3.org/2000/svg">'
+        var emptySvg = '<svg class="' + cssClass + ' ' + cssClass + '--empty" width="' + w + '" height="' + w + '" viewBox="0 0 14 14" fill="#e0e0e0">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
 
         for (var i = 1; i <= 5; i++) {
@@ -2500,14 +3442,14 @@
         script.text = JSON.stringify(schema);
         document.head.appendChild(script);
 
-        // FAQPage 스키마: 커리큘럼 데이터가 있으면 FAQ로 변환
-        var curriculum = data.curriculum;
-        if (curriculum && Array.isArray(curriculum) && curriculum.length > 0) {
+        // FAQPage 스키마: 실제 FAQ 데이터 기준으로 생성
+        var faqItems = getResolvedFaqItems(data);
+        if (faqItems && faqItems.length > 0) {
             var faqEntries = [];
-            for (var i = 0; i < curriculum.length; i++) {
-                var item = curriculum[i];
-                var qTitle = item.title || ('\uB2E8\uACC4 ' + (item.step || (i + 1)));
-                var aDesc = item.desc || '';
+            for (var i = 0; i < faqItems.length; i++) {
+                var item = faqItems[i];
+                var qTitle = item.q || '';
+                var aDesc = String(item.a || '').replace(/<[^>]+>/g, '');
                 if (qTitle && aDesc) {
                     faqEntries.push({
                         '@type': 'Question',
@@ -2571,11 +3513,13 @@
        ======================================== */
 
     function showLoading() {
-        PC.ui.showLoading('detailLoading');
+        var el = document.getElementById('detailLoading');
+        if (el) el.style.display = '';
     }
 
     function hideLoading() {
-        PC.ui.hideLoading('detailLoading');
+        var el = document.getElementById('detailLoading');
+        if (el) el.style.display = 'none';
     }
 
     function showContent() {
@@ -2615,7 +3559,7 @@
                 var errorEl = document.getElementById('detailError');
                 if (errorEl) errorEl.style.display = 'none';
                 // 캐시 제거 후 재시도
-                try { localStorage.removeItem('pc_' + PC.config.CACHE_VERSION + '_' + CACHE_PREFIX + '_' + classId); } catch (e) { /* 무시 */ }
+                invalidateDetailCache(classId);
                 fetchClassDetail(classId);
             });
         }
@@ -2626,9 +3570,15 @@
      */
     function bindMobileBookingBtn() {
         var mobileBtn = document.getElementById('mobileBookingBtn');
+        var mobileGiftBtn = document.getElementById('mobileGiftBtn');
         if (mobileBtn) {
             mobileBtn.addEventListener('click', function() {
                 handleBookingClick();
+            });
+        }
+        if (mobileGiftBtn) {
+            mobileGiftBtn.addEventListener('click', function() {
+                handleGiftClick();
             });
         }
     }
@@ -2712,6 +3662,28 @@
        ======================================== */
 
     /**
+     * HTML 특수문자 이스케이프
+     * @param {string} str
+     * @returns {string}
+     */
+    function escapeHtml(str) {
+        if (!str) return '';
+        var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(str).replace(/[&<>"']/g, function(m) { return map[m]; });
+    }
+
+    /**
+     * 가격 포맷 (65000 -> "65,000")
+     * @param {number} price
+     * @returns {string}
+     */
+    function formatPrice(price) {
+        var n = Number(price);
+        if (isNaN(n) || n < 0) return '0';
+        return String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    /**
      * 소요시간 포맷 (120 -> "2시간", 90 -> "1시간 30분")
      * @param {number} min
      * @returns {string}
@@ -2736,42 +3708,127 @@
     function normalizeLevelValue(raw) {
         var text = String(raw || '').replace(/\s+/g, ' ').trim();
         var normalized = text.toLowerCase();
+        var upper = text.toUpperCase();
 
         if (!text) return '';
-        if (normalized === 'beginner' || normalized === 'basic' || text.indexOf('\uC785\uBB38') > -1) return '\uC785\uBB38';
-        if (normalized === 'intermediate' || text.indexOf('\uC911\uAE09') > -1) return '\uC911\uAE09';
-        if (normalized === 'advanced' || normalized === 'expert' || text.indexOf('\uC2EC\uD654') > -1) return '\uC2EC\uD654';
+        if (upper === 'BEGINNER' || normalized === 'beginner' || normalized === 'basic' || text.indexOf('\uC785\uBB38') > -1 || text.indexOf('\uCD08\uAE09') > -1) return '\uC785\uBB38';
+        if (upper === 'INTERMEDIATE' || normalized === 'intermediate' || text.indexOf('\uC911\uAE09') > -1) return '\uC911\uAE09';
+        if (upper === 'ADVANCED' || normalized === 'advanced' || normalized === 'expert' || text.indexOf('\uC2EC\uD654') > -1 || text.indexOf('\uACE0\uAE09') > -1) return '\uC2EC\uD654';
+        if (upper === 'ALL_LEVELS' || text.indexOf('\uC804\uCCB4') > -1) return '\uC804\uCCB4';
         return text;
     }
 
     function getPrimaryRegion(raw) {
         var text = String(raw || '').replace(/\s+/g, ' ').trim();
+        var upper = text.toUpperCase();
+        var codeMap = {
+            SEOUL: '\uC11C\uC6B8',
+            GYEONGGI: '\uACBD\uAE30',
+            INCHEON: '\uC778\uCC9C',
+            BUSAN: '\uBD80\uC0B0',
+            DAEGU: '\uB300\uAD6C',
+            DAEJEON: '\uB300\uC804',
+            GWANGJU: '\uAD11\uC8FC',
+            ULSAN: '\uC6B8\uC0B0',
+            SEJONG: '\uC138\uC885',
+            GANGWON: '\uAC15\uC6D0',
+            CHUNGBUK: '\uCDA9\uBD81',
+            CHUNGNAM: '\uCDA9\uB0A8',
+            JEONBUK: '\uC804\uBD81',
+            JEONNAM: '\uC804\uB0A8',
+            GYEONGBUK: '\uACBD\uBD81',
+            GYEONGNAM: '\uACBD\uB0A8',
+            JEJU: '\uC81C\uC8FC',
+            ONLINE: '\uC628\uB77C\uC778',
+            OTHER: '\uAE30\uD0C0'
+        };
+        var regionAliasMap = {
+            '\uC11C\uC6B8\uC2DC': '\uC11C\uC6B8',
+            '\uC11C\uC6B8\uD2B9\uBCC4\uC2DC': '\uC11C\uC6B8',
+            '\uACBD\uAE30\uB3C4': '\uACBD\uAE30',
+            '\uC778\uCC9C\uC2DC': '\uC778\uCC9C',
+            '\uC778\uCC9C\uAD11\uC5ED\uC2DC': '\uC778\uCC9C',
+            '\uBD80\uC0B0\uC2DC': '\uBD80\uC0B0',
+            '\uBD80\uC0B0\uAD11\uC5ED\uC2DC': '\uBD80\uC0B0',
+            '\uB300\uAD6C\uC2DC': '\uB300\uAD6C',
+            '\uB300\uAD6C\uAD11\uC5ED\uC2DC': '\uB300\uAD6C',
+            '\uB300\uC804\uC2DC': '\uB300\uC804',
+            '\uB300\uC804\uAD11\uC5ED\uC2DC': '\uB300\uC804',
+            '\uAD11\uC8FC\uC2DC': '\uAD11\uC8FC',
+            '\uAD11\uC8FC\uAD11\uC5ED\uC2DC': '\uAD11\uC8FC',
+            '\uC6B8\uC0B0\uC2DC': '\uC6B8\uC0B0',
+            '\uC6B8\uC0B0\uAD11\uC5ED\uC2DC': '\uC6B8\uC0B0',
+            '\uC138\uC885\uC2DC': '\uC138\uC885',
+            '\uC138\uC885\uD2B9\uBCC4\uC790\uCE58\uC2DC': '\uC138\uC885',
+            '\uAC15\uC6D0\uB3C4': '\uAC15\uC6D0',
+            '\uCDA9\uBD81': '\uCDA9\uBD81',
+            '\uCDA9\uCCAD\uBD81\uB3C4': '\uCDA9\uBD81',
+            '\uCDA9\uB0A8': '\uCDA9\uB0A8',
+            '\uCDA9\uCCAD\uB0A8\uB3C4': '\uCDA9\uB0A8',
+            '\uC804\uBD81\uB3C4': '\uC804\uBD81',
+            '\uC804\uB77C\uBD81\uB3C4': '\uC804\uBD81',
+            '\uC804\uB0A8\uB3C4': '\uC804\uB0A8',
+            '\uC804\uB77C\uB0A8\uB3C4': '\uC804\uB0A8',
+            '\uACBD\uBD81\uB3C4': '\uACBD\uBD81',
+            '\uACBD\uC0C1\uBD81\uB3C4': '\uACBD\uBD81',
+            '\uACBD\uB0A8\uB3C4': '\uACBD\uB0A8',
+            '\uACBD\uC0C1\uB0A8\uB3C4': '\uACBD\uB0A8',
+            '\uC81C\uC8FC\uB3C4': '\uC81C\uC8FC',
+            '\uC81C\uC8FC\uD2B9\uBCC4\uC790\uCE58\uB3C4': '\uC81C\uC8FC'
+        };
+        var alias;
+
         if (!text) return '';
-        if (text.indexOf('\uC628\uB77C\uC778') > -1) return '\uC628\uB77C\uC778';
+        if (codeMap[upper]) return codeMap[upper];
+        if (text.indexOf('\uC628\uB77C\uC778') > -1 || normalizedContains(text, 'online')) return '\uC628\uB77C\uC778';
+
+        for (alias in regionAliasMap) {
+            if (text === alias || text.indexOf(alias + ' ') === 0) {
+                return regionAliasMap[alias];
+            }
+        }
 
         var parts = text.split(' ');
-        if (parts.length >= 2) return parts[0] + ' ' + parts[1];
         return parts[0];
     }
 
     function getRegionFilterValue(raw) {
         var text = String(raw || '').replace(/\s+/g, ' ').trim();
-        var primary = text ? text.split(' ')[0] : '';
+        var primary = getPrimaryRegion(text);
         var allowed = {
             '\uC11C\uC6B8': true,
             '\uACBD\uAE30': true,
             '\uC778\uCC9C': true,
             '\uBD80\uC0B0': true,
-            '\uB300\uAD6C': true
+            '\uB300\uAD6C': true,
+            '\uB300\uC804': true,
+            '\uAD11\uC8FC': true,
+            '\uC6B8\uC0B0': true,
+            '\uC138\uC885': true,
+            '\uAC15\uC6D0': true,
+            '\uCDA9\uBD81': true,
+            '\uCDA9\uB0A8': true,
+            '\uC804\uBD81': true,
+            '\uC804\uB0A8': true,
+            '\uACBD\uBD81': true,
+            '\uACBD\uB0A8': true,
+            '\uC81C\uC8FC': true
         };
 
         if (!text || text.indexOf('\uC628\uB77C\uC778') > -1) return '';
         return allowed[primary] ? primary : '\uAE30\uD0C0';
     }
 
+    function normalizedContains(text, keyword) {
+        return String(text || '').toLowerCase().indexOf(String(keyword || '').toLowerCase()) > -1;
+    }
+
     function buildListPageUrl(params) {
         var query = ['id=2606'];
 
+        if (params.tab) {
+            query.push('tab=' + encodeURIComponent(params.tab));
+        }
         if (params.category) {
             query.push('category=' + encodeURIComponent(params.category));
         }
@@ -2784,8 +3841,38 @@
         if (params.q) {
             query.push('q=' + encodeURIComponent(params.q));
         }
+        if (params.view) {
+            query.push('view=' + encodeURIComponent(params.view));
+        }
 
         return '/shop/page.html?' + query.join('&');
+    }
+
+    function isLocalDetailPreview() {
+        var host = String(window.location.hostname || '').toLowerCase();
+        return host === '127.0.0.1' || host === 'localhost';
+    }
+
+    function buildPartnerMapUrl(params) {
+        var query = [];
+        var base = isLocalDetailPreview()
+            ? '/output/playwright/fixtures/partnerclass/partnermap-shell.html'
+            : '/partnermap';
+
+        if (params.region) {
+            query.push('region=' + encodeURIComponent(params.region));
+        }
+        if (params.category) {
+            query.push('category=' + encodeURIComponent(params.category));
+        }
+        if (params.keyword) {
+            query.push('keyword=' + encodeURIComponent(params.keyword));
+        }
+        if (params.partner) {
+            query.push('partner=' + encodeURIComponent(params.partner));
+        }
+
+        return base + (query.length ? '?' + query.join('&') : '');
     }
 
     function buildInfoBadge(label, className, href, ariaLabel) {
@@ -2804,6 +3891,9 @@
         var html = '<div class="info-badges">';
         var category = data.category || '';
         var level = normalizeLevelValue(data.level);
+        var profile = resolveContentProfile(data || {});
+
+        html += buildInfoBadge(profile.chip, 'info-badge--level', '', '');
 
         if (category) {
             html += buildInfoBadge(
@@ -2839,6 +3929,7 @@
         var regionFilter = getRegionFilterValue(region);
         var level = normalizeLevelValue(data.level);
         var partnerName = data.partner && (data.partner.partner_name || data.partner.name) ? (data.partner.partner_name || data.partner.name) : '';
+        var profile = resolveContentProfile(data || {});
 
         function pushLink(href, label) {
             if (!href || !label || seen[href]) return;
@@ -2858,6 +3949,19 @@
         if (partnerName) {
             pushLink(buildListPageUrl({ q: partnerName }), '\uAC15\uC0AC \uD074\uB798\uC2A4 \uBAA8\uC544\uBCF4\uAE30');
         }
+        if (profile.key === 'affiliation') {
+            pushLink(buildListPageUrl({ tab: 'benefits' }), '\uD611\uD68C\uC6D0 \uD61C\uD0DD \uBCF4\uAE30');
+        } else if (profile.key === 'event') {
+            pushLink(buildListPageUrl({ tab: 'affiliations' }), '\uD611\uD68C/\uC138\uBBF8\uB098 \uD5C8\uBE0C \uBCF4\uAE30');
+        }
+        if (getDeliveryModeValue(data) !== 'ONLINE') {
+            pushLink(buildPartnerMapUrl({
+                region: region,
+                category: data.category || '',
+                keyword: partnerName || data.class_name || '',
+                partner: partnerName
+            }), '\uD30C\uD2B8\uB108\uB9F5\uC5D0\uC11C \uACF5\uBC29 \uBCF4\uAE30');
+        }
 
         if (links.length === 0) return '';
 
@@ -2876,8 +3980,8 @@
     function buildRelatedContext(data) {
         return {
             category: data.category || '',
-            level: data.level || '',
-            region: getPrimaryRegion(data.location || (data.partner && (data.partner.location || data.partner.region)) || ''),
+            level: normalizeLevelValue(data.level || ''),
+            region: getPrimaryRegion(data.region || data.location || (data.partner && (data.partner.region || data.partner.location)) || ''),
             partnerCode: data.partner_code || (data.partner && data.partner.partner_code) || '',
             partnerName: data.partner && (data.partner.partner_name || data.partner.name) ? (data.partner.partner_name || data.partner.name) : ''
         };
@@ -2907,22 +4011,26 @@
         var score = 0;
         var candidatePartnerCode = candidate.partner_code || (candidate.partner && candidate.partner.partner_code) || '';
         var candidatePartnerName = candidate.partner_name || (candidate.partner && (candidate.partner.partner_name || candidate.partner.name)) || '';
-        var candidateRegion = getPrimaryRegion(candidate.location || (candidate.partner && (candidate.partner.location || candidate.partner.region)) || '');
+        var candidatePartnerGrade = candidate.partner_grade || (candidate.partner && candidate.partner.grade) || '';
+        var candidateRegion = getPrimaryRegion(candidate.region || candidate.location || (candidate.partner && (candidate.partner.region || candidate.partner.location)) || '');
+        var candidateLevel = normalizeLevelValue(candidate.level || '');
         var candidateRating = parseFloat(candidate.avg_rating) || 0;
         var candidateSeats = getRelatedRemainingSeats(candidate);
+        var candidateGradeMeta = getPartnerGradeMeta(candidatePartnerGrade);
 
         if (current.category && candidate.category === current.category) score += 50;
-        if (current.level && candidate.level === current.level) score += 20;
+        if (current.level && candidateLevel === current.level) score += 20;
         if (current.region && candidateRegion && candidateRegion === current.region) score += 15;
         if (current.partnerCode && candidatePartnerCode && candidatePartnerCode === current.partnerCode) score += 25;
         if (!current.partnerCode && current.partnerName && candidatePartnerName === current.partnerName) score += 20;
         if (candidateSeats > 0) score += Math.min(candidateSeats, 10);
+        score += candidateGradeMeta.weight * 6;
         score += Math.round(candidateRating * 3);
 
         return score;
     }
 
-    function resolveGiftProductMeta(brandUid) {
+    function resolveShopProductMeta(brandUid) {
         return fetch('/shop/shopdetail.html?branduid=' + String(brandUid))
             .then(function(resp) {
                 if (!resp.ok) throw new Error('HTTP ' + resp.status);
@@ -2938,9 +4046,36 @@
                 var stoIdMatch = html.match(/sto_id:'([^']+)'/);
                 var titleEl = doc.querySelector('.goods--title');
                 var nativeGiftUrl = '';
+                var priceValue = 0;
+                var priceSelectors = [
+                    'input[name="price"]',
+                    'input[name="sellprice"]',
+                    '#price',
+                    '.goods-price strong',
+                    '.goods_price strong',
+                    '.price strong',
+                    '.price'
+                ];
+                var priceIndex = 0;
 
                 for (var i = 0; i < inputs.length; i++) {
                     fields[inputs[i].name] = inputs[i].value || '';
+                }
+
+                function parsePriceText(raw) {
+                    var match = String(raw || '').replace(/,/g, '').match(/(\d{3,})/);
+                    return match ? (parseInt(match[1], 10) || 0) : 0;
+                }
+
+                priceValue = parsePriceText(fields.price || fields.sellprice || '');
+                if (!priceValue) {
+                    for (priceIndex = 0; priceIndex < priceSelectors.length; priceIndex++) {
+                        var priceNode = doc.querySelector(priceSelectors[priceIndex]);
+                        if (priceNode) {
+                            priceValue = parsePriceText(priceNode.value || priceNode.textContent || '');
+                        }
+                        if (priceValue) break;
+                    }
                 }
 
                 if (nativeGiftLink) {
@@ -2963,8 +4098,78 @@
                     cartFree: fields.cart_free || '',
                     stoId: stoIdMatch ? stoIdMatch[1] : '1',
                     productName: titleEl ? titleEl.textContent.trim() : (classData && classData.class_name ? classData.class_name : '\uD30C\uD2B8\uB108 \uD074\uB798\uC2A4'),
-                    nativeGiftUrl: nativeGiftUrl
+                    nativeGiftUrl: nativeGiftUrl,
+                    priceValue: priceValue
                 };
+            });
+    }
+
+    function resolveGiftProductMeta(brandUid) {
+        return resolveShopProductMeta(brandUid);
+    }
+
+    function submitBasketAdd(meta, quantity) {
+        var params = new URLSearchParams();
+        params.append('totalnum', '');
+        params.append('collbrandcode', '');
+        params.append('xcode', meta.xCode);
+        params.append('mcode', meta.mCode);
+        params.append('typep', meta.typep);
+        params.append('aramount', '');
+        params.append('arspcode', '');
+        params.append('arspcode2', '');
+        params.append('optionindex', '');
+        params.append('alluid', '');
+        params.append('alloptiontype', '');
+        params.append('aropts', '');
+        params.append('checktype', '');
+        params.append('ordertype', 'basket|parent.|layer');
+        params.append('brandcode', meta.brandCode);
+        params.append('branduid', meta.brandUid);
+        params.append('cart_free', meta.cartFree);
+        params.append('opt_type', meta.optType);
+        params.append('basket_use', meta.basketUse);
+        params.append('amount', String(quantity));
+        params.append('amount[]', String(quantity));
+        params.append('option[basic][0][0][opt_id]', '0');
+        params.append('option[basic][0][0][opt_value]', meta.productName);
+        params.append('option[basic][0][0][opt_stock]', '1');
+        params.append('option[basic][0][0][sto_id]', meta.stoId || '1');
+        params.append('option[basic][0][0][opt_type]', 'undefined');
+
+        return fetch('/shop/basket.action.html', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body: params.toString(),
+            credentials: 'same-origin'
+        })
+            .then(function(resp) {
+                if (!resp.ok) throw new Error('HTTP ' + resp.status);
+                return resp.text();
+            })
+            .then(function(text) {
+                var data = null;
+                try {
+                    data = JSON.parse(text);
+                } catch (err) {
+                    throw new Error('\uBA54\uC774\uD06C\uC0F5 \uC7A5\uBC14\uAD6C\uB2C8 \uC751\uB2F5 \uD30C\uC2F1 \uC2E4\uD328');
+                }
+
+                if (!data || data.status !== true) {
+                    throw new Error(data && data.message ? data.message : '\uBA54\uC774\uD06C\uC0F5 \uC7A5\uBC14\uAD6C\uB2C8 \uCC98\uB9AC \uC2E4\uD328');
+                }
+
+                return data;
+            });
+    }
+
+    function addKitProductToBasket(brandUid, quantity) {
+        return resolveShopProductMeta(brandUid)
+            .then(function(meta) {
+                if (!meta || !meta.brandCode) {
+                    throw new Error('meta not found');
+                }
+                return submitBasketAdd(meta, quantity);
             });
     }
 
@@ -3462,11 +4667,21 @@
         var currentClassId = data.class_id || data.id || '';
         var currentMeta = buildRelatedContext(data);
 
-        PC.api.fetchPost('CLASS_API', {
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
                 action: 'getClasses',
                 category: data.category || '',
                 limit: 24
-            }, { noRetry: true })
+            })
+        })
+        .then(function(response) {
+            if (!response.ok) {
+                throw new Error('HTTP ' + response.status);
+            }
+            return response.json();
+        })
         .then(function(resData) {
             if (resData && resData.success && resData.data && resData.data.classes) {
                 var allClasses = resData.data.classes;
@@ -3477,8 +4692,9 @@
                 for (var i = 0; i < allClasses.length; i++) {
                     var c = allClasses[i];
                     var cId = c.class_id || c.id || '';
+                    var cStatus = String(c.status || '').toUpperCase();
                     if (cId === currentClassId) continue;
-                    if (c.status && PC.util.normalizeStatus(c.status) !== PC.STATUS.ACTIVE) continue;
+                    if (cStatus && cStatus !== 'ACTIVE' && String(c.status || '').toLowerCase() !== 'active') continue;
                     candidates.push({
                         item: c,
                         score: getRelatedScore(currentMeta, c)
@@ -3523,6 +4739,7 @@
             var cId = escapeHtml(c.class_id || c.id || '');
             var cName = escapeHtml(c.class_name || '');
             var cCategory = escapeHtml(c.category || '');
+            var cGrade = getPartnerGradeMeta(c.partner_grade || (c.partner && c.partner.grade) || '');
             var cLevel = escapeHtml(c.level || '');
             var cRegion = escapeHtml(getPrimaryRegion(c.location || (c.partner && (c.partner.location || c.partner.region)) || ''));
             var cPrice = formatPrice(c.price || 0);
@@ -3530,7 +4747,7 @@
             var cRating = parseFloat(c.avg_rating) || 0;
             var cRemaining = getRelatedRemainingSeats(c);
 
-            html += '<a href="' + PAGE_DETAIL + '&class_id=' + encodeURIComponent(cId) + '" class="cd-related-card">'
+            html += '<a href="/shop/page.html?id=2607&class_id=' + encodeURIComponent(cId) + '" class="cd-related-card">'
                 + '<div class="cd-related-card__thumb">';
 
             if (cThumb) {
@@ -3545,6 +4762,9 @@
             }
             if (cLevel || cRegion || cRemaining > 0) {
                 html += '<div class="cd-related-card__tags">';
+                if (cGrade.weight >= 2) {
+                    html += '<span class="cd-related-card__tag">' + escapeHtml(cGrade.label) + '</span>';
+                }
                 if (cLevel) {
                     html += '<span class="cd-related-card__tag">' + cLevel + '</span>';
                 }

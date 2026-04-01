@@ -3,486 +3,229 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>파트너 신청 | PRESSCO21 포에버러브</title>
-    <meta name="description" content="강의 운영, 키트 준비, 예약·정산, 홍보까지 PRESSCO21이 함께하는 파트너 프로그램 신청 페이지입니다.">
+    <title>강의 등록 | PRESSCO21 포에버러브</title>
+    <meta name="description" content="PRESSCO21 블룸 파트너 전용 강의 등록 페이지입니다. 원데이클래스, 정기클래스, 온라인클래스를 등록하세요.">
     <meta name="robots" content="noindex, nofollow">
 
     <!-- Pretendard 웹폰트 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <!-- Noto Serif KR 타이틀 폰트 — 메인 사이트 일관성 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
 
-    <!-- PRESSCO21 공통 모듈 (유틸리티, API 래퍼, 캐시) -->
-    <script src="https://img.pressco21.com/images/assets/pressco21-core.js"></script>
 </head>
 <body>
 
 <!-- ============================================
-     파트너 신청 페이지
-     CSS 스코핑: .partner-apply
+     강의 등록 페이지
+     CSS 스코핑: .class-register
      ============================================ -->
-<div class="partner-apply">
+<div class="class-register">
 
     <!-- 1. 숨김 가상태그 span (JS에서 읽기용) -->
-    <span id="paMemberId" style="display:none"><!--/user_id/--></span>
+    <span id="crMemberId" style="display:none"><!--/user_id/--></span>
 
     <!-- 2. 미로그인 안내 -->
-    <div id="paNoticeArea" style="display:none">
-        <div class="pa-notice">
-            <div class="pa-notice__inner">
-                <div class="pa-notice__icon">
-                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+    <div id="crNoticeArea" style="display:none">
+        <div class="cr-notice">
+            <div class="cr-notice__inner">
+                <div class="cr-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <circle cx="32" cy="24" r="10" stroke="#3d2c1e" stroke-width="2" fill="none"/>
                         <path d="M12 52c0-11.046 8.954-20 20-20s20 8.954 20 20" stroke="#3d2c1e" stroke-width="2" fill="none" stroke-linecap="round"/>
                     </svg>
                 </div>
-                <h2 class="pa-notice__title">로그인이 필요합니다</h2>
-                <p class="pa-notice__desc">파트너 신청은 포에버러브 회원으로 로그인 후 이용하실 수 있어요.</p>
-                <a id="paLoginBtn" href="/shop/member.html?type=login" class="pa-notice__btn">로그인하기</a>
+                <h2 class="cr-notice__title" id="crNoticeTitle">로그인이 필요합니다</h2>
+                <p class="cr-notice__desc" id="crNoticeDesc">강의 등록은 포에버러브 회원으로 로그인 후 이용하실 수 있어요.</p>
+                <a id="crLoginBtn" href="/shop/member.html?type=login" class="cr-notice__btn">로그인하기</a>
             </div>
         </div>
     </div>
 
-    <!-- 3. 신청 완료 화면 -->
-    <div id="paSuccessArea" style="display:none">
-        <div class="pa-success">
-            <div class="pa-success__inner">
-                <div class="pa-success__icon">
-                    <svg width="72" height="72" viewBox="0 0 72 72" fill="none" aria-hidden="true">
+    <!-- 3. 등록 완료 화면 -->
+    <div id="crSuccessArea" style="display:none">
+        <div class="cr-success">
+            <div class="cr-success__inner">
+                <div class="cr-success__icon">
+                    <svg width="72" height="72" viewBox="0 0 72 72" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
                         <circle cx="36" cy="36" r="34" stroke="#b89b5e" stroke-width="2" fill="#faf6ee"/>
                         <path d="M22 36l10 10 18-18" stroke="#b89b5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
                     </svg>
                 </div>
-                <h2 class="pa-success__title">신청이 접수되었습니다!</h2>
-                <p class="pa-success__desc">소중한 신청 감사합니다.<br>1~3 영업일 이내에 입력하신 이메일로 결과를 안내드릴게요.</p>
-                <div class="pa-success__id-box">
-                    <p class="pa-success__id-label">접수 번호</p>
-                    <p class="pa-success__id-value" id="paSuccessAppId">-</p>
+                <h2 class="cr-success__title">강의 등록 신청이 접수되었습니다!</h2>
+                <p class="cr-success__desc">소중한 강의 등록 감사합니다.<br>관리자 검수 후 클래스 플랫폼에 노출됩니다. (1~2 영업일)</p>
+                <div class="cr-success__id-box">
+                    <p class="cr-success__id-label">강의 ID</p>
+                    <p class="cr-success__id-value" id="crSuccessClassId">-</p>
                 </div>
-                <div class="pa-success__steps">
-                    <div class="pa-success__step">
-                        <span class="pa-success__step-num">1</span>
-                        <span class="pa-success__step-text">관리자 검토<br><small>1~3 영업일</small></span>
+                <div class="cr-success__steps">
+                    <div class="cr-success__step">
+                        <span class="cr-success__step-num">1</span>
+                        <span class="cr-success__step-text">관리자 검수<br><small>1~2 영업일</small></span>
                     </div>
-                    <div class="pa-success__step-arrow">→</div>
-                    <div class="pa-success__step">
-                        <span class="pa-success__step-num">2</span>
-                        <span class="pa-success__step-text">결과 이메일 발송</span>
+                    <div class="cr-success__step-arrow">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M10 5l3 3-3 3" stroke="#E8E2DB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
                     </div>
-                    <div class="pa-success__step-arrow">→</div>
-                    <div class="pa-success__step">
-                        <span class="pa-success__step-num">3</span>
-                        <span class="pa-success__step-text">승인 시<br>파트너 코드 발급</span>
+                    <div class="cr-success__step">
+                        <span class="cr-success__step-num">2</span>
+                        <span class="cr-success__step-text">승인 시<br>플랫폼 노출</span>
+                    </div>
+                    <div class="cr-success__step-arrow">
+                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M3 8h10M10 5l3 3-3 3" stroke="#E8E2DB" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </div>
+                    <div class="cr-success__step">
+                        <span class="cr-success__step-num">3</span>
+                        <span class="cr-success__step-text">수강생 모집<br>시작</span>
                     </div>
                 </div>
-                <a href="/" class="pa-success__btn">홈으로 돌아가기</a>
+                <a href="/shop/page.html?id=2608" class="cr-success__btn">대시보드로 돌아가기</a>
             </div>
         </div>
     </div>
 
-    <!-- 4. 이미 파트너 / 이미 신청중 안내 -->
-    <div id="paAlreadyArea" style="display:none">
-        <div class="pa-notice">
-            <div class="pa-notice__inner">
-                <div class="pa-notice__icon">
-                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-                        <circle cx="32" cy="32" r="28" stroke="#b89b5e" stroke-width="2" fill="#faf6ee"/>
-                        <path d="M20 32l10 10 14-20" stroke="#b89b5e" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+    <!-- 4. 파트너 아님 / 에러 안내 -->
+    <div id="crAlreadyArea" style="display:none">
+        <div class="cr-notice">
+            <div class="cr-notice__inner">
+                <div class="cr-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                        <circle cx="32" cy="32" r="28" stroke="#e53935" stroke-width="2" fill="#fff5f5"/>
+                        <path d="M32 20v16M32 42v2" stroke="#e53935" stroke-width="2.5" stroke-linecap="round"/>
                     </svg>
                 </div>
-                <h2 class="pa-notice__title" id="paAlreadyTitle">이미 파트너입니다</h2>
-                <p class="pa-notice__desc" id="paAlreadyDesc">현재 계정은 이미 파트너로 등록되어 있어요.</p>
-                <a href="/shop/page.html?id=2608" class="pa-notice__btn">파트너 대시보드로 이동</a>
+                <h2 class="cr-notice__title" id="crAlreadyTitle">파트너 전용 기능입니다</h2>
+                <p class="cr-notice__desc" id="crAlreadyDesc">강의 등록은 승인된 파트너만 이용하실 수 있어요.</p>
+                <a href="/shop/page.html?id=2609" class="cr-notice__btn">파트너 신청하기</a>
             </div>
         </div>
     </div>
 
-    <!-- 5. 신청 폼 메인 -->
-    <div id="paFormArea" style="display:none">
+    <!-- 5. 강의 등록 폼 메인 -->
+    <div id="crFormArea" style="display:none">
 
-        <div class="pa-float-cta">
-            <div class="pa-float-cta__inner">
-                <p class="pa-float-cta__text">강의만 잘하시면 됩니다. 나머지는 PRESSCO21이 합니다.</p>
-                <button type="button" class="pa-float-cta__btn js-scroll-link" data-target="paApplyAnchor">지금 신청하기</button>
-            </div>
-        </div>
-
-        <header class="pa-page-header">
-            <div class="pa-page-header__inner">
-                <div class="pa-page-header__brand">
-                    <a href="/" class="pa-page-header__logo">PRESSCO21</a>
-                    <p class="pa-page-header__tagline">Forever and ever and Blooming</p>
-                </div>
-                <nav class="pa-page-header__nav" aria-label="파트너 신청 섹션">
-                    <button type="button" class="pa-page-header__nav-btn js-scroll-link" data-target="paSupportSection">운영 지원</button>
-                    <button type="button" class="pa-page-header__nav-btn js-scroll-link" data-target="paGrowthSection">성장 경로</button>
-                    <button type="button" class="pa-page-header__nav-btn js-scroll-link" data-target="paApplyAnchor">신청하기</button>
-                </nav>
+        <!-- 페이지 헤더 -->
+        <header class="cr-page-header">
+            <div class="cr-page-header__inner">
+                <a href="/" class="cr-page-header__logo">PRESSCO21</a>
+                <p class="cr-page-header__tagline">Forever and ever and Blooming</p>
             </div>
         </header>
 
-        <section class="pa-hero">
-            <div class="pa-hero__inner">
-                <div class="pa-hero__copy">
-                    <p class="pa-hero__eyebrow">PARTNER PROGRAM</p>
-                    <h1 class="pa-hero__title">강의만 잘하시면 됩니다.<br>나머지는 PRESSCO21이 합니다.</h1>
-                    <p class="pa-hero__desc">공방과 강사가 운영에 지치지 않도록, PRESSCO21이 전국 단위 홍보, 예약·결제, 키트·재료 준비, 정산과 후기 관리까지 함께 설계합니다.</p>
-                    <div class="pa-hero__actions">
-                        <button type="button" class="pa-hero__btn pa-hero__btn--primary js-scroll-link" data-target="paApplyAnchor">지금 신청하기</button>
-                        <button type="button" class="pa-hero__btn pa-hero__btn--secondary js-scroll-link" data-target="paCompareSection">자세히 알아보기</button>
+        <!-- 히어로 섹션 -->
+        <section class="cr-hero">
+            <div class="cr-hero__inner">
+                <p class="cr-hero__eyebrow">CLASS REGISTER</p>
+                <h1 class="cr-hero__title">새 강의를 등록해주세요</h1>
+                <p class="cr-hero__desc">당신의 꽃 이야기를 수강생들과 나눌 수 있도록<br>강의 정보를 입력해주세요.</p>
+            </div>
+        </section>
+
+        <!-- 안내 배너 -->
+        <section class="cr-benefits">
+            <div class="cr-benefits__inner">
+                <div class="cr-benefits__item">
+                    <div class="cr-benefits__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <rect x="3" y="5" width="22" height="18" rx="3" stroke="#b89b5e" stroke-width="1.5" fill="none"/>
+                            <path d="M3 11h22" stroke="#b89b5e" stroke-width="1.5"/>
+                            <circle cx="9" cy="17" r="2" stroke="#b89b5e" stroke-width="1.2" fill="none"/>
+                        </svg>
                     </div>
-                    <div class="pa-hero__stats">
-                        <div class="pa-hero__stat">
-                            <strong class="pa-hero__stat-value">전국 탐색</strong>
-                            <span class="pa-hero__stat-label">카테고리·지역 기반 클래스 허브</span>
+                    <p class="cr-benefits__text">관리자 검수 후<br>자동 노출</p>
+                </div>
+                <div class="cr-benefits__item">
+                    <div class="cr-benefits__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <circle cx="14" cy="14" r="12" stroke="#b89b5e" stroke-width="1.5" fill="none"/>
+                            <path d="M14 8v6l4 2" stroke="#b89b5e" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <p class="cr-benefits__text">1~2 영업일<br>검수 완료</p>
+                </div>
+                <div class="cr-benefits__item">
+                    <div class="cr-benefits__icon">
+                        <svg width="28" height="28" viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+                            <path d="M4 20c0-5.523 4.477-10 10-10s10 4.477 10 10" stroke="#b89b5e" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+                            <circle cx="14" cy="8" r="4" stroke="#b89b5e" stroke-width="1.5" fill="none"/>
+                        </svg>
+                    </div>
+                    <p class="cr-benefits__text">대시보드에서<br>수강생 관리</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="crGuideCallout" class="cr-guide-callout" style="display:none">
+            <div class="cr-guide-callout__inner">
+                <div class="cr-guide-callout__copy">
+                    <p class="cr-guide-callout__eyebrow">START GUIDE</p>
+                    <h2 class="cr-guide-callout__title">처음이라면 시작 가이드를 먼저 훑어보세요</h2>
+                    <p class="cr-guide-callout__desc">강의 등록, 일정 추가, 검수 흐름, 키트 연결까지 한 번 보고 오면 첫 운영이 훨씬 수월합니다. 필수 절차는 아니니 지금 바로 등록을 진행하셔도 됩니다.</p>
+                </div>
+                <a href="/shop/page.html?id=2610" class="cr-guide-callout__btn">파트너 시작 가이드 보기</a>
+            </div>
+        </section>
+
+        <!-- 강의 등록 폼 -->
+        <section class="cr-form-section">
+            <div class="cr-form-section__inner">
+
+                <section class="cr-form-helper" id="crFormHelper" aria-label="강의 등록 진행도">
+                    <div class="cr-form-helper__top">
+                        <div class="cr-form-helper__copy">
+                            <p class="cr-form-helper__eyebrow">FORM GUIDE</p>
+                            <h2 class="cr-form-helper__title" id="crHelperTitle">필수 입력 0/9 완료</h2>
+                            <p class="cr-form-helper__desc" id="crHelperDesc">강의명, 카테고리, 강의 형태부터 입력하면 등록 준비가 빨라집니다.</p>
                         </div>
-                        <div class="pa-hero__stat">
-                            <strong class="pa-hero__stat-value">운영 지원</strong>
-                            <span class="pa-hero__stat-label">예약·문의·정산·후기 흐름 통합</span>
-                        </div>
-                        <div class="pa-hero__stat">
-                            <strong class="pa-hero__stat-value">자사몰 연동</strong>
-                            <span class="pa-hero__stat-label">키트·재료 판매와 재구매 동선 연결</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="pa-hero__panel">
-                    <div class="pa-hero__panel-card">
-                        <p class="pa-hero__panel-label">PRESSCO21이 대신하는 운영</p>
-                        <ul class="pa-hero__panel-list">
-                            <li class="pa-hero__panel-item">
-                                <strong>홍보</strong>
-                                <span>클래스 허브, 협회·세미나 레이어, 자사몰 유입을 묶어 노출합니다.</span>
-                            </li>
-                            <li class="pa-hero__panel-item">
-                                <strong>준비</strong>
-                                <span>키트와 재료 준비 흐름을 표준화하고 누락을 줄입니다.</span>
-                            </li>
-                            <li class="pa-hero__panel-item">
-                                <strong>운영</strong>
-                                <span>예약 현황, 남은 좌석, 후기 응답, 정산 상태를 한 화면에서 봅니다.</span>
-                            </li>
-                            <li class="pa-hero__panel-item">
-                                <strong>성장</strong>
-                                <span>첫 강의 등록부터 대표 파트너 단계까지 성장 루프를 설계합니다.</span>
-                            </li>
-                        </ul>
-                        <div class="pa-hero__panel-note">
-                            <span class="pa-hero__panel-chip">오프라인 클래스</span>
-                            <span class="pa-hero__panel-chip">온라인 클래스</span>
-                            <span class="pa-hero__panel-chip">협회 연계 클래스</span>
-                        </div>
-                    </div>
-                </div>
-            </div>
-        </section>
-
-        <section class="pa-benefits">
-            <div class="pa-benefits__inner">
-                <div class="pa-benefits__item">
-                    <strong class="pa-benefits__value">운영 피로 감소</strong>
-                    <p class="pa-benefits__text">일정 관리, 문의 대응, 정산 확인을 대시보드 기준으로 정리합니다.</p>
-                </div>
-                <div class="pa-benefits__item">
-                    <strong class="pa-benefits__value">노출 확대</strong>
-                    <p class="pa-benefits__text">전국 수강생이 카테고리, 지역, 진행 방식별로 클래스를 탐색합니다.</p>
-                </div>
-                <div class="pa-benefits__item">
-                    <strong class="pa-benefits__value">커머스 연결</strong>
-                    <p class="pa-benefits__text">자사몰 재료·키트 판매와 연계해 수업 이후 구매까지 이어집니다.</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="paSupportSection" class="pa-sales-section pa-support">
-            <div class="pa-section-head">
-                <p class="pa-section-head__eyebrow">WE HANDLE THE REST</p>
-                <h2 class="pa-section-head__title">파트너가 운영보다 강의에 집중하도록 돕습니다</h2>
-                <p class="pa-section-head__desc">PRESSCO21은 수수료를 앞세우는 플랫폼이 아니라, 공방과 강사가 더 편하게 수업을 홍보하고 운영하게 돕는 서비스입니다.</p>
-            </div>
-            <div class="pa-support__grid">
-                <article class="pa-support__card">
-                    <span class="pa-support__step">01</span>
-                    <h3 class="pa-support__card-title">홍보와 발견</h3>
-                    <p class="pa-support__card-desc">전국 단위 클래스 허브 안에서 카테고리, 지역, 온라인·오프라인 기준으로 수강생에게 노출합니다.</p>
-                </article>
-                <article class="pa-support__card">
-                    <span class="pa-support__step">02</span>
-                    <h3 class="pa-support__card-title">키트와 재료</h3>
-                    <p class="pa-support__card-desc">수업에 필요한 재료 준비 흐름을 정리하고, 자사몰 상품과 연결해 반복 구매 기반을 만듭니다.</p>
-                </article>
-                <article class="pa-support__card">
-                    <span class="pa-support__step">03</span>
-                    <h3 class="pa-support__card-title">예약과 정산</h3>
-                    <p class="pa-support__card-desc">예약 상태, 결제, 정산 내역, 후기 응답을 운영 보드에서 한 번에 확인할 수 있게 구성합니다.</p>
-                </article>
-                <article class="pa-support__card">
-                    <span class="pa-support__step">04</span>
-                    <h3 class="pa-support__card-title">협회와 확장</h3>
-                    <p class="pa-support__card-desc">협회 일정, 세미나, 협회원 혜택과 연결된 확장 구조 안에서 파트너 브랜딩 기회를 만듭니다.</p>
-                </article>
-            </div>
-        </section>
-
-        <section id="paCompareSection" class="pa-sales-section pa-compare">
-            <div class="pa-section-head">
-                <p class="pa-section-head__eyebrow">WHY PRESSCO21</p>
-                <h2 class="pa-section-head__title">직접 다 하려고 할수록 운영은 무거워집니다</h2>
-                <p class="pa-section-head__desc">혼자서 클래스를 운영할 때 생기는 병목을 PRESSCO21이 분담하는 구조입니다.</p>
-            </div>
-            <div class="pa-compare__table-wrap">
-                <table class="pa-compare__table">
-                    <thead>
-                        <tr>
-                            <th scope="col">운영 항목</th>
-                            <th scope="col">직접 운영</th>
-                            <th scope="col">PRESSCO21</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <th scope="row">일정 관리</th>
-                            <td>신청, 변경, 마감 공지를 직접 정리해야 합니다.</td>
-                            <td>클래스 스케줄과 예약 상태를 한 화면에서 관리합니다.</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">재료 준비</th>
-                            <td>키트와 재료 수량 계산, 누락 확인을 매번 반복합니다.</td>
-                            <td>클래스별 준비 항목과 필요한 재료 흐름을 미리 확인합니다.</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">결제·정산</th>
-                            <td>입금 확인과 정산 내역 확인이 분산되기 쉽습니다.</td>
-                            <td>예약·정산 데이터를 운영 보드 기준으로 확인합니다.</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">홍보</th>
-                            <td>SNS와 지인 네트워크에 의존하기 쉽습니다.</td>
-                            <td>클래스 허브, 자사몰, 협회 레이어 안에서 반복 노출 구조를 만듭니다.</td>
-                        </tr>
-                        <tr>
-                            <th scope="row">확장성</th>
-                            <td>온라인 클래스, 협회 제휴, 재구매 동선이 따로 움직입니다.</td>
-                            <td>오프라인·온라인 클래스와 재료·키트 판매를 한 흐름으로 연결합니다.</td>
-                        </tr>
-                    </tbody>
-                </table>
-            </div>
-        </section>
-
-        <section class="pa-sales-section pa-fit">
-            <div class="pa-fit__grid">
-                <article class="pa-fit__panel">
-                    <p class="pa-fit__label">이런 파트너와 잘 맞습니다</p>
-                    <ul class="pa-fit__list">
-                        <li class="pa-fit__item">나만의 강의나 원데이 클래스를 더 넓게 알리고 싶은 공방</li>
-                        <li class="pa-fit__item">오프라인 클래스와 온라인 클래스를 함께 운영하고 싶은 강사</li>
-                        <li class="pa-fit__item">재료 준비와 결제·정산 업무를 체계화하고 싶은 운영자</li>
-                        <li class="pa-fit__item">협회, 세미나, 시즌 행사와 연계된 확장 기회를 찾는 파트너</li>
-                    </ul>
-                </article>
-                <article class="pa-fit__panel pa-fit__panel--accent">
-                    <p class="pa-fit__label">신청 후 이어지는 흐름</p>
-                    <ol class="pa-fit__timeline">
-                        <li class="pa-fit__timeline-item">
-                            <strong>1. 심사</strong>
-                            <span>제출한 소개, 포트폴리오, 운영 가능성을 검토합니다.</span>
-                        </li>
-                        <li class="pa-fit__timeline-item">
-                            <strong>2. 온보딩</strong>
-                            <span>프로필, 교육, 강의, 일정, 키트 기준을 차례대로 정리합니다.</span>
-                        </li>
-                        <li class="pa-fit__timeline-item">
-                            <strong>3. 첫 강의 공개</strong>
-                            <span>클래스 허브 노출과 운영 보드 사용을 시작합니다.</span>
-                        </li>
-                    </ol>
-                </article>
-            </div>
-        </section>
-
-        <section id="paGrowthSection" class="pa-sales-section pa-growth">
-            <div class="pa-section-head">
-                <p class="pa-section-head__eyebrow">GROWTH PATH</p>
-                <h2 class="pa-section-head__title">첫 강의 등록 이후에도 성장 구조가 이어집니다</h2>
-                <p class="pa-section-head__desc">PRESSCO21은 파트너를 일회성 입점으로 보지 않고, 운영과 브랜딩이 함께 커지는 단계형 구조로 설계합니다.</p>
-            </div>
-            <div class="pa-growth__rail">
-                <article class="pa-growth__card">
-                    <p class="pa-growth__grade">BLOOM</p>
-                    <h3 class="pa-growth__title">시작 단계</h3>
-                    <p class="pa-growth__desc">첫 승인 이후 기본 운영 보드와 클래스 등록 흐름에 적응합니다.</p>
-                    <ul class="pa-growth__list">
-                        <li>온보딩 체크리스트 제공</li>
-                        <li>첫 강의 등록 가이드</li>
-                        <li>기본 프로필 노출</li>
-                    </ul>
-                </article>
-                <article class="pa-growth__card">
-                    <p class="pa-growth__grade">GARDEN</p>
-                    <h3 class="pa-growth__title">안정화 단계</h3>
-                    <p class="pa-growth__desc">클래스 운영과 후기 흐름이 안정화되면 반복 예약 기반을 키웁니다.</p>
-                    <ul class="pa-growth__list">
-                        <li>우선 노출 기회</li>
-                        <li>프로필 신뢰 배지</li>
-                        <li>재구매 연결 강화</li>
-                    </ul>
-                </article>
-                <article class="pa-growth__card">
-                    <p class="pa-growth__grade">ATELIER</p>
-                    <h3 class="pa-growth__title">브랜딩 단계</h3>
-                    <p class="pa-growth__desc">콘텐츠와 협업 기회를 통해 파트너 자체 브랜드를 키웁니다.</p>
-                    <ul class="pa-growth__list">
-                        <li>콘텐츠 허브 인터뷰</li>
-                        <li>자사몰 배너 노출</li>
-                        <li>시즌 큐레이션 참여</li>
-                    </ul>
-                </article>
-                <article class="pa-growth__card">
-                    <p class="pa-growth__grade">AMBASSADOR</p>
-                    <h3 class="pa-growth__title">리더 단계</h3>
-                    <p class="pa-growth__desc">대표 파트너로서 멘토링, 협회 세미나, 공동 기획까지 연결됩니다.</p>
-                    <ul class="pa-growth__list">
-                        <li>신규 파트너 멘토링</li>
-                        <li>세미나 공동 기획</li>
-                        <li>대표 파트너 노출</li>
-                    </ul>
-                </article>
-            </div>
-        </section>
-
-        <section class="pa-sales-section pa-social">
-            <div class="pa-section-head">
-                <p class="pa-section-head__eyebrow">SOCIAL PROOF</p>
-                <h2 class="pa-section-head__title">운영 부담은 낮추고, 수강생 신뢰는 높이는 방향으로 설계합니다</h2>
-            </div>
-            <div class="pa-social__grid">
-                <article class="pa-social__card">
-                    <p class="pa-social__type">파트너 후기</p>
-                    <blockquote class="pa-social__quote">강의 준비 자체보다 예약 정리와 재료 체크가 더 피곤했는데, 운영 보드 기준으로 보니까 어디서 막히는지 한 번에 정리됐어요.</blockquote>
-                    <p class="pa-social__author">서울 플라워 클래스 파트너</p>
-                </article>
-                <article class="pa-social__card">
-                    <p class="pa-social__type">파트너 후기</p>
-                    <blockquote class="pa-social__quote">온라인과 오프라인 클래스를 따로 홍보하던 흐름을 하나로 묶을 수 있는 점이 가장 컸습니다. 강의 소개에 집중하기 쉬워졌어요.</blockquote>
-                    <p class="pa-social__author">경기 레진 아트 파트너</p>
-                </article>
-                <article class="pa-social__card pa-social__card--highlight">
-                    <p class="pa-social__type">수강생 관점</p>
-                    <blockquote class="pa-social__quote">원하는 지역과 카테고리로 클래스를 찾기 쉽고, 준비물과 후기 흐름이 명확해서 처음 신청할 때도 불안이 덜했습니다.</blockquote>
-                    <p class="pa-social__author">PRESSCO21 클래스 수강생</p>
-                </article>
-            </div>
-        </section>
-
-        <section class="pa-sales-section pa-process">
-            <div class="pa-section-head">
-                <p class="pa-section-head__eyebrow">APPLICATION FLOW</p>
-                <h2 class="pa-section-head__title">신청은 간단하게, 심사는 투명하게 안내합니다</h2>
-            </div>
-            <div class="pa-process__grid">
-                <div class="pa-process__card">
-                    <span class="pa-process__num">1</span>
-                    <strong class="pa-process__title">신청서 작성</strong>
-                    <p class="pa-process__desc">기본 정보, 활동 지역, 포트폴리오 링크를 남겨주세요.</p>
-                </div>
-                <div class="pa-process__card">
-                    <span class="pa-process__num">2</span>
-                    <strong class="pa-process__title">1~3 영업일 검토</strong>
-                    <p class="pa-process__desc">운영 적합성, 소개 내용, 포트폴리오를 종합적으로 확인합니다.</p>
-                </div>
-                <div class="pa-process__card">
-                    <span class="pa-process__num">3</span>
-                    <strong class="pa-process__title">온보딩 시작</strong>
-                    <p class="pa-process__desc">승인 시 교육, 프로필, 강의, 일정, 키트 단계를 순서대로 정리합니다.</p>
-                </div>
-                <div class="pa-process__card">
-                    <span class="pa-process__num">4</span>
-                    <strong class="pa-process__title">첫 공개 운영</strong>
-                    <p class="pa-process__desc">클래스 허브 노출과 운영 보드 사용을 시작합니다.</p>
-                </div>
-            </div>
-        </section>
-
-        <section id="paApplyAnchor" class="pa-form-section">
-            <div class="pa-form-section__inner">
-                <aside class="pa-form-side">
-                    <div class="pa-form-side__card">
-                        <p class="pa-form-side__eyebrow">APPLY NOW</p>
-                        <h2 class="pa-form-side__title">신청 전에 확인해주세요</h2>
-                        <ul class="pa-form-side__list">
-                            <li class="pa-form-side__item">기본 연락 정보와 활동 지역은 심사 연락에 사용됩니다.</li>
-                            <li class="pa-form-side__item">포트폴리오나 SNS 링크가 있으면 검토가 더 빨라집니다.</li>
-                            <li class="pa-form-side__item">심사 결과는 1~3 영업일 내 이메일로 안내합니다.</li>
-                        </ul>
-                    </div>
-                    <div class="pa-form-side__card pa-form-side__card--soft">
-                        <p class="pa-form-side__eyebrow">WHO THIS IS FOR</p>
-                        <h3 class="pa-form-side__title pa-form-side__title--sm">우리가 함께 만들고 싶은 그림</h3>
-                        <p class="pa-form-side__desc">전국 어디서든 원하는 카테고리와 지역의 클래스를 찾을 수 있는 허브 안에서, 파트너는 강의 품질에 집중하고 PRESSCO21은 운영과 커머스 연결을 맡는 구조입니다.</p>
-                    </div>
-                </aside>
-
-                <form id="paApplyForm" class="pa-form" novalidate>
-                    <div class="pa-form__intro">
-                        <p class="pa-form__intro-eyebrow">PARTNER APPLICATION</p>
-                        <h2 class="pa-form__intro-title">PRESSCO21 파트너 신청서</h2>
-                        <p class="pa-form__intro-desc">아래 정보를 남겨주시면 심사 후 교육과 운영 시작까지 이어질 수 있도록 안내드립니다.</p>
-                    </div>
-
-                    <div class="pa-form__section">
-                        <h2 class="pa-form__section-title">기본 정보</h2>
-                        <p class="pa-form__section-desc">정확한 연락을 위해 필수 정보를 입력해주세요.</p>
-
-                        <div class="pa-form__row pa-form__row--half">
-                            <div class="pa-form__field">
-                                <label class="pa-form__label" for="paName">
-                                    이름 <span class="pa-form__required" aria-hidden="true">*</span>
-                                </label>
-                                <input type="text" id="paName" name="name" class="pa-form__input"
-                                    placeholder="홍길동" maxlength="50" autocomplete="name" required>
-                                <p class="pa-form__error" id="paNameError" role="alert" style="display:none"></p>
+                        <div class="cr-form-helper__stats">
+                            <div class="cr-form-helper__stat">
+                                <strong id="crHelperRequiredCount">0</strong>
+                                <span>필수 완료</span>
                             </div>
-                            <div class="pa-form__field">
-                                <label class="pa-form__label" for="paStudioName">
-                                    공방 · 스튜디오명 <span class="pa-form__required" aria-hidden="true">*</span>
-                                </label>
-                                <input type="text" id="paStudioName" name="studio_name" class="pa-form__input"
-                                    placeholder="예: 꽃피는 공방" maxlength="100" required>
-                                <p class="pa-form__error" id="paStudioNameError" role="alert" style="display:none"></p>
-                            </div>
-                        </div>
-
-                        <div class="pa-form__row pa-form__row--half">
-                            <div class="pa-form__field">
-                                <label class="pa-form__label" for="paPhone">
-                                    연락처 <span class="pa-form__required" aria-hidden="true">*</span>
-                                </label>
-                                <input type="tel" id="paPhone" name="phone" class="pa-form__input"
-                                    placeholder="010-1234-5678" maxlength="20" autocomplete="tel" required>
-                                <p class="pa-form__error" id="paPhoneError" role="alert" style="display:none"></p>
-                            </div>
-                            <div class="pa-form__field">
-                                <label class="pa-form__label" for="paEmail">
-                                    이메일 <span class="pa-form__required" aria-hidden="true">*</span>
-                                </label>
-                                <input type="email" id="paEmail" name="email" class="pa-form__input"
-                                    placeholder="example@email.com" maxlength="200" autocomplete="email" required>
-                                <p class="pa-form__error" id="paEmailError" role="alert" style="display:none"></p>
+                            <div class="cr-form-helper__stat">
+                                <strong id="crHelperScheduleCount">0</strong>
+                                <span>일정 수</span>
                             </div>
                         </div>
                     </div>
+                    <div class="cr-form-helper__progress">
+                        <span id="crHelperBar"></span>
+                    </div>
+                    <div class="cr-form-helper__chips">
+                        <span class="cr-form-helper__chip" id="crHelperBasicChip">기본 정보 미완료</span>
+                        <span class="cr-form-helper__chip" id="crHelperDetailChip">일정 추가 권장</span>
+                        <span class="cr-form-helper__chip" id="crHelperContactChip">연락 채널 추가 권장</span>
+                        <span class="cr-form-helper__chip" id="crHelperAgreeChip">약관 동의 필요</span>
+                    </div>
+                    <div class="cr-form-helper__nav">
+                        <button type="button" class="cr-form-helper__nav-btn" data-cr-scroll-target="crSectionBasics">기본 정보</button>
+                        <button type="button" class="cr-form-helper__nav-btn" data-cr-scroll-target="crSectionDetail">상세 정보</button>
+                        <button type="button" class="cr-form-helper__nav-btn" data-cr-scroll-target="crSectionContact">연락처</button>
+                        <button type="button" class="cr-form-helper__nav-btn" data-cr-scroll-target="crSubmitArea">제출</button>
+                    </div>
+                </section>
 
-                    <!-- 섹션 2: 활동 정보 -->
-                    <div class="pa-form__section">
-                        <h2 class="pa-form__section-title">활동 정보</h2>
-                        <p class="pa-form__section-desc">강의 분야와 활동 지역을 알려주세요.</p>
+                <form id="crRegisterForm" class="cr-form" novalidate>
 
-                        <div class="pa-form__row pa-form__row--half">
-                            <div class="pa-form__field">
-                                <label class="pa-form__label" for="paSpecialty">전문 분야</label>
-                                <select id="paSpecialty" name="specialty" class="pa-form__select">
-                                    <option value="">분야를 선택해주세요</option>
+                    <!-- 섹션 1: 기본 강의 정보 (필수) -->
+                    <div class="cr-form__section" id="crSectionBasics">
+                        <h2 class="cr-form__section-title">기본 강의 정보</h2>
+                        <p class="cr-form__section-desc">강의 핵심 정보를 입력해주세요. <span class="cr-form__required" aria-hidden="true">*</span> 표시는 필수 항목입니다.</p>
+
+                        <!-- 강의명 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crTitle">
+                                강의명 <span class="cr-form__required" aria-hidden="true">*</span>
+                            </label>
+                            <input type="text" id="crTitle" name="title" class="cr-form__input"
+                                placeholder="예: 봄꽃 압화 원데이클래스" maxlength="100" required>
+                            <p class="cr-form__error" id="crTitleError" role="alert" style="display:none"></p>
+                        </div>
+
+                        <!-- 카테고리 + 강의형태 -->
+                        <div class="cr-form__row cr-form__row--half">
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crCategory">
+                                    카테고리 <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="crCategory" name="category" class="cr-form__select" required>
+                                    <option value="">카테고리 선택</option>
                                     <option value="압화">압화 (Pressed Flower)</option>
                                     <option value="레진">레진 아트</option>
                                     <option value="캔들">플라워 캔들</option>
@@ -490,49 +233,202 @@
                                     <option value="비즈">비즈 공예</option>
                                     <option value="기타">기타</option>
                                 </select>
+                                <p class="cr-form__error" id="crCategoryError" role="alert" style="display:none"></p>
                             </div>
-                            <div class="pa-form__field">
-                                <label class="pa-form__label" for="paLocation">활동 지역</label>
-                                <input type="text" id="paLocation" name="location" class="pa-form__input"
-                                    placeholder="예: 서울 강남구" maxlength="100">
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- 섹션 3: 소개 -->
-                    <div class="pa-form__section">
-                        <h2 class="pa-form__section-title">자기 소개</h2>
-                        <p class="pa-form__section-desc">경력, 강의 스타일, 지향점 등을 자유롭게 소개해주세요. (선택)</p>
-
-                        <div class="pa-form__field">
-                            <label class="pa-form__label" for="paIntroduction">소개글</label>
-                            <textarea id="paIntroduction" name="introduction" class="pa-form__textarea"
-                                placeholder="예: 15년간 압화 작가로 활동해왔으며, 일상 속 꽃의 아름다움을 많은 분들과 나누고 싶습니다..."
-                                maxlength="500" rows="5"></textarea>
-                            <p class="pa-form__char-count"><span id="paIntroCharCount">0</span>/500</p>
-                        </div>
-                    </div>
-
-                    <!-- 섹션 4: 포트폴리오 -->
-                    <div class="pa-form__section">
-                        <h2 class="pa-form__section-title">포트폴리오 링크</h2>
-                        <p class="pa-form__section-desc">작업 결과물을 확인할 수 있는 링크를 남겨주세요. (선택)</p>
-
-                        <div class="pa-form__row pa-form__row--half">
-                            <div class="pa-form__field">
-                                <label class="pa-form__label" for="paPortfolioUrl">
-                                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="vertical-align:-2px;margin-right:4px">
-                                        <rect x="1" y="3" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/>
-                                        <path d="M1 7h14" stroke="currentColor" stroke-width="1.2"/>
-                                    </svg>
-                                    포트폴리오 URL
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crType">
+                                    강의 형태 <span class="cr-form__required" aria-hidden="true">*</span>
                                 </label>
-                                <input type="url" id="paPortfolioUrl" name="portfolio_url" class="pa-form__input"
-                                    placeholder="https://..." maxlength="500">
-                                <p class="pa-form__error" id="paPortfolioUrlError" role="alert" style="display:none"></p>
+                                <select id="crType" name="type" class="cr-form__select" required>
+                                    <option value="">강의 형태 선택</option>
+                                    <option value="원데이">원데이 클래스</option>
+                                    <option value="정기">정기 클래스</option>
+                                    <option value="온라인">온라인 클래스</option>
+                                </select>
+                                <p class="cr-form__error" id="crTypeError" role="alert" style="display:none"></p>
                             </div>
-                            <div class="pa-form__field">
-                                <label class="pa-form__label" for="paInstagramUrl">
+                        </div>
+
+                        <!-- 난이도 + 최대 수강인원 -->
+                        <div class="cr-form__row cr-form__row--half">
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crDifficulty">
+                                    난이도 <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <select id="crDifficulty" name="difficulty" class="cr-form__select" required>
+                                    <option value="">난이도 선택</option>
+                                    <option value="beginner">입문/초급</option>
+                                    <option value="intermediate">중급</option>
+                                    <option value="advanced">고급</option>
+                                </select>
+                                <p class="cr-form__error" id="crDifficultyError" role="alert" style="display:none"></p>
+                            </div>
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crMaxStudents">
+                                    최대 수강인원 <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="number" id="crMaxStudents" name="max_students" class="cr-form__input"
+                                    placeholder="예: 8" min="1" max="50" required>
+                                <p class="cr-form__error" id="crMaxStudentsError" role="alert" style="display:none"></p>
+                            </div>
+                        </div>
+
+                        <!-- 수강료 + 소요시간 -->
+                        <div class="cr-form__row cr-form__row--half">
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crPrice">
+                                    수강료 (원) <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="number" id="crPrice" name="price" class="cr-form__input"
+                                    placeholder="예: 50000" min="1000" required>
+                                <p class="cr-form__error" id="crPriceError" role="alert" style="display:none"></p>
+                            </div>
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crDuration">
+                                    소요시간 <span class="cr-form__required" aria-hidden="true">*</span>
+                                </label>
+                                <input type="text" id="crDuration" name="duration" class="cr-form__input"
+                                    placeholder="예: 2시간 30분" maxlength="50" required>
+                                <p class="cr-form__error" id="crDurationError" role="alert" style="display:none"></p>
+                            </div>
+                        </div>
+
+                        <!-- 강의 소개 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crDescription">
+                                강의 소개 <span class="cr-form__required" aria-hidden="true">*</span>
+                            </label>
+                            <textarea id="crDescription" name="description" class="cr-form__textarea"
+                                placeholder="강의 내용, 특징, 대상 수강생 등을 소개해주세요."
+                                maxlength="2000" rows="6" required></textarea>
+                            <p class="cr-form__char-count"><span id="crDescCharCount">0</span>/2000</p>
+                            <p class="cr-form__error" id="crDescriptionError" role="alert" style="display:none"></p>
+                        </div>
+                    </div>
+
+                    <!-- 섹션 2: 상세 정보 (선택) -->
+                    <div class="cr-form__section" id="crSectionDetail">
+                        <h2 class="cr-form__section-title">상세 정보</h2>
+                        <p class="cr-form__section-desc">더 많은 정보를 입력하면 수강생에게 더 매력적으로 보여요. (선택)</p>
+
+                        <!-- 일정 안내 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crScheduleDesc">일정 안내</label>
+                            <textarea id="crScheduleDesc" name="schedule_desc" class="cr-form__textarea"
+                                placeholder="예: 매주 토요일 오후 2시 / 사전 예약제"
+                                maxlength="1000" rows="3"></textarea>
+                            <p class="cr-form__char-count"><span id="crScheduleCharCount">0</span>/1000</p>
+                        </div>
+
+                        <!-- 초기 수업 일정 등록 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label">
+                                수업 일정 등록
+                                <span class="cr-form__hint">(선택, 승인 후 예약 가능)</span>
+                            </label>
+                            <p class="cr-form__field-desc">강의 승인 후 바로 예약을 받으려면 수업 일정을 미리 등록하세요. 나중에 대시보드에서도 추가할 수 있어요.</p>
+                            <div id="crScheduleEntries" class="cr-schedule-entries">
+                                <!-- JS: 일정 항목 동적 렌더링 -->
+                            </div>
+                            <button type="button" id="crAddScheduleBtn" class="cr-btn cr-btn--outline cr-btn--sm">
+                                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                                    <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                </svg>
+                                일정 추가
+                            </button>
+                        </div>
+
+                        <!-- 커리큘럼 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crCurriculum">커리큘럼</label>
+                            <textarea id="crCurriculum" name="curriculum" class="cr-form__textarea"
+                                placeholder="예:&#10;1단계: 재료 소개 및 기본 기법 (20분)&#10;2단계: 디자인 구성 (30분)&#10;3단계: 작품 완성 (60분)&#10;4단계: 마무리 및 포장 (20분)"
+                                maxlength="2000" rows="5"></textarea>
+                            <p class="cr-form__char-count"><span id="crCurriculumCharCount">0</span>/2000</p>
+                        </div>
+
+                        <!-- 대표 이미지 URL -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crImageUrl">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="vertical-align:-2px;margin-right:4px">
+                                    <rect x="1" y="2" width="14" height="12" rx="2" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                                    <circle cx="5" cy="6" r="1.5" stroke="currentColor" stroke-width="1" fill="none"/>
+                                    <path d="M1 11l4-3 3 2 4-4 3 3" stroke="currentColor" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+                                </svg>
+                                대표 이미지 URL
+                            </label>
+                            <input type="url" id="crImageUrl" name="image_url" class="cr-form__input"
+                                placeholder="https://... (강의 대표 이미지 링크)" maxlength="2048">
+                            <p class="cr-form__error" id="crImageUrlError" role="alert" style="display:none"></p>
+                        </div>
+
+                        <!-- 준비물/재료비 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crMaterials">준비물 / 재료비</label>
+                            <textarea id="crMaterials" name="materials" class="cr-form__textarea"
+                                placeholder="예: 재료비 포함 / 별도 준비물 없음&#10;또는: 앞치마 지참, 추가 재료비 10,000원"
+                                maxlength="1000" rows="3"></textarea>
+                            <p class="cr-form__char-count"><span id="crMaterialsCharCount">0</span>/1000</p>
+                        </div>
+
+                        <!-- 장소/주소 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crLocation">장소 / 주소</label>
+                            <input type="text" id="crLocation" name="location" class="cr-form__input"
+                                placeholder="예: 서울 강남구 테헤란로 123, 꽃피는공방" maxlength="200">
+                        </div>
+
+                        <!-- 재료키트 자동 배송 -->
+                        <div class="cr-form__field">
+                            <label class="cr-form__label">
+                                재료키트 자동 배송
+                                <span class="cr-form__hint">(선택)</span>
+                            </label>
+                            <p class="cr-form__field-desc">수강생 결제 후 자사몰 재료를 바로 연결할 수 있도록 상품 링크를 등록하세요. 상품 상세 URL이나 branduid만 넣어도 됩니다.</p>
+                            <label class="cr-kit-toggle">
+                                <input type="checkbox" id="crKitEnabled" class="cr-kit-toggle__input">
+                                <span class="cr-kit-toggle__slider"></span>
+                                <span class="cr-kit-toggle__text">재료키트 자동 배송 사용</span>
+                            </label>
+                            <div id="crKitItemsArea" class="cr-kit-items" style="display:none">
+                                <p class="cr-kit-items__hint">예: `https://foreverlove.co.kr/shop/shopdetail.html?branduid=12345678` 또는 `12345678`</p>
+                                <div id="crKitItemsList" class="cr-kit-items__list">
+                                    <!-- JS: 키트 항목 동적 렌더링 -->
+                                </div>
+                                <div class="cr-kit-bundle">
+                                    <label class="cr-form__label" for="crKitBundleBranduid">
+                                        묶음 키트 상품 링크 또는 branduid
+                                        <span class="cr-form__hint">(선택)</span>
+                                    </label>
+                                    <input type="text" id="crKitBundleBranduid" class="cr-form__input"
+                                        placeholder="예: 12345678 또는 https://foreverlove.co.kr/shop/shopdetail.html?branduid=12345678"
+                                        maxlength="255">
+                                    <p class="cr-kit-items__hint">비워두면 승인 후 묶음 키트 상품을 자동 생성하거나 운영팀이 연결할 수 있어요.</p>
+                                    <p class="cr-form__error" id="crKitBundleBranduidError" role="alert" style="display:none"></p>
+                                </div>
+                                <button type="button" id="crAddKitItemBtn" class="cr-btn cr-btn--outline cr-btn--sm">
+                                    <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+                                        <path d="M7 2v10M2 7h10" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                                    </svg>
+                                    키트 항목 추가
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 섹션 3: 연락처 (선택) -->
+                    <div class="cr-form__section" id="crSectionContact">
+                        <h2 class="cr-form__section-title">강사 연락처</h2>
+                        <p class="cr-form__section-desc">수강생이 문의할 수 있는 연락 채널을 남겨주세요. (선택)</p>
+
+                        <div class="cr-form__row cr-form__row--half">
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crContactPhone">전화번호</label>
+                                <input type="tel" id="crContactPhone" name="contact_phone" class="cr-form__input"
+                                    placeholder="010-1234-5678" maxlength="20">
+                            </div>
+                            <div class="cr-form__field">
+                                <label class="cr-form__label" for="crContactInstagram">
                                     <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="vertical-align:-2px;margin-right:4px">
                                         <rect x="2" y="2" width="12" height="12" rx="3" stroke="currentColor" stroke-width="1.2" fill="none"/>
                                         <circle cx="8" cy="8" r="3" stroke="currentColor" stroke-width="1.2" fill="none"/>
@@ -540,73 +436,76 @@
                                     </svg>
                                     인스타그램 URL
                                 </label>
-                                <input type="url" id="paInstagramUrl" name="instagram_url" class="pa-form__input"
+                                <input type="url" id="crContactInstagram" name="contact_instagram" class="cr-form__input"
                                     placeholder="https://instagram.com/..." maxlength="500">
-                                <p class="pa-form__error" id="paInstagramUrlError" role="alert" style="display:none"></p>
+                                <p class="cr-form__error" id="crContactInstagramError" role="alert" style="display:none"></p>
                             </div>
+                        </div>
+
+                        <div class="cr-form__field">
+                            <label class="cr-form__label" for="crContactKakao">
+                                <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true" style="vertical-align:-2px;margin-right:4px">
+                                    <path d="M8 2C4.134 2 1 4.462 1 7.5c0 1.956 1.3 3.674 3.253 4.632L3.8 14.5l2.9-1.566C7.125 13.025 7.553 13.071 8 13.071c3.866 0 7-2.533 7-5.571S11.866 2 8 2z" stroke="currentColor" stroke-width="1.2" fill="none"/>
+                                </svg>
+                                카카오톡 채널 URL
+                            </label>
+                            <input type="url" id="crContactKakao" name="contact_kakao" class="cr-form__input"
+                                placeholder="https://pf.kakao.com/..." maxlength="500">
+                            <p class="cr-form__error" id="crContactKakaoError" role="alert" style="display:none"></p>
                         </div>
                     </div>
 
-                    <!-- 섹션 5: 동의 -->
-                    <div class="pa-form__section pa-form__section--agree">
-                        <div class="pa-form__agree-item">
-                            <label class="pa-form__agree-label">
-                                <input type="checkbox" id="paAgreePrivacy" class="pa-form__agree-check" required>
-                                <span class="pa-form__agree-box" aria-hidden="true"></span>
-                                <span class="pa-form__agree-text">
-                                    <strong>[필수]</strong> 개인정보 수집·이용에 동의합니다.
-                                    <button type="button" class="pa-form__agree-detail-btn js-agree-toggle" data-target="paPrivacyDetail">(상세보기)</button>
+                    <!-- 섹션 4: 동의 -->
+                    <div class="cr-form__section cr-form__section--agree" id="crSectionAgree">
+                        <div class="cr-form__agree-item">
+                            <label class="cr-form__agree-label">
+                                <input type="checkbox" id="crAgreeTerms" class="cr-form__agree-check" required>
+                                <span class="cr-form__agree-box" aria-hidden="true"></span>
+                                <span class="cr-form__agree-text">
+                                    <strong>[필수]</strong> 강의 등록 약관 및 수수료 정책에 동의합니다.
+                                    <button type="button" class="cr-form__agree-detail-btn js-agree-toggle" data-target="crTermsDetail">(상세보기)</button>
                                 </span>
                             </label>
-                            <div id="paPrivacyDetail" class="pa-form__agree-detail" style="display:none">
-                                <p>수집 항목: 이름, 연락처, 이메일, 공방명, 활동 지역, 포트폴리오 URL</p>
-                                <p>수집 목적: 파트너 심사 및 결과 안내, 파트너 프로그램 운영</p>
-                                <p>보관 기간: 신청 심사 완료 후 3년 (미승인 시 6개월)</p>
+                            <div id="crTermsDetail" class="cr-form__agree-detail" style="display:none">
+                                <p>등록된 강의는 관리자 검수 후 플랫폼에 노출됩니다.</p>
+                                <p>수강료의 일정 비율이 플랫폼 수수료로 적용됩니다. (파트너 등급별 상이)</p>
+                                <p>강의 내용에 대한 책임은 강사에게 있으며, 부적절한 내용은 비노출 처리될 수 있습니다.</p>
                             </div>
-                            <p class="pa-form__error" id="paAgreePrivacyError" role="alert" style="display:none">개인정보 수집·이용 동의가 필요합니다.</p>
-                        </div>
-                        <div class="pa-form__agree-item">
-                            <label class="pa-form__agree-label">
-                                <input type="checkbox" id="paAgreeMarketing" class="pa-form__agree-check">
-                                <span class="pa-form__agree-box" aria-hidden="true"></span>
-                                <span class="pa-form__agree-text">
-                                    <strong>[선택]</strong> 파트너 프로그램 관련 마케팅·홍보 정보 수신에 동의합니다.
-                                </span>
-                            </label>
+                            <p class="cr-form__error" id="crAgreeTermsError" role="alert" style="display:none">강의 등록 약관 동의가 필요합니다.</p>
                         </div>
                     </div>
 
                     <!-- 전체 에러 메시지 -->
-                    <div id="paFormGlobalError" class="pa-form__global-error" role="alert" style="display:none"></div>
+                    <div id="crFormGlobalError" class="cr-form__global-error" role="alert" style="display:none"></div>
 
                     <!-- 제출 버튼 -->
-                    <div class="pa-form__submit-area">
-                        <button type="submit" id="paSubmitBtn" class="pa-form__submit-btn">
-                            <span class="pa-form__submit-btn-text">파트너 신청하기</span>
-                            <span class="pa-form__submit-btn-loading" style="display:none">
-                                <svg class="pa-spinner" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
+                    <div class="cr-form__submit-area" id="crSubmitArea">
+                        <button type="submit" id="crSubmitBtn" class="cr-form__submit-btn">
+                            <span class="cr-form__submit-btn-text">강의 등록 신청하기</span>
+                            <span class="cr-form__submit-btn-loading" style="display:none">
+                                <svg class="cr-spinner" viewBox="0 0 24 24" width="20" height="20" aria-hidden="true">
                                     <circle cx="12" cy="12" r="10" stroke="currentColor" stroke-width="2.5" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10"/>
                                 </svg>
                                 처리 중...
                             </span>
                         </button>
-                        <p class="pa-form__submit-note">심사 결과는 1~3 영업일 내 이메일로 안내드립니다.</p>
+                        <p class="cr-form__submit-note">검수 결과는 1~2 영업일 내 확인하실 수 있습니다.</p>
                     </div>
 
                 </form>
             </div>
         </section>
 
-    </div><!-- /paFormArea -->
+    </div><!-- /crFormArea -->
 
     <!-- 로딩 오버레이 -->
-    <div id="paLoadingOverlay" class="pa-loading-overlay" style="display:none" aria-label="처리 중" role="status">
-        <svg class="pa-spinner" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
+    <div id="crLoadingOverlay" class="cr-loading-overlay" style="display:none" aria-label="처리 중" role="status">
+        <svg class="cr-spinner" viewBox="0 0 24 24" width="40" height="40" aria-hidden="true">
             <circle cx="12" cy="12" r="10" stroke="#b89b5e" stroke-width="2.5" fill="none" stroke-dasharray="31.4" stroke-dashoffset="10"/>
         </svg>
     </div>
 
-</div><!-- /partner-apply -->
+</div><!-- /class-register -->
 
 </body>
 </html>

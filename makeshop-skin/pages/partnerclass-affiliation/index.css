@@ -1,831 +1,585 @@
 /* ============================================
-   PRESSCO21 협회 전용 랜딩 페이지 (제안서)
-   CSS 스코핑: .affiliation-landing
-   CSS 변수 접두사: --al-
-   브랜드 컬러: #425b51 (포레스트 그린), #d4a373 (골드)
-   반응형: ~768px / 768~992px / 992px~
+   PRESSCO21 협회 제안서 페이지
+   CSS 스코핑: .affiliation-proposal
    ============================================ */
+.affiliation-proposal {
+    --ap-primary: #7d9675;
+    --ap-primary-dark: #31442d;
+    --ap-brown: #4d3729;
+    --ap-gold: #c8a46b;
+    --ap-gold-soft: #f7efe2;
+    --ap-ink: #222222;
+    --ap-text: #58524b;
+    --ap-border: #e5ddd2;
+    --ap-bg: #fbf8f2;
+    --ap-card: #ffffff;
+    --ap-shadow: 0 12px 36px rgba(44, 33, 21, 0.08);
+    --ap-radius: 24px;
+    --ap-font: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
 
-/* ----------------------------------------
-   0. CSS 변수
-   ---------------------------------------- */
-.affiliation-landing {
-    --al-primary: #425b51;
-    --al-primary-light: #668f7e;
-    --al-primary-dark: #2a3c34;
-    --al-gold: #d4a373;
-    --al-gold-light: #e8d5c4;
-    --al-gold-dark: #b88a5e;
-    --al-bg: #fdfbf7;
-    --al-bg-warm: #faf6ef;
-    --al-bg-card: #ffffff;
-    --al-bg-section-alt: #f5f0e8;
-    --al-text: #333333;
-    --al-text-light: #777777;
-    --al-text-dark: #1a1a1a;
-    --al-border: #e8e2db;
-    --al-border-light: #f0ebe5;
-    --al-shadow-sm: 0 1px 3px rgba(107, 76, 59, 0.06);
-    --al-shadow-md: 0 4px 16px rgba(107, 76, 59, 0.08);
-    --al-shadow-lg: 0 8px 32px rgba(107, 76, 59, 0.12);
-    --al-radius-sm: 8px;
-    --al-radius-md: 12px;
-    --al-radius-lg: 16px;
-    --al-radius-xl: 24px;
-    --al-transition: 0.3s ease;
-    --al-font: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
-    --al-font-serif: 'Noto Serif KR', 'Georgia', serif;
-
-    font-family: var(--al-font);
-    background-color: var(--al-bg);
-    color: var(--al-text);
-    line-height: 1.7;
-    box-sizing: border-box;
-    margin: 0;
-    padding: 0;
-    -webkit-font-smoothing: antialiased;
-    overflow-x: hidden;
+    font-family: var(--ap-font);
+    color: var(--ap-ink);
+    background: linear-gradient(180deg, #f8f3eb 0%, #fbf8f2 24%, #ffffff 100%);
+    min-height: 100vh;
 }
 
-.affiliation-landing *,
-.affiliation-landing *::before,
-.affiliation-landing *::after {
+.affiliation-proposal *,
+.affiliation-proposal *::before,
+.affiliation-proposal *::after {
     box-sizing: border-box;
 }
 
-/* ----------------------------------------
-   1. 공통 섹션 구조
-   ---------------------------------------- */
-.affiliation-landing .al-section {
-    padding: 80px 20px;
+.affiliation-proposal .ap-header {
+    padding: 22px 24px;
 }
 
-.affiliation-landing .al-section__inner {
-    max-width: 960px;
+.affiliation-proposal .ap-header__inner,
+.affiliation-proposal .ap-hero__inner,
+.affiliation-proposal .ap-section,
+.affiliation-proposal .ap-process {
+    max-width: 1180px;
     margin: 0 auto;
 }
 
-.affiliation-landing .al-section__tag {
-    display: inline-block;
-    font-family: var(--al-font);
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    color: var(--al-gold-dark);
-    background: linear-gradient(135deg, rgba(212, 163, 115, 0.12), rgba(212, 163, 115, 0.06));
-    border: 1px solid rgba(212, 163, 115, 0.25);
-    padding: 6px 16px;
-    border-radius: 20px;
-    margin-bottom: 16px;
-}
-
-.affiliation-landing .al-section__title {
-    font-family: var(--al-font-serif);
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--al-text-dark);
-    margin: 12px 0 16px;
-    line-height: 1.4;
-}
-
-.affiliation-landing .al-section__desc {
-    font-size: 15px;
-    color: var(--al-text-light);
-    line-height: 1.8;
-    margin: 0 0 40px;
-}
-
-/* ----------------------------------------
-   2. 히어로
-   ---------------------------------------- */
-.affiliation-landing .al-hero {
-    position: relative;
-    background: linear-gradient(160deg, var(--al-primary-dark) 0%, var(--al-primary) 50%, var(--al-primary-light) 100%);
-    color: #ffffff;
-    padding: 80px 20px 100px;
-    text-align: center;
-    overflow: hidden;
-}
-
-.affiliation-landing .al-hero__inner {
-    position: relative;
-    z-index: 2;
-    max-width: 720px;
-    margin: 0 auto;
-}
-
-.affiliation-landing .al-hero__deco {
-    position: absolute;
-    top: -30%;
-    right: -10%;
-    width: 400px;
-    height: 400px;
-    border-radius: 50%;
-    background: radial-gradient(circle, rgba(212, 163, 115, 0.15) 0%, transparent 70%);
-    z-index: 1;
-}
-
-.affiliation-landing .al-hero__logos {
+.affiliation-proposal .ap-header__inner {
     display: flex;
     align-items: center;
-    justify-content: center;
-    gap: 16px;
-    margin-bottom: 32px;
-}
-
-.affiliation-landing .al-hero__logo {
-    height: 48px;
-    width: auto;
-    object-fit: contain;
-}
-
-.affiliation-landing .al-hero__logo--affil {
-    max-width: 160px;
-    background: rgba(255, 255, 255, 0.9);
-    padding: 6px 12px;
-    border-radius: 8px;
-}
-
-.affiliation-landing .al-hero__logo-sep {
-    font-size: 20px;
-    color: rgba(255, 255, 255, 0.5);
-    font-weight: 300;
-}
-
-.affiliation-landing .al-hero__eyebrow {
-    font-size: 12px;
-    font-weight: 600;
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    color: var(--al-gold-light);
-    margin: 0 0 16px;
-}
-
-.affiliation-landing .al-hero__title {
-    font-family: var(--al-font-serif);
-    font-size: 36px;
-    font-weight: 700;
-    line-height: 1.35;
-    margin: 0 0 16px;
-    word-break: keep-all;
-}
-
-.affiliation-landing .al-hero__subtitle {
-    font-size: 16px;
-    color: rgba(255, 255, 255, 0.8);
-    line-height: 1.6;
-    margin: 0;
-}
-
-/* ----------------------------------------
-   3. 제안 개요
-   ---------------------------------------- */
-.affiliation-landing .al-overview {
-    background: var(--al-bg);
-}
-
-.affiliation-landing .al-overview__cards {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    justify-content: space-between;
     gap: 20px;
 }
 
-.affiliation-landing .al-overview__card {
-    background: var(--al-bg-card);
-    border: 1px solid var(--al-border-light);
-    border-radius: var(--al-radius-md);
-    padding: 28px 24px;
-    text-align: center;
-    transition: box-shadow var(--al-transition), transform var(--al-transition);
+.affiliation-proposal .ap-brand__name {
+    margin: 0 0 4px;
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: 0.12em;
+    color: var(--ap-brown);
 }
 
-.affiliation-landing .al-overview__card:hover {
-    box-shadow: var(--al-shadow-md);
-    transform: translateY(-2px);
-}
-
-.affiliation-landing .al-overview__card-icon {
-    width: 48px;
-    height: 48px;
-    margin: 0 auto 16px;
-    color: var(--al-primary);
-}
-
-.affiliation-landing .al-overview__card-icon svg {
-    width: 100%;
-    height: 100%;
-}
-
-.affiliation-landing .al-overview__card-title {
-    font-size: 16px;
-    font-weight: 700;
-    color: var(--al-text-dark);
-    margin: 0 0 8px;
-}
-
-.affiliation-landing .al-overview__card-desc {
-    font-size: 13px;
-    color: var(--al-text-light);
-    line-height: 1.7;
+.affiliation-proposal .ap-brand__tagline,
+.affiliation-proposal .ap-header__date {
     margin: 0;
+    font-size: 13px;
+    color: var(--ap-text);
 }
 
-/* ----------------------------------------
-   4. 혜택 3가지
-   ---------------------------------------- */
-.affiliation-landing .al-benefits {
-    background: var(--al-bg-section-alt);
-}
-
-.affiliation-landing .al-benefits__list {
-    display: flex;
-    flex-direction: column;
-    gap: 32px;
-}
-
-.affiliation-landing .al-benefits__item {
-    display: flex;
-    gap: 24px;
-    background: var(--al-bg-card);
-    border: 1px solid var(--al-border-light);
-    border-radius: var(--al-radius-lg);
-    padding: 32px;
-    transition: box-shadow var(--al-transition);
-}
-
-.affiliation-landing .al-benefits__item:hover {
-    box-shadow: var(--al-shadow-md);
-}
-
-.affiliation-landing .al-benefits__number {
-    flex-shrink: 0;
-    width: 48px;
-    height: 48px;
+.affiliation-proposal .ap-header__meta {
     display: flex;
     align-items: center;
-    justify-content: center;
-    font-family: var(--al-font-serif);
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--al-gold-dark);
-    background: linear-gradient(135deg, rgba(212, 163, 115, 0.15), rgba(212, 163, 115, 0.05));
-    border: 1px solid rgba(212, 163, 115, 0.25);
-    border-radius: 50%;
+    gap: 12px;
+    flex-wrap: wrap;
 }
 
-.affiliation-landing .al-benefits__content {
-    flex: 1;
-    min-width: 0;
-}
-
-.affiliation-landing .al-benefits__title {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--al-text-dark);
-    margin: 0 0 8px;
-}
-
-.affiliation-landing .al-benefits__desc {
-    font-size: 14px;
-    color: var(--al-text-light);
-    line-height: 1.8;
-    margin: 0 0 16px;
-}
-
-/* 할인 배지 */
-.affiliation-landing .al-benefits__badge {
+.affiliation-proposal .ap-header__badge {
     display: inline-flex;
     align-items: center;
-    gap: 8px;
-    background: linear-gradient(135deg, var(--al-primary) 0%, var(--al-primary-light) 100%);
+    padding: 10px 14px;
+    border-radius: 999px;
+    background: var(--ap-card);
+    border: 1px solid var(--ap-border);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--ap-brown);
+    letter-spacing: 0.08em;
+}
+
+.affiliation-proposal .ap-hero {
+    padding: 30px 24px 56px;
+}
+
+.affiliation-proposal .ap-hero__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1.08fr) minmax(320px, 0.92fr);
+    gap: 28px;
+    align-items: stretch;
+}
+
+.affiliation-proposal .ap-hero__copy,
+.affiliation-proposal .ap-hero__card {
+    border-radius: 32px;
+    overflow: hidden;
+}
+
+.affiliation-proposal .ap-hero__copy {
+    padding: 44px;
+    background:
+        radial-gradient(circle at top right, rgba(200,164,107,0.24), transparent 34%),
+        linear-gradient(135deg, #2d4028 0%, #4d3729 100%);
     color: #ffffff;
-    padding: 10px 20px;
-    border-radius: var(--al-radius-sm);
 }
 
-.affiliation-landing .al-benefits__badge-label {
-    font-size: 13px;
-    font-weight: 500;
-    opacity: 0.9;
-}
-
-.affiliation-landing .al-benefits__badge-value {
-    font-size: 20px;
+.affiliation-proposal .ap-hero__eyebrow,
+.affiliation-proposal .ap-section__eyebrow {
+    margin: 0 0 12px;
+    font-size: 12px;
     font-weight: 700;
+    letter-spacing: 0.16em;
+    color: var(--ap-gold);
 }
 
-/* 인센티브 단계 카드 */
-.affiliation-landing .al-benefits__tiers {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
+.affiliation-proposal .ap-hero__title,
+.affiliation-proposal .ap-section__title {
+    margin: 0;
+    font-size: 48px;
+    line-height: 1.08;
+    letter-spacing: -0.05em;
+}
+
+.affiliation-proposal .ap-hero__desc,
+.affiliation-proposal .ap-section__desc {
+    margin: 18px 0 0;
+    font-size: 17px;
+    line-height: 1.8;
+    color: rgba(255,255,255,0.8);
+}
+
+.affiliation-proposal .ap-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
     gap: 12px;
+    margin-top: 28px;
 }
 
-.affiliation-landing .al-tier-card {
-    background: var(--al-bg-warm);
-    border: 1px solid var(--al-border);
-    border-radius: var(--al-radius-sm);
-    padding: 16px;
-    text-align: center;
-    transition: border-color var(--al-transition), box-shadow var(--al-transition);
-}
-
-.affiliation-landing .al-tier-card:hover {
-    border-color: var(--al-gold);
-    box-shadow: var(--al-shadow-sm);
-}
-
-.affiliation-landing .al-tier-card--active {
-    border-color: var(--al-gold);
-    background: linear-gradient(135deg, rgba(212, 163, 115, 0.08), rgba(212, 163, 115, 0.02));
-}
-
-.affiliation-landing .al-tier-card__step {
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 1px;
-    text-transform: uppercase;
-    color: var(--al-gold-dark);
-    margin: 0 0 6px;
-}
-
-.affiliation-landing .al-tier-card__target {
-    font-size: 13px;
-    color: var(--al-text-light);
-    margin: 0 0 8px;
-    line-height: 1.5;
-}
-
-.affiliation-landing .al-tier-card__incentive {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--al-primary);
-    margin: 0;
-}
-
-/* 체크리스트 */
-.affiliation-landing .al-benefits__checklist {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    gap: 8px;
-}
-
-.affiliation-landing .al-benefits__checklist li {
-    font-size: 14px;
-    color: var(--al-text);
-    padding-left: 24px;
-    position: relative;
-    line-height: 1.7;
-}
-
-.affiliation-landing .al-benefits__checklist li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 6px;
-    width: 16px;
-    height: 16px;
-    border-radius: 50%;
-    background: var(--al-primary);
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='10' viewBox='0 0 24 24' fill='none' stroke='%23fff' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='20 6 9 17 4 12'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: center;
-    background-size: 10px;
-}
-
-/* ----------------------------------------
-   5. 시뮬레이션
-   ---------------------------------------- */
-.affiliation-landing .al-simulation {
-    background: var(--al-bg);
-}
-
-.affiliation-landing .al-simulation__grid {
-    display: grid;
-    grid-template-columns: 1fr 1.5fr;
-    gap: 32px;
-    align-items: start;
-}
-
-.affiliation-landing .al-simulation__sub-title {
+.affiliation-proposal .ap-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 188px;
+    padding: 15px 22px;
+    border-radius: 999px;
+    text-decoration: none;
     font-size: 15px;
     font-weight: 700;
-    color: var(--al-text-dark);
-    margin: 0 0 16px;
-    padding-bottom: 12px;
-    border-bottom: 2px solid var(--al-border);
+    transition: transform 0.2s ease, background-color 0.2s ease;
 }
 
-.affiliation-landing .al-simulation__inputs {
-    background: var(--al-bg-card);
-    border: 1px solid var(--al-border-light);
-    border-radius: var(--al-radius-md);
-    padding: 24px;
+.affiliation-proposal .ap-btn:hover {
+    transform: translateY(-1px);
 }
 
-.affiliation-landing .al-simulation__input-row {
+.affiliation-proposal .ap-btn--primary {
+    background: linear-gradient(135deg, var(--ap-gold) 0%, #e0c08a 100%);
+    color: #24170f;
+}
+
+.affiliation-proposal .ap-btn--secondary {
+    background: rgba(255,255,255,0.08);
+    color: #ffffff;
+    border: 1px solid rgba(255,255,255,0.18);
+}
+
+.affiliation-proposal .ap-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.affiliation-proposal .ap-metric {
+    padding: 20px 18px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.1);
+}
+
+.affiliation-proposal .ap-metric__label {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 12px;
+    color: rgba(255,255,255,0.62);
+}
+
+.affiliation-proposal .ap-metric__value {
+    display: block;
+    font-size: 18px;
+    color: #ffffff;
+    line-height: 1.4;
+}
+
+.affiliation-proposal .ap-hero__card {
+    padding: 34px;
+    background: var(--ap-card);
+    border: 1px solid var(--ap-border);
+    box-shadow: var(--ap-shadow);
+}
+
+.affiliation-proposal .ap-hero__logo-wrap {
     display: flex;
-    justify-content: space-between;
     align-items: center;
-    padding: 10px 0;
-    border-bottom: 1px solid var(--al-border-light);
+    justify-content: flex-start;
+    min-height: 72px;
+    margin-bottom: 14px;
 }
 
-.affiliation-landing .al-simulation__input-row:last-child {
-    border-bottom: none;
+.affiliation-proposal .ap-hero__logo-wrap.is-empty {
+    display: none;
 }
 
-.affiliation-landing .al-simulation__input-label {
-    font-size: 14px;
-    color: var(--al-text-light);
+.affiliation-proposal .ap-hero__logo {
+    max-width: 180px;
+    max-height: 72px;
+    object-fit: contain;
 }
 
-.affiliation-landing .al-simulation__input-value {
-    font-size: 16px;
+.affiliation-proposal .ap-hero__card-label {
+    margin: 0 0 10px;
+    font-size: 12px;
     font-weight: 700;
-    color: var(--al-text-dark);
+    color: var(--ap-gold);
+    letter-spacing: 0.14em;
 }
 
-.affiliation-landing .al-simulation__results {
-    background: var(--al-bg-card);
-    border: 1px solid var(--al-border-light);
-    border-radius: var(--al-radius-md);
-    padding: 24px;
+.affiliation-proposal .ap-hero__card-title {
+    margin: 0;
+    font-size: 32px;
+    line-height: 1.2;
+    letter-spacing: -0.04em;
 }
 
-.affiliation-landing .al-simulation__result-cards {
+.affiliation-proposal .ap-hero__card-desc {
+    margin: 14px 0 0;
+    font-size: 15px;
+    color: var(--ap-text);
+    line-height: 1.75;
+}
+
+.affiliation-proposal .ap-hero__list,
+.affiliation-proposal .ap-package-card__list,
+.affiliation-proposal .ap-roi__insight-list {
+    list-style: none;
+    margin: 22px 0 0;
+    padding: 0;
     display: flex;
     flex-direction: column;
     gap: 12px;
 }
 
-.affiliation-landing .al-simulation__result-card {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 16px 20px;
-    background: var(--al-bg-warm);
-    border: 1px solid var(--al-border-light);
-    border-radius: var(--al-radius-sm);
-}
-
-.affiliation-landing .al-simulation__result-card--highlight {
-    background: linear-gradient(135deg, var(--al-primary) 0%, var(--al-primary-light) 100%);
-    border-color: transparent;
-    color: #ffffff;
-}
-
-.affiliation-landing .al-simulation__result-label {
+.affiliation-proposal .ap-hero__item,
+.affiliation-proposal .ap-package-card__list li,
+.affiliation-proposal .ap-roi__insight-list li {
+    position: relative;
+    padding-left: 18px;
     font-size: 14px;
+    color: var(--ap-text);
+    line-height: 1.75;
 }
 
-.affiliation-landing .al-simulation__result-card--highlight .al-simulation__result-label {
-    color: rgba(255, 255, 255, 0.85);
-}
-
-.affiliation-landing .al-simulation__result-value {
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--al-text-dark);
-}
-
-.affiliation-landing .al-simulation__result-card--highlight .al-simulation__result-value {
-    color: #ffffff;
-}
-
-.affiliation-landing .al-simulation__note {
-    font-size: 12px;
-    color: var(--al-text-light);
-    margin: 16px 0 0;
-    line-height: 1.6;
-}
-
-/* ----------------------------------------
-   6. 성장 로드맵
-   ---------------------------------------- */
-.affiliation-landing .al-roadmap {
-    background: var(--al-bg-section-alt);
-}
-
-.affiliation-landing .al-roadmap__timeline {
-    position: relative;
-    padding-left: 40px;
-}
-
-.affiliation-landing .al-roadmap__timeline::before {
-    content: '';
-    position: absolute;
-    left: 15px;
-    top: 0;
-    bottom: 0;
-    width: 2px;
-    background: linear-gradient(180deg, var(--al-gold) 0%, var(--al-primary-light) 100%);
-}
-
-.affiliation-landing .al-roadmap__step {
-    position: relative;
-    margin-bottom: 32px;
-}
-
-.affiliation-landing .al-roadmap__step:last-child {
-    margin-bottom: 0;
-}
-
-.affiliation-landing .al-roadmap__step-marker {
-    position: absolute;
-    left: -40px;
-    top: 0;
-    width: 32px;
-    height: 32px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 1;
-}
-
-.affiliation-landing .al-roadmap__step-month {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    width: 32px;
-    height: 32px;
-    font-size: 10px;
-    font-weight: 700;
-    color: #ffffff;
-    background: var(--al-primary);
-    border-radius: 50%;
-    border: 3px solid var(--al-bg-section-alt);
-}
-
-.affiliation-landing .al-roadmap__step-content {
-    background: var(--al-bg-card);
-    border: 1px solid var(--al-border-light);
-    border-radius: var(--al-radius-md);
-    padding: 24px;
-    transition: box-shadow var(--al-transition);
-}
-
-.affiliation-landing .al-roadmap__step-content:hover {
-    box-shadow: var(--al-shadow-md);
-}
-
-.affiliation-landing .al-roadmap__step-title {
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--al-text-dark);
-    margin: 0 0 12px;
-}
-
-.affiliation-landing .al-roadmap__step-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.affiliation-landing .al-roadmap__step-list li {
-    font-size: 14px;
-    color: var(--al-text);
-    line-height: 1.8;
-    padding-left: 20px;
-    position: relative;
-}
-
-.affiliation-landing .al-roadmap__step-list li::before {
+.affiliation-proposal .ap-hero__item::before,
+.affiliation-proposal .ap-package-card__list li::before,
+.affiliation-proposal .ap-roi__insight-list li::before {
     content: '';
     position: absolute;
     left: 0;
     top: 10px;
-    width: 6px;
-    height: 6px;
-    background: var(--al-gold);
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
+    background: var(--ap-gold);
 }
 
-/* ----------------------------------------
-   7. CTA
-   ---------------------------------------- */
-.affiliation-landing .al-cta {
-    background: linear-gradient(160deg, var(--al-primary-dark) 0%, var(--al-primary) 100%);
-    color: #ffffff;
-    text-align: center;
-    padding: 80px 20px;
+.affiliation-proposal .ap-section {
+    padding: 0 24px 64px;
 }
 
-.affiliation-landing .al-cta__title {
-    font-family: var(--al-font-serif);
-    font-size: 26px;
-    font-weight: 700;
-    margin: 0 0 16px;
-    line-height: 1.4;
+.affiliation-proposal .ap-section__head {
+    max-width: 760px;
+    margin-bottom: 26px;
 }
 
-.affiliation-landing .al-cta__desc {
-    font-size: 15px;
-    color: rgba(255, 255, 255, 0.8);
-    line-height: 1.8;
-    margin: 0 0 36px;
+.affiliation-proposal .ap-section__title {
+    color: var(--ap-ink);
+    font-size: 38px;
 }
 
-.affiliation-landing .al-cta__contact {
-    display: flex;
-    justify-content: center;
-    gap: 32px;
-    flex-wrap: wrap;
+.affiliation-proposal .ap-section__desc {
+    color: var(--ap-text);
 }
 
-.affiliation-landing .al-cta__contact-item {
-    display: flex;
+.affiliation-proposal .ap-section--soft {
+    padding-top: 20px;
+}
+
+.affiliation-proposal .ap-value-grid,
+.affiliation-proposal .ap-package-grid {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
+}
+
+.affiliation-proposal .ap-package-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.affiliation-proposal .ap-value-card,
+.affiliation-proposal .ap-package-card {
+    padding: 24px;
+    border-radius: 24px;
+    background: var(--ap-card);
+    border: 1px solid var(--ap-border);
+    box-shadow: var(--ap-shadow);
+}
+
+.affiliation-proposal .ap-value-card__num {
+    display: inline-flex;
     align-items: center;
-    gap: 12px;
-    background: rgba(255, 255, 255, 0.1);
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: var(--al-radius-md);
-    padding: 16px 24px;
-    backdrop-filter: blur(4px);
-    transition: background var(--al-transition);
-}
-
-.affiliation-landing .al-cta__contact-item:hover {
-    background: rgba(255, 255, 255, 0.18);
-}
-
-.affiliation-landing .al-cta__contact-icon {
-    width: 24px;
-    height: 24px;
-    flex-shrink: 0;
-    color: var(--al-gold-light);
-}
-
-.affiliation-landing .al-cta__contact-label {
-    display: block;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-bottom: 16px;
+    border-radius: 50%;
+    background: var(--ap-gold-soft);
+    color: var(--ap-gold);
     font-size: 12px;
-    color: rgba(255, 255, 255, 0.6);
-    margin-bottom: 2px;
+    font-weight: 700;
 }
 
-.affiliation-landing .al-cta__contact-value {
-    font-size: 16px;
-    font-weight: 600;
+.affiliation-proposal .ap-value-card__title,
+.affiliation-proposal .ap-package-card__title,
+.affiliation-proposal .ap-roi__insight-title,
+.affiliation-proposal .ap-process__title {
+    margin: 0;
+    font-size: 20px;
+    line-height: 1.35;
+    color: var(--ap-ink);
+}
+
+.affiliation-proposal .ap-value-card__desc,
+.affiliation-proposal .ap-process__desc {
+    margin: 10px 0 0;
+    font-size: 14px;
+    color: var(--ap-text);
+    line-height: 1.75;
+}
+
+.affiliation-proposal .ap-roi {
+    display: grid;
+    grid-template-columns: minmax(280px, 0.44fr) minmax(0, 0.56fr);
+    gap: 18px;
+}
+
+.affiliation-proposal .ap-roi__form,
+.affiliation-proposal .ap-roi__result {
+    border-radius: 28px;
+    background: var(--ap-card);
+    border: 1px solid var(--ap-border);
+    box-shadow: var(--ap-shadow);
+    padding: 28px;
+}
+
+.affiliation-proposal .ap-form-field {
+    margin-bottom: 18px;
+}
+
+.affiliation-proposal .ap-form-field:last-child {
+    margin-bottom: 0;
+}
+
+.affiliation-proposal .ap-form-field__label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--ap-ink);
+}
+
+.affiliation-proposal .ap-form-field__input {
+    width: 100%;
+    padding: 14px 15px;
+    border: 1px solid var(--ap-border);
+    border-radius: 14px;
+    font-family: var(--ap-font);
+    font-size: 15px;
+    color: var(--ap-ink);
+    background: #ffffff;
+}
+
+.affiliation-proposal .ap-form-field__note {
+    margin: 0;
+    font-size: 13px;
+    color: var(--ap-text);
+    line-height: 1.7;
+}
+
+.affiliation-proposal .ap-roi__summary {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.affiliation-proposal .ap-roi__summary-card {
+    padding: 20px 18px;
+    border-radius: 20px;
+    background: linear-gradient(180deg, #fff9ef 0%, #ffffff 100%);
+    border: 1px solid var(--ap-border);
+}
+
+.affiliation-proposal .ap-roi__summary-label {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: var(--ap-text);
+}
+
+.affiliation-proposal .ap-roi__summary-value {
+    display: block;
+    font-size: 24px;
+    line-height: 1.25;
+    letter-spacing: -0.03em;
+    color: var(--ap-ink);
+}
+
+.affiliation-proposal .ap-roi__summary-value--accent {
+    color: var(--ap-primary-dark);
+}
+
+.affiliation-proposal .ap-roi__insight {
+    margin-top: 18px;
+    padding: 22px;
+    border-radius: 22px;
+    background: #f9f5ee;
+}
+
+.affiliation-proposal .ap-tier-table-wrap {
+    margin-top: 18px;
+    overflow-x: auto;
+    border-radius: 20px;
+    border: 1px solid var(--ap-border);
+}
+
+.affiliation-proposal .ap-tier-table {
+    width: 100%;
+    border-collapse: collapse;
+    background: #ffffff;
+}
+
+.affiliation-proposal .ap-tier-table th,
+.affiliation-proposal .ap-tier-table td {
+    padding: 14px 16px;
+    border-bottom: 1px solid var(--ap-border);
+    text-align: left;
+    font-size: 14px;
+}
+
+.affiliation-proposal .ap-tier-table th {
+    background: #f6f1e8;
+    color: var(--ap-ink);
+}
+
+.affiliation-proposal .ap-tier-table tr:last-child td {
+    border-bottom: none;
+}
+
+.affiliation-proposal .ap-section--dark {
+    padding-top: 54px;
+    padding-bottom: 80px;
+    background: linear-gradient(135deg, #2d4028 0%, #3f3025 100%);
+}
+
+.affiliation-proposal .ap-section--dark .ap-section {
+    padding-bottom: 0;
+}
+
+.affiliation-proposal .ap-section__head--light .ap-section__title,
+.affiliation-proposal .ap-section__head--light .ap-section__eyebrow {
     color: #ffffff;
-    text-decoration: none;
 }
 
-.affiliation-landing .al-cta__contact-value:hover {
-    text-decoration: underline;
+.affiliation-proposal .ap-process {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 16px;
 }
 
-.affiliation-landing .al-cta__note {
+.affiliation-proposal .ap-process__item {
+    padding: 24px;
+    border-radius: 24px;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #ffffff;
+}
+
+.affiliation-proposal .ap-process__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-bottom: 16px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.12);
     font-size: 13px;
-    color: rgba(255, 255, 255, 0.6);
-    margin: 24px 0 0;
-    line-height: 1.6;
+    font-weight: 700;
 }
 
-/* ----------------------------------------
-   8. 푸터
-   ---------------------------------------- */
-.affiliation-landing .al-footer {
-    text-align: center;
-    padding: 32px 20px;
-    background: var(--al-bg);
-    border-top: 1px solid var(--al-border-light);
+.affiliation-proposal .ap-process__title {
+    color: #ffffff;
 }
 
-.affiliation-landing .al-footer__text {
-    font-size: 13px;
-    color: var(--al-text-light);
-    margin: 0 0 4px;
+.affiliation-proposal .ap-process__desc {
+    color: rgba(255,255,255,0.76);
 }
 
-.affiliation-landing .al-footer__text--sub {
-    font-size: 11px;
-    color: #aaa;
-}
-
-/* ----------------------------------------
-   9. 반응형 (992px 이하)
-   ---------------------------------------- */
-@media screen and (max-width: 992px) {
-    .affiliation-landing .al-hero__title {
-        font-size: 30px;
-    }
-
-    .affiliation-landing .al-section {
-        padding: 60px 20px;
-    }
-
-    .affiliation-landing .al-section__title {
-        font-size: 24px;
-    }
-
-    .affiliation-landing .al-overview__cards {
-        grid-template-columns: 1fr;
-        gap: 16px;
-    }
-
-    .affiliation-landing .al-simulation__grid {
+@media (max-width: 991px) {
+    .affiliation-proposal .ap-hero__inner,
+    .affiliation-proposal .ap-roi {
         grid-template-columns: 1fr;
     }
 
-    .affiliation-landing .al-benefits__tiers {
+    .affiliation-proposal .ap-value-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .affiliation-proposal .ap-package-grid,
+    .affiliation-proposal .ap-process {
         grid-template-columns: 1fr;
     }
 }
 
-/* ----------------------------------------
-   10. 반응형 (768px 이하)
-   ---------------------------------------- */
-@media screen and (max-width: 768px) {
-    .affiliation-landing .al-hero {
-        padding: 60px 16px 80px;
+@media (max-width: 767px) {
+    .affiliation-proposal .ap-header,
+    .affiliation-proposal .ap-hero,
+    .affiliation-proposal .ap-section {
+        padding-left: 16px;
+        padding-right: 16px;
     }
 
-    .affiliation-landing .al-hero__title {
-        font-size: 24px;
+    .affiliation-proposal .ap-header__inner {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    .affiliation-landing .al-hero__subtitle {
+    .affiliation-proposal .ap-hero__copy,
+    .affiliation-proposal .ap-hero__card,
+    .affiliation-proposal .ap-roi__form,
+    .affiliation-proposal .ap-roi__result,
+    .affiliation-proposal .ap-value-card,
+    .affiliation-proposal .ap-package-card,
+    .affiliation-proposal .ap-process__item {
+        padding: 22px 20px;
+    }
+
+    .affiliation-proposal .ap-hero__title,
+    .affiliation-proposal .ap-section__title {
+        font-size: 32px;
+    }
+
+    .affiliation-proposal .ap-hero__desc,
+    .affiliation-proposal .ap-section__desc {
         font-size: 14px;
     }
 
-    .affiliation-landing .al-hero__logo {
-        height: 36px;
-    }
-
-    .affiliation-landing .al-section {
-        padding: 48px 16px;
-    }
-
-    .affiliation-landing .al-section__title {
-        font-size: 22px;
-    }
-
-    .affiliation-landing .al-section__desc {
-        font-size: 14px;
-        margin-bottom: 28px;
-    }
-
-    .affiliation-landing .al-benefits__item {
-        flex-direction: column;
-        gap: 16px;
-        padding: 24px 20px;
-    }
-
-    .affiliation-landing .al-benefits__number {
-        width: 40px;
-        height: 40px;
-        font-size: 16px;
-    }
-
-    .affiliation-landing .al-benefits__checklist {
+    .affiliation-proposal .ap-hero__actions,
+    .affiliation-proposal .ap-metrics,
+    .affiliation-proposal .ap-value-grid,
+    .affiliation-proposal .ap-roi__summary {
         grid-template-columns: 1fr;
     }
 
-    .affiliation-landing .al-cta {
-        padding: 60px 16px;
+    .affiliation-proposal .ap-hero__actions {
+        display: grid;
     }
 
-    .affiliation-landing .al-cta__title {
-        font-size: 22px;
-    }
-
-    .affiliation-landing .al-cta__contact {
-        flex-direction: column;
-        align-items: center;
-        gap: 16px;
-    }
-
-    .affiliation-landing .al-cta__contact-item {
+    .affiliation-proposal .ap-btn {
         width: 100%;
-        max-width: 320px;
-        justify-content: center;
-    }
-
-    .affiliation-landing .al-roadmap__timeline {
-        padding-left: 32px;
-    }
-
-    .affiliation-landing .al-roadmap__step-marker {
-        left: -32px;
-    }
-
-    .affiliation-landing .al-roadmap__step-month {
-        width: 28px;
-        height: 28px;
-        font-size: 9px;
-    }
-
-    .affiliation-landing .al-roadmap__step-content {
-        padding: 20px 16px;
-    }
-
-    .affiliation-landing .al-simulation__result-card {
-        flex-direction: column;
-        text-align: center;
-        gap: 4px;
     }
 }

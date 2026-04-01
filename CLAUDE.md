@@ -52,14 +52,32 @@
 4. **미머지 브랜치 주간 점검**: 매주 `git branch -a`로 미머지 브랜치가 있는지 확인. 2주 이상 방치된 브랜치는 main과 diff 분석 후 머지 또는 삭제
 5. **Codex 브랜치 생성 시**: AI_SYNC.md에 브랜치명과 목적을 반드시 기록. 작업 완료 후 main 머지까지 책임
 
+## 메이크샵 스킨 정본 규칙 (2026-04-02~)
+
+**`makeshop-skin/`이 유일한 정본입니다.** 모든 메이크샵 개발은 이 폴더에서 합니다.
+
+| 구 폴더 (참조 전용) | 정본 (개발용) |
+|-------------------|-------------|
+| `메인페이지/` | `makeshop-skin/main/` |
+| `파트너클래스/` 10개 폴더 | `makeshop-skin/pages/partnerclass-*/` |
+| `간편 구매/` | `makeshop-skin/pages/quick-order/` |
+| `브랜드스토리/브랜드페이지/` | `makeshop-skin/pages/brand/` |
+| `파트너맵/` | `makeshop-skin/pages/partner-map/` |
+| `레지너스 화이트페이퍼/` | `makeshop-skin/pages/resiners/` |
+| `1초 로그인(킵그로우)/` | `makeshop-skin/member/login*.{html,css,js}` |
+
+- **개발**: `makeshop-skin/{경로}` 파일 수정
+- **배포**: 편집기 push (clipboard API) → SYNC-STATUS.md 갱신
+- **검증**: `curl`로 서버 파일 줄 수 대조
+- 구 폴더(`메인페이지/`, `파트너클래스/`)는 참조/이력용으로만 유지, 직접 수정 금지
+- `git commit` 시 `SYNC-STATUS.md`가 함께 staging 안 되면 pre-commit이 경고
+
 ## 백업/참조용 폴더 (수정 금지)
 
 다음 폴더들은 리뉴얼 전 원본 백업입니다. 절대 수정하지 마세요:
 - `메인페이지/기존 코드/` — 메인페이지 리뉴얼 전 원본
 - `간편 구매/기본코드/` — 간편 구매 기본형 원본
 - `간편 구매/고급형 주문서 작성/` — 간편 구매 고급형 원본
-
-모든 개선 작업은 해당 프로젝트 폴더의 실제 파일에서만 진행합니다.
 
 ## 인증키 관리
 

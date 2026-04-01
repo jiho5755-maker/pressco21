@@ -7,10 +7,6 @@
     <meta name="description" content="PRESSCO21 파트너클래스에서 수강한 내역을 확인하세요.">
     <meta name="robots" content="noindex, nofollow">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <!-- Noto Serif KR 타이틀 폰트 — 메인 사이트 일관성 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
-    <!-- PRESSCO21 공통 모듈 (유틸리티, API 래퍼, 캐시) -->
-    <script src="https://img.pressco21.com/images/assets/pressco21-core.js"></script>
 </head>
 <body>
 
@@ -64,24 +60,6 @@
             <div class="mb-summary__card">
                 <p class="mb-summary__label">완료</p>
                 <p class="mb-summary__value" id="mbCompletedCount">0</p>
-            </div>
-        </div>
-
-        <!-- 후기 미작성 알림 배너 (E2-010 리텐션) -->
-        <div class="mb-review-alert" id="mbReviewAlert" style="display:none;" role="status">
-            <div class="mb-review-alert__inner">
-                <div class="mb-review-alert__icon" aria-hidden="true">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                        <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                    </svg>
-                </div>
-                <div class="mb-review-alert__text">
-                    <p class="mb-review-alert__title" id="mbReviewAlertTitle">후기를 남겨주세요</p>
-                    <p class="mb-review-alert__desc" id="mbReviewAlertDesc">수강 완료 클래스의 후기를 작성하면 다음 수강 시 할인 혜택을 받을 수 있어요.</p>
-                </div>
-                <button type="button" class="mb-review-alert__close" id="mbReviewAlertClose" aria-label="알림 닫기">
-                    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"><path d="M4 4l8 8M12 4l-8 8"/></svg>
-                </button>
             </div>
         </div>
 
@@ -170,9 +148,6 @@
             <!-- JS: 예약 카드 동적 렌더링 -->
         </div>
 
-        <!-- 강사 도전 배너 (완료 카드 1개+ 시 표시) -->
-        <div id="mbGrowthBanner" class="mb-growth-banner" style="display:none"></div>
-
         <!-- 빈 상태 -->
         <div id="mbEmptyState" class="mb-empty" style="display:none">
             <svg width="64" height="64" viewBox="0 0 64 64" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true" class="mb-empty__icon">
@@ -195,9 +170,6 @@
             </path>
         </svg>
     </div>
-
-    <!-- 수료증 인쇄 전용 (화면 비표시, @media print에서만 노출) -->
-    <div id="mbCertificateArea" class="mb-certificate" style="display:none"></div>
 
 </div><!-- /.my-bookings -->
 

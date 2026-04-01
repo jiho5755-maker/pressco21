@@ -9,11 +9,7 @@
 
     <!-- Pretendard 웹폰트 -->
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <!-- Noto Serif KR 타이틀 폰트 — 메인 사이트 일관성 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
 
-    <!-- PRESSCO21 공통 모듈 (유틸리티, API 래퍼, 캐시) -->
-    <script src="https://img.pressco21.com/images/assets/pressco21-core.js"></script>
 </head>
 <body>
 
@@ -25,6 +21,23 @@
 
     <!-- 1. 숨김 가상태그 span (JS에서 읽기용) -->
     <span id="paMemberId" style="display:none"><!--/user_id/--></span>
+
+    <!-- 2. 미로그인 안내 -->
+    <div id="paNoticeArea" style="display:none">
+        <div class="pa-notice">
+            <div class="pa-notice__inner">
+                <div class="pa-notice__icon">
+                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
+                        <circle cx="32" cy="24" r="10" stroke="#3d2c1e" stroke-width="2" fill="none"/>
+                        <path d="M12 52c0-11.046 8.954-20 20-20s20 8.954 20 20" stroke="#3d2c1e" stroke-width="2" fill="none" stroke-linecap="round"/>
+                    </svg>
+                </div>
+                <h2 class="pa-notice__title">로그인이 필요합니다</h2>
+                <p class="pa-notice__desc">파트너 신청은 포에버러브 회원으로 로그인 후 이용하실 수 있어요.</p>
+                <a id="paLoginBtn" href="/shop/member.html?type=login" class="pa-notice__btn">로그인하기</a>
+            </div>
+        </div>
+    </div>
 
     <!-- 3. 신청 완료 화면 -->
     <div id="paSuccessArea" style="display:none">
@@ -80,223 +93,251 @@
         </div>
     </div>
 
-    <!-- 5. 세일즈 랜딩 (로그인 없이도 항상 노출) -->
+    <!-- 5. 신청 폼 메인 -->
+    <div id="paFormArea" style="display:none">
 
-    <!-- 플로팅 CTA (스크롤 시 하단 노출) -->
-    <div class="pa-float-cta" id="paFloatCta">
-        <div class="pa-float-cta__inner">
-            <p class="pa-float-cta__text">강의만 잘하시면 됩니다. 나머지는 PRESSCO21이 합니다.</p>
-            <button type="button" class="pa-float-cta__btn js-scroll-link" data-target="paApplyAnchor">지금 신청하기</button>
+        <div class="pa-float-cta">
+            <div class="pa-float-cta__inner">
+                <p class="pa-float-cta__text">강의만 잘하시면 됩니다. 나머지는 PRESSCO21이 합니다.</p>
+                <button type="button" class="pa-float-cta__btn js-scroll-link" data-target="paApplyAnchor">지금 신청하기</button>
+            </div>
         </div>
-    </div>
 
-    <!-- ===== 섹션 1: 히어로 ===== -->
+        <header class="pa-page-header">
+            <div class="pa-page-header__inner">
+                <div class="pa-page-header__brand">
+                    <a href="/" class="pa-page-header__logo">PRESSCO21</a>
+                    <p class="pa-page-header__tagline">Forever and ever and Blooming</p>
+                </div>
+                <nav class="pa-page-header__nav" aria-label="파트너 신청 섹션">
+                    <button type="button" class="pa-page-header__nav-btn js-scroll-link" data-target="paSupportSection">운영 지원</button>
+                    <button type="button" class="pa-page-header__nav-btn js-scroll-link" data-target="paGrowthSection">성장 경로</button>
+                    <button type="button" class="pa-page-header__nav-btn js-scroll-link" data-target="paApplyAnchor">신청하기</button>
+                </nav>
+            </div>
+        </header>
+
         <section class="pa-hero">
             <div class="pa-hero__inner">
-                <p class="pa-hero__eyebrow">PRESSCO21 PARTNER PROGRAM</p>
-                <h1 class="pa-hero__title">강의만 잘하시면 됩니다.<br>나머지는 저희가 합니다.</h1>
-                <p class="pa-hero__desc">운영, 홍보, 재료 준비, 예약과 정산까지<br>PRESSCO21이 함께 설계합니다.</p>
-                <div class="pa-hero__actions">
-                    <button type="button" class="pa-hero__btn pa-hero__btn--primary js-scroll-link" data-target="paApplyAnchor">지금 파트너 신청하기</button>
-                    <button type="button" class="pa-hero__btn pa-hero__btn--ghost js-scroll-link" data-target="paValueSection">자세히 알아보기</button>
+                <div class="pa-hero__copy">
+                    <p class="pa-hero__eyebrow">PARTNER PROGRAM</p>
+                    <h1 class="pa-hero__title">강의만 잘하시면 됩니다.<br>나머지는 PRESSCO21이 합니다.</h1>
+                    <p class="pa-hero__desc">공방과 강사가 운영에 지치지 않도록, PRESSCO21이 전국 단위 홍보, 예약·결제, 키트·재료 준비, 정산과 후기 관리까지 함께 설계합니다.</p>
+                    <div class="pa-hero__actions">
+                        <button type="button" class="pa-hero__btn pa-hero__btn--primary js-scroll-link" data-target="paApplyAnchor">지금 신청하기</button>
+                        <button type="button" class="pa-hero__btn pa-hero__btn--secondary js-scroll-link" data-target="paCompareSection">자세히 알아보기</button>
+                    </div>
+                    <div class="pa-hero__stats">
+                        <div class="pa-hero__stat">
+                            <strong class="pa-hero__stat-value">전국 탐색</strong>
+                            <span class="pa-hero__stat-label">카테고리·지역 기반 클래스 허브</span>
+                        </div>
+                        <div class="pa-hero__stat">
+                            <strong class="pa-hero__stat-value">운영 지원</strong>
+                            <span class="pa-hero__stat-label">예약·문의·정산·후기 흐름 통합</span>
+                        </div>
+                        <div class="pa-hero__stat">
+                            <strong class="pa-hero__stat-value">자사몰 연동</strong>
+                            <span class="pa-hero__stat-label">키트·재료 판매와 재구매 동선 연결</span>
+                        </div>
+                    </div>
                 </div>
-                <div class="pa-hero__trust">
-                    <span class="pa-hero__trust-item">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1l1.8 3.6L14 5.2l-3 2.9.7 4.1L8 10.3 4.3 12.2 5 8.1 2 5.2l4.2-.6L8 1z" fill="#d4a373"/></svg>
-                        전국 클래스 허브 노출
-                    </span>
-                    <span class="pa-hero__trust-item">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1l1.8 3.6L14 5.2l-3 2.9.7 4.1L8 10.3 4.3 12.2 5 8.1 2 5.2l4.2-.6L8 1z" fill="#d4a373"/></svg>
-                        키트·재료 자사몰 연동
-                    </span>
-                    <span class="pa-hero__trust-item">
-                        <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1l1.8 3.6L14 5.2l-3 2.9.7 4.1L8 10.3 4.3 12.2 5 8.1 2 5.2l4.2-.6L8 1z" fill="#d4a373"/></svg>
-                        4단계 성장 경로
-                    </span>
+                <div class="pa-hero__panel">
+                    <div class="pa-hero__panel-card">
+                        <p class="pa-hero__panel-label">PRESSCO21이 대신하는 운영</p>
+                        <ul class="pa-hero__panel-list">
+                            <li class="pa-hero__panel-item">
+                                <strong>홍보</strong>
+                                <span>클래스 허브, 협회·세미나 레이어, 자사몰 유입을 묶어 노출합니다.</span>
+                            </li>
+                            <li class="pa-hero__panel-item">
+                                <strong>준비</strong>
+                                <span>키트와 재료 준비 흐름을 표준화하고 누락을 줄입니다.</span>
+                            </li>
+                            <li class="pa-hero__panel-item">
+                                <strong>운영</strong>
+                                <span>예약 현황, 남은 좌석, 후기 응답, 정산 상태를 한 화면에서 봅니다.</span>
+                            </li>
+                            <li class="pa-hero__panel-item">
+                                <strong>성장</strong>
+                                <span>첫 강의 등록부터 대표 파트너 단계까지 성장 루프를 설계합니다.</span>
+                            </li>
+                        </ul>
+                        <div class="pa-hero__panel-note">
+                            <span class="pa-hero__panel-chip">오프라인 클래스</span>
+                            <span class="pa-hero__panel-chip">온라인 클래스</span>
+                            <span class="pa-hero__panel-chip">협회 연계 클래스</span>
+                        </div>
+                    </div>
                 </div>
             </div>
         </section>
 
-        <!-- ===== 섹션 2: 3가지 가치 ===== -->
-        <section id="paValueSection" class="pa-sales-section pa-value">
+        <section class="pa-benefits">
+            <div class="pa-benefits__inner">
+                <div class="pa-benefits__item">
+                    <strong class="pa-benefits__value">운영 피로 감소</strong>
+                    <p class="pa-benefits__text">일정 관리, 문의 대응, 정산 확인을 대시보드 기준으로 정리합니다.</p>
+                </div>
+                <div class="pa-benefits__item">
+                    <strong class="pa-benefits__value">노출 확대</strong>
+                    <p class="pa-benefits__text">전국 수강생이 카테고리, 지역, 진행 방식별로 클래스를 탐색합니다.</p>
+                </div>
+                <div class="pa-benefits__item">
+                    <strong class="pa-benefits__value">커머스 연결</strong>
+                    <p class="pa-benefits__text">자사몰 재료·키트 판매와 연계해 수업 이후 구매까지 이어집니다.</p>
+                </div>
+            </div>
+        </section>
+
+        <section id="paSupportSection" class="pa-sales-section pa-support">
             <div class="pa-section-head">
-                <p class="pa-section-head__eyebrow">3 VALUES WE PROVIDE</p>
-                <h2 class="pa-section-head__title">파트너가 강의에만 집중할 수 있도록</h2>
-                <p class="pa-section-head__desc">PRESSCO21은 수수료를 앞세우는 플랫폼이 아닙니다.<br>공방과 강사가 운영 부담 없이 수업에 몰입하도록 돕는 서비스입니다.</p>
+                <p class="pa-section-head__eyebrow">WE HANDLE THE REST</p>
+                <h2 class="pa-section-head__title">파트너가 운영보다 강의에 집중하도록 돕습니다</h2>
+                <p class="pa-section-head__desc">PRESSCO21은 수수료를 앞세우는 플랫폼이 아니라, 공방과 강사가 더 편하게 수업을 홍보하고 운영하게 돕는 서비스입니다.</p>
             </div>
-            <div class="pa-value__grid">
-                <article class="pa-value__card">
-                    <div class="pa-value__icon">
-                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-                            <circle cx="24" cy="24" r="22" stroke="#425b51" stroke-width="1.5" fill="#f0f5f2"/>
-                            <path d="M16 24h16M24 16v16" stroke="#425b51" stroke-width="2" stroke-linecap="round"/>
-                            <circle cx="24" cy="14" r="3" stroke="#d4a373" stroke-width="1.5" fill="none"/>
-                            <circle cx="16" cy="28" r="3" stroke="#d4a373" stroke-width="1.5" fill="none"/>
-                            <circle cx="32" cy="28" r="3" stroke="#d4a373" stroke-width="1.5" fill="none"/>
-                        </svg>
-                    </div>
-                    <h3 class="pa-value__card-title">운영 대행</h3>
-                    <p class="pa-value__card-desc">예약 관리, 결제 처리, 정산 내역, 후기 응답까지 운영 보드 하나로 정리합니다. 일정과 수강생 관리에 쓰던 시간을 강의 준비에 집중하세요.</p>
-                    <ul class="pa-value__card-list">
-                        <li>예약·정산 통합 대시보드</li>
-                        <li>수강생 문의 응답 지원</li>
-                        <li>D-3, D-1 리마인더 자동 발송</li>
-                    </ul>
+            <div class="pa-support__grid">
+                <article class="pa-support__card">
+                    <span class="pa-support__step">01</span>
+                    <h3 class="pa-support__card-title">홍보와 발견</h3>
+                    <p class="pa-support__card-desc">전국 단위 클래스 허브 안에서 카테고리, 지역, 온라인·오프라인 기준으로 수강생에게 노출합니다.</p>
                 </article>
-                <article class="pa-value__card">
-                    <div class="pa-value__icon">
-                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-                            <circle cx="24" cy="24" r="22" stroke="#425b51" stroke-width="1.5" fill="#f0f5f2"/>
-                            <rect x="14" y="18" width="20" height="14" rx="3" stroke="#425b51" stroke-width="1.5" fill="none"/>
-                            <path d="M20 18v-4a4 4 0 018 0v4" stroke="#d4a373" stroke-width="1.5" fill="none"/>
-                            <circle cx="24" cy="25" r="2" fill="#425b51"/>
-                        </svg>
-                    </div>
-                    <h3 class="pa-value__card-title">재료 키트 연동</h3>
-                    <p class="pa-value__card-desc">수업에 필요한 재료를 자사몰 상품과 연결해 키트로 구성합니다. 수강생은 강의와 키트를 한 번에 선택하고, 재구매 동선도 자연스럽게 이어집니다.</p>
-                    <ul class="pa-value__card-list">
-                        <li>강의만 / 키트 포함 선택 구매</li>
-                        <li>자사몰 재료 상품 연동</li>
-                        <li>수업 후 재구매 동선 연결</li>
-                    </ul>
+                <article class="pa-support__card">
+                    <span class="pa-support__step">02</span>
+                    <h3 class="pa-support__card-title">키트와 재료</h3>
+                    <p class="pa-support__card-desc">수업에 필요한 재료 준비 흐름을 정리하고, 자사몰 상품과 연결해 반복 구매 기반을 만듭니다.</p>
                 </article>
-                <article class="pa-value__card">
-                    <div class="pa-value__icon">
-                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none" aria-hidden="true">
-                            <circle cx="24" cy="24" r="22" stroke="#425b51" stroke-width="1.5" fill="#f0f5f2"/>
-                            <path d="M14 34l6-8 5 4 5-6 6 10" stroke="#425b51" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
-                            <circle cx="20" cy="18" r="4" stroke="#d4a373" stroke-width="1.5" fill="none"/>
-                            <path d="M28 16l4 0M30 14l0 4" stroke="#d4a373" stroke-width="1.5" stroke-linecap="round"/>
-                        </svg>
-                    </div>
-                    <h3 class="pa-value__card-title">홍보 지원</h3>
-                    <p class="pa-value__card-desc">전국 단위 클래스 허브에서 카테고리, 지역, 진행 방식별로 수강생에게 노출됩니다. SNS 홍보에만 의존하지 않아도 되는 구조를 만듭니다.</p>
-                    <ul class="pa-value__card-list">
-                        <li>클래스 허브 카테고리·지역 노출</li>
-                        <li>협회·세미나 연계 확장</li>
-                        <li>등급별 우선 노출 기회</li>
-                    </ul>
+                <article class="pa-support__card">
+                    <span class="pa-support__step">03</span>
+                    <h3 class="pa-support__card-title">예약과 정산</h3>
+                    <p class="pa-support__card-desc">예약 상태, 결제, 정산 내역, 후기 응답을 운영 보드에서 한 번에 확인할 수 있게 구성합니다.</p>
+                </article>
+                <article class="pa-support__card">
+                    <span class="pa-support__step">04</span>
+                    <h3 class="pa-support__card-title">협회와 확장</h3>
+                    <p class="pa-support__card-desc">협회 일정, 세미나, 협회원 혜택과 연결된 확장 구조 안에서 파트너 브랜딩 기회를 만듭니다.</p>
                 </article>
             </div>
         </section>
 
-        <!-- ===== 섹션 3: 프로세스 5단계 ===== -->
-        <section class="pa-sales-section pa-process">
+        <section id="paCompareSection" class="pa-sales-section pa-compare">
             <div class="pa-section-head">
-                <p class="pa-section-head__eyebrow">HOW IT WORKS</p>
-                <h2 class="pa-section-head__title">신청부터 운영 시작까지, 5단계로 안내합니다</h2>
+                <p class="pa-section-head__eyebrow">WHY PRESSCO21</p>
+                <h2 class="pa-section-head__title">직접 다 하려고 할수록 운영은 무거워집니다</h2>
+                <p class="pa-section-head__desc">혼자서 클래스를 운영할 때 생기는 병목을 PRESSCO21이 분담하는 구조입니다.</p>
             </div>
-            <div class="pa-process__rail">
-                <div class="pa-process__step">
-                    <div class="pa-process__num-wrap">
-                        <span class="pa-process__num">1</span>
-                        <span class="pa-process__connector" aria-hidden="true"></span>
-                    </div>
-                    <div class="pa-process__content">
-                        <strong class="pa-process__title">신청</strong>
-                        <p class="pa-process__desc">기본 정보와 포트폴리오를 남겨주세요. 3분이면 충분합니다.</p>
-                    </div>
-                </div>
-                <div class="pa-process__step">
-                    <div class="pa-process__num-wrap">
-                        <span class="pa-process__num">2</span>
-                        <span class="pa-process__connector" aria-hidden="true"></span>
-                    </div>
-                    <div class="pa-process__content">
-                        <strong class="pa-process__title">승인</strong>
-                        <p class="pa-process__desc">1~3 영업일 내 심사 후 이메일로 결과를 안내합니다.</p>
-                    </div>
-                </div>
-                <div class="pa-process__step">
-                    <div class="pa-process__num-wrap">
-                        <span class="pa-process__num">3</span>
-                        <span class="pa-process__connector" aria-hidden="true"></span>
-                    </div>
-                    <div class="pa-process__content">
-                        <strong class="pa-process__title">교육</strong>
-                        <p class="pa-process__desc">온보딩 체크리스트와 운영 가이드로 플랫폼 사용법을 익힙니다.</p>
-                    </div>
-                </div>
-                <div class="pa-process__step">
-                    <div class="pa-process__num-wrap">
-                        <span class="pa-process__num">4</span>
-                        <span class="pa-process__connector" aria-hidden="true"></span>
-                    </div>
-                    <div class="pa-process__content">
-                        <strong class="pa-process__title">등록</strong>
-                        <p class="pa-process__desc">첫 클래스를 등록하고 일정, 키트, 썸네일을 세팅합니다.</p>
-                    </div>
-                </div>
-                <div class="pa-process__step">
-                    <div class="pa-process__num-wrap">
-                        <span class="pa-process__num">5</span>
-                    </div>
-                    <div class="pa-process__content">
-                        <strong class="pa-process__title">운영 시작</strong>
-                        <p class="pa-process__desc">클래스 허브에 노출되고 예약이 시작됩니다. 운영 보드에서 모든 흐름을 확인하세요.</p>
-                    </div>
-                </div>
+            <div class="pa-compare__table-wrap">
+                <table class="pa-compare__table">
+                    <thead>
+                        <tr>
+                            <th scope="col">운영 항목</th>
+                            <th scope="col">직접 운영</th>
+                            <th scope="col">PRESSCO21</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <th scope="row">일정 관리</th>
+                            <td>신청, 변경, 마감 공지를 직접 정리해야 합니다.</td>
+                            <td>클래스 스케줄과 예약 상태를 한 화면에서 관리합니다.</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">재료 준비</th>
+                            <td>키트와 재료 수량 계산, 누락 확인을 매번 반복합니다.</td>
+                            <td>클래스별 준비 항목과 필요한 재료 흐름을 미리 확인합니다.</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">결제·정산</th>
+                            <td>입금 확인과 정산 내역 확인이 분산되기 쉽습니다.</td>
+                            <td>예약·정산 데이터를 운영 보드 기준으로 확인합니다.</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">홍보</th>
+                            <td>SNS와 지인 네트워크에 의존하기 쉽습니다.</td>
+                            <td>클래스 허브, 자사몰, 협회 레이어 안에서 반복 노출 구조를 만듭니다.</td>
+                        </tr>
+                        <tr>
+                            <th scope="row">확장성</th>
+                            <td>온라인 클래스, 협회 제휴, 재구매 동선이 따로 움직입니다.</td>
+                            <td>오프라인·온라인 클래스와 재료·키트 판매를 한 흐름으로 연결합니다.</td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </section>
 
-        <!-- ===== 섹션 4: 등급 혜택 ===== -->
+        <section class="pa-sales-section pa-fit">
+            <div class="pa-fit__grid">
+                <article class="pa-fit__panel">
+                    <p class="pa-fit__label">이런 파트너와 잘 맞습니다</p>
+                    <ul class="pa-fit__list">
+                        <li class="pa-fit__item">나만의 강의나 원데이 클래스를 더 넓게 알리고 싶은 공방</li>
+                        <li class="pa-fit__item">오프라인 클래스와 온라인 클래스를 함께 운영하고 싶은 강사</li>
+                        <li class="pa-fit__item">재료 준비와 결제·정산 업무를 체계화하고 싶은 운영자</li>
+                        <li class="pa-fit__item">협회, 세미나, 시즌 행사와 연계된 확장 기회를 찾는 파트너</li>
+                    </ul>
+                </article>
+                <article class="pa-fit__panel pa-fit__panel--accent">
+                    <p class="pa-fit__label">신청 후 이어지는 흐름</p>
+                    <ol class="pa-fit__timeline">
+                        <li class="pa-fit__timeline-item">
+                            <strong>1. 심사</strong>
+                            <span>제출한 소개, 포트폴리오, 운영 가능성을 검토합니다.</span>
+                        </li>
+                        <li class="pa-fit__timeline-item">
+                            <strong>2. 온보딩</strong>
+                            <span>프로필, 교육, 강의, 일정, 키트 기준을 차례대로 정리합니다.</span>
+                        </li>
+                        <li class="pa-fit__timeline-item">
+                            <strong>3. 첫 강의 공개</strong>
+                            <span>클래스 허브 노출과 운영 보드 사용을 시작합니다.</span>
+                        </li>
+                    </ol>
+                </article>
+            </div>
+        </section>
+
         <section id="paGrowthSection" class="pa-sales-section pa-growth">
             <div class="pa-section-head">
                 <p class="pa-section-head__eyebrow">GROWTH PATH</p>
-                <h2 class="pa-section-head__title">등급이 올라갈수록 더 많은 혜택이 열립니다</h2>
-                <p class="pa-section-head__desc">PRESSCO21은 파트너를 일회성 입점으로 보지 않습니다.<br>강의 횟수와 후기가 쌓일수록 노출, 브랜딩, 커뮤니티 기회가 확장됩니다.</p>
+                <h2 class="pa-section-head__title">첫 강의 등록 이후에도 성장 구조가 이어집니다</h2>
+                <p class="pa-section-head__desc">PRESSCO21은 파트너를 일회성 입점으로 보지 않고, 운영과 브랜딩이 함께 커지는 단계형 구조로 설계합니다.</p>
             </div>
             <div class="pa-growth__rail">
-                <article class="pa-growth__card pa-growth__card--bloom">
-                    <div class="pa-growth__badge">
-                        <span class="pa-growth__badge-dot"></span>
-                        START
-                    </div>
+                <article class="pa-growth__card">
                     <p class="pa-growth__grade">BLOOM</p>
                     <h3 class="pa-growth__title">시작 단계</h3>
-                    <p class="pa-growth__desc">승인 직후부터 클래스를 등록하고 운영 보드를 사용합니다.</p>
+                    <p class="pa-growth__desc">첫 승인 이후 기본 운영 보드와 클래스 등록 흐름에 적응합니다.</p>
                     <ul class="pa-growth__list">
                         <li>온보딩 체크리스트 제공</li>
                         <li>첫 강의 등록 가이드</li>
                         <li>기본 프로필 노출</li>
                     </ul>
                 </article>
-                <article class="pa-growth__card pa-growth__card--garden">
-                    <div class="pa-growth__badge">
-                        <span class="pa-growth__badge-dot"></span>
-                        10건 이상 + 평점 4.0
-                    </div>
+                <article class="pa-growth__card">
                     <p class="pa-growth__grade">GARDEN</p>
                     <h3 class="pa-growth__title">안정화 단계</h3>
-                    <p class="pa-growth__desc">운영이 안정되면 우선 노출과 신뢰 배지가 적용됩니다.</p>
+                    <p class="pa-growth__desc">클래스 운영과 후기 흐름이 안정화되면 반복 예약 기반을 키웁니다.</p>
                     <ul class="pa-growth__list">
                         <li>우선 노출 기회</li>
                         <li>프로필 신뢰 배지</li>
                         <li>재구매 연결 강화</li>
                     </ul>
                 </article>
-                <article class="pa-growth__card pa-growth__card--atelier">
-                    <div class="pa-growth__badge">
-                        <span class="pa-growth__badge-dot"></span>
-                        30건 이상 + 평점 4.3
-                    </div>
+                <article class="pa-growth__card">
                     <p class="pa-growth__grade">ATELIER</p>
                     <h3 class="pa-growth__title">브랜딩 단계</h3>
-                    <p class="pa-growth__desc">콘텐츠와 협업을 통해 파트너 자체 브랜드를 키웁니다.</p>
+                    <p class="pa-growth__desc">콘텐츠와 협업 기회를 통해 파트너 자체 브랜드를 키웁니다.</p>
                     <ul class="pa-growth__list">
                         <li>콘텐츠 허브 인터뷰</li>
                         <li>자사몰 배너 노출</li>
                         <li>시즌 큐레이션 참여</li>
                     </ul>
                 </article>
-                <article class="pa-growth__card pa-growth__card--ambassador">
-                    <div class="pa-growth__badge">
-                        <span class="pa-growth__badge-dot"></span>
-                        50건 이상
-                    </div>
+                <article class="pa-growth__card">
                     <p class="pa-growth__grade">AMBASSADOR</p>
                     <h3 class="pa-growth__title">리더 단계</h3>
-                    <p class="pa-growth__desc">대표 파트너로서 멘토링과 공동 기획까지 연결됩니다.</p>
+                    <p class="pa-growth__desc">대표 파트너로서 멘토링, 협회 세미나, 공동 기획까지 연결됩니다.</p>
                     <ul class="pa-growth__list">
                         <li>신규 파트너 멘토링</li>
                         <li>세미나 공동 기획</li>
@@ -304,99 +345,61 @@
                     </ul>
                 </article>
             </div>
-            <p class="pa-growth__fee-note">수수료 정책은 승인 후 담당자가 개별 안내합니다.</p>
         </section>
 
-        <!-- ===== 섹션 5: 파트너 후기 ===== -->
         <section class="pa-sales-section pa-social">
             <div class="pa-section-head">
-                <p class="pa-section-head__eyebrow">PARTNER VOICES</p>
-                <h2 class="pa-section-head__title">먼저 함께한 파트너들의 이야기</h2>
+                <p class="pa-section-head__eyebrow">SOCIAL PROOF</p>
+                <h2 class="pa-section-head__title">운영 부담은 낮추고, 수강생 신뢰는 높이는 방향으로 설계합니다</h2>
             </div>
-            <div class="pa-social__grid" id="paSocialGrid">
+            <div class="pa-social__grid">
                 <article class="pa-social__card">
-                    <div class="pa-social__stars" aria-label="별점 5점">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                    </div>
-                    <blockquote class="pa-social__quote">예약 정리와 재료 체크가 강의보다 더 피곤했는데, 운영 보드로 정리되니까 어디서 막히는지 한 번에 보여요. 강의 준비에만 집중할 수 있게 됐습니다.</blockquote>
-                    <div class="pa-social__author">
-                        <span class="pa-social__author-avatar">K</span>
-                        <div>
-                            <p class="pa-social__author-name">김OO 파트너</p>
-                            <p class="pa-social__author-info">서울 압화 플라워 클래스</p>
-                        </div>
-                    </div>
+                    <p class="pa-social__type">파트너 후기</p>
+                    <blockquote class="pa-social__quote">강의 준비 자체보다 예약 정리와 재료 체크가 더 피곤했는데, 운영 보드 기준으로 보니까 어디서 막히는지 한 번에 정리됐어요.</blockquote>
+                    <p class="pa-social__author">서울 플라워 클래스 파트너</p>
                 </article>
                 <article class="pa-social__card">
-                    <div class="pa-social__stars" aria-label="별점 5점">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                    </div>
-                    <blockquote class="pa-social__quote">온라인과 오프라인 클래스를 따로 홍보하던 게 하나로 묶이니까 강의 소개에만 집중하기 훨씬 편해졌어요. 키트 연동도 생각보다 간단했습니다.</blockquote>
-                    <div class="pa-social__author">
-                        <span class="pa-social__author-avatar">L</span>
-                        <div>
-                            <p class="pa-social__author-name">이OO 파트너</p>
-                            <p class="pa-social__author-info">경기 레진 아트 공방</p>
-                        </div>
-                    </div>
+                    <p class="pa-social__type">파트너 후기</p>
+                    <blockquote class="pa-social__quote">온라인과 오프라인 클래스를 따로 홍보하던 흐름을 하나로 묶을 수 있는 점이 가장 컸습니다. 강의 소개에 집중하기 쉬워졌어요.</blockquote>
+                    <p class="pa-social__author">경기 레진 아트 파트너</p>
                 </article>
-                <article class="pa-social__card">
-                    <div class="pa-social__stars" aria-label="별점 5점">
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                        <svg width="14" height="14" viewBox="0 0 14 14" fill="#d4a373" aria-hidden="true"><path d="M7 .5l1.6 3.2 3.5.5-2.5 2.5.6 3.5L7 8.5 3.8 10.2l.6-3.5L1.9 4.2l3.5-.5L7 .5z"/></svg>
-                    </div>
-                    <blockquote class="pa-social__quote">혼자 SNS로만 알리던 클래스가 허브에 노출되니까 모르는 분들도 찾아오세요. 정산도 자동이라 월말마다 엑셀 정리할 일이 없어졌어요.</blockquote>
-                    <div class="pa-social__author">
-                        <span class="pa-social__author-avatar">P</span>
-                        <div>
-                            <p class="pa-social__author-name">박OO 파트너</p>
-                            <p class="pa-social__author-info">부산 캔들·석고 클래스</p>
-                        </div>
-                    </div>
+                <article class="pa-social__card pa-social__card--highlight">
+                    <p class="pa-social__type">수강생 관점</p>
+                    <blockquote class="pa-social__quote">원하는 지역과 카테고리로 클래스를 찾기 쉽고, 준비물과 후기 흐름이 명확해서 처음 신청할 때도 불안이 덜했습니다.</blockquote>
+                    <p class="pa-social__author">PRESSCO21 클래스 수강생</p>
                 </article>
             </div>
         </section>
 
-        <!-- ===== 섹션 6: CTA ===== -->
-        <section class="pa-sales-section pa-final-cta">
-            <div class="pa-final-cta__inner">
-                <p class="pa-final-cta__eyebrow">START NOW</p>
-                <h2 class="pa-final-cta__title">강의에만 집중하는 파트너 생활,<br>지금 시작하세요.</h2>
-                <p class="pa-final-cta__desc">신청은 3분이면 충분합니다. 심사 결과는 1~3 영업일 내 이메일로 안내합니다.</p>
-                <button type="button" class="pa-final-cta__btn js-scroll-link" data-target="paApplyAnchor">지금 파트너 신청하기</button>
+        <section class="pa-sales-section pa-process">
+            <div class="pa-section-head">
+                <p class="pa-section-head__eyebrow">APPLICATION FLOW</p>
+                <h2 class="pa-section-head__title">신청은 간단하게, 심사는 투명하게 안내합니다</h2>
             </div>
-        </section>
-
-    <!-- 6. 미로그인 안내 (세일즈 아래, 폼 대신 표시) -->
-    <div id="paNoticeArea" style="display:none">
-        <div class="pa-notice">
-            <div class="pa-notice__inner">
-                <div class="pa-notice__icon">
-                    <svg width="64" height="64" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-                        <circle cx="32" cy="24" r="10" stroke="#3d2c1e" stroke-width="2" fill="none"/>
-                        <path d="M12 52c0-11.046 8.954-20 20-20s20 8.954 20 20" stroke="#3d2c1e" stroke-width="2" fill="none" stroke-linecap="round"/>
-                    </svg>
+            <div class="pa-process__grid">
+                <div class="pa-process__card">
+                    <span class="pa-process__num">1</span>
+                    <strong class="pa-process__title">신청서 작성</strong>
+                    <p class="pa-process__desc">기본 정보, 활동 지역, 포트폴리오 링크를 남겨주세요.</p>
                 </div>
-                <h2 class="pa-notice__title">로그인 후 신청하실 수 있어요</h2>
-                <p class="pa-notice__desc">파트너 신청은 포에버러브 회원으로 로그인 후 이용하실 수 있어요.</p>
-                <a id="paLoginBtn" href="/shop/member.html?type=login" class="pa-notice__btn">로그인하기</a>
+                <div class="pa-process__card">
+                    <span class="pa-process__num">2</span>
+                    <strong class="pa-process__title">1~3 영업일 검토</strong>
+                    <p class="pa-process__desc">운영 적합성, 소개 내용, 포트폴리오를 종합적으로 확인합니다.</p>
+                </div>
+                <div class="pa-process__card">
+                    <span class="pa-process__num">3</span>
+                    <strong class="pa-process__title">온보딩 시작</strong>
+                    <p class="pa-process__desc">승인 시 교육, 프로필, 강의, 일정, 키트 단계를 순서대로 정리합니다.</p>
+                </div>
+                <div class="pa-process__card">
+                    <span class="pa-process__num">4</span>
+                    <strong class="pa-process__title">첫 공개 운영</strong>
+                    <p class="pa-process__desc">클래스 허브 노출과 운영 보드 사용을 시작합니다.</p>
+                </div>
             </div>
-        </div>
-    </div>
+        </section>
 
-    <!-- 7. 신청 폼 (로그인 필요) -->
-    <div id="paFormArea" style="display:none">
         <section id="paApplyAnchor" class="pa-form-section">
             <div class="pa-form-section__inner">
                 <aside class="pa-form-side">
@@ -420,10 +423,6 @@
                     <div class="pa-form__intro">
                         <p class="pa-form__intro-eyebrow">PARTNER APPLICATION</p>
                         <h2 class="pa-form__intro-title">PRESSCO21 파트너 신청서</h2>
-                        <div id="paCertBadge" class="pa-cert-badge" style="display:none">
-                            <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1l1.76 3.57L14 5.24l-3 2.93.71 4.13L8 10.34 4.29 12.3 5 8.17 2 5.24l4.24-.67L8 1z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>
-                            수강 이수자 우대 심사
-                        </div>
                         <p class="pa-form__intro-desc">아래 정보를 남겨주시면 심사 후 교육과 운영 시작까지 이어질 수 있도록 안내드립니다.</p>
                     </div>
 

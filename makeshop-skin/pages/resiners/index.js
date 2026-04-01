@@ -252,7 +252,7 @@
         var schemaData = {
             '@context': 'https://schema.org',
             '@type': 'Article',
-            'headline': 'Resiners Clear Space White Paper 2025   레진 아트 스튜디오 공기질 산업 보고서',
+            'headline': 'Resiners Clear Space White Paper 2025 — 레진 아트 스튜디오 공기질 산업 보고서',
             'description': 'SGS 인증 83.59% VOCs 제거율을 달성한 Resiners Purair. 레진 아티스트를 위한 최초의 레진 특화 공기청정기 기술 백서. 과학적 실험 데이터와 전문가 검증을 포함합니다.',
             'image': 'https://foreverlove.co.kr/resiners-whitepaper-og.jpg',
             'datePublished': '2025-01-01',

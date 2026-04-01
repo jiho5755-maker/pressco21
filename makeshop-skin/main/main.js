@@ -1455,9 +1455,34 @@
 (function() {
     'use strict';
 
+    // MakeShop 네이티브 getCookie 함수 사용하여 팝업별 쿠키 확인
+    function areAllPopupsCookied(popups) {
+        if (typeof getCookie !== 'function') return false;
+        for (var i = 0; i < popups.length; i++) {
+            var hideLink = popups[i].querySelector('a[href*="MAKESHOP_LY_NOVIEW(1"]');
+            if (!hideLink) continue;
+            // href에서 쿠키명과 만료값 추출: MAKESHOP_LY_NOVIEW(1, 'MAKESHOPLY0', 'eventwindow0', '2026123100', '1')
+            var match = hideLink.getAttribute('href').match(/MAKESHOP_LY_NOVIEW\([^,]+,\s*'[^']+',\s*'([^']+)',\s*'([^']+)'/);
+            if (match) {
+                var cookieName = match[1];  // eventwindow0
+                var cookieVal = match[2];   // 2026123100
+                if (getCookie(cookieName) !== cookieVal) return false; // 이 팝업은 아직 안 숨김
+            } else {
+                return false; // 파싱 실패 → 안전하게 표시
+            }
+        }
+        return true; // 모든 팝업이 쿠키로 숨김 처리됨
+    }
+
     function initPopupUnifier() {
         var popups = document.querySelectorAll('[id^="MAKESHOPLY"]');
         if (popups.length === 0) return;
+
+        // 모든 팝업이 "오늘 그만 보기" 쿠키가 설정되어 있으면 숨기고 종료
+        if (areAllPopupsCookied(popups)) {
+            for (var h = 0; h < popups.length; h++) popups[h].style.display = 'none';
+            return;
+        }
 
         // 각 팝업의 네이티브 "오늘 그만 보기" href 수집 (MAKESHOP_LY_NOVIEW 호출용)
         var nativeHideHrefs = [];

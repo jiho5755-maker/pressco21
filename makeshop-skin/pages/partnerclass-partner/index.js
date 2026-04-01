@@ -10,22 +10,15 @@
        설정값
        ======================================== */
 
-    /* ── 공통 모듈 바인딩 (pressco21-core.js) ── */
-    var PC = window.PRESSCO21;
-    var escapeHtml = PC.util.escapeHtml;
-    var formatPrice = PC.util.formatPrice;
-    var padZero = PC.util.padZero;
-    var S = PC.STATUS;
-    var ns = PC.util.normalizeStatus;
-
     /** n8n 웹훅 엔드포인트 URL 매핑 (모든 워크플로우 POST 전용) */
-    var N8N_BASE = PC.config.N8N_BASE;
+    var N8N_BASE = 'https://n8n.pressco21.com/webhook';
     var WF_ENDPOINT = {
         'getPartnerAuth':              N8N_BASE + '/partner-auth',
         'getPartnerDashboard':         N8N_BASE + '/partner-auth',
         'getPartnerApplicationStatus': N8N_BASE + '/partner-auth',
         'getEducationStatus':          N8N_BASE + '/partner-auth',
         'updatePartnerProfile':        N8N_BASE + '/partner-auth',
+        'getClassDetail':             N8N_BASE + '/class-api',
         'getPartnerBookings':          N8N_BASE + '/partner-data',
         'getPartnerReviews':           N8N_BASE + '/partner-data',
         'updateClassStatus':           N8N_BASE + '/class-management',
@@ -33,6 +26,12 @@
         'editClass':                   N8N_BASE + '/class-edit',
         'manageSchedule':              N8N_BASE + '/schedule-manage'
     };
+
+    /** 캐시 유효 시간: 5분 (대시보드는 실시간성 중요) */
+    var CACHE_TTL = 5 * 60 * 1000;
+
+    /** localStorage 캐시 키 접두사 */
+    var CACHE_PREFIX = 'partnerDash_';
 
     /** 후기 페이지당 건수 */
     var REVIEW_LIMIT = 10;
@@ -78,6 +77,18 @@
     /** 과거 6개월 정산 데이터 캐시 (월별 수익 차트용) */
     var monthlyRevenueCache = {};
 
+    /** 신규 파트너 온보딩 상태 */
+    var onboardingState = null;
+
+    /** 온보딩 비동기 최신 요청 토큰 */
+    var onboardingLoadToken = 0;
+
+    /** 상단 액션 보드 상태 */
+    var actionBoardState = null;
+
+    /** 액션 보드 비동기 최신 요청 토큰 */
+    var actionBoardLoadToken = 0;
+
 
     /* ========================================
        초기화
@@ -93,14 +104,17 @@
         currentMonth = now.getFullYear() + '-' + padZero(now.getMonth() + 1);
 
         // 회원 ID 읽기 (가상태그에서)
-        memberId = PC.auth.getMemberId('pdMemberId');
+        var memberEl = document.getElementById('pdMemberId');
+        if (memberEl) {
+            memberId = (memberEl.textContent || '').trim();
+        }
 
         // 로그인 버튼 JS 폴백 (href 미동작 대비)
         var loginBtn = document.getElementById('pdLoginBtn');
         if (loginBtn) {
             loginBtn.onclick = function(e) {
                 e.preventDefault();
-                PC.auth.redirectToLogin();
+                window.location.href = '/shop/member.html?type=login&returnUrl=' + encodeURIComponent(window.location.href);
             };
         }
 
@@ -119,6 +133,9 @@
         bindModalEvents();
         bindMonthSelector();
         bindProfileEdit();
+        bindOnboardingEvents();
+        bindActionBoardEvents();
+        bindEmptyStateActions();
         bindCsvExport();
     }
 
@@ -146,17 +163,17 @@
                 return;
             }
 
-            // 상태별 분기 (UPPERCASE 정규화)
-            var status = ns(partner.status);
-            if (status === S.PENDING || status === S.REVIEW) {
+            // 상태별 분기
+            var status = (partner.status || '').toLowerCase();
+            if (status === 'pending' || status === 'review') {
                 showNotice('pending');
                 return;
             }
-            if (status === S.INACTIVE || status === S.SUSPENDED || status === S.CLOSED) {
+            if (status === 'inactive' || status === 'suspended' || status === 'closed') {
                 showNotice('inactive');
                 return;
             }
-            if (status !== S.ACTIVE && status !== S.PAUSED) {
+            if (status !== 'active' && status !== 'paused') {
                 showNotice('nonpartner');
                 return;
             }
@@ -252,26 +269,15 @@
             hideLoading();
 
             if (err || !data || !data.success) {
-                showToast('대시보드 데이터를 불러올 수 없습니다. 잠시 후 다시 시도해주세요.', 'error');
-                // 요약 카드 초기화
-                setTextById('pdSumRevenue', '-');
-                setTextById('pdSumFee', '-');
-                setTextById('pdSumReserve', '-');
-                setTextById('pdSumBooking', '-');
+                showToast('\uB300\uC2DC\uBCF4\uB4DC \uB370\uC774\uD130\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.', 'error');
                 return;
             }
 
             dashboardData = data.data || {};
             myClasses = dashboardData.classes || [];
 
-            // 온보딩 체크리스트 업데이트
-            updateOnboarding(dashboardData);
-
             // 요약 카드 렌더링
             renderSummaryCards();
-
-            // 액션 보드 렌더링
-            renderActionBoard(dashboardData);
 
             // 강의 필터 드롭다운 채우기
             populateClassDropdowns();
@@ -281,6 +287,12 @@
 
             // 현재 탭 데이터 로드
             loadTabData(currentTab);
+
+            // 신규 파트너 온보딩 체크리스트 갱신
+            refreshOnboardingChecklist(true);
+
+            // 상단 액션 보드 갱신
+            refreshActionBoard();
         });
     }
 
@@ -305,117 +317,795 @@
 
 
     /* ========================================
-       액션 보드
+       신규 파트너 온보딩 체크리스트
        ======================================== */
 
-    /**
-     * 액션 보드: 파트너가 해야 할 일 목록 렌더링
-     * @param {Object} data - dashboardData
-     */
-    function renderActionBoard(data) {
-        var board = document.getElementById('pdActionBoard');
-        var list = document.getElementById('pdActionList');
-        var countEl = document.getElementById('pdActionCount');
-        if (!board || !list) return;
+    function bindOnboardingEvents() {
+        var openBtn = document.getElementById('pdOnboardingOpenBtn');
+        var nextBtn = document.getElementById('pdOnboardingNextBtn');
+        var modalNextBtn = document.getElementById('pdOnboardingModalNextBtn');
 
-        var actions = [];
-        var classes = data.classes || [];
-        var summary = data.summary || {};
-        var bookings = data.bookings || [];
-
-        // 1. 강의 없음 → 등록 유도
-        if (classes.length === 0) {
-            actions.push({
-                icon: 'info',
-                text: '첫 강의를 등록해보세요',
-                sub: '강의를 등록하면 수강생이 예약할 수 있어요',
-                btnText: '등록하기',
-                btnUrl: '/shop/page.html?id=8009'
+        if (openBtn) {
+            openBtn.addEventListener('click', function() {
+                if (!onboardingState || onboardingState.isComplete) return;
+                renderOnboardingModal(onboardingState);
+                openModal('pdOnboardingModal');
             });
         }
 
-        // 2. 일정 없는 활성 강의
-        for (var i = 0; i < classes.length; i++) {
-            var cls = classes[i];
-            if (ns(cls.status) === S.ACTIVE && (!cls.schedules || cls.schedules.length === 0)) {
-                actions.push({
-                    icon: 'warning',
-                    text: '"' + escapeHtml(cls.class_name || '').substring(0, 20) + '" 수업 일정을 추가하세요',
-                    sub: '일정이 없으면 수강생이 예약할 수 없어요',
-                    btnText: '일정 추가',
-                    action: 'tab:schedules'
-                });
-                break; // 하나만 표시
+        if (nextBtn) {
+            nextBtn.addEventListener('click', function() {
+                handleOnboardingPrimaryAction();
+            });
+        }
+
+        if (modalNextBtn) {
+            modalNextBtn.addEventListener('click', function() {
+                handleOnboardingPrimaryAction();
+            });
+        }
+    }
+
+    function refreshOnboardingChecklist(openIfNeeded) {
+        if (!partnerData) return;
+
+        var token = ++onboardingLoadToken;
+        var baseSignals = {
+            hasProfile: isProfileCompleted(),
+            guideViewed: isGuideViewed(),
+            hasClass: !!(myClasses && myClasses.length),
+            hasSchedule: false,
+            hasKit: false,
+            firstClassId: getFirstClassId()
+        };
+
+        callGAS('getEducationStatus', { member_id: memberId }, function(err, data) {
+            if (token !== onboardingLoadToken) return;
+
+            if (!err && data && data.success && data.data && data.data.is_partner !== false) {
+                baseSignals.guideViewed = normalizeGuideCompleted(data.data.education_completed);
+                partnerData.education_completed = baseSignals.guideViewed;
+            }
+
+            inspectOnboardingClassSetup(myClasses, function(classSignals) {
+                if (token !== onboardingLoadToken) return;
+
+                baseSignals.hasSchedule = classSignals.hasSchedule;
+                baseSignals.hasKit = classSignals.hasKit;
+                if (classSignals.firstClassId) {
+                    baseSignals.firstClassId = classSignals.firstClassId;
+                }
+
+                onboardingState = buildOnboardingState(baseSignals);
+                renderOnboardingCard(onboardingState);
+                renderOnboardingModal(onboardingState);
+                handleOnboardingAutoOpen(onboardingState, openIfNeeded);
+            });
+        });
+    }
+
+    function inspectOnboardingClassSetup(classes, callback) {
+        var list = classes || [];
+        var classIds = [];
+        var result = {
+            hasSchedule: false,
+            hasKit: false,
+            firstClassId: ''
+        };
+
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && list[i].class_id) {
+                classIds.push(String(list[i].class_id));
             }
         }
 
-        // 3. 미답변 후기
-        var unanswered = parseInt(summary.unanswered_reviews) || 0;
-        if (unanswered > 0) {
-            actions.push({
-                icon: 'review',
-                text: '후기 ' + unanswered + '건에 답변을 달아주세요',
-                sub: '답변이 있는 강사의 재예약률이 더 높아요',
-                btnText: '후기 보기',
-                action: 'tab:reviews'
-            });
-        }
-
-        // 4. 오늘 예약 알림
-        var todayBookings = parseInt(summary.today_bookings) || 0;
-        if (todayBookings > 0) {
-            actions.push({
-                icon: 'info',
-                text: '오늘 예약 ' + todayBookings + '건이 있어요',
-                sub: '수강생 정보를 확인하세요',
-                btnText: '확인',
-                action: 'tab:bookings'
-            });
-        }
-
-        // 액션이 없으면 숨김
-        if (actions.length === 0) {
-            board.style.display = 'none';
+        if (classIds.length === 0) {
+            callback(result);
             return;
         }
 
-        board.style.display = '';
-        if (countEl) countEl.textContent = actions.length;
+        result.firstClassId = classIds[0];
 
-        var html = '';
-        for (var j = 0; j < actions.length; j++) {
-            var a = actions[j];
-            html += '<div class="pd-action-item">'
-                + '<div class="pd-action-item__icon pd-action-item__icon--' + a.icon + '">'
-                + (a.icon === 'warning'
-                    ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1L1 14h14L8 1z" stroke="currentColor" stroke-width="1.3" stroke-linejoin="round"/><path d="M8 6v4M8 12v.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>'
-                    : a.icon === 'review'
-                    ? '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 1l2 4 4.5 .6-3.3 3.1.8 4.3L8 11l-4 2 .8-4.3L1.5 5.6 6 5l2-4z" stroke="currentColor" stroke-width="1.2" fill="none"/></svg>'
-                    : '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.3"/><path d="M8 5v3l2 1.5" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>')
-                + '</div>'
-                + '<div class="pd-action-item__body">'
-                + '<p class="pd-action-item__text">' + a.text + '</p>'
-                + '<p class="pd-action-item__sub">' + a.sub + '</p>'
-                + '</div>';
+        var pending = classIds.length;
+        for (var j = 0; j < classIds.length; j++) {
+            (function(classId) {
+                callGAS('getClassDetail', { id: classId }, function(err, data) {
+                    if (!err && data && data.success && data.data) {
+                        if (!result.firstClassId && data.data.class_id) {
+                            result.firstClassId = String(data.data.class_id);
+                        }
+                        if (Array.isArray(data.data.schedules) && data.data.schedules.length > 0) {
+                            result.hasSchedule = true;
+                        }
+                        if (hasConfiguredKit(data.data)) {
+                            result.hasKit = true;
+                        }
+                    } else {
+                        var localClass = findClassById(classId);
+                        if (localClass) {
+                            if (!result.firstClassId) {
+                                result.firstClassId = String(localClass.class_id || classId);
+                            }
+                            if (parseInt(localClass.schedule_count, 10) > 0 || localClass.next_date) {
+                                result.hasSchedule = true;
+                            }
+                            if (hasConfiguredKit(localClass)) {
+                                result.hasKit = true;
+                            }
+                        }
+                    }
 
-            if (a.btnUrl) {
-                html += '<a href="' + a.btnUrl + '" class="pd-action-item__btn">' + a.btnText + '</a>';
-            } else if (a.action) {
-                html += '<button type="button" class="pd-action-item__btn" data-action="' + a.action + '">' + a.btnText + '</button>';
-            }
-            html += '</div>';
+                    pending--;
+                    if (pending === 0) {
+                        callback(result);
+                    }
+                });
+            })(classIds[j]);
         }
-        list.innerHTML = html;
+    }
 
-        // 탭 전환 버튼 이벤트
-        list.addEventListener('click', function(e) {
-            var btn = e.target.closest('[data-action]');
-            if (!btn) return;
-            var act = btn.getAttribute('data-action');
-            if (act && act.indexOf('tab:') === 0) {
-                switchTab(act.substring(4));
+    function buildOnboardingState(signals) {
+        var normalizedSignals = signals || {};
+        var steps = [
+            {
+                key: 'profile',
+                title: '\uD504\uB85C\uD544 \uC644\uC131',
+                desc: '\uACF5\uBC29 \uC18C\uAC1C\uC640 \uC5F0\uB77D \uCC44\uB110\uC744 \uCC44\uC6CC \uC2E0\uB8B0\uB97C \uB9CC\uB4E4\uC5B4\uC8FC\uC138\uC694.',
+                tip: '\uACF5\uBC29\uBA85, \uC5F0\uB77D\uCC98, \uC18C\uAC1C\uAE00\uACFC \uD568\uAED8 SNS \uB610\uB294 \uCE74\uCE74\uC624 \uCC44\uB110\uC744 \uB0A8\uACA8\uC8FC\uC138\uC694.',
+                actionLabel: '\uD504\uB85C\uD544 \uC785\uB825\uD558\uAE30',
+                completed: !!normalizedSignals.hasProfile
+            },
+            {
+                key: 'guide',
+                title: '\uD50C\uB7AB\uD3FC \uAC00\uC774\uB4DC',
+                desc: '\uAC15\uC758 \uB4F1\uB85D, \uC77C\uC815 \uCD94\uAC00, \uD0A4\uD2B8 \uC5F0\uACB0, \uC815\uC0B0 \uD750\uB984\uC744 \uD55C \uBC88\uC5D0 \uD6D1\uC5B4\uBCF4\uC138\uC694.',
+                tip: '\uCC98\uC74C \uD30C\uD2B8\uB108 \uC6B4\uC601\uC774\uB77C\uBA74 \uAC00\uC774\uB4DC\uB97C \uD55C \uBC88 \uBCF4\uACE0 \uC2DC\uC791\uD558\uBA74 \uAC15\uC758 \uB4F1\uB85D\uACFC \uC2EC\uC0AC \uC900\uBE44\uAC00 \uB354 \uC218\uC6D4\uD574\uC9D1\uB2C8\uB2E4.',
+                actionLabel: '\uAC00\uC774\uB4DC \uBCF4\uAE30',
+                completed: !!normalizedSignals.guideViewed,
+                optional: true
+            },
+            {
+                key: 'class',
+                title: '\uCCAB \uAC15\uC758 \uB4F1\uB85D',
+                desc: '\uC218\uAC15\uC0DD\uC774 \uC608\uC57D\uD560 \uCCAB \uD074\uB798\uC2A4\uB97C \uC62C\uB824\uC8FC\uC138\uC694.',
+                tip: '\uAC15\uC758\uBA85, \uC0C1\uC138 \uC124\uBA85, \uAC15\uC0AC \uC18C\uAC1C\uAC00 \uC815\uB9AC\uB418\uBA74 \uAC80\uC218\uC640 \uB178\uCD9C\uC774 \uC218\uC6D4\uD569\uB2C8\uB2E4.',
+                actionLabel: '\uAC15\uC758 \uB4F1\uB85D \uC548\uB0B4 \uBCF4\uAE30',
+                completed: !!normalizedSignals.hasClass
+            },
+            {
+                key: 'schedule',
+                title: '\uC77C\uC815 \uCD94\uAC00',
+                desc: '\uC624\uD504\uB77C\uC778 \uC218\uC5C5 \uB0A0\uC9DC\uC640 \uC2DC\uAC04\uC744 \uB123\uC5B4 \uC608\uC57D \uAC00\uB2A5 \uC0C1\uD0DC\uB97C \uB9CC\uB4E4\uC5B4\uC8FC\uC138\uC694.',
+                tip: '\uC77C\uC815\uC774 \uD55C \uAC1C\uB77C\uB3C4 \uC788\uC5B4\uC57C \uC218\uAC15\uC0DD\uC774 \uC608\uC57D\uC744 \uACE0\uBBFC\uD560 \uC218 \uC788\uC5B4\uC694.',
+                actionLabel: '\uC77C\uC815 \uB4F1\uB85D\uD558\uAE30',
+                completed: !!normalizedSignals.hasSchedule
+            },
+            {
+                key: 'kit',
+                title: '\uD0A4\uD2B8 \uC124\uC815',
+                desc: '\uD544\uC694 \uC7AC\uB8CC\uC640 \uD0A4\uD2B8 \uC0C1\uD488\uC744 \uC5F0\uACB0\uD574 \uC6B4\uC601 \uBD80\uB2F4\uC744 \uC904\uC5EC\uC8FC\uC138\uC694.',
+                tip: '\uD0A4\uD2B8\uB97C \uC124\uC815\uD574\uB450\uBA74 \uC790\uC0AC\uBAB0 \uC0C1\uD488 \uD310\uB9E4\uC640 \uC218\uC5C5 \uC6B4\uC601\uC744 \uD568\uAED8 \uBB36\uC744 \uC218 \uC788\uC5B4\uC694.',
+                actionLabel: '\uD0A4\uD2B8 \uC5F0\uACB0\uD558\uAE30',
+                completed: !!normalizedSignals.hasKit
             }
+        ];
+
+        var completedCount = 0;
+        var requiredCount = 0;
+        var nextStep = null;
+        for (var i = 0; i < steps.length; i++) {
+            if (!steps[i].optional) {
+                requiredCount++;
+            }
+            if (steps[i].completed && !steps[i].optional) {
+                completedCount++;
+            } else if (!steps[i].completed && !steps[i].optional && !nextStep) {
+                nextStep = steps[i];
+                steps[i].isCurrent = true;
+            }
+        }
+
+        var percent = requiredCount > 0 ? Math.round((completedCount / requiredCount) * 100) : 100;
+        var remainingCount = Math.max(requiredCount - completedCount, 0);
+        var isComplete = completedCount === requiredCount;
+        var cardTitle = isComplete
+            ? '\uCCAB \uC608\uC57D\uC744 \uBC1B\uC744 \uC900\uBE44\uAC00 \uB05D\uB0AC\uC5B4\uC694'
+            : '\uCCAB \uC608\uC57D\uAE4C\uC9C0 ' + remainingCount + '\uB2E8\uACC4\uB9CC \uB0A8\uC558\uC5B4\uC694';
+        var cardDesc = isComplete
+            ? '\uC774\uC81C \uCCAB \uC608\uC57D\uC774 \uB4E4\uC5B4\uC624\uBA74 \uB300\uC2DC\uBCF4\uB4DC\uC5D0\uC11C \uC6B4\uC601\uACFC \uC815\uC0B0\uC744 \uBC14\uB85C \uD655\uC778\uD560 \uC218 \uC788\uC5B4\uC694.'
+            : nextStep.title + '\uBD80\uD130 \uB9C8\uBB34\uB9AC\uD558\uBA74 \uC218\uAC15\uC0DD \uC608\uC57D\uC744 \uBC1B\uC744 \uC900\uBE44\uAC00 \uB354 \uBE68\uB77C\uC9D1\uB2C8\uB2E4.';
+        var modalHeadline = isComplete
+            ? '\uCCAB \uC608\uC57D\uC744 \uBC1B\uC744 \uC900\uBE44\uAC00 \uB05D\uB0AC\uC5B4\uC694'
+            : '\uC9C0\uAE08\uC740 ' + nextStep.title + '\uAC00 \uB2E4\uC74C \uD560 \uC77C\uC785\uB2C8\uB2E4.';
+        var modalDesc = isComplete
+            ? '\uD504\uB85C\uD544, \uAC15\uC758, \uC77C\uC815, \uD0A4\uD2B8 \uC124\uC815\uC774 \uBAA8\uB450 \uC644\uB8CC\uB418\uC5C8\uC2B5\uB2C8\uB2E4.'
+            : '\uD55C \uBC88 \uC900\uBE44\uD574\uB450\uBA74 \uD64D\uBCF4, \uC608\uC57D, \uC6B4\uC601 \uD750\uB984\uC774 \uB354 \uB9E4\uB044\uB7FD\uAC8C \uC774\uC5B4\uC9D1\uB2C8\uB2E4.';
+
+        return {
+            steps: steps,
+            completedCount: completedCount,
+            totalCount: requiredCount,
+            percent: percent,
+            remainingCount: remainingCount,
+            nextStep: nextStep,
+            nextActionLabel: nextStep ? nextStep.actionLabel : '\uB300\uC2DC\uBCF4\uB4DC \uBCF4\uAE30',
+            isComplete: isComplete,
+            cardTitle: cardTitle,
+            cardDesc: cardDesc,
+            modalHeadline: modalHeadline,
+            modalDesc: modalDesc,
+            progressText: completedCount + '/' + requiredCount + ' \uC644\uB8CC',
+            tip: nextStep ? nextStep.tip : '\uC774\uC81C \uCCAB \uC608\uC57D\uB9CC \uAE30\uB2E4\uB9AC\uBA74 \uB429\uB2C8\uB2E4.',
+            firstClassId: normalizedSignals.firstClassId || '',
+            completionDesc: '\uD504\uB85C\uD544, \uAC15\uC758, \uC77C\uC815, \uD0A4\uD2B8 \uC124\uC815\uC774 \uC644\uB8CC\uB418\uC5C8\uC5B4\uC694. \uC2DC\uC791 \uAC00\uC774\uB4DC\uB294 \uD544\uC694\uD560 \uB54C \uC5B8\uC81C\uB4E0 \uB2E4\uC2DC \uBCFC \uC218 \uC788\uC5B4\uC694.'
+        };
+    }
+
+    function renderOnboardingCard(state) {
+        var card = document.getElementById('pdOnboardingCard');
+        var nextBtn = document.getElementById('pdOnboardingNextBtn');
+        if (!card) return;
+
+        if (!state || state.isComplete) {
+            hideElement('pdOnboardingCard');
+            return;
+        }
+
+        showElement('pdOnboardingCard');
+        setTextById('pdOnboardingCardTitle', state.cardTitle);
+        setTextById('pdOnboardingCardDesc', state.cardDesc);
+        setTextById('pdOnboardingCardProgressText', state.progressText);
+
+        var bar = document.getElementById('pdOnboardingCardBar');
+        if (bar) {
+            bar.style.width = state.percent + '%';
+        }
+
+        if (nextBtn) {
+            nextBtn.textContent = state.nextActionLabel || '\uB2E4\uC74C \uD560 \uC77C';
+        }
+    }
+
+    function renderOnboardingModal(state) {
+        var modalNextBtn = document.getElementById('pdOnboardingModalNextBtn');
+
+        if (!state) return;
+
+        setTextById('pdOnboardingModalHeadline', state.modalHeadline);
+        setTextById('pdOnboardingModalDesc', state.modalDesc);
+        setTextById('pdOnboardingModalProgressText', state.progressText);
+        setTextById('pdOnboardingTip', state.tip);
+        setTextById('pdOnboardingCompleteDesc', state.completionDesc);
+
+        var modalBar = document.getElementById('pdOnboardingModalBar');
+        if (modalBar) {
+            modalBar.style.width = state.percent + '%';
+        }
+
+        var stepList = document.getElementById('pdOnboardingStepList');
+        if (stepList) {
+            stepList.innerHTML = renderOnboardingStepList(state.steps);
+        }
+
+        if (modalNextBtn) {
+            modalNextBtn.textContent = state.nextActionLabel || '\uB300\uC2DC\uBCF4\uB4DC \uBCF4\uAE30';
+            modalNextBtn.style.display = state.isComplete ? 'none' : '';
+        }
+    }
+
+    function renderOnboardingStepList(steps) {
+        var html = '';
+        var list = steps || [];
+
+        for (var i = 0; i < list.length; i++) {
+            var step = list[i];
+            var statusText = step.completed ? '\uC644\uB8CC' : (step.optional ? '\uC120\uD0DD' : (step.isCurrent ? '\uC9C0\uAE08 \uD558\uAE30' : '\uB300\uAE30'));
+            var statusClass = step.completed ? 'pd-onboarding-step__status--done' : 'pd-onboarding-step__status--todo';
+            var itemClass = 'pd-onboarding-step';
+
+            if (step.completed) {
+                itemClass += ' is-done';
+            }
+            if (step.isCurrent) {
+                itemClass += ' is-current';
+            }
+
+            html += '<div class="' + itemClass + '">'
+                + '<div class="pd-onboarding-step__index">' + (i + 1) + '</div>'
+                + '<div class="pd-onboarding-step__copy">'
+                + '<div class="pd-onboarding-step__title-row">'
+                + '<h5 class="pd-onboarding-step__title">' + escapeHtml(step.title) + '</h5>'
+                + '<span class="pd-onboarding-step__status ' + statusClass + '">' + statusText + '</span>'
+                + '</div>'
+                + '<p class="pd-onboarding-step__desc">' + escapeHtml(step.desc) + '</p>'
+                + '</div>'
+                + '</div>';
+        }
+
+        return html;
+    }
+
+    function handleOnboardingAutoOpen(state, openIfNeeded) {
+        if (!state) return;
+
+        storeOnboardingProgress(state.completedCount);
+
+        if (state.isComplete) {
+            hideElement('pdOnboardingCard');
+            if (!hasShownOnboardingCompleteModal()) {
+                markOnboardingCompleteModalShown();
+                closeModal('pdOnboardingModal');
+                openModal('pdOnboardingCompleteModal');
+            }
+            return;
+        }
+
+        if (!openIfNeeded) return;
+
+        if (getLastOnboardingAutoOpenProgress() !== state.completedCount) {
+            setLastOnboardingAutoOpenProgress(state.completedCount);
+            openModal('pdOnboardingModal');
+        }
+    }
+
+    function handleOnboardingPrimaryAction() {
+        if (!onboardingState || !onboardingState.nextStep) return;
+        runOnboardingAction(onboardingState.nextStep.key);
+    }
+
+    function runOnboardingAction(stepKey) {
+        closeModal('pdOnboardingModal');
+
+        if (stepKey === 'profile') {
+            openProfileModal();
+            return;
+        }
+
+        if (stepKey === 'guide') {
+            window.location.href = '/shop/page.html?id=2610';
+            return;
+        }
+
+        if (stepKey === 'class') {
+            openModal('pdNewClassModal');
+            return;
+        }
+
+        if (stepKey === 'schedule') {
+            switchTab('schedules');
+            prepareOnboardingScheduleAction();
+            return;
+        }
+
+        if (stepKey === 'kit') {
+            switchTab('classes');
+            prepareOnboardingKitAction();
+        }
+    }
+
+    function prepareOnboardingScheduleAction() {
+        var firstClassId = onboardingState ? onboardingState.firstClassId : '';
+        if (!firstClassId) {
+            showToast('\uBA3C\uC800 \uC77C\uC815\uC744 \uCD94\uAC00\uD560 \uAC15\uC758\uB97C \uB4F1\uB85D\uD574\uC8FC\uC138\uC694.', 'error');
+            return;
+        }
+
+        setTimeout(function() {
+            var classSelect = document.getElementById('pdScheduleClass');
+            if (classSelect) {
+                classSelect.value = firstClassId;
+            }
+            scheduleClassId = firstClassId;
+            loadSchedulesForClass(firstClassId);
+            toggleScheduleForm(true);
+            showToast('\uC120\uD0DD\uD55C \uAC15\uC758\uC5D0 \uCCAB \uC77C\uC815\uC744 \uCD94\uAC00\uD574\uBCF4\uC138\uC694.');
+        }, 80);
+    }
+
+    function prepareOnboardingKitAction() {
+        var firstClassId = onboardingState ? onboardingState.firstClassId : '';
+        if (!firstClassId) {
+            showToast('\uD0A4\uD2B8\uB97C \uC124\uC815\uD560 \uAC15\uC758\uB97C \uCC3E\uC744 \uC218 \uC5C6\uC5B4\uC694.', 'error');
+            return;
+        }
+
+        setTimeout(function() {
+            openClassEditModal(firstClassId);
+            showToast('\uD074\uB798\uC2A4 \uC218\uC815 \uCC3D\uC5D0\uC11C \uD0A4\uD2B8 \uC124\uC815\uC744 \uB9C8\uBB34\uB9AC\uD574\uBCF4\uC138\uC694.');
+        }, 80);
+    }
+
+    function isProfileCompleted() {
+        if (!partnerData) return false;
+
+        var studioName = String(partnerData.studio_name || '').trim();
+        var phone = String(partnerData.phone || '').trim();
+        var introduction = String(partnerData.introduction || '').trim();
+        var instagram = String(partnerData.instagram_url || '').trim();
+        var kakao = String(partnerData.kakao_channel || '').trim();
+
+        return !!(studioName && phone && introduction && (instagram || kakao));
+    }
+
+    function isGuideViewed() {
+        return normalizeGuideCompleted(partnerData ? partnerData.education_completed : false);
+    }
+
+    function normalizeGuideCompleted(value) {
+        if (value === true || value === 'true' || value === 'TRUE') return true;
+        if (value === 'Y' || value === 'y' || value === 'YES' || value === 'yes') return true;
+        return false;
+    }
+
+    function hasConfiguredKit(detail) {
+        var enabled = parseInt(detail && detail.kit_enabled, 10) === 1;
+        var items = parseKitItems(detail ? detail.kit_items : []);
+        return enabled && items.length > 0;
+    }
+
+    function parseKitItems(raw) {
+        if (Array.isArray(raw)) {
+            return raw;
+        }
+
+        if (!raw) return [];
+
+        try {
+            var parsed = JSON.parse(raw);
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (err) {
+            return [];
+        }
+    }
+
+    function getFirstClassId() {
+        if (!myClasses || !myClasses.length) return '';
+        return String(myClasses[0].class_id || '');
+    }
+
+    function findClassById(classId) {
+        for (var i = 0; i < myClasses.length; i++) {
+            if (String(myClasses[i].class_id || '') === String(classId || '')) {
+                return myClasses[i];
+            }
+        }
+        return null;
+    }
+
+    function getOnboardingStorageKey(suffix) {
+        return CACHE_PREFIX + 'onboarding_' + memberId + '_' + suffix;
+    }
+
+    function readOnboardingStorage(suffix) {
+        try {
+            return window.localStorage.getItem(getOnboardingStorageKey(suffix));
+        } catch (err) {
+            return null;
+        }
+    }
+
+    function writeOnboardingStorage(suffix, value) {
+        try {
+            window.localStorage.setItem(getOnboardingStorageKey(suffix), String(value));
+        } catch (err) {}
+    }
+
+    function storeOnboardingProgress(progress) {
+        writeOnboardingStorage('progress', progress);
+    }
+
+    function getLastOnboardingAutoOpenProgress() {
+        var raw = readOnboardingStorage('auto_open_progress');
+        return raw === null ? -1 : parseInt(raw, 10);
+    }
+
+    function setLastOnboardingAutoOpenProgress(progress) {
+        writeOnboardingStorage('auto_open_progress', progress);
+    }
+
+    function hasShownOnboardingCompleteModal() {
+        return readOnboardingStorage('complete_modal_shown') === 'Y';
+    }
+
+    function markOnboardingCompleteModalShown() {
+        writeOnboardingStorage('complete_modal_shown', 'Y');
+    }
+
+
+    /* ========================================
+       상단 액션 보드
+       ======================================== */
+
+    function bindActionBoardEvents() {
+        var board = document.getElementById('pdActionBoard');
+        if (!board || board._pdBound) return;
+
+        board._pdBound = true;
+        board.addEventListener('click', function(e) {
+            var card = e.target.closest('.pd-action-card');
+            if (!card) return;
+            handleActionBoardClick(card.getAttribute('data-action'));
         });
+    }
+
+    function refreshActionBoard() {
+        if (!partnerData) return;
+
+        var token = ++actionBoardLoadToken;
+        var classes = myClasses || [];
+        var today = getDateOffsetString(0);
+        var nextWeek = getDateOffsetString(7);
+
+        if (!classes.length) {
+            actionBoardState = buildActionBoardState(
+                { todayClassCount: 0, todayBookedCount: 0, todayClassId: '', kitClassIds: [], firstKitClassId: '' },
+                [],
+                { unansweredCount: 0 },
+                true
+            );
+            renderActionBoard(actionBoardState);
+            return;
+        }
+
+        var pending = 3;
+        var classState = null;
+        var bookingPayload = [];
+        var reviewPayload = { unansweredCount: 0 };
+
+        function finish() {
+            pending--;
+            if (pending > 0 || token !== actionBoardLoadToken) {
+                return;
+            }
+
+            actionBoardState = buildActionBoardState(classState, bookingPayload, reviewPayload, false);
+            renderActionBoard(actionBoardState);
+        }
+
+        inspectActionBoardClasses(classes, function(result) {
+            if (token !== actionBoardLoadToken) return;
+            classState = result;
+            finish();
+        });
+
+        callGAS('getPartnerBookings', {
+            member_id: memberId,
+            date_from: today,
+            date_to: nextWeek
+        }, function(err, data) {
+            if (token !== actionBoardLoadToken) return;
+            if (!err && data && data.success && data.data) {
+                bookingPayload = data.data.bookings || [];
+            }
+            finish();
+        });
+
+        callGAS('getPartnerReviews', {
+            member_id: memberId,
+            page: 1,
+            limit: 1
+        }, function(err, data) {
+            if (token !== actionBoardLoadToken) return;
+            if (!err && data && data.success && data.data && data.data.summary) {
+                reviewPayload.unansweredCount = parseInt(data.data.summary.unanswered_count, 10) || 0;
+            }
+            finish();
+        });
+    }
+
+    function inspectActionBoardClasses(classes, callback) {
+        var list = classes || [];
+        var classIds = [];
+        var result = {
+            todayClassCount: 0,
+            todayBookedCount: 0,
+            todayClassId: '',
+            kitClassIds: [],
+            firstKitClassId: ''
+        };
+        var today = getDateOffsetString(0);
+
+        for (var i = 0; i < list.length; i++) {
+            if (list[i] && list[i].class_id) {
+                classIds.push(String(list[i].class_id));
+            }
+        }
+
+        if (!classIds.length) {
+            callback(result);
+            return;
+        }
+
+        var pending = classIds.length;
+        for (var j = 0; j < classIds.length; j++) {
+            (function(classId) {
+                callGAS('getClassDetail', { id: classId }, function(err, data) {
+                    var detail = !err && data && data.success && data.data ? data.data : findClassById(classId);
+                    var schedules = detail && Array.isArray(detail.schedules) ? detail.schedules : [];
+
+                    for (var s = 0; s < schedules.length; s++) {
+                        var schedule = schedules[s];
+                        var bookedCount = parseInt(schedule.booked_count, 10) || 0;
+                        if ((schedule.schedule_date || '') === today && bookedCount > 0) {
+                            result.todayClassCount++;
+                            result.todayBookedCount += bookedCount;
+                            if (!result.todayClassId) {
+                                result.todayClassId = classId;
+                            }
+                        }
+                    }
+
+                    if (hasConfiguredKit(detail)) {
+                        if (result.kitClassIds.indexOf(classId) === -1) {
+                            result.kitClassIds.push(classId);
+                        }
+                        if (!result.firstKitClassId) {
+                            result.firstKitClassId = classId;
+                        }
+                    }
+
+                    pending--;
+                    if (pending === 0) {
+                        callback(result);
+                    }
+                });
+            })(classIds[j]);
+        }
+    }
+
+    function buildActionBoardState(classState, bookings, reviewState, noClasses) {
+        var todayCard;
+        var kitCard;
+        var reviewCard;
+        var kitBookingCount = 0;
+        var kitClassMap = {};
+        var unansweredCount = reviewState ? reviewState.unansweredCount || 0 : 0;
+        var classesEmpty = !!noClasses;
+        var bookingList = bookings || [];
+        var kitClassIds = classState && classState.kitClassIds ? classState.kitClassIds : [];
+
+        for (var i = 0; i < bookingList.length; i++) {
+            var booking = bookingList[i];
+            if (kitClassIds.indexOf(String(booking.class_id || '')) === -1) continue;
+            if (!isPendingBookingStatus(booking.status)) continue;
+
+            kitBookingCount++;
+            kitClassMap[String(booking.class_id || '')] = true;
+        }
+
+        todayCard = {
+            value: (classState && classState.todayClassCount ? classState.todayClassCount : 0) + '\uAC74',
+            meta: classesEmpty
+                ? '\uCCAB \uAC15\uC758\uB97C \uB4F1\uB85D\uD558\uBA74 \uC624\uB298 \uC218\uC5C5\uC774 \uC5EC\uAE30\uC5D0 \uD45C\uC2DC\uB429\uB2C8\uB2E4.'
+                : (classState && classState.todayClassCount > 0
+                    ? '\uC608\uC57D ' + (classState.todayBookedCount || 0) + '\uBA85 \uC608\uC815'
+                    : '\uC624\uB298 \uC77C\uC815\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.'),
+            empty: !(classState && classState.todayClassCount > 0)
+        };
+
+        kitCard = {
+            value: kitBookingCount + '\uAC74',
+            meta: classesEmpty
+                ? '\uD0A4\uD2B8 \uC5F0\uACB0 \uC218\uC5C5\uC774 \uC0DD\uAE30\uBA74 \uC900\uBE44 \uD56D\uBAA9\uC774 \uD45C\uC2DC\uB429\uB2C8\uB2E4.'
+                : (kitBookingCount > 0
+                    ? '\uB2E4\uC74C 7\uC77C \uAE30\uC900 \uD0A4\uD2B8 \uC5F0\uACB0 \uC218\uC5C5 ' + Object.keys(kitClassMap).length + '\uAC1C'
+                    : '\uC900\uBE44\uD560 \uD0A4\uD2B8\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.'),
+            empty: kitBookingCount === 0
+        };
+
+        reviewCard = {
+            value: unansweredCount + '\uAC74',
+            meta: classesEmpty
+                ? '\uC218\uC5C5\uC774 \uC2DC\uC791\uB418\uBA74 \uD6C4\uAE30\uAC00 \uC5EC\uAE30 \uC313\uC785\uB2C8\uB2E4.'
+                : (unansweredCount > 0
+                    ? '\uD6C4\uAE30 \uD0ED\uC5D0\uC11C \uB2F5\uBCC0\uC744 \uB0A8\uACA8\uBCF4\uC138\uC694.'
+                    : '\uB2F5\uBCC0 \uB300\uAE30 \uC911\uC778 \uD6C4\uAE30\uAC00 \uC5C6\uC2B5\uB2C8\uB2E4.'),
+            empty: unansweredCount === 0
+        };
+
+        return {
+            noClasses: classesEmpty,
+            todayClassId: classState ? classState.todayClassId || '' : '',
+            firstKitClassId: classState ? classState.firstKitClassId || '' : '',
+            desc: classesEmpty
+                ? '\uC544\uC9C1 \uB4F1\uB85D\uB41C \uC218\uC5C5\uC774 \uC5C6\uC2B5\uB2C8\uB2E4. \uCCAB \uAC15\uC758\uB97C \uB9CC\uB4E4\uC5B4 \uBCF4\uC138\uC694.'
+                : (todayCard.empty && kitCard.empty && reviewCard.empty
+                    ? '\uC9C0\uAE08\uC740 \uCC98\uB9AC\uD560 \uD560 \uC77C\uC774 \uC5C6\uC2B5\uB2C8\uB2E4.'
+                    : '\uC624\uB298 \uBC14\uB85C \uD655\uC778\uD558\uBA74 \uC88B\uC740 \uC6B4\uC601 \uD56D\uBAA9\uC744 \uBAA8\uC558\uC2B5\uB2C8\uB2E4.'),
+            todayCard: todayCard,
+            kitCard: kitCard,
+            reviewCard: reviewCard
+        };
+    }
+
+    function renderActionBoard(state) {
+        if (!state) return;
+
+        setTextById('pdActionBoardDesc', state.desc);
+        setActionCardContent('pdActionCardToday', 'pdActionTodayValue', 'pdActionTodayMeta', state.todayCard);
+        setActionCardContent('pdActionCardKit', 'pdActionKitValue', 'pdActionKitMeta', state.kitCard);
+        setActionCardContent('pdActionCardReview', 'pdActionReviewValue', 'pdActionReviewMeta', state.reviewCard);
+    }
+
+    function setActionCardContent(cardId, valueId, metaId, cardState) {
+        var card = document.getElementById(cardId);
+        if (card) {
+            card.classList.toggle('is-empty', !!(cardState && cardState.empty));
+        }
+        setTextById(valueId, cardState ? cardState.value : '0\uAC74');
+        setTextById(metaId, cardState ? cardState.meta : '');
+    }
+
+    function handleActionBoardClick(action) {
+        if (!actionBoardState) return;
+
+        if (actionBoardState.noClasses && (action === 'today-class' || action === 'kit-prep')) {
+            openModal('pdNewClassModal');
+            return;
+        }
+
+        if (action === 'today-class') {
+            switchTab('schedules');
+            setTimeout(function() {
+                var targetClassId = actionBoardState.todayClassId || getFirstClassId();
+                var classSelect = document.getElementById('pdScheduleClass');
+                if (classSelect && targetClassId) {
+                    classSelect.value = targetClassId;
+                    scheduleClassId = targetClassId;
+                    loadSchedulesForClass(targetClassId);
+                }
+                scrollToElementById('pdTabSchedules');
+            }, 80);
+            return;
+        }
+
+        if (action === 'kit-prep') {
+            switchTab('bookings');
+            setTimeout(function() {
+                var periodEl = document.getElementById('pdBookingPeriod');
+                var customArea = document.getElementById('pdBookingCustomDate');
+                var fromEl = document.getElementById('pdBookingDateFrom');
+                var toEl = document.getElementById('pdBookingDateTo');
+                var classEl = document.getElementById('pdBookingClass');
+
+                if (periodEl) periodEl.value = 'custom';
+                if (customArea) customArea.style.display = '';
+                if (fromEl) fromEl.value = getDateOffsetString(0);
+                if (toEl) toEl.value = getDateOffsetString(7);
+                if (classEl && actionBoardState.firstKitClassId) {
+                    classEl.value = actionBoardState.firstKitClassId;
+                }
+                loadBookings();
+                scrollToElementById('pdBookingTable');
+            }, 80);
+            return;
+        }
+
+        if (action === 'review-reply') {
+            switchTab('reviews');
+            setTimeout(function() {
+                scrollToElementById('pdReviewList');
+            }, 80);
+        }
+    }
+
+    function isPendingBookingStatus(status) {
+        var text = String(status || '').toLowerCase();
+        return text !== 'cancelled' && text !== 'completed' && text !== 'failed';
+    }
+
+    function getDateOffsetString(offset) {
+        var target = new Date();
+        target.setHours(0, 0, 0, 0);
+        target.setDate(target.getDate() + (offset || 0));
+        return target.getFullYear() + '-' + padZero(target.getMonth() + 1) + '-' + padZero(target.getDate());
+    }
+
+    function scrollToElementById(id) {
+        var el = document.getElementById(id);
+        if (el && el.scrollIntoView) {
+            el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
     }
 
 
@@ -545,6 +1235,19 @@
         bindClassStatusButtons();
     }
 
+    function normalizeClassStatus(raw) {
+        var text = String(raw || '').replace(/\s+/g, ' ').trim();
+        var upper = text.toUpperCase();
+
+        if (!text) return 'pending';
+        if (upper === 'ACTIVE' || text.toLowerCase() === 'active') return 'active';
+        if (upper === 'PAUSED' || text.toLowerCase() === 'paused') return 'paused';
+        if (upper === 'PENDING_REVIEW' || upper === 'DRAFT' || upper === 'INACTIVE' || text.toLowerCase() === 'pending') return 'pending';
+        if (upper === 'REJECTED') return 'rejected';
+        if (upper === 'ARCHIVED' || upper === 'CLOSED' || text.toLowerCase() === 'closed') return 'closed';
+        return text.toLowerCase();
+    }
+
     /**
      * 강의 카드 HTML 생성
      * @param {Object} cls - 강의 데이터
@@ -554,8 +1257,14 @@
         var classId = escapeAttr(cls.class_id || '');
         var className = escapeHtml(cls.class_name || '');
         var category = escapeHtml(cls.category || '');
-        var status = ns(cls.status || 'ACTIVE');
-        var statusLabel = { 'ACTIVE': '\uD65C\uC131', 'PAUSED': '\uC77C\uC2DC\uC815\uC9C0', 'CLOSED': '\uB9C8\uAC10', 'PENDING': '\uC2EC\uC0AC\uC911' }[status] || status;
+        var status = normalizeClassStatus(cls.status || 'active');
+        var statusLabel = {
+            'active': '\uD65C\uC131',
+            'paused': '\uC77C\uC2DC\uC815\uC9C0',
+            'closed': '\uB9C8\uAC10',
+            'pending': '\uC2EC\uC0AC\uC911',
+            'rejected': '\uBC18\uB824'
+        }[status] || status;
         var avgRating = parseFloat(cls.avg_rating) || 0;
         var bookingCount = parseInt(cls.booking_count) || 0;
         var thumbnail = cls.thumbnail_url || '';
@@ -565,9 +1274,9 @@
             ? '<img src="' + escapeAttr(thumbnail) + '" alt="' + escapeAttr(cls.class_name || '') + '" loading="lazy">'
             : '';
 
-        var toggleBtnText = status === S.ACTIVE ? '\uC77C\uC2DC\uC815\uC9C0' : '\uC7AC\uD65C\uC131\uD654';
-        var toggleBtnClass = status === S.ACTIVE ? 'pd-btn--outline pd-btn--sm' : 'pd-btn--gold pd-btn--sm';
-        var showToggle = status === S.ACTIVE || status === S.PAUSED;
+        var toggleBtnText = status === 'active' ? '\uC77C\uC2DC\uC815\uC9C0' : '\uC7AC\uD65C\uC131\uD654';
+        var toggleBtnClass = status === 'active' ? 'pd-btn--outline pd-btn--sm' : 'pd-btn--gold pd-btn--sm';
+        var showToggle = status === 'active' || status === 'paused';
 
         var html = '<div class="pd-class-card" data-class-id="' + classId + '">'
             + '<div class="pd-class-card__top">'
@@ -623,8 +1332,8 @@
             if (!btn) return;
 
             var classId = btn.getAttribute('data-class-id');
-            var currentStatus = btn.getAttribute('data-status');
-            var newStatus = ns(currentStatus) === S.ACTIVE ? S.PAUSED : S.ACTIVE;
+            var currentStatus = normalizeClassStatus(btn.getAttribute('data-status'));
+            var newStatus = currentStatus === 'active' ? 'PAUSED' : 'ACTIVE';
 
             toggleClassStatus(classId, newStatus);
         });
@@ -635,6 +1344,25 @@
             newClassBtn._pdBound = true;
             newClassBtn.addEventListener('click', function() {
                 openModal('pdNewClassModal');
+            });
+        }
+    }
+
+    function bindEmptyStateActions() {
+        var classBtn = document.getElementById('pdEmptyClassBtn');
+        var profileBtn = document.getElementById('pdEmptyProfileBtn');
+
+        if (classBtn && !classBtn._pdBound) {
+            classBtn._pdBound = true;
+            classBtn.addEventListener('click', function() {
+                openModal('pdNewClassModal');
+            });
+        }
+
+        if (profileBtn && !profileBtn._pdBound) {
+            profileBtn._pdBound = true;
+            profileBtn.addEventListener('click', function() {
+                openProfileModal();
             });
         }
     }
@@ -667,9 +1395,11 @@
                 }
             }
 
-            var statusLabel = newStatus === S.ACTIVE ? '\uC7AC\uD65C\uC131\uD654' : '\uC77C\uC2DC\uC815\uC9C0';
+            var normalizedNewStatus = normalizeClassStatus(newStatus);
+            var statusLabel = normalizedNewStatus === 'active' ? '\uC7AC\uD65C\uC131\uD654' : '\uC77C\uC2DC\uC815\uC9C0';
             showToast('\uAC15\uC758\uAC00 ' + statusLabel + '\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
             renderMyClasses();
+            refreshActionBoard();
         });
     }
 
@@ -736,6 +1466,12 @@
             + '<input type="checkbox" id="editKitEnabled"' + (parseInt(cls.kit_enabled) === 1 ? ' checked' : '') + '>'
             + ' \uC7AC\uB8CC\uD0A4\uD2B8 \uC790\uB3D9 \uBC30\uC1A1'
             + '</label>'
+            + '<p class="pd-kit-help">\uC0C1\uD488 \uC0C1\uC138 URL \uB610\uB294 branduid\uB97C \uB123\uC73C\uBA74 \uC0C1\uC138 \uD398\uC774\uC9C0\uC5D0\uC11C \uBC14\uB85C \uC5F0\uACB0\uB429\uB2C8\uB2E4.</p>'
+            + '<div id="editKitBundleWrap"' + (parseInt(cls.kit_enabled) !== 1 ? ' style="display:none"' : '') + '>'
+            + '<label class="pd-form-label">\uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488 branduid</label>'
+            + '<input type="text" id="editKitBundleBranduid" class="pd-form-input" value="' + escapeAttr(cls.kit_bundle_branduid || '') + '" placeholder="12345678 \uB610\uB294 \uC0C1\uD488 URL">'
+            + '<p class="pd-kit-help">\uBE44\uC6CC\uB450\uBA74 \uC2B9\uC778 \uD6C4 \uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC744 \uC5F0\uB3D9\uD560 \uC218 \uC788\uC5B4\uC694.</p>'
+            + '</div>'
             + '<div id="editKitItems" class="pd-kit-items"' + (parseInt(cls.kit_enabled) !== 1 ? ' style="display:none"' : '') + '></div>'
             + '<button type="button" id="editAddKitItem" class="pd-btn pd-btn--outline pd-btn--sm"' + (parseInt(cls.kit_enabled) !== 1 ? ' style="display:none"' : '') + '>+ \uD0A4\uD2B8 \uD56D\uBAA9 \uCD94\uAC00</button>'
             + '</div>'
@@ -768,11 +1504,13 @@
         var kitToggle = document.getElementById('editKitEnabled');
         var kitItemsArea = document.getElementById('editKitItems');
         var kitAddBtn = document.getElementById('editAddKitItem');
+        var kitBundleWrap = document.getElementById('editKitBundleWrap');
         if (kitToggle) {
             kitToggle.addEventListener('change', function() {
                 var show = kitToggle.checked;
                 if (kitItemsArea) kitItemsArea.style.display = show ? '' : 'none';
                 if (kitAddBtn) kitAddBtn.style.display = show ? '' : 'none';
+                if (kitBundleWrap) kitBundleWrap.style.display = show ? '' : 'none';
                 if (show && !kitItemsArea.querySelector('.pd-kit-row')) {
                     addEditKitRow(kitItemsArea, '', '', 1);
                 }
@@ -790,6 +1528,11 @@
                     if (row) row.remove();
                 }
             });
+            kitItemsArea.addEventListener('input', function(e) {
+                if (e.target && e.target.classList) {
+                    e.target.classList.remove('is-error');
+                }
+            });
         }
 
         // 기존 키트 항목 렌더링
@@ -797,17 +1540,53 @@
         try { existingKitItems = cls.kit_items ? JSON.parse(cls.kit_items) : []; } catch(e) {}
         if (Array.isArray(existingKitItems)) {
             for (var ki = 0; ki < existingKitItems.length; ki++) {
-                addEditKitRow(kitItemsArea, existingKitItems[ki].name || '', existingKitItems[ki].product_code || '', existingKitItems[ki].quantity || 1);
+                addEditKitRow(
+                    kitItemsArea,
+                    existingKitItems[ki].name || '',
+                    normalizeKitProductUrl(existingKitItems[ki].product_url || existingKitItems[ki].product_code || ''),
+                    existingKitItems[ki].quantity || 1,
+                    existingKitItems[ki].price || 0
+                );
             }
         }
     }
 
-    function addEditKitRow(container, name, code, qty) {
+    function extractKitBrandUid(raw) {
+        var value = String(raw || '').replace(/\s+/g, '').trim();
+        var match = value.match(/[?&]branduid=([^&#]+)/i);
+        if (match && match[1]) {
+            return decodeURIComponent(match[1]);
+        }
+        if (/^[A-Za-z0-9_-]{4,64}$/.test(value)) {
+            return value;
+        }
+        return '';
+    }
+
+    function normalizeKitProductUrl(raw) {
+        var value = String(raw || '').trim();
+        if (!value) return '';
+
+        var brandUid = extractKitBrandUid(value);
+        if (brandUid) {
+            return '/shop/shopdetail.html?branduid=' + encodeURIComponent(brandUid);
+        }
+
+        if (!/^https?:\/\//i.test(value)) return '';
+        return value;
+    }
+
+    function normalizeKitBundleBrandUid(raw) {
+        return extractKitBrandUid(raw);
+    }
+
+    function addEditKitRow(container, name, productUrl, qty, price) {
         if (!container) return;
         var row = document.createElement('div');
         row.className = 'pd-kit-row';
         row.innerHTML = '<input type="text" class="pd-form-input pd-kit-name" placeholder="\uC0C1\uD488\uBA85" value="' + escapeAttr(name) + '">'
-            + '<input type="text" class="pd-form-input pd-kit-code" placeholder="\uCF54\uB4DC" value="' + escapeAttr(code) + '">'
+            + '<input type="text" class="pd-form-input pd-kit-url" placeholder="\uC790\uC0AC\uBAB0 \uC0C1\uD488 URL \uB610\uB294 branduid" value="' + escapeAttr(productUrl) + '">'
+            + '<input type="number" class="pd-form-input pd-kit-price" placeholder="\uD310\uB9E4\uAC00" value="' + (parseInt(price, 10) || 0) + '" min="0" step="100">'
             + '<input type="number" class="pd-form-input pd-kit-qty" placeholder="\uC218\uB7C9" value="' + (qty || 1) + '" min="1" max="99">'
             + '<button type="button" class="pd-kit-row__remove">&times;</button>';
         container.appendChild(row);
@@ -818,18 +1597,81 @@
         var items = [];
         for (var i = 0; i < rows.length; i++) {
             var nameEl = rows[i].querySelector('.pd-kit-name');
-            var codeEl = rows[i].querySelector('.pd-kit-code');
+            var urlEl = rows[i].querySelector('.pd-kit-url');
+            var priceEl = rows[i].querySelector('.pd-kit-price');
             var qtyEl = rows[i].querySelector('.pd-kit-qty');
             var n = nameEl ? nameEl.value.trim() : '';
             if (n) {
                 items.push({
                     name: n,
-                    product_code: codeEl ? codeEl.value.trim() : '',
-                    quantity: qtyEl ? parseInt(qtyEl.value, 10) || 1 : 1
+                    product_url: normalizeKitProductUrl(urlEl ? urlEl.value : ''),
+                    quantity: qtyEl ? parseInt(qtyEl.value, 10) || 1 : 1,
+                    price: priceEl ? Math.max(parseInt(priceEl.value, 10) || 0, 0) : 0
                 });
             }
         }
         return items;
+    }
+
+    function clearEditKitValidationState() {
+        var fields = document.querySelectorAll('#editKitItems .pd-kit-name, #editKitItems .pd-kit-url, #editKitItems .pd-kit-price, #editKitItems .pd-kit-qty');
+        for (var i = 0; i < fields.length; i++) {
+            fields[i].classList.remove('is-error');
+        }
+    }
+
+    function validateEditKitItems() {
+        var rows = document.querySelectorAll('#editKitItems .pd-kit-row');
+        var validCount = 0;
+
+        clearEditKitValidationState();
+
+        for (var i = 0; i < rows.length; i++) {
+            var nameEl = rows[i].querySelector('.pd-kit-name');
+            var urlEl = rows[i].querySelector('.pd-kit-url');
+            var priceEl = rows[i].querySelector('.pd-kit-price');
+            var qtyEl = rows[i].querySelector('.pd-kit-qty');
+            var name = nameEl ? nameEl.value.trim() : '';
+            var rawUrl = urlEl ? urlEl.value.trim() : '';
+            var price = priceEl ? parseInt(priceEl.value, 10) : 0;
+            var qty = qtyEl ? parseInt(qtyEl.value, 10) : 0;
+
+            if (!name && !rawUrl) {
+                continue;
+            }
+
+            if (!name) {
+                if (nameEl) nameEl.classList.add('is-error');
+                return { valid: false, field: nameEl, message: '\uD0A4\uD2B8 \uC0C1\uD488\uBA85\uC744 \uC785\uB825\uD574\uC8FC\uC138\uC694.' };
+            }
+
+            if (!normalizeKitProductUrl(rawUrl)) {
+                if (urlEl) urlEl.classList.add('is-error');
+                return { valid: false, field: urlEl, message: '\uC0C1\uD488 URL \uB610\uB294 branduid\uAC00 \uD544\uC694\uD569\uB2C8\uB2E4.' };
+            }
+
+            if (isNaN(qty) || qty < 1 || qty > 99) {
+                if (qtyEl) qtyEl.classList.add('is-error');
+                return { valid: false, field: qtyEl, message: '\uC218\uB7C9\uC740 1~99 \uC0AC\uC774\uB85C \uC785\uB825\uD574\uC8FC\uC138\uC694.' };
+            }
+
+            if (!isNaN(price) && price < 0) {
+                if (priceEl) priceEl.classList.add('is-error');
+                return { valid: false, field: priceEl, message: '\uD310\uB9E4\uAC00\uB294 0\uC6D0 \uC774\uC0C1\uC73C\uB85C \uC785\uB825\uD574\uC8FC\uC138\uC694.' };
+            }
+
+            validCount++;
+        }
+
+        if (validCount === 0) {
+            return {
+                valid: false,
+                field: document.querySelector('#editKitItems .pd-kit-url') || document.getElementById('editAddKitItem'),
+                message: '\uD0A4\uD2B8 \uC0AC\uC6A9 \uC2DC \uCD5C\uC18C 1\uAC1C \uC774\uC0C1\uC758 \uC0C1\uD488\uC744 \uB4F1\uB85D\uD574\uC8FC\uC138\uC694.'
+            };
+        }
+
+        return { valid: true, items: collectEditKitItems() };
     }
 
     /**
@@ -838,6 +1680,26 @@
     function saveClassEdit() {
         var classId = (document.getElementById('editClassId') || {}).value;
         if (!classId) return;
+        var isKitEnabled = (document.getElementById('editKitEnabled') || {}).checked;
+        var rawBundleBrandUid = (document.getElementById('editKitBundleBranduid') || {}).value || '';
+        var bundleBrandUid = isKitEnabled ? normalizeKitBundleBrandUid(rawBundleBrandUid) : '';
+
+        if (isKitEnabled) {
+            var kitValidation = validateEditKitItems();
+            if (!kitValidation.valid) {
+                if (kitValidation.field && kitValidation.field.focus) {
+                    kitValidation.field.focus();
+                }
+                showToast(kitValidation.message, 'error');
+                return;
+            }
+            if (rawBundleBrandUid && !bundleBrandUid) {
+                showToast('\uBB36\uC74C \uD0A4\uD2B8 \uC0C1\uD488\uC740 branduid \uB610\uB294 \uC790\uC0AC\uBAB0 \uC0C1\uD488 URL \uD615\uC2DD\uC73C\uB85C \uC785\uB825\uD574\uC8FC\uC138\uC694.', 'error');
+                return;
+            }
+        } else {
+            clearEditKitValidationState();
+        }
 
         var updateData = {
             member_id: memberId,
@@ -849,13 +1711,19 @@
             max_students: parseInt((document.getElementById('editMaxStudents') || {}).value) || 8,
             description: (document.getElementById('editDescription') || {}).value || '',
             instructor_bio: (document.getElementById('editInstructorBio') || {}).value || '',
-            kit_enabled: (document.getElementById('editKitEnabled') || {}).checked ? 1 : 0,
-            kit_items: collectEditKitItems()
+            kit_enabled: isKitEnabled ? 1 : 0,
+            kit_items: isKitEnabled ? collectEditKitItems() : [],
+            kit_bundle_branduid: bundleBrandUid
         };
 
         showLoading();
 
-        PC.api.fetchPost('CLASS_EDIT', updateData)
+        fetch(WF_ENDPOINT['editClass'], {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        })
+        .then(function(res) { return res.json(); })
         .then(function(data) {
             hideLoading();
             if (data.success) {
@@ -872,12 +1740,15 @@
                         myClasses[i].instructor_bio = updateData.instructor_bio;
                         myClasses[i].kit_enabled = updateData.kit_enabled;
                         myClasses[i].kit_items = JSON.stringify(updateData.kit_items);
+                        myClasses[i].kit_bundle_branduid = updateData.kit_bundle_branduid;
                         break;
                     }
                 }
                 renderMyClasses();
                 var modal = document.getElementById('pdEditClassModal');
                 if (modal) modal.classList.remove('pd-modal--open');
+                refreshOnboardingChecklist(false);
+                refreshActionBoard();
             } else {
                 showToast(data.message || '\uC218\uC815\uC5D0 \uC2E4\uD328\uD588\uC2B5\uB2C8\uB2E4.', 'error');
             }
@@ -1126,6 +1997,8 @@
                 showToast('일정이 추가되었습니다.');
                 toggleScheduleForm(false);
                 loadSchedulesForClass(scheduleClassId);
+                refreshOnboardingChecklist(false);
+                refreshActionBoard();
             } else {
                 showToast(res.message || '일정 추가에 실패했습니다.', 'error');
             }
@@ -1150,6 +2023,8 @@
             if (res.success) {
                 showToast('일정이 삭제되었습니다.');
                 loadSchedulesForClass(scheduleClassId);
+                refreshOnboardingChecklist(false);
+                refreshActionBoard();
             } else {
                 showToast(res.message || '일정 삭제에 실패했습니다.', 'error');
             }
@@ -1191,8 +2066,7 @@
             hideLoading();
 
             if (err || !data || !data.success) {
-                showToast('예약 현황을 불러올 수 없습니다.', 'error');
-                renderBookings([]); // 에러 시 빈 상태 표시
+                showToast('\uC608\uC57D \uD604\uD669\uC744 \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.', 'error');
                 return;
             }
 
@@ -1258,10 +2132,10 @@
         if (summaryEl) {
             var summaryHtml = '';
             var statusLabels = {
-                'CONFIRMED': '\uD655\uC815',
-                'PENDING': '\uB300\uAE30',
-                'COMPLETED': '\uC644\uB8CC',
-                'CANCELLED': '\uCDE8\uC18C'
+                'confirmed': '\uD655\uC815',
+                'pending': '\uB300\uAE30',
+                'completed': '\uC644\uB8CC',
+                'cancelled': '\uCDE8\uC18C'
             };
 
             var statusKeys = Object.keys(statusCounts);
@@ -1294,9 +2168,9 @@
         for (var j = 0; j < bookings.length; j++) {
             var bk = bookings[j];
             /* GAS 응답 필드: booking_date, student_name_masked, student_phone_masked, order_amount, status */
-            var bkStatus = ns(bk.status);
-            var bkStatusLabel = { 'CONFIRMED': '\uD655\uC815', 'PENDING': '\uB300\uAE30', 'COMPLETED': '\uC644\uB8CC', 'CANCELLED': '\uCDE8\uC18C' }[bkStatus] || bkStatus;
-            var bkStatusClass = bkStatus === S.COMPLETED ? 'completed' : bkStatus === S.CONFIRMED ? 'active' : bkStatus === S.CANCELLED ? 'failed' : 'pending';
+            var bkStatus = (bk.status || '').toLowerCase();
+            var bkStatusLabel = { 'confirmed': '\uD655\uC815', 'pending': '\uB300\uAE30', 'completed': '\uC644\uB8CC', 'cancelled': '\uCDE8\uC18C' }[bkStatus] || bkStatus;
+            var bkStatusClass = bkStatus === 'completed' ? 'completed' : bkStatus === 'confirmed' ? 'active' : bkStatus === 'cancelled' ? 'failed' : 'pending';
 
             tableHtml += '<tr>'
                 + '<td>' + escapeHtml(bk.class_name || '') + '</td>'
@@ -1424,6 +2298,7 @@
 
         // 등급 진행률 게이지 렌더링
         renderGradeGauge(settlement);
+        renderGradeBenefits(settlement);
 
         if (!tableWrap) return;
 
@@ -1749,6 +2624,164 @@
         container.innerHTML = titleHtml + gaugeHtml + infoHtml + tierHtml;
     }
 
+    function renderGradeBenefits(settlement) {
+        var container = document.getElementById('pdGradeBenefits');
+        var grade = getDisplayGrade();
+        var rank = getGradeRank(grade);
+        var meta = getGradeMeta(grade);
+        var totalClasses = Number(settlement.total_classes || settlement.cumulative_classes || 0);
+        var avgRating = Number(settlement.avg_rating || partnerData.avg_rating || 0);
+        var tiers = [
+            {
+                code: 'GARDEN',
+                title: '\uCD94\uCC9C \uB808\uC774\uC5B4 \uC6B0\uC120 \uB178\uCD9C',
+                desc: 'GARDEN \uD30C\uD2B8\uB108\uB294 \uCD94\uCC9C \uBAA9\uB85D\uACFC \uAD00\uB828 \uD074\uB798\uC2A4 \uCE74\uB4DC\uC5D0\uC11C \uBA3C\uC800 \uBCF4\uC785\uB2C8\uB2E4.',
+                points: [
+                    '\uD504\uB85C\uD544 \uBC30\uC9C0 \uAC15\uD654',
+                    '\uCD94\uCC9C \uBAA9\uB85D \uC0C1\uB2E8 \uC6B0\uC120 \uC815\uB82C',
+                    '\uC2E0\uB8B0\uD615 \uD074\uB798\uC2A4 \uD5C8\uBE0C\uC5D0\uC11C \uC6B0\uC120 \uB178\uCD9C'
+                ],
+                hint: '\uC644\uB8CC 10\uAC74 + \uD3C9\uC810 4.0 \uC774\uC0C1'
+            },
+            {
+                code: 'ATELIER',
+                title: '\uCF58\uD150\uCE20 \uD5C8\uBE0C \uC778\uD130\uBDF0 + \uBC30\uB108 \uD6C4\uBCF4',
+                desc: 'ATELIER \uD30C\uD2B8\uB108\uB294 \uCF58\uD150\uCE20 \uD5C8\uBE0C \uC778\uD130\uBDF0 \uD6C4\uBCF4\uC640 \uC790\uC0AC\uBAB0 \uBC30\uB108 \uD6C4\uBCF4\uAD70\uC73C\uB85C \uAD00\uB9AC\uB429\uB2C8\uB2E4.',
+                points: [
+                    '\uCF58\uD150\uCE20 \uD5C8\uBE0C \uC2A4\uD1A0\uB9AC \uCE74\uB4DC \uC6B0\uC120 \uB178\uCD9C',
+                    '\uBE0C\uB79C\uB4DC \uC2A4\uD1A0\uB9AC \uC778\uD130\uBDF0 \uAE30\uD68C',
+                    '\uD611\uD68C/\uC138\uBBF8\uB098 \uC5F0\uACB0\uD615 \uD64D\uBCF4 \uCE74\uB4DC \uB178\uCD9C'
+                ],
+                hint: '\uC644\uB8CC 30\uAC74 + \uD3C9\uC810 4.3 \uC774\uC0C1'
+            },
+            {
+                code: 'AMBASSADOR',
+                title: '\uBA58\uD1A0 \uD30C\uD2B8\uB108 + \uACF5\uB3D9 \uC138\uBBF8\uB098',
+                desc: 'AMBASSADOR \uD30C\uD2B8\uB108\uB294 \uC2E0\uADDC \uD30C\uD2B8\uB108 \uC628\uBCF4\uB529 \uBA58\uD1A0\uC640 \uACF5\uB3D9 \uC138\uBBF8\uB098 \uAE30\uD68D \uD6C4\uBCF4\uAC00 \uB429\uB2C8\uB2E4.',
+                points: [
+                    '\uC2E0\uADDC \uD30C\uD2B8\uB108 \uBA58\uD1A0\uB9C1 \uAD8C\uD55C',
+                    '\uBA54\uC778/\uCF58\uD150\uCE20 \uD5C8\uBE0C \uB300\uD45C \uB178\uCD9C',
+                    '\uD611\uD68C \uC138\uBBF8\uB098 \uACF5\uB3D9 \uAE30\uD68D \uD6C4\uBCF4'
+                ],
+                hint: '\uC644\uB8CC 50\uAC74 + \uC2E0\uADDC \uD30C\uD2B8\uB108 \uCD94\uCC9C 3\uBA85'
+            }
+        ];
+        var unlockedCount = 0;
+        var summaryHtml = '';
+        var tierHtml = '';
+        var i;
+
+        if (!container) return;
+
+        for (i = 0; i < tiers.length; i++) {
+            if (getGradeRank(tiers[i].code) <= rank) {
+                unlockedCount++;
+            }
+            tierHtml += buildGradeTierCard(tiers[i], grade);
+        }
+
+        summaryHtml = '<section class="pd-grade-benefits__summary">'
+            + '<p class="pd-grade-benefits__eyebrow">Non-Monetary Incentives</p>'
+            + '<h3 class="pd-grade-benefits__title">' + escapeHtml(meta.title) + '</h3>'
+            + '<p class="pd-grade-benefits__desc">' + escapeHtml(meta.summary) + '</p>'
+            + '<div class="pd-grade-benefits__metrics">'
+            + '<div class="pd-grade-benefits__metric"><strong>' + totalClasses + '</strong><span>\uB204\uC801 \uC644\uB8CC \uC218\uC5C5</span></div>'
+            + '<div class="pd-grade-benefits__metric"><strong>' + (avgRating > 0 ? avgRating.toFixed(1) : '-') + '</strong><span>\uD3C9\uADE0 \uD3C9\uC810</span></div>'
+            + '<div class="pd-grade-benefits__metric"><strong>' + unlockedCount + '</strong><span>\uD65C\uC131 \uD61C\uD0DD \uB808\uC774\uC5B4</span></div>'
+            + '</div>'
+            + '<div class="pd-grade-benefits__highlight">'
+            + '<span class="pd-grade-benefits__highlight-label">' + escapeHtml(meta.badgeLabel) + '</span>'
+            + '<h4 class="pd-grade-benefits__highlight-title">' + escapeHtml(meta.highlightTitle) + '</h4>'
+            + '<p class="pd-grade-benefits__highlight-copy">' + escapeHtml(meta.highlightCopy) + '</p>'
+            + '</div>'
+            + '</section>';
+
+        container.innerHTML = summaryHtml
+            + '<section class="pd-grade-benefits__tiers">'
+            + '<p class="pd-grade-benefits__eyebrow">\uB4F1\uAE09\uBCC4 \uC131\uC7A5 \uD61C\uD0DD</p>'
+            + '<div class="pd-grade-benefits__tier-grid">' + tierHtml + '</div>'
+            + '</section>';
+    }
+
+    function buildGradeTierCard(tier, currentGrade) {
+        var tierRank = getGradeRank(tier.code);
+        var currentRank = getGradeRank(currentGrade);
+        var cardClass = 'pd-grade-tier-card is-locked';
+        var stateText = '\uC7A0\uAE08';
+        var listHtml = '';
+        var i;
+
+        if (tierRank < currentRank) {
+            cardClass = 'pd-grade-tier-card is-unlocked';
+            stateText = '\uD65C\uC131';
+        } else if (tierRank === currentRank) {
+            cardClass = 'pd-grade-tier-card is-current';
+            stateText = '\uD604\uC7AC \uB4F1\uAE09';
+        }
+
+        for (i = 0; i < tier.points.length; i++) {
+            listHtml += '<li>' + escapeHtml(tier.points[i]) + '</li>';
+        }
+
+        return '<article class="' + cardClass + '">'
+            + '<div class="pd-grade-tier-card__top">'
+            + '<span class="pd-grade-tier-card__badge pd-grade-tier-card__badge--' + tier.code.toLowerCase() + '">' + escapeHtml(tier.code) + '</span>'
+            + '<span class="pd-grade-tier-card__state">' + escapeHtml(stateText) + '</span>'
+            + '</div>'
+            + '<h4 class="pd-grade-tier-card__title">' + escapeHtml(tier.title) + '</h4>'
+            + '<p class="pd-grade-tier-card__desc">' + escapeHtml(tier.desc) + '</p>'
+            + '<ul class="pd-grade-tier-card__list">' + listHtml + '</ul>'
+            + '<p class="pd-grade-tier-card__meta">\uB2EC\uC131 \uAE30\uC900: ' + escapeHtml(tier.hint) + '</p>'
+            + '</article>';
+    }
+
+    function getGradeMeta(grade) {
+        var metaMap = {
+            BLOOM: {
+                title: 'BLOOM \uB2E8\uACC4\uC5D0\uC11C\uB294 \uC2E0\uB8B0 \uAE30\uBC18\uC744 \uBA3C\uC800 \uC313\uC2B5\uB2C8\uB2E4.',
+                summary: '\uD504\uB85C\uD544, \uC218\uC5C5 \uD488\uC9C8, \uD6C4\uAE30 \uD750\uB984\uC744 \uC815\uB9AC\uD574 GARDEN \uC6B0\uC120 \uB178\uCD9C \uAD6C\uAC04\uC73C\uB85C \uC62C\uB77C\uAC00\uB294 \uAC83\uC774 \uD604\uC7AC \uBAA9\uD45C\uC785\uB2C8\uB2E4.',
+                badgeLabel: 'BLOOM BUILD-UP',
+                highlightTitle: '\uB2E4\uC74C \uBAA9\uD45C\uB294 GARDEN \uC6B0\uC120 \uB178\uCD9C\uC785\uB2C8\uB2E4.',
+                highlightCopy: '\uC644\uB8CC \uC218\uC5C5\uACFC \uD3C9\uC810\uC744 \uC548\uC815\uC801\uC73C\uB85C \uC313\uC73C\uBA74 \uCD94\uCC9C \uBAA9\uB85D\uACFC \uAD00\uB828 \uD074\uB798\uC2A4 \uB808\uC774\uC5B4\uC5D0\uC11C \uB354 \uC790\uC8FC \uBCF4\uC774\uAC8C \uB429\uB2C8\uB2E4.'
+            },
+            GARDEN: {
+                title: 'GARDEN \uD30C\uD2B8\uB108\uB294 \uCD94\uCC9C \uB808\uC774\uC5B4\uC5D0\uC11C \uBA3C\uC800 \uB178\uCD9C\uB429\uB2C8\uB2E4.',
+                summary: '\uC218\uAC15\uC0DD\uC774 \uBCF4\uB294 \uCD94\uCC9C \uCE74\uB4DC\uC640 \uAD00\uB828 \uD074\uB798\uC2A4 \uB808\uC774\uC5B4\uC5D0\uC11C \uC6B0\uC120 \uC21C\uC704\uB97C \uBC1B\uC544 \uC2E0\uB8B0 \uAE30\uBC18 \uC720\uC785\uC774 \uB298\uC5B4\uB0A9\uB2C8\uB2E4.',
+                badgeLabel: 'GARDEN PRIORITY',
+                highlightTitle: '\uD604\uC7AC \uD504\uB85C\uD544 \uBC30\uC9C0\uC640 \uCD94\uCC9C \uBAA9\uB85D \uC6B0\uC120 \uB178\uCD9C\uC774 \uD65C\uC131\uD654\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.',
+                highlightCopy: '\uC9C0\uAE08\uBD80\uD130\uB294 \uD6C4\uAE30\uC640 \uC644\uC131\uB3C4 \uB192\uC740 \uC218\uC5C5 \uC6B4\uC601 \uAE30\uB85D\uC744 \uC313\uC544 ATELIER \uC2A4\uD1A0\uB9AC \uB808\uC774\uC5B4\uB85C \uB118\uC5B4\uAC00\uB294 \uAC83\uC774 \uD575\uC2EC\uC785\uB2C8\uB2E4.'
+            },
+            ATELIER: {
+                title: 'ATELIER \uD30C\uD2B8\uB108\uB294 \uBE0C\uB79C\uB4DC \uC2A4\uD1A0\uB9AC \uB808\uC774\uC5B4\uAE4C\uC9C0 \uD655\uC7A5\uB429\uB2C8\uB2E4.',
+                summary: '\uCF58\uD150\uCE20 \uD5C8\uBE0C \uC778\uD130\uBDF0 \uCE74\uB4DC, \uC790\uC0AC\uBAB0 \uBC30\uB108 \uD6C4\uBCF4, \uD611\uD68C \uCF58\uD150\uCE20 \uC5F0\uACB0 \uAE30\uD68C\uAC00 \uC5F4\uB9AC\uB294 \uAD6C\uAC04\uC785\uB2C8\uB2E4.',
+                badgeLabel: 'ATELIER STORY',
+                highlightTitle: '\uCF58\uD150\uCE20 \uD5C8\uBE0C \uC778\uD130\uBDF0\uC640 \uC2A4\uD1A0\uB9AC \uBC30\uB108 \uD6C4\uBCF4\uAD70\uC5D0 \uD3EC\uD568\uB429\uB2C8\uB2E4.',
+                highlightCopy: '\uC9C0\uAE08\uBD80\uD130\uB294 \uB2E8\uC21C \uB178\uCD9C\uC744 \uB118\uC5B4 \uB300\uD45C \uC0AC\uB840\uB85C \uB2E4\uB904\uC9C8 \uC218 \uC788\uB3C4\uB85D \uC2DC\uADF8\uB2C8\uCC98 \uC218\uC5C5\uACFC \uC6B4\uC601 \uBC29\uC2DD\uC744 \uC815\uB9AC\uD558\uB294 \uB2E8\uACC4\uC785\uB2C8\uB2E4.'
+            },
+            AMBASSADOR: {
+                title: 'AMBASSADOR \uD30C\uD2B8\uB108\uB294 \uC0DD\uD0DC\uACC4 \uB300\uD45C \uC5ED\uD560\uC744 \uB9E1\uC2B5\uB2C8\uB2E4.',
+                summary: '\uC2E0\uADDC \uD30C\uD2B8\uB108 \uBA58\uD1A0\uB9C1, \uACF5\uB3D9 \uC138\uBBF8\uB098 \uAE30\uD68D, \uBA54\uC778 \uB300\uD45C \uB178\uCD9C\uAE4C\uC9C0 \uD3EC\uD568\uB418\uB294 \uCD5C\uC0C1\uC704 \uD30C\uD2B8\uB108 \uB808\uC774\uC5B4\uC785\uB2C8\uB2E4.',
+                badgeLabel: 'AMBASSADOR LEAD',
+                highlightTitle: '\uBA58\uD1A0 \uD30C\uD2B8\uB108\uC640 \uACF5\uB3D9 \uC138\uBBF8\uB098 \uD6C4\uBCF4 \uAD8C\uD55C\uC774 \uD65C\uC131\uD654\uB418\uC5B4 \uC788\uC2B5\uB2C8\uB2E4.',
+                highlightCopy: '\uC774\uC81C \uC6B4\uC601 \uC131\uACFC\uB97C \uB118\uC5B4 \uD30C\uD2B8\uB108 \uC0DD\uD0DC\uACC4 \uD655\uC7A5\uACFC \uD611\uD68C \uACF5\uB3D9 \uAE30\uD68D\uAE4C\uC9C0 \uB9AC\uB4DC\uD558\uB294 \uC5ED\uD560\uC744 \uB9E1\uAC8C \uB429\uB2C8\uB2E4.'
+            }
+        };
+
+        return metaMap[grade] || metaMap.BLOOM;
+    }
+
+    function getGradeRank(rawGrade) {
+        var grade = String(rawGrade || '').toUpperCase();
+        var rankMap = {
+            BLOOM: 0,
+            GARDEN: 1,
+            ATELIER: 2,
+            AMBASSADOR: 3
+        };
+
+        return rankMap[grade] || 0;
+    }
+
     /**
      * 운영 데이터가 구등급/신등급이 혼재해도 화면 표시는 실제 수수료율을 우선 기준으로 맞춘다.
      */
@@ -1773,8 +2806,8 @@
         }
 
         var legacyNameMap = {
-            SILVER: 'GARDEN',
-            GOLD: 'BLOOM',
+            SILVER: 'BLOOM',
+            GOLD: 'GARDEN',
             PLATINUM: 'ATELIER'
         };
         return legacyNameMap[rawGrade] || 'BLOOM';
@@ -1904,6 +2937,7 @@
 
             showToast('\uD504\uB85C\uD544\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
             closeModal('pdProfileModal');
+            refreshOnboardingChecklist(false);
         });
     }
 
@@ -2031,9 +3065,7 @@
             hideLoading();
 
             if (err || !data || !data.success) {
-                showToast('후기를 불러올 수 없습니다.', 'error');
-                renderReviews([]); // 에러 시 빈 상태 표시
-                renderRatingDistribution({ avg: 0, total: 0, star5: 0, star4: 0, star3: 0, star2: 0, star1: 0 });
+                showToast('\uD6C4\uAE30\uB97C \uBD88\uB7EC\uC62C \uC218 \uC5C6\uC2B5\uB2C8\uB2E4.', 'error');
                 return;
             }
 
@@ -2286,6 +3318,7 @@
 
             showToast('\uB2F5\uBCC0\uC774 \uC800\uC7A5\uB418\uC5C8\uC2B5\uB2C8\uB2E4.', 'success');
             closeModal('pdReplyModal');
+            refreshActionBoard();
 
             // 후기 새로고침
             loadReviews();
@@ -2578,22 +3611,23 @@
             }
         }
 
-        // _auth 동적 인증 주입 (서버사이드 검증용)
-        var authInfo = PC.auth.getMemberId ? {
-            member_id: PC.auth.getMemberId(),
-            group_name: (document.querySelector('[id*="group_name"]') || {}).textContent || '',
-            group_level: (document.querySelector('[id*="group_level"]') || {}).textContent || ''
-        } : null;
-        if (authInfo && authInfo.member_id) {
-            body._auth = authInfo;
-        }
-
-        PC.api.fetchPost(getEndpoint(action), body)
+        fetch(getEndpoint(action), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            redirect: 'follow'
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(function(data) {
                 callback(null, data);
             })
             .catch(function(err) {
-                console.error('[PartnerDash] API 호출 실패 (' + action + '):', err);
+                console.error('[PartnerDash] API \uD638\uCD9C \uC2E4\uD328 (' + action + '):', err);
                 callback(err, null);
             });
     }
@@ -2614,22 +3648,23 @@
             }
         }
 
-        // _auth 동적 인증 주입
-        var authInfo = PC.auth.getMemberId ? {
-            member_id: PC.auth.getMemberId(),
-            group_name: (document.querySelector('[id*="group_name"]') || {}).textContent || '',
-            group_level: (document.querySelector('[id*="group_level"]') || {}).textContent || ''
-        } : null;
-        if (authInfo && authInfo.member_id) {
-            body._auth = authInfo;
-        }
-
-        PC.api.fetchPost(getEndpoint(action), body)
+        fetch(getEndpoint(action), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body),
+            redirect: 'follow'
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(function(resData) {
                 callback(null, resData);
             })
             .catch(function(err) {
-                console.error('[PartnerDash] POST 실패 (' + action + '):', err);
+                console.error('[PartnerDash] POST \uC2E4\uD328 (' + action + '):', err);
                 callback(err, null);
             });
     }
@@ -2643,14 +3678,25 @@
      * @param {Function} onError
      */
     function apiCall(endpoint, data, onSuccess, onError) {
-        PC.api.fetchPost(endpoint, data || {})
+        fetch(endpoint, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data || {}),
+            redirect: 'follow'
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(function(resData) {
                 if (typeof onSuccess === 'function') {
                     onSuccess(resData);
                 }
             })
             .catch(function(err) {
-                console.error('[PartnerDash] API \uC2E4\uD328 (' + endpoint + '):', err.code || '', err.message || err);
+                console.error('[PartnerDash] Direct POST \uC2E4\uD328 (' + endpoint + '):', err);
                 if (typeof onError === 'function') {
                     onError(err);
                 }
@@ -2670,9 +3716,9 @@
      */
     function renderStars(rating, prefix) {
         var html = '';
-        var filled = '<svg class="' + prefix + '__star ' + prefix + '__star--filled" viewBox="0 0 14 14" width="14" height="14" fill="#F5A623" xmlns="http://www.w3.org/2000/svg">'
+        var filled = '<svg class="' + prefix + '__star ' + prefix + '__star--filled" viewBox="0 0 14 14" width="14" height="14" fill="#F5A623">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
-        var empty = '<svg class="' + prefix + '__star ' + prefix + '__star--empty" viewBox="0 0 14 14" width="14" height="14" fill="#DDD" xmlns="http://www.w3.org/2000/svg">'
+        var empty = '<svg class="' + prefix + '__star ' + prefix + '__star--empty" viewBox="0 0 14 14" width="14" height="14" fill="#DDD">'
             + '<path d="M7 1l1.76 3.57 3.94.57-2.85 2.78.67 3.93L7 10.07l-3.52 1.78.67-3.93L1.3 5.14l3.94-.57L7 1z"/></svg>';
 
         for (var i = 1; i <= 5; i++) {
@@ -2688,82 +3734,45 @@
        ======================================== */
 
     /**
+     * 가격 포맷 (65000 -> "65,000")
+     * @param {number} price
+     * @returns {string}
+     */
+    function formatPrice(price) {
+        var num = Number(price);
+        if (isNaN(num)) return '0';
+        return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    /**
      * 날짜 포맷 (YYYY-MM-DD -> YYYY.MM.DD)
      * @param {string} dateStr
      * @returns {string}
      */
-    /* ========================================
-       온보딩 체크리스트
-       ======================================== */
-
-    function updateOnboarding(dashData) {
-        var el = document.getElementById('pdOnboarding');
-        if (!el) return;
-
-        // 이미 닫힌 경우 (로컬 스토리지)
-        var dismissed = localStorage.getItem('pc_onboard_dismissed_' + memberId);
-        if (dismissed === 'true') return;
-
-        var steps = {
-            profile: !!(partnerData && partnerData.partner_name && partnerData.location),
-            class: (dashData.classes && dashData.classes.length > 0),
-            kit: false,
-            schedule: false
-        };
-
-        // 키트 구성 여부: 하나라도 kit_enabled인 클래스 존재
-        var classes = dashData.classes || [];
-        for (var i = 0; i < classes.length; i++) {
-            if (parseInt(classes[i].kit_enabled, 10) === 1) steps.kit = true;
-            // 일정이 있는 클래스 존재
-        }
-
-        // 일정 추가 여부
-        steps.schedule = !!(dashData.schedules && dashData.schedules.length > 0) ||
-            !!(dashData.upcoming_bookings && dashData.upcoming_bookings > 0);
-
-        // 5/5 완료 시 자동 숨김
-        var done = 0;
-        var total = 4;
-        var items = el.querySelectorAll('.pd-onboarding__item');
-        for (var j = 0; j < items.length; j++) {
-            var stepKey = items[j].getAttribute('data-step');
-            if (steps[stepKey]) {
-                items[j].classList.add('pd-onboarding__item--done');
-                done++;
-            } else {
-                items[j].classList.remove('pd-onboarding__item--done');
-            }
-        }
-
-        if (done >= total) {
-            el.style.display = 'none';
-            return;
-        }
-
-        // 진행률 표시
-        var progressEl = document.getElementById('pdOnboardProgress');
-        var barEl = document.getElementById('pdOnboardBar');
-        if (progressEl) progressEl.textContent = done + '/' + total;
-        if (barEl) barEl.style.width = Math.round((done / total) * 100) + '%';
-
-        el.style.display = '';
-
-        // 닫기 버튼
-        var dismissBtn = document.getElementById('pdOnboardDismiss');
-        if (dismissBtn && !dismissBtn._bound) {
-            dismissBtn._bound = true;
-            dismissBtn.addEventListener('click', function() {
-                el.style.display = 'none';
-                localStorage.setItem('pc_onboard_dismissed_' + memberId, 'true');
-            });
-        }
-    }
-
     function formatDate(dateStr) {
         if (!dateStr) return '-';
         var d = String(dateStr).substring(0, 10);
         return d.replace(/-/g, '.');
+    }
+
+    /**
+     * 숫자 0 채우기 (1 -> "01")
+     * @param {number} n
+     * @returns {string}
+     */
+    function padZero(n) {
+        return n < 10 ? '0' + n : '' + n;
+    }
+
+    /**
+     * HTML 이스케이프 (XSS 방지)
+     * @param {string} str
+     * @returns {string}
+     */
+    function escapeHtml(str) {
+        if (!str) return '';
+        var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(str).replace(/[&<>"']/g, function(m) { return map[m]; });
     }
 
     /**

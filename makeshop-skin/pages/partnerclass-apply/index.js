@@ -11,10 +11,8 @@
        설정값
        ======================================== */
 
-    /* ── 공통 모듈 바인딩 (pressco21-core.js) ── */
-    var PC = window.PRESSCO21;
-
-    /* APPLY_URL은 PC.api.fetchPost('PARTNER_APPLY', ...) 로 대체 */
+    /** n8n WF-07 파트너 신청 엔드포인트 */
+    var APPLY_URL = 'https://n8n.pressco21.com/webhook/partner-apply';
 
     /* ========================================
        상태 관리
@@ -26,15 +24,10 @@
     /** 제출 진행 중 중복 방지 */
     var isSubmitting = false;
 
-    /** 수강 이수 여부 */
-    var hasCompletedClass = false;
-
 
     /* ========================================
        초기화
        ======================================== */
-
-    var PA_AREAS = ['paNoticeArea', 'paFormArea', 'paSuccessArea', 'paAlreadyArea'];
 
     function init() {
         // 로그인 버튼 JS 폴백
@@ -42,27 +35,28 @@
         if (loginBtn) {
             loginBtn.onclick = function(e) {
                 e.preventDefault();
-                PC.auth.redirectToLogin();
+                window.location.href = '/shop/member.html?type=login&returnUrl=' + encodeURIComponent(window.location.href);
             };
         }
 
         // 회원 ID 읽기 (가상태그)
-        memberId = PC.auth.getMemberId('paMemberId');
+        var memberEl = document.getElementById('paMemberId');
+        if (memberEl) {
+            memberId = (memberEl.textContent || '').trim();
+        }
 
         // 미로그인 처리
         if (!memberId) {
-            PC.ui.showArea('paNoticeArea', PA_AREAS);
+            showArea('paNoticeArea');
             return;
         }
 
         // 폼 표시
-        PC.ui.showArea('paFormArea', PA_AREAS);
+        showArea('paFormArea');
 
         // 이벤트 바인딩
         bindFormEvents();
-
-        // 수강 이력 확인
-        checkCompletedClasses();
+        bindScrollLinks();
     }
 
 
@@ -116,6 +110,41 @@
                 });
             })(inputs[j]);
         }
+
+        var agreePrivacy = document.getElementById('paAgreePrivacy');
+        if (agreePrivacy) {
+            agreePrivacy.addEventListener('change', function() {
+                clearFieldError('paAgreePrivacy');
+            });
+        }
+    }
+
+    function bindScrollLinks() {
+        var buttons = document.querySelectorAll('.partner-apply .js-scroll-link');
+        for (var i = 0; i < buttons.length; i++) {
+            (function(btn) {
+                btn.addEventListener('click', function() {
+                    var targetId = btn.getAttribute('data-target');
+                    scrollToTarget(targetId);
+                });
+            })(buttons[i]);
+        }
+    }
+
+    function scrollToTarget(targetId) {
+        if (!targetId) return;
+
+        var target = document.getElementById(targetId);
+        if (!target) return;
+
+        var header = document.querySelector('.partner-apply .pa-page-header');
+        var offset = header && window.innerWidth > 767 ? header.offsetHeight + 16 : 16;
+        var top = target.getBoundingClientRect().top + window.pageYOffset - offset;
+
+        window.scrollTo({
+            top: top > 0 ? top : 0,
+            behavior: 'smooth'
+        });
     }
 
 
@@ -198,8 +227,7 @@
             location:       getVal('paLocation'),
             introduction:   getVal('paIntroduction'),
             portfolio_url:  getVal('paPortfolioUrl'),
-            instagram_url:  getVal('paInstagramUrl'),
-            has_completed_class: hasCompletedClass
+            instagram_url:  getVal('paInstagramUrl')
         };
     }
 
@@ -285,7 +313,7 @@
     function isValidUrl(url) {
         if (!url) return true;
         var lower = url.toLowerCase().trim();
-        return lower.indexOf('http://') === 0 || lower.indexOf('https://') === 0;
+        return /^https?:\/\//.test(lower);
     }
 
 
@@ -299,12 +327,50 @@
      * @param {Function} callback - function(err, data)
      */
     function postApply(data, callback) {
-        PC.api.fetchPost('PARTNER_APPLY', data)
+        fetch(APPLY_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+            redirect: 'follow'
+        })
+            .then(function(response) {
+                return response.text().then(function(text) {
+                    var parsed = null;
+
+                    if (text) {
+                        try {
+                            parsed = JSON.parse(text);
+                        } catch (parseErr) {
+                            console.warn('[PartnerApply] JSON 파싱 실패:', parseErr);
+                        }
+                    }
+
+                    if (parsed) {
+                        return parsed;
+                    }
+
+                    if (!response.ok && response.status >= 500) {
+                        throw new Error('HTTP ' + response.status);
+                    }
+
+                    return {
+                        success: false,
+                        error: {
+                            code: 'INVALID_RESPONSE',
+                            message: response.status === 409
+                                ? '이미 등록된 신청 정보가 있습니다. 잠시 후 다시 확인해주세요.'
+                                : '신청 처리 중 응답을 해석할 수 없습니다.',
+                            status: response.status,
+                            raw: text ? text.substring(0, 200) : ''
+                        }
+                    };
+                });
+            })
             .then(function(resData) {
                 callback(null, resData);
             })
             .catch(function(err) {
-                console.error('[PartnerApply] 신청 API 실패:', err.code || '', err.message || err);
+                console.error('[PartnerApply] 신청 API 실패:', err);
                 callback(err, null);
             });
     }
@@ -318,19 +384,36 @@
      * 지정 영역만 표시 (나머지 숨김)
      * @param {string} areaId
      */
+    function showArea(areaId) {
+        var areas = ['paNoticeArea', 'paFormArea', 'paSuccessArea', 'paAlreadyArea'];
+        for (var i = 0; i < areas.length; i++) {
+            var el = document.getElementById(areas[i]);
+            if (el) el.style.display = areas[i] === areaId ? '' : 'none';
+        }
+    }
+
+    /**
+     * 신청 완료 화면 표시
+     * @param {string} appId
+     */
     function showSuccessArea(appId) {
         var appIdEl = document.getElementById('paSuccessAppId');
         if (appIdEl) appIdEl.textContent = appId || '-';
-        PC.ui.showArea('paSuccessArea', PA_AREAS);
+        showArea('paSuccessArea');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
+    /**
+     * 이미 파트너/신청중 안내 화면 표시
+     * @param {string} title
+     * @param {string} desc
+     */
     function showAlreadyArea(title, desc) {
         var titleEl = document.getElementById('paAlreadyTitle');
         var descEl = document.getElementById('paAlreadyDesc');
         if (titleEl) titleEl.textContent = title;
         if (descEl) descEl.textContent = desc;
-        PC.ui.showArea('paAlreadyArea', PA_AREAS);
+        showArea('paAlreadyArea');
         window.scrollTo({ top: 0, behavior: 'smooth' });
     }
 
@@ -400,11 +483,13 @@
        ======================================== */
 
     function showLoading() {
-        PC.ui.showLoading('paLoadingOverlay');
+        var el = document.getElementById('paLoadingOverlay');
+        if (el) el.style.display = 'flex';
     }
 
     function hideLoading() {
-        PC.ui.hideLoading('paLoadingOverlay');
+        var el = document.getElementById('paLoadingOverlay');
+        if (el) el.style.display = 'none';
     }
 
     /**
@@ -424,38 +509,6 @@
 
 
     /* ========================================
-       수강 이력 확인
-       ======================================== */
-
-    /**
-     * MY_BOOKINGS API로 수강 완료 이력 확인
-     * 완료 1건+ → 우대 배지 표시
-     */
-    function checkCompletedClasses() {
-        PC.api.fetchPost('MY_BOOKINGS', { member_id: memberId }, { noRetry: true })
-            .then(function(data) {
-                if (!data || !data.success || !data.data) return;
-                var bookings = data.data.bookings || [];
-                var todayStr = PC.util.formatDate(new Date());
-                var completedCount = 0;
-                for (var i = 0; i < bookings.length; i++) {
-                    if ((bookings[i].class_date || '') < todayStr) {
-                        completedCount++;
-                    }
-                }
-                if (completedCount > 0) {
-                    hasCompletedClass = true;
-                    var badge = document.getElementById('paCertBadge');
-                    if (badge) badge.style.display = '';
-                }
-            })
-            .catch(function() {
-                /* 실패 시 무시 (우대 배지 미표시) */
-            });
-    }
-
-
-    /* ========================================
        유틸리티
        ======================================== */
 
@@ -471,76 +524,12 @@
 
 
     /* ========================================
-       세일즈 랜딩 - 스크롤 링크 & 플로팅 CTA
-       ======================================== */
-
-    /**
-     * .js-scroll-link 버튼 클릭 시 data-target 위치로 부드럽게 스크롤
-     */
-    function bindScrollLinks() {
-        var btns = document.querySelectorAll('.partner-apply .js-scroll-link');
-        for (var i = 0; i < btns.length; i++) {
-            (function(btn) {
-                btn.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    var targetId = btn.getAttribute('data-target');
-                    if (!targetId) return;
-                    var target = document.getElementById(targetId);
-                    if (!target) return;
-                    target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-                });
-            })(btns[i]);
-        }
-    }
-
-    /**
-     * 플로팅 CTA: 히어로 지나면 표시, 폼 도달 시 숨김
-     */
-    function initFloatCta() {
-        var floatEl = document.getElementById('paFloatCta');
-        var heroEl = document.querySelector('.partner-apply .pa-hero');
-        var formEl = document.getElementById('paApplyAnchor');
-        if (!floatEl || !heroEl) return;
-
-        var debounceTimer = null;
-
-        function checkScroll() {
-            var scrollY = window.pageYOffset || document.documentElement.scrollTop;
-            var heroBottom = heroEl.offsetTop + heroEl.offsetHeight;
-            var formTop = formEl ? formEl.offsetTop - window.innerHeight : Infinity;
-
-            if (scrollY > heroBottom && scrollY < formTop) {
-                floatEl.classList.add('is-visible');
-            } else {
-                floatEl.classList.remove('is-visible');
-            }
-        }
-
-        window.addEventListener('scroll', function() {
-            if (debounceTimer) return;
-            debounceTimer = setTimeout(function() {
-                debounceTimer = null;
-                checkScroll();
-            }, 80);
-        }, { passive: true });
-
-        checkScroll();
-    }
-
-
-    /* ========================================
        DOM Ready
        ======================================== */
     if (document.readyState === 'loading') {
-        document.addEventListener('DOMContentLoaded', function() {
-            init();
-            bindScrollLinks();
-            initFloatCta();
-        });
+        document.addEventListener('DOMContentLoaded', init);
     } else {
         init();
-        bindScrollLinks();
-        initFloatCta();
     }
 
 })();

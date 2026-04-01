@@ -1,803 +1,658 @@
 /* ============================================
-   PRESSCO21 콘텐츠 허브 페이지 (E2-005)
-   CSS 스코핑: .content-hub
-   브랜드 컬러: #425b51 (포레스트 그린), #d4a373 (골드)
-   반응형: ~768px / 768~992px / 992px~
+   PRESSCO21 콘텐츠 허브 페이지
+   CSS 스코핑: .partner-content-hub
    ============================================ */
 
-/* ----------------------------------------
-   0. CSS 변수 (스코핑된 커스텀 프로퍼티)
-   ---------------------------------------- */
-.content-hub {
-    --ch-primary: #425b51;
-    --ch-primary-light: #668f7e;
-    --ch-primary-dark: #2a3c34;
-    --ch-gold: #d4a373;
-    --ch-gold-light: #E8D5C4;
-    --ch-bg: #fdfbf7;
-    --ch-bg-card: #FFFFFF;
-    --ch-text: #4a4a4a;
-    --ch-text-light: #777777;
-    --ch-text-dark: #1a1a1a;
-    --ch-border: #E8E2DB;
-    --ch-border-light: #F0EBE5;
-    --ch-shadow-sm: 0 1px 3px rgba(0, 0, 0, 0.06);
-    --ch-shadow-md: 0 4px 16px rgba(0, 0, 0, 0.08);
-    --ch-shadow-hover: 0 12px 28px rgba(0, 0, 0, 0.14);
-    --ch-radius-sm: 6px;
-    --ch-radius-md: 10px;
-    --ch-radius-lg: 14px;
-    --ch-transition: 0.25s ease-out;
-    --ch-font: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', -apple-system, sans-serif;
-    --ch-font-serif: 'Noto Serif KR', Georgia, 'Times New Roman', serif;
-
-    font-family: var(--ch-font);
-    background-color: var(--ch-bg);
-    color: var(--ch-text);
-    line-height: 1.6;
-    box-sizing: border-box;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
+.partner-content-hub {
+    --pch-ink: #163228;
+    --pch-ink-soft: #486157;
+    --pch-paper: #f6efe6;
+    --pch-paper-deep: #eadfce;
+    --pch-card: rgba(255, 251, 246, 0.88);
+    --pch-line: rgba(22, 50, 40, 0.12);
+    --pch-copper: #b46e46;
+    --pch-copper-soft: #d89d78;
+    --pch-moss: #7b9479;
+    --pch-olive: #5b6d53;
+    --pch-shadow: 0 24px 60px rgba(22, 50, 40, 0.12);
+    --pch-shadow-sm: 0 10px 24px rgba(22, 50, 40, 0.08);
+    --pch-radius: 28px;
+    --pch-font-body: 'Pretendard Variable', 'Pretendard', 'Noto Sans KR', sans-serif;
+    --pch-font-display: 'Cormorant Garamond', serif;
+    font-family: var(--pch-font-body);
+    color: var(--pch-ink);
+    background:
+        radial-gradient(circle at top left, rgba(212, 173, 143, 0.2), transparent 26%),
+        radial-gradient(circle at 90% 20%, rgba(123, 148, 121, 0.17), transparent 22%),
+        linear-gradient(180deg, #fbf5ed 0%, #f2e7d9 100%);
+    min-height: 100vh;
 }
 
-.content-hub *,
-.content-hub *::before,
-.content-hub *::after {
+.partner-content-hub *,
+.partner-content-hub *::before,
+.partner-content-hub *::after {
     box-sizing: border-box;
 }
 
-/* 스크린리더 전용 */
-.content-hub .sr-only {
-    position: absolute;
-    width: 1px;
-    height: 1px;
-    padding: 0;
-    margin: -1px;
-    overflow: hidden;
-    clip: rect(0, 0, 0, 0);
-    white-space: nowrap;
-    border: 0;
+.partner-content-hub a {
+    color: inherit;
+    text-decoration: none;
 }
 
-
-/* ----------------------------------------
-   1. 히어로 섹션
-   ---------------------------------------- */
-.content-hub .ch-hero {
-    background: linear-gradient(135deg, var(--ch-primary-dark) 0%, var(--ch-primary) 50%, var(--ch-primary-light) 100%);
-    padding: 40px 24px 32px;
-    text-align: center;
+.partner-content-hub .pch-hero {
     position: relative;
     overflow: hidden;
+    padding: 48px 24px 28px;
 }
 
-/* 배경 장식 패턴 */
-.content-hub .ch-hero::before {
+.partner-content-hub .pch-hero::before {
     content: '';
     position: absolute;
-    top: -50%;
-    left: -50%;
-    width: 200%;
-    height: 200%;
-    background: radial-gradient(circle at 30% 70%, rgba(255,255,255,0.05) 0%, transparent 60%),
-                radial-gradient(circle at 70% 30%, rgba(212,163,115,0.08) 0%, transparent 50%);
-    pointer-events: none;
+    inset: 32px 24px auto;
+    height: 440px;
+    border-radius: 36px;
+    background:
+        linear-gradient(135deg, rgba(20, 45, 36, 0.96) 0%, rgba(48, 82, 66, 0.9) 42%, rgba(180, 110, 70, 0.82) 100%);
+    box-shadow: var(--pch-shadow);
 }
 
-.content-hub .ch-hero__inner {
+.partner-content-hub .pch-hero__inner {
     position: relative;
     z-index: 1;
-    max-width: 800px;
+    max-width: 1320px;
     margin: 0 auto;
-}
-
-/* 브레드크럼 */
-.content-hub .ch-breadcrumb {
-    font-size: 12px;
-    color: rgba(255, 255, 255, 0.65);
-    margin-bottom: 16px;
-}
-
-.content-hub .ch-breadcrumb a {
-    color: rgba(255, 255, 255, 0.65);
-    text-decoration: none;
-    transition: color var(--ch-transition);
-}
-
-.content-hub .ch-breadcrumb a:hover {
-    color: rgba(255, 255, 255, 0.95);
-}
-
-.content-hub .ch-breadcrumb__sep {
-    margin: 0 6px;
-    opacity: 0.5;
-}
-
-.content-hub .ch-breadcrumb__current {
-    color: rgba(255, 255, 255, 0.9);
-}
-
-/* 히어로 타이틀 */
-.content-hub .ch-hero__title {
-    font-family: var(--ch-font-serif);
-    font-size: 28px;
-    font-weight: 700;
-    color: #FFFFFF;
-    margin: 0 0 8px;
-    letter-spacing: -0.02em;
-    line-height: 1.35;
-}
-
-.content-hub .ch-hero__subtitle {
-    font-size: 15px;
-    color: rgba(255, 255, 255, 0.8);
-    margin: 0;
-    font-weight: 400;
-}
-
-
-/* ----------------------------------------
-   2. 탭 네비게이션
-   ---------------------------------------- */
-.content-hub .ch-tabs {
-    display: flex;
-    gap: 0;
-    background: var(--ch-bg-card);
-    border-bottom: 1px solid var(--ch-border);
-    padding: 0 24px;
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
-    scrollbar-width: none;
-    position: sticky;
-    top: 0;
-    z-index: 50;
-}
-
-.content-hub .ch-tabs::-webkit-scrollbar {
-    display: none;
-}
-
-.content-hub .ch-tabs__btn {
-    flex: 0 0 auto;
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    padding: 14px 20px;
-    font-family: var(--ch-font);
-    font-size: 14px;
-    font-weight: 500;
-    color: var(--ch-text-light);
-    background: none;
-    border: none;
-    border-bottom: 2px solid transparent;
-    cursor: pointer;
-    transition: color var(--ch-transition), border-color var(--ch-transition);
-    white-space: nowrap;
-}
-
-.content-hub .ch-tabs__btn:hover {
-    color: var(--ch-primary);
-}
-
-.content-hub .ch-tabs__btn--active {
-    color: var(--ch-primary);
-    border-bottom-color: var(--ch-primary);
-    font-weight: 600;
-}
-
-.content-hub .ch-tabs__icon {
-    display: flex;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-
-/* ----------------------------------------
-   3. 패널 공통
-   ---------------------------------------- */
-.content-hub .ch-panel {
-    display: none;
-    animation: chFadeIn 0.3s ease-out;
-}
-
-.content-hub .ch-panel--active {
-    display: block;
-}
-
-@keyframes chFadeIn {
-    from { opacity: 0; transform: translateY(8px); }
-    to   { opacity: 1; transform: translateY(0); }
-}
-
-.content-hub .ch-panel__inner {
-    max-width: 1100px;
-    margin: 0 auto;
-    padding: 40px 24px 60px;
-}
-
-/* 섹션 헤더 */
-.content-hub .ch-section-header {
-    margin-bottom: 32px;
-}
-
-.content-hub .ch-section-header__title {
-    font-family: var(--ch-font-serif);
-    font-size: 22px;
-    font-weight: 700;
-    color: var(--ch-text-dark);
-    margin: 0 0 8px;
-    letter-spacing: -0.01em;
-}
-
-.content-hub .ch-section-header__desc {
-    font-size: 14px;
-    color: var(--ch-text-light);
-    margin: 0;
-    line-height: 1.5;
-}
-
-
-/* ----------------------------------------
-   4. 카드 그리드 (파트너 스토리, 꽃공예 가이드)
-   ---------------------------------------- */
-.content-hub .ch-card-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    grid-template-columns: minmax(0, 1.4fr) minmax(340px, 0.8fr);
     gap: 24px;
+    align-items: stretch;
 }
 
-.content-hub .ch-card {
-    background: var(--ch-bg-card);
-    border-radius: var(--ch-radius-lg);
-    border: 1px solid var(--ch-border-light);
-    overflow: hidden;
-    transition: transform var(--ch-transition), box-shadow var(--ch-transition);
-    cursor: pointer;
+.partner-content-hub .pch-hero__copy,
+.partner-content-hub .pch-hero__aside {
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 32px;
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
 }
 
-.content-hub .ch-card:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--ch-shadow-hover);
+.partner-content-hub .pch-hero__copy {
+    padding: 42px 40px;
+    background: linear-gradient(180deg, rgba(255, 247, 241, 0.08) 0%, rgba(255, 247, 241, 0.02) 100%);
+    color: #ffffff;
 }
 
-/* 카드 썸네일 */
-.content-hub .ch-card__thumb {
-    position: relative;
-    width: 100%;
-    padding-top: 60%;
-    background: linear-gradient(135deg, #f0ebe5 0%, #e8e2db 100%);
-    overflow: hidden;
-}
-
-.content-hub .ch-card__thumb-icon {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    color: var(--ch-primary-light);
-    opacity: 0.5;
-}
-
-.content-hub .ch-card__badge {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 600;
-    border-radius: 20px;
-    color: #FFFFFF;
-    background: var(--ch-primary);
-}
-
-.content-hub .ch-card__badge--gold {
-    background: var(--ch-gold);
-}
-
-.content-hub .ch-card__badge--season {
-    background: #e8918e;
-}
-
-/* 카드 바디 */
-.content-hub .ch-card__body {
-    padding: 20px;
-}
-
-.content-hub .ch-card__category {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--ch-primary);
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    margin-bottom: 8px;
-}
-
-.content-hub .ch-card__title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--ch-text-dark);
-    margin: 0 0 8px;
-    line-height: 1.4;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.content-hub .ch-card__desc {
-    font-size: 13px;
-    color: var(--ch-text-light);
-    margin: 0 0 16px;
-    line-height: 1.5;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-}
-
-.content-hub .ch-card__meta {
-    display: flex;
-    align-items: center;
-    gap: 8px;
+.partner-content-hub .pch-hero__eyebrow,
+.partner-content-hub .pch-section__eyebrow,
+.partner-content-hub .pch-state__eyebrow,
+.partner-content-hub .pch-cta-strip__eyebrow {
+    margin: 0 0 14px;
     font-size: 12px;
-    color: var(--ch-text-light);
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: rgba(255, 255, 255, 0.68);
 }
 
-.content-hub .ch-card__meta-dot {
-    width: 3px;
-    height: 3px;
-    border-radius: 50%;
-    background: var(--ch-border);
-    flex-shrink: 0;
+.partner-content-hub .pch-hero__title,
+.partner-content-hub .pch-section__title,
+.partner-content-hub .pch-state__title,
+.partner-content-hub .pch-cta-strip__title {
+    margin: 0;
+    font-family: var(--pch-font-display);
+    font-weight: 600;
+    letter-spacing: -0.03em;
 }
 
-
-/* ----------------------------------------
-   5. 수강생 후기 영역
-   ---------------------------------------- */
-/* 빈 상태 */
-.content-hub .ch-empty {
-    text-align: center;
-    padding: 60px 24px;
+.partner-content-hub .pch-hero__title {
+    font-size: 62px;
+    line-height: 0.94;
 }
 
-.content-hub .ch-empty__icon {
-    width: 80px;
-    height: 80px;
-    margin: 0 auto 20px;
+.partner-content-hub .pch-hero__desc {
+    margin: 20px 0 0;
+    max-width: 640px;
+    font-size: 17px;
+    line-height: 1.8;
+    color: rgba(255, 255, 255, 0.82);
+}
+
+.partner-content-hub .pch-hero__actions,
+.partner-content-hub .pch-cta-strip__actions {
     display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-top: 28px;
+}
+
+.partner-content-hub .pch-btn {
+    display: inline-flex;
     align-items: center;
     justify-content: center;
-    border-radius: 50%;
-    background: var(--ch-border-light);
-    color: var(--ch-text-light);
-}
-
-.content-hub .ch-empty__title {
-    font-size: 16px;
-    font-weight: 600;
-    color: var(--ch-text-dark);
-    margin: 0 0 8px;
-}
-
-.content-hub .ch-empty__desc {
+    min-height: 48px;
+    padding: 0 22px;
+    border-radius: 999px;
     font-size: 14px;
-    color: var(--ch-text-light);
-    margin: 0 0 24px;
-    line-height: 1.5;
-}
-
-.content-hub .ch-empty__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 24px;
-    font-family: var(--ch-font);
-    font-size: 14px;
-    font-weight: 600;
-    color: #FFFFFF;
-    background: var(--ch-primary);
-    border: none;
-    border-radius: var(--ch-radius-md);
-    cursor: pointer;
-    text-decoration: none;
-    transition: background var(--ch-transition);
-}
-
-.content-hub .ch-empty__btn:hover {
-    background: var(--ch-primary-dark);
-}
-
-
-/* ----------------------------------------
-   6. 시즌 큐레이션 영역
-   ---------------------------------------- */
-.content-hub .ch-season-banner {
-    position: relative;
-    border-radius: var(--ch-radius-lg);
-    overflow: hidden;
-    background: linear-gradient(135deg, #fce4ec 0%, #f8bbd0 30%, #f48fb1 100%);
-    padding: 40px 32px;
-    margin-bottom: 32px;
-}
-
-.content-hub .ch-season-banner__label {
-    display: inline-block;
-    font-size: 11px;
-    font-weight: 600;
-    color: #FFFFFF;
-    background: rgba(0, 0, 0, 0.2);
-    padding: 4px 12px;
-    border-radius: 20px;
-    margin-bottom: 12px;
-    letter-spacing: 0.05em;
-    text-transform: uppercase;
-}
-
-.content-hub .ch-season-banner__title {
-    font-family: var(--ch-font-serif);
-    font-size: 24px;
     font-weight: 700;
-    color: #FFFFFF;
-    margin: 0 0 8px;
-    line-height: 1.35;
-    text-shadow: 0 1px 4px rgba(0, 0, 0, 0.1);
+    letter-spacing: 0.01em;
+    border: 1px solid transparent;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, background-color 0.2s ease;
 }
 
-.content-hub .ch-season-banner__desc {
-    font-size: 14px;
-    color: rgba(255, 255, 255, 0.9);
-    margin: 0 0 20px;
-    max-width: 500px;
-    line-height: 1.5;
-}
-
-.content-hub .ch-season-banner__btn {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 10px 24px;
-    font-family: var(--ch-font);
-    font-size: 14px;
-    font-weight: 600;
-    color: #ad1457;
-    background: #FFFFFF;
-    border: none;
-    border-radius: var(--ch-radius-md);
-    cursor: pointer;
-    text-decoration: none;
-    transition: transform var(--ch-transition), box-shadow var(--ch-transition);
-}
-
-.content-hub .ch-season-banner__btn:hover {
+.partner-content-hub .pch-btn:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
 }
 
-/* 시즌 카드 */
-.content-hub .ch-season-cards {
+.partner-content-hub .pch-btn--primary {
+    background: #fff4eb;
+    color: var(--pch-ink);
+    box-shadow: 0 14px 32px rgba(180, 110, 70, 0.18);
+}
+
+.partner-content-hub .pch-btn--secondary {
+    background: transparent;
+    color: inherit;
+    border-color: rgba(255, 255, 255, 0.34);
+}
+
+.partner-content-hub .pch-hero__aside {
+    padding: 28px;
+    background: rgba(255, 247, 241, 0.84);
+    color: var(--pch-ink);
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+}
+
+.partner-content-hub .pch-hero__aside-label {
+    margin: 0;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    color: rgba(22, 50, 40, 0.52);
+}
+
+.partner-content-hub .pch-hero__aside-title {
+    margin: 18px 0 0;
+    font-family: var(--pch-font-display);
+    font-size: 38px;
+    line-height: 1.02;
+    letter-spacing: -0.04em;
+}
+
+.partner-content-hub .pch-summary {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 20px;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+    margin-top: 24px;
 }
 
-.content-hub .ch-season-card {
-    background: var(--ch-bg-card);
-    border-radius: var(--ch-radius-md);
-    border: 1px solid var(--ch-border-light);
-    padding: 24px;
-    text-align: center;
-    transition: transform var(--ch-transition), box-shadow var(--ch-transition);
+.partner-content-hub .pch-summary__item {
+    padding: 16px 18px;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.78);
+    border: 1px solid rgba(22, 50, 40, 0.08);
 }
 
-.content-hub .ch-season-card:hover {
-    transform: translateY(-2px);
-    box-shadow: var(--ch-shadow-md);
+.partner-content-hub .pch-summary__label {
+    display: block;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: rgba(22, 50, 40, 0.52);
 }
 
-.content-hub .ch-season-card__icon {
-    font-size: 32px;
-    margin-bottom: 12px;
+.partner-content-hub .pch-summary__value {
+    display: block;
+    margin-top: 10px;
+    font-family: var(--pch-font-display);
+    font-size: 30px;
     line-height: 1;
 }
 
-.content-hub .ch-season-card__title {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--ch-text-dark);
-    margin: 0 0 6px;
-}
-
-.content-hub .ch-season-card__desc {
-    font-size: 12px;
-    color: var(--ch-text-light);
-    margin: 0;
-    line-height: 1.4;
-}
-
-
-/* ----------------------------------------
-   6b. 후기 작성 CTA (수강생 후기 패널 하단)
-   ---------------------------------------- */
-.content-hub .ch-review-cta {
-    margin-top: 32px;
-    border-top: 1px solid var(--ch-border-light);
-    padding-top: 32px;
-}
-
-.content-hub .ch-review-cta__inner {
+.partner-content-hub .pch-nav {
+    position: sticky;
+    top: 0;
+    z-index: 20;
+    max-width: 1320px;
+    margin: 0 auto;
+    padding: 0 24px 8px;
     display: flex;
-    align-items: center;
-    gap: 16px;
-    background: linear-gradient(135deg, rgba(66, 91, 81, 0.04) 0%, rgba(212, 163, 115, 0.06) 100%);
-    border: 1px solid var(--ch-border-light);
-    border-radius: var(--ch-radius-lg);
+    gap: 10px;
+    overflow-x: auto;
+}
+
+.partner-content-hub .pch-nav__btn {
+    flex: 0 0 auto;
+    min-height: 42px;
+    padding: 0 18px;
+    border-radius: 999px;
+    border: 1px solid rgba(22, 50, 40, 0.1);
+    background: rgba(255, 251, 246, 0.72);
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--pch-ink);
+    cursor: pointer;
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+}
+
+.partner-content-hub .pch-nav__btn.is-active {
+    background: var(--pch-ink);
+    border-color: var(--pch-ink);
+    color: #ffffff;
+}
+
+.partner-content-hub .pch-state,
+.partner-content-hub .pch-main {
+    max-width: 1320px;
+    margin: 0 auto;
     padding: 24px;
 }
 
-.content-hub .ch-review-cta__icon {
-    flex-shrink: 0;
-    width: 48px;
-    height: 48px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 50%;
-    background: var(--ch-gold-light);
-    color: var(--ch-gold);
-}
-
-.content-hub .ch-review-cta__text {
-    flex: 1;
-    min-width: 0;
-}
-
-.content-hub .ch-review-cta__title {
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--ch-text-dark);
-    margin: 0 0 4px;
-}
-
-.content-hub .ch-review-cta__desc {
-    font-size: 13px;
-    color: var(--ch-text-light);
-    margin: 0;
-    line-height: 1.4;
-}
-
-.content-hub .ch-review-cta__btn {
-    flex-shrink: 0;
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 10px 20px;
-    font-family: var(--ch-font);
-    font-size: 13px;
-    font-weight: 600;
-    color: #FFFFFF;
-    background: var(--ch-primary);
-    border: none;
-    border-radius: var(--ch-radius-md);
-    cursor: pointer;
-    text-decoration: none;
-    transition: background var(--ch-transition);
-    white-space: nowrap;
-}
-
-.content-hub .ch-review-cta__btn:hover {
-    background: var(--ch-primary-dark);
-}
-
-
-/* ----------------------------------------
-   6c. 교차 추천 링크 (카드 하단)
-   ---------------------------------------- */
-.content-hub .ch-card__cross-link {
-    display: flex;
-    align-items: center;
-    gap: 4px;
-    padding: 12px 20px 0;
-    margin-top: 0;
-    border-top: 1px solid var(--ch-border-light);
-    font-size: 12px;
-    font-weight: 500;
-    color: var(--ch-primary);
-    text-decoration: none;
-    transition: color var(--ch-transition);
-}
-
-.content-hub .ch-card__cross-link:hover {
-    color: var(--ch-primary-dark);
-}
-
-.content-hub .ch-card__cross-link svg {
-    flex-shrink: 0;
-}
-
-
-/* ----------------------------------------
-   7. CTA 섹션
-   ---------------------------------------- */
-.content-hub .ch-cta {
-    background: var(--ch-primary);
-    padding: 40px 24px;
+.partner-content-hub .pch-state__panel {
+    padding: 72px 36px;
+    border-radius: 28px;
+    background: rgba(255, 251, 246, 0.82);
+    border: 1px solid var(--pch-line);
+    box-shadow: var(--pch-shadow-sm);
     text-align: center;
 }
 
-.content-hub .ch-cta__inner {
-    max-width: 600px;
-    margin: 0 auto;
+.partner-content-hub .pch-state__eyebrow {
+    color: rgba(22, 50, 40, 0.52);
 }
 
-.content-hub .ch-cta__text {
-    font-family: var(--ch-font-serif);
-    font-size: 18px;
-    font-weight: 700;
-    color: #FFFFFF;
-    margin: 0 0 16px;
+.partner-content-hub .pch-state__title {
+    font-size: 44px;
+    line-height: 1;
 }
 
-.content-hub .ch-cta__btn {
+.partner-content-hub .pch-state__desc {
+    max-width: 520px;
+    margin: 14px auto 0;
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--pch-ink-soft);
+}
+
+.partner-content-hub .pch-main {
+    display: grid;
+    gap: 28px;
+}
+
+.partner-content-hub .pch-section,
+.partner-content-hub .pch-cta-strip {
+    padding: 28px;
+    border-radius: 28px;
+    background: var(--pch-card);
+    border: 1px solid var(--pch-line);
+    box-shadow: var(--pch-shadow-sm);
+}
+
+.partner-content-hub .pch-section__head {
+    display: grid;
+    gap: 10px;
+    margin-bottom: 22px;
+}
+
+.partner-content-hub .pch-section__eyebrow {
+    color: rgba(22, 50, 40, 0.48);
+}
+
+.partner-content-hub .pch-section__title {
+    font-size: 44px;
+    line-height: 0.98;
+}
+
+.partner-content-hub .pch-section__desc {
+    max-width: 760px;
+    margin: 0;
+    font-size: 15px;
+    line-height: 1.8;
+    color: var(--pch-ink-soft);
+}
+
+.partner-content-hub .pch-card-grid,
+.partner-content-hub .pch-story-grid,
+.partner-content-hub .pch-trend-grid,
+.partner-content-hub .pch-guide-grid {
+    display: grid;
+    gap: 18px;
+}
+
+.partner-content-hub .pch-card-grid--highlights {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.partner-content-hub .pch-story-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.partner-content-hub .pch-trend-grid,
+.partner-content-hub .pch-guide-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.partner-content-hub .pch-card,
+.partner-content-hub .pch-story-card,
+.partner-content-hub .pch-trend-card,
+.partner-content-hub .pch-guide-card {
+    position: relative;
+    overflow: hidden;
+    min-height: 100%;
+    border-radius: 24px;
+    border: 1px solid rgba(22, 50, 40, 0.08);
+    background: rgba(255, 255, 255, 0.84);
+}
+
+.partner-content-hub .pch-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 180px;
+}
+
+.partner-content-hub .pch-card__body,
+.partner-content-hub .pch-story-card__body,
+.partner-content-hub .pch-trend-card__body,
+.partner-content-hub .pch-guide-card__body {
+    padding: 22px;
+}
+
+.partner-content-hub .pch-card__eyebrow,
+.partner-content-hub .pch-story-card__eyebrow,
+.partner-content-hub .pch-trend-card__eyebrow,
+.partner-content-hub .pch-guide-card__eyebrow {
     display: inline-flex;
     align-items: center;
-    gap: 6px;
-    padding: 12px 32px;
-    font-family: var(--ch-font);
-    font-size: 15px;
-    font-weight: 600;
-    color: var(--ch-primary);
-    background: #FFFFFF;
-    border: none;
-    border-radius: var(--ch-radius-md);
-    cursor: pointer;
-    text-decoration: none;
-    transition: transform var(--ch-transition), box-shadow var(--ch-transition);
+    min-height: 30px;
+    padding: 0 12px;
+    border-radius: 999px;
+    background: rgba(180, 110, 70, 0.12);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--pch-copper);
 }
 
-.content-hub .ch-cta__btn:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+.partner-content-hub .pch-story-card__eyebrow--garden {
+    background: rgba(80, 124, 88, 0.14);
+    color: #426b4a;
 }
 
+.partner-content-hub .pch-story-card__eyebrow--atelier {
+    background: rgba(49, 90, 153, 0.14);
+    color: #315a99;
+}
 
-/* ----------------------------------------
-   8. 반응형: 태블릿 (768px 이하)
-   ---------------------------------------- */
-@media (max-width: 768px) {
-    /* 히어로 */
-    .content-hub .ch-hero {
-        padding: 32px 16px 24px;
-    }
+.partner-content-hub .pch-story-card__eyebrow--ambassador {
+    background: rgba(143, 58, 76, 0.14);
+    color: #8f3a4c;
+}
 
-    .content-hub .ch-hero__title {
-        font-size: 22px;
-    }
+.partner-content-hub .pch-card__title,
+.partner-content-hub .pch-story-card__title,
+.partner-content-hub .pch-trend-card__title,
+.partner-content-hub .pch-guide-card__title {
+    margin: 14px 0 0;
+    font-family: var(--pch-font-display);
+    font-size: 34px;
+    line-height: 0.96;
+    letter-spacing: -0.03em;
+}
 
-    .content-hub .ch-hero__subtitle {
-        font-size: 13px;
-    }
+.partner-content-hub .pch-card__meta,
+.partner-content-hub .pch-story-card__meta,
+.partner-content-hub .pch-guide-card__meta {
+    margin-top: 12px;
+    font-size: 13px;
+    color: var(--pch-ink-soft);
+}
 
-    /* 탭 */
-    .content-hub .ch-tabs {
-        padding: 0 12px;
-    }
+.partner-content-hub .pch-card__desc,
+.partner-content-hub .pch-story-card__quote,
+.partner-content-hub .pch-trend-card__desc,
+.partner-content-hub .pch-guide-card__desc {
+    margin: 14px 0 0;
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--pch-ink-soft);
+}
 
-    .content-hub .ch-tabs__btn {
-        padding: 12px 14px;
-        font-size: 13px;
-    }
+.partner-content-hub .pch-story-card__spotlight {
+    display: inline-flex;
+    align-items: center;
+    min-height: 26px;
+    margin-top: 16px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(22, 50, 40, 0.07);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--pch-ink-soft);
+}
 
-    .content-hub .ch-tabs__icon {
-        display: none;
-    }
+.partner-content-hub .pch-card__media {
+    background:
+        linear-gradient(180deg, rgba(22, 50, 40, 0.1) 0%, rgba(180, 110, 70, 0.08) 100%),
+        #efe7da;
+}
 
-    /* 패널 */
-    .content-hub .ch-panel__inner {
-        padding: 28px 16px 48px;
-    }
+.partner-content-hub .pch-card__media img {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
+}
 
-    .content-hub .ch-section-header__title {
-        font-size: 18px;
-    }
+.partner-content-hub .pch-card__stats,
+.partner-content-hub .pch-story-card__tags,
+.partner-content-hub .pch-trend-card__chips,
+.partner-content-hub .pch-guide-card__checklist {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 16px;
+}
 
-    /* 카드 그리드: 1열 */
-    .content-hub .ch-card-grid {
+.partner-content-hub .pch-chip,
+.partner-content-hub .pch-tag,
+.partner-content-hub .pch-guide-card__checklist li {
+    display: inline-flex;
+    align-items: center;
+    min-height: 28px;
+    padding: 0 10px;
+    border-radius: 999px;
+    background: rgba(22, 50, 40, 0.07);
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pch-ink);
+}
+
+.partner-content-hub .pch-card__footer,
+.partner-content-hub .pch-story-card__footer,
+.partner-content-hub .pch-trend-card__footer,
+.partner-content-hub .pch-guide-card__footer {
+    margin-top: 18px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.partner-content-hub .pch-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--pch-copper);
+}
+
+.partner-content-hub .pch-story-card {
+    background:
+        linear-gradient(180deg, rgba(255, 249, 242, 0.94) 0%, rgba(244, 236, 225, 0.86) 100%);
+}
+
+.partner-content-hub .pch-story-card__title {
+    font-size: 38px;
+}
+
+.partner-content-hub .pch-trend-card {
+    background: linear-gradient(180deg, rgba(22, 50, 40, 0.95) 0%, rgba(57, 83, 67, 0.92) 100%);
+    color: #ffffff;
+}
+
+.partner-content-hub .pch-trend-card__eyebrow {
+    background: rgba(255, 244, 235, 0.16);
+    color: rgba(255, 255, 255, 0.8);
+}
+
+.partner-content-hub .pch-trend-card__desc {
+    color: rgba(255, 255, 255, 0.75);
+}
+
+.partner-content-hub .pch-trend-card__chips .pch-chip {
+    background: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.88);
+}
+
+.partner-content-hub .pch-guide-card__checklist {
+    list-style: none;
+    padding: 0;
+    margin-bottom: 0;
+}
+
+.partner-content-hub .pch-guide-card__checklist li {
+    padding: 0 12px;
+}
+
+.partner-content-hub .pch-empty {
+    padding: 22px;
+    border-radius: 20px;
+    background: rgba(22, 50, 40, 0.05);
+    font-size: 14px;
+    line-height: 1.8;
+    color: var(--pch-ink-soft);
+}
+
+.partner-content-hub .pch-cta-strip {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    background:
+        linear-gradient(135deg, rgba(22, 50, 40, 0.98) 0%, rgba(180, 110, 70, 0.88) 100%);
+    color: #ffffff;
+}
+
+.partner-content-hub .pch-cta-strip__eyebrow {
+    color: rgba(255, 255, 255, 0.66);
+}
+
+.partner-content-hub .pch-cta-strip__title {
+    font-size: 40px;
+    line-height: 1;
+    max-width: 720px;
+}
+
+@media screen and (max-width: 1200px) {
+    .partner-content-hub .pch-hero__inner {
         grid-template-columns: 1fr;
-        gap: 16px;
     }
 
-    /* 카드 가로 레이아웃 */
-    .content-hub .ch-card {
-        display: flex;
-        flex-direction: row;
-    }
-
-    .content-hub .ch-card__thumb {
-        flex: 0 0 120px;
-        padding-top: 0;
-        min-height: 120px;
-    }
-
-    .content-hub .ch-card__body {
-        flex: 1;
-        padding: 16px;
-        min-width: 0;
-    }
-
-    .content-hub .ch-card__title {
-        font-size: 14px;
-    }
-
-    .content-hub .ch-card__desc {
-        font-size: 12px;
-        margin-bottom: 10px;
-        -webkit-line-clamp: 2;
-    }
-
-    /* 교차 추천 링크: 모바일 카드 가로 레이아웃 대응 */
-    .content-hub .ch-card__cross-link {
-        padding: 10px 16px 0;
-        font-size: 11px;
-    }
-
-    /* 후기 CTA: 세로 레이아웃 */
-    .content-hub .ch-review-cta__inner {
-        flex-direction: column;
-        text-align: center;
-        padding: 20px;
-    }
-
-    .content-hub .ch-review-cta__btn {
-        width: 100%;
-        justify-content: center;
-    }
-
-    /* 시즌 */
-    .content-hub .ch-season-banner {
-        padding: 28px 20px;
-    }
-
-    .content-hub .ch-season-banner__title {
-        font-size: 20px;
-    }
-
-    .content-hub .ch-season-cards {
-        grid-template-columns: 1fr;
-        gap: 12px;
-    }
-
-    /* CTA */
-    .content-hub .ch-cta {
-        padding: 32px 16px;
-    }
-
-    .content-hub .ch-cta__text {
-        font-size: 16px;
+    .partner-content-hub .pch-trend-grid,
+    .partner-content-hub .pch-guide-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 }
 
+@media screen and (max-width: 992px) {
+    .partner-content-hub .pch-hero__title {
+        font-size: 52px;
+    }
 
-/* ----------------------------------------
-   9. 반응형: 태블릿 중간 (768px ~ 992px)
-   ---------------------------------------- */
-@media (min-width: 769px) and (max-width: 992px) {
-    .content-hub .ch-card-grid {
-        grid-template-columns: repeat(2, 1fr);
+    .partner-content-hub .pch-card-grid--highlights,
+    .partner-content-hub .pch-story-grid,
+    .partner-content-hub .pch-cta-strip {
+        grid-template-columns: 1fr;
+        display: grid;
+    }
+
+    .partner-content-hub .pch-card {
+        grid-template-columns: 1fr;
+    }
+
+    .partner-content-hub .pch-card__media {
+        min-height: 220px;
+    }
+}
+
+@media screen and (max-width: 768px) {
+    .partner-content-hub .pch-hero {
+        padding: 24px 16px 18px;
+    }
+
+    .partner-content-hub .pch-hero::before {
+        inset: 16px 16px auto;
+        height: 520px;
+    }
+
+    .partner-content-hub .pch-hero__copy,
+    .partner-content-hub .pch-hero__aside,
+    .partner-content-hub .pch-section,
+    .partner-content-hub .pch-cta-strip {
+        border-radius: 24px;
+    }
+
+    .partner-content-hub .pch-hero__copy,
+    .partner-content-hub .pch-hero__aside,
+    .partner-content-hub .pch-main,
+    .partner-content-hub .pch-state,
+    .partner-content-hub .pch-nav {
+        padding-left: 16px;
+        padding-right: 16px;
+    }
+
+    .partner-content-hub .pch-hero__copy {
+        padding: 32px 24px;
+    }
+
+    .partner-content-hub .pch-hero__title,
+    .partner-content-hub .pch-section__title,
+    .partner-content-hub .pch-state__title,
+    .partner-content-hub .pch-cta-strip__title {
+        font-size: 42px;
+    }
+
+    .partner-content-hub .pch-summary,
+    .partner-content-hub .pch-trend-grid,
+    .partner-content-hub .pch-guide-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .partner-content-hub .pch-main {
+        padding-top: 16px;
         gap: 20px;
     }
+}
 
-    .content-hub .ch-season-cards {
-        grid-template-columns: repeat(3, 1fr);
-        gap: 16px;
+@media screen and (max-width: 480px) {
+    .partner-content-hub .pch-hero__title,
+    .partner-content-hub .pch-section__title,
+    .partner-content-hub .pch-state__title,
+    .partner-content-hub .pch-cta-strip__title {
+        font-size: 34px;
     }
 
-    .content-hub .ch-tabs__btn {
-        padding: 14px 16px;
-        font-size: 13px;
+    .partner-content-hub .pch-card__title,
+    .partner-content-hub .pch-story-card__title,
+    .partner-content-hub .pch-trend-card__title,
+    .partner-content-hub .pch-guide-card__title {
+        font-size: 28px;
     }
 }

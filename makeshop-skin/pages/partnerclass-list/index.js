@@ -9,22 +9,29 @@
        설정값
        ======================================== */
 
-    /* ── 공통 모듈 바인딩 (pressco21-core.js) ── */
-    var PC = window.PRESSCO21;
-    var escapeHtml = PC.util.escapeHtml;
-    var formatPrice = PC.util.formatPrice;
-    var formatNumber = PC.util.formatNumber;
-
-    /** 페이지 URL 상수 */
-    var PAGE_LIST = PC.auth.pageUrl('LIST');
-    var PAGE_DETAIL = PC.auth.pageUrl('DETAIL');
-
     /** n8n 웹훅 엔드포인트 (WF-01 클래스 API) */
-    /* GAS_URL은 PC.api.fetchPost('CLASS_API', ...) 로 대체 */
+    var GAS_URL = 'https://n8n.pressco21.com/webhook/class-api';
 
-    /** 캐시: PC.cache 사용 (catalog 5분, settings 1시간) */
-    var CATALOG_CACHE_TTL = PC.config.CACHE_TTL.CATALOG;
-    var SETTINGS_CACHE_TTL = PC.config.CACHE_TTL.SETTINGS;
+    /** 클래스 목록 캐시 유효 시간: 5분 (밀리초) */
+    var CATALOG_CACHE_TTL = 5 * 60 * 1000;
+
+    /** 카테고리/협회 설정 캐시 유효 시간: 1시간 (밀리초) */
+    var SETTINGS_CACHE_TTL = 60 * 60 * 1000;
+
+    /** localStorage 클래스 캐시 키 접두사 */
+    var CATALOG_CACHE_PREFIX = 'classCatalog_';
+
+    /** localStorage 설정 캐시 키 접두사 */
+    var SETTINGS_CACHE_PREFIX = 'classSettings_';
+
+    /** 클래스 캐시 버전 키 */
+    var CATALOG_CACHE_VERSION_KEY = 'pressco21_catalog_cache_version';
+
+    /** 설정 캐시 버전 키 */
+    var SETTINGS_CACHE_VERSION_KEY = 'pressco21_catalog_settings_cache_version';
+
+    /** 초기 캐시 버전 */
+    var DEFAULT_CACHE_VERSION = 'v1';
 
     /** 페이지당 클래스 수 */
     var PAGE_LIMIT = 20;
@@ -166,15 +173,13 @@
 
         var apiFilters = buildApiFilters(filters);
 
-        // Layer 1 캐시: localStorage 5분 TTL
+        // 캐시 확인
         var cacheKey = buildCacheKey(filters);
         var cached = getCatalogCached(cacheKey);
         if (cached) {
-            console.log('[E2-007 캐시] HIT — 캐시에서 즉시 렌더링 (key: ' + cacheKey.substring(0, 20) + '...)');
             handleClassesResponse(cached);
             return;
         }
-        console.log('[E2-007 캐시] MISS — API 호출 (key: ' + cacheKey.substring(0, 20) + '...)');
 
         isLoading = true;
         renderSkeleton();
@@ -183,11 +188,6 @@
 
         // API 요청 본문 구성 (POST JSON)
         var body = { action: 'getClasses' };
-
-        // URL ?demo=true 시 테스트 데이터 포함
-        if (new URLSearchParams(window.location.search).get('demo') === 'true') {
-            body.demo = 'true';
-        }
 
         if (apiFilters.category && apiFilters.category.length > 0) {
             body.category = apiFilters.category.join(',');
@@ -220,11 +220,22 @@
         // 검색어 하이라이트용 동기화
         currentSearchQuery = filters.search || '';
 
-        PC.api.fetchPost('CLASS_API', body)
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+            .then(function(response) {
+                if (!response.ok) {
+                    throw new Error('HTTP ' + response.status);
+                }
+                return response.json();
+            })
             .then(function(data) {
                 isLoading = false;
 
                 if (data && data.success) {
+                    // 캐시 저장
                     setCatalogCache(cacheKey, data);
                     handleClassesResponse(data);
                 } else {
@@ -233,7 +244,7 @@
             })
             .catch(function(err) {
                 isLoading = false;
-                console.error('[ClassCatalog] API 호출 실패:', err.code || '', err.message || err);
+                console.error('[ClassCatalog] API 호출 실패:', err);
                 renderError();
             });
     }
@@ -252,16 +263,14 @@
 
         currentClasses = classes;
 
-        // 탭별 content_type 프론트엔드 필터링
-        var displayClasses = filterByActiveTab(classes);
-
         // 결과 건수 업데이트
-        updateResultCount(displayClasses.length);
+        updateResultCount(pagination.totalCount || classes.length);
 
         // 찜 필터가 활성화되어 있으면 찜한 클래스만 필터링
+        var displayClasses = classes;
         if (isWishlistFilterOn) {
             var wishlist = getWishlist();
-            displayClasses = displayClasses.filter(function(cls) {
+            displayClasses = classes.filter(function(cls) {
                 return wishlist.indexOf(cls.class_id) > -1;
             });
         }
@@ -303,13 +312,18 @@
     function loadCategories() {
         var cached = getSettingsCached('categories');
         if (cached) {
-            console.log('[E2-007 캐시] 카테고리 HIT — localStorage 캐시 사용');
             renderCategoryFilters(cached);
             return;
         }
-        console.log('[E2-007 캐시] 카테고리 MISS — API 호출');
 
-        PC.api.fetchPost('CLASS_API', { action: 'getCategories' }, { noRetry: true })
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getCategories' })
+        })
+            .then(function(response) {
+                return response.json();
+            })
             .then(function(data) {
                 if (data && data.success && Array.isArray(data.data)) {
                     // 객체 배열이면 name 문자열만 추출
@@ -471,20 +485,75 @@
      * @param {string} key - 캐시 키
      * @returns {*|null} 캐시된 데이터 또는 null
      */
+    function readCacheVersion(versionKey) {
+        try {
+            var version = localStorage.getItem(versionKey);
+            if (!version) {
+                version = DEFAULT_CACHE_VERSION;
+                localStorage.setItem(versionKey, version);
+            }
+            return version;
+        } catch (e) {
+            return DEFAULT_CACHE_VERSION;
+        }
+    }
+
+    function buildScopedCacheStorageKey(prefix, versionKey, key) {
+        return prefix + readCacheVersion(versionKey) + '_' + key;
+    }
+
+    function getScopedCached(prefix, versionKey, key, ttl) {
+        try {
+            var raw = localStorage.getItem(buildScopedCacheStorageKey(prefix, versionKey, key));
+            if (!raw) return null;
+
+            var entry = JSON.parse(raw);
+            var effectiveTtl = entry.ttl || ttl;
+            if (Date.now() - entry.timestamp > effectiveTtl) {
+                localStorage.removeItem(buildScopedCacheStorageKey(prefix, versionKey, key));
+                return null;
+            }
+            return entry.data;
+        } catch (e) {
+            return null;
+        }
+    }
+
+    /**
+     * 데이터를 캐시에 저장
+     * @param {string} key - 캐시 키
+     * @param {*} data - 저장할 데이터
+     */
+    function setScopedCache(prefix, versionKey, key, data, ttl) {
+        try {
+            var entry = {
+                timestamp: Date.now(),
+                ttl: ttl,
+                data: data
+            };
+            localStorage.setItem(buildScopedCacheStorageKey(prefix, versionKey, key), JSON.stringify(entry));
+        } catch (e) {
+            // localStorage 용량 초과 시 기존 캐시 정리
+            clearExpiredCache(prefix, versionKey, ttl);
+        }
+    }
+
     function getCatalogCached(key) {
-        return PC.cache.get('catalog', key);
+        return getScopedCached(CATALOG_CACHE_PREFIX, CATALOG_CACHE_VERSION_KEY, key, CATALOG_CACHE_TTL);
     }
 
     function setCatalogCache(key, data) {
-        PC.cache.set('catalog', key, data, CATALOG_CACHE_TTL);
+        setScopedCache(CATALOG_CACHE_PREFIX, CATALOG_CACHE_VERSION_KEY, key, data, CATALOG_CACHE_TTL);
+        clearExpiredCache(CATALOG_CACHE_PREFIX, CATALOG_CACHE_VERSION_KEY, CATALOG_CACHE_TTL);
     }
 
     function getSettingsCached(key) {
-        return PC.cache.get('settings', key);
+        return getScopedCached(SETTINGS_CACHE_PREFIX, SETTINGS_CACHE_VERSION_KEY, key, SETTINGS_CACHE_TTL);
     }
 
     function setSettingsCache(key, data) {
-        PC.cache.set('settings', key, data, SETTINGS_CACHE_TTL);
+        setScopedCache(SETTINGS_CACHE_PREFIX, SETTINGS_CACHE_VERSION_KEY, key, data, SETTINGS_CACHE_TTL);
+        clearExpiredCache(SETTINGS_CACHE_PREFIX, SETTINGS_CACHE_VERSION_KEY, SETTINGS_CACHE_TTL);
     }
 
     /**
@@ -509,6 +578,38 @@
             return btoa(unescape(encodeURIComponent(JSON.stringify(keyObj))));
         } catch (e) {
             return JSON.stringify(keyObj);
+        }
+    }
+
+    /**
+     * 만료된 캐시 항목 정리
+     */
+    function clearExpiredCache(prefix, versionKey, ttl) {
+        try {
+            var keysToRemove = [];
+            var activeVersionPrefix = prefix + readCacheVersion(versionKey) + '_';
+            for (var i = 0; i < localStorage.length; i++) {
+                var key = localStorage.key(i);
+                if (key && key.indexOf(prefix) === 0) {
+                    if (key.indexOf(activeVersionPrefix) !== 0) {
+                        keysToRemove.push(key);
+                        continue;
+                    }
+                    var raw = localStorage.getItem(key);
+                    if (raw) {
+                        var entry = JSON.parse(raw);
+                        var effectiveTtl = entry.ttl || ttl;
+                        if (Date.now() - entry.timestamp > effectiveTtl) {
+                            keysToRemove.push(key);
+                        }
+                    }
+                }
+            }
+            for (var j = 0; j < keysToRemove.length; j++) {
+                localStorage.removeItem(keysToRemove[j]);
+            }
+        } catch (e) {
+            /* 무시 */
         }
     }
 
@@ -646,62 +747,26 @@
         return host === '127.0.0.1' || host === 'localhost';
     }
 
-    function isExternalLink(href) {
-        return /^https?:\/\//i.test(String(href || ''));
-    }
-
-    function buildExternalLinkAttrs(href) {
-        return isExternalLink(href) ? ' target="_blank" rel="noopener noreferrer"' : '';
-    }
-
-    function buildPartnerMapSearchQuery(options) {
-        var parts = [];
-        var seen = {};
-
-        function pushPart(value) {
-            var text = String(value || '').replace(/\s+/g, ' ').trim();
-            if (!text || seen[text]) return;
-            seen[text] = true;
-            parts.push(text);
-        }
-
-        pushPart(options && options.location);
-        pushPart(options && options.partner);
-        pushPart(options && options.keyword);
-        pushPart(options && options.category);
-        pushPart(options && options.region);
-
-        return parts.join(' ').replace(/\s+/g, ' ').trim();
-    }
-
     function buildPartnerMapUrl(options) {
         var params = [];
-        var query = buildPartnerMapSearchQuery(options);
         var base = isLocalCatalogPreview()
             ? '/output/playwright/fixtures/partnerclass/partnermap-shell.html'
-            : '/shop/page.html?id=2602';
+            : '/partnermap';
 
-        if (options && options.region && options.region !== '\uC804\uAD6D') {
+        if (options && options.region) {
             params.push('region=' + encodeURIComponent(options.region));
         }
         if (options && options.category) {
             params.push('category=' + encodeURIComponent(options.category));
         }
-        if (isLocalCatalogPreview()) {
-            if (options && options.keyword) {
-                params.push('keyword=' + encodeURIComponent(options.keyword));
-            }
-            if (options && options.partner) {
-                params.push('partner=' + encodeURIComponent(options.partner));
-            }
-            if (options && options.classId) {
-                params.push('class_id=' + encodeURIComponent(options.classId));
-            }
-            if (query) {
-                params.push('query=' + encodeURIComponent(query));
-            }
-        } else if (query) {
-            params.push('search=' + encodeURIComponent(options.partner || options.keyword || options.location || query));
+        if (options && options.keyword) {
+            params.push('keyword=' + encodeURIComponent(options.keyword));
+        }
+        if (options && options.partner) {
+            params.push('partner=' + encodeURIComponent(options.partner));
+        }
+        if (options && options.classId) {
+            params.push('class_id=' + encodeURIComponent(options.classId));
         }
 
         return base + (params.length ? '?' + params.join('&') : '');
@@ -712,10 +777,9 @@
         if (deliveryMode === 'ONLINE') return '';
 
         return buildPartnerMapUrl({
-            location: cls.location || '',
             region: getDisplayRegionName(cls.region || cls.location || ''),
             category: cls.category || '',
-            keyword: cls.partner_name || cls.location || '',
+            keyword: cls.class_name || '',
             partner: cls.partner_name || '',
             classId: cls.class_id || ''
         });
@@ -748,7 +812,7 @@
         var partnerName = escapeHtml(cls.partner_name || '');
         var avgRating = parseFloat(cls.avg_rating) || 0;
         var classCount = parseInt(cls.class_count) || 0;
-        var detailUrl = PAGE_DETAIL + '&class_id=' + encodeURIComponent(classId);
+        var detailUrl = '/shop/page.html?id=2607&class_id=' + encodeURIComponent(classId);
         var trustBadgesHtml = buildCardBadgesHtml(cls);
         var mapUrl = buildPartnerMapSearchUrl(cls);
         var mapLabel = buildCardMapEntryLabel(cls);
@@ -767,17 +831,10 @@
             + '<a href="' + detailUrl + '" class="class-card__link" aria-label="' + className + ' - ' + partnerName + '">'
             + '<div class="class-card__thumb">';
 
-        // 썸네일 이미지 (lazy loading) 또는 플레이스홀더
+        // 썸네일 이미지 (lazy loading)
         if (thumbnail) {
             html += '<img class="class-card__img" src="' + escapeHtml(thumbnail) + '" '
-                + 'alt="' + className + ' 클래스 썸네일" loading="lazy">';
-        } else {
-            html += '<div class="class-card__placeholder">'
-                + '<svg width="40" height="40" viewBox="0 0 40 40" fill="none">'
-                + '<rect x="5" y="10" width="30" height="22" rx="3" stroke="#c4b5a3" stroke-width="1.5" stroke-dasharray="4 3" fill="none"/>'
-                + '<circle cx="15" cy="18" r="3" stroke="#c4b5a3" stroke-width="1" fill="none"/>'
-                + '<path d="M6 27l8-7 5 4 6-5 9 8" stroke="#c4b5a3" stroke-width="1" stroke-linecap="round"/>'
-                + '</svg></div>';
+                + 'alt="' + className + ' \uD074\uB798\uC2A4 \uC378\uB124\uC77C" loading="lazy">';
         }
 
         // 카테고리 배지
@@ -824,14 +881,10 @@
             html += '<div class="class-card__trust-badges">' + trustBadgesHtml + '</div>';
         }
 
-        // 메타 정보 (파트너명 + 등급 배지, 지역)
+        // 메타 정보 (파트너명, 지역)
         html += '<div class="class-card__meta">';
         if (partnerName) {
-            var partnerGrade = escapeHtml((cls.partner_grade || 'BLOOM').toUpperCase());
-            var gradeClass = partnerGrade.toLowerCase();
-            html += '<span class="class-card__partner">' + displayPartnerName
-                + '<span class="class-card__grade class-card__grade--' + gradeClass + '">' + partnerGrade + '</span>'
-                + '</span>';
+            html += '<span class="class-card__partner">' + displayPartnerName + '</span>';
         }
         if (location) {
             html += '<span class="class-card__location">' + location + '</span>';
@@ -854,26 +907,7 @@
 
         // 가격 + 소요시간
         html += '<div class="class-card__footer">';
-        if (parseInt(cls.kit_enabled, 10) === 1) {
-            // 키트 가격 합산
-            var kitItems = [];
-            try { kitItems = cls.kit_items ? (typeof cls.kit_items === 'string' ? JSON.parse(cls.kit_items) : cls.kit_items) : []; } catch(e) {}
-            var kitPrice = 0;
-            for (var ki = 0; ki < kitItems.length; ki++) {
-                kitPrice += parseInt(kitItems[ki].price || 0, 10) * parseInt(kitItems[ki].quantity || 1, 10);
-            }
-            html += '<div class="class-card__price-group">'
-                + '<div class="class-card__price">' + price + '<span class="class-card__price-unit">\uC6D0</span>'
-                + '<span class="class-card__price-label">\uAC15\uC758\uB9CC</span></div>';
-            if (kitPrice > 0) {
-                html += '<div class="class-card__price class-card__price--kit">'
-                    + formatPrice((cls.price || 0) + kitPrice) + '<span class="class-card__price-unit">\uC6D0</span>'
-                    + '<span class="class-card__price-label">\uD0A4\uD2B8\uD3EC\uD568</span></div>';
-            }
-            html += '</div>';
-        } else {
-            html += '<div class="class-card__price">' + price + '<span class="class-card__price-unit">\uC6D0</span></div>';
-        }
+        html += '<div class="class-card__price">' + price + '<span class="class-card__price-unit">\uC6D0</span></div>';
         if (duration > 0) {
             html += '<span class="class-card__duration">' + durationText + '</span>';
         }
@@ -1672,16 +1706,6 @@
         if (overlay) {
             overlay.addEventListener('click', closeFilterDrawer);
         }
-        // iOS Safari: 필터 패널 내부 터치가 오버레이로 버블링되지 않도록 방지
-        var panel = document.getElementById('filterPanel');
-        if (panel) {
-            panel.addEventListener('touchstart', function(e) {
-                e.stopPropagation();
-            }, { passive: true });
-            panel.addEventListener('click', function(e) {
-                e.stopPropagation();
-            });
-        }
     }
 
     /**
@@ -1930,7 +1954,7 @@
         var region = getDisplayRegionName(cls.region || cls.location || '') || '\uC804\uAD6D';
         var typeLabel = cls.type || '\uC624\uD504\uB77C\uC778';
         var priceText = cls.price ? formatPrice(cls.price) + '\uC6D0' : '\uC0C1\uC138 \uC548\uB0B4';
-        var detailUrl = PAGE_DETAIL + '&class_id=' + encodeURIComponent(cls.class_id || '');
+        var detailUrl = '/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || '');
         var mapUrl = buildPartnerMapSearchUrl(cls);
 
         return '<article class="catalog-map-spotlight">'
@@ -1942,7 +1966,7 @@
             + '<p class="catalog-map-spotlight__desc">' + escapeHtml((cls.partner_name || '\uD30C\uD2B8\uB108 \uACF5\uBC29') + ' | ' + priceText + ' | ' + resolveContentTypeMeta(cls).desc) + '</p>'
             + '<div class="catalog-map-spotlight__actions">'
             + '<a href="' + detailUrl + '" class="catalog-map-spotlight__link catalog-map-spotlight__link--primary">\uC0C1\uC138 \uBCF4\uAE30</a>'
-            + (mapUrl ? '<a href="' + escapeHtml(mapUrl) + '"' + buildExternalLinkAttrs(mapUrl) + ' class="catalog-map-spotlight__link catalog-map-spotlight__link--secondary">\uC9C0\uB3C4\uC5D0\uC11C \uBCF4\uAE30</a>' : '')
+            + (mapUrl ? '<a href="' + escapeHtml(mapUrl) + '" class="catalog-map-spotlight__link catalog-map-spotlight__link--secondary">\uC9C0\uB3C4\uC5D0\uC11C \uBCF4\uAE30</a>' : '')
             + '</div>'
             + '</article>';
     }
@@ -2155,7 +2179,7 @@
             var cls = classes[i];
             var classId = encodeURIComponent(cls.class_id || '');
             /* 메이크샵 상세 페이지 ID: 2607 (확정) */
-            var detailUrl = window.location.origin + PAGE_DETAIL + '&class_id=' + classId;
+            var detailUrl = 'https://foreverlove.co.kr/shop/page.html?id=2607&class_id=' + classId;
             items.push({
                 '@type': 'ListItem',
                 'position': i + 1,
@@ -2179,6 +2203,26 @@
     /* ========================================
        유틸리티 함수
        ======================================== */
+
+    /**
+     * 가격 포맷 (65000 -> "65,000")
+     * @param {number} price - 가격 숫자
+     * @returns {string} 포맷된 가격 문자열
+     */
+    function formatPrice(price) {
+        var n = Number(price);
+        if (isNaN(n) || n < 0) return '0';
+        return String(Math.floor(n)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
+
+    /**
+     * 숫자 포맷 (천 단위 콤마)
+     * @param {number} num - 숫자
+     * @returns {string} 포맷된 문자열
+     */
+    function formatNumber(num) {
+        return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+    }
 
     function splitFilterValues(raw) {
         var parts = String(raw || '').split(',');
@@ -2378,6 +2422,17 @@
             maxPrice: filters.maxPrice || 200000,
             search: filters.search || ''
         };
+    }
+
+    /**
+     * HTML 특수문자 이스케이프 (XSS 방지)
+     * @param {string} str - 원본 문자열
+     * @returns {string} 이스케이프된 문자열
+     */
+    function escapeHtml(str) {
+        if (!str) return '';
+        var map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+        return String(str).replace(/[&<>"']/g, function(m) { return map[m]; });
     }
 
     /**
@@ -2709,7 +2764,7 @@
         var html = '';
         for (var i = 0; i < recentList.length; i++) {
             var item = recentList[i];
-            var detailUrl = PAGE_DETAIL + '&class_id=' + encodeURIComponent(item.class_id || '');
+            var detailUrl = '/shop/page.html?id=2607&class_id=' + encodeURIComponent(item.class_id || '');
             var safeName = escapeHtml(item.class_name || '');
             var safeThumb = escapeHtml(item.thumbnail || '');
 
@@ -2797,35 +2852,6 @@
     var activeCatalogTab = 'classes';
 
     /**
-     * 탭별 content_type 프론트엔드 필터링
-     * - classes: 모든 클래스 (GENERAL + 분류 미지정 포함, 기존 동작 유지)
-     * - affiliations: AFFILIATION 또는 affiliation_code가 있는 항목
-     * - benefits: EVENT 타입 항목
-     * @param {Array} classes - 전체 클래스 배열
-     * @returns {Array} 필터링된 배열
-     */
-    function filterByActiveTab(classes) {
-        if (!classes || !classes.length) return [];
-
-        if (activeCatalogTab === 'affiliations') {
-            return classes.filter(function(cls) {
-                var ct = normalizeContentTypeValue(cls && cls.content_type, cls);
-                return ct === 'AFFILIATION' || ct === 'EVENT';
-            });
-        }
-
-        if (activeCatalogTab === 'benefits') {
-            return classes.filter(function(cls) {
-                var ct = normalizeContentTypeValue(cls && cls.content_type, cls);
-                return ct === 'EVENT';
-            });
-        }
-
-        // classes 탭: 전체 표시 (기존 동작 유지)
-        return classes;
-    }
-
-    /**
      * 탭 네비게이션 초기화
      */
     function initCatalogTabs() {
@@ -2885,27 +2911,6 @@
             renderBenefitsPanel(currentDisplayClasses, affilDataCache);
         }
 
-        // 탭 전환 시 캐싱된 전체 데이터를 기반으로 카드 그리드 재필터링
-        if (targetTab === 'classes' && currentClasses && currentClasses.length > 0) {
-            var filteredClasses = filterByActiveTab(currentClasses);
-            if (isWishlistFilterOn) {
-                var wl = getWishlist();
-                filteredClasses = filteredClasses.filter(function(cls) {
-                    return wl.indexOf(cls.class_id) > -1;
-                });
-            }
-            currentDisplayClasses = filteredClasses;
-            updateResultCount(filteredClasses.length);
-            if (filteredClasses.length === 0) {
-                clearGrid();
-                renderEmpty();
-                hidePagination();
-            } else {
-                renderCards(filteredClasses);
-                restoreWishlistState();
-            }
-        }
-
         updateURLParams();
     }
 
@@ -2951,7 +2956,15 @@
         if (loading) loading.style.display = '';
         if (empty) empty.style.display = 'none';
 
-        PC.api.fetchPost('CLASS_API', { action: 'getAffiliations' })
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ action: 'getAffiliations' })
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
             .then(function(data) {
                 if (loading) loading.style.display = 'none';
                 if (data && data.success && data.data) {
@@ -2985,10 +2998,18 @@
 
         seminarDataLoading = true;
 
-        PC.api.fetchPost('CLASS_API', {
+        fetch(GAS_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
                 action: 'getSeminars',
                 year: currentYear,
                 limit: 24
+            })
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
             })
             .then(function(data) {
                 seminarDataLoading = false;
@@ -3187,7 +3208,7 @@
                     affiliation: cls.affiliation_code || cls.partner_name || '',
                     region: getDisplayRegionName(cls.region || cls.location || ''),
                     price: cls.price || 0,
-                    detailUrl: PAGE_DETAIL + '&class_id=' + encodeURIComponent(cls.class_id || ''),
+                    detailUrl: '/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || ''),
                     mapUrl: buildPartnerMapSearchUrl(cls),
                     primaryStat: getDisplayRegionName(cls.region || cls.location || ''),
                     secondaryStat: cls.price > 0 ? formatPrice(cls.price) + '원부터' : '혜택 안내 확인'
@@ -3246,8 +3267,8 @@
                 + (items[i].secondaryStat ? '<span>' + escapeHtml(items[i].secondaryStat) + '</span>' : (items[i].price > 0 ? '<span>' + formatPrice(items[i].price) + '\uC6D0\uBD80\uD130</span>' : '<span>\uD61C\uD0DD \uC548\uB0B4 \uD655\uC778</span>'))
                 + '</div>'
                 + '<div class="seminar-card__actions">'
-                + '<a href="' + escapeHtml(items[i].detailUrl) + '"' + buildExternalLinkAttrs(items[i].detailUrl) + ' class="seminar-card__link seminar-card__link--primary">\uC790\uC138\uD788 \uBCF4\uAE30</a>'
-                + (items[i].mapUrl ? '<a href="' + escapeHtml(items[i].mapUrl) + '"' + buildExternalLinkAttrs(items[i].mapUrl) + ' class="seminar-card__link seminar-card__link--secondary">\uC9C0\uB3C4 \uC5F0\uACB0</a>' : '')
+                + '<a href="' + escapeHtml(items[i].detailUrl) + '" class="seminar-card__link seminar-card__link--primary">\uC790\uC138\uD788 \uBCF4\uAE30</a>'
+                + (items[i].mapUrl ? '<a href="' + escapeHtml(items[i].mapUrl) + '" class="seminar-card__link seminar-card__link--secondary">\uD30C\uD2B8\uB108\uB9F5 \uC5F0\uACB0</a>' : '')
                 + '</div>'
                 + '</article>';
         }
@@ -3283,7 +3304,7 @@
                     eyebrow: '\uC790\uC0AC\uBAB0 \uC5F0\uACB0',
                     desc: '\uC218\uAC15 \uD6C4 \uBC14\uB85C \uC7AC\uB8CC\uC640 \uD0A4\uD2B8\uB97C \uB2E4\uC2DC \uAD6C\uB9E4\uD560 \uC218 \uC788\uB294 \uD750\uB984\uC73C\uB85C \uC774\uC5B4\uC9D1\uB2C8\uB2E4.',
                     chips: [cls.category || '\uC7AC\uB8CC\uD0A4\uD2B8', '\uC7AC\uAD6C\uB9E4'],
-                    href: PAGE_DETAIL + '&class_id=' + encodeURIComponent(cls.class_id || '')
+                    href: '/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || '')
                 });
             }
             if (contentMeta.key === 'event') {
@@ -3292,7 +3313,7 @@
                     eyebrow: '\uB178\uCD9C \uAC15\uD654',
                     desc: '\uC138\uBBF8\uB098, \uCCB4\uD5D8\uD68C, \uD558\uC6B0\uC2A4 \uC774\uBCA4\uD2B8 \uD615\uC758 \uC77C\uC815\uC744 \uD55C \uB808\uC774\uC5B4\uC5D0 \uBB36\uC5B4 \uC218\uAC15\uC0DD \uD765\uBBF8\uB97C \uB04C\uC5B4\uC62C\uB9BD\uB2C8\uB2E4.',
                     chips: [contentMeta.label, getDisplayRegionName(cls.region || cls.location || '') || '\uC804\uAD6D'],
-                    href: PAGE_DETAIL + '&class_id=' + encodeURIComponent(cls.class_id || '')
+                    href: '/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || '')
                 });
             }
             if (!seen.partnerMap && getDeliveryModeValue(cls) === 'OFFLINE') {
@@ -3342,7 +3363,7 @@
                     + '<h3 class="benefit-card__title">' + escapeHtml(items[i].title) + '</h3>'
                     + '<p class="benefit-card__desc">' + escapeHtml(items[i].desc) + '</p>'
                     + '<div class="benefit-card__meta">' + renderBenefitChips(items[i].chips) + '</div>'
-                    + '<a href="' + escapeHtml(items[i].href || PAGE_LIST) + '"' + buildExternalLinkAttrs(items[i].href || PAGE_LIST) + ' class="benefit-card__link">\uD61C\uD0DD \uD750\uB984 \uBCF4\uAE30</a>'
+                    + '<a href="' + escapeHtml(items[i].href || '/shop/page.html?id=2606') + '" class="benefit-card__link">\uD61C\uD0DD \uD750\uB984 \uBCF4\uAE30</a>'
                     + '</article>';
             }
             benefitGrid.innerHTML = html;
@@ -3390,7 +3411,7 @@
             + '</div>'
             + '<h4 class="benefit-class-card__name">' + escapeHtml(cls.class_name || '') + '</h4>'
             + '<p class="benefit-class-card__desc">' + escapeHtml(desc) + '</p>'
-            + '<a href="' + PAGE_DETAIL + '&class_id=' + encodeURIComponent(cls.class_id || '') + '" class="benefit-class-card__link">\uC790\uC138\uD788 \uBCF4\uAE30</a>'
+            + '<a href="/shop/page.html?id=2607&class_id=' + encodeURIComponent(cls.class_id || '') + '" class="benefit-class-card__link">\uC790\uC138\uD788 \uBCF4\uAE30</a>'
             + '</article>';
     }
 

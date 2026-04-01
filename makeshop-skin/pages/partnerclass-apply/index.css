@@ -2,7 +2,7 @@
    PRESSCO21 파트너 신청 페이지
    CSS 스코핑: .partner-apply
    CSS 변수 접두사: --pa-
-   브랜드 컬러: #425b51 (포레스트 그린), #d4a373 (골드)
+   브랜드 컬러: #3d2c1e / #b89b5e / #7d9675
    반응형: ~768px / 768~992px / 992px~
    ============================================ */
 
@@ -10,11 +10,11 @@
    0. CSS 변수
    ---------------------------------------- */
 .partner-apply {
-    --pa-primary: #425b51;
-    --pa-gold: #d4a373;
-    --pa-gold-light: #e8c9a8;
+    --pa-primary: #7d9675;
+    --pa-gold: #b89b5e;
+    --pa-gold-light: #d4be8a;
     --pa-gold-bg: #faf6ee;
-    --pa-green: #425b51;
+    --pa-green: #7d9675;
     --pa-bg: #FAF8F5;
     --pa-bg-card: #FFFFFF;
     --pa-bg-warm: #f8f5f0;
@@ -56,8 +56,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    min-height: 30vh;
-    padding: 60px 24px;
+    min-height: 70vh;
+    padding: 40px 24px;
 }
 
 .partner-apply .pa-notice__inner {
@@ -237,605 +237,21 @@
 
 
 /* ----------------------------------------
-   3. 히어로 섹션 (리디자인)
-   ---------------------------------------- */
-.partner-apply .pa-hero {
-    background: linear-gradient(160deg, #2c3e30 0%, var(--pa-primary) 40%, #3a5448 100%);
-    padding: 80px 24px 64px;
-    text-align: center;
-    position: relative;
-    overflow: hidden;
-}
-
-.partner-apply .pa-hero::before {
-    content: '';
-    position: absolute;
-    top: -40%;
-    right: -20%;
-    width: 500px;
-    height: 500px;
-    background: radial-gradient(circle, rgba(212,163,115,0.08) 0%, transparent 70%);
-    pointer-events: none;
-}
-
-.partner-apply .pa-hero__inner {
-    max-width: 720px;
-    margin: 0 auto;
-    position: relative;
-    z-index: 1;
-}
-
-.partner-apply .pa-hero__eyebrow {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--pa-gold);
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    margin: 0 0 20px;
-}
-
-.partner-apply .pa-hero__title {
-    font-family: 'Noto Serif KR', serif;
-    font-size: 38px;
-    font-weight: 700;
-    color: #FFFFFF;
-    margin: 0 0 20px;
-    letter-spacing: -0.03em;
-    line-height: 1.35;
-}
-
-.partner-apply .pa-hero__desc {
-    font-size: 17px;
-    color: rgba(255,255,255,0.75);
-    margin: 0 0 36px;
-    line-height: 1.8;
-}
-
-.partner-apply .pa-hero__actions {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 14px;
-    margin-bottom: 40px;
-    flex-wrap: wrap;
-}
-
-.partner-apply .pa-hero__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 16px 36px;
-    font-family: var(--pa-font);
-    font-size: 16px;
-    font-weight: 700;
-    border-radius: var(--pa-radius-sm);
-    cursor: pointer;
-    transition: all var(--pa-transition);
-    text-decoration: none;
-    border: none;
-    letter-spacing: -0.01em;
-}
-
-.partner-apply .pa-hero__btn--primary {
-    background: var(--pa-gold);
-    color: #FFFFFF;
-}
-
-.partner-apply .pa-hero__btn--primary:hover {
-    background: #c49563;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(212,163,115,0.3);
-}
-
-.partner-apply .pa-hero__btn--ghost {
-    background: transparent;
-    color: rgba(255,255,255,0.85);
-    border: 1.5px solid rgba(255,255,255,0.3);
-}
-
-.partner-apply .pa-hero__btn--ghost:hover {
-    border-color: rgba(255,255,255,0.6);
-    color: #FFFFFF;
-}
-
-.partner-apply .pa-hero__trust {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 24px;
-    flex-wrap: wrap;
-}
-
-.partner-apply .pa-hero__trust-item {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 13px;
-    color: rgba(255,255,255,0.6);
-}
-
-.partner-apply .pa-hero__trust-item svg {
-    flex-shrink: 0;
-}
-
-
-/* ----------------------------------------
-   4. 세일즈 섹션 공통
-   ---------------------------------------- */
-.partner-apply .pa-sales-section {
-    padding: 72px 24px;
-}
-
-.partner-apply .pa-section-head {
-    max-width: 680px;
-    margin: 0 auto 48px;
-    text-align: center;
-}
-
-.partner-apply .pa-section-head__eyebrow {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--pa-gold);
-    letter-spacing: 3px;
-    text-transform: uppercase;
-    margin: 0 0 12px;
-}
-
-.partner-apply .pa-section-head__title {
-    font-family: 'Noto Serif KR', serif;
-    font-size: 28px;
-    font-weight: 700;
-    color: var(--pa-text-dark);
-    margin: 0 0 14px;
-    letter-spacing: -0.02em;
-    line-height: 1.4;
-}
-
-.partner-apply .pa-section-head__desc {
-    font-size: 15px;
-    color: var(--pa-text-light);
-    margin: 0;
-    line-height: 1.75;
-}
-
-
-/* ----------------------------------------
-   4a. 3가지 가치 섹션
-   ---------------------------------------- */
-.partner-apply .pa-value {
-    background: var(--pa-bg);
-}
-
-.partner-apply .pa-value__grid {
-    max-width: 1000px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-}
-
-.partner-apply .pa-value__card {
-    background: var(--pa-bg-card);
-    border-radius: var(--pa-radius-md);
-    padding: 36px 28px;
-    box-shadow: var(--pa-shadow-sm);
-    border: 1px solid var(--pa-border);
-    transition: box-shadow var(--pa-transition), transform var(--pa-transition);
-}
-
-.partner-apply .pa-value__card:hover {
-    box-shadow: var(--pa-shadow-md);
-    transform: translateY(-3px);
-}
-
-.partner-apply .pa-value__icon {
-    margin-bottom: 20px;
-}
-
-.partner-apply .pa-value__card-title {
-    font-family: 'Noto Serif KR', serif;
-    font-size: 20px;
-    font-weight: 700;
-    color: var(--pa-text-dark);
-    margin: 0 0 10px;
-}
-
-.partner-apply .pa-value__card-desc {
-    font-size: 14px;
-    color: var(--pa-text-light);
-    line-height: 1.7;
-    margin: 0 0 18px;
-}
-
-.partner-apply .pa-value__card-list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-}
-
-.partner-apply .pa-value__card-list li {
-    font-size: 13px;
-    color: var(--pa-text);
-    padding: 6px 0 6px 20px;
-    position: relative;
-    line-height: 1.5;
-}
-
-.partner-apply .pa-value__card-list li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 12px;
-    width: 8px;
-    height: 8px;
-    border-radius: 50%;
-    background: var(--pa-gold-light);
-    border: 1.5px solid var(--pa-gold);
-}
-
-
-/* ----------------------------------------
-   4b. 프로세스 5단계 섹션
-   ---------------------------------------- */
-.partner-apply .pa-process {
-    background: var(--pa-gold-bg);
-}
-
-.partner-apply .pa-process__rail {
-    max-width: 600px;
-    margin: 0 auto;
-}
-
-.partner-apply .pa-process__step {
-    display: flex;
-    gap: 20px;
-    align-items: flex-start;
-}
-
-.partner-apply .pa-process__num-wrap {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    flex-shrink: 0;
-}
-
-.partner-apply .pa-process__num {
-    width: 40px;
-    height: 40px;
-    background: var(--pa-primary);
-    color: #FFFFFF;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 16px;
-    font-weight: 700;
-    flex-shrink: 0;
-}
-
-.partner-apply .pa-process__connector {
-    display: block;
-    width: 2px;
-    height: 40px;
-    background: linear-gradient(to bottom, var(--pa-primary), var(--pa-gold-light));
-}
-
-.partner-apply .pa-process__content {
-    padding-bottom: 32px;
-}
-
-.partner-apply .pa-process__step:last-child .pa-process__content {
-    padding-bottom: 0;
-}
-
-.partner-apply .pa-process__title {
-    display: block;
-    font-size: 17px;
-    font-weight: 700;
-    color: var(--pa-text-dark);
-    margin-bottom: 4px;
-    line-height: 40px;
-}
-
-.partner-apply .pa-process__desc {
-    font-size: 14px;
-    color: var(--pa-text-light);
-    margin: 0;
-    line-height: 1.65;
-}
-
-
-/* ----------------------------------------
-   4c. 등급 혜택 섹션
-   ---------------------------------------- */
-.partner-apply .pa-growth {
-    background: var(--pa-bg);
-}
-
-.partner-apply .pa-growth__rail {
-    max-width: 1000px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(4, 1fr);
-    gap: 16px;
-}
-
-.partner-apply .pa-growth__card {
-    background: var(--pa-bg-card);
-    border-radius: var(--pa-radius-md);
-    padding: 28px 22px;
-    border: 1.5px solid var(--pa-border);
-    transition: box-shadow var(--pa-transition), transform var(--pa-transition);
-    position: relative;
-}
-
-.partner-apply .pa-growth__card:hover {
-    box-shadow: var(--pa-shadow-md);
-    transform: translateY(-2px);
-}
-
-.partner-apply .pa-growth__card--bloom {
-    border-color: #b8d4b0;
-}
-
-.partner-apply .pa-growth__card--garden {
-    border-color: #a8c8a0;
-}
-
-.partner-apply .pa-growth__card--atelier {
-    border-color: var(--pa-gold-light);
-}
-
-.partner-apply .pa-growth__card--ambassador {
-    border-color: var(--pa-gold);
-    background: linear-gradient(180deg, #fdfbf7 0%, var(--pa-gold-bg) 100%);
-}
-
-.partner-apply .pa-growth__badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--pa-text-light);
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
-    margin-bottom: 12px;
-}
-
-.partner-apply .pa-growth__badge-dot {
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--pa-gold);
-}
-
-.partner-apply .pa-growth__grade {
-    font-size: 13px;
-    font-weight: 700;
-    color: var(--pa-primary);
-    letter-spacing: 2px;
-    margin: 0 0 4px;
-}
-
-.partner-apply .pa-growth__title {
-    font-family: 'Noto Serif KR', serif;
-    font-size: 18px;
-    font-weight: 700;
-    color: var(--pa-text-dark);
-    margin: 0 0 8px;
-}
-
-.partner-apply .pa-growth__desc {
-    font-size: 13px;
-    color: var(--pa-text-light);
-    line-height: 1.65;
-    margin: 0 0 14px;
-}
-
-.partner-apply .pa-growth__list {
-    list-style: none;
-    padding: 0;
-    margin: 0;
-    border-top: 1px solid var(--pa-border);
-    padding-top: 12px;
-}
-
-.partner-apply .pa-growth__list li {
-    font-size: 12px;
-    color: var(--pa-text);
-    padding: 4px 0 4px 16px;
-    position: relative;
-    line-height: 1.5;
-}
-
-.partner-apply .pa-growth__list li::before {
-    content: '';
-    position: absolute;
-    left: 0;
-    top: 10px;
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: var(--pa-gold-light);
-}
-
-.partner-apply .pa-growth__fee-note {
-    text-align: center;
-    font-size: 13px;
-    color: var(--pa-text-light);
-    margin: 32px 0 0;
-    padding: 14px 20px;
-    background: var(--pa-bg-card);
-    border: 1px solid var(--pa-border);
-    border-radius: var(--pa-radius-sm);
-    max-width: 480px;
-    margin-left: auto;
-    margin-right: auto;
-}
-
-
-/* ----------------------------------------
-   4d. 파트너 후기 섹션
-   ---------------------------------------- */
-.partner-apply .pa-social {
-    background: var(--pa-bg-warm);
-}
-
-.partner-apply .pa-social__grid {
-    max-width: 1000px;
-    margin: 0 auto;
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 24px;
-}
-
-.partner-apply .pa-social__card {
-    background: var(--pa-bg-card);
-    border-radius: var(--pa-radius-md);
-    padding: 28px 24px;
-    box-shadow: var(--pa-shadow-sm);
-    border: 1px solid var(--pa-border);
-}
-
-.partner-apply .pa-social__stars {
-    display: flex;
-    gap: 2px;
-    margin-bottom: 16px;
-}
-
-.partner-apply .pa-social__quote {
-    font-size: 14px;
-    color: var(--pa-text);
-    line-height: 1.75;
-    margin: 0 0 20px;
-    padding: 0;
-    border: none;
-    font-style: normal;
-}
-
-.partner-apply .pa-social__author {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-}
-
-.partner-apply .pa-social__author-avatar {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--pa-primary);
-    color: #FFFFFF;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 14px;
-    font-weight: 700;
-    flex-shrink: 0;
-}
-
-.partner-apply .pa-social__author-name {
-    font-size: 14px;
-    font-weight: 600;
-    color: var(--pa-text-dark);
-    margin: 0;
-}
-
-.partner-apply .pa-social__author-info {
-    font-size: 12px;
-    color: var(--pa-text-light);
-    margin: 2px 0 0;
-}
-
-
-/* ----------------------------------------
-   4e. 최종 CTA 섹션
-   ---------------------------------------- */
-.partner-apply .pa-final-cta {
-    background: linear-gradient(160deg, #2c3e30 0%, var(--pa-primary) 50%, #3a5448 100%);
-    padding: 72px 24px;
-    text-align: center;
-}
-
-.partner-apply .pa-final-cta__inner {
-    max-width: 560px;
-    margin: 0 auto;
-}
-
-.partner-apply .pa-final-cta__eyebrow {
-    font-size: 11px;
-    font-weight: 600;
-    color: var(--pa-gold);
-    letter-spacing: 4px;
-    text-transform: uppercase;
-    margin: 0 0 16px;
-}
-
-.partner-apply .pa-final-cta__title {
-    font-family: 'Noto Serif KR', serif;
-    font-size: 30px;
-    font-weight: 700;
-    color: #FFFFFF;
-    margin: 0 0 16px;
-    line-height: 1.4;
-    letter-spacing: -0.02em;
-}
-
-.partner-apply .pa-final-cta__desc {
-    font-size: 15px;
-    color: rgba(255,255,255,0.7);
-    margin: 0 0 32px;
-    line-height: 1.7;
-}
-
-.partner-apply .pa-final-cta__btn {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    padding: 18px 48px;
-    background: var(--pa-gold);
-    color: #FFFFFF;
-    font-family: var(--pa-font);
-    font-size: 17px;
-    font-weight: 700;
-    border: none;
-    border-radius: var(--pa-radius-sm);
-    cursor: pointer;
-    transition: all var(--pa-transition);
-    letter-spacing: -0.01em;
-}
-
-.partner-apply .pa-final-cta__btn:hover {
-    background: #c49563;
-    transform: translateY(-2px);
-    box-shadow: 0 8px 24px rgba(212,163,115,0.3);
-}
-
-
-/* ----------------------------------------
-   4f. 플로팅 CTA
+   3. 상단 세일즈 레이어
    ---------------------------------------- */
 .partner-apply .pa-float-cta {
     position: fixed;
-    bottom: 0;
     left: 0;
     right: 0;
-    z-index: 900;
-    background: rgba(66,91,81,0.97);
-    border-top: 1px solid rgba(255,255,255,0.1);
-    padding: 12px 24px;
-    transform: translateY(100%);
-    transition: transform 0.35s ease-out;
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-}
-
-.partner-apply .pa-float-cta.is-visible {
-    transform: translateY(0);
+    bottom: 0;
+    z-index: 40;
+    padding: 12px 16px calc(12px + env(safe-area-inset-bottom, 0px));
+    background: rgba(26, 26, 26, 0.88);
+    backdrop-filter: blur(16px);
 }
 
 .partner-apply .pa-float-cta__inner {
-    max-width: 800px;
+    max-width: 1180px;
     margin: 0 auto;
     display: flex;
     align-items: center;
@@ -844,190 +260,711 @@
 }
 
 .partner-apply .pa-float-cta__text {
-    font-size: 14px;
-    color: rgba(255,255,255,0.8);
     margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: rgba(255,255,255,0.88);
 }
 
 .partner-apply .pa-float-cta__btn {
     flex-shrink: 0;
-    padding: 12px 28px;
-    background: var(--pa-gold);
-    color: #FFFFFF;
+    min-width: 156px;
+    padding: 13px 18px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--pa-gold) 0%, #d3b273 100%);
+    color: #20160f;
     font-family: var(--pa-font);
     font-size: 14px;
     font-weight: 700;
-    border: none;
-    border-radius: var(--pa-radius-sm);
     cursor: pointer;
-    transition: background var(--pa-transition);
-    white-space: nowrap;
+    transition: transform var(--pa-transition), opacity var(--pa-transition);
 }
 
 .partner-apply .pa-float-cta__btn:hover {
-    background: #c49563;
+    transform: translateY(-1px);
 }
 
-
-/* ----------------------------------------
-   5b. 수강 이수자 우대 배지
-   ---------------------------------------- */
-.partner-apply .pa-cert-badge {
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 14px;
-    background: #edf5eb;
-    color: #3a6b35;
-    font-size: 13px;
-    font-weight: 600;
-    border-radius: 20px;
-    margin: 8px 0 4px;
-}
-
-/* ----------------------------------------
-   5b. 폼 사이드바 & 인트로
-   ---------------------------------------- */
-.partner-apply .pa-form-section__inner {
-    max-width: 800px;
-    margin: 0 auto;
-    display: flex;
-    gap: 32px;
-    align-items: flex-start;
-}
-
-.partner-apply .pa-form-side {
-    flex: 0 0 280px;
+.partner-apply .pa-page-header {
     position: sticky;
-    top: 24px;
+    top: 0;
+    z-index: 20;
+    border-bottom: 1px solid rgba(255,255,255,0.08);
+    background: rgba(61, 44, 30, 0.92);
+    backdrop-filter: blur(12px);
 }
 
-.partner-apply .pa-form-side__card {
-    background: var(--pa-bg-card);
-    border: 1px solid var(--pa-border);
-    border-radius: var(--pa-radius-md);
-    padding: 24px;
-    margin-bottom: 16px;
+.partner-apply .pa-page-header__inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    padding: 18px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
 }
 
-.partner-apply .pa-form-side__card--soft {
-    background: var(--pa-gold-bg);
-    border-color: var(--pa-gold-light);
+.partner-apply .pa-page-header__brand {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
 }
 
-.partner-apply .pa-form-side__eyebrow {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--pa-gold);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin: 0 0 10px;
-}
-
-.partner-apply .pa-form-side__title {
-    font-family: 'Noto Serif KR', serif;
-    font-size: 17px;
+.partner-apply .pa-page-header__logo {
+    font-size: 20px;
     font-weight: 700;
-    color: var(--pa-text-dark);
-    margin: 0 0 14px;
+    color: var(--pa-gold);
+    text-decoration: none;
+    letter-spacing: 2px;
 }
 
-.partner-apply .pa-form-side__title--sm {
-    font-size: 15px;
-}
-
-.partner-apply .pa-form-side__list {
-    list-style: none;
-    padding: 0;
+.partner-apply .pa-page-header__tagline {
+    font-size: 11px;
+    color: rgba(255,255,255,0.5);
+    letter-spacing: 1.5px;
     margin: 0;
 }
 
-.partner-apply .pa-form-side__item {
+.partner-apply .pa-page-header__nav {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.partner-apply .pa-page-header__nav-btn {
+    padding: 10px 16px;
+    border: 1px solid rgba(255,255,255,0.14);
+    border-radius: 999px;
+    background: transparent;
+    color: rgba(255,255,255,0.82);
+    font-family: var(--pa-font);
     font-size: 13px;
-    color: var(--pa-text);
-    padding: 6px 0 6px 16px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: border-color var(--pa-transition), background-color var(--pa-transition), color var(--pa-transition);
+}
+
+.partner-apply .pa-page-header__nav-btn:hover {
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.24);
+    color: #FFFFFF;
+}
+
+.partner-apply .pa-hero {
     position: relative;
+    overflow: hidden;
+    background:
+        radial-gradient(circle at top left, rgba(184, 155, 94, 0.24), transparent 34%),
+        linear-gradient(135deg, #293a25 0%, #364c30 38%, #5f4b34 100%);
+    padding: 88px 24px 72px;
+}
+
+.partner-apply .pa-hero__inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: minmax(0, 1.15fr) minmax(320px, 0.85fr);
+    gap: 34px;
+    align-items: stretch;
+}
+
+.partner-apply .pa-hero__copy {
+    position: relative;
+    z-index: 1;
+}
+
+.partner-apply .pa-hero__eyebrow {
+    font-size: 12px;
+    font-weight: 700;
+    color: rgba(255,255,255,0.72);
+    letter-spacing: 3px;
+    text-transform: uppercase;
+    margin: 0 0 16px;
+}
+
+.partner-apply .pa-hero__title {
+    font-size: 52px;
+    font-weight: 700;
+    color: #FFFFFF;
+    margin: 0 0 18px;
+    letter-spacing: -0.05em;
+    line-height: 1.08;
+}
+
+.partner-apply .pa-hero__desc {
+    max-width: 640px;
+    font-size: 17px;
+    color: rgba(255,255,255,0.78);
+    margin: 0 0 30px;
+    line-height: 1.8;
+}
+
+.partner-apply .pa-hero__actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 32px;
+}
+
+.partner-apply .pa-hero__btn {
+    min-width: 180px;
+    padding: 15px 22px;
+    border-radius: 999px;
+    border: none;
+    font-family: var(--pa-font);
+    font-size: 15px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: transform var(--pa-transition), opacity var(--pa-transition), background-color var(--pa-transition);
+}
+
+.partner-apply .pa-hero__btn:hover {
+    transform: translateY(-1px);
+}
+
+.partner-apply .pa-hero__btn--primary {
+    background: linear-gradient(135deg, var(--pa-gold) 0%, #dec48f 100%);
+    color: #241811;
+}
+
+.partner-apply .pa-hero__btn--secondary {
+    background: rgba(255,255,255,0.06);
+    color: #FFFFFF;
+    border: 1px solid rgba(255,255,255,0.16);
+}
+
+.partner-apply .pa-hero__stats {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.partner-apply .pa-hero__stat {
+    padding: 18px 18px 20px;
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 18px;
+    background: rgba(255,255,255,0.06);
+    backdrop-filter: blur(10px);
+}
+
+.partner-apply .pa-hero__stat-value {
+    display: block;
+    margin-bottom: 6px;
+    font-size: 18px;
+    color: #FFFFFF;
+}
+
+.partner-apply .pa-hero__stat-label {
+    display: block;
+    font-size: 13px;
+    color: rgba(255,255,255,0.68);
     line-height: 1.6;
 }
 
-.partner-apply .pa-form-side__item::before {
+.partner-apply .pa-hero__panel {
+    display: flex;
+    align-items: stretch;
+}
+
+.partner-apply .pa-hero__panel-card {
+    width: 100%;
+    padding: 28px;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 28px;
+    background: rgba(255,255,255,0.94);
+    box-shadow: 0 18px 40px rgba(0,0,0,0.16);
+}
+
+.partner-apply .pa-hero__panel-label {
+    margin: 0 0 18px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pa-gold);
+    letter-spacing: 2px;
+}
+
+.partner-apply .pa-hero__panel-list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.partner-apply .pa-hero__panel-item {
+    display: grid;
+    grid-template-columns: 92px minmax(0, 1fr);
+    gap: 12px;
+    padding-bottom: 14px;
+    border-bottom: 1px solid var(--pa-border);
+}
+
+.partner-apply .pa-hero__panel-item:last-child {
+    padding-bottom: 0;
+    border-bottom: none;
+}
+
+.partner-apply .pa-hero__panel-item strong {
+    font-size: 14px;
+    color: var(--pa-text-dark);
+}
+
+.partner-apply .pa-hero__panel-item span {
+    font-size: 14px;
+    color: var(--pa-text-light);
+    line-height: 1.65;
+}
+
+.partner-apply .pa-hero__panel-note {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 20px;
+}
+
+.partner-apply .pa-hero__panel-chip {
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: var(--pa-gold-bg);
+    color: var(--pa-text-dark);
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.partner-apply .pa-benefits {
+    border-bottom: 1px solid var(--pa-border);
+    background: linear-gradient(180deg, rgba(248,245,240,0.92) 0%, #ffffff 100%);
+    padding: 22px 24px 28px;
+}
+
+.partner-apply .pa-benefits__inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+}
+
+.partner-apply .pa-benefits__item {
+    padding: 20px 22px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.9);
+    border: 1px solid var(--pa-border);
+    box-shadow: var(--pa-shadow-sm);
+}
+
+.partner-apply .pa-benefits__value {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 16px;
+    font-weight: 700;
+    color: var(--pa-text-dark);
+}
+
+.partner-apply .pa-benefits__text {
+    font-size: 14px;
+    color: var(--pa-text-light);
+    line-height: 1.65;
+    margin: 0;
+}
+
+.partner-apply .pa-sales-section,
+.partner-apply .pa-form-section {
+    padding: 72px 24px 0;
+}
+
+.partner-apply .pa-sales-section:last-of-type {
+    padding-bottom: 0;
+}
+
+.partner-apply .pa-section-head {
+    max-width: 760px;
+    margin: 0 auto 28px;
+    text-align: center;
+}
+
+.partner-apply .pa-section-head__eyebrow {
+    margin: 0 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pa-gold);
+    letter-spacing: 2px;
+}
+
+.partner-apply .pa-section-head__title {
+    margin: 0 0 14px;
+    font-size: 34px;
+    line-height: 1.25;
+    letter-spacing: -0.04em;
+    color: var(--pa-text-dark);
+}
+
+.partner-apply .pa-section-head__desc {
+    margin: 0;
+    font-size: 16px;
+    color: var(--pa-text-light);
+    line-height: 1.8;
+}
+
+.partner-apply .pa-support__grid,
+.partner-apply .pa-social__grid,
+.partner-apply .pa-process__grid {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    gap: 18px;
+}
+
+.partner-apply .pa-support__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.partner-apply .pa-support__card,
+.partner-apply .pa-process__card,
+.partner-apply .pa-social__card {
+    padding: 24px;
+    border-radius: 24px;
+    background: #FFFFFF;
+    border: 1px solid var(--pa-border);
+    box-shadow: var(--pa-shadow-sm);
+}
+
+.partner-apply .pa-support__step {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin-bottom: 16px;
+    border-radius: 50%;
+    background: var(--pa-gold-bg);
+    color: var(--pa-gold);
+    font-size: 13px;
+    font-weight: 700;
+}
+
+.partner-apply .pa-support__card-title {
+    margin: 0 0 10px;
+    font-size: 19px;
+    color: var(--pa-text-dark);
+}
+
+.partner-apply .pa-support__card-desc {
+    margin: 0;
+    font-size: 14px;
+    color: var(--pa-text-light);
+    line-height: 1.75;
+}
+
+.partner-apply .pa-compare__table-wrap {
+    max-width: 1180px;
+    margin: 0 auto;
+    overflow-x: auto;
+    border-radius: 24px;
+    border: 1px solid var(--pa-border);
+    background: #FFFFFF;
+    box-shadow: var(--pa-shadow-sm);
+}
+
+.partner-apply .pa-compare__table {
+    width: 100%;
+    min-width: 720px;
+    border-collapse: collapse;
+}
+
+.partner-apply .pa-compare__table th,
+.partner-apply .pa-compare__table td {
+    padding: 20px 22px;
+    text-align: left;
+    vertical-align: top;
+    border-bottom: 1px solid var(--pa-border);
+    font-size: 14px;
+    line-height: 1.7;
+}
+
+.partner-apply .pa-compare__table thead th {
+    background: var(--pa-bg-warm);
+    color: var(--pa-text-dark);
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.partner-apply .pa-compare__table tbody th {
+    width: 18%;
+    color: var(--pa-text-dark);
+    font-weight: 700;
+    background: rgba(248,245,240,0.48);
+}
+
+.partner-apply .pa-compare__table tbody td {
+    color: var(--pa-text-light);
+}
+
+.partner-apply .pa-compare__table tbody tr:last-child th,
+.partner-apply .pa-compare__table tbody tr:last-child td {
+    border-bottom: none;
+}
+
+.partner-apply .pa-fit__grid,
+.partner-apply .pa-form-section__inner {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 22px;
+}
+
+.partner-apply .pa-fit__panel,
+.partner-apply .pa-form-side__card {
+    padding: 28px;
+    border-radius: 24px;
+    background: #FFFFFF;
+    border: 1px solid var(--pa-border);
+    box-shadow: var(--pa-shadow-sm);
+}
+
+.partner-apply .pa-fit__panel--accent {
+    background: linear-gradient(180deg, #fffaf0 0%, #ffffff 100%);
+}
+
+.partner-apply .pa-fit__label,
+.partner-apply .pa-form-side__eyebrow {
+    margin: 0 0 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pa-gold);
+    letter-spacing: 2px;
+}
+
+.partner-apply .pa-fit__list,
+.partner-apply .pa-form-side__list,
+.partner-apply .pa-growth__list {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.partner-apply .pa-fit__item,
+.partner-apply .pa-form-side__item,
+.partner-apply .pa-growth__list li {
+    position: relative;
+    padding-left: 18px;
+    font-size: 14px;
+    color: var(--pa-text-light);
+    line-height: 1.7;
+}
+
+.partner-apply .pa-fit__item::before,
+.partner-apply .pa-form-side__item::before,
+.partner-apply .pa-growth__list li::before {
     content: '';
     position: absolute;
     left: 0;
-    top: 13px;
-    width: 5px;
-    height: 5px;
+    top: 10px;
+    width: 8px;
+    height: 8px;
     border-radius: 50%;
     background: var(--pa-gold);
 }
 
-.partner-apply .pa-form-side__desc {
-    font-size: 13px;
-    color: var(--pa-text-light);
+.partner-apply .pa-fit__timeline {
+    list-style: none;
     margin: 0;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.partner-apply .pa-fit__timeline-item {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+    padding: 18px 18px 18px 22px;
+    border-radius: 18px;
+    background: rgba(255,255,255,0.72);
+    border: 1px solid rgba(184,155,94,0.2);
+}
+
+.partner-apply .pa-fit__timeline-item strong,
+.partner-apply .pa-process__title,
+.partner-apply .pa-growth__title,
+.partner-apply .pa-form-side__title {
+    color: var(--pa-text-dark);
+}
+
+.partner-apply .pa-fit__timeline-item span,
+.partner-apply .pa-form-side__desc,
+.partner-apply .pa-process__desc {
+    font-size: 14px;
+    color: var(--pa-text-light);
     line-height: 1.7;
 }
 
-.partner-apply .pa-form__intro {
-    padding: 36px 40px;
-    border-bottom: 1px solid var(--pa-border);
+.partner-apply .pa-growth__rail {
+    max-width: 1180px;
+    margin: 0 auto;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 18px;
 }
 
-.partner-apply .pa-form__intro-eyebrow {
-    font-size: 10px;
-    font-weight: 600;
-    color: var(--pa-gold);
-    letter-spacing: 2px;
-    text-transform: uppercase;
-    margin: 0 0 8px;
+.partner-apply .pa-growth__card {
+    padding: 26px 24px;
+    border-radius: 24px;
+    border: 1px solid var(--pa-border);
+    background:
+        linear-gradient(180deg, rgba(250,246,238,0.82) 0%, rgba(255,255,255,1) 42%);
+    box-shadow: var(--pa-shadow-sm);
 }
 
-.partner-apply .pa-form__intro-title {
-    font-family: 'Noto Serif KR', serif;
-    font-size: 22px;
+.partner-apply .pa-growth__grade {
+    margin: 0 0 10px;
+    font-size: 12px;
     font-weight: 700;
-    color: var(--pa-text-dark);
-    margin: 0 0 8px;
+    letter-spacing: 2px;
+    color: var(--pa-gold);
 }
 
-.partner-apply .pa-form__intro-desc {
+.partner-apply .pa-growth__title {
+    margin: 0 0 10px;
+    font-size: 22px;
+}
+
+.partner-apply .pa-growth__desc {
+    margin: 0 0 18px;
     font-size: 14px;
     color: var(--pa-text-light);
+    line-height: 1.75;
+}
+
+.partner-apply .pa-social__grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.partner-apply .pa-social__type {
+    margin: 0 0 14px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pa-gold);
+    letter-spacing: 1.8px;
+}
+
+.partner-apply .pa-social__quote {
+    margin: 0 0 16px;
+    font-size: 16px;
+    color: var(--pa-text-dark);
+    line-height: 1.85;
+}
+
+.partner-apply .pa-social__author {
     margin: 0;
-    line-height: 1.65;
+    font-size: 13px;
+    color: var(--pa-text-light);
 }
 
-@media (max-width: 768px) {
-    .partner-apply .pa-form-section__inner {
-        flex-direction: column;
-    }
-
-    .partner-apply .pa-form-side {
-        flex: 1;
-        position: static;
-    }
-
-    .partner-apply .pa-form__intro {
-        padding: 28px 20px;
-    }
+.partner-apply .pa-social__card--highlight {
+    background: linear-gradient(180deg, #fcf7eb 0%, #ffffff 100%);
 }
 
+.partner-apply .pa-process__grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
 
-/* ----------------------------------------
-   6. 폼 섹션
-   ---------------------------------------- */
+.partner-apply .pa-process__num {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 34px;
+    height: 34px;
+    margin-bottom: 14px;
+    border-radius: 50%;
+    background: var(--pa-primary);
+    color: #FFFFFF;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.partner-apply .pa-process__title {
+    display: block;
+    margin-bottom: 8px;
+    font-size: 18px;
+}
+
 .partner-apply .pa-form-section {
-    padding: 48px 24px 80px;
+    padding-bottom: 120px;
+}
+
+.partner-apply .pa-form-side {
+    display: flex;
+    flex-direction: column;
+    gap: 18px;
+}
+
+.partner-apply .pa-form-side__card {
+    position: sticky;
+    top: 96px;
+}
+
+.partner-apply .pa-form-side__card + .pa-form-side__card {
+    position: static;
+}
+
+.partner-apply .pa-form-side__card--soft {
+    background: linear-gradient(180deg, #f8f5f0 0%, #ffffff 100%);
+}
+
+.partner-apply .pa-form-side__title {
+    margin: 0 0 14px;
+    font-size: 28px;
+    line-height: 1.2;
+    letter-spacing: -0.03em;
+}
+
+.partner-apply .pa-form-side__title--sm {
+    font-size: 22px;
 }
 
 .partner-apply .pa-form {
     background: var(--pa-bg-card);
-    border-radius: var(--pa-radius-md);
-    box-shadow: var(--pa-shadow-md);
+    border-radius: 28px;
+    box-shadow: 0 22px 48px rgba(61, 44, 30, 0.09);
     overflow: hidden;
+    border: 1px solid rgba(232, 226, 219, 0.9);
 }
 
-/* 폼 섹션 블록 */
+.partner-apply .pa-form__intro {
+    padding: 34px 40px 18px;
+    background: linear-gradient(180deg, #fff9ef 0%, #ffffff 100%);
+}
+
+.partner-apply .pa-form__intro-eyebrow {
+    margin: 0 0 10px;
+    font-size: 12px;
+    font-weight: 700;
+    color: var(--pa-gold);
+    letter-spacing: 2px;
+}
+
+.partner-apply .pa-form__intro-title {
+    margin: 0 0 10px;
+    font-size: 30px;
+    line-height: 1.2;
+    letter-spacing: -0.04em;
+    color: var(--pa-text-dark);
+}
+
+.partner-apply .pa-form__intro-desc {
+    margin: 0;
+    font-size: 15px;
+    color: var(--pa-text-light);
+    line-height: 1.75;
+}
+
 .partner-apply .pa-form__section {
     padding: 36px 40px;
     border-bottom: 1px solid var(--pa-border);
@@ -1051,7 +988,6 @@
     margin: 0 0 24px;
 }
 
-/* 필드 */
 .partner-apply .pa-form__field {
     margin-bottom: 20px;
 }
@@ -1124,7 +1060,7 @@
 
 /* select 화살표 */
 .partner-apply .pa-form__select {
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
+    background-image: url("data:image/svg+xml,%3Csvg width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23777' stroke-width='1.5' stroke-linecap='round' fill='none'/%3E%3C/svg%3E");
     background-repeat: no-repeat;
     background-position: right 14px center;
     padding-right: 36px;
@@ -1337,124 +1273,163 @@
 
 
 /* ----------------------------------------
-   11. 반응형 — 992px 이하
+   11. 반응형
    ---------------------------------------- */
-@media (max-width: 992px) {
-    .partner-apply .pa-value__grid {
-        grid-template-columns: 1fr;
-        max-width: 520px;
+@media (max-width: 991px) {
+    .partner-apply .pa-page-header__inner,
+    .partner-apply .pa-hero__inner,
+    .partner-apply .pa-benefits__inner,
+    .partner-apply .pa-support__grid,
+    .partner-apply .pa-growth__rail,
+    .partner-apply .pa-social__grid,
+    .partner-apply .pa-process__grid,
+    .partner-apply .pa-fit__grid,
+    .partner-apply .pa-form-section__inner {
+        max-width: 100%;
     }
 
-    .partner-apply .pa-growth__rail {
-        grid-template-columns: repeat(2, 1fr);
+    .partner-apply .pa-page-header__inner {
+        flex-direction: column;
+        align-items: flex-start;
     }
 
-    .partner-apply .pa-social__grid {
-        grid-template-columns: 1fr;
-        max-width: 520px;
+    .partner-apply .pa-page-header__nav {
+        flex-wrap: wrap;
     }
-}
 
-
-/* ----------------------------------------
-   12. 반응형 — 768px 이하
-   ---------------------------------------- */
-@media (max-width: 768px) {
-    /* 히어로 */
     .partner-apply .pa-hero {
-        padding: 56px 20px 48px;
+        padding: 72px 24px 56px;
+    }
+
+    .partner-apply .pa-hero__inner,
+    .partner-apply .pa-fit__grid,
+    .partner-apply .pa-form-section__inner {
+        grid-template-columns: 1fr;
     }
 
     .partner-apply .pa-hero__title {
-        font-size: 28px;
+        font-size: 44px;
     }
 
-    .partner-apply .pa-hero__desc {
-        font-size: 15px;
+    .partner-apply .pa-support__grid,
+    .partner-apply .pa-growth__rail,
+    .partner-apply .pa-process__grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
     }
 
-    .partner-apply .pa-hero__desc br {
-        display: none;
-    }
-
-    .partner-apply .pa-hero__actions {
-        flex-direction: column;
-        gap: 10px;
-    }
-
-    .partner-apply .pa-hero__btn {
-        width: 100%;
-        max-width: 320px;
-    }
-
-    .partner-apply .pa-hero__trust {
-        flex-direction: column;
-        gap: 8px;
-    }
-
-    /* 세일즈 섹션 공통 */
-    .partner-apply .pa-sales-section {
-        padding: 52px 20px;
-    }
-
-    .partner-apply .pa-section-head {
-        margin-bottom: 36px;
-    }
-
-    .partner-apply .pa-section-head__title {
-        font-size: 24px;
-    }
-
-    .partner-apply .pa-section-head__desc br {
-        display: none;
-    }
-
-    /* 등급 */
-    .partner-apply .pa-growth__rail {
+    .partner-apply .pa-social__grid,
+    .partner-apply .pa-benefits__inner {
         grid-template-columns: 1fr;
-        max-width: 400px;
     }
 
-    /* CTA */
-    .partner-apply .pa-final-cta {
-        padding: 56px 20px;
+    .partner-apply .pa-form-side__card {
+        position: static;
     }
+}
 
-    .partner-apply .pa-final-cta__title {
-        font-size: 24px;
-    }
-
-    .partner-apply .pa-final-cta__title br {
-        display: none;
-    }
-
-    .partner-apply .pa-final-cta__btn {
-        width: 100%;
-        max-width: 320px;
-    }
-
-    /* 플로팅 CTA */
-    .partner-apply .pa-float-cta__text {
-        display: none;
+@media (max-width: 767px) {
+    .partner-apply .pa-float-cta {
+        padding-left: 12px;
+        padding-right: 12px;
     }
 
     .partner-apply .pa-float-cta__inner {
-        justify-content: center;
+        flex-direction: column;
+        align-items: stretch;
     }
 
     .partner-apply .pa-float-cta__btn {
         width: 100%;
-        text-align: center;
-        padding: 14px 24px;
     }
 
-    /* 폼 */
+    .partner-apply .pa-page-header {
+        position: static;
+    }
+
+    .partner-apply .pa-page-header__inner {
+        padding: 16px 18px;
+    }
+
+    .partner-apply .pa-page-header__nav {
+        width: 100%;
+    }
+
+    .partner-apply .pa-page-header__nav-btn {
+        flex: 1;
+        min-width: 0;
+    }
+
+    .partner-apply .pa-sales-section,
     .partner-apply .pa-form-section {
-        padding: 28px 16px 60px;
+        padding: 56px 16px 0;
     }
 
-    .partner-apply .pa-form__section {
-        padding: 28px 20px;
+    .partner-apply .pa-form-section {
+        padding-bottom: 112px;
+    }
+
+    .partner-apply .pa-hero {
+        padding: 48px 16px 40px;
+    }
+
+    .partner-apply .pa-hero__title {
+        font-size: 32px;
+    }
+
+    .partner-apply .pa-hero__desc,
+    .partner-apply .pa-section-head__desc {
+        font-size: 14px;
+    }
+
+    .partner-apply .pa-hero__actions,
+    .partner-apply .pa-hero__stats {
+        grid-template-columns: 1fr;
+    }
+
+    .partner-apply .pa-hero__actions {
+        display: grid;
+    }
+
+    .partner-apply .pa-hero__btn {
+        width: 100%;
+    }
+
+    .partner-apply .pa-hero__panel-card,
+    .partner-apply .pa-fit__panel,
+    .partner-apply .pa-form-side__card,
+    .partner-apply .pa-support__card,
+    .partner-apply .pa-process__card,
+    .partner-apply .pa-social__card,
+    .partner-apply .pa-growth__card {
+        padding: 22px 20px;
+        border-radius: 20px;
+    }
+
+    .partner-apply .pa-hero__panel-item {
+        grid-template-columns: 1fr;
+        gap: 6px;
+    }
+
+    .partner-apply .pa-section-head {
+        margin-bottom: 22px;
+    }
+
+    .partner-apply .pa-section-head__title,
+    .partner-apply .pa-form__intro-title {
+        font-size: 26px;
+    }
+
+    .partner-apply .pa-support__grid,
+    .partner-apply .pa-growth__rail,
+    .partner-apply .pa-process__grid {
+        grid-template-columns: 1fr;
+    }
+
+    .partner-apply .pa-form__intro,
+    .partner-apply .pa-form__section,
+    .partner-apply .pa-form__submit-area {
+        padding-left: 20px;
+        padding-right: 20px;
     }
 
     .partner-apply .pa-form__row--half {
@@ -1470,10 +1445,6 @@
         margin-bottom: 0;
     }
 
-    .partner-apply .pa-form__submit-area {
-        padding: 24px 20px 32px;
-    }
-
     .partner-apply .pa-form__submit-btn {
         width: 100%;
         padding: 16px 24px;
@@ -1483,7 +1454,6 @@
         margin: 0 20px 20px;
     }
 
-    /* 성공 화면 */
     .partner-apply .pa-success__steps {
         gap: 4px;
     }
@@ -1494,21 +1464,20 @@
     }
 }
 
-
-/* ----------------------------------------
-   13. 반응형 — 480px 이하
-   ---------------------------------------- */
 @media (max-width: 480px) {
     .partner-apply .pa-hero__title {
-        font-size: 24px;
+        font-size: 28px;
     }
 
-    .partner-apply .pa-section-head__title {
-        font-size: 21px;
+    .partner-apply .pa-page-header__nav {
+        display: grid;
+        grid-template-columns: repeat(3, minmax(0, 1fr));
     }
 
-    .partner-apply .pa-final-cta__title {
-        font-size: 21px;
+    .partner-apply .pa-page-header__nav-btn {
+        padding-left: 10px;
+        padding-right: 10px;
+        font-size: 12px;
     }
 
     .partner-apply .pa-success__steps {
@@ -1519,17 +1488,5 @@
     .partner-apply .pa-success__step-arrow {
         transform: rotate(90deg);
         margin: -4px 0;
-    }
-
-    .partner-apply .pa-value__card {
-        padding: 28px 20px;
-    }
-
-    .partner-apply .pa-growth__card {
-        padding: 24px 18px;
-    }
-
-    .partner-apply .pa-social__card {
-        padding: 24px 20px;
     }
 }

@@ -4,155 +4,128 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>콘텐츠 허브 | PRESSCO21 포에버러브</title>
-    <meta name="description" content="파트너의 작품 이야기, 수강생 후기, 꽃공예 입문 가이드, 시즌별 추천 클래스를 만나보세요.">
-    <meta name="keywords" content="꽃공예 가이드, 압화 입문, 파트너 스토리, 수강생 후기, 시즌 클래스, PRESSCO21">
+    <meta name="description" content="파트너 스토리, 클래스 하이라이트, 꽃 트렌드, 초보자 가이드를 한 곳에서 탐색하는 PRESSCO21 콘텐츠 허브입니다.">
+    <meta name="keywords" content="꽃 공예 콘텐츠, 파트너 인터뷰, 클래스 하이라이트, 꽃 트렌드, 초보자 가이드">
     <meta property="og:title" content="콘텐츠 허브 | PRESSCO21 포에버러브">
-    <meta property="og:description" content="파트너의 작품부터 수강생의 경험까지, 꽃공예의 모든 이야기를 만나보세요.">
+    <meta property="og:description" content="전국 클래스 탐색과 파트너 스토리, 계절 큐레이션, 초보자 가이드를 한 허브에서 확인하세요.">
     <meta property="og:type" content="website">
-
-    <!-- Pretendard 웹폰트 -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css">
-    <!-- Noto Serif KR 타이틀 폰트 -->
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+KR:wght@400;700&display=swap" rel="stylesheet">
-    <!-- PRESSCO21 공통 모듈 -->
-    <script src="https://img.pressco21.com/images/assets/pressco21-core.js"></script>
 </head>
 <body>
 
-<!-- ============================================
-     콘텐츠 허브 페이지 (E2-005)
-     CSS 스코핑: .content-hub
-     ============================================ -->
-<div class="content-hub">
-
-    <!-- 히어로 섹션 -->
-    <section class="ch-hero">
-        <div class="ch-hero__inner">
-            <nav class="ch-breadcrumb" aria-label="페이지 경로">
-                <a href="/">HOME</a>
-                <span class="ch-breadcrumb__sep" aria-hidden="true">/</span>
-                <a href="/page.html?id=2606">파트너 클래스</a>
-                <span class="ch-breadcrumb__sep" aria-hidden="true">/</span>
-                <span class="ch-breadcrumb__current">콘텐츠 허브</span>
-            </nav>
-            <h1 class="ch-hero__title">꽃공예의 모든 이야기</h1>
-            <p class="ch-hero__subtitle">파트너의 작품부터 수강생의 경험까지</p>
-        </div>
-    </section>
-
-    <!-- 탭 네비게이션 -->
-    <nav class="ch-tabs" role="tablist" aria-label="콘텐츠 탭">
-        <button class="ch-tabs__btn ch-tabs__btn--active" role="tab" aria-selected="true" aria-controls="chPartnerStory" id="tabPartnerStory" data-tab="partnerStory">
-            <span class="ch-tabs__icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/><circle cx="12" cy="7" r="4"/></svg>
-            </span>
-            파트너 스토리
-        </button>
-        <button class="ch-tabs__btn" role="tab" aria-selected="false" aria-controls="chReviews" id="tabReviews" data-tab="reviews">
-            <span class="ch-tabs__icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
-            </span>
-            수강생 후기
-        </button>
-        <button class="ch-tabs__btn" role="tab" aria-selected="false" aria-controls="chGuide" id="tabGuide" data-tab="guide">
-            <span class="ch-tabs__icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M2 3h6a4 4 0 0 1 4 4v14a3 3 0 0 0-3-3H2z"/><path d="M22 3h-6a4 4 0 0 0-4 4v14a3 3 0 0 1 3-3h7z"/></svg>
-            </span>
-            꽃공예 가이드
-        </button>
-        <button class="ch-tabs__btn" role="tab" aria-selected="false" aria-controls="chSeason" id="tabSeason" data-tab="season">
-            <span class="ch-tabs__icon" aria-hidden="true">
-                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/></svg>
-            </span>
-            시즌 큐레이션
-        </button>
-    </nav>
-
-    <!-- ========================================
-         패널 1: 파트너 스토리
-         ======================================== -->
-    <section class="ch-panel ch-panel--active" id="chPartnerStory" role="tabpanel" aria-labelledby="tabPartnerStory">
-        <div class="ch-panel__inner">
-            <div class="ch-section-header">
-                <h2 class="ch-section-header__title">파트너 스토리</h2>
-                <p class="ch-section-header__desc">PRESSCO21 파트너 강사님들의 작품 세계와 이야기를 만나보세요.</p>
-            </div>
-            <div class="ch-card-grid" id="partnerStoryGrid">
-                <!-- JS에서 데모 카드 렌더링 -->
-            </div>
-        </div>
-    </section>
-
-    <!-- ========================================
-         패널 2: 수강생 후기
-         ======================================== -->
-    <section class="ch-panel" id="chReviews" role="tabpanel" aria-labelledby="tabReviews" hidden>
-        <div class="ch-panel__inner">
-            <div class="ch-section-header">
-                <h2 class="ch-section-header__title">수강생 후기</h2>
-                <p class="ch-section-header__desc">클래스를 직접 경험한 수강생들의 솔직한 이야기입니다.</p>
-            </div>
-            <div class="ch-review-area" id="reviewArea">
-                <!-- JS에서 빈 상태 또는 리뷰 카드 렌더링 -->
-            </div>
-            <!-- 후기 작성 CTA + 인센티브 안내 -->
-            <div class="ch-review-cta" id="chReviewCta">
-                <div class="ch-review-cta__inner">
-                    <div class="ch-review-cta__icon" aria-hidden="true">
-                        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-                            <path d="M12 2l3.09 6.26L22 9.27l-5 4.87L18.18 21 12 17.27 5.82 21 7 14.14 2 9.27l6.91-1.01L12 2z"/>
-                        </svg>
-                    </div>
-                    <div class="ch-review-cta__text">
-                        <p class="ch-review-cta__title">나도 후기 남기기</p>
-                        <p class="ch-review-cta__desc">후기를 남기면 다음 수강 시 할인 혜택을 받을 수 있어요</p>
-                    </div>
-                    <a href="/shop/page.html?id=8010" class="ch-review-cta__btn">후기 작성하러 가기</a>
+<div class="partner-content-hub" id="partnerContentHub">
+    <header class="pch-hero">
+        <div class="pch-hero__inner">
+            <div class="pch-hero__copy">
+                <p class="pch-hero__eyebrow">PRESSCO21 Editorial Hub</p>
+                <h1 class="pch-hero__title">수강생이 탐색하고 싶은 흐름을<br>콘텐츠로 먼저 보여줍니다</h1>
+                <p class="pch-hero__desc">전국 클래스, 파트너 스토리, 계절 큐레이션, 초보자 가이드를 하나의 허브로 묶어 예약 직전의 망설임을 줄이고 다음 행동까지 자연스럽게 이어줍니다.</p>
+                <div class="pch-hero__actions">
+                    <a class="pch-btn pch-btn--primary" href="/shop/page.html?id=2606">전체 클래스 보기</a>
+                    <a class="pch-btn pch-btn--secondary" href="/shop/page.html?id=2609">파트너 제휴 보기</a>
                 </div>
             </div>
+            <aside class="pch-hero__aside">
+                <p class="pch-hero__aside-label">이번 허브에서 가장 먼저 보여줄 이야기</p>
+                <h2 class="pch-hero__aside-title" id="pchFeatureMessage">전국 파트너 클래스와 콘텐츠를 한 허브에서 탐색하세요.</h2>
+                <div class="pch-summary">
+                    <div class="pch-summary__item">
+                        <span class="pch-summary__label">활성 클래스</span>
+                        <strong class="pch-summary__value" id="pchTotalClasses">0</strong>
+                    </div>
+                    <div class="pch-summary__item">
+                        <span class="pch-summary__label">활성 파트너</span>
+                        <strong class="pch-summary__value" id="pchTotalPartners">0</strong>
+                    </div>
+                    <div class="pch-summary__item">
+                        <span class="pch-summary__label">입문 클래스</span>
+                        <strong class="pch-summary__value" id="pchTotalBeginner">0</strong>
+                    </div>
+                    <div class="pch-summary__item">
+                        <span class="pch-summary__label">탐색 지역</span>
+                        <strong class="pch-summary__value" id="pchTotalRegions">0</strong>
+                    </div>
+                </div>
+            </aside>
         </div>
-    </section>
+    </header>
 
-    <!-- ========================================
-         패널 3: 꽃공예 가이드
-         ======================================== -->
-    <section class="ch-panel" id="chGuide" role="tabpanel" aria-labelledby="tabGuide" hidden>
-        <div class="ch-panel__inner">
-            <div class="ch-section-header">
-                <h2 class="ch-section-header__title">꽃공예 가이드</h2>
-                <p class="ch-section-header__desc">꽃공예가 처음이신 분들을 위한 입문 가이드입니다.</p>
-            </div>
-            <div class="ch-card-grid" id="guideGrid">
-                <!-- JS에서 가이드 카드 렌더링 -->
-            </div>
+    <nav class="pch-nav" aria-label="콘텐츠 섹션 이동">
+        <button type="button" class="pch-nav__btn is-active" data-scroll-target="hubHighlightsSection">클래스 하이라이트</button>
+        <button type="button" class="pch-nav__btn" data-scroll-target="hubStoriesSection">파트너 인터뷰</button>
+        <button type="button" class="pch-nav__btn" data-scroll-target="hubTrendsSection">꽃 트렌드</button>
+        <button type="button" class="pch-nav__btn" data-scroll-target="hubGuidesSection">초보자 가이드</button>
+    </nav>
+
+    <div class="pch-state pch-state--loading" id="pchLoading">
+        <div class="pch-state__panel">
+            <p class="pch-state__eyebrow">Loading Hub</p>
+            <h2 class="pch-state__title">콘텐츠 허브를 구성하고 있습니다.</h2>
+            <p class="pch-state__desc">파트너 스토리와 클래스 큐레이션을 불러오는 중입니다.</p>
         </div>
-    </section>
+    </div>
 
-    <!-- ========================================
-         패널 4: 시즌 큐레이션
-         ======================================== -->
-    <section class="ch-panel" id="chSeason" role="tabpanel" aria-labelledby="tabSeason" hidden>
-        <div class="ch-panel__inner">
-            <div class="ch-section-header">
-                <h2 class="ch-section-header__title">시즌 큐레이션</h2>
-                <p class="ch-section-header__desc">계절에 어울리는 꽃공예 클래스를 추천해 드립니다.</p>
-            </div>
-            <div class="ch-season-area" id="seasonArea">
-                <!-- JS에서 시즌 큐레이션 렌더링 -->
-            </div>
+    <div class="pch-state pch-state--error" id="pchError" style="display:none;">
+        <div class="pch-state__panel">
+            <p class="pch-state__eyebrow">Load Failed</p>
+            <h2 class="pch-state__title">콘텐츠 허브를 불러오지 못했습니다.</h2>
+            <p class="pch-state__desc">잠시 후 다시 시도하거나, 전체 클래스 페이지에서 먼저 탐색을 시작해 주세요.</p>
+            <button type="button" class="pch-btn pch-btn--primary" id="pchRetryBtn">다시 시도</button>
         </div>
-    </section>
+    </div>
 
-    <!-- 클래스 목록 CTA -->
-    <section class="ch-cta">
-        <div class="ch-cta__inner">
-            <p class="ch-cta__text">마음에 드는 클래스를 찾아보세요</p>
-            <a href="/page.html?id=2606" class="ch-cta__btn">전체 클래스 보기</a>
-        </div>
-    </section>
+    <main class="pch-main" id="pchContent" style="display:none;">
+        <section class="pch-section" id="hubHighlightsSection">
+            <div class="pch-section__head">
+                <p class="pch-section__eyebrow">CLASS HIGHLIGHTS</p>
+                <h2 class="pch-section__title">지금 바로 구미가 당기는 대표 클래스</h2>
+                <p class="pch-section__desc">수강생이 실제로 비교하기 쉬운 가격, 지역, 난이도, 파트너 정보를 한 장 안에서 빠르게 읽을 수 있게 정리합니다.</p>
+            </div>
+            <div class="pch-card-grid pch-card-grid--highlights" id="pchHighlightsGrid"></div>
+        </section>
 
+        <section class="pch-section" id="hubStoriesSection">
+            <div class="pch-section__head">
+                <p class="pch-section__eyebrow">PARTNER STORIES</p>
+                <h2 class="pch-section__title">강사와 공방의 맥락이 보이는 인터뷰형 카드</h2>
+                <p class="pch-section__desc">클래스만 나열하지 않고, 누가 어떤 스타일의 수업을 운영하는지와 어떤 단계의 파트너인지까지 함께 보여줍니다.</p>
+            </div>
+            <div class="pch-story-grid" id="pchStoriesGrid"></div>
+        </section>
+
+        <section class="pch-section" id="hubTrendsSection">
+            <div class="pch-section__head">
+                <p class="pch-section__eyebrow">FLOWER TRENDS</p>
+                <h2 class="pch-section__title">지금 많이 움직이는 카테고리를 큐레이션으로 제안</h2>
+                <p class="pch-section__desc">클래스 데이터에서 실제로 쌓이는 주제를 바탕으로 계절감과 지역감을 함께 읽을 수 있게 구성합니다.</p>
+            </div>
+            <div class="pch-trend-grid" id="pchTrendsGrid"></div>
+        </section>
+
+        <section class="pch-section" id="hubGuidesSection">
+            <div class="pch-section__head">
+                <p class="pch-section__eyebrow">BEGINNER GUIDE</p>
+                <h2 class="pch-section__title">처음 배우는 수강생이 안심할 수 있는 출발점</h2>
+                <p class="pch-section__desc">입문 난이도, 예상 시간, 준비물 흐름을 가이드 카드로 정리해 예약 전 부담을 낮춥니다.</p>
+            </div>
+            <div class="pch-guide-grid" id="pchGuidesGrid"></div>
+        </section>
+
+        <section class="pch-cta-strip">
+            <div class="pch-cta-strip__copy">
+                <p class="pch-cta-strip__eyebrow">NEXT STEP</p>
+                <h2 class="pch-cta-strip__title">콘텐츠를 읽었다면 이제 바로 탐색하거나, 파트너로 합류할 수 있습니다.</h2>
+            </div>
+            <div class="pch-cta-strip__actions">
+                <a class="pch-btn pch-btn--primary" href="/shop/page.html?id=2606">전국 클래스 탐색</a>
+                <a class="pch-btn pch-btn--secondary" href="/shop/page.html?id=2609">파트너 신청</a>
+            </div>
+        </section>
+    </main>
 </div>
-<!-- // .content-hub -->
 
 </body>
 </html>

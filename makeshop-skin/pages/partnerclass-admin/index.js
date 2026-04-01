@@ -10,16 +10,15 @@
     /* ========================================
        설정값
        ======================================== */
-    /* ── 공통 모듈 바인딩 (pressco21-core.js) ── */
-    var PC = window.PRESSCO21;
-    var escapeHtml = PC.util.escapeHtml;
-    var formatPrice = PC.util.formatPrice;
-    var checkAdmin = PC.auth.checkAdmin;
-
+    var ADMIN_API_URL = 'https://n8n.pressco21.com/webhook/admin-api';
+    var SETTLEMENT_API_URL = 'https://n8n.pressco21.com/webhook/settlement-batch';
+    var EVENT_ADMIN_API_URL = 'https://n8n.pressco21.com/webhook/partnerclass-event-calendar-admin';
     // 관리자 그룹명 목록 (메이크샵 회원등급명과 일치해야 함)
     var ADMIN_GROUP_NAMES = ['관리자', '운영자', '대표'];
     // 관리자 그룹 레벨 하한선
     var ADMIN_MIN_GROUP_LEVEL = 9;
+    // API 인증 토큰 (이 페이지는 관리자만 접근 가능하므로 프론트 노출 허용)
+    var ADMIN_TOKEN = 'pressco21-admin-2026';
     // 로컬 preview 환경에서 협회 제안서 fixture 경로
     var AFFILIATION_PROPOSAL_PREVIEW_PATH = '/output/playwright/fixtures/partnerclass/affiliation-proposal.html';
 
@@ -35,8 +34,6 @@
     var selectedSettlements = {};
     var affiliationRecords = [];
     var eventCalendarRecords = [];
-    var lastApplicationsList = [];
-    var lastClassesList = [];
 
     function normalizeClassFilterStatus(status) {
         var value = String(status || '').toUpperCase().trim();
@@ -54,10 +51,11 @@
        ======================================== */
     function init() {
         // 가상태그에서 회원 정보 추출
+        var memberEl = document.getElementById('adMemberId');
         var groupEl = document.getElementById('adGroupName');
         var levelEl = document.getElementById('adGroupLevel');
 
-        memberId = PC.auth.getMemberId('adMemberId');
+        memberId = (memberEl ? memberEl.textContent : '').trim();
         groupName = (groupEl ? groupEl.textContent : '').trim();
         groupLevel = (levelEl ? levelEl.textContent : '').trim();
 
@@ -77,85 +75,70 @@
         bindSettlementControls();
         bindProposalBuilder();
         bindEventCalendarControls();
-        bindSlidePanel();
-        bindBatchControls();
-        bindAuditLogControls();
         loadSummary();
         loadTab('applications');
     }
 
     /**
-     * 관리자 여부 확인 (공통 모듈 위임)
+     * 관리자 여부 확인
      */
     function isAdmin() {
-        return checkAdmin(groupName, groupLevel, {
-            adminGroups: ADMIN_GROUP_NAMES,
-            minLevel: ADMIN_MIN_GROUP_LEVEL
-        });
+        var numericGroupLevel = Number(String(groupLevel || '').replace(/[^\d]/g, ''));
+        for (var i = 0; i < ADMIN_GROUP_NAMES.length; i++) {
+            if (groupName === ADMIN_GROUP_NAMES[i]) return true;
+        }
+        if (!isNaN(numericGroupLevel) && numericGroupLevel >= ADMIN_MIN_GROUP_LEVEL) {
+            return true;
+        }
+        return false;
     }
 
     /* ========================================
        API 호출 헬퍼
        ======================================== */
-
-    /**
-     * 인증 정보를 페이로드에 주입 (서버 사이드 검증용)
-     * 하드코딩 토큰 대신 가상태그 기반 회원 정보를 매 요청에 포함
-     * n8n webhook에서 member_id + group_name + group_level을 서버 사이드 검증
-     */
-    function injectAuth(payload) {
-        var authPayload = {};
-        for (var key in payload) {
-            if (payload.hasOwnProperty(key)) {
-                authPayload[key] = payload[key];
-            }
-        }
-        authPayload._auth = {
-            member_id: memberId,
-            group_name: groupName,
-            group_level: groupLevel
-        };
-        return authPayload;
-    }
-
-    /**
-     * PC.api.fetchPost 래퍼 — XHR → fetch 기반 전환
-     * 기존 callback(status, resp) 시그니처 유지하여 17개 호출부 변경 없음
-     */
     function adminFetch(payload, callback) {
-        PC.api.fetchPost('ADMIN_API', injectAuth(payload))
-            .then(function(resp) { callback(200, resp); })
-            .catch(function(err) {
-                var status = 500;
-                if (err.code && err.code.indexOf('HTTP_') === 0) {
-                    status = parseInt(err.code.replace('HTTP_', ''), 10) || 500;
-                }
-                callback(status, err.data || null);
-            });
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', ADMIN_API_URL, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Authorization', 'Bearer ' + ADMIN_TOKEN);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                var resp = null;
+                try { resp = JSON.parse(xhr.responseText); } catch(e) {}
+                callback(xhr.status, resp);
+            }
+        };
+        xhr.send(JSON.stringify(payload));
     }
 
     function settlementFetch(payload, callback) {
-        PC.api.fetchPost('SETTLEMENT', injectAuth(payload))
-            .then(function(resp) { callback(200, resp); })
-            .catch(function(err) {
-                var status = 500;
-                if (err.code && err.code.indexOf('HTTP_') === 0) {
-                    status = parseInt(err.code.replace('HTTP_', ''), 10) || 500;
-                }
-                callback(status, err.data || null);
-            });
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', SETTLEMENT_API_URL, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Authorization', 'Bearer ' + ADMIN_TOKEN);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                var resp = null;
+                try { resp = JSON.parse(xhr.responseText); } catch(e) {}
+                callback(xhr.status, resp);
+            }
+        };
+        xhr.send(JSON.stringify(payload));
     }
 
     function eventAdminFetch(payload, callback) {
-        PC.api.fetchPost('EVENT_ADMIN', injectAuth(payload))
-            .then(function(resp) { callback(200, resp); })
-            .catch(function(err) {
-                var status = 500;
-                if (err.code && err.code.indexOf('HTTP_') === 0) {
-                    status = parseInt(err.code.replace('HTTP_', ''), 10) || 500;
-                }
-                callback(status, err.data || null);
-            });
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', EVENT_ADMIN_API_URL, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.setRequestHeader('Authorization', 'Bearer ' + ADMIN_TOKEN);
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
+                var resp = null;
+                try { resp = JSON.parse(xhr.responseText); } catch(e) {}
+                callback(xhr.status, resp);
+            }
+        };
+        xhr.send(JSON.stringify(payload));
     }
 
     /* ========================================
@@ -183,7 +166,7 @@
         }
 
         // 패널 표시/숨김
-        var panels = ['Applications', 'Classes', 'Settlements', 'Affiliations', 'Auditlog'];
+        var panels = ['Applications', 'Classes', 'Settlements', 'Affiliations'];
         for (var j = 0; j < panels.length; j++) {
             var panelId = 'panel' + panels[j];
             var el = document.getElementById(panelId);
@@ -271,9 +254,6 @@
                 loadAdminAffiliations();
                 loadEventCalendar();
                 break;
-            case 'auditlog':
-                loadAuditLog();
-                break;
         }
     }
 
@@ -297,9 +277,6 @@
         var emptyEl = document.getElementById('emptyApplications');
         var tableWrap = document.getElementById('tableWrapApplications');
 
-        lastApplicationsList = list || [];
-        toggleBatchButtons('App', status === 'PENDING' && list.length > 0);
-
         if (!list.length) {
             emptyEl.style.display = '';
             tableWrap.style.display = 'none';
@@ -314,18 +291,12 @@
             var app = list[i];
             var date = formatDate(app.created_at || app.CreatedAt);
             html += '<tr data-id="' + (app.Id || '') + '" data-member="' + escapeAttr(app.member_id || '') + '">';
-            if (status === 'PENDING') {
-                html += '<td><input type="checkbox" class="ad-checkbox app-check" value="' + (app.Id || '') + '" data-member="' + escapeAttr(app.member_id || '') + '"></td>';
-            } else {
-                html += '<td></td>';
-            }
             html += '<td class="ad-table__date">' + date + '</td>';
             html += '<td>' + escapeHtml(app.applicant_name || app.name || '-') + '</td>';
             html += '<td>' + escapeHtml(app.workshop_name || app.studio_name || '-') + '</td>';
             html += '<td>' + escapeHtml(app.specialty || '-') + '</td>';
             html += '<td>' + escapeHtml(app.location || '-') + '</td>';
             html += '<td class="ad-table__actions">';
-            html += '<button class="ad-btn ad-btn--sm ad-btn--secondary" onclick="window._openSlidePanel(\'application\',' + i + ')">보기</button>';
             if (status === 'PENDING') {
                 html += '<button class="ad-btn ad-btn--sm ad-btn--approve" onclick="window._adminAction(\'approveApp\',' + app.Id + ',\'' + escapeAttr(app.member_id || '') + '\')">승인</button>';
                 html += '<button class="ad-btn ad-btn--sm ad-btn--reject" onclick="window._adminAction(\'rejectApp\',' + app.Id + ')">거부</button>';
@@ -358,9 +329,6 @@
         var emptyEl = document.getElementById('emptyClasses');
         var tableWrap = document.getElementById('tableWrapClasses');
 
-        lastClassesList = list || [];
-        toggleBatchButtons('Class', status === 'PENDING_REVIEW' && list.length > 0);
-
         if (!list.length) {
             emptyEl.style.display = '';
             tableWrap.style.display = 'none';
@@ -375,11 +343,6 @@
             var cls = list[i];
             var date = formatDate(cls.created_date || cls.CreatedAt);
             html += '<tr data-id="' + (cls.Id || '') + '">';
-            if (status === 'PENDING_REVIEW') {
-                html += '<td><input type="checkbox" class="ad-checkbox class-check" value="' + (cls.Id || '') + '"></td>';
-            } else {
-                html += '<td></td>';
-            }
             html += '<td class="ad-table__date">' + date + '</td>';
             html += '<td>' + escapeHtml(cls.class_name || '-') + '</td>';
             html += '<td>' + escapeHtml(cls.partner_name || cls.partner_code || '-') + '</td>';
@@ -387,7 +350,6 @@
             html += '<td>' + escapeHtml(cls.type || '-') + '</td>';
             html += '<td>' + formatPrice(cls.price || 0) + '\uC6D0</td>';
             html += '<td class="ad-table__actions">';
-            html += '<button class="ad-btn ad-btn--sm ad-btn--secondary" onclick="window._openSlidePanel(\'class\',' + i + ')">보기</button>';
             if (status === 'PENDING_REVIEW') {
                 html += '<button class="ad-btn ad-btn--sm ad-btn--approve" onclick="window._adminAction(\'approveClass\',' + cls.Id + ')">승인</button>';
                 html += '<button class="ad-btn ad-btn--sm ad-btn--reject" onclick="window._adminAction(\'rejectClass\',' + cls.Id + ')">거부</button>';
@@ -799,31 +761,43 @@
        협회 관리 탭
        ======================================== */
 
-    /* CLASS_API_URL은 PC.api.fetchPost('CLASS_API', ...) 로 대체 */
+    /** WF-01 Class API (공개 API, CORS 허용) */
+    var CLASS_API_URL = 'https://n8n.pressco21.com/webhook/class-api';
 
     function loadAdminAffiliations() {
         showLoading('Affiliations');
-        PC.api.fetchPost('CLASS_API', { action: 'getAffiliations' })
-            .then(function(resp) {
+        // WF-01 getAffiliations (CORS 허용, active 협회만)
+        var xhr = new XMLHttpRequest();
+        xhr.open('POST', CLASS_API_URL, true);
+        xhr.setRequestHeader('Content-Type', 'application/json');
+        xhr.onreadystatechange = function() {
+            if (xhr.readyState === 4) {
                 hideLoading('Affiliations');
-                if (resp && resp.success && resp.data) {
-                    renderAdminAffiliations(resp.data);
-                    var countEl = document.getElementById('affilTotalCount');
-                    if (countEl) countEl.textContent = resp.total || resp.data.length;
-                    var badgeEl = document.getElementById('badgeAffiliations');
-                    if (badgeEl) {
-                        var cnt = resp.total || resp.data.length;
-                        badgeEl.textContent = cnt > 0 ? cnt : '';
-                        badgeEl.style.display = cnt > 0 ? '' : 'none';
+                if (xhr.status === 200) {
+                    try {
+                        var resp = JSON.parse(xhr.responseText);
+                        if (resp && resp.success && resp.data) {
+                            renderAdminAffiliations(resp.data);
+                            var countEl = document.getElementById('affilTotalCount');
+                            if (countEl) countEl.textContent = resp.total || resp.data.length;
+                            var badgeEl = document.getElementById('badgeAffiliations');
+                            if (badgeEl) {
+                                var cnt = resp.total || resp.data.length;
+                                badgeEl.textContent = cnt > 0 ? cnt : '';
+                                badgeEl.style.display = cnt > 0 ? '' : 'none';
+                            }
+                        } else {
+                            showEmpty('Affiliations');
+                        }
+                    } catch(e) {
+                        showEmpty('Affiliations');
                     }
                 } else {
                     showEmpty('Affiliations');
                 }
-            })
-            .catch(function() {
-                hideLoading('Affiliations');
-                showEmpty('Affiliations');
-            });
+            }
+        };
+        xhr.send(JSON.stringify({ action: 'getAffiliations' }));
 
         // 월간 집계는 WF-ADMIN 경유 (getAffilStats 액션)
         loadAffilStats();
@@ -1261,7 +1235,15 @@
 
         showLoading('EventCalendar');
 
-        PC.api.fetchPost('CLASS_API', body)
+        fetch(CLASS_API_URL, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(body)
+        })
+            .then(function(response) {
+                if (!response.ok) throw new Error('HTTP ' + response.status);
+                return response.json();
+            })
             .then(function(resp) {
                 hideLoading('EventCalendar');
                 if (resp && resp.success && resp.data) {
@@ -1273,7 +1255,7 @@
             .catch(function(err) {
                 hideLoading('EventCalendar');
                 renderEventCalendar([]);
-                setEventAlertResult('연간 이벤트 캘린더 로드 실패: ' + (err.message || ''), 'error');
+                setEventAlertResult('연간 이벤트 캘린더 로드 실패: ' + err.message, 'error');
             });
     }
 
@@ -1462,8 +1444,18 @@
     /* ========================================
        유틸리티
        ======================================== */
+    function escapeHtml(str) {
+        var div = document.createElement('div');
+        div.appendChild(document.createTextNode(str));
+        return div.innerHTML;
+    }
+
     function escapeAttr(str) {
         return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/'/g, '&#39;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    }
+
+    function formatPrice(num) {
+        return String(Math.round(Number(num) || 0)).replace(/\B(?=(\d{3})+(?!\d))/g, ',');
     }
 
     function normalizePercent(num) {
@@ -1526,395 +1518,6 @@
             'SELF_PURCHASE': '\uC790\uAC00\uAD6C\uB9E4'
         };
         return map[status] || status;
-    }
-
-    /* ========================================
-       슬라이드 패널
-       ======================================== */
-    function bindSlidePanel() {
-        var closeBtn = document.getElementById('slidePanelClose');
-        var backdrop = document.getElementById('slidePanelBackdrop');
-
-        if (closeBtn) closeBtn.addEventListener('click', closeSlidePanel);
-        if (backdrop) backdrop.addEventListener('click', closeSlidePanel);
-
-        document.addEventListener('keydown', function(e) {
-            if (e.key === 'Escape') closeSlidePanel();
-        });
-    }
-
-    function openSlidePanel(type, data) {
-        var panel = document.getElementById('adSlidePanel');
-        var titleEl = document.getElementById('slidePanelTitle');
-        var contentEl = document.getElementById('slidePanelContent');
-        var footerEl = document.getElementById('slidePanelFooter');
-
-        if (!panel || !contentEl) return;
-
-        if (type === 'application') {
-            if (titleEl) titleEl.textContent = '\uD30C\uD2B8\uB108 \uC2E0\uCCAD \uC0C1\uC138';
-            contentEl.innerHTML = renderPanelApplication(data);
-            footerEl.innerHTML = renderPanelApplicationFooter(data);
-        } else if (type === 'class') {
-            if (titleEl) titleEl.textContent = '\uAC15\uC758 \uC0C1\uC138';
-            contentEl.innerHTML = renderPanelClass(data);
-            footerEl.innerHTML = renderPanelClassFooter(data);
-        }
-
-        panel.classList.add('ad-slide-panel--open');
-        document.body.style.overflow = 'hidden';
-    }
-
-    function closeSlidePanel() {
-        var panel = document.getElementById('adSlidePanel');
-        if (panel) panel.classList.remove('ad-slide-panel--open');
-        document.body.style.overflow = '';
-    }
-
-    function renderPanelApplication(data) {
-        var html = '<div class="ad-slide-detail">';
-        html += detailRow('\uC2E0\uCCAD\uC77C', formatDate(data.created_at || data.CreatedAt));
-        html += detailRow('\uC774\uB984', data.applicant_name || data.name || '-');
-        html += detailRow('\uACF5\uBC29\uBA85', data.workshop_name || data.studio_name || '-');
-        html += detailRow('\uC804\uBB38\uBD84\uC57C', data.specialty || '-');
-        html += detailRow('\uC9C0\uC5ED', data.location || '-');
-        html += detailRow('\uACBD\uB825', data.career || data.experience || '-');
-        html += detailRow('\uC5F0\uB77D\uCC98', data.phone || data.contact_phone || '-');
-        html += detailRow('\uC774\uBA54\uC77C', data.email || '-');
-        html += detailRow('\uC0C1\uD0DC', getStatusLabel(data.status || 'PENDING'));
-        if (data.sns_url || data.instagram) {
-            html += detailRow('SNS', data.sns_url || data.instagram || '-');
-        }
-        if (data.introduction || data.self_intro) {
-            html += detailRow('\uC18C\uAC1C', data.introduction || data.self_intro || '-');
-        }
-        if (data.reject_reason) {
-            html += detailRow('\uAC70\uBD80\uC0AC\uC720', data.reject_reason);
-        }
-        html += '</div>';
-        return html;
-    }
-
-    function renderPanelApplicationFooter(data) {
-        var status = String(data.status || '').toUpperCase();
-        if (status !== 'PENDING') return '';
-        var id = data.Id || '';
-        var membId = escapeAttr(data.member_id || '');
-        return '<button class="ad-btn ad-btn--approve" onclick="window._adminAction(\'approveApp\',' + id + ',\'' + membId + '\');window._closeSlidePanel();">\uC2B9\uC778</button>'
-            + '<button class="ad-btn ad-btn--reject" onclick="window._adminAction(\'rejectApp\',' + id + ');window._closeSlidePanel();">\uAC70\uBD80</button>';
-    }
-
-    function renderPanelClass(data) {
-        var html = '<div class="ad-slide-detail">';
-        html += detailRow('\uB4F1\uB85D\uC77C', formatDate(data.created_date || data.CreatedAt));
-        html += detailRow('\uAC15\uC758\uBA85', data.class_name || '-');
-        html += detailRow('\uD30C\uD2B8\uB108', data.partner_name || data.partner_code || '-');
-        html += detailRow('\uCE74\uD14C\uACE0\uB9AC', data.category || '-');
-        html += detailRow('\uC218\uC5C5\uD615\uD0DC', data.type || '-');
-        html += detailRow('\uC218\uAC15\uB8CC', formatPrice(data.price || 0) + '\uC6D0');
-        html += detailRow('\uC18C\uC694\uC2DC\uAC04', data.duration || '-');
-        html += detailRow('\uCD5C\uC18C\uC778\uC6D0', data.min_students || '-');
-        html += detailRow('\uCD5C\uB300\uC778\uC6D0', data.max_students || '-');
-        html += detailRow('\uC0C1\uD0DC', getStatusLabel(data.status || 'PENDING_REVIEW'));
-        if (data.description) {
-            html += detailRow('\uC124\uBA85', data.description);
-        }
-        if (data.reject_reason) {
-            html += detailRow('\uAC70\uBD80\uC0AC\uC720', data.reject_reason);
-        }
-        html += '</div>';
-        return html;
-    }
-
-    function renderPanelClassFooter(data) {
-        var status = String(data.status || '').toUpperCase();
-        if (status !== 'PENDING_REVIEW' && status !== 'INACTIVE') return '';
-        var id = data.Id || '';
-        return '<button class="ad-btn ad-btn--approve" onclick="window._adminAction(\'approveClass\',' + id + ');window._closeSlidePanel();">\uC2B9\uC778</button>'
-            + '<button class="ad-btn ad-btn--reject" onclick="window._adminAction(\'rejectClass\',' + id + ');window._closeSlidePanel();">\uAC70\uBD80</button>';
-    }
-
-    function detailRow(label, value) {
-        return '<div class="ad-slide-detail__row"><span class="ad-slide-detail__label">' + escapeHtml(label) + '</span><span class="ad-slide-detail__value">' + escapeHtml(String(value || '-')) + '</span></div>';
-    }
-
-    window._openSlidePanel = function(type, index) {
-        var data;
-        if (type === 'application') {
-            data = lastApplicationsList[index];
-        } else if (type === 'class') {
-            data = lastClassesList[index];
-        }
-        if (data) openSlidePanel(type, data);
-    };
-
-    window._closeSlidePanel = function() {
-        closeSlidePanel();
-    };
-
-    /* ========================================
-       일괄 처리 (배치)
-       ======================================== */
-    function toggleBatchButtons(type, show) {
-        var approveBtn = document.getElementById('btnBatchApprove' + type);
-        var rejectBtn = document.getElementById('btnBatchReject' + type);
-        if (approveBtn) approveBtn.style.display = show ? '' : 'none';
-        if (rejectBtn) rejectBtn.style.display = show ? '' : 'none';
-
-        var checkAll = document.getElementById(type.toLowerCase() + 'CheckAll');
-        if (checkAll) checkAll.checked = false;
-    }
-
-    function bindBatchControls() {
-        // 파트너 신청 전체 선택
-        var appCheckAll = document.getElementById('appCheckAll');
-        if (appCheckAll) {
-            appCheckAll.addEventListener('change', function() {
-                var checks = document.querySelectorAll('.app-check');
-                for (var i = 0; i < checks.length; i++) {
-                    checks[i].checked = appCheckAll.checked;
-                }
-            });
-        }
-
-        // 강의 승인 전체 선택
-        var classCheckAll = document.getElementById('classCheckAll');
-        if (classCheckAll) {
-            classCheckAll.addEventListener('change', function() {
-                var checks = document.querySelectorAll('.class-check');
-                for (var i = 0; i < checks.length; i++) {
-                    checks[i].checked = classCheckAll.checked;
-                }
-            });
-        }
-
-        // 파트너 일괄 승인
-        var btnBatchApproveApp = document.getElementById('btnBatchApproveApp');
-        if (btnBatchApproveApp) {
-            btnBatchApproveApp.addEventListener('click', function() {
-                handleBatchAction('application', 'approve');
-            });
-        }
-
-        // 파트너 일괄 거부
-        var btnBatchRejectApp = document.getElementById('btnBatchRejectApp');
-        if (btnBatchRejectApp) {
-            btnBatchRejectApp.addEventListener('click', function() {
-                handleBatchAction('application', 'reject');
-            });
-        }
-
-        // 강의 일괄 승인
-        var btnBatchApproveClass = document.getElementById('btnBatchApproveClass');
-        if (btnBatchApproveClass) {
-            btnBatchApproveClass.addEventListener('click', function() {
-                handleBatchAction('class', 'approve');
-            });
-        }
-
-        // 강의 일괄 거부
-        var btnBatchRejectClass = document.getElementById('btnBatchRejectClass');
-        if (btnBatchRejectClass) {
-            btnBatchRejectClass.addEventListener('click', function() {
-                handleBatchAction('class', 'reject');
-            });
-        }
-    }
-
-    function handleBatchAction(type, action) {
-        var checkClass = type === 'application' ? '.app-check:checked' : '.class-check:checked';
-        var checks = document.querySelectorAll(checkClass);
-
-        if (!checks.length) {
-            showToast('\uCC98\uB9AC\uD560 \uD56D\uBAA9\uC744 \uC120\uD0DD\uD574 \uC8FC\uC138\uC694.', 'warning');
-            return;
-        }
-
-        var ids = [];
-        var memberIds = [];
-        for (var i = 0; i < checks.length; i++) {
-            ids.push(String(checks[i].value || '').trim());
-            if (type === 'application' && checks[i].getAttribute('data-member')) {
-                memberIds.push(checks[i].getAttribute('data-member'));
-            }
-        }
-
-        var typeLabel = type === 'application' ? '\uD30C\uD2B8\uB108 \uC2E0\uCCAD' : '\uAC15\uC758';
-        var actionLabel = action === 'approve' ? '\uC2B9\uC778' : '\uAC70\uBD80';
-
-        showModal('\uC77C\uAD04 ' + actionLabel + ' \uD655\uC778', ids.length + '\uAC74\uC758 ' + typeLabel + '\uC744(\uB97C) \uC77C\uAD04 ' + actionLabel + '\uD558\uC2DC\uACA0\uC2B5\uB2C8\uAE4C?', function(note) {
-            if (action === 'reject' && !note) {
-                showToast('\uAC70\uBD80 \uC0AC\uC720\uB97C \uC785\uB825\uD574 \uC8FC\uC138\uC694.', 'warning');
-                return;
-            }
-            processBatchItems(type, action, ids, memberIds, note, 0, 0, 0);
-        });
-    }
-
-    function processBatchItems(type, action, ids, memberIds, note, index, successCount, failCount) {
-        if (index >= ids.length) {
-            var actionLabel = action === 'approve' ? '\uC2B9\uC778' : '\uAC70\uBD80';
-            showToast('\uC77C\uAD04 ' + actionLabel + ' \uC644\uB8CC: \uC131\uACF5 ' + successCount + '\uAC74, \uC2E4\uD328 ' + failCount + '\uAC74', successCount > 0 ? 'success' : 'error');
-            if (type === 'application') {
-                loadApplications('PENDING');
-            } else {
-                loadPendingClasses('PENDING_REVIEW');
-            }
-            loadSummary();
-            return;
-        }
-
-        var payload = {};
-        if (type === 'application') {
-            if (action === 'approve') {
-                payload = { action: 'approveApplication', application_id: ids[index], member_id: memberIds[index] || '', reviewer_note: note };
-            } else {
-                payload = { action: 'rejectApplication', row_id: ids[index], reject_reason: note };
-            }
-        } else {
-            if (action === 'approve') {
-                payload = { action: 'approveClass', row_id: ids[index], reviewer_note: note };
-            } else {
-                payload = { action: 'rejectClass', row_id: ids[index], reject_reason: note };
-            }
-        }
-
-        adminFetch(payload, function(status, resp) {
-            var ok = resp && resp.success;
-            processBatchItems(type, action, ids, memberIds, note, index + 1, successCount + (ok ? 1 : 0), failCount + (ok ? 0 : 1));
-        });
-    }
-
-    /* ========================================
-       감사 로그 탭
-       ======================================== */
-    var AUDIT_ACTION_LABELS = {
-        'APPROVE': { text: '승인', cls: 'ad-audit-badge--green' },
-        'REJECT': { text: '거부', cls: 'ad-audit-badge--red' },
-        'CREATE': { text: '생성', cls: 'ad-audit-badge--neutral' },
-        'UPDATE': { text: '수정', cls: 'ad-audit-badge--neutral' },
-        'SETTLE': { text: '정산', cls: 'ad-audit-badge--gold' }
-    };
-
-    function loadAuditLog() {
-        var filters = {
-            action: getAuditFilterValue('auditFilterAction'),
-            targetType: getAuditFilterValue('auditFilterTarget'),
-            dateFrom: getAuditInputValue('auditDateFrom'),
-            dateTo: getAuditInputValue('auditDateTo')
-        };
-        showLoading('Auditlog');
-        adminFetch({
-            action: 'getAuditLog',
-            filters: filters,
-            page: 1,
-            limit: 100
-        }, function(status, resp) {
-            hideLoading('Auditlog');
-            if (resp && resp.success && resp.data && resp.data.length) {
-                renderAuditLog(resp.data);
-            } else {
-                showEmpty('Auditlog');
-            }
-        });
-    }
-
-    function getAuditFilterValue(id) {
-        var el = document.getElementById(id);
-        return el ? el.value : '';
-    }
-
-    function getAuditInputValue(id) {
-        var el = document.getElementById(id);
-        return el ? el.value : '';
-    }
-
-    function renderAuditLog(rows) {
-        var wrap = document.getElementById('auditTableWrap');
-        var emptyEl = document.getElementById('emptyAuditlog');
-        if (!wrap) return;
-
-        if (!rows || !rows.length) {
-            wrap.style.display = 'none';
-            if (emptyEl) emptyEl.style.display = '';
-            return;
-        }
-
-        wrap.style.display = '';
-        if (emptyEl) emptyEl.style.display = 'none';
-
-        var html = '<table class="ad-table"><thead><tr>'
-            + '<th>일시</th><th>액션</th><th>대상</th><th>상세</th><th>실행자</th>'
-            + '</tr></thead><tbody>';
-
-        for (var i = 0; i < rows.length; i++) {
-            var row = rows[i];
-            var actionInfo = AUDIT_ACTION_LABELS[row.action] || { text: escapeHtml(row.action || '-'), cls: 'ad-audit-badge--neutral' };
-            var detailStr = formatAuditDetail(row.details);
-
-            html += '<tr>'
-                + '<td class="ad-table__date">' + escapeHtml(formatAuditDate(row.created_at)) + '</td>'
-                + '<td><span class="ad-audit-badge ' + actionInfo.cls + '">' + actionInfo.text + '</span></td>'
-                + '<td>' + escapeHtml(row.target_type || '-') + (row.target_id ? ' <small style="color:#999">#' + escapeHtml(row.target_id) + '</small>' : '') + '</td>'
-                + '<td class="ad-audit-detail">' + detailStr + '</td>'
-                + '<td>' + escapeHtml(row.actor || '-') + '</td>'
-                + '</tr>';
-        }
-        html += '</tbody></table>';
-        wrap.innerHTML = html;
-
-        // 상세 더보기 토글 바인딩
-        var toggleBtns = wrap.querySelectorAll('.ad-audit-detail__toggle');
-        for (var t = 0; t < toggleBtns.length; t++) {
-            toggleBtns[t].addEventListener('click', function() {
-                var container = this.parentNode;
-                var full = container.querySelector('.ad-audit-detail__full');
-                var truncated = container.querySelector('.ad-audit-detail__truncated');
-                if (full && truncated) {
-                    var isExpanded = full.style.display !== 'none';
-                    full.style.display = isExpanded ? 'none' : '';
-                    truncated.style.display = isExpanded ? '' : 'none';
-                    this.textContent = isExpanded ? '더보기' : '접기';
-                }
-            });
-        }
-    }
-
-    function formatAuditDetail(details) {
-        if (!details) return '<span style="color:#999">-</span>';
-
-        var str = typeof details === 'string' ? details : JSON.stringify(details, null, 2);
-        if (str.length <= 100) {
-            return '<code style="font-size:12px;word-break:break-all">' + escapeHtml(str) + '</code>';
-        }
-
-        var truncated = str.substring(0, 100) + '...';
-        return '<div>'
-            + '<span class="ad-audit-detail__truncated"><code style="font-size:12px;word-break:break-all">' + escapeHtml(truncated) + '</code></span>'
-            + '<span class="ad-audit-detail__full" style="display:none"><code style="font-size:12px;word-break:break-all;white-space:pre-wrap">' + escapeHtml(str) + '</code></span>'
-            + ' <button type="button" class="ad-audit-detail__toggle ad-btn ad-btn--sm ad-btn--secondary" style="margin-top:4px;font-size:11px;padding:2px 8px">더보기</button>'
-            + '</div>';
-    }
-
-    function formatAuditDate(dateStr) {
-        if (!dateStr) return '-';
-        var d = new Date(dateStr);
-        if (isNaN(d.getTime())) return dateStr;
-        var y = d.getFullYear();
-        var m = ('0' + (d.getMonth() + 1)).slice(-2);
-        var day = ('0' + d.getDate()).slice(-2);
-        var h = ('0' + d.getHours()).slice(-2);
-        var min = ('0' + d.getMinutes()).slice(-2);
-        return y + '-' + m + '-' + day + ' ' + h + ':' + min;
-    }
-
-    function bindAuditLogControls() {
-        var btnSearch = document.getElementById('btnAuditSearch');
-        if (btnSearch) {
-            btnSearch.addEventListener('click', function() {
-                loadAuditLog();
-            });
-        }
     }
 
     /* ========================================

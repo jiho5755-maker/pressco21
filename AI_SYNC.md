@@ -51,10 +51,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-02 01:44:44 KST
+- Started At: —
 - Branch: main
-- Working Scope: flora-todo-mvp Sprint 2.5 운영 안정화
-- Active Subdirectory: flora-todo-mvp
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
 - `(none)`
@@ -90,6 +90,208 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- Codex 바이브 루틴에 `선별 커밋`, `의도적 publish`, `장기 운영 메모` 레이어를 추가해 실제 실무 흐름을 더 닫았다.
+  - 추가
+    - `_tools/codex-commit.sh`
+    - `_tools/codex-publish.sh`
+    - `OPS_STATE.md`
+    - `output/codex-backups/.gitkeep`
+    - `output/codex-backups/.gitignore`
+    - `output/codex-sessions/.gitignore`
+  - 수정
+    - `_tools/codex-common.sh`
+    - `_tools/codex-session-template.md`
+    - `docs/codex-vibe-routine.md`
+  - 내용
+    - `codex-commit.sh`는 path-scoped add/commit만 허용하고, 기존 staged 오염이 있으면 막도록 만들었다.
+    - `codex-publish.sh`는 branch/upstream 상태를 보여준 뒤 push하게 했고, dirty tree는 기본 차단하고 `--allow-dirty`일 때만 예외 허용하도록 했다.
+    - `OPS_STATE.md`를 새로 추가해 `AI_SYNC`, 세션 로그, 장기 운영 메모의 역할을 분리했다.
+    - `docs/codex-vibe-routine.md`에 commit/publish/memory update 자연어 요청 예시와 명령 예시를 추가했다.
+  - 검증
+    - `bash -n _tools/codex-{common,start,checkpoint,backup,preflight,commit,publish,finish}.sh`
+    - `bash _tools/codex-commit.sh --dry-run --message "코덱스 루틴 커밋 헬퍼 추가" _tools/codex-commit.sh _tools/codex-publish.sh OPS_STATE.md docs/codex-vibe-routine.md`
+    - `bash _tools/codex-publish.sh --dry-run --allow-dirty`
+- Codex 세션 루틴용 보조 도구를 `pressco21/_tools`와 `docs`에 추가해, 바이브 코딩 중에도 체크포인트/백업/마감 기록을 반복 가능한 형태로 남길 수 있게 정리했다.
+  - 추가
+    - `_tools/codex-common.sh`
+    - `_tools/codex-start.sh`
+    - `_tools/codex-checkpoint.sh`
+    - `_tools/codex-backup.sh`
+    - `_tools/codex-preflight.sh`
+    - `_tools/codex-finish.sh`
+    - `_tools/codex-session-template.md`
+    - `docs/codex-vibe-routine.md`
+    - `output/codex-sessions/.gitkeep`
+  - 내용
+    - 세션 로그 생성, 중간 체크포인트 append, 범위별 patch+tar 백업, preflight, 종료 기록을 각각 스크립트로 분리했다.
+    - `AI_SYNC.md`는 자동 수정하지 않고, Codex가 대화 맥락으로 직접 정리하게 두는 운영 원칙을 문서에 명시했다.
+    - 사용자가 Codex에게 바로 던질 수 있는 자연어 요청 예시와 터미널 명령 예시를 `docs/codex-vibe-routine.md`에 정리했다.
+  - 검증
+    - `bash -n _tools/codex-{common,start,checkpoint,backup,preflight,finish}.sh`
+    - `bash _tools/codex-start.sh "codex vibe routine" "_tools, docs, output"`
+    - `bash _tools/codex-checkpoint.sh --session output/codex-sessions/20260402-123647-codex-vibe-routine.md "scaffold ready" "scripts and guide added"`
+    - `bash _tools/codex-preflight.sh _tools/codex-common.sh _tools/codex-start.sh _tools/codex-checkpoint.sh _tools/codex-backup.sh _tools/codex-preflight.sh _tools/codex-finish.sh docs/codex-vibe-routine.md`
+    - `bash _tools/codex-backup.sh --session output/codex-sessions/20260402-123647-codex-vibe-routine.md --label "routine-scaffold" _tools/codex-common.sh _tools/codex-start.sh _tools/codex-checkpoint.sh _tools/codex-backup.sh _tools/codex-preflight.sh _tools/codex-finish.sh docs/codex-vibe-routine.md`
+    - `bash _tools/codex-finish.sh --session output/codex-sessions/20260402-123647-codex-vibe-routine.md --summary "codex session routine scaffolded" --next "use the prompts and scripts on the next real task" --risk "AI_SYNC still needs manual close-out after each session"`
+- CRM 인증 오류 구간 누락 입금 6건을 현재 엔진 기준으로 다시 판정했고, exact 자동반영 가능한 2건만 운영에 재처리했다.
+  - 대상 판정
+    - exact 자동반영: `JA오피스 56,700원`, `(주)마니랜드 751,200원`
+    - 현재 기준 미자동반영: `(학교)소년의 92,160원`, `여윤화 90,000원`, `쿠팡페이주식 12,719원`, `롯데77619072 9,461원`
+  - 처리 결과
+    - `https://n8n.pressco21.com/webhook/crm-auto-deposit-intake`로 recovery replay를 넣어 exact 2건 반영 완료
+    - `INV-20260331-131618` / 고객 `JA오피스` → `paid`, `outstanding_balance=0`
+    - `INV-20260331-112243` / 고객 `(주)마니랜드` → `paid`, `outstanding_balance=0`
+    - workflow staticData `processedExactDepositIds`에도 두 externalId가 기록된 것 확인
+  - 알림
+    - 오류 구간 누락 입금 6건은 텔레그램 그룹에 `[누락 복구 알림]`으로 재전송 완료
+- CRM 세션 인증 전환으로 끊긴 자동입금 알림 경로를 운영에서 복구하고, 같은 유형의 재발 방지 구조까지 같이 반영했다.
+  - 추가/수정
+    - `offline-crm-v2/scripts/server/crm_auth_server.py`
+      - `/auth/check`가 세션 쿠키뿐 아니라 `X-CRM-Automation-Key` 자동화 헤더와 BasicAuth fallback도 함께 검증하도록 확장했다.
+    - `offline-crm-v2/deploy/{crm-auth.service,nginx-crm-secure.conf,deploy.sh,deploy-release.sh}`
+      - auth 서비스 env에 자동화 키 파일/헤더명을 추가했다.
+      - Nginx `/_crm_auth_check`가 `Authorization`, `X-CRM-Automation-Key`를 auth 서버로 전달하도록 수정했다.
+      - 서버에 `/etc/pressco21-crm/automation-key`를 자동 생성/보존하도록 배포 경로를 보강했다.
+    - `scripts/deploy-crm-deposit-telegram.js`
+      - Oracle 서버의 automation key를 SSH로 읽어 `httpHeaderAuth` credential `PRESSCO21 CRM Automation Header`를 생성/업데이트하도록 추가했다.
+      - `WF-CRM-01`의 `HTTP Get Legacy/Fiscal Snapshots`를 `httpBasicAuth`에서 새 header credential로 전환하도록 수정했다.
+      - `WF-CRM-02`는 은행 원본 거래 알림을 CRM 엔진과 분리해 즉시 보내고, CRM 후속 요약은 `[CRM 입금 처리 결과]`로 분리되게 바꿨다.
+      - 기존 텔레그램 credential이 이미 있으면 토큰 env 없이도 재사용하도록 보강했다.
+    - `n8n-automation/workflows/accounting/WF-CRM-01_입금자동반영_엔진.json`
+    - `n8n-automation/workflows/accounting/WF-CRM-02_Gmail_입금알림_수집.json`
+      - live workflow를 새 auth/알림 구조로 재배포하면서 로컬 소스 파일도 동기화했다.
+    - `docs/offline-crm-bank-automation-ops-guide-2026-03-15.md`
+      - 원본 은행 알림과 CRM 처리 결과를 분리한 운영 규칙, 자동화 인증 키 운영 원칙을 문서화했다.
+  - 검증
+    - `python3 -m py_compile offline-crm-v2/scripts/server/crm_auth_server.py`
+    - `bash -n offline-crm-v2/deploy/deploy.sh`
+    - `bash -n offline-crm-v2/deploy/deploy-release.sh`
+    - `node --check scripts/deploy-crm-deposit-telegram.js`
+    - `bash offline-crm-v2/deploy/deploy-release.sh`
+      - Release ID: `20260402114618-32b11b1-dirty`
+    - `node scripts/deploy-crm-deposit-telegram.js`
+      - live workflow `TmB5jGa1bDMg5pBE`, `7ql6pPWlBoJhoZqH` 재배포
+      - credential `PRESSCO21 CRM Automation Header (QBvgguNLTTKtHGpy)` 생성 확인
+    - 원격 automation key 헤더로 `https://crm.pressco21.com/data/legacy-customer-snapshots.json`, `.../fiscal-balance-snapshots.json` 둘 다 `200` 확인
+    - n8n API로 live `WF-CRM-01` snapshot 노드 2개가 모두 `httpHeaderAuth` credential을 사용 중인 것 확인
+- `flora-todo-mvp` Sprint 3 후속 운영 기능 3건을 구현하고 다시 로컬 브라우저까지 실검증했다.
+  - 추가/수정
+    - `flora-todo-mvp/app/home-dashboard.tsx`
+      - 홈 detail 패널에 task inline PATCH 폼(`title/status/priority/category/due_at/waiting_for/related_project`)과 ignore 액션을 넣었다.
+      - 날짜 범위 토글(`오늘/이번주/다음 7일`)에 맞춰 운영 범위, 핵심 섹션, 일정 임박 카드 수가 같이 바뀌도록 연결했다.
+    - `flora-todo-mvp/app/review-dashboard.tsx`
+      - review queue에 `search/status/priority/page size` 필터와 페이지네이션을 추가했다.
+      - 홈에서 넘어온 `taskId`는 첫 진입 시 해당 페이지로 맞춰 로드하고, 이후 사용자가 필터/페이지를 만지면 UI 제어로 넘기도록 정리했다.
+    - `flora-todo-mvp/app/api/admin/review/route.ts`
+    - `flora-todo-mvp/src/services/reviewService.ts`
+    - `flora-todo-mvp/src/db/repositories/taskRepository.ts`
+      - review queue를 필터링/페이지네이션 가능한 응답 형태로 확장했다.
+    - `flora-todo-mvp/src/lib/dashboard.ts`
+    - `flora-todo-mvp/src/types/dashboard.ts`
+      - 홈 대시보드 date range 계산 유틸과 타입을 추가했다.
+    - `flora-todo-mvp/app/globals.css`
+      - scope chip, inline admin, review filter, pagination 스타일을 보강했다.
+  - 검증
+    - `npm run build` 통과
+    - `npm run verify:dashboard` 통과
+    - `npm run start -- --hostname 127.0.0.1 --port 3000` 후 Playwright로 `http://127.0.0.1:3000/`, `http://127.0.0.1:3000/review?taskId=...` 재검증
+      - 홈 날짜 범위 `오늘` 토글 시 in-scope 2건, summary upcoming 2건으로 반영 확인
+      - 홈 inline admin에서 `related_project` 저장/원복 PATCH 확인
+      - detail -> `/review?taskId=...` 이동 확인
+      - review queue `Next` 페이지 이동 확인
+      - review queue `Search=안소영`, `Status=waiting` 필터 적용 후 3건 / 1페이지로 축소 확인
+      - 브라우저 콘솔 error 0건 확인
+- `flora-todo-mvp` Sprint 3 홈 대시보드 1차 버전을 구현하고 로컬 브라우저까지 실검증했다.
+  - 추가/수정
+    - `flora-todo-mvp/app/page.tsx`
+      - 루트 페이지를 review desk 대신 홈 대시보드로 전환했다.
+    - `flora-todo-mvp/app/home-dashboard.tsx`
+      - summary 카드, 6개 운영 섹션, task detail 패널, explorer 필터/정렬 UI를 추가했다.
+    - `flora-todo-mvp/app/review/page.tsx`
+    - `flora-todo-mvp/app/review-dashboard.tsx`
+      - 기존 review desk를 `/review` 경로로 분리하고, 홈에서 선택한 task로 포커스 진입할 수 있게 연결했다.
+    - `flora-todo-mvp/app/api/dashboard/route.ts`
+    - `flora-todo-mvp/src/services/dashboardService.ts`
+    - `flora-todo-mvp/src/lib/dashboard.ts`
+    - `flora-todo-mvp/src/types/dashboard.ts`
+      - 실제 DB task/reminder/follow-up를 홈 대시보드 데이터와 section 기준으로 묶는 집계 경로를 추가했다.
+    - `flora-todo-mvp/src/db/repositories/taskRepository.ts`
+      - ignored 제외 task 전체를 홈 대시보드용으로 읽는 조회 경로를 추가했다.
+    - `flora-todo-mvp/app/globals.css`
+      - 홈 대시보드 2열 운영 레이아웃과 review 포커스 스타일을 추가했다.
+    - `flora-todo-mvp/scripts/verify-dashboard.ts`
+    - `flora-todo-mvp/package.json`
+    - `flora-todo-mvp/README.md`
+      - 홈 대시보드 section/summary 기준 검증 스크립트와 새 라우트를 문서에 반영했다.
+    - `flora-todo-mvp/app/layout.tsx`
+    - `flora-todo-mvp/app/icon.svg`
+      - 메타 설명을 Sprint 3 기준으로 갱신하고 favicon 404를 없앴다.
+  - 검증
+    - `npm run db:check` 통과
+    - `npm run verify:dashboard` 통과
+    - `npm run build` 통과
+    - `npm run start -- --hostname 127.0.0.1 --port 3000` 후 Playwright로 `http://127.0.0.1:3000/` 실검증
+      - summary 카드 값 확인
+      - 최우선/오늘/이번주/대기/일정 임박/최근 입력 섹션 렌더 확인
+      - task 클릭 후 detail 패널(`title/source_text/status/priority/category/due_at/waiting_for/related_project`) 확인
+      - detail -> `/review?taskId=...` 이동 및 review/admin 수정 화면 연결 확인
+      - explorer에서 `Search=안소영`, `Status=waiting`, `Sort=created_at desc` 동작 확인
+- `flora-todo-mvp` review endpoint를 브라우저에서 직접 다루는 최소 검수 화면으로 연결했다.
+  - 추가/수정
+    - `flora-todo-mvp/app/page.tsx`
+      - 루트 페이지를 정적 소개 화면에서 review dashboard 진입점으로 교체했다.
+    - `flora-todo-mvp/app/review-dashboard.tsx`
+      - quick ingest, summary 카드, review queue, task/reminder/follow-up 수정/삭제를 한 화면에서 처리하는 client dashboard를 추가했다.
+      - `PATCH /api/admin/tasks/:id`, `PATCH / DELETE /api/admin/reminders/:id`, `PATCH / DELETE /api/admin/followups/:id`를 직접 호출하도록 연결했다.
+    - `flora-todo-mvp/app/globals.css`
+      - Sprint 2.5 검수 흐름에 맞는 review desk 레이아웃과 폼 스타일을 추가했다.
+    - `flora-todo-mvp/README.md`
+      - `/` review 화면과 브라우저 검수 진입 방법을 문서에 반영했다.
+  - 검증
+    - `npm run build` 통과
+    - `npm run db:check` 통과
+    - `npm run verify:dedupe` 통과
+    - `npm run verify:review` 통과
+    - `npm run verify:entities` 통과
+    - `npm run verify:sprint2` 통과
+    - `npm run start` 후 Playwright로 `http://127.0.0.1:3000/` 접속
+      - quick ingest 성공
+      - task `title/status/priority/category/dueAt/waitingFor/relatedProject` 수정 성공
+      - reminder 수정 성공
+      - follow-up 삭제 성공
+      - reload 후 수정 상태 유지 확인
+- `flora-todo-mvp` Sprint 2.5 실검증을 끝내고 미완성 항목을 마무리했다.
+  - 추가/수정
+    - `flora-todo-mvp/scripts/db-migrate.ts`
+    - `flora-todo-mvp/package.json`
+      - `npm run db:migrate`를 legacy 로컬 DB까지 복구하는 idempotent bootstrap 경로로 교체했다.
+      - Docker volume을 비운 fresh DB와 기존 DB 둘 다에서 Sprint 2.5 컬럼/인덱스를 맞출 수 있게 했다.
+    - `flora-todo-mvp/src/services/ingestService.ts`
+    - `flora-todo-mvp/src/db/repositories/{taskRepository,reminderRepository,followupRepository}.ts`
+      - task는 unique key 기준 upsert, reminder/follow-up는 signature 기준 sync/upsert로 바꿨다.
+      - 동일 입력 재ingest 시 task/reminder/follow-up row id가 유지되도록 정리했다.
+    - `flora-todo-mvp/app/api/admin/reminders/[id]/route.ts`
+    - `flora-todo-mvp/app/api/admin/followups/[id]/route.ts`
+      - child 수정/삭제 시 부모 task를 reviewed 처리해 재ingest에서 관리자 수정이 덮어써지지 않게 했다.
+    - `flora-todo-mvp/src/config/entity-aliases.ts`
+    - `flora-todo-mvp/src/lib/entity-extractor.ts`
+    - `flora-todo-mvp/src/lib/structured-parser.ts`
+      - alias 사전에 priority를 추가하고, 사람/업체/프로젝트 매칭을 점수화해 `waiting_for`, `related_project` 정확도를 올렸다.
+      - `자사몰 개편 관련 로고 개선안 수신 대기`, `안소영 통해 레지너스 자사몰 개편 로고 개선안 회신 대기` 케이스를 안정적으로 분류하도록 보강했다.
+    - `flora-todo-mvp/scripts/{verify-dedupe,verify-review,verify-entities,verify-sprint2}.ts`
+    - `flora-todo-mvp/README.md`
+      - dedupe id 안정성, task 전 필드 수정 + reminder 수정 + follow-up 삭제, 엔터티 추출, summary 왜곡 방지 케이스를 실제 DB 기준으로 검증하도록 스크립트를 재작성했다.
+      - 재현용 명령을 README에 정리했다.
+  - 검증
+    - `docker compose down -v && docker compose up -d`
+    - `npm run db:migrate`
+    - `npm run db:check`
+    - `npm run verify:entities`
+    - `npm run verify:dedupe`
+    - `npm run verify:review`
+    - `npm run verify:sprint2`
+    - `npm run build`
+    - `npm run start` 후 실제 HTTP 호출로 `POST /api/ingest`, `GET /api/admin/review`, `PATCH /api/admin/tasks/:id`, `PATCH /api/admin/reminders/:id`, `DELETE /api/admin/followups/:id`, `GET /api/summary`까지 확인했다.
 - `flora-todo-mvp` Sprint 2.5 운영 안정화 작업을 진행했다.
   - 추가/수정
     - `flora-todo-mvp/src/db/schema/{tasks,reminders,followups}.ts`
@@ -1112,12 +1314,19 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
-- `[CODEX-LEAD] flora-todo-mvp 로컬 Postgres가 실제로 떠 있는 환경에서 \`npm run db:migrate -> npm run verify:dedupe -> npm run verify:review\`를 실행해 Sprint 2.5 DB 실검증을 마무리`
-- `[CODEX-LEAD] flora-todo-mvp Sprint 3 전에 review endpoint를 얇은 내부 검수 페이지로 연결해 task/reminder/follow-up 수정 루프를 브라우저에서 확인`
+- `[CODEX] 다음 실제 기능 작업 1건에서 start -> checkpoint -> backup -> preflight -> commit -> publish -> finish 순서를 실제로 한 번 끝까지 적용해, 문구나 출력 형식을 더 다듬기`
+- `[CODEX] OPS_STATE.md는 장기 운영 사실만 남기고, 세션 세부 로그가 섞이지 않도록 다음 handoff부터 분리 운용`
+- `[CODEX] 다음 실제 작업 1건에서 새 루틴으로 시작→체크포인트→백업→마감까지 한 바퀴 다시 써 보고, 부족한 필드나 출력 형식을 다듬기`
+- `[CODEX] 필요하면 `_tools/codex-preflight.sh`에 프로젝트별 테스트 명령 프리셋(예: CRM build, n8n JSON check)을 서브디렉토리 기준으로 확장`
+- `[CODEX] 오류 구간 누락 입금 중 미자동반영 4건((학교)소년의, 여윤화, 쿠팡페이주식, 롯데77619072)을 검토 큐/실제 고객 상태 기준으로 수동 확인`
+- `[CODEX] 다음 실제 NH 입금 메일 1건에서 webhook replay 없이도 텔레그램 원본 알림 + CRM 처리 결과가 모두 정상 도착하는지 운영 확인`
+- `[CODEX] 다음 실제 NH 입금 메일 1건에서 텔레그램에 [은행 거래 알림]과 [CRM 입금 처리 결과] 두 레이어가 모두 정상 도착하는지 운영 확인`
+- `[CODEX] 기존 CRM 내부 계정 1개로 BasicAuth fallback이 여전히 통과하는지 `/data/legacy-customer-snapshots.json` 1회 실계정 검증`
+- `[CODEX-LEAD] flora-todo-mvp 홈 detail 패널에 reminder/follow-up 생성까지 붙여 `/review` 왕복 없이 1차 운영 처리가 가능하게 확장`
+- `[CODEX-LEAD] flora-todo-mvp review queue 필터를 URL query string과 동기화해 새로고침/공유 시 같은 작업 집합을 바로 재현`
+- `[CODEX-LEAD] flora-todo-mvp 대시보드/리뷰 API를 서버 측 페이지네이션 + 선택적 캐시 구조로 바꿔 task 수가 늘어도 응답 시간이 흔들리지 않게 보강`
 - `[CODEX-LEAD] flora-todo-mvp compound sentence에서 \`waiting_for\` 후보를 더 짧게 자르기 위한 후처리 규칙과 alias 사전 운영 편집 경로 추가`
-- `[CODEX-LEAD] flora-todo-mvp 로컬 터미널에서 실제 Postgres가 떠 있는 상태로 \`npm run db:migrate -> npm run db:check -> npm run seed:demo\`를 실행해 DB 적재 검증 마무리`
-- `[CODEX-LEAD] flora-todo-mvp Sprint 3에서 구조화 결과를 확인/수정할 수 있는 최소 UI와 ingest 결과 비교 화면 추가`
-- `[CODEX-LEAD] flora-todo-mvp 로컬 Postgres를 실제로 띄운 뒤 \`POST /api/ingest\`, \`GET /api/summary\`를 실호출해 응답/DB 적재를 검증`
+- `[CODEX-LEAD] flora-todo-mvp \`seed:demo\`와 API smoke test를 하나의 e2e 스크립트로 묶어 fresh DB 기준 회귀 검증을 더 단순화`
 - `[CODEX] Claude Code 리뷰용으로 Customer OS Core 데이터 스키마 상세안과 사방넷 섀도우 런 검증표를 이어서 작성`
 - `[CODEX] Customer OS Core 상세 정보구조 문서 작성: 시스템 경계, 핵심 테이블, 고객 매칭 규칙, CRM v2 책임 분리표를 더 세분화`
 - `[CODEX] Customer OS Portal 화면 구조 초안과 CRM v2 deep link 흐름을 메뉴 단위로 정리`
@@ -1188,12 +1397,19 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
-- `flora-todo-mvp` Sprint 2.5는 서비스 레벨 + DB 레벨 dedupe 구조까지 반영됐지만, 현재 샌드박스에서는 로컬 TCP 접속이 막혀 동일 입력 재처리와 review 수정 후 summary 반영을 DB에서 끝까지 확인하지 못했다.
+- `codex-commit.sh`는 기존 staged 변경이 있으면 일부러 멈춘다. staging을 여러 작업이 공유된 상태로 오래 끌고 가는 습관이 있으면 처음엔 번거롭게 느껴질 수 있다.
+- `codex-publish.sh`는 dirty tree를 기본 차단하므로, 로컬에 미정리 변경이 많은 저장소에서는 `--allow-dirty` 판단을 신중하게 해야 한다.
+- `OPS_STATE.md`는 장기 운영 사실만 담아야 가치가 유지된다. TODO나 세션 잡메모가 섞이면 다시 `AI_SYNC`처럼 비대해질 수 있다.
+- 새 Codex 루틴 스크립트는 세션 로그/백업 산출물에는 강하지만 `AI_SYNC.md` 자체를 자동 정리하지는 않는다. 잠금/해제와 handoff 문장 품질은 여전히 Codex가 직접 책임져야 한다.
+- `codex-backup.sh`는 현재 작업 범위를 좁게 넘기는 것을 전제로 한다. 이미 dirty한 저장소에서 repo 전체를 통째로 백업하면 노이즈가 커져 복구 가치가 떨어질 수 있다.
+- 오류 구간 누락 입금 6건 중 4건은 현재 운영 데이터 기준으로 exact 조건이 아니어서 자동반영하지 않았다. 사용자가 이미 다른 경로로 처리했거나, 고객/명세표 연결이 바뀌었을 가능성이 있어 수동 확인이 필요하다.
+- 이번 복구는 config/credential/HTTP 접근 레벨까지는 운영 확인이 끝났지만, 실제 새 NH 입금 메일 1건이 아직 배포 이후에는 들어오지 않아 post-deploy 성공 execution 번호는 아직 없다.
+- `/data/*` 자동화 헤더 경로는 확인했지만, BasicAuth fallback은 현재 세션에서 실계정 값을 별도로 보관하지 않아 운영 계정 1회 재검증이 남아 있다.
+- `flora-todo-mvp` 홈 대시보드 summary/section은 실제 DB 기준으로 렌더되지만, 현재는 전체 task를 한 번에 읽는 MVP 구조라 데이터가 크게 늘면 페이지네이션/서버 측 섹션 캐싱이 필요하다.
+- `flora-todo-mvp` 홈 대시보드의 section 정렬 기준은 운영 목적에 맞춘 1차 규칙이다. 실제 사용 중 `이번주 핵심`에서 오늘 항목을 다시 보일지, `일정 임박`에 overdue를 포함할지는 운영 피드백으로 한 번 더 조정하는 편이 안전하다.
+- `flora-todo-mvp` review queue는 이제 필터와 페이지네이션까지 붙었지만, 현재 URL query string 동기화가 없어 새로고침/링크 공유 시 같은 필터 상태를 바로 재현하지는 못한다.
 - `flora-todo-mvp` 엔터티 추출은 alias/룰 기반이라 실무 메모에서는 꽤 안정적이지만, 긴 복문에서 `waiting_for`가 과도하게 길어지는 케이스는 후처리를 더 넣는 편이 안전하다.
 - `flora-todo-mvp` Sprint 2는 규칙 기반 구조화라서 예측 가능성은 높지만, 문장 의미를 깊게 추론하지는 않는다. 표현이 크게 달라지면 미탐/과소분해가 남을 수 있다.
-- `flora-todo-mvp`는 현재 샌드박스에서 로컬 DB 포트 접근이 막혀 있어 `db:migrate`, 실제 insert, summary DB 반영까지는 여기서 끝까지 검증하지 못했다.
-- `flora-todo-mvp`는 코드 스캐폴딩까지 완료됐지만, 현재 샌드박스에서는 Docker daemon socket 접근이 막혀 로컬 Postgres 컨테이너 실기동 검증을 하지 못했다.
-- `flora-todo-mvp`는 `npm run demo:structure`, `npm run build`, `npm run db:generate`까지는 검증했지만, 실제 DB 반영 검증은 아직 로컬 Postgres 접근이 되는 환경에서 마저 확인해야 한다.
 - `고객운영 OS` 문서는 현재 Draft 기준선이다. 사방넷 export 실제 컬럼, 메이크샵 보강 필요 필드, 고객 병합 규칙을 실데이터로 검증하기 전까지는 구현 범위가 달라질 수 있다.
 - 현재 Codex/Claude 개발방은 `Oracle Telegram 수신 -> room dispatcher -> local worker queue -> 로컬 CLI` 구조다. room dispatcher와 local queue 주입, worker 완료까지는 검증했지만, 최종 체감 확인은 사용자가 텔레그램 방에서 직접 1회 더 보는 편이 안전하다.
 - local dev worker는 맥북이 켜져 있고 로그인 세션의 launchd가 살아 있어야만 개발방 응답을 보낸다. 통합 비서 방은 Oracle이 계속 처리하지만, Codex/Claude 방은 맥북이 잠들면 멈춘다.

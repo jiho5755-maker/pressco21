@@ -1,0 +1,97 @@
+{
+  "name": "Flora Business Data Bridge",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-biz-data",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "fbiz-0001-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "flora-biz-data"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flora Business Data Bridge: 인증 + 쿼리 라우팅\nconst body = $input.first().json.body;\nconst chatId = String(body.chat_id || '');\nconst queryType = (body.query_type || '').toLowerCase();\n\n// 인증\nconst ALLOWED = ['7713811206', '8606163783'];\nif (!ALLOWED.includes(chatId)) {\n  return [{ json: { error: true, message: '권한 없음' } }];\n}\n\n// 쿼리 타입 매핑\nconst QUERIES = {\n  'sales': {\n    table: 'mddg3t3fft6uh2q',\n    label: '주간 매출',\n    sort: '-week',\n    limit: 4,\n    fields: 'week,total_orders,total_revenue,avg_order_value'\n  },\n  'segments': {\n    table: 'mg2coommaxsyfmf',\n    label: '고객 세그먼트',\n    sort: '-total_spent',\n    limit: 100,\n    fields: 'user_id,user_name,segment,order_count,total_spent,recency_days'\n  },\n  'campaigns': {\n    table: 'ma92big019irvlt',\n    label: '캠페인 발송',\n    sort: '-sent_at',\n    limit: 20,\n    fields: 'user_id,user_name,segment,phone,status,sent_at'\n  },\n  'partners': {\n    table: 'mcafm2yyeaupdnt',\n    label: '파트너 현황',\n    sort: '-UpdatedAt',\n    limit: 50,\n    fields: 'partner_name,grade,status,class_count'\n  }\n};\n\n// 자연어 → 쿼리 타입 매핑\nlet resolved = queryType;\nif (!QUERIES[resolved]) {\n  if (queryType.includes('매출') || queryType.includes('주문') || queryType.includes('sales')) resolved = 'sales';\n  else if (queryType.includes('고객') || queryType.includes('세그먼트') || queryType.includes('rfm')) resolved = 'segments';\n  else if (queryType.includes('캠페인') || queryType.includes('발송') || queryType.includes('sms')) resolved = 'campaigns';\n  else if (queryType.includes('파트너') || queryType.includes('강사')) resolved = 'partners';\n  else {\n    return [{ json: { error: true, message: '지원 쿼리: sales(매출), segments(고객), campaigns(캠페인), partners(파트너)' } }];\n  }\n}\n\nconst q = QUERIES[resolved];\nreturn [{ json: { error: false, queryType: resolved, ...q } }];"
+      },
+      "id": "fbiz-0001-4000-8000-000000000002",
+      "name": "Auth & Route",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [{
+            "id": "cond-ok",
+            "leftValue": "={{ $json.error }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "notTrue" }
+          }],
+          "combinator": "and"
+        }
+      },
+      "id": "fbiz-0001-4000-8000-000000000003",
+      "name": "인증 OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'https://nocodb.pressco21.com/api/v2/tables/' + $json.table + '/records' }}",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "limit", "value": "={{ $json.limit }}" },
+            { "name": "fields", "value": "={{ $json.fields }}" },
+            { "name": "sort", "value": "={{ $json.sort }}" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" }
+          ]
+        },
+        "options": { "response": { "response": { "responseFormat": "json" } } }
+      },
+      "id": "fbiz-0001-4000-8000-000000000004",
+      "name": "NocoDB 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 200],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 결과를 플로라가 읽기 쉬운 형태로 포맷\nconst authData = $('Auth & Route').first().json;\nconst nocoResp = $input.first().json;\nconst rows = nocoResp.list || [];\nconst queryType = authData.queryType;\nconst label = authData.label;\n\nlet summary = '';\n\nif (queryType === 'sales') {\n  summary = '📊 ' + label + ' (최근 ' + rows.length + '주)\\n';\n  for (const r of rows) {\n    summary += '  ' + (r.week || '?') + ': 주문 ' + (r.total_orders || 0) + '건, 매출 ' + Number(r.total_revenue || 0).toLocaleString() + '원\\n';\n  }\n} else if (queryType === 'segments') {\n  const segCount = {};\n  for (const r of rows) {\n    const s = r.segment || '미분류';\n    segCount[s] = (segCount[s] || 0) + 1;\n  }\n  summary = '👥 ' + label + ' (총 ' + rows.length + '명)\\n';\n  for (const [s, c] of Object.entries(segCount).sort((a,b) => b[1]-a[1])) {\n    summary += '  ' + s + ': ' + c + '명\\n';\n  }\n} else if (queryType === 'campaigns') {\n  summary = '📨 ' + label + ' (최근 ' + rows.length + '건)\\n';\n  for (const r of rows.slice(0, 10)) {\n    summary += '  ' + (r.user_name || '?') + ' | ' + (r.segment || '?') + ' | ' + (r.status || '?') + ' | ' + (r.sent_at || '?').substring(0, 10) + '\\n';\n  }\n} else if (queryType === 'partners') {\n  summary = '🤝 ' + label + ' (총 ' + rows.length + '명)\\n';\n  const gradeCount = {};\n  for (const r of rows) {\n    const g = r.grade || '미분류';\n    gradeCount[g] = (gradeCount[g] || 0) + 1;\n  }\n  for (const [g, c] of Object.entries(gradeCount).sort((a,b) => b[1]-a[1])) {\n    summary += '  ' + g + ': ' + c + '명\\n';\n  }\n}\n\nreturn [{ json: { success: true, queryType, label, count: rows.length, summary, data: rows.slice(0, 20) } }];"
+      },
+      "id": "fbiz-0001-4000-8000-000000000005",
+      "name": "결과 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [960, 200]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Auth & Route", "type": "main", "index": 0 }]] },
+    "Auth & Route": { "main": [[{ "node": "인증 OK?", "type": "main", "index": 0 }]] },
+    "인증 OK?": {
+      "main": [
+        [{ "node": "NocoDB 조회", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "NocoDB 조회": { "main": [[{ "node": "결과 포맷", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

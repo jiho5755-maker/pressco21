@@ -82,6 +82,7 @@
 Phase 1 개발 시작점:
 
 - frontdoor 적재 릴레이 스크립트: [relay-flora-frontdoor-intake.py](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py)
+- frontdoor 응답 직후 capture wrapper: [log-flora-frontdoor-turn.py](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py)
 
 ## 실무용 시작 순서
 

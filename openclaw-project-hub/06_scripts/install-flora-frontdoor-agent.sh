@@ -40,9 +40,11 @@ cleanup() {
 trap cleanup EXIT
 
 cp "$REPO_ROOT/07_openclaw_skills/flora-specialist-router/SKILL.md" "$TMP_DIR/flora-specialist-router.SKILL.md"
+cp "$REPO_ROOT/07_openclaw_skills/flora-task-ledger-intake/SKILL.md" "$TMP_DIR/flora-task-ledger-intake.SKILL.md"
 cp "$REPO_ROOT/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md" "$TMP_DIR/flora-frontdoor-executive-brief.md"
 cp "$REPO_ROOT/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md" "$TMP_DIR/flora-frontdoor-tuning-log.md"
 cp "$REPO_ROOT/06_scripts/relay-flora-frontdoor-intake.py" "$TMP_DIR/relay-flora-frontdoor-intake.py"
+cp "$REPO_ROOT/06_scripts/log-flora-frontdoor-turn.py" "$TMP_DIR/log-flora-frontdoor-turn.py"
 
 cat > "$TMP_DIR/AGENTS.md" <<'EOF'
 # 플로라 Frontdoor 작업 지침
@@ -125,6 +127,23 @@ cat > "$TMP_DIR/AGENTS.md" <<'EOF'
 - Telegram message id를 직접 모르면 `userChatId:sourceCreatedAt` fallback을 쓴다.
 - 적재 힌트는 `metadata`와 `detailsMerge`를 함께 써서 source_messages와 task ledger 양쪽에 남긴다.
 
+## 자동 적재 실행 순서
+
+- 아래 요청은 기본적으로 적재 대상이다.
+  - 자유 메모
+  - `정리해줘`, `메모해둘게`, `두서없이 말할게`
+  - 명시적 할 일 / 후속 조치
+  - 개발 요청
+  - 위임/승인 판단이 필요한 요청
+- 적재 대상이면 최종 답변을 보내기 전에 반드시 `flora-task-ledger-intake` 지침을 따라 현재 사용자 원문과 최종 답변 초안을 파일로 저장하고,
+  `/home/ubuntu/.openclaw/workspace-flora-frontdoor/log-flora-frontdoor-turn.py`를 실행한다.
+- wrapper가 없을 때만 `relay-flora-frontdoor-intake.py`를 직접 호출한다.
+- wrapper 실패 시 한 번만 재시도한다.
+- 짧은 잡담, 단순 정보 질의, 가벼운 인사는 적재 생략 가능하다.
+- 적재는 내부 작업이므로 `정리 답변을 만들고 적재하겠습니다` 같은 중간 안내 문장을 사용자에게 보내지 않는다.
+- 적재 대상 turn도 사용자에게 보내는 payload는 최종 답변 1개만 남기는 것을 목표로 한다.
+- `원장 적재`, `wrapper`, `webhook`, `파일 저장`, `git`, `커밋` 같은 내부 실행 사실은 사용자에게 말하지 않는다.
+
 ## 응답 원칙
 
 - 현재 질문과 맞는 시스템만 우선 다룬다.
@@ -160,9 +179,11 @@ ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$SERVER" "mkdir -p /tmp/flora-frontdoor-
 scp -i "$SSH_KEY" -o ConnectTimeout=10 "$TMP_DIR/AGENTS.md" "$TMP_DIR/IDENTITY.md" "$SERVER:/tmp/flora-frontdoor-install/"
 scp -i "$SSH_KEY" -o ConnectTimeout=10 \
   "$TMP_DIR/flora-specialist-router.SKILL.md" \
+  "$TMP_DIR/flora-task-ledger-intake.SKILL.md" \
   "$TMP_DIR/flora-frontdoor-executive-brief.md" \
   "$TMP_DIR/flora-frontdoor-tuning-log.md" \
   "$TMP_DIR/relay-flora-frontdoor-intake.py" \
+  "$TMP_DIR/log-flora-frontdoor-turn.py" \
   "$SERVER:/tmp/flora-frontdoor-install/"
 
 ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$SERVER" "
@@ -189,11 +210,36 @@ ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$SERVER" "
   cp /tmp/flora-frontdoor-install/flora-frontdoor-executive-brief.md \"\$FRONTDOOR_WORKSPACE/flora-frontdoor-executive-brief.md\"
   cp /tmp/flora-frontdoor-install/flora-frontdoor-tuning-log.md \"\$FRONTDOOR_WORKSPACE/flora-frontdoor-tuning-log.md\"
   cp /tmp/flora-frontdoor-install/relay-flora-frontdoor-intake.py \"\$FRONTDOOR_WORKSPACE/relay-flora-frontdoor-intake.py\"
+  cp /tmp/flora-frontdoor-install/log-flora-frontdoor-turn.py \"\$FRONTDOOR_WORKSPACE/log-flora-frontdoor-turn.py\"
   chmod 755 \"\$FRONTDOOR_WORKSPACE/relay-flora-frontdoor-intake.py\"
+  chmod 755 \"\$FRONTDOOR_WORKSPACE/log-flora-frontdoor-turn.py\"
+  mkdir -p \"\$FRONTDOOR_WORKSPACE/.frontdoor-turn\"
+  cat >> \"\$FRONTDOOR_WORKSPACE/TOOLS.md\" <<'EOF'
+
+## Frontdoor Task Ledger Capture
+
+적재 대상 turn은 응답 전에 아래 wrapper를 우선 사용한다.
+
+python3 /home/ubuntu/.openclaw/workspace-flora-frontdoor/log-flora-frontdoor-turn.py \
+  --message-file /home/ubuntu/.openclaw/workspace-flora-frontdoor/.frontdoor-turn/user-message.txt \
+  --reply-file /home/ubuntu/.openclaw/workspace-flora-frontdoor/.frontdoor-turn/reply.txt \
+  --request-type freeform-memo \
+  --specialist-mode executive-orchestrator \
+  --briefing-bucket today \
+  --execution-route manual
+
+- userChatId, sourceMessageId를 알 수 있으면 추가 전달
+- 알 수 없으면 fallback 허용
+- 개발 요청은 requestType=dev-request, executionRoute=dev-worker, briefingBucket=dev
+- 승인 우선 요청은 executionRoute=review, briefingBucket=approval
+- 내부 capture 사실이나 git/workspace 언급은 사용자에게 노출하지 않음
+EOF
   mkdir -p \"\$FRONTDOOR_WORKSPACE/skills\"
   cp -a \"\$OWNER_WORKSPACE/skills/.\" \"\$FRONTDOOR_WORKSPACE/skills/\"
   mkdir -p \"\$FRONTDOOR_WORKSPACE/skills/flora-specialist-router\"
   cp /tmp/flora-frontdoor-install/flora-specialist-router.SKILL.md \"\$FRONTDOOR_WORKSPACE/skills/flora-specialist-router/SKILL.md\"
+  mkdir -p \"\$FRONTDOOR_WORKSPACE/skills/flora-task-ledger-intake\"
+  cp /tmp/flora-frontdoor-install/flora-task-ledger-intake.SKILL.md \"\$FRONTDOOR_WORKSPACE/skills/flora-task-ledger-intake/SKILL.md\"
 
   mkdir -p \"\$HOME/.openclaw/agents/\$FRONTDOOR_AGENT_ID/agent\"
   cp \"\$HOME/.openclaw/agents/\$OWNER_AGENT_ID/agent/auth-profiles.json\" \"\$HOME/.openclaw/agents/\$FRONTDOOR_AGENT_ID/agent/auth-profiles.json\"

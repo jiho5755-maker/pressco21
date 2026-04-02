@@ -306,6 +306,8 @@ Phase 1에서는 아래 4분류만 먼저 쓴다.
 해야 할 것:
 
 - frontdoor가 자유 메모를 받으면 `/api/ingest` 또는 equivalent 경로로 적재
+- 실제 frontdoor runtime에서는 `log-flora-frontdoor-turn.py` wrapper를 써서
+  `응답 초안 저장 -> relay 호출 -> 최종 응답` 순서로 닫는다
 
 완료 기준:
 
@@ -358,6 +360,7 @@ Phase 1에서는 아래 4분류만 먼저 쓴다.
 - task 2건 이상 생성
 - waiting 또는 today bucket 분류
 - frontdoor 응답 정상
+- frontdoor 세션에서 wrapper 실행 흔적 확인
 
 ### 시나리오 B. 개발 요청
 
@@ -371,6 +374,7 @@ Phase 1에서는 아래 4분류만 먼저 쓴다.
 - automation task 생성
 - dev bucket 분류
 - local dev worker queue 전달
+- frontdoor 세션에서 `requestType=dev-request` capture 실행 흔적 확인
 
 ### 시나리오 C. 승인 후보
 

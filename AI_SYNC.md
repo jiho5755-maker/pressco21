@@ -90,6 +90,28 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 flora-frontdoor가 실제 응답 턴 안에서 `write -> exec -> webhook -> source_messages/tasks`까지 자동으로 닫히도록 자동 capture 경로를 붙였다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
+    - `openclaw-project-hub/07_openclaw_skills/flora-task-ledger-intake/SKILL.md`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md`
+    - `openclaw-project-hub/README.md`
+    - `AI_SYNC.md`
+  - 내용
+    - frontdoor turn용 capture wrapper `log-flora-frontdoor-turn.py`를 추가해 현재 사용자 원문/최종 답변 초안을 파일로 저장한 뒤 `relay-flora-frontdoor-intake.py`를 webhook 모드로 호출하게 했다.
+    - 새 skill `flora-task-ledger-intake`를 추가해 자유 메모/실행 요청일 때 frontdoor가 wrapper를 먼저 실행하고, 그다음 최종 답변만 보내도록 규칙을 고정했다.
+    - frontdoor 설치 스크립트가 새 wrapper/skill을 서버 workspace에 배치하고, TOOLS/AGENTS에 자동 적재 규칙을 주입하도록 보강했다.
+    - 중간 안내 문장, git/workspace 언급 같은 내부 실행 사실이 사용자 payload에 섞이지 않도록 지침을 다시 조였다.
+  - 검증
+    - `python3 -m py_compile openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw agent --agent flora-frontdoor ... --json` 직접 실행으로 session jsonl에서 `write -> exec(log-flora-frontdoor-turn.py)` 흔적 확인
+    - Oracle `flora-todo-mvp-postgres` 조회 결과 최근 15분 기준 `source_messages`와 `tasks`에 `unknown:2026-04-02T17:40:35.808147Z` 등 새 frontdoor turn 적재 확인
+  - 결과
+    - 이제 flora-frontdoor는 문서상/테스트용 릴레이가 아니라 실제 응답 턴 안에서 원장 적재를 자동 실행한다.
+    - direct CLI 테스트 기준으로는 `userChatId`, `sourceMessageId`를 모르기 때문에 fallback `unknown:timestamp`가 쓰였고, 이건 다음 단계에서 실제 Telegram 메타데이터 송신으로 더 보강할 수 있다.
 - 2026-04-03 플로라 문서 폴더를 `current / reference / archive` 기준으로 다시 정리해 직원용 진입 혼선을 줄였다.
   - 범위
     - `openclaw-project-hub/README.md`
@@ -1602,13 +1624,12 @@
 
 ## Next Step
 - 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
-- `[CODEX-LEAD] 문서 정리 규칙을 유지하면서 실제 flora-frontdoor 응답 완료 직후 `relay-flora-frontdoor-intake.py`를 자동 호출하도록 frontdoor 발신단을 연결`
-- `[CODEX-LEAD] frontdoor 발신단이 `requestType`, `briefingBucket`, `executionRoute`, `sourceMessageId`, `sourceCreatedAt`를 어떤 기준으로 채울지 송신 규칙을 고정`
+- `[CODEX-LEAD] Flora 실제 Telegram ingress에서 `userChatId`, `sourceMessageId`, `sourceCreatedAt`를 frontdoor turn에 어떻게 넘길지 확인하고, fallback `unknown:timestamp`를 줄이기 위한 송신 규칙을 고정`
+- `[CODEX-LEAD] frontdoor 자동 capture 경로에서 `requestType`, `briefingBucket`, `executionRoute`를 더 안정적으로 채우도록 dev-request / approval / waiting 분류 규칙을 세분화`
 - `[CODEX-LEAD] detailsMerge가 들어간 task를 dashboard/briefing/review에서 실제로 어떻게 활용할지 첫 표시 규칙을 구현`
 - `[CODEX-LEAD] 통합 PRD를 참조하는 모바일 자동화 1차 feature spec 작성: 메일 초안 -> 승인 -> 발송`
 - `[CODEX-LEAD] 서버 실행기 역할 분리 문서 작성: API/SMTP 우선, Playwright 보조, 승인 없는 외부 발신 금지`
-- `[CODEX-LEAD] flora-frontdoor-task-ledger-phase1-spec 기준으로 실제 frontdoor 발신단에서 `/api/automation/source-messages`와 `/api/ingest`를 호출하도록 연결`
-- `[CODEX-LEAD] flora-frontdoor-task-ledger-phase1-spec 기준으로 실제 발신단/적재단 점검 후, sourceMessage 메타데이터와 ingest 경로 구현 착수`
+- `[CODEX-LEAD] flora-frontdoor-task-ledger-phase1-spec 기준으로 dev request는 `/api/automation/tasks`와 local dev worker까지 같은 source_message 기준으로 묶이게 연결`
 - `[CODEX-LEAD] flora-todo-mvp에서 Phase 1 임시 필드 저장 전략(detailsJson/metadata)과 이후 정규화 전략(assignment/approval/event_log)을 연결하는 상세 설계 작성`
 - `[CODEX-LEAD] Telegram Mini App MVP IA를 PRD 기준으로 별도 구현 스펙 문서로 내리고, 홈/빠른 메모/오늘 브리핑/승인 대기 화면부터 고정`
 - `[CODEX-LEAD] flora-orchestration-service-master-plan 기준으로 Frontdoor -> Task Ledger 닫힌 루프 구현 스펙을 별도 문서로 고정`
@@ -1705,13 +1726,13 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
-- Phase 1 e2e는 live webhook 기준으로 닫혔지만, 현재는 테스트 호출로 검증한 상태다. 실제 flora-frontdoor 본체가 응답 직후 릴레이 스크립트를 자동 실행하도록 붙이기 전까지는 운영 경로가 반자동이다.
-- `relay-flora-frontdoor-intake.py`와 `/api/ingest detailsMerge`는 들어갔지만, 아직 실제 Oracle frontdoor가 이 경로를 자동으로 쓰도록 배치/운영 검증한 것은 아니다.
+- 실제 flora-frontdoor는 이제 자동 capture를 실행하지만, direct CLI 기준으로는 `userChatId`와 Telegram message id를 세션에서 직접 읽지 못해 fallback `unknown:timestamp`를 쓴다. 실제 Telegram ingress 메타데이터 경로를 더 붙이지 않으면 복구/검색 편의가 떨어질 수 있다.
+- 현재 자동 capture는 freeform memo 기준으로 잘 동작한다. dev-request / approval / waiting 분류는 아직 기본 규칙 수준이라, 더 정밀한 메타데이터 규칙이 필요하다.
 - 현재 Phase 1은 source_message와 task ingest의 첫 연결 고리를 만든 상태다. dashboard/briefing이 `detailsMerge.requestType`나 `briefingBucket`을 실제로 활용하는 UI/쿼리 반영은 아직 남아 있다.
 - 플로라 문서 구조는 이번에 `통합 PRD 1개 + 하위 스펙`으로 다시 고정했지만, 이후 기능별 독립 PRD를 다시 만들기 시작하면 문서 체계가 빠르게 다시 꼬일 수 있다.
 - `flora-orchestration-service-prd`와 `flora-frontdoor-task-ledger-phase1-spec`는 정본 기준선이지만, 아직 실제 구현 반영 전이다. 문서만 만들고 발신단/적재단 코드를 연결하지 않으면 다시 "좋은 문서 + 느슨한 운영" 상태로 남을 수 있다.
 - 모바일 운영 자동화는 생산성 효과가 크지만 실수 비용도 크다. 특히 외부 메일 발송과 관리자 페이지 변경은 `초안 -> 승인 -> 실행 -> 기록` 경계를 코드와 UI에서 함께 강제하지 않으면 위험하다.
-- 이번에 `flora-todo-mvp /api/ingest` 수용면은 넓혔지만, 아직 실제 `flora-frontdoor`가 이 메타데이터를 보내고 있지는 않다. 발신단 연결 전까지는 새 필드가 실사용되지는 않는다.
+- 이번에 `flora-todo-mvp /api/ingest` 수용면은 넓혔고, 실제 `flora-frontdoor`도 freeform memo 기준으로 이 메타데이터를 보내기 시작했다. 다만 userChatId/message id가 비는 direct 경로와 dev-request 등 다른 분류는 아직 후속 보강이 필요하다.
 - `flora-orchestration-service-master-plan`는 현재 canonical planning bridge 초안이다. 앞으로 구현 스펙이 늘어날 때 이 문서와의 관계를 명시하지 않으면 다시 문서 체계가 중구난방으로 흐를 수 있다.
 - `.gitignore` 경계는 보강했고 Flora 관련 앱/워크플로우 소스도 커밋했지만, 저장소는 아직 `modified 12 / untracked 162` 상태다. 지금 남은 더티는 대부분 실제 작업 파일이라, 루트에서 일괄 정리하려 하면 서로 다른 작업이 다시 섞일 가능성이 높다.
 - `output/playwright`는 이번에 확인했듯 일부가 실제 추적 파일이다. 앞으로 `output/` 전체를 생성물이라고 가정하고 삭제하면 근거자료나 기존 추적 산출물까지 같이 건드릴 수 있다.

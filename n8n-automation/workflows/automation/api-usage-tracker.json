@@ -1,0 +1,158 @@
+{
+  "id": "OnHX4w8xTBDgnTUK",
+  "name": "INFRA: API 사용량 + 비용 트래커",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 10 * * 1"
+            }
+          ]
+        }
+      },
+      "id": "aut-0001-0001-4000-8000-000000000001",
+      "name": "매주 월요일 10:30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://kakaoapi.aligo.in/akv10/remain/",
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.ALIGO_API_KEY }}" },
+            { "name": "userid", "value": "={{ $env.ALIGO_USER_ID }}" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "aut-0001-0001-4000-8000-000000000002",
+      "name": "알리고 SMS 잔여량",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, -120]
+    },
+    {
+      "parameters": {
+        "command": "echo '=== ORACLE_DISK ===' && df -h / | tail -1 && echo '=== MINIO ===' && docker exec minio mc du --json local/ 2>/dev/null | python3 -c 'import json,sys; d=json.load(sys.stdin); print(d.get(\"size\",\"unknown\"))' 2>/dev/null || echo 'minio_unavailable'"
+      },
+      "id": "aut-0001-0001-4000-8000-000000000003",
+      "name": "Oracle 디스크 + MinIO",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [240, 120],
+      "credentials": {
+        "sshPassword": { "id": "oracle-ssh-cred", "name": "Oracle SSH" }
+      }
+    },
+    {
+      "parameters": {
+        "command": "echo '=== SSD ===' && df -h / | tail -1 && echo '=== HDD ===' && df -h /mnt/hdd 2>/dev/null | tail -1"
+      },
+      "id": "aut-0001-0001-4000-8000-000000000004",
+      "name": "미니PC 디스크",
+      "type": "n8n-nodes-base.ssh",
+      "typeVersion": 1,
+      "position": [240, 360],
+      "credentials": {
+        "sshPassword": { "id": "minipc-ssh-cred", "name": "MiniPC SSH" }
+      }
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.N8N_BASE_URL || 'http://localhost:5678' }}/api/v1/executions",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "limit", "value": "100" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "X-N8N-API-KEY", "value": "={{ $env.N8N_API_KEY }}" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "aut-0001-0001-4000-8000-000000000005",
+      "name": "n8n 실행 로그",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// API 사용량 종합 분석\nconst aligoRaw = $('알리고 SMS 잔여량').first().json || {};\nconst oracleRaw = $('Oracle 디스크 + MinIO').first().json?.stdout || $('Oracle 디스크 + MinIO').first().json?.result || '';\nconst minipcRaw = $('미니PC 디스크').first().json?.stdout || $('미니PC 디스크').first().json?.result || '';\nconst execData = $('n8n 실행 로그').first().json?.data || [];\n\nconst now = new Date();\nconst weekStart = new Date(now); weekStart.setDate(now.getDate() - 7);\nconst alerts = [];\n\n// 알리고 SMS 잔여량\nconst smsRemain = aligoRaw.SMS_CNT || aligoRaw.remain || aligoRaw.smsCnt || '?';\nconst lmsRemain = aligoRaw.LMS_CNT || aligoRaw.lmsCnt || '?';\nconst mmsRemain = aligoRaw.MMS_CNT || aligoRaw.mmsCnt || '?';\nconst smsNum = parseInt(smsRemain) || 0;\nif (smsNum > 0 && smsNum < 100) alerts.push(`SMS 잔여 ${smsNum}건 부족`);\n\n// Oracle 디스크\nlet oracleDiskPct = '?';\ntry {\n  const diskLine = oracleRaw.split('=== ORACLE_DISK ===')[1]?.split('=== MINIO ===')[0]?.trim();\n  if (diskLine) oracleDiskPct = diskLine.split(/\\s+/)[4] || '?';\n  const pct = parseInt(oracleDiskPct);\n  if (pct > 80) alerts.push(`Oracle 디스크 ${oracleDiskPct} (80% 초과)`);\n} catch(e) {}\n\n// MinIO 스토리지\nlet minioSize = '?';\ntry {\n  const minioLine = oracleRaw.split('=== MINIO ===')[1]?.trim();\n  if (minioLine && !minioLine.includes('unavailable')) minioSize = minioLine;\n} catch(e) {}\n\n// 미니PC 디스크\nlet miniSsd = '?', miniHdd = '?';\ntry {\n  const ssdLine = minipcRaw.split('=== SSD ===')[1]?.split('=== HDD ===')[0]?.trim();\n  if (ssdLine) miniSsd = ssdLine.split(/\\s+/)[4] || '?';\n  const hddLine = minipcRaw.split('=== HDD ===')[1]?.trim();\n  if (hddLine) miniHdd = hddLine.split(/\\s+/)[4] || '?';\n  if (parseInt(miniSsd) > 80) alerts.push(`미니PC SSD ${miniSsd} (80% 초과)`);\n  if (parseInt(miniHdd) > 80) alerts.push(`미니PC HDD ${miniHdd} (80% 초과)`);\n} catch(e) {}\n\n// n8n 실행 횟수 (지난 7일)\nconst weekExecs = execData.filter(e => new Date(e.startedAt) > weekStart);\nconst totalExecs = weekExecs.length;\nconst errorExecs = weekExecs.filter(e => e.status === 'error').length;\n\n// MakeShop API 추정 (n8n 실행 중 makeshop 관련)\nconst makeshopExecs = weekExecs.filter(e => {\n  const name = (e.workflowData?.name || '').toLowerCase();\n  return name.includes('fa-') || name.includes('makeshop') || name.includes('s3a') || name.includes('review');\n}).length;\n\n// NocoDB 레코드 (직접 저장)\nconst record = {\n  week: now.toISOString().split('T')[0],\n  sms_remain: smsNum || 0,\n  lms_remain: parseInt(lmsRemain) || 0,\n  oracle_disk_pct: parseInt(oracleDiskPct) || 0,\n  minio_size: minioSize,\n  minipc_ssd_pct: parseInt(miniSsd) || 0,\n  minipc_hdd_pct: parseInt(miniHdd) || 0,\n  n8n_execs_7d: totalExecs,\n  n8n_errors_7d: errorExecs,\n  makeshop_api_est: makeshopExecs * 3,\n  alerts: alerts.join('; ') || 'none'\n};\n\n// 텔레그램 메시지\nlet msg = `\\ud83d\\udcc8 주간 API/리소스 리포트 (${now.toLocaleDateString('ko-KR', {timeZone:'Asia/Seoul'})})\\n\\n`;\nmsg += `\\ud83d\\udce9 SMS: ${smsRemain}건 / LMS: ${lmsRemain}건\\n`;\nmsg += `\\ud83d\\udda5\\ufe0f Oracle: ${oracleDiskPct} / MinIO: ${minioSize}\\n`;\nmsg += `\\ud83d\\udcbe 미니PC: SSD ${miniSsd} / HDD ${miniHdd}\\n`;\nmsg += `\\u2699\\ufe0f n8n 7일: ${totalExecs}건 실행 / ${errorExecs}건 에러\\n`;\nmsg += `\\ud83d\\uded2 MakeShop API 추정: ~${makeshopExecs * 3}회/주\\n`;\n\nif (alerts.length > 0) {\n  msg += `\\n\\u26a0\\ufe0f 경고:\\n`;\n  alerts.forEach(a => msg += `  \\u2022 ${a}\\n`);\n}\n\nreturn [{ json: { message: msg, record } }];"
+      },
+      "id": "aut-0001-0001-4000-8000-000000000006",
+      "name": "사용량 분석",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 120]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.NOCODB_URL || 'https://nocodb.pressco21.com' }}/api/v1/db/data/noco/pbmo0os7rnvfd48/api_usage_weekly",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_API_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.record) }}",
+        "options": {}
+      },
+      "id": "aut-0001-0001-4000-8000-000000000007",
+      "name": "NocoDB 저장",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 0],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $('사용량 분석').first().json.message }}",
+        "additionalFields": {}
+      },
+      "id": "aut-0001-0001-4000-8000-000000000008",
+      "name": "텔레그램 발송",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 240],
+      "credentials": {
+        "telegramApi": { "id": "RdFu3nsFuuO5NCff", "name": "Telegram Makeshop Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "매주 월요일 10:30": {
+      "main": [[
+        { "node": "알리고 SMS 잔여량", "type": "main", "index": 0 },
+        { "node": "Oracle 디스크 + MinIO", "type": "main", "index": 0 },
+        { "node": "미니PC 디스크", "type": "main", "index": 0 },
+        { "node": "n8n 실행 로그", "type": "main", "index": 0 }
+      ]]
+    },
+    "알리고 SMS 잔여량": { "main": [[{ "node": "사용량 분석", "type": "main", "index": 0 }]] },
+    "사용량 분석": { "main": [[{ "node": "NocoDB 저장", "type": "main", "index": 0 }, { "node": "텔레그램 발송", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

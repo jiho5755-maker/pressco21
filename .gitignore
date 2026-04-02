@@ -51,3 +51,6 @@ page-*.png
 # 브랜드스토리 이미지 (교체 예정)
 브랜드스토리/브랜드페이지/images/
 n8n-automation/.secrets
+makeshop-skin/_sync/screenshots/before/*.png
+makeshop-skin/_sync/screenshots/after/*.png
+makeshop-skin/_sync/screenshots/diff/*.png

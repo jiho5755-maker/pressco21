@@ -90,6 +90,15 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-02 `scripts/server/vault-image-processor.py`를 독립 운영 스크립트로 분리해서 커밋했다.
+  - 커밋
+    - `6b63492` `[codex] vault 이미지 처리 스크립트 추가`
+  - 범위
+    - `inbox/상품사진`에서 이미지 파일을 감지해 배경 제거, 채널별 리사이즈, `vault/products` 정리, MinIO 업로드까지 처리하는 Python 스크립트를 추가했다.
+  - 검증
+    - `python3 -m py_compile scripts/server/vault-image-processor.py`
+  - 결과
+    - 루트 작업트리는 다시 clean 상태다.
 - 2026-04-02 루트 작업트리 정리를 계속 진행해 남은 범위를 경로 단위 커밋으로 분리했다.
   - 커밋
     - `427d92e` `[codex] crm tx history workflow 소스 정리`

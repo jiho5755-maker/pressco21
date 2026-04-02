@@ -27,12 +27,10 @@
           "parameters": [
             { "name": "mode", "value": "search" },
             { "name": "type", "value": "order" },
-            { "name": "ver", "value": "2" },
-            { "name": "InquiryTimeFrom", "value": "={{ $now.minus({days:7}).toFormat('yyyy-MM-dd') }} 00:00:00" },
+            { "name": "InquiryTimeFrom", "value": "={{ $now.minus({days:3}).toFormat('yyyy-MM-dd') }} 00:00:00" },
             { "name": "InquiryTimeTo", "value": "={{ $now.toFormat('yyyy-MM-dd') }} 23:59:59" },
             { "name": "orderStatus[]", "value": "Y" },
-            { "name": "limit", "value": "500" },
-            { "name": "fields", "value": "ordernum,order_date,sender,phone,userid,basket" }
+            { "name": "limit", "value": "500" }
           ]
         },
         "sendHeaders": true,
@@ -67,7 +65,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "xc-auth", "value": "={{ $env.NOCODB_TOKEN }}" }
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" }
           ]
         },
         "options": {
@@ -147,7 +145,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "xc-auth", "value": "={{ $env.NOCODB_TOKEN }}" },
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },

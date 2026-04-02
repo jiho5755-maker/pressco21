@@ -64,7 +64,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "xc-auth", "value": "={{ $env.NOCODB_TOKEN }}" }
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" }
           ]
         },
         "options": {
@@ -182,7 +182,7 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "xc-auth", "value": "={{ $env.NOCODB_TOKEN }}" },
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" },
             { "name": "Content-Type", "value": "application/json" }
           ]
         },

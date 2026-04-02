@@ -1,6 +1,7 @@
 #!/usr/bin/env node
 'use strict';
 
+var childProcess = require('child_process');
 var fs = require('fs');
 var path = require('path');
 
@@ -8,11 +9,22 @@ var REPO_ROOT = path.resolve(__dirname, '..');
 var ENV_PATH = path.join(REPO_ROOT, '.secrets.env');
 var OUTPUT_ROOT = path.join(REPO_ROOT, 'output', 'n8n-backups');
 var N8N_BASE_URL = process.env.N8N_BASE_URL || 'https://n8n.pressco21.com';
-var WORKFLOW_NAMES = [
-  'WF-CRM-01 입금자동반영 엔진',
-  'WF-CRM-02 Gmail 입금알림 수집',
+var WORKFLOW_SPECS = [
+  {
+    name: 'WF-CRM-01 입금자동반영 엔진',
+    localPath: path.join(REPO_ROOT, 'n8n-automation', 'workflows', 'accounting', 'WF-CRM-01_입금자동반영_엔진.json'),
+  },
+  {
+    name: 'WF-CRM-02 Gmail 입금알림 수집',
+    localPath: path.join(REPO_ROOT, 'n8n-automation', 'workflows', 'accounting', 'WF-CRM-02_Gmail_입금알림_수집.json'),
+  },
 ];
 var BANK_BOT_CREDENTIAL_NAME = 'PRESSCO_BANK_BOT';
+var CRM_AUTOMATION_CREDENTIAL_NAME = 'PRESSCO21 CRM Automation Header';
+var CRM_AUTOMATION_HEADER_NAME = process.env.CRM_AUTOMATION_HEADER_NAME || 'X-CRM-Automation-Key';
+var CRM_AUTOMATION_SERVER = process.env.CRM_AUTOMATION_SERVER || 'ubuntu@158.180.77.201';
+var CRM_AUTOMATION_SSH_KEY = process.env.CRM_AUTOMATION_SSH_KEY || path.join(process.env.HOME || '', '.ssh', 'oracle-n8n.key');
+var CRM_AUTOMATION_REMOTE_KEY_FILE = process.env.CRM_AUTOMATION_REMOTE_KEY_FILE || '/etc/pressco21-crm/automation-key';
 
 function pad(value) {
   return String(value).padStart(2, '0');
@@ -95,6 +107,10 @@ async function listCredentials(apiKey) {
 
 async function createCredential(apiKey, payload) {
   return apiRequest(apiKey, 'POST', '/api/v1/credentials', payload);
+}
+
+async function updateCredential(apiKey, credentialId, payload) {
+  return apiRequest(apiKey, 'PATCH', '/api/v1/credentials/' + credentialId, payload);
 }
 
 async function getWorkflow(apiKey, workflowId) {
@@ -182,6 +198,72 @@ function setMainConnectionsByOutput(workflow, fromName, outputs) {
       });
     }),
   };
+}
+
+function resolveSetting(env, name, fallback) {
+  var value = env[name] || process.env[name] || '';
+  return value || fallback || '';
+}
+
+function fetchRemoteFile(server, sshKey, remotePath) {
+  var args = [];
+  if (sshKey) args.push('-i', sshKey);
+  args.push(server, 'sudo', 'cat', remotePath);
+  return String(childProcess.execFileSync('ssh', args, {
+    encoding: 'utf8',
+    stdio: ['ignore', 'pipe', 'pipe'],
+  }) || '').trim();
+}
+
+function resolveCrmAutomationKey(env) {
+  var explicitKey = resolveSetting(env, 'CRM_AUTOMATION_KEY', '');
+  var server;
+  var sshKey;
+  var remoteFile;
+
+  if (explicitKey) {
+    return explicitKey.trim();
+  }
+
+  server = resolveSetting(env, 'CRM_AUTOMATION_SERVER', CRM_AUTOMATION_SERVER);
+  sshKey = resolveSetting(env, 'CRM_AUTOMATION_SSH_KEY', CRM_AUTOMATION_SSH_KEY);
+  remoteFile = resolveSetting(env, 'CRM_AUTOMATION_REMOTE_KEY_FILE', CRM_AUTOMATION_REMOTE_KEY_FILE);
+
+  try {
+    explicitKey = fetchRemoteFile(server, sshKey, remoteFile);
+  } catch (error) {
+    throw new Error('CRM automation key read failed: ' + (error && error.message ? error.message : String(error)));
+  }
+
+  if (!explicitKey) {
+    throw new Error('CRM automation key is empty: ' + remoteFile);
+  }
+
+  return explicitKey.trim();
+}
+
+function applyHeaderCredential(node, credential) {
+  node.parameters = node.parameters || {};
+  node.parameters.authentication = 'genericCredentialType';
+  node.parameters.genericAuthType = 'httpHeaderAuth';
+  node.credentials = {
+    httpHeaderAuth: {
+      id: credential.id,
+      name: credential.name,
+    },
+  };
+}
+
+function patchCrmSnapshotAuth(workflow, credential) {
+  ['HTTP Get Legacy Snapshots', 'HTTP Get Fiscal Snapshots'].forEach(function(nodeName) {
+    var node = findNode(workflow, nodeName);
+    if (!node) {
+      throw new Error(nodeName + ' node not found');
+    }
+    applyHeaderCredential(node, credential);
+  });
+
+  return workflow;
 }
 
 function patchCrmDepositEngine(workflow) {
@@ -918,30 +1000,29 @@ function buildBankEventSummaryCode() {
   return [
     "const parsed = $('Code: Parse Deposit Email').first().json || {};",
     "const transactions = Array.isArray(parsed.transactions) ? parsed.transactions : [];",
-    "const withdrawals = transactions.filter((entry) => entry.direction === 'withdrawal');",
     "const accountLabel = String($env.PRESSCO_BANK_ALERT_ACCOUNT_LABEL || $env.PRESSCO_BANK_ACCOUNT_LABEL || '농협 093-01-264177').trim();",
-    "const summaryKey = ['bank-withdrawal', parsed.source || 'unknown', withdrawals.map((entry) => entry.externalId || [entry.direction, entry.party || entry.sender || '', entry.amount || 0, entry.occurredAt || ''].join(':')).join('|')].join('::');",
+    "const summaryKey = ['bank-events', parsed.source || 'unknown', transactions.map((entry) => entry.externalId || [entry.direction || '', entry.party || entry.sender || '', entry.amount || 0, entry.occurredAt || ''].join(':')).join('|')].join('::');",
     "const staticData = $getWorkflowStaticData('global');",
     "const sentMap = staticData.presscoBankTelegramSent || {};",
     "function formatAmount(value) { return (Number(value) || 0).toLocaleString() + '원'; }",
     "function formatDate(value) { return String(value || '').replace('T', ' ').slice(0, 16) || '-'; }",
-    "function directionLabel(value) { return value === 'withdrawal' ? '출금' : '입금'; }",
-    "if (withdrawals.length === 0 || sentMap[summaryKey]) {",
+    "function directionLabel(value) { return value === 'withdrawal' ? '출금' : (value === 'deposit' ? '입금' : '거래'); }",
+    "if (transactions.length === 0 || sentMap[summaryKey]) {",
     "  return [];",
     "}",
     "const lines = [",
-    "  '[은행 출금 알림]',",
+    "  '[은행 거래 알림]',",
     "  '',",
     "  '계좌: ' + accountLabel,",
     "];",
-    "withdrawals.slice(0, 5).forEach((entry) => {",
+    "transactions.slice(0, 5).forEach((entry) => {",
     "  const label = directionLabel(entry.direction);",
     "  const party = String(entry.party || entry.sender || '미상').trim() || '미상';",
     "  const suffix = entry.balance ? ' / 잔액 ' + formatAmount(entry.balance) : '';",
     "  lines.push('- [' + label + '] ' + party + ' / ' + formatAmount(entry.amount) + ' / ' + formatDate(entry.occurredAt) + suffix);",
     "});",
-    "if (withdrawals.length > 5) {",
-    "  lines.push('', '... 외 ' + String(withdrawals.length - 5) + '건');",
+    "if (transactions.length > 5) {",
+    "  lines.push('', '... 외 ' + String(transactions.length - 5) + '건');",
     "}",
     "sentMap[summaryKey] = new Date().toISOString();",
     "const sentKeys = Object.keys(sentMap);",
@@ -979,7 +1060,7 @@ function buildTelegramSummaryCode() {
     "}",
     '',
     'const lines = [',
-    "  '[은행 입금 알림]',",
+    "  '[CRM 입금 처리 결과]',",
     "  '',",
     "  '계좌: ' + accountLabel,",
     '];',
@@ -1127,15 +1208,60 @@ function patchCrmDepositCollector(workflow, telegramCredential) {
   return workflow;
 }
 
+async function ensureCrmAutomationCredential(apiKey, env) {
+  var explicitId = resolveSetting(env, 'N8N_CRED_PRESSCO_CRM_AUTOMATION', '');
+  var headerName = resolveSetting(env, 'CRM_AUTOMATION_HEADER_NAME', CRM_AUTOMATION_HEADER_NAME);
+  var credentialName = resolveSetting(env, 'N8N_CRED_PRESSCO_CRM_AUTOMATION_NAME', CRM_AUTOMATION_CREDENTIAL_NAME);
+  var automationKey = resolveCrmAutomationKey(env);
+  var credentials = await listCredentials(apiKey);
+  var existing;
+
+  if (explicitId) {
+    existing = credentials.find(function(item) {
+      return item.id === explicitId;
+    });
+    if (!existing) {
+      throw new Error('CRM automation credential not found for N8N_CRED_PRESSCO_CRM_AUTOMATION=' + explicitId);
+    }
+  } else {
+    existing = credentials.find(function(item) {
+      return item.type === 'httpHeaderAuth' && item.name === credentialName;
+    });
+  }
+
+  if (existing) {
+    if (existing.type !== 'httpHeaderAuth') {
+      throw new Error('Credential is not httpHeaderAuth: ' + existing.id + ' (' + existing.name + ')');
+    }
+    await updateCredential(apiKey, existing.id, {
+      name: existing.name,
+      type: 'httpHeaderAuth',
+      data: {
+        name: headerName,
+        value: automationKey,
+      },
+      isPartialData: false,
+    });
+    return { id: existing.id, name: existing.name };
+  }
+
+  existing = await createCredential(apiKey, {
+    name: credentialName,
+    type: 'httpHeaderAuth',
+    data: {
+      name: headerName,
+      value: automationKey,
+    },
+  });
+
+  return { id: existing.id, name: existing.name };
+}
+
 async function ensureBankTelegramCredential(apiKey, env) {
   var explicitId = env.N8N_CRED_PRESSCO_BANK_TELEGRAM || process.env.N8N_CRED_PRESSCO_BANK_TELEGRAM || '';
   var accessToken = env.PRESSCO_BANK_BOT_TOKEN || process.env.PRESSCO_BANK_BOT_TOKEN || '';
   var credentials;
   var existing;
-
-  if (!accessToken && !explicitId) {
-    throw new Error('PRESSCO_BANK_BOT_TOKEN or N8N_CRED_PRESSCO_BANK_TELEGRAM is required');
-  }
 
   credentials = await listCredentials(apiKey);
 
@@ -1156,6 +1282,10 @@ async function ensureBankTelegramCredential(apiKey, env) {
     return { id: existing.id, name: existing.name };
   }
 
+  if (!accessToken) {
+    throw new Error('PRESSCO_BANK_BOT_TOKEN or N8N_CRED_PRESSCO_BANK_TELEGRAM is required');
+  }
+
   existing = await createCredential(apiKey, {
     name: BANK_BOT_CREDENTIAL_NAME,
     type: 'telegramApi',
@@ -1170,6 +1300,7 @@ async function ensureBankTelegramCredential(apiKey, env) {
 async function main() {
   var env = loadEnv(ENV_PATH);
   var apiKey = env.N8N_API_KEY || process.env.N8N_API_KEY || '';
+  var crmAutomationCredential;
   var telegramCredential;
   var workflows;
   var workflowIndex = {};
@@ -1180,6 +1311,7 @@ async function main() {
     throw new Error('N8N_API_KEY not found in environment or .secrets.env');
   }
 
+  crmAutomationCredential = await ensureCrmAutomationCredential(apiKey, env);
   telegramCredential = await ensureBankTelegramCredential(apiKey, env);
 
   workflows = await listWorkflows(apiKey);
@@ -1189,11 +1321,15 @@ async function main() {
     }
   });
 
-  WORKFLOW_NAMES.forEach(function(name) {
-    if (!workflowIndex[name] || !workflowIndex[name].id) {
-      throw new Error('Workflow not found: ' + name);
+  WORKFLOW_SPECS.forEach(function(spec) {
+    if (!workflowIndex[spec.name] || !workflowIndex[spec.name].id) {
+      throw new Error('Workflow not found: ' + spec.name);
     }
-    targets.push(workflowIndex[name]);
+    targets.push({
+      id: workflowIndex[spec.name].id,
+      name: spec.name,
+      localPath: spec.localPath,
+    });
   });
 
   backupDir = path.join(OUTPUT_ROOT, getTimestamp() + '-crm-deposit-telegram');
@@ -1203,6 +1339,7 @@ async function main() {
     var target = targets[i];
     var workflow = await saveBackup(apiKey, target.id, target.name, backupDir);
     if (workflow.name === 'WF-CRM-01 입금자동반영 엔진') {
+      patchCrmSnapshotAuth(workflow, crmAutomationCredential);
       patchCrmDepositPlanMatching(workflow);
       patchCrmDepositIdempotency(workflow);
       patchCrmDepositReviewQueueApi(workflow);
@@ -1213,10 +1350,14 @@ async function main() {
     }
 
     var payload = stripWorkflowPayload(workflow);
+    if (target.localPath) {
+      writeJson(target.localPath, payload);
+    }
     await apiRequest(apiKey, 'PUT', '/api/v1/workflows/' + target.id, payload);
     console.log(workflow.name + ' -> ' + target.id);
   }
 
+  console.log('CRM automation credential: ' + crmAutomationCredential.name + ' (' + crmAutomationCredential.id + ')');
   console.log('Telegram credential: ' + telegramCredential.name + ' (' + telegramCredential.id + ')');
   console.log('Backups stored in ' + backupDir);
 }

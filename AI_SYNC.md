@@ -50,14 +50,14 @@
 ## Session Lock
 
 - Current Owner: IDLE
-- Mode: —
-- Started At: —
+- Mode: IDLE
+- Started At: -
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: -
+- Active Subdirectory: -
 
 ## Files In Progress
-- `(none)`
+- 없음
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -90,6 +90,106 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-02 루트 작업트리 정리를 계속 진행해 남은 범위를 경로 단위 커밋으로 분리했다.
+  - 커밋
+    - `427d92e` `[codex] crm tx history workflow 소스 정리`
+    - `8dde9a6` `[codex] 메이크샵 협업 문서와 저장본 인덱스 추가`
+    - `c3be663` `[codex] 운영 기준 문서와 기획안 추가`
+    - `86793e5` `[codex] 작업트리 정리 규칙과 AI sync 템플릿 추가`
+    - `dfaca40` `[codex] 메인페이지 저장본 구조 정리`
+  - 범위
+    - `scripts/deploy-crm-txhistory-workflows.js`, `파트너클래스/n8n-workflows/WF-CRM-tx-history-ops.json`
+    - `docs/메이크샵-페이지-협업-표준.md`, `docs/메인페이지/*`, 각 페이지 `저장본/README.md`
+    - `docs/openmarket-detail-planning-plan.md`, `docs/파트너클래스/기준-문서.md`, `company-knowledge/브랜드/brand-decisions.md`
+    - 루트 `.gitignore`, `_tools/AI_SYNC_TEMPLATE.md`
+    - `메인페이지/저장본/2026-04-02-기존루트백업정리/*`
+  - 결과
+    - `brand-intro-page/`는 부모 저장소에서 ignore 처리했고, 메인페이지 루트 백업 3종은 날짜 폴더로 옮겨 보존했다.
+    - 현재 세션은 `AI_SYNC.md`만 정리 후 닫으면 되며, 이 커밋 이후 작업트리는 clean 상태를 목표로 한다.
+- 2026-04-02 `offline-crm-v2` 경로의 auth/deploy 변경만 분리해서 커밋했다.
+  - 커밋
+    - `35f9124789e268c3e644d9713cb1137231d9ec5e` `[codex] crm auth automation header 지원 추가`
+  - 범위
+    - `deploy/crm-auth.service`, `deploy/deploy*.sh`, `deploy/nginx-crm-secure.conf`, `scripts/server/crm_auth_server.py`
+    - `/auth/check`에서 automation header와 Basic Auth fallback을 받아줄 수 있게 auth server를 확장했고, 배포 스크립트가 automation key 파일을 자동 생성/배포하도록 맞췄다.
+    - `offline-crm-v2/.gitignore`에 `프롬프트.md`를 추가해 로컬 메모를 작업트리에서 분리했다.
+  - 검증
+    - `git diff --check -- offline-crm-v2`
+    - `python3 -m py_compile offline-crm-v2/scripts/server/crm_auth_server.py`
+    - `bash -n offline-crm-v2/deploy/deploy.sh`
+    - `bash -n offline-crm-v2/deploy/deploy-release.sh`
+  - 결과
+    - `offline-crm-v2` 경로는 현재 작업트리에서 빠졌고, 루트 dirty tree는 `modified 4 / untracked 53`으로 줄었다.
+- 2026-04-02 `openclaw-project-hub` 경로를 허브 문서/스크립트 기준으로 정리해서 커밋했다.
+  - 커밋
+    - `2e900b5e25088938cb0b1ed50649f60caefcbec8` `[codex] openclaw project hub 문서와 스크립트 정리`
+  - 정리 원칙
+    - `openclaw-project-hub/.gitignore`를 추가해 `01_raw_sources/`, `05_workbooks/`, `07_openclaw_workspace/`, `06_scripts/*.log`, 실제 로컬 config JSON, `~$*`, `.DS_Store`를 로컬 전용으로 분리했다.
+    - 휘발성 로그와 Office 임시파일은 실제로 정리했다.
+  - 포함 범위
+    - `02_pressco21_docs`, `03_openclaw_docs`, `04_reference_json`의 예시/정책 JSON, `06_scripts`, `README.md`
+    - specialist routing 정책의 모델 fallback 구조와 설치 스크립트 동기화 수정 포함
+  - 검증
+    - `git diff --check -- openclaw-project-hub`
+    - `python -m py_compile openclaw-project-hub/06_scripts/*.py`
+    - `bash -n openclaw-project-hub/06_scripts/*.sh`
+    - `node --check openclaw-project-hub/06_scripts/*.js`
+    - `python` JSON parse check for `openclaw-project-hub/04_reference_json/*.json`
+  - 결과
+    - `openclaw-project-hub`는 현재 작업트리에서 빠졌고, 루트 dirty tree는 `modified 9 / untracked 54`로 줄었다.
+- 2026-04-02 `n8n-automation`의 Flora conversation log 저장소 소스를 따로 커밋했다.
+  - 커밋
+    - `adf7899448188dd1c983968424b289223c8e34b8` `[codex] flora conversation log 워크플로우 소스 추가`
+  - 범위
+    - `n8n-automation/workflows/automation/flora-conversation-log.json`
+  - 검증
+    - JSON parse 확인 (`name=Flora Conversation Log`, `nodes=4`, `connections=3`)
+    - `n8n-automation` 경로는 현재 작업트리에서 빠졌다.
+  - 결과
+    - Flora 관련 앱 코드와 workflow source가 둘 다 저장소에 반영됐고, 루트 dirty tree는 `modified 12 / untracked 162`로 줄었다.
+- 2026-04-02 `flora-todo-mvp` 경로만 분리해서 커밋했다.
+  - 커밋
+    - `7dd2345f0a151d06ea75f65dd6f765aab53aabc7` `[codex] flora 메모 구조화와 원문 보존 강화`
+  - 범위
+    - 자유 메모 구조화 강화(`verify:freeform`, `date-extractor`, `structured-parser`, `task-title`, `demo-structured`)
+    - 원문 영구 저널 경로 추가(`source_messages`, `sourceMessageService`, `source-messages` automation route, `verify:source-messages`, `POST /api/ingest` 원문 선저장)
+  - 검증
+    - `cd flora-todo-mvp && npm run verify:freeform`
+    - `cd flora-todo-mvp && npm run demo:structure`
+    - `cd flora-todo-mvp && npm run build`
+  - 결과
+    - `flora-todo-mvp`는 현재 작업트리에서 빠졌고, 루트 dirty tree는 `modified 12 / untracked 163`으로 줄었다.
+- 2026-04-02 루트 작업트리의 생성물 경계를 정리했다.
+  - `.gitignore`
+    - `.playwright-tools/`, `.codex/`, `test-results/`, `output/playwright/`, `output/execution-*.json`, `output/flora-mac-harness/`, `output/flora-routing-validation/`, `output/n8n-backups/`를 ignore에 추가했다.
+  - 정리
+    - 루트 `.playwright-tools`, 루트 `test-results`, `offline-crm-v2/test-results`, `offline-crm-v2/output/playwright`를 작업트리에서 정리했다.
+    - 정리 중 삭제 상태로 보였던 추적 `output/playwright` 파일들은 다시 복구해 사용자 작업을 건드리지 않도록 되돌렸다.
+  - 상태
+    - 현재 dirty tree는 생성물보다 실제 작업 파일 위주로 남아 있으며, 주요 집중 경로는 `openclaw-project-hub`, `flora-todo-mvp`, `scripts`, `docs`, `offline-crm-v2`다.
+- 2026-04-02 Flora 원문 보존 경로를 live Oracle까지 실제로 닫았다.
+  - `flora-todo-mvp`
+    - `source_messages` 원장 테이블, repository/service, `GET/POST /api/automation/source-messages`를 추가했다.
+    - `POST /api/ingest`는 dry-run이 아닐 때 task 구조화 전에 원문을 먼저 `source_messages`에 upsert하도록 바꿨다.
+    - `scripts/verify-source-messages.ts`를 추가했고, Oracle `flora-todo-mvp` 컨테이너에서 실제 실행 성공을 확인했다.
+    - Oracle 재배포 후 `db-migrated 34`, 앱 기동, `source-messages` route 200까지 확인했다.
+  - `n8n-automation`
+    - live `Flora Conversation Log`를 저장소 소스로 복구해 `workflows/automation/flora-conversation-log.json`에 반영했다.
+    - workflow는 `Webhook -> Normalize Payload -> Flora Source Message Upsert -> NocoDB Insert` 순서로 바뀌었다.
+    - Oracle live n8n에서 import -> publish -> container restart까지 완료했고, 재기동 후 workflow activation 로그를 확인했다.
+  - 검증
+    - Oracle `curl http://127.0.0.1:3001/api/automation/source-messages` 직접 POST 성공
+    - Oracle `docker exec flora-todo-mvp node --import tsx scripts/verify-source-messages.ts` 성공
+    - Oracle `POST /api/ingest` smoke 후 `source_messages`에 원문 저장 확인
+    - live `POST /webhook/flora-conversation-log` e2e 실행에서 `Normalize Payload`, `Flora Source Message Upsert`, `NocoDB Insert` 3노드 모두 성공 로그 확인
+    - Flora 원장에 남긴 smoke/test row는 세션 종료 전에 정리했다.
+- 2026-04-02 기준 이번 범위는 `main` 반영까지 마감했다.
+  - 완료 커밋
+    - `29d935d52876dc511cd43658ae14c9ee216f16db` `[codex] Flora 기반 할 일 운영으로 노션 제거`
+    - `1e48576bcf9110555f43e3d866d5ae6a6ac7c0ca` `[codex] CRM 입금 자동화 워크플로우 소스 동기화`
+  - 상태
+    - Flora todo 운영 전환, Notion retire, accounting workflow 소스 동기화까지 `origin/main`에 push 완료
+    - 현재 열린 write scope는 없고, 다음 작업은 새 범위로 다시 시작하면 된다.
 - accounting 입금 자동화 워크플로우의 로컬 소스를 현재 운영 개선 내용과 다시 맞췄다.
   - `n8n-automation/workflows/accounting/WF-CRM-01_입금자동반영_엔진.json`
     - CRM snapshot 인증을 `httpHeaderAuth`(`X-CRM-Automation-Key`) 기준으로 정리했다.
@@ -1366,6 +1466,12 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
+- `[CODEX] 루트에서 한 번에 건드리지 말고, 다음부터는 `cd flora-todo-mvp`, `cd offline-crm-v2`, `cd openclaw-project-hub`처럼 프로젝트 폴더 단위로 진입해서 status/add/commit 범위를 고정`
+- `[CODEX] 큰 덩어리 기준으로 `openclaw-project-hub(111)`, `scripts(16)`, `docs(16)`, `offline-crm-v2(6)` 순서로 path-scoped 정리 또는 커밋 후보를 다시 나누기`
+- `[CODEX-LEAD] Flora 실제 텔레그램 송신 측(OpenClaw/로컬 worker 포함)이 `source_message_id`와 `source_created_at`를 항상 보내는지 점검하고, 빠진 송신 경로가 있으면 발신단에서 안정 ID를 강제`
+- `[CODEX-LEAD] Flora `source_messages`를 홈/리뷰에서 바로 찾을 수 있게 검색용 admin 화면 또는 recovery page를 붙여, 다음 복구가 DB 질의 없이도 가능하게 만들기`
+- `[CODEX-LEAD] Flora 대화 원문을 task 재생성용으로 다시 흘릴 수 있는 replay/recover 스크립트를 추가해, 원문 보존 이후 복구 루프도 자동화`
 - `[CODEX] 다음 CRM 입금 자동화 수정에서도 live n8n 변경과 저장소 JSON이 다시 어긋나지 않게, 배포 직후 workflow export/로컬 소스 재동기화를 기본 루틴으로 고정`
 - `[CODEX] 맥북 재부팅 후 같은 메모리 경보가 빠르게 재발하면 memory-watchdog 기준을 'swap 단독 critical'에서 '낮은 free + 높은 swap + 연속 발생' 조합으로 재설계`
 - `[CODEX] 운영 서버에 hotfix 된 /home/ubuntu/scripts/server-monitor.sh 를 정식 소스 저장소 기준으로 어디에 반영할지 결정하고, writable 경로가 열리면 같은 수정(/proc/stat CPU, Asia/Seoul 시간표기)을 역반영`
@@ -1452,6 +1558,11 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- `.gitignore` 경계는 보강했고 Flora 관련 앱/워크플로우 소스도 커밋했지만, 저장소는 아직 `modified 12 / untracked 162` 상태다. 지금 남은 더티는 대부분 실제 작업 파일이라, 루트에서 일괄 정리하려 하면 서로 다른 작업이 다시 섞일 가능성이 높다.
+- `output/playwright`는 이번에 확인했듯 일부가 실제 추적 파일이다. 앞으로 `output/` 전체를 생성물이라고 가정하고 삭제하면 근거자료나 기존 추적 산출물까지 같이 건드릴 수 있다.
+- `Flora Conversation Log`는 이제 Oracle live 기준으로 원문을 `source_messages`와 NocoDB에 모두 남기지만, 발신 측이 `source_message_id`를 안 보내면 현재 fallback은 `userChatId:sourceCreatedAt`이다. 대부분 충분하지만, 일부 발신기가 `source_created_at`도 안 보내면 재전송 dedupe 강도가 약해질 수 있어 송신단 점검이 남아 있다.
+- n8n CLI `import:workflow`는 active workflow를 일단 비활성화한다. 이번에는 `publish:workflow` + `docker restart n8n`으로 복구했지만, 다음에도 같은 루틴을 빼먹으면 live webhook이 잠깐 비활성 상태로 남을 수 있다.
+- 저장소 작업트리가 여전히 크게 dirty하다. 다음 작업은 기존 미정리 변경과 섞이지 않게 path-scoped add/commit 기준으로 다시 시작하는 편이 안전하다.
 - 현재 accounting workflow 로컬 JSON은 live 개선 내용과 다시 맞췄지만, 관련 CRM deploy/script 계열 다른 수정본이 별도 작업트리에 남아 있어 이후 배포 루틴을 분리 관리하지 않으면 source-of-truth가 다시 흔들릴 수 있다.
 - 현재 로컬 `scripts/memory-watchdog.sh`는 `swap >= 6144MB`만으로도 즉시 `CRITICAL`을 띄운다. 메모리 압박이 실제로 있더라도 체감 악화 전에 반복 알림이 먼저 쌓일 수 있어, 재부팅 후 재발 패턴을 보고 재설계할 필요가 있다.
 - 현재 `server-monitor.sh` hotfix는 운영 서버에만 직접 반영돼 있다. 워크스페이스 규칙상 `n8n-main`은 읽기 전용 취급이라, canonical source 역반영 경로를 정하지 않으면 다음 서버 재프로비저닝/수동 복사 때 구버전이 다시 들어올 수 있다.
@@ -1463,9 +1574,9 @@
 - 오류 구간 누락 입금 6건 중 4건은 현재 운영 데이터 기준으로 exact 조건이 아니어서 자동반영하지 않았다. 사용자가 이미 다른 경로로 처리했거나, 고객/명세표 연결이 바뀌었을 가능성이 있어 수동 확인이 필요하다.
 - 이번 복구는 config/credential/HTTP 접근 레벨까지는 운영 확인이 끝났지만, 실제 새 NH 입금 메일 1건이 아직 배포 이후에는 들어오지 않아 post-deploy 성공 execution 번호는 아직 없다.
 - `/data/*` 자동화 헤더 경로는 확인했지만, BasicAuth fallback은 현재 세션에서 실계정 값을 별도로 보관하지 않아 운영 계정 1회 재검증이 남아 있다.
-- `flora-todo-mvp` 홈 대시보드 summary/section은 실제 DB 기준으로 렌더되지만, 현재는 전체 task를 한 번에 읽는 MVP 구조라 데이터가 크게 늘면 페이지네이션/서버 측 섹션 캐싱이 필요하다.
+- `flora-todo-mvp` 홈 대시보드와 review queue는 DB-native query + 서버 pagination + URL sync 기준으로 정리됐지만, 장기적으로는 협업 오케스트레이션 목표에 맞는 `staff/team/assignment/event log` 계층이 아직 없다.
 - `flora-todo-mvp` 홈 대시보드의 section 정렬 기준은 운영 목적에 맞춘 1차 규칙이다. 실제 사용 중 `이번주 핵심`에서 오늘 항목을 다시 보일지, `일정 임박`에 overdue를 포함할지는 운영 피드백으로 한 번 더 조정하는 편이 안전하다.
-- `flora-todo-mvp` review queue는 이제 필터와 페이지네이션까지 붙었지만, 현재 URL query string 동기화가 없어 새로고침/링크 공유 시 같은 필터 상태를 바로 재현하지는 못한다.
+- `flora-todo-mvp` review queue는 URL query sync까지 붙었지만, 아직 다중 사용자 권한/감사 로그/배정 흐름은 없다.
 - `flora-todo-mvp`는 현재 todo 도메인에서 Notion을 대체했지만, Oracle에서 앱 전용 Postgres를 따로 쓰고 있다. 이 구조가 장기 통합 원장 전 단계인지, 영구 분리 도메인인지 아직 확정 문서가 없다.
 - Notion 경로는 todo/SNS 운영에서 제거했지만, 이후 협업 기능을 키울 때도 또 다른 별도 진실원(NocoDB shadow table, 앱별 개별 DB, 문서형 장부)이 생기지 않도록 source-of-truth 경계를 먼저 고정해야 한다.
 - `flora-todo-mvp` 엔터티 추출은 alias/룰 기반이라 실무 메모에서는 꽤 안정적이지만, 긴 복문에서 `waiting_for`가 과도하게 길어지는 케이스는 후처리를 더 넣는 편이 안전하다.

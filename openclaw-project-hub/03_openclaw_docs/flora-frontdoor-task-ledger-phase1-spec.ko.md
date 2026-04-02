@@ -35,6 +35,7 @@
 - frontdoor 메모가 항상 task ledger에 적재되지 않는다
 - source message와 frontdoor 응답 결과가 업무 원장과 안정적으로 연결되지 않는다
 - dev request / approval candidate / delegation candidate가 원장 구조와 분리돼 있다
+- Telegram DM이 `main` 세션으로 뭉치면 sender/message metadata를 잃거나 fallback 비율이 올라갈 수 있다
 
 ---
 
@@ -228,6 +229,9 @@ Phase 1에서는 API 스키마를 크게 흔들지 않고,
 
 - `sourceChannel + sourceMessageId`는 같은 입력을 다시 보내도 같은 건으로 인식되는 기준 키다
 - 발신단은 가능하면 Telegram message id를 그대로 `sourceMessageId`로 보낸다
+- OpenClaw가 user message 앞에 붙이는 `Conversation info (untrusted metadata)` 블록이 있으면 wrapper가 여기서 `message_id`, `sender_id`, `timestamp`를 우선 추출한다
+- wrapper는 metadata block은 relay 전에 제거하고, 실제 사용자 본문만 `messageText`로 적재한다
+- 게이트웨이 `session.dmScope`는 `per-channel-peer`를 기본값으로 고정해 Telegram DM을 사용자별 세션으로 분리한다
 - message id를 직접 모르면 `userChatId:sourceCreatedAt` fallback을 쓴다
 - source_message upsert와 ingest는 같은 키로 재호출돼도 중복 task 폭증이 나지 않아야 한다
 

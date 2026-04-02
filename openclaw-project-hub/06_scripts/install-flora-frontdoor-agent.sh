@@ -124,6 +124,7 @@ cat > "$TMP_DIR/AGENTS.md" <<'EOF'
 
 - 텔레그램 자유 메모나 실행 요청은 가능하면 응답 후 바로 task ledger 적재까지 닫는다.
 - source_message와 task는 같은 `sourceMessageId`를 공유해야 한다.
+- OpenClaw가 `Conversation info (untrusted metadata)` 블록을 붙여주면 wrapper가 여기서 Telegram `message_id`, `sender_id`, `timestamp`를 추출해 사용한다.
 - Telegram message id를 직접 모르면 `userChatId:sourceCreatedAt` fallback을 쓴다.
 - 적재 힌트는 `metadata`와 `detailsMerge`를 함께 써서 source_messages와 task ledger 양쪽에 남긴다.
 
@@ -264,6 +265,9 @@ model_config = {
     'primary': '$FRONTDOOR_MODEL_PRIMARY',
     'fallbacks': fallbacks,
 }
+
+session = data.setdefault('session', {})
+session['dmScope'] = 'per-channel-peer'
 
 for item in data.get('agents', {}).get('list', []):
     if item.get('id') == '$FRONTDOOR_AGENT_ID':

@@ -90,6 +90,27 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 flora-frontdoor Telegram 메타데이터 경로를 보강해 DM 세션 분리와 inbound metadata 파싱을 붙였다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - `log-flora-frontdoor-turn.py`가 OpenClaw의 `Conversation info (untrusted metadata)` / `Sender (untrusted metadata)` 블록을 직접 파싱해 `message_id`, `sender_id`, `timestamp`, `sender`를 추출하도록 보강했다.
+    - wrapper가 metadata block은 relay 전에 제거하고 실제 사용자 본문만 `messageText`로 적재하게 바꿨다.
+    - frontdoor 설치 스크립트가 서버 `openclaw.json`의 `session.dmScope`를 `per-channel-peer`로 고정하도록 수정해 Telegram DM을 사용자별 세션으로 분리했다.
+    - 서버 frontdoor workspace를 재설치해 새 wrapper와 AGENTS 규칙을 실제 운영 경로에 반영했다.
+  - 검증
+    - `python3 -m py_compile openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - metadata 샘플 문자열로 `extract_inbound_metadata()` / `parse_inbound_timestamp()` 로컬 검증
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - Oracle `~/.openclaw/openclaw.json` 확인 결과 `session.dmScope = per-channel-peer`
+    - `openclaw security audit --json` 재확인
+  - 결과
+    - 이제 frontdoor는 실제 Telegram inbound metadata block이 들어오면 fallback 없이 Telegram `message_id`와 `sender_id`를 우선 사용할 준비가 됐다.
+    - DM 세션도 사용자별로 분리되도록 서버 설정을 고정했다.
 - 2026-04-03 flora-frontdoor가 실제 응답 턴 안에서 `write -> exec -> webhook -> source_messages/tasks`까지 자동으로 닫히도록 자동 capture 경로를 붙였다.
   - 범위
     - `openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
@@ -1624,6 +1645,7 @@
 
 ## Next Step
 - 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
+- `[CODEX-LEAD] Flora 실제 Telegram DM 1건을 보내 `agent:flora-frontdoor:telegram:direct:<chatId>` 세션이 새로 생기는지와 `sourceMessageId != unknown:*`가 실제로 찍히는지 확인`
 - `[CODEX-LEAD] Flora 실제 Telegram ingress에서 `userChatId`, `sourceMessageId`, `sourceCreatedAt`를 frontdoor turn에 어떻게 넘길지 확인하고, fallback `unknown:timestamp`를 줄이기 위한 송신 규칙을 고정`
 - `[CODEX-LEAD] frontdoor 자동 capture 경로에서 `requestType`, `briefingBucket`, `executionRoute`를 더 안정적으로 채우도록 dev-request / approval / waiting 분류 규칙을 세분화`
 - `[CODEX-LEAD] detailsMerge가 들어간 task를 dashboard/briefing/review에서 실제로 어떻게 활용할지 첫 표시 규칙을 구현`
@@ -1726,7 +1748,7 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
-- 실제 flora-frontdoor는 이제 자동 capture를 실행하지만, direct CLI 기준으로는 `userChatId`와 Telegram message id를 세션에서 직접 읽지 못해 fallback `unknown:timestamp`를 쓴다. 실제 Telegram ingress 메타데이터 경로를 더 붙이지 않으면 복구/검색 편의가 떨어질 수 있다.
+- 실제 flora-frontdoor는 자동 capture와 metadata parser를 모두 갖췄고, `session.dmScope`도 `per-channel-peer`로 올렸다. 다만 아직 실제 Telegram DM 1건으로 `sourceMessageId != unknown:*`가 찍히는 최종 운영 확인은 남아 있다.
 - 현재 자동 capture는 freeform memo 기준으로 잘 동작한다. dev-request / approval / waiting 분류는 아직 기본 규칙 수준이라, 더 정밀한 메타데이터 규칙이 필요하다.
 - 현재 Phase 1은 source_message와 task ingest의 첫 연결 고리를 만든 상태다. dashboard/briefing이 `detailsMerge.requestType`나 `briefingBucket`을 실제로 활용하는 UI/쿼리 반영은 아직 남아 있다.
 - 플로라 문서 구조는 이번에 `통합 PRD 1개 + 하위 스펙`으로 다시 고정했지만, 이후 기능별 독립 PRD를 다시 만들기 시작하면 문서 체계가 빠르게 다시 꼬일 수 있다.

@@ -5,6 +5,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import subprocess
 import sys
 from datetime import datetime, timezone
@@ -17,6 +18,68 @@ def iso_now() -> str:
 
 def read_text(path: Path) -> str:
     return path.read_text(encoding="utf-8").strip()
+
+
+INBOUND_METADATA_PATTERNS = [
+    re.compile(
+        r"(?:^|\n)Conversation info \(untrusted metadata\):\n```json\n(?P<body>.*?)\n```(?:\n+)?",
+        re.DOTALL,
+    ),
+    re.compile(
+        r"(?:^|\n)Sender \(untrusted metadata\):\n```json\n(?P<body>.*?)\n```(?:\n+)?",
+        re.DOTALL,
+    ),
+    re.compile(
+        r"(?:^|\n)Thread starter \(untrusted, for context\):\n```json\n(?P<body>.*?)\n```(?:\n+)?",
+        re.DOTALL,
+    ),
+    re.compile(
+        r"(?:^|\n)Replied message \(untrusted, for context\):\n```json\n(?P<body>.*?)\n```(?:\n+)?",
+        re.DOTALL,
+    ),
+    re.compile(
+        r"(?:^|\n)Forwarded message context \(untrusted metadata\):\n```json\n(?P<body>.*?)\n```(?:\n+)?",
+        re.DOTALL,
+    ),
+]
+
+
+def parse_inbound_timestamp(value: str | None) -> str | None:
+    if not value:
+        return None
+    normalized = value.strip()
+    if not normalized:
+        return None
+    try:
+        parsed = datetime.strptime(normalized, "%a %Y-%m-%d %H:%M UTC")
+    except ValueError:
+        return None
+    return parsed.replace(tzinfo=timezone.utc).isoformat().replace("+00:00", "Z")
+
+
+def extract_inbound_metadata(text: str) -> tuple[str, dict[str, str]]:
+    cleaned = text
+    extracted: dict[str, str] = {}
+
+    for pattern in INBOUND_METADATA_PATTERNS:
+        match = pattern.search(cleaned)
+        if not match:
+            continue
+        body = match.group("body")
+        try:
+            payload = json.loads(body)
+        except json.JSONDecodeError:
+            payload = None
+        if isinstance(payload, dict):
+            for key, value in payload.items():
+                if isinstance(value, str) and value.strip():
+                    extracted.setdefault(key, value.strip())
+                elif isinstance(value, bool):
+                    extracted.setdefault(key, "true" if value else "false")
+        cleaned = pattern.sub("\n", cleaned, count=1)
+
+    cleaned = re.sub(r"\n{3,}", "\n\n", cleaned).strip()
+    return cleaned, extracted
 
 
 def build_response_summary(text: str, max_chars: int) -> str:
@@ -97,7 +160,10 @@ def main() -> int:
 
     message_file = Path(args.message_file).resolve()
     reply_file = Path(args.reply_file).resolve()
-    message_text = read_text(message_file)
+    raw_message_text = read_text(message_file)
+    message_text, inbound_metadata = extract_inbound_metadata(raw_message_text)
+    if not message_text:
+        message_text = raw_message_text
     reply_text = read_text(reply_file)
     response_summary = build_response_summary(reply_text, args.response_summary_max_chars)
 
@@ -105,7 +171,27 @@ def main() -> int:
     if args.approval_required is not None:
         approval_required = "true" if args.approval_required == "true" else "false"
 
-    source_created_at = args.source_created_at or iso_now()
+    inferred_source_message_id = (
+        args.source_message_id
+        or inbound_metadata.get("message_id")
+        or inbound_metadata.get("messageId")
+    )
+    inferred_user_chat_id = (
+        args.user_chat_id
+        or inbound_metadata.get("sender_id")
+        or inbound_metadata.get("senderId")
+    )
+    inferred_user_name = (
+        args.user_name
+        or inbound_metadata.get("sender")
+        or inbound_metadata.get("name")
+        or ""
+    )
+    source_created_at = (
+        args.source_created_at
+        or parse_inbound_timestamp(inbound_metadata.get("timestamp"))
+        or iso_now()
+    )
     briefing_bucket = infer_briefing_bucket(
         args.briefing_bucket,
         args.request_type,
@@ -128,7 +214,7 @@ def main() -> int:
         "--source-created-at",
         source_created_at,
         "--user-name",
-        args.user_name,
+        inferred_user_name,
         "--agent-id",
         args.agent_id,
         "--model-used",
@@ -152,10 +238,10 @@ def main() -> int:
         "--transport",
         args.transport,
     ]
-    if args.source_message_id:
-        command.extend(["--source-message-id", args.source_message_id])
-    if args.user_chat_id:
-        command.extend(["--user-chat-id", args.user_chat_id])
+    if inferred_source_message_id:
+        command.extend(["--source-message-id", inferred_source_message_id])
+    if inferred_user_chat_id:
+        command.extend(["--user-chat-id", inferred_user_chat_id])
     if args.room_id:
         command.extend(["--room-id", args.room_id])
     if args.thread_id:
@@ -180,13 +266,16 @@ def main() -> int:
     journal_payload = {
         "capturedAt": iso_now(),
         "sourceCreatedAt": source_created_at,
-        "sourceMessageId": args.source_message_id,
+        "sourceMessageId": inferred_source_message_id,
         "requestType": args.request_type,
         "specialistMode": args.specialist_mode,
         "briefingBucket": briefing_bucket,
         "executionRoute": args.execution_route,
-        "userChatId": args.user_chat_id,
-        "userName": args.user_name,
+        "userChatId": inferred_user_chat_id,
+        "userName": inferred_user_name,
+        "rawMessageText": raw_message_text,
+        "cleanMessageText": message_text,
+        "inboundMetadata": inbound_metadata,
         "messageFile": str(message_file),
         "replyFile": str(reply_file),
         "replySummary": response_summary,

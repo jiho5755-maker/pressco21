@@ -21,21 +21,48 @@ HTPASSWD_FILE = os.environ.get("CRM_AUTH_HTPASSWD_FILE", "/etc/nginx/.htpasswd-c
 SECRET_FILE = os.environ.get("CRM_AUTH_SECRET_FILE", "/etc/pressco21-crm/auth-secret")
 COOKIE_NAME = os.environ.get("CRM_AUTH_COOKIE_NAME", "pressco21_crm_session")
 SESSION_TTL = int(os.environ.get("CRM_AUTH_SESSION_TTL", str(12 * 60 * 60)))
+AUTOMATION_KEY_FILE = os.environ.get(
+    "CRM_AUTH_AUTOMATION_KEY_FILE",
+    "/etc/pressco21-crm/automation-key",
+)
+AUTOMATION_HEADER_NAME = (
+    os.environ.get("CRM_AUTH_AUTOMATION_HEADER_NAME", "X-CRM-Automation-Key").strip()
+    or "X-CRM-Automation-Key"
+)
+ALLOW_BASIC_AUTH = os.environ.get("CRM_AUTH_ALLOW_BASIC_AUTH", "1").strip().lower() not in {
+    "0",
+    "false",
+    "no",
+    "off",
+}
 
 
-def ensure_secret() -> bytes:
-    secret_dir = os.path.dirname(SECRET_FILE)
+def ensure_bytes_secret(file_path: str, length: int = 32) -> bytes:
+    secret_dir = os.path.dirname(file_path)
     if secret_dir:
         os.makedirs(secret_dir, exist_ok=True)
-    if not os.path.exists(SECRET_FILE):
-        with open(SECRET_FILE, "wb") as file:
-            file.write(secrets.token_bytes(32))
-        os.chmod(SECRET_FILE, 0o600)
-    with open(SECRET_FILE, "rb") as file:
+    if not os.path.exists(file_path):
+        with open(file_path, "wb") as file:
+            file.write(secrets.token_bytes(length))
+        os.chmod(file_path, 0o600)
+    with open(file_path, "rb") as file:
         return file.read().strip()
 
 
-SECRET = ensure_secret()
+def ensure_text_secret(file_path: str, length: int = 48) -> str:
+    secret_dir = os.path.dirname(file_path)
+    if secret_dir:
+        os.makedirs(secret_dir, exist_ok=True)
+    if not os.path.exists(file_path):
+        with open(file_path, "w", encoding="utf-8") as file:
+            file.write(secrets.token_urlsafe(length))
+        os.chmod(file_path, 0o600)
+    with open(file_path, "r", encoding="utf-8") as file:
+        return file.read().strip()
+
+
+SECRET = ensure_bytes_secret(SECRET_FILE)
+AUTOMATION_KEY = ensure_text_secret(AUTOMATION_KEY_FILE)
 
 
 def sign_session(username: str, expires_at: int) -> str:
@@ -92,6 +119,25 @@ def verify_credentials(username: str, password: str) -> bool:
         check=False,
     )
     return result.returncode == 0
+
+
+def verify_basic_auth_header(header_value: str | None) -> str | None:
+    if not ALLOW_BASIC_AUTH or not header_value:
+        return None
+
+    scheme, _, encoded = header_value.partition(" ")
+    if scheme.lower() != "basic" or not encoded:
+        return None
+
+    try:
+        decoded = base64.b64decode(encoded).decode("utf-8")
+        username, password = decoded.split(":", 1)
+    except Exception:
+        return None
+
+    if verify_credentials(username, password):
+        return username
+    return None
 
 
 def build_login_page(next_path: str, error: str | None, logged_out: bool) -> str:
@@ -369,6 +415,12 @@ class AuthHandler(BaseHTTPRequestHandler):
         morsel = cookie.get(COOKIE_NAME)
         return decode_session(morsel.value if morsel else None)
 
+    def read_automation_user(self) -> str | None:
+        header_value = self.headers.get(AUTOMATION_HEADER_NAME, "")
+        if AUTOMATION_KEY and header_value and hmac.compare_digest(header_value.strip(), AUTOMATION_KEY):
+            return "automation"
+        return verify_basic_auth_header(self.headers.get("Authorization"))
+
     def write_html(self, status: HTTPStatus, body: str) -> None:
         encoded = body.encode("utf-8")
         self.send_response(status)
@@ -426,9 +478,10 @@ class AuthHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/auth/check":
-            if session_user:
+            auth_user = session_user or self.read_automation_user()
+            if auth_user:
                 self.send_response(HTTPStatus.OK)
-                self.send_header("X-Auth-User", session_user)
+                self.send_header("X-Auth-User", auth_user)
                 self.end_headers()
             else:
                 self.write_auth_check_unauthorized()
@@ -468,9 +521,10 @@ class AuthHandler(BaseHTTPRequestHandler):
             return
 
         if path == "/auth/check":
-            if session_user:
+            auth_user = session_user or self.read_automation_user()
+            if auth_user:
                 self.send_response(HTTPStatus.OK)
-                self.send_header("X-Auth-User", session_user)
+                self.send_header("X-Auth-User", auth_user)
                 self.end_headers()
             else:
                 self.write_auth_check_unauthorized()

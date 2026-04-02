@@ -31,3 +31,6 @@ dist-ssr
 # Playwright
 playwright-report/
 test-results/
+
+# Local notes
+프롬프트.md

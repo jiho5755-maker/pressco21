@@ -14,6 +14,9 @@ Environment=CRM_AUTH_HTPASSWD_FILE=/etc/nginx/.htpasswd-crm
 Environment=CRM_AUTH_SECRET_FILE=/etc/pressco21-crm/auth-secret
 Environment=CRM_AUTH_COOKIE_NAME=pressco21_crm_session
 Environment=CRM_AUTH_SESSION_TTL=43200
+Environment=CRM_AUTH_AUTOMATION_KEY_FILE=/etc/pressco21-crm/automation-key
+Environment=CRM_AUTH_AUTOMATION_HEADER_NAME=X-CRM-Automation-Key
+Environment=CRM_AUTH_ALLOW_BASIC_AUTH=1
 
 [Install]
 WantedBy=multi-user.target

@@ -13,6 +13,7 @@ REMOTE_AUTH_ROOT="/opt/pressco21/crm-auth"
 REMOTE_AUTH_SCRIPT="${REMOTE_AUTH_ROOT}/crm_auth_server.py"
 REMOTE_AUTH_SERVICE="/etc/systemd/system/crm-auth.service"
 REMOTE_AUTH_SECRET_FILE="/etc/pressco21-crm/auth-secret"
+REMOTE_AUTH_AUTOMATION_KEY_FILE="/etc/pressco21-crm/automation-key"
 REMOTE_NGINX_CONFIG="/etc/nginx/sites-available/crm"
 REMOTE_UPLOAD_DIR="/tmp/pressco21-crm-deploy"
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
@@ -66,10 +67,22 @@ target.chmod(0o600)
 PY
 fi
 
-sudo chown root:root "$REMOTE_AUTH_SCRIPT" "$REMOTE_AUTH_SERVICE" "$REMOTE_NGINX_CONFIG" "$REMOTE_AUTH_SECRET_FILE"
+if [ ! -f "$REMOTE_AUTH_AUTOMATION_KEY_FILE" ]; then
+  sudo python3 - <<'PY'
+from pathlib import Path
+import secrets
+
+target = Path("/etc/pressco21-crm/automation-key")
+target.parent.mkdir(parents=True, exist_ok=True)
+target.write_text(secrets.token_urlsafe(48), encoding="utf-8")
+target.chmod(0o600)
+PY
+fi
+
+sudo chown root:root "$REMOTE_AUTH_SCRIPT" "$REMOTE_AUTH_SERVICE" "$REMOTE_NGINX_CONFIG" "$REMOTE_AUTH_SECRET_FILE" "$REMOTE_AUTH_AUTOMATION_KEY_FILE"
 sudo chmod 755 "$REMOTE_AUTH_SCRIPT"
 sudo chmod 644 "$REMOTE_AUTH_SERVICE" "$REMOTE_NGINX_CONFIG"
-sudo chmod 600 "$REMOTE_AUTH_SECRET_FILE"
+sudo chmod 600 "$REMOTE_AUTH_SECRET_FILE" "$REMOTE_AUTH_AUTOMATION_KEY_FILE"
 sudo systemctl daemon-reload
 sudo systemctl enable crm-auth.service >/dev/null
 sudo systemctl restart crm-auth.service

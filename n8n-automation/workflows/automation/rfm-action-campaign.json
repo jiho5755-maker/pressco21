@@ -16,7 +16,10 @@
       "name": "매주 화요일 09시",
       "type": "n8n-nodes-base.scheduleTrigger",
       "typeVersion": 1.2,
-      "position": [0, 300]
+      "position": [
+        0,
+        300
+      ]
     },
     {
       "parameters": {
@@ -25,26 +28,45 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "limit", "value": "500" },
-            { "name": "fields", "value": "user_id,user_name,segment,order_count,total_spent,recency_days,updated_at" },
-            { "name": "where", "value": "(segment,in,이탈위험,신규고객,VIP,휴면고객)" }
+            {
+              "name": "limit",
+              "value": "500"
+            },
+            {
+              "name": "fields",
+              "value": "user_id,user_name,segment,order_count,total_spent,recency_days,updated_at"
+            },
+            {
+              "name": "where",
+              "value": "(segment,in,이탈위험,신규고객,VIP,휴면고객)"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" }
+            {
+              "name": "xc-token",
+              "value": "={{ $env.NOCODB_TOKEN }}"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } }
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
         }
       },
       "id": "rfm-act-0001-4000-8000-000000000002",
       "name": "NocoDB 세그먼트 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [260, 200]
+      "position": [
+        240,
+        300
+      ]
     },
     {
       "parameters": {
@@ -53,26 +75,41 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "limit", "value": "1000" },
-            { "name": "fields", "value": "user_id,segment,sent_at" },
-            { "name": "where", "value": "={{ '(sent_at,gte,' + $now.minus({days:7}).toFormat('yyyy-MM-dd') + ')' }}" }
+            {
+              "name": "limit",
+              "value": "1000"
+            },
+            {
+              "name": "fields",
+              "value": "user_id,segment,sent_at"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" }
+            {
+              "name": "xc-token",
+              "value": "={{ $env.NOCODB_TOKEN }}"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } }
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
         }
       },
       "id": "rfm-act-0001-4000-8000-000000000003",
       "name": "NocoDB 7일내 발송기록",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [260, 420]
+      "position": [
+        480,
+        300
+      ]
     },
     {
       "parameters": {
@@ -81,28 +118,53 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            { "name": "mode", "value": "search" },
-            { "name": "type", "value": "user" },
-            { "name": "searchType", "value": "login" },
-            { "name": "limit", "value": "500" }
+            {
+              "name": "mode",
+              "value": "search"
+            },
+            {
+              "name": "type",
+              "value": "user"
+            },
+            {
+              "name": "searchType",
+              "value": "login"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            }
           ]
         },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
-            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+            {
+              "name": "Shopkey",
+              "value": "={{ $env.MAKESHOP_SHOPKEY }}"
+            },
+            {
+              "name": "Licensekey",
+              "value": "={{ $env.MAKESHOP_LICENSEKEY }}"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } }
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
         }
       },
       "id": "rfm-act-0001-4000-8000-000000000004",
       "name": "MakeShop 회원정보 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [260, 620]
+      "position": [
+        720,
+        300
+      ]
     },
     {
       "parameters": {
@@ -113,18 +175,28 @@
       "name": "세그먼트별 발송대상 필터",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [560, 300]
+      "position": [
+        960,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
           "conditions": [
             {
               "id": "cond-not-empty",
               "leftValue": "={{ $json.empty }}",
               "rightValue": true,
-              "operator": { "type": "boolean", "operation": "notTrue" }
+              "operator": {
+                "type": "boolean",
+                "operation": "notTrue"
+              }
             }
           ],
           "combinator": "and"
@@ -134,7 +206,10 @@
       "name": "대상 있는지 체크",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [800, 300]
+      "position": [
+        1200,
+        300
+      ]
     },
     {
       "parameters": {
@@ -145,7 +220,10 @@
       "name": "50건씩 배치",
       "type": "n8n-nodes-base.splitInBatches",
       "typeVersion": 3,
-      "position": [1040, 200]
+      "position": [
+        1040,
+        200
+      ]
     },
     {
       "parameters": {
@@ -155,23 +233,48 @@
         "contentType": "form-urlencoded",
         "bodyParameters": {
           "parameters": [
-            { "name": "key", "value": "={{ $env.ALIGO_API_KEY }}" },
-            { "name": "user_id", "value": "={{ $env.ALIGO_USER_ID }}" },
-            { "name": "sender", "value": "={{ $env.ALIGO_SENDER_PHONE }}" },
-            { "name": "receiver", "value": "={{ $json.phone }}" },
-            { "name": "msg", "value": "={{ $json.message }}" },
-            { "name": "testmode_yn", "value": "Y" }
+            {
+              "name": "key",
+              "value": "={{ $env.ALIGO_API_KEY }}"
+            },
+            {
+              "name": "user_id",
+              "value": "={{ $env.ALIGO_USER_ID }}"
+            },
+            {
+              "name": "sender",
+              "value": "={{ $env.ALIGO_SENDER_PHONE }}"
+            },
+            {
+              "name": "receiver",
+              "value": "={{ $json.phone }}"
+            },
+            {
+              "name": "msg",
+              "value": "={{ $json.message }}"
+            },
+            {
+              "name": "testmode_yn",
+              "value": "Y"
+            }
           ]
         },
         "options": {
-          "response": { "response": { "responseFormat": "json" } }
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
         }
       },
       "id": "rfm-act-0001-4000-8000-000000000008",
       "name": "알리고 SMS 발송",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1280, 200]
+      "position": [
+        1280,
+        200
+      ]
     },
     {
       "parameters": {
@@ -180,22 +283,35 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" },
-            { "name": "Content-Type", "value": "application/json" }
+            {
+              "name": "xc-token",
+              "value": "={{ $env.NOCODB_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({\n  user_id: $json.user_id,\n  user_name: $json.user_name,\n  segment: $json.segment,\n  phone: $json.phone,\n  channel: 'SMS',\n  status: 'SUCCESS',\n  sent_at: $now.toISO()\n}) }}",
         "options": {
-          "response": { "response": { "responseFormat": "json" } }
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
         }
       },
       "id": "rfm-act-0001-4000-8000-000000000009",
       "name": "NocoDB 발송기록 저장",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1520, 200]
+      "position": [
+        1520,
+        200
+      ]
     },
     {
       "parameters": {
@@ -206,7 +322,10 @@
       "name": "Wait 1초",
       "type": "n8n-nodes-base.wait",
       "typeVersion": 1.1,
-      "position": [1760, 200]
+      "position": [
+        1760,
+        200
+      ]
     },
     {
       "parameters": {
@@ -217,21 +336,32 @@
       "name": "발송결과 집계",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1280, 460]
+      "position": [
+        1280,
+        460
+      ]
     },
     {
       "parameters": {
         "chatId": "7713811206",
         "text": "={{ $json.message }}",
-        "additionalFields": { "parse_mode": "HTML" }
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
       },
       "id": "rfm-act-0001-4000-8000-000000000012",
       "name": "텔레그램 결과 알림",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1520, 460],
+      "position": [
+        1520,
+        460
+      ],
       "credentials": {
-        "telegramApi": { "id": "RdFu3nsFuuO5NCff", "name": "Telegram Makeshop Bot" }
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Telegram Makeshop Bot"
+        }
       }
     },
     {
@@ -243,21 +373,32 @@
       "name": "대상없음 메시지",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1040, 460]
+      "position": [
+        1040,
+        460
+      ]
     },
     {
       "parameters": {
         "chatId": "7713811206",
         "text": "={{ $json.message }}",
-        "additionalFields": { "parse_mode": "HTML" }
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
       },
       "id": "rfm-act-0001-4000-8000-000000000014",
       "name": "텔레그램 대상없음",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1280, 560],
+      "position": [
+        1280,
+        560
+      ],
       "credentials": {
-        "telegramApi": { "id": "RdFu3nsFuuO5NCff", "name": "Telegram Makeshop Bot" }
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Telegram Makeshop Bot"
+        }
       }
     }
   ],
@@ -265,97 +406,163 @@
     "매주 화요일 09시": {
       "main": [
         [
-          { "node": "NocoDB 세그먼트 조회", "type": "main", "index": 0 },
-          { "node": "NocoDB 7일내 발송기록", "type": "main", "index": 0 },
-          { "node": "MakeShop 회원정보 조회", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB 세그먼트 조회",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB 세그먼트 조회": {
       "main": [
         [
-          { "node": "세그먼트별 발송대상 필터", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB 7일내 발송기록",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB 7일내 발송기록": {
       "main": [
         [
-          { "node": "세그먼트별 발송대상 필터", "type": "main", "index": 0 }
+          {
+            "node": "MakeShop 회원정보 조회",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "MakeShop 회원정보 조회": {
       "main": [
         [
-          { "node": "세그먼트별 발송대상 필터", "type": "main", "index": 0 }
+          {
+            "node": "세그먼트별 발송대상 필터",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "세그먼트별 발송대상 필터": {
       "main": [
         [
-          { "node": "대상 있는지 체크", "type": "main", "index": 0 }
+          {
+            "node": "대상 있는지 체크",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "대상 있는지 체크": {
       "main": [
         [
-          { "node": "50건씩 배치", "type": "main", "index": 0 }
+          {
+            "node": "50건씩 배치",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "대상없음 메시지", "type": "main", "index": 0 }
+          {
+            "node": "대상없음 메시지",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "50건씩 배치": {
       "main": [
         [
-          { "node": "알리고 SMS 발송", "type": "main", "index": 0 }
+          {
+            "node": "알리고 SMS 발송",
+            "type": "main",
+            "index": 0
+          }
         ],
         [
-          { "node": "발송결과 집계", "type": "main", "index": 0 }
+          {
+            "node": "발송결과 집계",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "알리고 SMS 발송": {
       "main": [
         [
-          { "node": "NocoDB 발송기록 저장", "type": "main", "index": 0 }
+          {
+            "node": "NocoDB 발송기록 저장",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "NocoDB 발송기록 저장": {
       "main": [
         [
-          { "node": "Wait 1초", "type": "main", "index": 0 }
+          {
+            "node": "Wait 1초",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "Wait 1초": {
       "main": [
         [
-          { "node": "50건씩 배치", "type": "main", "index": 0 }
+          {
+            "node": "50건씩 배치",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "발송결과 집계": {
       "main": [
         [
-          { "node": "텔레그램 결과 알림", "type": "main", "index": 0 }
+          {
+            "node": "텔레그램 결과 알림",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
     "대상없음 메시지": {
       "main": [
         [
-          { "node": "텔레그램 대상없음", "type": "main", "index": 0 }
+          {
+            "node": "텔레그램 대상없음",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     }
   },
-  "settings": { "executionOrder": "v1" },
+  "settings": {
+    "executionOrder": "v1"
+  },
   "staticData": null,
-  "tags": [{ "name": "RFM" }, { "name": "캠페인" }, { "name": "알리고" }]
+  "tags": [
+    {
+      "name": "RFM"
+    },
+    {
+      "name": "캠페인"
+    },
+    {
+      "name": "알리고"
+    }
+  ]
 }

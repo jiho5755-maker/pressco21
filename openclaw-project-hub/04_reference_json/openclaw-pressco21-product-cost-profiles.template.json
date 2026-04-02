@@ -1,0 +1,102 @@
+{
+  "version": "0.2",
+  "updatedAt": "2026-03-24",
+  "description": "PRESSCO21 authoritative cost-profile master template. Use this as the single source of truth for verified product cost rules.",
+  "baseProfiles": {
+    "china_import_simple": {
+      "label": "중국 사입 기본형",
+      "procurementType": "china_import",
+      "fixedDefaults": {
+        "branchManagementRate": 0.1,
+        "oceanFreightRatePerCbmKrw": 82000,
+        "warehouseHandlingRatePerCbmKrw": 6000,
+        "customsBrokerFeePerShipmentKrw": 33000,
+        "originCertificateFeeCny": 250,
+        "domesticInboundShippingPerUnit": 150,
+        "vatRate": 0.1,
+        "lossRate": 0.03,
+        "inspectionCost": 0,
+        "packagingCost": 0,
+        "freightPerUnit": 0,
+        "tariffRate": 0,
+        "includeVatInCogs": false
+      },
+      "variableInputs": [
+        "purchaseCny",
+        "exchangeRate",
+        "allocationQuantity",
+        "unitVolumeCbm",
+        "packageLengthCm",
+        "packageWidthCm",
+        "packageHeightCm",
+        "originCertificateApplied"
+      ],
+      "formula": "purchaseCny * exchangeRate + branchManagement + internationalFreightByCbm + customsBrokerAllocated + originCertificateAllocated + domesticInboundShippingPerUnit + tariff + packagingCost + inspectionCost + lossReserve"
+    },
+    "domestic_purchase_simple": {
+      "label": "국내 사입 기본형",
+      "procurementType": "domestic_purchase",
+      "fixedDefaults": {
+        "vatRate": 0.1,
+        "lossRate": 0.02,
+        "inspectionCost": 0,
+        "packagingCost": 0,
+        "shippingPerUnit": 150,
+        "includeVatInCogs": false
+      },
+      "variableInputs": [
+        "purchaseKrw"
+      ],
+      "formula": "purchaseKrw + shippingPerUnit + packagingCost + inspectionCost + lossReserve"
+    },
+    "domestic_manufacturing_simple": {
+      "label": "국내 직제조 기본형",
+      "procurementType": "domestic_manufacturing",
+      "fixedDefaults": {
+        "hourlyLaborCost": 15000,
+        "monthlyOverheadPerUnit": 0,
+        "packagingCost": 0,
+        "inspectionCost": 0,
+        "lossRate": 0.03,
+        "includeVatInCogs": false
+      },
+      "variableInputs": [
+        "materialCost",
+        "laborMinutes"
+      ],
+      "formula": "materialCost + laborMinutes/60*hourlyLaborCost + monthlyOverheadPerUnit + packagingCost + inspectionCost + lossReserve"
+    }
+  },
+  "products": [
+    {
+      "productId": "EXAMPLE-001",
+      "status": "draft_needs_verification",
+      "productName": "예시 상품",
+      "skuCode": "",
+      "branduid": "",
+      "category": "",
+      "baseProfileId": "china_import_simple",
+      "fixedOverrides": {
+        "packagingCost": 0,
+        "inspectionCost": 0,
+        "freightPerUnit": 0,
+        "tariffRate": 0,
+        "lossRate": 0.02,
+        "domesticInboundShippingPerUnit": 0
+      },
+      "variableInputHints": {
+        "purchaseCny": "최근 발주 단가",
+        "exchangeRate": "최근 적용 환율",
+        "allocationQuantity": "건당 비용 배분 수량",
+        "unitVolumeCbm": "개당 CBM 또는 포장 치수로 계산",
+        "originCertificateApplied": "원산지증명 적용 여부"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "notes": [
+        "이 배열에 실제 상품별 확정 원가 규칙을 저장한다.",
+        "연계마스터는 상품 식별용으로만 쓰고, 확정 원가는 여기서 관리한다."
+      ]
+    }
+  ]
+}

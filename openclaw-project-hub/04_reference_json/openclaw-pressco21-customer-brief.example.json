@@ -1,0 +1,46 @@
+{
+  "workflow": "pressco21-customer-brief",
+  "version": "0.1",
+  "input": {
+    "customerName": "한국꽃공예문화센터",
+    "customerType": "문화센터/B2B",
+    "relationshipGoal": "봄 학기 재구매와 키트 단체주문 제안",
+    "recentTransactions": [
+      "2026-02 문화센터 수업 재료 주문 2건",
+      "2025-11 시즌 키트 주문 1건"
+    ],
+    "outstandingBalance": "미수금 없음",
+    "lastOrderSummary": [
+      "압화건조매트 20개",
+      "입문 키트 12세트"
+    ],
+    "customerNotes": [
+      "강사 3명 공동 구매 비중이 높음",
+      "학기 시작 전 주문이 몰리는 편"
+    ],
+    "owner": "장지호",
+    "approvalOwner": "장지호"
+  },
+  "output": {
+    "accountSummary": "문화센터형 B2B 고객으로 학기 시작 전 반복 구매 가능성이 높고, 키트 단체주문 제안 여지가 큼.",
+    "opportunitySignals": [
+      "봄 학기 입문 키트 묶음 제안 가능",
+      "강사 3명 공동 구매를 기준으로 대량 주문 전환 가능"
+    ],
+    "relationshipRisks": [
+      "학기 시작 전 대응이 늦으면 다른 공급처로 이동 가능"
+    ],
+    "nextActions": [
+      "입문 키트와 압화건조매트 묶음안 준비",
+      "학기 시작 전 연락 일정 확정"
+    ],
+    "followUpScript": [
+      "이번 학기 수업 준비 기준으로 필요한 재료 구성을 먼저 정리해드리겠습니다.",
+      "단체주문 기준으로 맞춤 구성도 가능하니 예상 인원만 알려주세요."
+    ],
+    "approvalChecklist": [
+      "제안 상품 구성 검토",
+      "연락 시점 승인"
+    ]
+  }
+}

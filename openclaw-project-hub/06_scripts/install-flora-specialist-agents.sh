@@ -134,6 +134,7 @@ for specialist in policy["specialists"]:
     agent_id = specialist["agentId"]
     workspace = specialist["workspace"]
     model = specialist["model"]
+    cli_model = model["primary"] if isinstance(model, dict) else model
     lines.append(
         "if ! \"$OPENCLAW_BIN\" agents list --json | python3 -c "
         + shlex.quote(
@@ -142,10 +143,25 @@ for specialist in policy["specialists"]:
         + "; then"
     )
     lines.append(
-        f"  \"$OPENCLAW_BIN\" agents add {shlex.quote(agent_id)} --non-interactive --workspace {shlex.quote(workspace)} --model {shlex.quote(model)} --json >/dev/null"
+        f"  \"$OPENCLAW_BIN\" agents add {shlex.quote(agent_id)} --non-interactive --workspace {shlex.quote(workspace)} --model {shlex.quote(cli_model)} --json >/dev/null"
     )
     lines.append("fi")
     lines.append(f"mkdir -p {shlex.quote(workspace)}")
+
+lines.extend([
+    "python3 - <<'PY'",
+    "import json",
+    "from pathlib import Path",
+    f"policy = json.loads(Path({str(policy_path)!r}).read_text())",
+    "config_path = Path.home() / '.openclaw' / 'openclaw.json'",
+    "data = json.loads(config_path.read_text())",
+    "specialists = {item['agentId']: item['model'] for item in policy['specialists']}",
+    "for item in data.get('agents', {}).get('list', []):",
+    "    if item.get('id') in specialists:",
+    "        item['model'] = specialists[item['id']]",
+    "config_path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\\n')",
+    "PY",
+])
 
 script_path.write_text("\n".join(lines) + "\n")
 PY

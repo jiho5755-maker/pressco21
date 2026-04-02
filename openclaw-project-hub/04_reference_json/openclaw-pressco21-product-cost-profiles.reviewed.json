@@ -1,0 +1,1962 @@
+{
+  "version": "0.2",
+  "updatedAt": "2026-03-24",
+  "description": "PRESSCO21 reviewed cost profile master exported from the spreadsheet ledger.",
+  "sourceWorkbook": "output/spreadsheet/pressco21-product-cost-ledger.seed.xlsx",
+  "selectionRule": "SKU마스터 grouped top 20 by orderCountSum",
+  "baseProfiles": {
+    "china_import_floral": {
+      "label": "중국 사입 - 플라워/프리저브드 일반형",
+      "procurementType": "china_import",
+      "sourceCostType": "purchase_cny",
+      "fixedDefaults": {
+        "branchManagementRate": 0.1,
+        "oceanFreightRatePerCbmKrw": 82000,
+        "warehouseHandlingRatePerCbmKrw": 6000,
+        "customsBrokerFeePerShipmentKrw": 33000,
+        "originCertificateFeeCny": 250,
+        "domesticInboundShippingPerUnit": 150,
+        "freightPerUnit": 300,
+        "tariffRate": 0.021,
+        "packagingCost": 150,
+        "inspectionCost": 50,
+        "lossRate": 0.03,
+        "vatRate": 0.1,
+        "includeVatInCogs": false,
+        "shippingPerUnit": 0
+      },
+      "variableInputs": ["purchaseCny", "exchangeRate", "allocationQuantity", "unitVolumeCbm", "originCertificateApplied"]
+    },
+    "china_import_dry_leaf_special": {
+      "label": "중국 사입 - 드라이 리프 특별형",
+      "procurementType": "china_import",
+      "sourceCostType": "purchase_cny",
+      "fixedDefaults": {
+        "branchManagementRate": 0.1,
+        "oceanFreightRatePerCbmKrw": 82000,
+        "warehouseHandlingRatePerCbmKrw": 6000,
+        "customsBrokerFeePerShipmentKrw": 33000,
+        "originCertificateFeeCny": 250,
+        "domesticInboundShippingPerUnit": 150,
+        "freightPerUnit": 300,
+        "tariffRate": 0.036,
+        "packagingCost": 150,
+        "inspectionCost": 50,
+        "lossRate": 0.03,
+        "vatRate": 0.1,
+        "includeVatInCogs": false,
+        "shippingPerUnit": 0
+      },
+      "variableInputs": ["purchaseCny", "exchangeRate", "allocationQuantity", "unitVolumeCbm", "originCertificateApplied"]
+    },
+    "china_import_dry_cut_flower_special": {
+      "label": "중국 사입 - 드라이 컷 플라워 특별형",
+      "procurementType": "china_import",
+      "sourceCostType": "purchase_cny",
+      "fixedDefaults": {
+        "branchManagementRate": 0.1,
+        "oceanFreightRatePerCbmKrw": 82000,
+        "warehouseHandlingRatePerCbmKrw": 6000,
+        "customsBrokerFeePerShipmentKrw": 33000,
+        "originCertificateFeeCny": 250,
+        "domesticInboundShippingPerUnit": 150,
+        "freightPerUnit": 300,
+        "tariffRate": 0.25,
+        "packagingCost": 150,
+        "inspectionCost": 50,
+        "lossRate": 0.03,
+        "vatRate": 0.1,
+        "includeVatInCogs": false,
+        "shippingPerUnit": 0
+      },
+      "variableInputs": ["purchaseCny", "exchangeRate", "allocationQuantity", "unitVolumeCbm", "originCertificateApplied"]
+    },
+    "china_import_resin_liquid": {
+      "label": "중국 사입 - 레진/용액 기본형",
+      "procurementType": "china_import",
+      "sourceCostType": "purchase_cny",
+      "fixedDefaults": {
+        "branchManagementRate": 0.1,
+        "oceanFreightRatePerCbmKrw": 82000,
+        "warehouseHandlingRatePerCbmKrw": 6000,
+        "customsBrokerFeePerShipmentKrw": 33000,
+        "originCertificateFeeCny": 250,
+        "domesticInboundShippingPerUnit": 180,
+        "freightPerUnit": 400,
+        "tariffRate": 0,
+        "packagingCost": 200,
+        "inspectionCost": 80,
+        "lossRate": 0.04,
+        "vatRate": 0.1,
+        "includeVatInCogs": false,
+        "shippingPerUnit": 0
+      },
+      "variableInputs": ["purchaseCny", "exchangeRate", "allocationQuantity", "unitVolumeCbm", "originCertificateApplied"]
+    },
+    "china_import_mold_tool": {
+      "label": "중국 사입 - 몰드/도구 기본형",
+      "procurementType": "china_import",
+      "sourceCostType": "purchase_cny",
+      "fixedDefaults": {
+        "branchManagementRate": 0.1,
+        "oceanFreightRatePerCbmKrw": 82000,
+        "warehouseHandlingRatePerCbmKrw": 6000,
+        "customsBrokerFeePerShipmentKrw": 33000,
+        "originCertificateFeeCny": 250,
+        "domesticInboundShippingPerUnit": 120,
+        "freightPerUnit": 250,
+        "tariffRate": 0.021,
+        "packagingCost": 120,
+        "inspectionCost": 50,
+        "lossRate": 0.02,
+        "vatRate": 0.1,
+        "includeVatInCogs": false,
+        "shippingPerUnit": 0
+      },
+      "variableInputs": ["purchaseCny", "exchangeRate", "allocationQuantity", "unitVolumeCbm", "originCertificateApplied"]
+    },
+    "china_import_fragile_glass": {
+      "label": "중국 사입 - 유리/깨짐주의 기본형",
+      "procurementType": "china_import",
+      "sourceCostType": "purchase_cny",
+      "fixedDefaults": {
+        "branchManagementRate": 0.1,
+        "oceanFreightRatePerCbmKrw": 82000,
+        "warehouseHandlingRatePerCbmKrw": 6000,
+        "customsBrokerFeePerShipmentKrw": 33000,
+        "originCertificateFeeCny": 250,
+        "domesticInboundShippingPerUnit": 220,
+        "freightPerUnit": 600,
+        "tariffRate": 0,
+        "packagingCost": 250,
+        "inspectionCost": 120,
+        "lossRate": 0.05,
+        "vatRate": 0.1,
+        "includeVatInCogs": false,
+        "shippingPerUnit": 0
+      },
+      "variableInputs": ["purchaseCny", "exchangeRate", "allocationQuantity", "unitVolumeCbm", "originCertificateApplied"]
+    },
+    "domestic_purchase_simple": {
+      "label": "국내 사입 기본형",
+      "procurementType": "domestic_purchase",
+      "sourceCostType": "purchase_krw",
+      "fixedDefaults": {
+        "branchManagementRate": 0,
+        "freightPerUnit": 0,
+        "tariffRate": 0,
+        "packagingCost": 100,
+        "inspectionCost": 50,
+        "lossRate": 0.02,
+        "vatRate": 0.1,
+        "includeVatInCogs": false,
+        "shippingPerUnit": 150
+      },
+      "variableInputs": ["purchaseKrw"]
+    }
+  },
+  "products": [
+    {
+      "productId": "pressco21-339936",
+      "status": "draft_conflict_from_master",
+      "productName": "안개전용용액(보존화용액)갈색",
+      "aliases": [
+        "보존화",
+        "액자"
+      ],
+      "skuCodes": [
+        "SKU0000046096",
+        "SKU0000046097",
+        "SKU0000046098",
+        "SKU0000046099",
+        "SKU0000046100",
+        "SKU0000046101",
+        "SKU0000046102",
+        "SKU0000046103",
+        "SKU0000046104",
+        "SKU0000046105",
+        "SKU0000046106",
+        "SKU0000046107",
+        "SKU0000046108",
+        "SKU0000046109",
+        "SKU0000046110",
+        "SKU0000046111",
+        "SKU0000049805",
+        "SKU0000049806",
+        "SKU0000049807",
+        "SKU0000049808",
+        "SKU0000049809",
+        "SKU0000049810",
+        "SKU0000049811",
+        "SKU0000049812",
+        "SKU0000049813",
+        "SKU0000049814",
+        "SKU0000049815",
+        "SKU0000049816",
+        "SKU0000049817",
+        "SKU0000049818",
+        "SKU0000049819",
+        "SKU0000049820",
+        "SKU0000049821",
+        "SKU0000049822",
+        "SKU0000049823",
+        "SKU0000049824",
+        "SKU0000049825",
+        "SKU0000049826",
+        "SKU0000049827",
+        "SKU0000049828",
+        "SKU0000049829",
+        "SKU0000049830",
+        "SKU0000049831",
+        "SKU0000049832",
+        "SKU0000049833",
+        "SKU0000049834",
+        "SKU0000049835",
+        "SKU0000049836"
+      ],
+      "branduids": [
+        "339936"
+      ],
+      "sabangCodes": [],
+      "category": "드라이&프리저브드 플라워",
+      "baseProfileId": "china_import_floral",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-06-27",
+        "latestPurchaseCny": 18.9,
+        "costHistoryCny": [
+          5.2,
+          18.9
+        ],
+        "sellingPriceHistoryKrw": [
+          9000
+        ],
+        "latestSellingPriceKrw": 9000,
+        "rowCount": 51,
+        "orderCountSum": 1251.0,
+        "maxOrderCount": 26.0,
+        "sourceNames": [
+          "보존화",
+          "액자"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [5.2, 18.9]",
+        "원가원장반영:existing_products!2"
+      ]
+    },
+    {
+      "productId": "pressco21-339937",
+      "status": "draft_conflict_from_master",
+      "productName": "안개전용용액(보존화용액)남색",
+      "aliases": [
+        "보존화",
+        "액자"
+      ],
+      "skuCodes": [
+        "SKU0000046096",
+        "SKU0000046097",
+        "SKU0000046098",
+        "SKU0000046099",
+        "SKU0000046100",
+        "SKU0000046101",
+        "SKU0000046102",
+        "SKU0000046103",
+        "SKU0000046104",
+        "SKU0000046105",
+        "SKU0000046106",
+        "SKU0000046107",
+        "SKU0000046108",
+        "SKU0000046109",
+        "SKU0000046110",
+        "SKU0000046111",
+        "SKU0000049805",
+        "SKU0000049806",
+        "SKU0000049807",
+        "SKU0000049808",
+        "SKU0000049809",
+        "SKU0000049810",
+        "SKU0000049811",
+        "SKU0000049812",
+        "SKU0000049813",
+        "SKU0000049814",
+        "SKU0000049815",
+        "SKU0000049816",
+        "SKU0000049817",
+        "SKU0000049818",
+        "SKU0000049819",
+        "SKU0000049820",
+        "SKU0000049821",
+        "SKU0000049822",
+        "SKU0000049823",
+        "SKU0000049824",
+        "SKU0000049825",
+        "SKU0000049826",
+        "SKU0000049827",
+        "SKU0000049828",
+        "SKU0000049829",
+        "SKU0000049830",
+        "SKU0000049831",
+        "SKU0000049832",
+        "SKU0000049833",
+        "SKU0000049834",
+        "SKU0000049835",
+        "SKU0000049836"
+      ],
+      "branduids": [
+        "339937"
+      ],
+      "sabangCodes": [],
+      "category": "드라이&프리저브드 플라워",
+      "baseProfileId": "china_import_floral",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-06-27",
+        "latestPurchaseCny": 18.9,
+        "costHistoryCny": [
+          5.2,
+          18.9
+        ],
+        "sellingPriceHistoryKrw": [
+          9000
+        ],
+        "latestSellingPriceKrw": 9000,
+        "rowCount": 51,
+        "orderCountSum": 1251.0,
+        "maxOrderCount": 26.0,
+        "sourceNames": [
+          "보존화",
+          "액자"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [5.2, 18.9]",
+        "원가원장반영:existing_products!3"
+      ]
+    },
+    {
+      "productId": "pressco21-339938",
+      "status": "draft_conflict_from_master",
+      "productName": "안개전용용액(보존화용액)노랑",
+      "aliases": [
+        "보존화",
+        "액자"
+      ],
+      "skuCodes": [
+        "SKU0000046096",
+        "SKU0000046097",
+        "SKU0000046098",
+        "SKU0000046099",
+        "SKU0000046100",
+        "SKU0000046101",
+        "SKU0000046102",
+        "SKU0000046103",
+        "SKU0000046104",
+        "SKU0000046105",
+        "SKU0000046106",
+        "SKU0000046107",
+        "SKU0000046108",
+        "SKU0000046109",
+        "SKU0000046110",
+        "SKU0000046111",
+        "SKU0000049805",
+        "SKU0000049806",
+        "SKU0000049807",
+        "SKU0000049808",
+        "SKU0000049809",
+        "SKU0000049810",
+        "SKU0000049811",
+        "SKU0000049812",
+        "SKU0000049813",
+        "SKU0000049814",
+        "SKU0000049815",
+        "SKU0000049816",
+        "SKU0000049817",
+        "SKU0000049818",
+        "SKU0000049819",
+        "SKU0000049820",
+        "SKU0000049821",
+        "SKU0000049822",
+        "SKU0000049823",
+        "SKU0000049824",
+        "SKU0000049825",
+        "SKU0000049826",
+        "SKU0000049827",
+        "SKU0000049828",
+        "SKU0000049829",
+        "SKU0000049830",
+        "SKU0000049831",
+        "SKU0000049832",
+        "SKU0000049833",
+        "SKU0000049834",
+        "SKU0000049835",
+        "SKU0000049836"
+      ],
+      "branduids": [
+        "339938"
+      ],
+      "sabangCodes": [],
+      "category": "드라이&프리저브드 플라워",
+      "baseProfileId": "china_import_floral",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-06-27",
+        "latestPurchaseCny": 18.9,
+        "costHistoryCny": [
+          5.2,
+          18.9
+        ],
+        "sellingPriceHistoryKrw": [
+          9000
+        ],
+        "latestSellingPriceKrw": 9000,
+        "rowCount": 51,
+        "orderCountSum": 1251.0,
+        "maxOrderCount": 26.0,
+        "sourceNames": [
+          "보존화",
+          "액자"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [5.2, 18.9]",
+        "원가원장반영:existing_products!4"
+      ]
+    },
+    {
+      "productId": "pressco21-11700965",
+      "status": "draft_conflict_from_master",
+      "productName": "보존화 종합팩(소형)",
+      "aliases": [
+        "보존화",
+        "보존화 종합팩",
+        "보존화 종합팩 소 용기",
+        "보존화종합팩 용기",
+        "보존화종합팩용기"
+      ],
+      "skuCodes": [
+        "SKU0000049544",
+        "SKU0000049545",
+        "SKU0000049546",
+        "SKU0000049547",
+        "SKU0000049548",
+        "SKU0000049549",
+        "SKU0000049550",
+        "SKU0000049551",
+        "SKU0000049617",
+        "SKU0000049618",
+        "SKU0000049619",
+        "SKU0000049620",
+        "SKU0000049621",
+        "SKU0000049622",
+        "SKU0000049623",
+        "SKU0000049624",
+        "SKU0000049625",
+        "SKU0000049626"
+      ],
+      "branduids": [
+        "11700965"
+      ],
+      "sabangCodes": [
+        "103902"
+      ],
+      "category": "드라이&프리저브드 플라워",
+      "baseProfileId": "china_import_floral",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2026-01-03",
+        "latestPurchaseCny": 0.45,
+        "costHistoryCny": [
+          0.44,
+          0.45,
+          4.2,
+          18.9
+        ],
+        "sellingPriceHistoryKrw": [
+          2800
+        ],
+        "latestSellingPriceKrw": 2800,
+        "rowCount": 90,
+        "orderCountSum": 828.0,
+        "maxOrderCount": 26.0,
+        "sourceNames": [
+          "보존화",
+          "보존화 종합팩",
+          "보존화 종합팩 소 용기",
+          "보존화종합팩 용기",
+          "보존화종합팩용기"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [0.44, 0.45, 4.2, 18.9]",
+        "원가원장반영:existing_products!5"
+      ]
+    },
+    {
+      "productId": "pressco21-11699809",
+      "status": "draft_conflict_from_master",
+      "productName": "보존화 종합팩(중형)",
+      "aliases": [
+        "보존화",
+        "보존화 종합팩",
+        "보존화 종합팩 소 용기",
+        "보존화종합팩 용기",
+        "보존화종합팩용기"
+      ],
+      "skuCodes": [
+        "SKU0000049544",
+        "SKU0000049545",
+        "SKU0000049546",
+        "SKU0000049547",
+        "SKU0000049548",
+        "SKU0000049549",
+        "SKU0000049550",
+        "SKU0000049551",
+        "SKU0000049617",
+        "SKU0000049618",
+        "SKU0000049619",
+        "SKU0000049620",
+        "SKU0000049621",
+        "SKU0000049622",
+        "SKU0000049623",
+        "SKU0000049624",
+        "SKU0000049625",
+        "SKU0000049626"
+      ],
+      "branduids": [
+        "11699809"
+      ],
+      "sabangCodes": [
+        "103902"
+      ],
+      "category": "드라이&프리저브드 플라워",
+      "baseProfileId": "china_import_floral",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2026-01-03",
+        "latestPurchaseCny": 0.45,
+        "costHistoryCny": [
+          0.44,
+          0.45,
+          4.2,
+          18.9
+        ],
+        "sellingPriceHistoryKrw": [
+          4500
+        ],
+        "latestSellingPriceKrw": 4500,
+        "rowCount": 90,
+        "orderCountSum": 828.0,
+        "maxOrderCount": 26.0,
+        "sourceNames": [
+          "보존화",
+          "보존화 종합팩",
+          "보존화 종합팩 소 용기",
+          "보존화종합팩 용기",
+          "보존화종합팩용기"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [0.44, 0.45, 4.2, 18.9]",
+        "원가원장반영:existing_products!6"
+      ]
+    },
+    {
+      "productId": "pressco21-11701520",
+      "status": "draft_conflict_from_master",
+      "productName": "하바리움 용기_부케글라스",
+      "aliases": [
+        "디저트잔(샘플)",
+        "플라스틱화병",
+        "하바리움 용기 신형",
+        "하바리움 용기 신형 포장박스",
+        "하바리움 용기(샘플)",
+        "하바리움볼펜",
+        "하바리움액자",
+        "하바리움용기(어항볼형)",
+        "하바리움용기(오르골)",
+        "하바리움용기(타워형)",
+        "하바리움용기_디저트잔",
+        "하바리움용기_부케글라스",
+        "하바리움용기_부케글라스 케이스",
+        "하바리움용기_어항볼형",
+        "하바리움용기_유리원형돔_우드받침형 12cm",
+        "하바리움용기_유리원형돔_일반형 12cm"
+      ],
+      "skuCodes": [
+        "SKU0000046292",
+        "SKU0000046295",
+        "SKU0000046297",
+        "SKU0000049475",
+        "SKU0000049477",
+        "SKU0000049478",
+        "SKU0000049479",
+        "SKU0000049480",
+        "SKU0000049484",
+        "SKU0000049485",
+        "SKU0000049486",
+        "SKU0000049487",
+        "SKU0000049488",
+        "SKU0000049489",
+        "SKU0000049490",
+        "SKU0000049491",
+        "SKU0000049492",
+        "SKU0000049493",
+        "SKU0000049494",
+        "SKU0000049495",
+        "SKU0000049496",
+        "SKU0000049497",
+        "SKU0000049498",
+        "SKU0000049499",
+        "SKU0000049500",
+        "SKU0000049501"
+      ],
+      "branduids": [
+        "11701520"
+      ],
+      "sabangCodes": [
+        "103957"
+      ],
+      "category": "하바리움",
+      "baseProfileId": "china_import_fragile_glass",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-18",
+        "latestPurchaseCny": 0.24,
+        "costHistoryCny": [
+          0.24,
+          0.69,
+          1.3,
+          1.6,
+          2.1,
+          3,
+          4.3,
+          7.66,
+          8,
+          16.5,
+          16.7,
+          18,
+          56
+        ],
+        "sellingPriceHistoryKrw": [
+          3300
+        ],
+        "latestSellingPriceKrw": 3300,
+        "rowCount": 372,
+        "orderCountSum": 664.0,
+        "maxOrderCount": 7.0,
+        "sourceNames": [
+          "디저트잔(샘플)",
+          "플라스틱화병",
+          "하바리움 용기 신형",
+          "하바리움 용기 신형 포장박스",
+          "하바리움 용기(샘플)",
+          "하바리움볼펜",
+          "하바리움액자",
+          "하바리움용기(어항볼형)",
+          "하바리움용기(오르골)",
+          "하바리움용기(타워형)",
+          "하바리움용기_디저트잔",
+          "하바리움용기_부케글라스",
+          "하바리움용기_부케글라스 케이스",
+          "하바리움용기_어항볼형",
+          "하바리움용기_유리원형돔_우드받침형 12cm",
+          "하바리움용기_유리원형돔_일반형 12cm"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [0.24, 0.69, 1.3, 1.6, 2.1, 3.0, 4.3, 7.66, 8.0, 16.5, 16.7, 18.0, 56.0]",
+        "원가원장반영:existing_products!7"
+      ]
+    },
+    {
+      "productId": "pressco21-11701353",
+      "status": "draft_conflict_from_master",
+      "productName": "하바리움 용기_오르골",
+      "aliases": [
+        "디저트잔(샘플)",
+        "플라스틱화병",
+        "하바리움 용기 신형",
+        "하바리움 용기 신형 포장박스",
+        "하바리움 용기(샘플)",
+        "하바리움볼펜",
+        "하바리움액자",
+        "하바리움용기(어항볼형)",
+        "하바리움용기(오르골)",
+        "하바리움용기(타워형)",
+        "하바리움용기_디저트잔",
+        "하바리움용기_부케글라스",
+        "하바리움용기_부케글라스 케이스",
+        "하바리움용기_어항볼형",
+        "하바리움용기_유리원형돔_우드받침형 12cm",
+        "하바리움용기_유리원형돔_일반형 12cm"
+      ],
+      "skuCodes": [
+        "SKU0000046292",
+        "SKU0000046295",
+        "SKU0000046297",
+        "SKU0000049475",
+        "SKU0000049477",
+        "SKU0000049478",
+        "SKU0000049479",
+        "SKU0000049480",
+        "SKU0000049484",
+        "SKU0000049485",
+        "SKU0000049486",
+        "SKU0000049487",
+        "SKU0000049488",
+        "SKU0000049489",
+        "SKU0000049490",
+        "SKU0000049491",
+        "SKU0000049492",
+        "SKU0000049493",
+        "SKU0000049494",
+        "SKU0000049495",
+        "SKU0000049496",
+        "SKU0000049497",
+        "SKU0000049498",
+        "SKU0000049499",
+        "SKU0000049500",
+        "SKU0000049501"
+      ],
+      "branduids": [
+        "11701353"
+      ],
+      "sabangCodes": [
+        "103957"
+      ],
+      "category": "하바리움",
+      "baseProfileId": "china_import_fragile_glass",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-18",
+        "latestPurchaseCny": 0.24,
+        "costHistoryCny": [
+          0.24,
+          0.69,
+          1.3,
+          1.6,
+          2.1,
+          3,
+          4.3,
+          7.66,
+          8,
+          16.5,
+          16.7,
+          18,
+          56
+        ],
+        "sellingPriceHistoryKrw": [
+          24300
+        ],
+        "latestSellingPriceKrw": 24300,
+        "rowCount": 372,
+        "orderCountSum": 664.0,
+        "maxOrderCount": 7.0,
+        "sourceNames": [
+          "디저트잔(샘플)",
+          "플라스틱화병",
+          "하바리움 용기 신형",
+          "하바리움 용기 신형 포장박스",
+          "하바리움 용기(샘플)",
+          "하바리움볼펜",
+          "하바리움액자",
+          "하바리움용기(어항볼형)",
+          "하바리움용기(오르골)",
+          "하바리움용기(타워형)",
+          "하바리움용기_디저트잔",
+          "하바리움용기_부케글라스",
+          "하바리움용기_부케글라스 케이스",
+          "하바리움용기_어항볼형",
+          "하바리움용기_유리원형돔_우드받침형 12cm",
+          "하바리움용기_유리원형돔_일반형 12cm"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [0.24, 0.69, 1.3, 1.6, 2.1, 3.0, 4.3, 7.66, 8.0, 16.5, 16.7, 18.0, 56.0]",
+        "원가원장반영:existing_products!8"
+      ]
+    },
+    {
+      "productId": "pressco21-11701522",
+      "status": "draft_conflict_from_master",
+      "productName": "하바리움 용기_우드글라스돔",
+      "aliases": [
+        "디저트잔(샘플)",
+        "플라스틱화병",
+        "하바리움 용기 신형",
+        "하바리움 용기 신형 포장박스",
+        "하바리움 용기(샘플)",
+        "하바리움볼펜",
+        "하바리움액자",
+        "하바리움용기(어항볼형)",
+        "하바리움용기(오르골)",
+        "하바리움용기(타워형)",
+        "하바리움용기_디저트잔",
+        "하바리움용기_부케글라스",
+        "하바리움용기_부케글라스 케이스",
+        "하바리움용기_어항볼형",
+        "하바리움용기_유리원형돔_우드받침형 12cm",
+        "하바리움용기_유리원형돔_일반형 12cm"
+      ],
+      "skuCodes": [
+        "SKU0000046292",
+        "SKU0000046295",
+        "SKU0000046297",
+        "SKU0000049475",
+        "SKU0000049477",
+        "SKU0000049478",
+        "SKU0000049479",
+        "SKU0000049480",
+        "SKU0000049484",
+        "SKU0000049485",
+        "SKU0000049486",
+        "SKU0000049487",
+        "SKU0000049488",
+        "SKU0000049489",
+        "SKU0000049490",
+        "SKU0000049491",
+        "SKU0000049492",
+        "SKU0000049493",
+        "SKU0000049494",
+        "SKU0000049495",
+        "SKU0000049496",
+        "SKU0000049497",
+        "SKU0000049498",
+        "SKU0000049499",
+        "SKU0000049500",
+        "SKU0000049501"
+      ],
+      "branduids": [
+        "11701522"
+      ],
+      "sabangCodes": [
+        "103957"
+      ],
+      "category": "하바리움",
+      "baseProfileId": "china_import_fragile_glass",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-18",
+        "latestPurchaseCny": 0.24,
+        "costHistoryCny": [
+          0.24,
+          0.69,
+          1.3,
+          1.6,
+          2.1,
+          3,
+          4.3,
+          7.66,
+          8,
+          16.5,
+          16.7,
+          18,
+          56
+        ],
+        "sellingPriceHistoryKrw": [
+          33000
+        ],
+        "latestSellingPriceKrw": 33000,
+        "rowCount": 372,
+        "orderCountSum": 664.0,
+        "maxOrderCount": 7.0,
+        "sourceNames": [
+          "디저트잔(샘플)",
+          "플라스틱화병",
+          "하바리움 용기 신형",
+          "하바리움 용기 신형 포장박스",
+          "하바리움 용기(샘플)",
+          "하바리움볼펜",
+          "하바리움액자",
+          "하바리움용기(어항볼형)",
+          "하바리움용기(오르골)",
+          "하바리움용기(타워형)",
+          "하바리움용기_디저트잔",
+          "하바리움용기_부케글라스",
+          "하바리움용기_부케글라스 케이스",
+          "하바리움용기_어항볼형",
+          "하바리움용기_유리원형돔_우드받침형 12cm",
+          "하바리움용기_유리원형돔_일반형 12cm"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [0.24, 0.69, 1.3, 1.6, 2.1, 3.0, 4.3, 7.66, 8.0, 16.5, 16.7, 18.0, 56.0]",
+        "원가원장반영:existing_products!9"
+      ]
+    },
+    {
+      "productId": "pressco21-374878",
+      "status": "draft_seeded_from_master",
+      "productName": "프리저브드/수국/그린퍼플(PF114-014)",
+      "aliases": [
+        "수국"
+      ],
+      "skuCodes": [
+        "SKU0000046237",
+        "SKU0000049587",
+        "SKU0000049588",
+        "SKU0000049589",
+        "SKU0000049590",
+        "SKU0000049591",
+        "SKU0000049592",
+        "SKU0000049593",
+        "SKU0000049594",
+        "SKU0000049595",
+        "SKU0000049596",
+        "SKU0000049597",
+        "SKU0000049598",
+        "SKU0000049599",
+        "SKU0000049600",
+        "SKU0000049601",
+        "SKU0000049602",
+        "SKU0000049603",
+        "SKU0000049604",
+        "SKU0000049605",
+        "SKU0000049606",
+        "SKU0000049607",
+        "SKU0000049608",
+        "SKU0000049609",
+        "SKU0000049610",
+        "SKU0000049611",
+        "SKU0000049612",
+        "SKU0000049613",
+        "SKU0000049614",
+        "SKU0000049615",
+        "SKU0000049616",
+        "SKU0000049660"
+      ],
+      "branduids": [
+        "374878"
+      ],
+      "sabangCodes": [
+        "104001"
+      ],
+      "category": "드라이&프리저브드 플라워",
+      "baseProfileId": "china_import_floral",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-09",
+        "latestPurchaseCny": 110,
+        "costHistoryCny": [
+          110
+        ],
+        "sellingPriceHistoryKrw": [
+          20000
+        ],
+        "latestSellingPriceKrw": 20000,
+        "rowCount": 64,
+        "orderCountSum": 640.0,
+        "maxOrderCount": 10.0,
+        "sourceNames": [
+          "수국"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "stable_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "원가원장반영:existing_products!10"
+      ]
+    },
+    {
+      "productId": "pressco21-1150989",
+      "status": "draft_conflict_from_master",
+      "productName": "하바리움 볼펜케이스/사각투명",
+      "aliases": [
+        "하바리움 용기 신형",
+        "하바리움 용기 신형 포장박스",
+        "하바리움 용기(샘플)",
+        "하바리움볼펜",
+        "하바리움액자",
+        "하바리움용기(어항볼형)",
+        "하바리움용기(오르골)",
+        "하바리움용기(타워형)",
+        "하바리움용기_디저트잔",
+        "하바리움용기_부케글라스",
+        "하바리움용기_부케글라스 케이스",
+        "하바리움용기_어항볼형",
+        "하바리움용기_유리원형돔_우드받침형 12cm",
+        "하바리움용기_유리원형돔_일반형 12cm"
+      ],
+      "skuCodes": [
+        "SKU0000046276",
+        "SKU0000046277",
+        "SKU0000046279",
+        "SKU0000046280",
+        "SKU0000049518",
+        "SKU0000049519",
+        "SKU0000049521",
+        "SKU0000049522",
+        "SKU0000049523",
+        "SKU0000049524",
+        "SKU0000049525",
+        "SKU0000049526",
+        "SKU0000049527",
+        "SKU0000049528",
+        "SKU0000049529",
+        "SKU0000049530"
+      ],
+      "branduids": [
+        "1150989"
+      ],
+      "sabangCodes": [
+        "103050"
+      ],
+      "category": "하바리움",
+      "baseProfileId": "china_import_fragile_glass",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-18",
+        "latestPurchaseCny": 0.24,
+        "costHistoryCny": [
+          0.24,
+          0.69,
+          1.3,
+          1.6,
+          2.1,
+          3,
+          4.3,
+          7.66,
+          8,
+          16.5,
+          18,
+          56
+        ],
+        "sellingPriceHistoryKrw": [
+          600
+        ],
+        "latestSellingPriceKrw": 600,
+        "rowCount": 224,
+        "orderCountSum": 400.0,
+        "maxOrderCount": 7.0,
+        "sourceNames": [
+          "하바리움 용기 신형",
+          "하바리움 용기 신형 포장박스",
+          "하바리움 용기(샘플)",
+          "하바리움볼펜",
+          "하바리움액자",
+          "하바리움용기(어항볼형)",
+          "하바리움용기(오르골)",
+          "하바리움용기(타워형)",
+          "하바리움용기_디저트잔",
+          "하바리움용기_부케글라스",
+          "하바리움용기_부케글라스 케이스",
+          "하바리움용기_어항볼형",
+          "하바리움용기_유리원형돔_우드받침형 12cm",
+          "하바리움용기_유리원형돔_일반형 12cm"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [0.24, 0.69, 1.3, 1.6, 2.1, 3.0, 4.3, 7.66, 8.0, 16.5, 18.0, 56.0]",
+        "원가원장반영:existing_products!11"
+      ]
+    },
+    {
+      "productId": "pressco21-375198",
+      "status": "draft_conflict_from_master",
+      "productName": "하바리움 볼펜케이스/아크릴",
+      "aliases": [
+        "하바리움 용기 신형",
+        "하바리움 용기 신형 포장박스",
+        "하바리움 용기(샘플)",
+        "하바리움볼펜",
+        "하바리움액자",
+        "하바리움용기(어항볼형)",
+        "하바리움용기(오르골)",
+        "하바리움용기(타워형)",
+        "하바리움용기_디저트잔",
+        "하바리움용기_부케글라스",
+        "하바리움용기_부케글라스 케이스",
+        "하바리움용기_어항볼형",
+        "하바리움용기_유리원형돔_우드받침형 12cm",
+        "하바리움용기_유리원형돔_일반형 12cm"
+      ],
+      "skuCodes": [
+        "SKU0000046276",
+        "SKU0000046277",
+        "SKU0000046279",
+        "SKU0000046280",
+        "SKU0000049518",
+        "SKU0000049519",
+        "SKU0000049521",
+        "SKU0000049522",
+        "SKU0000049523",
+        "SKU0000049524",
+        "SKU0000049525",
+        "SKU0000049526",
+        "SKU0000049527",
+        "SKU0000049528",
+        "SKU0000049529",
+        "SKU0000049530"
+      ],
+      "branduids": [
+        "375198"
+      ],
+      "sabangCodes": [
+        "103050"
+      ],
+      "category": "하바리움",
+      "baseProfileId": "china_import_fragile_glass",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-18",
+        "latestPurchaseCny": 0.24,
+        "costHistoryCny": [
+          0.24,
+          0.69,
+          1.3,
+          1.6,
+          2.1,
+          3,
+          4.3,
+          7.66,
+          8,
+          16.5,
+          18,
+          56
+        ],
+        "sellingPriceHistoryKrw": [
+          500
+        ],
+        "latestSellingPriceKrw": 500,
+        "rowCount": 224,
+        "orderCountSum": 400.0,
+        "maxOrderCount": 7.0,
+        "sourceNames": [
+          "하바리움 용기 신형",
+          "하바리움 용기 신형 포장박스",
+          "하바리움 용기(샘플)",
+          "하바리움볼펜",
+          "하바리움액자",
+          "하바리움용기(어항볼형)",
+          "하바리움용기(오르골)",
+          "하바리움용기(타워형)",
+          "하바리움용기_디저트잔",
+          "하바리움용기_부케글라스",
+          "하바리움용기_부케글라스 케이스",
+          "하바리움용기_어항볼형",
+          "하바리움용기_유리원형돔_우드받침형 12cm",
+          "하바리움용기_유리원형돔_일반형 12cm"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [0.24, 0.69, 1.3, 1.6, 2.1, 3.0, 4.3, 7.66, 8.0, 16.5, 18.0, 56.0]",
+        "원가원장반영:existing_products!12"
+      ]
+    },
+    {
+      "productId": "pressco21-374652",
+      "status": "draft_conflict_from_master",
+      "productName": "하바리움 볼펜케이스/하드페이퍼",
+      "aliases": [
+        "하바리움 용기 신형",
+        "하바리움 용기 신형 포장박스",
+        "하바리움 용기(샘플)",
+        "하바리움볼펜",
+        "하바리움액자",
+        "하바리움용기(어항볼형)",
+        "하바리움용기(오르골)",
+        "하바리움용기(타워형)",
+        "하바리움용기_디저트잔",
+        "하바리움용기_부케글라스",
+        "하바리움용기_부케글라스 케이스",
+        "하바리움용기_어항볼형",
+        "하바리움용기_유리원형돔_우드받침형 12cm",
+        "하바리움용기_유리원형돔_일반형 12cm"
+      ],
+      "skuCodes": [
+        "SKU0000046276",
+        "SKU0000046277",
+        "SKU0000046279",
+        "SKU0000046280",
+        "SKU0000049518",
+        "SKU0000049519",
+        "SKU0000049521",
+        "SKU0000049522",
+        "SKU0000049523",
+        "SKU0000049524",
+        "SKU0000049525",
+        "SKU0000049526",
+        "SKU0000049527",
+        "SKU0000049528",
+        "SKU0000049529",
+        "SKU0000049530"
+      ],
+      "branduids": [
+        "374652"
+      ],
+      "sabangCodes": [
+        "103050"
+      ],
+      "category": "하바리움",
+      "baseProfileId": "china_import_fragile_glass",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-18",
+        "latestPurchaseCny": 0.24,
+        "costHistoryCny": [
+          0.24,
+          0.69,
+          1.3,
+          1.6,
+          2.1,
+          3,
+          4.3,
+          7.66,
+          8,
+          16.5,
+          18,
+          56
+        ],
+        "sellingPriceHistoryKrw": [
+          1500
+        ],
+        "latestSellingPriceKrw": 1500,
+        "rowCount": 224,
+        "orderCountSum": 400.0,
+        "maxOrderCount": 7.0,
+        "sourceNames": [
+          "하바리움 용기 신형",
+          "하바리움 용기 신형 포장박스",
+          "하바리움 용기(샘플)",
+          "하바리움볼펜",
+          "하바리움액자",
+          "하바리움용기(어항볼형)",
+          "하바리움용기(오르골)",
+          "하바리움용기(타워형)",
+          "하바리움용기_디저트잔",
+          "하바리움용기_부케글라스",
+          "하바리움용기_부케글라스 케이스",
+          "하바리움용기_어항볼형",
+          "하바리움용기_유리원형돔_우드받침형 12cm",
+          "하바리움용기_유리원형돔_일반형 12cm"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [0.24, 0.69, 1.3, 1.6, 2.1, 3.0, 4.3, 7.66, 8.0, 16.5, 18.0, 56.0]",
+        "원가원장반영:existing_products!13"
+      ]
+    },
+    {
+      "productId": "pressco21-357530",
+      "status": "draft_conflict_from_master",
+      "productName": "[레진공예]3D실리콘몰드/딸기",
+      "aliases": [
+        "실리콘 몰드",
+        "실리콘 몰드 샘플",
+        "실리콘몰드"
+      ],
+      "skuCodes": [
+        "SKU0000047226",
+        "SKU0000047227",
+        "SKU0000047228",
+        "SKU0000047229",
+        "SKU0000047230",
+        "SKU0000047231",
+        "SKU0000047232",
+        "SKU0000047233",
+        "SKU0000047234",
+        "SKU0000047235",
+        "SKU0000047238",
+        "SKU0000047240",
+        "SKU0000047241",
+        "SKU0000047242",
+        "SKU0000047243",
+        "SKU0000047244"
+      ],
+      "branduids": [
+        "357530"
+      ],
+      "sabangCodes": [
+        "103942"
+      ],
+      "category": "레진공예",
+      "baseProfileId": "china_import_mold_tool",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-30",
+        "latestPurchaseCny": 7.41,
+        "costHistoryCny": [
+          6,
+          7.41,
+          7.8
+        ],
+        "sellingPriceHistoryKrw": [
+          1500
+        ],
+        "latestSellingPriceKrw": 1500,
+        "rowCount": 48,
+        "orderCountSum": 336.0,
+        "maxOrderCount": 16.0,
+        "sourceNames": [
+          "실리콘 몰드",
+          "실리콘 몰드 샘플",
+          "실리콘몰드"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [6.0, 7.41, 7.8]",
+        "원가원장반영:existing_products!14"
+      ]
+    },
+    {
+      "productId": "pressco21-357531",
+      "status": "draft_conflict_from_master",
+      "productName": "[레진공예]3D실리콘몰드/장미/小",
+      "aliases": [
+        "실리콘 몰드",
+        "실리콘 몰드 샘플",
+        "실리콘몰드"
+      ],
+      "skuCodes": [
+        "SKU0000047226",
+        "SKU0000047227",
+        "SKU0000047228",
+        "SKU0000047229",
+        "SKU0000047230",
+        "SKU0000047231",
+        "SKU0000047232",
+        "SKU0000047233",
+        "SKU0000047234",
+        "SKU0000047235",
+        "SKU0000047238",
+        "SKU0000047240",
+        "SKU0000047241",
+        "SKU0000047242",
+        "SKU0000047243",
+        "SKU0000047244"
+      ],
+      "branduids": [
+        "357531"
+      ],
+      "sabangCodes": [
+        "103942"
+      ],
+      "category": "레진공예",
+      "baseProfileId": "china_import_mold_tool",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-30",
+        "latestPurchaseCny": 7.41,
+        "costHistoryCny": [
+          6,
+          7.41,
+          7.8
+        ],
+        "sellingPriceHistoryKrw": [
+          1500
+        ],
+        "latestSellingPriceKrw": 1500,
+        "rowCount": 48,
+        "orderCountSum": 336.0,
+        "maxOrderCount": 16.0,
+        "sourceNames": [
+          "실리콘 몰드",
+          "실리콘 몰드 샘플",
+          "실리콘몰드"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [6.0, 7.41, 7.8]",
+        "원가원장반영:existing_products!15"
+      ]
+    },
+    {
+      "productId": "pressco21-357529",
+      "status": "draft_conflict_from_master",
+      "productName": "[레진공예]3D실리콘몰드/조개",
+      "aliases": [
+        "실리콘 몰드",
+        "실리콘 몰드 샘플",
+        "실리콘몰드"
+      ],
+      "skuCodes": [
+        "SKU0000047226",
+        "SKU0000047227",
+        "SKU0000047228",
+        "SKU0000047229",
+        "SKU0000047230",
+        "SKU0000047231",
+        "SKU0000047232",
+        "SKU0000047233",
+        "SKU0000047234",
+        "SKU0000047235",
+        "SKU0000047238",
+        "SKU0000047240",
+        "SKU0000047241",
+        "SKU0000047242",
+        "SKU0000047243",
+        "SKU0000047244"
+      ],
+      "branduids": [
+        "357529"
+      ],
+      "sabangCodes": [
+        "103942"
+      ],
+      "category": "레진공예",
+      "baseProfileId": "china_import_mold_tool",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-30",
+        "latestPurchaseCny": 7.41,
+        "costHistoryCny": [
+          6,
+          7.41,
+          7.8
+        ],
+        "sellingPriceHistoryKrw": [
+          1500
+        ],
+        "latestSellingPriceKrw": 1500,
+        "rowCount": 48,
+        "orderCountSum": 336.0,
+        "maxOrderCount": 16.0,
+        "sourceNames": [
+          "실리콘 몰드",
+          "실리콘 몰드 샘플",
+          "실리콘몰드"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [6.0, 7.41, 7.8]",
+        "원가원장반영:existing_products!16"
+      ]
+    },
+    {
+      "productId": "pressco21-11699996",
+      "status": "draft_seeded_from_master",
+      "productName": "프리저브드_수국모음전",
+      "aliases": [
+        "수국"
+      ],
+      "skuCodes": [
+        "SKU0000046237",
+        "SKU0000049587",
+        "SKU0000049588",
+        "SKU0000049589",
+        "SKU0000049590",
+        "SKU0000049591",
+        "SKU0000049592",
+        "SKU0000049593",
+        "SKU0000049594",
+        "SKU0000049595",
+        "SKU0000049596",
+        "SKU0000049597",
+        "SKU0000049598",
+        "SKU0000049599",
+        "SKU0000049600",
+        "SKU0000049601",
+        "SKU0000049602",
+        "SKU0000049603",
+        "SKU0000049604",
+        "SKU0000049605",
+        "SKU0000049606",
+        "SKU0000049607",
+        "SKU0000049608",
+        "SKU0000049609",
+        "SKU0000049610",
+        "SKU0000049611",
+        "SKU0000049612",
+        "SKU0000049613",
+        "SKU0000049614",
+        "SKU0000049615",
+        "SKU0000049616",
+        "SKU0000049660"
+      ],
+      "branduids": [
+        "11699996"
+      ],
+      "sabangCodes": [
+        "104001"
+      ],
+      "category": "드라이&프리저브드 플라워",
+      "baseProfileId": "china_import_floral",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-09",
+        "latestPurchaseCny": 110,
+        "costHistoryCny": [
+          110
+        ],
+        "sellingPriceHistoryKrw": [
+          3500
+        ],
+        "latestSellingPriceKrw": 3500,
+        "rowCount": 32,
+        "orderCountSum": 320.0,
+        "maxOrderCount": 10.0,
+        "sourceNames": [
+          "수국"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "stable_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "원가원장반영:existing_products!17"
+      ]
+    },
+    {
+      "productId": "pressco21-1155739",
+      "status": "draft_conflict_from_master",
+      "productName": "알파벳스티커/색상선택",
+      "aliases": [
+        "스티커",
+        "알파벳스티커",
+        "알파벳스티커 골드",
+        "알파벳스티커(파랑)"
+      ],
+      "skuCodes": [
+        "SKU0000047029",
+        "SKU0000047030",
+        "SKU0000047031",
+        "SKU0000047032",
+        "SKU0000047033",
+        "SKU0000047034",
+        "SKU0000047035",
+        "SKU0000047036",
+        "SKU0000047037",
+        "SKU0000047038",
+        "SKU0000047039",
+        "SKU0000047040",
+        "SKU0000048071",
+        "SKU0000048072",
+        "SKU0000048073",
+        "SKU0000048074",
+        "SKU0000048075",
+        "SKU0000048076",
+        "SKU0000048077",
+        "SKU0000048078",
+        "SKU0000048079",
+        "SKU0000048080",
+        "SKU0000048081",
+        "SKU0000048082"
+      ],
+      "branduids": [
+        "1155739"
+      ],
+      "sabangCodes": [
+        "103931"
+      ],
+      "category": "레진공예",
+      "baseProfileId": "china_import_mold_tool",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-19",
+        "latestPurchaseCny": 0.45,
+        "costHistoryCny": [
+          0.45,
+          1,
+          1.04
+        ],
+        "sellingPriceHistoryKrw": [
+          700
+        ],
+        "latestSellingPriceKrw": 700,
+        "rowCount": 96,
+        "orderCountSum": 288.0,
+        "maxOrderCount": 9.0,
+        "sourceNames": [
+          "스티커",
+          "알파벳스티커",
+          "알파벳스티커 골드",
+          "알파벳스티커(파랑)"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [0.45, 1.0, 1.04]",
+        "원가원장반영:existing_products!18"
+      ]
+    },
+    {
+      "productId": "pressco21-1155738",
+      "status": "draft_conflict_from_master",
+      "productName": "알파벳스티커/색상선택",
+      "aliases": [
+        "스티커",
+        "알파벳스티커",
+        "알파벳스티커 골드",
+        "알파벳스티커(파랑)"
+      ],
+      "skuCodes": [
+        "SKU0000047029",
+        "SKU0000047030",
+        "SKU0000047031",
+        "SKU0000047032",
+        "SKU0000047033",
+        "SKU0000047034",
+        "SKU0000047035",
+        "SKU0000047036",
+        "SKU0000047037",
+        "SKU0000047038",
+        "SKU0000047039",
+        "SKU0000047040",
+        "SKU0000048071",
+        "SKU0000048072",
+        "SKU0000048073",
+        "SKU0000048074",
+        "SKU0000048075",
+        "SKU0000048076",
+        "SKU0000048077",
+        "SKU0000048078",
+        "SKU0000048079",
+        "SKU0000048080",
+        "SKU0000048081",
+        "SKU0000048082"
+      ],
+      "branduids": [
+        "1155738"
+      ],
+      "sabangCodes": [
+        "103931"
+      ],
+      "category": "레진공예",
+      "baseProfileId": "china_import_mold_tool",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-19",
+        "latestPurchaseCny": 0.45,
+        "costHistoryCny": [
+          0.45,
+          1,
+          1.04
+        ],
+        "sellingPriceHistoryKrw": [
+          700
+        ],
+        "latestSellingPriceKrw": 700,
+        "rowCount": 96,
+        "orderCountSum": 288.0,
+        "maxOrderCount": 9.0,
+        "sourceNames": [
+          "스티커",
+          "알파벳스티커",
+          "알파벳스티커 골드",
+          "알파벳스티커(파랑)"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [0.45, 1.0, 1.04]",
+        "원가원장반영:existing_products!19"
+      ]
+    },
+    {
+      "productId": "pressco21-11699994",
+      "status": "draft_conflict_from_master",
+      "productName": "실리콘몰드/구름트레이",
+      "aliases": [
+        "구름트레이(타원형)",
+        "구몰드",
+        "실리콘 몰드",
+        "실리콘 몰드 샘플",
+        "실리콘몰드"
+      ],
+      "skuCodes": [
+        "SKU0000046901",
+        "SKU0000046902",
+        "SKU0000046903",
+        "SKU0000046904",
+        "SKU0000046905",
+        "SKU0000046906",
+        "SKU0000046907",
+        "SKU0000046940",
+        "SKU0000046941"
+      ],
+      "branduids": [
+        "11699994"
+      ],
+      "sabangCodes": [
+        "103981"
+      ],
+      "category": "레진공예",
+      "baseProfileId": "china_import_mold_tool",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-30",
+        "latestPurchaseCny": 7.41,
+        "costHistoryCny": [
+          6,
+          7.41,
+          7.8,
+          8.5,
+          12.5
+        ],
+        "sellingPriceHistoryKrw": [
+          8900
+        ],
+        "latestSellingPriceKrw": 8900,
+        "rowCount": 36,
+        "orderCountSum": 244.0,
+        "maxOrderCount": 16.0,
+        "sourceNames": [
+          "구름트레이(타원형)",
+          "구몰드",
+          "실리콘 몰드",
+          "실리콘 몰드 샘플",
+          "실리콘몰드"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [6.0, 7.41, 7.8, 8.5, 12.5]",
+        "원가원장반영:existing_products!20"
+      ]
+    },
+    {
+      "productId": "pressco21-11700523",
+      "status": "draft_conflict_from_master",
+      "productName": "실리콘몰드/구몰드",
+      "aliases": [
+        "구름트레이(타원형)",
+        "구몰드",
+        "실리콘 몰드",
+        "실리콘 몰드 샘플",
+        "실리콘몰드"
+      ],
+      "skuCodes": [
+        "SKU0000046901",
+        "SKU0000046902",
+        "SKU0000046903",
+        "SKU0000046904",
+        "SKU0000046905",
+        "SKU0000046906",
+        "SKU0000046907",
+        "SKU0000046940",
+        "SKU0000046941"
+      ],
+      "branduids": [
+        "11700523"
+      ],
+      "sabangCodes": [
+        "103981"
+      ],
+      "category": "레진공예",
+      "baseProfileId": "china_import_mold_tool",
+      "sourceCostType": "purchase_cny",
+      "latestSourceSnapshot": {
+        "latestOrderDate": "2025-12-30",
+        "latestPurchaseCny": 7.41,
+        "costHistoryCny": [
+          6,
+          7.41,
+          7.8,
+          8.5,
+          12.5
+        ],
+        "sellingPriceHistoryKrw": [
+          1200
+        ],
+        "latestSellingPriceKrw": 1200,
+        "rowCount": 36,
+        "orderCountSum": 244.0,
+        "maxOrderCount": 16.0,
+        "sourceNames": [
+          "구름트레이(타원형)",
+          "구몰드",
+          "실리콘 몰드",
+          "실리콘 몰드 샘플",
+          "실리콘몰드"
+        ]
+      },
+      "fixedOverrides": {},
+      "variableInputHints": {
+        "exchangeRate": "최근 적용 환율",
+        "purchaseCny": "확정 발주 단가"
+      },
+      "verifiedAt": "",
+      "verifiedBy": "",
+      "sourceConfidence": "conflict_from_seed",
+      "notes": [
+        "연계마스터/SKU마스터 기반 자동 생성 초안",
+        "확정 원가 원장이 아니므로 검증 후 status를 승격해야 함",
+        "동일 상품군 CNY 이력 충돌: [6.0, 7.41, 7.8, 8.5, 12.5]",
+        "원가원장반영:existing_products!21"
+      ]
+    }
+  ]
+}

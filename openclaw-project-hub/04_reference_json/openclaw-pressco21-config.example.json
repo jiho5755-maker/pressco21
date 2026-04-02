@@ -1,0 +1,435 @@
+{
+  "notifications": {
+    "openclaw": {
+      "enabled": true,
+      "gateways": {
+        "company-admin": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-company-admin --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-company-admin.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "company-coach": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-company-coach --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-company-coach.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "executive-assistant": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-executive-assistant --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-executive-assistant.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "detail-page-planner": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-detail-page-planner --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-detail-page-planner.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "video-content-planner": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-video-content-planner --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-video-content-planner.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "cs-triage-specialist": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-cs-triage-specialist --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-cs-triage-specialist.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "operations-analyst": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-operations-analyst --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-operations-analyst.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "knowledge-curator": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-knowledge-curator --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-knowledge-curator.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "crm-account-manager": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-crm-account-manager --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-crm-account-manager.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "pricing-margin-analyst": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-pricing-margin-analyst --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-pricing-margin-analyst.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "marketplace-ops-specialist": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-marketplace-ops-specialist --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-marketplace-ops-specialist.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "bank-ops-assistant": {
+          "type": "command",
+          "command": "('/Users/jangjiho/.nvm/versions/node/v22.21.1/bin/clawdbot' agent --session-id pressco21-bank-ops-assistant --message {{instruction}} --thinking minimal --deliver --reply-channel telegram --reply-to 'channel:REPLACE_ME' --timeout 120 --json >>/tmp/pressco21-bank-ops-assistant.jsonl 2>&1 || true)",
+          "timeout": 120000
+        },
+        "company-core": {
+          "type": "http",
+          "url": "https://pressco21.com/webhook/openclaw/company-core",
+          "headers": {
+            "Content-Type": "application/json",
+            "X-OpenClaw-Token": "<replace-with-runtime-secret>"
+          },
+          "timeout": 10000
+        }
+      },
+      "playbooks": {
+        "executive-assistant": {
+          "description": "PRESSCO21 company assistant playbook for meetings, action tracking, and cross-team handoffs.",
+          "gateway": "executive-assistant",
+          "workflows": {
+            "meeting-brief": {
+              "purpose": "Turn scattered notes into a meeting brief with decisions, agenda, owners, and follow-up questions.",
+              "gateway": "executive-assistant",
+              "recommendedInputs": [
+                "goal",
+                "participants",
+                "rawNotes",
+                "deadline",
+                "relatedDocs",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|executive-assistant|meeting-brief]\n목적: {{goal}}\n참여자: {{participants}}\n마감: {{deadline}}\n원문 메모:\n{{rawNotes}}\n관련 문서: {{relatedDocs}}\n승인자: {{approvalOwner}}\n역할: 회의 전에 바로 공유 가능한 브리프를 만드세요.\n규칙: 확정/미확정을 구분하고, 부서별 해야 할 일과 승인 필요 항목을 분리하세요.\n출력:\n- briefSummary:\n- decisionLog:\n- agenda:\n- actionItems:\n- followUpQuestions:\n- ownerTracker:\n- approvalChecklist:",
+              "outputContract": [
+                "briefSummary",
+                "decisionLog",
+                "agenda",
+                "actionItems",
+                "followUpQuestions",
+                "ownerTracker",
+                "approvalChecklist"
+              ]
+            },
+            "weekly-action-tracker": {
+              "purpose": "Build a weekly owner-by-owner action tracker for OpenClaw pilot operations.",
+              "gateway": "executive-assistant",
+              "recommendedInputs": [
+                "weeklyFocus",
+                "owners",
+                "blockedItems",
+                "approvalQueue",
+                "deadline"
+              ],
+              "instruction": "[pressco21|executive-assistant|weekly-action-tracker]\n주간 초점: {{weeklyFocus}}\n담당자: {{owners}}\n막힌 항목: {{blockedItems}}\n승인 대기: {{approvalQueue}}\n기준 주차 마감: {{deadline}}\n역할: 주간 액션 트래커를 만들어 담당자, 기한, 위험요소, 다음 액션을 정리하세요.\n출력:\n- weeklyFocus:\n- ownerStatus:\n- blockedItems:\n- approvalQueue:\n- agentUsageLog:\n- weeklySummary:",
+              "outputContract": [
+                "weeklyFocus",
+                "ownerStatus",
+                "blockedItems",
+                "approvalQueue",
+                "agentUsageLog",
+                "weeklySummary"
+              ]
+            },
+            "handoff-brief": {
+              "purpose": "Rewrite executive notes into a clean handoff brief for another department or specialist agent.",
+              "gateway": "executive-assistant",
+              "recommendedInputs": [
+                "goal",
+                "fromOwner",
+                "toOwner",
+                "rawNotes",
+                "deadline",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|executive-assistant|handoff-brief]\n목적: {{goal}}\n전달자: {{fromOwner}}\n수신자: {{toOwner}}\n마감: {{deadline}}\n원문 메모:\n{{rawNotes}}\n승인자: {{approvalOwner}}\n역할: 다른 부서나 전문 에이전트가 바로 이해할 수 있는 핸드오프 브리프를 정리하세요.\n출력:\n- briefSummary:\n- handoffNotes:\n- actionItems:\n- followUpQuestions:\n- approvalChecklist:",
+              "outputContract": [
+                "briefSummary",
+                "handoffNotes",
+                "actionItems",
+                "followUpQuestions",
+                "approvalChecklist"
+              ]
+            }
+          }
+        },
+        "detail-page-planner": {
+          "description": "PRESSCO21 detail-page planning playbook for designers and merchandisers.",
+          "gateway": "detail-page-planner",
+          "workflows": {
+            "detail-page-brief": {
+              "purpose": "Turn product context into a sectioned detail-page brief with copy points and missing asset checks.",
+              "gateway": "detail-page-planner",
+              "recommendedInputs": [
+                "productName",
+                "category",
+                "productType",
+                "targetCustomer",
+                "coreFeatures",
+                "season",
+                "availableAssets",
+                "salesChannels",
+                "mustInclude",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|detail-page-planner|detail-page-brief]\n상품명: {{productName}}\n카테고리: {{category}}\n상품 유형: {{productType}}\n핵심 고객: {{targetCustomer}}\n핵심 특징:\n{{coreFeatures}}\n시즌/판매 맥락: {{season}}\n보유 자산:\n{{availableAssets}}\n판매 채널: {{salesChannels}}\n반드시 포함:\n{{mustInclude}}\n연관 상품: {{relatedProducts}}\n참고 페이지: {{referencePage}}\n가격대: {{priceBand}}\n오픈마켓 제약: {{openMarketConstraints}}\n반복 질문: {{customerQuestions}}\n승인자: {{approvalOwner}}\n역할: 디자이너가 바로 와이어를 잡을 수 있는 상세페이지 브리프를 만드세요.\n규칙: 강사/공방/B2C 우선 고객을 분명히 적고, 누락 자료와 승인 필요 항목을 분리하세요.\n출력:\n- summary:\n- sectionPlan:\n- copyPoints:\n- assetChecklist:\n- channelNotes:\n- riskFlags:\n- approvalChecklist:",
+              "outputContract": [
+                "summary",
+                "sectionPlan",
+                "copyPoints",
+                "assetChecklist",
+                "channelNotes",
+                "riskFlags",
+                "approvalChecklist"
+              ]
+            }
+          }
+        },
+        "video-content-planner": {
+          "description": "PRESSCO21 video planning playbook for shoot planning and channel rollout.",
+          "gateway": "video-content-planner",
+          "workflows": {
+            "video-plan": {
+              "purpose": "Build a multi-week video plan with reuse candidates, platform notes, and approval checks.",
+              "gateway": "video-content-planner",
+              "recommendedInputs": [
+                "planningWindowWeeks",
+                "season",
+                "productCandidates",
+                "channelGoal",
+                "mustInclude",
+                "availableArchive",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|video-content-planner|video-plan]\n계획 주수: {{planningWindowWeeks}}\n시즌 맥락: {{season}}\n촬영 후보 상품:\n{{productCandidates}}\n채널 목표: {{channelGoal}}\n반드시 포함:\n{{mustInclude}}\n재활용 가능한 기존 영상:\n{{availableArchive}}\n핵심 시청자: {{targetAudience}}\n촬영 제약: {{shootConstraints}}\n우선 채널: {{priorityChannel}}\n캠페인 맥락: {{campaignContext}}\n승인자: {{approvalOwner}}\n역할: 4~8주 촬영 계획과 플랫폼 전개안을 만들어 촬영 병목을 줄이세요.\n규칙: 기존 자산 재활용을 먼저 고려하고, 승인 필요 항목과 준비 부족을 분리하세요.\n출력:\n- planningSummary:\n- weeklyPlan:\n- reusePlan:\n- platformNotes:\n- assetNeeds:\n- riskFlags:\n- approvalChecklist:",
+              "outputContract": [
+                "planningSummary",
+                "weeklyPlan",
+                "reusePlan",
+                "platformNotes",
+                "assetNeeds",
+                "riskFlags",
+                "approvalChecklist"
+              ]
+            }
+          }
+        },
+        "cs-triage-specialist": {
+          "description": "PRESSCO21 customer-support triage playbook for first-pass categorization and reply drafts.",
+          "gateway": "cs-triage-specialist",
+          "workflows": {
+            "cs-triage": {
+              "purpose": "Classify inbound customer questions, draft a safe first reply, and mark escalation needs.",
+              "gateway": "cs-triage-specialist",
+              "recommendedInputs": [
+                "channel",
+                "message",
+                "orderId",
+                "productName",
+                "customerType",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|cs-triage-specialist|cs-triage]\n문의 채널: {{channel}}\n고객 문의:\n{{message}}\n주문번호: {{orderId}}\n문의 상품: {{productName}}\n고객 유형: {{customerType}}\n배송 상태: {{shippingStatus}}\n재고 메모: {{inventoryHint}}\n확인된 정책:\n{{knownPolicy}}\n직전 대화:\n{{previousMessages}}\n승인자: {{approvalOwner}}\n역할: 실제 응대 전에 참고할 1차 분류와 응답 초안을 만드세요.\n규칙: 환불/가격/후불/보상은 무조건 승인 필요로 표시하고 확정 표현을 피하세요.\n출력:\n- triageCategory:\n- riskLevel:\n- draftReply:\n- followUpQuestions:\n- escalationPath:\n- policyNotes:\n- approvalChecklist:",
+              "outputContract": [
+                "triageCategory",
+                "riskLevel",
+                "draftReply",
+                "followUpQuestions",
+                "escalationPath",
+                "policyNotes",
+                "approvalChecklist"
+              ]
+            }
+          }
+        },
+        "operations-analyst": {
+          "description": "PRESSCO21 operations digest playbook for recurring issues, bottlenecks, and next actions.",
+          "gateway": "operations-analyst",
+          "workflows": {
+            "operations-digest": {
+              "purpose": "Summarize weekly operational signals into a digest with bottlenecks and next actions.",
+              "gateway": "operations-analyst",
+              "recommendedInputs": [
+                "periodLabel",
+                "rawLogs",
+                "repeatedQuestions",
+                "incidents",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|operations-analyst|operations-digest]\n대상 기간: {{periodLabel}}\n운영 로그:\n{{rawLogs}}\n반복 질문:\n{{repeatedQuestions}}\n사고/막힘 사례:\n{{incidents}}\n현재 지표:\n{{currentMetrics}}\n승인자: {{approvalOwner}}\n역할: 운영 다이제스트를 만들어 병목, 반복 패턴, 다음 개선 행동을 정리하세요.\n규칙: 느낌보다 근거를 우선하고, 승인 필요 항목과 즉시 실행 항목을 분리하세요.\n출력:\n- digestSummary:\n- bottlenecks:\n- kpiSignals:\n- repeatPatterns:\n- nextActions:\n- approvalChecklist:",
+              "outputContract": [
+                "digestSummary",
+                "bottlenecks",
+                "kpiSignals",
+                "repeatPatterns",
+                "nextActions",
+                "approvalChecklist"
+              ]
+            }
+          }
+        },
+        "knowledge-curator": {
+          "description": "PRESSCO21 knowledge curation playbook for FAQ, SOP, and document update candidates.",
+          "gateway": "knowledge-curator",
+          "workflows": {
+            "knowledge-update": {
+              "purpose": "Turn confirmed decisions and repeated questions into FAQ, SOP, and document update candidates.",
+              "gateway": "knowledge-curator",
+              "recommendedInputs": [
+                "topic",
+                "confirmedDecisions",
+                "repeatedQuestions",
+                "sourceDocs",
+                "changeNotes",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|knowledge-curator|knowledge-update]\n주제: {{topic}}\n확정된 결정:\n{{confirmedDecisions}}\n반복 질문:\n{{repeatedQuestions}}\n기준 문서:\n{{sourceDocs}}\n변경 메모:\n{{changeNotes}}\n승인자: {{approvalOwner}}\n역할: FAQ 후보, SOP 변경 후보, 문서 갱신 후보를 정리하세요.\n규칙: 확정된 사실과 미확정 질문을 분리하고, 문서 경로가 필요한 항목은 분명히 표시하세요.\n출력:\n- knowledgeSummary:\n- faqCandidates:\n- sopUpdates:\n- documentUpdates:\n- unresolvedQuestions:\n- approvalChecklist:",
+              "outputContract": [
+                "knowledgeSummary",
+                "faqCandidates",
+                "sopUpdates",
+                "documentUpdates",
+                "unresolvedQuestions",
+                "approvalChecklist"
+              ]
+            }
+          }
+        },
+        "crm-account-manager": {
+          "description": "PRESSCO21 CRM account playbook for B2B customer briefs, follow-up, and reactivation planning.",
+          "gateway": "crm-account-manager",
+          "workflows": {
+            "customer-brief": {
+              "purpose": "Turn CRM and relationship notes into a customer brief with risks, opportunities, and next actions.",
+              "gateway": "crm-account-manager",
+              "recommendedInputs": [
+                "customerName",
+                "customerType",
+                "relationshipGoal",
+                "recentTransactions",
+                "outstandingBalance",
+                "lastOrderSummary",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|crm-account-manager|customer-brief]\n고객명: {{customerName}}\n고객 유형: {{customerType}}\n관계 목표: {{relationshipGoal}}\n최근 거래:\n{{recentTransactions}}\n미수금/잔액: {{outstandingBalance}}\n최근 주문 요약:\n{{lastOrderSummary}}\n고객 메모:\n{{customerNotes}}\n담당자: {{owner}}\n승인자: {{approvalOwner}}\n역할: B2B/직접거래 고객을 다시 이해할 수 있는 계정 브리프를 만드세요.\n규칙: 미수금, 휴면, 재구매 기회, 관계 리스크를 분리하고 과도한 단정은 피하세요.\n출력:\n- accountSummary:\n- opportunitySignals:\n- relationshipRisks:\n- nextActions:\n- followUpScript:\n- approvalChecklist:",
+              "outputContract": [
+                "accountSummary",
+                "opportunitySignals",
+                "relationshipRisks",
+                "nextActions",
+                "followUpScript",
+                "approvalChecklist"
+              ]
+            }
+          }
+        },
+        "pricing-margin-analyst": {
+          "description": "PRESSCO21 pricing and margin playbook for SKU-level pricing review and channel strategy.",
+          "gateway": "pricing-margin-analyst",
+          "workflows": {
+            "price-margin-review": {
+              "purpose": "Review current cost, price, and channel margin to suggest safe pricing options.",
+              "gateway": "pricing-margin-analyst",
+              "recommendedInputs": [
+                "productName",
+                "skuCode",
+                "branduid",
+                "sourceCost",
+                "sellingPrice",
+                "channel",
+                "targetMargin",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|pricing-margin-analyst|price-margin-review]\n상품명: {{productName}}\nSKU코드: {{skuCode}}\n메이크샵 branduid: {{branduid}}\n카테고리: {{category}}\n현재 원가/COGS: {{sourceCost}}\n원가 유형: {{costType}}\n추정 COGS: {{normalizedCogs}}\n현재 판매가: {{sellingPrice}}\n판매 채널: {{channel}}\n채널 수수료/비용 메모: {{feeNotes}}\n카탈로그 조회 상태: {{catalogLookupStatus}}\n카탈로그 매칭 요약:\n{{catalogMatchSummary}}\n카탈로그 신뢰 상태: {{catalogTrustStatus}}\n카탈로그 신뢰 메모: {{catalogTrustSummary}}\n카탈로그 레코드:\n{{catalogRecord}}\n채널 기준:\n{{channelBenchmark}}\n카테고리 전략:\n{{categoryProfile}}\n목표 마진: {{targetMargin}}\n계산 스냅샷:\n{{computedSnapshot}}\n원가 해석 규칙: {{costRule}}\n원가 가정:\n{{costAssumptions}}\n숨은 비용 체크:\n{{hiddenCostChecklist}}\n가격 제약: {{priceConstraints}}\n승인자: {{approvalOwner}}\n역할: 상품 가격과 채널 마진을 검토하고 안전한 가격 전략 옵션을 제안하세요.\n규칙: 최소선과 목표선을 분리하고, 계산에 쓴 가정과 누락 데이터를 명시하세요. 카탈로그 신뢰 상태가 conflict면 연계마스터를 참고치로만 다뤄야 한다고 적으세요. 채널이 자사몰이 아니고 메이크샵 기준가를 참조했다면 그 점을 분명히 적으세요. 근거 없는 수치 단정은 피하고, 승인 없이 가격 확정 문구를 쓰지 마세요.\n출력:\n- marginSummary:\n- thresholdCheck:\n- riskFlags:\n- priceOptions:\n- scenarioTable:\n- assumptions:\n- dataGaps:\n- channelNotes:\n- nextActions:\n- approvalChecklist:",
+              "outputContract": [
+                "marginSummary",
+                "thresholdCheck",
+                "riskFlags",
+                "priceOptions",
+                "scenarioTable",
+                "assumptions",
+                "dataGaps",
+                "channelNotes",
+                "nextActions",
+                "approvalChecklist"
+              ]
+            }
+          }
+        },
+        "marketplace-ops-specialist": {
+          "description": "PRESSCO21 marketplace operations playbook for listing prep across MakeShop and open marketplaces.",
+          "gateway": "marketplace-ops-specialist",
+          "workflows": {
+            "listing-ops-brief": {
+              "purpose": "Prepare a marketplace listing brief with channel titles, asset gaps, and registration checklist.",
+              "gateway": "marketplace-ops-specialist",
+              "recommendedInputs": [
+                "productName",
+                "skuCode",
+                "channelTargets",
+                "productType",
+                "keyFeatures",
+                "assetStatus",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|marketplace-ops-specialist|listing-ops-brief]\n상품명: {{productName}}\nSKU코드: {{skuCode}}\n대상 채널: {{channelTargets}}\n상품 유형: {{productType}}\n핵심 특징:\n{{keyFeatures}}\n이미지/자료 상태:\n{{assetStatus}}\n가격 메모: {{pricingNotes}}\n채널 제약: {{constraints}}\n승인자: {{approvalOwner}}\n역할: 자사몰과 오픈마켓 등록 전에 필요한 운영 브리프를 만드세요.\n규칙: 채널별 제목 초안, 누락 자료, 등록 체크리스트를 분리하고 최종 등록 확정은 하지 마세요.\n출력:\n- listingSummary:\n- channelTitles:\n- registrationChecklist:\n- missingAssets:\n- riskFlags:\n- approvalChecklist:",
+              "outputContract": [
+                "listingSummary",
+                "channelTitles",
+                "registrationChecklist",
+                "missingAssets",
+                "riskFlags",
+                "approvalChecklist"
+              ]
+            }
+          }
+        },
+        "bank-ops-assistant": {
+          "description": "PRESSCO21 bank operations playbook for deposit matching and safe follow-up review.",
+          "gateway": "bank-ops-assistant",
+          "workflows": {
+            "deposit-review": {
+              "purpose": "Review a bank event, estimate likely CRM matching status, and prepare safe follow-up actions.",
+              "gateway": "bank-ops-assistant",
+              "recommendedInputs": [
+                "transactionType",
+                "payerName",
+                "amount",
+                "eventTime",
+                "candidateCustomers",
+                "openInvoices",
+                "approvalOwner"
+              ],
+              "instruction": "[pressco21|bank-ops-assistant|deposit-review]\n거래 유형: {{transactionType}}\n입금자/상대방: {{payerName}}\n금액: {{amount}}\n시각: {{eventTime}}\n고객 후보:\n{{candidateCustomers}}\n열린 명세표:\n{{openInvoices}}\n추가 메모:\n{{notes}}\n승인자: {{approvalOwner}}\n역할: 은행 이벤트를 검토해 자동반영/검토/미매칭 관점으로 안전한 후속 행동을 정리하세요.\n규칙: 실제 반영 확정은 하지 말고, 사람 검토가 필요한 이유를 분리하세요.\n출력:\n- transactionSummary:\n- matchAssessment:\n- escalationPath:\n- followUpActions:\n- messageDraft:\n- approvalChecklist:",
+              "outputContract": [
+                "transactionSummary",
+                "matchAssessment",
+                "escalationPath",
+                "followUpActions",
+                "messageDraft",
+                "approvalChecklist"
+              ]
+            }
+          }
+        }
+      },
+      "hooks": {
+        "session-start": {
+          "enabled": true,
+          "gateway": "company-admin",
+          "instruction": "[pressco21|company-admin|session-start]\nproject={{projectName}} session={{sessionId}} tmux={{tmuxSession}}\n브랜드 기준: 진심, 전문, 즐거운\n회사 맥락: B2B 강사/공방 비중이 높고 최종 결정은 사람이 합니다.\n역할: 이번 세션의 목표, 리스크, 승인 경계를 4줄 이내로 정리하세요.\n참조 우선순위: company-core -> company-profile -> 정책 -> SOP\n출력:\n- 목표:\n- 리스크:\n- 승인 필요:\n- 첫 행동:"
+        },
+        "session-idle": {
+          "enabled": true,
+          "gateway": "company-coach",
+          "instruction": "[pressco21|company-coach|session-idle]\nsession={{sessionId}} tmux={{tmuxSession}}\n역할: 작업이 멈춘 이유를 추정하고, 다음 행동 2개만 제안하세요.\n가능하면 브랜드, 상품, 채널, CS 문맥을 company-core 기준으로 보강하세요.\n출력:\n- 막힌 지점:\n- 필요한 입력:\n- 다음 행동:"
+        },
+        "ask-user-question": {
+          "enabled": true,
+          "gateway": "company-coach",
+          "instruction": "[pressco21|company-coach|ask-user-question]\nsession={{sessionId}} question={{question}}\n역할: 사용자 질문을 더 짧고 분명하게 다듬고, B2B/B2C 맥락과 승인 필요 여부를 고려해 왜 필요한지 설명하세요.\n출력:\n- 질문:\n- 왜 필요한가:\n- 답변 오면 할 일:"
+        },
+        "stop": {
+          "enabled": true,
+          "gateway": "company-admin",
+          "instruction": "[pressco21|company-admin|stop]\nsession={{sessionId}} tmux={{tmuxSession}}\n역할: 중단 이유와 남은 일, 재개 첫 행동을 3개 항목으로 정리하세요.\n출력:\n- 중단 이유:\n- 남은 일:\n- 재개 첫 행동:"
+        },
+        "session-end": {
+          "enabled": true,
+          "gateway": "company-admin",
+          "instruction": "[pressco21|company-admin|session-end]\nproject={{projectName}} session={{sessionId}} tmux={{tmuxSession}} reason={{reason}}\n역할: 이번 세션의 산출물, 검증 여부, 후속 액션과 문서 갱신 후보를 운영 기록 형태로 정리하세요.\n출력:\n- 완료:\n- 검증:\n- 후속 액션:\n- 문서 갱신 후보:"
+        }
+      }
+    },
+    "enabled": true
+  }
+}

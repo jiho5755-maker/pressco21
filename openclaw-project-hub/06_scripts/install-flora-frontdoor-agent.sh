@@ -14,6 +14,8 @@ FRONTDOOR_AGENT_ID="${FRONTDOOR_AGENT_ID:-}"
 OWNER_WORKSPACE="${OWNER_WORKSPACE:-/home/ubuntu/.openclaw/workspace-owner}"
 FRONTDOOR_WORKSPACE="${FRONTDOOR_WORKSPACE:-}"
 REMOTE_OPENCLAW_BIN="${REMOTE_OPENCLAW_BIN:-\$HOME/.npm-global/bin/openclaw}"
+FRONTDOOR_MODEL_PRIMARY="${FRONTDOOR_MODEL_PRIMARY:-openai-codex/gpt-5.4}"
+FRONTDOOR_MODEL_FALLBACKS="${FRONTDOOR_MODEL_FALLBACKS:-openai-codex/gpt-5.4-mini,anthropic/claude-opus-4-5,google/gemini-2.5-flash}"
 
 if [ -z "$FRONTDOOR_AGENT_ID" ]; then
   FRONTDOOR_AGENT_ID="$(python3 - <<'PY' "$POLICY_PATH"
@@ -123,6 +125,27 @@ ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$SERVER" "
   \"\$OPENCLAW_BIN\" agents unbind --agent \"\$OWNER_AGENT_ID\" --bind telegram >/dev/null 2>&1 || true
   \"\$OPENCLAW_BIN\" agents unbind --agent \"\$FRONTDOOR_AGENT_ID\" --bind telegram >/dev/null 2>&1 || true
   \"\$OPENCLAW_BIN\" agents bind --agent \"\$FRONTDOOR_AGENT_ID\" --bind telegram >/dev/null
+
+  python3 - <<'PY'
+import json
+from pathlib import Path
+
+path = Path('/home/ubuntu/.openclaw/openclaw.json')
+data = json.loads(path.read_text())
+
+fallbacks = [item.strip() for item in '$FRONTDOOR_MODEL_FALLBACKS'.split(',') if item.strip()]
+model_config = {
+    'primary': '$FRONTDOOR_MODEL_PRIMARY',
+    'fallbacks': fallbacks,
+}
+
+for item in data.get('agents', {}).get('list', []):
+    if item.get('id') == '$FRONTDOOR_AGENT_ID':
+        item['model'] = model_config
+        break
+
+path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + '\n')
+PY
 
   rm -rf /tmp/flora-frontdoor-install
   systemctl --user restart openclaw-gateway.service

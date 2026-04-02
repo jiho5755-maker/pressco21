@@ -1,0 +1,17 @@
+.DS_Store
+**/.DS_Store
+**/~$*
+
+# Large local copies and working binaries
+01_raw_sources/
+05_workbooks/
+
+# Runtime state and logs
+07_openclaw_workspace/
+04_reference_json/07_openclaw_workspace/
+06_scripts/*.log
+
+# Local machine / operator specific configs
+04_reference_json/flora-local-dev-worker.config.json
+04_reference_json/flora-telegram-room-router.config.json
+04_reference_json/kakaotalk-click-coordinates.json

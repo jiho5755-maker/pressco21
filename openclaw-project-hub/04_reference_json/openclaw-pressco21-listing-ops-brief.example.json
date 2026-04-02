@@ -1,0 +1,52 @@
+{
+  "workflow": "pressco21-listing-ops-brief",
+  "version": "0.1",
+  "input": {
+    "productName": "압화건조매트 스타터 키트",
+    "skuCode": "PSK-001",
+    "channelTargets": [
+      "메이크샵",
+      "스마트스토어",
+      "11번가"
+    ],
+    "productType": "단일상품",
+    "keyFeatures": [
+      "입문에 필요한 기본 구성",
+      "자체 제조 건조매트 포함",
+      "강사/공방도 활용 가능"
+    ],
+    "assetStatus": [
+      "대표컷 있음",
+      "클로즈업 부족",
+      "구성품 표 없음"
+    ],
+    "pricingNotes": "자사몰 기준가 22000원",
+    "constraints": [
+      "11번가 부가이미지 규격 확인 필요"
+    ],
+    "approvalOwner": "장지호"
+  },
+  "output": {
+    "listingSummary": "메이크샵 원본을 기준으로 스마트스토어/11번가용 제목과 누락 자산을 먼저 정리하는 등록 브리프.",
+    "channelTitles": [
+      "메이크샵: 압화건조매트 스타터 키트",
+      "스마트스토어: 압화 입문 준비물 스타터 키트",
+      "11번가: 압화건조매트 입문용 키트"
+    ],
+    "registrationChecklist": [
+      "채널별 제목 확정",
+      "구성품 표 제작",
+      "11번가 부가이미지 규격 확인"
+    ],
+    "missingAssets": [
+      "구성품 표",
+      "클로즈업 이미지"
+    ],
+    "riskFlags": [
+      "자료 부족 상태로 등록하면 상세 설득력 저하"
+    ],
+    "approvalChecklist": [
+      "채널별 가격 정책 확인"
+    ]
+  }
+}

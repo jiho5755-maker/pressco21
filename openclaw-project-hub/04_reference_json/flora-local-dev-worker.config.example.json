@@ -1,0 +1,52 @@
+{
+  "workerName": "flora-local-dev-worker",
+  "botTokenEnv": "FLORA_TELEGRAM_BOT_TOKEN",
+  "server": {
+    "host": "ubuntu@158.179.193.173",
+    "sshKeyPath": "~/.ssh/oracle-openclaw.key",
+    "queueRoot": "/home/ubuntu/.openclaw/dev-worker-queue"
+  },
+  "statePath": "../07_openclaw_workspace/flora-local-dev-worker/state.json",
+  "logPath": "../07_openclaw_workspace/flora-local-dev-worker/worker.log",
+  "pollIntervalMs": 5000,
+  "workers": {
+    "codex": {
+      "enabled": true,
+      "chatId": "-5198284773",
+      "displayName": "Codex 개발 방",
+      "runner": "codex",
+      "workingDirectory": "/Users/jangjiho/workspace/pressco21",
+      "promptPreamble": "너는 Telegram 개발방을 통해 호출된 로컬 Codex CLI다. 저장소를 직접 읽고 수정할 수 있으며, 응답은 짧고 실행 중심으로 유지한다.",
+      "codex": {
+        "binaryPath": "/Applications/Codex.app/Contents/Resources/codex",
+        "executionMode": "full-auto",
+        "model": "",
+        "profile": "",
+        "timeoutMs": 1200000,
+        "capacityRetryCount": 3,
+        "capacityRetryDelayMs": 15000,
+        "fallbackModels": [
+          "gpt-5.4-mini"
+        ],
+        "extraArgs": []
+      }
+    },
+    "claude": {
+      "enabled": true,
+      "chatId": "-5043778307",
+      "displayName": "Claude Code 개발 방",
+      "runner": "claude",
+      "workingDirectory": "/Users/jangjiho/workspace/pressco21",
+      "promptPreamble": "너는 Telegram 개발방을 통해 호출된 로컬 Claude Code CLI다. 현재 작업 디렉토리의 기존 대화를 가능한 한 이어받아 작업하고, 응답은 짧고 실행 중심으로 유지한다.",
+      "claude": {
+        "binaryPath": "~/.local/bin/claude",
+        "model": "sonnet",
+        "permissionMode": "bypassPermissions",
+        "sessionMode": "continue",
+        "timeoutMs": 1200000,
+        "appendSystemPrompt": "",
+        "extraArgs": []
+      }
+    }
+  }
+}

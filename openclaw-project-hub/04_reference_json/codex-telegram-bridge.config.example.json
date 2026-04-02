@@ -1,0 +1,22 @@
+{
+  "bridgeName": "pressco21-codex-dev-room",
+  "botUsername": "replace_with_your_bot_username",
+  "botTokenEnv": "PRESSCO21_CODEX_TELEGRAM_BOT_TOKEN",
+  "registrationCodeEnv": "PRESSCO21_CODEX_TELEGRAM_REGISTER_CODE",
+  "workingDirectory": "/Users/jangjiho/workspace/pressco21/openclaw-project-hub",
+  "statePath": "../07_openclaw_workspace/codex-telegram-bridge/state.json",
+  "logPath": "../07_openclaw_workspace/codex-telegram-bridge/bridge.log",
+  "pollIntervalMs": 1500,
+  "longPollSeconds": 20,
+  "chunkSize": 3500,
+  "allowedChatIds": [],
+  "promptPreamble": "너는 Telegram을 통해 원격으로 호출된 Codex CLI다. 응답은 짧고 실행 중심으로 유지하고, 필요한 경우에만 추가 질문을 한 줄로 남겨라.",
+  "codex": {
+    "binaryPath": "codex",
+    "executionMode": "full-auto",
+    "model": "",
+    "profile": "",
+    "timeoutMs": 1200000,
+    "extraArgs": []
+  }
+}

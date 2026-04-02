@@ -1,0 +1,34 @@
+{
+  "workflow": "pressco21-cs-triage",
+  "version": "0.1",
+  "input": {
+    "channel": "전화",
+    "message": "압화건조매트 주문했는데 언제 출고되고, 강사 할인도 가능한지 궁금해요.",
+    "orderId": "P21-20260320-0042",
+    "productName": "압화건조매트",
+    "customerType": "강사",
+    "approvalOwner": "이재혁"
+  },
+  "output": {
+    "triageCategory": "사업자/후불/배송 복합 문의",
+    "riskLevel": "high",
+    "draftReply": "안녕하세요. 주문하신 상품의 출고 가능 시점과 강사 할인 적용 여부는 확인 후 정확히 안내드리겠습니다. 주문번호 기준으로 확인한 뒤 다시 연락드리겠습니다.",
+    "followUpQuestions": [
+      "강사 인증 여부가 이미 등록되어 있는지",
+      "출고 희망일이 따로 있는지"
+    ],
+    "escalationPath": [
+      "배송 가능 여부: 이재혁 확인",
+      "강사 할인/정책: 장지호 또는 담당 정책 확인"
+    ],
+    "policyNotes": [
+      "강사공간/B2B 고객 비중이 높아 할인 정책 확인이 중요함",
+      "가격/할인/후불 관련 내용은 자동 확정 금지"
+    ],
+    "approvalChecklist": [
+      "강사 할인 적용 가능 여부 확인",
+      "현재 재고와 출고 가능일 확인",
+      "고객에게 확정 문안 발송 전 승인"
+    ]
+  }
+}

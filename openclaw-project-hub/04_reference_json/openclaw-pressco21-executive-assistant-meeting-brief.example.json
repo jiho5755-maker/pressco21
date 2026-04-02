@@ -1,0 +1,168 @@
+{
+  "workflow": "pressco21-executive-assistant-meeting-brief",
+  "version": "0.1",
+  "input": {
+    "requestType": "회의준비",
+    "goal": "다음 주 PRESSCO21 내부 운영회의 전에 디자인, 영상, 물류가 각자 무엇을 준비해야 하는지 정리한다.",
+    "participants": ["장지호", "이진선", "조승해", "장다경", "이재혁"],
+    "rawNotes": [
+      "상세페이지 기획 자동화를 1순위로 파일럿 시작",
+      "장다경 팀장은 4주 촬영 계획이 먼저 필요",
+      "이재혁 과장은 전화응대 때문에 출고 시간이 자주 끊김",
+      "대표는 키트상품 등록 준비 시간을 더 확보하고 싶어함",
+      "회의에서 각 부서가 바로 검토할 수 있는 초안이 필요함"
+    ],
+    "deadline": "2026-03-28",
+    "approvalOwner": "장지호",
+    "relatedDocs": [
+      "pressco21/company-knowledge/ax-strategy.md",
+      "pressco21/company-knowledge/content-strategy.md",
+      "pressco21/company-knowledge/customer-profile.md",
+      "OMX(오_마이_코덱스)/oh-my-codex/docs/openclaw-project-b-recovery-plan.ko.md"
+    ],
+    "knownDecisions": [
+      "OpenClaw는 내부 운영 보조 레이어로 먼저 사용한다",
+      "고위험 자동화는 열지 않는다",
+      "상세페이지 기획 자동화와 영상 기획 자동화를 1차 파일럿으로 본다"
+    ],
+    "openQuestions": [
+      "상세페이지 브리프 테스트 상품 2건은 무엇으로 할지",
+      "영상 기획 파일럿의 첫 시즌 기준은 무엇으로 할지",
+      "CS 트리아지 샘플 문의 10건을 어디서 모을지"
+    ],
+    "departmentContext": ["디자인", "영상", "물류", "운영"],
+    "priorityLevel": "high"
+  },
+  "output": {
+    "briefSummary": {
+      "meetingName": "PRESSCO21 OpenClaw 1차 파일럿 운영회의",
+      "objective": "부서별 준비물과 파일럿 범위를 확정해 2주 안에 첫 테스트를 시작한다.",
+      "meetingOwner": "장지호",
+      "approvalRequired": true
+    },
+    "decisionLog": [
+      {
+        "topic": "파일럿 우선순위",
+        "decision": "상세페이지 브리프, 영상 촬영 계획안, CS 트리아지를 순차 도입한다.",
+        "source": "ax-strategy.md",
+        "status": "confirmed"
+      },
+      {
+        "topic": "운영 원칙",
+        "decision": "직접 변경 자동화 대신 읽기 전용 보조와 초안 생성에 집중한다.",
+        "source": "openclaw-project-b-recovery-plan.ko.md",
+        "status": "confirmed"
+      }
+    ],
+    "agenda": [
+      {
+        "order": 1,
+        "topic": "파일럿 목표와 승인 경계 확인",
+        "owner": "장지호",
+        "timeboxMinutes": 10
+      },
+      {
+        "order": 2,
+        "topic": "상세페이지 브리프 테스트 상품 2건 선정",
+        "owner": "조승해",
+        "timeboxMinutes": 15
+      },
+      {
+        "order": 3,
+        "topic": "4주 촬영 계획 대상 상품군 확정",
+        "owner": "장다경",
+        "timeboxMinutes": 15
+      },
+      {
+        "order": 4,
+        "topic": "CS 샘플 문의 10건 수집 방식 정리",
+        "owner": "이재혁",
+        "timeboxMinutes": 10
+      }
+    ],
+    "actionItems": [
+      {
+        "task": "상세페이지 브리프 테스트 대상 상품 2건 선정",
+        "owner": "조승해",
+        "deadline": "2026-03-25",
+        "status": "not_started",
+        "approvalRequired": false
+      },
+      {
+        "task": "4주 촬영 계획안에 넣을 시즌 상품 후보 8개 수집",
+        "owner": "장다경",
+        "deadline": "2026-03-25",
+        "status": "not_started",
+        "approvalRequired": false
+      },
+      {
+        "task": "전화/카톡 문의 중 반복 사례 10건 정리",
+        "owner": "이재혁",
+        "deadline": "2026-03-26",
+        "status": "not_started",
+        "approvalRequired": false
+      },
+      {
+        "task": "OpenClaw 파일럿 운영안과 문서 경로 최종 정리",
+        "owner": "장지호",
+        "deadline": "2026-03-27",
+        "status": "in_progress",
+        "approvalRequired": true
+      }
+    ],
+    "followUpQuestions": [
+      "조승해가 바로 쓸 수 있는 상품 자료는 현재 몇 건 준비돼 있는가",
+      "장다경이 재활용 가능한 기존 영상 링크를 어디서 확보할 수 있는가",
+      "CS 문의 샘플에 후불/가격/환불 같은 고위험 사례를 포함할 것인가"
+    ],
+    "ownerTracker": [
+      {
+        "owner": "장지호",
+        "focus": "회의 주관, 문서 기준선 확정, 승인 경계 정리",
+        "deliverable": "회의 브리프와 파일럿 범위 확정",
+        "status": "active"
+      },
+      {
+        "owner": "조승해",
+        "focus": "상세페이지 기획 테스트 대상 선정",
+        "deliverable": "테스트 상품 2건",
+        "status": "pending"
+      },
+      {
+        "owner": "장다경",
+        "focus": "촬영 후보와 기존 영상 재활용 목록 정리",
+        "deliverable": "4주 촬영 계획안 입력값",
+        "status": "pending"
+      },
+      {
+        "owner": "이재혁",
+        "focus": "CS/물류 반복 문의 샘플 수집",
+        "deliverable": "문의 샘플 10건",
+        "status": "pending"
+      }
+    ],
+    "handoffNotes": [
+      {
+        "from": "장지호",
+        "to": "조승해",
+        "note": "상세페이지는 최종 디자인이 아니라 브리프 자동화가 이번 파일럿의 범위다."
+      },
+      {
+        "from": "장지호",
+        "to": "장다경",
+        "note": "신규 촬영보다 기존 영상 재활용 우선순위를 먼저 같이 검토한다."
+      },
+      {
+        "from": "장지호",
+        "to": "이재혁",
+        "note": "고객에게 바로 보내는 답변이 아니라 내부용 1차 응대 초안 생성 테스트다."
+      }
+    ],
+    "approvalChecklist": [
+      "파일럿 대상 상품과 시즌 범위 최종 확정",
+      "부서별 마감일 확정",
+      "고위험 문의 샘플 포함 여부 확인",
+      "회의 후 공유할 내부 요약본 승인"
+    ]
+  }
+}

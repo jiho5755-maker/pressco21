@@ -1,0 +1,284 @@
+{
+  "version": "0.2",
+  "updatedAt": "2026-03-24",
+  "defaults": {
+    "exchangeRateMode": "latest_public_daily_close",
+    "exchangeRateCnyKrw": 218.340611,
+    "exchangeRateReferenceDate": "2026-03-24",
+    "exchangeRateSource": "https://open.er-api.com/v6/latest/CNY",
+    "extraCostRate": 0.15,
+    "vatRate": 0.1,
+    "vatIncludedInSellingPrice": true,
+    "includeImportVatInCogs": false,
+    "includeDomesticPurchaseVatInCogs": false,
+    "branchManagementRate": 0.1,
+    "oceanFreightRatePerCbmKrw": 82000,
+    "warehouseHandlingRatePerCbmKrw": 6000,
+    "customsBrokerFeePerShipmentKrw": 33000,
+    "originCertificateFeeCny": 250,
+    "companyAdBudgetRate": null,
+    "growthAdBudgetCapRate": null,
+    "hardAdBudgetCapRate": null,
+    "shippingCost": 0
+  },
+  "marginGrades": [
+    {
+      "name": "EXCELLENT",
+      "minimumRate": 0.6,
+      "meaning": "광고와 프로모션 여력이 충분한 상태"
+    },
+    {
+      "name": "HEALTHY",
+      "minimumRate": 0.4,
+      "meaning": "정상 운영이 가능한 상태"
+    },
+    {
+      "name": "CAUTION",
+      "minimumRate": 0.25,
+      "meaning": "가격 또는 원가 재검토가 필요한 상태"
+    },
+    {
+      "name": "CRITICAL",
+      "minimumRate": 0,
+      "meaning": "즉시 조치가 필요한 상태"
+    }
+  ],
+  "channels": [
+    {
+      "name": "메이크샵 자사몰",
+      "aliases": ["메이크샵", "자사몰", "makeshop", "foreverlove"],
+      "feeRate": 0.0385,
+      "feeLabel": "PG 약 3.85%",
+      "adReserveRate": null,
+      "adReserveLabel": "원가체계 안정화 후 결정",
+      "role": "수익 기반",
+      "minimumMarginRate": 0.2,
+      "targetMarginRate": 0.3,
+      "priceGuide": "기준가 유지 또는 자사몰 전용 구성 강화",
+      "notes": [
+        "메타 광고 전환을 자사몰로 모으는 핵심 채널",
+        "광고 상한율은 원가체계 안정화 후 별도 산정"
+      ]
+    },
+    {
+      "name": "네이버 스마트스토어",
+      "aliases": ["네이버", "스마트스토어", "naver"],
+      "feeRate": 0.0574,
+      "feeLabel": "약 5.74%",
+      "adReserveRate": null,
+      "adReserveLabel": "원가체계 안정화 후 결정",
+      "role": "신규 유입 핵심",
+      "minimumMarginRate": 0.15,
+      "targetMarginRate": 0.25,
+      "priceGuide": "기준가 또는 기준가 +3% 이내",
+      "notes": [
+        "SA/GFA 효율 단계에 따라 상한을 따로 설계할 예정",
+        "첫 구매 유입 후 자사몰 전환 구조가 중요"
+      ]
+    },
+    {
+      "name": "카페24 유튜브쇼핑",
+      "aliases": ["유튜브쇼핑", "유튜브", "youtube"],
+      "feeRate": 0.05,
+      "feeLabel": "약 4~6%",
+      "adReserveRate": 0.05,
+      "adReserveLabel": "콘텐츠 제작/집행 기준 5%",
+      "role": "콘텐츠 커머스",
+      "minimumMarginRate": 0.18,
+      "targetMarginRate": 0.28,
+      "priceGuide": "자사몰 기준가와 유사하게 운영",
+      "notes": [
+        "콘텐츠 제작비와 팬 전환 관점 같이 봐야 함",
+        "유튜브에서 자사몰로 직접 전환할 여지가 큼"
+      ]
+    },
+    {
+      "name": "쿠팡 윙",
+      "aliases": ["쿠팡", "쿠팡윙", "wing", "coupang"],
+      "feeRate": 0.1138,
+      "feeLabel": "약 11.38%",
+      "adReserveRate": 0.15,
+      "adReserveLabel": "광고예산 15% 고정",
+      "role": "볼륨 확보",
+      "minimumMarginRate": 0.12,
+      "targetMarginRate": 0.2,
+      "priceGuide": "기준가 +5~8% 검토",
+      "notes": [
+        "현재 운영 판단 기준상 광고비를 매출의 15%로 고정",
+        "가격 통제권은 비교적 있지만 최저가 압박 가능성 있음"
+      ]
+    },
+    {
+      "name": "쿠팡 로켓배송",
+      "aliases": ["로켓배송", "rocket"],
+      "feeRate": null,
+      "feeLabel": "납품가 협의",
+      "role": "볼륨 확보",
+      "minimumMarginRate": 0.08,
+      "targetMarginRate": 0.15,
+      "priceGuide": "판매가보다 최소 납품가 중심으로 판단",
+      "notes": [
+        "셀러가 최종 판매가를 직접 통제하지 않는 경우가 많음",
+        "고회전 표준 상품에 적합"
+      ]
+    },
+    {
+      "name": "쿠팡 로켓그로스",
+      "aliases": ["로켓그로스", "rocketgrowth"],
+      "feeRate": 0.1138,
+      "feeLabel": "약 11.38% + 풀필먼트",
+      "adReserveRate": 0.15,
+      "adReserveLabel": "쿠팡 계열 광고/프로모션 15% 가정",
+      "role": "소형 상품 특화",
+      "minimumMarginRate": 0.1,
+      "targetMarginRate": 0.18,
+      "priceGuide": "기준가 +5~8% 검토",
+      "notes": [
+        "소형 경량 상품에 유리",
+        "풀필먼트 비용을 별도 메모로 반영하는 것이 안전"
+      ]
+    },
+    {
+      "name": "11번가",
+      "aliases": ["11번가", "11st"],
+      "feeRate": 0.12,
+      "feeLabel": "약 12%",
+      "adReserveRate": 0,
+      "adReserveLabel": "광고예산 기본 0%",
+      "role": "추가 노출",
+      "minimumMarginRate": 0.12,
+      "targetMarginRate": 0.2,
+      "priceGuide": "기준가 +5~10% 검토",
+      "notes": [
+        "추가 노출 채널로 활용하되 수수료 보전이 필요함",
+        "채널별 상품명과 부가이미지 제약을 같이 봐야 함"
+      ]
+    },
+    {
+      "name": "오늘의집",
+      "aliases": ["오늘의집", "ohouse"],
+      "feeRate": 0.12,
+      "feeLabel": "약 12%",
+      "adReserveRate": null,
+      "adReserveLabel": "원가체계 안정화 후 결정",
+      "role": "프리미엄 포지셔닝",
+      "minimumMarginRate": 0.1,
+      "targetMarginRate": 0.2,
+      "priceGuide": "기준가 +10~15% 검토",
+      "notes": [
+        "현재 운영 기준 수수료 12% 가정",
+        "가격보다 절대 마진액과 프리미엄 구성 강조가 중요"
+      ]
+    }
+  ],
+  "categoryProfiles": [
+    {
+      "name": "압화",
+      "aliases": ["압화공예", "압화 재료"],
+      "priceCore": "세트 구성으로 객단가를 올리고 자사몰과 네이버를 우선 운영",
+      "channelPriority": ["메이크샵 자사몰", "네이버 스마트스토어", "쿠팡 윙"],
+      "pricingMoves": [
+        "기본 단품보다 세트 구성을 우선 검토",
+        "입문자 상품은 심리적 가격대를 우선 확인",
+        "자사몰 전용 묶음으로 가격 비교를 완화"
+      ],
+      "roundingGuide": "3,000~15,000원 구간은 900원 단위 가격을 우선 검토"
+    },
+    {
+      "name": "레진공예",
+      "aliases": ["레진", "레진 재료"],
+      "priceCore": "대용량 또는 재구매 구성을 묶어 객단가를 높이고 재구매를 유도",
+      "channelPriority": ["메이크샵 자사몰", "네이버 스마트스토어", "오늘의집"],
+      "pricingMoves": [
+        "대용량 할인과 세트 옵션을 동시에 제안",
+        "소모성 품목은 반복 구매 유인을 강조",
+        "고수수료 채널은 구성 차별화가 필요"
+      ],
+      "roundingGuide": "5,000~25,000원 구간은 800~900원 단위 라운딩을 우선 검토"
+    },
+    {
+      "name": "하바리움",
+      "aliases": ["하바리움 재료", "인테리어 소품"],
+      "priceCore": "완성도와 선물성, 인테리어 맥락을 강조해 절대 마진액을 본다",
+      "channelPriority": ["오늘의집", "메이크샵 자사몰", "카페24 유튜브쇼핑"],
+      "pricingMoves": [
+        "프리미엄 구성과 선물 포장을 가격 근거로 활용",
+        "오늘의집은 절대 마진액을 먼저 검토",
+        "콘텐츠 연계 상품은 유튜브와 자사몰 묶음을 고려"
+      ],
+      "roundingGuide": "15,000~30,000원 구간은 500~900원 단위, 30,000원 이상은 천원 단위 검토"
+    },
+    {
+      "name": "캔들",
+      "aliases": ["캔들 재료", "캔들공예"],
+      "priceCore": "홈데코 가치와 완성품 느낌을 살려 프리미엄 포지셔닝을 활용",
+      "channelPriority": ["오늘의집", "메이크샵 자사몰", "카페24 유튜브쇼핑"],
+      "pricingMoves": [
+        "패키징과 향 구성으로 가격 정당화",
+        "프리미엄 채널은 절대 마진액 중심으로 판단",
+        "콘텐츠 촬영과 연계한 세트를 우선 검토"
+      ],
+      "roundingGuide": "8,000~30,000원 구간은 800~900원 또는 500원 단위를 검토"
+    },
+    {
+      "name": "석고",
+      "aliases": ["석고방향제", "석고 재료"],
+      "priceCore": "무게와 배송비 영향을 먼저 보고 채널별 수익성을 분리 판단",
+      "channelPriority": ["네이버 스마트스토어", "쿠팡 윙", "메이크샵 자사몰"],
+      "pricingMoves": [
+        "배송비 포함 손익을 별도로 확인",
+        "묶음 판매 시 무게 구간 변화를 같이 계산",
+        "쿠팡은 최저가 압박을 감안해 기준가 인상 여력을 검토"
+      ],
+      "roundingGuide": "5,000~20,000원 구간은 800~900원 단위를 우선 검토"
+    },
+    {
+      "name": "비즈",
+      "aliases": ["비즈 재료", "악세사리 부자재"],
+      "priceCore": "소액 다량 구매를 전제로 묶음 수량과 객단가 상승을 설계",
+      "channelPriority": ["네이버 스마트스토어", "쿠팡 윙", "메이크샵 자사몰"],
+      "pricingMoves": [
+        "낱개보다 묶음 단위를 우선 제안",
+        "소액 상품은 배송비 체감까지 같이 본다",
+        "가격 차이는 작게 두고 묶음 혜택으로 차별화"
+      ],
+      "roundingGuide": "1,000~10,000원 구간은 900원 단위를 우선 검토"
+    },
+    {
+      "name": "도구",
+      "aliases": ["도구류", "공예도구"],
+      "priceCore": "가격 비교 민감도가 높아 경쟁가와 기준가를 먼저 확인",
+      "channelPriority": ["쿠팡 윙", "네이버 스마트스토어", "메이크샵 자사몰"],
+      "pricingMoves": [
+        "경쟁가 확인 없이 인상 판단을 하지 않는다",
+        "자사몰은 설명과 구성 차별화로 방어",
+        "오픈마켓은 수수료 보전 범위를 먼저 정한다"
+      ],
+      "roundingGuide": "3,000~50,000원 구간은 경쟁가 기준으로 900원 또는 500원 단위 검토"
+    },
+    {
+      "name": "만들기키트",
+      "aliases": ["종합 키트", "키트", "만들기 키트"],
+      "priceCore": "체험 가치와 교육 가치를 포함해 절대 마진액을 본다",
+      "channelPriority": ["오늘의집", "카페24 유튜브쇼핑", "메이크샵 자사몰"],
+      "pricingMoves": [
+        "입문용과 프리미엄용을 분리 제안",
+        "콘텐츠 연계 채널은 묶음과 교육 가치를 함께 설명",
+        "자사몰 전용 구성으로 채널별 가격 차이를 정당화"
+      ],
+      "roundingGuide": "20,000~80,000원 구간은 500원 또는 천원 단위 라운딩을 우선 검토"
+    }
+  ],
+  "hiddenCostChecklist": [
+    "포장재와 완충재 비용이 포함되었는지",
+    "검품/품질검수비가 포함되었는지",
+    "반품/클레임 비용을 고려했는지",
+    "광고비나 채널별 추가 운영비를 별도 검토했는지",
+    "중국 사입이면 환율 스프레드와 통관/내륙운송을 고려했는지"
+  ],
+  "costRules": {
+    "cogs": "이미 부대비용과 VAT를 포함한 확정 COGS로 본다.",
+    "purchase_krw": "매입가(KRW) 기준이면 포장/검품/배송/손실을 더해 COGS를 본다. 매입 VAT는 기본적으로 별도 관리한다.",
+    "purchase_cny": "매입가(CNY) 기준이면 최신 환율, 지사관리비 10%, 국제운임/통관/포장/검품/손실을 더해 COGS를 본다. 수입부가세는 기본적으로 COGS에 미포함이다."
+  }
+}

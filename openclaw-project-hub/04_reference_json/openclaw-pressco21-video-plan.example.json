@@ -1,0 +1,88 @@
+{
+  "workflow": "pressco21-video-plan",
+  "version": "0.1",
+  "input": {
+    "planningWindowWeeks": 4,
+    "season": "봄 웨딩 시즌",
+    "productCandidates": [
+      "웨딩 액자",
+      "압화건조매트",
+      "청첩장 액자",
+      "체험 재료"
+    ],
+    "channelGoal": "유튜브 숏츠 주 1회 + 인스타 릴스 재활용",
+    "mustInclude": [
+      "웨딩/부케 맥락 반영",
+      "입문자도 따라할 수 있는 톤",
+      "기존 영상 재활용 후보 확인"
+    ],
+    "availableArchive": [
+      "부케 DIY 숏츠",
+      "웨딩 액자 작업 과정",
+      "압화 입문 영상"
+    ],
+    "approvalOwner": "장다경"
+  },
+  "output": {
+    "planningSummary": {
+      "goal": "봄 시즌 웨딩/입문 수요를 중심으로 4주 촬영 계획을 고정한다",
+      "primaryAudience": "공방운영자와 입문자",
+      "priorityChannel": "유튜브 숏츠"
+    },
+    "weeklyPlan": [
+      {
+        "week": 1,
+        "productFocus": "웨딩 액자",
+        "contentAngle": "부케를 보관하고 다시 선물하는 이유",
+        "primaryChannel": "유튜브 숏츠",
+        "reuseCandidate": "부케 DIY 숏츠",
+        "approvalRequired": true
+      },
+      {
+        "week": 2,
+        "productFocus": "압화건조매트",
+        "contentAngle": "처음 시작하는 압화 준비물",
+        "primaryChannel": "유튜브 숏츠",
+        "reuseCandidate": "압화 입문 영상",
+        "approvalRequired": false
+      },
+      {
+        "week": 3,
+        "productFocus": "청첩장 액자",
+        "contentAngle": "웨딩 소품을 오래 남기는 방법",
+        "primaryChannel": "인스타 릴스",
+        "reuseCandidate": "웨딩 액자 작업 과정",
+        "approvalRequired": true
+      },
+      {
+        "week": 4,
+        "productFocus": "체험 재료",
+        "contentAngle": "클래스용으로 바로 쓰기 좋은 입문 구성",
+        "primaryChannel": "유튜브 숏츠",
+        "reuseCandidate": "압화 입문 영상",
+        "approvalRequired": false
+      }
+    ],
+    "reusePlan": [
+      "부케/웨딩 고성과 영상 우선 재활용",
+      "압화 입문 영상은 릴스용으로 짧게 재가공"
+    ],
+    "platformNotes": [
+      "유튜브는 DIY 설명을 조금 더 자세히 유지",
+      "인스타는 첫 2초 훅과 자막 요약을 강화"
+    ],
+    "assetNeeds": [
+      "웨딩 액자 실사 보강",
+      "체험 재료 촬영용 준비물 확인"
+    ],
+    "riskFlags": [
+      "대표 확인이 필요한 웨딩/부케 메시지 포함",
+      "기존 영상 화질과 세로 규격 재점검 필요"
+    ],
+    "approvalChecklist": [
+      "주차별 촬영 제품 확정",
+      "대표 멘트 사용 범위 확인",
+      "릴스 재활용 가능 영상 최종 선정"
+    ]
+  }
+}

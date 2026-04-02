@@ -1,0 +1,52 @@
+{
+  "workflow": "pressco21-knowledge-update",
+  "version": "0.1",
+  "input": {
+    "topic": "강사 할인과 배송 안내 기준 정리",
+    "confirmedDecisions": [
+      "가격/할인 관련 답변은 사람 승인 후 확정",
+      "배송일은 재고 확인 후 안내",
+      "대표 구두 지시는 핸드오프 브리프로 문서화"
+    ],
+    "repeatedQuestions": [
+      "강사 할인 적용 가능 여부",
+      "출고일 안내 시점",
+      "입문자 추천 상품"
+    ],
+    "sourceDocs": [
+      "pressco21/company-knowledge/meeting-results-2026-03-20.md",
+      "pressco21/company-knowledge/collection-status.md"
+    ],
+    "changeNotes": [
+      "CS 문의에서 반복 질문 증가",
+      "배송/할인 응답 기준을 더 명확히 남길 필요 있음"
+    ],
+    "approvalOwner": "장지호"
+  },
+  "output": {
+    "knowledgeSummary": "강사 할인과 배송 안내 기준을 FAQ 및 SOP 후보로 정리해 CS 대응 속도를 높이는 것이 목적.",
+    "faqCandidates": [
+      "강사 할인은 어떻게 확인하나요?",
+      "배송일은 언제 안내받을 수 있나요?",
+      "처음 시작할 때 어떤 상품이 적합한가요?"
+    ],
+    "sopUpdates": [
+      "가격/할인 답변은 승인 전 확정 금지",
+      "배송 문의는 재고 확인 후 안내",
+      "대표 지시는 핸드오프 브리프로 저장"
+    ],
+    "documentUpdates": [
+      "CS 기준 문서에 배송/할인 응답 원칙 추가",
+      "FAQ 문서에 입문 상품 추천 항목 추가"
+    ],
+    "unresolvedQuestions": [
+      "강사 할인 적용 조건 세부 기준 확정 필요",
+      "배송일 안내 템플릿 문구 확정 필요"
+    ],
+    "approvalChecklist": [
+      "FAQ 반영 승인",
+      "SOP 수정 승인",
+      "기준 문서 경로 확정"
+    ]
+  }
+}

@@ -148,7 +148,14 @@
       "emoji": "🧭",
       "theme": "executive",
       "workspace": "/home/ubuntu/.openclaw/workspace-flora-executive",
-      "model": "openai-codex/gpt-5.4",
+      "model": {
+        "primary": "openai-codex/gpt-5.4",
+        "fallbacks": [
+          "openai-codex/gpt-5.4-mini",
+          "anthropic/claude-opus-4-5",
+          "google/gemini-2.5-flash"
+        ]
+      },
       "purpose": "대표 요청의 프론트도어이자 여러 시스템을 묶어 우선순위, 결정, 핸드오프를 정리하는 총괄 비서",
       "focusContexts": [
         "assistant-brief.md",
@@ -168,7 +175,14 @@
       "emoji": "🏛️",
       "theme": "strategy",
       "workspace": "/home/ubuntu/.openclaw/workspace-flora-strategy",
-      "model": "openai-codex/gpt-5.4",
+      "model": {
+        "primary": "openai-codex/gpt-5.4",
+        "fallbacks": [
+          "openai-codex/gpt-5.4-mini",
+          "anthropic/claude-opus-4-5",
+          "google/gemini-2.5-flash"
+        ]
+      },
       "purpose": "파트너클래스 제품 전략, 문서-구현 연결, 로드맵/PRD 정리를 담당하는 전략 비서",
       "focusContexts": [
         "assistant-brief.md",
@@ -188,7 +202,14 @@
       "emoji": "🛍️",
       "theme": "storefront",
       "workspace": "/home/ubuntu/.openclaw/workspace-flora-storefront",
-      "model": "openai-codex/gpt-5.4",
+      "model": {
+        "primary": "openai-codex/gpt-5.4",
+        "fallbacks": [
+          "openai-codex/gpt-5.4-mini",
+          "anthropic/claude-opus-4-5",
+          "google/gemini-2.5-flash"
+        ]
+      },
       "purpose": "메이크샵 스토어프론트, 상세페이지, 전환율, UI 수정 우선순위를 담당하는 프론트엔드 비서",
       "focusContexts": [
         "assistant-brief.md",
@@ -208,7 +229,14 @@
       "emoji": "📒",
       "theme": "crm",
       "workspace": "/home/ubuntu/.openclaw/workspace-flora-crm",
-      "model": "openai-codex/gpt-5.4",
+      "model": {
+        "primary": "openai-codex/gpt-5.4",
+        "fallbacks": [
+          "openai-codex/gpt-5.4-mini",
+          "anthropic/claude-opus-4-5",
+          "google/gemini-2.5-flash"
+        ]
+      },
       "purpose": "내부 CRM 운영, 인쇄 흐름, 거래/입금/고객 데이터를 중심으로 보는 운영 코파일럿",
       "focusContexts": [
         "assistant-brief.md",
@@ -228,7 +256,14 @@
       "emoji": "⚙️",
       "theme": "automation",
       "workspace": "/home/ubuntu/.openclaw/workspace-flora-automation",
-      "model": "openai-codex/gpt-5.4",
+      "model": {
+        "primary": "openai-codex/gpt-5.4",
+        "fallbacks": [
+          "openai-codex/gpt-5.4-mini",
+          "anthropic/claude-opus-4-5",
+          "google/gemini-2.5-flash"
+        ]
+      },
       "purpose": "n8n 워크플로우, OpenClaw 운영, 텔레그램 연동과 자동화 후보 발굴을 맡는 자동화 설계 비서",
       "focusContexts": [
         "assistant-brief.md",
@@ -248,7 +283,14 @@
       "emoji": "📚",
       "theme": "knowledge",
       "workspace": "/home/ubuntu/.openclaw/workspace-flora-knowledge",
-      "model": "openai-codex/gpt-5.4",
+      "model": {
+        "primary": "openai-codex/gpt-5.4",
+        "fallbacks": [
+          "openai-codex/gpt-5.4-mini",
+          "anthropic/claude-opus-4-5",
+          "google/gemini-2.5-flash"
+        ]
+      },
       "purpose": "회사 지식, 전략, 재무, 대표 맥락을 일관되게 끌어와 답하는 지식/전략 비서",
       "focusContexts": [
         "assistant-brief.md",

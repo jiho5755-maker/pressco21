@@ -1,0 +1,206 @@
+{
+  "company": "PRESSCO21",
+  "version": "0.1",
+  "updatedAt": "2026-03-21",
+  "controlPlane": [
+    {
+      "id": "company-admin",
+      "gateway": "company-admin",
+      "sessionId": "pressco21-company-admin",
+      "fillsHumanGap": "AI operations manager",
+      "primaryUsers": ["장지호"],
+      "responsibilities": [
+        "운영 기준과 승인 경계 유지",
+        "세션 로그 요약과 파일럿 KPI 추적",
+        "전문 에이전트 호출 우선순위 판단"
+      ],
+      "approvalRequired": [
+        "정책 확정",
+        "고위험 고객 대응 확정",
+        "재고/가격/환불 변경"
+      ]
+    },
+    {
+      "id": "company-coach",
+      "gateway": "company-coach",
+      "sessionId": "pressco21-company-coach",
+      "fillsHumanGap": "AI workflow coach",
+      "primaryUsers": ["조승해", "장다경", "이재혁", "이진선"],
+      "responsibilities": [
+        "업무 요청을 실행 가능한 브리프로 변환",
+        "입력값 누락 확인",
+        "전문 에이전트에게 넘길 작업 범위 정리"
+      ]
+    },
+    {
+      "id": "company-core",
+      "gateway": "company-core",
+      "type": "http",
+      "fillsHumanGap": "Shared knowledge base",
+      "primaryUsers": ["전 직원"],
+      "responsibilities": [
+        "회사 기준 문서 검색",
+        "고객/상품/채널 맥락 제공",
+        "답변 근거 문서 제시"
+      ]
+    },
+    {
+      "id": "executive-assistant",
+      "gateway": "executive-assistant",
+      "sessionId": "pressco21-executive-assistant",
+      "fillsHumanGap": "Executive assistant + cross-team coordinator",
+      "primaryUsers": ["장지호", "이진선", "부서장"],
+      "responsibilities": [
+        "회의 준비와 요약 정리",
+        "담당자별 액션아이템과 마감 추적",
+        "부서 간 핸드오프 초안 작성"
+      ],
+      "approvalRequired": [
+        "일정 확정",
+        "대외 공지 확정",
+        "고위험 지시 확정"
+      ]
+    }
+  ],
+  "specialists": [
+    {
+      "id": "detail-page-planner",
+      "gateway": "detail-page-planner",
+      "sessionId": "pressco21-detail-page-planner",
+      "fillsHumanGap": "상품기획자 + 상세브리프 작성자",
+      "inputs": ["productName", "category", "coreFeatures", "availableAssets"],
+      "outputs": ["sectionPlan", "copyPoints", "assetChecklist", "approvalChecklist"],
+      "handoffTo": ["조승해", "장지호"]
+    },
+    {
+      "id": "video-content-planner",
+      "gateway": "video-content-planner",
+      "sessionId": "pressco21-video-content-planner",
+      "fillsHumanGap": "콘텐츠 캘린더 플래너",
+      "inputs": ["season", "productCandidates", "channelGoal", "archiveLinks"],
+      "outputs": ["shootPlan", "titleIdeas", "reusePlan", "platformNotes"],
+      "handoffTo": ["장다경", "장지호"]
+    },
+    {
+      "id": "cs-triage-specialist",
+      "gateway": "cs-triage-specialist",
+      "sessionId": "pressco21-cs-triage-specialist",
+      "fillsHumanGap": "CS 1차 분류 담당",
+      "inputs": ["channel", "message", "orderId", "productName"],
+      "outputs": ["triageCategory", "draftReply", "riskFlags", "escalationPath"],
+      "handoffTo": ["이재혁", "장지호"]
+    },
+    {
+      "id": "operations-analyst",
+      "gateway": "operations-analyst",
+      "sessionId": "pressco21-operations-analyst",
+      "fillsHumanGap": "운영 개선 분석가",
+      "inputs": ["dailyLogs", "repeatQuestions", "deliveryIssues", "contentOutput"],
+      "outputs": ["dailyDigest", "bottlenecks", "kpiSignals", "nextActions"],
+      "handoffTo": ["장지호", "이진선"]
+    },
+    {
+      "id": "knowledge-curator",
+      "gateway": "knowledge-curator",
+      "sessionId": "pressco21-knowledge-curator",
+      "fillsHumanGap": "문서 정리 담당",
+      "inputs": ["confirmedDecision", "sourceDoc", "changeSummary"],
+      "outputs": ["docUpdateCandidate", "faqCandidate", "sopChangeList"],
+      "handoffTo": ["장지호"]
+    },
+    {
+      "id": "crm-account-manager",
+      "gateway": "crm-account-manager",
+      "sessionId": "pressco21-crm-account-manager",
+      "fillsHumanGap": "직접거래/B2B 고객 브리프 담당",
+      "inputs": ["customerName", "recentTransactions", "relationshipGoal", "outstandingBalance"],
+      "outputs": ["accountSummary", "opportunitySignals", "nextActions", "followUpScript"],
+      "handoffTo": ["장지호"]
+    },
+    {
+      "id": "pricing-margin-analyst",
+      "gateway": "pricing-margin-analyst",
+      "sessionId": "pressco21-pricing-margin-analyst",
+      "fillsHumanGap": "가격/마진 검토 담당",
+      "inputs": ["productName", "sourceCost", "sellingPrice", "channel"],
+      "outputs": ["marginSummary", "priceOptions", "riskFlags", "channelNotes"],
+      "handoffTo": ["장지호", "이진선"]
+    },
+    {
+      "id": "marketplace-ops-specialist",
+      "gateway": "marketplace-ops-specialist",
+      "sessionId": "pressco21-marketplace-ops-specialist",
+      "fillsHumanGap": "자사몰/오픈마켓 운영 준비 담당",
+      "inputs": ["productName", "channelTargets", "keyFeatures", "assetStatus"],
+      "outputs": ["channelTitles", "registrationChecklist", "missingAssets", "riskFlags"],
+      "handoffTo": ["장지호", "조승해"]
+    },
+    {
+      "id": "bank-ops-assistant",
+      "gateway": "bank-ops-assistant",
+      "sessionId": "pressco21-bank-ops-assistant",
+      "fillsHumanGap": "입금 검토와 후속 정리 담당",
+      "inputs": ["transactionType", "payerName", "amount", "openInvoices"],
+      "outputs": ["matchAssessment", "followUpActions", "messageDraft", "approvalChecklist"],
+      "handoffTo": ["장지호"]
+    }
+  ],
+  "squads": [
+    {
+      "id": "product-launch-squad",
+      "lead": "company-admin",
+      "members": ["company-coach", "detail-page-planner", "knowledge-curator"],
+      "activation": ["신상품 등록", "키트상품 런칭", "상세페이지 기획"],
+      "deliverables": ["상세페이지 브리프", "누락 자료 체크리스트", "문서 갱신 후보"]
+    },
+    {
+      "id": "content-growth-squad",
+      "lead": "company-admin",
+      "members": ["company-coach", "video-content-planner", "knowledge-curator"],
+      "activation": ["월간 촬영 계획", "숏츠/릴스 재활용", "시즌 캠페인 기획"],
+      "deliverables": ["8개 촬영 계획안", "플랫폼별 제목 초안", "재활용 우선순위"]
+    },
+    {
+      "id": "customer-response-squad",
+      "lead": "company-admin",
+      "members": ["company-core", "company-coach", "cs-triage-specialist"],
+      "activation": ["배송 문의", "재고 문의", "상품 사용 문의", "전화 주문 대응"],
+      "deliverables": ["1차 응대 초안", "위험도 분류", "에스컬레이션 경로"]
+    },
+    {
+      "id": "operations-improvement-squad",
+      "lead": "company-admin",
+      "members": ["operations-analyst", "knowledge-curator", "company-core"],
+      "activation": ["주간 운영 리뷰", "반복 문의 증가", "파일럿 성과 점검"],
+      "deliverables": ["운영 다이제스트", "FAQ 후보", "다음 주 개선 액션"]
+    },
+    {
+      "id": "executive-support-squad",
+      "lead": "company-admin",
+      "members": ["executive-assistant", "company-core", "knowledge-curator"],
+      "activation": ["회의 준비", "대표 지시 정리", "부서 간 핸드오프", "주간 우선순위 정리"],
+      "deliverables": ["회의 브리프", "담당자별 액션리스트", "마감 추적표", "후속 질문 목록"]
+    },
+    {
+      "id": "crm-growth-squad",
+      "lead": "company-admin",
+      "members": ["crm-account-manager", "operations-analyst", "company-core"],
+      "activation": ["직접거래 고객 재활성화", "B2B 고객 관리", "휴면/미수금 추적"],
+      "deliverables": ["고객 브리프", "기회 신호", "후속 액션"]
+    },
+    {
+      "id": "pricing-control-squad",
+      "lead": "company-admin",
+      "members": ["pricing-margin-analyst", "marketplace-ops-specialist", "company-core"],
+      "activation": ["가격 정책 검토", "SKU 마진 위험 점검", "오픈마켓 등록 전 점검"],
+      "deliverables": ["가격 옵션", "채널 메모", "등록 전 체크리스트"]
+    },
+    {
+      "id": "cashflow-review-squad",
+      "lead": "company-admin",
+      "members": ["bank-ops-assistant", "crm-account-manager", "company-core"],
+      "activation": ["입금 검토", "미수금 후속", "수동 승인 큐 점검"],
+      "deliverables": ["매칭 판단", "후속 액션", "관계자 안내 초안"]
+    }
+  ]
+}

@@ -1,0 +1,98 @@
+{
+  "workflow": "pressco21-price-margin-review",
+  "version": "0.2",
+  "input": {
+    "productName": "1:1에폭시레진/3:1에폭시레진",
+    "skuCode": "SKU0000046967",
+    "branduid": "11700530",
+    "category": "레진공예",
+    "baseProfileId": "china_import_resin_liquid",
+    "sourceCost": "7.2 CNY",
+    "costType": "purchase_cny",
+    "exchangeRate": "218.340611",
+    "exchangeRateReferenceDate": "2026-03-24",
+    "allocationQuantity": 1000,
+    "unitVolumeCbm": 0.0012,
+    "originCertificateApplied": "N",
+    "normalizedCogs": "2073원",
+    "sellingPrice": "6000원",
+    "channel": "메이크샵 자사몰",
+    "feeNotes": "PG 약 3.85%, 광고예산기준=광고예산 기준 6%, 관리 상한 10%, 역할=수익 기반, 가격가이드=기준가 유지 또는 자사몰 전용 구성 강화 | 카테고리 전략=대용량 또는 재구매 구성을 묶어 객단가를 높이고 재구매를 유도",
+    "catalogLookupStatus": "matched",
+    "catalogMatchSummary": "1688-SKU-메이크샵_연계마스터.xlsx에서 매칭 (score=1542, reasons=sku_exact,makeshop_exact) SKU=SKU0000046967, branduid=11700530, 상품명=1:1에폭시레진/3:1에폭시레진, CNY=7.2, 메이크샵가=6000, 카테고리=레진공예",
+    "catalogRecord": "{ \"rowNumber\": 2, \"sourceProductName\": \"1:1 에폭시레진\", \"recentCostCny\": 7.2, \"skuCode\": \"SKU0000046967\", \"makeshopBranduid\": \"11700530\", \"makeshopProductName\": \"1:1에폭시레진/3:1에폭시레진\", \"makeshopSellingPrice\": 6000, \"makeshopCategory\": \"레진공예\" }",
+    "channelBenchmark": "{ \"name\": \"메이크샵 자사몰\", \"feeRate\": 0.0385, \"adReserveRate\": 0.06, \"minimumMarginRate\": 0.2, \"targetMarginRate\": 0.3, \"priceGuide\": \"기준가 유지 또는 자사몰 전용 구성 강화\" }",
+    "categoryProfile": "{ \"name\": \"레진공예\", \"channelPriority\": [\"메이크샵 자사몰\", \"네이버 스마트스토어\", \"오늘의집\"], \"priceCore\": \"대용량 또는 재구매 구성을 묶어 객단가를 높이고 재구매를 유도\" }",
+    "computedSnapshot": "{ \"exchangeRateReferenceDate\": \"2026-03-24\", \"supplyPrice\": 5455, \"feeAmount\": 210, \"adReserveAmount\": 327, \"estimatedMarginWon\": 3172, \"estimatedMarginRate\": 0.581, \"marginAfterAdReserveWon\": 2845, \"marginAfterAdReserveRate\": 0.522, \"thresholdStatus\": \"meets_target\", \"marginGrade\": \"EXCELLENT\", \"gapToMinimumRate\": 0.381, \"gapToTargetRate\": 0.281 }",
+    "costRule": "매입가(CNY) 기준이면 최신 환율, 지사관리비 10%, 국제운임/통관/포장/검품/손실을 더해 COGS를 보고 수입부가세는 기본적으로 COGS에 미포함한다.",
+    "costAssumptions": [
+      "원가는 연계마스터 최근단가(CNY)를 기준으로 자동 조회",
+      "판매가는 연계마스터 메이크샵 판매가 6000원을 기준가로 사용",
+      "최신 환율 기준 2026-03-24 / 218.340611",
+      "기본 프로필 china_import_resin_liquid 적용",
+      "수입부가세 10.0%는 매입세액 공제 대상으로 COGS 미포함"
+    ],
+    "hiddenCostChecklist": [
+      "포장재와 완충재 비용이 포함되었는지",
+      "검품/품질검수비가 포함되었는지",
+      "반품/클레임 비용을 고려했는지",
+      "광고비나 채널별 추가 운영비를 별도 검토했는지",
+      "중국 사입이면 환율 스프레드와 통관/내륙운송을 고려했는지"
+    ],
+    "targetMargin": "최소 20%, 목표 30%",
+    "priceConstraints": [
+      "세트보다 단품 성격이 강해 경쟁가를 무시하기 어렵다",
+      "자사몰에서 재구매 유도용 가격이라는 점을 유지하고 싶다"
+    ],
+    "approvalOwner": "장지호"
+  },
+  "output": {
+    "marginSummary": "연계마스터 최근단가 기준으로 보면 자사몰 판매는 EXCELLENT 구간이다. 현재 계산만으로도 목표선 30%를 크게 넘기지만, 실포장비와 재고손실 비용이 빠졌는지 점검해야 한다.",
+    "thresholdCheck": [
+      "메이크샵 자사몰 최소선 20% 충족",
+      "메이크샵 자사몰 목표선 30% 충족",
+      "현재 계산상 EXCELLENT 등급"
+    ],
+    "riskFlags": [
+      "실제 포장비와 검품비가 빠졌으면 과대평가일 수 있음",
+      "중국 사입이라 환율 스프레드와 통관비 포함 여부 확인이 필요",
+      "오픈마켓 확장 시 자사몰 기준가를 그대로 쓰면 마진이 급감할 수 있음"
+    ],
+    "priceOptions": [
+      "현재 가격 유지 후 자사몰 재구매 묶음 옵션 추가",
+      "네이버 확장 시 기준가 +3% 이내에서 검토",
+      "자사몰 전용 대용량 구성으로 절대 마진액 확대"
+    ],
+    "scenarioTable": [
+      "현행가 6000원: EXCELLENT 유지",
+      "심리가 5900원: 여전히 HEALTHY 이상 유지 가능",
+      "네이버용 6200원: 수수료 증가를 일부 보전하는 수준"
+    ],
+    "assumptions": [
+      "판매가는 VAT 포함으로 보고 공급가 환산",
+      "PG 3.85% 적용",
+      "광고예산 예약률 6% 적용",
+      "배송비는 별도 고객 부담으로 가정",
+      "수입부가세는 COGS에 포함하지 않음"
+    ],
+    "dataGaps": [
+      "실포장비",
+      "검품비",
+      "실제 송금 환율 또는 배치 확정 환율",
+      "네이버 경쟁가"
+    ],
+    "channelNotes": [
+      "자사몰은 재구매와 세트 제안을 붙이기 좋은 채널",
+      "레진공예 카테고리는 대용량 또는 재구매 구성이 잘 맞는다"
+    ],
+    "nextActions": [
+      "실포장비와 검품비를 원가에 반영해 재계산",
+      "네이버 확장 예정이면 경쟁가와 기준가 차이 확인",
+      "대용량 또는 세트 옵션 검토"
+    ],
+    "approvalChecklist": [
+      "실원가 보정 후 비교표 확인",
+      "채널 확장 시 최종 판매가 재승인"
+    ]
+  }
+}

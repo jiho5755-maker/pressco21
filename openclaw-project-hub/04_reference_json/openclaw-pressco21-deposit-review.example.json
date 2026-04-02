@@ -1,0 +1,43 @@
+{
+  "workflow": "pressco21-deposit-review",
+  "version": "0.1",
+  "input": {
+    "transactionType": "입금",
+    "payerName": "장지호",
+    "amount": "1500원",
+    "eventTime": "2026-03-15 00:00",
+    "candidateCustomers": [
+      "장지호",
+      "프레스코21 테스트 거래처"
+    ],
+    "openInvoices": [
+      "명세표 A 잔액 1500원",
+      "명세표 B 잔액 3000원"
+    ],
+    "notes": [
+      "부분 입금 가능성 확인 필요"
+    ],
+    "approvalOwner": "장지호"
+  },
+  "output": {
+    "transactionSummary": "입금 건이며 후보 고객은 2명이나, 장지호 고객의 정확 일치 명세표가 있어 우선 검토 대상으로 볼 수 있음.",
+    "matchAssessment": [
+      "정확 일치 후보 1건",
+      "자동반영 전 사람 확인 권장"
+    ],
+    "escalationPath": [
+      "CRM 담당자 검토",
+      "자동반영 가능 여부 최종 승인"
+    ],
+    "followUpActions": [
+      "명세표 A 대조",
+      "입금자 메모 확인"
+    ],
+    "messageDraft": [
+      "입금 확인 후 정확한 반영 여부를 점검하겠습니다."
+    ],
+    "approvalChecklist": [
+      "자동반영 여부 승인"
+    ]
+  }
+}

@@ -1,0 +1,165 @@
+{
+  "workflow": "pressco21-weekly-action-tracker",
+  "version": "0.1",
+  "templateType": "weekly-operations-tracker",
+  "weekOf": "YYYY-MM-DD",
+  "owner": "장지호",
+  "period": {
+    "startDate": "YYYY-MM-DD",
+    "endDate": "YYYY-MM-DD"
+  },
+  "weeklyFocus": [
+    {
+      "priority": 1,
+      "theme": "상세페이지 기획 자동화",
+      "goal": "조승해가 바로 검토 가능한 브리프 2건 생성"
+    },
+    {
+      "priority": 2,
+      "theme": "영상 촬영 계획안 정리",
+      "goal": "장다경이 4주 촬영 캘린더를 잡을 수 있는 수준의 초안 확보"
+    },
+    {
+      "priority": 3,
+      "theme": "CS 트리아지 샘플 수집",
+      "goal": "반복 문의 샘플 10건 확보"
+    }
+  ],
+  "ownerStatus": [
+    {
+      "owner": "장지호",
+      "department": "운영",
+      "focus": "운영 기준 문서와 파일럿 범위 고정",
+      "tasks": [
+        {
+          "task": "OpenClaw 주간 운영 리뷰 문서 정리",
+          "deadline": "YYYY-MM-DD",
+          "status": "not_started",
+          "approvalRequired": true,
+          "linkedAgent": "company-admin"
+        }
+      ]
+    },
+    {
+      "owner": "조승해",
+      "department": "디자인",
+      "focus": "상세페이지 브리프 테스트",
+      "tasks": [
+        {
+          "task": "테스트 상품 2건 선정",
+          "deadline": "YYYY-MM-DD",
+          "status": "not_started",
+          "approvalRequired": false,
+          "linkedAgent": "detail-page-planner"
+        }
+      ]
+    },
+    {
+      "owner": "장다경",
+      "department": "영상",
+      "focus": "촬영 계획안과 재활용 목록 정리",
+      "tasks": [
+        {
+          "task": "기존 영상 재활용 후보 수집",
+          "deadline": "YYYY-MM-DD",
+          "status": "not_started",
+          "approvalRequired": false,
+          "linkedAgent": "video-content-planner"
+        }
+      ]
+    },
+    {
+      "owner": "이재혁",
+      "department": "물류/CS",
+      "focus": "반복 문의 샘플 수집과 위험도 분류",
+      "tasks": [
+        {
+          "task": "전화/카톡 문의 샘플 10건 정리",
+          "deadline": "YYYY-MM-DD",
+          "status": "not_started",
+          "approvalRequired": false,
+          "linkedAgent": "cs-triage-specialist"
+        }
+      ]
+    }
+  ],
+  "blockedItems": [
+    {
+      "blocker": "",
+      "impact": "",
+      "owner": "",
+      "nextStep": ""
+    }
+  ],
+  "handoffQueue": [
+    {
+      "from": "",
+      "to": "",
+      "context": "",
+      "dueDate": "YYYY-MM-DD",
+      "status": "pending"
+    }
+  ],
+  "approvalQueue": [
+    {
+      "item": "",
+      "owner": "",
+      "reason": "",
+      "neededBy": "YYYY-MM-DD",
+      "status": "pending"
+    }
+  ],
+  "agentUsageLog": [
+    {
+      "agent": "executive-assistant",
+      "purpose": "회의 브리프 정리",
+      "status": "planned",
+      "outputLink": ""
+    },
+    {
+      "agent": "detail-page-planner",
+      "purpose": "상세페이지 브리프 생성",
+      "status": "planned",
+      "outputLink": ""
+    },
+    {
+      "agent": "video-content-planner",
+      "purpose": "촬영 계획안 생성",
+      "status": "planned",
+      "outputLink": ""
+    },
+    {
+      "agent": "cs-triage-specialist",
+      "purpose": "문의 샘플 분류",
+      "status": "planned",
+      "outputLink": ""
+    }
+  ],
+  "kpiSignals": [
+    {
+      "metric": "상세페이지 기획 준비 시간",
+      "baseline": "",
+      "current": "",
+      "direction": "unknown"
+    },
+    {
+      "metric": "촬영 계획 공백 횟수",
+      "baseline": "",
+      "current": "",
+      "direction": "unknown"
+    },
+    {
+      "metric": "반복 전화/문의 대응 시간",
+      "baseline": "",
+      "current": "",
+      "direction": "unknown"
+    }
+  ],
+  "weeklySummary": {
+    "wins": [],
+    "risks": [],
+    "nextWeekPriorities": [],
+    "faqCandidates": [],
+    "docUpdateCandidates": []
+  }
+}

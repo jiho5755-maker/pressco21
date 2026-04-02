@@ -1,0 +1,154 @@
+{
+  "name": "STOCK-ALERT: 재고 임계값 알림",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 23 * * *"
+            }
+          ]
+        }
+      },
+      "id": "sa-0001-0001-4000-8000-000000000001",
+      "name": "매일 08:00 KST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "display", "value": "Y" },
+            { "name": "fields", "value": "uid,product_name,sellprice,stock,sold_out" },
+            { "name": "limit", "value": "500" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "sa-0001-0001-4000-8000-000000000002",
+      "name": "MakeShop 상품 재고 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// STOCK-ALERT: 재고 분석 + 메시지 생성\n// MakeShop 상품 API 응답 파싱 후 임계값 기반 분류\n\nconst THRESHOLD = 5; // 재고 임계값\nconst rawResp = $input.first().json;\n\n// --- API 응답 검증 ---\nif (rawResp.error || rawResp.return_code === '9000' || rawResp.return_code === '9018') {\n  var errCode = rawResp.return_code || rawResp.error || 'UNKNOWN';\n  return [{ json: {\n    hasAlert: true,\n    isError: true,\n    message: '\\u26a0\\ufe0f <b>STOCK-ALERT API 오류</b>\\n\\n'\n      + 'MakeShop 상품 API 호출 실패\\n'\n      + '오류 코드: ' + errCode + '\\n'\n      + '시각: ' + new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'})\n  } }];\n}\n\n// --- 상품 데이터 추출 ---\n// MakeShop API: list가 객체(키=상품번호) 또는 배열일 수 있음\nvar rawList = rawResp.list || rawResp.datas || rawResp;\nvar products;\nif (Array.isArray(rawList)) {\n  products = rawList;\n} else if (rawList && typeof rawList === 'object') {\n  products = Object.values(rawList);\n} else {\n  products = [];\n}\n\n// 상품 수 안전 검증 (10개 미만이면 API 이상)\nif (products.length < 10) {\n  return [{ json: {\n    hasAlert: true,\n    isError: true,\n    message: '\\u26a0\\ufe0f <b>STOCK-ALERT 데이터 이상</b>\\n\\n'\n      + '조회된 상품: ' + products.length + '개 (최소 10개 미만)\\n'\n      + 'API 응답이 비정상일 수 있습니다.\\n'\n      + '시각: ' + new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'})\n  } }];\n}\n\n// --- 재고 분류 ---\nvar critical = []; // 재고 0 (품절)\nvar warning = [];  // 재고 1~THRESHOLD\nvar totalCount = products.length;\n\nfor (var i = 0; i < products.length; i++) {\n  var p = products[i];\n  var stockVal = parseInt(p.stock || p.stock_count || '0', 10);\n  var isSoldOut = (p.sold_out === 'Y' || p.soldout === 'Y');\n  var pName = p.product_name || p.brandname || '이름없음';\n  var pNum = p.uid || p.branduid || p.productnum || '';\n  var price = parseInt(p.sellprice || '0', 10);\n\n  // 이미 품절 처리된 상품은 critical에 포함\n  if (isSoldOut || stockVal <= 0) {\n    critical.push({\n      name: pName,\n      num: pNum,\n      stock: stockVal,\n      price: price,\n      soldOut: isSoldOut\n    });\n  } else if (stockVal <= THRESHOLD) {\n    warning.push({\n      name: pName,\n      num: pNum,\n      stock: stockVal,\n      price: price\n    });\n  }\n}\n\n// 알림 대상 없으면 종료\nif (critical.length === 0 && warning.length === 0) {\n  return [{ json: {\n    hasAlert: false,\n    message: '',\n    criticalCount: 0,\n    warningCount: 0,\n    totalCount: totalCount\n  } }];\n}\n\n// --- 텔레그램 메시지 포맷팅 ---\nvar now = new Date();\nvar kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nvar dateStr = String(kst.getMonth() + 1).padStart(2, '0') + '/' + String(kst.getDate()).padStart(2, '0');\nvar fmt = function(n) { return n.toLocaleString('ko-KR'); };\nvar truncName = function(name, maxLen) {\n  if (name.length > maxLen) return name.slice(0, maxLen) + '..';\n  return name;\n};\n\nvar msg = '\\ud83d\\udce6 <b>재고 부족 알림</b> (' + dateStr + ')\\n';\nmsg += '\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n\\n';\n\n// 품절 (critical)\nif (critical.length > 0) {\n  msg += '\\ud83d\\udd34 <b>품절 (0개)</b>: ' + critical.length + '건\\n';\n  var showCritical = critical.slice(0, 15);\n  for (var ci = 0; ci < showCritical.length; ci++) {\n    var c = showCritical[ci];\n    msg += '  \\u2022 ' + truncName(c.name, 25);\n    if (c.num) msg += ' (' + c.num + ')';\n    msg += '\\n';\n  }\n  if (critical.length > 15) {\n    msg += '  ... 외 ' + (critical.length - 15) + '건\\n';\n  }\n  msg += '\\n';\n}\n\n// 부족 (warning)\nif (warning.length > 0) {\n  // 재고 적은 순 정렬\n  warning.sort(function(a, b) { return a.stock - b.stock; });\n  msg += '\\ud83d\\udfe1 <b>부족 (' + THRESHOLD + '개 이하)</b>: ' + warning.length + '건\\n';\n  var showWarning = warning.slice(0, 15);\n  for (var wi = 0; wi < showWarning.length; wi++) {\n    var w = showWarning[wi];\n    msg += '  \\u2022 ' + truncName(w.name, 25) + ' - 남은 ' + w.stock + '개\\n';\n  }\n  if (warning.length > 15) {\n    msg += '  ... 외 ' + (warning.length - 15) + '건\\n';\n  }\n  msg += '\\n';\n}\n\nmsg += '\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n';\nmsg += '총 상품: ' + fmt(totalCount) + '개 중 ' + (critical.length + warning.length) + '건 알림\\n';\nmsg += '\\ud83e\\udd16 자동 생성 by n8n STOCK-ALERT';\n\nreturn [{ json: {\n  hasAlert: true,\n  isError: false,\n  message: msg,\n  criticalCount: critical.length,\n  warningCount: warning.length,\n  totalCount: totalCount,\n  criticalProducts: critical,\n  warningProducts: warning\n} }];"
+      },
+      "id": "sa-0001-0001-4000-8000-000000000003",
+      "name": "재고 분석",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-has-alert",
+              "leftValue": "={{ $json.hasAlert }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "sa-0001-0001-4000-8000-000000000004",
+      "name": "알림 대상 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [760, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "sa-0001-0001-4000-8000-000000000005",
+      "name": "텔레그램 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1000, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// 정상 - 알림 대상 없음 (로깅용)\nreturn [{ json: {\n  status: 'ok',\n  message: 'STOCK-ALERT: 재고 이상 없음',\n  timestamp: new Date().toISOString()\n} }];"
+      },
+      "id": "sa-0001-0001-4000-8000-000000000006",
+      "name": "정상 (알림 없음)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1000, 420]
+    }
+  ],
+  "connections": {
+    "매일 08:00 KST": {
+      "main": [
+        [
+          { "node": "MakeShop 상품 재고 조회", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "MakeShop 상품 재고 조회": {
+      "main": [
+        [
+          { "node": "재고 분석", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "재고 분석": {
+      "main": [
+        [
+          { "node": "알림 대상 있음?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "알림 대상 있음?": {
+      "main": [
+        [
+          { "node": "텔레그램 알림", "type": "main", "index": 0 }
+        ],
+        [
+          { "node": "정상 (알림 없음)", "type": "main", "index": 0 }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

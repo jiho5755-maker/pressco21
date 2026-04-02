@@ -1,0 +1,223 @@
+{
+  "name": "ONBOARD-SEQ: 입문자 이메일 시퀀스",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 1 * * *"
+            }
+          ]
+        }
+      },
+      "id": "onb-seq-0001-4000-8000-000000000001",
+      "name": "매일 10시 KST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {"name": "mode", "value": "search"},
+            {"name": "type", "value": "user"},
+            {"name": "searchType", "value": "login"},
+            {"name": "limit", "value": "500"}
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}"},
+            {"name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}"}
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "onb-seq-0001-4000-8000-000000000002",
+      "name": "MakeShop 회원 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// MakeShop 회원 목록에서 D+1/3/7/14/21 발송 대상 분류\nvar raw = $input.first().json;\n\n// MakeShop list 응답은 객체일 수 있음 -> 배열 변환\nvar members = [];\nif (raw && raw.list) {\n  if (Array.isArray(raw.list)) {\n    members = raw.list;\n  } else if (typeof raw.list === 'object') {\n    members = Object.values(raw.list);\n  }\n}\n\n// 오늘 날짜 (KST)\nvar now = new Date();\nvar kstNow = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nvar todayStr = kstNow.toISOString().slice(0, 10);\nvar todayMs = new Date(todayStr + 'T00:00:00Z').getTime();\n\n// 단계 정의\nvar steps = [\n  { day: 1, key: 'D1' },\n  { day: 3, key: 'D3' },\n  { day: 7, key: 'D7' },\n  { day: 14, key: 'D14' },\n  { day: 21, key: 'D21' }\n];\n\n// 이메일 콘텐츠 정의\nvar emailTemplates = {\n  D1: {\n    subject: '[프레스코21] {name}님, 꽃 공예 어디서 시작하지?',\n    greeting: '{name}님, 프레스코21에 가입해 주셔서 감사합니다!',\n    body: '꽃 공예를 시작하고 싶은데 어디서부터 해야 할지 막막하시죠?<br><br>프레스코21은 꽃 공예 재료 전문 쇼핑몰로, 프리저브드 플라워부터 레진 아트까지 다양한 재료를 만나보실 수 있습니다.<br><br>처음이시라면 <strong>\"처음이라면\" 코너</strong>에서 입문자용 키트를 살펴보세요. 유튜브에서 무료 강의도 함께 보시면 더 쉽게 시작하실 수 있습니다.',\n    ctaUrl: 'https://www.foreverlove.co.kr/shopbrand.html?type=N&xcode=043',\n    ctaText: '입문자 키트 보러가기'\n  },\n  D3: {\n    subject: '[프레스코21] 초보자가 가장 많이 구매하는 TOP 3',\n    greeting: '{name}님, 다른 초보자분들은 뭘 먼저 살까요?',\n    body: '프레스코21에서 초보자분들이 가장 많이 구매하는 상품 TOP 3을 알려드릴게요.<br><br><strong>1. 프리저브드 플라워 입문 키트</strong> - 꽃다발 만들기의 첫 걸음<br><strong>2. 레진 아트 스타터 세트</strong> - 투명한 작품의 시작<br><strong>3. 캔들/왁스 기초 재료</strong> - 향기로운 취미 입문<br><br>재료와 설명서가 함께 들어있어 바로 시작할 수 있습니다.',\n    ctaUrl: 'https://www.foreverlove.co.kr/shopbrand.html?type=Y&xcode=006',\n    ctaText: '베스트셀러 보러가기'\n  },\n  D7: {\n    subject: '[프레스코21] 유튜브에서 무료로 배워보세요',\n    greeting: '{name}님, 꽃 공예 재료는 잘 살펴보셨나요?',\n    body: '프레스코21 유튜브 채널에서 다양한 꽃 공예 강의를 <strong>무료</strong>로 시청하실 수 있습니다.<br><br>추천 영상:<br>- 프리저브드 플라워 기초 다루기<br>- 레진 아트 입문 가이드<br>- 계절별 플라워 어레인지먼트<br><br>영상을 보면서 함께 만들어 보세요!',\n    ctaUrl: 'https://www.youtube.com/@pressco21',\n    ctaText: '유튜브 채널 바로가기'\n  },\n  D14: {\n    subject: '[프레스코21] 원데이 클래스 해보셨나요?',\n    greeting: '{name}님, 혼자 만들기 어려우셨나요?',\n    body: '프레스코21 <strong>파트너클래스</strong>에서 전문 강사님과 함께 원데이 클래스를 수강해 보세요.<br><br>전국의 파트너 강사님들이 다양한 꽃 공예 수업을 진행하고 있습니다. 프리저브드 플라워, 레진 아트, 캔들 등 원하는 분야를 선택할 수 있어요.<br><br>수업에 필요한 재료는 프레스코21에서 직접 발송해 드립니다.',\n    ctaUrl: 'https://www.foreverlove.co.kr/page.html?id=2606',\n    ctaText: '파트너클래스 보러가기'\n  },\n  D21: {\n    subject: '[프레스코21] 다음에 도전해볼 재료 알려드릴게요',\n    greeting: '{name}님, 꽃 공예가 재미있으셨나요?',\n    body: '처음 시도한 꽃 공예가 재미있으셨다면, 다음 단계로 넘어가 볼까요?<br><br><strong>추천 카테고리:</strong><br>- 시즌 한정 재료 (매달 새로운 컬러와 소재)<br>- 고급 도구 세트 (작품 퀄리티 UP)<br>- DIY 키트 (선물용으로도 인기)<br><br>프레스코21은 꽃 공예를 사랑하는 분들과 함께합니다.',\n    ctaUrl: 'https://www.foreverlove.co.kr/',\n    ctaText: '프레스코21 둘러보기'\n  }\n};\n\n// HTML 템플릿 생성 함수\nfunction buildHtml(tpl, name) {\n  var greeting = tpl.greeting.replace('{name}', name);\n  var html = '<div style=\"max-width:600px;margin:0 auto;font-family:Pretendard,Apple SD Gothic Neo,Malgun Gothic,sans-serif;color:#2b3d2f;\">';\n  html += '<div style=\"background:#b4c6ab;padding:20px;text-align:center;\">';\n  html += '<h1 style=\"color:#fff;margin:0;font-size:22px;\">PRESSCO21</h1>';\n  html += '<p style=\"color:#fff;margin:4px 0 0;font-size:13px;opacity:0.85;\">꽃으로노는모든방법</p>';\n  html += '</div>';\n  html += '<div style=\"padding:30px 28px;background:#fff;\">';\n  html += '<p style=\"font-size:15px;line-height:1.7;margin:0 0 16px;\">' + greeting + '</p>';\n  html += '<p style=\"font-size:15px;line-height:1.7;margin:0 0 24px;\">' + tpl.body + '</p>';\n  html += '<div style=\"text-align:center;margin:28px 0;\">';\n  html += '<a href=\"' + tpl.ctaUrl + '\" style=\"display:inline-block;background:#597051;color:#fff;padding:14px 28px;border-radius:6px;text-decoration:none;font-size:15px;font-weight:500;\">' + tpl.ctaText + '</a>';\n  html += '</div>';\n  html += '</div>';\n  html += '<div style=\"background:#e5eae3;padding:18px 28px;text-align:center;\">';\n  html += '<p style=\"font-size:12px;color:#666;margin:0 0 4px;line-height:1.5;\">foreverlove.co.kr | 프레스코21</p>';\n  html += '<p style=\"font-size:12px;color:#666;margin:0 0 4px;\">서울 송파구 백제고분로7길 28, 2층</p>';\n  html += '<p style=\"font-size:11px;color:#999;margin:6px 0 0;\">070-7576-0778 | pressco5755@naver.com</p>';\n  html += '</div>';\n  html += '</div>';\n  return html;\n}\n\n// 발송 대상 분류\nvar results = [];\nvar maxTotal = 50; // 일일 안전장치\n\nfor (var i = 0; i < members.length; i++) {\n  if (results.length >= maxTotal) break;\n\n  var m = members[i];\n  var email = String(m.email || '').trim();\n  var emailRecv = String(m.email_receive || 'Y').toUpperCase();\n  var name = String(m.hname || m.name || '').trim();\n  var regDate = String(m.reg_date || '').trim();\n\n  // 이메일 없거나 수신거부이면 스킵\n  if (!email || email.indexOf('@') < 0) continue;\n  if (emailRecv === 'N') continue;\n  if (!regDate) continue;\n\n  // 가입일로부터 경과일 계산\n  var regDateStr = regDate.slice(0, 10); // yyyy-MM-dd\n  var regMs = new Date(regDateStr + 'T00:00:00Z').getTime();\n  if (isNaN(regMs)) continue;\n\n  var diffDays = Math.round((todayMs - regMs) / (24 * 60 * 60 * 1000));\n\n  // 해당하는 단계 찾기\n  for (var s = 0; s < steps.length; s++) {\n    if (diffDays === steps[s].day) {\n      var tpl = emailTemplates[steps[s].key];\n      var subject = tpl.subject.replace('{name}', name || '고객');\n      var htmlBody = buildHtml(tpl, name || '고객');\n\n      results.push({\n        json: {\n          email: email,\n          name: name || '고객',\n          userId: String(m.id || ''),\n          step: steps[s].key,\n          daysSinceJoin: diffDays,\n          subject: subject,\n          htmlBody: htmlBody,\n          regDate: regDateStr\n        }\n      });\n      break;\n    }\n  }\n}\n\nif (results.length === 0) {\n  return [{ json: { empty: true, count: 0, totalMembers: members.length, message: '오늘 발송 대상 없음' } }];\n}\n\nreturn results;",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "onb-seq-0001-4000-8000-000000000003",
+      "name": "단계별 발송 대상 분류",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-target",
+              "leftValue": "={{ $json.email }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "onb-seq-0001-4000-8000-000000000004",
+      "name": "발송 대상 있는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [780, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco5755@naver.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "html": "={{ $json.htmlBody }}",
+        "options": {}
+      },
+      "id": "onb-seq-0001-4000-8000-000000000005",
+      "name": "온보딩 이메일 발송",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1040, 200],
+      "credentials": {
+        "smtp": {
+          "id": "31jTm9BU7iyj0pVx",
+          "name": "PRESSCO21-SMTP-Naver"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 발송 결과 확인 + 집계\nvar allItems = $input.all();\nvar sentData = [];\nvar failCount = 0;\n\ntry {\n  sentData = $('단계별 발송 대상 분류').all();\n} catch(e) {\n  sentData = [];\n}\n\nvar results = [];\nfor (var i = 0; i < allItems.length; i++) {\n  var item = allItems[i].json;\n  var orig = sentData[i] ? sentData[i].json : {};\n  var hasError = false;\n\n  if (typeof item.error === 'string' && item.error) {\n    hasError = true;\n    failCount++;\n  } else if (Array.isArray(item.rejected) && item.rejected.length > 0) {\n    hasError = true;\n    failCount++;\n  }\n\n  results.push({\n    json: {\n      email: orig.email || '',\n      name: orig.name || '',\n      step: orig.step || '',\n      success: !hasError,\n      error: hasError ? String(item.error || 'rejected') : ''\n    }\n  });\n}\n\nreturn results;",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "onb-seq-0001-4000-8000-000000000006",
+      "name": "발송 결과 확인",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 200]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 발송 결과 집계 -> 텔레그램 메시지 생성\nvar items = $input.all();\nvar stepCount = { D1: 0, D3: 0, D7: 0, D14: 0, D21: 0 };\nvar totalSent = 0;\nvar totalFail = 0;\nvar failDetails = [];\n\nfor (var i = 0; i < items.length; i++) {\n  var d = items[i].json;\n  if (d.success) {\n    totalSent++;\n    if (stepCount[d.step] !== undefined) stepCount[d.step]++;\n  } else {\n    totalFail++;\n    failDetails.push(d.name + '(' + d.step + '): ' + (d.error || 'unknown').substring(0, 50));\n  }\n}\n\nvar stepLabels = {\n  D1: 'D+1 입문가이드',\n  D3: 'D+3 TOP3상품',\n  D7: 'D+7 유튜브강의',\n  D14: 'D+14 파트너클래스',\n  D21: 'D+21 재구매유도'\n};\n\nvar msg = '\\u{1F4E8} 온보딩 이메일 시퀀스 발송 결과\\n';\nmsg += '\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n';\nmsg += '\\u2705 성공: ' + totalSent + '건';\nif (totalFail > 0) msg += ' | \\u274c 실패: ' + totalFail + '건';\nmsg += '\\n\\n';\n\nvar hasAny = false;\nvar stepKeys = ['D1', 'D3', 'D7', 'D14', 'D21'];\nfor (var s = 0; s < stepKeys.length; s++) {\n  var k = stepKeys[s];\n  if (stepCount[k] > 0) {\n    msg += '\\u2022 ' + stepLabels[k] + ': ' + stepCount[k] + '\\uBA85\\n';\n    hasAny = true;\n  }\n}\n\nif (!hasAny) msg += '(\\uBC1C\\uC1A1 \\uC131\\uACF5 \\uAC74 \\uC5C6\\uC74C)\\n';\n\nif (failDetails.length > 0) {\n  msg += '\\n\\u26a0\\ufe0f \\uC2E4\\uD328 \\uC0C1\\uC138:\\n';\n  for (var f = 0; f < Math.min(failDetails.length, 5); f++) {\n    msg += '  - ' + failDetails[f] + '\\n';\n  }\n  if (failDetails.length > 5) msg += '  ... \\uC678 ' + (failDetails.length - 5) + '\\uAC74';\n}\n\nreturn [{ json: { message: msg, totalSent: totalSent, totalFail: totalFail } }];",
+        "mode": "runOnceForAllItems"
+      },
+      "id": "onb-seq-0001-4000-8000-000000000007",
+      "name": "텔레그램 메시지 생성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1560, 200]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "id": "onb-seq-0001-4000-8000-000000000008",
+      "name": "텔레그램 결과 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1820, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "onb-seq-0001-4000-8000-000000000009",
+      "name": "대상 없음 - 패스",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1040, 450]
+    }
+  ],
+  "connections": {
+    "매일 10시 KST": {
+      "main": [
+        [
+          {"node": "MakeShop 회원 조회", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "MakeShop 회원 조회": {
+      "main": [
+        [
+          {"node": "단계별 발송 대상 분류", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "단계별 발송 대상 분류": {
+      "main": [
+        [
+          {"node": "발송 대상 있는가", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "발송 대상 있는가": {
+      "main": [
+        [
+          {"node": "온보딩 이메일 발송", "type": "main", "index": 0}
+        ],
+        [
+          {"node": "대상 없음 - 패스", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "온보딩 이메일 발송": {
+      "main": [
+        [
+          {"node": "발송 결과 확인", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "발송 결과 확인": {
+      "main": [
+        [
+          {"node": "텔레그램 메시지 생성", "type": "main", "index": 0}
+        ]
+      ]
+    },
+    "텔레그램 메시지 생성": {
+      "main": [
+        [
+          {"node": "텔레그램 결과 알림", "type": "main", "index": 0}
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

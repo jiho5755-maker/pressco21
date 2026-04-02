@@ -1,0 +1,427 @@
+{
+  "name": "PARTNER-ONBOARD: 강사 파트너클래스 유도",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "po-0001-4000-8000-000000000001",
+      "name": "수동 실행",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "user" },
+            { "name": "searchType", "value": "grade" },
+            { "name": "keyword", "value": "3" },
+            { "name": "limit", "value": "500" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "po-0001-4000-8000-000000000002",
+      "name": "MakeShop 강사회원 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "limit", "value": "500" },
+            { "name": "fields", "value": "Id,자사몰 ID,성함,연락처,이메일 주소,진행 상태" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "po-0001-4000-8000-000000000003",
+      "name": "NocoDB 파트너 목록 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// MakeShop 강사회원 중 파트너클래스 미등록자 필터링\nvar mkData = $('MakeShop 강사회원 조회').first().json;\nvar ncData = $('NocoDB 파트너 목록 조회').first().json;\n\n// MakeShop 회원 목록 파싱\nvar mkList = mkData.list || [];\nif (!Array.isArray(mkList)) {\n  mkList = Object.values(mkList);\n}\n\n// NocoDB 파트너 목록 파싱 - 자사몰 ID로 Set 구성\nvar ncList = ncData.list || [];\nif (!Array.isArray(ncList)) {\n  ncList = Object.values(ncList);\n}\nvar partnerIdSet = new Set();\nfor (var i = 0; i < ncList.length; i++) {\n  var pid = (ncList[i]['자사몰 ID'] || '').trim().toLowerCase();\n  if (pid) partnerIdSet.add(pid);\n}\n\n// 미등록 강사 필터\nvar results = [];\nvar skippedNoEmail = 0;\nvar skippedNoReceive = 0;\nvar skippedAlreadyPartner = 0;\n\nfor (var j = 0; j < mkList.length; j++) {\n  var member = mkList[j];\n  var loginId = (member.login || member.id || '').trim().toLowerCase();\n  \n  // 이미 파트너클래스 등록된 회원 제외\n  if (partnerIdSet.has(loginId)) {\n    skippedAlreadyPartner++;\n    continue;\n  }\n\n  // 이메일 필수 + 수신동의 체크\n  var email = (member.email || '').trim();\n  if (!email || email.indexOf('@') === -1) {\n    skippedNoEmail++;\n    continue;\n  }\n  \n  var emailReceive = (member.email_receive || member.emailReceive || 'N').toUpperCase();\n  if (emailReceive !== 'Y') {\n    skippedNoReceive++;\n    continue;\n  }\n\n  var name = member.hname || member.name || '선생님';\n  var phone = (member.mobile || member.phone || '').replace(/[^0-9]/g, '').replace(/^82/, '0');\n\n  results.push({\n    json: {\n      loginId: loginId,\n      name: name,\n      email: email,\n      phone: phone,\n      hasPhone: phone.length >= 10,\n      grade: member.grade || ''\n    }\n  });\n\n  // 초기 100명 제한\n  if (results.length >= 100) break;\n}\n\nif (results.length === 0) {\n  return [{\n    json: {\n      empty: true,\n      totalMakeshop: mkList.length,\n      totalPartner: ncList.length,\n      skippedAlreadyPartner: skippedAlreadyPartner,\n      skippedNoEmail: skippedNoEmail,\n      skippedNoReceive: skippedNoReceive\n    }\n  }];\n}\n\n// 첫 번째 아이템에 통계 추가\nresults[0].json.stats = {\n  totalMakeshop: mkList.length,\n  totalPartner: ncList.length,\n  skippedAlreadyPartner: skippedAlreadyPartner,\n  skippedNoEmail: skippedNoEmail,\n  skippedNoReceive: skippedNoReceive,\n  targetCount: results.length\n};\n\nreturn results;"
+      },
+      "id": "po-0001-4000-8000-000000000004",
+      "name": "미등록 강사 필터",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-not-empty",
+              "leftValue": "={{ $json.empty }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "notTrue"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "po-0001-4000-8000-000000000005",
+      "name": "대상 있는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [960, 300]
+    },
+    {
+      "parameters": {
+        "fromEmail": "pressco5755@naver.com",
+        "toEmail": "={{ $json.email }}",
+        "subject": "[프레스코21] 선생님, 수강생을 만날 준비 되셨나요?",
+        "emailType": "html",
+        "html": "=<div style=\"max-width:600px;margin:0 auto;font-family:'Pretendard','Apple SD Gothic Neo','Malgun Gothic',sans-serif;color:#2b3d2f;\"><div style=\"background:#b4c6ab;padding:20px;text-align:center;\"><h1 style=\"color:#fff;margin:0;font-size:22px;\">파트너클래스</h1><p style=\"color:#fff;margin:5px 0 0;font-size:14px;\">프레스코21 강사 플랫폼</p></div><div style=\"padding:30px;\"><p style=\"font-size:15px;line-height:1.7;\">{{ $json.name }} 선생님, 안녕하세요.</p><p style=\"font-size:15px;line-height:1.7;\">프레스코21 파트너클래스에서 선생님의 수업을 홍보하고, 수강생을 직접 만나보세요.</p><ul style=\"color:#597051;font-size:15px;line-height:2;\"><li>수업 일정과 커리큘럼을 자유롭게 등록</li><li>재료 키트를 수강생에게 바로 제공</li><li>프레스코21 재료를 강사 할인가로 구매</li></ul><p style=\"text-align:center;margin:30px 0;\"><a href=\"https://foreverlove.co.kr/shop/page.html?id=2609\" style=\"display:inline-block;background:#597051;color:#fff;padding:14px 28px;border-radius:8px;text-decoration:none;font-size:16px;\">파트너 신청하기</a></p></div><div style=\"background:#e5eae3;padding:15px;text-align:center;font-size:12px;color:#666;\">foreverlove.co.kr | 프레스코21 파트너클래스</div></div>",
+        "options": {}
+      },
+      "id": "po-0001-4000-8000-000000000006",
+      "name": "이메일 발송",
+      "type": "n8n-nodes-base.emailSend",
+      "typeVersion": 2.1,
+      "position": [1200, 200],
+      "credentials": {
+        "smtp": {
+          "id": "31jTm9BU7iyj0pVx",
+          "name": "PRESSCO21-SMTP-Naver"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "// 이메일 발송 결과 확인\nvar item = $input.item.json || {};\nvar prev = $('대상 있는가').item.json || {};\nvar errorMsg = '';\n\nif (typeof item.error === 'string' && item.error) {\n  errorMsg = item.error;\n} else if (Array.isArray(item.rejected) && item.rejected.length > 0) {\n  errorMsg = 'Rejected: ' + item.rejected.join(', ');\n}\n\nvar emailOk = errorMsg === '';\n\nreturn {\n  json: {\n    loginId: prev.loginId || '',\n    name: prev.name || '',\n    email: prev.email || '',\n    phone: prev.phone || '',\n    hasPhone: prev.hasPhone || false,\n    emailSuccess: emailOk,\n    emailError: errorMsg,\n    stats: prev.stats || null\n  }\n};"
+      },
+      "id": "po-0001-4000-8000-000000000007",
+      "name": "이메일 결과 확인",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 200]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-phone",
+              "leftValue": "={{ $json.hasPhone }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "po-0001-4000-8000-000000000008",
+      "name": "전화번호 있는가",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1680, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://apis.aligo.in/send/",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "key", "value": "={{ $env.ALIGO_API_KEY }}" },
+            { "name": "user_id", "value": "={{ $env.ALIGO_USER_ID }}" },
+            { "name": "sender", "value": "={{ $env.ALIGO_SENDER_PHONE }}" },
+            { "name": "receiver", "value": "={{ $json.phone }}" },
+            { "name": "msg", "value": "={{ '[프레스코21] ' + $json.name + ' 선생님, 파트너클래스에서 수강생을 만나보세요!\\n수업 등록 > 재료 키트 제공 > 강사 할인 혜택\\n\\nforeverlove.co.kr/shop/page.html?id=2609' }}" },
+            { "name": "testmode_yn", "value": "Y" }
+          ]
+        },
+        "options": {
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "po-0001-4000-8000-000000000009",
+      "name": "알리고 SMS 발송",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1920, 100],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 전체 발송 결과 집계\nvar emailItems = $('이메일 결과 확인').all();\nvar smsItems = $input.all();\n\nvar emailOk = 0;\nvar emailFail = 0;\nvar smsOk = 0;\nvar smsFail = 0;\nvar smsSkipped = 0;\nvar stats = null;\n\nfor (var i = 0; i < emailItems.length; i++) {\n  var e = emailItems[i].json;\n  if (e.emailSuccess) emailOk++;\n  else emailFail++;\n  if (!stats && e.stats) stats = e.stats;\n}\n\nfor (var j = 0; j < smsItems.length; j++) {\n  var s = smsItems[j].json;\n  // 알리고 응답: result_code가 1이면 성공\n  if (s.result_code === 1 || s.result_code === '1') smsOk++;\n  else if (s.hasPhone === false || s.empty) smsSkipped++;\n  else smsFail++;\n}\n\nvar now = new Date();\nvar kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nvar timeStr = kst.toISOString().replace('T', ' ').substring(0, 19) + ' KST';\n\nvar msg = '<b>PARTNER-ONBOARD 캠페인 결과</b>\\n\\n';\n\nif (stats) {\n  msg += 'MakeShop 강사회원: ' + stats.totalMakeshop + '명\\n';\n  msg += 'NocoDB 파트너 등록: ' + stats.totalPartner + '명\\n';\n  msg += '이미 파트너: ' + stats.skippedAlreadyPartner + '명\\n';\n  msg += '이메일 없음: ' + stats.skippedNoEmail + '명\\n';\n  msg += '수신거부: ' + stats.skippedNoReceive + '명\\n';\n  msg += '발송 대상: ' + stats.targetCount + '명\\n\\n';\n}\n\nmsg += '이메일: ' + emailOk + '건 성공';\nif (emailFail > 0) msg += ', ' + emailFail + '건 실패';\nmsg += '\\n';\n\nmsg += 'SMS: ' + smsOk + '건 성공';\nif (smsFail > 0) msg += ', ' + smsFail + '건 실패';\nif (smsSkipped > 0) msg += ', ' + smsSkipped + '건 스킵';\nmsg += ' (테스트모드)\\n\\n';\n\nmsg += timeStr;\n\nreturn [{ json: { message: msg } }];"
+      },
+      "id": "po-0001-4000-8000-000000000010",
+      "name": "발송 결과 집계",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [2160, 200]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "po-0001-4000-8000-000000000011",
+      "name": "텔레그램 결과 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [2400, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 대상 없음 - 텔레그램 메시지 생성\nvar data = $input.first().json;\n\nvar now = new Date();\nvar kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nvar timeStr = kst.toISOString().replace('T', ' ').substring(0, 19) + ' KST';\n\nvar msg = '<b>PARTNER-ONBOARD 캠페인</b>\\n\\n';\nmsg += '미등록 강사 없음\\n\\n';\nif (data.totalMakeshop !== undefined) {\n  msg += 'MakeShop 강사회원: ' + data.totalMakeshop + '명\\n';\n  msg += 'NocoDB 파트너 등록: ' + data.totalPartner + '명\\n';\n  msg += '이미 파트너: ' + data.skippedAlreadyPartner + '명\\n';\n  msg += '이메일 없음: ' + data.skippedNoEmail + '명\\n';\n  msg += '수신거부: ' + data.skippedNoReceive + '명\\n';\n}\nmsg += '\\n' + timeStr;\n\nreturn [{ json: { message: msg } }];"
+      },
+      "id": "po-0001-4000-8000-000000000012",
+      "name": "대상없음 메시지",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 480]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "po-0001-4000-8000-000000000013",
+      "name": "텔레그램 대상없음",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1440, 480],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {},
+      "id": "po-0001-4000-8000-000000000014",
+      "name": "SMS 스킵",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1920, 320]
+    }
+  ],
+  "connections": {
+    "수동 실행": {
+      "main": [
+        [
+          {
+            "node": "MakeShop 강사회원 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "MakeShop 강사회원 조회": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 파트너 목록 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 파트너 목록 조회": {
+      "main": [
+        [
+          {
+            "node": "미등록 강사 필터",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "미등록 강사 필터": {
+      "main": [
+        [
+          {
+            "node": "대상 있는가",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "대상 있는가": {
+      "main": [
+        [
+          {
+            "node": "이메일 발송",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "대상없음 메시지",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이메일 발송": {
+      "main": [
+        [
+          {
+            "node": "이메일 결과 확인",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이메일 결과 확인": {
+      "main": [
+        [
+          {
+            "node": "전화번호 있는가",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "전화번호 있는가": {
+      "main": [
+        [
+          {
+            "node": "알리고 SMS 발송",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "SMS 스킵",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "알리고 SMS 발송": {
+      "main": [
+        [
+          {
+            "node": "발송 결과 집계",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SMS 스킵": {
+      "main": [
+        [
+          {
+            "node": "발송 결과 집계",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "발송 결과 집계": {
+      "main": [
+        [
+          {
+            "node": "텔레그램 결과 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "대상없음 메시지": {
+      "main": [
+        [
+          {
+            "node": "텔레그램 대상없음",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    { "name": "파트너클래스" },
+    { "name": "캠페인" },
+    { "name": "온보딩" }
+  ]
+}

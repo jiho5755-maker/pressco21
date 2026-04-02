@@ -113,6 +113,50 @@
     },
     {
       "parameters": {
+        "jsCode": "// 대상 세그먼트 필터링 (전화번호 조회 전)\nconst segData = $('NocoDB 세그먼트 조회').first().json;\nconst logData = $('NocoDB 7일내 발송기록').first().json;\n\nfunction toArray(data) {\n  if (Array.isArray(data)) return data;\n  if (data && typeof data === 'object') return Object.values(data);\n  return [];\n}\n\nconst segments = toArray(segData.list || []);\nconst recentLogs = toArray(logData.list || []);\n\nconst now = Date.now();\nconst sevenDaysAgo = now - 7 * 24 * 60 * 60 * 1000;\nconst sentSet = new Set();\nfor (const log of recentLogs) {\n  const sentTime = new Date(log.sent_at || 0).getTime();\n  if (sentTime > sevenDaysAgo && log.user_id && log.segment) {\n    sentSet.add(log.user_id + '::' + log.segment);\n  }\n}\n\nconst targetSegments = ['이탈위험', '신규고객', 'VIP', '휴면고객'];\nconst maxPerSegment = 100;\nconst segCounter = {};\nconst results = [];\n\nfor (const seg of segments) {\n  const uid = seg.user_id;\n  const segName = seg.segment;\n  if (!uid || !segName || !targetSegments.includes(segName)) continue;\n\n  segCounter[segName] = (segCounter[segName] || 0);\n  if (segCounter[segName] >= maxPerSegment) continue;\n  if (sentSet.has(uid + '::' + segName)) continue;\n\n  results.push({\n    json: {\n      user_id: uid,\n      user_name: seg.user_name || '',\n      segment: segName,\n      order_count: seg.order_count || 0,\n      total_spent: seg.total_spent || 0,\n      recency_days: seg.recency_days || 0\n    }\n  });\n  segCounter[segName]++;\n}\n\nif (results.length === 0) {\n  return [{ json: { empty: true, message: '대상 없음: ' + JSON.stringify(segCounter) } }];\n}\n\nreturn results;"
+      },
+      "id": "rfm-act-0001-4000-8000-000000000004",
+      "name": "세그먼트 필터",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-uid",
+              "leftValue": "={{ $json.user_id }}",
+              "rightValue": "",
+              "operator": {
+                "type": "string",
+                "operation": "notEmpty"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "rfm-act-0001-4000-8000-000000000006",
+      "name": "대상 있는지 체크",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        300
+      ]
+    },
+    {
+      "parameters": {
         "method": "GET",
         "url": "http://foreverlove.co.kr/list/open_api.html",
         "sendQuery": true,
@@ -131,8 +175,12 @@
               "value": "login"
             },
             {
+              "name": "keyword",
+              "value": "={{ $json.user_id }}"
+            },
+            {
               "name": "limit",
-              "value": "500"
+              "value": "1"
             }
           ]
         },
@@ -157,27 +205,27 @@
           }
         }
       },
-      "id": "rfm-act-0001-4000-8000-000000000004",
-      "name": "MakeShop 회원정보 조회",
+      "id": "rfm-act-0001-4000-8000-000000000010",
+      "name": "MakeShop 회원 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        720,
-        300
-      ]
+        1200,
+        200
+      ],
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "mode": "runOnceForAllItems",
-        "jsCode": "// RFM-ACTION: 세그먼트별 발송 대상 필터링 + 메시지 생성\n// 입력: 세그먼트 목록, 7일내 발송기록, 회원 연락처\n\nconst segData = $('NocoDB 세그먼트 조회').first().json;\nconst logData = $('NocoDB 7일내 발송기록').first().json;\nconst memberData = $('MakeShop 회원정보 조회').first().json;\n\n// 배열 변환 유틸\nfunction toArray(data) {\n  if (Array.isArray(data)) return data;\n  if (data && typeof data === 'object') return Object.values(data);\n  return [];\n}\n\nconst segments = toArray(segData.list || []);\nconst recentLogs = toArray(logData.list || []);\nconst members = toArray(memberData.list || []);\n\n// 회원 연락처 맵 (user_id -> phone)\nconst phoneMap = {};\nfor (const m of members) {\n  const uid = m.id || m.userid;\n  const phone = (m.cellphone || m.phone || '').replace(/-/g, '').trim();\n  if (uid && phone && phone.length >= 10) {\n    phoneMap[uid] = phone;\n  }\n}\n\n// 7일 이내 발송된 user_id+segment 조합 Set (중복 방지)\nconst sentSet = new Set();\nfor (const log of recentLogs) {\n  if (log.user_id && log.segment) {\n    sentSet.add(log.user_id + '::' + log.segment);\n  }\n}\n\n// 세그먼트별 메시지 템플릿\nconst templates = {\n  '이탈위험': function(name) {\n    return '[프레스코21] ' + name + '님, 오랜만이에요!\\n'\n      + '요즘 새로운 재료들이 많이 들어왔어요.\\n'\n      + '다시 한번 둘러보시겠어요?\\n'\n      + '> foreverlove.co.kr';\n  },\n  '신규고객': function(name) {\n    return '[프레스코21] ' + name + '님, 첫 주문 감사합니다!\\n'\n      + '이 재료와 같이 쓰면 더 예쁜 작품을 만들 수 있어요.\\n'\n      + '> foreverlove.co.kr';\n  },\n  'VIP': function(name) {\n    return '[프레스코21] ' + name + '님, 항상 감사합니다.\\n'\n      + '이번 주 신상품을 먼저 알려드려요!\\n'\n      + '> foreverlove.co.kr';\n  },\n  '휴면고객': function(name) {\n    return '[프레스코21] ' + name + '님, 꽃 공예가 그리우시죠?\\n'\n      + '돌아오시면 반갑겠습니다.\\n'\n      + '> foreverlove.co.kr';\n  }\n};\n\n// 세그먼트별 최대 발송 수 (주당)\nconst maxPerSegment = {\n  '이탈위험': 100,\n  '신규고객': 100,\n  'VIP': 100,\n  '휴면고객': 100\n};\n\n// 세그먼트별 카운터\nconst segCounter = {};\nconst results = [];\n\nfor (const seg of segments) {\n  const uid = seg.user_id;\n  const segName = seg.segment;\n  if (!uid || !segName) continue;\n\n  // 대상 세그먼트만\n  if (!templates[segName]) continue;\n\n  // 세그먼트별 최대 발송 수 체크\n  segCounter[segName] = (segCounter[segName] || 0);\n  if (segCounter[segName] >= (maxPerSegment[segName] || 100)) continue;\n\n  // 7일 이내 같은 세그먼트 캠페인 이미 발송?\n  const key = uid + '::' + segName;\n  if (sentSet.has(key)) continue;\n\n  // 연락처 존재 여부\n  const phone = phoneMap[uid];\n  if (!phone) continue;\n\n  // 메시지 생성\n  const custName = seg.user_name || '고객';\n  const msg = templates[segName](custName);\n\n  results.push({\n    json: {\n      user_id: uid,\n      user_name: custName,\n      segment: segName,\n      phone: phone,\n      message: msg,\n      order_count: seg.order_count || 0,\n      total_spent: seg.total_spent || 0,\n      recency_days: seg.recency_days || 0\n    }\n  });\n\n  segCounter[segName]++;\n}\n\n// 통계\nconst stats = {\n  total: results.length,\n  bySegment: segCounter,\n  skippedNoPhone: segments.filter(s => !phoneMap[s.user_id] && templates[s.segment]).length,\n  skippedDuplicate: segments.filter(s => sentSet.has(s.user_id + '::' + s.segment) && templates[s.segment]).length\n};\n\nif (results.length === 0) {\n  return [{ json: { empty: true, message: 'RFM 캠페인 발송 대상 없음', stats: stats } }];\n}\n\n// 첫 아이템에 stats 삽입 (집계용)\nresults[0].json._stats = stats;\n\nreturn results;"
+        "jsCode": "// MakeShop 응답 + 세그먼트 데이터 조합 → 메시지 생성\nconst mkResponses = $input.all();\nconst segItems = $('대상 있는지 체크').all();\n\nconst messages = {\n  '이탈위험': (name) => '[프레스코21] ' + name + '님, 오랜만이에요!\\n요즘 새로운 재료들이 많이 들어왔어요.\\n다시 한번 둘러보시겠어요?\\n> foreverlove.co.kr',\n  '신규고객': (name) => '[프레스코21] ' + name + '님, 첫 주문 감사합니다!\\n이 재료와 같이 쓰면 더 예쁜 작품을 만들 수 있어요.\\n> foreverlove.co.kr',\n  'VIP': (name) => '[프레스코21] ' + name + '님, 항상 감사합니다.\\n이번 주 신상품을 먼저 알려드려요!\\n> foreverlove.co.kr',\n  '휴면고객': (name) => '[프레스코21] ' + name + '님, 꽃 공예가 그리우시죠?\\n돌아오시면 반갑겠습니다.\\n> foreverlove.co.kr'\n};\n\nconst results = [];\nlet skippedNoPhone = 0;\n\nfor (let i = 0; i < mkResponses.length; i++) {\n  const mkResp = mkResponses[i].json;\n  const seg = segItems[i] ? segItems[i].json : {};\n\n  // MakeShop 응답에서 회원 정보 추출\n  const memberList = mkResp.list || [];\n  const member = memberList[0];\n\n  if (!member || !member.mobile) {\n    skippedNoPhone++;\n    continue;\n  }\n\n  const phone = (member.mobile || '').replace(/-/g, '').trim();\n  if (phone.length < 10) {\n    skippedNoPhone++;\n    continue;\n  }\n\n  const custName = member.hname || seg.user_name || '고객';\n  const segName = seg.segment || '?';\n  const msg = messages[segName] ? messages[segName](custName) : '';\n  if (!msg) continue;\n\n  results.push({\n    json: {\n      user_id: seg.user_id,\n      user_name: custName,\n      segment: segName,\n      phone: phone,\n      message: msg,\n      order_count: seg.order_count || 0,\n      total_spent: seg.total_spent || 0\n    }\n  });\n}\n\nif (results.length === 0) {\n  return [{ json: { empty: true, message: 'SMS 발송 대상 없음 (전화번호 없음: ' + skippedNoPhone + '명)' } }];\n}\n\nreturn results;"
       },
-      "id": "rfm-act-0001-4000-8000-000000000005",
-      "name": "세그먼트별 발송대상 필터",
+      "id": "rfm-act-0001-4000-8000-000000000011",
+      "name": "메시지 생성",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        960,
-        300
+        1440,
+        200
       ]
     },
     {
@@ -186,42 +234,28 @@
           "options": {
             "caseSensitive": true,
             "leftValue": "",
-            "typeValidation": "strict"
+            "typeValidation": "loose"
           },
           "conditions": [
             {
-              "id": "cond-not-empty",
-              "leftValue": "={{ $json.empty }}",
-              "rightValue": true,
+              "id": "cond-has-phone",
+              "leftValue": "={{ $json.phone }}",
+              "rightValue": "",
               "operator": {
-                "type": "boolean",
-                "operation": "notTrue"
+                "type": "string",
+                "operation": "notEmpty"
               }
             }
           ],
           "combinator": "and"
         }
       },
-      "id": "rfm-act-0001-4000-8000-000000000006",
-      "name": "대상 있는지 체크",
+      "id": "rfm-act-0001-4000-8000-000000000012",
+      "name": "전화번호 있음?",
       "type": "n8n-nodes-base.if",
-      "typeVersion": 2,
+      "typeVersion": 2.2,
       "position": [
-        1200,
-        300
-      ]
-    },
-    {
-      "parameters": {
-        "batchSize": 50,
-        "options": {}
-      },
-      "id": "rfm-act-0001-4000-8000-000000000007",
-      "name": "50건씩 배치",
-      "type": "n8n-nodes-base.splitInBatches",
-      "typeVersion": 3,
-      "position": [
-        1040,
+        1680,
         200
       ]
     },
@@ -310,20 +344,6 @@
       "typeVersion": 4.2,
       "position": [
         1520,
-        200
-      ]
-    },
-    {
-      "parameters": {
-        "amount": 1,
-        "unit": "seconds"
-      },
-      "id": "rfm-act-0001-4000-8000-000000000010",
-      "name": "Wait 1초",
-      "type": "n8n-nodes-base.wait",
-      "typeVersion": 1.1,
-      "position": [
-        1760,
         200
       ]
     },
@@ -429,25 +449,14 @@
       "main": [
         [
           {
-            "node": "MakeShop 회원정보 조회",
+            "node": "세그먼트 필터",
             "type": "main",
             "index": 0
           }
         ]
       ]
     },
-    "MakeShop 회원정보 조회": {
-      "main": [
-        [
-          {
-            "node": "세그먼트별 발송대상 필터",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "세그먼트별 발송대상 필터": {
+    "세그먼트 필터": {
       "main": [
         [
           {
@@ -462,7 +471,7 @@
       "main": [
         [
           {
-            "node": "50건씩 배치",
+            "node": "MakeShop 회원 조회",
             "type": "main",
             "index": 0
           }
@@ -476,7 +485,29 @@
         ]
       ]
     },
-    "50건씩 배치": {
+    "MakeShop 회원 조회": {
+      "main": [
+        [
+          {
+            "node": "메시지 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메시지 생성": {
+      "main": [
+        [
+          {
+            "node": "전화번호 있음?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "전화번호 있음?": {
       "main": [
         [
           {
@@ -485,13 +516,7 @@
             "index": 0
           }
         ],
-        [
-          {
-            "node": "발송결과 집계",
-            "type": "main",
-            "index": 0
-          }
-        ]
+        []
       ]
     },
     "알리고 SMS 발송": {
@@ -509,18 +534,7 @@
       "main": [
         [
           {
-            "node": "Wait 1초",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "Wait 1초": {
-      "main": [
-        [
-          {
-            "node": "50건씩 배치",
+            "node": "발송결과 집계",
             "type": "main",
             "index": 0
           }

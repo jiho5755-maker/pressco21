@@ -26,6 +26,21 @@
 - Mini PC is backup and archival storage, not a public serving surface.
 - OpenClaw is the private control plane and should stay behind loopback, token auth, and private access.
 
+## Local Cockpit Memory
+
+- On the 16GB MacBook, `memory_pressure free %` alone is not a reliable "all clear" signal.
+- If swap is already around `6GB` and compressor is around `7GB`, treat it as real local memory pressure even when CPU is mostly idle.
+- First response for the local cockpit is pragmatic:
+  - save work
+  - reboot once
+  - reopen only the needed tools
+- If the same pressure returns quickly after reboot, reduce the standing app mix first:
+  - Cursor family
+  - browser/WebKit tabs
+  - Claude/Codex tool overlap
+  - virtualization processes
+- Only tune `scripts/memory-watchdog.sh` after observing the post-reboot pattern. Do not treat one swap-heavy session as proof that the watchdog alone is wrong.
+
 ## CRM Deposit Automation
 
 - CRM `/data/*` access is no longer browser-session-only for automation.

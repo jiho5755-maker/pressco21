@@ -90,6 +90,16 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 맥북 로컬 조종석의 메모리 경보를 점검했고, 이번 건은 완전한 오탐보다 `실제 메모리 압박 + 과한 경보 강도`가 겹친 상태로 판단했다.
+  - 확인
+    - macOS 기준 `swap ~6.1GB`, `compressor ~7.1GB`, `PhysMem 15G used / 225MB unused`, `CPU idle ~74%`
+    - `memory_pressure` free는 40%대였지만, 16GB 맥북에서 압축 메모리와 swap이 이미 크게 누적된 상태였다.
+    - 주요 점유군은 Cursor 계열, Safari/WebKit, Claude CLI/앱, Telegram, Virtualization 프로세스였다.
+  - 판단
+    - 경보 스크립트가 `swap >= 6144MB`만으로 `CRITICAL`을 띄워 강도가 과했지만, 현재 상태 자체는 정리 또는 재부팅이 필요한 편이었다.
+    - 이번 세션 기준 최선 조치는 watchdog 조정보다 `작업 저장 -> 재부팅 -> 재발 여부 관찰`이다.
+  - 운영 메모
+    - 재부팅 후에도 짧은 시간 안에 swap 6GB대가 다시 쌓이면, 그때는 watchdog 기준 완화보다 상주 앱 조합과 브라우저/AI 도구 중복 사용을 먼저 줄이는 방향이 맞다.
 - `flora-todo-mvp`를 todo 운영의 실사용 기준 원장/대시보드로 끌어올리고, Oracle n8n의 Notion 의존을 실제로 걷어냈다.
   - `flora-todo-mvp`
     - 홈 대시보드, review/admin, DB-native API, automation task upsert 경로까지 붙여 실제 DB 기준 운영 화면으로 확장했다.
@@ -1347,6 +1357,7 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX] 맥북 재부팅 후 같은 메모리 경보가 빠르게 재발하면 memory-watchdog 기준을 'swap 단독 critical'에서 '낮은 free + 높은 swap + 연속 발생' 조합으로 재설계`
 - `[CODEX] 운영 서버에 hotfix 된 /home/ubuntu/scripts/server-monitor.sh 를 정식 소스 저장소 기준으로 어디에 반영할지 결정하고, writable 경로가 열리면 같은 수정(/proc/stat CPU, Asia/Seoul 시간표기)을 역반영`
 - `[CODEX] 다음 실제 기능 작업 1건에서 start -> checkpoint -> backup -> preflight -> commit -> publish -> finish 순서를 실제로 한 번 끝까지 적용해, 문구나 출력 형식을 더 다듬기`
 - `[CODEX] OPS_STATE.md는 장기 운영 사실만 남기고, 세션 세부 로그가 섞이지 않도록 다음 handoff부터 분리 운용`
@@ -1431,6 +1442,7 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- 현재 로컬 `scripts/memory-watchdog.sh`는 `swap >= 6144MB`만으로도 즉시 `CRITICAL`을 띄운다. 메모리 압박이 실제로 있더라도 체감 악화 전에 반복 알림이 먼저 쌓일 수 있어, 재부팅 후 재발 패턴을 보고 재설계할 필요가 있다.
 - 현재 `server-monitor.sh` hotfix는 운영 서버에만 직접 반영돼 있다. 워크스페이스 규칙상 `n8n-main`은 읽기 전용 취급이라, canonical source 역반영 경로를 정하지 않으면 다음 서버 재프로비저닝/수동 복사 때 구버전이 다시 들어올 수 있다.
 - `codex-commit.sh`는 기존 staged 변경이 있으면 일부러 멈춘다. staging을 여러 작업이 공유된 상태로 오래 끌고 가는 습관이 있으면 처음엔 번거롭게 느껴질 수 있다.
 - `codex-publish.sh`는 dirty tree를 기본 차단하므로, 로컬에 미정리 변경이 많은 저장소에서는 `--allow-dirty` 판단을 신중하게 해야 한다.

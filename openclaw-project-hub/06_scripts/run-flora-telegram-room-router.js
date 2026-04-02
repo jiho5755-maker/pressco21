@@ -183,6 +183,7 @@ function loadConfig(configPath) {
     chunkSize: Number(rawConfig.chunkSize || DEFAULT_CHUNK_SIZE),
     pollIntervalMs: Number(rawConfig.pollIntervalMs || DEFAULT_POLL_INTERVAL_MS),
     longPollSeconds: Number(rawConfig.longPollSeconds || DEFAULT_LONG_POLL_SECONDS),
+    allowPrimaryBotReuse: rawConfig.allowPrimaryBotReuse === true,
     rooms: {}
   };
 
@@ -235,6 +236,12 @@ function validateConfig(config) {
   }
   if (!config.registrationCode) {
     throw new Error("Missing registration code.");
+  }
+  if (config.botUsername === "pressco21_openclaw_bot" && !config.allowPrimaryBotReuse) {
+    throw new Error(
+      "The primary bot 'pressco21_openclaw_bot' is reserved for server flora-frontdoor. " +
+      "Use a dedicated dev bot for the local room router, or set allowPrimaryBotReuse=true only for temporary recovery work.",
+    );
   }
   if (config.chunkSize < 1000 || config.chunkSize > 4096) {
     throw new Error("chunkSize must be between 1000 and 4096.");

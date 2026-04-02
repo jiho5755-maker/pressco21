@@ -1,38 +1,40 @@
-# Flora Telegram Room Router 설정 가이드 v0.1
+# Flora Telegram Room Router 설정 가이드 v0.2
 
-## 목표
+## 상태
 
-이 구조의 목표는 하나다.
+이 문서는 이제 `legacy direct router` 기준이다.
 
-- 텔레그램 봇은 `플로라` 하나만 유지
-- 텔레그램 방은 3개로 분리
-- 방마다 다른 runner를 호출
+메인 플로라를 복구하는 현재 권장 구조는 이 문서가 아니라 아래를 따른다.
 
-권장 방 구성:
+- [flora-frontdoor-local-dev-worker-setup.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-frontdoor-local-dev-worker-setup.ko.md)
 
-1. `통합 비서 방`
-2. `Codex 개발 방`
-3. `Claude Code 개발 방`
+핵심 원칙:
 
-사용자는 모두 같은 플로라 봇과 대화하지만, 내부적으로는 방별로 다른 세션과 다른 CLI를 쓴다.
+- `@pressco21_openclaw_bot` 메인 수신은 서버 `flora-frontdoor`
+- 로컬 맥북은 `flora-local-dev-worker`로만 개발 실행을 담당
+- `run-flora-telegram-room-router.js`는 메인 봇에 쓰지 않는다
 
-현재 추천 기본값은 이렇다.
+## 이 문서가 다루는 범위
 
-- 통합 비서 방도 `Codex CLI + GPT-5.4`
-- Codex 개발 방도 `Codex CLI + GPT-5.4`
-- Claude 개발 방만 `Claude Code CLI`
+room router는 아래처럼 `전용 개발 봇`이 따로 있을 때만 쓴다.
 
-## 왜 이 방식이 가장 안정적인가
+1. `Codex 개발 방`
+2. `Claude Code 개발 방`
 
-이 방식은 `Cursor 화면 자동 조작` 같은 GUI 자동화에 의존하지 않는다.
+즉, 더 이상 `통합 비서 방`을 메인 플로라 ingress로 다루지 않는다.
 
-대신 아래처럼 동작한다.
+## 왜 메인 플로라에는 쓰지 않는가
 
-- 통합 비서 방 -> Codex CLI + Flora 프롬프트
-- Codex 개발 방 -> Codex CLI
-- Claude Code 개발 방 -> Claude CLI
+- 메인 봇을 서버 frontdoor와 로컬 room router가 동시에 polling 하면 `getUpdates 409` 충돌이 난다
+- 예전 플로라의 강점은 `frontdoor가 먼저 메모를 구조화하는 것`인데, room router의 executive 방은 그냥 로컬 CLI 실행기로 흐르기 쉽다
+- 개발 실행은 이미 `server dispatcher -> local dev worker queue` 구조가 더 안정적이다
 
-즉, 밖에서 텔레그램으로 말해도 로컬 맥북에서 직접 CLI가 실행된다.
+## 권장 구성
+
+- 메인 비서: 서버 `flora-frontdoor`
+- 개발 방 route: 서버 `flora-codex-room`, `flora-claude-room`
+- 실제 실행: 로컬 `flora-local-dev-worker`
+- room router: 별도 실험용 dev bot에서만 사용
 
 ## 추가된 파일
 
@@ -42,20 +44,18 @@
 
 ## 준비물
 
-### 1. 플로라 봇 하나
-
-이미 `플로라 / @pressco21_openclaw_bot`를 쓰고 있다면 그대로 써도 된다.
+### 1. 전용 개발 봇 하나
 
 중요:
 
-- 같은 봇을 여러 방에 다 넣는다.
-- BotFather에서 `privacy mode`는 꺼두는 편이 좋다.
+- `@pressco21_openclaw_bot`를 그대로 쓰면 안 된다
+- room router는 전용 dev bot을 따로 만들어야 한다
+- BotFather에서 `privacy mode`는 꺼두는 편이 좋다
 
 ### 2. 텔레그램 방 3개
 
 예시 이름:
 
-- `플로라 통합 비서`
 - `플로라 Codex 개발실`
 - `플로라 Claude 개발실`
 
@@ -87,7 +87,6 @@ open -a TextEdit 04_reference_json/flora-telegram-room-router.config.json
 
 기본 예시는:
 
-- 통합 비서 방 -> `openclaw-project-hub`
 - Codex/Claude 개발 방 -> `pressco21` 루트
 
 ## 환경변수 준비
@@ -95,8 +94,8 @@ open -a TextEdit 04_reference_json/flora-telegram-room-router.config.json
 예시:
 
 ```bash
-export FLORA_TELEGRAM_BOT_TOKEN='여기에_플로라_봇_토큰'
-export FLORA_TELEGRAM_REGISTER_CODE='flora-room-2026'
+export PRESSCO21_DEV_ROUTER_BOT_TOKEN='여기에_dev_router_봇_토큰'
+export PRESSCO21_DEV_ROUTER_REGISTER_CODE='dev-router-room-2026'
 ```
 
 ## healthcheck
@@ -153,14 +152,6 @@ Claude 개발 방:
 따라서 chat id를 수동으로 찾을 필요가 없다.
 
 ## 등록 후 사용법
-
-### 통합 비서 방
-
-그냥 평소처럼 보낸다.
-
-```text
-이번 주 운영 우선순위를 5줄로 정리해줘
-```
 
 ### Codex 개발 방
 
@@ -241,21 +232,17 @@ bash 06_scripts/install-flora-telegram-room-router-launchagent.sh \
 
 ## 추천 운영 원칙
 
-### 1. 봇은 하나만 유지
+### 1. 메인 플로라는 서버 frontdoor 하나로 유지
 
-사용자 입장에서는 플로라가 하나의 중앙 코파일럿처럼 보이는 것이 좋다.
+중앙 비서 감각을 살리려면 메인 ingress는 다시 하나로 모아야 한다.
 
-### 2. 방은 기능별로 나눈다
+### 2. room router는 dev bot 전용으로만 사용
 
-문맥 충돌을 줄이려면 개발방과 운영방은 분리하는 편이 낫다.
+메인 봇을 공유하지 않는다.
 
-### 3. 통합 비서 방도 Codex를 쓴다
+### 3. 개발 실행은 가능하면 local dev worker를 우선 사용
 
-ChatGPT Pro 활용을 최대화하려면 통합 비서 방과 Codex 개발 방을 둘 다 Codex로 두는 편이 맞다.
-
-### 4. Claude 방은 기존 로컬 작업 이어받기 전용으로 둔다
-
-Claude 토큰이 필요한 이유가 `이미 로컬에서 이어오던 Claude Code 작업`을 원격으로 계속하기 위한 것이라면, Claude 방은 그 목적에만 집중시키는 게 가장 깔끔하다.
+server dispatcher -> local queue -> local CLI 구조가 더 안정적이다.
 
 ## 이 구조가 Cursor 자동입력보다 나은 이유
 

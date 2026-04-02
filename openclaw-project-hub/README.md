@@ -29,6 +29,43 @@
 - `06_scripts`
   - 원가 계산, 마스터 생성, OpenClaw 연동 스크립트
 
+## 현재 권장 Telegram 구조
+
+- 메인 비서 `@pressco21_openclaw_bot`는 서버 `flora-frontdoor`가 받는다
+- 개발 요청은 서버 dispatcher가 로컬 `flora-local-dev-worker` 큐로 넘긴다
+- 로컬 `run-flora-telegram-room-router.js`는 메인 플로라 복구 경로가 아니라 `전용 dev bot용 legacy 도구`로 본다
+
+관련 문서:
+
+- [flora-frontdoor-local-dev-worker-setup.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-frontdoor-local-dev-worker-setup.ko.md)
+- [flora-specialist-routing-policy.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-specialist-routing-policy.ko.md)
+- [flora-frontdoor-executive-brief.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md)
+- [flora-frontdoor-tuning-log.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md)
+- [flora-orchestration-service-master-plan.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-master-plan.ko.md)
+- [flora-orchestration-service-prd.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-prd.ko.md)
+- [flora-frontdoor-task-ledger-phase1-spec.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md)
+
+## 플로라 기획 기준 문서
+
+플로라를 `대표 비서 -> 팀 업무 오케스트레이터 -> Telegram Mini App 기반 운영실장 서비스`로 키우는 현재 상위 기준 문서는 아래다.
+
+- [flora-orchestration-service-master-plan.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-master-plan.ko.md)
+- [flora-orchestration-service-prd.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-prd.ko.md)
+- [flora-frontdoor-task-ledger-phase1-spec.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md)
+
+이 문서는 기존 OpenClaw Project B 문서, frontdoor 운영 문서, Mac harness PRD, todo 확장 방향을 한 번에 교통정리하는 목적의 마스터 플랜이다.  
+현재 구현은 `마스터 플랜 -> PRD -> Phase 1 구현 스펙` 순서로 읽는 것을 기준으로 한다.
+
+문서 운영 원칙:
+
+- 플로라 제품 PRD는 [flora-orchestration-service-prd.ko.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-prd.ko.md) 하나를 기준으로 유지한다
+- 모바일 중심 운영, 메일 자동화, Mini App, 개발 지휘는 모두 이 통합 PRD 안에서 다룬다
+- 추가 문서가 필요하면 새 PRD를 만드는 대신 `Phase spec` 또는 `Feature spec`으로만 내린다
+
+Phase 1 개발 시작점:
+
+- frontdoor 적재 릴레이 스크립트: [relay-flora-frontdoor-intake.py](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py)
+
 ## 실무용 시작 순서
 
 1. [05_workbooks/pressco21-central-product-master.working.xlsx](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/05_workbooks/pressco21-central-product-master.working.xlsx) 열기

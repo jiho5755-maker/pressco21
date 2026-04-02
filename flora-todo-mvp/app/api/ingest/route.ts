@@ -18,11 +18,26 @@ export async function POST(request: Request) {
     }
 
     if (!body.dryRun) {
+      const metadata =
+        body.metadata && typeof body.metadata === "object" && !Array.isArray(body.metadata)
+          ? body.metadata
+          : {};
+
       await logSourceMessage({
         sourceChannel: body.sourceChannel,
         sourceMessageId: body.sourceMessageId,
         messageText: body.text,
+        userChatId: body.userChatId ?? undefined,
+        userName: body.userName ?? undefined,
+        agentId: body.agentId ?? undefined,
+        responseSummary: body.responseSummary ?? undefined,
+        modelUsed: body.modelUsed ?? undefined,
+        skillTriggered: body.skillTriggered ?? undefined,
+        tokensUsed: body.tokensUsed ?? undefined,
+        responseTimeMs: body.responseTimeMs ?? undefined,
+        sourceCreatedAt: body.sourceCreatedAt ?? undefined,
         metadata: {
+          ...metadata,
           capturePath: "api/ingest",
         },
       });
@@ -32,6 +47,23 @@ export async function POST(request: Request) {
       sourceChannel: body.sourceChannel,
       sourceMessageId: body.sourceMessageId,
       text: body.text,
+      userChatId: body.userChatId ?? undefined,
+      userName: body.userName ?? undefined,
+      agentId: body.agentId ?? undefined,
+      responseSummary: body.responseSummary ?? undefined,
+      modelUsed: body.modelUsed ?? undefined,
+      skillTriggered: body.skillTriggered ?? undefined,
+      tokensUsed: body.tokensUsed ?? undefined,
+      responseTimeMs: body.responseTimeMs ?? undefined,
+      sourceCreatedAt: body.sourceCreatedAt ?? undefined,
+      metadata:
+        body.metadata && typeof body.metadata === "object" && !Array.isArray(body.metadata)
+          ? body.metadata
+          : undefined,
+      detailsMerge:
+        body.detailsMerge && typeof body.detailsMerge === "object" && !Array.isArray(body.detailsMerge)
+          ? body.detailsMerge
+          : undefined,
       dryRun: body.dryRun,
     });
 

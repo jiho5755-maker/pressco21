@@ -51,6 +51,8 @@ Sprint 3 기준으로 홈 대시보드와 review desk를 함께 운영합니다.
 
 `POST /api/ingest`는 `dryRun: true`를 주면 DB 저장 없이 구조화 결과만 확인할 수 있습니다.
 
+`POST /api/ingest`는 Phase 1 기준으로 `userChatId`, `userName`, `agentId`, `sourceCreatedAt`, `responseSummary`, `modelUsed`, `skillTriggered`, `tokensUsed`, `responseTimeMs`, `metadata`, `detailsMerge`도 함께 받을 수 있습니다. `metadata`는 원문 저널(`source_messages`)에 함께 남고, `detailsMerge`는 생성되는 task의 `detailsJson`에 병합돼 frontdoor 분류 힌트를 task ledger까지 전달합니다.
+
 ## Demo
 
 - `npm run demo:structure` 샘플 문장을 구조화 결과로 출력
@@ -112,6 +114,30 @@ curl -X POST http://localhost:3000/api/ingest \
     "sourceChannel": "flora-secretary",
     "sourceMessageId": "memo-20260402-01",
     "text": "오늘 할 일: 안소영 답변, 사방넷 세팅 다시 확인; 주말 전에 샘플 발주 체크",
+    "userChatId": "7713811206",
+    "userName": "jangjiho",
+    "agentId": "flora-frontdoor",
+    "sourceCreatedAt": "2026-04-03T12:00:00Z",
+    "metadata": {
+      "capturePath": "flora-frontdoor",
+      "requestType": "freeform-memo",
+      "briefingBucket": "today"
+    },
+    "detailsMerge": {
+      "requestType": "freeform-memo",
+      "briefingBucket": "today",
+      "assignmentCandidate": {
+        "owner": "owner",
+        "team": "executive"
+      },
+      "approvalCandidate": {
+        "required": false,
+        "owner": null
+      },
+      "executionRoute": {
+        "kind": "manual"
+      }
+    },
     "dryRun": true
   }'
 ```

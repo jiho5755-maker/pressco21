@@ -21,7 +21,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const body = $input.first().json.body || {};\nconst sourceCreatedAt = body.source_created_at || body.sourceCreatedAt || body.created_at || body.createdAt || body.timestamp || new Date().toISOString();\nconst userChatId = String(body.user_chat_id || body.userChatId || '');\nconst sourceChannel = String(body.source_channel || body.sourceChannel || body.channel || 'telegram-flora');\nconst sourceMessageId = String(\n  body.source_message_id ||\n  body.sourceMessageId ||\n  body.telegram_message_id ||\n  body.telegramMessageId ||\n  body.message_id ||\n  body.messageId ||\n  body.request_id ||\n  body.requestId ||\n  `${userChatId || 'unknown'}:${sourceCreatedAt}`\n);\n\nreturn [{\n  json: {\n    sourceChannel,\n    sourceMessageId,\n    userChatId,\n    userName: String(body.user_name || body.userName || ''),\n    agentId: String(body.agent_id || body.agentId || 'owner'),\n    messageText: String(body.message_text || body.messageText || ''),\n    responseSummary: String(body.response_summary || body.responseSummary || ''),\n    modelUsed: String(body.model_used || body.modelUsed || 'gpt-5.4'),\n    skillTriggered: String(body.skill_triggered || body.skillTriggered || 'general'),\n    tokensUsed: Number(body.tokens_used || body.tokensUsed || 0) || 0,\n    responseTimeMs: Number(body.response_time_ms || body.responseTimeMs || 0) || 0,\n    sourceCreatedAt,\n    metadata: {\n      transport: body.transport || 'telegram',\n      roomId: body.room_id || body.roomId || null,\n      threadId: body.thread_id || body.threadId || null,\n      rawBodyKeys: Object.keys(body),\n    },\n  },\n}];"
+        "jsCode": "const body = $input.first().json.body || {};\nconst sourceCreatedAt = body.source_created_at || body.sourceCreatedAt || body.created_at || body.createdAt || body.timestamp || new Date().toISOString();\nconst userChatId = String(body.user_chat_id || body.userChatId || '');\nconst sourceChannel = String(body.source_channel || body.sourceChannel || body.channel || 'telegram-flora');\nconst sourceMessageId = String(\n  body.source_message_id ||\n  body.sourceMessageId ||\n  body.telegram_message_id ||\n  body.telegramMessageId ||\n  body.message_id ||\n  body.messageId ||\n  body.request_id ||\n  body.requestId ||\n  `${userChatId || 'unknown'}:${sourceCreatedAt}`\n);\nconst metadata = body.metadata && typeof body.metadata === 'object' && !Array.isArray(body.metadata)\n  ? body.metadata\n  : {};\nconst delegationCandidate = body.delegation_candidate || body.delegationCandidate || metadata.delegationCandidate || null;\nconst approvalCandidate = body.approval_candidate || body.approvalCandidate || metadata.approvalCandidate || null;\nconst requestType = String(body.request_type || body.requestType || metadata.requestType || 'freeform-memo');\nconst specialistMode = String(body.specialist_mode || body.specialistMode || metadata.specialistMode || 'executive-orchestrator');\nconst briefingBucket = String(body.briefing_bucket || body.briefingBucket || metadata.briefingBucket || 'today');\nconst executionRoute = String(body.execution_route || body.executionRoute || 'manual');\n\nreturn [{\n  json: {\n    sourceChannel,\n    sourceMessageId,\n    userChatId,\n    userName: String(body.user_name || body.userName || ''),\n    agentId: String(body.agent_id || body.agentId || 'owner'),\n    messageText: String(body.message_text || body.messageText || ''),\n    responseSummary: String(body.response_summary || body.responseSummary || ''),\n    modelUsed: String(body.model_used || body.modelUsed || 'gpt-5.4'),\n    skillTriggered: String(body.skill_triggered || body.skillTriggered || 'general'),\n    tokensUsed: Number(body.tokens_used || body.tokensUsed || 0) || 0,\n    responseTimeMs: Number(body.response_time_ms || body.responseTimeMs || 0) || 0,\n    sourceCreatedAt,\n    requestType,\n    specialistMode,\n    briefingBucket,\n    executionRoute,\n    delegationCandidate,\n    approvalCandidate,\n    metadata: {\n      ...metadata,\n      requestType,\n      specialistMode,\n      briefingBucket,\n      delegationCandidate,\n      approvalCandidate,\n      transport: body.transport || metadata.transport || 'telegram',\n      roomId: body.room_id || body.roomId || metadata.roomId || null,\n      threadId: body.thread_id || body.threadId || metadata.threadId || null,\n      rawBodyKeys: Object.keys(body),\n    },\n  },\n}];"
       },
       "id": "conv-log-normalize",
       "name": "Normalize Payload",
@@ -62,6 +62,33 @@
     {
       "parameters": {
         "method": "POST",
+        "url": "http://flora-todo-mvp:3000/api/ingest",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "={{ $env.ADMIN_API_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const normalized = $('Normalize Payload').first().json; return JSON.stringify({ sourceChannel: normalized.sourceChannel, sourceMessageId: normalized.sourceMessageId, text: normalized.messageText, userChatId: normalized.userChatId, userName: normalized.userName, agentId: normalized.agentId, responseSummary: normalized.responseSummary, modelUsed: normalized.modelUsed, skillTriggered: normalized.skillTriggered, tokensUsed: normalized.tokensUsed, responseTimeMs: normalized.responseTimeMs, sourceCreatedAt: normalized.sourceCreatedAt, metadata: normalized.metadata, detailsMerge: { requestType: normalized.requestType, briefingBucket: normalized.briefingBucket, assignmentCandidate: normalized.delegationCandidate || undefined, approvalCandidate: normalized.approvalCandidate || undefined, executionRoute: { kind: normalized.executionRoute || 'manual' } } }); })() }}",
+        "options": {}
+      },
+      "id": "conv-log-ingest",
+      "name": "Flora Ingest",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
         "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/m6r9su436vk75w4",
         "authentication": "predefinedCredentialType",
         "nodeCredentialType": "httpHeaderAuth",
@@ -75,7 +102,7 @@
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
       "position": [
-        980,
+        1220,
         300
       ],
       "credentials": {
@@ -110,6 +137,17 @@
       ]
     },
     "Flora Source Message Upsert": {
+      "main": [
+        [
+          {
+            "node": "Flora Ingest",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flora Ingest": {
       "main": [
         [
           {

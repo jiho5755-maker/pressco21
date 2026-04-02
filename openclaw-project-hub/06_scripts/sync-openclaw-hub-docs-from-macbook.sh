@@ -10,6 +10,8 @@ FILES=(
   "company-integrated-os-architecture.ko.md:company-integrated-os-architecture.md"
   "openclaw-project-hub-canonical-policy.ko.md:openclaw-project-hub-canonical-policy.md"
   "agent-common-reference-rules.ko.md:agent-common-reference-rules.md"
+  "flora-frontdoor-executive-brief.ko.md:flora-frontdoor-executive-brief.md"
+  "flora-frontdoor-tuning-log.ko.md:flora-frontdoor-tuning-log.md"
 )
 
 mkdir -p "$LOCAL_ROOT"

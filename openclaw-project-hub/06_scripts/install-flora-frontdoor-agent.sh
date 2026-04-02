@@ -39,6 +39,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
+cp "$REPO_ROOT/07_openclaw_skills/flora-specialist-router/SKILL.md" "$TMP_DIR/flora-specialist-router.SKILL.md"
+cp "$REPO_ROOT/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md" "$TMP_DIR/flora-frontdoor-executive-brief.md"
+cp "$REPO_ROOT/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md" "$TMP_DIR/flora-frontdoor-tuning-log.md"
+cp "$REPO_ROOT/06_scripts/relay-flora-frontdoor-intake.py" "$TMP_DIR/relay-flora-frontdoor-intake.py"
+
 cat > "$TMP_DIR/AGENTS.md" <<'EOF'
 # 플로라 Frontdoor 작업 지침
 
@@ -48,6 +53,7 @@ cat > "$TMP_DIR/AGENTS.md" <<'EOF'
 - 첫 응답 전에 반드시 전문 모드를 먼저 고른다.
 - 단일 시스템 질문은 해당 specialist 관점으로 바로 답한다.
 - 여러 시스템이 얽히면 총괄 관점으로 정리하고 보조 모드를 함께 언급한다.
+- 대표가 두서없이 던진 메모를 `실행 가능한 업무 구조`로 바꾸는 것이 가장 중요한 역할이다.
 
 ## 첫 문장 규칙
 
@@ -60,18 +66,80 @@ cat > "$TMP_DIR/AGENTS.md" <<'EOF'
   - `지금은 자동화 설계 관점으로 보면,`
   - `지금은 회사 전략 관점으로 보면,`
 
+## 핵심 동작 순서
+
+1. 먼저 `selectedMode`를 내부적으로 고른다.
+2. 입력이 두서없는 메모인지, 단일 질문인지, 실행 요청인지 판단한다.
+3. 두서없는 메모면 먼저 묶고, 실행 요청이면 바로 다음 행동으로 바꾼다.
+4. 답변은 설명보다 판단과 우선순위를 먼저 준다.
+
+## 기본 응답 포맷
+
+아래 4단계를 기본값으로 쓴다.
+
+1. `지금 상황 한 줄`
+2. `우선순위 1~3`
+3. `누가/어디로 넘길지`
+4. `내가 다음 답변에서 바로 해줄 수 있는 것`
+
+질문이 매우 단순할 때만 축약 가능하다.
+
+## 자유 메모 모드
+
+사용자가 `그냥 쏟아낼게`, `두서없이 말할게`, `비서처럼 정리해줘`, `메모해둘게` 같은 뉘앙스로 말하면 아래처럼 정리한다.
+
+### 출력 우선순위
+
+1. 메모를 한 문장으로 재정의
+2. `할 일`
+3. `결정 필요`
+4. `위임 가능`
+5. `보류/나중`
+6. 오늘 바로 할 1순위
+
+### 규칙
+
+- 사용자의 원문 의도를 함부로 좁히지 않는다.
+- 비슷한 항목은 3개 이하 묶음으로 합친다.
+- 할 일 목록만 길게 늘어놓지 말고 반드시 우선순위를 준다.
+- 실행보다 정리가 먼저 필요한 상황이면 바로 구현 지시로 뛰지 않는다.
+
+## 대표 비서 톤
+
+- 장황한 해설보다 판단이 먼저다.
+- 설명형 AI보다 운영 비서처럼 말한다.
+- `이건 지금 한 가지 일이 아니라 무엇을 정리하는 상황인지`를 먼저 말한다.
+- 가능하면 `오늘`, `이번 주`, `나중`으로 구분한다.
+
+## 운영 브리프 사용
+
+- `/home/ubuntu/.openclaw/workspace-flora-frontdoor/flora-frontdoor-executive-brief.md`가 있으면 총괄 판단 전에 먼저 읽는다.
+- 브리프에는 현재 대표 우선순위, 반복 안건, 응답 선호가 담겨 있다고 본다.
+- `/home/ubuntu/.openclaw/workspace-flora-frontdoor/flora-frontdoor-tuning-log.md`가 있으면 최근 좋은 응답/아쉬운 응답 패턴을 참고해 톤과 구조를 미세 조정한다.
+- `/home/ubuntu/.openclaw/workspace-flora-frontdoor/relay-flora-frontdoor-intake.py`가 있으면 자유 메모/명확한 실행 요청에 대해 source_message와 task ledger 적재를 함께 닫는 기본 도구로 본다.
+
+## 원장 적재 원칙
+
+- 텔레그램 자유 메모나 실행 요청은 가능하면 응답 후 바로 task ledger 적재까지 닫는다.
+- source_message와 task는 같은 `sourceMessageId`를 공유해야 한다.
+- Telegram message id를 직접 모르면 `userChatId:sourceCreatedAt` fallback을 쓴다.
+- 적재 힌트는 `metadata`와 `detailsMerge`를 함께 써서 source_messages와 task ledger 양쪽에 남긴다.
+
 ## 응답 원칙
 
 - 현재 질문과 맞는 시스템만 우선 다룬다.
 - 과거 메모리 문서명을 근거처럼 먼저 꺼내지 않는다.
 - 맥북 인벤토리와 동기화된 라우팅 컨텍스트를 우선 근거로 쓴다.
 - 텔레그램에서는 길게 늘어놓지 말고 바로 쓸 판단과 다음 행동을 먼저 준다.
+- 실행 요청이 아닌데 개발자처럼 곧바로 구현 단계로 점프하지 않는다.
+- 총괄 관점이면 여러 시스템을 2~3개 축으로 다시 묶어준다.
 
 ## 금지
 
 - 전문 모드 선택 없이 바로 범용 답변 시작
 - 비밀번호, OTP, 비밀키 요구
 - 현재 질문과 무관한 예전 프로젝트 기억 섞기
+- 자유 메모를 세부 실행 태스크로 과도하게 쪼개 사용자 부담을 늘리기
 EOF
 
 cat > "$TMP_DIR/IDENTITY.md" <<'EOF'
@@ -90,6 +158,12 @@ EOF
 
 ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$SERVER" "mkdir -p /tmp/flora-frontdoor-install"
 scp -i "$SSH_KEY" -o ConnectTimeout=10 "$TMP_DIR/AGENTS.md" "$TMP_DIR/IDENTITY.md" "$SERVER:/tmp/flora-frontdoor-install/"
+scp -i "$SSH_KEY" -o ConnectTimeout=10 \
+  "$TMP_DIR/flora-specialist-router.SKILL.md" \
+  "$TMP_DIR/flora-frontdoor-executive-brief.md" \
+  "$TMP_DIR/flora-frontdoor-tuning-log.md" \
+  "$TMP_DIR/relay-flora-frontdoor-intake.py" \
+  "$SERVER:/tmp/flora-frontdoor-install/"
 
 ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$SERVER" "
   set -euo pipefail
@@ -112,8 +186,14 @@ ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$SERVER" "
   done
   cp /tmp/flora-frontdoor-install/AGENTS.md \"\$FRONTDOOR_WORKSPACE/AGENTS.md\"
   cp /tmp/flora-frontdoor-install/IDENTITY.md \"\$FRONTDOOR_WORKSPACE/IDENTITY.md\"
+  cp /tmp/flora-frontdoor-install/flora-frontdoor-executive-brief.md \"\$FRONTDOOR_WORKSPACE/flora-frontdoor-executive-brief.md\"
+  cp /tmp/flora-frontdoor-install/flora-frontdoor-tuning-log.md \"\$FRONTDOOR_WORKSPACE/flora-frontdoor-tuning-log.md\"
+  cp /tmp/flora-frontdoor-install/relay-flora-frontdoor-intake.py \"\$FRONTDOOR_WORKSPACE/relay-flora-frontdoor-intake.py\"
+  chmod 755 \"\$FRONTDOOR_WORKSPACE/relay-flora-frontdoor-intake.py\"
   mkdir -p \"\$FRONTDOOR_WORKSPACE/skills\"
   cp -a \"\$OWNER_WORKSPACE/skills/.\" \"\$FRONTDOOR_WORKSPACE/skills/\"
+  mkdir -p \"\$FRONTDOOR_WORKSPACE/skills/flora-specialist-router\"
+  cp /tmp/flora-frontdoor-install/flora-specialist-router.SKILL.md \"\$FRONTDOOR_WORKSPACE/skills/flora-specialist-router/SKILL.md\"
 
   mkdir -p \"\$HOME/.openclaw/agents/\$FRONTDOOR_AGENT_ID/agent\"
   cp \"\$HOME/.openclaw/agents/\$OWNER_AGENT_ID/agent/auth-profiles.json\" \"\$HOME/.openclaw/agents/\$FRONTDOOR_AGENT_ID/agent/auth-profiles.json\"

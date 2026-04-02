@@ -58,14 +58,16 @@ export async function ingestTextAsTask(input: IngestRequestBody) {
 
   for (const segment of structuredWithHashes.segments) {
     const existingTask = existingBySegmentHash.get(segment.segmentHash);
+    const mergedDetailsJson = {
+      ...segment.task.detailsJson,
+      rawTextLength: input.text.length,
+      parserStatus: "structured",
+      normalizedText: structuredWithHashes.normalizedText,
+      ...(input.detailsMerge ?? {}),
+    };
     const taskInput = {
       title: segment.task.title,
-      detailsJson: {
-        ...segment.task.detailsJson,
-        rawTextLength: input.text.length,
-        parserStatus: "structured",
-        normalizedText: structuredWithHashes.normalizedText,
-      },
+      detailsJson: mergedDetailsJson,
       status: segment.task.status,
       priority: segment.task.priority,
       category: segment.task.category,

@@ -2,6 +2,17 @@ export type IngestRequestBody = {
   sourceChannel: string;
   sourceMessageId: string;
   text: string;
+  userChatId?: string | null;
+  userName?: string | null;
+  agentId?: string | null;
+  responseSummary?: string | null;
+  modelUsed?: string | null;
+  skillTriggered?: string | null;
+  tokensUsed?: number;
+  responseTimeMs?: number;
+  sourceCreatedAt?: string | null;
+  metadata?: Record<string, unknown>;
+  detailsMerge?: Record<string, unknown>;
   dryRun?: boolean;
 };
 

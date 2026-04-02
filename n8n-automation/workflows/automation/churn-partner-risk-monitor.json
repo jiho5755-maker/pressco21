@@ -1,0 +1,1743 @@
+{
+    "updatedAt": "2026-03-21T10:23:25.751Z",
+    "createdAt": "2026-03-11T03:31:21.108Z",
+    "id": "8tTb6tVr6ejwiu6C",
+    "name": "WF-CHURN Partner Risk Monitor",
+    "description": null,
+    "active": true,
+    "isArchived": false,
+    "nodes": [
+        {
+            "id": "wfch-schedule",
+            "name": "Schedule Weekly Mon 10:05",
+            "type": "n8n-nodes-base.scheduleTrigger",
+            "typeVersion": 1.2,
+            "position": [
+                220,
+                220
+            ],
+            "parameters": {
+                "rule": {
+                    "interval": [
+                        {
+                            "field": "cronExpression",
+                            "expression": "5 10 * * 1"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "wfch-webhook",
+            "name": "Webhook",
+            "type": "n8n-nodes-base.webhook",
+            "typeVersion": 2,
+            "position": [
+                220,
+                420
+            ],
+            "parameters": {
+                "httpMethod": "POST",
+                "path": "partner-churn-scan",
+                "responseMode": "responseNode",
+                "options": {}
+            },
+            "webhookId": "partner-churn-scan"
+        },
+        {
+            "id": "wfch-parse",
+            "name": "Parse Trigger & Auth",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                460,
+                320
+            ],
+            "parameters": {
+                "jsCode": "const input = $input.first().json || {};\nconst headers = input.headers || {};\nconst hasWebhookBody = !!input.body || Object.keys(headers).length > 0;\n\nfunction pad(n) {\n  return String(n).padStart(2, '0');\n}\n\nfunction toDateString(date) {\n  return date.getUTCFullYear() + '-' + pad(date.getUTCMonth() + 1) + '-' + pad(date.getUTCDate());\n}\n\nfunction getKstNowDate() {\n  const now = new Date();\n  return new Date(now.getTime() + 9 * 60 * 60 * 1000);\n}\n\nfunction parseDate(value, fallback) {\n  const text = String(value || '').trim();\n  let parts;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) return fallback;\n  parts = text.split('-');\n  return new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));\n}\n\nfunction normalizeCodes(value) {\n  if (Array.isArray(value)) {\n    return value.map((item) => String(item || '').trim()).filter(Boolean);\n  }\n  return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);\n}\n\nif (!hasWebhookBody) {\n  const today = getKstNowDate();\n  return [{\n    json: {\n      _source: 'schedule',\n      _mode: 'process',\n      dry_run: false,\n      today: toDateString(today),\n      include_partner_codes: []\n    }\n  }];\n}\n\nconst body = input.body || {};\nconst authHeader = headers.authorization || headers.Authorization || '';\nconst token = typeof authHeader === 'string' && authHeader.indexOf('Bearer ') === 0 ? authHeader.substring(7).trim() : '';\nconst expectedToken = $env.ADMIN_API_TOKEN || '';\nif (!token || !expectedToken || token !== expectedToken) {\n  return [{ json: { _source: 'webhook', _mode: 'unauthorized' } }];\n}\n\nconst today = parseDate(body.today, getKstNowDate());\nconst dryRun = body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true' || String(body.mode || '').toLowerCase() === 'dry_run';\n\nreturn [{\n  json: {\n    _source: 'webhook',\n    _mode: 'process',\n    dry_run: dryRun,\n    today: toDateString(today),\n    include_partner_codes: normalizeCodes(body.include_partner_codes || body.partner_codes || body.partner_code || '')\n  }\n}];"
+            }
+        },
+        {
+            "id": "wfch-route-mode",
+            "name": "Route Mode",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.2,
+            "position": [
+                700,
+                320
+            ],
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "version": 2,
+                                    "caseSensitive": true,
+                                    "typeValidation": "loose"
+                                },
+                                "combinator": "and",
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json._mode }}",
+                                        "rightValue": "unauthorized",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "unauthorized"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "version": 2,
+                                    "caseSensitive": true,
+                                    "typeValidation": "loose"
+                                },
+                                "combinator": "and",
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json._mode }}",
+                                        "rightValue": "process",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "process"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "wfch-unauthorized",
+            "name": "Build Unauthorized Response",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                940,
+                140
+            ],
+            "parameters": {
+                "jsCode": "return [{\n  json: {\n    success: false,\n    error: {\n      code: 'UNAUTHORIZED',\n      message: '\uad00\ub9ac\uc790 \uc778\uc99d\uc774 \ud544\uc694\ud569\ub2c8\ub2e4.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+            }
+        },
+        {
+            "id": "wfch-get-partners",
+            "name": "Get Partners",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                980,
+                260
+            ],
+            "parameters": {
+                "method": "GET",
+                "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "limit",
+                            "value": "500"
+                        },
+                        {
+                            "name": "sort",
+                            "value": "partner_code"
+                        },
+                        {
+                            "name": "fields",
+                            "value": "Id,CreatedAt,UpdatedAt,partner_code,member_id,partner_name,email,status,grade,class_count,avg_rating,last_active_at"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "JmXQGe9254wG4qVZ",
+                    "name": "PRESSCO21-NocoDB"
+                }
+            }
+        },
+        {
+            "id": "wfch-get-classes",
+            "name": "Get Classes",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                980,
+                380
+            ],
+            "parameters": {
+                "method": "GET",
+                "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mpvsno4or6asbxk",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "limit",
+                            "value": "1000"
+                        },
+                        {
+                            "name": "fields",
+                            "value": "Id,class_id,partner_code,status,CreatedAt,UpdatedAt"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "JmXQGe9254wG4qVZ",
+                    "name": "PRESSCO21-NocoDB"
+                }
+            }
+        },
+        {
+            "id": "wfch-get-schedules",
+            "name": "Get Schedules",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                980,
+                500
+            ],
+            "parameters": {
+                "method": "GET",
+                "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mschd3d81ad88fb",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "limit",
+                            "value": "1000"
+                        },
+                        {
+                            "name": "fields",
+                            "value": "Id,class_id,status,schedule_date,CreatedAt,UpdatedAt"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "JmXQGe9254wG4qVZ",
+                    "name": "PRESSCO21-NocoDB"
+                }
+            }
+        },
+        {
+            "id": "wfch-get-reviews",
+            "name": "Get Reviews",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                980,
+                620
+            ],
+            "parameters": {
+                "method": "GET",
+                "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mbikgjzc8zvicrm",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "limit",
+                            "value": "1000"
+                        },
+                        {
+                            "name": "fields",
+                            "value": "Id,review_id,class_id,partner_code,partner_answer,created_at,CreatedAt,UpdatedAt"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "JmXQGe9254wG4qVZ",
+                    "name": "PRESSCO21-NocoDB"
+                }
+            }
+        },
+        {
+            "id": "wfch-get-email-logs",
+            "name": "Get Email Logs",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                980,
+                740
+            ],
+            "parameters": {
+                "method": "GET",
+                "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendQuery": true,
+                "queryParameters": {
+                    "parameters": [
+                        {
+                            "name": "limit",
+                            "value": "1000"
+                        },
+                        {
+                            "name": "sort",
+                            "value": "-CreatedAt"
+                        },
+                        {
+                            "name": "fields",
+                            "value": "Id,recipient,email_type,status,error_message,CreatedAt,UpdatedAt"
+                        }
+                    ]
+                },
+                "options": {}
+            },
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "JmXQGe9254wG4qVZ",
+                    "name": "PRESSCO21-NocoDB"
+                }
+            }
+        },
+        {
+            "id": "wfch-build-plan",
+            "name": "Build Risk Plan",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1240,
+                500
+            ],
+            "parameters": {
+                "jsCode": "const params = $('Parse Trigger & Auth').first().json;\nconst partners = $('Get Partners').first().json.list || [];\nconst classes = $('Get Classes').first().json.list || [];\nconst schedules = $('Get Schedules').first().json.list || [];\nconst reviews = $('Get Reviews').first().json.list || [];\nconst logs = $('Get Email Logs').first().json.list || [];\n\nfunction parseDateValue(value) {\n  const text = String(value || '').trim();\n  if (!text) return null;\n  const normalized = text.indexOf('T') === -1 && text.indexOf(' ') > -1 ? text.replace(' ', 'T') : text;\n  const date = new Date(normalized);\n  if (isNaN(date.getTime())) return null;\n  return date;\n}\n\nfunction parseYmd(value) {\n  const text = String(value || '').trim();\n  let parts;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) return null;\n  parts = text.split('-');\n  return new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));\n}\n\nfunction isoDate(value) {\n  const date = parseDateValue(value);\n  return date ? date.toISOString() : \"\";\n}\n\nfunction validEmail(value) {\n  return String(value || '').indexOf('@') > -1;\n}\n\nfunction latestIso(a, b) {\n  if (!a) return b || \"\";\n  if (!b) return a || \"\";\n  return parseDateValue(a) > parseDateValue(b) ? a : b;\n}\n\nfunction diffDays(todayDate, value) {\n  const other = parseDateValue(value);\n  if (!other) return 9999;\n  const utcToday = Date.UTC(todayDate.getUTCFullYear(), todayDate.getUTCMonth(), todayDate.getUTCDate());\n  const utcOther = Date.UTC(other.getUTCFullYear(), other.getUTCMonth(), other.getUTCDate());\n  return Math.floor((utcToday - utcOther) / (24 * 60 * 60 * 1000));\n}\n\nconst includeCodes = Array.isArray(params.include_partner_codes) ? params.include_partner_codes : [];\nconst todayDate = parseYmd(params.today);\n\nif (!todayDate) {\n  return [{\n    json: {\n      _next: 'dry_run',\n      success: false,\n      error: { code: \"INVALID_DATE\", message: \"today \ud30c\ub77c\ubbf8\ud130\uac00 \uc62c\ubc14\ub974\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.\" },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst classToPartner = {};\nconst lastClassActivityByPartner = {};\nfor (const row of classes) {\n  const partnerCode = String(row.partner_code || '').trim();\n  const classId = String(row.class_id || '').trim();\n  const latest = latestIso(isoDate(row.UpdatedAt), isoDate(row.CreatedAt));\n  if (classId) classToPartner[classId] = partnerCode;\n  if (partnerCode && latest) {\n    lastClassActivityByPartner[partnerCode] = latestIso(lastClassActivityByPartner[partnerCode], latest);\n  }\n}\n\nfor (const row of schedules) {\n  const classId = String(row.class_id || '').trim();\n  const partnerCode = classToPartner[classId] || \"\";\n  const latest = latestIso(isoDate(row.UpdatedAt), isoDate(row.CreatedAt));\n  if (partnerCode && latest) {\n    lastClassActivityByPartner[partnerCode] = latestIso(lastClassActivityByPartner[partnerCode], latest);\n  }\n}\n\nconst unansweredByPartner = {};\nfor (const row of reviews) {\n  let partnerCode = String(row.partner_code || '').trim();\n  const classId = String(row.class_id || '').trim();\n  const hasAnswer = String(row.partner_answer || '').trim().length > 0;\n  if (!partnerCode && classId) partnerCode = classToPartner[classId] || \"\";\n  if (!partnerCode || hasAnswer) continue;\n  unansweredByPartner[partnerCode] = (unansweredByPartner[partnerCode] || 0) + 1;\n}\n\nconst lastAlertByTypePartner = {};\nfor (const row of logs) {\n  const rawType = String(row.email_type || row.type || '').trim();\n  const logStatus = String(row.status || '').trim().toUpperCase();\n  const marker = String(row.error_message || '').trim();\n  let partnerCode = \"\";\n  let stage = '';\n  const sentAt = row.CreatedAt || row.UpdatedAt || \"\";\n  if (marker.indexOf('PARTNER_CHURN_30') > -1) stage = 'PARTNER_CHURN_30';\n  else if (marker.indexOf('PARTNER_CHURN_60') > -1) stage = 'PARTNER_CHURN_60';\n  else if (rawType === 'PARTNER_CHURN_30' || rawType === 'PARTNER_CHURN_60') stage = rawType;\n  else continue;\n  if (logStatus && logStatus !== 'SENT') continue;\n  if (marker.indexOf('PC_') > -1) {\n    partnerCode = marker.substring(marker.indexOf('PC_')).split(/[^A-Z0-9_]/)[0];\n  }\n  if (!partnerCode) continue;\n  const key = stage + '::' + partnerCode;\n  if (!lastAlertByTypePartner[key] || sentAt > lastAlertByTypePartner[key]) {\n    lastAlertByTypePartner[key] = sentAt;\n  }\n}\n\nconst candidates = [];\nconst sendTargets = [];\nlet activePartnerCount = 0;\nlet atRiskCount = 0;\nlet escalationCount = 0;\nlet skippedMissingEmail = 0;\nlet skippedRecentAlert = 0;\n\nfor (const partner of partners) {\n  const partnerCode = String(partner.partner_code || '').trim();\n  const status = String(partner.status || '').trim().toUpperCase();\n  const email = String(partner.email || '').trim();\n  const partnerName = String(partner.partner_name || partnerCode || '').trim();\n  let lastActiveAt;\n  let lastClassActivityAt;\n  let inactivityDays;\n  let classStaleDays;\n  let unansweredCount;\n  let signalCount = 0;\n  let reasons = [];\n  let riskLevel = 'NONE';\n  let alertType = '';\n  let lastAlertAt = \"\";\n  let alertId = \"\";\n  let suppressedReason = \"\";\n\n  if (status !== 'ACTIVE' && status !== 'PAUSED') continue;\n  if (includeCodes.length && includeCodes.indexOf(partnerCode) === -1) continue;\n\n  activePartnerCount += 1;\n  lastActiveAt = partner.last_active_at || partner.UpdatedAt || partner.CreatedAt || \"\";\n  lastClassActivityAt = lastClassActivityByPartner[partnerCode] || partner.UpdatedAt || partner.CreatedAt || \"\";\n  inactivityDays = diffDays(todayDate, lastActiveAt);\n  classStaleDays = diffDays(todayDate, lastClassActivityAt);\n  unansweredCount = unansweredByPartner[partnerCode] || 0;\n\n  if (inactivityDays >= 30) {\n    signalCount += 1;\n    reasons.push('\ucd5c\uadfc ' + inactivityDays + '\uc77c \ub3d9\uc548 \ud30c\ud2b8\ub108 \ud398\uc774\uc9c0 \ud65c\ub3d9\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.');\n  }\n  if (classStaleDays >= 60) {\n    signalCount += 1;\n    reasons.push('\ucd5c\uadfc ' + classStaleDays + '\uc77c \ub3d9\uc548 \uc218\uc5c5 \ub610\ub294 \uc77c\uc815 \ub4f1\ub85d/\uc218\uc815\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.');\n  }\n  if (unansweredCount >= 5) {\n    signalCount += 1;\n    reasons.push('\ubbf8\ub2f5\ubcc0 \ud6c4\uae30\uac00 ' + unansweredCount + '\uac74 \uc313\uc600\uc2b5\ub2c8\ub2e4.');\n  }\n\n  if (inactivityDays >= 60 || signalCount >= 3) {\n    riskLevel = 'ESCALATE';\n    alertType = 'PARTNER_CHURN_60';\n  } else if ((inactivityDays >= 30 && classStaleDays >= 60) || signalCount >= 2) {\n    riskLevel = 'AT_RISK';\n    alertType = 'PARTNER_CHURN_30';\n  } else {\n    continue;\n  }\n\n  lastAlertAt = lastAlertByTypePartner[alertType + '::' + partnerCode] || '';\n  alertId = (alertType === 'PARTNER_CHURN_60' ? 'CHURN_60_' : 'CHURN_30_') + params.today.replace(/-/g, '') + '_' + partnerCode;\n\n  if (riskLevel === \"ESCALATE\") escalationCount += 1;\n  else atRiskCount += 1;\n\n  const candidate = {\n    partner_code: partnerCode,\n    partner_name: partnerName,\n    member_id: String(partner.member_id || \"\"),\n    email: email,\n    grade: String(partner.grade || \"\"),\n    risk_level: riskLevel,\n    alert_type: alertType,\n    alert_id: alertId,\n    inactivity_days: inactivityDays,\n    class_stale_days: classStaleDays,\n    unanswered_count: unansweredCount,\n    reasons: reasons,\n    last_active_at: lastActiveAt,\n    last_class_activity_at: lastClassActivityAt,\n    last_alert_at: lastAlertAt\n  };\n\n  if (!validEmail(email)) {\n    skippedMissingEmail += 1;\n    candidate.suppressed_reason = 'MISSING_EMAIL';\n  } else if (lastAlertAt && diffDays(todayDate, lastAlertAt) < 14) {\n    skippedRecentAlert += 1;\n    candidate.suppressed_reason = 'RECENT_ALERT';\n  } else {\n    sendTargets.push(candidate);\n  }\n\n  candidates.push(candidate);\n}\n\nlet next = \"no_targets\";\nif (params.dry_run) next = \"dry_run\";\nelse if (sendTargets.length > 0) next = \"send\";\n\nreturn [{\n  json: {\n    _next: next,\n    _source: params._source,\n    dry_run: params.dry_run === true,\n    today: params.today,\n    active_partner_count: activePartnerCount,\n    risk_count: candidates.length,\n    at_risk_count: atRiskCount,\n    escalation_count: escalationCount,\n    skipped_missing_email: skippedMissingEmail,\n    skipped_recent_alert: skippedRecentAlert,\n    send_target_count: sendTargets.length,\n    send_targets: sendTargets,\n    preview: candidates.slice(0, 10)\n  }\n}];"
+            }
+        },
+        {
+            "id": "wfch-route-outcome",
+            "name": "Route Outcome",
+            "type": "n8n-nodes-base.switch",
+            "typeVersion": 3.2,
+            "position": [
+                1480,
+                500
+            ],
+            "parameters": {
+                "rules": {
+                    "values": [
+                        {
+                            "conditions": {
+                                "options": {
+                                    "version": 2,
+                                    "caseSensitive": true,
+                                    "typeValidation": "loose"
+                                },
+                                "combinator": "and",
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json._next }}",
+                                        "rightValue": "dry_run",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "dry_run"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "version": 2,
+                                    "caseSensitive": true,
+                                    "typeValidation": "loose"
+                                },
+                                "combinator": "and",
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json._next }}",
+                                        "rightValue": "send",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "send"
+                        },
+                        {
+                            "conditions": {
+                                "options": {
+                                    "version": 2,
+                                    "caseSensitive": true,
+                                    "typeValidation": "loose"
+                                },
+                                "combinator": "and",
+                                "conditions": [
+                                    {
+                                        "leftValue": "={{ $json._next }}",
+                                        "rightValue": "no_targets",
+                                        "operator": {
+                                            "type": "string",
+                                            "operation": "equals"
+                                        }
+                                    }
+                                ]
+                            },
+                            "renameOutput": true,
+                            "outputKey": "no_targets"
+                        }
+                    ]
+                }
+            }
+        },
+        {
+            "id": "wfch-dry-response",
+            "name": "Build Dry Run Response",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1720,
+                300
+            ],
+            "parameters": {
+                "jsCode": "const plan = $input.first().json;\nreturn [{\n  json: {\n    success: true,\n    data: {\n      mode: 'dry_run',\n      today: plan.today,\n      active_partner_count: plan.active_partner_count,\n      risk_count: plan.risk_count,\n      at_risk_count: plan.at_risk_count,\n      escalation_count: plan.escalation_count,\n      skipped_missing_email: plan.skipped_missing_email,\n      skipped_recent_alert: plan.skipped_recent_alert,\n      send_target_count: plan.send_target_count,\n      preview: plan.preview\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+            }
+        },
+        {
+            "id": "wfch-no-targets-response",
+            "name": "Build No Targets Response",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1720,
+                700
+            ],
+            "parameters": {
+                "jsCode": "const plan = $input.first().json;\nreturn [{\n  json: {\n    success: true,\n    data: {\n      mode: 'process',\n      today: plan.today,\n      active_partner_count: plan.active_partner_count,\n      risk_count: plan.risk_count,\n      at_risk_count: plan.at_risk_count,\n      escalation_count: plan.escalation_count,\n      skipped_missing_email: plan.skipped_missing_email,\n      skipped_recent_alert: plan.skipped_recent_alert,\n      message: '\ubc1c\uc1a1\ud560 \uc774\ud0c8 \uc704\ud5d8 \ud30c\ud2b8\ub108\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+            }
+        },
+        {
+            "id": "wfch-build-email-items",
+            "name": "Build Partner Email Items",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                1720,
+                500
+            ],
+            "parameters": {
+                "jsCode": "const plan = $input.first().json;\nconst dashboardUrl = 'https://foreverlove.co.kr/shop/page.html?id=2608';\nconst supportEmail = 'pressco21@foreverlove.co.kr';\nconst items = [];\n\nfunction escapeHtml(str) {\n  if (!str) return \"\";\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\\\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction statRow(label, value) {\n  return '<tr><td style=\"padding:8px 0;font-size:13px;color:#999;\">' + label + '</td><td style=\"padding:8px 0;font-size:14px;color:#333;text-align:right;\">' + value + '</td></tr>';\n}\n\nfor (const target of plan.send_targets || []) {\n  const partnerName = escapeHtml(target.partner_name || target.partner_code);\n  const levelLabel = target.risk_level === \"ESCALATE\" ? \"\uc6b4\uc601 \uc810\uac80 \ud544\uc694\" : \"\ub2e4\uc2dc \ud750\ub984\uc744 \uc2dc\uc791\ud574\ubcf4\uc138\uc694\";\n  const reasonHtml = (target.reasons || []).map((reason) => '<li style=\"margin:0 0 6px;\">' + escapeHtml(reason) + '</li>').join(\"\");\n  const subject = target.risk_level === \"ESCALATE\"\n    ? '[PRESSCO21] \ud30c\ud2b8\ub108 \uc6b4\uc601 \uc810\uac80\uc774 \ud544\uc694\ud569\ub2c8\ub2e4' \n    : '[PRESSCO21] \ucd5c\uadfc \ud65c\ub3d9\uc774 \uc7a0\uc2dc \uba48\ucdc4\uc5b4\uc694. \ub2e4\uc2dc \uc218\uc5c5\uc744 \uc774\uc5b4\uac00\ubcfc\uae4c\uc694?' ;\n  const intro = target.risk_level === \"ESCALATE\"\n    ? '\ucd5c\uadfc \ud30c\ud2b8\ub108 \ud65c\ub3d9\uc774 \uae38\uac8c \uba48\ucdb0 \uc788\uc5b4 \uc6b4\uc601 \uc810\uac80\uc774 \ud544\uc694\ud55c \uc0c1\ud0dc\ub85c \uac10\uc9c0\ub418\uc5c8\uc2b5\ub2c8\ub2e4. PRESSCO21 \ud300\uc774 \ub2e4\uc2dc \ud750\ub984\uc744 \uc7a1\uc744 \uc218 \uc788\ub3c4\ub85d \ubc14\ub85c \ub3c4\uc640\ub4dc\ub9ac\uaca0\uc2b5\ub2c8\ub2e4.'\n    : '\ucd5c\uadfc \ud30c\ud2b8\ub108 \ud65c\ub3d9\uc774 \uc7a0\uc2dc \uba48\ucd98 \uac83\uc73c\ub85c \ubcf4\uc5ec \uac04\ub2e8\ud55c \uc810\uac80 \uba54\uc77c\uc744 \ub4dc\ub9bd\ub2c8\ub2e4. \ub300\uc2dc\ubcf4\ub4dc\uc5d0\uc11c \uc218\uc5c5, \uc77c\uc815, \ud6c4\uae30\ub9cc \ub2e4\uc2dc \ud655\uc778\ud574\ub3c4 \ud750\ub984\uc774 \ube60\ub974\uac8c \uc0b4\uc544\ub0a9\ub2c8\ub2e4.';\n  const html = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /></head><body style=\"margin:0;padding:0;background:#f7f5f1;font-family:Pretendard,Apple SD Gothic Neo,Malgun Gothic,sans-serif;\">'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"padding:24px 0;background:#f7f5f1;\"><tr><td align=\"center\">'\n    + '<table width=\"640\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width:640px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;\">'\n    + '<tr><td style=\"padding:28px 32px;background:#2f4234;color:#ffffff;\">'\n    + '<p style=\"margin:0 0 8px;font-size:12px;letter-spacing:0.12em;opacity:0.72;\">PARTNER CARE</p>'\n    + '<h1 style=\"margin:0;font-size:28px;\">' + levelLabel + '</h1>'\n    + '</td></tr>'\n    + '<tr><td style=\"padding:28px 32px;\">'\n    + '<p style=\"margin:0 0 12px;font-size:15px;line-height:1.7;color:#333;\">' + partnerName + ' \ud30c\ud2b8\ub108\ub2d8,</p>'\n    + '<p style=\"margin:0 0 24px;font-size:14px;line-height:1.8;color:#666;\">' + escapeHtml(intro) + '</p>'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom:20px;background:#faf8f3;border:1px solid #ebe3d5;border-radius:8px;\"><tr><td style=\"padding:20px 24px;\">'\n    + statRow(\"\ucd5c\uadfc \ud65c\ub3d9 \uacf5\ubc31\", target.inactivity_days + \"\uc77c\")\n    + statRow(\"\ucd5c\uadfc \uc218\uc5c5/\uc77c\uc815 \uacf5\ubc31\", target.class_stale_days + \"\uc77c\")\n    + statRow(\"\ubbf8\ub2f5\ubcc0 \ud6c4\uae30\", target.unanswered_count + \"\uac74\")\n    + '</td></tr></table>'\n    + '<div style=\"margin:0 0 20px;padding:16px 20px;background:#fef9f0;border-left:4px solid #b88956;border-radius:8px;\">'\n    + '<p style=\"margin:0 0 10px;font-size:13px;font-weight:700;color:#8a6f4d;\">\uac10\uc9c0\ub41c \uc2e0\ud638</p>'\n    + '<ul style=\"margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#666;\">' + reasonHtml + '</ul>'\n    + '</div>'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom:18px;\"><tr><td align=\"center\">'\n    + '<a href=\"' + dashboardUrl + '\" style=\"display:inline-block;background:#b88956;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:6px;\">\ud30c\ud2b8\ub108 \ub300\uc2dc\ubcf4\ub4dc \uc5f4\uae30</a>'\n    + '</td></tr></table>'\n    + '<p style=\"margin:0 0 8px;font-size:13px;line-height:1.8;color:#777;\">\uc9c4\ud589\uc774 \ub9c9\ud78c \ubd80\ubd84\uc774 \uc788\ub2e4\uba74 PRESSCO21 \ud300\uc774 \uac19\uc774 \uc815\ub9ac\ud574\ub4dc\ub9ac\uaca0\uc2b5\ub2c8\ub2e4.</p>'\n    + '<p style=\"margin:0;font-size:13px;line-height:1.8;color:#777;\">\ubb38\uc758: <a href=\"mailto:' + supportEmail + '\" style=\"color:#b88956;text-decoration:none;\">' + supportEmail + '</a></p>'\n    + '</td></tr>'\n    + '<tr><td style=\"padding:24px 32px;text-align:center;background:#faf8f3;border-top:1px solid #e8e4db;\">'\n    + '<p style=\"margin:0 0 8px;font-size:12px;color:#999;\">PRESSCO21 | foreverlove.co.kr</p>'\n    + '<p style=\"margin:0;font-size:11px;color:#bbbbbb;\">\uc774 \uba54\uc77c\uc740 \ud30c\ud2b8\ub108 \uc6b4\uc601 \uc9c0\uc6d0 \uc548\ub0b4 \uba54\uc77c\uc785\ub2c8\ub2e4.</p>'\n    + '</td></tr></table></td></tr></table></body></html>';\n\n  items.push({\n    json: {\n      partner_code: target.partner_code,\n      partner_name: target.partner_name,\n      recipient_email: target.email,\n      alert_type: target.alert_type,\n      alert_id: target.alert_id,\n      risk_level: target.risk_level,\n      subject: subject,\n      html: html\n    }\n  });\n}\n\nreturn items;"
+            }
+        },
+        {
+            "id": "wfch-send-email",
+            "name": "Send Partner Risk Email",
+            "type": "n8n-nodes-base.emailSend",
+            "typeVersion": 2.1,
+            "position": [
+                1960,
+                500
+            ],
+            "parameters": {
+                "fromEmail": "pressco21@foreverlove.co.kr",
+                "toEmail": "={{ $json.recipient_email }}",
+                "subject": "={{ $json.subject }}",
+                "emailType": "html",
+                "html": "={{ $json.html }}",
+                "options": {}
+            },
+            "onError": "continueRegularOutput",
+            "credentials": {
+                "smtp": {
+                    "id": "31jTm9BU7iyj0pVx",
+                    "name": "PRESSCO21-SMTP-Naver"
+                }
+            }
+        },
+        {
+            "id": "wfch-build-result",
+            "name": "Build Email Result Items",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                2200,
+                500
+            ],
+            "parameters": {
+                "jsCode": "const sourceItems = $('Build Partner Email Items').all();\nconst sendItems = $input.all();\nconst rows = [];\nlet i;\n\nfor (i = 0; i < sourceItems.length; i += 1) {\n  const source = sourceItems[i] && sourceItems[i].json ? sourceItems[i].json : {};\n  const send = sendItems[i] && sendItems[i].json ? sendItems[i].json : {};\n  const sendError = send.error || \"\";\n\n  rows.push({\n    json: Object.assign({}, source, {\n      send_status: sendError ? \"FAILED\" : \"SENT\",\n      send_error: typeof sendError === \"string\" ? sendError : (sendError && sendError.message ? sendError.message : \"\")\n    })\n  });\n}\n\nreturn rows;"
+            }
+        },
+        {
+            "id": "wfch-log-email",
+            "name": "Log Email History",
+            "type": "n8n-nodes-base.httpRequest",
+            "typeVersion": 4.2,
+            "position": [
+                2440,
+                500
+            ],
+            "parameters": {
+                "method": "POST",
+                "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
+                "authentication": "genericCredentialType",
+                "genericAuthType": "httpHeaderAuth",
+                "sendBody": true,
+                "specifyBody": "json",
+                "jsonBody": "={{ JSON.stringify({ recipient: $json.recipient_email, email_type: \"PARTNER_NOTIFY\", status: $json.send_status, error_message: $json.alert_type + \" | \" + $json.alert_id + ($json.send_status === \"FAILED\" && $json.send_error ? (\" | \" + $json.send_error) : \"\") }) }}",
+                "options": {}
+            },
+            "onError": "continueRegularOutput",
+            "credentials": {
+                "httpHeaderAuth": {
+                    "id": "JmXQGe9254wG4qVZ",
+                    "name": "PRESSCO21-NocoDB"
+                }
+            }
+        },
+        {
+            "id": "wfch-final-response",
+            "name": "Build Final Response",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                2680,
+                500
+            ],
+            "parameters": {
+                "jsCode": "const plan = $('Build Risk Plan').first().json;\nconst sentItems = $('Build Email Result Items').all();\nlet sentCount = 0;\nlet failedCount = 0;\nlet firstError = \"\";\nlet atRiskPreview = [];\nlet escalationPreview = [];\n\nfor (const item of sentItems) {\n  const json = item && item.json ? item.json : {};\n  const errorValue = json.send_error || \"\";\n  const sendStatus = String(json.send_status || \"\").toUpperCase();\n  if (sendStatus === \"FAILED\") {\n    failedCount += 1;\n    if (!firstError) {\n      firstError = typeof errorValue === \"string\" ? errorValue : (errorValue.message || JSON.stringify(errorValue));\n    }\n  } else {\n    sentCount += 1;\n  }\n}\n\nfor (const item of plan.preview || []) {\n  const label = (item.partner_name || item.partner_code) + \" (\" + item.inactivity_days + \"\uc77c/\" + item.class_stale_days + \"\uc77c/\" + item.unanswered_count + \"\uac74)\";\n  if (item.risk_level === \"ESCALATE\") escalationPreview.push(label);\n  else atRiskPreview.push(label);\n}\n\nconst telegramMessage =\n  '*\ud30c\ud2b8\ub108 \uc774\ud0c8 \uac10\uc9c0 \uc2e4\ud589*\\n\\n'\n  + '\uae30\uc900\uc77c: ' + plan.today + '\\n'\n  + '\ud65c\uc131 \ud30c\ud2b8\ub108: ' + plan.active_partner_count + '\uba85\\n'\n  + '\uc704\ud5d8 \ud6c4\ubcf4: ' + plan.risk_count + '\uba85\\n'\n  + '\uc7ac\ud65c\uc131\ud654 \uba54\uc77c \ub300\uc0c1: ' + plan.send_target_count + '\uba85\\n'\n  + '30\uc77c \uc704\ud5d8: ' + plan.at_risk_count + '\uba85\\n'\n  + '60\uc77c \uc5d0\uc2a4\uceec\ub808\uc774\uc158: ' + plan.escalation_count + '\uba85\\n'\n  + '\uc774\uba54\uc77c \ub204\ub77d skip: ' + plan.skipped_missing_email + '\uba85\\n'\n  + '\ucd5c\uadfc \uc54c\ub9bc skip: ' + plan.skipped_recent_alert + '\uba85\\n'\n  + '\ubc1c\uc1a1 \uc131\uacf5: ' + sentCount + '\uac74 / \uc2e4\ud328: ' + failedCount + '\uac74\\n\\n'\n  + (atRiskPreview.length ? '[\uc7ac\ud65c\uc131\ud654 \ub300\uc0c1]\\n- ' + atRiskPreview.slice(0, 5).join('\\n- ') + '\\n\\n' : '')\n  + (escalationPreview.length ? '[\ub300\ud45c \uc5d0\uc2a4\uceec\ub808\uc774\uc158]\\n- ' + escalationPreview.slice(0, 5).join('\\n- ') : '');\n\nreturn [{\n  json: {\n    success: failedCount === 0,\n    data: {\n      mode: 'process',\n      today: plan.today,\n      active_partner_count: plan.active_partner_count,\n      risk_count: plan.risk_count,\n      at_risk_count: plan.at_risk_count,\n      escalation_count: plan.escalation_count,\n      skipped_missing_email: plan.skipped_missing_email,\n      skipped_recent_alert: plan.skipped_recent_alert,\n      send_target_count: plan.send_target_count,\n      sent_count: sentCount,\n      failed_count: failedCount,\n      preview: plan.preview\n    },\n    error: failedCount === 0 ? null : {\n      code: 'PARTNER_CHURN_EMAIL_FAILED',\n      message: firstError || \"SMTP \ub610\ub294 \uc774\uba54\uc77c \ub85c\uadf8 \uc124\uc815\uc744 \ud655\uc778\ud574 \uc8fc\uc138\uc694.\"\n    },\n    _telegramMessage: telegramMessage,\n    timestamp: new Date().toISOString()\n  }\n}];"
+            }
+        },
+        {
+            "id": "wfch-restore-response",
+            "name": "Restore Final Response",
+            "type": "n8n-nodes-base.code",
+            "typeVersion": 2,
+            "position": [
+                3160,
+                500
+            ],
+            "parameters": {
+                "jsCode": "return [{ json: $('Build Final Response').first().json }];"
+            }
+        },
+        {
+            "id": "wfch-telegram",
+            "name": "Telegram Summary",
+            "type": "n8n-nodes-base.telegram",
+            "typeVersion": 1.2,
+            "position": [
+                2920,
+                500
+            ],
+            "parameters": {
+                "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+                "text": "={{ $json._telegramMessage }}",
+                "additionalFields": {
+                    "parse_mode": "Markdown"
+                }
+            },
+            "onError": "continueRegularOutput",
+            "credentials": {
+                "telegramApi": {
+                    "id": "eS5YwFGpbJht6uCB",
+                    "name": "PRESSCO21-Telegram-Bot"
+                }
+            }
+        },
+        {
+            "id": "wfch-respond",
+            "name": "Respond Result",
+            "type": "n8n-nodes-base.respondToWebhook",
+            "typeVersion": 1.1,
+            "position": [
+                3400,
+                500
+            ],
+            "parameters": {
+                "respondWith": "json",
+                "responseBody": "={{ $json }}",
+                "options": {
+                    "responseHeaders": {
+                        "entries": [
+                            {
+                                "name": "Content-Type",
+                                "value": "application/json; charset=utf-8"
+                            }
+                        ]
+                    }
+                }
+            }
+        }
+    ],
+    "connections": {
+        "Schedule Weekly Mon 10:05": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Trigger & Auth",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Webhook": {
+            "main": [
+                [
+                    {
+                        "node": "Parse Trigger & Auth",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Parse Trigger & Auth": {
+            "main": [
+                [
+                    {
+                        "node": "Route Mode",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Route Mode": {
+            "main": [
+                [
+                    {
+                        "node": "Build Unauthorized Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Get Partners",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build Unauthorized Response": {
+            "main": [
+                [
+                    {
+                        "node": "Respond Result",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Partners": {
+            "main": [
+                [
+                    {
+                        "node": "Get Classes",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Classes": {
+            "main": [
+                [
+                    {
+                        "node": "Get Schedules",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Schedules": {
+            "main": [
+                [
+                    {
+                        "node": "Get Reviews",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Reviews": {
+            "main": [
+                [
+                    {
+                        "node": "Get Email Logs",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Get Email Logs": {
+            "main": [
+                [
+                    {
+                        "node": "Build Risk Plan",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build Risk Plan": {
+            "main": [
+                [
+                    {
+                        "node": "Route Outcome",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Route Outcome": {
+            "main": [
+                [
+                    {
+                        "node": "Build Dry Run Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Build Partner Email Items",
+                        "type": "main",
+                        "index": 0
+                    }
+                ],
+                [
+                    {
+                        "node": "Build No Targets Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build Dry Run Response": {
+            "main": [
+                [
+                    {
+                        "node": "Respond Result",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build No Targets Response": {
+            "main": [
+                [
+                    {
+                        "node": "Respond Result",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build Partner Email Items": {
+            "main": [
+                [
+                    {
+                        "node": "Send Partner Risk Email",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Send Partner Risk Email": {
+            "main": [
+                [
+                    {
+                        "node": "Build Email Result Items",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build Email Result Items": {
+            "main": [
+                [
+                    {
+                        "node": "Log Email History",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Log Email History": {
+            "main": [
+                [
+                    {
+                        "node": "Build Final Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Build Final Response": {
+            "main": [
+                [
+                    {
+                        "node": "Telegram Summary",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Telegram Summary": {
+            "main": [
+                [
+                    {
+                        "node": "Restore Final Response",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        },
+        "Restore Final Response": {
+            "main": [
+                [
+                    {
+                        "node": "Respond Result",
+                        "type": "main",
+                        "index": 0
+                    }
+                ]
+            ]
+        }
+    },
+    "settings": {
+        "executionOrder": "v1"
+    },
+    "staticData": {
+        "node:Schedule Weekly Mon 10:05": {
+            "recurrenceRules": []
+        }
+    },
+    "meta": null,
+    "pinData": null,
+    "versionId": "040a3f97-b59c-44f0-8f7d-aefd438f3600",
+    "activeVersionId": "040a3f97-b59c-44f0-8f7d-aefd438f3600",
+    "versionCounter": 83,
+    "triggerCount": 2,
+    "shared": [
+        {
+            "updatedAt": "2026-03-11T03:31:21.108Z",
+            "createdAt": "2026-03-11T03:31:21.108Z",
+            "role": "workflow:owner",
+            "workflowId": "8tTb6tVr6ejwiu6C",
+            "projectId": "DIT0WAQj00qvNJUL",
+            "project": {
+                "updatedAt": "2026-02-28T07:51:06.297Z",
+                "createdAt": "2026-02-23T16:25:57.845Z",
+                "id": "DIT0WAQj00qvNJUL",
+                "name": "Unnamed Project",
+                "type": "personal",
+                "icon": null,
+                "description": null,
+                "creatorId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+            }
+        }
+    ],
+    "tags": [],
+    "activeVersion": {
+        "updatedAt": "2026-03-21T10:23:25.751Z",
+        "createdAt": "2026-03-21T10:23:25.751Z",
+        "versionId": "040a3f97-b59c-44f0-8f7d-aefd438f3600",
+        "workflowId": "8tTb6tVr6ejwiu6C",
+        "nodes": [
+            {
+                "id": "wfch-schedule",
+                "name": "Schedule Weekly Mon 10:05",
+                "type": "n8n-nodes-base.scheduleTrigger",
+                "typeVersion": 1.2,
+                "position": [
+                    220,
+                    220
+                ],
+                "parameters": {
+                    "rule": {
+                        "interval": [
+                            {
+                                "field": "cronExpression",
+                                "expression": "5 10 * * 1"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "id": "wfch-webhook",
+                "name": "Webhook",
+                "type": "n8n-nodes-base.webhook",
+                "typeVersion": 2,
+                "position": [
+                    220,
+                    420
+                ],
+                "parameters": {
+                    "httpMethod": "POST",
+                    "path": "partner-churn-scan",
+                    "responseMode": "responseNode",
+                    "options": {}
+                },
+                "webhookId": "partner-churn-scan"
+            },
+            {
+                "id": "wfch-parse",
+                "name": "Parse Trigger & Auth",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    460,
+                    320
+                ],
+                "parameters": {
+                    "jsCode": "const input = $input.first().json || {};\nconst headers = input.headers || {};\nconst hasWebhookBody = !!input.body || Object.keys(headers).length > 0;\n\nfunction pad(n) {\n  return String(n).padStart(2, '0');\n}\n\nfunction toDateString(date) {\n  return date.getUTCFullYear() + '-' + pad(date.getUTCMonth() + 1) + '-' + pad(date.getUTCDate());\n}\n\nfunction getKstNowDate() {\n  const now = new Date();\n  return new Date(now.getTime() + 9 * 60 * 60 * 1000);\n}\n\nfunction parseDate(value, fallback) {\n  const text = String(value || '').trim();\n  let parts;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) return fallback;\n  parts = text.split('-');\n  return new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));\n}\n\nfunction normalizeCodes(value) {\n  if (Array.isArray(value)) {\n    return value.map((item) => String(item || '').trim()).filter(Boolean);\n  }\n  return String(value || '').split(',').map((item) => item.trim()).filter(Boolean);\n}\n\nif (!hasWebhookBody) {\n  const today = getKstNowDate();\n  return [{\n    json: {\n      _source: 'schedule',\n      _mode: 'process',\n      dry_run: false,\n      today: toDateString(today),\n      include_partner_codes: []\n    }\n  }];\n}\n\nconst body = input.body || {};\nconst authHeader = headers.authorization || headers.Authorization || '';\nconst token = typeof authHeader === 'string' && authHeader.indexOf('Bearer ') === 0 ? authHeader.substring(7).trim() : '';\nconst expectedToken = $env.ADMIN_API_TOKEN || '';\nif (!token || !expectedToken || token !== expectedToken) {\n  return [{ json: { _source: 'webhook', _mode: 'unauthorized' } }];\n}\n\nconst today = parseDate(body.today, getKstNowDate());\nconst dryRun = body.dry_run === true || String(body.dry_run || '').toLowerCase() === 'true' || String(body.mode || '').toLowerCase() === 'dry_run';\n\nreturn [{\n  json: {\n    _source: 'webhook',\n    _mode: 'process',\n    dry_run: dryRun,\n    today: toDateString(today),\n    include_partner_codes: normalizeCodes(body.include_partner_codes || body.partner_codes || body.partner_code || '')\n  }\n}];"
+                }
+            },
+            {
+                "id": "wfch-route-mode",
+                "name": "Route Mode",
+                "type": "n8n-nodes-base.switch",
+                "typeVersion": 3.2,
+                "position": [
+                    700,
+                    320
+                ],
+                "parameters": {
+                    "rules": {
+                        "values": [
+                            {
+                                "conditions": {
+                                    "options": {
+                                        "version": 2,
+                                        "caseSensitive": true,
+                                        "typeValidation": "loose"
+                                    },
+                                    "combinator": "and",
+                                    "conditions": [
+                                        {
+                                            "leftValue": "={{ $json._mode }}",
+                                            "rightValue": "unauthorized",
+                                            "operator": {
+                                                "type": "string",
+                                                "operation": "equals"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "renameOutput": true,
+                                "outputKey": "unauthorized"
+                            },
+                            {
+                                "conditions": {
+                                    "options": {
+                                        "version": 2,
+                                        "caseSensitive": true,
+                                        "typeValidation": "loose"
+                                    },
+                                    "combinator": "and",
+                                    "conditions": [
+                                        {
+                                            "leftValue": "={{ $json._mode }}",
+                                            "rightValue": "process",
+                                            "operator": {
+                                                "type": "string",
+                                                "operation": "equals"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "renameOutput": true,
+                                "outputKey": "process"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "id": "wfch-unauthorized",
+                "name": "Build Unauthorized Response",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    940,
+                    140
+                ],
+                "parameters": {
+                    "jsCode": "return [{\n  json: {\n    success: false,\n    error: {\n      code: 'UNAUTHORIZED',\n      message: '\uad00\ub9ac\uc790 \uc778\uc99d\uc774 \ud544\uc694\ud569\ub2c8\ub2e4.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+                }
+            },
+            {
+                "id": "wfch-get-partners",
+                "name": "Get Partners",
+                "type": "n8n-nodes-base.httpRequest",
+                "typeVersion": 4.2,
+                "position": [
+                    980,
+                    260
+                ],
+                "parameters": {
+                    "method": "GET",
+                    "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mp8t0yq15cabmj4",
+                    "authentication": "genericCredentialType",
+                    "genericAuthType": "httpHeaderAuth",
+                    "sendQuery": true,
+                    "queryParameters": {
+                        "parameters": [
+                            {
+                                "name": "limit",
+                                "value": "500"
+                            },
+                            {
+                                "name": "sort",
+                                "value": "partner_code"
+                            },
+                            {
+                                "name": "fields",
+                                "value": "Id,CreatedAt,UpdatedAt,partner_code,member_id,partner_name,email,status,grade,class_count,avg_rating,last_active_at"
+                            }
+                        ]
+                    },
+                    "options": {}
+                },
+                "credentials": {
+                    "httpHeaderAuth": {
+                        "id": "JmXQGe9254wG4qVZ",
+                        "name": "PRESSCO21-NocoDB"
+                    }
+                }
+            },
+            {
+                "id": "wfch-get-classes",
+                "name": "Get Classes",
+                "type": "n8n-nodes-base.httpRequest",
+                "typeVersion": 4.2,
+                "position": [
+                    980,
+                    380
+                ],
+                "parameters": {
+                    "method": "GET",
+                    "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mpvsno4or6asbxk",
+                    "authentication": "genericCredentialType",
+                    "genericAuthType": "httpHeaderAuth",
+                    "sendQuery": true,
+                    "queryParameters": {
+                        "parameters": [
+                            {
+                                "name": "limit",
+                                "value": "1000"
+                            },
+                            {
+                                "name": "fields",
+                                "value": "Id,class_id,partner_code,status,CreatedAt,UpdatedAt"
+                            }
+                        ]
+                    },
+                    "options": {}
+                },
+                "credentials": {
+                    "httpHeaderAuth": {
+                        "id": "JmXQGe9254wG4qVZ",
+                        "name": "PRESSCO21-NocoDB"
+                    }
+                }
+            },
+            {
+                "id": "wfch-get-schedules",
+                "name": "Get Schedules",
+                "type": "n8n-nodes-base.httpRequest",
+                "typeVersion": 4.2,
+                "position": [
+                    980,
+                    500
+                ],
+                "parameters": {
+                    "method": "GET",
+                    "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mschd3d81ad88fb",
+                    "authentication": "genericCredentialType",
+                    "genericAuthType": "httpHeaderAuth",
+                    "sendQuery": true,
+                    "queryParameters": {
+                        "parameters": [
+                            {
+                                "name": "limit",
+                                "value": "1000"
+                            },
+                            {
+                                "name": "fields",
+                                "value": "Id,class_id,status,schedule_date,CreatedAt,UpdatedAt"
+                            }
+                        ]
+                    },
+                    "options": {}
+                },
+                "credentials": {
+                    "httpHeaderAuth": {
+                        "id": "JmXQGe9254wG4qVZ",
+                        "name": "PRESSCO21-NocoDB"
+                    }
+                }
+            },
+            {
+                "id": "wfch-get-reviews",
+                "name": "Get Reviews",
+                "type": "n8n-nodes-base.httpRequest",
+                "typeVersion": 4.2,
+                "position": [
+                    980,
+                    620
+                ],
+                "parameters": {
+                    "method": "GET",
+                    "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mbikgjzc8zvicrm",
+                    "authentication": "genericCredentialType",
+                    "genericAuthType": "httpHeaderAuth",
+                    "sendQuery": true,
+                    "queryParameters": {
+                        "parameters": [
+                            {
+                                "name": "limit",
+                                "value": "1000"
+                            },
+                            {
+                                "name": "fields",
+                                "value": "Id,review_id,class_id,partner_code,partner_answer,created_at,CreatedAt,UpdatedAt"
+                            }
+                        ]
+                    },
+                    "options": {}
+                },
+                "credentials": {
+                    "httpHeaderAuth": {
+                        "id": "JmXQGe9254wG4qVZ",
+                        "name": "PRESSCO21-NocoDB"
+                    }
+                }
+            },
+            {
+                "id": "wfch-get-email-logs",
+                "name": "Get Email Logs",
+                "type": "n8n-nodes-base.httpRequest",
+                "typeVersion": 4.2,
+                "position": [
+                    980,
+                    740
+                ],
+                "parameters": {
+                    "method": "GET",
+                    "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
+                    "authentication": "genericCredentialType",
+                    "genericAuthType": "httpHeaderAuth",
+                    "sendQuery": true,
+                    "queryParameters": {
+                        "parameters": [
+                            {
+                                "name": "limit",
+                                "value": "1000"
+                            },
+                            {
+                                "name": "sort",
+                                "value": "-CreatedAt"
+                            },
+                            {
+                                "name": "fields",
+                                "value": "Id,recipient,email_type,status,error_message,CreatedAt,UpdatedAt"
+                            }
+                        ]
+                    },
+                    "options": {}
+                },
+                "credentials": {
+                    "httpHeaderAuth": {
+                        "id": "JmXQGe9254wG4qVZ",
+                        "name": "PRESSCO21-NocoDB"
+                    }
+                }
+            },
+            {
+                "id": "wfch-build-plan",
+                "name": "Build Risk Plan",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    1240,
+                    500
+                ],
+                "parameters": {
+                    "jsCode": "const params = $('Parse Trigger & Auth').first().json;\nconst partners = $('Get Partners').first().json.list || [];\nconst classes = $('Get Classes').first().json.list || [];\nconst schedules = $('Get Schedules').first().json.list || [];\nconst reviews = $('Get Reviews').first().json.list || [];\nconst logs = $('Get Email Logs').first().json.list || [];\n\nfunction parseDateValue(value) {\n  const text = String(value || '').trim();\n  if (!text) return null;\n  const normalized = text.indexOf('T') === -1 && text.indexOf(' ') > -1 ? text.replace(' ', 'T') : text;\n  const date = new Date(normalized);\n  if (isNaN(date.getTime())) return null;\n  return date;\n}\n\nfunction parseYmd(value) {\n  const text = String(value || '').trim();\n  let parts;\n  if (!/^\\d{4}-\\d{2}-\\d{2}$/.test(text)) return null;\n  parts = text.split('-');\n  return new Date(Date.UTC(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2])));\n}\n\nfunction isoDate(value) {\n  const date = parseDateValue(value);\n  return date ? date.toISOString() : \"\";\n}\n\nfunction validEmail(value) {\n  return String(value || '').indexOf('@') > -1;\n}\n\nfunction latestIso(a, b) {\n  if (!a) return b || \"\";\n  if (!b) return a || \"\";\n  return parseDateValue(a) > parseDateValue(b) ? a : b;\n}\n\nfunction diffDays(todayDate, value) {\n  const other = parseDateValue(value);\n  if (!other) return 9999;\n  const utcToday = Date.UTC(todayDate.getUTCFullYear(), todayDate.getUTCMonth(), todayDate.getUTCDate());\n  const utcOther = Date.UTC(other.getUTCFullYear(), other.getUTCMonth(), other.getUTCDate());\n  return Math.floor((utcToday - utcOther) / (24 * 60 * 60 * 1000));\n}\n\nconst includeCodes = Array.isArray(params.include_partner_codes) ? params.include_partner_codes : [];\nconst todayDate = parseYmd(params.today);\n\nif (!todayDate) {\n  return [{\n    json: {\n      _next: 'dry_run',\n      success: false,\n      error: { code: \"INVALID_DATE\", message: \"today \ud30c\ub77c\ubbf8\ud130\uac00 \uc62c\ubc14\ub974\uc9c0 \uc54a\uc2b5\ub2c8\ub2e4.\" },\n      timestamp: new Date().toISOString()\n    }\n  }];\n}\n\nconst classToPartner = {};\nconst lastClassActivityByPartner = {};\nfor (const row of classes) {\n  const partnerCode = String(row.partner_code || '').trim();\n  const classId = String(row.class_id || '').trim();\n  const latest = latestIso(isoDate(row.UpdatedAt), isoDate(row.CreatedAt));\n  if (classId) classToPartner[classId] = partnerCode;\n  if (partnerCode && latest) {\n    lastClassActivityByPartner[partnerCode] = latestIso(lastClassActivityByPartner[partnerCode], latest);\n  }\n}\n\nfor (const row of schedules) {\n  const classId = String(row.class_id || '').trim();\n  const partnerCode = classToPartner[classId] || \"\";\n  const latest = latestIso(isoDate(row.UpdatedAt), isoDate(row.CreatedAt));\n  if (partnerCode && latest) {\n    lastClassActivityByPartner[partnerCode] = latestIso(lastClassActivityByPartner[partnerCode], latest);\n  }\n}\n\nconst unansweredByPartner = {};\nfor (const row of reviews) {\n  let partnerCode = String(row.partner_code || '').trim();\n  const classId = String(row.class_id || '').trim();\n  const hasAnswer = String(row.partner_answer || '').trim().length > 0;\n  if (!partnerCode && classId) partnerCode = classToPartner[classId] || \"\";\n  if (!partnerCode || hasAnswer) continue;\n  unansweredByPartner[partnerCode] = (unansweredByPartner[partnerCode] || 0) + 1;\n}\n\nconst lastAlertByTypePartner = {};\nfor (const row of logs) {\n  const rawType = String(row.email_type || row.type || '').trim();\n  const logStatus = String(row.status || '').trim().toUpperCase();\n  const marker = String(row.error_message || '').trim();\n  let partnerCode = \"\";\n  let stage = '';\n  const sentAt = row.CreatedAt || row.UpdatedAt || \"\";\n  if (marker.indexOf('PARTNER_CHURN_30') > -1) stage = 'PARTNER_CHURN_30';\n  else if (marker.indexOf('PARTNER_CHURN_60') > -1) stage = 'PARTNER_CHURN_60';\n  else if (rawType === 'PARTNER_CHURN_30' || rawType === 'PARTNER_CHURN_60') stage = rawType;\n  else continue;\n  if (logStatus && logStatus !== 'SENT') continue;\n  if (marker.indexOf('PC_') > -1) {\n    partnerCode = marker.substring(marker.indexOf('PC_')).split(/[^A-Z0-9_]/)[0];\n  }\n  if (!partnerCode) continue;\n  const key = stage + '::' + partnerCode;\n  if (!lastAlertByTypePartner[key] || sentAt > lastAlertByTypePartner[key]) {\n    lastAlertByTypePartner[key] = sentAt;\n  }\n}\n\nconst candidates = [];\nconst sendTargets = [];\nlet activePartnerCount = 0;\nlet atRiskCount = 0;\nlet escalationCount = 0;\nlet skippedMissingEmail = 0;\nlet skippedRecentAlert = 0;\n\nfor (const partner of partners) {\n  const partnerCode = String(partner.partner_code || '').trim();\n  const status = String(partner.status || '').trim().toUpperCase();\n  const email = String(partner.email || '').trim();\n  const partnerName = String(partner.partner_name || partnerCode || '').trim();\n  let lastActiveAt;\n  let lastClassActivityAt;\n  let inactivityDays;\n  let classStaleDays;\n  let unansweredCount;\n  let signalCount = 0;\n  let reasons = [];\n  let riskLevel = 'NONE';\n  let alertType = '';\n  let lastAlertAt = \"\";\n  let alertId = \"\";\n  let suppressedReason = \"\";\n\n  if (status !== 'ACTIVE' && status !== 'PAUSED') continue;\n  if (includeCodes.length && includeCodes.indexOf(partnerCode) === -1) continue;\n\n  activePartnerCount += 1;\n  lastActiveAt = partner.last_active_at || partner.UpdatedAt || partner.CreatedAt || \"\";\n  lastClassActivityAt = lastClassActivityByPartner[partnerCode] || partner.UpdatedAt || partner.CreatedAt || \"\";\n  inactivityDays = diffDays(todayDate, lastActiveAt);\n  classStaleDays = diffDays(todayDate, lastClassActivityAt);\n  unansweredCount = unansweredByPartner[partnerCode] || 0;\n\n  if (inactivityDays >= 30) {\n    signalCount += 1;\n    reasons.push('\ucd5c\uadfc ' + inactivityDays + '\uc77c \ub3d9\uc548 \ud30c\ud2b8\ub108 \ud398\uc774\uc9c0 \ud65c\ub3d9\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.');\n  }\n  if (classStaleDays >= 60) {\n    signalCount += 1;\n    reasons.push('\ucd5c\uadfc ' + classStaleDays + '\uc77c \ub3d9\uc548 \uc218\uc5c5 \ub610\ub294 \uc77c\uc815 \ub4f1\ub85d/\uc218\uc815\uc774 \uc5c6\uc2b5\ub2c8\ub2e4.');\n  }\n  if (unansweredCount >= 5) {\n    signalCount += 1;\n    reasons.push('\ubbf8\ub2f5\ubcc0 \ud6c4\uae30\uac00 ' + unansweredCount + '\uac74 \uc313\uc600\uc2b5\ub2c8\ub2e4.');\n  }\n\n  if (inactivityDays >= 60 || signalCount >= 3) {\n    riskLevel = 'ESCALATE';\n    alertType = 'PARTNER_CHURN_60';\n  } else if ((inactivityDays >= 30 && classStaleDays >= 60) || signalCount >= 2) {\n    riskLevel = 'AT_RISK';\n    alertType = 'PARTNER_CHURN_30';\n  } else {\n    continue;\n  }\n\n  lastAlertAt = lastAlertByTypePartner[alertType + '::' + partnerCode] || '';\n  alertId = (alertType === 'PARTNER_CHURN_60' ? 'CHURN_60_' : 'CHURN_30_') + params.today.replace(/-/g, '') + '_' + partnerCode;\n\n  if (riskLevel === \"ESCALATE\") escalationCount += 1;\n  else atRiskCount += 1;\n\n  const candidate = {\n    partner_code: partnerCode,\n    partner_name: partnerName,\n    member_id: String(partner.member_id || \"\"),\n    email: email,\n    grade: String(partner.grade || \"\"),\n    risk_level: riskLevel,\n    alert_type: alertType,\n    alert_id: alertId,\n    inactivity_days: inactivityDays,\n    class_stale_days: classStaleDays,\n    unanswered_count: unansweredCount,\n    reasons: reasons,\n    last_active_at: lastActiveAt,\n    last_class_activity_at: lastClassActivityAt,\n    last_alert_at: lastAlertAt\n  };\n\n  if (!validEmail(email)) {\n    skippedMissingEmail += 1;\n    candidate.suppressed_reason = 'MISSING_EMAIL';\n  } else if (lastAlertAt && diffDays(todayDate, lastAlertAt) < 14) {\n    skippedRecentAlert += 1;\n    candidate.suppressed_reason = 'RECENT_ALERT';\n  } else {\n    sendTargets.push(candidate);\n  }\n\n  candidates.push(candidate);\n}\n\nlet next = \"no_targets\";\nif (params.dry_run) next = \"dry_run\";\nelse if (sendTargets.length > 0) next = \"send\";\n\nreturn [{\n  json: {\n    _next: next,\n    _source: params._source,\n    dry_run: params.dry_run === true,\n    today: params.today,\n    active_partner_count: activePartnerCount,\n    risk_count: candidates.length,\n    at_risk_count: atRiskCount,\n    escalation_count: escalationCount,\n    skipped_missing_email: skippedMissingEmail,\n    skipped_recent_alert: skippedRecentAlert,\n    send_target_count: sendTargets.length,\n    send_targets: sendTargets,\n    preview: candidates.slice(0, 10)\n  }\n}];"
+                }
+            },
+            {
+                "id": "wfch-route-outcome",
+                "name": "Route Outcome",
+                "type": "n8n-nodes-base.switch",
+                "typeVersion": 3.2,
+                "position": [
+                    1480,
+                    500
+                ],
+                "parameters": {
+                    "rules": {
+                        "values": [
+                            {
+                                "conditions": {
+                                    "options": {
+                                        "version": 2,
+                                        "caseSensitive": true,
+                                        "typeValidation": "loose"
+                                    },
+                                    "combinator": "and",
+                                    "conditions": [
+                                        {
+                                            "leftValue": "={{ $json._next }}",
+                                            "rightValue": "dry_run",
+                                            "operator": {
+                                                "type": "string",
+                                                "operation": "equals"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "renameOutput": true,
+                                "outputKey": "dry_run"
+                            },
+                            {
+                                "conditions": {
+                                    "options": {
+                                        "version": 2,
+                                        "caseSensitive": true,
+                                        "typeValidation": "loose"
+                                    },
+                                    "combinator": "and",
+                                    "conditions": [
+                                        {
+                                            "leftValue": "={{ $json._next }}",
+                                            "rightValue": "send",
+                                            "operator": {
+                                                "type": "string",
+                                                "operation": "equals"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "renameOutput": true,
+                                "outputKey": "send"
+                            },
+                            {
+                                "conditions": {
+                                    "options": {
+                                        "version": 2,
+                                        "caseSensitive": true,
+                                        "typeValidation": "loose"
+                                    },
+                                    "combinator": "and",
+                                    "conditions": [
+                                        {
+                                            "leftValue": "={{ $json._next }}",
+                                            "rightValue": "no_targets",
+                                            "operator": {
+                                                "type": "string",
+                                                "operation": "equals"
+                                            }
+                                        }
+                                    ]
+                                },
+                                "renameOutput": true,
+                                "outputKey": "no_targets"
+                            }
+                        ]
+                    }
+                }
+            },
+            {
+                "id": "wfch-dry-response",
+                "name": "Build Dry Run Response",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    1720,
+                    300
+                ],
+                "parameters": {
+                    "jsCode": "const plan = $input.first().json;\nreturn [{\n  json: {\n    success: true,\n    data: {\n      mode: 'dry_run',\n      today: plan.today,\n      active_partner_count: plan.active_partner_count,\n      risk_count: plan.risk_count,\n      at_risk_count: plan.at_risk_count,\n      escalation_count: plan.escalation_count,\n      skipped_missing_email: plan.skipped_missing_email,\n      skipped_recent_alert: plan.skipped_recent_alert,\n      send_target_count: plan.send_target_count,\n      preview: plan.preview\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+                }
+            },
+            {
+                "id": "wfch-no-targets-response",
+                "name": "Build No Targets Response",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    1720,
+                    700
+                ],
+                "parameters": {
+                    "jsCode": "const plan = $input.first().json;\nreturn [{\n  json: {\n    success: true,\n    data: {\n      mode: 'process',\n      today: plan.today,\n      active_partner_count: plan.active_partner_count,\n      risk_count: plan.risk_count,\n      at_risk_count: plan.at_risk_count,\n      escalation_count: plan.escalation_count,\n      skipped_missing_email: plan.skipped_missing_email,\n      skipped_recent_alert: plan.skipped_recent_alert,\n      message: '\ubc1c\uc1a1\ud560 \uc774\ud0c8 \uc704\ud5d8 \ud30c\ud2b8\ub108\uac00 \uc5c6\uc2b5\ub2c8\ub2e4.'\n    },\n    timestamp: new Date().toISOString()\n  }\n}];"
+                }
+            },
+            {
+                "id": "wfch-build-email-items",
+                "name": "Build Partner Email Items",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    1720,
+                    500
+                ],
+                "parameters": {
+                    "jsCode": "const plan = $input.first().json;\nconst dashboardUrl = 'https://foreverlove.co.kr/shop/page.html?id=2608';\nconst supportEmail = 'pressco21@foreverlove.co.kr';\nconst items = [];\n\nfunction escapeHtml(str) {\n  if (!str) return \"\";\n  return String(str)\n    .replace(/&/g, '&amp;')\n    .replace(/</g, '&lt;')\n    .replace(/>/g, '&gt;')\n    .replace(/\\\"/g, '&quot;')\n    .replace(/'/g, '&#39;');\n}\n\nfunction statRow(label, value) {\n  return '<tr><td style=\"padding:8px 0;font-size:13px;color:#999;\">' + label + '</td><td style=\"padding:8px 0;font-size:14px;color:#333;text-align:right;\">' + value + '</td></tr>';\n}\n\nfor (const target of plan.send_targets || []) {\n  const partnerName = escapeHtml(target.partner_name || target.partner_code);\n  const levelLabel = target.risk_level === \"ESCALATE\" ? \"\uc6b4\uc601 \uc810\uac80 \ud544\uc694\" : \"\ub2e4\uc2dc \ud750\ub984\uc744 \uc2dc\uc791\ud574\ubcf4\uc138\uc694\";\n  const reasonHtml = (target.reasons || []).map((reason) => '<li style=\"margin:0 0 6px;\">' + escapeHtml(reason) + '</li>').join(\"\");\n  const subject = target.risk_level === \"ESCALATE\"\n    ? '[PRESSCO21] \ud30c\ud2b8\ub108 \uc6b4\uc601 \uc810\uac80\uc774 \ud544\uc694\ud569\ub2c8\ub2e4' \n    : '[PRESSCO21] \ucd5c\uadfc \ud65c\ub3d9\uc774 \uc7a0\uc2dc \uba48\ucdc4\uc5b4\uc694. \ub2e4\uc2dc \uc218\uc5c5\uc744 \uc774\uc5b4\uac00\ubcfc\uae4c\uc694?' ;\n  const intro = target.risk_level === \"ESCALATE\"\n    ? '\ucd5c\uadfc \ud30c\ud2b8\ub108 \ud65c\ub3d9\uc774 \uae38\uac8c \uba48\ucdb0 \uc788\uc5b4 \uc6b4\uc601 \uc810\uac80\uc774 \ud544\uc694\ud55c \uc0c1\ud0dc\ub85c \uac10\uc9c0\ub418\uc5c8\uc2b5\ub2c8\ub2e4. PRESSCO21 \ud300\uc774 \ub2e4\uc2dc \ud750\ub984\uc744 \uc7a1\uc744 \uc218 \uc788\ub3c4\ub85d \ubc14\ub85c \ub3c4\uc640\ub4dc\ub9ac\uaca0\uc2b5\ub2c8\ub2e4.'\n    : '\ucd5c\uadfc \ud30c\ud2b8\ub108 \ud65c\ub3d9\uc774 \uc7a0\uc2dc \uba48\ucd98 \uac83\uc73c\ub85c \ubcf4\uc5ec \uac04\ub2e8\ud55c \uc810\uac80 \uba54\uc77c\uc744 \ub4dc\ub9bd\ub2c8\ub2e4. \ub300\uc2dc\ubcf4\ub4dc\uc5d0\uc11c \uc218\uc5c5, \uc77c\uc815, \ud6c4\uae30\ub9cc \ub2e4\uc2dc \ud655\uc778\ud574\ub3c4 \ud750\ub984\uc774 \ube60\ub974\uac8c \uc0b4\uc544\ub0a9\ub2c8\ub2e4.';\n  const html = '<!DOCTYPE html><html lang=\"ko\"><head><meta charset=\"UTF-8\" /></head><body style=\"margin:0;padding:0;background:#f7f5f1;font-family:Pretendard,Apple SD Gothic Neo,Malgun Gothic,sans-serif;\">'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"padding:24px 0;background:#f7f5f1;\"><tr><td align=\"center\">'\n    + '<table width=\"640\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"max-width:640px;width:100%;background:#ffffff;border-radius:10px;overflow:hidden;\">'\n    + '<tr><td style=\"padding:28px 32px;background:#2f4234;color:#ffffff;\">'\n    + '<p style=\"margin:0 0 8px;font-size:12px;letter-spacing:0.12em;opacity:0.72;\">PARTNER CARE</p>'\n    + '<h1 style=\"margin:0;font-size:28px;\">' + levelLabel + '</h1>'\n    + '</td></tr>'\n    + '<tr><td style=\"padding:28px 32px;\">'\n    + '<p style=\"margin:0 0 12px;font-size:15px;line-height:1.7;color:#333;\">' + partnerName + ' \ud30c\ud2b8\ub108\ub2d8,</p>'\n    + '<p style=\"margin:0 0 24px;font-size:14px;line-height:1.8;color:#666;\">' + escapeHtml(intro) + '</p>'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom:20px;background:#faf8f3;border:1px solid #ebe3d5;border-radius:8px;\"><tr><td style=\"padding:20px 24px;\">'\n    + statRow(\"\ucd5c\uadfc \ud65c\ub3d9 \uacf5\ubc31\", target.inactivity_days + \"\uc77c\")\n    + statRow(\"\ucd5c\uadfc \uc218\uc5c5/\uc77c\uc815 \uacf5\ubc31\", target.class_stale_days + \"\uc77c\")\n    + statRow(\"\ubbf8\ub2f5\ubcc0 \ud6c4\uae30\", target.unanswered_count + \"\uac74\")\n    + '</td></tr></table>'\n    + '<div style=\"margin:0 0 20px;padding:16px 20px;background:#fef9f0;border-left:4px solid #b88956;border-radius:8px;\">'\n    + '<p style=\"margin:0 0 10px;font-size:13px;font-weight:700;color:#8a6f4d;\">\uac10\uc9c0\ub41c \uc2e0\ud638</p>'\n    + '<ul style=\"margin:0;padding-left:18px;font-size:13px;line-height:1.8;color:#666;\">' + reasonHtml + '</ul>'\n    + '</div>'\n    + '<table width=\"100%\" cellpadding=\"0\" cellspacing=\"0\" border=\"0\" style=\"margin-bottom:18px;\"><tr><td align=\"center\">'\n    + '<a href=\"' + dashboardUrl + '\" style=\"display:inline-block;background:#b88956;color:#ffffff;font-size:15px;font-weight:600;text-decoration:none;padding:14px 36px;border-radius:6px;\">\ud30c\ud2b8\ub108 \ub300\uc2dc\ubcf4\ub4dc \uc5f4\uae30</a>'\n    + '</td></tr></table>'\n    + '<p style=\"margin:0 0 8px;font-size:13px;line-height:1.8;color:#777;\">\uc9c4\ud589\uc774 \ub9c9\ud78c \ubd80\ubd84\uc774 \uc788\ub2e4\uba74 PRESSCO21 \ud300\uc774 \uac19\uc774 \uc815\ub9ac\ud574\ub4dc\ub9ac\uaca0\uc2b5\ub2c8\ub2e4.</p>'\n    + '<p style=\"margin:0;font-size:13px;line-height:1.8;color:#777;\">\ubb38\uc758: <a href=\"mailto:' + supportEmail + '\" style=\"color:#b88956;text-decoration:none;\">' + supportEmail + '</a></p>'\n    + '</td></tr>'\n    + '<tr><td style=\"padding:24px 32px;text-align:center;background:#faf8f3;border-top:1px solid #e8e4db;\">'\n    + '<p style=\"margin:0 0 8px;font-size:12px;color:#999;\">PRESSCO21 | foreverlove.co.kr</p>'\n    + '<p style=\"margin:0;font-size:11px;color:#bbbbbb;\">\uc774 \uba54\uc77c\uc740 \ud30c\ud2b8\ub108 \uc6b4\uc601 \uc9c0\uc6d0 \uc548\ub0b4 \uba54\uc77c\uc785\ub2c8\ub2e4.</p>'\n    + '</td></tr></table></td></tr></table></body></html>';\n\n  items.push({\n    json: {\n      partner_code: target.partner_code,\n      partner_name: target.partner_name,\n      recipient_email: target.email,\n      alert_type: target.alert_type,\n      alert_id: target.alert_id,\n      risk_level: target.risk_level,\n      subject: subject,\n      html: html\n    }\n  });\n}\n\nreturn items;"
+                }
+            },
+            {
+                "id": "wfch-send-email",
+                "name": "Send Partner Risk Email",
+                "type": "n8n-nodes-base.emailSend",
+                "typeVersion": 2.1,
+                "position": [
+                    1960,
+                    500
+                ],
+                "parameters": {
+                    "fromEmail": "pressco21@foreverlove.co.kr",
+                    "toEmail": "={{ $json.recipient_email }}",
+                    "subject": "={{ $json.subject }}",
+                    "emailType": "html",
+                    "html": "={{ $json.html }}",
+                    "options": {}
+                },
+                "onError": "continueRegularOutput",
+                "credentials": {
+                    "smtp": {
+                        "id": "31jTm9BU7iyj0pVx",
+                        "name": "PRESSCO21-SMTP-Naver"
+                    }
+                }
+            },
+            {
+                "id": "wfch-build-result",
+                "name": "Build Email Result Items",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    2200,
+                    500
+                ],
+                "parameters": {
+                    "jsCode": "const sourceItems = $('Build Partner Email Items').all();\nconst sendItems = $input.all();\nconst rows = [];\nlet i;\n\nfor (i = 0; i < sourceItems.length; i += 1) {\n  const source = sourceItems[i] && sourceItems[i].json ? sourceItems[i].json : {};\n  const send = sendItems[i] && sendItems[i].json ? sendItems[i].json : {};\n  const sendError = send.error || \"\";\n\n  rows.push({\n    json: Object.assign({}, source, {\n      send_status: sendError ? \"FAILED\" : \"SENT\",\n      send_error: typeof sendError === \"string\" ? sendError : (sendError && sendError.message ? sendError.message : \"\")\n    })\n  });\n}\n\nreturn rows;"
+                }
+            },
+            {
+                "id": "wfch-log-email",
+                "name": "Log Email History",
+                "type": "n8n-nodes-base.httpRequest",
+                "typeVersion": 4.2,
+                "position": [
+                    2440,
+                    500
+                ],
+                "parameters": {
+                    "method": "POST",
+                    "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PROJECT_ID }}/mfsc5xg3ospeonz",
+                    "authentication": "genericCredentialType",
+                    "genericAuthType": "httpHeaderAuth",
+                    "sendBody": true,
+                    "specifyBody": "json",
+                    "jsonBody": "={{ JSON.stringify({ recipient: $json.recipient_email, email_type: \"PARTNER_NOTIFY\", status: $json.send_status, error_message: $json.alert_type + \" | \" + $json.alert_id + ($json.send_status === \"FAILED\" && $json.send_error ? (\" | \" + $json.send_error) : \"\") }) }}",
+                    "options": {}
+                },
+                "onError": "continueRegularOutput",
+                "credentials": {
+                    "httpHeaderAuth": {
+                        "id": "JmXQGe9254wG4qVZ",
+                        "name": "PRESSCO21-NocoDB"
+                    }
+                }
+            },
+            {
+                "id": "wfch-final-response",
+                "name": "Build Final Response",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    2680,
+                    500
+                ],
+                "parameters": {
+                    "jsCode": "const plan = $('Build Risk Plan').first().json;\nconst sentItems = $('Build Email Result Items').all();\nlet sentCount = 0;\nlet failedCount = 0;\nlet firstError = \"\";\nlet atRiskPreview = [];\nlet escalationPreview = [];\n\nfor (const item of sentItems) {\n  const json = item && item.json ? item.json : {};\n  const errorValue = json.send_error || \"\";\n  const sendStatus = String(json.send_status || \"\").toUpperCase();\n  if (sendStatus === \"FAILED\") {\n    failedCount += 1;\n    if (!firstError) {\n      firstError = typeof errorValue === \"string\" ? errorValue : (errorValue.message || JSON.stringify(errorValue));\n    }\n  } else {\n    sentCount += 1;\n  }\n}\n\nfor (const item of plan.preview || []) {\n  const label = (item.partner_name || item.partner_code) + \" (\" + item.inactivity_days + \"\uc77c/\" + item.class_stale_days + \"\uc77c/\" + item.unanswered_count + \"\uac74)\";\n  if (item.risk_level === \"ESCALATE\") escalationPreview.push(label);\n  else atRiskPreview.push(label);\n}\n\nconst telegramMessage =\n  '*\ud30c\ud2b8\ub108 \uc774\ud0c8 \uac10\uc9c0 \uc2e4\ud589*\\n\\n'\n  + '\uae30\uc900\uc77c: ' + plan.today + '\\n'\n  + '\ud65c\uc131 \ud30c\ud2b8\ub108: ' + plan.active_partner_count + '\uba85\\n'\n  + '\uc704\ud5d8 \ud6c4\ubcf4: ' + plan.risk_count + '\uba85\\n'\n  + '\uc7ac\ud65c\uc131\ud654 \uba54\uc77c \ub300\uc0c1: ' + plan.send_target_count + '\uba85\\n'\n  + '30\uc77c \uc704\ud5d8: ' + plan.at_risk_count + '\uba85\\n'\n  + '60\uc77c \uc5d0\uc2a4\uceec\ub808\uc774\uc158: ' + plan.escalation_count + '\uba85\\n'\n  + '\uc774\uba54\uc77c \ub204\ub77d skip: ' + plan.skipped_missing_email + '\uba85\\n'\n  + '\ucd5c\uadfc \uc54c\ub9bc skip: ' + plan.skipped_recent_alert + '\uba85\\n'\n  + '\ubc1c\uc1a1 \uc131\uacf5: ' + sentCount + '\uac74 / \uc2e4\ud328: ' + failedCount + '\uac74\\n\\n'\n  + (atRiskPreview.length ? '[\uc7ac\ud65c\uc131\ud654 \ub300\uc0c1]\\n- ' + atRiskPreview.slice(0, 5).join('\\n- ') + '\\n\\n' : '')\n  + (escalationPreview.length ? '[\ub300\ud45c \uc5d0\uc2a4\uceec\ub808\uc774\uc158]\\n- ' + escalationPreview.slice(0, 5).join('\\n- ') : '');\n\nreturn [{\n  json: {\n    success: failedCount === 0,\n    data: {\n      mode: 'process',\n      today: plan.today,\n      active_partner_count: plan.active_partner_count,\n      risk_count: plan.risk_count,\n      at_risk_count: plan.at_risk_count,\n      escalation_count: plan.escalation_count,\n      skipped_missing_email: plan.skipped_missing_email,\n      skipped_recent_alert: plan.skipped_recent_alert,\n      send_target_count: plan.send_target_count,\n      sent_count: sentCount,\n      failed_count: failedCount,\n      preview: plan.preview\n    },\n    error: failedCount === 0 ? null : {\n      code: 'PARTNER_CHURN_EMAIL_FAILED',\n      message: firstError || \"SMTP \ub610\ub294 \uc774\uba54\uc77c \ub85c\uadf8 \uc124\uc815\uc744 \ud655\uc778\ud574 \uc8fc\uc138\uc694.\"\n    },\n    _telegramMessage: telegramMessage,\n    timestamp: new Date().toISOString()\n  }\n}];"
+                }
+            },
+            {
+                "id": "wfch-restore-response",
+                "name": "Restore Final Response",
+                "type": "n8n-nodes-base.code",
+                "typeVersion": 2,
+                "position": [
+                    3160,
+                    500
+                ],
+                "parameters": {
+                    "jsCode": "return [{ json: $('Build Final Response').first().json }];"
+                }
+            },
+            {
+                "id": "wfch-telegram",
+                "name": "Telegram Summary",
+                "type": "n8n-nodes-base.telegram",
+                "typeVersion": 1.2,
+                "position": [
+                    2920,
+                    500
+                ],
+                "parameters": {
+                    "chatId": "={{ $env.TELEGRAM_CHAT_ID }}",
+                    "text": "={{ $json._telegramMessage }}",
+                    "additionalFields": {
+                        "parse_mode": "Markdown"
+                    }
+                },
+                "onError": "continueRegularOutput",
+                "credentials": {
+                    "telegramApi": {
+                        "id": "eS5YwFGpbJht6uCB",
+                        "name": "PRESSCO21-Telegram-Bot"
+                    }
+                }
+            },
+            {
+                "id": "wfch-respond",
+                "name": "Respond Result",
+                "type": "n8n-nodes-base.respondToWebhook",
+                "typeVersion": 1.1,
+                "position": [
+                    3400,
+                    500
+                ],
+                "parameters": {
+                    "respondWith": "json",
+                    "responseBody": "={{ $json }}",
+                    "options": {
+                        "responseHeaders": {
+                            "entries": [
+                                {
+                                    "name": "Content-Type",
+                                    "value": "application/json; charset=utf-8"
+                                }
+                            ]
+                        }
+                    }
+                }
+            }
+        ],
+        "connections": {
+            "Schedule Weekly Mon 10:05": {
+                "main": [
+                    [
+                        {
+                            "node": "Parse Trigger & Auth",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Webhook": {
+                "main": [
+                    [
+                        {
+                            "node": "Parse Trigger & Auth",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Parse Trigger & Auth": {
+                "main": [
+                    [
+                        {
+                            "node": "Route Mode",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Route Mode": {
+                "main": [
+                    [
+                        {
+                            "node": "Build Unauthorized Response",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ],
+                    [
+                        {
+                            "node": "Get Partners",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Build Unauthorized Response": {
+                "main": [
+                    [
+                        {
+                            "node": "Respond Result",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Get Partners": {
+                "main": [
+                    [
+                        {
+                            "node": "Get Classes",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Get Classes": {
+                "main": [
+                    [
+                        {
+                            "node": "Get Schedules",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Get Schedules": {
+                "main": [
+                    [
+                        {
+                            "node": "Get Reviews",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Get Reviews": {
+                "main": [
+                    [
+                        {
+                            "node": "Get Email Logs",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Get Email Logs": {
+                "main": [
+                    [
+                        {
+                            "node": "Build Risk Plan",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Build Risk Plan": {
+                "main": [
+                    [
+                        {
+                            "node": "Route Outcome",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Route Outcome": {
+                "main": [
+                    [
+                        {
+                            "node": "Build Dry Run Response",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ],
+                    [
+                        {
+                            "node": "Build Partner Email Items",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ],
+                    [
+                        {
+                            "node": "Build No Targets Response",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Build Dry Run Response": {
+                "main": [
+                    [
+                        {
+                            "node": "Respond Result",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Build No Targets Response": {
+                "main": [
+                    [
+                        {
+                            "node": "Respond Result",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Build Partner Email Items": {
+                "main": [
+                    [
+                        {
+                            "node": "Send Partner Risk Email",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Send Partner Risk Email": {
+                "main": [
+                    [
+                        {
+                            "node": "Build Email Result Items",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Build Email Result Items": {
+                "main": [
+                    [
+                        {
+                            "node": "Log Email History",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Log Email History": {
+                "main": [
+                    [
+                        {
+                            "node": "Build Final Response",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Build Final Response": {
+                "main": [
+                    [
+                        {
+                            "node": "Telegram Summary",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Telegram Summary": {
+                "main": [
+                    [
+                        {
+                            "node": "Restore Final Response",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            },
+            "Restore Final Response": {
+                "main": [
+                    [
+                        {
+                            "node": "Respond Result",
+                            "type": "main",
+                            "index": 0
+                        }
+                    ]
+                ]
+            }
+        },
+        "authors": "import",
+        "name": null,
+        "description": null,
+        "autosaved": false,
+        "workflowPublishHistory": [
+            {
+                "createdAt": "2026-03-21T10:23:40.018Z",
+                "id": 1538,
+                "workflowId": "8tTb6tVr6ejwiu6C",
+                "versionId": "040a3f97-b59c-44f0-8f7d-aefd438f3600",
+                "event": "activated",
+                "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+            }
+        ]
+    }
+}

@@ -90,6 +90,29 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 플로라 종합 오케스트레이션의 정본 PRD와 Phase 1 구현 스펙 초안을 추가했다.
+  - 범위
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-prd.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md`
+    - `openclaw-project-hub/README.md`
+    - `AI_SYNC.md`
+  - 내용
+    - 플로라를 `대표 비서 -> 팀 업무 오케스트레이터 -> Telegram Mini App 기반 운영실장`으로 키우는 정본 PRD를 작성했다.
+    - Phase 1 구현 범위를 `Frontdoor -> Task Ledger 닫힌 루프`로 고정하고, `/api/automation/source-messages`, `/api/ingest`, `/api/automation/tasks`를 활용하는 저비용 구현 전략을 문서화했다.
+    - README에 `마스터 플랜 -> PRD -> Phase 1 구현 스펙` 순서의 기준 링크를 추가했다.
+  - 결과
+    - 앞으로 구현은 새 기획 초안을 계속 늘리는 방식이 아니라, 이 PRD와 Phase 1 스펙을 기준으로 내려가면 된다.
+- 2026-04-03 `openclaw-project-hub`의 플로라 문서 체계를 다시 묶는 마스터 플랜 초안을 추가했다.
+  - 범위
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-master-plan.ko.md`
+    - `openclaw-project-hub/README.md`
+    - `AI_SYNC.md`
+  - 내용
+    - 플로라의 최종 목표를 `Telegram frontdoor + task ledger + team assignment + approval/schedule orchestration + Mini App UI`로 재정의했다.
+    - 기존 문서를 `최상위 기준 / 플로라 서비스 기준 / 복구 참고 / 프로젝트 구현 문서`로 나눠 우선순위를 고정했다.
+    - 텔레그램 메인 유지, Slack 보조 검토, `flora-todo-mvp` 재사용, 팀 오케스트레이션 단계 확장 원칙을 한 문서에 정리했다.
+  - 결과
+    - 앞으로 새 플로라 문서는 이 마스터 플랜과의 관계를 먼저 밝히고 작성하는 기준을 따른다.
 - 2026-04-02 `scripts/server/vault-image-processor.py`를 독립 운영 스크립트로 분리해서 커밋했다.
   - 커밋
     - `6b63492` `[codex] vault 이미지 처리 스크립트 추가`
@@ -1476,6 +1499,12 @@
 
 ## Next Step
 - 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
+- `[CODEX-LEAD] flora-frontdoor-task-ledger-phase1-spec 기준으로 실제 발신단/적재단 점검 후, sourceMessage 메타데이터와 ingest 경로 구현 착수`
+- `[CODEX-LEAD] flora-todo-mvp에서 Phase 1 임시 필드 저장 전략(detailsJson/metadata)과 이후 정규화 전략(assignment/approval/event_log)을 연결하는 상세 설계 작성`
+- `[CODEX-LEAD] Telegram Mini App MVP IA를 PRD 기준으로 별도 구현 스펙 문서로 내리고, 홈/빠른 메모/오늘 브리핑/승인 대기 화면부터 고정`
+- `[CODEX-LEAD] flora-orchestration-service-master-plan 기준으로 Frontdoor -> Task Ledger 닫힌 루프 구현 스펙을 별도 문서로 고정`
+- `[CODEX-LEAD] flora-todo-mvp를 협업 오케스트레이션 원장으로 확장하기 위한 assignment / approval / event_log 스키마 초안 작성`
+- `[CODEX-LEAD] Telegram Mini App MVP IA 문서 작성: 홈, 빠른 메모, 오늘 브리핑, 승인 대기, 팀별 업무함`
 - `[CODEX] 루트에서 한 번에 건드리지 말고, 다음부터는 `cd flora-todo-mvp`, `cd offline-crm-v2`, `cd openclaw-project-hub`처럼 프로젝트 폴더 단위로 진입해서 status/add/commit 범위를 고정`
 - `[CODEX] 큰 덩어리 기준으로 `openclaw-project-hub(111)`, `scripts(16)`, `docs(16)`, `offline-crm-v2(6)` 순서로 path-scoped 정리 또는 커밋 후보를 다시 나누기`
 - `[CODEX-LEAD] Flora 실제 텔레그램 송신 측(OpenClaw/로컬 worker 포함)이 `source_message_id`와 `source_created_at`를 항상 보내는지 점검하고, 빠진 송신 경로가 있으면 발신단에서 안정 ID를 강제`
@@ -1567,6 +1596,8 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- `flora-orchestration-service-prd`와 `flora-frontdoor-task-ledger-phase1-spec`는 정본 기준선이지만, 아직 실제 구현 반영 전이다. 문서만 만들고 발신단/적재단 코드를 연결하지 않으면 다시 "좋은 문서 + 느슨한 운영" 상태로 남을 수 있다.
+- `flora-orchestration-service-master-plan`는 현재 canonical planning bridge 초안이다. 앞으로 구현 스펙이 늘어날 때 이 문서와의 관계를 명시하지 않으면 다시 문서 체계가 중구난방으로 흐를 수 있다.
 - `.gitignore` 경계는 보강했고 Flora 관련 앱/워크플로우 소스도 커밋했지만, 저장소는 아직 `modified 12 / untracked 162` 상태다. 지금 남은 더티는 대부분 실제 작업 파일이라, 루트에서 일괄 정리하려 하면 서로 다른 작업이 다시 섞일 가능성이 높다.
 - `output/playwright`는 이번에 확인했듯 일부가 실제 추적 파일이다. 앞으로 `output/` 전체를 생성물이라고 가정하고 삭제하면 근거자료나 기존 추적 산출물까지 같이 건드릴 수 있다.
 - `Flora Conversation Log`는 이제 Oracle live 기준으로 원문을 `source_messages`와 NocoDB에 모두 남기지만, 발신 측이 `source_message_id`를 안 보내면 현재 fallback은 `userChatId:sourceCreatedAt`이다. 대부분 충분하지만, 일부 발신기가 `source_created_at`도 안 보내면 재전송 dedupe 강도가 약해질 수 있어 송신단 점검이 남아 있다.

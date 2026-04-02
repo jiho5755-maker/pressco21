@@ -90,6 +90,20 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 운영 서버 `pressco21-automation`의 CPU 경보 오탐 경로를 직접 점검하고 hotfix 했다.
+  - 확인
+    - 실제 운영 서비스는 정상 상태였다: `n8n.pressco21.com/healthz` `200`, `nocodb.pressco21.com` `302`, 주요 컨테이너 실행 중
+    - 경보 시각에 `/home/ubuntu/scripts/server-monitor.sh`가 `CPU 112%`를 보냈지만, 같은 시각 `/home/ubuntu/scripts/monitor.sh`는 `CPU 57%`를 기록했다.
+    - 원인은 `server-monitor.sh`가 `/proc/loadavg`를 CPU 퍼센트처럼 해석하고, 서버가 UTC인데 메시지에 `KST`만 문자열로 붙이던 구현이었다.
+  - 조치
+    - 운영 서버 `/home/ubuntu/scripts/server-monitor.sh`를 `/proc/stat` 1초 샘플 기반 CPU 측정으로 교체했다.
+    - 메시지/로그 시간 표기를 `TZ=Asia/Seoul` 기준으로 수정했다.
+    - 서버 백업본: `/home/ubuntu/scripts/server-monitor.sh.bak-20260402135059`
+  - 검증
+    - 수동 실행 결과: `[OK] CPU:6% RAM:15% Disk:62% — 2026-04-02 13:52 KST`
+    - 현재 서버 상태: load average `0.10 0.30 0.31`, 메모리 사용 약 `1.8GB / 11.9GB`, swap `51.9MB`, 루트 디스크 `62%`
+  - 참고
+    - 워크스페이스 규칙상 `/Users/jangjiho/Desktop/n8n-main/`은 읽기 전용 지식 라이브러리라, 이번 세션에서는 운영 서버만 hotfix 하고 저장소에는 handoff/ops memory만 남긴다.
 - Codex 바이브 루틴에 `선별 커밋`, `의도적 publish`, `장기 운영 메모` 레이어를 추가해 실제 실무 흐름을 더 닫았다.
   - 추가
     - `_tools/codex-commit.sh`
@@ -1314,6 +1328,7 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX] 운영 서버에 hotfix 된 /home/ubuntu/scripts/server-monitor.sh 를 정식 소스 저장소 기준으로 어디에 반영할지 결정하고, writable 경로가 열리면 같은 수정(/proc/stat CPU, Asia/Seoul 시간표기)을 역반영`
 - `[CODEX] 다음 실제 기능 작업 1건에서 start -> checkpoint -> backup -> preflight -> commit -> publish -> finish 순서를 실제로 한 번 끝까지 적용해, 문구나 출력 형식을 더 다듬기`
 - `[CODEX] OPS_STATE.md는 장기 운영 사실만 남기고, 세션 세부 로그가 섞이지 않도록 다음 handoff부터 분리 운용`
 - `[CODEX] 다음 실제 작업 1건에서 새 루틴으로 시작→체크포인트→백업→마감까지 한 바퀴 다시 써 보고, 부족한 필드나 출력 형식을 다듬기`
@@ -1397,6 +1412,7 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- 현재 `server-monitor.sh` hotfix는 운영 서버에만 직접 반영돼 있다. 워크스페이스 규칙상 `n8n-main`은 읽기 전용 취급이라, canonical source 역반영 경로를 정하지 않으면 다음 서버 재프로비저닝/수동 복사 때 구버전이 다시 들어올 수 있다.
 - `codex-commit.sh`는 기존 staged 변경이 있으면 일부러 멈춘다. staging을 여러 작업이 공유된 상태로 오래 끌고 가는 습관이 있으면 처음엔 번거롭게 느껴질 수 있다.
 - `codex-publish.sh`는 dirty tree를 기본 차단하므로, 로컬에 미정리 변경이 많은 저장소에서는 `--allow-dirty` 판단을 신중하게 해야 한다.
 - `OPS_STATE.md`는 장기 운영 사실만 담아야 가치가 유지된다. TODO나 세션 잡메모가 섞이면 다시 `AI_SYNC`처럼 비대해질 수 있다.

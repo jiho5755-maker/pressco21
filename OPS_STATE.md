@@ -35,6 +35,15 @@
   - raw bank event: `[은행 거래 알림]`
   - CRM processing result: `[CRM 입금 처리 결과]`
 
+## Server Monitoring
+
+- `pressco21-automation`에는 성격이 다른 두 모니터가 있다.
+  - `/home/ubuntu/scripts/server-monitor.sh`: 10분 주기 텔레그램 경보
+  - `/home/ubuntu/scripts/monitor.sh`: 15분 주기 종합 상태 로그
+- CPU 경보는 `load average`를 퍼센트처럼 쓰면 안 된다. Oracle ARM `2 OCPU` 환경에서는 짧은 부하에도 `100%+`처럼 과장돼 보일 수 있다.
+- 운영 `server-monitor.sh`는 2026-04-02 기준 `/proc/stat` 1초 샘플 방식과 `Asia/Seoul` 시간표기를 사용해야 한다.
+- 경보 수치가 어긋나면 `/home/ubuntu/logs/monitor.log`의 `/proc/stat` 기반 기록을 우선 기준으로 본다.
+
 ## Codex Session Routine
 
 - Start with `AI_SYNC.md` lock, then create a session log.

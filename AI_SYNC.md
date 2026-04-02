@@ -90,6 +90,26 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 플로라 문서 폴더를 `current / reference / archive` 기준으로 다시 정리해 직원용 진입 혼선을 줄였다.
+  - 범위
+    - `openclaw-project-hub/README.md`
+    - `openclaw-project-hub/03_openclaw_docs/README.md`
+    - `openclaw-project-hub/03_openclaw_docs/archive/README.md`
+    - `openclaw-project-hub/03_openclaw_docs/archive/legacy-flora/*`
+    - `openclaw-project-hub/03_openclaw_docs/archive/questionnaires/*`
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-master-plan.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-prd.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - root README에 `직원은 current만 본다`는 문서 읽기 원칙을 추가했다.
+    - `03_openclaw_docs/README.md`를 새로 만들어 현행 기준 문서, 참고 문서, 보관 문서를 한 번에 찾을 수 있게 했다.
+    - 과거 Telegram bridge/room router/validation 문서와 각종 설문 원본은 `archive` 아래로 이동했다.
+    - 마스터 플랜과 통합 PRD에도 문서 운영 규칙을 넣어, 이후 새 문서는 `통합 PRD -> phase spec/feature spec` 구조를 따르도록 고정했다.
+  - 검증
+    - `git diff --check`
+    - archive 대상 문서명이 현재 허브 내 다른 문서/스크립트에서 직접 참조되지 않는 것 확인
+  - 결과
+    - 직원이나 외부 협업자가 현재 기준 문서를 찾기 쉬워졌고, 이후 플로라 후속 개발 문서도 같은 분류 규칙을 따라 내려갈 수 있게 됐다.
 - 2026-04-03 플로라 Phase 1 `frontdoor -> source_message -> task ledger` 닫힌 루프를 실제 서버까지 배치하고 e2e 검증을 완료했다.
   - 범위
     - `openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
@@ -1582,7 +1602,7 @@
 
 ## Next Step
 - 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
-- `[CODEX-LEAD] 실제 flora-frontdoor 응답 완료 직후 `relay-flora-frontdoor-intake.py`를 자동 호출하도록 frontdoor 발신단을 연결`
+- `[CODEX-LEAD] 문서 정리 규칙을 유지하면서 실제 flora-frontdoor 응답 완료 직후 `relay-flora-frontdoor-intake.py`를 자동 호출하도록 frontdoor 발신단을 연결`
 - `[CODEX-LEAD] frontdoor 발신단이 `requestType`, `briefingBucket`, `executionRoute`, `sourceMessageId`, `sourceCreatedAt`를 어떤 기준으로 채울지 송신 규칙을 고정`
 - `[CODEX-LEAD] detailsMerge가 들어간 task를 dashboard/briefing/review에서 실제로 어떻게 활용할지 첫 표시 규칙을 구현`
 - `[CODEX-LEAD] 통합 PRD를 참조하는 모바일 자동화 1차 feature spec 작성: 메일 초안 -> 승인 -> 발송`

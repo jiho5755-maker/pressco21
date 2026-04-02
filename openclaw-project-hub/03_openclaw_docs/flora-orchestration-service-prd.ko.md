@@ -56,6 +56,14 @@ Flora 종합 오케스트레이션 서비스는
 
 `플로라 PRD는 하나로 유지하고, 필요한 경우에만 하위 스펙이 이 문서를 참조하는 구조`를 기준으로 한다.
 
+추가로 문서 운영은 아래를 따른다.
+
+- `current`: 지금 구현과 운영의 기준 문서
+- `reference`: 설계와 정책 참고 문서
+- `archive`: 과거 실험/복구/설문 문서
+
+현재 분류 인덱스는 [README.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/README.md)를 기준으로 유지한다.
+
 ---
 
 ## 2. 제품 비전

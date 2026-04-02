@@ -29,6 +29,23 @@
 - `06_scripts`
   - 원가 계산, 마스터 생성, OpenClaw 연동 스크립트
 
+## 문서 읽기 원칙
+
+직원이나 외부 협업자가 `03_openclaw_docs`를 볼 때는 아래 순서만 따르면 된다.
+
+1. `current`: 지금 기준으로 실제 운영/개발에 쓰는 문서
+2. `reference`: 아직 참고 가치가 있는 설계/정책 문서
+3. `archive`: 과거 실험, 복구 메모, 설문 원본
+
+문서 분류표:
+
+- [03_openclaw_docs/README.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/README.md)
+
+중요:
+
+- 직원은 기본적으로 `current` 문서만 보면 된다
+- `archive` 문서는 과거 판단 배경을 남겨두기 위한 보관본이지, 현재 기준 문서가 아니다
+
 ## 현재 권장 Telegram 구조
 
 - 메인 비서 `@pressco21_openclaw_bot`는 서버 `flora-frontdoor`가 받는다

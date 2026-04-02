@@ -43,6 +43,21 @@ _대상: 지호님, 플로라, Codex, Claude Code, 향후 개발 에이전트_
 
 를 분리해서 봐야 한다.
 
+### 2.1 문서 운영 규칙
+
+앞으로 `03_openclaw_docs`는 아래 3분류로 관리한다.
+
+- `current`: 실제 운영/개발 기준
+- `reference`: 현재 설계를 이해하거나 확장할 때 참고하는 문서
+- `archive`: 과거 실험, 복구 메모, 설문 원본
+
+원칙:
+
+- 새 기준 문서는 root `03_openclaw_docs`에 둔다
+- 새 문서가 필요하면 새 PRD를 늘리지 않고 `phase spec` 또는 `feature spec`으로만 추가한다
+- 기준에서 빠진 문서는 삭제보다 `archive` 이동을 우선한다
+- 직원 안내는 [README.md](/Users/jangjiho/workspace/pressco21/openclaw-project-hub/03_openclaw_docs/README.md)를 단일 진입점으로 본다
+
 ---
 
 ## 3. 최종 목표

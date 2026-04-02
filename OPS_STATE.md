@@ -46,6 +46,8 @@
 - CRM `/data/*` access is no longer browser-session-only for automation.
 - Live automation reads CRM snapshot data through `X-CRM-Automation-Key`.
 - Browser login and automation auth are intentionally separated.
+- Gmail 보안메일 collector는 IMAP `resolved` 포맷 기준으로 유지한다. 첨부 HTML과 본문 HTML 둘 다 파싱 가능한 상태가 운영 기준이다.
+- Intake engine은 `processedExactDepositIds` 기준으로 정확일치 중복을 억제한 뒤 review queue를 만든다.
 - Bank notifications are split into:
   - raw bank event: `[은행 거래 알림]`
   - CRM processing result: `[CRM 입금 처리 결과]`

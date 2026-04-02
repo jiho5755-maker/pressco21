@@ -90,6 +90,15 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- accounting 입금 자동화 워크플로우의 로컬 소스를 현재 운영 개선 내용과 다시 맞췄다.
+  - `n8n-automation/workflows/accounting/WF-CRM-01_입금자동반영_엔진.json`
+    - CRM snapshot 인증을 `httpHeaderAuth`(`X-CRM-Automation-Key`) 기준으로 정리했다.
+    - `Code: Build Deposit Plan`에 `processedExactDepositIds` 기반 정확일치 중복 방지 로직을 넣었다.
+    - review dismiss 이후 exact match 재처리 꼬임을 줄이도록 응답 payload와 처리 상태를 보강했다.
+  - `n8n-automation/workflows/accounting/WF-CRM-02_Gmail_입금알림_수집.json`
+    - IMAP trigger를 `resolved` 포맷으로 바꾸고, 보안메일 HTML/첨부 HTML 파싱 경로를 보강했다.
+    - 입금만이 아니라 출금/거래 이벤트도 요약해서 텔레그램으로 분리 전송하도록 정리했다.
+  - 두 workflow 모두 `executionOrder: v1`, `callerPolicy: workflowsFromSameOwner`, `availableInMCP: false` 설정으로 소스를 동기화했다.
 - 맥북 로컬 조종석의 메모리 경보를 점검했고, 이번 건은 완전한 오탐보다 `실제 메모리 압박 + 과한 경보 강도`가 겹친 상태로 판단했다.
   - 확인
     - macOS 기준 `swap ~6.1GB`, `compressor ~7.1GB`, `PhysMem 15G used / 225MB unused`, `CPU idle ~74%`
@@ -1357,6 +1366,7 @@
 - Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
 
 ## Next Step
+- `[CODEX] 다음 CRM 입금 자동화 수정에서도 live n8n 변경과 저장소 JSON이 다시 어긋나지 않게, 배포 직후 workflow export/로컬 소스 재동기화를 기본 루틴으로 고정`
 - `[CODEX] 맥북 재부팅 후 같은 메모리 경보가 빠르게 재발하면 memory-watchdog 기준을 'swap 단독 critical'에서 '낮은 free + 높은 swap + 연속 발생' 조합으로 재설계`
 - `[CODEX] 운영 서버에 hotfix 된 /home/ubuntu/scripts/server-monitor.sh 를 정식 소스 저장소 기준으로 어디에 반영할지 결정하고, writable 경로가 열리면 같은 수정(/proc/stat CPU, Asia/Seoul 시간표기)을 역반영`
 - `[CODEX] 다음 실제 기능 작업 1건에서 start -> checkpoint -> backup -> preflight -> commit -> publish -> finish 순서를 실제로 한 번 끝까지 적용해, 문구나 출력 형식을 더 다듬기`
@@ -1442,6 +1452,7 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- 현재 accounting workflow 로컬 JSON은 live 개선 내용과 다시 맞췄지만, 관련 CRM deploy/script 계열 다른 수정본이 별도 작업트리에 남아 있어 이후 배포 루틴을 분리 관리하지 않으면 source-of-truth가 다시 흔들릴 수 있다.
 - 현재 로컬 `scripts/memory-watchdog.sh`는 `swap >= 6144MB`만으로도 즉시 `CRITICAL`을 띄운다. 메모리 압박이 실제로 있더라도 체감 악화 전에 반복 알림이 먼저 쌓일 수 있어, 재부팅 후 재발 패턴을 보고 재설계할 필요가 있다.
 - 현재 `server-monitor.sh` hotfix는 운영 서버에만 직접 반영돼 있다. 워크스페이스 규칙상 `n8n-main`은 읽기 전용 취급이라, canonical source 역반영 경로를 정하지 않으면 다음 서버 재프로비저닝/수동 복사 때 구버전이 다시 들어올 수 있다.
 - `codex-commit.sh`는 기존 staged 변경이 있으면 일부러 멈춘다. staging을 여러 작업이 공유된 상태로 오래 끌고 가는 습관이 있으면 처음엔 번거롭게 느껴질 수 있다.

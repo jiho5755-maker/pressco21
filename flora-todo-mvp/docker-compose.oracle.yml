@@ -1,0 +1,51 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: flora-todo-mvp-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: flora_todo_mvp
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: ${APP_TIMEZONE:-Asia/Seoul}
+    ports:
+      - "127.0.0.1:5433:5432"
+    volumes:
+      - flora_todo_mvp_postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d flora_todo_mvp"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks:
+      - flora-network
+
+  app:
+    build: .
+    container_name: flora-todo-mvp
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgres://postgres:${POSTGRES_PASSWORD}@postgres:5432/flora_todo_mvp
+      APP_TIMEZONE: ${APP_TIMEZONE:-Asia/Seoul}
+      AUTOMATION_API_KEY: ${AUTOMATION_API_KEY}
+      TZ: ${APP_TIMEZONE:-Asia/Seoul}
+    depends_on:
+      postgres:
+        condition: service_healthy
+    ports:
+      - "127.0.0.1:3001:3000"
+    networks:
+      flora-network:
+      n8n-shared:
+        aliases:
+          - flora-todo-mvp
+
+volumes:
+  flora_todo_mvp_postgres:
+
+networks:
+  flora-network:
+    driver: bridge
+  n8n-shared:
+    external: true
+    name: n8n_n8n-network

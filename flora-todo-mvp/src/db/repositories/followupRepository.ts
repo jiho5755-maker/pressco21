@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { db } from "@/src/db/client";
 import { followups } from "@/src/db/schema";
 
@@ -58,6 +58,55 @@ export const followupRepository = {
         target: [followups.taskId, followups.signature],
       })
       .returning();
+  },
+
+  async syncByTaskId(taskId: string, inputs: CreateFollowupInput[]) {
+    const activeSignatures = inputs.map((input) => input.signature);
+    const syncedFollowups = [];
+
+    for (const input of inputs) {
+      const [savedFollowup] = await db
+        .insert(followups)
+        .values({
+          id: input.id,
+          taskId: input.taskId,
+          signature: input.signature,
+          subject: input.subject,
+          followupType: input.followupType ?? "manual",
+          waitingFor: input.waitingFor ?? null,
+          nextCheckAt: input.nextCheckAt ?? null,
+          status: input.status ?? "open",
+          lastNote: input.lastNote ?? null,
+        })
+        .onConflictDoUpdate({
+          target: [followups.taskId, followups.signature],
+          set: {
+            subject: input.subject,
+            followupType: input.followupType ?? "manual",
+            waitingFor: input.waitingFor ?? null,
+            nextCheckAt: input.nextCheckAt ?? null,
+            status: input.status ?? "open",
+            lastNote: input.lastNote ?? null,
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+
+      if (savedFollowup) {
+        syncedFollowups.push(savedFollowup);
+      }
+    }
+
+    if (inputs.length === 0) {
+      await db.delete(followups).where(eq(followups.taskId, taskId));
+      return [];
+    }
+
+    await db
+      .delete(followups)
+      .where(and(eq(followups.taskId, taskId), notInArray(followups.signature, activeSignatures)));
+
+    return syncedFollowups;
   },
 
   async listByTaskId(taskId: string) {

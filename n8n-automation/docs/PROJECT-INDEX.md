@@ -1,6 +1,6 @@
 # Pressco21 자동화 프로젝트 현황
 
-> 최종 업데이트: 2026-03-03
+> 최종 업데이트: 2026-04-02
 
 ---
 
@@ -15,7 +15,7 @@
 | 강사 신청 폼 | https://nocodb.pressco21.com/apply |
 | 텔레그램 봇 1 | @Pressco21_bot (Chat ID: 7713811206) — 업무/정부지원사업 |
 | 텔레그램 봇 2 | @Pressco21_makeshop_bot — 쇼핑몰/FA |
-| 활성 WF 수 | 43개 (2026-03-03 기준) |
+| 활성 WF 수 | 41개 (2026-04-02 기준) |
 
 ---
 
@@ -25,18 +25,19 @@
 
 | 항목 | 내용 |
 |------|------|
-| 목적 | 텔레그램/구글캘린더로 노션 업무를 편하게 입력 |
+| 목적 | 텔레그램/구글캘린더/Flora 대시보드로 업무를 입력·운영 |
 | 상태 | **Phase 3 완료** — 운영 안정화 단계 |
 | 봇 | @Pressco21_bot |
 
-**운영 워크플로우 (4개):**
+**운영 워크플로우 (5개):**
 
 | WF | 트리거 | 역할 |
 |----|--------|------|
-| F2 구글캘린더 동기화 | 5분마다 | 노션 할 일 → 구글캘린더 |
-| F3 모닝브리핑 | 매일 08:00 | 오늘 할 일 요약 텔레그램 |
-| F4 밀린업무 알림 | 매일 09:00 | 기한 초과 업무 텔레그램 |
-| F5 주간 리포트 | 매주 월요일 | 주간 업무 현황 요약 |
+| F2 구글캘린더 등록 | 캘린더 이벤트 생성 시 | 구글 캘린더 일정 → Flora task 적재 |
+| F3 모닝브리핑 | 매일 08:00 | 오늘 할 일 + 밀린 업무 텔레그램 요약 |
+| F4 밀린업무 알림 | 매일 10:00 | 기한 초과 업무 텔레그램 |
+| F5 캘린더 동기화 | 5분마다 | Flora task → 구글캘린더 |
+| F5 텔레그램 Callback | Webhook | 텔레그램 버튼 상태변경 → Flora patch |
 
 ---
 
@@ -85,21 +86,19 @@
 
 | 항목 | 내용 |
 |------|------|
-| 목적 | 메이크샵 D4 쇼핑몰 1인 운영 자동화 (CS/리뷰/강사/SNS/챗봇) |
+| 목적 | 메이크샵 D4 쇼핑몰 1인 운영 자동화 (CS/리뷰/강사/챗봇) |
 | 상태 | **F050 Phase 2 완료** — AI 챗봇 + FA 강사 시스템 운영 중 |
 | 봇 | @Pressco21_makeshop_bot |
 | ACTION 가이드 | `homepage-automation/ACTION-GUIDE.md` |
 | ROADMAP | `homepage-automation/ROADMAP.md` |
 
-**운영 워크플로우 (7개):**
+**운영 워크플로우 (5개):**
 
 | WF | n8n ID | 트리거 | 역할 |
 |----|--------|--------|------|
 | FA-001 강사 등급변경 | `jaTfiQuY35DjgrxN` | 5분마다 | 승인대기 → 메이크샵 등급변경 → 이메일 |
 | FA-002 강사 신청알림 | `ovWkhq7E0ZqvjBIZ` | 1시간마다 | 새 신청 텔레그램 알림 |
 | FA-003 강사 반려이메일 | `Ks4JvBC06cEj6b8b` | 5분마다 | 반려 → 고객 이메일 자동 발송 |
-| F030a SNS 일일리마인더 | `A2VToTXNoaeHu29N` | 매일 09:00 | 내일 SNS 발행 예정 알림 |
-| F030b SNS 주간리포트 | `3X7AM40dgQP4SQAO` | 매주 월요일 | 주간 SNS 일정 요약 |
 | F050 AI 챗봇 백엔드 | `krItUablejX8YLNV` | Webhook | FAQ매칭+의도분류+Gemini응답+피드백 |
 | F050b 챗봇 피드백 수집 | `C3VQdprEjzQiiEW9` | Webhook | 피드백 NocoDB 기록 |
 
@@ -140,7 +139,6 @@
 |--------|---------------|------|
 | @Pressco21_bot | 별도 텔레그램 설정 | 업무/정부지원사업 |
 | @Pressco21_makeshop_bot | `RdFu3nsFuuO5NCff` | 쇼핑몰/FA |
-| Notion API | Header Auth | 업무 DB |
 | Google Calendar | OAuth2 | 캘린더 동기화 |
 | Google Drive | `2e6e75e1-...` | Docs 생성 |
 | Gemini (정부지원) | `qC5YRvdMTRVPbAmQ` | WF#1 AI 분석 |

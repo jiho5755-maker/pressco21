@@ -8,7 +8,7 @@
     "build": "next build",
     "start": "next start",
     "db:generate": "drizzle-kit generate",
-    "db:migrate": "drizzle-kit migrate",
+    "db:migrate": "node --import tsx scripts/db-migrate.ts",
     "db:push": "drizzle-kit push",
     "db:check": "node --import tsx scripts/check-db.ts",
     "demo:structure": "node --import tsx scripts/demo-structured.ts",
@@ -17,6 +17,9 @@
     "verify:dedupe": "node --import tsx scripts/verify-dedupe.ts",
     "verify:review": "node --import tsx scripts/verify-review.ts",
     "verify:entities": "node --import tsx scripts/verify-entities.ts",
+    "verify:dashboard": "node --import tsx scripts/verify-dashboard.ts",
+    "verify:automation": "node --import tsx scripts/verify-automation.ts",
+    "import:legacy:notion": "node --import tsx scripts/import-legacy-notion.ts",
     "demo:ingest": "bash scripts/demo-ingest.sh",
     "demo:summary": "bash scripts/demo-summary.sh"
   },

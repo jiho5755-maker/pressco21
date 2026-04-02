@@ -90,6 +90,25 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- `flora-todo-mvp`를 todo 운영의 실사용 기준 원장/대시보드로 끌어올리고, Oracle n8n의 Notion 의존을 실제로 걷어냈다.
+  - `flora-todo-mvp`
+    - 홈 대시보드, review/admin, DB-native API, automation task upsert 경로까지 붙여 실제 DB 기준 운영 화면으로 확장했다.
+    - legacy Notion 데이터(`tasks 10 / projects 20 / calendars 1`)를 Oracle Flora DB로 이관했다.
+    - Oracle 배포 기준 `flora-todo-mvp-postgres` + `flora-todo-mvp` 컨테이너를 운영 중이며, n8n shared network alias `flora-todo-mvp`로 자동화가 직접 붙는다.
+  - `n8n-automation`
+    - live todo 자동화는 Flora 기준으로 정리됐다:
+      - `[F2] 구글 캘린더 → Flora 할 일 등록`
+      - `[F3] Flora 모닝 브리핑 (08:00)`
+      - `[F4] Flora 밀린 업무 알림 (10:00)`
+      - `[F5] Flora → 구글 캘린더 동기화`
+      - `[F5] Telegram Callback - Flora 상태 변경`
+    - `notion-callback.json`, `notion-to-gcal-sync.json`, `telegram-todo-bot.json`는 저장소에서 정리했고, F030a/F030b SNS Notion 워크플로우도 live n8n과 저장소에서 삭제했다.
+    - Oracle n8n에서 미사용 Notion credential 2개(`Notion API`, `Notion Header Auth`)도 export backup 후 제거했다.
+  - 검증
+    - Oracle `workflow_entity` 기준 F030a/F030b row count `0`
+    - Oracle `credentials_entity` 기준 Notion credential row count `0`
+    - live `n8n list:workflow | egrep "Notion|노션|F030a|F030b"` 결과 `0`
+    - Flora automation task create -> ignore smoke test 성공
 - 운영 서버 `pressco21-automation`의 CPU 경보 오탐 경로를 직접 점검하고 hotfix 했다.
   - 확인
     - 실제 운영 서비스는 정상 상태였다: `n8n.pressco21.com/healthz` `200`, `nocodb.pressco21.com` `302`, 주요 컨테이너 실행 중
@@ -1337,9 +1356,9 @@
 - `[CODEX] 다음 실제 NH 입금 메일 1건에서 webhook replay 없이도 텔레그램 원본 알림 + CRM 처리 결과가 모두 정상 도착하는지 운영 확인`
 - `[CODEX] 다음 실제 NH 입금 메일 1건에서 텔레그램에 [은행 거래 알림]과 [CRM 입금 처리 결과] 두 레이어가 모두 정상 도착하는지 운영 확인`
 - `[CODEX] 기존 CRM 내부 계정 1개로 BasicAuth fallback이 여전히 통과하는지 `/data/legacy-customer-snapshots.json` 1회 실계정 검증`
-- `[CODEX-LEAD] flora-todo-mvp 홈 detail 패널에 reminder/follow-up 생성까지 붙여 `/review` 왕복 없이 1차 운영 처리가 가능하게 확장`
-- `[CODEX-LEAD] flora-todo-mvp review queue 필터를 URL query string과 동기화해 새로고침/공유 시 같은 작업 집합을 바로 재현`
-- `[CODEX-LEAD] flora-todo-mvp 대시보드/리뷰 API를 서버 측 페이지네이션 + 선택적 캐시 구조로 바꿔 task 수가 늘어도 응답 시간이 흔들리지 않게 보강`
+- `[CODEX-LEAD] flora-todo-mvp를 개인 todo MVP에서 협업 오케스트레이션 시스템으로 확장하기 위한 \`staff/team/task_assignee/event_log\` 스키마 초안을 먼저 정의`
+- `[CODEX-LEAD] flora-todo-mvp의 \`tasks/projects\`가 회사 통합 원장과 어떻게 연결될지 source-of-truth 경계를 문서화하고, 앱 전용 Postgres가 장기 임시 원장인지 확정`
+- `[CODEX-LEAD] 홈 대시보드를 개인 관제 화면에서 팀 운영 관제 화면으로 확장하기 위한 배정/인계/막힘/검토대기 큐 설계`
 - `[CODEX-LEAD] flora-todo-mvp compound sentence에서 \`waiting_for\` 후보를 더 짧게 자르기 위한 후처리 규칙과 alias 사전 운영 편집 경로 추가`
 - `[CODEX-LEAD] flora-todo-mvp \`seed:demo\`와 API smoke test를 하나의 e2e 스크립트로 묶어 fresh DB 기준 회귀 검증을 더 단순화`
 - `[CODEX] Claude Code 리뷰용으로 Customer OS Core 데이터 스키마 상세안과 사방넷 섀도우 런 검증표를 이어서 작성`
@@ -1424,6 +1443,8 @@
 - `flora-todo-mvp` 홈 대시보드 summary/section은 실제 DB 기준으로 렌더되지만, 현재는 전체 task를 한 번에 읽는 MVP 구조라 데이터가 크게 늘면 페이지네이션/서버 측 섹션 캐싱이 필요하다.
 - `flora-todo-mvp` 홈 대시보드의 section 정렬 기준은 운영 목적에 맞춘 1차 규칙이다. 실제 사용 중 `이번주 핵심`에서 오늘 항목을 다시 보일지, `일정 임박`에 overdue를 포함할지는 운영 피드백으로 한 번 더 조정하는 편이 안전하다.
 - `flora-todo-mvp` review queue는 이제 필터와 페이지네이션까지 붙었지만, 현재 URL query string 동기화가 없어 새로고침/링크 공유 시 같은 필터 상태를 바로 재현하지는 못한다.
+- `flora-todo-mvp`는 현재 todo 도메인에서 Notion을 대체했지만, Oracle에서 앱 전용 Postgres를 따로 쓰고 있다. 이 구조가 장기 통합 원장 전 단계인지, 영구 분리 도메인인지 아직 확정 문서가 없다.
+- Notion 경로는 todo/SNS 운영에서 제거했지만, 이후 협업 기능을 키울 때도 또 다른 별도 진실원(NocoDB shadow table, 앱별 개별 DB, 문서형 장부)이 생기지 않도록 source-of-truth 경계를 먼저 고정해야 한다.
 - `flora-todo-mvp` 엔터티 추출은 alias/룰 기반이라 실무 메모에서는 꽤 안정적이지만, 긴 복문에서 `waiting_for`가 과도하게 길어지는 케이스는 후처리를 더 넣는 편이 안전하다.
 - `flora-todo-mvp` Sprint 2는 규칙 기반 구조화라서 예측 가능성은 높지만, 문장 의미를 깊게 추론하지는 않는다. 표현이 크게 달라지면 미탐/과소분해가 남을 수 있다.
 - `고객운영 OS` 문서는 현재 Draft 기준선이다. 사방넷 export 실제 컬럼, 메이크샵 보강 필요 필드, 고객 병합 규칙을 실데이터로 검증하기 전까지는 구현 범위가 달라질 수 있다.

@@ -35,6 +35,20 @@
   - raw bank event: `[은행 거래 알림]`
   - CRM processing result: `[CRM 입금 처리 결과]`
 
+## Flora Todo Operations
+
+- `flora-todo-mvp`는 todo 운영의 현재 원장/운영 UI/API 기준이다.
+- Oracle 운영 기준으로 `flora-todo-mvp-postgres`와 `flora-todo-mvp`가 별도 컨테이너로 떠 있으며, 앱은 loopback `127.0.0.1:3001`과 Docker shared alias `flora-todo-mvp`로 노출된다.
+- live n8n의 todo 자동화는 Notion이 아니라 Flora에 직접 붙는다.
+  - `[F2] 구글 캘린더 → Flora 할 일 등록`
+  - `[F3] Flora 모닝 브리핑 (08:00)`
+  - `[F4] Flora 밀린 업무 알림 (10:00)`
+  - `[F5] Flora → 구글 캘린더 동기화`
+  - `[F5] Telegram Callback - Flora 상태 변경`
+- 외부 자동화가 task를 적재할 때는 Flora `/api/automation/tasks`를 사용한다. 인증은 automation header 경로로 통일한다.
+- 2026-04-02 기준 todo/SNS용 Notion workflow와 Notion credential은 Oracle n8n에서 제거했다.
+- 관련 rollback backup은 Oracle `/home/ubuntu/n8n-delete-backups/2026-04-02-notion-sns-retire/`에 있다.
+
 ## Server Monitoring
 
 - `pressco21-automation`에는 성격이 다른 두 모니터가 있다.

@@ -1,4 +1,6 @@
+import { revalidateDashboardTag } from "@/src/lib/cache-tags";
 import { reminderRepository } from "@/src/db/repositories/reminderRepository";
+import { taskRepository } from "@/src/db/repositories/taskRepository";
 
 type ReminderPatchBody = {
   title?: string;
@@ -27,6 +29,9 @@ export async function PATCH(
       return Response.json({ ok: false, error: "Reminder not found" }, { status: 404 });
     }
 
+    await taskRepository.markReviewed(updatedReminder.taskId);
+    revalidateDashboardTag();
+
     return Response.json({ ok: true, reminder: updatedReminder });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -45,6 +50,9 @@ export async function DELETE(
     if (!deletedReminder) {
       return Response.json({ ok: false, error: "Reminder not found" }, { status: 404 });
     }
+
+    await taskRepository.markReviewed(deletedReminder.taskId);
+    revalidateDashboardTag();
 
     return Response.json({ ok: true, reminder: deletedReminder });
   } catch (error) {

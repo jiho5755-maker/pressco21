@@ -1,0 +1,235 @@
+{
+  "name": "[F5] Flora → 구글 캘린더 동기화",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 5 }]
+        }
+      },
+      "id": "node-schedule",
+      "name": "5분 폴링",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const since = new Date(Date.now() - 5 * 60 * 1000).toISOString();\nreturn [{ json: { since } }];"
+      },
+      "id": "node-calc-since",
+      "name": "5분 전 시각 계산",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=http://flora-todo-mvp:3000/api/automation/calendar-sync?since={{ encodeURIComponent($json.since) }}&limit=20",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" }
+          ]
+        }
+      },
+      "id": "node-query-flora",
+      "name": "Flora 캘린더 동기화 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const items = $input.first().json.items || [];\nreturn items.map((item) => ({ json: item }));"
+      },
+      "id": "node-expand-items",
+      "name": "동기화 대상 펼치기",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $json;\nconst dateStart = item.dateStart;\n\nif (!dateStart) {\n  return [];\n}\n\nfunction addOneDay(dateText) {\n  const base = new Date(dateText + 'T00:00:00+09:00');\n  base.setDate(base.getDate() + 1);\n  const y = base.getFullYear();\n  const m = String(base.getMonth() + 1).padStart(2, '0');\n  const d = String(base.getDate()).padStart(2, '0');\n  return `${y}-${m}-${d}`;\n}\n\nlet start;\nlet end;\nif (dateStart.includes('T')) {\n  const startDate = new Date(dateStart);\n  if (Number.isNaN(startDate.getTime())) {\n    return [];\n  }\n  const endDate = new Date(startDate.getTime() + 60 * 60 * 1000);\n  start = { dateTime: dateStart, timeZone: 'Asia/Seoul' };\n  end = { dateTime: endDate.toISOString(), timeZone: 'Asia/Seoul' };\n} else {\n  start = { date: dateStart };\n  end = { date: addOneDay(dateStart) };\n}\n\nreturn [{\n  json: {\n    ...item,\n    gcalEventBody: {\n      summary: item.summary,\n      description: item.memo || '',\n      start,\n      end\n    }\n  }\n}];"
+      },
+      "id": "node-build-event",
+      "name": "이벤트 body 준비",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-has-gcal-id",
+              "leftValue": "={{ $json.gcalId }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-has-gcal-id",
+      "name": "gcalId 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 300]
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "method": "PATCH",
+        "url": "=https://www.googleapis.com/calendar/v3/calendars/primary/events/{{ $json.gcalId }}",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.gcalEventBody) }}"
+      },
+      "id": "node-update-gcal",
+      "name": "구글 캘린더 이벤트 수정",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 180],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleCalendarOAuth2Api",
+        "method": "POST",
+        "url": "https://www.googleapis.com/calendar/v3/calendars/primary/events",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.gcalEventBody) }}"
+      },
+      "id": "node-create-gcal",
+      "name": "구글 캘린더 이벤트 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 420],
+      "credentials": {
+        "googleCalendarOAuth2Api": {
+          "id": "GOOGLE_CALENDAR_CREDENTIAL_ID",
+          "name": "Google Calendar account"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $('이벤트 body 준비').first().json;\nreturn [{\n  json: {\n    taskId: item.taskId,\n    detailsMerge: {\n      calendarEventId: item.gcalId,\n      calendarSync: {\n        eventId: item.gcalId,\n        lastSyncedAt: new Date().toISOString(),\n        origin: 'flora'\n      }\n    }\n  }\n}];"
+      },
+      "id": "node-build-update-patch",
+      "name": "수정 후 Flora 반영",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 180]
+    },
+    {
+      "parameters": {
+        "jsCode": "const createdEvent = $input.first().json;\nconst item = $('이벤트 body 준비').first().json;\nconst eventId = createdEvent.id;\n\nif (!eventId) {\n  return [];\n}\n\nreturn [{\n  json: {\n    taskId: item.taskId,\n    detailsMerge: {\n      calendarEventId: eventId,\n      calendarSync: {\n        eventId,\n        lastSyncedAt: new Date().toISOString(),\n        origin: 'flora'\n      }\n    }\n  }\n}];"
+      },
+      "id": "node-build-create-patch",
+      "name": "생성 후 Flora 반영",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1540, 420]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://flora-todo-mvp:3000/api/automation/tasks/{{ $json.taskId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ detailsMerge: $json.detailsMerge }) }}"
+      },
+      "id": "node-patch-flora-after-update",
+      "name": "Flora task 반영 (수정)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 180],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://flora-todo-mvp:3000/api/automation/tasks/{{ $json.taskId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ detailsMerge: $json.detailsMerge }) }}"
+      },
+      "id": "node-patch-flora-after-create",
+      "name": "Flora task 반영 (생성)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1760, 420],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "5분 폴링": {
+      "main": [[{ "node": "5분 전 시각 계산", "type": "main", "index": 0 }]]
+    },
+    "5분 전 시각 계산": {
+      "main": [[{ "node": "Flora 캘린더 동기화 조회", "type": "main", "index": 0 }]]
+    },
+    "Flora 캘린더 동기화 조회": {
+      "main": [[{ "node": "동기화 대상 펼치기", "type": "main", "index": 0 }]]
+    },
+    "동기화 대상 펼치기": {
+      "main": [[{ "node": "이벤트 body 준비", "type": "main", "index": 0 }]]
+    },
+    "이벤트 body 준비": {
+      "main": [[{ "node": "gcalId 있음?", "type": "main", "index": 0 }]]
+    },
+    "gcalId 있음?": {
+      "main": [
+        [{ "node": "구글 캘린더 이벤트 수정", "type": "main", "index": 0 }],
+        [{ "node": "구글 캘린더 이벤트 생성", "type": "main", "index": 0 }]
+      ]
+    },
+    "구글 캘린더 이벤트 수정": {
+      "main": [[{ "node": "수정 후 Flora 반영", "type": "main", "index": 0 }]]
+    },
+    "수정 후 Flora 반영": {
+      "main": [[{ "node": "Flora task 반영 (수정)", "type": "main", "index": 0 }]]
+    },
+    "구글 캘린더 이벤트 생성": {
+      "main": [[{ "node": "생성 후 Flora 반영", "type": "main", "index": 0 }]]
+    },
+    "생성 후 Flora 반영": {
+      "main": [[{ "node": "Flora task 반영 (생성)", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }]
+}

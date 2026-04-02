@@ -1,3 +1,4 @@
+import { revalidateDashboardTag } from "@/src/lib/cache-tags";
 import { taskRepository } from "@/src/db/repositories/taskRepository";
 import { TaskPriority, TaskStatus } from "@/src/domain/task";
 
@@ -33,6 +34,8 @@ export async function PATCH(
     if (!updatedTask) {
       return Response.json({ ok: false, error: "Task not found" }, { status: 404 });
     }
+
+    revalidateDashboardTag();
 
     return Response.json({ ok: true, task: updatedTask });
   } catch (error) {

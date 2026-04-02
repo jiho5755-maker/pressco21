@@ -1,4 +1,6 @@
+import { revalidateDashboardTag } from "@/src/lib/cache-tags";
 import { followupRepository } from "@/src/db/repositories/followupRepository";
+import { taskRepository } from "@/src/db/repositories/taskRepository";
 
 type FollowupPatchBody = {
   subject?: string;
@@ -29,6 +31,9 @@ export async function PATCH(
       return Response.json({ ok: false, error: "Follow-up not found" }, { status: 404 });
     }
 
+    await taskRepository.markReviewed(updatedFollowup.taskId);
+    revalidateDashboardTag();
+
     return Response.json({ ok: true, followup: updatedFollowup });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";
@@ -47,6 +52,9 @@ export async function DELETE(
     if (!deletedFollowup) {
       return Response.json({ ok: false, error: "Follow-up not found" }, { status: 404 });
     }
+
+    await taskRepository.markReviewed(deletedFollowup.taskId);
+    revalidateDashboardTag();
 
     return Response.json({ ok: true, followup: deletedFollowup });
   } catch (error) {

@@ -1,3 +1,4 @@
+import { revalidateDashboardTag } from "@/src/lib/cache-tags";
 import { ingestTextAsTask } from "@/src/services/ingestService";
 import { IngestRequestBody } from "@/src/types/api";
 
@@ -21,6 +22,10 @@ export async function POST(request: Request) {
       text: body.text,
       dryRun: body.dryRun,
     });
+
+    if (!body.dryRun) {
+      revalidateDashboardTag();
+    }
 
     return Response.json(
       {

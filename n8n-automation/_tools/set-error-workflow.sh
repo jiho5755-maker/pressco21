@@ -35,8 +35,6 @@ TARGET_WF_IDS=(
   "jaTfiQuY35DjgrxN"   # FA-001: 강사 등급 자동 변경
   "ovWkhq7E0ZqvjBIZ"   # FA-002: 강사 신청 알림
   "Ks4JvBC06cEj6b8b"   # FA-003: 반려 이메일 자동 발송
-  "A2VToTXNoaeHu29N"   # F030a: SNS 일일 리마인더
-  "3X7AM40dgQP4SQAO"   # F030b: SNS 주간 리포트
   "krItUablejX8YLNV"   # F050: AI 챗봇 백엔드
   "C3VQdprEjzQiiEW9"   # F050b: AI 챗봇 피드백 수집
 

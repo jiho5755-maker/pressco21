@@ -5,7 +5,7 @@
 > - **새 환경 세팅 (처음 시작)** → `pressco21/GETTING-STARTED.md`
 > - **프로젝트 전체 현황/WF 목록** → `pressco21/PROJECT-INDEX.md`
 >
-> 최종 업데이트: 2026-03-03
+> 최종 업데이트: 2026-04-02
 
 ---
 
@@ -42,17 +42,17 @@ pressco21/
 │   ├── PRD-v3.md          ← 최신 요구사항
 │   └── workflows/         ← 워크플로우 JSON (WF#1~7)
 └── homepage-automation/   ← [그룹 3] 쇼핑몰 + 강사 시스템
-    └── workflows/         ← 워크플로우 JSON (FA-001~003, F030a/b, F050/F050b)
+    └── workflows/         ← 워크플로우 JSON (FA-001~003, F050/F050b)
 ```
 
 ### 그룹 1 — 업무 일정 자동화
 
-텔레그램으로 업무를 입력하면 노션 DB에 자동으로 등록되고, 매일 아침 할 일 브리핑을 받는 시스템.
+텔레그램, 구글 캘린더, Flora 대시보드에서 들어온 업무를 Flora DB로 운영하고, 매일 아침 할 일 브리핑을 받는 시스템.
 
 | 항목 | 내용 |
 |------|------|
 | 봇 | @Pressco21_bot |
-| 주요 기능 | 텔레그램→노션 입력, 구글캘린더 동기화, 모닝브리핑, 밀린업무 알림 |
+| 주요 기능 | Flora task 적재, 구글캘린더 동기화, 모닝브리핑, 밀린업무 알림 |
 | 상세 문서 | `automation-project/PRD.md`, `USAGE-GUIDE.md` |
 
 ### 그룹 2 — 정부지원사업 자동수집
@@ -67,12 +67,12 @@ pressco21/
 
 ### 그룹 3 — 쇼핑몰 + 강사 시스템
 
-쇼핑몰 강사회원 신청 자동화 + SNS 콘텐츠 일정 관리.
+쇼핑몰 강사회원 신청 자동화 + AI 챗봇 운영.
 
 | 항목 | 내용 |
 |------|------|
 | 봇 | @Pressco21_makeshop_bot |
-| 주요 기능 | FA-001(등급자동변경), FA-002(신청알림), FA-003(반려이메일), F030(SNS리마인더) |
+| 주요 기능 | FA-001(등급자동변경), FA-002(신청알림), FA-003(반려이메일), F050(AI 챗봇) |
 | 데이터 | NocoDB (nocodb.pressco21.com) |
 | 상세 문서 | `homepage-automation/ACTION-GUIDE.md` |
 
@@ -80,17 +80,18 @@ pressco21/
 
 ## 2. 현재 운영 중인 워크플로우 전체 목록
 
-총 43개 워크플로우가 자동 실행 중입니다 (2026-03-03 기준).
+총 41개 워크플로우가 자동 실행 중입니다 (2026-04-02 기준).
 전체 WF 목록과 n8n ID는 `pressco21/PROJECT-INDEX.md` 참조.
 
-### 그룹 1 — 업무 일정 (4개)
+### 그룹 1 — 업무 일정 (5개)
 
 | 워크플로우 | 실행 조건 | 하는 일 |
 |-----------|----------|--------|
-| F2 구글캘린더 동기화 | 5분마다 | 노션 할 일 → 구글캘린더 동기화 |
+| F2 구글캘린더 등록 | 캘린더 이벤트 생성 시 | 구글 캘린더 일정 → Flora task 적재 |
 | F3 모닝브리핑 | 매일 08:00 | 오늘 할 일 + 밀린 일 텔레그램 요약 |
-| F4 밀린업무알림 | 매일 09:00 | 기한 지난 할 일 텔레그램 알림 |
-| F5 주간리포트 | 매주 월요일 | 주간 업무 현황 요약 |
+| F4 밀린업무알림 | 매일 10:00 | 기한 지난 할 일 텔레그램 알림 |
+| F5 캘린더 동기화 | 5분마다 | Flora task → 구글캘린더 동기화 |
+| F5 텔레그램 Callback | Webhook | 텔레그램 버튼 상태변경 → Flora patch |
 
 ### 그룹 2 — 정부지원사업 (7개)
 
@@ -104,15 +105,13 @@ pressco21/
 | WF#6 텔레그램허브 | `HxskyYvTbFvRzgaa` | 텔레그램 명령어 | /검색 /요약 /이벤트 /상태 /신청 /서류 |
 | WF#7 주간TOP5 | `FedVm1QWsvUeUjUn` | 매주 금요일 17:00 | 관련도 TOP5 리포트 |
 
-### 그룹 3 — 쇼핑몰 + 강사 (7개)
+### 그룹 3 — 쇼핑몰 + 강사 (5개)
 
 | 워크플로우 | n8n ID | 실행 조건 | 하는 일 |
 |-----------|--------|----------|--------|
 | FA-001 강사 등급변경 | `jaTfiQuY35DjgrxN` | 5분마다 | 승인대기 → 메이크샵 등급변경 → 이메일 |
 | FA-002 강사 신청알림 | `ovWkhq7E0ZqvjBIZ` | 1시간마다 | 새 신청 텔레그램 알림 |
 | FA-003 강사 반려이메일 | `Ks4JvBC06cEj6b8b` | 5분마다 | 반려 → 고객 이메일 자동 발송 |
-| F030a SNS 일일리마인더 | `A2VToTXNoaeHu29N` | 매일 09:00 | 내일 SNS 발행 예정 알림 |
-| F030b SNS 주간리포트 | `3X7AM40dgQP4SQAO` | 매주 월요일 09:00 | 주간 SNS 일정 요약 |
 | F050 AI 챗봇 | `krItUablejX8YLNV` | Webhook | FAQ매칭+의도분류+Gemini응답 |
 | F050b 피드백 수집 | `C3VQdprEjzQiiEW9` | Webhook | 챗봇 피드백 NocoDB 기록 |
 
@@ -176,7 +175,6 @@ pressco21/
 |--------|------|------|
 | **Oracle Cloud** | 서버 (n8n 실행) | 무료 (Free Tier) |
 | **텔레그램** | 알림 수신 + 업무 입력 | 무료 |
-| **노션** | 업무 관리 DB | 무료 |
 | **구글 계정** | 구글 캘린더 | 무료 |
 | **NocoDB** | 강사 신청 DB | 무료 (self-hosted) |
 | **네이버 메일 (SMTP)** | 강사 이메일 발송 | 무료 |
@@ -192,7 +190,6 @@ pressco21/
 |--------|-------------------|------|------|
 | 텔레그램 봇 1 | `Pressco21_bot` | Telegram | 업무 일정 + 정부지원사업 |
 | 텔레그램 봇 2 | `Pressco메이크샵봇` | Telegram | FA 강사 신청, 쇼핑몰 알림 |
-| 노션 | `Notion API` | Header Auth | 업무 DB 읽기/쓰기 |
 | 구글 캘린더 | `Google Calendar` | OAuth2 | 캘린더 연동 |
 | 네이버 SMTP | `PRESSCO21-SMTP-Naver` | SMTP | 강사 승인/반려 이메일 발송 |
 | 메이크샵 API | (헤더에 직접 입력) | - | 회원 조회/등급 변경 |
@@ -327,15 +324,6 @@ docker run -d \
 Access Token: [BotFather에서 발급받은 토큰]
 ```
 
-#### 노션 등록
-
-```
-타입: Header Auth
-이름: Notion API
-Name: Authorization
-Value: Bearer [노션 Integration 토큰]
-```
-
 #### 네이버 SMTP 등록 (이메일 발송용)
 
 ```
@@ -358,17 +346,17 @@ n8n의 Google Calendar OAuth2 방식으로 등록 (`automation-project/DEPLOYMEN
 
 **파일 위치:** `automation-project/workflows/`
 
-1. `telegram-todo-bot.json` import
-2. `google-calendar-todo.json` import
-3. `morning-briefing.json` import
-4. `overdue-alert.json` import
+1. `google-calendar-todo.json` import
+2. `morning-briefing.json` import
+3. `overdue-alert.json` import
+4. `flora-to-gcal-sync.json` import
+5. `flora-telegram-callback.json` import
 
 각 파일 import 후:
 - Telegram 노드 → 자격증명 선택
-- Notion 노드 → Notion API 자격증명 선택
+- Flora 자동화 호출 → `ADMIN_API_TOKEN` 환경변수 사용
+- Google Calendar 노드 → Google Calendar OAuth2 자격증명 선택
 - Active 토글 ON
-
----
 
 ### 그룹 2 — 정부지원사업 설치
 
@@ -398,10 +386,8 @@ Import 후 각 WF:
 1. `FA-002_강사_신청_알림.json` — 신청 알림
 2. `FA-001_강사회원_등급_자동변경.json` — 등급 자동 변경 + 승인 이메일
 3. `FA-003_강사_반려_이메일_자동발송.json` — 반려 이메일
-4. `F030a_SNS_콘텐츠_일일리마인더.json` — SNS 일일 알림
-5. `F030b_SNS_콘텐츠_주간리포트.json` — SNS 주간 요약
-6. `F050_AI_chatbot.json` — AI 챗봇 백엔드
-7. `F050b_피드백_수집.json` — 챗봇 피드백 수집
+4. `F050_AI_chatbot.json` — AI 챗봇 백엔드
+5. `F050b_피드백_수집.json` — 챗봇 피드백 수집
 
 Import 후 각 워크플로우:
 - Telegram 노드 → `Pressco메이크샵봇` 자격증명 선택
@@ -438,18 +424,6 @@ curl localhost:5678/healthz
 1. `https://n8n.pressco21.com` 접속
 2. 왼쪽 메뉴 **Executions** 클릭
 3. 빨간색 `Error` 항목 클릭 → 오류 노드 확인
-
-### SNS 콘텐츠 일정 관리 방법
-
-1. 노션 `콘텐츠 캘린더` DB 접속
-2. 새 항목 추가:
-   - 제목: 콘텐츠 제목
-   - 발행일: 원하는 날짜
-   - 채널: 인스타그램 / 유튜브 / 블로그 등
-   - 상태: 기획중 / 작성중 / 발행완료
-3. 전날 09:00에 F030a가 자동으로 텔레그램 알림 발송
-
----
 
 ## 8. 문제 해결
 

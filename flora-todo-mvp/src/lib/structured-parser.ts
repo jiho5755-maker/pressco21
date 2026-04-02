@@ -1,5 +1,10 @@
 import { TaskPriority, TaskStatus } from "@/src/domain/task";
-import { extractNamedEntities, inferRelatedProject, inferWaitingForFromEntities } from "@/src/lib/entity-extractor";
+import {
+  extractNamedEntities,
+  extractNamedEntityMatches,
+  inferRelatedProject,
+  inferWaitingForFromEntities,
+} from "@/src/lib/entity-extractor";
 import { buildSegmentHash } from "@/src/lib/fingerprint";
 import { deriveTaskTitle } from "@/src/lib/task-title";
 import { buildNextCheckAt, extractTemporalSignals } from "@/src/lib/date-extractor";
@@ -188,17 +193,23 @@ export function structureMemoText(text: string, now = new Date()): StructuredMem
     const status = inferStatus(segment);
     const priority = inferPriority(segment);
     const temporal = extractTemporalSignals(segment, now);
+    const entityMatches = extractNamedEntityMatches(segment);
     const entities = extractNamedEntities(segment);
     const followupResult = extractFollowups(segment, now, temporal.dueAt);
     const normalizedFollowups = followupResult.followups.map((followup) => ({
       ...followup,
-      waitingFor: inferWaitingForFromEntities(segment, followup.waitingFor, entities),
+      waitingFor: inferWaitingForFromEntities(segment, followup.waitingFor, entities, entityMatches),
     }));
     const taskStatus = normalizedFollowups.length > 0 && status.status === "todo" ? "waiting" : status.status;
-    const waitingFor = inferWaitingForFromEntities(segment, normalizedFollowups[0]?.waitingFor ?? null, entities);
+    const waitingFor = inferWaitingForFromEntities(
+      segment,
+      normalizedFollowups[0]?.waitingFor ?? null,
+      entities,
+      entityMatches,
+    );
     const title = deriveTaskTitle(segment);
     const reminders = buildReminders(title, temporal);
-    const relatedProject = inferRelatedProject(entities);
+    const relatedProject = inferRelatedProject(segment, entities, entityMatches);
 
     return {
       sourceSegment: segment,

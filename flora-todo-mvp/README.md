@@ -1,6 +1,6 @@
 # flora-todo-mvp
 
-Sprint 2.5 기준으로 구조화 품질 위에 운영 안정화를 추가합니다. 핵심은 dedupe, review/admin 수정 경로, 엔터티 추출, summary 왜곡 방지입니다.
+Sprint 3 기준으로 홈 대시보드와 review desk를 함께 운영합니다. 핵심은 "지금 뭐부터 해야 하는지"를 홈에서 바로 보고, review/admin 수정 루프로 이어지는 최소 운영 관제 화면입니다.
 
 ## 시작
 
@@ -13,8 +13,13 @@ Sprint 2.5 기준으로 구조화 품질 위에 운영 안정화를 추가합니
 7. `npm run db:check`
 8. `npm run dev`
 
+`npm run db:migrate`는 fresh DB뿐 아니라 예전 로컬 스키마에도 Sprint 2.5 컬럼과 unique index를 idempotent하게 맞춥니다.
+
 ## 현재 구조
 
+- `/` Sprint 3 홈 대시보드. summary 카드, 최우선/오늘/이번주/대기/일정 임박/최근 입력 섹션, task detail, explorer 필터/정렬을 제공합니다.
+- `/review` Sprint 2.5 Review Desk. quick ingest, review queue, task/reminder/follow-up 수정 UI를 제공합니다.
+- `app/api/dashboard` 홈 대시보드 데이터 API
 - `app/api/ingest` 원문 메모 입력 API
 - `app/api/summary` 구조화 반영 집계 API
 - `app/api/admin/review` 검토 목록 API
@@ -32,6 +37,7 @@ Sprint 2.5 기준으로 구조화 품질 위에 운영 안정화를 추가합니
 ## API
 
 - `POST /api/ingest`
+- `GET /api/dashboard`
 - `GET /api/summary`
 - `GET /api/admin/review?limit=50`
 - `PATCH /api/admin/tasks/:id`
@@ -46,10 +52,30 @@ Sprint 2.5 기준으로 구조화 품질 위에 운영 안정화를 추가합니
 - `npm run seed:demo` 샘플 문장을 실제 DB에 적재
 - `npm run verify:sprint2` 구조화 미리보기 + 실제 DB 적재 + summary 확인
 - `npm run verify:dedupe` 동일 입력 재처리 검증
-- `npm run verify:review` review 수정 후 반영 검증
-- `npm run verify:entities` 사람/업체/프로젝트 추출 비교 출력
+- `npm run verify:review` task 전 필드 수정 + reminder 수정 + follow-up 삭제 후 재ingest 유지 검증
+- `npm run verify:entities` 사람/업체/프로젝트 alias 기반 추출 검증
+- `npm run verify:sprint2` summary 왜곡 방지 케이스 검증
+- `npm run verify:dashboard` 홈 대시보드 summary/section 기준 검증
 - `npm run demo:ingest` 로컬 API로 ingest 호출
 - `npm run demo:summary` 로컬 API로 summary 호출
+
+## 재현용 점검 명령
+
+```bash
+docker compose up -d
+export NVM_DIR="$HOME/.nvm" && . "$NVM_DIR/nvm.sh"
+npm run db:migrate
+npm run db:check
+npm run verify:entities
+npm run verify:dedupe
+npm run verify:review
+npm run verify:sprint2
+npm run verify:dashboard
+npm run build
+npm run start -- --hostname 127.0.0.1 --port 3000
+```
+
+서버 실행 후 브라우저에서 `http://127.0.0.1:3000/`에 접속하면 홈 대시보드에서 운영 우선순위와 상세를 확인할 수 있고, `http://127.0.0.1:3000/review`에서 review/admin 수정 흐름을 바로 검수할 수 있습니다.
 
 ## 예시
 

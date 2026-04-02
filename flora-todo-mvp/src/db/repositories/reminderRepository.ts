@@ -1,4 +1,4 @@
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, notInArray } from "drizzle-orm";
 import { db } from "@/src/db/client";
 import { reminders } from "@/src/db/schema";
 
@@ -55,6 +55,53 @@ export const reminderRepository = {
         target: [reminders.taskId, reminders.signature],
       })
       .returning();
+  },
+
+  async syncByTaskId(taskId: string, inputs: CreateReminderInput[]) {
+    const activeSignatures = inputs.map((input) => input.signature);
+    const syncedReminders = [];
+
+    for (const input of inputs) {
+      const [savedReminder] = await db
+        .insert(reminders)
+        .values({
+          id: input.id,
+          taskId: input.taskId,
+          signature: input.signature,
+          title: input.title,
+          remindAt: input.remindAt,
+          kind: input.kind ?? "manual",
+          message: input.message ?? null,
+          status: input.status ?? "pending",
+        })
+        .onConflictDoUpdate({
+          target: [reminders.taskId, reminders.signature],
+          set: {
+            title: input.title,
+            remindAt: input.remindAt,
+            kind: input.kind ?? "manual",
+            message: input.message ?? null,
+            status: input.status ?? "pending",
+            updatedAt: new Date(),
+          },
+        })
+        .returning();
+
+      if (savedReminder) {
+        syncedReminders.push(savedReminder);
+      }
+    }
+
+    if (inputs.length === 0) {
+      await db.delete(reminders).where(eq(reminders.taskId, taskId));
+      return [];
+    }
+
+    await db
+      .delete(reminders)
+      .where(and(eq(reminders.taskId, taskId), notInArray(reminders.signature, activeSignatures)));
+
+    return syncedReminders;
   },
 
   async listByTaskId(taskId: string) {

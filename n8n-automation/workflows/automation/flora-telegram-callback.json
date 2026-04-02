@@ -1,0 +1,211 @@
+{
+  "name": "[F5] Telegram Callback - Flora 상태 변경",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram-callback",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Callback Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "telegram-callback"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst callbackQuery = body.callback_query;\n\nif (!callbackQuery) {\n  return [{ json: { valid: false, error: 'callback_query 없음' } }];\n}\n\nconst callbackData = callbackQuery.data || '';\nconst colonIdx = callbackData.indexOf(':');\nif (colonIdx === -1) {\n  return [{\n    json: {\n      valid: false,\n      callbackQueryId: callbackQuery.id,\n      chatId: callbackQuery.message?.chat?.id,\n      messageId: callbackQuery.message?.message_id,\n      error: '잘못된 callback_data 형식'\n    }\n  }];\n}\n\nconst statusCode = callbackData.substring(0, colonIdx);\nconst taskId = callbackData.substring(colonIdx + 1);\nconst statusMap = {\n  done: { status: 'done', priority: null, label: '완료', icon: '✅' },\n  inprogress: { status: 'in_progress', priority: null, label: '진행 중', icon: '🔵' },\n  pin: { status: 'in_progress', priority: 'p1', label: '핀', icon: '📌' }\n};\nconst resolved = statusMap[statusCode];\n\nif (!resolved || !taskId) {\n  return [{\n    json: {\n      valid: false,\n      callbackQueryId: callbackQuery.id,\n      chatId: callbackQuery.message?.chat?.id,\n      messageId: callbackQuery.message?.message_id,\n      error: '알 수 없는 callback_data'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    valid: true,\n    callbackQueryId: callbackQuery.id,\n    chatId: callbackQuery.message?.chat?.id,\n    messageId: callbackQuery.message?.message_id,\n    taskId,\n    floraStatus: resolved.status,\n    floraPriority: resolved.priority,\n    displayLabel: resolved.label,\n    statusIcon: resolved.icon,\n    originalText: callbackQuery.message?.text || ''\n  }\n}];"
+      },
+      "id": "node-parse-callback",
+      "name": "callback_data 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-valid-callback",
+              "leftValue": "={{ $json.valid }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-valid-check",
+      "name": "유효한 Callback?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $json.callbackQueryId, text: $json.statusIcon + ' ' + $json.displayLabel + ' 처리 중...' }) }}",
+        "options": {}
+      },
+      "id": "node-answer-callback",
+      "name": "Telegram 즉시 응답",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "=http://flora-todo-mvp:3000/api/automation/tasks/{{ $('callback_data 파싱').first().json.taskId }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: $('callback_data 파싱').first().json.floraStatus, priority: $('callback_data 파싱').first().json.floraPriority || undefined }) }}",
+        "options": {}
+      },
+      "id": "node-flora-patch",
+      "name": "Flora 상태 변경",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 200],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "cond-flora-success",
+              "leftValue": "={{ $json.ok === true }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals" }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "node-flora-success",
+      "name": "Flora 성공?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 200]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/editMessageText",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ (() => { const d = $('callback_data 파싱').first().json; return JSON.stringify({ chat_id: d.chatId, message_id: d.messageId, text: d.originalText + '\\n' + d.statusIcon + ' ' + d.displayLabel + ' 처리 완료', reply_markup: JSON.stringify({ inline_keyboard: [] }) }); })() }}",
+        "options": {}
+      },
+      "id": "node-edit-message",
+      "name": "버튼 제거 및 완료 표시",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 160],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('callback_data 파싱').first().json.callbackQueryId, text: '❌ 처리 실패. 다시 시도해주세요.' }) }}",
+        "options": {}
+      },
+      "id": "node-error-response",
+      "name": "오류 응답",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 280],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $json.callbackQueryId || '', text: '⚠️ 처리할 수 없는 요청입니다.' }) }}",
+        "options": {}
+      },
+      "id": "node-invalid-response",
+      "name": "무효 응답",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 400],
+      "credentials": {
+        "telegramApi": {
+          "id": "1",
+          "name": "Telegram Bot API"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Callback Webhook": {
+      "main": [[{ "node": "callback_data 파싱", "type": "main", "index": 0 }]]
+    },
+    "callback_data 파싱": {
+      "main": [[{ "node": "유효한 Callback?", "type": "main", "index": 0 }]]
+    },
+    "유효한 Callback?": {
+      "main": [
+        [{ "node": "Telegram 즉시 응답", "type": "main", "index": 0 }],
+        [{ "node": "무효 응답", "type": "main", "index": 0 }]
+      ]
+    },
+    "Telegram 즉시 응답": {
+      "main": [[{ "node": "Flora 상태 변경", "type": "main", "index": 0 }]]
+    },
+    "Flora 상태 변경": {
+      "main": [[{ "node": "Flora 성공?", "type": "main", "index": 0 }]]
+    },
+    "Flora 성공?": {
+      "main": [
+        [{ "node": "버튼 제거 및 완료 표시", "type": "main", "index": 0 }],
+        [{ "node": "오류 응답", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }]
+}

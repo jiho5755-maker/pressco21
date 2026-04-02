@@ -54,7 +54,7 @@ export async function ingestTextAsTask(input: IngestRequestBody) {
   const updatedTasks = [];
   const skippedTasks = [];
   const taskIdBySegmentHash = new Map<string, string>();
-  const rebuildChildTaskIds: string[] = [];
+  const syncableSegments = [];
 
   for (const segment of structuredWithHashes.segments) {
     const existingTask = existingBySegmentHash.get(segment.segmentHash);
@@ -81,13 +81,13 @@ export async function ingestTextAsTask(input: IngestRequestBody) {
     };
 
     if (!existingTask) {
-      const createdTask = await taskRepository.create({
+      const createdTask = await taskRepository.upsertStructuredTask({
         id: randomUUID(),
         ...taskInput,
       });
       createdTasks.push(createdTask);
       taskIdBySegmentHash.set(segment.segmentHash, createdTask.id);
-      rebuildChildTaskIds.push(createdTask.id);
+      syncableSegments.push(segment);
       continue;
     }
 
@@ -97,10 +97,13 @@ export async function ingestTextAsTask(input: IngestRequestBody) {
       continue;
     }
 
-    const updatedTask = await taskRepository.updateStructuredTask(existingTask.id, taskInput);
+    const updatedTask = await taskRepository.upsertStructuredTask({
+      id: existingTask.id,
+      ...taskInput,
+    });
     updatedTasks.push(updatedTask);
     taskIdBySegmentHash.set(segment.segmentHash, updatedTask.id);
-    rebuildChildTaskIds.push(updatedTask.id);
+    syncableSegments.push(segment);
   }
 
   const ignoredTasks = await taskRepository.markMissingSegmentsIgnored(
@@ -110,19 +113,39 @@ export async function ingestTextAsTask(input: IngestRequestBody) {
   );
 
   await Promise.all([
-    reminderRepository.deleteByTaskIds([...rebuildChildTaskIds, ...ignoredTasks.map((task) => task.id)]),
-    followupRepository.deleteByTaskIds([...rebuildChildTaskIds, ...ignoredTasks.map((task) => task.id)]),
+    reminderRepository.deleteByTaskIds(ignoredTasks.map((task) => task.id)),
+    followupRepository.deleteByTaskIds(ignoredTasks.map((task) => task.id)),
   ]);
 
-  const reminderInputs = structuredWithHashes.segments.flatMap((segment) => {
-    const taskId = taskIdBySegmentHash.get(segment.segmentHash);
-    const existingTask = existingBySegmentHash.get(segment.segmentHash);
+  const reminderInputsByTaskId = new Map<string, Array<{
+    id: string;
+    taskId: string;
+    signature: string;
+    title: string;
+    remindAt: Date;
+    kind: string;
+    message: string | null;
+    status: string;
+  }>>();
+  const followupInputsByTaskId = new Map<string, Array<{
+    id: string;
+    taskId: string;
+    signature: string;
+    subject: string;
+    followupType: string;
+    waitingFor: string | null;
+    nextCheckAt: Date | null;
+    status: string;
+    lastNote: string | null;
+  }>>();
 
-    if (!taskId || existingTask?.reviewedAt) {
-      return [];
+  for (const segment of syncableSegments) {
+    const taskId = taskIdBySegmentHash.get(segment.segmentHash);
+    if (!taskId) {
+      continue;
     }
 
-    return segment.reminders.map((reminder) => ({
+    reminderInputsByTaskId.set(taskId, segment.reminders.map((reminder) => ({
       id: randomUUID(),
       taskId,
       signature: buildReminderSignature(reminder),
@@ -131,18 +154,9 @@ export async function ingestTextAsTask(input: IngestRequestBody) {
       kind: reminder.kind,
       message: reminder.message,
       status: reminder.status,
-    }));
-  });
+    })));
 
-  const followupInputs = structuredWithHashes.segments.flatMap((segment) => {
-    const taskId = taskIdBySegmentHash.get(segment.segmentHash);
-    const existingTask = existingBySegmentHash.get(segment.segmentHash);
-
-    if (!taskId || existingTask?.reviewedAt) {
-      return [];
-    }
-
-    return segment.followups.map((followup) => ({
+    followupInputsByTaskId.set(taskId, segment.followups.map((followup) => ({
       id: randomUUID(),
       taskId,
       signature: buildFollowupSignature(followup),
@@ -152,13 +166,21 @@ export async function ingestTextAsTask(input: IngestRequestBody) {
       nextCheckAt: followup.nextCheckAt,
       status: followup.status,
       lastNote: followup.lastNote,
-    }));
-  });
+    })));
+  }
 
-  const [createdReminders, createdFollowups] = await Promise.all([
-    reminderRepository.createMany(reminderInputs),
-    followupRepository.createMany(followupInputs),
-  ]);
+  const createdReminders = [];
+  const createdFollowups = [];
+
+  for (const [taskId, reminderInputs] of reminderInputsByTaskId.entries()) {
+    const syncedReminders = await reminderRepository.syncByTaskId(taskId, reminderInputs);
+    createdReminders.push(...syncedReminders);
+  }
+
+  for (const [taskId, followupInputs] of followupInputsByTaskId.entries()) {
+    const syncedFollowups = await followupRepository.syncByTaskId(taskId, followupInputs);
+    createdFollowups.push(...syncedFollowups);
+  }
 
   return {
     dryRun: false,

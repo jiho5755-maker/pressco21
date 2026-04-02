@@ -3,3 +3,4 @@ export * from "./reminders";
 export * from "./followups";
 export * from "./projectCatalogs";
 export * from "./calendarCatalogs";
+export * from "./sourceMessages";

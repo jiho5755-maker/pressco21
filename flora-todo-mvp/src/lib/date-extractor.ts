@@ -45,6 +45,25 @@ function parseTime(text: string) {
   const timeMatch = text.match(/(오전|오후)?\s*(\d{1,2})시(?:\s*(\d{1,2})분?)?/);
 
   if (!timeMatch) {
+    const approximateTimeRules = [
+      { pattern: /오전 중|오전에/, hour: 10, minute: 0 },
+      { pattern: /오후 중|오후에/, hour: 15, minute: 0 },
+      { pattern: /점심/, hour: 12, minute: 0 },
+      { pattern: /저녁/, hour: 19, minute: 0 },
+      { pattern: /밤/, hour: 21, minute: 0 },
+    ];
+
+    for (const rule of approximateTimeRules) {
+      const matched = text.match(rule.pattern);
+      if (matched) {
+        return {
+          hour: rule.hour,
+          minute: rule.minute,
+          label: matched[0],
+        };
+      }
+    }
+
     return null;
   }
 
@@ -68,6 +87,23 @@ function resolveWeekday(now: Date, weekday: number, weekOffset: number) {
   return addDays(weekStart, weekday === 0 ? 6 : weekday - 1);
 }
 
+function resolveWeekend(now: Date, weekOffset: number) {
+  const weekStart = addDays(getWeekStart(now), weekOffset * 7);
+  return addDays(weekStart, 5);
+}
+
+function resolveFutureDate(month: number, day: number, now: Date, year?: number) {
+  let resolvedYear = year ?? now.getFullYear();
+  let date = new Date(resolvedYear, month - 1, day);
+
+  if (!year && date < getStartOfToday(now)) {
+    resolvedYear += 1;
+    date = new Date(resolvedYear, month - 1, day);
+  }
+
+  return date;
+}
+
 function buildReminderAt(dueAt: Date, hasExplicitTime: boolean) {
   if (hasExplicitTime) {
     return new Date(dueAt.getTime() - 60 * 60 * 1000);
@@ -76,9 +112,13 @@ function buildReminderAt(dueAt: Date, hasExplicitTime: boolean) {
   return setTime(dueAt, 9, 0);
 }
 
-function applyBeforeConstraint(dueAt: Date, hasExplicitTime: boolean) {
+function applyBeforeConstraint(dueAt: Date, hasExplicitTime: boolean, preferPreviousDay = false) {
   if (hasExplicitTime) {
     return new Date(dueAt.getTime() - 60 * 60 * 1000);
+  }
+
+  if (preferPreviousDay) {
+    return setTime(addDays(dueAt, -1), 18, 0);
   }
 
   return setTime(dueAt, 9, 0);
@@ -90,22 +130,48 @@ export function extractTemporalSignals(text: string, now = new Date()): Temporal
   const isBeforeConstraint = text.includes("전에");
   let dueAt: Date | null = null;
   let timeBucket: string | null = null;
+  let resolvedFromWeekend = false;
+
+  const isoDateMatch = text.match(/\b(\d{4})-(\d{1,2})-(\d{1,2})\b/);
+  if (isoDateMatch) {
+    const year = Number(isoDateMatch[1]);
+    const month = Number(isoDateMatch[2]);
+    const day = Number(isoDateMatch[3]);
+    const date = resolveFutureDate(month, day, now, year);
+    dueAt = setTime(date, timeInfo?.hour ?? 18, timeInfo?.minute ?? 0);
+    timeBucket = "specific_date";
+    matchedExpressions.push(isoDateMatch[0]);
+  }
+
+  const koreanMonthDayMatch = text.match(/(?:(\d{4})년\s*)?(\d{1,2})월\s*(\d{1,2})일/);
+  if (!dueAt && koreanMonthDayMatch) {
+    const year = koreanMonthDayMatch[1] ? Number(koreanMonthDayMatch[1]) : undefined;
+    const month = Number(koreanMonthDayMatch[2]);
+    const day = Number(koreanMonthDayMatch[3]);
+    const date = resolveFutureDate(month, day, now, year);
+    dueAt = setTime(date, timeInfo?.hour ?? 18, timeInfo?.minute ?? 0);
+    timeBucket = "specific_date";
+    matchedExpressions.push(koreanMonthDayMatch[0]);
+  }
 
   const monthDayMatch = text.match(/\b(\d{1,2})\/(\d{1,2})\b/);
-  if (monthDayMatch) {
+  if (!dueAt && monthDayMatch) {
     const month = Number(monthDayMatch[1]);
     const day = Number(monthDayMatch[2]);
-    let year = now.getFullYear();
-    let date = new Date(year, month - 1, day);
-
-    if (date < getStartOfToday(now)) {
-      year += 1;
-      date = new Date(year, month - 1, day);
-    }
-
+    const date = resolveFutureDate(month, day, now);
     dueAt = setTime(date, timeInfo?.hour ?? 18, timeInfo?.minute ?? 0);
     timeBucket = "specific_date";
     matchedExpressions.push(monthDayMatch[0]);
+  }
+
+  const dottedMonthDayMatch = text.match(/\b(\d{1,2})\.(\d{1,2})\b/);
+  if (!dueAt && dottedMonthDayMatch) {
+    const month = Number(dottedMonthDayMatch[1]);
+    const day = Number(dottedMonthDayMatch[2]);
+    const date = resolveFutureDate(month, day, now);
+    dueAt = setTime(date, timeInfo?.hour ?? 18, timeInfo?.minute ?? 0);
+    timeBucket = "specific_date";
+    matchedExpressions.push(dottedMonthDayMatch[0]);
   }
 
   if (!dueAt && text.includes("오늘")) {
@@ -118,6 +184,12 @@ export function extractTemporalSignals(text: string, now = new Date()): Temporal
     dueAt = setTime(addDays(now, 1), timeInfo?.hour ?? 18, timeInfo?.minute ?? 0);
     timeBucket = "tomorrow";
     matchedExpressions.push("내일");
+  }
+
+  if (!dueAt && text.includes("모레")) {
+    dueAt = setTime(addDays(now, 2), timeInfo?.hour ?? 18, timeInfo?.minute ?? 0);
+    timeBucket = "this_week";
+    matchedExpressions.push("모레");
   }
 
   const weekdayMatch = text.match(/(이번주|다음주)?\s*(월요일|화요일|수요일|목요일|금요일|토요일|일요일)/);
@@ -145,6 +217,29 @@ export function extractTemporalSignals(text: string, now = new Date()): Temporal
     matchedExpressions.push(weekdayMatch[0]);
   }
 
+  const weekendMatch = text.match(/(이번주말|다음주말|주말)/);
+  if (!dueAt && weekendMatch) {
+    const label = weekendMatch[0];
+    let weekOffset = 0;
+
+    if (label === "다음주말") {
+      weekOffset = 1;
+      timeBucket = "next_week";
+    } else {
+      timeBucket = "this_week";
+    }
+
+    let resolved = resolveWeekend(now, weekOffset);
+    if (label === "주말" && resolved < getStartOfToday(now)) {
+      resolved = resolveWeekend(now, 1);
+      timeBucket = "next_week";
+    }
+
+    dueAt = setTime(resolved, timeInfo?.hour ?? 18, timeInfo?.minute ?? 0);
+    resolvedFromWeekend = true;
+    matchedExpressions.push(label);
+  }
+
   if (!dueAt && text.includes("이번주")) {
     dueAt = getWeekEnd(now, 0);
     timeBucket = "this_week";
@@ -157,13 +252,17 @@ export function extractTemporalSignals(text: string, now = new Date()): Temporal
     matchedExpressions.push("다음주");
   }
 
-  const isDeadline = text.includes("까지") || text.includes("안에");
+  const isDeadline = text.includes("전까지") || text.includes("까지") || text.includes("안에");
   if (isDeadline) {
-    matchedExpressions.push(text.includes("까지") ? "까지" : "안에");
+    if (text.includes("전까지")) {
+      matchedExpressions.push("전까지");
+    } else {
+      matchedExpressions.push(text.includes("까지") ? "까지" : "안에");
+    }
   }
 
   if (dueAt && isBeforeConstraint) {
-    dueAt = applyBeforeConstraint(dueAt, Boolean(timeInfo));
+    dueAt = applyBeforeConstraint(dueAt, Boolean(timeInfo), resolvedFromWeekend);
     matchedExpressions.push("전에");
   }
 

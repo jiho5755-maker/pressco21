@@ -19,6 +19,8 @@
     "verify:entities": "node --import tsx scripts/verify-entities.ts",
     "verify:dashboard": "node --import tsx scripts/verify-dashboard.ts",
     "verify:automation": "node --import tsx scripts/verify-automation.ts",
+    "verify:freeform": "node --import tsx scripts/verify-freeform.ts",
+    "verify:source-messages": "node --import tsx scripts/verify-source-messages.ts",
     "import:legacy:notion": "node --import tsx scripts/import-legacy-notion.ts",
     "demo:ingest": "bash scripts/demo-ingest.sh",
     "demo:summary": "bash scripts/demo-summary.sh"

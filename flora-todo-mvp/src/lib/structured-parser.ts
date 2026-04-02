@@ -16,6 +16,8 @@ import {
 } from "@/src/types/structured";
 
 const compoundSeparators = [
+  /\s*\/\s*/,
+  /\s*;\s*/,
   /\s+및\s+/,
   /\s+하고\s+/,
   /\s+그리고\s+/,
@@ -24,6 +26,19 @@ const compoundSeparators = [
   /\s+같이\s+/,
   /,\s+/,
 ];
+
+const contextualHeadingPattern =
+  /^(오늘|내일|모레|이번주|다음주|이번주말|다음주말|주말|(?:이번주|다음주)?\s*(?:월요일|화요일|수요일|목요일|금요일|토요일|일요일))(?:\s+(?:할 일|일정|업무|체크리스트|메모))?\s*[:：-]\s*(.+)$/;
+
+const genericHeadingOnlyPattern =
+  /^(?:메모|회의 메모|미팅 메모|오늘 할 일|오늘 일정|이번주 할 일|이번주 일정|정리|회의 후 정리|미팅 후 정리|할 일|일정|업무)\s*[:：-]?$/;
+
+const genericHeadingPrefixes = [
+  /^(?:메모|회의 메모|미팅 메모|정리|회의 후 정리|미팅 후 정리)\s*[:：-]\s*/,
+];
+
+const temporalPrefixPattern =
+  /^(오늘|내일|모레|이번주|다음주|이번주말|다음주말|주말|(?:이번주|다음주)?\s*(?:월요일|화요일|수요일|목요일|금요일|토요일|일요일))\b/;
 
 const statusRules: Array<{ status: TaskStatus; patterns: RegExp[] }> = [
   { status: "waiting", patterns: [/대기/, /기다림/, /연락 대기/, /회신 대기/, /수신 대기/] },
@@ -49,11 +64,50 @@ const followupRules = [
 ];
 
 function cleanupLine(text: string) {
-  return text
+  let cleaned = text
     .replace(/\r/g, "\n")
     .replace(/^\s*(?:[-*•]|\d+[.)])\s*/g, "")
-    .replace(/\s+/g, " ")
-    .trim();
+    .replace(/\s+/g, " ");
+
+  for (const prefix of genericHeadingPrefixes) {
+    cleaned = cleaned.replace(prefix, "");
+  }
+
+  cleaned = cleaned.trim();
+
+  if (genericHeadingOnlyPattern.test(cleaned)) {
+    return "";
+  }
+
+  return cleaned;
+}
+
+function extractLineContext(line: string) {
+  const match = line.match(contextualHeadingPattern);
+
+  if (!match) {
+    return {
+      contextPrefix: null as string | null,
+      content: line,
+    };
+  }
+
+  return {
+    contextPrefix: cleanupLine(match[1] ?? ""),
+    content: cleanupLine(match[2] ?? ""),
+  };
+}
+
+function applyContextPrefix(segment: string, contextPrefix: string | null) {
+  if (!contextPrefix || !segment) {
+    return segment;
+  }
+
+  if (temporalPrefixPattern.test(segment)) {
+    return segment;
+  }
+
+  return `${contextPrefix} ${segment}`.trim();
 }
 
 function splitCompoundLine(line: string) {
@@ -83,7 +137,18 @@ export function splitMemoText(text: string) {
     .map((line) => cleanupLine(line))
     .filter(Boolean);
 
-  const segments = rawLines.flatMap((line) => splitCompoundLine(line));
+  const segments = rawLines.flatMap((line) => {
+    const { contextPrefix, content } = extractLineContext(line);
+    const baseLine = cleanupLine(content);
+
+    if (!baseLine) {
+      return [];
+    }
+
+    return splitCompoundLine(baseLine)
+      .map((segment) => cleanupLine(applyContextPrefix(segment, contextPrefix)))
+      .filter(Boolean);
+  });
   return {
     normalizedText,
     segments: segments.length > 0 ? segments : [cleanupLine(text)],

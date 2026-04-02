@@ -1,6 +1,6 @@
 # flora-todo-mvp
 
-Sprint 3 기준으로 홈 대시보드와 review desk를 함께 운영합니다. 핵심은 "지금 뭐부터 해야 하는지"를 홈에서 바로 보고, review/admin 수정 루프로 이어지는 최소 운영 관제 화면입니다.
+Sprint 3 기준으로 홈 대시보드와 review desk를 함께 운영합니다. 핵심은 "두서없이 적은 메모도 바로 일정/후속/대기 건으로 구조화해서", 홈에서 우선순위를 보고 review/admin 수정 루프로 이어지는 최소 운영 관제 화면입니다.
 
 ## 시작
 
@@ -15,6 +15,8 @@ Sprint 3 기준으로 홈 대시보드와 review desk를 함께 운영합니다.
 
 `npm run db:migrate`는 fresh DB뿐 아니라 예전 로컬 스키마에도 Sprint 2.5 컬럼과 unique index를 idempotent하게 맞춥니다.
 
+자동화 엔드포인트를 외부에서 호출할 경우 `.env`에 `AUTOMATION_API_KEY`를 명시해두는 것을 권장합니다.
+
 ## 현재 구조
 
 - `/` Sprint 3 홈 대시보드. summary 카드, 최우선/오늘/이번주/대기/일정 임박/최근 입력 섹션, task detail, explorer 필터/정렬을 제공합니다.
@@ -22,6 +24,7 @@ Sprint 3 기준으로 홈 대시보드와 review desk를 함께 운영합니다.
 - `app/api/dashboard` 홈 대시보드 데이터 API
 - `app/api/ingest` 원문 메모 입력 API
 - `app/api/summary` 구조화 반영 집계 API
+- `app/api/automation/source-messages` 대화 원문 영구 저널 API
 - `app/api/admin/review` 검토 목록 API
 - `app/api/admin/tasks/[id]` task 수정/ignore API
 - `app/api/admin/reminders/[id]` reminder 수정/삭제 API
@@ -39,6 +42,8 @@ Sprint 3 기준으로 홈 대시보드와 review desk를 함께 운영합니다.
 - `POST /api/ingest`
 - `GET /api/dashboard`
 - `GET /api/summary`
+- `GET /api/automation/source-messages?sourceChannel=telegram-flora&limit=20`
+- `POST /api/automation/source-messages`
 - `GET /api/admin/review?limit=50`
 - `PATCH /api/admin/tasks/:id`
 - `PATCH / DELETE /api/admin/reminders/:id`
@@ -56,6 +61,8 @@ Sprint 3 기준으로 홈 대시보드와 review desk를 함께 운영합니다.
 - `npm run verify:entities` 사람/업체/프로젝트 alias 기반 추출 검증
 - `npm run verify:sprint2` summary 왜곡 방지 케이스 검증
 - `npm run verify:dashboard` 홈 대시보드 summary/section 기준 검증
+- `npm run verify:freeform` 자유형 메모, 불릿 메모, 슬래시/세미콜론 구분, `모레`, `4월 10일`, `주말 전에` 같은 표현 검증
+- `npm run verify:source-messages` 원문 저널 upsert/search/metadata merge 검증
 - `npm run demo:ingest` 로컬 API로 ingest 호출
 - `npm run demo:summary` 로컬 API로 summary 호출
 
@@ -71,9 +78,17 @@ npm run verify:dedupe
 npm run verify:review
 npm run verify:sprint2
 npm run verify:dashboard
+npm run verify:freeform
+npm run verify:source-messages
 npm run build
 npm run start -- --hostname 127.0.0.1 --port 3000
 ```
+
+## 원문 보존 원칙
+
+- 텔레그램이나 외부 비서에서 들어온 메모는 task 구조화와 별도로 `source_messages`에 원문을 먼저 남깁니다.
+- `POST /api/ingest`도 dry-run이 아니면 원문 저널을 먼저 upsert한 뒤 task/reminder/follow-up 구조화로 넘어갑니다.
+- 외부 자동화는 `POST /api/automation/source-messages`를 먼저 호출하거나 함께 호출해서, task 변환 실패와 원문 손실을 분리해야 합니다.
 
 서버 실행 후 브라우저에서 `http://127.0.0.1:3000/`에 접속하면 홈 대시보드에서 운영 우선순위와 상세를 확인할 수 있고, `http://127.0.0.1:3000/review`에서 review/admin 수정 흐름을 바로 검수할 수 있습니다.
 
@@ -86,6 +101,17 @@ curl -X POST http://localhost:3000/api/ingest \
     "sourceChannel": "telegram",
     "sourceMessageId": "tg-1001",
     "text": "다음주 월요일 불량품 수거, 안소영 연락 대기",
+    "dryRun": true
+  }'
+```
+
+```bash
+curl -X POST http://localhost:3000/api/ingest \
+  -H 'content-type: application/json' \
+  -d '{
+    "sourceChannel": "flora-secretary",
+    "sourceMessageId": "memo-20260402-01",
+    "text": "오늘 할 일: 안소영 답변, 사방넷 세팅 다시 확인; 주말 전에 샘플 발주 체크",
     "dryRun": true
   }'
 ```

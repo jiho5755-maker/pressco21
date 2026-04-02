@@ -80,6 +80,26 @@ const statements = [
       updated_at timestamp with time zone not null default now()
     )
   `,
+  `
+    create table if not exists source_messages (
+      id text primary key,
+      source_channel text not null,
+      source_message_id text not null,
+      user_chat_id text,
+      user_name text not null default '',
+      agent_id text not null default 'owner',
+      message_text text not null,
+      response_summary text,
+      model_used text not null default 'unknown',
+      skill_triggered text not null default 'general',
+      tokens_used integer not null default 0,
+      response_time_ms integer not null default 0,
+      source_created_at timestamp with time zone,
+      metadata jsonb not null default '{}'::jsonb,
+      created_at timestamp with time zone not null default now(),
+      updated_at timestamp with time zone not null default now()
+    )
+  `,
   `alter table tasks alter column priority set default 'p3'`,
   `alter table tasks add column if not exists segment_hash text not null default ''`,
   `alter table tasks add column if not exists segment_index integer not null default 0`,
@@ -87,6 +107,16 @@ const statements = [
   `alter table tasks add column if not exists ignored_at timestamp with time zone`,
   `alter table reminders add column if not exists signature text not null default ''`,
   `alter table followups add column if not exists signature text not null default ''`,
+  `alter table source_messages add column if not exists user_chat_id text`,
+  `alter table source_messages add column if not exists user_name text not null default ''`,
+  `alter table source_messages add column if not exists agent_id text not null default 'owner'`,
+  `alter table source_messages add column if not exists response_summary text`,
+  `alter table source_messages add column if not exists model_used text not null default 'unknown'`,
+  `alter table source_messages add column if not exists skill_triggered text not null default 'general'`,
+  `alter table source_messages add column if not exists tokens_used integer not null default 0`,
+  `alter table source_messages add column if not exists response_time_ms integer not null default 0`,
+  `alter table source_messages add column if not exists source_created_at timestamp with time zone`,
+  `alter table source_messages add column if not exists metadata jsonb not null default '{}'::jsonb`,
   `
     update tasks
     set priority = 'p3'
@@ -170,6 +200,10 @@ const statements = [
   `
     create unique index if not exists calendar_catalogs_source_unique
     on calendar_catalogs (source_channel, source_message_id)
+  `,
+  `
+    create unique index if not exists source_messages_source_unique
+    on source_messages (source_channel, source_message_id)
   `,
 ];
 

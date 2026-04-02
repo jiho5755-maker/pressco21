@@ -1,5 +1,6 @@
 import { revalidateDashboardTag } from "@/src/lib/cache-tags";
 import { ingestTextAsTask } from "@/src/services/ingestService";
+import { logSourceMessage } from "@/src/services/sourceMessageService";
 import { IngestRequestBody } from "@/src/types/api";
 
 export async function POST(request: Request) {
@@ -14,6 +15,17 @@ export async function POST(request: Request) {
         },
         { status: 400 },
       );
+    }
+
+    if (!body.dryRun) {
+      await logSourceMessage({
+        sourceChannel: body.sourceChannel,
+        sourceMessageId: body.sourceMessageId,
+        messageText: body.text,
+        metadata: {
+          capturePath: "api/ingest",
+        },
+      });
     }
 
     const result = await ingestTextAsTask({

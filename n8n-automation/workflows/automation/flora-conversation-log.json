@@ -1,0 +1,128 @@
+{
+  "name": "Flora Conversation Log",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-conversation-log",
+        "responseMode": "onReceived",
+        "responseData": "allEntries",
+        "options": {}
+      },
+      "id": "conv-log-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        260,
+        300
+      ],
+      "webhookId": "flora-conv-log-001"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || {};\nconst sourceCreatedAt = body.source_created_at || body.sourceCreatedAt || body.created_at || body.createdAt || body.timestamp || new Date().toISOString();\nconst userChatId = String(body.user_chat_id || body.userChatId || '');\nconst sourceChannel = String(body.source_channel || body.sourceChannel || body.channel || 'telegram-flora');\nconst sourceMessageId = String(\n  body.source_message_id ||\n  body.sourceMessageId ||\n  body.telegram_message_id ||\n  body.telegramMessageId ||\n  body.message_id ||\n  body.messageId ||\n  body.request_id ||\n  body.requestId ||\n  `${userChatId || 'unknown'}:${sourceCreatedAt}`\n);\n\nreturn [{\n  json: {\n    sourceChannel,\n    sourceMessageId,\n    userChatId,\n    userName: String(body.user_name || body.userName || ''),\n    agentId: String(body.agent_id || body.agentId || 'owner'),\n    messageText: String(body.message_text || body.messageText || ''),\n    responseSummary: String(body.response_summary || body.responseSummary || ''),\n    modelUsed: String(body.model_used || body.modelUsed || 'gpt-5.4'),\n    skillTriggered: String(body.skill_triggered || body.skillTriggered || 'general'),\n    tokensUsed: Number(body.tokens_used || body.tokensUsed || 0) || 0,\n    responseTimeMs: Number(body.response_time_ms || body.responseTimeMs || 0) || 0,\n    sourceCreatedAt,\n    metadata: {\n      transport: body.transport || 'telegram',\n      roomId: body.room_id || body.roomId || null,\n      threadId: body.thread_id || body.threadId || null,\n      rawBodyKeys: Object.keys(body),\n    },\n  },\n}];"
+      },
+      "id": "conv-log-normalize",
+      "name": "Normalize Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://flora-todo-mvp:3000/api/automation/source-messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "={{ $env.ADMIN_API_TOKEN }}"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ sourceChannel: $json.sourceChannel, sourceMessageId: $json.sourceMessageId, userChatId: $json.userChatId, userName: $json.userName, agentId: $json.agentId, messageText: $json.messageText, responseSummary: $json.responseSummary, modelUsed: $json.modelUsed, skillTriggered: $json.skillTriggered, tokensUsed: $json.tokensUsed, responseTimeMs: $json.responseTimeMs, sourceCreatedAt: $json.sourceCreatedAt, metadata: $json.metadata }) }}",
+        "options": {}
+      },
+      "id": "conv-log-flora-upsert",
+      "name": "Flora Source Message Upsert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        740,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/m6r9su436vk75w4",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ user_chat_id: $json.userChatId || \"\", user_name: $json.userName || \"\", agent_id: $json.agentId || \"owner\", message_text: $json.messageText || \"\", response_summary: $json.responseSummary || \"\", model_used: $json.modelUsed || \"gpt-5.4\", skill_triggered: $json.skillTriggered || \"general\", tokens_used: $json.tokensUsed || 0, response_time_ms: $json.responseTimeMs || 0, created_at: $json.sourceCreatedAt || new Date().toISOString() }) }}",
+        "options": {}
+      },
+      "id": "conv-log-insert",
+      "name": "NocoDB Insert",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        980,
+        300
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vyw7FAboYUzOK48Q",
+          "name": "NocoDB API Token"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Normalize Payload",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Normalize Payload": {
+      "main": [
+        [
+          {
+            "node": "Flora Source Message Upsert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Flora Source Message Upsert": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Insert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": []
+}

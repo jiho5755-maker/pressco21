@@ -19,9 +19,26 @@ shrimp_data/
 
 # Playwright MCP
 .playwright-mcp/
+.playwright-tools/
+
+# 로컬 Codex 설정
+.codex/
+
+# 테스트 산출물
+test-results/
+**/test-results/
+output/playwright/
+offline-crm-v2/output/playwright/
+output/execution-*.json
+output/flora-mac-harness/
+output/flora-routing-validation/
+output/n8n-backups/
 
 # 루트 임시 스크린샷
 *.png
+
+# 루트 안의 별도 git 저장소
+brand-intro-page/
 # CRM 회사 이미지는 예외
 !offline-crm/images/*.png
 !offline-crm/images/*.jpg

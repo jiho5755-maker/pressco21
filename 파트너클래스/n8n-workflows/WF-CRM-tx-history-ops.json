@@ -1,0 +1,604 @@
+{
+  "name": "WF-CRM Legacy Tx History Ops",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm-tx-history-ops",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "wf-legacytx-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        320
+      ],
+      "webhookId": "crm-tx-history-ops"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json || {};\nconst headers = input.headers || {};\nconst body = input.body || {};\nconst apiKey = String(headers['x-crm-key'] || headers['X-Crm-Key'] || '').trim();\nconst expected = String($env.CRM_API_KEY || '').trim();\nconst action = String(body.action || '').trim();\nconst recordId = Number(body.recordId || 0);\nconst backupId = String(body.backupId || '').trim();\nconst reason = String(body.reason || '').trim();\nconst operatorName = String(body.operatorName || '').trim();\nconst limit = Math.min(Math.max(parseInt(body.limit, 10) || 100, 1), 200);\nconst allowedFields = ['tx_date', 'legacy_book_id', 'customer_name', 'tx_type', 'amount', 'tax', 'memo', 'slip_no', 'debit_account', 'credit_account', 'ledger', 'tx_year'];\nconst rawChanges = body.changes && typeof body.changes === 'object' ? body.changes : {};\nconst changes = {};\nfor (const key of allowedFields) {\n  if (rawChanges[key] !== undefined) changes[key] = rawChanges[key];\n}\n\nfunction fail(status, message) {\n  return [{ json: { _status: status, _error: true, message } }];\n}\n\nif (!apiKey || !expected || apiKey !== expected) {\n  return fail(401, '인증에 실패했습니다.');\n}\n\nif (!['update', 'delete', 'restore', 'listBackups'].includes(action)) {\n  return fail(400, '허용되지 않는 작업입니다.');\n}\n\nif (action === 'listBackups') {\n  return [{ json: { _status: 200, _error: false, action, limit, operatorName } }];\n}\n\nif (action === 'restore') {\n  if (!backupId) return fail(400, 'backupId가 필요합니다.');\n  if (!operatorName) return fail(400, '작업자명이 필요합니다.');\n  return [{ json: { _status: 200, _error: false, action, backupId, operatorName } }];\n}\n\nif (!Number.isFinite(recordId) || recordId <= 0) {\n  return fail(400, 'recordId가 올바르지 않습니다.');\n}\nif (!reason) return fail(400, '사유를 입력해주세요.');\nif (!operatorName) return fail(400, '작업자명이 필요합니다.');\nif (action === 'update' && Object.keys(changes).length === 0) {\n  return fail(400, '변경할 값이 없습니다.');\n}\n\nreturn [{\n  json: {\n    _status: 200,\n    _error: false,\n    action,\n    recordId,\n    reason,\n    operatorName,\n    changes,\n    limit,\n    nocodbUrl: 'https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/mtxh72a1f4beeac/' + recordId,\n    tableUrl: 'https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/mtxh72a1f4beeac'\n  }\n}];"
+      },
+      "id": "wf-legacytx-validate",
+      "name": "Validate Auth & Parse",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "wf-legacytx-if-valid",
+      "name": "IF Invalid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        660,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "update",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "update"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "delete",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "delete"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "restore",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "restore"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "loose"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "listBackups",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ]
+              },
+              "renameOutput": true,
+              "outputKey": "listBackups"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "id": "wf-legacytx-switch",
+      "name": "Switch Action",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        880,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.nocodbUrl }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "wf-legacytx-get-original",
+      "name": "NocoDB Get Original Row",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1100,
+        180
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json || {};\nconst request = $('Validate Auth & Parse').first().json || {};\nconst statusCode = Number(response.statusCode || 200);\nconst body = response.body || {};\nfunction toKstTimestamp(value = new Date()) {\n  const parsed = value instanceof Date ? value : new Date(value);\n  if (Number.isNaN(parsed.getTime())) return '';\n  const kst = new Date(parsed.getTime() + 9 * 60 * 60 * 1000);\n  const pad = (n) => String(n).padStart(2, '0');\n  return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())}T${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}:${pad(kst.getUTCSeconds())}+09:00`;\n}\nif (statusCode >= 400 || !body || !body.Id) {\n  return [{ json: { _status: statusCode || 404, _error: true, message: body.msg || body.message || '원본 거래를 찾지 못했습니다.' } }];\n}\nconst workflowStaticData = $getWorkflowStaticData('global');\nconst backups = Array.isArray(workflowStaticData.legacyTxHistoryBackups) ? workflowStaticData.legacyTxHistoryBackups : [];\nconst backupId = 'txb-' + Date.now() + '-' + request.recordId + '-' + Math.random().toString(36).slice(2, 8);\nbackups.unshift({\n  backupId,\n  action: request.action,\n  recordId: request.recordId,\n  createdAt: toKstTimestamp(),\n  operatorName: request.operatorName,\n  reason: request.reason,\n  originalRow: JSON.parse(JSON.stringify(body)),\n  changes: request.action === 'update' ? JSON.parse(JSON.stringify(request.changes || {})) : null,\n  restoredAt: null,\n  restoredRecordId: null\n});\nworkflowStaticData.legacyTxHistoryBackups = backups.slice(0, 1000);\nreturn [{\n  json: {\n    _status: 200,\n    _error: false,\n    action: request.action,\n    backupId,\n    method: request.action === 'update' ? 'PATCH' : 'DELETE',\n    nocodbUrl: request.nocodbUrl,\n    mutationPayload: request.action === 'update' ? (request.changes || {}) : {},\n    operatorName: request.operatorName\n  }\n}];"
+      },
+      "id": "wf-legacytx-backup-prepare",
+      "name": "Backup & Prepare Mutation",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "wf-legacytx-if-mutation-error",
+      "name": "IF Mutation Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Validate Auth & Parse').first().json || {};\nconst workflowStaticData = $getWorkflowStaticData('global');\nconst backups = Array.isArray(workflowStaticData.legacyTxHistoryBackups) ? workflowStaticData.legacyTxHistoryBackups : [];\nconst entry = backups.find((item) => item && item.backupId === request.backupId);\nif (!entry) {\n  return [{ json: { _status: 404, _error: true, message: '복구할 백업을 찾지 못했습니다.' } }];\n}\nif (entry.restoredAt) {\n  return [{ json: { _status: 409, _error: true, message: '이미 복구된 백업입니다.' } }];\n}\nconst originalRow = entry.originalRow || {};\nconst payload = JSON.parse(JSON.stringify(originalRow));\ndelete payload.Id;\ndelete payload.CreatedAt;\ndelete payload.UpdatedAt;\ndelete payload.nc_order;\nreturn [{\n  json: {\n    _status: 200,\n    _error: false,\n    action: 'restore',\n    backupId: entry.backupId,\n    method: 'POST',\n    nocodbUrl: request.tableUrl || 'https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/mtxh72a1f4beeac',\n    mutationPayload: payload,\n    operatorName: request.operatorName\n  }\n}];"
+      },
+      "id": "wf-legacytx-prepare-restore",
+      "name": "Prepare Restore Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._error }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "wf-legacytx-if-restore-error",
+      "name": "IF Restore Error",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "={{ $json.method }}",
+        "url": "={{ $json.nocodbUrl }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.mutationPayload || {}) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true,
+              "neverError": true
+            }
+          }
+        }
+      },
+      "id": "wf-legacytx-execute",
+      "name": "Execute Mutation",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1760,
+        250
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "JmXQGe9254wG4qVZ",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json || {};\nconst statusCode = Number(response.statusCode || 200);\nconst body = response.body || {};\nfunction safeNodeJson(nodeName) {\n  try {\n    return $(nodeName).first().json || {};\n  } catch {\n    return {};\n  }\n}\nconst backupMeta = safeNodeJson('Backup & Prepare Mutation');\nconst restoreMeta = safeNodeJson('Prepare Restore Payload');\nconst action = backupMeta.action || restoreMeta.action || 'update';\nconst backupId = backupMeta.backupId || restoreMeta.backupId || '';\nfunction toKstTimestamp(value = new Date()) {\n  const parsed = value instanceof Date ? value : new Date(value);\n  if (Number.isNaN(parsed.getTime())) return '';\n  const kst = new Date(parsed.getTime() + 9 * 60 * 60 * 1000);\n  const pad = (n) => String(n).padStart(2, '0');\n  return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())}T${pad(kst.getUTCHours())}:${pad(kst.getUTCMinutes())}:${pad(kst.getUTCSeconds())}+09:00`;\n}\nif (statusCode >= 400) {\n  return [{ json: { _status: statusCode, _error: true, message: body.msg || body.message || '변경 처리에 실패했습니다.' } }];\n}\nif (action === 'restore' && backupId) {\n  const workflowStaticData = $getWorkflowStaticData('global');\n  const backups = Array.isArray(workflowStaticData.legacyTxHistoryBackups) ? workflowStaticData.legacyTxHistoryBackups : [];\n  const entry = backups.find((item) => item && item.backupId === backupId);\n  if (entry) {\n    entry.restoredAt = toKstTimestamp();\n    entry.restoredRecordId = Number(body.Id || body.id || 0) || null;\n    entry.restoreOperator = restoreMeta.operatorName || null;\n  }\n}\nreturn [{\n  json: {\n    ok: true,\n    action,\n    backupId,\n    record: action === 'delete' ? null : body,\n    restoredRecordId: action === 'restore' ? (Number(body.Id || body.id || 0) || null) : null\n  }\n}];"
+      },
+      "id": "wf-legacytx-finalize",
+      "name": "Finalize Mutation Response",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1980,
+        250
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $('Validate Auth & Parse').first().json || {};\nconst workflowStaticData = $getWorkflowStaticData('global');\nconst backups = Array.isArray(workflowStaticData.legacyTxHistoryBackups) ? workflowStaticData.legacyTxHistoryBackups : [];\nconst sliced = backups.slice(0, request.limit || 100).map((entry) => ({\n  backupId: entry.backupId,\n  action: entry.action,\n  recordId: entry.recordId,\n  createdAt: entry.createdAt,\n  operatorName: entry.operatorName,\n  reason: entry.reason,\n  restoredAt: entry.restoredAt || null,\n  restoredRecordId: entry.restoredRecordId || null\n}));\nreturn [{ json: { ok: true, backups: sliced } }];"
+      },
+      "id": "wf-legacytx-list",
+      "name": "Build Backup List",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ { message: $json.message || '요청 처리 중 오류가 발생했습니다.' } }}",
+        "options": {
+          "responseCode": "={{ $json._status || 400 }}",
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf-legacytx-respond-error",
+      "name": "Respond Error",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        120
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json; charset=utf-8"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              }
+            ]
+          }
+        }
+      },
+      "id": "wf-legacytx-respond-success",
+      "name": "Respond Success",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        2200,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Validate Auth & Parse",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Auth & Parse": {
+      "main": [
+        [
+          {
+            "node": "IF Invalid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Invalid": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Switch Action",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Action": {
+      "main": [
+        [
+          {
+            "node": "NocoDB Get Original Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB Get Original Row",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Prepare Restore Payload",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Backup List",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB Get Original Row": {
+      "main": [
+        [
+          {
+            "node": "Backup & Prepare Mutation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Backup & Prepare Mutation": {
+      "main": [
+        [
+          {
+            "node": "IF Mutation Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Mutation Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Mutation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Restore Payload": {
+      "main": [
+        [
+          {
+            "node": "IF Restore Error",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF Restore Error": {
+      "main": [
+        [
+          {
+            "node": "Respond Error",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Execute Mutation",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Execute Mutation": {
+      "main": [
+        [
+          {
+            "node": "Finalize Mutation Response",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Finalize Mutation Response": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Backup List": {
+      "main": [
+        [
+          {
+            "node": "Respond Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": null,
+  "tags": [
+    {
+      "name": "PRESSCO21"
+    },
+    {
+      "name": "CRM"
+    }
+  ],
+  "id": "XvmYpQt7pOAlYiin"
+}

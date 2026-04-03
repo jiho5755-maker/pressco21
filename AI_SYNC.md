@@ -90,6 +90,27 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 CRM 입금 알림 텔레그램 메시지를 한 건당 1개로 단일화하고 live n8n까지 재배포했다.
+  - 범위
+    - `scripts/deploy-crm-deposit-telegram.js`
+    - `n8n-automation/workflows/accounting/WF-CRM-02_Gmail_입금알림_수집.json`
+    - `docs/offline-crm-bank-automation-ops-guide-2026-03-15.md`
+    - `AI_SYNC.md`
+  - 내용
+    - 입금 건은 `원본 은행 알림`을 따로 보내지 않고, `계좌 / 입금자 / 입금액 / 거래일시 / 통장잔액 / CRM처리 / 안내`를 한 메시지로 합쳤다.
+    - CRM 자동반영 메시지에서 `잔액 0원` 같은 후속 잔액 표기를 제거해, 통장 잔액이 한 번만 보이도록 정리했다.
+    - 출금은 기존처럼 `은행 거래 알림` 1건만 보내되, 입금과 겹쳐 두 번 울리지 않도록 collector 분기를 조정했다.
+    - 배포 스크립트로 `WF-CRM-01`, `WF-CRM-02`를 함께 재동기화하고 live workflow까지 반영했다.
+  - 검증
+    - `node --check scripts/deploy-crm-deposit-telegram.js`
+    - `node scripts/deploy-crm-deposit-telegram.js`
+    - 로컬 시뮬레이션 확인
+      - 입금 1건 → `[입금 알림]` 1개만 생성
+      - 같은 입금 데이터에서 `Build Bank Event Summary` 결과 `[]`
+      - 출금 1건 → `[은행 거래 알림]` 1개 유지
+  - 결과
+    - 실제 운영 기준으로 입금은 카카오톡/텔레그램에서 한 건당 한 메시지로 읽히고, 통장 잔액도 한 번만 보이게 됐다.
+    - live n8n workflow ID `7ql6pPWlBoJhoZqH`까지 재배포 완료했다.
 - 2026-04-03 flora-frontdoor에 최근 메모 회상 기능을 붙여, 예전에 적어둔 메모 기준 질문에 저장된 최근 메모를 읽고 다시 정리할 수 있게 했다.
   - 범위
     - `openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py`
@@ -1747,6 +1768,8 @@
 - `[CODEX-LEAD] Flora `source_messages`를 홈/리뷰에서 바로 찾을 수 있게 검색용 admin 화면 또는 recovery page를 붙여, 다음 복구가 DB 질의 없이도 가능하게 만들기`
 - `[CODEX-LEAD] Flora 대화 원문을 task 재생성용으로 다시 흘릴 수 있는 replay/recover 스크립트를 추가해, 원문 보존 이후 복구 루프도 자동화`
 - `[CODEX] 다음 CRM 입금 자동화 수정에서도 live n8n 변경과 저장소 JSON이 다시 어긋나지 않게, 배포 직후 workflow export/로컬 소스 재동기화를 기본 루틴으로 고정`
+- `[CODEX] 다음 실제 NH 입금 메일 1건에서 텔레그램 입금 알림이 정말 1건만 오고, 통장잔액이 메시지 안에서 한 번만 보이는지 운영 확인`
+- `[CODEX] 검토 필요 / 미매칭 문구가 현장 기준으로 아직 길면, 첫 문장을 더 짧은 실무형 문구로 한 번 더 압축`
 - `[CODEX] 맥북 재부팅 후 같은 메모리 경보가 빠르게 재발하면 memory-watchdog 기준을 'swap 단독 critical'에서 '낮은 free + 높은 swap + 연속 발생' 조합으로 재설계`
 - `[CODEX] 운영 서버에 hotfix 된 /home/ubuntu/scripts/server-monitor.sh 를 정식 소스 저장소 기준으로 어디에 반영할지 결정하고, writable 경로가 열리면 같은 수정(/proc/stat CPU, Asia/Seoul 시간표기)을 역반영`
 - `[CODEX] 다음 실제 기능 작업 1건에서 start -> checkpoint -> backup -> preflight -> commit -> publish -> finish 순서를 실제로 한 번 끝까지 적용해, 문구나 출력 형식을 더 다듬기`
@@ -1754,8 +1777,7 @@
 - `[CODEX] 다음 실제 작업 1건에서 새 루틴으로 시작→체크포인트→백업→마감까지 한 바퀴 다시 써 보고, 부족한 필드나 출력 형식을 다듬기`
 - `[CODEX] 필요하면 `_tools/codex-preflight.sh`에 프로젝트별 테스트 명령 프리셋(예: CRM build, n8n JSON check)을 서브디렉토리 기준으로 확장`
 - `[CODEX] 오류 구간 누락 입금 중 미자동반영 4건((학교)소년의, 여윤화, 쿠팡페이주식, 롯데77619072)을 검토 큐/실제 고객 상태 기준으로 수동 확인`
-- `[CODEX] 다음 실제 NH 입금 메일 1건에서 webhook replay 없이도 텔레그램 원본 알림 + CRM 처리 결과가 모두 정상 도착하는지 운영 확인`
-- `[CODEX] 다음 실제 NH 입금 메일 1건에서 텔레그램에 [은행 거래 알림]과 [CRM 입금 처리 결과] 두 레이어가 모두 정상 도착하는지 운영 확인`
+- `[CODEX] 다음 실제 NH 입금 메일 1건에서 webhook replay 없이도 새 단일 입금 알림 포맷이 정상 도착하는지 운영 확인`
 - `[CODEX] 기존 CRM 내부 계정 1개로 BasicAuth fallback이 여전히 통과하는지 `/data/legacy-customer-snapshots.json` 1회 실계정 검증`
 - `[CODEX-LEAD] flora-todo-mvp를 개인 todo MVP에서 협업 오케스트레이션 시스템으로 확장하기 위한 \`staff/team/task_assignee/event_log\` 스키마 초안을 먼저 정의`
 - `[CODEX-LEAD] flora-todo-mvp의 \`tasks/projects\`가 회사 통합 원장과 어떻게 연결될지 source-of-truth 경계를 문서화하고, 앱 전용 Postgres가 장기 임시 원장인지 확정`
@@ -1851,6 +1873,7 @@
 - n8n CLI `import:workflow`는 active workflow를 일단 비활성화한다. 이번에는 `publish:workflow` + `docker restart n8n`으로 복구했지만, 다음에도 같은 루틴을 빼먹으면 live webhook이 잠깐 비활성 상태로 남을 수 있다.
 - 저장소 작업트리가 여전히 크게 dirty하다. 다음 작업은 기존 미정리 변경과 섞이지 않게 path-scoped add/commit 기준으로 다시 시작하는 편이 안전하다.
 - 현재 accounting workflow 로컬 JSON은 live 개선 내용과 다시 맞췄지만, 관련 CRM deploy/script 계열 다른 수정본이 별도 작업트리에 남아 있어 이후 배포 루틴을 분리 관리하지 않으면 source-of-truth가 다시 흔들릴 수 있다.
+- 입금 알림 포맷은 로컬 시뮬레이션과 live 배포까지 끝났지만, 실제 NH 새 입금 메일 1건이 배포 후 아직 다시 들어오지 않아 운영 채널 체감 검증 1회는 남아 있다.
 - 현재 로컬 `scripts/memory-watchdog.sh`는 `swap >= 6144MB`만으로도 즉시 `CRITICAL`을 띄운다. 메모리 압박이 실제로 있더라도 체감 악화 전에 반복 알림이 먼저 쌓일 수 있어, 재부팅 후 재발 패턴을 보고 재설계할 필요가 있다.
 - 현재 `server-monitor.sh` hotfix는 운영 서버에만 직접 반영돼 있다. 워크스페이스 규칙상 `n8n-main`은 읽기 전용 취급이라, canonical source 역반영 경로를 정하지 않으면 다음 서버 재프로비저닝/수동 복사 때 구버전이 다시 들어올 수 있다.
 - `codex-commit.sh`는 기존 staged 변경이 있으면 일부러 멈춘다. staging을 여러 작업이 공유된 상태로 오래 끌고 가는 습관이 있으면 처음엔 번거롭게 느껴질 수 있다.

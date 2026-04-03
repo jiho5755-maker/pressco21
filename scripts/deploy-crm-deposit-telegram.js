@@ -1072,6 +1072,7 @@ function buildTelegramSummaryCode() {
     "  '',",
     "  '계좌: ' + accountLabel,",
     "  '입금자: ' + leadSender,",
+    "  '입금별칭추천: ' + leadSender,",
     "  '입금액: ' + formatAmount(leadEntry.amount),",
     "  '거래일시: ' + formatDate(leadEntry.occurredAt),",
     '];',

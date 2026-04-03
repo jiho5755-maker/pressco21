@@ -90,6 +90,24 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 CRM 입금 알림에 `입금별칭추천` 줄을 추가하고 live n8n에 재배포했다.
+  - 범위
+    - `scripts/deploy-crm-deposit-telegram.js`
+    - `n8n-automation/workflows/accounting/WF-CRM-02_Gmail_입금알림_수집.json`
+    - `AI_SYNC.md`
+  - 내용
+    - 입금 메시지 본문 `입금자` 바로 아래에 `입금별칭추천` 한 줄을 추가했다.
+    - 추천값은 현재 가장 안전한 후보인 실제 입금자명 문자열을 그대로 노출하도록 했다.
+    - collector workflow를 다시 생성해 live workflow `7ql6pPWlBoJhoZqH`까지 재배포했다.
+  - 검증
+    - `node --check scripts/deploy-crm-deposit-telegram.js`
+    - `node scripts/deploy-crm-deposit-telegram.js`
+    - 로컬 시뮬레이션 결과:
+      - `입금자: 쿠팡페이주식`
+      - `입금별칭추천: 쿠팡페이주식`
+      - `CRM처리: 미매칭`
+  - 결과
+    - 알림만 보고도 운영자가 곧바로 고객 메모의 입금자명 별칭 후보를 복사해 등록할 수 있게 됐다.
 - 2026-04-03 CRM 입금 알림 텔레그램 메시지를 한 건당 1개로 단일화하고 live n8n까지 재배포했다.
   - 범위
     - `scripts/deploy-crm-deposit-telegram.js`

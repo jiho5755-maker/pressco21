@@ -76,6 +76,10 @@ def build_payload(args: argparse.Namespace) -> tuple[dict[str, Any], dict[str, A
         "requestType": args.request_type,
         "briefingBucket": args.briefing_bucket,
         "executionRoute": {"kind": args.execution_route},
+        "userChatId": args.user_chat_id,
+        "userName": args.user_name,
+        "transport": args.transport,
+        "sourceCreatedAt": source_created_at,
     }
     if args.delegation_owner:
         details_merge["assignmentCandidate"] = {

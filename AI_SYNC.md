@@ -90,6 +90,32 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 flora-frontdoor 회상 기능을 최근 메모에서 `최근 메모 + 미완료 open item` 기준으로 확장했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - 최근 메모 캐시 빌더를 확장해 Oracle `tasks/reminders/followups`에서 미완료 open item 캐시(`flora-frontdoor-open-items.json`)도 함께 만들도록 보강했다.
+    - open item 캐시는 `source_messages`와 join해서 `userChatId`를 최대한 복구하고, due/reminder/followup/waiting/project가 있는 실제 일감 위주로만 담도록 필터를 추가했다.
+    - relay `detailsMerge`에도 `userChatId`, `userName`, `transport`, `sourceCreatedAt`를 함께 남겨 이후 task 원장 추적성을 높였다.
+    - frontdoor AGENTS/운영 브리프에 회상 시 `recent-memos + open-items`를 함께 읽고, `정리해줘/메모해줘` 같은 메타 task는 실제 할 일에서 빼도록 규칙을 추가했다.
+    - 내가 남겼던 테스트 오염 데이터 `source_message_id=9999` 관련 task를 Oracle에서 삭제하고 새 캐시로 frontdoor를 재설치했다.
+  - 검증
+    - `python3 -m py_compile openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
+    - `python3 openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py --output /tmp/flora-frontdoor-recent-memos.json --open-items-output /tmp/flora-frontdoor-open-items.json`
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - Oracle `flora-todo-mvp-postgres`에서 `source_message_id=9999` task 삭제 확인
+    - server `flora-frontdoor` 직접 시뮬레이션:
+      - `예전에 적어둔 메모 기준으로 지금 할 일 다시 정리해줘`
+      - 최근 메모 + 열린 항목 기준 요약 응답 확인
+  - 결과
+    - flora-frontdoor는 이제 단순 최근 메모만이 아니라 실제 미완료 task/reminder/followup까지 참고해 회상 정리를 할 수 있다.
+    - 다만 open item 캐시는 현재 배포/재설치 시점 스냅샷이라, 실시간 재빌드 루프는 후속 과제로 남는다.
 - 2026-04-03 CRM 입금 알림에 `입금별칭추천` 줄을 추가하고 live n8n에 재배포했다.
   - 범위
     - `scripts/deploy-crm-deposit-telegram.js`
@@ -1762,11 +1788,11 @@
 
 ## Next Step
 - 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
+- `[CODEX-LEAD] flora-frontdoor open item 캐시를 배포 시점 스냅샷이 아니라 주기적/이벤트성으로 재빌드해, 회상 답변이 더 최근 상태를 보게 만들기`
+- `[CODEX-LEAD] open item 캐시에서 `정리해줘/메모해줘` 같은 메타 task를 SQL/후처리 기준으로 더 안정적으로 제외해 회상 품질을 높이기`
+- `[CODEX-LEAD] detailsMerge에 남기기 시작한 `userChatId/userName/sourceCreatedAt`를 dashboard/briefing/review에서도 활용할 첫 표시 규칙 구현`
 - `[CODEX-LEAD] 최근 메모 캐시를 `userChatId`별 섹션이나 별도 파일로 분리해, 다중 사용자 DM에서도 회상 정확도를 높이기`
-- `[CODEX-LEAD] flora-frontdoor가 최근 메모 캐시뿐 아니라 `tasks/reminders/followups`도 읽어 실제 미완료 업무 중심으로 재정리하게 확장`
 - `[CODEX-LEAD] 메모 기입 모드와 정리 모드를 source_messages/task metadata에 함께 남겨, 나중에 메모만 따로 회상하거나 요약할 수 있게 연결`
-- `[CODEX-LEAD] flora-frontdoor가 source_messages/tasks에서 최근 메모를 실제로 읽어 요약할 수 있도록 메모 회상 경로를 구현`
-- `[CODEX-LEAD] 메모 회상용 read-only tool 또는 webhook을 붙여, "예전에 적어둔 일 뭐였지" 질문에 저장된 최근 메모를 실제로 불러오게 연결`
 - `[CODEX-LEAD] Flora 실제 Telegram DM 1건을 다시 보내 내부 commentary/tool output 누수가 사라졌는지 체감 검증`
 - `[CODEX-LEAD] Flora 실제 Telegram DM 1건을 보내 `agent:flora-frontdoor:telegram:direct:<chatId>` 세션이 새로 생기는지와 `sourceMessageId != unknown:*`가 실제로 찍히는지 확인`
 - `[CODEX-LEAD] Flora 실제 Telegram ingress에서 `userChatId`, `sourceMessageId`, `sourceCreatedAt`를 frontdoor turn에 어떻게 넘길지 확인하고, fallback `unknown:timestamp`를 줄이기 위한 송신 규칙을 고정`
@@ -1872,10 +1898,10 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
-- 최근 메모 회상은 현재 `source_messages` 기반 캐시를 읽는 수준이다. `tasks/reminders/followups`의 완료/미완료 상태까지 함께 반영하는 회상은 아직 아니다.
-- 최근 메모 캐시는 현재 같은 sourceChannel 최근 항목을 함께 담는다. userChatId가 여러 명으로 늘어나면 사용자별 분리 규칙이 추가로 필요하다.
-- 메모 기입 모드와 최근 메모 회상은 붙었지만, 아직 `tasks/reminders/followups`의 실제 완료 상태까지 함께 반영하는 통합 회상은 아니다.
-- 현재 회상 기능은 최근 메모 캐시 중심이다. 오래된 메모 검색, 사용자별 분리, 상태 기반 재정렬은 후속 보강이 필요하다.
+- 현재 회상 기능은 `최근 메모 캐시 + 미완료 open item 캐시`를 함께 보는 단계다. 다만 open item 캐시는 배포/재설치 시점 스냅샷이라, 직후 변경이 바로 반영되지는 않는다.
+- open item 캐시는 이미 실제 할 일감 위주로 필터링했지만, `정리해줘/메모해줘` 같은 메타 질문성 task가 일부 남아 들어올 수 있다. 회상 품질을 위해 추가 후처리가 필요하다.
+- 최근 메모/open item 캐시는 아직 userChatId별 완전 분리 파일이 아니다. 다중 사용자 DM이 늘어나면 사용자별 캐시 분리나 더 강한 필터가 필요하다.
+- 메모 기입 모드와 회상 기능은 붙었지만, 오래된 메모 검색과 완료 상태 기반 재정렬은 후속 보강이 필요하다.
 - Telegram streaming은 이제 `off`로 고정했지만, 최종 체감은 실제 사용자 DM 1건을 다시 보내 봐야 확정된다. 채널 preview는 막혔어도 prompt 상 중간 문장이 최종 답변에 섞이면 별도 톤 수정이 필요할 수 있다.
 - 실제 flora-frontdoor는 자동 capture와 metadata parser를 모두 갖췄고, `session.dmScope`도 `per-channel-peer`로 올렸다. 다만 아직 실제 Telegram DM 1건으로 `sourceMessageId != unknown:*`가 찍히는 최종 운영 확인은 남아 있다.
 - 현재 자동 capture는 freeform memo 기준으로 잘 동작한다. dev-request / approval / waiting 분류는 아직 기본 규칙 수준이라, 더 정밀한 메타데이터 규칙이 필요하다.

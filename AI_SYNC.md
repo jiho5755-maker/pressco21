@@ -57,7 +57,7 @@
 - Active Subdirectory: —
 
 ## Files In Progress
-- 없음
+- —
 
 ### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
 - 변경
@@ -90,6 +90,23 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 flora-frontdoor Telegram 응답에서 내부 도구 출력/commentary가 새는 문제를 채널 설정으로 차단했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - frontdoor 설치 스크립트가 서버 `openclaw.json`의 `channels.telegram.streaming`을 `off`로 강제하도록 수정했다.
+    - frontdoor AGENTS 규칙에 `텔레그램에서는 내부 commentary/도구 실행 로그/탐색 메모를 절대 사용자에게 보내지 않는다`는 원칙을 추가했다.
+    - Phase 1 스펙에도 Telegram은 최종 답변 1개만 보이게 운영한다는 기준을 반영했다.
+    - 서버 frontdoor를 재설치해 실제 Oracle 설정과 workspace 지침을 같이 갱신했다.
+  - 검증
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - Oracle `~/.openclaw/openclaw.json` 확인 결과 `channels.telegram.streaming = off`, `session.dmScope = per-channel-peer`
+  - 결과
+    - 같은 유형의 Telegram preview/commentary 누수는 채널 레벨에서 더 이상 나가지 않도록 막았다.
+    - 남은 확인은 실제 사용자 DM 1건에서 내부 출력이 사라졌는지 체감 검증하는 것이다.
 - 2026-04-03 flora-frontdoor Telegram 메타데이터 경로를 보강해 DM 세션 분리와 inbound metadata 파싱을 붙였다.
   - 범위
     - `openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
@@ -1645,6 +1662,7 @@
 
 ## Next Step
 - 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
+- `[CODEX-LEAD] Flora 실제 Telegram DM 1건을 다시 보내 내부 commentary/tool output 누수가 사라졌는지 체감 검증`
 - `[CODEX-LEAD] Flora 실제 Telegram DM 1건을 보내 `agent:flora-frontdoor:telegram:direct:<chatId>` 세션이 새로 생기는지와 `sourceMessageId != unknown:*`가 실제로 찍히는지 확인`
 - `[CODEX-LEAD] Flora 실제 Telegram ingress에서 `userChatId`, `sourceMessageId`, `sourceCreatedAt`를 frontdoor turn에 어떻게 넘길지 확인하고, fallback `unknown:timestamp`를 줄이기 위한 송신 규칙을 고정`
 - `[CODEX-LEAD] frontdoor 자동 capture 경로에서 `requestType`, `briefingBucket`, `executionRoute`를 더 안정적으로 채우도록 dev-request / approval / waiting 분류 규칙을 세분화`
@@ -1748,6 +1766,7 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- Telegram streaming은 이제 `off`로 고정했지만, 최종 체감은 실제 사용자 DM 1건을 다시 보내 봐야 확정된다. 채널 preview는 막혔어도 prompt 상 중간 문장이 최종 답변에 섞이면 별도 톤 수정이 필요할 수 있다.
 - 실제 flora-frontdoor는 자동 capture와 metadata parser를 모두 갖췄고, `session.dmScope`도 `per-channel-peer`로 올렸다. 다만 아직 실제 Telegram DM 1건으로 `sourceMessageId != unknown:*`가 찍히는 최종 운영 확인은 남아 있다.
 - 현재 자동 capture는 freeform memo 기준으로 잘 동작한다. dev-request / approval / waiting 분류는 아직 기본 규칙 수준이라, 더 정밀한 메타데이터 규칙이 필요하다.
 - 현재 Phase 1은 source_message와 task ingest의 첫 연결 고리를 만든 상태다. dashboard/briefing이 `detailsMerge.requestType`나 `briefingBucket`을 실제로 활용하는 UI/쿼리 반영은 아직 남아 있다.

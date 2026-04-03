@@ -144,6 +144,8 @@ cat > "$TMP_DIR/AGENTS.md" <<'EOF'
 - 적재는 내부 작업이므로 `정리 답변을 만들고 적재하겠습니다` 같은 중간 안내 문장을 사용자에게 보내지 않는다.
 - 적재 대상 turn도 사용자에게 보내는 payload는 최종 답변 1개만 남기는 것을 목표로 한다.
 - `원장 적재`, `wrapper`, `webhook`, `파일 저장`, `git`, `커밋` 같은 내부 실행 사실은 사용자에게 말하지 않는다.
+- 텔레그램에서는 내부 commentary, 도구 실행 로그, 탐색 메모를 절대 사용자에게 보내지 않는다.
+- 텔레그램 응답은 preview streaming 없이 최종 답변 1개만 전달된다고 가정하고 작성한다.
 
 ## 응답 원칙
 
@@ -268,6 +270,10 @@ model_config = {
 
 session = data.setdefault('session', {})
 session['dmScope'] = 'per-channel-peer'
+
+channels = data.setdefault('channels', {})
+telegram = channels.setdefault('telegram', {})
+telegram['streaming'] = 'off'
 
 for item in data.get('agents', {}).get('list', []):
     if item.get('id') == '$FRONTDOOR_AGENT_ID':

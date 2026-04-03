@@ -312,10 +312,12 @@ Phase 1에서는 아래 4분류만 먼저 쓴다.
 - frontdoor가 자유 메모를 받으면 `/api/ingest` 또는 equivalent 경로로 적재
 - 실제 frontdoor runtime에서는 `log-flora-frontdoor-turn.py` wrapper를 써서
   `응답 초안 저장 -> relay 호출 -> 최종 응답` 순서로 닫는다
+- Telegram 채널은 `streaming=off`로 고정해 내부 commentary, 도구 실행 로그, preview payload가 사용자에게 노출되지 않게 한다
 
 완료 기준:
 
 - 텔레그램 메모 1건이 task ledger에 자동 생성된다
+- 텔레그램에는 최종 답변 1개만 보이고, 내부 도구 출력은 보이지 않는다
 
 ### Step 3. dev request direct automation task 연결
 

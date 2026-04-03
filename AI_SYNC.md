@@ -90,6 +90,30 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 flora-frontdoor에 최근 메모 회상 기능을 붙여, 예전에 적어둔 메모 기준 질문에 저장된 최근 메모를 읽고 다시 정리할 수 있게 했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py`
+    - `openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - Oracle `flora-todo-mvp`의 `source_messages`에서 최근 메모를 읽어 frontdoor workspace의 `flora-frontdoor-recent-memos.json` 캐시를 만드는 `build-flora-frontdoor-memo-cache.py`를 추가했다.
+    - `log-flora-frontdoor-turn.py`가 새 turn을 적재할 때 최근 메모 캐시도 함께 갱신하도록 보강했다.
+    - wrapper가 relay에 원본 파일이 아니라 정제된 `message_text`를 넘기도록 수정해 metadata block이 source_message에 다시 섞이지 않게 했다.
+    - frontdoor 설치 스크립트가 최근 메모 캐시 파일을 함께 배치하고, 회상 질문일 때 이 캐시를 먼저 읽도록 AGENTS 규칙을 추가했다.
+    - 실제 회상 질문 시뮬레이션에서 저장된 메모를 기반으로 `오늘 1순위`, `이번 주 마감`, `주말 일정`까지 다시 묶는 응답을 확인했다.
+  - 검증
+    - `python3 -m py_compile openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
+    - `python3 openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py --output /tmp/flora-frontdoor-recent-memos.json`
+    - `python3 openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py ... --memo-cache-path <tmp>/cache.json --dry-run`
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw agent --agent flora-frontdoor --channel telegram -t 7713811206 --message "예전에 내가 적어둔 메모 기준으로 지금 할 일 다시 정리해줘" --thinking low --json`
+  - 결과
+    - flora-frontdoor는 이제 최근 메모 캐시를 바탕으로 회상 질문에 실제 저장된 메모 기준 답변을 만들 수 있다.
+    - 메모 회상은 기존처럼 `다시 보내달라`로만 끝나지 않고, 최근 메모의 실질 항목을 먼저 다시 묶어준다.
 - 2026-04-03 flora-frontdoor에 `메모 기입 모드`를 추가해, 일상 메모/투두/리마인드 입력에는 제안 없이 짧게 접수만 하도록 조정했다.
   - 범위
     - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
@@ -1699,6 +1723,8 @@
 
 ## Next Step
 - 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
+- `[CODEX-LEAD] 최근 메모 캐시를 `userChatId`별 섹션이나 별도 파일로 분리해, 다중 사용자 DM에서도 회상 정확도를 높이기`
+- `[CODEX-LEAD] flora-frontdoor가 최근 메모 캐시뿐 아니라 `tasks/reminders/followups`도 읽어 실제 미완료 업무 중심으로 재정리하게 확장`
 - `[CODEX-LEAD] 메모 기입 모드와 정리 모드를 source_messages/task metadata에 함께 남겨, 나중에 메모만 따로 회상하거나 요약할 수 있게 연결`
 - `[CODEX-LEAD] flora-frontdoor가 source_messages/tasks에서 최근 메모를 실제로 읽어 요약할 수 있도록 메모 회상 경로를 구현`
 - `[CODEX-LEAD] 메모 회상용 read-only tool 또는 webhook을 붙여, "예전에 적어둔 일 뭐였지" 질문에 저장된 최근 메모를 실제로 불러오게 연결`
@@ -1806,8 +1832,10 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
-- 메모 기입 모드는 응답 톤은 정리됐지만, 아직 `기입된 메모`를 나중에 별도 목록으로 다시 불러오는 회상 기능은 없다.
-- 현재 개선은 `말투`와 `잘못된 단정 방지`까지다. 사용자가 예전 메모를 물을 때 source_messages/task ledger를 실제로 조회해 요약하는 기능은 아직 없다.
+- 최근 메모 회상은 현재 `source_messages` 기반 캐시를 읽는 수준이다. `tasks/reminders/followups`의 완료/미완료 상태까지 함께 반영하는 회상은 아직 아니다.
+- 최근 메모 캐시는 현재 같은 sourceChannel 최근 항목을 함께 담는다. userChatId가 여러 명으로 늘어나면 사용자별 분리 규칙이 추가로 필요하다.
+- 메모 기입 모드와 최근 메모 회상은 붙었지만, 아직 `tasks/reminders/followups`의 실제 완료 상태까지 함께 반영하는 통합 회상은 아니다.
+- 현재 회상 기능은 최근 메모 캐시 중심이다. 오래된 메모 검색, 사용자별 분리, 상태 기반 재정렬은 후속 보강이 필요하다.
 - Telegram streaming은 이제 `off`로 고정했지만, 최종 체감은 실제 사용자 DM 1건을 다시 보내 봐야 확정된다. 채널 preview는 막혔어도 prompt 상 중간 문장이 최종 답변에 섞이면 별도 톤 수정이 필요할 수 있다.
 - 실제 flora-frontdoor는 자동 capture와 metadata parser를 모두 갖췄고, `session.dmScope`도 `per-channel-peer`로 올렸다. 다만 아직 실제 Telegram DM 1건으로 `sourceMessageId != unknown:*`가 찍히는 최종 운영 확인은 남아 있다.
 - 현재 자동 capture는 freeform memo 기준으로 잘 동작한다. dev-request / approval / waiting 분류는 아직 기본 규칙 수준이라, 더 정밀한 메타데이터 규칙이 필요하다.

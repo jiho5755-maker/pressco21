@@ -90,6 +90,64 @@ def build_response_summary(text: str, max_chars: int) -> str:
     return normalized[: max_chars - 1].rstrip() + "…"
 
 
+def update_recent_memo_cache(
+    cache_path: Path,
+    *,
+    source_channel: str,
+    source_message_id: str | None,
+    user_chat_id: str | None,
+    user_name: str,
+    source_created_at: str,
+    message_text: str,
+    response_summary: str,
+    request_type: str,
+    briefing_bucket: str,
+    transport: str,
+    limit: int = 40,
+) -> None:
+    if cache_path.exists():
+        try:
+            cache = json.loads(cache_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            cache = {}
+    else:
+        cache = {}
+
+    existing_items = cache.get("items")
+    items = existing_items if isinstance(existing_items, list) else []
+    dedupe_key = f"{source_channel}:{source_message_id or source_created_at}"
+    next_items = [
+        item
+        for item in items
+        if isinstance(item, dict)
+        and f"{item.get('sourceChannel')}:{item.get('sourceMessageId') or item.get('sourceCreatedAt')}" != dedupe_key
+    ]
+
+    next_items.insert(
+        0,
+        {
+            "sourceChannel": source_channel,
+            "sourceMessageId": source_message_id,
+            "userChatId": user_chat_id,
+            "userName": user_name,
+            "messageText": message_text,
+            "responseSummary": response_summary,
+            "sourceCreatedAt": source_created_at,
+            "requestType": request_type,
+            "briefingBucket": briefing_bucket,
+            "transport": transport,
+        },
+    )
+
+    cache_payload = {
+        "ok": True,
+        "sourceChannel": source_channel,
+        "count": min(len(next_items), limit),
+        "items": next_items[:limit],
+    }
+    cache_path.write_text(json.dumps(cache_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+
+
 def infer_briefing_bucket(
     explicit_bucket: str | None,
     request_type: str,
@@ -121,6 +179,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--reply-file", required=True)
     parser.add_argument("--relay-path")
     parser.add_argument("--journal-dir")
+    parser.add_argument("--memo-cache-path")
     parser.add_argument("--response-summary-max-chars", type=int, default=1800)
     parser.add_argument("--source-channel", default="telegram-flora")
     parser.add_argument("--source-message-id")
@@ -205,8 +264,8 @@ def main() -> int:
         str(relay_path),
         "--mode",
         "webhook",
-        "--message-file",
-        str(message_file),
+        "--message-text",
+        message_text,
         "--response-summary",
         response_summary,
         "--source-channel",
@@ -285,6 +344,24 @@ def main() -> int:
         "relayStderr": completed.stderr,
     }
     journal_path.write_text(json.dumps(journal_payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    memo_cache_path = (
+        Path(args.memo_cache_path)
+        if args.memo_cache_path
+        else script_dir / "flora-frontdoor-recent-memos.json"
+    )
+    update_recent_memo_cache(
+        memo_cache_path,
+        source_channel=args.source_channel,
+        source_message_id=inferred_source_message_id,
+        user_chat_id=inferred_user_chat_id,
+        user_name=inferred_user_name,
+        source_created_at=source_created_at,
+        message_text=message_text,
+        response_summary=response_summary,
+        request_type=args.request_type,
+        briefing_bucket=briefing_bucket,
+        transport=args.transport,
+    )
 
     if completed.returncode != 0:
         sys.stderr.write(completed.stderr)

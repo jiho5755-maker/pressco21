@@ -45,6 +45,8 @@ cp "$REPO_ROOT/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md" "$TMP_DIR
 cp "$REPO_ROOT/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md" "$TMP_DIR/flora-frontdoor-tuning-log.md"
 cp "$REPO_ROOT/06_scripts/relay-flora-frontdoor-intake.py" "$TMP_DIR/relay-flora-frontdoor-intake.py"
 cp "$REPO_ROOT/06_scripts/log-flora-frontdoor-turn.py" "$TMP_DIR/log-flora-frontdoor-turn.py"
+cp "$REPO_ROOT/06_scripts/build-flora-frontdoor-memo-cache.py" "$TMP_DIR/build-flora-frontdoor-memo-cache.py"
+python3 "$REPO_ROOT/06_scripts/build-flora-frontdoor-memo-cache.py" --output "$TMP_DIR/flora-frontdoor-recent-memos.json"
 
 cat > "$TMP_DIR/AGENTS.md" <<'EOF'
 # 플로라 Frontdoor 작업 지침
@@ -109,10 +111,10 @@ cat > "$TMP_DIR/AGENTS.md" <<'EOF'
 - 사용자가 메모 회상을 기대할 때는 실제 조회 근거 없이 `메모가 없다`, `저장된 게 없다`고 단정하지 않는다.
 - 과거 메모를 자동으로 못 불러오는 상태면 `이전 메모 자동 회상은 아직 약하다`고 짧게 설명하고, 새로 정리할 내용을 바로 받는다.
 - `저장된 회상`, `메모 원장`, `세션 기록` 같은 내부 표현은 사용자 답변에 쓰지 않는다.
-- 메모 회상 질문에는 가능하면 아래 흐름으로 짧게 답한다.
-  1. `이전 메모 자동 회상은 아직 약합니다.`
-  2. `메모가 사라진 건지 확인은 따로 필요합니다.`
-  3. `지금 다시 던져주시면 바로 정리해드리겠습니다.`
+- 메모 회상 질문에는 `/home/ubuntu/.openclaw/workspace-flora-frontdoor/flora-frontdoor-recent-memos.json`가 있으면 먼저 읽는다.
+- 같은 `userChatId`의 최근 메모를 우선 보고 `오늘 할 일 / 이번 주 / 보류`만 짧게 다시 묶는다.
+- 파일이 비었거나 관련 메모가 없을 때만 `이전 메모 자동 회상은 아직 약합니다`라고 짧게 말한다.
+- 메모가 사라졌다고 먼저 단정하지 않는다.
 
 ## 메모 기입 모드
 
@@ -222,6 +224,7 @@ scp -i "$SSH_KEY" -o ConnectTimeout=10 \
   "$TMP_DIR/flora-task-ledger-intake.SKILL.md" \
   "$TMP_DIR/flora-frontdoor-executive-brief.md" \
   "$TMP_DIR/flora-frontdoor-tuning-log.md" \
+  "$TMP_DIR/flora-frontdoor-recent-memos.json" \
   "$TMP_DIR/relay-flora-frontdoor-intake.py" \
   "$TMP_DIR/log-flora-frontdoor-turn.py" \
   "$SERVER:/tmp/flora-frontdoor-install/"
@@ -249,6 +252,7 @@ ssh -i "$SSH_KEY" -o ConnectTimeout=10 "$SERVER" "
   cp /tmp/flora-frontdoor-install/IDENTITY.md \"\$FRONTDOOR_WORKSPACE/IDENTITY.md\"
   cp /tmp/flora-frontdoor-install/flora-frontdoor-executive-brief.md \"\$FRONTDOOR_WORKSPACE/flora-frontdoor-executive-brief.md\"
   cp /tmp/flora-frontdoor-install/flora-frontdoor-tuning-log.md \"\$FRONTDOOR_WORKSPACE/flora-frontdoor-tuning-log.md\"
+  cp /tmp/flora-frontdoor-install/flora-frontdoor-recent-memos.json \"\$FRONTDOOR_WORKSPACE/flora-frontdoor-recent-memos.json\"
   cp /tmp/flora-frontdoor-install/relay-flora-frontdoor-intake.py \"\$FRONTDOOR_WORKSPACE/relay-flora-frontdoor-intake.py\"
   cp /tmp/flora-frontdoor-install/log-flora-frontdoor-turn.py \"\$FRONTDOOR_WORKSPACE/log-flora-frontdoor-turn.py\"
   chmod 755 \"\$FRONTDOOR_WORKSPACE/relay-flora-frontdoor-intake.py\"

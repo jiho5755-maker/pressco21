@@ -90,6 +90,25 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 flora-frontdoor 응답 톤을 실제 비서형으로 더 짧게 조정하고, 메모 회상 질문에서 잘못 단정하지 않도록 규칙을 보강했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - frontdoor 첫 문장 규칙에서 `지금은 총괄 관점으로 보면` 같은 상투적 서두를 기본값에서 제거했다.
+    - Telegram 응답을 가능하면 8줄 안쪽으로 제한하고, `상황 한 줄 / 지금 할 일 / 보류` 형태의 짧은 비서 모드를 추가했다.
+    - 메모 회상 질문에는 실제 조회 없이 `메모가 없다`고 단정하지 않도록 하고, `이전 메모 자동 회상은 아직 약하다`는 짧은 설명 후 재정리 흐름으로 연결하도록 고정했다.
+    - `저장된 회상`, `메모 원장`, `세션 기록` 같은 내부 시스템 표현을 사용자 답변에서 금지했다.
+    - 서버 frontdoor를 재설치했고, 직접 시뮬레이션에서 기존보다 훨씬 짧고 자연한 응답으로 줄어든 것을 확인했다.
+  - 검증
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw agent --agent flora-frontdoor --channel telegram -t 7713811206 --message "음 일상 메모했던거 총정리해서 내가 할거가 뭐가 있었지" --thinking low --json`
+  - 결과
+    - 이제 flora-frontdoor는 같은 질문에 대해 상투적 총괄 서두 대신 더 짧은 결론형 문장으로 시작하고, 메모 부재를 함부로 단정하지 않게 됐다.
+    - 다만 예전 메모를 source_messages/task ledger에서 실제로 다시 끌어와 요약하는 기능은 아직 미구현이다.
 - 2026-04-03 flora-frontdoor Telegram 응답에서 내부 도구 출력/commentary가 새는 문제를 채널 설정으로 차단했다.
   - 범위
     - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
@@ -1662,6 +1681,8 @@
 
 ## Next Step
 - 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
+- `[CODEX-LEAD] flora-frontdoor가 source_messages/tasks에서 최근 메모를 실제로 읽어 요약할 수 있도록 메모 회상 경로를 구현`
+- `[CODEX-LEAD] 메모 회상용 read-only tool 또는 webhook을 붙여, "예전에 적어둔 일 뭐였지" 질문에 저장된 최근 메모를 실제로 불러오게 연결`
 - `[CODEX-LEAD] Flora 실제 Telegram DM 1건을 다시 보내 내부 commentary/tool output 누수가 사라졌는지 체감 검증`
 - `[CODEX-LEAD] Flora 실제 Telegram DM 1건을 보내 `agent:flora-frontdoor:telegram:direct:<chatId>` 세션이 새로 생기는지와 `sourceMessageId != unknown:*`가 실제로 찍히는지 확인`
 - `[CODEX-LEAD] Flora 실제 Telegram ingress에서 `userChatId`, `sourceMessageId`, `sourceCreatedAt`를 frontdoor turn에 어떻게 넘길지 확인하고, fallback `unknown:timestamp`를 줄이기 위한 송신 규칙을 고정`
@@ -1766,6 +1787,7 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- 현재 개선은 `말투`와 `잘못된 단정 방지`까지다. 사용자가 예전 메모를 물을 때 source_messages/task ledger를 실제로 조회해 요약하는 기능은 아직 없다.
 - Telegram streaming은 이제 `off`로 고정했지만, 최종 체감은 실제 사용자 DM 1건을 다시 보내 봐야 확정된다. 채널 preview는 막혔어도 prompt 상 중간 문장이 최종 답변에 섞이면 별도 톤 수정이 필요할 수 있다.
 - 실제 flora-frontdoor는 자동 capture와 metadata parser를 모두 갖췄고, `session.dmScope`도 `per-channel-peer`로 올렸다. 다만 아직 실제 Telegram DM 1건으로 `sourceMessageId != unknown:*`가 찍히는 최종 운영 확인은 남아 있다.
 - 현재 자동 capture는 freeform memo 기준으로 잘 동작한다. dev-request / approval / waiting 분류는 아직 기본 규칙 수준이라, 더 정밀한 메타데이터 규칙이 필요하다.

@@ -90,6 +90,24 @@
   - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
 
 ## Last Changes
+- 2026-04-03 flora-frontdoor에 `메모 기입 모드`를 추가해, 일상 메모/투두/리마인드 입력에는 제안 없이 짧게 접수만 하도록 조정했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - frontdoor AGENTS에 `메모 기입 모드`를 추가해 `기입/기록/리마인드/체크/추가` 요청일 때는 분석과 제안을 길게 붙이지 않도록 했다.
+    - 권장 응답을 `적어둘게요`, `내일 리마인드로 넣어둘게요`, `준비물 체크 항목으로 추가해둘게요` 같은 1~3줄 접수형으로 고정했다.
+    - executive brief와 tuning log에도 같은 운영 원칙을 반영했다.
+    - 서버 frontdoor를 재설치했고, 메모 기입형 테스트 문장에서 실제로 짧은 접수형 응답이 나오는 것을 확인했다.
+  - 검증
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw agent --agent flora-frontdoor --channel telegram -t 7713811206 --message "지금 쓴것들 답변 말구 그냥 다 메모해줘 특이 이번주 끝내야되는 업무들은 내일 리마인드 해줘" --thinking low --json`
+  - 결과
+    - 같은 유형 요청에 대해 `적어둘게요. 이번 주 안에 끝내야 하는 업무들은 내일 다시 리마인드드릴게요.` 수준으로 응답이 압축됐다.
+    - 메모 입력 중 불필요한 의미 해석/우선순위 제안이 섞이는 문제는 크게 줄었다.
 - 2026-04-03 flora-frontdoor 응답 톤을 실제 비서형으로 더 짧게 조정하고, 메모 회상 질문에서 잘못 단정하지 않도록 규칙을 보강했다.
   - 범위
     - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
@@ -1681,6 +1699,7 @@
 
 ## Next Step
 - 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
+- `[CODEX-LEAD] 메모 기입 모드와 정리 모드를 source_messages/task metadata에 함께 남겨, 나중에 메모만 따로 회상하거나 요약할 수 있게 연결`
 - `[CODEX-LEAD] flora-frontdoor가 source_messages/tasks에서 최근 메모를 실제로 읽어 요약할 수 있도록 메모 회상 경로를 구현`
 - `[CODEX-LEAD] 메모 회상용 read-only tool 또는 webhook을 붙여, "예전에 적어둔 일 뭐였지" 질문에 저장된 최근 메모를 실제로 불러오게 연결`
 - `[CODEX-LEAD] Flora 실제 Telegram DM 1건을 다시 보내 내부 commentary/tool output 누수가 사라졌는지 체감 검증`
@@ -1787,6 +1806,7 @@
 - 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
 
 ## Known Risks
+- 메모 기입 모드는 응답 톤은 정리됐지만, 아직 `기입된 메모`를 나중에 별도 목록으로 다시 불러오는 회상 기능은 없다.
 - 현재 개선은 `말투`와 `잘못된 단정 방지`까지다. 사용자가 예전 메모를 물을 때 source_messages/task ledger를 실제로 조회해 요약하는 기능은 아직 없다.
 - Telegram streaming은 이제 `off`로 고정했지만, 최종 체감은 실제 사용자 DM 1건을 다시 보내 봐야 확정된다. 채널 preview는 막혔어도 prompt 상 중간 문장이 최종 답변에 섞이면 별도 톤 수정이 필요할 수 있다.
 - 실제 flora-frontdoor는 자동 capture와 metadata parser를 모두 갖췄고, `session.dmScope`도 `per-channel-peer`로 올렸다. 다만 아직 실제 Telegram DM 1건으로 `sourceMessageId != unknown:*`가 찍히는 최종 운영 확인은 남아 있다.

@@ -1401,6 +1401,8 @@ Phase CRM ✅ 전체 완료 (2026-03-05)
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-04-05 | 하네스 Phase 2 코드 완료: 주간 전략 회의 API(`/briefings/weekly-strategy`)+WF(`Zr6aR0h0VAMbhDTV`), 이재혁 자동화 WF 3종(staff-briefing/shipping/cs-alert), staff 브리핑 API(`/briefings/staff?assignee=`), 서버 이전 준비(docker-compose.flora.yml+deploy-flora.sh+MIGRATION-GUIDE.md), auto-heal.sh, Next.js 빌드+서버 배포 검증 완료. 남은 작업: n8n API키 갱신→WF 활성화, 이재혁 Chat ID 수집, 서버 물리 이전, auto-heal cron 등록 |
+| 2026-04-05 | 하네스 Phase 1.5 완료: 아침 브리핑 우선순위 포맷(🔴🟡⏳📋)+점심 체크인(12:30, `4Ap51Ryf15yrSUR4`)+assignee 필드+메모해줘 패턴 → 전체 배포 완료 |
 | 2026-04-05 | 하네스 Phase 1 완료: 에이전트 51→25 재구성(opus10/sonnet10/haiku5, 3-Tier), CLAUDE.md 조직도 Tier 기반 교체, orchestration 스킬 라우팅+Tier 확장, MakeShop 스크립트 4개(vtag-lint/snapshot/diff-remote/batch-push), 토큰 ~12K→~2.6K(78%↓) |
 | 2026-04-05 | 하네스 Phase 0 완료: CLAUDE.md 194→80줄, AI_SYNC 2307→95줄, 훅 5개, 로그로테이션, orchestration 스킬 신규 |
 | 2026-03-29 | AI Harness Level 5 업그레이드: Stop Hook 4단계 검증, Git Hooks 3개(pre-commit/commit-msg/pre-push), deploy.sh 카나리 배포(--staging/--canary/--dry-run), AI_SYNC 아카이빙(2980→480행), 하네스 변경 프로토콜(§11+HARNESS-META), HARNESS.md 거버넌스 문서 |

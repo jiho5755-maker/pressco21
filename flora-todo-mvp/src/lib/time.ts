@@ -26,3 +26,13 @@ export function getStartOfTomorrow(now = new Date()) {
   start.setDate(start.getDate() + 1);
   return start;
 }
+
+export function getStartOfWeek(now = new Date()) {
+  const start = new Date(now);
+  const day = start.getDay();
+  // 월요일 기준 (day: 0=일 → offset 6, 1=월 → 0, ...)
+  const offset = day === 0 ? 6 : day - 1;
+  start.setDate(start.getDate() - offset);
+  start.setHours(0, 0, 0, 0);
+  return start;
+}

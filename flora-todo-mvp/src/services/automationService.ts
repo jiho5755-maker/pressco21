@@ -413,6 +413,168 @@ export async function getCalendarSyncItems(since: Date, limit = 20): Promise<Aut
     .filter((item) => Boolean(item.dateStart));
 }
 
+export async function getWeeklyStrategy(now = new Date()) {
+  const [stats, completedRows, activeByAssigneeRows, overdueRows] = await Promise.all([
+    taskRepository.countWeeklyStats(now),
+    taskRepository.listWeeklyCompletedTasks(now),
+    taskRepository.listActiveTasksByAssignee(now),
+    taskRepository.listAutomationOverdueTasks(20, now),
+  ]);
+
+  const overdueTasks = await hydrateTasks(overdueRows);
+
+  // 직원별 업무 분포
+  const byAssignee = new Map<string, typeof activeByAssigneeRows>();
+  for (const task of activeByAssigneeRows) {
+    const name = task.assignee ?? "미지정";
+    const bucket = byAssignee.get(name) ?? [];
+    bucket.push(task);
+    byAssignee.set(name, bucket);
+  }
+
+  // 프로젝트별 진행 현황
+  const byProject = new Map<string, number>();
+  for (const task of activeByAssigneeRows) {
+    const project = task.relatedProject ?? "기타";
+    byProject.set(project, (byProject.get(project) ?? 0) + 1);
+  }
+
+  const days = ["일", "월", "화", "수", "목", "금", "토"];
+  const dateLabel = `${now.getMonth() + 1}/${now.getDate()}(${days[now.getDay()]})`;
+
+  let text = `📋 ${dateLabel} 주간 전략 회의\n━━━━━━━━━━━━━━━━━━`;
+
+  // 의제 1: 주간 현황 요약
+  text += "\n\n[의제 1] 주간 현황";
+  text += `\n📊 활성 ${stats.active}건 | 이번주 완료 ${stats.completedThisWeek}건`;
+  text += `\n🔴 긴급(p1) ${stats.p1Count}건 | ⚠️ 밀린 ${stats.overdueCount}건`;
+
+  // 이번주 완료된 주요 항목
+  if (completedRows.length > 0) {
+    text += "\n\n✅ 이번주 완료";
+    for (const task of completedRows.slice(0, 5)) {
+      const project = task.relatedProject ? ` [${task.relatedProject}]` : "";
+      text += `\n · ${task.title}${project}`;
+    }
+    if (completedRows.length > 5) {
+      text += `\n ... 외 ${completedRows.length - 5}건`;
+    }
+  }
+
+  // 의제 2: 프로젝트별 현황
+  if (byProject.size > 0) {
+    text += "\n\n[의제 2] 프로젝트별 진행";
+    const sorted = [...byProject.entries()].sort((a, b) => b[1] - a[1]);
+    for (const [project, taskCount] of sorted.slice(0, 8)) {
+      text += `\n · ${project}: ${taskCount}건`;
+    }
+  }
+
+  // 의제 3: 직원별 업무
+  if (byAssignee.size > 0) {
+    text += "\n\n[의제 3] 직원별 업무";
+    for (const [name, assigneeTasks] of byAssignee.entries()) {
+      const p1 = assigneeTasks.filter((t) => t.priority === "p1").length;
+      const summary = p1 > 0 ? ` (긴급 ${p1}건)` : "";
+      text += `\n · ${name}: ${assigneeTasks.length}건${summary}`;
+    }
+  }
+
+  // 의제 4: 밀린 업무
+  if (overdueTasks.length > 0) {
+    text += "\n\n[의제 4] ⚠️ 밀린 업무";
+    for (const task of overdueTasks.slice(0, 5)) {
+      const overdueDays = toBriefItem(task, now).overdueDays;
+      const assignee = (task as DashboardTask & { assignee?: string | null }).assignee;
+      const who = assignee ? ` (${assignee})` : "";
+      text += `\n · ${task.title}${who}${typeof overdueDays === "number" ? ` — ${overdueDays}일 경과` : ""}`;
+    }
+  }
+
+  // 권고
+  text += "\n\n[권고]";
+  if (stats.overdueCount > 3) {
+    text += `\n⚡ 밀린 업무 ${stats.overdueCount}건 — 우선 정리 필요`;
+  }
+  if (stats.p1Count > 0) {
+    text += `\n🔴 긴급 업무 ${stats.p1Count}건 집중 처리`;
+  }
+  if (stats.overdueCount === 0 && stats.p1Count === 0) {
+    text += "\n✨ 양호 — 계획된 업무 순서대로 진행";
+  }
+
+  text += `\n\n━━━━━━━━━━━━━━━━━━\n📊 활성 ${stats.active} | 완료 ${stats.completedThisWeek} | 밀림 ${stats.overdueCount}`;
+
+  const shouldSend = stats.active > 0 || stats.completedThisWeek > 0;
+
+  return {
+    generatedAt: now.toISOString(),
+    shouldSend,
+    stats,
+    text,
+  };
+}
+
+export async function getStaffBriefing(assignee: string, limit = 20, now = new Date()) {
+  const [todayRows, overdueRows] = await Promise.all([
+    taskRepository.listAutomationMorningTasks(100, now),
+    taskRepository.listAutomationOverdueTasks(50, now),
+  ]);
+  const [todayTasks, overdueTasks] = await Promise.all([hydrateTasks(todayRows), hydrateTasks(overdueRows)]);
+
+  // assignee 기준 필터
+  const myTasks = todayTasks.filter(
+    (t) => (t as DashboardTask & { assignee?: string | null }).assignee === assignee,
+  );
+  const myOverdue = overdueTasks.filter(
+    (t) => (t as DashboardTask & { assignee?: string | null }).assignee === assignee,
+  );
+
+  const dateLabel = formatDateLabel(now);
+
+  let text = `📌 ${dateLabel} ${assignee}님 업무\n━━━━━━━━━━━━━━━━━━`;
+
+  if (myTasks.length === 0 && myOverdue.length === 0) {
+    text += "\n\n오늘 배정된 업무가 없습니다.";
+    return { generatedAt: now.toISOString(), shouldSend: false, count: 0, text };
+  }
+
+  // 긴급
+  const urgent = myTasks.filter((t) => t.priority === "p1");
+  if (urgent.length > 0) {
+    text += "\n\n🔴 긴급";
+    for (const task of urgent) {
+      text += `\n · ${task.title}`;
+    }
+  }
+
+  // 일반
+  const normal = myTasks.filter((t) => t.priority !== "p1");
+  if (normal.length > 0) {
+    text += "\n\n📋 오늘 할 일";
+    for (const task of normal) {
+      text += `\n · ${task.title}`;
+    }
+  }
+
+  // 밀린
+  if (myOverdue.length > 0) {
+    text += `\n\n⚠️ 밀린 업무 ${myOverdue.length}건`;
+    for (const task of myOverdue.slice(0, 3)) {
+      text += `\n · ${task.title}`;
+    }
+  }
+
+  text += `\n\n━━━━━━━━━━━━━━━━━━\n📊 총 ${myTasks.length}건`;
+
+  return {
+    generatedAt: now.toISOString(),
+    shouldSend: myTasks.length > 0 || myOverdue.length > 0,
+    count: myTasks.length,
+    text,
+  };
+}
+
 export async function patchAutomationTask(
   taskId: string,
   input: {

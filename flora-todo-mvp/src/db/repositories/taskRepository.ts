@@ -2,7 +2,7 @@ import { and, asc, count, desc, eq, gt, gte, ilike, inArray, isNotNull, isNull, 
 import { db } from "@/src/db/client";
 import { reminders, tasks } from "@/src/db/schema";
 import { TaskPriority, TaskStatus } from "@/src/domain/task";
-import { getEndOfToday, getEndOfWeek, getStartOfToday } from "@/src/lib/time";
+import { getEndOfToday, getEndOfWeek, getStartOfToday, getStartOfWeek } from "@/src/lib/time";
 import { DashboardDateRange, DashboardFilters } from "@/src/types/dashboard";
 
 type CreateTaskInput = {
@@ -868,6 +868,69 @@ export const taskRepository = {
       })
       .where(inArray(tasks.id, obsoleteTaskIds))
       .returning();
+  },
+
+  async listWeeklyCompletedTasks(now = new Date()) {
+    const weekStart = getStartOfWeek(now);
+    return db
+      .select()
+      .from(tasks)
+      .where(
+        and(
+          isNull(tasks.ignoredAt),
+          inArray(tasks.status, ["done", "resolved"]),
+          gte(tasks.updatedAt, weekStart),
+        ),
+      )
+      .orderBy(desc(tasks.updatedAt))
+      .limit(50);
+  },
+
+  async listActiveTasksByAssignee(now = new Date()) {
+    return db
+      .select()
+      .from(tasks)
+      .where(
+        and(
+          buildOperationalWhereClause(),
+          isNotNull(tasks.assignee),
+        ),
+      )
+      .orderBy(asc(tasks.assignee), buildPriorityOrderSql(), asc(tasks.dueAt));
+  },
+
+  async countWeeklyStats(now = new Date()) {
+    const weekStart = getStartOfWeek(now);
+    const todayStart = getStartOfToday(now);
+
+    const [active, completedThisWeek, overdueCount, p1Count] = await Promise.all([
+      countByStatuses(["todo", "waiting", "needs_check", "in_progress"]),
+      db
+        .select({ value: count() })
+        .from(tasks)
+        .where(
+          and(
+            isNull(tasks.ignoredAt),
+            inArray(tasks.status, ["done", "resolved"]),
+            gte(tasks.updatedAt, weekStart),
+          ),
+        )
+        .then((rows) => rows[0]?.value ?? 0),
+      db
+        .select({ value: count() })
+        .from(tasks)
+        .where(
+          and(
+            buildOperationalWhereClause(),
+            isNotNull(tasks.dueAt),
+            lt(tasks.dueAt, todayStart),
+          ),
+        )
+        .then((rows) => rows[0]?.value ?? 0),
+      countByPriority("p1"),
+    ]);
+
+    return { active, completedThisWeek, overdueCount, p1Count };
   },
 
   async getSummary(options: { todayStart: Date; todayEnd: Date; weekEnd: Date }) {

@@ -1,0 +1,115 @@
+{
+  "name": "[F9] 이재혁 CS 미답변 알림 (08:20)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 8, "triggerAtMinute": 20 }]
+        }
+      },
+      "id": "node-schedule",
+      "name": "매일 08:20",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "board" },
+            { "name": "board_code", "value": "secret" },
+            { "name": "reply_status", "value": "N" },
+            { "name": "limit", "value": "50" },
+            { "name": "page", "value": "1" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "node-fetch-cs",
+      "name": "MakeShop CS 미답변 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\n\nlet items = [];\nif (Array.isArray(raw)) {\n  items = raw;\n} else if (raw && typeof raw === 'object') {\n  const vals = Object.values(raw);\n  if (vals.length > 0 && typeof vals[0] === 'object') {\n    items = vals;\n  }\n}\n\nconst count = items.length;\nif (count === 0) {\n  return [{ json: { shouldSend: false, text: '' } }];\n}\n\nlet text = `📞 CS 미답변 ${count}건\\n━━━━━━━━━━━━━━━━━━`;\n\nfor (let i = 0; i < Math.min(count, 8); i++) {\n  const item = items[i];\n  const subject = item.subject || item.title || '제목 없음';\n  const writer = item.writer || item.name || '';\n  const date = item.regdate || item.created_at || '';\n  text += `\\n ${i + 1}. ${subject} (${writer})${date ? ' ' + date : ''}`;\n}\n\nif (count > 8) {\n  text += `\\n ... 외 ${count - 8}건`;\n}\n\ntext += `\\n\\n━━━━━━━━━━━━━━━━━━`;\nif (count >= 5) {\n  text += `\\n⚠️ 미답변 ${count}건 — 우선 확인 필요`;\n} else {\n  text += `\\n📋 ${count}건 확인 필요`;\n}\n\nreturn [{ json: { shouldSend: true, count, text } }];"
+      },
+      "id": "node-format",
+      "name": "CS 메시지 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.shouldSend }}", "value2": true }
+          ]
+        }
+      },
+      "id": "node-if-send",
+      "name": "발송 여부",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "JAEHYUK_CHAT_ID_PLACEHOLDER",
+        "text": "={{ $('CS 메시지 포맷').item.json.text }}",
+        "additionalFields": {}
+      },
+      "id": "node-send",
+      "name": "텔레그램 발송",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [880, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매일 08:20": {
+      "main": [[{ "node": "MakeShop CS 미답변 조회", "type": "main", "index": 0 }]]
+    },
+    "MakeShop CS 미답변 조회": {
+      "main": [[{ "node": "CS 메시지 포맷", "type": "main", "index": 0 }]]
+    },
+    "CS 메시지 포맷": {
+      "main": [[{ "node": "발송 여부", "type": "main", "index": 0 }]]
+    },
+    "발송 여부": {
+      "main": [
+        [{ "node": "텔레그램 발송", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }, { "name": "직원자동화" }]
+}

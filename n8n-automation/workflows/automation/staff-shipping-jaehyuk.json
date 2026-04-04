@@ -1,0 +1,114 @@
+{
+  "name": "[F8] 이재혁 출고 리스트 (08:10)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 8, "triggerAtMinute": 10 }]
+        }
+      },
+      "id": "node-schedule",
+      "name": "매일 08:10",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "order" },
+            { "name": "status_cd", "value": "3" },
+            { "name": "limit", "value": "100" },
+            { "name": "page", "value": "1" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "node-fetch-orders",
+      "name": "MakeShop 출고대기 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\n\n// MakeShop 응답이 단일 객체(1건) or 배열(복수건)\nlet orders = [];\nif (Array.isArray(raw)) {\n  orders = raw;\n} else if (raw && typeof raw === 'object') {\n  const vals = Object.values(raw);\n  if (vals.length > 0 && typeof vals[0] === 'object') {\n    orders = vals;\n  }\n}\n\nconst count = orders.length;\nif (count === 0) {\n  return [{ json: { shouldSend: false, text: '' } }];\n}\n\nlet text = `📦 출고 대기 ${count}건\\n━━━━━━━━━━━━━━━━━━`;\n\n// 상위 10건 표시\nfor (let i = 0; i < Math.min(count, 10); i++) {\n  const o = orders[i];\n  const name = o.pname || o.product_name || '상품';\n  const qty = o.ea || o.quantity || 1;\n  const buyer = o.name || o.buyer_name || '';\n  text += `\\n ${i + 1}. ${name} x${qty} (${buyer})`;\n}\n\nif (count > 10) {\n  text += `\\n ... 외 ${count - 10}건`;\n}\n\ntext += `\\n\\n━━━━━━━━━━━━━━━━━━\\n📊 총 ${count}건 출고 필요`;\n\nreturn [{ json: { shouldSend: true, count, text } }];"
+      },
+      "id": "node-format",
+      "name": "출고 메시지 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.shouldSend }}", "value2": true }
+          ]
+        }
+      },
+      "id": "node-if-send",
+      "name": "발송 여부",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "JAEHYUK_CHAT_ID_PLACEHOLDER",
+        "text": "={{ $('출고 메시지 포맷').item.json.text }}",
+        "additionalFields": {}
+      },
+      "id": "node-send",
+      "name": "텔레그램 발송",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [880, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매일 08:10": {
+      "main": [[{ "node": "MakeShop 출고대기 조회", "type": "main", "index": 0 }]]
+    },
+    "MakeShop 출고대기 조회": {
+      "main": [[{ "node": "출고 메시지 포맷", "type": "main", "index": 0 }]]
+    },
+    "출고 메시지 포맷": {
+      "main": [[{ "node": "발송 여부", "type": "main", "index": 0 }]]
+    },
+    "발송 여부": {
+      "main": [
+        [{ "node": "텔레그램 발송", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }, { "name": "직원자동화" }]
+}

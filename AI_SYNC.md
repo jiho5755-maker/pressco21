@@ -64,6 +64,8 @@
 > 전체 이력: `archive/ai-sync-history/AI_SYNC_2026-04-04_full.md`
 
 - 2026-04-04 하네스 종합 고도화 Phase 0 착수: CLAUDE.md 194→80줄 경량화, orchestration 스킬 생성, AI_SYNC 2307→200줄 다이어트
+- 2026-04-05 WF-CRM 입금 정합성 보강: WF-CRM-02에 mail/transaction ledger 추가, Telegram 성공 후 sent-map 기록으로 수정, Telegram 실패 failure log 보강, 신규 WF-CRM-03 정합성 감사 루프 생성 및 live 활성화
+- 2026-04-04 WF-CRM-02 live 패치: NH 메일 파싱 실패 경보, intake 실패 경보, failure log(static data), 동일 externalId 재실행 중복 알림 억제키 보강. 운영 WF `7ql6pPWlBoJhoZqH` 갱신 완료
 - 2026-04-03 flora-frontdoor 회상 기능을 최근 메모+미완료 open item 기준으로 확장
 - 2026-04-03 CRM 입금 알림에 입금별칭추천 줄 추가, 메시지 1건당 1개로 단일화하고 live 재배포
 - 2026-04-03 flora-frontdoor 메모 기입 모드 추가, 응답 톤 비서형으로 조정
@@ -82,6 +84,8 @@
 - `[CODEX-LEAD]` Flora 오케스트레이션: task ledger 구현, 텔레그램 Mini App IA 스펙
 - `[CODEX-LEAD]` Flora 텔레그램 방 라우팅: 3개 방 초대, room 매핑, harness 인벤토리 확장
 - `[CODEX]` CRM 운영: 입금 자동반영 실건 검증, 견적서/납품서/청구서 인쇄 확인
+- `[CODEX]` CRM 운영: WF-CRM-03 첫 scheduled execution 결과 확인, 신규 NH 메일 1건으로 ledger/감사 루프 실건 검증
+- `[CODEX]` CRM 운영: WF-CRM-02 신규 NH 메일 1건 실건 검증 필요 (parse failure / intake failure / 정상 반영 각각 확인)
 - `[CODEX]` 저장소: path-scoped 커밋 정리, 배포 후 workflow export 재동기화 루틴 고정
 - `[CODEX]` FA-001/003 메일 가드 실건 운영 확인
 

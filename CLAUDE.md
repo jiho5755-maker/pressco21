@@ -91,58 +91,43 @@
 - `메인페이지/Index.html`: 원본 가상태그 손상 3곳 존재. 수정 시 파서 검증 오류 발생. 모든 개선은 `js.js` 동적 적용으로.
 - HTML에 `<!--/가상태그/-->` 중첩 주의: if_not_soldout 내부 if_login 삽입 시 전체 템플릿 깨짐 확인됨.
 
-## 에이전트 팀 조직도
+## 에이전트 조직도 (25개, 3-Tier)
 
-프로젝트 에이전트 28개(기존 19 + 신규 9) → 글로벌 C-Suite 8개 매핑
+opus 10 / sonnet 10 / haiku 5. 상세: `docs/PRD-하네스-종합고도화-v2.md` Section 2.
 
-### CSO 전략참모실 (글로벌: chief-strategy-officer)
-| 프로젝트 에이전트 | 모델 | 역할 |
-|-----------------|------|------|
-| product-rd-specialist | opus | 신상품 기획, 트렌드, 라인업 전략 |
-| overseas-sourcing-specialist | sonnet | 1688 소싱, 관세/통관 |
+### Tier 1 — 상시 활성 (7개)
+| 에이전트 | 모델 | 역할 |
+|---------|------|------|
+| chief-technology-officer | opus | 기술 아키텍처, 자동화 로드맵 |
+| project-manager | sonnet | 태스크 관리, PRD, 브리핑, 로드맵 |
+| makeshop-expert | opus | 메이크샵 D4 기획/UI/API/페이지 |
+| code-inspector | haiku | 편집기 저장 전 코드 검수 |
+| deploy-manager | haiku | Chrome MCP 스킨 배포 |
+| n8n-builder | sonnet | 워크플로우 JSON 생성/디버깅 |
+| server-ops | sonnet | Docker/Nginx/SSL, 모니터링 |
 
-### CFO 재무본부 (글로벌: chief-financial-officer)
-| 프로젝트 에이전트 | 모델 | 역할 |
-|-----------------|------|------|
-| accounting-specialist | sonnet | 거래명세표, 장부, 세무사 연계 |
-| product-cost-analyst | opus | COGS, 환율/관세 |
-| sales-margin-strategist | opus | 8채널 마진, 판매가 시뮬레이션 |
+### Tier 2 — 키워드 트리거 (8개)
+| 에이전트 | 모델 | 트리거 |
+|---------|------|--------|
+| chief-strategy-officer | opus | 사업전략, 생태계, 포트폴리오 |
+| chief-financial-officer | opus | 수익성, 마진, 세무, 투자 |
+| chief-marketing-officer | opus | 마케팅, ROAS, 브랜드 |
+| chief-operating-officer | opus | 프로세스, CS, 물류, 정산 |
+| content-brand-planner | opus | 콘텐츠 기획, 카피, 브랜드 톤 |
+| product-planner | opus | 신상품, 트렌드, 라인업 |
+| partner-class-architect | opus | 파트너클래스 설계, 어드민 |
+| compliance-advisor | opus | 법률, 계약, 개인정보, 관세 |
 
-### CMO 마케팅본부 (글로벌: chief-marketing-officer)
-| 프로젝트 에이전트 | 모델 | 역할 |
-|-----------------|------|------|
-| content-strategist | opus | 교육 콘텐츠, 캘린더 |
-| ad-operations-specialist | sonnet | 광고 운영, ROAS |
-| community-manager | sonnet | 커뮤니티, 전환 |
-| sales-partnership-specialist | sonnet | B2B 영업, 제휴 |
-| brand-planning-expert | opus | 브랜드, 카피 |
-| seo-performance-expert | sonnet | SEO, GA4, 성능 |
-
-### COO 운영본부 (글로벌: chief-operating-officer)
-| 프로젝트 에이전트 | 모델 | 역할 |
-|-----------------|------|------|
-| customer-experience-specialist | sonnet | CS 매뉴얼, VOC |
-| inventory-logistics-specialist | sonnet | 사방넷 재고, 물류 |
-| ecommerce-business-expert | opus | 비즈니스 모델, 정산 |
-| devops-monitoring-expert | sonnet | 서버/인프라 |
-
-### CTO 기술본부 (글로벌: chief-technology-officer)
-| 프로젝트 에이전트 | 모델 | 역할 |
-|-----------------|------|------|
-| makeshop-planning-expert | opus | 메이크샵 API 기획 |
-| makeshop-ui-ux-expert | opus | UI/UX 구현 |
-| makeshop-code-reviewer | opus | 코드 리뷰 |
-| class-platform-architect | opus | 파트너클래스 아키텍처 |
-| gas-backend-expert | opus | GAS/n8n 백엔드 |
-| n8n-debugger | opus | 워크플로우 디버깅 |
-| partner-admin-developer | opus | 관리자 UI |
-| qa-test-expert | sonnet | QA 테스트 |
-| security-hardening-expert | opus | 보안 강화 |
-| data-integrity-expert | opus | 데이터 정합성 |
-
-### PM 프로젝트관리실 (글로벌: project-manager)
-| 프로젝트 에이전트 | 모델 | 역할 |
-|-----------------|------|------|
-| development-planner | opus | 로드맵 |
-| prd-generator | sonnet | PRD 생성 |
-| prd-validator | opus | PRD 검증 |
+### Tier 3 — 위임 전용 (10개)
+| 에이전트 | 모델 | 역할 |
+|---------|------|------|
+| ad-operations | sonnet | 네이버SA/쿠팡/메타 광고 |
+| seo-expert | sonnet | SEO, GA4, Core Web Vitals |
+| security-advisor | sonnet | 보안 감사, XSS/CSRF |
+| customer-support | sonnet | CS, FAQ, AI챗봇 |
+| inventory-logistics | sonnet | 사방넷 재고, 발주, 물류 |
+| hr-coach | sonnet | 직원 교육, 매뉴얼 |
+| overseas-sourcing | sonnet | 1688 소싱, 관세/통관 |
+| accounting | haiku | 장부, 거래명세표, 세무사 |
+| skin-auditor | haiku | 브랜드 일관성 스캔 |
+| qa-test | haiku | E2E, 크로스브라우저, QA |

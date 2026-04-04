@@ -1401,6 +1401,8 @@ Phase CRM ✅ 전체 완료 (2026-03-05)
 
 | 날짜 | 내용 |
 |------|------|
+| 2026-04-05 | 하네스 Phase 1 완료: 에이전트 51→25 재구성(opus10/sonnet10/haiku5, 3-Tier), CLAUDE.md 조직도 Tier 기반 교체, orchestration 스킬 라우팅+Tier 확장, MakeShop 스크립트 4개(vtag-lint/snapshot/diff-remote/batch-push), 토큰 ~12K→~2.6K(78%↓) |
+| 2026-04-05 | 하네스 Phase 0 완료: CLAUDE.md 194→80줄, AI_SYNC 2307→95줄, 훅 5개, 로그로테이션, orchestration 스킬 신규 |
 | 2026-03-29 | AI Harness Level 5 업그레이드: Stop Hook 4단계 검증, Git Hooks 3개(pre-commit/commit-msg/pre-push), deploy.sh 카나리 배포(--staging/--canary/--dry-run), AI_SYNC 아카이빙(2980→480행), 하네스 변경 프로토콜(§11+HARNESS-META), HARNESS.md 거버넌스 문서 |
 | 2026-03-10 | Phase 3 고도화 전면 재구성: CSO 종합 전략 12개 에이전트 팀미팅 + 대표 의사결정 반영 |
 | 2026-03-10 | Phase 3-0(긴급 안정화) S0-1~S0-4 / Phase 3-1(수익 엔진) S1-1~S1-9 / Phase 3-2(성장 가속) S2-1~S2-11 / Phase 3-3(스케일업) S3-1~S3-6 총 31개 태스크 추가 |

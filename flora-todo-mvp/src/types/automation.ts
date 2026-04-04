@@ -47,6 +47,7 @@ export type AutomationTaskUpsertBody = {
   category?: string | null;
   dueAt?: string | null;
   timeBucket?: string | null;
+  assignee?: string | null;
   waitingFor?: string | null;
   relatedProject?: string | null;
   detailsMerge?: Record<string, unknown>;

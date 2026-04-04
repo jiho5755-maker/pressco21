@@ -12,6 +12,7 @@ export const tasks = pgTable(
     category: text("category").notNull().default("inbox"),
     dueAt: timestamp("due_at", { withTimezone: true }),
     timeBucket: text("time_bucket"),
+    assignee: text("assignee"),
     waitingFor: text("waiting_for"),
     relatedProject: text("related_project"),
     sourceText: text("source_text").notNull(),

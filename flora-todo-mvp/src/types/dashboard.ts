@@ -41,6 +41,7 @@ export type DashboardTask = {
   category: string;
   dueAt: string | Date | null;
   timeBucket: string | null;
+  assignee: string | null;
   waitingFor: string | null;
   relatedProject: string | null;
   sourceText: string;

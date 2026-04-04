@@ -1,0 +1,85 @@
+{
+  "name": "[F3] Flora 점심 체크인 (12:30)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 12, "triggerAtMinute": 30 }]
+        }
+      },
+      "id": "node-schedule",
+      "name": "매일 12:30",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://flora-todo-mvp:3000/api/automation/briefings/lunch?limit=20",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" }
+          ]
+        }
+      },
+      "id": "node-flora-lunch",
+      "name": "Flora 점심 체크인 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.shouldSend }}", "value2": true }
+          ]
+        }
+      },
+      "id": "node-if-send",
+      "name": "발송 여부",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $('Flora 점심 체크인 조회').item.json.text }}",
+        "additionalFields": {}
+      },
+      "id": "node-send-checkin",
+      "name": "텔레그램 발송",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [660, 200],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매일 12:30": {
+      "main": [[{ "node": "Flora 점심 체크인 조회", "type": "main", "index": 0 }]]
+    },
+    "Flora 점심 체크인 조회": {
+      "main": [[{ "node": "발송 여부", "type": "main", "index": 0 }]]
+    },
+    "발송 여부": {
+      "main": [
+        [{ "node": "텔레그램 발송", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }]
+}

@@ -138,57 +138,118 @@ function toBriefItem(task: DashboardTask, now = new Date()): AutomationBriefItem
 }
 
 function buildMorningBriefText(todayTasks: DashboardTask[], overdueTasks: DashboardTask[], now = new Date()) {
-  const groups = new Map<string, DashboardTask[]>();
+  // 우선순위 기반 분류
+  const urgent: DashboardTask[] = [];    // p1
+  const important: DashboardTask[] = []; // p2
+  const ongoing: DashboardTask[] = [];   // in_progress (any priority)
+  const staff: DashboardTask[] = [];     // assignee가 장지호가 아닌 직원
   let inProgress = 0;
   let notStarted = 0;
 
   for (const task of todayTasks) {
-    const key = task.relatedProject || task.category || "기타";
-    const bucket = groups.get(key) ?? [];
-    bucket.push(task);
-    groups.set(key, bucket);
-
     if (task.status === "in_progress") {
       inProgress += 1;
     } else {
       notStarted += 1;
     }
+
+    // 직원 업무 먼저 분류 (assignee가 있고 장지호가 아닌 경우)
+    const assignee = (task as DashboardTask & { assignee?: string | null }).assignee;
+    if (assignee && assignee !== "장지호") {
+      staff.push(task);
+      continue;
+    }
+
+    // 진행 중인 건은 이어서 섹션
+    if (task.status === "in_progress") {
+      ongoing.push(task);
+      continue;
+    }
+
+    // 우선순위별 분류
+    if (task.priority === "p1") {
+      urgent.push(task);
+    } else {
+      important.push(task);
+    }
   }
 
   let text = `☀️ ${formatDateLabel(now)} 모닝 브리핑\n━━━━━━━━━━━━━━━━━━`;
+  let idx = 1;
 
-  if (todayTasks.length === 0) {
+  if (todayTasks.length === 0 && overdueTasks.length === 0) {
     text += "\n\n오늘 등록된 할 일이 없습니다.";
-  } else {
-    for (const [projectName, tasks] of groups.entries()) {
-      text += `\n\n📁 ${projectName}`;
+    return text;
+  }
 
-      for (const task of tasks) {
-        const dueAt = toDate(task.dueAt);
-        text += `\n  · ${task.title}${formatTimeLabel(dueAt)}`;
-      }
-    }
-
-    text += `\n\n━━━━━━━━━━━━━━━━━━\n📊 총 ${todayTasks.length}건`;
-    if (inProgress > 0) {
-      text += ` | 진행 중 ${inProgress}`;
-    }
-    if (notStarted > 0) {
-      text += ` | 시작 전 ${notStarted}`;
+  // 🔴 긴급 (p1)
+  if (urgent.length > 0) {
+    text += "\n\n🔴 긴급 (오늘 꼭)";
+    for (const task of urgent) {
+      const dueAt = toDate(task.dueAt);
+      const project = task.relatedProject ? ` [${task.relatedProject}]` : "";
+      text += `\n ${idx}. ${task.title}${project}${formatTimeLabel(dueAt)}`;
+      idx += 1;
     }
   }
 
+  // 🟡 중요 (p2+)
+  if (important.length > 0) {
+    text += "\n\n🟡 중요";
+    for (const task of important) {
+      const dueAt = toDate(task.dueAt);
+      const project = task.relatedProject ? ` [${task.relatedProject}]` : "";
+      text += `\n ${idx}. ${task.title}${project}${formatTimeLabel(dueAt)}`;
+      idx += 1;
+    }
+  }
+
+  // ⏳ 이어서 (in_progress)
+  if (ongoing.length > 0) {
+    text += "\n\n⏳ 이어서";
+    for (const task of ongoing) {
+      const project = task.relatedProject ? ` [${task.relatedProject}]` : "";
+      text += `\n ${idx}. ${task.title}${project} (진행 중)`;
+      idx += 1;
+    }
+  }
+
+  // 📋 직원
+  if (staff.length > 0) {
+    text += "\n\n📋 직원";
+    // 담당자별 그룹핑
+    const byAssignee = new Map<string, DashboardTask[]>();
+    for (const task of staff) {
+      const name = (task as DashboardTask & { assignee?: string | null }).assignee ?? "미지정";
+      const bucket = byAssignee.get(name) ?? [];
+      bucket.push(task);
+      byAssignee.set(name, bucket);
+    }
+    for (const [name, tasks] of byAssignee.entries()) {
+      const titles = tasks.map((t) => t.title).join(", ");
+      text += `\n - ${name}: ${titles}`;
+    }
+  }
+
+  // ⚠️ 밀린 업무
   if (overdueTasks.length > 0) {
     text += `\n\n⚠️ 밀린 업무 ${overdueTasks.length}건`;
-
     for (const task of overdueTasks.slice(0, 5)) {
       const overdueDays = toBriefItem(task, now).overdueDays;
-      text += `\n  · ${task.title}${typeof overdueDays === "number" ? ` (${overdueDays}일 경과)` : ""}`;
+      text += `\n · ${task.title}${typeof overdueDays === "number" ? ` (${overdueDays}일 경과)` : ""}`;
     }
-
     if (overdueTasks.length > 5) {
-      text += `\n  ... 외 ${overdueTasks.length - 5}건`;
+      text += `\n ... 외 ${overdueTasks.length - 5}건`;
     }
+  }
+
+  // 요약
+  text += `\n\n━━━━━━━━━━━━━━━━━━\n📊 총 ${todayTasks.length}건`;
+  if (inProgress > 0) {
+    text += ` | 진행 중 ${inProgress}`;
+  }
+  if (notStarted > 0) {
+    text += ` | 시작 전 ${notStarted}`;
   }
 
   return text;
@@ -249,6 +310,64 @@ export async function getMorningBrief(limit = 20, now = new Date()) {
     text: buildMorningBriefText(todayTasks, overdueTasks, now),
     items: todayTasks.map((task) => toBriefItem(task, now)),
     overdueItems: overdueTasks.map((task) => toBriefItem(task, now)),
+  };
+}
+
+export async function getLunchCheckin(limit = 20, now = new Date()) {
+  const [todayRows, overdueRows] = await Promise.all([
+    taskRepository.listAutomationMorningTasks(limit, now),
+    taskRepository.listAutomationOverdueTasks(limit, now),
+  ]);
+  const [todayTasks, overdueTasks] = await Promise.all([hydrateTasks(todayRows), hydrateTasks(overdueRows)]);
+
+  const completed = todayTasks.filter((t) => t.status === "done");
+  const remaining = todayTasks.filter((t) => t.status !== "done");
+
+  // 오후 추천: p1 먼저, 그 다음 마감 임박 순
+  const afternoon = remaining
+    .sort((a, b) => {
+      if (a.priority === "p1" && b.priority !== "p1") return -1;
+      if (a.priority !== "p1" && b.priority === "p1") return 1;
+      const aDue = toDate(a.dueAt)?.getTime() ?? Infinity;
+      const bDue = toDate(b.dueAt)?.getTime() ?? Infinity;
+      return aDue - bDue;
+    })
+    .slice(0, 3);
+
+  let text = "🍽️ 점심 체크인\n━━━━━━━━━━━━━━━━━━";
+
+  if (completed.length > 0) {
+    text += "\n\n✅ 오전 완료";
+    for (const task of completed) {
+      text += `\n · ${task.title} ✓`;
+    }
+  } else {
+    text += "\n\n오전 완료된 업무가 아직 없어요.";
+  }
+
+  if (afternoon.length > 0) {
+    text += "\n\n📌 오후 추천";
+    for (let i = 0; i < afternoon.length; i++) {
+      const task = afternoon[i];
+      const project = task.relatedProject ? ` [${task.relatedProject}]` : "";
+      const label = task.priority === "p1" ? " ← 긴급" : "";
+      text += `\n ${i + 1}. ${task.title}${project}${label}`;
+    }
+  }
+
+  if (overdueTasks.length > 0) {
+    text += `\n\n⚠️ 밀린 ${overdueTasks.length}건도 정리해보세요`;
+  }
+
+  const shouldSend = todayTasks.length > 0 || overdueTasks.length > 0;
+
+  return {
+    generatedAt: now.toISOString(),
+    shouldSend,
+    count: todayTasks.length,
+    completedCount: completed.length,
+    remainingCount: remaining.length,
+    text,
   };
 }
 

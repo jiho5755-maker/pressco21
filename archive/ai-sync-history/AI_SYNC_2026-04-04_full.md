@@ -1,0 +1,2307 @@
+# AI Sync Board
+
+이 파일은 Claude Code와 Codex CLI가 같은 저장소와 하위 폴더를 교대로 작업할 때 충돌을 줄이기 위한 공용 인수인계 보드입니다.
+
+---
+
+## 운영 모드
+
+### 모드 A: 메인 프로젝트 (Claude Code 주도 → Codex 관리)
+
+| 단계 | 담당 | 커밋 prefix |
+|------|------|------------|
+| 기획/아키텍처/신규 개발 | **Claude Code** | — |
+| 테스트/리팩토링/버그수정 | **Codex CLI** | `[codex]` |
+
+### 모드 B: 독립 프로젝트 (Codex 단독 총괄)
+
+가벼운 프로젝트는 Codex CLI가 기획~배포까지 독립 수행. Next Step에 `[CODEX-LEAD]` prefix.
+
+### 태스크 위임 표시
+
+| prefix | 의미 |
+|--------|------|
+| `[CODEX]` | 모드 A — Codex가 보조 작업 수행 |
+| `[CODEX-LEAD]` | 모드 B — Codex가 독립 주도 |
+| (prefix 없음) | Claude Code 담당 |
+
+### 공통 금지 사항 (모드 무관)
+
+- `.secrets.env` 수정 금지
+- `git push --force`, `git reset --hard` 금지
+- Claude Code가 WRITE 중인 파일 수정 금지
+
+### 모드 A 추가 금지 (보조 모드에서만)
+
+- `n8n-workflows/*.json` 수정 금지
+- 비즈니스 로직 임계값 변경 금지
+- ROADMAP.md 수정 금지
+
+---
+
+## Mandatory Rules
+
+1. 작업 시작 전에 이 파일과 `git status --short`를 먼저 확인합니다.
+2. `Current Owner`가 다른 에이전트이고 `Mode`가 `WRITE`면 파일을 수정하지 않습니다.
+3. 첫 수정 전에 아래 `Session Lock`과 `Files In Progress`를 갱신합니다.
+4. 작업 종료 전 `Last Changes`, `Next Step`, `Known Risks`를 갱신합니다.
+5. `git commit`, 브랜치 변경, 의존성 설치, lockfile 수정, dev server 재시작은 기록 후 한 번에 한 에이전트만 수행합니다.
+
+## Session Lock
+
+- Current Owner: IDLE
+- Mode: —
+- Started At: —
+- Branch: main
+- Working Scope: —
+- Active Subdirectory: —
+
+## Files In Progress
+- —
+
+### [CODEX-LEAD] Gmail 보안메일 자동입금 1차 실동작 검증 완료 (CODEX)
+- 변경
+  - `offline-crm-v2/src/pages/DepositInbox.tsx`
+    - 자동입금 수집원 라벨에 `Gmail 보안메일 연동` 추가
+  - `offline-crm-v2/src/pages/Settings.tsx`
+    - 자동입금 수집 방식에 `Gmail 보안메일 연동` 추가
+    - 안내 문구를 NH API 전 임시 운영 구조에 맞게 정리
+  - `n8n-main/pressco21/accounting-automation/scripts/generate-workflows.mjs`
+    - NH 보안메일(VestMail/YettieSoft) HTML을 `textHtml` 또는 첨부 HTML에서 직접 복호화하도록 보정
+    - 고정 비밀번호 `610227` 기반으로 `입금자명/금액/거래일` 추출
+    - `Blob` 전역이 없는 n8n sandbox에서 동작하도록 안전화
+  - `n8n-main/pressco21/accounting-automation/workflows/WF-CRM-02_Gmail_입금알림_수집.json`
+    - collector workflow 재생성 및 live 재배포
+- 검증
+  - 실메일 발송: `presscobank@gmail.com` 으로 보안메일 샘플 재전송
+  - live execution `58460`:
+    - `Code: Parse Deposit Email` 성공
+    - 추출값: `장지호 / 7,524원 / 2026-03-12`
+    - `HTTP Call Intake Engine` 성공
+  - live execution `58461`:
+    - intake 응답 `ok: true`
+    - 현재는 정확 일치 고객이 없어 `unmatched` 1건으로 큐 적재
+  - CRM build/deploy 완료
+  - 운영 확인:
+    - 설정 화면에 `Gmail 보안메일 연동` 표시
+    - 입금 수집함에 `장지호`, `7,524` 검토 항목 노출
+- 참고
+  - 지금 단계는 `보안메일 수집/복호화/전달` 검증 완료 상태다.
+  - 정확 일치 자동반영은 고객명/입금자명 별칭/금액이 맞는 실제 운영 케이스에서 이어서 검증 필요.
+
+## Last Changes
+- 2026-04-03 flora-frontdoor 회상 기능을 최근 메모에서 `최근 메모 + 미완료 open item` 기준으로 확장했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - 최근 메모 캐시 빌더를 확장해 Oracle `tasks/reminders/followups`에서 미완료 open item 캐시(`flora-frontdoor-open-items.json`)도 함께 만들도록 보강했다.
+    - open item 캐시는 `source_messages`와 join해서 `userChatId`를 최대한 복구하고, due/reminder/followup/waiting/project가 있는 실제 일감 위주로만 담도록 필터를 추가했다.
+    - relay `detailsMerge`에도 `userChatId`, `userName`, `transport`, `sourceCreatedAt`를 함께 남겨 이후 task 원장 추적성을 높였다.
+    - frontdoor AGENTS/운영 브리프에 회상 시 `recent-memos + open-items`를 함께 읽고, `정리해줘/메모해줘` 같은 메타 task는 실제 할 일에서 빼도록 규칙을 추가했다.
+    - 내가 남겼던 테스트 오염 데이터 `source_message_id=9999` 관련 task를 Oracle에서 삭제하고 새 캐시로 frontdoor를 재설치했다.
+  - 검증
+    - `python3 -m py_compile openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
+    - `python3 openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py --output /tmp/flora-frontdoor-recent-memos.json --open-items-output /tmp/flora-frontdoor-open-items.json`
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - Oracle `flora-todo-mvp-postgres`에서 `source_message_id=9999` task 삭제 확인
+    - server `flora-frontdoor` 직접 시뮬레이션:
+      - `예전에 적어둔 메모 기준으로 지금 할 일 다시 정리해줘`
+      - 최근 메모 + 열린 항목 기준 요약 응답 확인
+  - 결과
+    - flora-frontdoor는 이제 단순 최근 메모만이 아니라 실제 미완료 task/reminder/followup까지 참고해 회상 정리를 할 수 있다.
+    - 다만 open item 캐시는 현재 배포/재설치 시점 스냅샷이라, 실시간 재빌드 루프는 후속 과제로 남는다.
+- 2026-04-03 CRM 입금 알림에 `입금별칭추천` 줄을 추가하고 live n8n에 재배포했다.
+  - 범위
+    - `scripts/deploy-crm-deposit-telegram.js`
+    - `n8n-automation/workflows/accounting/WF-CRM-02_Gmail_입금알림_수집.json`
+    - `AI_SYNC.md`
+  - 내용
+    - 입금 메시지 본문 `입금자` 바로 아래에 `입금별칭추천` 한 줄을 추가했다.
+    - 추천값은 현재 가장 안전한 후보인 실제 입금자명 문자열을 그대로 노출하도록 했다.
+    - collector workflow를 다시 생성해 live workflow `7ql6pPWlBoJhoZqH`까지 재배포했다.
+  - 검증
+    - `node --check scripts/deploy-crm-deposit-telegram.js`
+    - `node scripts/deploy-crm-deposit-telegram.js`
+    - 로컬 시뮬레이션 결과:
+      - `입금자: 쿠팡페이주식`
+      - `입금별칭추천: 쿠팡페이주식`
+      - `CRM처리: 미매칭`
+  - 결과
+    - 알림만 보고도 운영자가 곧바로 고객 메모의 입금자명 별칭 후보를 복사해 등록할 수 있게 됐다.
+- 2026-04-03 CRM 입금 알림 텔레그램 메시지를 한 건당 1개로 단일화하고 live n8n까지 재배포했다.
+  - 범위
+    - `scripts/deploy-crm-deposit-telegram.js`
+    - `n8n-automation/workflows/accounting/WF-CRM-02_Gmail_입금알림_수집.json`
+    - `docs/offline-crm-bank-automation-ops-guide-2026-03-15.md`
+    - `AI_SYNC.md`
+  - 내용
+    - 입금 건은 `원본 은행 알림`을 따로 보내지 않고, `계좌 / 입금자 / 입금액 / 거래일시 / 통장잔액 / CRM처리 / 안내`를 한 메시지로 합쳤다.
+    - CRM 자동반영 메시지에서 `잔액 0원` 같은 후속 잔액 표기를 제거해, 통장 잔액이 한 번만 보이도록 정리했다.
+    - 출금은 기존처럼 `은행 거래 알림` 1건만 보내되, 입금과 겹쳐 두 번 울리지 않도록 collector 분기를 조정했다.
+    - 배포 스크립트로 `WF-CRM-01`, `WF-CRM-02`를 함께 재동기화하고 live workflow까지 반영했다.
+  - 검증
+    - `node --check scripts/deploy-crm-deposit-telegram.js`
+    - `node scripts/deploy-crm-deposit-telegram.js`
+    - 로컬 시뮬레이션 확인
+      - 입금 1건 → `[입금 알림]` 1개만 생성
+      - 같은 입금 데이터에서 `Build Bank Event Summary` 결과 `[]`
+      - 출금 1건 → `[은행 거래 알림]` 1개 유지
+  - 결과
+    - 실제 운영 기준으로 입금은 카카오톡/텔레그램에서 한 건당 한 메시지로 읽히고, 통장 잔액도 한 번만 보이게 됐다.
+    - live n8n workflow ID `7ql6pPWlBoJhoZqH`까지 재배포 완료했다.
+- 2026-04-03 flora-frontdoor에 최근 메모 회상 기능을 붙여, 예전에 적어둔 메모 기준 질문에 저장된 최근 메모를 읽고 다시 정리할 수 있게 했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py`
+    - `openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - Oracle `flora-todo-mvp`의 `source_messages`에서 최근 메모를 읽어 frontdoor workspace의 `flora-frontdoor-recent-memos.json` 캐시를 만드는 `build-flora-frontdoor-memo-cache.py`를 추가했다.
+    - `log-flora-frontdoor-turn.py`가 새 turn을 적재할 때 최근 메모 캐시도 함께 갱신하도록 보강했다.
+    - wrapper가 relay에 원본 파일이 아니라 정제된 `message_text`를 넘기도록 수정해 metadata block이 source_message에 다시 섞이지 않게 했다.
+    - frontdoor 설치 스크립트가 최근 메모 캐시 파일을 함께 배치하고, 회상 질문일 때 이 캐시를 먼저 읽도록 AGENTS 규칙을 추가했다.
+    - 실제 회상 질문 시뮬레이션에서 저장된 메모를 기반으로 `오늘 1순위`, `이번 주 마감`, `주말 일정`까지 다시 묶는 응답을 확인했다.
+  - 검증
+    - `python3 -m py_compile openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
+    - `python3 openclaw-project-hub/06_scripts/build-flora-frontdoor-memo-cache.py --output /tmp/flora-frontdoor-recent-memos.json`
+    - `python3 openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py ... --memo-cache-path <tmp>/cache.json --dry-run`
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw agent --agent flora-frontdoor --channel telegram -t 7713811206 --message "예전에 내가 적어둔 메모 기준으로 지금 할 일 다시 정리해줘" --thinking low --json`
+  - 결과
+    - flora-frontdoor는 이제 최근 메모 캐시를 바탕으로 회상 질문에 실제 저장된 메모 기준 답변을 만들 수 있다.
+    - 메모 회상은 기존처럼 `다시 보내달라`로만 끝나지 않고, 최근 메모의 실질 항목을 먼저 다시 묶어준다.
+- 2026-04-03 flora-frontdoor에 `메모 기입 모드`를 추가해, 일상 메모/투두/리마인드 입력에는 제안 없이 짧게 접수만 하도록 조정했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - frontdoor AGENTS에 `메모 기입 모드`를 추가해 `기입/기록/리마인드/체크/추가` 요청일 때는 분석과 제안을 길게 붙이지 않도록 했다.
+    - 권장 응답을 `적어둘게요`, `내일 리마인드로 넣어둘게요`, `준비물 체크 항목으로 추가해둘게요` 같은 1~3줄 접수형으로 고정했다.
+    - executive brief와 tuning log에도 같은 운영 원칙을 반영했다.
+    - 서버 frontdoor를 재설치했고, 메모 기입형 테스트 문장에서 실제로 짧은 접수형 응답이 나오는 것을 확인했다.
+  - 검증
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw agent --agent flora-frontdoor --channel telegram -t 7713811206 --message "지금 쓴것들 답변 말구 그냥 다 메모해줘 특이 이번주 끝내야되는 업무들은 내일 리마인드 해줘" --thinking low --json`
+  - 결과
+    - 같은 유형 요청에 대해 `적어둘게요. 이번 주 안에 끝내야 하는 업무들은 내일 다시 리마인드드릴게요.` 수준으로 응답이 압축됐다.
+    - 메모 입력 중 불필요한 의미 해석/우선순위 제안이 섞이는 문제는 크게 줄었다.
+- 2026-04-03 flora-frontdoor 응답 톤을 실제 비서형으로 더 짧게 조정하고, 메모 회상 질문에서 잘못 단정하지 않도록 규칙을 보강했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-executive-brief.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-tuning-log.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - frontdoor 첫 문장 규칙에서 `지금은 총괄 관점으로 보면` 같은 상투적 서두를 기본값에서 제거했다.
+    - Telegram 응답을 가능하면 8줄 안쪽으로 제한하고, `상황 한 줄 / 지금 할 일 / 보류` 형태의 짧은 비서 모드를 추가했다.
+    - 메모 회상 질문에는 실제 조회 없이 `메모가 없다`고 단정하지 않도록 하고, `이전 메모 자동 회상은 아직 약하다`는 짧은 설명 후 재정리 흐름으로 연결하도록 고정했다.
+    - `저장된 회상`, `메모 원장`, `세션 기록` 같은 내부 시스템 표현을 사용자 답변에서 금지했다.
+    - 서버 frontdoor를 재설치했고, 직접 시뮬레이션에서 기존보다 훨씬 짧고 자연한 응답으로 줄어든 것을 확인했다.
+  - 검증
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw agent --agent flora-frontdoor --channel telegram -t 7713811206 --message "음 일상 메모했던거 총정리해서 내가 할거가 뭐가 있었지" --thinking low --json`
+  - 결과
+    - 이제 flora-frontdoor는 같은 질문에 대해 상투적 총괄 서두 대신 더 짧은 결론형 문장으로 시작하고, 메모 부재를 함부로 단정하지 않게 됐다.
+    - 다만 예전 메모를 source_messages/task ledger에서 실제로 다시 끌어와 요약하는 기능은 아직 미구현이다.
+- 2026-04-03 flora-frontdoor Telegram 응답에서 내부 도구 출력/commentary가 새는 문제를 채널 설정으로 차단했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - frontdoor 설치 스크립트가 서버 `openclaw.json`의 `channels.telegram.streaming`을 `off`로 강제하도록 수정했다.
+    - frontdoor AGENTS 규칙에 `텔레그램에서는 내부 commentary/도구 실행 로그/탐색 메모를 절대 사용자에게 보내지 않는다`는 원칙을 추가했다.
+    - Phase 1 스펙에도 Telegram은 최종 답변 1개만 보이게 운영한다는 기준을 반영했다.
+    - 서버 frontdoor를 재설치해 실제 Oracle 설정과 workspace 지침을 같이 갱신했다.
+  - 검증
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - Oracle `~/.openclaw/openclaw.json` 확인 결과 `channels.telegram.streaming = off`, `session.dmScope = per-channel-peer`
+  - 결과
+    - 같은 유형의 Telegram preview/commentary 누수는 채널 레벨에서 더 이상 나가지 않도록 막았다.
+    - 남은 확인은 실제 사용자 DM 1건에서 내부 출력이 사라졌는지 체감 검증하는 것이다.
+- 2026-04-03 flora-frontdoor Telegram 메타데이터 경로를 보강해 DM 세션 분리와 inbound metadata 파싱을 붙였다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - `log-flora-frontdoor-turn.py`가 OpenClaw의 `Conversation info (untrusted metadata)` / `Sender (untrusted metadata)` 블록을 직접 파싱해 `message_id`, `sender_id`, `timestamp`, `sender`를 추출하도록 보강했다.
+    - wrapper가 metadata block은 relay 전에 제거하고 실제 사용자 본문만 `messageText`로 적재하게 바꿨다.
+    - frontdoor 설치 스크립트가 서버 `openclaw.json`의 `session.dmScope`를 `per-channel-peer`로 고정하도록 수정해 Telegram DM을 사용자별 세션으로 분리했다.
+    - 서버 frontdoor workspace를 재설치해 새 wrapper와 AGENTS 규칙을 실제 운영 경로에 반영했다.
+  - 검증
+    - `python3 -m py_compile openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - metadata 샘플 문자열로 `extract_inbound_metadata()` / `parse_inbound_timestamp()` 로컬 검증
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - Oracle `~/.openclaw/openclaw.json` 확인 결과 `session.dmScope = per-channel-peer`
+    - `openclaw security audit --json` 재확인
+  - 결과
+    - 이제 frontdoor는 실제 Telegram inbound metadata block이 들어오면 fallback 없이 Telegram `message_id`와 `sender_id`를 우선 사용할 준비가 됐다.
+    - DM 세션도 사용자별로 분리되도록 서버 설정을 고정했다.
+- 2026-04-03 flora-frontdoor가 실제 응답 턴 안에서 `write -> exec -> webhook -> source_messages/tasks`까지 자동으로 닫히도록 자동 capture 경로를 붙였다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
+    - `openclaw-project-hub/07_openclaw_skills/flora-task-ledger-intake/SKILL.md`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md`
+    - `openclaw-project-hub/README.md`
+    - `AI_SYNC.md`
+  - 내용
+    - frontdoor turn용 capture wrapper `log-flora-frontdoor-turn.py`를 추가해 현재 사용자 원문/최종 답변 초안을 파일로 저장한 뒤 `relay-flora-frontdoor-intake.py`를 webhook 모드로 호출하게 했다.
+    - 새 skill `flora-task-ledger-intake`를 추가해 자유 메모/실행 요청일 때 frontdoor가 wrapper를 먼저 실행하고, 그다음 최종 답변만 보내도록 규칙을 고정했다.
+    - frontdoor 설치 스크립트가 새 wrapper/skill을 서버 workspace에 배치하고, TOOLS/AGENTS에 자동 적재 규칙을 주입하도록 보강했다.
+    - 중간 안내 문장, git/workspace 언급 같은 내부 실행 사실이 사용자 payload에 섞이지 않도록 지침을 다시 조였다.
+  - 검증
+    - `python3 -m py_compile openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py openclaw-project-hub/06_scripts/log-flora-frontdoor-turn.py`
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw agent --agent flora-frontdoor ... --json` 직접 실행으로 session jsonl에서 `write -> exec(log-flora-frontdoor-turn.py)` 흔적 확인
+    - Oracle `flora-todo-mvp-postgres` 조회 결과 최근 15분 기준 `source_messages`와 `tasks`에 `unknown:2026-04-02T17:40:35.808147Z` 등 새 frontdoor turn 적재 확인
+  - 결과
+    - 이제 flora-frontdoor는 문서상/테스트용 릴레이가 아니라 실제 응답 턴 안에서 원장 적재를 자동 실행한다.
+    - direct CLI 테스트 기준으로는 `userChatId`, `sourceMessageId`를 모르기 때문에 fallback `unknown:timestamp`가 쓰였고, 이건 다음 단계에서 실제 Telegram 메타데이터 송신으로 더 보강할 수 있다.
+- 2026-04-03 플로라 문서 폴더를 `current / reference / archive` 기준으로 다시 정리해 직원용 진입 혼선을 줄였다.
+  - 범위
+    - `openclaw-project-hub/README.md`
+    - `openclaw-project-hub/03_openclaw_docs/README.md`
+    - `openclaw-project-hub/03_openclaw_docs/archive/README.md`
+    - `openclaw-project-hub/03_openclaw_docs/archive/legacy-flora/*`
+    - `openclaw-project-hub/03_openclaw_docs/archive/questionnaires/*`
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-master-plan.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-prd.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - root README에 `직원은 current만 본다`는 문서 읽기 원칙을 추가했다.
+    - `03_openclaw_docs/README.md`를 새로 만들어 현행 기준 문서, 참고 문서, 보관 문서를 한 번에 찾을 수 있게 했다.
+    - 과거 Telegram bridge/room router/validation 문서와 각종 설문 원본은 `archive` 아래로 이동했다.
+    - 마스터 플랜과 통합 PRD에도 문서 운영 규칙을 넣어, 이후 새 문서는 `통합 PRD -> phase spec/feature spec` 구조를 따르도록 고정했다.
+  - 검증
+    - `git diff --check`
+    - archive 대상 문서명이 현재 허브 내 다른 문서/스크립트에서 직접 참조되지 않는 것 확인
+  - 결과
+    - 직원이나 외부 협업자가 현재 기준 문서를 찾기 쉬워졌고, 이후 플로라 후속 개발 문서도 같은 분류 규칙을 따라 내려갈 수 있게 됐다.
+- 2026-04-03 플로라 Phase 1 `frontdoor -> source_message -> task ledger` 닫힌 루프를 실제 서버까지 배치하고 e2e 검증을 완료했다.
+  - 범위
+    - `openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `flora-todo-mvp/app/api/ingest/route.ts`
+    - `flora-todo-mvp/src/services/ingestService.ts`
+    - `flora-todo-mvp/src/types/api.ts`
+    - `flora-todo-mvp/README.md`
+    - `n8n-automation/workflows/automation/flora-conversation-log.json`
+    - `AI_SYNC.md`
+  - 내용
+    - `relay-flora-frontdoor-intake.py`의 webhook 모드가 automation key 없이도 n8n webhook으로 바로 보낼 수 있게 수정했다.
+    - `Flora Conversation Log` workflow에서 `Flora Ingest`가 직전 HTTP 응답이 아니라 `Normalize Payload`의 정규화 결과를 참조하도록 고쳤다.
+    - `flora-todo-mvp /api/ingest`가 `metadata`와 `detailsMerge`를 실제 task 생성 경로까지 전달하도록 보강했다.
+    - Oracle `flora-todo-mvp`를 재배포했고, OpenClaw 서버 `workspace-flora-frontdoor`에도 릴레이 스크립트를 실제 배치했다.
+  - 검증
+    - `python3 -m py_compile openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
+    - `cd flora-todo-mvp && npm run build`
+    - Oracle `bash scripts/deploy-oracle.sh`
+    - live n8n workflow `UC4f2SxSmutEzdOT` 재배포 후 webhook e2e 재실행
+    - Oracle 조회 결과 `source_messages` 1건 생성, `review` queue에 task/reminder/followup 1건 생성 확인
+    - n8n execution `154315` success 확인
+  - 결과
+    - Phase 1은 이제 문서/로컬 코드 수준이 아니라 실제 운영 경로에서 `webhook -> source_message -> task ledger`까지 닫혔다.
+- 2026-04-03 플로라 통합 PRD를 시니어 개발 관점으로 재검토하고, Phase 1 구현의 첫 코드를 시작했다.
+  - 범위
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-prd.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md`
+    - `openclaw-project-hub/README.md`
+    - `openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `flora-todo-mvp/src/types/api.ts`
+    - `flora-todo-mvp/src/services/ingestService.ts`
+    - `flora-todo-mvp/README.md`
+    - `AI_SYNC.md`
+  - 내용
+    - 통합 PRD에 `운영 필수 요구사항`과 `운영 품질 게이트`를 추가해, 안정 ID/멱등성, 최소 상태 머신, 자동화 안전/감사, 운영 관측성/복구성을 초기 요구사항으로 고정했다.
+    - Phase 1 스펙에 `detailsMerge` 사용 원칙, 안정 ID/재시도 규칙, sourceChannel 권장값, 실패 복구 경로를 추가했다.
+    - `flora-todo-mvp /api/ingest`가 `detailsMerge`를 받아 생성 task의 `detailsJson`에 병합하도록 구현했다.
+    - `relay-flora-frontdoor-intake.py`를 추가해 source_message upsert + ingest를 한 번에 호출하는 Phase 1 릴레이 도구를 만들었다.
+    - frontdoor 설치 스크립트가 새 릴레이 스크립트를 서버 workspace에 배치하도록 보강했다.
+  - 검증
+    - `python3 -m py_compile openclaw-project-hub/06_scripts/relay-flora-frontdoor-intake.py`
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `cd flora-todo-mvp && npm run build`
+  - 결과
+    - 플로라 PRD는 실제 구현에 바로 들어갈 수준으로 한 단계 더 단단해졌고, Phase 1은 이제 문서가 아니라 `frontdoor -> source_message -> ingest`를 닫는 첫 코드 경로를 가지게 됐다.
+- 2026-04-03 플로라 문서 체계를 `통합 PRD 1개 + 하위 구현 스펙` 원칙으로 다시 고정했다.
+  - 범위
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-prd.ko.md`
+    - `openclaw-project-hub/README.md`
+    - `AI_SYNC.md`
+  - 내용
+    - `flora-orchestration-service-prd`에 `문서 구조 원칙`, `문서 계층`, `하위 스펙 작성 원칙`을 추가했다.
+    - 모바일 중심 운영 자동화, 메일 자동화, Mini App, 개발 지휘를 모두 통합 PRD의 하위 기능 축으로 고정했다.
+    - README에도 새 독립 PRD를 늘리지 않고 `통합 PRD -> Phase/Feature spec` 순서로 문서를 내린다는 운영 원칙을 명시했다.
+  - 결과
+    - 앞으로 플로라 기획은 통합 PRD 하나를 기준으로 보고, 세부 설계만 단계별 스펙으로 내려가면 된다.
+- 2026-04-03 플로라 정본 PRD에 모바일 중심 운영 자동화 범위를 추가했다.
+  - 범위
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-prd.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md`
+    - `AI_SYNC.md`
+  - 내용
+    - PRD에 `휴대폰만으로 명령 -> 서버 실행기 -> 승인 -> 메일 발송/브라우저 자동화` 방향을 포함했다.
+    - 메일 초안/승인/발송, 관리자 페이지 조회 자동화, Playwright 서버 실행기, 자동화 우선순위(API/SMTP -> Playwright -> 확장프로그램) 원칙을 추가했다.
+    - Phase 1 구현 스펙에는 모바일 운영 자동화를 다음 단계 범위로 연결했다.
+  - 결과
+    - 플로라 서비스는 이제 비서/업무원장/Mini App뿐 아니라 모바일 중심 운영 자동화까지 포함하는 정식 제품 방향으로 묶였다.
+- 2026-04-03 `flora-todo-mvp`에 Phase 1 메타데이터 수용 범위의 첫 코드를 반영했다.
+  - 범위
+    - `flora-todo-mvp/src/types/api.ts`
+    - `flora-todo-mvp/app/api/ingest/route.ts`
+    - `flora-todo-mvp/README.md`
+    - `AI_SYNC.md`
+  - 내용
+    - `/api/ingest`가 `userChatId`, `userName`, `agentId`, `sourceCreatedAt`, `responseSummary`, `modelUsed`, `skillTriggered`, `tokensUsed`, `responseTimeMs`, `metadata`를 함께 받아 원문 저널에 남길 수 있게 확장했다.
+    - `metadata.capturePath`는 유지하면서 caller가 보낸 추가 메타데이터를 병합하도록 바꿨다.
+    - README 예시에 frontdoor/briefing 메타데이터 전달 예시를 추가했다.
+  - 검증
+    - `cd flora-todo-mvp && npm run build`
+  - 결과
+    - Phase 1의 첫 연결 고리로, frontdoor 발신단이 이후 richer metadata를 넘길 수 있는 수용면이 생겼다.
+- 2026-04-03 플로라 종합 오케스트레이션의 정본 PRD와 Phase 1 구현 스펙 초안을 추가했다.
+  - 범위
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-prd.ko.md`
+    - `openclaw-project-hub/03_openclaw_docs/flora-frontdoor-task-ledger-phase1-spec.ko.md`
+    - `openclaw-project-hub/README.md`
+    - `AI_SYNC.md`
+  - 내용
+    - 플로라를 `대표 비서 -> 팀 업무 오케스트레이터 -> Telegram Mini App 기반 운영실장`으로 키우는 정본 PRD를 작성했다.
+    - Phase 1 구현 범위를 `Frontdoor -> Task Ledger 닫힌 루프`로 고정하고, `/api/automation/source-messages`, `/api/ingest`, `/api/automation/tasks`를 활용하는 저비용 구현 전략을 문서화했다.
+    - README에 `마스터 플랜 -> PRD -> Phase 1 구현 스펙` 순서의 기준 링크를 추가했다.
+  - 결과
+    - 앞으로 구현은 새 기획 초안을 계속 늘리는 방식이 아니라, 이 PRD와 Phase 1 스펙을 기준으로 내려가면 된다.
+- 2026-04-03 `openclaw-project-hub`의 플로라 문서 체계를 다시 묶는 마스터 플랜 초안을 추가했다.
+  - 범위
+    - `openclaw-project-hub/03_openclaw_docs/flora-orchestration-service-master-plan.ko.md`
+    - `openclaw-project-hub/README.md`
+    - `AI_SYNC.md`
+  - 내용
+    - 플로라의 최종 목표를 `Telegram frontdoor + task ledger + team assignment + approval/schedule orchestration + Mini App UI`로 재정의했다.
+    - 기존 문서를 `최상위 기준 / 플로라 서비스 기준 / 복구 참고 / 프로젝트 구현 문서`로 나눠 우선순위를 고정했다.
+    - 텔레그램 메인 유지, Slack 보조 검토, `flora-todo-mvp` 재사용, 팀 오케스트레이션 단계 확장 원칙을 한 문서에 정리했다.
+  - 결과
+    - 앞으로 새 플로라 문서는 이 마스터 플랜과의 관계를 먼저 밝히고 작성하는 기준을 따른다.
+- 2026-04-02 `scripts/server/vault-image-processor.py`를 독립 운영 스크립트로 분리해서 커밋했다.
+  - 커밋
+    - `6b63492` `[codex] vault 이미지 처리 스크립트 추가`
+  - 범위
+    - `inbox/상품사진`에서 이미지 파일을 감지해 배경 제거, 채널별 리사이즈, `vault/products` 정리, MinIO 업로드까지 처리하는 Python 스크립트를 추가했다.
+  - 검증
+    - `python3 -m py_compile scripts/server/vault-image-processor.py`
+  - 결과
+    - 루트 작업트리는 다시 clean 상태다.
+- 2026-04-02 루트 작업트리 정리를 계속 진행해 남은 범위를 경로 단위 커밋으로 분리했다.
+  - 커밋
+    - `427d92e` `[codex] crm tx history workflow 소스 정리`
+    - `8dde9a6` `[codex] 메이크샵 협업 문서와 저장본 인덱스 추가`
+    - `c3be663` `[codex] 운영 기준 문서와 기획안 추가`
+    - `86793e5` `[codex] 작업트리 정리 규칙과 AI sync 템플릿 추가`
+    - `dfaca40` `[codex] 메인페이지 저장본 구조 정리`
+  - 범위
+    - `scripts/deploy-crm-txhistory-workflows.js`, `파트너클래스/n8n-workflows/WF-CRM-tx-history-ops.json`
+    - `docs/메이크샵-페이지-협업-표준.md`, `docs/메인페이지/*`, 각 페이지 `저장본/README.md`
+    - `docs/openmarket-detail-planning-plan.md`, `docs/파트너클래스/기준-문서.md`, `company-knowledge/브랜드/brand-decisions.md`
+    - 루트 `.gitignore`, `_tools/AI_SYNC_TEMPLATE.md`
+    - `메인페이지/저장본/2026-04-02-기존루트백업정리/*`
+  - 결과
+    - `brand-intro-page/`는 부모 저장소에서 ignore 처리했고, 메인페이지 루트 백업 3종은 날짜 폴더로 옮겨 보존했다.
+    - 현재 세션은 `AI_SYNC.md`만 정리 후 닫으면 되며, 이 커밋 이후 작업트리는 clean 상태를 목표로 한다.
+- 2026-04-02 `offline-crm-v2` 경로의 auth/deploy 변경만 분리해서 커밋했다.
+  - 커밋
+    - `35f9124789e268c3e644d9713cb1137231d9ec5e` `[codex] crm auth automation header 지원 추가`
+  - 범위
+    - `deploy/crm-auth.service`, `deploy/deploy*.sh`, `deploy/nginx-crm-secure.conf`, `scripts/server/crm_auth_server.py`
+    - `/auth/check`에서 automation header와 Basic Auth fallback을 받아줄 수 있게 auth server를 확장했고, 배포 스크립트가 automation key 파일을 자동 생성/배포하도록 맞췄다.
+    - `offline-crm-v2/.gitignore`에 `프롬프트.md`를 추가해 로컬 메모를 작업트리에서 분리했다.
+  - 검증
+    - `git diff --check -- offline-crm-v2`
+    - `python3 -m py_compile offline-crm-v2/scripts/server/crm_auth_server.py`
+    - `bash -n offline-crm-v2/deploy/deploy.sh`
+    - `bash -n offline-crm-v2/deploy/deploy-release.sh`
+  - 결과
+    - `offline-crm-v2` 경로는 현재 작업트리에서 빠졌고, 루트 dirty tree는 `modified 4 / untracked 53`으로 줄었다.
+- 2026-04-02 `openclaw-project-hub` 경로를 허브 문서/스크립트 기준으로 정리해서 커밋했다.
+  - 커밋
+    - `2e900b5e25088938cb0b1ed50649f60caefcbec8` `[codex] openclaw project hub 문서와 스크립트 정리`
+  - 정리 원칙
+    - `openclaw-project-hub/.gitignore`를 추가해 `01_raw_sources/`, `05_workbooks/`, `07_openclaw_workspace/`, `06_scripts/*.log`, 실제 로컬 config JSON, `~$*`, `.DS_Store`를 로컬 전용으로 분리했다.
+    - 휘발성 로그와 Office 임시파일은 실제로 정리했다.
+  - 포함 범위
+    - `02_pressco21_docs`, `03_openclaw_docs`, `04_reference_json`의 예시/정책 JSON, `06_scripts`, `README.md`
+    - specialist routing 정책의 모델 fallback 구조와 설치 스크립트 동기화 수정 포함
+  - 검증
+    - `git diff --check -- openclaw-project-hub`
+    - `python -m py_compile openclaw-project-hub/06_scripts/*.py`
+    - `bash -n openclaw-project-hub/06_scripts/*.sh`
+    - `node --check openclaw-project-hub/06_scripts/*.js`
+    - `python` JSON parse check for `openclaw-project-hub/04_reference_json/*.json`
+  - 결과
+    - `openclaw-project-hub`는 현재 작업트리에서 빠졌고, 루트 dirty tree는 `modified 9 / untracked 54`로 줄었다.
+- 2026-04-02 `n8n-automation`의 Flora conversation log 저장소 소스를 따로 커밋했다.
+  - 커밋
+    - `adf7899448188dd1c983968424b289223c8e34b8` `[codex] flora conversation log 워크플로우 소스 추가`
+  - 범위
+    - `n8n-automation/workflows/automation/flora-conversation-log.json`
+  - 검증
+    - JSON parse 확인 (`name=Flora Conversation Log`, `nodes=4`, `connections=3`)
+    - `n8n-automation` 경로는 현재 작업트리에서 빠졌다.
+  - 결과
+    - Flora 관련 앱 코드와 workflow source가 둘 다 저장소에 반영됐고, 루트 dirty tree는 `modified 12 / untracked 162`로 줄었다.
+- 2026-04-02 `flora-todo-mvp` 경로만 분리해서 커밋했다.
+  - 커밋
+    - `7dd2345f0a151d06ea75f65dd6f765aab53aabc7` `[codex] flora 메모 구조화와 원문 보존 강화`
+  - 범위
+    - 자유 메모 구조화 강화(`verify:freeform`, `date-extractor`, `structured-parser`, `task-title`, `demo-structured`)
+    - 원문 영구 저널 경로 추가(`source_messages`, `sourceMessageService`, `source-messages` automation route, `verify:source-messages`, `POST /api/ingest` 원문 선저장)
+  - 검증
+    - `cd flora-todo-mvp && npm run verify:freeform`
+    - `cd flora-todo-mvp && npm run demo:structure`
+    - `cd flora-todo-mvp && npm run build`
+  - 결과
+    - `flora-todo-mvp`는 현재 작업트리에서 빠졌고, 루트 dirty tree는 `modified 12 / untracked 163`으로 줄었다.
+- 2026-04-02 루트 작업트리의 생성물 경계를 정리했다.
+  - `.gitignore`
+    - `.playwright-tools/`, `.codex/`, `test-results/`, `output/playwright/`, `output/execution-*.json`, `output/flora-mac-harness/`, `output/flora-routing-validation/`, `output/n8n-backups/`를 ignore에 추가했다.
+  - 정리
+    - 루트 `.playwright-tools`, 루트 `test-results`, `offline-crm-v2/test-results`, `offline-crm-v2/output/playwright`를 작업트리에서 정리했다.
+    - 정리 중 삭제 상태로 보였던 추적 `output/playwright` 파일들은 다시 복구해 사용자 작업을 건드리지 않도록 되돌렸다.
+  - 상태
+    - 현재 dirty tree는 생성물보다 실제 작업 파일 위주로 남아 있으며, 주요 집중 경로는 `openclaw-project-hub`, `flora-todo-mvp`, `scripts`, `docs`, `offline-crm-v2`다.
+- 2026-04-02 Flora 원문 보존 경로를 live Oracle까지 실제로 닫았다.
+  - `flora-todo-mvp`
+    - `source_messages` 원장 테이블, repository/service, `GET/POST /api/automation/source-messages`를 추가했다.
+    - `POST /api/ingest`는 dry-run이 아닐 때 task 구조화 전에 원문을 먼저 `source_messages`에 upsert하도록 바꿨다.
+    - `scripts/verify-source-messages.ts`를 추가했고, Oracle `flora-todo-mvp` 컨테이너에서 실제 실행 성공을 확인했다.
+    - Oracle 재배포 후 `db-migrated 34`, 앱 기동, `source-messages` route 200까지 확인했다.
+  - `n8n-automation`
+    - live `Flora Conversation Log`를 저장소 소스로 복구해 `workflows/automation/flora-conversation-log.json`에 반영했다.
+    - workflow는 `Webhook -> Normalize Payload -> Flora Source Message Upsert -> NocoDB Insert` 순서로 바뀌었다.
+    - Oracle live n8n에서 import -> publish -> container restart까지 완료했고, 재기동 후 workflow activation 로그를 확인했다.
+  - 검증
+    - Oracle `curl http://127.0.0.1:3001/api/automation/source-messages` 직접 POST 성공
+    - Oracle `docker exec flora-todo-mvp node --import tsx scripts/verify-source-messages.ts` 성공
+    - Oracle `POST /api/ingest` smoke 후 `source_messages`에 원문 저장 확인
+    - live `POST /webhook/flora-conversation-log` e2e 실행에서 `Normalize Payload`, `Flora Source Message Upsert`, `NocoDB Insert` 3노드 모두 성공 로그 확인
+    - Flora 원장에 남긴 smoke/test row는 세션 종료 전에 정리했다.
+- 2026-04-02 기준 이번 범위는 `main` 반영까지 마감했다.
+  - 완료 커밋
+    - `29d935d52876dc511cd43658ae14c9ee216f16db` `[codex] Flora 기반 할 일 운영으로 노션 제거`
+    - `1e48576bcf9110555f43e3d866d5ae6a6ac7c0ca` `[codex] CRM 입금 자동화 워크플로우 소스 동기화`
+  - 상태
+    - Flora todo 운영 전환, Notion retire, accounting workflow 소스 동기화까지 `origin/main`에 push 완료
+    - 현재 열린 write scope는 없고, 다음 작업은 새 범위로 다시 시작하면 된다.
+- accounting 입금 자동화 워크플로우의 로컬 소스를 현재 운영 개선 내용과 다시 맞췄다.
+  - `n8n-automation/workflows/accounting/WF-CRM-01_입금자동반영_엔진.json`
+    - CRM snapshot 인증을 `httpHeaderAuth`(`X-CRM-Automation-Key`) 기준으로 정리했다.
+    - `Code: Build Deposit Plan`에 `processedExactDepositIds` 기반 정확일치 중복 방지 로직을 넣었다.
+    - review dismiss 이후 exact match 재처리 꼬임을 줄이도록 응답 payload와 처리 상태를 보강했다.
+  - `n8n-automation/workflows/accounting/WF-CRM-02_Gmail_입금알림_수집.json`
+    - IMAP trigger를 `resolved` 포맷으로 바꾸고, 보안메일 HTML/첨부 HTML 파싱 경로를 보강했다.
+    - 입금만이 아니라 출금/거래 이벤트도 요약해서 텔레그램으로 분리 전송하도록 정리했다.
+  - 두 workflow 모두 `executionOrder: v1`, `callerPolicy: workflowsFromSameOwner`, `availableInMCP: false` 설정으로 소스를 동기화했다.
+- 맥북 로컬 조종석의 메모리 경보를 점검했고, 이번 건은 완전한 오탐보다 `실제 메모리 압박 + 과한 경보 강도`가 겹친 상태로 판단했다.
+  - 확인
+    - macOS 기준 `swap ~6.1GB`, `compressor ~7.1GB`, `PhysMem 15G used / 225MB unused`, `CPU idle ~74%`
+    - `memory_pressure` free는 40%대였지만, 16GB 맥북에서 압축 메모리와 swap이 이미 크게 누적된 상태였다.
+    - 주요 점유군은 Cursor 계열, Safari/WebKit, Claude CLI/앱, Telegram, Virtualization 프로세스였다.
+  - 판단
+    - 경보 스크립트가 `swap >= 6144MB`만으로 `CRITICAL`을 띄워 강도가 과했지만, 현재 상태 자체는 정리 또는 재부팅이 필요한 편이었다.
+    - 이번 세션 기준 최선 조치는 watchdog 조정보다 `작업 저장 -> 재부팅 -> 재발 여부 관찰`이다.
+  - 운영 메모
+    - 재부팅 후에도 짧은 시간 안에 swap 6GB대가 다시 쌓이면, 그때는 watchdog 기준 완화보다 상주 앱 조합과 브라우저/AI 도구 중복 사용을 먼저 줄이는 방향이 맞다.
+- `flora-todo-mvp`를 todo 운영의 실사용 기준 원장/대시보드로 끌어올리고, Oracle n8n의 Notion 의존을 실제로 걷어냈다.
+  - `flora-todo-mvp`
+    - 홈 대시보드, review/admin, DB-native API, automation task upsert 경로까지 붙여 실제 DB 기준 운영 화면으로 확장했다.
+    - legacy Notion 데이터(`tasks 10 / projects 20 / calendars 1`)를 Oracle Flora DB로 이관했다.
+    - Oracle 배포 기준 `flora-todo-mvp-postgres` + `flora-todo-mvp` 컨테이너를 운영 중이며, n8n shared network alias `flora-todo-mvp`로 자동화가 직접 붙는다.
+  - `n8n-automation`
+    - live todo 자동화는 Flora 기준으로 정리됐다:
+      - `[F2] 구글 캘린더 → Flora 할 일 등록`
+      - `[F3] Flora 모닝 브리핑 (08:00)`
+      - `[F4] Flora 밀린 업무 알림 (10:00)`
+      - `[F5] Flora → 구글 캘린더 동기화`
+      - `[F5] Telegram Callback - Flora 상태 변경`
+    - `notion-callback.json`, `notion-to-gcal-sync.json`, `telegram-todo-bot.json`는 저장소에서 정리했고, F030a/F030b SNS Notion 워크플로우도 live n8n과 저장소에서 삭제했다.
+    - Oracle n8n에서 미사용 Notion credential 2개(`Notion API`, `Notion Header Auth`)도 export backup 후 제거했다.
+  - 검증
+    - Oracle `workflow_entity` 기준 F030a/F030b row count `0`
+    - Oracle `credentials_entity` 기준 Notion credential row count `0`
+    - live `n8n list:workflow | egrep "Notion|노션|F030a|F030b"` 결과 `0`
+    - Flora automation task create -> ignore smoke test 성공
+- 운영 서버 `pressco21-automation`의 CPU 경보 오탐 경로를 직접 점검하고 hotfix 했다.
+  - 확인
+    - 실제 운영 서비스는 정상 상태였다: `n8n.pressco21.com/healthz` `200`, `nocodb.pressco21.com` `302`, 주요 컨테이너 실행 중
+    - 경보 시각에 `/home/ubuntu/scripts/server-monitor.sh`가 `CPU 112%`를 보냈지만, 같은 시각 `/home/ubuntu/scripts/monitor.sh`는 `CPU 57%`를 기록했다.
+    - 원인은 `server-monitor.sh`가 `/proc/loadavg`를 CPU 퍼센트처럼 해석하고, 서버가 UTC인데 메시지에 `KST`만 문자열로 붙이던 구현이었다.
+  - 조치
+    - 운영 서버 `/home/ubuntu/scripts/server-monitor.sh`를 `/proc/stat` 1초 샘플 기반 CPU 측정으로 교체했다.
+    - 메시지/로그 시간 표기를 `TZ=Asia/Seoul` 기준으로 수정했다.
+    - 서버 백업본: `/home/ubuntu/scripts/server-monitor.sh.bak-20260402135059`
+  - 검증
+    - 수동 실행 결과: `[OK] CPU:6% RAM:15% Disk:62% — 2026-04-02 13:52 KST`
+    - 현재 서버 상태: load average `0.10 0.30 0.31`, 메모리 사용 약 `1.8GB / 11.9GB`, swap `51.9MB`, 루트 디스크 `62%`
+  - 참고
+    - 워크스페이스 규칙상 `/Users/jangjiho/Desktop/n8n-main/`은 읽기 전용 지식 라이브러리라, 이번 세션에서는 운영 서버만 hotfix 하고 저장소에는 handoff/ops memory만 남긴다.
+- Codex 바이브 루틴에 `선별 커밋`, `의도적 publish`, `장기 운영 메모` 레이어를 추가해 실제 실무 흐름을 더 닫았다.
+  - 추가
+    - `_tools/codex-commit.sh`
+    - `_tools/codex-publish.sh`
+    - `OPS_STATE.md`
+    - `output/codex-backups/.gitkeep`
+    - `output/codex-backups/.gitignore`
+    - `output/codex-sessions/.gitignore`
+  - 수정
+    - `_tools/codex-common.sh`
+    - `_tools/codex-session-template.md`
+    - `docs/codex-vibe-routine.md`
+  - 내용
+    - `codex-commit.sh`는 path-scoped add/commit만 허용하고, 기존 staged 오염이 있으면 막도록 만들었다.
+    - `codex-publish.sh`는 branch/upstream 상태를 보여준 뒤 push하게 했고, dirty tree는 기본 차단하고 `--allow-dirty`일 때만 예외 허용하도록 했다.
+    - `OPS_STATE.md`를 새로 추가해 `AI_SYNC`, 세션 로그, 장기 운영 메모의 역할을 분리했다.
+    - `docs/codex-vibe-routine.md`에 commit/publish/memory update 자연어 요청 예시와 명령 예시를 추가했다.
+  - 검증
+    - `bash -n _tools/codex-{common,start,checkpoint,backup,preflight,commit,publish,finish}.sh`
+    - `bash _tools/codex-commit.sh --dry-run --message "코덱스 루틴 커밋 헬퍼 추가" _tools/codex-commit.sh _tools/codex-publish.sh OPS_STATE.md docs/codex-vibe-routine.md`
+    - `bash _tools/codex-publish.sh --dry-run --allow-dirty`
+- Codex 세션 루틴용 보조 도구를 `pressco21/_tools`와 `docs`에 추가해, 바이브 코딩 중에도 체크포인트/백업/마감 기록을 반복 가능한 형태로 남길 수 있게 정리했다.
+  - 추가
+    - `_tools/codex-common.sh`
+    - `_tools/codex-start.sh`
+    - `_tools/codex-checkpoint.sh`
+    - `_tools/codex-backup.sh`
+    - `_tools/codex-preflight.sh`
+    - `_tools/codex-finish.sh`
+    - `_tools/codex-session-template.md`
+    - `docs/codex-vibe-routine.md`
+    - `output/codex-sessions/.gitkeep`
+  - 내용
+    - 세션 로그 생성, 중간 체크포인트 append, 범위별 patch+tar 백업, preflight, 종료 기록을 각각 스크립트로 분리했다.
+    - `AI_SYNC.md`는 자동 수정하지 않고, Codex가 대화 맥락으로 직접 정리하게 두는 운영 원칙을 문서에 명시했다.
+    - 사용자가 Codex에게 바로 던질 수 있는 자연어 요청 예시와 터미널 명령 예시를 `docs/codex-vibe-routine.md`에 정리했다.
+  - 검증
+    - `bash -n _tools/codex-{common,start,checkpoint,backup,preflight,finish}.sh`
+    - `bash _tools/codex-start.sh "codex vibe routine" "_tools, docs, output"`
+    - `bash _tools/codex-checkpoint.sh --session output/codex-sessions/20260402-123647-codex-vibe-routine.md "scaffold ready" "scripts and guide added"`
+    - `bash _tools/codex-preflight.sh _tools/codex-common.sh _tools/codex-start.sh _tools/codex-checkpoint.sh _tools/codex-backup.sh _tools/codex-preflight.sh _tools/codex-finish.sh docs/codex-vibe-routine.md`
+    - `bash _tools/codex-backup.sh --session output/codex-sessions/20260402-123647-codex-vibe-routine.md --label "routine-scaffold" _tools/codex-common.sh _tools/codex-start.sh _tools/codex-checkpoint.sh _tools/codex-backup.sh _tools/codex-preflight.sh _tools/codex-finish.sh docs/codex-vibe-routine.md`
+    - `bash _tools/codex-finish.sh --session output/codex-sessions/20260402-123647-codex-vibe-routine.md --summary "codex session routine scaffolded" --next "use the prompts and scripts on the next real task" --risk "AI_SYNC still needs manual close-out after each session"`
+- CRM 인증 오류 구간 누락 입금 6건을 현재 엔진 기준으로 다시 판정했고, exact 자동반영 가능한 2건만 운영에 재처리했다.
+  - 대상 판정
+    - exact 자동반영: `JA오피스 56,700원`, `(주)마니랜드 751,200원`
+    - 현재 기준 미자동반영: `(학교)소년의 92,160원`, `여윤화 90,000원`, `쿠팡페이주식 12,719원`, `롯데77619072 9,461원`
+  - 처리 결과
+    - `https://n8n.pressco21.com/webhook/crm-auto-deposit-intake`로 recovery replay를 넣어 exact 2건 반영 완료
+    - `INV-20260331-131618` / 고객 `JA오피스` → `paid`, `outstanding_balance=0`
+    - `INV-20260331-112243` / 고객 `(주)마니랜드` → `paid`, `outstanding_balance=0`
+    - workflow staticData `processedExactDepositIds`에도 두 externalId가 기록된 것 확인
+  - 알림
+    - 오류 구간 누락 입금 6건은 텔레그램 그룹에 `[누락 복구 알림]`으로 재전송 완료
+- CRM 세션 인증 전환으로 끊긴 자동입금 알림 경로를 운영에서 복구하고, 같은 유형의 재발 방지 구조까지 같이 반영했다.
+  - 추가/수정
+    - `offline-crm-v2/scripts/server/crm_auth_server.py`
+      - `/auth/check`가 세션 쿠키뿐 아니라 `X-CRM-Automation-Key` 자동화 헤더와 BasicAuth fallback도 함께 검증하도록 확장했다.
+    - `offline-crm-v2/deploy/{crm-auth.service,nginx-crm-secure.conf,deploy.sh,deploy-release.sh}`
+      - auth 서비스 env에 자동화 키 파일/헤더명을 추가했다.
+      - Nginx `/_crm_auth_check`가 `Authorization`, `X-CRM-Automation-Key`를 auth 서버로 전달하도록 수정했다.
+      - 서버에 `/etc/pressco21-crm/automation-key`를 자동 생성/보존하도록 배포 경로를 보강했다.
+    - `scripts/deploy-crm-deposit-telegram.js`
+      - Oracle 서버의 automation key를 SSH로 읽어 `httpHeaderAuth` credential `PRESSCO21 CRM Automation Header`를 생성/업데이트하도록 추가했다.
+      - `WF-CRM-01`의 `HTTP Get Legacy/Fiscal Snapshots`를 `httpBasicAuth`에서 새 header credential로 전환하도록 수정했다.
+      - `WF-CRM-02`는 은행 원본 거래 알림을 CRM 엔진과 분리해 즉시 보내고, CRM 후속 요약은 `[CRM 입금 처리 결과]`로 분리되게 바꿨다.
+      - 기존 텔레그램 credential이 이미 있으면 토큰 env 없이도 재사용하도록 보강했다.
+    - `n8n-automation/workflows/accounting/WF-CRM-01_입금자동반영_엔진.json`
+    - `n8n-automation/workflows/accounting/WF-CRM-02_Gmail_입금알림_수집.json`
+      - live workflow를 새 auth/알림 구조로 재배포하면서 로컬 소스 파일도 동기화했다.
+    - `docs/offline-crm-bank-automation-ops-guide-2026-03-15.md`
+      - 원본 은행 알림과 CRM 처리 결과를 분리한 운영 규칙, 자동화 인증 키 운영 원칙을 문서화했다.
+  - 검증
+    - `python3 -m py_compile offline-crm-v2/scripts/server/crm_auth_server.py`
+    - `bash -n offline-crm-v2/deploy/deploy.sh`
+    - `bash -n offline-crm-v2/deploy/deploy-release.sh`
+    - `node --check scripts/deploy-crm-deposit-telegram.js`
+    - `bash offline-crm-v2/deploy/deploy-release.sh`
+      - Release ID: `20260402114618-32b11b1-dirty`
+    - `node scripts/deploy-crm-deposit-telegram.js`
+      - live workflow `TmB5jGa1bDMg5pBE`, `7ql6pPWlBoJhoZqH` 재배포
+      - credential `PRESSCO21 CRM Automation Header (QBvgguNLTTKtHGpy)` 생성 확인
+    - 원격 automation key 헤더로 `https://crm.pressco21.com/data/legacy-customer-snapshots.json`, `.../fiscal-balance-snapshots.json` 둘 다 `200` 확인
+    - n8n API로 live `WF-CRM-01` snapshot 노드 2개가 모두 `httpHeaderAuth` credential을 사용 중인 것 확인
+- `flora-todo-mvp` Sprint 3 후속 운영 기능 3건을 구현하고 다시 로컬 브라우저까지 실검증했다.
+  - 추가/수정
+    - `flora-todo-mvp/app/home-dashboard.tsx`
+      - 홈 detail 패널에 task inline PATCH 폼(`title/status/priority/category/due_at/waiting_for/related_project`)과 ignore 액션을 넣었다.
+      - 날짜 범위 토글(`오늘/이번주/다음 7일`)에 맞춰 운영 범위, 핵심 섹션, 일정 임박 카드 수가 같이 바뀌도록 연결했다.
+    - `flora-todo-mvp/app/review-dashboard.tsx`
+      - review queue에 `search/status/priority/page size` 필터와 페이지네이션을 추가했다.
+      - 홈에서 넘어온 `taskId`는 첫 진입 시 해당 페이지로 맞춰 로드하고, 이후 사용자가 필터/페이지를 만지면 UI 제어로 넘기도록 정리했다.
+    - `flora-todo-mvp/app/api/admin/review/route.ts`
+    - `flora-todo-mvp/src/services/reviewService.ts`
+    - `flora-todo-mvp/src/db/repositories/taskRepository.ts`
+      - review queue를 필터링/페이지네이션 가능한 응답 형태로 확장했다.
+    - `flora-todo-mvp/src/lib/dashboard.ts`
+    - `flora-todo-mvp/src/types/dashboard.ts`
+      - 홈 대시보드 date range 계산 유틸과 타입을 추가했다.
+    - `flora-todo-mvp/app/globals.css`
+      - scope chip, inline admin, review filter, pagination 스타일을 보강했다.
+  - 검증
+    - `npm run build` 통과
+    - `npm run verify:dashboard` 통과
+    - `npm run start -- --hostname 127.0.0.1 --port 3000` 후 Playwright로 `http://127.0.0.1:3000/`, `http://127.0.0.1:3000/review?taskId=...` 재검증
+      - 홈 날짜 범위 `오늘` 토글 시 in-scope 2건, summary upcoming 2건으로 반영 확인
+      - 홈 inline admin에서 `related_project` 저장/원복 PATCH 확인
+      - detail -> `/review?taskId=...` 이동 확인
+      - review queue `Next` 페이지 이동 확인
+      - review queue `Search=안소영`, `Status=waiting` 필터 적용 후 3건 / 1페이지로 축소 확인
+      - 브라우저 콘솔 error 0건 확인
+- `flora-todo-mvp` Sprint 3 홈 대시보드 1차 버전을 구현하고 로컬 브라우저까지 실검증했다.
+  - 추가/수정
+    - `flora-todo-mvp/app/page.tsx`
+      - 루트 페이지를 review desk 대신 홈 대시보드로 전환했다.
+    - `flora-todo-mvp/app/home-dashboard.tsx`
+      - summary 카드, 6개 운영 섹션, task detail 패널, explorer 필터/정렬 UI를 추가했다.
+    - `flora-todo-mvp/app/review/page.tsx`
+    - `flora-todo-mvp/app/review-dashboard.tsx`
+      - 기존 review desk를 `/review` 경로로 분리하고, 홈에서 선택한 task로 포커스 진입할 수 있게 연결했다.
+    - `flora-todo-mvp/app/api/dashboard/route.ts`
+    - `flora-todo-mvp/src/services/dashboardService.ts`
+    - `flora-todo-mvp/src/lib/dashboard.ts`
+    - `flora-todo-mvp/src/types/dashboard.ts`
+      - 실제 DB task/reminder/follow-up를 홈 대시보드 데이터와 section 기준으로 묶는 집계 경로를 추가했다.
+    - `flora-todo-mvp/src/db/repositories/taskRepository.ts`
+      - ignored 제외 task 전체를 홈 대시보드용으로 읽는 조회 경로를 추가했다.
+    - `flora-todo-mvp/app/globals.css`
+      - 홈 대시보드 2열 운영 레이아웃과 review 포커스 스타일을 추가했다.
+    - `flora-todo-mvp/scripts/verify-dashboard.ts`
+    - `flora-todo-mvp/package.json`
+    - `flora-todo-mvp/README.md`
+      - 홈 대시보드 section/summary 기준 검증 스크립트와 새 라우트를 문서에 반영했다.
+    - `flora-todo-mvp/app/layout.tsx`
+    - `flora-todo-mvp/app/icon.svg`
+      - 메타 설명을 Sprint 3 기준으로 갱신하고 favicon 404를 없앴다.
+  - 검증
+    - `npm run db:check` 통과
+    - `npm run verify:dashboard` 통과
+    - `npm run build` 통과
+    - `npm run start -- --hostname 127.0.0.1 --port 3000` 후 Playwright로 `http://127.0.0.1:3000/` 실검증
+      - summary 카드 값 확인
+      - 최우선/오늘/이번주/대기/일정 임박/최근 입력 섹션 렌더 확인
+      - task 클릭 후 detail 패널(`title/source_text/status/priority/category/due_at/waiting_for/related_project`) 확인
+      - detail -> `/review?taskId=...` 이동 및 review/admin 수정 화면 연결 확인
+      - explorer에서 `Search=안소영`, `Status=waiting`, `Sort=created_at desc` 동작 확인
+- `flora-todo-mvp` review endpoint를 브라우저에서 직접 다루는 최소 검수 화면으로 연결했다.
+  - 추가/수정
+    - `flora-todo-mvp/app/page.tsx`
+      - 루트 페이지를 정적 소개 화면에서 review dashboard 진입점으로 교체했다.
+    - `flora-todo-mvp/app/review-dashboard.tsx`
+      - quick ingest, summary 카드, review queue, task/reminder/follow-up 수정/삭제를 한 화면에서 처리하는 client dashboard를 추가했다.
+      - `PATCH /api/admin/tasks/:id`, `PATCH / DELETE /api/admin/reminders/:id`, `PATCH / DELETE /api/admin/followups/:id`를 직접 호출하도록 연결했다.
+    - `flora-todo-mvp/app/globals.css`
+      - Sprint 2.5 검수 흐름에 맞는 review desk 레이아웃과 폼 스타일을 추가했다.
+    - `flora-todo-mvp/README.md`
+      - `/` review 화면과 브라우저 검수 진입 방법을 문서에 반영했다.
+  - 검증
+    - `npm run build` 통과
+    - `npm run db:check` 통과
+    - `npm run verify:dedupe` 통과
+    - `npm run verify:review` 통과
+    - `npm run verify:entities` 통과
+    - `npm run verify:sprint2` 통과
+    - `npm run start` 후 Playwright로 `http://127.0.0.1:3000/` 접속
+      - quick ingest 성공
+      - task `title/status/priority/category/dueAt/waitingFor/relatedProject` 수정 성공
+      - reminder 수정 성공
+      - follow-up 삭제 성공
+      - reload 후 수정 상태 유지 확인
+- `flora-todo-mvp` Sprint 2.5 실검증을 끝내고 미완성 항목을 마무리했다.
+  - 추가/수정
+    - `flora-todo-mvp/scripts/db-migrate.ts`
+    - `flora-todo-mvp/package.json`
+      - `npm run db:migrate`를 legacy 로컬 DB까지 복구하는 idempotent bootstrap 경로로 교체했다.
+      - Docker volume을 비운 fresh DB와 기존 DB 둘 다에서 Sprint 2.5 컬럼/인덱스를 맞출 수 있게 했다.
+    - `flora-todo-mvp/src/services/ingestService.ts`
+    - `flora-todo-mvp/src/db/repositories/{taskRepository,reminderRepository,followupRepository}.ts`
+      - task는 unique key 기준 upsert, reminder/follow-up는 signature 기준 sync/upsert로 바꿨다.
+      - 동일 입력 재ingest 시 task/reminder/follow-up row id가 유지되도록 정리했다.
+    - `flora-todo-mvp/app/api/admin/reminders/[id]/route.ts`
+    - `flora-todo-mvp/app/api/admin/followups/[id]/route.ts`
+      - child 수정/삭제 시 부모 task를 reviewed 처리해 재ingest에서 관리자 수정이 덮어써지지 않게 했다.
+    - `flora-todo-mvp/src/config/entity-aliases.ts`
+    - `flora-todo-mvp/src/lib/entity-extractor.ts`
+    - `flora-todo-mvp/src/lib/structured-parser.ts`
+      - alias 사전에 priority를 추가하고, 사람/업체/프로젝트 매칭을 점수화해 `waiting_for`, `related_project` 정확도를 올렸다.
+      - `자사몰 개편 관련 로고 개선안 수신 대기`, `안소영 통해 레지너스 자사몰 개편 로고 개선안 회신 대기` 케이스를 안정적으로 분류하도록 보강했다.
+    - `flora-todo-mvp/scripts/{verify-dedupe,verify-review,verify-entities,verify-sprint2}.ts`
+    - `flora-todo-mvp/README.md`
+      - dedupe id 안정성, task 전 필드 수정 + reminder 수정 + follow-up 삭제, 엔터티 추출, summary 왜곡 방지 케이스를 실제 DB 기준으로 검증하도록 스크립트를 재작성했다.
+      - 재현용 명령을 README에 정리했다.
+  - 검증
+    - `docker compose down -v && docker compose up -d`
+    - `npm run db:migrate`
+    - `npm run db:check`
+    - `npm run verify:entities`
+    - `npm run verify:dedupe`
+    - `npm run verify:review`
+    - `npm run verify:sprint2`
+    - `npm run build`
+    - `npm run start` 후 실제 HTTP 호출로 `POST /api/ingest`, `GET /api/admin/review`, `PATCH /api/admin/tasks/:id`, `PATCH /api/admin/reminders/:id`, `DELETE /api/admin/followups/:id`, `GET /api/summary`까지 확인했다.
+- `flora-todo-mvp` Sprint 2.5 운영 안정화 작업을 진행했다.
+  - 추가/수정
+    - `flora-todo-mvp/src/db/schema/{tasks,reminders,followups}.ts`
+      - `segment_hash`, `segment_index`, `reviewed_at`, `ignored_at`, `signature`와 unique 제약을 추가해 DB 레벨 dedupe 기반을 만들었다.
+    - `flora-todo-mvp/src/services/ingestService.ts`
+      - 같은 `source_channel + source_message_id + segment_hash` 재처리 시 create/update/skip/ignore로 idempotent 동작하도록 ingest 흐름을 재구성했다.
+      - 리뷰 완료 task는 재ingest 시 덮어쓰지 않도록 보호했다.
+    - `flora-todo-mvp/src/db/repositories/{taskRepository,reminderRepository,followupRepository}.ts`
+      - task patch/admin 수정, ignored 제외 summary 집계, child entity upsert 정리를 추가했다.
+    - `flora-todo-mvp/app/api/admin/review/route.ts`
+    - `flora-todo-mvp/app/api/admin/tasks/[id]/route.ts`
+    - `flora-todo-mvp/app/api/admin/reminders/[id]/route.ts`
+    - `flora-todo-mvp/app/api/admin/followups/[id]/route.ts`
+      - 운영 검수용 review/admin endpoint를 추가했다.
+    - `flora-todo-mvp/src/config/entity-aliases.ts`
+    - `flora-todo-mvp/src/lib/entity-extractor.ts`
+    - `flora-todo-mvp/src/lib/structured-parser.ts`
+      - 사람명/업체명/프로젝트명 alias 기반 추출을 넣고 `waiting_for`, `related_project`, follow-up 정밀도를 보강했다.
+    - `flora-todo-mvp/scripts/{verify-dedupe,verify-review,verify-entities,verify-sprint2}.ts`
+      - dedupe/review/entity 추출 회귀 확인 스크립트를 추가했다.
+    - `flora-todo-mvp/scripts/demo-structured.ts`
+    - `flora-todo-mvp/scripts/seed-demo.ts`
+    - `flora-todo-mvp/README.md`
+      - 구조화 전/후 비교, admin 검수, demo seed 실행 경로를 보강했다.
+    - `flora-todo-mvp/drizzle/0002_careless_maelstrom.sql`
+      - Sprint 2.5 스키마 변경 migration을 생성했다.
+  - 검증
+    - `npm run build` 통과
+    - `npm run verify:entities` 통과
+    - `npm run demo:structure` 통과
+    - `npm run db:check`, `npm run verify:dedupe`, `npm run verify:review`는 현재 샌드박스에서 `127.0.0.1:5432` 접근이 `EPERM`으로 막혀 DB 실검증은 미완료
+- `flora-todo-mvp` Sprint 2 구조화 파이프라인을 추가했다.
+  - 변경
+    - `flora-todo-mvp/src/lib/structured-parser.ts`
+      - 줄바꿈/접속 표현 기준의 보수적 문장 분리와 Task 후보 추출 로직을 추가했다.
+      - 상태(`waiting / needs_check / in_progress / done / todo`)와 우선순위(`p1~p4`) 추정 규칙을 추가했다.
+    - `flora-todo-mvp/src/lib/date-extractor.ts`
+      - `오늘 / 내일 / 이번주 / 다음주 / 요일 / 5/30 / ~까지` 계열 날짜 표현 추출을 추가했다.
+      - due_at, time_bucket, reminder candidate 계산을 넣었다.
+    - `flora-todo-mvp/src/services/ingestService.ts`
+      - raw 1건 저장 대신 구조화 결과 기반으로 `Task + Reminder + Follow-up`을 생성하도록 확장했다.
+      - `dryRun` 모드를 넣어 DB 저장 없이 구조화 결과만 볼 수 있게 했다.
+    - `flora-todo-mvp/src/db/repositories/{taskRepository,reminderRepository,followupRepository}.ts`
+      - batch insert와 Sprint 2 summary 집계를 추가했다.
+    - `flora-todo-mvp/scripts/demo-structured.ts`
+      - 테스트 예문 기준 구조화 전/후 비교 출력 스크립트를 추가했다.
+    - `flora-todo-mvp/scripts/seed-demo.ts`
+      - DB 연결 시 샘플 입력을 실제 적재하는 seed 스크립트를 추가했다.
+    - `flora-todo-mvp/drizzle/0001_majestic_gateway.sql`
+      - `tasks.priority` 기본값을 `p3`로 보정하는 migration을 생성했다.
+  - 검증
+    - `npm run demo:structure` 통과
+    - `npm run build` 통과
+    - `npm run db:generate` 통과
+    - `npm run db:check`, `npm run db:migrate`는 현재 샌드박스에서 `127.0.0.1:5432` 접근이 `EPERM`으로 막혀 미완료
+- `flora-todo-mvp` Sprint 1 신규 프로젝트 스캐폴딩을 추가했다.
+  - 추가
+    - `flora-todo-mvp/package.json`
+    - `flora-todo-mvp/app/api/ingest/route.ts`
+    - `flora-todo-mvp/app/api/summary/route.ts`
+    - `flora-todo-mvp/src/db/schema/{tasks,reminders,followups}.ts`
+    - `flora-todo-mvp/src/db/repositories/{taskRepository,reminderRepository,followupRepository}.ts`
+    - `flora-todo-mvp/src/services/{ingestService,summaryService}.ts`
+    - `flora-todo-mvp/drizzle.config.ts`
+    - `flora-todo-mvp/docker-compose.yml`
+    - `flora-todo-mvp/scripts/check-db.ts`
+  - 핵심
+    - Next.js App Router 기반 로컬 웹앱 골격을 만들고 `POST /api/ingest`, `GET /api/summary` 기본형을 구현했다.
+    - 원문 보존 우선 원칙으로 `source_text`, `source_channel`, `source_message_id`를 `tasks` 스키마에 고정했다.
+    - Sprint 2 구조화 확장을 위해 Task / Reminder / Follow-up 스키마와 repository 경계를 분리했다.
+  - 검증/제약
+    - `git pull --ff-only` 완료
+    - Node/NPM은 `nvm` 로드 후 사용 가능 확인
+    - 샌드박스 제약으로 `docker compose up -d`는 Docker socket 권한 부족으로 실패
+    - 샌드박스 제약으로 `npm install`은 외부 패키지 접근 단계에서 완료 확인을 못 했다.
+- `docs` 고객운영 OS 상세 진단 문서를 추가했다.
+  - 신규 문서
+    - `docs/고객운영OS-상세계획-2026-04-01.md`
+  - 목적
+    - PRD/로드맵보다 더 실무적으로 `확정`, `검증 필요`, `미결정`, `Claude Code 진단 요청 포인트`를 한 문서에 모았다.
+  - 반영
+    - `docs/PRD-고객운영OS-통합-v1.md`
+    - `docs/ROADMAP-고객운영OS-통합-v1.md`
+    - 두 문서 상단에 상세 진단 메모 링크를 추가했다.
+- `docs` 고객운영 OS 문서의 시스템 경계를 `Customer OS Core + CRM v2 연동` 구조로 재정의했다.
+  - 수정 문서
+    - `docs/PRD-고객운영OS-통합-v1.md`
+    - `docs/ROADMAP-고객운영OS-통합-v1.md`
+  - 핵심 변경
+    - 기존 `offline-crm-v2 중심 확장` 뉘앙스를 제거하고, 별도 허브(`Customer OS Core`)가 기준 데이터를 소유하도록 수정했다.
+    - `CRM v2`는 명세표/입금/미수/전화주문을 처리하는 안정적 실무 앱으로 역할을 고정했다.
+    - 로드맵도 `통합 데이터층 -> Customer OS Portal 읽기 화면 -> CRM v2 브리지` 순서로 재정렬했다.
+- `docs` 전사 기준 `고객운영 OS` PRD/로드맵 초안을 추가했다.
+  - 신규 문서
+    - `docs/PRD-고객운영OS-통합-v1.md`
+    - `docs/ROADMAP-고객운영OS-통합-v1.md`
+  - 핵심 정리
+    - `offline-crm-v2`를 중심 허브로 보고, 메이크샵/사방넷/오픈마켓/상담툴 데이터를 내부 기준으로 통합하는 프로그램 기준선을 고정했다.
+    - 기준 고객/주문/거래 저장소, 사방넷-first 수집 전략, 전화주문 Desk, Customer 360, 통합 매출 지표를 문서화했다.
+    - 한 번에 다 만드는 방식 대신 `기준선 고정 -> 사방넷 export PoC -> 통합 데이터층 -> CRM 허브 -> 전화주문 -> 분석/자동화` 단계 로드맵으로 분리했다.
+- `openclaw-project-hub` Oracle/로컬 모델 체인을 실제 용량 이슈 기준으로 최적화했다.
+  - 원인 확인
+    - Oracle `flora-frontdoor` 세션 `/home/ubuntu/.openclaw/agents/flora-frontdoor/sessions/b602d3a2-8239-40e1-82dc-59201e2f4dec.jsonl`에서 실제 `Selected model is at capacity` 흔적을 확인했다.
+    - 로컬 Codex CLI에서 직접 모델 지원 여부를 검증했다.
+      - 성공: `gpt-5.4-mini`
+      - 실패: `gpt-5-mini` (`ChatGPT account` 조합에서는 미지원)
+  - 로컬 맥북
+    - `openclaw-project-hub/04_reference_json/flora-local-dev-worker.config.json`
+    - `openclaw-project-hub/04_reference_json/flora-local-dev-worker.config.example.json`
+      - Codex worker fallback을 `gpt-5.4-mini`로 기본 설정했다.
+    - `launchctl kickstart -k gui/$(id -u)/com.pressco21.flora-local-dev-worker`로 worker 재기동 완료.
+  - Oracle live 설정
+    - `/home/ubuntu/.openclaw/openclaw.json`
+      - `owner`, `staff`, `flora-frontdoor`, `flora-executive`, `flora-strategy`, `flora-storefront`, `flora-crm`, `flora-automation`, `flora-knowledge`
+        - `primary: openai-codex/gpt-5.4`
+        - `fallbacks: [openai-codex/gpt-5.4-mini, anthropic/claude-opus-4-5, google/gemini-2.5-flash]`
+      - `flora-codex-room`, `flora-claude-room`
+        - `primary: openai-codex/gpt-5.4-mini`
+        - `fallbacks: [openai-codex/gpt-5.4, google/gemini-2.5-flash]`
+    - `systemctl --user restart openclaw-gateway.service` 후 `active` 확인.
+  - 재설치 스크립트 보강
+    - `openclaw-project-hub/06_scripts/install-flora-dev-dispatchers.sh`
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+    - `openclaw-project-hub/06_scripts/install-flora-specialist-agents.sh`
+    - `openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json`
+      - 재설치 시 다시 단일 `gpt-5.4`로 되돌아가지 않도록 model object + fallback 체인을 반영했다.
+  - 실검증
+    - local Codex CLI:
+      - `codex exec --skip-git-repo-check --full-auto -m gpt-5.4-mini '설명 없이 정확히 한 줄만 답하세요: mini-ok'` -> `mini-ok`
+    - dev worker queue:
+      - codex latest done `20260401T082425Z-f548e86f-11f7-4f45-b8c9-c3b1314a274e.json` -> `exitCode: 0`, `text: codex-model-chain-ok`
+      - worker log latest Claude task `fbae865a-6cef-4911-a762-f99a63d68cec` -> `exitCode: 0`, `text: claude-model-chain-ok`
+- `openclaw-project-hub` 로컬 Codex dev worker의 `resume` 실행 인자를 Codex CLI 실제 도움말에 맞춰 수정했다.
+  - `openclaw-project-hub/06_scripts/run-flora-local-dev-worker.js`
+    - `codex exec`와 `codex exec resume`의 옵션 차이를 분리했다.
+    - resume 경로에서는 지원되지 않는 `--color`, `-p/--profile`를 더 이상 붙이지 않도록 고쳤다.
+    - Telegram 전송은 Node `fetch` 대신 `curl -4`를 유지해 `ETIMEDOUT`에 덜 취약하게 두었다.
+    - `Selected model is at capacity` 류 문구를 감지하면 Codex 작업을 자동 재시도하도록 추가했다.
+  - `openclaw-project-hub/04_reference_json/flora-local-dev-worker.config.json`
+  - `openclaw-project-hub/04_reference_json/flora-local-dev-worker.config.example.json`
+    - `capacityRetryCount`, `capacityRetryDelayMs`, `fallbackModels` 설정 키를 명시했다.
+  - 실검증
+    - 수동 resume 호출:
+      - `codex exec resume --full-auto --skip-git-repo-check -o /tmp/flora-codex-test-last.txt 019d47b7-9dc1-7a72-b5f2-205f18596954 '설명 없이 정확히 한 줄만 답하세요: resume-ok'`
+      - 결과: `resume-ok`
+    - launchd `com.pressco21.flora-local-dev-worker` 재기동 후 Oracle 큐에 실제 테스트 작업 2건 주입
+      - Codex done: `20260401T073851Z-24890019-b362-481d-acf2-7246b9b8ba85.json` -> `exitCode: 0`, `text: codex-dev-worker-e2e-ok`
+      - Claude done: `20260401T073851Z-c4c0b5e0-5f6c-4c40-8bca-336bc838bcab.json` -> `exitCode: 0`, `text: claude-dev-worker-e2e-ok`
+- `openclaw-project-hub` 개발방 두 개의 Telegram 그룹 응답 조건을 `멘션 필요`에서 `항상 응답`으로 바꿨다.
+  - Oracle `~/.openclaw/openclaw.json`에서
+    - `channels.telegram.groups.-5198284773.requireMention = false`
+    - `channels.telegram.groups.-5043778307.requireMention = false`
+    로 반영했다.
+  - `openclaw-project-hub/06_scripts/install-flora-dev-dispatchers.sh`도 동일 설정을 쓰도록 수정했다.
+  - `systemctl --user restart openclaw-gateway.service` 후 active/running 확인.
+- `openclaw-project-hub` 텔레그램 구조를 `Oracle frontdoor + local dev worker` 기준으로 복구했다.
+  - Oracle
+    - `158.179.193.173`의 user service `openclaw-gateway.service`가 다시 정상 기동되도록 Telegram room binding에 `match.peer.kind = "group"`을 반영했다.
+    - 실제 binding 확인:
+      - `flora-frontdoor` -> `telegram`
+      - `flora-codex-room` -> `telegram peer=group:tg:-5198284773`
+      - `flora-claude-room` -> `telegram peer=group:tg:-5043778307`
+    - `openclaw doctor` 재실행 기준 Telegram `ok (@pressco21_openclaw_bot)` 및 agent 목록 정상 확인.
+  - 로컬 맥북
+    - `openclaw-project-hub/06_scripts/install-flora-dev-dispatchers.sh`
+      - Oracle에 쓰는 dev room binding JSON이 `peer.kind: "group"`을 항상 포함하도록 수정했다.
+    - `openclaw-project-hub/06_scripts/run-flora-local-dev-worker.js`
+      - Codex 세션 ID를 `stderr`의 `session id:` 라인과 JSON `thread_id` 이벤트까지 포함해 추출하도록 수정했다.
+    - launchd `com.pressco21.flora-local-dev-worker` 재기동 완료.
+  - 실검증
+    - Codex worker 큐 수동 주입 -> 완료 파일 기록 -> 응답 텍스트 `로컬 Codex worker 연결 정상` 확인
+    - Claude worker 큐 수동 주입 -> 완료 파일 기록 -> 응답 텍스트 `로컬 Claude worker 연결 정상` 확인
+    - Codex 후속 검증 1회 더 실행해 `openclaw-project-hub/07_openclaw_workspace/flora-local-dev-worker/state.json`에 sessionId `019d47b7-9dc1-7a72-b5f2-205f18596954` 저장 확인
+- `offline-crm-v2` 로그인 방식을 브라우저 Basic Auth에서 커스텀 세션 로그인으로 전환하고 운영 CRM에 배포했다.
+  - 변경
+    - `offline-crm-v2/scripts/server/crm_auth_server.py`
+      - 기존 `/etc/nginx/.htpasswd-crm` 계정을 그대로 검증하는 경량 Python auth server를 추가했다.
+      - `/login`, `/auth/login`, `/auth/logout`, `/auth/check`, `/health` 엔드포인트와 서명된 세션 쿠키를 구현했다.
+    - `offline-crm-v2/deploy/nginx-crm-secure.conf`
+      - 사이트 전체 Basic Auth를 제거하고 `auth_request` 기반 세션 인증 구조로 전환했다.
+      - 미인증 접근 시 `/login?next=...`로 정확히 복귀되도록 리다이렉트를 보정했다.
+    - `offline-crm-v2/deploy/crm-auth.service`
+      - auth server를 systemd로 운영하도록 서비스 유닛을 추가했다.
+    - `offline-crm-v2/deploy/deploy-release.sh`, `offline-crm-v2/deploy/deploy.sh`
+      - 릴리스 배포 시 auth server, nginx 설정, systemd 서비스, 비밀키 파일까지 함께 반영하도록 확장했다.
+      - auth server 재시작과 health check retry를 포함하도록 정리했다.
+    - `offline-crm-v2/src/components/layout/Sidebar.tsx`
+      - 하단에 `로그아웃` 버튼을 추가했다.
+    - `offline-crm-v2/src/lib/api.ts`
+      - 세션 만료로 `/crm-proxy`가 401을 반환하면 `/login?next=현재경로`로 보내도록 보강했다.
+  - 검증
+    - 로컬: `python3 -m py_compile scripts/server/crm_auth_server.py`
+    - 로컬: 임시 `.htpasswd`로 `로그인 -> 세션 통과 -> 로그아웃` 검증 완료
+    - 로컬: `npm run build`
+    - 운영 배포: `bash deploy/deploy-release.sh`
+      - Release ID: `20260401145349-b2f9259-dirty`
+    - 운영 확인
+      - `https://crm.pressco21.com/` -> `302 /login?next=%2F`
+      - `https://crm.pressco21.com/invoices?edit=75&mode=copy` -> `302 /login?next=%2Finvoices%3Fedit%3D75%26mode%3Dcopy`
+      - `https://crm.pressco21.com/login` -> `200 OK`
+      - `https://crm.pressco21.com/auth/health` -> `200 OK`
+      - Playwright 실브라우저로 운영 로그인 페이지 렌더 확인
+      - 증적 스크린샷: `offline-crm-v2/output/playwright/crm-login-page-20260401.png`
+- `offline-crm-v2` 명세표 동명이인 오매칭 수정 건을 실브라우저로 검증하고 운영 CRM에 배포했다.
+  - 실검증
+    - 로컬 `http://127.0.0.1:5173/invoices?edit=75`에서 `INV-20260401-134932` 수정 다이얼로그를 열어 확인
+    - 첫 진입 시 고객 카드가 `김수현 님 (목포)` 기준 `전화 010-7104-1761`, 주소 선택 `가게`, 주소값 `전남 목포시 해안로 173번길 27`로 표시됨
+    - `수정 저장` 실행 후 같은 명세표를 다시 열어도 동일 고객/주소 유지 확인
+    - 증적 스크린샷: `offline-crm-v2/output/playwright/verify-invoice-kimsuhyeon-mokpo-20260401.png`
+  - 배포
+    - 실행: `bash deploy/deploy-release.sh`
+    - Release ID: `20260401142738-d9c40a9-dirty`
+    - 서버 확인: `/var/www/crm-current -> /var/www/releases/crm/20260401142738-d9c40a9-dirty`
+    - `index.html`에서 `assets/index-VXksr9gY.js` 참조 확인
+- `offline-crm-v2` 명세표 수정 다이얼로그에서 동명이인 고객이 이름만으로 다시 연결되며 잘못된 주소/연락처로 바뀌던 버그를 분석하고 수정했다.
+  - 확인
+    - 운영 데이터 기준 `INV-20260401-134932`는 `customer_id = 13191`(김수현 님 / 목포)로 저장돼 있었다.
+    - 같은 이름 `김수현 님` exact lookup은 3건이 잡히고, `limit: 1` 조회 시 첫 결과가 `7316`(김수현 님 / 성남)으로 반환됐다.
+    - 기존 `InvoiceDialog`는 편집/복사 다이얼로그 최초 진입 시 `selectedCustomer === null`인 상태에서 `customerInput`만 보고 ID 연결을 버려, 목포 고객 ID가 있어도 이름 재검색으로 성남 고객을 다시 잡는 흐름이었다.
+  - 변경
+    - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+      - 기존 명세표 편집/복사 시 `form.customer_id` / `existingInvoice.customer_id`를 우선 유지하고, 사용자가 입력명을 실제로 바꾼 경우에만 기존 링크를 끊도록 수정했다.
+      - 고객 자동완성 목록에 `book_name · 전화번호` 보조 식별자를 표시해 동명이인을 구분할 수 있게 했다.
+      - 고객 잔액 재계산/예치금 처리 단계에서 문자열 ID도 안전하게 숫자로 정규화하도록 보강했다.
+    - `offline-crm-v2/src/lib/api.ts`
+      - `findCustomerByInvoiceLink`가 이름만 같은 고객이 여러 명이면 더 이상 첫 번째 고객을 임의 선택하지 않고 `null`을 반환하도록 수정했다.
+  - 검증
+    - `npm run build`
+- `openclaw-project-hub`에 `플로라 단일 봇 + room별 runner` 구조의 Telegram room router를 추가했다.
+  - 추가
+    - `openclaw-project-hub/06_scripts/run-flora-telegram-room-router.js`
+      - 같은 플로라 봇으로 `executive / codex / claude` 방을 구분하고, room별로 `Claude CLI` 또는 `Codex CLI`를 호출하는 라우터를 추가했다.
+      - `/register <room> <code>`, `/rooms`, `/status`, `/session`, `/new`, `/run`, 일반 텍스트를 지원한다.
+      - 방별로 세션 ID를 따로 저장해 Codex/Claude 문맥이 서로 섞이지 않게 만들었다.
+    - `openclaw-project-hub/04_reference_json/flora-telegram-room-router.config.example.json`
+      - 플로라 봇 1개, 등록코드 1개, room 3개(`executive/codex/claude`)를 예시로 둔 설정 파일을 추가했다.
+    - `openclaw-project-hub/06_scripts/install-flora-telegram-room-router-launchagent.sh`
+      - launchd 기반 자동 실행 설치 스크립트를 추가했다.
+    - `openclaw-project-hub/03_openclaw_docs/flora-telegram-room-router-setup.ko.md`
+      - 비전공자 기준으로 3개 방 등록, healthcheck, 수동 실행, launchd 자동실행까지 따라할 수 있는 가이드를 추가했다.
+  - 검증
+    - `node --check openclaw-project-hub/06_scripts/run-flora-telegram-room-router.js`
+    - `node openclaw-project-hub/06_scripts/run-flora-telegram-room-router.js --help`
+    - `node openclaw-project-hub/06_scripts/run-flora-telegram-room-router.js --config openclaw-project-hub/04_reference_json/flora-telegram-room-router.config.example.json --healthcheck`
+      - 실제 플로라 봇 `@pressco21_openclaw_bot` 기준 통과
+    - `bash -n openclaw-project-hub/06_scripts/install-flora-telegram-room-router-launchagent.sh`
+    - Claude CLI 비대화식 경로 확인
+      - `claude -p` 단건 실행 성공
+      - `claude -p --session-id <uuid>` 후 `claude -p -r <uuid>` resume로 세션 유지 성공
+- `OpenClaw` 텔레그램 실제 런타임 바인딩을 read-only로 점검했다.
+  - 확인
+    - `~/.codex/.omx-config.json` 기준 OpenClaw 응답 대상 텔레그램 `chatId`는 `7713811206`으로 설정돼 있다.
+    - Telegram Bot API `getChat(7713811206)` 결과, 현재 대상은 그룹방이 아니라 `Jiho Chang` 개인 `private chat`이다.
+    - `clawdbot status`, `clawdbot channels list/status`, `launchctl list` 기준 현재 로컬 gateway는 올라와 있지 않고 Telegram 채널도 `configured, disabled` 상태다.
+    - `clawdbot agents list --bindings` 기준 현재 런타임 에이전트는 `main = 플로라` 하나뿐이며, `flora-frontdoor` 같은 분리 라우팅 규칙은 실제 로컬 런타임에 반영돼 있지 않다.
+- `openclaw-project-hub`에 텔레그램 전용 `Codex CLI` 원격 브리지 MVP를 추가했다.
+  - 추가
+    - `openclaw-project-hub/06_scripts/run-codex-telegram-bridge.js`
+      - Telegram `getUpdates` polling, `/register`, `/status`, `/session`, `/new`, `/run`, 일반 텍스트 실행을 지원하는 단일 브리지 스크립트를 추가했다.
+      - 승인된 chat 별로 `Codex session id`를 저장해 같은 톡방에서 이어서 실행하도록 만들었다.
+      - 긴 응답 자동 분할, 상태/로그 파일 기록, `--healthcheck`, `--once` 옵션을 넣었다.
+    - `openclaw-project-hub/04_reference_json/codex-telegram-bridge.config.example.json`
+      - 봇 토큰/등록코드는 env에서 읽고, 상태 파일과 로그 파일은 workspace 아래에 저장하는 예시 설정을 추가했다.
+    - `openclaw-project-hub/03_openclaw_docs/codex-telegram-bridge-setup.ko.md`
+      - 전용 톡방 생성, BotFather 설정, privacy mode, `/register`, 실행 명령, 운영 팁까지 한 번에 따라 할 수 있게 문서화했다.
+  - 검증
+    - `node 06_scripts/run-codex-telegram-bridge.js --help`
+    - `node --check 06_scripts/run-codex-telegram-bridge.js`
+    - `PRESSCO21_CODEX_TELEGRAM_BOT_TOKEN='dummy-token' PRESSCO21_CODEX_TELEGRAM_REGISTER_CODE='dummy-code' node 06_scripts/run-codex-telegram-bridge.js --config 04_reference_json/codex-telegram-bridge.config.example.json --healthcheck`
+- `WF-CRM-01/02` 자동입금 흐름에서 동일 `externalId` 재수집 시 `자동반영 완료 → 미매칭`으로 뒤집히던 버그를 수정하고 라이브 검증까지 마쳤다.
+  - 원인
+    - `exact 자동반영` 경로에는 `externalId` 기준 idempotency가 없어, 같은 입금 이벤트가 다시 들어오면 첫 실행에서 잔액이 0이 된 뒤 두 번째 실행은 후보를 못 찾아 `unmatched`로 떨어질 수 있었다.
+  - 수정
+    - `scripts/deploy-crm-deposit-telegram.js`
+      - `WF-CRM-01 입금자동반영 엔진`
+        - `Code: Build Deposit Plan`에 `processedExactDepositIds` 기반 중복 차단과 `duplicateEntries` 분기를 추가했다.
+        - `Code: Persist Review Queue`가 exact 자동반영 성공 건의 `externalId`를 static data에 저장하도록 보강했다.
+        - `Code: Handle Review Queue Request` dismiss API에 `markProcessedExact` 옵션을 추가해, 이미 자동반영된 중복 `unmatched` 항목을 정리하면서 processed map도 수동 백필할 수 있게 했다.
+        - `Code: Response Payload`를 `deposit-telegram-v2`로 올리고 `duplicateEntries`를 응답에 포함시켰다.
+      - `WF-CRM-02 Gmail 입금알림 수집`
+        - `duplicate only` 실행이면 CRM 처리 텔레그램을 보내지 않도록 보강했다.
+        - 중복과 신규 처리 건이 섞인 경우에는 `처리: 중복 무시` 안내만 추가하도록 정리했다.
+  - 배포
+    - `node scripts/deploy-crm-deposit-telegram.js`로 두 workflow를 라이브 재배포했다.
+    - 백업: `output/n8n-backups/20260331-224837-crm-deposit-telegram`, `output/n8n-backups/20260331-225130-crm-deposit-telegram`
+  - 실검증
+    - 라이브 workflow 재조회 시 `processedExactDepositIds`, `duplicateEntries`, `markProcessedExact`, `deposit-telegram-v2`, `처리: 중복 무시` 반영 확인
+    - 잘못 올라온 `동그라미숲유 / 3,527,000원 / <1774942810901.33953@nbefumloap56>-1` 미매칭 큐 항목을 `markProcessedExact=true`로 dismiss 처리해 중복 exact 이벤트로 기록했다.
+    - 동일 payload를 `crm-auto-deposit-intake`에 재전송한 결과:
+      - `summary = { received: 1, total: 0, duplicate: 1, exact: 0, review: 0, unmatched: 0 }`
+      - `duplicateEntries[0].reason = 이미 자동반영이 완료된 입금 이벤트입니다.`
+- `openclaw-project-hub` Flora 텔레그램 프론트도어를 `owner`에서 `flora-frontdoor`로 분리하고, 실제 라우팅 검증까지 완료했다.
+  - 추가/수정
+    - `openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh`
+      - `flora-frontdoor` 에이전트를 새로 만들고, owner의 운영 파일 중 필요한 최소 파일만 복제한 뒤 텔레그램 바인딩을 `flora-frontdoor`로 전환하는 설치 스크립트를 추가했다.
+      - `memory/`와 기존 owner 세션 흔적은 복제하지 않도록 정리해 새 frontdoor 세션을 깨끗하게 분리했다.
+    - `openclaw-project-hub/06_scripts/validate-flora-routing.sh`
+      - frontdoor 라우팅 질문 세트 6개를 자동 실행하고 `첫 문장 관점`, `memoryBleed`를 검사하는 검증 스크립트를 추가했다.
+    - `openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json`
+      - frontdoor agent를 `flora-frontdoor`로 변경하고, 각 모드별 `openingLead` 문구를 추가했다.
+    - `openclaw-project-hub/06_scripts/generate-flora-mac-meta-prompt.py`
+      - 메타 프롬프트에 frontdoor agent와 모드별 opening lead를 포함하고, 답변 첫 문장이 선택한 관점을 드러내도록 규칙을 강화했다.
+    - `openclaw-project-hub/07_openclaw_skills/flora-specialist-router/SKILL.md`
+      - 라우터 스킬이 첫 문장을 모드 관점 문구로 시작하도록 명문화했다.
+    - `openclaw-project-hub/07_openclaw_skills/flora-mac-copilot/SKILL.md`
+      - owner/frontdoor 응답이 첫 문장에서 전문 관점을 드러내도록 갱신했다.
+    - `openclaw-project-hub/03_openclaw_docs/flora-specialist-routing-policy.ko.md`
+      - frontdoor 구조를 `flora-frontdoor + specialists` 기준으로 갱신하고 설치/검증 스크립트 경로를 문서화했다.
+    - `openclaw-project-hub/03_openclaw_docs/flora-owner-routing-validation.ko.md`
+      - frontdoor 검증 기준, 실행 방법, 최신 6/6 PASS 결과를 문서화했다.
+  - 서버 반영
+    - `bash openclaw-project-hub/06_scripts/sync-flora-mac-context.sh openclaw-project-hub/04_reference_json/flora-mac-harness.pressco21.json` 재실행
+    - `bash openclaw-project-hub/06_scripts/install-flora-frontdoor-agent.sh` 실행으로 `flora-frontdoor` 설치 완료
+    - 텔레그램 route binding이 `owner`에서 `flora-frontdoor`로 전환됨
+  - 검증
+    - `bash openclaw-project-hub/06_scripts/validate-flora-routing.sh`
+    - 결과: `storefront / crm / automation / strategy / knowledge / executive` 6개 케이스 모두 `PASS`
+    - 리포트: `output/flora-routing-validation/owner-routing-validation-20260331_212701.md`
+- `openclaw-project-hub` Flora 전문 비서 자동 전환 규칙과 specialist agent 분리 구성을 추가했다.
+  - 추가/수정
+    - `openclaw-project-hub/03_openclaw_docs/flora-specialist-routing-policy.ko.md`
+      - `owner` 프론트도어 기준 전문 모드 전환 원칙과 specialist 역할 표를 문서화했다.
+    - `openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json`
+      - `executive / strategy / storefront / crm / automation / knowledge` 6개 모드의 키워드, 적용 상황, 응답 스타일, 워크스페이스 정의를 추가했다.
+    - `openclaw-project-hub/06_scripts/generate-flora-mac-meta-prompt.py`
+      - 라우팅 정책 JSON을 읽어 메타 프롬프트에 `자동 전환 규칙`과 `전문 모드 우선 선택` 원칙을 주입하도록 확장했다.
+    - `openclaw-project-hub/06_scripts/sync-flora-mac-context.sh`
+      - `routing-policy.json`, `routing-policy.md`, `flora-specialist-router` 스킬을 서버 `workspace-owner` 컨텍스트/스킬 디렉토리로 함께 동기화하도록 확장했다.
+    - `openclaw-project-hub/06_scripts/install-flora-specialist-agents.sh`
+      - 라우팅 정책 기준으로 specialist workspace 파일(`IDENTITY.md`, `AGENTS.md`, `USER.md`, `BOOTSTRAP.md`)을 생성하고 서버 에이전트를 설치/갱신하는 스크립트를 추가했다.
+    - `openclaw-project-hub/07_openclaw_skills/flora-mac-copilot/SKILL.md`
+      - 기존 owner 스킬이 라우팅 정책까지 읽고 전문 모드를 먼저 선택하도록 갱신했다.
+    - `openclaw-project-hub/07_openclaw_skills/flora-specialist-router/SKILL.md`
+      - owner가 `routing-policy / assistant-brief / analysis`를 근거로 `selectedMode`와 `selectedAgent`를 결정하는 전용 라우터 스킬을 추가했다.
+  - 서버 반영
+    - `/home/ubuntu/.openclaw/workspace-owner/context/flora-mac-harness/{routing-policy.json,routing-policy.md}` 동기화 완료
+    - `/home/ubuntu/.openclaw/workspace-owner/skills/flora-specialist-router/SKILL.md` 반영 완료
+    - specialist agent `flora-executive / flora-strategy / flora-storefront / flora-crm / flora-automation / flora-knowledge` 생성 완료
+  - 검증
+    - `bash openclaw-project-hub/06_scripts/sync-flora-mac-context.sh openclaw-project-hub/04_reference_json/flora-mac-harness.pressco21.json` 성공
+    - `bash openclaw-project-hub/06_scripts/install-flora-specialist-agents.sh openclaw-project-hub/04_reference_json/flora-specialist-routing.policy.json` 성공
+    - 서버 `openclaw skills list`에서 `flora-mac-copilot`, `flora-specialist-router` ready 확인
+    - `flora-crm` 직접 호출 테스트로 CRM 전용 답변이 specialist workspace 기준으로 생성되는 것 확인
+- **메이크샵 스킬 전면 감사 & 고도화 (2026-03-31)**
+  - 오픈 API: open-api.md 704→870줄 (에러코드 15개, 2025~2026 필드, n8n 패턴 5개)
+  - 스킬 42개 파일 14,800줄 감사 → 중복 제거, 커버리지 보강, 인덱스 추가
+  - VTag INDEX.md 전 페이지 실측 완료 (11개 page_type, 총 3,175+ 태그)
+    - shopbrand(687), shopdetail(647), main(575), order_pay(552), basket(288), header(98)
+    - 핵심 발견: vtag page_type ≠ 편집기 page_type (product→shopdetail, category→shopbrand 등)
+  - main.md 362→489줄, footer.md 37→60줄(100%), makeshop-js-api.md 146→222줄
+  - constraints↔editor-errors SOT 확립, design-tokens↔brand-decisions 상호참조
+  - deprecated extract-codemirror.js 삭제
+  - 커버리지 보강: category 272→406줄, product-detail 564→676줄, cart 346→418줄, order 393→483줄
+- (이전) **메이크샵 관리자 페이지 전면 분석 & 스킬 고도화 (2026-03-31)**
+  - 관리자 메뉴 13개 섹션 분석: 디자인/프로모션/쿠폰/기획전/이벤트/게시판/카카오알림톡/회원그룹/통계/CRM/마케팅/배송/결제
+  - 메모리 2개 신규: `makeshop-admin-editor-guide.md`(397줄), `makeshop-promotion-guide.md`(397줄)
+  - 스킬 레퍼런스 2개 재작성: `shop-settings.md`(81→210줄), `admin-features.md`(113→260줄)
+  - SKILL.md에 0-E 관리자 기능 참조 추가
+  - 핵심 발견: 쿠폰/기획전/이벤트 완전 미사용, 카카오 알림톡 주문/배송 템플릿 미등록, 강사회원 2,694명 혜택 없음
+- (이전) `openclaw-project-hub` Flora 맥북 코파일럿 하네스를 Phase 2 수준으로 확장해, 인벤토리 기반 `전문 비서 프로파일` 레이어를 추가했다.
+  - 추가/수정
+    - `openclaw-project-hub/06_scripts/analyze-flora-mac-context.py`
+      - 로컬 프로젝트 인벤토리를 회사 운영 패턴, 프로젝트 테마, 우선순위, 추천 비서 역할로 재분류하는 분석기 추가
+      - 산출물: `analysis.json`, `assistant-brief.md`
+    - `openclaw-project-hub/06_scripts/generate-flora-mac-meta-prompt.py`
+      - 분석 산출물을 읽어 전문 비서 모드, 핵심 시스템 우선순위, 회사 맞춤 응답 원칙을 메타 프롬프트에 주입하도록 확장
+    - `openclaw-project-hub/06_scripts/sync-flora-mac-context.sh`
+      - `analysis.json`, `assistant-brief.md` 생성/동기화 추가
+      - `BOOTSTRAP.md`를 최신 `meta-prompt.md`로 동기화하도록 유지
+    - `openclaw-project-hub/07_openclaw_skills/flora-mac-copilot/SKILL.md`
+      - "회사에 맞는 비서", "전문 비서", "대표 활동 패턴" 요청까지 읽도록 확장
+    - `openclaw-project-hub/04_reference_json/flora-mac-harness*.json`
+      - `analysisPath`, `assistantBriefPath` 출력 경로 추가
+    - `openclaw-project-hub/03_openclaw_docs/openclaw-flora-mac-copilot-harness-prd.ko.md`
+      - v1.1로 갱신, Phase 2 전문 비서 프로파일 범위 반영
+  - 서버 반영
+    - `/home/ubuntu/.openclaw/workspace-owner/context/flora-mac-harness/{analysis.json,assistant-brief.md}` 동기화 완료
+    - owner BOOTSTRAP에 전문 비서 모드가 반영된 최신 메타 프롬프트 주입
+  - 검증
+    - `bash 06_scripts/sync-flora-mac-context.sh 04_reference_json/flora-mac-harness.pressco21.json` 성공
+    - `assistant-brief.md`에서 6개 핵심 비서 역할 생성 확인
+    - owner agent 질의 `"우리 회사와 내 활동에 맞는 전문 비서 모드를 정리해줘"` 응답에서 전문 비서 역할 묶음 제안 확인
+- `openclaw-project-hub`에 Flora 맥북 코파일럿 하네스를 추가해, 로컬 맥북 프로젝트 인벤토리/요약/메타프롬프트를 생성하고 서버 `workspace-owner` 컨텍스트로 자동 동기화하는 기본 경로를 구축했다.
+  - 추가 파일
+    - `openclaw-project-hub/03_openclaw_docs/openclaw-flora-mac-copilot-harness-prd.ko.md`
+    - `openclaw-project-hub/04_reference_json/flora-mac-harness.config.example.json`
+    - `openclaw-project-hub/04_reference_json/flora-mac-harness.pressco21.json`
+    - `openclaw-project-hub/04_reference_json/com.pressco21.flora-mac-harness.plist`
+    - `openclaw-project-hub/06_scripts/build-flora-mac-inventory.py`
+    - `openclaw-project-hub/06_scripts/generate-flora-mac-meta-prompt.py`
+    - `openclaw-project-hub/06_scripts/install-flora-mac-harness-launchagent.sh`
+    - `openclaw-project-hub/06_scripts/sync-flora-mac-context.sh`
+    - `openclaw-project-hub/07_openclaw_skills/flora-mac-copilot/SKILL.md`
+  - 서버 반영
+    - `/home/ubuntu/.openclaw/workspace-owner/context/flora-mac-harness/{inventory.json,summary.json,meta-prompt.md}` 동기화 완료
+    - `/home/ubuntu/.openclaw/workspace-owner/skills/flora-mac-copilot/SKILL.md` 배포 완료
+    - `/home/ubuntu/.openclaw/workspace-owner/BOOTSTRAP.md`를 최신 `meta-prompt.md`로 동기화해 owner 기본 프롬프트에 로컬 코파일럿 규칙을 주입
+  - 검증
+    - `bash 06_scripts/sync-flora-mac-context.sh 04_reference_json/flora-mac-harness.pressco21.json` 성공
+    - `systemctl --user restart openclaw-gateway.service` 후 `openclaw skills list`에서 `flora-mac-copilot` ready 확인
+    - `openai-codex/gpt-5.4` owner agent 호출 성공 확인
+- `offline-crm-v2` 출력물 4종(명세표/견적서/납품서/청구서)에서 품목 10개 초과 시 행 높이를 줄이지 않고 다음 페이지로 넘기도록 분할 기준을 조정했다.
+  - `offline-crm-v2/src/lib/print.ts`
+    - `명세표/납품서/청구서` 공용 출력 엔진의 페이지당 품목 수를 `20개 → 10개`로 변경했다.
+    - `견적서` 출력은 반쪽 인쇄 문서와 같은 기준을 쓰지 않고, 단일 페이지일 때는 최대 14행을 유지하며 멀티페이지일 때는 중간 페이지 최대 18행, 마지막 페이지 최대 14행으로 분할되도록 전용 알고리즘으로 조정했다.
+    - 견적서는 마지막 페이지 하단의 비고/합계/서명 블록 높이를 먼저 보존하고, 앞 페이지들은 가능한 범위에서 더 넉넉하게 채우도록 페이지 수 계산, 품목 분할, 품목 번호 시작값을 함께 맞췄다.
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
+    - 실제 브라우저(Vite + Playwright) 검증 완료
+      - `명세표/납품서/청구서` 11개 품목: 각 2페이지 분할, 1페이지 10행 + 2페이지 1행, `zoom=1` 유지, 첫 행 높이 `18.52px`
+      - `견적서` 15개 품목: 2페이지 분할, `8행 + 7행`, 행 높이 `20px` 유지
+      - `견적서` 30개 품목: 2페이지 분할, `16행 + 14행`, 마지막 페이지에 합계/서명 블록 정상 유지
+    - 스크린샷
+      - `offline-crm-v2/output/playwright/print-validation-invoice11.png`
+      - `offline-crm-v2/output/playwright/print-validation-estimate30.png`
+- `offline-crm-v2` 명세표 수정 다이얼로그에서 배송지 셀렉트를 바꿔도 주소 문자열이 `address1`로 고정되던 버그를 수정했다.
+  - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+    - `getCustomerAddressValue()`가 `resolveCustomerAddressKey()`에 예전 인자 순서로 값을 넘기던 부분을 바로잡아, 선택한 키(`address2`, `extra_addresses:*`)가 실제 주소 문자열에 즉시 반영되게 했다.
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
+    - `cd offline-crm-v2 && bash deploy/deploy.sh` 완료
+- `offline-crm-v2` 명세표 선택 주소가 실제 `invoices` 컬럼에 저장되지 않는 구조를 확인하고, `memo` 숨김 메타로 주소 키를 저장/복원하도록 보정했다.
+  - `offline-crm-v2/src/lib/accountingMeta.ts`
+    - `[ACCOUNTING_INVOICE_META]`에 `customerAddressKey`를 함께 저장/파싱하도록 확장했다.
+  - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+    - 명세표 저장 시 선택 주소 키를 `memo` 메타에 저장하도록 변경했다.
+    - 명세표 수정 다이얼로그 재오픈 시 저장된 메타의 주소 키를 우선 복원하도록 맞췄다.
+  - `offline-crm-v2/src/pages/Invoices.tsx`
+    - 목록 출력 / 송장 엑셀 / 누락 경고 계산이 `memo` 메타의 `customerAddressKey`를 우선 읽어 현재 고객 주소를 다시 해석하도록 변경했다.
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
+    - `cd offline-crm-v2 && bash deploy/deploy.sh` 완료
+  - 운영 데이터 보정
+    - `송윤경 회장님` 최신 명세표 `INV-20260331-135928` (Id `71`)에 `[ACCOUNTING_INVOICE_META] {"customerAddressKey":"address2"}` 메타를 직접 저장해 `윤미라` 주소 선택값을 즉시 반영했다.
+- `offline-crm-v2` 명세표 주소 변경값이 인쇄/송장 경로마다 기본 주소로 되돌아가던 문제를 보정했다.
+  - `offline-crm-v2/src/pages/Invoices.tsx`
+    - 명세표 목록 출력과 송장 엑셀 생성 시 `customer_address` / `customer_address_key`로 저장된 명세표 스냅샷을 우선 사용하고, 비어 있을 때만 현재 고객 마스터 주소를 fallback 하도록 공통 해석 로직으로 정리했다.
+    - 송장 다운로드 전 누락 경고 계산도 같은 주소 해석 로직을 사용하도록 맞췄다.
+  - `offline-crm-v2/src/components/InvoiceDialog.tsx`
+    - 명세표 수정 다이얼로그 재오픈 시 저장된 `customer_address_key`를 우선 복원하도록 보정해, 선택 배송지가 기본 주소로 돌아가는 흐름을 막았다.
+  - 검증: `cd offline-crm-v2 && npm run build` 통과
+- `offline-crm-v2` 고객 상세 거래내역 상단과 고객 제출용 인쇄의 `기간 총매출` 정리를 마무리하고 `main` 반영 준비를 끝냈다.
+  - `src/pages/CustomerDetail.tsx`
+    - 거래내역 상단 요약을 `기간 총매출 / 조회 건수 / CRM 행 / 기존 장부 행` 기준으로 정리했다.
+    - 기간 총매출은 `출고` 행만 합산하고, 새 입력/기존 장부 출고 건수를 함께 노출한다.
+  - `src/lib/print.ts`
+    - 고객 제출용 기간 거래내역서 상단 요약도 `거래 금액 합계` 대신 `기간 총매출`로 맞췄다.
+  - 검증: `cd offline-crm-v2 && npm run build` 통과
+- `offline-crm-v2` 현재 로컬 변경 기준으로 운영 CRM을 다시 배포했다.
+  - 실행
+    - `cd offline-crm-v2 && bash deploy/deploy.sh`
+  - 결과
+    - 로컬 프로덕션 빌드 성공
+    - 서버 `/var/www/crm` 업로드 성공
+    - `sudo nginx -t && sudo systemctl reload nginx` 성공
+  - 원격 확인
+    - `/var/www/crm/index.html`가 `assets/index-CCwNECQO.js`, `assets/index-BUtaOBv0.css`를 참조
+    - 서버 산출물 시각은 2026-03-30 10:32 UTC
+    - `https://crm.pressco21.com` 헤더 응답은 `401 Unauthorized`로 Basic Auth가 정상 유지됨
+- `offline-crm-v2` 명세표 작성/관리 상단에 선택 기간 총매출 요약을 추가했다.
+  - `src/pages/Invoices.tsx`
+  - 날짜 필터로 조회한 명세표 목록을 기준으로 총매출, 명세표 건수, 평균 객단가를 상단 카드에서 바로 보이게 정리했다.
+  - 거래처 검색이나 수금 상태 필터를 같이 쓰는 경우, 현재 좁혀진 결과 기준 합계라는 안내도 함께 노출한다.
+  - 검증: `cd offline-crm-v2 && npm run build` 통과
+- `offline-crm-v2` 기간 총매출 표시 변경을 운영 CRM에 배포했다.
+  - 실행
+    - `cd offline-crm-v2 && bash deploy/deploy.sh`
+  - 결과
+    - 로컬 프로덕션 빌드 성공
+    - 서버 `/var/www/crm` 업로드 성공
+    - `sudo nginx -t && sudo systemctl reload nginx` 성공
+  - 원격 확인
+    - `/var/www/crm/index.html`가 `index-mp5qfcH7.js`, `index-Blp1GPoD.css`를 참조
+    - `/var/www/crm/assets/index-mp5qfcH7.js` 업로드 시각 `2026-03-30 10:19 UTC` 확인
+- `offline-crm-v2` 고객 상세 거래내역 상단과 고객 제출용 인쇄에 `출고 기준 기간 총매출`을 추가했다.
+  - `offline-crm-v2/src/pages/CustomerDetail.tsx`
+    - 거래내역 상단 KPI를 `기간 총매출 / 조회 건수 / CRM 행 / 기존 장부 행` 기준으로 정리했다.
+    - 기간 총매출은 `txType === '출고'` 행만 합산하고, `새 입력 / 기존 장부` 출고 건수 분해를 함께 노출한다.
+  - `offline-crm-v2/src/lib/print.ts`
+    - `printCustomerTransactionStatement()` 상단 요약 카드의 두 번째 항목을 `거래 금액 합계` 대신 `기간 총매출`로 교체했다.
+    - 인쇄용 총매출도 동일하게 `출고` 행만 합산한다.
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
+- FA-001/FA-003 자동화 메일 워크플로우를 재점검하고 비정상 발송 경보를 라이브에 추가했다.
+  - 점검 결과
+    - 현재 메일 자동화는 `FA-001: 강사회원 등급 자동 변경`, `FA-003: 강사 반려 이메일 자동 발송` 두 개가 핵심이다.
+    - 최근 실행 로그 기준 `FA-001`은 2026-03-30 03:40:23 UTC, `FA-003`은 2026-03-30 03:40:56 UTC 실행까지 모두 정상 종료했다.
+    - NocoDB 조회 기준 현재 `승인대기 AND n8n_처리완료=0`, `반려 AND n8n_반려알림=0 AND n8n_반려_retry<3`, `반려 deadletter(n8n_반려_retry>=3)` 모두 `0건`이다.
+  - 조치
+    - `n8n-automation/workflows/homepage/FA-001_강사회원_등급_자동변경.json`
+      - 승인 메일 직전에 같은 신청 건(`recordId`)의 성공 발송 이력을 workflow static data로 확인하는 `승인 메일 중복 발송 가드`를 추가했다.
+      - 승인 메일 결과를 static ledger/log에 기록하고, SMTP 실패 시 업무봇(`7713811206`)으로 즉시 경보를 보내도록 `승인 메일 결과 기록`, `텔레그램 승인 메일 실패 경보`를 추가했다.
+      - 같은 신청 건의 승인 메일이 다시 시도되면 자동 발송을 막고 업무봇으로 `텔레그램 승인 메일 중복 경보`를 보내도록 했다.
+    - `n8n-automation/workflows/homepage/FA-003_강사_반려_이메일_자동발송.json`
+      - 반려 메일 직전에 같은 신청 건(`nocodb_id`)의 성공 발송 이력을 workflow static data로 확인하는 `중복 성공발송 가드`를 추가했다.
+      - 같은 신청 건 재발송이 감지되면 메일을 보내지 않고 `n8n_반려알림=true`로 즉시 차단한 뒤 업무봇(`7713811206`)으로 `텔레그램 중복 발송 경보`를 보내도록 했다.
+      - 기존 `발송 결과 확인` 노드도 성공/실패 이력을 static ledger/log에 남기도록 확장했다.
+    - 운영 n8n API로 두 workflow를 직접 PUT 배포했다.
+    - 라이브 백업 저장:
+      - `output/n8n-backups/20260330_123958-FA-001-live-backup.json`
+      - `output/n8n-backups/20260330_123958-FA-003-live-backup.json`
+  - 검증
+    - 라이브 재조회 시 신규 guard/alert 노드 반영 확인
+    - n8n 로그에서 2026-03-30 03:39:58 UTC / 03:39:59 UTC에 FA-001/FA-003 trigger 재등록 확인
+    - 배포 후 첫 스케줄 실행
+      - `FA-001` execution `142129` success at 2026-03-30 03:40:23 UTC
+      - `FA-003` execution `142132` success at 2026-03-30 03:40:56 UTC
+    - 두 실행 모두 빈 조회 경로에서 정상 종료했고, 배포로 인한 스케줄/파싱 오류는 없었다.
+- FA-003 강사 반려 이메일 반복 발송 긴급 수정 및 라이브 배포를 완료했다.
+  - 원인
+    - `n8n-automation/workflows/homepage/FA-003_강사_반려_이메일_자동발송.json`
+    - `발송 결과 확인`, `실패 처리 판단` Code 노드가 `runOnceForEachItem` 모드에서 배열을 반환하고 있어 n8n 검증 단계에서 `A 'json' property isn't an object [item 0]` 오류로 중단됐다.
+    - 그 결과 `n8n_반려알림` 플래그가 갱신되지 않아 같은 반려 건이 5분마다 다시 이메일 발송 대상으로 조회됐다.
+  - 조치
+    - `발송 결과 확인`을 단일 객체 반환으로 수정하고, 메일 발송 성공 판정을 `error`/`rejected` 기준으로 안전하게 정리했다.
+    - `실패 처리 판단`도 단일 객체 반환으로 수정해 retry/데드레터 분기가 실제 실패 시 정상 동작하도록 맞췄다.
+    - 운영 n8n API로 WF `Ks4JvBC06cEj6b8b`를 직접 PUT 배포했다.
+    - 라이브 백업 저장: `output/n8n-backups/20260330_121753-FA-003-live-backup.json`
+    - 반복 발송을 즉시 멈추기 위해 NocoDB 반려 레코드 `Id=231` (`황선화`)의 `n8n_반려알림`을 `1`로 갱신했다.
+  - 검증
+    - 라이브 워크플로우 재조회 시 두 Code 노드 수정 내용 반영 확인
+    - 반려 미발송 조회 조건 `(진행 상태=반려 AND n8n_반려알림=0 AND n8n_반려_retry<3)` 결과 `0건`
+    - 배포 후 재등록된 cron `47 */5 * * * *` 기준 2026-03-30 03:20:47 UTC 실행에서 `NocoDB 반려 미발송 조회` → `레코드 분리` 후 정상 종료, 이메일 노드 미진입 확인
+- 저장소 전체 브랜치 상태를 다시 점검했다.
+  - `git branch -a -vv`, `git remote show origin`, `git branch --no-merged main`, `git branch -r --no-merged origin/main` 기준으로 확인했다.
+  - 현재 로컬/원격 모두 `main`만 남아 있고, `main`에 머지되지 않은 추가 보조 브랜치는 없다.
+  - `origin`도 `main` 단일 브랜치만 추적 중이며, `remote prune --dry-run` 기준으로 정리할 stale ref도 없다.
+  - 결론: 지금 시점에는 추가 삭제하거나 main 반영 여부를 더 따져야 할 브랜치가 없다.
+- 루트 `AGENTS.md`에 브랜치 관리 필수 규칙을 추가했다.
+  - 모든 작업물은 main 머지까지 완료되어야만 `완료`로 본다는 원칙을 명시했다.
+  - 브랜치 사용 시 `AI_SYNC.md`에 브랜치명/목적 기록, main 머지 책임, 방치 브랜치 금지 규칙을 추가했다.
+- `codex/partnerclass-e0-001-testdata-cleanup` 브랜치의 CRM 변경을 main과 비교 검토했다.
+  - 신규 파일 `src/lib/auth.ts`, `src/components/auth/RequireAuth.tsx`, `src/pages/Login.tsx`는 코드 안에 계정/비밀번호가 하드코딩되어 있어 현재 운영 구조에 그대로 반영하면 품질이 떨어진다고 판단했다.
+  - 신규 파일 `src/pages/ActivityLog.tsx`, `src/lib/auditLog.ts`는 현재 main에 없는 API 함수(`getAllSuppliers`, `getLegacyTxHistoryBackups`)와 추가 메타 모듈까지 함께 필요해, 일부 파일만 가져오면 반쯤만 들어오는 상태라 이번 정리 대상에서는 제외했다.
+  - 나머지 신규 파일(`invoiceUndo`, `supplierPayables`, `legacyDiagnostics`, `ActionStatusWidget` 등)도 현재 main에 연결 경로가 없거나, 현재 main의 최신 UX/배포 구조보다 뒤처진 브랜치 구현에 묶여 있어 가져오지 않았다.
+  - 결론: 해당 브랜치에서 main으로 가져올 CRM 신규 파일은 없음.
+- `codex/partnerclass-e0-001-testdata-cleanup` 브랜치를 정리했다.
+  - 로컬 브랜치 삭제 완료
+  - 원격 브랜치 삭제 완료
+- offline-crm-v2 `대시보드` 상단과 기간 리포트 진입부를 더 빨리 읽히게 정리했다.
+  - `src/pages/Dashboard.tsx`
+  - 상단을 `월간 핵심 요약 + 회계 다운로드` 카드 구조로 바꿔, 이번 달 매출/미수/활성 고객을 먼저 읽게 맞췄다.
+  - `기간 매출 리포트`도 별도 요약 카드로 묶어 현재 기간, 매출, 명세표 건수, 수금률을 한눈에 보이게 정리했다.
+- offline-crm-v2 `설정` 화면을 카드형 섹션 구조로 정리했다.
+  - `src/pages/Settings.tsx`
+  - 화면 폭을 넓히고, 상단에 `동기화 상태 / 현재 작업 계정 / 자동입금 수집 방식` 요약 카드를 추가했다.
+  - 각 설정 영역을 `공급자 정보 / 인쇄 설정 / 입금 계좌 / 시스템 설정 / 단가등급 할인율 / 자동입금 준비` 카드로 분리해 어디를 수정해야 하는지 바로 보이게 했다.
+  - 상단에 빠른 이동 앵커를 넣어 긴 설정 화면을 바로 찾아가게 맞췄다.
+- 테스트 보정
+  - `tests/03-dashboard.spec.ts`
+  - 현재 사이드바 기준 메뉴명 `수금 관리 / 지급 관리 / 입금 수집함`을 반영하도록 업데이트했다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:dashboard` → 9 passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+- offline-crm-v2 `제품 관리` 상단과 목록 UX를 같은 기준으로 정리했다.
+  - `src/pages/Products.tsx`
+  - 상단을 `조회 조건 + 현재 결과 요약` 카드로 바꿔 현재 건수, 페이지, 검색 상태가 먼저 보이게 맞췄다.
+  - 모바일에서는 표 대신 카드형 목록을 추가해 `제품명 / 코드 / 단위 / 과세 / 단가`를 먼저 읽고 `수정 / 삭제`를 바로 누르게 정리했다.
+- offline-crm-v2 `공급처 관리`에 검색과 페이지네이션을 추가하고 제품 화면과 같은 UX 구조로 맞췄다.
+  - `src/pages/Suppliers.tsx`
+  - 상단에 `조회 조건` 카드를 넣고 `상호 / 대표자 / 사업자번호` 검색을 추가했다.
+  - 공급처 목록도 모바일 카드형을 같이 넣어 `대표자 / 연락처 / 계좌 / 주소`를 빠르게 읽게 정리했다.
+  - 데스크톱 표에서는 사업자번호와 전화 표기를 통상적인 하이픈 형식으로 정리했다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - `/products`에서 상단 조회 카드, 요약 배지, 모바일/데스크톱 목록 구조 확인
+    - `/suppliers`에서 검색 카드, 공급처 목록, 계좌/대표자 노출 구조 확인
+- offline-crm-v2 `명세표 출력 문서 타입`을 4종으로 확장했다.
+  - `src/lib/print.ts`
+  - 출력 문서 타입 공통 규칙을 `거래명세표 / 견적서 / 납품서 / 청구서` 기준으로 중앙화했다.
+  - `거래명세표`, `납품서`, `청구서`는 같은 본문 레이아웃을 쓰되 제목, 날짜 라벨, 상단 메타, 하단 서명 문구만 문서 성격에 맞게 분기되도록 정리했다.
+  - `견적서`는 기존 전용 레이아웃을 유지하면서 공통 문서 정의를 같이 참조하도록 맞췄다.
+- offline-crm-v2 `명세표 작성/관리` 목록의 출력 버튼을 4종 문서 기준으로 정리했다.
+  - `src/pages/Invoices.tsx`
+  - 모바일/데스크톱 모두 `명세표 / 견적서 / 납품서 / 청구서`를 같은 순서로 노출하도록 맞췄다.
+  - 출력 액션은 저장 구분(`청구/영수`)과 분리해, 내부 데이터는 그대로 두고 출력물만 원하는 양식으로 고를 수 있게 했다.
+- offline-crm-v2 `명세표 작성` 다이얼로그의 인쇄 미리보기에도 출력 양식 선택을 추가했다.
+  - `src/components/InvoiceDialog.tsx`
+  - 하단 액션 바에 `출력 양식` 선택을 넣고, 선택한 양식 기준으로 `미리보기`가 열리도록 바꿨다.
+  - 미리보기 모달 제목도 현재 선택한 문서명으로 같이 표시되게 맞췄다.
+- 테스트 보정
+  - `offline-crm-v2/tests/02-invoices.spec.ts`
+  - 목록 우측 실행 버튼 검증을 `명세표 / 견적서 / 납품서 / 청구서` 4종 기준으로 업데이트했다.
+- 검증 / 배포
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - `npm run deploy:release` → release `20260330093502-317695e-dirty`
+  - 서버 확인
+    - `/var/www/crm` → `/var/www/releases/crm/20260330093502-317695e-dirty`
+    - `/var/www/crm-current` → `/var/www/releases/crm/20260330093502-317695e-dirty`
+    - `https://crm.pressco21.com` → Basic Auth `401 Unauthorized` 정상 응답
+- offline-crm-v2 `거래/명세표 조회`에 모바일 카드형 목록을 추가했다.
+  - `src/pages/Transactions.tsx`
+  - 큰 표는 `lg` 이상에서만 유지하고, 그 아래에서는 `날짜 / 거래처 / 유형 / 금액 / 전표번호 / 비고`가 카드 한 장에서 먼저 읽히도록 정리했다.
+  - 상세 진입 동작은 기존과 같고, 작은 화면에서 가로로 밀리던 문제만 줄이는 쪽으로 맞췄다.
+- offline-crm-v2 `캘린더` 선택 날짜 우측 패널 길이를 줄였다.
+  - `src/pages/Calendar.tsx`
+  - `실행 요약`과 `바로 실행`은 한 카드로 합쳐 먼저 필요한 숫자와 액션만 보이게 정리했다.
+  - `기준일 미수 후속`과 `현재 기준 재방문 추천`도 하나의 `후속 확인` 카드 안에서 위아래 섹션으로 묶고, 목록은 우선 3건까지만 보여 읽기 길이를 줄였다.
+  - `당일 명세표`는 별도 카드로 유지하되, 안내 문구는 카드 안으로 넣어 별도 설명 박스를 없앴다.
+- offline-crm-v2 `캘린더` 상단을 월 이동 + 조회 기준이 한 흐름으로 읽히게 정리했다.
+  - `src/pages/Calendar.tsx`
+  - 월 이동 컨트롤을 작은 상태 카드처럼 바꿔 현재 월인지 바로 보이게 했다.
+  - `기간 매출 리포트`는 `조회 기준` 카드로 바꾸고, 현재 기간/선택 날짜/명세표 건수를 배지로 먼저 읽게 정리했다.
+  - 빠른 기간 버튼도 별도 라벨 아래로 묶어, 리포트 기준을 바꾸는 동선이 더 자연스럽게 보이도록 맞췄다.
+- offline-crm-v2 `명세표 작성/관리`의 모바일 카드와 상단 필터 보조 액션을 더 압축했다.
+  - `src/pages/Invoices.tsx`
+  - 헤더 보조 버튼 문구를 `송장 엑셀`로 줄여 `새 명세표`와의 시선 경쟁을 낮췄다.
+  - 기본 조회 상태는 큰 점선 박스 대신 작은 배지로 줄여 필터 줄 공간 낭비를 줄였다.
+  - 모바일 카드 금액 영역은 `합계 / 잔액`을 먼저 보이고, `공급가액 / 세액 / 입금액`은 보조 정보로 내려 읽기 순서를 더 단순하게 정리했다.
+  - 모바일 관리 버튼도 `수정 / 복사 / 삭제` 텍스트를 함께 보여 처음 보는 사람도 바로 이해하게 바꿨다.
+- 테스트 보정
+  - `tests/02-invoices.spec.ts`
+  - 명세표 페이지 헤더 버튼 검증이 새 문구 `송장 엑셀`도 허용하도록 맞췄다.
+- offline-crm-v2 `거래/명세표 조회` 상단을 `상태 요약 + 조회 조건` 카드 구조로 재배치했다.
+  - `src/pages/Transactions.tsx`
+  - 제목 아래에 현재 탭, 결과 건수, 조회 기간, 필터 상태를 먼저 읽을 수 있게 배치했다.
+  - 검색, 탭, 유형, 기간, 초기화는 별도의 `조회 조건` 카드로 모아 한 번에 훑기 쉽게 정리했다.
+  - 전체 탭 전용의 기간 빠른 선택 버튼은 카드 안으로 넣어, 필터와 같은 흐름에서 보이도록 맞췄다.
+- 검증
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - `npm run build` → passed
+  - 로컬 실브라우저 확인
+    - `/transactions` 900px 폭에서 모바일 카드형 목록 구조 노출 확인
+    - `/calendar` 선택 날짜 우측 패널이 `빠른 확인 / 후속 확인 / 당일 명세표` 3카드 흐름으로 줄어든 것 확인
+    - `/transactions` 상단이 카드 2개 구조로 읽히는지 확인
+    - 탭, 빠른 기간 버튼, 검색, 유형, 날짜 입력이 기존처럼 동작하는지 확인
+    - `/invoices?from=2026-03-24&to=2026-03-30`에서 `송장 엑셀`, 축약된 모바일 카드 구조 확인
+    - `/calendar` 상단이 월 이동 카드 + 조회 기준 배지 구조로 읽히는지 확인
+- offline-crm-v2 `지급 관리` 첫 진입 기본 탭을 `기존 장부 줄 돈`으로 조정했다.
+  - `src/pages/Receivables.tsx`
+  - 이제 `/payables`로 들어오면 기본 선택이 `전체 지급`이 아니라 `기존 장부 줄 돈`이다.
+  - `tab` 파라미터가 없을 때만 이 기본값이 적용되고, `전체 지급`과 `환불대기`를 직접 고른 경우에는 URL에 명시적으로 남도록 맞췄다.
+  - 따라서 지급 관리는 “먼저 실제 송금해야 할 기존 장부 지급건을 본다”는 흐름에 더 가깝게 들어가고, `전체 지급`은 전체 파악이 필요할 때만 명확히 선택해 보게 된다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - `/payables` 첫 진입 시 `기존 장부 줄 돈` 탭 기본 선택 확인
+    - 직접 `전체 지급` 선택 시 URL에 `tab=all`이 붙고, 기본 진입에서는 `tab` 없이 `payable` 탭으로 들어가는 규칙 확인
+- offline-crm-v2 `수금 관리` 첫 진입 기본 탭을 `새 입력 받을 돈`으로 조정했다.
+  - `src/pages/Receivables.tsx`
+  - 이제 `/receivables`로 들어오면 기본 선택이 `전체 정산`이 아니라 `새 입력 받을 돈`이다.
+  - `tab` 파라미터가 없을 때만 이 기본값이 적용되고, `전체 정산`, `기존 장부`, `총 줄 돈`, `환불대기`를 직접 고른 경우에는 URL에 명시적으로 남도록 맞췄다.
+  - 따라서 수금 관리는 “먼저 새 입력 명세표 미수부터 본다”는 흐름에 더 가깝게 들어가고, `전체 정산`은 사용자가 명확히 선택했을 때만 보여준다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - `/receivables` 첫 진입 시 `새 입력 받을 돈` 탭 기본 선택 확인
+    - `?tab=all` 없이도 기본 진입이 `crm`으로 들어오고, 직접 `전체 정산` 선택 시 URL에 `tab=all`이 붙는 규칙 확인
+- offline-crm-v2 `지급 관리`에서 실제로 해야 할 행동이 더 직접 보이도록 문구와 버튼 위계를 정리했다.
+  - `src/pages/Receivables.tsx`
+  - `전체 지급`과 `기존 장부 줄 돈` 표의 헤더를 `처리 구분`, `다음 작업` 기준으로 바꿔 이 행에서 무엇을 해야 하는지 먼저 읽히게 했다.
+  - `지급 확인`은 `송금 기록`, `환불 처리`는 `환불 정리`로 바꿔 실무 행동 이름과 맞췄다.
+  - 고객 연결이 없는 지급 대상은 비활성 버튼을 `연결 필요`로 보여 주어, 왜 지금 바로 처리할 수 없는지 버튼 텍스트만 봐도 이해되게 했다.
+  - `지급 관리` 탭 안내 문구도 `송금 기록`, `환불 정리`, `연결 필요` 기준으로 다시 맞췄다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - `/payables` 기준 `송금 기록`, `환불 정리`, `연결 필요` 문구와 `다음 작업` 열 노출 확인
+- offline-crm-v2 `수금 관리 / 지급 관리`의 탭과 표 위계를 더 분명하게 정리했다.
+  - `src/pages/Receivables.tsx`
+  - 탭 영역을 `정산 구간` 카드로 묶고, 현재 보고 있는 탭의 의미와 사용 힌트를 바로 읽을 수 있게 보강했다.
+  - `전체 정산 / 새 입력 / 기존 장부 / 줄 돈 / 환불대기` 각 탭 위에 한 줄 설명을 넣어, 표를 보기 전에 이 구간이 무엇을 뜻하는지 먼저 이해되게 했다.
+  - 탭 버튼도 한 줄 몰아쓰기 대신 가벼운 필터 버튼처럼 정리해 범위 전환이 더 자연스럽게 느껴지도록 바꿨다.
+- offline-crm-v2 `수금 관리 / 지급 관리`의 첫 진입 로딩 체감을 줄였다.
+  - `src/pages/Receivables.tsx`
+  - `기준일` 변경 시 동일한 미수 명세표 목록을 다시 요청하지 않도록 `useQuery` key에서 `asOfDate`를 제거했다. 이제 날짜를 바꿔도 화면이 통째로 다시 막히지 않는다.
+  - 기존에는 `고객 전체 / 기존 장부 스냅샷 / 회기 스냅샷`이 모두 준비될 때까지 화면 전체를 `미수금 기준 고객을 불러오는 중...`으로 막았는데, 이제는 명세표 데이터가 오면 화면 뼈대와 탭이 먼저 보이고, 연결 데이터가 필요한 영역만 안내 상태로 보인다.
+  - 수금 관리에서는 `새 입력 받을 돈` 영역을 먼저 볼 수 있게 해서 첫 진입 답답함을 줄였다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - `/receivables` 첫 진입 시 약 2초 내에 상단/탭/표 구조 노출 확인
+    - 기준일을 `2026-03-28`로 바꿔도 화면이 통째로 다시 비지 않고 바로 유지되는 것 확인
+- offline-crm-v2 `수금 관리 / 지급 관리` 상단을 다른 핵심 화면과 같은 `조회 조건 + 현재 상태 요약 + 빠른 작업` 구조로 정리했다.
+  - `src/pages/Receivables.tsx`
+  - 헤더 아래에 길게 이어지던 합계 문장을 제거하고, `기준일 / 오늘 기준 여부 / 현재 결과 건수 / 90일 초과 경고`를 짧은 상태 배지로 분리했다.
+  - 거래처 검색, 기준일 입력, `오늘 기준`, `거래처 필터 해제`를 하나의 `조회 조건` 카드 안에 다시 배치해 어디서 무엇을 조정하는지 바로 읽히게 했다.
+  - 과거 기준일일 때는 `조회 전용` 경고를 별도 안내 박스로 분리해, 필터와 섞이지 않게 정리했다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - `/receivables` 기준 상단이 `조회 조건` 카드와 상태 배지 구조로 정리되고, 요약 카드와 탭이 더 자연스럽게 이어지는 것 확인
+- offline-crm-v2 `고객 상세` 화면을 실사용 기준으로 다시 정리했다.
+  - `src/pages/CustomerDetail.tsx`
+  - 상단 액션을 흩어진 버튼 줄에서 `빠른 작업` 카드로 묶어, `명세표 작성`을 가장 먼저 보이게 하고 수금·지급·거래 조회는 보조 액션으로 정리했다.
+  - `기본정보` 탭 읽기 화면은 한 덩어리 목록 대신 `연락처`, `사업자 · 분류`, `운영 정보`, `주소 목록`, `운영 메모`로 나눠서 스캔 피로를 줄였다.
+  - 사용자는 이제 “바로 할 일”과 “참고 정보”를 한 화면에서 더 쉽게 구분할 수 있다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - `/customers/86` 기준 상단 `빠른 작업` 카드와 `기본정보` 분리 레이아웃 확인
+- offline-crm-v2 `고객 관리` 상단을 `조회 조건 + 현재 결과 요약` 구조로 정리했다.
+  - `src/pages/Customers.tsx`
+  - 검색, 유형, 상태, 등급 필터를 한 카드로 묶고 각 입력의 의미가 바로 보이게 라벨을 붙였다.
+  - 우측에는 `현재 N명`과 `기본 조회 상태/필터 적용 중` 요약 배지를 두어 지금 어떤 상태로 보고 있는지 바로 이해되게 바꿨다.
+  - 필터가 없을 때는 `전체 고객 보기` 안내를 보여주고, 필터가 걸리면 `초기화` 버튼이 같은 위치에 나타나도록 정리했다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - `/customers` 상단이 `조회 조건` 카드와 결과 요약 구조로 자연스럽게 읽히는지 확인
+- offline-crm-v2 `명세표 작성/관리` 목록에 모바일 전용 카드형 레이아웃을 추가했다.
+  - `src/pages/Invoices.tsx`
+  - 데스크톱에서는 기존 표 구조를 유지하고, 작은 화면에서는 `거래처/발행정보/금액/수금/출력/관리`가 카드 한 장 안에서 읽히도록 분리했다.
+  - 모바일에서는 `출력`과 `관리` 버튼을 2열/3열 그리드로 정리해 표 가로 스크롤 없이 바로 누를 수 있게 바꿨다.
+  - 거래 상세 미리보기 진입 로직은 `openTransactionPreview()`로 묶어 표/카드가 같은 동작을 쓰게 정리했다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - 768px 폭에서 `/invoices?from=2026-03-24&to=2026-03-30` 기준 모바일 카드형 노출 확인
+    - 데스크톱 표 구조와 버튼 동작 회귀 없음 확인
+- offline-crm-v2 `명세표 작성/관리` 목록의 한 줄 정보 구조를 더 빠르게 읽히게 정리했다.
+  - `src/pages/Invoices.tsx`
+  - `발행번호 + 발행일`을 `발행정보`로 묶고, `합계/공급가액/세액`은 금액 컬럼 안에서 한 덩어리로 보이게 정리했다.
+  - `수금 현황`은 상태 배지, 잔액, 입금액을 한 군데에서 읽게 바꿨다.
+  - 우측 액션은 이미 분리된 `출력/관리` 그룹을 유지하되, 그룹 라벨을 더 분명히 보여 현재 행에서 바로 이해되게 했다.
+- 회귀 테스트도 새 목록 구조 기준으로 맞췄다.
+  - `tests/02-invoices.spec.ts`
+  - 목록 헤더 수/이름과 저장 후 행 확인 셀렉터를 현재 DOM 기준으로 보정했다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - `/invoices?from=2026-03-24&to=2026-03-30`에서 목록 행이 `발행정보 / 금액 / 수금 현황 / 출력/관리` 순서로 더 자연스럽게 읽히는지 확인
+- offline-crm-v2 화면 가이드 포커스 방식을 `검은 블러 오버레이`에서 `가벼운 말풍선 안내`로 바꿨다.
+  - `src/components/layout/AppGuideWidget.tsx`
+  - `화면에서 보기`를 누르면 Help drawer는 접히고, 해당 요소 옆에 작은 말풍선으로 현재 단계 설명이 뜨도록 바꿨다.
+  - 강한 블러/차단막은 제거하고, 대상 요소는 연한 테두리 강조만 남겨 실제 화면이 더 잘 보이게 정리했다.
+  - 말풍선 안에서 `이전 / 다음 / 강조 끄기 / 도움말 열기`를 바로 쓸 수 있게 했다.
+- offline-crm-v2 새 명세표 시작 화면의 최근 거래처 영역을 더 단정하게 줄였다.
+  - `src/components/InvoiceDialog.tsx`
+  - 최근 거래처 칩은 최대 4개만 보이게 줄였고, `최근 거래처 빠른 선택` 박스로 묶어 첫 진입 화면이 덜 산만하게 보이게 정리했다.
+- 회귀 테스트도 새 가이드 포커스 흐름 기준으로 같이 보정했다.
+  - `tests/01-customers.spec.ts`
+  - `화면 도움말 열기 → 화면에서 보기 → 말풍선 표시 → 강조 끄기 → 도움말 다시 열기` 흐름을 자동 검증한다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 실브라우저 확인
+    - 고객 관리에서 검은 블러 없이 말풍선 포커스 노출 확인
+    - 명세표 작성 첫 화면 최근 거래처 영역 밀도 확인
+- offline-crm-v2 화면 가이드를 사이드바 인라인 패널에서 `Help drawer` 방식으로 바꿨다.
+  - `src/components/layout/AppGuideWidget.tsx`
+  - `src/lib/appGuide.ts`
+  - 사이드바에는 `화면 도움말` 진입 버튼만 두고, 실제 가이드는 우측 도움말 서랍에서 열리게 정리했다.
+  - 가이드 단계는 드로어 안에서 먼저 읽고, 필요할 때만 `화면에서 보기`를 눌러 해당 요소를 강조하도록 바꿨다.
+  - 자동 스크롤/강조가 열자마자 개입하지 않게 해서, 기존처럼 본문을 방해하는 느낌을 줄였다.
+- offline-crm-v2 명세표 작성 다이얼로그 제목줄과 단축키 안내를 더 가볍게 정리했다.
+  - `src/components/InvoiceDialog.tsx`
+  - 제목 오른쪽에 길게 붙어 있던 조작 문구를 제거하고, 짧은 설명은 헤더 아래로 내렸다.
+  - 단축키는 하단 액션 바에서 `Ctrl+Enter 저장 / Esc 닫기` 한 줄 안내만 남겼다.
+- offline-crm-v2 견적서 출력 CSS를 Safari/WebKit 쪽 페이지 분리에 더 보수적으로 대응하도록 보강했다.
+  - `src/lib/print.ts`
+  - 표/하단 요약/서명 블록에 `page-break-inside: avoid` 계열을 강화하고, 여백과 하단 블록 높이를 조금 더 압축했다.
+- 회귀 테스트도 방금 바꾼 영역 기준으로 보강했다.
+  - `tests/01-customers.spec.ts`
+  - `tests/02-invoices.spec.ts`
+  - `tests/helpers.ts`
+  - 고객 화면 `화면 도움말` 드로어 열림/닫힘 확인을 추가했다.
+  - 명세표 목록 `오늘 / 최근 7일` 빠른 기간 버튼 동작을 추가했다.
+  - 테스트 helper 날짜 계산을 UTC가 아니라 로컬 날짜 기준으로 보정했다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 23 passed, 1 skipped
+  - 로컬 Chromium 실브라우저 확인
+    - 고객 화면 `화면 도움말` 드로어 열림/본문 비침범 확인
+    - 명세표 목록 모바일 폭 필터 카드 레이아웃 확인
+    - 명세표 작성 다이얼로그 헤더/하단 액션 안내 확인
+  - 로컬 WebKit 확인
+    - WebKit 브라우저 실행 성공
+    - `/invoices?from=2026-03-13&to=2026-03-13`에서 `견적서` 버튼 클릭 시 생성된 blob iframe 기준 `.est-page = 1` 확인
+- offline-crm-v2 `명세표 작성/관리` 상단 필터/검색 바의 읽기 순서를 정리했다.
+  - `src/pages/Invoices.tsx`
+  - 필터 영역을 `조회 조건` 카드로 재구성하고, `거래처 검색 → 조회 기간 → 수금 상태 → 초기화` 순서로 다시 배치했다.
+  - 날짜 필터에는 `오늘 / 최근 7일 / 이번달` 빠른 버튼을 추가해 자주 쓰는 조회를 바로 누를 수 있게 했다.
+  - 현재 결과 건수와 조회 기간을 우측 요약 배지로 분리해, 지금 어떤 조건으로 보고 있는지 바로 이해되게 정리했다.
+  - `초기화`는 실제로 기본 상태에서 벗어난 경우에만 노출되도록 조건도 바로잡았다.
+- 검증
+  - 로컬 브라우저에서 `/invoices` 상단 필터 카드 레이아웃 확인
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
+- offline-crm-v2 `명세표 작성/관리` 목록의 우측 액션 묶음 밀도를 정리했다.
+  - `src/pages/Invoices.tsx`
+  - `명세표`, `견적서`는 같은 인쇄 그룹 안에서 묶고, `수정/복사/삭제`는 별도 관리 그룹으로 분리했다.
+  - 기능은 그대로 두고 시선 부담만 줄이는 방향으로 레이아웃을 정리했다.
+- 화면 가이드 UX 방향도 다시 정리했다.
+  - 현재처럼 `사이드바 하단 인라인 패널 + 단계형 투어 + 빠른 이동`을 한 컴포넌트에 몰아두는 구조는 계속 어색해질 가능성이 크다.
+  - 다음 리디자인은 `사이드바 버튼만 남기고, 우측 Help drawer에서 가이드/빠른이동/투어를 분리`하는 방식이 가장 적합하다는 쪽으로 판단했다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
+- offline-crm-v2 사이드바 `화면 가이드` 액션 위계와 스크롤 충돌을 같이 정리했다.
+  - `src/components/layout/AppGuideWidget.tsx`
+  - 가이드 버튼은 닫힌 상태/열린 상태가 더 분명하게 보이도록 `화면 가이드 / 열기`와 `화면 가이드 열림 / 접기` 형태로 정리했다.
+  - 패널은 예전처럼 사이드바 바깥으로 길게 뜨는 오버레이가 아니라, 사이드바 안에서 자연스럽게 펼쳐지는 인라인 패널로 바꿨다.
+  - 투어 모드에서 스크롤 이벤트마다 `scrollIntoView`를 다시 호출하던 구조를 없애, 단계가 바뀔 때만 한 번 이동하고 이후에는 사용자가 자유롭게 아래로 더 스크롤할 수 있게 보정했다.
+- 검증
+  - 로컬 실브라우저에서 `/transactions` 기준 가이드 열기 후 페이지 스크롤이 하단까지 계속 내려가는 것 확인
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
+- offline-crm-v2 명세표 작성 다이얼로그의 하단 액션 버튼 위계를 정리했다.
+  - `src/components/InvoiceDialog.tsx`
+  - 하단 액션 바를 sticky footer처럼 보이도록 바꾸고, 저장 버튼은 우측 고정의 가장 강한 버튼으로 정리했다.
+  - `인쇄 미리보기`, `임시저장`은 좌측 보조 액션으로 분리했고, `취소`는 우측 보조 버튼으로 정리했다.
+  - `Ctrl+Enter 저장`, `Esc 닫기` 단축키 안내도 버튼 근처로 내려 상단 제목 영역 부담을 줄였다.
+  - 새 명세표 저장 버튼 문구는 `명세표 발행` 대신 `저장`으로 단순화했다.
+- 회귀 테스트도 현재 액션 버튼 문구 기준으로 보정했다.
+  - `tests/02-invoices.spec.ts`
+  - 신규 명세표 저장 버튼을 `저장` exact 매칭으로 찾도록 바꿔 `임시저장`과 충돌하지 않게 했다.
+- 검증
+  - 로컬 실브라우저에서 명세표 수정 다이얼로그 하단 액션 바 레이아웃 확인
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
+- offline-crm-v2 로그인 진입 시 UI가 두 번 뜨는 체감 문제를 앱 초기 마운트 기준으로 완화했다.
+  - `src/main.tsx`
+  - React `StrictMode`를 제거해 개발/실행 환경에서 같은 UI가 두 번 그려지는 체감을 줄였다.
+  - 이 저장소 안에는 별도 CRM 로그인 화면 소스가 없어서, 이번 보정은 앱 루트 중복 마운트 완화 기준이다.
+- 명세표 수정/미리보기 UX 회귀를 정리했다.
+  - `src/components/ui/dialog.tsx`
+  - `src/components/InvoiceDialog.tsx`
+  - Dialog 기본 X 버튼을 옵션화하고, 인쇄 미리보기 모달이 열릴 때 부모 다이얼로그 X 버튼을 숨겨 우측 상단 X가 두 개 보이지 않게 했다.
+  - 새 명세표 제목은 `새 거래명세표` 대신 `새 명세표`로 정리했다.
+  - 수정 화면 `구분`은 `청구/영수`만 보이게 바꾸고 기본값은 `청구`로 고정했다.
+- 명세표 저장/조회/출력의 구분값을 운영 기준으로 정규화했다.
+  - `src/lib/invoiceDefaults.ts`
+  - `src/lib/api.ts`
+  - `src/pages/Invoices.tsx`
+  - 레거시 `거래명세표/견적서/영수(청구)`는 저장 시 `청구/영수` 체계로 정리되도록 맞췄다.
+  - 목록에서 `명세표`/`견적서` 출력 버튼을 눌렀다가 닫아도 현재 보고 있던 날짜 필터가 오늘로 되돌아가지 않게 `useSearchParams` 동기화 로직을 보정했다.
+- 견적서 Safari 출력이 2페이지로 쪼개질 가능성을 줄이도록 인쇄 밀도를 더 압축했다.
+  - `src/lib/print.ts`
+  - 페이지 마진, 상단 메타, 표 행 높이, 비고/서명 블록 높이를 줄여 한 페이지 수용 여유를 늘렸다.
+- 회귀 테스트도 현재 UX 기준으로 같이 갱신했다.
+  - `tests/helpers.ts`
+  - `tests/01-customers.spec.ts`
+  - `tests/02-invoices.spec.ts`
+  - 새 다이얼로그 제목 `새 명세표` 기준으로 회귀 테스트를 맞췄다.
+- 검증
+  - 로컬 실브라우저 클릭 확인
+    - 수정 다이얼로그 `구분=청구/영수`만 표시
+    - 인쇄 미리보기 우측 상단 X 1개만 표시
+    - 목록 `명세표` 버튼 클릭 후에도 날짜 필터 `2026-03-13 ~ 2026-03-13` 유지
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
+  - 운영 릴리스 배포 완료: `20260329222152-6d0dfd7-dirty`
+  - 서버 확인: `/var/www/crm`, `/var/www/crm-current` 모두 `20260329222152-6d0dfd7-dirty` 가리킴
+  - `curl -I -L https://crm.pressco21.com` → Basic Auth 앞단 `401 Unauthorized` 정상 응답
+  - 위 릴리스의 `-dirty`는 코드 미커밋이 아니라 `AI_SYNC.md` 미정리 상태에서 배포한 영향이다. 이후 AI_SYNC 정리 커밋 후 clean 릴리스 재배포 예정.
+- offline-crm-v2 견적서 출력의 `유효기간`을 `견적일자 + 14일`로 자동 계산하도록 보정했다.
+  - `src/lib/print.ts`
+  - 견적서 상단 메타에서 `유효기간`은 발행일과 동일값이 아니라 `invoice_date` 기준 14일 뒤 날짜로 출력된다.
+  - 사업자번호/전화 표기도 견적서와 거래명세표 인쇄물 모두 일반적인 하이픈 형식으로 맞췄다.
+- offline-crm-v2 입력 포맷 공통 함수를 추가하고 고객/공급처/설정/고객상세 편집에 자동 포맷을 연결했다.
+  - `src/lib/formatters.ts`
+  - `src/components/CustomerDialog.tsx`
+  - `src/components/SupplierDialog.tsx`
+  - `src/pages/Settings.tsx`
+  - `src/pages/CustomerDetail.tsx`
+  - `src/components/InvoiceDialog.tsx`
+  - 전화/휴대폰은 `01098485520 → 010-9848-5520`, 사업자번호는 `2150552221 → 215-05-52221`처럼 입력 중 자동 변환된다.
+  - 명세표 다이얼로그 고객 스냅샷과 날짜 정규화도 같은 공통 포맷 기준을 쓰게 맞췄다.
+- 검증
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
+  - 로컬 브라우저에서 설정 화면 raw 숫자 입력 시 자동 하이픈 포맷 확인
+  - 운영 릴리스 배포 완료: `20260329213816-8acbe77`
+  - 서버 확인: `/var/www/crm`, `/var/www/crm-current` 모두 `20260329213816-8acbe77` 릴리스 가리킴
+  - `curl -I -L https://crm.pressco21.com` → Basic Auth 앞단 `401 Unauthorized` 정상 응답
+- offline-crm-v2 견적서 출력에서 빈 행을 제거하고, 하단 비고/합계/서명 영역이 실제 품목 뒤로 바로 이어지게 바꿨다.
+  - `src/lib/print.ts`
+  - 기존처럼 남는 줄을 표에 억지로 채우지 않고, 실제 품목 수만큼만 렌더링한다.
+  - 하단 요약 블록을 페이지 맨 아래로 밀던 `auto` 여백도 제거해 중간 공백이 크지 않게 조정했다.
+- 명세표 작성 다이얼로그의 내부 스크롤도 함께 복구했다.
+  - `src/components/InvoiceDialog.tsx`
+  - `DialogContent`를 `flex column` 구조로 바꾸고, 본문 영역에 `min-h-0 flex-1 overflow-y-auto`를 적용해 하단까지 다시 내려가게 했다.
+- 검증
+  - 로컬 브라우저에서 견적서 `인쇄 미리보기` 확인: 품목 6개 뒤에 빈 행 없이 비고/합계가 바로 이어짐
+  - 로컬 브라우저에서 명세표 수정 다이얼로그 스크롤 복구 확인
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
+  - 최종 운영 릴리스: `20260329212355-cdf1841`
+- offline-crm-v2 명세표 작성 다이얼로그의 하단 `입금/잔액` 블록을 계산 근거가 보이도록 재구성했다.
+  - `src/components/InvoiceDialog.tsx`
+  - 왼쪽은 `입금 처리` 입력 카드, 오른쪽은 `잔액 계산` 카드로 분리했다.
+  - 잔액 계산 카드에 `전잔액 / 이번 출고액 / 입금액 / 예치금 사용 / 현잔액`을 모두 표시해 계산식이 바로 보이게 했다.
+  - 예치금을 쓰는 경우 상단 안내 배지와 계산 항목이 같이 보여 실제 반영 금액을 혼동하지 않게 했다.
+- 검증
+  - 로컬 브라우저에서 `/invoices?from=2026-03-27&to=2026-03-27` → 수정 다이얼로그 하단 블록 확인
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
+  - 최종 운영 릴리스: `20260329210511-0109497`
+- offline-crm-v2 명세표 작성 다이얼로그 상단 UX를 입력 순서 기준으로 정리했다.
+  - `src/components/InvoiceDialog.tsx`
+  - 다이얼로그를 `헤더 고정 + 본문 스크롤` 구조로 바꿔 상단과 본문 경계를 분명히 했다.
+  - 상단 입력 영역은 `거래처 / 발행일 / 발행번호` 중심으로 재배치하고, 참고 정보는 고객 카드에서 압축해서 보여주도록 정리했다.
+  - `구분 / 전잔액 / 예치금 사용 / 비고`를 한 줄 흐름으로 다시 묶었고, 예치금 요약은 아래 2개 카드로 축약했다.
+  - 품목 영역에는 자동완성 규칙 안내를 넣고, 테이블을 `table-fixed`로 바꿔 열 폭 흔들림을 줄였다.
+- 검증
+  - 로컬 브라우저에서 `/invoices?from=2026-03-27&to=2026-03-27` → 첫 행 수정 진입으로 새 상단 레이아웃 확인
+  - `npm run build` → passed
+  - `npm run test:regression` → 21 passed, 1 skipped
+  - 최종 운영 릴리스: `20260329210010-57b9b1a`
+- offline-crm-v2 견적서 출력 미리보기의 행 높이를 줄여 일반적인 문서 밀도로 정리했다.
+  - `src/lib/print.ts`
+  - 견적서 품목 테이블의 강제 확장 구조를 없애고, 하단 요약/서명은 `est-footer`로 페이지 하단에 고정했다.
+  - 품목 헤더/본문 패딩과 글자 크기를 줄이고, 빈 행 높이도 얇게 조정했다.
+  - 거래명세표 양식과 저장 로직은 건드리지 않았다.
+- 릴리스형 배포 스크립트의 추적성을 보강했다.
+  - `deploy/deploy-release.sh`
+  - 커밋되지 않은 변경이 포함된 상태에서 배포하면 release id에 `-dirty`가 붙도록 수정했다.
+  - 앞으로 릴리스 이름만 봐도 "커밋 기준 배포인지, 임시 배포인지" 바로 구분할 수 있다.
+- 검증
+  - 로컬 브라우저에서 `/invoices?from=2026-03-27&to=2026-03-27` → 첫 번째 명세표 수정 → `구분=견적서` → `인쇄 미리보기`로 실제 렌더링 확인
+  - `npm run build` → passed
+- offline-crm-v2에 비전공자도 따라갈 수 있는 AI 표준 개발 문서를 추가했다.
+  - `docs/ai-senior-workflow.md`: 작업 브리프 → 기존 정상 동작 고정 → 작은 범위 수정 → 자동 검증 → 릴리스형 배포 → 운영 스모크 체크 흐름을 설명
+  - `docs/templates/ai-task-brief.md`: 작업명/목표/영향 화면/수정 파일/건드리면 안 되는 동작/검증/배포 여부만 적는 짧은 템플릿 추가
+- 운영 배포를 덮어쓰기 방식에서 릴리스 승격 방식으로 전환했다.
+  - `deploy/deploy-release.sh`: `/var/www/releases/crm/<release-id>`에 새 빌드를 올리고 `/var/www/crm`, `/var/www/crm-current` 심볼릭 링크를 새 릴리스로 전환
+  - `deploy/rollback-release.sh`: 원하는 release id로 즉시 롤백
+  - `package.json`: `npm run deploy:release`, `npm run deploy:rollback -- <release-id>` 스크립트 추가
+- 첫 릴리스형 배포를 실제 운영에 적용했다.
+  - Release ID: `20260329204531-3960346`
+  - 운영 서버 확인: `/var/www/crm`와 `/var/www/crm-current` 모두 새 릴리스를 가리킴
+  - 운영 URL `https://crm.pressco21.com`는 Basic Auth 앞단에서 `401 Unauthorized`로 정상 응답
+- 검증
+  - `npm run test:regression` → 21 passed, 1 skipped
+  - `npm run build` → passed
+  - `bash -n deploy/deploy-release.sh`
+  - `bash -n deploy/rollback-release.sh`
+- offline-crm-v2 운영 회귀를 실브라우저로 다시 점검했다. `2026-03-29` 기준 운영 `/invoices`, `/customers/86`에서 고객 프리필, 주소 라벨, 명세표/견적서 실행 버튼, 품목 자동완성 단가 입력, 사이드바 가이드 동선을 직접 확인했다.
+- 명세표 기본값/출력 기본값이 다시 흩어지지 않도록 `src/lib/invoiceDefaults.ts`를 추가했다. `거래명세표` 기본 구분과 허용 구분 목록을 `InvoiceDialog`, `api`, `print`가 공통으로 사용하게 정리했다.
+- `src/lib/print.ts`의 레거시 fallback `영수`를 `거래명세표` 기준으로 맞췄다. 구분값이 비어 있는 인쇄 경로에서도 현재 운영 기본값과 출력값이 어긋나지 않는다.
+- 기존 Playwright 회귀 검증이 현재 운영 UX를 따라가지 못하던 문제를 보정했다.
+  - `tests/01-customers.spec.ts`: 고객 검색 placeholder 변경 대응, 고객 상세 → 명세표 작성 시 고객/주소 라벨 프리필 검증 추가
+  - `tests/02-invoices.spec.ts`: 기본 구분 `거래명세표`, 오늘 날짜 필터, 행 우측 `명세표/견적서` 버튼, 품목 자동완성 시 고객 단가 입력 + 과세 유지 검증 추가
+  - `tests/helpers.ts`: `/crm-proxy` 직접 정리 헬퍼 추가, `TEST-E2E-PLAYWRIGHT-` 테스트 명세표 자동 삭제 추가
+  - `package.json`: `npm run test:regression` 스크립트 추가
+- 회귀 테스트가 운영 데이터를 남기지 않도록 자동 정리 경로를 넣었고, 운영에 남아 있던 예전 테스트 찌꺼기 명세표 `TEST-E2E-PLAYWRIGHT` 1건도 직접 삭제했다.
+- 검증
+  - `npm run test:customers` → 10 passed
+  - `npm run test:invoices` → 12 passed
+  - `npm run test:regression` → 22 passed
+  - `npm run build` → passed
+- `bash deploy/deploy.sh`로 운영 재배포 완료. 서버 `index.html`이 새 번들 `index-Br6LT5NW.js`를 가리키는 것까지 확인했다.
+- offline-crm-v2 명세표 작성/관리 페이지의 기본 조회 일자를 다시 오늘로 고정했다. URL에 날짜가 없으면 `from/to` 모두 오늘 날짜로 채워지고, 초기화도 오늘 날짜로 돌아간다.
+- 명세표 목록 우측 액션에 `명세표`, `견적서` 출력 버튼을 복구했다. 사용자가 같은 건에서 원하는 문서 타입을 바로 선택해 출력할 수 있다.
+- `src/lib/print.ts`에 빠져 있던 견적서 전용 템플릿과 estimate 출력 분기를 복원했다. 명세표 다이얼로그 미리보기도 `구분=견적서`일 때 견적서 양식으로 열린다.
+- `src/lib/api.ts`의 `normalizeReceiptType` 허용값에 `거래명세표`, `견적서`를 다시 포함시켜 저장/복원 경로에서 새 구분값이 사라지지 않게 했다.
+- 로컬 브라우저에서 `/invoices` 진입 시 날짜 필터가 `2026-03-27 ~ 2026-03-27`로 기본 설정되는 것, 목록 행에 `명세표/견적서` 버튼이 함께 보이는 것, 새 명세표에서 `구분=견적서` 선택 후 미리보기 iframe이 `견 적 서` 양식으로 렌더링되는 것을 확인했다.
+- `npm run build` 통과 후 `bash deploy/deploy.sh`로 운영 재배포했고 build/upload/nginx test/reload까지 모두 성공했다.
+- offline-crm-v2 명세표 작성 다이얼로그의 구분 옵션에서 빠졌던 `거래명세표`와 `견적서`를 복구했다. 새 명세표 기본값도 다시 `거래명세표`로 맞췄다.
+- 기존 `영수/청구/영수(청구)` 값은 운영 데이터 호환을 위해 옵션에 함께 유지했다.
+- 품목 자동완성/목록 선택 시 과세 체크 상태는 현재 행 기본값을 유지하면서, 단가는 다시 고객 단가 기준으로 자동 입력되도록 `InvoiceDialog`를 보정했다.
+- 로컬 브라우저에서 새 명세표 기준으로 `거래명세표/견적서` 옵션 노출과 `UV레진/구미타입/25g` 선택 시 단가 `16,400`, 과세 해제 유지 동작을 확인했다.
+- `npm run build` 통과 후 `bash deploy/deploy.sh`로 운영 재배포했고 build/upload/nginx test/reload까지 모두 성공했다.
+- 이번 복구분은 `[codex]` 커밋으로 정리해 원격 `main`에도 반영한다.
+- offline-crm-v2 명세표 품목 자동완성/목록 선택 회귀를 복구했다. 품목 선택 시 상품 마스터의 단가/과세를 다시 덮어쓰지 않고, 행의 현재 단가/과세 기본값을 유지하도록 `InvoiceDialog`를 보정했다.
+- 복수 품목 선택 추가도 같은 정책으로 맞춰 새로 들어온 행이 상품 마스터 과세/단가를 자동주입하지 않도록 정리했다.
+- 로컬 브라우저에서 새 명세표 기준 `UV레진/착색제/퍼플` 자동완성 선택 후 단가 `0`, 과세 체크 해제 상태가 그대로 유지되는 것을 확인했다.
+- 이번 품목 선택 회귀 복구분을 `bash deploy/deploy.sh`로 운영 재배포했고, build/upload/nginx test/reload까지 모두 성공했다.
+- 이번 배포분을 커밋/푸시해 회귀 복구 상태를 원격 기준으로도 고정한다.
+- offline-crm-v2 명세표 작성 다이얼로그의 주소 선택 라벨도 고객 메타 `addressLabels`를 읽도록 보정했다. 이제 `주소1`, `주소extra_es:0` 같은 내부 키 대신 고객 상세에서 저장한 주소지 명이 그대로 보인다.
+- 주소가 하나뿐인 고객도 다이얼로그 거래처 카드에서 라벨 배지 + 주소 본문으로 같은 이름 기준을 쓰게 맞췄다.
+- 이번 주소 라벨 표시 보정분을 `bash deploy/deploy.sh`로 운영 재배포했고, build/upload/nginx test/reload까지 모두 성공했다.
+- `curl -I -L https://crm.pressco21.com` 확인 결과 운영은 Basic Auth 앞단에서 `401 Unauthorized`로 정상 응답 중이다.
+- offline-crm-v2 화면 가이드를 전역 플로팅 위젯에서 빼고 좌측 사이드바 하단 영역으로 옮겼다. 기본은 버튼만 보이고 클릭했을 때만 패널이 열리도록 유지했다.
+- 가이드 버튼은 사이드바 하단 정보의 상단에 배치해 작업 계정 카드보다 먼저 보이게 했고, 패널은 버튼 위로 열리게 해 본문 상단 액션을 기본 상태에서 가리지 않도록 정리했다.
+- 고객 상세의 `명세표 작성` 버튼이 `/invoices?new=1`만 보내던 회귀를 복구했다. 이제 `customerId/customerName`을 함께 넘기고, 명세표 다이얼로그가 새 작성 시 해당 고객을 초기 거래처로 자동 선택한다.
+- 초기 고객 프리필은 새 명세표 진입에서만 적용하고, 사용자가 이후 직접 바꾼 거래처를 다시 덮어쓰지 않도록 다이얼로그 초기화와 수동 선택 경로를 분리했다.
+- 로컬 브라우저에서 고객 상세(`/customers/86`) 기준으로 사이드바 하단 가이드 위치와 `명세표 작성` 진입 시 `송윤경 회장님`이 기본 선택되는 흐름을 확인했다.
+- `npm run build` 통과 후 `bash deploy/deploy.sh`로 운영 재배포했고, build/upload/nginx test/reload까지 모두 성공했다.
+- `curl -I -L https://crm.pressco21.com` 확인 결과 운영은 Basic Auth 앞단에서 `401 Unauthorized`로 정상 응답 중이다.
+- offline-crm-v2 화면 가이드 토글을 카드 하단 좌측 대신 우측 고정 토글로 재배치했다. 모바일은 우하단, 데스크톱은 우측 중앙에 붙도록 조정했다.
+- 가이드 패널은 같은 우측 축에서 열리게 바꿔 고객 상세 카드/하단 요약 영역 침범을 줄였다.
+- 로컬 브라우저 스냅샷으로 고객 상세 화면 기준 위치를 확인했고, 이번 위치 개선분도 운영 재배포했다.
+- 운영 URL은 Basic Auth 앞단에서 `401 Unauthorized`로 정상 응답 중이다.
+- offline-crm-v2 고객 메모 노출 버그를 보정했다. 화면용 메모 정리 로직이 `[LEGACY_*]` / `[ACCOUNTING_*]` 숨김 메타를 줄 단위뿐 아니라 줄 중간에 섞인 경우도 제거하도록 수정했다.
+- 기존에 오염된 메모를 다시 저장할 때 숨김 메타가 visible memo로 재유입되지 않도록 `mergeDisplayMemo`와 legacy memo serializer도 함께 보정했다.
+- 이번 메모 버그 수정분을 `bash deploy/deploy.sh`로 운영 재배포했고, build/upload/nginx reload까지 성공했다.
+- 운영 URL은 Basic Auth 앞단에서 `401 Unauthorized`로 정상 응답 중이다.
+- offline-crm-v2 화면 가이드를 자동 팝업 대신 기본 접힘 상태로 바꿨다. 이제 첫 진입 시 본문 버튼 클릭을 막지 않고, 가이드가 있으면 작은 힌트 점만 표시한다.
+- 가이드 위젯 래퍼는 `pointer-events-none`, 실제 버튼/패널만 `pointer-events-auto`로 두어 불필요한 클릭 차단을 줄였다.
+- 가이드 패널은 `max-height`와 스크롤을 적용해 화면 상단 버튼 영역을 침범하지 않도록 보정했다.
+- 이번 가이드 UX 개선분을 `bash deploy/deploy.sh`로 운영 재배포했고, build/upload/nginx reload까지 성공했다.
+- 운영 URL은 Basic Auth 앞단에서 `401 Unauthorized`로 정상 응답 중이다.
+- offline-crm-v2 주소 3개 이상 저장 보정과 가이드 버튼 도킹 위치 조정분을 `bash deploy/deploy.sh`로 운영 재배포했다.
+- 재배포 후 build, 업로드, nginx config test, reload가 모두 성공했고, 운영 URL은 Basic Auth 앞단에서 `401 Unauthorized`로 정상 응답했다.
+- offline-crm-v2 고객 상세 주소 저장 구조를 운영 스키마 기준으로 보정했다. `address1/address2/extra_addresses(JSON)` 조합으로 저장하도록 수정해 3번째 주소부터도 유지된다.
+- 주소 읽기 헬퍼를 `src/lib/api.ts`에 추가하고 고객 상세, 명세표 작성, 명세표 목록이 같은 주소 해석 기준을 쓰도록 맞췄다.
+- 운영 프록시 실검증으로 `extra_addresses: [\"A3\",\"A4\"]` 저장/조회가 되는 것을 확인했다.
+- 화면 가이드 버튼은 전역 위젯이었고, 현재 고객 계열 화면에서 `left` 도킹을 쓴다. 도킹 위치를 사이드바 `w-60` + 페이지 좌측 패딩 기준인 `calc(15rem + 1.5rem)`으로 조정했다.
+- 로컬 브라우저 스냅샷으로 고객 관리 화면에서 가이드 버튼 위치를 확인했다.
+- offline-crm-v2 주소 라벨/분리 거래명 매칭 보정 변경분을 `bash deploy/deploy.sh`로 운영 서버에 배포했다.
+- 배포 스크립트에서 build, 파일 업로드, nginx config test, reload까지 모두 성공했다.
+- `curl -I -L https://crm.pressco21.com` 확인 결과 운영은 Basic Auth 앞단에서 `401 Unauthorized`로 응답해 서버 자체는 정상 응답 중이다.
+- offline-crm-v2 고객 상세 기본정보 편집에서 주소별 `주소지 명 + 주소`를 함께 입력/표시할 수 있도록 개선했다.
+- 주소지 명은 고객 메모 숨김 메타(`[ACCOUNTING_CUSTOMER_META]`)의 `addressLabels`로 저장해 기존 `address1~address10` 구조를 유지했다.
+- 고객 목록 `분리 거래명`이 `(주)에스피랩`으로 과다 노출되던 원인을 확인했고, 괄호로 시작하는 거래명의 root 추출이 빈 문자열이 되어 `includes('')`로 전 고객에 매칭되던 조건을 보정했다.
+- `src/lib/receivables.ts`의 동일 alias 추론 조건도 같이 보정해 후속 미수/연결 로직과 기준을 맞췄다.
+- `npm run build` 통과로 타입체크와 프로덕션 번들 생성까지 확인했다.
+- Gmail 보안메일 기반 자동입금 수집 경로를 live n8n에서 실동작 검증했다.
+- CRM 설정/입금 수집함에 `Gmail 보안메일 연동` 표기를 추가하고 운영 배포했다.
+- 명세표 발행 시 `items` 테이블 bulk POST 404를 재현했고, 라인아이템 저장을 개별 생성/삭제 방식으로 바꿔 운영 배포했다.
+- 실제 NH 보안메일 2건(`장지호 2,000원`, `장다경 5,000원`)을 첨부 HTML 기준으로 직접 복호화해 검증했다.
+- `장지호 2,000원`은 부분 입금 review, `장다경 5,000원`은 초과 입금 review로 intake 엔진이 정확히 분류함을 확인했다.
+- Gmail collector가 `UNSEEN` 메일만 읽도록 돼 있어 사용자가 메일을 먼저 열면 자동수집에서 누락되는 문제를 확인했고, 해당 필터를 제거해 재배포했다.
+- `DepositInbox`에서 검토 반영 후 처리 상태가 끝나지 않던 흐름을 보정했고, 초과 입금은 검토 큐에서 바로 예치금으로 적립되도록 처리 경로를 추가했다.
+- Playwright 실검증 결과 `장지호 2,000원`/`장다경 5,000원` 둘 다 검토 큐에서 반영 완료되며, 장다경 초과분 `1,700원`은 예치금으로 적립됨을 확인했다.
+
+## Next Step
+- 현재 범위는 종료됐다. 아래 항목들은 즉시 진행 중인 일이 아니라 다음 세션에서 새 scope로 다시 잡을 후보들이다.
+- `[CODEX-LEAD] flora-frontdoor open item 캐시를 배포 시점 스냅샷이 아니라 주기적/이벤트성으로 재빌드해, 회상 답변이 더 최근 상태를 보게 만들기`
+- `[CODEX-LEAD] open item 캐시에서 `정리해줘/메모해줘` 같은 메타 task를 SQL/후처리 기준으로 더 안정적으로 제외해 회상 품질을 높이기`
+- `[CODEX-LEAD] detailsMerge에 남기기 시작한 `userChatId/userName/sourceCreatedAt`를 dashboard/briefing/review에서도 활용할 첫 표시 규칙 구현`
+- `[CODEX-LEAD] 최근 메모 캐시를 `userChatId`별 섹션이나 별도 파일로 분리해, 다중 사용자 DM에서도 회상 정확도를 높이기`
+- `[CODEX-LEAD] 메모 기입 모드와 정리 모드를 source_messages/task metadata에 함께 남겨, 나중에 메모만 따로 회상하거나 요약할 수 있게 연결`
+- `[CODEX-LEAD] Flora 실제 Telegram DM 1건을 다시 보내 내부 commentary/tool output 누수가 사라졌는지 체감 검증`
+- `[CODEX-LEAD] Flora 실제 Telegram DM 1건을 보내 `agent:flora-frontdoor:telegram:direct:<chatId>` 세션이 새로 생기는지와 `sourceMessageId != unknown:*`가 실제로 찍히는지 확인`
+- `[CODEX-LEAD] Flora 실제 Telegram ingress에서 `userChatId`, `sourceMessageId`, `sourceCreatedAt`를 frontdoor turn에 어떻게 넘길지 확인하고, fallback `unknown:timestamp`를 줄이기 위한 송신 규칙을 고정`
+- `[CODEX-LEAD] frontdoor 자동 capture 경로에서 `requestType`, `briefingBucket`, `executionRoute`를 더 안정적으로 채우도록 dev-request / approval / waiting 분류 규칙을 세분화`
+- `[CODEX-LEAD] detailsMerge가 들어간 task를 dashboard/briefing/review에서 실제로 어떻게 활용할지 첫 표시 규칙을 구현`
+- `[CODEX-LEAD] 통합 PRD를 참조하는 모바일 자동화 1차 feature spec 작성: 메일 초안 -> 승인 -> 발송`
+- `[CODEX-LEAD] 서버 실행기 역할 분리 문서 작성: API/SMTP 우선, Playwright 보조, 승인 없는 외부 발신 금지`
+- `[CODEX-LEAD] flora-frontdoor-task-ledger-phase1-spec 기준으로 dev request는 `/api/automation/tasks`와 local dev worker까지 같은 source_message 기준으로 묶이게 연결`
+- `[CODEX-LEAD] flora-todo-mvp에서 Phase 1 임시 필드 저장 전략(detailsJson/metadata)과 이후 정규화 전략(assignment/approval/event_log)을 연결하는 상세 설계 작성`
+- `[CODEX-LEAD] Telegram Mini App MVP IA를 PRD 기준으로 별도 구현 스펙 문서로 내리고, 홈/빠른 메모/오늘 브리핑/승인 대기 화면부터 고정`
+- `[CODEX-LEAD] flora-orchestration-service-master-plan 기준으로 Frontdoor -> Task Ledger 닫힌 루프 구현 스펙을 별도 문서로 고정`
+- `[CODEX-LEAD] flora-todo-mvp를 협업 오케스트레이션 원장으로 확장하기 위한 assignment / approval / event_log 스키마 초안 작성`
+- `[CODEX-LEAD] Telegram Mini App MVP IA 문서 작성: 홈, 빠른 메모, 오늘 브리핑, 승인 대기, 팀별 업무함`
+- `[CODEX] 루트에서 한 번에 건드리지 말고, 다음부터는 `cd flora-todo-mvp`, `cd offline-crm-v2`, `cd openclaw-project-hub`처럼 프로젝트 폴더 단위로 진입해서 status/add/commit 범위를 고정`
+- `[CODEX] 큰 덩어리 기준으로 `openclaw-project-hub(111)`, `scripts(16)`, `docs(16)`, `offline-crm-v2(6)` 순서로 path-scoped 정리 또는 커밋 후보를 다시 나누기`
+- `[CODEX-LEAD] Flora 실제 텔레그램 송신 측(OpenClaw/로컬 worker 포함)이 `source_message_id`와 `source_created_at`를 항상 보내는지 점검하고, 빠진 송신 경로가 있으면 발신단에서 안정 ID를 강제`
+- `[CODEX-LEAD] Flora `source_messages`를 홈/리뷰에서 바로 찾을 수 있게 검색용 admin 화면 또는 recovery page를 붙여, 다음 복구가 DB 질의 없이도 가능하게 만들기`
+- `[CODEX-LEAD] Flora 대화 원문을 task 재생성용으로 다시 흘릴 수 있는 replay/recover 스크립트를 추가해, 원문 보존 이후 복구 루프도 자동화`
+- `[CODEX] 다음 CRM 입금 자동화 수정에서도 live n8n 변경과 저장소 JSON이 다시 어긋나지 않게, 배포 직후 workflow export/로컬 소스 재동기화를 기본 루틴으로 고정`
+- `[CODEX] 다음 실제 NH 입금 메일 1건에서 텔레그램 입금 알림이 정말 1건만 오고, 통장잔액이 메시지 안에서 한 번만 보이는지 운영 확인`
+- `[CODEX] 검토 필요 / 미매칭 문구가 현장 기준으로 아직 길면, 첫 문장을 더 짧은 실무형 문구로 한 번 더 압축`
+- `[CODEX] 맥북 재부팅 후 같은 메모리 경보가 빠르게 재발하면 memory-watchdog 기준을 'swap 단독 critical'에서 '낮은 free + 높은 swap + 연속 발생' 조합으로 재설계`
+- `[CODEX] 운영 서버에 hotfix 된 /home/ubuntu/scripts/server-monitor.sh 를 정식 소스 저장소 기준으로 어디에 반영할지 결정하고, writable 경로가 열리면 같은 수정(/proc/stat CPU, Asia/Seoul 시간표기)을 역반영`
+- `[CODEX] 다음 실제 기능 작업 1건에서 start -> checkpoint -> backup -> preflight -> commit -> publish -> finish 순서를 실제로 한 번 끝까지 적용해, 문구나 출력 형식을 더 다듬기`
+- `[CODEX] OPS_STATE.md는 장기 운영 사실만 남기고, 세션 세부 로그가 섞이지 않도록 다음 handoff부터 분리 운용`
+- `[CODEX] 다음 실제 작업 1건에서 새 루틴으로 시작→체크포인트→백업→마감까지 한 바퀴 다시 써 보고, 부족한 필드나 출력 형식을 다듬기`
+- `[CODEX] 필요하면 `_tools/codex-preflight.sh`에 프로젝트별 테스트 명령 프리셋(예: CRM build, n8n JSON check)을 서브디렉토리 기준으로 확장`
+- `[CODEX] 오류 구간 누락 입금 중 미자동반영 4건((학교)소년의, 여윤화, 쿠팡페이주식, 롯데77619072)을 검토 큐/실제 고객 상태 기준으로 수동 확인`
+- `[CODEX] 다음 실제 NH 입금 메일 1건에서 webhook replay 없이도 새 단일 입금 알림 포맷이 정상 도착하는지 운영 확인`
+- `[CODEX] 기존 CRM 내부 계정 1개로 BasicAuth fallback이 여전히 통과하는지 `/data/legacy-customer-snapshots.json` 1회 실계정 검증`
+- `[CODEX-LEAD] flora-todo-mvp를 개인 todo MVP에서 협업 오케스트레이션 시스템으로 확장하기 위한 \`staff/team/task_assignee/event_log\` 스키마 초안을 먼저 정의`
+- `[CODEX-LEAD] flora-todo-mvp의 \`tasks/projects\`가 회사 통합 원장과 어떻게 연결될지 source-of-truth 경계를 문서화하고, 앱 전용 Postgres가 장기 임시 원장인지 확정`
+- `[CODEX-LEAD] 홈 대시보드를 개인 관제 화면에서 팀 운영 관제 화면으로 확장하기 위한 배정/인계/막힘/검토대기 큐 설계`
+- `[CODEX-LEAD] flora-todo-mvp compound sentence에서 \`waiting_for\` 후보를 더 짧게 자르기 위한 후처리 규칙과 alias 사전 운영 편집 경로 추가`
+- `[CODEX-LEAD] flora-todo-mvp \`seed:demo\`와 API smoke test를 하나의 e2e 스크립트로 묶어 fresh DB 기준 회귀 검증을 더 단순화`
+- `[CODEX] Claude Code 리뷰용으로 Customer OS Core 데이터 스키마 상세안과 사방넷 섀도우 런 검증표를 이어서 작성`
+- `[CODEX] Customer OS Core 상세 정보구조 문서 작성: 시스템 경계, 핵심 테이블, 고객 매칭 규칙, CRM v2 책임 분리표를 더 세분화`
+- `[CODEX] Customer OS Portal 화면 구조 초안과 CRM v2 deep link 흐름을 메뉴 단위로 정리`
+- `[CODEX] 고객운영 OS PRD 기준으로 통합 테이블 상세 스키마(`customers`, `customer_identities`, `orders_raw`, `orders_unified`, `payments`, `shipments`)와 고객 매칭 규칙 세부안을 작성`
+- `[CODEX] 사방넷 export 자동화 PoC 범위를 실제 운영 기준으로 고정하고, 다운로드 항목/필드/저장 경로/백업 경로를 체크리스트로 문서화`
+- `[CODEX] 메이크샵 직접 보강이 필요한 필드와 사방넷만으로 충분한 필드를 분리해 2주 섀도우 런 검증표를 작성`
+- `[CODEX-LEAD] 실제 텔레그램에서 통합 비서 방 1건, Codex 방 1건, Claude 방 1건 자연어 요청을 보내 모델 fallback이 체감상 자연스럽게 동작하는지 확인`
+- `[CODEX-LEAD] 통합 비서 DM(7713811206)에서 기존 Oracle 메모 문맥이 원하는 수준으로 이어지는지 실제 업무 질문 1~2건으로 확인`
+- `[CODEX-LEAD] 필요하면 Oracle `flora-codex-room`/`flora-claude-room` workspace의 AGENTS 지시를 더 보수적으로 다듬어, 큐 등록 외 장문 응답을 더 강하게 금지`
+- `[CODEX] 운영 실제 두 계정 중 1개로 `https://crm.pressco21.com/login` 로그인 후, 메인 진입과 사이드바 `로그아웃` 버튼 왕복이 기대대로 동작하는지 최종 확인`
+- `[CODEX] 운영 CRM에서 `INV-20260401-134932` 수정 다이얼로그를 다시 열어, 첫 진입부터 목포 김수현(전화 010-7104-1761 / 배송지 '목포시 해안로 173번길 27')로 유지되는지 브라우저에서 재확인`
+- `[CODEX-LEAD] 플로라 봇을 3개 텔레그램 방에 모두 초대하고, 각 방에서 `/register executive|codex|claude <등록코드>`를 보내 실제 room 매핑을 완료`
+- `[CODEX-LEAD] `flora-telegram-room-router.config.json`과 env 파일을 실제 값으로 만들고, launchd 설치 후 맥북 재로그인 없이 백그라운드 자동실행까지 확인`
+- `[CODEX-LEAD] 통합 비서 방 프롬프트를 회사 맞춤형으로 더 다듬고, 실제 운영 질문 2~3개로 사용감 확인`
+- `[CODEX-LEAD] OpenClaw를 실제로 계속 쓸 계획이면 로컬 clawdbot gateway를 다시 올리고, channels.telegram.enabled=true 상태와 launch agent 적재 여부를 먼저 복구`
+- `[CODEX-LEAD] 현재 개인 DM(7713811206)을 계속 중앙 프론트도어로 쓸지, 새 그룹방을 중앙방으로 바꿀지 결정한 뒤 chatId를 기준 설정에 반영`
+- `[CODEX-LEAD] 문서상 flora-frontdoor 분리 구조와 실제 런타임(main 단일 agent) 사이의 불일치를 해소`
+- `[CODEX-LEAD] Telegram에서 Codex 전용 그룹방 1개와 전용 봇 1개를 실제로 만들고, `/register` 후 자연어 2~3개를 보내 세션 유지와 응답 길이를 실사용 기준으로 확인`
+- `[CODEX-LEAD] 현재 Codex 브리지 흐름을 복제해 Claude Code 전용 방도 별도 토큰/별도 설정 파일로 분리`
+- `[CODEX] 다음 실제 중복 수집 1건에서 CRM 처리 텔레그램이 더 이상 '미매칭'을 보내지 않고 조용히 무시되는지 운영 로그로 확인`
+- `[CODEX] 과거 exact 자동반영 건 중 중복으로 잘못 쌓인 unmatched 항목이 더 발견되면 review queue dismiss + markProcessedExact로 개별 백필`
+- `[CODEX-LEAD] 실제 텔레그램에서 flora-frontdoor에게 2~3개 실질문을 보내 사용감 기준으로 첫 문장/전문 관점/응답 길이가 기대와 맞는지 최종 확인`
+- `[CODEX-LEAD] flora-frontdoor가 specialist를 내부적으로 호출하는 방식과, frontdoor가 specialist 관점만 흉내 내는 방식 중 어떤 UX가 더 안정적인지 비교하고 하나로 고정`
+- `[CODEX-LEAD] specialist별 추가 컨텍스트(예: CRM 운영 규칙, 메이크샵 실무 메모, n8n 운영 체크리스트)를 분리 주입할지 결정하고, 필요하면 각 workspace 전용 스킬/BOOTSTRAP를 더 세분화`
+- `[CODEX-LEAD] flora-mac-harness 인벤토리 범위를 실제 업무 루트 기준으로 추가 확대할지 결정하고, 필요 시 `recentFilesLimit`·`maxDepth`·루트 목록을 조정`
+- `[CODEX] 운영 CRM에서 명세표/견적서/납품서/청구서 각각 품목 11개 이상 데이터로 인쇄 미리보기를 열어, 문서별 분할 기준대로 페이지가 나뉘고 행 높이가 유지되는지 확인`
+- `[CODEX] 운영 CRM에서 '송윤경 회장님' 명세표 `INV-20260331-135928` 기준으로 목록 출력 / 송장 엑셀 두 경로가 모두 '윤미라' 주소로 내려오는지 사용자가 최종 확인`
+- `[CODEX] 운영 CRM에서 '송윤경회장님' 명세표 1건으로 수정 다이얼로그 미리보기 / 목록 출력 / 송장 엑셀 다운로드 3경로의 주소가 모두 '윤미라 주소'로 일치하는지 확인`
+- `[CODEX] /invoices 화면에서 실제 운영 데이터 기준으로 기간별 총매출 카드 수치가 목록 합계와 일치하는지 육안 확인`
+- `[CODEX] Basic Auth 뒤 운영 CRM에서 이번 배포 산출물(`index-CCwNECQO.js`) 기준으로 명세표 기간 총매출 카드가 기대대로 보이는지 확인`
+- `[CODEX] 인증 후 운영 CRM 화면에서 거래내역 상단 KPI와 고객 제출용 인쇄 헤더가 기대대로 보이는지 실제 고객 1건으로 육안 확인`
+- `[CODEX] offline-crm-v2 거래내역 화면과 고객 제출용 인쇄에서 새 `기간 총매출` 카드가 운영 의도와 맞는지 실제 고객 1건으로 확인`
+- `[CODEX] FA-001/FA-003 메일 가드가 실제 발송 건에서도 의도대로 동작하는지 다음 승인/반려 실건 1회씩 업무봇 경보 포함 운영 확인`
+- `[CODEX] FA-001/FA-002/FA-003 계열 워크플로우의 runOnceForEachItem Code 노드 반환 형태를 일괄 점검해 같은 유형의 반복 발송/미처리 버그를 예방`
+- 브랜치 점검은 지금처럼 기능 작업 마감 시점마다 `main 외 브랜치 존재 여부`를 먼저 확인하는 운영 루틴으로 굳힌다.
+- 브랜치에서만 남아 있는 작업이 생기면 완료 전에 반드시 main 반영 여부를 먼저 확인하고, 필요 없어진 브랜치는 바로 삭제한다.
+- CRM 핵심 탭 전반 UX 정리는 일단 완료로 보고, 다음에는 실제 운영 사용 중 나오는 불편을 받아 미세조정 위주로 대응한다.
+- 출력물 4종(`명세표 / 견적서 / 납품서 / 청구서`)은 실제 인쇄 직전 단계까지 운영에서 한 번씩 눌러 최종 양식만 확인한다.
+- `제품 관리`는 실제 운영 사용 기준으로 검색만으로 충분한지, 이후 카테고리 필터까지 필요한지 본다.
+- `공급처 관리`는 공급처 수가 더 늘면 지금 넣은 검색 + 페이지네이션으로 충분한지 보고, 필요하면 `은행명`이나 `계좌 유무` 기준 필터를 검토한다.
+- `납품서`와 `청구서`를 실제 운영 인쇄까지 눌러서, 브라우저 인쇄 직전 미리보기에서도 제목/메타/서명 문구가 기대대로 보이는지 확인한다.
+- 출력 문서 4종이 늘어난 만큼, 목록 `출력` 박스의 버튼 밀도가 답답하지 않은지 운영 화면 기준으로 한 번 더 보고 필요하면 라벨 길이나 간격만 미세조정한다.
+- `거래/명세표 조회` 상단 카드가 운영에서 너무 길게 느껴지면 요약 카드 3개부터 줄인다.
+- `거래/명세표 조회` 모바일 카드형을 운영에서 실제 데이터가 있는 상태로 눌러보면서, 카드 안 메모/전표번호 길이를 더 줄일지 확인한다.
+- `지급 관리` 기본 탭을 `기존 장부 줄 돈`으로 바꾼 뒤, 실제 운영에서 `전체 지급`으로 다시 돌아가는 빈도가 높은지 보고 유지 여부를 판단한다.
+- `수금 관리` 기본 탭을 `새 입력 받을 돈`으로 바꾼 뒤, 실제 운영에서 `전체 정산`으로 다시 돌아가는 빈도가 높은지 보고 유지 여부를 판단한다.
+- `명세표 작성/관리` 모바일 카드형을 운영에서 실제 눌러보면서, 카드 안 정보 문구를 더 줄일지 확인한다.
+- `거래/명세표 조회`는 다음 배치에서 모바일 카드형까지 넣을지, 현재 상단 개선만으로 충분한지 운영 사용감으로 판단한다.
+- `캘린더`는 다음 배치에서 우측 패널 안 `후속 확인` 목록 개수나 우선순위를 더 조절할지 검토한다.
+- `명세표 작성/관리` 목록을 실제 운영에서 몇 건 더 보면서, 모바일 폭에서 `출력/관리` 영역 줄바꿈만 미세조정할지 결정한다.
+- 새 `Help drawer` 기준으로 실제 운영 사용감만 한 번 더 보고, 문구나 단계 수를 줄일지 결정한다.
+- `명세표 작성/관리` 상단 필터 영역을 실제 운영 사용감 기준으로 한 번 더 보고, 필요하면 모바일 폭에서 줄바꿈과 라벨 밀도만 미세조정한다.
+- 명세표 작성 다이얼로그에서 최근 거래처 칩을 거래처 유형/최근 금액 기준으로 더 똑똑하게 추리는지 검토한다.
+- 목록 화면 우측 실행 버튼 묶음의 밀도와 버튼 라벨 길이도 같은 기준으로 다듬을지 검토한다.
+- 실제 Safari에서 견적서 인쇄 1페이지 유지 여부를 운영 환경에서 한 번 더 확인한다.
+- 인쇄 회귀까지 잡을 수 있게 견적서 DOM 기반 검증 또는 스냅샷 테스트를 추가할지 결정한다.
+- 회귀 위험이 큰 흐름부터 작업 브리프를 실제로 붙여서 운영한다.
+- 새 릴리스형 배포 스크립트 기준으로 다음 CRM 배포부터 `npm run deploy:release`를 기본 경로로 사용한다.
+- 목록의 `명세표`/`견적서` 버튼을 실제 인쇄 직전까지 눌렀을 때 브라우저 인쇄 다이얼로그 전 단계 미리보기까지 원하는 양식으로 열리는지 한 번 더 확인
+- `목록에서 선택` 다중 품목 추가 경로도 `고객 단가 자동입력 + 과세 유지` 회귀 기준으로 같은 테스트를 추가할지 결정
+- 필요하면 이번 회귀 검증 스크립트(`npm run test:regression`)를 배포 전 체크리스트에 포함
+- 고객 생성/수정 다이얼로그까지 주소지 명 입력 UX를 확장할지 결정한다.
+- 운영 데이터에서 `customer_name`이 괄호형 법인명인 미수 명세표 몇 건을 열어 고객 목록/미수금 화면 노출이 기대대로 줄었는지 확인한다.
+- 실제 농협 보안메일 3~5건으로 제목/본문 변형 포맷 추가 보정
+- 고객 상세에 `입금자명 별칭`을 더 적극적으로 등록해 정확 일치 자동반영률 높이기
+- NH API 승인 후 collector 수집원만 교체하고 intake 엔진은 그대로 재사용
+- 자동입금 검토 큐에서 부분 입금/초과 입금을 직원이 바로 확정 처리하는 운영 검증을 이어간다.
+- 자동입금 검토 큐에서 동일 고객 다중 명세표 우선순위 제안 정책을 구체화한다.
+
+## Known Risks
+- 현재 회상 기능은 `최근 메모 캐시 + 미완료 open item 캐시`를 함께 보는 단계다. 다만 open item 캐시는 배포/재설치 시점 스냅샷이라, 직후 변경이 바로 반영되지는 않는다.
+- open item 캐시는 이미 실제 할 일감 위주로 필터링했지만, `정리해줘/메모해줘` 같은 메타 질문성 task가 일부 남아 들어올 수 있다. 회상 품질을 위해 추가 후처리가 필요하다.
+- 최근 메모/open item 캐시는 아직 userChatId별 완전 분리 파일이 아니다. 다중 사용자 DM이 늘어나면 사용자별 캐시 분리나 더 강한 필터가 필요하다.
+- 메모 기입 모드와 회상 기능은 붙었지만, 오래된 메모 검색과 완료 상태 기반 재정렬은 후속 보강이 필요하다.
+- Telegram streaming은 이제 `off`로 고정했지만, 최종 체감은 실제 사용자 DM 1건을 다시 보내 봐야 확정된다. 채널 preview는 막혔어도 prompt 상 중간 문장이 최종 답변에 섞이면 별도 톤 수정이 필요할 수 있다.
+- 실제 flora-frontdoor는 자동 capture와 metadata parser를 모두 갖췄고, `session.dmScope`도 `per-channel-peer`로 올렸다. 다만 아직 실제 Telegram DM 1건으로 `sourceMessageId != unknown:*`가 찍히는 최종 운영 확인은 남아 있다.
+- 현재 자동 capture는 freeform memo 기준으로 잘 동작한다. dev-request / approval / waiting 분류는 아직 기본 규칙 수준이라, 더 정밀한 메타데이터 규칙이 필요하다.
+- 현재 Phase 1은 source_message와 task ingest의 첫 연결 고리를 만든 상태다. dashboard/briefing이 `detailsMerge.requestType`나 `briefingBucket`을 실제로 활용하는 UI/쿼리 반영은 아직 남아 있다.
+- 플로라 문서 구조는 이번에 `통합 PRD 1개 + 하위 스펙`으로 다시 고정했지만, 이후 기능별 독립 PRD를 다시 만들기 시작하면 문서 체계가 빠르게 다시 꼬일 수 있다.
+- `flora-orchestration-service-prd`와 `flora-frontdoor-task-ledger-phase1-spec`는 정본 기준선이지만, 아직 실제 구현 반영 전이다. 문서만 만들고 발신단/적재단 코드를 연결하지 않으면 다시 "좋은 문서 + 느슨한 운영" 상태로 남을 수 있다.
+- 모바일 운영 자동화는 생산성 효과가 크지만 실수 비용도 크다. 특히 외부 메일 발송과 관리자 페이지 변경은 `초안 -> 승인 -> 실행 -> 기록` 경계를 코드와 UI에서 함께 강제하지 않으면 위험하다.
+- 이번에 `flora-todo-mvp /api/ingest` 수용면은 넓혔고, 실제 `flora-frontdoor`도 freeform memo 기준으로 이 메타데이터를 보내기 시작했다. 다만 userChatId/message id가 비는 direct 경로와 dev-request 등 다른 분류는 아직 후속 보강이 필요하다.
+- `flora-orchestration-service-master-plan`는 현재 canonical planning bridge 초안이다. 앞으로 구현 스펙이 늘어날 때 이 문서와의 관계를 명시하지 않으면 다시 문서 체계가 중구난방으로 흐를 수 있다.
+- `.gitignore` 경계는 보강했고 Flora 관련 앱/워크플로우 소스도 커밋했지만, 저장소는 아직 `modified 12 / untracked 162` 상태다. 지금 남은 더티는 대부분 실제 작업 파일이라, 루트에서 일괄 정리하려 하면 서로 다른 작업이 다시 섞일 가능성이 높다.
+- `output/playwright`는 이번에 확인했듯 일부가 실제 추적 파일이다. 앞으로 `output/` 전체를 생성물이라고 가정하고 삭제하면 근거자료나 기존 추적 산출물까지 같이 건드릴 수 있다.
+- `Flora Conversation Log`는 이제 Oracle live 기준으로 원문을 `source_messages`와 NocoDB에 모두 남기지만, 발신 측이 `source_message_id`를 안 보내면 현재 fallback은 `userChatId:sourceCreatedAt`이다. 대부분 충분하지만, 일부 발신기가 `source_created_at`도 안 보내면 재전송 dedupe 강도가 약해질 수 있어 송신단 점검이 남아 있다.
+- n8n CLI `import:workflow`는 active workflow를 일단 비활성화한다. 이번에는 `publish:workflow` + `docker restart n8n`으로 복구했지만, 다음에도 같은 루틴을 빼먹으면 live webhook이 잠깐 비활성 상태로 남을 수 있다.
+- 저장소 작업트리가 여전히 크게 dirty하다. 다음 작업은 기존 미정리 변경과 섞이지 않게 path-scoped add/commit 기준으로 다시 시작하는 편이 안전하다.
+- 현재 accounting workflow 로컬 JSON은 live 개선 내용과 다시 맞췄지만, 관련 CRM deploy/script 계열 다른 수정본이 별도 작업트리에 남아 있어 이후 배포 루틴을 분리 관리하지 않으면 source-of-truth가 다시 흔들릴 수 있다.
+- 입금 알림 포맷은 로컬 시뮬레이션과 live 배포까지 끝났지만, 실제 NH 새 입금 메일 1건이 배포 후 아직 다시 들어오지 않아 운영 채널 체감 검증 1회는 남아 있다.
+- 현재 로컬 `scripts/memory-watchdog.sh`는 `swap >= 6144MB`만으로도 즉시 `CRITICAL`을 띄운다. 메모리 압박이 실제로 있더라도 체감 악화 전에 반복 알림이 먼저 쌓일 수 있어, 재부팅 후 재발 패턴을 보고 재설계할 필요가 있다.
+- 현재 `server-monitor.sh` hotfix는 운영 서버에만 직접 반영돼 있다. 워크스페이스 규칙상 `n8n-main`은 읽기 전용 취급이라, canonical source 역반영 경로를 정하지 않으면 다음 서버 재프로비저닝/수동 복사 때 구버전이 다시 들어올 수 있다.
+- `codex-commit.sh`는 기존 staged 변경이 있으면 일부러 멈춘다. staging을 여러 작업이 공유된 상태로 오래 끌고 가는 습관이 있으면 처음엔 번거롭게 느껴질 수 있다.
+- `codex-publish.sh`는 dirty tree를 기본 차단하므로, 로컬에 미정리 변경이 많은 저장소에서는 `--allow-dirty` 판단을 신중하게 해야 한다.
+- `OPS_STATE.md`는 장기 운영 사실만 담아야 가치가 유지된다. TODO나 세션 잡메모가 섞이면 다시 `AI_SYNC`처럼 비대해질 수 있다.
+- 새 Codex 루틴 스크립트는 세션 로그/백업 산출물에는 강하지만 `AI_SYNC.md` 자체를 자동 정리하지는 않는다. 잠금/해제와 handoff 문장 품질은 여전히 Codex가 직접 책임져야 한다.
+- `codex-backup.sh`는 현재 작업 범위를 좁게 넘기는 것을 전제로 한다. 이미 dirty한 저장소에서 repo 전체를 통째로 백업하면 노이즈가 커져 복구 가치가 떨어질 수 있다.
+- 오류 구간 누락 입금 6건 중 4건은 현재 운영 데이터 기준으로 exact 조건이 아니어서 자동반영하지 않았다. 사용자가 이미 다른 경로로 처리했거나, 고객/명세표 연결이 바뀌었을 가능성이 있어 수동 확인이 필요하다.
+- 이번 복구는 config/credential/HTTP 접근 레벨까지는 운영 확인이 끝났지만, 실제 새 NH 입금 메일 1건이 아직 배포 이후에는 들어오지 않아 post-deploy 성공 execution 번호는 아직 없다.
+- `/data/*` 자동화 헤더 경로는 확인했지만, BasicAuth fallback은 현재 세션에서 실계정 값을 별도로 보관하지 않아 운영 계정 1회 재검증이 남아 있다.
+- `flora-todo-mvp` 홈 대시보드와 review queue는 DB-native query + 서버 pagination + URL sync 기준으로 정리됐지만, 장기적으로는 협업 오케스트레이션 목표에 맞는 `staff/team/assignment/event log` 계층이 아직 없다.
+- `flora-todo-mvp` 홈 대시보드의 section 정렬 기준은 운영 목적에 맞춘 1차 규칙이다. 실제 사용 중 `이번주 핵심`에서 오늘 항목을 다시 보일지, `일정 임박`에 overdue를 포함할지는 운영 피드백으로 한 번 더 조정하는 편이 안전하다.
+- `flora-todo-mvp` review queue는 URL query sync까지 붙었지만, 아직 다중 사용자 권한/감사 로그/배정 흐름은 없다.
+- `flora-todo-mvp`는 현재 todo 도메인에서 Notion을 대체했지만, Oracle에서 앱 전용 Postgres를 따로 쓰고 있다. 이 구조가 장기 통합 원장 전 단계인지, 영구 분리 도메인인지 아직 확정 문서가 없다.
+- Notion 경로는 todo/SNS 운영에서 제거했지만, 이후 협업 기능을 키울 때도 또 다른 별도 진실원(NocoDB shadow table, 앱별 개별 DB, 문서형 장부)이 생기지 않도록 source-of-truth 경계를 먼저 고정해야 한다.
+- `flora-todo-mvp` 엔터티 추출은 alias/룰 기반이라 실무 메모에서는 꽤 안정적이지만, 긴 복문에서 `waiting_for`가 과도하게 길어지는 케이스는 후처리를 더 넣는 편이 안전하다.
+- `flora-todo-mvp` Sprint 2는 규칙 기반 구조화라서 예측 가능성은 높지만, 문장 의미를 깊게 추론하지는 않는다. 표현이 크게 달라지면 미탐/과소분해가 남을 수 있다.
+- `고객운영 OS` 문서는 현재 Draft 기준선이다. 사방넷 export 실제 컬럼, 메이크샵 보강 필요 필드, 고객 병합 규칙을 실데이터로 검증하기 전까지는 구현 범위가 달라질 수 있다.
+- 현재 Codex/Claude 개발방은 `Oracle Telegram 수신 -> room dispatcher -> local worker queue -> 로컬 CLI` 구조다. room dispatcher와 local queue 주입, worker 완료까지는 검증했지만, 최종 체감 확인은 사용자가 텔레그램 방에서 직접 1회 더 보는 편이 안전하다.
+- local dev worker는 맥북이 켜져 있고 로그인 세션의 launchd가 살아 있어야만 개발방 응답을 보낸다. 통합 비서 방은 Oracle이 계속 처리하지만, Codex/Claude 방은 맥북이 잠들면 멈춘다.
+- Codex 모델 capacity 자동 재시도는 로컬 worker 단계에서만 동작한다. Oracle room dispatcher 자체가 모델 capacity로 멈추는 상황은 별도 튜닝 대상이다.
+- `gpt-5-mini`는 현재 ChatGPT account 기반 Codex CLI에서는 지원되지 않는다. OpenAI 쪽 fallback 표준은 지금 기준 `gpt-5.4-mini`가 안전하다.
+- 이번 실검증은 로컬 Vite 앱 + 운영 데이터 프록시 조합으로 수행했고, 운영 공개 URL은 Basic Auth 자격증명이 없어 여기서 직접 브라우저 진입하지는 못했다. 대신 서버 현재 릴리스 링크와 배포 산출물 해시까지 확인했다.
+- 이번 수정은 이름만 같은 고객을 자동 연결하지 않도록 막았기 때문에, 동명이인이 있는 신규 자유입력 건은 사용자가 목록에서 고객을 명시 선택하지 않으면 고객 스냅샷(주소/전화)이 비어 있을 수 있다. 잘못된 고객으로 붙는 것보다는 안전하지만, 필요하면 다음 단계에서 '동명이인 선택 강제' UX를 추가하는 편이 낫다.
+- 이미 잘못 저장된 과거 명세표가 있다면 이번 패치가 자동 복구하지는 않는다. 해당 건은 올바른 고객으로 다시 열어 저장하거나 개별 데이터 보정이 필요하다.
+- 새 flora room router는 현재 텍스트 메시지만 다룬다. 파일 첨부, 이미지, 중간 스트리밍은 아직 없다.
+- 통합 비서 방은 현재 `Claude CLI + Flora preamble` 기반이다. 예전 clawdbot/main 세션의 장기 메모리 구조와는 다르므로 답변 스타일 차이가 날 수 있다.
+- room별 session state는 로컬 state 파일에 저장되므로, state 파일을 지우면 각 방의 이어진 문맥도 같이 초기화된다.
+- 현재 OpenClaw 텔레그램 대상은 그룹방이 아니라 개인 DM이다. 사용자는 그룹방으로 인식하고 있을 수 있어 운영 판단이 어긋날 수 있다.
+- 문서/설계는 `flora-frontdoor` 분리 구조를 가리키지만, 실제 로컬 런타임은 `main` 단일 에이전트라 설계와 운영 상태가 다르다.
+- 현재 로컬 gateway가 내려가 있어, 설정 파일이 남아 있어도 실제 텔레그램 응답은 지금 이 순간 동작하지 않을 수 있다.
+- 현재 Codex Telegram Bridge는 텍스트 명령만 지원한다. 파일 첨부, 이미지, 중간 스트리밍은 아직 없다.
+- 현재 브리지는 long polling 단일 프로세스 기준이다. 맥북에서 프로세스가 내려가면 텔레그램 방도 멈춘다.
+- 같은 봇 토큰을 다른 브리지 프로세스와 공유하면 `getUpdates` 큐 충돌이 날 수 있다. Codex 방과 Claude 방은 토큰을 분리하는 편이 안전하다.
+- 이번 수정 이후 새 exact 자동반영 건부터는 `processedExactDepositIds`가 자동 누적되지만, 과거 exact 처리 이력은 일괄 백필하지 않았다. 이번에 신고된 `동그라미숲유` externalId만 수동 시드했다.
+- 과거 exact 처리 뒤 다시 수집된 기존 externalId는, 수동 `markProcessedExact` 백필이 없는 한 한 번 더 `unmatched`를 만들 수 있다.
+- 텔레그램 프론트도어는 이제 `flora-frontdoor`로 전환됐지만, 사용자가 실제 텔레그램에서 체감하는 답변 길이/톤/전문성은 아직 실사용 확인이 한 번 더 필요하다.
+- 기존 `owner`는 백업으로 남아 있다. 현재 텔레그램 route는 빠졌지만, 운영 중 혼선이 생기지 않게 `owner`와 `flora-frontdoor` 역할을 계속 분리해서 관리해야 한다.
+- 현재 frontdoor는 specialist 관점을 잘 드러내지만, 아직 실제 internal handoff를 하는 구조는 아니다. 필요하면 다음 단계에서 frontdoor -> specialist 실행 흐름을 붙여야 한다.
+- specialist agent는 설치돼 있고 frontdoor도 분리됐지만, 실제 텔레그램 응답을 완전한 자동 handoff처럼 보이게 만드는 라우팅 UX는 아직 다음 단계다.
+- `owner` 장기 메모리는 이제 텔레그램 frontdoor와 분리됐지만, 운영 확인이나 수동 호출 시 예전 문맥이 남아 있을 수 있다. 백업 에이전트로만 다루는 편이 안전하다.
+- specialist bootstrap은 현재 공통 `flora-mac-harness` 컨텍스트 스키마에 의존한다. 컨텍스트 파일명/구조가 바뀌면 installer와 specialist workspace를 같이 갱신해야 한다.
+- 현재 분석 프로파일은 인벤토리 파일명/최근 파일/루트명 기반 휴리스틱이므로, 프로젝트 성격이 미묘하게 바뀌면 분류 규칙도 같이 손봐야 한다.
+- owner 응답은 전문 비서 역할을 제안할 수 있는 수준까지 올라왔지만, 여전히 기존 메모리 문서를 함께 참조하는 경향이 있다. 전문 비서 모드의 일관성을 더 높이려면 라우팅 규칙이나 전용 에이전트 분리가 다음 단계다.
+- `owner` 장기 세션 메모리가 강해서, 현재는 새로 주입한 맥북 인벤토리/BOOTSTRAP 규칙이 있어도 과거 로컬 프로젝트 정보를 일부 섞어 답할 수 있다. 텔레그램 실세션에서 한두 번 더 확인하고 필요하면 세션/메모리 정리나 전용 에이전트 분리가 필요하다.
+- 현재 Flora 맥북 코파일럿 인벤토리는 `pressco21` 업무 루트 위주 7개 프로젝트만 포함한다. 맥북 전체 자산을 대표하는 것은 아니며, 범위 밖 프로젝트는 동기화 대상 확대 전까지 근거 부족 상태다.
+- 로컬 Vite + Playwright 샘플 데이터 기준 브라우저 렌더는 확인했지만, 실제 운영 데이터에서 품목명 길이가 매우 긴 케이스나 메모가 긴 견적서까지 모두 확인한 것은 아니다.
+- `invoices` 테이블에는 고객 주소 컬럼이 실제로 없어, 명세표 선택 주소는 앞으로 `memo` 숨김 메타에 의존한다. 외부 스크립트가 메모를 통째로 덮어쓰면 주소 선택값도 같이 사라질 수 있다.
+- 이미 발행된 과거 명세표 중 주소 메타가 없는 건은 한 번 더 저장하거나 개별 메타 보정이 필요하다.
+- 이번 수정은 로컬 빌드로만 검증했고, 운영 데이터 실주소 케이스(`송윤경회장님 → 윤미라 주소`)는 아직 브라우저에서 3경로를 직접 눌러 확인하지 않았다.
+- 이번 배포는 커밋 기준이 아니라 현재 로컬 작업 트리 기준으로 올라갔다. 따라서 `src/pages/Invoices.tsx` 외에 워킹트리에 남아 있던 `src/pages/CustomerDetail.tsx`, `src/lib/print.ts` 변경도 함께 반영됐다.
+- 현재 총매출 카드는 `선택 기간 + 현재 검색/수금상태 필터` 기준으로 계산된다. 기간 전체 합계만 고정해서 보여야 하면 필터 기준을 별도로 분리해야 한다.
+- 서버 반영과 원격 산출물 교체는 확인했지만, Basic Auth 뒤 실제 운영 화면에서 `기간 총매출` 문구와 인쇄 헤더를 육안으로 다시 누르진 않았다.
+- 이번 로그인 전환은 기존 `/etc/nginx/.htpasswd-crm` 계정을 그대로 쓰므로 계정 추가/비밀번호 변경은 여전히 서버 파일 기준으로 관리해야 한다.
+- 운영 로그인 화면과 리다이렉트는 검증했지만, 실제 두 내부 계정의 live 비밀번호로 로그인/로그아웃 왕복까지는 아직 사용자가 한 번 확인하는 편이 안전하다.
+- 이번 `기간 총매출`은 요청 취지대로 `출고` 행만 합산한다. 만약 운영에서 입금/환불까지 포함한 `거래 금액 합계`를 계속 같이 봐야 하면 별도 보조 카드로 되돌려 붙여야 한다.
+- 이번 배포 후에는 빈 조회 경로와 라이브 정의 반영까지는 확인했지만, 새 static data 가드가 실제 승인/반려 실건에서 경보와 차단까지 기대대로 타는지는 다음 실건 1회 운영 확인이 남아 있다.
+- 과거 브랜치에 남아 있던 `Login/RequireAuth/ActivityLog` 계열은 이번에 안전성/완성도 기준으로 제외했다. 나중에 정말 필요해지면 현재 main 구조 기준으로 새로 설계해 넣는 편이 맞다.
+- `설정` 화면은 구조는 훨씬 명확해졌지만, 항목 수가 많아서 모바일에서는 여전히 길다. 현재는 데스크톱/노트북 기준 최적화가 우선이다.
+- `대시보드` 상단 요약 카드가 추가되면서 첫 화면 정보량은 늘었다. 대신 읽는 순서는 좋아졌지만, 아주 단순한 첫 화면을 선호하는 사용자에게는 처음에 조금 더 풍부하게 느껴질 수 있다.
+- `공급처 관리`는 이번에 검색과 페이지네이션을 추가하면서 첫 진입 구조가 크게 달라졌다. 기존처럼 전체 몇 곳만 한 번에 훑어보던 사용자에게는 페이지 구분이 새롭게 느껴질 수 있다.
+- `제품 관리` 모바일 카드형은 읽기는 쉬워졌지만, 가격 단계를 한 화면에 다 보여주기 때문에 품목명이 아주 긴 상품은 카드 높이가 다소 길어질 수 있다.
+- `명세표 작성/관리` 목록의 출력 버튼이 4개로 늘어났기 때문에, 폭이 아주 좁은 화면에서는 `출력` 묶음 높이가 조금 더 커질 수 있다. 현재는 2열 그리드로 정리했지만 운영 모바일 확인이 한 번 더 있으면 안전하다.
+- `납품서`와 `청구서`는 이번에 기존 명세표 본문 레이아웃을 재사용해 제목/메타/서명 문구만 문서 성격에 맞게 분기한 상태다. 거래처별로 완전히 다른 전용 양식이 필요해지면 별도 인쇄 템플릿으로 분리하는 편이 낫다.
+- `거래/명세표 조회`는 읽기 순서는 좋아졌지만, 상단 높이가 늘어났기 때문에 좁은 화면에서는 카드 3개 요약이 부담될 수 있다.
+- `거래/명세표 조회` 모바일 카드형은 가로 스크롤을 줄이는 대신, 행당 세로 높이가 늘었다. 실제 데이터에서 메모가 긴 건은 카드 길이가 길어질 수 있다.
+- `명세표 작성/관리` 모바일 관리 버튼에 텍스트를 붙이면서 작은 화면에서는 버튼 가로폭이 약간 늘어났다. 읽기는 쉬워졌지만 아주 좁은 폭에서는 다시 한 번 눌러볼 필요가 있다.
+- `캘린더` 상단이 조회 기준 배지 구조로 바뀌면서, 기존 단순 헤더에 익숙한 사용자는 처음에 정보가 조금 더 많아졌다고 느낄 수 있다.
+- `캘린더` 우측 패널은 길이를 줄이기 위해 후속 목록을 3건까지만 먼저 보여준다. 더 많은 건을 한 번에 봐야 한다는 운영 습관이 강하면 개수 조정이 필요할 수 있다.
+- `지급 관리` 기본 탭을 `기존 장부 줄 돈`으로 바꾸면서 첫 진입은 더 실무적으로 빨라졌지만, 기존에 전체 지급/환불을 같이 훑어보던 사용자에게는 처음 화면이 달라졌다고 느껴질 수 있다.
+- 현재는 `tab` 파라미터가 없을 때만 `기존 장부 줄 돈`이 기본이고, `전체 지급`은 `tab=all`로 명시된다. 외부 링크나 즐겨찾기에서 `/payables`만 열던 사용자는 이제 첫 화면이 바뀐다.
+- `수금 관리` 기본 탭을 `새 입력 받을 돈`으로 바꾸면서 첫 진입은 더 실무적으로 빨라졌지만, 기존에 전체 잔액부터 보던 사용자에게는 처음 화면이 달라졌다고 느껴질 수 있다.
+- 현재는 `tab` 파라미터가 없을 때만 `새 입력 받을 돈`이 기본이고, `전체 정산`은 `tab=all`로 명시된다. 외부 링크나 즐겨찾기에서 `/receivables`만 열던 사용자는 이제 첫 화면이 바뀐다.
+- `지급 관리` 버튼을 `송금 기록`으로 바꾸면서 의미는 더 직접적이 됐지만, 기존에 `지급 확인` 문구에 익숙한 사용자에게는 아주 짧게 달라졌다고 느껴질 수 있다.
+- 고객 연결이 없는 지급 대상은 현재 `연결 필요`로만 막아 두고 있다. 이 상태에서 바로 고객 연결 화면으로 보내는 빠른 액션이 필요해지면 한 단계 더 붙이는 편이 좋다.
+- `수금 관리`는 현재 첫 진입에서 화면 뼈대와 탭이 먼저 뜨고, 연결 데이터가 필요한 영역만 뒤에서 채워진다. 체감은 빨라졌지만 아주 잠깐 `기존 장부/환불대기` 카드에 `불러오는 중...`이 보일 수 있다.
+- `기준일` 변경 시 명세표 목록 재요청을 막았기 때문에 속도는 빨라졌지만, 서버 쪽에서 미수 명세표 자체가 실시간 변한 경우에는 React Query staleTime 안에서는 캐시를 재사용한다. 현재 화면 목적에는 맞지만 즉시 최신화가 절대적으로 필요하면 별도 수동 새로고침 액션을 검토할 수 있다.
+- 현재 `수금 관리` 상단 배지의 `조회 고객/지급 예정 N건`은 대표 결과 수를 보여주는 요약값이다. 탭을 `새 입력`이나 `환불대기`로 바꿨을 때도 상단 숫자를 탭별 결과 수로 맞추고 싶다면 한 단계 더 연결하는 편이 낫다.
+- 고객 상세 `기본정보`는 읽기 모드만 크게 정리한 상태다. 편집 모드는 여전히 정보량이 많으므로, 실제 수정 작업이 잦다면 다음엔 편집 폼 구조도 같은 방식으로 나누는 편이 좋다.
+- 고객 관리 상단 검색 placeholder를 `거래처명/얼마에요 구분명/연락처`까지 넓혔기 때문에, 실제로 사업자번호까지 찾고 싶다는 운영 습관이 있으면 문구를 다시 더 넓히는 편이 나을 수 있다.
+- 모바일 카드형은 표보다 훨씬 읽기 쉽지만, 카드 안 안내 문구가 길어지는 고객은 세로 길이가 길어질 수 있다. 운영에서 긴 법인명/분리거래명이 많은 케이스를 한 번 더 보는 편이 안전하다.
+- 명세표 목록은 정보 위계를 정리하면서 컬럼을 묶었기 때문에, 아주 좁은 화면에서는 `출력/관리` 버튼 그룹 줄바꿈이 다시 답답하게 느껴질 수 있다. 운영 모바일 확인 후 한 번 더 미세조정할 여지가 있다.
+- Help drawer는 구조적으로는 안정화됐지만, 현재는 여전히 화면별 단계 수가 다소 긴 편이다. 운영 사용감에서 “길다”는 피드백이 나오면 단계 압축이 필요할 수 있다.
+- 현재 말풍선 포커스는 단계 설명과 대상 위치를 동시에 보여주는 데 집중한 상태다. 단계가 아주 많은 화면에서는 말풍선보다 간단한 한 줄 안내가 더 나을 수도 있다.
+- 이번 WebKit 확인은 생성된 견적서 DOM의 `.est-page` 수와 렌더 구조 기준이다. 실제 Safari 시스템 인쇄 대화상자에서 용지 설정에 따라 어떻게 보이는지는 운영 브라우저에서 한 번 더 보는 편이 가장 안전하다.
+- `명세표 작성/관리` 상단 필터 카드에 빠른 기간 버튼을 넣었기 때문에, 모바일에서는 버튼 줄바꿈 밀도가 사용감에 영향을 줄 수 있다. 운영 화면에서 한 번 더 보는 편이 안전하다.
+- 가이드 투어는 단계 변경 시에는 여전히 해당 요소로 한 번 이동한다. 이건 의도된 동작이지만, 특정 화면에서 너무 급하게 움직인다고 느끼면 이동 방식만 따로 완화할 여지가 있다.
+- 새 명세표 저장 버튼 문구를 `저장`으로 단순화했기 때문에, 내부 직원이 기존 `명세표 발행` 문구에 익숙했다면 짧게 달라졌다고 느낄 수 있다. 기능 동선은 그대로다.
+- 이 저장소에는 별도 CRM 로그인 화면 소스가 없어, `로그인 UI 두 번` 현상은 앱 루트 중복 마운트 기준으로만 완화했다. 만약 서버 Basic Auth 프롬프트 중복이라면 nginx/auth 레이어를 따로 봐야 한다.
+- Safari 견적서 2페이지 분리는 CSS를 보수적으로 줄여 완화했지만, 실제 Safari 인쇄 엔진에서 최종 1페이지 유지 여부는 운영 브라우저에서 한 번 더 확인하는 편이 안전하다.
+- `구분`을 `청구/영수` 체계로 정리했기 때문에, 과거 데이터의 `거래명세표/견적서/영수(청구)`는 저장/수정 시 정규화된다. 레거시 문구 자체를 그대로 유지해야 하는 업무가 있다면 별도 요구사항 확인이 필요하다.
+- 견적서 품목 수가 매우 많아 2페이지 이상 넘어가는 케이스는 이번에 직접 실브라우저로 확인하지 않았다. 다만 구조상 첫 페이지/속지 분기 로직은 건드리지 않았다.
+- 첫 릴리스형 배포는 정상 전환됐지만, 이후 운영자가 `deploy/deploy.sh` 구형 덮어쓰기 스크립트를 다시 쓰면 릴리스 구조를 우회하게 된다. 앞으로는 `deploy/deploy-release.sh`를 기본으로 써야 한다.
+- `npm run deploy:rollback`은 release id를 인자로 받아야 하므로, 실제 사용 시 `npm run deploy:rollback -- <release-id>` 형식을 지켜야 한다.
+- 현재 견적서 `유효기간`은 별도 데이터 필드 없이 `견적일자 + 14일` 규칙으로 계산한다. 거래처별 다른 유효기간 정책이 필요해지면 별도 필드 추가가 맞다.
+- 명세표 목록 기본 날짜를 오늘로 고정했기 때문에, 사용자는 첫 진입 시 과거 문서를 바로 못 볼 수 있다. 이는 요청 의도에는 맞지만 과거 전체 조회 동선과는 트레이드오프다.
+- 현재 구분 값은 `거래명세표/견적서`와 레거시 `영수/청구/영수(청구)`를 함께 허용한다. 출력물/조회 필터가 신규 값까지 모두 기대대로 다루는지 운영 재확인이 필요하다.
+- 품목 선택 정책이 최근 두 번 바뀌었기 때문에, 앞으로는 `단가 자동입력 + 과세 유지`를 회귀 기준으로 테스트로 고정하는 편이 안전하다.
+- 가이드 위치와 명세표 기본 고객 선택은 `2026-03-29` 운영 실브라우저에서 다시 확인했지만, 인쇄 다이얼로그 직전 단계까지의 최종 출력 smoke는 추가 여지가 있다.
+- 현재 보안메일 비밀번호 규칙이 바뀌면 파서를 같이 수정해야 한다.
+- 동일 입금자명/금액 중복 케이스는 계속 검토 큐로 보내는 것이 안전하다.
+- 브라우저에서 메일을 먼저 열어도 놓치지 않도록 collector는 수정했지만, 이미 놓친 과거 메일은 수동 재전송 또는 첨부 HTML 재처리가 필요하다.
+
+### [CODEX-LEAD] 등급체계 변경 가드 + WF-10 교육 live 복구 완료 (CODEX)
+- 원인
+  - 등급체계 변경 리스크는 실제 장애 원인이었고, 저장 enum(`SILVER/GOLD/PLATINUM`)과 표시 등급(`BLOOM/GARDEN/ATELIER/AMBASSADOR`)이 다시 어긋나면 승인/승급 workflow가 재차 깨질 수 있다.
+  - live `WF-10`은 repo와 달리 아직 구버전(`score/total`) 웹훅이었고, answers 배열 방식이 실배포되지 않은 상태였다.
+  - live `WF-10`의 파트너 교육 완료 PATCH URL은 table id가 아니라 `tbl_Partners` literal 경로라 `ERR_TABLE_NOT_FOUND`로 실패했다.
+- 수정/배포
+  - `docs/파트너클래스/partner-grade-change-playbook.md`
+  - `scripts/partnerclass-grade-change-audit.js`
+  - `docs/파트너클래스/README.md`
+  - `파트너클래스/교육/js.js`
+  - `파트너클래스/n8n-workflows/WF-10-education-complete.json`
+  - live `WF-10 Education Complete (aOtPOKVwyVfCQ6fq)` 재배포 완료, 백업은 `output/n8n-backups/20260312-wf10-sync/`에 저장
+- 검증
+  - `node --check scripts/partnerclass-grade-change-audit.js`
+  - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/교육/js.js`
+  - `jq empty 파트너클래스/n8n-workflows/WF-10-education-complete.json`
+  - `node scripts/partnerclass-grade-change-audit.js`
+  - `POST /webhook/education-complete` with `member_id=jhl9464`, `answers[15]` -> `passed=true`, `score=15`
+  - `getEducationStatus(jhl9464)` -> `education_completed=Y`, `education_date=2026-03-12`, `education_score=15`
+  - Playwright live 검증:
+    - `2610` -> `교육을 이미 이수하셨습니다`
+    - `8009` -> 강의 등록 폼 전체 노출
+    - `2608` -> 온보딩 체크리스트에서 `교육 이수` 단계 `완료` 표시
+- 참고
+  - `파트너클래스/교육/js.js`의 Q15는 등급 순서 문항 대신 `강의 등록 전 필수 교육 이수` 문항으로 바꿨다. live 카피까지 맞추려면 메이크샵 `2610` JS 재저장이 한 번 더 필요하다.
+  - 증적 스크린샷:
+    - `output/playwright/mcp/2610-education-complete-jhl9464.png`
+    - `output/playwright/mcp/8009-registration-form-jhl9464.png`
+
+### [CODEX-LEAD] partner approval/auth live recovery 완료 (CODEX)
+- 원인
+  - live `WF-08`이 `tbl_Partners.grade` enum 제약(`SILVER/GOLD/PLATINUM`)과 충돌하는 `BLOOM`을 저장하려다 실패해서 신청은 `APPROVED`로 바뀌었지만 파트너 row 생성이 중간에 끊겼다.
+  - live `WF-02`는 `applied_date` 정렬 필드와 분기 노드 문제로 `getPartnerAuth/getPartnerApplicationStatus`가 잘못 응답했다.
+  - live `WF-ADMIN`은 `getApplications` 상태 필터를 무시하고 사실상 `PENDING`만 조회했다.
+- 수정/배포
+  - `파트너클래스/n8n-workflows/WF-02-partner-auth-api.json`
+  - `파트너클래스/n8n-workflows/WF-08-partner-approve.json`
+  - `파트너클래스/n8n-workflows/WF-ADMIN-admin-api.json`
+  - `파트너클래스/n8n-workflows/WF-13-grade-update.json`
+  - `scripts/partnerclass-s2-7-patch-partner-auth.js`
+  - live n8n API로 4개 워크플로우를 재배포했고 백업은 `output/n8n-backups/20260312-partner-auth-fix/`에 저장했다.
+- 복구 결과
+  - `admin-api getApplications(status=APPROVED)`가 정상 동작하고 `jhl9464` 승인 건이 관리자 UI `8011` 승인됨 필터에 노출된다.
+  - `approveApplication` 재실행으로 `jhl9464 -> PC_202603_001` 파트너 row 생성 완료 (`grade=SILVER`, `commission_rate=0.25`, `status=active`).
+  - `partner-auth getPartnerAuth/getPartnerApplicationStatus/getPartnerDashboard`가 live 기준 정상 JSON 응답으로 복구됐다.
+- 실사용 계정 검증
+  - 파트너 `jhl9464`: `2608` 대시보드 정상 진입, `8009`는 인증 실패가 아니라 `교육 이수 후 이용 가능합니다` 게이트로 정상 차단
+  - 일반 회원 `PRESSCO000`: `8010` 마이페이지 정상 진입
+  - 관리자 `jihoo5755`: `8011` 관리자 대시보드 정상 진입, 승인됨 필터에서 `이재혁 / 열혈남아공방` 확인
+- 참고
+  - 현재 live `admin-api` 인증은 여전히 구형 토큰 `pressco21-admin-2026` 기준이다.
+  - 기존에 이미 `강사회원`인 회원이 신청해도 이제 승인 복구가 가능하다. MakeShop 그룹 승격 여부와 무관하게 `tbl_Partners` row 생성/복구가 핵심이다.
+
+### [CODEX-LEAD] Phase 3 S3-1 신규 테이블 4종 생성 완료 (CODEX)
+- 스크립트 / 문서
+  - `scripts/partnerclass-s3-1-create-tables.js`
+    - live NocoDB meta API 기준 `create/reuse table -> add missing columns -> sample rows upsert` 자동화
+  - `scripts/partnerclass-s3-1-schema-runner.js`
+    - Playwright `APIRequestContext` 로 4개 신규 table, 필수 컬럼, 샘플 row 재검증
+  - `docs/파트너클래스/s3-1-schema-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- live 생성 결과
+  - `tbl_Seminars`: `m9gh6baz3vow966`
+  - `tbl_Affiliation_Products`: `mm75dgbohhth2ll`
+  - `tbl_Affiliation_Content`: `mit4xyrzn4s81b9`
+  - `tbl_Vocabulary`: `mhf2e1hqj5vqmi5`
+  - 기준 협회 row: `KPFA_001 / 한국꽃공예협회`
+- 검증
+  - `node --check scripts/partnerclass-s3-1-create-tables.js`
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node --check scripts/partnerclass-s3-1-schema-runner.js`
+  - `node scripts/partnerclass-s3-1-create-tables.js`
+  - `node scripts/partnerclass-s3-1-create-tables.js` 2차 재실행
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s3-1-schema-runner.js`
+  - 결과:
+    - 샘플 row 매칭:
+      - seminars `2/2`
+      - affiliation products `3/3`
+      - affiliation content `3/3`
+      - vocabulary `8/8`
+    - 2차 재실행 시 신규 insert 없이 update 만 수행되어 idempotent 확인
+  - 산출물:
+    - `output/playwright/s3-1-schema/schema-create-results.json`
+    - `output/playwright/s3-1-schema/schema-results.json`
+
+### [CODEX-LEAD] Phase 3 S2-9 묶음 키트 + 선택형 완료 (CODEX)
+- 메이크샵
+  - `파트너클래스/강의등록/Index.html`, `css.css`, `js.js`
+    - `kit_bundle_branduid` 입력 추가
+  - `파트너클래스/상세/Index.html`, `css.css`, `js.js`
+    - `강의만 수강 / 키트 포함 수강` 선택 UI 추가
+    - 실상품 상세가 hydrate 로 묶음 키트 가격 보정
+    - `WITH_KIT` 선택 시 선물하기 비활성, 클래스 상품 + 키트 상품 동시 장바구니 처리
+  - `파트너클래스/파트너/js.js`
+    - 클래스 수정 모달에 묶음 키트 branduid 편집 추가
+- 워크플로우 / 서버
+  - `scripts/server/partnerclass-s2-9-add-kit-bundle-field.sh`
+    - `tbl_Classes.kit_bundle_branduid` 물리 컬럼, 메타, 기본 view 컬럼 추가
+  - `scripts/partnerclass-s2-9-patch-workflows.js`
+    - `WF-01A/WF-05/WF-16/WF-17/WF-20` S2-9 구조 패치 스크립트 추가
+  - `scripts/partnerclass-s2-9-deploy-workflows.js`
+    - 위 5개 WF 백업 + 재배포 자동화
+  - `파트너클래스/n8n-workflows/WF-01A-class-read.json`
+    - 상세 응답에 `kit_bundle_branduid` 추가
+  - `파트너클래스/n8n-workflows/WF-05-order-polling-batch.json`
+    - `order_id` 기준 클래스/묶음키트 동시 주문 판정, 키트 처리 분기 추가
+  - `파트너클래스/n8n-workflows/WF-16-class-register.json`
+    - `kit_bundle_branduid` 저장 지원
+  - `파트너클래스/n8n-workflows/WF-17-class-approve-auto.json`
+    - 클래스 상품 생성 후 묶음 키트 상품 2단 생성 분기 추가
+  - `파트너클래스/n8n-workflows/WF-20-class-edit.json`
+    - 묶음 키트 branduid 수정/초기화 지원
+- 문서 / 메모리
+  - `docs/파트너클래스/kit-bundle-selection-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/n8n-debugger/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+  - `.claude/agent-memory/makeshop-ui-ux-expert/MEMORY.md`
+- 검증
+  - 메이크샵 정적 검증:
+    - `python3 codex-skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/상세/js.js 파트너클래스/강의등록/js.js 파트너클래스/파트너/js.js`
+  - 로컬 Playwright:
+    - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s2-9-kit-bundle-runner.js`
+    - 결과: `output/playwright/s2-9-kit-bundle/kit-bundle-results.json`, `kit-bundle-flow.png`
+    - 확인값:
+      - `CLASS_ONLY`: `amount=52000`, 장바구니 1건
+      - `WITH_KIT`: `amount=52000`, `kit_bundle_branduid=KIT9001`, 장바구니 2건
+      - `WITH_KIT` 시 선물하기 비활성
+      - 실상품 상세가 hydrate 로 최종 금액 `75,000원` 확인
+  - 라이브 반영:
+    - `ssh ... < scripts/server/partnerclass-s2-9-add-kit-bundle-field.sh`
+    - `node scripts/partnerclass-s2-9-deploy-workflows.js`
+    - 활성 클래스 `CL_202602_662` 기준 `getClassDetail(id)` 응답에 `kit_bundle_branduid` 필드 포함 확인
+    - n8n API 기준 `WF-17 IF Product Kind Class`, `WF-05 Filter Class Orders / Process Kit Order`, `WF-20 Process Edit` 존재 확인
+
+### [CODEX-LEAD] Phase 3 S2-10 테스트 데이터 시뮬레이션 완료 (CODEX)
+- 스크립트 / 문서
+  - `scripts/partnerclass-s2-10-demo-data.js`
+    - `dry-run / apply / cleanup` 3모드 지원
+    - live NocoDB에 `[TEST][DEMO]` 배치 입력
+    - 클래스는 `closed` 상태로 생성해 공개 노출 차단
+  - `scripts/partnerclass-s2-10-demo-runner.js`
+    - 로컬 fixture + Playwright 기준 수강생/파트너/관리자 3시나리오 검증
+  - `docs/파트너클래스/demo-simulation-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+  - `.claude/agent-memory/sales-partnership-specialist/MEMORY.md`
+- 라이브 NocoDB 입력
+  - `node scripts/partnerclass-s2-10-demo-data.js --apply`
+  - 검증값:
+    - `partners=5`
+    - `classes=15`
+    - `schedules=30`
+    - `settlements=50`
+    - `reviews=30`
+- 로컬 Playwright
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s2-10-demo-runner.js`
+  - 결과: `output/playwright/s2-10-demo/demo-results.json`
+  - 스크린샷:
+    - `demo-student-flow.png`
+    - `demo-partner-flow.png`
+    - `demo-admin-flow.png`
+  - 확인값:
+    - 학생 목록 15개, 서울 필터 후 3개
+    - 상세 예약 `WITH_KIT`, 장바구니 2건
+    - 파트너 액션 보드 3카드 활성
+    - 관리자 정산 탭 요약/이력 + 실패 토스트 확인
+
+### [CODEX-LEAD] Phase 3 S2-11 Phase 3-2 통합 테스트 완료 (CODEX)
+- 스크립트 / 문서
+  - `scripts/partnerclass-s2-11-growth-integration-runner.js`
+    - `S2-10 demo runner`, `S2-8 cache runner` 재실행
+    - 세일즈 랜딩 신청, 협회 B2B 제안/ROI, 혜택 허브 검증
+    - live `WF-01` router/split 회귀 비교
+    - live n8n execution API 기준 `L3 staticData cache miss -> hit` 검증
+  - `docs/파트너클래스/phase3-2-integration-test.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+  - `.claude/agent-memory/sales-partnership-specialist/MEMORY.md`
+- 검증
+  - `node --check scripts/partnerclass-s2-11-growth-integration-runner.js`
+  - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s2-11-growth-integration-runner.js`
+  - 결과: `output/playwright/s2-11-phase3-2/phase3-2-results.json`
+  - 핵심 확인값:
+    - 파트너 신청 success id `APP_S2_11_001`
+    - 데모 온보딩 `3/5 완료`, 첫 예약 `WITH_KIT`, 장바구니 `2건`
+    - 협회 제안서 `35,280,000원 / 3단계`, 혜택 카드 `5개`
+    - L1 repeat hit `100%`
+    - L2 categories/affiliations repeat hit `100%`
+    - L3 categories miss/hit execution `49214/49215`, affiliations `49216/49217`
+    - `WF-01` router/split `getClasses/getClassDetail/getCategories/getAffiliations/getContentHub/getSchedules/getRemainingSeats` body 일치
+- 문서: `docs/파트너클래스/phase3-2-integration-test.md`
+
+### [CODEX-LEAD] Phase 3 S2-8 3계층 캐싱 도입 완료 (CODEX)
+- 프론트
+  - `파트너클래스/목록/js.js`
+    - 목록 `5분`, 카테고리/협회 `1시간` cache 분리
+    - `classCatalog_*`, `classSettings_*`, version key(`pressco21_catalog_cache_version`, `pressco21_catalog_settings_cache_version`) 도입
+    - `getAffiliations` localStorage cache 추가
+  - `파트너클래스/상세/js.js`
+    - 후기/예약 성공 시 상세 cache 삭제 + 목록 cache prefix 삭제 + catalog version key 갱신
+- 워크플로우 / 스크립트
+  - `scripts/partnerclass-s2-4-generate-wf01-split.js`
+    - split generator 기본 source 를 `WF-01A/B/C + router` 개별 파일 기준으로 재정렬
+    - `WF-01A getCategories`, `WF-01C getAffiliations` 에 `Check Cache -> Switch Cache -> Store Cache` 구조 추가
+    - cache 분기는 `IF` 대신 `Switch(HIT/MISS)` 로 안정화
+  - `파트너클래스/n8n-workflows/WF-01A-class-read.json`
+  - `파트너클래스/n8n-workflows/WF-01C-affiliation-read.json`
+  - `scripts/build-partnerclass-playwright-fixtures.js`
+    - detail fixture `user_id` 치환 추가
+  - `scripts/partnerclass-s2-8-cache-runner.js`
+- 문서 / 메모리
+  - `docs/파트너클래스/cache-layering-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/n8n-debugger/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- 검증
+  - 메이크샵 정적 검증:
+    - `python3 ~/.codex/skills/makeshop-d4-dev/scripts/check_makeshop_d4.py 파트너클래스/목록/js.js 파트너클래스/상세/js.js`
+  - 로컬 Playwright:
+    - `NODE_PATH=/Users/jangjiho/workspace/codex/node_modules node scripts/partnerclass-s2-8-cache-runner.js`
+    - 결과: `output/playwright/s2-8-cache/cache-results.json`, `cache-flow.png`
+    - 확인값:
+      - 첫 목록 진입 `getClassesList=1`, `getCategories=1`
+      - 재진입 시 추가 호출 없음
+      - 협회 탭 첫 진입 `getAffiliations=1`, 재진입 시 추가 호출 없음
+      - 상세 후기 등록 후 `catalogVersion` 갱신 + `classCatalog_*` 삭제
+      - TTL 강제 만료 후 `getClassesList/getCategories/getAffiliations` 각각 재호출
+  - 라이브 n8n:
+    - `node scripts/partnerclass-s2-4-deploy-wf01-split.js`
+    - `POST /webhook/class-api-read { action: "getCategories" }` 정상
+    - `POST /webhook/class-api-affiliation { action: "getAffiliations" }` 정상
+    - `POST /webhook/class-api { action: "getCategories" | "getAffiliations" }` 정상
+    - execution log 기준 warm miss 1회 후 cache-hit branch only 확인
+      - categories miss `49046`, hit `49047`, `49051`
+      - affiliations miss `49048`, hit `49049`, `49053`
+
+### [CODEX-LEAD] Phase 3 S2-7 파트너 이탈 감지 자동화 1차 완료 (CODEX)
+- 워크플로우 / 스크립트
+  - `scripts/server/partnerclass-s2-7-add-last-active-field.sh`
+    - `tbl_Partners.last_active_at` 물리 컬럼 추가, 기존 row 초기값 채움
+  - `scripts/partnerclass-s2-7-patch-partner-auth.js`
+    - `WF-02` 를 POST 전용으로 정리
+    - `Switch v3.2 rules.values` 보정
+    - `getPartnerDashboard` 수집 경로를 직렬화
+    - `last_active_at` 갱신을 code `fetch` 대신 NocoDB credential PATCH 노드로 교체
+  - `scripts/partnerclass-s2-7-generate-churn-workflow.js`
+    - 신규 `WF-CHURN Partner Risk Monitor` 생성
+    - `Get Partners -> Get Classes -> Get Schedules -> Get Reviews -> Get Email Logs` 직렬 수집 구조 적용
+    - 이메일 로그 스키마를 `recipient / email_type / status / error_message` 기준으로 보정
+    - `Telegram Summary` 에러가 최종 응답을 덮지 않도록 `Restore Final Response` 경로 추가
+    - 메일 실패 시 `PARTNER_CHURN_EMAIL_FAILED` 구조화 오류 반환
+  - `scripts/partnerclass-s2-7-deploy-workflows.js`
+  - `scripts/partnerclass-s2-7-churn-runner.js`
+  - `파트너클래스/n8n-workflows/WF-02-partner-auth-api.json`
+  - `파트너클래스/n8n-workflows/WF-CHURN-partner-risk-monitor.json`
+- 문서 / 메모리
+  - `docs/파트너클래스/partner-churn-monitor-guide.md`
+  - `docs/파트너클래스/README.md`
+  - `ROADMAP.md`
+  - `.claude/agent-memory/class-platform-architect/MEMORY.md`
+  - `.claude/agent-memory/n8n-debugger/MEMORY.md`
+  - `.claude/agent-memory/qa-test-expert/MEMORY.md`
+- 검증
+  - 서버 스크립트 실행 결과 `last_active_at 채워진 파트너 수 = 6`
+  - `POST /webhook/partner-auth` 정상 JSON 응답 + `last_active_at` row 갱신 확인
+  - dry run
+    - 현재일 `2026-03-11` → `risk_count=0`
+    - 미래일 `2026-06-15` → `risk_count=1`
+  - send mode
+    - `PARTNER_CHURN_EMAIL_FAILED` 구조화 오류 응답 확인
+    - `tbl_EmailLogs` 실패 row 적재 확인 (`PARTNER_NOTIFY / FAILED`)
+  - Playwright request 검증:
+    - `output/playwright/s2-7-partner-churn/churn-results.json`

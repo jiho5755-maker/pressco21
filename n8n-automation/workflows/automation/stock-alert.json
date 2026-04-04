@@ -1,5 +1,5 @@
 {
-  "name": "STOCK-ALERT: 재고 임계값 알림",
+  "name": "STOCK-ALERT: 품절 상태 변동 감지",
   "nodes": [
     {
       "parameters": {
@@ -28,8 +28,8 @@
             { "name": "mode", "value": "search" },
             { "name": "type", "value": "product" },
             { "name": "display", "value": "Y" },
-            { "name": "fields", "value": "uid,product_name,sellprice,stock,sold_out" },
-            { "name": "limit", "value": "500" }
+            { "name": "limit", "value": "500" },
+            { "name": "page", "value": "1" }
           ]
         },
         "sendHeaders": true,
@@ -45,27 +45,126 @@
         }
       },
       "id": "sa-0001-0001-4000-8000-000000000002",
-      "name": "MakeShop 상품 재고 조회",
+      "name": "MakeShop 상품 조회 p1",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [260, 300],
+      "position": [260, 100],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "display", "value": "Y" },
+            { "name": "limit", "value": "500" },
+            { "name": "page", "value": "2" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "sa-0001-0001-4000-8000-000000000010",
+      "name": "MakeShop 상품 조회 p2",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 250],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "display", "value": "Y" },
+            { "name": "limit", "value": "500" },
+            { "name": "page", "value": "3" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "sa-0001-0001-4000-8000-000000000011",
+      "name": "MakeShop 상품 조회 p3",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 400],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "display", "value": "Y" },
+            { "name": "limit", "value": "500" },
+            { "name": "page", "value": "4" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "sa-0001-0001-4000-8000-000000000012",
+      "name": "MakeShop 상품 조회 p4",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 550],
       "continueOnFail": true
     },
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "// STOCK-ALERT: 재고 분석 + 메시지 생성\n// MakeShop 상품 API 응답 파싱 후 임계값 기반 분류\n\nconst THRESHOLD = 5; // 재고 임계값\nconst rawResp = $input.first().json;\n\n// --- API 응답 검증 ---\nif (rawResp.error || rawResp.return_code === '9000' || rawResp.return_code === '9018') {\n  var errCode = rawResp.return_code || rawResp.error || 'UNKNOWN';\n  return [{ json: {\n    hasAlert: true,\n    isError: true,\n    message: '\\u26a0\\ufe0f <b>STOCK-ALERT API 오류</b>\\n\\n'\n      + 'MakeShop 상품 API 호출 실패\\n'\n      + '오류 코드: ' + errCode + '\\n'\n      + '시각: ' + new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'})\n  } }];\n}\n\n// --- 상품 데이터 추출 ---\n// MakeShop API: list가 객체(키=상품번호) 또는 배열일 수 있음\nvar rawList = rawResp.list || rawResp.datas || rawResp;\nvar products;\nif (Array.isArray(rawList)) {\n  products = rawList;\n} else if (rawList && typeof rawList === 'object') {\n  products = Object.values(rawList);\n} else {\n  products = [];\n}\n\n// 상품 수 안전 검증 (10개 미만이면 API 이상)\nif (products.length < 10) {\n  return [{ json: {\n    hasAlert: true,\n    isError: true,\n    message: '\\u26a0\\ufe0f <b>STOCK-ALERT 데이터 이상</b>\\n\\n'\n      + '조회된 상품: ' + products.length + '개 (최소 10개 미만)\\n'\n      + 'API 응답이 비정상일 수 있습니다.\\n'\n      + '시각: ' + new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'})\n  } }];\n}\n\n// --- 재고 분류 ---\nvar critical = []; // 재고 0 (품절)\nvar warning = [];  // 재고 1~THRESHOLD\nvar totalCount = products.length;\n\nfor (var i = 0; i < products.length; i++) {\n  var p = products[i];\n  var stockVal = parseInt(p.stock || p.stock_count || '0', 10);\n  var isSoldOut = (p.sold_out === 'Y' || p.soldout === 'Y');\n  var pName = p.product_name || p.brandname || '이름없음';\n  var pNum = p.uid || p.branduid || p.productnum || '';\n  var price = parseInt(p.sellprice || '0', 10);\n\n  // 이미 품절 처리된 상품은 critical에 포함\n  if (isSoldOut || stockVal <= 0) {\n    critical.push({\n      name: pName,\n      num: pNum,\n      stock: stockVal,\n      price: price,\n      soldOut: isSoldOut\n    });\n  } else if (stockVal <= THRESHOLD) {\n    warning.push({\n      name: pName,\n      num: pNum,\n      stock: stockVal,\n      price: price\n    });\n  }\n}\n\n// 알림 대상 없으면 종료\nif (critical.length === 0 && warning.length === 0) {\n  return [{ json: {\n    hasAlert: false,\n    message: '',\n    criticalCount: 0,\n    warningCount: 0,\n    totalCount: totalCount\n  } }];\n}\n\n// --- 텔레그램 메시지 포맷팅 ---\nvar now = new Date();\nvar kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nvar dateStr = String(kst.getMonth() + 1).padStart(2, '0') + '/' + String(kst.getDate()).padStart(2, '0');\nvar fmt = function(n) { return n.toLocaleString('ko-KR'); };\nvar truncName = function(name, maxLen) {\n  if (name.length > maxLen) return name.slice(0, maxLen) + '..';\n  return name;\n};\n\nvar msg = '\\ud83d\\udce6 <b>재고 부족 알림</b> (' + dateStr + ')\\n';\nmsg += '\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n\\n';\n\n// 품절 (critical)\nif (critical.length > 0) {\n  msg += '\\ud83d\\udd34 <b>품절 (0개)</b>: ' + critical.length + '건\\n';\n  var showCritical = critical.slice(0, 15);\n  for (var ci = 0; ci < showCritical.length; ci++) {\n    var c = showCritical[ci];\n    msg += '  \\u2022 ' + truncName(c.name, 25);\n    if (c.num) msg += ' (' + c.num + ')';\n    msg += '\\n';\n  }\n  if (critical.length > 15) {\n    msg += '  ... 외 ' + (critical.length - 15) + '건\\n';\n  }\n  msg += '\\n';\n}\n\n// 부족 (warning)\nif (warning.length > 0) {\n  // 재고 적은 순 정렬\n  warning.sort(function(a, b) { return a.stock - b.stock; });\n  msg += '\\ud83d\\udfe1 <b>부족 (' + THRESHOLD + '개 이하)</b>: ' + warning.length + '건\\n';\n  var showWarning = warning.slice(0, 15);\n  for (var wi = 0; wi < showWarning.length; wi++) {\n    var w = showWarning[wi];\n    msg += '  \\u2022 ' + truncName(w.name, 25) + ' - 남은 ' + w.stock + '개\\n';\n  }\n  if (warning.length > 15) {\n    msg += '  ... 외 ' + (warning.length - 15) + '건\\n';\n  }\n  msg += '\\n';\n}\n\nmsg += '\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n';\nmsg += '총 상품: ' + fmt(totalCount) + '개 중 ' + (critical.length + warning.length) + '건 알림\\n';\nmsg += '\\ud83e\\udd16 자동 생성 by n8n STOCK-ALERT';\n\nreturn [{ json: {\n  hasAlert: true,\n  isError: false,\n  message: msg,\n  criticalCount: critical.length,\n  warningCount: warning.length,\n  totalCount: totalCount,\n  criticalProducts: critical,\n  warningProducts: warning\n} }];"
+        "jsCode": "// STOCK-ALERT v3: sto_state_code 기반 품절 변동 감지\n// MakeShop API의 options.basic[].sto_state_code = SOLDOUT|STOP 으로 판별\n// staticData에 이전 품절 목록 저장, 변동분만 알림\n\nconst staticData = $getWorkflowStaticData('global');\n\n// --- 4페이지 데이터 병합 ---\nvar allProducts = [];\nvar pageNodes = ['MakeShop 상품 조회 p1','MakeShop 상품 조회 p2','MakeShop 상품 조회 p3','MakeShop 상품 조회 p4'];\nfor (var pi = 0; pi < pageNodes.length; pi++) {\n  try {\n    var resp = $(pageNodes[pi]).first().json;\n    if (resp.return_code === '0000') {\n      var raw = resp.list || resp.datas || {};\n      var items = Array.isArray(raw) ? raw : Object.values(raw);\n      allProducts = allProducts.concat(items);\n    }\n  } catch(e) { /* 페이지 없으면 무시 */ }\n}\n\nif (allProducts.length < 10) {\n  return [{ json: {\n    hasAlert: true, isError: true,\n    message: '\\u26a0\\ufe0f <b>STOCK-ALERT</b> \\uc0c1\\ud488 \\uc870\\ud68c \\uc2e4\\ud328 (' + allProducts.length + '\\uac1c)'\n  } }];\n}\n\n// --- sto_state_code 기반 품절 판별 ---\nvar currentSoldOutMap = {};\nvar totalCount = allProducts.length;\n\nfor (var i = 0; i < allProducts.length; i++) {\n  var p = allProducts[i];\n  var uid = String(p.uid || '');\n  var name = p.product_name || '';\n  \n  // 개인결제건 제외\n  if (name.indexOf('\\uac1c\\uc778\\uacb0\\uc81c') >= 0) continue;\n  \n  var options = p.options || {};\n  var basic = options.basic || [];\n  var isSoldOut = false;\n  \n  for (var bi = 0; bi < basic.length; bi++) {\n    var state = basic[bi].sto_state_code || '';\n    if (state === 'SOLDOUT' || state === 'STOP') {\n      isSoldOut = true;\n      break;\n    }\n  }\n  \n  if (isSoldOut) {\n    currentSoldOutMap[uid] = name;\n  }\n}\n\nvar currentUids = Object.keys(currentSoldOutMap);\n\n// --- 이전 품절 목록 ---\nvar prevSoldOutMap = staticData.soldOutMap || {};\nvar prevUids = Object.keys(prevSoldOutMap);\nvar isFirstRun = (prevUids.length === 0 && !staticData.initialized);\n\n// --- 변동 감지 ---\nvar newSoldOut = [];\nvar restored = [];\n\nfor (var ni = 0; ni < currentUids.length; ni++) {\n  if (!prevSoldOutMap[currentUids[ni]]) {\n    newSoldOut.push({ uid: currentUids[ni], name: currentSoldOutMap[currentUids[ni]] });\n  }\n}\nfor (var ri = 0; ri < prevUids.length; ri++) {\n  if (!currentSoldOutMap[prevUids[ri]]) {\n    restored.push({ uid: prevUids[ri], name: prevSoldOutMap[prevUids[ri]] });\n  }\n}\n\n// --- staticData 갱신 ---\nstaticData.soldOutMap = currentSoldOutMap;\nstaticData.lastRun = new Date().toISOString();\nstaticData.initialized = true;\n\n// 첫 실행: 기준점만 설정\nif (isFirstRun) {\n  return [{ json: {\n    hasAlert: false, isFirstRun: true,\n    totalProducts: totalCount, totalSoldOut: currentUids.length\n  } }];\n}\n\n// 변동 없으면 종료\nif (newSoldOut.length === 0 && restored.length === 0) {\n  return [{ json: {\n    hasAlert: false, hasChanges: false,\n    totalProducts: totalCount, totalSoldOut: currentUids.length\n  } }];\n}\n\n// --- 텔레그램 메시지 ---\nvar now = new Date();\nvar kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nvar dateStr = String(kst.getMonth() + 1).padStart(2, '0') + '/' + String(kst.getDate()).padStart(2, '0');\nvar trunc = function(s, n) { return s.length > n ? s.slice(0, n) + '..' : s; };\n\nvar msg = '\\ud83d\\udce6 <b>\\ud488\\uc808 \\uc0c1\\ud0dc \\ubcc0\\ub3d9</b> (' + dateStr + ')\\n';\nmsg += '\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n\\n';\n\nif (newSoldOut.length > 0) {\n  msg += '\\ud83d\\udd34 <b>\\uc2e0\\uaddc \\ud488\\uc808</b> ' + newSoldOut.length + '\\uac74\\n';\n  for (var si = 0; si < Math.min(newSoldOut.length, 15); si++) {\n    msg += '  \\u2022 ' + trunc(newSoldOut[si].name, 30) + '\\n';\n  }\n  if (newSoldOut.length > 15) msg += '  ... \\uc678 ' + (newSoldOut.length - 15) + '\\uac74\\n';\n  msg += '\\n';\n}\n\nif (restored.length > 0) {\n  msg += '\\ud83d\\udfe2 <b>\\ud488\\uc808 \\ud574\\uc81c</b> ' + restored.length + '\\uac74\\n';\n  for (var xi = 0; xi < Math.min(restored.length, 10); xi++) {\n    msg += '  \\u2022 ' + trunc(restored[xi].name, 30) + '\\n';\n  }\n  if (restored.length > 10) msg += '  ... \\uc678 ' + (restored.length - 10) + '\\uac74\\n';\n  msg += '\\n';\n}\n\nmsg += '\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n';\nmsg += '\\uc804\\uccb4 ' + totalCount + '\\uac1c / \\ud488\\uc808 ' + currentUids.length + '\\uac1c\\n';\nmsg += '\\ud83e\\udd16 n8n STOCK-ALERT v3';\n\nreturn [{ json: {\n  hasAlert: true, hasChanges: true, isError: false,\n  message: msg, totalProducts: totalCount,\n  totalSoldOut: currentUids.length,\n  newCount: newSoldOut.length, restoredCount: restored.length\n} }];"
       },
       "id": "sa-0001-0001-4000-8000-000000000003",
-      "name": "재고 분석",
+      "name": "품절 변동 분석",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [520, 300]
+      "position": [560, 300]
     },
     {
       "parameters": {
         "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
           "conditions": [
             {
               "id": "cond-has-alert",
@@ -78,10 +177,10 @@
         }
       },
       "id": "sa-0001-0001-4000-8000-000000000004",
-      "name": "알림 대상 있음?",
+      "name": "변동 있음?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [760, 300]
+      "position": [800, 300]
     },
     {
       "parameters": {
@@ -95,7 +194,7 @@
       "name": "텔레그램 알림",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1000, 200],
+      "position": [1040, 200],
       "credentials": {
         "telegramApi": {
           "id": "RdFu3nsFuuO5NCff",
@@ -104,51 +203,67 @@
       }
     },
     {
-      "parameters": {
-        "jsCode": "// 정상 - 알림 대상 없음 (로깅용)\nreturn [{ json: {\n  status: 'ok',\n  message: 'STOCK-ALERT: 재고 이상 없음',\n  timestamp: new Date().toISOString()\n} }];"
-      },
-      "id": "sa-0001-0001-4000-8000-000000000006",
-      "name": "정상 (알림 없음)",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1000, 420]
+      "parameters": {},
+      "id": "sa-0001-0001-4000-8000-000000000099",
+      "name": "변동 없음 종료",
+      "type": "n8n-nodes-base.noOp",
+      "typeVersion": 1,
+      "position": [1040, 420]
     }
   ],
   "connections": {
     "매일 08:00 KST": {
       "main": [
         [
-          { "node": "MakeShop 상품 재고 조회", "type": "main", "index": 0 }
+          { "node": "MakeShop 상품 조회 p1", "type": "main", "index": 0 }
         ]
       ]
     },
-    "MakeShop 상품 재고 조회": {
+    "MakeShop 상품 조회 p1": {
       "main": [
         [
-          { "node": "재고 분석", "type": "main", "index": 0 }
+          { "node": "MakeShop 상품 조회 p2", "type": "main", "index": 0 }
         ]
       ]
     },
-    "재고 분석": {
+    "MakeShop 상품 조회 p2": {
       "main": [
         [
-          { "node": "알림 대상 있음?", "type": "main", "index": 0 }
+          { "node": "MakeShop 상품 조회 p3", "type": "main", "index": 0 }
         ]
       ]
     },
-    "알림 대상 있음?": {
+    "MakeShop 상품 조회 p3": {
+      "main": [
+        [
+          { "node": "MakeShop 상품 조회 p4", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "MakeShop 상품 조회 p4": {
+      "main": [
+        [
+          { "node": "품절 변동 분석", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "품절 변동 분석": {
+      "main": [
+        [
+          { "node": "변동 있음?", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "변동 있음?": {
       "main": [
         [
           { "node": "텔레그램 알림", "type": "main", "index": 0 }
         ],
         [
-          { "node": "정상 (알림 없음)", "type": "main", "index": 0 }
+          { "node": "변동 없음 종료", "type": "main", "index": 0 }
         ]
       ]
     }
   },
-  "settings": {
-    "executionOrder": "v1"
-  },
-  "active": false
+  "settings": { "executionOrder": "v1" }
 }

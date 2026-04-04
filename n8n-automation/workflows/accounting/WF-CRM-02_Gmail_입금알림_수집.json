@@ -252,6 +252,84 @@
         1200,
         440
       ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const parsed = $input.first().json || {};\nconst staticData = $getWorkflowStaticData('global');\nconst mailLedger = Array.isArray(staticData.presscoBankMailLedger) ? staticData.presscoBankMailLedger : [];\nconst txnLedger = Array.isArray(staticData.presscoBankTransactionLedger) ? staticData.presscoBankTransactionLedger : [];\nconst messageKey = String(parsed._messageKey || parsed.messageId || 'unknown').trim();\nconst mail = mailLedger.find((entry) => entry.messageKey === messageKey) || null;\nconst transactions = txnLedger.filter((entry) => entry.messageKey === messageKey);\nreturn [{ json: { source: 'intake', syncedAt: new Date().toISOString(), messageKey, mail, transactions, failureLog: [] } }];"
+      },
+      "id": "wf-crm02-build-recon-sync-intake",
+      "name": "Code: Build Recon Sync From Intake",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        620
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Build Telegram Deposit Summary').first().json || {};\nconst staticData = $getWorkflowStaticData('global');\nconst txnLedger = Array.isArray(staticData.presscoBankTransactionLedger) ? staticData.presscoBankTransactionLedger : [];\nconst failureLog = Array.isArray(staticData.presscoCrmFailureLog) ? staticData.presscoCrmFailureLog : [];\nconst eventKeySet = new Set(Array.isArray(payload._eventKeys) ? payload._eventKeys : []);\nconst transactions = txnLedger.filter((entry) => eventKeySet.has(entry.eventKey));\nconst summaryKey = String(payload._summaryKey || '').trim();\nconst relevantFailures = failureLog.filter((entry) => String(entry.summaryKey || '').trim() === summaryKey).slice(-5);\nreturn [{ json: { source: 'deposit_delivery', syncedAt: new Date().toISOString(), messageKey: String(payload._messageKey || '').trim(), mail: null, transactions, failureLog: relevantFailures } }];"
+      },
+      "id": "wf-crm02-build-recon-sync-deposit",
+      "name": "Code: Build Recon Sync From Deposit Delivery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Build Bank Event Summary').first().json || {};\nconst staticData = $getWorkflowStaticData('global');\nconst txnLedger = Array.isArray(staticData.presscoBankTransactionLedger) ? staticData.presscoBankTransactionLedger : [];\nconst failureLog = Array.isArray(staticData.presscoCrmFailureLog) ? staticData.presscoCrmFailureLog : [];\nconst eventKeySet = new Set(Array.isArray(payload._eventKeys) ? payload._eventKeys : []);\nconst transactions = txnLedger.filter((entry) => eventKeySet.has(entry.eventKey));\nconst summaryKey = String(payload._summaryKey || '').trim();\nconst relevantFailures = failureLog.filter((entry) => String(entry.summaryKey || '').trim() === summaryKey).slice(-5);\nreturn [{ json: { source: 'bank_delivery', syncedAt: new Date().toISOString(), messageKey: String(payload._messageKey || '').trim(), mail: null, transactions, failureLog: relevantFailures } }];"
+      },
+      "id": "wf-crm02-build-recon-sync-bank",
+      "name": "Code: Build Recon Sync From Bank Delivery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1320,
+        80
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const payload = $('Build Parse Failure Summary').first().json || {};\nconst staticData = $getWorkflowStaticData('global');\nconst mailLedger = Array.isArray(staticData.presscoBankMailLedger) ? staticData.presscoBankMailLedger : [];\nconst failureLog = Array.isArray(staticData.presscoCrmFailureLog) ? staticData.presscoCrmFailureLog : [];\nconst messageKey = String(payload._messageKey || '').trim();\nconst mail = mailLedger.find((entry) => entry.messageKey === messageKey) || null;\nconst summaryKey = String(payload._summaryKey || '').trim();\nconst relevantFailures = failureLog.filter((entry) => String(entry.summaryKey || '').trim() === summaryKey || (messageKey && String(entry.messageKey || '').trim() === messageKey)).slice(-5);\nreturn [{ json: { source: 'parse_delivery', syncedAt: new Date().toISOString(), messageKey, mail, transactions: [], failureLog: relevantFailures } }];"
+      },
+      "id": "wf-crm02-build-recon-sync-parse",
+      "name": "Code: Build Recon Sync From Parse Delivery",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/crm-bank-recon-ingest",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ $json }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "wf-crm02-http-sync-recon-mirror",
+      "name": "HTTP Sync Recon Mirror",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1860,
+        320
+      ],
+      "continueOnFail": true,
+      "onError": "continueRegularOutput"
     }
   ],
   "connections": {
@@ -292,6 +370,11 @@
           },
           {
             "node": "Build Parse Failure Summary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code: Build Recon Sync From Intake",
             "type": "main",
             "index": 0
           }
@@ -380,6 +463,83 @@
         [
           {
             "node": "Code: Record Parse Failure Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Recon Sync From Intake": {
+      "main": [
+        [
+          {
+            "node": "HTTP Sync Recon Mirror",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Record Deposit Summary Delivery": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Recon Sync From Deposit Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Recon Sync From Deposit Delivery": {
+      "main": [
+        [
+          {
+            "node": "HTTP Sync Recon Mirror",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Record Bank Event Delivery": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Recon Sync From Bank Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Recon Sync From Bank Delivery": {
+      "main": [
+        [
+          {
+            "node": "HTTP Sync Recon Mirror",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Record Parse Failure Delivery": {
+      "main": [
+        [
+          {
+            "node": "Code: Build Recon Sync From Parse Delivery",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: Build Recon Sync From Parse Delivery": {
+      "main": [
+        [
+          {
+            "node": "HTTP Sync Recon Mirror",
             "type": "main",
             "index": 0
           }

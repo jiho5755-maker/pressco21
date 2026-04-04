@@ -23,74 +23,44 @@
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "={{ ($env.N8N_BASE_URL || 'https://n8n.pressco21.com') + '/api/v1/workflows/7ql6pPWlBoJhoZqH' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-N8N-API-KEY",
-              "value": "={{ $env.N8N_API_KEY }}"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        }
+        "httpMethod": "POST",
+        "path": "crm-bank-recon-ingest",
+        "responseMode": "lastNode",
+        "options": {}
       },
-      "id": "wf-crm03-http-wf02",
-      "name": "WF-CRM-02 상태 조회",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "id": "wf-crm03-webhook-ingest",
+      "name": "Webhook Audit Ingest",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        0,
+        220
+      ],
+      "webhookId": "crm-bank-recon-ingest"
+    },
+    {
+      "parameters": {
+        "jsCode": "const req = $input.first().json || {};\nconst body = req.body && typeof req.body === 'object' ? req.body : req;\nconst staticData = $getWorkflowStaticData('global');\nconst mailLedger = Array.isArray(staticData.presscoBankMailLedgerMirror) ? staticData.presscoBankMailLedgerMirror : [];\nconst txnLedger = Array.isArray(staticData.presscoBankTransactionLedgerMirror) ? staticData.presscoBankTransactionLedgerMirror : [];\nconst failureLog = Array.isArray(staticData.presscoCrmFailureLogMirror) ? staticData.presscoCrmFailureLogMirror : [];\nconst now = new Date().toISOString();\n\nfunction limitArray(items, maxSize) {\n  if (items.length > maxSize) {\n    items.splice(maxSize, items.length - maxSize);\n  }\n}\n\nfunction upsertByKey(items, keyName, nextItem, maxSize) {\n  if (!nextItem || typeof nextItem !== 'object') return;\n  const key = String(nextItem[keyName] || '').trim();\n  if (!key) return;\n  const index = items.findIndex((entry) => String(entry?.[keyName] || '').trim() === key);\n  if (index >= 0) {\n    const prev = items[index] || {};\n    items[index] = { ...prev, ...nextItem, mirroredAt: now, createdAt: prev.createdAt || now };\n  } else {\n    items.unshift({ ...nextItem, mirroredAt: now, createdAt: now });\n  }\n  limitArray(items, maxSize);\n}\n\nfunction pushFailure(entry) {\n  if (!entry || typeof entry !== 'object') return;\n  const normalized = { ...entry, mirroredAt: now };\n  const key = [normalized.loggedAt || '', normalized.kind || '', normalized.channel || '', normalized.summaryKey || '', normalized.messageKey || '', normalized.error || ''].join('::');\n  if (!key.replace(/[:]/g, '').trim()) return;\n  const index = failureLog.findIndex((item) => [item.loggedAt || '', item.kind || '', item.channel || '', item.summaryKey || '', item.messageKey || '', item.error || ''].join('::') === key);\n  if (index >= 0) failureLog[index] = { ...failureLog[index], ...normalized };\n  else failureLog.unshift(normalized);\n  limitArray(failureLog, 500);\n}\n\nif (!staticData.reconBaselineStartedAt) {\n  staticData.reconBaselineStartedAt = now;\n}\nstaticData.lastIngestedAt = now;\n\nif (body.mail && typeof body.mail === 'object') {\n  upsertByKey(mailLedger, 'messageKey', body.mail, 1000);\n}\nfor (const entry of Array.isArray(body.transactions) ? body.transactions : []) {\n  upsertByKey(txnLedger, 'eventKey', entry, 2000);\n}\nfor (const entry of Array.isArray(body.failureLog) ? body.failureLog : []) {\n  pushFailure(entry);\n}\n\nstaticData.presscoBankMailLedgerMirror = mailLedger;\nstaticData.presscoBankTransactionLedgerMirror = txnLedger;\nstaticData.presscoCrmFailureLogMirror = failureLog;\n\nreturn [{\n  json: {\n    ok: true,\n    source: String(body.source || 'unknown').trim() || 'unknown',\n    messageKey: String(body.messageKey || body.mail?.messageKey || '').trim(),\n    mirroredMail: body.mail ? 1 : 0,\n    mirroredTransactions: Array.isArray(body.transactions) ? body.transactions.length : 0,\n    mirroredFailures: Array.isArray(body.failureLog) ? body.failureLog.length : 0,\n  },\n}];"
+      },
+      "id": "wf-crm03-ingest-payload",
+      "name": "Code: Ingest Audit Payload",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         240,
-        -120
+        220
       ]
     },
     {
       "parameters": {
-        "method": "GET",
-        "url": "={{ ($env.N8N_BASE_URL || 'https://n8n.pressco21.com') + '/api/v1/workflows/TmB5jGa1bDMg5pBE' }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "X-N8N-API-KEY",
-              "value": "={{ $env.N8N_API_KEY }}"
-            }
-          ]
-        },
-        "options": {
-          "response": {
-            "response": {
-              "responseFormat": "json"
-            }
-          }
-        }
-      },
-      "id": "wf-crm03-http-wf01",
-      "name": "WF-CRM-01 상태 조회",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [
-        240,
-        120
-      ]
-    },
-    {
-      "parameters": {
-        "jsCode": "const wf02 = $('WF-CRM-02 상태 조회').first().json || {};\nconst wf01 = $('WF-CRM-01 상태 조회').first().json || {};\nconst static02 = wf02.staticData?.global || {};\nconst static01 = wf01.staticData?.global || {};\nconst mailLedger = Array.isArray(static02.presscoBankMailLedger) ? static02.presscoBankMailLedger : [];\nconst txnLedger = Array.isArray(static02.presscoBankTransactionLedger) ? static02.presscoBankTransactionLedger : [];\nconst failureLog = Array.isArray(static02.presscoCrmFailureLog) ? static02.presscoCrmFailureLog : [];\nconst reviewQueue = Array.isArray(static01.reviewQueue) ? static01.reviewQueue : [];\nconst staticData = $getWorkflowStaticData('global');\nconst sentMap = staticData.presscoBankReconAlertSent && typeof staticData.presscoBankReconAlertSent === 'object'\n  ? staticData.presscoBankReconAlertSent\n  : {};\nif (!staticData.reconBaselineStartedAt) {\n  staticData.reconBaselineStartedAt = new Date().toISOString();\n}\nconst now = Date.now();\nconst pendingThresholdMs = 20 * 60 * 1000;\nconst recentWindowMs = 72 * 60 * 60 * 1000;\nconst dedupeWindowMs = 6 * 60 * 60 * 1000;\nconst issues = [];\n\nfunction toMillis(value) {\n  const date = new Date(value || 0);\n  const time = date.getTime();\n  return Number.isFinite(time) ? time : 0;\n}\n\nfunction formatDateTime(value) {\n  if (!value) return '-';\n  const date = new Date(value);\n  if (!Number.isFinite(date.getTime())) return String(value);\n  return date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });\n}\n\nfunction toKstDate(value) {\n  const date = new Date(value || 0);\n  if (!Number.isFinite(date.getTime())) return 'unknown';\n  return new Intl.DateTimeFormat('sv-SE', {\n    timeZone: 'Asia/Seoul',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n  }).format(date);\n}\n\nfunction pushIssue(key, severity, title, detail) {\n  issues.push({ key, severity, title, detail });\n}\n\nconst baselineAgeMs = now - toMillis(staticData.reconBaselineStartedAt);\nif (baselineAgeMs > recentWindowMs && mailLedger.length === 0) {\n  pushIssue('mail-ledger-empty', 'critical', '메일 ledger 비어 있음', 'WF-CRM-02 staticData에 presscoBankMailLedger가 없습니다.');\n}\n\nif (baselineAgeMs > recentWindowMs && txnLedger.length === 0) {\n  pushIssue('txn-ledger-empty', 'critical', '거래 ledger 비어 있음', 'WF-CRM-02 staticData에 presscoBankTransactionLedger가 없습니다.');\n}\n\nconst recentMail = mailLedger.filter((entry) => now - toMillis(entry.processedAt || entry.receivedAt) <= recentWindowMs);\nconst recentTx = txnLedger.filter((entry) => now - toMillis(entry.parsedAt || entry.lastUpdatedAt || entry.createdAt) <= recentWindowMs);\n\nfor (const entry of recentMail) {\n  const ageMs = now - toMillis(entry.processedAt || entry.receivedAt);\n  if (entry.parseFailure === true) {\n    if (entry.parseAlertStatus === 'failed') {\n      pushIssue(\n        'parse-alert-failed::' + entry.messageKey,\n        'critical',\n        '파싱 실패 경보 Telegram 발송 실패',\n        `${entry.subject || '-'} / ${formatDateTime(entry.processedAt || entry.receivedAt)} / ${entry.parseAlertFailureReason || 'unknown_telegram_error'}`,\n      );\n    } else if (entry.parseAlertStatus !== 'sent' && ageMs > pendingThresholdMs) {\n      pushIssue(\n        'parse-alert-pending::' + entry.messageKey,\n        'critical',\n        '파싱 실패 경보 미발송',\n        `${entry.subject || '-'} / ${formatDateTime(entry.processedAt || entry.receivedAt)} / 사유 ${entry.parseFailureReason || '-'}`,\n      );\n    }\n  }\n}\n\nfor (const entry of recentTx) {\n  const ageMs = now - toMillis(entry.parsedAt || entry.lastUpdatedAt || entry.createdAt);\n  if (entry.alertStatus === 'failed') {\n    pushIssue(\n      'tx-alert-failed::' + entry.eventKey,\n      'critical',\n      '거래 알림 Telegram 발송 실패',\n      `${entry.direction || 'unknown'} / ${entry.party || entry.sender || '-'} / ${(Number(entry.amount) || 0).toLocaleString()}원 / ${formatDateTime(entry.occurredAt || entry.parsedAt)} / ${entry.alertFailureReason || 'unknown_telegram_error'}`,\n    );\n    continue;\n  }\n  if (entry.alertStatus !== 'sent' && ageMs > pendingThresholdMs) {\n    const label = entry.alertKind === 'crm_deposit' ? '입금 CRM 알림' : '은행 거래 알림';\n    pushIssue(\n      'tx-alert-pending::' + entry.eventKey,\n      'critical',\n      label + ' 미확정',\n      `${entry.direction || 'unknown'} / ${entry.party || entry.sender || '-'} / ${(Number(entry.amount) || 0).toLocaleString()}원 / ${formatDateTime(entry.occurredAt || entry.parsedAt)} / 상태 ${entry.alertStatus || 'pending'}`,\n    );\n  }\n}\n\nconst dayMap = new Map();\nfunction getDay(dateKey) {\n  if (!dayMap.has(dateKey)) {\n    dayMap.set(dateKey, {\n      nhMail: 0,\n      parseFailures: 0,\n      deposits: 0,\n      withdrawals: 0,\n      sent: 0,\n      failed: 0,\n      pending: 0,\n    });\n  }\n  return dayMap.get(dateKey);\n}\nfor (const entry of recentMail) {\n  const day = toKstDate(entry.processedAt || entry.receivedAt);\n  const bucket = getDay(day);\n  if (entry.isNhMail) bucket.nhMail += 1;\n  if (entry.parseFailure) bucket.parseFailures += 1;\n}\nfor (const entry of recentTx) {\n  const day = toKstDate(entry.occurredAt || entry.parsedAt || entry.createdAt);\n  const bucket = getDay(day);\n  if (entry.direction === 'deposit') bucket.deposits += 1;\n  else bucket.withdrawals += 1;\n  if (entry.alertStatus === 'sent') bucket.sent += 1;\n  else if (entry.alertStatus === 'failed') bucket.failed += 1;\n  else bucket.pending += 1;\n}\nfor (const [day, bucket] of Array.from(dayMap.entries()).sort()) {\n  if (bucket.parseFailures > 0 || bucket.failed > 0 || bucket.pending > 0) {\n    pushIssue(\n      'daily-mismatch::' + day,\n      'high',\n      `일일 정합성 주의 ${day}`,\n      `NH메일 ${bucket.nhMail} / 파싱실패 ${bucket.parseFailures} / 입금 ${bucket.deposits} / 출금 ${bucket.withdrawals} / sent ${bucket.sent} / failed ${bucket.failed} / pending ${bucket.pending}`,\n    );\n  }\n}\n\nconst recentFailureLog = failureLog.filter((entry) => now - toMillis(entry.loggedAt) <= recentWindowMs);\nconst telegramFailureCount = recentFailureLog.filter((entry) => entry.kind === 'telegram_failure').length;\nif (telegramFailureCount > 0) {\n  pushIssue(\n    'telegram-failure-count::' + telegramFailureCount,\n    'high',\n    '최근 Telegram 실패 로그 존재',\n    `최근 72시간 Telegram 실패 ${telegramFailureCount}건 / reviewQueue pending ${reviewQueue.filter((entry) => entry.status === 'review' || entry.status === 'unmatched').length}건`,\n  );\n}\n\nconst deliverableIssues = issues.filter((issue) => {\n  const sentAt = toMillis(sentMap[issue.key]);\n  return !sentAt || now - sentAt >= dedupeWindowMs;\n});\nif (deliverableIssues.length === 0) {\n  return [];\n}\nfor (const issue of deliverableIssues) {\n  sentMap[issue.key] = new Date(now).toISOString();\n}\nconst sentKeys = Object.keys(sentMap);\nif (sentKeys.length > 500) {\n  sentKeys.sort((left, right) => String(sentMap[left]).localeCompare(String(sentMap[right]))).slice(0, sentKeys.length - 500).forEach((key) => delete sentMap[key]);\n}\nstaticData.presscoBankReconAlertSent = sentMap;\n\nconst severityIcon = (value) => value === 'critical' ? '❌' : '⚠️';\nconst lines = [\n  '[입금 정합성 감사 경보]',\n  '',\n  `감지 시각: ${new Date(now).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false })}`,\n  `최근 NH 메일: ${recentMail.length}건 / 최근 거래 ledger: ${recentTx.length}건 / reviewQueue pending: ${reviewQueue.filter((entry) => entry.status === 'review' || entry.status === 'unmatched').length}건`,\n  '',\n];\ndeliverableIssues.slice(0, 12).forEach((issue) => {\n  lines.push(`${severityIcon(issue.severity)} ${issue.title}`);\n  lines.push(issue.detail);\n  lines.push('');\n});\nif (deliverableIssues.length > 12) {\n  lines.push(`... 외 ${deliverableIssues.length - 12}건`);\n}\nreturn [{ json: { message: lines.join('\\n') } }];"
+        "jsCode": "const staticData = $getWorkflowStaticData('global');\nconst mailLedger = Array.isArray(staticData.presscoBankMailLedgerMirror) ? staticData.presscoBankMailLedgerMirror : [];\nconst txnLedger = Array.isArray(staticData.presscoBankTransactionLedgerMirror) ? staticData.presscoBankTransactionLedgerMirror : [];\nconst failureLog = Array.isArray(staticData.presscoCrmFailureLogMirror) ? staticData.presscoCrmFailureLogMirror : [];\nconst sentMap = staticData.presscoBankReconAlertSent && typeof staticData.presscoBankReconAlertSent === 'object'\n  ? staticData.presscoBankReconAlertSent\n  : {};\nif (!staticData.reconBaselineStartedAt) {\n  staticData.reconBaselineStartedAt = new Date().toISOString();\n}\nconst now = Date.now();\nconst pendingThresholdMs = 20 * 60 * 1000;\nconst recentWindowMs = 72 * 60 * 60 * 1000;\nconst dedupeWindowMs = 6 * 60 * 60 * 1000;\nconst issues = [];\n\nfunction toMillis(value) {\n  const date = new Date(value || 0);\n  const time = date.getTime();\n  return Number.isFinite(time) ? time : 0;\n}\n\nfunction formatDateTime(value) {\n  if (!value) return '-';\n  const date = new Date(value);\n  if (!Number.isFinite(date.getTime())) return String(value);\n  return date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false });\n}\n\nfunction toKstDate(value) {\n  const date = new Date(value || 0);\n  if (!Number.isFinite(date.getTime())) return 'unknown';\n  return new Intl.DateTimeFormat('sv-SE', {\n    timeZone: 'Asia/Seoul',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n  }).format(date);\n}\n\nfunction pushIssue(key, severity, title, detail) {\n  issues.push({ key, severity, title, detail });\n}\n\nconst baselineAgeMs = now - toMillis(staticData.reconBaselineStartedAt);\nif (baselineAgeMs > recentWindowMs && mailLedger.length === 0) {\n  pushIssue('mail-ledger-empty', 'critical', '메일 mirror ledger 비어 있음', 'WF-CRM-03 mirror staticData에 presscoBankMailLedgerMirror가 없습니다.');\n}\nif (baselineAgeMs > recentWindowMs && txnLedger.length === 0) {\n  pushIssue('txn-ledger-empty', 'critical', '거래 mirror ledger 비어 있음', 'WF-CRM-03 mirror staticData에 presscoBankTransactionLedgerMirror가 없습니다.');\n}\n\nconst recentMail = mailLedger.filter((entry) => now - toMillis(entry.processedAt || entry.receivedAt || entry.mirroredAt) <= recentWindowMs);\nconst recentTx = txnLedger.filter((entry) => now - toMillis(entry.parsedAt || entry.lastUpdatedAt || entry.createdAt || entry.mirroredAt) <= recentWindowMs);\n\nfor (const entry of recentMail) {\n  const ageMs = now - toMillis(entry.processedAt || entry.receivedAt || entry.mirroredAt);\n  if (entry.parseFailure === true) {\n    if (entry.parseAlertStatus === 'failed') {\n      pushIssue('parse-alert-failed::' + entry.messageKey, 'critical', '파싱 실패 경보 Telegram 발송 실패', `${entry.subject || '-'} / ${formatDateTime(entry.processedAt || entry.receivedAt)} / ${entry.parseAlertFailureReason || 'unknown_telegram_error'}`);\n    } else if (entry.parseAlertStatus !== 'sent' && ageMs > pendingThresholdMs) {\n      pushIssue('parse-alert-pending::' + entry.messageKey, 'critical', '파싱 실패 경보 미발송', `${entry.subject || '-'} / ${formatDateTime(entry.processedAt || entry.receivedAt)} / 사유 ${entry.parseFailureReason || '-'}`);\n    }\n  }\n}\n\nfor (const entry of recentTx) {\n  const ageMs = now - toMillis(entry.parsedAt || entry.lastUpdatedAt || entry.createdAt || entry.mirroredAt);\n  if (entry.alertStatus === 'failed') {\n    pushIssue('tx-alert-failed::' + entry.eventKey, 'critical', '거래 알림 Telegram 발송 실패', `${entry.direction || 'unknown'} / ${entry.party || entry.sender || '-'} / ${(Number(entry.amount) || 0).toLocaleString()}원 / ${formatDateTime(entry.occurredAt || entry.parsedAt)} / ${entry.alertFailureReason || 'unknown_telegram_error'}`);\n    continue;\n  }\n  if (entry.alertStatus !== 'sent' && ageMs > pendingThresholdMs) {\n    const label = entry.alertKind === 'crm_deposit' ? '입금 CRM 알림' : '은행 거래 알림';\n    pushIssue('tx-alert-pending::' + entry.eventKey, 'critical', label + ' 미확정', `${entry.direction || 'unknown'} / ${entry.party || entry.sender || '-'} / ${(Number(entry.amount) || 0).toLocaleString()}원 / ${formatDateTime(entry.occurredAt || entry.parsedAt)} / 상태 ${entry.alertStatus || 'pending'}`);\n  }\n}\n\nconst dayMap = new Map();\nfunction getDay(dateKey) {\n  if (!dayMap.has(dateKey)) {\n    dayMap.set(dateKey, { nhMail: 0, parseFailures: 0, deposits: 0, withdrawals: 0, sent: 0, failed: 0, pending: 0 });\n  }\n  return dayMap.get(dateKey);\n}\nfor (const entry of recentMail) {\n  const day = toKstDate(entry.processedAt || entry.receivedAt || entry.mirroredAt);\n  const bucket = getDay(day);\n  if (entry.isNhMail) bucket.nhMail += 1;\n  if (entry.parseFailure) bucket.parseFailures += 1;\n}\nfor (const entry of recentTx) {\n  const day = toKstDate(entry.occurredAt || entry.parsedAt || entry.createdAt || entry.mirroredAt);\n  const bucket = getDay(day);\n  if (entry.direction === 'deposit') bucket.deposits += 1;\n  else bucket.withdrawals += 1;\n  if (entry.alertStatus === 'sent') bucket.sent += 1;\n  else if (entry.alertStatus === 'failed') bucket.failed += 1;\n  else bucket.pending += 1;\n}\nfor (const [day, bucket] of Array.from(dayMap.entries()).sort()) {\n  if (bucket.parseFailures > 0 || bucket.failed > 0 || bucket.pending > 0) {\n    pushIssue('daily-mismatch::' + day, 'high', `일일 정합성 주의 ${day}`, `NH메일 ${bucket.nhMail} / 파싱실패 ${bucket.parseFailures} / 입금 ${bucket.deposits} / 출금 ${bucket.withdrawals} / sent ${bucket.sent} / failed ${bucket.failed} / pending ${bucket.pending}`);\n  }\n}\n\nconst recentFailureLog = failureLog.filter((entry) => now - toMillis(entry.loggedAt || entry.mirroredAt) <= recentWindowMs);\nconst telegramFailureCount = recentFailureLog.filter((entry) => entry.kind === 'telegram_failure').length;\nif (telegramFailureCount > 0) {\n  pushIssue('telegram-failure-count::' + telegramFailureCount, 'high', '최근 Telegram 실패 로그 존재', `최근 72시간 Telegram 실패 ${telegramFailureCount}건 / 최근 failure mirror ${recentFailureLog.length}건`);\n}\n\nconst deliverableIssues = issues.filter((issue) => {\n  const sentAt = toMillis(sentMap[issue.key]);\n  return !sentAt || now - sentAt >= dedupeWindowMs;\n});\nif (deliverableIssues.length === 0) {\n  return [];\n}\nfor (const issue of deliverableIssues) {\n  sentMap[issue.key] = new Date(now).toISOString();\n}\nconst sentKeys = Object.keys(sentMap);\nif (sentKeys.length > 500) {\n  sentKeys.sort((left, right) => String(sentMap[left]).localeCompare(String(sentMap[right]))).slice(0, sentKeys.length - 500).forEach((key) => delete sentMap[key]);\n}\nstaticData.presscoBankReconAlertSent = sentMap;\n\nconst severityIcon = (value) => value === 'critical' ? '❌' : '⚠️';\nconst lines = [\n  '[입금 정합성 감사 경보]',\n  '',\n  `감지 시각: ${new Date(now).toLocaleString('ko-KR', { timeZone: 'Asia/Seoul', hour12: false })}`,\n  `최근 NH 메일: ${recentMail.length}건 / 최근 거래 ledger: ${recentTx.length}건 / 최근 failure mirror: ${recentFailureLog.length}건`,\n  '',\n];\ndeliverableIssues.slice(0, 12).forEach((issue) => {\n  lines.push(`${severityIcon(issue.severity)} ${issue.title}`);\n  lines.push(issue.detail);\n  lines.push('');\n});\nif (deliverableIssues.length > 12) {\n  lines.push(`... 외 ${deliverableIssues.length - 12}건`);\n}\nreturn [{ json: { message: lines.join('\\n') } }];"
       },
       "id": "wf-crm03-build-report",
       "name": "Code: Build Reconciliation Report",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        520,
+        240,
         0
       ]
     },
@@ -114,22 +84,6 @@
           "name": "PRESSCO_BANK_BOT"
         }
       }
-    },
-    {
-      "parameters": {
-        "mode": "combine",
-        "combineBy": "combineByPosition",
-        "numberInputs": 2,
-        "options": {}
-      },
-      "id": "wf-crm03-merge-states",
-      "name": "Merge Workflow States",
-      "type": "n8n-nodes-base.merge",
-      "typeVersion": 3,
-      "position": [
-        420,
-        0
-      ]
     }
   ],
   "connections": {
@@ -137,45 +91,18 @@
       "main": [
         [
           {
-            "node": "WF-CRM-02 상태 조회",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "WF-CRM-01 상태 조회",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "WF-CRM-02 상태 조회": {
-      "main": [
-        [
-          {
-            "node": "Merge Workflow States",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "WF-CRM-01 상태 조회": {
-      "main": [
-        [
-          {
-            "node": "Merge Workflow States",
-            "type": "main",
-            "index": 1
-          }
-        ]
-      ]
-    },
-    "Merge Workflow States": {
-      "main": [
-        [
-          {
             "node": "Code: Build Reconciliation Report",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook Audit Ingest": {
+      "main": [
+        [
+          {
+            "node": "Code: Ingest Audit Payload",
             "type": "main",
             "index": 0
           }

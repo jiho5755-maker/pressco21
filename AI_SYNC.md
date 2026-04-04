@@ -51,13 +51,15 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: —
+- Started At: 2026-04-05 01:20:00 KST
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: WF-CRM-03 self-call 인증 실패 보완 및 mirror 감사 루프 전환
+- Active Subdirectory: n8n-automation/workflows/accounting
 
 ## Files In Progress
-- —
+- AI_SYNC.md
+- n8n-automation/workflows/accounting/WF-CRM-03_입금알림_정합성_감사.json
+- n8n-automation/workflows/accounting/WF-CRM-02_Gmail_입금알림_수집.json
 
 ## Last Changes
 
@@ -65,6 +67,7 @@
 
 - 2026-04-04 하네스 종합 고도화 Phase 0 착수: CLAUDE.md 194→80줄 경량화, orchestration 스킬 생성, AI_SYNC 2307→200줄 다이어트
 - 2026-04-05 WF-CRM 입금 정합성 보강: WF-CRM-02에 mail/transaction ledger 추가, Telegram 성공 후 sent-map 기록으로 수정, Telegram 실패 failure log 보강, 신규 WF-CRM-03 정합성 감사 루프 생성 및 live 활성화
+- 2026-04-05 WF-CRM 감사 루프 self-call 제거: WF-CRM-03를 webhook mirror + schedule 감사 구조로 전환, WF-CRM-02에 mirror sync 추가, 실입금 `장지호 / 1,245원` 건으로 Gmail 파싱 → CRM review → Telegram sent → WF-CRM-03 mirror 적재 → scheduled success 실행까지 확인
 - 2026-04-04 WF-CRM-02 live 패치: NH 메일 파싱 실패 경보, intake 실패 경보, failure log(static data), 동일 externalId 재실행 중복 알림 억제키 보강. 운영 WF `7ql6pPWlBoJhoZqH` 갱신 완료
 - 2026-04-03 flora-frontdoor 회상 기능을 최근 메모+미완료 open item 기준으로 확장
 - 2026-04-03 CRM 입금 알림에 입금별칭추천 줄 추가, 메시지 1건당 1개로 단일화하고 live 재배포
@@ -86,6 +89,8 @@
 - `[CODEX]` CRM 운영: 입금 자동반영 실건 검증, 견적서/납품서/청구서 인쇄 확인
 - `[CODEX]` CRM 운영: WF-CRM-03 첫 scheduled execution 결과 확인, 신규 NH 메일 1건으로 ledger/감사 루프 실건 검증
 - `[CODEX]` CRM 운영: WF-CRM-02 신규 NH 메일 1건 실건 검증 필요 (parse failure / intake failure / 정상 반영 각각 확인)
+- `[CODEX]` CRM 운영: WF-CRM-03 mirror ledger 백필 범위를 최근 72시간 전체로 확장할지 검토
+- `[CODEX]` CRM 운영: parse failure / intake failure / Telegram failure 실건이 발생했을 때 WF-CRM-03 mirror 경보까지 도달하는지 후속 검증
 - `[CODEX]` 저장소: path-scoped 커밋 정리, 배포 후 workflow export 재동기화 루틴 고정
 - `[CODEX]` FA-001/003 메일 가드 실건 운영 확인
 
@@ -96,4 +101,5 @@
 - n8n CLI `import:workflow`는 active WF를 비활성화함. 배포 후 반드시 `publish:workflow` + restart
 - `memory-watchdog.sh`의 swap 단독 CRITICAL 기준이 과민. 재부팅 후 재발 시 조합 기준으로 재설계
 - 입금 알림 포맷 live 배포 완료했으나 실제 NH 신규 입금 메일 1건 운영 검증 미완
+- WF-CRM-03는 mirror 구조로 정상화됐지만, 현재 mirror 백필은 실검증한 최신 입금 1건만 적재됨. 기존 72시간 전체 이력은 필요 시 추가 백필 가능
 - `server-monitor.sh` hotfix가 운영서버에만 반영. canonical source 역반영 경로 미확정

@@ -1,0 +1,140 @@
+/* Flora 미니앱 — 태스크 보드 */
+
+.taskboard-filters {
+    display: flex;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing-sm);
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: none;
+}
+
+.taskboard-filters::-webkit-scrollbar {
+    display: none;
+}
+
+.task-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-height: 120px;
+}
+
+.task-card {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing);
+    background: var(--secondary-bg);
+    border-radius: var(--radius);
+    padding: var(--spacing);
+    transition: opacity 0.2s;
+}
+
+.task-card.done {
+    opacity: 0.5;
+}
+
+.task-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.task-card-title {
+    font-size: var(--font-base);
+    font-weight: 600;
+    color: var(--text);
+    word-break: break-word;
+    line-height: 1.4;
+}
+
+.task-card.done .task-card-title {
+    text-decoration: line-through;
+    color: var(--hint);
+}
+
+.task-card-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    margin-top: 6px;
+}
+
+.task-card-actions {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-xs);
+    flex-shrink: 0;
+}
+
+.task-action-btn {
+    min-width: var(--touch-target);
+    min-height: 36px;
+    padding: 0 12px;
+    border: 1.5px solid var(--hint);
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--text);
+    font-family: inherit;
+    font-size: var(--font-sm);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    -webkit-appearance: none;
+    white-space: nowrap;
+}
+
+.task-action-btn:active {
+    transform: scale(0.95);
+}
+
+.task-action-btn.complete {
+    border-color: var(--success);
+    color: var(--success);
+}
+
+.task-action-btn.start {
+    border-color: var(--btn-bg);
+    color: var(--btn-bg);
+}
+
+.task-action-btn.wait {
+    border-color: var(--warning);
+    color: var(--warning);
+}
+
+/* 태스크 상세 시트 */
+.task-detail-header {
+    display: flex;
+    align-items: flex-start;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing);
+}
+
+.task-detail-title {
+    font-size: var(--font-lg);
+    font-weight: 700;
+    flex: 1;
+    word-break: break-word;
+}
+
+.task-detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--spacing-sm);
+    margin-bottom: var(--spacing);
+}
+
+.task-detail-source {
+    font-size: var(--font-sm);
+    color: var(--hint);
+    padding: var(--spacing-sm) 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.06);
+    word-break: break-word;
+    line-height: 1.5;
+}
+
+.task-detail-label {
+    font-size: var(--font-sm);
+    color: var(--hint);
+    margin-bottom: var(--spacing-xs);
+}

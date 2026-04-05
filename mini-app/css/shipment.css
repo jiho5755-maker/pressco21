@@ -1,0 +1,120 @@
+/* Flora 미니앱 — 출고 리스트 */
+
+.shipment-header {
+    margin-bottom: var(--spacing);
+}
+
+.shipment-date {
+    font-size: var(--font-sm);
+    color: var(--hint);
+}
+
+.shipment-stats {
+    display: flex;
+    gap: var(--spacing-lg);
+    margin: var(--spacing-sm) 0;
+    font-size: var(--font-sm);
+}
+
+.shipment-stat-num {
+    font-size: var(--font-xl);
+    font-weight: 700;
+    line-height: 1.2;
+}
+
+.shipment-stat-label {
+    color: var(--hint);
+}
+
+.shipment-stat-remaining .shipment-stat-num {
+    color: var(--danger);
+}
+
+.shipment-stat-done .shipment-stat-num {
+    color: var(--success);
+}
+
+.shipment-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-sm);
+    min-height: 120px;
+}
+
+.shipment-card {
+    display: flex;
+    align-items: center;
+    gap: var(--spacing);
+    background: var(--secondary-bg);
+    border-radius: var(--radius);
+    padding: var(--spacing);
+    transition: opacity 0.3s;
+}
+
+.shipment-card.done {
+    opacity: 0.45;
+    order: 1;
+}
+
+.shipment-card-body {
+    flex: 1;
+    min-width: 0;
+}
+
+.shipment-card-order {
+    font-size: var(--font-sm);
+    color: var(--hint);
+    font-weight: 500;
+}
+
+.shipment-card-title {
+    font-size: var(--font-base);
+    font-weight: 600;
+    color: var(--text);
+    margin-top: 2px;
+    word-break: break-word;
+}
+
+.shipment-card.done .shipment-card-title {
+    text-decoration: line-through;
+    color: var(--hint);
+}
+
+.shipment-card-items {
+    font-size: var(--font-sm);
+    color: var(--hint);
+    margin-top: 2px;
+}
+
+.shipment-check-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 48px;
+    height: 48px;
+    border-radius: 50%;
+    border: 2.5px solid var(--hint);
+    background: transparent;
+    color: var(--hint);
+    font-size: 24px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex-shrink: 0;
+    -webkit-appearance: none;
+}
+
+.shipment-check-btn:active {
+    transform: scale(0.9);
+}
+
+.shipment-card.done .shipment-check-btn {
+    border-color: var(--success);
+    background: var(--success);
+    color: #fff;
+}
+
+/* 출고 없을 때 */
+.shipment-empty {
+    text-align: center;
+    padding: var(--spacing-lg) * 2;
+}

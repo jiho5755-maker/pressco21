@@ -4,17 +4,41 @@ import { Header } from "@/components/layout/Header";
 import { TaskCard } from "@/components/task/TaskCard";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/layout/Toast";
-import { fetchActiveTasks, fetchDoneTasks, updateTask, fetchMe } from "@/lib/api";
-import { Plus, Loader2, Inbox } from "lucide-react";
-import type { Task } from "@/lib/types";
+import { fetchActiveTasks, fetchDoneTasks, updateTask, fetchMe, fetchStaff } from "@/lib/api";
+import { getStoredMyName, setStoredMyName } from "@/lib/userPrefs";
+import { Plus, Loader2, Inbox, Check } from "lucide-react";
+import type { Task, StaffMember } from "@/lib/types";
 import { isToday } from "@/lib/format";
 
 type FilterType = "all" | "urgent" | "today" | "review" | "myRequest";
 type ViewMode = "my" | "team";
+
+const FALLBACK_STAFF: StaffMember[] = [
+  { id: "staff-jiho", name: "장지호", role: "admin" },
+  { id: "staff-jaehyuk", name: "이재혁", role: "staff" },
+  { id: "staff-seunghae", name: "조승해", role: "staff" },
+  { id: "staff-wj", name: "원장님", role: "admin" },
+  { id: "staff-dagyeong", name: "장다경", role: "staff" },
+];
+
+function getAvatarColor(name: string): string {
+  const colors = [
+    "bg-primary/20 text-primary",
+    "bg-warm/20 text-[#8b6914]",
+    "bg-brand-light/30 text-[#3d5435]",
+    "bg-blue-100 text-blue-700",
+    "bg-purple-100 text-purple-700",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
 
 export function TaskBoardPage() {
   const navigate = useNavigate();
@@ -26,20 +50,53 @@ export function TaskBoardPage() {
   const [filter, setFilter] = useState<FilterType>("all");
   const [activeTab, setActiveTab] = useState("todo");
   const [myName, setMyName] = useState<string | null>(null);
+  const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [showNamePicker, setShowNamePicker] = useState(false);
 
   useEffect(() => {
-    Promise.all([fetchActiveTasks(), fetchDoneTasks(), fetchMe().catch(() => null)])
-      .then(([active, done, me]) => {
+    Promise.all([
+      fetchActiveTasks(),
+      fetchDoneTasks(),
+      fetchMe().catch(() => null),
+      fetchStaff().catch(() => FALLBACK_STAFF),
+    ])
+      .then(([active, done, me, staffList]) => {
         setTasks(active.explorer?.items ?? []);
         setDoneTasks(done.explorer?.items ?? []);
-        if (me) setMyName(me.name);
+        setStaff(staffList.length > 0 ? staffList : FALLBACK_STAFF);
+
+        // 이름 결정: Telegram → localStorage → null
+        if (me) {
+          setMyName(me.name);
+          setStoredMyName(me.name);
+        } else {
+          const stored = getStoredMyName();
+          if (stored) setMyName(stored);
+        }
       })
       .catch(() => showToast("데이터를 불러올 수 없습니다", "error"))
       .finally(() => setLoading(false));
   }, [showToast]);
 
+  // 뷰 모드 변경 핸들러
+  function handleViewModeChange(newMode: ViewMode) {
+    if (newMode === "my" && !myName) {
+      // 이름이 없으면 선택 UI 표시
+      setShowNamePicker(true);
+      return;
+    }
+    setViewMode(newMode);
+  }
+
+  function handleSelectName(name: string) {
+    setMyName(name);
+    setStoredMyName(name);
+    setShowNamePicker(false);
+    setViewMode("my");
+  }
+
   const summary = useMemo(() => {
-    const src = viewMode === "my" && myName ? tasks.filter((t) => t.assignee === myName) : tasks;
+    const src = viewMode === "my" && myName ? tasks.filter((t) => t.assignee?.includes(myName)) : tasks;
     return {
       todo: src.filter((t) => t.status === "todo" || t.status === "in_progress").length,
       review: src.filter((t) => t.status === "needs_check").length,
@@ -59,7 +116,7 @@ export function TaskBoardPage() {
     }
 
     if (viewMode === "my" && myName) {
-      list = list.filter((t) => t.assignee === myName);
+      list = list.filter((t) => t.assignee?.includes(myName));
     }
 
     switch (filter) {
@@ -121,19 +178,76 @@ export function TaskBoardPage() {
 
       <main className="max-w-[480px] mx-auto w-full px-4 py-4 flex-1">
         {/* 뷰 모드 토글 */}
-        <div className="mb-3">
-          <ToggleGroup value={[viewMode]} onValueChange={(values) => {
-            const next = values[values.length - 1] as ViewMode | undefined;
-            if (next) setViewMode(next);
-          }} className="h-8 bg-muted/50 rounded-lg p-0.5">
-            <ToggleGroupItem value="team" className="text-xs h-7 px-3 rounded-md data-[state=on]:bg-card data-[state=on]:shadow-sm">
+        <div className="flex items-center gap-2 mb-3">
+          <div className="flex-1 bg-muted/50 rounded-xl p-0.5 flex">
+            <button
+              type="button"
+              className={`flex-1 text-xs h-8 rounded-lg font-medium transition-all ${
+                viewMode === "team" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
+              }`}
+              onClick={() => handleViewModeChange("team")}
+            >
               팀 전체
-            </ToggleGroupItem>
-            <ToggleGroupItem value="my" className="text-xs h-7 px-3 rounded-md data-[state=on]:bg-card data-[state=on]:shadow-sm">
+            </button>
+            <button
+              type="button"
+              className={`flex-1 text-xs h-8 rounded-lg font-medium transition-all ${
+                viewMode === "my" ? "bg-card shadow-sm text-foreground" : "text-muted-foreground"
+              }`}
+              onClick={() => handleViewModeChange("my")}
+            >
               내 업무
-            </ToggleGroupItem>
-          </ToggleGroup>
+            </button>
+          </div>
+
+          {/* 현재 선택된 이름 표시 */}
+          {viewMode === "my" && myName && (
+            <button
+              type="button"
+              className="flex items-center gap-1 px-2 py-1 rounded-lg bg-primary/10 text-primary text-xs font-medium"
+              onClick={() => setShowNamePicker(true)}
+            >
+              <Avatar className="h-4 w-4">
+                <AvatarFallback className={`text-[8px] font-bold ${getAvatarColor(myName)}`}>
+                  {myName.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              {myName}
+            </button>
+          )}
         </div>
+
+        {/* 이름 선택 UI */}
+        {showNamePicker && (
+          <div className="mb-4 p-3 bg-card rounded-xl border border-primary/30 shadow-sm">
+            <p className="text-xs text-muted-foreground mb-2.5 font-medium">누구의 업무를 볼까요?</p>
+            <div className="flex flex-wrap gap-2">
+              {staff.map((member) => (
+                <button
+                  key={member.id}
+                  type="button"
+                  onClick={() => handleSelectName(member.name)}
+                  className={`
+                    flex items-center gap-1.5 px-2.5 py-2 rounded-xl text-xs font-medium
+                    transition-all duration-150 border
+                    ${myName === member.name
+                      ? "bg-primary/10 border-primary/40 text-primary"
+                      : "bg-muted/30 border-border/60 text-foreground hover:border-primary/30"
+                    }
+                  `}
+                >
+                  <Avatar className="h-5 w-5">
+                    <AvatarFallback className={`text-[9px] font-bold ${getAvatarColor(member.name)}`}>
+                      {member.name.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  {member.name}
+                  {myName === member.name && <Check className="h-3 w-3" />}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
 
         {/* 통계 카드 */}
         <div className="grid grid-cols-4 gap-2 mb-4">

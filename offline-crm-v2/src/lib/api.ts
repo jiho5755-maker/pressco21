@@ -826,7 +826,7 @@ export const updateSupplier = (id: number, data: Partial<Supplier>) =>
     table: 'suppliers',
     method: 'PATCH',
     recordId: id,
-    payload: data,
+    payload: stripAutoFields(data as Record<string, unknown>),
   })
 
 export const deleteSupplier = (id: number) =>

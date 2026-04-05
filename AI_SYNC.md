@@ -63,6 +63,11 @@
 
 > 전체 이력: `archive/ai-sync-history/AI_SYNC_2026-04-04_full.md`
 
+- 2026-04-05 CRM E2E 확장 완료 (codex)
+  - `offline-crm-v2` 신규 Playwright 6개 파일 추가: 거래내역, 제품, 공급처, 명세표 고도화, 고객 CRUD, 캘린더
+  - `tests/helpers.ts`에 제품/공급처/고객 정리용 헬퍼 및 테스트 API 유틸 추가
+  - 공급처 수정 PATCH auto field 오류 수정, 명세표 역산 후 수량 변경 계산 오류 수정
+  - 전체 E2E 검증 완료: `77 passed, 2 skipped`
 - 2026-04-05 하네스 종합 고도화 Phase 0~2 코드 완료 (커밋 이력 참조)
   - Phase 0: CLAUDE.md 경량화, 안전망 훅 3개, AI_SYNC 다이어트
   - Phase 1: 에이전트 51→25 재구성, MakeShop 스크립트 4개
@@ -79,6 +84,8 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라 서버)
 
 ### Codex 담당 (요약)
+- `[CODEX]` CRM 운영: skipped 2건 재검토 (`02-invoices` 조건부 스킵, `09-calendar` 데이터 의존 스킵)
+- `[CODEX]` CRM 운영: 신규 E2E 6종 장기 플래키 여부 모니터링
 - `[CODEX-LEAD]` Flora frontdoor: open item 캐시 재빌드, 다중 사용자 분리
 - `[CODEX-LEAD]` Flora 오케스트레이션: task ledger, 텔레그램 Mini App IA 스펙
 - `[CODEX-LEAD]` Flora 텔레그램 방 라우팅: 3개 방, room 매핑

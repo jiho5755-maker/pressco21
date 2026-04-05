@@ -773,9 +773,9 @@ export function InvoiceDialog({
       prev.map((r) => {
         if (r._key !== key) return r
         if (r._totalUnit != null) {
-          // 역산 모드: totalUnit × 수량
-          const supply = r._totalUnit * qty
-          const tax = r.taxable ? Math.floor(supply / 10) : 0
+          // 역산 모드: 합계 단가(totalUnit)를 수량만큼 늘린 뒤 다시 공급가/세액으로 분해한다.
+          const combinedTotal = r._totalUnit * qty
+          const { supply, tax } = reverseCalcFromTotal(combinedTotal, r.taxable)
           const unitPrice = Math.floor(supply / qty)
           return { ...r, quantity: qty, unit_price: unitPrice, supply_amount: supply, tax_amount: tax }
         }

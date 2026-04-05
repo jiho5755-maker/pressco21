@@ -13,6 +13,10 @@ export const ROUTES = {
   customers:   '/customers',
   invoices:    '/invoices',
   receivables: '/receivables',
+  products:    '/products',
+  suppliers:   '/suppliers',
+  transactions:'/transactions',
+  calendar:    '/calendar',
 } as const
 
 /** NocoDB API가 실제 데이터를 반환할 때까지 최대 대기 시간 (ms) */
@@ -23,7 +27,7 @@ const CRM_PROXY_PATH = '/crm-proxy'
 const CRM_API_KEY = process.env.VITE_CRM_API_KEY || '6e154a8fa69c067c096b237f6432456451b2cb7fd107cf7d10d98025edc420e8'
 
 interface ProxyRequest {
-  table: 'invoices' | 'items'
+  table: 'customers' | 'products' | 'suppliers' | 'invoices' | 'items'
   method?: 'GET' | 'POST' | 'PATCH' | 'DELETE'
   recordId?: number
   params?: Record<string, string | number>
@@ -48,6 +52,23 @@ interface InvoiceCleanupRow {
 
 interface ItemCleanupRow {
   Id: number
+}
+
+interface ProductCleanupRow {
+  Id: number
+  name?: string
+  product_code?: string
+}
+
+interface SupplierCleanupRow {
+  Id: number
+  name?: string
+}
+
+interface CustomerCleanupRow {
+  Id: number
+  name?: string
+  outstanding_balance?: number
 }
 
 export function getTodayDateString(): string {
@@ -124,6 +145,89 @@ export async function cleanupTestInvoices(request: APIRequestContext, prefix = T
       recordId: invoice.Id,
     })
   }
+}
+
+export async function cleanupTestProducts(request: APIRequestContext, prefix = 'TEST-PRODUCT-'): Promise<void> {
+  const result = await proxyRequest<ListResponse<ProductCleanupRow>>(request, {
+    table: 'products',
+    params: {
+      limit: 500,
+      sort: '-Id',
+      fields: 'Id,name,product_code',
+    },
+  })
+
+  const matches = result.list.filter((row) =>
+    row.name?.startsWith(prefix) || row.product_code?.startsWith(prefix)
+  )
+
+  for (const product of matches) {
+    await proxyRequest<void>(request, {
+      table: 'products',
+      method: 'DELETE',
+      recordId: product.Id,
+    })
+  }
+}
+
+export async function cleanupTestSuppliers(request: APIRequestContext, prefix = 'TEST-SUPPLIER-'): Promise<void> {
+  const result = await proxyRequest<ListResponse<SupplierCleanupRow>>(request, {
+    table: 'suppliers',
+    params: {
+      limit: 500,
+      sort: '-Id',
+      fields: 'Id,name',
+    },
+  })
+
+  const matches = result.list.filter((row) => row.name?.startsWith(prefix))
+
+  for (const supplier of matches) {
+    await proxyRequest<void>(request, {
+      table: 'suppliers',
+      method: 'DELETE',
+      recordId: supplier.Id,
+    })
+  }
+}
+
+export async function cleanupTestCustomers(request: APIRequestContext, prefix = 'TEST-CUSTOMER-'): Promise<void> {
+  const result = await proxyRequest<ListResponse<CustomerCleanupRow>>(request, {
+    table: 'customers',
+    params: {
+      limit: 500,
+      sort: '-Id',
+      fields: 'Id,name',
+    },
+  })
+
+  const matches = result.list.filter((row) => row.name?.startsWith(prefix))
+
+  for (const customer of matches) {
+    await proxyRequest<void>(request, {
+      table: 'customers',
+      method: 'DELETE',
+      recordId: customer.Id,
+    })
+  }
+}
+
+export async function getTestCustomer(request: APIRequestContext, customerId: number): Promise<CustomerCleanupRow> {
+  return proxyRequest<CustomerCleanupRow>(request, {
+    table: 'customers',
+    recordId: customerId,
+  })
+}
+
+export async function createTestCustomer(
+  request: APIRequestContext,
+  payload: Record<string, unknown>,
+): Promise<CustomerCleanupRow> {
+  return proxyRequest<CustomerCleanupRow>(request, {
+    table: 'customers',
+    method: 'POST',
+    payload,
+  })
 }
 
 // ─── 네비게이션 헬퍼 ─────────────────────────────────────

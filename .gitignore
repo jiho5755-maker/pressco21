@@ -8,6 +8,9 @@ Thumbs.db
 *~
 .vscode/
 
+# 빌드 산출물
+*.tsbuildinfo
+
 # 인증키 (절대 커밋 금지)
 .secrets.env
 
@@ -27,12 +30,7 @@ shrimp_data/
 # 테스트 산출물
 test-results/
 **/test-results/
-output/playwright/
-offline-crm-v2/output/playwright/
-output/execution-*.json
-output/flora-mac-harness/
-output/flora-routing-validation/
-output/n8n-backups/
+output/
 
 # 루트 임시 스크린샷
 *.png

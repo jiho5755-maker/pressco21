@@ -1,10 +1,9 @@
 import { useNavigate } from "react-router-dom";
-import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { PriorityBadge } from "./PriorityBadge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { StatusBadge } from "./StatusBadge";
 import { formatCompactDate, daysUntil } from "@/lib/format";
-import { User, Calendar } from "lucide-react";
+import { Calendar } from "lucide-react";
 import type { Task } from "@/lib/types";
 import { hapticFeedback } from "@/lib/telegram";
 
@@ -14,6 +13,28 @@ const NEXT_STATUS: Record<string, { label: string; next: string }> = {
   needs_check: { label: "완료", next: "done" },
   waiting: { label: "시작", next: "in_progress" },
 };
+
+const PRIORITY_BAR: Record<string, string> = {
+  p1: "bg-destructive",
+  p2: "bg-orange-500",
+  p3: "bg-primary/60",
+  p4: "bg-muted-foreground/30",
+};
+
+function getAvatarColor(name: string): string {
+  const colors = [
+    "bg-primary/20 text-primary",
+    "bg-warm/20 text-[#8b6914]",
+    "bg-brand-light/30 text-[#3d5435]",
+    "bg-blue-100 text-blue-700",
+    "bg-purple-100 text-purple-700",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
 
 interface TaskCardProps {
   task: Task;
@@ -27,39 +48,86 @@ export function TaskCard({ task, onQuickAction, compact = false }: TaskCardProps
   const dueDays = task.dueAt ? daysUntil(task.dueAt) : null;
   const isOverdue = dueDays !== null && dueDays < 0;
   const isDueToday = dueDays === 0;
+  const isDueSoon = dueDays !== null && dueDays > 0 && dueDays <= 2;
+  const barColor = PRIORITY_BAR[task.priority] ?? "bg-muted-foreground/30";
+
+  function getDueText(): string {
+    if (dueDays === null) return "";
+    if (dueDays < -1) return formatCompactDate(task.dueAt!) + " (" + Math.abs(dueDays) + "일 지남)";
+    if (dueDays === -1) return "어제 마감";
+    if (dueDays === 0) return "오늘 마감";
+    if (dueDays === 1) return "내일 마감";
+    if (dueDays <= 7) return "D-" + dueDays;
+    return formatCompactDate(task.dueAt!);
+  }
 
   return (
-    <Card className="p-3 cursor-pointer active:scale-[0.98] transition-transform duration-150" onClick={() => navigate("/tasks/" + task.id)}>
-      <div className="flex items-start gap-2">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
-            <PriorityBadge priority={task.priority} />
-            {!compact && <StatusBadge status={task.status} />}
-          </div>
-          <p className="text-sm font-medium leading-snug line-clamp-2 mb-1.5">{task.title}</p>
-          <div className="flex items-center gap-3 text-xs text-muted-foreground">
-            {task.assignee && (
-              <span className="flex items-center gap-1"><User className="h-3 w-3" />{task.assignee}</span>
-            )}
-            {task.dueAt && (
-              <span className={`flex items-center gap-1 ${isOverdue ? "text-destructive font-medium" : isDueToday ? "text-orange-500 font-medium" : ""}`}>
-                <Calendar className="h-3 w-3" />
-                {formatCompactDate(task.dueAt)}
-                {isOverdue && " (지남)"}
-                {isDueToday && " (오늘)"}
-              </span>
-            )}
-          </div>
-        </div>
+    <div
+      className="flex bg-card rounded-xl border border-border/60 overflow-hidden cursor-pointer
+                 active:scale-[0.98] hover:border-border hover:shadow-sm transition-all duration-150"
+      onClick={() => navigate("/tasks/" + task.id)}
+    >
+      {/* 우선순위 컬러바 */}
+      <div className={`w-1 flex-shrink-0 ${barColor}`} />
 
-        {transition && onQuickAction && (
-          <Button size="sm" variant="outline"
-            className="flex-shrink-0 h-7 text-xs px-2.5 border-primary/30 text-primary hover:bg-primary hover:text-primary-foreground"
-            onClick={(e) => { e.stopPropagation(); hapticFeedback("light"); onQuickAction(task.id, transition.next); }}>
-            {transition.label}
-          </Button>
-        )}
+      {/* 메인 콘텐츠 */}
+      <div className="flex-1 min-w-0 p-3">
+        <div className="flex items-start gap-2">
+          <div className="flex-1 min-w-0">
+            {/* 상태/우선순위 */}
+            {!compact && (
+              <div className="flex items-center gap-1.5 mb-1.5 flex-wrap">
+                <StatusBadge status={task.status} />
+                {task.priority === "p1" && (
+                  <span className="text-[10px] font-semibold text-destructive bg-destructive/10 px-1.5 py-0.5 rounded-md">
+                    긴급
+                  </span>
+                )}
+              </div>
+            )}
+
+            {/* 제목 */}
+            <p className="text-[13px] font-medium leading-snug line-clamp-2 mb-1.5">
+              {task.title}
+            </p>
+
+            {/* 메타 정보 */}
+            <div className="flex items-center gap-2.5 flex-wrap">
+              {task.assignee && (
+                <div className="flex items-center gap-1">
+                  <Avatar className="h-4 w-4">
+                    <AvatarFallback className={`text-[8px] font-bold ${getAvatarColor(task.assignee)}`}>
+                      {task.assignee.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                  <span className="text-[11px] text-muted-foreground">{task.assignee}</span>
+                </div>
+              )}
+              {task.dueAt && (
+                <span className={`flex items-center gap-1 text-[11px] ${
+                  isOverdue ? "text-destructive font-semibold" :
+                  isDueToday ? "text-orange-600 font-semibold" :
+                  isDueSoon ? "text-yellow-600 font-medium" :
+                  "text-muted-foreground"
+                }`}>
+                  <Calendar className="h-3 w-3" />
+                  {getDueText()}
+                </span>
+              )}
+            </div>
+          </div>
+
+          {/* 퀵 액션 */}
+          {transition && onQuickAction && (
+            <Button size="sm" variant="outline"
+              className="flex-shrink-0 h-7 text-[11px] px-2.5 rounded-lg border-primary/30 text-primary
+                         hover:bg-primary hover:text-primary-foreground transition-colors"
+              onClick={(e) => { e.stopPropagation(); hapticFeedback("light"); onQuickAction(task.id, transition.next); }}>
+              {transition.label}
+            </Button>
+          )}
+        </div>
       </div>
-    </Card>
+    </div>
   );
 }

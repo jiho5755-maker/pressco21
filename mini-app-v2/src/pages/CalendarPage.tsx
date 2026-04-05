@@ -18,7 +18,7 @@ export function CalendarPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header title="캘린더" subtitle="주간 업무 일정" showBack />
+      <Header title="캘린더" showBack />
 
       <main className="max-w-[480px] mx-auto w-full px-4 py-4 flex-1">
         {loading ? (

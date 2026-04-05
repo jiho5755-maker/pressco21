@@ -5,17 +5,32 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/components/layout/Toast";
 import { createTask, fetchStaff } from "@/lib/api";
-import { Loader2 } from "lucide-react";
-import type { StaffMember, TaskPriority } from "@/lib/types";
+import { Loader2, Check } from "lucide-react";
+import type { StaffMember } from "@/lib/types";
 
-const PRIORITIES: { value: string; label: string }[] = [
-  { value: "p1", label: "긴급" },
-  { value: "p2", label: "높음" },
-  { value: "p3", label: "보통" },
+const PRIORITIES: { value: string; label: string; color: string; activeColor: string }[] = [
+  { value: "p1", label: "긴급", color: "border-destructive/30 text-destructive", activeColor: "bg-destructive text-white border-destructive" },
+  { value: "p2", label: "높음", color: "border-orange-300 text-orange-600", activeColor: "bg-orange-500 text-white border-orange-500" },
+  { value: "p3", label: "보통", color: "border-primary/30 text-primary", activeColor: "bg-primary text-primary-foreground border-primary" },
 ];
+
+function getAvatarColor(name: string): string {
+  const colors = [
+    "bg-primary/20 text-primary",
+    "bg-warm/20 text-[#8b6914]",
+    "bg-brand-light/30 text-[#3d5435]",
+    "bg-blue-100 text-blue-700",
+    "bg-purple-100 text-purple-700",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) {
+    hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  return colors[Math.abs(hash) % colors.length];
+}
 
 export function TaskCreatePage() {
   const navigate = useNavigate();
@@ -33,7 +48,6 @@ export function TaskCreatePage() {
     fetchStaff()
       .then(setStaff)
       .catch(() => {
-        // fallback 직원 목록
         setStaff([
           { id: "staff-jiho", name: "장지호", role: "admin" },
           { id: "staff-jaehyuk", name: "이재혁", role: "staff" },
@@ -79,65 +93,79 @@ export function TaskCreatePage() {
       <Header title="새 업무 등록" showBack />
 
       <main className="max-w-[480px] mx-auto w-full px-4 py-4 flex-1">
-        <Card>
+        <Card className="border-border/60">
           <CardContent className="p-4 space-y-5">
             {/* 업무 내용 */}
             <div className="space-y-2">
-              <Label htmlFor="title" className="text-sm font-medium">
-                업무 내용 *
+              <Label htmlFor="title" className="text-[13px] font-semibold">
+                업무 내용 <span className="text-destructive">*</span>
               </Label>
               <Input
                 id="title"
                 placeholder="무엇을 해야 하나요?"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
+                className="h-11 text-sm"
                 autoFocus
               />
             </div>
 
             {/* 담당자 */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">담당자</Label>
-              <div className="flex flex-wrap gap-1.5">
-                {staff.map((member) => (
-                  <Badge
-                    key={member.name}
-                    variant={
-                      assignees.includes(member.name) ? "default" : "outline"
-                    }
-                    className="cursor-pointer text-xs py-1 px-2.5"
-                    onClick={() => toggleAssignee(member.name)}
-                  >
-                    {member.name}
-                  </Badge>
-                ))}
+              <Label className="text-[13px] font-semibold">담당자</Label>
+              <div className="flex flex-wrap gap-2">
+                {staff.map((member) => {
+                  const selected = assignees.includes(member.name);
+                  return (
+                    <button
+                      key={member.name}
+                      type="button"
+                      onClick={() => toggleAssignee(member.name)}
+                      className={`
+                        flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium
+                        transition-all duration-150 border
+                        ${selected
+                          ? "bg-primary/10 border-primary/40 text-primary"
+                          : "bg-card border-border/60 text-muted-foreground hover:border-border"
+                        }
+                      `}
+                    >
+                      <Avatar className="h-5 w-5">
+                        <AvatarFallback className={`text-[9px] font-bold ${getAvatarColor(member.name)}`}>
+                          {member.name.charAt(0)}
+                        </AvatarFallback>
+                      </Avatar>
+                      {member.name}
+                      {selected && <Check className="h-3 w-3 text-primary" />}
+                    </button>
+                  );
+                })}
               </div>
             </div>
 
             {/* 우선순위 */}
             <div className="space-y-2">
-              <Label className="text-sm font-medium">우선순위</Label>
-              <div className="flex gap-1.5">
+              <Label className="text-[13px] font-semibold">우선순위</Label>
+              <div className="flex gap-2">
                 {PRIORITIES.map((p) => (
-                  <Badge
+                  <button
                     key={p.value}
-                    variant={priority === p.value ? "default" : "outline"}
-                    className={`cursor-pointer text-xs py-1 px-2.5 ${
-                      priority === p.value && p.value === "urgent"
-                        ? "bg-destructive text-white hover:bg-destructive/90"
-                        : ""
-                    }`}
+                    type="button"
                     onClick={() => setPriority(p.value)}
+                    className={`
+                      flex-1 py-2 rounded-xl text-xs font-semibold border transition-all duration-150
+                      ${priority === p.value ? p.activeColor : p.color + " bg-transparent"}
+                    `}
                   >
                     {p.label}
-                  </Badge>
+                  </button>
                 ))}
               </div>
             </div>
 
             {/* 마감일 */}
             <div className="space-y-2">
-              <Label htmlFor="dueAt" className="text-sm font-medium">
+              <Label htmlFor="dueAt" className="text-[13px] font-semibold">
                 마감일
               </Label>
               <Input
@@ -145,12 +173,13 @@ export function TaskCreatePage() {
                 type="date"
                 value={dueAt}
                 onChange={(e) => setDueAt(e.target.value)}
+                className="h-11 text-sm"
               />
             </div>
 
             {/* 프로젝트 */}
             <div className="space-y-2">
-              <Label htmlFor="project" className="text-sm font-medium">
+              <Label htmlFor="project" className="text-[13px] font-semibold">
                 프로젝트
               </Label>
               <Input
@@ -158,6 +187,7 @@ export function TaskCreatePage() {
                 placeholder="관련 프로젝트 (선택)"
                 value={relatedProject}
                 onChange={(e) => setRelatedProject(e.target.value)}
+                className="h-11 text-sm"
               />
             </div>
           </CardContent>
@@ -165,7 +195,7 @@ export function TaskCreatePage() {
 
         {/* 등록 버튼 */}
         <Button
-          className="w-full mt-4 h-11"
+          className="w-full mt-4 h-12 rounded-xl text-sm font-semibold"
           onClick={handleSubmit}
           disabled={submitting || !title.trim()}
         >

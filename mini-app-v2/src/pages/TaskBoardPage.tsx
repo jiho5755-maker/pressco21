@@ -9,7 +9,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useToast } from "@/components/layout/Toast";
 import { fetchActiveTasks, fetchDoneTasks, updateTask, fetchMe } from "@/lib/api";
-import { Plus, Loader2 } from "lucide-react";
+import { Plus, Loader2, Inbox } from "lucide-react";
 import type { Task } from "@/lib/types";
 import { isToday } from "@/lib/format";
 
@@ -120,43 +120,60 @@ export function TaskBoardPage() {
       } />
 
       <main className="max-w-[480px] mx-auto w-full px-4 py-4 flex-1">
+        {/* 뷰 모드 토글 */}
         <div className="mb-3">
           <ToggleGroup value={[viewMode]} onValueChange={(values) => {
             const next = values[values.length - 1] as ViewMode | undefined;
             if (next) setViewMode(next);
-          }} className="h-8">
-            <ToggleGroupItem value="team" className="text-xs h-7 px-3">팀 전체</ToggleGroupItem>
-            <ToggleGroupItem value="my" className="text-xs h-7 px-3">내 업무</ToggleGroupItem>
+          }} className="h-8 bg-muted/50 rounded-lg p-0.5">
+            <ToggleGroupItem value="team" className="text-xs h-7 px-3 rounded-md data-[state=on]:bg-card data-[state=on]:shadow-sm">
+              팀 전체
+            </ToggleGroupItem>
+            <ToggleGroupItem value="my" className="text-xs h-7 px-3 rounded-md data-[state=on]:bg-card data-[state=on]:shadow-sm">
+              내 업무
+            </ToggleGroupItem>
           </ToggleGroup>
         </div>
 
+        {/* 통계 카드 */}
         <div className="grid grid-cols-4 gap-2 mb-4">
           {[
-            { label: "할일", value: summary.todo },
-            { label: "검토", value: summary.review },
-            { label: "오늘", value: summary.today },
-            { label: "긴급", value: summary.urgent, danger: true },
+            { label: "할일", value: summary.todo, color: "" },
+            { label: "검토", value: summary.review, color: "text-orange-600" },
+            { label: "오늘", value: summary.today, color: summary.today > 0 ? "text-primary" : "" },
+            { label: "긴급", value: summary.urgent, color: summary.urgent > 0 ? "text-destructive" : "" },
           ].map((item) => (
-            <div key={item.label} className="bg-card rounded-lg border border-border p-2 text-center">
-              <p className={`text-lg font-bold ${item.danger && item.value > 0 ? "text-destructive" : "text-primary"}`}>{item.value}</p>
-              <p className="text-[10px] text-muted-foreground">{item.label}</p>
+            <div key={item.label} className="bg-card rounded-xl border border-border/60 p-2.5 text-center">
+              <p className={`text-lg font-bold ${item.color || "text-foreground"}`}>{item.value}</p>
+              <p className="text-[10px] text-muted-foreground mt-0.5">{item.label}</p>
             </div>
           ))}
         </div>
 
+        {/* 탭 */}
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full mb-3">
-            <TabsTrigger value="todo" className="flex-1 text-xs">할일</TabsTrigger>
-            <TabsTrigger value="review" className="flex-1 text-xs">검토</TabsTrigger>
-            <TabsTrigger value="done" className="flex-1 text-xs">완료</TabsTrigger>
+          <TabsList className="w-full mb-3 h-9 bg-muted/50 p-0.5">
+            <TabsTrigger value="todo" className="flex-1 text-xs h-8 rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm">
+              할일
+            </TabsTrigger>
+            <TabsTrigger value="review" className="flex-1 text-xs h-8 rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm">
+              검토
+            </TabsTrigger>
+            <TabsTrigger value="done" className="flex-1 text-xs h-8 rounded-md data-[state=active]:bg-card data-[state=active]:shadow-sm">
+              완료
+            </TabsTrigger>
           </TabsList>
 
+          {/* 필터 칩 */}
           <ScrollArea className="mb-3">
             <div className="flex gap-1.5 pb-1">
               {filterChips.map((chip) => (
                 <Badge key={chip.key} variant={filter === chip.key ? "default" : "outline"}
-                  className="cursor-pointer text-xs whitespace-nowrap flex-shrink-0" onClick={() => setFilter(chip.key)}>
-                  {chip.label}{chip.count !== undefined && chip.count > 0 && <span className="ml-1">{chip.count}</span>}
+                  className="cursor-pointer text-[11px] whitespace-nowrap flex-shrink-0 rounded-full px-2.5 py-0.5"
+                  onClick={() => setFilter(chip.key)}>
+                  {chip.label}{chip.count !== undefined && chip.count > 0 && (
+                    <span className="ml-1 opacity-80">{chip.count}</span>
+                  )}
                 </Badge>
               ))}
             </div>
@@ -164,13 +181,18 @@ export function TaskBoardPage() {
           </ScrollArea>
 
           {loading ? (
-            <div className="flex items-center justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+            <div className="flex items-center justify-center py-12">
+              <Loader2 className="h-6 w-6 animate-spin text-primary" />
+            </div>
           ) : (
             ["todo", "review", "done"].map((tab) => (
               <TabsContent key={tab} value={tab} className="mt-0 space-y-2">
                 {filteredTasks.length === 0 ? (
-                  <div className="text-center py-10 text-muted-foreground text-sm">
-                    {tab === "done" ? "완료된 업무가 없습니다" : "업무가 없습니다"}
+                  <div className="flex flex-col items-center justify-center py-12 text-muted-foreground/60">
+                    <Inbox className="h-8 w-8 mb-2 opacity-40" />
+                    <p className="text-sm">
+                      {tab === "done" ? "완료된 업무가 없습니다" : "해당 업무가 없습니다"}
+                    </p>
                   </div>
                 ) : (
                   filteredTasks.map((task) => (

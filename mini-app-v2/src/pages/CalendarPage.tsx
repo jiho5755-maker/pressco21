@@ -11,7 +11,7 @@ export function CalendarPage() {
 
   useEffect(() => {
     fetchActiveTasks()
-      .then((res) => setTasks(res.tasks))
+      .then((res) => setTasks(res.explorer?.items ?? []))
       .catch(() => {})
       .finally(() => setLoading(false));
   }, []);

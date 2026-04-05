@@ -11,10 +11,10 @@ import { createTask, fetchStaff } from "@/lib/api";
 import { Loader2 } from "lucide-react";
 import type { StaffMember, TaskPriority } from "@/lib/types";
 
-const PRIORITIES: { value: TaskPriority; label: string }[] = [
-  { value: "urgent", label: "긴급" },
-  { value: "high", label: "높음" },
-  { value: "normal", label: "보통" },
+const PRIORITIES: { value: string; label: string }[] = [
+  { value: "p1", label: "긴급" },
+  { value: "p2", label: "높음" },
+  { value: "p3", label: "보통" },
 ];
 
 export function TaskCreatePage() {
@@ -23,7 +23,7 @@ export function TaskCreatePage() {
 
   const [title, setTitle] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
-  const [priority, setPriority] = useState<TaskPriority>("normal");
+  const [priority, setPriority] = useState("p3");
   const [dueAt, setDueAt] = useState("");
   const [relatedProject, setRelatedProject] = useState("");
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -35,11 +35,11 @@ export function TaskCreatePage() {
       .catch(() => {
         // fallback 직원 목록
         setStaff([
-          { name: "장지호" },
-          { name: "이재혁" },
-          { name: "조승해" },
-          { name: "원장님" },
-          { name: "장다경" },
+          { id: "staff-jiho", name: "장지호", role: "admin" },
+          { id: "staff-jaehyuk", name: "이재혁", role: "staff" },
+          { id: "staff-seunghae", name: "조승해", role: "staff" },
+          { id: "staff-wj", name: "원장님", role: "admin" },
+          { id: "staff-dagyeong", name: "장다경", role: "staff" },
         ]);
       });
   }, []);

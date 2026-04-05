@@ -26,8 +26,8 @@ export function ShipmentPage() {
   useEffect(() => {
     Promise.all([fetchActiveTasks(), fetchDoneTasks()])
       .then(([active, done]) => {
-        setActiveTasks(active.tasks.filter(isShipmentTask));
-        setDoneTasks(done.tasks.filter(isShipmentTask));
+        setActiveTasks((active.explorer?.items ?? []).filter(isShipmentTask));
+        setDoneTasks((done.explorer?.items ?? []).filter(isShipmentTask));
       })
       .catch(() => showToast("데이터를 불러올 수 없습니다", "error"))
       .finally(() => setLoading(false));
@@ -43,7 +43,7 @@ export function ShipmentPage() {
 
   // 완료 토글
   const handleComplete = useCallback(
-    async (taskId: number) => {
+    async (taskId: string) => {
       const prevActive = [...activeTasks];
       const prevDone = [...doneTasks];
 
@@ -81,7 +81,7 @@ export function ShipmentPage() {
 
   // 되돌리기
   const handleUndo = useCallback(
-    async (taskId: number) => {
+    async (taskId: string) => {
       const task = doneTasks.find((t) => t.id === taskId);
       if (!task) return;
 
@@ -184,7 +184,7 @@ export function ShipmentPage() {
                           )}
                         </div>
                         <Badge variant="secondary" className="text-[10px] flex-shrink-0">
-                          {task.priority === "urgent" ? "긴급" : "대기"}
+                          {task.priority === "p1" ? "긴급" : "대기"}
                         </Badge>
                       </CardContent>
                     </Card>

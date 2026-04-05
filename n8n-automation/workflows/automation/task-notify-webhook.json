@@ -1,0 +1,110 @@
+{
+  "id": "uqdDQEolcfQdfIk8",
+  "name": "[F10] 업무 상태 변경 알림",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "task-notify",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook",
+      "name": "Webhook 수신",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "task-notify-001"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst event = body.event || '';\nconst title = body.title || '(제목 없음)';\nconst assignee = body.assignee || '';\nconst newStatus = body.newStatus || '';\nconst createdBy = body.createdBy || '';\nconst taskId = body.taskId || '';\nconst priority = body.priority || 'p3';\n\n// 상태 라벨\nconst statusLabels = {\n  todo: '할일', in_progress: '진행', needs_check: '검토',\n  done: '완료', resolved: '해결', waiting: '대기'\n};\nconst statusLabel = statusLabels[newStatus] || newStatus;\n\n// 우선순위 아이콘\nconst priIcons = { p1: '🔴', p2: '🟡', p3: '⚪', p4: '⚪' };\nconst priIcon = priIcons[priority] || '';\n\n// 알림 대상 결정\nlet notifyTargets = [];\nlet messageText = '';\n\nif (event === 'task_created') {\n  // 새 업무 배정 → 담당자에게\n  if (assignee && assignee !== createdBy) {\n    notifyTargets.push(assignee);\n    messageText = `📋 새 업무 배정\\n${priIcon} ${title}\\n\\n배정자: ${createdBy}\\n담당: ${assignee}`;\n  }\n} else if (event === 'task_status_changed') {\n  if (newStatus === 'needs_check') {\n    // 검토 요청 → 관리자(장지호)에게\n    notifyTargets.push('장지호');\n    messageText = `🔍 검토 요청\\n${title}\\n\\n${assignee || '담당자'}님이 검토를 요청했습니다`;\n  } else if (newStatus === 'done') {\n    // 완료 → 요청자에게 (assignee에게도)\n    if (assignee) notifyTargets.push(assignee);\n    notifyTargets.push('장지호');\n    messageText = `✅ 완료\\n${title}`;\n  } else if (newStatus === 'in_progress') {\n    // 시작 → 요청자에게만 (묶음 알림용이지만 즉시는 안 보냄)\n    // 대표에게는 묶음 다이제스트로\n  } else if (newStatus === 'todo') {\n    // 수정 필요 되돌림 → 담당자에게\n    if (assignee) {\n      notifyTargets.push(assignee);\n      messageText = `🔄 수정 필요\\n${title}\\n\\n검토 결과 수정이 필요합니다`;\n    }\n  }\n}\n\n// 중복 제거\nnotifyTargets = [...new Set(notifyTargets)];\n\nif (notifyTargets.length === 0 || !messageText) {\n  return [{ json: { shouldSend: false } }];\n}\n\nreturn [{ json: { shouldSend: true, targets: notifyTargets, text: messageText, event, taskId } }];"
+      },
+      "id": "node-format",
+      "name": "알림 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}"
+      },
+      "id": "node-respond",
+      "name": "200 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [220, 500]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            { "value1": "={{ $json.shouldSend }}", "value2": true }
+          ]
+        }
+      },
+      "id": "node-if",
+      "name": "발송 여부",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst targets = item.targets || [];\nconst text = item.text || '';\n\n// staff → chatId 매핑 (직원 Chat ID 확보 후 업데이트)\nconst chatIdMap = {\n  '장지호': '7713811206',\n  '이재혁': 'JAEHYUK_CHAT_ID',\n  '조승해': 'SEUNGHAE_CHAT_ID',\n  '원장님': 'WJ_CHAT_ID',\n  '장다경': 'DAGYEONG_CHAT_ID'\n};\n\nconst results = [];\nfor (const name of targets) {\n  const chatId = chatIdMap[name];\n  if (chatId && !chatId.includes('_CHAT_ID')) {\n    results.push({ json: { chatId, text } });\n  }\n}\n\nreturn results.length > 0 ? results : [{ json: { chatId: '7713811206', text } }];"
+      },
+      "id": "node-resolve-chat",
+      "name": "Chat ID 매핑",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "id": "node-send",
+      "name": "텔레그램 발송",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [880, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook 수신": {
+      "main": [
+        [
+          { "node": "알림 포맷", "type": "main", "index": 0 },
+          { "node": "200 응답", "type": "main", "index": 0 }
+        ]
+      ]
+    },
+    "알림 포맷": {
+      "main": [[{ "node": "발송 여부", "type": "main", "index": 0 }]]
+    },
+    "발송 여부": {
+      "main": [
+        [{ "node": "Chat ID 매핑", "type": "main", "index": 0 }],
+        []
+      ]
+    },
+    "Chat ID 매핑": {
+      "main": [[{ "node": "텔레그램 발송", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }]
+}

@@ -29,6 +29,7 @@ export async function POST(request: Request) {
       status: body.status,
       priority: body.priority,
       category: body.category ?? null,
+      assignee: body.assignee ?? null,
       dueAt: body.dueAt ?? null,
       timeBucket: body.timeBucket ?? null,
       waitingFor: body.waitingFor ?? null,

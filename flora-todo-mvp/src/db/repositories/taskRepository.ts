@@ -12,6 +12,7 @@ type CreateTaskInput = {
   status?: TaskStatus;
   priority?: TaskPriority;
   category?: string;
+  assignee?: string | null;
   dueAt?: Date | null;
   timeBucket?: string | null;
   waitingFor?: string | null;
@@ -695,6 +696,7 @@ export const taskRepository = {
         status: input.status ?? "todo",
         priority: input.priority ?? "p3",
         category: input.category ?? "inbox",
+        assignee: input.assignee ?? null,
         dueAt: input.dueAt ?? null,
         timeBucket: input.timeBucket ?? null,
         waitingFor: input.waitingFor ?? null,
@@ -713,6 +715,7 @@ export const taskRepository = {
           status: input.status ?? "todo",
           priority: input.priority ?? "p3",
           category: input.category ?? "inbox",
+          assignee: input.assignee ?? null,
           dueAt: input.dueAt ?? null,
           timeBucket: input.timeBucket ?? null,
           waitingFor: input.waitingFor ?? null,
@@ -768,6 +771,7 @@ export const taskRepository = {
       status?: TaskStatus;
       priority?: TaskPriority;
       category?: string | null;
+      assignee?: string | null;
       dueAt?: Date | null;
       waitingFor?: string | null;
       relatedProject?: string | null;
@@ -781,6 +785,7 @@ export const taskRepository = {
         status: input.status,
         priority: input.priority,
         category: input.category ?? undefined,
+        assignee: input.assignee,
         dueAt: input.dueAt,
         waitingFor: input.waitingFor,
         relatedProject: input.relatedProject,

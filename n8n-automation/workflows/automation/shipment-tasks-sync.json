@@ -1,0 +1,99 @@
+{
+  "id": "MNTlkwVPqXXoa5Dq",
+  "name": "[F9] 출고 태스크 동기화 (07:00)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 7, "triggerAtMinute": 0 }]
+        }
+      },
+      "id": "node-schedule",
+      "name": "매일 07:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "order" },
+            { "name": "status_cd", "value": "3" },
+            { "name": "limit", "value": "100" },
+            { "name": "page", "value": "1" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "node-fetch-orders",
+      "name": "MakeShop 출고대기 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.first().json;\n\n// MakeShop 응답 파싱 (배열 or 숫자키 객체)\nlet orders = [];\nif (Array.isArray(raw)) {\n  orders = raw;\n} else if (raw && typeof raw === 'object') {\n  const vals = Object.values(raw);\n  if (vals.length > 0 && typeof vals[0] === 'object') {\n    orders = vals;\n  }\n}\n\nif (orders.length === 0) {\n  return [];\n}\n\n// 오늘 날짜 (KST)\nconst now = new Date();\nconst pad = (n) => String(n).padStart(2, '0');\nconst kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\nconst today = `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())}`;\nconst dueAt = `${today}T23:59:59+09:00`;\n\nconst items = [];\nfor (let i = 0; i < orders.length; i++) {\n  const o = orders[i];\n  const orderNo = String(o.order_cd || o.order_id || o.order_no || `${i}`);\n  const pname = o.pname || o.product_name || '상품';\n  const qty = parseInt(o.ea || o.quantity || '1', 10);\n  const buyer = o.name || o.buyer_name || '';\n  const receiver = o.receive_name || buyer;\n  const shortName = pname.length > 30 ? pname.substring(0, 30) + '...' : pname;\n\n  items.push({\n    json: {\n      title: `[출고] ${shortName}${qty > 1 ? ' x' + qty : ''}`,\n      sourceChannel: 'makeshop-order',\n      sourceMessageId: `${today}:${orderNo}:${i}`,\n      sourceText: `MakeShop 출고대기 #${orderNo} ${pname} x${qty} (${buyer})`,\n      status: 'todo',\n      priority: 'p2',\n      category: 'shipment',\n      assignee: '이재혁',\n      dueAt: dueAt,\n      relatedProject: '출고',\n      detailsMerge: {\n        orderNumber: orderNo,\n        items: [{ name: pname, qty: qty }],\n        buyer: buyer,\n        receiver: receiver\n      }\n    }\n  });\n}\n\nreturn items;"
+      },
+      "id": "node-parse",
+      "name": "주문 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://100.114.150.34:3001/api/automation/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "node-upsert",
+      "name": "Flora 출고 태스크 등록",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 300],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "매일 07:00": {
+      "main": [[{ "node": "MakeShop 출고대기 조회", "type": "main", "index": 0 }]]
+    },
+    "MakeShop 출고대기 조회": {
+      "main": [[{ "node": "주문 파싱", "type": "main", "index": 0 }]]
+    },
+    "주문 파싱": {
+      "main": [[{ "node": "Flora 출고 태스크 등록", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "업무자동화" }, { "name": "직원자동화" }]
+}

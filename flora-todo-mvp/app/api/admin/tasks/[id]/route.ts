@@ -7,6 +7,7 @@ type TaskPatchBody = {
   status?: TaskStatus;
   priority?: TaskPriority;
   category?: string | null;
+  assignee?: string | null;
   dueAt?: string | null;
   waitingFor?: string | null;
   relatedProject?: string | null;
@@ -25,6 +26,7 @@ export async function PATCH(
       status: body.status,
       priority: body.priority,
       category: body.category,
+      assignee: body.assignee,
       dueAt: body.dueAt ? new Date(body.dueAt) : body.dueAt === null ? null : undefined,
       waitingFor: body.waitingFor,
       relatedProject: body.relatedProject,

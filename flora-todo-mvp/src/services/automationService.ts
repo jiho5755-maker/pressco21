@@ -610,6 +610,7 @@ export async function upsertAutomationTask(input: AutomationTaskUpsertBody) {
     status: input.status ?? normalizeTaskStatus(existingTask?.status, "todo"),
     priority: input.priority ?? normalizeTaskPriority(existingTask?.priority, "p3"),
     category: input.category ?? existingTask?.category ?? "inbox",
+    assignee: input.assignee ?? null,
     dueAt,
     timeBucket: input.timeBucket ?? existingTask?.timeBucket ?? null,
     waitingFor: input.waitingFor ?? existingTask?.waitingFor ?? null,

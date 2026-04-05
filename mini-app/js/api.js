@@ -7,18 +7,31 @@ var FloraAPI = (function () {
 
     var BASE = '/api';
     var API_KEY = 'pressco21-admin-2026';
+    var _currentUser = null;
 
-    function buildHeaders() {
-        return {
+    function getInitData() {
+        var tg = window.Telegram && window.Telegram.WebApp;
+        return (tg && tg.initData) || '';
+    }
+
+    function buildHeaders(needAuth) {
+        var h = {
             'Content-Type': 'application/json',
             'x-flora-automation-key': API_KEY
         };
+        if (needAuth !== false) {
+            var initData = getInitData();
+            if (initData) {
+                h['x-telegram-init-data'] = initData;
+            }
+        }
+        return h;
     }
 
-    function request(method, path, body) {
+    function request(method, path, body, needAuth) {
         var opts = {
             method: method,
-            headers: buildHeaders()
+            headers: buildHeaders(needAuth)
         };
         if (body) {
             opts.body = JSON.stringify(body);
@@ -44,34 +57,62 @@ var FloraAPI = (function () {
     }
 
     return {
-        /**
-         * 대시보드 데이터 조회
-         * @param {Object} params - dateRange, status, priority, sort, search, page, limit
-         */
-        getDashboard: function (params) {
-            return request('GET', '/dashboard' + qs(params || {}));
+        // ── 사용자 ──
+
+        getCurrentUser: function () {
+            if (_currentUser) {
+                return Promise.resolve(_currentUser);
+            }
+            return request('GET', '/mini/me').then(function (data) {
+                _currentUser = data.staff;
+                return _currentUser;
+            }).catch(function () {
+                // 브라우저 테스트 시 initData 없으면 null
+                _currentUser = null;
+                return null;
+            });
         },
 
-        /**
-         * 태스크 상태 변경
-         * @param {string} id - 태스크 ID
-         * @param {Object} body - { status, priority, category, dueAt, waitingFor, ... }
-         */
+        getCachedUser: function () {
+            return _currentUser;
+        },
+
+        getStaffList: function () {
+            return request('GET', '/mini/staff');
+        },
+
+        // ── 대시보드 ──
+
+        getDashboard: function (params) {
+            return request('GET', '/dashboard' + qs(params || {}), null, false);
+        },
+
+        // ── 태스크 ──
+
         patchTask: function (id, body) {
             return request('PATCH', '/admin/tasks/' + encodeURIComponent(id), body);
         },
 
-        /**
-         * 아침 브리핑
-         */
+        createTask: function (body) {
+            return request('POST', '/mini/tasks', body);
+        },
+
+        // ── 코멘트 ──
+
+        getComments: function (taskId) {
+            return request('GET', '/tasks/' + encodeURIComponent(taskId) + '/comments', null, false);
+        },
+
+        addComment: function (taskId, content) {
+            return request('POST', '/tasks/' + encodeURIComponent(taskId) + '/comments', { content: content });
+        },
+
+        // ── 브리핑 ──
+
         getMorningBrief: function () {
             return request('GET', '/automation/briefings/morning');
         },
 
-        /**
-         * 직원별 브리핑
-         * @param {string} assignee - 담당자 이름
-         */
         getStaffBrief: function (assignee) {
             return request('GET', '/automation/briefings/staff' + qs({ assignee: assignee }));
         }

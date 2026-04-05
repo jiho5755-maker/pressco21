@@ -11,7 +11,6 @@
         tg.ready();
         tg.expand();
 
-        // 뒤로가기 버튼
         tg.BackButton.onClick(function () {
             var hash = window.location.hash || '';
             if (hash && hash !== '#/' && hash !== '#') {
@@ -23,21 +22,28 @@
     }
 
     // ── 해시 라우터 ──
-    var routes = {
-        '': renderHome,
-        '#': renderHome,
-        '#/': renderHome,
-        '#/shipment': FloraShipment.render,
-        '#/tasks': FloraTaskBoard.render
-    };
-
     function router() {
         var hash = window.location.hash || '';
-        var renderFn = routes[hash] || renderHome;
         var content = document.getElementById('app-content');
         content.innerHTML = '';
 
-        renderFn(content);
+        // 동적 라우트 매칭
+        if (hash === '' || hash === '#' || hash === '#/') {
+            renderHome(content);
+        } else if (hash === '#/tasks') {
+            FloraTaskBoard.render(content);
+        } else if (hash === '#/tasks/new') {
+            FloraTaskCreate.render(content);
+        } else if (hash.indexOf('#/tasks/') === 0) {
+            var taskId = hash.replace('#/tasks/', '');
+            FloraTaskDetail.render(content, taskId);
+        } else if (hash === '#/calendar') {
+            FloraCalendar.render(content);
+        } else if (hash === '#/shipment') {
+            FloraShipment.render(content);
+        } else {
+            renderHome(content);
+        }
 
         // 뒤로가기 버튼 제어
         if (tg) {
@@ -53,27 +59,60 @@
     function renderHome(container) {
         FloraUI.renderHeader('Flora 업무도구', FloraUI.todayStr());
 
-        // 태스크 요약 로드
-        FloraAPI.getDashboard({ status: 'active', limit: 1 })
-            .then(function (data) {
-                var s = data.summary || {};
-                renderHomeMenu(container, s);
-            })
-            .catch(function () {
-                renderHomeMenu(container, {});
-            });
+        // 사용자 + 대시보드 데이터 병렬 로드
+        Promise.all([
+            FloraAPI.getCurrentUser().catch(function () { return null; }),
+            FloraAPI.getDashboard({ status: 'active', limit: 1 }).catch(function () { return {}; })
+        ]).then(function (results) {
+            var user = results[0];
+            var data = results[1];
+            var s = (data && data.summary) || {};
+            renderHomeContent(container, user, s);
+        });
 
-        // 로딩 중 일단 메뉴 표시
-        renderHomeMenu(container, null);
+        // 로딩 중 메뉴 표시
+        renderHomeContent(container, null, null);
     }
 
-    function renderHomeMenu(container, summary) {
+    function renderHomeContent(container, user, summary) {
         container.innerHTML = '';
+
+        // 인사
+        if (user) {
+            var greeting = document.createElement('div');
+            greeting.className = 'home-greeting';
+            greeting.textContent = user.name + '님, 안녕하세요';
+            container.appendChild(greeting);
+        }
 
         var menu = document.createElement('div');
         menu.className = 'home-menu';
 
-        // 출고 카드
+        // 업무 보드
+        var taskCard = document.createElement('button');
+        taskCard.className = 'menu-card';
+        taskCard.onclick = function () { window.location.hash = '#/tasks'; };
+        var taskBadge = '';
+        if (summary && summary.todo > 0) {
+            taskBadge = '<span class="menu-badge">' + summary.todo + '</span>';
+        }
+        taskCard.innerHTML =
+            '<span class="menu-icon">\uD83D\uDCCB</span>' +
+            '<span class="menu-title">업무 보드 ' + taskBadge + '</span>' +
+            '<span class="menu-desc">할일 관리 및 상태 변경</span>';
+        menu.appendChild(taskCard);
+
+        // 캘린더
+        var calCard = document.createElement('button');
+        calCard.className = 'menu-card';
+        calCard.onclick = function () { window.location.hash = '#/calendar'; };
+        calCard.innerHTML =
+            '<span class="menu-icon">\uD83D\uDCC5</span>' +
+            '<span class="menu-title">캘린더</span>' +
+            '<span class="menu-desc">날짜별 업무 한눈에</span>';
+        menu.appendChild(calCard);
+
+        // 출고
         var shipCard = document.createElement('button');
         shipCard.className = 'menu-card';
         shipCard.onclick = function () { window.location.hash = '#/shipment'; };
@@ -83,19 +122,15 @@
             '<span class="menu-desc">출고 리스트 확인 및 완료 처리</span>';
         menu.appendChild(shipCard);
 
-        // 태스크 카드
-        var taskCard = document.createElement('button');
-        taskCard.className = 'menu-card';
-        taskCard.onclick = function () { window.location.hash = '#/tasks'; };
-        var badgeHtml = '';
-        if (summary && summary.todo > 0) {
-            badgeHtml = '<span class="menu-badge">' + summary.todo + '</span>';
-        }
-        taskCard.innerHTML =
-            '<span class="menu-icon">\uD83D\uDCCB</span>' +
-            '<span class="menu-title">태스크 보드 ' + badgeHtml + '</span>' +
-            '<span class="menu-desc">할일 관리 및 상태 변경</span>';
-        menu.appendChild(taskCard);
+        // 새 업무 등록 (크게)
+        var addCard = document.createElement('button');
+        addCard.className = 'menu-card menu-card-add';
+        addCard.onclick = function () { window.location.hash = '#/tasks/new'; };
+        addCard.innerHTML =
+            '<span class="menu-icon">+</span>' +
+            '<span class="menu-title">새 업무 등록</span>' +
+            '<span class="menu-desc">업무 요청 및 할당</span>';
+        menu.appendChild(addCard);
 
         container.appendChild(menu);
     }

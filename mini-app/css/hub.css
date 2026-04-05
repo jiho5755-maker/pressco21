@@ -1,0 +1,328 @@
+/* ── 업무 허브 v2 추가 스타일 ── */
+
+/* 홈 인사 */
+.home-greeting {
+    font-size: 18px;
+    font-weight: 600;
+    padding: 8px 0 4px;
+    color: var(--text);
+}
+.menu-card-add {
+    border: 2px dashed var(--brand-light);
+    background: transparent;
+}
+.menu-card-add .menu-icon {
+    font-size: 32px;
+    color: var(--brand-green);
+}
+
+/* ── 내 업무 / 팀 전체 토글 ── */
+.view-toggle {
+    display: flex;
+    gap: 0;
+    margin-bottom: 12px;
+    background: var(--secondary-bg);
+    border-radius: 10px;
+    padding: 3px;
+}
+.toggle-btn {
+    flex: 1;
+    padding: 8px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    background: transparent;
+    color: var(--hint);
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.toggle-btn.active {
+    background: var(--bg);
+    color: var(--text);
+    box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+/* ── 빠른 필터 ── */
+.filter-bar {
+    display: flex;
+    gap: 6px;
+    overflow-x: auto;
+    padding-bottom: 8px;
+    -webkit-overflow-scrolling: touch;
+}
+.chip {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 12px;
+    border-radius: 16px;
+    font-size: 13px;
+    border: 1px solid var(--hint);
+    background: transparent;
+    color: var(--hint);
+    white-space: nowrap;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.chip.active {
+    background: var(--brand-green);
+    color: white;
+    border-color: var(--brand-green);
+}
+
+/* ── 태스크 카드 v2 ── */
+.task-card {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+.task-quick-btn {
+    min-width: 48px;
+    padding: 6px 10px;
+    border: 1px solid var(--brand-green);
+    border-radius: 8px;
+    background: transparent;
+    color: var(--brand-green);
+    font-size: 13px;
+    font-weight: 500;
+    cursor: pointer;
+    flex-shrink: 0;
+}
+.task-quick-btn.review {
+    border-color: #e67e22;
+    color: #e67e22;
+}
+.task-quick-btn.complete {
+    border-color: var(--brand-green);
+    background: var(--brand-green);
+    color: white;
+}
+.badge-active {
+    background: #3498db;
+    color: white;
+}
+.badge-review {
+    background: #e67e22;
+    color: white;
+}
+
+/* ── 태스크 생성 폼 ── */
+.create-form {
+    padding: 4px 0;
+}
+.form-group {
+    margin-bottom: 16px;
+}
+.form-label {
+    display: block;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--hint);
+    margin-bottom: 6px;
+}
+.form-input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--hint);
+    border-radius: 10px;
+    font-size: 16px;
+    background: var(--secondary-bg);
+    color: var(--text);
+    box-sizing: border-box;
+}
+.form-input:focus {
+    outline: none;
+    border-color: var(--brand-green);
+}
+.form-row {
+    display: flex;
+    gap: 12px;
+}
+.form-half {
+    flex: 1;
+}
+.chip-group {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.btn-block {
+    width: 100%;
+    margin-top: 8px;
+}
+
+/* ── 태스크 상세 ── */
+.detail-info {
+    padding: 4px 0 12px;
+}
+.detail-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-bottom: 8px;
+    line-height: 1.4;
+}
+.detail-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.detail-actions {
+    display: flex;
+    gap: 8px;
+    padding: 8px 0 16px;
+}
+.detail-actions .btn {
+    flex: 1;
+}
+.detail-divider {
+    padding: 12px 0 8px;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--hint);
+    border-top: 1px solid var(--secondary-bg);
+}
+
+/* ── 코멘트 ── */
+.comment-list {
+    min-height: 60px;
+}
+.comment-empty {
+    text-align: center;
+    color: var(--hint);
+    font-size: 14px;
+    padding: 20px 0;
+}
+.comment-item {
+    padding: 10px 0;
+    border-bottom: 1px solid var(--secondary-bg);
+}
+.comment-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 4px;
+}
+.comment-author {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--brand-green);
+}
+.comment-time {
+    font-size: 12px;
+    color: var(--hint);
+}
+.comment-body {
+    font-size: 15px;
+    line-height: 1.5;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.comment-input-area {
+    display: flex;
+    gap: 8px;
+    padding: 12px 0;
+    position: sticky;
+    bottom: 0;
+    background: var(--bg);
+}
+.comment-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--hint);
+    border-radius: 20px;
+    font-size: 15px;
+    background: var(--secondary-bg);
+    color: var(--text);
+}
+.comment-input:focus {
+    outline: none;
+    border-color: var(--brand-green);
+}
+
+/* ── 캘린더 ── */
+.cal-nav {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    padding: 8px 0 16px;
+}
+.cal-week-label {
+    font-size: 15px;
+    font-weight: 600;
+    min-width: 120px;
+    text-align: center;
+}
+.cal-day {
+    margin-bottom: 2px;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.cal-today {
+    background: rgba(89, 112, 81, 0.08);
+    border-left: 3px solid var(--brand-green);
+}
+.cal-weekend {
+    opacity: 0.6;
+}
+.cal-nodate {
+    margin-top: 12px;
+    border-top: 1px solid var(--secondary-bg);
+    padding-top: 8px;
+}
+.cal-day-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    font-size: 13px;
+}
+.cal-day-name {
+    font-weight: 600;
+    min-width: 20px;
+}
+.cal-day-date {
+    color: var(--hint);
+}
+.cal-day-count {
+    margin-left: auto;
+    font-size: 12px;
+    color: var(--brand-green);
+    font-weight: 500;
+}
+.cal-day-empty {
+    padding: 4px 12px 8px;
+    font-size: 13px;
+    color: var(--hint);
+}
+.cal-task {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 12px;
+    cursor: pointer;
+}
+.cal-task:active {
+    background: var(--secondary-bg);
+}
+.badge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+.badge-dot-p1 { background: #e74c3c; }
+.badge-dot-p2 { background: #e67e22; }
+.badge-dot-p3 { background: #95a5a6; }
+.badge-dot-p4 { background: #bdc3c7; }
+.cal-task-title {
+    flex: 1;
+    font-size: 14px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.cal-task-assignee {
+    font-size: 12px;
+    color: var(--hint);
+    flex-shrink: 0;
+}

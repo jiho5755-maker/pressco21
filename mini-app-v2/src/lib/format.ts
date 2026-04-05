@@ -1,0 +1,72 @@
+/* 날짜/시간 포매팅 유틸리티 */
+
+/** "방금", "N분전", "N시간전", "N일전" 상대시간 포맷 */
+export function timeAgo(dateStr: string): string {
+  const now = Date.now();
+  const then = new Date(dateStr).getTime();
+  const diffMs = now - then;
+
+  if (diffMs < 0) return "방금";
+
+  const seconds = Math.floor(diffMs / 1000);
+  const minutes = Math.floor(seconds / 60);
+  const hours = Math.floor(minutes / 60);
+  const days = Math.floor(hours / 24);
+
+  if (seconds < 60) return "방금";
+  if (minutes < 60) return minutes + "분전";
+  if (hours < 24) return hours + "시간전";
+  if (days < 30) return days + "일전";
+
+  // 30일 이상이면 날짜로 표시
+  return formatDate(dateStr);
+}
+
+/** YYYY.MM.DD 형식 */
+export function formatDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return (
+    d.getFullYear() +
+    "." +
+    String(d.getMonth() + 1).padStart(2, "0") +
+    "." +
+    String(d.getDate()).padStart(2, "0")
+  );
+}
+
+/** M/D (요일) 형식 */
+export function formatShortDate(dateStr: string | Date): string {
+  const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  const weekdays = ["일", "월", "화", "수", "목", "금", "토"];
+  return (d.getMonth() + 1) + "/" + d.getDate() + " (" + weekdays[d.getDay()] + ")";
+}
+
+/** MM.DD 형식 */
+export function formatCompactDate(dateStr: string): string {
+  const d = new Date(dateStr);
+  return (
+    String(d.getMonth() + 1).padStart(2, "0") +
+    "." +
+    String(d.getDate()).padStart(2, "0")
+  );
+}
+
+/** 마감일까지 남은 일수 */
+export function daysUntil(dateStr: string): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const target = new Date(dateStr);
+  target.setHours(0, 0, 0, 0);
+  return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+}
+
+/** 오늘 날짜 여부 */
+export function isToday(dateStr: string | Date): boolean {
+  const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;
+  const today = new Date();
+  return (
+    d.getFullYear() === today.getFullYear() &&
+    d.getMonth() === today.getMonth() &&
+    d.getDate() === today.getDate()
+  );
+}

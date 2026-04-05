@@ -2,6 +2,8 @@ type AppEnv = {
   databaseUrl: string;
   appTimezone: string;
   automationApiKey: string;
+  telegramBotToken: string;
+  notifyWebhookUrl: string;
 };
 
 let cachedEnv: AppEnv | null = null;
@@ -22,6 +24,8 @@ export function getEnv(): AppEnv {
     databaseUrl,
     appTimezone: process.env.APP_TIMEZONE ?? "Asia/Seoul",
     automationApiKey,
+    telegramBotToken: process.env.TELEGRAM_BOT_TOKEN ?? "",
+    notifyWebhookUrl: process.env.NOTIFY_WEBHOOK_URL ?? "",
   };
 
   return cachedEnv;

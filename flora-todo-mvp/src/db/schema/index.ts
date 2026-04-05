@@ -4,3 +4,5 @@ export * from "./followups";
 export * from "./projectCatalogs";
 export * from "./calendarCatalogs";
 export * from "./sourceMessages";
+export * from "./staff";
+export * from "./comments";

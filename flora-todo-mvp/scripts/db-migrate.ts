@@ -205,6 +205,39 @@ const statements = [
     create unique index if not exists source_messages_source_unique
     on source_messages (source_channel, source_message_id)
   `,
+  `alter table tasks add column if not exists assignee text`,
+  `
+    create table if not exists staff (
+      id text primary key,
+      name text not null unique,
+      telegram_user_id text unique,
+      role text not null default 'staff',
+      created_at timestamp with time zone not null default now(),
+      updated_at timestamp with time zone not null default now()
+    )
+  `,
+  `
+    create table if not exists comments (
+      id text primary key,
+      task_id text not null references tasks(id) on delete cascade,
+      author_name text not null,
+      content text not null,
+      created_at timestamp with time zone not null default now()
+    )
+  `,
+  `
+    create index if not exists comments_task_id_created_at_idx
+    on comments (task_id, created_at)
+  `,
+  `
+    insert into staff (id, name, role) values
+      ('staff-jiho', '장지호', 'admin'),
+      ('staff-jaehyuk', '이재혁', 'staff'),
+      ('staff-seunghae', '조승해', 'staff'),
+      ('staff-wj', '원장님', 'admin'),
+      ('staff-dagyeong', '장다경', 'staff')
+    on conflict (id) do nothing
+  `,
 ];
 
 async function main() {

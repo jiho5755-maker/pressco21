@@ -1,6 +1,7 @@
 import { revalidateDashboardTag } from "@/src/lib/cache-tags";
 import { taskRepository } from "@/src/db/repositories/taskRepository";
 import { TaskPriority, TaskStatus } from "@/src/domain/task";
+import { getEnv } from "@/src/lib/env";
 
 type TaskPatchBody = {
   title?: string;
@@ -38,6 +39,22 @@ export async function PATCH(
     }
 
     revalidateDashboardTag();
+
+    // 상태 변경 알림 webhook (fire-and-forget)
+    const webhookUrl = getEnv().notifyWebhookUrl;
+    if (webhookUrl && body.status) {
+      fetch(webhookUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          event: "task_status_changed",
+          taskId: id,
+          title: updatedTask.title,
+          newStatus: body.status,
+          assignee: updatedTask.assignee,
+        }),
+      }).catch(() => {});
+    }
 
     return Response.json({ ok: true, task: updatedTask });
   } catch (error) {

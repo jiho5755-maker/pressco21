@@ -409,7 +409,7 @@
         "url": "={{ 'https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt/' + $json.id }}",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({\"n8n_처리완료\": $json.n8n_처리완료, \"n8n_처리일시\": $json.n8n_처리일시}) }}",
+        "jsonBody": "={{ JSON.stringify({\"n8n_처리완료\": $json.n8n_처리완료, \"n8n_처리일시\": $json.n8n_처리일시, \"진행 상태\": \"수동처리필요\"}) }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

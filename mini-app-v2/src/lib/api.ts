@@ -110,3 +110,40 @@ export async function addComment(taskId: string, content: string): Promise<Comme
   );
   return data.comment;
 }
+
+/* ── 파일 업로드 ── */
+
+export interface FileAttachment {
+  url: string;
+  name: string;
+  size: number;
+  type: string;
+}
+
+export async function uploadFile(file: File, taskId: string): Promise<FileAttachment> {
+  const initData = getInitData();
+  const formData = new FormData();
+  formData.append("file", file);
+  formData.append("taskId", taskId);
+
+  const headers: Record<string, string> = {
+    "x-flora-automation-key": AUTOMATION_KEY,
+  };
+  if (initData) {
+    headers["x-telegram-init-data"] = initData;
+  }
+
+  const response = await fetch(BASE + "/mini/upload", {
+    method: "POST",
+    headers,
+    body: formData,
+  });
+
+  if (!response.ok) {
+    const data = await response.json().catch(() => ({ error: response.statusText }));
+    throw new Error(data.error || "Upload failed");
+  }
+
+  const result = await response.json();
+  return result.file as FileAttachment;
+}

@@ -11,7 +11,7 @@ import { useToast } from "@/components/layout/Toast";
 import { createTask, fetchStaff } from "@/lib/api";
 import { getAllProjects, addCustomProject, removeCustomProject, renameCustomProject } from "@/lib/projects";
 import type { Project } from "@/lib/projects";
-import { Loader2, Check, Plus, Pencil, Trash2, X } from "lucide-react";
+import { Loader2, Check, Plus, Pencil, Trash2, X, ListChecks } from "lucide-react";
 import type { StaffMember } from "@/lib/types";
 
 const PRIORITIES: { value: string; label: string; color: string; activeColor: string }[] = [
@@ -273,14 +273,26 @@ export function TaskCreatePage() {
 
             {/* 설명/메모 */}
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-[13px] font-semibold">설명</Label>
+              <div className="flex items-center justify-between">
+                <Label htmlFor="description" className="text-[13px] font-semibold">설명</Label>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-[11px] text-primary font-medium"
+                  onClick={() => {
+                    const prefix = "- [ ] ";
+                    setDescription((prev) => (prev && !prev.endsWith("\n") ? prev + "\n" + prefix : prev + prefix));
+                  }}
+                >
+                  <ListChecks className="h-3 w-3" />체크리스트
+                </button>
+              </div>
               <Textarea
                 id="description"
-                placeholder="상세 내용이나 메모 (선택)"
+                placeholder="상세 내용이나 메모 (선택)&#10;- [ ] 체크리스트 항목 입력 가능"
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
-                rows={2}
-                className="min-h-[60px] max-h-[120px] resize-none text-sm"
+                rows={3}
+                className="min-h-[72px] max-h-[160px] resize-none text-sm"
               />
             </div>
 

@@ -2,8 +2,8 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { StatusBadge } from "./StatusBadge";
-import { formatCompactDate, daysUntil, getStartAt, formatDateRange } from "@/lib/format";
-import { Calendar } from "lucide-react";
+import { formatCompactDate, daysUntil, getStartAt, formatDateRange, daysSince, getChecklistStats } from "@/lib/format";
+import { Calendar, Clock, ListChecks } from "lucide-react";
 import type { Task } from "@/lib/types";
 import { hapticFeedback } from "@/lib/telegram";
 
@@ -52,6 +52,9 @@ export function TaskCard({ task, onQuickAction, compact = false }: TaskCardProps
   const isDueSoon = dueDays !== null && dueDays > 0 && dueDays <= 2;
   const hasRange = startAt && task.dueAt;
   const barColor = PRIORITY_BAR[task.priority] ?? "bg-muted-foreground/30";
+  const progressDays = task.status === "in_progress" && task.createdAt ? daysSince(task.createdAt) : null;
+  const desc = String((task.detailsJson as Record<string, unknown>)?.description ?? "");
+  const clStats = desc ? getChecklistStats(desc) : null;
 
   function getDueText(): string {
     // 시작일~마감일 범위가 있으면 범위 표시
@@ -121,6 +124,18 @@ export function TaskCard({ task, onQuickAction, compact = false }: TaskCardProps
                 }`}>
                   <Calendar className="h-3 w-3" />
                   {getDueText()}
+                </span>
+              )}
+              {progressDays !== null && progressDays >= 2 && (
+                <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                  <Clock className="h-2.5 w-2.5" />
+                  {progressDays}일째
+                </span>
+              )}
+              {clStats && (
+                <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+                  <ListChecks className="h-2.5 w-2.5" />
+                  {clStats.checked}/{clStats.total}
                 </span>
               )}
             </div>

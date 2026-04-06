@@ -16,6 +16,7 @@ type TaskPatchBody = {
   description?: string | null;
   startAt?: string | null;
   links?: string[];
+  attachments?: Array<{ url: string; name: string; size: number; type: string }>;
 };
 
 export async function PATCH(
@@ -30,6 +31,7 @@ export async function PATCH(
     if (body.description !== undefined) detailsMerge.description = body.description;
     if (body.startAt !== undefined) detailsMerge.startAt = body.startAt;
     if (body.links !== undefined) detailsMerge.links = body.links;
+    if (body.attachments !== undefined) detailsMerge.attachments = body.attachments;
 
     const updatedTask = await taskRepository.patchReviewTask(id, {
       title: body.title,

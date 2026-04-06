@@ -100,6 +100,30 @@ export function formatDateRange(startAt: string | null, dueAt: string | null): s
   return "";
 }
 
+/** 생성일로부터 경과 일수 (1일째부터 시작) */
+export function daysSince(dateStr: string): number {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  const start = new Date(dateStr);
+  start.setHours(0, 0, 0, 0);
+  const diff = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+  return Math.max(1, diff + 1);
+}
+
+/** 설명에서 체크리스트 통계 추출 */
+export function getChecklistStats(description: string): { checked: number; total: number } | null {
+  const lines = description.split("\n");
+  let total = 0;
+  let checked = 0;
+  for (const line of lines) {
+    if (/^- \[[ xX]\] /.test(line)) {
+      total++;
+      if (/^- \[[xX]\] /.test(line)) checked++;
+    }
+  }
+  return total > 0 ? { checked, total } : null;
+}
+
 /** 오늘 날짜 여부 */
 export function isToday(dateStr: string | Date): boolean {
   const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;

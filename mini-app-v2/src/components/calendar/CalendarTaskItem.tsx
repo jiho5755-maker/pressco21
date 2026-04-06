@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { daysUntil, getStartAt, formatDateRange } from "@/lib/format";
+import { daysUntil, getStartAt, formatDateRange, daysSince, getChecklistStats } from "@/lib/format";
+import { Clock, ListChecks } from "lucide-react";
 import type { Task } from "@/lib/types";
 
 interface CalendarTaskItemProps {
@@ -62,6 +63,9 @@ export function CalendarTaskItem({ task, showDueDate = false }: CalendarTaskItem
   const startAt = getStartAt(task);
   const hasRange = startAt && task.dueAt;
   const dueLabel = task.dueAt ? getDueLabel(task.dueAt) : null;
+  const progressDays = task.status === "in_progress" && task.createdAt ? daysSince(task.createdAt) : null;
+  const desc = String((task.detailsJson as Record<string, unknown>)?.description ?? "");
+  const clStats = desc ? getChecklistStats(desc) : null;
 
   return (
     <div
@@ -107,6 +111,16 @@ export function CalendarTaskItem({ task, showDueDate = false }: CalendarTaskItem
           )}
           {showDueDate && dueLabel && !hasRange && (
             <span className={`text-[11px] ${dueLabel.className}`}>{dueLabel.label}</span>
+          )}
+          {progressDays !== null && progressDays >= 2 && (
+            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+              <Clock className="h-2.5 w-2.5" />{progressDays}일째
+            </span>
+          )}
+          {clStats && (
+            <span className="flex items-center gap-0.5 text-[10px] text-muted-foreground">
+              <ListChecks className="h-2.5 w-2.5" />{clStats.checked}/{clStats.total}
+            </span>
           )}
         </div>
       </div>

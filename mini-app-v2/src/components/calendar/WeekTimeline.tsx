@@ -1,12 +1,12 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { isToday, daysUntil, getStartAt, formatDateRange } from "@/lib/format";
+import { isToday, daysUntil, getStartAt, formatDateRange, daysSince, getChecklistStats } from "@/lib/format";
 import { getProjectColorSet } from "@/lib/projects";
 import { TIME_SLOT_LABELS } from "@/lib/personalEvents";
 import type { Task } from "@/lib/types";
 import type { PersonalEvent } from "@/lib/personalEvents";
-import { Inbox, X } from "lucide-react";
+import { Inbox, X, Clock, ListChecks } from "lucide-react";
 
 interface WeekTimelineProps {
   weekDays: Date[];
@@ -184,6 +184,9 @@ function TaskTimelineCard({ task, onClick }: { task: Task; onClick: () => void }
   const startAt = getStartAt(task);
   const dueDays = task.dueAt ? daysUntil(task.dueAt) : null;
   const hasRange = startAt && task.dueAt;
+  const progressDays = task.status === "in_progress" && task.createdAt ? daysSince(task.createdAt) : null;
+  const desc = String((task.detailsJson as Record<string, unknown>)?.description ?? "");
+  const clStats = desc ? getChecklistStats(desc) : null;
 
   let dueLabel = "";
   if (hasRange) {
@@ -215,16 +218,28 @@ function TaskTimelineCard({ task, onClick }: { task: Task; onClick: () => void }
           )}
         </div>
         <p className="text-[12px] font-medium leading-snug line-clamp-2">{task.title}</p>
-        {task.assignee && (
-          <div className="flex items-center gap-1 mt-0.5">
-            <Avatar className="h-3.5 w-3.5">
-              <AvatarFallback className={`text-[7px] font-bold ${getAvatarColor(task.assignee)}`}>
-                {task.assignee.charAt(0)}
-              </AvatarFallback>
-            </Avatar>
-            <span className="text-[10px] text-muted-foreground">{task.assignee}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-1.5 mt-0.5 flex-wrap">
+          {task.assignee && (
+            <div className="flex items-center gap-1">
+              <Avatar className="h-3.5 w-3.5">
+                <AvatarFallback className={`text-[7px] font-bold ${getAvatarColor(task.assignee)}`}>
+                  {task.assignee.charAt(0)}
+                </AvatarFallback>
+              </Avatar>
+              <span className="text-[10px] text-muted-foreground">{task.assignee}</span>
+            </div>
+          )}
+          {progressDays !== null && progressDays >= 2 && (
+            <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
+              <Clock className="h-2.5 w-2.5" />{progressDays}일째
+            </span>
+          )}
+          {clStats && (
+            <span className="flex items-center gap-0.5 text-[9px] text-muted-foreground">
+              <ListChecks className="h-2.5 w-2.5" />{clStats.checked}/{clStats.total}
+            </span>
+          )}
+        </div>
       </div>
     </div>
   );

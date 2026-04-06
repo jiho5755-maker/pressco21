@@ -11,10 +11,12 @@ import { CommentList } from "@/components/task/CommentList";
 import { CommentInput } from "@/components/task/CommentInput";
 import { useToast } from "@/components/layout/Toast";
 import { fetchDashboard, fetchComments, addComment, updateTask } from "@/lib/api";
-import { formatDate, daysUntil } from "@/lib/format";
+import { formatDate, daysUntil, daysSince } from "@/lib/format";
 import { hapticFeedback } from "@/lib/telegram";
 import { Input } from "@/components/ui/input";
-import { User, Calendar, FolderOpen, Loader2, ArrowRight, Inbox, Link2, Plus, X, CalendarRange, FileText } from "lucide-react";
+import { ChecklistDescription } from "@/components/task/ChecklistDescription";
+import { FileAttachments } from "@/components/task/FileAttachments";
+import { User, Calendar, FolderOpen, Loader2, ArrowRight, Inbox, Link2, Plus, X, CalendarRange, FileText, Clock } from "lucide-react";
 import type { Task, Comment } from "@/lib/types";
 
 const STATUS_FLOW: { from: string; to: string; label: string; variant: "default" | "outline" }[] = [
@@ -177,16 +179,31 @@ export function TaskDetailPage() {
               )}
             </div>
 
-            {/* 설명 */}
+            {/* N일째 진행중 */}
+            {task.status === "in_progress" && task.createdAt && (
+              <div className="flex items-center gap-1.5 mt-2">
+                <Clock className="h-3.5 w-3.5 text-muted-foreground" />
+                <span className="text-[11px] text-muted-foreground">
+                  <span className="font-semibold text-primary">{daysSince(task.createdAt)}일째</span> 진행중
+                </span>
+              </div>
+            )}
+
+            {/* 설명 (체크리스트 지원) */}
             {!!(task.detailsJson as Record<string, unknown>)?.description && (
               <div className="mt-3 p-2.5 bg-muted/30 rounded-lg">
                 <div className="flex items-center gap-1.5 mb-1.5">
                   <FileText className="h-3.5 w-3.5 text-muted-foreground" />
                   <span className="text-[11px] font-semibold text-muted-foreground">설명</span>
                 </div>
-                <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
-                  {String((task.detailsJson as Record<string, unknown>).description)}
-                </p>
+                <ChecklistDescription
+                  description={String((task.detailsJson as Record<string, unknown>).description)}
+                  onUpdate={(newDesc) => {
+                    updateTask(task.id, { description: newDesc }).then(() => {
+                      setTask((p) => p ? { ...p, detailsJson: { ...p.detailsJson, description: newDesc } } : p);
+                    });
+                  }}
+                />
               </div>
             )}
 
@@ -259,7 +276,13 @@ export function TaskDetailPage() {
               );
             })()}
 
-            {/* 상태 전환 버튼 */}
+            {/* 파일 첨부 */}
+            <FileAttachments
+              task={task}
+              onTaskUpdate={(updated) => setTask(updated)}
+            />
+
+            {/* 상태 전환 ���튼 */}
             {transitions.length > 0 && (
               <>
                 <Separator className="my-4" />

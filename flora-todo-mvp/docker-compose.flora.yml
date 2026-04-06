@@ -30,6 +30,11 @@ services:
       AUTOMATION_API_KEY: ${AUTOMATION_API_KEY}
       NOTIFY_WEBHOOK_URL: ${NOTIFY_WEBHOOK_URL:-}
       TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      MINIO_ENDPOINT: ${MINIO_ENDPOINT:-https://img.pressco21.com}
+      MINIO_ACCESS_KEY: ${MINIO_ACCESS_KEY:-}
+      MINIO_SECRET_KEY: ${MINIO_SECRET_KEY:-}
+      MINIO_BUCKET: ${MINIO_BUCKET:-images}
+      MINIO_PUBLIC_URL: ${MINIO_PUBLIC_URL:-https://img.pressco21.com}
       TZ: ${APP_TIMEZONE:-Asia/Seoul}
     depends_on:
       postgres:

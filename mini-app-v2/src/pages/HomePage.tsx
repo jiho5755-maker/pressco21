@@ -137,6 +137,48 @@ export function HomePage() {
           </div>
         )}
 
+        {/* 지금 해야 할 것 — 포커스 카드 */}
+        {!loading && (() => {
+          // 가장 긴급한 1건: p1 먼저 → 마감 임박 → 진행중
+          const focusTask = tasks
+            .filter((t) => t.status !== "done" && t.status !== "resolved")
+            .sort((a, b) => {
+              if (a.priority === "p1" && b.priority !== "p1") return -1;
+              if (b.priority === "p1" && a.priority !== "p1") return 1;
+              const dA = a.dueAt ? daysUntil(a.dueAt) : 999;
+              const dB = b.dueAt ? daysUntil(b.dueAt) : 999;
+              if (dA !== dB) return dA - dB;
+              if (a.status === "in_progress" && b.status !== "in_progress") return -1;
+              return 0;
+            })[0];
+
+          if (!focusTask) return null;
+
+          const dueDays = focusTask.dueAt ? daysUntil(focusTask.dueAt) : null;
+          const dueLabel = dueDays !== null
+            ? dueDays < 0 ? `${Math.abs(dueDays)}일 지남` : dueDays === 0 ? "오늘 마감" : dueDays === 1 ? "내일 마감" : `D-${dueDays}`
+            : null;
+
+          return (
+            <Card className="mb-4 border-primary/30 bg-primary/5 cursor-pointer active:scale-[0.98] transition-transform"
+              onClick={() => navigate("/tasks/" + focusTask.id)}>
+              <CardContent className="p-4">
+                <p className="text-[11px] font-semibold text-primary mb-1.5">지금 해야 할 것</p>
+                <p className="text-[15px] font-bold leading-snug line-clamp-2 mb-2">{focusTask.title}</p>
+                <div className="flex items-center gap-3 text-xs text-muted-foreground">
+                  {focusTask.assignee && <span>담당: {focusTask.assignee}</span>}
+                  {dueLabel && (
+                    <span className={dueDays !== null && dueDays <= 0 ? "text-destructive font-semibold" : "text-orange-600 font-medium"}>
+                      {dueLabel}
+                    </span>
+                  )}
+                  {focusTask.priority === "p1" && <span className="text-destructive font-semibold">긴급</span>}
+                </div>
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {/* 메뉴 그리드 */}
         <div className="grid grid-cols-2 gap-2.5 mb-5">
           {menuCards.map((card) => (

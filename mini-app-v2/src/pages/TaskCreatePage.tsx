@@ -9,7 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/components/layout/Toast";
 import { createTask, fetchStaff } from "@/lib/api";
-import { Loader2, Check } from "lucide-react";
+import { getAllProjects, addCustomProject } from "@/lib/projects";
+import type { Project } from "@/lib/projects";
+import { Loader2, Check, Plus } from "lucide-react";
 import type { StaffMember } from "@/lib/types";
 
 const PRIORITIES: { value: string; label: string; color: string; activeColor: string }[] = [
@@ -19,17 +21,9 @@ const PRIORITIES: { value: string; label: string; color: string; activeColor: st
 ];
 
 function getAvatarColor(name: string): string {
-  const colors = [
-    "bg-primary/20 text-primary",
-    "bg-warm/20 text-[#8b6914]",
-    "bg-brand-light/30 text-[#3d5435]",
-    "bg-blue-100 text-blue-700",
-    "bg-purple-100 text-purple-700",
-  ];
+  const colors = ["bg-primary/20 text-primary", "bg-warm/20 text-[#8b6914]", "bg-brand-light/30 text-[#3d5435]", "bg-blue-100 text-blue-700", "bg-purple-100 text-purple-700"];
   let hash = 0;
-  for (let i = 0; i < name.length; i++) {
-    hash = name.charCodeAt(i) + ((hash << 5) - hash);
-  }
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
   return colors[Math.abs(hash) % colors.length];
 }
 
@@ -45,6 +39,9 @@ export function TaskCreatePage() {
   const [dueAt, setDueAt] = useState("");
   const [relatedProject, setRelatedProject] = useState("");
   const [staff, setStaff] = useState<StaffMember[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [showAddProject, setShowAddProject] = useState(false);
+  const [newProjectName, setNewProjectName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -59,12 +56,26 @@ export function TaskCreatePage() {
           { id: "staff-dagyeong", name: "장다경", role: "staff" },
         ]);
       });
+    setProjects(getAllProjects());
   }, []);
 
   function toggleAssignee(name: string) {
     setAssignees((prev) =>
       prev.includes(name) ? prev.filter((n) => n !== name) : [...prev, name]
     );
+  }
+
+  function selectProject(name: string) {
+    setRelatedProject((prev) => (prev === name ? "" : name));
+  }
+
+  function handleAddProject() {
+    if (!newProjectName.trim()) return;
+    const proj = addCustomProject(newProjectName.trim());
+    setProjects(getAllProjects());
+    setRelatedProject(proj.name);
+    setNewProjectName("");
+    setShowAddProject(false);
   }
 
   async function handleSubmit() {
@@ -126,14 +137,9 @@ export function TaskCreatePage() {
                       key={member.name}
                       type="button"
                       onClick={() => toggleAssignee(member.name)}
-                      className={`
-                        flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium
-                        transition-all duration-150 border
-                        ${selected
-                          ? "bg-primary/10 border-primary/40 text-primary"
-                          : "bg-card border-border/60 text-muted-foreground hover:border-border"
-                        }
-                      `}
+                      className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl text-xs font-medium transition-all duration-150 border ${
+                        selected ? "bg-primary/10 border-primary/40 text-primary" : "bg-card border-border/60 text-muted-foreground hover:border-border"
+                      }`}
                     >
                       <Avatar className="h-5 w-5">
                         <AvatarFallback className={`text-[9px] font-bold ${getAvatarColor(member.name)}`}>
@@ -157,10 +163,9 @@ export function TaskCreatePage() {
                     key={p.value}
                     type="button"
                     onClick={() => setPriority(p.value)}
-                    className={`
-                      flex-1 py-2 rounded-xl text-xs font-semibold border transition-all duration-150
-                      ${priority === p.value ? p.activeColor : p.color + " bg-transparent"}
-                    `}
+                    className={`flex-1 py-2 rounded-xl text-xs font-semibold border transition-all duration-150 ${
+                      priority === p.value ? p.activeColor : p.color + " bg-transparent"
+                    }`}
                   >
                     {p.label}
                   </button>
@@ -168,11 +173,59 @@ export function TaskCreatePage() {
               </div>
             </div>
 
+            {/* 프로젝트 (칩 선택 + 추가) */}
+            <div className="space-y-2">
+              <Label className="text-[13px] font-semibold">프로젝트</Label>
+              <div className="flex flex-wrap gap-1.5">
+                {projects.map((proj) => {
+                  const selected = relatedProject === proj.name;
+                  return (
+                    <button
+                      key={proj.id}
+                      type="button"
+                      onClick={() => selectProject(proj.name)}
+                      className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all duration-150 border ${
+                        selected
+                          ? "bg-primary/10 border-primary/40 text-primary"
+                          : "bg-card border-border/60 text-muted-foreground hover:border-border"
+                      }`}
+                    >
+                      {proj.name}
+                      {selected && <Check className="inline h-3 w-3 ml-1 text-primary" />}
+                    </button>
+                  );
+                })}
+                {/* 추가 버튼 */}
+                <button
+                  type="button"
+                  onClick={() => setShowAddProject(!showAddProject)}
+                  className="px-2.5 py-1.5 rounded-xl text-[11px] font-medium border border-dashed border-border/60 text-muted-foreground hover:border-primary/30 flex items-center gap-0.5"
+                >
+                  <Plus className="h-3 w-3" />추가
+                </button>
+              </div>
+
+              {/* 프로젝트 추가 입력 */}
+              {showAddProject && (
+                <div className="flex gap-1.5 mt-1.5">
+                  <Input
+                    placeholder="새 프로젝트 이름"
+                    value={newProjectName}
+                    onChange={(e) => setNewProjectName(e.target.value)}
+                    onKeyDown={(e) => { if (e.key === "Enter") handleAddProject(); }}
+                    className="h-8 text-xs flex-1"
+                    autoFocus
+                  />
+                  <Button size="sm" className="h-8 px-3 text-[11px]" onClick={handleAddProject} disabled={!newProjectName.trim()}>
+                    추가
+                  </Button>
+                </div>
+              )}
+            </div>
+
             {/* 설명/메모 */}
             <div className="space-y-2">
-              <Label htmlFor="description" className="text-[13px] font-semibold">
-                설명
-              </Label>
+              <Label htmlFor="description" className="text-[13px] font-semibold">설명</Label>
               <Textarea
                 id="description"
                 placeholder="상세 내용이나 메모 (선택)"
@@ -186,61 +239,23 @@ export function TaskCreatePage() {
             {/* 시작일 + 마감일 */}
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-2">
-                <Label htmlFor="startAt" className="text-[13px] font-semibold">
-                  시작일
-                </Label>
-                <Input
-                  id="startAt"
-                  type="date"
-                  value={startAt}
-                  onChange={(e) => setStartAt(e.target.value)}
-                  className="h-11 text-sm"
-                />
+                <Label htmlFor="startAt" className="text-[13px] font-semibold">시작일</Label>
+                <Input id="startAt" type="date" value={startAt} onChange={(e) => setStartAt(e.target.value)} className="h-11 text-sm" />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="dueAt" className="text-[13px] font-semibold">
-                  마감일
-                </Label>
-                <Input
-                  id="dueAt"
-                  type="date"
-                  value={dueAt}
-                  onChange={(e) => setDueAt(e.target.value)}
-                  className="h-11 text-sm"
-                />
+                <Label htmlFor="dueAt" className="text-[13px] font-semibold">마감일</Label>
+                <Input id="dueAt" type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} className="h-11 text-sm" />
               </div>
-            </div>
-
-            {/* 프로젝트 */}
-            <div className="space-y-2">
-              <Label htmlFor="project" className="text-[13px] font-semibold">
-                프로젝트
-              </Label>
-              <Input
-                id="project"
-                placeholder="관련 프로젝트 (선택)"
-                value={relatedProject}
-                onChange={(e) => setRelatedProject(e.target.value)}
-                className="h-11 text-sm"
-              />
             </div>
           </CardContent>
         </Card>
 
-        {/* 등록 버튼 */}
         <Button
           className="w-full mt-4 h-12 rounded-xl text-sm font-semibold"
           onClick={handleSubmit}
           disabled={submitting || !title.trim()}
         >
-          {submitting ? (
-            <>
-              <Loader2 className="h-4 w-4 animate-spin mr-2" />
-              등록 중...
-            </>
-          ) : (
-            "업무 등록"
-          )}
+          {submitting ? (<><Loader2 className="h-4 w-4 animate-spin mr-2" />등록 중...</>) : "업무 등록"}
         </Button>
       </main>
     </div>

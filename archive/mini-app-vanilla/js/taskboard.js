@@ -43,6 +43,13 @@ var FloraTaskBoard = (function () {
             window.location.hash = '#/tasks/new';
         };
 
+        // 홈에서 필터 힌트가 왔으면 적용
+        if (window._floraFilterHint) {
+            state.filter = window._floraFilterHint;
+            state.tab = 'active';
+            delete window._floraFilterHint;
+        }
+
         // 사용자 정보 로드
         FloraAPI.getCurrentUser().then(function (user) {
             state.myName = user ? user.name : null;
@@ -102,6 +109,9 @@ var FloraTaskBoard = (function () {
                     return t.dueAt && toDateKey(new Date(t.dueAt)) === todayKey;
                 });
                 break;
+            case 'waiting':
+                tasks = tasks.filter(function (t) { return t.status === 'waiting'; });
+                break;
             case 'review':
                 tasks = tasks.filter(function (t) { return t.status === 'needs_check'; });
                 break;
@@ -156,15 +166,36 @@ var FloraTaskBoard = (function () {
 
         container.appendChild(viewToggle);
 
-        // ── 요약 ──
+        // ── 요약 (클릭 시 해당 조건 필터) ──
         if (state.summary) {
             var summary = document.createElement('div');
             summary.className = 'summary-row';
-            summary.innerHTML =
-                '<div class="summary-item"><div class="summary-num">' + (state.summary.todo || 0) + '</div><div class="summary-label">할일</div></div>' +
-                '<div class="summary-item"><div class="summary-num">' + (state.summary.waiting || 0) + '</div><div class="summary-label">대기</div></div>' +
-                '<div class="summary-item"><div class="summary-num">' + (state.summary.today || 0) + '</div><div class="summary-label">오늘</div></div>' +
-                '<div class="summary-item"><div class="summary-num">' + (state.summary.topPriority || 0) + '</div><div class="summary-label">긴급</div></div>';
+
+            var summaryItems = [
+                { key: 'all', count: state.summary.todo || 0, label: '할일' },
+                { key: 'waiting', count: state.summary.waiting || 0, label: '대기' },
+                { key: 'today', count: state.summary.today || 0, label: '오늘' },
+                { key: 'urgent', count: state.summary.topPriority || 0, label: '긴급' }
+            ];
+
+            summaryItems.forEach(function (item) {
+                var el = document.createElement('button');
+                el.className = 'summary-item' + (state.filter === item.key ? ' summary-active' : '');
+                el.innerHTML =
+                    '<div class="summary-num">' + item.count + '</div>' +
+                    '<div class="summary-label">' + item.label + '</div>';
+                el.onclick = function () {
+                    if (state.filter === item.key) {
+                        state.filter = 'all';
+                    } else {
+                        state.filter = item.key;
+                    }
+                    state.tab = 'active';
+                    renderContent(container);
+                };
+                summary.appendChild(el);
+            });
+
             container.appendChild(summary);
         }
 

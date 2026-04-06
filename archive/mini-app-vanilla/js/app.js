@@ -88,6 +88,35 @@
         var menu = document.createElement('div');
         menu.className = 'home-menu';
 
+        // 요약 카드 (클릭 시 해당 조건으로 태스크 보드 이동)
+        if (summary && (summary.todo || summary.waiting || summary.today || summary.topPriority)) {
+            var summaryRow = document.createElement('div');
+            summaryRow.className = 'home-summary-row';
+
+            var summaryItems = [
+                { key: 'all', count: summary.todo || 0, label: '할일' },
+                { key: 'waiting', count: summary.waiting || 0, label: '대기' },
+                { key: 'today', count: summary.today || 0, label: '오늘' },
+                { key: 'urgent', count: summary.topPriority || 0, label: '긴급' }
+            ];
+
+            summaryItems.forEach(function (item) {
+                var el = document.createElement('button');
+                el.className = 'home-summary-item' + (item.count > 0 ? '' : ' home-summary-zero');
+                el.innerHTML =
+                    '<div class="home-summary-num">' + item.count + '</div>' +
+                    '<div class="home-summary-label">' + item.label + '</div>';
+                el.onclick = function () {
+                    // 보드로 이동하면서 필터 상태 전달
+                    window._floraFilterHint = item.key;
+                    window.location.hash = '#/tasks';
+                };
+                summaryRow.appendChild(el);
+            });
+
+            menu.appendChild(summaryRow);
+        }
+
         // 업무 보드
         var taskCard = document.createElement('button');
         taskCard.className = 'menu-card';

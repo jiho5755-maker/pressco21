@@ -1,4 +1,5 @@
 import { extractTelegramUser } from "@/src/lib/telegram-auth";
+import { isAutomationRequestAuthorized } from "@/src/lib/automation-auth";
 import { staffRepository } from "@/src/db/repositories/staffRepository";
 import { commentRepository } from "@/src/db/repositories/commentRepository";
 
@@ -16,19 +17,29 @@ export async function POST(
   request: Request,
   context: { params: Promise<{ id: string }> },
 ) {
-  const tgUser = extractTelegramUser(request);
-
-  if (!tgUser) {
-    return Response.json({ ok: false, error: "Telegram initData required" }, { status: 401 });
-  }
-
-  const staffMember = await staffRepository.findByTelegramUserId(String(tgUser.id));
-
-  if (!staffMember) {
-    return Response.json({ ok: false, error: "Staff not found" }, { status: 403 });
-  }
-
   const { id: taskId } = await context.params;
+
+  let authorName: string | null = null;
+
+  // 인증 1순위: Telegram initData
+  const tgUser = extractTelegramUser(request);
+  if (tgUser) {
+    const staffMember = await staffRepository.findByTelegramUserId(String(tgUser.id));
+    if (!staffMember) {
+      return Response.json({ ok: false, error: "Staff not found" }, { status: 403 });
+    }
+    authorName = staffMember.name;
+  }
+
+  // 인증 2순위: automation API key + body.authorName
+  if (!authorName && isAutomationRequestAuthorized(request)) {
+    const body = await request.clone().json().catch(() => ({}));
+    authorName = (body.authorName ?? "").trim() || "시스템";
+  }
+
+  if (!authorName) {
+    return Response.json({ ok: false, error: "Telegram initData or automation key required" }, { status: 401 });
+  }
 
   try {
     const body = await request.json();
@@ -40,7 +51,7 @@ export async function POST(
 
     const comment = await commentRepository.create({
       taskId,
-      authorName: staffMember.name,
+      authorName,
       content,
     });
 

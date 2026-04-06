@@ -103,8 +103,27 @@ var FloraAPI = (function () {
             return request('GET', '/tasks/' + encodeURIComponent(taskId) + '/comments', null, false);
         },
 
-        addComment: function (taskId, content) {
-            return request('POST', '/tasks/' + encodeURIComponent(taskId) + '/comments', { content: content });
+        addComment: function (taskId, content, authorName) {
+            var body = { content: content };
+            if (authorName) body.authorName = authorName;
+            return request('POST', '/tasks/' + encodeURIComponent(taskId) + '/comments', body);
+        },
+
+        uploadFile: function (taskId, file) {
+            var formData = new FormData();
+            formData.append('file', file);
+            formData.append('taskId', taskId);
+            return fetch(BASE + '/mini/upload', {
+                method: 'POST',
+                headers: {
+                    'x-flora-automation-key': API_KEY,
+                    'x-telegram-init-data': getInitData()
+                },
+                body: formData
+            }).then(function (res) {
+                if (!res.ok) throw new Error('업로드 실패 (' + res.status + ')');
+                return res.json();
+            });
         },
 
         // ── 브리핑 ──

@@ -1,0 +1,182 @@
+{
+  "id": "NuVlGBMzsPOX5vFa",
+  "name": "[F12] Flora → 미니앱 태스크 등록",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-task-create",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "id": "node-webhook",
+      "name": "웹훅 수신",
+      "webhookId": "flora-task-create"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Flora → 미니앱 태스크 데이터 변환\nconst body = $input.first().json.body || $input.first().json;\n\n// 필수 필드\nconst title = (body.title || '').trim();\nif (!title) {\n  return [{ json: { ok: false, error: 'title is required' } }];\n}\n\n// 날짜 처리 (자연어→ISO)\nlet dueAt = body.dueAt || null;\nif (dueAt && !/T/.test(dueAt)) {\n  dueAt = dueAt + 'T23:59:59+09:00';\n}\n\nconst taskPayload = {\n  title: title,\n  priority: body.priority || 'p3',\n  assignee: body.assignee || null,\n  status: 'todo',\n  relatedProject: body.project || null\n};\n\nif (dueAt) taskPayload.dueAt = dueAt;\nif (body.description) {\n  taskPayload.detailsJson = JSON.stringify({ description: body.description });\n}\n\n// 텔레그램 알림용 정보\nconst chatId = body.chatId || '7713811206';\nconst senderName = body.senderName || '플로라';\n\nreturn [{ json: { taskPayload, chatId, senderName, originalTitle: title } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ],
+      "id": "node-parse",
+      "name": "데이터 변환"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mini.pressco21.com/api/mini/tasks",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "pressco21-admin-2026"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.taskPayload) }}",
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        640,
+        300
+      ],
+      "id": "node-create-task",
+      "name": "미니앱 태스크 생성"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 생성 결과 처리 + 텔레그램 메시지 생성\nconst prev = $('데이터 변환').first().json;\nconst response = $input.first().json;\nconst statusCode = response.statusCode || response.status || 200;\nconst resBody = response.body || response;\n\nlet ok = false;\nlet taskId = null;\nlet msg = '';\n\nif (statusCode >= 200 && statusCode < 300 && resBody.ok) {\n  ok = true;\n  taskId = resBody.task ? resBody.task.id : null;\n  const t = prev.taskPayload;\n  msg = '\\u2705 업무가 등록되었습니다\\n\\n';\n  msg += '\\u{1F4CB} ' + prev.originalTitle + '\\n';\n  if (t.dueAt) {\n    const d = new Date(t.dueAt);\n    const m = d.getMonth()+1;\n    const day = d.getDate();\n    const h = d.getHours();\n    const min = String(d.getMinutes()).padStart(2,'0');\n    msg += '\\u{1F4C5} ' + m + '/' + day;\n    if (h < 23) msg += ' ' + h + ':' + min;\n    msg += '\\n';\n  }\n  if (t.assignee) msg += '\\u{1F464} ' + t.assignee + '\\n';\n  if (t.relatedProject) msg += '\\u{1F3AF} ' + t.relatedProject + '\\n';\n  msg += '\\n\\u{1F517} mini.pressco21.com 에서 확인';\n} else {\n  msg = '\\u274C 태스크 등록 실패: ' + (resBody.error || JSON.stringify(resBody));\n}\n\nreturn [{ json: { ok, taskId, message: msg, chatId: prev.chatId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        860,
+        300
+      ],
+      "id": "node-result",
+      "name": "결과 처리"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1080,
+        200
+      ],
+      "id": "node-telegram",
+      "name": "텔레그램 확인 발송",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Telegram Makeshop Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: $('결과 처리').first().json.ok, taskId: $('결과 처리').first().json.taskId }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1080,
+        400
+      ],
+      "id": "node-respond",
+      "name": "웹훅 응답"
+    }
+  ],
+  "connections": {
+    "웹훅 수신": {
+      "main": [
+        [
+          {
+            "node": "데이터 변환",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "데이터 변환": {
+      "main": [
+        [
+          {
+            "node": "미니앱 태스크 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "미니앱 태스크 생성": {
+      "main": [
+        [
+          {
+            "node": "결과 처리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "결과 처리": {
+      "main": [
+        [
+          {
+            "node": "텔레그램 확인 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "텔레그램 확인 발송": {
+      "main": [
+        [
+          {
+            "node": "웹훅 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

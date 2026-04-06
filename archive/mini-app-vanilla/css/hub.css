@@ -216,26 +216,248 @@
     white-space: pre-wrap;
     word-break: break-word;
 }
+/* ── 코멘트 입력 v3 ── */
 .comment-input-area {
-    display: flex;
-    gap: 8px;
-    padding: 12px 0;
+    padding: 8px 0;
     position: sticky;
     bottom: 0;
     background: var(--bg);
+    border-top: 1px solid var(--secondary-bg);
+}
+.comment-input-row {
+    display: flex;
+    gap: 8px;
+    align-items: flex-end;
 }
 .comment-input {
     flex: 1;
     padding: 10px 12px;
     border: 1px solid var(--hint);
-    border-radius: 20px;
+    border-radius: 16px;
     font-size: 15px;
     background: var(--secondary-bg);
     color: var(--text);
+    resize: none;
+    min-height: 40px;
+    max-height: 120px;
+    font-family: inherit;
+    line-height: 1.4;
 }
 .comment-input:focus {
     outline: none;
     border-color: var(--brand-green);
+}
+.comment-send-btn {
+    flex-shrink: 0;
+    height: 40px;
+    min-width: 52px;
+}
+.comment-action-row {
+    display: flex;
+    gap: 8px;
+    padding: 6px 0 0;
+}
+.comment-action-btn {
+    padding: 4px 10px;
+    border: none;
+    background: transparent;
+    font-size: 13px;
+    color: var(--hint);
+    cursor: pointer;
+}
+.comment-action-btn:active {
+    color: var(--brand-green);
+}
+
+/* ── 첨부 미리보기 ── */
+.comment-preview-area {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding: 8px 0;
+}
+.preview-chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 10px;
+    border-radius: 12px;
+    font-size: 12px;
+    background: var(--secondary-bg);
+    color: var(--text);
+    max-width: 200px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.preview-size {
+    color: var(--hint);
+    font-size: 11px;
+}
+.preview-remove {
+    border: none;
+    background: transparent;
+    color: var(--hint);
+    font-size: 16px;
+    cursor: pointer;
+    padding: 0 2px;
+    line-height: 1;
+}
+.preview-remove:hover {
+    color: #e74c3c;
+}
+
+/* ── 코멘트 본문 내 링크 ── */
+.comment-link {
+    color: var(--brand-green);
+    text-decoration: underline;
+    word-break: break-all;
+}
+
+/* ── 상세 페이지: 설명/링크/첨부 ── */
+.detail-description {
+    font-size: 14px;
+    line-height: 1.6;
+    color: var(--text);
+    padding: 8px 12px;
+    background: var(--secondary-bg);
+    border-radius: 10px;
+    margin-bottom: 12px;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+.detail-section-title {
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--hint);
+    margin-bottom: 6px;
+}
+.detail-links {
+    margin-bottom: 12px;
+}
+.detail-link-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    padding: 8px 12px;
+    background: var(--secondary-bg);
+    border-radius: 8px;
+    margin-bottom: 4px;
+    text-decoration: none;
+    color: var(--brand-green);
+    font-size: 14px;
+}
+.detail-link-item:active {
+    opacity: 0.7;
+}
+.link-icon {
+    flex-shrink: 0;
+}
+.link-text {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.detail-attachments {
+    margin-bottom: 12px;
+}
+.detail-attachment-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: var(--secondary-bg);
+    border-radius: 8px;
+    margin-bottom: 4px;
+    text-decoration: none;
+    color: var(--text);
+    font-size: 14px;
+}
+.attachment-thumb {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    border-radius: 6px;
+    flex-shrink: 0;
+}
+.attachment-icon {
+    font-size: 20px;
+    flex-shrink: 0;
+}
+.attachment-name {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.attachment-size {
+    font-size: 12px;
+    color: var(--hint);
+    flex-shrink: 0;
+}
+
+/* ── 요약 카드 클릭 가능 ── */
+.summary-item {
+    cursor: pointer;
+    border: none;
+    background: transparent;
+    padding: 8px;
+    border-radius: 10px;
+    transition: all 0.2s;
+    flex: 1;
+    text-align: center;
+}
+.summary-item:active {
+    background: var(--secondary-bg);
+}
+.summary-active {
+    background: rgba(89, 112, 81, 0.1);
+    border-radius: 10px;
+}
+.summary-active .summary-num {
+    color: var(--brand-green);
+}
+
+/* ── 홈 요약 카드 ── */
+.home-summary-row {
+    display: flex;
+    gap: 8px;
+    margin-bottom: 12px;
+}
+.home-summary-item {
+    flex: 1;
+    padding: 12px 8px;
+    border: 1px solid var(--secondary-bg);
+    border-radius: 12px;
+    background: var(--bg);
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+.home-summary-item:active {
+    background: var(--secondary-bg);
+}
+.home-summary-zero {
+    opacity: 0.5;
+}
+.home-summary-num {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    line-height: 1.2;
+}
+.home-summary-label {
+    font-size: 12px;
+    color: var(--hint);
+    margin-top: 2px;
+}
+
+/* ── 링크 다이얼로그 ── */
+.link-dialog {
+    padding: 4px 0;
+}
+.link-dialog .form-group {
+    margin-bottom: 12px;
 }
 
 /* ── 캘린더 ── */

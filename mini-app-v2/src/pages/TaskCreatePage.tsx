@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -8,10 +8,11 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/components/layout/Toast";
-import { createTask, fetchStaff } from "@/lib/api";
+import { createTask, fetchStaff, uploadFile, updateTask } from "@/lib/api";
+import type { FileAttachment } from "@/lib/api";
 import { getAllProjects, addCustomProject, removeCustomProject, renameCustomProject } from "@/lib/projects";
 import type { Project } from "@/lib/projects";
-import { Loader2, Check, Plus, Pencil, Trash2, X, ListChecks } from "lucide-react";
+import { Loader2, Check, Plus, Pencil, Trash2, X, ListChecks, Paperclip, Upload, Image, Film, FileText } from "lucide-react";
 import type { StaffMember } from "@/lib/types";
 
 const PRIORITIES: { value: string; label: string; color: string; activeColor: string }[] = [
@@ -44,7 +45,9 @@ export function TaskCreatePage() {
   const [newProjectName, setNewProjectName] = useState("");
   const [editingProject, setEditingProject] = useState<string | null>(null);
   const [editProjectName, setEditProjectName] = useState("");
+  const [pendingFiles, setPendingFiles] = useState<File[]>([]);
   const [submitting, setSubmitting] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetchStaff()
@@ -71,6 +74,17 @@ export function TaskCreatePage() {
     setRelatedProject((prev) => (prev === name ? "" : name));
   }
 
+  const addFiles = useCallback((files: FileList | File[]) => {
+    const arr = Array.from(files).filter(
+      (f) => f.type.startsWith("image/") || f.type.startsWith("video/") || f.type === "application/pdf",
+    );
+    if (arr.length > 0) setPendingFiles((prev) => [...prev, ...arr]);
+  }, []);
+
+  function removeFile(index: number) {
+    setPendingFiles((prev) => prev.filter((_, i) => i !== index));
+  }
+
   function handleAddProject() {
     if (!newProjectName.trim()) return;
     const proj = addCustomProject(newProjectName.trim());
@@ -88,7 +102,7 @@ export function TaskCreatePage() {
 
     setSubmitting(true);
     try {
-      await createTask({
+      const result = await createTask({
         title: title.trim(),
         assignee: assignees.length > 0 ? assignees.join(", ") : undefined,
         priority,
@@ -97,6 +111,23 @@ export function TaskCreatePage() {
         relatedProject: relatedProject.trim() || undefined,
         description: description.trim() || undefined,
       });
+
+      // 파일 업로드 (태스크 생성 후)
+      if (pendingFiles.length > 0 && result.task?.id) {
+        const attachments: FileAttachment[] = [];
+        for (const file of pendingFiles) {
+          try {
+            const att = await uploadFile(file, result.task.id);
+            attachments.push(att);
+          } catch (err) {
+            console.error("File upload failed:", err);
+          }
+        }
+        if (attachments.length > 0) {
+          await updateTask(result.task.id, { attachments }).catch(() => {});
+        }
+      }
+
       showToast("업무가 등록되었습니다", "success");
       navigate("/tasks", { replace: true });
     } catch {
@@ -307,6 +338,81 @@ export function TaskCreatePage() {
                 <Input id="dueAt" type="date" value={dueAt} onChange={(e) => setDueAt(e.target.value)} className="h-11 text-sm" />
               </div>
             </div>
+
+            {/* 파일 첨부 */}
+            <div className="space-y-2">
+              <div className="flex items-center justify-between">
+                <Label className="text-[13px] font-semibold">파일 첨부</Label>
+                <button
+                  type="button"
+                  className="flex items-center gap-1 text-[11px] text-primary font-medium"
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Paperclip className="h-3 w-3" />추가
+                </button>
+              </div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*,application/pdf"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) addFiles(e.target.files);
+                  e.target.value = "";
+                }}
+              />
+
+              {pendingFiles.length === 0 ? (
+                <div
+                  className="flex flex-col items-center justify-center py-3 rounded-lg border-2 border-dashed border-border/40 hover:border-primary/30 cursor-pointer transition-colors"
+                  onClick={() => fileInputRef.current?.click()}
+                  onDragOver={(e) => e.preventDefault()}
+                  onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files.length > 0) addFiles(e.dataTransfer.files); }}
+                >
+                  <Upload className="h-4 w-4 text-muted-foreground/40 mb-1" />
+                  <p className="text-[11px] text-muted-foreground/50">사진/영상/PDF 첨부 (선택)</p>
+                </div>
+              ) : (
+                <div className="space-y-1.5">
+                  {pendingFiles.map((file, i) => (
+                    <div key={i} className="flex items-center gap-2 p-2 rounded-lg border border-border/40 bg-card">
+                      {file.type.startsWith("image/") ? (
+                        <img
+                          src={URL.createObjectURL(file)}
+                          alt={file.name}
+                          className="h-10 w-10 rounded object-cover flex-shrink-0"
+                        />
+                      ) : (
+                        <div className="h-10 w-10 rounded bg-muted flex items-center justify-center flex-shrink-0">
+                          {file.type.startsWith("video/") ? <Film className="h-4 w-4 text-muted-foreground" /> : <FileText className="h-4 w-4 text-muted-foreground" />}
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[11px] font-medium truncate">{file.name}</p>
+                        <p className="text-[9px] text-muted-foreground">
+                          {file.size < 1024 * 1024
+                            ? (file.size / 1024).toFixed(0) + "KB"
+                            : (file.size / (1024 * 1024)).toFixed(1) + "MB"}
+                        </p>
+                      </div>
+                      <button type="button" className="text-muted-foreground/40 hover:text-destructive p-1" onClick={() => removeFile(i)}>
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  ))}
+                  <button
+                    type="button"
+                    className="w-full py-1.5 rounded-lg border border-dashed border-border/40 text-[11px] text-muted-foreground/50 hover:border-primary/30 flex items-center justify-center gap-1"
+                    onClick={() => fileInputRef.current?.click()}
+                    onDragOver={(e) => e.preventDefault()}
+                    onDrop={(e) => { e.preventDefault(); if (e.dataTransfer.files.length > 0) addFiles(e.dataTransfer.files); }}
+                  >
+                    <Plus className="h-3 w-3" />파일 더 추가
+                  </button>
+                </div>
+              )}
+            </div>
           </CardContent>
         </Card>
 
@@ -315,7 +421,9 @@ export function TaskCreatePage() {
           onClick={handleSubmit}
           disabled={submitting || !title.trim()}
         >
-          {submitting ? (<><Loader2 className="h-4 w-4 animate-spin mr-2" />등록 중...</>) : "업무 등록"}
+          {submitting ? (
+            <><Loader2 className="h-4 w-4 animate-spin mr-2" />{pendingFiles.length > 0 ? "업로드 중..." : "등록 중..."}</>
+          ) : pendingFiles.length > 0 ? `업무 등록 (파일 ${pendingFiles.length}개)` : "업무 등록"}
         </Button>
       </main>
     </div>

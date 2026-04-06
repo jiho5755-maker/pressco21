@@ -59,6 +59,7 @@ export function updateTask(
     description?: string | null;
     startAt?: string | null;
     links?: string[];
+    attachments?: FileAttachment[];
   }
 ): Promise<{ ok: boolean; task: Task }> {
   return apiFetch("/admin/tasks/" + encodeURIComponent(taskId), {

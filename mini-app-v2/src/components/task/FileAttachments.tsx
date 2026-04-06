@@ -2,7 +2,7 @@ import { useState, useRef, useCallback } from "react";
 import { uploadFile, updateTask } from "@/lib/api";
 import type { FileAttachment } from "@/lib/api";
 import type { Task } from "@/lib/types";
-import { Paperclip, Plus, X, Image, Film, FileText, Loader2, Upload } from "lucide-react";
+import { Paperclip, Plus, X, Image, Film, FileText, Loader2, Upload, Archive } from "lucide-react";
 
 interface FileAttachmentsProps {
   task: Task;
@@ -201,61 +201,87 @@ export function FileAttachments({ task, onTaskUpdate }: FileAttachmentsProps) {
         >
           {attachments.map((att, i) => (
             <div key={i} className="relative group">
-              {/* 이미지 프리뷰 */}
-              {isImageType(att.type) && (
-                <a href={att.url} target="_blank" rel="noopener noreferrer" className="block">
-                  <img
-                    src={att.url}
-                    alt={att.name}
-                    className="w-full max-h-48 object-cover rounded-lg border border-border/40"
-                    loading="lazy"
-                  />
-                </a>
-              )}
-
-              {/* 비디오 프리뷰 */}
-              {isVideoType(att.type) && (
-                <video
-                  src={att.url}
-                  controls
-                  preload="metadata"
-                  className="w-full max-h-48 rounded-lg border border-border/40"
-                />
-              )}
-
-              {/* 일반 파일 */}
-              {!isImageType(att.type) && !isVideoType(att.type) && (
-                <a
-                  href={att.url}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 p-2.5 rounded-lg border border-border/40 hover:bg-muted/30 transition-colors"
+              {/* 보관된 파일 */}
+              {att.archived ? (
+                <div
+                  className="flex items-center gap-2.5 p-2.5 rounded-lg border border-dashed border-amber-300/60 bg-amber-50/30 cursor-pointer"
+                  onClick={() => {
+                    const path = att.archivedFile ?? att.name;
+                    navigator.clipboard.writeText(path).catch(() => {});
+                  }}
                 >
-                  {getFileIcon(att.type)}
+                  <Archive className="h-4 w-4 text-amber-500 flex-shrink-0" />
                   <div className="flex-1 min-w-0">
-                    <p className="text-[12px] font-medium truncate">{att.name}</p>
-                    <p className="text-[10px] text-muted-foreground">{formatFileSize(att.size)}</p>
+                    <p className="text-[12px] font-medium text-amber-700 truncate">{att.name}</p>
+                    <p className="text-[9px] text-amber-500">
+                      보관됨 {att.archivedAt ?? ""} &middot; {formatFileSize(att.size)}
+                    </p>
+                    {att.archivedFile && (
+                      <p className="text-[9px] text-amber-400 truncate mt-0.5">
+                        금고: {att.archivedFile} (탭하여 복사)
+                      </p>
+                    )}
                   </div>
-                </a>
-              )}
-
-              {/* 파일 정보 + 삭제 (이미지/비디오) */}
-              {(isImageType(att.type) || isVideoType(att.type)) && (
-                <div className="flex items-center justify-between mt-0.5 px-0.5">
-                  <span className="text-[10px] text-muted-foreground truncate max-w-[70%]">
-                    {att.name} ({formatFileSize(att.size)})
-                  </span>
                 </div>
-              )}
+              ) : (
+                <>
+                  {/* 이미지 프리뷰 */}
+                  {isImageType(att.type) && (
+                    <a href={att.url} target="_blank" rel="noopener noreferrer" className="block">
+                      <img
+                        src={att.url}
+                        alt={att.name}
+                        className="w-full max-h-48 object-cover rounded-lg border border-border/40"
+                        loading="lazy"
+                      />
+                    </a>
+                  )}
 
-              {/* 삭제 버튼 */}
-              <button
-                type="button"
-                className="absolute top-1 right-1 bg-background/80 backdrop-blur-sm rounded-full p-1 text-muted-foreground/60 hover:text-destructive transition-colors shadow-sm"
-                onClick={() => handleRemove(i)}
-              >
-                <X className="h-3.5 w-3.5" />
-              </button>
+                  {/* 비디오 프리뷰 */}
+                  {isVideoType(att.type) && (
+                    <video
+                      src={att.url}
+                      controls
+                      preload="metadata"
+                      className="w-full max-h-48 rounded-lg border border-border/40"
+                    />
+                  )}
+
+                  {/* 일반 파일 */}
+                  {!isImageType(att.type) && !isVideoType(att.type) && (
+                    <a
+                      href={att.url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 p-2.5 rounded-lg border border-border/40 hover:bg-muted/30 transition-colors"
+                    >
+                      {getFileIcon(att.type)}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-[12px] font-medium truncate">{att.name}</p>
+                        <p className="text-[10px] text-muted-foreground">{formatFileSize(att.size)}</p>
+                      </div>
+                    </a>
+                  )}
+
+                  {/* 파일 정보 (이미지/비디오) */}
+                  {(isImageType(att.type) || isVideoType(att.type)) && (
+                    <div className="flex items-center justify-between mt-0.5 px-0.5">
+                      <span className="text-[10px] text-muted-foreground truncate max-w-[70%]">
+                        {att.name} ({formatFileSize(att.size)})
+                      </span>
+                    </div>
+                  )}
+
+                  {/* 삭제 버튼 */}
+                  <button
+                    type="button"
+                    className="absolute top-1 right-1 bg-background/80 backdrop-blur-sm rounded-full p-1 text-muted-foreground/60 hover:text-destructive transition-colors shadow-sm"
+                    onClick={() => handleRemove(i)}
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </>
+              )}
             </div>
           ))}
 

@@ -119,6 +119,9 @@ export interface FileAttachment {
   name: string;
   size: number;
   type: string;
+  archived?: boolean;
+  archivedAt?: string;
+  archivedFile?: string;
 }
 
 export async function uploadFile(file: File, taskId: string): Promise<FileAttachment> {

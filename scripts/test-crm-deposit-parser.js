@@ -1,0 +1,157 @@
+#!/usr/bin/env node
+'use strict';
+
+var assert = require('assert');
+var fs = require('fs');
+var path = require('path');
+var vm = require('vm');
+var parserSource = require('./lib/crm-deposit-parser-source');
+
+var REPO_ROOT = path.resolve(__dirname, '..');
+var FIXTURE_ROOT = path.join(REPO_ROOT, 'tests', 'fixtures', 'crm-deposit-parser');
+
+function loadFixtureText(fileName) {
+  return fs.readFileSync(path.join(FIXTURE_ROOT, fileName), 'utf8');
+}
+
+async function runCode(code, sandbox) {
+  return vm.runInNewContext('(async () => {\n' + code + '\n})()', sandbox, { timeout: 2000 });
+}
+
+async function runParser(emailJson, binary) {
+  var items = await runCode(parserSource.buildCrmDepositParserCode(), {
+    Buffer: Buffer,
+    Date: Date,
+    console: console,
+    decodeURI: decodeURI,
+    escape: escape,
+    globalThis: globalThis,
+    helpers: null,
+    require: require,
+    unescape: unescape,
+    $itemIndex: 0,
+    $input: {
+      first: function() {
+        return {
+          json: emailJson,
+          binary: binary || {},
+        };
+      },
+    },
+  });
+
+  assert(Array.isArray(items) && items.length === 1, 'parser should return a single n8n item');
+  return items[0].json;
+}
+
+async function runDepositSummary(parsed, intake) {
+  var store = {
+    presscoCrmTelegramSent: {},
+    presscoCrmFailureLog: [],
+  };
+  var items = await runCode(parserSource.buildCrmDepositTelegramSummaryCode(), {
+    Date: Date,
+    console: console,
+    $env: {},
+    $getWorkflowStaticData: function() {
+      return store;
+    },
+    $: function(nodeName) {
+      return {
+        first: function() {
+          if (nodeName === 'Code: Record Intake Ledger') return { json: parsed };
+          if (nodeName === 'HTTP Call Intake Engine') return { json: intake };
+          throw new Error('unexpected node lookup: ' + nodeName);
+        },
+      };
+    },
+  });
+
+  assert(Array.isArray(items) && items.length === 1, 'deposit summary should return one n8n item');
+  return items[0].json;
+}
+
+async function runBankSummary(parsed) {
+  var store = {
+    presscoBankTelegramSent: {},
+  };
+  var items = await runCode(parserSource.buildCrmBankEventSummaryCode(), {
+    Date: Date,
+    console: console,
+    $env: {},
+    $getWorkflowStaticData: function() {
+      return store;
+    },
+    $: function(nodeName) {
+      return {
+        first: function() {
+          if (nodeName === 'Code: Record Intake Ledger') return { json: parsed };
+          throw new Error('unexpected node lookup: ' + nodeName);
+        },
+      };
+    },
+  });
+
+  assert(Array.isArray(items) && items.length === 1, 'bank summary should return one n8n item');
+  return items[0].json;
+}
+
+async function main() {
+  var secureDepositText = loadFixtureText('secure-decrypted-deposit-record-only.txt');
+  var plainDepositText = loadFixtureText('plain-basic-deposit.txt');
+  var secureWithdrawalText = loadFixtureText('secure-decrypted-withdrawal-record-only.txt');
+
+  var secureDepositParsed = await runParser({
+    subject: '농협에서 제공하는 입출금 거래내역',
+    from: 'webmaster@ums.nonghyup.com',
+    date: '2026-04-06T10:06:00+09:00',
+    textPlain: secureDepositText,
+  });
+  assert.strictEqual(secureDepositParsed.parseFailure, false, 'secure deposit table fixture should not fail');
+  assert.strictEqual(secureDepositParsed.deposits.length, 1, 'secure deposit table fixture should yield one deposit');
+  assert.strictEqual(secureDepositParsed.deposits[0].sender, '김수진서초글');
+  assert.strictEqual(secureDepositParsed.deposits[0].amount, 40000);
+  assert.match(secureDepositParsed.deposits[0].note, /김수진서초글/);
+
+  var plainDepositParsed = await runParser({
+    subject: '입금 알림',
+    from: 'webmaster@ums.nonghyup.com',
+    date: '2026-04-07T09:12:00+09:00',
+    textPlain: plainDepositText,
+  });
+  assert.strictEqual(plainDepositParsed.parseFailure, false, 'plain deposit fixture should not fail');
+  assert.strictEqual(plainDepositParsed.deposits.length, 1, 'plain deposit fixture should yield one deposit');
+  assert.strictEqual(plainDepositParsed.deposits[0].sender, '홍길동');
+  assert.strictEqual(plainDepositParsed.deposits[0].amount, 35000);
+
+  var secureWithdrawalParsed = await runParser({
+    subject: '농협에서 제공하는 입출금 거래내역',
+    from: 'webmaster@ums.nonghyup.com',
+    date: '2026-04-06T10:10:00+09:00',
+    textPlain: secureWithdrawalText,
+  });
+  assert.strictEqual(secureWithdrawalParsed.parseFailure, false, 'withdrawal table fixture should not fail');
+  assert.strictEqual(secureWithdrawalParsed.deposits.length, 0, 'withdrawal fixture should not create deposits');
+  assert.strictEqual(secureWithdrawalParsed.transactions.length, 1, 'withdrawal fixture should yield one transaction');
+  assert.strictEqual(secureWithdrawalParsed.transactions[0].direction, 'withdrawal');
+  assert.strictEqual(secureWithdrawalParsed.transactions[0].party, 'ATM출금');
+
+  var depositSummary = await runDepositSummary(secureDepositParsed, {
+    exactActions: [],
+    duplicateEntries: [],
+    reviewEntries: [],
+    unmatchedEntries: [],
+    summary: { exact: 0, review: 0, unmatched: 0, duplicate: 0 },
+  });
+  assert.match(depositSummary._telegramMessage, /기록: 김수진서초글/);
+
+  var bankSummary = await runBankSummary(secureWithdrawalParsed);
+  assert.match(bankSummary._telegramMessage, /ATM출금/);
+
+  console.log('crm deposit parser regression tests passed');
+}
+
+main().catch(function(error) {
+  console.error(error && error.stack ? error.stack : String(error));
+  process.exit(1);
+});

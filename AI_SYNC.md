@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-05 KST
+- Started At: 2026-04-06 10:35:00 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: —
@@ -75,6 +75,16 @@
   - Phase 2: 주간 전략 회의 + 이재혁 자동화 + 서버 이전 준비
 - 2026-04-05 WF-CRM 감사 루프 mirror 구조 전환 (codex)
 - 2026-04-05 하네스 Phase 2 마무리: 서버 점검 + 로컬 최적화 진행 중
+- 2026-04-06 WF-CRM-02 입금 메일 파서 보완 및 회귀 케이스 추가 (codex)
+  - `scripts/lib/crm-deposit-parser-source.js`로 WF-CRM-02 파서/텔레그램 요약 코드를 공용 소스로 분리
+  - `scripts/sync-crm-deposit-parser.js` 추가: WF-CRM-02 JSON 노드 코드 동기화 자동화
+  - `scripts/test-crm-deposit-parser.js` 및 fixture 3종 추가: 입금/출금/기본 본문형 회귀 검증
+  - 농협 VestMail 입출금 메일에서 `거래은행` 빈칸으로 `기록사항` 컬럼이 당겨지는 케이스 파싱 보완
+  - 텔레그램 입금/은행 거래 요약에 `기록` 상세가 함께 노출되도록 보강
+- 2026-04-06 WF-CRM-02 운영 반영 및 텔레그램 보정 완료 (codex)
+  - `docs/crm-deposit-parser-guidelines.md` 추가: 실패 메일 fixture 수집, 회귀 테스트, 워크플로우 동기화, 텔레그램 확인 절차 문서화
+  - `node scripts/deploy-crm-deposit-telegram.js` 실행으로 WF-CRM-01/02 운영 워크플로우 반영
+  - 누락됐던 2026-04-06 농협 입금 메일 1건을 은행 알림 텔레그램 방에 수동 보정 발송
 
 ## Next Step
 
@@ -90,6 +100,8 @@
 - `[CODEX-LEAD]` Flora 오케스트레이션: task ledger, 텔레그램 Mini App IA 스펙
 - `[CODEX-LEAD]` Flora 텔레그램 방 라우팅: 3개 방, room 매핑
 - `[CODEX]` CRM 운영: WF-CRM-02/03 실건 검증 (입금/감사 루프)
+- `[CODEX]` CRM 운영: 파서 실패 실메일 fixture 추가 수집 및 `scripts/test-crm-deposit-parser.js` 회귀군 확대
+- `[CODEX]` CRM 운영: 신규 파싱 실패 메일 발생 시 `docs/crm-deposit-parser-guidelines.md` 절차로 fixture/회귀군 즉시 확대
 - `[CODEX]` 저장소: path-scoped 커밋 정리
 
 ## Known Risks
@@ -99,3 +111,4 @@
 - 서버 이전(flora-todo, n8n-staging → 플로라) 미실행
 - WF-CRM-02/03 실건 검증 미완 (입금/감사 루프)
 - Flora open item 캐시는 배포 시점 스냅샷. 실시간 재빌드 루프 미구현
+- 파서 실패 이력의 원본 메일은 저장소에 축적되지 않으므로, 신규 실패 건 발생 시 fixture를 별도로 수집해야 회귀군을 넓힐 수 있음

@@ -1,0 +1,248 @@
+{
+  "id": "APP_PRODUCTS",
+  "name": "[APP] 상품 API",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "app/products",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-products",
+      "name": "상품 목록 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "app-products"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "app/products/detail",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-detail",
+      "name": "상품 상세 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 600],
+      "webhookId": "app-products-detail"
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "app/products/categories",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "*"
+        }
+      },
+      "id": "webhook-categories",
+      "name": "카테고리 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 900],
+      "webhookId": "app-products-categories"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "display", "value": "Y" },
+            { "name": "limit", "value": "={{ $json.query.limit || '20' }}" },
+            { "name": "page", "value": "={{ $json.query.page || '1' }}" },
+            { "name": "search", "value": "={{ $json.query.search || '' }}" },
+            { "name": "category", "value": "={{ $json.query.category || '' }}" },
+            { "name": "sort", "value": "={{ $json.query.sort || 'regdt' }}" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "fullResponse": true } }
+        }
+      },
+      "id": "http-product-list",
+      "name": "MakeShop 상품 목록",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 메이크샵 상품 목록 응답 파싱\nconst response = $input.first().json;\nlet body = response.body || response;\n\n// Object.values() 필수 (메이크샵 list 응답)\nlet products = [];\nif (body && typeof body === 'object' && !Array.isArray(body)) {\n  products = Object.values(body);\n} else if (Array.isArray(body)) {\n  products = body;\n}\n\nconst items = products.map(p => ({\n  id: p.uid || p.prd_no || '',\n  name: p.prd_name || '',\n  price: parseInt(p.prd_price || '0'),\n  salePrice: parseInt(p.prd_sale_price || p.prd_price || '0'),\n  discount: p.prd_sale_price && p.prd_price ? Math.round((1 - parseInt(p.prd_sale_price) / parseInt(p.prd_price)) * 100) : 0,\n  imageUrl: p.prd_image ? (p.prd_image.startsWith('http') ? p.prd_image : `https://foreverlove.co.kr${p.prd_image}`) : '',\n  category: p.cate_name || '',\n  isSoldOut: p.sto_state_code === '2' || p.prd_soldout === 'Y',\n  isNew: p.prd_new === 'Y',\n  isBest: p.prd_best === 'Y',\n})).filter(p => p.id && p.name);\n\nreturn [{ json: { success: true, data: items, total: items.length } }];"
+      },
+      "id": "code-parse-list",
+      "name": "상품 목록 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "respond-list",
+      "name": "상품 목록 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "product" },
+            { "name": "uid", "value": "={{ $json.query.id }}" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": {
+          "timeout": 30000,
+          "response": { "response": { "fullResponse": true } }
+        }
+      },
+      "id": "http-product-detail",
+      "name": "MakeShop 상품 상세",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 메이크샵 상품 상세 응답 파싱\nconst response = $input.first().json;\nlet body = response.body || response;\nlet products = [];\nif (body && typeof body === 'object' && !Array.isArray(body)) {\n  products = Object.values(body);\n}\nconst p = products[0] || {};\n\nconst detail = {\n  id: p.uid || p.prd_no || '',\n  name: p.prd_name || '',\n  price: parseInt(p.prd_price || '0'),\n  salePrice: parseInt(p.prd_sale_price || p.prd_price || '0'),\n  discount: p.prd_sale_price && p.prd_price ? Math.round((1 - parseInt(p.prd_sale_price) / parseInt(p.prd_price)) * 100) : 0,\n  imageUrl: p.prd_image ? (p.prd_image.startsWith('http') ? p.prd_image : `https://foreverlove.co.kr${p.prd_image}`) : '',\n  images: [p.prd_image, p.prd_image2, p.prd_image3, p.prd_image4].filter(Boolean).map(img => img.startsWith('http') ? img : `https://foreverlove.co.kr${img}`),\n  description: p.prd_detail || '',\n  category: p.cate_name || '',\n  isSoldOut: p.sto_state_code === '2' || p.prd_soldout === 'Y',\n  options: p.prd_option_name ? p.prd_option_name.split('|').map(o => o.trim()) : [],\n};\n\nreturn [{ json: { success: true, data: detail } }];"
+      },
+      "id": "code-parse-detail",
+      "name": "상품 상세 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 600]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "respond-detail",
+      "name": "상품 상세 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 600]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "category" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": { "timeout": 30000 }
+      },
+      "id": "http-categories",
+      "name": "MakeShop 카테고리",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 900]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 카테고리 파싱\nconst response = $input.first().json;\nlet categories = [];\nif (response && typeof response === 'object') {\n  const vals = Array.isArray(response) ? response : Object.values(response);\n  categories = vals.map(c => ({\n    id: c.cate_no || c.id || '',\n    name: c.cate_name || c.name || '',\n    parentId: c.parent_cate_no || '',\n    depth: parseInt(c.depth || '1'),\n  })).filter(c => c.id && c.name);\n}\nreturn [{ json: { success: true, data: categories } }];"
+      },
+      "id": "code-parse-categories",
+      "name": "카테고리 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 900]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "respond-categories",
+      "name": "카테고리 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [880, 900]
+    }
+  ],
+  "connections": {
+    "상품 목록 웹훅": { "main": [[{ "node": "MakeShop 상품 목록", "type": "main", "index": 0 }]] },
+    "MakeShop 상품 목록": { "main": [[{ "node": "상품 목록 파싱", "type": "main", "index": 0 }]] },
+    "상품 목록 파싱": { "main": [[{ "node": "상품 목록 응답", "type": "main", "index": 0 }]] },
+    "상품 상세 웹훅": { "main": [[{ "node": "MakeShop 상품 상세", "type": "main", "index": 0 }]] },
+    "MakeShop 상품 상세": { "main": [[{ "node": "상품 상세 파싱", "type": "main", "index": 0 }]] },
+    "상품 상세 파싱": { "main": [[{ "node": "상품 상세 응답", "type": "main", "index": 0 }]] },
+    "카테고리 웹훅": { "main": [[{ "node": "MakeShop 카테고리", "type": "main", "index": 0 }]] },
+    "MakeShop 카테고리": { "main": [[{ "node": "카테고리 파싱", "type": "main", "index": 0 }]] },
+    "카테고리 파싱": { "main": [[{ "node": "카테고리 응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

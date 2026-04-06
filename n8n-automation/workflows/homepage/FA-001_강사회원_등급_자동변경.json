@@ -1,6 +1,6 @@
 {
   "id": "jaTfiQuY35DjgrxN",
-  "name": "FA-001: 강사회원 등급 자동 변경 v3.0",
+  "name": "FA-001: 강사회원 등급 자동 변경 v4.0",
   "active": true,
   "nodes": [
     {
@@ -107,7 +107,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===== NocoDB 레코드에서 식별 정보 추출 =====\n// NocoDB 레코드: Id(정수), 성함, 연락처, 자사몰 ID, 이메일 주소, 소속 협회 등\nconst recordId = $json.Id; // NocoDB 정수 ID (대문자 I)\n\nconst jasamolId = ($json['자사몰 ID'] || '').trim();\nconst rawMobile = ($json['연락처'] || '').trim();\nconst name = ($json['성함'] || '').trim();\nconst email = ($json['이메일 주소'] || '').trim();\nconst association = ($json['소속 협회'] || '').trim();\n\n// 연락처 정규화: 010-1234-5678 또는 01012345678 → 01012345678\nconst mobile = rawMobile.replace(/[^0-9]/g, '').replace(/^82/, '0');\n\nreturn {\n  json: {\n    jasamolId,\n    mobile,\n    name,\n    email,\n    association,\n    recordId,\n    hasId: jasamolId.length > 0,\n    hasMobile: mobile.length >= 10\n  }\n};",
+        "jsCode": "// ===== NocoDB 레코드에서 식별 정보 추출 =====\n// NocoDB 레코드: Id(정수), 성함, 연락처, 자사몰 ID, 이메일 주소, 소속 협회 등\nconst recordId = $json.Id; // NocoDB 정수 ID (대문자 I)\n\nconst jasamolId = ($json['자사몰 ID'] || '').trim().toLowerCase();\nconst rawMobile = ($json['연락처'] || '').trim();\nconst name = ($json['성함'] || '').trim();\nconst email = ($json['이메일 주소'] || '').trim();\nconst association = ($json['소속 협회'] || '').trim();\n\n// 연락처 정규화: 010-1234-5678 또는 01012345678 → 01012345678\nconst mobile = rawMobile.replace(/[^0-9]/g, '').replace(/^82/, '0');\n\nreturn {\n  json: {\n    jasamolId,\n    mobile,\n    name,\n    email,\n    association,\n    recordId,\n    hasId: jasamolId.length > 0,\n    hasMobile: mobile.length >= 10\n  }\n};",
         "mode": "runOnceForEachItem"
       },
       "id": "fa001-n05",
@@ -207,11 +207,11 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===== 연락처 조회 응답 파싱 + 성함 일치 확인 =====\nconst resp = $json;\nconst originalData = $('식별 정보 추출').item.json;\n\nlet userFound = false;\nlet makeshopUserId = '';\nlet respName = '';\n\n// 실제 메이크샵 API 응답: {return_code: '0000', list: [{id, hname, handphone, ...}]}\nif (resp.return_code === '0000' && Array.isArray(resp.list) && resp.list.length > 0) {\n  userFound = true;\n  makeshopUserId = resp.list[0].id || '';\n  respName = (resp.list[0].hname || '').trim();\n}\n\n// 성함 일치 확인 (공백 무시)\nconst inputName = originalData.name.replace(/\\s/g, '');\nconst apiName = respName.replace(/\\s/g, '');\nconst nameMatch = userFound && inputName.length > 0 && apiName.length > 0 && inputName === apiName;\n\nreturn {\n  json: {\n    ...originalData,\n    userFound,\n    nameMatch,\n    makeshopUserId,\n    apiName,\n    failReason: !userFound\n      ? '연락처로 회원을 찾지 못함: ' + originalData.mobile\n      : !nameMatch\n        ? '성함 불일치 (NocoDB: ' + originalData.name + ' / 메이크샵: ' + apiName + ')'\n        : ''\n  }\n};",
+        "jsCode": "// ===== 연락처 조회 파싱 + 스마트 매칭 (v4.0) =====\nconst resp = $json;\nconst orig = $('식별 정보 추출').item.json;\n\nlet userFound = false;\nlet makeshopUserId = '';\nlet respName = '';\nlet autoApprove = false;\nlet nameWarning = '';\nlet candidateInfo = '';\nlet resultCount = 0;\n\nif (resp.return_code === '0000' && Array.isArray(resp.list) && resp.list.length > 0) {\n  userFound = true;\n  resultCount = resp.list.length;\n\n  if (resultCount === 1) {\n    // A1: 1명이면 이름 무시 자동 승인\n    makeshopUserId = resp.list[0].id || '';\n    respName = (resp.list[0].hname || '').trim();\n    autoApprove = true;\n    const inputN = orig.name.replace(/\\s/g, '');\n    const apiN = respName.replace(/\\s/g, '');\n    if (inputN !== apiN) {\n      nameWarning = '\\u26a0\\ufe0f 이름 불일치 (신청: ' + orig.name + ' / 메이크샵: ' + respName + ')';\n    }\n  } else {\n    // A4: 여러 명 → 유사 이름 매칭\n    const inputN = orig.name.replace(/\\s/g, '').toLowerCase();\n    for (const m of resp.list) {\n      const apiN = (m.hname || '').replace(/\\s/g, '').toLowerCase();\n      if (apiN === inputN || apiN.includes(inputN) || inputN.includes(apiN)) {\n        makeshopUserId = m.id || '';\n        respName = (m.hname || '').trim();\n        autoApprove = true;\n        break;\n      }\n    }\n    if (!autoApprove) {\n      candidateInfo = resp.list.map(function(m) {\n        return '  \\u2022 ID: ' + m.id + ' / ' + (m.hname || '-');\n      }).join('\\n');\n    }\n  }\n}\n\nconst failReason = !userFound\n  ? '연락처로 회원을 찾지 못함: ' + orig.mobile\n  : !autoApprove\n    ? '연락처 ' + resultCount + '명 중 이름 매칭 실패 (신청: ' + orig.name + ')'\n    : '';\n\nreturn {\n  json: {\n    ...orig,\n    userFound,\n    autoApprove,\n    makeshopUserId,\n    apiName: respName,\n    nameWarning,\n    candidateInfo,\n    resultCount,\n    failReason\n  }\n};",
         "mode": "runOnceForEachItem"
       },
       "id": "fa001-n11",
-      "name": "연락처 조회 파싱 + 성함 확인",
+      "name": "연락처 조회 파싱 (스마트 매칭)",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [2400, 300]
@@ -219,11 +219,11 @@
     {
       "parameters": {
         "conditions": {
-          "boolean": [{"value1": "={{ $json.userFound && $json.nameMatch }}", "value2": true, "operation": "equal"}]
+          "boolean": [{"value1": "={{ $json.autoApprove }}", "value2": true, "operation": "equal"}]
         }
       },
       "id": "fa001-n12",
-      "name": "연락처+성함 일치하는가",
+      "name": "연락처 매칭 성공?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
       "position": [2620, 300]
@@ -253,7 +253,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===== 그룹 변경 API 응답 파싱 =====\n// 실제 메이크샵 응답: {return_code: '0000', datas: [{result: 'true'/'false', userid, group_id, group_name, message}]}\n// 주의: result는 boolean이 아닌 string 'true'/'false'\nconst resp = $json;\n\nlet success = false;\nlet failMessage = '';\n\nif (resp.return_code === '0000' && Array.isArray(resp.datas) && resp.datas.length > 0) {\n  const item = resp.datas[0];\n  // result는 string 'true' 또는 boolean true 둘 다 처리\n  if (item.result === true || item.result === 'true') {\n    success = true;\n  } else {\n    const msgs = item.message || [];\n    failMessage = Array.isArray(msgs) ? msgs.join(', ') : String(msgs);\n  }\n}\n\n// 이전 노드 데이터 유지 (두 경로 모두 try-catch로 안전하게)\nlet prevData = {};\ntry { prevData = { ...prevData, ...$('조회 응답 파싱 (ID)').item.json }; } catch(e) {}\ntry { prevData = { ...prevData, ...$('연락처 조회 파싱 + 성함 확인').item.json }; } catch(e) {}\n\nreturn {\n  json: {\n    ...prevData,\n    groupChangeSuccess: success,\n    groupChangeFailMessage: failMessage,\n    groupChangeResponse: JSON.stringify(resp)\n  }\n};",
+        "jsCode": "// ===== 그룹 변경 API 응답 파싱 =====\n// 실제 메이크샵 응답: {return_code: '0000', datas: [{result: 'true'/'false', userid, group_id, group_name, message}]}\n// 주의: result는 boolean이 아닌 string 'true'/'false'\nconst resp = $json;\n\nlet success = false;\nlet failMessage = '';\n\nif (resp.return_code === '0000' && Array.isArray(resp.datas) && resp.datas.length > 0) {\n  const item = resp.datas[0];\n  // result는 string 'true' 또는 boolean true 둘 다 처리\n  if (item.result === true || item.result === 'true') {\n    success = true;\n  } else {\n    const msgs = item.message || [];\n    failMessage = Array.isArray(msgs) ? msgs.join(', ') : String(msgs);\n  }\n}\n\n// 이전 노드 데이터 유지 (두 경로 모두 try-catch로 안전하게)\nlet prevData = {};\ntry { prevData = { ...prevData, ...$('조회 응답 파싱 (ID)').item.json }; } catch(e) {}\ntry { prevData = { ...prevData, ...$('연락처 조회 파싱 (스마트 매칭)').item.json }; } catch(e) {}\ntry { prevData = { ...prevData, ...$('이메일 조회 파싱').item.json }; } catch(e) {}\n\nreturn {\n  json: {\n    ...prevData,\n    groupChangeSuccess: success,\n    groupChangeFailMessage: failMessage,\n    groupChangeResponse: JSON.stringify(resp)\n  }\n};",
         "mode": "runOnceForEachItem"
       },
       "id": "fa001-n14",
@@ -299,7 +299,7 @@
     {
       "parameters": {
         "chatId": "-5154731145",
-        "text": "={{ '\\u2705 강사회원 등업 완료\\n\\n\\ud83d\\udc64 이름: ' + $('그룹 변경 응답 파싱').item.json.name + '\\n\\ud83c\\udd94 자사몰 ID: ' + $('그룹 변경 응답 파싱').item.json.makeshopUserId + '\\n\\ud83c\\udfdb\\ufe0f 소속 협회: ' + ($('그룹 변경 응답 파싱').item.json.association || '-') + '\\n\\ud83d\\udcf1 연락처: ' + ($('그룹 변경 응답 파싱').item.json.mobile || '-') + '\\n\\ud83d\\udce7 이메일: ' + ($('그룹 변경 응답 파싱').item.json.email || '-') }}",
+        "text": "={{ '\\u2705 강사회원 등업 완료\\n\\n\\ud83d\\udc64 이름: ' + $('그룹 변경 응답 파싱').item.json.name + '\\n\\ud83c\\udd94 자사몰 ID: ' + $('그룹 변경 응답 파싱').item.json.makeshopUserId + '\\n\\ud83c\\udfdb\\ufe0f 소속 협회: ' + ($('그룹 변경 응답 파싱').item.json.association || '-') + '\\n\\ud83d\\udcf1 연락처: ' + ($('그룹 변경 응답 파싱').item.json.mobile || '-') + '\\n\\ud83d\\udce7 이메일: ' + ($('그룹 변경 응답 파싱').item.json.email || '-') + ($('그룹 변경 응답 파싱').item.json.nameWarning ? '\\n' + $('그룹 변경 응답 파싱').item.json.nameWarning : '') }}",
         "additionalFields": {}
       },
       "id": "fa001-n17",
@@ -363,7 +363,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===== 수동 처리 요청 메시지 조립 =====\nlet data = {};\n\ntry { data = $('식별 정보 추출').item.json; } catch(e) {}\ntry { data = { ...data, ...$('연락처 조회 파싱 + 성함 확인').item.json }; } catch(e) {}\ntry { data = { ...data, ...$('조회 응답 파싱 (ID)').item.json }; } catch(e) {}\ntry { data = { ...data, ...$('그룹 변경 응답 파싱').item.json }; } catch(e) {}\n\nconst reason = data.failReason || '원인 불명';\nconst name = data.name || '(이름 없음)';\nconst jasamolId = data.jasamolId || '(미입력)';\nconst mobile = data.mobile || '(미입력)';\nconst email = data.email || '(미입력)';\nconst association = data.association || '(미입력)';\nconst recordId = data.recordId || '';\n\nconst message = '\\u26a0\\ufe0f 강사 등업 수동 처리 필요\\n\\n이름: ' + name + '\\n자사몰ID: ' + jasamolId + '\\n연락처: ' + mobile + '\\n이메일: ' + email + '\\n협회: ' + association + '\\n\\n사유: ' + reason + '\\n\\n\\u2192 메이크샵 관리자에서 직접 등업 후\\nNocoDB n8n_처리완료 체크 바랍니다';\n\n// NocoDB PATCH용: recordId + 업데이트 필드\nconst kst = new Date(new Date().getTime() + 9*60*60*1000).toISOString();\n\nreturn {\n  json: {\n    message,\n    id: recordId,\n    n8n_처리완료: true,\n    n8n_처리일시: kst\n  }\n};",
+        "jsCode": "// ===== 수동 처리 요청 메시지 조립 (v4.0) =====\n// C1 버그 수정: 마지막 단계 failReason 우선\nlet data = {};\nlet lastFail = '';\n\ntry { data = $('식별 정보 추출').item.json; } catch(e) {}\ntry {\n  const d = $('이메일 조회 파싱').item.json;\n  data = { ...data, ...d };\n  if (d.failReason) lastFail = d.failReason;\n} catch(e) {}\ntry {\n  const d = $('연락처 조회 파싱 (스마트 매칭)').item.json;\n  data = { ...data, ...d };\n  if (d.failReason && !lastFail) lastFail = d.failReason;\n} catch(e) {}\ntry {\n  const d = $('그룹 변경 응답 파싱').item.json;\n  data = { ...data, ...d };\n  if (d.groupChangeFailMessage) lastFail = '그룹 변경 API 실패: ' + d.groupChangeFailMessage;\n} catch(e) {}\ntry {\n  const d = $('조회 응답 파싱 (ID)').item.json;\n  if (!lastFail && d.failReason) lastFail = d.failReason;\n} catch(e) {}\n\nconst reason = lastFail || data.failReason || '원인 불명';\nconst name = data.name || '(이름 없음)';\nconst jasamolId = data.jasamolId || '(미입력)';\nconst mobile = data.mobile || '(미입력)';\nconst email = data.email || '(미입력)';\nconst association = data.association || '(미입력)';\nconst recordId = data.recordId || '';\nconst candidateInfo = data.candidateInfo || '';\nconst candidateId = data.makeshopUserId || '';\n\nlet msg = '\\u26a0\\ufe0f 강사 등업 수동 처리 필요\\n\\n이름: ' + name + '\\n자사몰ID: ' + jasamolId + '\\n연락처: ' + mobile + '\\n이메일: ' + email + '\\n협회: ' + association + '\\n\\n사유: ' + reason;\n\nif (candidateInfo) {\n  msg += '\\n\\n\\ud83d\\udccb 검색된 후보 회원:\\n' + candidateInfo;\n}\n\nmsg += '\\n\\n\\u2192 메이크샵 관리자에서 직접 등업 후\\nNocoDB n8n_처리완료 체크 바랍니다';\n\nconst kst = new Date(new Date().getTime() + 9*60*60*1000).toISOString();\nconst hasCandidate = candidateId.length > 0;\n\nreturn {\n  json: {\n    message: msg,\n    id: recordId,\n    n8n_처리완료: true,\n    n8n_처리일시: kst,\n    hasCandidate,\n    candidateId,\n    candidateName: name,\n    callbackData: hasCandidate ? 'fa001:' + recordId + ':' + candidateId : ''\n  }\n};",
         "mode": "runOnceForEachItem"
       },
       "id": "fa001-n18",
@@ -376,13 +376,31 @@
       "parameters": {
         "chatId": "-5154731145",
         "text": "={{ $json.message }}",
-        "additionalFields": {}
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "replyMarkup": "={{ $json.hasCandidate ? 'inlineKeyboard' : '' }}",
+          "inlineKeyboard": {
+            "rows": [
+              {
+                "row": [
+                  {
+                    "text": "={{ '\\u2705 ' + ($json.candidateId || '') + ' 등업 처리' }}",
+                    "additionalFields": {
+                      "callbackData": "={{ $json.callbackData }}"
+                    }
+                  }
+                ]
+              }
+            ]
+          }
+        }
       },
       "id": "fa001-n19",
       "name": "텔레그램 수동 처리 요청",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [3060, 480],
+      "onError": "continueRegularOutput",
       "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
     },
     {
@@ -455,6 +473,68 @@
       "typeVersion": 1.2,
       "position": [5040, 80],
       "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [{"value1": "={{ $('식별 정보 추출').item.json.email }}", "operation": "isNotEmpty"}]
+        }
+      },
+      "id": "fa001-n22",
+      "name": "이메일 검색 가능?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [2840, 600]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://www.foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {"name": "mode", "value": "search"},
+            {"name": "type", "value": "user"},
+            {"name": "email", "value": "={{ $('식별 정보 추출').item.json.email }}"}
+          ]
+        },
+        "options": {"response": {"response": {"responseFormat": "json"}}},
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {"name": "Shopkey", "value": "1fe4eece82d00e245aff322522fb3aec"},
+            {"name": "Licensekey", "value": "YWQ0ZTQwNWVhOGIzN2E3ZWVkZDdiMTIwOGZhNmQ3MDI="}
+          ]
+        }
+      },
+      "id": "fa001-n23",
+      "name": "메이크샵 회원 조회 (이메일)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [3060, 600]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== 이메일 조회 파싱 (v4.0) =====\nconst resp = $json;\nconst orig = $('식별 정보 추출').item.json;\n\nlet userFound = false;\nlet makeshopUserId = '';\nlet respName = '';\nlet autoApprove = false;\nlet candidateInfo = '';\n\nif (resp.return_code === '0000' && Array.isArray(resp.list) && resp.list.length > 0) {\n  userFound = true;\n  if (resp.list.length === 1) {\n    makeshopUserId = resp.list[0].id || '';\n    respName = (resp.list[0].hname || '').trim();\n    autoApprove = true;\n  } else {\n    const inputN = orig.name.replace(/\\s/g, '').toLowerCase();\n    for (const m of resp.list) {\n      const apiN = (m.hname || '').replace(/\\s/g, '').toLowerCase();\n      if (apiN === inputN || apiN.includes(inputN) || inputN.includes(apiN)) {\n        makeshopUserId = m.id || '';\n        respName = (m.hname || '').trim();\n        autoApprove = true;\n        break;\n      }\n    }\n    if (!autoApprove) {\n      candidateInfo = resp.list.map(function(m) {\n        return '  \\u2022 ID: ' + m.id + ' / ' + (m.hname || '-');\n      }).join('\\n');\n    }\n  }\n}\n\n// 이전 연락처 검색 후보 정보 병합\nlet prevCandidate = '';\ntry { prevCandidate = $('연락처 조회 파싱 (스마트 매칭)').item.json.candidateInfo || ''; } catch(e) {}\nif (prevCandidate && candidateInfo) candidateInfo = prevCandidate + '\\n' + candidateInfo;\nelse if (prevCandidate) candidateInfo = prevCandidate;\n\nconst failReason = !userFound\n  ? '이메일로도 회원을 찾지 못함: ' + orig.email\n  : !autoApprove\n    ? '이메일 검색 ' + resp.list.length + '명 중 이름 매칭 실패'\n    : '';\n\nreturn {\n  json: {\n    ...orig,\n    userFound,\n    autoApprove,\n    makeshopUserId,\n    apiName: respName,\n    candidateInfo,\n    failReason\n  }\n};",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "fa001-n24",
+      "name": "이메일 조회 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [3280, 600]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [{"value1": "={{ $json.autoApprove }}", "value2": true, "operation": "equal"}]
+        }
+      },
+      "id": "fa001-n25",
+      "name": "이메일 매칭?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [3500, 600]
     }
   ],
   "connections": {
@@ -469,9 +549,13 @@
     "메이크샵 회원 조회 (ID)": {"main": [[{"node": "조회 응답 파싱 (ID)", "type": "main", "index": 0}]]},
     "조회 응답 파싱 (ID)": {"main": [[{"node": "회원 존재하는가", "type": "main", "index": 0}]]},
     "회원 존재하는가": {"main": [[{"node": "메이크샵 그룹 변경", "type": "main", "index": 0}], [{"node": "메이크샵 회원 조회 (연락처)", "type": "main", "index": 0}]]},
-    "메이크샵 회원 조회 (연락처)": {"main": [[{"node": "연락처 조회 파싱 + 성함 확인", "type": "main", "index": 0}]]},
-    "연락처 조회 파싱 + 성함 확인": {"main": [[{"node": "연락처+성함 일치하는가", "type": "main", "index": 0}]]},
-    "연락처+성함 일치하는가": {"main": [[{"node": "메이크샵 그룹 변경", "type": "main", "index": 0}], [{"node": "수동 처리 메시지 조립", "type": "main", "index": 0}]]},
+    "메이크샵 회원 조회 (연락처)": {"main": [[{"node": "연락처 조회 파싱 (스마트 매칭)", "type": "main", "index": 0}]]},
+    "연락처 조회 파싱 (스마트 매칭)": {"main": [[{"node": "연락처 매칭 성공?", "type": "main", "index": 0}]]},
+    "연락처 매칭 성공?": {"main": [[{"node": "메이크샵 그룹 변경", "type": "main", "index": 0}], [{"node": "이메일 검색 가능?", "type": "main", "index": 0}]]},
+    "이메일 검색 가능?": {"main": [[{"node": "메이크샵 회원 조회 (이메일)", "type": "main", "index": 0}], [{"node": "수동 처리 메시지 조립", "type": "main", "index": 0}]]},
+    "메이크샵 회원 조회 (이메일)": {"main": [[{"node": "이메일 조회 파싱", "type": "main", "index": 0}]]},
+    "이메일 조회 파싱": {"main": [[{"node": "이메일 매칭?", "type": "main", "index": 0}]]},
+    "이메일 매칭?": {"main": [[{"node": "메이크샵 그룹 변경", "type": "main", "index": 0}], [{"node": "수동 처리 메시지 조립", "type": "main", "index": 0}]]},
     "메이크샵 그룹 변경": {"main": [[{"node": "그룹 변경 응답 파싱", "type": "main", "index": 0}]]},
     "그룹 변경 응답 파싱": {"main": [[{"node": "그룹 변경 성공했는가", "type": "main", "index": 0}]]},
     "그룹 변경 성공했는가": {"main": [[{"node": "NocoDB 처리완료 기록", "type": "main", "index": 0}], [{"node": "수동 처리 메시지 조립", "type": "main", "index": 0}]]},

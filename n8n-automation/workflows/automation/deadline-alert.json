@@ -1,0 +1,118 @@
+{
+  "id": "",
+  "name": "[F11] 마감 알림 (08:00)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 8, "triggerAtMinute": 0 }]
+        }
+      },
+      "id": "a1b2c3d4-0001-4000-8000-000000000001",
+      "name": "매일 08:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://mini.pressco21.com/api/dashboard?status=active&limit=200",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "pressco21-admin-2026"
+            }
+          ]
+        }
+      },
+      "id": "a1b2c3d4-0002-4000-8000-000000000002",
+      "name": "활성 태스크 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "language": "javaScript",
+        "jsCode": "// KST 기준 오늘/내일 날짜 범위 계산\nconst now = new Date();\n// UTC+9 오프셋 적용\nconst kstOffset = 9 * 60 * 60 * 1000;\nconst kstNow = new Date(now.getTime() + kstOffset);\n\n// KST 기준 오늘 자정 (00:00:00)\nconst todayStart = new Date(Date.UTC(\n  kstNow.getUTCFullYear(),\n  kstNow.getUTCMonth(),\n  kstNow.getUTCDate()\n) - kstOffset);\n\n// KST 기준 내일 자정 (00:00:00)\nconst tomorrowStart = new Date(todayStart.getTime() + 24 * 60 * 60 * 1000);\n\n// KST 기준 모레 자정 (경계값 — 내일 하루 전체 포함)\nconst dayAfterTomorrowStart = new Date(tomorrowStart.getTime() + 24 * 60 * 60 * 1000);\n\n// 응답에서 items 추출\nconst responseData = $input.first().json;\nconst items = (responseData.explorer && Array.isArray(responseData.explorer.items))\n  ? responseData.explorer.items\n  : [];\n\n// dueAt이 오늘 또는 내일인 태스크 필터링\nconst filtered = items.filter(task => {\n  if (!task.dueAt) return false;\n  const due = new Date(task.dueAt);\n  return due >= todayStart && due < dayAfterTomorrowStart;\n});\n\n// 태스크별 D-day 라벨 결정 및 메시지 라인 생성\nconst lines = filtered.map(task => {\n  const due = new Date(task.dueAt);\n  const label = due >= tomorrowStart ? 'D-1' : 'D-day';\n  const assignee = task.assignee || '미지정';\n  return `• [${label}] ${task.title} (담당: ${assignee})`;\n});\n\nconst count = filtered.length;\nconst shouldSend = count > 0;\n\nlet text = '';\nif (shouldSend) {\n  text = `⏰ 마감 알림\\n\\n${lines.join('\\n')}\\n\\n총 ${count}건`;\n}\n\nreturn [{ json: { shouldSend, count, text, filtered } }];"
+      },
+      "id": "a1b2c3d4-0003-4000-8000-000000000003",
+      "name": "마감 태스크 필터링",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "cond-has-tasks",
+              "leftValue": "={{ $json.shouldSend }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "a1b2c3d4-0004-4000-8000-000000000004",
+      "name": "마감 태스크 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "-5154731145",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "id": "a1b2c3d4-0005-4000-8000-000000000005",
+      "name": "텔레그램 그룹 발송",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [880, 260],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Telegram Makeshop Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매일 08:00": {
+      "main": [[{ "node": "활성 태스크 조회", "type": "main", "index": 0 }]]
+    },
+    "활성 태스크 조회": {
+      "main": [[{ "node": "마감 태스크 필터링", "type": "main", "index": 0 }]]
+    },
+    "마감 태스크 필터링": {
+      "main": [[{ "node": "마감 태스크 있음?", "type": "main", "index": 0 }]]
+    },
+    "마감 태스크 있음?": {
+      "main": [
+        [{ "node": "텔레그램 그룹 발송", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "active": false,
+  "tags": [{ "name": "업무자동화" }]
+}

@@ -2,12 +2,21 @@
 
 const STORAGE_KEY = "pressco21-personal-events";
 
+export type TimeSlot = "morning" | "afternoon" | "allday";
+
 export interface PersonalEvent {
   id: string;
   title: string;
   date: string; // YYYY-MM-DD
+  timeSlot: TimeSlot;
   createdAt: string;
 }
+
+export const TIME_SLOT_LABELS: Record<TimeSlot, string> = {
+  allday: "종일",
+  morning: "오전",
+  afternoon: "오후",
+};
 
 function generateId(): string {
   return "pe-" + Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -23,12 +32,13 @@ export function getPersonalEvents(): PersonalEvent[] {
   }
 }
 
-export function addPersonalEvent(title: string, date: string): PersonalEvent {
+export function addPersonalEvent(title: string, date: string, timeSlot: TimeSlot = "allday"): PersonalEvent {
   const events = getPersonalEvents();
   const newEvent: PersonalEvent = {
     id: generateId(),
     title: title.trim(),
     date,
+    timeSlot,
     createdAt: new Date().toISOString(),
   };
   events.push(newEvent);

@@ -13,7 +13,8 @@ import { useToast } from "@/components/layout/Toast";
 import { fetchDashboard, fetchComments, addComment, updateTask } from "@/lib/api";
 import { formatDate, daysUntil } from "@/lib/format";
 import { hapticFeedback } from "@/lib/telegram";
-import { User, Calendar, FolderOpen, Loader2, ArrowRight, Inbox } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { User, Calendar, FolderOpen, Loader2, ArrowRight, Inbox, Link2, Plus, X, CalendarRange, FileText } from "lucide-react";
 import type { Task, Comment } from "@/lib/types";
 
 const STATUS_FLOW: { from: string; to: string; label: string; variant: "default" | "outline" }[] = [
@@ -47,6 +48,8 @@ export function TaskDetailPage() {
   const [comments, setComments] = useState<Comment[]>([]);
   const [loading, setLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
+  const [newLink, setNewLink] = useState("");
+  const [showLinkInput, setShowLinkInput] = useState(false);
 
   useEffect(() => {
     if (!taskId) return;
@@ -173,6 +176,88 @@ export function TaskDetailPage() {
                 </div>
               )}
             </div>
+
+            {/* 설명 */}
+            {!!(task.detailsJson as Record<string, unknown>)?.description && (
+              <div className="mt-3 p-2.5 bg-muted/30 rounded-lg">
+                <div className="flex items-center gap-1.5 mb-1.5">
+                  <FileText className="h-3.5 w-3.5 text-muted-foreground" />
+                  <span className="text-[11px] font-semibold text-muted-foreground">설명</span>
+                </div>
+                <p className="text-sm text-foreground/85 leading-relaxed whitespace-pre-wrap">
+                  {String((task.detailsJson as Record<string, unknown>).description)}
+                </p>
+              </div>
+            )}
+
+            {/* 시작일 */}
+            {!!(task.detailsJson as Record<string, unknown>)?.startAt && (
+              <div className="flex items-center gap-2 text-sm text-muted-foreground mt-2">
+                <CalendarRange className="h-4 w-4" />
+                <span>시작: <span className="text-foreground font-medium">{formatDate(String((task.detailsJson as Record<string, unknown>).startAt))}</span></span>
+              </div>
+            )}
+
+            {/* 링크/첨부 */}
+            {(() => {
+              const details = task.detailsJson as Record<string, unknown>;
+              const links = (details?.links ?? []) as string[];
+              return (
+                <div className="mt-3">
+                  <div className="flex items-center justify-between mb-1.5">
+                    <div className="flex items-center gap-1.5">
+                      <Link2 className="h-3.5 w-3.5 text-muted-foreground" />
+                      <span className="text-[11px] font-semibold text-muted-foreground">링크/첨부</span>
+                    </div>
+                    <button type="button" className="text-[11px] text-primary font-medium flex items-center gap-0.5"
+                      onClick={() => setShowLinkInput(!showLinkInput)}>
+                      <Plus className="h-3 w-3" />추가
+                    </button>
+                  </div>
+
+                  {showLinkInput && (
+                    <div className="flex gap-1.5 mb-2">
+                      <Input placeholder="URL 입력" value={newLink} onChange={(e) => setNewLink(e.target.value)}
+                        className="h-8 text-xs flex-1" autoFocus
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter" && newLink.trim()) {
+                            const updated = [...links, newLink.trim()];
+                            updateTask(task.id, { links: updated }).then(() => {
+                              setTask((p) => p ? { ...p, detailsJson: { ...p.detailsJson, links: updated } } : p);
+                              setNewLink(""); setShowLinkInput(false);
+                            });
+                          }
+                        }} />
+                      <button type="button" className="text-muted-foreground p-1" onClick={() => { setShowLinkInput(false); setNewLink(""); }}>
+                        <X className="h-3.5 w-3.5" />
+                      </button>
+                    </div>
+                  )}
+
+                  {links.length > 0 ? (
+                    <div className="space-y-1">
+                      {links.map((link, i) => (
+                        <div key={i} className="flex items-center gap-2 text-xs">
+                          <a href={link} target="_blank" rel="noopener noreferrer" className="text-primary underline truncate flex-1"
+                            onClick={(e) => e.stopPropagation()}>{link}</a>
+                          <button type="button" className="text-muted-foreground/40 hover:text-destructive p-0.5"
+                            onClick={() => {
+                              const updated = links.filter((_, idx) => idx !== i);
+                              updateTask(task.id, { links: updated }).then(() => {
+                                setTask((p) => p ? { ...p, detailsJson: { ...p.detailsJson, links: updated } } : p);
+                              });
+                            }}>
+                            <X className="h-3 w-3" />
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  ) : !showLinkInput ? (
+                    <p className="text-[11px] text-muted-foreground/50">첨부된 링크가 없습니다</p>
+                  ) : null}
+                </div>
+              );
+            })()}
 
             {/* 상태 전환 버튼 */}
             {transitions.length > 0 && (

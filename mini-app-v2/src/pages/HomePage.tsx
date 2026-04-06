@@ -163,6 +163,53 @@ export function HomePage() {
           ))}
         </div>
 
+        {/* 직원별 업무 현황 */}
+        {!loading && tasks.length > 0 && (
+          <Card className="mb-4 border-border/60">
+            <CardContent className="p-3.5">
+              <h3 className="text-sm font-bold mb-2.5">직원별 현황</h3>
+              <div className="space-y-1.5">
+                {(() => {
+                  const byAssignee = new Map<string, { total: number; urgent: number }>();
+                  let unassigned = 0;
+                  for (const t of tasks) {
+                    if (!t.assignee) { unassigned++; continue; }
+                    // assignee가 "장지호, 이재혁" 형태일 수 있음
+                    for (const name of t.assignee.split(",").map(s => s.trim())) {
+                      if (!byAssignee.has(name)) byAssignee.set(name, { total: 0, urgent: 0 });
+                      const entry = byAssignee.get(name)!;
+                      entry.total++;
+                      if (t.priority === "p1") entry.urgent++;
+                    }
+                  }
+                  const entries = [...byAssignee.entries()].sort((a, b) => b[1].total - a[1].total);
+                  return (
+                    <>
+                      {entries.map(([name, info]) => (
+                        <div key={name} className="flex items-center gap-2 py-1">
+                          <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${info.urgent > 0 ? "bg-destructive" : "bg-primary/50"}`} />
+                          <span className="text-[13px] font-medium flex-1">{name}</span>
+                          <span className="text-[11px] text-muted-foreground">{info.total}건</span>
+                          {info.urgent > 0 && (
+                            <span className="text-[10px] text-destructive font-semibold">긴급 {info.urgent}</span>
+                          )}
+                        </div>
+                      ))}
+                      {unassigned > 0 && (
+                        <div className="flex items-center gap-2 py-1">
+                          <span className="w-1.5 h-1.5 rounded-full flex-shrink-0 bg-muted-foreground/30" />
+                          <span className="text-[13px] text-muted-foreground flex-1">미배정</span>
+                          <span className="text-[11px] text-muted-foreground">{unassigned}건</span>
+                        </div>
+                      )}
+                    </>
+                  );
+                })()}
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {/* 긴급/마감 임박 프리뷰 */}
         {!loading && urgentTasks.length > 0 && (
           <Card className="border-border/60">

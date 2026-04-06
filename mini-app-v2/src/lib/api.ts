@@ -55,7 +55,11 @@ export function fetchDoneTasks(limit = 50): Promise<DashboardResponse> {
 
 export function updateTask(
   taskId: string,
-  body: Partial<Pick<Task, "status" | "priority" | "assignee">>
+  body: Partial<Pick<Task, "status" | "priority" | "assignee">> & {
+    description?: string | null;
+    startAt?: string | null;
+    links?: string[];
+  }
 ): Promise<{ ok: boolean; task: Task }> {
   return apiFetch("/admin/tasks/" + encodeURIComponent(taskId), {
     method: "PATCH",
@@ -68,7 +72,9 @@ export function createTask(body: {
   assignee?: string | null;
   priority?: string;
   dueAt?: string | null;
+  startAt?: string | null;
   relatedProject?: string | null;
+  description?: string | null;
 }): Promise<{ ok: boolean; task: Task }> {
   return apiFetch("/mini/tasks", {
     method: "POST",

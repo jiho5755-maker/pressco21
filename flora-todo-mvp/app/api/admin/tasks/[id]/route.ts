@@ -13,6 +13,9 @@ type TaskPatchBody = {
   waitingFor?: string | null;
   relatedProject?: string | null;
   ignored?: boolean;
+  description?: string | null;
+  startAt?: string | null;
+  links?: string[];
 };
 
 export async function PATCH(
@@ -22,6 +25,12 @@ export async function PATCH(
   try {
     const { id } = await context.params;
     const body = (await request.json()) as TaskPatchBody;
+    // detailsJson에 저장할 확장 필드 (description, startAt, links)
+    const detailsMerge: Record<string, unknown> = {};
+    if (body.description !== undefined) detailsMerge.description = body.description;
+    if (body.startAt !== undefined) detailsMerge.startAt = body.startAt;
+    if (body.links !== undefined) detailsMerge.links = body.links;
+
     const updatedTask = await taskRepository.patchReviewTask(id, {
       title: body.title,
       status: body.status,
@@ -32,6 +41,7 @@ export async function PATCH(
       waitingFor: body.waitingFor,
       relatedProject: body.relatedProject,
       ignored: body.ignored,
+      detailsMerge: Object.keys(detailsMerge).length > 0 ? detailsMerge : undefined,
     });
 
     if (!updatedTask) {

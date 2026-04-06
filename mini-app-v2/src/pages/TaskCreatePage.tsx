@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -37,8 +38,10 @@ export function TaskCreatePage() {
   const { showToast } = useToast();
 
   const [title, setTitle] = useState("");
+  const [description, setDescription] = useState("");
   const [assignees, setAssignees] = useState<string[]>([]);
   const [priority, setPriority] = useState("p3");
+  const [startAt, setStartAt] = useState("");
   const [dueAt, setDueAt] = useState("");
   const [relatedProject, setRelatedProject] = useState("");
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -76,8 +79,10 @@ export function TaskCreatePage() {
         title: title.trim(),
         assignee: assignees.length > 0 ? assignees.join(", ") : undefined,
         priority,
+        startAt: startAt || undefined,
         dueAt: dueAt || undefined,
         relatedProject: relatedProject.trim() || undefined,
+        description: description.trim() || undefined,
       });
       showToast("업무가 등록되었습니다", "success");
       navigate("/tasks", { replace: true });
@@ -163,18 +168,47 @@ export function TaskCreatePage() {
               </div>
             </div>
 
-            {/* 마감일 */}
+            {/* 설명/메모 */}
             <div className="space-y-2">
-              <Label htmlFor="dueAt" className="text-[13px] font-semibold">
-                마감일
+              <Label htmlFor="description" className="text-[13px] font-semibold">
+                설명
               </Label>
-              <Input
-                id="dueAt"
-                type="date"
-                value={dueAt}
-                onChange={(e) => setDueAt(e.target.value)}
-                className="h-11 text-sm"
+              <Textarea
+                id="description"
+                placeholder="상세 내용이나 메모 (선택)"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                rows={2}
+                className="min-h-[60px] max-h-[120px] resize-none text-sm"
               />
+            </div>
+
+            {/* 시작일 + 마감일 */}
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-2">
+                <Label htmlFor="startAt" className="text-[13px] font-semibold">
+                  시작일
+                </Label>
+                <Input
+                  id="startAt"
+                  type="date"
+                  value={startAt}
+                  onChange={(e) => setStartAt(e.target.value)}
+                  className="h-11 text-sm"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="dueAt" className="text-[13px] font-semibold">
+                  마감일
+                </Label>
+                <Input
+                  id="dueAt"
+                  type="date"
+                  value={dueAt}
+                  onChange={(e) => setDueAt(e.target.value)}
+                  className="h-11 text-sm"
+                />
+              </div>
             </div>
 
             {/* 프로젝트 */}

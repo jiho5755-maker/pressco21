@@ -776,8 +776,18 @@ export const taskRepository = {
       waitingFor?: string | null;
       relatedProject?: string | null;
       ignored?: boolean;
+      detailsMerge?: Record<string, unknown>;
     },
   ) {
+    // detailsJson 머지가 필요하면 기존 값을 읽어서 합침
+    let nextDetailsJson: Record<string, unknown> | undefined;
+    if (input.detailsMerge) {
+      const existing = await this.findById(taskId);
+      if (existing) {
+        nextDetailsJson = { ...(existing.detailsJson ?? {}), ...input.detailsMerge };
+      }
+    }
+
     const [updatedTask] = await db
       .update(tasks)
       .set({
@@ -789,6 +799,7 @@ export const taskRepository = {
         dueAt: input.dueAt,
         waitingFor: input.waitingFor,
         relatedProject: input.relatedProject,
+        detailsJson: nextDetailsJson,
         reviewedAt: new Date(),
         ignoredAt: input.ignored === true ? new Date() : input.ignored === false ? null : undefined,
         updatedAt: new Date(),

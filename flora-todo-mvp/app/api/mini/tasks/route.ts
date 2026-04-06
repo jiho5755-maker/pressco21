@@ -6,17 +6,23 @@ import { revalidateDashboardTag } from "@/src/lib/cache-tags";
 import { getEnv } from "@/src/lib/env";
 
 export async function POST(request: Request) {
+  // 인증: Telegram initData 우선, API 키 폴백
   const tgUser = extractTelegramUser(request);
+  let creatorName = "관리자";
 
-  if (!tgUser) {
-    return Response.json({ ok: false, error: "Telegram initData required" }, { status: 401 });
-  }
-
-  const tgUserId = String(tgUser.id);
-  const staffMember = await staffRepository.findByTelegramUserId(tgUserId);
-
-  if (!staffMember) {
-    return Response.json({ ok: false, error: "Staff not found" }, { status: 403 });
+  if (tgUser) {
+    const tgUserId = String(tgUser.id);
+    const staffMember = await staffRepository.findByTelegramUserId(tgUserId);
+    if (staffMember) {
+      creatorName = staffMember.name;
+    }
+  } else {
+    // API 키 폴백 (브라우저 테스트 및 자동화용)
+    const apiKey = request.headers.get("x-flora-automation-key");
+    const env = getEnv();
+    if (!apiKey || apiKey !== env.automationApiKey) {
+      return Response.json({ ok: false, error: "Authentication required" }, { status: 401 });
+    }
   }
 
   try {
@@ -34,11 +40,18 @@ export async function POST(request: Request) {
     const dueAt = body.dueAt ? new Date(body.dueAt) : null;
     const category = body.category ?? "inbox";
     const relatedProject = body.relatedProject ?? null;
+    const description = body.description ?? null;
+    const startAt = body.startAt ?? null;
 
     const task = await taskRepository.upsertStructuredTask({
       id: taskId,
       title,
-      detailsJson: { createdBy: staffMember.name, createdVia: "mini-app" },
+      detailsJson: {
+        createdBy: creatorName,
+        createdVia: "mini-app",
+        ...(description ? { description } : {}),
+        ...(startAt ? { startAt } : {}),
+      },
       status: "todo",
       priority,
       category,
@@ -49,7 +62,7 @@ export async function POST(request: Request) {
       relatedProject,
       sourceText: title,
       sourceChannel: "mini-app",
-      sourceMessageId: `mini-${tgUserId}-${now.getTime()}`,
+      sourceMessageId: `mini-${tgUser?.id ?? "api"}-${now.getTime()}`,
       segmentHash: `mini:${taskId}`,
       segmentIndex: 0,
     });
@@ -67,7 +80,7 @@ export async function POST(request: Request) {
           taskId: task.id,
           title: task.title,
           assignee,
-          createdBy: staffMember.name,
+          createdBy: creatorName,
           priority,
         }),
       }).catch(() => {});

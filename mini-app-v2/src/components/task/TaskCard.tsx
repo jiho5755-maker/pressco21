@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { StatusBadge } from "./StatusBadge";
-import { formatCompactDate, daysUntil } from "@/lib/format";
+import { formatCompactDate, daysUntil, getStartAt, formatDateRange } from "@/lib/format";
 import { Calendar } from "lucide-react";
 import type { Task } from "@/lib/types";
 import { hapticFeedback } from "@/lib/telegram";
@@ -45,13 +45,22 @@ interface TaskCardProps {
 export function TaskCard({ task, onQuickAction, compact = false }: TaskCardProps) {
   const navigate = useNavigate();
   const transition = NEXT_STATUS[task.status];
+  const startAt = getStartAt(task);
   const dueDays = task.dueAt ? daysUntil(task.dueAt) : null;
   const isOverdue = dueDays !== null && dueDays < 0;
   const isDueToday = dueDays === 0;
   const isDueSoon = dueDays !== null && dueDays > 0 && dueDays <= 2;
+  const hasRange = startAt && task.dueAt;
   const barColor = PRIORITY_BAR[task.priority] ?? "bg-muted-foreground/30";
 
   function getDueText(): string {
+    // 시작일~마감일 범위가 있으면 범위 표시
+    if (hasRange) {
+      const rangeText = formatDateRange(startAt, task.dueAt!.slice(0, 10));
+      if (dueDays !== null && dueDays <= 0) return rangeText + " (" + (dueDays === 0 ? "오늘 마감" : Math.abs(dueDays) + "일 지남") + ")";
+      if (dueDays !== null && dueDays <= 7) return rangeText + " (D-" + dueDays + ")";
+      return rangeText;
+    }
     if (dueDays === null) return "";
     if (dueDays < -1) return formatCompactDate(task.dueAt!) + " (" + Math.abs(dueDays) + "일 지남)";
     if (dueDays === -1) return "어제 마감";

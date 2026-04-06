@@ -1,7 +1,7 @@
 import { useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { isToday, daysUntil } from "@/lib/format";
+import { isToday, daysUntil, getStartAt, formatDateRange } from "@/lib/format";
 import { getProjectColorSet } from "@/lib/projects";
 import { TIME_SLOT_LABELS } from "@/lib/personalEvents";
 import type { Task } from "@/lib/types";
@@ -181,10 +181,14 @@ export function WeekTimeline({ weekDays, tasksByDate, personalByDate, showPerson
 function TaskTimelineCard({ task, onClick }: { task: Task; onClick: () => void }) {
   const barColor = PRIORITY_BAR[task.priority] ?? "bg-muted-foreground/30";
   const statusInfo = STATUS_LABELS[task.status] ?? STATUS_LABELS.todo;
+  const startAt = getStartAt(task);
   const dueDays = task.dueAt ? daysUntil(task.dueAt) : null;
+  const hasRange = startAt && task.dueAt;
 
   let dueLabel = "";
-  if (dueDays !== null) {
+  if (hasRange) {
+    dueLabel = formatDateRange(startAt, task.dueAt!.slice(0, 10));
+  } else if (dueDays !== null) {
     if (dueDays < 0) dueLabel = `${Math.abs(dueDays)}일 지남`;
     else if (dueDays === 0) dueLabel = "오늘";
     else if (dueDays === 1) dueLabel = "내일";

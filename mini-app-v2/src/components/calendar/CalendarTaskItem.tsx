@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
-import { daysUntil } from "@/lib/format";
+import { daysUntil, getStartAt, formatDateRange } from "@/lib/format";
 import type { Task } from "@/lib/types";
 
 interface CalendarTaskItemProps {
@@ -59,6 +59,8 @@ export function CalendarTaskItem({ task, showDueDate = false }: CalendarTaskItem
   const navigate = useNavigate();
   const priorityColor = PRIORITY_COLORS[task.priority] ?? "bg-muted-foreground/40";
   const statusInfo = STATUS_LABELS[task.status] ?? STATUS_LABELS.todo;
+  const startAt = getStartAt(task);
+  const hasRange = startAt && task.dueAt;
   const dueLabel = task.dueAt ? getDueLabel(task.dueAt) : null;
 
   return (
@@ -98,7 +100,12 @@ export function CalendarTaskItem({ task, showDueDate = false }: CalendarTaskItem
               <span className="text-[11px] text-muted-foreground">{task.assignee}</span>
             </div>
           )}
-          {showDueDate && dueLabel && (
+          {hasRange && (
+            <span className="text-[10px] text-muted-foreground">
+              {formatDateRange(startAt, task.dueAt!.slice(0, 10))}
+            </span>
+          )}
+          {showDueDate && dueLabel && !hasRange && (
             <span className={`text-[11px] ${dueLabel.className}`}>{dueLabel.label}</span>
           )}
         </div>

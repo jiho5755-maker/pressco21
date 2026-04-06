@@ -60,6 +60,46 @@ export function daysUntil(dateStr: string): number {
   return Math.ceil((target.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 }
 
+/** 태스크에서 startAt 추출 (detailsJson) */
+export function getStartAt(task: { detailsJson: Record<string, unknown> }): string | null {
+  const val = task.detailsJson?.startAt;
+  return typeof val === "string" && val ? val : null;
+}
+
+/** startAt~dueAt 사이 모든 날짜 키(YYYY-MM-DD) 생성 */
+export function getDateRange(startAt: string | null, dueAt: string | null): string[] {
+  if (!startAt && !dueAt) return [];
+  const start = startAt ? new Date(startAt) : dueAt ? new Date(dueAt) : null;
+  const end = dueAt ? new Date(dueAt) : startAt ? new Date(startAt) : null;
+  if (!start || !end) return [];
+
+  start.setHours(0, 0, 0, 0);
+  end.setHours(0, 0, 0, 0);
+
+  // 최대 60일 제한 (무한 루프 방지)
+  const keys: string[] = [];
+  const d = new Date(start);
+  for (let i = 0; i < 60 && d <= end; i++) {
+    keys.push(
+      d.getFullYear() + "-" +
+      String(d.getMonth() + 1).padStart(2, "0") + "-" +
+      String(d.getDate()).padStart(2, "0")
+    );
+    d.setDate(d.getDate() + 1);
+  }
+  return keys;
+}
+
+/** 시작~마감 범위 텍스트 */
+export function formatDateRange(startAt: string | null, dueAt: string | null): string {
+  if (startAt && dueAt) {
+    return formatCompactDate(startAt) + " ~ " + formatCompactDate(dueAt);
+  }
+  if (dueAt) return formatCompactDate(dueAt);
+  if (startAt) return formatCompactDate(startAt) + " ~";
+  return "";
+}
+
 /** 오늘 날짜 여부 */
 export function isToday(dateStr: string | Date): boolean {
   const d = typeof dateStr === "string" ? new Date(dateStr) : dateStr;

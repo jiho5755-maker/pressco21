@@ -5,7 +5,7 @@ import { Badge } from "@/components/ui/badge";
 import { Header } from "@/components/layout/Header";
 import { fetchActiveTasks, fetchMe } from "@/lib/api";
 import { getTelegramUserName } from "@/lib/telegram";
-import { daysUntil, isToday } from "@/lib/format";
+import { daysUntil, isToday, getStartAt } from "@/lib/format";
 import {
   ClipboardList, CalendarDays, Truck, PlusCircle,
   AlertTriangle, CalendarClock, ChevronRight
@@ -145,6 +145,13 @@ export function HomePage() {
             .sort((a, b) => {
               if (a.priority === "p1" && b.priority !== "p1") return -1;
               if (b.priority === "p1" && a.priority !== "p1") return 1;
+              // startAt이 오늘 이전이면 이미 시작해야 할 업무 → 우선
+              const sA = getStartAt(a);
+              const sB = getStartAt(b);
+              const startedA = sA && daysUntil(sA) <= 0;
+              const startedB = sB && daysUntil(sB) <= 0;
+              if (startedA && !startedB) return -1;
+              if (!startedA && startedB) return 1;
               const dA = a.dueAt ? daysUntil(a.dueAt) : 999;
               const dB = b.dueAt ? daysUntil(b.dueAt) : 999;
               if (dA !== dB) return dA - dB;

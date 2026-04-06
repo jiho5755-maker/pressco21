@@ -11,7 +11,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { fetchActiveTasks } from "@/lib/api";
 import { getPersonalEvents, addPersonalEvent, deletePersonalEvent, TIME_SLOT_LABELS } from "@/lib/personalEvents";
 import type { PersonalEvent, TimeSlot } from "@/lib/personalEvents";
-import { daysUntil } from "@/lib/format";
+import { daysUntil, getStartAt, getDateRange } from "@/lib/format";
 import {
   ChevronLeft, ChevronRight, Plus, Loader2, Inbox,
   X, CalendarClock, Columns3, CalendarDays
@@ -73,14 +73,28 @@ export function CalendarPage() {
     setPersonalEvents(getPersonalEvents());
   }, []);
 
-  // 날짜별 맵
+  // 날짜별 맵 — startAt~dueAt 범위의 모든 날짜에 매핑
   const companyTasksByDate = useMemo(() => {
     const map = new Map<string, Task[]>();
     for (const task of tasks) {
-      if (task.dueAt) {
-        const key = task.dueAt.slice(0, 10);
-        if (!map.has(key)) map.set(key, []);
-        map.get(key)!.push(task);
+      const startAt = getStartAt(task);
+      const dueAt = task.dueAt ? task.dueAt.slice(0, 10) : null;
+
+      if (startAt || dueAt) {
+        const dateKeys = getDateRange(startAt, dueAt);
+        if (dateKeys.length === 0 && dueAt) {
+          // 범위 생성 실패 시 마감일에만 표시
+          if (!map.has(dueAt)) map.set(dueAt, []);
+          map.get(dueAt)!.push(task);
+        } else {
+          for (const key of dateKeys) {
+            if (!map.has(key)) map.set(key, []);
+            // 중복 방지
+            if (!map.get(key)!.some((t) => t.id === task.id)) {
+              map.get(key)!.push(task);
+            }
+          }
+        }
       }
     }
     return map;

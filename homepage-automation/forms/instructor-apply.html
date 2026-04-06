@@ -369,6 +369,48 @@
       line-height: 1.5;
     }
 
+    /* ─── Lookup banner ─── */
+    .lookup-banner {
+      margin: 0 28px 0;
+      animation: fadeUp .3s ease both;
+    }
+    .lookup-banner-inner {
+      padding: 20px 24px;
+      background: linear-gradient(135deg, rgba(184,155,94,.06), rgba(125,150,117,.06));
+      border: 1px solid rgba(184,155,94,.25);
+      border-left: 4px solid var(--gold);
+      border-radius: var(--r-lg);
+    }
+    .lookup-status { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 15px; }
+    .status-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 20px;
+      font-size: 11px; font-weight: 600; letter-spacing: .04em;
+    }
+    .status-badge.rejected { background: var(--danger-bg); color: var(--danger); border: 1px solid rgba(192,57,43,.2); }
+    .status-badge.pending  { background: #fffbe6; color: #b8860b; border: 1px solid rgba(184,134,11,.2); }
+    .status-badge.approved { background: #f0f9f0; color: #2e7d32; border: 1px solid rgba(46,125,50,.2); }
+    .lookup-reason {
+      margin: 10px 0 14px; padding: 12px 16px;
+      background: var(--danger-bg); border-radius: var(--r-sm);
+      font-size: 13px; color: var(--danger); line-height: 1.6;
+    }
+    .lookup-actions { display: flex; gap: 10px; margin-top: 14px; }
+    .lookup-btn {
+      flex: 1; padding: 10px 16px; border-radius: var(--r-md); font-size: 13.5px;
+      font-weight: 600; cursor: pointer; border: 1px solid var(--line); background: var(--surface);
+      color: var(--text); transition: all .15s;
+    }
+    .lookup-btn:hover { border-color: var(--primary); color: var(--primary); }
+    .lookup-btn.primary {
+      background: var(--dark-mid); color: #fff; border-color: var(--dark-mid);
+    }
+    .lookup-btn.primary:hover { background: var(--primary-dark); border-color: var(--primary-dark); }
+    .edit-mode-indicator {
+      display: inline-flex; align-items: center; gap: 6px; padding: 4px 12px;
+      background: rgba(184,155,94,.12); color: var(--gold-light); border-radius: 20px;
+      font-size: 11px; font-weight: 600; letter-spacing: .04em; margin-left: 8px;
+    }
+
     /* ─── File list ─── */
     .file-list {
       list-style: none;
@@ -746,6 +788,21 @@
           </ul>
         </div>
 
+        <!-- 기존 신청 조회 배너 -->
+        <div id="lookupBanner" class="lookup-banner" style="display:none;">
+          <div class="lookup-banner-inner">
+            <div class="lookup-status">
+              <span id="lookupStatusBadge" class="status-badge"></span>
+              <strong id="lookupName"></strong>님의 기존 신청
+            </div>
+            <div id="lookupReason" class="lookup-reason" style="display:none;"></div>
+            <div class="lookup-actions">
+              <button id="lookupEditBtn" type="button" class="lookup-btn primary">기존 신청 수정하기</button>
+              <button id="lookupNewBtn" type="button" class="lookup-btn">새로 신청하기</button>
+            </div>
+          </div>
+        </div>
+
         <div class="form-body">
           <form id="applyForm" novalidate>
             <h2 class="section-title">
@@ -845,8 +902,8 @@
     </section>
 
     <div class="footer-note">
-      신청 후 정보 수정이 필요하면 동일한 자사몰 ID로 다시 제출하실 수 있습니다.<br>
-      기존 신청을 덮어쓸지, 새 신청으로 추가할지 직접 선택할 수 있습니다.
+      반려 시 서류 보완이 필요하면 동일한 연락처로 다시 방문해 주세요.<br>
+      연락처 입력 시 기존 신청이 자동 조회되어 바로 수정·재제출할 수 있습니다.
     </div>
 
     <div class="brand-slogan">Forever and ever and Blooming</div>
@@ -874,6 +931,7 @@
   <script>
     (function () {
       var API_URL    = 'https://n8n.pressco21.com/webhook/instructor-apply-submit';
+      var LOOKUP_URL = 'https://n8n.pressco21.com/webhook/instructor-apply-lookup';
       var DRAFT_KEY  = 'pressco21_instructor_apply_draft_v2';
       var FILE_MAX_MB       = 20;
       var FILE_TOTAL_MAX_MB = 100;
@@ -904,6 +962,14 @@
       var privacyCheck       = document.getElementById('privacyCheck');
       var duplicateRecordId  = '';
       var selectedFiles      = [];
+      var isEditMode         = false;
+      var lookupDone         = false;
+      var lookupBanner       = document.getElementById('lookupBanner');
+      var lookupStatusBadge  = document.getElementById('lookupStatusBadge');
+      var lookupNameEl       = document.getElementById('lookupName');
+      var lookupReasonEl     = document.getElementById('lookupReason');
+      var lookupEditBtn      = document.getElementById('lookupEditBtn');
+      var lookupNewBtn       = document.getElementById('lookupNewBtn');
 
       var fields = {
         name:        document.getElementById('fieldName'),
@@ -1127,6 +1193,77 @@
         return valid;
       }
 
+      // ─── 기존 신청 조회 ───
+      async function lookupExisting(phone) {
+        if (lookupDone) return;
+        try {
+          var resp = await fetch(LOOKUP_URL + '?phone=' + encodeURIComponent(phone));
+          var data = await resp.json();
+          if (!data.ok || !data.found) { hideLookupBanner(); return; }
+
+          lookupDone = true;
+          lookupNameEl.textContent = data.name || '신청자';
+
+          if (data.isRejected) {
+            lookupStatusBadge.className = 'status-badge rejected';
+            lookupStatusBadge.textContent = '반려';
+            if (data.rejectReason) {
+              lookupReasonEl.textContent = '반려 사유: ' + data.rejectReason;
+              lookupReasonEl.style.display = 'block';
+            }
+            lookupEditBtn.textContent = '서류 보완하여 재신청';
+          } else if (data.isApproved) {
+            lookupStatusBadge.className = 'status-badge approved';
+            lookupStatusBadge.textContent = '승인완료';
+            lookupEditBtn.textContent = '정보 수정하기';
+          } else {
+            lookupStatusBadge.className = 'status-badge pending';
+            lookupStatusBadge.textContent = '심사중';
+            lookupEditBtn.textContent = '신청 내용 수정하기';
+          }
+
+          // 기존 데이터 저장
+          lookupEditBtn._data = data;
+          lookupBanner.style.display = 'block';
+        } catch (e) { /* 조회 실패는 무시 */ }
+      }
+
+      function enterEditMode(data) {
+        isEditMode = true;
+        duplicateRecordId = String(data.recordId || '');
+        if (data.name) fields.name.value = data.name;
+        if (data.mallId) fields.mallId.value = data.mallId;
+        if (data.email) fields.email.value = data.email;
+        if (data.association) fields.association.value = data.association;
+
+        submitButton.textContent = '수정 제출하기 →';
+        var titleLabel = document.querySelector('.section-label');
+        if (titleLabel && !titleLabel.querySelector('.edit-mode-indicator')) {
+          titleLabel.insertAdjacentHTML('beforeend', '<span class="edit-mode-indicator">수정 모드</span>');
+        }
+        lookupBanner.style.display = 'none';
+        fields.name.focus();
+      }
+
+      function exitEditMode() {
+        isEditMode = false;
+        duplicateRecordId = '';
+        submitButton.textContent = '신청하기 →';
+        var indicator = document.querySelector('.edit-mode-indicator');
+        if (indicator) indicator.remove();
+        lookupBanner.style.display = 'none';
+      }
+
+      function hideLookupBanner() {
+        lookupBanner.style.display = 'none';
+        lookupReasonEl.style.display = 'none';
+      }
+
+      lookupEditBtn.addEventListener('click', function () {
+        if (lookupEditBtn._data) enterEditMode(lookupEditBtn._data);
+      });
+      lookupNewBtn.addEventListener('click', function () { exitEditMode(); });
+
       function showSuccess(mode) {
         clearDraft();
         markSubmitted();
@@ -1209,6 +1346,11 @@
         fields.phone.value = normalizePhone(fields.phone.value);
         clearError('phone');
         saveDraft();
+        lookupDone = false;
+      });
+      fields.phone.addEventListener('blur', function () {
+        var phone = fields.phone.value.trim();
+        if (/^010-\d{4}-\d{4}$/.test(phone)) lookupExisting(phone);
       });
 
       ['name', 'mallId', 'email', 'association'].forEach(function (key) {
@@ -1224,13 +1366,13 @@
 
       form.addEventListener('submit', function (e) {
         e.preventDefault();
-        duplicateRecordId = '';
+        if (!isEditMode) duplicateRecordId = '';
         if (!validate()) {
           var firstError = document.querySelector('.input.is-error, .privacy.is-error');
           if (firstError) firstError.scrollIntoView({ behavior: 'smooth', block: 'center' });
           return;
         }
-        submitForm('auto');
+        submitForm(isEditMode ? 'update' : 'auto');
       });
 
       document.getElementById('modalUpdate').addEventListener('click', function () {

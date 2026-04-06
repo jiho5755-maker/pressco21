@@ -21,7 +21,7 @@ LOCAL_BACKUP_DIR="/data/minio-backup/tasks"
 VAULT_HOST="100.76.25.105"
 VAULT_USER="pressbackup"
 VAULT_DIR="/srv/pressco21-vault/minio-backup/tasks"
-VAULT_SSH_KEY="/home/ubuntu/.ssh/id_ed25519"
+VAULT_SSH_KEY=""
 
 TELEGRAM_BOT_TOKEN="${TELEGRAM_BOT_TOKEN:-}"
 TELEGRAM_CHAT_ID="${TELEGRAM_CHAT_ID:-7713811206}"
@@ -70,13 +70,13 @@ log "로컬 백업 완료: 파일 ${AFTER_COUNT}개, 신규 ${NEW_FILES}개, 총
 # === 2단계: 본진 → 금고 서버 (Tailscale) ===
 VAULT_OK=false
 
-if ssh -o ConnectTimeout=5 -o BatchMode=yes -i "$VAULT_SSH_KEY" \
+if ssh -o ConnectTimeout=5 -o BatchMode=yes \
   "${VAULT_USER}@${VAULT_HOST}" "mkdir -p '$VAULT_DIR'" 2>/dev/null; then
 
   log "금고 서버 연결 OK → rsync 시작"
 
   rsync -az --delete \
-    -e "ssh -o ConnectTimeout=10 -i $VAULT_SSH_KEY" \
+    -e "ssh -o ConnectTimeout=10" \
     "$LOCAL_BACKUP_DIR/" \
     "${VAULT_USER}@${VAULT_HOST}:${VAULT_DIR}/" 2>&1 | tee -a "$LOG_FILE"
 

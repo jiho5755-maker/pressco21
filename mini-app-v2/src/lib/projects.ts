@@ -58,3 +58,33 @@ export function removeCustomProject(id: string): void {
   const customs = getCustomProjects().filter((p) => p.id !== id);
   saveCustomProjects(customs);
 }
+
+/** 사용자 추가 프로젝트 이름 수정 */
+export function renameCustomProject(id: string, newName: string): void {
+  const customs = getCustomProjects().map((p) =>
+    p.id === id ? { ...p, name: newName.trim() } : p
+  );
+  saveCustomProjects(customs);
+}
+
+/** 프로젝트 이름으로 색상 결정 (일관된 해시) */
+export function getProjectColor(name: string): string {
+  const colors = [
+    { bg: "bg-primary/10", border: "border-primary/30", text: "text-primary", bar: "bg-primary" },
+    { bg: "bg-orange-50", border: "border-orange-200", text: "text-orange-700", bar: "bg-orange-500" },
+    { bg: "bg-blue-50", border: "border-blue-200", text: "text-blue-700", bar: "bg-blue-500" },
+    { bg: "bg-purple-50", border: "border-purple-200", text: "text-purple-700", bar: "bg-purple-500" },
+    { bg: "bg-pink-50", border: "border-pink-200", text: "text-pink-700", bar: "bg-pink-500" },
+    { bg: "bg-teal-50", border: "border-teal-200", text: "text-teal-700", bar: "bg-teal-500" },
+    { bg: "bg-amber-50", border: "border-amber-200", text: "text-amber-700", bar: "bg-amber-500" },
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return JSON.stringify(colors[Math.abs(hash) % colors.length]);
+}
+
+export type ProjectColorSet = { bg: string; border: string; text: string; bar: string };
+
+export function getProjectColorSet(name: string): ProjectColorSet {
+  return JSON.parse(getProjectColor(name)) as ProjectColorSet;
+}

@@ -2,7 +2,7 @@ import { useState, useEffect, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { CalendarGrid } from "@/components/calendar/CalendarGrid";
-import { WeekColumnGrid } from "@/components/calendar/WeekColumnGrid";
+import { WeekTimeline } from "@/components/calendar/WeekTimeline";
 import { CalendarTaskItem } from "@/components/calendar/CalendarTaskItem";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -202,80 +202,45 @@ export function CalendarPage() {
               <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => moveWeek(1)}><ChevronRight className="h-4 w-4" /></Button>
             </div>
 
-            <WeekColumnGrid
+            <WeekTimeline
               weekDays={weekDays}
               tasksByDate={companyTasksByDate}
               personalByDate={personalByDate}
               showPersonal={showPersonal}
+              onDeletePersonal={handleDeletePersonalEvent}
             />
 
-            {/* 선택된 날짜 상세 (주간에서도) */}
-            <div className="mt-4">
-              <div className="flex items-center justify-between mb-2.5">
+            {/* 주간 하단: 빠른 추가 버튼 */}
+            <div className="mt-3 flex gap-2 justify-end">
+              <Button size="sm" variant="outline" className="h-8 text-[11px] px-3 rounded-lg gap-1"
+                onClick={() => { setAddMode("personal"); setShowAddForm(true); }}>
+                <Plus className="h-3 w-3" />일정 추가
+              </Button>
+              <Button size="sm" variant="outline" className="h-8 text-[11px] px-3 rounded-lg gap-1"
+                onClick={() => navigate("/tasks/new")}>
+                <Plus className="h-3 w-3" />업무 추가
+              </Button>
+            </div>
+
+            {showAddForm && addMode === "personal" && (
+              <div className="mt-2 p-2.5 bg-card rounded-xl border border-blue-300/40 space-y-2">
+                <Input placeholder="일정을 입력하세요" value={newEventTitle} onChange={(e) => setNewEventTitle(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") handleAddPersonalEvent(); }} className="h-9 text-sm" autoFocus />
                 <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-bold">{selectedDate.getMonth()+1}/{selectedDate.getDate()} {WEEKDAYS_FULL[selectedDate.getDay()]}</h3>
-                  {selectedIsToday && <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full">오늘</span>}
-                </div>
-                <div className="flex gap-1">
-                  <Button size="sm" variant="outline" className="h-7 text-[10px] px-2 rounded-lg gap-0.5"
-                    onClick={() => { setAddMode("personal"); setShowAddForm(true); }}>
-                    <Plus className="h-3 w-3" />일정
-                  </Button>
-                  <Button size="sm" variant="outline" className="h-7 text-[10px] px-2 rounded-lg gap-0.5"
-                    onClick={() => navigate("/tasks/new")}>
-                    <Plus className="h-3 w-3" />업무
-                  </Button>
+                  <div className="flex gap-1">
+                    {(["allday", "morning", "afternoon"] as TimeSlot[]).map((slot) => (
+                      <Badge key={slot} variant={newTimeSlot === slot ? "default" : "outline"}
+                        className="cursor-pointer text-[10px] rounded-full px-2 py-0.5" onClick={() => setNewTimeSlot(slot)}>
+                        {TIME_SLOT_LABELS[slot]}
+                      </Badge>
+                    ))}
+                  </div>
+                  <div className="flex-1" />
+                  <Button size="sm" className="h-7 px-3 rounded-lg text-[11px]" onClick={handleAddPersonalEvent} disabled={!newEventTitle.trim()}>추가</Button>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowAddForm(false)}><X className="h-3.5 w-3.5" /></Button>
                 </div>
               </div>
-
-              {/* 입력 폼 */}
-              {showAddForm && addMode === "personal" && (
-                <div className="mb-3 p-2.5 bg-card rounded-xl border border-blue-300/40 space-y-2">
-                  <Input placeholder="일정을 입력하세요" value={newEventTitle} onChange={(e) => setNewEventTitle(e.target.value)}
-                    onKeyDown={(e) => { if (e.key === "Enter") handleAddPersonalEvent(); }} className="h-9 text-sm" autoFocus />
-                  <div className="flex items-center gap-2">
-                    <div className="flex gap-1">
-                      {(["allday", "morning", "afternoon"] as TimeSlot[]).map((slot) => (
-                        <Badge key={slot} variant={newTimeSlot === slot ? "default" : "outline"}
-                          className="cursor-pointer text-[10px] rounded-full px-2 py-0.5" onClick={() => setNewTimeSlot(slot)}>
-                          {TIME_SLOT_LABELS[slot]}
-                        </Badge>
-                      ))}
-                    </div>
-                    <div className="flex-1" />
-                    <Button size="sm" className="h-7 px-3 rounded-lg text-[11px]" onClick={handleAddPersonalEvent} disabled={!newEventTitle.trim()}>추가</Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => setShowAddForm(false)}><X className="h-3.5 w-3.5" /></Button>
-                  </div>
-                </div>
-              )}
-
-              {/* 통합 리스트: 회사 + 개인 섞어서 */}
-              {selectedCompanyTasks.length === 0 && selectedPersonalEvents.length === 0 && !showAddForm ? (
-                <div className="flex flex-col items-center justify-center py-6 text-muted-foreground/50">
-                  <Inbox className="h-7 w-7 mb-1.5 opacity-40" /><p className="text-xs">이 날 예정된 일정이 없습니다</p>
-                </div>
-              ) : (
-                <div className="space-y-1.5">
-                  {/* 회사 업무 */}
-                  {selectedCompanyTasks
-                    .sort((a, b) => { if (a.priority === "p1" && b.priority !== "p1") return -1; if (b.priority === "p1" && a.priority !== "p1") return 1; return 0; })
-                    .map((task) => <CalendarTaskItem key={task.id} task={task} />)}
-                  {/* 개인 일정 */}
-                  {showPersonal && selectedPersonalEvents.map((event) => (
-                    <div key={event.id} className="flex items-center gap-2.5 p-2.5 bg-card rounded-xl border border-dashed border-blue-200/60">
-                      <div className="w-1 self-stretch rounded-full bg-blue-400 flex-shrink-0" />
-                      <div className="flex-1 min-w-0">
-                        <p className="text-[13px] font-medium text-blue-800">{event.title}</p>
-                        <span className="text-[10px] text-blue-400">{TIME_SLOT_LABELS[event.timeSlot ?? "allday"]}</span>
-                      </div>
-                      <button type="button" className="text-muted-foreground/40 hover:text-destructive p-1" onClick={() => handleDeletePersonalEvent(event.id)}>
-                        <X className="h-3.5 w-3.5" />
-                      </button>
-                    </div>
-                  ))}
-                </div>
-              )}
-            </div>
+            )}
           </>
         ) : (
           /* ========== 월간 그리드 ========== */

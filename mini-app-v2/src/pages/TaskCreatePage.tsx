@@ -9,9 +9,9 @@ import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/components/layout/Toast";
 import { createTask, fetchStaff } from "@/lib/api";
-import { getAllProjects, addCustomProject } from "@/lib/projects";
+import { getAllProjects, addCustomProject, removeCustomProject, renameCustomProject } from "@/lib/projects";
 import type { Project } from "@/lib/projects";
-import { Loader2, Check, Plus } from "lucide-react";
+import { Loader2, Check, Plus, Pencil, Trash2, X } from "lucide-react";
 import type { StaffMember } from "@/lib/types";
 
 const PRIORITIES: { value: string; label: string; color: string; activeColor: string }[] = [
@@ -42,6 +42,8 @@ export function TaskCreatePage() {
   const [projects, setProjects] = useState<Project[]>([]);
   const [showAddProject, setShowAddProject] = useState(false);
   const [newProjectName, setNewProjectName] = useState("");
+  const [editingProject, setEditingProject] = useState<string | null>(null);
+  const [editProjectName, setEditProjectName] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
@@ -179,20 +181,66 @@ export function TaskCreatePage() {
               <div className="flex flex-wrap gap-1.5">
                 {projects.map((proj) => {
                   const selected = relatedProject === proj.name;
+                  const isEditing = editingProject === proj.id;
+
+                  if (isEditing) {
+                    return (
+                      <div key={proj.id} className="flex items-center gap-1">
+                        <Input
+                          value={editProjectName}
+                          onChange={(e) => setEditProjectName(e.target.value)}
+                          onKeyDown={(e) => {
+                            if (e.key === "Enter" && editProjectName.trim()) {
+                              renameCustomProject(proj.id, editProjectName.trim());
+                              if (relatedProject === proj.name) setRelatedProject(editProjectName.trim());
+                              setProjects(getAllProjects());
+                              setEditingProject(null);
+                            }
+                            if (e.key === "Escape") setEditingProject(null);
+                          }}
+                          className="h-7 text-[11px] w-24"
+                          autoFocus
+                        />
+                        <button type="button" onClick={() => setEditingProject(null)} className="text-muted-foreground p-0.5">
+                          <X className="h-3 w-3" />
+                        </button>
+                      </div>
+                    );
+                  }
+
                   return (
-                    <button
-                      key={proj.id}
-                      type="button"
-                      onClick={() => selectProject(proj.name)}
-                      className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all duration-150 border ${
-                        selected
-                          ? "bg-primary/10 border-primary/40 text-primary"
-                          : "bg-card border-border/60 text-muted-foreground hover:border-border"
-                      }`}
-                    >
-                      {proj.name}
-                      {selected && <Check className="inline h-3 w-3 ml-1 text-primary" />}
-                    </button>
+                    <div key={proj.id} className="flex items-center group relative">
+                      <button
+                        type="button"
+                        onClick={() => selectProject(proj.name)}
+                        className={`px-2.5 py-1.5 rounded-xl text-[11px] font-medium transition-all duration-150 border ${
+                          selected
+                            ? "bg-primary/10 border-primary/40 text-primary"
+                            : "bg-card border-border/60 text-muted-foreground hover:border-border"
+                        } ${!proj.isFixed ? "pr-7" : ""}`}
+                      >
+                        {proj.name}
+                        {selected && <Check className="inline h-3 w-3 ml-1 text-primary" />}
+                      </button>
+                      {/* 수정/삭제 (커스텀 프로젝트만) */}
+                      {!proj.isFixed && (
+                        <div className="absolute right-0.5 top-1/2 -translate-y-1/2 flex">
+                          <button type="button" className="text-muted-foreground/40 hover:text-primary p-0.5"
+                            onClick={(e) => { e.stopPropagation(); setEditingProject(proj.id); setEditProjectName(proj.name); }}>
+                            <Pencil className="h-2.5 w-2.5" />
+                          </button>
+                          <button type="button" className="text-muted-foreground/40 hover:text-destructive p-0.5"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              if (relatedProject === proj.name) setRelatedProject("");
+                              removeCustomProject(proj.id);
+                              setProjects(getAllProjects());
+                            }}>
+                            <Trash2 className="h-2.5 w-2.5" />
+                          </button>
+                        </div>
+                      )}
+                    </div>
                   );
                 })}
                 {/* 추가 버튼 */}

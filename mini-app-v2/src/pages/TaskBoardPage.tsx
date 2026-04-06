@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useLocation } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { TaskCard } from "@/components/task/TaskCard";
 import { Badge } from "@/components/ui/badge";
@@ -70,12 +70,16 @@ function sortTasks(list: Task[], sort: SortType): Task[] {
 
 export function TaskBoardPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { showToast } = useToast();
   const [tasks, setTasks] = useState<Task[]>([]);
   const [doneTasks, setDoneTasks] = useState<Task[]>([]);
   const [loading, setLoading] = useState(true);
   const [viewMode, setViewMode] = useState<ViewMode>("team");
-  const [filter, setFilter] = useState<FilterType>("all");
+
+  // 홈에서 필터 힌트를 받으면 적용
+  const initialFilter = (location.state as { filter?: FilterType } | null)?.filter ?? "all";
+  const [filter, setFilter] = useState<FilterType>(initialFilter);
   const [activeTab, setActiveTab] = useState("todo");
   const [myName, setMyName] = useState<string | null>(null);
   const [staff, setStaff] = useState<StaffMember[]>([]);
@@ -278,18 +282,23 @@ export function TaskBoardPage() {
           </div>
         )}
 
-        {/* 통계 */}
+        {/* 통계 (클릭 → 해당 조건 필터) */}
         <div className="grid grid-cols-4 gap-2 mb-4">
-          {[
-            { label: "할일", value: summary.todo, color: "" },
-            { label: "검토", value: summary.review, color: "text-orange-600" },
-            { label: "오늘", value: summary.today, color: summary.today > 0 ? "text-primary" : "" },
-            { label: "긴급", value: summary.urgent, color: summary.urgent > 0 ? "text-destructive" : "" },
-          ].map((item) => (
-            <div key={item.label} className="bg-card rounded-xl border border-border/60 p-2.5 text-center">
-              <p className={`text-lg font-bold ${item.color || "text-foreground"}`}>{item.value}</p>
+          {([
+            { label: "할일", value: summary.todo, color: "", filterKey: "all" as FilterType },
+            { label: "검토", value: summary.review, color: "text-orange-600", filterKey: "review" as FilterType },
+            { label: "오늘", value: summary.today, color: summary.today > 0 ? "text-primary" : "", filterKey: "today" as FilterType },
+            { label: "긴급", value: summary.urgent, color: summary.urgent > 0 ? "text-destructive" : "", filterKey: "urgent" as FilterType },
+          ]).map((item) => (
+            <button
+              key={item.label}
+              type="button"
+              className={`bg-card rounded-xl border p-2.5 text-center cursor-pointer active:scale-95 transition-all ${filter === item.filterKey && filter !== "all" ? "border-primary/50 bg-primary/5" : "border-border/60"}`}
+              onClick={() => setFilter(filter === item.filterKey ? "all" : item.filterKey)}
+            >
+              <p className={`text-lg font-bold ${filter === item.filterKey && filter !== "all" ? "text-primary" : item.color || "text-foreground"}`}>{item.value}</p>
               <p className="text-[10px] text-muted-foreground mt-0.5">{item.label}</p>
-            </div>
+            </button>
           ))}
         </div>
 

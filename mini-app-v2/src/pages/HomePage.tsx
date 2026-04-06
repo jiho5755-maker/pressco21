@@ -120,19 +120,24 @@ export function HomePage() {
           )}
         </div>
 
-        {/* 상태 요약 바 */}
+        {/* 상태 요약 바 (클릭 → 해당 필터로 보드 이동) */}
         {!loading && (
           <div className="grid grid-cols-4 gap-2 mb-5">
             {[
-              { label: "할일", value: tasks.filter((t) => t.status === "todo").length, color: "" },
-              { label: "진행", value: tasks.filter((t) => t.status === "in_progress").length, color: "text-primary" },
-              { label: "검토", value: stats.review, color: "text-orange-600" },
-              { label: "긴급", value: stats.urgent, color: stats.urgent > 0 ? "text-destructive" : "" },
+              { label: "할일", value: tasks.filter((t) => t.status === "todo").length, color: "", filterKey: "all" },
+              { label: "진행", value: tasks.filter((t) => t.status === "in_progress").length, color: "text-primary", filterKey: "all" },
+              { label: "검토", value: stats.review, color: "text-orange-600", filterKey: "review" },
+              { label: "긴급", value: stats.urgent, color: stats.urgent > 0 ? "text-destructive" : "", filterKey: "urgent" },
             ].map((item) => (
-              <div key={item.label} className="bg-card rounded-xl border border-border/60 p-2.5 text-center">
+              <button
+                key={item.label}
+                type="button"
+                className="bg-card rounded-xl border border-border/60 p-2.5 text-center cursor-pointer active:scale-95 transition-transform hover:border-primary/40"
+                onClick={() => navigate("/tasks", { state: { filter: item.filterKey } })}
+              >
                 <p className={`text-lg font-bold ${item.color || "text-foreground"}`}>{item.value}</p>
                 <p className="text-[10px] text-muted-foreground mt-0.5">{item.label}</p>
-              </div>
+              </button>
             ))}
           </div>
         )}

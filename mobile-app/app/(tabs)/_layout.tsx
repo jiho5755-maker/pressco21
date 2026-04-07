@@ -66,7 +66,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarLabel: '',
-          headerTitle: 'Cart',
+          headerShown: false,
           tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'bag' : 'bag-outline'} focused={focused} />,
         }}
       />
@@ -75,7 +75,7 @@ export default function TabLayout() {
         options={{
           title: '',
           tabBarLabel: '',
-          headerTitle: 'My',
+          headerShown: false,
           tabBarIcon: ({ focused }) => <TabIcon name={focused ? 'person' : 'person-outline'} focused={focused} />,
         }}
       />

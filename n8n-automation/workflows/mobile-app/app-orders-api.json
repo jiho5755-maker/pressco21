@@ -1,5 +1,4 @@
 {
-  "id": "APP_ORDERS",
   "name": "[APP] 주문 API",
   "nodes": [
     {
@@ -18,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Authorization 헤더에서 토큰 추출 → userId 파싱\nconst headers = $input.first().json.headers || {};\nconst authHeader = headers.authorization || headers.Authorization || '';\nconst token = authHeader.replace('Bearer ', '');\n\nif (!token) {\n  return [{ json: { success: false, error: '로그인이 필요합니다' } }];\n}\n\ntry {\n  const payload = JSON.parse(Buffer.from(token, 'base64').toString());\n  if (payload.exp && payload.exp < Date.now()) {\n    return [{ json: { success: false, error: '세션이 만료되었습니다. 다시 로그인해주세요' } }];\n  }\n  return [{ json: { userId: payload.userId, query: $input.first().json.query || {} } }];\n} catch(e) {\n  return [{ json: { success: false, error: '유효하지 않은 토큰입니다' } }];\n}"
+        "jsCode": "const input = $input.first().json;\nconst headers = input.headers || {};\nconst authHeader = headers.authorization || headers.Authorization || '';\nconst token = authHeader.replace('Bearer ', '');\nconst query = input.query || {};\n\nif (!token) {\n  return [{ json: { success: false, error: '로그인이 필요합니다' } }];\n}\n\ntry {\n  const payload = JSON.parse(Buffer.from(token, 'base64').toString());\n  if (payload.exp && payload.exp < Date.now()) {\n    return [{ json: { success: false, error: '세션이 만료되었습니다' } }];\n  }\n  return [{ json: { userId: payload.userId, limit: query.limit || '20' } }];\n} catch(e) {\n  return [{ json: { success: false, error: '유효하지 않은 토큰입니다' } }];\n}"
       },
       "id": "code-verify-token",
       "name": "토큰 검증",
@@ -36,9 +35,9 @@
             { "name": "mode", "value": "search" },
             { "name": "type", "value": "order" },
             { "name": "id", "value": "={{ $json.userId }}" },
-            { "name": "sdate", "value": "={{ new Date(Date.now() - 30*24*60*60*1000).toISOString().slice(0,10).replace(/-/g,'') }}" },
+            { "name": "sdate", "value": "={{ new Date(Date.now() - 90*24*60*60*1000).toISOString().slice(0,10).replace(/-/g,'') }}" },
             { "name": "edate", "value": "={{ new Date().toISOString().slice(0,10).replace(/-/g,'') }}" },
-            { "name": "limit", "value": "={{ $json.query.limit || '20' }}" }
+            { "name": "limit", "value": "={{ $json.limit }}" }
           ]
         },
         "sendHeaders": true,
@@ -58,7 +57,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 주문 목록 파싱\nconst response = $input.first().json;\nlet orders = [];\nif (response && typeof response === 'object' && !Array.isArray(response)) {\n  orders = Object.values(response);\n}\n\nconst items = orders.map(o => {\n  // 주문 상태 매핑\n  let status = 'pending';\n  const state = (o.ord_state || '').toString();\n  if (state === '2' || state === '3') status = 'confirmed';\n  else if (state === '4') status = 'preparing';\n  else if (state === '5') status = 'shipped';\n  else if (state === '6') status = 'delivered';\n  else if (state === '7' || state === '8') status = 'cancelled';\n\n  return {\n    id: o.ord_no || '',\n    orderNo: o.ord_no || '',\n    date: o.ord_date || '',\n    status,\n    totalPrice: parseInt(o.ord_price || '0'),\n    productName: o.prd_name || '',\n    productImage: o.prd_image ? (o.prd_image.startsWith('http') ? o.prd_image : `https://foreverlove.co.kr${o.prd_image}`) : '',\n    trackingNumber: o.inv_no || '',\n    trackingUrl: o.inv_no ? `https://trace.cjlogistics.com/web/detail.jsp?slipno=${o.inv_no}` : '',\n  };\n}).filter(o => o.id);\n\nreturn [{ json: { success: true, data: items, total: items.length } }];"
+        "jsCode": "const raw = $input.first().json;\nlet data = raw;\nif (typeof raw.data === 'string') { try { data = JSON.parse(raw.data); } catch(e) {} }\nlet orders = [];\nif (data.list && Array.isArray(data.list)) {\n  orders = data.list;\n} else if (data && typeof data === 'object') {\n  orders = Object.values(data).filter(v => typeof v === 'object' && v !== null && (v.ord_no || v.order_no));\n}\n\nconst items = orders.map(o => {\n  let status = 'pending';\n  const state = String(o.ord_state || o.order_status || '');\n  if (state === '2' || state === '3') status = 'confirmed';\n  else if (state === '4') status = 'preparing';\n  else if (state === '5') status = 'shipped';\n  else if (state === '6') status = 'delivered';\n  else if (state === '7' || state === '8') status = 'cancelled';\n\n  const img = o.prd_image || o.product_image || '';\n  return {\n    id: o.ord_no || o.order_no || '',\n    orderNo: o.ord_no || o.order_no || '',\n    date: o.ord_date || o.order_date || '',\n    status,\n    totalPrice: parseInt(o.ord_price || o.order_price || '0'),\n    productName: o.prd_name || o.product_name || '',\n    productImage: img.startsWith('http') ? img : img ? 'https://foreverlove.co.kr' + img : '',\n    trackingNumber: o.inv_no || '',\n    trackingUrl: o.inv_no ? 'https://trace.cjlogistics.com/web/detail.jsp?slipno=' + o.inv_no : '',\n  };\n}).filter(o => o.id);\n\nreturn [{ json: { success: true, data: items, total: items.length } }];"
       },
       "id": "code-parse-orders",
       "name": "주문 파싱",
@@ -93,6 +92,5 @@
     "MakeShop 주문 조회": { "main": [[{ "node": "주문 파싱", "type": "main", "index": 0 }]] },
     "주문 파싱": { "main": [[{ "node": "주문 응답", "type": "main", "index": 0 }]] }
   },
-  "settings": { "executionOrder": "v1" },
-  "active": false
+  "settings": { "executionOrder": "v1" }
 }

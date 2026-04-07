@@ -1,5 +1,4 @@
 {
-  "id": "APP_PRODUCTS",
   "name": "[APP] 상품 API",
   "nodes": [
     {
@@ -7,9 +6,7 @@
         "httpMethod": "GET",
         "path": "app/products",
         "responseMode": "responseNode",
-        "options": {
-          "allowedOrigins": "*"
-        }
+        "options": { "allowedOrigins": "*" }
       },
       "id": "webhook-products",
       "name": "상품 목록 웹훅",
@@ -20,35 +17,13 @@
     },
     {
       "parameters": {
-        "httpMethod": "GET",
-        "path": "app/products/detail",
-        "responseMode": "responseNode",
-        "options": {
-          "allowedOrigins": "*"
-        }
+        "jsCode": "const input = $input.first().json;\nconst q = input.query || {};\nreturn [{ json: {\n  limit: q.limit || '20',\n  page: q.page || '1',\n  search: q.search || '',\n  category: q.category || '',\n  sort: q.sort || 'regdt'\n} }];"
       },
-      "id": "webhook-detail",
-      "name": "상품 상세 웹훅",
-      "type": "n8n-nodes-base.webhook",
+      "id": "code-extract-query",
+      "name": "쿼리 추출",
+      "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [200, 600],
-      "webhookId": "app-products-detail"
-    },
-    {
-      "parameters": {
-        "httpMethod": "GET",
-        "path": "app/products/categories",
-        "responseMode": "responseNode",
-        "options": {
-          "allowedOrigins": "*"
-        }
-      },
-      "id": "webhook-categories",
-      "name": "카테고리 웹훅",
-      "type": "n8n-nodes-base.webhook",
-      "typeVersion": 2,
-      "position": [200, 900],
-      "webhookId": "app-products-categories"
+      "position": [420, 300]
     },
     {
       "parameters": {
@@ -60,11 +35,11 @@
             { "name": "mode", "value": "search" },
             { "name": "type", "value": "product" },
             { "name": "display", "value": "Y" },
-            { "name": "limit", "value": "={{ $json.query.limit || '20' }}" },
-            { "name": "page", "value": "={{ $json.query.page || '1' }}" },
-            { "name": "search", "value": "={{ $json.query.search || '' }}" },
-            { "name": "category", "value": "={{ $json.query.category || '' }}" },
-            { "name": "sort", "value": "={{ $json.query.sort || 'regdt' }}" }
+            { "name": "limit", "value": "={{ $json.limit }}" },
+            { "name": "page", "value": "={{ $json.page }}" },
+            { "name": "search", "value": "={{ $json.search }}" },
+            { "name": "category", "value": "={{ $json.category }}" },
+            { "name": "sort", "value": "={{ $json.sort }}" }
           ]
         },
         "sendHeaders": true,
@@ -74,26 +49,23 @@
             { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
           ]
         },
-        "options": {
-          "timeout": 30000,
-          "response": { "response": { "fullResponse": true } }
-        }
+        "options": { "timeout": 30000 }
       },
       "id": "http-product-list",
       "name": "MakeShop 상품 목록",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 300]
+      "position": [640, 300]
     },
     {
       "parameters": {
-        "jsCode": "// 메이크샵 상품 목록 응답 파싱\nconst response = $input.first().json;\nlet body = response.body || response;\n\n// Object.values() 필수 (메이크샵 list 응답)\nlet products = [];\nif (body && typeof body === 'object' && !Array.isArray(body)) {\n  products = Object.values(body);\n} else if (Array.isArray(body)) {\n  products = body;\n}\n\nconst items = products.map(p => ({\n  id: p.uid || p.prd_no || '',\n  name: p.prd_name || '',\n  price: parseInt(p.prd_price || '0'),\n  salePrice: parseInt(p.prd_sale_price || p.prd_price || '0'),\n  discount: p.prd_sale_price && p.prd_price ? Math.round((1 - parseInt(p.prd_sale_price) / parseInt(p.prd_price)) * 100) : 0,\n  imageUrl: p.prd_image ? (p.prd_image.startsWith('http') ? p.prd_image : `https://foreverlove.co.kr${p.prd_image}`) : '',\n  category: p.cate_name || '',\n  isSoldOut: p.sto_state_code === '2' || p.prd_soldout === 'Y',\n  isNew: p.prd_new === 'Y',\n  isBest: p.prd_best === 'Y',\n})).filter(p => p.id && p.name);\n\nreturn [{ json: { success: true, data: items, total: items.length } }];"
+        "jsCode": "const raw = $input.first().json;\nlet data = raw;\nif (typeof raw.data === 'string') { try { data = JSON.parse(raw.data); } catch(e) {} }\nlet products = [];\nif (data.list && Array.isArray(data.list)) {\n  products = data.list;\n} else if (data && typeof data === 'object') {\n  products = Object.values(data).filter(v => typeof v === 'object' && v !== null && v.uid);\n}\n\nconst items = products.map(p => {\n  const sell = parseInt(p.sellprice || '0');\n  const consumer = parseInt(p.consumerprice || '0');\n  const discount = consumer > 0 && consumer > sell ? Math.round((1 - sell / consumer) * 100) : 0;\n  const img = p.maximage || '';\n  return {\n    id: String(p.uid || ''),\n    name: p.product_name || '',\n    price: consumer > 0 ? consumer : sell,\n    salePrice: sell,\n    discount,\n    imageUrl: img.startsWith('http') ? img : img ? 'https://foreverlove.co.kr' + img : '',\n    thumbnailUrl: (p.minimage || '').startsWith('http') ? p.minimage : p.minimage ? 'https://foreverlove.co.kr' + p.minimage : '',\n    category: p.category_name || '',\n    brand: p.brname || '',\n    isSoldOut: p.display !== 'Y' || parseInt(p.quantity || '999') === 0,\n    isNew: p.np_condition === 'new',\n    isBest: p.best_product_display === 'Y',\n    regdate: p.regdate || '',\n  };\n}).filter(p => p.id && p.name);\n\nreturn [{ json: {\n  success: true,\n  data: items,\n  total: parseInt(data.totalCount || '0'),\n  totalPage: parseInt(data.totalPage || '0'),\n  page: parseInt(data.page || '1')\n} }];"
       },
       "id": "code-parse-list",
       "name": "상품 목록 파싱",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 300]
+      "position": [860, 300]
     },
     {
       "parameters": {
@@ -113,7 +85,31 @@
       "name": "상품 목록 응답",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [880, 300]
+      "position": [1080, 300]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "app/products/detail",
+        "responseMode": "responseNode",
+        "options": { "allowedOrigins": "*" }
+      },
+      "id": "webhook-detail",
+      "name": "상품 상세 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 600],
+      "webhookId": "app-products-detail"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst q = input.query || {};\nreturn [{ json: { id: q.id || '' } }];"
+      },
+      "id": "code-extract-detail-query",
+      "name": "상세 쿼리 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 600]
     },
     {
       "parameters": {
@@ -124,7 +120,7 @@
           "parameters": [
             { "name": "mode", "value": "search" },
             { "name": "type", "value": "product" },
-            { "name": "uid", "value": "={{ $json.query.id }}" }
+            { "name": "uid", "value": "={{ $json.id }}" }
           ]
         },
         "sendHeaders": true,
@@ -134,26 +130,23 @@
             { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
           ]
         },
-        "options": {
-          "timeout": 30000,
-          "response": { "response": { "fullResponse": true } }
-        }
+        "options": { "timeout": 30000 }
       },
       "id": "http-product-detail",
       "name": "MakeShop 상품 상세",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 600]
+      "position": [640, 600]
     },
     {
       "parameters": {
-        "jsCode": "// 메이크샵 상품 상세 응답 파싱\nconst response = $input.first().json;\nlet body = response.body || response;\nlet products = [];\nif (body && typeof body === 'object' && !Array.isArray(body)) {\n  products = Object.values(body);\n}\nconst p = products[0] || {};\n\nconst detail = {\n  id: p.uid || p.prd_no || '',\n  name: p.prd_name || '',\n  price: parseInt(p.prd_price || '0'),\n  salePrice: parseInt(p.prd_sale_price || p.prd_price || '0'),\n  discount: p.prd_sale_price && p.prd_price ? Math.round((1 - parseInt(p.prd_sale_price) / parseInt(p.prd_price)) * 100) : 0,\n  imageUrl: p.prd_image ? (p.prd_image.startsWith('http') ? p.prd_image : `https://foreverlove.co.kr${p.prd_image}`) : '',\n  images: [p.prd_image, p.prd_image2, p.prd_image3, p.prd_image4].filter(Boolean).map(img => img.startsWith('http') ? img : `https://foreverlove.co.kr${img}`),\n  description: p.prd_detail || '',\n  category: p.cate_name || '',\n  isSoldOut: p.sto_state_code === '2' || p.prd_soldout === 'Y',\n  options: p.prd_option_name ? p.prd_option_name.split('|').map(o => o.trim()) : [],\n};\n\nreturn [{ json: { success: true, data: detail } }];"
+        "jsCode": "const raw = $input.first().json;\nlet data = raw;\nif (typeof raw.data === 'string') { try { data = JSON.parse(raw.data); } catch(e) {} }\nlet products = data.list || [];\nif (!Array.isArray(products)) {\n  products = Object.values(data).filter(v => typeof v === 'object' && v !== null && v.uid);\n}\nconst p = products[0] || {};\nif (!p.uid) return [{ json: { success: false, error: '상품을 찾을 수 없습니다' } }];\n\nconst sell = parseInt(p.sellprice || '0');\nconst consumer = parseInt(p.consumerprice || '0');\nconst discount = consumer > 0 && consumer > sell ? Math.round((1 - sell / consumer) * 100) : 0;\nconst makeUrl = (img) => {\n  if (!img) return '';\n  return img.startsWith('http') ? img : 'https://foreverlove.co.kr' + img;\n};\n\nconst detail = {\n  id: String(p.uid),\n  name: p.product_name || '',\n  price: consumer > 0 ? consumer : sell,\n  salePrice: sell,\n  discount,\n  imageUrl: makeUrl(p.maximage),\n  images: [p.maximage, p.minimage, p.tinyimage].filter(Boolean).map(makeUrl),\n  description: p.product_content ? Buffer.from(p.product_content, 'base64').toString('utf-8') : '',\n  category: p.category_name || '',\n  brand: p.brname || '',\n  isSoldOut: p.display !== 'Y' || parseInt(p.quantity || '999') === 0,\n  options: [],\n  quantity: parseInt(p.quantity || '0'),\n};\n\nif (p.options && p.options.option) {\n  const opts = Array.isArray(p.options.option) ? p.options.option : [p.options.option];\n  detail.options = opts.map(o => ({ name: o.option_name || '', values: (o.option_value || '').split('|').map(v => v.trim()).filter(Boolean) }));\n}\n\nreturn [{ json: { success: true, data: detail } }];"
       },
       "id": "code-parse-detail",
       "name": "상품 상세 파싱",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [660, 600]
+      "position": [860, 600]
     },
     {
       "parameters": {
@@ -173,7 +166,21 @@
       "name": "상품 상세 응답",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [880, 600]
+      "position": [1080, 600]
+    },
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "app/products/categories",
+        "responseMode": "responseNode",
+        "options": { "allowedOrigins": "*" }
+      },
+      "id": "webhook-categories",
+      "name": "카테고리 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 900],
+      "webhookId": "app-products-categories"
     },
     {
       "parameters": {
@@ -203,7 +210,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 카테고리 파싱\nconst response = $input.first().json;\nlet categories = [];\nif (response && typeof response === 'object') {\n  const vals = Array.isArray(response) ? response : Object.values(response);\n  categories = vals.map(c => ({\n    id: c.cate_no || c.id || '',\n    name: c.cate_name || c.name || '',\n    parentId: c.parent_cate_no || '',\n    depth: parseInt(c.depth || '1'),\n  })).filter(c => c.id && c.name);\n}\nreturn [{ json: { success: true, data: categories } }];"
+        "jsCode": "const raw = $input.first().json;\nlet data = raw;\nif (typeof raw.data === 'string') { try { data = JSON.parse(raw.data); } catch(e) {} }\nlet categories = [];\nif (data.list && Array.isArray(data.list)) {\n  categories = data.list;\n} else if (data && typeof data === 'object') {\n  categories = Object.values(data).filter(v => typeof v === 'object' && v !== null);\n}\nconst items = categories.map(c => ({\n  id: c.cate_no || c.id || '',\n  name: c.cate_name || c.name || '',\n  parentId: c.parent_cate_no || '',\n  depth: parseInt(c.depth || '1'),\n})).filter(c => c.id && c.name);\nreturn [{ json: { success: true, data: items } }];"
       },
       "id": "code-parse-categories",
       "name": "카테고리 파싱",
@@ -233,16 +240,17 @@
     }
   ],
   "connections": {
-    "상품 목록 웹훅": { "main": [[{ "node": "MakeShop 상품 목록", "type": "main", "index": 0 }]] },
+    "상품 목록 웹훅": { "main": [[{ "node": "쿼리 추출", "type": "main", "index": 0 }]] },
+    "쿼리 추출": { "main": [[{ "node": "MakeShop 상품 목록", "type": "main", "index": 0 }]] },
     "MakeShop 상품 목록": { "main": [[{ "node": "상품 목록 파싱", "type": "main", "index": 0 }]] },
     "상품 목록 파싱": { "main": [[{ "node": "상품 목록 응답", "type": "main", "index": 0 }]] },
-    "상품 상세 웹훅": { "main": [[{ "node": "MakeShop 상품 상세", "type": "main", "index": 0 }]] },
+    "상품 상세 웹훅": { "main": [[{ "node": "상세 쿼리 추출", "type": "main", "index": 0 }]] },
+    "상세 쿼리 추출": { "main": [[{ "node": "MakeShop 상품 상세", "type": "main", "index": 0 }]] },
     "MakeShop 상품 상세": { "main": [[{ "node": "상품 상세 파싱", "type": "main", "index": 0 }]] },
     "상품 상세 파싱": { "main": [[{ "node": "상품 상세 응답", "type": "main", "index": 0 }]] },
     "카테고리 웹훅": { "main": [[{ "node": "MakeShop 카테고리", "type": "main", "index": 0 }]] },
     "MakeShop 카테고리": { "main": [[{ "node": "카테고리 파싱", "type": "main", "index": 0 }]] },
     "카테고리 파싱": { "main": [[{ "node": "카테고리 응답", "type": "main", "index": 0 }]] }
   },
-  "settings": { "executionOrder": "v1" },
-  "active": false
+  "settings": { "executionOrder": "v1" }
 }

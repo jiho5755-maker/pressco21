@@ -1,5 +1,4 @@
 {
-  "id": "APP_AUTH",
   "name": "[APP] 인증 API",
   "nodes": [
     {
@@ -18,7 +17,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 요청 바디에서 아이디/비밀번호 추출\nconst body = $input.first().json.body || {};\nconst userId = body.userId || '';\nconst password = body.password || '';\n\nif (!userId || !password) {\n  return [{ json: { success: false, error: '아이디와 비밀번호를 입력해주세요' } }];\n}\n\nreturn [{ json: { userId, password } }];"
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst userId = body.userId || '';\nconst password = body.password || '';\nif (!userId || !password) {\n  return [{ json: { success: false, error: '아이디와 비밀번호를 입력해주세요' } }];\n}\nreturn [{ json: { userId, password } }];"
       },
       "id": "code-validate-input",
       "name": "입력 검증",
@@ -55,7 +54,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// 회원 조회 결과 처리 + 간이 JWT 생성\n// 주의: 메이크샵 회원 API는 비밀번호 검증을 직접 할 수 없음\n// 따라서 회원 존재 여부로 1차 확인 후 앱 자체 세션 관리\n\nconst response = $input.first().json;\nlet members = [];\nif (response && typeof response === 'object' && !Array.isArray(response)) {\n  members = Object.values(response);\n}\n\nif (members.length === 0) {\n  return [{ json: { success: false, error: '존재하지 않는 회원입니다' } }];\n}\n\nconst m = members[0];\n\n// 간이 토큰 생성 (Base64 인코딩, 실제 운영 시 crypto 모듈로 교체)\nconst payload = JSON.stringify({\n  userId: m.userid || m.id || '',\n  name: m.name || '',\n  email: m.email || '',\n  phone: m.mobile || '',\n  grade: m.group_name || '',\n  iat: Date.now(),\n  exp: Date.now() + 7 * 24 * 60 * 60 * 1000 // 7일\n});\nconst token = Buffer.from(payload).toString('base64');\n\nconst user = {\n  id: m.userid || m.id || '',\n  name: m.name || '',\n  email: m.email || '',\n  phone: m.mobile || '',\n  isPartner: (m.group_name || '').includes('강사') || (m.group_no || '') !== '1',\n  partnerGrade: null,\n};\n\n// 파트너 등급 매핑\nconst groupName = (m.group_name || '').toUpperCase();\nif (groupName.includes('AMBASSADOR') || groupName.includes('앰배서더')) user.partnerGrade = 'AMBASSADOR';\nelse if (groupName.includes('ATELIER') || groupName.includes('아뜰리에')) user.partnerGrade = 'ATELIER';\nelse if (groupName.includes('GARDEN') || groupName.includes('가든')) user.partnerGrade = 'GARDEN';\nelse if (groupName.includes('BLOOM') || groupName.includes('블룸')) user.partnerGrade = 'BLOOM';\n\nreturn [{ json: { success: true, data: { token, user } } }];"
+        "jsCode": "const raw = $input.first().json;\nlet data = raw;\nif (typeof raw.data === 'string') { try { data = JSON.parse(raw.data); } catch(e) {} }\nlet members = [];\nif (data.list && Array.isArray(data.list)) {\n  members = data.list;\n} else if (data && typeof data === 'object') {\n  members = Object.values(data).filter(v => typeof v === 'object' && v !== null && (v.userid || v.id));\n}\nif (members.length === 0) {\n  return [{ json: { success: false, error: '존재하지 않는 회원입니다' } }];\n}\nconst m = members[0];\n\nconst payload = JSON.stringify({\n  userId: m.userid || m.id || '',\n  name: m.name || '',\n  email: m.email || '',\n  phone: m.mobile || m.phone || '',\n  grade: m.group_name || '',\n  iat: Date.now(),\n  exp: Date.now() + 7 * 24 * 60 * 60 * 1000\n});\nconst token = Buffer.from(payload).toString('base64');\n\nconst user = {\n  id: m.userid || m.id || '',\n  name: m.name || '',\n  email: m.email || '',\n  phone: m.mobile || m.phone || '',\n  isPartner: (m.group_name || '').includes('강사') || (m.group_no || '') !== '1',\n  partnerGrade: null,\n};\n\nconst gn = (m.group_name || '').toUpperCase();\nif (gn.includes('AMBASSADOR') || gn.includes('앰배서더')) user.partnerGrade = 'AMBASSADOR';\nelse if (gn.includes('ATELIER') || gn.includes('아뜰리에')) user.partnerGrade = 'ATELIER';\nelse if (gn.includes('GARDEN') || gn.includes('가든')) user.partnerGrade = 'GARDEN';\nelse if (gn.includes('BLOOM') || gn.includes('블룸')) user.partnerGrade = 'BLOOM';\n\nreturn [{ json: { success: true, data: { token, user } } }];"
       },
       "id": "code-auth-response",
       "name": "인증 처리",
@@ -90,6 +89,5 @@
     "MakeShop 회원 조회": { "main": [[{ "node": "인증 처리", "type": "main", "index": 0 }]] },
     "인증 처리": { "main": [[{ "node": "로그인 응답", "type": "main", "index": 0 }]] }
   },
-  "settings": { "executionOrder": "v1" },
-  "active": false
+  "settings": { "executionOrder": "v1" }
 }

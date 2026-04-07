@@ -698,10 +698,86 @@ function patchCrmDepositCollector(workflow, telegramCredential) {
 }
 
 function patchCrmDepositAudit(workflow, telegramCredential) {
+  var reportNode = findNode(workflow, 'Code: Build Reconciliation Report');
   var telegramNode = findNode(workflow, 'Telegram Reconciliation Alert');
+  var currentCode;
+  var oldDailyBlock;
+  var newDailyBlock;
 
+  if (!reportNode || !reportNode.parameters || !reportNode.parameters.jsCode) {
+    throw new Error('Code: Build Reconciliation Report node not found');
+  }
   if (!telegramNode) {
     throw new Error('Telegram Reconciliation Alert node not found');
+  }
+
+  currentCode = reportNode.parameters.jsCode;
+  oldDailyBlock = [
+    'const dayMap = new Map();',
+    'function getDay(dateKey) {',
+    '  if (!dayMap.has(dateKey)) {',
+    "    dayMap.set(dateKey, { nhMail: 0, parseFailures: 0, deposits: 0, withdrawals: 0, sent: 0, failed: 0, pending: 0 });",
+    '  }',
+    '  return dayMap.get(dateKey);',
+    '}',
+    'for (const entry of recentMail) {',
+    '  const day = toKstDate(entry.processedAt || entry.receivedAt || entry.mirroredAt);',
+    '  const bucket = getDay(day);',
+    '  if (entry.isNhMail) bucket.nhMail += 1;',
+    '  if (entry.parseFailure) bucket.parseFailures += 1;',
+    '}',
+    'for (const entry of recentTx) {',
+    '  const day = toKstDate(entry.occurredAt || entry.parsedAt || entry.createdAt || entry.mirroredAt);',
+    '  const bucket = getDay(day);',
+    "  if (entry.direction === 'deposit') bucket.deposits += 1;",
+    '  else bucket.withdrawals += 1;',
+    "  if (entry.alertStatus === 'sent') bucket.sent += 1;",
+    "  else if (entry.alertStatus === 'failed') bucket.failed += 1;",
+    '  else bucket.pending += 1;',
+    '}',
+    'for (const [day, bucket] of Array.from(dayMap.entries()).sort()) {',
+    '  if (bucket.parseFailures > 0 || bucket.failed > 0 || bucket.pending > 0) {',
+    "    pushIssue('daily-mismatch::' + day, 'high', `일일 정합성 주의 ${day}`, `NH메일 ${bucket.nhMail} / 파싱실패 ${bucket.parseFailures} / 입금 ${bucket.deposits} / 출금 ${bucket.withdrawals} / sent ${bucket.sent} / failed ${bucket.failed} / pending ${bucket.pending}`);",
+    '  }',
+    '}',
+  ].join('\n');
+  newDailyBlock = [
+    'const dayMap = new Map();',
+    'function getDay(dateKey) {',
+    '  if (!dayMap.has(dateKey)) {',
+    "    dayMap.set(dateKey, { nhMail: 0, parseFailures: 0, parseFailuresUnsent: 0, deposits: 0, withdrawals: 0, sent: 0, failed: 0, pending: 0 });",
+    '  }',
+    '  return dayMap.get(dateKey);',
+    '}',
+    'for (const entry of recentMail) {',
+    '  const day = toKstDate(entry.processedAt || entry.receivedAt || entry.mirroredAt);',
+    '  const bucket = getDay(day);',
+    '  if (entry.isNhMail) bucket.nhMail += 1;',
+    '  if (entry.parseFailure) bucket.parseFailures += 1;',
+    "  if (entry.parseFailure && entry.parseAlertStatus !== 'sent') bucket.parseFailuresUnsent += 1;",
+    '}',
+    'for (const entry of recentTx) {',
+    '  const day = toKstDate(entry.occurredAt || entry.parsedAt || entry.createdAt || entry.mirroredAt);',
+    '  const bucket = getDay(day);',
+    "  if (entry.direction === 'deposit') bucket.deposits += 1;",
+    '  else bucket.withdrawals += 1;',
+    "  if (entry.alertStatus === 'sent') bucket.sent += 1;",
+    "  else if (entry.alertStatus === 'failed') bucket.failed += 1;",
+    '  else bucket.pending += 1;',
+    '}',
+    'for (const [day, bucket] of Array.from(dayMap.entries()).sort()) {',
+    '  if (bucket.parseFailuresUnsent > 0 || bucket.failed > 0 || bucket.pending > 0) {',
+    "    pushIssue('daily-mismatch::' + day, 'high', `일일 정합성 주의 ${day}`, `NH메일 ${bucket.nhMail} / 파싱실패 ${bucket.parseFailures} / 미전송 파싱실패 ${bucket.parseFailuresUnsent} / 입금 ${bucket.deposits} / 출금 ${bucket.withdrawals} / sent ${bucket.sent} / failed ${bucket.failed} / pending ${bucket.pending}`);",
+    '  }',
+    '}',
+  ].join('\n');
+
+  if (currentCode.indexOf(oldDailyBlock) === -1) {
+    if (currentCode.indexOf('parseFailuresUnsent') === -1) {
+      throw new Error('Daily reconciliation block not found in Code: Build Reconciliation Report');
+    }
+  } else {
+    reportNode.parameters.jsCode = currentCode.replace(oldDailyBlock, newDailyBlock);
   }
 
   telegramNode.parameters = telegramNode.parameters || {};

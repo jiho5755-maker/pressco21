@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-07 09:55:00 KST
+- Started At: 2026-04-07 10:10:00 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: —
@@ -63,6 +63,11 @@
 
 > 전체 이력: `archive/ai-sync-history/AI_SYNC_2026-04-04_full.md`
 
+- 2026-04-07 WF-CRM-03 반복 감사 경보 소거 로직 반영 (codex)
+  - 현재 mirror 기준 실제 actionable issue는 0건이고, 반복 경보 원인은 `2026-04-06 parseFailure 1건`이 일일 요약에 계속 잡히는 설계였음
+  - `WF-CRM-03_입금알림_정합성_감사.json`에서 일일 경보 조건을 `parseFailure 전체`가 아니라 `parseAlertStatus != sent` 또는 Telegram `failed/pending`만 대상으로 축소
+  - 운영 워크플로우 `txw9CRdpJbxNRWuZ` 갱신 완료, 새 로직을 현재 staticData에 대입하면 결과 `[]`
+  - 운영 백업: `output/n8n-backups/2026-04-07-01-24-06-wf-crm03-audit-logic/`
 - 2026-04-07 WF-CRM-03 감사 경보 라우팅 분리 및 운영 반영 (codex)
   - `WF-CRM-03_입금알림_정합성_감사.json` Telegram 노드를 `PRESSCO_AUDIT_CHAT_ID -> TELEGRAM_CHAT_ID -> PRESSCO_BANK_CHAT_ID` 우선순위로 변경
   - 운영 워크플로우 `txw9CRdpJbxNRWuZ` 단독 PUT 배포 완료, 기존 정의는 `output/n8n-backups/2026-04-07-01-00-03-wf-crm03-audit-routing/` 백업
@@ -99,6 +104,7 @@
 
 ### Codex 담당 (요약)
 - `[CODEX]` CRM 운영: WF-CRM-03 첫 감사 경보 수신 방 확인 (`PRESSCO_AUDIT_CHAT_ID` 미설정 fallback은 `TELEGRAM_CHAT_ID`)
+- `[CODEX]` CRM 운영: `PRESSCO_AUDIT_CHAT_ID` 서버 env 추가 시 플로라 방 고정
 - `[CODEX]` CRM 운영: skipped 2건 재검토 (`02-invoices` 조건부 스킵, `09-calendar` 데이터 의존 스킵)
 - `[CODEX]` CRM 운영: 신규 E2E 6종 장기 플래키 여부 모니터링
 - `[CODEX-LEAD]` Flora frontdoor: open item 캐시 재빌드, 다중 사용자 분리
@@ -113,6 +119,7 @@
 
 - n8n CLI `import:workflow`는 active WF를 비활성화함. 배포 후 반드시 `publish:workflow` + restart
 - `PRESSCO_AUDIT_CHAT_ID`가 아직 없으면 WF-CRM-03은 `TELEGRAM_CHAT_ID` fallback 방으로 간다. Flora 전용 방 고정이 필요하면 env 추가 세팅 필요
+- WF-CRM-03은 이제 `parseFailure 알림이 이미 sent인 과거 이력`만으로는 경보를 내지 않는다. 과거 parseFailure 수동 조치 추적이 필요하면 별도 ack 필드/대시보드가 추가로 필요
 - 이재혁 Chat ID 미확보 → 이재혁 자동화 WF 3종 활성화 불가
 - 서버 이전(flora-todo, n8n-staging → 플로라) 미실행
 - WF-CRM-02/03 실건 검증 미완 (입금/감사 루프)

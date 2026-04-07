@@ -602,7 +602,7 @@ if (!intakeFailed && duplicateEntries.length > 0 && exactActions.length === 0 &&
 }
 
 const lines = [
-  intakeFailed ? '[입금 장애 경보]' : '[입금 알림]',
+  '[입금 알림]',
   '',
   '계좌: ' + accountLabel,
   '입금자: ' + leadSender,
@@ -619,9 +619,8 @@ if (deposits.length > 1) {
 let crmResult = 'accepted';
 if (intakeFailed) {
   const errorText = String(intakeErrorMessage || '').trim() || '자동반영 엔진 응답이 비정상입니다.';
-  lines.push('CRM처리: intake 실패');
+  lines.push('CRM처리: 자동반영 실패');
   lines.push('안내: 수동 확인 및 재처리가 필요합니다.');
-  lines.push('오류: ' + errorText.slice(0, 240));
   appendFailureLog('intake_failure', {
     messageId: parsed.messageId || '',
     subject: parsed.subject || '',

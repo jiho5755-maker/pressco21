@@ -196,6 +196,19 @@ async function main() {
   assert.doesNotMatch(depositSummary._telegramMessage, /입금별칭추천/);
   assert.doesNotMatch(depositSummary._telegramMessage, /기록:/);
 
+  var intakeFailureSummary = await runDepositSummary(secureDepositParsed, {
+    errorMessage: 'crm intake unavailable',
+    exactActions: [],
+    duplicateEntries: [],
+    reviewEntries: [],
+    unmatchedEntries: [],
+  });
+  assert.match(intakeFailureSummary._telegramMessage, /\[입금 알림\]/);
+  assert.match(intakeFailureSummary._telegramMessage, /CRM처리: 자동반영 실패/);
+  assert.match(intakeFailureSummary._telegramMessage, /안내: 수동 확인 및 재처리가 필요합니다./);
+  assert.doesNotMatch(intakeFailureSummary._telegramMessage, /입금 장애 경보/);
+  assert.doesNotMatch(intakeFailureSummary._telegramMessage, /오류:/);
+
   var bankSummary = await runBankSummary(secureWithdrawalParsed);
   assert.match(bankSummary._telegramMessage, /ATM출금/);
   assert.doesNotMatch(bankSummary._telegramMessage, /거래점/);

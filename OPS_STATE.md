@@ -83,6 +83,7 @@
 - Commit only selected paths at a stable point.
 - Push only when the branch state is understood.
 - For chat-switch handoff and resume, prefer `_tools/codex-update.sh`, `_tools/codex-branchpoint.sh`, and `_tools/codex-resume.sh` over ad-hoc manual notes.
+- On the local zsh shell, `_tools/codex-shortcuts.zsh` exposes `save`, `branch`, and `resume` as the default human-facing wrappers for that preserve routine.
 
 ## OMX Overlay Mode
 

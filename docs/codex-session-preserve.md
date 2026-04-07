@@ -13,13 +13,17 @@ All target paths passed to these helpers should stay repo-relative, such as
 
 ## The Three Commands
 
+If you use zsh on this Mac, the shell shortcuts are now available directly:
+
+- `save`: short wrapper for `codex-update.sh`
+- `branch`: short wrapper for `codex-branchpoint.sh`
+- `resume`: direct wrapper for `codex-resume.sh`
+
 ### 1. Save Before Leaving
 
 ```bash
-cd /Users/jangjiho/workspace
-bash pressco21/_tools/codex-update.sh \
-  --summary "govt-support audit paused after drift review" \
-  --next "continue with the 12 missing migration paths" \
+save "govt-support audit paused after drift review" \
+  "continue with the 12 missing migration paths" \
   --risk "footer helper drift is still unresolved" \
   n8n-automation/workflows/govt-support docs
 ```
@@ -35,10 +39,7 @@ What it does:
 ### 2. Create A Rollback Branchpoint
 
 ```bash
-cd /Users/jangjiho/workspace
-bash pressco21/_tools/codex-branchpoint.sh \
-  --label "before-live-rewire" \
-  n8n-automation/workflows/accounting scripts
+branch "before-live-rewire" n8n-automation/workflows/accounting scripts
 ```
 
 What it does:
@@ -50,8 +51,7 @@ What it does:
 ### 3. Resume In The Next Session
 
 ```bash
-cd /Users/jangjiho/workspace
-bash pressco21/_tools/codex-resume.sh
+resume
 ```
 
 What it does:
@@ -76,14 +76,22 @@ If you used `OMX` before pausing:
 If you remember only one command, remember this one:
 
 ```bash
-bash pressco21/_tools/codex-update.sh \
-  --summary "여기까지 한 일 요약" \
-  --next "다음 세션 첫 작업" \
-  --risk "남은 리스크" \
-  <현재 작업 경로>
+save "여기까지 한 일 요약" "다음 세션 첫 작업" --risk "남은 리스크" <현재 작업 경로>
 ```
 
 That command is the closest equivalent to a "do not lose this session" update routine.
+
+## Shortcut Details
+
+- `save "<summary>" "<next step>" [--risk "<risk>"] [path...]`
+- `branch "<label>" <path> [path...]`
+- `resume [--show-full]`
+
+If you need the full original helpers, they still exist:
+
+- `bash pressco21/_tools/codex-update.sh ...`
+- `bash pressco21/_tools/codex-branchpoint.sh ...`
+- `bash pressco21/_tools/codex-resume.sh ...`
 
 ## Natural-Language Requests
 

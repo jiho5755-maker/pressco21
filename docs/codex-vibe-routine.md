@@ -68,9 +68,10 @@ and config ownership to OMX.
 
 When switching chats or pausing a risky session, use the preserve helpers:
 
-- Save/handoff: `bash pressco21/_tools/codex-update.sh --summary "<summary>" --next "<next step>" [--risk "<risk>"] [path...]`
-- Rollback branchpoint: `bash pressco21/_tools/codex-branchpoint.sh --label "<label>" <path> [path...]`
-- Resume summary: `bash pressco21/_tools/codex-resume.sh`
+- Save/handoff: `save "<summary>" "<next step>" [--risk "<risk>"] [path...]`
+- Rollback branchpoint: `branch "<label>" <path> [path...]`
+- Resume summary: `resume`
+- Raw helpers still exist under `_tools/codex-update.sh`, `_tools/codex-branchpoint.sh`, `_tools/codex-resume.sh`
 - Reference guide: `docs/codex-session-preserve.md`
 
 ## Natural-Language Requests For Codex
@@ -123,6 +124,34 @@ Use this when you are done for now:
 이번 세션 마감해줘.
 최종 상태, 검증 결과, 남은 리스크, 다음 첫 작업을 세션 로그에 남기고
 AI_SYNC를 IDLE로 돌려줘.
+```
+
+### Save Before Chat Switch
+
+Use this when you want the fastest non-programmer preserve flow:
+
+```text
+대화 바꾸기 전에 save 한 번 해줘.
+요약, 다음 작업, 남은 리스크를 짧게 잡고
+지금 범위는 backup까지 남겨줘.
+```
+
+### Branchpoint Before Risk
+
+Use this before a deploy, refactor, or live workflow edit:
+
+```text
+위험 작업 들어가기 전에 branch 하나 만들어줘.
+실패하면 되돌릴 수 있게 현재 범위 patch랑 archive를 남겨줘.
+```
+
+### Resume After Chat Switch
+
+Use this in the next chat when you want context back quickly:
+
+```text
+이전 세션 이어붙일 준비해줘.
+resume 기준으로 최신 handoff랑 session log부터 요약해줘.
 ```
 
 ### Stable Commit

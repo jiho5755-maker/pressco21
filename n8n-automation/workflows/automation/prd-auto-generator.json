@@ -1,0 +1,293 @@
+{
+  "name": "PRD-AUTO: 기획안 자동 생성",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "prd-generate",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "webhook-prd",
+      "name": "웹훅 수신",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "webhookId": "prd-generate"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 한줄 지시에서 유형과 주제를 파싱\nconst input = $input.first().json;\nconst body = input.body || input;\nconst instruction = (body.instruction || body.text || '').trim();\n\nif (!instruction) {\n  return [{ json: { error: '기획안 지시가 비어있습니다.', success: false } }];\n}\n\n// 유형 자동 판별\nlet prdType = 'product-detail';\nlet typeName = '상품 상세페이지';\n\nconst lower = instruction.toLowerCase();\nif (/이벤트|할인|프로모션|기획전|쿠폰/.test(lower)) {\n  prdType = 'event-promo';\n  typeName = '이벤트/프로모션';\n} else if (/랜딩|모집|소개|브랜드페이지/.test(lower)) {\n  prdType = 'landing-page';\n  typeName = '랜딩 페이지';\n} else if (/인스타|유튜브|블로그|sns|릴스|숏츠|포스트/.test(lower)) {\n  prdType = 'sns-content';\n  typeName = 'SNS 콘텐츠';\n} else if (/상세페이지|상품|신상품/.test(lower)) {\n  prdType = 'product-detail';\n  typeName = '상품 상세페이지';\n}\n\n// \"기획안\" prefix 제거 후 주제 추출\nconst topic = instruction.replace(/^기획안\\s*/, '').replace(/^(상세페이지|이벤트|할인|프로모션|랜딩|인스타|유튜브|블로그|SNS|릴스)\\s*/, '').trim() || instruction;\n\nconst requestedBy = body.requested_by || body.user || '대표';\nconst now = new Date();\nconst kstDate = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);\n\nreturn [{\n  json: {\n    instruction,\n    prdType,\n    typeName,\n    topic,\n    requestedBy,\n    kstDate,\n    success: true\n  }\n}];"
+      },
+      "id": "parse-input",
+      "name": "입력 파싱",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [460, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "check-success",
+              "leftValue": "={{ $json.success }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "true"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-valid",
+      "name": "유효성 체크",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.anthropic.com/v1/messages",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-api-key",
+              "value": "={{ $env.ANTHROPIC_API_KEY }}"
+            },
+            {
+              "name": "anthropic-version",
+              "value": "2023-06-01"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"claude-sonnet-4-20250514\",\n  \"max_tokens\": 4096,\n  \"system\": \"너는 PRESSCO21(꽃 공예 전문 회사)의 기획안 작성 AI이다.\\n한줄 지시를 받으면 3종 산출물(PRD + 디자인 브리프 + 레퍼런스 리스트)을 마크다운으로 생성한다.\\n\\n## 회사 정보\\n- 업종: 꽃 공예 재료/키트 판매 + 온라인 클래스 플랫폼\\n- 자사몰: 메이크샵 D4 (foreverlove.co.kr)\\n- 브랜드 톤: 우아 + 따뜻 + 신뢰 + 자연 + 포용\\n- 주요 카테고리: 압화, 레진, 캔들, 석고, 비즈\\n\\n## 브랜드 규격\\n- 컬러: 세이지그린 #637561 / 다크그린 #425B51 / 프라이머리 #7d9675 / 라이트 #b7c9ad / 배경 #e2e8dd\\n- 폰트: Pretendard (메인, 400~800) / Noto Sans KR (폴백)\\n- PC 최대폭: 1200px / 브레이크포인트: 768px, 992px, 1200px\\n\\n## 유형: {{ $json.typeName }}\\n\\n## 출력 형식\\n### 1. PRD\\n유형별 섹션 구조를 따르되, 한줄 지시에서 추출한 값으로 채운다. 추출 불가한 값은 [미정 - 대표 확인 필요]로 표시.\\n\\n### 2. 디자인 브리프\\n컬러/폰트/레이아웃 규격 포함. 히어로 이미지 방향 1~2문장 제안.\\n\\n### 3. 레퍼런스 리스트\\n필요 소스 체크리스트 (촬영, 이미지, 카피 등)\\n\\n## 규칙\\n- 한국어, ~입니다 체\\n- 미확인 숫자는 [미정]\\n- 마크다운 ## 부터 시작\",\n  \"messages\": [\n    {\n      \"role\": \"user\",\n      \"content\": \"기획안을 작성해주세요: {{ $json.instruction }}\"\n    }\n  ]\n}",
+        "options": {
+          "timeout": 60000
+        }
+      },
+      "id": "claude-api",
+      "name": "Claude API 기획안 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Claude API 응답에서 기획안 텍스트 추출\nconst input = $input.first().json;\nconst prev = $('입력 파싱').first().json;\n\nlet content = '';\nif (input.content && Array.isArray(input.content)) {\n  content = input.content\n    .filter(b => b.type === 'text')\n    .map(b => b.text)\n    .join('\\n');\n} else if (typeof input === 'string') {\n  content = input;\n}\n\n// 제목 추출 (첫 ## 라인)\nconst titleMatch = content.match(/^##\\s+(.+)/m);\nconst title = titleMatch ? titleMatch[1].trim() : prev.topic;\n\nreturn [{\n  json: {\n    title,\n    prd_type: prev.prdType,\n    type_name: prev.typeName,\n    instruction: prev.instruction,\n    content_md: content,\n    requested_by: prev.requestedBy,\n    status: 'draft',\n    created_date: prev.kstDate\n  }\n}];"
+      },
+      "id": "extract-content",
+      "name": "기획안 텍스트 추출",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1140, 240]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://nocodb.pressco21.com/api/v1/db/data/noco/{{ $env.NOCODB_PRD_PROJECT_ID }}/{{ $env.NOCODB_PRD_TABLE_ID }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "={{ $env.NOCODB_API_TOKEN }}"
+            },
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"title\": \"{{ $json.title }}\",\n  \"prd_type\": \"{{ $json.prd_type }}\",\n  \"instruction\": \"{{ $json.instruction }}\",\n  \"content_md\": {{ JSON.stringify($json.content_md) }},\n  \"status\": \"draft\",\n  \"requested_by\": \"{{ $json.requested_by }}\",\n  \"created_date\": \"{{ $json.created_date }}\"\n}",
+        "options": {}
+      },
+      "id": "save-nocodb",
+      "name": "NocoDB 저장",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1360, 240]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 텔레그램 알림 메시지 구성\nconst prd = $('기획안 텍스트 추출').first().json;\nconst nocoResult = $input.first().json;\nconst rowId = nocoResult.Id || nocoResult.id || '?';\n\n// 기획안 미리보기 (첫 500자)\nconst preview = prd.content_md.slice(0, 500).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));\n\nconst msg = [\n  `<b>[기획안 생성 완료]</b>`,\n  ``,\n  `<b>제목</b>: ${prd.title}`,\n  `<b>유형</b>: ${prd.type_name}`,\n  `<b>요청</b>: ${prd.instruction}`,\n  `<b>상태</b>: draft (승인 대기)`,\n  `<b>NocoDB ID</b>: #${rowId}`,\n  ``,\n  `<b>미리보기</b>:`,\n  `<pre>${preview}...</pre>`,\n  ``,\n  `NocoDB에서 전문 확인 후 승인해주세요.`\n].join('\\n');\n\nreturn [{ json: { message: msg, rowId } }];"
+      },
+      "id": "build-telegram",
+      "name": "텔레그램 메시지 구성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1580, 240]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "telegram-notify",
+      "name": "텔레그램 완료 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1800, 240],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Telegram Makeshop Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: true, title: $('기획안 텍스트 추출').first().json.title, type: $('기획안 텍스트 추출').first().json.type_name, nocodb_id: $('NocoDB 저장').first().json.Id || $('NocoDB 저장').first().json.id }) }}"
+      },
+      "id": "respond-success",
+      "name": "성공 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2020, 240]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ success: false, error: $json.error || '입력이 유효하지 않습니다.' }) }}",
+        "options": {
+          "responseCode": 400
+        }
+      },
+      "id": "respond-error",
+      "name": "에러 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [920, 420]
+    }
+  ],
+  "connections": {
+    "웹훅 수신": {
+      "main": [
+        [
+          {
+            "node": "입력 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "입력 파싱": {
+      "main": [
+        [
+          {
+            "node": "유효성 체크",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "유효성 체크": {
+      "main": [
+        [
+          {
+            "node": "Claude API 기획안 생성",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "에러 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Claude API 기획안 생성": {
+      "main": [
+        [
+          {
+            "node": "기획안 텍스트 추출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "기획안 텍스트 추출": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 저장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 저장": {
+      "main": [
+        [
+          {
+            "node": "텔레그램 메시지 구성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "텔레그램 메시지 구성": {
+      "main": [
+        [
+          {
+            "node": "텔레그램 완료 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "텔레그램 완료 알림": {
+      "main": [
+        [
+          {
+            "node": "성공 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "automation"
+    },
+    {
+      "name": "prd"
+    }
+  ]
+}

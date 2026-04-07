@@ -82,6 +82,7 @@
 - Back up only the current scope in a dirty repo.
 - Commit only selected paths at a stable point.
 - Push only when the branch state is understood.
+- For chat-switch handoff and resume, prefer `_tools/codex-update.sh`, `_tools/codex-branchpoint.sh`, and `_tools/codex-resume.sh` over ad-hoc manual notes.
 
 ## OMX Overlay Mode
 
@@ -95,6 +96,7 @@
 
 - Session logs: `output/codex-sessions/`
 - Scope backups: `output/codex-backups/`
+- Handoff notes: `output/codex-handoffs/`
 - Codex helpers: `_tools/codex-*.sh`
 - Routine guide: `docs/codex-vibe-routine.md`
 

@@ -44,19 +44,6 @@ shift || true
 note="${*:-}"
 
 session_file="$(codex_resolve_session "$session_arg")"
-timestamp="$(codex_now)"
-git_status="$(codex_git_status)"
-git_diff_stat="$(codex_git_diff_stat)"
-
-{
-  printf '\n## Checkpoint %s - %s\n' "$timestamp" "$title"
-  if [ -n "$note" ]; then
-    printf -- '- Note: %s\n' "$note"
-  fi
-  printf '\n### Git Diff Stat\n'
-  printf '```text\n%s\n```\n' "$git_diff_stat"
-  printf '\n### Git Status\n'
-  printf '```text\n%s\n```\n' "$git_status"
-} >> "$session_file"
+codex_append_checkpoint "$session_file" "$title" "$note"
 
 printf 'Checkpoint appended: %s\n' "$(codex_repo_rel "$session_file")"

@@ -64,6 +64,15 @@ project rules and close-out routine.
 Do not run `omx setup` directly in `pressco21/` unless the project intentionally migrates AGENTS
 and config ownership to OMX.
 
+## Session Preserve
+
+When switching chats or pausing a risky session, use the preserve helpers:
+
+- Save/handoff: `bash pressco21/_tools/codex-update.sh --summary "<summary>" --next "<next step>" [--risk "<risk>"] [path...]`
+- Rollback branchpoint: `bash pressco21/_tools/codex-branchpoint.sh --label "<label>" <path> [path...]`
+- Resume summary: `bash pressco21/_tools/codex-resume.sh`
+- Reference guide: `docs/codex-session-preserve.md`
+
 ## Natural-Language Requests For Codex
 
 ### Session Start

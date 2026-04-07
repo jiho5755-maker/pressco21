@@ -26,7 +26,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "=http://flora-todo-mvp:3000/api/automation/calendar-sync?since={{ encodeURIComponent($json.since) }}&limit=20",
+        "url": "=https://mini.pressco21.com/api/automation/calendar-sync?since={{ encodeURIComponent($json.since) }}&limit=20",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -150,7 +150,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=http://flora-todo-mvp:3000/api/automation/tasks/{{ $json.taskId }}",
+        "url": "=https://mini.pressco21.com/api/automation/tasks/{{ $json.taskId }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -172,7 +172,7 @@
     {
       "parameters": {
         "method": "PATCH",
-        "url": "=http://flora-todo-mvp:3000/api/automation/tasks/{{ $json.taskId }}",
+        "url": "=https://mini.pressco21.com/api/automation/tasks/{{ $json.taskId }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

@@ -16,7 +16,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "http://flora-todo-mvp:3000/api/automation/briefings/lunch?limit=20",
+        "url": "https://mini.pressco21.com/api/automation/briefings/lunch?limit=20",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

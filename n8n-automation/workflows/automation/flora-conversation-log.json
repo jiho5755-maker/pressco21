@@ -35,7 +35,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://flora-todo-mvp:3000/api/automation/source-messages",
+        "url": "https://mini.pressco21.com/api/automation/source-messages",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
@@ -62,7 +62,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://flora-todo-mvp:3000/api/ingest",
+        "url": "https://mini.pressco21.com/api/ingest",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

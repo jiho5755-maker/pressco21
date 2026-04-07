@@ -38,7 +38,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "http://flora-todo-mvp:3000/api/automation/tasks",
+        "url": "https://mini.pressco21.com/api/automation/tasks",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

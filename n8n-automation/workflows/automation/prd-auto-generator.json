@@ -49,12 +49,12 @@
     },
     {
       "parameters": {
-        "chatId": "7713811206",
+        "chatId": "-5043778307",
         "text": "={{ $json.message }}",
         "additionalFields": { "parse_mode": "HTML" }
       },
       "id": "telegram-notify",
-      "name": "텔레그램 알림",
+      "name": "텔레그램 알림 (Claude 개발방)",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [960, 300],
@@ -146,12 +146,12 @@
     },
     {
       "parameters": {
-        "chatId": "7713811206",
+        "chatId": "-5043778307",
         "text": "={{ $json.message }}",
         "additionalFields": { "parse_mode": "HTML" }
       },
       "id": "telegram-action",
-      "name": "텔레그램 액션 알림",
+      "name": "텔레그램 액션 알림 (Claude 개발방)",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [1440, 560],
@@ -186,14 +186,14 @@
   "connections": {
     "저장 웹훅": { "main": [[{ "node": "NocoDB 저장", "type": "main", "index": 0 }]] },
     "NocoDB 저장": { "main": [[{ "node": "알림 메시지 구성", "type": "main", "index": 0 }]] },
-    "알림 메시지 구성": { "main": [[{ "node": "텔레그램 알림", "type": "main", "index": 0 }]] },
-    "텔레그램 알림": { "main": [[{ "node": "성공 응답", "type": "main", "index": 0 }]] },
+    "알림 메시지 구성": { "main": [[{ "node": "텔레그램 알림 (Claude 개발방)", "type": "main", "index": 0 }]] },
+    "텔레그램 알림 (Claude 개발방)": { "main": [[{ "node": "성공 응답", "type": "main", "index": 0 }]] },
     "핸드오프 웹훅": { "main": [[{ "node": "액션 파싱", "type": "main", "index": 0 }]] },
     "액션 파싱": { "main": [[{ "node": "유효성", "type": "main", "index": 0 }]] },
     "유효성": { "main": [[{ "node": "NocoDB 업데이트", "type": "main", "index": 0 }], [{ "node": "액션 에러", "type": "main", "index": 0 }]] },
     "NocoDB 업데이트": { "main": [[{ "node": "결과 메시지", "type": "main", "index": 0 }]] },
-    "결과 메시지": { "main": [[{ "node": "텔레그램 액션 알림", "type": "main", "index": 0 }]] },
-    "텔레그램 액션 알림": { "main": [[{ "node": "액션 성공", "type": "main", "index": 0 }]] }
+    "결과 메시지": { "main": [[{ "node": "텔레그램 액션 알림 (Claude 개발방)", "type": "main", "index": 0 }]] },
+    "텔레그램 액션 알림 (Claude 개발방)": { "main": [[{ "node": "액션 성공", "type": "main", "index": 0 }]] }
   },
   "settings": { "executionOrder": "v1" }
 }

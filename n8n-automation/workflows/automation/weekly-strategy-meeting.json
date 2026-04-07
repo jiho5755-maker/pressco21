@@ -17,7 +17,7 @@
     {
       "parameters": {
         "method": "GET",
-        "url": "http://flora-todo-mvp:3000/api/automation/briefings/weekly-strategy",
+        "url": "https://mini.pressco21.com/api/automation/briefings/weekly-strategy",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [

@@ -39,8 +39,14 @@ omx_launch_team_via_tmux() {
   local model_instructions="${OMX_MODEL_INSTRUCTIONS_FILE:-$PWD/AGENTS.md}"
   local launch_script
   local omx_args
+  local before_teams_file
+  local after_teams_file
+  local detected_team=""
 
   launch_script="$(mktemp "${TMPDIR:-/tmp}/omx-team-launch.XXXXXX.sh")"
+  before_teams_file="$(mktemp "${TMPDIR:-/tmp}/omx-team-before.XXXXXX.txt")"
+  after_teams_file="$(mktemp "${TMPDIR:-/tmp}/omx-team-after.XXXXXX.txt")"
+  find "$PWD/.omx/state/team" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; 2>/dev/null | sort > "$before_teams_file" || true
   omx_args="$(omx_shell_join "$@")"
   cat > "$launch_script" <<EOF
 #!/bin/bash
@@ -58,7 +64,14 @@ EOF
   tmux send-keys -t "$leader_session:0.0" "bash $launch_script" C-m
   sleep 4
 
-  tmux capture-pane -t "$leader_session:0.0" -p | tail -n 20
+  find "$PWD/.omx/state/team" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; 2>/dev/null | sort > "$after_teams_file" || true
+  detected_team="$(comm -13 "$before_teams_file" "$after_teams_file" | tail -n 1 || true)"
+  rm -f "$before_teams_file" "$after_teams_file"
+
+  tmux capture-pane -t "$leader_session:0.0" -p | grep -v 'omx-team-launch' | tail -n 20
+  if [ -n "$detected_team" ]; then
+    printf '\nDetected team name: %s\n' "$detected_team"
+  fi
   printf '\nLeader tmux session: %s\n' "$leader_session"
   printf 'Attach if needed: tmux attach -t %s\n' "$leader_session"
 }

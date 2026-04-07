@@ -42,6 +42,9 @@ brand-intro-page/
 !offline-crm/images/*.jpg
 !offline-crm-v2/public/images/*.png
 !offline-crm-v2/public/images/*.jpg
+# 모바일 앱 에셋은 예외
+!mobile-app/assets/*.png
+!mobile-app/assets/**/*.png
 detail-*.png
 test-*.png
 page-*.png

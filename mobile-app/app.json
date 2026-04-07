@@ -6,7 +6,7 @@
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
-    "newArchEnabled": true,
+    "newArchEnabled": false,
     "scheme": "pressco21",
     "splash": {
       "image": "./assets/splash-icon.png",
@@ -27,7 +27,7 @@
         "foregroundImage": "./assets/adaptive-icon.png",
         "backgroundColor": "#e5eae3"
       },
-      "edgeToEdgeEnabled": true,
+      "edgeToEdgeEnabled": false,
       "permissions": [
         "CAMERA",
         "READ_EXTERNAL_STORAGE",
@@ -39,18 +39,15 @@
       "expo-router",
       "expo-web-browser",
       "expo-secure-store",
-      [
-        "expo-notifications",
-        {
-          "icon": "./assets/icon.png",
-          "color": "#597051"
-        }
-      ]
+      "expo-notifications",
+      "expo-font"
     ],
     "extra": {
       "eas": {
-        "projectId": ""
-      }
-    }
+        "projectId": "f0870d4b-7fcb-462a-9f3a-2183c65eeb7b"
+      },
+      "router": {}
+    },
+    "owner": "pressco21"
   }
 }

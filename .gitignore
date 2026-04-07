@@ -25,7 +25,9 @@ shrimp_data/
 .playwright-tools/
 
 # 로컬 Codex 설정
-.codex/
+.codex/*
+!.codex/prompts/
+!.codex/prompts/*.md
 .omx/
 
 # 테스트 산출물

@@ -19,6 +19,14 @@ If you use zsh on this Mac, the shell shortcuts are now available directly:
 - `branch`: short wrapper for `codex-branchpoint.sh`
 - `resume`: direct wrapper for `codex-resume.sh`
 
+Codex custom prompt commands are also available at the project level:
+
+- `/prompts:save`
+- `/prompts:branch`
+- `/prompts:resume`
+
+These are stored in `.codex/prompts/*.md`, so open Codex in `pressco21` to use them.
+
 ### 1. Save Before Leaving
 
 ```bash
@@ -86,12 +94,31 @@ That command is the closest equivalent to a "do not lose this session" update ro
 - `save "<summary>" "<next step>" [--risk "<risk>"] [path...]`
 - `branch "<label>" <path> [path...]`
 - `resume [--show-full]`
+- `/prompts:save ...`
+- `/prompts:branch ...`
+- `/prompts:resume ...`
 
 If you need the full original helpers, they still exist:
 
 - `bash pressco21/_tools/codex-update.sh ...`
 - `bash pressco21/_tools/codex-branchpoint.sh ...`
 - `bash pressco21/_tools/codex-resume.sh ...`
+
+## Slash Command Examples
+
+```text
+/prompts:save govt-support audit 여기서 저장하고 다음엔 drift 정리
+```
+
+```text
+/prompts:branch before-live-edit n8n-automation/workflows/accounting scripts
+```
+
+```text
+/prompts:resume
+```
+
+Codex custom prompt syntax here is `/prompts:name`, not plain `/name`.
 
 ## Natural-Language Requests
 

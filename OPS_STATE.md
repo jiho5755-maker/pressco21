@@ -84,6 +84,7 @@
 - Push only when the branch state is understood.
 - For chat-switch handoff and resume, prefer `_tools/codex-update.sh`, `_tools/codex-branchpoint.sh`, and `_tools/codex-resume.sh` over ad-hoc manual notes.
 - On the local zsh shell, `_tools/codex-shortcuts.zsh` exposes `save`, `branch`, and `resume` as the default human-facing wrappers for that preserve routine.
+- In Codex sessions opened inside `pressco21`, project prompt commands live under `.codex/prompts/` and are invoked as `/prompts:save`, `/prompts:branch`, and `/prompts:resume`.
 
 ## OMX Overlay Mode
 

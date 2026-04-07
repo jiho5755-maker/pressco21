@@ -71,6 +71,7 @@ When switching chats or pausing a risky session, use the preserve helpers:
 - Save/handoff: `save "<summary>" "<next step>" [--risk "<risk>"] [path...]`
 - Rollback branchpoint: `branch "<label>" <path> [path...]`
 - Resume summary: `resume`
+- Project slash prompts: `/prompts:save`, `/prompts:branch`, `/prompts:resume`
 - Raw helpers still exist under `_tools/codex-update.sh`, `_tools/codex-branchpoint.sh`, `_tools/codex-resume.sh`
 - Reference guide: `docs/codex-session-preserve.md`
 

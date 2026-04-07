@@ -32,16 +32,32 @@ function normalizeDateOnly(value) {
   return match[1] + '-' + match[2].padStart(2, '0') + '-' + match[3].padStart(2, '0');
 }
 
+function toKstIsoString(value) {
+  const date = new Date(value || Date.now());
+  if (!Number.isFinite(date.getTime())) return '';
+  const parts = new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    second: '2-digit',
+    hourCycle: 'h23',
+  }).formatToParts(date).reduce((result, part) => {
+    if (part.type !== 'literal') result[part.type] = part.value;
+    return result;
+  }, {});
+  return parts.year + '-' + parts.month + '-' + parts.day + 'T' + parts.hour + ':' + parts.minute + ':' + parts.second + '+09:00';
+}
+
 function formatOccurredAt(dateOnly, fallbackDate) {
   if (!dateOnly) {
-    const fallback = new Date(fallbackDate || Date.now());
-    return fallback.toISOString();
+    return toKstIsoString(fallbackDate || Date.now());
   }
-  const fallback = fallbackDate ? new Date(fallbackDate) : new Date();
-  const hour = String(Number.isFinite(fallback.getHours()) ? fallback.getHours() : 0).padStart(2, '0');
-  const minute = String(Number.isFinite(fallback.getMinutes()) ? fallback.getMinutes() : 0).padStart(2, '0');
-  const second = String(Number.isFinite(fallback.getSeconds()) ? fallback.getSeconds() : 0).padStart(2, '0');
-  return dateOnly + 'T' + hour + ':' + minute + ':' + second + '+09:00';
+  const fallback = toKstIsoString(fallbackDate || Date.now()) || '1970-01-01T00:00:00+09:00';
+  const timePart = fallback.split('T')[1] || '00:00:00+09:00';
+  return dateOnly + 'T' + timePart;
 }
 
 function parsePlainSender(text) {
@@ -77,8 +93,7 @@ function parsePlainOccurredAt(text, fallbackDate) {
     const second = String(match[6] ?? '00').padStart(2, '0');
     return year + '-' + month + '-' + day + 'T' + hour + ':' + minute + ':' + second + '+09:00';
   }
-  const date = new Date(fallbackDate || Date.now());
-  return date.toISOString();
+  return toKstIsoString(fallbackDate || Date.now());
 }
 
 function isVestMailSecureHtml(value) {
@@ -544,6 +559,19 @@ function appendFailureLog(kind, payload) {
   }
   staticData.presscoCrmFailureLog = failureLog;
 }
+function formatDate(value) {
+  const date = new Date(value || '');
+  if (!Number.isFinite(date.getTime())) return String(value || '-').replace('T', ' ').slice(0, 16) || '-';
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
+}
 function buildEventKey(entry) {
   const externalId = String(entry?.externalId || '').trim();
   if (externalId) return externalId;
@@ -578,15 +606,11 @@ const lines = [
   '',
   '계좌: ' + accountLabel,
   '입금자: ' + leadSender,
-  '입금별칭추천: ' + leadSender,
   '입금액: ' + formatAmount(leadEntry.amount),
   '거래일시: ' + formatDate(leadEntry.occurredAt),
 ];
 if (Number(leadEntry.balance) > 0) {
   lines.push('통장잔액: ' + formatAmount(leadEntry.balance));
-}
-if (String(leadEntry.note || '').trim()) {
-  lines.push('기록: ' + String(leadEntry.note).trim());
 }
 if (deposits.length > 1) {
   lines.push('추가입금: ' + String(deposits.length - 1) + '건');
@@ -596,7 +620,6 @@ let crmResult = 'accepted';
 if (intakeFailed) {
   const errorText = String(intakeErrorMessage || '').trim() || '자동반영 엔진 응답이 비정상입니다.';
   lines.push('CRM처리: intake 실패');
-  lines.push('메시지ID: ' + String(parsed.messageId || leadEntry.externalId || '-'));
   lines.push('안내: 수동 확인 및 재처리가 필요합니다.');
   lines.push('오류: ' + errorText.slice(0, 240));
   appendFailureLog('intake_failure', {
@@ -665,7 +688,19 @@ const summaryKey = ['bank-events', parsed.source || 'unknown', bankOnlyTransacti
 const staticData = $getWorkflowStaticData('global');
 const sentMap = staticData.presscoBankTelegramSent || {};
 function formatAmount(value) { return (Number(value) || 0).toLocaleString() + '원'; }
-function formatDate(value) { return String(value || '').replace('T', ' ').slice(0, 16) || '-'; }
+function formatDate(value) {
+  const date = new Date(value || '');
+  if (!Number.isFinite(date.getTime())) return String(value || '-').replace('T', ' ').slice(0, 16) || '-';
+  return new Intl.DateTimeFormat('sv-SE', {
+    timeZone: 'Asia/Seoul',
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+  }).format(date);
+}
 function directionLabel(value) { return value === 'withdrawal' ? '출금' : (value === 'deposit' ? '입금' : '거래'); }
 function buildEventKey(entry) {
   const externalId = String(entry?.externalId || '').trim();
@@ -690,10 +725,8 @@ const lines = [
 bankOnlyTransactions.slice(0, 5).forEach((entry) => {
   const label = directionLabel(entry.direction);
   const party = String(entry.party || entry.sender || '미상').trim() || '미상';
-  const detail = String(entry.note || '').trim();
   const suffixParts = [];
   if (entry.balance) suffixParts.push('잔액 ' + formatAmount(entry.balance));
-  if (detail) suffixParts.push(detail);
   const suffix = suffixParts.length > 0 ? ' / ' + suffixParts.join(' / ') : '';
   lines.push('- [' + label + '] ' + party + ' / ' + formatAmount(entry.amount) + ' / ' + formatDate(entry.occurredAt) + suffix);
 });

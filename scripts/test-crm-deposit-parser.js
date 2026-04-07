@@ -158,6 +158,18 @@ async function main() {
   assert.strictEqual(plainDepositParsed.deposits[0].sender, '홍길동');
   assert.strictEqual(plainDepositParsed.deposits[0].amount, 35000);
 
+  var utcFallbackParsed = await runParser({
+    subject: '농협에서 제공하는 입출금 거래내역',
+    from: 'webmaster@ums.nonghyup.com',
+    date: '2026-04-07T08:18:00.000Z',
+    textPlain: secureDepositText,
+  });
+  assert.strictEqual(
+    utcFallbackParsed.deposits[0].occurredAt,
+    '2026-04-06T17:18:00+09:00',
+    'UTC fallback timestamps should be rendered back into KST for row-level occurredAt values'
+  );
+
   var secureWithdrawalParsed = await runParser({
     subject: '농협에서 제공하는 입출금 거래내역',
     from: 'webmaster@ums.nonghyup.com',
@@ -177,10 +189,17 @@ async function main() {
     unmatchedEntries: [],
     summary: { exact: 0, review: 0, unmatched: 0, duplicate: 0 },
   });
-  assert.match(depositSummary._telegramMessage, /기록: 김수진서초글/);
+  assert.match(depositSummary._telegramMessage, /\[입금 알림\]/);
+  assert.match(depositSummary._telegramMessage, /계좌: 농협 093-01-264177/);
+  assert.match(depositSummary._telegramMessage, /통장잔액:/);
+  assert.match(depositSummary._telegramMessage, /CRM처리:/);
+  assert.doesNotMatch(depositSummary._telegramMessage, /입금별칭추천/);
+  assert.doesNotMatch(depositSummary._telegramMessage, /기록:/);
 
   var bankSummary = await runBankSummary(secureWithdrawalParsed);
   assert.match(bankSummary._telegramMessage, /ATM출금/);
+  assert.doesNotMatch(bankSummary._telegramMessage, /거래점/);
+  assert.doesNotMatch(bankSummary._telegramMessage, /거래은행/);
 
   assertWorkflowConnections();
 

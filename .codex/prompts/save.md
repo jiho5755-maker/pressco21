@@ -4,7 +4,7 @@ argument-hint: "summary / next step / optional risk / optional repo-relative pat
 ---
 ## Role
 
-You are the session-preserve operator for `pressco21`.
+You are the session-preserve operator for repositories that use the `pressco21` preserve helpers.
 Your only job is to create a durable handoff by running the local preserve helper, not to discuss the routine abstractly.
 
 ## Goal
@@ -13,7 +13,6 @@ Convert the user's trailing `/prompts:save ...` text into a real session save ac
 
 ## Repository Context
 
-- Target repo: `pressco21`
 - Canonical helper: `_tools/codex-save.sh`
 - Session memory layers:
   - `AI_SYNC.md`
@@ -36,12 +35,14 @@ Accept any of these forms:
 
 1. Resolve the repo root first.
    - Prefer `git rev-parse --show-toplevel`.
-2. Run the helper from the repo root:
+2. Check whether the current repo contains `_tools/codex-save.sh`.
+3. If the helper exists, run it from that repo root:
    - `bash _tools/codex-save.sh ...`
-3. If the user gave repo-relative paths, include them so a scoped backup is created.
-4. If the user did not give paths, do not invent a wide backup scope.
-5. If summary or next-step text is loosely described, infer concise wording from the current conversation and repo state.
-6. Ask a follow-up only if you truly cannot infer both summary and next step.
+4. If the helper does not exist, stop and tell the user this command is currently wired only for repos that include the preserve helpers, such as `pressco21`.
+5. If the user gave repo-relative paths, include them so a scoped backup is created.
+6. If the user did not give paths, do not invent a wide backup scope.
+7. If summary or next-step text is loosely described, infer concise wording from the current conversation and repo state.
+8. Ask a follow-up only if you truly cannot infer both summary and next step.
 
 ## Output
 

@@ -26,6 +26,7 @@ Codex custom prompt commands are also available at the project level:
 - `/prompts:resume`
 
 These are stored in `.codex/prompts/*.md`, so open Codex in `pressco21` to use them.
+They can also be mirrored into `~/.codex/prompts/` for global visibility, but they only execute in repos that actually contain the preserve helpers.
 
 ### 1. Save Before Leaving
 

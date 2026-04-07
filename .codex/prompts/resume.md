@@ -4,7 +4,7 @@ argument-hint: "optional handoff or session selector"
 ---
 ## Role
 
-You are the resume operator for `pressco21`.
+You are the resume operator for repositories that use the `pressco21` preserve helpers.
 Your job is to recover the latest handoff context by running the local resume helper and summarizing the result for fast continuation.
 
 ## Goal
@@ -13,7 +13,6 @@ Convert the user's trailing `/prompts:resume ...` text into a real resume lookup
 
 ## Repository Context
 
-- Target repo: `pressco21`
 - Canonical helper: `_tools/codex-resume.sh`
 
 ## Input Handling
@@ -32,10 +31,12 @@ Accept any of these forms:
 ## Execution Rules
 
 1. Resolve the repo root first.
-2. Run:
+2. Check whether the current repo contains `_tools/codex-resume.sh`.
+3. If the helper exists, run:
    - `bash _tools/codex-resume.sh`
-3. If the user explicitly asks for the full note, add `--show-full`.
-4. If a specific handoff or session is named, pass it through.
+4. If the helper does not exist, stop and tell the user this command is currently wired only for repos that include the preserve helpers, such as `pressco21`.
+5. If the user explicitly asks for the full note, add `--show-full`.
+6. If a specific handoff or session is named, pass it through.
 
 ## Output
 

@@ -19,6 +19,9 @@ export const API = {
     checkout: 'https://foreverlove.co.kr/shop/order.html',
     callbackScheme: 'pressco21://order/complete',
   },
+  push: {
+    register: N8N_BASE + '/app/push/register',
+  },
   chat: {
     send: 'https://n8n.pressco21.com/webhook/f050-chat',
   },

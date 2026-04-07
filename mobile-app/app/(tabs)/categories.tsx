@@ -3,7 +3,7 @@ import {
   TouchableOpacity, ActivityIndicator, Dimensions, Keyboard,
 } from 'react-native';
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { useRouter } from 'expo-router';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS, FONTS, SPACING, RADIUS } from '../../src/constants/theme';
 import { API } from '../../src/constants/api';
@@ -56,8 +56,9 @@ function formatPrice(price: number): string {
 
 export default function CategoriesScreen() {
   const router = useRouter();
+  const params = useLocalSearchParams<{ category?: string }>();
   const [query, setQuery] = useState('');
-  const [activeCategory, setActiveCategory] = useState('');
+  const [activeCategory, setActiveCategory] = useState(params.category || '');
   const [sort, setSort] = useState('regdt');
   const [products, setProducts] = useState<ProductItem[]>([]);
   const [loading, setLoading] = useState(true);

@@ -1412,6 +1412,7 @@ Phase CRM ✅ 전체 완료 (2026-03-05)
 | 2026-04-05 | 하네스 Phase 2 코드 완료: 주간 전략 회의 API(`/briefings/weekly-strategy`)+WF(`Zr6aR0h0VAMbhDTV`), 이재혁 자동화 WF 3종(staff-briefing/shipping/cs-alert), staff 브리핑 API(`/briefings/staff?assignee=`), 서버 이전 준비(docker-compose.flora.yml+deploy-flora.sh+MIGRATION-GUIDE.md), auto-heal.sh, Next.js 빌드+서버 배포 검증 완료. 남은 작업: n8n API키 갱신→WF 활성화, 이재혁 Chat ID 수집, 서버 물리 이전, auto-heal cron 등록 |
 | 2026-04-05 | 하네스 Phase 1.5 완료: 아침 브리핑 우선순위 포맷(🔴🟡⏳📋)+점심 체크인(12:30, `4Ap51Ryf15yrSUR4`)+assignee 필드+메모해줘 패턴 → 전체 배포 완료 |
 | 2026-04-05 | 하네스 Phase 1 완료: 에이전트 51→25 재구성(opus10/sonnet10/haiku5, 3-Tier), CLAUDE.md 조직도 Tier 기반 교체, orchestration 스킬 라우팅+Tier 확장, MakeShop 스크립트 4개(vtag-lint/snapshot/diff-remote/batch-push), 토큰 ~12K→~2.6K(78%↓) |
+| 2026-04-07 | 모바일 앱 Phase 3 기능 완성: 주문상세 화면(진행단계바+배송조회+결제정보), 인증 WF 비밀번호 검증 추가(MakeShop 로그인폼 POST+실패감지), 푸시토큰 등록 WF(`NdSun2nGblSYSs0g`) 생성+배포, 홈→카테고리 연동, 주문목록→상세 연동, 전체 API 8종 실호출 검증 PASS |
 | 2026-04-07 | 모바일 앱 Phase 2: 카테고리/검색(디바운스+8카테고리+4정렬+무한스크롤+SOLD OUT), 회원가입 WebView(메이크샵 연동), 푸시 알림 인프라(useNotifications 훅+Android 채널3개+토큰 서버등록), expo-device 추가, TS 0에러+Expo build PASS |
 | 2026-04-07 | 모바일 앱 MVP 기능 완성: n8n API 3개(상품/인증/주문) 수정+배포+검증, React Native 8화면(홈/로그인/상품상세/장바구니/결제WebView/주문목록/주문상세/마이페이지) 구현, 실제 메이크샵 4706상품 연동, TypeScript 에러 0건, Expo build PASS |
 | 2026-04-05 | 하네스 Phase 0 완료: CLAUDE.md 194→80줄, AI_SYNC 2307→95줄, 훅 5개, 로그로테이션, orchestration 스킬 신규 |

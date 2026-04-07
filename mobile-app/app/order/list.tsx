@@ -97,7 +97,7 @@ export default function OrderListScreen() {
       ) : (
         <ScrollView style={styles.list} showsVerticalScrollIndicator={false}>
           {orders.map((order) => (
-            <View key={order.id} style={styles.orderCard}>
+            <TouchableOpacity key={order.id} style={styles.orderCard} activeOpacity={0.7} onPress={() => router.push('/order/' + order.id)}>
               <View style={styles.orderHeader}>
                 <Text style={styles.orderDate}>{order.date}</Text>
                 <Text style={[styles.statusBadge, { color: STATUS_COLORS[order.status] || COLORS.gray500 }]}>
@@ -117,12 +117,12 @@ export default function OrderListScreen() {
                 </View>
               </View>
               {order.trackingNumber && (
-                <TouchableOpacity style={styles.trackingBtn}>
+                <View style={styles.trackingBtn}>
                   <Ionicons name="location-outline" size={16} color={COLORS.forest} />
                   <Text style={styles.trackingText}>배송 조회</Text>
-                </TouchableOpacity>
+                </View>
               )}
-            </View>
+            </TouchableOpacity>
           ))}
           <View style={{ height: 100 }} />
         </ScrollView>

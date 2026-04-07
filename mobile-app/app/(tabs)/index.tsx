@@ -99,7 +99,8 @@ export default function HomeScreen() {
       {/* 카테고리 */}
       <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.catScroll}>
         {CATEGORIES.map((cat) => (
-          <TouchableOpacity key={cat.id} style={styles.catChip} activeOpacity={0.7}>
+          <TouchableOpacity key={cat.id} style={styles.catChip} activeOpacity={0.7}
+            onPress={() => router.push({ pathname: '/(tabs)/categories', params: { category: cat.id } })}>
             <View style={styles.catIconCircle}>
               <Ionicons name={cat.icon} size={20} color={COLORS.forest} />
             </View>

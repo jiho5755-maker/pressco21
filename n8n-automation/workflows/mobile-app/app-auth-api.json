@@ -17,13 +17,43 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst userId = body.userId || '';\nconst password = body.password || '';\nif (!userId || !password) {\n  return [{ json: { success: false, error: '아이디와 비밀번호를 입력해주세요' } }];\n}\nreturn [{ json: { userId, password } }];"
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst userId = body.userId || '';\nconst password = body.password || '';\nif (!userId || !password) {\n  return [{ json: { loginFailed: true, error: '아이디와 비밀번호를 입력해주세요', userId: '' } }];\n}\nreturn [{ json: { loginFailed: false, userId, password } }];"
       },
       "id": "code-validate-input",
       "name": "입력 검증",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://foreverlove.co.kr/shop/login.html",
+        "sendBody": true,
+        "contentType": "form-urlencoded",
+        "bodyParameters": {
+          "parameters": [
+            { "name": "userid", "value": "={{ $json.userId }}" },
+            { "name": "passwd", "value": "={{ $json.password }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "http-login-verify",
+      "name": "MakeShop 로그인 검증",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 입력 검증에서 이미 실패했으면 패스\nconst prev = $('입력 검증').first().json;\nif (prev.loginFailed) {\n  return [{ json: { loginFailed: true, error: prev.error, userId: '' } }];\n}\n\nconst raw = $input.first().json;\nlet body = '';\nif (typeof raw === 'string') body = raw;\nelse if (typeof raw.data === 'string') body = raw.data;\nelse body = JSON.stringify(raw);\n\n// MakeShop 로그인 실패: alert('ID 또는 비밀번호가 틀립니다.')\nif (body.indexOf('틀립니다') !== -1 || body.indexOf('alert(') !== -1) {\n  return [{ json: { loginFailed: true, error: '아이디 또는 비밀번호가 일치하지 않습니다', userId: '' } }];\n}\n\nreturn [{ json: { loginFailed: false, userId: prev.userId } }];"
+      },
+      "id": "code-check-login",
+      "name": "로그인 결과 확인",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
     },
     {
       "parameters": {
@@ -50,17 +80,17 @@
       "name": "MakeShop 회원 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [640, 300]
+      "position": [1080, 300]
     },
     {
       "parameters": {
-        "jsCode": "const raw = $input.first().json;\nlet data = raw;\nif (typeof raw.data === 'string') { try { data = JSON.parse(raw.data); } catch(e) {} }\nlet members = [];\nif (data.list && Array.isArray(data.list)) {\n  members = data.list;\n} else if (data && typeof data === 'object') {\n  members = Object.values(data).filter(v => typeof v === 'object' && v !== null && (v.userid || v.id));\n}\nif (members.length === 0) {\n  return [{ json: { success: false, error: '존재하지 않는 회원입니다' } }];\n}\nconst m = members[0];\n\nconst payload = JSON.stringify({\n  userId: m.userid || m.id || '',\n  name: m.name || '',\n  email: m.email || '',\n  phone: m.mobile || m.phone || '',\n  grade: m.group_name || '',\n  iat: Date.now(),\n  exp: Date.now() + 7 * 24 * 60 * 60 * 1000\n});\nconst token = Buffer.from(payload).toString('base64');\n\nconst user = {\n  id: m.userid || m.id || '',\n  name: m.name || '',\n  email: m.email || '',\n  phone: m.mobile || m.phone || '',\n  isPartner: (m.group_name || '').includes('강사') || (m.group_no || '') !== '1',\n  partnerGrade: null,\n};\n\nconst gn = (m.group_name || '').toUpperCase();\nif (gn.includes('AMBASSADOR') || gn.includes('앰배서더')) user.partnerGrade = 'AMBASSADOR';\nelse if (gn.includes('ATELIER') || gn.includes('아뜰리에')) user.partnerGrade = 'ATELIER';\nelse if (gn.includes('GARDEN') || gn.includes('가든')) user.partnerGrade = 'GARDEN';\nelse if (gn.includes('BLOOM') || gn.includes('블룸')) user.partnerGrade = 'BLOOM';\n\nreturn [{ json: { success: true, data: { token, user } } }];"
+        "jsCode": "// 로그인 실패 플래그 확인\nconst loginCheck = $('로그인 결과 확인').first().json;\nif (loginCheck.loginFailed) {\n  return [{ json: { success: false, error: loginCheck.error } }];\n}\n\nconst raw = $input.first().json;\nlet data = raw;\nif (typeof raw.data === 'string') { try { data = JSON.parse(raw.data); } catch(e) {} }\nlet members = [];\nif (data.list && Array.isArray(data.list)) {\n  members = data.list;\n} else if (data && typeof data === 'object') {\n  members = Object.values(data).filter(v => typeof v === 'object' && v !== null && (v.userid || v.id));\n}\nif (members.length === 0) {\n  return [{ json: { success: false, error: '회원 정보를 불러올 수 없습니다' } }];\n}\nconst m = members[0];\n\nconst payload = JSON.stringify({\n  userId: m.userid || m.id || '',\n  name: m.name || '',\n  email: m.email || '',\n  phone: m.mobile || m.phone || '',\n  grade: m.group_name || '',\n  iat: Date.now(),\n  exp: Date.now() + 7 * 24 * 60 * 60 * 1000\n});\nconst token = Buffer.from(payload).toString('base64');\n\nconst user = {\n  id: m.userid || m.id || '',\n  name: m.name || '',\n  email: m.email || '',\n  phone: m.mobile || m.phone || '',\n  isPartner: (m.group_name || '').includes('강사') || (m.group_no || '') !== '1',\n  partnerGrade: null,\n};\n\nconst gn = (m.group_name || '').toUpperCase();\nif (gn.includes('AMBASSADOR') || gn.includes('앰배서더')) user.partnerGrade = 'AMBASSADOR';\nelse if (gn.includes('ATELIER') || gn.includes('아뜰리에')) user.partnerGrade = 'ATELIER';\nelse if (gn.includes('GARDEN') || gn.includes('가든')) user.partnerGrade = 'GARDEN';\nelse if (gn.includes('BLOOM') || gn.includes('블룸')) user.partnerGrade = 'BLOOM';\n\nreturn [{ json: { success: true, data: { token, user } } }];"
       },
       "id": "code-auth-response",
       "name": "인증 처리",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [860, 300]
+      "position": [1300, 300]
     },
     {
       "parameters": {
@@ -80,12 +110,14 @@
       "name": "로그인 응답",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1080, 300]
+      "position": [1520, 300]
     }
   ],
   "connections": {
     "로그인 웹훅": { "main": [[{ "node": "입력 검증", "type": "main", "index": 0 }]] },
-    "입력 검증": { "main": [[{ "node": "MakeShop 회원 조회", "type": "main", "index": 0 }]] },
+    "입력 검증": { "main": [[{ "node": "MakeShop 로그인 검증", "type": "main", "index": 0 }]] },
+    "MakeShop 로그인 검증": { "main": [[{ "node": "로그인 결과 확인", "type": "main", "index": 0 }]] },
+    "로그인 결과 확인": { "main": [[{ "node": "MakeShop 회원 조회", "type": "main", "index": 0 }]] },
     "MakeShop 회원 조회": { "main": [[{ "node": "인증 처리", "type": "main", "index": 0 }]] },
     "인증 처리": { "main": [[{ "node": "로그인 응답", "type": "main", "index": 0 }]] }
   },

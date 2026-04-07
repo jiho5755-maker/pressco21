@@ -1,0 +1,90 @@
+{
+  "id": "NdSun2nGblSYSs0g",
+  "name": "[APP] 푸시 토큰 등록",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "app/push/register",
+        "responseMode": "responseNode",
+        "options": { "allowedOrigins": "*" }
+      },
+      "id": "webhook-push",
+      "name": "푸시 등록 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "webhookId": "app-push-register"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first().json;\nconst body = input.body || {};\nconst userId = body.userId || '';\nconst pushToken = body.pushToken || '';\nconst platform = body.platform || 'unknown';\n\nif (!pushToken) {\n  return [{ json: { success: false, error: '푸시 토큰이 없습니다' } }];\n}\n\nreturn [{ json: {\n  userId,\n  pushToken,\n  platform,\n  registeredAt: new Date().toISOString(),\n  active: true\n} }];"
+      },
+      "id": "code-validate",
+      "name": "토큰 검증",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [420, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/push_tokens/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ userId: $json.userId, pushToken: $json.pushToken, platform: $json.platform, registeredAt: $json.registeredAt, active: $json.active }) }}",
+        "options": { "timeout": 10000 }
+      },
+      "id": "http-save-token",
+      "name": "NocoDB 토큰 저장",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [640, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "return [{ json: { success: true, message: '푸시 토큰 등록 완료' } }];"
+      },
+      "id": "code-response",
+      "name": "응답 생성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [860, 300]
+    },
+    {
+      "parameters": {
+        "options": {
+          "responseCode": 200,
+          "responseHeaders": {
+            "entries": [
+              { "name": "Content-Type", "value": "application/json" },
+              { "name": "Access-Control-Allow-Origin", "value": "*" }
+            ]
+          }
+        },
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "respond-push",
+      "name": "응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1080, 300]
+    }
+  ],
+  "connections": {
+    "푸시 등록 웹훅": { "main": [[{ "node": "토큰 검증", "type": "main", "index": 0 }]] },
+    "토큰 검증": { "main": [[{ "node": "NocoDB 토큰 저장", "type": "main", "index": 0 }]] },
+    "NocoDB 토큰 저장": { "main": [[{ "node": "응답 생성", "type": "main", "index": 0 }]] },
+    "응답 생성": { "main": [[{ "node": "응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

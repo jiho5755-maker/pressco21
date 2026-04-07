@@ -1407,8 +1407,93 @@ Phase CRM ✅ 전체 완료 (2026-03-05)
 
 ## 변경 이력
 
+## 하네스 Phase 3: AI 자율운영 (2026-04-07 재설계)
+
+> **하네스 v4.0 경량화 완료**: CLAUDE.md 133→91줄, MEMORY.md 343→48줄, AI_SYNC.md 201→61줄, skipDangerous→false
+
+### Phase 3a: 업무 감지 체계 — HOLD
+
+> **보류 사유**: n8n 워크플로우(58개)가 이미 비정형 이벤트를 수집하고, Flora가 텔레그램 단일 허브 역할 수행 중.
+> 추가 감지 레이어는 직원 온보딩과 Flora 고도화 이후 재평가.
+>
+> **재개 조건**:
+> - Flora 텔레그램 3방 라우팅 완료 (3c-001)
+> - 이재혁 Chat ID 확보 + 자동화 WF 3종 활성
+> - 최소 1개월 운영 데이터 축적
+
+### Phase 3b: AI 기획안 파이프라인 — ACTIVE (최우선)
+
+> **목표**: "기획안 만들어줘" 한마디로 PRD → 디자인 브리프 자동 생성
+> **수혜자**: 장다경 팀장(디자인), 조승해 사원(상세페이지)
+
+#### Task 3b-001: PRD 템플릿 시스템
+
+> **상태**: ⬜ 대기 | **규모**: M | **예상**: 1일
+
+- 기획안 유형별 마크다운 템플릿 (상품 상세페이지, 이벤트, 랜딩, SNS)
+- 에이전트: content-brand-planner(opus) + makeshop-expert(opus)
+- 입력: 텔레그램/Claude Code에서 한줄 지시
+- 출력: PRD + 디자인 브리프 + 레퍼런스 리스트
+
+#### Task 3b-002: n8n WF 기획안 자동 생성
+
+> **상태**: ⬜ 대기 | **규모**: L | **예상**: 2일
+
+- 트리거: Flora 텔레그램 "기획안 [유형] [주제]"
+- 흐름: 텔레그램 → Flora → n8n → Claude API(PRD) → NocoDB(저장) → 텔레그램(완료)
+- NocoDB: tbl_PRD_Drafts (title, type, content_md, status, assignee)
+- 디자인팀 뷰: NocoDB 공유 뷰로 기획안 열람
+
+#### Task 3b-003: 디자인팀 핸드오프 자동화
+
+> **상태**: ⬜ 대기 | **규모**: M | **예상**: 1일 | **의존성**: 3b-002
+
+- 기획안 승인(대표) → 디자인 브리프 자동 텔레그램 전송
+- 브리프 포함: 페이지 구조, 카피 초안, 색상/폰트 가이드
+
+### Phase 3c: OpenClaw + 텔레그램 고도화 — ACTIVE
+
+> **목표**: Codex ↔ Flora 양방향 연동, 텔레그램에서 기술 작업 지시/결과 수신
+
+#### Task 3c-001: 텔레그램 3방 라우팅
+
+> **상태**: ⬜ 대기 | **규모**: L | **예상**: 2일 | **선행**: 이재혁 Chat ID
+
+- 업무방 (대표 + Flora): 지시, 브리핑, 메모
+- 알림방 (시스템): 입금, 감사 경보, 서버 상태
+- 개발방 (대표 + Claude/Codex): 기술 작업 지시/결과
+- Flora 메시지 내용 기반 자동 라우팅
+
+#### Task 3c-002: Codex 원격 실행
+
+> **상태**: ⬜ 대기 | **규모**: L | **예상**: 3일 | **선행**: Flora 서버 이전
+
+- 텔레그램 → Flora → OpenClaw API → Codex 태스크 실행
+- 결과를 텔레그램 개발방으로 피드백
+- 안전장치: 배포/DB 변경은 대표 승인 필요
+
+#### Task 3c-003: Flora task ledger
+
+> **상태**: ⬜ 대기 | **규모**: M | **예상**: 2일
+
+- "메모해줘" → NocoDB tbl_Tasks 자동 저장
+- 우선순위 자동 분류 (P0~P3)
+- 아침 브리핑에 task 우선순위 포함
+
+### Phase 3 일정표
+
+```
+Week 1 (4/7~4/11): 하네스 v4.0 경량화 ✅ + 3b-001 + 3b-002
+Week 2 (4/14~4/18): 3b-003 핸드오프 + 3c-001 텔레그램 3방 [선행: 이재혁 Chat ID]
+Week 3 (4/21~4/25): 3c-003 task ledger + 3c-002 Codex 원격 [선행: Flora 서버 이전]
+Week 4 (4/28~5/2): 통합 테스트 + 직원 온보딩 + Phase 3a 재평가
+```
+
+---
+
 | 날짜 | 내용 |
 |------|------|
+| 2026-04-07 | 하네스 v4.0: CLAUDE.md/MEMORY/AI_SYNC 경량화, skipDangerous→false, Phase 3 재설계(3a HOLD/3b+3c ACTIVE) |
 | 2026-04-05 | 하네스 Phase 2 코드 완료: 주간 전략 회의 API(`/briefings/weekly-strategy`)+WF(`Zr6aR0h0VAMbhDTV`), 이재혁 자동화 WF 3종(staff-briefing/shipping/cs-alert), staff 브리핑 API(`/briefings/staff?assignee=`), 서버 이전 준비(docker-compose.flora.yml+deploy-flora.sh+MIGRATION-GUIDE.md), auto-heal.sh, Next.js 빌드+서버 배포 검증 완료. 남은 작업: n8n API키 갱신→WF 활성화, 이재혁 Chat ID 수집, 서버 물리 이전, auto-heal cron 등록 |
 | 2026-04-05 | 하네스 Phase 1.5 완료: 아침 브리핑 우선순위 포맷(🔴🟡⏳📋)+점심 체크인(12:30, `4Ap51Ryf15yrSUR4`)+assignee 필드+메모해줘 패턴 → 전체 배포 완료 |
 | 2026-04-05 | 하네스 Phase 1 완료: 에이전트 51→25 재구성(opus10/sonnet10/haiku5, 3-Tier), CLAUDE.md 조직도 Tier 기반 교체, orchestration 스킬 라우팅+Tier 확장, MakeShop 스크립트 4개(vtag-lint/snapshot/diff-remote/batch-push), 토큰 ~12K→~2.6K(78%↓) |

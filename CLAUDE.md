@@ -1,4 +1,4 @@
-<!-- HARNESS-META: v3.2 | 2026-03-29 | Claude Code -->
+<!-- HARNESS-META: v4.0 | 2026-04-07 | Claude Code -->
 # PRESSCO21 프로젝트 CLAUDE 지침
 
 ## AI handoff first
@@ -42,15 +42,9 @@
 - **Codex 설정 파일**: `AGENTS.md` (루트 + 서브디렉토리), `.codex/config.toml`
 - **서브디렉토리 격리**: 서로 다른 서브디렉토리면 동시 WRITE 가능
 
-### 브랜치 관리 필수 규칙 (재발 방지)
+### 브랜치 관리
 
-**원칙: 모든 작업물은 반드시 main에 머지되어야 "완료"**
-
-1. **main 브랜치 커밋 원칙**: Claude Code와 Codex 모두 기본적으로 main에서 작업. 브랜치는 실험/테스트 용도로만 사용
-2. **브랜치 작업 시 머지 의무**: 브랜치에서 작업 완료 후 반드시 main에 머지하고 push. 브랜치에만 커밋하고 끝내지 않는다
-3. **세션 종료 전 브랜치 점검**: 작업 종료 시 `git branch`로 현재 브랜치 확인. main이 아니면 머지 또는 AI_SYNC.md에 "미머지 브랜치: {이름}, 용도: {설명}" 기록
-4. **미머지 브랜치 주간 점검**: 매주 `git branch -a`로 미머지 브랜치가 있는지 확인. 2주 이상 방치된 브랜치는 main과 diff 분석 후 머지 또는 삭제
-5. **Codex 브랜치 생성 시**: AI_SYNC.md에 브랜치명과 목적을 반드시 기록. 작업 완료 후 main 머지까지 책임
+모든 작업은 main 커밋 기본. 브랜치는 실험용만. 미머지 브랜치는 AI_SYNC.md에 기록.
 
 ## 메이크샵 스킨 정본 규칙 (2026-04-02~)
 
@@ -93,41 +87,5 @@
 
 ## 에이전트 조직도 (25개, 3-Tier)
 
-opus 10 / sonnet 10 / haiku 5. 상세: `docs/PRD-하네스-종합고도화-v2.md` Section 2.
-
-### Tier 1 — 상시 활성 (7개)
-| 에이전트 | 모델 | 역할 |
-|---------|------|------|
-| chief-technology-officer | opus | 기술 아키텍처, 자동화 로드맵 |
-| project-manager | sonnet | 태스크 관리, PRD, 브리핑, 로드맵 |
-| makeshop-expert | opus | 메이크샵 D4 기획/UI/API/페이지 |
-| code-inspector | haiku | 편집기 저장 전 코드 검수 |
-| deploy-manager | haiku | Chrome MCP 스킨 배포 |
-| n8n-builder | sonnet | 워크플로우 JSON 생성/디버깅 |
-| server-ops | sonnet | Docker/Nginx/SSL, 모니터링 |
-
-### Tier 2 — 키워드 트리거 (8개)
-| 에이전트 | 모델 | 트리거 |
-|---------|------|--------|
-| chief-strategy-officer | opus | 사업전략, 생태계, 포트폴리오 |
-| chief-financial-officer | opus | 수익성, 마진, 세무, 투자 |
-| chief-marketing-officer | opus | 마케팅, ROAS, 브랜드 |
-| chief-operating-officer | opus | 프로세스, CS, 물류, 정산 |
-| content-brand-planner | opus | 콘텐츠 기획, 카피, 브랜드 톤 |
-| product-planner | opus | 신상품, 트렌드, 라인업 |
-| partner-class-architect | opus | 파트너클래스 설계, 어드민 |
-| compliance-advisor | opus | 법률, 계약, 개인정보, 관세 |
-
-### Tier 3 — 위임 전용 (10개)
-| 에이전트 | 모델 | 역할 |
-|---------|------|------|
-| ad-operations | sonnet | 네이버SA/쿠팡/메타 광고 |
-| seo-expert | sonnet | SEO, GA4, Core Web Vitals |
-| security-advisor | sonnet | 보안 감사, XSS/CSRF |
-| customer-support | sonnet | CS, FAQ, AI챗봇 |
-| inventory-logistics | sonnet | 사방넷 재고, 발주, 물류 |
-| hr-coach | sonnet | 직원 교육, 매뉴얼 |
-| overseas-sourcing | sonnet | 1688 소싱, 관세/통관 |
-| accounting | haiku | 장부, 거래명세표, 세무사 |
-| skin-auditor | haiku | 브랜드 일관성 스캔 |
-| qa-test | haiku | E2E, 크로스브라우저, QA |
+opus 10 / sonnet 10 / haiku 5. T1=7상시, T2=8트리거, T3=10위임.
+에이전트 파일: `~/.claude/agents/` | 라우팅: `~/.claude/rules/agent-routing.md`

@@ -50,6 +50,20 @@ Use the right layer for the right kind of memory. Do not turn `AI_SYNC.md` into 
    - Run `bash pressco21/_tools/codex-finish.sh --summary "<summary>" --next "<next step>" [--risk "<risk>"]`
    - Return `AI_SYNC.md` to `IDLE`
 
+## OMX Overlay
+
+Use OMX as an overlay when the task needs role-splitting or parallel lanes, but keep the current
+project rules and close-out routine.
+
+- Bootstrap once: `bash pressco21/_tools/omx-bootstrap.sh`
+- Run OMX locally: `bash pressco21/_tools/omx-run.sh ...`
+- Use n8n presets: `bash pressco21/_tools/omx-n8n.sh <preset>`
+- Reference guide: `docs/omx-overlay-mode.md`
+- Recipe guide: `docs/omx-vibe-recipes.md`
+
+Do not run `omx setup` directly in `pressco21/` unless the project intentionally migrates AGENTS
+and config ownership to OMX.
+
 ## Natural-Language Requests For Codex
 
 ### Session Start

@@ -83,6 +83,13 @@
 - Commit only selected paths at a stable point.
 - Push only when the branch state is understood.
 
+## OMX Overlay Mode
+
+- `pressco21` uses a safe local OMX overlay path via `_tools/omx-bootstrap.sh` and `_tools/omx-run.sh`.
+- Overlay mode keeps the current `AGENTS.md` and global `~/.codex/config.toml` as the baseline.
+- Do not run `omx setup` directly in `pressco21/` unless the project intentionally migrates to OMX-managed AGENTS/config ownership.
+- For recurring `n8n-automation` work, prefer `_tools/omx-n8n.sh` presets before writing ad-hoc OMX prompts from scratch.
+
 ## Files And Paths To Remember
 
 - Session logs: `output/codex-sessions/`

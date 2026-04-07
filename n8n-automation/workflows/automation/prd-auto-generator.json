@@ -39,7 +39,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const row = $input.first().json;\nconst id = row.Id || row.id || '?';\nconst title = row.title || '기획안';\nconst typeName = row.prd_type || '';\nconst preview = (row.content_md || '').slice(0, 500).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));\n\nconst msg = [\n  '<b>[기획안 저장 완료]</b>',\n  '',\n  `<b>제목</b>: \\${title}`,\n  `<b>유형</b>: \\${typeName}`,\n  `<b>NocoDB ID</b>: #\\${id}`,\n  '',\n  `<pre>\\${preview}...</pre>`,\n  '',\n  `승인: \"기획안 승인 #\\${id}\"`,\n  `배정: \"기획안 배정 #\\${id} 다경\"`\n].join('\\n');\n\nreturn [{ json: { message: msg, id } }];"
+        "jsCode": "const row = $input.first().json;\nconst id = row.Id || row.id || '?';\nconst title = row.title || '기획안';\nconst typeName = row.prd_type || '';\nconst preview = (row.content_md || '').slice(0, 500).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));\n\nconst msg = [\n  '<b>[기획안 저장 완료]</b>',\n  '',\n  `<b>제목</b>: ${title}`,\n  `<b>유형</b>: ${typeName}`,\n  `<b>NocoDB ID</b>: #${id}`,\n  '',\n  `<pre>${preview}...</pre>`,\n  '',\n  `승인: \"기획안 승인 #${id}\"`,\n  `배정: \"기획안 배정 #${id} 다경\"`\n].join('\\n');\n\nreturn [{ json: { message: msg, id } }];"
       },
       "id": "build-msg",
       "name": "알림 메시지 구성",
@@ -49,7 +49,7 @@
     },
     {
       "parameters": {
-        "chatId": "7713811206",
+        "chatId": "-5043778307",
         "text": "={{ $json.message }}",
         "additionalFields": { "parse_mode": "HTML" }
       },
@@ -136,7 +136,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const prev = $('액션 파싱').first().json;\nconst row = $input.first().json;\nconst title = row.title || '기획안';\nlet msg = '';\nif (prev.action === 'approve') {\n  msg = `<b>[승인 완료]</b> #\\${prev.rowId} \\${title}\\n배정: \\\"기획안 배정 #\\${prev.rowId} 다경\\\"`;\n} else {\n  msg = `<b>[배정 완료]</b> #\\${prev.rowId} \\${title} → \\${prev.patch.assignee}`;\n}\nreturn [{ json: { message: msg } }];"
+        "jsCode": "const prev = $('액션 파싱').first().json;\nconst row = $input.first().json;\nconst title = row.title || '기획안';\nlet msg = '';\nif (prev.action === 'approve') {\n  msg = `<b>[승인 완료]</b> #${prev.rowId} ${title}\\n배정: \\\"기획안 배정 #${prev.rowId} 다경\\\"`;\n} else {\n  msg = `<b>[배정 완료]</b> #${prev.rowId} ${title} → ${prev.patch.assignee}`;\n}\nreturn [{ json: { message: msg } }];"
       },
       "id": "action-msg",
       "name": "결과 메시지",
@@ -146,7 +146,7 @@
     },
     {
       "parameters": {
-        "chatId": "7713811206",
+        "chatId": "-5043778307",
         "text": "={{ $json.message }}",
         "additionalFields": { "parse_mode": "HTML" }
       },

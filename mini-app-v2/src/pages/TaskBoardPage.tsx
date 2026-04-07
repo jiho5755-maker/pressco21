@@ -12,7 +12,7 @@ import { useToast } from "@/components/layout/Toast";
 import { fetchActiveTasks, fetchDoneTasks, updateTask, fetchMe, fetchStaff } from "@/lib/api";
 import { getStoredMyName, setStoredMyName } from "@/lib/userPrefs";
 import { usePullToRefresh } from "@/hooks/usePullToRefresh";
-import { Plus, Loader2, Inbox, Check, Search, X, ArrowUpDown, RefreshCw } from "lucide-react";
+import { Plus, Loader2, Inbox, Check, Search, X, ArrowUpDown, RefreshCw, Trash2, CheckSquare, Square } from "lucide-react";
 import type { Task, StaffMember } from "@/lib/types";
 import { isToday, daysUntil } from "@/lib/format";
 
@@ -88,6 +88,8 @@ export function TaskBoardPage() {
   const [showSearch, setShowSearch] = useState(false);
   const [sortBy, setSortBy] = useState<SortType>("priority");
   const [showSort, setShowSort] = useState(false);
+  const [selectMode, setSelectMode] = useState(false);
+  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
     const [active, done, me, staffList] = await Promise.all([
@@ -181,6 +183,34 @@ export function TaskBoardPage() {
     }, [tasks, doneTasks, showToast]
   );
 
+  function toggleSelect(id: string) {
+    setSelectedIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  }
+
+  function selectAll() {
+    const ids = filteredTasks.map((t) => t.id);
+    setSelectedIds((prev) => prev.size === ids.length ? new Set() : new Set(ids));
+  }
+
+  async function bulkDelete() {
+    const ids = [...selectedIds];
+    if (ids.length === 0) return;
+    try {
+      await Promise.all(ids.map((id) => updateTask(id, { status: "cancelled" as never })));
+      setTasks((prev) => prev.filter((t) => !selectedIds.has(t.id)));
+      setDoneTasks((prev) => prev.filter((t) => !selectedIds.has(t.id)));
+      showToast(`${ids.length}건 삭제 완료`, "success");
+      setSelectedIds(new Set());
+      setSelectMode(false);
+    } catch {
+      showToast("일부 삭제에 실패했습니다", "error");
+    }
+  }
+
   const filterChips: { key: FilterType; label: string; count?: number }[] = [
     { key: "all", label: "전체" },
     { key: "urgent", label: "긴급", count: summary.urgent },
@@ -191,15 +221,32 @@ export function TaskBoardPage() {
 
   return (
     <div className="flex flex-col min-h-screen">
-      <Header title="업무 보드" showBack rightAction={
-        <div className="flex items-center gap-0.5">
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowSearch(!showSearch)}>
-            <Search className="h-4 w-4" />
-          </Button>
-          <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => navigate("/tasks/new")}>
-            <Plus className="h-5 w-5" />
-          </Button>
-        </div>
+      <Header title={selectMode ? `${selectedIds.size}건 선택` : "업무 보드"} showBack rightAction={
+        selectMode ? (
+          <div className="flex items-center gap-0.5">
+            <Button size="sm" variant="ghost" className="h-8 text-xs" onClick={selectAll}>
+              {selectedIds.size === filteredTasks.length ? "선택해제" : "전체선택"}
+            </Button>
+            <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" onClick={bulkDelete} disabled={selectedIds.size === 0}>
+              <Trash2 className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => { setSelectMode(false); setSelectedIds(new Set()); }}>
+              <X className="h-4 w-4" />
+            </Button>
+          </div>
+        ) : (
+          <div className="flex items-center gap-0.5">
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setSelectMode(true)} title="선택">
+              <CheckSquare className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => setShowSearch(!showSearch)}>
+              <Search className="h-4 w-4" />
+            </Button>
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={() => navigate("/tasks/new")}>
+              <Plus className="h-5 w-5" />
+            </Button>
+          </div>
+        )
       } />
 
       {/* 풀투리프레시 인디케이터 */}
@@ -334,7 +381,18 @@ export function TaskBoardPage() {
                   </div>
                 ) : (
                   filteredTasks.map((task) => (
-                    <TaskCard key={task.id} task={task} onQuickAction={tab !== "done" ? handleQuickAction : undefined} />
+                    <div key={task.id} className="flex items-center gap-2">
+                      {selectMode && (
+                        <button type="button" className="flex-shrink-0 p-1" onClick={() => toggleSelect(task.id)}>
+                          {selectedIds.has(task.id)
+                            ? <CheckSquare className="h-5 w-5 text-primary" />
+                            : <Square className="h-5 w-5 text-muted-foreground/40" />}
+                        </button>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <TaskCard task={task} onQuickAction={selectMode ? undefined : (tab !== "done" ? handleQuickAction : undefined)} />
+                      </div>
+                    </div>
                   ))
                 )}
               </TabsContent>

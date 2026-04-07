@@ -55,6 +55,11 @@ bash _tools/omx-run.sh status
 bash _tools/omx-run.sh --xhigh
 ```
 
+If you launch `team` from a normal shell, the wrapper automatically creates a leader tmux session
+and runs OMX there.
+If you launch from inside tmux, OMX keeps the normal interactive team mode in the current tmux
+window.
+
 Refresh the overlay profile after OMX prompt updates:
 
 ```bash

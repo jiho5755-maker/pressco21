@@ -58,23 +58,21 @@ preset="$1"
 shift
 extra_task="$*"
 
-base_prompt=$'Workspace rules:\n- Current working repo is /Users/jangjiho/workspace/pressco21.\n- Treat /Users/jangjiho/Desktop/n8n-main as a read-only reference library.\n- Do not modify Desktop/n8n-main.\n- Keep changes path-scoped to pressco21/n8n-automation, docs, and helper scripts unless the task explicitly widens scope.\n- Respect existing AGENTS.md, AI_SYNC.md, and Codex close-out helpers.\n- Prefer exact file-path findings, regression risks, and validation steps over general advice.\n'
-
 case "$preset" in
   migration-check)
-    task_prompt=$'Task:\nCompare /Users/jangjiho/Desktop/n8n-main/pressco21 against /Users/jangjiho/workspace/pressco21/n8n-automation.\nFocus on workflow JSON, supporting docs, and helper scripts.\nClassify findings into migrated, drifted, and missing.\nCall out exact paths that still need manual migration or should stay reference-only.\nDo not make destructive changes. Produce a migration checklist first.'
+    task_prompt=$'1. Compare Desktop/n8n-main/pressco21 workflow JSON against workspace/pressco21/n8n-automation and list missing or drifted paths.\n2. Compare supporting docs and helper scripts while keeping Desktop/n8n-main read-only and mark what should stay reference-only.\n3. Produce a migrated, drifted, missing checklist with exact paths and next migration actions.'
     ;;
   accounting-audit)
-    task_prompt=$'Task:\nAudit pressco21/n8n-automation/workflows/accounting for parser, ledger, alerting, and replay regression risks.\nLook for node wiring mistakes, shared-code drift, missing fixtures, and deploy-safety gaps.\nPrefer concrete file-level findings and suggested tests.'
+    task_prompt=$'1. Audit accounting workflow wiring for parser, ledger, alerting, and replay regressions.\n2. Audit shared code, fixtures, and deploy helpers connected to accounting workflows.\n3. Report concrete risks, exact file paths, and the smallest useful validation tests.'
     ;;
   govt-support-audit)
-    task_prompt=$'Task:\nAudit pressco21/n8n-automation/workflows/govt-support for migration drift, broken references, and workflow boundary issues.\nCheck whether related docs and helper assets inside workspace still match the active workflow structure.\nPrefer findings that reduce live-edit risk before any redeploy.'
+    task_prompt=$'1. Audit govt-support workflow files for migration drift and broken references.\n2. Compare related workspace docs and helper assets against the active workflow structure.\n3. Report exact paths and live-edit risks that should be resolved before any redeploy.'
     ;;
   homepage-audit)
-    task_prompt=$'Task:\nAudit pressco21/n8n-automation/workflows/homepage for form-routing, footer/contact drift, and stale asset references.\nCompare current workspace structure against read-only reference material when useful.\nHighlight anything that would break vibe-coded homepage automations or handoff clarity.'
+    task_prompt=$'1. Audit homepage workflows for form routing, footer contact drift, and stale asset references.\n2. Compare current workspace files with read-only reference material where that helps explain drift.\n3. Report exact breakpoints that would hurt vibe-coded homepage automations or handoff clarity.'
     ;;
   verify-preflight)
-    task_prompt=$'Task:\nRun a preflight-style review for pending n8n-automation work.\nLook for dirty-tree contamination, missing backups, likely deploy blockers, and paths that should not be committed together.\nReturn a go/no-go style checklist with exact affected paths.'
+    task_prompt=$'1. Check dirty-tree contamination and paths that should not be committed together.\n2. Check for missing checkpoints, missing backups, and likely deploy blockers around n8n-automation.\n3. Produce a go or no-go checklist with exact affected paths and next actions.'
     ;;
   implement)
     if [ -z "$extra_task" ]; then
@@ -82,7 +80,7 @@ case "$preset" in
       usage
       exit 1
     fi
-    task_prompt=$'Task:\nImplement the requested n8n-automation change inside pressco21.\nKeep Desktop/n8n-main read-only, preserve path-scoped commits, and include the validation plan.\nRequested change: '"$extra_task"
+    task_prompt="$extra_task"
     ;;
   *)
     echo "Unknown preset: $preset" >&2
@@ -91,13 +89,10 @@ case "$preset" in
     ;;
 esac
 
-full_prompt="$base_prompt
-$task_prompt"
-
 if [ $print_only -eq 1 ]; then
-  printf '%s\n' "$full_prompt"
+  printf '%s\n' "$task_prompt"
   exit 0
 fi
 
 cd "$REPO_ROOT"
-exec bash "$OMX_RUN_SCRIPT" team "$lanes" "$full_prompt"
+exec bash "$OMX_RUN_SCRIPT" team "$lanes" "$task_prompt"

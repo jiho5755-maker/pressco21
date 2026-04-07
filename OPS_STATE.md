@@ -89,6 +89,7 @@
 - Overlay mode keeps the current `AGENTS.md` and global `~/.codex/config.toml` as the baseline.
 - Do not run `omx setup` directly in `pressco21/` unless the project intentionally migrates to OMX-managed AGENTS/config ownership.
 - For recurring `n8n-automation` work, prefer `_tools/omx-n8n.sh` presets before writing ad-hoc OMX prompts from scratch.
+- Outside tmux, `_tools/omx-run.sh team ...` auto-creates a leader tmux session and starts the team there so the same commands still work from a normal shell.
 
 ## Files And Paths To Remember
 

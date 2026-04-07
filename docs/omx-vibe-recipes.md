@@ -39,6 +39,10 @@ bash _tools/omx-n8n.sh verify-preflight
 bash _tools/omx-n8n.sh implement "add rollback-safe parser guard to accounting workflows"
 ```
 
+If you run these from a normal terminal window, the wrapper automatically creates a leader tmux
+session and starts the team there.
+If you run them inside tmux, OMX uses the normal interactive team path in the current tmux window.
+
 ## What Each Preset Is For
 
 ### `migration-check`

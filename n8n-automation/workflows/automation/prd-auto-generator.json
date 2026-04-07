@@ -49,7 +49,7 @@
     },
     {
       "parameters": {
-        "chatId": "-5043778307",
+        "chatId": "7713811206",
         "text": "={{ $json.message }}",
         "additionalFields": { "parse_mode": "HTML" }
       },
@@ -59,7 +59,7 @@
       "typeVersion": 1.2,
       "position": [960, 300],
       "credentials": {
-        "telegramApi": { "id": "RdFu3nsFuuO5NCff", "name": "Telegram Makeshop Bot" }
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
       }
     },
     {
@@ -146,7 +146,7 @@
     },
     {
       "parameters": {
-        "chatId": "-5043778307",
+        "chatId": "7713811206",
         "text": "={{ $json.message }}",
         "additionalFields": { "parse_mode": "HTML" }
       },
@@ -156,7 +156,7 @@
       "typeVersion": 1.2,
       "position": [1440, 560],
       "credentials": {
-        "telegramApi": { "id": "RdFu3nsFuuO5NCff", "name": "Telegram Makeshop Bot" }
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
       }
     },
     {

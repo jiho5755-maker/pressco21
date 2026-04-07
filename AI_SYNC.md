@@ -51,18 +51,22 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-07 11:40:53 KST
+- Started At: —
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: —
 
 ## Files In Progress
-- (없음)
+- —
 
 ## Last Changes
 
 > 전체 이력: `archive/ai-sync-history/AI_SYNC_2026-04-04_full.md`
 
+- 2026-04-07 파트너클래스 온보딩/유도 WF 오배포 변경분 원복 및 비활성 정리 (codex)
+  - `onboard-email-sequence.json`, `partner-onboard-campaign.json`의 `nocodb.pressco21.com/apply` 반영분을 원복하고 운영 워크플로우 `EHSTmyM5TXdcqIev`, `T2AIOstBD9JKdNOg`에 재배포
+  - `ONBOARD-SEQ`, `PARTNER-ONBOARD`는 현재 모두 `active=false`로 확인했고, 파트너클래스 런칭 전까지 비활성 유지
+  - `https://nocodb.pressco21.com/apply`는 `FA-003_강사_반려_이메일_자동발송.json`의 `서류 보완하여 재신청하기` CTA 전용으로만 유지
 - 2026-04-07 고객 상세 거래내역에서 명세표 수정 시 인라인 유지로 전환 (codex)
   - `offline-crm-v2/src/pages/CustomerDetail.tsx`에서 고객 상세 내부에 `InvoiceDialog`를 직접 연결해, 거래내역 상세의 `수정 열기`가 `/invoices`로 이동하지 않고 현재 고객 상세 위에서 바로 수정 모달을 띄우도록 변경
   - `offline-crm-v2/src/components/TransactionDetailDialog.tsx`에 선택적 편집 콜백을 추가해 호출 컨텍스트별로 라우팅/인라인 편집을 분기
@@ -123,8 +127,8 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라 서버)
 
 ### Codex 담당 (요약)
-- `[CODEX]` 고객지원: 이미 발송된 구버전 메일은 본문이 소급 수정되지 않으므로 필요 시 최신 신청 링크 `https://nocodb.pressco21.com/apply` 별도 안내
-- `[CODEX]` 고객지원: 이미 발송된 FA-003 반려 메일 수신자에게는 `/shop/page.html?id=2609` 재신청 링크 별도 안내 또는 재발송 필요 여부 점검
+- `[CODEX]` 고객지원: 이미 발송된 구버전 FA-003 반려 메일은 본문이 소급 수정되지 않으므로 필요 시 최신 신청 링크 `https://nocodb.pressco21.com/apply` 별도 안내
+- `[CODEX]` 파트너클래스: `ONBOARD-SEQ`, `PARTNER-ONBOARD`는 런칭 전까지 비활성 유지, 링크/푸터 수정 재배포 금지
 - `[CODEX]` CRM 운영: WF-CRM-03 첫 감사 경보 수신 방 확인 (`PRESSCO_AUDIT_CHAT_ID` 미설정 fallback은 `TELEGRAM_CHAT_ID`)
 - `[CODEX]` CRM 운영: `PRESSCO_AUDIT_CHAT_ID` 서버 env 추가 시 플로라 방 고정
 - `[CODEX]` CRM 운영: 다음 실제 감사 경보 발생 시 `presscoBankReconIssueState` 기준으로 동일 key 재발 여부 확인
@@ -142,6 +146,7 @@
 ## Known Risks
 
 - n8n CLI `import:workflow`는 active WF를 비활성화함. 배포 후 반드시 `publish:workflow` + restart
+- `ONBOARD-SEQ`, `PARTNER-ONBOARD`는 현재 의도적으로 `inactive` 상태다. 파트너클래스 런칭 전 재활성/재배포 시 노출 범위 확인이 먼저 필요
 - `PRESSCO_AUDIT_CHAT_ID`가 아직 없으면 WF-CRM-03은 `TELEGRAM_CHAT_ID` fallback 방으로 간다. Flora 전용 방 고정이 필요하면 env 추가 세팅 필요
 - WF-CRM-03은 이제 `parseFailure 알림이 이미 sent인 과거 이력`만으로는 경보를 내지 않는다. 과거 parseFailure 수동 조치 추적이 필요하면 별도 ack 필드/대시보드가 추가로 필요
 - 새 issue key 설계는 `messageKey/eventKey/day` 단위다. 더 세밀한 운영 ack가 필요하면 별도 issue grouping 정책을 추가해야 함

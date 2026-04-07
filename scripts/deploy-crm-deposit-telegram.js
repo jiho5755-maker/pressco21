@@ -19,6 +19,10 @@ var WORKFLOW_SPECS = [
     name: 'WF-CRM-02 Gmail 입금알림 수집',
     localPath: path.join(REPO_ROOT, 'n8n-automation', 'workflows', 'accounting', 'WF-CRM-02_Gmail_입금알림_수집.json'),
   },
+  {
+    name: 'WF-CRM-03 입금알림 정합성 감사',
+    localPath: path.join(REPO_ROOT, 'n8n-automation', 'workflows', 'accounting', 'WF-CRM-03_입금알림_정합성_감사.json'),
+  },
 ];
 var BANK_BOT_CREDENTIAL_NAME = 'PRESSCO_BANK_BOT';
 var CRM_AUTOMATION_CREDENTIAL_NAME = 'PRESSCO21 CRM Automation Header';
@@ -600,6 +604,14 @@ function buildTelegramSummaryCode() {
   return crmDepositParserSource.buildCrmDepositTelegramSummaryCode();
 }
 
+function buildBankChatIdExpression() {
+  return "={{ $env.PRESSCO_BANK_CHAT_ID || $env.TELEGRAM_GROUP_ID || $env.TELEGRAM_CHAT_ID || '-5275298126' }}";
+}
+
+function buildAuditChatIdExpression() {
+  return "={{ $env.PRESSCO_AUDIT_CHAT_ID || $env.TELEGRAM_CHAT_ID || $env.PRESSCO_BANK_CHAT_ID || $env.TELEGRAM_GROUP_ID || '-5275298126' }}";
+}
+
 function patchCrmDepositCollector(workflow, telegramCredential) {
   var emailTriggerNode = findNode(workflow, 'Email Trigger (IMAP)');
   var bankSummaryNode = upsertNode(workflow, {
@@ -615,7 +627,7 @@ function patchCrmDepositCollector(workflow, telegramCredential) {
 
   upsertNode(workflow, {
     parameters: {
-      chatId: "={{ $env.PRESSCO_BANK_CHAT_ID || $env.TELEGRAM_GROUP_ID || $env.TELEGRAM_CHAT_ID || '-5275298126' }}",
+      chatId: buildBankChatIdExpression(),
       text: "={{ $json._telegramMessage }}",
       additionalFields: {},
     },
@@ -646,7 +658,7 @@ function patchCrmDepositCollector(workflow, telegramCredential) {
 
   upsertNode(workflow, {
     parameters: {
-      chatId: "={{ $env.PRESSCO_BANK_CHAT_ID || $env.TELEGRAM_GROUP_ID || $env.TELEGRAM_CHAT_ID || '-5275298126' }}",
+      chatId: buildBankChatIdExpression(),
       text: "={{ $json._telegramMessage }}",
       additionalFields: {},
     },
@@ -682,6 +694,25 @@ function patchCrmDepositCollector(workflow, telegramCredential) {
   setSingleConnection(workflow, bankSummaryNode.name, 'Telegram Bank Event Summary');
   setSingleConnection(workflow, 'HTTP Call Intake Engine', buildNode.name);
   setSingleConnection(workflow, buildNode.name, 'Telegram Deposit Summary');
+  return workflow;
+}
+
+function patchCrmDepositAudit(workflow, telegramCredential) {
+  var telegramNode = findNode(workflow, 'Telegram Reconciliation Alert');
+
+  if (!telegramNode) {
+    throw new Error('Telegram Reconciliation Alert node not found');
+  }
+
+  telegramNode.parameters = telegramNode.parameters || {};
+  telegramNode.parameters.chatId = buildAuditChatIdExpression();
+  telegramNode.credentials = {
+    telegramApi: {
+      id: telegramCredential.id,
+      name: telegramCredential.name,
+    },
+  };
+
   return workflow;
 }
 
@@ -824,6 +855,8 @@ async function main() {
     } else if (workflow.name === 'WF-CRM-02 Gmail 입금알림 수집') {
       patchCollectorParser(workflow);
       patchCrmDepositCollector(workflow, telegramCredential);
+    } else if (workflow.name === 'WF-CRM-03 입금알림 정합성 감사') {
+      patchCrmDepositAudit(workflow, telegramCredential);
     }
 
     var payload = stripWorkflowPayload(workflow);

@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
-import { useParams } from "react-router-dom";
+import { useParams, useNavigate } from "react-router-dom";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,7 @@ import { hapticFeedback } from "@/lib/telegram";
 import { Input } from "@/components/ui/input";
 import { ChecklistDescription } from "@/components/task/ChecklistDescription";
 import { FileAttachments } from "@/components/task/FileAttachments";
-import { User, Calendar, FolderOpen, Loader2, ArrowRight, Inbox, Link2, Plus, X, CalendarRange, FileText, Clock } from "lucide-react";
+import { User, Calendar, FolderOpen, Loader2, ArrowRight, Inbox, Link2, Plus, X, CalendarRange, FileText, Clock, Pencil, Trash2, Check } from "lucide-react";
 import type { Task, Comment } from "@/lib/types";
 
 const STATUS_FLOW: { from: string; to: string; label: string; variant: "default" | "outline" }[] = [
@@ -44,6 +44,7 @@ function getAvatarColor(name: string): string {
 
 export function TaskDetailPage() {
   const { id: taskId } = useParams<{ id: string }>();
+  const navigate = useNavigate();
   const { showToast } = useToast();
 
   const [task, setTask] = useState<Task | null>(null);
@@ -52,6 +53,9 @@ export function TaskDetailPage() {
   const [updating, setUpdating] = useState(false);
   const [newLink, setNewLink] = useState("");
   const [showLinkInput, setShowLinkInput] = useState(false);
+  const [editingTitle, setEditingTitle] = useState(false);
+  const [editTitle, setEditTitle] = useState("");
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
 
   useEffect(() => {
     if (!taskId) return;
@@ -143,7 +147,51 @@ export function TaskDetailPage() {
               )}
             </div>
 
-            <h2 className="text-base font-bold leading-snug mb-3">{task.title}</h2>
+            {/* 제목 (터치하여 수정) */}
+            {editingTitle ? (
+              <div className="flex items-center gap-2 mb-3">
+                <Input
+                  value={editTitle}
+                  onChange={(e) => setEditTitle(e.target.value)}
+                  className="h-9 text-base font-bold flex-1"
+                  autoFocus
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && editTitle.trim()) {
+                      updateTask(task.id, { title: editTitle.trim() }).then(() => {
+                        setTask((p) => p ? { ...p, title: editTitle.trim() } : p);
+                        setEditingTitle(false);
+                        showToast("제목이 수정되었습니다", "success");
+                      });
+                    } else if (e.key === "Escape") {
+                      setEditingTitle(false);
+                    }
+                  }}
+                />
+                <Button size="icon" variant="ghost" className="h-8 w-8 text-primary"
+                  onClick={() => {
+                    if (!editTitle.trim()) return;
+                    updateTask(task.id, { title: editTitle.trim() }).then(() => {
+                      setTask((p) => p ? { ...p, title: editTitle.trim() } : p);
+                      setEditingTitle(false);
+                      showToast("제목이 수정되었습니다", "success");
+                    });
+                  }}>
+                  <Check className="h-4 w-4" />
+                </Button>
+                <Button size="icon" variant="ghost" className="h-8 w-8"
+                  onClick={() => setEditingTitle(false)}>
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+            ) : (
+              <div className="flex items-start gap-2 mb-3 group">
+                <h2 className="text-base font-bold leading-snug flex-1">{task.title}</h2>
+                <button type="button" className="flex-shrink-0 p-1 text-muted-foreground/40 hover:text-primary mt-0.5"
+                  onClick={() => { setEditTitle(task.title); setEditingTitle(true); }}>
+                  <Pencil className="h-3.5 w-3.5" />
+                </button>
+              </div>
+            )}
 
             <div className="space-y-2.5">
               {task.assignee && (
@@ -302,6 +350,31 @@ export function TaskDetailPage() {
                 </div>
               </>
             )}
+            {/* 삭제 */}
+            <Separator className="my-4" />
+            <div className="flex justify-end">
+              {showDeleteConfirm ? (
+                <div className="flex items-center gap-2 w-full">
+                  <p className="text-xs text-destructive flex-1">이 업무를 삭제하시겠습니까?</p>
+                  <Button size="sm" variant="outline" className="h-8 text-xs"
+                    onClick={() => setShowDeleteConfirm(false)}>취소</Button>
+                  <Button size="sm" variant="destructive" className="h-8 text-xs"
+                    onClick={() => {
+                      updateTask(task.id, { status: "cancelled" as never }).then(() => {
+                        showToast("삭제되었습니다", "success");
+                        hapticFeedback("medium");
+                        navigate(-1);
+                      }).catch(() => showToast("삭제 실패", "error"));
+                    }}>삭제</Button>
+                </div>
+              ) : (
+                <button type="button" className="flex items-center gap-1 text-xs text-muted-foreground/50 hover:text-destructive"
+                  onClick={() => setShowDeleteConfirm(true)}>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  업무 삭제
+                </button>
+              )}
+            </div>
           </CardContent>
         </Card>
 

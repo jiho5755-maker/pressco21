@@ -55,7 +55,7 @@ export function fetchDoneTasks(limit = 50): Promise<DashboardResponse> {
 
 export function updateTask(
   taskId: string,
-  body: Partial<Pick<Task, "status" | "priority" | "assignee">> & {
+  body: Partial<Pick<Task, "status" | "priority" | "assignee" | "title" | "dueAt" | "relatedProject">> & {
     description?: string | null;
     startAt?: string | null;
     links?: string[];

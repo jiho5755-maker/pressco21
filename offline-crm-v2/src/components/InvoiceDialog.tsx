@@ -1064,6 +1064,9 @@ export function InvoiceDialog({
         try { await recalcCustomerStats(effectiveCustomerId) } catch {}
       }
 
+      if (effectiveCustomerId) {
+        qc.invalidateQueries({ queryKey: ['customer', effectiveCustomerId] })
+      }
       qc.invalidateQueries({ queryKey: ['invoices'] })
       qc.invalidateQueries({ queryKey: ['invoices-customer'] })
       qc.invalidateQueries({ queryKey: ['receivables'] })

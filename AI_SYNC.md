@@ -51,7 +51,7 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-07 10:34:00 KST
+- Started At: 2026-04-07 11:40:53 KST
 - Branch: main
 - Working Scope: —
 - Active Subdirectory: —
@@ -63,6 +63,21 @@
 
 > 전체 이력: `archive/ai-sync-history/AI_SYNC_2026-04-04_full.md`
 
+- 2026-04-07 고객 상세 거래내역에서 명세표 수정 시 인라인 유지로 전환 (codex)
+  - `offline-crm-v2/src/pages/CustomerDetail.tsx`에서 고객 상세 내부에 `InvoiceDialog`를 직접 연결해, 거래내역 상세의 `수정 열기`가 `/invoices`로 이동하지 않고 현재 고객 상세 위에서 바로 수정 모달을 띄우도록 변경
+  - `offline-crm-v2/src/components/TransactionDetailDialog.tsx`에 선택적 편집 콜백을 추가해 호출 컨텍스트별로 라우팅/인라인 편집을 분기
+  - `offline-crm-v2/src/components/InvoiceDialog.tsx` 저장 후 `['customer', customerId]` 쿼리도 무효화해 고객 상세 KPI/잔액 카드가 즉시 갱신되도록 보강
+  - 회귀 테스트 추가: `offline-crm-v2/tests/01-customers.spec.ts` T1-12, `tests/helpers.ts` 테스트용 명세표 생성 헬퍼
+  - 검증 완료: `npm run build`, `npx playwright test tests/01-customers.spec.ts -g "T1-12"`
+- 2026-04-07 HTML 메일 연락처/주소 정정 및 신청 랜딩 URL 통일 (codex)
+  - 소스 파일: `FA-001_강사회원_등급_자동변경.json`, `FA-003_강사_반려_이메일_자동발송.json`, `onboard-email-sequence.json`, `partner-onboard-campaign.json`
+  - HTML 메일 푸터를 회사 프로필 기준 최신 정보로 교체: `서울특별시 송파구 송이로 15길 33 가락2차쌍용상가 201호`, `02-403-4012`, `pressco21@foreverlove.co.kr`
+  - `FA-003` 재신청 CTA와 `partner-onboard-campaign` 메일/SMS 신청 링크를 `https://nocodb.pressco21.com/apply`로 통일
+  - 운영 워크플로우 4건 반영 완료: `jaTfiQuY35DjgrxN`, `Ks4JvBC06cEj6b8b`, `EHSTmyM5TXdcqIev`, `T2AIOstBD9JKdNOg`
+- 2026-04-07 FA-003 반려 이메일 재신청 링크 수정 및 운영 반영 (codex)
+  - `FA-003_강사_반려_이메일_자동발송.json` 메일 버튼 URL을 `https://www.foreverlove.co.kr/page.html?id=2609`에서 `https://www.foreverlove.co.kr/shop/page.html?id=2609`로 수정
+  - 잘못된 루트 경로는 `HTTP 204`, 정상 `/shop/` 경로는 `HTTP 200` 응답 확인
+  - 운영 워크플로우 `Ks4JvBC06cEj6b8b` 배포 성공 및 live 노드 `반려 이메일 발송`에 수정 URL 반영 확인
 - 2026-04-07 WF-CRM-03 감사 경보를 사건별 1회 알림 구조로 전환 (codex)
   - `presscoBankReconIssueState` state map 추가: 같은 issue key는 `open` 동안 1회만 알림, 사라지면 `resolved`로 종료
   - 해결 후 동일 key 재발 시에만 재알림, 해결된 과거 건은 반복 경보 금지
@@ -108,11 +123,14 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라 서버)
 
 ### Codex 담당 (요약)
+- `[CODEX]` 고객지원: 이미 발송된 구버전 메일은 본문이 소급 수정되지 않으므로 필요 시 최신 신청 링크 `https://nocodb.pressco21.com/apply` 별도 안내
+- `[CODEX]` 고객지원: 이미 발송된 FA-003 반려 메일 수신자에게는 `/shop/page.html?id=2609` 재신청 링크 별도 안내 또는 재발송 필요 여부 점검
 - `[CODEX]` CRM 운영: WF-CRM-03 첫 감사 경보 수신 방 확인 (`PRESSCO_AUDIT_CHAT_ID` 미설정 fallback은 `TELEGRAM_CHAT_ID`)
 - `[CODEX]` CRM 운영: `PRESSCO_AUDIT_CHAT_ID` 서버 env 추가 시 플로라 방 고정
 - `[CODEX]` CRM 운영: 다음 실제 감사 경보 발생 시 `presscoBankReconIssueState` 기준으로 동일 key 재발 여부 확인
 - `[CODEX]` CRM 운영: skipped 2건 재검토 (`02-invoices` 조건부 스킵, `09-calendar` 데이터 의존 스킵)
 - `[CODEX]` CRM 운영: 신규 E2E 6종 장기 플래키 여부 모니터링
+- `[CODEX]` CRM 운영: 고객 상세 거래내역에서 실제 운영 명세표 수정 저장 후 동일 탭/필터 맥락 유지되는지 수동 확인
 - `[CODEX-LEAD]` Flora frontdoor: open item 캐시 재빌드, 다중 사용자 분리
 - `[CODEX-LEAD]` Flora 오케스트레이션: task ledger, 텔레그램 Mini App IA 스펙
 - `[CODEX-LEAD]` Flora 텔레그램 방 라우팅: 3개 방, room 매핑

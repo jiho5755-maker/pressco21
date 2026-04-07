@@ -13,6 +13,7 @@
  *   T1-09  뒤로가기 버튼으로 목록 복귀
  *   T1-10  고객 상세 → 명세표 작성 시 고객/주소 라벨 프리필
  *   T1-11  고객 화면 도움말 드로어 열림/닫힘 확인
+ *   T1-12  고객 상세 거래내역에서 명세표 수정 시 현재 페이지 유지
  */
 import { test, expect } from '@playwright/test'
 import {
@@ -20,12 +21,26 @@ import {
   waitForTableLoaded,
   assertNoApiError,
   API_TIMEOUT,
+  cleanupTestCustomers,
+  cleanupTestInvoices,
+  createTestCustomer,
+  createTestInvoice,
+  DEFAULT_RECEIPT_TYPE,
+  TEST_INVOICE_PREFIX,
 } from './helpers'
+
+const DETAIL_EDIT_CUSTOMER_PREFIX = 'TEST-CUSTOMER-DETAIL-'
+const DETAIL_EDIT_INVOICE_PREFIX = `${TEST_INVOICE_PREFIX}DETAIL-`
 
 // 각 테스트 전 고객 관리 페이지로 이동
 test.beforeEach(async ({ page }) => {
   await page.goto('/customers')
   await assertPageTitle(page, '고객 관리')
+})
+
+test.afterEach(async ({ request }) => {
+  await cleanupTestInvoices(request, DETAIL_EDIT_INVOICE_PREFIX)
+  await cleanupTestCustomers(request, DETAIL_EDIT_CUSTOMER_PREFIX)
 })
 
 test('T1-01: 고객 관리 페이지 접속 및 제목 표시', async ({ page }) => {
@@ -243,4 +258,47 @@ test('T1-11: 고객 화면 도움말 드로어 열림/닫힘 확인', async ({ p
   await expect(page.getByRole('heading', { name: '고객 관리 가이드' })).toBeVisible({ timeout: API_TIMEOUT })
   await page.getByRole('button', { name: '닫기' }).click()
   await expect(page.getByRole('heading', { name: '고객 관리 가이드' })).toHaveCount(0)
+})
+
+test('T1-12: 고객 상세 거래내역에서 명세표 수정 시 현재 페이지 유지', async ({ page, request }) => {
+  const uniqueId = Date.now()
+  const customer = await createTestCustomer(request, {
+    name: `${DETAIL_EDIT_CUSTOMER_PREFIX}${uniqueId}`,
+    customer_status: 'active',
+    customer_type: 'MEMBER',
+  })
+
+  const invoice = await createTestInvoice(request, {
+    invoice_no: `${DETAIL_EDIT_INVOICE_PREFIX}${uniqueId}`,
+    invoice_date: new Date().toISOString().slice(0, 10),
+    customer_id: customer.Id,
+    customer_name: customer.name,
+    receipt_type: DEFAULT_RECEIPT_TYPE,
+    previous_balance: 0,
+    paid_amount: 0,
+    payment_method: '현금',
+    supply_amount: 10000,
+    tax_amount: 1000,
+    total_amount: 11000,
+    current_balance: 11000,
+    payment_status: 'unpaid',
+    status: 'unpaid',
+  })
+
+  await page.goto(`/customers/${customer.Id}`)
+  await expect(page.getByRole('heading', { name: customer.name ?? '' })).toBeVisible({ timeout: API_TIMEOUT })
+
+  await page.getByRole('tab', { name: '거래내역' }).click()
+  const invoiceRow = page.locator('tbody tr', { hasText: invoice.invoice_no ?? '' }).first()
+  await expect(invoiceRow).toBeVisible({ timeout: API_TIMEOUT })
+
+  await invoiceRow.click()
+  const detailDialog = page.getByRole('dialog')
+  await expect(detailDialog.getByRole('button', { name: '수정 열기' })).toBeVisible({ timeout: API_TIMEOUT })
+
+  await detailDialog.getByRole('button', { name: '수정 열기' }).click()
+
+  await expect(page).toHaveURL(new RegExp(`/customers/${customer.Id}$`), { timeout: API_TIMEOUT })
+  await expect(page.getByRole('dialog').getByText('명세표 수정')).toBeVisible({ timeout: API_TIMEOUT })
+  await expect(page.getByRole('dialog').locator('input.font-mono')).toHaveValue(invoice.invoice_no ?? '')
 })

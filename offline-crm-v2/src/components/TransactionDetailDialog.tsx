@@ -26,6 +26,7 @@ interface TransactionDetailDialogProps {
   open: boolean
   transaction: TransactionPreview | null
   onClose: () => void
+  onEditCrmTransaction?: (transaction: TransactionPreview) => void
 }
 
 function formatCurrency(value?: number): string {
@@ -68,7 +69,12 @@ function getItemQuantity(items: InvoiceItem[]): number {
   return items.length
 }
 
-export function TransactionDetailDialog({ open, transaction, onClose }: TransactionDetailDialogProps) {
+export function TransactionDetailDialog({
+  open,
+  transaction,
+  onClose,
+  onEditCrmTransaction,
+}: TransactionDetailDialogProps) {
   const navigate = useNavigate()
   const crmQuery = useQuery({
     queryKey: ['transaction-detail-crm', transaction?.recordId],
@@ -125,6 +131,11 @@ export function TransactionDetailDialog({ open, transaction, onClose }: Transact
 
   function goToInvoiceEdit() {
     if (!transaction || transaction.source !== 'crm') return
+    if (onEditCrmTransaction) {
+      onClose()
+      onEditCrmTransaction(transaction)
+      return
+    }
     onClose()
     navigate(`/invoices?edit=${transaction.recordId}`)
   }

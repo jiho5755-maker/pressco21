@@ -50,6 +50,13 @@ interface InvoiceCleanupRow {
   invoice_no?: string
 }
 
+interface InvoiceCreateRow {
+  Id: number
+  invoice_no?: string
+  customer_id?: number
+  customer_name?: string
+}
+
 interface ItemCleanupRow {
   Id: number
 }
@@ -225,6 +232,17 @@ export async function createTestCustomer(
 ): Promise<CustomerCleanupRow> {
   return proxyRequest<CustomerCleanupRow>(request, {
     table: 'customers',
+    method: 'POST',
+    payload,
+  })
+}
+
+export async function createTestInvoice(
+  request: APIRequestContext,
+  payload: Record<string, unknown>,
+): Promise<InvoiceCreateRow> {
+  return proxyRequest<InvoiceCreateRow>(request, {
+    table: 'invoices',
     method: 'POST',
     payload,
   })

@@ -31,6 +31,7 @@ import type {
 } from '@/lib/legacySnapshots'
 import { printCustomerTransactionStatement, printPeriodReport } from '@/lib/print'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
+import { InvoiceDialog } from '@/components/InvoiceDialog'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 import { buildResolvedReceivableInvoices, resolveInvoiceCustomer } from '@/lib/receivables'
@@ -173,6 +174,7 @@ export function CustomerDetail() {
   const [editGrade, setEditGrade] = useState('')
   const [editQual, setEditQual] = useState('')
   const [selectedTransaction, setSelectedTransaction] = useState<TransactionPreview | null>(null)
+  const [editingInvoiceId, setEditingInvoiceId] = useState<number | undefined>(undefined)
   const [historySearch, setHistorySearch] = useState('')
   const [historyTypeFilter, setHistoryTypeFilter] = useState('ALL')
   const [historyDateFrom, setHistoryDateFrom] = useState(thisMonthStart)
@@ -2123,7 +2125,22 @@ export function CustomerDetail() {
         open={!!selectedTransaction}
         transaction={selectedTransaction}
         onClose={() => setSelectedTransaction(null)}
+        onEditCrmTransaction={(transaction) => {
+          if (transaction.source !== 'crm') return
+          setEditingInvoiceId(transaction.recordId)
+        }}
       />
+
+      {editingInvoiceId && (
+        <InvoiceDialog
+          open={!!editingInvoiceId}
+          invoiceId={editingInvoiceId}
+          onClose={() => setEditingInvoiceId(undefined)}
+          onSaved={() => {
+            setEditingInvoiceId(undefined)
+          }}
+        />
+      )}
     </div>
   )
 }

@@ -1,83 +1,19 @@
 {
-  "name": "PRD-AUTO: 기획안 자동 생성 + 핸드오프",
+  "name": "PRD-SAVE: 기획안 저장 + 핸드오프",
   "nodes": [
     {
       "parameters": {
         "httpMethod": "POST",
-        "path": "prd-generate",
+        "path": "prd-save",
         "responseMode": "responseNode",
         "options": {}
       },
-      "id": "webhook-prd",
-      "name": "웹훅 수신",
+      "id": "webhook-save",
+      "name": "저장 웹훅",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
       "position": [240, 300],
-      "webhookId": "prd-generate"
-    },
-    {
-      "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\nconst instruction = (body.instruction || body.text || '').trim();\n\nif (!instruction) {\n  return [{ json: { error: '기획안 지시가 비어있습니다.', success: false } }];\n}\n\nlet prdType = 'product-detail';\nlet typeName = '상품 상세페이지';\n\nconst lower = instruction.toLowerCase();\nif (/이벤트|할인|프로모션|기획전|쿠폰/.test(lower)) {\n  prdType = 'event-promo';\n  typeName = '이벤트/프로모션';\n} else if (/랜딩|모집|소개|브랜드페이지/.test(lower)) {\n  prdType = 'landing-page';\n  typeName = '랜딩 페이지';\n} else if (/인스타|유튜브|블로그|sns|릴스|숏츠|포스트/.test(lower)) {\n  prdType = 'sns-content';\n  typeName = 'SNS 콘텐츠';\n} else if (/상세페이지|상품|신상품/.test(lower)) {\n  prdType = 'product-detail';\n  typeName = '상품 상세페이지';\n}\n\nconst topic = instruction.replace(/^기획안\\s*/, '').replace(/^(상세페이지|이벤트|할인|프로모션|랜딩|인스타|유튜브|블로그|SNS|릴스)\\s*/, '').trim() || instruction;\nconst requestedBy = body.requested_by || body.user || '대표';\nconst now = new Date();\nconst kstDate = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);\n\nreturn [{\n  json: { instruction, prdType, typeName, topic, requestedBy, kstDate, success: true }\n}];"
-      },
-      "id": "parse-input",
-      "name": "입력 파싱",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [460, 300]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [
-            {
-              "id": "check-success",
-              "leftValue": "={{ $json.success }}",
-              "rightValue": true,
-              "operator": { "type": "boolean", "operation": "true" }
-            }
-          ],
-          "combinator": "and"
-        },
-        "options": {}
-      },
-      "id": "if-valid",
-      "name": "유효성 체크",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 2.2,
-      "position": [680, 300]
-    },
-    {
-      "parameters": {
-        "method": "POST",
-        "url": "https://api.openai.com/v1/chat/completions",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            { "name": "Authorization", "value": "=Bearer {{ $env.OPENAI_API_KEY }}" },
-            { "name": "Content-Type", "value": "application/json" }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={\n  \"model\": \"gpt-4.1\",\n  \"max_tokens\": 4096,\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"너는 PRESSCO21(꽃 공예 전문 회사)의 기획안 작성 AI이다.\\n한줄 지시를 받으면 3종 산출물(PRD + 디자인 브리프 + 레퍼런스 리스트)을 마크다운으로 생성한다.\\n\\n## 회사 정보\\n- 업종: 꽃 공예 재료/키트 판매 + 온라인 클래스 플랫폼\\n- 자사몰: 메이크샵 D4 (foreverlove.co.kr)\\n- 브랜드 톤: 우아 + 따뜻 + 신뢰 + 자연 + 포용\\n- 주요 카테고리: 압화, 레진, 캔들, 석고, 비즈\\n\\n## 브랜드 규격\\n- 컬러: 세이지그린 #637561 / 다크그린 #425B51 / 프라이머리 #7d9675 / 라이트 #b7c9ad / 배경 #e2e8dd\\n- 폰트: Pretendard (메인, 400~800) / Noto Sans KR (폴백)\\n- PC 최대폭: 1200px / 브레이크포인트: 768px, 992px, 1200px\\n\\n## 유형: {{ $json.typeName }}\\n\\n## 출력 형식\\n### 1. PRD\\n유형별 섹션 구조를 따르되, 한줄 지시에서 추출한 값으로 채운다. 추출 불가한 값은 [미정 - 대표 확인 필요]로 표시.\\n\\n### 2. 디자인 브리프\\n컬러/폰트/레이아웃 규격 포함. 히어로 이미지 방향 1~2문장 제안.\\n\\n### 3. 레퍼런스 리스트\\n필요 소스 체크리스트 (촬영, 이미지, 카피 등)\\n\\n## 규칙\\n- 한국어, ~입니다 체\\n- 미확인 숫자는 [미정]\\n- 마크다운 ## 부터 시작\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"기획안을 작성해주세요: {{ $json.instruction }}\"\n    }\n  ]\n}",
-        "options": { "timeout": 120000 }
-      },
-      "id": "openai-api",
-      "name": "GPT 기획안 생성",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
-      "position": [920, 240]
-    },
-    {
-      "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst prev = $('입력 파싱').first().json;\n\nlet content = '';\nif (input.choices && input.choices[0]) {\n  content = input.choices[0].message.content || '';\n} else if (input.content && Array.isArray(input.content)) {\n  content = input.content.filter(b => b.type === 'text').map(b => b.text).join('\\n');\n}\n\nconst titleMatch = content.match(/^##\\s+(.+)/m);\nconst title = titleMatch ? titleMatch[1].trim() : prev.topic;\n\nreturn [{\n  json: {\n    title,\n    prd_type: prev.prdType,\n    type_name: prev.typeName,\n    instruction: prev.instruction,\n    content_md: content,\n    requested_by: prev.requestedBy,\n    status: 'draft',\n    created_date: prev.kstDate\n  }\n}];"
-      },
-      "id": "extract-content",
-      "name": "기획안 텍스트 추출",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [1140, 240]
+      "webhookId": "prd-save"
     },
     {
       "parameters": {
@@ -92,24 +28,24 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={\n  \"title\": \"{{ $json.title }}\",\n  \"prd_type\": \"{{ $json.prd_type }}\",\n  \"instruction\": \"{{ $json.instruction }}\",\n  \"content_md\": {{ JSON.stringify($json.content_md) }},\n  \"status\": \"draft\",\n  \"requested_by\": \"{{ $json.requested_by }}\",\n  \"created_date\": \"{{ $json.created_date }}\"\n}",
+        "jsonBody": "={{ JSON.stringify($json.body || $json) }}",
         "options": {}
       },
       "id": "save-nocodb",
       "name": "NocoDB 저장",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1360, 240]
+      "position": [480, 300]
     },
     {
       "parameters": {
-        "jsCode": "const prd = $('기획안 텍스트 추출').first().json;\nconst nocoResult = $input.first().json;\nconst rowId = nocoResult.Id || nocoResult.id || '?';\n\nconst preview = prd.content_md.slice(0, 500).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));\n\nconst msg = [\n  '<b>[기획안 생성 완료]</b>',\n  '',\n  `<b>제목</b>: \\${prd.title}`,\n  `<b>유형</b>: \\${prd.type_name}`,\n  `<b>요청</b>: \\${prd.instruction}`,\n  `<b>상태</b>: draft (승인 대기)`,\n  `<b>NocoDB ID</b>: #\\${rowId}`,\n  '',\n  '<b>미리보기</b>:',\n  `<pre>\\${preview}...</pre>`,\n  '',\n  '승인하려면 \"기획안 승인 #' + rowId + '\"이라고 답해주세요.',\n  '담당자 지정: \"기획안 배정 #' + rowId + ' 다경\" 또는 \"승해\"'\n].join('\\n');\n\nreturn [{ json: { message: msg, rowId } }];"
+        "jsCode": "const row = $input.first().json;\nconst id = row.Id || row.id || '?';\nconst title = row.title || '기획안';\nconst typeName = row.prd_type || '';\nconst preview = (row.content_md || '').slice(0, 500).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));\n\nconst msg = [\n  '<b>[기획안 저장 완료]</b>',\n  '',\n  `<b>제목</b>: \\${title}`,\n  `<b>유형</b>: \\${typeName}`,\n  `<b>NocoDB ID</b>: #\\${id}`,\n  '',\n  `<pre>\\${preview}...</pre>`,\n  '',\n  `승인: \"기획안 승인 #\\${id}\"`,\n  `배정: \"기획안 배정 #\\${id} 다경\"`\n].join('\\n');\n\nreturn [{ json: { message: msg, id } }];"
       },
-      "id": "build-telegram",
-      "name": "텔레그램 메시지 구성",
+      "id": "build-msg",
+      "name": "알림 메시지 구성",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1580, 240]
+      "position": [720, 300]
     },
     {
       "parameters": {
@@ -118,10 +54,10 @@
         "additionalFields": { "parse_mode": "HTML" }
       },
       "id": "telegram-notify",
-      "name": "텔레그램 완료 알림",
+      "name": "텔레그램 알림",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1800, 240],
+      "position": [960, 300],
       "credentials": {
         "telegramApi": { "id": "RdFu3nsFuuO5NCff", "name": "Telegram Makeshop Bot" }
       }
@@ -129,25 +65,13 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ success: true, title: $('기획안 텍스트 추출').first().json.title, type: $('기획안 텍스트 추출').first().json.type_name, nocodb_id: $('NocoDB 저장').first().json.Id || $('NocoDB 저장').first().json.id }) }}"
+        "responseBody": "={{ JSON.stringify({ success: true, id: $('NocoDB 저장').first().json.Id || $('NocoDB 저장').first().json.id }) }}"
       },
-      "id": "respond-success",
+      "id": "respond-ok",
       "name": "성공 응답",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [2020, 240]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ success: false, error: $json.error || '입력이 유효하지 않습니다.' }) }}",
-        "options": { "responseCode": 400 }
-      },
-      "id": "respond-error",
-      "name": "에러 응답",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1.1,
-      "position": [920, 420]
+      "position": [1200, 300]
     },
     {
       "parameters": {
@@ -165,45 +89,28 @@
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first().json;\nconst body = input.body || input;\nconst text = (body.text || body.instruction || '').trim();\n\n// 패턴: \"기획안 승인 #123\" 또는 \"기획안 배정 #123 다경\"\nconst approveMatch = text.match(/기획안\\s*승인\\s*#?(\\d+)/);\nconst assignMatch = text.match(/기획안\\s*배정\\s*#?(\\d+)\\s+(.+)/);\n\nif (approveMatch) {\n  return [{ json: { action: 'approve', rowId: parseInt(approveMatch[1]), assignee: null } }];\n} else if (assignMatch) {\n  return [{ json: { action: 'assign', rowId: parseInt(assignMatch[1]), assignee: assignMatch[2].trim() } }];\n} else {\n  return [{ json: { action: 'unknown', error: '인식할 수 없는 명령입니다. 예: 기획안 승인 #1 / 기획안 배정 #1 다경' } }];\n}"
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst text = (body.text || '').trim();\n\nconst approveMatch = text.match(/기획안\\s*승인\\s*#?(\\d+)/);\nconst assignMatch = text.match(/기획안\\s*배정\\s*#?(\\d+)\\s+(.+)/);\n\nif (approveMatch) {\n  const now = new Date();\n  const kst = new Date(now.getTime() + 9*60*60*1000).toISOString().slice(0,10);\n  return [{ json: { action: 'approve', rowId: parseInt(approveMatch[1]), patch: { status: 'approved', approved_date: kst } } }];\n} else if (assignMatch) {\n  return [{ json: { action: 'assign', rowId: parseInt(assignMatch[1]), patch: { status: 'assigned', assignee: assignMatch[2].trim() } } }];\n}\nreturn [{ json: { action: 'error', error: '예: 기획안 승인 #1 / 기획안 배정 #1 다경' } }];"
       },
       "id": "parse-action",
       "name": "액션 파싱",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [460, 600]
+      "position": [480, 600]
     },
     {
       "parameters": {
         "conditions": {
           "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
-          "conditions": [
-            {
-              "id": "check-action",
-              "leftValue": "={{ $json.action }}",
-              "rightValue": "unknown",
-              "operator": { "type": "string", "operation": "notEquals" }
-            }
-          ],
+          "conditions": [{ "id": "c1", "leftValue": "={{ $json.action }}", "rightValue": "error", "operator": { "type": "string", "operation": "notEquals" } }],
           "combinator": "and"
         },
         "options": {}
       },
-      "id": "if-action-valid",
-      "name": "액션 유효성",
+      "id": "if-valid-action",
+      "name": "유효성",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.2,
-      "position": [680, 600]
-    },
-    {
-      "parameters": {
-        "jsCode": "const { action, rowId, assignee } = $input.first().json;\nconst now = new Date();\nconst kstDate = new Date(now.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);\n\nconst patchBody = {};\nif (action === 'approve') {\n  patchBody.status = 'approved';\n  patchBody.approved_date = kstDate;\n} else if (action === 'assign') {\n  patchBody.status = 'assigned';\n  patchBody.assignee = assignee;\n}\n\nreturn [{ json: { rowId, patchBody, action, assignee } }];"
-      },
-      "id": "build-patch",
-      "name": "PATCH 데이터 구성",
-      "type": "n8n-nodes-base.code",
-      "typeVersion": 2,
-      "position": [920, 560]
+      "position": [720, 600]
     },
     {
       "parameters": {
@@ -218,24 +125,24 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json.patchBody) }}",
+        "jsonBody": "={{ JSON.stringify($json.patch) }}",
         "options": {}
       },
       "id": "patch-nocodb",
-      "name": "NocoDB 상태 변경",
+      "name": "NocoDB 업데이트",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1140, 560]
+      "position": [960, 560]
     },
     {
       "parameters": {
-        "jsCode": "const prev = $('PATCH 데이터 구성').first().json;\nconst result = $input.first().json;\nconst title = result.title || '기획안';\n\nlet msg = '';\nif (prev.action === 'approve') {\n  msg = `<b>[기획안 승인 완료]</b>\\n\\n<b>제목</b>: \\${title}\\n<b>NocoDB ID</b>: #\\${prev.rowId}\\n<b>상태</b>: approved\\n\\n담당자를 배정하려면:\\n\"기획안 배정 #\\${prev.rowId} 다경\" 또는 \"승해\"`;\n} else if (prev.action === 'assign') {\n  msg = `<b>[기획안 배정 완료]</b>\\n\\n<b>제목</b>: \\${title}\\n<b>NocoDB ID</b>: #\\${prev.rowId}\\n<b>담당자</b>: \\${prev.assignee}\\n<b>상태</b>: assigned\\n\\n\\${prev.assignee}님에게 디자인 브리프가 전달됩니다.`;\n}\n\nreturn [{ json: { message: msg, assignee: prev.assignee, action: prev.action, rowId: prev.rowId } }];"
+        "jsCode": "const prev = $('액션 파싱').first().json;\nconst row = $input.first().json;\nconst title = row.title || '기획안';\nlet msg = '';\nif (prev.action === 'approve') {\n  msg = `<b>[승인 완료]</b> #\\${prev.rowId} \\${title}\\n배정: \\\"기획안 배정 #\\${prev.rowId} 다경\\\"`;\n} else {\n  msg = `<b>[배정 완료]</b> #\\${prev.rowId} \\${title} → \\${prev.patch.assignee}`;\n}\nreturn [{ json: { message: msg } }];"
       },
-      "id": "build-action-msg",
-      "name": "액션 결과 메시지",
+      "id": "action-msg",
+      "name": "결과 메시지",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1360, 560]
+      "position": [1200, 560]
     },
     {
       "parameters": {
@@ -243,11 +150,11 @@
         "text": "={{ $json.message }}",
         "additionalFields": { "parse_mode": "HTML" }
       },
-      "id": "telegram-action-notify",
+      "id": "telegram-action",
       "name": "텔레그램 액션 알림",
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1580, 560],
+      "position": [1440, 560],
       "credentials": {
         "telegramApi": { "id": "RdFu3nsFuuO5NCff", "name": "Telegram Makeshop Bot" }
       }
@@ -255,13 +162,13 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ success: true, action: $json.action, rowId: $json.rowId }) }}"
+        "responseBody": "={{ JSON.stringify({ success: true, action: $('액션 파싱').first().json.action }) }}"
       },
-      "id": "respond-action-success",
-      "name": "액션 성공 응답",
+      "id": "respond-action-ok",
+      "name": "액션 성공",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1800, 560]
+      "position": [1680, 560]
     },
     {
       "parameters": {
@@ -269,65 +176,24 @@
         "responseBody": "={{ JSON.stringify({ success: false, error: $json.error }) }}",
         "options": { "responseCode": 400 }
       },
-      "id": "respond-action-error",
-      "name": "액션 에러 응답",
+      "id": "respond-action-err",
+      "name": "액션 에러",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [920, 720]
+      "position": [960, 720]
     }
   ],
   "connections": {
-    "웹훅 수신": {
-      "main": [[{ "node": "입력 파싱", "type": "main", "index": 0 }]]
-    },
-    "입력 파싱": {
-      "main": [[{ "node": "유효성 체크", "type": "main", "index": 0 }]]
-    },
-    "유효성 체크": {
-      "main": [
-        [{ "node": "GPT 기획안 생성", "type": "main", "index": 0 }],
-        [{ "node": "에러 응답", "type": "main", "index": 0 }]
-      ]
-    },
-    "GPT 기획안 생성": {
-      "main": [[{ "node": "기획안 텍스트 추출", "type": "main", "index": 0 }]]
-    },
-    "기획안 텍스트 추출": {
-      "main": [[{ "node": "NocoDB 저장", "type": "main", "index": 0 }]]
-    },
-    "NocoDB 저장": {
-      "main": [[{ "node": "텔레그램 메시지 구성", "type": "main", "index": 0 }]]
-    },
-    "텔레그램 메시지 구성": {
-      "main": [[{ "node": "텔레그램 완료 알림", "type": "main", "index": 0 }]]
-    },
-    "텔레그램 완료 알림": {
-      "main": [[{ "node": "성공 응답", "type": "main", "index": 0 }]]
-    },
-    "핸드오프 웹훅": {
-      "main": [[{ "node": "액션 파싱", "type": "main", "index": 0 }]]
-    },
-    "액션 파싱": {
-      "main": [[{ "node": "액션 유효성", "type": "main", "index": 0 }]]
-    },
-    "액션 유효성": {
-      "main": [
-        [{ "node": "PATCH 데이터 구성", "type": "main", "index": 0 }],
-        [{ "node": "액션 에러 응답", "type": "main", "index": 0 }]
-      ]
-    },
-    "PATCH 데이터 구성": {
-      "main": [[{ "node": "NocoDB 상태 변경", "type": "main", "index": 0 }]]
-    },
-    "NocoDB 상태 변경": {
-      "main": [[{ "node": "액션 결과 메시지", "type": "main", "index": 0 }]]
-    },
-    "액션 결과 메시지": {
-      "main": [[{ "node": "텔레그램 액션 알림", "type": "main", "index": 0 }]]
-    },
-    "텔레그램 액션 알림": {
-      "main": [[{ "node": "액션 성공 응답", "type": "main", "index": 0 }]]
-    }
+    "저장 웹훅": { "main": [[{ "node": "NocoDB 저장", "type": "main", "index": 0 }]] },
+    "NocoDB 저장": { "main": [[{ "node": "알림 메시지 구성", "type": "main", "index": 0 }]] },
+    "알림 메시지 구성": { "main": [[{ "node": "텔레그램 알림", "type": "main", "index": 0 }]] },
+    "텔레그램 알림": { "main": [[{ "node": "성공 응답", "type": "main", "index": 0 }]] },
+    "핸드오프 웹훅": { "main": [[{ "node": "액션 파싱", "type": "main", "index": 0 }]] },
+    "액션 파싱": { "main": [[{ "node": "유효성", "type": "main", "index": 0 }]] },
+    "유효성": { "main": [[{ "node": "NocoDB 업데이트", "type": "main", "index": 0 }], [{ "node": "액션 에러", "type": "main", "index": 0 }]] },
+    "NocoDB 업데이트": { "main": [[{ "node": "결과 메시지", "type": "main", "index": 0 }]] },
+    "결과 메시지": { "main": [[{ "node": "텔레그램 액션 알림", "type": "main", "index": 0 }]] },
+    "텔레그램 액션 알림": { "main": [[{ "node": "액션 성공", "type": "main", "index": 0 }]] }
   },
   "settings": { "executionOrder": "v1" }
 }

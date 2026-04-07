@@ -33,6 +33,12 @@ If your current Codex UI does not list custom prompts in the slash popup, use `/
 - `branch-session`
 - `resume-session`
 
+Those skill names stay in English, but their descriptions are now Korean-friendly:
+
+- `save-session`: 세션 저장 / handoff 남기기
+- `branch-session`: 위험 작업 전 롤백 지점 만들기
+- `resume-session`: 이전 세션 이어붙이기
+
 ### 1. Save Before Leaving
 
 ```bash

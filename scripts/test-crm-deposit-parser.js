@@ -9,6 +9,7 @@ var parserSource = require('./lib/crm-deposit-parser-source');
 
 var REPO_ROOT = path.resolve(__dirname, '..');
 var FIXTURE_ROOT = path.join(REPO_ROOT, 'tests', 'fixtures', 'crm-deposit-parser');
+var WORKFLOW_PATH = path.join(REPO_ROOT, 'n8n-automation', 'workflows', 'accounting', 'WF-CRM-02_Gmail_입금알림_수집.json');
 
 function loadFixtureText(fileName) {
   return fs.readFileSync(path.join(FIXTURE_ROOT, fileName), 'utf8');
@@ -96,6 +97,39 @@ async function runBankSummary(parsed) {
   return items[0].json;
 }
 
+function getConnectionTargets(workflow, nodeName) {
+  var connection = workflow.connections && workflow.connections[nodeName];
+  if (!connection || !Array.isArray(connection.main)) return [];
+  return connection.main
+    .reduce(function(list, targets) {
+      return list.concat(targets || []);
+    }, [])
+    .map(function(target) {
+      return target && target.node ? String(target.node) : '';
+    })
+    .filter(Boolean)
+    .sort();
+}
+
+function assertWorkflowConnections() {
+  var workflow = JSON.parse(fs.readFileSync(WORKFLOW_PATH, 'utf8'));
+  assert.deepStrictEqual(
+    getConnectionTargets(workflow, 'Code: Parse Deposit Email'),
+    ['Code: Record Intake Ledger'],
+    'parser output must flow through intake ledger before any summary branch'
+  );
+  assert.deepStrictEqual(
+    getConnectionTargets(workflow, 'Code: Record Intake Ledger'),
+    [
+      'Build Bank Event Summary',
+      'Build Parse Failure Summary',
+      'Code: Build Recon Sync From Intake',
+      'IF Has Deposits',
+    ].sort(),
+    'intake ledger must fan out to bank summary, parse failure, intake recon sync, and deposit intake'
+  );
+}
+
 async function main() {
   var secureDepositText = loadFixtureText('secure-decrypted-deposit-record-only.txt');
   var plainDepositText = loadFixtureText('plain-basic-deposit.txt');
@@ -147,6 +181,8 @@ async function main() {
 
   var bankSummary = await runBankSummary(secureWithdrawalParsed);
   assert.match(bankSummary._telegramMessage, /ATM출금/);
+
+  assertWorkflowConnections();
 
   console.log('crm deposit parser regression tests passed');
 }

@@ -205,6 +205,25 @@ function setMainConnectionsByOutput(workflow, fromName, outputs) {
   };
 }
 
+function listMainTargetNames(workflow, fromName) {
+  const connection = workflow.connections && workflow.connections[fromName];
+  if (!connection || !Array.isArray(connection.main)) return [];
+  return connection.main
+    .flat()
+    .map(function(target) {
+      return target && target.node ? String(target.node) : '';
+    })
+    .filter(Boolean);
+}
+
+function assertMainTargetNames(workflow, fromName, expectedTargets) {
+  const actual = listMainTargetNames(workflow, fromName).sort();
+  const expected = expectedTargets.slice().sort();
+  if (actual.length !== expected.length || actual.some(function(name, index) { return name !== expected[index]; })) {
+    throw new Error('Unexpected connections for ' + fromName + ': expected [' + expected.join(', ') + '] but received [' + actual.join(', ') + ']');
+  }
+}
+
 function resolveSetting(env, name, fallback) {
   var value = env[name] || process.env[name] || '';
   return value || fallback || '';
@@ -807,6 +826,7 @@ function buildCrmDepositAuditReportCode() {
 
 function patchCrmDepositCollector(workflow, telegramCredential) {
   var emailTriggerNode = findNode(workflow, 'Email Trigger (IMAP)');
+  var recordLedgerNode = findNode(workflow, 'Code: Record Intake Ledger');
   var bankSummaryNode = upsertNode(workflow, {
     parameters: {
       jsCode: buildBankEventSummaryCode(),
@@ -869,6 +889,10 @@ function patchCrmDepositCollector(workflow, telegramCredential) {
     onError: 'continueRegularOutput',
   });
 
+  if (!recordLedgerNode) {
+    throw new Error('Code: Record Intake Ledger node not found');
+  }
+
   if (emailTriggerNode) {
     emailTriggerNode.parameters = emailTriggerNode.parameters || {};
     emailTriggerNode.parameters.format = 'resolved';
@@ -879,14 +903,26 @@ function patchCrmDepositCollector(workflow, telegramCredential) {
   removeNode(workflow, 'Build Telegram Auto Apply Summary');
   removeNode(workflow, 'Telegram Auto Apply Summary');
 
-  setMainConnections(workflow, 'Code: Parse Deposit Email', [
+  setSingleConnection(workflow, 'Code: Parse Deposit Email', recordLedgerNode.name);
+  setMainConnections(workflow, recordLedgerNode.name, [
     { node: 'IF Has Deposits', index: 0 },
     { node: bankSummaryNode.name, index: 0 },
+    { node: 'Build Parse Failure Summary', index: 0 },
+    { node: 'Code: Build Recon Sync From Intake', index: 0 },
   ]);
   setSingleConnection(workflow, 'IF Has Deposits', 'HTTP Call Intake Engine');
   setSingleConnection(workflow, bankSummaryNode.name, 'Telegram Bank Event Summary');
   setSingleConnection(workflow, 'HTTP Call Intake Engine', buildNode.name);
   setSingleConnection(workflow, buildNode.name, 'Telegram Deposit Summary');
+  assertMainTargetNames(workflow, 'Code: Parse Deposit Email', [
+    recordLedgerNode.name,
+  ]);
+  assertMainTargetNames(workflow, recordLedgerNode.name, [
+    'IF Has Deposits',
+    bankSummaryNode.name,
+    'Build Parse Failure Summary',
+    'Code: Build Recon Sync From Intake',
+  ]);
   return workflow;
 }
 

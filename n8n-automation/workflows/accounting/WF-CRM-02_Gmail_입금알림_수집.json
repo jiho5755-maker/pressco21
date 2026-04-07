@@ -348,12 +348,7 @@
       "main": [
         [
           {
-            "node": "IF Has Deposits",
-            "type": "main",
-            "index": 0
-          },
-          {
-            "node": "Build Bank Event Summary",
+            "node": "Code: Record Intake Ledger",
             "type": "main",
             "index": 0
           }

@@ -87,6 +87,13 @@
   - 해결 후 동일 key 재발 시에만 재알림, 해결된 과거 건은 반복 경보 금지
   - 현재 운영 mirror 기준 local 재평가 결과 `[]`, 시뮬레이션으로 `1회 알림 -> 무음 유지 -> 해결 후 재발 시 재알림` 확인
   - 운영 워크플로우 `txw9CRdpJbxNRWuZ` 반영 완료, 백업: `output/n8n-backups/2026-04-07-01-52-13-wf-crm03-issue-state/`
+- 2026-04-07 WF-CRM-02 IMAP 입금 알림 오배선 수정 및 운영 반영 (codex)
+  - 운영 실행 `166886`(11:14 KST), `167576`(13:52 KST), `168078`(15:03 KST) 모두 `Code: Parse Deposit Email` 파싱 성공 후 `Build Bank Event Summary`에서 `Code: Record Intake Ledger` 미실행 참조 오류로 중단됨
+  - 원인: `WF-CRM-02_Gmail_입금알림_수집.json`과 배포 스크립트가 `Code: Parse Deposit Email -> IF Has Deposits + Build Bank Event Summary`로 직접 연결돼 있어 ledger/mirror/parse-failure 분기가 완전히 우회됨
+  - 수정: `Code: Parse Deposit Email -> Code: Record Intake Ledger` 단일 연결로 교정하고, ledger가 `IF Has Deposits`, `Build Bank Event Summary`, `Build Parse Failure Summary`, `Code: Build Recon Sync From Intake`로 fan-out 하도록 고정
+  - 보호 장치: `scripts/deploy-crm-deposit-telegram.js`, `scripts/sync-crm-deposit-parser.js`에 연결 검증 추가, `scripts/test-crm-deposit-parser.js`에 WF 그래프 회귀 테스트 추가
+  - 운영 반영: WF-CRM-02 단독 PUT 배포 완료, 백업: `output/n8n-backups/2026-04-07-16-19-50-wf-crm02-fix-bank-routing/`
+  - 검증: `node scripts/test-crm-deposit-parser.js` 통과, 운영 WF active 유지, live parse target=`Code: Record Intake Ledger`
 - 2026-04-07 WF-CRM-03 반복 감사 경보 소거 로직 반영 (codex)
   - 현재 mirror 기준 실제 actionable issue는 0건이고, 반복 경보 원인은 `2026-04-06 parseFailure 1건`이 일일 요약에 계속 잡히는 설계였음
   - `WF-CRM-03_입금알림_정합성_감사.json`에서 일일 경보 조건을 `parseFailure 전체`가 아니라 `parseAlertStatus != sent` 또는 Telegram `failed/pending`만 대상으로 축소
@@ -132,6 +139,8 @@
 - `[CODEX]` CRM 운영: WF-CRM-03 첫 감사 경보 수신 방 확인 (`PRESSCO_AUDIT_CHAT_ID` 미설정 fallback은 `TELEGRAM_CHAT_ID`)
 - `[CODEX]` CRM 운영: `PRESSCO_AUDIT_CHAT_ID` 서버 env 추가 시 플로라 방 고정
 - `[CODEX]` CRM 운영: 다음 실제 감사 경보 발생 시 `presscoBankReconIssueState` 기준으로 동일 key 재발 여부 확인
+- `[CODEX]` CRM 운영: 2026-04-07 11:14 / 13:52 / 15:03 KST 누락 3건(`리온코리아(` 10,000원 / `윤은정` 6,100원 / `김윤희` 9,400원) 수동 재처리 또는 CRM 반영 여부 확인
+- `[CODEX]` CRM 운영: 다음 실제 농협 메일 1건 도착 시 Telegram 입금 알림 + WF-CRM-01 실행 + WF-CRM-03 mirror ingest까지 실건 검증
 - `[CODEX]` CRM 운영: skipped 2건 재검토 (`02-invoices` 조건부 스킵, `09-calendar` 데이터 의존 스킵)
 - `[CODEX]` CRM 운영: 신규 E2E 6종 장기 플래키 여부 모니터링
 - `[CODEX]` CRM 운영: 고객 상세 거래내역에서 실제 운영 명세표 수정 저장 후 동일 탭/필터 맥락 유지되는지 수동 확인
@@ -153,5 +162,6 @@
 - 이재혁 Chat ID 미확보 → 이재혁 자동화 WF 3종 활성화 불가
 - 서버 이전(flora-todo, n8n-staging → 플로라) 미실행
 - WF-CRM-02/03 실건 검증 미완 (입금/감사 루프)
+- 2026-04-07 11:14 / 13:52 / 15:03 KST 누락 입금 3건은 코드 수정만으로 소급 반영되지 않는다. 필요 시 수동 replay 또는 CRM 반영 확인이 필요
 - Flora open item 캐시는 배포 시점 스냅샷. 실시간 재빌드 루프 미구현
 - 파서 실패 이력의 원본 메일은 저장소에 축적되지 않으므로, 신규 실패 건 발생 시 fixture를 별도로 수집해야 회귀군을 넓힐 수 있음

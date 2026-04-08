@@ -672,6 +672,26 @@ async function handleUpdate(config, state, update) {
   }
 
   if (!chatState.roomKey || !config.rooms[chatState.roomKey]) {
+    // DM(private chat)이면 flora-route로 포워딩
+    const chatType = message.chat?.type || "";
+    const AUTHORIZED_DM = ["7713811206", "8606163783"];
+    if (chatType === "private" && AUTHORIZED_DM.includes(chatId)) {
+      appendLog(config, "dm-forward-to-flora-route", { chatId, text: summarizeText(text, 80) });
+      try {
+        const routeResp = await fetch("https://n8n.pressco21.com/webhook/flora-route", {
+          method: "POST",
+          headers: { "content-type": "application/json" },
+          body: JSON.stringify({ text, chatId }),
+          signal: AbortSignal.timeout(30000),
+        });
+        const routeData = await routeResp.json();
+        appendLog(config, "dm-forward-result", { route: routeData.route, needsMac: routeData.needsMac });
+      } catch (err) {
+        appendLog(config, "dm-forward-error", { error: err.message });
+        await sendText(config, chatId, "요청을 처리하는 중 오류가 발생했습니다.", messageId);
+      }
+      return;
+    }
     await sendText(config, chatId, buildHelpText(config, chatState), messageId);
     return;
   }

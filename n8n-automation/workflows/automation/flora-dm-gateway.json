@@ -1,0 +1,55 @@
+{
+  "name": "[F21] Flora DM 게이트웨이",
+  "nodes": [
+    {
+      "parameters": {
+        "updates": ["message"]
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [200, 300],
+      "id": "node-trigger",
+      "name": "텔레그램 DM 수신",
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const msg = $input.first().json.message || $input.first().json;\nconst chatId = String(msg.chat?.id || '');\nconst chatType = msg.chat?.type || '';\nconst text = (msg.text || '').trim();\nconst fromId = String(msg.from?.id || '');\n\nconst AUTHORIZED = ['7713811206', '8606163783'];\n\nif (chatType !== 'private') {\n  return [];\n}\n\nif (!AUTHORIZED.includes(chatId)) {\n  return [];\n}\n\nif (!text || text.startsWith('/start')) {\n  return [];\n}\n\nreturn [{ json: { text, chatId, fromId, userName: msg.from?.first_name || '' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "id": "node-filter",
+      "name": "DM 필터 (CEO만)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/flora-route",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.text, chatId: $json.chatId }) }}",
+        "options": { "timeout": 30000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300],
+      "id": "node-route",
+      "name": "F20 라우터 호출",
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "텔레그램 DM 수신": { "main": [[{ "node": "DM 필터 (CEO만)", "type": "main", "index": 0 }]] },
+    "DM 필터 (CEO만)": { "main": [[{ "node": "F20 라우터 호출", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

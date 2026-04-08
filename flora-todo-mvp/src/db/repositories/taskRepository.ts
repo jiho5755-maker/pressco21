@@ -669,6 +669,25 @@ export const taskRepository = {
     });
   },
 
+  async listApprovalPendingTasks(limit: number) {
+    return db
+      .select()
+      .from(tasks)
+      .where(
+        and(
+          isNull(tasks.ignoredAt),
+          or(
+            eq(tasks.approvalStatus, "pending"),
+            eq(tasks.approvalStatus, "needs_revision"),
+          ),
+          ne(tasks.status, "cancelled"),
+          ne(tasks.status, "done"),
+        ),
+      )
+      .orderBy(asc(tasks.createdAt))
+      .limit(limit);
+  },
+
   async listAutomationCalendarSyncCandidates(since: Date, limit: number) {
     return db
       .select()

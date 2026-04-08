@@ -1,5 +1,5 @@
 import { buildAutomationUnauthorizedResponse, isAutomationRequestAuthorized } from "@/src/lib/automation-auth";
-import { db } from "@/src/db";
+import { db } from "@/src/db/client";
 import { tasks } from "@/src/db/schema/tasks";
 import { eq } from "drizzle-orm";
 import { revalidateDashboardTag } from "@/src/lib/cache-tags";

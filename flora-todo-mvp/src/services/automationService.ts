@@ -297,19 +297,36 @@ function buildOverdueAlertText(overdueTasks: DashboardTask[], now = new Date()) 
 }
 
 export async function getMorningBrief(limit = 20, now = new Date()) {
-  const [todayRows, overdueRows] = await Promise.all([
+  const [todayRows, overdueRows, approvalRows] = await Promise.all([
     taskRepository.listAutomationMorningTasks(limit, now),
     taskRepository.listAutomationOverdueTasks(limit, now),
+    taskRepository.listApprovalPendingTasks(limit),
   ]);
-  const [todayTasks, overdueTasks] = await Promise.all([hydrateTasks(todayRows), hydrateTasks(overdueRows)]);
+  const [todayTasks, overdueTasks, approvalTasks] = await Promise.all([
+    hydrateTasks(todayRows),
+    hydrateTasks(overdueRows),
+    hydrateTasks(approvalRows),
+  ]);
+
+  let text = buildMorningBriefText(todayTasks, overdueTasks, now);
+
+  if (approvalTasks.length > 0) {
+    text += "\n\n✅ 승인 대기 (" + approvalTasks.length + "건)";
+    for (const task of approvalTasks) {
+      const age = Math.floor((now.getTime() - new Date(task.createdAt).getTime()) / (1000 * 60 * 60));
+      const warn = age >= 24 ? " ⚠️" : "";
+      text += "\n  • " + task.title + (age > 0 ? " (" + age + "시간 전)" : "") + warn;
+    }
+  }
 
   return {
     generatedAt: now.toISOString(),
     shouldSend: true,
     count: todayTasks.length,
-    text: buildMorningBriefText(todayTasks, overdueTasks, now),
+    text,
     items: todayTasks.map((task) => toBriefItem(task, now)),
     overdueItems: overdueTasks.map((task) => toBriefItem(task, now)),
+    approvalItems: approvalTasks.map((task) => toBriefItem(task, now)),
   };
 }
 

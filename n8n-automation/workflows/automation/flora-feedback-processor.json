@@ -1,0 +1,107 @@
+{
+  "name": "[F18] Flora 수정 피드백 처리",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-feedback",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "id": "node-webhook",
+      "name": "피드백 수신",
+      "webhookId": "flora-feedback"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst taskId = (body.taskId || '').trim();\nconst feedback = (body.feedback || body.text || '').trim();\nconst chatId = String(body.chatId || '7713811206');\n\nif (!taskId || !feedback) {\n  return [{ json: { ok: false, error: 'taskId and feedback are required' } }];\n}\n\nreturn [{ json: { ok: true, taskId, feedback, chatId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "id": "node-parse",
+      "name": "파싱"
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://mini.pressco21.com/api/automation/tasks/' + $json.taskId + '/approve' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ action: 'feedback', feedback: $json.feedback }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "id": "node-update-status",
+      "name": "상태 변경"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mini.pressco21.com/api/automation/dev-queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ worker: 'claude', prompt: '[\\uC218\\uC815 \\uC694\\uCCAD] \\uD0DC\\uC2A4\\uD06C #' + $('파싱').first().json.taskId + '\\n\\uC6D0\\uBCF8 \\uD0DC\\uC2A4\\uD06C: ' + ($input.first().json.task?.title || '') + '\\n\\uC218\\uC815 \\uC9C0\\uC2DC: ' + $('파싱').first().json.feedback, chatId: '-5043778307' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 300],
+      "id": "node-requeue",
+      "name": "재처리 큐 등록"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('파싱').first().json.chatId }}",
+        "text": "={{ '\\u{1F504} <b>[\\uC218\\uC815]</b> \\uD53C\\uB4DC\\uBC31 \\uBC18\\uC601 \\uC911\\n\\n' + $('파싱').first().json.feedback + '\\n\\n\\uC644\\uB8CC\\uB418\\uBA74 \\uC54C\\uB824\\uB4DC\\uB9AC\\uACA0\\uC2B5\\uB2C8\\uB2E4.' }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1160, 300],
+      "id": "node-notify",
+      "name": "피드백 확인 알림",
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, requeued: true }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1400, 300],
+      "id": "node-respond",
+      "name": "응답"
+    }
+  ],
+  "connections": {
+    "피드백 수신": { "main": [[{ "node": "파싱", "type": "main", "index": 0 }]] },
+    "파싱": { "main": [[{ "node": "상태 변경", "type": "main", "index": 0 }]] },
+    "상태 변경": { "main": [[{ "node": "재처리 큐 등록", "type": "main", "index": 0 }]] },
+    "재처리 큐 등록": { "main": [[{ "node": "피드백 확인 알림", "type": "main", "index": 0 }]] },
+    "피드백 확인 알림": { "main": [[{ "node": "응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

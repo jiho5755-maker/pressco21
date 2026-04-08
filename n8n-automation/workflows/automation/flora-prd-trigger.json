@@ -1,0 +1,121 @@
+{
+  "name": "[F13] Flora 기획안 트리거",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-prd-trigger",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "id": "node-webhook",
+      "name": "기획안 요청 수신",
+      "webhookId": "flora-prd-trigger"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst instruction = (body.instruction || body.text || '').trim();\nconst chatId = String(body.chatId || body.chat_id || '7713811206');\nconst senderName = body.senderName || body.sender_name || '대표';\n\nif (!instruction) {\n  return [{ json: { ok: false, error: 'instruction is required' } }];\n}\n\nconst prompt = `/기획안 ${instruction}`;\n\nreturn [{ json: { ok: true, prompt, chatId, senderName, instruction } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "id": "node-parse",
+      "name": "요청 파싱"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [{
+            "id": "cond-ok",
+            "leftValue": "={{ $json.ok }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "equals" }
+          }],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [660, 300],
+      "id": "node-if",
+      "name": "유효성 검사"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mini.pressco21.com/api/automation/dev-queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ worker: 'claude', prompt: $json.prompt, chatId: '-5043778307' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [900, 200],
+      "id": "node-queue",
+      "name": "dev-queue 등록"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('요청 파싱').first().json.chatId }}",
+        "text": "={{ '<b>[기획안 접수]</b> ' + $('요청 파싱').first().json.instruction + '\\n\\nClaude Code에 전달했습니다. 완료되면 알려드리겠습니다.' }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1140, 200],
+      "id": "node-notify",
+      "name": "접수 확인 텔레그램",
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, queued: true, instruction: $('요청 파싱').first().json.instruction }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1380, 200],
+      "id": "node-respond-ok",
+      "name": "성공 응답"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, error: $('요청 파싱').first().json.error }) }}",
+        "options": { "responseCode": 400 }
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [900, 420],
+      "id": "node-respond-err",
+      "name": "에러 응답"
+    }
+  ],
+  "connections": {
+    "기획안 요청 수신": { "main": [[{ "node": "요청 파싱", "type": "main", "index": 0 }]] },
+    "요청 파싱": { "main": [[{ "node": "유효성 검사", "type": "main", "index": 0 }]] },
+    "유효성 검사": {
+      "main": [
+        [{ "node": "dev-queue 등록", "type": "main", "index": 0 }],
+        [{ "node": "에러 응답", "type": "main", "index": 0 }]
+      ]
+    },
+    "dev-queue 등록": { "main": [[{ "node": "접수 확인 텔레그램", "type": "main", "index": 0 }]] },
+    "접수 확인 텔레그램": { "main": [[{ "node": "성공 응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

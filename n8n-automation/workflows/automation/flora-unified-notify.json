@@ -1,0 +1,60 @@
+{
+  "name": "[F14] Flora 통합 알림",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-notify",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "id": "node-webhook",
+      "name": "알림 수신"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\n\nconst type = body.type || 'system';\nconst title = (body.title || '\\uC54C\\uB9BC').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));\nconst summary = (body.summary || '').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));\nconst source = body.source || '';\nconst sourceId = body.sourceId || '';\nconst nextAction = body.nextAction || '';\nconst chatId = String(body.chatId || '7713811206');\n\nconst TYPE_MAP = {\n  task: ['\\u{1F4CB}', '\\uC5C5\\uBB34'],\n  prd: ['\\u{1F4DD}', '\\uAE30\\uD68D\\uC548'],\n  briefing: ['\\u2600\\uFE0F', '\\uBE0C\\uB9AC\\uD551'],\n  data: ['\\u{1F4CA}', '\\uB370\\uC774\\uD130'],\n  system: ['\\u2699\\uFE0F', '\\uC2DC\\uC2A4\\uD15C'],\n  dev: ['\\u{1F4BB}', '\\uAC1C\\uBC1C'],\n  approval: ['\\u2705', '\\uC2B9\\uC778']\n};\n\nconst [icon, label] = TYPE_MAP[type] || ['\\u2699\\uFE0F', type];\n\nconst parts = [];\nparts.push(`${icon} <b>[${label}]</b> ${title}`);\nparts.push('');\n\nif (summary) {\n  parts.push(summary.split('\\n').slice(0, 3).join('\\n'));\n  parts.push('');\n}\n\nconst meta = [];\nif (source) meta.push(`\\u{1F4CD} ${source}`);\nif (sourceId) meta.push(`\\u{1F517} ${sourceId}`);\nif (meta.length) parts.push(meta.join(' | '));\n\nif (nextAction) {\n  parts.push(`\\u{1F449} ${nextAction}`);\n}\n\nreturn [{ json: { message: parts.join('\\n'), chatId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "id": "node-format",
+      "name": "포맷 생성"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [680, 300],
+      "id": "node-telegram",
+      "name": "텔레그램 발송",
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [920, 300],
+      "id": "node-respond",
+      "name": "응답"
+    }
+  ],
+  "connections": {
+    "알림 수신": { "main": [[{ "node": "포맷 생성", "type": "main", "index": 0 }]] },
+    "포맷 생성": { "main": [[{ "node": "텔레그램 발송", "type": "main", "index": 0 }]] },
+    "텔레그램 발송": { "main": [[{ "node": "응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

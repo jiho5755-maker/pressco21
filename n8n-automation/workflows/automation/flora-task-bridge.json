@@ -42,7 +42,7 @@
           "parameters": [
             {
               "name": "x-flora-automation-key",
-              "value": "pressco21-admin-2026"
+              "value": "={{ $env.ADMIN_API_TOKEN }}"
             }
           ]
         },

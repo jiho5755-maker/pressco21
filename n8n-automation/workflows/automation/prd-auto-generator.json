@@ -39,7 +39,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const row = $input.first().json;\nconst id = row.Id || row.id || '?';\nconst title = row.title || '기획안';\nconst typeName = row.prd_type || '';\nconst preview = (row.content_md || '').slice(0, 500).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));\n\nconst msg = [\n  '<b>[기획안 저장 완료]</b>',\n  '',\n  `<b>제목</b>: ${title}`,\n  `<b>유형</b>: ${typeName}`,\n  `<b>NocoDB ID</b>: #${id}`,\n  '',\n  `<pre>${preview}...</pre>`,\n  '',\n  `승인: \"기획안 승인 #${id}\"`,\n  `배정: \"기획안 배정 #${id} 다경\"`\n].join('\\n');\n\nreturn [{ json: { message: msg, id } }];"
+        "jsCode": "const row = $input.first().json;\nconst id = row.Id || row.id || '?';\nconst title = row.title || '기획안';\nconst typeName = row.prd_type || '';\nconst instruction = row.instruction || '';\nconst localPath = row.local_path || '';\nconst content = row.content_md || '';\n\nconst lines = content.split('\\n').filter(l => l.trim() && !l.startsWith('#'));\nconst summary = lines.slice(0, 4).join('\\n').slice(0, 250).replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));\n\nconst parts = [\n  `<b>기획안 #${id} 저장</b>`,\n  '',\n  `<b>${title}</b> (${typeName})`,\n  `${summary}`,\n];\n\nif (localPath) {\n  parts.push('');\n  parts.push(`원문: <code>${localPath}</code>`);\n}\n\nparts.push('');\nparts.push(`실행: Claude Code (맥북)`);\nparts.push(`DB: NocoDB #${id}`);\n\nconst msg = parts.join('\\n');\nreturn [{ json: { message: msg, id } }];"
       },
       "id": "build-msg",
       "name": "알림 메시지 구성",

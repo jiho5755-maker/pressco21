@@ -1,0 +1,60 @@
+[
+  {
+    "uid": "1001",
+    "product_name": "샘플 전체품절 진열상품",
+    "category_name": "꽃다발 < 시즌상품",
+    "display": "Y",
+    "sellprice": "12000",
+    "options": {
+      "basic": [
+        { "sto_state_code": "SOLDOUT", "sto_opt_values": "레드", "sto_real_stock": "0" },
+        { "sto_state_code": "SOLDOUT", "sto_opt_values": "화이트", "sto_real_stock": "0" }
+      ],
+      "option": [
+        { "opt_type": "SELECT", "opt_use": "Y", "opt_name": "컬러" }
+      ]
+    }
+  },
+  {
+    "uid": "1002",
+    "product_name": "샘플 부분품절 상품",
+    "category_name": "리스",
+    "display": "Y",
+    "sellprice": "25000",
+    "options": {
+      "basic": [
+        { "sto_state_code": "SALE", "sto_opt_values": "소형", "sto_real_stock": "3" },
+        { "sto_state_code": "SOLDOUT", "sto_opt_values": "대형", "sto_real_stock": "0" }
+      ],
+      "option": [
+        { "opt_type": "SELECT", "opt_use": "Y", "opt_name": "사이즈" }
+      ]
+    }
+  },
+  {
+    "uid": "1003",
+    "product_name": "샘플 미진열 판매가능 상품",
+    "category_name": "소품",
+    "display": "N",
+    "sellprice": "8000",
+    "options": {
+      "basic": [
+        { "sto_state_code": "SALE", "sto_opt_values": "기본", "sto_real_stock": "5" }
+      ],
+      "option": []
+    }
+  },
+  {
+    "uid": "1004",
+    "product_name": "개인결제 테스트 제외",
+    "category_name": "개인결제창",
+    "display": "Y",
+    "sellprice": "1000",
+    "options": {
+      "basic": [
+        { "sto_state_code": "SALE", "sto_opt_values": "기본", "sto_real_stock": "1" }
+      ],
+      "option": []
+    }
+  }
+]

@@ -22,9 +22,9 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-08 18:13:00 KST
+- Started At: 2026-04-08 18:28:00 KST
 - Branch: main
-- Active Subdirectory: offline-crm-v2
+- Active Subdirectory: tools
 
 ## Files In Progress
 - —
@@ -33,6 +33,18 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-08 재고 정리 스크립트 CLI 구현 (codex)
+  - `tools/stock_cleanup.py`
+    - 하드코딩된 1회성 스크립트를 `argparse` 기반 CLI로 재작성
+    - API 호출 대신 `--input-json` 로컬 입력도 지원하도록 확장
+    - 출력 경로를 상대 경로/인자 기반으로 정리하고 `manifest.json` 요약 파일 추가
+    - API 키는 코드 상수 대신 `--shopkey`, `--licensekey`, 환경변수로 받도록 변경
+  - `tools/stock_cleanup/sample_products.json`
+    - 오프라인 검증용 샘플 데이터를 추가
+  - 검증
+    - `PYTHONPYCACHEPREFIX=/tmp/pycache python3 -m py_compile tools/stock_cleanup.py` 통과
+    - `python3 tools/stock_cleanup.py --input-json tools/stock_cleanup/sample_products.json --output-dir /tmp/stock_cleanup_demo` 실행 완료
+    - 출력 확인: `/private/tmp/stock_cleanup_demo/*.csv`, `/private/tmp/stock_cleanup_demo/manifest.json`
 - 2026-04-08 CRM E2E 설정/skip 보정 (codex)
   - `offline-crm-v2/playwright.config.ts`
     - Playwright webServer/baseURL을 `127.0.0.1:5173`로 고정해 `localhost -> ::1` 바인딩 이슈를 피하도록 수정
@@ -57,6 +69,7 @@
 
 ### Codex 담당
 - `[CODEX]` WF-CRM-02/03 실건 검증 (입금/감사 루프)
+- `[CODEX]` 재고 정리 스크립트를 실제 메이크샵 키로 한 번 실행해 live CSV와 manifest가 기대대로 나오는지 확인
 - `[CODEX]` CRM E2E 수정분을 로컬에서 `npx playwright test tests/04-transactions.spec.ts tests/09-calendar.spec.ts --reporter=list`로 재실행해 skip 제거 여부 확인
 - `[CODEX]` CRM E2E skipped 2건 재검토 + 플래키 모니터링
 - `[CODEX]` 파서 실패 fixture 수집 확대
@@ -71,3 +84,4 @@
 - WF-CRM-02/03 실건 검증 미완 (파서 정확도 지속 모니터링 필요)
 - 2026-04-07 누락 입금 3건 수동 재처리 또는 CRM 반영 확인 필요
 - 현재 샌드박스는 로컬 포트 listen이 막혀 있어 Playwright webServer 실구동 검증을 여기서 끝까지 할 수 없다. CRM E2E 최종 통과 여부는 사용자 로컬 셸에서 한 번 더 확인해야 한다.
+- 재고 정리 스크립트는 오프라인 샘플 검증까지는 끝났지만, 실제 메이크샵 API 실호출은 키를 코드에서 제거했기 때문에 로컬 환경변수 또는 CLI 인자로 한 번 더 실행해야 한다.

@@ -1,0 +1,350 @@
+{
+  "name": "Flora Law Lookup",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-law-lookup",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "flaw-0001-4000-8000-000000000001",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "webhookId": "flora-law-lookup"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 입력 파싱 및 기본값 설정\nconst body = $input.first().json.body;\nconst query = (body.query || '').trim();\nconst type = (body.type || 'full').toLowerCase();\n\nif (!query) {\n  return [{ json: { error: true, message: '검색어(query)가 필요합니다.' } }];\n}\n\nconst validTypes = ['law', 'precedent', 'interpretation', 'full'];\nif (!validTypes.includes(type)) {\n  return [{ json: { error: true, message: '유효한 type: law, precedent, interpretation, full' } }];\n}\n\nreturn [{ json: { error: false, query, type } }];"
+      },
+      "id": "flaw-0001-4000-8000-000000000002",
+      "name": "입력 검증",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [{
+            "id": "cond-valid",
+            "leftValue": "={{ $json.error }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "notTrue" }
+          }],
+          "combinator": "and"
+        }
+      },
+      "id": "flaw-0001-4000-8000-000000000003",
+      "name": "입력 OK?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+                "conditions": [{
+                  "leftValue": "={{ $json.type }}",
+                  "rightValue": "law",
+                  "operator": { "type": "string", "operation": "equals" },
+                  "id": "type-law"
+                }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "법령"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+                "conditions": [{
+                  "leftValue": "={{ $json.type }}",
+                  "rightValue": "precedent",
+                  "operator": { "type": "string", "operation": "equals" },
+                  "id": "type-prec"
+                }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "판례"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+                "conditions": [{
+                  "leftValue": "={{ $json.type }}",
+                  "rightValue": "interpretation",
+                  "operator": { "type": "string", "operation": "equals" },
+                  "id": "type-expc"
+                }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "해석례"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict", "version": 2 },
+                "conditions": [{
+                  "leftValue": "={{ $json.type }}",
+                  "rightValue": "full",
+                  "operator": { "type": "string", "operation": "equals" },
+                  "id": "type-full"
+                }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "전체"
+            }
+          ],
+          "fallbackOutput": {}
+        },
+        "options": {}
+      },
+      "id": "flaw-0001-4000-8000-000000000004",
+      "name": "타입 분기",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'http://www.law.go.kr/DRF/lawSearch.do?OC=pressco21&target=law&type=XML&display=3&query=' + encodeURIComponent($('입력 검증').first().json.query) }}",
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      },
+      "id": "flaw-0001-4000-8000-000000000010",
+      "name": "법령 검색 (단일)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 100],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'http://www.law.go.kr/DRF/lawSearch.do?OC=pressco21&target=prec&type=XML&display=3&query=' + encodeURIComponent($('입력 검증').first().json.query) }}",
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      },
+      "id": "flaw-0001-4000-8000-000000000011",
+      "name": "판례 검색 (단일)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'http://www.law.go.kr/DRF/lawSearch.do?OC=pressco21&target=expc&type=XML&display=3&query=' + encodeURIComponent($('입력 검증').first().json.query) }}",
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      },
+      "id": "flaw-0001-4000-8000-000000000012",
+      "name": "해석례 검색 (단일)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 500],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'http://www.law.go.kr/DRF/lawSearch.do?OC=pressco21&target=law&type=XML&display=3&query=' + encodeURIComponent($('입력 검증').first().json.query) }}",
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      },
+      "id": "flaw-0001-4000-8000-000000000020",
+      "name": "법령 검색 (전체)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 700],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'http://www.law.go.kr/DRF/lawSearch.do?OC=pressco21&target=prec&type=XML&display=3&query=' + encodeURIComponent($('입력 검증').first().json.query) }}",
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      },
+      "id": "flaw-0001-4000-8000-000000000021",
+      "name": "판례 검색 (전체)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 900],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ 'http://www.law.go.kr/DRF/lawSearch.do?OC=pressco21&target=expc&type=XML&display=3&query=' + encodeURIComponent($('입력 검증').first().json.query) }}",
+        "options": { "response": { "response": { "responseFormat": "text" } } }
+      },
+      "id": "flaw-0001-4000-8000-000000000022",
+      "name": "해석례 검색 (전체)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 1100],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 법령 검색 결과 XML 파싱 (단일)\nconst xml = $input.first().json.data || '';\nconst query = $('입력 검증').first().json.query;\n\nfunction extractTag(str, tag) {\n  const regex = new RegExp('<' + tag + '>(.*?)</' + tag + '>', 'gs');\n  const matches = [];\n  let m;\n  while ((m = regex.exec(str)) !== null) {\n    matches.push(m[1].trim());\n  }\n  return matches;\n}\n\nfunction extractLaws(xmlStr) {\n  const items = xmlStr.split(/<법령>/).filter(s => s.trim());\n  const results = [];\n  for (const item of items) {\n    const name = (extractTag(item, '법령명한글')[0] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '');\n    if (!name) continue;\n    const id = extractTag(item, '법령일련번호')[0] || '';\n    const mst = extractTag(item, '법령MST')[0] || id;\n    const lawType = extractTag(item, '법령구분명')[0] || '';\n    const dept = (extractTag(item, '소관부처명')[0] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '');\n    const date = extractTag(item, '시행일자')[0] || '';\n    results.push({ name, id, mst, type: lawType, department: dept, effectiveDate: date });\n  }\n  return results;\n}\n\nconst laws = extractLaws(xml);\nreturn [{ json: {\n  success: true,\n  query,\n  results: { laws, precedents: [], interpretations: [] },\n  summary: '검색 결과: 법령 ' + laws.length + '건'\n} }];"
+      },
+      "id": "flaw-0001-4000-8000-000000000030",
+      "name": "법령 파싱 (단일)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 100]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 판례 검색 결과 XML 파싱 (단일)\nconst xml = $input.first().json.data || '';\nconst query = $('입력 검증').first().json.query;\n\nfunction extractTag(str, tag) {\n  const regex = new RegExp('<' + tag + '>(.*?)</' + tag + '>', 'gs');\n  const matches = [];\n  let m;\n  while ((m = regex.exec(str)) !== null) {\n    matches.push(m[1].trim());\n  }\n  return matches;\n}\n\nfunction extractPrecs(xmlStr) {\n  const items = xmlStr.split(/<판례>/).filter(s => s.trim());\n  const results = [];\n  for (const item of items) {\n    const name = (extractTag(item, '사건명')[0] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '');\n    if (!name) continue;\n    const id = extractTag(item, '판례일련번호')[0] || '';\n    const caseNum = (extractTag(item, '사건번호')[0] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '');\n    const court = (extractTag(item, '법원명')[0] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '');\n    const date = extractTag(item, '선고일자')[0] || '';\n    const result = (extractTag(item, '판결유형')[0] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '');\n    results.push({ name, id, caseNumber: caseNum, court, date, result });\n  }\n  return results;\n}\n\nconst precedents = extractPrecs(xml);\nreturn [{ json: {\n  success: true,\n  query,\n  results: { laws: [], precedents, interpretations: [] },\n  summary: '검색 결과: 판례 ' + precedents.length + '건'\n} }];"
+      },
+      "id": "flaw-0001-4000-8000-000000000031",
+      "name": "판례 파싱 (단일)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 해석례 검색 결과 XML 파싱 (단일)\nconst xml = $input.first().json.data || '';\nconst query = $('입력 검증').first().json.query;\n\nfunction extractTag(str, tag) {\n  const regex = new RegExp('<' + tag + '>(.*?)</' + tag + '>', 'gs');\n  const matches = [];\n  let m;\n  while ((m = regex.exec(str)) !== null) {\n    matches.push(m[1].trim());\n  }\n  return matches;\n}\n\nfunction extractExpcs(xmlStr) {\n  const items = xmlStr.split(/<해석례>/).filter(s => s.trim());\n  const results = [];\n  for (const item of items) {\n    const title = (extractTag(item, '제목')[0] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '');\n    if (!title) continue;\n    const id = extractTag(item, '해석례일련번호')[0] || '';\n    const type = (extractTag(item, '해석례구분명')[0] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '');\n    const org = (extractTag(item, '회신기관명')[0] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '');\n    const date = extractTag(item, '안건번호일자')[0] || '';\n    results.push({ title, id, type, organization: org, date });\n  }\n  return results;\n}\n\nconst interpretations = extractExpcs(xml);\nreturn [{ json: {\n  success: true,\n  query,\n  results: { laws: [], precedents: [], interpretations },\n  summary: '검색 결과: 해석례 ' + interpretations.length + '건'\n} }];"
+      },
+      "id": "flaw-0001-4000-8000-000000000032",
+      "name": "해석례 파싱 (단일)",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 500]
+    },
+    {
+      "parameters": {
+        "jsCode": "// 전체 검색: 법령 + 판례 + 해석례 3개 응답 병합\nconst query = $('입력 검증').first().json.query;\n\n// 각 HTTP 노드에서 결과 가져오기\nconst lawXml = $('법령 검색 (전체)').first().json.data || '';\nconst precXml = $('판례 검색 (전체)').first().json.data || '';\nconst expcXml = $('해석례 검색 (전체)').first().json.data || '';\n\nfunction extractTag(str, tag) {\n  const regex = new RegExp('<' + tag + '>(.*?)</' + tag + '>', 'gs');\n  const matches = [];\n  let m;\n  while ((m = regex.exec(str)) !== null) {\n    matches.push(m[1].trim());\n  }\n  return matches;\n}\n\nfunction cleanCdata(s) {\n  return (s || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '');\n}\n\n// 법령 파싱\nfunction extractLaws(xmlStr) {\n  const items = xmlStr.split(/<법령>/).filter(s => s.trim());\n  const results = [];\n  for (const item of items) {\n    const name = cleanCdata(extractTag(item, '법령명한글')[0] || '');\n    if (!name) continue;\n    const id = extractTag(item, '법령일련번호')[0] || '';\n    const mst = extractTag(item, '법령MST')[0] || id;\n    const lawType = extractTag(item, '법령구분명')[0] || '';\n    const dept = cleanCdata(extractTag(item, '소관부처명')[0] || '');\n    const date = extractTag(item, '시행일자')[0] || '';\n    results.push({ name, id, mst, type: lawType, department: dept, effectiveDate: date });\n  }\n  return results;\n}\n\n// 판례 파싱\nfunction extractPrecs(xmlStr) {\n  const items = xmlStr.split(/<판례>/).filter(s => s.trim());\n  const results = [];\n  for (const item of items) {\n    const name = cleanCdata(extractTag(item, '사건명')[0] || '');\n    if (!name) continue;\n    const id = extractTag(item, '판례일련번호')[0] || '';\n    const caseNum = cleanCdata(extractTag(item, '사건번호')[0] || '');\n    const court = cleanCdata(extractTag(item, '법원명')[0] || '');\n    const date = extractTag(item, '선고일자')[0] || '';\n    const result = cleanCdata(extractTag(item, '판결유형')[0] || '');\n    results.push({ name, id, caseNumber: caseNum, court, date, result });\n  }\n  return results;\n}\n\n// 해석례 파싱\nfunction extractExpcs(xmlStr) {\n  const items = xmlStr.split(/<해석례>/).filter(s => s.trim());\n  const results = [];\n  for (const item of items) {\n    const title = cleanCdata(extractTag(item, '제목')[0] || '');\n    if (!title) continue;\n    const id = extractTag(item, '해석례일련번호')[0] || '';\n    const type = cleanCdata(extractTag(item, '해석례구분명')[0] || '');\n    const org = cleanCdata(extractTag(item, '회신기관명')[0] || '');\n    const date = extractTag(item, '안건번호일자')[0] || '';\n    results.push({ title, id, type, organization: org, date });\n  }\n  return results;\n}\n\nconst laws = extractLaws(lawXml);\nconst precedents = extractPrecs(precXml);\nconst interpretations = extractExpcs(expcXml);\n\nconst parts = [];\nif (laws.length > 0) parts.push('법령 ' + laws.length + '건');\nif (precedents.length > 0) parts.push('판례 ' + precedents.length + '건');\nif (interpretations.length > 0) parts.push('해석례 ' + interpretations.length + '건');\nconst summaryText = parts.length > 0 ? '검색 결과: ' + parts.join(', ') : '검색 결과 없음';\n\nreturn [{ json: {\n  success: true,\n  query,\n  results: { laws, precedents, interpretations },\n  summary: summaryText\n} }];"
+      },
+      "id": "flaw-0001-4000-8000-000000000040",
+      "name": "전체 결과 병합",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 900]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "flaw-0001-4000-8000-000000000050",
+      "name": "법령 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1440, 100]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "flaw-0001-4000-8000-000000000051",
+      "name": "판례 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1440, 300]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "flaw-0001-4000-8000-000000000052",
+      "name": "해석례 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1440, 500]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "flaw-0001-4000-8000-000000000053",
+      "name": "전체 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1680, 900]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {}
+      },
+      "id": "flaw-0001-4000-8000-000000000060",
+      "name": "에러 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [720, 500]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [[{ "node": "입력 검증", "type": "main", "index": 0 }]]
+    },
+    "입력 검증": {
+      "main": [[{ "node": "입력 OK?", "type": "main", "index": 0 }]]
+    },
+    "입력 OK?": {
+      "main": [
+        [{ "node": "타입 분기", "type": "main", "index": 0 }],
+        [{ "node": "에러 응답", "type": "main", "index": 0 }]
+      ]
+    },
+    "타입 분기": {
+      "main": [
+        [{ "node": "법령 검색 (단일)", "type": "main", "index": 0 }],
+        [{ "node": "판례 검색 (단일)", "type": "main", "index": 0 }],
+        [{ "node": "해석례 검색 (단일)", "type": "main", "index": 0 }],
+        [{ "node": "법령 검색 (전체)", "type": "main", "index": 0 }]
+      ]
+    },
+    "법령 검색 (단일)": {
+      "main": [[{ "node": "법령 파싱 (단일)", "type": "main", "index": 0 }]]
+    },
+    "판례 검색 (단일)": {
+      "main": [[{ "node": "판례 파싱 (단일)", "type": "main", "index": 0 }]]
+    },
+    "해석례 검색 (단일)": {
+      "main": [[{ "node": "해석례 파싱 (단일)", "type": "main", "index": 0 }]]
+    },
+    "법령 파싱 (단일)": {
+      "main": [[{ "node": "법령 응답", "type": "main", "index": 0 }]]
+    },
+    "판례 파싱 (단일)": {
+      "main": [[{ "node": "판례 응답", "type": "main", "index": 0 }]]
+    },
+    "해석례 파싱 (단일)": {
+      "main": [[{ "node": "해석례 응답", "type": "main", "index": 0 }]]
+    },
+    "법령 검색 (전체)": {
+      "main": [[{ "node": "판례 검색 (전체)", "type": "main", "index": 0 }]]
+    },
+    "판례 검색 (전체)": {
+      "main": [[{ "node": "해석례 검색 (전체)", "type": "main", "index": 0 }]]
+    },
+    "해석례 검색 (전체)": {
+      "main": [[{ "node": "전체 결과 병합", "type": "main", "index": 0 }]]
+    },
+    "전체 결과 병합": {
+      "main": [[{ "node": "전체 응답", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": { "executionOrder": "v1" }
+}

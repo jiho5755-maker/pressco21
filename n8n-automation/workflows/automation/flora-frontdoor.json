@@ -1,0 +1,182 @@
+{
+  "name": "[F0] Flora Frontdoor (업무방 게이트웨이)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-incoming",
+        "responseMode": "onReceived",
+        "responseData": "firstEntryJson",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 300],
+      "id": "node-trigger",
+      "name": "Flora 텔레그램 수신",
+      "webhookId": "flora-incoming"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 메시지 파싱 + 키워드 라우팅\n// n8n webhook v2에서 body는 $json.body에 위치\nconst raw = $input.first().json;\nconst update = raw.body || raw;\nconst message = update.message || {};\nconst text = (message.text || '').trim();\nconst chatId = String(message.chat?.id || '');\nconst messageId = String(message.message_id || '');\nconst fromId = String(message.from?.id || '');\nconst firstName = message.from?.first_name || '대표';\n\n// 허용 채팅방 (업무방=대표 DM, Claude방, Codex방)\nconst ALLOWED_CHATS = ['7713811206', '-5043778307', '-5198284773'];\n\n// 봇 멘션 처리 (그룹에서 @pressco21_openclaw_bot 제거)\nconst cleanText = text.replace(/@pressco21_openclaw_bot\\b/gi, '').trim();\n\nif (!ALLOWED_CHATS.includes(chatId) || !cleanText) {\n  return [{ json: { route: 'ignore', chatId, text: cleanText } }];\n}\n\n// 키워드 기반 라우팅\nlet route = 'task';\nlet subRoute = null;\n\nif (/기획안|상세페이지|PRD|랜딩페이지|이벤트.*기획|sns.*기획/i.test(cleanText)) {\n  route = 'prd';\n} else if (/매출|주문|revenue|sales/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'sales';\n} else if (/고객|세그먼트|rfm|crm/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'segments';\n} else if (/파트너|강사/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'partners';\n} else if (/캠페인|sms|발송/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'campaigns';\n} else if (/법률|계약|약관|규정|저작권/i.test(cleanText)) {\n  route = 'law';\n}\n\nreturn [{\n  json: {\n    route, subRoute,\n    chatId, messageId, fromId, firstName,\n    text: cleanText,\n    rawText: text\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 300],
+      "id": "node-parse",
+      "name": "메시지 파싱 + 라우팅"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "id": "c1", "leftValue": "={{ $json.route }}", "rightValue": "prd", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "prd"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "id": "c2", "leftValue": "={{ $json.route }}", "rightValue": "biz", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "biz"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "id": "c3", "leftValue": "={{ $json.route }}", "rightValue": "task", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "task"
+            }
+          ]
+        },
+        "options": { "fallbackOutput": "none" }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [480, 300],
+      "id": "node-switch",
+      "name": "라우트 분기"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/flora-prd-trigger",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "content-type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ instruction: $json.text, chatId: $json.chatId, senderName: $json.firstName }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 100],
+      "id": "node-prd",
+      "name": "기획안 트리거 (F13)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/flora-biz-data",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "content-type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chatId, query_type: $json.subRoute || $json.text }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 260],
+      "id": "node-biz",
+      "name": "비즈니스 데이터 조회"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/flora-task-create",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [{ "name": "content-type", "value": "application/json" }]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ title: $json.text, chatId: $json.chatId, senderName: $json.firstName }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 420],
+      "id": "node-task",
+      "name": "태스크 등록 (F12)"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('메시지 파싱 + 라우팅').first().json.chatId }}",
+        "text": "⚙️ <b>기획안</b> 요청을 접수했습니다.\nClaude Code가 작성 중입니다. 3~5분 후 결과를 보내드릴게요.",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 100],
+      "id": "node-ack-prd",
+      "name": "기획안 접수 확인",
+      "credentials": { "telegramApi": { "id": "O6qwF7Pup3u1Zc1O", "name": "Flora-OpenClaw-Bot" } }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('메시지 파싱 + 라우팅').first().json.chatId }}",
+        "text": "={{ '📊 ' + ($input.first().json.summary || '데이터를 불러오는 중 오류가 발생했습니다.') }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 260],
+      "id": "node-biz-reply",
+      "name": "비즈니스 데이터 응답",
+      "credentials": { "telegramApi": { "id": "O6qwF7Pup3u1Zc1O", "name": "Flora-OpenClaw-Bot" } }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('메시지 파싱 + 라우팅').first().json.chatId }}",
+        "text": "={{ '✅ <b>' + $('메시지 파싱 + 라우팅').first().json.text + '</b>\\n태스크로 등록했습니다.' }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 420],
+      "id": "node-task-reply",
+      "name": "태스크 등록 확인",
+      "credentials": { "telegramApi": { "id": "O6qwF7Pup3u1Zc1O", "name": "Flora-OpenClaw-Bot" } }
+    }
+  ],
+  "connections": {
+    "Flora 텔레그램 수신": { "main": [[{ "node": "메시지 파싱 + 라우팅", "type": "main", "index": 0 }]] },
+    "메시지 파싱 + 라우팅": { "main": [[{ "node": "라우트 분기", "type": "main", "index": 0 }]] },
+    "라우트 분기": {
+      "main": [
+        [{ "node": "기획안 트리거 (F13)", "type": "main", "index": 0 }],
+        [{ "node": "비즈니스 데이터 조회", "type": "main", "index": 0 }],
+        [{ "node": "태스크 등록 (F12)", "type": "main", "index": 0 }]
+      ]
+    },
+    "기획안 트리거 (F13)": { "main": [[{ "node": "기획안 접수 확인", "type": "main", "index": 0 }]] },
+    "비즈니스 데이터 조회": { "main": [[{ "node": "비즈니스 데이터 응답", "type": "main", "index": 0 }]] },
+    "태스크 등록 (F12)": { "main": [[{ "node": "태스크 등록 확인", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

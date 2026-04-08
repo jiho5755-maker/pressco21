@@ -355,6 +355,8 @@ def load_smartstore():
         for i, h in enumerate(headers):
             if "상품번호" in h:
                 col_map["pid"] = i
+            elif h == "판매자 상품코드":
+                col_map["seller_code"] = i
             elif h == "상품명":
                 col_map["name"] = i
             elif h == "판매가":
@@ -383,10 +385,15 @@ def load_smartstore():
                 continue
             seen_pids.add(pid)
 
+            seller_code = str(cells[col_map.get("seller_code", 0)]).strip() if col_map.get("seller_code") is not None and col_map["seller_code"] < len(cells) and cells[col_map["seller_code"]] else ""
+            if seller_code == "None":
+                seller_code = ""
+
             products.append({
                 "pid": pid,
                 "name": name,
                 "price": price.replace(",", "").replace("원", "").strip(),
+                "seller_code": seller_code,
             })
         wb.close()
 
@@ -412,6 +419,8 @@ def load_coupang():
             col_map["reg_name"] = i
         elif h == "업체상품 ID" or h == "업체상품ID":
             col_map["vid"] = i
+        elif h == "Product ID":
+            col_map["product_id"] = i
         elif "승인상태" in h:
             col_map["approval"] = i
         elif "업체상품코드" in h:
@@ -443,6 +452,7 @@ def load_coupang():
         reg_name = get_cell("reg_name")
         approval = get_cell("approval")
         vcode = get_cell("vcode")
+        product_id = get_cell("product_id")
         price = get_cell("price", "0").replace(",", "").replace("원", "").strip()
 
         if not name or name == "None":
@@ -453,6 +463,7 @@ def load_coupang():
         if vid not in products:
             products[vid] = {
                 "vid": vid,
+                "product_id": product_id,
                 "name": name,
                 "reg_name": reg_name,
                 "approval": approval,
@@ -554,23 +565,26 @@ def main():
         score, grade, reasons, ms = find_best_match(ss, ms_products, ms_norm_map, ms_name_set)
         ss_grades[grade] = ss_grades.get(grade, 0) + 1
 
+        ms_uid = ms["uid"] if ms else ""
         ss_results.append({
             "등급": grade,
             "score": score,
             "reason": "+".join(reasons) if reasons else "",
-            "ss_name": ss["name"],
-            "ms_name": ms["name"] if ms else "",
-            "ss_price": ss["price"],
-            "ms_price": ms["price"] if ms else "",
-            "ms_uid": ms["uid"] if ms else "",
-            "ss_pid": ss["pid"],
+            "ss_상품명": ss["name"],
+            "ms_상품명": ms["name"] if ms else "",
+            "ss_가격": ss["price"],
+            "ms_가격": ms["price"] if ms else "",
+            "ss_상품번호": ss["pid"],
+            "ss_판매자코드": ss.get("seller_code", ""),
+            "ms_uid": ms_uid,
+            "ms_링크": f"https://www.foreverlove.co.kr/shop/shopdetail.html?branduid={ms_uid}" if ms_uid else "",
         })
 
         if (i + 1) % 200 == 0:
             print(f"  {i+1}/{len(ss_products)}")
 
     ss_results.sort(key=lambda x: (-x["score"], x["등급"]))
-    ss_fields = ["등급", "score", "reason", "ss_name", "ms_name", "ss_price", "ms_price", "ms_uid", "ss_pid"]
+    ss_fields = ["등급", "score", "reason", "ss_상품명", "ms_상품명", "ss_가격", "ms_가격", "ss_상품번호", "ss_판매자코드", "ms_uid", "ms_링크"]
     write_csv(f"{OUT}/v3_매칭_스마트스토어_{len(ss_products)}건.csv", ss_results, ss_fields)
 
     print(f"\n  스마트스토어 결과:")
@@ -586,25 +600,28 @@ def main():
         score, grade, reasons, ms = find_best_match(cp, ms_products, ms_norm_map, ms_name_set, is_coupang=True)
         cp_grades[grade] = cp_grades.get(grade, 0) + 1
 
+        ms_uid = ms["uid"] if ms else ""
         cp_results.append({
             "등급": grade,
             "score": score,
             "reason": "+".join(reasons) if reasons else "",
-            "cp_name": cp["name"],
-            "ms_name": ms["name"] if ms else "",
-            "cp_price": cp["price"],
-            "ms_price": ms["price"] if ms else "",
-            "ms_uid": ms["uid"] if ms else "",
-            "cp_vid": cp["vid"],
-            "cp_approval": cp.get("approval", ""),
-            "cp_vcode": cp.get("vcode", ""),
+            "cp_상품명": cp["name"],
+            "ms_상품명": ms["name"] if ms else "",
+            "cp_가격": cp["price"],
+            "ms_가격": ms["price"] if ms else "",
+            "cp_업체상품ID": cp["vid"],
+            "cp_ProductID": cp.get("product_id", ""),
+            "cp_업체상품코드": cp.get("vcode", ""),
+            "cp_승인상태": cp.get("approval", ""),
+            "ms_uid": ms_uid,
+            "ms_링크": f"https://www.foreverlove.co.kr/shop/shopdetail.html?branduid={ms_uid}" if ms_uid else "",
         })
 
         if (i + 1) % 200 == 0:
             print(f"  {i+1}/{len(cp_products)}")
 
     cp_results.sort(key=lambda x: (-x["score"], x["등급"]))
-    cp_fields = ["등급", "score", "reason", "cp_name", "ms_name", "cp_price", "ms_price", "ms_uid", "cp_vid", "cp_approval", "cp_vcode"]
+    cp_fields = ["등급", "score", "reason", "cp_상품명", "ms_상품명", "cp_가격", "ms_가격", "cp_업체상품ID", "cp_ProductID", "cp_업체상품코드", "cp_승인상태", "ms_uid", "ms_링크"]
     write_csv(f"{OUT}/v3_매칭_쿠팡_{len(cp_products)}건.csv", cp_results, cp_fields)
 
     print(f"\n  쿠팡 결과:")

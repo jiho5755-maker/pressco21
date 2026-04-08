@@ -43,6 +43,14 @@ def csv_to_sheet(wb, sheet_name, csv_path, link_col_name=None, grade_col="등급
 
     grade_idx = headers.index(grade_col) if grade_col in headers else None
 
+    # 링크 컬럼 찾기
+    link_cols = set()
+    for i, h in enumerate(headers):
+        if "링크" in h or "link" in h.lower():
+            link_cols.add(i)
+
+    LINK_FONT = Font(name="Arial", size=10, color="0563C1", underline="single")
+
     for row_idx, row in enumerate(rows[1:], 2):
         grade = row[grade_idx] if grade_idx is not None and grade_idx < len(row) else ""
         grade_fill = GRADE_FILLS.get(grade)
@@ -56,6 +64,11 @@ def csv_to_sheet(wb, sheet_name, csv_path, link_col_name=None, grade_col="등급
                 cell.fill = grade_fill
             elif row_idx % 2 == 0:
                 cell.fill = ALT_FILL
+            # 링크 컬럼: 하이퍼링크 처리
+            if col_idx in link_cols and val and val.startswith("http"):
+                cell.hyperlink = val
+                cell.font = LINK_FONT
+                cell.value = "열기"
 
     # 열 너비
     for col_idx, h in enumerate(headers, 1):

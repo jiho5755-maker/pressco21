@@ -1,0 +1,84 @@
+{
+  "name": "[F17] Flora 개발 작업 배분",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-dev-dispatch",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "id": "node-webhook",
+      "name": "개발 지시 수신",
+      "webhookId": "flora-dev-dispatch"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst text = (body.text || body.instruction || '').trim();\nconst chatId = String(body.chatId || '7713811206');\n\nif (!text) {\n  return [{ json: { ok: false, error: 'text is required' } }];\n}\n\nconst lower = text.toLowerCase();\n\nconst CODEX_KEYWORDS = ['\\uD14C\\uC2A4\\uD2B8','\\uB9AC\\uD329\\uD1A0\\uB9C1','\\uAD6C\\uD604','\\uC218\\uC815','\\uBC84\\uADF8','\\uD53D\\uC2A4','e2e','lint','\\uCF54\\uB4DC \\uC815\\uB9AC','\\uD0C0\\uC785 \\uCD94\\uAC00'];\nconst CLAUDE_KEYWORDS = ['\\uAE30\\uD68D','\\uC124\\uACC4','\\uBD84\\uC11D','\\uC804\\uB7B5','\\uC544\\uD0A4\\uD14D\\uCC98','\\uD300\\uBBF8\\uD305','PRD','\\uB85C\\uB4DC\\uB9F5','\\uC2E0\\uADDC','\\uD398\\uC774\\uC9C0'];\n\nlet codexScore = 0;\nlet claudeScore = 0;\n\nfor (const kw of CODEX_KEYWORDS) {\n  if (lower.includes(kw.toLowerCase())) codexScore++;\n}\nfor (const kw of CLAUDE_KEYWORDS) {\n  if (lower.includes(kw.toLowerCase())) claudeScore++;\n}\n\nconst worker = codexScore > claudeScore ? 'codex' : 'claude';\nconst workerLabel = worker === 'codex' ? 'Codex (\\uAD6C\\uD604/\\uD14C\\uC2A4\\uD2B8)' : 'Claude Code (\\uAE30\\uD68D/\\uC124\\uACC4)';\nconst targetRoom = worker === 'codex' ? '-5198284773' : '-5043778307';\n\nreturn [{ json: { ok: true, worker, workerLabel, prompt: text, chatId, targetRoom } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "id": "node-classify",
+      "name": "Claude vs Codex 분류"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mini.pressco21.com/api/automation/dev-queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ worker: $json.worker, prompt: $json.prompt, chatId: $json.targetRoom }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300],
+      "id": "node-queue",
+      "name": "dev-queue 등록"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Claude vs Codex 분류').first().json.chatId }}",
+        "text": "={{ '\\u{1F4BB} <b>[\\uAC1C\\uBC1C]</b> \\uBC30\\uBD84: ' + $('Claude vs Codex 분류').first().json.workerLabel + '\\n\\n' + $('Claude vs Codex 분류').first().json.prompt.slice(0, 100) + '\\n\\n\\uC2DC\\uC791\\uB418\\uBA74 \\uAC1C\\uBC1C\\uBC29\\uC5D0\\uC11C \\uC9C4\\uD589 \\uC0C1\\uD669\\uC744 \\uBCFC \\uC218 \\uC788\\uC2B5\\uB2C8\\uB2E4.' }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [940, 300],
+      "id": "node-notify",
+      "name": "배분 알림",
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, worker: $('Claude vs Codex 분류').first().json.worker }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1180, 300],
+      "id": "node-respond",
+      "name": "응답"
+    }
+  ],
+  "connections": {
+    "개발 지시 수신": { "main": [[{ "node": "Claude vs Codex 분류", "type": "main", "index": 0 }]] },
+    "Claude vs Codex 분류": { "main": [[{ "node": "dev-queue 등록", "type": "main", "index": 0 }]] },
+    "dev-queue 등록": { "main": [[{ "node": "배분 알림", "type": "main", "index": 0 }]] },
+    "배분 알림": { "main": [[{ "node": "응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

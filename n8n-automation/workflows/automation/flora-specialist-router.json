@@ -1,0 +1,159 @@
+{
+  "name": "[F15] Flora Specialist 라우터",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-specialist",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "id": "node-webhook",
+      "name": "요청 수신",
+      "webhookId": "flora-specialist"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst text = (body.text || body.message || '').trim();\nconst chatId = String(body.chatId || body.chat_id || '7713811206');\n\nif (!text) {\n  return [{ json: { error: true, message: 'text is required' } }];\n}\n\nconst SPECIALISTS = [\n  { id: 'executive', icon: '\\u{1F9ED}', label: '\\uCD1D\\uAD04', keywords: ['\\uC6B0\\uC120\\uC21C\\uC704','\\uBB50\\uBD80\\uD130','\\uC815\\uB9AC\\uD574\\uC918','\\uB85C\\uB4DC\\uB9F5','\\uD68C\\uC758','\\uD578\\uB4DC\\uC624\\uD504','\\uC804\\uBB38 \\uBE44\\uC11C'], prompt: '\\uB108\\uB294 PRESSCO21\\uC758 \\uCD1D\\uAD04 \\uBE44\\uC11C\\uC774\\uB2E4. \\uB300\\uD45C\\uC758 \\uC6B0\\uC120\\uC21C\\uC704\\uB97C \\uC815\\uB9AC\\uD558\\uACE0 \\uD504\\uB85C\\uC81D\\uD2B8 \\uAC04 \\uC870\\uC728\\uC744 \\uB2F4\\uB2F9\\uD55C\\uB2E4. \"\\uC0C1\\uD669 \\u2192 \\uC6B0\\uC120\\uC21C\\uC704 \\u2192 \\uB2E4\\uC74C \\uD589\\uB3D9\" \\uD3EC\\uB9F7\\uC73C\\uB85C \\uAC04\\uACB0\\uD558\\uAC8C \\uB2F5\\uD574\\uB77C.' },\n  { id: 'strategy', icon: '\\u{1F3DB}', label: '\\uD30C\\uD2B8\\uB108\\uD074\\uB798\\uC2A4', keywords: ['\\uD30C\\uD2B8\\uB108\\uD074\\uB798\\uC2A4','\\uD611\\uD68C','\\uAC15\\uC0AC','\\uD074\\uB798\\uC2A4','\\uC218\\uAC15\\uC0DD','PRD','\\uBE0C\\uB79C\\uB4DC'], prompt: '\\uB108\\uB294 PRESSCO21 \\uD30C\\uD2B8\\uB108\\uD074\\uB798\\uC2A4 \\uC804\\uB7B5\\uAC00\\uC774\\uB2E4. \\uAF43 \\uACF5\\uC608 \\uAD50\\uC721 \\uD50C\\uB7AB\\uD3FC \\uC804\\uB7B5, \\uAC15\\uC0AC \\uC6B4\\uC601, \\uD074\\uB798\\uC2A4 \\uAE30\\uD68D\\uC744 \\uB2F4\\uB2F9\\uD55C\\uB2E4.' },\n  { id: 'storefront', icon: '\\u{1F6CD}', label: '\\uC2A4\\uD1A0\\uC5B4', keywords: ['\\uBA54\\uC774\\uD06C\\uC0F5','\\uC0C1\\uC138\\uD398\\uC774\\uC9C0','\\uC7A5\\uBC14\\uAD6C\\uB2C8','\\uACB0\\uC81C','\\uCE74\\uD14C\\uACE0\\uB9AC','\\uC804\\uD658\\uC728','\\uC2A4\\uD1A0\\uC5B4'], prompt: '\\uB108\\uB294 PRESSCO21 \\uBA54\\uC774\\uD06C\\uC0F5 \\uC2A4\\uD1A0\\uC5B4\\uD504\\uB860\\uD2B8 \\uC804\\uBB38\\uAC00\\uC774\\uB2E4. UI/UX, \\uC804\\uD658\\uC728 \\uCD5C\\uC801\\uD654, \\uC0C1\\uC138\\uD398\\uC774\\uC9C0 \\uAC1C\\uC120\\uC744 \\uB2F4\\uB2F9\\uD55C\\uB2E4.' },\n  { id: 'crm', icon: '\\u{1F4D2}', label: 'CRM', keywords: ['CRM','\\uBA85\\uC138\\uD45C','\\uAC70\\uB798\\uBA85\\uC138\\uC11C','\\uACAC\\uC801\\uC11C','\\uC218\\uAE08','\\uC785\\uAE08','\\uACE0\\uAC1D'], prompt: '\\uB108\\uB294 PRESSCO21 CRM \\uC6B4\\uC601\\uC790\\uC774\\uB2E4. \\uACE0\\uAC1D \\uAD00\\uB9AC, \\uC815\\uC0B0, \\uAC70\\uB798\\uBA85\\uC138\\uC11C, \\uC785\\uAE08 \\uCC98\\uB9AC\\uB97C \\uB2F4\\uB2F9\\uD55C\\uB2E4.' },\n  { id: 'automation', icon: '\\u2699\\uFE0F', label: '\\uC790\\uB3D9\\uD654', keywords: ['n8n','\\uC6CC\\uD06C\\uD50C\\uB85C\\uC6B0','\\uC790\\uB3D9\\uD654','\\uD15C\\uB808\\uADF8\\uB7A8','\\uBD07','API'], prompt: '\\uB108\\uB294 PRESSCO21 \\uC790\\uB3D9\\uD654 \\uC804\\uBB38\\uAC00\\uC774\\uB2E4. n8n \\uC6CC\\uD06C\\uD50C\\uB85C\\uC6B0, \\uD15C\\uB808\\uADF8\\uB7A8 \\uBD07, API \\uC5F0\\uB3D9\\uC744 \\uB2F4\\uB2F9\\uD55C\\uB2E4.' },\n  { id: 'knowledge', icon: '\\u{1F4DA}', label: '\\uC9C0\\uC2DD', keywords: ['\\uD68C\\uC0AC','\\uC7AC\\uBB34','\\uBE0C\\uB79C\\uB4DC','\\uC815\\uCC45','\\uADDC\\uC815','\\uB9E4\\uCD9C','\\uB9C8\\uC9C4'], prompt: '\\uB108\\uB294 PRESSCO21 \\uD68C\\uC0AC \\uC9C0\\uC2DD \\uC804\\uBB38\\uAC00\\uC774\\uB2E4. \\uD68C\\uC0AC \\uC804\\uB7B5, \\uC7AC\\uBB34, \\uBE0C\\uB79C\\uB4DC \\uC815\\uCC45\\uC744 \\uB2F4\\uB2F9\\uD55C\\uB2E4.' }\n];\n\nconst lower = text.toLowerCase();\nlet matched = SPECIALISTS[0];\nlet maxScore = 0;\n\nfor (const s of SPECIALISTS) {\n  let score = 0;\n  for (const kw of s.keywords) {\n    if (lower.includes(kw.toLowerCase())) score += 1;\n  }\n  if (score > maxScore) {\n    maxScore = score;\n    matched = s;\n  }\n}\n\nconst isComplex = text.length > 200 || lower.includes('\\uBD84\\uC11D') || lower.includes('\\uC804\\uB7B5') || lower.includes('\\uAE30\\uD68D\\uC548') || lower.includes('\\uD300\\uBBF8\\uD305');\n\nreturn [{ json: {\n  error: false,\n  specialist: matched.id,\n  icon: matched.icon,\n  label: matched.label,\n  systemPrompt: matched.prompt,\n  userMessage: text,\n  chatId,\n  isComplex: isComplex ? 1 : 0,\n  score: maxScore\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "id": "node-classify",
+      "name": "Specialist 분류"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [{
+            "id": "c1",
+            "leftValue": "={{ $json.isComplex }}",
+            "rightValue": 0,
+            "operator": { "type": "number", "operation": "equals" }
+          }],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [680, 300],
+      "id": "node-if-complex",
+      "name": "간단 vs 복잡"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash:generateContent",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "key", "value": "={{ $env.GEMINI_API_KEY }}" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ contents: [{ parts: [{ text: $json.systemPrompt + '\\n\\n사용자 질문: ' + $json.userMessage + '\\n\\n3줄 이내로 간결하게 한국어로 답해라.' }] }] }) }}",
+        "options": { "timeout": 30000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 200],
+      "id": "node-gemini",
+      "name": "Gemini 응답"
+    },
+    {
+      "parameters": {
+        "jsCode": "const classify = $('Specialist 분류').first().json;\nconst gemini = $input.first().json;\n\nlet answer = '';\ntry {\n  answer = gemini.candidates[0].content.parts[0].text || '';\n} catch(e) {\n  answer = 'AI 응답 파싱 실패: ' + JSON.stringify(gemini).slice(0, 200);\n}\n\nconst msg = `${classify.icon} <b>[${classify.label}]</b>\\n\\n${answer.replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]))}\\n\\n\\u{1F4CD} \\uC11C\\uBC84 (Gemini) | \\uC804\\uBB38: ${classify.label}`;\n\nreturn [{ json: { message: msg, chatId: classify.chatId, specialist: classify.specialist } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1160, 200],
+      "id": "node-format-simple",
+      "name": "간단 응답 포맷"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1400, 200],
+      "id": "node-telegram-simple",
+      "name": "간단 응답 텔레그램",
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, specialist: $('Specialist 분류').first().json.specialist, mode: 'direct' }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1640, 200],
+      "id": "node-respond-simple",
+      "name": "간단 응답"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mini.pressco21.com/api/automation/dev-queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ worker: 'claude', prompt: '[' + $json.label + ' specialist] ' + $json.userMessage, chatId: '-5043778307' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [920, 420],
+      "id": "node-devqueue",
+      "name": "Claude 큐 등록"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, specialist: $('Specialist 분류').first().json.specialist, mode: 'dev-queue' }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1160, 420],
+      "id": "node-respond-complex",
+      "name": "복잡 응답"
+    }
+  ],
+  "connections": {
+    "요청 수신": { "main": [[{ "node": "Specialist 분류", "type": "main", "index": 0 }]] },
+    "Specialist 분류": { "main": [[{ "node": "간단 vs 복잡", "type": "main", "index": 0 }]] },
+    "간단 vs 복잡": {
+      "main": [
+        [{ "node": "Gemini 응답", "type": "main", "index": 0 }],
+        [{ "node": "Claude 큐 등록", "type": "main", "index": 0 }]
+      ]
+    },
+    "Gemini 응답": { "main": [[{ "node": "간단 응답 포맷", "type": "main", "index": 0 }]] },
+    "간단 응답 포맷": { "main": [[{ "node": "간단 응답 텔레그램", "type": "main", "index": 0 }]] },
+    "간단 응답 텔레그램": { "main": [[{ "node": "간단 응답", "type": "main", "index": 0 }]] },
+    "Claude 큐 등록": { "main": [[{ "node": "복잡 응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

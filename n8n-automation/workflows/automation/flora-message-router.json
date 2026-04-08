@@ -1,0 +1,68 @@
+{
+  "name": "[F20] Flora 메시지 라우터 (서버사이드)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-route",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "id": "node-webhook",
+      "name": "메시지 수신",
+      "webhookId": "flora-route"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst text = (body.text || '').trim();\nconst chatId = String(body.chatId || '7713811206');\n\nif (!text) {\n  return [{ json: { route: 'error', error: 'text is required', chatId } }];\n}\n\nconst lower = text.toLowerCase();\n\nconst SERVER_PATTERNS = [\n  { route: 'task', keywords: ['\\uBA54\\uBAA8','\\uB4F1\\uB85D','\\uCD94\\uAC00','\\uD560 \\uC77C','todo'], webhook: 'flora-task-create' },\n  { route: 'data', keywords: ['\\uB9E4\\uCD9C','\\uACE0\\uAC1D','\\uD30C\\uD2B8\\uB108','\\uCE94\\uD398\\uC778','\\uC138\\uADF8\\uBA3C\\uD2B8'], webhook: 'flora-biz-data' },\n  { route: 'approve', keywords: ['\\uC2B9\\uC778','\\uBC18\\uB824','\\uBCF4\\uB958'], webhook: null },\n];\n\nconst DEV_PATTERNS = [\n  { route: 'prd', keywords: ['\\uAE30\\uD68D\\uC548','PRD','\\uC0C1\\uC138\\uD398\\uC774\\uC9C0 \\uAE30\\uD68D'], webhook: 'flora-prd-trigger' },\n  { route: 'team', keywords: ['\\uD300\\uBBF8\\uD305','\\uC804\\uB7B5 \\uBD84\\uC11D','\\uB2E4\\uAD00\\uC810'], webhook: 'flora-team-meeting' },\n  { route: 'dev', keywords: ['\\uAC1C\\uBC1C','\\uC218\\uC815','\\uBC84\\uADF8','\\uD14C\\uC2A4\\uD2B8','\\uAD6C\\uD604'], webhook: 'flora-dev-dispatch' },\n];\n\nfor (const p of SERVER_PATTERNS) {\n  for (const kw of p.keywords) {\n    if (lower.includes(kw.toLowerCase())) {\n      return [{ json: { route: p.route, webhook: p.webhook, text, chatId, needsMac: false } }];\n    }\n  }\n}\n\nfor (const p of DEV_PATTERNS) {\n  for (const kw of p.keywords) {\n    if (lower.includes(kw.toLowerCase())) {\n      return [{ json: { route: p.route, webhook: p.webhook, text, chatId, needsMac: true } }];\n    }\n  }\n}\n\nreturn [{ json: { route: 'general', webhook: 'flora-specialist', text, chatId, needsMac: false } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "id": "node-classify",
+      "name": "메시지 분류"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ 'https://n8n.pressco21.com/webhook/' + ($json.webhook || 'flora-specialist') }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ text: $json.text, instruction: $json.text, title: $json.text.slice(0, 100), topic: $json.text, chatId: $json.chatId, chat_id: $json.chatId, query_type: $json.text }) }}",
+        "options": { "timeout": 30000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [700, 300],
+      "id": "node-forward",
+      "name": "적절한 WF로 전달",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, route: $('메시지 분류').first().json.route, needsMac: $('메시지 분류').first().json.needsMac }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [940, 300],
+      "id": "node-respond",
+      "name": "응답"
+    }
+  ],
+  "connections": {
+    "메시지 수신": { "main": [[{ "node": "메시지 분류", "type": "main", "index": 0 }]] },
+    "메시지 분류": { "main": [[{ "node": "적절한 WF로 전달", "type": "main", "index": 0 }]] },
+    "적절한 WF로 전달": { "main": [[{ "node": "응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

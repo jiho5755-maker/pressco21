@@ -1,0 +1,87 @@
+{
+  "name": "[F19] Flora 맥북 상태 모니터",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "field": "minutes", "minutesInterval": 5 }]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300],
+      "id": "node-schedule",
+      "name": "5분 주기"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://mini.pressco21.com/api/automation/dev-queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300],
+      "id": "node-check-mac",
+      "name": "맥북 상태 확인",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first().json;\n\nconst pending = resp.pending || 0;\nconst lastActivity = resp.lastActivity || null;\nconst macOnline = resp.macOnline !== false;\n\nconst now = new Date();\n\nif (!macOnline && pending > 0) {\n  const msg = `\\u{26A0}\\uFE0F <b>[\\uC2DC\\uC2A4\\uD15C]</b> \\uB9E5\\uBD81 \\uC624\\uD504\\uB77C\\uC778\\n\\n\\uB300\\uAE30 \\uC791\\uC5C5 ${pending}\\uAC74\\uC774 \\uD050\\uC5D0 \\uC788\\uC2B5\\uB2C8\\uB2E4.\\n\\uB9E5\\uBD81\\uC774 \\uCF1C\\uC9C0\\uBA74 \\uC790\\uB3D9 \\uC2E4\\uD589\\uB429\\uB2C8\\uB2E4.`;\n  return [{ json: { shouldNotify: true, message: msg } }];\n}\n\nreturn [{ json: { shouldNotify: false } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [680, 300],
+      "id": "node-evaluate",
+      "name": "상태 평가"
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "loose" },
+          "conditions": [{
+            "id": "c1",
+            "leftValue": "={{ $json.shouldNotify }}",
+            "rightValue": true,
+            "operator": { "type": "boolean", "operation": "equals" }
+          }],
+          "combinator": "and"
+        }
+      },
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [920, 300],
+      "id": "node-if",
+      "name": "알림 필요?"
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.message }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1160, 200],
+      "id": "node-telegram",
+      "name": "CEO 알림",
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "5분 주기": { "main": [[{ "node": "맥북 상태 확인", "type": "main", "index": 0 }]] },
+    "맥북 상태 확인": { "main": [[{ "node": "상태 평가", "type": "main", "index": 0 }]] },
+    "상태 평가": { "main": [[{ "node": "알림 필요?", "type": "main", "index": 0 }]] },
+    "알림 필요?": { "main": [[{ "node": "CEO 알림", "type": "main", "index": 0 }], []] }
+  },
+  "settings": { "executionOrder": "v1", "timezone": "Asia/Seoul" }
+}

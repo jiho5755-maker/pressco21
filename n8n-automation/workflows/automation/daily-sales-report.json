@@ -1,0 +1,104 @@
+{
+  "name": "[F22] 일일 매출 리포트 (메이크샵)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-daily-sales",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 300],
+      "id": "node-webhook",
+      "name": "매출 조회 요청",
+      "webhookId": "flora-daily-sales"
+    },
+    {
+      "parameters": {
+        "jsCode": "const body = $input.first().json.body || $input.first().json;\nconst chatId = String(body.chatId || body.chat_id || '7713811206');\nconst mode = (body.mode || 'today').toLowerCase();\n\nconst now = new Date();\nconst kstOffset = 9 * 60 * 60 * 1000;\nconst kstNow = new Date(now.getTime() + kstOffset);\n\nlet fromDate, toDate, label;\n\nif (mode === 'yesterday') {\n  const yesterday = new Date(kstNow);\n  yesterday.setDate(yesterday.getDate() - 1);\n  fromDate = yesterday.toISOString().slice(0, 10) + ' 00:00:00';\n  toDate = yesterday.toISOString().slice(0, 10) + ' 23:59:59';\n  const m = yesterday.getMonth() + 1;\n  const d = yesterday.getDate();\n  label = `${m}/${d} (어제)`;\n} else {\n  fromDate = kstNow.toISOString().slice(0, 10) + ' 00:00:00';\n  toDate = kstNow.toISOString().slice(0, 10) + ' 23:59:59';\n  const m = kstNow.getMonth() + 1;\n  const d = kstNow.getDate();\n  const h = kstNow.getHours();\n  const min = String(kstNow.getMinutes()).padStart(2, '0');\n  label = `${m}/${d} ${h}:${min} 기준 (집계 중)`;\n}\n\nreturn [{ json: { chatId, mode, fromDate, toDate, label } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [440, 300],
+      "id": "node-parse",
+      "name": "날짜 계산"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "mode", "value": "search" },
+            { "name": "type", "value": "order" },
+            { "name": "ver", "value": "2" },
+            { "name": "InquiryTimeFrom", "value": "={{ $json.fromDate }}" },
+            { "name": "InquiryTimeTo", "value": "={{ $json.toDate }}" },
+            { "name": "limit", "value": "500" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Shopkey", "value": "={{ $env.MAKESHOP_SHOPKEY }}" },
+            { "name": "Licensekey", "value": "={{ $env.MAKESHOP_LICENSEKEY }}" }
+          ]
+        },
+        "options": { "timeout": 15000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [680, 300],
+      "id": "node-api",
+      "name": "메이크샵 주문 조회",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const dateInfo = $('날짜 계산').first().json;\nlet orderResp = $input.first().json;\n\nif (typeof orderResp.data === 'string') {\n  try { orderResp = JSON.parse(orderResp.data); } catch(e) {}\n}\nif (typeof orderResp === 'string') {\n  try { orderResp = JSON.parse(orderResp); } catch(e) { orderResp = {}; }\n}\n\nfunction toArray(data) {\n  if (Array.isArray(data)) return data;\n  if (data && typeof data === 'object') return Object.values(data);\n  return [];\n}\n\nconst rawOrders = toArray(orderResp.list || []);\nconst orders = rawOrders.map(function(entry) {\n  var o = entry.order || entry;\n  o.basket = entry.basket || o.basket || [];\n  if (!Array.isArray(o.basket)) o.basket = Object.values(o.basket);\n  return o;\n});\n\nlet totalRevenue = 0;\nlet cancelRevenue = 0;\nlet orderCount = 0;\nlet cancelCount = 0;\nlet pcCount = 0;\nlet mobileCount = 0;\nconst productSales = {};\n\nconst CANCEL_STATES = ['60', '70', '80'];\n\nfor (const order of orders) {\n  const status = String(order.order_status || order.ord_state || '');\n  const amount = parseInt(order.pay_price || order.total_product_price || order.start_price || 0);\n  const payPath = String(order.pay_path || '').toLowerCase();\n\n  if (CANCEL_STATES.includes(status)) {\n    cancelCount++;\n    cancelRevenue += amount;\n    continue;\n  }\n\n  orderCount++;\n  totalRevenue += amount;\n  if (payPath.includes('mobile') || payPath.includes('m.')) mobileCount++;\n  else pcCount++;\n\n  for (const item of (order.basket || [])) {\n    const name = (item.product_name || item.prd_name || '').slice(0, 25);\n    const price = parseInt(item.sell_price || item.price || 0);\n    const qty = parseInt(item.quantity || item.ea || 1);\n    if (name) {\n      if (!productSales[name]) productSales[name] = { revenue: 0, qty: 0 };\n      productSales[name].revenue += price * qty;\n      productSales[name].qty += qty;\n    }\n  }\n}\n\nconst netRevenue = totalRevenue;\nconst avgOrder = orderCount > 0 ? Math.round(netRevenue / orderCount) : 0;\n\nconst topProducts = Object.entries(productSales)\n  .sort((a, b) => b[1].revenue - a[1].revenue)\n  .slice(0, 5);\n\nconst fmt = (n) => n.toLocaleString('ko-KR');\n\nlet msg = `<b>[\\uB9E4\\uCD9C] ${dateInfo.label}</b>\\n`;\nmsg += `\\uBA54\\uC774\\uD06C\\uC0F5 \\uC804\\uC6A9\\n`;\nmsg += `\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n`;\nmsg += `\\u{1F4B0} \\uC21C \\uB9E4\\uCD9C: <b>${fmt(netRevenue)}\\uC6D0</b>\\n`;\nmsg += `\\u{1F4E6} \\uC8FC\\uBB38: ${orderCount}\\uAC74`;\nif (cancelCount > 0) msg += ` | \\uCDE8\\uC18C: ${cancelCount}\\uAC74(-${fmt(cancelRevenue)}\\uC6D0)`;\nmsg += `\\n`;\nmsg += `\\u{1F4B3} \\uAC1D\\uB2E8\\uAC00: ${fmt(avgOrder)}\\uC6D0\\n`;\nmsg += `\\u{1F4F1} PC ${pcCount}\\uAC74 / \\uBAA8\\uBC14\\uC77C ${mobileCount}\\uAC74\\n`;\n\nif (topProducts.length > 0) {\n  msg += `\\n\\u{1F3C6} TOP \\uC0C1\\uD488\\n`;\n  for (let i = 0; i < topProducts.length; i++) {\n    const [name, data] = topProducts[i];\n    msg += `  ${i + 1}. ${name} (${data.qty}\\uAC1C, ${fmt(data.revenue)}\\uC6D0)\\n`;\n  }\n}\n\nif (orderCount === 0 && cancelCount === 0) {\n  msg = `<b>[\\uB9E4\\uCD9C] ${dateInfo.label}</b>\\n\\uBA54\\uC774\\uD06C\\uC0F5 \\uC804\\uC6A9\\n\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\u2500\\n\\uC8FC\\uBB38\\uC774 \\uC544\\uC9C1 \\uC5C6\\uC2B5\\uB2C8\\uB2E4.`;\n}\n\nreturn [{ json: { message: msg, chatId: dateInfo.chatId, revenue: netRevenue, orders: orderCount, cancels: cancelCount } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [920, 300],
+      "id": "node-analyze",
+      "name": "매출 분석"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1160, 300],
+      "id": "node-telegram",
+      "name": "텔레그램 전송",
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, revenue: $('매출 분석').first().json.revenue, orders: $('매출 분석').first().json.orders }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1400, 300],
+      "id": "node-respond",
+      "name": "응답"
+    }
+  ],
+  "connections": {
+    "매출 조회 요청": { "main": [[{ "node": "날짜 계산", "type": "main", "index": 0 }]] },
+    "날짜 계산": { "main": [[{ "node": "메이크샵 주문 조회", "type": "main", "index": 0 }]] },
+    "메이크샵 주문 조회": { "main": [[{ "node": "매출 분석", "type": "main", "index": 0 }]] },
+    "매출 분석": { "main": [[{ "node": "텔레그램 전송", "type": "main", "index": 0 }]] },
+    "텔레그램 전송": { "main": [[{ "node": "응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

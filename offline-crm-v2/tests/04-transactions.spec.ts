@@ -117,16 +117,14 @@ test('T4-06: 페이지네이션 다음 페이지 이동', async ({ page }) => {
   await waitForTableLoaded(page)
 
   const indicator = page.locator('span.min-w-\\[60px\\]').filter({ hasText: /\d+ \/ \d+/ }).first()
-  const indicatorCount = await indicator.count()
-  if (indicatorCount === 0) {
-    test.skip()
-    return
-  }
+  const nextButton = page.getByRole('button').filter({ has: page.locator('svg.lucide-chevron-right') }).last()
 
+  await expect(indicator).toBeVisible()
   await expect(indicator).toContainText('1 /')
+  await expect(nextButton).toBeEnabled()
   const firstRowText = await dataRows(page).first().textContent()
 
-  await page.locator('button:has(svg.lucide-chevron-right)').last().click()
+  await nextButton.click()
   await waitForTableLoaded(page)
 
   await expect(indicator).toContainText('2 /')

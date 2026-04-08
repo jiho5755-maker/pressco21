@@ -2,11 +2,24 @@
  * 테스트 9: 캘린더 + 기간 리포트
  */
 import { test, expect } from '@playwright/test'
-import { API_TIMEOUT, assertPageTitle } from './helpers'
+import {
+  API_TIMEOUT,
+  DEFAULT_RECEIPT_TYPE,
+  TEST_INVOICE_PREFIX,
+  assertPageTitle,
+  cleanupTestInvoices,
+  createTestInvoice,
+} from './helpers'
+
+const CALENDAR_INVOICE_PREFIX = `${TEST_INVOICE_PREFIX}CAL-`
 
 test.beforeEach(async ({ page }) => {
   await page.goto('/calendar')
   await assertPageTitle(page, '캘린더')
+})
+
+test.afterEach(async ({ request }) => {
+  await cleanupTestInvoices(request, CALENDAR_INVOICE_PREFIX)
 })
 
 test('T9-01: 캘린더 페이지 접속 및 월간 뷰 표시', async ({ page }) => {
@@ -34,14 +47,34 @@ test('T9-03: 오늘 날짜 셀 강조 표시 확인', async ({ page }) => {
   await expect(todayBadge).toHaveText(String(today.getDate()))
 })
 
-test('T9-04: 날짜 클릭 → 해당일 빠른 확인 및 명세표 이동', async ({ page }) => {
-  const populatedDateCell = page.locator('button').filter({ hasText: /건/ }).first()
-  const cellCount = await populatedDateCell.count()
-  if (cellCount === 0) {
-    test.skip()
-    return
-  }
+test('T9-04: 날짜 클릭 → 해당일 빠른 확인 및 명세표 이동', async ({ page, request }) => {
+  const today = new Date()
+  const invoiceDate = today.toISOString().slice(0, 10)
+  const invoiceNo = `${CALENDAR_INVOICE_PREFIX}${Date.now()}`
 
+  await createTestInvoice(request, {
+    invoice_no: invoiceNo,
+    invoice_date: invoiceDate,
+    customer_id: 86,
+    customer_name: '송윤경 회장님',
+    receipt_type: DEFAULT_RECEIPT_TYPE,
+    previous_balance: 0,
+    paid_amount: 0,
+    payment_method: '현금',
+    supply_amount: 10000,
+    tax_amount: 1000,
+    total_amount: 11000,
+    current_balance: 11000,
+    payment_status: 'unpaid',
+    status: 'unpaid',
+  })
+
+  await page.reload()
+  const populatedDateCell = page.getByRole('button').filter({
+    hasText: new RegExp(`^${today.getDate()}[\\s\\S]*1건`),
+  }).first()
+
+  await expect(populatedDateCell).toBeVisible({ timeout: API_TIMEOUT })
   await populatedDateCell.click()
   await expect(page.getByText(/빠른 확인/)).toBeVisible({ timeout: API_TIMEOUT })
   await page.getByRole('button', { name: '당일 명세표 보기' }).click()

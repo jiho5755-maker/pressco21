@@ -38,7 +38,7 @@ export default defineConfig({
 
   // 공통 설정
   use: {
-    baseURL: 'http://localhost:5173',
+    baseURL: 'http://127.0.0.1:5173',
 
     // 모든 테스트 브라우저: Chromium (데스크탑)
     ...devices['Desktop Chrome'],
@@ -65,8 +65,8 @@ export default defineConfig({
 
   // Vite dev server 자동 기동 (테스트 시작 전)
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
+    command: 'npm run dev -- --host 127.0.0.1 --port 5173',
+    url: 'http://127.0.0.1:5173',
     reuseExistingServer: true,  // 이미 실행 중이면 재사용
     timeout: 30_000,
     // 환경변수는 .env.local 또는 .env를 Vite가 자동으로 읽음

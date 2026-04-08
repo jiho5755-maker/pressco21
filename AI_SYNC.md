@@ -22,9 +22,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-08 18:28:00 KST
+- Started At: 2026-04-08 19:05:00 KST
 - Branch: main
-- Active Subdirectory: tools
+- Working Scope: 레지너스 6개 상품 AS/반품 관리 체계 문서화 및 추적 양식 생성
+- Active Subdirectory: docs, output/spreadsheet
 
 ## Files In Progress
 - —
@@ -45,6 +46,17 @@
     - `PYTHONPYCACHEPREFIX=/tmp/pycache python3 -m py_compile tools/stock_cleanup.py` 통과
     - `python3 tools/stock_cleanup.py --input-json tools/stock_cleanup/sample_products.json --output-dir /tmp/stock_cleanup_demo` 실행 완료
     - 출력 확인: `/private/tmp/stock_cleanup_demo/*.csv`, `/private/tmp/stock_cleanup_demo/manifest.json`
+- 2026-04-08 레지너스 AS 관리 문서/추적 양식 추가 (codex)
+  - `docs/reginus-as-management-playbook-2026-04-08.md`
+    - 레지너스 6개 상품 master, 무상수리 판정 기준, 회수품 보관 원칙, 본사 발송 흐름을 문서화
+    - 저장소 내 실반품 데이터는 바로 식별되지 않았음을 명시하고 역입력 절차 제안
+  - `output/spreadsheet/reginus_as_tracker_template.xlsx`
+    - `상품마스터`, `AS접수`, `본사발송`, `상태코드` 시트 생성
+    - 구매일 기준 1년 무상수리 만료일 및 1년 이내 여부 계산식 포함
+    - 상태/증상/판정 드롭다운과 레지너스 6개 상품 마스터 내장
+  - 검증
+    - `openpyxl`로 워크북 저장 및 시트/수식/데이터검증 재확인
+    - `soffice` 미설치로 렌더링 기반 시각 검수는 미실행
 - 2026-04-08 CRM E2E 설정/skip 보정 (codex)
   - `offline-crm-v2/playwright.config.ts`
     - Playwright webServer/baseURL을 `127.0.0.1:5173`로 고정해 `localhost -> ::1` 바인딩 이슈를 피하도록 수정
@@ -73,6 +85,8 @@
 - `[CODEX]` CRM E2E 수정분을 로컬에서 `npx playwright test tests/04-transactions.spec.ts tests/09-calendar.spec.ts --reporter=list`로 재실행해 skip 제거 여부 확인
 - `[CODEX]` CRM E2E skipped 2건 재검토 + 플래키 모니터링
 - `[CODEX]` 파서 실패 fixture 수집 확대
+- `[CODEX]` 메이크샵 주문/반품 원본 데이터에서 레지너스 6개 상품 주문건만 추출해 AS접수 시트에 과거 건 역입력
+- `[CODEX]` 카카오톡/전화/게시판 CS 내역에서 레지너스 불량·반품 문의를 접수번호 기준으로 재정리
 - `[CODEX-LEAD]` Flora frontdoor: open item 캐시 재빌드
 - `[CODEX-LEAD]` Flora 텔레그램 방 라우팅 + task ledger
 

@@ -100,8 +100,8 @@ function parsePositiveIntegerString(value: string | null): string {
   return String(Math.trunc(parsed))
 }
 
-function getDefaultSourceTab(isPayableMode: boolean): 'crm' | 'payable' {
-  return isPayableMode ? 'payable' : 'crm'
+function getDefaultSourceTab(isPayableMode: boolean): 'all' | 'payable' {
+  return isPayableMode ? 'payable' : 'all'
 }
 
 function getDaysSince(dateStr: string | undefined, baseDate = todayDate()): number {
@@ -1133,6 +1133,8 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const [receivableSourceFilter, setReceivableSourceFilter] = useState<ReceivableSourceFilter>(() => parseReceivableSourceFilter(searchParams.get('receivableSource')))
   const [payableKindFilter, setPayableKindFilter] = useState<PayableKindFilter>(() => parsePayableKindFilter(searchParams.get('payableKind')))
   const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([])
+  const [showAdvancedFilters, setShowAdvancedFilters] = useState(false)
+  const [showSummaryDetails, setShowSummaryDetails] = useState(false)
 
   useEffect(() => {
     const value = searchParams.get('asOf')
@@ -1629,6 +1631,9 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     || receivableSourceFilter !== 'all'
     || payableKindFilter !== 'all'
   )
+  useEffect(() => {
+    if (hasAdvancedFilter) setShowAdvancedFilters(true)
+  }, [hasAdvancedFilter])
   const activeFilterSummary = [
     sortOption === 'amountDesc'
       ? '금액 높은 순'
@@ -1891,6 +1896,12 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                 <Button variant={isTodayView ? 'secondary' : 'ghost'} size="sm" onClick={() => applyAsOfDate(todayDate())}>
                   오늘 기준
                 </Button>
+                <Button variant={showAdvancedFilters ? 'secondary' : 'ghost'} size="sm" onClick={() => setShowAdvancedFilters((prev) => !prev)}>
+                  {showAdvancedFilters ? '필터 접기' : '고급 필터'}
+                </Button>
+                <Button variant={showSummaryDetails ? 'secondary' : 'ghost'} size="sm" onClick={() => setShowSummaryDetails((prev) => !prev)}>
+                  {showSummaryDetails ? '상세 요약 접기' : '상세 요약'}
+                </Button>
                 {hasCustomerFilter && (
                   <Button variant="ghost" size="sm" onClick={() => applyCustomerFilter('')}>
                     거래처 필터 해제
@@ -1900,105 +1911,107 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             </div>
           </div>
 
-          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">정렬</Label>
-              <Select value={sortOption} onValueChange={(value: ReceivableSortOption) => applySortOption(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="amountDesc">금액 높은 순</SelectItem>
-                  <SelectItem value="amountAsc">금액 낮은 순</SelectItem>
-                  <SelectItem value="ageDesc">오래된 순</SelectItem>
-                  <SelectItem value="dateDesc">최근 발행일 순</SelectItem>
-                  <SelectItem value="nameAsc">거래처명 순</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="space-y-2">
-              <Label className="text-xs font-medium text-muted-foreground">금액 필터</Label>
-              <Select value={amountFilter} onValueChange={(value: AmountFilterOption) => applyAmountFilter(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">전체</SelectItem>
-                  <SelectItem value="high">고액만 (100만원 이상)</SelectItem>
-                  <SelectItem value="custom">직접 입력 범위</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            {!isPayableMode && (
+          {showAdvancedFilters && (
+            <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
               <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">에이징 필터</Label>
-                <Select value={ageFilter} onValueChange={(value: AgeFilterOption) => applyAgeFilter(value)}>
+                <Label className="text-xs font-medium text-muted-foreground">정렬</Label>
+                <Select value={sortOption} onValueChange={(value: ReceivableSortOption) => applySortOption(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="amountDesc">금액 높은 순</SelectItem>
+                    <SelectItem value="amountAsc">금액 낮은 순</SelectItem>
+                    <SelectItem value="ageDesc">오래된 순</SelectItem>
+                    <SelectItem value="dateDesc">최근 발행일 순</SelectItem>
+                    <SelectItem value="nameAsc">거래처명 순</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">금액 필터</Label>
+                <Select value={amountFilter} onValueChange={(value: AmountFilterOption) => applyAmountFilter(value)}>
                   <SelectTrigger>
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">전체</SelectItem>
-                    <SelectItem value="30">30일 이상</SelectItem>
-                    <SelectItem value="60">60일 이상</SelectItem>
-                    <SelectItem value="90">90일 이상</SelectItem>
+                    <SelectItem value="high">고액만 (100만원 이상)</SelectItem>
+                    <SelectItem value="custom">직접 입력 범위</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
-            )}
 
-            {!isPayableMode ? (
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">고객 구성</Label>
-                <Select value={receivableSourceFilter} onValueChange={(value: ReceivableSourceFilter) => applyReceivableSourceFilter(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">전체</SelectItem>
-                    <SelectItem value="legacyOnly">기존 장부만</SelectItem>
-                    <SelectItem value="crmOnly">새 입력만</SelectItem>
-                    <SelectItem value="both">둘 다 있는 고객</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            ) : (
-              <div className="space-y-2">
-                <Label className="text-xs font-medium text-muted-foreground">정산 구분</Label>
-                <Select value={payableKindFilter} onValueChange={(value: PayableKindFilter) => applyPayableKindFilter(value)}>
-                  <SelectTrigger>
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">전체</SelectItem>
-                    <SelectItem value="payable">미지급금만</SelectItem>
-                    <SelectItem value="refund">환불대기만</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            )}
+              {!isPayableMode && (
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">에이징 필터</Label>
+                  <Select value={ageFilter} onValueChange={(value: AgeFilterOption) => applyAgeFilter(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="30">30일 이상</SelectItem>
+                      <SelectItem value="60">60일 이상</SelectItem>
+                      <SelectItem value="90">90일 이상</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
 
-            <div className="space-y-2 xl:col-span-1">
-              <Label className="text-xs font-medium text-muted-foreground">금액 범위 직접 입력</Label>
-              <div className="grid grid-cols-2 gap-2">
-                <Input
-                  inputMode="numeric"
-                  value={minAmountInput}
-                  onChange={(event) => applyAmountRange(parsePositiveIntegerString(event.target.value), maxAmountInput)}
-                  placeholder="최소"
-                  disabled={amountFilter !== 'custom'}
-                />
-                <Input
-                  inputMode="numeric"
-                  value={maxAmountInput}
-                  onChange={(event) => applyAmountRange(minAmountInput, parsePositiveIntegerString(event.target.value))}
-                  placeholder="최대"
-                  disabled={amountFilter !== 'custom'}
-                />
+              {!isPayableMode ? (
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">고객 구성</Label>
+                  <Select value={receivableSourceFilter} onValueChange={(value: ReceivableSourceFilter) => applyReceivableSourceFilter(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="legacyOnly">기존 장부만</SelectItem>
+                      <SelectItem value="crmOnly">새 입력만</SelectItem>
+                      <SelectItem value="both">둘 다 있는 고객</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              ) : (
+                <div className="space-y-2">
+                  <Label className="text-xs font-medium text-muted-foreground">정산 구분</Label>
+                  <Select value={payableKindFilter} onValueChange={(value: PayableKindFilter) => applyPayableKindFilter(value)}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">전체</SelectItem>
+                      <SelectItem value="payable">미지급금만</SelectItem>
+                      <SelectItem value="refund">환불대기만</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+
+              <div className="space-y-2 xl:col-span-1">
+                <Label className="text-xs font-medium text-muted-foreground">금액 범위 직접 입력</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  <Input
+                    inputMode="numeric"
+                    value={minAmountInput}
+                    onChange={(event) => applyAmountRange(parsePositiveIntegerString(event.target.value), maxAmountInput)}
+                    placeholder="최소"
+                    disabled={amountFilter !== 'custom'}
+                  />
+                  <Input
+                    inputMode="numeric"
+                    value={maxAmountInput}
+                    onChange={(event) => applyAmountRange(minAmountInput, parsePositiveIntegerString(event.target.value))}
+                    placeholder="최대"
+                    disabled={amountFilter !== 'custom'}
+                  />
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {(hasAdvancedFilter || selectedVisibleRows.length > 0) && (
             <div className="rounded-lg border border-[#e8eee4] bg-[#f9fbf7] px-4 py-3">
@@ -2050,7 +2063,34 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         </div>
       )}
 
-      {isPayableMode ? (
+      <div className="mb-4 rounded-xl border bg-white px-4 py-3 shadow-sm">
+        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+          <div>
+            <p className="text-sm font-semibold text-foreground">핵심 요약</p>
+            <p className="text-xs text-muted-foreground">
+              기본은 누적 기준으로 보고, 상세 숫자가 필요할 때만 아래 요약을 펼치세요.
+            </p>
+          </div>
+          <div className="flex flex-wrap items-center gap-2 text-xs">
+            {isPayableMode ? (
+              <>
+                <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700">총 지급 예정 {filteredTotalOutgoing.toLocaleString()}원</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">미지급 {filteredPayableTotal.toLocaleString()}원</span>
+                <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">환불대기 {filteredRefundPendingTotal.toLocaleString()}원</span>
+              </>
+            ) : (
+              <>
+                <span className="rounded-full bg-red-50 px-3 py-1 font-medium text-red-600">총 미수 {filteredTotalReceivable.toLocaleString()}원</span>
+                <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">이월 {filteredLegacyTotal.toLocaleString()}원</span>
+                <span className="rounded-full bg-[#f4f7f1] px-3 py-1 text-[#4f6748]">새 입력 {filteredCrmTotal.toLocaleString()}원</span>
+                <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">줄 돈 {filteredPayableTotal.toLocaleString()}원</span>
+              </>
+            )}
+          </div>
+        </div>
+      </div>
+
+      {showSummaryDetails && (isPayableMode ? (
         <div className="mb-4 grid gap-3 md:grid-cols-3" data-guide-id="payables-summary">
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{totalSummaryLabel}</p>
@@ -2110,7 +2150,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '환불대기 계산 중' : `${visibleRefundPendingLedger.length}개 고객`}</p>
           </div>
         </div>
-      )}
+      ))}
 
       {customerBreakdown && !isReferenceDataLoading && (
         isPayableMode ? (

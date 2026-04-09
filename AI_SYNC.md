@@ -34,6 +34,15 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-09 쿠팡 + 사방넷 병행 사용 테스트 플랜 정리 (codex)
+  - `docs/openmarket-ops/coupang-sabang-selfdev-test-plan-2026-04-09.md`
+    - 쿠팡 OpenAPI를 `사방넷 + PRESSCO21 자체 프로그램`에서 함께 쓰기 위한 실제 테스트 절차 문서 추가
+    - 입력 URL을 `https://n8n.pressco21.com`으로 고정하고, Oracle 공인 IP `158.180.77.201`과 사방넷 안내 IP `27.102.150.*`, `175.115.92.120`을 1차 입력안으로 정리
+    - 성공/실패 판정 기준과 `coupang_live_test.py` 실행 커맨드를 포함
+  - 실측
+    - `curl -I https://n8n.pressco21.com` → 200 확인
+    - `curl -I https://mini.pressco21.com` → 200 확인
+    - Oracle 서버 공인 IP → `158.180.77.201`
 - 2026-04-09 메이크샵 실read 검증 + 쿠팡 live probe 스켈레톤 추가 (codex)
   - `tools/openmarket/makeshop_live_test.py`
     - Oracle 허용 IP 서버 env를 직접 읽는 메이크샵 실검증 CLI 추가
@@ -208,6 +217,9 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라)
 
 ### Codex 담당
+- `[CODEX-LEAD]` 사용자가 쿠팡 Wing에 `자체개발(직접입력)` + `158.180.77.201,27.102.150.*,175.115.92.120` 입력 후 저장 가능한지 확인
+- `[CODEX-LEAD]` 저장 성공 후 `Access Key / Secret Key / vendorId / wingId` 확보해서 `coupang_live_test.py` read probe 실행
+- `[CODEX-LEAD]` 쿠팡 read probe 성공 시 사방넷 연동 유지 여부를 함께 확인해 병행 가능 여부 판정
 - `[CODEX-LEAD]` 승인된 메이크샵 테스트 케이스 1건으로 `crm_board/reply` 또는 `review/store(save_type=answer)` 실write를 1회 검증
 - `[CODEX-LEAD]` 쿠팡 access/secret/vendorId/wingId 확보 후 `coupang_live_test.py`로 `onlineInquiries`/`callCenterInquiries` live probe 실행
 - `[CODEX-LEAD]` 채널톡 무료/체험 플랜에서 Open API/Webhook 운영 가능 여부를 최종 확인하고, 불가하면 대안/제외 결론 문서화

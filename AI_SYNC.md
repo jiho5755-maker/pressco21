@@ -20,8 +20,8 @@
 
 ## Session Lock
 
-- Current Owner: CODEX
-- Mode: WRITE
+- Current Owner: IDLE
+- Mode: —
 - Started At: 2026-04-09 22:40:00 KST
 - Branch: main
 - Working Scope: OMX MVP 사용성 보완 및 실사용 흐름 정리
@@ -37,6 +37,23 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-09 OMX MVP 사용성 보완 + LIVE_SEND 안전장치 반영 (codex)
+  - `mini-app-v2/src/pages/OmxPage.tsx`
+    - 채널 필터(`전체/스마트스토어/메이크샵`)와 채널별 건수 표시 추가
+    - `발송 가능 건만 선택` 액션을 추가해 직접 발송 가능한 문의만 빠르게 고를 수 있게 정리
+    - 최근 실행 결과 카드 추가
+      - DRY_RUN/LIVE_SEND 결과를 최근 12건까지 화면에서 바로 확인 가능
+    - LIVE_SEND 확인 모달 강화
+      - 실제 발송 시 `LIVE_SEND` 문자열을 직접 입력해야 실행 버튼이 활성화되도록 변경
+    - 검색 입력은 deferred value로 처리해 실데이터 큐 필터링 중 입력 지연을 줄임
+  - 검증
+    - `cd mini-app-v2 && npm run build`
+    - `cd mini-app-v2 && bash scripts/deploy.sh`
+    - `https://mini.pressco21.com/omx`
+      - 실데이터 기준으로 채널 필터, 실행 결과 카드, LIVE_SEND 확인 입력 UI 노출 확인
+      - 메이크샵 실문의 선택 후 LIVE_SEND 모달에서 확인 입력 없이는 실행 버튼이 비활성화되는 것 확인
+  - 참고
+    - basic auth credential을 URL에 직접 포함하면 상대경로 fetch가 깨지므로 브라우저 auth prompt 또는 헤더 인증 기준으로 검증해야 함
 - 2026-04-09 CRM 수금관리 화면 컴팩트화 2차 반영 및 운영 배포 (codex)
   - `offline-crm-v2/src/pages/Receivables.tsx`
     - 수금관리 기본 진입을 거래처별 누적 미수 중심으로 유지하고, 상단 설명성 UI를 최소화
@@ -357,7 +374,9 @@
 - 2026-04-07 고객 상세 거래내역 인라인 편집 전환 (codex)
 
 ## Next Step
-
+- 스마트스토어 상품문의 1건으로 OMX UI 기준 LIVE_SEND 실발송 검증
+- 메이크샵 inquiry/review 승인형 write 1건씩 실발송 검증
+- OMX 실행 결과를 세션 메모가 아니라 서버 저장 이력으로 남길지 결정
 ### Claude Code 담당
 - Phase 3b 기획안 파이프라인 구현 (PRD 템플릿 + n8n WF + 디자인팀 핸드오프)
 - Phase 3c OpenClaw + 텔레그램 고도화 (3방 라우팅, Codex 원격 실행, task ledger)

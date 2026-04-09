@@ -1,12 +1,11 @@
 {
   "forceMock": false,
-  "sharedKey": "replace-with-omx-shared-key",
   "smartstore": {
-    "fetchUrl": "https://n8n.pressco21.com/webhook/openmarket/smartstore/inquiries?onlyPending=true",
-    "sendUrl": "https://n8n.pressco21.com/webhook/openmarket/smartstore/replies"
+    "fetchUrl": "/api/omx/smartstore/inquiries?onlyPending=true",
+    "sendUrl": "/api/omx/smartstore/replies"
   },
   "makeshop": {
-    "fetchUrl": "https://n8n.pressco21.com/webhook/openmarket/makeshop/items",
-    "sendUrl": "https://n8n.pressco21.com/webhook/openmarket/makeshop/replies"
+    "fetchUrl": "/api/omx/makeshop/items",
+    "sendUrl": "/api/omx/makeshop/replies"
   }
 }

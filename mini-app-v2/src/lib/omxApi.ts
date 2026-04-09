@@ -119,6 +119,7 @@ export interface OmxWorkspaceResponse {
 export interface OmxLiveConfigSummary {
   forceMock: boolean;
   hasSharedKey: boolean;
+  authMode: "shared_key" | "proxy" | "none";
   sourceLabel: "env" | "runtime" | "merged";
   fetchConfiguredCount: number;
   sendConfiguredCount: number;
@@ -249,9 +250,13 @@ async function resolveOmxConfig(): Promise<OmxResolvedConfig> {
 }
 
 function toConfigSummary(config: OmxResolvedConfig): OmxLiveConfigSummary {
+  const hasProxyRoute = config.channels.some((channel) =>
+    [channel.fetchUrl, channel.sendUrl].some((url) => Boolean(url) && url.startsWith("/")),
+  );
   return {
     forceMock: config.forceMock,
     hasSharedKey: Boolean(config.sharedKey),
+    authMode: config.sharedKey ? "shared_key" : hasProxyRoute ? "proxy" : "none",
     sourceLabel: config.source,
     fetchConfiguredCount: config.channels.filter((channel) => Boolean(channel.fetchUrl)).length,
     sendConfiguredCount: config.channels.filter((channel) => Boolean(channel.sendUrl)).length,

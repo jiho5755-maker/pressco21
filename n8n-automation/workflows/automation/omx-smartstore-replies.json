@@ -21,7 +21,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const incoming = $input.first().json;\nconst headers = incoming.headers || {};\nconst expectedKey = String(process.env.OMX_SHARED_KEY || process.env.OMX_SOURCE_KEY || '').trim();\nif (!expectedKey) {\n  throw new Error('OMX_SHARED_KEY 가 설정되지 않았습니다.');\n}\nconst providedKey = String(headers['x-omx-source-key'] || headers['X-Omx-Source-Key'] || '').trim();\nif (providedKey !== expectedKey) {\n  throw new Error('OMX shared key mismatch');\n}\nconst payload = incoming.body && typeof incoming.body === 'object' ? incoming.body : incoming;\nconst baseUrl = String(process.env.NAVER_COMMERCE_API_BASE || 'https://api.commerce.naver.com/external').replace(/\\/$/, '');\nconst mode = String(payload.mode || 'DRY_RUN').trim().toUpperCase();\nconst accessToken = String(process.env.NAVER_COMMERCE_ACCESS_TOKEN || process.env.NAVER_COMMERCE_SELF_TOKEN || process.env.NAVER_COMMERCE_SELLER_TOKEN || '').trim();\nif (mode === 'LIVE_SEND' && !accessToken) {\n  throw new Error('NAVER_COMMERCE_ACCESS_TOKEN 이 설정되지 않았습니다.');\n}\nconst items = Array.isArray(payload.items) ? payload.items : [];\nif (!items.length) {\n  throw new Error('보낼 항목이 없습니다.');\n}\nconst out = items.map((raw) => {\n  const sourceKind = String(raw.sourceKind || 'product_qna').trim();\n  const rawId = String(raw.id || '').trim();\n  const externalId = sourceKind === 'product_qna' ? rawId.replace(/^qna_/, '') : rawId;\n  const reply = String(raw.reply || '').trim();\n  if (!externalId) {\n    throw new Error('external id가 비어 있습니다.');\n  }\n  if (!reply) {\n    throw new Error(`reply_content_missing:${rawId}`);\n  }\n  const isCustomerInquiry = sourceKind === 'customer_inquiry';\n  const requestUrl = isCustomerInquiry\n    ? `${baseUrl}/v1/pay-merchant/inquiries/${externalId}/answer`\n    : `${baseUrl}/v1/contents/qnas/${externalId}`;\n  const requestBody = isCustomerInquiry\n    ? { replyContent: reply }\n    : { commentContent: reply };\n  return {\n    json: {\n      original_id: rawId,\n      external_id: externalId,\n      source_kind: sourceKind,\n      mode,\n      should_send: mode === 'LIVE_SEND',\n      request_url: requestUrl,\n      request_method: isCustomerInquiry ? 'POST' : 'PUT',\n      request_body: requestBody,\n      access_token: accessToken,\n      item_type: raw.itemType || 'inquiry',\n      product_name: raw.productName || '',\n      customer_name: raw.customerName || '고객',\n      title: raw.title || '문의',\n    }\n  };\n});\nreturn out;"
+        "jsCode": "const incoming = $input.first().json;\nconst headers = incoming.headers || {};\nconst expectedKey = String($env.OMX_SHARED_KEY || $env.OMX_SOURCE_KEY || '').trim();\nif (!expectedKey) {\n  throw new Error('OMX_SHARED_KEY 가 설정되지 않았습니다.');\n}\nconst providedKey = String(headers['x-omx-source-key'] || headers['X-Omx-Source-Key'] || '').trim();\nif (providedKey !== expectedKey) {\n  throw new Error('OMX shared key mismatch');\n}\nconst payload = incoming.body && typeof incoming.body === 'object' ? incoming.body : incoming;\nconst baseUrl = String($env.NAVER_COMMERCE_API_BASE || 'https://api.commerce.naver.com/external').replace(/\\/$/, '');\nconst mode = String(payload.mode || 'DRY_RUN').trim().toUpperCase();\nconst clientId = String($env.NAVER_COMMERCE_CLIENT_ID || '').trim();\nconst clientSecret = String($env.NAVER_COMMERCE_CLIENT_SECRET || '').trim();\nconst items = Array.isArray(payload.items) ? payload.items : [];\nif (!items.length) {\n  throw new Error('보낼 항목이 없습니다.');\n}\nconst bcrypt = require('bcryptjs');\nfunction toQueryString(params) {\n  return Object.entries(params)\n    .filter(([, value]) => value !== undefined && value !== null && String(value) !== '')\n    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)\n    .join('&');\n}\nconst timestamp = String(Date.now());\nlet tokenForm = '';\nif (mode === 'LIVE_SEND') {\n  if (!clientId || !clientSecret) {\n    throw new Error('NAVER_COMMERCE_CLIENT_ID / NAVER_COMMERCE_CLIENT_SECRET 이 설정되지 않았습니다.');\n  }\n  const password = `${clientId}_${timestamp}`;\n  const clientSecretSign = Buffer.from(bcrypt.hashSync(password, clientSecret)).toString('base64');\n  tokenForm = toQueryString({\n    client_id: clientId,\n    timestamp,\n    client_secret_sign: clientSecretSign,\n    grant_type: 'client_credentials',\n    type: 'SELF',\n  });\n}\nconst out = items.map((raw) => {\n  const sourceKind = String(raw.sourceKind || 'product_qna').trim();\n  const rawId = String(raw.id || '').trim();\n  const externalId = sourceKind === 'product_qna' ? rawId.replace(/^qna_/, '') : rawId;\n  const reply = String(raw.reply || '').trim();\n  if (!externalId) {\n    throw new Error('external id가 비어 있습니다.');\n  }\n  if (!reply) {\n    throw new Error(`reply_content_missing:${rawId}`);\n  }\n  const isCustomerInquiry = sourceKind === 'customer_inquiry';\n  const requestUrl = isCustomerInquiry\n    ? `${baseUrl}/v1/pay-merchant/inquiries/${externalId}/answer`\n    : `${baseUrl}/v1/contents/qnas/${externalId}`;\n  const requestBody = isCustomerInquiry\n    ? { replyContent: reply }\n    : { commentContent: reply };\n  return {\n    json: {\n      original_id: rawId,\n      external_id: externalId,\n      source_kind: sourceKind,\n      mode,\n      should_send: mode === 'LIVE_SEND',\n      token_url: `${baseUrl}/v1/oauth2/token`,\n      token_form: tokenForm,\n      request_url: requestUrl,\n      request_method: isCustomerInquiry ? 'POST' : 'PUT',\n      request_body: requestBody,\n      item_type: raw.itemType || 'inquiry',\n      product_name: raw.productName || '',\n      customer_name: raw.customerName || '고객',\n      title: raw.title || '문의',\n    }\n  };\n});\nreturn out;"
       },
       "id": "ss-reply-prepare",
       "name": "요청 payload 검증",
@@ -65,8 +65,22 @@
     },
     {
       "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const https = require('https');\nconst request = $('요청 payload 검증').first().json;\nconst tokenUrl = String(request.token_url || '').trim();\nconst tokenForm = String(request.token_form || '').trim();\nif (!tokenUrl || !tokenForm) {\n  throw new Error('스마트스토어 토큰 요청 정보가 비어 있습니다.');\n}\nasync function postForm(urlString, body) {\n  return await new Promise((resolve, reject) => {\n    const req = https.request(urlString, {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/x-www-form-urlencoded',\n        Accept: 'application/json',\n        'Content-Length': String(Buffer.byteLength(body)),\n      },\n    }, (res) => {\n      let text = '';\n      res.setEncoding('utf8');\n      res.on('data', (chunk) => {\n        text += chunk;\n      });\n      res.on('end', () => {\n        resolve({ statusCode: res.statusCode || 0, body: text });\n      });\n    });\n    req.on('error', reject);\n    req.write(body);\n    req.end();\n  });\n}\nconst response = await postForm(tokenUrl, tokenForm);\nlet body;\ntry {\n  body = response.body ? JSON.parse(response.body) : {};\n} catch (error) {\n  body = { raw: response.body };\n}\nif (response.statusCode < 200 || response.statusCode >= 300 || !body.access_token) {\n  throw new Error(`스마트스토어 토큰 발급 실패: ${response.statusCode} ${JSON.stringify(body)}`);\n}\nreturn [{ json: body }];"
+      },
+      "id": "ss-reply-token",
+      "name": "스마트스토어 토큰 발급",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        220
+      ]
+    },
+    {
+      "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const original = $('요청 payload 검증').item.json;\nreturn [{ json: { result: {\n  id: original.original_id,\n  ok: true,\n  message: 'DRY_RUN 완료',\n  externalStatus: 'OPEN',\n  statusCode: 200,\n  dispatchMode: original.mode,\n} } }];"
+        "jsCode": "const original = $('요청 payload 검증').item.json;\nreturn { result: {\n  id: original.original_id,\n  ok: true,\n  message: 'DRY_RUN 완료',\n  externalStatus: 'OPEN',\n  statusCode: 200,\n  dispatchMode: original.mode,\n} };"
       },
       "id": "ss-reply-dry-run",
       "name": "DRY_RUN 결과",
@@ -79,14 +93,14 @@
     },
     {
       "parameters": {
-        "method": "={{ $json.request_method }}",
-        "url": "={{ $json.request_url }}",
+        "method": "={{ $('요청 payload 검증').item.json.request_method }}",
+        "url": "={{ $('요청 payload 검증').item.json.request_url }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + $json.access_token }}"
+              "value": "={{ 'Bearer ' + $('스마트스토어 토큰 발급').first().json.access_token }}"
             },
             {
               "name": "Accept",
@@ -100,7 +114,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify($json.request_body) }}",
+        "jsonBody": "={{ JSON.stringify($('요청 payload 검증').item.json.request_body) }}",
         "options": {
           "response": {
             "response": {
@@ -124,7 +138,7 @@
     {
       "parameters": {
         "mode": "runOnceForEachItem",
-        "jsCode": "const original = $('요청 payload 검증').item.json;\nconst body = $json || {};\nconst bodyText = typeof body === 'string' ? body : JSON.stringify(body);\nconst hasError = body && typeof body === 'object' && (body.code || body.error || body.message);\nconst ok = !hasError || bodyText === '{}' || bodyText === '';\nconst message = ok ? 'LIVE_SEND 완료' : String(body.message || body.error || body.code || 'send_failed');\nreturn [{ json: { result: {\n  id: original.original_id,\n  ok,\n  message,\n  externalStatus: ok ? 'ANSWERED' : 'OPEN',\n  statusCode: ok ? 200 : 500,\n  dispatchMode: original.mode,\n} } }];"
+        "jsCode": "const original = $('요청 payload 검증').item.json;\nconst body = $json || {};\nconst bodyText = typeof body === 'string' ? body : JSON.stringify(body);\nconst hasError = body && typeof body === 'object' && (body.code || body.error || body.message);\nconst ok = !hasError || bodyText === '{}' || bodyText === '';\nconst message = ok ? 'LIVE_SEND 완료' : String(body.message || body.error || body.code || 'send_failed');\nreturn { result: {\n  id: original.original_id,\n  ok,\n  message,\n  externalStatus: ok ? 'ANSWERED' : 'OPEN',\n  statusCode: ok ? 200 : 500,\n  dispatchMode: original.mode,\n} };"
       },
       "id": "ss-reply-live-result",
       "name": "LIVE_SEND 결과",
@@ -138,7 +152,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const dry = $('DRY_RUN 결과').all().map((item) => item.json.result).filter(Boolean);\nconst live = $('LIVE_SEND 결과').all().map((item) => item.json.result).filter(Boolean);\nconst results = [...dry, ...live];\nconst dispatchMode = results[0] ? results[0].dispatchMode : 'UNKNOWN';\nreturn [{ json: {\n  results,\n  meta: {\n    channel: 'smartstore',\n    mode: dispatchMode,\n    totalCount: results.length,\n  }\n} }];"
+        "jsCode": "const results = $input.all().map((item) => item.json.result || item.json).filter(Boolean);\nconst dispatchMode = results[0] ? results[0].dispatchMode : 'UNKNOWN';\nreturn [{ json: {\n  results,\n  meta: {\n    channel: 'smartstore',\n    mode: dispatchMode,\n    totalCount: results.length,\n  }\n} }];"
       },
       "id": "ss-reply-aggregate",
       "name": "결과 집계",
@@ -152,7 +166,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify($json) }}",
+        "responseBody": "={{ $json }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -201,7 +215,7 @@
       "main": [
         [
           {
-            "node": "스마트스토어 답변 전송",
+            "node": "스마트스토어 토큰 발급",
             "type": "main",
             "index": 0
           }
@@ -253,6 +267,17 @@
         [
           {
             "node": "응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스마트스토어 토큰 발급": {
+      "main": [
+        [
+          {
+            "node": "스마트스토어 답변 전송",
             "type": "main",
             "index": 0
           }

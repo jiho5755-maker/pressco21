@@ -18,20 +18,51 @@
 
 ---
 
-## 2. 프런트가 기대하는 환경변수
+## 2. 프런트 설정 방식
+
+운영 권장 방식은 `mini.pressco21.com/api/omx/*` same-origin reverse proxy다.
+
+- 브라우저는 상대경로만 호출
+- openclaw nginx가 `x-omx-source-key`를 서버단에서 주입
+- n8n workflow는 `OMX_SHARED_KEY`가 맞는 요청만 처리
+
+즉 shared key는 브라우저에 두지 않는다.
+
+### 2.1 운영 runtime config 예시
+
+```json
+{
+  "forceMock": false,
+  "smartstore": {
+    "fetchUrl": "/api/omx/smartstore/inquiries?onlyPending=true",
+    "sendUrl": "/api/omx/smartstore/replies"
+  },
+  "makeshop": {
+    "fetchUrl": "/api/omx/makeshop/items",
+    "sendUrl": "/api/omx/makeshop/replies"
+  }
+}
+```
+
+### 2.2 개발/직접 호출용 env
 
 `mini-app-v2`는 아래 env가 있으면 실조회/실발송을 시도하고, 없으면 목업 데이터로 fallback 한다.
 
 ```text
 VITE_OMX_FORCE_MOCK=false
-VITE_OMX_SHARED_KEY=...
 VITE_OMX_SMARTSTORE_FETCH_URL=https://n8n.pressco21.com/webhook/openmarket/smartstore/inquiries?onlyPending=true
 VITE_OMX_SMARTSTORE_SEND_URL=https://n8n.pressco21.com/webhook/openmarket/smartstore/replies
 VITE_OMX_MAKESHOP_FETCH_URL=https://n8n.pressco21.com/webhook/openmarket/makeshop/items
 VITE_OMX_MAKESHOP_SEND_URL=https://n8n.pressco21.com/webhook/openmarket/makeshop/replies
 ```
 
-클라이언트는 설정된 경우에만 아래 헤더를 붙인다.
+직접 호출 모드에서만 아래 값을 함께 둔다.
+
+```text
+VITE_OMX_SHARED_KEY=...
+```
+
+클라이언트는 shared key가 설정된 경우에만 아래 헤더를 붙인다.
 
 ```text
 x-omx-source-key: {VITE_OMX_SHARED_KEY}

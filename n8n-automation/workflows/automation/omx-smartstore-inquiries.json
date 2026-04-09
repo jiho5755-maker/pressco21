@@ -21,7 +21,7 @@
     {
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const input = $input.first().json;\nconst headers = input.headers || {};\nconst expectedKey = String(process.env.OMX_SHARED_KEY || process.env.OMX_SOURCE_KEY || '').trim();\nif (!expectedKey) {\n  throw new Error('OMX_SHARED_KEY 가 설정되지 않았습니다.');\n}\nconst providedKey = String(headers['x-omx-source-key'] || headers['X-Omx-Source-Key'] || '').trim();\nif (providedKey !== expectedKey) {\n  throw new Error('OMX shared key mismatch');\n}\nconst query = input.query || input || {};\nconst baseUrl = String(process.env.NAVER_COMMERCE_API_BASE || 'https://api.commerce.naver.com/external').replace(/\\/$/, '');\nconst accessToken = String(process.env.NAVER_COMMERCE_ACCESS_TOKEN || process.env.NAVER_COMMERCE_SELF_TOKEN || process.env.NAVER_COMMERCE_SELLER_TOKEN || '').trim();\nif (!accessToken) {\n  throw new Error('NAVER_COMMERCE_ACCESS_TOKEN 이 설정되지 않았습니다. 토큰 helper 또는 단기 캐시를 먼저 연결해야 합니다.');\n}\nfunction getParts(date) {\n  const parts = new Intl.DateTimeFormat('en-US', {\n    timeZone: 'Asia/Seoul',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    second: '2-digit',\n    hourCycle: 'h23',\n  }).formatToParts(date);\n  return Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));\n}\nfunction formatKstDate(date) {\n  const parts = getParts(date);\n  return `${parts.year}-${parts.month}-${parts.day}`;\n}\nfunction formatKstDateTime(date) {\n  const parts = getParts(date);\n  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+09:00`;\n}\nconst now = new Date();\nconst customerEndDate = String(query.customerEndDate || formatKstDate(now)).trim();\nconst customerStartDate = String(query.customerStartDate || formatKstDate(new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000))).trim();\nconst qnaToDate = String(query.qnaToDate || formatKstDateTime(now)).trim();\nconst qnaFromDate = String(query.qnaFromDate || formatKstDateTime(new Date(now.getTime() - 48 * 60 * 60 * 1000))).trim();\nconst customerQuery = String(query.customerQuery || '').trim();\nconst qnaQuery = String(query.qnaQuery || '').trim();\nconst onlyPendingRaw = String(query.onlyPending || 'true').trim().toLowerCase();\nconst onlyPending = onlyPendingRaw !== 'false';\nconst customerParams = customerQuery ? customerQuery : new URLSearchParams({\n  startSearchDate: customerStartDate,\n  endSearchDate: customerEndDate,\n}).toString();\nconst qnaParams = qnaQuery ? qnaQuery : new URLSearchParams({\n  fromDate: qnaFromDate,\n  toDate: qnaToDate,\n}).toString();\nconst customerUrl = `${baseUrl}/v1/pay-user/inquiries?${customerParams}`;\nconst qnaUrl = `${baseUrl}/v1/contents/qnas?${qnaParams}`;\nreturn [{ json: {\n  base_url: baseUrl,\n  access_token: accessToken,\n  customer_url: customerUrl,\n  qna_url: qnaUrl,\n  only_pending: onlyPending,\n  customer_query: customerParams,\n  qna_query: qnaParams,\n  adapter_version: 'smartstore-adapter-v1',\n} }];"
+        "jsCode": "const input = $input.first().json;\nconst headers = input.headers || {};\nconst expectedKey = String($env.OMX_SHARED_KEY || $env.OMX_SOURCE_KEY || '').trim();\nif (!expectedKey) {\n  throw new Error('OMX_SHARED_KEY 가 설정되지 않았습니다.');\n}\nconst providedKey = String(headers['x-omx-source-key'] || headers['X-Omx-Source-Key'] || '').trim();\nif (providedKey !== expectedKey) {\n  throw new Error('OMX shared key mismatch');\n}\nconst bcrypt = require('bcryptjs');\nconst clientId = String($env.NAVER_COMMERCE_CLIENT_ID || '').trim();\nconst clientSecret = String($env.NAVER_COMMERCE_CLIENT_SECRET || '').trim();\nif (!clientId || !clientSecret) {\n  throw new Error('NAVER_COMMERCE_CLIENT_ID / NAVER_COMMERCE_CLIENT_SECRET 이 설정되지 않았습니다.');\n}\nconst query = input.query || input || {};\nconst baseUrl = String($env.NAVER_COMMERCE_API_BASE || 'https://api.commerce.naver.com/external').replace(/\\/$/, '');\nfunction toQueryString(params) {\n  return Object.entries(params)\n    .filter(([, value]) => value !== undefined && value !== null && String(value) !== '')\n    .map(([key, value]) => `${encodeURIComponent(key)}=${encodeURIComponent(String(value))}`)\n    .join('&');\n}\nfunction getParts(date) {\n  const parts = new Intl.DateTimeFormat('en-US', {\n    timeZone: 'Asia/Seoul',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    second: '2-digit',\n    hourCycle: 'h23',\n  }).formatToParts(date);\n  return Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));\n}\nfunction formatKstDate(date) {\n  const parts = getParts(date);\n  return `${parts.year}-${parts.month}-${parts.day}`;\n}\nfunction formatKstDateTime(date) {\n  const parts = getParts(date);\n  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+09:00`;\n}\nconst now = new Date();\nconst customerEndDate = String(query.customerEndDate || formatKstDate(now)).trim();\nconst customerStartDate = String(query.customerStartDate || formatKstDate(new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000))).trim();\nconst qnaToDate = String(query.qnaToDate || formatKstDateTime(now)).trim();\nconst qnaFromDate = String(query.qnaFromDate || formatKstDateTime(new Date(now.getTime() - 48 * 60 * 60 * 1000))).trim();\nconst customerQuery = String(query.customerQuery || '').trim();\nconst qnaQuery = String(query.qnaQuery || '').trim();\nconst onlyPendingRaw = String(query.onlyPending || 'true').trim().toLowerCase();\nconst onlyPending = onlyPendingRaw !== 'false';\nconst customerParams = customerQuery ? customerQuery : toQueryString({\n  startSearchDate: customerStartDate,\n  endSearchDate: customerEndDate,\n});\nconst qnaParams = qnaQuery ? qnaQuery : toQueryString({\n  fromDate: qnaFromDate,\n  toDate: qnaToDate,\n});\nconst timestamp = String(Date.now());\nconst password = `${clientId}_${timestamp}`;\nconst clientSecretSign = Buffer.from(bcrypt.hashSync(password, clientSecret)).toString('base64');\nconst tokenForm = toQueryString({\n  client_id: clientId,\n  timestamp,\n  client_secret_sign: clientSecretSign,\n  grant_type: 'client_credentials',\n  type: 'SELF',\n});\nconst customerUrl = `${baseUrl}/v1/pay-user/inquiries?${customerParams}`;\nconst qnaUrl = `${baseUrl}/v1/contents/qnas?${qnaParams}`;\nreturn [{ json: {\n  base_url: baseUrl,\n  token_url: `${baseUrl}/v1/oauth2/token`,\n  token_form: tokenForm,\n  customer_url: customerUrl,\n  qna_url: qnaUrl,\n  only_pending: onlyPending,\n  customer_query: customerParams,\n  qna_query: qnaParams,\n  adapter_version: 'smartstore-adapter-v1',\n} }];"
       },
       "id": "ss-adapter-prepare",
       "name": "요청 파라미터 정리",
@@ -34,14 +34,28 @@
     },
     {
       "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const https = require('https');\nconst request = $('요청 파라미터 정리').first().json;\nconst tokenUrl = String(request.token_url || '').trim();\nconst tokenForm = String(request.token_form || '').trim();\nif (!tokenUrl || !tokenForm) {\n  throw new Error('스마트스토어 토큰 요청 정보가 비어 있습니다.');\n}\nasync function postForm(urlString, body) {\n  return await new Promise((resolve, reject) => {\n    const req = https.request(urlString, {\n      method: 'POST',\n      headers: {\n        'Content-Type': 'application/x-www-form-urlencoded',\n        Accept: 'application/json',\n        'Content-Length': String(Buffer.byteLength(body)),\n      },\n    }, (res) => {\n      let text = '';\n      res.setEncoding('utf8');\n      res.on('data', (chunk) => {\n        text += chunk;\n      });\n      res.on('end', () => {\n        resolve({ statusCode: res.statusCode || 0, body: text });\n      });\n    });\n    req.on('error', reject);\n    req.write(body);\n    req.end();\n  });\n}\nconst response = await postForm(tokenUrl, tokenForm);\nlet body;\ntry {\n  body = response.body ? JSON.parse(response.body) : {};\n} catch (error) {\n  body = { raw: response.body };\n}\nif (response.statusCode < 200 || response.statusCode >= 300 || !body.access_token) {\n  throw new Error(`스마트스토어 토큰 발급 실패: ${response.statusCode} ${JSON.stringify(body)}`);\n}\nreturn [{ json: body }];"
+      },
+      "id": "ss-adapter-token",
+      "name": "스마트스토어 토큰 발급",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        760,
+        320
+      ]
+    },
+    {
+      "parameters": {
         "method": "GET",
-        "url": "={{ $json.customer_url }}",
+        "url": "={{ $('요청 파라미터 정리').first().json.customer_url }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + $json.access_token }}"
+              "value": "={{ 'Bearer ' + $('스마트스토어 토큰 발급').first().json.access_token }}"
             },
             {
               "name": "Accept",
@@ -76,7 +90,7 @@
           "parameters": [
             {
               "name": "Authorization",
-              "value": "={{ 'Bearer ' + $('요청 파라미터 정리').first().json.access_token }}"
+              "value": "={{ 'Bearer ' + $('스마트스토어 토큰 발급').first().json.access_token }}"
             },
             {
               "name": "Accept",
@@ -119,7 +133,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify($json) }}",
+        "responseBody": "={{ $json }}",
         "options": {
           "responseHeaders": {
             "entries": [
@@ -157,7 +171,7 @@
       "main": [
         [
           {
-            "node": "스마트스토어 고객 문의 조회",
+            "node": "스마트스토어 토큰 발급",
             "type": "main",
             "index": 0
           }
@@ -191,6 +205,17 @@
         [
           {
             "node": "응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스마트스토어 토큰 발급": {
+      "main": [
+        [
+          {
+            "node": "스마트스토어 고객 문의 조회",
             "type": "main",
             "index": 0
           }

@@ -53,7 +53,7 @@
 
 - 4개 모두 `inactive`
 - 이유:
-  - 운영 n8n env에 `OMX_SHARED_KEY`, `NAVER_COMMERCE_*`, `MAKESHOP_*` 주입 여부 확인 전
+  - 운영 n8n env에 `OMX_SHARED_KEY`, `NAVER_COMMERCE_*`, `MAKESHOP_*` 주입 및 proxy 연결 확인 전
   - 현재 workflow는 fail-closed로 동작하므로 shared key가 없으면 요청을 거부한다.
 
 ---
@@ -62,7 +62,8 @@
 
 1. n8n 운영 환경 변수 추가
    - `OMX_SHARED_KEY`
-   - `NAVER_COMMERCE_ACCESS_TOKEN` 또는 대응 토큰 변수
+   - `NAVER_COMMERCE_CLIENT_ID`
+   - `NAVER_COMMERCE_CLIENT_SECRET`
    - `MAKESHOP_DOMAIN`
    - `MAKESHOP_SHOPKEY`
    - `MAKESHOP_LICENSEKEY`
@@ -77,9 +78,15 @@ python3 tools/openmarket/omx_n8n_upsert.py \
   n8n-automation/workflows/automation/omx-makeshop-replies.json
 ```
 
-3. n8n에서 4개 workflow 활성화
+3. openclaw nginx reverse proxy 추가
 
-4. OMX runtime config 작성
+- `mini.pressco21.com/api/omx/` → `https://n8n.pressco21.com/webhook/openmarket/`
+- `x-omx-source-key`는 nginx가 서버단에서 주입
+- 브라우저에는 shared key를 배포하지 않는다
+
+4. n8n에서 4개 workflow 활성화
+
+5. OMX runtime config 작성
 
 `mini-app-v2/public/omx-config.sample.json` 기준으로 `omx-config.json`을 채운다.
 
@@ -88,26 +95,25 @@ python3 tools/openmarket/omx_n8n_upsert.py \
 ```json
 {
   "forceMock": false,
-  "sharedKey": "replace-with-omx-shared-key",
   "smartstore": {
-    "fetchUrl": "https://n8n.pressco21.com/webhook/openmarket/smartstore/inquiries?onlyPending=true",
-    "sendUrl": "https://n8n.pressco21.com/webhook/openmarket/smartstore/replies"
+    "fetchUrl": "/api/omx/smartstore/inquiries?onlyPending=true",
+    "sendUrl": "/api/omx/smartstore/replies"
   },
   "makeshop": {
-    "fetchUrl": "https://n8n.pressco21.com/webhook/openmarket/makeshop/items",
-    "sendUrl": "https://n8n.pressco21.com/webhook/openmarket/makeshop/replies"
+    "fetchUrl": "/api/omx/makeshop/items",
+    "sendUrl": "/api/omx/makeshop/replies"
   }
 }
 ```
 
-5. 프런트 배포
+6. 프런트 배포
 
 ```bash
 cd mini-app-v2
 bash scripts/deploy.sh
 ```
 
-6. 첫 검증 순서
+7. 첫 검증 순서
    - OMX `/omx` 접속
    - `DRY_RUN` 상태에서 새로고침
    - 스마트스토어/메이크샵 source card 확인

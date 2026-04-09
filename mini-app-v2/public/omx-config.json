@@ -1,1 +1,11 @@
-{}
+{
+  "forceMock": false,
+  "smartstore": {
+    "fetchUrl": "/api/omx/smartstore/inquiries?onlyPending=true",
+    "sendUrl": "/api/omx/smartstore/replies"
+  },
+  "makeshop": {
+    "fetchUrl": "/api/omx/makeshop/items",
+    "sendUrl": "/api/omx/makeshop/replies"
+  }
+}

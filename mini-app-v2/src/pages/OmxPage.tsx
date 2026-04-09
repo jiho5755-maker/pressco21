@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import { Header } from "@/components/layout/Header";
 import { useToast } from "@/components/layout/Toast";
 import { Badge } from "@/components/ui/badge";
@@ -52,6 +52,17 @@ import {
 } from "lucide-react";
 
 type QueueFilter = "all" | "approval" | "direct" | "review" | "breach";
+type ChannelFilter = "all" | "smartstore" | "makeshop";
+type ExecutionLog = {
+  id: string;
+  channelLabel: string;
+  customerName: string;
+  title: string;
+  dispatchMode: OmxDispatchMode;
+  ok: boolean;
+  message: string;
+  createdAt: string;
+};
 
 const SEND_MODE_TONE: Record<OmxSendMode, string> = {
   direct_send: "bg-emerald-100 text-emerald-700 border-emerald-200",
@@ -83,6 +94,12 @@ const FILTERS: { key: QueueFilter; label: string }[] = [
   { key: "direct", label: "직접발송" },
   { key: "review", label: "리뷰" },
   { key: "breach", label: "SLA 임박/초과" },
+];
+
+const CHANNEL_FILTERS: { key: ChannelFilter; label: string }[] = [
+  { key: "all", label: "전체 채널" },
+  { key: "smartstore", label: "스마트스토어" },
+  { key: "makeshop", label: "메이크샵" },
 ];
 
 const ACTIVE_CHANNELS = new Set(["smartstore", "makeshop"]);
@@ -133,7 +150,9 @@ export function OmxPage() {
   );
 
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
+  const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
   const [searchText, setSearchText] = useState("");
+  const deferredSearchText = useDeferredValue(searchText);
   const [selectedId, setSelectedId] = useState(mockItems[0]?.id ?? "");
   const [selectedIds, setSelectedIds] = useState<Record<string, boolean>>({});
   const [queueItems, setQueueItems] = useState<OmxQueueItem[]>(mockItems);
@@ -146,6 +165,7 @@ export function OmxPage() {
   const [liveConfig, setLiveConfig] = useState<OmxLiveConfigSummary>({
     forceMock: false,
     hasSharedKey: false,
+    authMode: "none",
     sourceLabel: "env",
     fetchConfiguredCount: 0,
     sendConfiguredCount: 0,
@@ -154,6 +174,8 @@ export function OmxPage() {
   const [isSending, setIsSending] = useState(false);
   const [dispatchMode, setDispatchMode] = useState<OmxDispatchMode>("DRY_RUN");
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
+  const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
+  const [liveConfirmText, setLiveConfirmText] = useState("");
 
   const runtimeQueue = useMemo(
     () =>
@@ -166,9 +188,17 @@ export function OmxPage() {
     [drafts, notes, queueItems, statuses],
   );
 
+  const authModeLabel =
+    liveConfig.authMode === "shared_key"
+      ? "shared key direct"
+      : liveConfig.authMode === "proxy"
+        ? "same-origin proxy"
+        : "none";
+
   const filteredQueue = useMemo(() => {
-    const normalizedSearch = searchText.trim().toLowerCase();
+    const normalizedSearch = deferredSearchText.trim().toLowerCase();
     return runtimeQueue.filter((item) => {
+      const matchesChannel = channelFilter === "all" ? true : item.channel === channelFilter;
       const matchesFilter =
         queueFilter === "all"
           ? true
@@ -180,7 +210,7 @@ export function OmxPage() {
                 ? item.itemType === "review"
                 : item.urgency === "warning" || item.urgency === "breach";
 
-      if (!matchesFilter) {
+      if (!matchesFilter || !matchesChannel) {
         return false;
       }
 
@@ -203,7 +233,7 @@ export function OmxPage() {
 
       return haystack.includes(normalizedSearch);
     });
-  }, [queueFilter, runtimeQueue, searchText]);
+  }, [channelFilter, deferredSearchText, queueFilter, runtimeQueue]);
 
   const selectedQueue = useMemo(
     () => runtimeQueue.filter((item) => selectedIds[item.id]),
@@ -321,6 +351,19 @@ export function OmxPage() {
     });
   }
 
+  function selectSendableInFilter() {
+    const next = Object.fromEntries(
+      filteredQueue
+        .filter((item) => item.sendMode === "direct_send" && item.status !== "sent" && item.status !== "manual_required")
+        .map((item) => [item.id, true]),
+    );
+    setSelectedIds((prev) => ({
+      ...prev,
+      ...next,
+    }));
+    showToast(`${Object.keys(next).length}건을 발송 대상으로 선택했습니다`, "success");
+  }
+
   function updateStatus(id: string, next: OmxQueueStatus) {
     setStatuses((prev) => ({ ...prev, [id]: next }));
   }
@@ -375,6 +418,7 @@ export function OmxPage() {
       const results = await sendOmxReplies(selectedSendableQueue, drafts, dispatchMode);
       const successCount = results.filter((result) => result.ok).length;
       const failureCount = results.length - successCount;
+      const indexedQueue = new Map(runtimeQueue.map((item) => [item.id, item]));
 
       setStatuses((prev) => {
         const next = { ...prev };
@@ -399,6 +443,23 @@ export function OmxPage() {
         return next;
       });
 
+      setExecutionLogs((prev) => {
+        const nextLogs = results.map((result) => {
+          const item = indexedQueue.get(result.id);
+          return {
+            id: `${result.id}-${Date.now()}`,
+            channelLabel: item?.channelLabel || result.channel,
+            customerName: item?.customerName || "고객",
+            title: item?.title || result.id,
+            dispatchMode,
+            ok: result.ok,
+            message: result.message,
+            createdAt: new Date().toISOString(),
+          };
+        });
+        return [...nextLogs, ...prev].slice(0, 12);
+      });
+
       showToast(
         dispatchMode === "LIVE_SEND"
           ? `${successCount}건 발송 완료${failureCount ? ` / ${failureCount}건 실패` : ""}`
@@ -410,10 +471,19 @@ export function OmxPage() {
     } finally {
       setIsSending(false);
       setSendDialogOpen(false);
+      setLiveConfirmText("");
     }
   }
 
   const liveDirectSources = sourceStates.filter((state) => state.sendConfigured);
+  const channelCounts = useMemo(
+    () => ({
+      smartstore: runtimeQueue.filter((item) => item.channel === "smartstore").length,
+      makeshop: runtimeQueue.filter((item) => item.channel === "makeshop").length,
+    }),
+    [runtimeQueue],
+  );
+  const liveSendConfirmed = dispatchMode === "DRY_RUN" || liveConfirmText.trim().toUpperCase() === "LIVE_SEND";
 
   return (
     <div>
@@ -525,7 +595,7 @@ export function OmxPage() {
             <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
               <p className="font-semibold">실연동 준비 상태</p>
               <p className="mt-1">
-                config {liveConfig.sourceLabel.toUpperCase()} · shared key {liveConfig.hasSharedKey ? "설정됨" : "미설정"} ·
+                config {liveConfig.sourceLabel.toUpperCase()} · auth {authModeLabel} ·
                 force mock {liveConfig.forceMock ? "ON" : "OFF"} · fetch {liveConfig.fetchConfiguredCount}/2 · send{" "}
                 {liveConfig.sendConfiguredCount}/2 · last sync {lastFetchedAt ? formatDate(lastFetchedAt) : "없음"}
               </p>
@@ -606,6 +676,21 @@ export function OmxPage() {
                   placeholder="고객명, 상품명, 문의 내용 검색"
                 />
                 <div className="flex flex-wrap gap-2">
+                  {CHANNEL_FILTERS.map((filter) => (
+                    <Button
+                      key={filter.key}
+                      type="button"
+                      size="sm"
+                      variant={channelFilter === filter.key ? "default" : "outline"}
+                      onClick={() => setChannelFilter(filter.key)}
+                    >
+                      {filter.label}
+                      {filter.key === "smartstore" ? ` ${channelCounts.smartstore}` : ""}
+                      {filter.key === "makeshop" ? ` ${channelCounts.makeshop}` : ""}
+                    </Button>
+                  ))}
+                </div>
+                <div className="flex flex-wrap gap-2">
                   {FILTERS.map((filter) => (
                     <Button
                       key={filter.key}
@@ -621,6 +706,9 @@ export function OmxPage() {
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" size="sm" variant="outline" onClick={toggleSelectAllFiltered}>
                     {allFilteredSelected ? "필터 전체 해제" : "필터 전체 선택"}
+                  </Button>
+                  <Button type="button" size="sm" variant="outline" onClick={selectSendableInFilter}>
+                    발송 가능 건만 선택
                   </Button>
                   <Button type="button" size="sm" variant="outline" onClick={regenerateSelectedDrafts}>
                     선택 초안 재생성
@@ -807,6 +895,38 @@ export function OmxPage() {
                     {liveDirectSources.length}개
                   </p>
                 </div>
+
+                <div className="rounded-2xl border border-border/70 p-4 space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-semibold">최근 실행 결과</p>
+                    <Badge className="border border-slate-200 bg-slate-100 text-slate-700">{executionLogs.length}건</Badge>
+                  </div>
+                  {executionLogs.length ? (
+                    <div className="space-y-2">
+                      {executionLogs.map((log) => (
+                        <div
+                          key={log.id}
+                          className={`rounded-xl border px-3 py-2 text-sm ${
+                            log.ok ? "border-emerald-200 bg-emerald-50 text-emerald-950" : "border-rose-200 bg-rose-50 text-rose-950"
+                          }`}
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="font-medium">
+                              {log.channelLabel} · {log.customerName}
+                            </p>
+                            <span className="text-xs opacity-80">{formatDate(log.createdAt)}</span>
+                          </div>
+                          <p className="mt-1 line-clamp-1">{log.title}</p>
+                          <p className="mt-1 text-xs opacity-80">
+                            {log.dispatchMode} · {log.message}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground">아직 실행 이력이 없습니다. 먼저 DRY_RUN으로 한 번 검증해보세요.</p>
+                  )}
+                </div>
               </CardContent>
             </Card>
           )}
@@ -873,12 +993,30 @@ export function OmxPage() {
                 {selectedSendableQueue.length > 5 && <li>외 {selectedSendableQueue.length - 5}건</li>}
               </ul>
             </div>
+            {dispatchMode === "LIVE_SEND" && (
+              <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
+                <p className="font-semibold text-rose-950">실발송 확인</p>
+                <p className="mt-1 text-rose-900">
+                  실제 고객에게 발송됩니다. 계속하려면 아래에 <span className="font-semibold">LIVE_SEND</span>를 입력하세요.
+                </p>
+                <Input
+                  className="mt-3 bg-white"
+                  value={liveConfirmText}
+                  onChange={(event) => setLiveConfirmText(event.target.value)}
+                  placeholder="LIVE_SEND"
+                />
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setSendDialogOpen(false)}>
               취소
             </Button>
-            <Button type="button" onClick={() => void handleSendConfirmed()} disabled={isSending || !selectedSendableQueue.length}>
+            <Button
+              type="button"
+              onClick={() => void handleSendConfirmed()}
+              disabled={isSending || !selectedSendableQueue.length || !liveSendConfirmed}
+            >
               {isSending ? "처리 중..." : `${dispatchMode} 실행`}
             </Button>
           </DialogFooter>

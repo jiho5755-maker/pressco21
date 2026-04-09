@@ -1,0 +1,532 @@
+{
+  "name": "[OM-SLA-01] 오픈마켓 문의 SLA 알람 코어",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "minutes",
+              "minutesInterval": 5
+            }
+          ]
+        }
+      },
+      "id": "om-sla-01-schedule",
+      "name": "5분마다",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        180,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const polledAt = new Date().toISOString();\nconst channels = [\n  { channel_name: 'smartstore', fetch_url: process.env.OM_FETCH_SMARTSTORE_INQUIRIES_URL || '' },\n  { channel_name: 'coupang', fetch_url: process.env.OM_FETCH_COUPANG_INQUIRIES_URL || '' },\n  { channel_name: '11st', fetch_url: process.env.OM_FETCH_11ST_INQUIRIES_URL || '' },\n  { channel_name: 'makeshop', fetch_url: process.env.OM_FETCH_MAKESHOP_INQUIRIES_URL || '' },\n].filter((item) => item.fetch_url);\nif (!channels.length) {\n  throw new Error('OM-SLA-01: 문의 수집 adapter URL이 설정되지 않았습니다.');\n}\nreturn channels.map((item) => ({ json: { ...item, polled_at: polledAt } }));"
+      },
+      "id": "om-sla-01-build-plan",
+      "name": "채널 폴링 계획",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.fetch_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-omx-source-key",
+              "value": "={{ $env.OMX_SOURCE_SHARED_KEY || '' }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "om-sla-01-fetch-inquiries",
+      "name": "채널 문의 수집",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        660,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const sourceItems = $('채널 폴링 계획').all();\nconst responseItems = $input.all();\nfunction toArray(payload) {\n  if (Array.isArray(payload)) return payload;\n  if (payload && Array.isArray(payload.items)) return payload.items;\n  if (payload && payload.data && Array.isArray(payload.data.items)) return payload.data.items;\n  if (payload && payload.data && Array.isArray(payload.data.list)) return payload.data.list;\n  if (payload && Array.isArray(payload.list)) return payload.list;\n  return [];\n}\nfunction normalizeDate(value) {\n  if (!value) return new Date().toISOString();\n  const date = new Date(value);\n  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();\n}\nfunction maskName(value) {\n  const text = String(value || '고객').trim();\n  if (text.length <= 1) return text;\n  if (text.length === 2) return `${text[0]}*`;\n  return `${text[0]}${'*'.repeat(Math.max(1, text.length - 2))}${text[text.length - 1]}`;\n}\nfunction guessType(subject, body) {\n  const text = `${subject} ${body}`.toLowerCase();\n  if (/배송|출고|송장|언제/.test(text)) return 'delivery';\n  if (/품절|재입고|입고/.test(text)) return 'stock';\n  if (/반품|환불/.test(text)) return 'return';\n  if (/교환/.test(text)) return 'exchange';\n  if (/사용|비율|혼합|굳|경화|보관/.test(text)) return 'usage';\n  return 'etc';\n}\nconst out = [];\nresponseItems.forEach((item, index) => {\n  const source = sourceItems[index] ? sourceItems[index].json : {};\n  const channelName = String(source.channel_name || 'unknown');\n  const records = toArray(item.json);\n  for (const raw of records) {\n    const externalId = String(raw.id ?? raw.inquiryId ?? raw.no ?? raw.seq ?? '');\n    if (!externalId) continue;\n    const subject = String(raw.subject ?? raw.title ?? '');\n    const body = String(raw.body ?? raw.content ?? raw.question ?? raw.message ?? '');\n    const customerName = String(raw.customerName ?? raw.writer ?? raw.name ?? '고객');\n    const orderId = String(raw.orderId ?? raw.orderNo ?? raw.order_id ?? '');\n    const skuId = String(raw.skuId ?? raw.productId ?? raw.productNo ?? raw.itemNo ?? '');\n    const productName = String(raw.productName ?? raw.itemName ?? raw.goodsName ?? '');\n    const externalStatus = String(raw.status ?? raw.answerStatus ?? raw.state ?? 'OPEN').toUpperCase();\n    const receivedAt = normalizeDate(raw.receivedAt ?? raw.createdAt ?? raw.regDate ?? raw.inquiryDate);\n    out.push({\n      json: {\n        inquiry_uid: `${channelName}::${externalId}`,\n        external_inquiry_id: externalId,\n        thread_key: `${channelName}::${orderId || 'no-order'}::${maskName(customerName)}`,\n        channel_name: channelName,\n        external_status: externalStatus,\n        order_id: orderId,\n        sku_id: skuId,\n        product_name: productName,\n        customer_name: maskName(customerName),\n        customer_masked_phone: String(raw.phoneMasked ?? raw.phone ?? ''),\n        inquiry_type: guessType(subject, body),\n        subject,\n        body,\n        received_at: receivedAt,\n        channel_url: String(raw.url ?? raw.detailUrl ?? raw.adminUrl ?? ''),\n        source_payload_json: raw,\n        metadata_json: {\n          polled_at: source.polled_at,\n          adapter_channel: channelName,\n        },\n      },\n    });\n  }\n});\nreturn out;"
+      },
+      "id": "om-sla-01-normalize",
+      "name": "문의 정규화",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        920,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/om_channel_policy/records?where=(active,eq,true)&limit=100",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "={{ $env.NOCODB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "om-sla-01-policy",
+      "name": "채널 정책 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1160,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/om_agent_routing/records?where=(active,eq,true)&sort=channel_name,inquiry_type,priority_rank&limit=200",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "={{ $env.NOCODB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "om-sla-01-routing",
+      "name": "라우팅 규칙 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1400,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/om_inquiry_queue/records?where=(sla_status,neq,CLOSED)&limit=500",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "={{ $env.NOCODB_TOKEN }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "om-sla-01-open-items",
+      "name": "기존 오픈 문의 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1640,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function extractRecords(payload) {\n  if (Array.isArray(payload)) return payload;\n  if (payload && Array.isArray(payload.list)) return payload.list;\n  if (payload && Array.isArray(payload.records)) return payload.records;\n  if (payload && payload.data && Array.isArray(payload.data.list)) return payload.data.list;\n  if (payload && payload.data && Array.isArray(payload.data.records)) return payload.data.records;\n  return [];\n}\nfunction parseHm(value, fallback) {\n  const raw = String(value || fallback || '09:00');\n  const [hour, minute] = raw.split(':').map((part) => Number(part || 0));\n  return { hour, minute };\n}\nfunction moveToWindow(cursor, policy) {\n  const start = parseHm(policy.business_hour_start, '09:00');\n  const end = parseHm(policy.business_hour_end, '18:00');\n  const next = new Date(cursor);\n  const isWeekdayOnly = String(policy.holiday_policy || '').toUpperCase() === 'WEEKDAY_BUSINESS_HOURS';\n  while (true) {\n    const day = next.getDay();\n    if (isWeekdayOnly && (day === 0 || day === 6)) {\n      next.setDate(next.getDate() + 1);\n      next.setHours(start.hour, start.minute, 0, 0);\n      continue;\n    }\n    const currentMinutes = next.getHours() * 60 + next.getMinutes();\n    const startMinutes = start.hour * 60 + start.minute;\n    const endMinutes = end.hour * 60 + end.minute;\n    if (currentMinutes < startMinutes) {\n      next.setHours(start.hour, start.minute, 0, 0);\n    }\n    if (currentMinutes >= endMinutes) {\n      next.setDate(next.getDate() + 1);\n      next.setHours(start.hour, start.minute, 0, 0);\n      continue;\n    }\n    return next;\n  }\n}\nfunction addSlaHours(receivedAt, hours, policy) {\n  const holidayPolicy = String(policy.holiday_policy || 'CALENDAR_HOURS').toUpperCase();\n  const start = new Date(receivedAt);\n  if (holidayPolicy === 'CALENDAR_HOURS') {\n    return new Date(start.getTime() + hours * 60 * 60 * 1000).toISOString();\n  }\n  let remainingMinutes = hours * 60;\n  let cursor = moveToWindow(start, policy);\n  const end = parseHm(policy.business_hour_end, '18:00');\n  while (remainingMinutes > 0) {\n    const windowEnd = new Date(cursor);\n    windowEnd.setHours(end.hour, end.minute, 0, 0);\n    const available = Math.max(0, Math.floor((windowEnd.getTime() - cursor.getTime()) / 60000));\n    if (available === 0) {\n      cursor = moveToWindow(new Date(cursor.getTime() + 24 * 60 * 60 * 1000), policy);\n      continue;\n    }\n    if (remainingMinutes <= available) {\n      return new Date(cursor.getTime() + remainingMinutes * 60000).toISOString();\n    }\n    remainingMinutes -= available;\n    cursor = moveToWindow(new Date(windowEnd.getTime() + 60000), policy);\n  }\n  return cursor.toISOString();\n}\nfunction computeStage(receivedAt, dueAt) {\n  const received = new Date(receivedAt).getTime();\n  const due = new Date(dueAt).getTime();\n  const now = Date.now();\n  const total = Math.max(1, due - received);\n  const elapsed = Math.max(0, now - received);\n  const progress = Math.min(999, (elapsed / total) * 100);\n  if (now >= due) return { stage: 'BREACH', progress };\n  if (progress >= 80) return { stage: 'WARNING_80', progress };\n  if (progress >= 50) return { stage: 'WARNING_50', progress };\n  return { stage: 'OK', progress };\n}\nfunction toRegex(rule) {\n  if (!rule) return null;\n  try {\n    return new RegExp(String(rule), 'i');\n  } catch {\n    return null;\n  }\n}\nconst inquiries = $('문의 정규화').all().map((item) => item.json);\nconst policies = extractRecords($('채널 정책 조회').first().json);\nconst routes = extractRecords($('라우팅 규칙 조회').first().json);\nconst existing = extractRecords($('기존 오픈 문의 조회').first().json);\nconst existingSet = new Set(existing.map((row) => String(row.inquiry_uid || '')));\nconst out = [];\nfor (const inquiry of inquiries) {\n  if (existingSet.has(inquiry.inquiry_uid)) continue;\n  const policy = policies.find((row) => String(row.channel_name) === String(inquiry.channel_name)) || {};\n  const candidates = routes\n    .filter((row) => String(row.channel_name) === String(inquiry.channel_name) && String(row.inquiry_type) === String(inquiry.inquiry_type))\n    .sort((a, b) => Number(a.priority_rank || 999) - Number(b.priority_rank || 999));\n  const fallback = routes\n    .filter((row) => String(row.channel_name) === String(inquiry.channel_name) && String(row.inquiry_type) === 'etc')\n    .sort((a, b) => Number(a.priority_rank || 999) - Number(b.priority_rank || 999));\n  const text = `${inquiry.subject || ''} ${inquiry.body || ''}`;\n  const routed = [...candidates, ...fallback].find((row) => {\n    const regex = toRegex(row.keyword_rule);\n    return regex ? regex.test(text) : true;\n  }) || {};\n  const dueAt = addSlaHours(inquiry.received_at, Number(policy.inquiry_sla_hours || 24), policy);\n  const stageInfo = computeStage(inquiry.received_at, dueAt);\n  const managerChat = String(routed.escalation_telegram_chat_id || policy.default_escalation_chat_id || process.env.OM_DEFAULT_MANAGER_CHAT_ID || '');\n  const assigneeChat = String(routed.assignee_telegram_chat_id || policy.default_assignee_chat_id || managerChat);\n  const notifyText = `문의 접수\\n- 채널: ${inquiry.channel_name}\\n- 유형: ${inquiry.inquiry_type}\\n- 고객: ${inquiry.customer_name}\\n- 상품: ${inquiry.product_name || '-'}\\n- 접수: ${inquiry.received_at}\\n- SLA 마감: ${dueAt}\\n- 담당: ${routed.assignee_name || policy.default_assignee_name || '미지정'}\\n- 바로가기: ${inquiry.channel_url || '-'}`;\n  out.push({\n    json: {\n      target_chat_id: assigneeChat || managerChat,\n      notify_text: notifyText,\n      recordPayload: {\n        inquiry_uid: inquiry.inquiry_uid,\n        external_inquiry_id: inquiry.external_inquiry_id,\n        thread_key: inquiry.thread_key,\n        channel_name: inquiry.channel_name,\n        external_status: inquiry.external_status,\n        order_id: inquiry.order_id,\n        sku_id: inquiry.sku_id,\n        product_name: inquiry.product_name,\n        customer_name: inquiry.customer_name,\n        customer_masked_phone: inquiry.customer_masked_phone,\n        inquiry_type: inquiry.inquiry_type,\n        subject: inquiry.subject,\n        body: inquiry.body,\n        received_at: inquiry.received_at,\n        due_at: dueAt,\n        sla_status: stageInfo.stage,\n        sla_progress_rate: Number(stageInfo.progress.toFixed(2)),\n        last_alert_stage: 'NEW',\n        assigned_to: routed.assignee_name || policy.default_assignee_name || null,\n        assignee_telegram_chat_id: assigneeChat || null,\n        escalation_name: routed.escalation_name || policy.default_escalation_name || null,\n        escalation_telegram_chat_id: managerChat || null,\n        channel_url: inquiry.channel_url,\n        last_polled_at: new Date().toISOString(),\n        routing_version: 'om-sla-01-draft-v1',\n        source_payload_json: inquiry.source_payload_json,\n        metadata_json: inquiry.metadata_json,\n      },\n    },\n  });\n}\nreturn out;"
+      },
+      "id": "om-sla-01-build-new",
+      "name": "신규 문의 생성 대상",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/om_inquiry_queue/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "={{ $env.NOCODB_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.recordPayload) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "om-sla-01-create",
+      "name": "NocoDB 신규 문의 저장",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2140,
+        180
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('신규 문의 생성 대상').item.json.target_chat_id || $env.OM_DEFAULT_MANAGER_CHAT_ID }}",
+        "text": "={{ $('신규 문의 생성 대상').item.json.notify_text }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "om-sla-01-notify-new",
+      "name": "신규 문의 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2400,
+        180
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function extractRecords(payload) {\n  if (Array.isArray(payload)) return payload;\n  if (payload && Array.isArray(payload.list)) return payload.list;\n  if (payload && Array.isArray(payload.records)) return payload.records;\n  if (payload && payload.data && Array.isArray(payload.data.list)) return payload.data.list;\n  if (payload && payload.data && Array.isArray(payload.data.records)) return payload.data.records;\n  return [];\n}\nfunction computeStage(receivedAt, dueAt) {\n  const received = new Date(receivedAt).getTime();\n  const due = new Date(dueAt).getTime();\n  const now = Date.now();\n  const total = Math.max(1, due - received);\n  const elapsed = Math.max(0, now - received);\n  const progress = Math.min(999, (elapsed / total) * 100);\n  if (now >= due) return { stage: 'BREACH', progress };\n  if (progress >= 80) return { stage: 'WARNING_80', progress };\n  if (progress >= 50) return { stage: 'WARNING_50', progress };\n  return { stage: 'OK', progress };\n}\nconst latest = new Map($('문의 정규화').all().map((item) => [String(item.json.inquiry_uid), item.json]));\nconst openRows = extractRecords($('기존 오픈 문의 조회').first().json);\nconst policies = extractRecords($('채널 정책 조회').first().json);\nconst out = [];\nfor (const row of openRows) {\n  const recordId = row.Id || row.id;\n  if (!recordId) continue;\n  const nowIso = new Date().toISOString();\n  const latestItem = latest.get(String(row.inquiry_uid || ''));\n  const closedStatuses = ['ANSWERED', 'REPLIED', 'CLOSED', 'RESOLVED'];\n  if (latestItem && closedStatuses.includes(String(latestItem.external_status || '').toUpperCase())) {\n    out.push({\n      json: {\n        should_notify: false,\n        patchPayload: {\n          Id: recordId,\n          external_status: latestItem.external_status,\n          sla_status: 'CLOSED',\n          last_alert_stage: 'CLOSED',\n          closed_at: nowIso,\n          last_polled_at: nowIso,\n        },\n      },\n    });\n    continue;\n  }\n  const policy = policies.find((item) => String(item.channel_name) === String(row.channel_name)) || {};\n  const stageInfo = computeStage(row.received_at, row.due_at);\n  const currentStatus = String(row.sla_status || 'OK');\n  const patchPayload = {\n    Id: recordId,\n    external_status: latestItem ? latestItem.external_status : row.external_status,\n    sla_progress_rate: Number(stageInfo.progress.toFixed(2)),\n    last_polled_at: nowIso,\n  };\n  let shouldNotify = false;\n  let notifyText = '';\n  let targetChatId = String(row.assignee_telegram_chat_id || row.escalation_telegram_chat_id || process.env.OM_DEFAULT_MANAGER_CHAT_ID || '');\n  if (stageInfo.stage === 'WARNING_50' && String(policy.warn_50_enabled) !== 'false' && !row.first_warning_sent_at && currentStatus !== 'CLOSED') {\n    patchPayload.sla_status = 'WARNING_50';\n    patchPayload.last_alert_stage = 'WARNING_50';\n    patchPayload.first_warning_sent_at = nowIso;\n    shouldNotify = true;\n    notifyText = `SLA 경고\\n- 채널: ${row.channel_name}\\n- 단계: 50%\\n- 고객: ${row.customer_name || '-'}\\n- 상품: ${row.product_name || '-'}\\n- 마감: ${row.due_at}\\n- 담당: ${row.assigned_to || '미지정'}\\n- 바로가기: ${row.channel_url || '-'}`;\n  } else if (stageInfo.stage === 'WARNING_80' && String(policy.warn_80_enabled) !== 'false' && !row.final_warning_sent_at && currentStatus !== 'CLOSED') {\n    patchPayload.sla_status = 'WARNING_80';\n    patchPayload.last_alert_stage = 'WARNING_80';\n    patchPayload.final_warning_sent_at = nowIso;\n    shouldNotify = true;\n    notifyText = `SLA 경고\\n- 채널: ${row.channel_name}\\n- 단계: 80%\\n- 고객: ${row.customer_name || '-'}\\n- 상품: ${row.product_name || '-'}\\n- 마감: ${row.due_at}\\n- 담당: ${row.assigned_to || '미지정'}\\n- 바로가기: ${row.channel_url || '-'}`;\n  } else if (stageInfo.stage === 'BREACH' && !row.breach_notified_at && currentStatus !== 'CLOSED') {\n    patchPayload.sla_status = 'BREACH';\n    patchPayload.last_alert_stage = 'BREACH';\n    patchPayload.breach_notified_at = nowIso;\n    shouldNotify = true;\n    targetChatId = String(row.escalation_telegram_chat_id || row.assignee_telegram_chat_id || process.env.OM_DEFAULT_MANAGER_CHAT_ID || '');\n    notifyText = `SLA 초과\\n- 채널: ${row.channel_name}\\n- 고객: ${row.customer_name || '-'}\\n- 상품: ${row.product_name || '-'}\\n- 마감: ${row.due_at}\\n- 담당: ${row.assigned_to || '미지정'}\\n- 바로가기: ${row.channel_url || '-'}`;\n  } else {\n    continue;\n  }\n  out.push({\n    json: {\n      should_notify: shouldNotify,\n      target_chat_id: targetChatId,\n      notify_text: notifyText,\n      patchPayload,\n    },\n  });\n}\nreturn out;"
+      },
+      "id": "om-sla-01-build-alerts",
+      "name": "SLA 경고 대상 생성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1880,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/om_inquiry_queue/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "={{ $env.NOCODB_TOKEN }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify([$json.patchPayload]) }}",
+        "options": {
+          "timeout": 10000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "om-sla-01-patch",
+      "name": "NocoDB SLA 상태 갱신",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2140,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "om-sla-01-should-notify",
+              "leftValue": "={{ $json.should_notify }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "om-sla-01-if-notify",
+      "name": "알림 발송 대상?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2400,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.target_chat_id || $env.OM_DEFAULT_MANAGER_CHAT_ID }}",
+        "text": "={{ $json.notify_text }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "om-sla-01-notify-alert",
+      "name": "SLA 경고 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2660,
+        460
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "5분마다": {
+      "main": [
+        [
+          {
+            "node": "채널 폴링 계획",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "채널 폴링 계획": {
+      "main": [
+        [
+          {
+            "node": "채널 문의 수집",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "채널 문의 수집": {
+      "main": [
+        [
+          {
+            "node": "문의 정규화",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "문의 정규화": {
+      "main": [
+        [
+          {
+            "node": "채널 정책 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "채널 정책 조회": {
+      "main": [
+        [
+          {
+            "node": "라우팅 규칙 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "라우팅 규칙 조회": {
+      "main": [
+        [
+          {
+            "node": "기존 오픈 문의 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "기존 오픈 문의 조회": {
+      "main": [
+        [
+          {
+            "node": "신규 문의 생성 대상",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "SLA 경고 대상 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "신규 문의 생성 대상": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 신규 문의 저장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 신규 문의 저장": {
+      "main": [
+        [
+          {
+            "node": "신규 문의 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "SLA 경고 대상 생성": {
+      "main": [
+        [
+          {
+            "node": "NocoDB SLA 상태 갱신",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB SLA 상태 갱신": {
+      "main": [
+        [
+          {
+            "node": "알림 발송 대상?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "알림 발송 대상?": {
+      "main": [
+        [
+          {
+            "node": "SLA 경고 알림",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "active": false,
+  "tags": [
+    {
+      "name": "오픈마켓"
+    },
+    {
+      "name": "문의SLA"
+    },
+    {
+      "name": "draft"
+    }
+  ]
+}

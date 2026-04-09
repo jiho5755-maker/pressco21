@@ -7,6 +7,7 @@ import { TaskCreatePage } from "@/pages/TaskCreatePage";
 import { TaskDetailPage } from "@/pages/TaskDetailPage";
 import { CalendarPage } from "@/pages/CalendarPage";
 import { ShipmentPage } from "@/pages/ShipmentPage";
+import { OmxPage } from "@/pages/OmxPage";
 
 export default function App() {
   return (
@@ -20,6 +21,7 @@ export default function App() {
             <Route path="/tasks/:id" element={<TaskDetailPage />} />
             <Route path="/calendar" element={<CalendarPage />} />
             <Route path="/shipment" element={<ShipmentPage />} />
+            <Route path="/omx" element={<OmxPage />} />
           </Routes>
         </AppLayout>
       </ToastProvider>

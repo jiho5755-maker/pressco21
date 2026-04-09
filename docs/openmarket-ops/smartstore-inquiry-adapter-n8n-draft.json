@@ -1,0 +1,220 @@
+{
+  "name": "[OM-ADAPTER-SS-01] 스마트스토어 문의 adapter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "openmarket/smartstore/inquiries",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ss-adapter-webhook",
+      "name": "스마트스토어 문의 webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        320
+      ],
+      "webhookId": "openmarket-smartstore-inquiries"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst query = input.query || input || {};\nconst baseUrl = String(process.env.NAVER_COMMERCE_API_BASE || 'https://api.commerce.naver.com/external').replace(/\\/$/, '');\nconst accessToken = String(process.env.NAVER_COMMERCE_ACCESS_TOKEN || process.env.NAVER_COMMERCE_SELF_TOKEN || process.env.NAVER_COMMERCE_SELLER_TOKEN || '').trim();\nif (!accessToken) {\n  throw new Error('NAVER_COMMERCE_ACCESS_TOKEN 이 설정되지 않았습니다. 토큰 helper 또는 단기 캐시를 먼저 연결해야 합니다.');\n}\nfunction getParts(date) {\n  const parts = new Intl.DateTimeFormat('en-US', {\n    timeZone: 'Asia/Seoul',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    second: '2-digit',\n    hourCycle: 'h23',\n  }).formatToParts(date);\n  return Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));\n}\nfunction formatKstDate(date) {\n  const parts = getParts(date);\n  return `${parts.year}-${parts.month}-${parts.day}`;\n}\nfunction formatKstDateTime(date) {\n  const parts = getParts(date);\n  return `${parts.year}-${parts.month}-${parts.day}T${parts.hour}:${parts.minute}:${parts.second}+09:00`;\n}\nconst now = new Date();\nconst customerEndDate = String(query.customerEndDate || formatKstDate(now)).trim();\nconst customerStartDate = String(query.customerStartDate || formatKstDate(new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000))).trim();\nconst qnaToDate = String(query.qnaToDate || formatKstDateTime(now)).trim();\nconst qnaFromDate = String(query.qnaFromDate || formatKstDateTime(new Date(now.getTime() - 48 * 60 * 60 * 1000))).trim();\nconst customerQuery = String(query.customerQuery || '').trim();\nconst qnaQuery = String(query.qnaQuery || '').trim();\nconst onlyPendingRaw = String(query.onlyPending || 'true').trim().toLowerCase();\nconst onlyPending = onlyPendingRaw !== 'false';\nconst customerParams = customerQuery ? customerQuery : new URLSearchParams({\n  startSearchDate: customerStartDate,\n  endSearchDate: customerEndDate,\n}).toString();\nconst qnaParams = qnaQuery ? qnaQuery : new URLSearchParams({\n  fromDate: qnaFromDate,\n  toDate: qnaToDate,\n}).toString();\nconst customerUrl = `${baseUrl}/v1/pay-user/inquiries?${customerParams}`;\nconst qnaUrl = `${baseUrl}/v1/contents/qnas?${qnaParams}`;\nreturn [{ json: {\n  base_url: baseUrl,\n  access_token: accessToken,\n  customer_url: customerUrl,\n  qna_url: qnaUrl,\n  only_pending: onlyPending,\n  customer_query: customerParams,\n  qna_query: qnaParams,\n  adapter_version: 'smartstore-adapter-v1',\n} }];"
+      },
+      "id": "ss-adapter-prepare",
+      "name": "요청 파라미터 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.customer_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.access_token }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "ss-adapter-customer-fetch",
+      "name": "스마트스토어 고객 문의 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('요청 파라미터 정리').first().json.qna_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $('요청 파라미터 정리').first().json.access_token }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "ss-adapter-qna-fetch",
+      "name": "스마트스토어 상품 문의 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function extractRecords(payload) {\n  if (Array.isArray(payload)) return payload;\n  if (payload && Array.isArray(payload.items)) return payload.items;\n  if (payload && Array.isArray(payload.list)) return payload.list;\n  if (payload && Array.isArray(payload.content)) return payload.content;\n  if (payload && payload.data && Array.isArray(payload.data.items)) return payload.data.items;\n  if (payload && payload.data && Array.isArray(payload.data.list)) return payload.data.list;\n  if (payload && payload.contents && Array.isArray(payload.contents)) return payload.contents;\n  return [];\n}\nfunction toIso(value) {\n  if (!value) return new Date().toISOString();\n  const date = new Date(value);\n  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();\n}\nfunction maskName(value) {\n  const text = String(value || '고객').trim();\n  if (text.length <= 1) return text;\n  if (text.includes('*')) return text;\n  if (text.length === 2) return `${text[0]}*`;\n  return `${text[0]}${'*'.repeat(Math.max(1, text.length - 2))}${text[text.length - 1]}`;\n}\nconst request = $('요청 파라미터 정리').first().json;\nconst customerPayload = $('스마트스토어 고객 문의 조회').first().json;\nconst qnaPayload = $('스마트스토어 상품 문의 조회').first().json;\nconst customerItems = extractRecords(customerPayload).map((row) => ({\n  id: String(row.inquiryNo ?? row.id ?? ''),\n  orderId: String(row.orderId ?? ''),\n  productId: String(row.productNo ?? row.productId ?? ''),\n  productName: String(row.productName ?? ''),\n  customerName: maskName(row.customerName ?? row.customerId ?? '고객'),\n  subject: String(row.title ?? '고객 문의'),\n  body: String(row.inquiryContent ?? row.body ?? ''),\n  status: row.answered === true ? 'ANSWERED' : 'OPEN',\n  receivedAt: toIso(row.inquiryRegistrationDateTime ?? row.receivedAt ?? row.createDate),\n  url: '',\n  sourceKind: 'customer_inquiry',\n  answered: row.answered === true,\n  rawCategory: String(row.category ?? ''),\n  answerPreview: String(row.answerContent ?? ''),\n})).filter((row) => row.id);\nconst qnaItems = extractRecords(qnaPayload).map((row) => ({\n  id: `qna_${String(row.questionId ?? row.id ?? '')}`,\n  orderId: '',\n  productId: String(row.productId ?? row.productNo ?? ''),\n  productName: String(row.productName ?? ''),\n  customerName: maskName(row.maskedWriterId ?? row.customerName ?? '고객'),\n  subject: '상품 문의',\n  body: String(row.question ?? row.body ?? ''),\n  status: row.answered === true ? 'ANSWERED' : 'OPEN',\n  receivedAt: toIso(row.createDate ?? row.receivedAt),\n  url: '',\n  sourceKind: 'product_qna',\n  answered: row.answered === true,\n  rawCategory: '',\n  answerPreview: String(row.answer ?? ''),\n})).filter((row) => row.id !== 'qna_');\nlet items = [...customerItems, ...qnaItems];\nif (request.only_pending) {\n  items = items.filter((row) => row.status === 'OPEN');\n}\nitems.sort((a, b) => new Date(a.receivedAt).getTime() - new Date(b.receivedAt).getTime());\nreturn [{ json: {\n  items,\n  meta: {\n    adapter: 'smartstore-inquiry-adapter-v1',\n    onlyPending: request.only_pending,\n    customerCount: customerItems.length,\n    qnaCount: qnaItems.length,\n    totalCount: items.length,\n    customerQuery: request.customer_query,\n    qnaQuery: request.qna_query,\n  }\n} }];"
+      },
+      "id": "ss-adapter-normalize",
+      "name": "스마트스토어 문의 정규화",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ss-adapter-respond",
+      "name": "응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "스마트스토어 문의 webhook": {
+      "main": [
+        [
+          {
+            "node": "요청 파라미터 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "요청 파라미터 정리": {
+      "main": [
+        [
+          {
+            "node": "스마트스토어 고객 문의 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스마트스토어 고객 문의 조회": {
+      "main": [
+        [
+          {
+            "node": "스마트스토어 상품 문의 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스마트스토어 상품 문의 조회": {
+      "main": [
+        [
+          {
+            "node": "스마트스토어 문의 정규화",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스마트스토어 문의 정규화": {
+      "main": [
+        [
+          {
+            "node": "응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "active": false,
+  "tags": [
+    {
+      "name": "오픈마켓"
+    },
+    {
+      "name": "스마트스토어"
+    },
+    {
+      "name": "adapter"
+    },
+    {
+      "name": "draft"
+    }
+  ]
+}

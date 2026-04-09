@@ -8,7 +8,7 @@ import { getTelegramUserName } from "@/lib/telegram";
 import { daysUntil, isToday, getStartAt } from "@/lib/format";
 import {
   ClipboardList, CalendarDays, Truck, PlusCircle,
-  AlertTriangle, CalendarClock, ChevronRight
+  AlertTriangle, CalendarClock, ChevronRight, MessageSquareText
 } from "lucide-react";
 import type { Task } from "@/lib/types";
 
@@ -99,6 +99,13 @@ export function HomePage() {
       label: "새 업무",
       path: "/tasks/new",
       desc: "업무 등록",
+    },
+    {
+      icon: <MessageSquareText className="h-5 w-5" />,
+      label: "OMX 답변 허브",
+      path: "/omx",
+      badge: "신규",
+      desc: "문의/리뷰 승인형",
     },
   ];
 

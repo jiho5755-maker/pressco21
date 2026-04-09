@@ -7,14 +7,15 @@ interface HeaderProps {
   subtitle?: string;
   showBack?: boolean;
   rightAction?: React.ReactNode;
+  maxWidthClassName?: string;
 }
 
-export function Header({ title, subtitle, showBack, rightAction }: HeaderProps) {
+export function Header({ title, subtitle, showBack, rightAction, maxWidthClassName = "max-w-[480px]" }: HeaderProps) {
   const navigate = useNavigate();
 
   return (
     <header className="sticky top-0 z-40 bg-background/95 backdrop-blur-sm border-b border-border">
-      <div className="max-w-[480px] mx-auto flex items-center h-12 px-4">
+      <div className={`${maxWidthClassName} mx-auto flex items-center h-12 px-4`}>
         {showBack && (
           <Button
             variant="ghost"

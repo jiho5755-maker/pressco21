@@ -25,15 +25,64 @@
 - Started At: —
 - Branch: main
 - Working Scope: —
-- Active Subdirectory: offline-crm-v2
+- Active Subdirectory: —
 
 ## Files In Progress
-- —
+- 없음
 
 ## Last Changes
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-09 메이크샵 실read 검증 + 쿠팡 live probe 스켈레톤 추가 (codex)
+  - `tools/openmarket/makeshop_live_test.py`
+    - Oracle 허용 IP 서버 env를 직접 읽는 메이크샵 실검증 CLI 추가
+    - `list-board-codes`, `list-crm-board`, `list-reviews`, `preview-crm-reply`, `preview-review-answer` 지원
+    - 고객명/전화/이메일을 마스킹해서 read-only probe 결과를 안전하게 출력
+  - `tools/openmarket/makeshop_openapi_docs_probe.py`
+    - 로컬 `.secrets.env`의 비ASCII 참조값을 placeholder로 인식하도록 보강
+  - `tools/openmarket/coupang_live_test.py`
+    - Coupang HMAC 인증 헤더 생성, 상품문의/고객센터 문의 read probe, reply payload preview를 위한 CLI 추가
+    - preview 명령은 자격 증명 없이도 테스트 가능하도록 분리
+  - `docs/openmarket-ops/omx-channel-capability-matrix-v1.md`
+    - 메이크샵을 `실read 검증 완료 + 실write 승인 대기` 상태로 문구 정리
+    - 쿠팡 blocker를 `실검증 전`에서 `access/secret/vendorId/wingId 미주입`으로 구체화
+    - `coupang_live_test.py`와 Coupang HMAC/free FAQ 근거 추가
+  - `mini-app-v2/src/lib/omx.ts`
+    - 메이크샵 queue/capability 문구를 실read 검증 기준으로 수정
+    - 쿠팡 queue/capability 문구를 HMAC + 자격 증명 병목 기준으로 수정
+  - 실검증 결과
+    - `python3 tools/openmarket/makeshop_live_test.py --remote-host ubuntu@158.180.77.201 list-board-codes` 성공
+    - `python3 tools/openmarket/makeshop_live_test.py --remote-host ubuntu@158.180.77.201 list-crm-board --from-dt '2026-04-01 00:00:00' --to-dt '2026-04-09 23:59:59' --member-type MEMBER --limit 3` 성공
+    - `python3 tools/openmarket/makeshop_live_test.py --remote-host ubuntu@158.180.77.201 list-reviews --from-dt '2026-04-01' --to-dt '2026-04-09' --limit 3` 성공 (`count=0`)
+    - 메이크샵 write는 고객 노출을 수반해 이번 턴에서는 preview까지만 수행
+    - 쿠팡 자격 증명은 로컬 `.secrets.env`와 Oracle 핵심 env에서 찾지 못함
+  - 검증
+    - `python3 -m py_compile tools/openmarket/makeshop_live_test.py tools/openmarket/makeshop_openapi_docs_probe.py tools/openmarket/coupang_live_test.py` 통과
+    - `cd mini-app-v2 && npm run build` 통과
+- 2026-04-09 메이크샵 공식 Open API board/review 검증 + OMX 허브 1차 구현 (codex)
+  - `docs/openmarket-ops/omx-channel-capability-matrix-v1.md`
+    - 메이크샵 capability를 `manual/manual_send`에서 `api/direct_send/doc_only`로 상향
+    - 공식 guide endpoint 기준 `crm_board/reply`, `comment/store`, `review/store` 스펙과 남은 live probe 공백을 문서화
+  - `tools/openmarket/makeshop_openapi_docs_probe.py`
+    - 공식 guide id `86/90/93/94/95`를 직접 조회해 endpoint/method/permission/request example을 요약하는 probe 스크립트 추가
+    - `--live-domain` 옵션을 넣었고, 현재 로컬 시크릿이 placeholder라 live read probe는 자동 skip 처리
+  - `mini-app-v2/src/lib/omx.ts`
+    - 메이크샵 inquiry/review capability와 샘플 queue item을 direct_send/doc_only 기준으로 갱신
+  - `mini-app-v2/src/pages/OmxPage.tsx`
+    - capability matrix, 승인형 inbox, 답변 편집 패널, 실행 순서를 한 화면에서 보는 OMX 허브 페이지 추가
+  - `mini-app-v2/src/App.tsx`
+    - `/omx` 라우트 추가
+  - `mini-app-v2/src/pages/HomePage.tsx`
+    - 홈 카드에 `OMX 답변 허브` 진입점 추가
+  - `mini-app-v2/src/components/layout/Header.tsx`
+    - 와이드 페이지 대응을 위한 `maxWidthClassName` 옵션 추가
+  - 검증
+    - `python3 -m py_compile tools/openmarket/makeshop_openapi_docs_probe.py` 통과
+    - `python3 tools/openmarket/makeshop_openapi_docs_probe.py --live-domain foreverlove.co.kr` 실행
+      - 메이크샵 inquiry/review write 스펙 문서 검증 완료
+      - live read probe는 `.secrets.env` placeholder 때문에 skip
+    - `cd mini-app-v2 && npm run build` 통과
 - 2026-04-09 수금/지급 UX 필터·정렬·선택합계·누적보기 개선 (codex)
   - `offline-crm-v2/src/pages/Receivables.tsx`
     - 수금/지급 화면에 정렬, 금액 필터, 에이징 필터, 고객 구성/정산 구분 필터 추가
@@ -159,6 +208,11 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라)
 
 ### Codex 담당
+- `[CODEX-LEAD]` 승인된 메이크샵 테스트 케이스 1건으로 `crm_board/reply` 또는 `review/store(save_type=answer)` 실write를 1회 검증
+- `[CODEX-LEAD]` 쿠팡 access/secret/vendorId/wingId 확보 후 `coupang_live_test.py`로 `onlineInquiries`/`callCenterInquiries` live probe 실행
+- `[CODEX-LEAD]` 채널톡 무료/체험 플랜에서 Open API/Webhook 운영 가능 여부를 최종 확인하고, 불가하면 대안/제외 결론 문서화
+- `[CODEX-LEAD]` mini-app-v2 OMX 허브를 실제 adapter/NocoDB 데이터와 연결하고 DRY_RUN/LIVE_SEND feature flag를 서버값으로 분리
+- `[CODEX-LEAD]` 쿠팡 문의 live probe와 채널톡 가격 검증을 끝내서 OMX capability matrix를 2차 확정
 - `[CODEX-LEAD]` 스마트스토어 토큰 helper 또는 mini.pressco21.com 토큰 대행 방식 확정
 - `[CODEX-LEAD]` `OM_FETCH_SMARTSTORE_INQUIRIES_URL`를 adapter webhook으로 연결하고 OM-SLA-01 수동 실행 검증
 - `[CODEX-LEAD]` 스마트스토어 문의 adapter 응답 계약을 실측 결과 기준으로 확정하고 OM-SLA-01에 1차 연결

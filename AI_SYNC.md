@@ -34,6 +34,21 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-09 쿠팡 OpenAPI 실read 검증 성공 (codex)
+  - `docs/openmarket-ops/omx-channel-capability-matrix-v1.md`
+    - 쿠팡 inquiry 상태를 `자격 증명 미주입`에서 `실read 검증 완료 + 사방넷 병행 여부 미확정`으로 수정
+    - 실제 테스트 입력값 `https://n8n.pressco21.com`, `158.180.77.201,175.115.92.120`과 probe 결과를 문서화
+    - `27.102.150.*` wildcard 입력은 쿠팡 UI에서 거부된 점을 반영
+  - `mini-app-v2/src/lib/omx.ts`
+    - 쿠팡 capability/queue 문구를 `read verified, write pending` 기준으로 업데이트
+  - 실검증 결과
+    - `onlineInquiries`:
+      - `2026-04-01~2026-04-09`는 7일 초과로 `400`
+      - `2026-04-03~2026-04-09`는 `200 OK`
+    - `callCenterInquiries`:
+      - `partner-status=NONE`로 실데이터 6건 조회 성공
+      - `partner-status=NO_ANSWER`는 빈 목록으로 성공
+    - 원격 임시 env `/tmp/coupang-test.env`는 검증 후 삭제
 - 2026-04-09 쿠팡 + 사방넷 병행 사용 테스트 플랜 정리 (codex)
   - `docs/openmarket-ops/coupang-sabang-selfdev-test-plan-2026-04-09.md`
     - 쿠팡 OpenAPI를 `사방넷 + PRESSCO21 자체 프로그램`에서 함께 쓰기 위한 실제 테스트 절차 문서 추가
@@ -217,6 +232,9 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라)
 
 ### Codex 담당
+- `[CODEX-LEAD]` 사방넷에서 쿠팡 주문/문의 수집이 계속 정상인지 확인해서 병행 가능 여부 판정
+- `[CODEX-LEAD]` `wingId` 확보 후 `coupang_live_test.py` preview payload와 OMX 승인형 UI를 연결
+- `[CODEX-LEAD]` 사방넷 유지가 확인되면 쿠팡 승인형 write 테스트 1회 실행
 - `[CODEX-LEAD]` 사용자가 쿠팡 Wing에 `자체개발(직접입력)` + `158.180.77.201,27.102.150.*,175.115.92.120` 입력 후 저장 가능한지 확인
 - `[CODEX-LEAD]` 저장 성공 후 `Access Key / Secret Key / vendorId / wingId` 확보해서 `coupang_live_test.py` read probe 실행
 - `[CODEX-LEAD]` 쿠팡 read probe 성공 시 사방넷 연동 유지 여부를 함께 확인해 병행 가능 여부 판정

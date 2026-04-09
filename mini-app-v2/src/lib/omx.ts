@@ -93,9 +93,9 @@ export const OMX_CAPABILITIES: OmxCapability[] = [
     sendMode: "direct_send",
     validationStatus: "doc_only",
     priority: 1,
-    currentDecision: "v1 direct send",
-    blocker: "access/secret/vendorId/wingId 미주입",
-    nextAction: "키 확보 후 onlineInquiries + callCenterInquiries live probe",
+    currentDecision: "실read 검증 완료, direct send 후보",
+    blocker: "사방넷 병행 유지 여부 미확정, 실write 미실행",
+    nextAction: "사방넷 정상 동작 확인 후 승인형 write 1회 검증",
   },
   {
     id: "coupang-review",
@@ -209,10 +209,10 @@ export const OMX_QUEUE_ITEMS: OmxQueueItem[] = [
     aiDraft:
       "안녕하세요. 문의주신 몰드 세트는 현재 재입고 일정을 확인 중입니다. 오늘 중으로 입고 여부를 다시 안내드릴 수 있도록 확인 후 답변드리겠습니다. 급하게 필요하시면 대체 가능한 유사 몰드도 함께 안내드리겠습니다.",
     internalNote:
-      "쿠팡 문서는 확인됐고 Open API는 무료다. 다만 Pressco21 access/secret/vendorId/wingId가 아직 주입되지 않아 DRY_RUN 상태 유지",
+      "쿠팡 OpenAPI를 자체개발로 전환한 뒤 Oracle 서버 158.180.77.201에서 onlineInquiries/callCenterInquiries read probe는 성공했다. 다만 사방넷 병행 유지 여부와 write는 아직 미검증이라 DRY_RUN 유지",
     sourceUrl: "https://wing.coupang.com/",
-    rawPayloadSummary: "source=onlineInquiry, auth=HMAC, validation=doc_only, sendMode=direct_send",
-    tags: ["재입고", "승인대기", "DRY_RUN", "자격증명대기"],
+    rawPayloadSummary: "onlineInquiries/read verified, callCenterInquiries/read verified, auth=HMAC, sendMode=direct_send",
+    tags: ["재입고", "승인대기", "DRY_RUN", "실read"],
   },
   {
     id: "mk-qna-20260409-01",

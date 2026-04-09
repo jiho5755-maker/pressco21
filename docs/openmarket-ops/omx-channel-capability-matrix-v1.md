@@ -48,7 +48,7 @@
 |------|------|------|------|------|------|------|------|
 | smartstore | inquiry | api | direct_send | verified | v1 핵심 채널 | 고객문의 답변 body 실측 일부 미완 | OM adapter + 승인형 발송 연결 |
 | smartstore | review | manual | draft_only | blocked | 초안 생성만 우선 | 공개 리뷰 답변 API 미확인 | 운영자 수동 반영 큐로 처리 |
-| coupang | inquiry | api | direct_send | doc_only | v1 핵심 채널 | Pressco21 access/secret/vendorId/wingId 미주입 | 실키 확보 후 `onlineInquiries`/`callCenterInquiries` live probe |
+| coupang | inquiry | api | direct_send | doc_only | 실read 검증 완료 | 사방넷 병행 유지 여부 미확정, 실write 미실행 | 사방넷 정상 동작 확인 후 승인형 write 검증 |
 | coupang | review | manual | draft_only | blocked | 초안 생성만 우선 | 공개 리뷰 답변 API 미확인 | 리뷰 큐만 먼저 구현 |
 | makeshop | inquiry | api | direct_send | doc_only | v1 핵심 채널로 상향 | 실write는 아직 미실행 | `crm_board/reply` + `comment/store`를 승인 후 실제 전송으로 검증 |
 | makeshop | review | api | direct_send | doc_only | 승인형 답변 채널 | 실write는 아직 미실행 | `review/store` + `save_type=answer`를 승인 후 실제 전송으로 검증 |
@@ -119,15 +119,31 @@
 - 리뷰 답변 API는 현재 확인되지 않음
 - Open API 자체는 무료라고 Coupang FAQ에 명시되어 있다.
 
+실측 결과:
+
+- 사용자가 쿠팡 OpenAPI를 `자체개발(직접입력)`으로 수정
+- 등록 값:
+  - URL: `https://n8n.pressco21.com`
+  - IP: `158.180.77.201,175.115.92.120`
+- `27.102.150.*` 대역 wildcard는 쿠팡 입력창에서 거부됨
+- 이후 Oracle 서버 `158.180.77.201`에서 read probe 성공
+  - `onlineInquiries`:
+    - 8일 범위는 `400`과 함께 `time interval needs to be less than or equal to 7 days` 반환
+    - 7일 이내(`2026-04-03`~`2026-04-09`)로 줄이면 `200 OK`
+  - `callCenterInquiries`:
+    - `partner-status=NONE` 조회 성공, 실데이터 6건 확인
+    - `partner-status=NO_ANSWER` 조회 성공, 빈 목록 반환
+
 현재 blocker:
 
-- 문의/고객센터 답변 문서는 확인 완료
-- 다만 Pressco21용 `access key / secret key / vendorId / wingId`가 현재 로컬 `.secrets.env`와 Oracle 핵심 env에서 확인되지 않았다.
+- 우리 프로그램의 read는 성공했지만, 사방넷이 이 설정에서도 계속 정상 동작하는지는 아직 미확인
+- 쿠팡 write는 아직 승인형 실검증 전
 
 다음 액션:
 
-- key / vendorId / wingId 확보 후 live probe
-- `coupang_live_test.py`로 read-only 조회와 reply payload preview부터 연결
+- 사방넷 주문/문의 수집이 계속 정상인지 확인
+- `wingId` 확보 후 reply payload preview를 실제 승인형 UI와 연결
+- 사방넷이 유지되면 승인된 테스트 케이스로 write 1회 검증
 
 ---
 

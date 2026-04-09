@@ -45,7 +45,7 @@
     - 서상견 님(`customer_id=264`) 고객 메모에서 잘못 생성된 `ACCOUNTING_CUSTOMER_META` 예치금 2,028,050원을 제거
     - 같은 고객의 `LEGACY_RECEIVABLE_META`를 2026-04-09 전액 정산(2,983,850원) 상태로 보정
     - 현재 미수금이 `INV-20260409-121439` 1,068,000원만 남도록 `outstanding_balance=1,068,000`으로 정정
-    - 사전 백업: `offline-crm-v2/output/manual-adjustments/seosanggyeon-before-20260409-173036.json`
+    - 사전 백업: `offline-crm-v2/output/manual-adjustments/seosanggyeon-before-20260409-173052.json`
   - 검증
     - `cd offline-crm-v2 && npm run build`
     - CRM 프록시 조회로 서상견 님 `outstanding_balance=1068000`, 예치금 메타 제거, 레거시 정산 메타 존재, 기존 3건 명세표 `paid`, 신규 1건 `unpaid` 확인

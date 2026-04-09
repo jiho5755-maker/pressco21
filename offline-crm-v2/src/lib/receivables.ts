@@ -1,5 +1,9 @@
 import type { Customer, Invoice } from '@/lib/api'
-import type { FiscalBalanceSnapshotPayload, LegacyCustomerSnapshotPayload } from '@/lib/legacySnapshots'
+import type {
+  FiscalBalanceSnapshotPayload,
+  LegacyCustomerSnapshotPayload,
+  LegacyReceivableSettlementEntry,
+} from '@/lib/legacySnapshots'
 import { getLegacyReceivableBaselineFromSnapshots } from '@/lib/legacySnapshots'
 import { getPaymentStatusAsOf, getRemainingAmountAsOf } from '@/lib/reporting'
 
@@ -29,12 +33,28 @@ export interface CustomerReceivableLedger {
   source: 'legacy' | 'crm' | 'both'
 }
 
+export interface SettlementTimelineRow {
+  entry: LegacyReceivableSettlementEntry
+  cumulativeAmount: number
+  remainingAmount: number
+}
+
 function normalizeLookup(value?: string | null): string {
   return (value ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
 }
 
 function extractAliasRoot(value?: string | null): string {
   return normalizeLookup((value ?? '').replace(/\([^)]*\)/g, ' '))
+}
+
+function compareSettlementEntries(
+  left: LegacyReceivableSettlementEntry,
+  right: LegacyReceivableSettlementEntry,
+): number {
+  const leftKey = left.createdAt?.trim() || `${left.date}T00:00:00`
+  const rightKey = right.createdAt?.trim() || `${right.date}T00:00:00`
+  if (leftKey === rightKey) return 0
+  return leftKey.localeCompare(rightKey)
 }
 
 function findCustomerByAlias(invoiceName: string, customers: Customer[]): Customer | null {
@@ -192,4 +212,24 @@ export function buildCustomerReceivableLedger(
   return Array.from(ledgerByCustomerId.values())
     .filter((entry) => entry.totalRemaining > 0)
     .sort((left, right) => right.totalRemaining - left.totalRemaining)
+}
+
+export function buildSettlementTimeline(
+  settlements: LegacyReceivableSettlementEntry[],
+  currentRemaining: number,
+): SettlementTimelineRow[] {
+  const sorted = [...settlements].sort(compareSettlementEntries)
+  const totalSettled = sorted.reduce((sum, entry) => sum + entry.amount, 0)
+  let cumulativeAmount = 0
+  let remainingAmount = Math.max(0, currentRemaining + totalSettled)
+
+  return sorted.map((entry) => {
+    cumulativeAmount += entry.amount
+    remainingAmount = Math.max(0, remainingAmount - entry.amount)
+    return {
+      entry,
+      cumulativeAmount,
+      remainingAmount,
+    }
+  })
 }

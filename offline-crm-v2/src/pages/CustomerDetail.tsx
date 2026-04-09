@@ -34,7 +34,7 @@ import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constan
 import { InvoiceDialog } from '@/components/InvoiceDialog'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
-import { buildResolvedReceivableInvoices, resolveInvoiceCustomer } from '@/lib/receivables'
+import { buildSettlementTimeline, buildResolvedReceivableInvoices, resolveInvoiceCustomer } from '@/lib/receivables'
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import { exportUnifiedTransactions } from '@/lib/excel'
 import { getDisplayMemo, mergeDisplayMemo, parseCustomerAccountingMeta, replaceCustomerAccountingPreferences } from '@/lib/accountingMeta'
@@ -185,6 +185,7 @@ export function CustomerDetail() {
   const [legacyPayableMethod, setLegacyPayableMethod] = useState('계좌이체')
   const [savingLegacyPayment, setSavingLegacyPayment] = useState(false)
   const [editingLegacySettlementIndex, setEditingLegacySettlementIndex] = useState<number | null>(null)
+  const [legacyHistoryViewMode, setLegacyHistoryViewMode] = useState<'cumulative' | 'itemized'>('cumulative')
   const [editingLegacyPayableIndex, setEditingLegacyPayableIndex] = useState<number | null>(null)
 
   // 기본정보 편집 상태
@@ -637,6 +638,7 @@ export function CustomerDetail() {
   const currentLegacyPayable = getLegacyPayableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
   const legacyMemoState = parseLegacyReceivableMemo(customer.memo as string | undefined)
   const legacyPayableMemoState = parseLegacyPayableMemo(customer.memo as string | undefined)
+  const legacySettlementTimeline = buildSettlementTimeline(legacyMemoState.settlements, currentLegacyReceivable)
   const customerAccountingMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
   const activeOperatorProfile = loadActiveWorkOperatorProfile()
   const crmOutstandingBalance = todayResolvedInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0)
@@ -1946,15 +1948,63 @@ export function CustomerDetail() {
                 </div>
 
                 <div className="rounded-lg border p-4 space-y-3">
-                  <div>
+                  <div className="flex items-center justify-between gap-2">
+                    <div>
                     <p className="text-sm font-medium">기존 장부 입금 이력</p>
                     <p className="text-xs text-muted-foreground">잘못 입력한 건은 여기서 바로 취소할 수 있습니다.</p>
+                    </div>
+                    <div className="flex items-center gap-1 rounded-full bg-muted p-1">
+                      <button
+                        type="button"
+                        className={`rounded-full px-2 py-1 text-[11px] ${legacyHistoryViewMode === 'cumulative' ? 'bg-white font-medium text-foreground shadow-sm' : 'text-muted-foreground'}`}
+                        onClick={() => setLegacyHistoryViewMode('cumulative')}
+                      >
+                        누적 보기
+                      </button>
+                      <button
+                        type="button"
+                        className={`rounded-full px-2 py-1 text-[11px] ${legacyHistoryViewMode === 'itemized' ? 'bg-white font-medium text-foreground shadow-sm' : 'text-muted-foreground'}`}
+                        onClick={() => setLegacyHistoryViewMode('itemized')}
+                      >
+                        건별 보기
+                      </button>
+                    </div>
                   </div>
                   {legacyMemoState.settlements.length === 0 ? (
                     <p className="text-sm text-muted-foreground">아직 반영된 기존 장부 입금 이력이 없습니다.</p>
                   ) : (
                     <div className="space-y-2">
-                      {legacyMemoState.settlements.map((entry, index) => (
+                      {legacyHistoryViewMode === 'cumulative' ? legacySettlementTimeline.map((row, index) => {
+                        const originalIndex = legacyMemoState.settlements.findIndex((entry) => entry === row.entry)
+                        return (
+                        <div key={`${row.entry.date}-${row.entry.amount}-${index}`} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
+                          <div className="text-sm">
+                            <span>{row.entry.date}</span>
+                            <span className="ml-2 font-medium">{row.entry.amount.toLocaleString()}원</span>
+                            <span className="ml-2 text-muted-foreground">누적 {row.cumulativeAmount.toLocaleString()}원</span>
+                            <span className={`ml-2 font-medium ${row.remainingAmount > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                              잔액 {row.remainingAmount.toLocaleString()}원
+                            </span>
+                            {row.entry.method ? <span className="ml-2 text-muted-foreground">{row.entry.method}</span> : null}
+                            {row.entry.accountLabel ? <span className="ml-2 text-muted-foreground">계정: {row.entry.accountLabel}</span> : null}
+                            {row.entry.operator ? <span className="ml-2 text-muted-foreground">입력: {row.entry.operator}</span> : null}
+                          </div>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-red-500 hover:text-red-600"
+                            disabled={savingLegacyPayment || originalIndex < 0}
+                            onClick={() => {
+                              if (originalIndex < 0) return
+                              void handleLegacySettlementCancel(originalIndex)
+                            }}
+                          >
+                            {savingLegacyPayment && editingLegacySettlementIndex === originalIndex ? '처리 중...' : '취소'}
+                          </Button>
+                        </div>
+                        )
+                      }) : legacyMemoState.settlements.map((entry, index) => (
                         <div key={`${entry.date}-${entry.amount}-${index}`} className="flex items-center justify-between gap-3 rounded-md border px-3 py-2">
                           <div className="text-sm">
                             <span>{entry.date}</span>

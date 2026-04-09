@@ -31,6 +31,7 @@ import { getPaidAmountAsOf } from '@/lib/reporting'
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import {
   buildCustomerReceivableLedger,
+  buildSettlementTimeline,
   buildResolvedReceivableInvoices,
   resolveInvoiceCustomer,
   type CustomerReceivableLedger,
@@ -46,6 +47,15 @@ const AGING_BUCKETS = [
   { label: '180일 초과', min: 181, max: Infinity },
 ]
 
+const HIGH_AMOUNT_THRESHOLD = 1_000_000
+
+type ReceivableSortOption = 'amountDesc' | 'amountAsc' | 'ageDesc' | 'dateDesc' | 'nameAsc'
+type AmountFilterOption = 'all' | 'high' | 'custom'
+type AgeFilterOption = 'all' | '30' | '60' | '90'
+type ReceivableSourceFilter = 'all' | 'legacyOnly' | 'crmOnly' | 'both'
+type PayableKindFilter = 'all' | 'payable' | 'refund'
+type HistoryViewMode = 'cumulative' | 'itemized'
+
 function isValidCalendarDate(value: string | null): value is string {
   return typeof value === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(value)
 }
@@ -56,6 +66,38 @@ function todayDate(): string {
 
 function currentTimestamp(): string {
   return new Date().toISOString()
+}
+
+function parseSortOption(value: string | null): ReceivableSortOption {
+  if (value === 'amountAsc' || value === 'ageDesc' || value === 'dateDesc' || value === 'nameAsc') return value
+  return 'amountDesc'
+}
+
+function parseAmountFilterOption(value: string | null): AmountFilterOption {
+  if (value === 'high' || value === 'custom') return value
+  return 'all'
+}
+
+function parseAgeFilterOption(value: string | null): AgeFilterOption {
+  if (value === '30' || value === '60' || value === '90') return value
+  return 'all'
+}
+
+function parseReceivableSourceFilter(value: string | null): ReceivableSourceFilter {
+  if (value === 'legacyOnly' || value === 'crmOnly' || value === 'both') return value
+  return 'all'
+}
+
+function parsePayableKindFilter(value: string | null): PayableKindFilter {
+  if (value === 'payable' || value === 'refund') return value
+  return 'all'
+}
+
+function parsePositiveIntegerString(value: string | null): string {
+  if (!value) return ''
+  const parsed = Number(value)
+  if (!Number.isFinite(parsed) || parsed < 0) return ''
+  return String(Math.trunc(parsed))
 }
 
 function getDefaultSourceTab(isPayableMode: boolean): 'crm' | 'payable' {
@@ -359,12 +401,14 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
   const [method, setMethod] = useState('계좌이체')
   const [isSaving, setIsSaving] = useState(false)
   const [editingEntryIndex, setEditingEntryIndex] = useState<number | null>(null)
+  const [historyViewMode, setHistoryViewMode] = useState<HistoryViewMode>('cumulative')
 
   if (!target) return null
   const legacyTarget = target
 
   const remaining = legacyTarget.ledger.legacyBaseline
   const memoState = parseLegacyReceivableMemo(legacyTarget.customer.memo as string | undefined)
+  const settlementTimeline = buildSettlementTimeline(memoState.settlements, remaining)
   const maxAmount = remaining
   const activeOperator = loadActiveWorkOperatorProfile()
 
@@ -520,8 +564,58 @@ function LegacyPaymentDialog({ target, onClose, onSaved }: LegacyPaymentDialogPr
 
           {memoState.settlements.length > 0 && (
             <div className="rounded-md border p-3 space-y-2">
-              <div className="text-xs font-medium text-muted-foreground">기존 장부 입금 이력</div>
-              {memoState.settlements.map((entry, index) => (
+              <div className="flex items-center justify-between gap-2">
+                <div className="text-xs font-medium text-muted-foreground">기존 장부 입금 이력</div>
+                <div className="flex items-center gap-1 rounded-full bg-muted p-1">
+                  <button
+                    type="button"
+                    className={`rounded-full px-2 py-1 text-[11px] ${historyViewMode === 'cumulative' ? 'bg-white font-medium text-foreground shadow-sm' : 'text-muted-foreground'}`}
+                    onClick={() => setHistoryViewMode('cumulative')}
+                  >
+                    누적 보기
+                  </button>
+                  <button
+                    type="button"
+                    className={`rounded-full px-2 py-1 text-[11px] ${historyViewMode === 'itemized' ? 'bg-white font-medium text-foreground shadow-sm' : 'text-muted-foreground'}`}
+                    onClick={() => setHistoryViewMode('itemized')}
+                  >
+                    건별 보기
+                  </button>
+                </div>
+              </div>
+              {historyViewMode === 'cumulative' ? settlementTimeline.map((row, index) => {
+                const originalIndex = memoState.settlements.findIndex((entry, entryIndex) => (
+                  entryIndex >= 0 && entry === row.entry
+                ))
+                return (
+                  <div key={`${row.entry.date}-${row.entry.amount}-${index}`} className="flex items-center justify-between gap-2 text-xs">
+                    <div>
+                      <span>{row.entry.date}</span>
+                      <span className="ml-2 font-medium">{row.entry.amount.toLocaleString()}원</span>
+                      <span className="ml-2 text-muted-foreground">누적 {row.cumulativeAmount.toLocaleString()}원</span>
+                      <span className={`ml-2 font-medium ${row.remainingAmount > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                        잔액 {row.remainingAmount.toLocaleString()}원
+                      </span>
+                      {row.entry.method ? <span className="ml-2 text-muted-foreground">{row.entry.method}</span> : null}
+                      {row.entry.accountLabel ? <span className="ml-2 text-muted-foreground">계정: {row.entry.accountLabel}</span> : null}
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 px-2 text-xs text-red-500 hover:text-red-600"
+                      disabled={isSaving || originalIndex < 0}
+                      onClick={() => {
+                        if (originalIndex < 0) return
+                        setEditingEntryIndex(originalIndex)
+                        void handleDeleteSettlement(originalIndex)
+                      }}
+                    >
+                      {editingEntryIndex === originalIndex && isSaving ? '처리 중...' : '취소'}
+                    </Button>
+                  </div>
+                )
+              }) : memoState.settlements.map((entry, index) => (
                 <div key={`${entry.date}-${entry.amount}-${index}`} className="flex items-center justify-between gap-2 text-xs">
                   <div>
                     <span>{entry.date}</span>
@@ -1031,6 +1125,14 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     const value = searchParams.get('asOf')
     return isValidCalendarDate(value) ? value : todayDate()
   })
+  const [sortOption, setSortOption] = useState<ReceivableSortOption>(() => parseSortOption(searchParams.get('sort')))
+  const [amountFilter, setAmountFilter] = useState<AmountFilterOption>(() => parseAmountFilterOption(searchParams.get('amountMode')))
+  const [minAmountInput, setMinAmountInput] = useState(() => parsePositiveIntegerString(searchParams.get('minAmount')))
+  const [maxAmountInput, setMaxAmountInput] = useState(() => parsePositiveIntegerString(searchParams.get('maxAmount')))
+  const [ageFilter, setAgeFilter] = useState<AgeFilterOption>(() => parseAgeFilterOption(searchParams.get('age')))
+  const [receivableSourceFilter, setReceivableSourceFilter] = useState<ReceivableSourceFilter>(() => parseReceivableSourceFilter(searchParams.get('receivableSource')))
+  const [payableKindFilter, setPayableKindFilter] = useState<PayableKindFilter>(() => parsePayableKindFilter(searchParams.get('payableKind')))
+  const [selectedRowKeys, setSelectedRowKeys] = useState<string[]>([])
 
   useEffect(() => {
     const value = searchParams.get('asOf')
@@ -1046,6 +1148,34 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       ? (nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all' ? nextTab : defaultTab)
       : (nextTab === 'crm' || nextTab === 'legacy' || nextTab === 'payable' || nextTab === 'refund' || nextTab === 'all' ? nextTab : defaultTab)
     setSourceTab((prev) => (prev === normalizedTab ? prev : normalizedTab))
+    setSortOption((prev) => {
+      const next = parseSortOption(searchParams.get('sort'))
+      return prev === next ? prev : next
+    })
+    setAmountFilter((prev) => {
+      const next = parseAmountFilterOption(searchParams.get('amountMode'))
+      return prev === next ? prev : next
+    })
+    setMinAmountInput((prev) => {
+      const next = parsePositiveIntegerString(searchParams.get('minAmount'))
+      return prev === next ? prev : next
+    })
+    setMaxAmountInput((prev) => {
+      const next = parsePositiveIntegerString(searchParams.get('maxAmount'))
+      return prev === next ? prev : next
+    })
+    setAgeFilter((prev) => {
+      const next = parseAgeFilterOption(searchParams.get('age'))
+      return prev === next ? prev : next
+    })
+    setReceivableSourceFilter((prev) => {
+      const next = parseReceivableSourceFilter(searchParams.get('receivableSource'))
+      return prev === next ? prev : next
+    })
+    setPayableKindFilter((prev) => {
+      const next = parsePayableKindFilter(searchParams.get('payableKind'))
+      return prev === next ? prev : next
+    })
   }, [isPayableMode, searchParams])
   useEffect(() => {
     setPaymentTarget(null)
@@ -1053,6 +1183,15 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     setLegacyPayableTarget(null)
     setRefundPendingTarget(null)
   }, [asOfDate])
+
+  function updateSearchParamState(updates: Record<string, string | null>) {
+    const nextParams = new URLSearchParams(searchParams)
+    Object.entries(updates).forEach(([key, value]) => {
+      if (value == null || value === '') nextParams.delete(key)
+      else nextParams.set(key, value)
+    })
+    setSearchParams(nextParams, { replace: true })
+  }
 
   const { data: invoices = [], isLoading: isInvoicesLoading, isError: isInvoicesError } = useQuery({
     queryKey: ['receivables'],
@@ -1178,21 +1317,16 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   function applyAsOfDate(nextValue: string) {
     const normalized = nextValue || todayDate()
     setAsOfDate(normalized)
-    const nextParams = new URLSearchParams(searchParams)
-    if (normalized) nextParams.set('asOf', normalized)
-    else nextParams.delete('asOf')
-    setSearchParams(nextParams, { replace: true })
+    updateSearchParamState({ asOf: normalized || null })
   }
 
   function applyCustomerFilter(nextValue: string, nextCustomerId = '') {
     setCustomerSearch(nextValue)
     setCustomerIdFilter(nextCustomerId)
-    const nextParams = new URLSearchParams(searchParams)
-    if (nextValue.trim()) nextParams.set('customer', nextValue.trim())
-    else nextParams.delete('customer')
-    if (nextCustomerId) nextParams.set('customerId', nextCustomerId)
-    else nextParams.delete('customerId')
-    setSearchParams(nextParams, { replace: true })
+    updateSearchParamState({
+      customer: nextValue.trim() || null,
+      customerId: nextCustomerId || null,
+    })
   }
 
   const normalizedSearch = customerSearch.trim().toLowerCase()
@@ -1233,10 +1367,146 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       (entry.bookName ?? '').toLowerCase().includes(normalizedSearch)
     )
   })
+  const customerInvoiceStats = useMemo(() => {
+    const statsByCustomerId = new Map<number, { maxAge: number; latestDate: string; oldestDate: string }>()
+    filteredInvoices.forEach((invoice) => {
+      if (typeof invoice.customer_id !== 'number') return
+      const nextAge = getDaysSince(invoice.invoice_date, asOfDate)
+      const invoiceDate = invoice.invoice_date?.slice(0, 10) ?? ''
+      const existing = statsByCustomerId.get(invoice.customer_id)
+      if (!existing) {
+        statsByCustomerId.set(invoice.customer_id, {
+          maxAge: nextAge,
+          latestDate: invoiceDate,
+          oldestDate: invoiceDate,
+        })
+        return
+      }
+      existing.maxAge = Math.max(existing.maxAge, nextAge)
+      if (invoiceDate && (!existing.latestDate || invoiceDate > existing.latestDate)) existing.latestDate = invoiceDate
+      if (invoiceDate && (!existing.oldestDate || invoiceDate < existing.oldestDate)) existing.oldestDate = invoiceDate
+    })
+    return statsByCustomerId
+  }, [asOfDate, filteredInvoices])
+
+  const minAmountValue = minAmountInput ? Number(minAmountInput) : 0
+  const maxAmountValue = maxAmountInput ? Number(maxAmountInput) : 0
+  const minimumAgingDays = ageFilter === '30' ? 30 : ageFilter === '60' ? 60 : ageFilter === '90' ? 90 : 0
+
+  function matchesAmountFilter(amount: number): boolean {
+    if (amountFilter === 'high') return amount >= HIGH_AMOUNT_THRESHOLD
+    if (amountFilter === 'custom') {
+      if (minAmountValue > 0 && amount < minAmountValue) return false
+      if (maxAmountValue > 0 && amount > maxAmountValue) return false
+    }
+    return true
+  }
+
+  function matchesAgeFilter(days: number): boolean {
+    if (minimumAgingDays <= 0) return true
+    return days >= minimumAgingDays
+  }
+
+  function matchesLedgerAgeFilter(customerId: number): boolean {
+    if (minimumAgingDays <= 0) return true
+    return (customerInvoiceStats.get(customerId)?.maxAge ?? -1) >= minimumAgingDays
+  }
+
+  function matchesReceivableSource(entry: CustomerReceivableLedger): boolean {
+    if (receivableSourceFilter === 'legacyOnly') return entry.source === 'legacy'
+    if (receivableSourceFilter === 'crmOnly') return entry.source === 'crm'
+    if (receivableSourceFilter === 'both') return entry.source === 'both'
+    return true
+  }
+
+  function matchesPayableKind(kind: OutgoingLedgerEntry['kind']): boolean {
+    if (payableKindFilter === 'payable') return kind === 'payable'
+    if (payableKindFilter === 'refund') return kind === 'refund'
+    return true
+  }
+
+  function compareDateDesc(left?: string, right?: string): number {
+    if (!left && !right) return 0
+    if (!left) return 1
+    if (!right) return -1
+    return right.localeCompare(left)
+  }
+
+  function compareNameAsc(left: string, right: string): number {
+    return left.localeCompare(right, 'ko')
+  }
+
+  function compareReceivableRows(
+    left: CustomerReceivableLedger,
+    right: CustomerReceivableLedger,
+    getAmount: (entry: CustomerReceivableLedger) => number,
+  ): number {
+    if (sortOption === 'amountAsc') return getAmount(left) - getAmount(right) || compareNameAsc(left.customerName, right.customerName)
+    if (sortOption === 'ageDesc') {
+      return (customerInvoiceStats.get(right.customerId)?.maxAge ?? -1) - (customerInvoiceStats.get(left.customerId)?.maxAge ?? -1)
+        || getAmount(right) - getAmount(left)
+        || compareNameAsc(left.customerName, right.customerName)
+    }
+    if (sortOption === 'dateDesc') {
+      return compareDateDesc(customerInvoiceStats.get(left.customerId)?.latestDate, customerInvoiceStats.get(right.customerId)?.latestDate)
+        || getAmount(right) - getAmount(left)
+        || compareNameAsc(left.customerName, right.customerName)
+    }
+    if (sortOption === 'nameAsc') return compareNameAsc(left.customerName, right.customerName)
+    return getAmount(right) - getAmount(left) || compareNameAsc(left.customerName, right.customerName)
+  }
+
+  function compareInvoiceRows(left: ReceivableSnapshot, right: ReceivableSnapshot): number {
+    if (sortOption === 'amountAsc') return left.asOfRemaining - right.asOfRemaining || compareNameAsc(left.customer_name ?? '', right.customer_name ?? '')
+    if (sortOption === 'ageDesc') {
+      return getDaysSince(right.invoice_date, asOfDate) - getDaysSince(left.invoice_date, asOfDate)
+        || right.asOfRemaining - left.asOfRemaining
+        || compareNameAsc(left.customer_name ?? '', right.customer_name ?? '')
+    }
+    if (sortOption === 'dateDesc') {
+      return compareDateDesc(left.invoice_date?.slice(0, 10), right.invoice_date?.slice(0, 10))
+        || right.asOfRemaining - left.asOfRemaining
+        || compareNameAsc(left.customer_name ?? '', right.customer_name ?? '')
+    }
+    if (sortOption === 'nameAsc') return compareNameAsc(left.customer_name ?? '', right.customer_name ?? '')
+    return right.asOfRemaining - left.asOfRemaining || compareNameAsc(left.customer_name ?? '', right.customer_name ?? '')
+  }
+
+  function comparePayableRows(left: { customerName: string; amount: number }, right: { customerName: string; amount: number }): number {
+    if (sortOption === 'amountAsc') return left.amount - right.amount || compareNameAsc(left.customerName, right.customerName)
+    if (sortOption === 'nameAsc') return compareNameAsc(left.customerName, right.customerName)
+    return right.amount - left.amount || compareNameAsc(left.customerName, right.customerName)
+  }
+
+  const filteredLegacyLedger = filteredLedger.filter((entry) => entry.legacyBaseline > 0)
+  const visibleReceivableLedger = filteredLedger
+    .filter((entry) => matchesReceivableSource(entry) && matchesAmountFilter(entry.totalRemaining) && matchesLedgerAgeFilter(entry.customerId))
+    .sort((left, right) => compareReceivableRows(left, right, (entry) => entry.totalRemaining))
+  const visibleLegacyLedger = filteredLegacyLedger
+    .filter((entry) => matchesAmountFilter(entry.legacyBaseline) && matchesLedgerAgeFilter(entry.customerId))
+    .sort((left, right) => compareReceivableRows(left, right, (entry) => entry.legacyBaseline))
+  const visibleCrmInvoices = filteredInvoices
+    .filter((invoice) => matchesAmountFilter(invoice.asOfRemaining) && matchesAgeFilter(getDaysSince(invoice.invoice_date, asOfDate)))
+    .sort(compareInvoiceRows)
+  const visiblePayableLedger = filteredPayableLedger
+    .filter((entry) => matchesPayableKind('payable') && matchesAmountFilter(entry.payableAmount))
+    .sort((left, right) => comparePayableRows(
+      { customerName: left.customerName, amount: left.payableAmount },
+      { customerName: right.customerName, amount: right.payableAmount },
+    ))
+  const visibleRefundPendingLedger = filteredRefundPendingLedger
+    .filter((entry) => matchesPayableKind('refund') && matchesAmountFilter(entry.refundPendingAmount))
+    .sort((left, right) => comparePayableRows(
+      { customerName: left.customer.name ?? '', amount: left.refundPendingAmount },
+      { customerName: right.customer.name ?? '', amount: right.refundPendingAmount },
+    ))
+  const visibleOutgoingLedger = filteredOutgoingLedger
+    .filter((entry) => matchesPayableKind(entry.kind) && matchesAmountFilter(entry.amount))
+    .sort(comparePayableRows)
 
   // 에이징 집계는 CRM 명세표 기준으로만 관리한다.
   const aging = AGING_BUCKETS.map((bucket) => {
-    const filtered = filteredInvoices.filter((inv) => {
+    const filtered = visibleCrmInvoices.filter((inv) => {
       const days = getDaysSince(inv.invoice_date, asOfDate)
       return days >= bucket.min && days <= bucket.max
     })
@@ -1247,20 +1517,18 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
     }
   })
 
-  const filteredLegacyLedger = filteredLedger.filter((entry) => entry.legacyBaseline > 0)
-  const filteredCrmLedger = filteredLedger.filter((entry) => entry.crmRemaining > 0)
-  const filteredTotalReceivable = filteredLedger.reduce((sum, entry) => sum + entry.totalRemaining, 0)
-  const filteredLegacyTotal = filteredLegacyLedger.reduce((sum, entry) => sum + entry.legacyBaseline, 0)
-  const filteredCrmTotal = filteredCrmLedger.reduce((sum, entry) => sum + entry.crmRemaining, 0)
-  const filteredPayableTotal = filteredPayableLedger.reduce((sum, entry) => sum + entry.payableAmount, 0)
-  const filteredRefundPendingTotal = filteredRefundPendingLedger.reduce((sum, entry) => sum + entry.refundPendingAmount, 0)
-  const filteredTotalOutgoing = filteredPayableTotal + filteredRefundPendingTotal
-  const criticalCount = filteredInvoices.filter((inv) => {
+  const filteredCrmTotal = visibleCrmInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0)
+  const filteredTotalReceivable = visibleReceivableLedger.reduce((sum, entry) => sum + entry.totalRemaining, 0)
+  const filteredLegacyTotal = visibleLegacyLedger.reduce((sum, entry) => sum + entry.legacyBaseline, 0)
+  const filteredPayableTotal = visiblePayableLedger.reduce((sum, entry) => sum + entry.payableAmount, 0)
+  const filteredRefundPendingTotal = visibleRefundPendingLedger.reduce((sum, entry) => sum + entry.refundPendingAmount, 0)
+  const filteredTotalOutgoing = visibleOutgoingLedger.reduce((sum, entry) => sum + entry.amount, 0)
+  const criticalCount = visibleCrmInvoices.filter((inv) => {
     const days = getDaysSince(inv.invoice_date, asOfDate)
     return days > 90
   }).length
   const breakdownCrmReceivable = customerBreakdown
-    ? filteredInvoices.reduce((sum, inv) => sum + inv.asOfRemaining, 0)
+    ? visibleCrmInvoices.reduce((sum, inv) => sum + inv.asOfRemaining, 0)
     : 0
   const breakdownCurrentBalance = customerBreakdown?.customer.outstanding_balance ?? 0
   const breakdownPayableBaseline = customerBreakdown?.payableBaseline ?? 0
@@ -1297,7 +1565,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
   const payableTabLabel = '기존 장부 줄 돈'
   const refundTabLabel = '환불대기'
   const hasCustomerFilter = Boolean(customerSearch || customerIdFilter)
-  const primaryResultCount = isPayableMode ? filteredOutgoingLedger.length : filteredLedger.length
+  const primaryResultCount = isPayableMode ? visibleOutgoingLedger.length : visibleReceivableLedger.length
   const primaryResultLabel = isPayableMode ? '지급 예정' : '조회 고객'
   const basisDateToneClass = isTodayView
     ? 'bg-[#f4f7f1] text-[#4f6748]'
@@ -1324,14 +1592,14 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             value: 'crm' as const,
             label: crmTabLabel,
             description: '새로 발행한 명세표 기준 미수만 따로 봅니다.',
-            count: filteredInvoices.length,
+            count: visibleCrmInvoices.length,
             hint: isTodayView ? '오늘 기준에서만 바로 입금 확인이 가능합니다.' : '과거 기준일에서는 조회만 가능합니다.',
           },
           {
             value: 'legacy' as const,
             label: legacyTabLabel,
             description: '이월된 기존 장부 잔액만 따로 확인합니다.',
-            count: filteredLegacyLedger.length,
+            count: visibleLegacyLedger.length,
             hint: '레거시 장부 잔액 확인이나 이월 입금 처리 확인에 적합합니다.',
           },
         ]
@@ -1340,18 +1608,161 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
       value: 'payable',
       label: payableTabLabel,
       description: '고객별 기존 장부 미지급금만 모아서 봅니다.',
-      count: filteredPayableLedger.length,
+      count: visiblePayableLedger.length,
       hint: '고객 연결이 있으면 바로 송금 기록으로 이어지고, 없으면 먼저 고객 연결이 필요합니다.',
     },
     {
       value: 'refund',
       label: refundTabLabel,
       description: '초과 입금 등으로 생긴 환불대기 금액만 봅니다.',
-      count: filteredRefundPendingLedger.length,
+      count: visibleRefundPendingLedger.length,
       hint: '실제 환불 송금이 끝났거나 환불대기만 해제할 때 이 탭에서 마무리합니다.',
     },
   ]
   const activeTabMeta = visibleTabs.find((tab) => tab.value === sourceTab) ?? visibleTabs[0]
+  const hasAdvancedFilter = (
+    sortOption !== 'amountDesc'
+    || amountFilter !== 'all'
+    || minAmountInput !== ''
+    || maxAmountInput !== ''
+    || ageFilter !== 'all'
+    || receivableSourceFilter !== 'all'
+    || payableKindFilter !== 'all'
+  )
+  const activeFilterSummary = [
+    sortOption === 'amountDesc'
+      ? '금액 높은 순'
+      : sortOption === 'amountAsc'
+        ? '금액 낮은 순'
+        : sortOption === 'ageDesc'
+          ? '오래된 순'
+          : sortOption === 'dateDesc'
+            ? '최근 발행일 순'
+            : '거래처명 순',
+    amountFilter === 'high'
+      ? `고액만(${HIGH_AMOUNT_THRESHOLD.toLocaleString()}원 이상)`
+      : amountFilter === 'custom'
+        ? `${minAmountInput || '0'}원~${maxAmountInput || '제한없음'}`
+        : null,
+    !isPayableMode && ageFilter !== 'all' ? `${ageFilter}일 이상` : null,
+    !isPayableMode && receivableSourceFilter !== 'all'
+      ? receivableSourceFilter === 'legacyOnly'
+        ? '기존 장부만'
+        : receivableSourceFilter === 'crmOnly'
+          ? '새 입력만'
+          : '둘 다 있는 고객'
+      : null,
+    isPayableMode && payableKindFilter !== 'all'
+      ? payableKindFilter === 'payable' ? '미지급금만' : '환불대기만'
+      : null,
+  ].filter(Boolean).join(' · ')
+
+  const activeSelectionRows = useMemo(() => {
+    if (isPayableMode) {
+      if (sourceTab === 'payable') {
+        return visiblePayableLedger.map((entry) => ({ key: `payable-${entry.legacyId}`, amount: entry.payableAmount }))
+      }
+      if (sourceTab === 'refund') {
+        return visibleRefundPendingLedger.map((entry) => ({ key: `refund-${entry.customer.Id}`, amount: entry.refundPendingAmount }))
+      }
+      return visibleOutgoingLedger.map((entry) => ({ key: entry.key, amount: entry.amount }))
+    }
+    if (sourceTab === 'legacy') {
+      return visibleLegacyLedger.map((entry) => ({ key: `legacy-${entry.customerId}`, amount: entry.legacyBaseline }))
+    }
+    if (sourceTab === 'crm') {
+      return visibleCrmInvoices.map((entry) => ({ key: `invoice-${entry.Id}`, amount: entry.asOfRemaining }))
+    }
+    return visibleReceivableLedger.map((entry) => ({ key: `customer-${entry.customerId}`, amount: entry.totalRemaining }))
+  }, [
+    isPayableMode,
+    sourceTab,
+    visibleCrmInvoices,
+    visibleLegacyLedger,
+    visibleOutgoingLedger,
+    visiblePayableLedger,
+    visibleReceivableLedger,
+      visibleRefundPendingLedger,
+  ])
+  const activeSelectionSignature = activeSelectionRows.map((row) => row.key).join('|')
+  const activeSelectionKeySet = useMemo(() => new Set(activeSelectionRows.map((row) => row.key)), [activeSelectionSignature])
+  useEffect(() => {
+    setSelectedRowKeys((prev) => {
+      const next = prev.filter((key) => activeSelectionKeySet.has(key))
+      return next.length === prev.length && next.every((key, index) => key === prev[index]) ? prev : next
+    })
+  }, [activeSelectionKeySet])
+  const selectedVisibleRows = activeSelectionRows.filter((row) => selectedRowKeys.includes(row.key))
+  const selectedVisibleAmount = selectedVisibleRows.reduce((sum, row) => sum + row.amount, 0)
+  const allActiveRowsSelected = activeSelectionRows.length > 0 && selectedVisibleRows.length === activeSelectionRows.length
+
+  function toggleRowSelection(key: string) {
+    setSelectedRowKeys((prev) => (
+      prev.includes(key)
+        ? prev.filter((item) => item !== key)
+        : [...prev, key]
+    ))
+  }
+
+  function toggleSelectAllRows() {
+    setSelectedRowKeys((prev) => {
+      if (allActiveRowsSelected) return prev.filter((key) => !activeSelectionKeySet.has(key))
+      const next = new Set(prev)
+      activeSelectionRows.forEach((row) => next.add(row.key))
+      return Array.from(next)
+    })
+  }
+
+  function resetAdvancedFilters() {
+    updateSearchParamState({
+      sort: null,
+      amountMode: null,
+      minAmount: null,
+      maxAmount: null,
+      age: null,
+      receivableSource: null,
+      payableKind: null,
+    })
+  }
+
+  function applySortOption(next: ReceivableSortOption) {
+    setSortOption(next)
+    updateSearchParamState({ sort: next === 'amountDesc' ? null : next })
+  }
+
+  function applyAmountFilter(next: AmountFilterOption) {
+    setAmountFilter(next)
+    updateSearchParamState({
+      amountMode: next === 'all' ? null : next,
+      minAmount: next === 'custom' && minAmountInput ? minAmountInput : null,
+      maxAmount: next === 'custom' && maxAmountInput ? maxAmountInput : null,
+    })
+  }
+
+  function applyAmountRange(nextMin: string, nextMax: string) {
+    setMinAmountInput(nextMin)
+    setMaxAmountInput(nextMax)
+    updateSearchParamState({
+      amountMode: amountFilter === 'all' ? null : amountFilter,
+      minAmount: amountFilter === 'custom' && nextMin ? nextMin : null,
+      maxAmount: amountFilter === 'custom' && nextMax ? nextMax : null,
+    })
+  }
+
+  function applyAgeFilter(next: AgeFilterOption) {
+    setAgeFilter(next)
+    updateSearchParamState({ age: next === 'all' ? null : next })
+  }
+
+  function applyReceivableSourceFilter(next: ReceivableSourceFilter) {
+    setReceivableSourceFilter(next)
+    updateSearchParamState({ receivableSource: next === 'all' ? null : next })
+  }
+
+  function applyPayableKindFilter(next: PayableKindFilter) {
+    setPayableKindFilter(next)
+    updateSearchParamState({ payableKind: next === 'all' ? null : next })
+  }
 
   if (isInvoicesLoading)
     return (
@@ -1382,7 +1793,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             variant="outline"
             size="sm"
             onClick={() => exportReceivables(
-              filteredInvoices.map((inv) => ({
+              visibleCrmInvoices.map((inv) => ({
                 ...inv,
                 paid_amount: inv.asOfPaidAmount,
                 payment_status: inv.asOfStatus,
@@ -1399,7 +1810,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             variant="outline"
             size="sm"
             onClick={() => exportOutgoingLedger(
-              filteredOutgoingLedger.map((entry) => ({
+              visibleOutgoingLedger.map((entry) => ({
                 customerName: entry.customerName,
                 kind: entry.kind === 'payable' ? '기존 장부 줄 돈' : '환불대기',
                 amount: entry.amount,
@@ -1489,6 +1900,141 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             </div>
           </div>
 
+          <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">정렬</Label>
+              <Select value={sortOption} onValueChange={(value: ReceivableSortOption) => applySortOption(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="amountDesc">금액 높은 순</SelectItem>
+                  <SelectItem value="amountAsc">금액 낮은 순</SelectItem>
+                  <SelectItem value="ageDesc">오래된 순</SelectItem>
+                  <SelectItem value="dateDesc">최근 발행일 순</SelectItem>
+                  <SelectItem value="nameAsc">거래처명 순</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-2">
+              <Label className="text-xs font-medium text-muted-foreground">금액 필터</Label>
+              <Select value={amountFilter} onValueChange={(value: AmountFilterOption) => applyAmountFilter(value)}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">전체</SelectItem>
+                  <SelectItem value="high">고액만 (100만원 이상)</SelectItem>
+                  <SelectItem value="custom">직접 입력 범위</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {!isPayableMode && (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">에이징 필터</Label>
+                <Select value={ageFilter} onValueChange={(value: AgeFilterOption) => applyAgeFilter(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체</SelectItem>
+                    <SelectItem value="30">30일 이상</SelectItem>
+                    <SelectItem value="60">60일 이상</SelectItem>
+                    <SelectItem value="90">90일 이상</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {!isPayableMode ? (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">고객 구성</Label>
+                <Select value={receivableSourceFilter} onValueChange={(value: ReceivableSourceFilter) => applyReceivableSourceFilter(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체</SelectItem>
+                    <SelectItem value="legacyOnly">기존 장부만</SelectItem>
+                    <SelectItem value="crmOnly">새 입력만</SelectItem>
+                    <SelectItem value="both">둘 다 있는 고객</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            ) : (
+              <div className="space-y-2">
+                <Label className="text-xs font-medium text-muted-foreground">정산 구분</Label>
+                <Select value={payableKindFilter} onValueChange={(value: PayableKindFilter) => applyPayableKindFilter(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">전체</SelectItem>
+                    <SelectItem value="payable">미지급금만</SelectItem>
+                    <SelectItem value="refund">환불대기만</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            <div className="space-y-2 xl:col-span-1">
+              <Label className="text-xs font-medium text-muted-foreground">금액 범위 직접 입력</Label>
+              <div className="grid grid-cols-2 gap-2">
+                <Input
+                  inputMode="numeric"
+                  value={minAmountInput}
+                  onChange={(event) => applyAmountRange(parsePositiveIntegerString(event.target.value), maxAmountInput)}
+                  placeholder="최소"
+                  disabled={amountFilter !== 'custom'}
+                />
+                <Input
+                  inputMode="numeric"
+                  value={maxAmountInput}
+                  onChange={(event) => applyAmountRange(minAmountInput, parsePositiveIntegerString(event.target.value))}
+                  placeholder="최대"
+                  disabled={amountFilter !== 'custom'}
+                />
+              </div>
+            </div>
+          </div>
+
+          {(hasAdvancedFilter || selectedVisibleRows.length > 0) && (
+            <div className="rounded-lg border border-[#e8eee4] bg-[#f9fbf7] px-4 py-3">
+              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+                <div className="space-y-1">
+                  <p className="text-sm font-medium text-foreground">현재 보기 요약</p>
+                  <p className="text-xs text-muted-foreground">
+                    {activeFilterSummary || '기본 보기'} · 현재 {activeTabMeta.label} {activeTabMeta.count.toLocaleString()}건
+                  </p>
+                  {selectedVisibleRows.length > 0 && (
+                    <p className="text-xs font-medium text-[#4f6748]">
+                      선택 {selectedVisibleRows.length.toLocaleString()}건 · 합계 {selectedVisibleAmount.toLocaleString()}원
+                    </p>
+                  )}
+                </div>
+                <div className="flex flex-wrap items-center gap-2">
+                  {activeSelectionRows.length > 0 && (
+                    <Button type="button" variant="outline" size="sm" onClick={toggleSelectAllRows}>
+                      {allActiveRowsSelected ? '전체 선택 해제' : '현재 목록 전체 선택'}
+                    </Button>
+                  )}
+                  {selectedVisibleRows.length > 0 && (
+                    <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedRowKeys([])}>
+                      선택 해제
+                    </Button>
+                  )}
+                  {hasAdvancedFilter && (
+                    <Button type="button" variant="ghost" size="sm" onClick={resetAdvancedFilters}>
+                      고급 필터 초기화
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          )}
+
           {!isTodayView && (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-900">
               과거 기준일은 조회 전용입니다. 실제 입금 처리와 잔액 반영은 오늘 기준에서만 진행됩니다.
@@ -1518,14 +2064,14 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             <p className="mt-1 text-base font-semibold text-blue-700">
               {isReferenceDataLoading ? '불러오는 중...' : `${filteredPayableTotal.toLocaleString()}원`}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '지급 대상 계산 중' : `${filteredPayableLedger.length}개 고객`}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '지급 대상 계산 중' : `${visiblePayableLedger.length}개 고객`}</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{refundSummaryLabel}</p>
             <p className="mt-1 text-base font-semibold text-amber-700">
               {isReferenceDataLoading ? '불러오는 중...' : `${filteredRefundPendingTotal.toLocaleString()}원`}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '환불대기 계산 중' : `${filteredRefundPendingLedger.length}개 고객`}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '환불대기 계산 중' : `${visibleRefundPendingLedger.length}개 고객`}</p>
           </div>
         </div>
       ) : (
@@ -1542,26 +2088,26 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             <p className="mt-1 text-base font-semibold text-red-600">
               {isReferenceDataLoading ? '불러오는 중...' : `${filteredLegacyTotal.toLocaleString()}원`}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '이월 미수 계산 중' : `${filteredLegacyLedger.length}개 고객`}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '이월 미수 계산 중' : `${visibleLegacyLedger.length}개 고객`}</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{crmSummaryLabel}</p>
             <p className="mt-1 text-base font-semibold text-red-600">{filteredCrmTotal.toLocaleString()}원</p>
-            <p className="mt-1 text-xs text-muted-foreground">{filteredInvoices.length}개 열린 명세표</p>
+            <p className="mt-1 text-xs text-muted-foreground">{visibleCrmInvoices.length}개 열린 명세표</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{payableSummaryLabel}</p>
             <p className="mt-1 text-base font-semibold text-blue-700">
               {isReferenceDataLoading ? '불러오는 중...' : `${filteredPayableTotal.toLocaleString()}원`}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '미지급금 계산 중' : `${filteredPayableLedger.length}개 고객`}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '미지급금 계산 중' : `${visiblePayableLedger.length}개 고객`}</p>
           </div>
           <div className="rounded-lg border bg-white px-4 py-3">
             <p className="text-xs text-muted-foreground">{refundSummaryLabel}</p>
             <p className="mt-1 text-base font-semibold text-amber-700">
               {isReferenceDataLoading ? '불러오는 중...' : `${filteredRefundPendingTotal.toLocaleString()}원`}
             </p>
-            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '환불대기 계산 중' : `${filteredRefundPendingLedger.length}개 고객`}</p>
+            <p className="mt-1 text-xs text-muted-foreground">{isReferenceDataLoading ? '환불대기 계산 중' : `${visibleRefundPendingLedger.length}개 고객`}</p>
           </div>
         </div>
       )}
@@ -1716,6 +2262,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
+                    <th className="w-10 px-3 py-3" />
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">처리 구분</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">금액</th>
@@ -1724,21 +2271,34 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredOutgoingLedger.length === 0 && (
+                  {visibleOutgoingLedger.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+                      <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
                         지급 예정 건이 없습니다.
                       </td>
                     </tr>
                   )}
-                  {filteredOutgoingLedger.map((entry) => (
+                  {visibleOutgoingLedger.map((entry) => {
+                    const rowKey = entry.key
+                    const isSelected = selectedRowKeys.includes(rowKey)
+                    return (
                     <tr
                       key={entry.key}
-                      className={`border-b last:border-b-0 hover:bg-gray-50 ${entry.customerId ? 'cursor-pointer' : ''}`}
+                      className={`border-b last:border-b-0 hover:bg-gray-50 ${entry.customerId ? 'cursor-pointer' : ''} ${isSelected ? 'bg-[#f4f7f1]' : ''}`}
                       onClick={() => {
                         if (entry.customerId) navigate(`/customers/${entry.customerId}`)
                       }}
                     >
+                      <td className="px-3 py-2.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={() => toggleRowSelection(rowKey)}
+                          className="h-4 w-4 accent-[#7d9675]"
+                          aria-label={`${entry.customerName} 선택`}
+                        />
+                      </td>
                       <td className="px-4 py-2.5">
                         <div className="font-medium">{entry.customerName}</div>
                         {entry.bookName && entry.bookName !== entry.customerName && (
@@ -1752,6 +2312,9 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                       </td>
                       <td className={`px-4 py-2.5 text-right font-medium ${entry.kind === 'payable' ? 'text-blue-700' : 'text-amber-700'}`}>
                         {entry.amount.toLocaleString()}원
+                        {entry.amount >= HIGH_AMOUNT_THRESHOLD && (
+                          <div className="mt-1 text-[11px] font-medium text-amber-700">고액</div>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
                         {entry.kind === 'payable'
@@ -1791,7 +2354,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                         </Button>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
@@ -1800,6 +2363,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
+                    <th className="w-10 px-3 py-3" />
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">새 입력</th>
@@ -1808,25 +2372,42 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLedger.length === 0 && (
+                  {visibleReceivableLedger.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
+                      <td colSpan={6} className="px-4 py-12 text-center text-muted-foreground">
                         해당 기준일까지의 미수금이 없습니다.
                       </td>
                     </tr>
                   )}
-                  {filteredLedger.map((entry) => (
+                  {visibleReceivableLedger.map((entry) => {
+                    const rowKey = `customer-${entry.customerId}`
+                    const isSelected = selectedRowKeys.includes(rowKey)
+                    const customerAge = customerInvoiceStats.get(entry.customerId)?.maxAge ?? 0
+                    return (
                     <tr
                       key={entry.customerId}
-                      className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                      className={`border-b last:border-b-0 hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-[#f4f7f1]' : ''}`}
                       onClick={() => navigate(`/customers/${entry.customerId}`)}
                     >
+                      <td className="px-3 py-2.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={() => toggleRowSelection(rowKey)}
+                          className="h-4 w-4 accent-[#7d9675]"
+                          aria-label={`${entry.customerName} 선택`}
+                        />
+                      </td>
                       <td className="px-4 py-2.5">
                         <div className="font-medium">{entry.customerName}</div>
                         {entry.aliases.length > 0 && (
                           <div className="mt-0.5 text-xs text-amber-700">
                             분리 거래명: {entry.aliases.join(', ')}
                           </div>
+                        )}
+                        {customerAge >= 90 && (
+                          <div className="mt-1 text-[11px] font-medium text-red-600">90일 이상 장기 미수</div>
                         )}
                       </td>
                       <td className="px-4 py-2.5 text-right text-xs">
@@ -1837,12 +2418,15 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                       </td>
                       <td className="px-4 py-2.5 text-right font-medium text-red-600">
                         {entry.totalRemaining.toLocaleString()}원
+                        {entry.totalRemaining >= HIGH_AMOUNT_THRESHOLD && (
+                          <div className="mt-1 text-[11px] font-medium text-amber-700">고액</div>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
                         {entry.source === 'both' ? '기존 장부 + 새 입력' : entry.source === 'legacy' ? '기존 장부' : '새 입력'}
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
@@ -1882,7 +2466,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             </table>
           </div>
 
-          {filteredInvoices.length === 0 ? (
+          {visibleCrmInvoices.length === 0 ? (
             <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
               해당 기준일까지의 새 입력 미수 명세표가 없습니다.
             </div>
@@ -1891,6 +2475,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
+                    <th className="w-10 px-3 py-3" />
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">발행번호</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">발행일</th>
@@ -1903,8 +2488,10 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredInvoices.map((inv) => {
+                  {visibleCrmInvoices.map((inv) => {
                     const days = getDaysSince(inv.invoice_date, asOfDate)
+                    const rowKey = `invoice-${inv.Id}`
+                    const isSelected = selectedRowKeys.includes(rowKey)
                     const ageColor =
                       days > 180
                         ? 'text-red-700 font-bold'
@@ -1914,7 +2501,16 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                             ? 'text-amber-600'
                             : 'text-muted-foreground'
                     return (
-                      <tr key={inv.Id} className="border-b last:border-b-0">
+                      <tr key={inv.Id} className={`border-b last:border-b-0 ${isSelected ? 'bg-[#f4f7f1]' : ''}`}>
+                        <td className="px-3 py-2.5 text-center">
+                          <input
+                            type="checkbox"
+                            checked={isSelected}
+                            onChange={() => toggleRowSelection(rowKey)}
+                            className="h-4 w-4 accent-[#7d9675]"
+                            aria-label={`${inv.customer_name ?? '명세표'} 선택`}
+                          />
+                        </td>
                         <td className="px-4 py-2.5">
                           <div className="font-medium">{inv.customer_name ?? '-'}</div>
                           {(() => {
@@ -1951,6 +2547,9 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                         </td>
                         <td className="px-4 py-2.5 text-right font-medium text-red-600">
                           {inv.asOfRemaining.toLocaleString()}원
+                          {inv.asOfRemaining >= HIGH_AMOUNT_THRESHOLD && (
+                            <div className="mt-1 text-[11px] font-medium text-amber-700">고액</div>
+                          )}
                         </td>
                         <td className="px-4 py-2.5">
                           <span className={`text-xs font-medium ${inv.asOfStatus === 'partial' ? 'text-amber-600' : 'text-red-600'}`}>
@@ -1990,6 +2589,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
+                    <th className="w-10 px-3 py-3" />
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부 미수금</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
@@ -1997,19 +2597,32 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredLegacyLedger.length === 0 && (
+                  {visibleLegacyLedger.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+                      <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
                         기존 장부 미수 고객이 없습니다.
                       </td>
                     </tr>
                   )}
-                  {filteredLegacyLedger.map((entry) => (
+                  {visibleLegacyLedger.map((entry) => {
+                    const rowKey = `legacy-${entry.customerId}`
+                    const isSelected = selectedRowKeys.includes(rowKey)
+                    return (
                     <tr
                       key={entry.customerId}
-                      className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                      className={`border-b last:border-b-0 hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-[#f4f7f1]' : ''}`}
                       onClick={() => navigate(`/customers/${entry.customerId}`)}
                     >
+                      <td className="px-3 py-2.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={() => toggleRowSelection(rowKey)}
+                          className="h-4 w-4 accent-[#7d9675]"
+                          aria-label={`${entry.customerName} 선택`}
+                        />
+                      </td>
                       <td className="px-4 py-2.5">
                         <div className="font-medium">{entry.customerName}</div>
                         {entry.aliases.length > 0 && (
@@ -2020,6 +2633,9 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                       </td>
                       <td className="px-4 py-2.5 text-right font-medium text-red-600">
                         {entry.legacyBaseline.toLocaleString()}원
+                        {entry.legacyBaseline >= HIGH_AMOUNT_THRESHOLD && (
+                          <div className="mt-1 text-[11px] font-medium text-amber-700">고액</div>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
                         {entry.crmRemaining > 0 ? `새 입력 미수 ${entry.crmRemaining.toLocaleString()}원 별도 보유` : '기존 장부 기준'}
@@ -2043,7 +2659,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                         </Button>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
@@ -2063,6 +2679,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
+                    <th className="w-10 px-3 py-3" />
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">기존 장부 미지급금</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
@@ -2070,21 +2687,34 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredPayableLedger.length === 0 && (
+                  {visiblePayableLedger.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+                      <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
                         기존 장부 미지급금 고객이 없습니다.
                       </td>
                     </tr>
                   )}
-                  {filteredPayableLedger.map((entry) => (
+                  {visiblePayableLedger.map((entry) => {
+                    const rowKey = `payable-${entry.legacyId}`
+                    const isSelected = selectedRowKeys.includes(rowKey)
+                    return (
                     <tr
                       key={entry.legacyId}
-                      className={`border-b last:border-b-0 hover:bg-gray-50 ${entry.customerId ? 'cursor-pointer' : ''}`}
+                      className={`border-b last:border-b-0 hover:bg-gray-50 ${entry.customerId ? 'cursor-pointer' : ''} ${isSelected ? 'bg-[#f4f7f1]' : ''}`}
                       onClick={() => {
                         if (entry.customerId) navigate(`/customers/${entry.customerId}`)
                       }}
                     >
+                      <td className="px-3 py-2.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={() => toggleRowSelection(rowKey)}
+                          className="h-4 w-4 accent-[#7d9675]"
+                          aria-label={`${entry.customerName} 선택`}
+                        />
+                      </td>
                       <td className="px-4 py-2.5">
                         <div className="font-medium">{entry.customerName}</div>
                         {entry.bookName && entry.bookName !== entry.customerName && (
@@ -2093,6 +2723,9 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                       </td>
                       <td className="px-4 py-2.5 text-right font-medium text-blue-700">
                         {entry.payableAmount.toLocaleString()}원
+                        {entry.payableAmount >= HIGH_AMOUNT_THRESHOLD && (
+                          <div className="mt-1 text-[11px] font-medium text-amber-700">고액</div>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
                         {entry.customerId ? '원본 장부 확인 후 송금 기록' : '고객관리 연결 필요'}
@@ -2118,7 +2751,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                         </Button>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>
@@ -2138,6 +2771,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b bg-gray-50">
+                    <th className="w-10 px-3 py-3" />
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">거래처</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">환불대기 금액</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">비고</th>
@@ -2145,19 +2779,32 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                   </tr>
                 </thead>
                 <tbody>
-                  {filteredRefundPendingLedger.length === 0 && (
+                  {visibleRefundPendingLedger.length === 0 && (
                     <tr>
-                      <td colSpan={4} className="px-4 py-12 text-center text-muted-foreground">
+                      <td colSpan={5} className="px-4 py-12 text-center text-muted-foreground">
                         환불대기 건이 없습니다.
                       </td>
                     </tr>
                   )}
-                  {filteredRefundPendingLedger.map((entry) => (
+                  {visibleRefundPendingLedger.map((entry) => {
+                    const rowKey = `refund-${entry.customer.Id}`
+                    const isSelected = selectedRowKeys.includes(rowKey)
+                    return (
                     <tr
                       key={entry.customer.Id}
-                      className="border-b last:border-b-0 hover:bg-gray-50 cursor-pointer"
+                      className={`border-b last:border-b-0 hover:bg-gray-50 cursor-pointer ${isSelected ? 'bg-[#f4f7f1]' : ''}`}
                       onClick={() => navigate(`/customers/${entry.customer.Id}`)}
                     >
+                      <td className="px-3 py-2.5 text-center">
+                        <input
+                          type="checkbox"
+                          checked={isSelected}
+                          onClick={(event) => event.stopPropagation()}
+                          onChange={() => toggleRowSelection(rowKey)}
+                          className="h-4 w-4 accent-[#7d9675]"
+                          aria-label={`${entry.customer.name ?? '환불'} 선택`}
+                        />
+                      </td>
                       <td className="px-4 py-2.5">
                         <div className="font-medium">{entry.customer.name}</div>
                         {entry.customer.book_name && entry.customer.book_name !== entry.customer.name && (
@@ -2166,6 +2813,9 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                       </td>
                       <td className="px-4 py-2.5 text-right font-medium text-amber-700">
                         {entry.refundPendingAmount.toLocaleString()}원
+                        {entry.refundPendingAmount >= HIGH_AMOUNT_THRESHOLD && (
+                          <div className="mt-1 text-[11px] font-medium text-amber-700">고액</div>
+                        )}
                       </td>
                       <td className="px-4 py-2.5 text-xs text-muted-foreground">
                         실제 환불 송금 후 완료하거나 대기만 해제할 수 있습니다.
@@ -2184,7 +2834,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                         </Button>
                       </td>
                     </tr>
-                  ))}
+                  )})}
                 </tbody>
               </table>
             </div>

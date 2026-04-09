@@ -46,6 +46,9 @@
     - 기존 장부 입금 이력의 누적 입금액/잔액 계산용 타임라인 helper 추가
   - 검증
     - `cd offline-crm-v2 && npm run build` 통과
+  - 배포
+    - `cd offline-crm-v2 && bash deploy/deploy.sh` 실행
+    - 운영 서버 `/var/www/crm/index.html`과 `/var/www/crm/assets/index-DOo3i35X.js`, `/var/www/crm/assets/index-Bs33k2nZ.css` 업로드 시각 확인
 - 2026-04-09 네이버 커머스 실계정 문의 조회/답변 검증 완료 (codex)
   - `tools/openmarket/naver_commerce_live_test.py`
     - `.secrets.env` 기반 전자서명 생성 + SSH 원격 실행 조합으로 네이버 커머스 실계정 검증용 CLI 추가

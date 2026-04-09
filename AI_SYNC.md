@@ -20,19 +20,63 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: —
+- Current Owner: CODEX
+- Mode: WRITE
+- Started At: 2026-04-09 22:40:00 KST
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: OMX MVP 사용성 보완 및 실사용 흐름 정리
+- Active Subdirectory: mini-app-v2
 
 ## Files In Progress
-- 없음
+- AI_SYNC.md
+- docs/openmarket-ops/
+- mini-app-v2/
+- tools/openmarket/
 
 ## Last Changes
 
 > 전체 이력: `archive/ai-sync-history/`
+
+- 2026-04-09 CRM 수금관리 화면 컴팩트화 2차 반영 및 운영 배포 (codex)
+  - `offline-crm-v2/src/pages/Receivables.tsx`
+    - 수금관리 기본 진입을 거래처별 누적 미수 중심으로 유지하고, 상단 설명성 UI를 최소화
+    - 핵심 숫자는 작은 요약 칩만 남기고 `필터`, `요약`은 토글형으로 축소
+    - 정산구간 상단 설명 박스와 탭별 긴 설명 문구를 제거해 화면 밀도를 높임
+  - 검증
+    - `cd offline-crm-v2 && npm run build` 통과
+  - 배포
+    - `cd offline-crm-v2 && bash deploy/deploy.sh` 실행
+    - 운영 서버 `/var/www/crm/index.html`과 `/var/www/crm/assets/index-DAbvqLeC.js`, `/var/www/crm/assets/index-CMzm8Vgr.css` 반영 확인
+- 2026-04-09 OMX Smartstore/MakeShop 실데이터 fetch + DRY_RUN + UI 검증 완료 (codex)
+  - `n8n-automation/workflows/automation/omx-smartstore-inquiries.json`
+  - `n8n-automation/workflows/automation/omx-smartstore-replies.json`
+  - `n8n-automation/workflows/automation/omx-makeshop-items.json`
+  - `n8n-automation/workflows/automation/omx-makeshop-replies.json`
+  - `docs/openmarket-ops/smartstore-inquiry-adapter-n8n-draft.json`
+  - `docs/openmarket-ops/smartstore-reply-adapter-n8n-draft.json`
+  - `docs/openmarket-ops/makeshop-items-adapter-n8n-draft.json`
+  - `docs/openmarket-ops/makeshop-reply-adapter-n8n-draft.json`
+  - `docs/openmarket-ops/omx-live-fetch-send-contract-v1.md`
+  - `docs/openmarket-ops/omx-mvp-deploy-guide-v1.md`
+  - `mini-app-v2/public/omx-config.json`
+  - `mini-app-v2/public/omx-config.sample.json`
+  - `mini-app-v2/src/lib/omxApi.ts`
+  - `mini-app-v2/src/pages/OmxPage.tsx`
+    - openclaw nginx를 `/api/omx/*` same-origin proxy 구조로 유지하고, Oracle n8n env에 `OMX_SHARED_KEY`, `MAKESHOP_DOMAIN`, `N8N_BLOCK_ENV_ACCESS_IN_NODE=false`를 반영
+    - 스마트스토어 fetch adapter를 SELF 토큰 직접 발급 방식으로 고정하고, token stream/Code node sandbox 이슈를 제거
+    - 메이크샵 fetch adapter 실응답 확인 (`crmCount=3`, open 3건)
+    - 스마트스토어 fetch adapter 실응답 확인 (`customerCount=0`, `qnaCount=6`, open 3건)
+    - Smartstore/MakeShop send workflow의 DRY_RUN 결과 노드와 결과 집계를 n8n Code node 규칙에 맞게 수정
+    - 프록시 경유 DRY_RUN 응답 확인
+      - 스마트스토어: `qna_669945846` → `DRY_RUN 완료`
+      - 메이크샵: `crm_2026-04-09164303_ks03f17b256` → `DRY_RUN 완료`
+    - 브라우저 검증
+      - `https://mini.pressco21.com/omx`를 same-origin auth 헤더로 열어 실데이터 렌더링 확인
+      - source state가 `config RUNTIME · auth same-origin proxy · fetch 2/2 · send 2/2`로 표시됨을 확인
+      - UI에서 메이크샵 1건 선택 후 `이 건 DRY_RUN` 실행, 토스트와 내부 메모 업데이트 확인
+    - 참고
+      - URL에 basic auth credential을 직접 포함해 접속하면 상대경로 fetch가 깨진다
+      - 실제 운영 검증은 브라우저 auth prompt 또는 헤더 인증 기준으로 진행해야 한다
 
 - 2026-04-09 OMX 실사용 MVP 전환 준비 1차 완료 (codex)
   - `mini-app-v2/src/lib/omxApi.ts`
@@ -321,16 +365,14 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라)
 
 ### Codex 담당
-- `[CODEX-LEAD]` 운영 n8n에 `OMX_SHARED_KEY`, `NAVER_COMMERCE_*`, `MAKESHOP_*` 주입 경로 확인
-- `[CODEX-LEAD]` 생성된 OMX workflow 4개를 활성화하고 smartstore/makeshop fetch endpoint 실응답 확인
-- `[CODEX-LEAD]` `mini.pressco21.com/omx`에 runtime `omx-config.json` 실값 반영 후 DRY_RUN 1회, LIVE_SEND 1회 검증
-- `[CODEX-LEAD]` 스마트스토어 fetch/send webhook을 운영 n8n에 import하고 실제 문의 1건으로 DRY_RUN/LIVE_SEND를 검증
-- `[CODEX-LEAD]` 메이크샵 fetch/send webhook을 운영 n8n에 import하고 승인형 write 1건을 안전한 케이스로 검증
-- `[CODEX-LEAD]` mini-app-v2 OMX 허브를 실제 adapter/NocoDB 데이터와 연결하고 DRY_RUN/LIVE_SEND feature flag를 서버값으로 분리
-- `[CODEX-LEAD]` 스마트스토어 토큰 helper 또는 mini.pressco21.com 토큰 대행 방식 확정
-- `[CODEX-LEAD]` `OM_FETCH_SMARTSTORE_INQUIRIES_URL`를 adapter webhook으로 연결하고 OM-SLA-01 수동 실행 검증
-- `[CODEX-LEAD]` 스마트스토어 문의 adapter 응답 계약을 실측 결과 기준으로 확정하고 OM-SLA-01에 1차 연결
-- `[CODEX-LEAD]` 메이크샵 fetch adapter를 `crm_board + review` 통합 응답으로 정리하고 OMX 화면에 실제 데이터 반영
+- `[CODEX-LEAD]` Smartstore/MakeShop `LIVE_SEND`를 승인된 안전 케이스 1건씩 검증하고, 성공/실패 로그를 OMX 화면에 더 분명히 노출
+- `[CODEX-LEAD]` 메이크샵 문의 `crm_board/reply` 또는 `comment/store` 실write 1건을 승인된 케이스로 검증
+- `[CODEX-LEAD]` 스마트스토어 상품문의 `PUT /v1/contents/qnas/:questionId` 실write 1건을 OMX 경유로 검증
+- `[CODEX-LEAD]` OMX 접근 방식 운영안 정리
+  - basic auth 유지 여부
+  - `/omx-config.json` 보호 범위
+  - 사내 사용 가이드 초안
+- `[CODEX-LEAD]` OMX 실데이터 기준 선택/일괄 DRY_RUN/LIVE_SEND UX를 다듬고, 성공/실패 이력 영역을 명시적으로 분리
 - `[CODEX-LEAD]` NocoDB base/table 실제 식별자와 운영 서버 credential 이름을 draft와 매핑
 - `[CODEX-LEAD]` 이재혁/장지호 텔레그램 chat id 반영 후 신규/50%/80%/breach 알림 실검증
 - `[CODEX-LEAD]` 문의 SLA 알람용 채널별 수집 가능 범위와 담당자 라우팅 규칙 점검

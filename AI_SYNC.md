@@ -34,6 +34,23 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-09 OMX live fetch/send 워크벤치 1차 구현 (codex)
+  - `mini-app-v2/src/lib/omxApi.ts`
+    - 스마트스토어/메이크샵 fetch endpoint를 병렬 호출하는 OMX 서비스 계층 추가
+    - env 기반 mock/live/partial 모드 판정, adapter 응답 정규화, DRY_RUN/LIVE_SEND 일괄 발송 함수 구현
+    - 실조회 endpoint가 없으면 샘플 큐로 fallback 하도록 구성
+  - `mini-app-v2/src/pages/OmxPage.tsx`
+    - OMX 페이지를 `실조회 + 검색 + 다중선택 + 일괄 승인 + 일괄 발송` 워크벤치로 재구성
+    - source 상태 카드, DRY_RUN/LIVE_SEND 토글, 선택 건 확인 모달, 실제 sync 상태 표시 추가
+  - `mini-app-v2/src/lib/omx.ts`
+    - 채널톡 샘플과 실행 순서를 현재 범위 기준으로 정리
+    - queue item에 `productId`, `sourceKind`, `externalStatus` 필드 추가
+  - `docs/openmarket-ops/omx-live-fetch-send-contract-v1.md`
+    - OMX 프런트가 기대하는 스마트스토어/메이크샵 fetch/send 계약과 env 이름을 문서화
+  - `docs/openmarket-ops/omx-channel-capability-matrix-v1.md`
+    - 채널톡을 현재 범위 제외로 수정하고, 새 live contract 문서 링크 추가
+  - 검증
+    - `cd mini-app-v2 && npm run build` 통과
 - 2026-04-09 OMX v1 범위 재정의: 주문은 사방넷, 쿠팡은 제외 (codex)
   - `docs/openmarket-ops/omx-channel-capability-matrix-v1.md`
     - OMX v1 원칙을 `주문 처리=사방넷`, `응답 운영=스마트스토어+메이크샵`으로 재정의
@@ -248,18 +265,13 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라)
 
 ### Codex 담당
-- `[CODEX-LEAD]` 스마트스토어 inquiry와 메이크샵 inquiry/review를 OMX 실제 adapter/NocoDB와 연결
-- `[CODEX-LEAD]` 메이크샵 승인형 write 테스트 1건을 안전한 케이스로 검증
-- `[CODEX-LEAD]` 채널톡 무료/체험 플랜 확인 후 포함/제외 결정
-- `[CODEX-LEAD]` 쿠팡 read probe 성공 시 사방넷 연동 유지 여부를 함께 확인해 병행 가능 여부 판정
-- `[CODEX-LEAD]` 승인된 메이크샵 테스트 케이스 1건으로 `crm_board/reply` 또는 `review/store(save_type=answer)` 실write를 1회 검증
-- `[CODEX-LEAD]` 쿠팡 access/secret/vendorId/wingId 확보 후 `coupang_live_test.py`로 `onlineInquiries`/`callCenterInquiries` live probe 실행
-- `[CODEX-LEAD]` 채널톡 무료/체험 플랜에서 Open API/Webhook 운영 가능 여부를 최종 확인하고, 불가하면 대안/제외 결론 문서화
+- `[CODEX-LEAD]` 스마트스토어 fetch/send webhook을 OMX live contract 기준으로 구현하고 실제 문의 1건으로 DRY_RUN/LIVE_SEND를 검증
+- `[CODEX-LEAD]` 메이크샵 fetch/send webhook을 OMX live contract 기준으로 구현하고 승인형 write 1건을 안전한 케이스로 검증
 - `[CODEX-LEAD]` mini-app-v2 OMX 허브를 실제 adapter/NocoDB 데이터와 연결하고 DRY_RUN/LIVE_SEND feature flag를 서버값으로 분리
-- `[CODEX-LEAD]` 쿠팡 문의 live probe와 채널톡 가격 검증을 끝내서 OMX capability matrix를 2차 확정
 - `[CODEX-LEAD]` 스마트스토어 토큰 helper 또는 mini.pressco21.com 토큰 대행 방식 확정
 - `[CODEX-LEAD]` `OM_FETCH_SMARTSTORE_INQUIRIES_URL`를 adapter webhook으로 연결하고 OM-SLA-01 수동 실행 검증
 - `[CODEX-LEAD]` 스마트스토어 문의 adapter 응답 계약을 실측 결과 기준으로 확정하고 OM-SLA-01에 1차 연결
+- `[CODEX-LEAD]` 메이크샵 fetch adapter를 `crm_board + review` 통합 응답으로 정리하고 OMX 화면에 실제 데이터 반영
 - `[CODEX-LEAD]` NocoDB base/table 실제 식별자와 운영 서버 credential 이름을 draft와 매핑
 - `[CODEX-LEAD]` 이재혁/장지호 텔레그램 chat id 반영 후 신규/50%/80%/breach 알림 실검증
 - `[CODEX-LEAD]` 문의 SLA 알람용 채널별 수집 가능 범위와 담당자 라우팅 규칙 점검

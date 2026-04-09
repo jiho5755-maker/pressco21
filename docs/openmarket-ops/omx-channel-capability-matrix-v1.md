@@ -11,6 +11,7 @@
 
 - `주문 처리`: 사방넷
 - `OMX`: 스마트스토어 + 메이크샵 중심의 문의/리뷰 승인형 응답 도구
+- `채널톡`: 이번 구현 범위에서 제외
 - `쿠팡`: 기술 검증 기록은 유지하되, 현재 구현 범위에서는 제외
 
 즉 OMX는 주문 OMS가 아니라, `사방넷으로 가지 않는 응답 운영`을 빠르게 만드는 보완 레이어로 본다.
@@ -22,7 +23,7 @@
 이번 OMX 구현 순서는 아래로 고정한다.
 
 1. 스마트스토어 + 메이크샵 자동화 검증 및 1차 구현
-2. 채널톡 연동 검토
+2. 스마트스토어 + 메이크샵 실조회/일괄 발송 고도화
 3. 11번가 연동은 고객센터 답변 또는 추가 문서 확보 후 진행
 4. 쿠팡은 주문 처리를 사방넷 기준으로 정리한 뒤 후순위 재검토
 
@@ -65,7 +66,7 @@
 | coupang | review | manual | disabled | pending | 현재 v1 범위 제외 | 응답 운영보다 주문 처리 구조가 선행 | 후순위 재평가 |
 | makeshop | inquiry | api | direct_send | doc_only | v1 핵심 채널로 상향 | 실write는 아직 미실행 | `crm_board/reply` + `comment/store`를 승인 후 실제 전송으로 검증 |
 | makeshop | review | api | direct_send | doc_only | 승인형 답변 채널 | 실write는 아직 미실행 | `review/store` + `save_type=answer`를 승인 후 실제 전송으로 검증 |
-| channeltalk | chat | webhook | direct_send | blocked | 가격 검토 전 보류 | 무료 플랜에서 Open API/Webhook 운영 가능 여부 불확실 | 유료/체험 가능 시 활성화, 아니면 제외 |
+| channeltalk | chat | webhook | disabled | pending | 현재 범위 제외 | 응답 운영 범위를 스마트스토어/메이크샵으로 고정 | 후속 필요 시 별도 검토 |
 | 11st | inquiry | manual | disabled | pending | 이번 단계 제외 | 공개 문의 답변 API 미확인 | 고객센터/추가 문서 확보 후 재평가 |
 
 ---
@@ -222,7 +223,7 @@
 - 11번가 direct integration
 - 리뷰 자동 direct send
 - 메이크샵 관리자 브라우저 자동화 write
-- 채널톡 무료 플랜 불확실 상태에서의 강제 연동
+- 채널톡 연동
 
 ---
 
@@ -245,6 +246,7 @@ UI는 아래를 반드시 드러내야 한다.
 
 - [smartstore-inquiry-adapter-v1.md](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/smartstore-inquiry-adapter-v1.md)
 - [om-sla-01-implementation-notes.md](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/om-sla-01-implementation-notes.md)
+- [omx-live-fetch-send-contract-v1.md](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/omx-live-fetch-send-contract-v1.md)
 - [quick-order/index.html](/Users/jangjiho/workspace/pressco21/makeshop-skin/pages/quick-order/index.html#L923)
 - [quick-order/index.html](/Users/jangjiho/workspace/pressco21/makeshop-skin/pages/quick-order/index.html#L1297)
 - [makeshop-api-architecture.md](/Users/jangjiho/workspace/pressco21/docs/파트너클래스/makeshop-api-architecture.md)
@@ -267,6 +269,3 @@ UI는 아래를 반드시 드러내야 한다.
 - https://openapi.makeshop.co.kr/guide/documents/find_guide/95
 - https://openapi.makeshop.co.kr/guide/documents_test/openapi/24
 - https://openapi.makeshop.co.kr/guide/documents_test/openapi/26
-- https://channel.io/en/pricing
-- https://developers.channel.io/docs/list-of-userchats
-- https://developers.channel.io/docs/send-a-message-to-a-userchat

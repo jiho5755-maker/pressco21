@@ -37,6 +37,7 @@ export interface OmxQueueItem {
   customerName: string;
   title: string;
   body: string;
+  productId?: string;
   productName?: string;
   orderId?: string;
   receivedAt: string;
@@ -45,6 +46,8 @@ export interface OmxQueueItem {
   finalReply?: string;
   internalNote?: string;
   sourceUrl?: string;
+  sourceKind?: string;
+  externalStatus?: string;
   rawPayloadSummary: string;
   tags: string[];
 }
@@ -137,19 +140,6 @@ export const OMX_CAPABILITIES: OmxCapability[] = [
     nextAction: "review save_type=answer 시나리오를 승인된 테스트 케이스로 1회 검증",
   },
   {
-    id: "channeltalk-chat",
-    channel: "channeltalk",
-    channelLabel: "채널톡",
-    itemType: "chat",
-    ingestMode: "webhook",
-    sendMode: "direct_send",
-    validationStatus: "blocked",
-    priority: 2,
-    currentDecision: "가격 검토 전 보류",
-    blocker: "무료 플랜에서 Open API/Webhooks 운영 여부 불확실",
-    nextAction: "유료 또는 체험 가능 시 활성화, 아니면 제외",
-  },
-  {
     id: "11st-inquiry",
     channel: "11st",
     channelLabel: "11번가",
@@ -211,6 +201,8 @@ export const OMX_QUEUE_ITEMS: OmxQueueItem[] = [
     internalNote:
       "Oracle 운영 서버 실키로 board_code/crm_board read probe는 통과했다. type=crm_board/process=reply와 type=comment/process=store는 문서 확인 완료 상태라 DRY_RUN 유지 후 승인된 케이스에서만 실write 검증",
     sourceUrl: "https://admin.makeshop.co.kr/",
+    sourceKind: "crm_board",
+    externalStatus: "OPEN",
     rawPayloadSummary:
       "type=crm_board search verified, type=crm_board/process=reply + type=comment/process=store doc verified",
     tags: ["메이크샵", "상품문의", "실read", "DRY_RUN"],
@@ -236,29 +228,10 @@ export const OMX_QUEUE_ITEMS: OmxQueueItem[] = [
     internalNote:
       "Oracle 운영 서버 실키로 review read probe는 통과했고 현재 기간 데이터는 0건이다. type=review/process=store와 save_type=answer 문서는 확인 완료라 승인된 테스트 케이스 전까지 대기",
     sourceUrl: "https://admin.makeshop.co.kr/",
+    sourceKind: "review",
+    externalStatus: "OPEN",
     rawPayloadSummary: "type=review search verified, type=review/process=store + save_type=answer doc verified",
     tags: ["후기", "초안완료", "메이크샵", "실read"],
-  },
-  {
-    id: "ct-chat-20260409-01",
-    channel: "channeltalk",
-    channelLabel: "채널톡",
-    itemType: "chat",
-    sendMode: "disabled",
-    validationStatus: "blocked",
-    status: "new",
-    urgency: "breach",
-    customerName: "익명 방문자",
-    title: "채널톡 연동 보류",
-    body: "내일 오전 클래스에서 사용할 레진은 어느 비율로 섞어야 하나요?",
-    productName: "레진 입문 키트",
-    receivedAt: "2026-04-09T09:55:00+09:00",
-    assignee: "장지호",
-    aiDraft:
-      "현재 채널톡은 플랜 확인 전이라 직접 발송이 비활성화되어 있습니다. 먼저 내부 답변 초안을 검토한 뒤, 플랜 확인 후 연동 여부를 결정해 주세요.",
-    internalNote: "채널톡 무료 플랜 불확실. feature flag disabled",
-    rawPayloadSummary: "webhook 가능, send disabled, pricing check required",
-    tags: ["보류", "채널톡", "플랜확인"],
   },
 ];
 
@@ -273,19 +246,19 @@ export const OMX_RUNBOOK: OmxRunbookStep[] = [
   },
   {
     id: "phase-2",
-    title: "2단계: 채널톡 연동",
+    title: "2단계: 스마트스토어/메이크샵 고도화",
     owner: "CODEX",
     status: "next",
-    summary: "무료 플랜 불가 시 대안 조사 후 제외 여부를 결정한다.",
-    exitCriteria: "유료 또는 체험 가능 시 webhook + send 연결, 아니면 disabled 유지와 대안 문서화",
+    summary: "스마트스토어 고객문의 실측 보강과 메이크샵 승인형 write 검증까지 끝내 운영 전환 준비를 마친다.",
+    exitCriteria: "실조회, 일괄 승인, DRY_RUN/LIVE_SEND 흐름이 스마트스토어와 메이크샵에서 안정적으로 동작",
   },
   {
     id: "phase-3",
-    title: "3단계: 쿠팡/11번가 재검토",
+    title: "3단계: 11번가 재검토",
     owner: "CODEX",
     status: "hold",
-    summary: "사방넷 주문 처리 구조가 정리된 뒤 쿠팡과 11번가를 후순위로 다시 검토한다.",
-    exitCriteria: "사방넷 처리 기준과 채널 capability를 다시 평가해 scope를 업데이트",
+    summary: "고객센터 회신이나 추가 문서 확보 뒤 11번가 capability를 다시 평가한다.",
+    exitCriteria: "11번가 문의/답변 API 확인 후 scope 업데이트",
   },
 ];
 

@@ -5,13 +5,26 @@
 
 ---
 
-## 1. 실행 순서
+## 1. 범위
+
+현재 OMX v1의 운영 원칙은 아래로 고정한다.
+
+- `주문 처리`: 사방넷
+- `OMX`: 스마트스토어 + 메이크샵 중심의 문의/리뷰 승인형 응답 도구
+- `쿠팡`: 기술 검증 기록은 유지하되, 현재 구현 범위에서는 제외
+
+즉 OMX는 주문 OMS가 아니라, `사방넷으로 가지 않는 응답 운영`을 빠르게 만드는 보완 레이어로 본다.
+
+---
+
+## 2. 실행 순서
 
 이번 OMX 구현 순서는 아래로 고정한다.
 
-1. 스마트스토어 + 쿠팡 + 메이크샵 자동화 검증 및 1차 구현
+1. 스마트스토어 + 메이크샵 자동화 검증 및 1차 구현
 2. 채널톡 연동 검토
 3. 11번가 연동은 고객센터 답변 또는 추가 문서 확보 후 진행
+4. 쿠팡은 주문 처리를 사방넷 기준으로 정리한 뒤 후순위 재검토
 
 핵심 원칙:
 
@@ -22,7 +35,7 @@
 
 ---
 
-## 2. Capability 기준
+## 3. Capability 기준
 
 ### 2.1 필드 정의
 
@@ -42,14 +55,14 @@
 
 ---
 
-## 3. 채널 Capability Matrix
+## 4. 채널 Capability Matrix
 
 | channel | item_type | ingest_mode | send_mode | validation_status | 현재 판단 | blocker | next_action |
 |------|------|------|------|------|------|------|------|
 | smartstore | inquiry | api | direct_send | verified | v1 핵심 채널 | 고객문의 답변 body 실측 일부 미완 | OM adapter + 승인형 발송 연결 |
 | smartstore | review | manual | draft_only | blocked | 초안 생성만 우선 | 공개 리뷰 답변 API 미확인 | 운영자 수동 반영 큐로 처리 |
-| coupang | inquiry | api | direct_send | doc_only | 실read 검증 완료 | 사방넷 병행 유지 여부 미확정, 실write 미실행 | 사방넷 정상 동작 확인 후 승인형 write 검증 |
-| coupang | review | manual | draft_only | blocked | 초안 생성만 우선 | 공개 리뷰 답변 API 미확인 | 리뷰 큐만 먼저 구현 |
+| coupang | inquiry | api | disabled | pending | 현재 v1 범위 제외 | 주문 처리를 사방넷 기준으로 우선 정리 | 사방넷 운영 구조 확정 후 재검토 |
+| coupang | review | manual | disabled | pending | 현재 v1 범위 제외 | 응답 운영보다 주문 처리 구조가 선행 | 후순위 재평가 |
 | makeshop | inquiry | api | direct_send | doc_only | v1 핵심 채널로 상향 | 실write는 아직 미실행 | `crm_board/reply` + `comment/store`를 승인 후 실제 전송으로 검증 |
 | makeshop | review | api | direct_send | doc_only | 승인형 답변 채널 | 실write는 아직 미실행 | `review/store` + `save_type=answer`를 승인 후 실제 전송으로 검증 |
 | channeltalk | chat | webhook | direct_send | blocked | 가격 검토 전 보류 | 무료 플랜에서 Open API/Webhook 운영 가능 여부 불확실 | 유료/체험 가능 시 활성화, 아니면 제외 |
@@ -57,7 +70,7 @@
 
 ---
 
-## 4. 메이크샵 검증 결론
+## 5. 메이크샵 검증 결론
 
 ### 4.1 확인된 사실
 
@@ -110,7 +123,7 @@
 
 ---
 
-## 5. 쿠팡 검증 상태
+## 6. 쿠팡 검증 상태
 
 쿠팡 공개 문서 기준:
 
@@ -134,22 +147,17 @@
     - `partner-status=NONE` 조회 성공, 실데이터 6건 확인
     - `partner-status=NO_ANSWER` 조회 성공, 빈 목록 반환
 
-현재 blocker:
+현재 결론:
 
-- 우리 프로그램의 read는 성공했지만, 사방넷이 이 설정에서도 계속 정상 동작하는지는 아직 미확인
-- 쿠팡 write는 아직 승인형 실검증 전
-
-다음 액션:
-
-- 사방넷 주문/문의 수집이 계속 정상인지 확인
-- `wingId` 확보 후 reply payload preview를 실제 승인형 UI와 연결
-- 사방넷이 유지되면 승인된 테스트 케이스로 write 1회 검증
+- 쿠팡 자체 프로그램 direct API는 기술적으로 가능하다.
+- 다만 현 시점에는 `주문은 사방넷으로 처리`가 우선이라 OMX v1 범위에서는 제외한다.
+- 따라서 이 섹션은 `검증 기록 보관용`으로만 유지한다.
 
 ---
 
-## 6. 채널톡 검토 결론
+## 7. 채널톡 검토 결론
 
-### 5.1 공식 문서 기준
+### 7.1 공식 문서 기준
 
 - `List of UserChats`: 가능
 - `Send a message to a UserChat`: 가능
@@ -157,7 +165,7 @@
 
 즉 기술적으로는 OMX에 넣을 수 있다.
 
-### 5.2 가격/플랜 기준 현재 판단
+### 7.2 가격/플랜 기준 현재 판단
 
 채널톡 가격 페이지 기준:
 
@@ -174,7 +182,7 @@
 - 유료 또는 체험 가능하면 `enabled`
 - 아니면 `disabled`
 
-### 5.3 무료 불가 시 대안
+### 7.3 무료 불가 시 대안
 
 1. 채널톡 새 메시지 알림을 이메일/텔레그램으로 우회 수집
 2. 운영자는 OMX에서 초안만 보고 채널톡 관리자에서 수동 답변
@@ -182,7 +190,7 @@
 
 ---
 
-## 7. 11번가 결론
+## 8. 11번가 결론
 
 - 공개 Open API 센터 기준으로는 상품/주문/클레임/기획전/전시/사은품/긴급알리미만 확인
 - 문의/고객센터 답변 API는 현재 확인 불가
@@ -196,19 +204,21 @@
 
 ---
 
-## 8. v1 범위
+## 9. v1 범위
 
-### 7.1 포함
+### 9.1 포함
 
 - 스마트스토어 문의 승인형 발송
-- 쿠팡 문의 승인형 발송 구조
 - 메이크샵 문의/리뷰 승인형 direct send 구조
+- 주문 처리와 분리된 승인형 응답 운영
 - 채널별 capability 표시
 - DRY_RUN / LIVE_SEND 안전장치
 - 감사 로그
 
-### 7.2 제외
+### 9.2 제외
 
+- 사방넷이 담당하는 주문 처리
+- 쿠팡 direct integration
 - 11번가 direct integration
 - 리뷰 자동 direct send
 - 메이크샵 관리자 브라우저 자동화 write
@@ -216,19 +226,20 @@
 
 ---
 
-## 9. 다음 구현 기준
+## 10. 다음 구현 기준
 
 UI는 아래를 반드시 드러내야 한다.
 
 1. `이 항목은 직접 발송 가능`
 2. `이 항목은 초안만 가능`
 3. `이 항목은 수동 처리 필요`
+4. `주문 처리는 사방넷에서 한다`
 
 즉 OMX는 단순 inbox가 아니라, 채널 capability를 운영자가 즉시 이해하게 만드는 컨트롤 타워여야 한다.
 
 ---
 
-## 10. 근거
+## 11. 근거
 
 내부 소스:
 

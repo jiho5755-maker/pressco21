@@ -34,6 +34,22 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-09 OMX v1 범위 재정의: 주문은 사방넷, 쿠팡은 제외 (codex)
+  - `docs/openmarket-ops/omx-channel-capability-matrix-v1.md`
+    - OMX v1 원칙을 `주문 처리=사방넷`, `응답 운영=스마트스토어+메이크샵`으로 재정의
+    - 실행 순서를 `스마트스토어 + 메이크샵 -> 채널톡 -> 11번가 -> 쿠팡 재검토`로 조정
+    - 쿠팡 inquiry/review를 검증 기록 보관용 `pending/disabled` 상태로 하향
+    - v1 포함/제외 범위에 `사방넷이 담당하는 주문 처리`와 `쿠팡 direct integration 제외`를 명시
+  - `mini-app-v2/src/lib/omx.ts`
+    - 쿠팡 capability를 active scope에서 제외
+    - 쿠팡 샘플 queue item 제거
+    - runbook 1단계를 `스마트스토어 + 메이크샵`으로 조정
+  - `mini-app-v2/src/pages/OmxPage.tsx`
+    - 헤더 subtitle을 `주문은 사방넷 · 스마트스토어/메이크샵 승인형 응답 운영`으로 변경
+    - 상단에 현재 운영 원칙 카드 추가
+    - 메이크샵 안내 문구와 rollout 문구를 새로운 scope에 맞게 조정
+  - 검증
+    - `cd mini-app-v2 && npm run build` 통과
 - 2026-04-09 쿠팡 OpenAPI 실read 검증 성공 (codex)
   - `docs/openmarket-ops/omx-channel-capability-matrix-v1.md`
     - 쿠팡 inquiry 상태를 `자격 증명 미주입`에서 `실read 검증 완료 + 사방넷 병행 여부 미확정`으로 수정
@@ -232,11 +248,9 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라)
 
 ### Codex 담당
-- `[CODEX-LEAD]` 사방넷에서 쿠팡 주문/문의 수집이 계속 정상인지 확인해서 병행 가능 여부 판정
-- `[CODEX-LEAD]` `wingId` 확보 후 `coupang_live_test.py` preview payload와 OMX 승인형 UI를 연결
-- `[CODEX-LEAD]` 사방넷 유지가 확인되면 쿠팡 승인형 write 테스트 1회 실행
-- `[CODEX-LEAD]` 사용자가 쿠팡 Wing에 `자체개발(직접입력)` + `158.180.77.201,27.102.150.*,175.115.92.120` 입력 후 저장 가능한지 확인
-- `[CODEX-LEAD]` 저장 성공 후 `Access Key / Secret Key / vendorId / wingId` 확보해서 `coupang_live_test.py` read probe 실행
+- `[CODEX-LEAD]` 스마트스토어 inquiry와 메이크샵 inquiry/review를 OMX 실제 adapter/NocoDB와 연결
+- `[CODEX-LEAD]` 메이크샵 승인형 write 테스트 1건을 안전한 케이스로 검증
+- `[CODEX-LEAD]` 채널톡 무료/체험 플랜 확인 후 포함/제외 결정
 - `[CODEX-LEAD]` 쿠팡 read probe 성공 시 사방넷 연동 유지 여부를 함께 확인해 병행 가능 여부 판정
 - `[CODEX-LEAD]` 승인된 메이크샵 테스트 케이스 1건으로 `crm_board/reply` 또는 `review/store(save_type=answer)` 실write를 1회 검증
 - `[CODEX-LEAD]` 쿠팡 access/secret/vendorId/wingId 확보 후 `coupang_live_test.py`로 `onlineInquiries`/`callCenterInquiries` live probe 실행

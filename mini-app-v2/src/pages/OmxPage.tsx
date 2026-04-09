@@ -149,7 +149,7 @@ export function OmxPage() {
     <div>
       <Header
         title="OMX 답변 허브"
-        subtitle="스마트스토어 · 쿠팡 · 메이크샵 승인형 운영"
+        subtitle="주문은 사방넷 · 스마트스토어/메이크샵 승인형 응답 운영"
         showBack
         maxWidthClassName="max-w-[1280px]"
       />
@@ -199,6 +199,21 @@ export function OmxPage() {
           </Card>
         </section>
 
+        <Card className="border-slate-200 bg-slate-50/80">
+          <CardContent className="p-4">
+            <div className="space-y-2 text-sm text-slate-900">
+              <p className="font-semibold">현재 운영 원칙</p>
+              <p>
+                주문 수집과 출고 처리는 사방넷에서 진행하고, OMX는 스마트스토어와 메이크샵의 문의/리뷰 답변을
+                `AI 초안 + 사람 승인`으로 처리하는 보완 레이어로 운영합니다.
+              </p>
+              <p>
+                쿠팡은 기술 검증 기록은 남겨두되 현재 개발 범위에서는 제외합니다.
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+
         <Card className="border-blue-200 bg-blue-50/70">
           <CardContent className="p-4">
             <div className="flex items-start gap-3">
@@ -211,8 +226,8 @@ export function OmxPage() {
                   `save_type=answer`로 direct send 후보가 확인됐습니다.
                 </p>
                 <p>
-                  현재는 실키가 placeholder라 live probe만 남아 있습니다. 그래서 send mode는 `direct_send`,
-                  validation은 `doc_only`, 기본 실행 모드는 `DRY_RUN`입니다.
+                  현재 OMX 1차 범위는 스마트스토어와 메이크샵입니다. 주문은 사방넷에서 처리하므로, 이 화면은
+                  응답 운영 상태와 승인 큐를 우선 보여줍니다.
                 </p>
               </div>
             </div>
@@ -223,7 +238,7 @@ export function OmxPage() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-lg font-bold">Capability Matrix</h2>
-              <p className="text-sm text-muted-foreground">직접발송 가능 여부와 검증 단계를 채널별로 고정합니다.</p>
+              <p className="text-sm text-muted-foreground">현재 구현 범위와 후순위 채널을 분리해서 보여줍니다.</p>
             </div>
           </div>
           <div className="grid gap-3 xl:grid-cols-2">
@@ -429,7 +444,7 @@ export function OmxPage() {
         <section className="space-y-3">
           <div>
             <h2 className="text-lg font-bold">실행 순서</h2>
-            <p className="text-sm text-muted-foreground">사용자가 정한 OMX rollout 순서를 그대로 반영합니다.</p>
+            <p className="text-sm text-muted-foreground">주문은 사방넷, OMX는 응답 운영 보완 레이어라는 기준을 반영합니다.</p>
           </div>
           <div className="grid gap-3 xl:grid-cols-3">
             {OMX_RUNBOOK.map((step) => (

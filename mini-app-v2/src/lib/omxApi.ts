@@ -20,6 +20,26 @@ interface OmxChannelConfig {
   sendUrl: string;
 }
 
+interface OmxRuntimeConfigFile {
+  forceMock?: boolean;
+  sharedKey?: string;
+  VITE_OMX_FORCE_MOCK?: boolean | string;
+  VITE_OMX_SHARED_KEY?: string;
+  smartstore?: Partial<Omit<OmxChannelConfig, "channel" | "channelLabel">>;
+  makeshop?: Partial<Omit<OmxChannelConfig, "channel" | "channelLabel">>;
+  VITE_OMX_SMARTSTORE_FETCH_URL?: string;
+  VITE_OMX_SMARTSTORE_SEND_URL?: string;
+  VITE_OMX_MAKESHOP_FETCH_URL?: string;
+  VITE_OMX_MAKESHOP_SEND_URL?: string;
+}
+
+interface OmxResolvedConfig {
+  sharedKey: string;
+  forceMock: boolean;
+  source: "env" | "runtime" | "merged";
+  channels: OmxChannelConfig[];
+}
+
 export interface OmxSourceState {
   channel: OmxChannel;
   channelLabel: string;
@@ -32,6 +52,9 @@ export interface OmxSourceState {
   lastResultCount?: number;
   lastError?: string;
   metaSummary?: string;
+  fetchUrl?: string;
+  sendUrl?: string;
+  configSource?: "env" | "runtime" | "merged";
 }
 
 interface OmxAdapterItem {
@@ -90,12 +113,21 @@ export interface OmxWorkspaceResponse {
   mode: OmxWorkspaceMode;
   sourceStates: OmxSourceState[];
   fetchedAt: string;
+  configSummary: OmxLiveConfigSummary;
 }
 
-const SHARED_KEY = String(import.meta.env.VITE_OMX_SHARED_KEY || "").trim();
-const FORCE_MOCK = String(import.meta.env.VITE_OMX_FORCE_MOCK || "").trim().toLowerCase() === "true";
+export interface OmxLiveConfigSummary {
+  forceMock: boolean;
+  hasSharedKey: boolean;
+  sourceLabel: "env" | "runtime" | "merged";
+  fetchConfiguredCount: number;
+  sendConfiguredCount: number;
+}
 
-const CHANNEL_CONFIGS: OmxChannelConfig[] = [
+const ENV_SHARED_KEY = String(import.meta.env.VITE_OMX_SHARED_KEY || "").trim();
+const ENV_FORCE_MOCK = String(import.meta.env.VITE_OMX_FORCE_MOCK || "").trim().toLowerCase() === "true";
+
+const ENV_CHANNEL_CONFIGS: OmxChannelConfig[] = [
   {
     channel: "smartstore",
     channelLabel: "스마트스토어",
@@ -111,16 +143,119 @@ const CHANNEL_CONFIGS: OmxChannelConfig[] = [
 ];
 
 const ACTIVE_CHANNELS = new Set<OmxChannel>(["smartstore", "makeshop"]);
+let omxResolvedConfigPromise: Promise<OmxResolvedConfig> | null = null;
 
-function buildHeaders(hasJsonBody = false): HeadersInit {
+function buildHeaders(sharedKey: string, hasJsonBody = false): HeadersInit {
   const headers: Record<string, string> = {};
   if (hasJsonBody) {
     headers["Content-Type"] = "application/json";
   }
-  if (SHARED_KEY) {
-    headers["x-omx-source-key"] = SHARED_KEY;
+  if (sharedKey) {
+    headers["x-omx-source-key"] = sharedKey;
   }
   return headers;
+}
+
+function normalizeBoolean(value: unknown): boolean | undefined {
+  if (typeof value === "boolean") {
+    return value;
+  }
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase();
+    if (normalized === "true") return true;
+    if (normalized === "false") return false;
+  }
+  return undefined;
+}
+
+function applyChannelOverride(
+  base: OmxChannelConfig,
+  nested: Partial<Omit<OmxChannelConfig, "channel" | "channelLabel">> | undefined,
+  flatFetchUrl: string | undefined,
+  flatSendUrl: string | undefined,
+): OmxChannelConfig {
+  return {
+    ...base,
+    fetchUrl: String(nested?.fetchUrl || flatFetchUrl || base.fetchUrl || "").trim(),
+    sendUrl: String(nested?.sendUrl || flatSendUrl || base.sendUrl || "").trim(),
+  };
+}
+
+async function loadOmxRuntimeConfigFile(): Promise<OmxRuntimeConfigFile | null> {
+  try {
+    const response = await fetch("/omx-config.json", {
+      cache: "no-store",
+    });
+    if (!response.ok) {
+      return null;
+    }
+    return (await response.json()) as OmxRuntimeConfigFile;
+  } catch {
+    return null;
+  }
+}
+
+async function resolveOmxConfig(): Promise<OmxResolvedConfig> {
+  if (!omxResolvedConfigPromise) {
+    omxResolvedConfigPromise = (async () => {
+      const runtime = await loadOmxRuntimeConfigFile();
+      if (!runtime) {
+        return {
+          sharedKey: ENV_SHARED_KEY,
+          forceMock: ENV_FORCE_MOCK,
+          source: "env",
+          channels: ENV_CHANNEL_CONFIGS,
+        };
+      }
+
+      const runtimeForceMock =
+        normalizeBoolean(runtime.forceMock) ?? normalizeBoolean(runtime.VITE_OMX_FORCE_MOCK);
+      const runtimeSharedKey = String(runtime.sharedKey || runtime.VITE_OMX_SHARED_KEY || "").trim();
+      const channels = ENV_CHANNEL_CONFIGS.map((config) => {
+        if (config.channel === "smartstore") {
+          return applyChannelOverride(
+            config,
+            runtime.smartstore,
+            runtime.VITE_OMX_SMARTSTORE_FETCH_URL,
+            runtime.VITE_OMX_SMARTSTORE_SEND_URL,
+          );
+        }
+        return applyChannelOverride(
+          config,
+          runtime.makeshop,
+          runtime.VITE_OMX_MAKESHOP_FETCH_URL,
+          runtime.VITE_OMX_MAKESHOP_SEND_URL,
+        );
+      });
+
+      const hasRuntimeOverride =
+        runtimeForceMock !== undefined ||
+        Boolean(runtimeSharedKey) ||
+        channels.some((channel, index) => {
+          const envChannel = ENV_CHANNEL_CONFIGS[index];
+          return channel.fetchUrl !== envChannel.fetchUrl || channel.sendUrl !== envChannel.sendUrl;
+        });
+
+      return {
+        sharedKey: runtimeSharedKey || ENV_SHARED_KEY,
+        forceMock: runtimeForceMock ?? ENV_FORCE_MOCK,
+        source: hasRuntimeOverride ? (ENV_SHARED_KEY || ENV_FORCE_MOCK || ENV_CHANNEL_CONFIGS.some((config) => config.fetchUrl || config.sendUrl) ? "merged" : "runtime") : "env",
+        channels,
+      };
+    })();
+  }
+
+  return omxResolvedConfigPromise;
+}
+
+function toConfigSummary(config: OmxResolvedConfig): OmxLiveConfigSummary {
+  return {
+    forceMock: config.forceMock,
+    hasSharedKey: Boolean(config.sharedKey),
+    sourceLabel: config.source,
+    fetchConfiguredCount: config.channels.filter((channel) => Boolean(channel.fetchUrl)).length,
+    sendConfiguredCount: config.channels.filter((channel) => Boolean(channel.sendUrl)).length,
+  };
 }
 
 function parseDate(value?: string): string {
@@ -314,35 +449,41 @@ async function parseJsonResponse<T>(response: Response): Promise<T> {
 export async function fetchOmxWorkspace(): Promise<OmxWorkspaceResponse> {
   const fetchedAt = new Date().toISOString();
   const capabilityIndex = buildCapabilityIndex();
-  const baseStates: OmxSourceState[] = CHANNEL_CONFIGS.map((config) => ({
+  const resolvedConfig = await resolveOmxConfig();
+  const configSummary = toConfigSummary(resolvedConfig);
+  const baseStates: OmxSourceState[] = resolvedConfig.channels.map((config) => ({
     channel: config.channel,
     channelLabel: config.channelLabel,
     fetchConfigured: Boolean(config.fetchUrl),
     sendConfigured: Boolean(config.sendUrl),
     fetchOk: false,
     sendOk: Boolean(config.sendUrl),
-    configuredMode: config.fetchUrl && !FORCE_MOCK ? "live" : "mock",
+    configuredMode: config.fetchUrl && !resolvedConfig.forceMock ? "live" : "mock",
+    fetchUrl: config.fetchUrl || undefined,
+    sendUrl: config.sendUrl || undefined,
+    configSource: resolvedConfig.source,
   }));
 
-  if (FORCE_MOCK || !CHANNEL_CONFIGS.some((config) => config.fetchUrl)) {
+  if (resolvedConfig.forceMock || !resolvedConfig.channels.some((config) => config.fetchUrl)) {
     return {
       items: OMX_QUEUE_ITEMS.filter((item) => ACTIVE_CHANNELS.has(item.channel as OmxChannel)),
       mode: "mock",
       sourceStates: baseStates,
       fetchedAt,
+      configSummary,
     };
   }
 
   const queueItems: OmxQueueItem[] = [];
   const sourceStates = await Promise.all(
-    CHANNEL_CONFIGS.map(async (config, index): Promise<OmxSourceState> => {
+    resolvedConfig.channels.map(async (config, index): Promise<OmxSourceState> => {
       if (!config.fetchUrl) {
         return baseStates[index];
       }
 
       try {
         const response = await fetch(config.fetchUrl, {
-          headers: buildHeaders(false),
+          headers: buildHeaders(resolvedConfig.sharedKey, false),
         });
         if (!response.ok) {
           throw new Error(`HTTP ${response.status}`);
@@ -381,6 +522,7 @@ export async function fetchOmxWorkspace(): Promise<OmxWorkspaceResponse> {
       mode: "mock",
       sourceStates,
       fetchedAt,
+      configSummary,
     };
   }
 
@@ -390,6 +532,7 @@ export async function fetchOmxWorkspace(): Promise<OmxWorkspaceResponse> {
     mode: successCount === sourceStates.filter((state) => state.fetchConfigured).length ? "live" : "partial",
     sourceStates,
     fetchedAt,
+    configSummary,
   };
 }
 
@@ -399,6 +542,7 @@ export async function sendOmxReplies(
   dispatchMode: OmxDispatchMode,
 ): Promise<OmxSendResult[]> {
   const results: OmxSendResult[] = [];
+  const resolvedConfig = await resolveOmxConfig();
   const grouped = new Map<OmxChannel, OmxQueueItem[]>();
 
   items.forEach((item) => {
@@ -411,7 +555,7 @@ export async function sendOmxReplies(
     grouped.set(channel, bucket);
   });
 
-  for (const config of CHANNEL_CONFIGS) {
+  for (const config of resolvedConfig.channels) {
     const channelItems = grouped.get(config.channel) || [];
     if (!channelItems.length) {
       continue;
@@ -450,7 +594,7 @@ export async function sendOmxReplies(
     try {
       const response = await fetch(config.sendUrl, {
         method: "POST",
-        headers: buildHeaders(true),
+        headers: buildHeaders(resolvedConfig.sharedKey, true),
         body: JSON.stringify(body),
       });
 
@@ -500,9 +644,7 @@ export async function sendOmxReplies(
   return results;
 }
 
-export function getOmxLiveConfigSummary(): { forceMock: boolean; hasSharedKey: boolean } {
-  return {
-    forceMock: FORCE_MOCK,
-    hasSharedKey: Boolean(SHARED_KEY),
-  };
+export async function getOmxLiveConfigSummary(): Promise<OmxLiveConfigSummary> {
+  const resolvedConfig = await resolveOmxConfig();
+  return toConfigSummary(resolvedConfig);
 }

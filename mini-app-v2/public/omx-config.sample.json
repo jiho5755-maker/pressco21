@@ -1,0 +1,12 @@
+{
+  "forceMock": false,
+  "sharedKey": "replace-with-omx-shared-key",
+  "smartstore": {
+    "fetchUrl": "https://n8n.pressco21.com/webhook/openmarket/smartstore/inquiries?onlyPending=true",
+    "sendUrl": "https://n8n.pressco21.com/webhook/openmarket/smartstore/replies"
+  },
+  "makeshop": {
+    "fetchUrl": "https://n8n.pressco21.com/webhook/openmarket/makeshop/items",
+    "sendUrl": "https://n8n.pressco21.com/webhook/openmarket/makeshop/replies"
+  }
+}

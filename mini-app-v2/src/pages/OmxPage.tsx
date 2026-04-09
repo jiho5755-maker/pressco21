@@ -32,9 +32,9 @@ import {
 import {
   fetchOmxWorkspace,
   generateOmxDraft,
-  getOmxLiveConfigSummary,
   sendOmxReplies,
   type OmxDispatchMode,
+  type OmxLiveConfigSummary,
   type OmxSourceState,
   type OmxWorkspaceMode,
 } from "@/lib/omxApi";
@@ -123,7 +123,6 @@ function modeLabel(mode: OmxWorkspaceMode): string {
 
 export function OmxPage() {
   const { showToast } = useToast();
-  const liveConfig = useMemo(() => getOmxLiveConfigSummary(), []);
   const activeCapabilities = useMemo(
     () => OMX_CAPABILITIES.filter((capability) => capability.channel !== "coupang"),
     [],
@@ -144,6 +143,13 @@ export function OmxPage() {
   const [sourceStates, setSourceStates] = useState<OmxSourceState[]>([]);
   const [workspaceMode, setWorkspaceMode] = useState<OmxWorkspaceMode>("mock");
   const [lastFetchedAt, setLastFetchedAt] = useState<string>("");
+  const [liveConfig, setLiveConfig] = useState<OmxLiveConfigSummary>({
+    forceMock: false,
+    hasSharedKey: false,
+    sourceLabel: "env",
+    fetchConfiguredCount: 0,
+    sendConfiguredCount: 0,
+  });
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [isSending, setIsSending] = useState(false);
   const [dispatchMode, setDispatchMode] = useState<OmxDispatchMode>("DRY_RUN");
@@ -278,6 +284,7 @@ export function OmxPage() {
       setSourceStates(workspace.sourceStates);
       setWorkspaceMode(workspace.mode);
       setLastFetchedAt(workspace.fetchedAt);
+      setLiveConfig(workspace.configSummary);
       if (!silent) {
         showToast(
           workspace.mode === "mock" ? "실연동 endpoint가 없어 목업 데이터로 불러왔습니다" : "실데이터를 새로고침했습니다",
@@ -509,6 +516,8 @@ export function OmxPage() {
                   </p>
                   {state.lastFetchedAt && <p className="mt-1 text-xs text-muted-foreground">last sync {formatDate(state.lastFetchedAt)}</p>}
                   {state.metaSummary && <p className="mt-2 text-xs text-muted-foreground">meta: {state.metaSummary}</p>}
+                  {state.fetchUrl && <p className="mt-2 truncate text-xs text-muted-foreground">fetch: {state.fetchUrl}</p>}
+                  {state.sendUrl && <p className="truncate text-xs text-muted-foreground">send: {state.sendUrl}</p>}
                 </div>
               ))}
             </div>
@@ -516,8 +525,9 @@ export function OmxPage() {
             <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
               <p className="font-semibold">실연동 준비 상태</p>
               <p className="mt-1">
-                shared key {liveConfig.hasSharedKey ? "설정됨" : "미설정"} · force mock {liveConfig.forceMock ? "ON" : "OFF"} ·
-                last sync {lastFetchedAt ? formatDate(lastFetchedAt) : "없음"}
+                config {liveConfig.sourceLabel.toUpperCase()} · shared key {liveConfig.hasSharedKey ? "설정됨" : "미설정"} ·
+                force mock {liveConfig.forceMock ? "ON" : "OFF"} · fetch {liveConfig.fetchConfiguredCount}/2 · send{" "}
+                {liveConfig.sendConfiguredCount}/2 · last sync {lastFetchedAt ? formatDate(lastFetchedAt) : "없음"}
               </p>
             </div>
           </CardContent>

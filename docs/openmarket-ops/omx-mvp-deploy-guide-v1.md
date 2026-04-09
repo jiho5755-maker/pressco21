@@ -1,0 +1,140 @@
+# OMX MVP Deploy Guide v1
+
+> 작성일: 2026-04-09  
+> 범위: 스마트스토어 + 메이크샵 문의/리뷰 승인형 응답 허브
+
+---
+
+## 1. 현재 MVP 상태
+
+- OMX 프런트: `mini-app-v2 /omx`
+- 주문 처리: 사방넷
+- 응답 운영: 스마트스토어 + 메이크샵
+- 채널톡/쿠팡/11번가: 현재 범위 제외
+
+---
+
+## 2. 배포 자산
+
+### 2.1 프런트
+
+- 코드: `mini-app-v2`
+- runtime config:
+  - 기본 파일: `mini-app-v2/public/omx-config.json`
+  - 샘플 파일: `mini-app-v2/public/omx-config.sample.json`
+- build-time env 샘플:
+  - `mini-app-v2/.env.example`
+
+### 2.2 n8n workflow
+
+- `n8n-automation/workflows/automation/omx-smartstore-inquiries.json`
+- `n8n-automation/workflows/automation/omx-smartstore-replies.json`
+- `n8n-automation/workflows/automation/omx-makeshop-items.json`
+- `n8n-automation/workflows/automation/omx-makeshop-replies.json`
+
+### 2.3 n8n upsert 스크립트
+
+- `tools/openmarket/omx_n8n_upsert.py`
+
+이 스크립트는 workflow 이름 기준으로 `create/update`를 자동 처리한다.
+
+---
+
+## 3. 생성된 운영 workflow ID
+
+2026-04-09 생성 완료:
+
+- 스마트스토어 fetch: `ziX2O7lkl8pyeKBW`
+- 스마트스토어 send: `UQS8JOcWqMUtuJdq`
+- 메이크샵 fetch: `XPGHCada6xaqXp1Y`
+- 메이크샵 send: `fbkI72Jy0teldzy2`
+
+현재 상태:
+
+- 4개 모두 `inactive`
+- 이유:
+  - 운영 n8n env에 `OMX_SHARED_KEY`, `NAVER_COMMERCE_*`, `MAKESHOP_*` 주입 여부 확인 전
+  - 현재 workflow는 fail-closed로 동작하므로 shared key가 없으면 요청을 거부한다.
+
+---
+
+## 4. 운영 적용 순서
+
+1. n8n 운영 환경 변수 추가
+   - `OMX_SHARED_KEY`
+   - `NAVER_COMMERCE_ACCESS_TOKEN` 또는 대응 토큰 변수
+   - `MAKESHOP_DOMAIN`
+   - `MAKESHOP_SHOPKEY`
+   - `MAKESHOP_LICENSEKEY`
+
+2. workflow upsert
+
+```bash
+python3 tools/openmarket/omx_n8n_upsert.py \
+  n8n-automation/workflows/automation/omx-smartstore-inquiries.json \
+  n8n-automation/workflows/automation/omx-smartstore-replies.json \
+  n8n-automation/workflows/automation/omx-makeshop-items.json \
+  n8n-automation/workflows/automation/omx-makeshop-replies.json
+```
+
+3. n8n에서 4개 workflow 활성화
+
+4. OMX runtime config 작성
+
+`mini-app-v2/public/omx-config.sample.json` 기준으로 `omx-config.json`을 채운다.
+
+예시:
+
+```json
+{
+  "forceMock": false,
+  "sharedKey": "replace-with-omx-shared-key",
+  "smartstore": {
+    "fetchUrl": "https://n8n.pressco21.com/webhook/openmarket/smartstore/inquiries?onlyPending=true",
+    "sendUrl": "https://n8n.pressco21.com/webhook/openmarket/smartstore/replies"
+  },
+  "makeshop": {
+    "fetchUrl": "https://n8n.pressco21.com/webhook/openmarket/makeshop/items",
+    "sendUrl": "https://n8n.pressco21.com/webhook/openmarket/makeshop/replies"
+  }
+}
+```
+
+5. 프런트 배포
+
+```bash
+cd mini-app-v2
+bash scripts/deploy.sh
+```
+
+6. 첫 검증 순서
+   - OMX `/omx` 접속
+   - `DRY_RUN` 상태에서 새로고침
+   - 스마트스토어/메이크샵 source card 확인
+   - 문의 1건 선택 후 `DRY_RUN`
+   - 승인된 테스트 케이스 1건만 `LIVE_SEND`
+
+---
+
+## 5. 현재까지 검증된 것
+
+- 스마트스토어
+  - 실계정 문의 조회 검증 완료
+  - 상품 문의 답변 실발송 검증 완료
+- 메이크샵
+  - 실read 검증 완료
+  - write는 공식 문서 검증 완료, 실write는 승인된 케이스 1건 남음
+- OMX 프런트
+  - 실조회/일괄 선택/DRY_RUN/LIVE_SEND UI 구현 완료
+  - runtime config fallback 추가 완료
+
+---
+
+## 6. 남은 MVP 체크리스트
+
+- 운영 n8n env 주입
+- workflow activation
+- 스마트스토어 fetch endpoint 실응답 확인
+- 메이크샵 fetch endpoint 실응답 확인
+- 메이크샵 inquiry/review 실write 1건 검증
+- mini.pressco21.com `/omx` 실사용 테스트

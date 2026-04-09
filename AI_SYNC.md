@@ -34,6 +34,44 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-09 OMX 실사용 MVP 전환 준비 1차 완료 (codex)
+  - `mini-app-v2/src/lib/omxApi.ts`
+    - build-time env와 `public/omx-config.json` runtime config를 병합하도록 변경
+    - fetch/send URL, config source, configured count를 프런트에서 표시할 수 있게 보강
+  - `mini-app-v2/src/pages/OmxPage.tsx`
+    - source card에 실제 endpoint 표시 추가
+    - config source, fetch/send configured count, shared key 상태를 상단에 표시하도록 수정
+  - `mini-app-v2/public/omx-config.json`
+  - `mini-app-v2/public/omx-config.sample.json`
+  - `mini-app-v2/.env.example`
+    - OMX 운영 설정 템플릿 추가
+  - `tools/openmarket/omx_n8n_upsert.py`
+    - n8n workflow를 이름 기준으로 create/update 하는 upsert 스크립트 추가
+  - `n8n-automation/workflows/automation/omx-smartstore-inquiries.json`
+  - `n8n-automation/workflows/automation/omx-smartstore-replies.json`
+  - `n8n-automation/workflows/automation/omx-makeshop-items.json`
+  - `n8n-automation/workflows/automation/omx-makeshop-replies.json`
+    - OMX 운영용 workflow JSON을 실제 배포 경로에 추가
+  - `docs/openmarket-ops/omx-mvp-deploy-guide-v1.md`
+    - workflow ID, runtime config, 배포 순서, 남은 체크리스트 문서화
+  - `docs/openmarket-ops/*adapter*n8n-draft.json`
+    - 4개 workflow에 `OMX_SHARED_KEY` fail-closed 검증 추가
+    - smartstore/makeshop send workflow는 DRY_RUN에서 실자격 증명 없이도 동작하도록 보강
+  - n8n 운영 API 반영
+    - 생성/업데이트된 workflow ID
+      - `ziX2O7lkl8pyeKBW` 스마트스토어 fetch
+      - `UQS8JOcWqMUtuJdq` 스마트스토어 send
+      - `XPGHCada6xaqXp1Y` 메이크샵 fetch
+      - `fbkI72Jy0teldzy2` 메이크샵 send
+    - 현재 4개 모두 inactive 상태
+  - 배포
+    - `cd mini-app-v2 && bash scripts/deploy.sh`
+    - `https://mini.pressco21.com/omx` 200 확인
+    - `https://mini.pressco21.com/omx-config.json` 배포 확인
+  - 검증
+    - `python3 -m py_compile tools/openmarket/omx_n8n_upsert.py`
+    - `jq empty`로 OMX workflow/draft JSON 검증
+    - `cd mini-app-v2 && npm run build`
 - 2026-04-09 OMX 스마트스토어/메이크샵 webhook draft 추가 (codex)
   - `docs/openmarket-ops/smartstore-reply-adapter-n8n-draft.json`
     - 스마트스토어 `DRY_RUN/LIVE_SEND` 승인형 답변 send webhook 초안 추가
@@ -283,6 +321,9 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라)
 
 ### Codex 담당
+- `[CODEX-LEAD]` 운영 n8n에 `OMX_SHARED_KEY`, `NAVER_COMMERCE_*`, `MAKESHOP_*` 주입 경로 확인
+- `[CODEX-LEAD]` 생성된 OMX workflow 4개를 활성화하고 smartstore/makeshop fetch endpoint 실응답 확인
+- `[CODEX-LEAD]` `mini.pressco21.com/omx`에 runtime `omx-config.json` 실값 반영 후 DRY_RUN 1회, LIVE_SEND 1회 검증
 - `[CODEX-LEAD]` 스마트스토어 fetch/send webhook을 운영 n8n에 import하고 실제 문의 1건으로 DRY_RUN/LIVE_SEND를 검증
 - `[CODEX-LEAD]` 메이크샵 fetch/send webhook을 운영 n8n에 import하고 승인형 write 1건을 안전한 케이스로 검증
 - `[CODEX-LEAD]` mini-app-v2 OMX 허브를 실제 adapter/NocoDB 데이터와 연결하고 DRY_RUN/LIVE_SEND feature flag를 서버값으로 분리

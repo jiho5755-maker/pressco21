@@ -22,10 +22,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-09 17:32:09 KST
+- Started At: 2026-04-09 23:08:00 KST
 - Branch: main
-- Working Scope: CRM 자동입금 초과 반영 로직 수정 및 서상견 고객 미수/예치금 정정
-- Active Subdirectory: offline-crm-v2
+- Working Scope: OMX 답변 워크벤치 UX 고도화
+- Active Subdirectory: mini-app-v2
 
 ## Files In Progress
 - AI_SYNC.md
@@ -37,6 +37,23 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-09 OMX 답변 워크벤치 UX 리디자인 1차 반영 (codex)
+  - `mini-app-v2/src/pages/OmxPage.tsx`
+    - 상단 설명 카드를 줄이고 `작업 상태 + 다음 우선 처리 건 + 실행 모드` 중심으로 재구성
+    - inbox를 작업자 기준으로 재정리
+      - 채널/상태/긴급도 기준 선별이 더 빠르게 보이도록 목록 카드 밀도 조정
+      - `발송 가능 건만 선택`, 필터 요약 수치, 우선 처리 건 안내 추가
+    - 상세 패널을 탭 구조로 재편
+      - `답변 작성`, `원문/메모`, `실행 결과`, `운영 정보`
+      - 답변 작성 탭에 템플릿 버튼, 복사 버튼, 글자 수, 고정 액션 바 추가
+    - 운영 정보는 작업면에서 분리해 source 상태/capability/runbook을 별도 탭에서 보도록 정리
+    - 성공 발송 후 다음 미처리 건으로 이동할 수 있도록 흐름 보강
+  - 검증
+    - `cd mini-app-v2 && npm run build`
+    - `cd mini-app-v2 && bash scripts/deploy.sh`
+    - `https://mini.pressco21.com/omx`
+      - 실데이터 기준으로 새 inbox 구조, 탭형 상세 패널, 템플릿/복사/고정 액션 바 렌더링 확인
+      - LIVE_SEND 안전장치와 DRY_RUN 흐름이 유지되는 것 확인
 - 2026-04-09 CRM 자동입금 초과 반영 로직 수정 + 서상견 고객 미수 정정 (codex)
   - `offline-crm-v2/src/pages/DepositInbox.tsx`
     - 검토 큐 초과 입금 반영 시 초과분을 바로 예치금으로 보내지 않고, 먼저 `기존 장부 미수`에 상계한 뒤 남는 금액만 예치금으로 적립하도록 수정
@@ -387,6 +404,9 @@
 - 2026-04-07 고객 상세 거래내역 인라인 편집 전환 (codex)
 
 ## Next Step
+- 스마트스토어 1건, 메이크샵 1건 기준으로 새 UX에서 실제 발송 검증을 다시 진행
+- 실행 결과/메모를 브라우저 세션이 아니라 서버 저장 이력으로 남길지 결정
+- 실사용 피드백 기준으로 inbox 정렬 규칙과 템플릿 세분화 2차 조정
 - 스마트스토어 상품문의 1건으로 OMX UI 기준 LIVE_SEND 실발송 검증
 - 메이크샵 inquiry/review 승인형 write 1건씩 실발송 검증
 - OMX 실행 결과를 세션 메모가 아니라 서버 저장 이력으로 남길지 결정

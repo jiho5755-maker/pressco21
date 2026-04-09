@@ -13,7 +13,9 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import {
   OMX_CAPABILITIES,
@@ -42,12 +44,17 @@ import {
   ArrowUpRight,
   Bot,
   CheckCircle2,
+  Clipboard,
   Clock3,
   Eye,
   FlaskConical,
+  Layers3,
+  ListFilter,
+  MessageSquareQuote,
   RefreshCw,
   Send,
   ShieldCheck,
+  Sparkles,
   TriangleAlert,
 } from "lucide-react";
 
@@ -62,6 +69,11 @@ type ExecutionLog = {
   ok: boolean;
   message: string;
   createdAt: string;
+};
+type DraftPreset = {
+  id: string;
+  label: string;
+  text: string;
 };
 
 const SEND_MODE_TONE: Record<OmxSendMode, string> = {
@@ -136,6 +148,45 @@ function modeLabel(mode: OmxWorkspaceMode): string {
   if (mode === "live") return "LIVE";
   if (mode === "partial") return "PARTIAL";
   return "MOCK";
+}
+
+function getInitials(name: string): string {
+  return name.replace(/\s+/g, "").slice(0, 2) || "고객";
+}
+
+function buildDraftPresets(item: OmxQueueItem): DraftPreset[] {
+  if (item.itemType === "review") {
+    return [
+      {
+        id: "thanks",
+        label: "감사형",
+        text: `소중한 후기 감사합니다. ${item.productName ? `${item.productName}을` : "상품을"} 만족스럽게 받아보셨다니 다행입니다. 다음 주문 때도 좋은 상태로 준비해드리겠습니다.`,
+      },
+      {
+        id: "repeat",
+        label: "재구매 유도형",
+        text: `정성스러운 후기 감사합니다. 작업에 도움이 되셨다니 기쁩니다. 다음에도 ${item.productName ? `${item.productName}` : "상품"}이 필요하실 때 좋은 상태로 준비해드리겠습니다.`,
+      },
+    ];
+  }
+
+  return [
+    {
+      id: "guide",
+      label: "사용 안내",
+      text: `안녕하세요 :) 문의주신 내용 확인했습니다. ${item.productName ? `${item.productName} 사용 시에는` : "작업 시에는"} 먼저 소량 테스트를 진행해보시고, 작업 환경과 재료 상태를 함께 확인해보시는 것을 권장드립니다. 필요한 내용은 최대한 자세히 안내드리겠습니다.`,
+    },
+    {
+      id: "confirm",
+      label: "확인 후 안내",
+      text: `안녕하세요. 문의주신 내용 확인했습니다. 정확한 안내를 위해 내부 기준과 현재 상태를 먼저 확인한 뒤 다시 자세히 답변드리겠습니다.`,
+    },
+    {
+      id: "delivery",
+      label: "배송/누락 확인",
+      text: `안녕하세요. 문의주신 내용 기준으로 출고 및 포장 이력을 먼저 확인해보겠습니다. 확인되는 내용대로 가능한 빠르게 다시 안내드리겠습니다.`,
+    },
+  ];
 }
 
 export function OmxPage() {
@@ -406,6 +457,25 @@ export function OmxPage() {
     showToast(`${selectedQueue.length}건을 승인대기로 이동했습니다`, "success");
   }
 
+  async function copyText(label: string, value: string) {
+    if (!value.trim()) {
+      showToast(`${label} 내용이 비어 있습니다`, "info");
+      return;
+    }
+    try {
+      await navigator.clipboard.writeText(value);
+      showToast(`${label}을 복사했습니다`, "success");
+    } catch {
+      showToast(`${label} 복사에 실패했습니다`, "error");
+    }
+  }
+
+  function applyDraftPreset(item: OmxQueueItem, text: string) {
+    updateDraft(item.id, text);
+    updateStatus(item.id, "editing");
+    showToast("템플릿 초안을 적용했습니다", "success");
+  }
+
   async function handleSendConfirmed() {
     if (!selectedSendableQueue.length) {
       setSendDialogOpen(false);
@@ -460,6 +530,18 @@ export function OmxPage() {
         return [...nextLogs, ...prev].slice(0, 12);
       });
 
+      if (dispatchMode === "LIVE_SEND" && selectedItem) {
+        const sentIds = new Set(results.filter((result) => result.ok).map((result) => result.id));
+        if (sentIds.has(selectedItem.id)) {
+          const nextCandidate = filteredQueue.find(
+            (item) => item.id !== selectedItem.id && !sentIds.has(item.id) && item.status !== "sent",
+          );
+          if (nextCandidate) {
+            setSelectedId(nextCandidate.id);
+          }
+        }
+      }
+
       showToast(
         dispatchMode === "LIVE_SEND"
           ? `${successCount}건 발송 완료${failureCount ? ` / ${failureCount}건 실패` : ""}`
@@ -484,6 +566,17 @@ export function OmxPage() {
     [runtimeQueue],
   );
   const liveSendConfirmed = dispatchMode === "DRY_RUN" || liveConfirmText.trim().toUpperCase() === "LIVE_SEND";
+  const selectedDraftLength = (drafts[selectedItem?.id || ""] || selectedItem?.aiDraft || "").trim().length;
+  const draftPresets = selectedItem ? buildDraftPresets(selectedItem) : [];
+  const actionSummary = useMemo(() => {
+    const pending = filteredQueue.filter((item) => item.status === "approval_pending").length;
+    const warning = filteredQueue.filter((item) => item.urgency === "warning" || item.urgency === "breach").length;
+    return { pending, warning, total: filteredQueue.length, selected: selectedQueue.length };
+  }, [filteredQueue, selectedQueue.length]);
+  const nextPriorityItem =
+    runtimeQueue.find((item) => item.urgency === "breach" && item.status !== "sent") ??
+    runtimeQueue.find((item) => item.urgency === "warning" && item.status !== "sent") ??
+    runtimeQueue.find((item) => item.status === "approval_pending");
 
   return (
     <div>
@@ -536,19 +629,22 @@ export function OmxPage() {
             </CardContent>
           </Card>
         </section>
-
-        <Card className="border-slate-200 bg-slate-50/80">
+        <Card className="border-slate-200 bg-slate-50/90">
           <CardContent className="space-y-4 p-4">
-            <div className="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-              <div className="space-y-2 text-sm text-slate-900">
-                <p className="font-semibold">현재 운영 원칙</p>
-                <p>
-                  주문 수집과 출고는 사방넷에서 처리하고, OMX는 스마트스토어와 메이크샵의 실제 문의/리뷰를 수집해
-                  `AI 초안 + 사람 승인 + 일괄 발송`으로 운영하는 보완 레이어입니다.
-                </p>
-                <p>
-                  채널톡과 쿠팡은 이번 범위에서 제외했고, 이 화면은 스마트스토어/메이크샵만 대상으로 실조회와 발송을
-                  진행합니다.
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="space-y-2">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge className="border border-slate-200 bg-white text-slate-700">
+                    config {liveConfig.sourceLabel.toUpperCase()}
+                  </Badge>
+                  <Badge className="border border-slate-200 bg-white text-slate-700">auth {authModeLabel}</Badge>
+                  <Badge className="border border-slate-200 bg-white text-slate-700">
+                    last sync {lastFetchedAt ? formatDate(lastFetchedAt) : "없음"}
+                  </Badge>
+                </div>
+                <p className="text-sm text-slate-900">
+                  주문은 사방넷에서 처리하고, 여기서는 스마트스토어/메이크샵 문의를 모아 `검토 → 승인 → 발송`만 빠르게
+                  처리합니다.
                 </p>
               </div>
               <div className="flex flex-wrap gap-2">
@@ -565,214 +661,169 @@ export function OmxPage() {
               </div>
             </div>
 
-            <div className="grid gap-3 xl:grid-cols-2">
-              {displaySourceStates.map((state) => (
-                <div key={state.channel} className="rounded-2xl border border-border/70 bg-white p-4 text-sm">
-                  <div className="mb-2 flex flex-wrap items-center gap-2">
-                    <p className="font-semibold">{state.channelLabel}</p>
-                    <Badge className={state.fetchConfigured ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-slate-100 text-slate-700 border border-slate-200"}>
-                      fetch {state.fetchConfigured ? "configured" : "missing"}
-                    </Badge>
-                    <Badge className={state.sendConfigured ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-700 border border-slate-200"}>
-                      send {state.sendConfigured ? "configured" : "missing"}
-                    </Badge>
-                  </div>
-                  <p className="text-muted-foreground">
-                    {state.fetchOk
-                      ? `${state.lastResultCount ?? 0}건 조회`
-                      : state.fetchConfigured
-                        ? `조회 실패: ${state.lastError || "unknown"}`
-                        : "환경변수 미설정으로 목업 모드"}
-                  </p>
-                  {state.lastFetchedAt && <p className="mt-1 text-xs text-muted-foreground">last sync {formatDate(state.lastFetchedAt)}</p>}
-                  {state.metaSummary && <p className="mt-2 text-xs text-muted-foreground">meta: {state.metaSummary}</p>}
-                  {state.fetchUrl && <p className="mt-2 truncate text-xs text-muted-foreground">fetch: {state.fetchUrl}</p>}
-                  {state.sendUrl && <p className="truncate text-xs text-muted-foreground">send: {state.sendUrl}</p>}
+            <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_320px]">
+              <div className="rounded-2xl border border-border/70 bg-white p-4">
+                <div className="flex flex-wrap items-center gap-2 text-sm">
+                  <ListFilter className="h-4 w-4 text-slate-500" />
+                  <span>현재 필터</span>
+                  <Badge className="border border-slate-200 bg-slate-100 text-slate-700">{actionSummary.total}건</Badge>
+                  <Badge className="border border-amber-200 bg-amber-100 text-amber-700">승인대기 {actionSummary.pending}</Badge>
+                  <Badge className="border border-rose-200 bg-rose-100 text-rose-700">주의 {actionSummary.warning}</Badge>
+                  <Badge className="border border-emerald-200 bg-emerald-100 text-emerald-700">선택 {actionSummary.selected}</Badge>
                 </div>
-              ))}
-            </div>
+              </div>
 
-            <div className="rounded-2xl border border-blue-200 bg-blue-50 px-4 py-3 text-sm text-blue-950">
-              <p className="font-semibold">실연동 준비 상태</p>
-              <p className="mt-1">
-                config {liveConfig.sourceLabel.toUpperCase()} · auth {authModeLabel} ·
-                force mock {liveConfig.forceMock ? "ON" : "OFF"} · fetch {liveConfig.fetchConfiguredCount}/2 · send{" "}
-                {liveConfig.sendConfiguredCount}/2 · last sync {lastFetchedAt ? formatDate(lastFetchedAt) : "없음"}
-              </p>
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card className="border-blue-200 bg-blue-50/70">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Bot className="mt-0.5 h-5 w-5 text-blue-700" />
-              <div className="space-y-2 text-sm text-blue-950">
-                <p className="font-semibold">현재 1차 범위</p>
-                <p>
-                  스마트스토어는 실계정 문의 조회/상품문의 답변 검증이 완료됐고, 메이크샵은 read 검증과 공식 write 문서
-                  확인까지 완료된 상태입니다.
-                </p>
-                <p>
-                  이 화면은 실조회 endpoint가 연결되면 실제 고객 클레임을 바로 모아 보여주고, 선택 건을 DRY_RUN 또는
-                  LIVE_SEND로 일괄 발송할 수 있도록 설계했습니다.
-                </p>
+              <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+                <div className="flex items-start gap-2">
+                  <Bot className="mt-0.5 h-4 w-4 text-blue-700" />
+                  <div>
+                    <p className="font-semibold">다음 우선 처리 건</p>
+                    {nextPriorityItem ? (
+                      <p className="mt-1">
+                        {nextPriorityItem.channelLabel} · {nextPriorityItem.customerName} · {nextPriorityItem.title}
+                      </p>
+                    ) : (
+                      <p className="mt-1">현재 즉시 처리할 미발송 건이 없습니다.</p>
+                    )}
+                  </div>
+                </div>
               </div>
             </div>
           </CardContent>
         </Card>
 
-        <section className="space-y-3">
-          <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-lg font-bold">Capability Matrix</h2>
-              <p className="text-sm text-muted-foreground">현재 범위와 후속 채널을 구분해서 관리합니다.</p>
-            </div>
-          </div>
-          <div className="grid gap-3 xl:grid-cols-2">
-            {activeCapabilities.map((capability) => (
-              <Card key={capability.id} className="border-border/70">
-                <CardContent className="space-y-3 p-4">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <p className="font-semibold">{capability.channelLabel}</p>
-                    <Badge className="border border-slate-200 bg-slate-100 text-slate-700">
-                      {ITEM_TYPE_LABEL[capability.itemType]}
-                    </Badge>
-                    <Badge className={SEND_MODE_TONE[capability.sendMode]}>{SEND_MODE_LABEL[capability.sendMode]}</Badge>
-                    <Badge className={VALIDATION_TONE[capability.validationStatus]}>
-                      {VALIDATION_LABEL[capability.validationStatus]}
-                    </Badge>
-                  </div>
-                  <div className="grid gap-2 text-sm md:grid-cols-2">
-                    <div>
-                      <p className="text-muted-foreground">현재 판단</p>
-                      <p className="font-medium">{capability.currentDecision}</p>
-                    </div>
-                    <div>
-                      <p className="text-muted-foreground">수집 방식</p>
-                      <p className="font-medium">{INGEST_MODE_LABEL[capability.ingestMode]}</p>
-                    </div>
-                  </div>
-                  {capability.blocker && (
-                    <div className="rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-                      blocker: {capability.blocker}
-                    </div>
-                  )}
-                  <p className="text-sm text-muted-foreground">next: {capability.nextAction}</p>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </section>
-
-        <section className="grid gap-4 xl:grid-cols-[420px_minmax(0,1fr)]">
+        <section className="grid gap-4 xl:grid-cols-[420px_minmax(0,1fr)] xl:items-start">
           <Card className="border-border/70">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-base">실제 클레임 Inbox</CardTitle>
-              <div className="space-y-2 pt-2">
-                <Input
-                  value={searchText}
-                  onChange={(event) => setSearchText(event.target.value)}
-                  placeholder="고객명, 상품명, 문의 내용 검색"
-                />
-                <div className="flex flex-wrap gap-2">
-                  {CHANNEL_FILTERS.map((filter) => (
-                    <Button
-                      key={filter.key}
-                      type="button"
-                      size="sm"
-                      variant={channelFilter === filter.key ? "default" : "outline"}
-                      onClick={() => setChannelFilter(filter.key)}
-                    >
-                      {filter.label}
-                      {filter.key === "smartstore" ? ` ${channelCounts.smartstore}` : ""}
-                      {filter.key === "makeshop" ? ` ${channelCounts.makeshop}` : ""}
-                    </Button>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  {FILTERS.map((filter) => (
-                    <Button
-                      key={filter.key}
-                      type="button"
-                      size="sm"
-                      variant={queueFilter === filter.key ? "default" : "outline"}
-                      onClick={() => setQueueFilter(filter.key)}
-                    >
-                      {filter.label}
-                    </Button>
-                  ))}
-                </div>
-                <div className="flex flex-wrap gap-2">
-                  <Button type="button" size="sm" variant="outline" onClick={toggleSelectAllFiltered}>
-                    {allFilteredSelected ? "필터 전체 해제" : "필터 전체 선택"}
+            <CardHeader className="space-y-3 pb-3">
+              <div className="flex items-center justify-between gap-3">
+                <CardTitle className="text-base">실제 클레임 Inbox</CardTitle>
+                <Badge className="border border-slate-200 bg-slate-100 text-slate-700">{filteredQueue.length}건</Badge>
+              </div>
+              <Input
+                value={searchText}
+                onChange={(event) => setSearchText(event.target.value)}
+                placeholder="고객명, 상품명, 문의 내용 검색"
+              />
+              <div className="flex flex-wrap gap-2">
+                {CHANNEL_FILTERS.map((filter) => (
+                  <Button
+                    key={filter.key}
+                    type="button"
+                    size="sm"
+                    variant={channelFilter === filter.key ? "default" : "outline"}
+                    onClick={() => setChannelFilter(filter.key)}
+                  >
+                    {filter.label}
+                    {filter.key === "smartstore" ? ` ${channelCounts.smartstore}` : ""}
+                    {filter.key === "makeshop" ? ` ${channelCounts.makeshop}` : ""}
                   </Button>
-                  <Button type="button" size="sm" variant="outline" onClick={selectSendableInFilter}>
-                    발송 가능 건만 선택
+                ))}
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {FILTERS.map((filter) => (
+                  <Button
+                    key={filter.key}
+                    type="button"
+                    size="sm"
+                    variant={queueFilter === filter.key ? "default" : "outline"}
+                    onClick={() => setQueueFilter(filter.key)}
+                  >
+                    {filter.label}
                   </Button>
-                  <Button type="button" size="sm" variant="outline" onClick={regenerateSelectedDrafts}>
-                    선택 초안 재생성
-                  </Button>
-                  <Button type="button" size="sm" variant="outline" onClick={moveSelectedToApproval}>
-                    선택 승인대기
-                  </Button>
-                </div>
+                ))}
+              </div>
+              <div className="grid gap-2 sm:grid-cols-2">
+                <Button type="button" size="sm" variant="outline" onClick={toggleSelectAllFiltered}>
+                  {allFilteredSelected ? "필터 전체 해제" : "필터 전체 선택"}
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={selectSendableInFilter}>
+                  발송 가능 건만 선택
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={regenerateSelectedDrafts}>
+                  선택 초안 재생성
+                </Button>
+                <Button type="button" size="sm" variant="outline" onClick={moveSelectedToApproval}>
+                  선택 승인대기
+                </Button>
               </div>
             </CardHeader>
-            <CardContent className="space-y-3 p-3 pt-0">
-              {filteredQueue.length ? (
-                filteredQueue.map((item) => {
-                  const isActive = selectedItem?.id === item.id;
-                  return (
-                    <div
-                      key={item.id}
-                      className={`rounded-2xl border px-3 py-3 transition ${
-                        isActive ? "border-primary bg-primary/5" : "border-border/70 hover:border-primary/40"
-                      }`}
-                    >
-                      <div className="flex items-start gap-3">
-                        <input
-                          type="checkbox"
-                          checked={Boolean(selectedIds[item.id])}
-                          onChange={() => toggleSelect(item.id)}
-                          className="mt-1 h-4 w-4 rounded border-border"
-                        />
-                        <button type="button" onClick={() => setSelectedId(item.id)} className="flex-1 text-left">
-                          <div className="mb-2 flex flex-wrap items-center gap-2">
-                            <Badge className="border border-slate-200 bg-slate-100 text-slate-700">
-                              {item.channelLabel}
-                            </Badge>
-                            <Badge className={STATUS_TONE[item.status]}>{QUEUE_STATUS_LABEL[item.status]}</Badge>
-                            <Badge className={SEND_MODE_TONE[item.sendMode]}>{SEND_MODE_LABEL[item.sendMode]}</Badge>
+            <CardContent className="p-3 pt-0">
+              <ScrollArea className="h-[calc(100vh-355px)] min-h-[520px] pr-3">
+                <div className="space-y-3">
+                  {filteredQueue.length ? (
+                    filteredQueue.map((item) => {
+                      const isActive = selectedItem?.id === item.id;
+                      return (
+                        <div
+                          key={item.id}
+                          className={`rounded-2xl border px-3 py-3 transition ${
+                            isActive ? "border-primary bg-primary/5 shadow-sm" : "border-border/70 hover:border-primary/40"
+                          }`}
+                        >
+                          <div className="flex items-start gap-3">
+                            <input
+                              type="checkbox"
+                              checked={Boolean(selectedIds[item.id])}
+                              onChange={() => toggleSelect(item.id)}
+                              className="mt-1 h-4 w-4 rounded border-border"
+                            />
+                            <button type="button" onClick={() => setSelectedId(item.id)} className="flex-1 text-left">
+                              <div className="mb-2 flex items-center justify-between gap-2">
+                                <div className="flex flex-wrap items-center gap-2">
+                                  <Badge className="border border-slate-200 bg-slate-100 text-slate-700">
+                                    {item.channelLabel}
+                                  </Badge>
+                                  <Badge className={STATUS_TONE[item.status]}>{QUEUE_STATUS_LABEL[item.status]}</Badge>
+                                </div>
+                                <Badge
+                                  className={
+                                    item.urgency === "breach"
+                                      ? "border border-rose-200 bg-rose-100 text-rose-700"
+                                      : item.urgency === "warning"
+                                        ? "border border-amber-200 bg-amber-100 text-amber-700"
+                                        : "border border-slate-200 bg-slate-100 text-slate-700"
+                                  }
+                                >
+                                  {URGENCY_LABEL[item.urgency]}
+                                </Badge>
+                              </div>
+                              <p className="line-clamp-1 font-semibold leading-snug">{item.title}</p>
+                              <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.body}</p>
+                              <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
+                                <span>
+                                  {item.customerName} · {item.assignee}
+                                </span>
+                                <span>{formatDate(item.receivedAt)}</span>
+                              </div>
+                            </button>
                           </div>
-                          <p className="font-semibold leading-snug">{item.title}</p>
-                          <p className="mt-1 line-clamp-2 text-sm text-muted-foreground">{item.body}</p>
-                          <div className="mt-3 flex items-center justify-between text-xs text-muted-foreground">
-                            <span>{item.assignee}</span>
-                            <span>{formatDate(item.receivedAt)}</span>
-                          </div>
-                        </button>
-                      </div>
+                        </div>
+                      );
+                    })
+                  ) : (
+                    <div className="rounded-2xl border border-dashed border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
+                      현재 필터에서 보여줄 문의가 없습니다.
                     </div>
-                  );
-                })
-              ) : (
-                <div className="rounded-2xl border border-dashed border-border/70 px-4 py-8 text-center text-sm text-muted-foreground">
-                  현재 필터에서 보여줄 문의가 없습니다.
+                  )}
                 </div>
-              )}
+              </ScrollArea>
             </CardContent>
           </Card>
 
           {selectedItem && (
             <Card className="border-border/70">
-              <CardHeader className="pb-3">
+              <CardHeader className="space-y-3 pb-3">
                 <div className="flex flex-wrap items-start justify-between gap-3">
-                  <div>
-                    <CardTitle className="text-base">{selectedItem.title}</CardTitle>
-                    <p className="mt-1 text-sm text-muted-foreground">
-                      {selectedItem.channelLabel} · {ITEM_TYPE_LABEL[selectedItem.itemType]} · 접수 {formatDate(selectedItem.receivedAt)}
-                    </p>
+                  <div className="flex items-start gap-3">
+                    <div className="flex h-11 w-11 items-center justify-center rounded-2xl bg-slate-100 text-sm font-semibold text-slate-700">
+                      {getInitials(selectedItem.customerName)}
+                    </div>
+                    <div>
+                      <CardTitle className="text-base">{selectedItem.title}</CardTitle>
+                      <p className="mt-1 text-sm text-muted-foreground">
+                        {selectedItem.channelLabel} · {ITEM_TYPE_LABEL[selectedItem.itemType]} · 접수 {formatDate(selectedItem.receivedAt)}
+                      </p>
+                    </div>
                   </div>
                   <div className="flex flex-wrap gap-2">
                     <Badge className={SEND_MODE_TONE[selectedItem.sendMode]}>{SEND_MODE_LABEL[selectedItem.sendMode]}</Badge>
@@ -784,8 +835,6 @@ export function OmxPage() {
                     </Badge>
                   </div>
                 </div>
-              </CardHeader>
-              <CardContent className="space-y-4">
                 <div className="grid gap-3 md:grid-cols-3">
                   <div className="rounded-2xl border border-border/70 p-3">
                     <p className="mb-1 text-xs text-muted-foreground">고객</p>
@@ -800,169 +849,266 @@ export function OmxPage() {
                     <p className="font-medium">{selectedQueue.length}건</p>
                   </div>
                 </div>
+              </CardHeader>
+              <CardContent>
+                <Tabs defaultValue="reply" className="space-y-4">
+                  <TabsList className="grid w-full grid-cols-4">
+                    <TabsTrigger value="reply">답변 작성</TabsTrigger>
+                    <TabsTrigger value="source">원문/메모</TabsTrigger>
+                    <TabsTrigger value="logs">실행 결과</TabsTrigger>
+                    <TabsTrigger value="ops">운영 정보</TabsTrigger>
+                  </TabsList>
 
-                <div className="rounded-2xl border border-border/70 p-4 space-y-2">
-                  <p className="text-sm font-semibold">원문</p>
-                  <p className="text-sm leading-6 text-foreground">{selectedItem.body}</p>
-                  <Separator />
-                  <div className="grid gap-2 text-sm md:grid-cols-2">
-                    <div>
-                      <p className="text-muted-foreground">raw payload</p>
-                      <p>{selectedItem.rawPayloadSummary}</p>
+                  <TabsContent value="reply" className="space-y-4">
+                    <div className="rounded-2xl border border-border/70 bg-slate-50 p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div>
+                          <p className="text-sm font-semibold">원문 빠른 확인</p>
+                          <p className="mt-2 text-sm leading-6 text-foreground">{selectedItem.body}</p>
+                        </div>
+                        <div className="flex flex-col gap-2">
+                          <Button type="button" size="sm" variant="outline" onClick={() => void copyText("원문", selectedItem.body)}>
+                            <Clipboard className="mr-1 h-4 w-4" />
+                            원문 복사
+                          </Button>
+                          {selectedItem.sourceUrl && (
+                            <a
+                              href={selectedItem.sourceUrl}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground shadow-xs transition-[color,box-shadow] hover:bg-accent hover:text-accent-foreground"
+                            >
+                              <ArrowUpRight className="mr-1 h-4 w-4" />
+                              원문 열기
+                            </a>
+                          )}
+                        </div>
+                      </div>
                     </div>
-                    <div>
-                      <p className="text-muted-foreground">내부 메모</p>
-                      <p>{selectedItem.internalNote || "-"}</p>
+
+                    <div className="rounded-2xl border border-border/70 p-4 space-y-4">
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <div className="flex items-center gap-2">
+                          <Sparkles className="h-4 w-4 text-violet-600" />
+                          <p className="text-sm font-semibold">답변 초안</p>
+                        </div>
+                        <div className="flex flex-wrap gap-2">
+                          <Button type="button" size="sm" variant="outline" onClick={() => regenerateDraft(selectedItem)}>
+                            <RefreshCw className="mr-1 h-4 w-4" />
+                            AI 초안 재생성
+                          </Button>
+                          <Button type="button" size="sm" variant="outline" onClick={() => void copyText("답변", drafts[selectedItem.id] ?? selectedItem.aiDraft)}>
+                            <Clipboard className="mr-1 h-4 w-4" />
+                            답변 복사
+                          </Button>
+                          <Button type="button" size="sm" variant="outline" onClick={() => toggleSelect(selectedItem.id)}>
+                            <Layers3 className="mr-1 h-4 w-4" />
+                            {selectedIds[selectedItem.id] ? "선택 해제" : "선택 추가"}
+                          </Button>
+                        </div>
+                      </div>
+
+                      <div className="flex flex-wrap gap-2">
+                        {draftPresets.map((preset) => (
+                          <Button
+                            key={preset.id}
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            onClick={() => applyDraftPreset(selectedItem, preset.text)}
+                          >
+                            {preset.label}
+                          </Button>
+                        ))}
+                      </div>
+
+                      <Textarea
+                        className="min-h-[260px]"
+                        value={drafts[selectedItem.id] ?? selectedItem.aiDraft}
+                        onChange={(event) => {
+                          updateDraft(selectedItem.id, event.target.value);
+                          updateStatus(selectedItem.id, "editing");
+                        }}
+                      />
+                      <div className="flex items-center justify-between text-xs text-muted-foreground">
+                        <span>발송 전에 문구를 한 번 더 읽고 톤을 맞춰주세요.</span>
+                        <span>{selectedDraftLength}자</span>
+                      </div>
+
+                      <Textarea
+                        className="min-h-[96px]"
+                        value={notes[selectedItem.id] ?? ""}
+                        onChange={(event) => updateNote(selectedItem.id, event.target.value)}
+                        placeholder="내부 메모 / 재고 확인 / 고객별 주의사항"
+                      />
                     </div>
-                  </div>
-                  {selectedItem.sourceUrl && (
-                    <a
-                      href={selectedItem.sourceUrl}
-                      target="_blank"
-                      rel="noreferrer"
-                      className="inline-flex items-center gap-1 text-sm font-medium text-primary"
-                    >
-                      원문 바로가기
-                      <ArrowUpRight className="h-4 w-4" />
-                    </a>
-                  )}
-                </div>
 
-                <div className="rounded-2xl border border-border/70 p-4 space-y-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">AI 초안 / 승인 편집</p>
-                    <div className="flex flex-wrap gap-2">
-                      <Button type="button" size="sm" variant="outline" onClick={() => regenerateDraft(selectedItem)}>
-                        <RefreshCw className="mr-1 h-4 w-4" />
-                        현재 초안 재생성
-                      </Button>
-                      <Button type="button" size="sm" variant="outline" onClick={() => toggleSelect(selectedItem.id)}>
-                        <Eye className="mr-1 h-4 w-4" />
-                        {selectedIds[selectedItem.id] ? "선택 해제" : "선택 추가"}
-                      </Button>
+                    <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
+                      <p className="font-semibold">일괄 발송 준비 상태</p>
+                      <p className="mt-1">
+                        선택 건 {selectedQueue.length}건 · 직접 발송 가능 {selectedSendableQueue.length}건 · send endpoint 준비 채널{" "}
+                        {liveDirectSources.length}개
+                      </p>
                     </div>
-                  </div>
-                  <Textarea
-                    className="min-h-[220px]"
-                    value={drafts[selectedItem.id] ?? selectedItem.aiDraft}
-                    onChange={(event) => {
-                      updateDraft(selectedItem.id, event.target.value);
-                      updateStatus(selectedItem.id, "editing");
-                    }}
-                  />
-                  <Textarea
-                    className="min-h-[88px]"
-                    value={notes[selectedItem.id] ?? ""}
-                    onChange={(event) => updateNote(selectedItem.id, event.target.value)}
-                    placeholder="내부 메모 / 재고 확인 / 고객별 주의사항"
-                  />
-                  <div className="flex flex-wrap gap-2">
-                    <Button type="button" variant="outline" onClick={() => updateStatus(selectedItem.id, "approval_pending")}>
-                      <Eye className="mr-1 h-4 w-4" />
-                      승인 대기로 이동
-                    </Button>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        setSelectedIds((prev) => ({ ...prev, [selectedItem.id]: true }));
-                        setSendDialogOpen(true);
-                      }}
-                      disabled={selectedItem.sendMode !== "direct_send" || isSending}
-                    >
-                      <Send className="mr-1 h-4 w-4" />
-                      이 건 {dispatchMode}
-                    </Button>
-                    <Button
-                      type="button"
-                      onClick={() => setSendDialogOpen(true)}
-                      disabled={!selectedSendableQueue.length || isSending}
-                    >
-                      <CheckCircle2 className="mr-1 h-4 w-4" />
-                      선택 {selectedSendableQueue.length}건 {dispatchMode}
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    자동 발송은 사용하지 않습니다. 실데이터는 모두 이 화면에서 검토한 뒤 `DRY_RUN` 또는 `LIVE_SEND`로만
-                    실행합니다.
-                  </p>
-                </div>
 
-                <div className="rounded-2xl border border-blue-200 bg-blue-50 p-4 text-sm text-blue-950">
-                  <p className="font-semibold">일괄 발송 준비 상태</p>
-                  <p className="mt-1">
-                    선택 건 {selectedQueue.length}건 · 직접 발송 가능 {selectedSendableQueue.length}건 · send endpoint 준비 채널{" "}
-                    {liveDirectSources.length}개
-                  </p>
-                </div>
-
-                <div className="rounded-2xl border border-border/70 p-4 space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-sm font-semibold">최근 실행 결과</p>
-                    <Badge className="border border-slate-200 bg-slate-100 text-slate-700">{executionLogs.length}건</Badge>
-                  </div>
-                  {executionLogs.length ? (
-                    <div className="space-y-2">
-                      {executionLogs.map((log) => (
-                        <div
-                          key={log.id}
-                          className={`rounded-xl border px-3 py-2 text-sm ${
-                            log.ok ? "border-emerald-200 bg-emerald-50 text-emerald-950" : "border-rose-200 bg-rose-50 text-rose-950"
-                          }`}
+                    <div className="sticky bottom-0 rounded-2xl border border-border/70 bg-white/95 p-4 shadow-sm backdrop-blur">
+                      <div className="flex flex-wrap gap-2">
+                        <Button type="button" variant="outline" onClick={() => updateStatus(selectedItem.id, "approval_pending")}>
+                          <MessageSquareQuote className="mr-1 h-4 w-4" />
+                          승인 대기로 유지
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setSelectedIds((prev) => ({ ...prev, [selectedItem.id]: true }));
+                            setSendDialogOpen(true);
+                          }}
+                          disabled={selectedItem.sendMode !== "direct_send" || isSending}
                         >
-                          <div className="flex flex-wrap items-center justify-between gap-2">
-                            <p className="font-medium">
-                              {log.channelLabel} · {log.customerName}
-                            </p>
-                            <span className="text-xs opacity-80">{formatDate(log.createdAt)}</span>
+                          <Send className="mr-1 h-4 w-4" />이 건 {dispatchMode}
+                        </Button>
+                        <Button type="button" onClick={() => setSendDialogOpen(true)} disabled={!selectedSendableQueue.length || isSending}>
+                          <CheckCircle2 className="mr-1 h-4 w-4" />
+                          선택 {selectedSendableQueue.length}건 {dispatchMode}
+                        </Button>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="source" className="space-y-4">
+                    <div className="rounded-2xl border border-border/70 p-4 space-y-3">
+                      <p className="text-sm font-semibold">원문</p>
+                      <p className="text-sm leading-6 text-foreground">{selectedItem.body}</p>
+                      <Separator />
+                      <div className="grid gap-3 text-sm md:grid-cols-2">
+                        <div>
+                          <p className="text-muted-foreground">raw payload</p>
+                          <p>{selectedItem.rawPayloadSummary}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">내부 메모</p>
+                          <p className="whitespace-pre-wrap">{notes[selectedItem.id] || selectedItem.internalNote || "-"}</p>
+                        </div>
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="logs" className="space-y-4">
+                    <div className="rounded-2xl border border-border/70 p-4">
+                      <div className="mb-3 flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold">최근 실행 결과</p>
+                        <Badge className="border border-slate-200 bg-slate-100 text-slate-700">{executionLogs.length}건</Badge>
+                      </div>
+                      {executionLogs.length ? (
+                        <ScrollArea className="h-[360px] pr-3">
+                          <div className="space-y-2">
+                            {executionLogs.map((log) => (
+                              <div
+                                key={log.id}
+                                className={`rounded-xl border px-3 py-2 text-sm ${
+                                  log.ok ? "border-emerald-200 bg-emerald-50 text-emerald-950" : "border-rose-200 bg-rose-50 text-rose-950"
+                                }`}
+                              >
+                                <div className="flex flex-wrap items-center justify-between gap-2">
+                                  <p className="font-medium">
+                                    {log.channelLabel} · {log.customerName}
+                                  </p>
+                                  <span className="text-xs opacity-80">{formatDate(log.createdAt)}</span>
+                                </div>
+                                <p className="mt-1 line-clamp-1">{log.title}</p>
+                                <p className="mt-1 text-xs opacity-80">
+                                  {log.dispatchMode} · {log.message}
+                                </p>
+                              </div>
+                            ))}
                           </div>
-                          <p className="mt-1 line-clamp-1">{log.title}</p>
-                          <p className="mt-1 text-xs opacity-80">
-                            {log.dispatchMode} · {log.message}
+                        </ScrollArea>
+                      ) : (
+                        <p className="text-sm text-muted-foreground">아직 실행 이력이 없습니다. 먼저 DRY_RUN으로 한 번 검증해보세요.</p>
+                      )}
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="ops" className="space-y-4">
+                    <div className="grid gap-3 xl:grid-cols-2">
+                      {displaySourceStates.map((state) => (
+                        <div key={state.channel} className="rounded-2xl border border-border/70 bg-white p-4 text-sm">
+                          <div className="mb-2 flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">{state.channelLabel}</p>
+                            <Badge className={state.fetchConfigured ? "bg-blue-100 text-blue-700 border border-blue-200" : "bg-slate-100 text-slate-700 border border-slate-200"}>
+                              fetch {state.fetchConfigured ? "configured" : "missing"}
+                            </Badge>
+                            <Badge className={state.sendConfigured ? "bg-emerald-100 text-emerald-700 border border-emerald-200" : "bg-slate-100 text-slate-700 border border-slate-200"}>
+                              send {state.sendConfigured ? "configured" : "missing"}
+                            </Badge>
+                          </div>
+                          <p className="text-muted-foreground">
+                            {state.fetchOk
+                              ? `${state.lastResultCount ?? 0}건 조회`
+                              : state.fetchConfigured
+                                ? `조회 실패: ${state.lastError || "unknown"}`
+                                : "환경변수 미설정으로 목업 모드"}
                           </p>
+                          {state.lastFetchedAt && <p className="mt-1 text-xs text-muted-foreground">last sync {formatDate(state.lastFetchedAt)}</p>}
+                          {state.metaSummary && <p className="mt-2 text-xs text-muted-foreground">meta: {state.metaSummary}</p>}
                         </div>
                       ))}
                     </div>
-                  ) : (
-                    <p className="text-sm text-muted-foreground">아직 실행 이력이 없습니다. 먼저 DRY_RUN으로 한 번 검증해보세요.</p>
-                  )}
-                </div>
+
+                    <div className="grid gap-3 xl:grid-cols-2">
+                      {activeCapabilities.map((capability) => (
+                        <div key={capability.id} className="rounded-2xl border border-border/70 p-4">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <p className="font-semibold">{capability.channelLabel}</p>
+                            <Badge className="border border-slate-200 bg-slate-100 text-slate-700">
+                              {ITEM_TYPE_LABEL[capability.itemType]}
+                            </Badge>
+                            <Badge className={SEND_MODE_TONE[capability.sendMode]}>{SEND_MODE_LABEL[capability.sendMode]}</Badge>
+                            <Badge className={VALIDATION_TONE[capability.validationStatus]}>
+                              {VALIDATION_LABEL[capability.validationStatus]}
+                            </Badge>
+                          </div>
+                          <p className="mt-3 text-sm text-muted-foreground">{capability.currentDecision}</p>
+                          {capability.blocker && (
+                            <div className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
+                              blocker: {capability.blocker}
+                            </div>
+                          )}
+                          <p className="mt-3 text-sm text-muted-foreground">next: {capability.nextAction}</p>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="grid gap-3 xl:grid-cols-3">
+                      {OMX_RUNBOOK.map((step) => (
+                        <div key={step.id} className="rounded-2xl border border-border/70 p-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <p className="font-semibold">{step.title}</p>
+                            <Badge
+                              className={
+                                step.status === "active"
+                                  ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
+                                  : step.status === "next"
+                                    ? "border border-blue-200 bg-blue-100 text-blue-700"
+                                    : "border border-slate-200 bg-slate-100 text-slate-700"
+                              }
+                            >
+                              {step.status}
+                            </Badge>
+                          </div>
+                          <p className="mt-2 text-sm text-muted-foreground">{step.summary}</p>
+                          <div className="mt-3 rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+                            exit: {step.exitCriteria}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </TabsContent>
+                </Tabs>
               </CardContent>
             </Card>
           )}
-        </section>
-
-        <section className="space-y-3">
-          <div>
-            <h2 className="text-lg font-bold">실행 순서</h2>
-            <p className="text-sm text-muted-foreground">주문은 사방넷, OMX는 스마트스토어/메이크샵 응답 운영이라는 기준을 반영합니다.</p>
-          </div>
-          <div className="grid gap-3 xl:grid-cols-3">
-            {OMX_RUNBOOK.map((step) => (
-              <Card key={step.id} className="border-border/70">
-                <CardContent className="space-y-2 p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="font-semibold">{step.title}</p>
-                    <Badge
-                      className={
-                        step.status === "active"
-                          ? "border border-emerald-200 bg-emerald-100 text-emerald-700"
-                          : step.status === "next"
-                            ? "border border-blue-200 bg-blue-100 text-blue-700"
-                            : "border border-slate-200 bg-slate-100 text-slate-700"
-                      }
-                    >
-                      {step.status}
-                    </Badge>
-                  </div>
-                  <p className="text-sm text-muted-foreground">{step.summary}</p>
-                  <div className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
-                    exit: {step.exitCriteria}
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </div>
         </section>
       </main>
 

@@ -8,7 +8,13 @@ import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { getAllCustomers, getAllInvoices, getCustomer, updateCustomer, updateInvoice, recalcCustomerStats } from '@/lib/api'
 import type { Invoice } from '@/lib/api'
-import { getFiscalBalanceSnapshots, getLegacyCustomerSnapshots, parseLegacyReceivableMemo, serializeLegacyReceivableMemo } from '@/lib/legacySnapshots'
+import {
+  getFiscalBalanceSnapshots,
+  getLegacyCustomerSnapshots,
+  getLegacyReceivableBaselineFromSnapshots,
+  parseLegacyReceivableMemo,
+  serializeLegacyReceivableMemo,
+} from '@/lib/legacySnapshots'
 import { appendCustomerAccountingEvent, parseCustomerAccountingMeta } from '@/lib/accountingMeta'
 import { loadActiveWorkOperatorProfile, loadStoredCrmSettings } from '@/lib/settings'
 import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
@@ -283,15 +289,19 @@ export function DepositInbox() {
   }
 
   async function applyLegacyCandidate(candidate: AutoDepositCandidate, entry: AutoDepositInboxEntry) {
-    const customer = await getCustomer(candidate.customerId)
+    await appendLegacySettlement(candidate.customerId, entry.amount, entry.date)
+  }
+
+  async function appendLegacySettlement(customerId: number, amount: number, date: string, customerOverride?: Awaited<ReturnType<typeof getCustomer>>) {
+    const customer = customerOverride ?? await getCustomer(customerId)
     const memoState = parseLegacyReceivableMemo(customer.memo as string | undefined)
     const nextMemo = serializeLegacyReceivableMemo(customer.memo as string | undefined, {
-      settledAmount: memoState.settledAmount + entry.amount,
+      settledAmount: memoState.settledAmount + amount,
       settlements: [
         ...memoState.settlements,
         {
-          amount: entry.amount,
-          date: entry.date,
+          amount,
+          date,
           method: '계좌이체',
           accountId: activeOperator?.id,
           accountLabel: activeOperator?.label,
@@ -300,7 +310,7 @@ export function DepositInbox() {
         },
       ],
     })
-    await updateCustomer(candidate.customerId, { memo: nextMemo })
+    await updateCustomer(customerId, { memo: nextMemo })
   }
 
   async function handleApply(entry: AutoDepositInboxEntry, candidate: AutoDepositCandidate) {
@@ -338,6 +348,7 @@ export function DepositInbox() {
 
   async function applyOverpaymentReviewItem(item: AutoDepositReviewQueueItem, candidate: AutoDepositCandidate) {
     if (!candidate.invoiceId) throw new Error('명세표 대상 정보가 없습니다.')
+    const entryDate = buildEntryFromReviewItem(item).date
     const invoice = await qc.ensureQueryData({
       queryKey: ['invoice', candidate.invoiceId],
       queryFn: () => getAllInvoices({ where: `(Id,eq,${candidate.invoiceId})`, limit: 1 }).then((rows) => rows[0] ?? null),
@@ -360,28 +371,39 @@ export function DepositInbox() {
       current_balance: nextRemaining,
       payment_status: nextPaymentStatus,
       payment_method: '계좌이체',
-      paid_date: buildEntryFromReviewItem(item).date,
+      paid_date: entryDate,
     })
 
     if (overflowAmount > 0) {
-      const customerMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
-      const nextMemo = appendCustomerAccountingEvent(
-        customer.memo as string | undefined,
-        {
-          type: 'deposit_added',
-          amount: overflowAmount,
-          date: buildEntryFromReviewItem(item).date,
-          method: '계좌이체',
-          operator: activeOperator?.operatorName,
-          accountId: activeOperator?.id,
-          accountLabel: activeOperator?.label,
-          createdAt: currentTimestamp(),
-          relatedInvoiceId: candidate.invoiceId,
-          note: `자동입금 검토 큐 초과 입금 ${overflowAmount.toLocaleString()}원`,
-        },
-        { depositBalance: customerMeta.depositBalance + overflowAmount },
-      )
-      await updateCustomer(customer.Id, { memo: nextMemo })
+      const legacyRemaining = getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
+      const legacyAppliedAmount = Math.min(overflowAmount, legacyRemaining)
+      const depositOverflowAmount = Math.max(0, overflowAmount - legacyAppliedAmount)
+
+      if (legacyAppliedAmount > 0) {
+        await appendLegacySettlement(customer.Id, legacyAppliedAmount, entryDate, customer)
+      }
+
+      if (depositOverflowAmount > 0) {
+        const accountingCustomer = legacyAppliedAmount > 0 ? await getCustomer(customer.Id) : customer
+        const customerMeta = parseCustomerAccountingMeta(accountingCustomer.memo as string | undefined)
+        const nextMemo = appendCustomerAccountingEvent(
+          accountingCustomer.memo as string | undefined,
+          {
+            type: 'deposit_added',
+            amount: depositOverflowAmount,
+            date: entryDate,
+            method: '계좌이체',
+            operator: activeOperator?.operatorName,
+            accountId: activeOperator?.id,
+            accountLabel: activeOperator?.label,
+            createdAt: currentTimestamp(),
+            relatedInvoiceId: candidate.invoiceId,
+            note: `자동입금 검토 큐 초과 입금 ${depositOverflowAmount.toLocaleString()}원`,
+          },
+          { depositBalance: customerMeta.depositBalance + depositOverflowAmount },
+        )
+        await updateCustomer(customer.Id, { memo: nextMemo })
+      }
     }
     try { await recalcCustomerStats(customer.Id) } catch {}
   }

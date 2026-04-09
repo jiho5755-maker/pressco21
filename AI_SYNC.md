@@ -22,10 +22,10 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-09 22:40:00 KST
+- Started At: 2026-04-09 17:32:09 KST
 - Branch: main
-- Working Scope: OMX MVP 사용성 보완 및 실사용 흐름 정리
-- Active Subdirectory: mini-app-v2
+- Working Scope: CRM 자동입금 초과 반영 로직 수정 및 서상견 고객 미수/예치금 정정
+- Active Subdirectory: offline-crm-v2
 
 ## Files In Progress
 - AI_SYNC.md
@@ -36,6 +36,19 @@
 ## Last Changes
 
 > 전체 이력: `archive/ai-sync-history/`
+
+- 2026-04-09 CRM 자동입금 초과 반영 로직 수정 + 서상견 고객 미수 정정 (codex)
+  - `offline-crm-v2/src/pages/DepositInbox.tsx`
+    - 검토 큐 초과 입금 반영 시 초과분을 바로 예치금으로 보내지 않고, 먼저 `기존 장부 미수`에 상계한 뒤 남는 금액만 예치금으로 적립하도록 수정
+    - 레거시 미수 정산 로직을 공통 helper로 묶어 자동입금/수동반영 경로가 같은 방식으로 메모를 기록하도록 정리
+  - 운영 데이터 정정
+    - 서상견 님(`customer_id=264`) 고객 메모에서 잘못 생성된 `ACCOUNTING_CUSTOMER_META` 예치금 2,028,050원을 제거
+    - 같은 고객의 `LEGACY_RECEIVABLE_META`를 2026-04-09 전액 정산(2,983,850원) 상태로 보정
+    - 현재 미수금이 `INV-20260409-121439` 1,068,000원만 남도록 `outstanding_balance=1,068,000`으로 정정
+    - 사전 백업: `offline-crm-v2/output/manual-adjustments/seosanggyeon-before-20260409-173036.json`
+  - 검증
+    - `cd offline-crm-v2 && npm run build`
+    - CRM 프록시 조회로 서상견 님 `outstanding_balance=1068000`, 예치금 메타 제거, 레거시 정산 메타 존재, 기존 3건 명세표 `paid`, 신규 1건 `unpaid` 확인
 
 - 2026-04-09 OMX MVP 사용성 보완 + LIVE_SEND 안전장치 반영 (codex)
   - `mini-app-v2/src/pages/OmxPage.tsx`
@@ -384,6 +397,7 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라)
 
 ### Codex 담당
+- `[CODEX]` 자동입금 검토 큐에서 레거시 미수 고객 초과 입금이 다시 예치금으로만 빠지지 않는지 실운영 케이스 1건 추가 점검
 - `[CODEX-LEAD]` Smartstore/MakeShop `LIVE_SEND`를 승인된 안전 케이스 1건씩 검증하고, 성공/실패 로그를 OMX 화면에 더 분명히 노출
 - `[CODEX-LEAD]` 메이크샵 문의 `crm_board/reply` 또는 `comment/store` 실write 1건을 승인된 케이스로 검증
 - `[CODEX-LEAD]` 스마트스토어 상품문의 `PUT /v1/contents/qnas/:questionId` 실write 1건을 OMX 경유로 검증

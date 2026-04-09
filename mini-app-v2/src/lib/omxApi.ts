@@ -297,6 +297,7 @@ function toQueueItem(
     sourceUrl: String(adapterItem.url || "").trim() || undefined,
     sourceKind: String(adapterItem.sourceKind || itemType).trim() || undefined,
     externalStatus,
+    sourcePayload: adapterItem as unknown as Record<string, unknown>,
     rawPayloadSummary: String(adapterItem.rawPayloadSummary || metaSummary || `${config.channel} adapter`),
     tags: Array.isArray(adapterItem.tags) ? adapterItem.tags : [config.channelLabel, itemType === "review" ? "리뷰" : "문의"],
   };
@@ -442,6 +443,7 @@ export async function sendOmxReplies(
         customerName: item.customerName,
         title: item.title,
         receivedAt: item.receivedAt,
+        sourcePayload: item.sourcePayload,
       })),
     };
 

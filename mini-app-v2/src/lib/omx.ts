@@ -48,6 +48,7 @@ export interface OmxQueueItem {
   sourceUrl?: string;
   sourceKind?: string;
   externalStatus?: string;
+  sourcePayload?: Record<string, unknown>;
   rawPayloadSummary: string;
   tags: string[];
 }

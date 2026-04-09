@@ -193,3 +193,7 @@ keyword regex는 Phase 1.1에서 아래 순서로 붙이면 된다.
 
 - [smartstore-inquiry-adapter-v1.md](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/smartstore-inquiry-adapter-v1.md)
 - [smartstore-inquiry-adapter-n8n-draft.json](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/smartstore-inquiry-adapter-n8n-draft.json)
+- [smartstore-reply-adapter-n8n-draft.json](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/smartstore-reply-adapter-n8n-draft.json)
+- [makeshop-adapter-v1.md](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/makeshop-adapter-v1.md)
+- [makeshop-items-adapter-n8n-draft.json](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/makeshop-items-adapter-n8n-draft.json)
+- [makeshop-reply-adapter-n8n-draft.json](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/makeshop-reply-adapter-n8n-draft.json)

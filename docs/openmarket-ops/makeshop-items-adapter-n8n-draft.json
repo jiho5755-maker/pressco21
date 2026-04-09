@@ -1,0 +1,228 @@
+{
+  "name": "[OM-ADAPTER-MK-01] 메이크샵 문의/리뷰 fetch adapter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "openmarket/makeshop/items",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "mk-items-webhook",
+      "name": "메이크샵 items webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        320
+      ],
+      "webhookId": "openmarket-makeshop-items"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst query = input.query || input || {};\nconst domain = String(process.env.MAKESHOP_DOMAIN || 'foreverlove.co.kr').trim();\nconst shopkey = String(process.env.MAKESHOP_SHOPKEY || '').trim();\nconst licensekey = String(process.env.MAKESHOP_LICENSEKEY || '').trim();\nif (!shopkey || !licensekey) {\n  throw new Error('MAKESHOP_SHOPKEY / MAKESHOP_LICENSEKEY 이 설정되지 않았습니다.');\n}\nfunction getParts(date) {\n  const parts = new Intl.DateTimeFormat('en-US', {\n    timeZone: 'Asia/Seoul',\n    year: 'numeric',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    second: '2-digit',\n    hourCycle: 'h23',\n  }).formatToParts(date);\n  return Object.fromEntries(parts.filter((part) => part.type !== 'literal').map((part) => [part.type, part.value]));\n}\nfunction formatDate(date) {\n  const p = getParts(date);\n  return `${p.year}-${p.month}-${p.day}`;\n}\nfunction formatDateTime(date, tail) {\n  return `${formatDate(date)} ${tail}`;\n}\nconst now = new Date();\nconst inquiryFrom = String(query.inquiryFrom || formatDateTime(new Date(now.getTime() - 6 * 24 * 60 * 60 * 1000), '00:00:00')).trim();\nconst inquiryTo = String(query.inquiryTo || formatDateTime(now, '23:59:59')).trim();\nconst reviewFrom = String(query.reviewFrom || formatDate(new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000))).trim();\nconst reviewTo = String(query.reviewTo || formatDate(now)).trim();\nconst page = String(query.page || '1').trim();\nconst limit = String(query.limit || '50').trim();\nconst memberType = String(query.memberType || 'MEMBER').trim();\nconst onlyPending = String(query.onlyPending || 'true').trim().toLowerCase() !== 'false';\nconst baseUrl = `https://${domain}`;\nconst crmQuery = new URLSearchParams({\n  mode: 'search',\n  type: 'crm_board',\n  InquiryTimeFrom: inquiryFrom,\n  InquiryTimeTo: inquiryTo,\n  is_member: memberType,\n  page,\n  limit,\n}).toString();\nconst reviewQuery = new URLSearchParams({\n  mode: 'search',\n  type: 'review',\n  InquiryTimeFrom: reviewFrom,\n  InquiryTimeTo: reviewTo,\n  page,\n  limit,\n}).toString();\nreturn [{ json: {\n  base_url: baseUrl,\n  crm_url: `${baseUrl}/list/open_api.html?${crmQuery}`,\n  review_url: `${baseUrl}/list/open_api.html?${reviewQuery}`,\n  shopkey,\n  licensekey,\n  only_pending: onlyPending,\n  inquiry_from: inquiryFrom,\n  inquiry_to: inquiryTo,\n  review_from: reviewFrom,\n  review_to: reviewTo,\n  adapter_version: 'makeshop-adapter-v1',\n} }];"
+      },
+      "id": "mk-items-prepare",
+      "name": "요청 파라미터 정리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $json.crm_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Shopkey",
+              "value": "={{ $json.shopkey }}"
+            },
+            {
+              "name": "Licensekey",
+              "value": "={{ $json.licensekey }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "mk-items-fetch-crm",
+      "name": "메이크샵 문의 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        760,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('요청 파라미터 정리').first().json.review_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Shopkey",
+              "value": "={{ $('요청 파라미터 정리').first().json.shopkey }}"
+            },
+            {
+              "name": "Licensekey",
+              "value": "={{ $('요청 파라미터 정리').first().json.licensekey }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "mk-items-fetch-review",
+      "name": "메이크샵 리뷰 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        240
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "function extractRecords(payload) {\n  if (Array.isArray(payload)) return payload;\n  if (payload && Array.isArray(payload.list)) return payload.list;\n  if (payload && payload.data && Array.isArray(payload.data.list)) return payload.data.list;\n  return [];\n}\nfunction toIsoKst(value) {\n  const raw = String(value || '').trim();\n  if (!raw) return new Date().toISOString();\n  const normalized = raw.includes('T') ? raw : raw.replace(' ', 'T') + '+09:00';\n  const date = new Date(normalized);\n  return Number.isNaN(date.getTime()) ? new Date().toISOString() : date.toISOString();\n}\nfunction maskName(value) {\n  const text = String(value || '고객').trim();\n  if (text.length <= 1) return text;\n  if (text.length === 2) return `${text[0]}*`;\n  return `${text[0]}${'*'.repeat(Math.max(1, text.length - 2))}${text[text.length - 1]}`;\n}\nfunction buildInquiryId(row, index) {\n  const seed = `${row.date || ''}_${row.userid || row.phone || row.subject || index}`.replace(/[^0-9A-Za-z가-힣_-]/g, '');\n  return `crm_${seed || index}`;\n}\nconst request = $('요청 파라미터 정리').first().json;\nconst crmPayload = $('메이크샵 문의 조회').first().json;\nconst reviewPayload = $('메이크샵 리뷰 조회').first().json;\nconst crmItems = extractRecords(crmPayload).map((row, index) => ({\n  id: buildInquiryId(row, index),\n  orderId: '',\n  productId: '',\n  productName: '',\n  customerName: maskName(row.hname || row.userid || '고객'),\n  subject: String(row.subject || '메이크샵 문의'),\n  body: String(row.content || ''),\n  status: String(row.reply_yn || '').toUpperCase() === 'Y' ? 'ANSWERED' : 'OPEN',\n  receivedAt: toIsoKst(row.date),\n  url: 'https://admin.makeshop.co.kr/',\n  sourceKind: 'crm_board',\n  answered: String(row.reply_yn || '').toUpperCase() === 'Y',\n  answerPreview: String(row.reply_content || ''),\n  rawPayloadSummary: `crm_board:${row.board_name || ''}:${row.date || ''}`,\n  tags: ['메이크샵', '문의'],\n  ...row,\n}));\nconst reviewItems = extractRecords(reviewPayload).map((row, index) => ({\n  id: String(row.uid || `review_${index}`),\n  orderId: '',\n  productId: '',\n  productName: '',\n  customerName: maskName(row.hname || row.userid || '고객'),\n  subject: String(row.subject || '메이크샵 후기'),\n  body: String(row.content || ''),\n  status: String(row.reply_content || '').trim() ? 'ANSWERED' : 'OPEN',\n  receivedAt: toIsoKst(row.date),\n  url: 'https://admin.makeshop.co.kr/',\n  sourceKind: 'review',\n  itemType: 'review',\n  answered: Boolean(String(row.reply_content || '').trim()),\n  answerPreview: String(row.reply_content || ''),\n  rawPayloadSummary: `review:${row.uid || ''}:${row.date || ''}`,\n  tags: ['메이크샵', '리뷰'],\n  ...row,\n}));\nlet items = [...crmItems, ...reviewItems];\nif (request.only_pending) {\n  items = items.filter((row) => row.status === 'OPEN');\n}\nitems.sort((a, b) => new Date(b.receivedAt).getTime() - new Date(a.receivedAt).getTime());\nreturn [{ json: {\n  items,\n  meta: {\n    adapter: 'makeshop-adapter-v1',\n    onlyPending: request.only_pending,\n    crmCount: crmItems.length,\n    reviewCount: reviewItems.length,\n    totalCount: items.length,\n    inquiryFrom: request.inquiry_from,\n    inquiryTo: request.inquiry_to,\n    reviewFrom: request.review_from,\n    reviewTo: request.review_to,\n  }\n} }];"
+      },
+      "id": "mk-items-normalize",
+      "name": "메이크샵 문의/리뷰 정규화",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "mk-items-respond",
+      "name": "응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1540,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "메이크샵 items webhook": {
+      "main": [
+        [
+          {
+            "node": "요청 파라미터 정리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "요청 파라미터 정리": {
+      "main": [
+        [
+          {
+            "node": "메이크샵 문의 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메이크샵 문의 조회": {
+      "main": [
+        [
+          {
+            "node": "메이크샵 리뷰 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메이크샵 리뷰 조회": {
+      "main": [
+        [
+          {
+            "node": "메이크샵 문의/리뷰 정규화",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메이크샵 문의/리뷰 정규화": {
+      "main": [
+        [
+          {
+            "node": "응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "active": false,
+  "tags": [
+    {
+      "name": "오픈마켓"
+    },
+    {
+      "name": "메이크샵"
+    },
+    {
+      "name": "adapter"
+    },
+    {
+      "name": "draft"
+    }
+  ]
+}

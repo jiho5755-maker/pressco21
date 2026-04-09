@@ -34,6 +34,24 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-09 OMX 스마트스토어/메이크샵 webhook draft 추가 (codex)
+  - `docs/openmarket-ops/smartstore-reply-adapter-n8n-draft.json`
+    - 스마트스토어 `DRY_RUN/LIVE_SEND` 승인형 답변 send webhook 초안 추가
+  - `docs/openmarket-ops/makeshop-adapter-v1.md`
+    - 메이크샵 `crm_board + review` fetch/send 정규화 기준 문서 추가
+  - `docs/openmarket-ops/makeshop-items-adapter-n8n-draft.json`
+    - 메이크샵 문의/리뷰 fetch webhook 초안 추가
+  - `docs/openmarket-ops/makeshop-reply-adapter-n8n-draft.json`
+    - 메이크샵 승인형 답변 send webhook 초안 추가
+  - `docs/openmarket-ops/omx-live-fetch-send-contract-v1.md`
+  - `docs/openmarket-ops/om-sla-01-implementation-notes.md`
+    - 새 smartstore/makeshop webhook draft 링크 연결
+  - `mini-app-v2/src/lib/omx.ts`
+  - `mini-app-v2/src/lib/omxApi.ts`
+    - send webhook이 원본 메타를 복원할 수 있도록 `sourcePayload` 전달 필드 추가
+  - 검증
+    - `jq empty docs/openmarket-ops/smartstore-reply-adapter-n8n-draft.json docs/openmarket-ops/makeshop-items-adapter-n8n-draft.json docs/openmarket-ops/makeshop-reply-adapter-n8n-draft.json docs/openmarket-ops/smartstore-inquiry-adapter-n8n-draft.json` 통과
+    - `cd mini-app-v2 && npm run build` 통과
 - 2026-04-09 OMX live fetch/send 워크벤치 1차 구현 (codex)
   - `mini-app-v2/src/lib/omxApi.ts`
     - 스마트스토어/메이크샵 fetch endpoint를 병렬 호출하는 OMX 서비스 계층 추가
@@ -265,8 +283,8 @@
 - **별도 세션**: 서버 이전 (flora-todo, n8n-staging → 플로라)
 
 ### Codex 담당
-- `[CODEX-LEAD]` 스마트스토어 fetch/send webhook을 OMX live contract 기준으로 구현하고 실제 문의 1건으로 DRY_RUN/LIVE_SEND를 검증
-- `[CODEX-LEAD]` 메이크샵 fetch/send webhook을 OMX live contract 기준으로 구현하고 승인형 write 1건을 안전한 케이스로 검증
+- `[CODEX-LEAD]` 스마트스토어 fetch/send webhook을 운영 n8n에 import하고 실제 문의 1건으로 DRY_RUN/LIVE_SEND를 검증
+- `[CODEX-LEAD]` 메이크샵 fetch/send webhook을 운영 n8n에 import하고 승인형 write 1건을 안전한 케이스로 검증
 - `[CODEX-LEAD]` mini-app-v2 OMX 허브를 실제 adapter/NocoDB 데이터와 연결하고 DRY_RUN/LIVE_SEND feature flag를 서버값으로 분리
 - `[CODEX-LEAD]` 스마트스토어 토큰 helper 또는 mini.pressco21.com 토큰 대행 방식 확정
 - `[CODEX-LEAD]` `OM_FETCH_SMARTSTORE_INQUIRIES_URL`를 adapter webhook으로 연결하고 OM-SLA-01 수동 실행 검증

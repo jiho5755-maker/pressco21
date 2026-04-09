@@ -1,0 +1,282 @@
+{
+  "name": "[OM-ADAPTER-SS-02] 스마트스토어 답변 send adapter",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "openmarket/smartstore/replies",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "ss-reply-webhook",
+      "name": "스마트스토어 답변 webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        220,
+        320
+      ],
+      "webhookId": "openmarket-smartstore-replies"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const incoming = $input.first().json;\nconst payload = incoming.body && typeof incoming.body === 'object' ? incoming.body : incoming;\nconst baseUrl = String(process.env.NAVER_COMMERCE_API_BASE || 'https://api.commerce.naver.com/external').replace(/\\/$/, '');\nconst accessToken = String(process.env.NAVER_COMMERCE_ACCESS_TOKEN || process.env.NAVER_COMMERCE_SELF_TOKEN || process.env.NAVER_COMMERCE_SELLER_TOKEN || '').trim();\nif (!accessToken) {\n  throw new Error('NAVER_COMMERCE_ACCESS_TOKEN 이 설정되지 않았습니다.');\n}\nconst mode = String(payload.mode || 'DRY_RUN').trim().toUpperCase();\nconst items = Array.isArray(payload.items) ? payload.items : [];\nif (!items.length) {\n  throw new Error('보낼 항목이 없습니다.');\n}\nconst out = items.map((raw) => {\n  const sourceKind = String(raw.sourceKind || 'product_qna').trim();\n  const rawId = String(raw.id || '').trim();\n  const externalId = sourceKind === 'product_qna' ? rawId.replace(/^qna_/, '') : rawId;\n  const reply = String(raw.reply || '').trim();\n  if (!externalId) {\n    throw new Error('external id가 비어 있습니다.');\n  }\n  if (!reply) {\n    throw new Error(`reply_content_missing:${rawId}`);\n  }\n  const isCustomerInquiry = sourceKind === 'customer_inquiry';\n  const requestUrl = isCustomerInquiry\n    ? `${baseUrl}/v1/pay-merchant/inquiries/${externalId}/answer`\n    : `${baseUrl}/v1/contents/qnas/${externalId}`;\n  const requestBody = isCustomerInquiry\n    ? { replyContent: reply }\n    : { commentContent: reply };\n  return {\n    json: {\n      original_id: rawId,\n      external_id: externalId,\n      source_kind: sourceKind,\n      mode,\n      should_send: mode === 'LIVE_SEND',\n      request_url: requestUrl,\n      request_method: isCustomerInquiry ? 'POST' : 'PUT',\n      request_body: requestBody,\n      access_token: accessToken,\n      item_type: raw.itemType || 'inquiry',\n      product_name: raw.productName || '',\n      customer_name: raw.customerName || '고객',\n      title: raw.title || '문의',\n    }\n  };\n});\nreturn out;"
+      },
+      "id": "ss-reply-prepare",
+      "name": "요청 payload 검증",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "ss-reply-live-mode",
+              "leftValue": "={{ $json.should_send }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "ss-reply-if-live",
+      "name": "LIVE_SEND 인가?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        740,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('요청 payload 검증').item.json;\nreturn [{ json: { result: {\n  id: original.original_id,\n  ok: true,\n  message: 'DRY_RUN 완료',\n  externalStatus: 'OPEN',\n  statusCode: 200,\n  dispatchMode: original.mode,\n} } }];"
+      },
+      "id": "ss-reply-dry-run",
+      "name": "DRY_RUN 결과",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1020,
+        440
+      ]
+    },
+    {
+      "parameters": {
+        "method": "={{ $json.request_method }}",
+        "url": "={{ $json.request_url }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "={{ 'Bearer ' + $json.access_token }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify($json.request_body) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "responseFormat": "json"
+            }
+          },
+          "timeout": 15000
+        }
+      },
+      "id": "ss-reply-http",
+      "name": "스마트스토어 답변 전송",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1020,
+        220
+      ],
+      "onError": "continueRegularOutput"
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForEachItem",
+        "jsCode": "const original = $('요청 payload 검증').item.json;\nconst body = $json || {};\nconst bodyText = typeof body === 'string' ? body : JSON.stringify(body);\nconst hasError = body && typeof body === 'object' && (body.code || body.error || body.message);\nconst ok = !hasError || bodyText === '{}' || bodyText === '';\nconst message = ok ? 'LIVE_SEND 완료' : String(body.message || body.error || body.code || 'send_failed');\nreturn [{ json: { result: {\n  id: original.original_id,\n  ok,\n  message,\n  externalStatus: ok ? 'ANSWERED' : 'OPEN',\n  statusCode: ok ? 200 : 500,\n  dispatchMode: original.mode,\n} } }];"
+      },
+      "id": "ss-reply-live-result",
+      "name": "LIVE_SEND 결과",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1280,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const dry = $('DRY_RUN 결과').all().map((item) => item.json.result).filter(Boolean);\nconst live = $('LIVE_SEND 결과').all().map((item) => item.json.result).filter(Boolean);\nconst results = [...dry, ...live];\nconst dispatchMode = results[0] ? results[0].dispatchMode : 'UNKNOWN';\nreturn [{ json: {\n  results,\n  meta: {\n    channel: 'smartstore',\n    mode: dispatchMode,\n    totalCount: results.length,\n  }\n} }];"
+      },
+      "id": "ss-reply-aggregate",
+      "name": "결과 집계",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1540,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              }
+            ]
+          }
+        }
+      },
+      "id": "ss-reply-respond",
+      "name": "응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1800,
+        320
+      ]
+    }
+  ],
+  "connections": {
+    "스마트스토어 답변 webhook": {
+      "main": [
+        [
+          {
+            "node": "요청 payload 검증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "요청 payload 검증": {
+      "main": [
+        [
+          {
+            "node": "LIVE_SEND 인가?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIVE_SEND 인가?": {
+      "main": [
+        [
+          {
+            "node": "스마트스토어 답변 전송",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "DRY_RUN 결과",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스마트스토어 답변 전송": {
+      "main": [
+        [
+          {
+            "node": "LIVE_SEND 결과",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DRY_RUN 결과": {
+      "main": [
+        [
+          {
+            "node": "결과 집계",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "LIVE_SEND 결과": {
+      "main": [
+        [
+          {
+            "node": "결과 집계",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "결과 집계": {
+      "main": [
+        [
+          {
+            "node": "응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "active": false,
+  "tags": [
+    {
+      "name": "오픈마켓"
+    },
+    {
+      "name": "스마트스토어"
+    },
+    {
+      "name": "adapter"
+    },
+    {
+      "name": "draft"
+    }
+  ]
+}

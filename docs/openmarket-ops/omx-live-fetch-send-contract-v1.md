@@ -164,6 +164,10 @@ x-omx-source-key: {VITE_OMX_SHARED_KEY}
 - 고객 문의: `POST /v1/pay-merchant/inquiries/:inquiryNo/answer`
 - 고객 문의 body shape는 실문의 1건 확보 후 실측 고정
 
+관련 자산:
+
+- [smartstore-reply-adapter-n8n-draft.json](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/smartstore-reply-adapter-n8n-draft.json)
+
 ---
 
 ## 5. 메이크샵 fetch/send
@@ -188,6 +192,11 @@ limit=50
 
 - 문의: `crm_board`
 - 리뷰: `review`
+
+관련 자산:
+
+- [makeshop-adapter-v1.md](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/makeshop-adapter-v1.md)
+- [makeshop-items-adapter-n8n-draft.json](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/makeshop-items-adapter-n8n-draft.json)
 
 ### 5.2 send
 
@@ -237,6 +246,10 @@ limit=50
   }
 }
 ```
+
+관련 자산:
+
+- [makeshop-reply-adapter-n8n-draft.json](/Users/jangjiho/workspace/pressco21/docs/openmarket-ops/makeshop-reply-adapter-n8n-draft.json)
 
 ---
 

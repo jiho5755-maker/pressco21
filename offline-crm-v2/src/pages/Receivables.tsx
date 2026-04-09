@@ -1832,16 +1832,10 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         )}
       </div>
 
-      <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-4">
-          <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-            <div>
-              <p className="text-sm font-semibold text-foreground">조회 조건</p>
-              <p className="text-xs text-muted-foreground">
-                거래처와 기준일을 먼저 정하고, 필요한 정산 구간만 빠르게 확인하세요.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2 text-xs">
+      <div className="mb-3 rounded-xl border bg-white p-4 shadow-sm">
+        <div className="flex flex-col gap-3">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
+            <div className="flex flex-wrap items-center gap-2">
               <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
                 기준일 {asOfDate}
               </span>
@@ -1862,9 +1856,6 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
 
           <div className="grid gap-3 xl:grid-cols-[minmax(0,1.2fr)_210px_auto]">
             <div className="space-y-2" data-guide-id="receivables-search">
-              <Label htmlFor="receivables-search" className="text-xs font-medium text-muted-foreground">
-                거래처 검색
-              </Label>
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                 <Input
@@ -1878,9 +1869,6 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="receivables-asof" className="text-xs font-medium text-muted-foreground">
-                기준일
-              </Label>
               <Input
                 id="receivables-asof"
                 type="date"
@@ -1891,20 +1879,19 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
             </div>
 
             <div className="space-y-2">
-              <span className="text-xs font-medium text-muted-foreground">빠른 작업</span>
               <div className="flex flex-wrap items-center gap-2">
                 <Button variant={isTodayView ? 'secondary' : 'ghost'} size="sm" onClick={() => applyAsOfDate(todayDate())}>
                   오늘 기준
                 </Button>
                 <Button variant={showAdvancedFilters ? 'secondary' : 'ghost'} size="sm" onClick={() => setShowAdvancedFilters((prev) => !prev)}>
-                  {showAdvancedFilters ? '필터 접기' : '고급 필터'}
+                  {showAdvancedFilters ? '필터 숨김' : '필터'}
                 </Button>
                 <Button variant={showSummaryDetails ? 'secondary' : 'ghost'} size="sm" onClick={() => setShowSummaryDetails((prev) => !prev)}>
-                  {showSummaryDetails ? '상세 요약 접기' : '상세 요약'}
+                  {showSummaryDetails ? '요약 숨김' : '요약'}
                 </Button>
                 {hasCustomerFilter && (
                   <Button variant="ghost" size="sm" onClick={() => applyCustomerFilter('')}>
-                    거래처 필터 해제
+                    검색 해제
                   </Button>
                 )}
               </div>
@@ -2014,37 +2001,30 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           )}
 
           {(hasAdvancedFilter || selectedVisibleRows.length > 0) && (
-            <div className="rounded-lg border border-[#e8eee4] bg-[#f9fbf7] px-4 py-3">
-              <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-                <div className="space-y-1">
-                  <p className="text-sm font-medium text-foreground">현재 보기 요약</p>
-                  <p className="text-xs text-muted-foreground">
-                    {activeFilterSummary || '기본 보기'} · 현재 {activeTabMeta.label} {activeTabMeta.count.toLocaleString()}건
-                  </p>
-                  {selectedVisibleRows.length > 0 && (
-                    <p className="text-xs font-medium text-[#4f6748]">
-                      선택 {selectedVisibleRows.length.toLocaleString()}건 · 합계 {selectedVisibleAmount.toLocaleString()}원
-                    </p>
-                  )}
-                </div>
-                <div className="flex flex-wrap items-center gap-2">
-                  {activeSelectionRows.length > 0 && (
-                    <Button type="button" variant="outline" size="sm" onClick={toggleSelectAllRows}>
-                      {allActiveRowsSelected ? '전체 선택 해제' : '현재 목록 전체 선택'}
-                    </Button>
-                  )}
-                  {selectedVisibleRows.length > 0 && (
-                    <Button type="button" variant="ghost" size="sm" onClick={() => setSelectedRowKeys([])}>
-                      선택 해제
-                    </Button>
-                  )}
-                  {hasAdvancedFilter && (
-                    <Button type="button" variant="ghost" size="sm" onClick={resetAdvancedFilters}>
-                      고급 필터 초기화
-                    </Button>
-                  )}
-                </div>
-              </div>
+            <div className="flex flex-wrap items-center gap-2 text-xs">
+              <span className="rounded-full bg-[#f9fbf7] px-3 py-1 text-muted-foreground">
+                {activeFilterSummary || '기본 보기'} · {activeTabMeta.count.toLocaleString()}건
+              </span>
+              {selectedVisibleRows.length > 0 && (
+                <span className="rounded-full bg-[#f4f7f1] px-3 py-1 font-medium text-[#4f6748]">
+                  선택 {selectedVisibleRows.length.toLocaleString()}건 · {selectedVisibleAmount.toLocaleString()}원
+                </span>
+              )}
+              {activeSelectionRows.length > 0 && (
+                <Button type="button" variant="outline" size="sm" className="h-7" onClick={toggleSelectAllRows}>
+                  {allActiveRowsSelected ? '전체 해제' : '전체 선택'}
+                </Button>
+              )}
+              {selectedVisibleRows.length > 0 && (
+                <Button type="button" variant="ghost" size="sm" className="h-7" onClick={() => setSelectedRowKeys([])}>
+                  선택 해제
+                </Button>
+              )}
+              {hasAdvancedFilter && (
+                <Button type="button" variant="ghost" size="sm" className="h-7" onClick={resetAdvancedFilters}>
+                  필터 초기화
+                </Button>
+              )}
             </div>
           )}
 
@@ -2063,31 +2043,21 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         </div>
       )}
 
-      <div className="mb-4 rounded-xl border bg-white px-4 py-3 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-foreground">핵심 요약</p>
-            <p className="text-xs text-muted-foreground">
-              기본은 누적 기준으로 보고, 상세 숫자가 필요할 때만 아래 요약을 펼치세요.
-            </p>
-          </div>
-          <div className="flex flex-wrap items-center gap-2 text-xs">
-            {isPayableMode ? (
-              <>
-                <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700">총 지급 예정 {filteredTotalOutgoing.toLocaleString()}원</span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">미지급 {filteredPayableTotal.toLocaleString()}원</span>
-                <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">환불대기 {filteredRefundPendingTotal.toLocaleString()}원</span>
-              </>
-            ) : (
-              <>
-                <span className="rounded-full bg-red-50 px-3 py-1 font-medium text-red-600">총 미수 {filteredTotalReceivable.toLocaleString()}원</span>
-                <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">이월 {filteredLegacyTotal.toLocaleString()}원</span>
-                <span className="rounded-full bg-[#f4f7f1] px-3 py-1 text-[#4f6748]">새 입력 {filteredCrmTotal.toLocaleString()}원</span>
-                <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">줄 돈 {filteredPayableTotal.toLocaleString()}원</span>
-              </>
-            )}
-          </div>
-        </div>
+      <div className="mb-3 flex flex-wrap items-center gap-2 text-xs">
+        {isPayableMode ? (
+          <>
+            <span className="rounded-full bg-blue-50 px-3 py-1 font-medium text-blue-700">총 지급 {filteredTotalOutgoing.toLocaleString()}원</span>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">미지급 {filteredPayableTotal.toLocaleString()}원</span>
+            <span className="rounded-full bg-amber-50 px-3 py-1 text-amber-700">환불대기 {filteredRefundPendingTotal.toLocaleString()}원</span>
+          </>
+        ) : (
+          <>
+            <span className="rounded-full bg-red-50 px-3 py-1 font-medium text-red-600">총 미수 {filteredTotalReceivable.toLocaleString()}원</span>
+            <span className="rounded-full bg-slate-100 px-3 py-1 text-slate-700">이월 {filteredLegacyTotal.toLocaleString()}원</span>
+            <span className="rounded-full bg-[#f4f7f1] px-3 py-1 text-[#4f6748]">새 입력 {filteredCrmTotal.toLocaleString()}원</span>
+            <span className="rounded-full bg-blue-50 px-3 py-1 text-blue-700">줄 돈 {filteredPayableTotal.toLocaleString()}원</span>
+          </>
+        )}
       </div>
 
       {showSummaryDetails && (isPayableMode ? (
@@ -2240,59 +2210,33 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           setSearchParams(nextParams, { replace: true })
         }}
       >
-        <div className="mb-4 rounded-xl border bg-white p-4 shadow-sm">
-          <div className="flex flex-col gap-4">
-            <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-              <div>
-                <p className="text-sm font-semibold text-foreground">정산 구간</p>
-                <p className="text-xs text-muted-foreground">
-                  전체 흐름을 먼저 보고, 필요하면 탭으로 범위를 좁혀서 확인하세요.
-                </p>
-              </div>
-              <div className="flex flex-wrap items-center gap-2 text-xs">
-                <span className="rounded-full bg-[#f7f5ef] px-3 py-1 font-medium text-[#836b2c]">
-                  {isReferenceDataLoading && activeTabMeta.value !== 'crm'
-                    ? '연결 데이터 준비 중'
-                    : `${activeTabMeta.label} ${activeTabMeta.count.toLocaleString()}건`}
-                </span>
-                <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
-                  기준일 {asOfDate}
-                </span>
-              </div>
-            </div>
-
+        <div className="mb-3 flex flex-col gap-2">
+          <div className="flex flex-wrap items-center justify-between gap-2 text-xs">
             <TabsList className="h-auto flex-wrap justify-start gap-2 bg-transparent p-0" data-guide-id="receivables-tabs">
               {visibleTabs.map((tab) => (
                 <TabsTrigger
                   key={tab.value}
                   value={tab.value}
-                  className="rounded-full border bg-white px-3 py-1.5 text-xs text-muted-foreground shadow-none data-[state=active]:border-[#7d9675] data-[state=active]:bg-[#f4f7f1] data-[state=active]:text-[#4f6748]"
+                  className="h-8 rounded-full border bg-white px-3 py-1 text-xs text-muted-foreground shadow-none data-[state=active]:border-[#7d9675] data-[state=active]:bg-[#f4f7f1] data-[state=active]:text-[#4f6748]"
                 >
                   {tab.label}
                 </TabsTrigger>
               ))}
             </TabsList>
-
-            <div className="rounded-lg border border-[#e8eee4] bg-[#f9fbf7] px-4 py-3">
-              <div className="flex flex-col gap-2 lg:flex-row lg:items-start lg:justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">{activeTabMeta.label}</p>
-                  <p className="text-xs text-muted-foreground">{activeTabMeta.description}</p>
-                </div>
-                <div className="text-xs text-muted-foreground lg:max-w-[360px]">
-                  {activeTabMeta.hint}
-                </div>
-              </div>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="rounded-full bg-[#f7f5ef] px-3 py-1 font-medium text-[#836b2c]">
+                {isReferenceDataLoading && activeTabMeta.value !== 'crm'
+                  ? '연결 데이터 준비 중'
+                  : `${activeTabMeta.label} ${activeTabMeta.count.toLocaleString()}건`}
+              </span>
+              <span className="rounded-full bg-muted px-3 py-1 text-muted-foreground">
+                기준일 {asOfDate}
+              </span>
             </div>
           </div>
         </div>
 
         <TabsContent value="all" className="space-y-4">
-          <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
-            {isPayableMode
-              ? '거래처 기준으로 줄 돈과 환불대기를 함께 보여주며, 오른쪽에서 바로 송금 기록 또는 환불 정리로 이어집니다.'
-              : '거래처별 이월 잔액과 새 입력 미수를 함께 보여줘 현재 총 잔액을 가장 빠르게 파악할 수 있습니다.'}
-          </div>
           {isReferenceDataLoading ? (
             <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
               고객 연결과 기존 장부 기준을 정리하는 중입니다.
@@ -2474,9 +2418,6 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         </TabsContent>
 
         <TabsContent value="crm" className="space-y-4">
-          <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
-            발행번호 기준으로 미수 명세표를 직접 확인하는 영역입니다. 경과일이 길수록 색이 진하게 표시되고, 오늘 기준에서만 바로 입금 확인을 진행할 수 있습니다.
-          </div>
           <div className="rounded-lg border bg-white overflow-hidden">
             <div className="px-4 py-3 border-b bg-gray-50">
               <span className="text-sm font-medium">에이징 분석</span>
@@ -2617,9 +2558,6 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         </TabsContent>
 
         <TabsContent value="legacy" className="space-y-4">
-          <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
-            새 명세표와 분리해서, 예전 장부에서 넘어온 이월 미수만 따로 보는 영역입니다.
-          </div>
           {isReferenceDataLoading ? (
             <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
               기존 장부 기준 고객 데이터를 불러오는 중입니다.
@@ -2707,9 +2645,6 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         </TabsContent>
 
         <TabsContent value="payable" className="space-y-4">
-          <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
-            고객에게 돌려줘야 하거나 지급해야 하는 기존 장부 금액만 따로 보고, 송금 기록이 필요한 건을 정리하는 영역입니다.
-          </div>
           {isReferenceDataLoading ? (
             <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
               지급 예정 고객 데이터를 불러오는 중입니다.
@@ -2799,9 +2734,6 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
         </TabsContent>
 
         <TabsContent value="refund" className="space-y-4">
-          <div className="rounded-lg border bg-[#fcfcfa] px-4 py-3 text-xs text-muted-foreground">
-            초과 입금이나 정산 조정으로 생긴 환불대기 금액만 따로 보고, 실제 환불 완료나 대기 해제를 마무리하는 영역입니다.
-          </div>
           {isReferenceDataLoading ? (
             <div className="rounded-lg border bg-white p-12 text-center text-muted-foreground">
               환불대기 고객 데이터를 불러오는 중입니다.

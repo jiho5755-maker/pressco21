@@ -22,9 +22,9 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-09 23:08:00 KST
+- Started At: 2026-04-09 23:32:00 KST
 - Branch: main
-- Working Scope: OMX 답변 워크벤치 UX 고도화
+- Working Scope: OMX 발송 플로우 문구/용어 정제
 - Active Subdirectory: mini-app-v2
 
 ## Files In Progress
@@ -37,6 +37,17 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-09 OMX 발송 플로우 용어를 실무형 문구로 정제 (codex)
+  - `mini-app-v2/src/pages/OmxPage.tsx`
+    - `DRY_RUN` → `발송 전 확인`
+    - `LIVE_SEND` → `실제 발송`
+    - 실행 결과, 버튼, 상단 모드 배지, 확인 모달 문구를 모두 작업자 관점 표현으로 통일
+    - 실발송 확인 입력도 `LIVE_SEND` 대신 `실제 발송`으로 변경
+  - 검증
+    - `cd mini-app-v2 && npm run build`
+    - `cd mini-app-v2 && bash scripts/deploy.sh`
+    - `https://mini.pressco21.com/omx`
+      - 상단 모드, 상세 액션 버튼, 실행 결과 문구가 모두 한글 실무 표현으로 노출되는 것 확인
 - 2026-04-09 OMX 답변 워크벤치 UX 리디자인 1차 반영 (codex)
   - `mini-app-v2/src/pages/OmxPage.tsx`
     - 상단 설명 카드를 줄이고 `작업 상태 + 다음 우선 처리 건 + 실행 모드` 중심으로 재구성
@@ -404,6 +415,9 @@
 - 2026-04-07 고객 상세 거래내역 인라인 편집 전환 (codex)
 
 ## Next Step
+- 스마트스토어/메이크샵 실사용 기준으로 버튼 라벨과 템플릿 문구를 2차 미세 조정
+- 실행 결과/메모를 브라우저 세션이 아니라 서버 저장 이력으로 남길지 결정
+- 실사용 피드백 기준으로 inbox 정렬 규칙을 더 단순화할지 검토
 - 스마트스토어 1건, 메이크샵 1건 기준으로 새 UX에서 실제 발송 검증을 다시 진행
 - 실행 결과/메모를 브라우저 세션이 아니라 서버 저장 이력으로 남길지 결정
 - 실사용 피드백 기준으로 inbox 정렬 규칙과 템플릿 세분화 2차 조정

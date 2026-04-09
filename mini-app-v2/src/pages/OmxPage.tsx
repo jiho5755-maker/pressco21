@@ -76,6 +76,16 @@ type DraftPreset = {
   text: string;
 };
 
+const DISPATCH_LABEL: Record<OmxDispatchMode, string> = {
+  DRY_RUN: "발송 전 확인",
+  LIVE_SEND: "실제 발송",
+};
+
+const DISPATCH_RESULT_LABEL: Record<OmxDispatchMode, string> = {
+  DRY_RUN: "확인",
+  LIVE_SEND: "발송",
+};
+
 const SEND_MODE_TONE: Record<OmxSendMode, string> = {
   direct_send: "bg-emerald-100 text-emerald-700 border-emerald-200",
   manual_send: "bg-amber-100 text-amber-700 border-amber-200",
@@ -148,6 +158,17 @@ function modeLabel(mode: OmxWorkspaceMode): string {
   if (mode === "live") return "LIVE";
   if (mode === "partial") return "PARTIAL";
   return "MOCK";
+}
+
+function displayDispatchMode(mode: OmxDispatchMode): string {
+  return DISPATCH_LABEL[mode];
+}
+
+function normalizeDispatchMessage(message: string, mode: OmxDispatchMode): string {
+  return message
+    .replaceAll("DRY_RUN", DISPATCH_LABEL.DRY_RUN)
+    .replaceAll("LIVE_SEND", DISPATCH_LABEL.LIVE_SEND)
+    .replace("전송 완료", mode === "LIVE_SEND" ? "발송 완료" : "확인 완료");
 }
 
 function getInitials(name: string): string {
@@ -507,7 +528,9 @@ export function OmxPage() {
         results.forEach((result) => {
           next[result.id] = appendNote(
             next[result.id],
-            `${dispatchMode} ${result.ok ? "성공" : "실패"}${result.message ? ` - ${result.message}` : ""}`,
+            `${displayDispatchMode(dispatchMode)} ${result.ok ? "성공" : "실패"}${
+              result.message ? ` - ${normalizeDispatchMessage(result.message, dispatchMode)}` : ""
+            }`,
           );
         });
         return next;
@@ -523,7 +546,7 @@ export function OmxPage() {
             title: item?.title || result.id,
             dispatchMode,
             ok: result.ok,
-            message: result.message,
+            message: normalizeDispatchMessage(result.message, dispatchMode),
             createdAt: new Date().toISOString(),
           };
         });
@@ -544,8 +567,8 @@ export function OmxPage() {
 
       showToast(
         dispatchMode === "LIVE_SEND"
-          ? `${successCount}건 발송 완료${failureCount ? ` / ${failureCount}건 실패` : ""}`
-          : `${successCount}건 DRY_RUN 완료${failureCount ? ` / ${failureCount}건 실패` : ""}`,
+          ? `${successCount}건 실제 발송 완료${failureCount ? ` / ${failureCount}건 실패` : ""}`
+          : `${successCount}건 발송 전 확인 완료${failureCount ? ` / ${failureCount}건 실패` : ""}`,
         failureCount ? "error" : "success",
       );
     } catch (error) {
@@ -565,7 +588,7 @@ export function OmxPage() {
     }),
     [runtimeQueue],
   );
-  const liveSendConfirmed = dispatchMode === "DRY_RUN" || liveConfirmText.trim().toUpperCase() === "LIVE_SEND";
+  const liveSendConfirmed = dispatchMode === "DRY_RUN" || liveConfirmText.replace(/\s+/g, "") === "실제발송";
   const selectedDraftLength = (drafts[selectedItem?.id || ""] || selectedItem?.aiDraft || "").trim().length;
   const draftPresets = selectedItem ? buildDraftPresets(selectedItem) : [];
   const actionSummary = useMemo(() => {
@@ -622,7 +645,7 @@ export function OmxPage() {
             <CardContent className="p-4">
               <div className="mb-2 flex items-center justify-between">
                 <FlaskConical className="h-4 w-4 text-blue-700" />
-                <Badge className="border border-blue-200 bg-white text-blue-700">{dispatchMode}</Badge>
+                <Badge className="border border-blue-200 bg-white text-blue-700">{displayDispatchMode(dispatchMode)}</Badge>
               </div>
               <p className="text-2xl font-bold text-blue-900">{counts.sendReady}</p>
               <p className="mt-1 text-sm text-blue-800">발송 endpoint 준비 채널</p>
@@ -649,10 +672,10 @@ export function OmxPage() {
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant={dispatchMode === "DRY_RUN" ? "default" : "outline"} onClick={() => setDispatchMode("DRY_RUN")}>
-                  DRY_RUN
+                  발송 전 확인
                 </Button>
                 <Button type="button" variant={dispatchMode === "LIVE_SEND" ? "default" : "outline"} onClick={() => setDispatchMode("LIVE_SEND")}>
-                  LIVE_SEND
+                  실제 발송
                 </Button>
                 <Button type="button" variant="outline" onClick={() => void refreshQueue()} disabled={isRefreshing}>
                   <RefreshCw className={`mr-1 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
@@ -966,11 +989,11 @@ export function OmxPage() {
                           }}
                           disabled={selectedItem.sendMode !== "direct_send" || isSending}
                         >
-                          <Send className="mr-1 h-4 w-4" />이 건 {dispatchMode}
+                          <Send className="mr-1 h-4 w-4" />이 건 {displayDispatchMode(dispatchMode)}
                         </Button>
                         <Button type="button" onClick={() => setSendDialogOpen(true)} disabled={!selectedSendableQueue.length || isSending}>
                           <CheckCircle2 className="mr-1 h-4 w-4" />
-                          선택 {selectedSendableQueue.length}건 {dispatchMode}
+                          선택 {selectedSendableQueue.length}건 {displayDispatchMode(dispatchMode)}
                         </Button>
                       </div>
                     </div>
@@ -1018,14 +1041,14 @@ export function OmxPage() {
                                 </div>
                                 <p className="mt-1 line-clamp-1">{log.title}</p>
                                 <p className="mt-1 text-xs opacity-80">
-                                  {log.dispatchMode} · {log.message}
+                                  {displayDispatchMode(log.dispatchMode)} · {log.message}
                                 </p>
                               </div>
                             ))}
                           </div>
                         </ScrollArea>
                       ) : (
-                        <p className="text-sm text-muted-foreground">아직 실행 이력이 없습니다. 먼저 DRY_RUN으로 한 번 검증해보세요.</p>
+                        <p className="text-sm text-muted-foreground">아직 실행 이력이 없습니다. 먼저 발송 전 확인으로 한 번 점검해보세요.</p>
                       )}
                     </div>
                   </TabsContent>
@@ -1115,10 +1138,11 @@ export function OmxPage() {
       <Dialog open={sendDialogOpen} onOpenChange={setSendDialogOpen}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>일괄 발송 확인</DialogTitle>
+            <DialogTitle>{dispatchMode === "DRY_RUN" ? "발송 전 확인" : "실제 발송 확인"}</DialogTitle>
             <DialogDescription>
-              선택된 {selectedSendableQueue.length}건을 {dispatchMode}로 처리합니다. 실운영에서는 `AI 초안 + 사람 승인` 원칙을
-              유지하고, LIVE_SEND는 꼭 실제 문구를 확인한 뒤 진행하세요.
+              {dispatchMode === "DRY_RUN"
+                ? `선택된 ${selectedSendableQueue.length}건을 실제 발송 없이 먼저 점검합니다. 문구와 연동 상태를 먼저 확인하세요.`
+                : `선택된 ${selectedSendableQueue.length}건을 실제 고객에게 발송합니다. 문구를 마지막으로 확인한 뒤 진행하세요.`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">
@@ -1143,13 +1167,13 @@ export function OmxPage() {
               <div className="rounded-2xl border border-rose-200 bg-rose-50 px-4 py-3">
                 <p className="font-semibold text-rose-950">실발송 확인</p>
                 <p className="mt-1 text-rose-900">
-                  실제 고객에게 발송됩니다. 계속하려면 아래에 <span className="font-semibold">LIVE_SEND</span>를 입력하세요.
+                  실제 고객에게 발송됩니다. 계속하려면 아래에 <span className="font-semibold">실제 발송</span>을 입력하세요.
                 </p>
                 <Input
                   className="mt-3 bg-white"
                   value={liveConfirmText}
                   onChange={(event) => setLiveConfirmText(event.target.value)}
-                  placeholder="LIVE_SEND"
+                  placeholder="실제 발송"
                 />
               </div>
             )}
@@ -1163,7 +1187,7 @@ export function OmxPage() {
               onClick={() => void handleSendConfirmed()}
               disabled={isSending || !selectedSendableQueue.length || !liveSendConfirmed}
             >
-              {isSending ? "처리 중..." : `${dispatchMode} 실행`}
+              {isSending ? "처리 중..." : `${displayDispatchMode(dispatchMode)} 실행`}
             </Button>
           </DialogFooter>
         </DialogContent>

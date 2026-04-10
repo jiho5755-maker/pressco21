@@ -1,4 +1,4 @@
-import { useDeferredValue, useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState, type Dispatch, type SetStateAction } from "react";
 import { Header } from "@/components/layout/Header";
 import { useToast } from "@/components/layout/Toast";
 import { Badge } from "@/components/ui/badge";
@@ -27,6 +27,7 @@ import {
   SEND_MODE_LABEL,
   URGENCY_LABEL,
   VALIDATION_LABEL,
+  type OmxInquiryCategory,
   type OmxQueueItem,
   type OmxQueueStatus,
   type OmxSendMode,
@@ -34,6 +35,7 @@ import {
 import {
   fetchOmxWorkspace,
   generateOmxDraft,
+  preflightOmxSend,
   sendOmxReplies,
   type OmxDispatchMode,
   type OmxLiveConfigSummary,
@@ -46,11 +48,13 @@ import {
   CheckCircle2,
   Clipboard,
   Clock3,
-  Eye,
   FlaskConical,
+  Image as ImageIcon,
   Layers3,
   ListFilter,
   MessageSquareQuote,
+  MonitorUp,
+  ShieldAlert,
   RefreshCw,
   Send,
   ShieldCheck,
@@ -60,6 +64,7 @@ import {
 
 type QueueFilter = "all" | "approval" | "direct" | "review" | "breach";
 type ChannelFilter = "all" | "smartstore" | "makeshop";
+type CategoryFilter = "all" | OmxInquiryCategory;
 type ExecutionLog = {
   id: string;
   channelLabel: string;
@@ -108,6 +113,17 @@ const VALIDATION_TONE: Record<string, string> = {
   template_verified: "bg-violet-100 text-violet-700 border-violet-200",
   blocked: "bg-rose-100 text-rose-700 border-rose-200",
   pending: "bg-slate-100 text-slate-700 border-slate-200",
+};
+
+const CATEGORY_TONE: Record<string, string> = {
+  usage: "border border-violet-200 bg-violet-100 text-violet-700",
+  stock: "border border-cyan-200 bg-cyan-100 text-cyan-700",
+  delivery: "border border-blue-200 bg-blue-100 text-blue-700",
+  return: "border border-amber-200 bg-amber-100 text-amber-700",
+  defect: "border border-rose-200 bg-rose-100 text-rose-700",
+  business: "border border-emerald-200 bg-emerald-100 text-emerald-700",
+  review: "border border-pink-200 bg-pink-100 text-pink-700",
+  general: "border border-slate-200 bg-slate-100 text-slate-700",
 };
 
 const FILTERS: { key: QueueFilter; label: string }[] = [
@@ -191,6 +207,51 @@ function buildDraftPresets(item: OmxQueueItem): DraftPreset[] {
     ];
   }
 
+  if (item.inquiryCategory === "defect") {
+    return [
+      {
+        id: "defect-check",
+        label: "불량 확인",
+        text: `안녕하세요. 불편을 드려 죄송합니다. 문의주신 증상 기준으로 ${item.productName ? `${item.productName}의` : "상품의"} 상태와 출고 이력을 먼저 확인해보겠습니다. 확인되는 내용에 따라 교환 또는 재안내 가능한 부분까지 함께 정리해드리겠습니다.`,
+      },
+      {
+        id: "defect-photo",
+        label: "사진 요청",
+        text: `안녕하세요. 정확한 확인을 위해 현재 상태가 보이는 사진을 함께 남겨주시면 확인에 큰 도움이 됩니다. 전달해주시는 내용 기준으로 가능한 빠르게 후속 안내드리겠습니다.`,
+      },
+    ];
+  }
+
+  if (item.inquiryCategory === "business") {
+    return [
+      {
+        id: "business-stock",
+        label: "사업자 확인",
+        text: `안녕하세요. 사업자/대량 주문 문의 확인했습니다. ${item.productName ? `${item.productName}` : "상품"}의 현재 공급 가능 수량과 거래 조건을 먼저 확인한 뒤 다시 정리해서 안내드리겠습니다.`,
+      },
+      {
+        id: "business-docs",
+        label: "거래 조건",
+        text: `안녕하세요. 요청 주신 거래 조건과 증빙 여부를 확인한 뒤 안내드리겠습니다. 필요하신 수량과 사용 일정이 있으시면 함께 남겨주시면 확인에 도움이 됩니다.`,
+      },
+    ];
+  }
+
+  if (item.inquiryCategory === "delivery") {
+    return [
+      {
+        id: "delivery-track",
+        label: "출고 확인",
+        text: `안녕하세요. 문의주신 주문의 출고 상태와 송장 반영 여부를 먼저 확인해보겠습니다. 확인되는 내용 기준으로 바로 다시 안내드리겠습니다.`,
+      },
+      {
+        id: "delivery-delay",
+        label: "지연 안내",
+        text: `안녕하세요. 현재 출고 진행 상태를 확인 중입니다. 포장 및 택배사 반영 시간에 따라 조회가 지연될 수 있어 확인되는 대로 정확한 일정으로 다시 안내드리겠습니다.`,
+      },
+    ];
+  }
+
   return [
     {
       id: "guide",
@@ -210,6 +271,75 @@ function buildDraftPresets(item: OmxQueueItem): DraftPreset[] {
   ];
 }
 
+function mergeWorkspaceState(
+  workspace: Awaited<ReturnType<typeof fetchOmxWorkspace>>,
+  setQueueItems: (value: OmxQueueItem[]) => void,
+  setDrafts: Dispatch<SetStateAction<Record<string, string>>>,
+  setNotes: Dispatch<SetStateAction<Record<string, string>>>,
+  setStatuses: Dispatch<SetStateAction<Record<string, OmxQueueStatus>>>,
+  setSelectedIds: Dispatch<SetStateAction<Record<string, boolean>>>,
+  setSourceStates: Dispatch<SetStateAction<OmxSourceState[]>>,
+  setWorkspaceMode: Dispatch<SetStateAction<OmxWorkspaceMode>>,
+  setLastFetchedAt: Dispatch<SetStateAction<string>>,
+  setLiveConfig: Dispatch<SetStateAction<OmxLiveConfigSummary>>,
+) {
+  const items = workspace.items.filter((item) => ACTIVE_CHANNELS.has(item.channel));
+  setQueueItems(items);
+  setDrafts((prev) => buildEditableDrafts(items, prev));
+  setNotes((prev) => buildEditableNotes(items, prev));
+  setStatuses((prev) => buildEditableStatuses(items, prev));
+  setSelectedIds((prev) => Object.fromEntries(items.filter((item) => prev[item.id]).map((item) => [item.id, true])));
+  setSourceStates(workspace.sourceStates);
+  setWorkspaceMode(workspace.mode);
+  setLastFetchedAt(workspace.fetchedAt);
+  setLiveConfig(workspace.configSummary);
+}
+
+function isGenericSourceUrl(url?: string): boolean {
+  if (!url) {
+    return false;
+  }
+  return /https:\/\/admin\.makeshop\.co\.kr\/?$/i.test(url.trim());
+}
+
+function attachmentSummary(item: OmxQueueItem): string | null {
+  const imageCount = item.attachments?.filter((attachment) => attachment.kind !== "file").length ?? 0;
+  const fileCount = item.attachments?.filter((attachment) => attachment.kind === "file").length ?? 0;
+  if (!imageCount && !fileCount) {
+    return null;
+  }
+  if (imageCount && fileCount) {
+    return `이미지 ${imageCount} · 파일 ${fileCount}`;
+  }
+  if (imageCount) {
+    return `이미지 ${imageCount}`;
+  }
+  return `파일 ${fileCount}`;
+}
+
+function categoryLabel(category: CategoryFilter): string {
+  switch (category) {
+    case "usage":
+      return "사용법";
+    case "stock":
+      return "재고/입고";
+    case "delivery":
+      return "배송";
+    case "return":
+      return "교환/반품";
+    case "defect":
+      return "불량";
+    case "business":
+      return "사업자";
+    case "review":
+      return "후기";
+    case "general":
+      return "일반";
+    default:
+      return "전체";
+  }
+}
+
 export function OmxPage() {
   const { showToast } = useToast();
   const activeCapabilities = useMemo(
@@ -223,6 +353,7 @@ export function OmxPage() {
 
   const [queueFilter, setQueueFilter] = useState<QueueFilter>("all");
   const [channelFilter, setChannelFilter] = useState<ChannelFilter>("all");
+  const [categoryFilter, setCategoryFilter] = useState<CategoryFilter>("all");
   const [searchText, setSearchText] = useState("");
   const deferredSearchText = useDeferredValue(searchText);
   const [selectedId, setSelectedId] = useState(mockItems[0]?.id ?? "");
@@ -248,6 +379,7 @@ export function OmxPage() {
   const [sendDialogOpen, setSendDialogOpen] = useState(false);
   const [executionLogs, setExecutionLogs] = useState<ExecutionLog[]>([]);
   const [liveConfirmText, setLiveConfirmText] = useState("");
+  const [conflictWarnings, setConflictWarnings] = useState<Array<{ id: string; title: string; message: string }>>([]);
 
   const runtimeQueue = useMemo(
     () =>
@@ -271,6 +403,10 @@ export function OmxPage() {
     const normalizedSearch = deferredSearchText.trim().toLowerCase();
     return runtimeQueue.filter((item) => {
       const matchesChannel = channelFilter === "all" ? true : item.channel === channelFilter;
+      const matchesCategory =
+        categoryFilter === "all"
+          ? true
+          : (item.inquiryCategory || (item.itemType === "review" ? "review" : "general")) === categoryFilter;
       const matchesFilter =
         queueFilter === "all"
           ? true
@@ -282,7 +418,7 @@ export function OmxPage() {
                 ? item.itemType === "review"
                 : item.urgency === "warning" || item.urgency === "breach";
 
-      if (!matchesFilter || !matchesChannel) {
+      if (!matchesFilter || !matchesChannel || !matchesCategory) {
         return false;
       }
 
@@ -305,7 +441,7 @@ export function OmxPage() {
 
       return haystack.includes(normalizedSearch);
     });
-  }, [channelFilter, deferredSearchText, queueFilter, runtimeQueue]);
+  }, [categoryFilter, channelFilter, deferredSearchText, queueFilter, runtimeQueue]);
 
   const selectedQueue = useMemo(
     () => runtimeQueue.filter((item) => selectedIds[item.id]),
@@ -322,8 +458,8 @@ export function OmxPage() {
 
   const selectedItem =
     filteredQueue.find((item) => item.id === selectedId) ??
-    runtimeQueue.find((item) => item.id === selectedId) ??
     filteredQueue[0] ??
+    runtimeQueue.find((item) => item.id === selectedId) ??
     runtimeQueue[0];
 
   const counts = useMemo(() => {
@@ -357,6 +493,35 @@ export function OmxPage() {
         },
       ];
 
+  const categoryOptions = useMemo(() => {
+    const source =
+      channelFilter === "all" ? runtimeQueue : runtimeQueue.filter((item) => item.channel === channelFilter);
+    const countsByCategory = new Map<CategoryFilter, number>();
+    source.forEach((item) => {
+      const category = (item.inquiryCategory || (item.itemType === "review" ? "review" : "general")) as CategoryFilter;
+      countsByCategory.set(category, (countsByCategory.get(category) || 0) + 1);
+    });
+    const orderedCategories: CategoryFilter[] = [
+      "usage",
+      "defect",
+      "delivery",
+      "stock",
+      "return",
+      "business",
+      "review",
+      "general",
+    ];
+    return [{ key: "all" as CategoryFilter, label: "전체", count: source.length }].concat(
+      orderedCategories
+        .filter((category) => countsByCategory.has(category))
+        .map((category) => ({
+          key: category,
+          label: categoryLabel(category),
+          count: countsByCategory.get(category) || 0,
+        })),
+    );
+  }, [channelFilter, runtimeQueue]);
+
   useEffect(() => {
     void refreshQueue(true);
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -375,21 +540,22 @@ export function OmxPage() {
     setIsRefreshing(true);
     try {
       const workspace = await fetchOmxWorkspace();
-      const items = workspace.items.filter((item) => ACTIVE_CHANNELS.has(item.channel));
-      setQueueItems(items);
-      setDrafts((prev) => buildEditableDrafts(items, prev));
-      setNotes((prev) => buildEditableNotes(items, prev));
-      setStatuses((prev) => buildEditableStatuses(items, prev));
-      setSelectedIds((prev) =>
-        Object.fromEntries(items.filter((item) => prev[item.id]).map((item) => [item.id, true])),
+      mergeWorkspaceState(
+        workspace,
+        setQueueItems,
+        setDrafts,
+        setNotes,
+        setStatuses,
+        setSelectedIds,
+        setSourceStates,
+        setWorkspaceMode,
+        setLastFetchedAt,
+        setLiveConfig,
       );
-      setSourceStates(workspace.sourceStates);
-      setWorkspaceMode(workspace.mode);
-      setLastFetchedAt(workspace.fetchedAt);
-      setLiveConfig(workspace.configSummary);
+      setConflictWarnings([]);
       if (!silent) {
         showToast(
-          workspace.mode === "mock" ? "실연동 endpoint가 없어 목업 데이터로 불러왔습니다" : "실데이터를 새로고침했습니다",
+          workspace.mode === "mock" ? "실연동 endpoint가 없어 목업 데이터로 불러왔습니다" : "플랫폼 최신 문의를 다시 가져왔습니다",
           "success",
         );
       }
@@ -506,10 +672,56 @@ export function OmxPage() {
 
     setIsSending(true);
     try {
-      const results = await sendOmxReplies(selectedSendableQueue, drafts, dispatchMode);
+      const { latestWorkspace, blockedIds, blockedMap } = await preflightOmxSend(selectedSendableQueue);
+      mergeWorkspaceState(
+        latestWorkspace,
+        setQueueItems,
+        setDrafts,
+        setNotes,
+        setStatuses,
+        setSelectedIds,
+        setSourceStates,
+        setWorkspaceMode,
+        setLastFetchedAt,
+        setLiveConfig,
+      );
+      setConflictWarnings(
+        blockedIds.map((id) => ({
+          id,
+          title:
+            latestWorkspace.items.find((item) => item.id === id)?.title ||
+            runtimeQueue.find((item) => item.id === id)?.title ||
+            id,
+          message: blockedMap.get(id) || "플랫폼 최신 상태와 충돌해 발송을 막았습니다.",
+        })),
+      );
+
+      if (blockedIds.length) {
+        setNotes((prev) => {
+          const next = { ...prev };
+          blockedIds.forEach((id) => {
+            next[id] = appendNote(next[id], blockedMap.get(id) || "플랫폼 최신 상태와 충돌해 발송을 막았습니다.");
+          });
+          return next;
+        });
+      }
+
+      const safeQueue = selectedSendableQueue.filter((item) => !blockedIds.includes(item.id));
+      if (!safeQueue.length) {
+        showToast("플랫폼 최신 상태를 확인한 결과, 보낼 수 있는 문의가 남아 있지 않습니다", "error");
+        return;
+      }
+
+      if (blockedIds.length) {
+        showToast(`${blockedIds.length}건은 이미 처리되어 제외했습니다. 나머지만 진행합니다.`, "info");
+      } else {
+        setConflictWarnings([]);
+      }
+
+      const results = await sendOmxReplies(safeQueue, drafts, dispatchMode);
       const successCount = results.filter((result) => result.ok).length;
       const failureCount = results.length - successCount;
-      const indexedQueue = new Map(runtimeQueue.map((item) => [item.id, item]));
+      const indexedQueue = new Map([...runtimeQueue, ...latestWorkspace.items].map((item) => [item.id, item]));
 
       setStatuses((prev) => {
         const next = { ...prev };
@@ -669,6 +881,10 @@ export function OmxPage() {
                   주문은 사방넷에서 처리하고, 여기서는 스마트스토어/메이크샵 문의를 모아 `검토 → 승인 → 발송`만 빠르게
                   처리합니다.
                 </p>
+                <p className="text-xs text-slate-500">
+                  자동 대기보다 필요할 때 직접 최신 문의를 다시 가져오고, 실제 발송 직전에는 플랫폼 상태를 한 번 더
+                  확인합니다.
+                </p>
               </div>
               <div className="flex flex-wrap gap-2">
                 <Button type="button" variant={dispatchMode === "DRY_RUN" ? "default" : "outline"} onClick={() => setDispatchMode("DRY_RUN")}>
@@ -678,8 +894,8 @@ export function OmxPage() {
                   실제 발송
                 </Button>
                 <Button type="button" variant="outline" onClick={() => void refreshQueue()} disabled={isRefreshing}>
-                  <RefreshCw className={`mr-1 h-4 w-4 ${isRefreshing ? "animate-spin" : ""}`} />
-                  새로고침
+                  <MonitorUp className={`mr-1 h-4 w-4 ${isRefreshing ? "animate-pulse" : ""}`} />
+                  지금 문의 가져오기
                 </Button>
               </div>
             </div>
@@ -755,6 +971,19 @@ export function OmxPage() {
                   </Button>
                 ))}
               </div>
+              <div className="flex flex-wrap gap-2">
+                {categoryOptions.map((option) => (
+                  <Button
+                    key={option.key}
+                    type="button"
+                    size="sm"
+                    variant={categoryFilter === option.key ? "default" : "outline"}
+                    onClick={() => setCategoryFilter(option.key)}
+                  >
+                    {option.label} {option.count}
+                  </Button>
+                ))}
+              </div>
               <div className="grid gap-2 sm:grid-cols-2">
                 <Button type="button" size="sm" variant="outline" onClick={toggleSelectAllFiltered}>
                   {allFilteredSelected ? "필터 전체 해제" : "필터 전체 선택"}
@@ -797,6 +1026,17 @@ export function OmxPage() {
                                     {item.channelLabel}
                                   </Badge>
                                   <Badge className={STATUS_TONE[item.status]}>{QUEUE_STATUS_LABEL[item.status]}</Badge>
+                                  {item.inquiryCategoryLabel && (
+                                    <Badge className={CATEGORY_TONE[item.inquiryCategory || "general"]}>
+                                      {item.inquiryCategoryLabel}
+                                    </Badge>
+                                  )}
+                                  {attachmentSummary(item) && (
+                                    <Badge className="border border-slate-200 bg-white text-slate-700">
+                                      <ImageIcon className="mr-1 h-3.5 w-3.5" />
+                                      {attachmentSummary(item)}
+                                    </Badge>
+                                  )}
                                 </div>
                                 <Badge
                                   className={
@@ -853,12 +1093,20 @@ export function OmxPage() {
                     <Badge className={VALIDATION_TONE[selectedItem.validationStatus]}>
                       {VALIDATION_LABEL[selectedItem.validationStatus]}
                     </Badge>
+                    {selectedItem.inquiryCategoryLabel && (
+                      <Badge className={CATEGORY_TONE[selectedItem.inquiryCategory || "general"]}>
+                        {selectedItem.inquiryCategoryLabel}
+                      </Badge>
+                    )}
+                    {attachmentSummary(selectedItem) && (
+                      <Badge className="border border-slate-200 bg-white text-slate-700">{attachmentSummary(selectedItem)}</Badge>
+                    )}
                     <Badge className="border border-slate-200 bg-slate-100 text-slate-700">
                       {URGENCY_LABEL[selectedItem.urgency]}
                     </Badge>
                   </div>
                 </div>
-                <div className="grid gap-3 md:grid-cols-3">
+                <div className="grid gap-3 md:grid-cols-4">
                   <div className="rounded-2xl border border-border/70 p-3">
                     <p className="mb-1 text-xs text-muted-foreground">고객</p>
                     <p className="font-medium">{selectedItem.customerName}</p>
@@ -868,8 +1116,14 @@ export function OmxPage() {
                     <p className="font-medium">{selectedItem.productName ?? "미지정"}</p>
                   </div>
                   <div className="rounded-2xl border border-border/70 p-3">
-                    <p className="mb-1 text-xs text-muted-foreground">선택된 건수</p>
-                    <p className="font-medium">{selectedQueue.length}건</p>
+                    <p className="mb-1 text-xs text-muted-foreground">문의 종류</p>
+                    <p className="font-medium">{selectedItem.inquiryCategoryLabel ?? "분류 전"}</p>
+                  </div>
+                  <div className="rounded-2xl border border-border/70 p-3">
+                    <p className="mb-1 text-xs text-muted-foreground">첨부/선택</p>
+                    <p className="font-medium">
+                      {attachmentSummary(selectedItem) ?? "첨부 없음"} · 선택 {selectedQueue.length}건
+                    </p>
                   </div>
                 </div>
               </CardHeader>
@@ -888,6 +1142,11 @@ export function OmxPage() {
                         <div>
                           <p className="text-sm font-semibold">원문 빠른 확인</p>
                           <p className="mt-2 text-sm leading-6 text-foreground">{selectedItem.body}</p>
+                          {selectedItem.attachments?.length ? (
+                            <p className="mt-2 text-xs text-slate-500">
+                              첨부 {selectedItem.attachments.length}건이 있어 아래 원문/메모 탭에서 바로 확인할 수 있습니다.
+                            </p>
+                          ) : null}
                         </div>
                         <div className="flex flex-col gap-2">
                           <Button type="button" size="sm" variant="outline" onClick={() => void copyText("원문", selectedItem.body)}>
@@ -902,7 +1161,7 @@ export function OmxPage() {
                               className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium text-foreground shadow-xs transition-[color,box-shadow] hover:bg-accent hover:text-accent-foreground"
                             >
                               <ArrowUpRight className="mr-1 h-4 w-4" />
-                              원문 열기
+                              {isGenericSourceUrl(selectedItem.sourceUrl) ? "관리자 열기" : "원문 열기"}
                             </a>
                           )}
                         </div>
@@ -972,7 +1231,30 @@ export function OmxPage() {
                         선택 건 {selectedQueue.length}건 · 직접 발송 가능 {selectedSendableQueue.length}건 · send endpoint 준비 채널{" "}
                         {liveDirectSources.length}개
                       </p>
+                      <p className="mt-2 text-xs text-blue-800">
+                        실제 발송을 누르면 직전에 플랫폼 최신 상태를 다시 조회합니다. 다른 담당자가 이미 답변한 건은 자동으로
+                        제외됩니다.
+                      </p>
                     </div>
+
+                    {conflictWarnings.length ? (
+                      <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950">
+                        <div className="flex items-start gap-2">
+                          <ShieldAlert className="mt-0.5 h-4 w-4 text-amber-700" />
+                          <div className="space-y-2">
+                            <p className="font-semibold">최근 충돌 방지 기록</p>
+                            <div className="space-y-1">
+                              {conflictWarnings.slice(0, 4).map((warning) => (
+                                <p key={warning.id}>
+                                  <span className="font-medium">{warning.title}</span> · {warning.message}
+                                </p>
+                              ))}
+                              {conflictWarnings.length > 4 && <p>외 {conflictWarnings.length - 4}건</p>}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    ) : null}
 
                     <div className="sticky bottom-0 rounded-2xl border border-border/70 bg-white/95 p-4 shadow-sm backdrop-blur">
                       <div className="flex flex-wrap gap-2">
@@ -1004,7 +1286,15 @@ export function OmxPage() {
                       <p className="text-sm font-semibold">원문</p>
                       <p className="text-sm leading-6 text-foreground">{selectedItem.body}</p>
                       <Separator />
-                      <div className="grid gap-3 text-sm md:grid-cols-2">
+                      <div className="grid gap-3 text-sm md:grid-cols-3">
+                        <div>
+                          <p className="text-muted-foreground">문의 종류</p>
+                          <p>{selectedItem.inquiryCategoryLabel ?? "분류 전"}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">플랫폼 상태</p>
+                          <p>{selectedItem.externalStatus || "-"}</p>
+                        </div>
                         <div>
                           <p className="text-muted-foreground">raw payload</p>
                           <p>{selectedItem.rawPayloadSummary}</p>
@@ -1013,7 +1303,64 @@ export function OmxPage() {
                           <p className="text-muted-foreground">내부 메모</p>
                           <p className="whitespace-pre-wrap">{notes[selectedItem.id] || selectedItem.internalNote || "-"}</p>
                         </div>
+                        <div>
+                          <p className="text-muted-foreground">source kind</p>
+                          <p>{selectedItem.sourceKind || "-"}</p>
+                        </div>
+                        <div>
+                          <p className="text-muted-foreground">주문/상품</p>
+                          <p>
+                            {selectedItem.orderId || "-"} / {selectedItem.productId || "-"}
+                          </p>
+                        </div>
                       </div>
+                    </div>
+
+                    <div className="rounded-2xl border border-border/70 p-4 space-y-3">
+                      <div className="flex items-center justify-between gap-2">
+                        <p className="text-sm font-semibold">첨부 이미지 / 파일</p>
+                        <Badge className="border border-slate-200 bg-slate-100 text-slate-700">
+                          {selectedItem.attachments?.length ?? 0}건
+                        </Badge>
+                      </div>
+                      {selectedItem.attachments?.length ? (
+                        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-3">
+                          {selectedItem.attachments.map((attachment, index) => {
+                            const isImage = attachment.kind !== "file";
+                            return (
+                              <a
+                                key={`${attachment.url}-${index}`}
+                                href={attachment.url}
+                                target="_blank"
+                                rel="noreferrer"
+                                className="group overflow-hidden rounded-2xl border border-border/70 bg-slate-50"
+                              >
+                                {isImage ? (
+                                  <img
+                                    src={attachment.url}
+                                    alt={attachment.label || `첨부 이미지 ${index + 1}`}
+                                    className="h-44 w-full object-cover transition group-hover:scale-[1.02]"
+                                    loading="lazy"
+                                  />
+                                ) : (
+                                  <div className="flex h-44 items-center justify-center bg-slate-100 text-slate-500">
+                                    <ImageIcon className="h-8 w-8" />
+                                  </div>
+                                )}
+                                <div className="space-y-1 p-3 text-sm">
+                                  <p className="font-medium">{attachment.label || `첨부 ${index + 1}`}</p>
+                                  <p className="line-clamp-2 text-xs text-slate-500">{attachment.url}</p>
+                                </div>
+                              </a>
+                            );
+                          })}
+                        </div>
+                      ) : (
+                        <div className="rounded-2xl border border-dashed border-border/70 px-4 py-6 text-sm text-muted-foreground">
+                          이 문의에는 OMX로 가져온 첨부가 없습니다. 스마트스토어는 현재 공식 API 기준으로 이미지가 내려오지 않을 수
+                          있고, 메이크샵은 첨부가 있으면 여기서 바로 미리보기됩니다.
+                        </div>
+                      )}
                     </div>
                   </TabsContent>
 
@@ -1142,7 +1489,7 @@ export function OmxPage() {
             <DialogDescription>
               {dispatchMode === "DRY_RUN"
                 ? `선택된 ${selectedSendableQueue.length}건을 실제 발송 없이 먼저 점검합니다. 문구와 연동 상태를 먼저 확인하세요.`
-                : `선택된 ${selectedSendableQueue.length}건을 실제 고객에게 발송합니다. 문구를 마지막으로 확인한 뒤 진행하세요.`}
+                : `선택된 ${selectedSendableQueue.length}건을 실제 고객에게 발송합니다. 발송 직전에 플랫폼 최신 상태를 다시 확인하며, 이미 처리된 문의는 자동 제외됩니다.`}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3 text-sm">

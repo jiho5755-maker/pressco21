@@ -22,21 +22,52 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-09 23:32:00 KST
+- Started At: 2026-04-10 10:05:00 KST
 - Branch: main
-- Working Scope: OMX 발송 플로우 문구/용어 정제
+- Working Scope: OMX 수동 수집/충돌 방지/이미지·종류 보강
 - Active Subdirectory: mini-app-v2
 
 ## Files In Progress
 - AI_SYNC.md
-- docs/openmarket-ops/
-- mini-app-v2/
-- tools/openmarket/
+- mini-app-v2/src/lib/omx.ts
+- mini-app-v2/src/lib/omxApi.ts
+- mini-app-v2/src/pages/OmxPage.tsx
 
 ## Last Changes
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-10 OMX 수동 수집/충돌 방지/첨부·종류 UX 보강 (codex)
+  - `mini-app-v2/src/lib/omx.ts`
+    - queue item에 문의 종류(`inquiryCategory`)와 첨부(`attachments`) 필드를 정식 반영
+  - `mini-app-v2/src/lib/omxApi.ts`
+    - smartstore/makeshop adapter payload에서 첨부 URL을 정규화해 OMX queue item으로 매핑
+    - 문의 분류를 `사용법/재고/배송/교환반품/불량/사업자/후기/일반`으로 확장
+    - `generateOmxDraft`에 불량/사업자 기본 초안 추가
+    - 실제 발송 직전 최신 플랫폼 상태를 다시 확인하는 `preflightOmxSend()` 도입
+      - 이미 답변 완료된 문의
+      - 최신 조회에서 사라진 문의
+      를 자동 차단하도록 정리
+  - `mini-app-v2/src/pages/OmxPage.tsx`
+    - 상단 수동 수집 버튼을 `지금 문의 가져오기`로 변경
+    - 자동 수집보다 수동 최신 조회를 우선하는 운영 문구 추가
+    - 문의 종류 필터 행 추가
+    - inbox 카드에 문의 종류 배지, 첨부 배지 추가
+    - 상세 패널 상단에 `문의 종류`, `첨부/선택` 요약 카드 추가
+    - `원문/메모` 탭에 플랫폼 상태, source kind, 주문/상품 정보, 첨부 이미지/파일 미리보기 추가
+    - 메이크샵 관리자 루트 URL은 `원문 열기` 대신 `관리자 열기`로 표시
+    - `발송 직전 최신 상태 재확인` 안내 및 최근 충돌 방지 기록 박스 추가
+    - 발송 모달 설명에 `이미 처리된 문의 자동 제외` 문구 반영
+    - 필터가 바뀌면 오른쪽 상세가 현재 보이는 문의를 우선 따라가도록 선택 우선순위 수정
+    - 불량/사업자/배송 문의에 맞는 답변 템플릿 버튼 추가
+  - 검증
+    - `cd mini-app-v2 && npm run build`
+    - `cd mini-app-v2 && bash scripts/deploy.sh`
+    - Playwright 실브라우저 확인
+      - `/omx`에 `지금 문의 가져오기` 버튼 노출 확인
+      - 메이크샵 문의가 `불량/사업자`로 분류되어 좌측 inbox와 상세 패널에 모두 반영되는 것 확인
+      - 메이크샵 불량 문의의 첨부 이미지 URL이 `원문/메모` 탭에 노출되고 `<img>` DOM으로 렌더링되는 것 확인
+      - 실제 발송 직전 충돌 방지 안내 문구가 답변 작성/실제 발송 확인 모달에 모두 노출되는 것 확인
 - 2026-04-09 OMX 발송 플로우 용어를 실무형 문구로 정제 (codex)
   - `mini-app-v2/src/pages/OmxPage.tsx`
     - `DRY_RUN` → `발송 전 확인`
@@ -415,15 +446,10 @@
 - 2026-04-07 고객 상세 거래내역 인라인 편집 전환 (codex)
 
 ## Next Step
-- 스마트스토어/메이크샵 실사용 기준으로 버튼 라벨과 템플릿 문구를 2차 미세 조정
+- OMX 실사용 피드백 기준으로 `원문/메모` 탭의 스마트스토어 상세 보강 가능성 검토
 - 실행 결과/메모를 브라우저 세션이 아니라 서버 저장 이력으로 남길지 결정
-- 실사용 피드백 기준으로 inbox 정렬 규칙을 더 단순화할지 검토
-- 스마트스토어 1건, 메이크샵 1건 기준으로 새 UX에서 실제 발송 검증을 다시 진행
-- 실행 결과/메모를 브라우저 세션이 아니라 서버 저장 이력으로 남길지 결정
-- 실사용 피드백 기준으로 inbox 정렬 규칙과 템플릿 세분화 2차 조정
-- 스마트스토어 상품문의 1건으로 OMX UI 기준 LIVE_SEND 실발송 검증
-- 메이크샵 inquiry/review 승인형 write 1건씩 실발송 검증
-- OMX 실행 결과를 세션 메모가 아니라 서버 저장 이력으로 남길지 결정
+- 스마트스토어 상품문의 1건, 메이크샵 inquiry/review 1건씩 새 UX 기준으로 실제 발송 검증
+- 문의 종류 분류 정확도를 실데이터 기준으로 더 다듬을지 검토
 ### Claude Code 담당
 - Phase 3b 기획안 파이프라인 구현 (PRD 템플릿 + n8n WF + 디자인팀 핸드오프)
 - Phase 3c OpenClaw + 텔레그램 고도화 (3방 라우팅, Codex 원격 실행, task ledger)

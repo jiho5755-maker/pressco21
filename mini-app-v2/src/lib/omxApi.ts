@@ -1,6 +1,8 @@
 import {
   OMX_CAPABILITIES,
   OMX_QUEUE_ITEMS,
+  type OmxAttachment,
+  type OmxInquiryCategory,
   type OmxItemType,
   type OmxQueueItem,
   type OmxQueueStatus,
@@ -79,6 +81,8 @@ interface OmxAdapterItem {
   rawPayloadSummary?: string;
   tags?: string[];
   assignee?: string;
+  attach?: string;
+  attachments?: Array<{ url?: string; label?: string; kind?: "image" | "file" }>;
 }
 
 interface OmxAdapterFetchResponse {
@@ -337,7 +341,13 @@ function summarizeMeta(meta?: Record<string, unknown>): string | undefined {
   return entries.length ? entries.join(", ") : undefined;
 }
 
-function classifyInquiry(text: string): "usage" | "stock" | "delivery" | "return" | "general" {
+function classifyInquiry(text: string): Exclude<OmxInquiryCategory, "review"> {
+  if (/(사업자|도매|대량견적|세금계산서)/.test(text)) {
+    return "business";
+  }
+  if (/(불량|고장|파손|깨짐|문제|나사|불빛|점등)/.test(text)) {
+    return "defect";
+  }
   if (/(비율|사용법|경화|굳|혼합|처음)/.test(text)) {
     return "usage";
   }
@@ -351,6 +361,76 @@ function classifyInquiry(text: string): "usage" | "stock" | "delivery" | "return
     return "return";
   }
   return "general";
+}
+
+function toInquiryCategory(itemType: OmxItemType, text: string): OmxInquiryCategory {
+  if (itemType === "review") {
+    return "review";
+  }
+  return classifyInquiry(text) as OmxInquiryCategory;
+}
+
+function inquiryCategoryLabel(category: OmxInquiryCategory): string {
+  switch (category) {
+    case "usage":
+      return "사용법";
+    case "stock":
+      return "재고/입고";
+    case "delivery":
+      return "배송";
+    case "return":
+      return "교환/반품";
+    case "defect":
+      return "불량";
+    case "business":
+      return "사업자";
+    case "review":
+      return "후기";
+    default:
+      return "일반";
+  }
+}
+
+function normalizeAttachmentUrl(value: string): string {
+  const raw = String(value || "").trim();
+  if (!raw) {
+    return "";
+  }
+  if (raw.startsWith("http://")) {
+    return `https://${raw.slice("http://".length)}`;
+  }
+  if (raw.startsWith("//")) {
+    return `https:${raw}`;
+  }
+  return raw;
+}
+
+function extractAttachments(item: OmxAdapterItem): OmxAttachment[] {
+  const attachments: OmxAttachment[] = [];
+  const addAttachment = (url: string, label?: string, kind: "image" | "file" = "image") => {
+    const normalized = normalizeAttachmentUrl(url);
+    if (!normalized || attachments.some((attachment) => attachment.url === normalized)) {
+      return;
+    }
+    attachments.push({ url: normalized, label, kind });
+  };
+
+  if (typeof item.attach === "string") {
+    item.attach
+      .split(/[,\n]/)
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .forEach((url, index) => addAttachment(url, `첨부 ${index + 1}`));
+  }
+
+  if (Array.isArray(item.attachments)) {
+    item.attachments.forEach((attachment, index) => {
+      if (!attachment?.url) return;
+      addAttachment(attachment.url, attachment.label || `첨부 ${index + 1}`, attachment.kind || "image");
+    });
+  }
+
+  return attachments;
 }
 
 export function generateOmxDraft(item: Pick<OmxQueueItem, "itemType" | "body" | "productName" | "customerName">): string {
@@ -367,6 +447,12 @@ export function generateOmxDraft(item: Pick<OmxQueueItem, "itemType" | "body" | 
   }
   if (classification === "delivery") {
     return `안녕하세요. 문의주신 주문/배송 상태를 확인한 뒤 정확한 일정으로 안내드리겠습니다. 출고 여부와 송장 반영 시간을 먼저 확인하고, 확인되는 대로 빠르게 답변드리겠습니다.`;
+  }
+  if (classification === "defect") {
+    return `안녕하세요. 불편을 드려 죄송합니다. 문의주신 내용 기준으로 ${item.productName ? `${item.productName}의` : "상품의"} 상태와 출고 이력을 먼저 확인하겠습니다. 사진이나 증상이 확인되면 교환/재발송 가능 여부까지 함께 정리해서 빠르게 안내드리겠습니다.`;
+  }
+  if (classification === "business") {
+    return `안녕하세요. 문의주신 사업자/대량 주문 관련 내용을 확인했습니다. ${item.productName ? `${item.productName}` : "상품"}의 공급 가능 수량과 거래 조건을 먼저 확인한 뒤, 필요한 안내 사항을 정리해서 다시 답변드리겠습니다.`;
   }
   if (classification === "return") {
     return `안녕하세요. 문의주신 교환/반품 가능 여부를 확인해 안내드리겠습니다. 주문 상태와 상품 상태 기준을 먼저 확인한 뒤 진행 가능한 절차를 정리해서 다시 답변드리겠습니다.`;
@@ -407,6 +493,8 @@ function toQueueItem(
   const subject = String(adapterItem.subject || adapterItem.title || "").trim();
   const receivedAt = parseDate(adapterItem.receivedAt || adapterItem.createDate);
   const externalStatus = normalizeStatus(adapterItem.status, adapterItem.answered, adapterItem.answerPreview);
+  const category = toInquiryCategory(itemType, `${subject} ${body} ${adapterItem.rawCategory || ""}`);
+  const attachments = extractAttachments(adapterItem);
   const aiDraft = generateOmxDraft({
     itemType,
     body,
@@ -440,6 +528,9 @@ function toQueueItem(
     sourcePayload: adapterItem as unknown as Record<string, unknown>,
     rawPayloadSummary: String(adapterItem.rawPayloadSummary || metaSummary || `${config.channel} adapter`),
     tags: Array.isArray(adapterItem.tags) ? adapterItem.tags : [config.channelLabel, itemType === "review" ? "리뷰" : "문의"],
+    inquiryCategory: category,
+    inquiryCategoryLabel: inquiryCategoryLabel(category),
+    attachments,
   };
 }
 
@@ -538,6 +629,33 @@ export async function fetchOmxWorkspace(): Promise<OmxWorkspaceResponse> {
     sourceStates,
     fetchedAt,
     configSummary,
+  };
+}
+
+export async function preflightOmxSend(items: OmxQueueItem[]): Promise<{
+  blockedIds: string[];
+  latestWorkspace: OmxWorkspaceResponse;
+  blockedMap: Map<string, string>;
+}> {
+  const latestWorkspace = await fetchOmxWorkspace();
+  const latestMap = new Map(latestWorkspace.items.map((item) => [item.id, item]));
+  const blockedMap = new Map<string, string>();
+
+  items.forEach((item) => {
+    const latest = latestMap.get(item.id);
+    if (!latest) {
+      blockedMap.set(item.id, "플랫폼 최신 조회에서 이 문의를 찾지 못했습니다. 다시 확인이 필요합니다.");
+      return;
+    }
+    if (latest.status === "sent" || latest.externalStatus === "ANSWERED") {
+      blockedMap.set(item.id, "이미 플랫폼에서 답변 완료된 문의입니다. 중복 발송을 막기 위해 제외했습니다.");
+    }
+  });
+
+  return {
+    blockedIds: Array.from(blockedMap.keys()),
+    latestWorkspace,
+    blockedMap,
   };
 }
 

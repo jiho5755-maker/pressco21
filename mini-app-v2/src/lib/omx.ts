@@ -10,6 +10,21 @@ export type OmxQueueStatus =
   | "sent"
   | "manual_required";
 export type OmxUrgency = "ok" | "warning" | "breach";
+export type OmxInquiryCategory =
+  | "usage"
+  | "stock"
+  | "delivery"
+  | "return"
+  | "defect"
+  | "business"
+  | "review"
+  | "general";
+
+export interface OmxAttachment {
+  url: string;
+  label?: string;
+  kind?: "image" | "file";
+}
 
 export interface OmxCapability {
   id: string;
@@ -51,6 +66,9 @@ export interface OmxQueueItem {
   sourcePayload?: Record<string, unknown>;
   rawPayloadSummary: string;
   tags: string[];
+  inquiryCategory?: OmxInquiryCategory;
+  inquiryCategoryLabel?: string;
+  attachments?: OmxAttachment[];
 }
 
 export interface OmxRunbookStep {

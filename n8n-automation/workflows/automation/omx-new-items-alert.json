@@ -1,0 +1,276 @@
+{
+  "name": "[OMX-NOTIFY-01] 스마트스토어·메이크샵 신규 문의 알림",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "node-schedule",
+      "name": "매시간 정시",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const chatId = String($env.OMX_NOTIFY_CHAT_ID || $env.TELEGRAM_CHAT_ID || '').trim();\nconst omxBaseUrl = String($env.OMX_NOTIFY_N8N_BASE_URL || 'https://n8n.pressco21.com').trim().replace(/\\/$/, '');\nconst omxAppUrl = String($env.OMX_NOTIFY_APP_URL || 'https://mini.pressco21.com/omx').trim();\nconst sharedKey = String($env.OMX_SHARED_KEY || $env.OMX_SOURCE_KEY || '').trim();\nconst includeReviews = String($env.OMX_NOTIFY_INCLUDE_MAKESHOP_REVIEWS || 'true').trim().toLowerCase() !== 'false';\nconst maxLines = Number.parseInt(String($env.OMX_NOTIFY_MAX_LINES || '8').trim(), 10) || 8;\nconst initialSeedQuiet = String($env.OMX_NOTIFY_INITIAL_SEED_QUIET || 'true').trim().toLowerCase() !== 'false';\nif (!sharedKey) {\n  throw new Error('OMX_SHARED_KEY 가 설정되지 않았습니다.');\n}\nif (!chatId) {\n  throw new Error('OMX_NOTIFY_CHAT_ID 또는 TELEGRAM_CHAT_ID 가 설정되지 않았습니다.');\n}\nreturn [{\n  json: {\n    chatId,\n    omxBaseUrl,\n    omxAppUrl,\n    sharedKey,\n    includeReviews,\n    maxLines,\n    initialSeedQuiet,\n  }\n}];"
+      },
+      "id": "node-config",
+      "name": "실행 설정",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('실행 설정').first().json.omxBaseUrl + '/webhook/openmarket/smartstore/inquiries?onlyPending=true' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-omx-source-key",
+              "value": "={{ $('실행 설정').first().json.sharedKey }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-fetch-smartstore",
+      "name": "스마트스토어 문의 가져오기",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        700,
+        220
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $('실행 설정').first().json.omxBaseUrl + '/webhook/openmarket/makeshop/items?onlyPending=true' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-omx-source-key",
+              "value": "={{ $('실행 설정').first().json.sharedKey }}"
+            },
+            {
+              "name": "Accept",
+              "value": "application/json"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "node-fetch-makeshop",
+      "name": "메이크샵 문의/리뷰 가져오기",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        960,
+        220
+      ],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const config = $('실행 설정').first().json;\nconst smartstorePayload = $('스마트스토어 문의 가져오기').first().json || {};\nconst makeshopPayload = $('메이크샵 문의/리뷰 가져오기').first().json || {};\nfunction extractItems(payload) {\n  return Array.isArray(payload.items) ? payload.items : [];\n}\nconst smartstoreItems = extractItems(smartstorePayload);\nconst makeshopItems = extractItems(makeshopPayload);\nlet combined = [...smartstoreItems, ...makeshopItems].filter((item) => item && item.id);\nif (!config.includeReviews) {\n  combined = combined.filter((item) => item.itemType !== 'review');\n}\ncombined = combined.filter((item) => {\n  const status = String(item.status || item.externalStatus || '').toUpperCase();\n  return !['ANSWERED', 'SENT', 'CLOSED', 'DONE'].includes(status);\n});\ncombined.sort((a, b) => new Date(a.receivedAt || 0).getTime() - new Date(b.receivedAt || 0).getTime());\nconst workflowState = $getWorkflowStaticData('global');\nconst seen = workflowState.omxSeen || {};\nconst nowIso = new Date().toISOString();\nconst cutoffMs = Date.now() - 45 * 24 * 60 * 60 * 1000;\nfor (const [key, value] of Object.entries(seen)) {\n  const stored = value && typeof value === 'object' ? value : {};\n  const at = new Date(stored.firstSeenAt || stored.lastSeenAt || 0).getTime();\n  if (!Number.isFinite(at) || at < cutoffMs) {\n    delete seen[key];\n  }\n}\nconst newItems = [];\nfor (const item of combined) {\n  const key = `${item.channel || 'unknown'}:${item.itemType || 'inquiry'}:${item.id}`;\n  if (!seen[key]) {\n    newItems.push(item);\n    seen[key] = {\n      firstSeenAt: nowIso,\n      lastSeenAt: nowIso,\n      title: String(item.title || ''),\n      channel: String(item.channel || ''),\n      itemType: String(item.itemType || 'inquiry'),\n      receivedAt: String(item.receivedAt || ''),\n    };\n    continue;\n  }\n  seen[key].lastSeenAt = nowIso;\n}\nworkflowState.omxSeen = seen;\nconst sourceCounts = {\n  smartstore: smartstoreItems.length,\n  makeshop: makeshopItems.length,\n};\nif (!workflowState.omxBaselineInitialized) {\n  workflowState.omxBaselineInitialized = true;\n  workflowState.omxBaselineAt = nowIso;\n  return [{\n    json: {\n      shouldSend: config.initialSeedQuiet ? false : newItems.length > 0,\n      seeded: true,\n      seededCount: combined.length,\n      newCount: newItems.length,\n      newItems,\n      sourceCounts,\n      chatId: config.chatId,\n      omxAppUrl: config.omxAppUrl,\n      maxLines: config.maxLines,\n      fetchedAt: nowIso,\n    }\n  }];\n}\nreturn [{\n  json: {\n    shouldSend: newItems.length > 0,\n    seeded: false,\n    seededCount: 0,\n    newCount: newItems.length,\n    newItems,\n    sourceCounts,\n    chatId: config.chatId,\n    omxAppUrl: config.omxAppUrl,\n    maxLines: config.maxLines,\n    fetchedAt: nowIso,\n  }\n}];"
+      },
+      "id": "node-dedupe",
+      "name": "신규 문의/리뷰 판별",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1220,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.shouldSend }}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "node-if-send",
+      "name": "알림 발송 여부",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1460,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const input = $input.first().json;\nconst items = Array.isArray(input.newItems) ? input.newItems : [];\nconst maxLines = Number(input.maxLines || 8) || 8;\nconst appUrl = String(input.omxAppUrl || 'https://mini.pressco21.com/omx').trim();\nfunction truncate(text, length = 48) {\n  const value = String(text || '').replace(/\\s+/g, ' ').trim();\n  if (!value) return '-';\n  return value.length > length ? `${value.slice(0, length - 1)}…` : value;\n}\nfunction formatDate(value) {\n  const date = new Date(value || Date.now());\n  return new Intl.DateTimeFormat('ko-KR', {\n    timeZone: 'Asia/Seoul',\n    month: '2-digit',\n    day: '2-digit',\n    hour: '2-digit',\n    minute: '2-digit',\n    hour12: false,\n  }).format(date);\n}\nfunction classify(item) {\n  if (item.itemType === 'review') return '후기';\n  const text = `${item.rawCategory || ''} ${item.subject || item.title || ''} ${item.body || ''}`;\n  if (/(사업자|도매|대량견적|세금계산서)/.test(text)) return '사업자';\n  if (/(불량|고장|파손|깨짐|문제|나사|불빛|점등)/.test(text)) return '불량';\n  if (/(비율|사용법|경화|굳|혼합|처음)/.test(text)) return '사용법';\n  if (/(재고|입고|품절|대량)/.test(text)) return '재고/입고';\n  if (/(배송|출고|송장|언제)/.test(text)) return '배송';\n  if (/(반품|교환|환불)/.test(text)) return '교환/반품';\n  return '일반';\n}\nfunction attachmentCount(item) {\n  if (Array.isArray(item.attachments)) return item.attachments.length;\n  if (typeof item.attach === 'string' && item.attach.trim()) return item.attach.split(/[\\n,]/).filter(Boolean).length;\n  return 0;\n}\nlet text = `📥 OMX 신규 응답건 ${items.length}건\\n`;\ntext += `확인 시각: ${formatDate(input.fetchedAt)}\\n`;\ntext += `소스: 스마트스토어 ${input.sourceCounts?.smartstore || 0} · 메이크샵 ${input.sourceCounts?.makeshop || 0}\\n\\n`;\nitems.slice(0, maxLines).forEach((item, index) => {\n  const channelLabel = item.channelLabel || (item.channel === 'smartstore' ? '스마트스토어' : item.channel === 'makeshop' ? '메이크샵' : item.channel || '채널');\n  const itemTypeLabel = item.itemType === 'review' ? '리뷰' : '문의';\n  const category = classify(item);\n  const attachments = attachmentCount(item);\n  text += `${index + 1}. [${channelLabel} · ${itemTypeLabel} · ${category}]\\n`;\n  text += `고객: ${truncate(item.customerName || '고객', 20)}\\n`;\n  if (item.productName) {\n    text += `상품: ${truncate(item.productName, 30)}\\n`;\n  }\n  text += `제목: ${truncate(item.subject || item.title || '-', 36)}\\n`;\n  text += `내용: ${truncate(item.body || item.content || '-', 56)}\\n`;\n  if (attachments) {\n    text += `첨부: ${attachments}건\\n`;\n  }\n  text += `접수: ${formatDate(item.receivedAt)}\\n\\n`;\n});\nif (items.length > maxLines) {\n  text += `외 ${items.length - maxLines}건 더 있음\\n\\n`;\n}\ntext += `OMX 열기: ${appUrl}`;\nreturn [{ json: { chatId: input.chatId, text } }];"
+      },
+      "id": "node-format-message",
+      "name": "알림 메시지 작성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1700,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {}
+      },
+      "id": "node-send-telegram",
+      "name": "텔레그램 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1940,
+        220
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매시간 정시": {
+      "main": [
+        [
+          {
+            "node": "실행 설정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "실행 설정": {
+      "main": [
+        [
+          {
+            "node": "스마트스토어 문의 가져오기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스마트스토어 문의 가져오기": {
+      "main": [
+        [
+          {
+            "node": "메이크샵 문의/리뷰 가져오기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메이크샵 문의/리뷰 가져오기": {
+      "main": [
+        [
+          {
+            "node": "신규 문의/리뷰 판별",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "신규 문의/리뷰 판별": {
+      "main": [
+        [
+          {
+            "node": "알림 발송 여부",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "알림 발송 여부": {
+      "main": [
+        [
+          {
+            "node": "알림 메시지 작성",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        []
+      ]
+    },
+    "알림 메시지 작성": {
+      "main": [
+        [
+          {
+            "node": "텔레그램 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "active": false,
+  "tags": [
+    {
+      "name": "오픈마켓"
+    },
+    {
+      "name": "OMX"
+    },
+    {
+      "name": "알림"
+    }
+  ]
+}

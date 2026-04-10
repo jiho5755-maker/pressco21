@@ -31,6 +31,7 @@
 - `n8n-automation/workflows/automation/omx-smartstore-replies.json`
 - `n8n-automation/workflows/automation/omx-makeshop-items.json`
 - `n8n-automation/workflows/automation/omx-makeshop-replies.json`
+- `n8n-automation/workflows/automation/omx-new-items-alert.json`
 
 ### 2.3 n8n upsert 스크립트
 
@@ -48,6 +49,10 @@
 - 스마트스토어 send: `UQS8JOcWqMUtuJdq`
 - 메이크샵 fetch: `XPGHCada6xaqXp1Y`
 - 메이크샵 send: `fbkI72Jy0teldzy2`
+
+2026-04-10 생성 대상:
+
+- 신규 문의 알림: `I63edSHDF50cdCEB`
 
 현재 상태:
 
@@ -67,6 +72,12 @@
    - `MAKESHOP_DOMAIN`
    - `MAKESHOP_SHOPKEY`
    - `MAKESHOP_LICENSEKEY`
+   - `OMX_NOTIFY_CHAT_ID`
+   - 선택:
+     - `OMX_NOTIFY_APP_URL`
+     - `OMX_NOTIFY_INCLUDE_MAKESHOP_REVIEWS`
+     - `OMX_NOTIFY_MAX_LINES`
+     - `OMX_NOTIFY_INITIAL_SEED_QUIET`
 
 2. workflow upsert
 
@@ -75,7 +86,8 @@ python3 tools/openmarket/omx_n8n_upsert.py \
   n8n-automation/workflows/automation/omx-smartstore-inquiries.json \
   n8n-automation/workflows/automation/omx-smartstore-replies.json \
   n8n-automation/workflows/automation/omx-makeshop-items.json \
-  n8n-automation/workflows/automation/omx-makeshop-replies.json
+  n8n-automation/workflows/automation/omx-makeshop-replies.json \
+  n8n-automation/workflows/automation/omx-new-items-alert.json
 ```
 
 3. openclaw nginx reverse proxy 추가
@@ -84,9 +96,16 @@ python3 tools/openmarket/omx_n8n_upsert.py \
 - `x-omx-source-key`는 nginx가 서버단에서 주입
 - 브라우저에는 shared key를 배포하지 않는다
 
-4. n8n에서 4개 workflow 활성화
+4. n8n에서 4개 핵심 workflow 활성화
 
-5. OMX runtime config 작성
+5. 신규 문의 알림 workflow 검토
+
+- 현재 workflow ID: `I63edSHDF50cdCEB`
+- 첫 실행 기본값은 `기준선만 저장하고 무음`이다.
+- 알림은 텔레그램으로 전송된다.
+- 상세 가이드는 `docs/openmarket-ops/omx-notify-poller-v1.md` 참조
+
+6. OMX runtime config 작성
 
 `mini-app-v2/public/omx-config.sample.json` 기준으로 `omx-config.json`을 채운다.
 
@@ -106,19 +125,21 @@ python3 tools/openmarket/omx_n8n_upsert.py \
 }
 ```
 
-6. 프런트 배포
+7. 프런트 배포
 
 ```bash
 cd mini-app-v2
 bash scripts/deploy.sh
 ```
 
-7. 첫 검증 순서
+8. 첫 검증 순서
    - OMX `/omx` 접속
    - `DRY_RUN` 상태에서 새로고침
    - 스마트스토어/메이크샵 source card 확인
    - 문의 1건 선택 후 `DRY_RUN`
    - 승인된 테스트 케이스 1건만 `LIVE_SEND`
+   - 신규 문의 알림 workflow는 수동 실행 후 텔레그램 포맷 확인
+   - 문제가 없으면 alert workflow 활성화
 
 ---
 
@@ -140,6 +161,8 @@ bash scripts/deploy.sh
 
 - 운영 n8n env 주입
 - workflow activation
+- 신규 문의 alert workflow upsert + activation
+- 신규 문의 alert 첫 정시 실행 결과 확인
 - 스마트스토어 fetch endpoint 실응답 확인
 - 메이크샵 fetch endpoint 실응답 확인
 - 메이크샵 inquiry/review 실write 1건 검증

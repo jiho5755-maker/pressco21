@@ -22,21 +22,38 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: 2026-04-10 10:05:00 KST
+- Started At: —
 - Branch: main
-- Working Scope: OMX 수동 수집/충돌 방지/이미지·종류 보강
-- Active Subdirectory: mini-app-v2
+- Working Scope: —
+- Active Subdirectory: —
 
 ## Files In Progress
-- AI_SYNC.md
-- mini-app-v2/src/lib/omx.ts
-- mini-app-v2/src/lib/omxApi.ts
-- mini-app-v2/src/pages/OmxPage.tsx
+- None
 
 ## Last Changes
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-10 OMX 신규 문의/리뷰 주기 알림 workflow 추가 및 운영 활성화 (codex)
+  - `n8n-automation/workflows/automation/omx-new-items-alert.json`
+    - 스마트스토어 문의/Q&A + 메이크샵 문의/리뷰를 매시간 폴링해 신규 건만 텔레그램으로 알리는 workflow 추가
+    - 첫 실행은 `OMX_NOTIFY_INITIAL_SEED_QUIET=true`일 때 무음 기준선만 저장하도록 처리
+    - `OMX_NOTIFY_CHAT_ID` 또는 `TELEGRAM_CHAT_ID`가 없으면 실패하도록 fail-closed 적용
+  - `docs/openmarket-ops/omx-notify-poller-v1.md`
+    - 수집 대상, 중복 판별 키, 환경 변수, 활성화 순서 문서화
+  - `docs/openmarket-ops/omx-mvp-deploy-guide-v1.md`
+    - alert workflow 자산, env, workflow ID 반영
+  - 운영 반영
+    - n8n workflow 생성/활성화: `I63edSHDF50cdCEB`
+    - Oracle 운영 서버 `~/n8n/.env`에 `OMX_NOTIFY_*` 5종 추가
+    - Oracle 운영 서버 `~/n8n/docker-compose.yml`에 `OMX_NOTIFY_*` 환경변수 전달 항목 추가
+    - n8n 컨테이너 force recreate 후 `OMX_NOTIFY_CHAT_ID`, `OMX_NOTIFY_APP_URL`, `OMX_NOTIFY_INCLUDE_MAKESHOP_REVIEWS`, `OMX_NOTIFY_MAX_LINES`, `OMX_NOTIFY_INITIAL_SEED_QUIET` 반영 확인
+  - 검증
+    - `jq empty n8n-automation/workflows/automation/omx-new-items-alert.json`
+    - `python3 tools/openmarket/omx_n8n_upsert.py --dry-run n8n-automation/workflows/automation/omx-new-items-alert.json`
+    - `python3 tools/openmarket/omx_n8n_upsert.py n8n-automation/workflows/automation/omx-new-items-alert.json`
+    - `python3 tools/openmarket/omx_n8n_upsert.py --activate n8n-automation/workflows/automation/omx-new-items-alert.json`
+    - n8n API 조회로 workflow `active=true` 확인
 - 2026-04-10 OMX 수동 수집/충돌 방지/첨부·종류 UX 보강 (codex)
   - `mini-app-v2/src/lib/omx.ts`
     - queue item에 문의 종류(`inquiryCategory`)와 첨부(`attachments`) 필드를 정식 반영
@@ -446,6 +463,7 @@
 - 2026-04-07 고객 상세 거래내역 인라인 편집 전환 (codex)
 
 ## Next Step
+- OMX 신규 문의 alert 첫 정시 실행 결과 확인 및 필요 시 텔레그램 포맷 미세 조정
 - OMX 실사용 피드백 기준으로 `원문/메모` 탭의 스마트스토어 상세 보강 가능성 검토
 - 실행 결과/메모를 브라우저 세션이 아니라 서버 저장 이력으로 남길지 결정
 - 스마트스토어 상품문의 1건, 메이크샵 inquiry/review 1건씩 새 UX 기준으로 실제 발송 검증

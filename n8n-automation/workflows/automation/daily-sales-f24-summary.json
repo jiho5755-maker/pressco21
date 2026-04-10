@@ -1,0 +1,155 @@
+{
+  "name": "[F24] 일일 매출 리치 리포트 (10:00)",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 10, "triggerAtMinute": 0 }]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 200],
+      "id": "node-schedule",
+      "name": "매일 10:00"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-daily-sales-summary",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 500],
+      "id": "node-webhook",
+      "name": "수동 조회",
+      "webhookId": "flora-daily-sales-summary"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 날짜 계산: 전일(어제) + 이번 달 + 올해 + 전년 동기\nlet body = {};\ntry { body = $('수동 조회').first().json.body || {}; } catch(e) {}\nconst chatId = String(body.chatId || body.chat_id || '7713811206');\n\nconst now = new Date();\nconst kstOffset = 9 * 60 * 60 * 1000;\nconst kstNow = new Date(now.getTime() + kstOffset);\n\nconst yesterday = new Date(kstNow);\nyesterday.setDate(yesterday.getDate() - 1);\n\nconst yDate = yesterday.toISOString().slice(0, 10); // 2026-04-09\nconst yYear = yDate.slice(0, 4);\nconst yMonth = yDate.slice(0, 7); // 2026-04\nconst prevYear = String(parseInt(yYear) - 1);\nconst prevYearMonth = prevYear + yDate.slice(4, 7); // 2025-04\n\n// sheetsRow: 2026-01-01이 2행이므로\nconst p = yDate.split('-').map(Number);\nconst target = new Date(Date.UTC(p[0], p[1]-1, p[2]));\nconst jan1 = new Date(Date.UTC(parseInt(yYear), 0, 1));\nconst sheetsRow = Math.round((target - jan1) / 86400000) + 2;\n\n// 요일\nconst dowNames = ['일','월','화','수','목','금','토'];\nconst dow = dowNames[yesterday.getDay()];\nconst m = yesterday.getMonth() + 1;\nconst d = yesterday.getDate();\n\n// 이번 달의 몇 번째 날인지 (누계 일수)\nconst mtdDays = d;\n\nreturn [{ json: {\n  chatId,\n  yDate,\n  yYear,\n  yMonth,\n  prevYear,\n  prevYearMonth,\n  sheetsRow,\n  dow,\n  monthNum: m,\n  dayNum: d,\n  mtdDays,\n  label: `${m}/${d}(${dow}) 확정`,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 350],
+      "id": "node-date",
+      "name": "날짜 계산"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1B6F3XJLjK5WWaoOLy6f8JafjYNWs0-NQvVBvWKwTzhM/values/%EC%9D%BC%EB%B3%84%20%EB%A7%A4%EC%B6%9C!C{{ $('날짜 계산').first().json.sheetsRow }}:J{{ $('날짜 계산').first().json.sheetsRow }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "options": { "timeout": 10000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 350],
+      "id": "node-sheets-read",
+      "name": "Sheets 전일 행 조회",
+      "credentials": {
+        "googleDriveOAuth2Api": { "id": "2e6e75e1-2d4f-40ac-b992-c12aef75e69e", "name": "Pressco21-GoogleDrive" }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v2/tables/mwxvxjiqtw177xu/records?where=(report_date,like,{{ $('날짜 계산').first().json.yYear }}%25)&limit=500&fields=Id,report_date,makeshop_revenue,makeshop_orders,naver_revenue,naver_orders,st11_revenue,st11_orders,crm_revenue,crm_orders,coupang_revenue,coupang_orders,rocket_revenue,rocket_orders,legacy_others_revenue,total_revenue,total_orders,notes",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" }
+          ]
+        },
+        "options": { "timeout": 15000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 350],
+      "id": "node-current-year",
+      "name": "올해 NocoDB 조회",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v2/tables/mwxvxjiqtw177xu/records?where=(report_date,like,{{ $('날짜 계산').first().json.prevYear }}%25)&limit=500&fields=Id,report_date,total_revenue,total_orders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" }
+          ]
+        },
+        "options": { "timeout": 15000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1200, 350],
+      "id": "node-prev-year",
+      "name": "작년 NocoDB 조회",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 수동 채널(쿠팡/로켓/기타) 파싱 + 자동 채널 값 확인\nconst dateInfo = $('날짜 계산').first().json;\nconst sheetResp = $('Sheets 전일 행 조회').first().json || {};\n\n// Sheets: C=makeshop, D=naver, E=st11, F=crm, G=coupang, H=rocket, I=기타, J=일 합계\nlet row = [];\ntry {\n  const values = sheetResp.values || [[]];\n  row = values[0] || [];\n} catch(e) {}\n\n// 파싱 유틸\nconst num = (v) => {\n  if (v === undefined || v === null || v === '') return 0;\n  const s = String(v).replace(/[^0-9.-]/g, '');\n  return parseInt(s) || 0;\n};\n\nconst ms = num(row[0]);       // C\nconst nv = num(row[1]);       // D\nconst st = num(row[2]);       // E\nconst crm = num(row[3]);      // F\nconst coupang = num(row[4]);  // G (수동)\nconst rocket = num(row[5]);   // H (수동)\nconst etc = num(row[6]);      // I (수동)\nconst sheetTotal = num(row[7]); // J\n\n// 수동 채널 입력 여부 (하나라도 있으면 ok)\n// 단, 0으로 명시 입력한 경우를 판별 어려우므로, 빈 셀만 미입력으로 간주\nconst manualEntered = (row.length >= 7) && (row[4] !== '' || row[5] !== '' || row[6] !== '');\n\nreturn [{ json: {\n  sheetRow: row,\n  makeshop: ms,\n  naver: nv,\n  st11: st,\n  crm: crm,\n  coupang: coupang,\n  rocket: rocket,\n  etc: etc,\n  sheetTotal,\n  manualEntered,\n  dateInfo,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1440, 350],
+      "id": "node-parse-sheet",
+      "name": "Sheet 행 파싱"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 리포트 집계: 올해/작년 NocoDB 데이터 + 전일 채널 데이터\n// 중복 방어: 같은 report_date의 레코드가 여러 개면 가장 큰 Id만 사용\nconst parsed = $('Sheet 행 파싱').first().json;\nconst di = parsed.dateInfo;\n\nconst cyResp = $('올해 NocoDB 조회').first().json || {};\nconst pyResp = $('작년 NocoDB 조회').first().json || {};\nconst cyList = cyResp.list || [];\nconst pyList = pyResp.list || [];\n\n// 중복 제거: date별로 가장 큰 Id만\nconst dedupe = (list) => {\n  const map = {};\n  for (const r of list) {\n    const d = r.report_date;\n    if (!d) continue;\n    if (!map[d] || r.Id > map[d].Id) map[d] = r;\n  }\n  return map;\n};\nconst cyMap = dedupe(cyList);\nconst pyMap = dedupe(pyList);\n\n// 올해 누계 (1/1 ~ 어제)\nlet ytdRev = 0, ytdOrd = 0;\nfor (const d in cyMap) {\n  if (d <= di.yDate) {\n    ytdRev += parseInt(cyMap[d].total_revenue || 0);\n    ytdOrd += parseInt(cyMap[d].total_orders || 0);\n  }\n}\n\n// 이번 달 누계 (이번달 1일 ~ 어제)\nlet mtdRev = 0, mtdOrd = 0;\nconst mtdDaily = []; // 월 일별\nfor (const d in cyMap) {\n  if (d.startsWith(di.yMonth) && d <= di.yDate) {\n    const rev = parseInt(cyMap[d].total_revenue || 0);\n    mtdRev += rev;\n    mtdOrd += parseInt(cyMap[d].total_orders || 0);\n    mtdDaily.push({ date: d, rev });\n  }\n}\nmtdDaily.sort((a, b) => a.date.localeCompare(b.date));\n\n// 작년 동기간 누계 (전년 1/1 ~ 전년 같은 달 같은 날)\nlet pytdRev = 0;\nconst prevSameDay = di.prevYear + di.yDate.slice(4); // 2025-04-09\nfor (const d in pyMap) {\n  if (d <= prevSameDay) {\n    pytdRev += parseInt(pyMap[d].total_revenue || 0);\n  }\n}\n\n// 작년 동월 누계 (전년 같은 달 1일 ~ 같은 날)\nlet prevMtdRev = 0;\nfor (const d in pyMap) {\n  if (d.startsWith(di.prevYearMonth) && d <= prevSameDay) {\n    prevMtdRev += parseInt(pyMap[d].total_revenue || 0);\n  }\n}\n\n// 작년 전체 & 작년 같은 달 전체\nlet prevYearTotal = 0, prevMonthTotal = 0;\nfor (const d in pyMap) {\n  const rev = parseInt(pyMap[d].total_revenue || 0);\n  prevYearTotal += rev;\n  if (d.startsWith(di.prevYearMonth)) prevMonthTotal += rev;\n}\n\n// 전일 채널 데이터 (Sheets 기준, 수동이 있으면 그 값 사용)\nconst yesterdayTotal = parsed.makeshop + parsed.naver + parsed.st11 + parsed.crm + parsed.coupang + parsed.rocket + parsed.etc;\nconst yesterdayOrdersEst = (cyMap[di.yDate] && parseInt(cyMap[di.yDate].total_orders || 0)) || 0;\n\n// ─── 리포트 생성 ───\nconst fmt = (n) => Math.round(n).toLocaleString('ko-KR');\nconst pct = (part, whole) => whole > 0 ? Math.round(part / whole * 100) : 0;\nconst yoy = (cur, prev) => {\n  if (!prev || prev === 0) return '-';\n  const diff = (cur - prev) / prev * 100;\n  const sign = diff >= 0 ? '+' : '';\n  return sign + diff.toFixed(1) + '%';\n};\n\nlet msg = `<b>💰 통합 일일 매출 — ${di.label}</b>\\n`;\nmsg += '━━━━━━━━━━━━━━━━━━━\\n';\n\n// ── 전일 매출 ──\nif (yesterdayTotal === 0 && !parsed.manualEntered) {\n  msg += `⚠️ 전일 자동 채널 데이터 없음 또는 수집 실패\\n`;\n  msg += `⚠️ 수동 채널도 미입력 (쿠팡/로켓/기타)\\n\\n`;\n} else {\n  msg += `📊 <b>전일 총 매출: ${fmt(yesterdayTotal)}원</b>`;\n  if (yesterdayOrdersEst > 0) msg += ` (${yesterdayOrdersEst}건)`;\n  msg += '\\n\\n';\n  msg += '<b>채널별:</b>\\n';\n  msg += `🏪 메이크샵   ${fmt(parsed.makeshop)}원 (${pct(parsed.makeshop, yesterdayTotal)}%)\\n`;\n  msg += `🟢 네이버     ${fmt(parsed.naver)}원 (${pct(parsed.naver, yesterdayTotal)}%)\\n`;\n  msg += `🔴 11번가     ${fmt(parsed.st11)}원 (${pct(parsed.st11, yesterdayTotal)}%)\\n`;\n  msg += `📞 직접거래   ${fmt(parsed.crm)}원 (${pct(parsed.crm, yesterdayTotal)}%)\\n`;\n  if (parsed.manualEntered) {\n    msg += `📦 쿠팡윙     ${fmt(parsed.coupang)}원 (${pct(parsed.coupang, yesterdayTotal)}%) [수동]\\n`;\n    msg += `🚀 로켓배송   ${fmt(parsed.rocket)}원 (${pct(parsed.rocket, yesterdayTotal)}%) [수동]\\n`;\n    if (parsed.etc > 0) msg += `⚪ 기타       ${fmt(parsed.etc)}원 [수동]\\n`;\n  } else {\n    msg += `⏳ 쿠팡윙/로켓/기타 — 수동 입력 대기\\n`;\n  }\n  msg += '\\n';\n}\n\n// ── 이번 달 누계 ──\nmsg += '━━━━━━━━━━━━━━━━━━━\\n';\nmsg += `📅 <b>이번 달 (${di.monthNum}/1~${di.monthNum}/${di.dayNum}, ${di.mtdDays}일)</b>\\n`;\nmsg += `   누계: ${fmt(mtdRev)}원\\n`;\nif (di.mtdDays > 0) msg += `   일평균: ${fmt(mtdRev / di.mtdDays)}원\\n`;\nmsg += `   전년 동기: ${fmt(prevMtdRev)}원 (${yoy(mtdRev, prevMtdRev)})\\n`;\nmsg += `   전년 ${di.monthNum}월 전체: ${fmt(prevMonthTotal)}원\\n\\n`;\n\n// ── 올해 누계 ──\nmsg += '━━━━━━━━━━━━━━━━━━━\\n';\nmsg += `📆 <b>올해 누계 (1/1 ~ ${di.monthNum}/${di.dayNum})</b>\\n`;\nmsg += `   누계: ${fmt(ytdRev)}원\\n`;\nmsg += `   전년 동기: ${fmt(pytdRev)}원 (${yoy(ytdRev, pytdRev)})\\n`;\nmsg += `   전년 전체: ${fmt(prevYearTotal)}원\\n\\n`;\n\n// ── 이번 달 일별 미니차트 (막대 대신 숫자) ──\nif (mtdDaily.length > 0) {\n  msg += '━━━━━━━━━━━━━━━━━━━\\n';\n  msg += `📈 <b>${di.monthNum}월 일별</b>\\n`;\n  const maxRev = Math.max(...mtdDaily.map(d => d.rev));\n  for (const { date, rev } of mtdDaily) {\n    const day = parseInt(date.slice(8, 10));\n    const barLen = maxRev > 0 ? Math.round(rev / maxRev * 10) : 0;\n    const bar = '█'.repeat(barLen) + '▁'.repeat(10 - barLen);\n    msg += `${String(day).padStart(2, ' ')}일 ${bar} ${fmt(rev)}\\n`;\n  }\n}\n\nreturn [{ json: {\n  chatId: di.chatId,\n  message: msg,\n  yDate: di.yDate,\n  mtdRev,\n  ytdRev,\n  prevMtdRev,\n  pytdRev,\n  manualEntered: parsed.manualEntered,\n  parsed,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1680, 350],
+      "id": "node-aggregate",
+      "name": "리포트 집계"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('리포트 집계').first().json.chatId }}",
+        "text": "={{ $('리포트 집계').first().json.message }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1920, 350],
+      "id": "node-telegram",
+      "name": "텔레그램 전송",
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, date: $('리포트 집계').first().json.yDate, mtd_revenue: $('리포트 집계').first().json.mtdRev, ytd_revenue: $('리포트 집계').first().json.ytdRev, manual_entered: $('리포트 집계').first().json.manualEntered }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [2160, 350],
+      "id": "node-respond",
+      "name": "응답"
+    }
+  ],
+  "connections": {
+    "매일 10:00": { "main": [[{ "node": "날짜 계산", "type": "main", "index": 0 }]] },
+    "수동 조회": { "main": [[{ "node": "날짜 계산", "type": "main", "index": 0 }]] },
+    "날짜 계산": { "main": [[{ "node": "Sheets 전일 행 조회", "type": "main", "index": 0 }]] },
+    "Sheets 전일 행 조회": { "main": [[{ "node": "올해 NocoDB 조회", "type": "main", "index": 0 }]] },
+    "올해 NocoDB 조회": { "main": [[{ "node": "작년 NocoDB 조회", "type": "main", "index": 0 }]] },
+    "작년 NocoDB 조회": { "main": [[{ "node": "Sheet 행 파싱", "type": "main", "index": 0 }]] },
+    "Sheet 행 파싱": { "main": [[{ "node": "리포트 집계", "type": "main", "index": 0 }]] },
+    "리포트 집계": { "main": [[{ "node": "텔레그램 전송", "type": "main", "index": 0 }]] },
+    "텔레그램 전송": { "main": [[{ "node": "응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

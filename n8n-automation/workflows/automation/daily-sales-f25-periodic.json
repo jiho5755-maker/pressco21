@@ -1,0 +1,128 @@
+{
+  "name": "[F25] 주간/월간 매출 요약 리포트",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            { "field": "cronExpression", "expression": "30 9 * * 1" },
+            { "field": "cronExpression", "expression": "30 9 1 * *" }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 200],
+      "id": "node-schedule",
+      "name": "월요일+매월1일 09:30"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-sales-periodic",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [200, 500],
+      "id": "node-webhook",
+      "name": "수동 웹훅",
+      "webhookId": "flora-sales-periodic"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 기간 계산: 주간(월요일) / 월간(1일) / 수동(body.type)\nlet body = {};\ntry { body = $('수동 웹훅').first().json.body || {}; } catch(e) {}\nconst chatId = String(body.chatId || body.chat_id || '7713811206');\n\nconst now = new Date();\nconst kstNow = new Date(now.getTime() + 9 * 3600000);\nconst dayOfWeek = kstNow.getDay();\nconst dayOfMonth = kstNow.getDate();\n\nconst fmt = (d) => {\n  const y = d.getFullYear();\n  const m = String(d.getMonth() + 1).padStart(2, '0');\n  const dd = String(d.getDate()).padStart(2, '0');\n  return y + '-' + m + '-' + dd;\n};\n\nlet type, fromDate, toDate, label, prevFrom, prevTo, prevLabel;\nconst manualType = body.type || null;\n\nif (manualType === 'monthly' || (!manualType && dayOfMonth === 1)) {\n  type = 'monthly';\n  const lastDay = new Date(kstNow);\n  lastDay.setDate(0);\n  const firstDay = new Date(lastDay.getFullYear(), lastDay.getMonth(), 1);\n  fromDate = fmt(firstDay);\n  toDate = fmt(lastDay);\n  const mon = lastDay.getMonth() + 1;\n  label = lastDay.getFullYear() + '\\ub144 ' + mon + '\\uc6d4 \\uc6d4\\uac04 \\ub9ac\\ud3ec\\ud2b8';\n  // \\uc804\\ub144 \\ub3d9\\uc6d4\n  const pyLastDay = new Date(lastDay.getFullYear() - 1, lastDay.getMonth() + 1, 0);\n  const pyFirstDay = new Date(lastDay.getFullYear() - 1, lastDay.getMonth(), 1);\n  prevFrom = fmt(pyFirstDay);\n  prevTo = fmt(pyLastDay);\n  prevLabel = (lastDay.getFullYear() - 1) + '\\ub144 ' + mon + '\\uc6d4';\n} else {\n  type = 'weekly';\n  const endOfWeek = new Date(kstNow);\n  endOfWeek.setDate(kstNow.getDate() - (dayOfWeek === 0 ? 7 : dayOfWeek));\n  const startOfWeek = new Date(endOfWeek);\n  startOfWeek.setDate(endOfWeek.getDate() - 6);\n  fromDate = fmt(startOfWeek);\n  toDate = fmt(endOfWeek);\n  const m1 = startOfWeek.getMonth() + 1;\n  const d1 = startOfWeek.getDate();\n  const m2 = endOfWeek.getMonth() + 1;\n  const d2 = endOfWeek.getDate();\n  label = m1 + '/' + d1 + '~' + m2 + '/' + d2 + ' \\uc8fc\\uac04 \\ub9ac\\ud3ec\\ud2b8';\n  // \\uc804\\uc8fc\n  const prevEnd = new Date(startOfWeek);\n  prevEnd.setDate(startOfWeek.getDate() - 1);\n  const prevStart = new Date(prevEnd);\n  prevStart.setDate(prevEnd.getDate() - 6);\n  prevFrom = fmt(prevStart);\n  prevTo = fmt(prevEnd);\n  prevLabel = (prevStart.getMonth()+1) + '/' + prevStart.getDate() + '~' + (prevEnd.getMonth()+1) + '/' + prevEnd.getDate();\n}\n\nconst fromYear = fromDate.slice(0, 4);\nconst prevYear = String(parseInt(fromYear) - 1);\n\nreturn [{ json: {\n  chatId, type, fromDate, toDate, label,\n  prevFrom, prevTo, prevLabel,\n  fromYear, prevYear,\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 350],
+      "id": "node-date",
+      "name": "기간 계산"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v2/tables/mwxvxjiqtw177xu/records?where=(report_date,like,{{ $('기간 계산').first().json.fromYear }}%25)&limit=500&fields=Id,report_date,makeshop_revenue,naver_revenue,st11_revenue,crm_revenue,coupang_revenue,rocket_revenue,legacy_others_revenue,total_revenue,total_orders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" }
+          ]
+        },
+        "options": { "timeout": 15000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 350],
+      "id": "node-current",
+      "name": "올해 NocoDB",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://nocodb.pressco21.com/api/v2/tables/mwxvxjiqtw177xu/records?where=(report_date,like,{{ $('기간 계산').first().json.prevYear }}%25)&limit=500&fields=Id,report_date,makeshop_revenue,naver_revenue,st11_revenue,crm_revenue,coupang_revenue,rocket_revenue,legacy_others_revenue,total_revenue,total_orders",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_TOKEN }}" }
+          ]
+        },
+        "options": { "timeout": 15000 }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [960, 350],
+      "id": "node-prev",
+      "name": "전년 NocoDB",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 주간/월간 리포트 생성\nconst info = $('기간 계산').first().json;\nconst cyResp = $('올해 NocoDB').first().json || {};\nconst pyResp = $('전년 NocoDB').first().json || {};\nconst cyList = cyResp.list || [];\nconst pyList = pyResp.list || [];\n\n// 중복 제거\nconst dedupe = (list) => {\n  const map = {};\n  for (const r of list) {\n    const d = r.report_date;\n    if (!d) continue;\n    if (!map[d] || r.Id > map[d].Id) map[d] = r;\n  }\n  return map;\n};\nconst cyMap = dedupe(cyList);\nconst pyMap = dedupe(pyList);\n\n// 기간 필터\nconst inRange = (d, from, to) => d >= from && d <= to;\nconst channels = ['makeshop', 'naver', 'st11', 'crm', 'coupang', 'rocket', 'legacy_others'];\nconst chNames = ['\\uba54\\uc774\\ud06c\\uc0f5', '\\ub124\\uc774\\ubc84', '11\\ubc88\\uac00', '\\uc9c1\\uc811\\uac70\\ub798', '\\ucfe0\\ud321\\uc719', '\\ub85c\\ucf13\\ubc30\\uc1a1', '\\uae30\\ud0c0'];\nconst chIcons = ['\\ud83c\\udfea', '\\ud83d\\udfe2', '\\ud83d\\udd34', '\\ud83d\\udcde', '\\ud83d\\udce6', '\\ud83d\\ude80', '\\u26aa'];\n\n// 현재 기간 집계\nlet totalRev = 0, totalOrd = 0;\nconst chRev = {};\nchannels.forEach(c => chRev[c] = 0);\nconst dailyData = [];\n\nfor (const d in cyMap) {\n  if (!inRange(d, info.fromDate, info.toDate)) continue;\n  const r = cyMap[d];\n  const rev = parseInt(r.total_revenue || 0);\n  totalRev += rev;\n  totalOrd += parseInt(r.total_orders || 0);\n  channels.forEach(c => chRev[c] += parseInt(r[c + '_revenue'] || 0));\n  dailyData.push({ date: d, rev });\n}\ndailyData.sort((a, b) => a.date.localeCompare(b.date));\n\n// 비교 기간 집계\nlet prevTotalRev = 0;\nconst prevChRev = {};\nchannels.forEach(c => prevChRev[c] = 0);\n\nif (info.type === 'monthly') {\n  // 전년 동월\n  for (const d in pyMap) {\n    if (!inRange(d, info.prevFrom, info.prevTo)) continue;\n    const r = pyMap[d];\n    prevTotalRev += parseInt(r.total_revenue || 0);\n    channels.forEach(c => prevChRev[c] += parseInt(r[c + '_revenue'] || 0));\n  }\n} else {\n  // 전주 (같은 해)\n  for (const d in cyMap) {\n    if (!inRange(d, info.prevFrom, info.prevTo)) continue;\n    prevTotalRev += parseInt(cyMap[d].total_revenue || 0);\n    channels.forEach(c => prevChRev[c] += parseInt(cyMap[d][c + '_revenue'] || 0));\n  }\n}\n\n// 포맷 유틸\nconst fmt = (n) => Math.round(n).toLocaleString('ko-KR');\nconst pct = (part, whole) => whole > 0 ? Math.round(part / whole * 100) : 0;\nconst chg = (cur, prev) => {\n  if (!prev || prev === 0) return '-';\n  const diff = (cur - prev) / prev * 100;\n  return (diff >= 0 ? '+' : '') + diff.toFixed(1) + '%';\n};\nconst dowNames = ['\\uc77c','\\uc6d4','\\ud654','\\uc218','\\ubaa9','\\uae08','\\ud1a0'];\n\nlet msg = '';\n\nif (info.type === 'monthly') {\n  msg += `<b>\\ud83d\\udcca ${info.label}</b>\\n`;\n  msg += '\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n';\n  msg += `\\ud83d\\udcb0 <b>\\uc6d4 \\ucd1d \\ub9e4\\ucd9c: ${fmt(totalRev)}\\uc6d0</b>`;\n  if (totalOrd > 0) msg += ` (${totalOrd}\\uac74)`;\n  msg += '\\n';\n  msg += `   \\uc804\\ub144 \\ub3d9\\uc6d4: ${fmt(prevTotalRev)}\\uc6d0 (YoY ${chg(totalRev, prevTotalRev)})\\n`;\n  const days = dailyData.length;\n  if (days > 0) msg += `   \\uc77c\\ud3c9\\uade0: ${fmt(totalRev / days)}\\uc6d0 (${days}\\uc77c)\\n`;\n  msg += '\\n<b>\\ucc44\\ub110\\ubcc4:</b>\\n';\n  channels.forEach((c, i) => {\n    if (chRev[c] > 0 || c === 'makeshop') {\n      msg += `${chIcons[i]} ${chNames[i]}  ${fmt(chRev[c])}\\uc6d0 (${pct(chRev[c], totalRev)}%)`;\n      if (prevChRev[c] > 0) msg += ` [YoY ${chg(chRev[c], prevChRev[c])}]`;\n      msg += '\\n';\n    }\n  });\n  // 주별 추이\n  if (dailyData.length > 7) {\n    msg += '\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n';\n    msg += '<b>\\uc8fc\\ubcc4 \\ucd94\\uc774:</b>\\n';\n    let week = 1, weekRev = 0, weekStart = 1;\n    for (let i = 0; i < dailyData.length; i++) {\n      weekRev += dailyData[i].rev;\n      const day = parseInt(dailyData[i].date.slice(8));\n      if ((i + 1) % 7 === 0 || i === dailyData.length - 1) {\n        msg += `W${week}(${weekStart}~${day}\\uc77c) ${fmt(weekRev)}\\uc6d0\\n`;\n        week++;\n        weekRev = 0;\n        weekStart = day + 1;\n      }\n    }\n  }\n} else {\n  msg += `<b>\\ud83d\\udcca ${info.label}</b>\\n`;\n  msg += '\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n';\n  msg += `\\ud83d\\udcb0 <b>\\uc8fc\\uac04 \\ucd1d \\ub9e4\\ucd9c: ${fmt(totalRev)}\\uc6d0</b>`;\n  if (totalOrd > 0) msg += ` (${totalOrd}\\uac74)`;\n  msg += '\\n';\n  msg += `   \\uc804\\uc8fc(${info.prevLabel}): ${fmt(prevTotalRev)}\\uc6d0 (${chg(totalRev, prevTotalRev)})\\n`;\n  const days = dailyData.length;\n  if (days > 0) msg += `   \\uc77c\\ud3c9\\uade0: ${fmt(totalRev / days)}\\uc6d0\\n`;\n  msg += '\\n<b>\\ucc44\\ub110\\ubcc4:</b>\\n';\n  channels.forEach((c, i) => {\n    if (chRev[c] > 0 || c === 'makeshop') {\n      msg += `${chIcons[i]} ${chNames[i]}  ${fmt(chRev[c])}\\uc6d0 (${pct(chRev[c], totalRev)}%)`;\n      if (prevChRev[c] > 0) msg += ` [${chg(chRev[c], prevChRev[c])}]`;\n      msg += '\\n';\n    }\n  });\n  // 일별 차트\n  msg += '\\n\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\u2501\\n';\n  msg += '<b>\\uc77c\\ubcc4:</b>\\n';\n  const maxRev = Math.max(...dailyData.map(d => d.rev), 1);\n  for (const { date, rev } of dailyData) {\n    const day = parseInt(date.slice(8));\n    const d = new Date(date + 'T00:00:00Z');\n    const dow = dowNames[d.getDay()];\n    const barLen = Math.round(rev / maxRev * 8);\n    const bar = '\\u2588'.repeat(barLen) + '\\u2581'.repeat(8 - barLen);\n    msg += `${String(day).padStart(2)}(${dow}) ${bar} ${fmt(rev)}\\n`;\n  }\n}\n\nreturn [{ json: { chatId: info.chatId, message: msg, type: info.type } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1200, 350],
+      "id": "node-report",
+      "name": "리포트 생성"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('리포트 생성').first().json.chatId }}",
+        "text": "={{ $('리포트 생성').first().json.message }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [1440, 350],
+      "id": "node-telegram",
+      "name": "텔레그램 전송",
+      "credentials": {
+        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: true, type: $('리포트 생성').first().json.type }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1680, 350],
+      "id": "node-respond",
+      "name": "응답"
+    }
+  ],
+  "connections": {
+    "월요일+매월1일 09:30": { "main": [[{ "node": "기간 계산", "type": "main", "index": 0 }]] },
+    "수동 웹훅": { "main": [[{ "node": "기간 계산", "type": "main", "index": 0 }]] },
+    "기간 계산": { "main": [[{ "node": "올해 NocoDB", "type": "main", "index": 0 }]] },
+    "올해 NocoDB": { "main": [[{ "node": "전년 NocoDB", "type": "main", "index": 0 }]] },
+    "전년 NocoDB": { "main": [[{ "node": "리포트 생성", "type": "main", "index": 0 }]] },
+    "리포트 생성": { "main": [[{ "node": "텔레그램 전송", "type": "main", "index": 0 }]] },
+    "텔레그램 전송": { "main": [[{ "node": "응답", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" }
+}

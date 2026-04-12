@@ -1,0 +1,22 @@
+[Unit]
+Description=PRESSCO21 Nextcloud reverse tunnel to Oracle
+After=network-online.target docker.service
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=pressbackup
+Environment=HOME=/home/pressbackup
+ExecStart=/usr/bin/ssh -NT \
+  -o ExitOnForwardFailure=yes \
+  -o ServerAliveInterval=30 \
+  -o ServerAliveCountMax=3 \
+  -o StrictHostKeyChecking=yes \
+  -i /home/pressbackup/.ssh/oracle-nextcloud-tunnel \
+  -R 127.0.0.1:18081:127.0.0.1:18080 \
+  ubuntu@158.180.77.201
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

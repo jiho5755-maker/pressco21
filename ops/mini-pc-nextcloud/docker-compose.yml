@@ -1,0 +1,71 @@
+services:
+  db:
+    image: mariadb:11
+    container_name: pressco21-nextcloud-db
+    restart: unless-stopped
+    command:
+      - --transaction-isolation=READ-COMMITTED
+      - --binlog-format=ROW
+      - --innodb-file-per-table=1
+      - --skip-innodb-read-only-compressed
+    environment:
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD}
+    volumes:
+      - ${DB_DATA_DIR}:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "healthcheck.sh", "--connect", "--innodb_initialized"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: pressco21-nextcloud-redis
+    restart: unless-stopped
+    command: ["redis-server", "--appendonly", "yes"]
+    volumes:
+      - ${REDIS_DATA_DIR}:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+
+  app:
+    image: nextcloud:31-apache
+    container_name: pressco21-nextcloud-app
+    restart: unless-stopped
+    extra_hosts:
+      - "backup.pressco21.com:100.122.49.15"
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${BIND_ADDRESS}:${HTTP_PORT}:80"
+    environment:
+      MYSQL_HOST: db
+      MYSQL_DATABASE: ${MYSQL_DATABASE}
+      MYSQL_USER: ${MYSQL_USER}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD}
+      REDIS_HOST: redis
+      NEXTCLOUD_ADMIN_USER: ${NEXTCLOUD_ADMIN_USER}
+      NEXTCLOUD_ADMIN_PASSWORD: ${NEXTCLOUD_ADMIN_PASSWORD}
+      NEXTCLOUD_TRUSTED_DOMAINS: ${NEXTCLOUD_TRUSTED_DOMAINS}
+      PHP_MEMORY_LIMIT: 1024M
+      PHP_UPLOAD_LIMIT: 20G
+      APACHE_BODY_LIMIT: 0
+    volumes:
+      - ${APP_DATA_DIR}:/var/www/html
+      - ${EXTERNAL_SHARED_DIR}:/srv/pressco21-shared:ro
+      - ${ACTIVE_ROOT_DIR}:/srv/pressco21-active:ro
+      - ${UPLOADS_SHARED_DIR}:/srv/pressco21-uploads
+    healthcheck:
+      test: ["CMD-SHELL", "curl -fsS http://127.0.0.1/status.php >/dev/null || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 10

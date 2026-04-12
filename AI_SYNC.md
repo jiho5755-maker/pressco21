@@ -34,6 +34,22 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-11 Nextcloud 공유드라이브 하위 분류 live 반영 및 권한 구조 정리 (codex)
+  - `scripts/server/configure-mini-pc-nextcloud-workspace.sh`
+    - 루트는 한국어 카테고리 입구, 실제 내부 경로는 영어 디렉터리로 유지하는 nested external mount 구조로 재편
+    - `브랜드/디자인/사진/내부문서/영상자료/관리자문서함` 하위 분류를 live mount로 생성
+    - `영상자료`는 `장다경`, `장지호` 아래 `촬영원본/편집프로젝트/완성본` 읽기 전용 구조로 정리
+    - root mount를 read-only로 설정해 사용자가 루트 바로 아래에 파일을 올리지 못하게 정리
+    - 신규 사용자용 Nextcloud skeleton 비활성화 및 기존 사용자 기본 샘플 파일 정리
+  - `docs/nextcloud-mini-pc-operator-guide-2026-04-10.md`
+    - 실제 운영 중인 하위 폴더 구조와 root read-only 업로드 규칙 반영
+  - `docs/nextcloud-company-folder-taxonomy-plan-2026-04-11.md`
+    - 상태를 `운영 적용 완료`로 갱신
+  - 검증
+    - `backup.pressco21.com` WebDAV root 기준 관리자/직원 모두 한국어 루트 폴더만 보이는 것 확인
+    - `영상자료` 하위에 영어 내부 경로가 보이지 않고 `장다경`, `장지호`만 노출되는 것 확인
+    - 직원 계정으로 `브랜드/로고` 업로드 `201`, 삭제 `204`, 루트 직접 업로드 `403`, `관리자문서함` 접근 `404` 확인
+
 - 2026-04-10 OMX 신규 문의/리뷰 주기 알림 workflow 추가 및 운영 활성화 (codex)
   - `n8n-automation/workflows/automation/omx-new-items-alert.json`
     - 스마트스토어 문의/Q&A + 메이크샵 문의/리뷰를 매시간 폴링해 신규 건만 텔레그램으로 알리는 workflow 추가

@@ -118,4 +118,32 @@ export const hrEmployeeRegistryRepository = {
       .limit(1);
     return found ?? null;
   },
+
+  async setConsentByStaffId(
+    staffId: string,
+    actorId: string,
+    actorName: string,
+  ) {
+    const existing = await this.findByStaffId(staffId);
+    if (!existing) return null;
+
+    const [updated] = await db
+      .update(hrEmployeeRegistry)
+      .set({ privacyConsentAt: new Date(), updatedAt: new Date() })
+      .where(eq(hrEmployeeRegistry.id, existing.id))
+      .returning();
+
+    await hrAuditLogRepository.create({
+      targetTable: "hr_employee_registry",
+      targetId: existing.id,
+      action: "update",
+      actorId,
+      actorName,
+      beforeData: existing as unknown as Record<string, unknown>,
+      afterData: updated as unknown as Record<string, unknown>,
+      reason: "개인정보 수집·이용 동의",
+    });
+
+    return updated;
+  },
 };

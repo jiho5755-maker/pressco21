@@ -4,11 +4,13 @@ import { and, desc, eq, gte, lte } from "drizzle-orm";
 import { db } from "@/src/db/client";
 import { hrWorkLogs } from "@/src/db/schema";
 import { hrAuditLogRepository } from "@/src/db/repositories/hrAuditLogRepository";
+import { staffRepository } from "@/src/db/repositories/staffRepository";
 import { resolveHrActor, isHrAutomationAuthorized } from "@/src/lib/hr-auth";
 
 /**
  * POST /api/hr/work-logs — 업무일지 작성
  * /퇴근 시 대화형 수집 (n8n) 또는 미니앱에서 직접 작성
+ * telegramUserId로 직원 식별 가능 (n8n WF용)
  */
 export async function POST(request: NextRequest) {
   try {
@@ -33,12 +35,27 @@ export async function POST(request: NextRequest) {
       body.workDate ??
       new Date().toLocaleDateString("sv-SE"); // 'YYYY-MM-DD' (sv locale trick)
 
-    const staffId = hrActor?.staffId ?? body.staffId;
-    const staffName = hrActor?.staffName ?? body.staffName ?? "unknown";
+    let staffId = hrActor?.staffId ?? body.staffId;
+    let staffName = hrActor?.staffName ?? body.staffName ?? "unknown";
+
+    // telegramUserId로 직원 식별 (automation + staffId 없을 때)
+    if (!staffId && isAutomation && body.telegramUserId) {
+      const staffMember = await staffRepository.findByTelegramUserId(
+        String(body.telegramUserId),
+      );
+      if (!staffMember) {
+        return Response.json(
+          { ok: false, error: "등록되지 않은 직원입니다" },
+          { status: 404 },
+        );
+      }
+      staffId = staffMember.id;
+      staffName = staffMember.name;
+    }
 
     if (!staffId) {
       return Response.json(
-        { ok: false, error: "staffId 필수 (automation 호출)" },
+        { ok: false, error: "staffId 또는 telegramUserId 필수" },
         { status: 400 },
       );
     }

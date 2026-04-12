@@ -1,0 +1,90 @@
+{
+  "id": "4ex0AnGhhutY6rN6",
+  "name": "HR-002: 출근 미기록 리마인더 (09:30)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 0 * * 1-5"
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [200, 300],
+      "id": "hr002-trigger",
+      "name": "매일 09:30 (평일)"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://mini.pressco21.com/api/hr/attendance/unchecked",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.FLORA_HR_API_KEY }}" }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [420, 300],
+      "id": "hr002-api",
+      "name": "미출근 직원 조회"
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first().json;\nconst body = resp.body || resp;\n\nif (!body.ok || !body.unchecked || body.unchecked.length === 0) {\n  return [];\n}\n\nconst items = [];\nfor (const emp of body.unchecked) {\n  if (!emp.telegramUserId) continue;\n\n  const msg = '\\u23f0 ' + emp.staffName + '\\ub2d8, \\uc624\\ub298 \\ucd9c\\uadfc \\uae30\\ub85d\\uc774 \\uc544\\uc9c1 \\uc5c6\\uc2b5\\ub2c8\\ub2e4.\\n\\n/\\ucd9c\\uadfc \\uba85\\ub839\\uc5b4\\ub85c \\uc5c5\\ubb34 \\uc2dc\\uc791\\uc744 \\uae30\\ub85d\\ud574\\uc8fc\\uc138\\uc694.';\n\n  items.push({ json: { chatId: emp.telegramUserId, message: msg } });\n}\n\nreturn items;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [640, 300],
+      "id": "hr002-format",
+      "name": "리마인더 메시지 생성"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [860, 300],
+      "id": "hr002-send",
+      "name": "리마인더 발송",
+      "credentials": {
+        "telegramApi": {
+          "id": "eS5YwFGpbJht6uCB",
+          "name": "PRESSCO21-Telegram-Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매일 09:30 (평일)": {
+      "main": [[{ "node": "미출근 직원 조회", "type": "main", "index": 0 }]]
+    },
+    "미출근 직원 조회": {
+      "main": [[{ "node": "리마인더 메시지 생성", "type": "main", "index": 0 }]]
+    },
+    "리마인더 메시지 생성": {
+      "main": [[{ "node": "리마인더 발송", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

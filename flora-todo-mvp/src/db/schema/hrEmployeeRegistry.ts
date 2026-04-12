@@ -32,4 +32,5 @@ export const hrEmployeeRegistry = pgTable("hr_employee_registry", {
   updatedAt: timestamp("updated_at", { withTimezone: true })
     .notNull()
     .defaultNow(),
+  privacyConsentAt: timestamp("privacy_consent_at", { withTimezone: true }),
 });

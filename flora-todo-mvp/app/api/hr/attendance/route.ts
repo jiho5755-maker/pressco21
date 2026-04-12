@@ -7,8 +7,10 @@ import { resolveHrActor, isHrAutomationAuthorized } from "@/src/lib/hr-auth";
 /**
  * POST /api/hr/attendance — 출퇴근/업무보고 기록
  *
- * n8n WF(텔레그램 봇)에서 호출: automation key + body.staffId
+ * n8n WF(텔레그램 봇)에서 호출: automation key + body.staffId 또는 body.telegramUserId
  * 미니앱에서 호출: telegram initData → 자동 staffId
+ *
+ * 동의 미완료 시 403 { needsConsent: true } 반환
  */
 export async function POST(request: NextRequest) {
   try {
@@ -32,6 +34,21 @@ export async function POST(request: NextRequest) {
     // 인증 경로 1: 미니앱 (Telegram initData)
     const hrActor = await resolveHrActor(request);
     if (hrActor) {
+      const registry =
+        await hrEmployeeRegistryRepository.findByStaffId(hrActor.staffId);
+      if (registry && !registry.privacyConsentAt) {
+        return Response.json(
+          {
+            ok: false,
+            error: "개인정보 동의 필요",
+            needsConsent: true,
+            staffId: hrActor.staffId,
+            staffName: hrActor.staffName,
+          },
+          { status: 403 },
+        );
+      }
+
       const record = await hrAttendanceRepository.create({
         staffId: hrActor.staffId,
         staffName: hrActor.staffName,
@@ -45,32 +62,61 @@ export async function POST(request: NextRequest) {
         actorId: hrActor.staffId,
         actorName: hrActor.staffName,
       });
-      return Response.json({ ok: true, record }, { status: 201 });
+      return Response.json(
+        { ok: true, record, isDeemedHours: hrActor.isDeemedHours, staffName: hrActor.staffName },
+        { status: 201 },
+      );
     }
 
-    // 인증 경로 2: n8n WF (automation key + staffId in body)
+    // 인증 경로 2: n8n WF (automation key + staffId 또는 telegramUserId)
     if (isHrAutomationAuthorized(request)) {
-      const staffId = body.staffId as string;
+      let staffId = body.staffId as string | undefined;
+      let staffName = body.staffName ?? "unknown";
+
+      // telegramUserId로 직원 식별 (staffId 없을 때)
+      if (!staffId && body.telegramUserId) {
+        const staffMember = await staffRepository.findByTelegramUserId(
+          String(body.telegramUserId),
+        );
+        if (!staffMember) {
+          return Response.json(
+            { ok: false, error: "등록되지 않은 직원입니다" },
+            { status: 404 },
+          );
+        }
+        staffId = staffMember.id;
+        staffName = staffMember.name;
+      }
+
       if (!staffId) {
         return Response.json(
-          { ok: false, error: "staffId 필수 (automation 호출)" },
+          { ok: false, error: "staffId 또는 telegramUserId 필수" },
           { status: 400 },
         );
       }
 
-      // staffId로 직원 정보 조회
       const registry =
         await hrEmployeeRegistryRepository.findByStaffId(staffId);
-      const staffMember = await staffRepository.findByTelegramUserId(
-        body.telegramUserId ?? "",
-      );
-      const staffName =
-        registry?.fullName ?? staffMember?.name ?? body.staffName ?? "unknown";
+      const resolvedName = registry?.fullName ?? staffName;
       const isDeemedHours = registry?.workType === "deemed_hours";
+
+      // 동의 확인
+      if (registry && !registry.privacyConsentAt) {
+        return Response.json(
+          {
+            ok: false,
+            error: "개인정보 동의 필요",
+            needsConsent: true,
+            staffId,
+            staffName: resolvedName,
+          },
+          { status: 403 },
+        );
+      }
 
       const record = await hrAttendanceRepository.create({
         staffId,
-        staffName,
+        staffName: resolvedName,
         type,
         workMode,
         isDeemedHours,
@@ -80,9 +126,12 @@ export async function POST(request: NextRequest) {
         locationDetail: body.locationDetail,
         note: body.note,
         actorId: staffId,
-        actorName: staffName,
+        actorName: resolvedName,
       });
-      return Response.json({ ok: true, record }, { status: 201 });
+      return Response.json(
+        { ok: true, record, isDeemedHours, staffName: resolvedName },
+        { status: 201 },
+      );
     }
 
     return Response.json(

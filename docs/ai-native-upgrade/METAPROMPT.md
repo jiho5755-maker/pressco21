@@ -452,24 +452,29 @@ pressco21/
 | **P1 Wave 3-1** | B2 credential 통합 | ✅ **완료** | 2026-04-15 | **52 WF PUT 성공** (eS5Y 51 + orphan `pressco21-telegram` 1, 실패 0). credential 치환 79건. eS5Y credential API DELETE 성공. 텔레그램 credential 5→4. 수치 정정: v1.2 "75개"는 노드 건수, 고유 WF 51개 |
 | **P1 파트너클래스** | 알림 WF 비활성화 | ✅ **완료** | 2026-04-15 | 대표 지시 "파트너클래스 지금 동작 중 아님". 알림 WF 10개 `deactivate` (WF-04/05/06/07/08/13/16/17/REFUND/SETTLE). API 엔드포인트 WF 8개는 유지. WF-CHURN 2개 유지(강사 이탈 감지, 별개) |
 | **P1 Wave 3-5** | T3 매출 재배선 | ✅ **완료** | 2026-04-15 | F22/F23/F24/F25 활성 4개 WF 텔레그램 전송 노드 `chatId` → `-5251214343` 하드코딩 (expression 우회). PUT 4/4 |
-| P1 Wave 3-2 | B2 Display Name 변경 | **대표 수동 대기** | — | BotFather: `Pressco21_makeshop_bot` → `Pressco21 운영` |
-| P1 Wave 3-3 | T2 운영실 확장 + Topic 모드 | **대표 수동 대기** | — | 그룹 이름 `PRESSCO21 운영실`, Topic ON, 🚨/🛒/🎓 3 Topic 생성. 이재혁 초대는 나중 |
-| P1 Wave 3-4 | T2 Topic 재배선 | 대기 (3-3 의존) | — | FA 시리즈 → 🎓, 출고/재고 → 🛒. `message_thread_id` 추가 |
-| P1 Wave 3-6 | T5·T6 이름 변경 | **대표 수동 대기** | — | `Flora ↔ Claude 브릿지` / `Flora ↔ Codex 브릿지` |
-| P1 Wave 4 | 문서화·72시간 관찰·완료 | 대기 | — | |
+| P1 Wave 3-2 | B2 Display Name 변경 | ✅ **완료** | 2026-04-15 | BotFather `first_name="Pressco21 운영"` API 확인 |
+| P1 Wave 3-3 | T2 운영실 확장 + Topic 모드 | ✅ **완료** | 2026-04-15 | T2 supergroup 승급으로 chat_id `-5154731145` → `-1003980879769`. 3 Topic 생성 확인 |
+| P1 Wave 3-4 | T2 Topic 재배선 | ✅ **완료** | 2026-04-15 | 8/10 WF PUT (14 노드): FA-001/2/3 + CHURN-DETECT + CHURN Risk + [F11] → 🎓(6), STOCK-ALERT + [OMX-NOTIFY-01] → 🛒(4). 2 WF 스킵(텔레그램 노드 없음) |
+| P1 Wave 3-6 | T5·T6 이름 변경 | ✅ **완료** | 2026-04-15 | `Flora ↔ Claude 브릿지` / `Flora ↔ Codex 브릿지` 모두 getChat API 확인 |
+| **P1 Wave 3 전체** | **P1 Wave 3 완료** | ✅ **완료** | 2026-04-15 | Wave 3-1 ~ 3-6 전부 완료 |
+| P1 Wave 4 | 문서화·72시간 관찰·완료 | **착수 가능** | — | pressco21-infra.md 텔레그램 섹션, HARNESS.md §1, P1-matrix v1.4. 72시간 관찰 ~2026-04-18 |
 | P2 | 인프라 클린업 | 대기 | — | |
 | P3 | 하네스 흡수 | 대기 | — | |
 | P4 | 운영 리듬 | 대기 | — | |
 
 **블로커 (현재)**
-- ~~이재혁 과장 텔레그램 User ID 미확보~~ → 나중 수집으로 연기(대표 결정 2026-04-15). T2 이재혁 초대 건너뜀
+- 이재혁 과장 TG ID 미확보 — Wave 4 완료 선언 전까지 수집 목표 (대표 판단)
 - 장준혁 사장님 텔레그램 앱 설치 대기 (Wave 4까지 여유)
 
-**대표 수동 3건 (Wave 3-2/3-3/3-6, 완료 후 Wave 3-4 착수)**
-- [ ] BotFather: B2 이름 `Pressco메이크샵봇` → `Pressco21 운영`
-- [ ] T2 그룹: 이름 `PRESSCO21 운영실` + Topic 모드 ON + 🚨/🛒/🎓 3 Topic
-- [ ] T5: `플로라 클로드 코드 개발실` → `Flora ↔ Claude 브릿지`
-- [ ] T6: `플로라 코덱스 개발실` → `Flora ↔ Codex 브릿지`
+**Wave 4 착수 가능 조건 충족** (2026-04-15)
+- Wave 3 전 서브 스텝 완료 확인됨
+- Topic 재배선 결과 72시간 관찰 필요 (~2026-04-18)
+- 대표 수동 추가: `.secrets.env` `TELEGRAM_CHAT_ID` 값을 `-1003980879769`로 갱신 (Claude 수정 금지)
+
+**T2 supergroup 승급 주의**
+- 옛 chat_id `-5154731145` (일반 group) → 새 `-1003980879769` (supergroup, `is_forum=True`)
+- Topic thread_id: 🚨=2, 🛒=4, 🎓=6
+- `.secrets.env`, MEMORY, 기타 레퍼런스 문서 전면 갱신 필요 (Wave 4에서)
 
 ---
 

@@ -34,6 +34,22 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-15 [AI-Native P1 Wave 3 전체 완료] T2 Topic 재배선 + T2 chat_id 업데이트 (claude)
+  - **T2 supergroup 승급 확인**: 대표 Topic 모드 ON 시 Telegram이 일반 group → supergroup 자동 변환. chat_id `-5154731145` → **`-1003980879769`** (실측, `is_forum=True`)
+  - **Topic thread_id 확보**:
+    - 🚨 긴급 = **2** (execution 190103 forum_topic_created 이벤트 파싱)
+    - 🛒 주문·출고·재고 = **4** (대표 메시지 링크 `https://t.me/c/3980879769/4/9`)
+    - 🎓 강사·파트너 = **6** (대표 메시지 링크 `https://t.me/c/3980879769/6/10`)
+  - **Wave 3-4 T2 Topic 재배선 완료**: 8/10 WF PUT (14 노드 치환)
+    - 🎓 강사·파트너: FA-001(2), FA-002(1), FA-003(3), WF-CHURN-DETECT(4), WF-CHURN Partner Risk(1), [F11] 마감(1) — 노드 12건
+    - 🛒 주문·출고·재고: STOCK-ALERT(1 DM→강제 이전), [OMX-NOTIFY-01](1 expression) — 노드 2건
+    - 스킵 2건: FA-001b(콜백 핸들러, sendMessage 없음), [F9] 출고 태스크(텔레그램 노드 없음) — 정상
+  - **Wave 3-2/3-3/3-6 대표 수동 검증 완료** (B2 `first_name="Pressco21 운영"` / T5 `title="Flora ↔ Claude 브릿지"` / T6 `title="Flora ↔ Codex 브릿지"`)
+  - **이재혁 과장 TG ID**: Wave 4까지 확보 연기 (대표 결정)
+  - **Privacy mode 교훈**: n8n Telegram Trigger(updates=[message])가 메시지 받으려면 그룹 내 봇이 admin이거나 privacy mode disabled 필요. Topic thread_id 확보는 n8n execution_data 파싱 또는 메시지 링크 복사가 확실한 경로
+  - **주의**: `.secrets.env`의 `TELEGRAM_CHAT_ID`가 `-5154731145`로 박혀 있으면 새 chat_id `-1003980879769`로 대표 수동 업데이트 필요 (Claude 수정 금지)
+  - 다음: **Wave 4 문서화** (pressco21-infra.md 텔레그램 섹션, P1-bot-wf-matrix v1.4, HARNESS.md), 72시간 관찰(~2026-04-18), P1 완료 선언
+
 - 2026-04-15 [AI-Native P1 Wave 3 부분 완료] B2 credential 통합 + T3 매출 재배선 (claude)
   - **Step 1**: 파트너클래스 알림 WF 10개 비활성화 (`WF-04/05/06/07/08/13/16/17/REFUND/SETTLE`, 대표 지시 "파트너클래스 지금 동작 중 아님")
   - **Step 2 (Wave 3-1)**: B2 중복 credential 통합. eS5Y 51 WF + orphan `pressco21-telegram` 1 WF = **52 WF PUT 전부 성공** (치환 79건, 실패 0)

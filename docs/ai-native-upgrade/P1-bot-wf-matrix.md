@@ -1,11 +1,17 @@
-<!-- AI-NATIVE-P1-MATRIX | v1.2 | 2026-04-14 | Claude Opus 4.6 | 실측 기반 -->
+<!-- AI-NATIVE-P1-MATRIX | v1.3 | 2026-04-15 | Claude Opus 4.6 | 실측 기반 -->
 # P1 — 봇·워크플로우 전수 매핑 (실측)
 
-> **AI Native 프로젝트 P1 Wave 1·2 산출물**. 2026-04-14 n8n API 전수 덤프 + 각 봇 `getMe`·`getChat` 확인 기반.
-> **출발점**: 142개 WF(활성 113), 그중 텔레그램 사용 92개
-> **최종 목적**: 이 표가 Wave 2~4 재배선의 단일 진실 소스 역할
-> **상위 지침**: `METAPROMPT.md` v2.0 (AI Native) / `P1-telegram-bot-reorganization.md` v2.1
-> **v1.1 → v1.2 업데이트 (2026-04-14)**: Wave 2 완료 반영, `pressco21-telegram` 레거시 credential 실측 재조사 결과, Wave 2/3 모순 해소
+> **AI Native 프로젝트 P1 Wave 1·2·3(부분) 산출물**. 2026-04-14~15 n8n API 전수 덤프 + 각 봇 `getMe`·`getChat`·`export:credentials --decrypted` 기반.
+> **출발점**: 142개 WF(활성 113 → **Wave 3 후 103**), 그중 텔레그램 사용 92개
+> **최종 목적**: 이 표가 Wave 3-4 Topic 재배선 + Wave 4 문서화의 단일 진실 소스 역할
+> **상위 지침**: `METAPROMPT.md` v2.0 (AI Native) / `P1-telegram-bot-reorganization.md` v2.2
+> **v1.2 → v1.3 업데이트 (2026-04-15)**:
+> - ✅ Wave 3-1 (B2 credential 통합) 완료 반영 — 52 WF PUT 성공
+> - ✅ 파트너클래스 알림 WF 10개 비활성화 반영
+> - ✅ Wave 3-5 (T3 매출 재배선) 완료 반영 — F22~F25 4/4
+> - ✅ `pressco21-telegram` orphan 실체 확인: WF-04 Record Booking 내 **3개 노드에서 실제 사용 중이었음** (v1.2 "존재하지 않음" 기록은 부분 오류)
+> - ✅ **실측 수치 정정**: v1.2 "eS5Y 75개 / RdFu 47개 / `1` 17개"는 **노드 건수**였고 **고유 WF는 각각 51 / 25 / 13개** (정정)
+> - ✅ eS5Y credential DELETE 완료, 텔레그램 credential 5→4
 
 ---
 
@@ -320,6 +326,38 @@ done < eS5Y-wfs.jsonl
 - [ ] 이재혁 과장 텔레그램 User ID 확보 (텔레그램 `@userinfobot`)
 - [ ] 장준혁 사장님 텔레그램 앱 설치 + T3 초대 (P1 Wave 4까지 여유)
 
-### Wave 3 착수 가능 여부
-- **현재**: Wave 2 24시간 관찰 완료 + 이재혁 과장 TG ID 확보 시 **YES**
-- 권장 착수 시점: 2026-04-15 08:00 INFRA 건강 리포트 수신 확인 후
+### Wave 3 실행 결과 (2026-04-15)
+
+#### Wave 3-1 B2 credential 통합 ✅ 완료
+- [x] 서버 백업 `/tmp/pre-wave3.tar.gz` 494KB + 로컬 backup 디렉토리
+- [x] 대상 WF 52개 식별 (eS5Y 51 + `pressco21-telegram` orphan 1 = WF-04)
+- [x] PUT 52/52 성공, 실패 0, 치환 건수 **79건** (telegram 75 + telegramTrigger 3 + httpRequest 4 중 치환 대상)
+- [x] 검증: eS5Y 참조 0건, orphan 0건, RdFu 참조 133건
+- [x] `DELETE /api/v1/credentials/eS5YwFGpbJht6uCB` 성공
+- [x] 텔레그램 credential 5 → 4 (1/RdFu/RQvO/O6qw)
+- [x] WF-04 orphan 자동 해소 (RdFu로 치환)
+
+#### 파트너클래스 알림 WF 비활성화 ✅ 완료 (대표 지시)
+- [x] 10 WF deactivate: WF-04, WF-05, WF-06, WF-07, WF-08, WF-13, WF-16, WF-17, WF-REFUND, WF-SETTLE
+- [x] 활성 WF 수 113 → 103 검증
+- [x] 파트너클래스 API 엔드포인트 8개는 유지 (WF-01/01A/02/03/19/20/CLASS-LIST/CLASS-DETAIL)
+- [x] WF-CHURN 2개는 유지 (강사 이탈 감지, 파트너클래스와 별개 시스템)
+
+#### Wave 3-5 T3 매출 재배선 ✅ 완료
+- [x] F22/F23/F24/F25 활성 4개 WF 텔레그램 전송 노드 PUT
+- [x] `chatId` 각 WF의 동적 expression → `-5251214343` 하드코딩
+- [x] PUT 4/4 성공
+
+### Wave 3 수동 대기 작업 (대표 텔레그램 앱)
+
+- [ ] **Wave 3-2** BotFather: `Pressco21_makeshop_bot` Display Name → `Pressco21 운영`
+- [ ] **Wave 3-3** T2 `프레스코21` 그룹 이름 → `PRESSCO21 운영실` + Topic 모드 ON + 3 Topic 생성 (🚨/🛒/🎓). 이재혁 초대 생략(나중)
+- [ ] **Wave 3-6** T5 `플로라 클로드 코드 개발실` → `Flora ↔ Claude 브릿지` / T6 `플로라 코덱스 개발실` → `Flora ↔ Codex 브릿지`
+
+### Wave 3-4 자동 실행 준비 (Topic ID 확보 후)
+
+**후보 WF 식별 완료 (2026-04-15)**:
+- 🎓 강사·파트너: FA-001/b/002/003 + WF-CHURN-DETECT + WF-CHURN Partner Risk Monitor + [F11] 마감 알림 = 7개
+- 🛒 주문·출고·재고: [F9] 출고 + STOCK-ALERT + [OMX-NOTIFY-01] = 3개 (chat_id가 있는 활성만)
+
+**스크립트 뼈대**: `/tmp/ai-native-wave3/t2-topic-reroute.py` (TOPIC_URGENT/ORDER/PARTNER env 주입 후 실행)

@@ -34,6 +34,19 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-14 [AI-Native META v2.0 재작성] (claude)
+  - 산출물: `docs/ai-native-upgrade/METAPROMPT.md` v2.0 (~700줄, v1.0은 `archive/`로 이동)
+  - 동시 갱신: `P1-telegram-bot-reorganization.md` v2.1, `P1-bot-wf-matrix.md` v1.2
+  - 배경: v1.0 운영 중 Wave 2를 "대화 요약만 보고" 실행한 사례 발생 → 검증 중 문서 불일치 21개 발견 → A/B/C 등급 전면 수정
+  - 주요 변경: ①이름 ANU → AI Native ②봇 3개 → 5개 실측 반영 ③§7.1과 §18 통합으로 자체 모순 해소 ④§9 진행 상태 섹션 신설 (Wave 1·2 완료) ⑤§15.6 문서 기반 작업 원칙 신설 ⑥1189줄 → ~700줄 축소
+  - P1 Wave 1·2 완료 상태 반영: INFRA 3개 WF(`DSIqF4w42WNUghWs`, `0OFtnB5b4XmT8uqL`, `OnHX4w8xTBDgnTUK`)를 `-5043778307`(Flora 개발실) → `7713811206`(장지호 DM)로 재배선, credential `RdFu`(B2) → `1`(B3)로 전환 완료, Sanity check 통과
+  - 검증: 각 문서 Read 후 교차 대조로 A/B/C급 이슈 21건 시정 확인
+  - 다음: Wave 3 착수 대기 (75 WF credential 통합, 이재혁 과장 TG ID 확보 필요, Wave 2 24시간 관찰 2026-04-15 08:00)
+- 2026-04-14 [AI-Native P1 Wave 2] INFRA 3개 WF 재배선 완료 (claude)
+  - 대상: DSIqF4w42WNUghWs / 0OFtnB5b4XmT8uqL / OnHX4w8xTBDgnTUK
+  - 변경: credential `RdFu3nsFuuO5NCff(B2)` → `1(B3 Telegram Bot API)`, chat_id `-5043778307` → `7713811206`
+  - Sanity check: B3 봇 sendMessage 검증 메시지 발송 → 장지호 DM 수신 확인
+  - 24시간 관찰: 2026-04-15 08:00 실제 cron 수신 대기 중
 - 2026-04-11 Nextcloud 공유드라이브 하위 분류 live 반영 및 권한 구조 정리 (codex)
   - `scripts/server/configure-mini-pc-nextcloud-workspace.sh`
     - 루트는 한국어 카테고리 입구, 실제 내부 경로는 영어 디렉터리로 유지하는 nested external mount 구조로 재편

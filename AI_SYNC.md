@@ -20,12 +20,12 @@
 
 ## Session Lock
 
-- Current Owner: IDLE
-- Mode: —
-- Started At: —
+- Current Owner: Claude Code
+- Mode: WRITE
+- Started At: 2026-04-14 (AI-Native P1 Wave 3 사전 준비)
 - Branch: main
-- Working Scope: —
-- Active Subdirectory: —
+- Working Scope: `docs/ai-native-upgrade/**` + n8n API (read-only) + 로컬 `/tmp/ai-native-wave3/`
+- Active Subdirectory: docs/ai-native-upgrade/
 
 ## Files In Progress
 - None
@@ -33,6 +33,20 @@
 ## Last Changes
 
 > 전체 이력: `archive/ai-sync-history/`
+
+- 2026-04-15 [AI-Native P1 Wave 3 부분 완료] B2 credential 통합 + T3 매출 재배선 (claude)
+  - **Step 1**: 파트너클래스 알림 WF 10개 비활성화 (`WF-04/05/06/07/08/13/16/17/REFUND/SETTLE`, 대표 지시 "파트너클래스 지금 동작 중 아님")
+  - **Step 2 (Wave 3-1)**: B2 중복 credential 통합. eS5Y 51 WF + orphan `pressco21-telegram` 1 WF = **52 WF PUT 전부 성공** (치환 79건, 실패 0)
+    - `eS5YwFGpbJht6uCB` → `RdFu3nsFuuO5NCff`(Pressco메이크샵봇) 일괄 치환
+    - WF-04 Record Booking orphan credential 문제 동시 해소 (비활성 상태에서 치환)
+    - 전체 서버 백업 `/tmp/pre-wave3.tar.gz` (494KB) + 로컬 백업 `/tmp/ai-native-wave3/backup/*.json`
+  - **Step 3**: eS5Y credential `DELETE /api/v1/credentials/eS5YwFGpbJht6uCB` 성공. 텔레그램 credential 5→4개 (중복 제거)
+  - **Step 4 (Wave 3-5)**: T3 매출 공유 그룹 재배선 — F22/F23/F24/F25 활성 4개 WF 텔레그램 전송 노드 `chatId`를 expression → `-5251214343` 하드코딩 (4/4 PUT 성공)
+  - **검증**: `eS5Y` 참조 0건, `pressco21-telegram` 참조 0건, RdFu 133건 (정상)
+  - **실측 수치 정정**: v1.2 "eS5Y 75개"는 노드 건수였음. 고유 WF는 51개로 정정됨 (P1-bot-wf-matrix v1.3)
+  - **대표 수동 대기 3건**: ①BotFather B2 이름 `Pressco21 운영` ②T2 운영실 Topic 모드 ON + 3 Topic 생성 ③T5/T6 이름 변경. 완료 후 T2 Topic 재배선(Wave 3-4) 진행
+  - **이재혁 TG ID**: 나중 수집으로 연기 (n8n 실행 이력 0건 확인, 대표 결정)
+  - 다음: 대표 수동 3건 후 Wave 3-4 T2 Topic 재배선 (FA 시리즈 + 출고/재고 message_thread_id 추가)
 
 - 2026-04-14 [AI-Native META v2.0 재작성] (claude)
   - 산출물: `docs/ai-native-upgrade/METAPROMPT.md` v2.0 (~700줄, v1.0은 `archive/`로 이동)

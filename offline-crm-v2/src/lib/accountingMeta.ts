@@ -24,6 +24,19 @@ export interface CustomerAccountingMetaState {
 export interface InvoiceAccountingMetaState {
   depositUsedAmount: number
   customerAddressKey?: string
+  internalMemo?: string
+  paymentReminder?: InvoicePaymentReminderState
+}
+
+export interface InvoicePaymentReminderState {
+  dueDate?: string
+  amount?: number
+  enabled: boolean
+  leadDays: number
+  requestedAt?: string
+  requestedBy?: string
+  webhookStatus?: 'pending' | 'ok' | 'error'
+  webhookMessage?: string
 }
 
 const CUSTOMER_ACCOUNTING_META_PREFIX = '[ACCOUNTING_CUSTOMER_META]'
@@ -99,6 +112,53 @@ function sanitizeEvent(entry: Partial<CustomerAccountingEvent>): CustomerAccount
     relatedInvoiceId: typeof entry.relatedInvoiceId === 'number' && Number.isFinite(entry.relatedInvoiceId)
       ? Math.trunc(entry.relatedInvoiceId)
       : undefined,
+  }
+}
+
+function sanitizeDate(value: unknown): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const trimmed = value.trim()
+  return /^\d{4}-\d{2}-\d{2}$/.test(trimmed) ? trimmed : undefined
+}
+
+function sanitizeMultilineText(value: unknown, maxLength = 2000): string | undefined {
+  if (typeof value !== 'string') return undefined
+  const normalized = normalizeMemo(value)
+    .split('\n')
+    .map((line) => line.trimEnd())
+    .join('\n')
+    .trim()
+  return normalized ? normalized.slice(0, maxLength) : undefined
+}
+
+function sanitizeInvoicePaymentReminder(value: unknown): InvoicePaymentReminderState | undefined {
+  if (!value || typeof value !== 'object') return undefined
+  const entry = value as Partial<InvoicePaymentReminderState>
+  const dueDate = sanitizeDate(entry.dueDate)
+  const amount = Math.max(0, parseInteger(entry.amount))
+  const enabled = entry.enabled === true
+  const leadDays = Math.max(0, Math.min(30, parseInteger(entry.leadDays)))
+  const requestedAt = typeof entry.requestedAt === 'string' && entry.requestedAt.trim()
+    ? entry.requestedAt.trim().slice(0, 40)
+    : undefined
+  const requestedBy = typeof entry.requestedBy === 'string' && entry.requestedBy.trim()
+    ? entry.requestedBy.trim().slice(0, 80)
+    : undefined
+  const webhookStatus = entry.webhookStatus === 'ok' || entry.webhookStatus === 'error' || entry.webhookStatus === 'pending'
+    ? entry.webhookStatus
+    : undefined
+  const webhookMessage = sanitizeMultilineText(entry.webhookMessage, 300)
+
+  if (!dueDate && amount <= 0 && !enabled) return undefined
+  return {
+    dueDate,
+    amount,
+    enabled,
+    leadDays,
+    requestedAt,
+    requestedBy,
+    webhookStatus,
+    webhookMessage,
   }
 }
 
@@ -276,13 +336,19 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
     const parsed = JSON.parse(metaLine.slice(INVOICE_ACCOUNTING_META_PREFIX.length).trim()) as {
       depositUsedAmount?: number
       customerAddressKey?: string
+      internalMemo?: string
+      paymentReminder?: Partial<InvoicePaymentReminderState>
     }
     const customerAddressKey = typeof parsed.customerAddressKey === 'string' && parsed.customerAddressKey.trim()
       ? parsed.customerAddressKey.trim()
       : undefined
+    const internalMemo = sanitizeMultilineText(parsed.internalMemo)
+    const paymentReminder = sanitizeInvoicePaymentReminder(parsed.paymentReminder)
     return {
       depositUsedAmount: Math.max(0, parseInteger(parsed.depositUsedAmount)),
       customerAddressKey,
+      internalMemo,
+      paymentReminder,
     }
   } catch {
     return { depositUsedAmount: 0 }
@@ -298,14 +364,36 @@ export function serializeInvoiceAccountingMeta(
   const customerAddressKey = typeof nextState.customerAddressKey === 'string' && nextState.customerAddressKey.trim()
     ? nextState.customerAddressKey.trim()
     : undefined
+  const internalMemo = sanitizeMultilineText(nextState.internalMemo)
+  const paymentReminder = sanitizeInvoicePaymentReminder(nextState.paymentReminder)
   if (nextState.depositUsedAmount <= 0 && !customerAddressKey) {
-    return lines.join('\n').trim()
+    if (!internalMemo && !paymentReminder) {
+      return lines.join('\n').trim()
+    }
   }
-  const metaLine = `${INVOICE_ACCOUNTING_META_PREFIX} ${JSON.stringify({
+
+  const payload: Record<string, unknown> = {
     depositUsedAmount: Math.max(0, parseInteger(nextState.depositUsedAmount)),
     customerAddressKey,
-  })}`
+  }
+  if (internalMemo) payload.internalMemo = internalMemo
+  if (paymentReminder) payload.paymentReminder = paymentReminder
+
+  const metaLine = `${INVOICE_ACCOUNTING_META_PREFIX} ${JSON.stringify(payload)}`
   return [...lines, metaLine].join('\n').trim()
+}
+
+export function getInvoiceInternalMemo(memo?: string): string {
+  return parseInvoiceAccountingMeta(memo).internalMemo ?? ''
+}
+
+export function getInvoicePaymentReminder(memo?: string): InvoicePaymentReminderState | undefined {
+  return parseInvoiceAccountingMeta(memo).paymentReminder
+}
+
+export function hasActiveInvoicePaymentReminder(memo?: string): boolean {
+  const reminder = getInvoicePaymentReminder(memo)
+  return Boolean(reminder?.enabled && reminder.dueDate)
 }
 
 export function getInvoiceDepositUsedAmount(memo?: string): number {

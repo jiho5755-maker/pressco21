@@ -15,6 +15,7 @@ import { normalizeReceiptTypeValue } from '@/lib/invoiceDefaults'
 
 // n8n Webhook 프록시 URL
 const PROXY_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://n8n.pressco21.com/webhook/crm-proxy'
+const PAYMENT_REMINDER_WEBHOOK_URL = import.meta.env.VITE_CRM_PAYMENT_REMINDER_WEBHOOK_URL || '/crm-payment-reminder'
 // CRM 전용 API Key (NocoDB 토큰과 무관한 별도 키)
 const CRM_API_KEY = import.meta.env.VITE_CRM_API_KEY || ''
 
@@ -38,6 +39,30 @@ interface ProxyResponse<T> {
   data?: T
   error?: { code: string; message: string }
   timestamp: string
+}
+
+export interface PaymentReminderWebhookPayload {
+  action: 'upsert' | 'cancel'
+  invoiceId: number
+  invoiceNo?: string
+  invoiceDate?: string
+  customerId?: number
+  customerName: string
+  dueDate?: string
+  reminderDate?: string
+  reminderLeadDays: number
+  amount: number
+  remainingAmount: number
+  publicMemo?: string
+  internalMemo?: string
+  target: 'pressco21-ops-room'
+}
+
+export interface PaymentReminderWebhookResponse {
+  success?: boolean
+  ok?: boolean
+  message?: string
+  scheduledFor?: string
 }
 
 function redirectToLogin() {
@@ -110,6 +135,29 @@ async function proxyRequest<T>(req: ProxyRequest): Promise<T> {
   }
 
   return json.data as T
+}
+
+export async function upsertPaymentReminder(
+  payload: PaymentReminderWebhookPayload,
+): Promise<PaymentReminderWebhookResponse> {
+  const res = await fetch(PAYMENT_REMINDER_WEBHOOK_URL, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'x-crm-key': CRM_API_KEY,
+    },
+    body: JSON.stringify(payload),
+  })
+
+  if (!res.ok) {
+    throw new Error(`Reminder Webhook Error ${res.status}: ${await res.text()}`)
+  }
+
+  const json = await res.json().catch(() => ({ ok: true })) as PaymentReminderWebhookResponse
+  if (json.success === false || json.ok === false) {
+    throw new Error(json.message || '리마인더 예약 요청이 실패했습니다')
+  }
+  return json
 }
 
 // ─────────────────────────────────────────

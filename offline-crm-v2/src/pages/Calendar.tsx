@@ -13,6 +13,7 @@ import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxi
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { getAllCustomers, getAllInvoices, getTxHistory, type Customer, type Invoice } from '@/lib/api'
+import { getDisplayMemo, parseInvoiceAccountingMeta } from '@/lib/accountingMeta'
 import {
   COLLECTION_RATE_THRESHOLDS,
   PRESET_LABELS,
@@ -28,6 +29,13 @@ import {
 } from '@/lib/reporting'
 
 const DAY_LABELS = ['일', '월', '화', '수', '목', '금', '토']
+
+type CalendarPaymentReminder = {
+  invoice: Invoice
+  dueDate: string
+  amount: number
+  internalMemo: string | undefined
+}
 
 function padMonth(month: number) {
   return String(month).padStart(2, '0')
@@ -87,7 +95,7 @@ export function Calendar() {
     queryKey: ['calendar-invoices-all'],
     queryFn: () => getAllInvoices({
       sort: '-invoice_date',
-      fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status',
+      fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status,current_balance,memo',
     }),
     staleTime: 3 * 60_000,
     refetchOnWindowFocus: false,
@@ -144,15 +152,40 @@ export function Calendar() {
     [allInvoices, monthStartDate, monthEndDate],
   )
   const byDate = useMemo(() => buildInvoiceDateSummary(invoices), [invoices])
+  const paymentReminders = useMemo<CalendarPaymentReminder[]>(() => {
+    const entries: CalendarPaymentReminder[] = []
+    allInvoices.forEach((invoice) => {
+      const meta = parseInvoiceAccountingMeta(invoice.memo as string | undefined)
+      const reminder = meta.paymentReminder
+      if (!reminder?.enabled || !reminder.dueDate) return
+      const remainingAmount = getRemainingAmountAsOf(invoice, todayStr)
+      if (remainingAmount <= 0 || invoice.payment_status === 'paid') return
+      entries.push({
+        invoice,
+        dueDate: reminder.dueDate,
+        amount: reminder.amount && reminder.amount > 0 ? reminder.amount : remainingAmount,
+        internalMemo: meta.internalMemo,
+      })
+    })
+    return entries.sort((left, right) => left.dueDate.localeCompare(right.dueDate) || right.amount - left.amount)
+  }, [allInvoices, todayStr])
+  const remindersByDate = useMemo(() => {
+    return paymentReminders.reduce<Record<string, CalendarPaymentReminder[]>>((map, entry) => {
+      map[entry.dueDate] = [...(map[entry.dueDate] ?? []), entry]
+      return map
+    }, {})
+  }, [paymentReminders])
   const isMonthLoading = isInvoiceLoading
 
   const monthTotal = invoices.reduce((sum, invoice) => sum + (invoice.total_amount ?? 0), 0)
   const monthCount = invoices.length
   const monthUnpaidCount = invoices.filter((invoice) => (invoice.payment_status ?? '') !== 'paid').length
+  const monthReminderCount = paymentReminders.filter((entry) => entry.dueDate >= monthStartDate && entry.dueDate <= monthEndDate).length
   const monthTradingDays = Object.keys(byDate).length
 
   const selectedSummary = selectedDate ? byDate[selectedDate] : null
   const selectedInvoices = selectedSummary?.list ?? []
+  const selectedPaymentReminders = selectedDate ? remindersByDate[selectedDate] ?? [] : []
   const selectedReceivables = useMemo(() => {
     if (!selectedDate) return []
     return receivableActionInvoices
@@ -472,6 +505,7 @@ export function Calendar() {
 
                     const dateStr = `${year}-${padMonth(month)}-${padDay(day)}`
                     const entry = byDate[dateStr]
+                    const reminderEntries = remindersByDate[dateStr] ?? []
                     const isToday = dateStr === todayStr
                     const isSelected = dateStr === selectedDate
                     const dayOfWeek = (firstDow + day - 1) % 7
@@ -510,6 +544,11 @@ export function Calendar() {
                         ) : (
                           <div className="text-[10px] text-muted-foreground/50">발행 없음</div>
                         )}
+                        {reminderEntries.length > 0 && (
+                          <div className="mt-1 rounded bg-[#fff7ed] px-1.5 py-0.5 text-[10px] font-medium text-amber-700">
+                            납부 예정 {reminderEntries.length}건
+                          </div>
+                        )}
                       </button>
                     )
                   })}
@@ -527,7 +566,7 @@ export function Calendar() {
                   <CardTitle className="text-sm font-semibold">{selectedDate} 빠른 확인</CardTitle>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                  <div className="grid gap-2 sm:grid-cols-3">
+                  <div className="grid gap-2 sm:grid-cols-4">
                     <div className="rounded-lg border bg-[#fcfcfb] px-3 py-3">
                       <div className="text-xs text-muted-foreground">발행 건수</div>
                       <div className="mt-1 text-sm font-semibold text-foreground">{selectedSummary?.count ?? 0}건</div>
@@ -540,6 +579,12 @@ export function Calendar() {
                       <div className="text-xs text-muted-foreground">미수 명세표</div>
                       <div className={`mt-1 text-sm font-semibold ${(selectedSummary?.unpaidCount ?? 0) > 0 ? 'text-red-500' : 'text-foreground'}`}>
                         {selectedSummary?.unpaidCount ?? 0}건
+                      </div>
+                    </div>
+                    <div className="rounded-lg border bg-[#fcfcfb] px-3 py-3">
+                      <div className="text-xs text-muted-foreground">납부 예정</div>
+                      <div className={`mt-1 text-sm font-semibold ${selectedPaymentReminders.length > 0 ? 'text-amber-700' : 'text-foreground'}`}>
+                        {selectedPaymentReminders.length}건
                       </div>
                     </div>
                   </div>
@@ -580,6 +625,43 @@ export function Calendar() {
                 </CardHeader>
                 <CardContent className="space-y-4">
                   <div className="space-y-2">
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs font-medium text-muted-foreground">운영실 납부 리마인더</p>
+                      <span className="text-xs text-muted-foreground">{selectedPaymentReminders.length}건</span>
+                    </div>
+                    {selectedPaymentReminders.length === 0 ? (
+                      <p className="text-sm text-muted-foreground">이 날짜에 등록된 납부 예정 알림이 없습니다.</p>
+                    ) : (
+                      selectedPaymentReminders.slice(0, 4).map((entry) => (
+                        <button
+                          key={`payment-reminder-${entry.invoice.Id}`}
+                          type="button"
+                          className="w-full rounded-md border border-amber-100 bg-[#fffaf2] px-3 py-2 text-left transition-colors hover:border-amber-300"
+                          onClick={() => navigate(`/invoices?edit=${entry.invoice.Id}`)}
+                        >
+                          <div className="flex items-start justify-between gap-2 text-xs">
+                            <div className="min-w-0">
+                              <div className="truncate text-sm font-medium">{entry.invoice.customer_name || '거래처 미지정'}</div>
+                              <div className="mt-0.5 text-muted-foreground">
+                                {entry.invoice.invoice_no?.slice(-8) || '-'} · 운영실 알림
+                              </div>
+                              {entry.internalMemo ? (
+                                <div className="mt-1 truncate text-[11px] text-muted-foreground">
+                                  {entry.internalMemo}
+                                </div>
+                              ) : null}
+                            </div>
+                            <div className="shrink-0 text-right">
+                              <div className="font-semibold text-amber-700">{entry.amount.toLocaleString()}원</div>
+                              <div className="mt-0.5 text-muted-foreground">납부 예정</div>
+                            </div>
+                          </div>
+                        </button>
+                      ))
+                    )}
+                  </div>
+
+                  <div className="space-y-2 border-t pt-4">
                     <div className="flex items-center justify-between gap-2">
                       <p className="text-xs font-medium text-muted-foreground">기준일 미수 후속</p>
                       {!actionPanelLoading && (
@@ -705,6 +787,10 @@ export function Calendar() {
                     <span className={`font-medium ${monthUnpaidCount > 0 ? 'text-red-500' : ''}`}>{monthUnpaidCount}건</span>
                   </div>
                   <div className="flex justify-between">
+                    <span className="text-muted-foreground">납부 예정 알림</span>
+                    <span className={`font-medium ${monthReminderCount > 0 ? 'text-amber-700' : ''}`}>{monthReminderCount}건</span>
+                  </div>
+                  <div className="flex justify-between">
                     <span className="text-muted-foreground">거래일 수</span>
                     <span className="font-medium">{monthTradingDays}일</span>
                   </div>
@@ -787,6 +873,7 @@ function KpiCard({
 
 function InvoiceSummaryCard({ invoice }: { invoice: Invoice }) {
   const isUnpaid = (invoice.payment_status ?? '') !== 'paid'
+  const displayMemo = getDisplayMemo(invoice.memo as string | undefined)
 
   return (
     <Card className="shadow-none">
@@ -803,8 +890,8 @@ function InvoiceSummaryCard({ invoice }: { invoice: Invoice }) {
             </div>
           </div>
         </div>
-        {invoice.memo ? (
-          <p className="border-t pt-2 text-muted-foreground line-clamp-2">{invoice.memo}</p>
+        {displayMemo ? (
+          <p className="border-t pt-2 text-muted-foreground line-clamp-2">{displayMemo}</p>
         ) : null}
       </CardContent>
     </Card>

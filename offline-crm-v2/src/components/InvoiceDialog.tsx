@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { Textarea } from '@/components/ui/textarea'
 import { Label } from '@/components/ui/label'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
 import { Separator } from '@/components/ui/separator'
@@ -27,6 +28,7 @@ import {
   sanitizeSearchTerm,
   sanitizeAmount,
   recalcCustomerStats,
+  upsertPaymentReminder,
 } from '@/lib/api'
 import type { Invoice, Customer, Product } from '@/lib/api'
 import { buildDuplexBlobUrl, getPreviewPageCount, PRINT_DOCUMENT_OPTIONS } from '@/lib/print'
@@ -67,6 +69,11 @@ interface InvoiceDraft {
   items: ItemRow[]
   customerInput: string
   selectedAddrKey: string
+  internalMemo?: string
+  paymentDueDate?: string
+  paymentDueAmount?: number
+  paymentReminderEnabled?: boolean
+  paymentReminderLeadDays?: number
 }
 
 interface RecentCustomerOption {
@@ -167,6 +174,23 @@ function reverseCalcFromTotal(total: number, taxable: boolean): { supply: number
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
+}
+
+function shiftDate(date: string, days: number): string {
+  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!match) return date
+  const next = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
+  next.setDate(next.getDate() + days)
+  const year = next.getFullYear()
+  const month = String(next.getMonth() + 1).padStart(2, '0')
+  const day = String(next.getDate()).padStart(2, '0')
+  return `${year}-${month}-${day}`
+}
+
+function normalizeReminderLeadDays(value: string | number): number {
+  const parsed = typeof value === 'number' ? value : Number(value)
+  if (!Number.isFinite(parsed)) return 0
+  return Math.max(0, Math.min(30, Math.trunc(parsed)))
 }
 
 function normalizeInvoiceDate(value?: string): string {
@@ -358,6 +382,11 @@ export function InvoiceDialog({
   // 고객 주소 선택 (address1 ~ addressN 동적)
   const [selectedAddrKey, setSelectedAddrKey] = useState<string>('address1')
   const [depositUseAmount, setDepositUseAmount] = useState(0)
+  const [internalMemo, setInternalMemo] = useState('')
+  const [paymentDueDate, setPaymentDueDate] = useState('')
+  const [paymentDueAmount, setPaymentDueAmount] = useState(0)
+  const [paymentReminderEnabled, setPaymentReminderEnabled] = useState(false)
+  const [paymentReminderLeadDays, setPaymentReminderLeadDays] = useState(0)
 
   // 인쇄 미리보기
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -533,6 +562,11 @@ export function InvoiceDialog({
       setItems([newRow(defaultTaxable)])
       setExistingItemIds([])
       setDepositUseAmount(0)
+      setInternalMemo('')
+      setPaymentDueDate('')
+      setPaymentDueAmount(0)
+      setPaymentReminderEnabled(false)
+      setPaymentReminderLeadDays(0)
       setDraftMeta(loadInvoiceDraft())
       return
     }
@@ -565,6 +599,11 @@ export function InvoiceDialog({
       setShowCustomerDrop(false)
       setCustomerDropdownIdx(-1)
       setDepositUseAmount(isCopy ? 0 : getInvoiceDepositUsedAmount(existingInvoice.memo as string | undefined))
+      setInternalMemo(isCopy ? '' : invoiceMeta.internalMemo ?? '')
+      setPaymentDueDate(isCopy ? '' : invoiceMeta.paymentReminder?.dueDate ?? '')
+      setPaymentDueAmount(isCopy ? 0 : invoiceMeta.paymentReminder?.amount ?? 0)
+      setPaymentReminderEnabled(isCopy ? false : invoiceMeta.paymentReminder?.enabled ?? false)
+      setPaymentReminderLeadDays(isCopy ? 0 : invoiceMeta.paymentReminder?.leadDays ?? 0)
     }
     if (existingItems) {
       const rows: ItemRow[] = existingItems.list.map((it) => ({
@@ -892,7 +931,7 @@ export function InvoiceDialog({
 
   function handleSaveDraft() {
     if (!isNew || isCopy) return
-    if (!hasMeaningfulDraftValue(form, items, customerInput)) {
+    if (!hasMeaningfulDraftValue(form, items, customerInput) && !internalMemo.trim() && !paymentDueDate) {
       toast.warning('임시저장할 내용이 없습니다')
       return
     }
@@ -905,6 +944,11 @@ export function InvoiceDialog({
       items,
       customerInput,
       selectedAddrKey,
+      internalMemo,
+      paymentDueDate,
+      paymentDueAmount,
+      paymentReminderEnabled,
+      paymentReminderLeadDays,
     }
     saveInvoiceDraft(draft)
     setDraftMeta(draft)
@@ -941,6 +985,11 @@ export function InvoiceDialog({
     setCustomerDropdownIdx(-1)
     setItems(restoredItems)
     setExistingItemIds([])
+    setInternalMemo(draft.internalMemo ?? '')
+    setPaymentDueDate(draft.paymentDueDate ?? '')
+    setPaymentDueAmount(draft.paymentDueAmount ?? 0)
+    setPaymentReminderEnabled(draft.paymentReminderEnabled ?? false)
+    setPaymentReminderLeadDays(draft.paymentReminderLeadDays ?? 0)
     setIsDirty(true)
     toast.success('임시저장본을 불러왔습니다')
   }
@@ -979,9 +1028,23 @@ export function InvoiceDialog({
       const status = calcStatus(paidAmt + appliedDeposit, prevBal, grandTotal)
       const sourceCustomer = currentCustomer ?? selectedCustomer
       const customerSnapshot = sourceCustomer ? buildCustomerSnapshot(sourceCustomer, selectedAddrKey) : undefined
+      const reminderAmount = paymentDueAmount > 0 ? paymentDueAmount : Math.max(0, curBal)
+      const hasPaymentPromise = Boolean(paymentDueDate || paymentDueAmount > 0 || paymentReminderEnabled)
+      const reminderEnabled = Boolean(paymentDueDate && paymentReminderEnabled)
       const nextInvoiceMemo = serializeInvoiceAccountingMeta(form.memo as string | undefined, {
         depositUsedAmount: appliedDeposit,
         customerAddressKey: selectedAddrKey,
+        internalMemo,
+        paymentReminder: hasPaymentPromise
+          ? {
+              dueDate: paymentDueDate || undefined,
+              amount: reminderAmount,
+              enabled: reminderEnabled,
+              leadDays: paymentReminderLeadDays,
+              requestedAt: reminderEnabled ? new Date().toISOString() : undefined,
+              webhookStatus: reminderEnabled ? 'pending' : undefined,
+            }
+          : undefined,
       })
       const invoicePayload: Partial<Invoice> = {
         ...form,
@@ -1062,6 +1125,33 @@ export function InvoiceDialog({
           }
         }
         try { await recalcCustomerStats(effectiveCustomerId) } catch {}
+      }
+
+      const customerNameForReminder = customerInput || customerSnapshot?.customer_name || form.customer_name || ''
+      const previousReminder = parseInvoiceAccountingMeta(existingInvoice?.memo as string | undefined).paymentReminder
+      const shouldCancelReminder = Boolean(invoiceId && previousReminder?.enabled && (!paymentDueDate || !paymentReminderEnabled))
+      if ((reminderEnabled || shouldCancelReminder) && customerNameForReminder.trim()) {
+        try {
+          await upsertPaymentReminder({
+            action: reminderEnabled ? 'upsert' : 'cancel',
+            invoiceId: invId,
+            invoiceNo: form.invoice_no,
+            invoiceDate: normalizeInvoiceDate(form.invoice_date),
+            customerId: effectiveCustomerId,
+            customerName: customerNameForReminder,
+            dueDate: reminderEnabled ? paymentDueDate : previousReminder?.dueDate,
+            reminderDate: reminderEnabled ? shiftDate(paymentDueDate, -paymentReminderLeadDays) : undefined,
+            reminderLeadDays: paymentReminderLeadDays,
+            amount: reminderEnabled ? reminderAmount : 0,
+            remainingAmount: Math.max(0, curBal),
+            publicMemo: getDisplayMemo(form.memo as string | undefined),
+            internalMemo,
+            target: 'pressco21-ops-room',
+          })
+        } catch (reminderError) {
+          const reminderMessage = reminderError instanceof Error ? reminderError.message : String(reminderError)
+          toast.warning(`명세표는 저장됐지만 텔레그램 리마인더 예약 확인이 필요합니다: ${reminderMessage.slice(0, 80)}`)
+        }
       }
 
       if (effectiveCustomerId) {
@@ -1524,14 +1614,121 @@ export function InvoiceDialog({
               </div>
             )}
             <div className={selectedCustomer ? 'md:col-span-6' : ''}>
-              <Label className="text-xs">비고</Label>
-              <Input
+              <Label className="text-xs">출력 비고</Label>
+              <Textarea
                 value={getDisplayMemo(form.memo as string | undefined)}
                 onChange={(e) => { setForm((f) => ({ ...f, memo: e.target.value })); setIsDirty(true) }}
-                placeholder="비고 (선택)"
-                className="mt-1"
+                placeholder="거래명세표에 출력할 안내만 입력"
+                className="mt-1 min-h-20 resize-y whitespace-pre-wrap"
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                거래명세표 미리보기와 인쇄물에 그대로 표시됩니다.
+              </p>
             </div>
+          </div>
+
+          <div className="rounded-lg border bg-[#fcfcfb] p-3">
+            <div className="flex flex-wrap items-start justify-between gap-2">
+              <div>
+                <p className="text-sm font-medium">내부 관리 메모</p>
+                <p className="mt-0.5 text-[11px] text-muted-foreground">
+                  거래명세표에는 출력되지 않고 CRM 안에서만 확인합니다.
+                </p>
+              </div>
+              {paymentDueDate && (
+                <span className="rounded-full bg-[#f7f5ef] px-2.5 py-1 text-[11px] font-medium text-[#836b2c]">
+                  납부 예정 {paymentDueDate}
+                </span>
+              )}
+            </div>
+
+            <div className="mt-3 grid gap-3 lg:grid-cols-[minmax(0,1fr)_420px]">
+              <div>
+                <Label className="text-xs">내부 메모</Label>
+                <Textarea
+                  value={internalMemo}
+                  onChange={(event) => {
+                    setInternalMemo(event.target.value)
+                    setIsDirty(true)
+                  }}
+                  placeholder="후불 결제 약속, 통화 내용, 정산 특이사항 등을 기록"
+                  className="mt-1 min-h-24 resize-y"
+                />
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label className="text-xs">납부 예정일</Label>
+                  <Input
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={10}
+                    value={paymentDueDate}
+                    onChange={(event) => {
+                      const nextDate = event.target.value
+                      setPaymentDueDate(nextDate)
+                      if (nextDate) setPaymentReminderEnabled(true)
+                      else setPaymentReminderEnabled(false)
+                      setIsDirty(true)
+                    }}
+                    placeholder="YYYY-MM-DD"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">예정 금액</Label>
+                  <Input
+                    type="number"
+                    value={paymentDueAmount || ''}
+                    onChange={(event) => {
+                      setPaymentDueAmount(sanitizeAmount(event.target.value))
+                      setIsDirty(true)
+                    }}
+                    placeholder={curBal > 0 ? `${curBal.toLocaleString()}원` : '0'}
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="text-xs">알림 시점</Label>
+                  <Select
+                    value={String(paymentReminderLeadDays)}
+                    onValueChange={(value) => {
+                      setPaymentReminderLeadDays(normalizeReminderLeadDays(value))
+                      setIsDirty(true)
+                    }}
+                  >
+                    <SelectTrigger className="mt-1">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="0">납부 당일</SelectItem>
+                      <SelectItem value="1">하루 전</SelectItem>
+                      <SelectItem value="3">3일 전</SelectItem>
+                      <SelectItem value="7">7일 전</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <label className="mt-6 flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
+                  <input
+                    type="checkbox"
+                    checked={paymentReminderEnabled}
+                    onChange={(event) => {
+                      setPaymentReminderEnabled(event.target.checked)
+                      setIsDirty(true)
+                    }}
+                    disabled={!paymentDueDate}
+                    className="h-4 w-4 accent-[#7d9675]"
+                  />
+                  <span className={paymentDueDate ? 'text-foreground' : 'text-muted-foreground'}>
+                    PRESSCO21 운영실 알림
+                  </span>
+                </label>
+              </div>
+            </div>
+
+            <p className="mt-3 text-[11px] text-muted-foreground">
+              저장하면 납부 예정일 기준으로 운영실 텔레그램 리마인더 예약을 요청합니다. 예정일을 비우면 기존 예약은 취소 요청됩니다.
+            </p>
           </div>
 
           {selectedCustomer && (

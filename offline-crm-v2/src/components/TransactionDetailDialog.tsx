@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Separator } from '@/components/ui/separator'
 import { getInvoice, getItems, getTxHistory, sanitizeSearchTerm } from '@/lib/api'
 import type { Invoice, InvoiceItem, TxHistory } from '@/lib/api'
-import { getDisplayMemo } from '@/lib/accountingMeta'
+import { getDisplayMemo, parseInvoiceAccountingMeta } from '@/lib/accountingMeta'
 
 export interface TransactionPreview {
   source: 'crm' | 'legacy' | 'legacySettlement'
@@ -263,6 +263,8 @@ function CrmTransactionContent({
     tax_amount: transaction.tax,
     memo: transaction.memo,
   }
+  const invoiceMeta = parseInvoiceAccountingMeta(effectiveInvoice.memo as string | undefined)
+  const paymentReminder = invoiceMeta.paymentReminder
 
   return (
     <div className="overflow-y-auto pr-1">
@@ -303,8 +305,36 @@ function CrmTransactionContent({
             <>
               <Separator />
               <div className="space-y-1">
-                <p className="text-xs font-medium text-muted-foreground">메모</p>
+                <p className="text-xs font-medium text-muted-foreground">출력 비고</p>
                 <p className="text-sm whitespace-pre-wrap break-words">{getDisplayMemo(effectiveInvoice.memo as string | undefined)}</p>
+              </div>
+            </>
+          ) : null}
+          {(invoiceMeta.internalMemo || paymentReminder?.dueDate) ? (
+            <>
+              <Separator />
+              <div className="rounded-md border bg-white px-3 py-2">
+                <p className="text-xs font-medium text-muted-foreground">내부 관리</p>
+                {paymentReminder?.dueDate ? (
+                  <div className="mt-2 flex flex-wrap gap-2 text-xs">
+                    <span className="rounded-full bg-[#f7f5ef] px-2 py-1 font-medium text-[#836b2c]">
+                      납부 예정 {paymentReminder.dueDate}
+                    </span>
+                    {paymentReminder.amount ? (
+                      <span className="rounded-full bg-[#fff1f2] px-2 py-1 font-medium text-red-600">
+                        {paymentReminder.amount.toLocaleString()}원
+                      </span>
+                    ) : null}
+                    {paymentReminder.enabled ? (
+                      <span className="rounded-full bg-[#f4f7f1] px-2 py-1 font-medium text-[#4f6748]">
+                        운영실 알림
+                      </span>
+                    ) : null}
+                  </div>
+                ) : null}
+                {invoiceMeta.internalMemo ? (
+                  <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-700">{invoiceMeta.internalMemo}</p>
+                ) : null}
               </div>
             </>
           ) : null}

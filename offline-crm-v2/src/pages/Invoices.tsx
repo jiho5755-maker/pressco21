@@ -761,13 +761,13 @@ export function Invoices() {
 
           return (
             <div key={inv.Id} className="rounded-xl border bg-white p-4 shadow-sm">
-              <button
-                type="button"
-                className="w-full text-left"
-                onClick={() => openTransactionPreview(inv)}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="min-w-0">
+              <div className="flex items-start justify-between gap-3">
+                <button
+                  type="button"
+                  className="min-w-0 flex-1 text-left"
+                  onClick={() => openTransactionPreview(inv)}
+                >
+                  <div>
                     <div className="font-medium text-foreground">{inv.customer_name ?? '-'}</div>
                     <div className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-[11px] text-muted-foreground">
                       <span className="truncate font-mono">{inv.invoice_no ?? '-'}</span>
@@ -775,27 +775,27 @@ export function Invoices() {
                       <span>{inv.invoice_date?.slice(0, 10) ?? '-'}</span>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-semibold text-foreground">{formatAmount(inv.total_amount)}</div>
-                    {st ? (
-                      <div className={`mt-1 inline-flex rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium ${st.cls}`}>
-                        {st.label}
-                      </div>
-                    ) : (
-                      <div className="mt-1 text-[11px] text-muted-foreground">수금 상태 없음</div>
-                    )}
-                  </div>
+                  {typeof inv.customer_id === 'number' && inv.customer_id > 0 && !linkedCustomer ? (
+                    <div className="mt-2 text-xs text-amber-700">고객관리 연결 없음 · 분리 거래명 유지</div>
+                  ) : null}
+                  {linkedCustomer && invoiceName && invoiceName !== masterName && invoiceName !== masterBookName ? (
+                    <div className="mt-2 text-xs text-amber-700">고객관리: {masterName || '-'} · 분리 거래명 유지</div>
+                  ) : null}
+                  {linkedCustomer && masterBookName && masterBookName !== masterName && invoiceName === masterBookName ? (
+                    <div className="mt-2 text-xs text-muted-foreground">얼마에요 구분명 기준</div>
+                  ) : null}
+                </button>
+                <div className="shrink-0 text-right">
+                  <div className="text-sm font-semibold text-foreground">{formatAmount(inv.total_amount)}</div>
+                  {st ? (
+                    <div className={`mt-1 inline-flex rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium ${st.cls}`}>
+                      {st.label}
+                    </div>
+                  ) : (
+                    <div className="mt-1 text-[11px] text-muted-foreground">수금 상태 없음</div>
+                  )}
                 </div>
-                {typeof inv.customer_id === 'number' && inv.customer_id > 0 && !linkedCustomer ? (
-                  <div className="mt-2 text-xs text-amber-700">고객관리 연결 없음 · 분리 거래명 유지</div>
-                ) : null}
-                {linkedCustomer && invoiceName && invoiceName !== masterName && invoiceName !== masterBookName ? (
-                  <div className="mt-2 text-xs text-amber-700">고객관리: {masterName || '-'} · 분리 거래명 유지</div>
-                ) : null}
-                {linkedCustomer && masterBookName && masterBookName !== masterName && invoiceName === masterBookName ? (
-                  <div className="mt-2 text-xs text-muted-foreground">얼마에요 구분명 기준</div>
-                ) : null}
-              </button>
+              </div>
 
               <div className="mt-3 rounded-lg bg-[#f8faf7] p-3">
                 <div className="grid grid-cols-2 gap-3 text-[11px]">

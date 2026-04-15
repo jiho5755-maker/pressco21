@@ -36,11 +36,23 @@
 - 사전 조건 충족: `.secrets.env` `N8N_CRED_TELEGRAM=RdFu3nsFuuO5NCff` ✅ (대표 수정)
 
 ## Files In Progress
-- None
+- 없음
 
 ## Last Changes
 
 > 전체 이력: `archive/ai-sync-history/`
+
+- 2026-04-15 [CRM 내부 메모/납부 예정 리마인더 운영 반영] (codex)
+  - `offline-crm-v2` 거래명세표 Dialog에 출력 비고와 분리된 내부 관리 메모, 납부 예정일/예정 금액/알림 시점/운영실 알림 옵션 추가
+  - 내부 메모와 납부 예정 정보는 `[ACCOUNTING_INVOICE_META]`에 저장해 거래명세표 출력/미리보기에서는 숨기고, 거래 상세/미수 관리/캘린더에서 확인 가능하게 연결
+  - 미수 관리 CRM 명세표 목록에 납부 예정일, 운영실 알림 여부, 내부 메모 요약, `약속 수정` 진입 액션 추가
+  - 캘린더에 날짜별 납부 예정 알림 건수와 선택일 운영실 리마인더 목록 추가
+  - n8n workflow `CRM: 대금 납부 예정 리마인더` 생성/활성화: `m3BFqrrOsXY1czU9`
+    - 매일 09:00 KST 미수 명세표를 조회해 납부 예정일/leadDays 도래 건을 Telegram `PRESSCO21 운영실` 주문·출고·재고 topic으로 발송
+    - webhook `crm-payment-reminder`는 `x-crm-key` 인증 분기 추가, 인증 성공 200/무키 401 확인
+  - CRM 운영 배포 완료: `bash deploy/deploy.sh`
+  - 검증: `npm run build` 통과, n8n workflow JSON `jq empty` 통과, webhook 인증 성공/실패 응답 확인, `tests/02-invoices.spec.ts:97` + `tests/07-invoice-advanced.spec.ts` 10/10 통과
+  - 참고: `npm run lint`는 기존 전역 lint debt로 실패. 전체 E2E 1차 실행은 74/80이었고, 명세표 관련 5건은 수정 후 targeted 통과. 남은 `T9-04`는 오늘 운영 명세표가 이미 다건이라 테스트가 `1건`을 고정 기대하는 데이터 의존 이슈로 확인
 
 - 2026-04-15 [AI-Native P1 Wave 4 계획 확정 + 체크포인트] (claude)
   - 산출물: `docs/ai-native-upgrade/P1-Wave4-drift-recovery-plan.md` (약 400줄, 13 섹션)

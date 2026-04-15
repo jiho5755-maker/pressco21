@@ -20,6 +20,11 @@ export default defineConfig({
         changeOrigin: true,
         rewrite: () => '/webhook/crm-proxy',
       },
+      '/crm-payment-reminder': {
+        target: 'https://n8n.pressco21.com',
+        changeOrigin: true,
+        rewrite: () => '/webhook/crm-payment-reminder',
+      },
     },
   },
   build: {

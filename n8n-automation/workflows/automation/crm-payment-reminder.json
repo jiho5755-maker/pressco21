@@ -1,0 +1,201 @@
+{
+  "id": "m3BFqrrOsXY1czU9",
+  "name": "CRM: 대금 납부 예정 리마인더",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "crm-payment-reminder",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "crm-pay-reminder-webhook",
+      "name": "CRM 리마인더 요청",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "crm-payment-reminder"
+    },
+    {
+      "parameters": {
+        "jsCode": "const request = $input.first().json || {};\nconst headers = request.headers || {};\nconst incomingKey = String(headers['x-crm-key'] || headers['X-Crm-Key'] || headers['X-CRM-KEY'] || '').trim();\nconst expectedKey = String($env.CRM_API_KEY || '').trim();\nif (!expectedKey || incomingKey !== expectedKey) {\n  return [{ json: { ok: false, success: false, message: 'unauthorized' } }];\n}\nconst body = request.body || request || {};\nconst action = body.action === 'cancel' ? 'cancel' : 'upsert';\nconst invoiceId = Number(body.invoiceId || 0);\nreturn [{ json: {\n  ok: true,\n  success: true,\n  action,\n  invoiceId,\n  scheduledFor: action === 'cancel' ? null : (body.reminderDate || body.dueDate || null),\n  message: action === 'cancel' ? 'cancel accepted' : 'reminder accepted'\n} }];"
+      },
+      "id": "crm-pay-reminder-ack",
+      "name": "요청 확인",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [240, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "authorized-request",
+              "leftValue": "={{ $json.ok }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "crm-pay-reminder-auth-if",
+      "name": "요청 인증 성공?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [480, 0]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}"
+      },
+      "id": "crm-pay-reminder-respond",
+      "name": "200 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [720, -80]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": { "responseCode": 401 }
+      },
+      "id": "crm-pay-reminder-unauthorized",
+      "name": "401 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [720, 80]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [{ "triggerAtHour": 9, "triggerAtMinute": 0 }]
+        }
+      },
+      "id": "crm-pay-reminder-schedule",
+      "name": "매일 09:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.CRM_PROXY_URL || 'http://127.0.0.1:5678/webhook/crm-proxy' }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "x-crm-key", "value": "={{ $env.CRM_API_KEY }}" }
+          ]
+        },
+        "sendBody": true,
+        "bodyContentType": "json",
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ table: 'invoices', method: 'GET', params: { where: '(payment_status,eq,unpaid)~or(payment_status,eq,partial)', limit: 1000, sort: 'invoice_date', fields: 'Id,invoice_no,invoice_date,customer_id,customer_name,total_amount,paid_amount,payment_status,current_balance,memo' } }) }}",
+        "options": { "timeout": 20000 }
+      },
+      "id": "crm-pay-reminder-fetch",
+      "name": "미수 명세표 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json || {};\nconst invoices = response.data?.list || response.list || [];\nconst staticData = $getWorkflowStaticData('global');\nstaticData.sentPaymentReminderKeys = staticData.sentPaymentReminderKeys || {};\n\nfunction pad(value) { return String(value).padStart(2, '0'); }\nfunction todayKst() {\n  const now = new Date();\n  const kst = new Date(now.getTime() + 9 * 60 * 60 * 1000);\n  return `${kst.getUTCFullYear()}-${pad(kst.getUTCMonth() + 1)}-${pad(kst.getUTCDate())}`;\n}\nfunction shiftDate(date, days) {\n  const match = String(date || '').match(/^(\\d{4})-(\\d{2})-(\\d{2})$/);\n  if (!match) return '';\n  const d = new Date(Date.UTC(Number(match[1]), Number(match[2]) - 1, Number(match[3])));\n  d.setUTCDate(d.getUTCDate() + days);\n  return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`;\n}\nfunction parseIntSafe(value) {\n  const n = Number(String(value ?? '').replace(/,/g, '').trim());\n  return Number.isFinite(n) ? Math.max(0, Math.trunc(n)) : 0;\n}\nfunction htmlEscape(value) {\n  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\nfunction parseInvoiceMeta(memo) {\n  const lines = String(memo || '').replace(/\\r\\n/g, '\\n').split('\\n');\n  const line = lines.map((entry) => entry.trim()).find((entry) => entry.startsWith('[ACCOUNTING_INVOICE_META]'));\n  if (!line) return {};\n  try { return JSON.parse(line.slice('[ACCOUNTING_INVOICE_META]'.length).trim()) || {}; } catch (error) { return {}; }\n}\nfunction remainingAmount(invoice, meta) {\n  return Math.max(0, parseIntSafe(invoice.total_amount) - parseIntSafe(invoice.paid_amount) - parseIntSafe(meta.depositUsedAmount));\n}\n\nconst today = todayKst();\nconst targets = [];\n\nfor (const invoice of invoices) {\n  const meta = parseInvoiceMeta(invoice.memo);\n  const reminder = meta.paymentReminder || {};\n  const dueDate = String(reminder.dueDate || '').slice(0, 10);\n  if (!reminder.enabled || !/^\\d{4}-\\d{2}-\\d{2}$/.test(dueDate)) continue;\n  const amount = parseIntSafe(reminder.amount) || remainingAmount(invoice, meta);\n  const remaining = remainingAmount(invoice, meta);\n  if (amount <= 0 || remaining <= 0 || invoice.payment_status === 'paid') continue;\n  const leadDays = Math.max(0, Math.min(30, parseIntSafe(reminder.leadDays)));\n  const reminderDate = shiftDate(dueDate, -leadDays);\n  if (!reminderDate || reminderDate > today) continue;\n\n  const key = `${invoice.Id}:${dueDate}:${amount}`;\n  if (staticData.sentPaymentReminderKeys[key]) continue;\n  staticData.sentPaymentReminderKeys[key] = today;\n\n  const customerName = invoice.customer_name || '거래처 미지정';\n  const invoiceNo = invoice.invoice_no || '-';\n  const internalMemo = meta.internalMemo ? String(meta.internalMemo).trim() : '';\n  const crmUrl = `https://crm.pressco21.com/invoices?edit=${invoice.Id}`;\n  const overdueLabel = dueDate < today ? `기한 초과 ${dueDate}` : '오늘 납부 예정';\n\n  let text = `<b>대금 납부 리마인더</b>\\n\\n`;\n  text += `${htmlEscape(overdueLabel)}\\n`;\n  text += `거래처: <b>${htmlEscape(customerName)}</b>\\n`;\n  text += `예정 금액: <b>${amount.toLocaleString('ko-KR')}원</b>\\n`;\n  text += `현재 미수: ${remaining.toLocaleString('ko-KR')}원\\n`;\n  text += `명세표: ${htmlEscape(invoiceNo)}\\n`;\n  if (internalMemo) text += `\\n내부 메모:\\n${htmlEscape(internalMemo).slice(0, 700)}\\n`;\n  text += `\\nCRM: ${crmUrl}`;\n\n  targets.push({ json: {\n    shouldSend: true,\n    text,\n    chatId: $env.PRESSCO21_OPS_CHAT_ID || '-1003980879769',\n    threadId: $env.PRESSCO21_OPS_PAYMENT_THREAD_ID || '4',\n    invoiceId: invoice.Id,\n    dueDate,\n    amount\n  } });\n}\n\nif (targets.length === 0) {\n  return [{ json: { shouldSend: false, count: 0, today } }];\n}\nreturn targets;"
+      },
+      "id": "crm-pay-reminder-filter",
+      "name": "납부 예정 필터",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "leftValue": "", "typeValidation": "strict" },
+          "conditions": [
+            {
+              "id": "has-payment-reminder",
+              "leftValue": "={{ $json.shouldSend }}",
+              "rightValue": true,
+              "operator": { "type": "boolean", "operation": "equals", "singleValue": true }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "crm-pay-reminder-if",
+      "name": "발송 대상 있음?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.text }}",
+        "additionalFields": {
+          "parse_mode": "HTML",
+          "message_thread_id": "={{ $json.threadId }}"
+        }
+      },
+      "id": "crm-pay-reminder-telegram",
+      "name": "운영실 텔레그램 발송",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 260],
+      "credentials": {
+        "telegramApi": { "id": "RdFu3nsFuuO5NCff", "name": "Telegram Makeshop Bot" }
+      }
+    }
+  ],
+  "connections": {
+    "CRM 리마인더 요청": {
+      "main": [[{ "node": "요청 확인", "type": "main", "index": 0 }]]
+    },
+    "요청 확인": {
+      "main": [[{ "node": "요청 인증 성공?", "type": "main", "index": 0 }]]
+    },
+    "요청 인증 성공?": {
+      "main": [
+        [{ "node": "200 응답", "type": "main", "index": 0 }],
+        [{ "node": "401 응답", "type": "main", "index": 0 }]
+      ]
+    },
+    "매일 09:00": {
+      "main": [[{ "node": "미수 명세표 조회", "type": "main", "index": 0 }]]
+    },
+    "미수 명세표 조회": {
+      "main": [[{ "node": "납부 예정 필터", "type": "main", "index": 0 }]]
+    },
+    "납부 예정 필터": {
+      "main": [[{ "node": "발송 대상 있음?", "type": "main", "index": 0 }]]
+    },
+    "발송 대상 있음?": {
+      "main": [
+        [{ "node": "운영실 텔레그램 발송", "type": "main", "index": 0 }],
+        []
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "active": true,
+  "tags": [{ "name": "CRM" }, { "name": "Telegram" }]
+}

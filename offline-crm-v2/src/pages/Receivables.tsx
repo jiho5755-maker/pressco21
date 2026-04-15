@@ -25,6 +25,7 @@ import {
 import {
   appendCustomerAccountingEvent,
   getInvoiceDepositUsedAmount,
+  parseInvoiceAccountingMeta,
   parseCustomerAccountingMeta,
 } from '@/lib/accountingMeta'
 import { getPaidAmountAsOf } from '@/lib/reporting'
@@ -2465,7 +2466,7 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">입금</th>
                     <th className="text-right px-4 py-3 font-medium text-muted-foreground">미수금</th>
                     <th className="text-left px-4 py-3 font-medium text-muted-foreground">상태</th>
-                    <th className="w-24" />
+                    <th className="w-32" />
                   </tr>
                 </thead>
                 <tbody>
@@ -2473,6 +2474,10 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                     const days = getDaysSince(inv.invoice_date, asOfDate)
                     const rowKey = `invoice-${inv.Id}`
                     const isSelected = selectedRowKeys.includes(rowKey)
+                    const invoiceMeta = parseInvoiceAccountingMeta(inv.memo as string | undefined)
+                    const paymentReminder = invoiceMeta.paymentReminder
+                    const dueDate = paymentReminder?.dueDate
+                    const isPromiseOverdue = Boolean(dueDate && dueDate < asOfDate)
                     const ageColor =
                       days > 180
                         ? 'text-red-700 font-bold'
@@ -2536,17 +2541,40 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
                           <span className={`text-xs font-medium ${inv.asOfStatus === 'partial' ? 'text-amber-600' : 'text-red-600'}`}>
                             {inv.asOfStatus === 'partial' ? '부분수금' : '미수금'}
                           </span>
+                          {dueDate ? (
+                            <div className={`mt-1 text-[11px] font-medium ${isPromiseOverdue ? 'text-red-600' : 'text-[#4f6748]'}`}>
+                              납부 예정 {dueDate}
+                              {paymentReminder?.enabled ? ' · 알림' : ''}
+                            </div>
+                          ) : (
+                            <div className="mt-1 text-[11px] text-muted-foreground">납부 약속 없음</div>
+                          )}
+                          {invoiceMeta.internalMemo ? (
+                            <div className="mt-1 max-w-44 truncate text-[11px] text-muted-foreground" title={invoiceMeta.internalMemo}>
+                              내부: {invoiceMeta.internalMemo}
+                            </div>
+                          ) : null}
                         </td>
                         <td className="px-4 py-2.5">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            className="h-7 text-xs"
-                            disabled={!isTodayView}
-                            onClick={() => setPaymentTarget(inv)}
-                          >
-                            입금 확인
-                          </Button>
+                          <div className="flex flex-col gap-1">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              className="h-7 text-xs"
+                              onClick={() => navigate(`/invoices?edit=${inv.Id}`)}
+                            >
+                              약속 수정
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs"
+                              disabled={!isTodayView}
+                              onClick={() => setPaymentTarget(inv)}
+                            >
+                              입금 확인
+                            </Button>
+                          </div>
                         </td>
                       </tr>
                     )

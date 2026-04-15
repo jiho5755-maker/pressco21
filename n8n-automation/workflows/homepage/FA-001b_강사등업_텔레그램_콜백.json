@@ -220,26 +220,21 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/editMessageText",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ chat_id: $('변경 결과 파싱').item.json.chatId, message_id: $('변경 결과 파싱').item.json.messageId, text: '\\u2705 텔레그램 버튼으로 등업 완료\\n\\n회원 ID: ' + $('변경 결과 파싱').item.json.makeshopUserId + '\\n처리자: ' + $('변경 결과 파싱').item.json.clickerName + '\\n시각: ' + new Date(new Date().getTime() + 9*60*60*1000).toISOString().slice(0,19).replace('T',' ') }) }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "options": {}
+        "resource": "message",
+        "operation": "editMessageText",
+        "messageType": "message",
+        "chatId": "={{ $('변경 결과 파싱').item.json.chatId }}",
+        "messageId": "={{ $('변경 결과 파싱').item.json.messageId }}",
+        "text": "={{ '✅ 텔레그램 버튼으로 등업 완료\\n\\n회원 ID: ' + $('변경 결과 파싱').item.json.makeshopUserId + '\\n처리자: ' + $('변경 결과 파싱').item.json.clickerName + '\\n시각: ' + new Date(new Date().getTime() + 9*60*60*1000).toISOString().slice(0,19).replace('T',' ') }}",
+        "replyMarkup": "none",
+        "additionalFields": {
+          "appendAttribution": false
+        }
       },
       "id": "fa001b-edit-msg",
       "name": "원본 메시지 수정",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
         2180,
         200
@@ -253,26 +248,17 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/answerCallbackQuery",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('변경 결과 파싱').item.json.callbackQueryId, text: '\\u2705 등업 완료!' }) }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "options": {}
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('변경 결과 파싱').item.json.callbackQueryId }}",
+        "additionalFields": {
+          "text": "✅ 등업 완료!"
+        }
       },
       "id": "fa001b-answer-ok",
       "name": "콜백 응답 (성공)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
         1960,
         100
@@ -286,26 +272,18 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/answerCallbackQuery",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('변경 결과 파싱').item.json.callbackQueryId, text: '\\u274c 등업 실패! 관리자에서 직접 처리하세요.', show_alert: true }) }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "options": {}
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('변경 결과 파싱').item.json.callbackQueryId }}",
+        "additionalFields": {
+          "text": "❌ 등업 실패! 관리자에서 직접 처리하세요.",
+          "show_alert": true
+        }
       },
       "id": "fa001b-answer-fail",
       "name": "콜백 응답 (실패)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
         1960,
         400
@@ -319,26 +297,17 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/answerCallbackQuery",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('콜백 데이터 파싱').item.json.callbackQueryId, text: '\\u26a0\\ufe0f 유효하지 않은 콜백' }) }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "options": {}
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('콜백 데이터 파싱').item.json.callbackQueryId }}",
+        "additionalFields": {
+          "text": "⚠️ 유효하지 않은 콜백"
+        }
       },
       "id": "fa001b-answer-invalid",
       "name": "콜백 응답 (무효)",
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
         860,
         500

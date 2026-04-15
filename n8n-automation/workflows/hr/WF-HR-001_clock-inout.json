@@ -182,24 +182,46 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/sendMessage",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ chat_id: $('명령어 파싱').first().json.chatId, text: ['🏷️ 근태관리 메뉴', '', '아래 버튼을 사용해주세요.', '', '• 출근 시: 근무 장소 버튼', '• 퇴근 시: ✅ 퇴근 버튼', '', '재택/간주근로 대상자는 업무 내용을 자유롭게 메시지로 보내면 자동으로 업무일지에 기록됩니다.'].join('\\n'), reply_markup: { keyboard: [[{ text: '🏢 사업장 출근' }, { text: '🏠 재택 출근' }], [{ text: '📸 외근 출근' }, { text: '✅ 퇴근' }]], resize_keyboard: true, is_persistent: true } }) }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "chatId": "={{ $('명령어 파싱').first().json.chatId }}",
+        "text": "={{ ['🏷️ 근태관리 메뉴', '', '아래 버튼을 사용해주세요.', '', '• 출근 시: 근무 장소 버튼', '• 퇴근 시: ✅ 퇴근 버튼', '', '재택/간주근로 대상자는 업무 내용을 자유롭게 메시지로 보내면 자동으로 업무일지에 기록됩니다.'].join('\\n') }}",
+        "replyMarkup": "replyKeyboard",
+        "replyKeyboard": {
+          "rows": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
+              "row": {
+                "buttons": [
+                  {
+                    "text": "🏢 사업장 출근"
+                  },
+                  {
+                    "text": "🏠 재택 출근"
+                  }
+                ]
+              }
+            },
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "📸 외근 출근"
+                  },
+                  {
+                    "text": "✅ 퇴근"
+                  }
+                ]
+              }
             }
           ]
         },
-        "options": {}
+        "replyKeyboardOptions": {
+          "resize_keyboard": true
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
         920,
         100
@@ -236,7 +258,8 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true
+              "fullResponse": true,
+              "neverError": true
             }
           }
         }
@@ -253,7 +276,7 @@
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp;var mode = 'direct';var message = '';var consentKeyboard = '';if (statusCode === 201 && body.ok) {  var now = new Date(Date.now() + 9*3600000);  var hh = String(now.getHours()).padStart(2,'0');  var mm = String(now.getMinutes()).padStart(2,'0');  var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };  var modeText = modeLabel[parse.workMode] || parse.workMode;  if (body.isDeemedHours) {    message = '✅ ' + body.staffName + '님, 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\n\n소정근로시간(8시간)을 근로한 것으로 간주합니다.\n\n📝 업무 내용은 메시지로 보내주세요.';  } else {    message = '✅ ' + body.staffName + '님, 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')';  }} else if (statusCode === 403 && body.needsConsent) {  mode = 'consent';  message = '📋 개인정보 수집·이용 동의\n\n출퇴근 기록, 업무일지 등 HR 데이터가 근로기준법 제42조에 따라 3년간 보관됩니다.\n\n동의하시겠습니까?';  consentKeyboard = JSON.stringify({ inline_keyboard: [[{ text: '✅ 동의합니다', callback_data: 'hr:consent:yes:' + parse.workMode }, { text: '❌ 거부', callback_data: 'hr:consent:no' }]] });} else if (statusCode === 404) {  message = '❌ 등록되지 않은 사용자입니다. 관리자에게 문의하세요.';} else {  message = '❌ 오류: ' + (body.error || '알 수 없는 오류');}return [{ json: { mode: mode, message: message, consentKeyboard: consentKeyboard, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp; if (typeof body === \"string\") { try { body = JSON.parse(body); } catch(e) {} }var mode = 'direct';var message = '';var consentKeyboard = '';if (statusCode === 201 && body.ok) {  var now = new Date(Date.now() + 9*3600000);  var hh = String(now.getHours()).padStart(2,'0');  var mm = String(now.getMinutes()).padStart(2,'0');  var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };  var modeText = modeLabel[parse.workMode] || parse.workMode;  if (body.isDeemedHours) {    message = '✅ ' + body.staffName + '님, 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\\n\\n소정근로시간(8시간)을 근로한 것으로 간주합니다.\\n\\n📝 업무 내용은 메시지로 보내주세요.';  } else {    message = '✅ ' + body.staffName + '님, 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')';  }} else if (statusCode === 403 && body.needsConsent) {  mode = 'consent';  message = '📋 개인정보 수집·이용 동의\\n\\n출퇴근 기록, 업무일지 등 HR 데이터가 근로기준법 제42조에 따라 3년간 보관됩니다.\\n\\n동의하시겠습니까?';  consentKeyboard = JSON.stringify({ inline_keyboard: [[{ text: '✅ 동의합니다', callback_data: 'hr:consent:yes:' + parse.workMode }, { text: '❌ 거부', callback_data: 'hr:consent:no' }]] });} else if (statusCode === 404) {  message = '❌ 등록되지 않은 사용자입니다. 관리자에게 문의하세요.';} else {  message = '❌ 오류: ' + (body.error || '알 수 없는 오류');}return [{ json: { mode: mode, message: message, consentKeyboard: consentKeyboard, chatId: parse.chatId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -307,24 +330,37 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/sendMessage",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ chat_id: $json.chatId, text: $json.message, reply_markup: JSON.parse($json.consentKeyboard) }) }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
             {
-              "name": "Content-Type",
-              "value": "application/json"
+              "row": {
+                "buttons": [
+                  {
+                    "text": "✅ 동의합니다",
+                    "additionalFields": {
+                      "callback_data": "=hr:consent:yes:{{ $('명령어 파싱').first().json.workMode }}"
+                    }
+                  },
+                  {
+                    "text": "❌ 거부",
+                    "additionalFields": {
+                      "callback_data": "hr:consent:no"
+                    }
+                  }
+                ]
+              }
             }
           ]
         },
-        "options": {}
+        "additionalFields": {
+          "appendAttribution": false
+        }
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
         1580,
         220
@@ -342,7 +378,9 @@
       "parameters": {
         "chatId": "={{ $json.chatId }}",
         "text": "={{ $json.message }}",
-        "additionalFields": {}
+        "additionalFields": {
+          "appendAttribution": false
+        }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -361,24 +399,15 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/answerCallbackQuery",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('명령어 파싱').first().json.callbackQueryId, text: '✅ 동의 처리 중...' }) }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "options": {}
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('명령어 파싱').first().json.callbackQueryId }}",
+        "additionalFields": {
+          "text": "✅ 동의 처리 중..."
+        }
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
         920,
         500
@@ -412,7 +441,14 @@
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ telegramUserId: $('명령어 파싱').first().json.telegramUserId }) }}",
-        "options": {}
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
@@ -446,7 +482,8 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true
+              "fullResponse": true,
+              "neverError": true
             }
           }
         }
@@ -463,7 +500,7 @@
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var body = resp.body || resp;var message = '';var now = new Date(Date.now() + 9*3600000);var hh = String(now.getHours()).padStart(2,'0');var mm = String(now.getMinutes()).padStart(2,'0');var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };var modeText = modeLabel[parse.pendingWorkMode] || parse.pendingWorkMode;if (body.ok) {  if (body.isDeemedHours) {    message = '✅ 동의 완료 + 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\n\n소정근로시간(8시간)을 근로한 것으로 간주합니다.\n\n📝 업무 내용은 메시지로 보내주세요.';  } else {    message = '✅ 동의 완료 + 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')';  }} else {  message = '❌ 출근 기록 실패: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var body = resp.body || resp; if (typeof body === \"string\") { try { body = JSON.parse(body); } catch(e) {} }var message = '';var now = new Date(Date.now() + 9*3600000);var hh = String(now.getHours()).padStart(2,'0');var mm = String(now.getMinutes()).padStart(2,'0');var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };var modeText = modeLabel[parse.pendingWorkMode] || parse.pendingWorkMode;if (body.ok) {  if (body.isDeemedHours) {    message = '✅ 동의 완료 + 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\\n\\n소정근로시간(8시간)을 근로한 것으로 간주합니다.\\n\\n📝 업무 내용은 메시지로 보내주세요.';  } else {    message = '✅ 동의 완료 + 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')';  }} else {  message = '❌ 출근 기록 실패: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -478,7 +515,9 @@
       "parameters": {
         "chatId": "={{ $json.chatId }}",
         "text": "={{ $json.message }}",
-        "additionalFields": {}
+        "additionalFields": {
+          "appendAttribution": false
+        }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -497,24 +536,15 @@
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/answerCallbackQuery",
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('명령어 파싱').first().json.callbackQueryId, text: '동의가 거부되었습니다', show_alert: true }) }}",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "options": {}
+        "resource": "callback",
+        "operation": "answerQuery",
+        "queryId": "={{ $('명령어 파싱').first().json.callbackQueryId }}",
+        "additionalFields": {
+          "text": "동의가 거부되었습니다"
+        }
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
       "position": [
         920,
         700
@@ -531,8 +561,10 @@
     {
       "parameters": {
         "chatId": "={{ $('명령어 파싱').first().json.chatId }}",
-        "text": "❌ 동의가 거부되었습니다.HR 기능을 사용하려면 개인정보 동의가 필요합니다.출근 버튼을 다시 눌러 시도할 수 있습니다.",
-        "additionalFields": {}
+        "text": "❌ 동의를 거부하셨습니다.\\n\\n동의 없이는 HR 기능을 이용할 수 없습니다.\\n\\n동의가 필요하면 /start 를 다시 입력하세요.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -572,7 +604,8 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true
+              "fullResponse": true,
+              "neverError": true
             }
           }
         }
@@ -589,7 +622,7 @@
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp;var message = '';if (statusCode === 201 && body.ok) {  var now = new Date(Date.now() + 9*3600000);  var hh = String(now.getHours()).padStart(2,'0');  var mm = String(now.getMinutes()).padStart(2,'0');  if (body.isDeemedHours) {    message = '✅ ' + body.staffName + '님, 업무 종료 보고 접수 (' + hh + ':' + mm + ')\n\n오늘도 수고하셨습니다.';  } else {    message = '✅ ' + body.staffName + '님, 퇴근 기록 완료 (' + hh + ':' + mm + ')\n\n오늘도 수고하셨습니다.';  }} else if (statusCode === 403) {  message = '📋 개인정보 동의가 필요합니다.\n출근 버튼을 먼저 사용해주세요.';} else if (statusCode === 404) {  message = '❌ 등록되지 않은 사용자입니다.';} else {  message = '❌ 오류: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp; if (typeof body === \"string\") { try { body = JSON.parse(body); } catch(e) {} }var message = '';if (statusCode === 201 && body.ok) {  var now = new Date(Date.now() + 9*3600000);  var hh = String(now.getHours()).padStart(2,'0');  var mm = String(now.getMinutes()).padStart(2,'0');  if (body.isDeemedHours) {    message = '✅ ' + body.staffName + '님, 업무 종료 보고 접수 (' + hh + ':' + mm + ')\\n\\n오늘도 수고하셨습니다.';  } else {    message = '✅ ' + body.staffName + '님, 퇴근 기록 완료 (' + hh + ':' + mm + ')\\n\\n오늘도 수고하셨습니다.';  }} else if (statusCode === 403) {  message = '📋 개인정보 동의가 필요합니다.\\n출근 버튼을 먼저 사용해주세요.';} else if (statusCode === 404) {  message = '❌ 등록되지 않은 사용자입니다.';} else {  message = '❌ 오류: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -604,7 +637,9 @@
       "parameters": {
         "chatId": "={{ $json.chatId }}",
         "text": "={{ $json.message }}",
-        "additionalFields": {}
+        "additionalFields": {
+          "appendAttribution": false
+        }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -637,7 +672,8 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true
+              "fullResponse": true,
+              "neverError": true
             }
           }
         }
@@ -716,7 +752,8 @@
         "options": {
           "response": {
             "response": {
-              "fullResponse": true
+              "fullResponse": true,
+              "neverError": true
             }
           }
         }
@@ -733,7 +770,7 @@
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp;var message = '';if (statusCode === 201 && body.ok) {  message = '📝 업무일지 기록 완료\n\n\"' + parse.args + '\"';} else {  message = '❌ 업무일지 기록 실패: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp; if (typeof body === \"string\") { try { body = JSON.parse(body); } catch(e) {} }var message = '';if (statusCode === 201 && body.ok) {  message = '📝 업무일지 기록 완료\\n\\n\"' + parse.args + '\"';} else {  message = '❌ 업무일지 기록 실패: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -748,7 +785,9 @@
       "parameters": {
         "chatId": "={{ $json.chatId }}",
         "text": "={{ $json.message }}",
-        "additionalFields": {}
+        "additionalFields": {
+          "appendAttribution": false
+        }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
@@ -768,8 +807,10 @@
     {
       "parameters": {
         "chatId": "={{ $('명령어 파싱').first().json.chatId }}",
-        "text": "💡 버튼을 사용해주세요.아래 Reply Keyboard의 버튼으로 출퇴근을 기록합니다.키보드가 안 보이면 /시작 을 입력해주세요.",
-        "additionalFields": {}
+        "text": "🏷️ 버튼을 사용해주세요.\\n\\n메뉴를 다시 보려면 /start 를 입력하세요.\\n\\n재택/간주근로 대상자는 '🏠 재택 출근' 버튼을 먼저 누른 후 업무 내용을 메시지로 보내면 업무일지에 자동 기록됩니다.",
+        "additionalFields": {
+          "appendAttribution": false
+        }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,

@@ -20,12 +20,20 @@
 
 ## Session Lock
 
-- Current Owner: Claude Code
-- Mode: WRITE
-- Started At: 2026-04-14 (AI-Native P1 Wave 3 사전 준비)
+- Current Owner: IDLE
+- Mode: —
+- Started At: —
 - Branch: main
-- Working Scope: `docs/ai-native-upgrade/**` + n8n API (read-only) + 로컬 `/tmp/ai-native-wave3/`
-- Active Subdirectory: docs/ai-native-upgrade/
+- Working Scope: —
+- Active Subdirectory: —
+
+## Next Session Entry Point (2026-04-15 체크포인트)
+
+- 다음 세션 시작 시 먼저 Read: `docs/ai-native-upgrade/P1-Wave4-drift-recovery-plan.md`
+- Phase: P1 Wave 4 (드리프트 해소 + 문서화, ~2시간, max effort)
+- 첫 행동: §11 체크리스트 → Phase A 매핑부터
+- 상태: Wave 3 전체 완료, Wave 4 착수 대기
+- 사전 조건 충족: `.secrets.env` `N8N_CRED_TELEGRAM=RdFu3nsFuuO5NCff` ✅ (대표 수정)
 
 ## Files In Progress
 - None
@@ -33,6 +41,15 @@
 ## Last Changes
 
 > 전체 이력: `archive/ai-sync-history/`
+
+- 2026-04-15 [AI-Native P1 Wave 4 계획 확정 + 체크포인트] (claude)
+  - 산출물: `docs/ai-native-upgrade/P1-Wave4-drift-recovery-plan.md` (약 400줄, 13 섹션)
+  - 배경: Wave 3은 n8n API 직접 PUT으로 수행 → 로컬 JSON 11개와 운영 서버 드리프트 발생
+  - 발견: `n8n-automation/workflows/**` 11 파일에 옛 `-5154731145` 잔존. 현재 deploy.sh 실행 시 Wave 3 결과 롤백 위험
+  - 계획 구조: Phase A(매핑)→B(Pull)→C(미처리 PATCH)→D(고아)→E(재발방지)→F(문서+커밋) + 72시간 관찰 + P1 완료 선언
+  - 대표 결정: `.secrets.env` `N8N_CRED_TELEGRAM` `eS5Y...` → `RdFu...` 수정 완료. `TELEGRAM_CHAT_ID=7713811206`은 장지호 DM이라 변경 불필요 (이전 보고 정정)
+  - 세션 compact 후 다음 세션에서 Phase A부터 재개 예정
+  - Session Lock: WRITE → IDLE 복귀
 
 - 2026-04-15 [AI-Native P1 Wave 3 전체 완료] T2 Topic 재배선 + T2 chat_id 업데이트 (claude)
   - **T2 supergroup 승급 확인**: 대표 Topic 모드 ON 시 Telegram이 일반 group → supergroup 자동 변환. chat_id `-5154731145` → **`-1003980879769`** (실측, `is_forum=True`)

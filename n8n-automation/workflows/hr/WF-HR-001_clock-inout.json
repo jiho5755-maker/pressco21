@@ -18,7 +18,7 @@
     },
     {
       "parameters": {
-        "jsCode": "var item = $input.first().json;\nvar isCallback = !!item.callback_query;\nvar chatId = '', telegramUserId = '', callbackQueryId = '', messageId = '', firstName = '';\nvar action = 'unknown', args = '', workMode = '', pendingWorkMode = '';\n\nif (isCallback) {\n  var cq = item.callback_query;\n  chatId = String(cq.message && cq.message.chat ? cq.message.chat.id : (cq.from ? cq.from.id : ''));\n  telegramUserId = String(cq.from ? cq.from.id : '');\n  callbackQueryId = cq.id || '';\n  messageId = String(cq.message ? cq.message.message_id : '');\n  firstName = cq.from ? (cq.from.first_name || '') : '';\n  var data = cq.data || '';\n  if (data.indexOf('hr:consent:yes:') === 0) {\n    action = 'do_consent';\n    pendingWorkMode = data.split(':')[3];\n  } else if (data === 'hr:consent:no') {\n    action = 'consent_declined';\n  }\n} else if (item.message) {\n  var msg = item.message;\n  chatId = String(msg.chat ? msg.chat.id : (msg.from ? msg.from.id : ''));\n  telegramUserId = String(msg.from ? msg.from.id : '');\n  messageId = String(msg.message_id || '');\n  firstName = msg.from ? (msg.from.first_name || '') : '';\n  var text = (msg.text || '').trim();\n\n  // 첫 단어 추출 (regex 없이, space 기준) + @봇이름 제거\n  var firstWord = text.split(' ')[0] || '';\n  firstWord = firstWord.split('@')[0].toLowerCase();\n\n  var menuCmds = ['/시작', '/start', '/menu', '/메뉴'];\n  var clockoutCmds = ['/퇴근', '/clockout'];\n\n  if (menuCmds.indexOf(firstWord) >= 0) {\n    action = 'show_keyboard';\n  } else if (text === '🏢 사업장 출근' || firstWord === '/clockin_office') {\n    action = 'clockin'; workMode = 'office';\n  } else if (text === '🏠 재택 출근' || firstWord === '/clockin_remote') {\n    action = 'clockin'; workMode = 'remote';\n  } else if (text === '📸 외근 출근' || firstWord === '/clockin_field') {\n    action = 'clockin'; workMode = 'field';\n  } else if (text === '✅ 퇴근' || clockoutCmds.indexOf(firstWord) >= 0) {\n    action = 'clockout';\n  } else if (text) {\n    action = 'free_text'; args = text;\n  }\n}\n\nreturn [{ json: {\n  action: action,\n  chatId: chatId,\n  telegramUserId: telegramUserId,\n  args: args,\n  workMode: workMode,\n  pendingWorkMode: pendingWorkMode,\n  callbackQueryId: callbackQueryId,\n  messageId: messageId,\n  firstName: firstName\n} }];"
+        "jsCode": "var item = $input.first().json;\nvar userTier = item._tier || 'senior';\nvar isCallback = !!item.callback_query;\nvar chatId = '', telegramUserId = '', callbackQueryId = '', messageId = '', firstName = '';\nvar action = 'unknown', args = '', workMode = '', pendingWorkMode = '';\n\nif (isCallback) {\n  var cq = item.callback_query;\n  chatId = String(cq.message && cq.message.chat ? cq.message.chat.id : (cq.from ? cq.from.id : ''));\n  telegramUserId = String(cq.from ? cq.from.id : '');\n  callbackQueryId = cq.id || '';\n  messageId = String(cq.message ? cq.message.message_id : '');\n  firstName = cq.from ? (cq.from.first_name || '') : '';\n  var data = cq.data || '';\n  if (data.indexOf('hr:consent:yes:') === 0) {\n    action = 'do_consent';\n    pendingWorkMode = data.split(':')[3];\n  } else if (data === 'hr:consent:no') {\n    action = 'consent_declined';\n  }\n} else if (item.message) {\n  var msg = item.message;\n  chatId = String(msg.chat ? msg.chat.id : (msg.from ? msg.from.id : ''));\n  telegramUserId = String(msg.from ? msg.from.id : '');\n  messageId = String(msg.message_id || '');\n  firstName = msg.from ? (msg.from.first_name || '') : '';\n  var text = (msg.text || '').trim();\n\n  // 첫 단어 추출 (regex 없이, space 기준) + @봇이름 제거\n  var firstWord = text.split(' ')[0] || '';\n  firstWord = firstWord.split('@')[0].toLowerCase();\n\n  var menuCmds = ['/시작', '/start', '/menu', '/메뉴'];\n  var clockoutCmds = ['/퇴근', '/clockout'];\n\n  if (menuCmds.indexOf(firstWord) >= 0) {\n    action = 'show_keyboard';\n  } else if (text === '🏢 사업장 출근' || firstWord === '/clockin_office') {\n    action = 'clockin'; workMode = 'office';\n  } else if (text === '🏠 재택 출근' || firstWord === '/clockin_remote') {\n    action = 'clockin'; workMode = 'remote';\n  } else if (text === '📸 외근 출근' || firstWord === '/clockin_field') {\n    action = 'clockin'; workMode = 'field';\n  } else if (text === '✅ 퇴근' || clockoutCmds.indexOf(firstWord) >= 0) {\n    action = 'clockout';\n  } else if (text) {\n    action = 'free_text'; args = text;\n  }\n}\n\n// tier별 show_keyboard 재분류\nif (action === 'show_keyboard') {\n  if (userTier === 'junior_remote') action = 'show_remote_intro';\n  else if (userTier === 'admin_cmd_only') action = 'show_admin_intro';\n}\n\nreturn [{ json: {\n  action: action,\n  userTier: userTier,\n  chatId: chatId,\n  telegramUserId: telegramUserId,\n  args: args,\n  workMode: workMode,\n  pendingWorkMode: pendingWorkMode,\n  callbackQueryId: callbackQueryId,\n  messageId: messageId,\n  firstName: firstName\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -164,6 +164,52 @@
               },
               "renameOutput": true,
               "outputKey": "자유텍스트"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "show_remote_intro",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "재택안내"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "loose"
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "show_admin_intro",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "대표자안내"
             }
           ]
         },
@@ -826,6 +872,60 @@
           "name": "Pressco메이크샵봇"
         }
       }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('명령어 파싱').first().json.chatId }}",
+        "text": "={{ ['📝 오늘 업무 안내', '', '안녕하세요! 재택근무 간주근로시간제 대상자입니다.', '', '오늘의 업무 내용을 자유롭게 메시지로 보내주세요.', '자동으로 업무일지에 기록됩니다.', '', '• 예: \"오늘 상세페이지 3건 작업했습니다\"', '• 예: \"인스타그램 피드 2개 업로드 완료\"', '', '근로시간은 간주근로(8시간)로 인정됩니다.'].join('\\n') }}",
+        "replyMarkup": "replyKeyboardRemove",
+        "replyKeyboardRemove": {
+          "remove_keyboard": true
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        1400
+      ],
+      "id": "send-remote-intro",
+      "name": "재택 업무 안내 발송",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('명령어 파싱').first().json.chatId }}",
+        "text": "={{ ['⭐ 대표자 모드', '', '안녕하세요, 원장님.', '', '이 봇은 대표자로서 정부지원사업 관리 기능을 제공합니다.', '', '메뉴 버튼(/)을 눌러 원하는 기능을 선택해주세요.', '', '• /search 정부지원공고 검색', '• /summary 공고 요약', '• /event 이벤트 탐색', '• /status 시스템 상태', '• /apply 신청 의향', '• /docs 서류 현황', '• /fill 서식 자동 채움', '', '※ 근태 기록은 대상이 아닙니다.'].join('\\n') }}",
+        "replyMarkup": "replyKeyboardRemove",
+        "replyKeyboardRemove": {
+          "remove_keyboard": true
+        },
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        920,
+        1600
+      ],
+      "id": "send-admin-intro",
+      "name": "대표자 안내 발송",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     }
   ],
   "connections": {
@@ -891,6 +991,20 @@
         [
           {
             "node": "직원 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "재택 업무 안내 발송",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "대표자 안내 발송",
             "type": "main",
             "index": 0
           }

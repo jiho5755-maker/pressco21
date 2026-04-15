@@ -42,6 +42,14 @@
 
 > 전체 이력: `archive/ai-sync-history/`
 
+- 2026-04-15 [CRM 납부 알림 당일 1회 발송으로 단순화] (codex)
+  - 거래명세표 내부 관리 메모 영역에서 `알림 시점` 선택 UI 제거
+  - 납부 예정 알림은 납부 예정일 당일 오전 9시에 1회만 발송되도록 저장 payload와 n8n 필터 정리
+  - n8n 중복 발송 키를 `명세표ID:납부예정일`로 고정해 금액 변경 등으로 같은 날짜에 재발송되지 않도록 변경
+  - n8n workflow `CRM: 대금 납부 예정 리마인더` 운영 업데이트/활성화 완료
+  - CRM 운영 배포 완료: `bash deploy/deploy.sh`
+  - 검증: `npm run build`, `jq empty`, webhook 인증 200/401, `npx playwright test tests/02-invoices.spec.ts:97` 통과
+
 - 2026-04-15 [CRM 내부 메모/납부 예정 리마인더 운영 반영] (codex)
   - `offline-crm-v2` 거래명세표 Dialog에 출력 비고와 분리된 내부 관리 메모, 납부 예정일/예정 금액/알림 시점/운영실 알림 옵션 추가
   - 내부 메모와 납부 예정 정보는 `[ACCOUNTING_INVOICE_META]`에 저장해 거래명세표 출력/미리보기에서는 숨기고, 거래 상세/미수 관리/캘린더에서 확인 가능하게 연결

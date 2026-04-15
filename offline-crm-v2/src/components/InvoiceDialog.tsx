@@ -73,7 +73,6 @@ interface InvoiceDraft {
   paymentDueDate?: string
   paymentDueAmount?: number
   paymentReminderEnabled?: boolean
-  paymentReminderLeadDays?: number
 }
 
 interface RecentCustomerOption {
@@ -174,23 +173,6 @@ function reverseCalcFromTotal(total: number, taxable: boolean): { supply: number
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
-}
-
-function shiftDate(date: string, days: number): string {
-  const match = date.match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (!match) return date
-  const next = new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]))
-  next.setDate(next.getDate() + days)
-  const year = next.getFullYear()
-  const month = String(next.getMonth() + 1).padStart(2, '0')
-  const day = String(next.getDate()).padStart(2, '0')
-  return `${year}-${month}-${day}`
-}
-
-function normalizeReminderLeadDays(value: string | number): number {
-  const parsed = typeof value === 'number' ? value : Number(value)
-  if (!Number.isFinite(parsed)) return 0
-  return Math.max(0, Math.min(30, Math.trunc(parsed)))
 }
 
 function normalizeInvoiceDate(value?: string): string {
@@ -386,7 +368,6 @@ export function InvoiceDialog({
   const [paymentDueDate, setPaymentDueDate] = useState('')
   const [paymentDueAmount, setPaymentDueAmount] = useState(0)
   const [paymentReminderEnabled, setPaymentReminderEnabled] = useState(false)
-  const [paymentReminderLeadDays, setPaymentReminderLeadDays] = useState(0)
 
   // 인쇄 미리보기
   const [previewOpen, setPreviewOpen] = useState(false)
@@ -566,7 +547,6 @@ export function InvoiceDialog({
       setPaymentDueDate('')
       setPaymentDueAmount(0)
       setPaymentReminderEnabled(false)
-      setPaymentReminderLeadDays(0)
       setDraftMeta(loadInvoiceDraft())
       return
     }
@@ -603,7 +583,6 @@ export function InvoiceDialog({
       setPaymentDueDate(isCopy ? '' : invoiceMeta.paymentReminder?.dueDate ?? '')
       setPaymentDueAmount(isCopy ? 0 : invoiceMeta.paymentReminder?.amount ?? 0)
       setPaymentReminderEnabled(isCopy ? false : invoiceMeta.paymentReminder?.enabled ?? false)
-      setPaymentReminderLeadDays(isCopy ? 0 : invoiceMeta.paymentReminder?.leadDays ?? 0)
     }
     if (existingItems) {
       const rows: ItemRow[] = existingItems.list.map((it) => ({
@@ -948,7 +927,6 @@ export function InvoiceDialog({
       paymentDueDate,
       paymentDueAmount,
       paymentReminderEnabled,
-      paymentReminderLeadDays,
     }
     saveInvoiceDraft(draft)
     setDraftMeta(draft)
@@ -989,7 +967,6 @@ export function InvoiceDialog({
     setPaymentDueDate(draft.paymentDueDate ?? '')
     setPaymentDueAmount(draft.paymentDueAmount ?? 0)
     setPaymentReminderEnabled(draft.paymentReminderEnabled ?? false)
-    setPaymentReminderLeadDays(draft.paymentReminderLeadDays ?? 0)
     setIsDirty(true)
     toast.success('임시저장본을 불러왔습니다')
   }
@@ -1040,7 +1017,7 @@ export function InvoiceDialog({
               dueDate: paymentDueDate || undefined,
               amount: reminderAmount,
               enabled: reminderEnabled,
-              leadDays: paymentReminderLeadDays,
+              leadDays: 0,
               requestedAt: reminderEnabled ? new Date().toISOString() : undefined,
               webhookStatus: reminderEnabled ? 'pending' : undefined,
             }
@@ -1140,8 +1117,8 @@ export function InvoiceDialog({
             customerId: effectiveCustomerId,
             customerName: customerNameForReminder,
             dueDate: reminderEnabled ? paymentDueDate : previousReminder?.dueDate,
-            reminderDate: reminderEnabled ? shiftDate(paymentDueDate, -paymentReminderLeadDays) : undefined,
-            reminderLeadDays: paymentReminderLeadDays,
+            reminderDate: reminderEnabled ? paymentDueDate : undefined,
+            reminderLeadDays: 0,
             amount: reminderEnabled ? reminderAmount : 0,
             remainingAmount: Math.max(0, curBal),
             publicMemo: getDisplayMemo(form.memo as string | undefined),
@@ -1688,27 +1665,7 @@ export function InvoiceDialog({
                     className="mt-1"
                   />
                 </div>
-                <div>
-                  <Label className="text-xs">알림 시점</Label>
-                  <Select
-                    value={String(paymentReminderLeadDays)}
-                    onValueChange={(value) => {
-                      setPaymentReminderLeadDays(normalizeReminderLeadDays(value))
-                      setIsDirty(true)
-                    }}
-                  >
-                    <SelectTrigger className="mt-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="0">납부 당일</SelectItem>
-                      <SelectItem value="1">하루 전</SelectItem>
-                      <SelectItem value="3">3일 전</SelectItem>
-                      <SelectItem value="7">7일 전</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <label className="mt-6 flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm">
+                <label className="flex items-center gap-2 rounded-md border bg-white px-3 py-2 text-sm sm:col-span-2">
                   <input
                     type="checkbox"
                     checked={paymentReminderEnabled}
@@ -1727,7 +1684,7 @@ export function InvoiceDialog({
             </div>
 
             <p className="mt-3 text-[11px] text-muted-foreground">
-              저장하면 납부 예정일 기준으로 운영실 텔레그램 리마인더 예약을 요청합니다. 예정일을 비우면 기존 예약은 취소 요청됩니다.
+              저장하면 납부 예정일 당일 오전 9시에 운영실 텔레그램 알림이 한 번만 발송됩니다. 예정일을 비우면 기존 예약은 취소 요청됩니다.
             </p>
           </div>
 

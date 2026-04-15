@@ -1,28 +1,20 @@
 {
+  "id": "HxskyYvTbFvRzgaa",
   "name": "정부지원사업_텔레그램허브",
+  "active": true,
   "nodes": [
     {
       "id": "hub-node-001",
       "name": "Telegram Trigger",
-      "type": "n8n-nodes-base.telegramTrigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
       "position": [
         0,
         300
       ],
       "parameters": {
-        "updates": [
-          "message"
-        ],
-        "additionalFields": {}
-      },
-      "credentials": {
-        "telegramApi": {
-          "id": "eS5YwFGpbJht6uCB",
-          "name": "PRESSCO21-Telegram-Bot"
-        }
-      },
-      "webhookId": "govt-support-hub-webhook"
+        "inputSource": "passthrough"
+      }
     },
     {
       "id": "hub-node-002",
@@ -35,7 +27,7 @@
       ],
       "parameters": {
         "mode": "runOnceForAllItems",
-        "jsCode": "const msg = $input.first().json.message || $input.first().json;\nconst text = (msg.text || '').trim();\nconst chatId = msg.chat?.id || msg.from?.id || '';\n\n// 보안: 허용된 채팅 ID만 처리 (개발방 메시지 무시)\nconst allowedChatIds = ['7713811206'];\nif (!allowedChatIds.includes(String(chatId))) {\n  return [];\n}\n\nconst parts = text.split(/\\s+/);\nconst rawCmd = (parts[0] || '').toLowerCase();\nconst args = parts.slice(1).join(' ');\n\n// 명령어 정규화\nlet command = 'help';\nif (rawCmd === '/검색' || rawCmd === '/search') command = '/검색';\nelse if (rawCmd === '/요약' || rawCmd === '/summary') command = '/요약';\nelse if (rawCmd === '/이벤트' || rawCmd === '/event') command = '/이벤트';\nelse if (rawCmd === '/상태' || rawCmd === '/status') command = '/상태';\nelse if (rawCmd === '/신청' || rawCmd === '/apply') command = '/신청';\nelse if (rawCmd === '/서류' || rawCmd === '/docs') command = '/서류';\n  else if (rawCmd === '/서식채움' || rawCmd === '/fill') command = '/서식채움';\nelse if (rawCmd.startsWith('/')) command = 'unknown';\n\nreturn [{ json: { command, args, chatId: String(chatId), originalText: text } }];"
+        "jsCode": "const msg = $input.first().json.message || $input.first().json;\nconst text = (msg.text || '').trim();\nconst fromId = msg.from && msg.from.id;\nconst chatId = (msg.chat && msg.chat.id) || fromId || '';\n\n// 2026-04-15 v2: user_id 기반 + @봇이름 접미사 제거\nconst allowedUserIds = ['7713811206'];\nif (!allowedUserIds.includes(String(fromId))) {\n  return [];\n}\n\nconst parts = text.split(/\\s+/);\nconst rawCmd = ((parts[0] || '').split('@')[0] || '').toLowerCase();\nconst args = parts.slice(1).join(' ');\n\nlet command = 'help';\nif (rawCmd === '/검색' || rawCmd === '/search') command = '/검색';\nelse if (rawCmd === '/요약' || rawCmd === '/summary') command = '/요약';\nelse if (rawCmd === '/이벤트' || rawCmd === '/event') command = '/이벤트';\nelse if (rawCmd === '/상태' || rawCmd === '/status') command = '/상태';\nelse if (rawCmd === '/신청' || rawCmd === '/apply') command = '/신청';\nelse if (rawCmd === '/서류' || rawCmd === '/docs') command = '/서류';\nelse if (rawCmd === '/서식채움' || rawCmd === '/fill') command = '/서식채움';\nelse if (rawCmd.startsWith('/')) command = 'unknown';\n\nreturn [{ json: { command, args, chatId: String(chatId), originalText: text } }];\n"
       }
     },
     {
@@ -303,8 +295,8 @@
       },
       "credentials": {
         "telegramApi": {
-          "id": "eS5YwFGpbJht6uCB",
-          "name": "PRESSCO21-Telegram-Bot"
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
         }
       },
       "onError": "continueRegularOutput"
@@ -383,8 +375,8 @@
       },
       "credentials": {
         "telegramApi": {
-          "id": "eS5YwFGpbJht6uCB",
-          "name": "PRESSCO21-Telegram-Bot"
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
         }
       },
       "onError": "continueRegularOutput"
@@ -440,8 +432,8 @@
       },
       "credentials": {
         "telegramApi": {
-          "id": "eS5YwFGpbJht6uCB",
-          "name": "PRESSCO21-Telegram-Bot"
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
         }
       },
       "onError": "continueRegularOutput"
@@ -516,8 +508,8 @@
       },
       "credentials": {
         "telegramApi": {
-          "id": "eS5YwFGpbJht6uCB",
-          "name": "PRESSCO21-Telegram-Bot"
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
         }
       },
       "onError": "continueRegularOutput"
@@ -573,8 +565,8 @@
       },
       "credentials": {
         "telegramApi": {
-          "id": "eS5YwFGpbJht6uCB",
-          "name": "PRESSCO21-Telegram-Bot"
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
         }
       },
       "onError": "continueRegularOutput"
@@ -658,8 +650,8 @@
       },
       "credentials": {
         "telegramApi": {
-          "id": "eS5YwFGpbJht6uCB",
-          "name": "PRESSCO21-Telegram-Bot"
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
         }
       },
       "onError": "continueRegularOutput"
@@ -682,8 +674,8 @@
       },
       "credentials": {
         "telegramApi": {
-          "id": "eS5YwFGpbJht6uCB",
-          "name": "PRESSCO21-Telegram-Bot"
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
         }
       },
       "onError": "continueRegularOutput"
@@ -934,6 +926,8 @@
     }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   }
 }

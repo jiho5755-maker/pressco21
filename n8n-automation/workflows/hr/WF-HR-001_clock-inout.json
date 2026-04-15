@@ -4,22 +4,28 @@
   "active": false,
   "nodes": [
     {
-      "parameters": { "updates": ["message", "callback_query"] },
-      "type": "n8n-nodes-base.telegramTrigger",
+      "parameters": {
+        "inputSource": "passthrough"
+      },
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
-      "position": [200, 500],
+      "position": [
+        200,
+        500
+      ],
       "id": "hr-trigger",
-      "name": "HR 텔레그램 수신",
-      "webhookId": "hr-001-webhook",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "name": "HR 텔레그램 수신"
     },
     {
       "parameters": {
-        "jsCode": "var item = $input.first().json;\nvar isCallback = !!item.callback_query;\nvar chatId = '', telegramUserId = '', callbackQueryId = '', messageId = '', firstName = '';\nvar action = 'unknown', args = '', workMode = '', pendingWorkMode = '';\n\nif (isCallback) {\n  var cq = item.callback_query;\n  chatId = String(cq.message && cq.message.chat ? cq.message.chat.id : (cq.from ? cq.from.id : ''));\n  telegramUserId = String(cq.from ? cq.from.id : '');\n  callbackQueryId = cq.id || '';\n  messageId = String(cq.message ? cq.message.message_id : '');\n  firstName = cq.from ? (cq.from.first_name || '') : '';\n  var data = cq.data || '';\n  if (data.indexOf('hr:consent:yes:') === 0) { action = 'do_consent'; pendingWorkMode = data.split(':')[3]; }\n  else if (data === 'hr:consent:no') { action = 'consent_declined'; }\n} else if (item.message) {\n  var msg = item.message;\n  chatId = String(msg.chat ? msg.chat.id : (msg.from ? msg.from.id : ''));\n  telegramUserId = String(msg.from ? msg.from.id : '');\n  messageId = String(msg.message_id || '');\n  firstName = msg.from ? (msg.from.first_name || '') : '';\n  var text = (msg.text || '').trim();\n  if (/^\\/(?:시작|start|menu|메뉴)/.test(text)) {\n    action = 'show_keyboard';\n  } else if (text === '\\ud83c\\udfe2 \\uc0ac\\uc5c5\\uc7a5 \\ucd9c\\uadfc' || /^\\/clockin_office$/.test(text)) {\n    action = 'clockin'; workMode = 'office';\n  } else if (text === '\\ud83c\\udfe0 \\uc7ac\\ud0dd \\ucd9c\\uadfc' || /^\\/clockin_remote$/.test(text)) {\n    action = 'clockin'; workMode = 'remote';\n  } else if (text === '\\ud83d\\udcf8 \\uc678\\uadfc \\ucd9c\\uadfc' || /^\\/clockin_field$/.test(text)) {\n    action = 'clockin'; workMode = 'field';\n  } else if (text === '\\u2705 \\ud1f4\\uadfc' || /^\\/(?:퇴근|clockout)$/.test(text)) {\n    action = 'clockout';\n  } else if (text) {\n    action = 'free_text'; args = text;\n  }\n}\n\nreturn [{ json: { action: action, chatId: chatId, telegramUserId: telegramUserId, args: args, workMode: workMode, pendingWorkMode: pendingWorkMode, callbackQueryId: callbackQueryId, messageId: messageId, firstName: firstName } }];"
+        "jsCode": "var item = $input.first().json;\nvar isCallback = !!item.callback_query;\nvar chatId = '', telegramUserId = '', callbackQueryId = '', messageId = '', firstName = '';\nvar action = 'unknown', args = '', workMode = '', pendingWorkMode = '';\n\nif (isCallback) {\n  var cq = item.callback_query;\n  chatId = String(cq.message && cq.message.chat ? cq.message.chat.id : (cq.from ? cq.from.id : ''));\n  telegramUserId = String(cq.from ? cq.from.id : '');\n  callbackQueryId = cq.id || '';\n  messageId = String(cq.message ? cq.message.message_id : '');\n  firstName = cq.from ? (cq.from.first_name || '') : '';\n  var data = cq.data || '';\n  if (data.indexOf('hr:consent:yes:') === 0) {\n    action = 'do_consent';\n    pendingWorkMode = data.split(':')[3];\n  } else if (data === 'hr:consent:no') {\n    action = 'consent_declined';\n  }\n} else if (item.message) {\n  var msg = item.message;\n  chatId = String(msg.chat ? msg.chat.id : (msg.from ? msg.from.id : ''));\n  telegramUserId = String(msg.from ? msg.from.id : '');\n  messageId = String(msg.message_id || '');\n  firstName = msg.from ? (msg.from.first_name || '') : '';\n  var text = (msg.text || '').trim();\n\n  // 첫 단어 추출 (regex 없이, space 기준) + @봇이름 제거\n  var firstWord = text.split(' ')[0] || '';\n  firstWord = firstWord.split('@')[0].toLowerCase();\n\n  var menuCmds = ['/시작', '/start', '/menu', '/메뉴'];\n  var clockoutCmds = ['/퇴근', '/clockout'];\n\n  if (menuCmds.indexOf(firstWord) >= 0) {\n    action = 'show_keyboard';\n  } else if (text === '🏢 사업장 출근' || firstWord === '/clockin_office') {\n    action = 'clockin'; workMode = 'office';\n  } else if (text === '🏠 재택 출근' || firstWord === '/clockin_remote') {\n    action = 'clockin'; workMode = 'remote';\n  } else if (text === '📸 외근 출근' || firstWord === '/clockin_field') {\n    action = 'clockin'; workMode = 'field';\n  } else if (text === '✅ 퇴근' || clockoutCmds.indexOf(firstWord) >= 0) {\n    action = 'clockout';\n  } else if (text) {\n    action = 'free_text'; args = text;\n  }\n}\n\nreturn [{ json: {\n  action: action,\n  chatId: chatId,\n  telegramUserId: telegramUserId,\n  args: args,\n  workMode: workMode,\n  pendingWorkMode: pendingWorkMode,\n  callbackQueryId: callbackQueryId,\n  messageId: messageId,\n  firstName: firstName\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 500],
+      "position": [
+        420,
+        500
+      ],
       "id": "parse-input",
       "name": "명령어 파싱"
     },
@@ -29,106 +35,232 @@
           "values": [
             {
               "conditions": {
-                "options": { "version": 2, "caseSensitive": true, "leftValue": "" },
-                "conditions": [{ "leftValue": "={{ $json.action }}", "rightValue": "show_keyboard", "operator": { "type": "string", "operation": "equals" } }],
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "show_keyboard",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
-              "renameOutput": true, "outputKey": "키보드표시"
+              "renameOutput": true,
+              "outputKey": "키보드표시"
             },
             {
               "conditions": {
-                "options": { "version": 2, "caseSensitive": true, "leftValue": "" },
-                "conditions": [{ "leftValue": "={{ $json.action }}", "rightValue": "clockin", "operator": { "type": "string", "operation": "equals" } }],
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "clockin",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
-              "renameOutput": true, "outputKey": "출근"
+              "renameOutput": true,
+              "outputKey": "출근"
             },
             {
               "conditions": {
-                "options": { "version": 2, "caseSensitive": true, "leftValue": "" },
-                "conditions": [{ "leftValue": "={{ $json.action }}", "rightValue": "do_consent", "operator": { "type": "string", "operation": "equals" } }],
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "do_consent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
-              "renameOutput": true, "outputKey": "동의처리"
+              "renameOutput": true,
+              "outputKey": "동의처리"
             },
             {
               "conditions": {
-                "options": { "version": 2, "caseSensitive": true, "leftValue": "" },
-                "conditions": [{ "leftValue": "={{ $json.action }}", "rightValue": "consent_declined", "operator": { "type": "string", "operation": "equals" } }],
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "consent_declined",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
-              "renameOutput": true, "outputKey": "동의거부"
+              "renameOutput": true,
+              "outputKey": "동의거부"
             },
             {
               "conditions": {
-                "options": { "version": 2, "caseSensitive": true, "leftValue": "" },
-                "conditions": [{ "leftValue": "={{ $json.action }}", "rightValue": "clockout", "operator": { "type": "string", "operation": "equals" } }],
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "clockout",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
-              "renameOutput": true, "outputKey": "퇴근"
+              "renameOutput": true,
+              "outputKey": "퇴근"
             },
             {
               "conditions": {
-                "options": { "version": 2, "caseSensitive": true, "leftValue": "" },
-                "conditions": [{ "leftValue": "={{ $json.action }}", "rightValue": "free_text", "operator": { "type": "string", "operation": "equals" } }],
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "free_text",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
-              "renameOutput": true, "outputKey": "자유텍스트"
+              "renameOutput": true,
+              "outputKey": "자유텍스트"
             }
           ]
         },
-        "options": { "fallbackOutput": "none" }
+        "options": {
+          "fallbackOutput": "none"
+        }
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [660, 500],
+      "position": [
+        660,
+        500
+      ],
       "id": "route",
       "name": "명령어 라우팅"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/sendMessage",
-        "sendBody": true, "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ chat_id: $('명령어 파싱').first().json.chatId, text: '🏷️ 근태관리 메뉴\\n\\n아래 버튼을 사용해주세요.\\n\\n• 출근 시: 근무 장소 버튼\\n• 퇴근 시: ✅ 퇴근 버튼\\n\\n재택/간주근로 대상자는 업무 내용을 자유롭게 메시지로 보내면 자동으로 업무일지에 기록됩니다.', reply_markup: { keyboard: [[{ text: '🏢 사업장 출근' }, { text: '🏠 재택 출근' }], [{ text: '📸 외근 출근' }, { text: '✅ 퇴근' }]], resize_keyboard: true, is_persistent: true } }) }}",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $('명령어 파싱').first().json.chatId, text: ['🏷️ 근태관리 메뉴', '', '아래 버튼을 사용해주세요.', '', '• 출근 시: 근무 장소 버튼', '• 퇴근 시: ✅ 퇴근 버튼', '', '재택/간주근로 대상자는 업무 내용을 자유롭게 메시지로 보내면 자동으로 업무일지에 기록됩니다.'].join('\\n'), reply_markup: { keyboard: [[{ text: '🏢 사업장 출근' }, { text: '🏠 재택 출근' }], [{ text: '📸 외근 출근' }, { text: '✅ 퇴근' }]], resize_keyboard: true, is_persistent: true } }) }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [920, 100],
+      "position": [
+        920,
+        100
+      ],
       "id": "send-keyboard",
       "name": "Reply Keyboard 발송",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://mini.pressco21.com/api/hr/attendance",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "x-flora-automation-key", "value": "={{ $env.FLORA_HR_API_KEY }}" },
-          { "name": "Content-Type", "value": "application/json" }
-        ] },
-        "sendBody": true, "specifyBody": "json",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "={{ $env.FLORA_HR_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ type: 'clock_in', workMode: $('명령어 파싱').first().json.workMode, telegramUserId: $('명령어 파싱').first().json.telegramUserId, source: 'telegram' }) }}",
-        "options": { "response": { "response": { "fullResponse": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
       },
       "onError": "continueRegularOutput",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [920, 300],
+      "position": [
+        920,
+        300
+      ],
       "id": "api-clockin",
       "name": "API 출근 기록"
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;\nvar resp = $input.first().json;\nvar statusCode = resp.statusCode || 200;\nvar body = resp.body || resp;\nvar mode = 'direct';\nvar message = '';\nvar consentKeyboard = '';\n\nif (statusCode === 201 && body.ok) {\n  var now = new Date(Date.now() + 9*3600000);\n  var hh = String(now.getHours()).padStart(2,'0');\n  var mm = String(now.getMinutes()).padStart(2,'0');\n  var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };\n  var modeText = modeLabel[parse.workMode] || parse.workMode;\n  if (body.isDeemedHours) {\n    message = '\\u2705 ' + body.staffName + '님, 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\\n\\n소정근로시간(8시간)을 근로한 것으로 간주합니다.\\n\\n\\ud83d\\udcdd 업무 내용은 메시지로 보내주세요.';\n  } else {\n    message = '\\u2705 ' + body.staffName + '님, 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')';\n  }\n} else if (statusCode === 403 && body.needsConsent) {\n  mode = 'consent';\n  message = '\\ud83d\\udccb 개인정보 수집·이용 동의\\n\\n출퇴근 기록, 업무일지 등 HR 데이터가 근로기준법 제42조에 따라 3년간 보관됩니다.\\n\\n동의하시겠습니까?';\n  consentKeyboard = JSON.stringify({ inline_keyboard: [[{ text: '\\u2705 동의합니다', callback_data: 'hr:consent:yes:' + parse.workMode }, { text: '\\u274c 거부', callback_data: 'hr:consent:no' }]] });\n} else if (statusCode === 404) {\n  message = '\\u274c 등록되지 않은 사용자입니다. 관리자에게 문의하세요.';\n} else {\n  message = '\\u274c 오류: ' + (body.error || '알 수 없는 오류');\n}\n\nreturn [{ json: { mode: mode, message: message, consentKeyboard: consentKeyboard, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp;var mode = 'direct';var message = '';var consentKeyboard = '';if (statusCode === 201 && body.ok) {  var now = new Date(Date.now() + 9*3600000);  var hh = String(now.getHours()).padStart(2,'0');  var mm = String(now.getMinutes()).padStart(2,'0');  var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };  var modeText = modeLabel[parse.workMode] || parse.workMode;  if (body.isDeemedHours) {    message = '✅ ' + body.staffName + '님, 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\n\n소정근로시간(8시간)을 근로한 것으로 간주합니다.\n\n📝 업무 내용은 메시지로 보내주세요.';  } else {    message = '✅ ' + body.staffName + '님, 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')';  }} else if (statusCode === 403 && body.needsConsent) {  mode = 'consent';  message = '📋 개인정보 수집·이용 동의\n\n출퇴근 기록, 업무일지 등 HR 데이터가 근로기준법 제42조에 따라 3년간 보관됩니다.\n\n동의하시겠습니까?';  consentKeyboard = JSON.stringify({ inline_keyboard: [[{ text: '✅ 동의합니다', callback_data: 'hr:consent:yes:' + parse.workMode }, { text: '❌ 거부', callback_data: 'hr:consent:no' }]] });} else if (statusCode === 404) {  message = '❌ 등록되지 않은 사용자입니다. 관리자에게 문의하세요.';} else {  message = '❌ 오류: ' + (body.error || '알 수 없는 오류');}return [{ json: { mode: mode, message: message, consentKeyboard: consentKeyboard, chatId: parse.chatId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1140, 300],
+      "position": [
+        1140,
+        300
+      ],
       "id": "format-clockin",
       "name": "출근 결과 포맷"
     },
@@ -138,38 +270,73 @@
           "values": [
             {
               "conditions": {
-                "options": { "version": 2, "caseSensitive": true, "leftValue": "" },
-                "conditions": [{ "leftValue": "={{ $json.mode }}", "rightValue": "consent", "operator": { "type": "string", "operation": "equals" } }],
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mode }}",
+                    "rightValue": "consent",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
                 "combinator": "and"
               },
-              "renameOutput": true, "outputKey": "동의필요"
+              "renameOutput": true,
+              "outputKey": "동의필요"
             }
           ]
         },
-        "options": { "fallbackOutput": "extra" }
+        "options": {
+          "fallbackOutput": "extra"
+        }
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [1360, 300],
+      "position": [
+        1360,
+        300
+      ],
       "id": "clockin-result-route",
       "name": "출근 결과 분기"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/sendMessage",
-        "sendBody": true, "specifyBody": "json",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ chat_id: $json.chatId, text: $json.message, reply_markup: JSON.parse($json.consentKeyboard) }) }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1580, 220],
+      "position": [
+        1580,
+        220
+      ],
       "id": "send-consent-prompt",
       "name": "동의 요청 발송",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
@@ -179,44 +346,80 @@
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1580, 380],
+      "position": [
+        1580,
+        380
+      ],
       "id": "send-clockin",
       "name": "출근 결과 발송",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
-        "sendBody": true, "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('명령어 파싱').first().json.callbackQueryId, text: '\\u2705 동의 처리 중...' }) }}",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ callback_query_id: $('명령어 파싱').first().json.callbackQueryId, text: '✅ 동의 처리 중...' }) }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [920, 500],
+      "position": [
+        920,
+        500
+      ],
       "id": "ack-consent",
       "name": "콜백 응답 (동의)",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://mini.pressco21.com/api/hr/consent",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "x-flora-automation-key", "value": "={{ $env.FLORA_HR_API_KEY }}" },
-          { "name": "Content-Type", "value": "application/json" }
-        ] },
-        "sendBody": true, "specifyBody": "json",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "={{ $env.FLORA_HR_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ telegramUserId: $('명령어 파싱').first().json.telegramUserId }) }}",
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1140, 500],
+      "position": [
+        1140,
+        500
+      ],
       "id": "api-consent",
       "name": "API 동의 등록"
     },
@@ -225,28 +428,49 @@
         "method": "POST",
         "url": "https://mini.pressco21.com/api/hr/attendance",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "x-flora-automation-key", "value": "={{ $env.FLORA_HR_API_KEY }}" },
-          { "name": "Content-Type", "value": "application/json" }
-        ] },
-        "sendBody": true, "specifyBody": "json",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "={{ $env.FLORA_HR_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ type: 'clock_in', workMode: $('명령어 파싱').first().json.pendingWorkMode, telegramUserId: $('명령어 파싱').first().json.telegramUserId, source: 'telegram' }) }}",
-        "options": { "response": { "response": { "fullResponse": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
       },
       "onError": "continueRegularOutput",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1360, 500],
+      "position": [
+        1360,
+        500
+      ],
       "id": "api-clockin-post-consent",
       "name": "API 출근 (동의 후)"
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;\nvar resp = $input.first().json;\nvar body = resp.body || resp;\nvar message = '';\nvar now = new Date(Date.now() + 9*3600000);\nvar hh = String(now.getHours()).padStart(2,'0');\nvar mm = String(now.getMinutes()).padStart(2,'0');\nvar modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };\nvar modeText = modeLabel[parse.pendingWorkMode] || parse.pendingWorkMode;\n\nif (body.ok) {\n  if (body.isDeemedHours) {\n    message = '\\u2705 동의 완료 + 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\\n\\n소정근로시간(8시간)을 근로한 것으로 간주합니다.\\n\\n\\ud83d\\udcdd 업무 내용은 메시지로 보내주세요.';\n  } else {\n    message = '\\u2705 동의 완료 + 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')';\n  }\n} else {\n  message = '\\u274c 출근 기록 실패: ' + (body.error || '알 수 없는 오류');\n}\n\nreturn [{ json: { message: message, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var body = resp.body || resp;var message = '';var now = new Date(Date.now() + 9*3600000);var hh = String(now.getHours()).padStart(2,'0');var mm = String(now.getMinutes()).padStart(2,'0');var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };var modeText = modeLabel[parse.pendingWorkMode] || parse.pendingWorkMode;if (body.ok) {  if (body.isDeemedHours) {    message = '✅ 동의 완료 + 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\n\n소정근로시간(8시간)을 근로한 것으로 간주합니다.\n\n📝 업무 내용은 메시지로 보내주세요.';  } else {    message = '✅ 동의 완료 + 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')';  }} else {  message = '❌ 출근 기록 실패: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1580, 500],
+      "position": [
+        1580,
+        500
+      ],
       "id": "format-consent-result",
       "name": "동의+출근 결과 포맷"
     },
@@ -258,68 +482,121 @@
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1800, 500],
+      "position": [
+        1800,
+        500
+      ],
       "id": "send-consent-result",
       "name": "동의+출근 발송",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
-        "sendBody": true, "specifyBody": "json",
+        "url": "=https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/answerCallbackQuery",
+        "sendBody": true,
+        "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ callback_query_id: $('명령어 파싱').first().json.callbackQueryId, text: '동의가 거부되었습니다', show_alert: true }) }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [{ "name": "Content-Type", "value": "application/json" }] },
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
         "options": {}
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [920, 700],
+      "position": [
+        920,
+        700
+      ],
       "id": "ack-declined",
       "name": "콜백 응답 (거부)",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "chatId": "={{ $('명령어 파싱').first().json.chatId }}",
-        "text": "❌ 동의가 거부되었습니다.\n\nHR 기능을 사용하려면 개인정보 동의가 필요합니다.\n출근 버튼을 다시 눌러 시도할 수 있습니다.",
+        "text": "❌ 동의가 거부되었습니다.HR 기능을 사용하려면 개인정보 동의가 필요합니다.출근 버튼을 다시 눌러 시도할 수 있습니다.",
         "additionalFields": {}
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1140, 700],
+      "position": [
+        1140,
+        700
+      ],
       "id": "send-declined",
       "name": "거부 안내 발송",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "method": "POST",
         "url": "https://mini.pressco21.com/api/hr/attendance",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "x-flora-automation-key", "value": "={{ $env.FLORA_HR_API_KEY }}" },
-          { "name": "Content-Type", "value": "application/json" }
-        ] },
-        "sendBody": true, "specifyBody": "json",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "={{ $env.FLORA_HR_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ type: 'clock_out', workMode: 'office', telegramUserId: $('명령어 파싱').first().json.telegramUserId, source: 'telegram' }) }}",
-        "options": { "response": { "response": { "fullResponse": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
       },
       "onError": "continueRegularOutput",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [920, 900],
+      "position": [
+        920,
+        900
+      ],
       "id": "api-clockout",
       "name": "API 퇴근 기록"
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;\nvar resp = $input.first().json;\nvar statusCode = resp.statusCode || 200;\nvar body = resp.body || resp;\nvar message = '';\n\nif (statusCode === 201 && body.ok) {\n  var now = new Date(Date.now() + 9*3600000);\n  var hh = String(now.getHours()).padStart(2,'0');\n  var mm = String(now.getMinutes()).padStart(2,'0');\n  if (body.isDeemedHours) {\n    message = '\\u2705 ' + body.staffName + '님, 업무 종료 보고 접수 (' + hh + ':' + mm + ')\\n\\n오늘도 수고하셨습니다.';\n  } else {\n    message = '\\u2705 ' + body.staffName + '님, 퇴근 기록 완료 (' + hh + ':' + mm + ')\\n\\n오늘도 수고하셨습니다.';\n  }\n} else if (statusCode === 403) {\n  message = '\\ud83d\\udccb 개인정보 동의가 필요합니다.\\n출근 버튼을 먼저 사용해주세요.';\n} else if (statusCode === 404) {\n  message = '\\u274c 등록되지 않은 사용자입니다.';\n} else {\n  message = '\\u274c 오류: ' + (body.error || '알 수 없는 오류');\n}\n\nreturn [{ json: { message: message, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp;var message = '';if (statusCode === 201 && body.ok) {  var now = new Date(Date.now() + 9*3600000);  var hh = String(now.getHours()).padStart(2,'0');  var mm = String(now.getMinutes()).padStart(2,'0');  if (body.isDeemedHours) {    message = '✅ ' + body.staffName + '님, 업무 종료 보고 접수 (' + hh + ':' + mm + ')\n\n오늘도 수고하셨습니다.';  } else {    message = '✅ ' + body.staffName + '님, 퇴근 기록 완료 (' + hh + ':' + mm + ')\n\n오늘도 수고하셨습니다.';  }} else if (statusCode === 403) {  message = '📋 개인정보 동의가 필요합니다.\n출근 버튼을 먼저 사용해주세요.';} else if (statusCode === 404) {  message = '❌ 등록되지 않은 사용자입니다.';} else {  message = '❌ 오류: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1140, 900],
+      "position": [
+        1140,
+        900
+      ],
       "id": "format-clockout",
       "name": "퇴근 결과 포맷"
     },
@@ -331,25 +608,47 @@
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1360, 900],
+      "position": [
+        1360,
+        900
+      ],
       "id": "send-clockout",
       "name": "퇴근 결과 발송",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "method": "GET",
         "url": "=https://mini.pressco21.com/api/hr/lookup?telegramUserId={{ $('명령어 파싱').first().json.telegramUserId }}",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "x-flora-automation-key", "value": "={{ $env.FLORA_HR_API_KEY }}" }
-        ] },
-        "options": { "response": { "response": { "fullResponse": true } } }
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "={{ $env.FLORA_HR_API_KEY }}"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
       },
       "onError": "continueRegularOutput",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [920, 1100],
+      "position": [
+        920,
+        1100
+      ],
       "id": "lookup-staff",
       "name": "직원 조회"
     },
@@ -359,21 +658,38 @@
           "values": [
             {
               "conditions": {
-                "options": { "version": 2, "caseSensitive": true, "leftValue": "" },
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
                 "conditions": [
-                  { "leftValue": "={{ $json.body && $json.body.ok && $json.body.isDeemedHours }}", "rightValue": true, "operator": { "type": "boolean", "operation": "true" } }
+                  {
+                    "leftValue": "={{ $json.body && $json.body.ok && $json.body.isDeemedHours }}",
+                    "rightValue": true,
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true"
+                    }
+                  }
                 ],
                 "combinator": "and"
               },
-              "renameOutput": true, "outputKey": "재택(업무일지)"
+              "renameOutput": true,
+              "outputKey": "재택(업무일지)"
             }
           ]
         },
-        "options": { "fallbackOutput": "extra" }
+        "options": {
+          "fallbackOutput": "extra"
+        }
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [1140, 1100],
+      "position": [
+        1140,
+        1100
+      ],
       "id": "free-text-route",
       "name": "자유텍스트 분기"
     },
@@ -382,28 +698,49 @@
         "method": "POST",
         "url": "https://mini.pressco21.com/api/hr/work-logs",
         "sendHeaders": true,
-        "headerParameters": { "parameters": [
-          { "name": "x-flora-automation-key", "value": "={{ $env.FLORA_HR_API_KEY }}" },
-          { "name": "Content-Type", "value": "application/json" }
-        ] },
-        "sendBody": true, "specifyBody": "json",
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "={{ $env.FLORA_HR_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ content: $('명령어 파싱').first().json.args, telegramUserId: $('명령어 파싱').first().json.telegramUserId, source: 'telegram' }) }}",
-        "options": { "response": { "response": { "fullResponse": true } } }
+        "options": {
+          "response": {
+            "response": {
+              "fullResponse": true
+            }
+          }
+        }
       },
       "onError": "continueRegularOutput",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1360, 1020],
+      "position": [
+        1360,
+        1020
+      ],
       "id": "api-worklog-auto",
       "name": "API 업무일지 (자동)"
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;\nvar resp = $input.first().json;\nvar statusCode = resp.statusCode || 200;\nvar body = resp.body || resp;\nvar message = '';\n\nif (statusCode === 201 && body.ok) {\n  message = '\\ud83d\\udcdd 업무일지 기록 완료\\n\\n\"' + parse.args + '\"';\n} else {\n  message = '\\u274c 업무일지 기록 실패: ' + (body.error || '알 수 없는 오류');\n}\n\nreturn [{ json: { message: message, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp;var message = '';if (statusCode === 201 && body.ok) {  message = '📝 업무일지 기록 완료\n\n\"' + parse.args + '\"';} else {  message = '❌ 업무일지 기록 실패: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1580, 1020],
+      "position": [
+        1580,
+        1020
+      ],
       "id": "format-worklog-auto",
       "name": "업무일지 결과 포맷"
     },
@@ -415,64 +752,282 @@
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1800, 1020],
+      "position": [
+        1800,
+        1020
+      ],
       "id": "send-worklog-auto",
       "name": "업무일지 결과 발송",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "chatId": "={{ $('명령어 파싱').first().json.chatId }}",
-        "text": "💡 버튼을 사용해주세요.\n\n아래 Reply Keyboard의 버튼으로 출퇴근을 기록합니다.\n키보드가 안 보이면 /시작 을 입력해주세요.",
+        "text": "💡 버튼을 사용해주세요.아래 Reply Keyboard의 버튼으로 출퇴근을 기록합니다.키보드가 안 보이면 /시작 을 입력해주세요.",
         "additionalFields": {}
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [1360, 1200],
+      "position": [
+        1360,
+        1200
+      ],
       "id": "send-button-hint",
       "name": "버튼 사용 안내",
-      "credentials": { "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" } }
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     }
   ],
   "connections": {
-    "HR 텔레그램 수신": { "main": [[{ "node": "명령어 파싱", "type": "main", "index": 0 }]] },
-    "명령어 파싱": { "main": [[{ "node": "명령어 라우팅", "type": "main", "index": 0 }]] },
+    "HR 텔레그램 수신": {
+      "main": [
+        [
+          {
+            "node": "명령어 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "명령어 파싱": {
+      "main": [
+        [
+          {
+            "node": "명령어 라우팅",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "명령어 라우팅": {
       "main": [
-        [{ "node": "Reply Keyboard 발송", "type": "main", "index": 0 }],
-        [{ "node": "API 출근 기록", "type": "main", "index": 0 }],
-        [{ "node": "콜백 응답 (동의)", "type": "main", "index": 0 }],
-        [{ "node": "콜백 응답 (거부)", "type": "main", "index": 0 }],
-        [{ "node": "API 퇴근 기록", "type": "main", "index": 0 }],
-        [{ "node": "직원 조회", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "Reply Keyboard 발송",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "API 출근 기록",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "콜백 응답 (동의)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "콜백 응답 (거부)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "API 퇴근 기록",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "직원 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "API 출근 기록": { "main": [[{ "node": "출근 결과 포맷", "type": "main", "index": 0 }]] },
-    "출근 결과 포맷": { "main": [[{ "node": "출근 결과 분기", "type": "main", "index": 0 }]] },
+    "API 출근 기록": {
+      "main": [
+        [
+          {
+            "node": "출근 결과 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "출근 결과 포맷": {
+      "main": [
+        [
+          {
+            "node": "출근 결과 분기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "출근 결과 분기": {
       "main": [
-        [{ "node": "동의 요청 발송", "type": "main", "index": 0 }],
-        [{ "node": "출근 결과 발송", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "동의 요청 발송",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "출근 결과 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "콜백 응답 (동의)": { "main": [[{ "node": "API 동의 등록", "type": "main", "index": 0 }]] },
-    "API 동의 등록": { "main": [[{ "node": "API 출근 (동의 후)", "type": "main", "index": 0 }]] },
-    "API 출근 (동의 후)": { "main": [[{ "node": "동의+출근 결과 포맷", "type": "main", "index": 0 }]] },
-    "동의+출근 결과 포맷": { "main": [[{ "node": "동의+출근 발송", "type": "main", "index": 0 }]] },
-    "콜백 응답 (거부)": { "main": [[{ "node": "거부 안내 발송", "type": "main", "index": 0 }]] },
-    "API 퇴근 기록": { "main": [[{ "node": "퇴근 결과 포맷", "type": "main", "index": 0 }]] },
-    "퇴근 결과 포맷": { "main": [[{ "node": "퇴근 결과 발송", "type": "main", "index": 0 }]] },
-    "직원 조회": { "main": [[{ "node": "자유텍스트 분기", "type": "main", "index": 0 }]] },
+    "콜백 응답 (동의)": {
+      "main": [
+        [
+          {
+            "node": "API 동의 등록",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API 동의 등록": {
+      "main": [
+        [
+          {
+            "node": "API 출근 (동의 후)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API 출근 (동의 후)": {
+      "main": [
+        [
+          {
+            "node": "동의+출근 결과 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "동의+출근 결과 포맷": {
+      "main": [
+        [
+          {
+            "node": "동의+출근 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "콜백 응답 (거부)": {
+      "main": [
+        [
+          {
+            "node": "거부 안내 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API 퇴근 기록": {
+      "main": [
+        [
+          {
+            "node": "퇴근 결과 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "퇴근 결과 포맷": {
+      "main": [
+        [
+          {
+            "node": "퇴근 결과 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "직원 조회": {
+      "main": [
+        [
+          {
+            "node": "자유텍스트 분기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
     "자유텍스트 분기": {
       "main": [
-        [{ "node": "API 업무일지 (자동)", "type": "main", "index": 0 }],
-        [{ "node": "버튼 사용 안내", "type": "main", "index": 0 }]
+        [
+          {
+            "node": "API 업무일지 (자동)",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "버튼 사용 안내",
+            "type": "main",
+            "index": 0
+          }
+        ]
       ]
     },
-    "API 업무일지 (자동)": { "main": [[{ "node": "업무일지 결과 포맷", "type": "main", "index": 0 }]] },
-    "업무일지 결과 포맷": { "main": [[{ "node": "업무일지 결과 발송", "type": "main", "index": 0 }]] }
+    "API 업무일지 (자동)": {
+      "main": [
+        [
+          {
+            "node": "업무일지 결과 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "업무일지 결과 포맷": {
+      "main": [
+        [
+          {
+            "node": "업무일지 결과 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   }
 }

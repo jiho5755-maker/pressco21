@@ -1,18 +1,20 @@
 {
+  "id": "8ga7oJt1l5AyDLDX",
   "name": "[F21] Flora DM 게이트웨이",
+  "active": false,
   "nodes": [
     {
       "parameters": {
-        "updates": ["message"]
+        "inputSource": "passthrough"
       },
-      "type": "n8n-nodes-base.telegramTrigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
-      "position": [200, 300],
+      "position": [
+        200,
+        300
+      ],
       "id": "node-trigger",
-      "name": "텔레그램 DM 수신",
-      "credentials": {
-        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
-      }
+      "name": "텔레그램 DM 수신"
     },
     {
       "parameters": {
@@ -20,7 +22,10 @@
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [440, 300],
+      "position": [
+        440,
+        300
+      ],
       "id": "node-filter",
       "name": "DM 필터 (CEO만)"
     },
@@ -31,25 +36,57 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            { "name": "content-type", "value": "application/json" }
+            {
+              "name": "content-type",
+              "value": "application/json"
+            }
           ]
         },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ text: $json.text, chatId: $json.chatId }) }}",
-        "options": { "timeout": 30000 }
+        "options": {
+          "timeout": 30000
+        }
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [700, 300],
+      "position": [
+        700,
+        300
+      ],
       "id": "node-route",
       "name": "F20 라우터 호출",
       "continueOnFail": true
     }
   ],
   "connections": {
-    "텔레그램 DM 수신": { "main": [[{ "node": "DM 필터 (CEO만)", "type": "main", "index": 0 }]] },
-    "DM 필터 (CEO만)": { "main": [[{ "node": "F20 라우터 호출", "type": "main", "index": 0 }]] }
+    "텔레그램 DM 수신": {
+      "main": [
+        [
+          {
+            "node": "DM 필터 (CEO만)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "DM 필터 (CEO만)": {
+      "main": [
+        [
+          {
+            "node": "F20 라우터 호출",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
-  "settings": { "executionOrder": "v1" }
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  }
 }

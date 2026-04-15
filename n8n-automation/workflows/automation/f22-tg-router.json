@@ -1,0 +1,387 @@
+{
+  "id": "tARiQk2rRqr2B9R1",
+  "name": "[F22] TG-ROUTER (텔레그램 마스터 라우터)",
+  "active": false,
+  "nodes": [
+    {
+      "parameters": {
+        "updates": [
+          "message",
+          "callback_query"
+        ]
+      },
+      "type": "n8n-nodes-base.telegramTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        220,
+        500
+      ],
+      "id": "tg-trigger",
+      "name": "텔레그램 수신",
+      "webhookId": "f22-tg-router-webhook",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// [F22] TG-ROUTER 라우팅 판정 노드\n// 2026-04-15 v2: @봇이름 접미사 자동 제거 (자동완성 선택 시 /cmd@botname 패턴 지원)\n//\n// 입력: $input.first().json = 텔레그램 update 원본\n// 출력: 원본 update + 메타 필드 (_route, _userId, _chatId, _userName, _hint)\n\nconst KNOWN_USERS = {\n  '7713811206': { role: 'owner', name: '장지호 대표' },\n  '8606163783': { role: 'owner', name: '원장님 이진선' },\n  '8312726947': { role: 'staff', name: '이재혁 과장' }\n};\nconst OWNER_IDS = ['7713811206', '8606163783'];\nconst GOV_USER_WHITELIST = ['7713811206'];\n\nconst GOV_CMDS = ['/검색','/요약','/이벤트','/상태','/신청','/서류','/서식채움',\n                  '/search','/summary','/event','/status','/apply','/docs','/fill'];\nconst HR_CMDS = ['/시작','/start','/menu','/메뉴','/퇴근','/clockout',\n                 '/clockin_office','/clockin_remote','/clockin_field'];\nconst HR_BUTTONS = ['🏢 사업장 출근','🏠 재택 출근','📸 외근 출근','✅ 퇴근'];\n\n// \"/cmd@botname\" 같은 형식에서 @봇이름 제거하는 헬퍼\nfunction stripBotMention(word) {\n  return (word || '').split('@')[0];\n}\n\nconst update = $input.first().json || {};\n\nlet route = 'COLLECT';\nlet userId = '';\nlet chatId = '';\nlet userName = '';\nlet hint = '';\n\n// 1. callback_query\nif (update.callback_query) {\n  const cq = update.callback_query;\n  userId = String((cq.from && cq.from.id) || '');\n  chatId = String((cq.message && cq.message.chat && cq.message.chat.id) || userId);\n  userName = (cq.from && cq.from.first_name) || '';\n  const data = (cq.data || '').trim();\n\n  if (data.indexOf('fa001:') === 0) {\n    route = 'FA001B';\n    hint = 'FA-001b 강사 등업 콜백';\n  } else if (data.indexOf('hr:') === 0) {\n    route = 'HR';\n    hint = 'HR-001 동의/거부 콜백';\n  } else {\n    route = 'COLLECT';\n    hint = '알 수 없는 콜백: ' + data.slice(0, 30);\n  }\n}\n// 2. message\nelse if (update.message) {\n  const msg = update.message;\n  userId = String((msg.from && msg.from.id) || '');\n  chatId = String((msg.chat && msg.chat.id) || userId);\n  userName = (msg.from && msg.from.first_name) || '';\n  const text = (msg.text || '').trim();\n  const firstWordRaw = text.split(/\\s+/)[0] || '';\n  const firstWord = stripBotMention(firstWordRaw).toLowerCase();  // /cmd@botname → /cmd\n\n  if (HR_BUTTONS.indexOf(text) >= 0) {\n    route = 'HR';\n    hint = 'HR 버튼: ' + text;\n  } else if (HR_CMDS.some(function(c){ return firstWord === c.toLowerCase(); })) {\n    route = 'HR';\n    hint = 'HR 명령어: ' + firstWord;\n  } else if (GOV_CMDS.some(function(c){ return firstWord === c.toLowerCase(); })) {\n    if (GOV_USER_WHITELIST.indexOf(userId) >= 0) {\n      route = 'GOV';\n      hint = '정부지원 명령어: ' + firstWord;\n    } else {\n      route = 'COLLECT';\n      hint = '정부지원 명령어 미허용 사용자: ' + userId;\n    }\n  } else if (KNOWN_USERS[userId]) {\n    const user = KNOWN_USERS[userId];\n    if (user.role === 'owner') {\n      route = 'FLORA_DM';\n      hint = 'Flora DM: ' + user.name;\n    } else {\n      route = 'HR';\n      hint = 'HR 자유텍스트 (재택 업무일지 가능): ' + user.name;\n    }\n  } else {\n    route = 'COLLECT';\n    hint = '미등록 user_id: ' + userId;\n  }\n}\n// 3. 기타\nelse {\n  route = 'COLLECT';\n  hint = '지원 안 되는 update type';\n}\n\nreturn [{\n  json: Object.assign({}, update, {\n    _route: route,\n    _userId: userId,\n    _chatId: chatId,\n    _userName: userName,\n    _hint: hint\n  })\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        460,
+        500
+      ],
+      "id": "route-code",
+      "name": "라우팅 판정"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._route }}",
+                    "rightValue": "FA001B",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "FA-001b 강사등업"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._route }}",
+                    "rightValue": "HR",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "HR-001 출퇴근"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._route }}",
+                    "rightValue": "GOV",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "정부지원허브"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._route }}",
+                    "rightValue": "FLORA_DM",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Flora DM"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json._route }}",
+                    "rightValue": "COLLECT",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "미등록 Chat ID 수집"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "none"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        700,
+        500
+      ],
+      "id": "route-switch",
+      "name": "라우팅 분기"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "HQWiV2iza6GojSxs",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        200
+      ],
+      "id": "exec-fa001b",
+      "name": "실행: FA-001b"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "fJeSxztmYszX4Jxj",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        360
+      ],
+      "id": "exec-hr",
+      "name": "실행: HR-001"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "HxskyYvTbFvRzgaa",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        520
+      ],
+      "id": "exec-gov",
+      "name": "실행: 정부지원허브"
+    },
+    {
+      "parameters": {
+        "workflowId": {
+          "__rl": true,
+          "value": "8ga7oJt1l5AyDLDX",
+          "mode": "id"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.2,
+      "position": [
+        960,
+        680
+      ],
+      "id": "exec-flora-dm",
+      "name": "실행: Flora DM"
+    },
+    {
+      "parameters": {
+        "jsCode": "// [F22] 미등록 Chat ID 수집 + 알림 포맷\n// 2026-04-15\n// - 대표 알림 텍스트 + 미등록 사용자 응답 텍스트 준비\n// - 실제 전송은 다음 Telegram 노드에서 수행\n\nconst item = $input.first().json || {};\nconst userId = item._userId || '(unknown)';\nconst chatId = item._chatId || '';\nconst userName = item._userName || '(이름 없음)';\nconst hint = item._hint || '';\n\n// 대표에게 보낼 알림 (Chat ID 수집용)\nconst ownerAlertText = '🆕 [TG-ROUTER] 미등록 사용자 수신\\n\\n' +\n  '이름: ' + userName + '\\n' +\n  'user_id: ' + userId + '\\n' +\n  'chat_id: ' + chatId + '\\n' +\n  'hint: ' + hint + '\\n\\n' +\n  '등록하려면:\\n' +\n  '1. staff-profiles.md 업데이트\\n' +\n  '2. NocoDB/플로라 staff 테이블에 telegram_user_id 추가\\n' +\n  '3. f22-tg-router.json의 KNOWN_USERS에 항목 추가 후 재배포';\n\n// 미등록 사용자에게 보낼 응답\nconst userReplyText = '안녕하세요 ' + userName + '님 🌸\\n\\n' +\n  '이 봇은 프레스코21 업무용입니다. 아직 등록되지 않은 사용자로 확인됩니다.\\n\\n' +\n  '대표님께 본인의 텔레그램 ID를 전달해 주세요:\\n' +\n  '  user_id: ' + userId + '\\n\\n' +\n  '등록 완료 후 다시 메시지를 보내주세요. 감사합니다!';\n\nreturn [{\n  json: Object.assign({}, item, {\n    ownerAlertText: ownerAlertText,\n    userReplyText: userReplyText\n  })\n}];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        840
+      ],
+      "id": "collect-code",
+      "name": "미등록 사용자 처리"
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.ownerAlertText }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1220,
+        800
+      ],
+      "id": "collect-alert",
+      "name": "대표 알림",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('미등록 사용자 처리').first().json._chatId }}",
+        "text": "={{ $('미등록 사용자 처리').first().json.userReplyText }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1480,
+        800
+      ],
+      "id": "collect-reply",
+      "name": "사용자 응답",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "텔레그램 수신": {
+      "main": [
+        [
+          {
+            "node": "라우팅 판정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "라우팅 판정": {
+      "main": [
+        [
+          {
+            "node": "라우팅 분기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "라우팅 분기": {
+      "main": [
+        [
+          {
+            "node": "실행: FA-001b",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실행: HR-001",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실행: 정부지원허브",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "실행: Flora DM",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "미등록 사용자 처리",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "미등록 사용자 처리": {
+      "main": [
+        [
+          {
+            "node": "대표 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "대표 알림": {
+      "main": [
+        [
+          {
+            "node": "사용자 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

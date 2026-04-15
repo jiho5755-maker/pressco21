@@ -5,15 +5,16 @@
   "nodes": [
     {
       "parameters": {
-        "updates": ["callback_query"]
+        "inputSource": "passthrough"
       },
       "id": "fa001b-trigger",
       "name": "텔레그램 콜백 수신",
-      "type": "n8n-nodes-base.telegramTrigger",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
       "typeVersion": 1.1,
-      "position": [200, 300],
-      "webhookId": "fa001b-callback",
-      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
+      "position": [
+        200,
+        300
+      ]
     },
     {
       "parameters": {
@@ -24,19 +25,31 @@
       "name": "콜백 데이터 파싱",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [420, 300]
+      "position": [
+        420,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "boolean": [{"value1": "={{ $json.isValid }}", "value2": true, "operation": "equal"}]
+          "boolean": [
+            {
+              "value1": "={{ $json.isValid }}",
+              "value2": true,
+              "operation": "equal"
+            }
+          ]
         }
       },
       "id": "fa001b-check",
       "name": "유효한 콜백?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [640, 300]
+      "position": [
+        640,
+        300
+      ]
     },
     {
       "parameters": {
@@ -45,16 +58,34 @@
         "sendQuery": true,
         "queryParameters": {
           "parameters": [
-            {"name": "mode", "value": "search"},
-            {"name": "type", "value": "group"}
+            {
+              "name": "mode",
+              "value": "search"
+            },
+            {
+              "name": "type",
+              "value": "group"
+            }
           ]
         },
-        "options": {"response": {"response": {"responseFormat": "json"}}},
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        },
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {"name": "Shopkey", "value": "1fe4eece82d00e245aff322522fb3aec"},
-            {"name": "Licensekey", "value": "YWQ0ZTQwNWVhOGIzN2E3ZWVkZDdiMTIwOGZhNmQ3MDI="}
+            {
+              "name": "Shopkey",
+              "value": "1fe4eece82d00e245aff322522fb3aec"
+            },
+            {
+              "name": "Licensekey",
+              "value": "YWQ0ZTQwNWVhOGIzN2E3ZWVkZDdiMTIwOGZhNmQ3MDI="
+            }
           ]
         }
       },
@@ -62,7 +93,10 @@
       "name": "강사 그룹코드 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [860, 300]
+      "position": [
+        860,
+        300
+      ]
     },
     {
       "parameters": {
@@ -72,7 +106,10 @@
       "name": "그룹코드 파싱",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1080, 300]
+      "position": [
+        1080,
+        300
+      ]
     },
     {
       "parameters": {
@@ -84,18 +121,36 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {"name": "Shopkey", "value": "1fe4eece82d00e245aff322522fb3aec"},
-            {"name": "Licensekey", "value": "YWQ0ZTQwNWVhOGIzN2E3ZWVkZDdiMTIwOGZhNmQ3MDI="},
-            {"name": "Content-Type", "value": "application/x-www-form-urlencoded"}
+            {
+              "name": "Shopkey",
+              "value": "1fe4eece82d00e245aff322522fb3aec"
+            },
+            {
+              "name": "Licensekey",
+              "value": "YWQ0ZTQwNWVhOGIzN2E3ZWVkZDdiMTIwOGZhNmQ3MDI="
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/x-www-form-urlencoded"
+            }
           ]
         },
-        "options": {"response": {"response": {"responseFormat": "json"}}}
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
       },
       "id": "fa001b-upgrade",
       "name": "메이크샵 그룹 변경",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1300, 300]
+      "position": [
+        1300,
+        300
+      ]
     },
     {
       "parameters": {
@@ -106,19 +161,31 @@
       "name": "변경 결과 파싱",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1520, 300]
+      "position": [
+        1520,
+        300
+      ]
     },
     {
       "parameters": {
         "conditions": {
-          "boolean": [{"value1": "={{ $json.success }}", "value2": true, "operation": "equal"}]
+          "boolean": [
+            {
+              "value1": "={{ $json.success }}",
+              "value2": true,
+              "operation": "equal"
+            }
+          ]
         }
       },
       "id": "fa001b-ok",
       "name": "성공?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 1,
-      "position": [1740, 300]
+      "position": [
+        1740,
+        300
+      ]
     },
     {
       "parameters": {
@@ -130,8 +197,14 @@
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {"name": "xc-token", "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"},
-            {"name": "Content-Type", "value": "application/json"}
+            {
+              "name": "xc-token",
+              "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -140,19 +213,25 @@
       "name": "NocoDB 완료 기록",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1960, 200]
+      "position": [
+        1960,
+        200
+      ]
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/editMessageText",
+        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/editMessageText",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ chat_id: $('변경 결과 파싱').item.json.chatId, message_id: $('변경 결과 파싱').item.json.messageId, text: '\\u2705 텔레그램 버튼으로 등업 완료\\n\\n회원 ID: ' + $('변경 결과 파싱').item.json.makeshopUserId + '\\n처리자: ' + $('변경 결과 파싱').item.json.clickerName + '\\n시각: ' + new Date(new Date().getTime() + 9*60*60*1000).toISOString().slice(0,19).replace('T',' ') }) }}",
         "sendHeaders": true,
         "headerParameters": {
           "parameters": [
-            {"name": "Content-Type", "value": "application/json"}
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
           ]
         },
         "options": {}
@@ -161,19 +240,32 @@
       "name": "원본 메시지 수정",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2180, 200],
-      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
+      "position": [
+        2180,
+        200
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
+        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/answerCallbackQuery",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ callback_query_id: $('변경 결과 파싱').item.json.callbackQueryId, text: '\\u2705 등업 완료!' }) }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{"name": "Content-Type", "value": "application/json"}]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "options": {}
       },
@@ -181,19 +273,32 @@
       "name": "콜백 응답 (성공)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1960, 100],
-      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
+      "position": [
+        1960,
+        100
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
+        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/answerCallbackQuery",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ callback_query_id: $('변경 결과 파싱').item.json.callbackQueryId, text: '\\u274c 등업 실패! 관리자에서 직접 처리하세요.', show_alert: true }) }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{"name": "Content-Type", "value": "application/json"}]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "options": {}
       },
@@ -201,19 +306,32 @@
       "name": "콜백 응답 (실패)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1960, 400],
-      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
+      "position": [
+        1960,
+        400
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.token }}/answerCallbackQuery",
+        "url": "https://api.telegram.org/bot{{ $credentials.telegramApi.accessToken }}/answerCallbackQuery",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ callback_query_id: $('콜백 데이터 파싱').item.json.callbackQueryId, text: '\\u26a0\\ufe0f 유효하지 않은 콜백' }) }}",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{"name": "Content-Type", "value": "application/json"}]
+          "parameters": [
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
         },
         "options": {}
       },
@@ -221,22 +339,141 @@
       "name": "콜백 응답 (무효)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [860, 500],
-      "credentials": {"telegramApi": {"id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇"}}
+      "position": [
+        860,
+        500
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     }
   ],
   "connections": {
-    "텔레그램 콜백 수신": {"main": [[{"node": "콜백 데이터 파싱", "type": "main", "index": 0}]]},
-    "콜백 데이터 파싱": {"main": [[{"node": "유효한 콜백?", "type": "main", "index": 0}]]},
-    "유효한 콜백?": {"main": [[{"node": "강사 그룹코드 조회", "type": "main", "index": 0}], [{"node": "콜백 응답 (무효)", "type": "main", "index": 0}]]},
-    "강사 그룹코드 조회": {"main": [[{"node": "그룹코드 파싱", "type": "main", "index": 0}]]},
-    "그룹코드 파싱": {"main": [[{"node": "메이크샵 그룹 변경", "type": "main", "index": 0}]]},
-    "메이크샵 그룹 변경": {"main": [[{"node": "변경 결과 파싱", "type": "main", "index": 0}]]},
-    "변경 결과 파싱": {"main": [[{"node": "성공?", "type": "main", "index": 0}]]},
-    "성공?": {"main": [[{"node": "콜백 응답 (성공)", "type": "main", "index": 0}, {"node": "NocoDB 완료 기록", "type": "main", "index": 0}], [{"node": "콜백 응답 (실패)", "type": "main", "index": 0}]]},
-    "NocoDB 완료 기록": {"main": [[{"node": "원본 메시지 수정", "type": "main", "index": 0}]]}
+    "텔레그램 콜백 수신": {
+      "main": [
+        [
+          {
+            "node": "콜백 데이터 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "콜백 데이터 파싱": {
+      "main": [
+        [
+          {
+            "node": "유효한 콜백?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "유효한 콜백?": {
+      "main": [
+        [
+          {
+            "node": "강사 그룹코드 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "콜백 응답 (무효)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "강사 그룹코드 조회": {
+      "main": [
+        [
+          {
+            "node": "그룹코드 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "그룹코드 파싱": {
+      "main": [
+        [
+          {
+            "node": "메이크샵 그룹 변경",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메이크샵 그룹 변경": {
+      "main": [
+        [
+          {
+            "node": "변경 결과 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "변경 결과 파싱": {
+      "main": [
+        [
+          {
+            "node": "성공?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "성공?": {
+      "main": [
+        [
+          {
+            "node": "콜백 응답 (성공)",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "NocoDB 완료 기록",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "콜백 응답 (실패)",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 완료 기록": {
+      "main": [
+        [
+          {
+            "node": "원본 메시지 수정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
   },
   "settings": {
-    "executionOrder": "v1"
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
   }
 }

@@ -49,12 +49,6 @@ interface SettingsData extends CompanyInfo {
 
 const SETTINGS_KEY = 'pressco21-crm-settings'
 const LEGACY_KEY = 'pressco21-crm-v2'
-type SyncStatus = 'idle' | 'loading' | 'saving' | 'saved' | 'error'
-type ImageField = 'logo_url' | 'stamp_url'
-
-function getImageFieldLabel(field: ImageField): string {
-  return field === 'logo_url' ? '로고' : '도장'
-}
 
 function loadSettings(): SettingsData {
   // 양쪽 키 병합: 어느 쪽에 데이터가 있든 모두 반영 (settings 키 우선)
@@ -62,15 +56,11 @@ function loadSettings(): SettingsData {
   try {
     const legacy = localStorage.getItem(LEGACY_KEY)
     if (legacy) merged = { ...merged, ...JSON.parse(legacy) }
-  } catch (error) {
-    console.warn('[Settings] 기존 로컬 설정을 읽지 못했습니다', error)
-  }
+  } catch {}
   try {
     const settings = localStorage.getItem(SETTINGS_KEY)
     if (settings) merged = { ...merged, ...JSON.parse(settings) }
-  } catch (error) {
-    console.warn('[Settings] 로컬 설정을 읽지 못했습니다', error)
-  }
+  } catch {}
   return merged as SettingsData
 }
 
@@ -148,26 +138,11 @@ function SettingsSection({
   )
 }
 
-function renderSyncIcon(syncStatus: SyncStatus) {
-  switch (syncStatus) {
-    case 'loading':
-      return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-    case 'saving':
-      return <Loader2 className="h-4 w-4 animate-spin text-[#7d9675]" />
-    case 'saved':
-      return <Cloud className="h-4 w-4 text-[#7d9675]" />
-    case 'error':
-      return <CloudOff className="h-4 w-4 text-red-500" />
-    default:
-      return <CloudOff className="h-4 w-4 text-muted-foreground" />
-  }
-}
-
 export function Settings() {
   const navigate = useNavigate()
   const [data, setData] = useState<SettingsData>(loadSettings)
   const [serverRowId, setServerRowId] = useState<number | null>(null)
-  const [syncStatus, setSyncStatus] = useState<SyncStatus>('loading')
+  const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('idle')
 
   // 이미지 프리뷰 state
   const [logoPreview, setLogoPreview] = useState<string>('')
@@ -179,6 +154,7 @@ export function Settings() {
 
   // 앱 시작 시 NocoDB에서 설정 로드
   useEffect(() => {
+    setSyncStatus('loading')
     getSettings().then((server) => {
       if (server) {
         setServerRowId(server.Id ?? null)
@@ -241,69 +217,22 @@ export function Settings() {
     })
   }
 
-  function applyImageDataUrl(field: ImageField, dataUrl: string, sourceLabel = '이미지') {
-    setData((prev) => {
-      const updated = { ...prev, [field]: dataUrl }
-      saveSettingsLocal(updated)
-      debounceSave(updated)
-      return updated
-    })
-    if (field === 'logo_url') setLogoPreview(dataUrl)
-    else setStampPreview(dataUrl)
-    toast.success(`${getImageFieldLabel(field)} ${sourceLabel} 반영되었습니다`)
-  }
-
-  function applyImageFile(field: ImageField, file: File, sourceLabel = '이미지') {
-    if (!file.type.startsWith('image/')) {
-      toast.error('이미지 파일만 사용할 수 있습니다')
-      return
-    }
+  function handleImageUpload(field: 'logo_url' | 'stamp_url', e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0]
+    if (!file) return
     const reader = new FileReader()
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string
-      applyImageDataUrl(field, dataUrl, sourceLabel)
+      setData((prev) => {
+        const updated = { ...prev, [field]: dataUrl }
+        saveSettingsLocal(updated)
+        debounceSave(updated)
+        return updated
+      })
+      if (field === 'logo_url') setLogoPreview(dataUrl)
+      else setStampPreview(dataUrl)
     }
-    reader.onerror = () => toast.error('이미지를 읽지 못했습니다')
     reader.readAsDataURL(file)
-  }
-
-  function handleImageUpload(field: ImageField, e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    if (!file) return
-    applyImageFile(field, file, '파일')
-    e.target.value = ''
-  }
-
-  function handleImagePaste(field: ImageField, e: React.ClipboardEvent<HTMLDivElement>) {
-    const file = Array.from(e.clipboardData.items)
-      .find((item) => item.type.startsWith('image/'))
-      ?.getAsFile()
-    if (!file) return
-    e.preventDefault()
-    applyImageFile(field, file, '붙여넣기')
-  }
-
-  async function handleClipboardButton(field: ImageField) {
-    if (!navigator.clipboard || typeof navigator.clipboard.read !== 'function') {
-      toast.error('이 브라우저는 버튼으로 클립보드 이미지를 읽을 수 없습니다. 이미지 영역을 클릭한 뒤 Ctrl/Cmd+V를 눌러주세요.')
-      return
-    }
-
-    try {
-      const items = await navigator.clipboard.read()
-      for (const item of items) {
-        const imageType = item.types.find((type) => type.startsWith('image/'))
-        if (!imageType) continue
-        const blob = await item.getType(imageType)
-        const extension = imageType.split('/')[1] || 'png'
-        const file = new File([blob], `clipboard-${getImageFieldLabel(field)}.${extension}`, { type: imageType })
-        applyImageFile(field, file, '클립보드 이미지')
-        return
-      }
-      toast.error('클립보드에서 이미지를 찾지 못했습니다')
-    } catch {
-      toast.error('클립보드 접근이 차단되었습니다. 이미지 영역을 클릭한 뒤 Ctrl/Cmd+V를 눌러주세요.')
-    }
   }
 
   // "저장" 버튼: 즉시 flush
@@ -327,7 +256,23 @@ export function Settings() {
     }
   }
 
-  const syncLabel: Record<SyncStatus, string> = {
+  // 동기화 상태 아이콘
+  const SyncIcon = () => {
+    switch (syncStatus) {
+      case 'loading':
+        return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+      case 'saving':
+        return <Loader2 className="h-4 w-4 animate-spin text-[#7d9675]" />
+      case 'saved':
+        return <Cloud className="h-4 w-4 text-[#7d9675]" />
+      case 'error':
+        return <CloudOff className="h-4 w-4 text-red-500" />
+      default:
+        return <CloudOff className="h-4 w-4 text-muted-foreground" />
+    }
+  }
+
+  const syncLabel: Record<typeof syncStatus, string> = {
     idle: '오프라인',
     loading: '불러오는 중...',
     saving: '저장 중...',
@@ -360,7 +305,7 @@ export function Settings() {
           <div className="mt-1 flex items-center gap-2">
             <p className="text-sm text-muted-foreground">거래명세표 및 시스템 환경을 설정합니다</p>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              {renderSyncIcon(syncStatus)}
+              <SyncIcon />
               {syncLabel[syncStatus]}
             </span>
           </div>
@@ -388,7 +333,7 @@ export function Settings() {
         <div className="rounded-xl border bg-white p-4 shadow-sm">
           <p className="text-xs text-muted-foreground">서버 동기화 상태</p>
           <div className="mt-2 flex items-center gap-2">
-            {renderSyncIcon(syncStatus)}
+            <SyncIcon />
             <p className="text-sm font-semibold">{syncLabel[syncStatus]}</p>
           </div>
         </div>
@@ -469,11 +414,7 @@ export function Settings() {
         <SettingsSection id="print-settings" title="인쇄 설정" description="로고, 도장, 머릿글, 꼬릿글을 인쇄물에 반영합니다.">
           <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
             <Field label="로고 이미지" hint="좌상단에 표시됩니다">
-              <div
-                className="space-y-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 focus-within:border-[#7d9675]"
-                tabIndex={0}
-                onPaste={(e) => handleImagePaste('logo_url', e)}
-              >
+              <div className="space-y-2">
                 {logoPreview && (
                   <img
                     src={logoPreview}
@@ -482,28 +423,16 @@ export function Settings() {
                     onError={() => setLogoPreview('')}
                   />
                 )}
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload('logo_url', e)}
-                    className="text-xs"
-                  />
-                  <Button type="button" size="sm" variant="outline" onClick={() => void handleClipboardButton('logo_url')}>
-                    클립보드 붙여넣기
-                  </Button>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  이미지를 복사한 뒤 이 영역을 클릭하고 Ctrl/Cmd+V를 눌러도 바로 반영됩니다.
-                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload('logo_url', e)}
+                  className="text-xs"
+                />
               </div>
             </Field>
             <Field label="도장 이미지" hint="우하단에 원형으로 표시됩니다">
-              <div
-                className="space-y-2 rounded-lg border border-dashed border-slate-200 bg-slate-50/60 p-3 focus-within:border-[#7d9675]"
-                tabIndex={0}
-                onPaste={(e) => handleImagePaste('stamp_url', e)}
-              >
+              <div className="space-y-2">
                 {stampPreview && (
                   <img
                     src={stampPreview}
@@ -512,20 +441,12 @@ export function Settings() {
                     onError={() => setStampPreview('')}
                   />
                 )}
-                <div className="flex flex-wrap items-center gap-2">
-                  <input
-                    type="file"
-                    accept="image/*"
-                    onChange={(e) => handleImageUpload('stamp_url', e)}
-                    className="text-xs"
-                  />
-                  <Button type="button" size="sm" variant="outline" onClick={() => void handleClipboardButton('stamp_url')}>
-                    클립보드 붙여넣기
-                  </Button>
-                </div>
-                <p className="text-[11px] text-muted-foreground">
-                  이미지를 복사한 뒤 이 영역을 클릭하고 Ctrl/Cmd+V를 눌러도 바로 반영됩니다.
-                </p>
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => handleImageUpload('stamp_url', e)}
+                  className="text-xs"
+                />
               </div>
             </Field>
             <Field label="머릿글">

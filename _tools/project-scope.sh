@@ -21,6 +21,7 @@ p21_normalize_project() {
     mobile|mobile-app) printf 'mobile-app\n' ;;
     homepage|makeshop|skin) printf 'homepage\n' ;;
     workspace|governance|tools|repo) printf 'workspace\n' ;;
+    team|ai-team|agents|boardroom) printf 'team\n' ;;
     *) return 1 ;;
   esac
 }
@@ -35,6 +36,7 @@ p21_project_from_branch() {
     work/mobile-app/*) printf 'mobile-app\n' ;;
     work/homepage/*) printf 'homepage\n' ;;
     work/workspace/*) printf 'workspace\n' ;;
+    work/team/*) printf 'team\n' ;;
     *) return 1 ;;
   esac
 }
@@ -48,6 +50,7 @@ p21_branch_project_name() {
     mobile-app) printf 'mobile-app\n' ;;
     homepage) printf 'homepage\n' ;;
     workspace) printf 'workspace\n' ;;
+    team) printf 'team\n' ;;
     *) return 1 ;;
   esac
 }
@@ -61,6 +64,7 @@ p21_slot_prefix() {
     mobile-app) printf 'mobile-app\n' ;;
     homepage) printf 'homepage\n' ;;
     workspace) printf 'workspace\n' ;;
+    team) printf 'team\n' ;;
     *) return 1 ;;
   esac
 }
@@ -87,6 +91,9 @@ p21_allowed_paths_print() {
       ;;
     workspace)
       printf '%s\n' 'AGENTS.md' '*/AGENTS.md' 'CLAUDE.md' 'README.md' 'OPS_STATE.md' 'HARNESS.md' 'ROADMAP.md' '.gitignore' '.codex/' '.claude/' '_tools/' 'docs/' 'archive/' 'tools/' 'AI_SYNC.md'
+      ;;
+    team)
+      printf '%s\n' 'team/' 'company-knowledge/직원/' 'docs/openmarket-ops/' 'docs/prd-templates/' 'AI_SYNC.md'
       ;;
     *) return 1 ;;
   esac
@@ -117,6 +124,9 @@ p21_sparse_paths_print() {
     workspace)
       printf '%s\n' '/README.md' '/OPS_STATE.md' '/HARNESS.md' '/ROADMAP.md' '/.codex/' '/.claude/' '/docs/' '/archive/' '/tools/'
       ;;
+    team)
+      printf '%s\n' '/team/' '/company-knowledge/직원/' '/docs/openmarket-ops/' '/docs/prd-templates/' '/AI_SYNC.md'
+      ;;
     *) return 1 ;;
   esac
 }
@@ -146,6 +156,9 @@ p21_is_path_allowed() {
       ;;
     workspace)
       case "$path" in AGENTS.md|*/AGENTS.md|CLAUDE.md|README.md|OPS_STATE.md|HARNESS.md|ROADMAP.md|.gitignore|AI_SYNC.md|.codex|.codex/*|.claude|.claude/*|_tools|_tools/*|docs|docs/*|archive|archive/*|tools|tools/*) return 0 ;; esac
+      ;;
+    team)
+      case "$path" in team|team/*|company-knowledge/직원|company-knowledge/직원/*|docs/openmarket-ops|docs/openmarket-ops/*|docs/prd-templates|docs/prd-templates/*|AI_SYNC.md) return 0 ;; esac
       ;;
   esac
 

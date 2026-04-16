@@ -1581,38 +1581,39 @@ export function InvoiceDialog({
               />
             </div>
             {selectedCustomer && (
-              <div className="md:col-span-2">
-                <div className="flex items-center justify-between gap-2">
-                  <Label className="text-xs">예치금 사용</Label>
-                  {maxDepositApplicable > 0 && (
-                    <button
-                      type="button"
-                      className="text-[11px] font-medium text-[#3d6b4a] hover:underline"
-                      onClick={() => {
-                        setDepositUseAmount(maxDepositApplicable)
-                        setIsDirty(true)
-                      }}
-                    >
-                      전액 차감
-                    </button>
-                  )}
+              <div className="md:col-span-3">
+                <Label className="text-xs">예치금 사용</Label>
+                <div className="mt-1 flex items-center gap-2">
+                  <Input
+                    type="number"
+                    min={0}
+                    max={maxDepositApplicable}
+                    value={depositUseAmount || ''}
+                    onChange={(e) => {
+                      const nextValue = sanitizeAmount(e.target.value)
+                      setDepositUseAmount(Math.min(nextValue, maxDepositApplicable))
+                      setIsDirty(true)
+                    }}
+                    placeholder="0"
+                    className="min-w-0 flex-1"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="h-10 shrink-0 px-3 text-xs"
+                    disabled={maxDepositApplicable <= 0}
+                    onClick={() => {
+                      setDepositUseAmount(maxDepositApplicable)
+                      setIsDirty(true)
+                    }}
+                  >
+                    전액
+                  </Button>
                 </div>
-                <Input
-                  type="number"
-                  min={0}
-                  max={maxDepositApplicable}
-                  value={depositUseAmount || ''}
-                  onChange={(e) => {
-                    const nextValue = sanitizeAmount(e.target.value)
-                    setDepositUseAmount(Math.min(nextValue, maxDepositApplicable))
-                    setIsDirty(true)
-                  }}
-                  placeholder="0"
-                  className="mt-1"
-                />
               </div>
             )}
-            <div className={selectedCustomer ? 'md:col-span-6' : ''}>
+            <div className={selectedCustomer ? 'md:col-span-5' : ''}>
               <Label className="text-xs">출력 비고</Label>
               <Textarea
                 value={getDisplayMemo(form.memo as string | undefined)}

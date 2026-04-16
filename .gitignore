@@ -35,6 +35,16 @@ test-results/
 **/test-results/
 output/
 
+# 로컬 정리/분석 산출물
+tmp/
+reports/
+tools/product_analysis/
+tools/product_analysis_api/
+tools/stock_audit/
+tools/stock_cleanup/*.csv
+tools/openmarket/*_products.json
+tools/openmarket/*_results.json
+
 # 루트 임시 스크린샷
 *.png
 

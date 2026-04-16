@@ -22,9 +22,9 @@
 
 - Current Owner: IDLE
 - Mode: —
-- Started At: —
+- Started At: 2026-04-16 13:20 KST
 - Branch: main
-- Working Scope: —
+- Working Scope: completed workspace/pressco21 cleanup classification, ignore policy, and handoff docs
 - Active Subdirectory: —
 
 ## Next Session Entry Point (2026-04-15 체크포인트)
@@ -41,6 +41,22 @@
 ## Last Changes
 
 > 전체 이력: `archive/ai-sync-history/`
+
+- 2026-04-16 [workspace/pressco21 정리 기준 수립] (codex)
+  - 정리 전 보존 지점 생성:
+    - `output/codex-handoffs/20260416-131941-branchpoint-before-workspace-cleanup-20260416.md`
+    - `output/codex-backups/20260416-131941-before-workspace-cleanup-20260416`
+  - `docs/workspace-cleanup/` 추가:
+    - worktree 운영 기준
+    - n8n-main 이전 감사 메모
+    - 현재 dirty state 분류 기준
+  - `.gitignore` 보강:
+    - `tmp/`, `reports/`, 로컬 분석 산출물, 생성 JSON/CSV 제외
+  - workspace 루트 loose 파일 정리:
+    - 스크린샷과 직원 가이드를 `/Users/jangjiho/workspace/archive/workspace-root-20260416/` 아래로 이동
+    - `pressco21-worktrees/README.md`, `tools/README.md` 추가
+  - `n8n-main`은 아직 Desktop의 read-only reference library로 유지하기로 기록
+  - 검증: `jq empty`는 이전 legacy n8n archive 작업에서 통과, 이번 작업은 문서/분류/파일 이동 중심
 
 - 2026-04-15 [CRM 1차 개발 완료 기록 정리] (codex)
   - `offline-crm-v2/docs/CRM-v1-completion-note-2026-04-15.md` 추가

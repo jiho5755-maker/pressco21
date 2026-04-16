@@ -67,4 +67,4 @@ $git_diff_stat
 EOF
 
 printf 'Session log created: %s\n' "$(codex_repo_rel "$session_file")"
-printf 'Next: update AI_SYNC.md lock and start the first checkpoint before deploy.\n'
+printf 'Next: work only inside this project worktree and use pressco21-check before commit.\n'

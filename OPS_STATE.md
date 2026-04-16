@@ -6,14 +6,14 @@
 
 - 여기는 `지속되는 운영 사실`만 적는다.
 - 세션 중간 판단이나 임시 실험은 `output/codex-sessions/`에 남긴다.
-- 사람/에이전트 간 충돌 상태는 `AI_SYNC.md`에서 본다.
+- 사람/에이전트 간 충돌 방지는 프로젝트별 worktree/branch와 Git hook scope guard로 처리한다.
 - 바뀌면 위험한 경로, 인증 방식, 배포 기준, 검증 포인트만 기록한다.
 
 ## Memory Layers
 
-1. `AI_SYNC.md`
-   - 지금 누가 어디를 만지는지
-   - 현재 충돌 상태와 handoff
+1. Git worktree/branch + `_tools/pressco21-check.sh`
+   - 지금 어떤 프로젝트 범위에서 작업하는지
+   - 범위 밖 파일 커밋 차단
 2. `output/codex-sessions/*.md`
    - 이번 세션의 탐색, 체크포인트, 백업, 커밋, 푸시 기록
 3. `OPS_STATE.md`
@@ -77,13 +77,13 @@
 
 ## Codex Session Routine
 
-- Start with `AI_SYNC.md` lock, then create a session log.
+- Start in a project worktree created by `_tools/pressco21-task.sh`, then create a session log.
 - Capture checkpoints before risky edits or deploy.
 - Back up only the current scope in a dirty repo.
 - Commit only selected paths at a stable point.
 - Push only when the branch state is understood.
 - For chat-switch handoff and resume, prefer `_tools/codex-update.sh`, `_tools/codex-branchpoint.sh`, and `_tools/codex-resume.sh` over ad-hoc manual notes.
-- On the local zsh shell, `_tools/codex-shortcuts.zsh` exposes `save`, `branch`, and `resume` as the default human-facing wrappers for that preserve routine.
+- On the local zsh shell, `_tools/codex-shortcuts.zsh` exposes `task`, `check`, `save`, `branch`, and `resume` wrappers.
 - In Codex sessions opened inside `pressco21`, project prompt commands live under `.codex/prompts/` and are invoked as `/prompts:save`, `/prompts:branch`, and `/prompts:resume`.
 - The same preserve prompts are mirrored into `~/.codex/prompts/` for global visibility, but they only execute in repos that actually contain the preserve helpers.
 

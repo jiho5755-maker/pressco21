@@ -2,6 +2,15 @@
 # pre-commit hook: 메이크샵 ${var} 이스케이프 검증 + CSS 전역 셀렉터 경고
 # 설치: bash _tools/install-hooks.sh
 
+
+# 프로젝트별 worktree/branch scope guard
+HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
+if [ -x "$HOOK_DIR/../scope-guard.sh" ]; then
+  bash "$HOOK_DIR/../scope-guard.sh"
+elif [ -x "$HOOK_DIR/scope-guard.sh" ]; then
+  bash "$HOOK_DIR/scope-guard.sh"
+fi
+
 # 메이크샵 경로 패턴
 MAKESHOP_PATHS="makeshop-skin/|메인페이지/|파트너클래스/|간편 구매/|브랜드스토리/"
 

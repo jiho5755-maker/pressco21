@@ -64,19 +64,13 @@ fi
 
 branch="$(codex_git_branch)"
 head_commit="$(codex_git_head_short)"
-ai_owner="$(codex_ai_sync_field "Current Owner")"
-ai_mode="$(codex_ai_sync_field "Mode")"
-ai_scope="$(codex_ai_sync_field "Working Scope")"
-ai_subdirectory="$(codex_ai_sync_field "Active Subdirectory")"
+branch_scope="$(codex_branch_scope)"
 omx_status="$(codex_omx_status)"
 
 printf '== Codex Resume ==\n'
 printf 'Branch: %s\n' "$branch"
 printf 'Head Commit: %s\n' "$head_commit"
-printf 'AI_SYNC Owner: %s\n' "$ai_owner"
-printf 'AI_SYNC Mode: %s\n' "$ai_mode"
-printf 'AI_SYNC Scope: %s\n' "$ai_scope"
-printf 'AI_SYNC Subdirectory: %s\n' "$ai_subdirectory"
+printf 'Branch Scope: %s\n' "$branch_scope"
 printf 'OMX Status: %s\n' "$omx_status"
 
 if [ -n "$session_file" ]; then
@@ -102,5 +96,5 @@ if [ -n "$handoff_file" ]; then
 else
   printf 'Latest Handoff: (none)\n'
   printf '\nSuggested Prompt\n'
-  printf '  이전 Codex 세션을 이어가자. 최신 session log와 AI_SYNC 상태부터 확인하고 이어서 진행해줘.\n'
+  printf '  이전 Codex 세션을 이어가자. 최신 session log와 현재 branch/worktree scope부터 확인하고 이어서 진행해줘.\n'
 fi

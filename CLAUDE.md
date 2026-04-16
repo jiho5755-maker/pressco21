@@ -1,14 +1,29 @@
 <!-- HARNESS-META: v4.0 | 2026-04-07 | Claude Code -->
 # PRESSCO21 프로젝트 CLAUDE 지침
 
-## AI handoff first
+## Worktree first
 
-이 저장소와 하위 폴더에서 작업을 시작하기 전에 반드시 루트의 `AI_SYNC.md`와 `git status --short`를 먼저 확인하세요.
+`AI_SYNC.md`는 2026-04-16부터 운영 lock 파일로 사용하지 않습니다. 과거 기록은
+`archive/ai-sync-history/AI_SYNC-retired-2026-04-16.md`에 보존되어 있습니다.
 
-- `AI_SYNC.md`의 `Current Owner`가 다른 에이전트이고 `Mode`가 `WRITE`면 파일 수정 금지
-- 첫 수정 전에 `AI_SYNC.md`의 `Session Lock`과 `Files In Progress` 갱신
-- 작업 종료 전 `Last Changes`와 `Next Step` 갱신
-- `git commit`, 브랜치 변경, 의존성 설치, lockfile 수정, dev server 재시작은 기록 후 한 번에 한 에이전트만 수행
+이 저장소는 여러 프로젝트가 한 Git 저장소에 공존하므로 Claude Code 작업도 반드시
+**프로젝트별 worktree + 프로젝트별 branch**에서 진행하세요.
+
+- 루트 main worktree에서 직접 기능 개발/수정 금지
+- 작업 시작은 `bash _tools/pressco21-task.sh <project> <task>` 사용
+- 생성된 worktree 폴더를 Claude Code/Cursor에서 열고 작업
+- 같은 worktree에서는 WRITE AI를 한 번에 하나만 사용
+- 다른 AI가 같은 worktree에서 WRITE 중이면 Claude Code는 리뷰/검증만 수행
+- 작업 상태 확인은 `bash _tools/pressco21-check.sh` 사용
+- 커밋 전 Git hook이 branch별 허용 범위 밖 파일을 차단함
+
+예시:
+
+```bash
+cd /Users/jangjiho/workspace/pressco21
+bash _tools/pressco21-task.sh crm invoice-fix
+cd /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-invoice-fix
+```
 
 ## 파트너클래스 공용 기준
 
@@ -34,17 +49,16 @@
 - **모드 B (독립)**: 가벼운 프로젝트는 Codex가 기획~배포까지 독립 수행
 
 ### Claude Code 작업 지침
-- **작업 시작 전**: `AI_SYNC.md`에서 Codex가 WRITE 모드인지 확인. 같은 서브디렉토리면 수정 금지
-- **작업 완료 후**: `AI_SYNC.md` Session Lock을 IDLE로 돌리고 Last Changes/Next Step 갱신
-- **Codex에 위임할 태스크**: AI_SYNC.md Next Step에 prefix로 기재:
-  - `[CODEX]` — 보조 작업 (테스트, 리팩토링 등)
-  - `[CODEX-LEAD]` — 독립 프로젝트 (기획~배포 위임)
+- **작업 시작 전**: 프로젝트별 worktree를 생성하거나 기존 작업 worktree를 사용
+- **Codex와 병행**: 서로 다른 worktree면 동시 WRITE 가능, 같은 worktree면 WRITE AI 1명 원칙
+- **Codex에 위임할 태스크**: 같은 worktree에서는 테스트/리뷰/검증처럼 역할을 분리
 - **Codex 설정 파일**: `AGENTS.md` (루트 + 서브디렉토리), `.codex/config.toml`
-- **서브디렉토리 격리**: 서로 다른 서브디렉토리면 동시 WRITE 가능
+- **상태 확인**: `bash _tools/pressco21-check.sh`
 
 ### 브랜치 관리
 
-모든 작업은 main 커밋 기본. 브랜치는 실험용만. 미머지 브랜치는 AI_SYNC.md에 기록.
+main은 최종 통합 기준선입니다. 기능 개발은 `work/<project>/<task>` 브랜치와 worktree에서 진행하고,
+검증이 끝난 브랜치만 main으로 merge합니다.
 
 ## 메이크샵 스킨 정본 규칙 (2026-04-02~)
 

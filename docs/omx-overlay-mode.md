@@ -4,7 +4,7 @@ This workspace already has a working Codex baseline.
 
 - Global Codex config lives in `~/.codex/`
 - Project rules live in `AGENTS.md`
-- Session discipline lives in `AI_SYNC.md` and `_tools/codex-*.sh`
+- Session discipline lives in project worktrees, branch scope guards, and `_tools/codex-*.sh`
 
 The goal of overlay mode is simple:
 
@@ -120,13 +120,13 @@ node bin/omx.js team 3:executor "refactor openclaw notification flow and verify 
 
 1. Do not run `omx setup` in `pressco21/` while the current custom `AGENTS.md` is the source of truth.
 2. Keep `Desktop/n8n-main` read-only. Use it as a reference library only.
-3. Start the normal `AI_SYNC.md` lock before any repo edits, even when OMX is the launcher.
+3. Start from a project worktree created by `_tools/pressco21-task.sh`, even when OMX is the launcher.
 4. Treat OMX as an accelerator, not as a replacement for the current path-scoped commit discipline.
 
 ## Best Combined Routine
 
-1. Lock `AI_SYNC.md`
-2. Run `bash pressco21/_tools/codex-start.sh "<goal>" "<scope>"`
+1. Create/open the proper project worktree
+2. Run `bash _tools/pressco21-check.sh` and then `bash pressco21/_tools/codex-start.sh "<goal>" "<scope>"`
 3. If the task is narrow, stay in plain Codex
 4. If the task needs role splitting, switch to `bash pressco21/_tools/omx-run.sh team ...`
 5. Return to the existing `codex-preflight`, `codex-commit`, and `codex-finish` helpers for close-out

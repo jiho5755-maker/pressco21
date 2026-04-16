@@ -30,8 +30,8 @@ Claude Code가 기획/개발을 완료한 후, Codex CLI가 후속 관리를 담
 - ROADMAP.md 갱신 (독립 프로젝트 한정)
 
 **모드 B 진입 조건:**
-- AI_SYNC.md Next Step에 `[CODEX-LEAD]` prefix가 붙은 태스크
-- 또는 사용자가 Codex에 직접 지시한 독립 태스크
+- 사용자가 Codex에 직접 지시한 독립 태스크
+- 또는 `work/<project>/<task>` 브랜치로 분리된 명확한 프로젝트 태스크
 
 **현재 활성 모드 B 프로젝트:**
 - `[CODEX-LEAD] 파트너클래스 Phase 3 전체 구현` — ROADMAP.md Phase 3 (Task S0-1 ~ S3-6, 31개)
@@ -56,7 +56,7 @@ Claude Code가 기획/개발을 완료한 후, Codex CLI가 후속 관리를 담
 1. **인증키 파일 수정** — `.secrets.env`, `.secrets`, `.env.local` 수정 금지 (읽기만 가능)
 2. **백업 폴더 수정** — `메인페이지/기존 코드/`, `간편 구매/기본코드/`, `간편 구매/고급형 주문서 작성/` 수정 금지
 3. **강제 푸시** — `git push --force`, `git reset --hard` 금지
-4. **Claude Code가 WRITE 중인 파일 수정** — AI_SYNC.md `Files In Progress` 참조
+4. **다른 AI가 같은 worktree에서 WRITE 중인 파일 수정 금지** — 같은 worktree는 WRITE AI 1명 원칙
 
 ---
 
@@ -79,67 +79,73 @@ Claude Code가 기획/개발을 완료한 후, Codex CLI가 후속 관리를 담
 
 ---
 
-## AI Sync 프로토콜 (충돌 방지 — 가장 중요)
+## Worktree 기반 협업 프로토콜 (충돌 방지 — 가장 중요)
 
-두 CLI가 같은 저장소에서 공존하기 위한 핵심 프로토콜입니다.
+`AI_SYNC.md`는 2026-04-16부터 운영 lock 파일로 사용하지 않습니다. 과거 기록은
+`archive/ai-sync-history/AI_SYNC-retired-2026-04-16.md`에 보존합니다.
 
-### 작업 시작 전 (필수)
+이 저장소는 여러 프로젝트가 한 Git 저장소에 공존하므로, 안전한 AI 병행 개발은
+**프로젝트별 worktree + 프로젝트별 branch + Git hook scope guard**로 관리합니다.
 
-1. `AI_SYNC.md` 파일을 읽는다
-2. `git pull` 으로 최신 코드 동기화
-3. `git status --short` 실행
-4. `Current Owner`가 다른 에이전트이고 `Mode`가 `WRITE`이면:
-   - **같은 서브디렉토리**: 파일 수정 금지, 작업 중단
-   - **다른 서브디렉토리**: 해당 서브디렉토리 파일만 수정 가능 (교차 수정 금지)
-5. 소유권이 `IDLE`이면 `Session Lock`을 자신(CODEX)으로 갱신한 후 작업 시작
+### 작업 시작 전 필수 흐름
 
-### 서브디렉토리 격리 규칙
+1. 루트 main worktree에서 직접 개발하지 않는다.
+2. 새 작업은 반드시 `_tools/pressco21-task.sh`로 프로젝트 전용 worktree를 만든다.
+3. 생성된 worktree 폴더를 Cursor/Claude Code/Codex에서 열고 작업한다.
+4. 같은 worktree에서는 WRITE 역할 AI를 한 번에 하나만 둔다. 다른 AI는 리뷰/검증 역할로 둔다.
+5. 작업 중 상태 확인은 `_tools/pressco21-check.sh`를 사용한다.
 
-두 CLI가 **다른 서브디렉토리**에서 작업할 때는 동시 작업 가능:
-```
-Claude Code → 파트너클래스/  (WRITE)
-Codex CLI   → offline-crm-v2/ (WRITE)  ← OK, 서로 다른 디렉토리
-```
+예시:
 
-**같은 서브디렉토리**에서는 절대 동시 WRITE 금지:
-```
-Claude Code → 파트너클래스/  (WRITE)
-Codex CLI   → 파트너클래스/  (WRITE)  ← 금지!
+```bash
+cd /Users/jangjiho/workspace/pressco21
+bash _tools/pressco21-task.sh crm invoice-fix
+cd /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-invoice-fix/offline-crm-v2
 ```
 
-### AI_SYNC.md Session Lock 형식
+### 프로젝트별 브랜치 규칙
 
-```markdown
-- Current Owner: CODEX (또는 CLAUDE, 또는 IDLE)
-- Mode: WRITE (또는 READ, 또는 —)
-- Started At: 2026-03-09 18:00:00 KST
-- Branch: main
-- Working Scope: 작업 내용 요약
-- Active Subdirectory: offline-crm-v2
+| 프로젝트 | 브랜치 패턴 | 기본 허용 수정 범위 |
+|---|---|---|
+| CRM | `work/offline-crm/<task>` | `offline-crm-v2/**` |
+| 파트너클래스 | `work/partnerclass/<task>` | `makeshop-skin/**`, `파트너클래스/**`, `docs/파트너클래스/**` |
+| n8n | `work/n8n/<task>` | `n8n-automation/**` |
+| mini app | `work/mini-app/<task>` | `mini-app-v2/**` |
+| mobile app | `work/mobile-app/<task>` | `mobile-app/**` |
+| workspace governance | `work/workspace/<task>` | 루트 운영 문서/도구, `_tools/**`, `archive/**` |
+
+`pre-commit` hook은 위 브랜치 패턴을 보고 scope 밖 파일이 staged되면 커밋을 차단합니다.
+
+### main 브랜치 규칙
+
+- main은 최종 통합 기준선입니다.
+- 일반 기능 개발을 main에서 직접 커밋하지 않습니다.
+- `pre-commit` hook이 main 직접 커밋을 차단합니다.
+- 작업 완료 후 검증된 브랜치만 main으로 merge합니다.
+
+### 작업 완료 흐름
+
+```bash
+# 작업 worktree 안에서
+git status --short
+bash _tools/pressco21-check.sh
+# 프로젝트별 build/test 실행
+git add <허용된 프로젝트 경로>
+git commit -m "[codex] 작업 내용"
+
+# main 통합
+cd /Users/jangjiho/workspace/pressco21
+git switch main
+git pull --ff-only
+git merge --no-ff work/<project>/<task>
+git push origin main
 ```
 
-### 작업 중
+### 여러 AI 창 사용 원칙
 
-- `Files In Progress` 섹션에 수정 중인 파일 목록 기재
-- 같은 파일을 Claude Code가 수정 중이면 절대 건드리지 않음
-- 커밋 메시지에 `[codex]` prefix 사용: `[codex] E2E 테스트 거래내역 페이지 추가`
-
-### 작업 종료 (필수)
-
-1. `Last Changes` 섹션에 변경 내역 기재
-2. `Next Step` 섹션에 후속 작업 기재
-3. `Session Lock`을 `IDLE`로 변경
-4. `git commit -m "[codex] ..."` → `git push`
-
-### 브랜치 관리 필수 규칙
-
-**원칙: 모든 작업물은 반드시 main에 머지되어야 "완료"**
-
-1. **main 브랜치 커밋 원칙**: 기본적으로 main에서 작업. 브랜치는 실험/테스트 용도로만 사용
-2. **브랜치 작업 시 머지 의무**: 브랜치에서 작업한 경우 `AI_SYNC.md`에 브랜치명과 목적을 반드시 기록하고, 작업 완료 후 main 머지까지 책임
-3. **방치 브랜치 금지**: 브랜치에 남은 변경이 있으면 필요한 내용은 main으로 반영하고, 불필요하거나 구버전이면 정리 후 브랜치를 삭제
-
-> 배경: `codex/partnerclass-e0-001-testdata-cleanup` 브랜치에 makeshop-skin 723개 + 문서 63개가 main에 머지되지 않은 채 방치되어 있었음. Claude Code가 분석/복원 완료했으나, 재발 방지를 위해 양쪽 모두 이 규칙을 따른다.
+- 서로 다른 프로젝트 worktree는 Codex/Claude Code를 동시에 WRITE로 사용해도 됩니다.
+- 같은 프로젝트라도 같은 파일을 만질 가능성이 있으면 동시에 WRITE하지 않습니다.
+- 같은 worktree에서는 한 AI만 WRITE하고, 다른 AI는 리뷰/검증만 수행합니다.
 
 ---
 
@@ -149,7 +155,6 @@ Codex CLI   → 파트너클래스/  (WRITE)  ← 금지!
 pressco21/
   AGENTS.md              ← 이 파일 (Codex CLI 전체 지침)
   CLAUDE.md              ← Claude Code 전용 지침
-  AI_SYNC.md             ← 에이전트 간 인수인계 보드 (충돌 방지 핵심)
   ROADMAP.md             ← 프로젝트 로드맵
   .secrets.env           ← 인증키 (수정 금지)
 
@@ -244,14 +249,14 @@ n8n 워크플로우 JSON을 생성하거나 수정할 때는 반드시 아래를
 ## 태스크 수행 흐름
 
 ```
-1. AI_SYNC.md 확인 → 충돌 없으면 소유권 획득
-2. git pull (최신 코드 동기화)
-3. 모드 확인 (A: 보조 / B: 독립)
+1. main 최신화: git switch main && git pull --ff-only
+2. 작업 worktree 생성: bash _tools/pressco21-task.sh <project> <task>
+3. 생성된 worktree에서 Codex/Claude Code 실행
 4. 작업 수행
-5. 로컬에서 검증 (테스트 실행, 빌드 확인)
-6. AI_SYNC.md 갱신 (Last Changes, Next Step)
-7. git commit -m "[codex] ..." && git push
-8. AI_SYNC.md Session Lock → IDLE
+5. 로컬 검증: build/test/lint 또는 대상별 smoke test
+6. 상태 확인: bash _tools/pressco21-check.sh
+7. 허용 경로만 git add 후 커밋
+8. main으로 merge 후 push
 ```
 
 ---

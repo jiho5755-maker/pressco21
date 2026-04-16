@@ -242,13 +242,21 @@ codex_create_backup() {
 }
 
 codex_ai_sync_field() {
-  local field="$1"
-  local sync_file="$CODEX_REPO_ROOT/AI_SYNC.md"
-  if [ ! -f "$sync_file" ]; then
-    printf '(missing)\n'
-    return 0
+  # AI_SYNC.md retired on 2026-04-16. Kept as compatibility shim for old handoff logs.
+  printf '(retired: use worktree/branch scope)\n'
+}
+
+codex_branch_scope() {
+  local scope_script="$CODEX_COMMON_DIR/project-scope.sh"
+  local branch
+  branch="$(git -C "$CODEX_REPO_ROOT" branch --show-current)"
+  if [ -f "$scope_script" ]; then
+    # shellcheck source=/dev/null
+    source "$scope_script"
+    p21_project_from_branch "$branch" 2>/dev/null || printf '(unscoped)\n'
+  else
+    printf '(scope helper unavailable)\n'
   fi
-  sed -n "s/^- ${field}: //p" "$sync_file" | head -n 1
 }
 
 codex_omx_status() {

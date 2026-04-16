@@ -14,3 +14,12 @@ branch() {
 resume() {
   bash "$pressco21_tools/codex-resume.sh" "$@"
 }
+
+
+task() {
+  bash "$pressco21_tools/pressco21-task.sh" "$@"
+}
+
+check() {
+  bash "$pressco21_tools/pressco21-check.sh" "$@"
+}

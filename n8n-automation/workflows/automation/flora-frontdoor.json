@@ -11,18 +11,18 @@
       },
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [0, 300],
+      "position": [0, 400],
       "id": "node-trigger",
       "name": "Flora 텔레그램 수신",
       "webhookId": "flora-incoming"
     },
     {
       "parameters": {
-        "jsCode": "// 메시지 파싱 + 키워드 라우팅\n// n8n webhook v2에서 body는 $json.body에 위치\nconst raw = $input.first().json;\nconst update = raw.body || raw;\nconst message = update.message || {};\nconst text = (message.text || '').trim();\nconst chatId = String(message.chat?.id || '');\nconst messageId = String(message.message_id || '');\nconst fromId = String(message.from?.id || '');\nconst firstName = message.from?.first_name || '대표';\n\n// 허용 채팅방 (업무방=대표 DM, Claude방, Codex방)\nconst ALLOWED_CHATS = ['7713811206', '-5043778307', '-5198284773'];\n\n// 봇 멘션 처리 (그룹에서 @pressco21_openclaw_bot 제거)\nconst cleanText = text.replace(/@pressco21_openclaw_bot\\b/gi, '').trim();\n\nif (!ALLOWED_CHATS.includes(chatId) || !cleanText) {\n  return [{ json: { route: 'ignore', chatId, text: cleanText } }];\n}\n\n// 키워드 기반 라우팅\nlet route = 'task';\nlet subRoute = null;\n\nif (/기획안|상세페이지|PRD|랜딩페이지|이벤트.*기획|sns.*기획/i.test(cleanText)) {\n  route = 'prd';\n} else if (/매출|주문|revenue|sales/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'sales';\n} else if (/고객|세그먼트|rfm|crm/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'segments';\n} else if (/파트너|강사/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'partners';\n} else if (/캠페인|sms|발송/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'campaigns';\n} else if (/법률|계약|약관|규정|저작권/i.test(cleanText)) {\n  route = 'law';\n}\n\nreturn [{\n  json: {\n    route, subRoute,\n    chatId, messageId, fromId, firstName,\n    text: cleanText,\n    rawText: text\n  }\n}];"
+        "jsCode": "// Flora Frontdoor - 메시지 파싱 + 키워드 라우팅\n// Phase 3A + 3B 통합 라우터\nconst raw = $input.first().json;\nconst update = raw.body || raw;\nconst message = update.message || {};\nconst text = (message.text || '').trim();\nconst chatId = String(message.chat?.id || '');\nconst messageId = String(message.message_id || '');\nconst fromId = String(message.from?.id || '');\nconst firstName = message.from?.first_name || '대표';\n\n// 허용 채팅방 (업무방=대표 DM, Claude방, Codex방)\nconst ALLOWED_CHATS = ['7713811206', '-5043778307', '-5198284773'];\n\n// 봇 멘션 처리 (그룹에서 @pressco21_openclaw_bot 제거)\nconst cleanText = text.replace(/@pressco21_openclaw_bot\\b/gi, '').trim();\n\nif (!ALLOWED_CHATS.includes(chatId) || !cleanText) {\n  return [{ json: { route: 'ignore', chatId, text: cleanText } }];\n}\n\n// === 키워드 기반 라우팅 (우선순위 순) ===\nlet route = 'task';\nlet subRoute = null;\nlet agentPrompt = cleanText;\n\n// [Phase 3B] 팀미팅 - 복합 분석\nif (/팀미팅|팀 미팅|다각도|여러 관점|전문가 분석|team.?meeting/i.test(cleanText)) {\n  route = 'team-meeting';\n  agentPrompt = `/team-meeting ${cleanText.replace(/팀미팅|팀 미팅|다각도|여러 관점|전문가 분석|team.?meeting/gi, '').trim()}`;\n\n// [Phase 3A] 기획안\n} else if (/기획안|상세페이지|PRD|랜딩페이지|이벤트.*기획|sns.*기획/i.test(cleanText)) {\n  route = 'prd';\n\n// [Phase 3B] Codex 코딩 작업\n} else if (/코드|구현해|버그|리팩토링|테스트 코드|자동화 스크립트|작성해줘.*코드/i.test(cleanText)) {\n  route = 'codex';\n  agentPrompt = cleanText;\n\n// [Phase 3B] Claude 전문가 분석 (20자 이상 복잡한 질문)\n} else if (/전략|마케팅 전략|운영 개선|재무 분석|법률 자문|광고 전략|사업 방향/i.test(cleanText) && cleanText.length > 20) {\n  route = 'agent';\n  // 도메인 매핑\n  if (/전략|사업 방향|방향성|시장 진출/i.test(cleanText)) subRoute = 'cso';\n  else if (/마케팅|광고|브랜딩|콘텐츠 전략|sns 전략/i.test(cleanText)) subRoute = 'cmo';\n  else if (/운영|물류|cs|배송|프로세스 개선/i.test(cleanText)) subRoute = 'coo';\n  else if (/재무|수익성|투자|비용 분석|마진/i.test(cleanText)) subRoute = 'cfo';\n  else if (/기술|개발 방향|시스템|아키텍처|자동화 전략/i.test(cleanText)) subRoute = 'cto';\n  else subRoute = 'cso';\n\n// [Phase 3A] 비즈니스 데이터 조회\n} else if (/매출|주문|revenue|sales/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'sales';\n} else if (/고객|세그먼트|rfm|crm/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'segments';\n} else if (/파트너|강사/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'partners';\n} else if (/캠페인|sms|발송/i.test(cleanText)) {\n  route = 'biz';\n  subRoute = 'campaigns';\n}\n\nreturn [{\n  json: {\n    route, subRoute, agentPrompt,\n    chatId, messageId, fromId, firstName,\n    text: cleanText,\n    rawText: text\n  }\n}];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [240, 300],
+      "position": [240, 400],
       "id": "node-parse",
       "name": "메시지 파싱 + 라우팅"
     },
@@ -51,7 +51,34 @@
             {
               "conditions": {
                 "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
-                "conditions": [{ "id": "c3", "leftValue": "={{ $json.route }}", "rightValue": "task", "operator": { "type": "string", "operation": "equals" } }],
+                "conditions": [{ "id": "c3", "leftValue": "={{ $json.route }}", "rightValue": "team-meeting", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "team-meeting"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "id": "c4", "leftValue": "={{ $json.route }}", "rightValue": "agent", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "agent"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "id": "c5", "leftValue": "={{ $json.route }}", "rightValue": "codex", "operator": { "type": "string", "operation": "equals" } }],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "codex"
+            },
+            {
+              "conditions": {
+                "options": { "caseSensitive": false, "leftValue": "", "typeValidation": "loose" },
+                "conditions": [{ "id": "c6", "leftValue": "={{ $json.route }}", "rightValue": "task", "operator": { "type": "string", "operation": "equals" } }],
                 "combinator": "and"
               },
               "renameOutput": true,
@@ -63,7 +90,7 @@
       },
       "type": "n8n-nodes-base.switch",
       "typeVersion": 3.2,
-      "position": [480, 300],
+      "position": [480, 400],
       "id": "node-switch",
       "name": "라우트 분기"
     },
@@ -72,9 +99,7 @@
         "method": "POST",
         "url": "https://n8n.pressco21.com/webhook/flora-prd-trigger",
         "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [{ "name": "content-type", "value": "application/json" }]
-        },
+        "headerParameters": { "parameters": [{ "name": "content-type", "value": "application/json" }] },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ instruction: $json.text, chatId: $json.chatId, senderName: $json.firstName }) }}",
@@ -91,9 +116,7 @@
         "method": "POST",
         "url": "https://n8n.pressco21.com/webhook/flora-biz-data",
         "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [{ "name": "content-type", "value": "application/json" }]
-        },
+        "headerParameters": { "parameters": [{ "name": "content-type", "value": "application/json" }] },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ chat_id: $json.chatId, query_type: $json.subRoute || $json.text }) }}",
@@ -101,18 +124,82 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [720, 260],
+      "position": [720, 240],
       "id": "node-biz",
       "name": "비즈니스 데이터 조회"
     },
     {
       "parameters": {
         "method": "POST",
-        "url": "https://n8n.pressco21.com/webhook/flora-task-create",
+        "url": "https://mini.pressco21.com/api/automation/dev-queue",
         "sendHeaders": true,
         "headerParameters": {
-          "parameters": [{ "name": "content-type", "value": "application/json" }]
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
         },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ worker: 'claude', prompt: $json.agentPrompt, chatId: $json.chatId }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 380],
+      "id": "node-team-meeting",
+      "name": "팀미팅 dev-queue (Claude)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mini.pressco21.com/api/automation/dev-queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ worker: 'claude', prompt: '/' + $json.subRoute + ' ' + $json.text, chatId: $json.chatId }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 520],
+      "id": "node-agent",
+      "name": "전문가 에이전트 (Claude)"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mini.pressco21.com/api/automation/dev-queue",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "x-flora-automation-key", "value": "={{ $env.ADMIN_API_TOKEN }}" },
+            { "name": "content-type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ worker: 'codex', prompt: $json.text, chatId: '-5198284773' }) }}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [720, 660],
+      "id": "node-codex",
+      "name": "Codex 개발 작업"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://n8n.pressco21.com/webhook/flora-task-create",
+        "sendHeaders": true,
+        "headerParameters": { "parameters": [{ "name": "content-type", "value": "application/json" }] },
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ title: $json.text, chatId: $json.chatId, senderName: $json.firstName }) }}",
@@ -120,14 +207,14 @@
       },
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [720, 420],
+      "position": [720, 800],
       "id": "node-task",
       "name": "태스크 등록 (F12)"
     },
     {
       "parameters": {
         "chatId": "={{ $('메시지 파싱 + 라우팅').first().json.chatId }}",
-        "text": "⚙️ <b>기획안</b> 요청을 접수했습니다.\nClaude Code가 작성 중입니다. 3~5분 후 결과를 보내드릴게요.",
+        "text": "⚙️ <b>기획안</b> 요청 접수\nClaude Code가 작성 중입니다. 3~5분 후 결과를 보내드릴게요.",
         "additionalFields": { "parse_mode": "HTML" }
       },
       "type": "n8n-nodes-base.telegram",
@@ -140,12 +227,12 @@
     {
       "parameters": {
         "chatId": "={{ $('메시지 파싱 + 라우팅').first().json.chatId }}",
-        "text": "={{ '📊 ' + ($input.first().json.summary || '데이터를 불러오는 중 오류가 발생했습니다.') }}",
+        "text": "={{ '📊 ' + ($input.first().json.summary || '데이터 조회 중 오류가 발생했습니다.') }}",
         "additionalFields": { "parse_mode": "HTML" }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [960, 260],
+      "position": [960, 240],
       "id": "node-biz-reply",
       "name": "비즈니스 데이터 응답",
       "credentials": { "telegramApi": { "id": "O6qwF7Pup3u1Zc1O", "name": "Flora-OpenClaw-Bot" } }
@@ -153,12 +240,51 @@
     {
       "parameters": {
         "chatId": "={{ $('메시지 파싱 + 라우팅').first().json.chatId }}",
-        "text": "={{ '✅ <b>' + $('메시지 파싱 + 라우팅').first().json.text + '</b>\\n태스크로 등록했습니다.' }}",
+        "text": "🤝 <b>팀미팅</b> 요청 접수\nClaude Code가 C-Suite 에이전트를 소집합니다. 5~10분 후 종합 보고를 드릴게요.\n\n<i>Claude 개발방에서 진행 상황을 확인하실 수 있습니다.</i>",
         "additionalFields": { "parse_mode": "HTML" }
       },
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
-      "position": [960, 420],
+      "position": [960, 380],
+      "id": "node-ack-team",
+      "name": "팀미팅 접수 확인",
+      "credentials": { "telegramApi": { "id": "O6qwF7Pup3u1Zc1O", "name": "Flora-OpenClaw-Bot" } }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('메시지 파싱 + 라우팅').first().json.chatId }}",
+        "text": "={{ '🧠 <b>' + ($('메시지 파싱 + 라우팅').first().json.subRoute || 'cso').toUpperCase() + ' 전문가</b> 분석 요청 접수\\nClaude Code가 분석 중입니다. 3~5분 후 결과를 보내드릴게요.' }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 520],
+      "id": "node-ack-agent",
+      "name": "전문가 분석 접수 확인",
+      "credentials": { "telegramApi": { "id": "O6qwF7Pup3u1Zc1O", "name": "Flora-OpenClaw-Bot" } }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('메시지 파싱 + 라우팅').first().json.chatId }}",
+        "text": "💻 <b>개발 작업</b> Codex에 전달했습니다.\nCodex 개발방에서 진행 상황을 확인하세요.",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 660],
+      "id": "node-ack-codex",
+      "name": "Codex 작업 접수 확인",
+      "credentials": { "telegramApi": { "id": "O6qwF7Pup3u1Zc1O", "name": "Flora-OpenClaw-Bot" } }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('메시지 파싱 + 라우팅').first().json.chatId }}",
+        "text": "={{ '✅ <b>' + $('메시지 파싱 + 라우팅').first().json.text.substring(0, 30) + '</b>\\n태스크로 등록했습니다.' }}",
+        "additionalFields": { "parse_mode": "HTML" }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [960, 800],
       "id": "node-task-reply",
       "name": "태스크 등록 확인",
       "credentials": { "telegramApi": { "id": "O6qwF7Pup3u1Zc1O", "name": "Flora-OpenClaw-Bot" } }
@@ -171,11 +297,17 @@
       "main": [
         [{ "node": "기획안 트리거 (F13)", "type": "main", "index": 0 }],
         [{ "node": "비즈니스 데이터 조회", "type": "main", "index": 0 }],
+        [{ "node": "팀미팅 dev-queue (Claude)", "type": "main", "index": 0 }],
+        [{ "node": "전문가 에이전트 (Claude)", "type": "main", "index": 0 }],
+        [{ "node": "Codex 개발 작업", "type": "main", "index": 0 }],
         [{ "node": "태스크 등록 (F12)", "type": "main", "index": 0 }]
       ]
     },
     "기획안 트리거 (F13)": { "main": [[{ "node": "기획안 접수 확인", "type": "main", "index": 0 }]] },
     "비즈니스 데이터 조회": { "main": [[{ "node": "비즈니스 데이터 응답", "type": "main", "index": 0 }]] },
+    "팀미팅 dev-queue (Claude)": { "main": [[{ "node": "팀미팅 접수 확인", "type": "main", "index": 0 }]] },
+    "전문가 에이전트 (Claude)": { "main": [[{ "node": "전문가 분석 접수 확인", "type": "main", "index": 0 }]] },
+    "Codex 개발 작업": { "main": [[{ "node": "Codex 작업 접수 확인", "type": "main", "index": 0 }]] },
     "태스크 등록 (F12)": { "main": [[{ "node": "태스크 등록 확인", "type": "main", "index": 0 }]] }
   },
   "settings": { "executionOrder": "v1" }

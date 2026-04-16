@@ -100,7 +100,8 @@ git -C "$MAIN_ROOT" worktree add --no-checkout "$worktree_path" -b "$branch" mai
 
 if [ "$full" -eq 0 ]; then
   git -C "$worktree_path" sparse-checkout init --no-cone
-  p21_sparse_paths_print "$project" > "$worktree_path/.git/info/sparse-checkout"
+  sparse_file="$(git -C "$worktree_path" rev-parse --git-path info/sparse-checkout)"
+  p21_sparse_paths_print "$project" > "$sparse_file"
 fi
 
 git -C "$worktree_path" checkout

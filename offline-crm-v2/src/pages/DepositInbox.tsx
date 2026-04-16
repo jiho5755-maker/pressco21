@@ -15,7 +15,13 @@ import {
   parseLegacyReceivableMemo,
   serializeLegacyReceivableMemo,
 } from '@/lib/legacySnapshots'
-import { appendCustomerAccountingEvent, parseCustomerAccountingMeta } from '@/lib/accountingMeta'
+import {
+  appendCustomerAccountingEvent,
+  getInvoiceDepositUsedAmount,
+  parseCustomerAccountingMeta,
+  parseInvoiceAccountingMeta,
+  serializeInvoiceAccountingMeta,
+} from '@/lib/accountingMeta'
 import { loadActiveWorkOperatorProfile, loadStoredCrmSettings } from '@/lib/settings'
 import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
 import {
@@ -44,7 +50,40 @@ function currentTimestamp(): string {
 }
 
 function calcRemaining(inv: Invoice): number {
-  return Math.max(0, (inv.total_amount ?? 0) - (inv.paid_amount ?? 0))
+  return Math.max(0, (inv.total_amount ?? 0) - (inv.paid_amount ?? 0) - getInvoiceDepositUsedAmount(inv.memo as string | undefined))
+}
+
+function calcPaymentStatus(inv: Invoice): 'paid' | 'partial' | 'unpaid' {
+  const total = inv.total_amount ?? 0
+  const paid = inv.paid_amount ?? 0
+  const depositUsed = getInvoiceDepositUsedAmount(inv.memo as string | undefined)
+  const remaining = Math.max(0, total - paid - depositUsed)
+  if (remaining <= 0) return 'paid'
+  if (paid + depositUsed > 0) return 'partial'
+  return 'unpaid'
+}
+
+function getInvoiceDate(inv: Invoice): string {
+  return inv.invoice_date?.slice(0, 10) ?? ''
+}
+
+function sortInvoicesForSettlement(invoices: Invoice[], preferredInvoiceId?: number): Invoice[] {
+  return [...invoices].sort((left, right) => {
+    if (preferredInvoiceId) {
+      if (left.Id === preferredInvoiceId && right.Id !== preferredInvoiceId) return -1
+      if (right.Id === preferredInvoiceId && left.Id !== preferredInvoiceId) return 1
+    }
+    const dateCompare = getInvoiceDate(left).localeCompare(getInvoiceDate(right))
+    if (dateCompare !== 0) return dateCompare
+    return left.Id - right.Id
+  })
+}
+
+function isInvoiceEligibleForDepositDate(inv: Invoice, entryDate: string, preferredInvoiceId?: number): boolean {
+  if (preferredInvoiceId && inv.Id === preferredInvoiceId) return true
+  const invoiceDate = getInvoiceDate(inv)
+  if (!invoiceDate || !entryDate) return true
+  return invoiceDate <= entryDate
 }
 
 function getAutoDepositSourceLabel(value: string | undefined): string {
@@ -288,6 +327,196 @@ export function DepositInbox() {
     })
   }
 
+  async function applyCashToInvoice(invoice: Invoice, amount: number) {
+    const remainingBefore = calcRemaining(invoice)
+    const appliedAmount = Math.min(amount, remainingBefore)
+    if (appliedAmount <= 0) return { appliedAmount: 0, invoice }
+
+    const nextPaid = Math.min(invoice.total_amount ?? 0, (invoice.paid_amount ?? 0) + appliedAmount)
+    const nextInvoice: Invoice = {
+      ...invoice,
+      paid_amount: nextPaid,
+    }
+    nextInvoice.current_balance = calcRemaining(nextInvoice)
+    nextInvoice.payment_status = calcPaymentStatus(nextInvoice)
+
+    await updateInvoice(invoice.Id, {
+      paid_amount: nextInvoice.paid_amount,
+      current_balance: nextInvoice.current_balance,
+      payment_status: nextInvoice.payment_status,
+      payment_method: '계좌이체',
+    })
+
+    return { appliedAmount, invoice: nextInvoice }
+  }
+
+  async function applyDepositToInvoice(invoice: Invoice, amount: number) {
+    const remainingBefore = calcRemaining(invoice)
+    const appliedAmount = Math.min(amount, remainingBefore)
+    if (appliedAmount <= 0) return { appliedAmount: 0, invoice }
+
+    const invoiceMeta = parseInvoiceAccountingMeta(invoice.memo as string | undefined)
+    const nextDepositUsedAmount = invoiceMeta.depositUsedAmount + appliedAmount
+    const nextMemo = serializeInvoiceAccountingMeta(invoice.memo as string | undefined, {
+      ...invoiceMeta,
+      depositUsedAmount: nextDepositUsedAmount,
+    })
+    const nextInvoice: Invoice = {
+      ...invoice,
+      memo: nextMemo,
+    }
+    nextInvoice.current_balance = calcRemaining(nextInvoice)
+    nextInvoice.payment_status = calcPaymentStatus(nextInvoice)
+
+    await updateInvoice(invoice.Id, {
+      memo: nextMemo,
+      current_balance: nextInvoice.current_balance,
+      payment_status: nextInvoice.payment_status,
+    })
+
+    return { appliedAmount, invoice: nextInvoice }
+  }
+
+  async function applyCustomerDepositLedger(entry: AutoDepositInboxEntry, candidate: AutoDepositCandidate) {
+    const customerId = candidate.customerId
+    if (!customerId) throw new Error('고객 대상 정보가 없습니다.')
+
+    const invoices = await getAllInvoices({
+      where: `(customer_id,eq,${customerId})`,
+      sort: 'invoice_date',
+    })
+    let allOpenInvoices = sortInvoicesForSettlement(
+      invoices.filter((invoice) => calcRemaining(invoice) > 0),
+      candidate.invoiceId,
+    )
+    let openInvoices = allOpenInvoices.filter((invoice) =>
+      isInvoiceEligibleForDepositDate(invoice, entry.date, candidate.invoiceId),
+    )
+
+    let cashRemaining = entry.amount
+    let cashApplied = 0
+    const touchedInvoiceIds: number[] = []
+
+    for (const invoice of openInvoices) {
+      if (cashRemaining <= 0) break
+      const { appliedAmount, invoice: updatedInvoice } = await applyCashToInvoice(invoice, cashRemaining)
+      if (appliedAmount <= 0) continue
+      cashRemaining -= appliedAmount
+      cashApplied += appliedAmount
+      touchedInvoiceIds.push(invoice.Id)
+      openInvoices = openInvoices.map((item) => item.Id === invoice.Id ? updatedInvoice : item)
+      allOpenInvoices = allOpenInvoices.map((item) => item.Id === invoice.Id ? updatedInvoice : item)
+    }
+
+    // 이미 보유 중인 예치금이 있으면 이번 입금 반영 후 남은 미수에 이어서 상계한다.
+    const latestBeforeDepositUse = await getCustomer(customerId)
+    const customerMeta = parseCustomerAccountingMeta(latestBeforeDepositUse.memo as string | undefined)
+    let depositAvailable = customerMeta.depositBalance
+    let depositUsed = 0
+
+    if (depositAvailable > 0) {
+      for (const invoice of openInvoices) {
+        if (depositAvailable <= 0) break
+        const { appliedAmount, invoice: updatedInvoice } = await applyDepositToInvoice(invoice, depositAvailable)
+        if (appliedAmount <= 0) continue
+        depositAvailable -= appliedAmount
+        depositUsed += appliedAmount
+        touchedInvoiceIds.push(invoice.Id)
+        openInvoices = openInvoices.map((item) => item.Id === invoice.Id ? updatedInvoice : item)
+        allOpenInvoices = allOpenInvoices.map((item) => item.Id === invoice.Id ? updatedInvoice : item)
+      }
+    }
+
+    // 입금 반영 뒤 예치금이 소액 남으면 이후 새 주문에도 바로 차감해 운영 잔액을 맞춘다.
+    if (depositAvailable > 0) {
+      for (const invoice of allOpenInvoices) {
+        if (depositAvailable <= 0) break
+        const { appliedAmount, invoice: updatedInvoice } = await applyDepositToInvoice(invoice, depositAvailable)
+        if (appliedAmount <= 0) continue
+        depositAvailable -= appliedAmount
+        depositUsed += appliedAmount
+        touchedInvoiceIds.push(invoice.Id)
+        allOpenInvoices = allOpenInvoices.map((item) => item.Id === invoice.Id ? updatedInvoice : item)
+      }
+    }
+
+    let legacyApplied = 0
+    if (cashRemaining > 0) {
+      const customerForLegacy = depositUsed > 0 ? await getCustomer(customerId) : latestBeforeDepositUse
+      const legacyRemaining = getLegacyReceivableBaselineFromSnapshots(customerForLegacy, legacySnapshots, fiscalSnapshots)
+      legacyApplied = Math.min(cashRemaining, legacyRemaining)
+      if (legacyApplied > 0) {
+        await appendLegacySettlement(customerId, legacyApplied, entry.date, customerForLegacy)
+        cashRemaining -= legacyApplied
+      }
+    }
+
+    const depositAdded = Math.max(0, cashRemaining)
+    if (depositUsed > 0 || depositAdded > 0) {
+      const latestCustomer = await getCustomer(customerId)
+      const latestMeta = parseCustomerAccountingMeta(latestCustomer.memo as string | undefined)
+      let nextDepositBalance = latestMeta.depositBalance
+      let nextMemo = latestCustomer.memo as string | undefined
+
+      if (depositUsed > 0) {
+        nextDepositBalance = Math.max(0, nextDepositBalance - depositUsed)
+        nextMemo = appendCustomerAccountingEvent(
+          nextMemo,
+          {
+            type: 'deposit_used',
+            amount: depositUsed,
+            date: entry.date,
+            method: '예치금 사용',
+            operator: activeOperator?.operatorName,
+            accountId: activeOperator?.id,
+            accountLabel: activeOperator?.label,
+            createdAt: currentTimestamp(),
+            relatedInvoiceId: candidate.invoiceId,
+            note: `자동입금 ${entry.amount.toLocaleString()}원 반영 중 기존 예치금 상계`,
+          },
+          { depositBalance: nextDepositBalance },
+        )
+      }
+
+      if (depositAdded > 0) {
+        nextDepositBalance += depositAdded
+        nextMemo = appendCustomerAccountingEvent(
+          nextMemo,
+          {
+            type: 'deposit_added',
+            amount: depositAdded,
+            date: entry.date,
+            method: '계좌이체',
+            operator: activeOperator?.operatorName,
+            accountId: activeOperator?.id,
+            accountLabel: activeOperator?.label,
+            createdAt: currentTimestamp(),
+            relatedInvoiceId: candidate.invoiceId,
+            note: `자동입금 반영 후 남은 금액 ${depositAdded.toLocaleString()}원`,
+          },
+          { depositBalance: nextDepositBalance },
+        )
+      }
+
+      await updateCustomer(customerId, { memo: nextMemo })
+    }
+
+    try {
+      await recalcCustomerStats(customerId)
+    } catch (error) {
+      console.warn('[DepositInbox] 고객 통계 재계산 실패', error)
+    }
+
+    return {
+      customerId,
+      cashApplied,
+      depositUsed,
+      legacyApplied,
+      depositAdded,
+      touchedInvoiceIds: Array.from(new Set(touchedInvoiceIds)),
+    }
+  }
+
   async function applyLegacyCandidate(candidate: AutoDepositCandidate, entry: AutoDepositInboxEntry) {
     await appendLegacySettlement(candidate.customerId, entry.amount, entry.date)
   }
@@ -346,79 +575,21 @@ export function DepositInbox() {
     return hydratedCandidates.find((candidate) => candidate.key === selectedKey) ?? hydratedCandidates[0]
   }
 
-  async function applyOverpaymentReviewItem(item: AutoDepositReviewQueueItem, candidate: AutoDepositCandidate) {
-    if (!candidate.invoiceId) throw new Error('명세표 대상 정보가 없습니다.')
-    const entryDate = buildEntryFromReviewItem(item).date
-    const invoice = await qc.ensureQueryData({
-      queryKey: ['invoice', candidate.invoiceId],
-      queryFn: () => getAllInvoices({ where: `(Id,eq,${candidate.invoiceId})`, limit: 1 }).then((rows) => rows[0] ?? null),
-    })
-    if (!invoice) throw new Error('명세표를 찾지 못했습니다.')
-
-    const customerId = typeof invoice.customer_id === 'number' ? invoice.customer_id : candidate.customerId
-    const customer = customerId ? await getCustomer(customerId) : null
-    if (!customer) throw new Error('초과 입금 처리에는 연결된 고객 정보가 필요합니다.')
-
-    const remaining = calcRemaining(invoice)
-    const overflowAmount = Math.max(0, item.amount - remaining)
-    const paidAmount = Math.min(item.amount, remaining)
-    const nextPaid = Math.min(invoice.total_amount ?? 0, (invoice.paid_amount ?? 0) + paidAmount)
-    const nextRemaining = Math.max(0, remaining - paidAmount)
-    const nextPaymentStatus = nextRemaining <= 0 ? 'paid' : nextPaid > 0 ? 'partial' : 'unpaid'
-
-    await updateInvoice(candidate.invoiceId, {
-      paid_amount: nextPaid,
-      current_balance: nextRemaining,
-      payment_status: nextPaymentStatus,
-      payment_method: '계좌이체',
-      paid_date: entryDate,
-    })
-
-    if (overflowAmount > 0) {
-      const legacyRemaining = getLegacyReceivableBaselineFromSnapshots(customer, legacySnapshots, fiscalSnapshots)
-      const legacyAppliedAmount = Math.min(overflowAmount, legacyRemaining)
-      const depositOverflowAmount = Math.max(0, overflowAmount - legacyAppliedAmount)
-
-      if (legacyAppliedAmount > 0) {
-        await appendLegacySettlement(customer.Id, legacyAppliedAmount, entryDate, customer)
-      }
-
-      if (depositOverflowAmount > 0) {
-        const accountingCustomer = legacyAppliedAmount > 0 ? await getCustomer(customer.Id) : customer
-        const customerMeta = parseCustomerAccountingMeta(accountingCustomer.memo as string | undefined)
-        const nextMemo = appendCustomerAccountingEvent(
-          accountingCustomer.memo as string | undefined,
-          {
-            type: 'deposit_added',
-            amount: depositOverflowAmount,
-            date: entryDate,
-            method: '계좌이체',
-            operator: activeOperator?.operatorName,
-            accountId: activeOperator?.id,
-            accountLabel: activeOperator?.label,
-            createdAt: currentTimestamp(),
-            relatedInvoiceId: candidate.invoiceId,
-            note: `자동입금 검토 큐 초과 입금 ${depositOverflowAmount.toLocaleString()}원`,
-          },
-          { depositBalance: customerMeta.depositBalance + depositOverflowAmount },
-        )
-        await updateCustomer(customer.Id, { memo: nextMemo })
-      }
-    }
-    try { await recalcCustomerStats(customer.Id) } catch {}
-  }
-
   async function handleApplyReviewItem(item: AutoDepositReviewQueueItem, candidate: AutoDepositCandidate) {
     setIsResolvingReviewKey(item.queueId)
     try {
       const entry = buildEntryFromReviewItem(item)
       const liveCandidate = getLiveCandidateDetails(candidate)
-      if (liveCandidate.kind === 'invoice' && (liveCandidate.remainingAmount ?? 0) > 0 && entry.amount > (liveCandidate.remainingAmount ?? 0)) {
-        await applyOverpaymentReviewItem(item, liveCandidate)
+      if (liveCandidate.kind === 'invoice') {
+        await applyCustomerDepositLedger(entry, liveCandidate)
       } else {
         await applyCandidate(entry, liveCandidate)
         if (liveCandidate.customerId) {
-          try { await recalcCustomerStats(liveCandidate.customerId) } catch {}
+          try {
+            await recalcCustomerStats(liveCandidate.customerId)
+          } catch (error) {
+            console.warn('[DepositInbox] 고객 통계 재계산 실패', error)
+          }
         }
       }
       await dismissAutoDepositReviewQueueItem(item.queueId, activeOperator?.label ?? 'manual', 'CRM 검토 큐에서 입금 반영 완료')
@@ -586,7 +757,7 @@ export function DepositInbox() {
                             {item.candidates.map((candidate) => {
                               const liveCandidate = getLiveCandidateDetails(candidate)
                               return (
-                              <SelectItem key={candidate.key} value={candidate.key}>
+                              <SelectItem key={liveCandidate.key} value={liveCandidate.key}>
                                 {liveCandidate.customerName} · {liveCandidate.kind === 'invoice' ? '새 입력 명세표' : '기존 장부'} · {(liveCandidate.remainingAmount ?? item.amount).toLocaleString()}원
                               </SelectItem>
                               )

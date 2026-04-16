@@ -1,0 +1,291 @@
+{
+  "operation": "smartstore_full_slow_scan_cleanup",
+  "started_at": "2026-04-16T18:45:44+00:00",
+  "delay_seconds": 1.15,
+  "exclude": "50g",
+  "scan": {
+    "list_status": 200,
+    "totalElements": 1117,
+    "totalPages": 3,
+    "origin_count": 1117
+  },
+  "matches_before": [
+    {
+      "originProductNo": 11818600667,
+      "productName": "[진짜 꽃] 부채 만들기 접이식 부채 제작 꾸미기 조개 압화 소",
+      "statusType": "SUSPENSION",
+      "matches": [
+        {
+          "id": 3144681867,
+          "groupName": "보조도구",
+          "name": "꽃레진(9g)",
+          "price": 6000,
+          "stockQuantity": 9999,
+          "usable": true
+        }
+      ]
+    },
+    {
+      "originProductNo": 10251781321,
+      "productName": "프레스코21 LED 천스탠드 사각 압화 만들기",
+      "statusType": "SALE",
+      "matches": [
+        {
+          "id": 2729089349,
+          "groupName": "꽃레진(9g)",
+          "name": "1개",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        },
+        {
+          "id": 2729089350,
+          "groupName": "꽃레진(9g)",
+          "name": "5개세트",
+          "price": 28000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    },
+    {
+      "originProductNo": 10209312809,
+      "productName": "[진짜 꽃] 부채 만들기 키트 접이식 부채 제작 꾸미기 조개 압화 소",
+      "statusType": "SALE",
+      "matches": [
+        {
+          "id": 2763201419,
+          "groupName": "보조도구",
+          "name": "꽃레진(9g)",
+          "price": 6000,
+          "stockQuantity": 9758,
+          "usable": true
+        }
+      ]
+    },
+    {
+      "originProductNo": 10165522025,
+      "productName": "프레스코21 압화 부채 만들기세트 종이 한지",
+      "statusType": "SUSPENSION",
+      "matches": [
+        {
+          "id": 2706608494,
+          "groupName": "추가상품",
+          "name": "꽃레진(9g)",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    },
+    {
+      "originProductNo": 8987956992,
+      "productName": "프레스코21 압화 만들기 LED 천스탠드 원형",
+      "statusType": "SALE",
+      "matches": [
+        {
+          "id": 2729085043,
+          "groupName": "꽃레진(9g)",
+          "name": "1개",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        },
+        {
+          "id": 2729085044,
+          "groupName": "꽃레진(9g)",
+          "name": "5개세트",
+          "price": 28000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    },
+    {
+      "originProductNo": 8813221419,
+      "productName": "프레스코21 압화 만들기 스마트폰 거치대",
+      "statusType": "SALE",
+      "matches": [
+        {
+          "id": 2285986312,
+          "groupName": "관련재료",
+          "name": "꽃레진(9g)",
+          "price": 6000,
+          "stockQuantity": 9999,
+          "usable": true
+        }
+      ]
+    },
+    {
+      "originProductNo": 8698722050,
+      "productName": "압화 부채 만들기 재료 조개부채 꽃부채 프레스코21 한국 전통 노인 어르신 아이",
+      "statusType": "SALE",
+      "matches": [
+        {
+          "id": 2835517071,
+          "groupName": "추가상품",
+          "name": "꽃레진(9g)",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    }
+  ],
+  "updates": [
+    {
+      "originProductNo": 11818600667,
+      "changed": 1,
+      "put_status": 200
+    },
+    {
+      "originProductNo": 10251781321,
+      "changed": 0
+    },
+    {
+      "originProductNo": 10209312809,
+      "changed": 1,
+      "put_status": 200
+    },
+    {
+      "originProductNo": 10165522025,
+      "changed": 0
+    },
+    {
+      "originProductNo": 8987956992,
+      "changed": 0
+    },
+    {
+      "originProductNo": 8813221419,
+      "changed": 1,
+      "put_status": 200
+    },
+    {
+      "originProductNo": 8698722050,
+      "changed": 0
+    }
+  ],
+  "matches_after": [
+    {
+      "originProductNo": 11818600667,
+      "productName": "[진짜 꽃] 부채 만들기 접이식 부채 제작 꾸미기 조개 압화 소",
+      "matches": [
+        {
+          "id": 3144681867,
+          "groupName": "보조도구",
+          "name": "꽃레진(9g)",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    },
+    {
+      "originProductNo": 10251781321,
+      "productName": "프레스코21 LED 천스탠드 사각 압화 만들기",
+      "matches": [
+        {
+          "id": 2729089349,
+          "groupName": "꽃레진(9g)",
+          "name": "1개",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        },
+        {
+          "id": 2729089350,
+          "groupName": "꽃레진(9g)",
+          "name": "5개세트",
+          "price": 28000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    },
+    {
+      "originProductNo": 10209312809,
+      "productName": "[진짜 꽃] 부채 만들기 키트 접이식 부채 제작 꾸미기 조개 압화 소",
+      "matches": [
+        {
+          "id": 2763201419,
+          "groupName": "보조도구",
+          "name": "꽃레진(9g)",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    },
+    {
+      "originProductNo": 10165522025,
+      "productName": "프레스코21 압화 부채 만들기세트 종이 한지",
+      "matches": [
+        {
+          "id": 2706608494,
+          "groupName": "추가상품",
+          "name": "꽃레진(9g)",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    },
+    {
+      "originProductNo": 8987956992,
+      "productName": "프레스코21 압화 만들기 LED 천스탠드 원형",
+      "matches": [
+        {
+          "id": 2729085043,
+          "groupName": "꽃레진(9g)",
+          "name": "1개",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        },
+        {
+          "id": 2729085044,
+          "groupName": "꽃레진(9g)",
+          "name": "5개세트",
+          "price": 28000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    },
+    {
+      "originProductNo": 8813221419,
+      "productName": "프레스코21 압화 만들기 스마트폰 거치대",
+      "matches": [
+        {
+          "id": 2285986312,
+          "groupName": "관련재료",
+          "name": "꽃레진(9g)",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    },
+    {
+      "originProductNo": 8698722050,
+      "productName": "압화 부채 만들기 재료 조개부채 꽃부채 프레스코21 한국 전통 노인 어르신 아이",
+      "matches": [
+        {
+          "id": 2835517071,
+          "groupName": "추가상품",
+          "name": "꽃레진(9g)",
+          "price": 6000,
+          "stockQuantity": 0,
+          "usable": false
+        }
+      ]
+    }
+  ],
+  "errors": [],
+  "finished_at": "2026-04-16T19:11:15+00:00",
+  "summary": {
+    "matched_products": 7,
+    "changed_products": 3,
+    "error_count": 0
+  }
+}

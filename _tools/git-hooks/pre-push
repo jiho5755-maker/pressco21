@@ -1,24 +1,11 @@
 #!/bin/bash
-# pre-push hook: AI_SYNC.md 충돌 경고 (차단 안 함)
+# pre-push hook: AI_SYNC.md는 더 이상 운영 lock으로 사용하지 않습니다.
+# 현재 push 자체는 차단하지 않고, 위험한 secret 파일 변경만 방지합니다.
 
-SYNC_FILE="AI_SYNC.md"
-
-if [ ! -f "$SYNC_FILE" ]; then
-  exit 0
+if git status --short -- .secrets.env .secrets .env.local n8n-automation/.secrets | grep -q .; then
+  echo "ERROR: 인증키/환경 파일 변경이 감지되어 push를 중단합니다." >&2
+  git status --short -- .secrets.env .secrets .env.local n8n-automation/.secrets >&2
+  exit 1
 fi
 
-# Current Owner 확인
-CURRENT_OWNER=$(grep -i "Current Owner" "$SYNC_FILE" 2>/dev/null | head -1)
-MODE=$(grep -i "^Mode" "$SYNC_FILE" 2>/dev/null | head -1 || grep -i "| Mode" "$SYNC_FILE" 2>/dev/null | head -1)
-
-# 다른 에이전트가 WRITE 모드인지 확인
-if echo "$CURRENT_OWNER" | grep -qi "codex\|Codex" && echo "$MODE" | grep -qi "WRITE"; then
-  echo ""
-  echo "⚠️  경고: AI_SYNC.md에서 Codex가 WRITE 모드입니다."
-  echo "  충돌 가능성이 있으니 AI_SYNC.md를 확인해 주세요."
-  echo "  (push는 계속 진행됩니다)"
-  echo ""
-fi
-
-# 차단하지 않음
 exit 0

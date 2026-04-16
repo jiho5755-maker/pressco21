@@ -2,7 +2,7 @@
 
 > 꽃 공예 온라인 클래스 플랫폼. 메이크샵 D4(카멜레온) 위에 구축.
 > 모드 A(보조): 리팩토링, 코드 리뷰, 버그 수정 | 모드 B(독립): 기획~개발까지 총괄 가능
-> 모드 확인: AI_SYNC.md의 태스크 prefix 참조 (`[CODEX]` vs `[CODEX-LEAD]`)
+> 작업 방식: `work/partnerclass/<task>` 브랜치와 프로젝트 worktree에서 진행. 같은 worktree는 WRITE AI 1명 원칙.
 
 ---
 

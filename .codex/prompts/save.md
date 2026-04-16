@@ -15,7 +15,7 @@ Convert the user's trailing `/prompts:save ...` text into a real session save ac
 
 - Canonical helper: `_tools/codex-save.sh`
 - Session memory layers:
-  - `AI_SYNC.md`
+  - current branch/worktree scope (`bash _tools/pressco21-check.sh`)
   - `output/codex-sessions/`
   - `output/codex-backups/`
   - `output/codex-handoffs/`

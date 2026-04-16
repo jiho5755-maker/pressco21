@@ -37,7 +37,7 @@ Accept any of these forms:
    - `bash _tools/codex-branch.sh "<label>" <paths...>`
 4. If the helper does not exist, stop and tell the user this command is currently wired only for repos that include the preserve helpers, such as `pressco21`.
 5. If the user omitted the label, infer a short one from the described risky step.
-6. If the user omitted paths, first try the active scope from `AI_SYNC.md` or the clearly described working area.
+6. If the user omitted paths, first try the current branch/worktree scope via `bash _tools/pressco21-check.sh` or the clearly described working area.
 7. If no safe scope can be inferred, ask one concise follow-up instead of creating a repo-wide branchpoint.
 
 ## Output

@@ -105,10 +105,7 @@ head_commit="$(codex_git_head_short)"
 git_status="$(codex_git_status)"
 git_diff_stat="$(codex_git_diff_stat)"
 recent_commits="$(git -C "$CODEX_REPO_ROOT" log --oneline -3 2>/dev/null || true)"
-ai_owner="$(codex_ai_sync_field "Current Owner")"
-ai_mode="$(codex_ai_sync_field "Mode")"
-ai_scope="$(codex_ai_sync_field "Working Scope")"
-ai_subdirectory="$(codex_ai_sync_field "Active Subdirectory")"
+branch_scope="$(codex_branch_scope)"
 omx_status="$(codex_omx_status)"
 active_teams="$(find "$CODEX_REPO_ROOT/.omx/state/team" -maxdepth 1 -mindepth 1 -type d -exec basename {} \; 2>/dev/null | sort || true)"
 session_rel="$(codex_repo_rel "$session_file")"
@@ -154,12 +151,10 @@ cat > "$handoff_file" <<EOF
 - Backup Folder: $backup_rel
 - Backup Paths: $paths_joined
 
-## AI_SYNC Snapshot
+## Worktree Scope Snapshot
 
-- Current Owner: $ai_owner
-- Mode: $ai_mode
-- Working Scope: $ai_scope
-- Active Subdirectory: $ai_subdirectory
+- Branch: $branch
+- Scope: $branch_scope
 
 ## OMX Snapshot
 

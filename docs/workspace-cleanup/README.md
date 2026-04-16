@@ -28,7 +28,7 @@ Open only that worktree in Cursor before starting Codex or Claude Code.
 - Company context is read from `company-knowledge/`.
 - Project worktrees may read `company-knowledge/`, but should not edit it.
 - If company knowledge needs changes, create a separate `docs/company-knowledge/...` branch or worktree.
-- Shared files such as `AGENTS.md`, `CLAUDE.md`, `AI_SYNC.md`, and broad `docs/` files should not be edited from a project worktree unless the task explicitly requires it.
+- Shared files such as `AGENTS.md`, `CLAUDE.md`, and broad `docs/` files should not be edited from a project worktree unless the task explicitly requires it. `AI_SYNC.md` is retired and archived.
 
 ## Cleanup Guardrails
 

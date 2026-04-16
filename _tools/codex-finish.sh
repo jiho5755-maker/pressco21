@@ -74,12 +74,7 @@ git_diff_stat="$(codex_git_diff_stat)"
 } >> "$session_file"
 
 printf 'Session closed: %s\n' "$(codex_repo_rel "$session_file")"
-printf '\nSuggested AI_SYNC close-out:\n'
-printf -- '- Current Owner: IDLE\n'
-printf -- '- Mode: —\n'
-printf -- '- Started At: —\n'
-printf -- '- Working Scope: —\n'
-printf -- '- Active Subdirectory: —\n'
+printf '\nNext: run bash _tools/pressco21-check.sh, commit allowed paths, then merge the task branch into main after verification.\n'
 printf -- '- Summary: %s\n' "$summary"
 printf -- '- Next Step: %s\n' "$next_step"
 if [ -n "$risk" ]; then

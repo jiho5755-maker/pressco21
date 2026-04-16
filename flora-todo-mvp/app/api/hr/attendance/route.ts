@@ -4,6 +4,66 @@ import { hrEmployeeRegistryRepository } from "@/src/db/repositories/hrEmployeeRe
 import { staffRepository } from "@/src/db/repositories/staffRepository";
 import { resolveHrActor, isHrAutomationAuthorized } from "@/src/lib/hr-auth";
 
+type ClockType = "clock_in" | "clock_out";
+
+// 오늘 이미 찍힌 기록을 기준으로 상태 전이 가능 여부 판단
+// 중복 방지 상태머신: 출근 전 | 출근 후 | 퇴근 완료
+async function validateStateTransition(staffId: string, type: ClockType) {
+  const todayRecords = await hrAttendanceRepository.getTodayByStaffId(staffId);
+  // 정정된 원본은 무시 (correctedBy !== null 인 건 이미 대체됨)
+  const effective = todayRecords.filter((r) => r.correctedBy === null);
+  const clockIn = effective.find((r) => r.type === "clock_in");
+  const clockOut = effective.find((r) => r.type === "clock_out");
+
+  if (type === "clock_in") {
+    if (clockOut) {
+      return {
+        status: 409,
+        body: {
+          ok: false,
+          error: "already_clocked_out",
+          message: "오늘 이미 퇴근까지 완료되었습니다. 재출근은 관리자(장지호) 정정 요청이 필요합니다.",
+          existingRecord: clockOut,
+        },
+      };
+    }
+    if (clockIn) {
+      return {
+        status: 409,
+        body: {
+          ok: false,
+          error: "already_clocked_in",
+          message: "이미 출근 기록이 있습니다.",
+          existingRecord: clockIn,
+        },
+      };
+    }
+  } else {
+    if (!clockIn) {
+      return {
+        status: 422,
+        body: {
+          ok: false,
+          error: "needs_clock_in",
+          message: "출근 기록이 없습니다. 먼저 출근을 기록해주세요.",
+        },
+      };
+    }
+    if (clockOut) {
+      return {
+        status: 409,
+        body: {
+          ok: false,
+          error: "already_clocked_out",
+          message: "이미 퇴근 기록이 있습니다.",
+          existingRecord: clockOut,
+        },
+      };
+    }
+  }
+  return null;
+}
+
 /**
  * POST /api/hr/attendance — 출퇴근/업무보고 기록
  *
@@ -11,6 +71,8 @@ import { resolveHrActor, isHrAutomationAuthorized } from "@/src/lib/hr-auth";
  * 미니앱에서 호출: telegram initData → 자동 staffId
  *
  * 동의 미완료 시 403 { needsConsent: true } 반환
+ * 중복 기록 시 409 (already_clocked_in / already_clocked_out) 반환
+ * 퇴근 선행 시 422 (needs_clock_in) 반환
  */
 export async function POST(request: NextRequest) {
   try {
@@ -47,6 +109,11 @@ export async function POST(request: NextRequest) {
           },
           { status: 403 },
         );
+      }
+
+      const stateError = await validateStateTransition(hrActor.staffId, type);
+      if (stateError) {
+        return Response.json(stateError.body, { status: stateError.status });
       }
 
       const record = await hrAttendanceRepository.create({
@@ -112,6 +179,11 @@ export async function POST(request: NextRequest) {
           },
           { status: 403 },
         );
+      }
+
+      const stateError = await validateStateTransition(staffId, type);
+      if (stateError) {
+        return Response.json(stateError.body, { status: stateError.status });
       }
 
       const record = await hrAttendanceRepository.create({

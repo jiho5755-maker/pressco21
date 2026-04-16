@@ -18,7 +18,7 @@
     },
     {
       "parameters": {
-        "jsCode": "var item = $input.first().json;\nvar userTier = item._tier || 'senior';\nvar isCallback = !!item.callback_query;\nvar chatId = '', telegramUserId = '', callbackQueryId = '', messageId = '', firstName = '';\nvar action = 'unknown', args = '', workMode = '', pendingWorkMode = '';\n\nif (isCallback) {\n  var cq = item.callback_query;\n  chatId = String(cq.message && cq.message.chat ? cq.message.chat.id : (cq.from ? cq.from.id : ''));\n  telegramUserId = String(cq.from ? cq.from.id : '');\n  callbackQueryId = cq.id || '';\n  messageId = String(cq.message ? cq.message.message_id : '');\n  firstName = cq.from ? (cq.from.first_name || '') : '';\n  var data = cq.data || '';\n  if (data.indexOf('hr:consent:yes:') === 0) {\n    action = 'do_consent';\n    pendingWorkMode = data.split(':')[3];\n  } else if (data === 'hr:consent:no') {\n    action = 'consent_declined';\n  }\n} else if (item.message) {\n  var msg = item.message;\n  chatId = String(msg.chat ? msg.chat.id : (msg.from ? msg.from.id : ''));\n  telegramUserId = String(msg.from ? msg.from.id : '');\n  messageId = String(msg.message_id || '');\n  firstName = msg.from ? (msg.from.first_name || '') : '';\n  var text = (msg.text || '').trim();\n\n  // 첫 단어 추출 (regex 없이, space 기준) + @봇이름 제거\n  var firstWord = text.split(' ')[0] || '';\n  firstWord = firstWord.split('@')[0].toLowerCase();\n\n  var menuCmds = ['/시작', '/start', '/menu', '/메뉴'];\n  var clockoutCmds = ['/퇴근', '/clockout'];\n\n  if (menuCmds.indexOf(firstWord) >= 0) {\n    action = 'show_keyboard';\n  } else if (text === '🏢 사업장 출근' || firstWord === '/clockin_office') {\n    action = 'clockin'; workMode = 'office';\n  } else if (text === '🏠 재택 출근' || firstWord === '/clockin_remote') {\n    action = 'clockin'; workMode = 'remote';\n  } else if (text === '📸 외근 출근' || firstWord === '/clockin_field') {\n    action = 'clockin'; workMode = 'field';\n  } else if (text === '✅ 퇴근' || clockoutCmds.indexOf(firstWord) >= 0) {\n    action = 'clockout';\n  } else if (text) {\n    action = 'free_text'; args = text;\n  }\n}\n\n// tier별 show_keyboard 재분류\nif (action === 'show_keyboard') {\n  if (userTier === 'junior_remote') action = 'show_remote_intro';\n  else if (userTier === 'admin_cmd_only') action = 'show_admin_intro';\n}\n\nreturn [{ json: {\n  action: action,\n  userTier: userTier,\n  chatId: chatId,\n  telegramUserId: telegramUserId,\n  args: args,\n  workMode: workMode,\n  pendingWorkMode: pendingWorkMode,\n  callbackQueryId: callbackQueryId,\n  messageId: messageId,\n  firstName: firstName\n} }];"
+        "jsCode": "var item = $input.first().json;\nvar userTier = item._tier || 'senior';\nvar isCallback = !!item.callback_query;\nvar chatId = '', telegramUserId = '', callbackQueryId = '', messageId = '', firstName = '';\nvar action = 'unknown', args = '', workMode = '', pendingWorkMode = '', pendingCancelId = '';\n\nif (isCallback) {\n  var cq = item.callback_query;\n  chatId = String(cq.message && cq.message.chat ? cq.message.chat.id : (cq.from ? cq.from.id : ''));\n  telegramUserId = String(cq.from ? cq.from.id : '');\n  callbackQueryId = cq.id || '';\n  messageId = String(cq.message ? cq.message.message_id : '');\n  firstName = cq.from ? (cq.from.first_name || '') : '';\n  var data = cq.data || '';\n  if (data.indexOf('hr:consent:yes:') === 0) {\n    action = 'do_consent';\n    pendingWorkMode = data.split(':')[3];\n  } else if (data === 'hr:consent:no') {\n    action = 'consent_declined';\n  } else if (data.indexOf('hr:cancel:') === 0) {\n    action = 'do_cancel';\n    pendingCancelId = data.substring('hr:cancel:'.length);\n  }\n} else if (item.message) {\n  var msg = item.message;\n  chatId = String(msg.chat ? msg.chat.id : (msg.from ? msg.from.id : ''));\n  telegramUserId = String(msg.from ? msg.from.id : '');\n  messageId = String(msg.message_id || '');\n  firstName = msg.from ? (msg.from.first_name || '') : '';\n  var text = (msg.text || '').trim();\n  var firstWord = text.split(' ')[0] || '';\n  firstWord = firstWord.split('@')[0].toLowerCase();\n  var menuCmds = ['/시작', '/start', '/menu', '/메뉴'];\n  var clockoutCmds = ['/퇴근', '/clockout'];\n  if (menuCmds.indexOf(firstWord) >= 0) {\n    action = 'show_keyboard';\n  } else if (text === '🏢 사업장 출근' || firstWord === '/clockin_office') {\n    action = 'clockin'; workMode = 'office';\n  } else if (text === '🏠 재택 출근' || firstWord === '/clockin_remote') {\n    action = 'clockin'; workMode = 'remote';\n  } else if (text === '📸 외근 출근' || firstWord === '/clockin_field') {\n    action = 'clockin'; workMode = 'field';\n  } else if (text === '✅ 퇴근' || clockoutCmds.indexOf(firstWord) >= 0) {\n    action = 'clockout';\n  } else if (text) {\n    action = 'free_text'; args = text;\n  }\n}\n\nif (action === 'show_keyboard') {\n  if (userTier === 'junior_remote') action = 'show_remote_intro';\n  else if (userTier === 'admin_cmd_only') action = 'show_admin_intro';\n}\n\nreturn [{ json: {\n  action: action, userTier: userTier, chatId: chatId, telegramUserId: telegramUserId,\n  args: args, workMode: workMode, pendingWorkMode: pendingWorkMode,\n  pendingCancelId: pendingCancelId,\n  callbackQueryId: callbackQueryId, messageId: messageId, firstName: firstName\n} }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -210,6 +210,28 @@
               },
               "renameOutput": true,
               "outputKey": "대표자안내"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.action }}",
+                    "rightValue": "do_cancel",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "취소"
             }
           ]
         },
@@ -322,7 +344,7 @@
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp; if (typeof body === \"string\") { try { body = JSON.parse(body); } catch(e) {} }var mode = 'direct';var message = '';var consentKeyboard = '';if (statusCode === 201 && body.ok) {  var now = new Date(Date.now() + 9*3600000);  var hh = String(now.getHours()).padStart(2,'0');  var mm = String(now.getMinutes()).padStart(2,'0');  var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };  var modeText = modeLabel[parse.workMode] || parse.workMode;  if (body.isDeemedHours) {    message = '✅ ' + body.staffName + '님, 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\\n\\n소정근로시간(8시간)을 근로한 것으로 간주합니다.\\n\\n📝 업무 내용은 메시지로 보내주세요.';  } else {    message = '✅ ' + body.staffName + '님, 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')';  }} else if (statusCode === 403 && body.needsConsent) {  mode = 'consent';  message = '📋 개인정보 수집·이용 동의\\n\\n출퇴근 기록, 업무일지 등 HR 데이터가 근로기준법 제42조에 따라 3년간 보관됩니다.\\n\\n동의하시겠습니까?';  consentKeyboard = JSON.stringify({ inline_keyboard: [[{ text: '✅ 동의합니다', callback_data: 'hr:consent:yes:' + parse.workMode }, { text: '❌ 거부', callback_data: 'hr:consent:no' }]] });} else if (statusCode === 404) {  message = '❌ 등록되지 않은 사용자입니다. 관리자에게 문의하세요.';} else {  message = '❌ 오류: ' + (body.error || '알 수 없는 오류');}return [{ json: { mode: mode, message: message, consentKeyboard: consentKeyboard, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;\nvar resp = $input.first().json;\nvar statusCode = resp.statusCode || 200;\nvar body = resp.body || resp;\nif (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) {} }\n\nvar mode = 'direct';\nvar message = '';\nvar consentKeyboard = '';\nvar recordId = '';\n\nfunction fmtTime(iso) {\n  if (!iso) return '';\n  var d = new Date(iso);\n  var k = new Date(d.getTime() + 9*3600000);\n  return String(k.getUTCHours()).padStart(2,'0') + ':' + String(k.getUTCMinutes()).padStart(2,'0');\n}\n\nif (statusCode === 201 && body.ok) {\n  mode = 'direct';\n  recordId = body.record ? body.record.id : '';\n  var now = new Date(Date.now() + 9*3600000);\n  var hh = String(now.getUTCHours()).padStart(2,'0');\n  var mm = String(now.getUTCMinutes()).padStart(2,'0');\n  var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };\n  var modeText = modeLabel[parse.workMode] || parse.workMode;\n  if (body.isDeemedHours) {\n    message = '✅ ' + body.staffName + '님, 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\\n\\n소정근로시간(8시간) 근로한 것으로 간주합니다.\\n\\n📝 업무 내용은 메시지로 보내주세요.\\n\\n⏱ 실수로 누르셨다면 10분 내 아래 버튼으로 취소 가능합니다.';\n  } else {\n    message = '✅ ' + body.staffName + '님, 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')\\n\\n⏱ 실수로 누르셨다면 10분 내 아래 버튼으로 취소 가능합니다.';\n  }\n} else if (statusCode === 403 && body.needsConsent) {\n  mode = 'consent';\n  message = '📋 개인정보 수집·이용 동의\\n\\n출퇴근 기록, 업무일지 등 HR 데이터가 근로기준법 제42조에 따라 3년간 보관됩니다.\\n\\n동의하시겠습니까?';\n  consentKeyboard = JSON.stringify({ inline_keyboard: [[{ text: '✅ 동의합니다', callback_data: 'hr:consent:yes:' + parse.workMode }, { text: '❌ 거부', callback_data: 'hr:consent:no' }]] });\n} else if (statusCode === 409 && body.error === 'already_clocked_in') {\n  mode = 'error';\n  var t = fmtTime(body.existingRecord ? body.existingRecord.recordedAt : null);\n  message = '⚠️ 이미 ' + (t ? t + '에 ' : '') + '출근 기록이 있습니다.\\n\\n수정이 필요하면 관리자(장지호)에게 요청해주세요.';\n} else if (statusCode === 409 && body.error === 'already_clocked_out') {\n  mode = 'error';\n  message = '⚠️ 오늘 이미 퇴근까지 완료되었습니다.\\n\\n재출근은 관리자(장지호) 정정 요청이 필요합니다.';\n} else if (statusCode === 404) {\n  mode = 'error';\n  message = '❌ 등록되지 않은 사용자입니다. 관리자에게 문의하세요.';\n} else {\n  mode = 'error';\n  message = '❌ 오류: ' + (body.message || body.error || '알 수 없는 오류');\n}\n\nreturn [{ json: { mode: mode, message: message, consentKeyboard: consentKeyboard, chatId: parse.chatId, recordId: recordId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -358,6 +380,28 @@
               },
               "renameOutput": true,
               "outputKey": "동의필요"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mode }}",
+                    "rightValue": "error",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "에러"
             }
           ]
         },
@@ -426,6 +470,23 @@
         "text": "={{ $json.message }}",
         "additionalFields": {
           "appendAttribution": false
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "↩️ 방금 기록 취소",
+                    "additionalFields": {
+                      "callback_data": "=hr:cancel:{{ $json.recordId }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
         }
       },
       "type": "n8n-nodes-base.telegram",
@@ -546,7 +607,7 @@
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var body = resp.body || resp; if (typeof body === \"string\") { try { body = JSON.parse(body); } catch(e) {} }var message = '';var now = new Date(Date.now() + 9*3600000);var hh = String(now.getHours()).padStart(2,'0');var mm = String(now.getMinutes()).padStart(2,'0');var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };var modeText = modeLabel[parse.pendingWorkMode] || parse.pendingWorkMode;if (body.ok) {  if (body.isDeemedHours) {    message = '✅ 동의 완료 + 업무 시작 보고 접수 (' + hh + ':' + mm + ', ' + modeText + ')\\n\\n소정근로시간(8시간)을 근로한 것으로 간주합니다.\\n\\n📝 업무 내용은 메시지로 보내주세요.';  } else {    message = '✅ 동의 완료 + 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')';  }} else {  message = '❌ 출근 기록 실패: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;\nvar resp = $input.first().json;\nvar body = resp.body || resp;\nif (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) {} }\n\nvar message = '';\nvar recordId = '';\nif (body.ok && body.record) {\n  recordId = body.record.id;\n  var now = new Date(Date.now() + 9*3600000);\n  var hh = String(now.getUTCHours()).padStart(2,'0');\n  var mm = String(now.getUTCMinutes()).padStart(2,'0');\n  var modeLabel = { office: '사업장', remote: '재택', field: '외근/촬영' };\n  var modeText = modeLabel[parse.pendingWorkMode] || parse.pendingWorkMode;\n  message = '✅ 동의 완료 + 출근 기록 완료 (' + hh + ':' + mm + ', ' + modeText + ')\\n\\n⏱ 실수로 누르셨다면 10분 내 아래 버튼으로 취소 가능합니다.';\n} else {\n  message = '❌ 기록 실패: ' + (body.message || body.error || '알 수 없는 오류');\n}\n\nreturn [{ json: { message: message, chatId: parse.chatId, recordId: recordId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -563,6 +624,23 @@
         "text": "={{ $json.message }}",
         "additionalFields": {
           "appendAttribution": false
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "↩️ 방금 기록 취소",
+                    "additionalFields": {
+                      "callback_data": "=hr:cancel:{{ $json.recordId }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
         }
       },
       "type": "n8n-nodes-base.telegram",
@@ -668,7 +746,7 @@
     },
     {
       "parameters": {
-        "jsCode": "var parse = $('명령어 파싱').first().json;var resp = $input.first().json;var statusCode = resp.statusCode || 200;var body = resp.body || resp; if (typeof body === \"string\") { try { body = JSON.parse(body); } catch(e) {} }var message = '';if (statusCode === 201 && body.ok) {  var now = new Date(Date.now() + 9*3600000);  var hh = String(now.getHours()).padStart(2,'0');  var mm = String(now.getMinutes()).padStart(2,'0');  if (body.isDeemedHours) {    message = '✅ ' + body.staffName + '님, 업무 종료 보고 접수 (' + hh + ':' + mm + ')\\n\\n오늘도 수고하셨습니다.';  } else {    message = '✅ ' + body.staffName + '님, 퇴근 기록 완료 (' + hh + ':' + mm + ')\\n\\n오늘도 수고하셨습니다.';  }} else if (statusCode === 403) {  message = '📋 개인정보 동의가 필요합니다.\\n출근 버튼을 먼저 사용해주세요.';} else if (statusCode === 404) {  message = '❌ 등록되지 않은 사용자입니다.';} else {  message = '❌ 오류: ' + (body.error || '알 수 없는 오류');}return [{ json: { message: message, chatId: parse.chatId } }];"
+        "jsCode": "var parse = $('명령어 파싱').first().json;\nvar resp = $input.first().json;\nvar statusCode = resp.statusCode || 200;\nvar body = resp.body || resp;\nif (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) {} }\n\nvar mode = 'direct';\nvar message = '';\nvar recordId = '';\n\nfunction fmtTime(iso) {\n  if (!iso) return '';\n  var d = new Date(iso);\n  var k = new Date(d.getTime() + 9*3600000);\n  return String(k.getUTCHours()).padStart(2,'0') + ':' + String(k.getUTCMinutes()).padStart(2,'0');\n}\n\nif (statusCode === 201 && body.ok) {\n  mode = 'direct';\n  recordId = body.record ? body.record.id : '';\n  var now = new Date(Date.now() + 9*3600000);\n  var hh = String(now.getUTCHours()).padStart(2,'0');\n  var mm = String(now.getUTCMinutes()).padStart(2,'0');\n  if (body.isDeemedHours) {\n    message = '✅ ' + body.staffName + '님, 업무 종료 보고 접수 (' + hh + ':' + mm + ')\\n\\n오늘도 수고하셨습니다.\\n\\n⏱ 실수로 누르셨다면 10분 내 아래 버튼으로 취소 가능합니다.';\n  } else {\n    message = '✅ ' + body.staffName + '님, 퇴근 기록 완료 (' + hh + ':' + mm + ')\\n\\n오늘도 수고하셨습니다.\\n\\n⏱ 실수로 누르셨다면 10분 내 아래 버튼으로 취소 가능합니다.';\n  }\n} else if (statusCode === 409 && body.error === 'already_clocked_out') {\n  mode = 'error';\n  var t = fmtTime(body.existingRecord ? body.existingRecord.recordedAt : null);\n  message = '⚠️ 이미 ' + (t ? t + '에 ' : '') + '퇴근 기록이 있습니다.\\n\\n수정이 필요하면 관리자(장지호)에게 요청해주세요.';\n} else if (statusCode === 422 && body.error === 'needs_clock_in') {\n  mode = 'error';\n  message = '⚠️ 출근 기록이 없습니다.\\n\\n먼저 🏢/🏠/📸 출근 버튼을 사용해주세요.';\n} else if (statusCode === 403) {\n  mode = 'error';\n  message = '📋 개인정보 동의가 필요합니다.\\n출근 버튼을 먼저 사용해주세요.';\n} else if (statusCode === 404) {\n  mode = 'error';\n  message = '❌ 등록되지 않은 사용자입니다.';\n} else {\n  mode = 'error';\n  message = '❌ 오류: ' + (body.message || body.error || '알 수 없는 오류');\n}\n\nreturn [{ json: { mode: mode, message: message, chatId: parse.chatId, recordId: recordId } }];"
       },
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
@@ -685,6 +763,23 @@
         "text": "={{ $json.message }}",
         "additionalFields": {
           "appendAttribution": false
+        },
+        "replyMarkup": "inlineKeyboard",
+        "inlineKeyboard": {
+          "rows": [
+            {
+              "row": {
+                "buttons": [
+                  {
+                    "text": "↩️ 방금 기록 취소",
+                    "additionalFields": {
+                      "callback_data": "=hr:cancel:{{ $json.recordId }}"
+                    }
+                  }
+                ]
+              }
+            }
+          ]
         }
       },
       "type": "n8n-nodes-base.telegram",
@@ -926,6 +1021,189 @@
           "name": "Pressco메이크샵봇"
         }
       }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "caseSensitive": true,
+                  "leftValue": ""
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.mode }}",
+                    "rightValue": "error",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "에러"
+            }
+          ]
+        },
+        "options": {
+          "fallbackOutput": "extra"
+        }
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.2,
+      "position": [
+        1640,
+        960
+      ],
+      "id": "clockout-result-switch",
+      "name": "퇴근 결과 분기"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1700,
+        400
+      ],
+      "id": "clockin-error-send",
+      "name": "출근 에러 발송",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1900,
+        1060
+      ],
+      "id": "clockout-error-send",
+      "name": "퇴근 에러 발송",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "callback",
+        "queryId": "={{ $('명령어 파싱').first().json.callbackQueryId }}",
+        "results": "↩️ 취소 처리 중..."
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        700,
+        1400
+      ],
+      "id": "cancel-callback-ack",
+      "name": "콜백 응답 (취소)",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://mini.pressco21.com/api/hr/attendance/cancel",
+        "authentication": "none",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "x-flora-automation-key",
+              "value": "={{ $env.FLORA_HR_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "jsonBody": "={{ JSON.stringify({ recordId: $('명령어 파싱').first().json.pendingCancelId, telegramUserId: $('명령어 파싱').first().json.telegramUserId }) }}",
+        "options": {
+          "response": {
+            "response": {
+              "neverError": true,
+              "fullResponse": true
+            }
+          }
+        },
+        "specifyBody": "json"
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        900,
+        1400
+      ],
+      "id": "api-cancel",
+      "name": "API 기록 취소"
+    },
+    {
+      "parameters": {
+        "jsCode": "var parse = $('명령어 파싱').first().json;\nvar resp = $input.first().json;\nvar statusCode = resp.statusCode || 200;\nvar body = resp.body || resp;\nif (typeof body === 'string') { try { body = JSON.parse(body); } catch(e) {} }\n\nvar message = '';\nif (statusCode === 200 && body.ok) {\n  var typeLabel = body.originalType === 'clock_in' ? '출근' : '퇴근';\n  message = '↩️ ' + typeLabel + ' 기록이 취소되었습니다.\\n\\n필요하면 다시 버튼을 눌러주세요.';\n} else if (statusCode === 408) {\n  message = '⏰ 취소 가능 시간(10분)이 지났습니다.\\n\\n관리자(장지호)에게 정정을 요청해주세요.';\n} else if (statusCode === 409) {\n  message = '⚠️ 이미 취소된 기록입니다.';\n} else if (statusCode === 403) {\n  message = '⛔ 본인의 기록만 취소할 수 있습니다.';\n} else if (statusCode === 404) {\n  message = '❌ 해당 기록을 찾을 수 없습니다.';\n} else {\n  message = '❌ 오류: ' + (body.message || body.error || '알 수 없는 오류');\n}\n\nreturn [{ json: { message: message, chatId: parse.chatId } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1100,
+        1400
+      ],
+      "id": "cancel-format",
+      "name": "취소 결과 포맷"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "appendAttribution": false
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        1300,
+        1400
+      ],
+      "id": "cancel-send",
+      "name": "취소 결과 발송",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
     }
   ],
   "connections": {
@@ -1008,6 +1286,13 @@
             "type": "main",
             "index": 0
           }
+        ],
+        [
+          {
+            "node": "콜백 응답 (취소)",
+            "type": "main",
+            "index": 0
+          }
         ]
       ]
     },
@@ -1038,6 +1323,13 @@
         [
           {
             "node": "동의 요청 발송",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "출근 에러 발송",
             "type": "main",
             "index": 0
           }
@@ -1121,7 +1413,7 @@
       "main": [
         [
           {
-            "node": "퇴근 결과 발송",
+            "node": "퇴근 결과 분기",
             "type": "main",
             "index": 0
           }
@@ -1173,6 +1465,57 @@
         [
           {
             "node": "업무일지 결과 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "퇴근 결과 분기": {
+      "main": [
+        [
+          {
+            "node": "퇴근 에러 발송",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "퇴근 결과 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "콜백 응답 (취소)": {
+      "main": [
+        [
+          {
+            "node": "API 기록 취소",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "API 기록 취소": {
+      "main": [
+        [
+          {
+            "node": "취소 결과 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "취소 결과 포맷": {
+      "main": [
+        [
+          {
+            "node": "취소 결과 발송",
             "type": "main",
             "index": 0
           }

@@ -175,4 +175,49 @@ export const hrAttendanceRepository = {
       .limit(1);
     return found ?? null;
   },
+
+  // 본인이 방금 실수로 누른 기록 취소 (10분 윈도우)
+  // self-reference correctedBy로 무효 마킹하여 Append-Only 유지
+  async cancel(
+    originalId: string,
+    actor: { actorId: string; actorName: string; reason: string },
+  ) {
+    const newId = randomUUID();
+    const original = await hrAttendanceRepository.findById(originalId);
+    if (!original) throw new Error("원본 기록이 없습니다");
+
+    const [cancelled] = await db
+      .insert(hrAttendance)
+      .values({
+        id: newId,
+        staffId: original.staffId,
+        staffName: original.staffName,
+        type: original.type,
+        workMode: original.workMode,
+        isDeemedHours: original.isDeemedHours,
+        source: original.source as "telegram" | "miniapp",
+        note: `[CANCELLED] ${actor.reason}`,
+        correctedBy: newId, // self-reference = 무효 마커
+      })
+      .returning();
+
+    // 원본도 취소 레코드 참조하여 무효화
+    await db
+      .update(hrAttendance)
+      .set({ correctedBy: newId })
+      .where(eq(hrAttendance.id, originalId));
+
+    await hrAuditLogRepository.create({
+      targetTable: "hr_attendance",
+      targetId: originalId,
+      action: "cancel",
+      actorId: actor.actorId,
+      actorName: actor.actorName,
+      beforeData: original as unknown as Record<string, unknown>,
+      afterData: cancelled as unknown as Record<string, unknown>,
+      reason: actor.reason,
+    });
+
+    return cancelled;
+  },
 };

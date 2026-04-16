@@ -645,8 +645,12 @@ export function InvoiceDialog({
   const prevBal = form.previous_balance ?? 0
   const paidAmt = form.paid_amount ?? 0
   const activeCustomerAccounting = parseCustomerAccountingMeta((currentCustomer ?? selectedCustomer)?.memo as string | undefined)
-  const availableDeposit = activeCustomerAccounting.depositBalance
-  const appliedDeposit = Math.min(depositUseAmount, prevBal + grandTotal, availableDeposit)
+  const previousInvoiceDepositUsed = invoiceId && !isCopy
+    ? getInvoiceDepositUsedAmount(existingInvoice?.memo as string | undefined)
+    : 0
+  const availableDeposit = activeCustomerAccounting.depositBalance + previousInvoiceDepositUsed
+  const maxDepositApplicable = Math.min(availableDeposit, prevBal + grandTotal)
+  const appliedDeposit = Math.min(depositUseAmount, maxDepositApplicable)
   const curBal = prevBal + grandTotal - paidAmt - appliedDeposit
 
   // 바깥 클릭 시 드롭다운 닫기
@@ -711,7 +715,9 @@ export function InvoiceDialog({
         selectCustomer(linkedCustomer)
         return
       }
-    } catch {}
+    } catch (error) {
+      console.warn('[InvoiceDialog] 최근 거래처 연결 조회 실패', error)
+    }
 
     setCustomerInput(option.customerName)
     setSelectedCustomer(null)
@@ -1075,33 +1081,35 @@ export function InvoiceDialog({
       // 잔액 재계산
       const effectiveCustomerId = normalizePositiveId(form.customer_id)
       if (effectiveCustomerId) {
-        if (appliedDeposit > 0) {
+        const previousDepositUsed = invoiceId && !isCopy
+          ? getInvoiceDepositUsedAmount(existingInvoice?.memo as string | undefined)
+          : 0
+        const deltaDepositUsed = appliedDeposit - previousDepositUsed
+        if (deltaDepositUsed !== 0) {
           const latestCustomer = await getCustomer(effectiveCustomerId)
-          const previousDepositUsed = invoiceId && !isCopy
-            ? getInvoiceDepositUsedAmount(existingInvoice?.memo as string | undefined)
-            : 0
-          const deltaDepositUsed = appliedDeposit - previousDepositUsed
-          if (deltaDepositUsed !== 0) {
-            const sourceMeta = parseCustomerAccountingMeta(latestCustomer.memo as string | undefined)
-            const nextDepositBalance = deltaDepositUsed > 0
-              ? Math.max(0, sourceMeta.depositBalance - deltaDepositUsed)
-              : sourceMeta.depositBalance + Math.abs(deltaDepositUsed)
-            const nextCustomerMemo = appendCustomerAccountingEvent(
-              latestCustomer.memo as string | undefined,
-              {
-                type: deltaDepositUsed > 0 ? 'deposit_used' : 'deposit_added',
-                amount: Math.abs(deltaDepositUsed),
-                date: normalizeInvoiceDate(form.invoice_date),
-                method: deltaDepositUsed > 0 ? '예치금 사용' : '예치금 원복',
-                relatedInvoiceId: invId,
-                note: customerInput || customerSnapshot?.customer_name || form.customer_name,
-              },
-              { depositBalance: nextDepositBalance },
-            )
-            await updateCustomer(effectiveCustomerId, { memo: nextCustomerMemo })
-          }
+          const sourceMeta = parseCustomerAccountingMeta(latestCustomer.memo as string | undefined)
+          const nextDepositBalance = deltaDepositUsed > 0
+            ? Math.max(0, sourceMeta.depositBalance - deltaDepositUsed)
+            : sourceMeta.depositBalance + Math.abs(deltaDepositUsed)
+          const nextCustomerMemo = appendCustomerAccountingEvent(
+            latestCustomer.memo as string | undefined,
+            {
+              type: deltaDepositUsed > 0 ? 'deposit_used' : 'deposit_added',
+              amount: Math.abs(deltaDepositUsed),
+              date: normalizeInvoiceDate(form.invoice_date),
+              method: deltaDepositUsed > 0 ? '예치금 사용' : '예치금 원복',
+              relatedInvoiceId: invId,
+              note: customerInput || customerSnapshot?.customer_name || form.customer_name,
+            },
+            { depositBalance: nextDepositBalance },
+          )
+          await updateCustomer(effectiveCustomerId, { memo: nextCustomerMemo })
         }
-        try { await recalcCustomerStats(effectiveCustomerId) } catch {}
+        try {
+          await recalcCustomerStats(effectiveCustomerId)
+        } catch (error) {
+          console.warn('[InvoiceDialog] 고객 통계 재계산 실패', error)
+        }
       }
 
       const customerNameForReminder = customerInput || customerSnapshot?.customer_name || form.customer_name || ''
@@ -1574,15 +1582,29 @@ export function InvoiceDialog({
             </div>
             {selectedCustomer && (
               <div className="md:col-span-2">
-                <Label className="text-xs">예치금 사용</Label>
+                <div className="flex items-center justify-between gap-2">
+                  <Label className="text-xs">예치금 사용</Label>
+                  {maxDepositApplicable > 0 && (
+                    <button
+                      type="button"
+                      className="text-[11px] font-medium text-[#3d6b4a] hover:underline"
+                      onClick={() => {
+                        setDepositUseAmount(maxDepositApplicable)
+                        setIsDirty(true)
+                      }}
+                    >
+                      전액 차감
+                    </button>
+                  )}
+                </div>
                 <Input
                   type="number"
                   min={0}
-                  max={Math.min(availableDeposit, prevBal + grandTotal)}
+                  max={maxDepositApplicable}
                   value={depositUseAmount || ''}
                   onChange={(e) => {
                     const nextValue = sanitizeAmount(e.target.value)
-                    setDepositUseAmount(Math.min(nextValue, availableDeposit, prevBal + grandTotal))
+                    setDepositUseAmount(Math.min(nextValue, maxDepositApplicable))
                     setIsDirty(true)
                   }}
                   placeholder="0"

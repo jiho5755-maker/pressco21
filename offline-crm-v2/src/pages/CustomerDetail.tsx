@@ -160,6 +160,11 @@ const TX_TYPE_STYLE: Record<string, string> = {
   출고: 'bg-blue-50 text-blue-700',
   입금: 'bg-green-50 text-green-700',
   지급: 'bg-blue-50 text-blue-700',
+  '예치금 적립': 'bg-emerald-50 text-emerald-700',
+  '예치금 사용': 'bg-lime-50 text-lime-700',
+  환불대기: 'bg-amber-50 text-amber-700',
+  환불: 'bg-purple-50 text-purple-700',
+  '환불대기 해제': 'bg-slate-50 text-slate-600',
   반입: 'bg-orange-50 text-orange-700',
   메모: 'bg-gray-50 text-gray-600',
 }
@@ -569,6 +574,50 @@ export function CustomerDetail() {
       legacySalesCount: salesRows.length - crmSalesCount,
     }
   }, [filteredHistory])
+
+  const historySettlementSummary = useMemo(() => {
+    const currentAccountingMeta = parseCustomerAccountingMeta(customer?.memo as string | undefined)
+    const salesAmount = filteredHistory
+      .filter((row) => row.txType === '출고')
+      .reduce((sum, row) => sum + row.amount, 0)
+    const receiptAmount = filteredHistory
+      .filter((row) => row.txType === '입금')
+      .reduce((sum, row) => sum + row.amount, 0)
+    const returnAmount = filteredHistory
+      .filter((row) => row.txType === '반입')
+      .reduce((sum, row) => sum + Math.abs(row.amount), 0)
+    const depositAddedAmount = filteredHistory
+      .filter((row) => row.txType === '예치금 적립')
+      .reduce((sum, row) => sum + row.amount, 0)
+    const depositUsedAmount = filteredHistory
+      .filter((row) => row.txType === '예치금 사용')
+      .reduce((sum, row) => sum + row.amount, 0)
+    const refundPendingAmount = filteredHistory
+      .filter((row) => row.txType === '환불대기')
+      .reduce((sum, row) => sum + row.amount, 0)
+    const refundPaidAmount = filteredHistory
+      .filter((row) => row.txType === '환불')
+      .reduce((sum, row) => sum + row.amount, 0)
+    const periodReceivableDelta = salesAmount - receiptAmount - returnAmount - depositUsedAmount
+    const currentOutstanding = (customer?.outstanding_balance as number | undefined) ?? 0
+    const currentDeposit = currentAccountingMeta.depositBalance
+    const currentRefundPending = currentAccountingMeta.refundPendingBalance
+    return {
+      salesAmount,
+      receiptAmount,
+      returnAmount,
+      depositAddedAmount,
+      depositUsedAmount,
+      refundPendingAmount,
+      refundPaidAmount,
+      periodReceivableDelta,
+      currentOutstanding,
+      currentDeposit,
+      currentRefundPending,
+      netReceivable: Math.max(0, currentOutstanding - currentDeposit),
+      netCredit: Math.max(0, currentDeposit - currentOutstanding),
+    }
+  }, [customer?.memo, customer?.outstanding_balance, filteredHistory])
 
   function resetHistoryFilters() {
     setHistorySearch('')
@@ -1487,6 +1536,67 @@ export function CustomerDetail() {
                 <p className="text-xs text-muted-foreground">기존 장부 행</p>
                 <p className="mt-1 text-sm font-semibold">{historySummary.legacyCount.toLocaleString()}건</p>
               </div>
+            </div>
+            <div className="mt-3 rounded-lg border border-[#d8e4d6] bg-[#fbfdf9] p-3">
+              <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
+                <div>
+                  <p className="text-sm font-medium text-foreground">기간 정산 요약</p>
+                  <p className="text-xs text-muted-foreground">
+                    조회된 거래를 회계식으로 묶어 “그래서 지금 받을 돈/예치금이 얼마인지” 바로 확인합니다.
+                  </p>
+                </div>
+                <div className={`text-sm font-semibold ${historySettlementSummary.netReceivable > 0 ? 'text-red-600' : historySettlementSummary.netCredit > 0 ? 'text-emerald-700' : 'text-[#3d6b4a]'}`}>
+                  {historySettlementSummary.netReceivable > 0
+                    ? `현재 받을 돈 ${historySettlementSummary.netReceivable.toLocaleString()}원`
+                    : historySettlementSummary.netCredit > 0
+                      ? `현재 예치 우위 ${historySettlementSummary.netCredit.toLocaleString()}원`
+                      : '현재 정산 0원'}
+                </div>
+              </div>
+              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+                <div className="rounded-md bg-white px-3 py-2">
+                  <p className="text-xs text-muted-foreground">출고/반입</p>
+                  <p className="mt-1 text-sm font-semibold">
+                    +{historySettlementSummary.salesAmount.toLocaleString()}원
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    반입 차감 {historySettlementSummary.returnAmount.toLocaleString()}원
+                  </p>
+                </div>
+                <div className="rounded-md bg-white px-3 py-2">
+                  <p className="text-xs text-muted-foreground">입금/예치금 사용</p>
+                  <p className="mt-1 text-sm font-semibold text-green-700">
+                    -{(historySettlementSummary.receiptAmount + historySettlementSummary.depositUsedAmount).toLocaleString()}원
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    입금 {historySettlementSummary.receiptAmount.toLocaleString()}원 · 예치 사용 {historySettlementSummary.depositUsedAmount.toLocaleString()}원
+                  </p>
+                </div>
+                <div className="rounded-md bg-white px-3 py-2">
+                  <p className="text-xs text-muted-foreground">기간 순미수 변화</p>
+                  <p className={`mt-1 text-sm font-semibold ${historySettlementSummary.periodReceivableDelta > 0 ? 'text-red-600' : historySettlementSummary.periodReceivableDelta < 0 ? 'text-green-700' : ''}`}>
+                    {historySettlementSummary.periodReceivableDelta > 0 ? '+' : ''}
+                    {historySettlementSummary.periodReceivableDelta.toLocaleString()}원
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    출고 - 입금 - 반입 - 예치사용
+                  </p>
+                </div>
+                <div className="rounded-md bg-white px-3 py-2">
+                  <p className="text-xs text-muted-foreground">현재 보조 잔액</p>
+                  <p className="mt-1 text-sm font-semibold text-emerald-700">
+                    예치 {historySettlementSummary.currentDeposit.toLocaleString()}원
+                  </p>
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    환불대기 {historySettlementSummary.currentRefundPending.toLocaleString()}원 · 기간 예치 적립 {historySettlementSummary.depositAddedAmount.toLocaleString()}원
+                  </p>
+                </div>
+              </div>
+              {(historySettlementSummary.refundPendingAmount > 0 || historySettlementSummary.refundPaidAmount > 0) && (
+                <p className="mt-2 text-[11px] text-muted-foreground">
+                  조회 기간 환불 흐름: 환불대기 등록 {historySettlementSummary.refundPendingAmount.toLocaleString()}원 · 환불 완료 {historySettlementSummary.refundPaidAmount.toLocaleString()}원
+                </p>
+              )}
             </div>
           </div>
           <div className="rounded-lg border bg-white overflow-hidden">

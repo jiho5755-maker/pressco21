@@ -51,3 +51,59 @@ API:
 - Dry-run: `dry-run-v3.json`
 - 실행 로그: `execute.json`
 - 운영 스크립트: `tools/openmarket/flower_resin_10g_soldout.py`
+
+---
+
+## 추가상품 정리 — 50g 제외
+
+추가 요청 기준:
+
+- `50g`는 신상품이므로 제외
+- `꽃레진(9g)`는 기존 추가상품명으로 남아 있었고, 현재 품절 대상인 소용량 꽃레진 계열로 판단해 정리
+- `누름꽃 레진`처럼 공백 제거 시 오탐될 수 있는 문자열은 제외
+
+### MakeShop 추가상품
+
+정확한 `꽃레진/10g` 추가옵션은 없었으나, 기존명 `꽃레진(9g)` / `꽃레진/9g` 추가옵션이 8개 상품에서 발견됨.
+MakeShop Open API는 개별 추가옵션 삭제 전용 endpoint가 없어, 대상 추가옵션 stock row를 모두 `0 / SOLDOUT` 처리함.
+
+처리 완료: 8개 상품, 14개 추가옵션 stock row.
+
+주요 대상:
+
+- LED/천스탠드/사각: 강사공간 + 압화 상품 2개
+- 압화부채만들기세트: 강사공간 + 압화 상품 2개
+- LED/천스탠드/원형: 강사공간 + 압화 상품 2개
+- 스마트폰거치대/MDF: 강사공간 + 압화 상품 2개
+
+로그: `addon-makeshop-execute-summary.json`
+
+### SmartStore 추가상품
+
+SmartStore `supplementProductInfo.supplementProducts`에서 `꽃레진(9g)` 추가상품을 확인하고 `usable=false`, `stockQuantity=0`으로 갱신함.
+
+검증 완료 대상:
+
+| originProductNo | 상품명 | 처리 후 |
+|---:|---|---|
+| 10165522025 | 프레스코21 압화 부채 만들기세트 종이 한지 | 꽃레진(9g) usable=false / stock 0 |
+| 8698722050 | 압화 부채 만들기 재료 조개부채 꽃부채 프레스코21 한국 전통 노인 어르신 아이 | 꽃레진(9g) usable=false / stock 0 |
+| 8987956992 | 프레스코21 압화 만들기 LED 천스탠드 원형 | 꽃레진(9g) 1개/5개세트 usable=false / stock 0 |
+| 10251781321 | 프레스코21 LED 천스탠드 사각 압화 만들기 | 꽃레진(9g) 1개/5개세트 usable=false / stock 0 |
+
+로그: `smartstore-addon-targeted-summary.json`
+
+주의: SmartStore 전체 1117개 원상품 상세를 반복 조회하는 중 rate limit(429)이 발생했으므로, 전체 재스캔 로그에는 오류가 많다. 다만 부분 스캔에서 발견된 알려진 대상 4개는 별도 targeted 검증으로 모두 처리 후 재조회 확인했다.
+
+### 11번가 API 권한 안내
+
+현재 보유 `ST11_API_KEY`는 주문/클레임 조회에는 사용 가능하지만, 상품 API 후보 endpoint는 `-997 등록된 API 정보가 존재하지 않습니다`를 반환했다.
+
+필요한 것은 **11번가 판매자 상품관리/상품수정/재고수정 권한이 포함된 Open API 사용 등록**이다.
+
+안내 URL:
+
+- 11번가 OpenAPI 센터: `https://openapi.11st.co.kr/openapi/OpenApiFrontMain.tmall`
+- 공개 문서 참고: `https://skopenapi.readme.io/reference/11%EB%B2%88%EA%B0%80-%EC%86%8C%EA%B0%9C`
+
+판매자 센터에서 위 API 키에 상품 관련 서비스가 붙도록 설정하거나, 상품 API 권한이 있는 새 키를 `.secrets.env` / 운영 n8n env의 `ST11_API_KEY`로 교체해야 한다.

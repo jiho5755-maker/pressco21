@@ -1,0 +1,142 @@
+[
+  {
+    "originProductNo": 10165522025,
+    "get_status": 200,
+    "productName": "프레스코21 압화 부채 만들기세트 종이 한지",
+    "before": [
+      {
+        "id": 2706608494,
+        "groupName": "추가상품",
+        "name": "꽃레진(9g)",
+        "price": 6000,
+        "stockQuantity": 0,
+        "usable": false
+      }
+    ],
+    "changed_now": 0,
+    "verify_status": 200,
+    "after": [
+      {
+        "id": 2706608494,
+        "groupName": "추가상품",
+        "name": "꽃레진(9g)",
+        "price": 6000,
+        "stockQuantity": 0,
+        "usable": false
+      }
+    ]
+  },
+  {
+    "originProductNo": 8698722050,
+    "get_status": 200,
+    "productName": "압화 부채 만들기 재료 조개부채 꽃부채 프레스코21 한국 전통 노인 어르신 아이",
+    "before": [
+      {
+        "id": 2835517071,
+        "groupName": "추가상품",
+        "name": "꽃레진(9g)",
+        "price": 6000,
+        "stockQuantity": 0,
+        "usable": false
+      }
+    ],
+    "changed_now": 0,
+    "verify_status": 200,
+    "after": [
+      {
+        "id": 2835517071,
+        "groupName": "추가상품",
+        "name": "꽃레진(9g)",
+        "price": 6000,
+        "stockQuantity": 0,
+        "usable": false
+      }
+    ]
+  },
+  {
+    "originProductNo": 8987956992,
+    "get_status": 200,
+    "productName": "프레스코21 압화 만들기 LED 천스탠드 원형",
+    "before": [
+      {
+        "id": 2729085043,
+        "groupName": "꽃레진(9g)",
+        "name": "1개",
+        "price": 6000,
+        "stockQuantity": 0,
+        "usable": false
+      },
+      {
+        "id": 2729085044,
+        "groupName": "꽃레진(9g)",
+        "name": "5개세트",
+        "price": 28000,
+        "stockQuantity": 0,
+        "usable": false
+      }
+    ],
+    "changed_now": 0,
+    "verify_status": 200,
+    "after": [
+      {
+        "id": 2729085043,
+        "groupName": "꽃레진(9g)",
+        "name": "1개",
+        "price": 6000,
+        "stockQuantity": 0,
+        "usable": false
+      },
+      {
+        "id": 2729085044,
+        "groupName": "꽃레진(9g)",
+        "name": "5개세트",
+        "price": 28000,
+        "stockQuantity": 0,
+        "usable": false
+      }
+    ]
+  },
+  {
+    "originProductNo": 10251781321,
+    "get_status": 200,
+    "productName": "프레스코21 LED 천스탠드 사각 압화 만들기",
+    "before": [
+      {
+        "id": 2729089349,
+        "groupName": "꽃레진(9g)",
+        "name": "1개",
+        "price": 6000,
+        "stockQuantity": 0,
+        "usable": false
+      },
+      {
+        "id": 2729089350,
+        "groupName": "꽃레진(9g)",
+        "name": "5개세트",
+        "price": 28000,
+        "stockQuantity": 0,
+        "usable": false
+      }
+    ],
+    "changed_now": 0,
+    "verify_status": 200,
+    "after": [
+      {
+        "id": 2729089349,
+        "groupName": "꽃레진(9g)",
+        "name": "1개",
+        "price": 6000,
+        "stockQuantity": 0,
+        "usable": false
+      },
+      {
+        "id": 2729089350,
+        "groupName": "꽃레진(9g)",
+        "name": "5개세트",
+        "price": 28000,
+        "stockQuantity": 0,
+        "usable": false
+      }
+    ]
+  }
+]

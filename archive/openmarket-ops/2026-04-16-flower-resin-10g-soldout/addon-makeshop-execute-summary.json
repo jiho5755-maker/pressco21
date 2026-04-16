@@ -1,0 +1,295 @@
+{
+  "operation": "flower_resin_addon_cleanup",
+  "execute": true,
+  "note": "50g excluded",
+  "makeshop": {
+    "matched_products": 8,
+    "update": {
+      "ok": true,
+      "status_code": 200,
+      "items": 14,
+      "body": {
+        "return_code": "0000",
+        "datas": [
+          {
+            "result": true,
+            "product_id": "11699427",
+            "stock_id": "5"
+          },
+          {
+            "result": true,
+            "product_id": "11699427",
+            "stock_id": "6"
+          },
+          {
+            "result": true,
+            "product_id": "11699426",
+            "stock_id": "5"
+          },
+          {
+            "result": true,
+            "product_id": "11699426",
+            "stock_id": "6"
+          },
+          {
+            "result": true,
+            "product_id": "11699335",
+            "stock_id": "410"
+          },
+          {
+            "result": true,
+            "product_id": "11699335",
+            "stock_id": "411"
+          },
+          {
+            "result": true,
+            "product_id": "11699331",
+            "stock_id": "410"
+          },
+          {
+            "result": true,
+            "product_id": "11699331",
+            "stock_id": "411"
+          },
+          {
+            "result": true,
+            "product_id": "11697949",
+            "stock_id": "6"
+          },
+          {
+            "result": true,
+            "product_id": "11697949",
+            "stock_id": "7"
+          },
+          {
+            "result": true,
+            "product_id": "11697948",
+            "stock_id": "5"
+          },
+          {
+            "result": true,
+            "product_id": "11697948",
+            "stock_id": "6"
+          },
+          {
+            "result": true,
+            "product_id": "11697848",
+            "stock_id": "6"
+          },
+          {
+            "result": true,
+            "product_id": "11697847",
+            "stock_id": "6"
+          }
+        ]
+      }
+    },
+    "after": [
+      {
+        "uid": "11699427",
+        "product_name": "LED/천스탠드/사각",
+        "category_name": "강사공간 < 반제품 < 원목제품",
+        "target_options": [
+          {
+            "opt_id": "2",
+            "opt_name": "꽃레진(9g)",
+            "opt_value": "1개,5개세트",
+            "opt_use": "Y"
+          }
+        ],
+        "target_stocks": [
+          {
+            "sto_id": "5",
+            "value": "1개",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          },
+          {
+            "sto_id": "6",
+            "value": "5개세트",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          }
+        ]
+      },
+      {
+        "uid": "11699426",
+        "product_name": "LED/천스탠드/사각",
+        "category_name": "압화 < 압화재료(생활소품) < 스탠드",
+        "target_options": [
+          {
+            "opt_id": "2",
+            "opt_name": "꽃레진(9g)",
+            "opt_value": "1개,5개세트",
+            "opt_use": "Y"
+          }
+        ],
+        "target_stocks": [
+          {
+            "sto_id": "5",
+            "value": "1개",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          },
+          {
+            "sto_id": "6",
+            "value": "5개세트",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          }
+        ]
+      },
+      {
+        "uid": "11699335",
+        "product_name": "압화부채만들기세트",
+        "category_name": "강사공간 < 만들기세트 < 압화(생활소품)",
+        "target_options": [
+          {
+            "opt_id": "6",
+            "opt_name": "관련재료(꽃레진)",
+            "opt_value": "꽃레진/9g/1개,꽃레진/9g/5개",
+            "opt_use": "Y"
+          }
+        ],
+        "target_stocks": [
+          {
+            "sto_id": "410",
+            "value": "꽃레진/9g/1개",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          },
+          {
+            "sto_id": "411",
+            "value": "꽃레진/9g/5개",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          }
+        ]
+      },
+      {
+        "uid": "11699331",
+        "product_name": "압화부채만들기세트",
+        "category_name": "압화 < DIY 키트 < 초급",
+        "target_options": [
+          {
+            "opt_id": "6",
+            "opt_name": "관련재료(꽃레진)",
+            "opt_value": "꽃레진/9g/1개,꽃레진/9g/5개",
+            "opt_use": "Y"
+          }
+        ],
+        "target_stocks": [
+          {
+            "sto_id": "410",
+            "value": "꽃레진/9g/1개",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          },
+          {
+            "sto_id": "411",
+            "value": "꽃레진/9g/5개",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          }
+        ]
+      },
+      {
+        "uid": "11697949",
+        "product_name": "LED/천스탠드/원형",
+        "category_name": "강사공간 < 반제품 < 원목제품",
+        "target_options": [
+          {
+            "opt_id": "2",
+            "opt_name": "꽃레진(9g)",
+            "opt_value": "1개,5개세트",
+            "opt_use": "Y"
+          }
+        ],
+        "target_stocks": [
+          {
+            "sto_id": "6",
+            "value": "1개",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          },
+          {
+            "sto_id": "7",
+            "value": "5개세트",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          }
+        ]
+      },
+      {
+        "uid": "11697948",
+        "product_name": "LED/천스탠드/원형",
+        "category_name": "압화 < 압화재료(생활소품) < 스탠드",
+        "target_options": [
+          {
+            "opt_id": "2",
+            "opt_name": "꽃레진(9g)",
+            "opt_value": "1개,5개세트",
+            "opt_use": "Y"
+          }
+        ],
+        "target_stocks": [
+          {
+            "sto_id": "5",
+            "value": "1개",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          },
+          {
+            "sto_id": "6",
+            "value": "5개세트",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          }
+        ]
+      },
+      {
+        "uid": "11697848",
+        "product_name": "스마트폰거치대/MDF",
+        "category_name": "강사공간 < 반제품 < 생활소품",
+        "target_options": [
+          {
+            "opt_id": "2",
+            "opt_name": "관련재료",
+            "opt_value": "접착한지(1m),꽃레진(9g)",
+            "opt_use": "Y"
+          }
+        ],
+        "target_stocks": [
+          {
+            "sto_id": "6",
+            "value": "꽃레진(9g)",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          }
+        ]
+      },
+      {
+        "uid": "11697847",
+        "product_name": "스마트폰거치대/MDF",
+        "category_name": "압화 < 압화재료(생활소품) < 기타",
+        "target_options": [
+          {
+            "opt_id": "2",
+            "opt_name": "관련재료",
+            "opt_value": "접착한지(1m),꽃레진(9g)",
+            "opt_use": "Y"
+          }
+        ],
+        "target_stocks": [
+          {
+            "sto_id": "6",
+            "value": "꽃레진(9g)",
+            "real_stock": "0",
+            "state": "SOLDOUT"
+          }
+        ]
+      }
+    ]
+  },
+  "smartstore_partial_scan_note": "Full scan hit rate limit; see targeted summary for verified known targets."
+}

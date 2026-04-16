@@ -1,0 +1,713 @@
+{
+  "operation": "flower_resin_addon_cleanup",
+  "execute": false,
+  "started_at": "2026-04-16T11:27:38+00:00",
+  "note": "50g excluded",
+  "channels": {
+    "makeshop": {
+      "scan_meta": {
+        "status_code": 200,
+        "return_code": "0000",
+        "totalCount": "5806",
+        "totalPage": 59
+      },
+      "matched_products": 8,
+      "before": [
+        {
+          "uid": "11699427",
+          "product_name": "LED/천스탠드/사각",
+          "category_name": "강사공간 < 반제품 < 원목제품",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "꽃레진(9g)",
+              "opt_value": "1개,5개세트",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "5",
+              "value": "1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "6",
+              "value": "5개세트",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11699426",
+          "product_name": "LED/천스탠드/사각",
+          "category_name": "압화 < 압화재료(생활소품) < 스탠드",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "꽃레진(9g)",
+              "opt_value": "1개,5개세트",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "5",
+              "value": "1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "6",
+              "value": "5개세트",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11699335",
+          "product_name": "압화부채만들기세트",
+          "category_name": "강사공간 < 만들기세트 < 압화(생활소품)",
+          "target_options": [
+            {
+              "opt_id": "6",
+              "opt_name": "관련재료(꽃레진)",
+              "opt_value": "꽃레진/9g/1개,꽃레진/9g/5개",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "410",
+              "value": "꽃레진/9g/1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "411",
+              "value": "꽃레진/9g/5개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11699331",
+          "product_name": "압화부채만들기세트",
+          "category_name": "압화 < DIY 키트 < 초급",
+          "target_options": [
+            {
+              "opt_id": "6",
+              "opt_name": "관련재료(꽃레진)",
+              "opt_value": "꽃레진/9g/1개,꽃레진/9g/5개",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "410",
+              "value": "꽃레진/9g/1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "411",
+              "value": "꽃레진/9g/5개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11697949",
+          "product_name": "LED/천스탠드/원형",
+          "category_name": "강사공간 < 반제품 < 원목제품",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "꽃레진(9g)",
+              "opt_value": "1개,5개세트",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "6",
+              "value": "1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "7",
+              "value": "5개세트",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11697948",
+          "product_name": "LED/천스탠드/원형",
+          "category_name": "압화 < 압화재료(생활소품) < 스탠드",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "꽃레진(9g)",
+              "opt_value": "1개,5개세트",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "5",
+              "value": "1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "6",
+              "value": "5개세트",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11697848",
+          "product_name": "스마트폰거치대/MDF",
+          "category_name": "강사공간 < 반제품 < 생활소품",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "관련재료",
+              "opt_value": "접착한지(1m),꽃레진(9g)",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "6",
+              "value": "꽃레진(9g)",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11697847",
+          "product_name": "스마트폰거치대/MDF",
+          "category_name": "압화 < 압화재료(생활소품) < 기타",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "관련재료",
+              "opt_value": "접착한지(1m),꽃레진(9g)",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "6",
+              "value": "꽃레진(9g)",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        }
+      ],
+      "update": {
+        "ok": true,
+        "dry_run": true,
+        "endpoint": "https://foreverlove.co.kr/list/open_api_process.html?mode=save&type=product&process=stock",
+        "items": 14
+      },
+      "after": [
+        {
+          "uid": "11699427",
+          "product_name": "LED/천스탠드/사각",
+          "category_name": "강사공간 < 반제품 < 원목제품",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "꽃레진(9g)",
+              "opt_value": "1개,5개세트",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "5",
+              "value": "1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "6",
+              "value": "5개세트",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11699426",
+          "product_name": "LED/천스탠드/사각",
+          "category_name": "압화 < 압화재료(생활소품) < 스탠드",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "꽃레진(9g)",
+              "opt_value": "1개,5개세트",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "5",
+              "value": "1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "6",
+              "value": "5개세트",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11699335",
+          "product_name": "압화부채만들기세트",
+          "category_name": "강사공간 < 만들기세트 < 압화(생활소품)",
+          "target_options": [
+            {
+              "opt_id": "6",
+              "opt_name": "관련재료(꽃레진)",
+              "opt_value": "꽃레진/9g/1개,꽃레진/9g/5개",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "410",
+              "value": "꽃레진/9g/1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "411",
+              "value": "꽃레진/9g/5개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11699331",
+          "product_name": "압화부채만들기세트",
+          "category_name": "압화 < DIY 키트 < 초급",
+          "target_options": [
+            {
+              "opt_id": "6",
+              "opt_name": "관련재료(꽃레진)",
+              "opt_value": "꽃레진/9g/1개,꽃레진/9g/5개",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "410",
+              "value": "꽃레진/9g/1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "411",
+              "value": "꽃레진/9g/5개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11697949",
+          "product_name": "LED/천스탠드/원형",
+          "category_name": "강사공간 < 반제품 < 원목제품",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "꽃레진(9g)",
+              "opt_value": "1개,5개세트",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "6",
+              "value": "1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "7",
+              "value": "5개세트",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11697948",
+          "product_name": "LED/천스탠드/원형",
+          "category_name": "압화 < 압화재료(생활소품) < 스탠드",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "꽃레진(9g)",
+              "opt_value": "1개,5개세트",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "5",
+              "value": "1개",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "6",
+              "value": "5개세트",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11697848",
+          "product_name": "스마트폰거치대/MDF",
+          "category_name": "강사공간 < 반제품 < 생활소품",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "관련재료",
+              "opt_value": "접착한지(1m),꽃레진(9g)",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "6",
+              "value": "꽃레진(9g)",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "11697847",
+          "product_name": "스마트폰거치대/MDF",
+          "category_name": "압화 < 압화재료(생활소품) < 기타",
+          "target_options": [
+            {
+              "opt_id": "2",
+              "opt_name": "관련재료",
+              "opt_value": "접착한지(1m),꽃레진(9g)",
+              "opt_use": "Y"
+            }
+          ],
+          "target_stocks": [
+            {
+              "sto_id": "6",
+              "value": "꽃레진(9g)",
+              "real_stock": "1000000000",
+              "state": "SALE"
+            }
+          ]
+        }
+      ]
+    },
+    "smartstore": {
+      "scan_meta": {
+        "status_code": 200,
+        "totalElements": 1117,
+        "totalPages": 3
+      },
+      "matched_products": 2,
+      "before": [
+        {
+          "originProductNo": 10165522025,
+          "productName": "프레스코21 압화 부채 만들기세트 종이 한지",
+          "statusType": "SUSPENSION",
+          "allSupplementCount": 9,
+          "matches": [
+            {
+              "id": 2706608494,
+              "groupName": "추가상품",
+              "name": "꽃레진(9g)",
+              "price": 6000,
+              "stockQuantity": 0,
+              "usable": true
+            }
+          ]
+        },
+        {
+          "originProductNo": 8987956992,
+          "productName": "프레스코21 압화 만들기 LED 천스탠드 원형",
+          "statusType": "SALE",
+          "allSupplementCount": 2,
+          "matches": [
+            {
+              "id": 2729085043,
+              "groupName": "꽃레진(9g)",
+              "name": "1개",
+              "price": 6000,
+              "stockQuantity": 9995,
+              "usable": true
+            },
+            {
+              "id": 2729085044,
+              "groupName": "꽃레진(9g)",
+              "name": "5개세트",
+              "price": 28000,
+              "stockQuantity": 9998,
+              "usable": true
+            }
+          ]
+        }
+      ],
+      "update": [
+        {
+          "originProductNo": 10165522025,
+          "dry_run": true,
+          "changed": 1
+        },
+        {
+          "originProductNo": 8987956992,
+          "dry_run": true,
+          "changed": 2
+        }
+      ],
+      "after": [
+        {
+          "originProductNo": 10165522025,
+          "status_code": 429,
+          "matches": []
+        },
+        {
+          "originProductNo": 8987956992,
+          "status_code": 429,
+          "matches": []
+        }
+      ],
+      "errors": [
+        {
+          "originProductNo": 13175850427,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:16.917+09:00",
+            "traceId": "gk8wOhdMQGaAZUEOP9eh4Q^1776231383611^10377482"
+          }
+        },
+        {
+          "originProductNo": 12676156413,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:17.452+09:00",
+            "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^9733920"
+          }
+        },
+        {
+          "originProductNo": 12644126233,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:17.528+09:00",
+            "traceId": "PmctKaNoS7igpC5BE8fGqw^1776231397059^10402010"
+          }
+        },
+        {
+          "originProductNo": 12576867723,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:17.605+09:00",
+            "traceId": "PmctKaNoS7igpC5BE8fGqw^1776231397059^10402018"
+          }
+        },
+        {
+          "originProductNo": 12576866335,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:17.680+09:00",
+            "traceId": "Nlrj4ayGQt-no7qvYiDTgA^1776231399713^10422375"
+          }
+        },
+        {
+          "originProductNo": 12576862044,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:17.793+09:00",
+            "traceId": "ldWHdXqkScyeGJQnqWi8vA^1776231398113^10474077"
+          }
+        },
+        {
+          "originProductNo": 12576854020,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:17.873+09:00",
+            "traceId": "HAkqkGzYRFadKYevzcac6w^1776240535039^9677492"
+          }
+        },
+        {
+          "originProductNo": 12576851017,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:17.947+09:00",
+            "traceId": "HAkqkGzYRFadKYevzcac6w^1776240535039^9677506"
+          }
+        },
+        {
+          "originProductNo": 12483439846,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:18.317+09:00",
+            "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^9734034"
+          }
+        },
+        {
+          "originProductNo": 12483434775,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:18.391+09:00",
+            "traceId": "avK1n9e7S8uK9HvFfFYDBA^1776240535908^9660830"
+          }
+        },
+        {
+          "originProductNo": 12483425577,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:18.466+09:00",
+            "traceId": "avK1n9e7S8uK9HvFfFYDBA^1776240535908^9660839"
+          }
+        },
+        {
+          "originProductNo": 12483407353,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:18.542+09:00",
+            "traceId": "axzGKLfqT_W5T_6jQ_EYJA^1776240536706^9493627"
+          }
+        },
+        {
+          "originProductNo": 12482765505,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:18.623+09:00",
+            "traceId": "U8IOoY_qR-iDdvXr2jozGQ^1776240535942^9524191"
+          }
+        },
+        {
+          "originProductNo": 12482719201,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:18.697+09:00",
+            "traceId": "HAkqkGzYRFadKYevzcac6w^1776240535039^9677630"
+          }
+        },
+        {
+          "originProductNo": 12482667810,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:18.770+09:00",
+            "traceId": "avK1n9e7S8uK9HvFfFYDBA^1776240535908^9660876"
+          }
+        },
+        {
+          "originProductNo": 12482655471,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:18.843+09:00",
+            "traceId": "gk8wOhdMQGaAZUEOP9eh4Q^1776231383611^10377582"
+          }
+        },
+        {
+          "originProductNo": 12353602030,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:18.917+09:00",
+            "traceId": "avK1n9e7S8uK9HvFfFYDBA^1776240535908^9660889"
+          }
+        },
+        {
+          "originProductNo": 12191202067,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:18.991+09:00",
+            "traceId": "axzGKLfqT_W5T_6jQ_EYJA^1776240536706^9493686"
+          }
+        },
+        {
+          "originProductNo": 12113329594,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:19.484+09:00",
+            "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^9734183"
+          }
+        },
+        {
+          "originProductNo": 12112245000,
+          "status_code": 429,
+          "body": {
+            "code": "GW.RATE_LIMIT",
+            "message": "요청이 많아 서비스를 일시적으로 사용할 수 없습니다.",
+            "timestamp": "2026-04-16T20:29:19.558+09:00",
+            "traceId": "NCubHKAORxK3DWcwsRP_Tw^1776240535414^9734191"
+          }
+        }
+      ],
+      "error_count": 886
+    }
+  },
+  "finished_at": "2026-04-16T11:31:09+00:00"
+}

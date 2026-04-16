@@ -75,10 +75,16 @@ if [ "$(git -C "$MAIN_ROOT" branch --show-current)" != "main" ]; then
   exit 1
 fi
 
-if [ -n "$(git -C "$MAIN_ROOT" status --short)" ]; then
+main_dirty="$(git -C "$MAIN_ROOT" status --short -- . ':(exclude)team' 2>/dev/null || git -C "$MAIN_ROOT" status --short)"
+if [ -n "$main_dirty" ]; then
   echo "Main worktree is dirty. Clean or commit before creating a task worktree:" >&2
-  git -C "$MAIN_ROOT" status --short >&2
+  printf '%s\n' "$main_dirty" >&2
   exit 1
+fi
+
+team_dirty="$(git -C "$MAIN_ROOT" status --short -- team 2>/dev/null || true)"
+if [ -n "$team_dirty" ]; then
+  echo "Note: local team/ workspace changes are present and ignored for task worktree creation." >&2
 fi
 
 mkdir -p "$WORKTREE_ROOT"

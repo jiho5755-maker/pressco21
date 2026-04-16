@@ -1,6 +1,6 @@
 # Current State — PRESSCO21 Workspace
 
-Last updated: 2026-04-16
+Last updated: 2026-04-16 (finalized)
 
 ## Source of truth
 
@@ -36,6 +36,13 @@ Last updated: 2026-04-16
 - `~/.local/bin/codex-clipboard-image` extracts clipboard screenshots to `/tmp/*.png` using `pngpaste` fast path.
 - `~/.local/bin/omx-paste-clipboard-to-tmux` smart-pastes text or saves clipboard images to `/tmp` and pastes the path.
 - Cursor terminal `cmd+v` is mapped to tmux smart paste when terminal has focus.
+
+## Finalization note — 2026-04-16
+
+- AI development continuity system is installed under `docs/ai-development/` and `_tools/ai-*`.
+- Global helper symlinks are installed in `~/.local/bin`: `ai-project-bootstrap`, `ai-session-start`, `ai-session-finish`.
+- Final handoff: `docs/ai-development/handoffs/20260416-183640-work-workspace-final-ai-continuity-handoff.md`.
+- For any future local project, run `ai-project-bootstrap . "Project Name"` once, then use `ai-session-start .` and `ai-session-finish . ...`.
 
 ## Recommended next-session start
 

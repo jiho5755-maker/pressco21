@@ -53,7 +53,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst targets = item.targets || [];\nconst text = item.text || '';\n\n// staff → chatId 매핑 (2026-04-17 갱신)\n// 확보: 이진선·장지호·이재혁 / 미확보: 장준혁·장다경·조승해·서향자·이혜자\nconst chatIdMap = {\n  '장지호': '7713811206',\n  '이재혁': '8312726947',\n  '원장님': '8606163783',\n  '이진선': '8606163783',\n  '조승해': 'SEUNGHAE_CHAT_ID',\n  '장다경': 'DAGYEONG_CHAT_ID',\n  '장준혁': 'JUNHYUK_CHAT_ID',\n  '서향자': 'HYANGJA_CHAT_ID',\n  '이혜자': 'HYEJA_CHAT_ID'\n};\n\nconst results = [];\nfor (const name of targets) {\n  const chatId = chatIdMap[name];\n  if (chatId && !chatId.includes('_CHAT_ID')) {\n    results.push({ json: { chatId, text } });\n  }\n}\n\nreturn results.length > 0 ? results : [{ json: { chatId: '7713811206', text } }];"
+        "jsCode": "const item = $input.first().json;\nconst targets = item.targets || [];\nconst text = item.text || '';\n\n// staff → chatId 매핑 (2026-04-17 Flora DB 기준 전원 확정)\n// 원장: Flora DB staff.telegram_user_id (openclaw:flora-todo-mvp-postgres)\nconst chatIdMap = {\n  '장지호': '7713811206',\n  '원장님': '8606163783',\n  '이진선': '8606163783',\n  '장준혁': '8609675033',\n  '장다경': '8642971936',\n  '이재혁': '8312726947',\n  '서향자': '8774804425',\n  '이혜자': '8630560216',\n  '조승해': '8704386370'\n  // 송미: 출산휴가·육아휴직(~2027-05-29), Chat ID 미수집\n};\n\nconst results = [];\nfor (const name of targets) {\n  const chatId = chatIdMap[name];\n  if (chatId) {\n    results.push({ json: { chatId, text } });\n  }\n}\n\nreturn results.length > 0 ? results : [{ json: { chatId: '7713811206', text } }];"
       },
       "id": "node-resolve-chat",
       "name": "Chat ID 매핑",

@@ -1,0 +1,212 @@
+{
+  "operation": "flower_resin_10g_soldout",
+  "target_label": "꽃레진/10g",
+  "execute": false,
+  "started_at": "2026-04-16T11:01:25+00:00",
+  "channels": {
+    "makeshop": {
+      "scan_meta": {
+        "status_code": 200,
+        "return_code": "0000",
+        "totalCount": "5806",
+        "totalPage": 59
+      },
+      "match_rule": "product_name contains 꽃레진 and 10g",
+      "matched_count": 2,
+      "before": [
+        {
+          "uid": "201643",
+          "product_name": "꽃레진/10g/낱개",
+          "category_name": "강사공간 < 반제품 < 부재료,마감재",
+          "display": "Y",
+          "sell_accept": "Y",
+          "quantity": "19759",
+          "sellprice": "5400",
+          "options": [
+            {
+              "sto_id": "1",
+              "stock_id": "1",
+              "value": "1개구입",
+              "real_stock": "9875",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "2",
+              "stock_id": "2",
+              "value": "5개세트구입",
+              "real_stock": "9884",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "201617",
+          "product_name": "꽃레진/10g/낱개",
+          "category_name": "압화 < 압화재료(마감재) < 코팅·마감제",
+          "display": "Y",
+          "sell_accept": "Y",
+          "quantity": "19899",
+          "sellprice": "6000",
+          "options": [
+            {
+              "sto_id": "1",
+              "stock_id": "1",
+              "value": "1개구입",
+              "real_stock": "9936",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "2",
+              "stock_id": "2",
+              "value": "5개세트구입",
+              "real_stock": "9963",
+              "state": "SALE"
+            }
+          ]
+        }
+      ],
+      "update": {
+        "ok": true,
+        "dry_run": true,
+        "endpoint": "https://foreverlove.co.kr/list/open_api_process.html?mode=save&type=product&process=stock",
+        "items": 4
+      },
+      "after": [
+        {
+          "uid": "201643",
+          "product_name": "꽃레진/10g/낱개",
+          "category_name": "강사공간 < 반제품 < 부재료,마감재",
+          "display": "Y",
+          "sell_accept": "Y",
+          "quantity": "19759",
+          "sellprice": "5400",
+          "options": [
+            {
+              "sto_id": "1",
+              "stock_id": "1",
+              "value": "1개구입",
+              "real_stock": "9875",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "2",
+              "stock_id": "2",
+              "value": "5개세트구입",
+              "real_stock": "9884",
+              "state": "SALE"
+            }
+          ]
+        },
+        {
+          "uid": "201617",
+          "product_name": "꽃레진/10g/낱개",
+          "category_name": "압화 < 압화재료(마감재) < 코팅·마감제",
+          "display": "Y",
+          "sell_accept": "Y",
+          "quantity": "19899",
+          "sellprice": "6000",
+          "options": [
+            {
+              "sto_id": "1",
+              "stock_id": "1",
+              "value": "1개구입",
+              "real_stock": "9936",
+              "state": "SALE"
+            },
+            {
+              "sto_id": "2",
+              "stock_id": "2",
+              "value": "5개세트구입",
+              "real_stock": "9963",
+              "state": "SALE"
+            }
+          ]
+        }
+      ]
+    },
+    "smartstore": {
+      "scan_meta": {
+        "status_code": 200,
+        "totalElements": 1117,
+        "totalPages": 3
+      },
+      "match_rule": "fallback: no 10g exact match; single name containing 꽃레진",
+      "matched_count": 1,
+      "before": [
+        {
+          "originProductNo": 3139497146,
+          "channelProductNo": 3144159179,
+          "name": "레진 공예용 마감재 꽃레진 압화재료",
+          "statusType": "SALE",
+          "salePrice": 6000,
+          "stockQuantity": 9932
+        }
+      ],
+      "update": [
+        {
+          "ok": true,
+          "dry_run": true,
+          "originProductNo": 3139497146,
+          "endpoint": "https://api.commerce.naver.com/external/v1/products/origin-products/3139497146/change-status",
+          "body": {
+            "statusType": "OUTOFSTOCK"
+          }
+        }
+      ],
+      "after": [
+        {
+          "originProductNo": 3139497146,
+          "channelProductNo": 3144159179,
+          "name": "레진 공예용 마감재 꽃레진 압화재료",
+          "statusType": "SALE",
+          "salePrice": 6000,
+          "stockQuantity": 9932
+        }
+      ]
+    },
+    "st11": {
+      "attempted": true,
+      "can_use_product_api": false,
+      "probe_results": [
+        {
+          "endpoint": "/rest/prodservices/product/list",
+          "status_code": 500,
+          "resultCode": "-997",
+          "resultMessage": "등록된 API 정보가 존재하지 않습니다."
+        },
+        {
+          "endpoint": "/rest/prodservices/product",
+          "status_code": 500,
+          "resultCode": "-997",
+          "resultMessage": "등록된 API 정보가 존재하지 않습니다."
+        },
+        {
+          "endpoint": "/rest/prodservices/products",
+          "status_code": 500,
+          "resultCode": "-997",
+          "resultMessage": "등록된 API 정보가 존재하지 않습니다."
+        },
+        {
+          "endpoint": "/rest/prodmarketservice/product/list",
+          "status_code": 500,
+          "resultCode": "-997",
+          "resultMessage": "등록된 API 정보가 존재하지 않습니다."
+        },
+        {
+          "endpoint": "/rest/prodmarketservice/product",
+          "status_code": 500,
+          "resultCode": "-997",
+          "resultMessage": "등록된 API 정보가 존재하지 않습니다."
+        },
+        {
+          "endpoint": "/rest/prodmarketservice/products",
+          "status_code": 500,
+          "resultCode": "-997",
+          "resultMessage": "등록된 API 정보가 존재하지 않습니다."
+        }
+      ],
+      "write_attempted": false
+    }
+  },
+  "finished_at": "2026-04-16T11:03:05+00:00"
+}

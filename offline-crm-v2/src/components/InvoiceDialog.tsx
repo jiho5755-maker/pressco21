@@ -1627,6 +1627,21 @@ export function InvoiceDialog({
             </div>
           </div>
 
+          {selectedCustomer && (
+            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
+              <div className="rounded-md border bg-[#f7faf6] px-3 py-2">
+                <p className="text-xs text-muted-foreground">사용 가능 예치금</p>
+                <p className="mt-1 text-sm font-semibold text-emerald-700">{availableDeposit.toLocaleString()}원</p>
+              </div>
+              <div className="rounded-md border bg-gray-50 px-3 py-2">
+                <p className="text-xs text-muted-foreground">예치금 반영 후 잔액</p>
+                <p className={`mt-1 text-sm font-semibold ${curBal > 0 ? 'text-red-600' : 'text-green-700'}`}>
+                  {curBal.toLocaleString()}원
+                </p>
+              </div>
+            </div>
+          )}
+
           <div className="rounded-lg border bg-[#fcfcfb] p-3">
             <div className="flex flex-wrap items-start justify-between gap-2">
               <div>
@@ -1710,21 +1725,6 @@ export function InvoiceDialog({
               저장하면 납부 예정일 당일 오전 9시에 운영실 텔레그램 알림이 한 번만 발송됩니다. 예정일을 비우면 기존 예약은 취소 요청됩니다.
             </p>
           </div>
-
-          {selectedCustomer && (
-            <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-              <div className="rounded-md border bg-[#f7faf6] px-3 py-2">
-                <p className="text-xs text-muted-foreground">사용 가능 예치금</p>
-                <p className="mt-1 text-sm font-semibold text-emerald-700">{availableDeposit.toLocaleString()}원</p>
-              </div>
-              <div className="rounded-md border bg-gray-50 px-3 py-2">
-                <p className="text-xs text-muted-foreground">예치금 반영 후 잔액</p>
-                <p className={`mt-1 text-sm font-semibold ${curBal > 0 ? 'text-red-600' : 'text-green-700'}`}>
-                  {curBal.toLocaleString()}원
-                </p>
-              </div>
-            </div>
-          )}
 
           <Separator />
 

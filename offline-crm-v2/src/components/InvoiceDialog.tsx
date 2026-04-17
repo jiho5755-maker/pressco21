@@ -70,6 +70,8 @@ interface InvoiceDraft {
   items: ItemRow[]
   customerInput: string
   selectedAddrKey: string
+  manualDiscountAmount?: number
+  isDiscountManual?: boolean
   internalMemo?: string
   paymentDueDate?: string
   paymentDueAmount?: number
@@ -251,6 +253,10 @@ function getPriceForCustomer(product: Product, customer: Customer | null): numbe
   return product.price1 ?? 0
 }
 
+function clampDiscountAmount(value: number, maxAmount: number): number {
+  return Math.max(0, Math.min(Math.trunc(value), Math.max(0, maxAmount)))
+}
+
 function getTierLabel(tier: number): string {
   const labels: Record<number, string> = { 1: '씨앗', 2: '뿌리', 3: '꽃밭', 4: '정원사', 5: '별빛' }
   return labels[tier] ?? '소매가'
@@ -350,6 +356,8 @@ export function InvoiceDialog({
   // 고객 주소 선택 (address1 ~ addressN 동적)
   const [selectedAddrKey, setSelectedAddrKey] = useState<string>('address1')
   const [depositUseAmount, setDepositUseAmount] = useState(0)
+  const [manualDiscountAmount, setManualDiscountAmount] = useState(0)
+  const [isDiscountManual, setIsDiscountManual] = useState(false)
   const [internalMemo, setInternalMemo] = useState('')
   const [paymentDueDate, setPaymentDueDate] = useState('')
   const [paymentDueAmount, setPaymentDueAmount] = useState(0)
@@ -548,6 +556,8 @@ export function InvoiceDialog({
       setItems([newRow(defaultTaxable)])
       setExistingItemIds([])
       setDepositUseAmount(0)
+      setManualDiscountAmount(0)
+      setIsDiscountManual(false)
       setInternalMemo('')
       setPaymentDueDate('')
       setPaymentDueAmount(0)
@@ -584,6 +594,8 @@ export function InvoiceDialog({
       setShowCustomerDrop(false)
       setCustomerDropdownIdx(-1)
       setDepositUseAmount(isCopy ? 0 : getInvoiceDepositUsedAmount(existingInvoice.memo as string | undefined))
+      setManualDiscountAmount(invoiceMeta.discountAmount ?? 0)
+      setIsDiscountManual(!isCopy || (invoiceMeta.discountAmount ?? 0) > 0)
       setInternalMemo(isCopy ? '' : invoiceMeta.internalMemo ?? '')
       setPaymentDueDate(isCopy ? '' : invoiceMeta.paymentReminder?.dueDate ?? '')
       setPaymentDueAmount(isCopy ? 0 : invoiceMeta.paymentReminder?.amount ?? 0)
@@ -646,7 +658,11 @@ export function InvoiceDialog({
   // 합계 자동 계산
   const supplyTotal = items.reduce((s, r) => s + r.supply_amount, 0)
   const taxTotal = items.reduce((s, r) => s + r.tax_amount, 0)
-  const grandTotal = supplyTotal + taxTotal
+  const invoiceSubtotal = supplyTotal + taxTotal
+  const defaultDiscountRate = Math.max(0, Number((currentCustomer ?? selectedCustomer)?.discount_rate ?? 0))
+  const suggestedDiscountAmount = clampDiscountAmount(Math.floor(invoiceSubtotal * (defaultDiscountRate / 100)), invoiceSubtotal)
+  const discountAmount = clampDiscountAmount(isDiscountManual ? manualDiscountAmount : suggestedDiscountAmount, invoiceSubtotal)
+  const grandTotal = Math.max(0, invoiceSubtotal - discountAmount)
   const prevBal = form.previous_balance ?? 0
   const paidAmt = form.paid_amount ?? 0
   const activeCustomerAccounting = parseCustomerAccountingMeta((currentCustomer ?? selectedCustomer)?.memo as string | undefined)
@@ -934,6 +950,8 @@ export function InvoiceDialog({
       items,
       customerInput,
       selectedAddrKey,
+      manualDiscountAmount,
+      isDiscountManual,
       internalMemo,
       paymentDueDate,
       paymentDueAmount,
@@ -974,6 +992,8 @@ export function InvoiceDialog({
     setCustomerDropdownIdx(-1)
     setItems(restoredItems)
     setExistingItemIds([])
+    setManualDiscountAmount(draft.manualDiscountAmount ?? 0)
+    setIsDiscountManual(draft.isDiscountManual === true)
     setInternalMemo(draft.internalMemo ?? '')
     setPaymentDueDate(draft.paymentDueDate ?? '')
     setPaymentDueAmount(draft.paymentDueAmount ?? 0)
@@ -1021,6 +1041,7 @@ export function InvoiceDialog({
       const reminderEnabled = Boolean(paymentDueDate && paymentReminderEnabled)
       const nextInvoiceMemo = serializeInvoiceAccountingMeta(form.memo as string | undefined, {
         depositUsedAmount: appliedDeposit,
+        discountAmount,
         customerAddressKey: selectedAddrKey,
         internalMemo,
         paymentReminder: hasPaymentPromise
@@ -1205,6 +1226,7 @@ export function InvoiceDialog({
         supply_amount: supplyTotal,
         tax_amount: taxTotal,
         total_amount: grandTotal,
+        discount_amount: discountAmount,
         previous_balance: prevBal,
         paid_amount: paidAmt,
         memo: getDisplayMemo(form.memo as string | undefined),
@@ -1936,8 +1958,51 @@ export function InvoiceDialog({
             </div>
           </div>
 
-          {/* ─── 합계 ─── */}
-          <div className="grid grid-cols-3 gap-3">
+          {/* ─── 할인 + 합계 ─── */}
+          <div className="rounded-lg border bg-white p-4">
+            <div className="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+              <div>
+                <p className="text-sm font-medium">DC 할인</p>
+                <p className="text-[11px] text-muted-foreground">
+                  {defaultDiscountRate > 0
+                    ? isDiscountManual
+                      ? `고객 기본 할인율 ${defaultDiscountRate}%에서 건별 DC로 조정 중입니다.`
+                      : `고객 기본 할인율 ${defaultDiscountRate}%가 자동 반영됩니다.`
+                    : '합계에서 바로 차감되며, 명세표별로 원하는 금액을 직접 입력할 수 있습니다.'}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                {defaultDiscountRate > 0 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      setIsDiscountManual(false)
+                      setManualDiscountAmount(suggestedDiscountAmount)
+                      setIsDirty(true)
+                    }}
+                  >
+                    기본값 적용
+                  </Button>
+                )}
+                <Input
+                  aria-label="DC 할인 금액"
+                  type="number"
+                  value={discountAmount || ''}
+                  onChange={(e) => {
+                    setManualDiscountAmount(clampDiscountAmount(sanitizeAmount(e.target.value), invoiceSubtotal))
+                    setIsDiscountManual(true)
+                    setIsDirty(true)
+                  }}
+                  placeholder="0"
+                  className="w-36 text-right"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="grid gap-3 md:grid-cols-4">
             <div className="bg-gray-50 rounded-md p-3 text-sm">
               <div className="text-xs text-muted-foreground mb-1">공급가액</div>
               <div className="text-lg font-bold">{supplyTotal.toLocaleString()}원</div>
@@ -1946,8 +2011,12 @@ export function InvoiceDialog({
               <div className="text-xs text-muted-foreground mb-1">세액</div>
               <div className="text-lg font-bold">{taxTotal.toLocaleString()}원</div>
             </div>
+            <div className="bg-gray-50 rounded-md p-3 text-sm">
+              <div className="text-xs text-muted-foreground mb-1">DC 할인</div>
+              <div className="text-lg font-bold text-amber-700">- {discountAmount.toLocaleString()}원</div>
+            </div>
             <div className="bg-[#e8f0e8] rounded-md p-3 text-sm">
-              <div className="text-xs text-muted-foreground mb-1">합계금액</div>
+              <div className="text-xs text-muted-foreground mb-1">최종 합계금액</div>
               <div className="text-lg font-bold text-[#3d6b4a]">
                 {grandTotal.toLocaleString()}원
               </div>
@@ -2016,6 +2085,12 @@ export function InvoiceDialog({
                   <span className="text-xs text-muted-foreground">이번 출고액</span>
                   <span>+ {grandTotal.toLocaleString()}원</span>
                 </div>
+                {discountAmount > 0 && (
+                  <div className="flex items-center justify-between rounded-md bg-white px-3 py-2">
+                    <span className="text-xs text-muted-foreground">DC 할인 반영</span>
+                    <span className="text-amber-700">- {discountAmount.toLocaleString()}원</span>
+                  </div>
+                )}
                 <div className="flex items-center justify-between rounded-md bg-white px-3 py-2">
                   <span className="text-xs text-muted-foreground">입금액</span>
                   <span>- {paidAmt.toLocaleString()}원</span>

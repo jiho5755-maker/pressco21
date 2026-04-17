@@ -15,7 +15,7 @@ import type { Customer, Invoice } from '@/lib/api'
 import { exportCourierInvoices } from '@/lib/excel'
 import { PRINT_DOCUMENT_OPTIONS, printDuplexViaIframe } from '@/lib/print'
 import type { PrintDocumentType } from '@/lib/print'
-import { getDisplayMemo, getInvoiceCustomerAddressKey } from '@/lib/accountingMeta'
+import { getDisplayMemo, getInvoiceCustomerAddressKey, getInvoiceDiscountAmount } from '@/lib/accountingMeta'
 import { DEFAULT_RECEIPT_TYPE } from '@/lib/invoiceDefaults'
 
 const PAGE_SIZE = 25
@@ -385,7 +385,11 @@ export function Invoices() {
 
       // 잔액 재계산
       if (inv.customer_id) {
-        try { await recalcCustomerStats(inv.customer_id as number) } catch {}
+        try {
+          await recalcCustomerStats(inv.customer_id as number)
+        } catch {
+          // 삭제 자체는 완료됐으므로 통계 재계산 실패는 목록 갱신에서 복구한다.
+        }
       }
 
       toast.success('명세표가 삭제되었습니다')
@@ -483,7 +487,9 @@ export function Invoices() {
           Number(latestInvoice.customer_id),
           latestInvoice.customer_name,
         )
-      } catch {}
+      } catch {
+        // 고객 링크 복원에 실패해도 명세표에 저장된 snapshot으로 출력한다.
+      }
       const customerSnapshot = resolveInvoiceCustomerSnapshot(
         mergeInvoiceSnapshot(latestInvoice, inv),
         currentCustomer,
@@ -503,6 +509,7 @@ export function Invoices() {
           supply_amount: latestInvoice.supply_amount,
           tax_amount: latestInvoice.tax_amount,
           total_amount: latestInvoice.total_amount,
+          discount_amount: getInvoiceDiscountAmount(latestInvoice.memo as string | undefined),
           previous_balance: latestInvoice.previous_balance,
           paid_amount: latestInvoice.paid_amount,
           memo: getDisplayMemo(latestInvoice.memo as string | undefined),

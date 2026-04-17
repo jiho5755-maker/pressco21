@@ -23,6 +23,7 @@ export interface CustomerAccountingMetaState {
 
 export interface InvoiceAccountingMetaState {
   depositUsedAmount: number
+  discountAmount?: number
   customerAddressKey?: string
   internalMemo?: string
   paymentReminder?: InvoicePaymentReminderState
@@ -330,11 +331,12 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
     .map((line) => line.trim())
     .find((line) => line.startsWith(INVOICE_ACCOUNTING_META_PREFIX))
 
-  if (!metaLine) return { depositUsedAmount: 0 }
+  if (!metaLine) return { depositUsedAmount: 0, discountAmount: 0 }
 
   try {
     const parsed = JSON.parse(metaLine.slice(INVOICE_ACCOUNTING_META_PREFIX.length).trim()) as {
       depositUsedAmount?: number
+      discountAmount?: number
       customerAddressKey?: string
       internalMemo?: string
       paymentReminder?: Partial<InvoicePaymentReminderState>
@@ -346,12 +348,13 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
     const paymentReminder = sanitizeInvoicePaymentReminder(parsed.paymentReminder)
     return {
       depositUsedAmount: Math.max(0, parseInteger(parsed.depositUsedAmount)),
+      discountAmount: Math.max(0, parseInteger(parsed.discountAmount)),
       customerAddressKey,
       internalMemo,
       paymentReminder,
     }
   } catch {
-    return { depositUsedAmount: 0 }
+    return { depositUsedAmount: 0, discountAmount: 0 }
   }
 }
 
@@ -366,7 +369,8 @@ export function serializeInvoiceAccountingMeta(
     : undefined
   const internalMemo = sanitizeMultilineText(nextState.internalMemo)
   const paymentReminder = sanitizeInvoicePaymentReminder(nextState.paymentReminder)
-  if (nextState.depositUsedAmount <= 0 && !customerAddressKey) {
+  const discountAmount = Math.max(0, parseInteger(nextState.discountAmount))
+  if (nextState.depositUsedAmount <= 0 && discountAmount <= 0 && !customerAddressKey) {
     if (!internalMemo && !paymentReminder) {
       return lines.join('\n').trim()
     }
@@ -374,6 +378,7 @@ export function serializeInvoiceAccountingMeta(
 
   const payload: Record<string, unknown> = {
     depositUsedAmount: Math.max(0, parseInteger(nextState.depositUsedAmount)),
+    discountAmount,
     customerAddressKey,
   }
   if (internalMemo) payload.internalMemo = internalMemo
@@ -398,6 +403,10 @@ export function hasActiveInvoicePaymentReminder(memo?: string): boolean {
 
 export function getInvoiceDepositUsedAmount(memo?: string): number {
   return parseInvoiceAccountingMeta(memo).depositUsedAmount
+}
+
+export function getInvoiceDiscountAmount(memo?: string): number {
+  return parseInvoiceAccountingMeta(memo).discountAmount ?? 0
 }
 
 export function getInvoiceCustomerAddressKey(memo?: string): string | undefined {

@@ -154,6 +154,18 @@ export function CustomerDialog({ open, customer, onClose, onSaved }: CustomerDia
               </Select>
             </div>
             <div>
+              <Label className="text-xs">기본 DC 할인율(%)</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={form.discount_rate ?? ''}
+                onChange={(e) => set('discount_rate', e.target.value ? Number(e.target.value) : undefined)}
+                placeholder="예: 5"
+                className="mt-1"
+              />
+            </div>
+            <div>
               <Label className="text-xs">회원 등급</Label>
               <Select value={form.member_grade ?? ''} onValueChange={(v) => set('member_grade', v)}>
                 <SelectTrigger className="mt-1"><SelectValue placeholder="등급 선택" /></SelectTrigger>

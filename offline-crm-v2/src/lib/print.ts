@@ -114,11 +114,15 @@ export function loadCompanyInfo(): CompanyInfo {
   try {
     const l = localStorage.getItem(COMPANY_INFO_KEY)
     if (l) fromLegacy = JSON.parse(l) as CompanyInfo
-  } catch {}
+  } catch {
+    // Ignore corrupt local print settings and fall back to defaults.
+  }
   try {
     const s = localStorage.getItem(SETTINGS_MERGED_KEY)
     if (s) fromSettings = JSON.parse(s) as CompanyInfo
-  } catch {}
+  } catch {
+    // Ignore corrupt merged settings and fall back to the legacy/default values.
+  }
   return {
     ...fromLegacy,
     ...fromSettings,
@@ -247,6 +251,8 @@ function buildInvoicePageHtml(
   const prevBal = inv.previous_balance ?? 0
   const paidAmt = inv.paid_amount ?? 0
   const totalAmt = inv.total_amount ?? 0
+  const discountAmt = inv.discount_amount ?? 0
+  const subtotalAmt = (inv.supply_amount ?? 0) + (inv.tax_amount ?? 0)
   const curBal = prevBal + totalAmt - paidAmt
   const payNoteLines = [
     formatBankInfo(c) ? `입금계좌: ${formatBankInfo(c)}` : '',
@@ -363,7 +369,13 @@ function buildInvoicePageHtml(
       '<table class="inv-tbl inv-total-tbl"><tr>' +
       `<td class="inv-tl">공&nbsp;급&nbsp;가&nbsp;액</td><td class="inv-tv t-right">${(inv.supply_amount ?? 0).toLocaleString()}</td>` +
       `<td class="inv-tl">세&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;액</td><td class="inv-tv t-right">${(inv.tax_amount ?? 0).toLocaleString()}</td>` +
-      `<td class="inv-tl inv-grand">합&nbsp;계&nbsp;금&nbsp;액</td><td class="inv-tv inv-grand t-right">${(inv.total_amount ?? 0).toLocaleString()}</td>` +
+      `<td class="inv-tl inv-grand">${discountAmt > 0 ? '할인전&nbsp;합계' : '합&nbsp;계&nbsp;금&nbsp;액'}</td><td class="inv-tv inv-grand t-right">${(discountAmt > 0 ? subtotalAmt : totalAmt).toLocaleString()}</td>` +
+      (discountAmt > 0
+        ? '</tr><tr>' +
+          `<td class="inv-tl">D&nbsp;C&nbsp;할&nbsp;인</td><td class="inv-tv t-right">-${discountAmt.toLocaleString()}</td>` +
+          '<td class="inv-tl"></td><td class="inv-tv"></td>' +
+          `<td class="inv-tl inv-grand">최종&nbsp;합계</td><td class="inv-tv inv-grand t-right">${totalAmt.toLocaleString()}</td>`
+        : '') +
       '</tr></table>' +
       '<table class="inv-tbl inv-balance-tbl"><tr>' +
       `<td class="inv-bl">전&nbsp;&nbsp;잔&nbsp;&nbsp;액</td><td class="inv-bv t-right">${prevBal.toLocaleString()}</td>` +
@@ -781,7 +793,7 @@ export function buildDuplexBlobUrl(
     '<style>' + css + '</style>' +
     '</head><body>' +
     duplexHtml +
-    (fitScript ? '<script>' + fitScript + '<\/script>' : '') +
+    (fitScript ? '<script>' + fitScript + '</script>' : '') +
     '</body></html>'
   return URL.createObjectURL(new Blob([fullHtml], { type: 'text/html;charset=utf-8' }))
 }

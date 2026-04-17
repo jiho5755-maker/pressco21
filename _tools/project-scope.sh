@@ -22,6 +22,7 @@ p21_normalize_project() {
     homepage|makeshop|skin) printf 'homepage\n' ;;
     workspace|governance|tools|repo) printf 'workspace\n' ;;
     team|ai-team|agents|boardroom) printf 'team\n' ;;
+    mcp|mcp-servers) printf 'mcp-servers\n' ;;
     *) return 1 ;;
   esac
 }
@@ -37,6 +38,7 @@ p21_project_from_branch() {
     work/homepage/*) printf 'homepage\n' ;;
     work/workspace/*) printf 'workspace\n' ;;
     work/team/*) printf 'team\n' ;;
+    work/mcp-servers/*) printf 'mcp-servers\n' ;;
     *) return 1 ;;
   esac
 }
@@ -51,6 +53,7 @@ p21_branch_project_name() {
     homepage) printf 'homepage\n' ;;
     workspace) printf 'workspace\n' ;;
     team) printf 'team\n' ;;
+    mcp-servers) printf 'mcp-servers\n' ;;
     *) return 1 ;;
   esac
 }
@@ -65,6 +68,7 @@ p21_slot_prefix() {
     homepage) printf 'homepage\n' ;;
     workspace) printf 'workspace\n' ;;
     team) printf 'team\n' ;;
+    mcp-servers) printf 'mcp-servers\n' ;;
     *) return 1 ;;
   esac
 }
@@ -94,6 +98,9 @@ p21_allowed_paths_print() {
       ;;
     team)
       printf '%s\n' 'team/' 'company-knowledge/직원/' 'docs/openmarket-ops/' 'docs/prd-templates/' 'AI_SYNC.md'
+      ;;
+    mcp-servers)
+      printf '%s\n' 'mcp-servers/'
       ;;
     *) return 1 ;;
   esac
@@ -127,6 +134,9 @@ p21_sparse_paths_print() {
     team)
       printf '%s\n' '/team/' '/company-knowledge/직원/' '/docs/openmarket-ops/' '/docs/prd-templates/' '/AI_SYNC.md'
       ;;
+    mcp-servers)
+      printf '%s\n' '/mcp-servers/'
+      ;;
     *) return 1 ;;
   esac
 }
@@ -159,6 +169,9 @@ p21_is_path_allowed() {
       ;;
     team)
       case "$path" in team|team/*|company-knowledge/직원|company-knowledge/직원/*|docs/openmarket-ops|docs/openmarket-ops/*|docs/prd-templates|docs/prd-templates/*|AI_SYNC.md) return 0 ;; esac
+      ;;
+    mcp-servers)
+      case "$path" in mcp-servers|mcp-servers/*) return 0 ;; esac
       ;;
   esac
 

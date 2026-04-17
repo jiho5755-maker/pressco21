@@ -14,10 +14,13 @@ dependencies = [
     "aiolimiter>=1.2.1",
     "structlog>=25.1.0",
     "bcrypt>=4.3.0",
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
 ]
 
 [project.scripts]
 naver-ads-mcp = "naver_ads_mcp.server:main"
+naver-ads-api = "naver_ads_mcp.api:main"
 
 [build-system]
 requires = ["hatchling"]

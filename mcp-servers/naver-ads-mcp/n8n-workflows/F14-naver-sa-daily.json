@@ -1,0 +1,250 @@
+{
+  "name": "[F14] 네이버SA 데일리 최적화",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 2
+            }
+          ]
+        }
+      },
+      "id": "cron-trigger",
+      "name": "매일 02:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://naver-ads-api:8400/api/v1/daily-cycle",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.NAVER_ADS_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"hint_keywords\": [\"압화\", \"프리저브드\", \"보존화\", \"꽃공예\", \"플라워레진\"],\n  \"days_lookback\": 30,\n  \"min_searches\": 100,\n  \"bid_delta\": 15,\n  \"dry_run\": false\n}",
+        "options": {
+          "timeout": 120000
+        }
+      },
+      "id": "daily-cycle",
+      "name": "Daily Cycle API",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 300]
+    },
+    {
+      "parameters": {
+        "jsCode": "const data = $input.first().json;\nconst ts = new Date().toLocaleString('ko-KR', {timeZone: 'Asia/Seoul'});\n\nlet msg = `📊 네이버SA 일일 최적화 리포트\\n${ts}\\n`;\nmsg += `기간: ${data.period || 'N/A'}\\n`;\nmsg += `모드: ${data.dry_run ? '🔒 시뮬레이션' : '✅ 실행'}\\n\\n`;\n\n// Harvest\nif (data.harvest) {\n  if (data.harvest.error) {\n    msg += `🌱 키워드 수확: ❌ ${data.harvest.error}\\n`;\n  } else {\n    msg += `🌱 키워드 수확: ${data.harvest.discovered}개 발견 → ${data.harvest.filtered}개 통과\\n`;\n    if (data.harvest.topKeywords && data.harvest.topKeywords.length > 0) {\n      msg += `   TOP: ${data.harvest.topKeywords.slice(0,5).join(', ')}\\n`;\n    }\n  }\n}\n\n// Prune\nif (data.prune) {\n  const totalPruned = data.prune.results.reduce((sum, r) => sum + (r.pruneCount || 0), 0);\n  msg += `\\n✂️ 가지치기: ${totalPruned}개 키워드 OFF`;\n  if (totalPruned > 0) {\n    msg += '\\n';\n    for (const r of data.prune.results) {\n      if (r.pruneCount > 0) {\n        msg += `   ${r.campaign}: ${r.pruneCount}개`;\n        if (r.keywords && r.keywords.length > 0) {\n          msg += ` (${r.keywords.join(', ')})`;\n        }\n        msg += '\\n';\n      }\n    }\n  } else {\n    msg += ' (정리할 키워드 없음)\\n';\n  }\n}\n\n// Optimize\nif (data.optimize) {\n  const totalChanges = data.optimize.results.reduce((sum, r) => sum + (r.changeCount || 0), 0);\n  const totalRaises = data.optimize.results.reduce((sum, r) => sum + (r.raises || 0), 0);\n  const totalLowers = data.optimize.results.reduce((sum, r) => sum + (r.lowers || 0), 0);\n  msg += `\\n📈 입찰 최적화: ${totalChanges}건 (⬆${totalRaises} ⬇${totalLowers})\\n`;\n}\n\n// Budget\nif (data.budget) {\n  if (data.budget.alertCount > 0) {\n    msg += `\\n🚨 예산 경보: ${data.budget.alertCount}건\\n`;\n    for (const a of data.budget.alerts) {\n      msg += `   ${a.name}: ${a.pacePercent}% (${a.alert})\\n`;\n    }\n  } else {\n    msg += `\\n💰 예산: 정상\\n`;\n  }\n}\n\n// Quality\nif (data.quality) {\n  if (data.quality.critical > 0) {\n    msg += `\\n⚠️ 저품질 키워드: ${data.quality.critical}개 (교체 권고)\\n`;\n  }\n  if (data.quality.warning > 0) {\n    msg += `🟡 개선 필요: ${data.quality.warning}개\\n`;\n  }\n}\n\nreturn [{ json: { message: msg, hasAlert: (data.budget?.alertCount || 0) > 0 || (data.quality?.critical || 0) > 0 } }];"
+      },
+      "id": "format-message",
+      "name": "리포트 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "-5154731145",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "id": "telegram-send",
+      "name": "텔레그램 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [880, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Telegram Makeshop Bot"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://naver-ads-api:8400/api/v1/budget-alert",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "X-Api-Key",
+              "value": "={{ $env.NAVER_ADS_API_KEY }}"
+            },
+            {
+              "name": "Content-Type",
+              "value": "application/json"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "{}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "budget-check-14h",
+      "name": "14시 예산 체크",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 520]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 14
+            }
+          ]
+        }
+      },
+      "id": "cron-14h",
+      "name": "매일 14:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [220, 520]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict"
+          },
+          "conditions": [
+            {
+              "id": "alert-check",
+              "leftValue": "={{ $json.alert_count }}",
+              "rightValue": 0,
+              "operator": {
+                "type": "number",
+                "operation": "gt"
+              }
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "if-alert",
+      "name": "경보 있으면",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.2,
+      "position": [660, 520]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "=🚨 예산 경보!\n\n{{ $json.alerts.map(a => `${a.name}: ${a.pacePercent}% 소진 (${a.alert})`).join('\\n') }}",
+        "additionalFields": {}
+      },
+      "id": "telegram-alert",
+      "name": "지호님 긴급 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [880, 480],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Telegram Makeshop Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매일 02:00": {
+      "main": [
+        [
+          {
+            "node": "Daily Cycle API",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Cycle API": {
+      "main": [
+        [
+          {
+            "node": "리포트 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "리포트 포맷": {
+      "main": [
+        [
+          {
+            "node": "텔레그램 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "매일 14:00": {
+      "main": [
+        [
+          {
+            "node": "14시 예산 체크",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "14시 예산 체크": {
+      "main": [
+        [
+          {
+            "node": "경보 있으면",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "경보 있으면": {
+      "main": [
+        [
+          {
+            "node": "지호님 긴급 알림",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "tags": [
+    {
+      "name": "광고자동화"
+    }
+  ]
+}

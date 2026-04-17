@@ -68,18 +68,52 @@ async def test_bid_optimizer_dry_run(sa_client):
 
 async def test_ab_evaluate_winner(sa_client):
     sa_client.get.return_value = [
-        {"id": "ad-a", "impCnt": 200, "clkCnt": 20, "ctr": 10.0, "ccnt": 2, "convAmt": 5000, "salesAmt": 2000},
-        {"id": "ad-b", "impCnt": 200, "clkCnt": 10, "ctr": 5.0, "ccnt": 0, "convAmt": 0, "salesAmt": 1000},
+        {
+            "id": "ad-a",
+            "impCnt": 200,
+            "clkCnt": 20,
+            "ctr": 10.0,
+            "ccnt": 2,
+            "convAmt": 5000,
+            "salesAmt": 2000,
+        },
+        {
+            "id": "ad-b",
+            "impCnt": 200,
+            "clkCnt": 10,
+            "ctr": 5.0,
+            "ccnt": 0,
+            "convAmt": 0,
+            "salesAmt": 1000,
+        },
     ]
-    result = await ab_test_evaluate(sa_client, "ad-a", "ad-b", "2026-04-01", "2026-04-10", dry_run=True)
+    result = await ab_test_evaluate(
+        sa_client, "ad-a", "ad-b", "2026-04-01", "2026-04-10", dry_run=True
+    )
     assert result["winner"] == "ad-a"
     assert result["confident"] is True
 
 
 async def test_ab_evaluate_not_confident(sa_client):
     sa_client.get.return_value = [
-        {"id": "ad-a", "impCnt": 50, "clkCnt": 5, "ctr": 10.0, "ccnt": 0, "convAmt": 0, "salesAmt": 0},
-        {"id": "ad-b", "impCnt": 50, "clkCnt": 3, "ctr": 6.0, "ccnt": 0, "convAmt": 0, "salesAmt": 0},
+        {
+            "id": "ad-a",
+            "impCnt": 50,
+            "clkCnt": 5,
+            "ctr": 10.0,
+            "ccnt": 0,
+            "convAmt": 0,
+            "salesAmt": 0,
+        },
+        {
+            "id": "ad-b",
+            "impCnt": 50,
+            "clkCnt": 3,
+            "ctr": 6.0,
+            "ccnt": 0,
+            "convAmt": 0,
+            "salesAmt": 0,
+        },
     ]
     result = await ab_test_evaluate(sa_client, "ad-a", "ad-b", "2026-04-01", "2026-04-10")
     assert result["confident"] is False

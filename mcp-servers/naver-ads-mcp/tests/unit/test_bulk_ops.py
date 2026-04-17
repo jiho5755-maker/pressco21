@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import pytest
-
 from naver_ads_mcp.tools.bulk_ops import bulk_keyword_filter
 
 

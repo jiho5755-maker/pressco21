@@ -22,6 +22,9 @@ class Settings(BaseSettings):
     max_bid_delta_pct: int = Field(default=20, ge=1, le=50)
     max_auto_actions_per_day: int = Field(default=100, ge=1)
 
+    api_secret_key: str = ""
+    api_port: int = 8400
+
     log_level: str = "INFO"
 
     sa_base_url: str = "https://api.searchad.naver.com"

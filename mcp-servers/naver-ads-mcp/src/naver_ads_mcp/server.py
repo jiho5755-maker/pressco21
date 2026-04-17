@@ -1,4 +1,4 @@
-"""naver-ads-mcp: Naver Search Ads + Commerce MCP Server (Phase 1 MVP)."""
+"""naver-ads-mcp: Naver Search Ads + Commerce MCP Server (Phase 2)."""
 
 from __future__ import annotations
 
@@ -15,9 +15,12 @@ from naver_ads_mcp.config import settings
 from naver_ads_mcp.errors import NaverApiError
 from naver_ads_mcp.tools import adgroups as ag_ops
 from naver_ads_mcp.tools import ads as ads_ops
+from naver_ads_mcp.tools import budget as budget_ops
 from naver_ads_mcp.tools import campaigns as cmp_ops
 from naver_ads_mcp.tools import commerce as com_ops
 from naver_ads_mcp.tools import keywords as kw_ops
+from naver_ads_mcp.tools import negative_keywords as nkw_ops
+from naver_ads_mcp.tools import quality as qi_ops
 from naver_ads_mcp.tools import shopping as shop_ops
 from naver_ads_mcp.tools import stats as stat_ops
 
@@ -301,6 +304,96 @@ async def keyword_update_status_bulk(updates_json: str, dry_run: bool = True) ->
     try:
         updates = json.loads(updates_json)
         return _wrap(await kw_ops.keyword_update_status_bulk(_get_sa(), updates, dry_run))
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── 제외 키워드 (3) — Phase 2 P0 ───
+
+
+@mcp.tool()
+async def negative_keyword_list(adgroup_id: str) -> str:
+    """광고그룹의 제외 키워드 목록을 조회합니다."""
+    try:
+        return _wrap(await nkw_ops.negative_keyword_list(_get_sa(), adgroup_id))
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def negative_keyword_create_bulk(
+    adgroup_id: str,
+    keywords_json: str,
+    dry_run: bool = True,
+) -> str:
+    """제외 키워드를 대량 등록합니다. dry_run=true면 미리보기만.
+
+    keywords_json: [{"keyword":"압화 무료"},{"keyword":"압화 수리"},...] JSON 문자열.
+    """
+    try:
+        keywords = json.loads(keywords_json)
+        return _wrap(
+            await nkw_ops.negative_keyword_create_bulk(_get_sa(), adgroup_id, keywords, dry_run)
+        )
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def negative_keyword_delete_bulk(
+    ids_json: str,
+    dry_run: bool = True,
+) -> str:
+    """제외 키워드를 대량 삭제합니다. dry_run=true면 미리보기만.
+
+    ids_json: ["nkw-id-1","nkw-id-2",...] JSON 문자열.
+    """
+    try:
+        keyword_ids = json.loads(ids_json)
+        return _wrap(await nkw_ops.negative_keyword_delete_bulk(_get_sa(), keyword_ids, dry_run))
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── 품질지수 (1) — Phase 2 P0 ───
+
+
+@mcp.tool()
+async def keyword_quality_check(adgroup_id: str | None = None) -> str:
+    """키워드별 품질지수(QI)를 조회하고 저품질 경고를 표시합니다.
+
+    QI 7~10: 효율 좋음 / QI 4~6: 개선 필요 / QI 1~3: 비효율 (교체 권고).
+    """
+    try:
+        return _wrap(await qi_ops.keyword_quality_check(_get_sa(), adgroup_id))
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── 소예산 방어 (2) — Phase 2 P0 ───
+
+
+@mcp.tool()
+async def budget_pace_check(campaign_ids_csv: str | None = None) -> str:
+    """캠페인별 예산 소진 속도를 체크합니다. 80%+ 경고, 95%+ 일시정지 권고.
+
+    campaign_ids_csv: 쉼표 구분 캠페인 ID (생략 시 전체). stat 데이터 1~3시간 지연 주의.
+    """
+    try:
+        ids = [x.strip() for x in campaign_ids_csv.split(",")] if campaign_ids_csv else None
+        return _wrap(await budget_ops.budget_pace_check(_get_sa(), ids))
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def budget_auto_pause(campaign_id: str, dry_run: bool = True) -> str:
+    """예산 95% 이상 소진 캠페인을 일시정지합니다. dry_run=true면 미리보기만.
+
+    MCP_WRITE_ENABLED=true 필요 (실행 시).
+    """
+    try:
+        return _wrap(await budget_ops.budget_auto_pause(_get_sa(), campaign_id, dry_run))
     except NaverApiError as e:
         return _err(e)
 

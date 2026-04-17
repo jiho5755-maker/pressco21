@@ -73,5 +73,5 @@ class SearchAdClient:
     async def put(self, path: str, body: Any = None) -> Any:
         return await self.request("PUT", path, json_body=body)
 
-    async def delete(self, path: str) -> Any:
-        return await self.request("DELETE", path)
+    async def delete(self, path: str, **params: Any) -> Any:
+        return await self.request("DELETE", path, params=params if params else None)

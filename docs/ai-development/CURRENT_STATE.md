@@ -1,6 +1,6 @@
 # Current State — PRESSCO21 Workspace
 
-Last updated: 2026-04-16 (finalized)
+Last updated: 2026-04-18 (CRM closed)
 
 ## Source of truth
 
@@ -17,8 +17,11 @@ Last updated: 2026-04-16 (finalized)
 ## CRM production state
 
 - URL: https://crm.pressco21.com
-- Latest deployed commit at time of this note: `b35f5b0 [codex] 예치금 요약 위치 조정`
-- Health checked after deploy: `crm-auth.service active`, `http://127.0.0.1:9100/health -> ok`
+- Status: closed / complete until a new issue is reported
+- Latest deployed release: `20260418081213-0d0d318`
+- Latest deployed feature commit: `0d0d318 [codex] CRM 엑셀 처리 ExcelJS 전환`
+- Latest documentation commit: `442bdae [codex] CRM ExcelJS 배포 로그 추가`
+- Health checked after deploy: `crm-auth.service active`, `https://crm.pressco21.com/auth/health -> ok`
 
 ### CRM changes completed on 2026-04-16
 
@@ -29,6 +32,16 @@ Last updated: 2026-04-16 (finalized)
 - Deposit summary cards were moved directly below the deposit input row.
 - Customer detail transaction tab includes settlement-style summary.
 - Misunderstood CRM settings clipboard-image feature was reverted.
+
+### CRM finalization completed on 2026-04-18
+
+- `customer-search` and `invoice-discount` CRM branches were integrated to `main` and cleaned up.
+- CRM Excel handling was migrated from vulnerable `xlsx` to `exceljs`.
+- Excel downloads now use ExcelJS-generated `.xlsx` files.
+- Deposit inbox uploads now support `.xlsx` and `.csv`; legacy `.xls` uploads are blocked with conversion guidance.
+- `npm audit --audit-level=moderate` returns `found 0 vulnerabilities`.
+- Production release `20260418081213-0d0d318` was deployed and health checked.
+- CRM development is considered complete; do not resume CRM work unless a new issue, bug, or requested enhancement appears.
 
 ## Local AI/tmux environment
 

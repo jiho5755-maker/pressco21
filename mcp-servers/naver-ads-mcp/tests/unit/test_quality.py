@@ -39,7 +39,7 @@ async def test_quality_check_categorizes_correctly(sa_client):
 
 async def test_quality_check_empty(sa_client):
     sa_client.get.return_value = []
-    result = await keyword_quality_check(sa_client)
+    result = await keyword_quality_check(sa_client, adgroup_id="grp-1")
     assert result["total"] == 0
 
 
@@ -48,7 +48,22 @@ async def test_quality_check_all_good(sa_client):
         {"nccKeywordId": "kw-1", "keyword": "압화", "qualityIndex": 8, "bidAmt": 100},
         {"nccKeywordId": "kw-2", "keyword": "부케", "qualityIndex": 10, "bidAmt": 80},
     ]
-    result = await keyword_quality_check(sa_client)
+    result = await keyword_quality_check(sa_client, adgroup_id="grp-1")
     assert result["summary"]["good_7_10"] == 2
     assert result["summary"]["critical_1_3"] == 0
     assert result["summary"]["warning_4_6"] == 0
+
+
+async def test_quality_check_all_campaigns(sa_client):
+    sa_client.get.side_effect = [
+        [{"nccCampaignId": "cmp-1", "userStatus": "ENABLE"}],
+        [{"nccAdgroupId": "grp-1"}],
+        [
+            {"nccKeywordId": "kw-1", "keyword": "압화", "qualityIndex": 9, "bidAmt": 70},
+            {"nccKeywordId": "kw-2", "keyword": "부케", "qualityIndex": 3, "bidAmt": 70},
+        ],
+    ]
+    result = await keyword_quality_check(sa_client)
+    assert result["total"] == 2
+    assert result["summary"]["good_7_10"] == 1
+    assert result["summary"]["critical_1_3"] == 1

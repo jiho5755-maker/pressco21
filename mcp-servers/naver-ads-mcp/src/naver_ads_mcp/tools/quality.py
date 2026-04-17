@@ -17,10 +17,20 @@ async def keyword_quality_check(
     adgroup_id: str | None = None,
 ) -> dict[str, Any]:
     _require_sa()
-    params: dict[str, str] = {}
     if adgroup_id:
-        params["nccAdgroupId"] = adgroup_id
-    keywords = await client.get("/ncc/keywords", **params)
+        keywords = await client.get("/ncc/keywords", nccAdgroupId=adgroup_id)
+    else:
+        campaigns = await client.get("/ncc/campaigns") or []
+        keywords = []
+        for cmp in campaigns:
+            if cmp.get("userStatus") != "ENABLE":
+                continue
+            adgroups = await client.get(
+                "/ncc/adgroups", nccCampaignId=cmp["nccCampaignId"]
+            )
+            for grp in adgroups or []:
+                kws = await client.get("/ncc/keywords", nccAdgroupId=grp["nccAdgroupId"])
+                keywords.extend(kws or [])
 
     if not keywords:
         return {"ok": True, "total": 0, "summary": {}, "critical": [], "warning": [], "good": []}

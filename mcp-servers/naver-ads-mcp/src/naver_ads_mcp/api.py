@@ -215,10 +215,11 @@ async def daily_cycle(req: DailyCycleRequest) -> dict[str, Any]:
     # Step 5: Quality index check
     try:
         qi = await keyword_quality_check(client)
+        s = qi.get("summary", {})
         summary["quality"] = {
-            "critical": qi.get("criticalCount", 0),
-            "warning": qi.get("warningCount", 0),
-            "good": qi.get("goodCount", 0),
+            "critical": s.get("critical_1_3", 0),
+            "warning": s.get("warning_4_6", 0),
+            "good": s.get("good_7_10", 0),
         }
     except NaverApiError as e:
         summary["quality"] = {"error": e.message_ko}

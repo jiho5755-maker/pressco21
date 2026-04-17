@@ -245,15 +245,17 @@ Dashboard에 기간별 매출 분석 기능을 추가한다.
 > **accounting-specialist 확정 기준**: 수금률 = paid_amount 합계 / total_amount 합계 (금액 기준)
 > EXCELLENT(≥95%) / GOOD(≥85%) / CAUTION(≥70%) / DANGER(<70%)
 
-### Phase 7: 보안 배포 전 필수 조치 (부분 완료)
+### Phase 7: 보안 배포 전 필수 조치 ✅ 코드/프록시 조치 완료
 
 프로덕션 배포 전 반드시 완료해야 하는 보안 항목들.
 
 - [x] `vite.config.ts` drop_console 설정 (프로덕션 빌드 시 console.* 제거)
-- [ ] n8n CORS 설정 `*` -> `https://crm.pressco21.com` 제한 **⚠️ 수동 작업 필요**
+- [x] n8n CORS 노출 제한: 프론트 기본 API 경로를 same-origin `/crm-proxy`로 고정하고 운영 Nginx가 n8n CORS 헤더를 숨긴 뒤 `https://crm.pressco21.com`만 재발행
 - [x] CSP (Content-Security-Policy) 헤더 추가 (`index.html` meta 태그)
 - [ ] NocoDB API 토큰 재발급 (git history에 노출된 건 -- 키 로테이션 필수) **⚠️ 수동 작업 필요**
-- [ ] XSS 방어 새니타이징 추가 적용 확인 (CRM-012에서 향후 과제로 남김)
+- [x] XSS 방어 새니타이징 적용 확인: React 렌더링 위험 API 0건, 인쇄 HTML 문자열 escape 적용, 로고/도장 data URL allowlist 추가
+
+> 2026-04-18 CRM 정리: `customer-search` + `invoice-discount` 통합 브랜치에서 고객 검색 범위 확장, 고객별 DC 할인, CORS same-origin 기본값, 인쇄 이미지 XSS 방어를 함께 검증한다.
 
 ### Phase 8: 프로덕션 배포 ✅ 완료 (2026-03-07)
 

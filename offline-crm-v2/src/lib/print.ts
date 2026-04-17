@@ -127,8 +127,8 @@ export function loadCompanyInfo(): CompanyInfo {
     ...fromLegacy,
     ...fromSettings,
     // 어느 쪽에든 있으면 반영 (설정 저장 타이밍 무관)
-    logo_url: fromSettings.logo_url || fromLegacy.logo_url,
-    stamp_url: fromSettings.stamp_url || fromLegacy.stamp_url,
+    logo_url: sanitizePrintImageSrc(fromSettings.logo_url || fromLegacy.logo_url),
+    stamp_url: sanitizePrintImageSrc(fromSettings.stamp_url || fromLegacy.stamp_url),
   }
 }
 
@@ -142,6 +142,28 @@ function esc(str: string): string {
     .replace(/</g, '&lt;')
     .replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;')
+}
+
+function escAttr(str: string): string {
+  return esc(str).replace(/'/g, '&#39;')
+}
+
+export function sanitizePrintImageSrc(value?: string): string {
+  const src = String(value ?? '').trim()
+  if (!src) return ''
+
+  // Settings 업로드 경로: PNG/JPEG/WebP/GIF data URL만 허용한다.
+  // SVG data URL은 Blob 인쇄 HTML에서 스크립트/이벤트 속성 주입 여지를 줄이기 위해 제외한다.
+  if (/^data:image\/(?:png|jpe?g|webp|gif);base64,[a-z0-9+/=\s]+$/i.test(src)) {
+    return src
+  }
+
+  // 정적 fallback 이미지만 경로 기반으로 허용한다. 경로 traversal/따옴표 삽입 방지.
+  if (/^\/images\/[a-z0-9._/-]+\.(?:png|jpe?g|webp|gif)$/i.test(src) && !src.includes('..')) {
+    return src
+  }
+
+  return ''
 }
 
 // ── 멀티페이지 상수 ──
@@ -281,13 +303,13 @@ function buildInvoicePageHtml(
       )
       .join('')
 
-  const effectiveLogo = c.logo_url || _logoFallback
-  const effectiveStamp = c.stamp_url || _stampFallback
+  const effectiveLogo = sanitizePrintImageSrc(c.logo_url || _logoFallback)
+  const effectiveStamp = sanitizePrintImageSrc(c.stamp_url || _stampFallback)
   const logoHtml = effectiveLogo
-    ? `<img src="${effectiveLogo}" alt="로고" style="height:40px;object-fit:contain;" />`
+    ? `<img src="${escAttr(effectiveLogo)}" alt="로고" style="height:40px;object-fit:contain;" />`
     : ''
   const stampHtml = effectiveStamp
-    ? `<img src="${effectiveStamp}" alt="도장" class="inv-stamp-img" />`
+    ? `<img src="${escAttr(effectiveStamp)}" alt="도장" class="inv-stamp-img" />`
     : ''
 
   let html = ''
@@ -521,13 +543,13 @@ function buildEstimatePageHtml(
   const customerBizno = formatBusinessNumber(inv.customer_bizno)
   const companyPhone = formatPhoneNumber(c.phone)
   const customerPhone = formatPhoneNumber(inv.customer_phone)
-  const effectiveLogo = c.logo_url || _logoFallback
-  const effectiveStamp = c.stamp_url || _stampFallback
+  const effectiveLogo = sanitizePrintImageSrc(c.logo_url || _logoFallback)
+  const effectiveStamp = sanitizePrintImageSrc(c.stamp_url || _stampFallback)
   const logoHtml = effectiveLogo
-    ? `<img src="${effectiveLogo}" alt="로고" class="est-logo-img" />`
+    ? `<img src="${escAttr(effectiveLogo)}" alt="로고" class="est-logo-img" />`
     : `<div class="est-logo-text">${esc(c.company ?? '')}</div>`
   const stampHtml = effectiveStamp
-    ? `<img src="${effectiveStamp}" alt="도장" class="est-stamp-img" />`
+    ? `<img src="${escAttr(effectiveStamp)}" alt="도장" class="est-stamp-img" />`
     : ''
   const pageLabel = opts.totalPages > 1 ? ` / ${opts.pageNum}p` : ''
   const noteText = inv.memo?.trim() || c.invoice_footer?.trim() || '견적 금액과 납품 조건은 협의 후 확정됩니다.'
@@ -877,8 +899,9 @@ export function printPeriodReport(
   const c = loadCompanyInfo()
   const today = new Date().toLocaleDateString('ko-KR')
 
-  const logoHtml = c.logo_url
-    ? `<img src="${c.logo_url}" alt="로고" style="height:36px;object-fit:contain;" />`
+  const safeLogo = sanitizePrintImageSrc(c.logo_url)
+  const logoHtml = safeLogo
+    ? `<img src="${escAttr(safeLogo)}" alt="로고" style="height:36px;object-fit:contain;" />`
     : `<span style="font-weight:700;font-size:10pt;color:#3d6b4a;">${esc(c.company ?? '')}</span>`
 
   const statusLabel = (s?: string) =>
@@ -1021,8 +1044,9 @@ export function printCustomerTransactionStatement(
     )
     .join('')
 
-  const logoHtml = c.logo_url
-    ? `<img src="${c.logo_url}" alt="로고" style="height:34px;object-fit:contain;" />`
+  const safeLogo = sanitizePrintImageSrc(c.logo_url)
+  const logoHtml = safeLogo
+    ? `<img src="${escAttr(safeLogo)}" alt="로고" style="height:34px;object-fit:contain;" />`
     : `<span style="font-weight:800;font-size:11pt;color:#2f4f38;">${esc(c.company ?? '')}</span>`
 
   const html =

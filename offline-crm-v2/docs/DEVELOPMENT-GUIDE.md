@@ -537,13 +537,15 @@ Radix DialogContent: z-index: 50
 - [x] Production 빌드 시 `console.*` / `debugger` 자동 제거
 - [x] CSP(Content Security Policy) meta 태그 추가
 - [x] 하드코딩된 토큰 제거 → 환경변수 방식
+- [x] 운영 API 호출은 same-origin `/crm-proxy` 기본값 사용
+- [x] 운영 Nginx에서 n8n CORS 헤더 제거 후 `https://crm.pressco21.com`만 허용
+- [x] 인쇄 HTML 문자열 escape + 로고/도장 이미지 data URL allowlist 적용
 
 ### 미완료 항목 (수동 작업 필요)
 
-- [ ] n8n CORS 설정: `*` → 특정 도메인 제한
 - [ ] NocoDB API 토큰 재발급 (git history에 노출된 키 교체)
-- [ ] HTTPS 강제 리다이렉트 설정
-- [ ] 로그인/인증 시스템 (현재 없음 — 오프라인 CRM이므로 의도적 생략)
+- [x] HTTPS 강제 리다이렉트 설정
+- [x] 로그인/인증 시스템 (`crm-auth.service` + Nginx `auth_request`)
 
 ### 보안 코딩 패턴
 
@@ -898,9 +900,8 @@ ssh -i ~/.ssh/oracle-n8n.key ubuntu@158.180.77.201 "sudo certbot certificates"
 - TypeScript 오류: `npx tsc --noEmit`로 타입 체크 후 수정
 - 미사용 import/변수 경고가 빌드 에러로 발생 (strict mode)
 
-### 보안 미완료 항목 (수동 작업 필요)
+### 보안 잔여 수동 항목
 
-- [ ] n8n CORS: `*` → `https://crm.pressco21.com` 제한
 - [ ] NocoDB API 토큰 재발급 (git history 노출 건)
 
 ---

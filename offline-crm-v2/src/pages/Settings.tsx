@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
 import { Separator } from '@/components/ui/separator'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { saveCompanyInfo } from '@/lib/print'
+import { sanitizePrintImageSrc, saveCompanyInfo } from '@/lib/print'
 import type { CompanyInfo } from '@/lib/print'
 import {
   getSettings,
@@ -49,6 +49,13 @@ interface SettingsData extends CompanyInfo {
 
 const SETTINGS_KEY = 'pressco21-crm-settings'
 const LEGACY_KEY = 'pressco21-crm-v2'
+const ALLOWED_PRINT_IMAGE_TYPES = new Set(['image/png', 'image/jpeg', 'image/webp', 'image/gif'])
+const MAX_PRINT_IMAGE_BYTES = 2 * 1024 * 1024
+type SyncStatus = 'idle' | 'loading' | 'saving' | 'saved' | 'error'
+
+function getSafePrintPreview(src: string | undefined, fallback: string): string {
+  return sanitizePrintImageSrc(src) || fallback
+}
 
 function loadSettings(): SettingsData {
   // 양쪽 키 병합: 어느 쪽에 데이터가 있든 모두 반영 (settings 키 우선)
@@ -56,11 +63,15 @@ function loadSettings(): SettingsData {
   try {
     const legacy = localStorage.getItem(LEGACY_KEY)
     if (legacy) merged = { ...merged, ...JSON.parse(legacy) }
-  } catch {}
+  } catch {
+    // Ignore corrupt legacy settings and continue with defaults.
+  }
   try {
     const settings = localStorage.getItem(SETTINGS_KEY)
     if (settings) merged = { ...merged, ...JSON.parse(settings) }
-  } catch {}
+  } catch {
+    // Ignore corrupt current settings and continue with already merged values.
+  }
   return merged as SettingsData
 }
 
@@ -82,8 +93,8 @@ function toServerPayload(data: SettingsData): Partial<CrmSettings> {
     bizType: data.bizType,
     bizItem: data.bizItem,
     address: data.address,
-    logo_url: data.logo_url,
-    stamp_url: data.stamp_url,
+    logo_url: sanitizePrintImageSrc(data.logo_url),
+    stamp_url: sanitizePrintImageSrc(data.stamp_url),
     bank_name: data.bank_name,
     bank_account: data.bank_account,
     bank_holder: data.bank_holder,
@@ -138,11 +149,26 @@ function SettingsSection({
   )
 }
 
+function SyncIcon({ status }: { status: SyncStatus }) {
+  switch (status) {
+    case 'loading':
+      return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
+    case 'saving':
+      return <Loader2 className="h-4 w-4 animate-spin text-[#7d9675]" />
+    case 'saved':
+      return <Cloud className="h-4 w-4 text-[#7d9675]" />
+    case 'error':
+      return <CloudOff className="h-4 w-4 text-red-500" />
+    default:
+      return <CloudOff className="h-4 w-4 text-muted-foreground" />
+  }
+}
+
 export function Settings() {
   const navigate = useNavigate()
   const [data, setData] = useState<SettingsData>(loadSettings)
   const [serverRowId, setServerRowId] = useState<number | null>(null)
-  const [syncStatus, setSyncStatus] = useState<'idle' | 'loading' | 'saving' | 'saved' | 'error'>('idle')
+  const [syncStatus, setSyncStatus] = useState<SyncStatus>('loading')
 
   // 이미지 프리뷰 state
   const [logoPreview, setLogoPreview] = useState<string>('')
@@ -151,10 +177,10 @@ export function Settings() {
   // debounce 저장용 ref
   const debounceTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const initialLoadDone = useRef(false)
+  const initialLocalSettings = useRef(data)
 
   // 앱 시작 시 NocoDB에서 설정 로드
   useEffect(() => {
-    setSyncStatus('loading')
     getSettings().then((server) => {
       if (server) {
         setServerRowId(server.Id ?? null)
@@ -167,20 +193,20 @@ export function Settings() {
         delete (merged as Record<string, unknown>).nc_order
         saveSettingsLocal(merged)
         setData(merged)
-        setLogoPreview(merged.logo_url ?? '/images/company-logo.png')
-        setStampPreview(merged.stamp_url ?? '/images/company-stamp.jpg')
+        setLogoPreview(getSafePrintPreview(merged.logo_url, '/images/company-logo.png'))
+        setStampPreview(getSafePrintPreview(merged.stamp_url, '/images/company-stamp.jpg'))
         setSyncStatus('saved')
       } else {
         // 서버에 아직 행이 없음 → localStorage 값 유지
-        setLogoPreview(data.logo_url ?? '/images/company-logo.png')
-        setStampPreview(data.stamp_url ?? '/images/company-stamp.jpg')
+        setLogoPreview(getSafePrintPreview(initialLocalSettings.current.logo_url, '/images/company-logo.png'))
+        setStampPreview(getSafePrintPreview(initialLocalSettings.current.stamp_url, '/images/company-stamp.jpg'))
         setSyncStatus('idle')
       }
       initialLoadDone.current = true
     }).catch(() => {
       // 네트워크 오류 등 → localStorage fallback
-      setLogoPreview(data.logo_url ?? '/images/company-logo.png')
-      setStampPreview(data.stamp_url ?? '/images/company-stamp.jpg')
+      setLogoPreview(getSafePrintPreview(initialLocalSettings.current.logo_url, '/images/company-logo.png'))
+      setStampPreview(getSafePrintPreview(initialLocalSettings.current.stamp_url, '/images/company-stamp.jpg'))
       setSyncStatus('error')
       initialLoadDone.current = true
     })
@@ -220,17 +246,33 @@ export function Settings() {
   function handleImageUpload(field: 'logo_url' | 'stamp_url', e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
     if (!file) return
+    if (!ALLOWED_PRINT_IMAGE_TYPES.has(file.type)) {
+      toast.error('PNG, JPG, WebP, GIF 이미지만 업로드할 수 있습니다.')
+      e.target.value = ''
+      return
+    }
+    if (file.size > MAX_PRINT_IMAGE_BYTES) {
+      toast.error('이미지는 2MB 이하로 업로드해주세요.')
+      e.target.value = ''
+      return
+    }
     const reader = new FileReader()
     reader.onload = (ev) => {
       const dataUrl = ev.target?.result as string
+      const safeDataUrl = sanitizePrintImageSrc(dataUrl)
+      if (!safeDataUrl) {
+        toast.error('인쇄에 사용할 수 없는 이미지 형식입니다.')
+        e.target.value = ''
+        return
+      }
       setData((prev) => {
-        const updated = { ...prev, [field]: dataUrl }
+        const updated = { ...prev, [field]: safeDataUrl }
         saveSettingsLocal(updated)
         debounceSave(updated)
         return updated
       })
-      if (field === 'logo_url') setLogoPreview(dataUrl)
-      else setStampPreview(dataUrl)
+      if (field === 'logo_url') setLogoPreview(safeDataUrl)
+      else setStampPreview(safeDataUrl)
     }
     reader.readAsDataURL(file)
   }
@@ -256,23 +298,7 @@ export function Settings() {
     }
   }
 
-  // 동기화 상태 아이콘
-  const SyncIcon = () => {
-    switch (syncStatus) {
-      case 'loading':
-        return <Loader2 className="h-4 w-4 animate-spin text-muted-foreground" />
-      case 'saving':
-        return <Loader2 className="h-4 w-4 animate-spin text-[#7d9675]" />
-      case 'saved':
-        return <Cloud className="h-4 w-4 text-[#7d9675]" />
-      case 'error':
-        return <CloudOff className="h-4 w-4 text-red-500" />
-      default:
-        return <CloudOff className="h-4 w-4 text-muted-foreground" />
-    }
-  }
-
-  const syncLabel: Record<typeof syncStatus, string> = {
+  const syncLabel: Record<SyncStatus, string> = {
     idle: '오프라인',
     loading: '불러오는 중...',
     saving: '저장 중...',
@@ -305,7 +331,7 @@ export function Settings() {
           <div className="mt-1 flex items-center gap-2">
             <p className="text-sm text-muted-foreground">거래명세표 및 시스템 환경을 설정합니다</p>
             <span className="flex items-center gap-1 text-xs text-muted-foreground">
-              <SyncIcon />
+              <SyncIcon status={syncStatus} />
               {syncLabel[syncStatus]}
             </span>
           </div>
@@ -333,7 +359,7 @@ export function Settings() {
         <div className="rounded-xl border bg-white p-4 shadow-sm">
           <p className="text-xs text-muted-foreground">서버 동기화 상태</p>
           <div className="mt-2 flex items-center gap-2">
-            <SyncIcon />
+            <SyncIcon status={syncStatus} />
             <p className="text-sm font-semibold">{syncLabel[syncStatus]}</p>
           </div>
         </div>
@@ -425,7 +451,7 @@ export function Settings() {
                 )}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   onChange={(e) => handleImageUpload('logo_url', e)}
                   className="text-xs"
                 />
@@ -443,7 +469,7 @@ export function Settings() {
                 )}
                 <input
                   type="file"
-                  accept="image/*"
+                  accept="image/png,image/jpeg,image/webp,image/gif"
                   onChange={(e) => handleImageUpload('stamp_url', e)}
                   className="text-xs"
                 />

@@ -14,7 +14,11 @@ import { getInvoiceDepositUsedAmount } from '@/lib/accountingMeta'
 import { normalizeReceiptTypeValue } from '@/lib/invoiceDefaults'
 
 // n8n Webhook 프록시 URL
-const PROXY_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || 'https://n8n.pressco21.com/webhook/crm-proxy'
+//
+// 보안 기본값은 same-origin Nginx/Vite 프록시(`/crm-proxy`)입니다.
+// 운영에서는 Nginx가 n8n의 CORS 헤더를 숨기고 CRM 도메인만 재발행합니다.
+// 직접 n8n 공개 URL을 기본값으로 두면 브라우저가 공개 실행면을 우회 호출할 수 있으므로 금지합니다.
+const PROXY_URL = import.meta.env.VITE_N8N_WEBHOOK_URL || '/crm-proxy'
 const PAYMENT_REMINDER_WEBHOOK_URL = import.meta.env.VITE_CRM_PAYMENT_REMINDER_WEBHOOK_URL || '/crm-payment-reminder'
 // CRM 전용 API Key (NocoDB 토큰과 무관한 별도 키)
 const CRM_API_KEY = import.meta.env.VITE_CRM_API_KEY || ''

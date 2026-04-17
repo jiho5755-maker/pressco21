@@ -1,0 +1,95 @@
+{
+  "name": "[F15b] Meta Ads 예산 소진 경보",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 5 * * *"
+            }
+          ]
+        }
+      },
+      "id": "f15b-trigger",
+      "name": "매일 14:00 KST",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://graph.facebook.com/v25.0/{{ $env.META_AD_ACCOUNT_ID }}/campaigns",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "access_token", "value": "={{ $env.META_ACCESS_TOKEN }}" },
+            { "name": "fields", "value": "name,status,daily_budget,budget_remaining,lifetime_budget,insights.date_preset(today){spend}" },
+            { "name": "effective_status", "value": "[\"ACTIVE\"]" }
+          ]
+        },
+        "options": { "timeout": 15000, "response": { "response": { "responseFormat": "json" } } }
+      },
+      "id": "f15b-campaigns",
+      "name": "활성 캠페인 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const resp = $input.first().json;\nconst campaigns = resp?.data || [];\n\nif (campaigns.length === 0) {\n  return []; // 활성 캠페인 없으면 종료\n}\n\nconst alerts = [];\nfor (const c of campaigns) {\n  const dailyBudget = parseInt(c.daily_budget || '0');\n  const budgetRemaining = parseInt(c.budget_remaining || '0');\n  const todaySpend = parseFloat(c.insights?.data?.[0]?.spend || '0');\n  \n  if (dailyBudget === 0) continue;\n  \n  const spentPercent = dailyBudget > 0 ? (todaySpend / (dailyBudget / 100)) : 0;\n  const remainPercent = dailyBudget > 0 ? (budgetRemaining / dailyBudget * 100) : 100;\n  \n  // 경보 조건: 오늘 소진 80% 이상 OR 남은 예산 20% 미만\n  if (spentPercent >= 80 || remainPercent < 20) {\n    alerts.push({\n      name: c.name,\n      dailyBudget,\n      todaySpend: Math.round(todaySpend),\n      budgetRemaining,\n      spentPercent: Math.round(spentPercent),\n      remainPercent: Math.round(remainPercent),\n      status: spentPercent >= 100 ? 'DEPLETED' : 'WARNING'\n    });\n  }\n}\n\nif (alerts.length === 0) {\n  return []; // 경보 없으면 종료\n}\n\nlet msg = '🚨 *Meta Ads 예산 경보*\\n\\n';\nfor (const a of alerts) {\n  const icon = a.status === 'DEPLETED' ? '🔴' : '🟡';\n  msg += icon + ' *' + a.name + '*\\n';\n  msg += '  일예산: ' + a.dailyBudget.toLocaleString() + '원\\n';\n  msg += '  오늘 소진: ' + a.todaySpend.toLocaleString() + '원 (' + a.spentPercent + '%)\\n';\n  msg += '  잔여 예산: ' + a.budgetRemaining.toLocaleString() + '원\\n\\n';\n}\nmsg += '💡 예산 조정이 필요하면 지호님께 확인하세요.';\n\nreturn [{ json: { message: msg, alertCount: alerts.length } }];"
+      },
+      "id": "f15b-check",
+      "name": "예산 소진 체크",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "chatId": "7713811206",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "Markdown"
+        }
+      },
+      "id": "f15b-alert-tg",
+      "name": "지호님 개인 알림",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [780, 300],
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Telegram Makeshop Bot"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "매일 14:00 KST": {
+      "main": [
+        [{ "node": "활성 캠페인 조회", "type": "main", "index": 0 }]
+      ]
+    },
+    "활성 캠페인 조회": {
+      "main": [
+        [{ "node": "예산 소진 체크", "type": "main", "index": 0 }]
+      ]
+    },
+    "예산 소진 체크": {
+      "main": [
+        [{ "node": "지호님 개인 알림", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "Asia/Seoul"
+  },
+  "tags": [{ "name": "ad-automation" }]
+}

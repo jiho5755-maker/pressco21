@@ -10,14 +10,19 @@ from mcp.server.fastmcp import FastMCP
 from naver_ads_mcp.auth.commerce import CommerceAuth
 from naver_ads_mcp.auth.searchad import SearchAdAuth
 from naver_ads_mcp.clients.commerce import CommerceClient
+from naver_ads_mcp.clients.datalab import DataLabClient
 from naver_ads_mcp.clients.searchad import SearchAdClient
 from naver_ads_mcp.config import settings
 from naver_ads_mcp.errors import NaverApiError
 from naver_ads_mcp.tools import adgroups as ag_ops
 from naver_ads_mcp.tools import ads as ads_ops
+from naver_ads_mcp.tools import bid_estimate as bid_ops
 from naver_ads_mcp.tools import budget as budget_ops
+from naver_ads_mcp.tools import bulk_ops
 from naver_ads_mcp.tools import campaigns as cmp_ops
 from naver_ads_mcp.tools import commerce as com_ops
+from naver_ads_mcp.tools import keyword_discover as kd_ops
+from naver_ads_mcp.tools import keyword_trend as kt_ops
 from naver_ads_mcp.tools import keywords as kw_ops
 from naver_ads_mcp.tools import negative_keywords as nkw_ops
 from naver_ads_mcp.tools import quality as qi_ops
@@ -37,6 +42,7 @@ mcp = FastMCP(
 
 _sa_client: SearchAdClient | None = None
 _com_client: CommerceClient | None = None
+_dl_client: DataLabClient | None = None
 
 
 def _get_sa() -> SearchAdClient:
@@ -61,6 +67,17 @@ def _get_com() -> CommerceClient:
         )
         _com_client = CommerceClient(auth, settings.commerce_base_url)
     return _com_client
+
+
+def _get_dl() -> DataLabClient:
+    global _dl_client
+    if _dl_client is None:
+        _dl_client = DataLabClient(
+            settings.naver_dev_client_id,
+            settings.naver_dev_client_secret,
+            settings.datalab_base_url,
+        )
+    return _dl_client
 
 
 def _wrap(result: Any) -> str:
@@ -450,6 +467,141 @@ async def ad_delete(ad_id: str) -> str:
     try:
         await ads_ops.ad_delete(_get_sa(), ad_id)
         return _wrap({"ok": True, "message": f"소재 {ad_id} 삭제 완료"})
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── 키워드 발굴 (2) — Phase 2 P1 ───
+
+
+@mcp.tool()
+async def keyword_discover(hint_keywords_csv: str) -> str:
+    """시드 키워드 → 연관 키워드 추출 (검색량/경쟁도/CPC 포함).
+
+    hint_keywords_csv: 쉼표 구분 시드 키워드. 예: "압화,프리저브드,보존화"
+    """
+    try:
+        hints = [x.strip() for x in hint_keywords_csv.split(",")]
+        return _wrap(await kd_ops.keyword_discover(_get_sa(), hints))
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def keyword_competitor_gap(
+    hint_keywords_csv: str,
+    adgroup_id: str | None = None,
+) -> str:
+    """내 키워드 vs 연관키워드 비교 → 미사용 유망 키워드 발굴.
+
+    hint_keywords_csv: 쉼표 구분 시드 키워드.
+    """
+    try:
+        hints = [x.strip() for x in hint_keywords_csv.split(",")]
+        return _wrap(await kd_ops.keyword_competitor_gap(_get_sa(), hints, adgroup_id))
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── 키워드 트렌드 (1) — Phase 2 P1 ───
+
+
+@mcp.tool()
+async def keyword_trend(
+    keyword_groups_json: str,
+    start_date: str,
+    end_date: str,
+    time_unit: str = "month",
+) -> str:
+    """키워드 검색량 추이를 조회합니다 (네이버 데이터랩).
+
+    keyword_groups_json: [{"groupName":"압화","keywords":["압화","압화 만들기"]},...] JSON.
+    time_unit: "date", "week", "month".
+    """
+    try:
+        groups = json.loads(keyword_groups_json)
+        return _wrap(await kt_ops.keyword_trend(_get_dl(), groups, start_date, end_date, time_unit))
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── 벌크 고도화 (2) — Phase 2 P1 ───
+
+
+@mcp.tool()
+async def bulk_keyword_filter(
+    keywords_json: str,
+    min_searches: int = 100,
+    max_cpc: int | None = None,
+    competition_csv: str | None = None,
+) -> str:
+    """수확된 키워드를 검색량/경쟁도/CPC 기준으로 필터링합니다.
+
+    keywords_json: keyword_discover 결과의 keywords 배열 JSON.
+    competition_csv: 허용 경쟁도 (예: "LOW,MID").
+    """
+    try:
+        keywords = json.loads(keywords_json)
+        comp = [x.strip() for x in competition_csv.split(",")] if competition_csv else None
+        return _wrap(await bulk_ops.bulk_keyword_filter(keywords, min_searches, max_cpc, comp))
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def bulk_performance_audit(
+    campaign_id: str,
+    start_date: str,
+    end_date: str,
+) -> str:
+    """벌크 캠페인 키워드별 성과를 분석합니다 (전환/비전환 분류).
+
+    날짜 형식: YYYY-MM-DD.
+    """
+    try:
+        return _wrap(
+            await bulk_ops.bulk_performance_audit(_get_sa(), campaign_id, start_date, end_date)
+        )
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── 입찰가 시뮬레이터 (3) — Phase 2 P1 ───
+
+
+@mcp.tool()
+async def bid_simulate(keyword: str, bids_csv: str = "70,100,200,300", device: str = "PC") -> str:
+    """키워드+입찰가 목록 → 예상 노출/클릭/비용을 시뮬레이션합니다.
+
+    bids_csv: 쉼표 구분 입찰가 목록 (예: "70,100,200,300"). device: "PC" 또는 "MOBILE".
+    """
+    try:
+        bids = [int(x.strip()) for x in bids_csv.split(",")]
+        return _wrap(await bid_ops.bid_simulate(_get_sa(), keyword, bids, device))
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def bid_estimate_position(
+    keyword: str,
+    position_target: int = 1,
+    device: str = "PC",
+) -> str:
+    """목표 순위(1~5위) 달성에 필요한 입찰가를 추정합니다."""
+    try:
+        return _wrap(
+            await bid_ops.bid_estimate_position(_get_sa(), keyword, position_target, device)
+        )
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def bid_estimate_median(keyword: str) -> str:
+    """경쟁사 중간 입찰가 (시장 평균선)를 조회합니다."""
+    try:
+        return _wrap(await bid_ops.bid_estimate_median(_get_sa(), keyword))
     except NaverApiError as e:
         return _err(e)
 

@@ -14,6 +14,9 @@ class Settings(BaseSettings):
     naver_commerce_client_id: str = ""
     naver_commerce_client_secret: str = ""
 
+    naver_dev_client_id: str = ""
+    naver_dev_client_secret: str = ""
+
     mcp_write_enabled: bool = False
 
     max_bid_delta_pct: int = Field(default=20, ge=1, le=50)
@@ -34,6 +37,10 @@ class Settings(BaseSettings):
     @property
     def commerce_configured(self) -> bool:
         return bool(self.naver_commerce_client_id and self.naver_commerce_client_secret)
+
+    @property
+    def datalab_configured(self) -> bool:
+        return bool(self.naver_dev_client_id and self.naver_dev_client_secret)
 
 
 settings = Settings()

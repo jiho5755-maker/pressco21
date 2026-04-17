@@ -23,7 +23,19 @@ async def commerce_product_list(
     body: dict[str, Any] = {"page": page, "size": size}
     if product_name:
         body["productName"] = product_name
-    return await client.post("/external/v1/products/search", body)
+    raw = await client.post("/external/v1/products/search", body)
+    if not isinstance(raw, dict):
+        return raw
+    products = []
+    for item in raw.get("contents", []):
+        for cp in item.get("channelProducts", []):
+            products.append(cp)
+    return {
+        "totalElements": raw.get("totalElements", len(products)),
+        "page": page,
+        "size": size,
+        "products": products,
+    }
 
 
 async def commerce_product_get(client: CommerceClient, product_no: int) -> Any:

@@ -28,7 +28,8 @@ def test_make_sign_produces_valid_bcrypt():
     assert bcrypt.checkpw(password.encode("utf-8"), decoded)
 
 
-def test_needs_refresh_initially_true():
+def test_needs_refresh_initially_true(tmp_path, monkeypatch):
+    monkeypatch.setattr(CommerceAuth, "TOKEN_CACHE", tmp_path / "token.json")
     secret = _make_test_secret()
     auth = CommerceAuth("cid", secret, "https://example.com")
     assert auth._needs_refresh is True

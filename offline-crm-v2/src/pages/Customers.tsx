@@ -6,12 +6,13 @@ import { toast } from 'sonner'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select'
-import { deleteCustomer, getAllInvoices, getCustomers, sanitizeSearchTerm } from '@/lib/api'
+import { deleteCustomer, getAllInvoices, getCustomers } from '@/lib/api'
 import type { Customer, Invoice } from '@/lib/api'
 import { STATUS_COLORS, CUSTOMER_TYPE_LABELS, GRADE_COLORS } from '@/lib/constants'
 import { CustomerDialog } from '@/components/CustomerDialog'
 import { getLegacyCustomerSnapshots } from '@/lib/legacySnapshots'
 import { buildCustomerReceivableLedger, buildResolvedReceivableInvoices } from '@/lib/receivables'
+import { buildCustomerSearchWhere, customerMatchesSearch, rankCustomerSearch } from '@/lib/customerSearch'
 
 const PAGE_SIZE = 25
 
@@ -79,6 +80,9 @@ export function Customers() {
   // 필터 변경 시 첫 페이지로
   useEffect(() => { setPage(1) }, [debouncedSearch, typeFilter, statusFilter, gradeFilter])
 
+  const useClientSearchResults = debouncedSearch.trim().length >= 1
+  const customerSearchWhere = useMemo(() => buildCustomerSearchWhere(debouncedSearch), [debouncedSearch])
+
   const params: Record<string, string | number> = {
     limit: PAGE_SIZE,
     offset: (page - 1) * PAGE_SIZE,
@@ -86,10 +90,6 @@ export function Customers() {
   }
 
   const conditions: string[] = []
-  if (debouncedSearch) {
-    const safe = sanitizeSearchTerm(debouncedSearch)
-    conditions.push(`(name,like,%${safe}%)~or(book_name,like,%${safe}%)~or(mobile,like,%${safe}%)~or(phone1,like,%${safe}%)~or(business_no,like,%${safe}%)`)
-  }
   if (typeFilter !== 'ALL') conditions.push(`(customer_type,eq,${typeFilter})`)
   if (statusFilter !== 'ALL') conditions.push(`(customer_status,eq,${statusFilter})`)
   if (gradeFilter === 'AMBASSADOR') {
@@ -104,13 +104,43 @@ export function Customers() {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['customers', params],
     queryFn: () => getCustomers(params),
+    enabled: !useClientSearchResults,
     staleTime: 10 * 60_000,
     placeholderData: (prev) => prev,
   })
+  const { data: customerSearchResult, isLoading: isSearchDirectoryLoading, isError: isSearchDirectoryError } = useQuery({
+    queryKey: ['customers-search', customerSearchWhere],
+    queryFn: () => getCustomers({
+      where: customerSearchWhere,
+      limit: 200,
+      sort: '-last_order_date',
+    }),
+    enabled: useClientSearchResults && Boolean(customerSearchWhere),
+    staleTime: 10 * 60_000,
+  })
 
-  const totalRows = data?.pageInfo?.totalRows ?? 0
-  const totalPages = Math.ceil(totalRows / PAGE_SIZE)
-  const customers = data?.list ?? []
+  const searchedCustomers = useMemo(() => {
+    if (!debouncedSearch.trim()) return []
+    return (customerSearchResult?.list ?? [])
+      .filter((customer) => {
+        if (!customerMatchesSearch(customer, debouncedSearch)) return false
+        if (typeFilter !== 'ALL' && customer.customer_type !== typeFilter) return false
+        if (statusFilter !== 'ALL' && customer.customer_status !== statusFilter) return false
+        if (gradeFilter === 'AMBASSADOR') return customer.is_ambassador === true
+        if (gradeFilter !== 'ALL') return customer.member_grade === gradeFilter
+        return true
+      })
+      .sort((left, right) => rankCustomerSearch(right, debouncedSearch) - rankCustomerSearch(left, debouncedSearch))
+  }, [customerSearchResult?.list, debouncedSearch, typeFilter, statusFilter, gradeFilter])
+
+  const totalRows = useClientSearchResults ? searchedCustomers.length : (data?.pageInfo?.totalRows ?? 0)
+  const totalPages = Math.max(1, Math.ceil(totalRows / PAGE_SIZE))
+  const customers = useMemo(() => {
+    if (useClientSearchResults) return searchedCustomers.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE)
+    return data?.list ?? []
+  }, [data?.list, page, searchedCustomers, useClientSearchResults])
+  const listLoading = useClientSearchResults ? isSearchDirectoryLoading : isLoading
+  const listError = useClientSearchResults ? isSearchDirectoryError : isError
   const hasActiveFilters = Boolean(search.trim()) || typeFilter !== 'ALL' || statusFilter !== 'ALL' || gradeFilter !== 'ALL'
 
   const { data: invoiceAliases = [] } = useQuery({
@@ -183,7 +213,7 @@ export function Customers() {
             <div>
               <p className="text-sm font-semibold text-foreground">조회 조건</p>
               <p className="text-xs text-muted-foreground">
-                거래처명, 구분명, 연락처 기준으로 고객을 찾고 유형·상태·등급을 빠르게 좁혀보세요.
+                거래처명, 구분명, 담당자명, 입금자명 별칭, 연락처 기준으로 고객을 찾고 유형·상태·등급을 빠르게 좁혀보세요.
               </p>
             </div>
             <div className="flex flex-wrap items-center gap-2 text-xs">
@@ -202,7 +232,7 @@ export function Customers() {
               <div className="relative">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                 <Input
-                  placeholder="거래처명/얼마에요 구분명/연락처 검색..."
+                  placeholder="거래처명/구분명/담당자/입금자명 별칭/연락처 검색..."
                   value={search}
                   onChange={(e) => setSearch(e.target.value)}
                   className="pl-9"
@@ -291,21 +321,21 @@ export function Customers() {
             </tr>
           </thead>
           <tbody>
-            {isLoading && (
+            {listLoading && (
               <tr>
                 <td colSpan={8} className="text-center py-12 text-muted-foreground">
                   불러오는 중...
                 </td>
               </tr>
             )}
-            {isError && (
+            {listError && (
               <tr>
                 <td colSpan={8} className="text-center py-12 text-red-500">
                   데이터를 불러오지 못했습니다.
                 </td>
               </tr>
             )}
-            {!isLoading && !isError && customers.length === 0 && (
+            {!listLoading && !listError && customers.length === 0 && (
               <tr>
                 <td colSpan={8} className="text-center py-12 text-muted-foreground">
                   검색 결과가 없습니다.

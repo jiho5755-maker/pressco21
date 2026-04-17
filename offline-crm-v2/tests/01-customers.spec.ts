@@ -302,3 +302,33 @@ test('T1-12: 고객 상세 거래내역에서 명세표 수정 시 현재 페이
   await expect(page.getByRole('dialog').getByText('명세표 수정')).toBeVisible({ timeout: API_TIMEOUT })
   await expect(page.getByRole('dialog').locator('input.font-mono')).toHaveValue(invoice.invoice_no ?? '')
 })
+
+test('T1-13: 입금자명 별칭으로 고객 검색', async ({ page, request }) => {
+  const uniqueId = Date.now()
+  const customerName = `${DETAIL_EDIT_CUSTOMER_PREFIX}ALIAS-${uniqueId}`
+  const depositorAlias = `입금별칭-${uniqueId}`
+
+  await createTestCustomer(request, {
+    name: customerName,
+    book_name: '별칭 검색 검증',
+    customer_status: 'active',
+    customer_type: 'MEMBER',
+    memo: `[ACCOUNTING_CUSTOMER_META] ${JSON.stringify({
+      depositBalance: 0,
+      refundPendingBalance: 0,
+      depositorAliases: [depositorAlias],
+      addressLabels: [],
+      autoDepositDisabled: false,
+      autoDepositPriority: 0,
+      events: [],
+    })}`,
+  })
+
+  await page.goto('/customers')
+  await waitForTableLoaded(page)
+
+  const searchInput = page.locator('input[placeholder*="입금자명"]').first()
+  await searchInput.fill(depositorAlias)
+
+  await expect(page.getByText(customerName)).toBeVisible({ timeout: API_TIMEOUT })
+})

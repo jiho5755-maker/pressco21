@@ -22,6 +22,8 @@
 import { test, expect } from '@playwright/test'
 import {
   cleanupTestInvoices,
+  cleanupTestCustomers,
+  createTestCustomer,
   DEFAULT_RECEIPT_TYPE,
   assertPageTitle,
   waitForTableLoaded,
@@ -38,9 +40,11 @@ function shiftCalendarDate(dateString: string, offsetDays: number) {
   nextDate.setDate(nextDate.getDate() + offsetDays)
   const nextYear = nextDate.getFullYear()
   const nextMonth = String(nextDate.getMonth() + 1).padStart(2, '0')
-  const nextDay = String(nextDate.getDate()).padStart(2, '0')
+const nextDay = String(nextDate.getDate()).padStart(2, '0')
   return `${nextYear}-${nextMonth}-${nextDay}`
 }
+
+const DISCOUNT_CUSTOMER_PREFIX = 'TEST-CUSTOMER-DISCOUNT-'
 
 // 테스트 전 거래명세표 페이지로 이동
 test.beforeEach(async ({ page }) => {
@@ -50,6 +54,7 @@ test.beforeEach(async ({ page }) => {
 
 test.afterEach(async ({ request }) => {
   await cleanupTestInvoices(request, TEST_INVOICE_PREFIX)
+  await cleanupTestCustomers(request, DISCOUNT_CUSTOMER_PREFIX)
 })
 
 test('T2-01: 거래명세표 페이지 접속 및 헤더 확인', async ({ page }) => {
@@ -340,4 +345,43 @@ test('T2-13: 빠른 기간 버튼 선택 시 날짜 입력값 동기화', async 
   await page.getByRole('button', { name: '오늘' }).click()
   await expect(dateInputs.nth(0)).toHaveValue(today)
   await expect(dateInputs.nth(1)).toHaveValue(today)
+})
+
+test('T2-14: 고객 기본 DC 할인율 자동 반영 및 건별 조정', async ({ page, request }) => {
+  const uniqueId = Date.now()
+  const customerName = `${DISCOUNT_CUSTOMER_PREFIX}${uniqueId}`
+
+  await createTestCustomer(request, {
+    name: customerName,
+    customer_status: 'active',
+    customer_type: 'MEMBER',
+    price_tier: 1,
+    discount_rate: 10,
+  })
+
+  await page.getByRole('button', { name: /새 명세표/ }).click()
+  await waitForDialog(page, '새 명세표')
+
+  const dialog = page.getByRole('dialog')
+  const customerInput = dialog.getByPlaceholder('거래처명 검색...')
+  await customerInput.fill(customerName)
+  await expect(page.getByRole('button', { name: new RegExp(customerName) })).toBeVisible({ timeout: API_TIMEOUT })
+  await page.getByRole('button', { name: new RegExp(customerName) }).click()
+
+  const firstRow = dialog.locator('tbody tr').first()
+  await firstRow.locator('input[type="checkbox"]').check()
+  await firstRow.getByPlaceholder('품목명 검색 (자동완성)').fill('할인 테스트 품목')
+  await firstRow.locator('input[type="number"]').nth(1).fill('10000')
+  await firstRow.locator('input[type="number"]').nth(1).press('Tab')
+
+  await expect(dialog.getByText('고객 기본 할인율 10%가 자동 반영됩니다.')).toBeVisible()
+  await expect(dialog.getByText('- 1,100원').first()).toBeVisible()
+  await expect(dialog.getByText('9,900원').first()).toBeVisible()
+
+  const discountInput = dialog.getByLabel('DC 할인 금액')
+  await discountInput.fill('500')
+
+  await expect(dialog.getByText('고객 기본 할인율 10%에서 건별 DC로 조정 중입니다.')).toBeVisible()
+  await expect(dialog.getByText('- 500원').first()).toBeVisible()
+  await expect(dialog.getByText('10,500원').first()).toBeVisible()
 })

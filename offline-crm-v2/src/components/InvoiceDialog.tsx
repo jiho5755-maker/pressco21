@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useCallback, useLayoutEffect } from 'react'
+import { useState, useEffect, useRef, useCallback, useLayoutEffect, useMemo } from 'react'
 import { createPortal } from 'react-dom'
 import { useQuery, useQueryClient } from '@tanstack/react-query'
 import { Plus, Printer, X, Copy, LayoutList } from 'lucide-react'
@@ -48,6 +48,7 @@ import {
   parseCustomerAccountingMeta,
   serializeInvoiceAccountingMeta,
 } from '@/lib/accountingMeta'
+import { buildCustomerSearchWhere, customerMatchesSearch, getCustomerSearchSupportText, rankCustomerSearch } from '@/lib/customerSearch'
 
 // ─── 라인 아이템 ───────────────────────────────
 interface ItemRow {
@@ -224,21 +225,6 @@ interface InvoiceDialogProps {
   onSaved: () => void
 }
 
-// ─── 고객 자동완성 ─────────────────────────────
-function useCustomerSearch(query: string) {
-  return useQuery({
-    queryKey: ['customerSearch', query],
-    queryFn: () =>
-      getCustomers({
-        where: `(name,like,%${sanitizeSearchTerm(query)}%)`,
-        limit: 8,
-        sort: '-last_order_date',
-      }),
-    enabled: query.length >= 1,
-    staleTime: 60 * 1000,
-  })
-}
-
 // ─── 상품 자동완성 (이름+품목코드 복합검색, 15건) ──
 function useProductSearch(query: string) {
   return useQuery({
@@ -385,7 +371,26 @@ export function InvoiceDialog({
   const customerDropdownRef = useRef<HTMLDivElement>(null)
   const [customerDropdownIdx, setCustomerDropdownIdx] = useState(-1)
   const debouncedCustomerInput = useDebounce(customerInput, 150)
-  const { data: customerSearchResult, isFetching: isCustomerSearching } = useCustomerSearch(debouncedCustomerInput)
+  const customerSearchWhere = useMemo(() => buildCustomerSearchWhere(debouncedCustomerInput), [debouncedCustomerInput])
+  const { data: customerSearchResult, isFetching: isCustomerDirectoryLoading } = useQuery({
+    queryKey: ['customerSearch', customerSearchWhere],
+    queryFn: () =>
+      getCustomers({
+        where: customerSearchWhere,
+        limit: 25,
+        sort: '-last_order_date',
+      }),
+    enabled: open && Boolean(customerSearchWhere),
+    staleTime: 60 * 1000,
+  })
+  const customerSearchResults = useMemo(() => {
+    const query = debouncedCustomerInput.trim()
+    if (!query) return []
+    return (customerSearchResult?.list ?? [])
+      .filter((customer) => customerMatchesSearch(customer, query))
+      .sort((left, right) => rankCustomerSearch(right, query) - rankCustomerSearch(left, query))
+      .slice(0, 8)
+  }, [customerSearchResult?.list, debouncedCustomerInput])
 
   // 상품 자동완성 상태 (품목 행별) — useEffect 전에 선언 필요
   const [productInputs, setProductInputs] = useState<Record<string, string>>({})
@@ -666,13 +671,13 @@ export function InvoiceDialog({
   }, [])
 
   useEffect(() => {
-    const customerCount = customerSearchResult?.list?.length ?? 0
+    const customerCount = customerSearchResults.length
     if (!showCustomerDrop || customerCount === 0) {
       setCustomerDropdownIdx(-1)
       return
     }
     setCustomerDropdownIdx((prev) => Math.min(prev, customerCount - 1))
-  }, [customerSearchResult?.list, showCustomerDrop])
+  }, [customerSearchResults, showCustomerDrop])
 
   // 키보드 단축키
   useEffect(() => {
@@ -1343,7 +1348,7 @@ export function InvoiceDialog({
                 }}
                 onFocus={() => customerInput.length >= 1 && setShowCustomerDrop(true)}
                 onKeyDown={(e) => {
-                  const customerList = customerSearchResult?.list ?? []
+                  const customerList = customerSearchResults
                   if (e.key === 'ArrowDown') {
                     if (customerList.length === 0) return
                     e.preventDefault()
@@ -1401,9 +1406,11 @@ export function InvoiceDialog({
                   )}
                 </div>
               )}
-              {showCustomerDrop && customerSearchResult?.list && customerSearchResult.list.length > 0 && (
+              {showCustomerDrop && customerSearchResults.length > 0 && (
                 <div ref={customerDropdownRef} className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border rounded-md shadow-lg max-h-48 overflow-y-auto">
-                  {customerSearchResult.list.map((c, index) => (
+                  {customerSearchResults.map((c, index) => {
+                    const supportText = getCustomerSearchSupportText(c)
+                    return (
                     <button
                       key={c.Id}
                       className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between ${
@@ -1421,9 +1428,9 @@ export function InvoiceDialog({
                             </span>
                           )}
                         </div>
-                        {(c.book_name || getCustomerPrimaryPhone(c)) && (
+                        {supportText && (
                           <div className="mt-0.5 truncate text-[11px] text-muted-foreground">
-                            {[c.book_name, getCustomerPrimaryPhone(c)].filter(Boolean).join(' · ')}
+                            {supportText}
                           </div>
                         )}
                       </div>
@@ -1433,10 +1440,10 @@ export function InvoiceDialog({
                         </span>
                       )}
                     </button>
-                  ))}
+                  )})}
                 </div>
               )}
-              {showCustomerDrop && !isCustomerSearching && debouncedCustomerInput.trim().length >= 1 && (customerSearchResult?.list?.length ?? 0) === 0 && (
+              {showCustomerDrop && !isCustomerDirectoryLoading && debouncedCustomerInput.trim().length >= 1 && customerSearchResults.length === 0 && (
                 <div className="absolute z-50 top-full left-0 right-0 mt-1 rounded-md border bg-white shadow-lg px-3 py-3 text-sm">
                   <p className="font-medium text-gray-700">검색 결과가 없습니다</p>
                   <p className="text-xs text-muted-foreground mt-1">

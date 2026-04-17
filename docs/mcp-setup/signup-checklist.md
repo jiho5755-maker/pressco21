@@ -13,12 +13,12 @@
 | 1 | Google Ads Developer Token | ✅ **신청 완료** (기본 액세스 승인 대기) | Token: `nxVEoBPdty8rbNNJqsPTGg`, ~4/22 승인 예상 |
 | 2 | Google Cloud Console + OAuth | ✅ **완료** | 프로젝트: `pressco21-mcp`, JSON: `~/secrets/oauth-desktop.json` |
 | 3 | Google Analytics 4 속성 ID + 뷰어 | ✅ **완료** | Property ID: `473280152`, 서비스 계정 뷰어 추가됨 |
-| 4 | Meta for Developers 앱 + Access Token | 🟡 **앱 생성됨, 토큰 미발급** | 앱 ID: `1668137334197768`, 다른 세션에서 토큰 발급 예정 |
+| 4 | Meta for Developers 앱 + Access Token | ✅ **완료** | 앱 ID: `1668137334197768`, 장기토큰+광고계정 발급 완료 |
 | 5 | 네이버 검색광고 API | ✅ **완료** | naver-ads-mcp Phase 3 배포 완료 |
 | 6 | 네이버 개발자센터 (보조) | ✅ **완료** | DEV_CLIENT_ID: `HLhfhJLCp6sRPWDKl0He` |
 | 7 | GitHub Personal Access Token | ✅ **완료** | Fine-grained token 발급됨 |
 
-**진행률**: 7개 중 6개 완료, Meta 토큰 1개 남음 + Google Ads 승인 대기
+**진행률**: 7개 전부 완료 ✅ + Google Ads 기본 액세스 승인 완료 → MCP 설치 진행
 
 ---
 
@@ -208,12 +208,12 @@ GADS_DEVELOPER_TOKEN=nxVEoBPdty8rbNNJqsPTGg
 GADS_MCC_ID=6361895201
 GADS_CUSTOMER_ID=2854757317
 
-[Meta Ads] — 토큰 미발급, 다른 세션에서 진행
+[Meta Ads]
 META_APP_ID=1668137334197768
-META_APP_SECRET=(미발급)
-META_ACCESS_TOKEN=(미발급)
-META_AD_ACCOUNT_ID=act_(미확인)
-META_TOKEN_EXPIRES=(발급 후 60일)
+META_APP_SECRET=(.secrets.env 참조)
+META_ACCESS_TOKEN=(.secrets.env 참조, 장기토큰 60일)
+META_AD_ACCOUNT_ID=act_1473631823331263
+META_TOKEN_EXPIRES=2026-06-17
 
 [Naver SearchAd] — naver-ads-mcp 서버 .env에 이미 등록됨
 NAVER_SA_API_KEY=0100000000b1020850a46ab061637f8150f6854b8428917c6433f84392f7f5e19ef0915bfd

@@ -1,0 +1,184 @@
+{
+  "name": "F032: 콘텐츠 예약 발행 스케줄러",
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "*/30 * * * *"
+            }
+          ]
+        }
+      },
+      "id": "f032-0001-0001-4000-8000-000000000001",
+      "name": "30분마다 체크",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [0, 300]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "={{ $env.NOCODB_URL }}/api/v2/tables/{{ $env.NOCODB_TABLE_SNS_SCHEDULE }}/records",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            { "name": "where", "value": "(status,eq,pending)~and(scheduled_at,lte,now())" },
+            { "name": "limit", "value": "5" },
+            { "name": "sort", "value": "scheduled_at" }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_API_TOKEN }}" }
+          ]
+        },
+        "options": {
+          "timeout": 10000,
+          "response": { "response": { "responseFormat": "json" } }
+        }
+      },
+      "id": "f032-0001-0001-4000-8000-000000000002",
+      "name": "예약 콘텐츠 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [260, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 예약 콘텐츠가 있는지 확인\nconst resp = $input.first().json;\nconst records = resp.list || [];\n\nif (records.length === 0) {\n  return []; // 빈 배열 반환 → 워크플로우 종료\n}\n\n// 각 레코드를 개별 아이템으로 출력\nreturn records.map(r => ({ json: {\n  recordId: r.Id,\n  imageUrl: r.image_url,\n  caption: r.caption,\n  hashtags: r.hashtags || '#프레스코21 #꽃공예',\n  platforms: r.platforms || 'instagram,threads',\n  mediaType: r.media_type || 'IMAGE',\n  scheduledAt: r.scheduled_at\n}}));"
+      },
+      "id": "f032-0001-0001-4000-8000-000000000003",
+      "name": "예약 건 필터",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [520, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.NOCODB_URL }}/api/v2/tables/{{ $env.NOCODB_TABLE_SNS_SCHEDULE }}/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_API_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "Id", "value": "={{ $json.recordId }}" },
+            { "name": "status", "value": "publishing" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "f032-0001-0001-4000-8000-000000000004",
+      "name": "상태 → publishing",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [780, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.N8N_URL }}/webhook/sns-publish",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ imageUrl: $('예약 건 필터').item.json.imageUrl, caption: $('예약 건 필터').item.json.caption, hashtags: $('예약 건 필터').item.json.hashtags, mediaType: $('예약 건 필터').item.json.mediaType }) }}",
+        "options": { "timeout": 60000 }
+      },
+      "id": "f032-0001-0001-4000-8000-000000000005",
+      "name": "F031 동시 발행 호출",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1040, 300],
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 발행 결과에 따라 상태 업데이트\nconst publishResp = $input.first().json;\nconst recordId = $('예약 건 필터').item.json.recordId;\n\nconst success = publishResp.success === true;\n\nreturn [{ json: {\n  recordId,\n  status: success ? 'published' : 'failed',\n  publishedAt: success ? new Date().toISOString() : null,\n  error: success ? null : JSON.stringify(publishResp)\n}}];"
+      },
+      "id": "f032-0001-0001-4000-8000-000000000006",
+      "name": "결과 확인",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [1300, 300]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.NOCODB_URL }}/api/v2/tables/{{ $env.NOCODB_TABLE_SNS_SCHEDULE }}/records",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "xc-token", "value": "={{ $env.NOCODB_API_TOKEN }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "bodyParameters": {
+          "parameters": [
+            { "name": "Id", "value": "={{ $json.recordId }}" },
+            { "name": "status", "value": "={{ $json.status }}" },
+            { "name": "published_at", "value": "={{ $json.publishedAt }}" },
+            { "name": "error_log", "value": "={{ $json.error }}" }
+          ]
+        },
+        "options": { "timeout": 10000 }
+      },
+      "id": "f032-0001-0001-4000-8000-000000000007",
+      "name": "상태 최종 업데이트",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1560, 300],
+      "continueOnFail": true
+    }
+  ],
+  "connections": {
+    "30분마다 체크": {
+      "main": [
+        [{ "node": "예약 콘텐츠 조회", "type": "main", "index": 0 }]
+      ]
+    },
+    "예약 콘텐츠 조회": {
+      "main": [
+        [{ "node": "예약 건 필터", "type": "main", "index": 0 }]
+      ]
+    },
+    "예약 건 필터": {
+      "main": [
+        [{ "node": "상태 → publishing", "type": "main", "index": 0 }]
+      ]
+    },
+    "상태 → publishing": {
+      "main": [
+        [{ "node": "F031 동시 발행 호출", "type": "main", "index": 0 }]
+      ]
+    },
+    "F031 동시 발행 호출": {
+      "main": [
+        [{ "node": "결과 확인", "type": "main", "index": 0 }]
+      ]
+    },
+    "결과 확인": {
+      "main": [
+        [{ "node": "상태 최종 업데이트", "type": "main", "index": 0 }]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "saveManualExecutions": true,
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "staticData": null,
+  "tags": [{ "name": "SNS자동화" }, { "name": "예약발행" }],
+  "pinData": {}
+}

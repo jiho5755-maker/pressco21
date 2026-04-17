@@ -70,3 +70,44 @@ Backups created during the process include timestamped copies of:
 - `~/.local/bin/codex-clipboard-image`
 - `~/.local/bin/omx-paste-clipboard-to-tmux`
 - Cursor `keybindings.json`
+
+## 2026-04-18 — CRM ExcelJS migration production deployment
+
+### Code deployed
+
+- `0d0d318 [codex] CRM 엑셀 처리 ExcelJS 전환`
+
+### Production deploy
+
+- Command: `cd offline-crm-v2 && PATH="$HOME/.nvm/versions/node/v22.21.1/bin:$PATH" bash deploy/deploy-release.sh`
+- Release ID: `20260418081213-0d0d318`
+- URL: https://crm.pressco21.com
+- Release links on Oracle:
+  - `/var/www/crm -> /var/www/releases/crm/20260418081213-0d0d318`
+  - `/var/www/crm-current -> /var/www/releases/crm/20260418081213-0d0d318`
+
+### Validation
+
+- Local pre-deploy validation:
+  - `npm run build` passed with Node `v22.21.1`
+  - `npm audit --audit-level=moderate` returned `found 0 vulnerabilities`
+  - Targeted eslint/tsc passed before deployment
+  - `npm run test:invoices`: 13 passed, 1 skipped
+- Production health:
+  - `https://crm.pressco21.com/auth/health -> ok`
+  - `crm-auth.service active`
+  - Root URL redirects to `/login?next=%2F` as expected
+
+### Notes
+
+- The deploy script printed an initial transient `curl: (7) Failed to connect to 127.0.0.1 port 9100` while `crm-auth.service` was restarting, then completed successfully. Manual health checks after deploy passed.
+- The deployed assets include the lazy ExcelJS chunk `exceljs.min-DUbzRo0-.js`.
+
+### Rollback
+
+```bash
+cd /Users/jangjiho/workspace/pressco21/offline-crm-v2
+bash deploy/rollback-release.sh 20260418081213-0d0d318
+```
+
+Use the release list on Oracle if rolling back to the previous release instead of reselecting this release.

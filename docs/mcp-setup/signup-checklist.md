@@ -7,18 +7,18 @@
 
 ## 전체 현황 한눈에
 
-| # | 항목 | 상태 | 소요 | 우선순위 |
-|---|------|------|------|--------|
-| 0 | 네이버 커머스 API | ✅ **완료** (Application ID: `7hUEKOQGxDpri42gkU0OGH`) | — | — |
-| 1 | Google Ads Developer Token | ⏳ 신청 필요 | 5분 신청 + 승인 1~7일 | 🔴 **최우선** |
-| 2 | Google Cloud Console + OAuth | ⏳ | 30분 | 🟡 |
-| 3 | Google Analytics 4 속성 ID 확인 | ⏳ 확인만 | 5분 | 🟡 |
-| 4 | Meta for Developers 앱 + Access Token | ⏳ | 30분 | 🟡 |
-| 5 | 네이버 검색광고 API | ⏳ | 15분 | 🟡 |
-| 6 | 네이버 개발자센터 (보조) | ⏳ | 10분 | 🟢 선택 |
-| 7 | GitHub Personal Access Token | ⏳ | 10분 | 🟢 |
+| # | 항목 | 상태 | 비고 |
+|---|------|------|------|
+| 0 | 네이버 커머스 API | ✅ **완료** | Application ID: `7hUEKOQGxDpri42gkU0OGH` |
+| 1 | Google Ads Developer Token | ✅ **신청 완료** (기본 액세스 승인 대기) | Token: `nxVEoBPdty8rbNNJqsPTGg`, ~4/22 승인 예상 |
+| 2 | Google Cloud Console + OAuth | ✅ **완료** | 프로젝트: `pressco21-mcp`, JSON: `~/secrets/oauth-desktop.json` |
+| 3 | Google Analytics 4 속성 ID + 뷰어 | ✅ **완료** | Property ID: `473280152`, 서비스 계정 뷰어 추가됨 |
+| 4 | Meta for Developers 앱 + Access Token | 🟡 **앱 생성됨, 토큰 미발급** | 앱 ID: `1668137334197768`, 다른 세션에서 토큰 발급 예정 |
+| 5 | 네이버 검색광고 API | ✅ **완료** | naver-ads-mcp Phase 3 배포 완료 |
+| 6 | 네이버 개발자센터 (보조) | ✅ **완료** | DEV_CLIENT_ID: `HLhfhJLCp6sRPWDKl0He` |
+| 7 | GitHub Personal Access Token | ✅ **완료** | Fine-grained token 발급됨 |
 
-**총 소요**: 실제 작업 ~2시간, 승인 대기 포함 3~7일
+**진행률**: 7개 중 6개 완료, Meta 토큰 1개 남음 + Google Ads 승인 대기
 
 ---
 
@@ -57,108 +57,52 @@
 
 ---
 
-# 🔴 1번 — Google Ads Developer Token (최우선, 승인 대기)
+# ✅ 1번 — Google Ads Developer Token (2026-04-17 신청 완료)
 
-**왜 먼저?**: 승인 1~7일 걸려서 기다리는 시간이 가장 큽니다.
+**MCC 계정**: `636-189-5201` (프레스코21 관리자)
+**광고주 계정**: `285-475-7317` (프레스코21)
 
-**URL**: https://ads.google.com/aw/apicenter
+**저장된 값**:
+- [x] `GOOGLE_ADS_DEVELOPER_TOKEN` = `nxVEoBPdty8rbNNJqsPTGg`
+- [x] `GOOGLE_ADS_MCC_ID` = `6361895201` (하이픈 제거)
 
-**전제조건 확인**:
-- Google Ads 계정이 **MCC(관리자 계정)**여야 함
-- 일반 광고주 계정이면 먼저 MCC 생성: https://ads.google.com/home/tools/manager-accounts/ (무료, 5분)
-
-**순서**:
-1. https://ads.google.com 로그인 (MCC 계정으로)
-2. 우측 상단 **도구 및 설정** (렌치 아이콘) → **설정 > API 센터**
-3. **토큰 신청 양식 입력**:
-   - 회사 이름: `PRESSCO21`
-   - 연락처: 지호님 이메일
-   - 사용 목적 (영문 권장, 구체적으로):
-     ```
-     Internal use only. Automating our own Google Ads account 
-     reporting and bid optimization via MCP (Model Context Protocol) 
-     server connected to Claude AI. No third-party client access.
-     ```
-   - 예상 일 API 호출량: `1000 requests/day or less`
-4. **Basic Access** 신청 버튼 클릭
-5. 이메일 확인 — 승인 메일 대기 (1~7일, 평균 2~3일)
-
-**주의**:
-- 사용 목적 1~2문장으로 너무 짧으면 **반려됨** → 위 영문 그대로 복붙 추천
-- 승인 전에도 토큰 문자열은 보임 — 하지만 **승인 전까지는 API 호출 불가**
-
-**저장할 값**:
-- [ ] `GOOGLE_ADS_DEVELOPER_TOKEN` (승인 후 API 센터 상단에서 복사)
+**기본 액세스 신청**: 2026-04-17 22:20 제출 완료
+- 디자인 문서 첨부: `PRESSCO21_Google_Ads_API_Design_Doc.rtf` (바탕화면)
+- 승인 메일: `jiho5755@gmail.com`으로 수신 예정 (~4/22)
+- **승인 전까지는 테스트 계정만 접근 가능**
 
 ---
 
-# 🟡 2번 — Google Cloud Console (30분)
+# ✅ 2번 — Google Cloud Console (2026-04-17 완료)
 
-**왜**: GA4·Google Ads API를 프로그램에서 쓰려면 "열쇠"를 여기서 만듭니다.
+**프로젝트**: `pressco21-mcp`
+**콘솔**: https://console.cloud.google.com/apis/credentials?project=pressco21-mcp
 
-**URL**: https://console.cloud.google.com
+**완료 항목**:
+- [x] 프로젝트 생성: `pressco21-mcp`
+- [x] API 활성화: Google Analytics Data API + Google Ads API
+- [x] OAuth 동의 화면: 외부, 앱 이름 `pressco21-mcp`
+- [x] OAuth 클라이언트 ID: `ga4-mcp-reader` (데스크톱 앱)
+- [x] 서비스 계정: `ga4-mcp-reader` (키 JSON 발급)
+- [x] 구 OAuth 시크릿(`****xkW0`) 삭제, 신규(`****nvKt`)만 유지
 
-**순서**:
-
-**A. 프로젝트 생성**
-1. Google 계정 (jiho5755@gmail.com) 로그인
-2. 상단 중앙 **프로젝트 선택** 드롭다운 → **"새 프로젝트"**
-3. 프로젝트 이름: `pressco21-mcp` → **만들기**
-4. 만든 후 상단 드롭다운에서 `pressco21-mcp` 선택됐는지 확인
-
-**B. API 활성화**
-5. 왼쪽 **☰ 햄버거 메뉴** → **"API 및 서비스"** → **"라이브러리"**
-6. 검색창 **"Google Analytics Data API"** → 클릭 → **"사용" 버튼**
-7. 라이브러리로 돌아가 **"Google Ads API"** 검색 → **"사용"**
-
-**C. OAuth 동의 화면 구성**
-8. 왼쪽 메뉴 → **"OAuth 동의 화면"**
-9. User Type: **외부** 선택 → 만들기
-10. 앱 이름: `pressco21-mcp`
-11. 사용자 지원 이메일: 본인
-12. 개발자 연락처: 본인 이메일
-13. **저장 후 계속** → 범위(건너뜀) → 테스트 사용자: **본인 이메일 추가** → 저장
-
-**D. OAuth 클라이언트 ID 발급**
-14. **"사용자 인증 정보"** → **"+ 사용자 인증 정보 만들기"** → **"OAuth 클라이언트 ID"**
-15. 애플리케이션 유형: **데스크톱 앱**
-16. 이름: `mcp-desktop-client` → **만들기**
-17. 팝업 나오면 **"JSON 다운로드"** → 바탕화면 보관 (파일명: `client_secret_xxxxx.json`)
-
-**E. 서비스 계정 발급 (GA4용 별도)**
-18. **"사용자 인증 정보"** → **"+ 사용자 인증 정보 만들기"** → **"서비스 계정"**
-19. 이름: `ga4-mcp-reader` → **만들고 계속**
-20. 역할: **건너뜀** (GA4 측에서 권한 부여 예정)
-21. 완료 → 생성된 서비스 계정 클릭 → **"키"** 탭 → **"키 추가 > 새 키 만들기"** → **JSON** → 만들기
-22. JSON 파일 다운로드 (파일명: `pressco21-mcp-xxxxx.json`) → 바탕화면 보관
-23. 서비스 계정 이메일 복사해두기 (예: `ga4-mcp-reader@pressco21-mcp.iam.gserviceaccount.com`)
-
-**결제수단**: 불필요 (이 단계는 무료 한도)
-
-**저장할 값**:
-- [ ] OAuth JSON 파일 경로
-- [ ] 서비스 계정 JSON 파일 경로
-- [ ] 서비스 계정 이메일
+**저장된 값**:
+- [x] OAuth JSON: `~/secrets/oauth-desktop.json`
+  - Client ID: `106305278194-sro7...` (JSON 파일 참조)
+  - Client Secret: JSON 파일 내 `client_secret` 참조
+- [x] 서비스 계정 JSON: `~/secrets/ga4-sa.json`
+  - 이메일: `ga4-mcp-reader@pressco21-mcp.iam.gserviceaccount.com`
+  - Key ID: `1367e28c31536dd054c8a8d87eb3934744162b9f`
 
 ---
 
-# 🟡 3번 — GA4 속성 ID 확인 + 서비스 계정 추가 (10분)
+# ✅ 3번 — GA4 속성 ID + 서비스 계정 뷰어 (2026-04-17 완료)
 
-**URL**: https://analytics.google.com
-
-**순서**:
-1. GA4 로그인 (foreverlove.co.kr 운영 계정)
-2. 좌측 하단 **⚙ 관리** 클릭
-3. **속성** 칼럼 → **속성 세부정보** 클릭
-4. **속성 ID** 복사 (9~10자리 숫자, 예: `123456789`)
-5. **속성 액세스 관리** 클릭
-6. 우측 상단 **+ 추가** → **"사용자 추가"**
-7. 이메일: 2번에서 만든 **서비스 계정 이메일** 붙여넣기
-8. 역할: **뷰어** (Viewer) 선택
-9. **추가**
-
-**저장할 값**:
-- [ ] `GA4_PROPERTY_ID` (9~10자리 숫자만)
+**저장된 값**:
+- [x] `GA4_PROPERTY_ID` = `473280152`
+- [x] 측정 ID: `G-CWQYWF1580`
+- [x] 서비스 계정 `ga4-mcp-reader@pressco21-mcp.iam.gserviceaccount.com` → **뷰어** 역할 추가 완료
+- [x] 계정: 프레스코21 > 프레스코21 속성
 
 ---
 
@@ -215,75 +159,30 @@
 
 ---
 
-# 🟡 5번 — 네이버 검색광고 API (15분)
+# ✅ 5번 — 네이버 검색광고 API (이미 완료, naver-ads-mcp 운영 중)
 
-**왜**: PRESSCO21 자체 제작 네이버 광고 MCP의 핵심. **커머스 API와는 별개**입니다.
+**저장된 값**:
+- [x] `NAVER_SA_API_KEY` = `0100000000b1020850a46ab061637f8150f6854b8428917c6433f84392f7f5e19ef0915bfd`
+- [x] `NAVER_SA_SECRET_KEY` = `AQAAAAAfrmgCNYGutQdxOVviUd1jBDqjExOzPnFGX4LtQ5VUEg==`
+- [x] `NAVER_SA_CUSTOMER_ID` = `316834`
 
-**URL**: https://searchad.naver.com
-
-**순서**:
-1. 로그인 (네이버 광고 운영 계정)
-2. 우측 상단 본인 아이디 클릭 → **정보관리** (또는 상단 메뉴 **도구 > API 관리**)
-3. 좌측 메뉴 **API 사용 관리**
-4. **신규 API 라이선스 등록** 클릭
-5. 약관 동의
-6. 라이선스 유형: **"광고주"** 선택
-7. 신청 → 즉시 발급 (일부 계정은 승인 필요)
-8. 발급된 **3개 값 모두 메모**:
-   - **API Key (Access License)**
-   - **Secret Key**
-   - **Customer ID** (광고주 고객 ID, 보통 7자리 숫자)
-
-**저장할 값**:
-- [ ] `NAVER_SA_API_KEY` (Access License)
-- [ ] `NAVER_SA_SECRET_KEY`
-- [ ] `NAVER_SA_CUSTOMER_ID`
-
-**막히면**: 일부 계정은 "비즈니스 등급" 업그레이드 필요. 광고 운영 1개월 이상 계정이면 대부분 자동 승인.
+**MCP 현황**: naver-ads-mcp Phase 3 완료, 54개 도구, Oracle 서버 Docker 배포, n8n WF [F14] 활성
 
 ---
 
-# 🟢 6번 — 네이버 개발자센터 (선택, 10분)
+# ✅ 6번 — 네이버 개발자센터 (이미 완료)
 
-**왜**: DataLab(검색 트렌드)·쇼핑 인사이트 보조 데이터. 있으면 좋음, 없어도 Phase 1에는 영향 없음.
-
-**URL**: https://developers.naver.com/apps/#/register
-
-**순서**:
-1. 네이버 로그인 → **Application 등록**
-2. 애플리케이션 이름: `pressco21-mcp`
-3. 사용 API: **검색** + **데이터랩(쇼핑인사이트)** 체크
-4. 환경: **WEB 설정** → 서비스 URL: `https://foreverlove.co.kr`
-5. 등록 → Client ID + Client Secret 즉시 발급
-
-**저장할 값**:
-- [ ] `NAVER_DEV_CLIENT_ID`
-- [ ] `NAVER_DEV_CLIENT_SECRET`
+**저장된 값**:
+- [x] `NAVER_DEV_CLIENT_ID` = `HLhfhJLCp6sRPWDKl0He`
+- [x] `NAVER_DEV_CLIENT_SECRET` = `kuQJrnTd0p`
 
 ---
 
-# 🟢 7번 — GitHub Personal Access Token (10분)
+# ✅ 7번 — GitHub Personal Access Token (이미 완료)
 
-**URL**: https://github.com/settings/tokens?type=beta
-
-**순서**:
-1. 우측 상단 프로필 → **Settings**
-2. 좌측 하단 **Developer settings** → **Personal access tokens > Fine-grained tokens**
-3. **Generate new token**
-4. 이름: `pressco21-mcp`
-5. 만료: **90 days** (3개월 후 재발급 알림 캘린더 등록)
-6. Resource owner: `jiho5755-maker` (본인)
-7. Repository access: **Only select repositories** → 관련 저장소 체크 (예: `n8n-automation`)
-8. Repository permissions:
-   - **Contents**: Read and write
-   - **Issues**: Read and write
-   - **Pull requests**: Read and write
-   - **Actions**: Read
-   - **Metadata**: Read (자동)
-9. **Generate token** → 토큰 즉시 복사 (한 번만 보임!)
-
-**저장할 값**:
-- [ ] `GITHUB_PAT` (`github_pat_xxx...` 형식)
+**저장된 값**:
+- [x] `GITHUB_PAT` = `.secrets.env 참조` (Fine-grained token, pressco21-mcp)
+- [x] 만료: 90일 (갱신 알림 필요)
 
 ---
 
@@ -299,33 +198,34 @@ NAVER_COMMERCE_CLIENT_ID=7hUEKOQGxDpri42gkU0OGH
 NAVER_COMMERCE_CLIENT_SECRET=$2a$04$fLGhfY/cRL81XLSGW8ktn.
 
 [GA4]
-GA4_PROPERTY_ID=
+GA4_PROPERTY_ID=473280152
 GA4_SA_PATH=/Users/jangjiho/secrets/ga4-sa.json
 GA4_SA_EMAIL=ga4-mcp-reader@pressco21-mcp.iam.gserviceaccount.com
 GA4_OAUTH_PATH=/Users/jangjiho/secrets/oauth-desktop.json
 
 [Google Ads]
-GADS_DEVELOPER_TOKEN=
-GADS_MCC_ID=(하이픈 제거)
+GADS_DEVELOPER_TOKEN=nxVEoBPdty8rbNNJqsPTGg
+GADS_MCC_ID=6361895201
+GADS_CUSTOMER_ID=2854757317
 
-[Meta Ads]
-META_APP_ID=
-META_APP_SECRET=
-META_ACCESS_TOKEN=
-META_AD_ACCOUNT_ID=act_
-META_TOKEN_EXPIRES=2026-06-16
+[Meta Ads] — 토큰 미발급, 다른 세션에서 진행
+META_APP_ID=1668137334197768
+META_APP_SECRET=(미발급)
+META_ACCESS_TOKEN=(미발급)
+META_AD_ACCOUNT_ID=act_(미확인)
+META_TOKEN_EXPIRES=(발급 후 60일)
 
-[Naver SearchAd]
-NAVER_SA_API_KEY=
-NAVER_SA_SECRET_KEY=
-NAVER_SA_CUSTOMER_ID=
+[Naver SearchAd] — naver-ads-mcp 서버 .env에 이미 등록됨
+NAVER_SA_API_KEY=0100000000b1020850a46ab061637f8150f6854b8428917c6433f84392f7f5e19ef0915bfd
+NAVER_SA_SECRET_KEY=AQAAAAAfrmgCNYGutQdxOVviUd1jBDqjExOzPnFGX4LtQ5VUEg==
+NAVER_SA_CUSTOMER_ID=316834
 
-[Naver Developer (선택)]
-NAVER_DEV_CLIENT_ID=
-NAVER_DEV_CLIENT_SECRET=
+[Naver Developer]
+NAVER_DEV_CLIENT_ID=HLhfhJLCp6sRPWDKl0He
+NAVER_DEV_CLIENT_SECRET=kuQJrnTd0p
 
 [GitHub]
-GITHUB_PAT=
+GITHUB_PAT=(`.secrets.env` 참조)
 GITHUB_PAT_EXPIRES=2026-07-16
 ```
 
@@ -361,34 +261,26 @@ GITHUB_PAT_EXPIRES=2026-07-16
 
 ---
 
-# 진행 기록 (체크해가며)
+# 진행 기록
 
-**월요일 (2026-04-__)**
-- [ ] Google Ads Developer Token 신청 완료
-- [ ] 메모: 신청 영문 복붙 완료
+**2026-04-17 (목요일) — 일괄 처리**
+- [x] Google Ads Developer Token 신청 + 기본 액세스 신청 완료
+- [x] Google Cloud Console 프로젝트 `pressco21-mcp` 생성
+- [x] OAuth 클라이언트 JSON 다운로드 (`~/secrets/oauth-desktop.json`)
+- [x] 서비스 계정 JSON 다운로드 (`~/secrets/ga4-sa.json`)
+- [x] GA4 속성 ID `473280152` 확인 + 서비스 계정 뷰어 추가
+- [x] OAuth 구 시크릿 삭제, 신규만 유지
+- [x] Meta 앱 `1668137334197768` 생성 (토큰은 다른 세션)
+- [x] naver-ads-mcp Phase 3 main 머지 + 푸시
 
-**화요일**
-- [ ] Google Cloud Console 프로젝트 생성
-- [ ] OAuth + 서비스 계정 JSON 다운
-- [ ] GA4 속성 ID 확인 + 서비스 계정 추가
+**대기 중**
+- [ ] Google Ads 기본 액세스 승인 메일 확인 (~4/22, `jiho5755@gmail.com`)
+- [ ] Meta 장기 토큰 발급 (다른 세션)
 
-**수요일**
-- [ ] Meta 앱 생성 + 장기 토큰 발급
-- [ ] 네이버 SA API 라이선스 등록
-- [ ] (선택) 네이버 개발자센터 앱
-- [ ] GitHub PAT 발급
-
-**목요일**
-- [ ] 모든 키 위 템플릿에 정리
-- [ ] 새 세션에서 CTO에게 전달
-
-**금요일**
-- [ ] MCP 13개 설치 완료 확인
-- [ ] 테스트 쿼리 3개 작동 확인
-
-**다음 주 월요일**
-- [ ] Google Ads Developer Token 승인 확인
-- [ ] 네이버 광고 MCP 제작 착수 세션 열기 (PRD 기반)
+**승인 후**
+- [ ] google-ads-mcp 설치 + `.mcp.json` 설정
+- [ ] GA4 MCP 설치 (서비스 계정 준비 완료, 즉시 가능)
+- [ ] 4/27 GFA 카탈로그 ROAS 판단
 
 ---
 

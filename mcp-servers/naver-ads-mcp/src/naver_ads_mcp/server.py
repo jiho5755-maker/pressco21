@@ -14,16 +14,20 @@ from naver_ads_mcp.clients.datalab import DataLabClient
 from naver_ads_mcp.clients.searchad import SearchAdClient
 from naver_ads_mcp.config import settings
 from naver_ads_mcp.errors import NaverApiError
+from naver_ads_mcp.tools import ab_test as ab_ops
+from naver_ads_mcp.tools import ad_copy as copy_ops
 from naver_ads_mcp.tools import adgroups as ag_ops
 from naver_ads_mcp.tools import ads as ads_ops
 from naver_ads_mcp.tools import bid_estimate as bid_ops
 from naver_ads_mcp.tools import budget as budget_ops
+from naver_ads_mcp.tools import bulk_auto as ba_ops
 from naver_ads_mcp.tools import bulk_ops
 from naver_ads_mcp.tools import campaigns as cmp_ops
 from naver_ads_mcp.tools import commerce as com_ops
 from naver_ads_mcp.tools import keyword_discover as kd_ops
 from naver_ads_mcp.tools import keyword_trend as kt_ops
 from naver_ads_mcp.tools import keywords as kw_ops
+from naver_ads_mcp.tools import landing_audit as land_ops
 from naver_ads_mcp.tools import negative_keywords as nkw_ops
 from naver_ads_mcp.tools import quality as qi_ops
 from naver_ads_mcp.tools import shopping as shop_ops
@@ -618,6 +622,148 @@ async def business_channel_list() -> str:
 
             raise AuthNotConfiguredError("searchad")
         return _wrap(await _get_sa().get("/ncc/channels"))
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── 벌크 자동 사이클 (2) — Phase 2 P2 ───
+
+
+@mcp.tool()
+async def bulk_auto_prune(
+    campaign_id: str,
+    start_date: str,
+    end_date: str,
+    min_clicks: int = 0,
+    dry_run: bool = True,
+) -> str:
+    """기간 내 전환 0인 키워드를 자동 OFF합니다. dry_run=true면 미리보기만.
+
+    날짜 형식: YYYY-MM-DD. min_clicks: 최소 클릭수 (0이면 모든 비전환 OFF).
+    """
+    try:
+        return _wrap(
+            await ba_ops.bulk_auto_prune(
+                _get_sa(), campaign_id, start_date, end_date, min_clicks, dry_run
+            )
+        )
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def bulk_bid_optimizer(
+    campaign_id: str,
+    start_date: str,
+    end_date: str,
+    bid_delta: int = 15,
+    dry_run: bool = True,
+) -> str:
+    """전환 키워드 입찰가 인상 + 비전환 키워드 최저가 유지. dry_run=true면 미리보기만.
+
+    bid_delta: 전환 키워드 인상폭 (원). max_bid_delta_pct 설정 범위 내로 자동 제한.
+    """
+    try:
+        return _wrap(
+            await ba_ops.bulk_bid_optimizer(
+                _get_sa(), campaign_id, start_date, end_date, bid_delta, dry_run=dry_run
+            )
+        )
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── 광고 문구 컨텍스트 (2) — Phase 2 P2 ───
+
+
+@mcp.tool()
+async def ad_copy_context(adgroup_id: str) -> str:
+    """키워드+상품+경쟁소재 데이터를 수집하여 광고 문구 작성용 컨텍스트를 반환합니다.
+
+    이 데이터를 Claude에게 전달하면 브랜드 톤에 맞는 광고 문구를 생성할 수 있습니다.
+    """
+    try:
+        return _wrap(await copy_ops.ad_copy_context(_get_sa(), adgroup_id))
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def ad_copy_best_patterns(
+    campaign_id: str,
+    start_date: str,
+    end_date: str,
+    top_n: int = 5,
+) -> str:
+    """CTR 상위 소재의 제목/설명문 패턴을 추출합니다.
+
+    날짜 형식: YYYY-MM-DD. top_n: 상위 N개.
+    """
+    try:
+        return _wrap(
+            await copy_ops.ad_copy_best_patterns(
+                _get_sa(), campaign_id, start_date, end_date, top_n
+            )
+        )
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── A/B 테스트 (2) — Phase 2 P2 ───
+
+
+@mcp.tool()
+async def ab_test_create(
+    adgroup_id: str,
+    ad_a_json: str,
+    ad_b_json: str,
+    dry_run: bool = True,
+) -> str:
+    """같은 광고그룹에 A/B 소재를 등록합니다. dry_run=true면 미리보기만.
+
+    ad_a_json/ad_b_json: {"type":"TEXT_45","headline":"제목","description":"설명"} JSON.
+    """
+    try:
+        return _wrap(
+            await ab_ops.ab_test_create(_get_sa(), adgroup_id, ad_a_json, ad_b_json, dry_run)
+        )
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def ab_test_evaluate(
+    ad_id_a: str,
+    ad_id_b: str,
+    start_date: str,
+    end_date: str,
+    dry_run: bool = True,
+) -> str:
+    """A/B 소재의 CTR/전환율을 비교하고 패배 소재 OFF를 제안합니다.
+
+    dry_run=true면 미리보기만. 최소 100회 노출 필요.
+    """
+    try:
+        return _wrap(
+            await ab_ops.ab_test_evaluate(
+                _get_sa(), ad_id_a, ad_id_b, start_date, end_date, dry_run
+            )
+        )
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── 랜딩 URL 감사 (1) — Phase 2 P2 ───
+
+
+@mcp.tool()
+async def landing_url_audit(campaign_id: str | None = None) -> str:
+    """모든 활성 광고소재 랜딩 URL의 자사몰 vs 오픈마켓 비중 리포트.
+
+    campaign_id 생략 시 전체 캠페인 대상.
+    """
+    try:
+        return _wrap(await land_ops.landing_url_audit(_get_sa(), campaign_id))
     except NaverApiError as e:
         return _err(e)
 

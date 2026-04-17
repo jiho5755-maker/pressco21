@@ -455,7 +455,7 @@ export function Invoices() {
         }
       }))
 
-      exportCourierInvoices(rows, {
+      await exportCourierInvoices(rows, {
         filename: '전자송장(3.9)',
         dateLabel: dateFrom && dateTo ? `${dateFrom}_${dateTo}` : undefined,
       })

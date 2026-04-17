@@ -627,7 +627,7 @@ export function CustomerDetail() {
   }
 
   function exportHistoryRows() {
-    exportUnifiedTransactions(
+    void exportUnifiedTransactions(
       filteredHistory.map((row) => ({
         date: row.date,
         customerName: customer?.name ?? '',

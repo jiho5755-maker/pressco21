@@ -62,7 +62,7 @@ export const APP_GUIDES: AppGuideScreen[] = [
     summary: '농협 파일을 먼저 올리고, 자동으로 잡힌 후보를 검토한 뒤 안전하게 입금 반영하는 화면입니다.',
     dock: 'left',
     steps: [
-      { title: '1. 입금 파일 올리기', description: '농협 CSV나 엑셀 파일을 업로드하면 수집함에 입금 건이 쌓입니다.', selector: '[data-guide-id="deposit-upload-button"]' },
+      { title: '1. 입금 파일 올리기', description: '농협 CSV나 XLSX 파일을 업로드하면 수집함에 입금 건이 쌓입니다. 보안상 XLS 파일은 XLSX로 저장 후 올립니다.', selector: '[data-guide-id="deposit-upload-button"]' },
       { title: '2. 오늘 처리할 건수 확인', description: '정확 후보, 검토 필요, 미매칭, 반영 완료 건수를 먼저 보고 우선순위를 정합니다.', selector: '[data-guide-id="deposit-summary"]' },
       { title: '3. 상태와 검색으로 좁히기', description: '검토 필요만 보거나 입금자명으로 검색해서 처리 대상을 빠르게 좁힙니다.', selector: '[data-guide-id="deposit-filters"]' },
       { title: '4. 후보 검토 후 반영하기', description: '자동 후보가 맞으면 바로 입금 반영하고, 반영 후에는 수금 관리와 거래원장에서 같이 확인합니다.', selector: '[data-guide-id="deposit-table"]' },

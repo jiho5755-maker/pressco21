@@ -423,7 +423,7 @@ export function Dashboard() {
               variant="outline"
               size="sm"
               className="gap-1"
-              onClick={() => exportMonthlyAccountingSummary(monthlyAccountingSummary)}
+              onClick={() => { void exportMonthlyAccountingSummary(monthlyAccountingSummary) }}
             >
               <Download className="h-4 w-4" />
               월별 회계 요약

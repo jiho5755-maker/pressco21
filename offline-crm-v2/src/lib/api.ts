@@ -71,6 +71,7 @@ export interface PaymentReminderWebhookResponse {
 
 function redirectToLogin() {
   if (typeof window === 'undefined') return
+  if (window.location.pathname.startsWith('/login')) return
   const next = `${window.location.pathname}${window.location.search}${window.location.hash}`
   const encodedNext = encodeURIComponent(next || '/')
   window.location.href = `/login?next=${encodedNext}`

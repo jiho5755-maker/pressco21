@@ -32,7 +32,7 @@
 | 상태 관리 | @tanstack/react-query (staleTime 캐싱) |
 | UI 프레임워크 | shadcn/ui + Tailwind CSS |
 | 차트 | Recharts |
-| 엑셀 내보내기 | SheetJS (xlsx) |
+| 엑셀 내보내기/업로드 | ExcelJS (.xlsx) + CSV 경량 파서 (.xls 차단) |
 | 토스트 알림 | sonner |
 | API 프록시 | n8n webhook proxy (x-crm-key 인증) |
 | 데이터베이스 | NocoDB (SQLite 백엔드) |
@@ -129,12 +129,12 @@
 
 ---
 
-### CRM-009: 엑셀 내보내기 (SheetJS) -- 완료 (2026-03-05, CRM-008에 통합)
+### CRM-009: 엑셀 내보내기 (ExcelJS) -- 완료 (2026-03-05, 2026-04-18 ExcelJS 전환)
 
-- SheetJS xlsx CDN 로드
+- ExcelJS 기반 .xlsx 생성으로 전환
 - 내보내기 3종: 고객 목록 / 거래내역 / 미수금 현황
 - 파일명 규칙: `PRESSCO21_[유형]_[YYYYMMDD].xlsx`
-- 서식: 헤더 볼드, 금액 천단위 콤마, 날짜 형식 통일
+- 서식: 헤더 볼드, 열 너비 자동 조정, 날짜 형식 통일
 
 ---
 

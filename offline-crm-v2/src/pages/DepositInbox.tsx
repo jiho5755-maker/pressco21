@@ -197,9 +197,15 @@ export function DepositInbox() {
   async function handleFilesSelected(fileList: FileList | null) {
     if (!fileList?.length) return
     const incoming: AutoDepositInboxEntry[] = []
-    for (const file of Array.from(fileList)) {
-      const parsed = await parseAutoDepositFile(file)
-      incoming.push(...parsed)
+    try {
+      for (const file of Array.from(fileList)) {
+        const parsed = await parseAutoDepositFile(file)
+        incoming.push(...parsed)
+      }
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : '입금 파일을 읽지 못했습니다.')
+      if (fileInputRef.current) fileInputRef.current.value = ''
+      return
     }
     if (!incoming.length) {
       toast.error('업로드 파일에서 입금 데이터를 찾지 못했습니다.')
@@ -633,14 +639,14 @@ export function DepositInbox() {
         <div>
           <h2 className="text-3xl font-bold text-gray-900">입금 수집함</h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            농협 파일을 먼저 올리고, 자동으로 잡힌 후보를 검토한 뒤 안전하게 입금 반영합니다.
+            농협 CSV 또는 XLSX 파일을 먼저 올리고, 자동으로 잡힌 후보를 검토한 뒤 안전하게 입금 반영합니다.
           </p>
         </div>
         <div className="flex flex-wrap gap-2">
           <input
             ref={fileInputRef}
             type="file"
-            accept=".csv,.xlsx,.xls"
+            accept=".csv,.xlsx"
             className="hidden"
             onChange={(event) => { void handleFilesSelected(event.target.files) }}
           />

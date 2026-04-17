@@ -1,4 +1,4 @@
-import * as XLSX from 'xlsx'
+import type ExcelJS from 'exceljs'
 import { dismissAutoDepositReviewQueue, getAutoDepositReviewQueue, type Customer } from '@/lib/api'
 import type { CustomerReceivableLedger, ResolvedReceivableInvoice } from '@/lib/receivables'
 import { parseCustomerAccountingMeta } from '@/lib/accountingMeta'
@@ -101,12 +101,14 @@ function normalizeAmount(value: unknown): number {
 }
 
 function normalizeDate(value: unknown): string {
+  if (value instanceof Date && !Number.isNaN(value.getTime())) {
+    return value.toISOString().slice(0, 10)
+  }
   if (typeof value === 'number' && Number.isFinite(value)) {
-    const parsed = XLSX.SSF.parse_date_code(value)
-    if (parsed) {
-      const month = String(parsed.m).padStart(2, '0')
-      const day = String(parsed.d).padStart(2, '0')
-      return `${parsed.y}-${month}-${day}`
+    const utcMs = Math.round((value - 25569) * 86400 * 1000)
+    const parsed = new Date(utcMs)
+    if (!Number.isNaN(parsed.getTime())) {
+      return parsed.toISOString().slice(0, 10)
     }
   }
   const text = String(value ?? '').trim()
@@ -122,15 +124,115 @@ function normalizeDate(value: unknown): string {
   return ''
 }
 
-function pickFirstValue(row: Record<string, unknown>, headerAliases: string[]): string {
+function pickFirstValue(row: Record<string, unknown>, headerAliases: string[]): unknown {
   const normalizedMap = new Map<string, unknown>()
   Object.entries(row).forEach(([key, value]) => normalizedMap.set(normalizeHeader(key), value))
   for (const alias of headerAliases) {
     const found = normalizedMap.get(normalizeHeader(alias))
     if (found == null) continue
-    return String(found).trim()
+    return typeof found === 'string' ? found.trim() : found
   }
   return ''
+}
+
+function getFileExtension(fileName: string): string {
+  const parts = fileName.toLowerCase().split('.')
+  return parts.length > 1 ? parts[parts.length - 1] : ''
+}
+
+function decodeTextFile(buffer: ArrayBuffer): string {
+  const utf8 = new TextDecoder('utf-8', { fatal: false }).decode(buffer)
+  if (!utf8.includes('�')) return utf8
+  try {
+    return new TextDecoder('euc-kr', { fatal: false }).decode(buffer)
+  } catch {
+    return utf8
+  }
+}
+
+function parseCsvText(text: string): Record<string, unknown>[] {
+  const rows: string[][] = []
+  let currentRow: string[] = []
+  let current = ''
+  let inQuotes = false
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i]
+    const next = text[i + 1]
+    if (char === '"') {
+      if (inQuotes && next === '"') {
+        current += '"'
+        i += 1
+      } else {
+        inQuotes = !inQuotes
+      }
+      continue
+    }
+    if (!inQuotes && char === ',') {
+      currentRow.push(current)
+      current = ''
+      continue
+    }
+    if (!inQuotes && (char === '\n' || char === '\r')) {
+      if (char === '\r' && next === '\n') i += 1
+      currentRow.push(current)
+      if (currentRow.some((cell) => cell.trim() !== '')) rows.push(currentRow)
+      currentRow = []
+      current = ''
+      continue
+    }
+    current += char
+  }
+  currentRow.push(current)
+  if (currentRow.some((cell) => cell.trim() !== '')) rows.push(currentRow)
+
+  const headers = rows[0] ?? []
+  return rows.slice(1).map((row) => {
+    const record: Record<string, unknown> = {}
+    headers.forEach((header, index) => {
+      record[header] = row[index] ?? ''
+    })
+    return record
+  })
+}
+
+function cellValueToPrimitive(value: ExcelJS.CellValue): unknown {
+  if (value == null) return ''
+  if (value instanceof Date) return value
+  if (typeof value === 'object') {
+    if ('text' in value && typeof value.text === 'string') return value.text
+    if ('result' in value) return value.result ?? ''
+    if ('richText' in value && Array.isArray(value.richText)) {
+      return value.richText.map((entry) => entry.text).join('')
+    }
+    if ('hyperlink' in value && 'text' in value) return String(value.text ?? '')
+    return String(value)
+  }
+  return value
+}
+
+async function parseXlsxRows(buffer: ArrayBuffer): Promise<Record<string, unknown>[]> {
+  const ExcelJSRuntime = (await import('exceljs')).default
+  const workbook = new ExcelJSRuntime.Workbook()
+  await workbook.xlsx.load(buffer)
+  const worksheet = workbook.worksheets[0]
+  if (!worksheet) return []
+
+  let headers: string[] = []
+  const records: Record<string, unknown>[] = []
+  worksheet.eachRow({ includeEmpty: false }, (row, rowNumber) => {
+    const values = row.values as ExcelJS.CellValue[]
+    if (rowNumber === 1) {
+      headers = values.slice(1).map((value) => String(cellValueToPrimitive(value)).trim())
+      return
+    }
+    const record: Record<string, unknown> = {}
+    headers.forEach((header, index) => {
+      record[header] = cellValueToPrimitive(values[index + 1])
+    })
+    records.push(record)
+  })
+  return records
 }
 
 function createEntryId(sourceFile: string, index: number, amount: number, sender: string, date: string): string {
@@ -139,21 +241,25 @@ function createEntryId(sourceFile: string, index: number, amount: number, sender
 }
 
 export async function parseAutoDepositFile(file: File): Promise<AutoDepositInboxEntry[]> {
+  const extension = getFileExtension(file.name)
+  if (extension === 'xls') {
+    throw new Error('.xls 파일은 보안상 직접 업로드할 수 없습니다. 엑셀에서 .xlsx 또는 .csv로 다시 저장한 뒤 업로드해주세요.')
+  }
+  if (extension !== 'xlsx' && extension !== 'csv') {
+    throw new Error('입금 파일은 .xlsx 또는 .csv 형식만 업로드할 수 있습니다.')
+  }
+
   const buffer = await file.arrayBuffer()
-  const workbook = XLSX.read(buffer, { type: 'array', cellDates: true })
-  const sheetName = workbook.SheetNames[0]
-  const worksheet = workbook.Sheets[sheetName]
-  const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(worksheet, {
-    defval: '',
-    raw: false,
-  })
+  const rows = extension === 'csv'
+    ? parseCsvText(decodeTextFile(buffer))
+    : await parseXlsxRows(buffer)
 
   const entries = rows
     .map((row, index): AutoDepositInboxEntry | null => {
       const date = normalizeDate(pickFirstValue(row, DATE_HEADERS))
-      const sender = pickFirstValue(row, SENDER_HEADERS)
+      const sender = String(pickFirstValue(row, SENDER_HEADERS) ?? '').trim()
       const amount = normalizeAmount(pickFirstValue(row, AMOUNT_HEADERS))
-      const note = pickFirstValue(row, NOTE_HEADERS)
+      const note = String(pickFirstValue(row, NOTE_HEADERS) ?? '').trim()
       if (!date || !sender || amount <= 0) return null
       return {
         id: createEntryId(file.name, index, amount, sender, date),

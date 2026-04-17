@@ -1798,14 +1798,16 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => exportReceivables(
-              visibleCrmInvoices.map((inv) => ({
-                ...inv,
-                paid_amount: inv.asOfPaidAmount,
-                payment_status: inv.asOfStatus,
-              })),
-              asOfDate,
-            )}
+            onClick={() => {
+              void exportReceivables(
+                visibleCrmInvoices.map((inv) => ({
+                  ...inv,
+                  paid_amount: inv.asOfPaidAmount,
+                  payment_status: inv.asOfStatus,
+                })),
+                asOfDate,
+              )
+            }}
             className="gap-1"
           >
             <Download className="h-4 w-4" />
@@ -1815,16 +1817,18 @@ export function Receivables({ mode = 'receivable' }: ReceivablesProps) {
           <Button
             variant="outline"
             size="sm"
-            onClick={() => exportOutgoingLedger(
-              visibleOutgoingLedger.map((entry) => ({
-                customerName: entry.customerName,
-                kind: entry.kind === 'payable' ? '기존 장부 줄 돈' : '환불대기',
-                amount: entry.amount,
-                note: entry.note,
-                bookName: entry.bookName,
-              })),
-              '지급예정현황',
-            )}
+            onClick={() => {
+              void exportOutgoingLedger(
+                visibleOutgoingLedger.map((entry) => ({
+                  customerName: entry.customerName,
+                  kind: entry.kind === 'payable' ? '기존 장부 줄 돈' : '환불대기',
+                  amount: entry.amount,
+                  note: entry.note,
+                  bookName: entry.bookName,
+                })),
+                '지급예정현황',
+              )
+            }}
             className="gap-1"
           >
             <Download className="h-4 w-4" />

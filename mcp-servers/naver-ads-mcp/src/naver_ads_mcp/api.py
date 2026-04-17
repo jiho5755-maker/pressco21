@@ -247,9 +247,11 @@ async def quality_report() -> dict[str, Any]:
 
 
 def main() -> None:
+    # 컨테이너 내부에서는 0.0.0.0으로 바인딩해야 호스트에서 접근 가능
+    # 외부 노출 제한은 docker-compose의 "127.0.0.1:8400:8400" 포트 바인딩으로 처리
     uvicorn.run(
         "naver_ads_mcp.api:app",
-        host="127.0.0.1",
+        host="0.0.0.0",
         port=settings.api_port,
         log_level=settings.log_level.lower(),
     )

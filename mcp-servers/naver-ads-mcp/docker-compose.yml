@@ -10,8 +10,8 @@ services:
     environment:
       - MCP_WRITE_ENABLED=true
     networks:
-      - n8n-network
+      - n8n_n8n-network
 
 networks:
-  n8n-network:
+  n8n_n8n-network:
     external: true

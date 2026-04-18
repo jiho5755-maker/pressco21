@@ -8,7 +8,8 @@ import { getTelegramUserName } from "@/lib/telegram";
 import { daysUntil, isToday, getStartAt } from "@/lib/format";
 import {
   ClipboardList, CalendarDays, Truck, PlusCircle,
-  AlertTriangle, CalendarClock, ChevronRight, MessageSquareText
+  AlertTriangle, CalendarClock, ChevronRight, MessageSquareText,
+  UserCheck
 } from "lucide-react";
 import type { Task } from "@/lib/types";
 
@@ -93,6 +94,12 @@ export function HomePage() {
       label: "출고",
       path: "/shipment",
       desc: "출고 체크",
+    },
+    {
+      icon: <UserCheck className="h-5 w-5" />,
+      label: "근태 관리",
+      path: "/hr",
+      desc: "출퇴근·리포트",
     },
     {
       icon: <PlusCircle className="h-5 w-5" />,

@@ -101,6 +101,17 @@ export const hrEmployeeRegistryRepository = {
       .orderBy(hrEmployeeRegistry.fullName);
   },
 
+  /**
+   * 전체 활성(status='active') 직원의 근로자명부 반환
+   */
+  async findAll() {
+    return db
+      .select()
+      .from(hrEmployeeRegistry)
+      .where(eq(hrEmployeeRegistry.status, "active"))
+      .orderBy(hrEmployeeRegistry.fullName);
+  },
+
   async findById(id: string) {
     const [found] = await db
       .select()

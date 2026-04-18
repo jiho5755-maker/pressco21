@@ -167,6 +167,27 @@ export const hrAttendanceRepository = {
       .orderBy(hrAttendance.recordedAt);
   },
 
+  /**
+   * 전직원 월별 출퇴근 목록 (관리자용, 정정된 원본 제외)
+   */
+  async listByMonthAll(yearMonth: string) {
+    const [year, month] = yearMonth.split("-").map(Number);
+    const start = new Date(year, month - 1, 1);
+    const end = new Date(year, month, 1);
+
+    return db
+      .select()
+      .from(hrAttendance)
+      .where(
+        and(
+          gte(hrAttendance.recordedAt, start),
+          lt(hrAttendance.recordedAt, end),
+          sql`${hrAttendance.correctedBy} IS NULL`,
+        ),
+      )
+      .orderBy(hrAttendance.staffId, desc(hrAttendance.recordedAt));
+  },
+
   async findById(id: string) {
     const [found] = await db
       .select()

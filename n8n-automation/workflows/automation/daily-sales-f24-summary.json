@@ -223,7 +223,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ ok: true, date: $('리포트 집계').first().json.yDate, mtd_revenue: $('리포트 집계').first().json.mtdRev, ytd_revenue: $('리포트 집계').first().json.ytdRev, manual_entered: $('리포트 집계').first().json.manualEntered, coupang_source: $('리포트 집계').first().json.parsed.autoSource }) }}"
+        "responseBody": "={{ JSON.stringify({ ok: true, date: $('리포트 집계').first().json.yDate, mtd_revenue: $('리포트 집계').first().json.mtdRev, ytd_revenue: $('리포트 집계').first().json.yearRev, manual_entered: $('리포트 집계').first().json.manualEntered, coupang_source: $('리포트 집계').first().json.parsed.autoSource }) }}"
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,

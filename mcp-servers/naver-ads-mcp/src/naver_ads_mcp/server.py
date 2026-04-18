@@ -232,10 +232,19 @@ async def adgroup_create(
     campaign_id: str,
     name: str,
     bid_amt: int = 70,
+    biz_channel_id: str | None = None,
+    contents_network_bid_amt: int | None = None,
+    use_cnts_network_bid_amt: bool | None = None,
 ) -> str:
-    """광고그룹을 생성합니다. MCP_WRITE_ENABLED=true 필요."""
+    """광고그룹을 생성합니다. WEB_SITE 캠페인은 biz_channel_id 필수. MCP_WRITE_ENABLED=true 필요."""
     try:
-        body = {"nccCampaignId": campaign_id, "name": name, "bidAmt": bid_amt}
+        body: dict[str, Any] = {"nccCampaignId": campaign_id, "name": name, "bidAmt": bid_amt}
+        if biz_channel_id is not None:
+            body["bizChannelId"] = biz_channel_id
+        if contents_network_bid_amt is not None:
+            body["contentsNetworkBidAmt"] = contents_network_bid_amt
+        if use_cnts_network_bid_amt is not None:
+            body["useCntsNetworkBidAmt"] = use_cnts_network_bid_amt
         return _wrap(await ag_ops.adgroup_create(_get_sa(), body))
     except NaverApiError as e:
         return _err(e)
@@ -246,13 +255,19 @@ async def adgroup_update(
     adgroup_id: str,
     name: str | None = None,
     bid_amt: int | None = None,
+    contents_network_bid_amt: int | None = None,
+    use_cnts_network_bid_amt: bool | None = None,
     user_status: str | None = None,
 ) -> str:
-    """광고그룹을 수정합니다. MCP_WRITE_ENABLED=true 필요."""
+    """광고그룹을 수정합니다. 컨텐츠 매체 입찰가(contents_network_bid_amt)도 변경 가능. MCP_WRITE_ENABLED=true 필요."""
     try:
         body: dict[str, Any] = {}
         if name is not None:
             body["name"] = name
+        if contents_network_bid_amt is not None:
+            body["contentsNetworkBidAmt"] = contents_network_bid_amt
+        if use_cnts_network_bid_amt is not None:
+            body["useCntsNetworkBidAmt"] = use_cnts_network_bid_amt
         if bid_amt is not None:
             body["bidAmt"] = bid_amt
         if user_status is not None:

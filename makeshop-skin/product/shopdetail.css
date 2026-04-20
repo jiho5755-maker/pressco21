@@ -17,6 +17,14 @@ body .container {padding-right: calc(var(--bs-gutter-x) * 0.5); padding-left: ca
 .goods-imgs--thumbs .img-thumbnail { width: 100%; height: auto; cursor: pointer; }
 .goods--price-wrap .btn-share { display: flex; justify-content: center; align-items: center; gap: 12px; padding: 20px 0 10px; }
 .goods--price-wrap .btn-share img { width: 40px; height: 40px; }
+.goods--price-wrap .prices.has-usergroup-price { display: flex; align-items: flex-end; gap: 8px; flex-wrap: wrap; }
+.goods--price-wrap .prices.has-usergroup-price .price { line-height: 1; }
+.goods--price-wrap .prices.has-usergroup-price .price strong { font-size: 1.875rem; color: var(--cw-heading-color); }
+.goods--price-wrap .prices.has-usergroup-price .original { color: var(--cw-color-60); text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--cw-color-40); }
+.goods--price-wrap .prices.has-usergroup-price .original strong { color: inherit; font-weight: 500; }
+.goods--price-wrap .prices.has-usergroup-price .discount { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; padding: 0 10px; border-radius: 999px; background: #f1f6ed; color: #4f6748; font-size: .875rem; font-weight: 700; line-height: 1; }
+.goods--price-wrap .group-price-caption { margin: 6px 0 0; font-size: .8125rem; line-height: 18px; color: #4f6748; }
+.goods--price-wrap .group-price-caption strong { font-weight: 700; color: var(--cw-heading-color); }
 .infos--group { position: relative; padding: 20px 0; border-bottom: 1px solid var(--cw-color-20); }
 .infos--group::after { content: ''; display: block; clear: both; }
 .infos--group:empty { display: none; }
@@ -214,8 +222,14 @@ background: #ffffff99 url(//skin.makeshop.co.kr/skin/rw_shop/images/icons/ico_ch
     opacity: 1;
 }
 
-.goods--btns-purchase-grid .btn-purchase:hover {
+    .goods--btns-purchase-grid .btn-purchase:hover {
     transform: translateY(-2px);
+}
+
+@media (max-width: 767.98px) {
+    .goods--price-wrap .prices.has-usergroup-price .price strong { font-size: 1.625rem; }
+    .goods--price-wrap .prices.has-usergroup-price .discount { font-size: .8125rem; padding: 0 9px; }
+    .goods--price-wrap .group-price-caption { font-size: .75rem; line-height: 17px; }
 }
 
 .goods--btns-purchase-grid .btn-purchase:active {

@@ -372,3 +372,23 @@
 .prd-benefit a img {
     filter: hue-rotate(0deg) brightness(0.85);
 }
+
+/* 2026-04-18: 회원그룹 할인가 할인율 표시 */
+#contents .MK_product_list .item-list .prd-info .prd-price .pc21-ug-discount {
+    display: inline-block;
+    margin-left: 8px;
+    color: #f04b23;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    vertical-align: baseline;
+}
+
+#contents .MK_product_list .item-list .prd-info .prd-price .pc21-ug-discount:empty {
+    display: none;
+}
+
+#contents.pc21-compact-view .MK_product_list .item-list .prd-info .prd-price .pc21-ug-discount {
+    margin-left: 4px;
+    font-size: 14px;
+}

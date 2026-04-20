@@ -118,3 +118,20 @@
     .products-wrapper .prds-list.gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cw-size-40) var(--cw-size-8); margin-top: var(--cw-size-40); }
     .products-wrapper .prds-btn a { width: 100%; }
 }
+
+/* 2026-04-18: 회원그룹/정가 대비 할인율 표시 보강 */
+#contents .prds--price-wrap .prices .pc21-ug-discount,
+.full-wrapper .prds--price-wrap .prices .pc21-ug-discount {
+    display: inline-block;
+    margin-left: 8px;
+    color: #f04b23;
+    font-size: 18px;
+    font-weight: 800;
+    letter-spacing: -0.02em;
+    vertical-align: baseline;
+}
+
+#contents .prds--price-wrap .prices .pc21-ug-discount:empty,
+.full-wrapper .prds--price-wrap .prices .pc21-ug-discount:empty {
+    display: none;
+}

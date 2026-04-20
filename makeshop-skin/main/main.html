@@ -236,23 +236,23 @@
                                                     <!-- 가 아니라 품절일 경우 -->
                                                     <span style="color:red;">Sold Out</span>
                                                     <!--/else/-->
-                                                    <!--/if_new_product@usergroup_price/-->
+                                                                                                        <!--/if_new_product@price_discount/-->
+                                                    <!-- 기간/회원 할인가 존재 -->
+                                                    <div class="price">
+                                                        <div class="item-box left">
+                                                            <span class="normal"><!--/number/new_product@price_discount/-->원</span>
+                                                            <span class="consumer"><!--/number/new_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/new_product@price_discount/-->" data-base="<!--/number/new_product@price_sell/-->"></span>
+                                                        </div>
+                                                    </div>
+                                                    <!--/else_if_new_product@usergroup_price/-->
                                                     <!-- 그룹할인가 존재 -->
                                                     <div class="price">
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/new_product@usergroup_price/-->원</span>
-                                                            <span class="consumer"><!--/if_new_product@price_consumer(+1)/--><!--/number/new_product@price_consumer/-->원<!--/else/--><!--/number/new_product@price_sell/-->원<!--/end_if/--></span>
+                                                            <span class="consumer"><!--/number/new_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/new_product@usergroup_price/-->" data-base="<!--/number/new_product@price_sell/-->"></span>
                                                         </div>
-                                                
-                                                    </div>
-                                                    <!--/else_if_new_product@discount_price_difference/-->
-                                                    <!-- 가 아니라 기간할인가 존재 -->
-                                                    <div class="price">
-                                                        <div class="item-box left">
-                                                            <span class="normal"><!--/number/new_product@price_discount/-->원</span>
-                                                            <span class="consumer"><!--/if_new_product@price_consumer(+1)/--><!--/number/new_product@price_consumer/-->원<!--/else/--><!--/number/new_product@price_sell/-->원<!--/end_if/--></span>
-                                                        </div>
-                                                
                                                     </div>
                                                     <!--/else_if_new_product@price_consumer(+1)/-->
                                                     <!-- 가 아니라 소비자가 존재 -->
@@ -260,13 +260,13 @@
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/new_product@price_sell/-->원</span>
                                                             <span class="consumer"><!--/number/new_product@price_consumer/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/new_product@price_sell/-->" data-base="<!--/number/new_product@price_consumer/-->"></span>
                                                         </div>
-                                                
                                                     </div>
                                                     <!--/else/-->
                                                     <!-- 그것도 아니면 그냥 가격 노출 -->
                                                     <div class="price">
-                                                        <div class="itme-box left">
+                                                        <div class="item-box left">
                                                             <span class="normal"><!--/number/new_product@price_sell/-->원</span>
                                                         </div>
                                                     </div>
@@ -330,23 +330,23 @@
                                                     <!-- 가 아니라 품절일 경우 -->
                                                     <span style="color:red;">Sold Out</span>
                                                     <!--/else/-->
-                                                    <!--/if_special_product@usergroup_price/-->
+                                                                                                        <!--/if_special_product@price_discount/-->
+                                                    <!-- 기간/회원 할인가 존재 -->
+                                                    <div class="price">
+                                                        <div class="item-box left">
+                                                            <span class="normal"><!--/number/special_product@price_discount/-->원</span>
+                                                            <span class="consumer"><!--/number/special_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/special_product@price_discount/-->" data-base="<!--/number/special_product@price_sell/-->"></span>
+                                                        </div>
+                                                    </div>
+                                                    <!--/else_if_special_product@usergroup_price/-->
                                                     <!-- 그룹할인가 존재 -->
                                                     <div class="price">
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/special_product@usergroup_price/-->원</span>
-                                                            <span class="consumer"><!--/if_special_product@price_consumer(+1)/--><!--/number/special_product@price_consumer/-->원<!--/else/--><!--/number/special_product@price_sell/-->원<!--/end_if/--></span>
+                                                            <span class="consumer"><!--/number/special_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/special_product@usergroup_price/-->" data-base="<!--/number/special_product@price_sell/-->"></span>
                                                         </div>
-                                                
-                                                    </div>
-                                                    <!--/else_if_special_product@discount_price_difference/-->
-                                                    <!-- 가 아니라 기간할인가 존재 -->
-                                                    <div class="price">
-                                                        <div class="item-box left">
-                                                            <span class="normal"><!--/number/special_product@price_discount/-->원</span>
-                                                            <span class="consumer"><!--/if_special_product@price_consumer(+1)/--><!--/number/special_product@price_consumer/-->원<!--/else/--><!--/number/special_product@price_sell/-->원<!--/end_if/--></span>
-                                                        </div>
-                                                
                                                     </div>
                                                     <!--/else_if_special_product@price_consumer(+1)/-->
                                                     <!-- 가 아니라 소비자가 존재 -->
@@ -354,13 +354,13 @@
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/special_product@price_sell/-->원</span>
                                                             <span class="consumer"><!--/number/special_product@price_consumer/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/special_product@price_sell/-->" data-base="<!--/number/special_product@price_consumer/-->"></span>
                                                         </div>
-                                                
                                                     </div>
                                                     <!--/else/-->
                                                     <!-- 그것도 아니면 그냥 가격 노출 -->
                                                     <div class="price">
-                                                        <div class="itme-box left">
+                                                        <div class="item-box left">
                                                             <span class="normal"><!--/number/special_product@price_sell/-->원</span>
                                                         </div>
                                                     </div>
@@ -421,23 +421,23 @@
                                                     <!-- 가 아니라 품절일 경우 -->
                                                     <span style="color:red;">Sold Out</span>
                                                     <!--/else/-->
-                                                    <!--/if_recmd_product@usergroup_price/-->
+                                                                                                        <!--/if_recmd_product@price_discount/-->
+                                                    <!-- 기간/회원 할인가 존재 -->
+                                                    <div class="price">
+                                                        <div class="item-box left">
+                                                            <span class="normal"><!--/number/recmd_product@price_discount/-->원</span>
+                                                            <span class="consumer"><!--/number/recmd_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/recmd_product@price_discount/-->" data-base="<!--/number/recmd_product@price_sell/-->"></span>
+                                                        </div>
+                                                    </div>
+                                                    <!--/else_if_recmd_product@usergroup_price/-->
                                                     <!-- 그룹할인가 존재 -->
                                                     <div class="price">
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/recmd_product@usergroup_price/-->원</span>
-                                                            <span class="consumer"><!--/if_recmd_product@price_consumer(+1)/--><!--/number/recmd_product@price_consumer/-->원<!--/else/--><!--/number/recmd_product@price_sell/-->원<!--/end_if/--></span>
+                                                            <span class="consumer"><!--/number/recmd_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/recmd_product@usergroup_price/-->" data-base="<!--/number/recmd_product@price_sell/-->"></span>
                                                         </div>
-                                                
-                                                    </div>
-                                                    <!--/else_if_recmd_product@discount_price_difference/-->
-                                                    <!-- 가 아니라 기간할인가 존재 -->
-                                                    <div class="price">
-                                                        <div class="item-box left">
-                                                            <span class="normal"><!--/number/recmd_product@price_discount/-->원</span>
-                                                            <span class="consumer"><!--/if_recmd_product@price_consumer(+1)/--><!--/number/recmd_product@price_consumer/-->원<!--/else/--><!--/number/recmd_product@price_sell/-->원<!--/end_if/--></span>
-                                                        </div>
-                                                
                                                     </div>
                                                     <!--/else_if_recmd_product@price_consumer(+1)/-->
                                                     <!-- 가 아니라 소비자가 존재 -->
@@ -445,13 +445,13 @@
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/recmd_product@price_sell/-->원</span>
                                                             <span class="consumer"><!--/number/recmd_product@price_consumer/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/recmd_product@price_sell/-->" data-base="<!--/number/recmd_product@price_consumer/-->"></span>
                                                         </div>
-                                                
                                                     </div>
                                                     <!--/else/-->
                                                     <!-- 그것도 아니면 그냥 가격 노출 -->
                                                     <div class="price">
-                                                        <div class="itme-box left">
+                                                        <div class="item-box left">
                                                             <span class="normal"><!--/number/recmd_product@price_sell/-->원</span>
                                                         </div>
                                                     </div>
@@ -512,23 +512,23 @@
                                                     <!-- 가 아니라 품절일 경우 -->
                                                     <span style="color:red;">Sold Out</span>
                                                     <!--/else/-->
-                                                    <!--/if_add1_product@usergroup_price/-->
+                                                                                                        <!--/if_add1_product@price_discount/-->
+                                                    <!-- 기간/회원 할인가 존재 -->
+                                                    <div class="price">
+                                                        <div class="item-box left">
+                                                            <span class="normal"><!--/number/add1_product@price_discount/-->원</span>
+                                                            <span class="consumer"><!--/number/add1_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add1_product@price_discount/-->" data-base="<!--/number/add1_product@price_sell/-->"></span>
+                                                        </div>
+                                                    </div>
+                                                    <!--/else_if_add1_product@usergroup_price/-->
                                                     <!-- 그룹할인가 존재 -->
                                                     <div class="price">
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add1_product@usergroup_price/-->원</span>
-                                                            <span class="consumer"><!--/if_add1_product@price_consumer(+1)/--><!--/number/add1_product@price_consumer/-->원<!--/else/--><!--/number/add1_product@price_sell/-->원<!--/end_if/--></span>
+                                                            <span class="consumer"><!--/number/add1_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add1_product@usergroup_price/-->" data-base="<!--/number/add1_product@price_sell/-->"></span>
                                                         </div>
-                                                
-                                                    </div>
-                                                    <!--/else_if_add1_product@discount_price_difference/-->
-                                                    <!-- 가 아니라 기간할인가 존재 -->
-                                                    <div class="price">
-                                                        <div class="item-box left">
-                                                            <span class="normal"><!--/number/add1_product@price_discount/-->원</span>
-                                                            <span class="consumer"><!--/if_add1_product@price_consumer(+1)/--><!--/number/add1_product@price_consumer/-->원<!--/else/--><!--/number/add1_product@price_sell/-->원<!--/end_if/--></span>
-                                                        </div>
-                                                
                                                     </div>
                                                     <!--/else_if_add1_product@price_consumer(+1)/-->
                                                     <!-- 가 아니라 소비자가 존재 -->
@@ -536,13 +536,13 @@
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add1_product@price_sell/-->원</span>
                                                             <span class="consumer"><!--/number/add1_product@price_consumer/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add1_product@price_sell/-->" data-base="<!--/number/add1_product@price_consumer/-->"></span>
                                                         </div>
-                                                
                                                     </div>
                                                     <!--/else/-->
                                                     <!-- 그것도 아니면 그냥 가격 노출 -->
                                                     <div class="price">
-                                                        <div class="itme-box left">
+                                                        <div class="item-box left">
                                                             <span class="normal"><!--/number/add1_product@price_sell/-->원</span>
                                                         </div>
                                                     </div>
@@ -603,23 +603,23 @@
                                                     <!-- 가 아니라 품절일 경우 -->
                                                     <span style="color:red;">Sold Out</span>
                                                     <!--/else/-->
-                                                    <!--/if_add2_product@usergroup_price/-->
+                                                                                                        <!--/if_add2_product@price_discount/-->
+                                                    <!-- 기간/회원 할인가 존재 -->
+                                                    <div class="price">
+                                                        <div class="item-box left">
+                                                            <span class="normal"><!--/number/add2_product@price_discount/-->원</span>
+                                                            <span class="consumer"><!--/number/add2_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add2_product@price_discount/-->" data-base="<!--/number/add2_product@price_sell/-->"></span>
+                                                        </div>
+                                                    </div>
+                                                    <!--/else_if_add2_product@usergroup_price/-->
                                                     <!-- 그룹할인가 존재 -->
                                                     <div class="price">
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add2_product@usergroup_price/-->원</span>
-                                                            <span class="consumer"><!--/if_add2_product@price_consumer(+1)/--><!--/number/add2_product@price_consumer/-->원<!--/else/--><!--/number/add2_product@price_sell/-->원<!--/end_if/--></span>
+                                                            <span class="consumer"><!--/number/add2_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add2_product@usergroup_price/-->" data-base="<!--/number/add2_product@price_sell/-->"></span>
                                                         </div>
-                                                
-                                                    </div>
-                                                    <!--/else_if_add2_product@discount_price_difference/-->
-                                                    <!-- 가 아니라 기간할인가 존재 -->
-                                                    <div class="price">
-                                                        <div class="item-box left">
-                                                            <span class="normal"><!--/number/add2_product@price_discount/-->원</span>
-                                                            <span class="consumer"><!--/if_add2_product@price_consumer(+1)/--><!--/number/add2_product@price_consumer/-->원<!--/else/--><!--/number/add2_product@price_sell/-->원<!--/end_if/--></span>
-                                                        </div>
-                                                
                                                     </div>
                                                     <!--/else_if_add2_product@price_consumer(+1)/-->
                                                     <!-- 가 아니라 소비자가 존재 -->
@@ -627,13 +627,13 @@
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add2_product@price_sell/-->원</span>
                                                             <span class="consumer"><!--/number/add2_product@price_consumer/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add2_product@price_sell/-->" data-base="<!--/number/add2_product@price_consumer/-->"></span>
                                                         </div>
-                                                
                                                     </div>
                                                     <!--/else/-->
                                                     <!-- 그것도 아니면 그냥 가격 노출 -->
                                                     <div class="price">
-                                                        <div class="itme-box left">
+                                                        <div class="item-box left">
                                                             <span class="normal"><!--/number/add2_product@price_sell/-->원</span>
                                                         </div>
                                                     </div>
@@ -694,23 +694,23 @@
                                                     <!-- 가 아니라 품절일 경우 -->
                                                     <span style="color:red;">Sold Out</span>
                                                     <!--/else/-->
-                                                    <!--/if_add3_product@usergroup_price/-->
+                                                                                                        <!--/if_add3_product@price_discount/-->
+                                                    <!-- 기간/회원 할인가 존재 -->
+                                                    <div class="price">
+                                                        <div class="item-box left">
+                                                            <span class="normal"><!--/number/add3_product@price_discount/-->원</span>
+                                                            <span class="consumer"><!--/number/add3_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add3_product@price_discount/-->" data-base="<!--/number/add3_product@price_sell/-->"></span>
+                                                        </div>
+                                                    </div>
+                                                    <!--/else_if_add3_product@usergroup_price/-->
                                                     <!-- 그룹할인가 존재 -->
                                                     <div class="price">
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add3_product@usergroup_price/-->원</span>
-                                                            <span class="consumer"><!--/if_add3_product@price_consumer(+1)/--><!--/number/add3_product@price_consumer/-->원<!--/else/--><!--/number/add3_product@price_sell/-->원<!--/end_if/--></span>
+                                                            <span class="consumer"><!--/number/add3_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add3_product@usergroup_price/-->" data-base="<!--/number/add3_product@price_sell/-->"></span>
                                                         </div>
-                                                
-                                                    </div>
-                                                    <!--/else_if_add3_product@discount_price_difference/-->
-                                                    <!-- 가 아니라 기간할인가 존재 -->
-                                                    <div class="price">
-                                                        <div class="item-box left">
-                                                            <span class="normal"><!--/number/add3_product@price_discount/-->원</span>
-                                                            <span class="consumer"><!--/if_add3_product@price_consumer(+1)/--><!--/number/add3_product@price_consumer/-->원<!--/else/--><!--/number/add3_product@price_sell/-->원<!--/end_if/--></span>
-                                                        </div>
-                                                
                                                     </div>
                                                     <!--/else_if_add3_product@price_consumer(+1)/-->
                                                     <!-- 가 아니라 소비자가 존재 -->
@@ -718,13 +718,13 @@
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add3_product@price_sell/-->원</span>
                                                             <span class="consumer"><!--/number/add3_product@price_consumer/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add3_product@price_sell/-->" data-base="<!--/number/add3_product@price_consumer/-->"></span>
                                                         </div>
-                                                
                                                     </div>
                                                     <!--/else/-->
                                                     <!-- 그것도 아니면 그냥 가격 노출 -->
                                                     <div class="price">
-                                                        <div class="itme-box left">
+                                                        <div class="item-box left">
                                                             <span class="normal"><!--/number/add3_product@price_sell/-->원</span>
                                                         </div>
                                                     </div>
@@ -785,23 +785,23 @@
                                                     <!-- 가 아니라 품절일 경우 -->
                                                     <span style="color:red;">Sold Out</span>
                                                     <!--/else/-->
-                                                    <!--/if_add4_product@usergroup_price/-->
+                                                                                                        <!--/if_add4_product@price_discount/-->
+                                                    <!-- 기간/회원 할인가 존재 -->
+                                                    <div class="price">
+                                                        <div class="item-box left">
+                                                            <span class="normal"><!--/number/add4_product@price_discount/-->원</span>
+                                                            <span class="consumer"><!--/number/add4_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add4_product@price_discount/-->" data-base="<!--/number/add4_product@price_sell/-->"></span>
+                                                        </div>
+                                                    </div>
+                                                    <!--/else_if_add4_product@usergroup_price/-->
                                                     <!-- 그룹할인가 존재 -->
                                                     <div class="price">
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add4_product@usergroup_price/-->원</span>
-                                                            <span class="consumer"><!--/if_add4_product@price_consumer(+1)/--><!--/number/add4_product@price_consumer/-->원<!--/else/--><!--/number/add4_product@price_sell/-->원<!--/end_if/--></span>
+                                                            <span class="consumer"><!--/number/add4_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add4_product@usergroup_price/-->" data-base="<!--/number/add4_product@price_sell/-->"></span>
                                                         </div>
-                                                
-                                                    </div>
-                                                    <!--/else_if_add4_product@discount_price_difference/-->
-                                                    <!-- 가 아니라 기간할인가 존재 -->
-                                                    <div class="price">
-                                                        <div class="item-box left">
-                                                            <span class="normal"><!--/number/add4_product@price_discount/-->원</span>
-                                                            <span class="consumer"><!--/if_add4_product@price_consumer(+1)/--><!--/number/add4_product@price_consumer/-->원<!--/else/--><!--/number/add4_product@price_sell/-->원<!--/end_if/--></span>
-                                                        </div>
-                                                
                                                     </div>
                                                     <!--/else_if_add4_product@price_consumer(+1)/-->
                                                     <!-- 가 아니라 소비자가 존재 -->
@@ -809,13 +809,13 @@
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add4_product@price_sell/-->원</span>
                                                             <span class="consumer"><!--/number/add4_product@price_consumer/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add4_product@price_sell/-->" data-base="<!--/number/add4_product@price_consumer/-->"></span>
                                                         </div>
-                                                
                                                     </div>
                                                     <!--/else/-->
                                                     <!-- 그것도 아니면 그냥 가격 노출 -->
                                                     <div class="price">
-                                                        <div class="itme-box left">
+                                                        <div class="item-box left">
                                                             <span class="normal"><!--/number/add4_product@price_sell/-->원</span>
                                                         </div>
                                                     </div>
@@ -876,23 +876,23 @@
                                                     <!-- 가 아니라 품절일 경우 -->
                                                     <span style="color:red;">Sold Out</span>
                                                     <!--/else/-->
-                                                    <!--/if_add5_product@usergroup_price/-->
+                                                                                                        <!--/if_add5_product@price_discount/-->
+                                                    <!-- 기간/회원 할인가 존재 -->
+                                                    <div class="price">
+                                                        <div class="item-box left">
+                                                            <span class="normal"><!--/number/add5_product@price_discount/-->원</span>
+                                                            <span class="consumer"><!--/number/add5_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add5_product@price_discount/-->" data-base="<!--/number/add5_product@price_sell/-->"></span>
+                                                        </div>
+                                                    </div>
+                                                    <!--/else_if_add5_product@usergroup_price/-->
                                                     <!-- 그룹할인가 존재 -->
                                                     <div class="price">
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add5_product@usergroup_price/-->원</span>
-                                                            <span class="consumer"><!--/if_add5_product@price_consumer(+1)/--><!--/number/add5_product@price_consumer/-->원<!--/else/--><!--/number/add5_product@price_sell/-->원<!--/end_if/--></span>
+                                                            <span class="consumer"><!--/number/add5_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add5_product@usergroup_price/-->" data-base="<!--/number/add5_product@price_sell/-->"></span>
                                                         </div>
-                                                
-                                                    </div>
-                                                    <!--/else_if_add5_product@discount_price_difference/-->
-                                                    <!-- 가 아니라 기간할인가 존재 -->
-                                                    <div class="price">
-                                                        <div class="item-box left">
-                                                            <span class="normal"><!--/number/add5_product@price_discount/-->원</span>
-                                                            <span class="consumer"><!--/if_add5_product@price_consumer(+1)/--><!--/number/add5_product@price_consumer/-->원<!--/else/--><!--/number/add5_product@price_sell/-->원<!--/end_if/--></span>
-                                                        </div>
-                                                
                                                     </div>
                                                     <!--/else_if_add5_product@price_consumer(+1)/-->
                                                     <!-- 가 아니라 소비자가 존재 -->
@@ -900,13 +900,13 @@
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add5_product@price_sell/-->원</span>
                                                             <span class="consumer"><!--/number/add5_product@price_consumer/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add5_product@price_sell/-->" data-base="<!--/number/add5_product@price_consumer/-->"></span>
                                                         </div>
-                                                
                                                     </div>
                                                     <!--/else/-->
                                                     <!-- 그것도 아니면 그냥 가격 노출 -->
                                                     <div class="price">
-                                                        <div class="itme-box left">
+                                                        <div class="item-box left">
                                                             <span class="normal"><!--/number/add5_product@price_sell/-->원</span>
                                                         </div>
                                                     </div>
@@ -967,23 +967,23 @@
                                                     <!-- 가 아니라 품절일 경우 -->
                                                     <span style="color:red;">Sold Out</span>
                                                     <!--/else/-->
-                                                    <!--/if_add6_product@usergroup_price/-->
+                                                                                                        <!--/if_add6_product@price_discount/-->
+                                                    <!-- 기간/회원 할인가 존재 -->
+                                                    <div class="price">
+                                                        <div class="item-box left">
+                                                            <span class="normal"><!--/number/add6_product@price_discount/-->원</span>
+                                                            <span class="consumer"><!--/number/add6_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add6_product@price_discount/-->" data-base="<!--/number/add6_product@price_sell/-->"></span>
+                                                        </div>
+                                                    </div>
+                                                    <!--/else_if_add6_product@usergroup_price/-->
                                                     <!-- 그룹할인가 존재 -->
                                                     <div class="price">
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add6_product@usergroup_price/-->원</span>
-                                                            <span class="consumer"><!--/if_add6_product@price_consumer(+1)/--><!--/number/add6_product@price_consumer/-->원<!--/else/--><!--/number/add6_product@price_sell/-->원<!--/end_if/--></span>
+                                                            <span class="consumer"><!--/number/add6_product@price_sell/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add6_product@usergroup_price/-->" data-base="<!--/number/add6_product@price_sell/-->"></span>
                                                         </div>
-                                                
-                                                    </div>
-                                                    <!--/else_if_add6_product@discount_price_difference/-->
-                                                    <!-- 가 아니라 기간할인가 존재 -->
-                                                    <div class="price">
-                                                        <div class="item-box left">
-                                                            <span class="normal"><!--/number/add6_product@price_discount/-->원</span>
-                                                            <span class="consumer"><!--/if_add6_product@price_consumer(+1)/--><!--/number/add6_product@price_consumer/-->원<!--/else/--><!--/number/add6_product@price_sell/-->원<!--/end_if/--></span>
-                                                        </div>
-                                                
                                                     </div>
                                                     <!--/else_if_add6_product@price_consumer(+1)/-->
                                                     <!-- 가 아니라 소비자가 존재 -->
@@ -991,13 +991,13 @@
                                                         <div class="item-box left">
                                                             <span class="normal"><!--/number/add6_product@price_sell/-->원</span>
                                                             <span class="consumer"><!--/number/add6_product@price_consumer/-->원</span>
+                                                            <span class="pc21-ug-discount" data-sale="<!--/number/add6_product@price_sell/-->" data-base="<!--/number/add6_product@price_consumer/-->"></span>
                                                         </div>
-                                                
                                                     </div>
                                                     <!--/else/-->
                                                     <!-- 그것도 아니면 그냥 가격 노출 -->
                                                     <div class="price">
-                                                        <div class="itme-box left">
+                                                        <div class="item-box left">
                                                             <span class="normal"><!--/number/add6_product@price_sell/-->원</span>
                                                         </div>
                                                     </div>
@@ -1070,39 +1070,39 @@
 <!-- 가 아니라 품절일 경우 -->
 <span style="color:red;">Sold Out</span>
 <!--/else/-->
-<!--/if_best_product@usergroup_price/-->
+<!--/if_best_product@price_discount/-->
+<!-- 기간/회원 할인가 존재 -->
+<div class="price">
+    <div class="item-box left">
+        <span class="normal"><!--/number/best_product@price_discount/-->원</span>
+        <span class="consumer"><!--/number/best_product@price_sell/-->원</span>
+        <span class="pc21-ug-discount" data-sale="<!--/number/best_product@price_discount/-->" data-base="<!--/number/best_product@price_sell/-->"></span>
+    </div>
+</div>
+<!--/else_if_best_product@usergroup_price/-->
 <!-- 그룹할인가 존재 -->
 <div class="price">
-<div class="item-box left">
-<span class="normal"><!--/number/best_product@usergroup_price/-->원</span>
-<span class="consumer"><!--/if_best_product@price_consumer(+1)/--><!--/number/best_product@price_consumer/-->원<!--/else/--><!--/number/best_product@price_sell/-->원<!--/end_if/--></span>
-</div>
-
-</div>
-<!--/else_if_best_product@discount_price_difference/-->
-<!-- 가 아니라 기간할인가 존재 -->
-<div class="price">
-<div class="item-box left">
-<span class="normal"><!--/number/best_product@price_discount/-->원</span>
-<span class="consumer"><!--/if_best_product@price_consumer(+1)/--><!--/number/best_product@price_consumer/-->원<!--/else/--><!--/number/best_product@price_sell/-->원<!--/end_if/--></span>
-</div>
-
+    <div class="item-box left">
+        <span class="normal"><!--/number/best_product@usergroup_price/-->원</span>
+        <span class="consumer"><!--/number/best_product@price_sell/-->원</span>
+        <span class="pc21-ug-discount" data-sale="<!--/number/best_product@usergroup_price/-->" data-base="<!--/number/best_product@price_sell/-->"></span>
+    </div>
 </div>
 <!--/else_if_best_product@price_consumer(+1)/-->
 <!-- 가 아니라 소비자가 존재 -->
 <div class="price">
-<div class="item-box left">
-<span class="normal"><!--/number/best_product@price_sell/-->원</span>
-<span class="consumer"><!--/number/best_product@price_consumer/-->원</span>
-</div>
-
+    <div class="item-box left">
+        <span class="normal"><!--/number/best_product@price_sell/-->원</span>
+        <span class="consumer"><!--/number/best_product@price_consumer/-->원</span>
+        <span class="pc21-ug-discount" data-sale="<!--/number/best_product@price_sell/-->" data-base="<!--/number/best_product@price_consumer/-->"></span>
+    </div>
 </div>
 <!--/else/-->
 <!-- 그것도 아니면 그냥 가격 노출 -->
 <div class="price">
-<div class="itme-box left">
-<span class="normal"><!--/number/best_product@price_sell/-->원</span>
-</div>
+    <div class="item-box left">
+        <span class="normal"><!--/number/best_product@price_sell/-->원</span>
+    </div>
 </div>
 <!--/end_if/-->
 <!--/end_if/-->

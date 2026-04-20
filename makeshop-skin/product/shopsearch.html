@@ -90,6 +90,12 @@
                                 <span class="discount"><!--/product_list@discount_percent/-->%</span>
                                 <!--/end_if/-->
                             </div>
+                            <!--/else_if_product_list@usergroup_price/-->
+                            <div class="prices">
+                                <span class="price"><strong><!--/number/product_list@usergroup_price/--></strong>원</span>
+                                <span class="original"><span><!--/number/product_list@price_sell/--></span>원</span>
+                                <span class="pc21-ug-discount" data-sale="<!--/number/product_list@usergroup_price/-->" data-base="<!--/number/product_list@price_sell/-->"></span>
+                            </div>
                             <!--/else/-->
                             <div class="prices">
                                 <span class="price"><strong><!--/number/product_list@price_sell/--></strong>원</span>
@@ -202,6 +208,12 @@
                             <!--/if_product_list@discount_percent(+1)/-->
                             <span class="discount"><!--/product_list@discount_percent/-->%</span>
                             <!--/end_if/-->
+                        </div>
+                        <!--/else_if_product_list@usergroup_price/-->
+                        <div class="prices">
+                            <span class="price"><strong><!--/number/product_list@usergroup_price/--></strong>원</span>
+                            <span class="original"><span><!--/number/product_list@price_sell/--></span>원</span>
+                            <span class="pc21-ug-discount" data-sale="<!--/number/product_list@usergroup_price/-->" data-base="<!--/number/product_list@price_sell/-->"></span>
                         </div>
                         <!--/else/-->
                         <div class="prices">

@@ -15,6 +15,108 @@
     // 상단 타이틀 변경
     changeNaviTitleText('상품상세');
 
+    function parsePriceText(text) {
+        var value = String(text || '').replace(/[^\d]/g, '');
+        return value ? parseInt(value, 10) : 0;
+    }
+
+    function formatPriceNumber(value) {
+        return Number(value || 0).toLocaleString('ko-KR');
+    }
+
+    function formatDiscountRate(basePrice, salePrice) {
+        if (!basePrice || !salePrice || salePrice >= basePrice) {
+            return '';
+        }
+        var rate = ((basePrice - salePrice) / basePrice) * 100;
+        var rounded = Math.round(rate * 10) / 10;
+        if (Math.abs(rounded - Math.round(rounded)) < 0.05) {
+            return String(Math.round(rounded)) + '%';
+        }
+        return rounded.toFixed(1) + '%';
+    }
+
+    function ensurePriceNode(priceBox, className) {
+        var node = priceBox.querySelector('.' + className);
+        if (node) {
+            return node;
+        }
+        node = document.createElement('span');
+        node.className = className;
+        if (className === 'price' || className === 'original') {
+            var strong = document.createElement('strong');
+            node.appendChild(strong);
+            node.appendChild(document.createTextNode('원'));
+        }
+        priceBox.appendChild(node);
+        return node;
+    }
+
+    function applyGroupPriceDisplay() {
+        var priceWrap = document.querySelector('.goods--price-wrap');
+        var priceBox = priceWrap ? priceWrap.querySelector('.prices') : null;
+        var groupPriceEl = document.getElementById('pc21GroupPriceRaw');
+        var basePriceEl = document.getElementById('pc21BasePriceRaw');
+        var groupNameEl = document.getElementById('pc21GroupNameRaw');
+        var groupPrice = parsePriceText(groupPriceEl ? groupPriceEl.textContent : '');
+        var basePrice = parsePriceText(basePriceEl ? basePriceEl.textContent : '');
+        var groupName = String(groupNameEl ? groupNameEl.textContent : '').trim() || '강사회원';
+
+        if (!priceWrap || !priceBox || !groupPrice || !basePrice || groupPrice >= basePrice) {
+            return;
+        }
+
+        var discountLabel = formatDiscountRate(basePrice, groupPrice);
+        var priceNode = ensurePriceNode(priceBox, 'price');
+        var originalNode = ensurePriceNode(priceBox, 'original');
+        var discountNode = ensurePriceNode(priceBox, 'discount');
+        var captionNode = priceWrap.querySelector('.group-price-caption');
+        var captionTextNode;
+        var captionStrongNode;
+
+        priceBox.classList.add('has-usergroup-price');
+
+        if (priceNode.querySelector('strong')) {
+            priceNode.querySelector('strong').textContent = formatPriceNumber(groupPrice);
+        }
+        if (originalNode.querySelector('strong')) {
+            originalNode.querySelector('strong').textContent = formatPriceNumber(basePrice);
+        }
+        discountNode.textContent = discountLabel;
+
+        if (!captionNode) {
+            captionNode = document.createElement('p');
+            captionNode.className = 'group-price-caption';
+            captionStrongNode = document.createElement('strong');
+            captionTextNode = document.createTextNode('');
+            captionNode.appendChild(captionStrongNode);
+            captionNode.appendChild(captionTextNode);
+            priceBox.insertAdjacentElement('afterend', captionNode);
+        } else {
+            captionStrongNode = captionNode.querySelector('strong');
+            if (!captionStrongNode) {
+                captionStrongNode = document.createElement('strong');
+                captionNode.insertBefore(captionStrongNode, captionNode.firstChild);
+            }
+            captionTextNode = null;
+            for (var i = 0; i < captionNode.childNodes.length; i += 1) {
+                if (captionNode.childNodes[i].nodeType === Node.TEXT_NODE) {
+                    captionTextNode = captionNode.childNodes[i];
+                    break;
+                }
+            }
+            if (!captionTextNode) {
+                captionTextNode = document.createTextNode('');
+                captionNode.appendChild(captionTextNode);
+            }
+        }
+
+        captionStrongNode.textContent = groupName;
+        captionTextNode.textContent = ' 로그인 전용가가 적용되었습니다.';
+    }
+
+    applyGroupPriceDisplay();
+
     // 제품정보 마지막 라인 지우기 (null 체크 추가)
     var groups = document.querySelectorAll('.infos--group');
     if (groups.length > 0) {

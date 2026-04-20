@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { hrAttendanceRepository } from "@/src/db/repositories/hrAttendanceRepository";
 import { hrEmployeeRegistryRepository } from "@/src/db/repositories/hrEmployeeRegistryRepository";
 import { resolveHrActor, isHrAutomationAuthorized } from "@/src/lib/hr-auth";
+import { toKSTTimeStr, toKSTDateKey } from "@/src/lib/hr-time";
 
 type StaffStatus = {
   staffId: string;
@@ -13,7 +14,7 @@ type StaffStatus = {
 };
 
 function formatTime(date: Date): string {
-  return date.toTimeString().slice(0, 5);
+  return toKSTTimeStr(date);
 }
 
 /**
@@ -126,7 +127,7 @@ export async function GET(request: NextRequest) {
       };
     });
 
-    const today = new Date().toISOString().slice(0, 10);
+    const today = toKSTDateKey(new Date());
 
     return Response.json({
       ok: true,

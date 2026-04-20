@@ -3,6 +3,7 @@ import { and, desc, eq, gte, lt, sql } from "drizzle-orm";
 import { db } from "@/src/db/client";
 import { hrAttendance } from "@/src/db/schema";
 import { hrAuditLogRepository } from "./hrAuditLogRepository";
+import { todayKSTBounds, monthKSTBounds } from "@/src/lib/hr-time";
 
 type CreateAttendanceInput = {
   staffId: string;
@@ -106,10 +107,7 @@ export const hrAttendanceRepository = {
    * 오늘의 출퇴근 상태 조회
    */
   async getTodayByStaffId(staffId: string) {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    const { start: todayStart, end: tomorrowStart } = todayKSTBounds();
 
     return db
       .select()
@@ -128,9 +126,7 @@ export const hrAttendanceRepository = {
    * 월별 출퇴근 목록 (정정된 원본 제외)
    */
   async listByMonth(staffId: string, yearMonth: string) {
-    const [year, month] = yearMonth.split("-").map(Number);
-    const start = new Date(year, month - 1, 1);
-    const end = new Date(year, month, 1);
+    const { start, end } = monthKSTBounds(yearMonth);
 
     return db
       .select()
@@ -150,10 +146,7 @@ export const hrAttendanceRepository = {
    * 전직원 오늘 현황 (관리자용)
    */
   async getTodayAll() {
-    const todayStart = new Date();
-    todayStart.setHours(0, 0, 0, 0);
-    const tomorrowStart = new Date(todayStart);
-    tomorrowStart.setDate(tomorrowStart.getDate() + 1);
+    const { start: todayStart, end: tomorrowStart } = todayKSTBounds();
 
     return db
       .select()
@@ -171,9 +164,7 @@ export const hrAttendanceRepository = {
    * 전직원 월별 출퇴근 목록 (관리자용, 정정된 원본 제외)
    */
   async listByMonthAll(yearMonth: string) {
-    const [year, month] = yearMonth.split("-").map(Number);
-    const start = new Date(year, month - 1, 1);
-    const end = new Date(year, month, 1);
+    const { start, end } = monthKSTBounds(yearMonth);
 
     return db
       .select()

@@ -2,6 +2,7 @@ import { NextRequest } from "next/server";
 import { hrAttendanceRepository } from "@/src/db/repositories/hrAttendanceRepository";
 import { hrEmployeeRegistryRepository } from "@/src/db/repositories/hrEmployeeRegistryRepository";
 import { resolveHrActor, isHrAutomationAuthorized } from "@/src/lib/hr-auth";
+import { toKSTDateKey, toKSTTimeStr } from "@/src/lib/hr-time";
 
 type AttendanceRecord = {
   id: string;
@@ -31,7 +32,7 @@ type FlatRow = {
 };
 
 function formatTime(date: Date): string {
-  return date.toTimeString().slice(0, 5);
+  return toKSTTimeStr(date);
 }
 
 /**
@@ -46,7 +47,7 @@ function buildFlatRows(
   const isDeemedHours = workType === "deemed_hours";
 
   for (const r of records) {
-    const dateKey = r.recordedAt.toISOString().slice(0, 10);
+    const dateKey = toKSTDateKey(r.recordedAt);
     if (!dayMap.has(dateKey)) {
       dayMap.set(dateKey, { clockIn: null, clockOut: null });
     }

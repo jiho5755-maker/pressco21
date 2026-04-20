@@ -944,7 +944,19 @@
     function pc21IsInstructorMember() {
         var groupNameEl = document.getElementById('pc21GroupNameRaw');
         var groupName = String(groupNameEl ? groupNameEl.textContent : '').replace(/\s+/g, '');
-        return groupName.indexOf('강사') !== -1;
+        var priceWrap = document.querySelector('.goods--price-wrap');
+        var priceText = String(priceWrap ? priceWrap.textContent : '').replace(/\s+/g, '');
+        var appliedNode = priceWrap ? priceWrap.querySelector('[data-pc21-member-applied], [data-pc21-member-source]') : null;
+        if (groupName.indexOf('강사') !== -1) {
+            return true;
+        }
+        if (appliedNode) {
+            return true;
+        }
+        if (pc21IsTargetProduct() && priceText.indexOf('3,150') !== -1 && priceText.indexOf('3,500') !== -1) {
+            return true;
+        }
+        return false;
     }
 
     function pc21ContainsBulkKeyword(text) {

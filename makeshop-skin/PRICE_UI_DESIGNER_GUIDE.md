@@ -110,10 +110,10 @@ MakeShop 이벤트 팝업 이미지는 업로드 후 `jewoo_eventYYYY...gif` 형
 
 현재 운영 규칙:
 
-| 슬롯 | 용도 | 노출 대상 |
-|---|---|---|
-| eventwindow0 / MAKESHOPLY0 | 회원등급/가격 안내 팝업 | 강사회원 로그인 고객 |
-| eventwindow1 이상 | 일반 이벤트 팝업 | 전체 고객 |
+| 관리자 UI 순위 | 라이브 코드 | 용도 | 노출 대상 |
+|---|---|---|---|
+| 1번 순위 | eventwindow0 / MAKESHOPLY0 | 회원등급/가격 안내 팝업 | 강사회원 로그인 고객 |
+| 2번 순위 이상 | eventwindow1 이상 | 일반 이벤트 팝업 또는 추후 등급별 팝업 | 기본 전체 고객 |
 
 디자이너 작업 규칙:
 
@@ -130,6 +130,17 @@ jewoo_event202604201329030.gif
 ```
 
 주의: 팝업 이미지를 교체해도 MakeShop이 파일명을 다시 바꿀 수 있으므로, 앞으로는 파일명보다 슬롯 번호를 기준으로 확인합니다.
+
+운영 메모:
+
+```text
+MakeShop 관리자 팝업 순위는 1부터 시작하지만, 라이브 코드 eventwindow 인덱스는 0부터 시작합니다.
+관리자 1번 순위 = eventwindow0 / MAKESHOPLY0
+관리자 2번 순위 = eventwindow1 / MAKESHOPLY1
+관리자 3번 순위 = eventwindow2 / MAKESHOPLY2
+```
+
+따라서 “강사회원 전용 팝업”을 관리자 1번 순위에 둔 것은 현재 라우터의 `eventwindow0` 규칙과 일치합니다.
 
 ## 팝업 문구 추천
 

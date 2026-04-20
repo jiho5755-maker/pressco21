@@ -307,12 +307,13 @@ function buildCustomerSnapshot(
   customer: Customer,
   addressKey = 'address1',
 ): Partial<Invoice> {
+  const resolvedAddressKey = resolveCustomerAddressKey(customer, addressKey)
   return {
     customer_id: customer.Id,
     customer_name: customer.name,
     customer_phone: getCustomerPrimaryPhone(customer),
-    customer_address: getCustomerAddressValue(customer, addressKey),
-    customer_address_key: addressKey,
+    customer_address: getCustomerAddressValue(customer, resolvedAddressKey),
+    customer_address_key: resolvedAddressKey,
     customer_bizno: formatBusinessNumber(customer.biz_no),
     customer_ceo_name: customer.ceo_name as string | undefined,
     customer_biz_type: customer.biz_type as string | undefined,
@@ -568,10 +569,13 @@ export function InvoiceDialog({
     setDraftMeta(null)
     if (existingInvoice) {
       const invoiceMeta = parseInvoiceAccountingMeta(existingInvoice.memo as string | undefined)
+      const existingAddressKey = invoiceMeta.customerAddressKey
+        ?? (existingInvoice.customer_address_key as string | undefined)
+        ?? 'address1'
       const normalizedExistingInvoice = {
         ...existingInvoice,
         receipt_type: normalizeReceiptType(existingInvoice.receipt_type),
-        customer_address_key: invoiceMeta.customerAddressKey ?? (existingInvoice.customer_address_key as string | undefined),
+        customer_address_key: existingAddressKey,
       }
       if (isCopy) {
         // 복사: 새 번호 + 오늘 날짜, 수금 초기화
@@ -590,7 +594,7 @@ export function InvoiceDialog({
       }
       setCustomerInput(existingInvoice.customer_name ?? '')
       setSelectedCustomer(null)
-      setSelectedAddrKey(invoiceMeta.customerAddressKey ?? 'address1')
+      setSelectedAddrKey(existingAddressKey)
       setShowCustomerDrop(false)
       setCustomerDropdownIdx(-1)
       setDepositUseAmount(isCopy ? 0 : getInvoiceDepositUsedAmount(existingInvoice.memo as string | undefined))
@@ -1060,6 +1064,8 @@ export function InvoiceDialog({
         receipt_type: normalizeReceiptType(form.receipt_type as string | undefined),
         ...(customerSnapshot ?? {}),
         customer_name: customerInput || customerSnapshot?.customer_name || form.customer_name,
+        customer_address: customerSnapshot?.customer_address ?? (form.customer_address as string | undefined),
+        customer_address_key: customerSnapshot?.customer_address_key ?? selectedAddrKey,
         supply_amount: supplyTotal,
         tax_amount: taxTotal,
         total_amount: grandTotal,

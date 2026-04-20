@@ -213,7 +213,18 @@ export async function POST(request: NextRequest) {
       }
 
       const stateError = await validateStateTransition(staffId, type);
-      if (stateError) {
+      if (stateError && manualRecordedAt && stateError.body.error === "already_clocked_in") {
+        const existing = stateError.body.existingRecord;
+        if (existing?.source === "self_correct") {
+          await hrAttendanceRepository.cancel(existing.id, {
+            actorId: staffId,
+            actorName: resolvedName,
+            reason: "자가 재정정 (시각 변경)",
+          });
+        } else {
+          return Response.json(stateError.body, { status: stateError.status });
+        }
+      } else if (stateError) {
         return Response.json(stateError.body, { status: stateError.status });
       }
 

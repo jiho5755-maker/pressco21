@@ -57,6 +57,12 @@ function formatMonthLabel(month: string): string {
   return y + "년 " + Number(m) + "월";
 }
 
+const WORK_TYPE_LABEL: Record<string, string> = {
+  standard: "일반",
+  deemed_hours: "간주근로",
+  inclusive_wage: "포괄임금",
+};
+
 function minutesToHM(min?: number | null): string {
   if (!min) return "-";
   const h = Math.floor(min / 60);
@@ -394,7 +400,7 @@ function MonthlyTab({ isAdmin }: { isAdmin: boolean }) {
                 </div>
                 <div className="space-y-0.5">
                   <p className="text-[10px] text-muted-foreground">근무형태</p>
-                  <p className="text-sm font-semibold">{currentSummary.workType}</p>
+                  <p className="text-sm font-semibold">{WORK_TYPE_LABEL[currentSummary.workType] ?? currentSummary.workType}</p>
                 </div>
               </div>
 

@@ -45,8 +45,15 @@ async def campaign_create(client: SearchAdClient, body: dict[str, Any]) -> Any:
 async def campaign_update(client: SearchAdClient, campaign_id: str, body: dict[str, Any]) -> Any:
     _require_sa()
     _require_write()
+    if "userStatus" in body:
+        body["userLock"] = body.pop("userStatus").upper() == "PAUSED"
+    _FIELD_MAP = {"dailyBudget": "budget", "useDailyBudget": "budget", "userLock": "userLock"}
+    fields = {_FIELD_MAP[k] for k in body if k in _FIELD_MAP} or {"userLock"}
+    body["nccCampaignId"] = campaign_id
     log_write_action("campaign_update", {"id": campaign_id, **body})
-    return await client.put(f"/ncc/campaigns/{campaign_id}", body)
+    return await client.put(
+        f"/ncc/campaigns/{campaign_id}?fields={','.join(fields)}", body
+    )
 
 
 async def campaign_delete(client: SearchAdClient, campaign_id: str) -> Any:

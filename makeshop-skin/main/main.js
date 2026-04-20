@@ -1455,6 +1455,15 @@
 (function() {
     'use strict';
 
+    // MakeShop 이벤트 팝업 이미지는 업로드 후 jewoo_eventYYYY... 형태로 자동 리네임된다.
+    // 따라서 파일명 규칙이 보존되지 않는 경우를 대비해 현재 강사회원 안내 팝업 슬롯/이미지를 명시한다.
+    var PC21_INSTRUCTOR_ONLY_POPUP_COOKIES = {
+        eventwindow0: true
+    };
+    var PC21_INSTRUCTOR_ONLY_POPUP_IMAGES = {
+        jewoo_event202604201329030: true
+    };
+
     function pc21IsInstructorPopupAudience() {
         var contextNode = document.getElementById('pc21-main-member-context');
         var groupName;
@@ -1465,11 +1474,31 @@
         return groupName.indexOf('강사') !== -1;
     }
 
+    function pc21GetPopupCookieName(popup) {
+        var hideLink = popup ? popup.querySelector('a[href*="MAKESHOP_LY_NOVIEW(1"]') : null;
+        var match;
+        if (!hideLink) {
+            return '';
+        }
+        match = String(hideLink.getAttribute('href') || '').match(/MAKESHOP_LY_NOVIEW\([^,]+,\s*'[^']+',\s*'([^']+)'/);
+        return match ? match[1] : '';
+    }
+
     function pc21IsInstructorOnlyPopup(popup) {
         var img = popup ? popup.querySelector('img[src]') : null;
         var src = String(img ? img.getAttribute('src') : '').toLowerCase();
         var alt = String(img ? img.getAttribute('alt') : '').toLowerCase();
         var key = src + ' ' + alt;
+        var cookieName = pc21GetPopupCookieName(popup);
+        var imageKey;
+        for (imageKey in PC21_INSTRUCTOR_ONLY_POPUP_IMAGES) {
+            if (PC21_INSTRUCTOR_ONLY_POPUP_IMAGES.hasOwnProperty(imageKey) && key.indexOf(imageKey) !== -1) {
+                return true;
+            }
+        }
+        if (cookieName && PC21_INSTRUCTOR_ONLY_POPUP_COOKIES[cookieName]) {
+            return true;
+        }
         return key.indexOf('pc21_member_price') !== -1 ||
             key.indexOf('pc21-member-price') !== -1 ||
             key.indexOf('member_price_notice') !== -1 ||

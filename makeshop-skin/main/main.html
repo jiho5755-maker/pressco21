@@ -187,6 +187,9 @@
                 <!--/else/-->
                 <div id="pc21-main-member-context" data-login="0" data-group="" style="display:none;"></div>
                 <!--/end_if/-->
+                <script>
+                (function(){'use strict';function i(){var c=document.getElementById('pc21-main-member-context');return c&&c.getAttribute('data-login')==='1'&&String(c.getAttribute('data-group')||'').indexOf('강사')>-1}function r(n){var p;if(i()||!n||n.nodeType!==1)return;p=n.id==='MAKESHOPLY0'?n:(n.closest?n.closest('#MAKESHOPLY0'):null);if(p&&p.parentNode)p.parentNode.removeChild(p)}function s(n){var a,j;if(i())return;r(n);a=document.querySelectorAll('#MAKESHOPLY0');for(j=0;j<a.length;j++)r(a[j])}s(document.documentElement);if(window.MutationObserver&&!i()){new MutationObserver(function(m){for(var a,b=0;b<m.length;b++){a=m[b].addedNodes;for(var c=0;c<a.length;c++)s(a[c])}}).observe(document.documentElement,{childList:true,subtree:true})}})();
+                </script>
                 <h3 class="title">New Arrival</h3>
                 <div class="tab-nav-wrap">
                     <ul class="tab-nav">

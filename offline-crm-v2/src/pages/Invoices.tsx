@@ -86,20 +86,36 @@ function getCustomerAddressKeys(customer: Customer | null | undefined): string[]
   return getCustomerAddressEntries(customer).map((entry) => entry.key)
 }
 
+function getCustomerAddressExactByKey(customer: Customer | null | undefined, addressKey?: string): string | undefined {
+  if (!addressKey) return undefined
+  return getCustomerAddressEntries(customer).find((entry) => entry.key === addressKey)?.value
+}
+
 function getCustomerAddressByKey(customer: Customer | null | undefined, addressKey?: string): string {
   if (!customer) return ''
-  const keys = getCustomerAddressKeys(customer)
-  if (addressKey && keys.includes(addressKey)) {
-    return getCustomerAddressValueByKey(customer, addressKey)
+  const exactAddress = getCustomerAddressExactByKey(customer, addressKey)
+  if (exactAddress) {
+    return exactAddress
   }
+  const keys = getCustomerAddressKeys(customer)
   if (keys.length === 0) return ''
   return getCustomerAddressValueByKey(customer, keys[0])
+}
+
+function hasCustomerAddressKey(customer: Customer | null | undefined, addressKey?: string): boolean {
+  if (!addressKey) return true
+  return getCustomerAddressKeys(customer).includes(addressKey)
 }
 
 function normalizeSnapshotValue(value: unknown): string | undefined {
   if (typeof value !== 'string') return undefined
   const trimmed = value.trim()
   return trimmed || undefined
+}
+
+function getStoredInvoiceAddressKey(invoice: Partial<Invoice> | null | undefined): string | undefined {
+  return normalizeSnapshotValue(invoice?.customer_address_key)
+    ?? getInvoiceCustomerAddressKey(typeof invoice?.memo === 'string' ? invoice.memo : undefined)
 }
 
 function mergeInvoiceSnapshot(
@@ -125,16 +141,20 @@ function resolveInvoiceCustomerSnapshot(
   customer: Customer | null | undefined,
 ): Partial<Invoice> {
   const storedAddress = normalizeSnapshotValue(invoice?.customer_address)
-  const storedAddressKey = normalizeSnapshotValue(invoice?.customer_address_key)
-    ?? getInvoiceCustomerAddressKey(typeof invoice?.memo === 'string' ? invoice.memo : undefined)
+  const storedAddressKey = getStoredInvoiceAddressKey(invoice)
   const storedPhone = normalizeSnapshotValue(invoice?.customer_phone)
   const storedBizNo = normalizeSnapshotValue(invoice?.customer_bizno)
   const storedCeoName = normalizeSnapshotValue(invoice?.customer_ceo_name)
   const storedBizType = normalizeSnapshotValue(invoice?.customer_biz_type)
   const storedBizItem = normalizeSnapshotValue(invoice?.customer_biz_item)
   const storedCustomerName = normalizeSnapshotValue(invoice?.customer_name)
+  const selectedAddress = storedAddressKey
+    ? normalizeSnapshotValue(getCustomerAddressExactByKey(customer, storedAddressKey))
+    : undefined
 
-  const resolvedAddress = storedAddress || getCustomerAddressByKey(customer, storedAddressKey)
+  const resolvedAddress = storedAddressKey && storedAddressKey !== 'address1'
+    ? selectedAddress ?? storedAddress ?? getCustomerAddressByKey(customer)
+    : storedAddress ?? selectedAddress ?? getCustomerAddressByKey(customer)
 
   return {
     customer_name: storedCustomerName ?? customer?.name,
@@ -434,14 +454,24 @@ export function Invoices() {
             ? invoice.customer_id
             : undefined
 
+        const invoiceSnapshot = mergeInvoiceSnapshot(latestInvoice, invoice)
+        const storedAddressKey = getStoredInvoiceAddressKey(invoiceSnapshot)
+
         let linkedCustomer = invoiceCustomerId ? linkedCustomerCache.get(invoiceCustomerId) : undefined
         if (invoiceCustomerId && linkedCustomer === undefined) {
           linkedCustomer = customerById.get(invoiceCustomerId) ?? await findCustomerByInvoiceLink(invoiceCustomerId, latestInvoice.customer_name)
           linkedCustomerCache.set(invoiceCustomerId, linkedCustomer ?? null)
         }
+        if (invoiceCustomerId && linkedCustomer && storedAddressKey && !hasCustomerAddressKey(linkedCustomer, storedAddressKey)) {
+          const fullCustomer = await findCustomerByInvoiceLink(invoiceCustomerId, latestInvoice.customer_name)
+          if (fullCustomer) {
+            linkedCustomer = fullCustomer
+            linkedCustomerCache.set(invoiceCustomerId, fullCustomer)
+          }
+        }
 
         const resolvedSnapshot = resolveInvoiceCustomerSnapshot(
-          mergeInvoiceSnapshot(latestInvoice, invoice),
+          invoiceSnapshot,
           linkedCustomer,
         )
 

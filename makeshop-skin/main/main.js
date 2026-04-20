@@ -1455,23 +1455,45 @@
 (function() {
     'use strict';
 
-    // MakeShop 이벤트 팝업 이미지는 업로드 후 jewoo_eventYYYY... 형태로 자동 리네임된다.
-    // 따라서 파일명 규칙이 보존되지 않는 경우를 대비해 현재 강사회원 안내 팝업 슬롯/이미지를 명시한다.
-    var PC21_INSTRUCTOR_ONLY_POPUP_COOKIES = {
-        eventwindow0: true
-    };
-    var PC21_INSTRUCTOR_ONLY_POPUP_IMAGES = {
-        jewoo_event202604201329030: true
+    // MakeShop 이벤트 팝업은 업로드 후 이미지명이 바뀌므로 슬롯(eventwindowN) 기준으로 라우팅한다.
+    // audience 값은 추후 회원등급 개편 시 groupIncludes만 추가하면 된다.
+    var PC21_POPUP_AUDIENCE_RULES = {
+        eventwindow0: {
+            audience: 'instructor',
+            groupIncludes: ['강사']
+        }
     };
 
-    function pc21IsInstructorPopupAudience() {
+    function pc21GetMemberContext() {
         var contextNode = document.getElementById('pc21-main-member-context');
-        var groupName;
-        if (!contextNode || contextNode.getAttribute('data-login') !== '1') {
+        return {
+            isLogin: !!(contextNode && contextNode.getAttribute('data-login') === '1'),
+            groupName: String(contextNode ? contextNode.getAttribute('data-group') || '' : '')
+        };
+    }
+
+    function pc21AudienceMatches(rule) {
+        var context = pc21GetMemberContext();
+        var includes = rule && rule.groupIncludes ? rule.groupIncludes : [];
+        var i;
+        if (!rule || !rule.audience || rule.audience === 'all') {
+            return true;
+        }
+        if (rule.audience === 'guest') {
+            return !context.isLogin;
+        }
+        if (rule.audience === 'login') {
+            return context.isLogin;
+        }
+        if (!context.isLogin) {
             return false;
         }
-        groupName = String(contextNode.getAttribute('data-group') || '');
-        return groupName.indexOf('강사') !== -1;
+        for (i = 0; i < includes.length; i += 1) {
+            if (context.groupName.indexOf(includes[i]) !== -1) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function pc21GetPopupCookieName(popup) {
@@ -1484,40 +1506,25 @@
         return match ? match[1] : '';
     }
 
-    function pc21IsInstructorOnlyPopup(popup) {
-        var img = popup ? popup.querySelector('img[src]') : null;
-        var src = String(img ? img.getAttribute('src') : '').toLowerCase();
-        var alt = String(img ? img.getAttribute('alt') : '').toLowerCase();
-        var key = src + ' ' + alt;
+    function pc21GetPopupAudienceRule(popup) {
         var cookieName = pc21GetPopupCookieName(popup);
-        var imageKey;
-        for (imageKey in PC21_INSTRUCTOR_ONLY_POPUP_IMAGES) {
-            if (PC21_INSTRUCTOR_ONLY_POPUP_IMAGES.hasOwnProperty(imageKey) && key.indexOf(imageKey) !== -1) {
-                return true;
-            }
-        }
-        if (cookieName && PC21_INSTRUCTOR_ONLY_POPUP_COOKIES[cookieName]) {
-            return true;
-        }
-        return key.indexOf('pc21_member_price') !== -1 ||
-            key.indexOf('pc21-member-price') !== -1 ||
-            key.indexOf('member_price_notice') !== -1 ||
-            key.indexOf('member-price-notice') !== -1 ||
-            key.indexOf('instructor_price') !== -1 ||
-            key.indexOf('instructor-price') !== -1 ||
-            key.indexOf('teacher_price') !== -1 ||
-            key.indexOf('teacher-price') !== -1;
+        return cookieName && PC21_POPUP_AUDIENCE_RULES[cookieName] ? PC21_POPUP_AUDIENCE_RULES[cookieName] : null;
     }
 
     function pc21FilterPopupsByAudience(allPopups) {
         var filtered = [];
-        var isInstructor = pc21IsInstructorPopupAudience();
+        var rule;
         for (var i = 0; i < allPopups.length; i++) {
-            if (pc21IsInstructorOnlyPopup(allPopups[i]) && !isInstructor) {
+            rule = pc21GetPopupAudienceRule(allPopups[i]);
+            if (rule && !pc21AudienceMatches(rule)) {
                 allPopups[i].style.display = 'none';
                 allPopups[i].style.visibility = 'hidden';
-                allPopups[i].setAttribute('data-pc21-member-popup-hidden', '1');
+                allPopups[i].setAttribute('data-pc21-popup-audience-hidden', '1');
+                allPopups[i].setAttribute('data-pc21-popup-audience', rule.audience);
                 continue;
+            }
+            if (rule) {
+                allPopups[i].setAttribute('data-pc21-popup-audience', rule.audience);
             }
             filtered.push(allPopups[i]);
         }

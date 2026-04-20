@@ -924,3 +924,128 @@
 
     pc21ApplyMemberPolicyFallback();
 })();
+
+/* 2026-04-20: 고체하바리움 대량구매 옵션 강사회원 전용 노출 */
+(function() {
+    'use strict';
+
+    var PC21_SOLID_HERBARIUM_UID = '11699777';
+    var PC21_BULK_OPTION_KEYWORDS = ['대량구매', '대량 구매', '20kg', '20KG', '30kg', '30KG', '40kg', '40KG', '솔리드글루'];
+
+    function pc21GetBranduid() {
+        var match = String(window.location.href || '').match(/[?&]branduid=([^&]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    function pc21IsTargetProduct() {
+        return pc21GetBranduid() === PC21_SOLID_HERBARIUM_UID;
+    }
+
+    function pc21IsInstructorMember() {
+        var groupNameEl = document.getElementById('pc21GroupNameRaw');
+        var groupName = String(groupNameEl ? groupNameEl.textContent : '').replace(/\s+/g, '');
+        return groupName.indexOf('강사') !== -1;
+    }
+
+    function pc21ContainsBulkKeyword(text) {
+        var value = String(text || '');
+        var i;
+        for (i = 0; i < PC21_BULK_OPTION_KEYWORDS.length; i += 1) {
+            if (value.indexOf(PC21_BULK_OPTION_KEYWORDS[i]) !== -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function pc21GetOptionRow(node) {
+        var row = node;
+        var depth = 0;
+        while (row && depth < 5) {
+            if (row.classList && (row.classList.contains('infos--row') || row.classList.contains('shopdetailInfoCount'))) {
+                return row;
+            }
+            row = row.parentNode;
+            depth += 1;
+        }
+        return null;
+    }
+
+    function pc21GetOptionRowTitle(row) {
+        var titleNode = row ? row.querySelector('.info-title, .shopdetailInfoName') : null;
+        return String(titleNode ? titleNode.textContent : '');
+    }
+
+    function pc21IsBulkOptionRow(row) {
+        return pc21GetOptionRowTitle(row).indexOf('대량') !== -1;
+    }
+
+    function pc21ResetSelectIfNeeded(selectNode) {
+        if (!selectNode || selectNode.selectedIndex < 0) {
+            return;
+        }
+        if (selectNode.options[selectNode.selectedIndex] && selectNode.options[selectNode.selectedIndex].disabled) {
+            selectNode.selectedIndex = 0;
+            selectNode.dispatchEvent(new Event('change', { bubbles: true }));
+        }
+    }
+
+    function pc21HideBulkOptions(root) {
+        var scope = root || document;
+        var selects;
+        var options;
+        var i;
+        var j;
+        var optionText;
+        var row;
+        var isBulkRow;
+        if (!pc21IsTargetProduct() || pc21IsInstructorMember() || !scope.querySelectorAll) {
+            return;
+        }
+
+        selects = scope.querySelectorAll('select');
+        for (i = 0; i < selects.length; i += 1) {
+            options = selects[i].querySelectorAll('option');
+            row = pc21GetOptionRow(selects[i]);
+            isBulkRow = pc21IsBulkOptionRow(row);
+            for (j = 0; j < options.length; j += 1) {
+                optionText = String(options[j].textContent || options[j].value || '');
+                if (isBulkRow || pc21ContainsBulkKeyword(optionText)) {
+                    options[j].disabled = true;
+                    options[j].hidden = true;
+                    options[j].style.display = 'none';
+                    options[j].setAttribute('data-pc21-instructor-only-option', '1');
+                }
+            }
+            pc21ResetSelectIfNeeded(selects[i]);
+        }
+
+        row = scope.querySelectorAll('.infos--row, .shopdetailInfoCount');
+        for (i = 0; i < row.length; i += 1) {
+            if (pc21IsBulkOptionRow(row[i])) {
+                row[i].style.display = 'none';
+                row[i].setAttribute('data-pc21-instructor-only-row', '1');
+            }
+        }
+    }
+
+    pc21HideBulkOptions(document);
+    if (window.MutationObserver) {
+        var target = document.querySelector('.goods-infos') || document.body;
+        var observer = new MutationObserver(function(mutations) {
+            var i;
+            var j;
+            var added;
+            for (i = 0; i < mutations.length; i += 1) {
+                added = mutations[i].addedNodes;
+                for (j = 0; j < added.length; j += 1) {
+                    if (added[j].nodeType === 1) {
+                        pc21HideBulkOptions(added[j]);
+                    }
+                }
+            }
+            pc21HideBulkOptions(target);
+        });
+        observer.observe(target, { childList: true, subtree: true });
+    }
+})();

@@ -2852,6 +2852,59 @@
    팝업 통합 모달 v2 — PC + 모바일
    ======================================== */
 
+/* 2026-04-20: 메인 상품 가격 숫자 위계 통일 */
+#section02 .product-list-wrap .item-list .prd-price .price .item-box.left,
+#section02 .product-list-wrap .item-list .prd-price .price .itme-box.left,
+#section04 .product-list-wrap .item-list .prd-price .price .item-box.left,
+#section04 .product-list-wrap .item-list .prd-price .price .itme-box.left {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+}
+
+#section02 .product-list-wrap .item-list .prd-price .price .normal,
+#section04 .product-list-wrap .item-list .prd-price .price .normal {
+    color: #17130f;
+    font-size: 14px;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+    margin-right: 0;
+}
+
+#section02 .product-list-wrap .item-list .prd-price .price .consumer,
+#section04 .product-list-wrap .item-list .prd-price .price .consumer {
+    color: #9a928a;
+    font-size: 12px;
+    font-weight: 500;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    text-decoration-color: #c8beb5;
+}
+
+#section02 .product-list-wrap .item-list .prd-price .pc21-ug-discount,
+#section04 .product-list-wrap .item-list .prd-price .pc21-ug-discount {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 22px !important;
+    padding: 2px 7px !important;
+    border-radius: 999px !important;
+    background: #fff3ed !important;
+    margin-left: 2px !important;
+    color: #a85b45 !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    line-height: 1.2 !important;
+    vertical-align: baseline !important;
+}
+
+#section02 .product-list-wrap .item-list .prd-price .pc21-ug-discount:empty,
+#section04 .product-list-wrap .item-list .prd-price .pc21-ug-discount:empty {
+    display: none !important;
+}
+
 /* 원본 팝업 강제 숨김 (CSS 클래스 기반 — MakeShop 재표시 차단) */
 body.pc21-popups-hidden [id^="MAKESHOPLY"],
 body.pc21-popups-unified [id^="MAKESHOPLY"] {

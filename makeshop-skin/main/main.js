@@ -1455,6 +1455,46 @@
 (function() {
     'use strict';
 
+    function pc21IsInstructorPopupAudience() {
+        var contextNode = document.getElementById('pc21-main-member-context');
+        var groupName;
+        if (!contextNode || contextNode.getAttribute('data-login') !== '1') {
+            return false;
+        }
+        groupName = String(contextNode.getAttribute('data-group') || '');
+        return groupName.indexOf('강사') !== -1;
+    }
+
+    function pc21IsInstructorOnlyPopup(popup) {
+        var img = popup ? popup.querySelector('img[src]') : null;
+        var src = String(img ? img.getAttribute('src') : '').toLowerCase();
+        var alt = String(img ? img.getAttribute('alt') : '').toLowerCase();
+        var key = src + ' ' + alt;
+        return key.indexOf('pc21_member_price') !== -1 ||
+            key.indexOf('pc21-member-price') !== -1 ||
+            key.indexOf('member_price_notice') !== -1 ||
+            key.indexOf('member-price-notice') !== -1 ||
+            key.indexOf('instructor_price') !== -1 ||
+            key.indexOf('instructor-price') !== -1 ||
+            key.indexOf('teacher_price') !== -1 ||
+            key.indexOf('teacher-price') !== -1;
+    }
+
+    function pc21FilterPopupsByAudience(allPopups) {
+        var filtered = [];
+        var isInstructor = pc21IsInstructorPopupAudience();
+        for (var i = 0; i < allPopups.length; i++) {
+            if (pc21IsInstructorOnlyPopup(allPopups[i]) && !isInstructor) {
+                allPopups[i].style.display = 'none';
+                allPopups[i].style.visibility = 'hidden';
+                allPopups[i].setAttribute('data-pc21-member-popup-hidden', '1');
+                continue;
+            }
+            filtered.push(allPopups[i]);
+        }
+        return filtered;
+    }
+
     // MakeShop 네이티브 getCookie 함수 사용하여 팝업별 쿠키 확인
     function areAllPopupsCookied(popups) {
         if (typeof getCookie !== 'function') return false;
@@ -1475,12 +1515,22 @@
     }
 
     function initPopupUnifier() {
-        var popups = document.querySelectorAll('[id^="MAKESHOPLY"]');
+        var allPopups = document.querySelectorAll('[id^="MAKESHOPLY"]');
+        var popups = pc21FilterPopupsByAudience(allPopups);
+        var hideStyle;
+        if (allPopups.length === 0) return;
+
+        // 원본 팝업 숨기기: style 태그 주입
+        hideStyle = document.createElement('style');
+        hideStyle.id = 'pc21-popup-unified-style';
+        hideStyle.textContent = '[id^="MAKESHOPLY"] { display: none !important; visibility: hidden !important; }';
+        document.head.appendChild(hideStyle);
+
         if (popups.length === 0) return;
 
         // 모든 팝업이 "오늘 그만 보기" 쿠키가 설정되어 있으면 숨기고 종료
         if (areAllPopupsCookied(popups)) {
-            for (var h = 0; h < popups.length; h++) popups[h].style.display = 'none';
+            for (var h = 0; h < allPopups.length; h++) allPopups[h].style.display = 'none';
             return;
         }
 
@@ -1492,12 +1542,6 @@
                 nativeHideHrefs.push(hideLink.getAttribute('href'));
             }
         }
-
-        // 원본 팝업 숨기기: style 태그 주입
-        var hideStyle = document.createElement('style');
-        hideStyle.id = 'pc21-popup-unified-style';
-        hideStyle.textContent = '[id^="MAKESHOPLY"] { display: none !important; visibility: hidden !important; }';
-        document.head.appendChild(hideStyle);
 
         // 콘텐츠 추출
         var slideContents = [];
@@ -1715,7 +1759,7 @@
         if (!node) {
             node = document.createElement('span');
             node.className = 'pc21-ug-discount';
-            node.setAttribute('style', 'display:inline-block;margin-left:8px;color:#f04b23;font-size:18px;font-weight:800;letter-spacing:-0.02em;vertical-align:baseline;');
+            node.setAttribute('style', 'display:inline-flex;align-items:center;min-height:22px;padding:2px 7px;border-radius:999px;background:#fff3ed;margin-left:2px;color:#a85b45;font-size:13px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;vertical-align:baseline;');
             if (insertAfterNode && insertAfterNode.parentNode) {
                 insertAfterNode.parentNode.insertBefore(node, insertAfterNode.nextSibling);
             } else {
@@ -2047,7 +2091,7 @@
         node = document.createElement('span');
         node.className = className;
         if (className === 'pc21-ug-discount') {
-            node.setAttribute('style', 'display:inline-block;margin-left:8px;color:#f04b23;font-size:18px;font-weight:800;letter-spacing:-0.02em;vertical-align:baseline;');
+            node.setAttribute('style', 'display:inline-flex;align-items:center;min-height:22px;padding:2px 7px;border-radius:999px;background:#fff3ed;margin-left:2px;color:#a85b45;font-size:13px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;vertical-align:baseline;');
         }
         if (afterNode && afterNode.parentNode) {
             afterNode.parentNode.insertBefore(node, afterNode.nextSibling);

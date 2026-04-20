@@ -373,15 +373,44 @@
     filter: hue-rotate(0deg) brightness(0.85);
 }
 
+/* 2026-04-20: 가격 숫자 위계 통일 */
+#contents .MK_product_list .item-list .prd-info .prd-price .price .item-box.left {
+    display: flex;
+    align-items: baseline;
+    justify-content: flex-start;
+    flex-wrap: wrap;
+    gap: 4px 6px;
+}
+
+#contents .MK_product_list .item-list .prd-info .prd-price .price .normal {
+    color: #17130f;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+#contents .MK_product_list .item-list .prd-info .prd-price .price .consumer {
+    color: #9a928a;
+    font-weight: 500;
+    text-decoration: line-through;
+    text-decoration-thickness: 1px;
+    text-decoration-color: #c8beb5;
+}
+
 /* 2026-04-18: 회원그룹 할인가 할인율 표시 */
 #contents .MK_product_list .item-list .prd-info .prd-price .pc21-ug-discount {
-    display: inline-block;
-    margin-left: 8px;
-    color: #f04b23;
-    font-size: 18px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #fff3ed;
+    margin-left: 2px;
+    color: #a85b45;
+    font-size: 13px;
     font-weight: 800;
     letter-spacing: -0.02em;
     vertical-align: baseline;
+    line-height: 1.2;
 }
 
 #contents .MK_product_list .item-list .prd-info .prd-price .pc21-ug-discount:empty {
@@ -390,5 +419,7 @@
 
 #contents.pc21-compact-view .MK_product_list .item-list .prd-info .prd-price .pc21-ug-discount {
     margin-left: 4px;
-    font-size: 14px;
+    font-size: 12px;
+    min-height: 20px;
+    padding: 1px 6px;
 }

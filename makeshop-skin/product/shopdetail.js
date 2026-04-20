@@ -52,38 +52,21 @@
         return node;
     }
 
-    function applyGroupPriceDisplay() {
-        var priceWrap = document.querySelector('.goods--price-wrap');
-        var priceBox = priceWrap ? priceWrap.querySelector('.prices') : null;
-        var groupPriceEl = document.getElementById('pc21GroupPriceRaw');
-        var basePriceEl = document.getElementById('pc21BasePriceRaw');
-        var groupNameEl = document.getElementById('pc21GroupNameRaw');
-        var groupPrice = parsePriceText(groupPriceEl ? groupPriceEl.textContent : '');
-        var basePrice = parsePriceText(basePriceEl ? basePriceEl.textContent : '');
-        var groupName = String(groupNameEl ? groupNameEl.textContent : '').trim() || '강사회원';
+    function isLoggedInDetail() {
+        if (document.cookie.indexOf('logincon=1') !== -1) {
+            return true;
+        }
+        return document.body && document.body.innerText.indexOf('로그아웃') !== -1;
+    }
 
-        if (!priceWrap || !priceBox || !groupPrice || !basePrice || groupPrice >= basePrice) {
+    function ensureGroupPriceCaption(priceWrap, priceBox, groupName) {
+        var captionNode = priceWrap ? priceWrap.querySelector('.group-price-caption') : null;
+        var captionStrongNode;
+        var captionTextNode;
+        if (!priceWrap || !priceBox || !groupName) {
             return;
         }
-
-        var discountLabel = formatDiscountRate(basePrice, groupPrice);
-        var priceNode = ensurePriceNode(priceBox, 'price');
-        var originalNode = ensurePriceNode(priceBox, 'original');
-        var discountNode = ensurePriceNode(priceBox, 'discount');
-        var captionNode = priceWrap.querySelector('.group-price-caption');
-        var captionTextNode;
-        var captionStrongNode;
-
         priceBox.classList.add('has-usergroup-price');
-
-        if (priceNode.querySelector('strong')) {
-            priceNode.querySelector('strong').textContent = formatPriceNumber(groupPrice);
-        }
-        if (originalNode.querySelector('strong')) {
-            originalNode.querySelector('strong').textContent = formatPriceNumber(basePrice);
-        }
-        discountNode.textContent = discountLabel;
-
         if (!captionNode) {
             captionNode = document.createElement('p');
             captionNode.className = 'group-price-caption';
@@ -110,12 +93,62 @@
                 captionNode.appendChild(captionTextNode);
             }
         }
-
         captionStrongNode.textContent = groupName;
-        captionTextNode.textContent = ' 로그인 전용가가 적용되었습니다.';
+        captionTextNode.textContent = ' 적용가가 자동 반영되었습니다.';
+    }
+
+    function applyVisibleGroupPriceCaption() {
+        var priceWrap = document.querySelector('.goods--price-wrap');
+        var priceBox = priceWrap ? priceWrap.querySelector('.prices') : null;
+        var groupNameEl = document.getElementById('pc21GroupNameRaw');
+        var groupName = String(groupNameEl ? groupNameEl.textContent : '').trim();
+        var saleNode = priceBox ? priceBox.querySelector('.price') : null;
+        var baseNode = priceBox ? priceBox.querySelector('.original') : null;
+        var salePrice = parsePriceText(saleNode ? saleNode.textContent : '');
+        var basePrice = parsePriceText(baseNode ? baseNode.textContent : '');
+        if (!salePrice || !basePrice || salePrice >= basePrice) {
+            return;
+        }
+        if (!groupName && isLoggedInDetail()) {
+            groupName = '회원등급';
+        }
+        ensureGroupPriceCaption(priceWrap, priceBox, groupName);
+    }
+
+    function applyGroupPriceDisplay() {
+        var priceWrap = document.querySelector('.goods--price-wrap');
+        var priceBox = priceWrap ? priceWrap.querySelector('.prices') : null;
+        var groupPriceEl = document.getElementById('pc21GroupPriceRaw');
+        var basePriceEl = document.getElementById('pc21BasePriceRaw');
+        var groupNameEl = document.getElementById('pc21GroupNameRaw');
+        var groupPrice = parsePriceText(groupPriceEl ? groupPriceEl.textContent : '');
+        var basePrice = parsePriceText(basePriceEl ? basePriceEl.textContent : '');
+        var groupName = String(groupNameEl ? groupNameEl.textContent : '').trim() || '강사회원';
+
+        if (!priceWrap || !priceBox || !groupPrice || !basePrice || groupPrice >= basePrice) {
+            return;
+        }
+
+        var discountLabel = formatDiscountRate(basePrice, groupPrice);
+        var priceNode = ensurePriceNode(priceBox, 'price');
+        var originalNode = ensurePriceNode(priceBox, 'original');
+        var discountNode = ensurePriceNode(priceBox, 'discount');
+
+        priceBox.classList.add('has-usergroup-price');
+
+        if (priceNode.querySelector('strong')) {
+            priceNode.querySelector('strong').textContent = formatPriceNumber(groupPrice);
+        }
+        if (originalNode.querySelector('strong')) {
+            originalNode.querySelector('strong').textContent = formatPriceNumber(basePrice);
+        }
+        discountNode.textContent = discountLabel;
+
+        ensureGroupPriceCaption(priceWrap, priceBox, groupName);
     }
 
     applyGroupPriceDisplay();
+    applyVisibleGroupPriceCaption();
 
     // 제품정보 마지막 라인 지우기 (null 체크 추가)
     var groups = document.querySelectorAll('.infos--group');

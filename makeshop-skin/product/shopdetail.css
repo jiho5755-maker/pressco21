@@ -22,8 +22,8 @@ body .container {padding-right: calc(var(--bs-gutter-x) * 0.5); padding-left: ca
 .goods--price-wrap .prices.has-usergroup-price .price strong { font-size: 1.875rem; color: var(--cw-heading-color); }
 .goods--price-wrap .prices.has-usergroup-price .original { color: var(--cw-color-60); text-decoration: line-through; text-decoration-thickness: 1px; text-decoration-color: var(--cw-color-40); }
 .goods--price-wrap .prices.has-usergroup-price .original strong { color: inherit; font-weight: 500; }
-.goods--price-wrap .prices.has-usergroup-price .discount { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; padding: 0 10px; border-radius: 999px; background: #f1f6ed; color: #4f6748; font-size: .875rem; font-weight: 700; line-height: 1; }
-.goods--price-wrap .group-price-caption { margin: 6px 0 0; font-size: .8125rem; line-height: 18px; color: #4f6748; }
+.goods--price-wrap .prices.has-usergroup-price .discount { display: inline-flex; align-items: center; justify-content: center; min-height: 28px; padding: 0 10px; border-radius: 999px; background: #fff3ed; color: #a85b45; font-size: .875rem; font-weight: 800; line-height: 1; letter-spacing: -0.02em; }
+.goods--price-wrap .group-price-caption { margin: 7px 0 0; font-size: .8125rem; line-height: 18px; color: #7a6a60; }
 .goods--price-wrap .group-price-caption strong { font-weight: 700; color: var(--cw-heading-color); }
 .infos--group { position: relative; padding: 20px 0; border-bottom: 1px solid var(--cw-color-20); }
 .infos--group::after { content: ''; display: block; clear: both; }

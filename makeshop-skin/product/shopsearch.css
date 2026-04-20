@@ -119,16 +119,43 @@
     .products-wrapper .prds-btn a { width: 100%; }
 }
 
+/* 2026-04-20: 가격 숫자 위계 통일 */
+#contents .prds--price-wrap .prices,
+.full-wrapper .prds--price-wrap .prices {
+    align-items: baseline;
+    gap: 4px 6px;
+}
+
+#contents .prds--price-wrap .prices .price,
+.full-wrapper .prds--price-wrap .prices .price {
+    color: #17130f;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+#contents .prds--price-wrap .prices .original,
+.full-wrapper .prds--price-wrap .prices .original {
+    color: #9a928a;
+    font-weight: 500;
+    text-decoration-color: #c8beb5;
+}
+
 /* 2026-04-18: 회원그룹/정가 대비 할인율 표시 보강 */
 #contents .prds--price-wrap .prices .pc21-ug-discount,
 .full-wrapper .prds--price-wrap .prices .pc21-ug-discount {
-    display: inline-block;
-    margin-left: 8px;
-    color: #f04b23;
-    font-size: 18px;
+    display: inline-flex;
+    align-items: center;
+    min-height: 22px;
+    padding: 2px 7px;
+    border-radius: 999px;
+    background: #fff3ed;
+    margin-left: 2px;
+    color: #a85b45;
+    font-size: 13px;
     font-weight: 800;
     letter-spacing: -0.02em;
     vertical-align: baseline;
+    line-height: 1.2;
 }
 
 #contents .prds--price-wrap .prices .pc21-ug-discount:empty,

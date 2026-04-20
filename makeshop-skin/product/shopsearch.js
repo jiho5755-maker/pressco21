@@ -102,7 +102,7 @@
         if (!node) {
             node = document.createElement('span');
             node.className = 'pc21-ug-discount';
-            node.setAttribute('style', 'display:inline-block;margin-left:8px;color:#f04b23;font-size:18px;font-weight:800;letter-spacing:-0.02em;vertical-align:baseline;');
+            node.setAttribute('style', 'display:inline-flex;align-items:center;min-height:22px;padding:2px 7px;border-radius:999px;background:#fff3ed;margin-left:2px;color:#a85b45;font-size:13px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;vertical-align:baseline;');
             if (insertAfterNode && insertAfterNode.parentNode) {
                 insertAfterNode.parentNode.insertBefore(node, insertAfterNode.nextSibling);
             } else {

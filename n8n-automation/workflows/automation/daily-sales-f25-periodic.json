@@ -100,7 +100,7 @@
       "id": "node-telegram",
       "name": "텔레그램 전송",
       "credentials": {
-        "telegramApi": { "id": "eS5YwFGpbJht6uCB", "name": "PRESSCO21-Telegram-Bot" }
+        "telegramApi": { "id": "RdFu3nsFuuO5NCff", "name": "Pressco메이크샵봇" }
       }
     },
     {

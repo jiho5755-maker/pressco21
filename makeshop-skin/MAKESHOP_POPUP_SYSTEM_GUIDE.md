@@ -269,3 +269,6 @@ Array.from(document.querySelectorAll('[id^="MAKESHOPLY"]')).map(function(p) {
 - 핵심 정책은 팝업이 아니라 페이지 안에도 남겨야 합니다.
 - 팝업마다 종료일과 대상자를 명확히 둡니다.
 
+## 디자이너용 요약본
+
+CSS/이미지 작업자가 바로 볼 요약본은 [`DESIGNER_HANDBOOK.md`](./DESIGNER_HANDBOOK.md)에 정리되어 있습니다.

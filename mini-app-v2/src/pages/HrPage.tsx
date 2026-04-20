@@ -11,7 +11,7 @@ import {
   fetchHrMonthlySummary,
   getHrReportCsvUrl,
 } from "@/lib/hrApi";
-import type { HrTodayStats, StaffDayStatus, HrMonthlySummary, StaffMonthlySummary } from "@/lib/hrApi";
+import type { HrTodayStats, StaffDayStatus, HrMonthlySummary, StaffMonthlySummary, DayRecord } from "@/lib/hrApi";
 import {
   Loader2,
   ChevronLeft,
@@ -57,7 +57,7 @@ function formatMonthLabel(month: string): string {
   return y + "년 " + Number(m) + "월";
 }
 
-function minutesToHM(min?: number): string {
+function minutesToHM(min?: number | null): string {
   if (!min) return "-";
   const h = Math.floor(min / 60);
   const m = min % 60;

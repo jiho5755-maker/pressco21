@@ -981,12 +981,18 @@
     }
 
     function pc21ResetSelectIfNeeded(selectNode) {
+        var i;
         if (!selectNode || selectNode.selectedIndex < 0) {
             return;
         }
-        if (selectNode.options[selectNode.selectedIndex] && selectNode.options[selectNode.selectedIndex].disabled) {
-            selectNode.selectedIndex = 0;
-            selectNode.dispatchEvent(new Event('change', { bubbles: true }));
+        if (!selectNode.options[selectNode.selectedIndex] || !selectNode.options[selectNode.selectedIndex].disabled) {
+            return;
+        }
+        for (i = 0; i < selectNode.options.length; i += 1) {
+            if (!selectNode.options[i].disabled) {
+                selectNode.selectedIndex = i;
+                return;
+            }
         }
     }
 

@@ -20,6 +20,7 @@
  *       afterEach 훅에서 TEST-E2E-PLAYWRIGHT- prefix 데이터를 자동 정리합니다.
  */
 import { test, expect } from '@playwright/test'
+import ExcelJS from 'exceljs'
 import {
   cleanupTestInvoices,
   cleanupTestCustomers,
@@ -45,6 +46,7 @@ const nextDay = String(nextDate.getDate()).padStart(2, '0')
 }
 
 const DISCOUNT_CUSTOMER_PREFIX = 'TEST-CUSTOMER-DISCOUNT-'
+const COURIER_ADDRESS_CUSTOMER_PREFIX = 'TEST-CUSTOMER-COURIER-ADDRESS-'
 
 // 테스트 전 거래명세표 페이지로 이동
 test.beforeEach(async ({ page }) => {
@@ -55,6 +57,7 @@ test.beforeEach(async ({ page }) => {
 test.afterEach(async ({ request }) => {
   await cleanupTestInvoices(request, TEST_INVOICE_PREFIX)
   await cleanupTestCustomers(request, DISCOUNT_CUSTOMER_PREFIX)
+  await cleanupTestCustomers(request, COURIER_ADDRESS_CUSTOMER_PREFIX)
 })
 
 test('T2-01: 거래명세표 페이지 접속 및 헤더 확인', async ({ page }) => {
@@ -384,4 +387,79 @@ test('T2-14: 고객 기본 DC 할인율 자동 반영 및 건별 조정', async 
   await expect(dialog.getByText('고객 기본 할인율 10%에서 건별 DC로 조정 중입니다.')).toBeVisible()
   await expect(dialog.getByText('- 500원').first()).toBeVisible()
   await expect(dialog.getByText('10,500원').first()).toBeVisible()
+})
+
+
+test('T2-15: 송장 엑셀은 선택한 배송지를 기본주소보다 우선 출력', async ({ page, request }) => {
+  const uniqueId = Date.now()
+  const customerName = `${COURIER_ADDRESS_CUSTOMER_PREFIX}${uniqueId}`
+  const invoiceNo = `${TEST_INVOICE_PREFIX}COURIER-${uniqueId}`
+  const primaryAddress = `서울시 기본구 기본로 1 ${uniqueId}`
+  const secondAddress = `서울시 배송구 배송2로 22 ${uniqueId}`
+  const thirdAddress = `서울시 배송구 배송3로 33 ${uniqueId}`
+
+  const customer = await createTestCustomer(request, {
+    name: customerName,
+    customer_status: 'ACTIVE',
+    price_tier: 1,
+    phone1: '02-0000-0000',
+    mobile: '010-0000-0000',
+    address1: primaryAddress,
+    address2: secondAddress,
+    extra_addresses: JSON.stringify([thirdAddress]),
+  })
+
+  await page.goto(`/invoices?new=1&customerId=${customer.Id}&customerName=${encodeURIComponent(customerName)}`)
+  await waitForDialog(page, '새 명세표')
+
+  const dialog = page.getByRole('dialog')
+  await dialog.locator('input.font-mono').fill(invoiceNo)
+  await expect(dialog.getByText('배송 주소')).toBeVisible()
+  await expect(dialog.getByText(primaryAddress)).toBeVisible({ timeout: API_TIMEOUT })
+
+  await dialog.getByRole('combobox').filter({ hasText: '기본 주소' }).first().click()
+  await page.getByRole('option', { name: /배송지 3/ }).click()
+  await expect(dialog.getByText(thirdAddress)).toBeVisible({ timeout: API_TIMEOUT })
+
+  const firstRow = dialog.locator('tbody tr').first()
+  await firstRow.getByPlaceholder('품목명 검색 (자동완성)').fill('송장 배송지 회귀 검증 품목')
+  await firstRow.locator('input[type="number"]').nth(1).fill('1000')
+  await firstRow.locator('input[type="number"]').nth(1).press('Tab')
+
+  await dialog.getByRole('button', { name: '저장', exact: true }).click()
+  await expect(page.getByRole('dialog')).toHaveCount(0, { timeout: API_TIMEOUT })
+
+  await page.getByPlaceholder('거래처명으로 검색...').fill(customerName)
+  await page.waitForTimeout(800)
+  await waitForTableLoaded(page)
+  await expect(page.locator('tbody tr', { hasText: invoiceNo })).toBeVisible({ timeout: API_TIMEOUT })
+
+  const downloadPromise = page.waitForEvent('download', { timeout: 60_000 })
+  await page.getByRole('button', { name: /송장 엑셀/ }).click()
+  const confirmDialog = page.getByRole('dialog', { name: /송장 다운로드 전 확인/ })
+  if (await confirmDialog.isVisible({ timeout: 3_000 }).catch(() => false)) {
+    await confirmDialog.getByRole('button', { name: '계속 다운로드' }).click()
+  }
+  const download = await downloadPromise
+  const downloadedPath = await download.path()
+  expect(downloadedPath).toBeTruthy()
+
+  const workbook = new ExcelJS.Workbook()
+  await workbook.xlsx.readFile(downloadedPath!)
+  const worksheet = workbook.worksheets[0]
+  const headerValues = worksheet.getRow(1).values as unknown[]
+  const nameColumn = headerValues.findIndex((value) => value === '받는분')
+  const addressColumn = headerValues.findIndex((value) => value === '받는분총주소')
+  expect(nameColumn).toBeGreaterThan(0)
+  expect(addressColumn).toBeGreaterThan(0)
+
+  let downloadedAddress = ''
+  worksheet.eachRow((row, rowNumber) => {
+    if (rowNumber === 1) return
+    if (String(row.getCell(nameColumn).value ?? '') === customerName) {
+      downloadedAddress = String(row.getCell(addressColumn).value ?? '')
+    }
+  })
+
+  expect(downloadedAddress).toBe(thirdAddress)
 })

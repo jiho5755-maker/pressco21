@@ -41,8 +41,15 @@ async def adgroup_create(client: SearchAdClient, body: dict[str, Any]) -> Any:
 async def adgroup_update(client: SearchAdClient, adgroup_id: str, body: dict[str, Any]) -> Any:
     _require_sa()
     _require_write()
+    if "userStatus" in body:
+        body["userLock"] = body.pop("userStatus").upper() == "PAUSED"
+    _FM = {"bidAmt": "bidAmt", "userLock": "userLock", "dailyBudget": "dailyBudget"}
+    fields = {_FM[k] for k in body if k in _FM} or {"userLock"}
+    body["nccAdgroupId"] = adgroup_id
     log_write_action("adgroup_update", {"id": adgroup_id, **body})
-    return await client.put(f"/ncc/adgroups/{adgroup_id}", body)
+    return await client.put(
+        f"/ncc/adgroups/{adgroup_id}?fields={','.join(fields)}", body
+    )
 
 
 async def adgroup_delete(client: SearchAdClient, adgroup_id: str) -> Any:

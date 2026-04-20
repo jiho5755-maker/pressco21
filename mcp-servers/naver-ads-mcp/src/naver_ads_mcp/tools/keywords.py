@@ -51,12 +51,17 @@ async def keyword_update_bid_bulk(
     for item in updates:
         kid = item["nccKeywordId"]
         bid = item["bidAmt"]
+        agid = item.get("nccAdgroupId")
         if dry_run:
             results.append({"nccKeywordId": kid, "newBidAmt": bid, "action": "dry_run"})
         else:
+            if not agid:
+                kw = await client.get(f"/ncc/keywords/{kid}")
+                agid = kw["nccAdgroupId"]
             log_write_action("keyword_update_bid", {"id": kid, "bidAmt": bid})
             resp = await client.put(
-                f"/ncc/keywords/{kid}", {"bidAmt": bid, "useGroupBidAmt": False}
+                f"/ncc/keywords/{kid}?fields=bidAmt",
+                {"nccKeywordId": kid, "nccAdgroupId": agid, "bidAmt": bid, "useGroupBidAmt": False},
             )
             results.append({"nccKeywordId": kid, "result": resp})
 
@@ -77,8 +82,16 @@ async def keyword_update_status_bulk(
         if dry_run:
             results.append({"nccKeywordId": kid, "newStatus": status, "action": "dry_run"})
         else:
+            agid = item.get("nccAdgroupId")
+            if not agid:
+                kw = await client.get(f"/ncc/keywords/{kid}")
+                agid = kw["nccAdgroupId"]
+            lock = status.upper() == "PAUSED"
             log_write_action("keyword_update_status", {"id": kid, "status": status})
-            resp = await client.put(f"/ncc/keywords/{kid}", {"userStatus": status})
+            resp = await client.put(
+                f"/ncc/keywords/{kid}?fields=userLock",
+                {"nccKeywordId": kid, "nccAdgroupId": agid, "userLock": lock},
+            )
             results.append({"nccKeywordId": kid, "result": resp})
 
     return {"ok": True, "dry_run": dry_run, "count": len(results), "results": results}

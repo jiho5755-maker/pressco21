@@ -3,8 +3,19 @@ import { hrAttendanceRepository } from "@/src/db/repositories/hrAttendanceReposi
 import { hrEmployeeRegistryRepository } from "@/src/db/repositories/hrEmployeeRegistryRepository";
 import { staffRepository } from "@/src/db/repositories/staffRepository";
 import { resolveHrActor, isHrAutomationAuthorized } from "@/src/lib/hr-auth";
+import { toKSTDateKey } from "@/src/lib/hr-time";
 
 type ClockType = "clock_in" | "clock_out";
+
+function parseManualTime(manualTime: string): Date | null {
+  const match = manualTime.match(/^(\d{1,2}):(\d{2})$/);
+  if (!match) return null;
+  const h = parseInt(match[1], 10);
+  const m = parseInt(match[2], 10);
+  if (h < 0 || h > 23 || m < 0 || m > 59) return null;
+  const todayKST = toKSTDateKey(new Date());
+  return new Date(todayKST + "T" + String(h).padStart(2, "0") + ":" + String(m).padStart(2, "0") + ":00+09:00");
+}
 
 // 오늘 이미 찍힌 기록을 기준으로 상태 전이 가능 여부 판단
 // 중복 방지 상태머신: 출근 전 | 출근 후 | 퇴근 완료
@@ -45,7 +56,7 @@ async function validateStateTransition(staffId: string, type: ClockType) {
         body: {
           ok: false,
           error: "needs_clock_in",
-          message: "출근 기록이 없습니다. 먼저 출근을 기록해주세요.",
+          message: "출근 기록이 없습니다. '8:30 출근' 형태로 출근 시각을 먼저 보내주세요.",
         },
       };
     }
@@ -181,8 +192,39 @@ export async function POST(request: NextRequest) {
         );
       }
 
+      let manualRecordedAt: Date | undefined;
+      if (body.manualTime) {
+        const parsed = parseManualTime(body.manualTime);
+        if (!parsed) {
+          return Response.json(
+            { ok: false, error: "시간 형식 오류 (HH:MM)" },
+            { status: 400 },
+          );
+        }
+        const todayKST = toKSTDateKey(new Date());
+        const parsedDateKST = toKSTDateKey(parsed);
+        if (parsedDateKST !== todayKST) {
+          return Response.json(
+            { ok: false, error: "당일 내에만 자가 수정이 가능합니다. 다른 날짜는 관리자에게 요청하세요." },
+            { status: 400 },
+          );
+        }
+        manualRecordedAt = parsed;
+      }
+
       const stateError = await validateStateTransition(staffId, type);
-      if (stateError) {
+      if (stateError && manualRecordedAt && stateError.body.error === "already_clocked_in") {
+        const existing = stateError.body.existingRecord;
+        if (existing?.source === "self_correct") {
+          await hrAttendanceRepository.cancel(existing.id, {
+            actorId: staffId,
+            actorName: resolvedName,
+            reason: "자가 재정정 (시각 변경)",
+          });
+        } else {
+          return Response.json(stateError.body, { status: stateError.status });
+        }
+      } else if (stateError) {
         return Response.json(stateError.body, { status: stateError.status });
       }
 
@@ -193,12 +235,13 @@ export async function POST(request: NextRequest) {
         workMode,
         isDeemedHours,
         clientTime: body.clientTime,
-        source: body.source ?? "telegram",
+        source: manualRecordedAt ? "self_correct" : (body.source ?? "telegram"),
         telegramMsgId: body.telegramMsgId,
         locationDetail: body.locationDetail,
-        note: body.note,
+        note: manualRecordedAt ? (body.note ?? "자가 시각 정정") : body.note,
         actorId: staffId,
         actorName: resolvedName,
+        recordedAt: manualRecordedAt,
       });
       return Response.json(
         { ok: true, record, isDeemedHours, staffName: resolvedName },

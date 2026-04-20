@@ -406,11 +406,13 @@ export function getCustomerAddressEntries(
   if (!customer) return []
 
   const entries: Array<{ key: string; value: string }> = []
-  const primary = normalizeCustomerAddressText(customer.address1)
-  const secondary = normalizeCustomerAddressText(customer.address2)
-
-  if (primary) entries.push({ key: 'address1', value: primary })
-  if (secondary) entries.push({ key: 'address2', value: secondary })
+  for (let index = 1; index <= 10; index += 1) {
+    const key = `address${index}`
+    const value = normalizeCustomerAddressText(customer[key])
+    if (!value) continue
+    if (entries.some((entry) => entry.value === value)) continue
+    entries.push({ key, value })
+  }
 
   for (const [index, value] of parseCustomerExtraAddresses(customer).entries()) {
     if (entries.some((entry) => entry.value === value)) continue

@@ -41,8 +41,13 @@ async def ad_create(client: SearchAdClient, body: dict[str, Any]) -> Any:
 async def ad_update(client: SearchAdClient, ad_id: str, body: dict[str, Any]) -> Any:
     _require_sa()
     _require_write()
+    if "userStatus" in body:
+        body["userLock"] = body.pop("userStatus").upper() == "PAUSED"
+    _FM = {"userLock": "userLock", "inspectRequestMsg": "inspectRequestMsg", "ad": "ad"}
+    fields = {_FM[k] for k in body if k in _FM} or {"userLock"}
+    body["nccAdId"] = ad_id
     log_write_action("ad_update", {"id": ad_id, **body})
-    return await client.put(f"/ncc/ads/{ad_id}", body)
+    return await client.put(f"/ncc/ads/{ad_id}?fields={','.join(fields)}", body)
 
 
 async def ad_delete(client: SearchAdClient, ad_id: str) -> Any:

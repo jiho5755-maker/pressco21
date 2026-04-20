@@ -18,6 +18,7 @@ type CreateAttendanceInput = {
   note?: string;
   actorId: string;
   actorName: string;
+  recordedAt?: Date;
 };
 
 export const hrAttendanceRepository = {
@@ -40,6 +41,7 @@ export const hrAttendanceRepository = {
         telegramMsgId: input.telegramMsgId,
         locationDetail: input.locationDetail,
         note: input.note,
+        ...(input.recordedAt ? { recordedAt: input.recordedAt } : {}),
       })
       .returning();
 

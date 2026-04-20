@@ -48,7 +48,7 @@ export async function POST(request: NextRequest) {
     }
 
     // 10분 윈도우 검증
-    const elapsed = Date.now() - new Date(original.recordedAt).getTime();
+    const elapsed = Date.now() - new Date(original.createdAt).getTime();
     if (elapsed > CANCEL_WINDOW_MS) {
       const minutes = Math.floor(elapsed / 60000);
       return Response.json(

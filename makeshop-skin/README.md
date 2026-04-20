@@ -190,3 +190,7 @@ document.querySelector('.CodeMirror').CodeMirror.getValue()
 > 최초 구조 생성: 2026-03-17
 > 동기화 시스템 구축: 2026-03-30
 > 동기화 상태: `_sync/SYNC-STATUS.md` 참조
+
+## 디자이너 핸드북
+
+CSS/이미지 중심의 웹디자인 작업은 [`DESIGNER_HANDBOOK.md`](./DESIGNER_HANDBOOK.md)를 먼저 확인하세요.

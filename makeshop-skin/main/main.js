@@ -1455,6 +1455,82 @@
 (function() {
     'use strict';
 
+    // MakeShop 이벤트 팝업은 업로드 후 이미지명이 바뀌므로 슬롯(eventwindowN) 기준으로 라우팅한다.
+    // audience 값은 추후 회원등급 개편 시 groupIncludes만 추가하면 된다.
+    var PC21_POPUP_AUDIENCE_RULES = {
+        eventwindow0: {
+            audience: 'instructor',
+            groupIncludes: ['강사']
+        }
+    };
+
+    function pc21GetMemberContext() {
+        var contextNode = document.getElementById('pc21-main-member-context');
+        return {
+            isLogin: !!(contextNode && contextNode.getAttribute('data-login') === '1'),
+            groupName: String(contextNode ? contextNode.getAttribute('data-group') || '' : '')
+        };
+    }
+
+    function pc21AudienceMatches(rule) {
+        var context = pc21GetMemberContext();
+        var includes = rule && rule.groupIncludes ? rule.groupIncludes : [];
+        var i;
+        if (!rule || !rule.audience || rule.audience === 'all') {
+            return true;
+        }
+        if (rule.audience === 'guest') {
+            return !context.isLogin;
+        }
+        if (rule.audience === 'login') {
+            return context.isLogin;
+        }
+        if (!context.isLogin) {
+            return false;
+        }
+        for (i = 0; i < includes.length; i += 1) {
+            if (context.groupName.indexOf(includes[i]) !== -1) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    function pc21GetPopupCookieName(popup) {
+        var hideLink = popup ? popup.querySelector('a[href*="MAKESHOP_LY_NOVIEW(1"]') : null;
+        var match;
+        if (!hideLink) {
+            return '';
+        }
+        match = String(hideLink.getAttribute('href') || '').match(/MAKESHOP_LY_NOVIEW\([^,]+,\s*'[^']+',\s*'([^']+)'/);
+        return match ? match[1] : '';
+    }
+
+    function pc21GetPopupAudienceRule(popup) {
+        var cookieName = pc21GetPopupCookieName(popup);
+        return cookieName && PC21_POPUP_AUDIENCE_RULES[cookieName] ? PC21_POPUP_AUDIENCE_RULES[cookieName] : null;
+    }
+
+    function pc21FilterPopupsByAudience(allPopups) {
+        var filtered = [];
+        var rule;
+        for (var i = 0; i < allPopups.length; i++) {
+            rule = pc21GetPopupAudienceRule(allPopups[i]);
+            if (rule && !pc21AudienceMatches(rule)) {
+                allPopups[i].style.display = 'none';
+                allPopups[i].style.visibility = 'hidden';
+                allPopups[i].setAttribute('data-pc21-popup-audience-hidden', '1');
+                allPopups[i].setAttribute('data-pc21-popup-audience', rule.audience);
+                continue;
+            }
+            if (rule) {
+                allPopups[i].setAttribute('data-pc21-popup-audience', rule.audience);
+            }
+            filtered.push(allPopups[i]);
+        }
+        return filtered;
+    }
+
     // MakeShop 네이티브 getCookie 함수 사용하여 팝업별 쿠키 확인
     function areAllPopupsCookied(popups) {
         if (typeof getCookie !== 'function') return false;
@@ -1475,12 +1551,22 @@
     }
 
     function initPopupUnifier() {
-        var popups = document.querySelectorAll('[id^="MAKESHOPLY"]');
+        var allPopups = document.querySelectorAll('[id^="MAKESHOPLY"]');
+        var popups = pc21FilterPopupsByAudience(allPopups);
+        var hideStyle;
+        if (allPopups.length === 0) return;
+
+        // 원본 팝업 숨기기: style 태그 주입
+        hideStyle = document.createElement('style');
+        hideStyle.id = 'pc21-popup-unified-style';
+        hideStyle.textContent = '[id^="MAKESHOPLY"] { display: none !important; visibility: hidden !important; }';
+        document.head.appendChild(hideStyle);
+
         if (popups.length === 0) return;
 
         // 모든 팝업이 "오늘 그만 보기" 쿠키가 설정되어 있으면 숨기고 종료
         if (areAllPopupsCookied(popups)) {
-            for (var h = 0; h < popups.length; h++) popups[h].style.display = 'none';
+            for (var h = 0; h < allPopups.length; h++) allPopups[h].style.display = 'none';
             return;
         }
 
@@ -1492,12 +1578,6 @@
                 nativeHideHrefs.push(hideLink.getAttribute('href'));
             }
         }
-
-        // 원본 팝업 숨기기: style 태그 주입
-        var hideStyle = document.createElement('style');
-        hideStyle.id = 'pc21-popup-unified-style';
-        hideStyle.textContent = '[id^="MAKESHOPLY"] { display: none !important; visibility: hidden !important; }';
-        document.head.appendChild(hideStyle);
 
         // 콘텐츠 추출
         var slideContents = [];
@@ -1677,5 +1757,451 @@
         document.addEventListener('DOMContentLoaded', initPopupUnifier);
     } else {
         initPopupUnifier();
+    }
+})();
+/* 2026-04-18: visible price/original 기준 할인율 보정 */
+(function() {
+    'use strict';
+
+    function pc21ParseWon(text) {
+        var raw = String(text || '').replace(/[^0-9]/g, '');
+        return raw ? parseInt(raw, 10) : 0;
+    }
+
+    function pc21SetDiscountRate(container, saleNode, baseNode, insertAfterNode) {
+        var sale = pc21ParseWon(saleNode ? saleNode.textContent : '');
+        var base = pc21ParseWon(baseNode ? baseNode.textContent : '');
+        var existingNode = container.querySelector('.discount, .pc21-ug-discount');
+        if (sale && base && base === sale && baseNode) {
+            if (baseNode.style.display !== 'none') {
+                baseNode.style.display = 'none';
+            }
+            if (existingNode && existingNode.textContent !== '') {
+                existingNode.textContent = '';
+            }
+            return;
+        }
+        if (!sale || !base || base <= sale) {
+            return;
+        }
+        if (baseNode && baseNode.style.display === 'none') {
+            baseNode.style.display = '';
+        }
+        var rate = Math.round((base - sale) * 100 / base);
+        if (rate <= 0) {
+            return;
+        }
+        var node = existingNode;
+        if (!node) {
+            node = document.createElement('span');
+            node.className = 'pc21-ug-discount';
+            node.setAttribute('style', 'display:inline-flex;align-items:center;min-height:22px;padding:2px 7px;border-radius:999px;background:#fff3ed;margin-left:2px;color:#a85b45;font-size:13px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;vertical-align:baseline;');
+            if (insertAfterNode && insertAfterNode.parentNode) {
+                insertAfterNode.parentNode.insertBefore(node, insertAfterNode.nextSibling);
+            } else {
+                container.appendChild(node);
+            }
+        }
+        var rateText = rate + '%';
+        if (node.textContent !== rateText) {
+            node.textContent = rateText;
+        }
+    }
+
+    function pc21Each(scope, selector, callback) {
+        var root = scope || document;
+        if (root.matches && root.matches(selector)) {
+            callback(root);
+        }
+        if (!root.querySelectorAll) {
+            return;
+        }
+        var nodes = root.querySelectorAll(selector);
+        for (var i = 0; i < nodes.length; i++) {
+            callback(nodes[i]);
+        }
+    }
+
+    function renderVisibleDiscountRates(root) {
+        pc21Each(root, '.prds--price-wrap .prices', function(row) {
+            var saleNode = row.querySelector('.price');
+            var baseNode = row.querySelector('.original');
+            if (!saleNode || !baseNode) {
+                return;
+            }
+            pc21SetDiscountRate(row, saleNode, baseNode, baseNode);
+        });
+        pc21Each(root, '.price', function(row) {
+            var saleNode = row.querySelector('.normal');
+            var baseNode = row.querySelector('.consumer');
+            if (!saleNode || !baseNode) {
+                return;
+            }
+            pc21SetDiscountRate(row, saleNode, baseNode, baseNode);
+        });
+    }
+
+    renderVisibleDiscountRates(document);
+    var target = document.querySelector('#contents') || document.body;
+    if (target && window.MutationObserver) {
+        var observer = new MutationObserver(function(mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var added = mutations[i].addedNodes;
+                for (var j = 0; j < added.length; j++) {
+                    if (added[j].nodeType === 1) {
+                        renderVisibleDiscountRates(added[j]);
+                    }
+                }
+            }
+            renderVisibleDiscountRates(target);
+        });
+        observer.observe(target, { childList: true, subtree: true });
+    }
+})();
+
+/* 2026-04-20: main 강사회원가 정책맵 보정 */
+(function() {
+    'use strict';
+
+    var PC21_MAIN_MEMBER_PRICES =         {
+                "12195891": {
+                        "member": 2880,
+                        "base": 3600,
+                        "rate": 20
+                },
+                "373379": {
+                        "member": 981,
+                        "base": 1090,
+                        "rate": 10
+                },
+                "12195862": {
+                        "member": 8640,
+                        "base": 9600,
+                        "rate": 10
+                },
+                "11687103": {
+                        "member": 5400,
+                        "base": 6000,
+                        "rate": 10
+                },
+                "343528": {
+                        "member": 30600,
+                        "base": 34000,
+                        "rate": 10
+                },
+                "12195795": {
+                        "member": 4000,
+                        "base": 5000,
+                        "rate": 20
+                },
+                "12195793": {
+                        "member": 270,
+                        "base": 300,
+                        "rate": 10
+                },
+                "365362": {
+                        "member": 3150,
+                        "base": 3500,
+                        "rate": 10
+                },
+                "11700206": {
+                        "member": 1800,
+                        "base": 2000,
+                        "rate": 10
+                },
+                "11701355": {
+                        "member": 5400,
+                        "base": 6000,
+                        "rate": 10
+                },
+                "11700641": {
+                        "member": 3600,
+                        "base": 4000,
+                        "rate": 10
+                },
+                "370886": {
+                        "member": 54960,
+                        "base": 68700,
+                        "rate": 20
+                },
+                "370872": {
+                        "member": 34960,
+                        "base": 43700,
+                        "rate": 20
+                },
+                "11699386": {
+                        "member": 1710,
+                        "base": 1900,
+                        "rate": 10
+                },
+                "11699228": {
+                        "member": 5400,
+                        "base": 6000,
+                        "rate": 10
+                },
+                "11678267": {
+                        "member": 1530,
+                        "base": 1700,
+                        "rate": 10
+                },
+                "1156724": {
+                        "member": 13950,
+                        "base": 15500,
+                        "rate": 10
+                },
+                "353801": {
+                        "member": 40500,
+                        "base": 45000,
+                        "rate": 10
+                },
+                "353805": {
+                        "member": 67500,
+                        "base": 75000,
+                        "rate": 10
+                },
+                "6477": {
+                        "member": 2000,
+                        "base": 2500,
+                        "rate": 20
+                },
+                "185133": {
+                        "member": 2800,
+                        "base": 3500,
+                        "rate": 20
+                },
+                "727": {
+                        "member": 4950,
+                        "base": 5500,
+                        "rate": 10
+                },
+                "1156321": {
+                        "member": 5400,
+                        "base": 6000,
+                        "rate": 10
+                },
+                "11701484": {
+                        "member": 9000,
+                        "base": 10000,
+                        "rate": 10
+                },
+                "11701481": {
+                        "member": 3600,
+                        "base": 4000,
+                        "rate": 10
+                },
+                "11701480": {
+                        "member": 3600,
+                        "base": 4000,
+                        "rate": 10
+                },
+                "11701479": {
+                        "member": 1800,
+                        "base": 2000,
+                        "rate": 10
+                },
+                "11701478": {
+                        "member": 4500,
+                        "base": 5000,
+                        "rate": 10
+                },
+                "11701475": {
+                        "member": 3960,
+                        "base": 4400,
+                        "rate": 10
+                },
+                "11699110": {
+                        "member": 54000,
+                        "base": 60000,
+                        "rate": 10
+                },
+                "11699046": {
+                        "member": 2700,
+                        "base": 3000,
+                        "rate": 10
+                },
+                "11699044": {
+                        "member": 4950,
+                        "base": 5500,
+                        "rate": 10
+                },
+                "11699042": {
+                        "member": 3510,
+                        "base": 3900,
+                        "rate": 10
+                },
+                "11697091": {
+                        "member": 2520,
+                        "base": 2800,
+                        "rate": 10
+                },
+                "11618350": {
+                        "member": 13500,
+                        "base": 15000,
+                        "rate": 10
+                },
+                "11699261": {
+                        "member": 1080,
+                        "base": 1200,
+                        "rate": 10
+                },
+                "11697785": {
+                        "member": 2250,
+                        "base": 2500,
+                        "rate": 10
+                },
+                "11699656": {
+                        "member": 450,
+                        "base": 500,
+                        "rate": 10
+                },
+                "1154150": {
+                        "member": 3510,
+                        "base": 3900,
+                        "rate": 10
+                },
+                "1153915": {
+                        "member": 900,
+                        "base": 1000,
+                        "rate": 10
+                },
+                "11697948": {
+                        "member": 14400,
+                        "base": 16000,
+                        "rate": 10
+                },
+                "340120": {
+                        "member": 5850,
+                        "base": 6500,
+                        "rate": 10
+                }
+        };
+
+    function pc21IsInstructorMember() {
+        var contextNode = document.getElementById('pc21-main-member-context');
+        var groupName;
+        if (!contextNode || contextNode.getAttribute('data-login') !== '1') {
+            return false;
+        }
+        groupName = String(contextNode.getAttribute('data-group') || '');
+        return groupName.indexOf('강사') !== -1;
+    }
+
+    function pc21FormatWon(value) {
+        var num = parseInt(value, 10);
+        if (!num) {
+            return '';
+        }
+        return String(num).replace(/\B(?=(\d{3})+(?!\d))/g, ',') + '원';
+    }
+
+    function pc21GetBranduid(card) {
+        var link = card ? card.querySelector('a[href*="branduid="]') : null;
+        var match;
+        if (!link) {
+            return '';
+        }
+        match = String(link.getAttribute('href') || '').match(/[?&]branduid=([^&]+)/);
+        return match ? decodeURIComponent(match[1]) : '';
+    }
+
+    function pc21FindPriceBox(priceRow) {
+        var box;
+        if (!priceRow) {
+            return null;
+        }
+        box = priceRow.querySelector('.price .item-box');
+        if (!box) {
+            box = priceRow.querySelector('.price .itme-box');
+        }
+        if (!box) {
+            box = priceRow.querySelector('.price');
+        }
+        return box;
+    }
+
+    function pc21EnsureSpan(box, className, afterNode) {
+        var node = box ? box.querySelector('.' + className) : null;
+        if (node) {
+            return node;
+        }
+        node = document.createElement('span');
+        node.className = className;
+        if (className === 'pc21-ug-discount') {
+            node.setAttribute('style', 'display:inline-flex;align-items:center;min-height:22px;padding:2px 7px;border-radius:999px;background:#fff3ed;margin-left:2px;color:#a85b45;font-size:13px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;vertical-align:baseline;');
+        }
+        if (afterNode && afterNode.parentNode) {
+            afterNode.parentNode.insertBefore(node, afterNode.nextSibling);
+        } else if (box) {
+            box.appendChild(node);
+        }
+        return node;
+    }
+
+    function pc21ApplyMemberPriceToCard(card) {
+        var branduid = pc21GetBranduid(card);
+        var policy = PC21_MAIN_MEMBER_PRICES[branduid];
+        var priceRow = card ? card.querySelector('.prd-price') : null;
+        var box = pc21FindPriceBox(priceRow);
+        var normalNode;
+        var consumerNode;
+        var discountNode;
+        var applyKey;
+
+        if (!policy || !priceRow || !box || !policy.member || !policy.base || policy.member >= policy.base) {
+            return;
+        }
+        applyKey = String(policy.member) + '/' + String(policy.base) + '/' + String(policy.rate);
+        if (priceRow.getAttribute('data-pc21-member-applied') === applyKey) {
+            return;
+        }
+
+        normalNode = pc21EnsureSpan(box, 'normal', null);
+        consumerNode = pc21EnsureSpan(box, 'consumer', normalNode);
+        discountNode = pc21EnsureSpan(box, 'pc21-ug-discount', consumerNode);
+
+        normalNode.textContent = pc21FormatWon(policy.member);
+        consumerNode.textContent = pc21FormatWon(policy.base);
+        consumerNode.style.display = '';
+        discountNode.textContent = String(policy.rate) + '%';
+        discountNode.setAttribute('data-sale', String(policy.member));
+        discountNode.setAttribute('data-base', String(policy.base));
+        priceRow.setAttribute('data-pc21-member-applied', applyKey);
+        priceRow.setAttribute('data-pc21-member-source', 'main-policy-map-20260420');
+    }
+
+    function pc21ApplyMainMemberPrices(root) {
+        var scope = root || document;
+        var cards;
+        var i;
+        if (!pc21IsInstructorMember() || !scope.querySelectorAll) {
+            return;
+        }
+        cards = scope.querySelectorAll('dl.item-list');
+        for (i = 0; i < cards.length; i += 1) {
+            pc21ApplyMemberPriceToCard(cards[i]);
+        }
+        if (scope.matches && scope.matches('dl.item-list')) {
+            pc21ApplyMemberPriceToCard(scope);
+        }
+    }
+
+    pc21ApplyMainMemberPrices(document);
+    if (window.MutationObserver) {
+        var target = document.querySelector('#section02') || document.querySelector('#contents') || document.body;
+        var observer = new MutationObserver(function(mutations) {
+            var i;
+            var j;
+            var added;
+            for (i = 0; i < mutations.length; i += 1) {
+                added = mutations[i].addedNodes;
+                for (j = 0; j < added.length; j += 1) {
+                    if (added[j].nodeType === 1) {
+                        pc21ApplyMainMemberPrices(added[j]);
+                    }
+                }
+            }
+            pc21ApplyMainMemberPrices(target);
+        });
+        observer.observe(target, { childList: true, subtree: true });
     }
 })();

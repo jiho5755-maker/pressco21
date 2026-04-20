@@ -1,78 +1,169 @@
-// 상단 타이틀 변경
-changeNaviTitleText('상품검색');
+(function() {
+    'use strict';
 
-// 옵션보기
-document.querySelectorAll('.prds--more .option-detail .opt-btn').forEach(btn => btn.onclick = () => btn.classList.toggle('on'));
+    // 상단 타이틀 변경
+    changeNaviTitleText('상품검색');
 
-// 일반 검색
-const searchMenu = document.querySelector('.side-search-wrap');
-const searchOpen = document.querySelector('.side-search-open');
-const searchClose = document.querySelector('.side-search-close');
-const searchOverlay = document.querySelector('.side-search-overlay');
+    // 옵션보기
+    var optionButtons = document.querySelectorAll('.prds--more .option-detail .opt-btn');
+    for (var i = 0; i < optionButtons.length; i++) {
+        optionButtons[i].onclick = (function(btn) {
+            return function() {
+                btn.classList.toggle('on');
+            };
+        })(optionButtons[i]);
+    }
 
-const disableScroll = () => {
-    document.documentElement.classList.add('no-scroll');
-    document.body.classList.add('no-scroll');
-};
+    // 일반 검색
+    var searchMenu = document.querySelector('.side-search-wrap');
+    var searchOpen = document.querySelector('.side-search-open');
+    var searchClose = document.querySelector('.side-search-close');
+    var searchOverlay = document.querySelector('.side-search-overlay');
 
-const enableScroll = () => {
-    document.documentElement.classList.remove('no-scroll');
-    document.body.classList.remove('no-scroll');
-};
+    function disableScroll() {
+        document.documentElement.classList.add('no-scroll');
+        document.body.classList.add('no-scroll');
+    }
 
-const opensearchMenu = () => {
-    searchMenu?.classList.add('active');
-    searchOverlay?.classList.add('active');
-    disableScroll();
-};
+    function enableScroll() {
+        document.documentElement.classList.remove('no-scroll');
+        document.body.classList.remove('no-scroll');
+    }
 
-const closesearchMenu = () => {
-    searchMenu?.classList.remove('active');
-    searchOverlay?.classList.remove('active');
-    enableScroll();
-};
+    function openSearchMenu() {
+        if (searchMenu) {
+            searchMenu.classList.add('active');
+        }
+        if (searchOverlay) {
+            searchOverlay.classList.add('active');
+        }
+        disableScroll();
+    }
 
-searchOpen?.addEventListener('click', opensearchMenu);
-searchClose?.addEventListener('click', closesearchMenu);
-searchOverlay?.addEventListener('click', closesearchMenu);
+    function closeSearchMenu() {
+        if (searchMenu) {
+            searchMenu.classList.remove('active');
+        }
+        if (searchOverlay) {
+            searchOverlay.classList.remove('active');
+        }
+        enableScroll();
+    }
 
-// 다찾다 검색 파인더
-/*const sfinderMenu = document.querySelector('.side-sfinder-wrap');
-const sfinderOpen = document.querySelector('.side-sfinder-open');
-const sfinderClose = document.querySelector('.side-sfinder-close');
-const sfinderOverlay = document.querySelector('.side-sfinder-overlay');
+    function addClick(node, handler) {
+        if (node) {
+            node.addEventListener('click', handler);
+        }
+    }
 
-const sfinderScroll_off = () => {
-    document.documentElement.classList.add('no-scroll');
-    document.body.classList.add('no-scroll');
-};
+    addClick(searchOpen, openSearchMenu);
+    addClick(searchClose, closeSearchMenu);
+    addClick(searchOverlay, closeSearchMenu);
 
-const sfinderScroll_on = () => {
-    document.documentElement.classList.remove('no-scroll');
-    document.body.classList.remove('no-scroll');
-};
+    // 다찾다 검색 파인더: 현재 편집기 원본에서 비활성 주석 처리된 영역은 유지
+})();
 
-const openfinderMenu = () => {
-    sfinderMenu?.classList.add('active');
-    sfinderOverlay?.classList.add('active');
-    sfinderScroll_off();
-};
 
-const closefinderMenu = () => {
-    sfinderMenu?.classList.remove('active');
-    sfinderOverlay?.classList.remove('active');
-    sfinderScroll_on();
-};
+/* 2026-04-18: visible price/original 기준 할인율 보정 */
+(function() {
+    'use strict';
 
-sfinderOpen?.addEventListener('click', openfinderMenu);
-sfinderClose?.addEventListener('click', closefinderMenu);
-sfinderOverlay?.addEventListener('click', closefinderMenu);
+    function pc21ParseWon(text) {
+        var raw = String(text || '').replace(/[^0-9]/g, '');
+        return raw ? parseInt(raw, 10) : 0;
+    }
 
-const toggleOnClick = (selector) => {
-    document.querySelectorAll(selector).forEach(el =>
-        el?.addEventListener('click', () => el.classList.toggle('on'))
-    );
-};
+    function pc21SetDiscountRate(container, saleNode, baseNode, insertAfterNode) {
+        var sale = pc21ParseWon(saleNode ? saleNode.textContent : '');
+        var base = pc21ParseWon(baseNode ? baseNode.textContent : '');
+        var existingNode = container.querySelector('.discount, .pc21-ug-discount');
+        if (sale && base && base === sale && baseNode) {
+            if (baseNode.style.display !== 'none') {
+                baseNode.style.display = 'none';
+            }
+            if (existingNode && existingNode.textContent !== '') {
+                existingNode.textContent = '';
+            }
+            return;
+        }
+        if (!sale || !base || base <= sale) {
+            return;
+        }
+        if (baseNode && baseNode.style.display === 'none') {
+            baseNode.style.display = '';
+        }
 
-toggleOnClick('.side-sfinder-wrap .finder-options');
-toggleOnClick('.side-sfinder-wrap .option-title');*/
+        var rate = Math.round((base - sale) * 100 / base);
+        if (rate <= 0) {
+            return;
+        }
+
+        var node = existingNode;
+        if (!node) {
+            node = document.createElement('span');
+            node.className = 'pc21-ug-discount';
+            node.setAttribute('style', 'display:inline-flex;align-items:center;min-height:22px;padding:2px 7px;border-radius:999px;background:#fff3ed;margin-left:2px;color:#a85b45;font-size:13px;font-weight:800;letter-spacing:-0.02em;line-height:1.2;vertical-align:baseline;');
+            if (insertAfterNode && insertAfterNode.parentNode) {
+                insertAfterNode.parentNode.insertBefore(node, insertAfterNode.nextSibling);
+            } else {
+                container.appendChild(node);
+            }
+        }
+        var rateText = rate + '%';
+        if (node.textContent !== rateText) {
+            node.textContent = rateText;
+        }
+    }
+
+    function pc21Each(scope, selector, callback) {
+        var root = scope || document;
+        if (root.matches && root.matches(selector)) {
+            callback(root);
+        }
+        if (!root.querySelectorAll) {
+            return;
+        }
+        var nodes = root.querySelectorAll(selector);
+        for (var i = 0; i < nodes.length; i++) {
+            callback(nodes[i]);
+        }
+    }
+
+    function renderVisibleDiscountRates(root) {
+        pc21Each(root, '.prds--price-wrap .prices', function(row) {
+            var saleNode = row.querySelector('.price');
+            var baseNode = row.querySelector('.original');
+            if (!saleNode || !baseNode) {
+                return;
+            }
+            pc21SetDiscountRate(row, saleNode, baseNode, baseNode);
+        });
+
+        pc21Each(root, '.price', function(row) {
+            var saleNode = row.querySelector('.normal');
+            var baseNode = row.querySelector('.consumer');
+            if (!saleNode || !baseNode) {
+                return;
+            }
+            pc21SetDiscountRate(row, saleNode, baseNode, baseNode);
+        });
+    }
+
+    renderVisibleDiscountRates(document);
+
+    var target = document.querySelector('#contents') || document.body;
+    if (target && window.MutationObserver) {
+        var observer = new MutationObserver(function(mutations) {
+            for (var i = 0; i < mutations.length; i++) {
+                var added = mutations[i].addedNodes;
+                for (var j = 0; j < added.length; j++) {
+                    if (added[j].nodeType === 1) {
+                        renderVisibleDiscountRates(added[j]);
+                    }
+                }
+            }
+            renderVisibleDiscountRates(target);
+        });
+        observer.observe(target, { childList: true, subtree: true });
+    }
+})();

@@ -118,3 +118,61 @@
     .products-wrapper .prds-list.gallery { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--cw-size-40) var(--cw-size-8); margin-top: var(--cw-size-40); }
     .products-wrapper .prds-btn a { width: 100%; }
 }
+
+/* 2026-04-20: 가격 숫자 위계 통일 */
+#contents .prds--price-wrap .prices,
+.full-wrapper .prds--price-wrap .prices,
+.search-wrapper + .products-wrapper .prds--price-wrap .prices,
+.products-wrapper .prds--price-wrap .prices {
+    align-items: baseline;
+    gap: 4px 6px;
+}
+
+#contents .prds--price-wrap .prices .price,
+.full-wrapper .prds--price-wrap .prices .price,
+.search-wrapper + .products-wrapper .prds--price-wrap .prices .price,
+.products-wrapper .prds--price-wrap .prices .price {
+    color: #17130f;
+    font-weight: 800;
+    letter-spacing: -0.03em;
+}
+
+#contents .prds--price-wrap .prices .original,
+.full-wrapper .prds--price-wrap .prices .original,
+.search-wrapper + .products-wrapper .prds--price-wrap .prices .original,
+.products-wrapper .prds--price-wrap .prices .original {
+    color: #9a928a;
+    font-weight: 500;
+    text-decoration-color: #c8beb5;
+}
+
+/* 2026-04-18: 회원그룹/정가 대비 할인율 표시 보강 */
+#contents .prds--price-wrap .prices .pc21-ug-discount,
+.full-wrapper .prds--price-wrap .prices .pc21-ug-discount,
+.products-wrapper .prds--price-wrap .prices .pc21-ug-discount,
+#contents .prds--price-wrap .prices .discount,
+.full-wrapper .prds--price-wrap .prices .discount,
+.products-wrapper .prds--price-wrap .prices .discount {
+    display: inline-flex !important;
+    align-items: center !important;
+    min-height: 22px !important;
+    padding: 2px 7px !important;
+    border-radius: 999px !important;
+    background: #fff3ed !important;
+    margin-left: 2px !important;
+    color: #a85b45 !important;
+    font-size: 13px !important;
+    font-weight: 800 !important;
+    letter-spacing: -0.02em !important;
+    vertical-align: baseline !important;
+    line-height: 1.2 !important;
+}
+
+#contents .prds--price-wrap .prices .pc21-ug-discount:empty,
+.full-wrapper .prds--price-wrap .prices .pc21-ug-discount:empty,
+.products-wrapper .prds--price-wrap .prices .pc21-ug-discount:empty,
+#contents .prds--price-wrap .prices .discount:empty,
+.full-wrapper .prds--price-wrap .prices .discount:empty,
+.products-wrapper .prds--price-wrap .prices .discount:empty {
+    display: none !important;
+}

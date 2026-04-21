@@ -70,3 +70,4 @@ makeshop-skin/_sync/screenshots/after/*.png
 makeshop-skin/_sync/screenshots/diff/*.png
 # Retired AI handoff board (use worktree + hooks instead)
 AI_SYNC.md
+_reference/

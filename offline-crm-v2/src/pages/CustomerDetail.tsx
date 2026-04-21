@@ -169,6 +169,140 @@ const TX_TYPE_STYLE: Record<string, string> = {
   메모: 'bg-gray-50 text-gray-600',
 }
 
+interface HistoryRow {
+  key: string
+  source: 'crm' | 'legacy' | 'legacySettlement'
+  recordId: number
+  date: string
+  legacyBookId?: string
+  txType: string
+  amount: number
+  memo: string
+  slipNo?: string
+  isCrm: boolean
+}
+
+type HistoryLens = 'all' | 'receivable' | 'cashIn' | 'cashOut' | 'exceptions'
+
+interface FinancialTimelineRow extends HistoryRow {
+  receivableIncrease: number
+  receivableDecrease: number
+  cashInAmount: number
+  cashOutAmount: number
+  signedImpact: number
+  balanceBefore: number
+  balanceAfter: number
+  sourceLabel: string
+  impactSummary: string
+  isException: boolean
+  isNeutral: boolean
+}
+
+function getHistorySignedImpact(row: HistoryRow): number {
+  const absoluteAmount = Math.abs(row.amount)
+  switch (row.txType) {
+    case '출고':
+      return absoluteAmount
+    case '입금':
+    case '반입':
+    case '예치금 적립':
+    case '예치금 사용':
+    case '환불대기':
+      return -absoluteAmount
+    case '환불':
+    case '환불대기 해제':
+      return absoluteAmount
+    default:
+      return 0
+  }
+}
+
+function getHistoryCashInAmount(row: HistoryRow): number {
+  const absoluteAmount = Math.abs(row.amount)
+  switch (row.txType) {
+    case '입금':
+    case '예치금 적립':
+    case '환불대기':
+      return absoluteAmount
+    default:
+      return 0
+  }
+}
+
+function getHistoryCashOutAmount(row: HistoryRow): number {
+  const absoluteAmount = Math.abs(row.amount)
+  switch (row.txType) {
+    case '지급':
+    case '환불':
+      return absoluteAmount
+    default:
+      return 0
+  }
+}
+
+function isHistoryException(row: HistoryRow): boolean {
+  return ['반입', '메모', '예치금 적립', '예치금 사용', '환불대기', '환불', '환불대기 해제'].includes(row.txType)
+}
+
+function matchesHistoryLens(row: FinancialTimelineRow, lens: HistoryLens): boolean {
+  switch (lens) {
+    case 'receivable':
+      return row.signedImpact !== 0
+    case 'cashIn':
+      return row.cashInAmount > 0
+    case 'cashOut':
+      return row.cashOutAmount > 0
+    case 'exceptions':
+      return row.isException
+    default:
+      return true
+  }
+}
+
+function formatPositionAmount(value: number): string {
+  return `${Math.abs(value).toLocaleString()}원`
+}
+
+function formatPositionLabel(value: number): string {
+  if (value > 0) return `받을 돈 ${formatPositionAmount(value)}`
+  if (value < 0) return `예치/환불 우위 ${formatPositionAmount(value)}`
+  return '정산 0원'
+}
+
+function getPositionTone(value: number): string {
+  if (value > 0) return 'text-red-600'
+  if (value < 0) return 'text-emerald-700'
+  return 'text-[#3d6b4a]'
+}
+
+function buildHistoryImpactSummary(row: HistoryRow, signedImpact: number): string {
+  if (row.txType === '지급') return '지급 이벤트 · 고객 미수 잔액에는 직접 반영하지 않음'
+  if (row.txType === '메모') return '메모 이벤트 · 잔액 변동 없음'
+  if (signedImpact > 0) return `받을 돈 ${formatPositionAmount(signedImpact)} 증가`
+  if (signedImpact < 0) return `받을 돈 ${formatPositionAmount(signedImpact)} 감소`
+  return '잔액 변동 없음'
+}
+
+function buildHistoryPrimaryText(row: HistoryRow): string {
+  if (row.isCrm) return row.slipNo || row.memo
+  const [primary] = row.memo.split(' · ')
+  return primary || row.memo || '-'
+}
+
+function buildHistorySecondaryText(row: FinancialTimelineRow): string {
+  const parts: string[] = [row.sourceLabel]
+  if (row.isCrm && row.memo && row.memo !== row.slipNo) {
+    parts.push(row.memo)
+  } else if (!row.isCrm) {
+    const compactMeta = row.memo
+      .split(' · ')
+      .slice(1, 3)
+      .join(' · ')
+    if (compactMeta) parts.push(compactMeta)
+  }
+  return parts.join(' · ')
+}
+
 export function CustomerDetail() {
   const { id } = useParams<{ id: string }>()
   const navigate = useNavigate()
@@ -182,6 +316,7 @@ export function CustomerDetail() {
   const [editingInvoiceId, setEditingInvoiceId] = useState<number | undefined>(undefined)
   const [historySearch, setHistorySearch] = useState('')
   const [historyTypeFilter, setHistoryTypeFilter] = useState('ALL')
+  const [historyLens, setHistoryLens] = useState<HistoryLens>('all')
   const [historyDateFrom, setHistoryDateFrom] = useState(thisMonthStart)
   const [historyDateTo, setHistoryDateTo] = useState(todayStr)
   const [legacyPaymentAmount, setLegacyPaymentAmount] = useState('')
@@ -313,6 +448,14 @@ export function CustomerDetail() {
   const customerLegacyId = customer?.legacy_id != null ? String(customer.legacy_id).trim() : undefined
   const { data: txAll } = useCustomerTxAll(customerLegacyId, customer?.name)
   const { data: txPage } = useCustomerTxPage(customerLegacyId, customer?.name, txOffset)
+  const customerAccountingMeta = useMemo(
+    () => parseCustomerAccountingMeta(customer?.memo as string | undefined),
+    [customer?.memo],
+  )
+  const currentNetReceivablePosition =
+    (((customer?.outstanding_balance as number | undefined) ?? 0)
+      - customerAccountingMeta.depositBalance
+      - customerAccountingMeta.refundPendingBalance)
 
   const { data: customerLinks = [] } = useQuery({
     queryKey: ['customer-detail-link-customers'],
@@ -402,22 +545,9 @@ export function CustomerDetail() {
   }
 
   // ── 거래내역 탭: CRM 명세표 + 레거시 txHistory 병합 ──
-  const mergedHistory = useMemo(() => {
-    type Row = {
-      key: string
-      source: 'crm' | 'legacy' | 'legacySettlement'
-      recordId: number
-      date: string
-      legacyBookId?: string
-      txType: string
-      amount: number
-      memo: string
-      slipNo?: string
-      isCrm: boolean
-    }
-
+  const mergedHistory = useMemo<HistoryRow[]>(() => {
     // 레거시 txHistory (현재 페이지)
-    const txRows: Row[] = (txPage?.list ?? []).map((tx) => ({
+    const txRows: HistoryRow[] = (txPage?.list ?? []).map((tx) => ({
       key: `tx-${tx.Id}`,
       source: 'legacy',
       recordId: tx.Id,
@@ -431,7 +561,7 @@ export function CustomerDetail() {
     }))
 
     // CRM v2 명세표 → 출고 행
-    const invRows: Row[] = []
+    const invRows: HistoryRow[] = []
     for (const inv of invoiceData) {
       invRows.push({
         key: `inv-${inv.Id}`,
@@ -460,7 +590,7 @@ export function CustomerDetail() {
       }
     }
 
-    const legacySettlementRows: Row[] = parseLegacyReceivableMemo(customer?.memo as string | undefined).settlements.map((entry, index) => ({
+    const legacySettlementRows: HistoryRow[] = parseLegacyReceivableMemo(customer?.memo as string | undefined).settlements.map((entry, index) => ({
       key: `legacy-settlement-${index}`,
       source: 'legacySettlement',
       recordId: -(index + 1),
@@ -479,7 +609,7 @@ export function CustomerDetail() {
       isCrm: false,
     }))
 
-    const legacyPayableRows: Row[] = parseLegacyPayableMemo(customer?.memo as string | undefined).settlements.map((entry, index) => ({
+    const legacyPayableRows: HistoryRow[] = parseLegacyPayableMemo(customer?.memo as string | undefined).settlements.map((entry, index) => ({
       key: `legacy-payable-${index}`,
       source: 'legacySettlement',
       recordId: -(10000 + index + 1),
@@ -498,7 +628,7 @@ export function CustomerDetail() {
       isCrm: false,
     }))
 
-    const accountingRows: Row[] = parseCustomerAccountingMeta(customer?.memo as string | undefined).events.map((entry, index) => {
+    const accountingRows: HistoryRow[] = customerAccountingMeta.events.map((entry, index) => {
       const txTypeMap: Record<string, string> = {
         deposit_added: '예치금 적립',
         deposit_used: '예치금 사용',
@@ -542,11 +672,37 @@ export function CustomerDetail() {
         return b.key.localeCompare(a.key)
       })
       .slice(0, 100)
-  }, [txPage, invoiceData, customer?.memo, customerLegacyId])
+  }, [txPage, invoiceData, customer?.memo, customerLegacyId, customerAccountingMeta])
+
+  const historyTimelineRows = useMemo<FinancialTimelineRow[]>(() => {
+    let reversedBalance = currentNetReceivablePosition
+    return mergedHistory.map((row) => {
+      const signedImpact = getHistorySignedImpact(row)
+      const balanceAfter = reversedBalance
+      const balanceBefore = balanceAfter - signedImpact
+      reversedBalance = balanceBefore
+
+      return {
+        ...row,
+        receivableIncrease: Math.max(signedImpact, 0),
+        receivableDecrease: Math.max(-signedImpact, 0),
+        cashInAmount: getHistoryCashInAmount(row),
+        cashOutAmount: getHistoryCashOutAmount(row),
+        signedImpact,
+        balanceBefore,
+        balanceAfter,
+        sourceLabel: row.isCrm ? '새 입력 CRM' : row.source === 'legacySettlement' ? '운영 보정/레거시 정산' : '기존 장부',
+        impactSummary: buildHistoryImpactSummary(row, signedImpact),
+        isException: isHistoryException(row),
+        isNeutral: signedImpact === 0,
+      }
+    })
+  }, [currentNetReceivablePosition, mergedHistory])
 
   const filteredHistory = useMemo(() => {
     const keyword = historySearch.trim().toLowerCase()
-    return mergedHistory.filter((row) => {
+    return historyTimelineRows.filter((row) => {
+      if (!matchesHistoryLens(row, historyLens)) return false
       if (historyTypeFilter !== 'ALL' && row.txType !== historyTypeFilter) return false
       if (historyDateFrom && row.date < historyDateFrom) return false
       if (historyDateTo && row.date > historyDateTo) return false
@@ -556,13 +712,17 @@ export function CustomerDetail() {
         row.memo,
         row.slipNo,
         row.legacyBookId,
+        row.sourceLabel,
+        row.impactSummary,
       ].some((value) => (value ?? '').toLowerCase().includes(keyword))
     })
-  }, [mergedHistory, historySearch, historyTypeFilter, historyDateFrom, historyDateTo])
+  }, [historyTimelineRows, historySearch, historyTypeFilter, historyDateFrom, historyDateTo, historyLens])
 
   const historySummary = useMemo(() => {
     const salesRows = filteredHistory.filter((row) => row.txType === '출고')
     const crmSalesCount = salesRows.filter((row) => row.isCrm).length
+    const earliestVisibleRow = filteredHistory[filteredHistory.length - 1]
+    const latestVisibleRow = filteredHistory[0]
 
     return {
       count: filteredHistory.length,
@@ -572,11 +732,18 @@ export function CustomerDetail() {
       legacyCount: filteredHistory.filter((row) => !row.isCrm).length,
       crmSalesCount,
       legacySalesCount: salesRows.length - crmSalesCount,
+      receivableIncrease: filteredHistory.reduce((sum, row) => sum + row.receivableIncrease, 0),
+      receivableDecrease: filteredHistory.reduce((sum, row) => sum + row.receivableDecrease, 0),
+      cashInAmount: filteredHistory.reduce((sum, row) => sum + row.cashInAmount, 0),
+      cashOutAmount: filteredHistory.reduce((sum, row) => sum + row.cashOutAmount, 0),
+      exceptionCount: filteredHistory.filter((row) => row.isException).length,
+      neutralCount: filteredHistory.filter((row) => row.isNeutral).length,
+      startingBalance: earliestVisibleRow?.balanceBefore ?? currentNetReceivablePosition,
+      endingBalance: latestVisibleRow?.balanceAfter ?? currentNetReceivablePosition,
     }
-  }, [filteredHistory])
+  }, [currentNetReceivablePosition, filteredHistory])
 
   const historySettlementSummary = useMemo(() => {
-    const currentAccountingMeta = parseCustomerAccountingMeta(customer?.memo as string | undefined)
     const salesAmount = filteredHistory
       .filter((row) => row.txType === '출고')
       .reduce((sum, row) => sum + row.amount, 0)
@@ -600,8 +767,8 @@ export function CustomerDetail() {
       .reduce((sum, row) => sum + row.amount, 0)
     const periodReceivableDelta = salesAmount - receiptAmount - returnAmount - depositUsedAmount
     const currentOutstanding = (customer?.outstanding_balance as number | undefined) ?? 0
-    const currentDeposit = currentAccountingMeta.depositBalance
-    const currentRefundPending = currentAccountingMeta.refundPendingBalance
+    const currentDeposit = customerAccountingMeta.depositBalance
+    const currentRefundPending = customerAccountingMeta.refundPendingBalance
     return {
       salesAmount,
       receiptAmount,
@@ -611,17 +778,19 @@ export function CustomerDetail() {
       refundPendingAmount,
       refundPaidAmount,
       periodReceivableDelta,
+      netTimelineDelta: filteredHistory.reduce((sum, row) => sum + row.signedImpact, 0),
       currentOutstanding,
       currentDeposit,
       currentRefundPending,
       netReceivable: Math.max(0, currentOutstanding - currentDeposit),
       netCredit: Math.max(0, currentDeposit - currentOutstanding),
     }
-  }, [customer?.memo, customer?.outstanding_balance, filteredHistory])
+  }, [customer?.outstanding_balance, customerAccountingMeta.depositBalance, customerAccountingMeta.refundPendingBalance, filteredHistory])
 
   function resetHistoryFilters() {
     setHistorySearch('')
     setHistoryTypeFilter('ALL')
+    setHistoryLens('all')
     setHistoryDateFrom(thisMonthStart())
     setHistoryDateTo(todayStr())
   }
@@ -688,7 +857,6 @@ export function CustomerDetail() {
   const legacyMemoState = parseLegacyReceivableMemo(customer.memo as string | undefined)
   const legacyPayableMemoState = parseLegacyPayableMemo(customer.memo as string | undefined)
   const legacySettlementTimeline = buildSettlementTimeline(legacyMemoState.settlements, currentLegacyReceivable)
-  const customerAccountingMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
   const activeOperatorProfile = loadActiveWorkOperatorProfile()
   const crmOutstandingBalance = todayResolvedInvoices.reduce((sum, invoice) => sum + invoice.asOfRemaining, 0)
   const customerDisplayMemo = getDisplayMemo(customer.memo as string | undefined)
@@ -723,6 +891,42 @@ export function CustomerDetail() {
         .filter((name): name is string => Boolean(name && name !== customer.name)),
     ),
   )
+  const heroMetaItems = [
+    CUSTOMER_TYPE_LABELS[customer.customer_type ?? ''] ?? customer.customer_type ?? '유형 미분류',
+    formatPhoneNumber(customer.mobile as string) || formatPhoneNumber(customer.phone ?? customer.phone1) || '',
+    customer.last_order_date?.slice(0, 10) ? `최근 거래 ${customer.last_order_date.slice(0, 10)}` : '',
+  ].filter(Boolean)
+  const heroPrimaryStats = [
+    { label: '현재 미수금', value: `${outstandingBalance.toLocaleString()}원`, tone: outstandingBalance > 0 ? 'text-red-600' : 'text-foreground' },
+    { label: '누적 매출', value: `${(customer.total_order_amount ?? 0).toLocaleString()}원`, tone: 'text-foreground' },
+    { label: '거래 건수', value: `${(customer.total_order_count ?? 0).toLocaleString()}건`, tone: 'text-foreground' },
+  ]
+  const financeBreakdownStats = [
+    {
+      label: '이월 미수',
+      value: `${legacyBalanceBaseline.toLocaleString()}원`,
+      helper: '기존 장부 원본 잔액',
+      tone: legacyBalanceBaseline > 0 ? 'text-red-600' : legacyBalanceBaseline < 0 ? 'text-blue-700' : 'text-foreground',
+    },
+    {
+      label: '새 입력 미수',
+      value: `${crmOutstandingBalance.toLocaleString()}원`,
+      helper: 'CRM 명세표 기준',
+      tone: crmOutstandingBalance > 0 ? 'text-red-600' : crmOutstandingBalance < 0 ? 'text-blue-700' : 'text-foreground',
+    },
+    {
+      label: '예치금',
+      value: `${customerAccountingMeta.depositBalance.toLocaleString()}원`,
+      helper: '차감 가능한 선입금',
+      tone: customerAccountingMeta.depositBalance > 0 ? 'text-emerald-700' : 'text-foreground',
+    },
+    {
+      label: '환불대기',
+      value: `${customerAccountingMeta.refundPendingBalance.toLocaleString()}원`,
+      helper: '고객 반환 예정',
+      tone: customerAccountingMeta.refundPendingBalance > 0 ? 'text-amber-700' : 'text-foreground',
+    },
+  ]
 
   async function refreshCustomerViews() {
     await Promise.all([
@@ -887,121 +1091,75 @@ export function CustomerDetail() {
         <ArrowLeft className="h-4 w-4 mr-1" /> 목록으로
       </Button>
 
-      {/* 헤더 */}
-      <div className="flex items-start gap-6 mb-6 flex-wrap">
-        <div className="flex-1 min-w-0">
-          <div className="flex items-center gap-2 flex-wrap">
-            <h2 className="text-2xl font-bold">{customer.name}</h2>
-            {status && STATUS_COLORS[status] && (
-              <span
-                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-white"
-                style={{ backgroundColor: STATUS_COLORS[status].bg }}
-              >
-                {STATUS_COLORS[status].label}
-              </span>
-            )}
-            {effectiveGrade && GRADE_COLORS[effectiveGrade] && (
-              <span
-                className="inline-flex items-center gap-0.5 px-2.5 py-0.5 rounded-full text-xs font-medium"
-                style={{ backgroundColor: GRADE_COLORS[effectiveGrade].bg, color: GRADE_COLORS[effectiveGrade].text }}
-              >
-                {effectiveGrade === 'AMBASSADOR' && '★'}
-                {GRADE_COLORS[effectiveGrade].label}
-              </span>
-            )}
+      <div className="mb-6 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm">
+        <div className="border-b border-slate-200 px-6 py-5">
+          <div className="flex flex-col gap-5 xl:flex-row xl:items-start xl:justify-between">
+            <div className="min-w-0 flex-1">
+              <div className="flex flex-wrap items-center gap-2">
+                <h2 className="text-2xl font-semibold tracking-tight text-slate-900">{customer.name}</h2>
+                {status && STATUS_COLORS[status] && (
+                  <span
+                    className="inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                    style={{ color: STATUS_COLORS[status].bg, borderColor: STATUS_COLORS[status].bg }}
+                  >
+                    {STATUS_COLORS[status].label}
+                  </span>
+                )}
+                {effectiveGrade && GRADE_COLORS[effectiveGrade] && (
+                  <span
+                    className="inline-flex items-center gap-0.5 rounded-full border px-2 py-0.5 text-[10px] font-medium"
+                    style={{ color: GRADE_COLORS[effectiveGrade].text, borderColor: GRADE_COLORS[effectiveGrade].bg }}
+                  >
+                    {effectiveGrade === 'AMBASSADOR' && '★'}
+                    {GRADE_COLORS[effectiveGrade].label}
+                  </span>
+                )}
+              </div>
+              <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-slate-500">
+                {heroMetaItems.map((item) => (
+                  <span key={item}>{item}</span>
+                ))}
+              </div>
+              {((customer.book_name && customer.book_name !== customer.name) || invoiceNameVariants.length > 0) && (
+                <p className="mt-3 text-xs text-amber-700">
+                  장부/명세표에 다른 거래명이 유지되는 고객입니다.
+                  {customer.book_name && customer.book_name !== customer.name ? ` 장부명: ${customer.book_name}.` : ''}
+                  {invoiceNameVariants.length > 0 ? ` 표기명: ${invoiceNameVariants.join(', ')}.` : ''}
+                </p>
+              )}
+            </div>
+
+            <div className="grid min-w-[320px] gap-3 sm:grid-cols-3 xl:min-w-[420px]">
+              {heroPrimaryStats.map((stat, index) => (
+                <div
+                  key={stat.label}
+                  className={index === 0
+                    ? 'rounded-xl border border-slate-300 bg-white px-4 py-4 shadow-sm'
+                    : 'rounded-xl border border-slate-200 bg-slate-50/70 px-4 py-3'}
+                >
+                  <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">{stat.label}</p>
+                  <p className={`mt-2 font-semibold tracking-tight ${index === 0 ? 'text-3xl' : 'text-xl'} ${stat.tone}`}>{stat.value}</p>
+                </div>
+              ))}
+            </div>
           </div>
-          <p className="text-sm text-muted-foreground mt-1">
-            {CUSTOMER_TYPE_LABELS[customer.customer_type ?? ''] ?? customer.customer_type ?? '유형 미분류'}
-          </p>
         </div>
 
-        {/* 요약 stat 카드 */}
-        <div className="flex gap-3 flex-wrap">
-          <div className="bg-white rounded-lg border px-4 py-3 text-center min-w-[120px]">
-            <p className="text-xs text-muted-foreground mb-0.5">총 거래 건수</p>
-            <p className="text-lg font-bold">{(customer.total_order_count ?? 0).toLocaleString()}건</p>
+        <div className="flex flex-col gap-4 px-6 py-4 lg:flex-row lg:items-center lg:justify-between">
+          <div className="grid flex-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
+            {financeBreakdownStats.map((stat) => (
+              <div key={stat.label} className="min-w-0">
+                <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">{stat.label}</p>
+                <p className={`mt-1 text-base font-semibold ${stat.tone}`}>{stat.value}</p>
+                <p className="mt-1 text-xs text-slate-400">{stat.helper}</p>
+              </div>
+            ))}
           </div>
-          <div className="bg-white rounded-lg border px-4 py-3 text-center min-w-[120px]">
-            <p className="text-xs text-muted-foreground mb-0.5">총 매출</p>
-            <p className="text-lg font-bold">{(customer.total_order_amount ?? 0).toLocaleString()}원</p>
-          </div>
-          <div className="bg-white rounded-lg border px-4 py-3 text-center min-w-[120px] relative group">
-            <p className="text-xs text-muted-foreground mb-0.5">현재 잔액</p>
-            <p className={`text-lg font-bold ${outstandingBalance > 0 ? 'text-red-600' : ''}`}>
-              {outstandingBalance.toLocaleString()}원
-            </p>
-            <button
-              onClick={() => recalcBalance()}
-              disabled={recalcing}
-              title="새 입력 + 기존 장부 기준 통계 재계산 (미수금·총매출·최종거래일)"
-              className="absolute top-1.5 right-1.5 p-1 rounded-full text-muted-foreground hover:text-[#3d6b4a] hover:bg-gray-100 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
-              <RefreshCw className={`h-3 w-3 ${recalcing ? 'animate-spin' : ''}`} />
-            </button>
-          </div>
-        </div>
-      </div>
 
-      <div className="mb-6 grid gap-3 md:grid-cols-5">
-        <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">이월 미수</p>
-          <p className={`mt-1 text-base font-semibold ${legacyBalanceBaseline > 0 ? 'text-red-600' : legacyBalanceBaseline < 0 ? 'text-blue-700' : ''}`}>
-            {legacyBalanceBaseline.toLocaleString()}원
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            얼마에요 거래처 원본 잔액
-          </p>
-        </div>
-        <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">새 입력 미수</p>
-          <p className={`mt-1 text-base font-semibold ${crmOutstandingBalance > 0 ? 'text-red-600' : crmOutstandingBalance < 0 ? 'text-blue-700' : ''}`}>
-            {crmOutstandingBalance.toLocaleString()}원
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            새 입력 명세표 기준 미수 증감분
-          </p>
-        </div>
-        <div className="rounded-lg border border-[#d9e4d5] bg-[#f7faf6] px-4 py-3">
-          <p className="text-xs text-muted-foreground">현재 운영 잔액</p>
-          <p className={`mt-1 text-base font-semibold ${outstandingBalance > 0 ? 'text-red-600' : outstandingBalance < 0 ? 'text-blue-700' : ''}`}>
-            {outstandingBalance.toLocaleString()}원
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            이월 미수 + 새 입력 미수
-          </p>
-        </div>
-        <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">예치금</p>
-          <p className={`mt-1 text-base font-semibold ${customerAccountingMeta.depositBalance > 0 ? 'text-emerald-700' : ''}`}>
-            {customerAccountingMeta.depositBalance.toLocaleString()}원
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            다음 주문에 차감할 선입금
-          </p>
-        </div>
-        <div className="rounded-lg border bg-white px-4 py-3">
-          <p className="text-xs text-muted-foreground">환불대기</p>
-          <p className={`mt-1 text-base font-semibold ${customerAccountingMeta.refundPendingBalance > 0 ? 'text-amber-700' : ''}`}>
-            {customerAccountingMeta.refundPendingBalance.toLocaleString()}원
-          </p>
-          <p className="mt-1 text-xs text-muted-foreground">
-            고객에게 돌려줄 예정 금액
-          </p>
-        </div>
-      </div>
-
-      <div className="mb-6 rounded-xl border bg-white p-4 shadow-sm">
-        <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
-          <div>
-            <p className="text-sm font-semibold text-foreground">빠른 작업</p>
-            <p className="text-xs text-muted-foreground">
-              이 고객 기준으로 바로 명세표를 만들거나 수금·지급·거래내역 화면으로 이동할 수 있습니다.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap items-center gap-2 lg:justify-end">
             <Button
               size="sm"
-              className="bg-[#7d9675] hover:bg-[#6a8462] text-white"
+              className="bg-[#7d9675] text-white hover:bg-[#6a8462]"
               onClick={() =>
                 navigate(
                   `/invoices?new=1&customerId=${customerId}&customerName=${encodeURIComponent(customer.name ?? '')}`,
@@ -1014,32 +1172,34 @@ export function CustomerDetail() {
             <Button size="sm" variant="outline" onClick={() => navigate(`/receivables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}`)}>
               수금 관리
             </Button>
-            <Button size="sm" variant="outline" onClick={() => navigate(`/payables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}&tab=payable`)}>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-slate-600"
+              onClick={() => navigate(`/payables?customer=${encodeURIComponent(customer.name ?? '')}&customerId=${customerId}&tab=payable`)}
+            >
               지급 관리
             </Button>
-            <Button size="sm" variant="outline" onClick={() => navigate(`/transactions?customer=${encodeURIComponent(customer.name ?? '')}`)}>
-              거래/명세표 조회
+            <Button
+              size="sm"
+              variant="ghost"
+              className="text-slate-600"
+              onClick={() => navigate(`/transactions?customer=${encodeURIComponent(customer.name ?? '')}`)}
+            >
+              거래 조회
+            </Button>
+            <Button
+              size="icon"
+              variant="ghost"
+              onClick={() => recalcBalance()}
+              disabled={recalcing}
+              title="새 입력 + 기존 장부 기준 통계 재계산 (미수금·총매출·최종거래일)"
+            >
+              <RefreshCw className={`h-4 w-4 ${recalcing ? 'animate-spin' : ''}`} />
             </Button>
           </div>
         </div>
       </div>
-
-      {((customer.book_name && customer.book_name !== customer.name) || invoiceNameVariants.length > 0) && (
-        <div className="mb-6 rounded-lg border border-amber-200 bg-amber-50 px-4 py-3">
-          <p className="text-sm font-medium text-amber-900">얼마에요 구분명 유지</p>
-          <div className="mt-2 space-y-1 text-sm text-amber-900">
-            {customer.book_name && customer.book_name !== customer.name && (
-              <div>장부명: {customer.book_name}</div>
-            )}
-            {invoiceNameVariants.length > 0 && (
-              <div>명세표 표기명: {invoiceNameVariants.join(', ')}</div>
-            )}
-          </div>
-          <p className="mt-2 text-xs text-amber-800">
-            대납, 지점 구분, 입금 주체 분리 같은 이유로 고객명과 다른 거래명이 유지될 수 있습니다.
-          </p>
-        </div>
-      )}
 
       {/* 탭 */}
       <Tabs defaultValue="info">
@@ -1419,200 +1579,180 @@ export function CustomerDetail() {
 
         {/* ─── 거래내역 (CRM v2 명세표 + 레거시 txHistory 병합) ─── */}
         <TabsContent value="history">
-          <div className="mb-3 bg-blue-50 border border-blue-100 rounded-lg px-4 py-3 text-xs space-y-1">
-            <p className="font-medium text-blue-800">거래내역 기재 기준</p>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-0.5 text-blue-700 mt-1">
-              <span><span className="font-medium">출고</span> — 거래명세표 발행 (CRM) 또는 기존 출고 기록</span>
-              <span><span className="font-medium">입금</span> — 수금 처리 시 (명세표의 입금액 또는 기존 장부 수금)</span>
-              <span><span className="font-medium">지급</span> — 기존 장부 미지급금 지급 처리</span>
-              <span><span className="font-medium">예치금 적립</span> — 초과 입금을 다음 주문용으로 보관</span>
-              <span><span className="font-medium">환불대기</span> — 초과 입금을 돌려주기 전 임시 보관</span>
-              <span><span className="font-medium">반입</span> — 반품/반입 건 (기존 장부 데이터)</span>
-              <span><span className="font-medium">메모</span> — 참고사항 기재 (기존 장부 데이터)</span>
+          <div className="mb-3 flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-slate-900">거래 타임라인</p>
+              <p className="text-xs text-slate-500">핵심 수치만 먼저 보고, 상세 이유는 표에서 확인하세요.</p>
             </div>
-            <p className="text-blue-600 pt-0.5">
-              <span className="font-medium">[CRM]</span> 배지 = 이 시스템에서 발행한 명세표 · 배지 없음 = 기존 거래 데이터
-            </p>
-            <p className="text-blue-600">행을 클릭하면 당시 거래 상세를 바로 확인할 수 있습니다.</p>
+            <div className="hidden items-center gap-2 text-[11px] text-slate-500 lg:flex">
+              <span className="rounded-full bg-red-50 px-2.5 py-1 text-red-600">증가 = 받을 돈 증가</span>
+              <span className="rounded-full bg-emerald-50 px-2.5 py-1 text-emerald-700">감소 = 수금/반입/예치·환불</span>
+            </div>
           </div>
-          <div className="mb-4 rounded-lg border bg-white p-4">
-            <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
-              <div>
-                <p className="text-sm font-medium">기간별 거래내역 조회</p>
-                <p className="text-xs text-muted-foreground">
-                  고객별 거래를 기간, 유형, 키워드로 나눠 조회하고 현재 보이는 결과를 바로 다운로드할 수 있습니다.
-                </p>
-              </div>
-              <Button size="sm" variant="outline" className="gap-1" onClick={exportHistoryRows} disabled={filteredHistory.length === 0}>
-                <Download className="h-3.5 w-3.5" />
-                거래내역 다운로드
-              </Button>
-              <Button
-                size="sm"
-                variant="outline"
-                className="gap-1"
-                onClick={() =>
-                  printCustomerTransactionStatement(
-                    customer?.name ?? '',
-                    historyDateFrom,
-                    historyDateTo,
-                    filteredHistory.map((row) => ({
-                      date: row.date,
-                      txType: row.txType,
-                      amount: row.amount,
-                      slipNo: row.slipNo,
-                      memo: row.memo,
-                      sourceLabel: row.isCrm ? '새 입력' : '기존 장부',
-                    })),
-                  )
-                }
-                disabled={filteredHistory.length === 0}
-              >
-                <Printer className="h-3.5 w-3.5" />
-                고객 제출용 인쇄
-              </Button>
-            </div>
-            <div className="flex gap-3 flex-wrap items-center">
-              <div className="relative min-w-[220px]">
-                <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+
+          <div className="sticky top-3 z-10 mb-4 rounded-xl border border-slate-200 bg-white/95 p-4 shadow-sm backdrop-blur">
+            <div className="flex flex-col gap-3 xl:flex-row xl:items-center xl:justify-between">
+              <div className="flex flex-1 flex-wrap items-center gap-3">
+                <div className="relative min-w-[260px] flex-1">
+                  <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" />
+                  <Input
+                    value={historySearch}
+                    onChange={(e) => setHistorySearch(e.target.value)}
+                    placeholder="전표번호, 메모, 출처 검색"
+                    className="border-slate-200 pl-9"
+                  />
+                </div>
+                <Select value={historyTypeFilter} onValueChange={setHistoryTypeFilter}>
+                  <SelectTrigger className="w-[150px] border-slate-200">
+                    <SelectValue placeholder="유형 필터" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="ALL">모든 유형</SelectItem>
+                    <SelectItem value="출고">출고</SelectItem>
+                    <SelectItem value="입금">입금</SelectItem>
+                    <SelectItem value="지급">지급</SelectItem>
+                    <SelectItem value="예치금 적립">예치금 적립</SelectItem>
+                    <SelectItem value="예치금 사용">예치금 사용</SelectItem>
+                    <SelectItem value="환불대기">환불대기</SelectItem>
+                    <SelectItem value="환불">환불</SelectItem>
+                    <SelectItem value="반입">반입</SelectItem>
+                    <SelectItem value="메모">메모</SelectItem>
+                  </SelectContent>
+                </Select>
                 <Input
-                  value={historySearch}
-                  onChange={(e) => setHistorySearch(e.target.value)}
-                  placeholder="전표번호 / 메모 / 유형 검색"
-                  className="pl-9"
+                  type="date"
+                  value={historyDateFrom}
+                  onChange={(e) => setHistoryDateFrom(e.target.value)}
+                  className="w-[150px] border-slate-200"
+                />
+                <Input
+                  type="date"
+                  value={historyDateTo}
+                  onChange={(e) => setHistoryDateTo(e.target.value)}
+                  className="w-[150px] border-slate-200"
                 />
               </div>
-              <Select value={historyTypeFilter} onValueChange={setHistoryTypeFilter}>
-                <SelectTrigger className="w-[150px]">
-                  <SelectValue placeholder="유형 필터" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="ALL">모든 유형</SelectItem>
-                  <SelectItem value="출고">출고</SelectItem>
-                  <SelectItem value="입금">입금</SelectItem>
-                  <SelectItem value="지급">지급</SelectItem>
-                  <SelectItem value="예치금 적립">예치금 적립</SelectItem>
-                  <SelectItem value="예치금 사용">예치금 사용</SelectItem>
-                  <SelectItem value="환불대기">환불대기</SelectItem>
-                  <SelectItem value="환불">환불</SelectItem>
-                  <SelectItem value="반입">반입</SelectItem>
-                  <SelectItem value="메모">메모</SelectItem>
-                </SelectContent>
-              </Select>
-              <Input
-                type="date"
-                value={historyDateFrom}
-                onChange={(e) => setHistoryDateFrom(e.target.value)}
-                className="w-[160px]"
-              />
-              <span className="text-sm text-muted-foreground">~</span>
-              <Input
-                type="date"
-                value={historyDateTo}
-                onChange={(e) => setHistoryDateTo(e.target.value)}
-                className="w-[160px]"
-              />
-              <Button size="sm" variant="ghost" onClick={resetHistoryFilters}>
-                초기화
-              </Button>
-            </div>
-            <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-              <div className="rounded-md border border-[#d8e4d6] bg-[#f7fbf6] px-3 py-2">
-                <p className="text-xs text-muted-foreground">기간 총매출</p>
-                <p className="mt-1 text-sm font-semibold">{historySummary.salesAmount.toLocaleString()}원</p>
-                <p className="mt-1 text-[11px] text-muted-foreground">
-                  출고 {historySummary.salesCount.toLocaleString()}건 · 새 입력 {historySummary.crmSalesCount.toLocaleString()}건 / 기존 {historySummary.legacySalesCount.toLocaleString()}건
-                </p>
-              </div>
-              <div className="rounded-md bg-gray-50 px-3 py-2">
-                <p className="text-xs text-muted-foreground">조회 건수</p>
-                <p className="mt-1 text-sm font-semibold">{historySummary.count.toLocaleString()}건</p>
-              </div>
-              <div className="rounded-md bg-gray-50 px-3 py-2">
-                <p className="text-xs text-muted-foreground">CRM 행</p>
-                <p className="mt-1 text-sm font-semibold">{historySummary.crmCount.toLocaleString()}건</p>
-              </div>
-              <div className="rounded-md bg-gray-50 px-3 py-2">
-                <p className="text-xs text-muted-foreground">기존 장부 행</p>
-                <p className="mt-1 text-sm font-semibold">{historySummary.legacyCount.toLocaleString()}건</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button size="sm" variant="ghost" onClick={resetHistoryFilters}>
+                  초기화
+                </Button>
+                <Button size="sm" variant="outline" className="gap-1" onClick={exportHistoryRows} disabled={filteredHistory.length === 0}>
+                  <Download className="h-3.5 w-3.5" />
+                  내보내기
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="gap-1"
+                  onClick={() =>
+                    printCustomerTransactionStatement(
+                      customer?.name ?? '',
+                      historyDateFrom,
+                      historyDateTo,
+                      filteredHistory.map((row) => ({
+                        date: row.date,
+                        txType: row.txType,
+                        amount: row.amount,
+                        slipNo: row.slipNo,
+                        memo: row.memo,
+                        sourceLabel: row.isCrm ? '새 입력' : '기존 장부',
+                      })),
+                    )
+                  }
+                  disabled={filteredHistory.length === 0}
+                >
+                  <Printer className="h-3.5 w-3.5" />
+                  인쇄
+                </Button>
               </div>
             </div>
-            <div className="mt-3 rounded-lg border border-[#d8e4d6] bg-[#fbfdf9] p-3">
-              <div className="flex flex-col gap-1 md:flex-row md:items-center md:justify-between">
-                <div>
-                  <p className="text-sm font-medium text-foreground">기간 정산 요약</p>
-                  <p className="text-xs text-muted-foreground">
-                    조회된 거래를 회계식으로 묶어 “그래서 지금 받을 돈/예치금이 얼마인지” 바로 확인합니다.
-                  </p>
-                </div>
-                <div className={`text-sm font-semibold ${historySettlementSummary.netReceivable > 0 ? 'text-red-600' : historySettlementSummary.netCredit > 0 ? 'text-emerald-700' : 'text-[#3d6b4a]'}`}>
-                  {historySettlementSummary.netReceivable > 0
-                    ? `현재 받을 돈 ${historySettlementSummary.netReceivable.toLocaleString()}원`
-                    : historySettlementSummary.netCredit > 0
-                      ? `현재 예치 우위 ${historySettlementSummary.netCredit.toLocaleString()}원`
-                      : '현재 정산 0원'}
-                </div>
-              </div>
-              <div className="mt-3 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-                <div className="rounded-md bg-white px-3 py-2">
-                  <p className="text-xs text-muted-foreground">출고/반입</p>
-                  <p className="mt-1 text-sm font-semibold">
-                    +{historySettlementSummary.salesAmount.toLocaleString()}원
-                  </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    반입 차감 {historySettlementSummary.returnAmount.toLocaleString()}원
-                  </p>
-                </div>
-                <div className="rounded-md bg-white px-3 py-2">
-                  <p className="text-xs text-muted-foreground">입금/예치금 사용</p>
-                  <p className="mt-1 text-sm font-semibold text-green-700">
-                    -{(historySettlementSummary.receiptAmount + historySettlementSummary.depositUsedAmount).toLocaleString()}원
-                  </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    입금 {historySettlementSummary.receiptAmount.toLocaleString()}원 · 예치 사용 {historySettlementSummary.depositUsedAmount.toLocaleString()}원
-                  </p>
-                </div>
-                <div className="rounded-md bg-white px-3 py-2">
-                  <p className="text-xs text-muted-foreground">기간 순미수 변화</p>
-                  <p className={`mt-1 text-sm font-semibold ${historySettlementSummary.periodReceivableDelta > 0 ? 'text-red-600' : historySettlementSummary.periodReceivableDelta < 0 ? 'text-green-700' : ''}`}>
-                    {historySettlementSummary.periodReceivableDelta > 0 ? '+' : ''}
-                    {historySettlementSummary.periodReceivableDelta.toLocaleString()}원
-                  </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    출고 - 입금 - 반입 - 예치사용
-                  </p>
-                </div>
-                <div className="rounded-md bg-white px-3 py-2">
-                  <p className="text-xs text-muted-foreground">현재 보조 잔액</p>
-                  <p className="mt-1 text-sm font-semibold text-emerald-700">
-                    예치 {historySettlementSummary.currentDeposit.toLocaleString()}원
-                  </p>
-                  <p className="mt-1 text-[11px] text-muted-foreground">
-                    환불대기 {historySettlementSummary.currentRefundPending.toLocaleString()}원 · 기간 예치 적립 {historySettlementSummary.depositAddedAmount.toLocaleString()}원
-                  </p>
-                </div>
-              </div>
-              {(historySettlementSummary.refundPendingAmount > 0 || historySettlementSummary.refundPaidAmount > 0) && (
-                <p className="mt-2 text-[11px] text-muted-foreground">
-                  조회 기간 환불 흐름: 환불대기 등록 {historySettlementSummary.refundPendingAmount.toLocaleString()}원 · 환불 완료 {historySettlementSummary.refundPaidAmount.toLocaleString()}원
-                </p>
-              )}
+
+            <div className="mt-3 flex flex-wrap gap-2">
+              {[
+                { key: 'all', label: '전체' },
+                { key: 'receivable', label: '미수 영향' },
+                { key: 'cashIn', label: '입금/유입' },
+                { key: 'cashOut', label: '지급/환불' },
+                { key: 'exceptions', label: '예외/조정' },
+              ].map((lens) => {
+                const isActive = historyLens === lens.key
+                return (
+                  <Button
+                    key={lens.key}
+                    type="button"
+                    size="sm"
+                    variant={isActive ? 'default' : 'outline'}
+                    className={isActive ? 'bg-[#7d9675] text-white hover:bg-[#6a8462]' : 'border-slate-200 text-slate-600'}
+                    onClick={() => setHistoryLens(lens.key as HistoryLens)}
+                  >
+                    {lens.label}
+                  </Button>
+                )
+              })}
             </div>
           </div>
-          <div className="rounded-lg border bg-white overflow-hidden">
-            <table className="w-full text-sm">
+
+          <div className="mb-4 grid gap-3 lg:grid-cols-3">
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-4">
+              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">현재 포지션</p>
+              <p className={`mt-2 text-lg font-semibold ${getPositionTone(historySummary.endingBalance)}`}>
+                {formatPositionLabel(historySummary.endingBalance)}
+              </p>
+              <p className="mt-1 text-xs text-slate-400">조회 시작 {formatPositionLabel(historySummary.startingBalance)}</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-4">
+              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">기간 변화</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs text-slate-400">증가</p>
+                  <p className="text-base font-semibold text-red-600">+{historySummary.receivableIncrease.toLocaleString()}원</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-400">감소</p>
+                  <p className="text-base font-semibold text-emerald-700">-{historySummary.receivableDecrease.toLocaleString()}원</p>
+                </div>
+              </div>
+              <p className="mt-1 text-xs text-slate-400">순변화 {historySettlementSummary.netTimelineDelta > 0 ? '+' : ''}{historySettlementSummary.netTimelineDelta.toLocaleString()}원</p>
+            </div>
+            <div className="rounded-xl border border-slate-200 bg-white px-4 py-4">
+              <p className="text-[11px] font-medium uppercase tracking-[0.08em] text-slate-500">현금 흐름</p>
+              <div className="mt-2 flex items-center justify-between gap-3">
+                <div>
+                  <p className="text-xs text-slate-400">유입</p>
+                  <p className="text-base font-semibold text-slate-900">{historySummary.cashInAmount.toLocaleString()}원</p>
+                </div>
+                <div className="text-right">
+                  <p className="text-xs text-slate-400">유출</p>
+                  <p className="text-base font-semibold text-slate-900">{historySummary.cashOutAmount.toLocaleString()}원</p>
+                </div>
+              </div>
+              <p className="mt-1 text-xs text-slate-400">
+                조회 {historySummary.count.toLocaleString()}건 · 예외 {historySummary.exceptionCount.toLocaleString()}건
+              </p>
+            </div>
+          </div>
+
+          {mergedHistory.length >= 100 && (
+            <p className="mb-3 text-[11px] text-amber-700">
+              최근 100개 이벤트만 요약 표시 중입니다. 더 오래된 흐름은 하단 기존 장부 페이지네이션/원본 탭에서 이어서 확인하세요.
+            </p>
+          )}
+          <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
+            <table className="min-w-[920px] w-full text-sm">
               <thead>
-                <tr className="border-b bg-gray-50">
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground w-28">거래일</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground w-20">유형</th>
-                  <th className="text-left px-4 py-3 font-medium text-muted-foreground">적요 / 전표번호</th>
-                  <th className="text-right px-4 py-3 font-medium text-muted-foreground w-32">금액</th>
+                <tr className="border-b border-slate-200 bg-slate-50/80">
+                  <th className="w-24 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">거래일</th>
+                  <th className="w-20 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">유형</th>
+                  <th className="px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">적요</th>
+                  <th className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">증가</th>
+                  <th className="w-28 px-4 py-3 text-right text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">감소</th>
+                  <th className="w-44 px-4 py-3 text-left text-xs font-semibold uppercase tracking-[0.08em] text-slate-500">정산 잔액</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredHistory.length === 0 && (
                   <tr>
-                    <td colSpan={4} className="text-center py-8 text-muted-foreground">
+                    <td colSpan={6} className="py-10 text-center text-slate-500">
                       조건에 맞는 거래내역이 없습니다.
                     </td>
                   </tr>
@@ -1620,7 +1760,7 @@ export function CustomerDetail() {
                 {filteredHistory.map((row) => (
                   <tr
                     key={row.key}
-                    className="border-b last:border-b-0 cursor-pointer hover:bg-gray-50 transition-colors"
+                    className={`border-b border-slate-100 last:border-b-0 cursor-pointer transition-colors hover:bg-slate-50 ${row.isException ? 'bg-amber-50/20' : row.isNeutral ? 'bg-slate-50/40' : ''}`}
                     onClick={() => setSelectedTransaction({
                       source: row.source,
                       recordId: row.recordId,
@@ -1634,22 +1774,50 @@ export function CustomerDetail() {
                       memo: row.memo,
                     })}
                   >
-                    <td className="px-4 py-2.5 text-sm">{row.date || '-'}</td>
-                    <td className="px-4 py-2.5">
-                      <span className={`text-xs px-1.5 py-0.5 rounded font-medium ${TX_TYPE_STYLE[row.txType] ?? 'bg-gray-50 text-gray-600'}`}>
-                        {row.txType}
-                      </span>
-                      {row.isCrm && (
-                        <span className="ml-1 text-xs px-1 py-0.5 rounded bg-[#e8f0e8] text-[#3d6b4a] border border-[#b8d4b8]">
-                          CRM
+                    <td className="px-4 py-3.5 align-top text-sm text-slate-900">{row.date || '-'}</td>
+                    <td className="px-4 py-3.5 align-top">
+                      <div className="flex flex-col gap-1.5">
+                        <span className={`inline-flex w-fit rounded px-1.5 py-0.5 text-xs font-medium ${TX_TYPE_STYLE[row.txType] ?? 'bg-gray-50 text-gray-600'}`}>
+                          {row.txType}
                         </span>
+                        {row.isCrm && (
+                          <span className="inline-flex w-fit rounded border border-slate-200 bg-white px-1.5 py-0.5 text-[11px] text-slate-500">
+                            CRM
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 align-top">
+                      <div className="space-y-1.5">
+                        <div className="truncate text-sm font-medium text-slate-900" title={row.memo}>
+                          {buildHistoryPrimaryText(row)}
+                        </div>
+                        <div className="truncate text-[11px] text-slate-500" title={row.memo}>
+                          {buildHistorySecondaryText(row)}
+                        </div>
+                      </div>
+                    </td>
+                    <td className="px-4 py-3.5 align-top text-right tabular-nums">
+                      {row.receivableIncrease > 0 ? (
+                        <span className="font-semibold text-red-600">+{row.receivableIncrease.toLocaleString()}원</span>
+                      ) : (
+                        <span className="text-slate-300">—</span>
                       )}
                     </td>
-                    <td className="px-4 py-2.5 text-xs text-muted-foreground font-mono">
-                      {row.memo}
+                    <td className="px-4 py-3.5 align-top text-right tabular-nums">
+                      {row.receivableDecrease > 0 ? (
+                        <span className="font-semibold text-emerald-700">-{row.receivableDecrease.toLocaleString()}원</span>
+                      ) : (
+                        <span className="text-slate-300">—</span>
+                      )}
                     </td>
-                    <td className="px-4 py-2.5 text-right font-medium">
-                      {row.amount.toLocaleString()}원
+                    <td className="px-4 py-3.5 align-top">
+                      <div className={`text-sm font-semibold ${getPositionTone(row.balanceAfter)}`}>
+                        {formatPositionLabel(row.balanceAfter)}
+                      </div>
+                      <p className="mt-1 text-[11px] text-slate-400">
+                        이전 {formatPositionLabel(row.balanceBefore)} → 이후 {formatPositionLabel(row.balanceAfter)}
+                      </p>
                     </td>
                   </tr>
                 ))}
@@ -1658,7 +1826,7 @@ export function CustomerDetail() {
           </div>
           {/* 레거시 txHistory 페이지네이션 */}
           {txPage && txPage.pageInfo.totalRows > TX_PAGE && (
-            <div className="flex items-center justify-between mt-3">
+            <div className="mt-3 flex items-center justify-between">
               <span className="text-sm text-muted-foreground">
                 기존 장부 데이터 {txOffset + 1}–{Math.min(txOffset + TX_PAGE, txPage.pageInfo.totalRows)} /{' '}
                 {txPage.pageInfo.totalRows}건

@@ -32,7 +32,7 @@
 ## Example 2 — Verification (context_type: verification)
 
 ```markdown
-## 최민석님 의견
+## 최민석님 검토
 
 ### 결론
 - session-start.sh 훅이 정상 동작합니다. handoff 파일에서 4개 필드를 추출하여 compact briefing을 생성합니다.

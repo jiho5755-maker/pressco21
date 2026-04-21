@@ -148,6 +148,11 @@ function escAttr(str: string): string {
   return esc(str).replace(/'/g, '&#39;')
 }
 
+function buildPrintDocumentRef(prefix: string): string {
+  const stamp = new Date().toISOString().replace(/[-:TZ.]/g, '').slice(0, 12)
+  return `${prefix}-${stamp}`
+}
+
 export function sanitizePrintImageSrc(value?: string): string {
   const src = String(value ?? '').trim()
   if (!src) return ''
@@ -898,6 +903,7 @@ export function printPeriodReport(
 ): void {
   const c = loadCompanyInfo()
   const today = new Date().toLocaleDateString('ko-KR')
+  const documentRef = buildPrintDocumentRef('PR')
 
   const safeLogo = sanitizePrintImageSrc(c.logo_url)
   const logoHtml = safeLogo
@@ -939,23 +945,31 @@ export function printPeriodReport(
     `<!DOCTYPE html><html><head><meta charset="UTF-8">` +
     `<style>` +
     `@page{size:A4 portrait;margin:12mm 14mm;}` +
-    `html,body{margin:0;padding:0;font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:7.5pt;color:#111;}` +
+    `html,body{margin:0;padding:0;font-family:'Malgun Gothic','맑은 고딕',sans-serif;font-size:7.5pt;color:#111827;}` +
     `*{box-sizing:border-box;}` +
-    `.hdr{display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2px solid #3d6b4a;padding-bottom:6px;margin-bottom:10px;}` +
+    `.hdr{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;border-bottom:1.5px solid #d3ddd3;padding-bottom:8px;margin-bottom:12px;}` +
     `.hdr-l{display:flex;align-items:center;gap:10px;}` +
-    `.ttl{font-size:13pt;font-weight:900;letter-spacing:2px;color:#1a2e1f;margin-bottom:3px;}` +
-    `.sub{font-size:7pt;color:#555;line-height:1.6;}` +
-    `.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;margin-bottom:12px;}` +
-    `.kc{background:#f5f8f5;border:1px solid #c8d8c5;border-radius:4px;padding:5px 7px;text-align:center;}` +
-    `.kl{font-size:6pt;color:#666;margin-bottom:2px;}` +
-    `.kv{font-size:9pt;font-weight:700;color:#1a2e1f;}` +
+    `.ttl{font-size:14pt;font-weight:900;letter-spacing:.2px;color:#1a2e1f;margin-bottom:3px;}` +
+    `.sub{font-size:7pt;color:#667085;line-height:1.6;}` +
+    `.docbox{min-width:162px;border:1px solid #d8e1d8;border-radius:8px;background:#fafcfb;padding:10px 12px;}` +
+    `.doc-label{font-size:6.3pt;color:#667085;margin-bottom:2px;}` +
+    `.doc-value{font-size:7.7pt;font-weight:700;color:#1f2937;}` +
+    `.kpi{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:12px;}` +
+    `.kc{background:#fff;border:1px solid #d9e2da;border-radius:8px;padding:8px 10px;}` +
+    `.kl{font-size:6.2pt;color:#667085;margin-bottom:2px;text-transform:uppercase;letter-spacing:.04em;}` +
+    `.kv{font-size:10pt;font-weight:800;color:#1a2e1f;}` +
     `.kc.warn .kv{color:#dc2626;}` +
-    `.sec{font-size:8pt;font-weight:700;color:#3d6b4a;border-left:3px solid #7d9675;padding-left:6px;margin:10px 0 4px;}` +
+    `.sec{font-size:8pt;font-weight:800;color:#334155;margin:12px 0 4px;}` +
+    `.sec-sub{font-size:6.8pt;color:#667085;margin-bottom:7px;}` +
     `table{width:100%;border-collapse:collapse;}` +
-    `th{background:#f0f5f0;border:1px solid #c8d8c5;padding:3px 5px;font-size:6.5pt;font-weight:700;text-align:center;color:#333;}` +
-    `td{border:1px solid #dde8dd;padding:2.5px 5px;font-size:7pt;}` +
+    `thead{display:table-header-group;}` +
+    `tr{page-break-inside:avoid;}` +
+    `th{background:#f8faf8;border:1px solid #d9e2da;padding:4px 5px;font-size:6.4pt;font-weight:700;text-align:center;color:#475467;text-transform:uppercase;letter-spacing:.04em;}` +
+    `td{border:1px solid #e3e9e3;padding:4px 5px;font-size:7pt;}` +
+    `tbody tr:nth-child(even){background:#fcfdfc;}` +
     `.r{text-align:right;} .c{text-align:center;} .b{font-weight:700;}` +
     `.mono{font-family:monospace;font-size:6.5pt;color:#444;}` +
+    `.note{margin-top:10px;padding:10px 12px;border:1px solid #e4e9e4;background:#fbfcfb;border-radius:8px;font-size:7pt;color:#58645c;line-height:1.7;}` +
     `.footer{margin-top:12px;text-align:right;font-size:6.5pt;color:#888;border-top:1px solid #ddd;padding-top:6px;}` +
     `.nodata{text-align:center;padding:8px;color:#999;font-size:7pt;}` +
     `</style></head><body>` +
@@ -965,7 +979,11 @@ export function printPeriodReport(
     `<div class="sub">거래처: <strong>${esc(customerName)}</strong> &nbsp;|&nbsp; 기간: ${esc(dateFrom)} ~ ${esc(dateTo)}</div>` +
     (c.company ? `<div class="sub">발행: ${esc(c.company)}</div>` : '') +
     `</div></div>` +
-    `<div class="sub" style="white-space:nowrap;">출력일: ${today}</div>` +
+    `<div class="docbox">` +
+    `<div class="doc-label">문서번호</div><div class="doc-value">${esc(documentRef)}</div>` +
+    `<div class="doc-label" style="margin-top:8px;">출력일</div><div class="doc-value">${today}</div>` +
+    `${c.company ? `<div class="doc-label" style="margin-top:8px;">발행기관</div><div class="doc-value">${esc(c.company)}</div>` : ''}` +
+    `</div>` +
     `</div>` +
     `<div class="kpi">` +
     `<div class="kc"><div class="kl">기간 합계 매출</div><div class="kv">${stats.totalSales.toLocaleString()}원</div></div>` +
@@ -974,7 +992,8 @@ export function printPeriodReport(
     `<div class="kc${stats.outstanding > 0 ? ' warn' : ''}"><div class="kl">기간 미수금</div><div class="kv">${stats.outstanding.toLocaleString()}원</div></div>` +
     `</div>` +
     (crmInvoices.length > 0
-      ? `<div class="sec">거래명세표 발행 내역 (${stats.crmCount}건 / ${stats.crmSales.toLocaleString()}원)</div>` +
+      ? `<div class="sec">거래명세표 발행 내역</div>` +
+        `<div class="sec-sub">${stats.crmCount}건 · ${stats.crmSales.toLocaleString()}원</div>` +
         `<table><thead><tr>` +
         `<th style="width:22%">발행번호</th><th style="width:12%">발행일</th>` +
         `<th style="width:14%">공급가액</th><th style="width:14%">합계금액</th>` +
@@ -982,7 +1001,8 @@ export function printPeriodReport(
         `</tr></thead><tbody>${crmRows}</tbody></table>`
       : '') +
     (legacyTx.length > 0
-      ? `<div class="sec">과거 거래 이력 (${stats.legacyCount}건 / ${stats.legacySales.toLocaleString()}원)</div>` +
+      ? `<div class="sec">과거 거래 이력</div>` +
+        `<div class="sec-sub">${stats.legacyCount}건 · ${stats.legacySales.toLocaleString()}원</div>` +
         `<table><thead><tr>` +
         `<th style="width:13%">거래일</th><th style="width:10%">유형</th>` +
         `<th style="width:51%">적요 / 전표번호</th><th style="width:16%">금액</th>` +
@@ -991,7 +1011,8 @@ export function printPeriodReport(
     (crmInvoices.length === 0 && legacyTx.length === 0
       ? `<div class="nodata">해당 기간에 거래내역이 없습니다.</div>`
       : '') +
-    `<div class="footer">${esc(c.company ?? '')}${c.phone ? ` | 전화: ${esc(formatPhoneNumber(c.phone))}` : ''}</div>` +
+    `<div class="note">본 문서는 거래처별 기간 거래와 명세표 발행 내역을 함께 확인하기 위한 보고용 산출물입니다. 거래처 제출 또는 내부 회계 검토 시 기준 문서로 활용할 수 있습니다.</div>` +
+    `<div class="footer">${esc(c.company ?? '')}${c.phone ? ` | 전화: ${esc(formatPhoneNumber(c.phone))}` : ''}${c.email ? ` | 이메일: ${esc(c.email)}` : ''}</div>` +
     `</body></html>`
 
   const iframe = document.createElement('iframe')
@@ -1022,8 +1043,15 @@ export function printCustomerTransactionStatement(
 ): void {
   const c = loadCompanyInfo()
   const today = new Date().toLocaleDateString('ko-KR')
+  const documentRef = buildPrintDocumentRef('TX')
   const salesAmount = rows
     .filter((row) => row.txType.includes('출고'))
+    .reduce((sum, row) => sum + row.amount, 0)
+  const inflowAmount = rows
+    .filter((row) => ['입금', '예치금 적립', '환불대기'].includes(row.txType))
+    .reduce((sum, row) => sum + row.amount, 0)
+  const adjustmentAmount = rows
+    .filter((row) => ['반입', '예치금 사용', '환불', '환불대기 해제'].includes(row.txType))
     .reduce((sum, row) => sum + row.amount, 0)
   const byType = {
     shipment: rows.filter((row) => row.txType.includes('출고')).length,
@@ -1038,7 +1066,6 @@ export function printCustomerTransactionStatement(
       `<td class="c">${esc(row.txType)}</td>` +
       `<td>${esc(row.memo || '-')}</td>` +
       `<td class="mono">${esc(row.slipNo || '-')}</td>` +
-      `<td class="c">${esc(row.sourceLabel || '-')}</td>` +
       `<td class="r b">${row.amount.toLocaleString()}원</td>` +
       `</tr>`,
     )
@@ -1052,50 +1079,65 @@ export function printCustomerTransactionStatement(
   const html =
     `<!DOCTYPE html><html><head><meta charset="UTF-8">` +
     `<style>` +
-    `@page{size:A4 portrait;margin:14mm 15mm;}` +
-    `html,body{margin:0;padding:0;font-family:'Malgun Gothic','맑은 고딕',sans-serif;color:#1a1a1a;font-size:8pt;}` +
+    `@page{size:A4 portrait;margin:13mm 14mm;}` +
+    `html,body{margin:0;padding:0;font-family:'Malgun Gothic','맑은 고딕',sans-serif;color:#111827;font-size:8pt;}` +
     `*{box-sizing:border-box;}` +
     `.page{width:100%;}` +
-    `.header{display:flex;justify-content:space-between;align-items:flex-start;border-bottom:2px solid #54745d;padding-bottom:8px;margin-bottom:14px;}` +
-    `.brand{display:flex;gap:10px;align-items:center;}` +
-    `.title{font-size:15pt;font-weight:900;letter-spacing:1px;color:#22362a;}` +
-    `.sub{margin-top:4px;font-size:7.5pt;color:#5a5a5a;line-height:1.7;}` +
-    `.summary{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}` +
-    `.card{border:1px solid #d7e2d9;border-radius:6px;background:#f8fbf8;padding:8px 10px;}` +
-    `.label{font-size:6.5pt;color:#68756b;margin-bottom:3px;}` +
-    `.value{font-size:10pt;font-weight:800;color:#21352a;}` +
+    `.topbar{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;margin-bottom:14px;padding-bottom:10px;border-bottom:1.5px solid #d3ddd3;}` +
+    `.brand{display:flex;gap:12px;align-items:flex-start;}` +
+    `.title{font-size:16pt;font-weight:900;letter-spacing:-0.3px;color:#22362a;}` +
+    `.sub{margin-top:4px;font-size:7.4pt;color:#667085;line-height:1.65;}` +
+    `.docbox{min-width:168px;border:1px solid #d8e1d8;border-radius:8px;background:#fafcfb;padding:10px 12px;}` +
+    `.doc-label{font-size:6.6pt;color:#667085;margin-bottom:2px;}` +
+    `.doc-value{font-size:8pt;font-weight:700;color:#1f2937;}` +
+    `.meta-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:14px;}` +
+    `.meta-card{border:1px solid #d9e2da;border-radius:8px;background:#fff;padding:9px 10px;}` +
+    `.label{font-size:6.5pt;color:#667085;margin-bottom:3px;text-transform:uppercase;letter-spacing:.04em;}` +
+    `.value{font-size:11pt;font-weight:800;color:#17212b;}` +
+    `.value.emph{color:#c62828;}` +
     `.section{margin-bottom:12px;}` +
-    `.section-title{font-size:8.5pt;font-weight:800;color:#3d5c46;margin-bottom:6px;display:flex;align-items:center;gap:6px;}` +
-    `.section-title:before{content:'';display:inline-block;width:4px;height:14px;background:#7d9675;border-radius:2px;}` +
+    `.section-title{font-size:8.3pt;font-weight:800;color:#334155;margin-bottom:6px;}` +
+    `.section-desc{font-size:6.8pt;color:#667085;margin-bottom:8px;}` +
     `table{width:100%;border-collapse:collapse;}` +
-    `th{background:#f2f6f3;border:1px solid #cfdacf;padding:6px 5px;font-size:6.7pt;font-weight:700;color:#445348;text-align:center;}` +
-    `td{border:1px solid #dde6de;padding:5px 6px;font-size:7.2pt;vertical-align:top;}` +
+    `thead{display:table-header-group;}` +
+    `tr{page-break-inside:avoid;}` +
+    `th{background:#f8faf8;border:1px solid #d9e2da;padding:6px 5px;font-size:6.6pt;font-weight:700;color:#475467;text-align:center;text-transform:uppercase;letter-spacing:.04em;}` +
+    `td{border:1px solid #e3e9e3;padding:6px 6px;font-size:7.1pt;vertical-align:top;}` +
+    `tbody tr:nth-child(even){background:#fcfdfc;}` +
     `.r{text-align:right;}` +
     `.c{text-align:center;}` +
     `.b{font-weight:700;}` +
-    `.mono{font-family:monospace;font-size:6.6pt;color:#555;}` +
-    `.note{margin-top:10px;padding:8px 10px;border:1px solid #e3e8e3;background:#fafcfb;border-radius:6px;font-size:7pt;color:#58645c;line-height:1.6;}` +
-    `.footer{margin-top:14px;border-top:1px solid #d9dfda;padding-top:7px;text-align:right;font-size:6.6pt;color:#7a7a7a;}` +
+    `.mono{font-family:monospace;font-size:6.6pt;color:#475467;}` +
+    `.note{margin-top:10px;padding:10px 12px;border:1px solid #e4e9e4;background:#fbfcfb;border-radius:8px;font-size:7pt;color:#58645c;line-height:1.7;}` +
+    `.signoff{margin-top:12px;display:flex;justify-content:flex-end;}` +
+    `.signbox{width:210px;border-top:1px solid #cad5ca;padding-top:8px;text-align:center;font-size:7pt;color:#475467;}` +
+    `.footer{margin-top:14px;border-top:1px solid #d9dfda;padding-top:7px;text-align:right;font-size:6.5pt;color:#8a8f8a;}` +
     `.empty{padding:22px 0;text-align:center;color:#8a8a8a;font-size:7.5pt;}` +
     `</style></head><body><div class="page">` +
-    `<div class="header">` +
+    `<div class="topbar">` +
     `<div class="brand">${logoHtml}<div><div class="title">거래내역 확인서</div>` +
-    `<div class="sub">거래처: <strong>${esc(customerName)}</strong><br/>조회 기간: ${esc(dateFrom)} ~ ${esc(dateTo)}</div></div></div>` +
-    `<div class="sub" style="text-align:right;">출력일: ${today}${c.company ? `<br/>발행: ${esc(c.company)}` : ''}</div>` +
+    `<div class="sub">거래처 <strong>${esc(customerName)}</strong><br/>조회 기간 ${esc(dateFrom)} ~ ${esc(dateTo)}</div></div></div>` +
+    `<div class="docbox">` +
+    `<div class="doc-label">문서번호</div><div class="doc-value">${esc(documentRef)}</div>` +
+    `<div class="doc-label" style="margin-top:8px;">출력일</div><div class="doc-value">${today}</div>` +
+    `${c.company ? `<div class="doc-label" style="margin-top:8px;">발행기관</div><div class="doc-value">${esc(c.company)}</div>` : ''}` +
     `</div>` +
-    `<div class="summary">` +
-    `<div class="card"><div class="label">조회 건수</div><div class="value">${rows.length.toLocaleString()}건</div></div>` +
-    `<div class="card"><div class="label">기간 총매출</div><div class="value">${salesAmount.toLocaleString()}원</div></div>` +
-    `<div class="card"><div class="label">출고 / 입금</div><div class="value">${byType.shipment} / ${byType.payment}</div></div>` +
-    `<div class="card"><div class="label">반입 / 메모</div><div class="value">${byType.returnTx} / ${byType.memo}</div></div>` +
+    `</div>` +
+    `<div class="meta-grid">` +
+    `<div class="meta-card"><div class="label">조회 건수</div><div class="value">${rows.length.toLocaleString()}건</div></div>` +
+    `<div class="meta-card"><div class="label">기간 총매출</div><div class="value">${salesAmount.toLocaleString()}원</div></div>` +
+    `<div class="meta-card"><div class="label">입금 / 유입</div><div class="value">${inflowAmount.toLocaleString()}원</div></div>` +
+    `<div class="meta-card"><div class="label">조정 / 환불</div><div class="value ${adjustmentAmount > 0 ? 'emph' : ''}">${adjustmentAmount.toLocaleString()}원</div></div>` +
     `</div>` +
     `<div class="section"><div class="section-title">거래내역 목록</div>` +
+    `<div class="section-desc">출고 ${byType.shipment}건 · 입금 ${byType.payment}건 · 반입 ${byType.returnTx}건 · 메모 ${byType.memo}건</div>` +
     (rows.length > 0
-      ? `<table><thead><tr><th style="width:12%;">날짜</th><th style="width:10%;">유형</th><th>적요</th><th style="width:18%;">전표번호</th><th style="width:10%;">구분</th><th style="width:14%;">금액</th></tr></thead><tbody>${statementRows}</tbody></table>`
+      ? `<table><thead><tr><th style="width:13%;">날짜</th><th style="width:11%;">유형</th><th>적요</th><th style="width:20%;">전표번호</th><th style="width:16%;">금액</th></tr></thead><tbody>${statementRows}</tbody></table>`
       : `<div class="empty">선택한 조건에 해당하는 거래내역이 없습니다.</div>`) +
     `</div>` +
-    `<div class="note">본 문서는 CRM에 기록된 거래내역을 기준으로 생성된 확인용 출력물입니다. 필요 시 발행번호 또는 날짜를 기준으로 추가 확인할 수 있습니다.</div>` +
-    `<div class="footer">${esc(c.company ?? '')}${c.phone ? ` | 전화 ${esc(formatPhoneNumber(c.phone))}` : ''}</div>` +
+    `<div class="note">본 문서는 PRESSCO21 CRM에 기록된 거래 데이터를 기준으로 생성한 확인용 문서입니다. 세부 품목 또는 수금 상태 확인이 필요한 경우 발행번호/거래일자를 기준으로 원본 명세표를 함께 검토해 주세요.</div>` +
+    `<div class="signoff"><div class="signbox">담당 확인<br/><strong>${esc(c.company ?? 'PRESSCO21 CRM')}</strong></div></div>` +
+    `<div class="footer">${esc(c.company ?? '')}${c.phone ? ` | 전화 ${esc(formatPhoneNumber(c.phone))}` : ''}${c.email ? ` | 이메일 ${esc(c.email)}` : ''}</div>` +
     `</div></body></html>`
 
   const iframe = document.createElement('iframe')

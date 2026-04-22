@@ -10,16 +10,19 @@
 - **pull 시각**: 2026-03-30 12:37
 - **pull 범위**: 핵심 6개 페이지 (common, header, footer, main, shopdetail, shopbrand)
 - **pull 방법**: Chrome MCP blob 자동 다운로드
-- **push 시각**: 2026-04-02 (오전)
-- **push 범위**: main/main.js → 49450 메인 JS 탭 (팝업 v2 + !important 숨김)
-- **push 방법**: Chrome MCP clipboard API + alert 오버라이드
+- **push 시각**: 2026-04-22 10:46
+- **push 범위**: 49450 스킨 `main/main.html`, `main/main.js`, `product/shopbrand.html`, `product/shopbrand.js`, `product/shopsearch.html`, `product/shopsearch.js`, `product/shopdetail.html`, `product/shopdetail.js`
+- **push 방법**: Playwright CDP 편집기 저장 검증 (49450 live skin)
 
 ---
 
 ## 현재 개발 상태
 
-- **개발 중인 기능**: (없음)
-- **수정 중인 파일**: (없음)
+- **개발 중인 기능**: 메인 가격표시 정책맵 보강 + 모바일 팝업 스크롤 복구
+- **수정 중인 파일**: `main/main.js`, `product/shopbrand.js`, `product/shopsearch.js`, `product/shopdetail.js`
+- **2026-04-22 Playwright 동기화 검증**:
+  - `product/shopbrand.js`, `product/shopsearch.js`, `product/shopdetail.js` 는 편집기(49450)와 로컬이 일치
+  - `main/main.js` 는 검증 시작 시 편집기와 로컬이 일치했고, 현재는 로컬이 신규 수정으로 **편집기보다 앞선 상태**
 
 ---
 

@@ -15,6 +15,8 @@
 | `merge-css.sh` | 디자이너-개발자 CSS 3-way 병합 도구 |
 | `add-page-mapping.sh` | 새 개별 페이지 추가 시 editor-map.json 매핑 + 폴더 생성 |
 | `MANUAL-PULL.md` | 수동 스킨 풀 (Chrome MCP 없을 때 fallback) |
+| `makeshop_admin_cdp_smoke.py` | 로그인된 Chrome 세션을 Playwright CDP로 재사용 가능한지 점검 |
+| `PLAYWRIGHT-ADMIN-AUTOMATION.md` | Playwright 관리자 자동화 운영 기준과 테스트 결과 |
 
 ## 퀵 레퍼런스
 

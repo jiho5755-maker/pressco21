@@ -17,6 +17,7 @@ import {
 } from '@/lib/legacySnapshots'
 import {
   appendCustomerAccountingEvent,
+  appendInvoicePaymentHistory,
   getInvoiceDepositUsedAmount,
   parseCustomerAccountingMeta,
   parseInvoiceAccountingMeta,
@@ -184,6 +185,7 @@ export function DepositInbox() {
 
   async function applyCandidate(entry: AutoDepositInboxEntry, candidate: AutoDepositCandidate) {
     if (candidate.kind === 'invoice') await applyInvoiceCandidate(candidate, entry)
+    else if (candidate.kind === 'customer') await applyCustomerDepositLedger(entry, candidate)
     else await applyLegacyCandidate(candidate, entry)
 
     return {
@@ -289,6 +291,18 @@ export function DepositInbox() {
         }
       }
     }
+    if (candidate.kind === 'customer') {
+      const ledger = ledgers.find((item) => item.customerId === candidate.customerId)
+      if (ledger) {
+        return {
+          ...candidate,
+          key: candidate.key || `customer-${candidate.customerId}`,
+          customerName: candidate.customerName || customer?.name?.trim() || ledger.customerName,
+          bookName: candidate.bookName ?? customer?.book_name?.trim(),
+          remainingAmount: ledger.totalRemaining,
+        }
+      }
+    }
     if (candidate.kind === 'legacy') {
       const ledger = ledgers.find((item) => item.customerId === candidate.customerId)
       if (ledger) {
@@ -323,25 +337,46 @@ export function DepositInbox() {
     const nextRemaining = Math.max(0, remaining - entry.amount)
     const nextPaymentStatus =
       nextRemaining <= 0 ? 'paid' : nextPaid > 0 ? 'partial' : 'unpaid'
+    const nextMemo = appendInvoicePaymentHistory(invoice.memo as string | undefined, {
+      amount: entry.amount,
+      date: entry.date,
+      method: '계좌이체',
+      operator: activeOperator?.operatorName,
+      accountId: activeOperator?.id,
+      accountLabel: activeOperator?.label,
+      createdAt: currentTimestamp(),
+      note: `입금 수집함 반영 · 입금자 ${entry.sender} · ${entry.sourceFile}`,
+    })
 
     await updateInvoice(candidate.invoiceId, {
       paid_amount: nextPaid,
       current_balance: nextRemaining,
       payment_status: nextPaymentStatus,
       payment_method: '계좌이체',
-      paid_date: entry.date,
+      memo: nextMemo,
     })
   }
 
-  async function applyCashToInvoice(invoice: Invoice, amount: number) {
+  async function applyCashToInvoice(invoice: Invoice, amount: number, entry: AutoDepositInboxEntry) {
     const remainingBefore = calcRemaining(invoice)
     const appliedAmount = Math.min(amount, remainingBefore)
     if (appliedAmount <= 0) return { appliedAmount: 0, invoice }
 
     const nextPaid = Math.min(invoice.total_amount ?? 0, (invoice.paid_amount ?? 0) + appliedAmount)
+    const nextMemo = appendInvoicePaymentHistory(invoice.memo as string | undefined, {
+      amount: appliedAmount,
+      date: entry.date,
+      method: '계좌이체',
+      operator: activeOperator?.operatorName,
+      accountId: activeOperator?.id,
+      accountLabel: activeOperator?.label,
+      createdAt: currentTimestamp(),
+      note: `입금 수집함 반영 · 입금자 ${entry.sender} · ${entry.sourceFile}`,
+    })
     const nextInvoice: Invoice = {
       ...invoice,
       paid_amount: nextPaid,
+      memo: nextMemo,
     }
     nextInvoice.current_balance = calcRemaining(nextInvoice)
     nextInvoice.payment_status = calcPaymentStatus(nextInvoice)
@@ -351,6 +386,7 @@ export function DepositInbox() {
       current_balance: nextInvoice.current_balance,
       payment_status: nextInvoice.payment_status,
       payment_method: '계좌이체',
+      memo: nextMemo,
     })
 
     return { appliedAmount, invoice: nextInvoice }
@@ -405,7 +441,7 @@ export function DepositInbox() {
 
     for (const invoice of openInvoices) {
       if (cashRemaining <= 0) break
-      const { appliedAmount, invoice: updatedInvoice } = await applyCashToInvoice(invoice, cashRemaining)
+      const { appliedAmount, invoice: updatedInvoice } = await applyCashToInvoice(invoice, cashRemaining, entry)
       if (appliedAmount <= 0) continue
       cashRemaining -= appliedAmount
       cashApplied += appliedAmount
@@ -586,7 +622,7 @@ export function DepositInbox() {
     try {
       const entry = buildEntryFromReviewItem(item)
       const liveCandidate = getLiveCandidateDetails(candidate)
-      if (liveCandidate.kind === 'invoice') {
+      if (liveCandidate.kind === 'invoice' || liveCandidate.kind === 'customer') {
         await applyCustomerDepositLedger(entry, liveCandidate)
       } else {
         await applyCandidate(entry, liveCandidate)
@@ -764,7 +800,7 @@ export function DepositInbox() {
                               const liveCandidate = getLiveCandidateDetails(candidate)
                               return (
                               <SelectItem key={liveCandidate.key} value={liveCandidate.key}>
-                                {liveCandidate.customerName} · {liveCandidate.kind === 'invoice' ? '새 입력 명세표' : '기존 장부'} · {(liveCandidate.remainingAmount ?? item.amount).toLocaleString()}원
+                                {liveCandidate.customerName} · {liveCandidate.kind === 'invoice' ? '새 입력 명세표' : liveCandidate.kind === 'customer' ? '고객 전체 정산' : '기존 장부'} · {(liveCandidate.remainingAmount ?? item.amount).toLocaleString()}원
                               </SelectItem>
                               )
                             })}
@@ -780,6 +816,8 @@ export function DepositInbox() {
                             <div className="mt-1 text-muted-foreground">
                               {selectedCandidate.kind === 'invoice'
                                 ? `새 입력 명세표 ${selectedCandidate.invoiceNo ?? ''} 잔액 ${selectedCandidate.remainingAmount?.toLocaleString() ?? 0}원`
+                                : selectedCandidate.kind === 'customer'
+                                  ? `고객 전체 미수 ${selectedCandidate.remainingAmount?.toLocaleString() ?? 0}원`
                                 : `기존 장부 받을 돈 ${selectedCandidate.remainingAmount?.toLocaleString() ?? 0}원`}
                             </div>
                           </div>
@@ -935,7 +973,7 @@ export function DepositInbox() {
                           <SelectContent>
                             {item.candidates.map((candidate) => (
                               <SelectItem key={candidate.key} value={candidate.key}>
-                                {candidate.customerName} · {candidate.kind === 'invoice' ? '새 입력 명세표' : '기존 장부'} · {candidate.amount.toLocaleString()}원
+                                {candidate.customerName} · {candidate.kind === 'invoice' ? '새 입력 명세표' : candidate.kind === 'customer' ? '고객 전체 정산' : '기존 장부'} · {candidate.amount.toLocaleString()}원
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -950,6 +988,8 @@ export function DepositInbox() {
                             <div className="mt-1 text-muted-foreground">
                               {selectedCandidate.kind === 'invoice'
                                 ? `새 입력 명세표 ${selectedCandidate.invoiceNo ?? ''} 잔액 ${selectedCandidate.remainingAmount?.toLocaleString() ?? 0}원`
+                                : selectedCandidate.kind === 'customer'
+                                  ? `고객 전체 미수 ${selectedCandidate.remainingAmount?.toLocaleString() ?? 0}원`
                                 : `기존 장부 받을 돈 ${selectedCandidate.remainingAmount?.toLocaleString() ?? 0}원`}
                             </div>
                             {customerMeta ? (

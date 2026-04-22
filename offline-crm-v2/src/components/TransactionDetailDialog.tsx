@@ -265,6 +265,8 @@ function CrmTransactionContent({
   }
   const invoiceMeta = parseInvoiceAccountingMeta(effectiveInvoice.memo as string | undefined)
   const paymentReminder = invoiceMeta.paymentReminder
+  const loggedPaymentAmount = invoiceMeta.paymentHistory.reduce((sum, entry) => sum + entry.amount, 0)
+  const fallbackPaymentAmount = Math.max(0, (effectiveInvoice.paid_amount ?? 0) - loggedPaymentAmount)
 
   return (
     <div className="overflow-y-auto pr-1">
@@ -335,6 +337,38 @@ function CrmTransactionContent({
                 {invoiceMeta.internalMemo ? (
                   <p className="mt-2 whitespace-pre-wrap break-words text-sm text-gray-700">{invoiceMeta.internalMemo}</p>
                 ) : null}
+              </div>
+            </>
+          ) : null}
+          {invoiceMeta.paymentHistory.length > 0 || fallbackPaymentAmount > 0 ? (
+            <>
+              <Separator />
+              <div className="rounded-md border bg-white px-3 py-2">
+                <p className="text-xs font-medium text-muted-foreground">입금 이력</p>
+                <div className="mt-2 space-y-2 text-xs text-gray-700">
+                  {fallbackPaymentAmount > 0 ? (
+                    <div className="rounded-md bg-gray-50 px-2 py-2">
+                      <div className="font-medium text-gray-900">기록 이전 누적 입금</div>
+                      <div className="mt-1">{fallbackPaymentAmount.toLocaleString()}원</div>
+                    </div>
+                  ) : null}
+                  {invoiceMeta.paymentHistory.map((entry, index) => (
+                    <div key={`${entry.date}-${entry.amount}-${index}`} className="rounded-md bg-gray-50 px-2 py-2">
+                      <div className="font-medium text-gray-900">
+                        {entry.date} · {entry.amount.toLocaleString()}원
+                      </div>
+                      <div className="mt-1">
+                        {[
+                          entry.method ? `방법: ${entry.method}` : '',
+                          entry.accountLabel ? `계정: ${entry.accountLabel}` : '',
+                          entry.operator ? `입력: ${entry.operator}` : '',
+                          entry.note ? `메모: ${entry.note}` : '',
+                          entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
+                        ].filter(Boolean).join(' · ')}
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             </>
           ) : null}

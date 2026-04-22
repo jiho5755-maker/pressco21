@@ -24,6 +24,7 @@ import {
 } from '@/lib/legacySnapshots'
 import {
   appendCustomerAccountingEvent,
+  appendInvoicePaymentHistory,
   getInvoiceDepositUsedAmount,
   parseInvoiceAccountingMeta,
   parseCustomerAccountingMeta,
@@ -231,12 +232,26 @@ function PaymentDialog({ invoice, onClose, onSaved }: PaymentDialogProps) {
     }
     setIsSaving(true)
     try {
-      await updateInvoice(invoice!.Id, {
+      const targetInvoice = invoice!
+      const nextInvoiceMemo = effectivePaidAmount > 0
+        ? appendInvoicePaymentHistory(targetInvoice.memo as string | undefined, {
+            amount: effectivePaidAmount,
+            date: todayDate(),
+            method,
+            operator: activeOperator?.operatorName,
+            accountId: activeOperator?.id,
+            accountLabel: activeOperator?.label,
+            createdAt: currentTimestamp(),
+            note: '미수금 화면에서 입금 확인',
+          })
+        : (targetInvoice.memo as string | undefined)
+      await updateInvoice(targetInvoice.Id, {
         paid_amount: newPaid,
         // current_balance: 이 명세표에서 남은 금액만 기록 (prevBal은 별도 명세표에 귀속)
         current_balance: newRemaining,
         payment_status: newPaymentStatus,
         payment_method: method,
+        memo: nextInvoiceMemo,
       })
 
       if (overflowAmount > 0 && linkedCustomer) {

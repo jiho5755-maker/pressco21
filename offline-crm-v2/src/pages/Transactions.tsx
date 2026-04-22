@@ -11,7 +11,7 @@ import type { TxHistory, Invoice, Customer } from '@/lib/api'
 import { TransactionDetailDialog } from '@/components/TransactionDetailDialog'
 import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 import { parseLegacyPayableMemo, parseLegacyReceivableMemo } from '@/lib/legacySnapshots'
-import { parseCustomerAccountingMeta, getDisplayMemo } from '@/lib/accountingMeta'
+import { getDisplayMemo, getInvoicePaymentHistory, parseCustomerAccountingMeta } from '@/lib/accountingMeta'
 
 const PAGE_SIZE = 50
 
@@ -72,20 +72,65 @@ function matchesTransactionSearch(
   return haystacks.some((value) => value?.toLowerCase().includes(normalizedKeyword))
 }
 
-function invoiceToRow(inv: Invoice): UnifiedRow {
-  return {
-    id: `crm-${inv.Id}`,
+function buildInvoicePaymentRows(inv: Invoice): UnifiedRow[] {
+  const paymentHistory = getInvoicePaymentHistory(inv.memo as string | undefined)
+  const rows = paymentHistory.map((entry, index) => ({
+    id: `crm-payment-${inv.Id}-${index}`,
     recordId: inv.Id,
     customer_id: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
-    tx_date: inv.invoice_date ?? '',
+    tx_date: entry.createdAt ?? `${entry.date}T00:00:00`,
     customer_name: inv.customer_name ?? '',
-    tx_type: '출고(CRM)',
-    amount: inv.total_amount ?? 0,
-    tax: inv.tax_amount ?? 0,
+    tx_type: '입금',
+    amount: entry.amount,
+    tax: 0,
     slip_no: inv.invoice_no ?? '',
-    memo: getDisplayMemo(inv.memo as string | undefined),
-    source: 'crm',
+    memo: [
+      inv.invoice_no ?? '',
+      'CRM 입금 기록',
+      entry.method ? `방법: ${entry.method}` : '',
+      entry.accountLabel ? `계정: ${entry.accountLabel}` : '',
+      entry.operator ? `입력: ${entry.operator}` : '',
+      entry.note ? `메모: ${entry.note}` : '',
+    ].filter(Boolean).join(' · '),
+    source: 'crm' as const,
+  }))
+  const loggedAmount = paymentHistory.reduce((sum, entry) => sum + entry.amount, 0)
+  const fallbackAmount = Math.max(0, (inv.paid_amount ?? 0) - loggedAmount)
+  if (fallbackAmount > 0) {
+    rows.unshift({
+      id: `crm-payment-fallback-${inv.Id}`,
+      recordId: inv.Id,
+      customer_id: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+      tx_date: inv.invoice_date ?? '',
+      customer_name: inv.customer_name ?? '',
+      tx_type: '입금',
+      amount: fallbackAmount,
+      tax: 0,
+      slip_no: inv.invoice_no ?? '',
+      memo: [inv.invoice_no ?? '', '기록 이전 누적 입금'].filter(Boolean).join(' · '),
+      source: 'crm',
+    })
   }
+  return rows
+}
+
+function invoiceToRows(inv: Invoice): UnifiedRow[] {
+  return [
+    {
+      id: `crm-${inv.Id}`,
+      recordId: inv.Id,
+      customer_id: typeof inv.customer_id === 'number' ? inv.customer_id : undefined,
+      tx_date: inv.invoice_date ?? '',
+      customer_name: inv.customer_name ?? '',
+      tx_type: '출고(CRM)',
+      amount: inv.total_amount ?? 0,
+      tax: inv.tax_amount ?? 0,
+      slip_no: inv.invoice_no ?? '',
+      memo: getDisplayMemo(inv.memo as string | undefined),
+      source: 'crm',
+    },
+    ...buildInvoicePaymentRows(inv),
+  ]
 }
 
 function txToRow(
@@ -336,7 +381,7 @@ export function Transactions() {
   // ── skipLegacy / skipCrm 판별 ──
   const useLegacyClientSearch = !!debouncedSearch && matchedLegacyIds.length > 0
   const skipLegacy = activeTab === 'crm' || typeFilter === '출고(CRM)'
-  const skipCrm = activeTab === 'legacy' || ['입금', '지급', '예치금 적립', '예치금 사용', '환불대기', '환불', '환불대기 해제', '반입', '메모'].includes(typeFilter)
+  const skipCrm = activeTab === 'legacy' || ['지급', '예치금 적립', '예치금 사용', '환불대기', '환불', '환불대기 해제', '반입', '메모'].includes(typeFilter)
 
   const isServerPaginated = (activeTab === 'legacy' || activeTab === 'crm') && !useLegacyClientSearch
 
@@ -416,6 +461,11 @@ export function Transactions() {
     })
   }
 
+  const filterCrmRows = (rows: UnifiedRow[]) => filterByDate(rows).filter((row) => {
+    if (typeFilter === 'ALL') return true
+    return row.tx_type === typeFilter
+  })
+
   const { rows, totalPages, totalDisplay, isTruncated } = useMemo(() => {
     if (isServerPaginated) {
       // 서버 페이지네이션: 한쪽 소스만 표시
@@ -442,7 +492,7 @@ export function Transactions() {
         }
       } else {
         // CRM 탭: 클라이언트 날짜 필터 적용
-        const list = filterByDate((crmData?.list ?? []).map(invoiceToRow))
+        const list = filterCrmRows((crmData?.list ?? []).flatMap(invoiceToRows))
         return {
           rows: list.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE),
           totalPages: Math.max(1, Math.ceil(list.length / PAGE_SIZE)),
@@ -466,7 +516,7 @@ export function Transactions() {
         if (dateTo && d > dateTo) return false
         return true
       })
-    const crm = filterByDate((crmData?.list ?? []).map(invoiceToRow))
+    const crm = filterCrmRows((crmData?.list ?? []).flatMap(invoiceToRows))
       .filter((row) => matchesTransactionSearch(row, debouncedSearch, customerSearchTextByLegacyId))
     const merged = [...legacy, ...crm]
     merged.sort((a, b) => b.tx_date.localeCompare(a.tx_date))
@@ -478,7 +528,7 @@ export function Transactions() {
       totalDisplay: loadedCount,
       isTruncated: truncated,
     }
-  }, [isServerPaginated, activeTab, legacyData, crmData, customerNameByLegacyId, customerIdByLegacyId, customerIdByName, customerSearchTextByLegacyId, legacySettlementRows, debouncedSearch, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm, page, dateFrom, dateTo, useLegacyClientSearch])
+  }, [isServerPaginated, activeTab, legacyData, crmData, customerNameByLegacyId, customerIdByLegacyId, customerIdByName, customerSearchTextByLegacyId, legacySettlementRows, debouncedSearch, serverLegacyTotal, serverCrmTotal, skipLegacy, skipCrm, page, dateFrom, dateTo, typeFilter, useLegacyClientSearch])
 
   const isLoading = (legacyLoading && !skipLegacy) || (crmLoading && !skipCrm)
   // 양쪽 모두 실패한 경우만 전체 에러 (부분 실패는 경고로 처리)

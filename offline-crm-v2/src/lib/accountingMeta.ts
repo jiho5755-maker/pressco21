@@ -27,6 +27,7 @@ export interface InvoiceAccountingMetaState {
   customerAddressKey?: string
   internalMemo?: string
   paymentReminder?: InvoicePaymentReminderState
+  paymentHistory: InvoicePaymentHistoryEntry[]
 }
 
 export interface InvoicePaymentReminderState {
@@ -38,6 +39,17 @@ export interface InvoicePaymentReminderState {
   requestedBy?: string
   webhookStatus?: 'pending' | 'ok' | 'error'
   webhookMessage?: string
+}
+
+export interface InvoicePaymentHistoryEntry {
+  amount: number
+  date: string
+  method?: string
+  operator?: string
+  accountId?: string
+  accountLabel?: string
+  createdAt?: string
+  note?: string
 }
 
 const CUSTOMER_ACCOUNTING_META_PREFIX = '[ACCOUNTING_CUSTOMER_META]'
@@ -160,6 +172,25 @@ function sanitizeInvoicePaymentReminder(value: unknown): InvoicePaymentReminderS
     requestedBy,
     webhookStatus,
     webhookMessage,
+  }
+}
+
+function sanitizeInvoicePaymentHistoryEntry(entry: Partial<InvoicePaymentHistoryEntry>): InvoicePaymentHistoryEntry | null {
+  const amount = Math.max(0, parseInteger(entry.amount))
+  const date = sanitizeDate(entry.date)
+    ?? (typeof entry.createdAt === 'string' ? sanitizeDate(entry.createdAt.slice(0, 10)) : undefined)
+
+  if (!amount || !date) return null
+
+  return {
+    amount,
+    date,
+    method: typeof entry.method === 'string' && entry.method.trim() ? entry.method.trim().slice(0, 40) : undefined,
+    operator: typeof entry.operator === 'string' && entry.operator.trim() ? entry.operator.trim().slice(0, 80) : undefined,
+    accountId: typeof entry.accountId === 'string' && entry.accountId.trim() ? entry.accountId.trim().slice(0, 80) : undefined,
+    accountLabel: typeof entry.accountLabel === 'string' && entry.accountLabel.trim() ? entry.accountLabel.trim().slice(0, 80) : undefined,
+    createdAt: typeof entry.createdAt === 'string' && entry.createdAt.trim() ? entry.createdAt.trim().slice(0, 40) : undefined,
+    note: sanitizeMultilineText(entry.note, 300),
   }
 }
 
@@ -331,7 +362,7 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
     .map((line) => line.trim())
     .find((line) => line.startsWith(INVOICE_ACCOUNTING_META_PREFIX))
 
-  if (!metaLine) return { depositUsedAmount: 0, discountAmount: 0 }
+  if (!metaLine) return { depositUsedAmount: 0, discountAmount: 0, paymentHistory: [] }
 
   try {
     const parsed = JSON.parse(metaLine.slice(INVOICE_ACCOUNTING_META_PREFIX.length).trim()) as {
@@ -340,21 +371,28 @@ export function parseInvoiceAccountingMeta(memo?: string): InvoiceAccountingMeta
       customerAddressKey?: string
       internalMemo?: string
       paymentReminder?: Partial<InvoicePaymentReminderState>
+      paymentHistory?: Partial<InvoicePaymentHistoryEntry>[]
     }
     const customerAddressKey = typeof parsed.customerAddressKey === 'string' && parsed.customerAddressKey.trim()
       ? parsed.customerAddressKey.trim()
       : undefined
     const internalMemo = sanitizeMultilineText(parsed.internalMemo)
     const paymentReminder = sanitizeInvoicePaymentReminder(parsed.paymentReminder)
+    const paymentHistory = Array.isArray(parsed.paymentHistory)
+      ? parsed.paymentHistory
+        .map(sanitizeInvoicePaymentHistoryEntry)
+        .filter((entry): entry is InvoicePaymentHistoryEntry => entry !== null)
+      : []
     return {
       depositUsedAmount: Math.max(0, parseInteger(parsed.depositUsedAmount)),
       discountAmount: Math.max(0, parseInteger(parsed.discountAmount)),
       customerAddressKey,
       internalMemo,
       paymentReminder,
+      paymentHistory,
     }
   } catch {
-    return { depositUsedAmount: 0, discountAmount: 0 }
+    return { depositUsedAmount: 0, discountAmount: 0, paymentHistory: [] }
   }
 }
 
@@ -369,9 +407,14 @@ export function serializeInvoiceAccountingMeta(
     : undefined
   const internalMemo = sanitizeMultilineText(nextState.internalMemo)
   const paymentReminder = sanitizeInvoicePaymentReminder(nextState.paymentReminder)
+  const paymentHistory = Array.isArray(nextState.paymentHistory)
+    ? nextState.paymentHistory
+      .map(sanitizeInvoicePaymentHistoryEntry)
+      .filter((entry): entry is InvoicePaymentHistoryEntry => entry !== null)
+    : []
   const discountAmount = Math.max(0, parseInteger(nextState.discountAmount))
   if (nextState.depositUsedAmount <= 0 && discountAmount <= 0 && !customerAddressKey) {
-    if (!internalMemo && !paymentReminder) {
+    if (!internalMemo && !paymentReminder && paymentHistory.length === 0) {
       return lines.join('\n').trim()
     }
   }
@@ -383,9 +426,21 @@ export function serializeInvoiceAccountingMeta(
   }
   if (internalMemo) payload.internalMemo = internalMemo
   if (paymentReminder) payload.paymentReminder = paymentReminder
+  if (paymentHistory.length > 0) payload.paymentHistory = paymentHistory
 
   const metaLine = `${INVOICE_ACCOUNTING_META_PREFIX} ${JSON.stringify(payload)}`
   return [...lines, metaLine].join('\n').trim()
+}
+
+export function appendInvoicePaymentHistory(
+  memo: string | undefined,
+  entry: InvoicePaymentHistoryEntry,
+): string {
+  const prev = parseInvoiceAccountingMeta(memo)
+  return serializeInvoiceAccountingMeta(memo, {
+    ...prev,
+    paymentHistory: [...prev.paymentHistory, entry],
+  })
 }
 
 export function getInvoiceInternalMemo(memo?: string): string {
@@ -411,4 +466,8 @@ export function getInvoiceDiscountAmount(memo?: string): number {
 
 export function getInvoiceCustomerAddressKey(memo?: string): string | undefined {
   return parseInvoiceAccountingMeta(memo).customerAddressKey
+}
+
+export function getInvoicePaymentHistory(memo?: string): InvoicePaymentHistoryEntry[] {
+  return parseInvoiceAccountingMeta(memo).paymentHistory
 }

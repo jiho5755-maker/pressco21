@@ -37,7 +37,13 @@ import type { TransactionPreview } from '@/components/TransactionDetailDialog'
 import { buildSettlementTimeline, buildResolvedReceivableInvoices, resolveInvoiceCustomer } from '@/lib/receivables'
 import { loadActiveWorkOperatorProfile } from '@/lib/settings'
 import { exportUnifiedTransactions } from '@/lib/excel'
-import { getDisplayMemo, mergeDisplayMemo, parseCustomerAccountingMeta, replaceCustomerAccountingPreferences } from '@/lib/accountingMeta'
+import {
+  getDisplayMemo,
+  getInvoicePaymentHistory,
+  mergeDisplayMemo,
+  parseCustomerAccountingMeta,
+  replaceCustomerAccountingPreferences,
+} from '@/lib/accountingMeta'
 import { formatBusinessNumber, formatPhoneNumber } from '@/lib/formatters'
 
 // ── 기본정보 편집 폼 ──────────────────────────────────────
@@ -196,6 +202,47 @@ interface FinancialTimelineRow extends HistoryRow {
   impactSummary: string
   isException: boolean
   isNeutral: boolean
+}
+
+function buildCrmPaymentHistoryRows(invoice: Invoice): HistoryRow[] {
+  const paymentHistory = getInvoicePaymentHistory(invoice.memo as string | undefined)
+  const loggedRows = paymentHistory.map((entry, index) => ({
+    key: `inv-paid-history-${invoice.Id}-${index}`,
+    source: 'crm' as const,
+    recordId: invoice.Id,
+    date: entry.date,
+    txType: '입금',
+    amount: entry.amount,
+    memo: [
+      invoice.invoice_no ?? '-',
+      'CRM 입금 기록',
+      entry.method ? `방법: ${entry.method}` : '',
+      entry.accountLabel ? `계정: ${entry.accountLabel}` : '',
+      entry.operator ? `입력: ${entry.operator}` : '',
+      entry.note ? `메모: ${entry.note}` : '',
+      entry.createdAt ? `시각: ${entry.createdAt.slice(0, 16).replace('T', ' ')}` : '',
+    ].filter(Boolean).join(' · '),
+    slipNo: entry.createdAt ?? invoice.invoice_no ?? '',
+    isCrm: true,
+  }))
+
+  const loggedAmount = paymentHistory.reduce((sum, entry) => sum + entry.amount, 0)
+  const fallbackAmount = Math.max(0, (invoice.paid_amount ?? 0) - loggedAmount)
+  if (fallbackAmount > 0) {
+    loggedRows.unshift({
+      key: `inv-paid-${invoice.Id}`,
+      source: 'crm',
+      recordId: invoice.Id,
+      date: invoice.invoice_date?.slice(0, 10) ?? '',
+      txType: '입금',
+      amount: fallbackAmount,
+      memo: [invoice.invoice_no ?? '-', '기록 이전 누적 입금'].filter(Boolean).join(' · '),
+      slipNo: invoice.invoice_no ?? '',
+      isCrm: true,
+    })
+  }
+
+  return loggedRows
 }
 
 function getHistorySignedImpact(row: HistoryRow): number {
@@ -574,20 +621,7 @@ export function CustomerDetail() {
         slipNo: inv.invoice_no ?? '',
         isCrm: true,
       })
-      // 입금 행 (paid_amount > 0 인 경우)
-      if ((inv.paid_amount ?? 0) > 0) {
-        invRows.push({
-          key: `inv-paid-${inv.Id}`,
-          source: 'crm',
-          recordId: inv.Id,
-          date: inv.invoice_date?.slice(0, 10) ?? '',
-          txType: '입금',
-          amount: inv.paid_amount ?? 0,
-          memo: inv.invoice_no ?? '-',
-          slipNo: inv.invoice_no ?? '',
-          isCrm: true,
-        })
-      }
+      invRows.push(...buildCrmPaymentHistoryRows(inv))
     }
 
     const legacySettlementRows: HistoryRow[] = parseLegacyReceivableMemo(customer?.memo as string | undefined).settlements.map((entry, index) => ({

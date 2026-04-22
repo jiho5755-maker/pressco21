@@ -17,7 +17,7 @@ export interface AutoDepositInboxEntry {
 
 export interface AutoDepositCandidate {
   key: string
-  kind: 'invoice' | 'legacy'
+  kind: 'invoice' | 'legacy' | 'customer'
   confidence: 'exact' | 'review'
   customerId: number
   customerName: string
@@ -370,6 +370,33 @@ function createLegacyCandidate(
   }
 }
 
+function createCustomerSettlementCandidate(
+  entry: AutoDepositInboxEntry,
+  ledger: CustomerReceivableLedger,
+  customer: Customer,
+  preferredInvoice: ResolvedReceivableInvoice | undefined,
+  score: number,
+  reason: string,
+  confidence: 'exact' | 'review',
+): AutoDepositCandidate {
+  return {
+    key: `customer-${customer.Id}`,
+    kind: 'customer',
+    confidence,
+    customerId: customer.Id,
+    customerName: customer.name?.trim() || ledger.customerName,
+    bookName: customer.book_name?.trim(),
+    amount: entry.amount,
+    invoiceId: preferredInvoice?.Id,
+    invoiceNo: preferredInvoice?.invoice_no,
+    remainingAmount: ledger.totalRemaining,
+    score,
+    reason,
+    depositorAliases: parseCustomerAccountingMeta(customer.memo as string | undefined).depositorAliases,
+    autoDepositPriority: parseCustomerAccountingMeta(customer.memo as string | undefined).autoDepositPriority,
+  }
+}
+
 export function buildAutoDepositMatchResults(
   entries: AutoDepositInboxEntry[],
   customers: Customer[],
@@ -445,6 +472,25 @@ export function buildAutoDepositMatchResults(
       .map((ledger) => {
         const customer = customerById.get(ledger.customerId)!
         const customerMeta = parseCustomerAccountingMeta(customer.memo as string | undefined)
+        const preferredInvoice = invoices
+          .filter((invoice) => invoice.resolvedCustomerId === ledger.customerId && invoice.asOfRemaining > 0)
+          .sort((left, right) => {
+            const leftDate = left.invoice_date?.slice(0, 10) ?? ''
+            const rightDate = right.invoice_date?.slice(0, 10) ?? ''
+            if (leftDate !== rightDate) return leftDate.localeCompare(rightDate)
+            return left.Id - right.Id
+          })[0]
+        if (ledger.crmRemaining > 0 || ledger.source === 'both') {
+          return createCustomerSettlementCandidate(
+            entry,
+            ledger,
+            customer,
+            preferredInvoice,
+            40 + Math.min(30, customerMeta.autoDepositPriority),
+            '입금자명과 고객명이 맞아 고객 전체 미수를 오래된 순서대로 정산하는 후보입니다.',
+            'review',
+          )
+        }
         return createLegacyCandidate(
           entry,
           ledger,

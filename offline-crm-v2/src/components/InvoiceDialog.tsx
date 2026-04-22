@@ -1043,11 +1043,13 @@ export function InvoiceDialog({
       const reminderAmount = paymentDueAmount > 0 ? paymentDueAmount : Math.max(0, curBal)
       const hasPaymentPromise = Boolean(paymentDueDate || paymentDueAmount > 0 || paymentReminderEnabled)
       const reminderEnabled = Boolean(paymentDueDate && paymentReminderEnabled)
+      const currentInvoiceMeta = parseInvoiceAccountingMeta(form.memo as string | undefined)
       const nextInvoiceMemo = serializeInvoiceAccountingMeta(form.memo as string | undefined, {
         depositUsedAmount: appliedDeposit,
         discountAmount,
         customerAddressKey: selectedAddrKey,
         internalMemo,
+        paymentHistory: currentInvoiceMeta.paymentHistory,
         paymentReminder: hasPaymentPromise
           ? {
               dueDate: paymentDueDate || undefined,

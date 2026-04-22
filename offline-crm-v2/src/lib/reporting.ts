@@ -1,5 +1,5 @@
 import type { Invoice, TxHistory } from '@/lib/api'
-import { getInvoiceDepositUsedAmount } from '@/lib/accountingMeta'
+import { getInvoiceDepositUsedAmount, getInvoicePaymentHistory } from '@/lib/accountingMeta'
 
 export type PresetKey = 'thisMonth' | 'lastMonth' | 'thisQuarter' | 'thisYear'
 
@@ -160,7 +160,17 @@ export function getPaidAmountAsOf(invoice: Invoice, asOfDate: string): number {
 
   const depositUsedAmount = Math.max(0, getInvoiceDepositUsedAmount(invoice.memo as string | undefined))
   const paidAmount = Math.max(0, invoice.paid_amount ?? 0)
-  if (paidAmount <= 0 && depositUsedAmount <= 0) return 0
+  const paymentHistory = getInvoicePaymentHistory(invoice.memo as string | undefined)
+  if (paidAmount <= 0 && depositUsedAmount <= 0 && paymentHistory.length === 0) return 0
+
+  if (paymentHistory.length > 0) {
+    const loggedAsOf = paymentHistory.reduce((sum, entry) => (
+      entry.date <= asOfDate ? sum + entry.amount : sum
+    ), 0)
+    const loggedTotal = paymentHistory.reduce((sum, entry) => sum + entry.amount, 0)
+    const fallbackPaid = Math.max(0, paidAmount - loggedTotal)
+    return depositUsedAmount + loggedAsOf + fallbackPaid
+  }
 
   const paidDate = normalizeDate(invoice.paid_date)
   if (!paidDate) {

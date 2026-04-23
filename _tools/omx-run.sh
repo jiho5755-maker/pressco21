@@ -94,6 +94,8 @@ if [ $refresh_profile -eq 1 ] || [ ! -d "$OMX_PROFILE_CODEX_HOME/prompts" ]; the
   omx_profile_prepare
 fi
 
+omx_sync_profile_runtime_files
+
 export CODEX_HOME="$OMX_PROFILE_CODEX_HOME"
 export OMX_MODEL_INSTRUCTIONS_FILE="${OMX_MODEL_INSTRUCTIONS_FILE:-$PWD/AGENTS.md}"
 

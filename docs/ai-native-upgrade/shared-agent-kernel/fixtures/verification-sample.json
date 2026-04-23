@@ -1,0 +1,12 @@
+{
+  "context_type": "verification",
+  "owner_agent_id": "choi-minseok-cto",
+  "summary": "Claude-side continuity 구조는 shared-kernel 계약과 크게 충돌하지 않습니다.",
+  "verification": [
+    "SessionStart/Stop 훅 존재",
+    "shared-kernel roster 참조",
+    "handoff contract 사용"
+  ],
+  "risks": ["Stop 훅이 async라서 handoff 기록 완료 보장이 약합니다."],
+  "next_steps": ["/save 기준의 동기적 handoff 흐름을 실제 운영 기준으로 삼습니다."]
+}

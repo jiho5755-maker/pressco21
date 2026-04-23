@@ -6,9 +6,9 @@
 # 프로젝트별 worktree/branch scope guard
 HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
 if [ -x "$HOOK_DIR/../scope-guard.sh" ]; then
-  bash "$HOOK_DIR/../scope-guard.sh"
+  bash "$HOOK_DIR/../scope-guard.sh" || exit 1
 elif [ -x "$HOOK_DIR/scope-guard.sh" ]; then
-  bash "$HOOK_DIR/scope-guard.sh"
+  bash "$HOOK_DIR/scope-guard.sh" || exit 1
 fi
 
 # 메이크샵 경로 패턴

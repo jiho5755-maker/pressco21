@@ -9,11 +9,16 @@
 
 **검증 방법**: 새 세션 첫 프롬프트 시 자동 실행됨. 또는 수동 테스트:
 ```bash
-echo '{"cwd":"/Users/jangjiho/workspace/pressco21","session_id":"test-001"}' | bash ~/.claude/hooks/session-start.sh
+echo '{"cwd":"/Users/jangjiho/workspace/pressco21","session_id":"test-main"}' | bash ~/.claude/hooks/session-start.sh
+echo '{"cwd":"/Users/jangjiho/workspace/pressco21-worktrees/<slot>","session_id":"test-worktree"}' | bash ~/.claude/hooks/session-start.sh
+echo '{"cwd":"/tmp","session_id":"test-outside"}' | bash ~/.claude/hooks/session-start.sh
 ```
 
 **Pass 조건**:
-- [ ] handoff가 있으면 compact briefing이 stdout에 출력됨
+- [ ] 현재 worktree handoff가 있으면 `[현재 작업 이어받기]` compact briefing이 stdout에 출력됨
+- [ ] 같은 project fallback은 `[같은 프로젝트 참고]`로 표시되고 자동 next step처럼 보이지 않음
+- [ ] main/global fallback은 main 세션 또는 명시적 opt-in에서만 `[전역 참고]`로 표시됨
+- [ ] `/tmp` 등 PRESSCO21 외부 cwd에서는 아무 것도 출력하지 않음
 - [ ] 사람 이름이 먼저 보임 (tool/runtime 이름 아님)
 - [ ] `Explore`, `general-purpose`, `Plan`이 owner로 나오지 않음
 - [ ] placeholder handoff일 때 "/save 미실행" 경고가 나옴
@@ -23,6 +28,8 @@ echo '{"cwd":"/Users/jangjiho/workspace/pressco21","session_id":"test-001"}' | b
 **Fail 예시**:
 - `[3시간 전] Explore:` — non-canonical owner 노출
 - placeholder summary가 그대로 표시됨
+- CRM worktree에서 workspace 또는 partnerclass handoff가 `[현재 작업 이어받기]`로 표시됨
+- `/tmp`에서 PRESSCO21 handoff가 출력됨
 
 ---
 
@@ -31,7 +38,9 @@ echo '{"cwd":"/Users/jangjiho/workspace/pressco21","session_id":"test-001"}' | b
 **검증 방법**: 작업 후 `/save` 실행.
 
 **Pass 조건**:
-- [ ] `team/handoffs/latest.md`에 handoff-contract YAML 기록됨
+- [ ] 현재 작업이 worktree이면 `team/handoffs/worktrees/<slot>/latest.md`에 handoff-contract YAML 기록됨
+- [ ] 같은 branch/project fallback용 `team/handoffs/branches/<branch>/latest.md`, `team/handoffs/projects/<project>/latest.md`가 갱신됨
+- [ ] main 세션 또는 명시적 promote가 아니면 root `team/handoffs/latest.md`가 덮어써지지 않음
 - [ ] summary, decision, next_step, open_risks가 placeholder가 아닌 실제 판단으로 채워짐
 - [ ] owner_agent_id가 canonical agent_id임 (Explore, Plan 등 아님)
 - [ ] founder-facing 출력에 한국어 섹션 사용 (요약/확인/리스크/다음)

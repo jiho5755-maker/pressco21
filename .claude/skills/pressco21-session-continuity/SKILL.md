@@ -1,6 +1,6 @@
 ---
 name: pressco21-session-continuity
-description: Session continuity for PRESSCO21 shared agent ecosystem. SessionStart auto-loads latest handoff via UserPromptSubmit hook. SessionEnd records structured handoff via Stop hook. /save enriches handoff with Claude judgment. /resume explicitly restores context. Trigger when discussing session start/stop design, handoff format, or continuity flow.
+description: Session continuity for PRESSCO21 shared agent ecosystem. SessionStart auto-loads cwd-scoped handoff via UserPromptSubmit hook. SessionEnd records structured scoped handoff via Stop hook. /save enriches handoff with Claude judgment. /resume explicitly restores context. Trigger when discussing session start/stop design, handoff format, or continuity flow.
 ---
 
 # PRESSCO21 Session Continuity
@@ -11,10 +11,10 @@ description: Session continuity for PRESSCO21 shared agent ecosystem. SessionSta
 
 ```
 SessionStart (UserPromptSubmit hook)
-  └─ session-start.sh → latest handoff 읽기 → stdout 컨텍스트 주입
+  └─ session-start.sh → cwd 기반 worktree/project scoped handoff 읽기 → stdout 컨텍스트 주입
 
 SessionEnd (Stop hook)
-  └─ session-handoff.sh → handoff-contract YAML 자동 기록
+  └─ session-handoff.sh → 현재 worktree/branch/project scope에 handoff-contract YAML 자동 기록
   └─ notify-telegram.sh → 텔레그램 알림
   └─ levelup-auto.sh → 에이전트 growth-log 마커
 
@@ -34,7 +34,10 @@ SessionEnd (Stop hook)
 | `~/.claude/hooks/session-handoff.sh` | Stop — handoff YAML 자동 기록 |
 | `~/.claude/commands/save.md` | 수동 체크포인트 + handoff 생성 |
 | `~/.claude/commands/resume.md` | 명시적 세션 복원 |
-| `team/handoffs/latest.md` | 최신 handoff (cross-runtime 공유) |
+| `team/handoffs/latest.md` | main/global 통합 handoff (명시적 promote 또는 main 세션) |
+| `team/handoffs/worktrees/<slot>/latest.md` | 현재 worktree를 이어받는 1순위 handoff |
+| `team/handoffs/projects/<project>/latest.md` | 같은 프로젝트 fallback handoff |
+| `team/handoffs/branches/<branch>/latest.md` | 같은 branch fallback handoff |
 
 ## Shared Kernel 계약 참조
 
@@ -45,15 +48,17 @@ SessionEnd (Stop hook)
 
 ## SessionStart Output Spec
 
-세션 시작 시 아래 4개 요소가 한 줄에 compact하게 보인다:
+세션 시작 시 현재 cwd의 scope에 맞는 handoff가 한 줄에 compact하게 보인다.
 
 ```
-[{경과시간}] {사람이름}({직책}){작업실}: {요약} → 이어서: {다음행동} | 주의: {리스크} | 승격 후보: {learn_to_save}
+[현재 작업 이어받기][{경과시간}] {사람이름}({직책}){작업실}: {요약} → 이어서: {다음행동} | 주의: {리스크} | 승격 후보: {learn_to_save}
+[같은 프로젝트 참고][{경과시간}] {사람이름}({직책}){작업실}: {요약} | 참고 다음: {다음행동}
+[전역 참고][{경과시간}] {사람이름}({직책}){작업실}: {요약} | 참고 다음: {다음행동}
 ```
 
 예시:
 ```
-[3시간 전] 최민석님(CTO): adapter 구현 완료 → 이어서: smoke test | 주의: async handoff | 승격 후보: cross-runtime 출력 정렬 패턴
+[현재 작업 이어받기][3시간 전] 최민석님(CTO): adapter 구현 완료 → 이어서: smoke test | 주의: async handoff | 승격 후보: cross-runtime 출력 정렬 패턴
 ```
 
 **4개 요소**: 지난 세션 요약 + 다음 행동 + 열린 리스크 + 승격 후보
@@ -67,3 +72,5 @@ SessionEnd (Stop hook)
 3. `UserPromptSubmit` 훅은 세션당 1회만 실행 (debounce)
 4. handoff는 7일 이상 오래되면 무시
 5. learn_to_save가 비어있거나 `[]`이면 승격 후보 표시 생략
+6. 전역 `team/handoffs/latest.md`는 main/global 참고이며, 일반 worktree의 자동 next step으로 쓰지 않는다
+7. 현재 작업 재개 기준은 literal pwd가 아니라 `git rev-parse --show-toplevel`로 계산한 worktree root + branch + project scope다

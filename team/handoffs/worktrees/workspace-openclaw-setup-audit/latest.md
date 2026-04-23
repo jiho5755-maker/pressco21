@@ -1,9 +1,9 @@
 ---
-handoff_id: HOFF-2026-04-24-claude-phase4
-created_at: 2026-04-24T00:05:00+09:00
+handoff_id: HOFF-2026-04-24-claude-phase4.5
+created_at: 2026-04-24T00:35:00+09:00
 runtime: claude
 owner_agent_id: choi-minseok-cto
-contributors: [security-advisor, server-ops]
+contributors: []
 scope_type: worktree
 project: workspace
 worktree_slot: workspace-openclaw-setup-audit
@@ -11,51 +11,44 @@ repo_root: /Users/jangjiho/workspace/pressco21
 branch: work/workspace/openclaw-setup-audit
 worktree_path: /Users/jangjiho/workspace/pressco21-worktrees/workspace-openclaw-setup-audit
 source_cwd: /Users/jangjiho/workspace/pressco21-worktrees/workspace-openclaw-setup-audit
-commit_sha: 560f3c2
+commit_sha: 13a0bd5
 status: active
 promoted_to_global: false
 summary: >
-  최민석님이 OpenClaw 맥북 노드(Phase 4)를 구현했습니다.
-  Flora 서버(두뇌)와 맥북(손발) 간 Tailscale VPN으로 분산 아키텍처를 완성하여,
-  텔레그램에서 맥북 파일 접근, 브라우저 자동화, Claude Code/Codex CLI 호출이 가능해졌습니다.
+  최민석님이 OpenClaw 텔레그램→맥북 노드 E2E 통합 테스트(Phase 4.5)를 완료했습니다.
+  스킬 로딩 이슈를 발견하고 해결하여 20개 스킬 전체 로드를 확인했으며,
+  텔레그램에서 맥북 파일 접근/git 상태 조회가 정상 동작함을 5개 시나리오로 검증했습니다.
 decision: >
-  게이트웨이를 lan 모드로 변경(loopback→0.0.0.0)하되 iptables로 tailscale0+lo만 허용.
-  tailscale.mode=off (tailnet에서 serve 미지원).
-  디바이스 페어링은 paired.json 직접 편집 방식 채택 (CLI approve 타이밍 이슈).
+  flora-frontdoor 에이전트에 명시적 skills allowlist(20개) 설정 필수.
+  미설정 시 Phase 4 스킬 4개가 에이전트 프롬프트에서 누락됨.
+  스킬 프론트매터에 triggers:/exec: 비표준 필드 사용 금지 — description에 통합.
 changed_artifacts:
-  - 560f3c2 docs: OpenClaw 맥북 노드 Phase 4 구현 결과 추가
-  - Flora openclaw.json: gateway.bind=lan, tailscale.mode=off, exec.node.preferred=jiho-macbook
-  - Flora iptables: tailscale0 ACCEPT + lo ACCEPT + DROP (영구 저장)
-  - Flora paired.json: jiho-macbook 디바이스 등록
-  - Flora skills 4개 추가: local-project-explorer, local-browser, claude-code-bridge, codex-bridge
-  - 맥북 LaunchAgent: ai.openclaw.node.plist (PATH fix, token, insecure WS flag)
-  - 맥북 node.json: gateway host/port/tls 설정
+  - 13a0bd5 docs: Phase 4.5 텔레그램-맥북 통합 테스트 결과 추가
+  - Flora openclaw.json: flora-frontdoor agents.list[].skills 20개 allowlist 추가
+  - Flora 스킬 4개 프론트매터 수정 (triggers/exec 필드 제거, description 통합)
 verification:
-  - nodes status: Known 1, Paired 1, Connected 1 확인
-  - system.which: git, claude, codex, npx 모두 감지
-  - 게이트웨이 재시작 후 자동 재연결 정상
-  - iptables 영구 저장 확인
-  - 공개 IP 접근 차단 확인 (HTTP 000)
-  - Tailscale IP 접근 정상 (HTTP 200)
+  - node invoke system.which: git/claude/codex 바이너리 경로 정상 반환
+  - agent CLI exec: 맥북 git log 5개 커밋 정상 반환 (27.7s)
+  - 텔레그램 전송 (worktree 목록): 9개 worktree 정상 전달 (11.8s)
+  - 스킬 로드 확인: 20/20 전체 로드 (이전 16/20)
+  - 텔레그램 전송 (프로젝트 상태): git log + status + 브랜치 요약 (19.0s)
 open_risks:
-  - OpenAI OAuth가 다시 만료됨 (Gemini fallback 중) — 주기적 재인증 필요
-  - 텔레그램→맥북 노드 실사용 시나리오 미테스트 (system.which만 확인)
-  - 맥북 슬립 시 노드 끊김 → 깨어나면 자동 재연결되지만 caffeinate 미설정
-  - exec 라우팅(node preferred)이 에이전트 실행에 실제 반영되는지 실사용 검증 필요
+  - OpenAI OAuth 만료 상태 (Gemini fallback 중) — 주기적 재인증 필요
+  - 사방넷 자격증명 미설정 — local-browser 스킬의 사방넷 로그인 불가
+  - gateway/skills-remote bin probe 타임아웃이 여전히 발생 — allowlist로 우회했으나 근본 원인 미해결
+  - 맥북 슬립 시 노드 끊김 → caffeinate 미설정
 next_step: >
-  텔레그램에서 "프로젝트 상태 보여줘", "사방넷 재고 확인" 같은 실사용 시나리오를 테스트하여
-  맥북 노드가 에이전트 실행에 실제로 활용되는지 확인한다.
+  사방넷 자격증명(.secrets.env)을 설정하고 local-browser 스킬로
+  사방넷 재고 조회를 텔레그램에서 테스트한다.
 learn_to_save:
-  - "OpenClaw 노드 페어링 paired.json 직접 편집 패턴" → CTO playbook
-  - "gateway.bind 유효값 목록 (loopback/lan/tailnet/auto/custom)" → CTO playbook
+  - "OpenClaw 스킬 프론트매터 규칙 — triggers/exec 필드 금지" → CTO playbook
+  - "flora-frontdoor skills allowlist 필수 설정" → CTO playbook
 ---
 
 ## 담당
 최민석님 (CTO)
 
 ## 메모
-Phase 0-3 (보안 하드닝 + 텔레그램 + 스킬 15개)에 이어
-Phase 4 (맥북 노드 분산 아키텍처)까지 완료.
-
-맥북이 꺼져도 Flora 서버의 텔레그램/모니터링/데이터 조회는 정상 동작.
-맥북이 켜져있으면 파일 접근, 브라우저, Claude Code/Codex까지 원격 호출 가능.
+Phase 4 (맥북 노드 구축)에 이어 Phase 4.5 (E2E 통합 테스트)까지 완료.
+텔레그램에서 "프로젝트 상태 보여줘"를 보내면 Flora 서버가 맥북 노드에 exec를 라우팅하여
+git log/status를 실행하고 결과를 텔레그램으로 전달하는 전체 파이프라인이 동작한다.

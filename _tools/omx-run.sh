@@ -55,7 +55,7 @@ rm -- "\$0"
 cd "$PWD"
 export CODEX_HOME="$OMX_PROFILE_CODEX_HOME"
 export OMX_MODEL_INSTRUCTIONS_FILE="$model_instructions"
-exec node "$OMX_SOURCE_ROOT/bin/omx.js" $omx_args
+exec node "$OMX_CLI_ENTRYPOINT" $omx_args
 EOF
   chmod +x "$launch_script"
 
@@ -106,4 +106,4 @@ if omx_is_team_start "$@"; then
   fi
 fi
 
-exec node "$OMX_SOURCE_ROOT/bin/omx.js" "$@"
+exec node "$OMX_CLI_ENTRYPOINT" "$@"

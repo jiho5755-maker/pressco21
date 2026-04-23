@@ -14,6 +14,25 @@ cat > "$TARGET_PATH" <<EOF
 set -euo pipefail
 
 DEFAULT_REPO_ROOT="$DEFAULT_REPO_ROOT"
+OMX_NVM_NODE_BIN="\$HOME/.nvm/versions/node/v22.21.1/bin"
+OMX_GLOBAL_ROOT="\$HOME/.nvm/versions/node/v22.21.1/lib/node_modules/oh-my-codex"
+OMX_LOCAL_DEV_ROOT="\$HOME/workspace/OMX(오_마이_코덱스)/oh-my-codex"
+
+if [ -d "\$OMX_NVM_NODE_BIN" ]; then
+  export PATH="\$OMX_NVM_NODE_BIN:\$PATH"
+fi
+
+# 기본 실행은 npm으로 설치된 최신 안정판을 사용한다.
+# 이전 세션에서 상속된 로컬 개발본 경로는 자동 교정한다.
+# 로컬 개발본을 의도적으로 쓰려면 P21_OMX_USE_LOCAL_DEV=1 p21-omx ... 를 사용한다.
+if [ "\${P21_OMX_USE_LOCAL_DEV:-0}" = "1" ]; then
+  export OMX_SOURCE_ROOT="\${OMX_SOURCE_ROOT:-\$OMX_LOCAL_DEV_ROOT}"
+elif [ -f "\$OMX_GLOBAL_ROOT/dist/cli/omx.js" ]; then
+  case "\${OMX_SOURCE_ROOT:-}" in
+    ""|"\$OMX_LOCAL_DEV_ROOT") export OMX_SOURCE_ROOT="\$OMX_GLOBAL_ROOT" ;;
+  esac
+fi
+
 search_dir="\$PWD"
 
 while [ -n "\$search_dir" ] && [ "\$search_dir" != "/" ]; do

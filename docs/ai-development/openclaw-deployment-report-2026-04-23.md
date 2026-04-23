@@ -166,6 +166,34 @@
 - 노드 연결: paired · connected 상태 확인
 - 게이트웨이 재시작 후 자동 재연결 정상
 
+### Phase 4.5: 텔레그램→맥북 통합 테스트 (2026-04-24)
+
+Phase 4에서 구축한 분산 아키텍처가 실제 텔레그램 요청에서 동작하는지 E2E 검증.
+
+#### 스킬 로딩 이슈 발견 및 해결
+- **증상**: Phase 4 스킬 4개가 `openclaw skills check`에서 "Ready"이지만 에이전트 프롬프트에 미로드 (16/20)
+- **원인 1**: 스킬 프론트매터에 비표준 필드(`triggers:`, `exec:`) 사용 → description 통합으로 수정
+- **원인 2**: `agents.list[].skills` 미설정 시 기본 해상도가 Phase 4 스킬을 누락
+- **원인 3**: `gateway/skills-remote` bin probe가 노드 재연결 타이밍에 timeout 발생
+- **해결**: flora-frontdoor 에이전트에 명시적 skills allowlist 20개 설정 → 전체 로드 확인
+
+#### E2E 테스트 결과
+
+| # | 테스트 시나리오 | 결과 | 소요 시간 | 비고 |
+|---|---------------|------|----------|------|
+| 1 | node invoke (system.which git/claude/codex) | PASS | ~2s | 맥북 바이너리 경로 정상 반환 |
+| 2 | agent CLI → 맥북 git log | PASS | 27.7s | read+exec 도구 5회 호출 |
+| 3 | 텔레그램 전송 (worktree 목록) | PASS | 11.8s | --deliver로 지호님 DM 전송 확인 |
+| 4 | 스킬 20개 전체 로드 | PASS | - | allowlist 설정 후 정상 |
+| 5 | 텔레그램 전송 (프로젝트 상태) | PASS | 19.0s | git log + git status + 브랜치 요약 |
+
+#### 설정 변경
+
+1. **스킬 프론트매터 수정 (4개)**: `triggers:`/`exec:` 필드 제거, description에 통합
+   - local-project-explorer, local-browser, claude-code-bridge, codex-bridge
+2. **flora-frontdoor agents.list[].skills 추가**: 20개 스킬 명시적 allowlist
+   - 기존 16개 + Phase 4 스킬 4개
+
 ### 트러블슈팅 기록
 1. gateway.bind="all" 인식 안됨 → 유효값: loopback/lan/tailnet/auto/custom
 2. tailscale.mode="serve" + bind≠loopback 충돌 → tailscale.mode="off"로 변경
@@ -173,8 +201,9 @@
 4. SECURITY ERROR: plaintext ws:// 거부 → OPENCLAW_ALLOW_INSECURE_PRIVATE_WS=1
 5. gateway token missing → OPENCLAW_GATEWAY_TOKEN 환경변수 설정
 6. device pairing CLI approve timeout → paired.json 수동 등록
+7. Phase 4 스킬 에이전트 미로드 → 비표준 프론트매터 수정 + 명시적 skills allowlist 설정
 
-## 인프라 현황 (Phase 4 이후)
+## 인프라 현황 (Phase 4.5 이후)
 
 | 항목 | 값 |
 |------|-----|
@@ -183,8 +212,9 @@
 | 서비스 | systemd user service (restart=always) |
 | 게이트웨이 | 0.0.0.0:18789 (lan 모드, iptables Tailscale+lo만 ACCEPT) |
 | 텔레그램 | @pressco21_openclaw_bot (DM allowlist) |
-| 스킬 | 19개 (기존 15 + 맥북 노드 4) |
+| 스킬 | 20개 (기존 16 + 맥북 노드 4), flora-frontdoor에 명시적 allowlist |
 | 맥북 노드 | jiho-macbook (Tailscale, LaunchAgent, 자동 재연결) |
 | Cron | watchdog(30분) + morning-briefing(08:00 KST) |
 | Playwright | v1.58.2 + Chromium ARM (서버) + Playwright (맥북) |
 | 추가 비용 | 0원 |
+| E2E 검증 | 텔레그램→Flora→맥북 파이프라인 5/5 PASS |

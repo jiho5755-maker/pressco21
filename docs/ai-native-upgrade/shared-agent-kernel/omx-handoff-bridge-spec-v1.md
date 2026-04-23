@@ -62,3 +62,15 @@
 
 ## 목적
 이 bridge는 live wrapper 연결 전에도 Claude가 남긴 latest handoff를 founder 관점에서 읽을 수 있게 해준다. 또한 `/save`가 아직 안 돌았을 때 placeholder 상태를 명시적으로 드러내 continuity 품질 리스크를 보여준다.
+
+## scope-aware continuity update
+
+SessionStart 계열 bridge는 `team/handoffs/latest.md`를 모든 cwd의 기본값으로 쓰지 않는다.
+현재 cwd에서 `git rev-parse --show-toplevel`로 worktree root를 계산하고, 아래 순서로 handoff를 선택한다.
+
+1. 현재 worktree와 branch가 일치하는 `team/handoffs/worktrees/<slot>/latest.md`
+2. 같은 branch fallback `team/handoffs/branches/<safe-branch>/latest.md`
+3. 같은 project fallback `team/handoffs/projects/<project>/latest.md`
+4. main/global 세션에서만 `team/handoffs/latest.md`
+
+전역 handoff가 현재 scope와 다르면 "현재 작업 이어받기"가 아니라 "전역 참고"로만 표시한다.

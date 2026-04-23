@@ -10,16 +10,17 @@
 - **pull 시각**: 2026-03-30 12:37
 - **pull 범위**: 핵심 6개 페이지 (common, header, footer, main, shopdetail, shopbrand)
 - **pull 방법**: Chrome MCP blob 자동 다운로드
-- **push 시각**: 2026-04-02 (오전)
-- **push 범위**: main/main.js → 49450 메인 JS 탭 (팝업 v2 + !important 숨김)
-- **push 방법**: Chrome MCP clipboard API + alert 오버라이드
+- **push/검증 시각**: 2026-04-23 12:00 KST
+- **push/검증 범위**: main/main.js, product/shopbrand.js, product/shopdetail.js, product/shopsearch.js
+- **push/검증 방법**: 운영 스킨 49450 라이브 자산 직접 다운로드 후 로컬 SHA256 비교
 
 ---
 
 ## 현재 개발 상태
 
-- **개발 중인 기능**: (없음)
-- **수정 중인 파일**: (없음)
+- **개발 중인 기능**: 웨딩액자/가격 표시 라이브 동기화 기준점 확정
+- **수정 중인 파일**: (중간 마감 후 없음)
+- **기준점**: `work/homepage/price-display-recovery-20260423` 브랜치의 2026-04-23 라이브 동기화 커밋
 
 ---
 
@@ -72,3 +73,4 @@
 | 2026-04-02 | push | main JS (v2) | 팝업 v2 (!important 숨김 + 네이티브 쿠키) — 긴급 수정 |
 | 2026-04-02 | push | main JS (v2.1) | 팝업 쿠키 체크 추가 (areAllPopupsCookied) — "오늘 그만 보기" 수정 |
 | 2026-04-02 | 마이그레이션 | 파트너클래스 10개 | 구→신 정본 이관 완료. makeshop-skin/pages/가 유일한 정본 |
+| 2026-04-23 | push/verify | main.js, shopbrand.js, shopdetail.js, shopsearch.js | 가격 표시 정리, 웨딩액자 텍스트 옵션/기준가 라이브 반영본과 로컬 SHA256 일치 확인 |

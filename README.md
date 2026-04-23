@@ -3,6 +3,30 @@
 > 압화(프레스드플라워) 전문 브랜드 **PRESSCO21**의 메이크샵 D4 커스터마이징 + 파트너 클래스 플랫폼 코드 저장소
 > 운영 사이트: foreverlove.co.kr
 
+## 비전공자용 OMX 실행 빠른 시작
+
+처음 1회:
+
+```bash
+bash _tools/install-p21-omx.sh
+```
+
+그 다음부터는 이것만 기억하면 됩니다.
+
+```bash
+p21-omx
+p21-omx turbo
+p21-omx doctor
+p21-omx repair
+```
+
+- `p21-omx` → 기본 안정 실행
+- `p21-omx turbo` → 예전 `--xhigh --madmax`에 해당하는 강한 실행
+- `p21-omx doctor` → 점검
+- `p21-omx repair` → 복구
+
+상세 설명: [`docs/ai-development/omx-쉬운-실행-가이드.md`](./docs/ai-development/omx-%EC%89%AC%EC%9A%B4-%EC%8B%A4%ED%96%89-%EA%B0%80%EC%9D%B4%EB%93%9C.md)
+
 ## 프로젝트 구조
 
 | 폴더 | 용도 | 메이크샵 편집 위치 | 상태 |

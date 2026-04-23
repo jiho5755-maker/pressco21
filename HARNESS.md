@@ -25,6 +25,15 @@ pressco21 worktrees + Git hooks        ← 프로젝트별 작업 격리/충돌 
 
 **규칙**: 충돌 시 더 엄격한 규칙을 우선한다.
 
+### Founder-facing canonical roster reference
+
+Claude와 Codex/OMX는 내부 런타임과 역할이 다를 수 있지만, founder-facing 직원 정체성은 shared-agent-kernel 문서를 우선합니다.
+
+- `docs/ai-native-upgrade/shared-agent-kernel/agents.v1.yaml`
+- `docs/ai-native-upgrade/shared-agent-kernel/founder-facing-roster-v1.md`
+
+같은 직원이 회의실(Claude)과 실행실(OMX)에서 일하는 구조를 유지해야 하며, tool/runtime-specific role은 founder-facing identity를 대체하지 않습니다.
+
 ### 에이전트 시스템
 
 ```

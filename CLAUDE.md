@@ -42,6 +42,15 @@ cd /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-invoice-fix
 
 문서가 충돌하면 `shared-service-identity.md`와 `enterprise-elevation-strategy-2026-03-10.md`를 예전 구현 문서보다 우선합니다.
 
+## Shared Agent Ecosystem Canonical Source
+
+Founder-facing canonical roster와 shared agent contract의 기준은 아래 문서를 우선합니다.
+
+- `docs/ai-native-upgrade/shared-agent-kernel/agents.v1.yaml`
+- `docs/ai-native-upgrade/shared-agent-kernel/founder-facing-roster-v1.md`
+
+즉, Claude 내부 agent 수나 구현 구조와 별개로, 창업자에게 보이는 직원 정체성은 shared-agent-kernel 문서를 기준으로 유지합니다. 같은 직원이 회의실(Claude)과 실행실(OMX)에서 일한다는 mental model을 깨지 마세요.
+
 ## Codex CLI 협업 규칙
 
 두 가지 모드로 운영됩니다:

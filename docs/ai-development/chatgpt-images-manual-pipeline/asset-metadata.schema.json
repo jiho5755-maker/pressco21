@@ -1,0 +1,76 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "PRESSCO21 Manual AI Image Asset Metadata",
+  "type": "object",
+  "required": [
+    "assetId",
+    "project",
+    "usecase",
+    "source",
+    "createdAt",
+    "promptId",
+    "reviewStatus",
+    "intendedUse",
+    "licenseNote",
+    "tags"
+  ],
+  "properties": {
+    "assetId": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9-]*_[a-z0-9-]+_[a-z0-9-]+_[0-9]{8}_v[0-9]{2}$"
+    },
+    "project": {
+      "type": "string",
+      "enum": [
+        "partnerclass",
+        "makeshop-skin",
+        "homepage",
+        "quick-buy",
+        "docs",
+        "crm",
+        "shared"
+      ]
+    },
+    "usecase": {
+      "type": "string"
+    },
+    "source": {
+      "type": "string",
+      "const": "chatgpt-web-manual"
+    },
+    "createdAt": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "promptId": {
+      "type": "string"
+    },
+    "reviewStatus": {
+      "type": "string",
+      "enum": ["draft", "generated", "reviewed", "approved", "rejected"]
+    },
+    "reviewer": {
+      "type": "string"
+    },
+    "approvedAt": {
+      "type": "string",
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$"
+    },
+    "intendedUse": {
+      "type": "string"
+    },
+    "truthCheck": {
+      "type": "string"
+    },
+    "licenseNote": {
+      "type": "string"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    }
+  },
+  "additionalProperties": true
+}

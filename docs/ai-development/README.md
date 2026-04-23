@@ -19,6 +19,8 @@
 | `docs/ai-development/DECISIONS.md` | 반복 논쟁을 막는 설계/운영 의사결정 기록 |
 | `docs/ai-development/DONE_CHECKLIST.md` | 완료 전 품질 체크리스트 |
 | `docs/ai-development/HANDOFF_TEMPLATE.md` | 세션 종료/인계 템플릿 |
+| `docs/ai-development/omx-쉬운-실행-가이드.md` | 비전공자용 OMX 실행 명령/복구 가이드 |
+| `docs/ai-development/claude-omx-연동-활용-가이드.md` | Claude 회의실 + OMX 실행실 연동을 어떻게 이해하고 쓸지에 대한 운영 가이드 |
 | `docs/ai-development/handoffs/` | 실제 세션별 handoff note 저장 위치 |
 
 ## 표준 명령

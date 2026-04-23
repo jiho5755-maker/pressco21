@@ -31,7 +31,7 @@ ensure_claude_wt() {
 sync_to_claude() {
   ensure_claude_wt
   mkdir -p "$CLAUDE_WT/$SHARED_KERNEL_DIR"
-  rsync -a --delete \
+  rsync -a \
     "$WORKSPACE_WT/$SHARED_KERNEL_DIR/" \
     "$CLAUDE_WT/$SHARED_KERNEL_DIR/"
   mkdir -p "$CLAUDE_WT/docs/ai-native-upgrade"

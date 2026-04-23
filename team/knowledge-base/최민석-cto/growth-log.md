@@ -83,3 +83,23 @@
 
 ### ⚡ XP
 - 중대 결정 참여 +8 → 누적 8 XP
+
+## [Lv.2] - 2026-04-22 (중대 결정 참여: 클로드 디자인 3도구 파이프라인 기획)
+
+### Added
+- ChatGPT Images 2.0 + Figma MCP + Claude Code 3도구 파이프라인 설계
+- Figma Brand Master 토큰 30개 + 스타일 8개 구축
+- FigJam 디자이너 에셋 입력 보드 아키텍처 설계
+
+### Improved
+- "비용 0원" 제약 하에서 기존 구독 내 해결 방안 도출
+
+### Failed Approaches
+- FigJam shapeWithText 한글 렌더링 깨짐 → createSticky()로 교체
+
+### Learned
+- FigJam 한글은 sticky가 안정적, shapeWithText는 깨짐
+- Figma Auto Layout FILL은 자식 프레임 전용 (primaryAxisSizingMode 사용)
+
+### XP
+- 중대 결정 참여 +8 → 누적 16 XP

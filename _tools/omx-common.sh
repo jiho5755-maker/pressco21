@@ -5,7 +5,27 @@ OMX_TOOL_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 OMX_REPO_ROOT="$(cd "$OMX_TOOL_DIR/.." && pwd)"
 OMX_WORKSPACE_ROOT="$(cd "$OMX_REPO_ROOT/.." && pwd)"
 
-OMX_SOURCE_ROOT_DEFAULT="$OMX_WORKSPACE_ROOT/OMX(오_마이_코덱스)/oh-my-codex"
+omx_find_source_root_default() {
+  local search_dir="$OMX_REPO_ROOT"
+  local parent_dir
+  local candidate
+
+  while [ -n "$search_dir" ] && [ "$search_dir" != "/" ]; do
+    parent_dir="$(dirname "$search_dir")"
+    candidate="$parent_dir/OMX(오_마이_코덱스)/oh-my-codex"
+
+    if [ -f "$candidate/bin/omx.js" ]; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+
+    search_dir="$parent_dir"
+  done
+
+  printf '%s\n' "$OMX_WORKSPACE_ROOT/OMX(오_마이_코덱스)/oh-my-codex"
+}
+
+OMX_SOURCE_ROOT_DEFAULT="$(omx_find_source_root_default)"
 OMX_SOURCE_ROOT="${OMX_SOURCE_ROOT:-$OMX_SOURCE_ROOT_DEFAULT}"
 
 OMX_PROFILE_ROOT_DEFAULT="$HOME/.codex-profiles/omx-overlay"
@@ -14,6 +34,24 @@ OMX_PROFILE_CODEX_HOME="$OMX_PROFILE_ROOT/codex-home"
 
 OMX_BASE_CODEX_HOME_DEFAULT="$HOME/.codex"
 OMX_BASE_CODEX_HOME="${OMX_BASE_CODEX_HOME:-$OMX_BASE_CODEX_HOME_DEFAULT}"
+
+omx_sync_profile_runtime_files() {
+  mkdir -p "$OMX_PROFILE_CODEX_HOME"
+
+  if [ -f "$OMX_BASE_CODEX_HOME/auth.json" ]; then
+    cp "$OMX_BASE_CODEX_HOME/auth.json" "$OMX_PROFILE_CODEX_HOME/auth.json"
+  fi
+
+  if [ -f "$OMX_BASE_CODEX_HOME/config.toml" ]; then
+    cp "$OMX_BASE_CODEX_HOME/config.toml" "$OMX_PROFILE_CODEX_HOME/config.toml"
+  fi
+
+  for entry in plugins skills rules vendor_imports; do
+    if [ -e "$OMX_BASE_CODEX_HOME/$entry" ] && [ ! -e "$OMX_PROFILE_CODEX_HOME/$entry" ]; then
+      ln -s "$OMX_BASE_CODEX_HOME/$entry" "$OMX_PROFILE_CODEX_HOME/$entry"
+    fi
+  done
+}
 
 omx_require_source_root() {
   if [ ! -d "$OMX_SOURCE_ROOT" ]; then
@@ -41,21 +79,7 @@ omx_ensure_dist() {
 omx_profile_prepare() {
   omx_ensure_dist
 
-  mkdir -p "$OMX_PROFILE_CODEX_HOME"
-
-  if [ -f "$OMX_BASE_CODEX_HOME/auth.json" ]; then
-    cp "$OMX_BASE_CODEX_HOME/auth.json" "$OMX_PROFILE_CODEX_HOME/auth.json"
-  fi
-
-  if [ -f "$OMX_BASE_CODEX_HOME/config.toml" ]; then
-    cp "$OMX_BASE_CODEX_HOME/config.toml" "$OMX_PROFILE_CODEX_HOME/config.toml"
-  fi
-
-  for entry in plugins skills rules vendor_imports; do
-    if [ -e "$OMX_BASE_CODEX_HOME/$entry" ] && [ ! -e "$OMX_PROFILE_CODEX_HOME/$entry" ]; then
-      ln -s "$OMX_BASE_CODEX_HOME/$entry" "$OMX_PROFILE_CODEX_HOME/$entry"
-    fi
-  done
+  omx_sync_profile_runtime_files
 
   mkdir -p "$OMX_PROFILE_CODEX_HOME/prompts"
   rsync -a --delete "$OMX_SOURCE_ROOT/prompts/" "$OMX_PROFILE_CODEX_HOME/prompts/"

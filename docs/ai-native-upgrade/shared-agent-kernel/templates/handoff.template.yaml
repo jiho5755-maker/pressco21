@@ -1,0 +1,22 @@
+handoff_id: HOFF-YYYY-MM-DD-<runtime>-<seq>
+created_at: YYYY-MM-DDTHH:MM:SS+09:00
+runtime: claude   # or codex-omx
+owner_agent_id: <canonical-agent-id>
+contributors:
+  - <canonical-agent-id>
+branch: work/<project>/<task>
+worktree_path: /absolute/path
+summary: >-
+  1~3문장으로 이번 작업의 핵심 요약을 적는다.
+decision: >-
+  이번 작업에서 확정된 기준 / 경계 / 원칙을 적는다.
+changed_artifacts:
+  - relative/path/or/non-file-artifact
+verification:
+  - 무엇으로 확인했는지 적는다.
+open_risks:
+  - 남은 위험 1
+next_step: >-
+  다음 세션이 시작하자마자 해야 할 첫 행동을 적는다.
+learn_to_save:
+  - 행동을 바꿀 learning 후보 1

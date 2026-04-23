@@ -1,0 +1,9 @@
+{
+  "context_type": "handoff",
+  "owner_agent_id": "yoo-junho-paircoder",
+  "contributors": ["yoon-haneul-pm", "han-jihoon-cso"],
+  "summary": "founder-facing output wrapper 규격 초안을 만들었습니다.",
+  "verification": ["canonical roster 기준 정렬", "handoff contract 기준 확인", "divergence matrix 기준 확인"],
+  "risks": ["실제 runtime wrapper는 아직 미구현입니다."],
+  "next_steps": ["team meeting / verification 출력에 이 규격을 적용합니다."]
+}

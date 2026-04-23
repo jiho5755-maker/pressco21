@@ -13,8 +13,8 @@ import { Label } from '@/components/ui/label'
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
 } from 'recharts'
-import { getAllCustomers, getAllInvoices, getCustomer, getCustomerAddressEntries, getTxHistory, updateCustomer, recalcCustomerStats, sanitizeSearchTerm } from '@/lib/api'
-import type { Customer, Invoice } from '@/lib/api'
+import { getAllCustomers, getAllInvoices, getCustomer, getCustomerAddressEntries, getItemsByInvoiceIds, getTxHistory, updateCustomer, recalcCustomerStats, sanitizeSearchTerm } from '@/lib/api'
+import type { Customer, Invoice, InvoiceItem } from '@/lib/api'
 import {
   deriveLegacyTradebookSnapshot,
   getFiscalBalanceSnapshots,
@@ -175,6 +175,8 @@ const TX_TYPE_STYLE: Record<string, string> = {
   메모: 'bg-gray-50 text-gray-600',
 }
 
+const MAX_ITEM_SUMMARY_INVOICES = 100
+
 interface HistoryRow {
   key: string
   source: 'crm' | 'legacy' | 'legacySettlement'
@@ -186,6 +188,40 @@ interface HistoryRow {
   memo: string
   slipNo?: string
   isCrm: boolean
+}
+
+function formatItemQuantity(item: InvoiceItem): string {
+  const quantity = Number(item.quantity ?? 0)
+  if (!Number.isFinite(quantity) || quantity <= 0) return ''
+
+  const formattedQuantity = Number.isInteger(quantity)
+    ? quantity.toLocaleString('ko-KR')
+    : quantity.toLocaleString('ko-KR', { maximumFractionDigits: 2 })
+  const unit = typeof item.unit === 'string' ? item.unit.trim() : ''
+  return `${formattedQuantity}${unit || '개'}`
+}
+
+function buildInvoiceItemSummary(items: InvoiceItem[], fallback: string): string {
+  const meaningfulItems = items.filter((item) => {
+    const productName = typeof item.product_name === 'string' ? item.product_name.trim() : ''
+    return productName || Number(item.quantity ?? 0) > 0
+  })
+
+  if (meaningfulItems.length === 0) return fallback
+
+  const visibleItems = meaningfulItems.slice(0, 2).map((item, index) => {
+    const productName = typeof item.product_name === 'string' && item.product_name.trim()
+      ? item.product_name.trim()
+      : `품목 ${index + 1}`
+    const quantity = formatItemQuantity(item)
+    return [productName, quantity].filter(Boolean).join(' ')
+  })
+  const hiddenCount = meaningfulItems.length - visibleItems.length
+
+  return [
+    ...visibleItems,
+    hiddenCount > 0 ? `외 ${hiddenCount}건` : '',
+  ].filter(Boolean).join(' · ')
 }
 
 type HistoryLens = 'all' | 'receivable' | 'cashIn' | 'cashOut' | 'exceptions'
@@ -331,6 +367,7 @@ function buildHistoryImpactSummary(row: HistoryRow, signedImpact: number): strin
 }
 
 function buildHistoryPrimaryText(row: HistoryRow): string {
+  if (row.isCrm && row.txType === '출고') return row.memo || row.slipNo || '-'
   if (row.isCrm) return row.slipNo || row.memo
   const [primary] = row.memo.split(' · ')
   return primary || row.memo || '-'
@@ -338,7 +375,9 @@ function buildHistoryPrimaryText(row: HistoryRow): string {
 
 function buildHistorySecondaryText(row: FinancialTimelineRow): string {
   const parts: string[] = [row.sourceLabel]
-  if (row.isCrm && row.memo && row.memo !== row.slipNo) {
+  if (row.isCrm && row.txType === '출고') {
+    if (row.slipNo) parts.push(row.slipNo)
+  } else if (row.isCrm && row.memo && row.memo !== row.slipNo) {
     parts.push(row.memo)
   } else if (!row.isCrm) {
     const compactMeta = row.memo
@@ -523,6 +562,42 @@ export function CustomerDetail() {
     enabled: !!customerId && customerLinks.length > 0,
   })
 
+  const invoiceIdsForItemSummary = useMemo(
+    () => invoiceData
+      .slice(0, MAX_ITEM_SUMMARY_INVOICES)
+      .map((invoice) => invoice.Id)
+      .filter((invoiceId) => typeof invoiceId === 'number' && invoiceId > 0),
+    [invoiceData],
+  )
+
+  const { data: invoiceItemsForSummary = [] } = useQuery<InvoiceItem[]>({
+    queryKey: ['customer-invoice-item-summaries', customerId, invoiceIdsForItemSummary],
+    queryFn: () => getItemsByInvoiceIds(invoiceIdsForItemSummary),
+    enabled: invoiceIdsForItemSummary.length > 0,
+    staleTime: 5 * 60_000,
+  })
+
+  const invoiceItemSummaryById = useMemo(() => {
+    const itemsByInvoiceId = new Map<number, InvoiceItem[]>()
+    for (const item of invoiceItemsForSummary) {
+      const invoiceId = Number(item.invoice_id ?? 0)
+      if (!Number.isFinite(invoiceId) || invoiceId <= 0) continue
+      const items = itemsByInvoiceId.get(invoiceId) ?? []
+      items.push(item)
+      itemsByInvoiceId.set(invoiceId, items)
+    }
+
+    const summaryByInvoiceId = new Map<number, string>()
+    for (const invoice of invoiceData) {
+      const fallback = getDisplayMemo(invoice.memo as string | undefined) || invoice.invoice_no || '-'
+      summaryByInvoiceId.set(
+        invoice.Id,
+        buildInvoiceItemSummary(itemsByInvoiceId.get(invoice.Id) ?? [], fallback),
+      )
+    }
+    return summaryByInvoiceId
+  }, [invoiceData, invoiceItemsForSummary])
+
   // ── 기간 매출 필터 (명세표 탭) ────────────────────────
   const filteredInvoices = useMemo(
     () =>
@@ -617,7 +692,7 @@ export function CustomerDetail() {
         date: inv.invoice_date?.slice(0, 10) ?? '',
         txType: '출고',
         amount: inv.total_amount ?? 0,
-        memo: inv.invoice_no ?? '-',
+        memo: invoiceItemSummaryById.get(inv.Id) || getDisplayMemo(inv.memo as string | undefined) || inv.invoice_no || '-',
         slipNo: inv.invoice_no ?? '',
         isCrm: true,
       })
@@ -706,7 +781,7 @@ export function CustomerDetail() {
         return b.key.localeCompare(a.key)
       })
       .slice(0, 100)
-  }, [txPage, invoiceData, customer?.memo, customerLegacyId, customerAccountingMeta])
+  }, [txPage, invoiceData, invoiceItemSummaryById, customer?.memo, customerLegacyId, customerAccountingMeta])
 
   const historyTimelineRows = useMemo<FinancialTimelineRow[]>(() => {
     let reversedBalance = currentNetReceivablePosition

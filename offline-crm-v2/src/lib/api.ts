@@ -720,6 +720,33 @@ export const getItems = (invoiceId: number) =>
     },
   })
 
+export const getItemsByInvoiceIds = (invoiceIds: number[], pageSize = 500) => {
+  const safeIds = Array.from(
+    new Set(
+      invoiceIds
+        .map((id) => Math.trunc(Number(id)))
+        .filter((id) => Number.isFinite(id) && id > 0),
+    ),
+  )
+
+  if (safeIds.length === 0) return Promise.resolve([] as InvoiceItem[])
+
+  const where = safeIds.map((id) => `(invoice_id,eq,${id})`).join('~or')
+  return fetchAllPages(
+    (params) => proxyRequest<ListResponse<InvoiceItem>>({
+      table: 'items',
+      params: {
+        where,
+        fields: 'Id,invoice_id,product_name,unit,quantity',
+        sort: 'Id',
+        ...params,
+      },
+    }),
+    {},
+    pageSize,
+  )
+}
+
 export const createItem = (data: Partial<InvoiceItem>) =>
   proxyRequest<InvoiceItem>({
     table: 'items',

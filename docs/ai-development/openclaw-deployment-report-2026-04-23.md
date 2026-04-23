@@ -203,18 +203,59 @@ Phase 4에서 구축한 분산 아키텍처가 실제 텔레그램 요청에서 
 6. device pairing CLI approve timeout → paired.json 수동 등록
 7. Phase 4 스킬 에이전트 미로드 → 비표준 프론트매터 수정 + 명시적 skills allowlist 설정
 
-## 인프라 현황 (Phase 4.5 이후)
+## Phase 5: 운영 인프라 보강 + 브라우저 자동화 검증 (2026-04-24)
+
+### 인프라 보강 (3항목)
+
+| 항목 | 상태 | 비고 |
+|------|------|------|
+| OpenAI OAuth 재인증 | 완료 | GPT-5.4 primary 복구, `openclaw models list`로 확인 |
+| caffeinate 슬립 방지 | 완료 | `~/Library/LaunchAgents/ai.openclaw.caffeinate.plist`, `-s` 플래그 |
+| 사방넷 자격증명 | 완료 | Flora systemd drop-in + 맥북 .secrets.env |
+
+### 사방넷 브라우저 자동화 검증
+
+- **Playwright 맥북 설치**: v1.59.1 + Chromium 147 (ARM)
+- **로그인**: `www.sabangnet.co.kr/login/login-main` → `sbadmin03.sabangnet.co.kr/#/dashboard` 성공
+- **대시보드 조회**: 주문현황(미확정/신규/확인), 서비스잔여일, 등급 추출 성공
+- **스크립트**: `tools/sabangnet-dashboard.js` (대시보드 요약 조회)
+- **발견**: 사방넷 재고관리 모듈 데이터 0건 — 상품 1개만 등록, 주문 수집/배송 위주 사용
+- **OpenClaw exec 라우팅 실패**: 에이전트가 맥북 스크립트를 실행하지 못함 (allowlist 또는 경로 문제 추정)
+
+### 메이크샵 관리자 크롬 자동화 검증
+
+Chrome MCP(claude-in-chrome)로 메이크샵 D4 편집기 접근 테스트.
+
+| 항목 | 결과 | 비고 |
+|------|------|------|
+| 관리자 로그인 | 성공 | `special397.makeshop.co.kr`, 대시보드 실시간 데이터 확인 |
+| D4 편집기 진입 | 성공 | 스킨명: 자동화 테스트(2026.03.31), dgnset_id=49450 |
+| HTML 코드 읽기 | 성공 | CodeMirror[0], 1,281줄, 87,966자 |
+| CSS 코드 읽기 | 성공 | CodeMirror[1], 2,953줄, 75,108자 |
+| JS 코드 읽기 | 성공 | CodeMirror[2], 2,424줄, 130,358자 |
+| 코드 부분 수정 (replaceRange) | 성공 | 테스트 주석 삽입 후 제거 확인 |
+| 코드 전체 교체 (setValue) | 실패 | 87K 문서에서 페이지 프리즈 발생 |
+| 저장/되돌리기 버튼 | 미완 | 프리즈로 테스트 중단 |
+
+#### 핵심 발견
+
+- CodeMirror 에디터 3개 (HTML[0], CSS[1], JS[2])가 탭 전환 시 동적 생성됨
+- `cm.replaceRange()`로 부분 수정은 안전, `cm.setValue()`로 전체 교체는 프리즈 유발
+- Chrome 확장프로그램이 편집기 페이지에서 간헐적 연결 끊김 발생
+- 저장 버튼, 되돌리기 버튼, 미리보기 버튼 존재 확인 (클릭 테스트 미완)
+
+## 인프라 현황 (Phase 5 이후)
 
 | 항목 | 값 |
 |------|-----|
 | OpenClaw 버전 | v2026.4.21 |
-| 모델 | GPT-5.4 primary (OAuth), Gemini 2.5 Flash fallback |
+| 모델 | GPT-5.4 primary (OAuth 재인증 완료), Gemini 2.5 Flash fallback |
 | 서비스 | systemd user service (restart=always) |
 | 게이트웨이 | 0.0.0.0:18789 (lan 모드, iptables Tailscale+lo만 ACCEPT) |
 | 텔레그램 | @pressco21_openclaw_bot (DM allowlist) |
 | 스킬 | 20개 (기존 16 + 맥북 노드 4), flora-frontdoor에 명시적 allowlist |
-| 맥북 노드 | jiho-macbook (Tailscale, LaunchAgent, 자동 재연결) |
+| 맥북 노드 | jiho-macbook (Tailscale, LaunchAgent, 자동 재연결, caffeinate 슬립 방지) |
 | Cron | watchdog(30분) + morning-briefing(08:00 KST) |
-| Playwright | v1.58.2 + Chromium ARM (서버) + Playwright (맥북) |
+| Playwright | v1.58.2 + Chromium ARM (서버) + v1.59.1 + Chromium 147 (맥북) |
 | 추가 비용 | 0원 |
 | E2E 검증 | 텔레그램→Flora→맥북 파이프라인 5/5 PASS |

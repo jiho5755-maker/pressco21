@@ -1,0 +1,17 @@
+{
+  "context_type": "execution_report",
+  "owner_agent_id": "yoo-junho-paircoder",
+  "contributors": ["choi-minseok-cto", "yoon-haneul-pm"],
+  "summary": "OMX founder-facing output formatter 프로토타입과 smoke fixtures를 추가했습니다.",
+  "verification": [
+    "renderer가 canonical roster를 읽고 display_name으로 출력함",
+    "team meeting / verification / handoff / execution report 4종 context를 지원함"
+  ],
+  "risks": [
+    "실제 runtime touchpoint 연결은 아직 남아 있습니다."
+  ],
+  "next_steps": [
+    "실제 OMX output wrapper 적용 지점을 정리합니다.",
+    "sample output을 cross-runtime review checklist로 검토합니다."
+  ]
+}

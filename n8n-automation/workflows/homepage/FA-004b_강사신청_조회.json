@@ -19,7 +19,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===== 연락처 정규화 + 검증 =====\nconst phone = ($input.item.json.query.phone || '').trim();\nconst normalized = phone.replace(/[^0-9]/g, '');\n\nif (!/^010\\d{8}$/.test(normalized)) {\n  return { json: { valid: false, error: '올바른 연락처를 입력해주세요.' } };\n}\n\n// NocoDB 검색용 포맷 (010-XXXX-XXXX)\nconst formatted = normalized.replace(/(\\d{3})(\\d{4})(\\d{4})/, '$1-$2-$3');\n\nreturn { json: { valid: true, phone: formatted, phoneRaw: normalized } };",
+        "jsCode": "// ===== 연락처 정규화 + 검증 =====\nconst query = $input.item.json.query || {};\nconst phone = String(query.phone || '').trim();\nconst normalized = phone.replace(/[^0-9]/g, '');\nconst name = String(query.name || '')\n  .replace(/[\\x00-\\x1F\\x7F]/g, ' ')\n  .replace(/\\s+/g, ' ')\n  .trim()\n  .slice(0, 80);\n\nif (!/^010\\d{8}$/.test(normalized)) {\n  return { json: { valid: false, error: '올바른 연락처를 입력해주세요.' } };\n}\n\n// NocoDB 검색용 포맷 (010-XXXX-XXXX)\nconst formatted = normalized.replace(/(\\d{3})(\\d{4})(\\d{4})/, '$1-$2-$3');\n\nreturn { json: { valid: true, phone: formatted, phoneRaw: normalized, name } };",
         "mode": "runOnceForEachItem"
       },
       "id": "fa004b-validate",
@@ -67,7 +67,7 @@
             {"name": "where", "value": "={{ '(연락처,like,%' + $('연락처 검증').item.json.phone + '%)~or(연락처,like,%' + $('연락처 검증').item.json.phoneRaw + '%)' }}"},
             {"name": "sort", "value": "-Id"},
             {"name": "limit", "value": "1"},
-            {"name": "fields", "value": "Id,성함,자사몰 ID,연락처,이메일 주소,소속 협회,진행 상태,반려 사유,n8n_처리완료"}
+            {"name": "fields", "value": "Id,CreatedAt,UpdatedAt,성함,자사몰 ID,연락처,이메일 주소,소속 협회,진행 상태,반려 사유,신청 일시,증빙서류 첨부,n8n_처리완료"}
           ]
         },
         "sendHeaders": true,
@@ -86,7 +86,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// ===== 조회 결과 가공 =====\nconst resp = $json;\nconst list = resp.list || [];\n\nif (list.length === 0) {\n  return { json: { ok: true, found: false } };\n}\n\nconst rec = list[0];\nconst status = rec['진행 상태'] || '';\nconst reason = rec['반려 사유'] || '';\n\nreturn {\n  json: {\n    ok: true,\n    found: true,\n    recordId: rec.Id,\n    name: rec['성함'] || '',\n    mallId: rec['자사몰 ID'] || '',\n    email: rec['이메일 주소'] || '',\n    association: rec['소속 협회'] || '',\n    status: status,\n    rejectReason: reason,\n    isRejected: status === '반려',\n    isApproved: status === '승인완료',\n    isPending: status === '승인대기' || status === '수동처리필요'\n  }\n};",
+        "jsCode": "// ===== 조회 결과 가공 =====\nconst resp = $json;\nconst list = Array.isArray(resp.list) ? resp.list : [];\nconst queryName = String($('연락처 검증').item.json.name || '').trim();\n\nfunction firstNonEmpty(values) {\n  for (const value of values) {\n    const text = String(value || '').trim();\n    if (text) return text;\n  }\n  return '';\n}\n\nfunction normalizeName(value) {\n  return String(value || '')\n    .replace(/\\s+/g, '')\n    .trim()\n    .toLowerCase();\n}\n\nfunction normalizeAttachmentValue(value) {\n  if (!value) return [];\n  if (Array.isArray(value)) return value;\n  if (typeof value === 'string') {\n    const text = value.trim();\n    if (!text) return [];\n    try {\n      const parsed = JSON.parse(text);\n      return normalizeAttachmentValue(parsed);\n    } catch {\n      return text.split(/[\\n,]/).map(function(part) {\n        return part.trim();\n      }).filter(Boolean);\n    }\n  }\n  if (typeof value === 'object') {\n    if (Array.isArray(value.data)) return value.data;\n    if (Array.isArray(value.files)) return value.files;\n    return Object.keys(value).length > 0 ? [value] : [];\n  }\n  return [];\n}\n\nfunction countAttachments(record) {\n  return normalizeAttachmentValue(record && record['증빙서류 첨부']).length;\n}\n\nif (list.length === 0) {\n  return { json: { ok: true, found: false } };\n}\n\nconst rec = list[0];\nconst status = String(rec['진행 상태'] || '').trim();\nconst reason = String(rec['반려 사유'] || '').trim();\nconst recordName = String(rec['성함'] || '').trim();\nconst result = {\n  ok: true,\n  found: true,\n  recordId: String(rec.Id || rec.id || ''),\n  name: recordName,\n  mallId: String(rec['자사몰 ID'] || '').trim(),\n  phone: String(rec['연락처'] || '').trim(),\n  email: String(rec['이메일 주소'] || '').trim(),\n  association: String(rec['소속 협회'] || '').trim(),\n  status: status,\n  rejectReason: reason,\n  isRejected: status === '반려',\n  isApproved: status === '승인완료',\n  isPending: !status || status === '승인대기' || status === '수동처리필요',\n  submittedAt: firstNonEmpty([rec['신청 일시'], rec.CreatedAt, rec.createdAt]),\n  updatedAt: firstNonEmpty([rec.UpdatedAt, rec.updatedAt]),\n  attachmentCount: countAttachments(rec),\n};\n\nif (queryName) {\n  result.nameMatched = normalizeName(queryName) === normalizeName(recordName);\n  result.nameMismatch = !result.nameMatched;\n}\n\nreturn { json: result };",
         "mode": "runOnceForEachItem"
       },
       "id": "fa004b-parse",

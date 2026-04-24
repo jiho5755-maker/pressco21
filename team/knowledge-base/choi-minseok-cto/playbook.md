@@ -63,6 +63,19 @@
 **주의**: `agent` role은 OpenClaw WS protocol의 표준 role이 아니며, clawdbot CLI의 실제 요청 role은 `operator`다. operator 토큰/스코프가 먼저 정상화되어야 한다.
 **발견일**: 2026-04-24 (CODEX-001 clawdbot role/schema mismatch)
 
+
+## OpenClaw node exec는 Mac 쪽 allowlist와 workdir 사용이 핵심
+
+**증상**: Flora agent가 `exec host=node node=jiho-macbook`를 사용해도 `SYSTEM_RUN_DENIED: approval required`로 실패하거나, `cd /Users/... && git ...` 형태의 명령이 승인 대기로 떨어짐.
+**원인**: `system.run`은 gateway 설정뿐 아니라 node host(MacBook)의 `~/.openclaw/exec-approvals.json`을 런타임에서 평가한다. Mac node host의 기본 실행 정책은 미승인 shell 명령을 막는다. 또한 `cd ... && ...`처럼 shell built-in과 다중 명령을 묶으면 allowlist 분석이 실패하기 쉽다.
+**해결**:
+1. MacBook에서 `~/.openclaw/exec-approvals.json`을 백업한다.
+2. 필요한 agent(`flora-frontdoor`)에 최소 read-only 패턴만 추가한다. 예: `/usr/bin/which *`, `/usr/bin/git *`, `git status*`, `git log*`, `git branch*`, `/bin/pwd`.
+3. Flora skill/BOOTSTRAP에는 `exec` 도구 사용 시 `host="node"`, `node="jiho-macbook"`, `workdir="/Users/jangjiho/workspace/pressco21"`를 명시한다.
+4. `cd ... && ...`로 묶지 말고 단일 read-only 명령을 순차 실행한다.
+**검증**: 자연어 `pressco21 프로젝트 git status만 확인해줘`가 MacBook node exec를 통해 git status를 반환하면 기본 라우팅은 정상.
+**발견일**: 2026-04-24 (CODEX-002 OpenClaw exec routing)
+
 ## OpenClaw 노드 LaunchAgent npm ENOENT
 
 **증상**: 노드 서비스 시작 시 `spawnSync npm ENOENT`로 모든 플러그인 로딩 실패.

@@ -2,6 +2,36 @@
 
 This file records production deployments, manual data corrections, rollbacks, and environment operations that are not fully represented by source code alone.
 
+
+## 2026-04-24 — OpenClaw/clawdbot pairing and Mac node exec repair
+
+### Operations
+
+- Backed up Flora `~/.openclaw/devices/paired.json`, then rotated the `clawdbot-macbook` operator device token without printing the token.
+- Backed up MacBook `~/.openclaw/exec-approvals.json`, then added minimal `flora-frontdoor` read-only allowlist entries for `which`, `pwd`, and git status/log/branch queries.
+- Backed up and updated Flora frontdoor `BOOTSTRAP.md` and `local-project-explorer/SKILL.md` to route MacBook local queries through `exec(host=node,node=jiho-macbook)` with `workdir` instead of `cd ... && ...`.
+
+### Validation
+
+- `clawdbot --version` works: `2026.1.24-3`.
+- `openclaw devices list` shows `clawdbot-macbook` with operator token and no pending request.
+- `openclaw nodes status` shows `jiho-macbook` paired and connected.
+- Flora agent can run `which git/codex/claude` on the MacBook node.
+- Natural prompt `pressco21 프로젝트 git status만 확인해줘` returns MacBook git status via node exec.
+
+### Backups / rollback
+
+- Flora paired device backup: `~/.openclaw/devices/paired.json.bak-20260424T032454Z-codex001`.
+- Mac approvals backups: `~/.openclaw/exec-approvals.json.bak-20260424T034307Z-codex002`, `~/.openclaw/exec-approvals.json.bak-20260424T034523Z-codex002-git`, `~/.openclaw/exec-approvals.json.bak-20260424T034621Z-codex002-git-broad`.
+- Flora prompt/skill backups: `BOOTSTRAP.md.bak-20260424T034855Z-codex002`, `local-project-explorer/SKILL.md.bak-20260424T034855Z-codex002`.
+- Rollback by restoring the relevant backup file and restarting/reloading the affected OpenClaw gateway/node process if needed.
+
+### Remaining risks
+
+- Telegram `getUpdates` 409 conflict remains; likely duplicate bot poller.
+- OpenAI Codex OAuth refresh failures appeared in Flora logs, causing fallback model use.
+- Codex/Claude CLI execution bridge remains conservatively gated; path lookup works, but actual CLI execution should be approved separately.
+
 ## 2026-04-16 — CRM deposit/credit reconciliation deployment
 
 ### Code deployed

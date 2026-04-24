@@ -2,6 +2,66 @@
 
 This file records production deployments, manual data corrections, rollbacks, and environment operations that are not fully represented by source code alone.
 
+
+## 2026-04-24 — OpenClaw/clawdbot pairing and Mac node exec repair
+
+### Operations
+
+- Backed up Flora `~/.openclaw/devices/paired.json`, then rotated the `clawdbot-macbook` operator device token without printing the token.
+- Backed up MacBook `~/.openclaw/exec-approvals.json`, then added minimal `flora-frontdoor` read-only allowlist entries for `which`, `pwd`, and git status/log/branch queries.
+- Backed up and updated Flora frontdoor `BOOTSTRAP.md` and `local-project-explorer/SKILL.md` to route MacBook local queries through `exec(host=node,node=jiho-macbook)` with `workdir` instead of `cd ... && ...`.
+
+### Validation
+
+- `clawdbot --version` works: `2026.1.24-3`.
+- `openclaw devices list` shows `clawdbot-macbook` with operator token and no pending request.
+- `openclaw nodes status` shows `jiho-macbook` paired and connected.
+- Flora agent can run `which git/codex/claude` on the MacBook node.
+- Natural prompt `pressco21 프로젝트 git status만 확인해줘` returns MacBook git status via node exec.
+
+### Backups / rollback
+
+- Flora paired device backup: `~/.openclaw/devices/paired.json.bak-20260424T032454Z-codex001`.
+- Mac approvals backups: `~/.openclaw/exec-approvals.json.bak-20260424T034307Z-codex002`, `~/.openclaw/exec-approvals.json.bak-20260424T034523Z-codex002-git`, `~/.openclaw/exec-approvals.json.bak-20260424T034621Z-codex002-git-broad`.
+- Flora prompt/skill backups: `BOOTSTRAP.md.bak-20260424T034855Z-codex002`, `local-project-explorer/SKILL.md.bak-20260424T034855Z-codex002`.
+- Rollback by restoring the relevant backup file and restarting/reloading the affected OpenClaw gateway/node process if needed.
+
+### Remaining risks
+
+- Telegram `getUpdates` 409 conflict remains unresolved. Read-only follow-up narrowed this to two simultaneous long-pollers using the same bot token: Mac LaunchAgent `com.pressco21.flora-telegram-room-router` and Flora `openclaw-gateway.service`. Safest remediation is to stop/disable the legacy local room-router or move it to a distinct dev bot token, then verify both local router logs and Flora gateway journal no longer show 409.
+- OpenAI Codex OAuth refresh failures remain unresolved. Flora logs show `refresh_token_reused`; multiple agent auth profiles share the same stale `openai-codex:codex-cli` refresh token, while the `owner` agent also has a newer `openai-codex:jiho5755@gmail.com` profile that is not selected by `lastGood`/auth order. Safest remediation is to back up auth stores, re-authenticate OpenAI Codex on Flora, and make the fresh profile the selected OpenAI Codex profile for the relevant agents.
+- Codex/Claude CLI execution bridge remains conservatively gated; path lookup works, but actual CLI execution should be approved separately.
+
+### Follow-up investigation (read-only)
+
+- Confirmed local Mac token fingerprints for `FLORA_TELEGRAM_BOT_TOKEN` and `PRESSCO21_DEV_ROUTER_BOT_TOKEN` match the Flora gateway bot token fingerprint (`55d2ff8b123e`); no token values were printed.
+- Local `run-flora-telegram-room-router.js` calls Telegram `getUpdates`; `run-flora-local-dev-worker.js` uses Telegram APIs but does not call `getUpdates`.
+- Flora `journalctl --user -u openclaw-gateway.service` repeats `getUpdates conflict` roughly every polling cycle, and local `flora-telegram-room-router` logs repeat HTTP 409 at matching cadence.
+- Flora OpenAI Codex logs include `code=refresh_token_reused`, causing `openai-codex/gpt-5.4` to fail and `google/gemini-2.5-flash` fallback to succeed.
+- No runtime stop/login/change was performed during this follow-up pass.
+
+### Runtime remediation (Codex follow-up)
+
+- Stopped and disabled the legacy Mac LaunchAgent `com.pressco21.flora-telegram-room-router` so the primary Telegram bot has a single long-poller: Flora `openclaw-gateway.service`.
+  - Rollback: `launchctl enable gui/$(id -u)/com.pressco21.flora-telegram-room-router && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.pressco21.flora-telegram-room-router.plist`.
+- Backed up Flora OpenClaw auth stores before changing OAuth profiles:
+  - `/home/ubuntu/.openclaw/backups/codex-oauth-20260424T152237Z.tgz`
+  - `/home/ubuntu/.openclaw/backups/codex-auth-store-cleanup-20260424T154733Z.tgz`
+- Imported the existing local Codex CLI OAuth login into Flora OpenClaw as `openai-codex:default` without printing token values. Temporary server-side `CODEX_HOME` import directory was removed after use.
+- Updated OpenAI Codex auth order/lastGood to `openai-codex:default` for `owner`, `main`, `staff`, `flora-codex-room`, `flora-claude-room`, `flora-crm`, and `flora-frontdoor`.
+- Removed stale deprecated `openai-codex:codex-cli` entries from those agent auth stores and normalized the legacy `google:gemini-api` auth type spelling from `api-key` to `api_key` in the `main` store.
+
+### Validation
+
+- Local `launchctl` shows `com.pressco21.flora-telegram-room-router` disabled; router error log mtime stopped advancing after the disable.
+- Flora `openclaw-gateway.service` remains active.
+- Flora gateway journal checks showed, over the latest 5-minute window:
+  - Telegram `409` conflict count: `0`
+  - OpenAI Codex OAuth refresh/token-exchange error count: `0`
+  - invalid auth-profile warning count: `0`
+- `openclaw infer model run --local --model openai-codex/gpt-5.4` returned `OK` for `owner`, `flora-codex-room`, and `flora-frontdoor`.
+- `openclaw infer model run --gateway --model openai-codex/gpt-5.4` returned `OK` for `flora-frontdoor`, confirming gateway execution uses OpenAI Codex without Gemini fallback.
+
 ## 2026-04-16 — CRM deposit/credit reconciliation deployment
 
 ### Code deployed

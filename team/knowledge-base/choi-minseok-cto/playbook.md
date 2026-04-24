@@ -97,6 +97,39 @@
 **해결**: `openclaw.json`의 flora-frontdoor 에이전트에 `"skills": [20개 스킬 이름]` 명시적 allowlist 추가. 스킬 추가/삭제 시 이 목록도 갱신 필요.
 **발견일**: 2026-04-24 (Phase 4.5 E2E 테스트)
 
+## Telegram getUpdates 409는 같은 bot long-poller 중복
+
+**증상**: Flora gateway와 로컬 라우터 로그에 `getUpdates` 409 conflict가 반복됨.
+**원인**: Telegram Bot API long polling은 같은 bot token에 대해 poller 1개만 허용한다. Mac `com.pressco21.flora-telegram-room-router`와 Flora `openclaw-gateway.service`가 같은 primary bot token으로 동시에 `getUpdates`를 호출하면 양쪽 모두 409가 난다.
+**구분**: `flora-local-dev-worker`는 Telegram token을 사용하지만 `getUpdates` 호출이 없으면 conflict 원인이 아니다.
+**진단**:
+1. 로컬 `launchctl list | grep -Ei 'flora|telegram|openclaw'`와 Flora `systemctl --user status openclaw-gateway.service`로 poller 후보를 확인한다.
+2. 로컬 room-router script에 `getUpdates` 호출이 있는지 확인한다.
+3. token 값은 출력하지 말고 SHA-256 앞 12자리 fingerprint만 비교한다.
+4. 로컬 router log와 Flora journal의 409 cadence가 비슷하면 중복 poller 가능성이 높다.
+**해결**:
+1. 운영 primary bot의 단일 poller를 Flora gateway로 정한다.
+2. legacy Mac room-router는 `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.pressco21.flora-telegram-room-router.plist`로 내리거나, 별도 dev bot token으로 분리한다.
+3. 조치 후 2~3 polling cycle 동안 양쪽 로그에서 409가 사라지는지 확인한다.
+**주의**: 토큰 공유 상태에서 poll interval만 늘려도 근본 해결이 아니다.
+**발견일**: 2026-04-24 (OpenClaw Telegram 409 조사)
+
+## OpenAI Codex OAuth refresh_token_reused는 stale profile 정리 필요
+
+**증상**: Flora gateway가 `openai-codex/gpt-5.4`를 primary로 시도하다가 `OAuth token refresh failed`, `refresh_token_reused` 후 Gemini fallback으로 떨어짐.
+**원인**: OpenAI Codex OAuth refresh token은 재사용되면 invalid 처리된다. 여러 OpenClaw agent auth profile이 같은 오래된 `openai-codex:codex-cli` refresh token을 공유하거나, `lastGood`/auth order가 fresh profile 대신 stale profile을 가리키면 반복 실패한다.
+**진단**:
+1. `journalctl --user -u openclaw-gateway.service`에서 `refresh_token_reused`, `Deprecated profile`, `model-fallback/decision`을 확인한다.
+2. `~/.openclaw/agents/*/agent/auth-profiles.json`에서 token 값은 출력하지 말고 profile id, 만료시각, refresh fingerprint만 비교한다.
+3. `~/.openclaw/agents/*/agent/auth-state.json`의 `lastGood.openai-codex`와 `openclaw models auth order get --agent <id> --provider openai-codex`를 확인한다.
+**해결**:
+1. `auth-profiles.json`, `auth-state.json`, `openclaw.json`을 백업한다.
+2. TTY 가능한 세션에서 `openclaw models auth login --provider openai-codex`로 fresh profile을 만든다.
+3. 필요한 agent에 `openclaw models auth order set --agent <agent-id> --provider openai-codex <fresh-profile-id>`로 fresh profile을 우선 지정한다.
+4. stale `openai-codex:codex-cli`가 더 이상 선택되지 않는지 확인하고, GPT-5.4 요청이 fallback 없이 성공하는지 검증한다.
+**주의**: 로컬 Mac `~/.codex/auth.json`이 정상이어도 Flora gateway의 OpenClaw auth store는 별도이므로 서버 쪽 profile 상태를 직접 고쳐야 한다.
+**발견일**: 2026-04-24 (OpenClaw Codex OAuth 조사)
+
 ## 메이크샵 CodeMirror setValue 프리즈
 
 **증상**: Chrome MCP로 메이크샵 D4 편집기에서 `cm.setValue(전체내용)`을 호출하면 87K+ 문서에서 페이지가 프리즈됨. 브라우저 확장프로그램 연결도 끊김.

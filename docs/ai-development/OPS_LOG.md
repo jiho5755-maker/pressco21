@@ -28,9 +28,17 @@ This file records production deployments, manual data corrections, rollbacks, an
 
 ### Remaining risks
 
-- Telegram `getUpdates` 409 conflict remains; likely duplicate bot poller.
-- OpenAI Codex OAuth refresh failures appeared in Flora logs, causing fallback model use.
+- Telegram `getUpdates` 409 conflict remains unresolved. Read-only follow-up narrowed this to two simultaneous long-pollers using the same bot token: Mac LaunchAgent `com.pressco21.flora-telegram-room-router` and Flora `openclaw-gateway.service`. Safest remediation is to stop/disable the legacy local room-router or move it to a distinct dev bot token, then verify both local router logs and Flora gateway journal no longer show 409.
+- OpenAI Codex OAuth refresh failures remain unresolved. Flora logs show `refresh_token_reused`; multiple agent auth profiles share the same stale `openai-codex:codex-cli` refresh token, while the `owner` agent also has a newer `openai-codex:jiho5755@gmail.com` profile that is not selected by `lastGood`/auth order. Safest remediation is to back up auth stores, re-authenticate OpenAI Codex on Flora, and make the fresh profile the selected OpenAI Codex profile for the relevant agents.
 - Codex/Claude CLI execution bridge remains conservatively gated; path lookup works, but actual CLI execution should be approved separately.
+
+### Follow-up investigation (read-only)
+
+- Confirmed local Mac token fingerprints for `FLORA_TELEGRAM_BOT_TOKEN` and `PRESSCO21_DEV_ROUTER_BOT_TOKEN` match the Flora gateway bot token fingerprint (`55d2ff8b123e`); no token values were printed.
+- Local `run-flora-telegram-room-router.js` calls Telegram `getUpdates`; `run-flora-local-dev-worker.js` uses Telegram APIs but does not call `getUpdates`.
+- Flora `journalctl --user -u openclaw-gateway.service` repeats `getUpdates conflict` roughly every polling cycle, and local `flora-telegram-room-router` logs repeat HTTP 409 at matching cadence.
+- Flora OpenAI Codex logs include `code=refresh_token_reused`, causing `openai-codex/gpt-5.4` to fail and `google/gemini-2.5-flash` fallback to succeed.
+- No runtime stop/login/change was performed during this follow-up pass.
 
 ## 2026-04-16 — CRM deposit/credit reconciliation deployment
 

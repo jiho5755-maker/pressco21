@@ -40,6 +40,28 @@ This file records production deployments, manual data corrections, rollbacks, an
 - Flora OpenAI Codex logs include `code=refresh_token_reused`, causing `openai-codex/gpt-5.4` to fail and `google/gemini-2.5-flash` fallback to succeed.
 - No runtime stop/login/change was performed during this follow-up pass.
 
+### Runtime remediation (Codex follow-up)
+
+- Stopped and disabled the legacy Mac LaunchAgent `com.pressco21.flora-telegram-room-router` so the primary Telegram bot has a single long-poller: Flora `openclaw-gateway.service`.
+  - Rollback: `launchctl enable gui/$(id -u)/com.pressco21.flora-telegram-room-router && launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.pressco21.flora-telegram-room-router.plist`.
+- Backed up Flora OpenClaw auth stores before changing OAuth profiles:
+  - `/home/ubuntu/.openclaw/backups/codex-oauth-20260424T152237Z.tgz`
+  - `/home/ubuntu/.openclaw/backups/codex-auth-store-cleanup-20260424T154733Z.tgz`
+- Imported the existing local Codex CLI OAuth login into Flora OpenClaw as `openai-codex:default` without printing token values. Temporary server-side `CODEX_HOME` import directory was removed after use.
+- Updated OpenAI Codex auth order/lastGood to `openai-codex:default` for `owner`, `main`, `staff`, `flora-codex-room`, `flora-claude-room`, `flora-crm`, and `flora-frontdoor`.
+- Removed stale deprecated `openai-codex:codex-cli` entries from those agent auth stores and normalized the legacy `google:gemini-api` auth type spelling from `api-key` to `api_key` in the `main` store.
+
+### Validation
+
+- Local `launchctl` shows `com.pressco21.flora-telegram-room-router` disabled; router error log mtime stopped advancing after the disable.
+- Flora `openclaw-gateway.service` remains active.
+- Flora gateway journal checks showed, over the latest 5-minute window:
+  - Telegram `409` conflict count: `0`
+  - OpenAI Codex OAuth refresh/token-exchange error count: `0`
+  - invalid auth-profile warning count: `0`
+- `openclaw infer model run --local --model openai-codex/gpt-5.4` returned `OK` for `owner`, `flora-codex-room`, and `flora-frontdoor`.
+- `openclaw infer model run --gateway --model openai-codex/gpt-5.4` returned `OK` for `flora-frontdoor`, confirming gateway execution uses OpenAI Codex without Gemini fallback.
+
 ## 2026-04-16 — CRM deposit/credit reconciliation deployment
 
 ### Code deployed

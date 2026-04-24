@@ -110,7 +110,9 @@
 **해결**:
 1. 운영 primary bot의 단일 poller를 Flora gateway로 정한다.
 2. legacy Mac room-router는 `launchctl bootout gui/$(id -u) ~/Library/LaunchAgents/com.pressco21.flora-telegram-room-router.plist`로 내리거나, 별도 dev bot token으로 분리한다.
-3. 조치 후 2~3 polling cycle 동안 양쪽 로그에서 409가 사라지는지 확인한다.
+3. 재기동 방지를 위해 필요하면 `launchctl disable gui/$(id -u)/com.pressco21.flora-telegram-room-router`까지 적용한다.
+4. 조치 후 2~3 polling cycle 동안 양쪽 로그에서 409가 사라지는지 확인한다.
+**검증 사례**: 2026-04-25 KST에 legacy room-router를 bootout/disable한 뒤 Flora gateway journal 5분 창에서 `409` conflict가 0건으로 확인됨.
 **주의**: 토큰 공유 상태에서 poll interval만 늘려도 근본 해결이 아니다.
 **발견일**: 2026-04-24 (OpenClaw Telegram 409 조사)
 
@@ -125,9 +127,12 @@
 **해결**:
 1. `auth-profiles.json`, `auth-state.json`, `openclaw.json`을 백업한다.
 2. TTY 가능한 세션에서 `openclaw models auth login --provider openai-codex`로 fresh profile을 만든다.
-3. 필요한 agent에 `openclaw models auth order set --agent <agent-id> --provider openai-codex <fresh-profile-id>`로 fresh profile을 우선 지정한다.
-4. stale `openai-codex:codex-cli`가 더 이상 선택되지 않는지 확인하고, GPT-5.4 요청이 fallback 없이 성공하는지 검증한다.
+3. 브라우저 OAuth가 one-time code 소비/교환 실패로 꼬이면, 로컬 Codex CLI 로그인 파일을 서버 임시 `CODEX_HOME`으로만 복사해 `openclaw models auth login --provider openai-codex --method import-codex-cli`로 import한 뒤 임시 파일을 삭제한다. 토큰 값은 절대 출력하지 않는다.
+4. 필요한 agent에 `openclaw models auth order set --agent <agent-id> --provider openai-codex <fresh-profile-id>`로 fresh profile을 우선 지정한다.
+5. stale `openai-codex:codex-cli`가 더 이상 선택되지 않도록 제거하거나 order/lastGood에서 배제한다.
+6. GPT-5.4 요청이 fallback 없이 성공하는지 `openclaw infer model run --local`과 필요 시 `--gateway`로 검증한다.
 **주의**: 로컬 Mac `~/.codex/auth.json`이 정상이어도 Flora gateway의 OpenClaw auth store는 별도이므로 서버 쪽 profile 상태를 직접 고쳐야 한다.
+**검증 사례**: 2026-04-25 KST에 `openai-codex:default`를 `owner`, `main`, `staff`, `flora-codex-room`, `flora-claude-room`, `flora-crm`, `flora-frontdoor`에 배포하고 `order/lastGood`을 고정. `openai-codex/gpt-5.4` local/gateway inference가 `OK`를 반환했고, 5분 창에서 `refresh_token_reused`/invalid auth-profile warning 0건 확인.
 **발견일**: 2026-04-24 (OpenClaw Codex OAuth 조사)
 
 ## 메이크샵 CodeMirror setValue 프리즈

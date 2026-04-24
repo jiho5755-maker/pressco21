@@ -1,45 +1,50 @@
 ---
-handoff_id: HOFF-2026-04-25-tax-automation-prd-roadmap-guide
-created_at: 2026-04-25T04:00:00+09:00
+handoff_id: HOFF-2026-04-25-tax-automation-cli-poc
+created_at: 2026-04-25T08:40:00+09:00
 enabled: true
 runtime: codex-omx
 owner_agent_id: yoon-haneul-pm
-contributors: [park-seoyeon-cfo, choi-minseok-cto]
-scope_type: workspace-docs
+contributors: [park-seoyeon-cfo, choi-minseok-cto, cho-hyunwoo-legal]
+scope_type: workspace-tools-docs
 project: workspace-tax-automation
 worktree_slot: workspace-tax-automation-phase1
 branch: work/workspace/tax-automation-phase1
 status: active
-summary: 세무 자동화 시스템의 근본 목표를 “종합소득세 자료 수집 OS → 무료 API/서비스 기반 자동화 → 세무사 전달 패키지”로 재정의하고, 팀미팅 기록·PRD·로드맵·비전공자용 자료 수집 가이드·무료 API/서비스 카탈로그·CSV 템플릿을 작성했습니다.
-decision: UNI-PASS API 자동화는 전체 목표 중 수입·통관·관세 증빙 모듈로 배치합니다. 1차 제품 범위는 자동 신고나 세액 확정이 아니라 자료 수집, 원본 보관, 상태 관리, 누락/중복 후보 탐지, 세무사 전달 패키지 생성입니다. 홈택스·은행·카드처럼 인증/법적 행위가 포함되는 원천은 수동 다운로드와 업로드 검증을 먼저 사용합니다.
+summary: 세무 자동화 PRD·로드맵 기준으로 Phase 1 실행 준비와 Phase 2 수동 업로드 CLI PoC를 구현했습니다. 2025년 실행 보드, Phase 1 실행 플레이북, 세무사 확인 질문 템플릿, repo 밖 세무자료 폴더 init/scan/manifest/zip 로컬 도구와 6개 회귀 테스트를 추가했습니다.
+decision: 실제 세무자료 원본은 Git 저장소 밖 base-dir에 두고, 도구는 기본적으로 저장소 내부 base-dir을 차단합니다. 세무사 전달 ZIP은 scan manifest의 SHA-256 해시와 현재 파일을 재검증하고 symlink·base-dir 외부 파일을 차단합니다. Phase 2는 운영 MVP 완료가 아니라 CLI PoC 일부 완료로만 표시하며, 요약 Excel·전달 상태/전달일·DB/NocoDB 운영 반영은 다음 작업으로 남깁니다.
 changed_artifacts:
+  - .gitignore
+  - _tools/tax-automation/tax_package.py
+  - _tools/tax-automation/tests/test_tax_package.py
   - docs/tax-automation/README.md
-  - docs/tax-automation/team-meeting-tax-automation-2026-04-25.md
-  - docs/tax-automation/PRD-tax-automation-system-2026.md
   - docs/tax-automation/ROADMAP-tax-automation-system-2026.md
-  - docs/tax-automation/종합소득세-자료수집-가이드-비전공자용-2026.md
-  - docs/tax-automation/free-api-service-catalog-tax-automation-2026.md
+  - docs/tax-automation/phase1-execution-playbook-2026.md
   - docs/tax-automation/templates/tax_collection_items_template.csv
-  - docs/tax-automation/templates/tax_source_registry_template.csv
+  - docs/tax-automation/templates/tax_collection_items_2025_execution_board.csv
+  - docs/tax-automation/templates/accountant_questions_2025_template.csv
 verification:
-  - PM/CFO/CTO 관점 팀미팅 결과를 문서에 반영했습니다.
-  - 국세청, 홈택스/국세상담센터, 금융위원회, 금융결제원, 여신금융협회, 국민건강보험 사회보험통합징수포털, 정부24, 공공데이터포털, 관세청 공식 출처를 확인해 문서 출처에 남겼습니다.
-  - 작성 파일 라인 수 확인 완료: PRD 400줄, 로드맵 380줄, 비전공자 가이드 1081줄, API/서비스 카탈로그 235줄, 팀미팅 156줄, README 44줄, CSV 템플릿 2개.
-  - 문서 내 지정 이모지 검사 통과.
-  - pressco21 scope check 통과: branch work/workspace/tax-automation-phase1, allowed path docs/ and team/handoffs/.
-  - CSV 템플릿 파싱 확인: tax_collection_items_template.csv 16 rows, tax_source_registry_template.csv 10 rows.
-  - docs/tax-automation 내부 로컬 링크 누락 없음.
+  - 박서연님(CFO) 관점으로 Phase 1 실행 보드 항목·담당자·마감일·세무사 질문을 검토했습니다.
+  - 조현우님(법무/보안) 관점으로 민감정보·인증정보·세무 판단 분리·운영 write 리스크 안전장치를 검토했습니다.
+  - 최민석님(CTO) 관점 1차 검증에서 symlink ZIP 취약점과 과장 표현이 반려되었고, 수정 후 재검증 APPROVED를 받았습니다.
+  - `python3 -m unittest discover -s _tools/tax-automation/tests -p 'test_*.py' -v` 결과 6 tests OK.
+  - `python3 -m py_compile _tools/tax-automation/tax_package.py _tools/tax-automation/tests/test_tax_package.py` 통과.
+  - CSV 파싱 폭 확인: 기존/신규 tax automation CSV 4개 모두 컬럼 수 일관.
+  - docs/tax-automation 내부 로컬 markdown 링크 누락 없음.
+  - `git diff --check` 통과.
+  - `bash _tools/pressco21-check.sh` 통과.
+  - 커밋: d5aa783 [codex] 세무 자료 수집 CLI PoC 작성
 open_risks:
-  - 세무사가 실제로 요구하는 2025년 귀속 종합소득세 요청자료 양식은 아직 확보하지 못했습니다.
-  - 실제 홈택스 화면 메뉴명은 개편될 수 있어, 가이드에는 검색창 기반 절차를 함께 사용했습니다.
-  - 실제 PRESSCO21 화물관리번호/수입신고번호 기반 UNI-PASS dry-run은 아직 미실행입니다.
-  - NocoDB 테이블 생성, n8n 환경변수 주입, 운영 배포는 외부 서비스 write이므로 명시 승인 전까지 보류 상태입니다.
-  - 세무 판단, 경비 인정, 공제 가능 여부, 신고 제출은 세무사 확인 영역으로 남아 있습니다.
-next_step: 세무사 요청자료 양식을 확보한 뒤 docs/tax-automation/templates/tax_collection_items_template.csv를 실제 담당자/마감일/상태값으로 채우고, 2025년 귀속 자료 수동 수집을 시작합니다. 병행해서 UNI-PASS 실제 테스트용 화물관리번호/수입신고번호 1~2건을 확보해 n8n 브랜치의 dry-run을 준비합니다.
+  - 세무사 실제 2025년 귀속 요청자료 양식은 아직 확보하지 못했습니다.
+  - 대표/담당자 권한 범위와 개인정보 처리 동의는 아직 확정 전입니다.
+  - 실제 2025년 홈택스·은행·카드·플랫폼 자료 수집은 아직 시작하지 않았습니다.
+  - Phase 2 운영 MVP의 요약 Excel, 세무사 전달 상태/전달일 기록, NocoDB/DB 테이블 반영은 미완료입니다.
+  - UNI-PASS 실제 화물관리번호/수입신고번호 기반 dry-run은 아직 미실행입니다.
+  - 운영 n8n/NocoDB/서버 write는 사용자 명시 승인 전까지 보류해야 합니다.
+next_step: 세무사 요청자료 양식을 확보하면 `docs/tax-automation/templates/tax_collection_items_2025_execution_board.csv`에 항목을 반영하고, `python3 _tools/tax-automation/tax_package.py init --base-dir "$HOME/TaxVault/2025_종합소득세_세무사전달" --items-csv docs/tax-automation/templates/tax_collection_items_2025_execution_board.csv --tax-year 2025 --company PRESSCO21`로 repo 밖 수집 폴더를 만든 뒤 실제 자료 수동 수집을 시작합니다. 병행해서 Phase 2 다음 작업인 요약 Excel 생성기와 전달 상태/전달일 manifest 확장을 진행합니다.
 learn_to_save:
-  - 세무 자동화의 핵심은 “API 연결”이 아니라 원천별 자료 지도, 원본 파일 보관, 기간/출처/금액 메타데이터, 세무사 확인 상태를 관리하는 것입니다.
-  - 자동화 우선순위는 수동 업로드 MVP → 무료 API dry-run → 원천별 파서 → 대조/검증 큐 → 세무사 패키지 순서가 안전합니다.
-  - 홈택스·은행·카드·4대보험·정부24는 인증과 법적 발급/납부 행위가 얽혀 있으므로 초기에는 자동 로그인보다 다운로드 가이드와 파일 검증이 더 안전합니다.
+  - 세무 자동화의 안전한 1차 구현은 운영 API write보다 repo 밖 원본 폴더, 해시 manifest, 누락표, 세무사 질문표가 먼저입니다.
+  - scan과 ZIP 생성 사이 파일 교체·symlink 공격을 막으려면 ZIP 생성 직전에 symlink 차단, base-dir 내부 resolve 검증, manifest 해시 재검증이 필요합니다.
+  - Phase 완료 표시는 실제 업무 완료와 PoC 완료를 분리해야 합니다. 이번 산출물은 Phase 1 실행 준비와 Phase 2 CLI PoC 일부 완료입니다.
 ---
 
 ## 담당
@@ -47,39 +52,27 @@ learn_to_save:
 
 ## 이번 세션 결과
 
-세무 자동화의 거시 목표를 다시 잡았습니다. 이전 UNI-PASS 워크플로우 초안은 유지하되, 이제는 전체 세무 자료 수집 OS의 `통관·관세 모듈`로 위치를 조정했습니다.
+세무 자동화 시스템을 실제 실행 가능한 단계로 옮기기 위해 팀 검토와 Ralph 검증 루프를 진행했습니다.
 
-새 문서 묶음은 `docs/tax-automation/`에 있습니다.
+1. 박서연님이 2025년 종합소득세 자료 수집 실행 보드 항목, 담당자, 내부 마감일, 세무사 질문을 정리했습니다.
+2. 최민석님이 수동 업로드 MVP의 최소 CLI 구조를 제안했고, 최종 구현 후 재검증에서 승인했습니다.
+3. 조현우님이 민감정보, 인증정보, 세무 판단 분리, 운영 write 리스크를 검토했습니다.
+4. `_tools/tax-automation/tax_package.py`를 추가해 repo 밖 세무자료 폴더 생성, scan, hash/manifest, missing-report, 세무사 전달 ZIP dry-run/생성을 지원합니다.
+5. ZIP 생성 전 symlink 차단, base-dir 내부 검증, SHA-256 재검증을 넣었습니다.
+6. 6개 회귀 테스트를 추가해 기본 흐름, repo 내부 base-dir 차단, path traversal, formula injection, scan 후 파일 변경, symlink 교체를 검증했습니다.
 
-1. `README.md`
-   - 문서 묶음의 인덱스와 다음 실행 우선순위
-2. `team-meeting-tax-automation-2026-04-25.md`
-   - 박서연님, 최민석님, 윤하늘님 관점의 팀미팅 기록
-3. `PRD-tax-automation-system-2026.md`
-   - 제품 정의, 범위, 사용자, 기능 요구사항, 데이터 모델, 성공 지표
-4. `ROADMAP-tax-automation-system-2026.md`
-   - Phase 0~8 실행 계획과 완료 기준
-5. `종합소득세-자료수집-가이드-비전공자용-2026.md`
-   - 홈택스, 은행, 카드, 오픈마켓, PG, 공제자료, 정부24, 4대보험, UNI-PASS 다운로드 절차
-6. `free-api-service-catalog-tax-automation-2026.md`
-   - 무료 API, 조건부 API, 무료 조회 서비스, 수동 다운로드 포털 분류
-7. `templates/tax_collection_items_template.csv`
-   - 바로 수집 체크리스트로 쓸 CSV
-8. `templates/tax_source_registry_template.csv`
-   - 원천/API/포털 레지스트리 CSV
+## 새로 추가된 핵심 파일
 
-## 중요한 결정
-
-- 1차 목표: 2025년 귀속 종합소득세 자료 수집과 세무사 전달 패키지.
-- 하지 않을 것: 자동 신고, 세액 확정, 납부 실행, 인증 우회.
-- 먼저 만들 것: 수동 다운로드 가이드와 업로드/파일명/누락 검증 MVP.
-- API는 무료·공식·read-only dry-run부터 시작.
-- UNI-PASS API001/API049는 수입·관세 증빙 자동화의 첫 PoC.
+- `_tools/tax-automation/tax_package.py`
+- `_tools/tax-automation/tests/test_tax_package.py`
+- `docs/tax-automation/phase1-execution-playbook-2026.md`
+- `docs/tax-automation/templates/tax_collection_items_2025_execution_board.csv`
+- `docs/tax-automation/templates/accountant_questions_2025_template.csv`
 
 ## 다음 작업
 
-1. 세무사에게 실제 요청자료 양식이 있는지 확인한다.
-2. `tax_collection_items_template.csv`를 실제 담당자와 마감일로 채운다.
-3. 가이드에 따라 2025년 1월~12월 자료를 수집한다.
-4. 수집 중 막히는 메뉴명, 누락 자료, 반복 다운로드 항목을 기록한다.
-5. UNI-PASS 실제 테스트 번호를 확보한 뒤 n8n 브랜치 dry-run을 진행한다.
+1. 세무사 실제 요청자료 양식을 확보한다.
+2. 실행 보드 CSV에 세무사 양식과 권한 범위를 반영한다.
+3. repo 밖 `TaxVault` 폴더를 생성하고 실제 2025년 자료 수동 수집을 시작한다.
+4. 수집 후 `scan`을 실행해 `00_manifest`의 누락표와 파일 목록을 확인한다.
+5. Phase 2 다음 기능으로 요약 Excel 생성기와 전달 상태/전달일 기록을 추가한다.

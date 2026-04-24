@@ -1067,8 +1067,8 @@
         var value = String(status);
         var lower = value.toLowerCase();
         if (lower.indexOf('reject') !== -1 || value.indexOf('반려') !== -1) return '반려';
-        if (lower.indexOf('approve') !== -1 || value.indexOf('승인') !== -1) return '승인완료';
         if (lower.indexOf('pending') !== -1 || value.indexOf('심사') !== -1 || value.indexOf('대기') !== -1) return '심사중';
+        if (lower.indexOf('approve') !== -1 || value.indexOf('승인') !== -1) return '승인완료';
         return value;
       }
 

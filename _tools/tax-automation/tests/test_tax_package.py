@@ -38,7 +38,7 @@ class TaxPackageCliTest(unittest.TestCase):
                 "--company", "PRESSCO21",
             )
             init_payload = json.loads(init_result.stdout)
-            self.assertEqual(init_payload["item_count"], 52)
+            self.assertEqual(init_payload["item_count"], 61)
             expected_file = base_dir / "01_기본정보" / "2025_정부24_사업자등록증명_연간.pdf"
             expected_file.write_bytes(b"sample evidence")
             duplicate_file = base_dir / "01_기본정보" / "copy_of_certificate.pdf"

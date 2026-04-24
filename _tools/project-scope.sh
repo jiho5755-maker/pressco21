@@ -94,7 +94,7 @@ p21_allowed_paths_print() {
       printf '%s\n' 'makeshop-skin/' 'homepage-automation/' '메인페이지/' '간편 구매/' '브랜드스토리/' '파트너맵/' '레지너스 화이트페이퍼/' '1초 로그인(킵그로우)/'
       ;;
     workspace)
-      printf '%s\n' 'AGENTS.md' '*/AGENTS.md' 'CLAUDE.md' 'README.md' 'OPS_STATE.md' 'HARNESS.md' 'ROADMAP.md' '.gitignore' '.codex/' '.claude/' '_tools/' 'docs/' 'archive/' 'tools/' 'AI_SYNC.md' 'team/handoffs/' 'team/knowledge-base/'
+      printf '%s\n' 'AGENTS.md' '*/AGENTS.md' 'CLAUDE.md' 'README.md' 'OPS_STATE.md' 'HARNESS.md' 'ROADMAP.md' '.gitignore' '.codex/' '.claude/' '_tools/' 'docs/' 'archive/' 'tools/' 'team/handoffs/' 'team/knowledge-base/' 'AI_SYNC.md'
       ;;
     team)
       printf '%s\n' 'team/' 'company-knowledge/직원/' 'docs/openmarket-ops/' 'docs/prd-templates/' 'AI_SYNC.md'

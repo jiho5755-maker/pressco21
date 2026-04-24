@@ -56,7 +56,7 @@ async def negative_keyword_create_bulk(
         "negative_keyword_create_bulk",
         {"adgroup_id": adgroup_id, "count": len(body)},
     )
-    result = await client.post("/ncc/negative-keywords", body)
+    result = await client.post("/ncc/negative-keywords", body, nccAdgroupId=adgroup_id)
     return {"ok": True, "dry_run": False, "count": len(body), "results": result}
 
 

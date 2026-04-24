@@ -67,8 +67,8 @@ class SearchAdClient:
     async def get(self, path: str, **params: Any) -> Any:
         return await self.request("GET", path, params=params if params else None)
 
-    async def post(self, path: str, body: Any = None) -> Any:
-        return await self.request("POST", path, json_body=body)
+    async def post(self, path: str, body: Any = None, **params: Any) -> Any:
+        return await self.request("POST", path, params=params if params else None, json_body=body)
 
     async def put(self, path: str, body: Any = None) -> Any:
         return await self.request("PUT", path, json_body=body)

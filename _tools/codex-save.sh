@@ -75,4 +75,8 @@ if [ ${#forwarded[@]} -gt 0 ]; then
   cmd+=("${forwarded[@]}")
 fi
 
-exec "${cmd[@]}" "${paths[@]}"
+if [ ${#paths[@]} -gt 0 ]; then
+  exec "${cmd[@]}" "${paths[@]}"
+else
+  exec "${cmd[@]}"
+fi

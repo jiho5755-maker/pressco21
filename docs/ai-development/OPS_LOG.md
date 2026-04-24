@@ -62,6 +62,13 @@ This file records production deployments, manual data corrections, rollbacks, an
 - `openclaw infer model run --local --model openai-codex/gpt-5.4` returned `OK` for `owner`, `flora-codex-room`, and `flora-frontdoor`.
 - `openclaw infer model run --gateway --model openai-codex/gpt-5.4` returned `OK` for `flora-frontdoor`, confirming gateway execution uses OpenAI Codex without Gemini fallback.
 
+### Final close check (2026-04-25 03:53 KST)
+
+- `work/workspace/openclaw-setup-audit` commit `d631c5b` is included in main via merge `a3e44dc`, and the feature branch was fast-forward pushed to `origin/work/workspace/openclaw-setup-audit`.
+- Local `com.pressco21.flora-telegram-room-router` remains disabled and no local room-router process is running.
+- Flora gateway journal over the latest 10-minute window showed no Telegram `409`/`Conflict`, `refresh_token_reused`, token-exchange, or invalid auth-profile warnings.
+- Flora `flora-frontdoor` status reports `openai-codex/gpt-5.4`, and a gateway inference smoke test returned `OK`.
+
 ## 2026-04-16 — CRM deposit/credit reconciliation deployment
 
 ### Code deployed

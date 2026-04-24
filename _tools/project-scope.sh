@@ -94,7 +94,7 @@ p21_allowed_paths_print() {
       printf '%s\n' 'makeshop-skin/' 'homepage-automation/' '메인페이지/' '간편 구매/' '브랜드스토리/' '파트너맵/' '레지너스 화이트페이퍼/' '1초 로그인(킵그로우)/'
       ;;
     workspace)
-      printf '%s\n' 'AGENTS.md' '*/AGENTS.md' 'CLAUDE.md' 'README.md' 'OPS_STATE.md' 'HARNESS.md' 'ROADMAP.md' '.gitignore' '.codex/' '.claude/' '_tools/' 'docs/' 'archive/' 'tools/' 'AI_SYNC.md'
+      printf '%s\n' 'AGENTS.md' '*/AGENTS.md' 'CLAUDE.md' 'README.md' 'OPS_STATE.md' 'HARNESS.md' 'ROADMAP.md' '.gitignore' '.codex/' '.claude/' '_tools/' 'docs/' 'archive/' 'tools/' 'team/handoffs/' 'team/knowledge-base/' 'AI_SYNC.md'
       ;;
     team)
       printf '%s\n' 'team/' 'company-knowledge/직원/' 'docs/openmarket-ops/' 'docs/prd-templates/' 'AI_SYNC.md'
@@ -129,7 +129,7 @@ p21_sparse_paths_print() {
       printf '%s\n' '/makeshop-skin/' '/homepage-automation/' '/메인페이지/' '/간편 구매/' '/브랜드스토리/' '/파트너맵/' '/레지너스 화이트페이퍼/' '/1초 로그인(킵그로우)/'
       ;;
     workspace)
-      printf '%s\n' '/README.md' '/OPS_STATE.md' '/HARNESS.md' '/ROADMAP.md' '/.codex/' '/.claude/' '/docs/' '/archive/' '/tools/'
+      printf '%s\n' '/README.md' '/OPS_STATE.md' '/HARNESS.md' '/ROADMAP.md' '/.codex/' '/.claude/' '/docs/' '/archive/' '/tools/' '/team/handoffs/' '/team/knowledge-base/'
       ;;
     team)
       printf '%s\n' '/team/' '/company-knowledge/직원/' '/docs/openmarket-ops/' '/docs/prd-templates/' '/AI_SYNC.md'
@@ -165,7 +165,7 @@ p21_is_path_allowed() {
       case "$path" in makeshop-skin|makeshop-skin/*|homepage-automation|homepage-automation/*|메인페이지|메인페이지/*|간편\ 구매|간편\ 구매/*|브랜드스토리|브랜드스토리/*|파트너맵|파트너맵/*|레지너스\ 화이트페이퍼|레지너스\ 화이트페이퍼/*|1초\ 로그인\(킵그로우\)|1초\ 로그인\(킵그로우\)/*) return 0 ;; esac
       ;;
     workspace)
-      case "$path" in AGENTS.md|*/AGENTS.md|CLAUDE.md|README.md|OPS_STATE.md|HARNESS.md|ROADMAP.md|.gitignore|AI_SYNC.md|.codex|.codex/*|.claude|.claude/*|_tools|_tools/*|docs|docs/*|archive|archive/*|tools|tools/*) return 0 ;; esac
+      case "$path" in AGENTS.md|*/AGENTS.md|CLAUDE.md|README.md|OPS_STATE.md|HARNESS.md|ROADMAP.md|.gitignore|AI_SYNC.md|.codex|.codex/*|.claude|.claude/*|_tools|_tools/*|docs|docs/*|archive|archive/*|tools|tools/*|team/handoffs|team/handoffs/*|team/knowledge-base|team/knowledge-base/*) return 0 ;; esac
       ;;
     team)
       case "$path" in team|team/*|company-knowledge/직원|company-knowledge/직원/*|docs/openmarket-ops|docs/openmarket-ops/*|docs/prd-templates|docs/prd-templates/*|AI_SYNC.md) return 0 ;; esac

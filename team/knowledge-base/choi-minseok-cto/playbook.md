@@ -48,6 +48,21 @@
 **주의**: 수동 등록 시 scopes는 `["node.exec", "node.fs", "node.browser", "node.screen", "node.camera", "node.notify", "node.location"]` 포함.
 **발견일**: 2026-04-24 (맥북 노드 페어링)
 
+## OpenClaw 2026.4 디바이스 role은 토큰이 있어야 유효
+
+**증상**: 원격 게이트웨이에 디바이스가 `roles: ["operator", ...]`와 operator scopes로 등록되어 있는데도 클라이언트 연결이 `device is asking for a higher role than currently approved`로 차단됨.
+**원인**: OpenClaw 2026.4의 WS 핸드셰이크는 `roles` 필드만 보지 않고, `tokens` 객체 안의 revoke되지 않은 토큰 role을 `roles` 승인 baseline과 교차시켜 `effective roles`를 계산한다. 수동 편집으로 `roles/scopes/approvedScopes`만 넣고 `tokens.operator`를 만들지 않으면 `effectiveRoles=[]`가 되어 `role-upgrade` 경로로 진입한다.
+**근거**:
+- 서버 코드: `/home/ubuntu/.npm-global/lib/node_modules/openclaw/dist/device-pairing-C16oqLkv.js`의 `listEffectivePairedDeviceRoles()`는 활성 토큰 role이 없으면 빈 배열을 반환.
+- 서버 코드: `/home/ubuntu/.npm-global/lib/node_modules/openclaw/dist/server.impl-DLF59fRo.js`의 핸드셰이크는 `allowedRoles.size === 0` 또는 요청 role 누락 시 `requirePairing("role-upgrade")`.
+- 에러 문구: `/home/ubuntu/.npm-global/lib/node_modules/openclaw/dist/connect-error-details-Bgc1VkH2.js`의 `role-upgrade` requirement.
+**해결 우선순위**:
+1. 가능한 경우 pending request를 다시 만든 뒤 `openclaw devices approve <requestId>`로 승인한다. 승인 경로는 토큰을 생성하고 CLI 응답은 토큰을 요약/마스킹한다.
+2. pending이 없고 이미 승인된 deviceId/role만 수리해야 하면, 서버에서 백업 후 `openclaw devices rotate --device <deviceId> --role operator --scope ...`로 `tokens.operator`를 생성한다. `rotate --json` 응답에는 토큰이 포함되므로 stdout을 로그/채팅에 출력하지 말고 `/dev/null` 또는 권한 600 임시파일로 처리한다.
+3. 수동 JSON 편집으로 토큰을 직접 넣는 방식은 최후 수단. CLI 승인/회전 경로가 `approvedScopes`와 토큰 scope 검사를 함께 맞춘다.
+**주의**: `agent` role은 OpenClaw WS protocol의 표준 role이 아니며, clawdbot CLI의 실제 요청 role은 `operator`다. operator 토큰/스코프가 먼저 정상화되어야 한다.
+**발견일**: 2026-04-24 (CODEX-001 clawdbot role/schema mismatch)
+
 ## OpenClaw 노드 LaunchAgent npm ENOENT
 
 **증상**: 노드 서비스 시작 시 `spawnSync npm ENOENT`로 모든 플러그인 로딩 실패.

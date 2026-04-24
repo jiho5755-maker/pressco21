@@ -84,3 +84,45 @@ learn_to_save:
 이 핸드오프의 codex_delegation 섹션에 3개 태스크(CODEX-001~003)가 있습니다.
 Codex CLI에서 이 파일을 읽고 순서대로 진행하세요.
 CODEX-001이 블로커이므로 이것부터 착수. 해결 안되면 HTTP 직접 호출 대안을 구현하세요.
+
+## CODEX-001 진단 업데이트 (2026-04-24 12:20 KST)
+
+**상태**: 원인 특정 완료, 서버 설정 쓰기는 하지 않음(leader 승인 필요).
+
+**결론**: `device is asking for a higher role`의 직접 원인은 clawdbot 2026.1 자체 버전 차이보다 Flora의 수동 `paired.json` 엔트리가 OpenClaw 2026.4 스키마에서 불완전한 것이다. 해당 디바이스는 `roles/scopes/approvedScopes`가 있지만 `tokens.operator`가 없어 OpenClaw가 effective role을 빈 배열로 계산한다.
+
+**증거(비밀값 미출력)**:
+- Local: `clawdbot --version` → `2026.1.24-3`.
+- Flora: `openclaw --version`(PATH 보정) → `OpenClaw 2026.4.21 (f788c88)`.
+- Local deviceId prefix `efd4d91929d8`; local normalized public key hash와 Flora paired 엔트리 public key hash가 동일(`1c8ec84e586ff9a6`)이므로 public-key mismatch가 아님.
+- Flora `/home/ubuntu/.openclaw/devices/paired.json`의 local clawdbot 엔트리: `roles=["operator","agent"]`, operator/agent scopes 존재, `tokens`는 없음. 현재 같은 deviceId의 pending request는 없음(만료/정리된 상태).
+- OpenClaw source:
+  - `/home/ubuntu/.npm-global/lib/node_modules/openclaw/dist/device-pairing-C16oqLkv.js:59-78` — active token roles와 approved roles의 교집합만 effective role로 사용, 토큰 없으면 `[]`.
+  - `/home/ubuntu/.npm-global/lib/node_modules/openclaw/dist/server.impl-DLF59fRo.js:22539-22548` — `allowedRoles.size === 0` 또는 요청 role 누락이면 `requirePairing("role-upgrade")`.
+  - `/home/ubuntu/.npm-global/lib/node_modules/openclaw/dist/connect-error-details-Bgc1VkH2.js:57-59,153-154` — `role-upgrade`가 "device is asking for a higher role..." 메시지로 포맷됨.
+
+**최소 수정안(leader가 서버 백업 후 실행)**:
+1. 우선 백업:
+   ```bash
+   ssh openclaw 'cp ~/.openclaw/devices/paired.json ~/.openclaw/devices/paired.json.bak-$(date -u +%Y%m%dT%H%M%SZ)-codex001'
+   ```
+2. 선호 경로: MacBook에서 한 번 더 연결을 시도해 pending request를 재생성한 뒤 Flora에서 확인/승인.
+   ```bash
+   # MacBook: 원래 실패하던 clawdbot gateway 작업 또는 read-only devices/status 호출 1회 실행
+   # Flora:
+   ssh openclaw 'export PATH=/home/ubuntu/.npm-global/bin:$PATH; openclaw devices list'
+   ssh openclaw 'export PATH=/home/ubuntu/.npm-global/bin:$PATH; openclaw devices approve <requestId>'
+   ```
+   `approve` 경로는 토큰을 생성하지만 CLI 응답은 토큰 값을 직접 출력하지 않는 redacted paired-device summary를 반환한다.
+3. pending을 만들기 어렵거나 즉시 수리해야 하는 경우:
+   ```bash
+   ssh openclaw 'export PATH=/home/ubuntu/.npm-global/bin:$PATH; openclaw devices rotate \
+     --device efd4d91929d807bf60dbd54e1cb2b5a1b6d47e3723dab852f8473f1611cd18bd \
+     --role operator \
+     --scope operator.admin --scope operator.approvals --scope operator.pairing \
+     --scope operator.read --scope operator.write \
+     --json >/dev/null'
+   ```
+   `rotate --json` 응답은 토큰을 포함하므로 stdout을 채팅/로그에 출력하지 말 것. 서버에 `tokens.operator`가 생기면 다음 local handshake가 통과하면서 local `~/.clawdbot/identity/device-auth.json`에 operator device token이 저장될 것으로 예상.
+
+**우회 판단**: HTTP/OpenClaw direct bypass는 아직 비추천. 원인이 단일 schema/token drift로 좁혀졌고, `approve` 또는 `rotate`가 더 작고 되돌리기 쉬운 수정이다. 위 경로가 실패하면 그때 bypass로 전환.

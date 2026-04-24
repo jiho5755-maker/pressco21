@@ -9,7 +9,7 @@ source "$SCRIPT_DIR/project-scope.sh"
 usage() {
   cat <<'USAGE'
 Usage:
-  bash _tools/pressco21-task.sh <project> <task-name> [--full]
+  bash _tools/pressco21-task.sh <project> <task-name> [--full] [--allow-main-dirty]
 
 Projects:
   crm | partnerclass | n8n | mini-app | mobile-app | homepage | workspace
@@ -23,6 +23,7 @@ Notes:
   - Creates branch: work/<project>/<task-name>
   - Creates worktree under: ~/workspace/pressco21-worktrees/<slot>
   - By default uses sparse-checkout so only the target project plus root tools are visible.
+  - Main worktree must be clean. This prevents hidden handoff/shared-file conflicts.
 USAGE
 }
 
@@ -40,9 +41,11 @@ project_input="$1"
 task_input="$2"
 shift 2
 full=0
+allow_main_dirty=0
 while [ $# -gt 0 ]; do
   case "$1" in
     --full) full=1; shift ;;
+    --allow-main-dirty) allow_main_dirty=1; shift ;;
     -h|--help) usage; exit 0 ;;
     *) echo "Unknown option: $1" >&2; usage; exit 1 ;;
   esac
@@ -75,16 +78,21 @@ if [ "$(git -C "$MAIN_ROOT" branch --show-current)" != "main" ]; then
   exit 1
 fi
 
-main_dirty="$(git -C "$MAIN_ROOT" status --short -- . ':(exclude)team' 2>/dev/null || git -C "$MAIN_ROOT" status --short)"
-if [ -n "$main_dirty" ]; then
-  echo "Main worktree is dirty. Clean or commit before creating a task worktree:" >&2
-  printf '%s\n' "$main_dirty" >&2
-  exit 1
-fi
+main_dirty="$(git -C "$MAIN_ROOT" status --short)"
+if [ -n "$main_dirty" ] && [ "$allow_main_dirty" -eq 0 ] && [ -z "${PRESSCO21_ALLOW_MAIN_DIRTY:-}" ]; then
+  cat >&2 <<EOF
+Main worktree is dirty. Clean/stash/commit it before creating a task worktree.
 
-team_dirty="$(git -C "$MAIN_ROOT" status --short -- team 2>/dev/null || true)"
-if [ -n "$team_dirty" ]; then
-  echo "Note: local team/ workspace changes are present and ignored for task worktree creation." >&2
+Why this is blocked:
+  main is the integration baseline. Dirty main handoff/shared files repeatedly caused merge conflicts.
+
+Current main status:
+$main_dirty
+
+If you are intentionally doing emergency recovery, rerun with --allow-main-dirty
+or set PRESSCO21_ALLOW_MAIN_DIRTY=1.
+EOF
+  exit 1
 fi
 
 mkdir -p "$WORKTREE_ROOT"

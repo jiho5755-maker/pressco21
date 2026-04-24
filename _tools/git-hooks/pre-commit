@@ -4,12 +4,19 @@
 
 
 # 프로젝트별 worktree/branch scope guard
-HOOK_DIR="$(cd "$(dirname "$0")" && pwd)"
-if [ -x "$HOOK_DIR/../scope-guard.sh" ]; then
-  bash "$HOOK_DIR/../scope-guard.sh" || exit 1
-elif [ -x "$HOOK_DIR/scope-guard.sh" ]; then
-  bash "$HOOK_DIR/scope-guard.sh" || exit 1
+#
+# 주의:
+# - 실제 hook은 .git/hooks 아래에 복사되어 실행됩니다.
+# - linked worktree에서는 .git이 파일이므로 hook 기준 상대경로로 _tools를 찾으면 실패합니다.
+# - 반드시 git이 알려주는 현재 worktree root에서 tracked _tools/scope-guard.sh를 찾아 실행합니다.
+REPO_ROOT="$(git rev-parse --show-toplevel 2>/dev/null || true)"
+if [ -z "$REPO_ROOT" ] || [ ! -x "$REPO_ROOT/_tools/scope-guard.sh" ]; then
+  echo "ERROR: PRESSCO21 scope guard를 찾을 수 없습니다: _tools/scope-guard.sh" >&2
+  echo "       hook 설치가 오래되었거나 잘못된 worktree에서 실행 중입니다." >&2
+  exit 1
 fi
+
+bash "$REPO_ROOT/_tools/scope-guard.sh" || exit 1
 
 # 메이크샵 경로 패턴
 MAKESHOP_PATHS="makeshop-skin/|메인페이지/|파트너클래스/|간편 구매/|브랜드스토리/"

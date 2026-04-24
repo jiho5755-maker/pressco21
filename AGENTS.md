@@ -168,8 +168,10 @@ cd /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-invoice-fix/offline
 
 - main은 최종 통합 기준선입니다.
 - 일반 기능 개발을 main에서 직접 커밋하지 않습니다.
+- main worktree에서 handoff/문서/백업 파일을 생성하지 않습니다. main은 `pull`, `merge`, `push`, 상태 확인만 수행합니다.
 - `pre-commit` hook이 main 직접 커밋을 차단합니다.
 - 작업 완료 후 검증된 브랜치만 main으로 merge합니다.
+- 병렬 세션 상태 점검은 `bash _tools/pressco21-status-all.sh --fetch`, main 통합은 `bash _tools/pressco21-integrate.sh <branch> --push`를 사용합니다.
 
 ### 작업 완료 흐름
 

@@ -5,9 +5,17 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 HOOKS_SRC="$SCRIPT_DIR/git-hooks"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-HOOKS_DEST="$REPO_ROOT/.git/hooks"
+GIT_COMMON_DIR="$(git -C "$REPO_ROOT" rev-parse --git-common-dir 2>/dev/null || true)"
+if [ -z "$GIT_COMMON_DIR" ]; then
+  echo "오류: $REPO_ROOT 는 git 저장소가 아닙니다."
+  exit 1
+fi
+case "$GIT_COMMON_DIR" in
+  /*) HOOKS_DEST="$GIT_COMMON_DIR/hooks" ;;
+  *) HOOKS_DEST="$REPO_ROOT/$GIT_COMMON_DIR/hooks" ;;
+esac
 
-if [ ! -d "$REPO_ROOT/.git" ]; then
+if ! git -C "$REPO_ROOT" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
   echo "오류: $REPO_ROOT 는 git 저장소가 아닙니다."
   exit 1
 fi
@@ -21,6 +29,8 @@ echo "=== Git Hooks 설치 ==="
 echo "소스: $HOOKS_SRC"
 echo "대상: $HOOKS_DEST"
 echo ""
+
+mkdir -p "$HOOKS_DEST"
 
 INSTALLED=0
 for HOOK in pre-commit commit-msg pre-push; do

@@ -1,0 +1,537 @@
+{
+  "updatedAt": "2026-04-06T08:35:02.859Z",
+  "createdAt": "2026-04-06T08:34:06.530Z",
+  "id": "zCsDFaURp9Skyqnp",
+  "name": "FA-004b: 강사 신청 조회 (연락처 기반)",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "instructor-apply-lookup",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://nocodb.pressco21.com"
+        }
+      },
+      "id": "fa004b-trigger",
+      "name": "조회 웹훅",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        300
+      ],
+      "webhookId": "fa004b-lookup"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== 연락처 정규화 + 검증 =====\nconst phone = ($input.item.json.query.phone || '').trim();\nconst normalized = phone.replace(/[^0-9]/g, '');\n\nif (!/^010\\d{8}$/.test(normalized)) {\n  return { json: { valid: false, error: '올바른 연락처를 입력해주세요.' } };\n}\n\n// NocoDB 검색용 포맷 (010-XXXX-XXXX)\nconst formatted = normalized.replace(/(\\d{3})(\\d{4})(\\d{4})/, '$1-$2-$3');\n\nreturn { json: { valid: true, phone: formatted, phoneRaw: normalized } };",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "fa004b-validate",
+      "name": "연락처 검증",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        420,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{ $json.valid }}",
+              "value2": true,
+              "operation": "equal"
+            }
+          ]
+        }
+      },
+      "id": "fa004b-check",
+      "name": "유효?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: false, message: $('연락처 검증').item.json.error }) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://nocodb.pressco21.com"
+              }
+            ]
+          }
+        }
+      },
+      "id": "fa004b-error",
+      "name": "오류 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        860,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "={{ '(연락처,like,%' + $('연락처 검증').item.json.phone + '%)~or(연락처,like,%' + $('연락처 검증').item.json.phoneRaw + '%)' }}"
+            },
+            {
+              "name": "sort",
+              "value": "-Id"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            },
+            {
+              "name": "fields",
+              "value": "Id,성함,자사몰 ID,연락처,이메일 주소,소속 협회,진행 상태,반려 사유,n8n_처리완료"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "xc-token",
+              "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "fa004b-search",
+      "name": "NocoDB 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        860,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "// ===== 조회 결과 가공 =====\nconst resp = $json;\nconst list = resp.list || [];\n\nif (list.length === 0) {\n  return { json: { ok: true, found: false } };\n}\n\nconst rec = list[0];\nconst status = rec['진행 상태'] || '';\nconst reason = rec['반려 사유'] || '';\n\nreturn {\n  json: {\n    ok: true,\n    found: true,\n    recordId: rec.Id,\n    name: rec['성함'] || '',\n    mallId: rec['자사몰 ID'] || '',\n    email: rec['이메일 주소'] || '',\n    association: rec['소속 협회'] || '',\n    status: status,\n    rejectReason: reason,\n    isRejected: status === '반려',\n    isApproved: status === '승인완료',\n    isPending: status === '승인대기' || status === '수동처리필요'\n  }\n};",
+        "mode": "runOnceForEachItem"
+      },
+      "id": "fa004b-parse",
+      "name": "결과 가공",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1080,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://nocodb.pressco21.com"
+              }
+            ]
+          }
+        }
+      },
+      "id": "fa004b-respond",
+      "name": "조회 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1300,
+        300
+      ]
+    }
+  ],
+  "connections": {
+    "조회 웹훅": {
+      "main": [
+        [
+          {
+            "node": "연락처 검증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "연락처 검증": {
+      "main": [
+        [
+          {
+            "node": "유효?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "유효?": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "오류 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 조회": {
+      "main": [
+        [
+          {
+            "node": "결과 가공",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "결과 가공": {
+      "main": [
+        [
+          {
+            "node": "조회 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "67735eb1-d90c-4324-94b7-c20cff6f833c",
+  "activeVersionId": "67735eb1-d90c-4324-94b7-c20cff6f833c",
+  "versionCounter": 27,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-04-06T08:34:06.530Z",
+      "createdAt": "2026-04-06T08:34:06.530Z",
+      "role": "workflow:owner",
+      "workflowId": "zCsDFaURp9Skyqnp",
+      "projectId": "DIT0WAQj00qvNJUL",
+      "project": {
+        "updatedAt": "2026-02-28T07:51:06.297Z",
+        "createdAt": "2026-02-23T16:25:57.845Z",
+        "id": "DIT0WAQj00qvNJUL",
+        "name": "Unnamed Project",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-06T08:35:02.862Z",
+    "createdAt": "2026-04-06T08:35:02.862Z",
+    "versionId": "67735eb1-d90c-4324-94b7-c20cff6f833c",
+    "workflowId": "zCsDFaURp9Skyqnp",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "GET",
+          "path": "instructor-apply-lookup",
+          "responseMode": "responseNode",
+          "options": {
+            "allowedOrigins": "https://nocodb.pressco21.com"
+          }
+        },
+        "id": "fa004b-trigger",
+        "name": "조회 웹훅",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          200,
+          300
+        ],
+        "webhookId": "fa004b-lookup"
+      },
+      {
+        "parameters": {
+          "jsCode": "// ===== 연락처 정규화 + 검증 =====\nconst phone = ($input.item.json.query.phone || '').trim();\nconst normalized = phone.replace(/[^0-9]/g, '');\n\nif (!/^010\\d{8}$/.test(normalized)) {\n  return { json: { valid: false, error: '올바른 연락처를 입력해주세요.' } };\n}\n\n// NocoDB 검색용 포맷 (010-XXXX-XXXX)\nconst formatted = normalized.replace(/(\\d{3})(\\d{4})(\\d{4})/, '$1-$2-$3');\n\nreturn { json: { valid: true, phone: formatted, phoneRaw: normalized } };",
+          "mode": "runOnceForEachItem"
+        },
+        "id": "fa004b-validate",
+        "name": "연락처 검증",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          420,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "boolean": [
+              {
+                "value1": "={{ $json.valid }}",
+                "value2": true,
+                "operation": "equal"
+              }
+            ]
+          }
+        },
+        "id": "fa004b-check",
+        "name": "유효?",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 1,
+        "position": [
+          640,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ ok: false, message: $('연락처 검증').item.json.error }) }}",
+          "options": {
+            "responseCode": 400,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "https://nocodb.pressco21.com"
+                }
+              ]
+            }
+          }
+        },
+        "id": "fa004b-error",
+        "name": "오류 응답",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          860,
+          500
+        ]
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "where",
+                "value": "={{ '(연락처,like,%' + $('연락처 검증').item.json.phone + '%)~or(연락처,like,%' + $('연락처 검증').item.json.phoneRaw + '%)' }}"
+              },
+              {
+                "name": "sort",
+                "value": "-Id"
+              },
+              {
+                "name": "limit",
+                "value": "1"
+              },
+              {
+                "name": "fields",
+                "value": "Id,성함,자사몰 ID,연락처,이메일 주소,소속 협회,진행 상태,반려 사유,n8n_처리완료"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "xc-token",
+                "value": "7bbe69de41d39e31391d67adda453835aefe5e70ea809d9b3d45981706435d37f39acdd839efeedc"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "fa004b-search",
+        "name": "NocoDB 조회",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          860,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "// ===== 조회 결과 가공 =====\nconst resp = $json;\nconst list = resp.list || [];\n\nif (list.length === 0) {\n  return { json: { ok: true, found: false } };\n}\n\nconst rec = list[0];\nconst status = rec['진행 상태'] || '';\nconst reason = rec['반려 사유'] || '';\n\nreturn {\n  json: {\n    ok: true,\n    found: true,\n    recordId: rec.Id,\n    name: rec['성함'] || '',\n    mallId: rec['자사몰 ID'] || '',\n    email: rec['이메일 주소'] || '',\n    association: rec['소속 협회'] || '',\n    status: status,\n    rejectReason: reason,\n    isRejected: status === '반려',\n    isApproved: status === '승인완료',\n    isPending: status === '승인대기' || status === '수동처리필요'\n  }\n};",
+          "mode": "runOnceForEachItem"
+        },
+        "id": "fa004b-parse",
+        "name": "결과 가공",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1080,
+          300
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json) }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "https://nocodb.pressco21.com"
+                }
+              ]
+            }
+          }
+        },
+        "id": "fa004b-respond",
+        "name": "조회 응답",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1300,
+          300
+        ]
+      }
+    ],
+    "connections": {
+      "조회 웹훅": {
+        "main": [
+          [
+            {
+              "node": "연락처 검증",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "연락처 검증": {
+        "main": [
+          [
+            {
+              "node": "유효?",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "유효?": {
+        "main": [
+          [
+            {
+              "node": "NocoDB 조회",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "오류 응답",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "NocoDB 조회": {
+        "main": [
+          [
+            {
+              "node": "결과 가공",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "결과 가공": {
+        "main": [
+          [
+            {
+              "node": "조회 응답",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Admin User",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-06T08:35:02.895Z",
+        "id": 1752,
+        "workflowId": "zCsDFaURp9Skyqnp",
+        "versionId": "67735eb1-d90c-4324-94b7-c20cff6f833c",
+        "event": "deactivated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      },
+      {
+        "createdAt": "2026-04-06T08:35:02.911Z",
+        "id": 1753,
+        "workflowId": "zCsDFaURp9Skyqnp",
+        "versionId": "67735eb1-d90c-4324-94b7-c20cff6f833c",
+        "event": "activated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      }
+    ]
+  }
+}

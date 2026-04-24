@@ -1,0 +1,1415 @@
+{
+  "updatedAt": "2026-03-09T11:14:37.856Z",
+  "createdAt": "2026-03-09T10:56:34.732Z",
+  "id": "Q3wqd8NMFaHjl1UB",
+  "name": "FA-004: 강사 신청 보안 제출 프록시",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "instructor-apply-submit",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://nocodb.pressco21.com,https://www.foreverlove.co.kr,https://foreverlove.co.kr"
+        }
+      },
+      "id": "webhook-instructor-apply",
+      "name": "Webhook: 강사 신청 제출",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        240,
+        320
+      ],
+      "webhookId": "instructor-apply-submit"
+    },
+    {
+      "parameters": {
+        "jsCode": "const input = $input.first();\nconst body = input.json.body || input.json || {};\nconst binary = input.binary || {};\n\nfunction firstValue(value) {\n  if (Array.isArray(value)) return value[0] ?? '';\n  return value ?? '';\n}\n\nfunction cleanText(value, maxLen) {\n  const raw = String(firstValue(value))\n    .replace(/[\\x00-\\x1F\\x7F]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n  return raw.slice(0, maxLen);\n}\n\nconst name = cleanText(body.name, 80);\nconst mallId = cleanText(body.mallId, 100);\nconst phoneDigits = String(firstValue(body.phone)).replace(/\\D/g, '');\nconst phone = phoneDigits.length === 11\n  ? phoneDigits.slice(0, 3) + '-' + phoneDigits.slice(3, 7) + '-' + phoneDigits.slice(7)\n  : cleanText(body.phone, 20);\nconst email = cleanText(body.email, 120);\nconst association = cleanText(body.association, 120);\nconst recordId = cleanText(body.recordId, 40);\nconst submitModeRaw = cleanText(body.submitMode, 20).toLowerCase();\nconst submitMode = submitModeRaw === 'update'\n  ? 'update'\n  : (submitModeRaw === 'create-new' || submitModeRaw === 'createnew' ? 'create-new' : 'auto');\n\nconst errors = [];\nif (!name) errors.push('성함을 입력해주세요.');\nif (!mallId) errors.push('자사몰 ID를 입력해주세요.');\nif (!/^010\\d{8}$/.test(phoneDigits)) errors.push('연락처는 010으로 시작하는 11자리 번호여야 합니다.');\nif (email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) errors.push('올바른 이메일 형식을 입력해주세요.');\n\nconst fileKeys = Object.keys(binary).sort();\nconst now = new Date();\nconst kst = new Date(now.getTime() + (9 * 60 * 60 * 1000));\nconst applyDate = kst.toISOString().slice(0, 10);\n\nif (errors.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _response: {\n        ok: false,\n        code: 'INVALID_INPUT',\n        message: errors[0],\n        errors,\n      },\n    },\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    name,\n    mallId,\n    phone,\n    email,\n    association,\n    recordId,\n    submitMode,\n    fileKeys,\n    applyDate,\n  },\n  binary,\n}];"
+      },
+      "id": "code-validate-request",
+      "name": "Code: 입력 검증",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-valid-request",
+      "name": "IF 입력 유효",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        700,
+        320
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json._response) }}",
+        "options": {
+          "responseCode": 400,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://nocodb.pressco21.com"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-invalid-request",
+      "name": "Respond: 입력 오류",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        920,
+        460
+      ]
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "where",
+              "value": "={{ '(자사몰 ID,eq,' + $json.mallId + ')' }}"
+            },
+            {
+              "name": "limit",
+              "value": "1"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-find-existing-application",
+      "name": "NocoDB 기존 신청 조회",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        920,
+        220
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vyw7FAboYUzOK48Q",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const response = $input.first().json;\nconst form = $('Code: 입력 검증').first();\nconst existing = (response.list || [])[0] || null;\nconst existingId = existing ? String(existing.Id || existing.id || '') : '';\nconst submitMode = form.json.submitMode;\n\nif (existing && submitMode === 'auto') {\n  return [{\n    json: {\n      _continue: false,\n      _response: {\n        ok: false,\n        code: 'DUPLICATE_APPLICATION',\n        message: '이미 접수된 신청 내역이 있습니다. 기존 신청을 수정할지, 새로 신청할지 선택해주세요.',\n        recordId: existingId,\n        existingStatus: String(existing['진행 상태'] || ''),\n      },\n    },\n    binary: form.binary,\n  }];\n}\n\nconst targetRecordId = form.json.recordId || existingId;\nif (submitMode === 'update' && !targetRecordId) {\n  return [{\n    json: {\n      _continue: false,\n      _response: {\n        ok: false,\n        code: 'MISSING_RECORD_ID',\n        message: '수정할 기존 신청 정보를 찾지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해주세요.',\n      },\n    },\n    binary: form.binary,\n  }];\n}\n\nreturn [{\n  json: {\n    _continue: true,\n    isUpdate: submitMode === 'update',\n    targetRecordId,\n    name: form.json.name,\n    mallId: form.json.mallId,\n    phone: form.json.phone,\n    email: form.json.email,\n    association: form.json.association,\n    fileKeys: form.json.fileKeys,\n    applyDate: form.json.applyDate,\n  },\n  binary: form.binary,\n}];"
+      },
+      "id": "code-decide-action",
+      "name": "Code: 중복 처리 결정",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1140,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json._continue }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-continue-submit",
+      "name": "IF 제출 계속",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1360,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json._response) }}",
+        "options": {
+          "responseCode": 409,
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://nocodb.pressco21.com"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-duplicate-request",
+      "name": "Respond: 중복 신청",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        1580,
+        360
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ ($json.fileKeys || []).length > 0 }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-has-files",
+      "name": "IF 첨부파일 있음",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        1580,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const source = $input.first();\nreturn (source.json.fileKeys || []).map((key) => ({\n  json: {\n    targetRecordId: source.json.targetRecordId,\n  },\n  binary: {\n    uploadFile: source.binary[key],\n  },\n}));"
+      },
+      "id": "code-split-files",
+      "name": "Code: 파일 분리",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nocodb.pressco21.com/api/v1/db/storage/upload",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "path",
+              "value": "nc/mcafm2yyeaupdnt/증빙서류 첨부"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "files[]",
+              "inputDataFieldName": "uploadFile"
+            }
+          ]
+        },
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-upload-file",
+      "name": "NocoDB 파일 업로드",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2020,
+        40
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vyw7FAboYUzOK48Q",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Code: 중복 처리 결정').first().json;\nconst attachments = [];\nfor (const item of $input.all()) {\n  if (Array.isArray(item.json)) {\n    attachments.push(...item.json);\n  } else if (item.json && Array.isArray(item.json.data)) {\n    attachments.push(...item.json.data);\n  } else if (item.json && Object.keys(item.json).length > 0) {\n    attachments.push(item.json);\n  }\n}\nreturn [{\n  json: {\n    ...base,\n    attachments,\n  },\n}];"
+      },
+      "id": "code-collect-uploads",
+      "name": "Code: 업로드 결과 수집",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2240,
+        40
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Code: 중복 처리 결정').first().json;\nreturn [{\n  json: {\n    ...base,\n    attachments: [],\n  },\n}];"
+      },
+      "id": "code-no-files",
+      "name": "Code: 첨부파일 없음",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1800,
+        220
+      ]
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nconst recordPayload = {\n  '성함': item.name,\n  '자사몰 ID': item.mallId,\n  '연락처': item.phone,\n  '신청 일시': item.applyDate,\n};\nif (item.email) recordPayload['이메일 주소'] = item.email;\nif (item.association) recordPayload['소속 협회'] = item.association;\nif (item.attachments && item.attachments.length > 0) recordPayload['증빙서류 첨부'] = item.attachments;\nreturn [{\n  json: {\n    ...item,\n    recordPayload,\n  },\n}];"
+      },
+      "id": "code-build-record-payload",
+      "name": "Code: 레코드 페이로드 생성",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2460,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.isUpdate }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      },
+      "id": "if-update-record",
+      "name": "IF 기존 신청 수정",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        2680,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ 'https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt/' + $json.targetRecordId }}",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.recordPayload) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-update-record",
+      "name": "NocoDB 기존 신청 수정",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2900,
+        60
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vyw7FAboYUzOK48Q",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://nocodb.pressco21.com/api/v2/tables/mcafm2yyeaupdnt/records",
+        "authentication": "genericCredentialType",
+        "genericAuthType": "httpHeaderAuth",
+        "sendBody": true,
+        "contentType": "raw",
+        "rawContentType": "application/json",
+        "body": "={{ JSON.stringify($json.recordPayload) }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "json"
+            }
+          }
+        }
+      },
+      "id": "http-create-record",
+      "name": "NocoDB 신규 신청 생성",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2900,
+        220
+      ],
+      "credentials": {
+        "httpHeaderAuth": {
+          "id": "Vyw7FAboYUzOK48Q",
+          "name": "NocoDB API Token"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const base = $('Code: 레코드 페이로드 생성').first().json;\nconst result = $input.first().json;\n\nfunction parseJsonText(value) {\n  if (typeof value !== 'string' || !value.trim()) return null;\n  try {\n    return JSON.parse(value);\n  } catch {\n    return null;\n  }\n}\n\nfunction extractBufferedPayload(payload) {\n  const buffered = payload && payload._readableState && Array.isArray(payload._readableState.buffer)\n    ? payload._readableState.buffer\n    : [];\n\n  for (const chunk of buffered) {\n    if (!chunk) continue;\n    if (typeof chunk === 'string') {\n      const parsed = parseJsonText(chunk);\n      if (parsed) return parsed;\n      continue;\n    }\n    if (Array.isArray(chunk.data)) {\n      const parsed = parseJsonText(Buffer.from(chunk.data).toString('utf8'));\n      if (parsed) return parsed;\n    }\n  }\n\n  return null;\n}\n\nfunction extractRecordId(payload) {\n  if (!payload) return '';\n  if (typeof payload === 'string') {\n    const parsed = parseJsonText(payload);\n    return parsed ? extractRecordId(parsed) : '';\n  }\n  if (Array.isArray(payload)) {\n    for (const item of payload) {\n      const id = extractRecordId(item);\n      if (id) return id;\n    }\n    return '';\n  }\n  if (payload.Id || payload.id) return String(payload.Id || payload.id);\n  if (payload.data) {\n    const id = extractRecordId(payload.data);\n    if (id) return id;\n  }\n  if (payload.list) {\n    const id = extractRecordId(payload.list);\n    if (id) return id;\n  }\n  if (payload.body) {\n    const id = extractRecordId(payload.body);\n    if (id) return id;\n  }\n  const bufferedPayload = extractBufferedPayload(payload);\n  return bufferedPayload ? extractRecordId(bufferedPayload) : '';\n}\n\nconst recordId = extractRecordId(result) || String(base.targetRecordId || '');\nreturn [{\n  json: {\n    ok: true,\n    mode: base.isUpdate ? 'updated' : 'created',\n    recordId,\n    message: base.isUpdate ? '기존 신청을 수정했습니다.' : '신청이 완료되었습니다.',\n  },\n}];"
+      },
+      "id": "code-format-success",
+      "name": "Code: 성공 응답 포맷",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        140
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify($json) }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "https://nocodb.pressco21.com"
+              }
+            ]
+          }
+        }
+      },
+      "id": "respond-submit-success",
+      "name": "Respond: 제출 완료",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3340,
+        140
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook: 강사 신청 제출": {
+      "main": [
+        [
+          {
+            "node": "Code: 입력 검증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: 입력 검증": {
+      "main": [
+        [
+          {
+            "node": "IF 입력 유효",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF 입력 유효": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 기존 신청 조회",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: 입력 오류",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 기존 신청 조회": {
+      "main": [
+        [
+          {
+            "node": "Code: 중복 처리 결정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: 중복 처리 결정": {
+      "main": [
+        [
+          {
+            "node": "IF 제출 계속",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF 제출 계속": {
+      "main": [
+        [
+          {
+            "node": "IF 첨부파일 있음",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Respond: 중복 신청",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF 첨부파일 있음": {
+      "main": [
+        [
+          {
+            "node": "Code: 파일 분리",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Code: 첨부파일 없음",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: 파일 분리": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 파일 업로드",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 파일 업로드": {
+      "main": [
+        [
+          {
+            "node": "Code: 업로드 결과 수집",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: 업로드 결과 수집": {
+      "main": [
+        [
+          {
+            "node": "Code: 레코드 페이로드 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: 첨부파일 없음": {
+      "main": [
+        [
+          {
+            "node": "Code: 레코드 페이로드 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: 레코드 페이로드 생성": {
+      "main": [
+        [
+          {
+            "node": "IF 기존 신청 수정",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "IF 기존 신청 수정": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 기존 신청 수정",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "NocoDB 신규 신청 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 기존 신청 수정": {
+      "main": [
+        [
+          {
+            "node": "Code: 성공 응답 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 신규 신청 생성": {
+      "main": [
+        [
+          {
+            "node": "Code: 성공 응답 포맷",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code: 성공 응답 포맷": {
+      "main": [
+        [
+          {
+            "node": "Respond: 제출 완료",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": null,
+  "meta": null,
+  "pinData": null,
+  "versionId": "a49adc68-f928-4ec5-b995-142154a6e3cc",
+  "activeVersionId": "a49adc68-f928-4ec5-b995-142154a6e3cc",
+  "versionCounter": 63,
+  "triggerCount": 1,
+  "shared": [
+    {
+      "updatedAt": "2026-03-09T10:56:34.732Z",
+      "createdAt": "2026-03-09T10:56:34.732Z",
+      "role": "workflow:owner",
+      "workflowId": "Q3wqd8NMFaHjl1UB",
+      "projectId": "DIT0WAQj00qvNJUL",
+      "project": {
+        "updatedAt": "2026-02-28T07:51:06.297Z",
+        "createdAt": "2026-02-23T16:25:57.845Z",
+        "id": "DIT0WAQj00qvNJUL",
+        "name": "Unnamed Project",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-03-09T11:14:37.861Z",
+    "createdAt": "2026-03-09T11:14:37.861Z",
+    "versionId": "a49adc68-f928-4ec5-b995-142154a6e3cc",
+    "workflowId": "Q3wqd8NMFaHjl1UB",
+    "nodes": [
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "instructor-apply-submit",
+          "responseMode": "responseNode",
+          "options": {
+            "allowedOrigins": "https://nocodb.pressco21.com,https://www.foreverlove.co.kr,https://foreverlove.co.kr"
+          }
+        },
+        "id": "webhook-instructor-apply",
+        "name": "Webhook: 강사 신청 제출",
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          240,
+          320
+        ],
+        "webhookId": "instructor-apply-submit"
+      },
+      {
+        "parameters": {
+          "jsCode": "const input = $input.first();\nconst body = input.json.body || input.json || {};\nconst binary = input.binary || {};\n\nfunction firstValue(value) {\n  if (Array.isArray(value)) return value[0] ?? '';\n  return value ?? '';\n}\n\nfunction cleanText(value, maxLen) {\n  const raw = String(firstValue(value))\n    .replace(/[\\x00-\\x1F\\x7F]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n  return raw.slice(0, maxLen);\n}\n\nconst name = cleanText(body.name, 80);\nconst mallId = cleanText(body.mallId, 100);\nconst phoneDigits = String(firstValue(body.phone)).replace(/\\D/g, '');\nconst phone = phoneDigits.length === 11\n  ? phoneDigits.slice(0, 3) + '-' + phoneDigits.slice(3, 7) + '-' + phoneDigits.slice(7)\n  : cleanText(body.phone, 20);\nconst email = cleanText(body.email, 120);\nconst association = cleanText(body.association, 120);\nconst recordId = cleanText(body.recordId, 40);\nconst submitModeRaw = cleanText(body.submitMode, 20).toLowerCase();\nconst submitMode = submitModeRaw === 'update'\n  ? 'update'\n  : (submitModeRaw === 'create-new' || submitModeRaw === 'createnew' ? 'create-new' : 'auto');\n\nconst errors = [];\nif (!name) errors.push('성함을 입력해주세요.');\nif (!mallId) errors.push('자사몰 ID를 입력해주세요.');\nif (!/^010\\d{8}$/.test(phoneDigits)) errors.push('연락처는 010으로 시작하는 11자리 번호여야 합니다.');\nif (email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) errors.push('올바른 이메일 형식을 입력해주세요.');\n\nconst fileKeys = Object.keys(binary).sort();\nconst now = new Date();\nconst kst = new Date(now.getTime() + (9 * 60 * 60 * 1000));\nconst applyDate = kst.toISOString().slice(0, 10);\n\nif (errors.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _response: {\n        ok: false,\n        code: 'INVALID_INPUT',\n        message: errors[0],\n        errors,\n      },\n    },\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    name,\n    mallId,\n    phone,\n    email,\n    association,\n    recordId,\n    submitMode,\n    fileKeys,\n    applyDate,\n  },\n  binary,\n}];"
+        },
+        "id": "code-validate-request",
+        "name": "Code: 입력 검증",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          480,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json._valid }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "if-valid-request",
+        "name": "IF 입력 유효",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          700,
+          320
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json._response) }}",
+          "options": {
+            "responseCode": 400,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "https://nocodb.pressco21.com"
+                }
+              ]
+            }
+          }
+        },
+        "id": "respond-invalid-request",
+        "name": "Respond: 입력 오류",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          920,
+          460
+        ]
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "where",
+                "value": "={{ '(자사몰 ID,eq,' + $json.mallId + ')' }}"
+              },
+              {
+                "name": "limit",
+                "value": "1"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "http-find-existing-application",
+        "name": "NocoDB 기존 신청 조회",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          920,
+          220
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "Vyw7FAboYUzOK48Q",
+            "name": "NocoDB API Token"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const response = $input.first().json;\nconst form = $('Code: 입력 검증').first();\nconst existing = (response.list || [])[0] || null;\nconst existingId = existing ? String(existing.Id || existing.id || '') : '';\nconst submitMode = form.json.submitMode;\n\nif (existing && submitMode === 'auto') {\n  return [{\n    json: {\n      _continue: false,\n      _response: {\n        ok: false,\n        code: 'DUPLICATE_APPLICATION',\n        message: '이미 접수된 신청 내역이 있습니다. 기존 신청을 수정할지, 새로 신청할지 선택해주세요.',\n        recordId: existingId,\n        existingStatus: String(existing['진행 상태'] || ''),\n      },\n    },\n    binary: form.binary,\n  }];\n}\n\nconst targetRecordId = form.json.recordId || existingId;\nif (submitMode === 'update' && !targetRecordId) {\n  return [{\n    json: {\n      _continue: false,\n      _response: {\n        ok: false,\n        code: 'MISSING_RECORD_ID',\n        message: '수정할 기존 신청 정보를 찾지 못했습니다. 페이지를 새로고침한 뒤 다시 시도해주세요.',\n      },\n    },\n    binary: form.binary,\n  }];\n}\n\nreturn [{\n  json: {\n    _continue: true,\n    isUpdate: submitMode === 'update',\n    targetRecordId,\n    name: form.json.name,\n    mallId: form.json.mallId,\n    phone: form.json.phone,\n    email: form.json.email,\n    association: form.json.association,\n    fileKeys: form.json.fileKeys,\n    applyDate: form.json.applyDate,\n  },\n  binary: form.binary,\n}];"
+        },
+        "id": "code-decide-action",
+        "name": "Code: 중복 처리 결정",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1140,
+          220
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json._continue }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "if-continue-submit",
+        "name": "IF 제출 계속",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1360,
+          220
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json._response) }}",
+          "options": {
+            "responseCode": 409,
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "https://nocodb.pressco21.com"
+                }
+              ]
+            }
+          }
+        },
+        "id": "respond-duplicate-request",
+        "name": "Respond: 중복 신청",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          1580,
+          360
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ ($json.fileKeys || []).length > 0 }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "if-has-files",
+        "name": "IF 첨부파일 있음",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          1580,
+          140
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const source = $input.first();\nreturn (source.json.fileKeys || []).map((key) => ({\n  json: {\n    targetRecordId: source.json.targetRecordId,\n  },\n  binary: {\n    uploadFile: source.binary[key],\n  },\n}));"
+        },
+        "id": "code-split-files",
+        "name": "Code: 파일 분리",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1800,
+          40
+        ]
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://nocodb.pressco21.com/api/v1/db/storage/upload",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "path",
+                "value": "nc/mcafm2yyeaupdnt/증빙서류 첨부"
+              }
+            ]
+          },
+          "sendBody": true,
+          "contentType": "multipart-form-data",
+          "bodyParameters": {
+            "parameters": [
+              {
+                "parameterType": "formBinaryData",
+                "name": "files[]",
+                "inputDataFieldName": "uploadFile"
+              }
+            ]
+          },
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "http-upload-file",
+        "name": "NocoDB 파일 업로드",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2020,
+          40
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "Vyw7FAboYUzOK48Q",
+            "name": "NocoDB API Token"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const base = $('Code: 중복 처리 결정').first().json;\nconst attachments = [];\nfor (const item of $input.all()) {\n  if (Array.isArray(item.json)) {\n    attachments.push(...item.json);\n  } else if (item.json && Array.isArray(item.json.data)) {\n    attachments.push(...item.json.data);\n  } else if (item.json && Object.keys(item.json).length > 0) {\n    attachments.push(item.json);\n  }\n}\nreturn [{\n  json: {\n    ...base,\n    attachments,\n  },\n}];"
+        },
+        "id": "code-collect-uploads",
+        "name": "Code: 업로드 결과 수집",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2240,
+          40
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const base = $('Code: 중복 처리 결정').first().json;\nreturn [{\n  json: {\n    ...base,\n    attachments: [],\n  },\n}];"
+        },
+        "id": "code-no-files",
+        "name": "Code: 첨부파일 없음",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1800,
+          220
+        ]
+      },
+      {
+        "parameters": {
+          "jsCode": "const item = $input.first().json;\nconst recordPayload = {\n  '성함': item.name,\n  '자사몰 ID': item.mallId,\n  '연락처': item.phone,\n  '신청 일시': item.applyDate,\n};\nif (item.email) recordPayload['이메일 주소'] = item.email;\nif (item.association) recordPayload['소속 협회'] = item.association;\nif (item.attachments && item.attachments.length > 0) recordPayload['증빙서류 첨부'] = item.attachments;\nreturn [{\n  json: {\n    ...item,\n    recordPayload,\n  },\n}];"
+        },
+        "id": "code-build-record-payload",
+        "name": "Code: 레코드 페이로드 생성",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2460,
+          140
+        ]
+      },
+      {
+        "parameters": {
+          "conditions": {
+            "options": {
+              "caseSensitive": true
+            },
+            "conditions": [
+              {
+                "leftValue": "={{ $json.isUpdate }}",
+                "rightValue": true,
+                "operator": {
+                  "type": "boolean",
+                  "operation": "equals"
+                }
+              }
+            ],
+            "combinator": "and"
+          }
+        },
+        "id": "if-update-record",
+        "name": "IF 기존 신청 수정",
+        "type": "n8n-nodes-base.if",
+        "typeVersion": 2,
+        "position": [
+          2680,
+          140
+        ]
+      },
+      {
+        "parameters": {
+          "method": "PATCH",
+          "url": "={{ 'https://nocodb.pressco21.com/api/v1/db/data/noco/poey1yrm1r6sthf/mcafm2yyeaupdnt/' + $json.targetRecordId }}",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{ JSON.stringify($json.recordPayload) }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "http-update-record",
+        "name": "NocoDB 기존 신청 수정",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2900,
+          60
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "Vyw7FAboYUzOK48Q",
+            "name": "NocoDB API Token"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "method": "POST",
+          "url": "https://nocodb.pressco21.com/api/v2/tables/mcafm2yyeaupdnt/records",
+          "authentication": "genericCredentialType",
+          "genericAuthType": "httpHeaderAuth",
+          "sendBody": true,
+          "contentType": "raw",
+          "rawContentType": "application/json",
+          "body": "={{ JSON.stringify($json.recordPayload) }}",
+          "options": {
+            "response": {
+              "response": {
+                "responseFormat": "json"
+              }
+            }
+          }
+        },
+        "id": "http-create-record",
+        "name": "NocoDB 신규 신청 생성",
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2900,
+          220
+        ],
+        "credentials": {
+          "httpHeaderAuth": {
+            "id": "Vyw7FAboYUzOK48Q",
+            "name": "NocoDB API Token"
+          }
+        }
+      },
+      {
+        "parameters": {
+          "jsCode": "const base = $('Code: 레코드 페이로드 생성').first().json;\nconst result = $input.first().json;\n\nfunction parseJsonText(value) {\n  if (typeof value !== 'string' || !value.trim()) return null;\n  try {\n    return JSON.parse(value);\n  } catch {\n    return null;\n  }\n}\n\nfunction extractBufferedPayload(payload) {\n  const buffered = payload && payload._readableState && Array.isArray(payload._readableState.buffer)\n    ? payload._readableState.buffer\n    : [];\n\n  for (const chunk of buffered) {\n    if (!chunk) continue;\n    if (typeof chunk === 'string') {\n      const parsed = parseJsonText(chunk);\n      if (parsed) return parsed;\n      continue;\n    }\n    if (Array.isArray(chunk.data)) {\n      const parsed = parseJsonText(Buffer.from(chunk.data).toString('utf8'));\n      if (parsed) return parsed;\n    }\n  }\n\n  return null;\n}\n\nfunction extractRecordId(payload) {\n  if (!payload) return '';\n  if (typeof payload === 'string') {\n    const parsed = parseJsonText(payload);\n    return parsed ? extractRecordId(parsed) : '';\n  }\n  if (Array.isArray(payload)) {\n    for (const item of payload) {\n      const id = extractRecordId(item);\n      if (id) return id;\n    }\n    return '';\n  }\n  if (payload.Id || payload.id) return String(payload.Id || payload.id);\n  if (payload.data) {\n    const id = extractRecordId(payload.data);\n    if (id) return id;\n  }\n  if (payload.list) {\n    const id = extractRecordId(payload.list);\n    if (id) return id;\n  }\n  if (payload.body) {\n    const id = extractRecordId(payload.body);\n    if (id) return id;\n  }\n  const bufferedPayload = extractBufferedPayload(payload);\n  return bufferedPayload ? extractRecordId(bufferedPayload) : '';\n}\n\nconst recordId = extractRecordId(result) || String(base.targetRecordId || '');\nreturn [{\n  json: {\n    ok: true,\n    mode: base.isUpdate ? 'updated' : 'created',\n    recordId,\n    message: base.isUpdate ? '기존 신청을 수정했습니다.' : '신청이 완료되었습니다.',\n  },\n}];"
+        },
+        "id": "code-format-success",
+        "name": "Code: 성공 응답 포맷",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3120,
+          140
+        ]
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify($json) }}",
+          "options": {
+            "responseHeaders": {
+              "entries": [
+                {
+                  "name": "Content-Type",
+                  "value": "application/json"
+                },
+                {
+                  "name": "Access-Control-Allow-Origin",
+                  "value": "https://nocodb.pressco21.com"
+                }
+              ]
+            }
+          }
+        },
+        "id": "respond-submit-success",
+        "name": "Respond: 제출 완료",
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          3340,
+          140
+        ]
+      }
+    ],
+    "connections": {
+      "Webhook: 강사 신청 제출": {
+        "main": [
+          [
+            {
+              "node": "Code: 입력 검증",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: 입력 검증": {
+        "main": [
+          [
+            {
+              "node": "IF 입력 유효",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF 입력 유효": {
+        "main": [
+          [
+            {
+              "node": "NocoDB 기존 신청 조회",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond: 입력 오류",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "NocoDB 기존 신청 조회": {
+        "main": [
+          [
+            {
+              "node": "Code: 중복 처리 결정",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: 중복 처리 결정": {
+        "main": [
+          [
+            {
+              "node": "IF 제출 계속",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF 제출 계속": {
+        "main": [
+          [
+            {
+              "node": "IF 첨부파일 있음",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Respond: 중복 신청",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF 첨부파일 있음": {
+        "main": [
+          [
+            {
+              "node": "Code: 파일 분리",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "Code: 첨부파일 없음",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: 파일 분리": {
+        "main": [
+          [
+            {
+              "node": "NocoDB 파일 업로드",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "NocoDB 파일 업로드": {
+        "main": [
+          [
+            {
+              "node": "Code: 업로드 결과 수집",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: 업로드 결과 수집": {
+        "main": [
+          [
+            {
+              "node": "Code: 레코드 페이로드 생성",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: 첨부파일 없음": {
+        "main": [
+          [
+            {
+              "node": "Code: 레코드 페이로드 생성",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: 레코드 페이로드 생성": {
+        "main": [
+          [
+            {
+              "node": "IF 기존 신청 수정",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "IF 기존 신청 수정": {
+        "main": [
+          [
+            {
+              "node": "NocoDB 기존 신청 수정",
+              "type": "main",
+              "index": 0
+            }
+          ],
+          [
+            {
+              "node": "NocoDB 신규 신청 생성",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "NocoDB 기존 신청 수정": {
+        "main": [
+          [
+            {
+              "node": "Code: 성공 응답 포맷",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "NocoDB 신규 신청 생성": {
+        "main": [
+          [
+            {
+              "node": "Code: 성공 응답 포맷",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Code: 성공 응답 포맷": {
+        "main": [
+          [
+            {
+              "node": "Respond: 제출 완료",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Admin User",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-03-09T11:14:37.910Z",
+        "id": 811,
+        "workflowId": "Q3wqd8NMFaHjl1UB",
+        "versionId": "a49adc68-f928-4ec5-b995-142154a6e3cc",
+        "event": "deactivated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      },
+      {
+        "createdAt": "2026-03-09T11:14:37.931Z",
+        "id": 812,
+        "workflowId": "Q3wqd8NMFaHjl1UB",
+        "versionId": "a49adc68-f928-4ec5-b995-142154a6e3cc",
+        "event": "activated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      }
+    ]
+  }
+}

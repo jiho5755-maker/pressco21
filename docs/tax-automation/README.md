@@ -23,9 +23,12 @@
 | [PRD](./PRD-tax-automation-system-2026.md) | 세무 자동화 시스템의 제품 요구사항 |
 | [로드맵](./ROADMAP-tax-automation-system-2026.md) | Phase별 실행 계획과 완료 기준 |
 | [비전공자용 종합소득세 자료 수집 가이드](./종합소득세-자료수집-가이드-비전공자용-2026.md) | 실제 자료 다운로드·정리 절차 |
+| [Phase 1 실행 플레이북](./phase1-execution-playbook-2026.md) | 담당자·마감일·폴더 생성·스캔·전달 ZIP 실행 절차 |
 | [무료 API·무료 조회 서비스 카탈로그](./free-api-service-catalog-tax-automation-2026.md) | 자동화 후보 소스와 우선순위 |
 | [자료 수집 체크리스트 CSV](./templates/tax_collection_items_template.csv) | 바로 사용할 수 있는 2025년 귀속 수집 항목 템플릿 |
+| [2025 실행 보드 CSV](./templates/tax_collection_items_2025_execution_board.csv) | 담당자와 내부 마감일을 채운 2025년 실행 보드 |
 | [자료 원천 레지스트리 CSV](./templates/tax_source_registry_template.csv) | API/포털/수동 원천 관리 템플릿 |
+| [세무사 확인 질문 CSV](./templates/accountant_questions_2025_template.csv) | 세무 판단이 필요한 질문 목록 템플릿 |
 
 ## 핵심 결정
 
@@ -38,7 +41,21 @@
 ## 다음 실행 우선순위
 
 1. 세무사에게 “2025년 귀속 종합소득세 요청자료 양식”이 있는지 확인한다.
-2. 이 가이드대로 2025년 1월~12월 자료를 먼저 수동 수집한다.
-3. 수집 중 반복·누락·불명확 항목을 `tax_source_registry` 후보로 기록한다.
-4. 이미 초안이 있는 UNI-PASS API001/API049 워크플로우는 실제 화물관리번호/수입신고번호 1~2건으로 dry-run한다.
-5. 수동 업로드 기반 MVP를 먼저 만들어 API 연결 전에도 세무사 전달 패키지가 나오게 한다.
+2. [`Phase 1 실행 플레이북`](./phase1-execution-playbook-2026.md)에 따라 repo 밖 세무자료 폴더를 만든다.
+3. [`2025 실행 보드 CSV`](./templates/tax_collection_items_2025_execution_board.csv)를 기준으로 2025년 1월~12월 자료를 먼저 수동 수집한다.
+4. 수집 중 반복·누락·불명확 항목을 `tax_source_registry` 후보로 기록한다.
+5. `_tools/tax-automation/tax_package.py scan`으로 manifest, 누락표, 중복 후보를 만든다.
+6. 이미 초안이 있는 UNI-PASS API001/API049 워크플로우는 실제 화물관리번호/수입신고번호 1~2건으로 dry-run한다.
+
+## 로컬 도구와 검증
+
+| 항목 | 경로 |
+|---|---|
+| 세무 자료 폴더 생성·스캔·manifest·ZIP CLI | `_tools/tax-automation/tax_package.py` |
+| CLI 회귀 테스트 | `_tools/tax-automation/tests/test_tax_package.py` |
+
+검증 명령:
+
+```bash
+python3 -m unittest discover -s _tools/tax-automation/tests -p 'test_*.py' -v
+```

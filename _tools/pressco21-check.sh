@@ -6,7 +6,7 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 # shellcheck source=/dev/null
 source "$SCRIPT_DIR/project-scope.sh"
 
-REPO_ROOT="$(git rev-parse --show-toplevel)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 branch="$(git -C "$REPO_ROOT" branch --show-current)"
 head="$(git -C "$REPO_ROOT" rev-parse --short HEAD)"
 

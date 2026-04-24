@@ -1,0 +1,317 @@
+{
+  "name": "WF-TAX-001 UNI-PASS 수입제세 납부조회",
+  "nodes": [
+    {
+      "id": "fc4573b7-a1b8-5456-bb8b-fa02b24897c7",
+      "name": "Manual Payment Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        180
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tax-unipass-payments-sync",
+        "responseMode": "onReceived",
+        "options": {
+          "responseData": "{\"success\":true,\"message\":\"UNI-PASS payment sync accepted\"}",
+          "responseContentType": "application/json",
+          "allowedOrigins": "https://n8n.pressco21.com,https://crm.pressco21.com"
+        }
+      }
+    },
+    {
+      "id": "c82d80e0-48de-5a81-8f6d-cc8deb03660d",
+      "name": "Monthly Payment Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        180,
+        420
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 0 1 * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "6810e502-7f56-57d5-9261-704f8d6ddc58",
+      "name": "Prepare Payment Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// UNI-PASS API049 수입 제세 납부여부 조회 대상 생성\nconst trigger = $input.first()?.json || {};\nconst body = trigger.body || trigger || {};\n\nfunction asBool(value) {\n  if (value === true) return true;\n  if (value === false) return false;\n  const text = String(value || '').trim().toLowerCase();\n  return ['1', 'true', 'yes', 'y', 'dry-run'].includes(text);\n}\n\nfunction normalizeList(value) {\n  if (Array.isArray(value)) return value;\n  if (value && typeof value === 'object') return Object.values(value);\n  return String(value || '')\n    .split(/[\\n,;\\s]+/)\n    .map((v) => v.trim())\n    .filter(Boolean);\n}\n\nfunction normalizeDeclarationNo(value) {\n  return String(value || '').replace(/[^0-9A-Za-z]/g, '').trim();\n}\n\nconst requested = body.importDeclarationNumbers || body.impDclrNos || body.impDclrNo || body.importDeclarationNo;\nconst envList = $env.UNIPASS_IMPORT_DECLARATION_NUMBERS || '';\nconst rawList = requested || envList;\nconst numbers = [...new Set(normalizeList(rawList).map(normalizeDeclarationNo).filter(Boolean))];\nconst dryRun = asBool(body.dryRun || body.preview || $env.UNIPASS_TAX_DRY_RUN);\nconst now = new Date().toISOString();\nconst runLabel = String(body.runLabel || body.label || 'manual-or-scheduled').slice(0, 80);\nconst errors = [];\n\nif (!$env.UNIPASS_API049_CRKYCN) {\n  errors.push('UNIPASS_API049_CRKYCN env 미설정');\n}\nif (numbers.length === 0) {\n  errors.push('조회할 수입신고번호 없음: body.importDeclarationNumbers 또는 UNIPASS_IMPORT_DECLARATION_NUMBERS 필요');\n}\n\nif (errors.length > 0) {\n  return [{\n    json: {\n      skip: true,\n      stage: 'prepare-payments',\n      dryRun,\n      runLabel,\n      fetchedAt: now,\n      errors,\n      message: 'UNI-PASS API049 수입 제세 납부조회 준비 중단: ' + errors.join(' / '),\n    }\n  }];\n}\n\nreturn numbers.map((importDeclarationNo) => ({\n  json: {\n    skip: false,\n    sourceApi: 'API049',\n    importDeclarationNo,\n    dryRun,\n    runLabel,\n    fetchedAt: now,\n  }\n}));"
+      }
+    },
+    {
+      "id": "1d3be35f-a9f0-599d-8a6f-7cd5586acb67",
+      "name": "Has Payment Queries?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "4ebb5023-b25f-5546-ac20-5059b12b7e30",
+              "leftValue": "={{ $json.skip !== true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "d72e8bd0-215d-5879-81ce-5961e7bfa8a7",
+      "name": "Fetch API049 Payment XML",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        180
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://unipass.customs.go.kr:38010/ext/rest/taxMgPayYnAndPayDtInfoQry/retrieveTaxMgPayYnAndPayDt",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "crkyCn",
+              "value": "={{ $env.UNIPASS_API049_CRKYCN }}"
+            },
+            {
+              "name": "impDclrNo",
+              "value": "={{ $json.importDeclarationNo }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "85da2836-1dc8-5eef-b3bc-aedd9e254480",
+      "name": "Parse Payment XML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// UNI-PASS API049 XML 응답 파싱\nconst responses = $input.all();\nconst requests = $('Prepare Payment Queries').all().filter((item) => !item.json.skip);\n\nfunction extractFirst(xml, tag) {\n  const re = new RegExp('<\\\\s*' + tag + '\\\\s*>([\\\\s\\\\S]*?)<\\\\s*/\\\\s*' + tag + '\\\\s*>', 'i');\n  const match = String(xml || '').match(re);\n  return match ? cleanText(match[1]) : '';\n}\n\nfunction cleanText(value) {\n  return String(value || '')\n    .replace(/<!\\[CDATA\\[/g, '')\n    .replace(/\\]\\]>/g, '')\n    .replace(/<[^>]+>/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction hasSuccessCount(tCnt) {\n  const count = Number(String(tCnt || '').trim());\n  return Number.isFinite(count) && count > 0;\n}\n\nconst rows = responses.map((item, index) => {\n  const req = requests[index]?.json || {};\n  const xml = String(item.json.data || item.json.body || item.json || '');\n  const tCnt = extractFirst(xml, 'tCnt');\n  const notice = extractFirst(xml, 'ntceInfo');\n  const paymentDate = extractFirst(xml, 'fpayDt');\n  const paymentYn = extractFirst(xml, 'fpayYn');\n  const success = hasSuccessCount(tCnt) && paymentYn !== '';\n  const shouldStoreRaw = String($env.UNIPASS_STORE_RAW_XML || '').toLowerCase() === 'true';\n\n  return {\n    sourceApi: 'API049',\n    importDeclarationNo: req.importDeclarationNo || '',\n    paymentYn,\n    paymentDate,\n    notice,\n    tCnt,\n    success,\n    dryRun: !!req.dryRun,\n    runLabel: req.runLabel || '',\n    fetchedAt: req.fetchedAt || new Date().toISOString(),\n    rawXml: shouldStoreRaw ? xml : '',\n  };\n});\n\nreturn rows.map((row) => ({ json: row }));"
+      }
+    },
+    {
+      "id": "f1f0c627-bcad-577f-85bd-c84e2b8e4f32",
+      "name": "Persist Payment Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// API049 결과를 NocoDB customs_tax_payments 테이블에 upsert\nconst rows = $input.all().map((item) => item.json);\nconst dryRun = rows.some((row) => row.dryRun);\nconst token = $env.NOCODB_API_TOKEN || $env.NOCODB_TOKEN || $env.NOCODB_API_TOKEN_CLAUDE_SESSION || '';\nconst baseId = $env.NOCODB_BASE_ID || 'pu0mwk97kac8a5p';\nconst tableId = $env.NOCODB_CUSTOMS_TAX_PAYMENTS_TABLE_ID || '';\nconst baseUrl = 'https://nocodb.pressco21.com/api/v1/db/data/noco/' + baseId + '/' + tableId;\n\nfunction compact(value, max = 700) {\n  return String(value || '').slice(0, max);\n}\n\nfunction rowToPayload(row) {\n  const payload = {\n    source_api: 'API049',\n    import_declaration_no: row.importDeclarationNo,\n    payment_yn: row.paymentYn || '',\n    payment_date: row.paymentDate || '',\n    notice: compact(row.notice || ''),\n    t_cnt: row.tCnt || '',\n    fetched_at: row.fetchedAt,\n    run_label: row.runLabel || '',\n    last_result: row.success ? 'success' : 'empty_or_error',\n  };\n  if (row.rawXml) payload.raw_xml = row.rawXml;\n  return payload;\n}\n\nasync function request(method, url, body) {\n  return await this.helpers.httpRequest({\n    method,\n    url,\n    headers: {\n      'xc-token': token,\n      'Content-Type': 'application/json',\n    },\n    body,\n    json: true,\n    timeout: 20000,\n  });\n}\n\nconst summary = {\n  sourceApi: 'API049',\n  dryRun,\n  total: rows.length,\n  success: rows.filter((row) => row.success).length,\n  emptyOrError: rows.filter((row) => !row.success).length,\n  persisted: 0,\n  updated: 0,\n  created: 0,\n  skipped: 0,\n  errors: [],\n  rows,\n  fetchedAt: new Date().toISOString(),\n};\n\nif (dryRun || !token || !tableId) {\n  summary.skipped = rows.length;\n  if (!token) summary.errors.push('NOCODB_API_TOKEN 또는 NOCODB_TOKEN env 미설정');\n  if (!tableId) summary.errors.push('NOCODB_CUSTOMS_TAX_PAYMENTS_TABLE_ID env 미설정');\n  if (dryRun) summary.errors.push('dryRun=true: NocoDB 저장 생략');\n  return [{ json: summary }];\n}\n\nfor (const row of rows) {\n  if (!row.importDeclarationNo) {\n    summary.skipped += 1;\n    summary.errors.push('수입신고번호 없는 row 저장 생략');\n    continue;\n  }\n  const where = encodeURIComponent('(import_declaration_no,eq,' + row.importDeclarationNo + ')');\n  try {\n    const found = await request.call(this, 'GET', baseUrl + '?limit=1&where=' + where);\n    const existing = Array.isArray(found?.list) ? found.list[0] : null;\n    const payload = rowToPayload(row);\n    if (existing?.Id) {\n      await request.call(this, 'PATCH', baseUrl + '/' + existing.Id, payload);\n      summary.updated += 1;\n    } else {\n      await request.call(this, 'POST', baseUrl, payload);\n      summary.created += 1;\n    }\n    summary.persisted += 1;\n  } catch (error) {\n    summary.errors.push(row.importDeclarationNo + ': ' + (error.message || String(error)));\n  }\n}\n\nreturn [{ json: summary }];"
+      }
+    },
+    {
+      "id": "701ce6c5-8378-5361-9ed1-73426a748445",
+      "name": "Build Payment Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// API049 실행 요약 텔레그램 메시지 생성\nconst data = $input.first()?.json || {};\nconst rows = data.rows || [];\nfunction esc(value) {\n  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\nfunction mask(value) {\n  const text = String(value || '');\n  if (text.length <= 6) return text;\n  return text.slice(0, 4) + '…' + text.slice(-2);\n}\nlet text = '<b>관세청 수입 제세 납부조회</b>\\n';\ntext += '결과: ' + esc(data.persisted ? 'NocoDB 저장 완료' : '조회 완료/저장 생략') + '\\n';\ntext += '조회 ' + esc(data.total ?? rows.length) + '건 · 납부확인 ' + esc(data.success ?? 0) + '건 · 미확인/오류 ' + esc(data.emptyOrError ?? 0) + '건\\n';\ntext += '저장 ' + esc(data.persisted || 0) + '건 (신규 ' + esc(data.created || 0) + ', 수정 ' + esc(data.updated || 0) + ')\\n';\nif (data.dryRun) text += '모드: dry-run\\n';\nif (data.errors && data.errors.length) {\n  text += '\\n<b>확인 필요</b>\\n' + data.errors.slice(0, 5).map((e) => '- ' + esc(e)).join('\\n') + '\\n';\n}\nif (rows.length) {\n  text += '\\n<b>대상</b>\\n' + rows.slice(0, 8).map((row) => '- ' + esc(mask(row.importDeclarationNo)) + ': ' + esc(row.paymentYn || '-') + ' / ' + esc(row.paymentDate || '-') + (row.notice ? ' / ' + esc(row.notice).slice(0, 50) : '')).join('\\n');\n  if (rows.length > 8) text += '\\n외 ' + (rows.length - 8) + '건';\n}\nreturn [{ json: { chatId: '7713811206', message: text, summary: data } }];"
+      }
+    },
+    {
+      "id": "4a4cb49b-1963-5107-8b5c-dad668f4412e",
+      "name": "Build Payment Skip Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        420
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 준비 단계에서 중단된 경우 텔레그램 메시지 생성\nconst data = $input.first()?.json || {};\nfunction esc(value) {\n  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\nconst errors = Array.isArray(data.errors) ? data.errors : [data.message || '알 수 없는 준비 오류'];\nconst text = '<b>관세청 자동화 준비 중단</b>\\n' + errors.map((e) => '- ' + esc(e)).join('\\n');\nreturn [{ json: { chatId: '7713811206', message: text, summary: data } }];"
+      }
+    },
+    {
+      "id": "30f054b3-f389-5b8b-9ace-4ff1b4bca5a7",
+      "name": "Send Payment Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2080,
+        300
+      ],
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Payment Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payment Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Monthly Payment Schedule": {
+      "main": [
+        [
+          {
+            "node": "Prepare Payment Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Payment Queries": {
+      "main": [
+        [
+          {
+            "node": "Has Payment Queries?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Payment Queries?": {
+      "main": [
+        [
+          {
+            "node": "Fetch API049 Payment XML",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Payment Skip Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch API049 Payment XML": {
+      "main": [
+        [
+          {
+            "node": "Parse Payment XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Payment XML": {
+      "main": [
+        [
+          {
+            "node": "Persist Payment Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Payment Rows": {
+      "main": [
+        [
+          {
+            "node": "Build Payment Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Payment Telegram": {
+      "main": [
+        [
+          {
+            "node": "Send Payment Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Payment Skip Telegram": {
+      "main": [
+        [
+          {
+            "node": "Send Payment Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

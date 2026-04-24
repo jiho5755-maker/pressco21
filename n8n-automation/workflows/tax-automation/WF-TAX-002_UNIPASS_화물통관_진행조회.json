@@ -1,0 +1,329 @@
+{
+  "name": "WF-TAX-002 UNI-PASS 화물통관 진행조회",
+  "nodes": [
+    {
+      "id": "20e2132c-eefb-5343-9b27-c3f112f4a05f",
+      "name": "Manual Clearance Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        180,
+        180
+      ],
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "tax-unipass-clearance-sync",
+        "responseMode": "onReceived",
+        "options": {
+          "responseData": "{\"success\":true,\"message\":\"UNI-PASS clearance sync accepted\"}",
+          "responseContentType": "application/json",
+          "allowedOrigins": "https://n8n.pressco21.com,https://crm.pressco21.com"
+        }
+      }
+    },
+    {
+      "id": "c86e5e16-6880-57a4-ac90-9bfa06c0d3b1",
+      "name": "Daily Clearance Schedule",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        180,
+        420
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "30 23 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "4ee075c8-e2ea-54d0-9500-6f697f24d800",
+      "name": "Prepare Clearance Queries",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        300
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// UNI-PASS API001 화물통관 진행정보 조회 대상 생성\nconst trigger = $input.first()?.json || {};\nconst body = trigger.body || trigger || {};\n\nfunction asBool(value) {\n  if (value === true) return true;\n  if (value === false) return false;\n  const text = String(value || '').trim().toLowerCase();\n  return ['1', 'true', 'yes', 'y', 'dry-run'].includes(text);\n}\n\nfunction normalizeText(value) {\n  return String(value || '').trim();\n}\n\nfunction parseEnvQueries(value) {\n  const text = String(value || '').trim();\n  if (!text) return [];\n  try {\n    const parsed = JSON.parse(text);\n    if (Array.isArray(parsed)) return parsed;\n    if (parsed && typeof parsed === 'object') return [parsed];\n  } catch (error) {}\n  return text.split(/[\\n;]+/).map((line) => {\n    const item = {};\n    for (const part of line.split(',')) {\n      const [key, ...rest] = part.split('=');\n      if (key && rest.length) item[key.trim()] = rest.join('=').trim();\n    }\n    if (!Object.keys(item).length) item.cargMtNo = line.trim();\n    return item;\n  }).filter((item) => Object.values(item).some(Boolean));\n}\n\nfunction normalizeQuery(raw) {\n  const item = typeof raw === 'string' ? { cargMtNo: raw } : (raw || {});\n  const query = {\n    cargMtNo: normalizeText(item.cargMtNo || item.cargoManagementNo || item.cargoNo),\n    mblNo: normalizeText(item.mblNo || item.masterBlNo),\n    hblNo: normalizeText(item.hblNo || item.houseBlNo),\n    blYy: normalizeText(item.blYy || item.blYear || item.year),\n  };\n  if (!query.cargMtNo && !query.mblNo && !query.hblNo) return null;\n  if ((query.mblNo || query.hblNo) && !query.blYy) {\n    query.blYy = String(new Date().getFullYear());\n  }\n  query.lookupKey = query.cargMtNo || [query.blYy, query.mblNo, query.hblNo].filter(Boolean).join('-');\n  return query;\n}\n\nconst requested = body.cargoQueries || body.queries || body.cargMtNos || body.cargMtNo || body.cargoManagementNo;\nlet rawQueries = [];\nif (Array.isArray(requested)) rawQueries = requested;\nelse if (requested && typeof requested === 'object') rawQueries = [requested];\nelse if (requested) rawQueries = String(requested).split(/[\\n,;\\s]+/).filter(Boolean);\nelse rawQueries = parseEnvQueries($env.UNIPASS_CARGO_QUERIES || '');\n\nconst queries = rawQueries.map(normalizeQuery).filter(Boolean);\nconst dryRun = asBool(body.dryRun || body.preview || $env.UNIPASS_TAX_DRY_RUN);\nconst now = new Date().toISOString();\nconst runLabel = String(body.runLabel || body.label || 'manual-or-scheduled').slice(0, 80);\nconst errors = [];\n\nif (!$env.UNIPASS_API001_CRKYCN) {\n  errors.push('UNIPASS_API001_CRKYCN env 미설정');\n}\nif (queries.length === 0) {\n  errors.push('조회할 화물관리번호/BL 없음: body.cargoQueries 또는 UNIPASS_CARGO_QUERIES 필요');\n}\n\nif (errors.length > 0) {\n  return [{\n    json: {\n      skip: true,\n      stage: 'prepare-clearance',\n      dryRun,\n      runLabel,\n      fetchedAt: now,\n      errors,\n      message: 'UNI-PASS API001 통관진행 조회 준비 중단: ' + errors.join(' / '),\n    }\n  }];\n}\n\nreturn queries.map((query) => ({\n  json: {\n    skip: false,\n    sourceApi: 'API001',\n    ...query,\n    dryRun,\n    runLabel,\n    fetchedAt: now,\n  }\n}));"
+      }
+    },
+    {
+      "id": "14883e7c-8b56-54f2-841c-c70d86be35f6",
+      "name": "Has Clearance Queries?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        760,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "loose"
+          },
+          "conditions": [
+            {
+              "id": "6ca1e0c2-925e-5553-a1bb-79f53ef27563",
+              "leftValue": "={{ $json.skip !== true }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals",
+                "singleValue": true
+              }
+            }
+          ],
+          "combinator": "and"
+        }
+      }
+    },
+    {
+      "id": "17f299e3-986d-57fa-bd53-58abe2cdb487",
+      "name": "Fetch API001 Clearance XML",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        1040,
+        180
+      ],
+      "parameters": {
+        "method": "GET",
+        "url": "https://unipass.customs.go.kr:38010/ext/rest/cargCsclPrgsInfoQry/retrieveCargCsclPrgsInfo",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "crkyCn",
+              "value": "={{ $env.UNIPASS_API001_CRKYCN }}"
+            },
+            {
+              "name": "cargMtNo",
+              "value": "={{ $json.cargMtNo || \"\" }}"
+            },
+            {
+              "name": "mblNo",
+              "value": "={{ $json.mblNo || \"\" }}"
+            },
+            {
+              "name": "hblNo",
+              "value": "={{ $json.hblNo || \"\" }}"
+            },
+            {
+              "name": "blYy",
+              "value": "={{ $json.blYy || \"\" }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 20000,
+          "response": {
+            "response": {
+              "responseFormat": "text"
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "834c4d2a-5234-544d-8cef-1c33e314190a",
+      "name": "Parse Clearance XML",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1300,
+        180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// UNI-PASS API001 XML 응답 파싱\nconst responses = $input.all();\nconst requests = $('Prepare Clearance Queries').all().filter((item) => !item.json.skip);\n\nfunction cleanText(value) {\n  return String(value || '')\n    .replace(/<!\\[CDATA\\[/g, '')\n    .replace(/\\]\\]>/g, '')\n    .replace(/<[^>]+>/g, '')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nfunction extractFirst(xml, tag) {\n  const re = new RegExp('<\\\\s*' + tag + '\\\\s*>([\\\\s\\\\S]*?)<\\\\s*/\\\\s*' + tag + '\\\\s*>', 'i');\n  const match = String(xml || '').match(re);\n  return match ? cleanText(match[1]) : '';\n}\n\nfunction extractBlocks(xml, tag) {\n  const re = new RegExp('<\\\\s*' + tag + '\\\\s*>([\\\\s\\\\S]*?)<\\\\s*/\\\\s*' + tag + '\\\\s*>', 'gi');\n  const blocks = [];\n  let match;\n  while ((match = re.exec(String(xml || ''))) !== null) {\n    blocks.push(match[1]);\n  }\n  return blocks;\n}\n\nfunction parseDetail(block) {\n  return {\n    processType: extractFirst(block, 'cargTrcnRelaBsopTpcd'),\n    processedAt: extractFirst(block, 'prcsDttm'),\n    releaseAt: extractFirst(block, 'rlbrDttm'),\n    releaseContent: extractFirst(block, 'rlbrCn'),\n    declarationNo: extractFirst(block, 'dclrNo'),\n    warehouseCode: extractFirst(block, 'shedSgn'),\n    warehouseName: extractFirst(block, 'shedNm'),\n    basisNo: extractFirst(block, 'rlbrBssNo'),\n  };\n}\n\nfunction normalizeDeclarationNo(value) {\n  return String(value || '').replace(/[^0-9A-Za-z]/g, '').trim();\n}\n\nconst rows = responses.map((item, index) => {\n  const req = requests[index]?.json || {};\n  const xml = String(item.json.data || item.json.body || item.json || '');\n  const tCnt = extractFirst(xml, 'tCnt');\n  const notice = extractFirst(xml, 'ntceInfo');\n  const details = extractBlocks(xml, 'cargCsclPrgsInfoDtlQryVo').map(parseDetail);\n  const declarationNo = normalizeDeclarationNo(details.map((d) => d.declarationNo).find(Boolean) || extractFirst(xml, 'dclrNo'));\n  const shouldStoreRaw = String($env.UNIPASS_STORE_RAW_XML || '').toLowerCase() === 'true';\n\n  return {\n    sourceApi: 'API001',\n    lookupKey: req.lookupKey || '',\n    cargoManagementNo: extractFirst(xml, 'cargMtNo') || req.cargMtNo || '',\n    mblNo: extractFirst(xml, 'mblNo') || req.mblNo || '',\n    hblNo: extractFirst(xml, 'hblNo') || req.hblNo || '',\n    blYear: req.blYy || '',\n    progressStatus: extractFirst(xml, 'prgsStts'),\n    progressCode: extractFirst(xml, 'prgsStCd'),\n    customsProgressStatus: extractFirst(xml, 'csclPrgsStts'),\n    importDeclarationNo: declarationNo,\n    productName: extractFirst(xml, 'prnm'),\n    entryDate: extractFirst(xml, 'etprDt'),\n    processedAt: extractFirst(xml, 'prcsDttm'),\n    detailCount: details.length,\n    latestDetail: details[0] || {},\n    notice,\n    tCnt,\n    success: Number(tCnt || 0) > 0 || !!extractFirst(xml, 'cargMtNo') || details.length > 0,\n    dryRun: !!req.dryRun,\n    runLabel: req.runLabel || '',\n    fetchedAt: req.fetchedAt || new Date().toISOString(),\n    rawXml: shouldStoreRaw ? xml : '',\n  };\n});\n\nreturn rows.map((row) => ({ json: row }));"
+      }
+    },
+    {
+      "id": "1871443f-4db0-53fa-8f58-a054e4b3dd2d",
+      "name": "Persist Clearance Rows",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1560,
+        180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// API001 결과를 NocoDB customs_clearance_status 테이블에 upsert\nconst rows = $input.all().map((item) => item.json);\nconst dryRun = rows.some((row) => row.dryRun);\nconst token = $env.NOCODB_API_TOKEN || $env.NOCODB_TOKEN || $env.NOCODB_API_TOKEN_CLAUDE_SESSION || '';\nconst baseId = $env.NOCODB_BASE_ID || 'pu0mwk97kac8a5p';\nconst tableId = $env.NOCODB_CUSTOMS_CLEARANCE_STATUS_TABLE_ID || '';\nconst baseUrl = 'https://nocodb.pressco21.com/api/v1/db/data/noco/' + baseId + '/' + tableId;\n\nfunction compact(value, max = 700) {\n  return String(value || '').slice(0, max);\n}\n\nfunction keyFor(row) {\n  return row.cargoManagementNo || row.lookupKey || [row.blYear, row.mblNo, row.hblNo].filter(Boolean).join('-');\n}\n\nfunction rowToPayload(row) {\n  const detail = row.latestDetail || {};\n  const payload = {\n    source_api: 'API001',\n    lookup_key: keyFor(row),\n    cargo_management_no: row.cargoManagementNo || '',\n    mbl_no: row.mblNo || '',\n    hbl_no: row.hblNo || '',\n    bl_year: row.blYear || '',\n    progress_status: row.progressStatus || '',\n    progress_code: row.progressCode || '',\n    customs_progress_status: row.customsProgressStatus || '',\n    import_declaration_no: row.importDeclarationNo || '',\n    product_name: compact(row.productName || '', 300),\n    entry_date: row.entryDate || '',\n    processed_at: row.processedAt || '',\n    latest_process_type: detail.processType || '',\n    latest_release_content: compact(detail.releaseContent || '', 500),\n    latest_release_at: detail.releaseAt || '',\n    warehouse_name: compact(detail.warehouseName || '', 300),\n    detail_count: String(row.detailCount || 0),\n    notice: compact(row.notice || ''),\n    t_cnt: row.tCnt || '',\n    fetched_at: row.fetchedAt,\n    run_label: row.runLabel || '',\n    last_result: row.success ? 'success' : 'empty_or_error',\n  };\n  if (row.rawXml) payload.raw_xml = row.rawXml;\n  return payload;\n}\n\nasync function request(method, url, body) {\n  return await this.helpers.httpRequest({\n    method,\n    url,\n    headers: {\n      'xc-token': token,\n      'Content-Type': 'application/json',\n    },\n    body,\n    json: true,\n    timeout: 20000,\n  });\n}\n\nconst summary = {\n  sourceApi: 'API001',\n  dryRun,\n  total: rows.length,\n  success: rows.filter((row) => row.success).length,\n  emptyOrError: rows.filter((row) => !row.success).length,\n  persisted: 0,\n  updated: 0,\n  created: 0,\n  skipped: 0,\n  errors: [],\n  rows,\n  fetchedAt: new Date().toISOString(),\n};\n\nif (dryRun || !token || !tableId) {\n  summary.skipped = rows.length;\n  if (!token) summary.errors.push('NOCODB_API_TOKEN 또는 NOCODB_TOKEN env 미설정');\n  if (!tableId) summary.errors.push('NOCODB_CUSTOMS_CLEARANCE_STATUS_TABLE_ID env 미설정');\n  if (dryRun) summary.errors.push('dryRun=true: NocoDB 저장 생략');\n  return [{ json: summary }];\n}\n\nfor (const row of rows) {\n  const lookupKey = keyFor(row);\n  if (!lookupKey) {\n    summary.skipped += 1;\n    summary.errors.push('lookup_key 없는 row 저장 생략');\n    continue;\n  }\n  const where = encodeURIComponent('(lookup_key,eq,' + lookupKey + ')');\n  try {\n    const found = await request.call(this, 'GET', baseUrl + '?limit=1&where=' + where);\n    const existing = Array.isArray(found?.list) ? found.list[0] : null;\n    const payload = rowToPayload(row);\n    if (existing?.Id) {\n      await request.call(this, 'PATCH', baseUrl + '/' + existing.Id, payload);\n      summary.updated += 1;\n    } else {\n      await request.call(this, 'POST', baseUrl, payload);\n      summary.created += 1;\n    }\n    summary.persisted += 1;\n  } catch (error) {\n    summary.errors.push(lookupKey + ': ' + (error.message || String(error)));\n  }\n}\n\nreturn [{ json: summary }];"
+      }
+    },
+    {
+      "id": "8545945c-b53e-51a7-8881-6605f8a49c98",
+      "name": "Build Clearance Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1820,
+        180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// API001 실행 요약 텔레그램 메시지 생성\nconst data = $input.first()?.json || {};\nconst rows = data.rows || [];\nfunction esc(value) {\n  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\nfunction mask(value) {\n  const text = String(value || '');\n  if (text.length <= 8) return text;\n  return text.slice(0, 5) + '…' + text.slice(-3);\n}\nlet text = '<b>관세청 화물통관 진행조회</b>\\n';\ntext += '결과: ' + esc(data.persisted ? 'NocoDB 저장 완료' : '조회 완료/저장 생략') + '\\n';\ntext += '조회 ' + esc(data.total ?? rows.length) + '건 · 조회성공 ' + esc(data.success ?? 0) + '건 · 미확인/오류 ' + esc(data.emptyOrError ?? 0) + '건\\n';\ntext += '저장 ' + esc(data.persisted || 0) + '건 (신규 ' + esc(data.created || 0) + ', 수정 ' + esc(data.updated || 0) + ')\\n';\nif (data.dryRun) text += '모드: dry-run\\n';\nif (data.errors && data.errors.length) {\n  text += '\\n<b>확인 필요</b>\\n' + data.errors.slice(0, 5).map((e) => '- ' + esc(e)).join('\\n') + '\\n';\n}\nif (rows.length) {\n  text += '\\n<b>대상</b>\\n' + rows.slice(0, 8).map((row) => '- ' + esc(mask(row.cargoManagementNo || row.lookupKey)) + ': ' + esc(row.progressStatus || '-') + ' / 신고번호 ' + esc(mask(row.importDeclarationNo || '-'))).join('\\n');\n  if (rows.length > 8) text += '\\n외 ' + (rows.length - 8) + '건';\n}\nreturn [{ json: { chatId: '7713811206', message: text, summary: data } }];"
+      }
+    },
+    {
+      "id": "9234a6b0-f3ae-5911-8278-14a14dd9050b",
+      "name": "Build Clearance Skip Telegram",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1040,
+        420
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// 준비 단계에서 중단된 경우 텔레그램 메시지 생성\nconst data = $input.first()?.json || {};\nfunction esc(value) {\n  return String(value ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');\n}\nconst errors = Array.isArray(data.errors) ? data.errors : [data.message || '알 수 없는 준비 오류'];\nconst text = '<b>관세청 자동화 준비 중단</b>\\n' + errors.map((e) => '- ' + esc(e)).join('\\n');\nreturn [{ json: { chatId: '7713811206', message: text, summary: data } }];"
+      }
+    },
+    {
+      "id": "8434d1e9-ead0-5b77-aaf9-7470946d00a1",
+      "name": "Send Clearance Telegram",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2080,
+        300
+      ],
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Manual Clearance Webhook": {
+      "main": [
+        [
+          {
+            "node": "Prepare Clearance Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Daily Clearance Schedule": {
+      "main": [
+        [
+          {
+            "node": "Prepare Clearance Queries",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare Clearance Queries": {
+      "main": [
+        [
+          {
+            "node": "Has Clearance Queries?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has Clearance Queries?": {
+      "main": [
+        [
+          {
+            "node": "Fetch API001 Clearance XML",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Build Clearance Skip Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Fetch API001 Clearance XML": {
+      "main": [
+        [
+          {
+            "node": "Parse Clearance XML",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Clearance XML": {
+      "main": [
+        [
+          {
+            "node": "Persist Clearance Rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Persist Clearance Rows": {
+      "main": [
+        [
+          {
+            "node": "Build Clearance Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Clearance Telegram": {
+      "main": [
+        [
+          {
+            "node": "Send Clearance Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Build Clearance Skip Telegram": {
+      "main": [
+        [
+          {
+            "node": "Send Clearance Telegram",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "active": false
+}

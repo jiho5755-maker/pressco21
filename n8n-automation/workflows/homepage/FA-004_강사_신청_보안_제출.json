@@ -14,18 +14,24 @@
       "name": "Webhook: 강사 신청 제출",
       "type": "n8n-nodes-base.webhook",
       "typeVersion": 2,
-      "position": [240, 320],
+      "position": [
+        240,
+        320
+      ],
       "webhookId": "instructor-apply-submit"
     },
     {
       "parameters": {
-        "jsCode": "const input = $input.first();\nconst body = input.json.body || input.json || {};\nconst binary = input.binary || {};\n\nfunction firstValue(value) {\n  if (Array.isArray(value)) return value[0] ?? '';\n  return value ?? '';\n}\n\nfunction cleanText(value, maxLen) {\n  const raw = String(firstValue(value))\n    .replace(/[\\x00-\\x1F\\x7F]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n  return raw.slice(0, maxLen);\n}\n\nfunction whereValue(value) {\n  return String(value || '')\n    .replace(/[(),~]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst name = cleanText(body.name, 80);\nconst mallId = cleanText(body.mallId, 100);\nconst phoneDigits = String(firstValue(body.phone)).replace(/\\D/g, '');\nconst phone = phoneDigits.length === 11\n  ? phoneDigits.slice(0, 3) + '-' + phoneDigits.slice(3, 7) + '-' + phoneDigits.slice(7)\n  : cleanText(body.phone, 20);\nconst email = cleanText(body.email, 120);\nconst association = cleanText(body.association, 120);\nconst recordId = cleanText(body.recordId, 40);\nconst submitModeRaw = cleanText(body.submitMode, 20).toLowerCase();\nconst submitMode = submitModeRaw === 'update'\n  ? 'update'\n  : (submitModeRaw === 'create-new' || submitModeRaw === 'createnew' ? 'create-new' : 'auto');\n\nconst errors = [];\nif (!name) errors.push('성함을 입력해주세요.');\nif (!/^010\\d{8}$/.test(phoneDigits)) errors.push('연락처는 010으로 시작하는 11자리 번호여야 합니다.');\nif (email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) errors.push('올바른 이메일 형식을 입력해주세요.');\n\nconst duplicateParts = [];\nconst safeMallId = whereValue(mallId);\nconst safePhone = whereValue(phone);\nconst safePhoneRaw = whereValue(phoneDigits);\nconst safeEmail = whereValue(email);\n\nif (safeMallId) duplicateParts.push('(자사몰 ID,eq,' + safeMallId + ')');\nif (safePhone) duplicateParts.push('(연락처,like,%' + safePhone + '%)');\nif (safePhoneRaw) duplicateParts.push('(연락처,like,%' + safePhoneRaw + '%)');\nif (safeEmail) duplicateParts.push('(이메일 주소,eq,' + safeEmail + ')');\n\nconst fileKeys = Object.keys(binary).sort();\nconst now = new Date();\nconst kst = new Date(now.getTime() + (9 * 60 * 60 * 1000));\nconst applyDate = kst.toISOString().slice(0, 10);\n\nif (errors.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _response: {\n        ok: false,\n        code: 'INVALID_INPUT',\n        message: errors[0],\n        errors,\n      },\n    },\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    name,\n    mallId,\n    phone,\n    phoneRaw: phoneDigits,\n    email,\n    association,\n    recordId,\n    submitMode,\n    duplicateWhere: duplicateParts.join('~or'),\n    fileKeys,\n    applyDate,\n  },\n  binary,\n}];"
+        "jsCode": "const input = $input.first();\nconst body = input.json.body || input.json || {};\nconst binary = input.binary || {};\n\nfunction firstValue(value) {\n  if (Array.isArray(value)) return value[0] ?? '';\n  return value ?? '';\n}\n\nfunction cleanText(value, maxLen) {\n  const raw = String(firstValue(value))\n    .replace(/[\\x00-\\x1F\\x7F]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n  return raw.slice(0, maxLen);\n}\n\nfunction whereValue(value) {\n  return String(value || '')\n    .replace(/[(),~]/g, ' ')\n    .replace(/\\s+/g, ' ')\n    .trim();\n}\n\nconst name = cleanText(body.name, 80);\nconst mallId = cleanText(body.mallId, 100);\nconst phoneDigits = String(firstValue(body.phone)).replace(/\\D/g, '');\nconst phone = phoneDigits.length === 11\n  ? phoneDigits.slice(0, 3) + '-' + phoneDigits.slice(3, 7) + '-' + phoneDigits.slice(7)\n  : cleanText(body.phone, 20);\nconst email = cleanText(body.email, 120);\nconst association = cleanText(body.association, 120);\nconst recordId = cleanText(body.recordId, 40);\nconst submitModeRaw = cleanText(body.submitMode, 20).toLowerCase();\nconst submitMode = submitModeRaw === 'update'\n  ? 'update'\n  : (submitModeRaw === 'create-new' || submitModeRaw === 'createnew' ? 'create-new' : 'auto');\n\nconst errors = [];\nif (!name) errors.push('성함을 입력해주세요.');\nif (!/^010\\d{8}$/.test(phoneDigits)) errors.push('연락처는 010으로 시작하는 11자리 번호여야 합니다.');\nif (email && !/^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/.test(email)) errors.push('올바른 이메일 형식을 입력해주세요.');\n\nconst duplicateParts = [];\nconst safeMallId = whereValue(mallId);\nconst safePhone = whereValue(phone);\nconst safePhoneRaw = whereValue(phoneDigits);\nconst safeEmail = whereValue(email);\nconst safeRecordId = whereValue(recordId);\n\nif (safeRecordId) duplicateParts.push('(Id,eq,' + safeRecordId + ')');\nif (safeMallId) duplicateParts.push('(자사몰 ID,eq,' + safeMallId + ')');\nif (safePhone) duplicateParts.push('(연락처,like,%' + safePhone + '%)');\nif (safePhoneRaw) duplicateParts.push('(연락처,like,%' + safePhoneRaw + '%)');\nif (safeEmail) duplicateParts.push('(이메일 주소,eq,' + safeEmail + ')');\n\nconst fileKeys = Object.keys(binary).sort();\nconst now = new Date();\nconst kst = new Date(now.getTime() + (9 * 60 * 60 * 1000));\nconst applyDate = kst.toISOString().slice(0, 10);\n\nif (errors.length > 0) {\n  return [{\n    json: {\n      _valid: false,\n      _response: {\n        ok: false,\n        code: 'INVALID_INPUT',\n        message: errors[0],\n        errors,\n      },\n    },\n  }];\n}\n\nreturn [{\n  json: {\n    _valid: true,\n    name,\n    mallId,\n    phone,\n    phoneRaw: phoneDigits,\n    email,\n    association,\n    recordId,\n    submitMode,\n    duplicateWhere: duplicateParts.join('~or'),\n    fileKeys,\n    applyDate,\n  },\n  binary,\n}];"
       },
       "id": "code-validate-request",
       "name": "Code: 입력 검증",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [480, 320]
+      "position": [
+        480,
+        320
+      ]
     },
     {
       "parameters": {
@@ -50,7 +56,10 @@
       "name": "IF 입력 유효",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [700, 320]
+      "position": [
+        700,
+        320
+      ]
     },
     {
       "parameters": {
@@ -76,7 +85,10 @@
       "name": "Respond: 입력 오류",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [920, 460]
+      "position": [
+        920,
+        460
+      ]
     },
     {
       "parameters": {
@@ -109,7 +121,10 @@
       "name": "NocoDB 기존 신청 조회",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [920, 220],
+      "position": [
+        920,
+        220
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "Vyw7FAboYUzOK48Q",
@@ -119,13 +134,16 @@
     },
     {
       "parameters": {
-        "jsCode": "const response = $input.first().json;\nconst form = $('Code: 입력 검증').first();\nconst list = Array.isArray(response.list) ? response.list : [];\nconst submitMode = form.json.submitMode;\n\nfunction normalizeDigits(value) {\n  return String(value || '').replace(/[^0-9]/g, '');\n}\n\nfunction normalizeText(value) {\n  return String(value || '').trim().toLowerCase();\n}\n\nfunction firstNonEmpty(values) {\n  for (const value of values) {\n    const text = String(value || '').trim();\n    if (text) return text;\n  }\n  return '';\n}\n\nfunction normalizeAttachmentValue(value) {\n  if (!value) return [];\n  if (Array.isArray(value)) return value;\n  if (typeof value === 'string') {\n    const text = value.trim();\n    if (!text) return [];\n    try {\n      const parsed = JSON.parse(text);\n      return normalizeAttachmentValue(parsed);\n    } catch {\n      return text.split(/[\\n,]/).map(function(part) {\n        return part.trim();\n      }).filter(Boolean);\n    }\n  }\n  if (typeof value === 'object') {\n    if (Array.isArray(value.data)) return value.data;\n    if (Array.isArray(value.files)) return value.files;\n    return Object.keys(value).length > 0 ? [value] : [];\n  }\n  return [];\n}\n\nfunction countAttachments(record) {\n  return normalizeAttachmentValue(record && record['증빙서류 첨부']).length;\n}\n\nfunction buildApplicationSummary(record) {\n  if (!record) return null;\n  const status = String(record['진행 상태'] || '').trim();\n  const rejectReason = String(record['반려 사유'] || '').trim();\n  return {\n    recordId: String(record.Id || record.id || ''),\n    name: String(record['성함'] || '').trim(),\n    mallId: String(record['자사몰 ID'] || '').trim(),\n    phone: String(record['연락처'] || '').trim(),\n    email: String(record['이메일 주소'] || '').trim(),\n    association: String(record['소속 협회'] || '').trim(),\n    status,\n    rejectReason,\n    isRejected: status === '반려',\n    isApproved: status === '승인완료',\n    isPending: !status || status === '승인대기' || status === '수동처리필요',\n    submittedAt: firstNonEmpty([record['신청 일시'], record.CreatedAt, record.createdAt]),\n    updatedAt: firstNonEmpty([record.UpdatedAt, record.updatedAt]),\n    attachmentCount: countAttachments(record),\n  };\n}\n\nfunction findExistingRecord() {\n  const requestedId = String(form.json.recordId || '').trim();\n  if (requestedId) {\n    const byId = list.find(function(record) {\n      return String(record.Id || record.id || '') === requestedId;\n    });\n    if (byId) return byId;\n  }\n\n  const mallId = normalizeText(form.json.mallId);\n  if (mallId) {\n    const byMallId = list.find(function(record) {\n      return normalizeText(record['자사몰 ID']) === mallId;\n    });\n    if (byMallId) return byMallId;\n  }\n\n  const phoneDigits = normalizeDigits(form.json.phoneRaw || form.json.phone);\n  if (phoneDigits) {\n    const byPhone = list.find(function(record) {\n      return normalizeDigits(record['연락처']) === phoneDigits;\n    });\n    if (byPhone) return byPhone;\n  }\n\n  const email = normalizeText(form.json.email);\n  if (email) {\n    const byEmail = list.find(function(record) {\n      return normalizeText(record['이메일 주소']) === email;\n    });\n    if (byEmail) return byEmail;\n  }\n\n  return list[0] || null;\n}\n\nconst existing = findExistingRecord();\nconst existingApplication = buildApplicationSummary(existing);\nconst existingId = existingApplication ? existingApplication.recordId : '';\nconst existingStatus = existingApplication ? existingApplication.status : '';\n\nif (existing && (submitMode === 'auto' || submitMode === 'create-new')) {\n  return [{\n    json: {\n      _continue: false,\n      _response: {\n        ok: false,\n        code: 'DUPLICATE_APPLICATION',\n        message: '이미 신청하셨어요. 새로 다시 신청하지 않아도 됩니다. 기존 신청만 수정·보완할 수 있습니다.',\n        recordId: existingId,\n        existingStatus,\n        existingApplication,\n      },\n    },\n    binary: form.binary,\n  }];\n}\n\nconst targetRecordId = form.json.recordId || existingId;\nif (submitMode === 'update' && !targetRecordId) {\n  return [{\n    json: {\n      _continue: false,\n      _response: {\n        ok: false,\n        code: 'MISSING_RECORD_ID',\n        message: '수정할 기존 신청 정보를 찾지 못했습니다. 연락처를 다시 입력해 기존 신청을 조회한 뒤 수정·보완해 주세요.',\n      },\n    },\n    binary: form.binary,\n  }];\n}\n\nconst isUpdate = submitMode === 'update';\nconst isApprovedRecord = existingStatus === '승인완료';\n\nreturn [{\n  json: {\n    _continue: true,\n    isUpdate,\n    targetRecordId,\n    existingStatus,\n    shouldResetReviewState: isUpdate && !isApprovedRecord,\n    name: form.json.name,\n    mallId: form.json.mallId,\n    phone: form.json.phone,\n    phoneRaw: form.json.phoneRaw,\n    email: form.json.email,\n    association: form.json.association,\n    fileKeys: form.json.fileKeys,\n    applyDate: form.json.applyDate,\n  },\n  binary: form.binary,\n}];"
+        "jsCode": "const response = $input.first().json;\nconst form = $('Code: 입력 검증').first();\nconst list = Array.isArray(response.list) ? response.list : [];\nconst submitMode = form.json.submitMode;\n\nfunction normalizeDigits(value) {\n  return String(value || '').replace(/[^0-9]/g, '');\n}\n\nfunction normalizeText(value) {\n  return String(value || '').trim().toLowerCase();\n}\n\nfunction firstNonEmpty(values) {\n  for (const value of values) {\n    const text = String(value || '').trim();\n    if (text) return text;\n  }\n  return '';\n}\n\nfunction normalizeAttachmentValue(value) {\n  if (!value) return [];\n  if (Array.isArray(value)) return value;\n  if (typeof value === 'string') {\n    const text = value.trim();\n    if (!text) return [];\n    try {\n      const parsed = JSON.parse(text);\n      return normalizeAttachmentValue(parsed);\n    } catch {\n      return text.split(/[\\n,]/).map(function(part) {\n        return part.trim();\n      }).filter(Boolean);\n    }\n  }\n  if (typeof value === 'object') {\n    if (Array.isArray(value.data)) return value.data;\n    if (Array.isArray(value.files)) return value.files;\n    return Object.keys(value).length > 0 ? [value] : [];\n  }\n  return [];\n}\n\nfunction countAttachments(record) {\n  return normalizeAttachmentValue(record && record['증빙서류 첨부']).length;\n}\n\nfunction buildApplicationSummary(record) {\n  if (!record) return null;\n  const status = String(record['진행 상태'] || '').trim();\n  const rejectReason = String(record['반려 사유'] || '').trim();\n  return {\n    recordId: String(record.Id || record.id || ''),\n    name: String(record['성함'] || '').trim(),\n    mallId: String(record['자사몰 ID'] || '').trim(),\n    phone: String(record['연락처'] || '').trim(),\n    email: String(record['이메일 주소'] || '').trim(),\n    association: String(record['소속 협회'] || '').trim(),\n    status,\n    rejectReason,\n    isRejected: status === '반려',\n    isApproved: status === '승인완료',\n    isPending: !status || status === '승인대기' || status === '수동처리필요',\n    submittedAt: firstNonEmpty([record['신청 일시'], record.CreatedAt, record.createdAt]),\n    updatedAt: firstNonEmpty([record.UpdatedAt, record.updatedAt]),\n    attachmentCount: countAttachments(record),\n  };\n}\n\nfunction findExistingRecord() {\n  const requestedId = String(form.json.recordId || '').trim();\n  if (requestedId) {\n    const byId = list.find(function(record) {\n      return String(record.Id || record.id || '') === requestedId;\n    });\n    return byId || null;\n  }\n\n  const mallId = normalizeText(form.json.mallId);\n  if (mallId) {\n    const byMallId = list.find(function(record) {\n      return normalizeText(record['자사몰 ID']) === mallId;\n    });\n    if (byMallId) return byMallId;\n  }\n\n  const phoneDigits = normalizeDigits(form.json.phoneRaw || form.json.phone);\n  if (phoneDigits) {\n    const byPhone = list.find(function(record) {\n      return normalizeDigits(record['연락처']) === phoneDigits;\n    });\n    if (byPhone) return byPhone;\n  }\n\n  const email = normalizeText(form.json.email);\n  if (email) {\n    const byEmail = list.find(function(record) {\n      return normalizeText(record['이메일 주소']) === email;\n    });\n    if (byEmail) return byEmail;\n  }\n\n  return list[0] || null;\n}\n\nconst existing = findExistingRecord();\nconst existingApplication = buildApplicationSummary(existing);\nconst existingAttachments = normalizeAttachmentValue(existing && existing['증빙서류 첨부']);\nconst existingId = existingApplication ? existingApplication.recordId : '';\nconst existingStatus = existingApplication ? existingApplication.status : '';\n\nif (existing && (submitMode === 'auto' || submitMode === 'create-new')) {\n  return [{\n    json: {\n      _continue: false,\n      _response: {\n        ok: false,\n        code: 'DUPLICATE_APPLICATION',\n        message: '이미 신청하셨어요. 새로 다시 신청하지 않아도 됩니다. 기존 신청만 수정·보완할 수 있습니다.',\n        recordId: existingId,\n        existingStatus,\n        existingApplication,\n      },\n    },\n    binary: form.binary,\n  }];\n}\n\nconst targetRecordId = existingId || form.json.recordId;\nif (submitMode === 'update' && !existing) {\n  return [{\n    json: {\n      _continue: false,\n      _response: {\n        ok: false,\n        code: 'MISSING_RECORD_ID',\n        message: '수정할 기존 신청 정보를 찾지 못했습니다. 연락처를 다시 입력해 기존 신청을 조회한 뒤 수정·보완해 주세요.',\n      },\n    },\n    binary: form.binary,\n  }];\n}\n\nconst isUpdate = submitMode === 'update';\nconst isApprovedRecord = existingStatus === '승인완료';\n\nreturn [{\n  json: {\n    _continue: true,\n    isUpdate,\n    targetRecordId,\n    existingStatus,\n    existingAttachments,\n    existingAttachmentCount: existingAttachments.length,\n    shouldResetReviewState: isUpdate && !isApprovedRecord,\n    name: form.json.name,\n    mallId: form.json.mallId,\n    phone: form.json.phone,\n    phoneRaw: form.json.phoneRaw,\n    email: form.json.email,\n    association: form.json.association,\n    fileKeys: form.json.fileKeys,\n    applyDate: form.json.applyDate,\n  },\n  binary: form.binary,\n}];"
       },
       "id": "code-decide-action",
       "name": "Code: 중복 처리 결정",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1140, 220]
+      "position": [
+        1140,
+        220
+      ]
     },
     {
       "parameters": {
@@ -150,7 +168,10 @@
       "name": "IF 제출 계속",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1360, 220]
+      "position": [
+        1360,
+        220
+      ]
     },
     {
       "parameters": {
@@ -176,7 +197,10 @@
       "name": "Respond: 중복 신청",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [1580, 360]
+      "position": [
+        1580,
+        360
+      ]
     },
     {
       "parameters": {
@@ -201,7 +225,10 @@
       "name": "IF 첨부파일 있음",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [1580, 140]
+      "position": [
+        1580,
+        140
+      ]
     },
     {
       "parameters": {
@@ -211,7 +238,10 @@
       "name": "Code: 파일 분리",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1800, 40]
+      "position": [
+        1800,
+        40
+      ]
     },
     {
       "parameters": {
@@ -251,7 +281,10 @@
       "name": "NocoDB 파일 업로드",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2020, 40],
+      "position": [
+        2020,
+        40
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "Vyw7FAboYUzOK48Q",
@@ -267,7 +300,10 @@
       "name": "Code: 업로드 결과 수집",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2240, 40]
+      "position": [
+        2240,
+        40
+      ]
     },
     {
       "parameters": {
@@ -277,17 +313,23 @@
       "name": "Code: 첨부파일 없음",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [1800, 220]
+      "position": [
+        1800,
+        220
+      ]
     },
     {
       "parameters": {
-        "jsCode": "const item = $input.first().json;\nconst recordPayload = {\n  '성함': item.name,\n  '자사몰 ID': item.mallId,\n  '연락처': item.phone,\n  '신청 일시': item.applyDate,\n};\nif (item.email) recordPayload['이메일 주소'] = item.email;\nif (item.association) recordPayload['소속 협회'] = item.association;\nif (item.attachments && item.attachments.length > 0) recordPayload['증빙서류 첨부'] = item.attachments;\n\nif (item.shouldResetReviewState) {\n  recordPayload['진행 상태'] = null;\n  recordPayload['n8n_처리완료'] = 0;\n  recordPayload['n8n_처리일시'] = null;\n  recordPayload['n8n_신청알림'] = 0;\n  recordPayload['n8n_반려알림'] = 0;\n  recordPayload['n8n_반려_retry'] = 0;\n  recordPayload['반려 사유'] = '';\n}\n\nreturn [{\n  json: {\n    ...item,\n    recordPayload,\n  },\n}];"
+        "jsCode": "const item = $input.first().json;\n\nfunction normalizeAttachmentValue(value) {\n  if (!value) return [];\n  if (Array.isArray(value)) return value;\n  if (typeof value === 'string') {\n    const text = value.trim();\n    if (!text) return [];\n    try {\n      const parsed = JSON.parse(text);\n      return normalizeAttachmentValue(parsed);\n    } catch {\n      return text.split(/[\\n,]/).map(function(part) {\n        return part.trim();\n      }).filter(Boolean);\n    }\n  }\n  if (typeof value === 'object') {\n    if (Array.isArray(value.data)) return value.data;\n    if (Array.isArray(value.files)) return value.files;\n    return Object.keys(value).length > 0 ? [value] : [];\n  }\n  return [];\n}\n\nconst newAttachments = normalizeAttachmentValue(item.attachments);\nconst existingAttachments = normalizeAttachmentValue(item.existingAttachments);\nconst recordPayload = {\n  '성함': item.name,\n  '자사몰 ID': item.mallId,\n  '연락처': item.phone,\n  '신청 일시': item.applyDate,\n};\nif (item.email) recordPayload['이메일 주소'] = item.email;\nif (item.association) recordPayload['소속 협회'] = item.association;\nif (newAttachments.length > 0) {\n  recordPayload['증빙서류 첨부'] = item.isUpdate\n    ? existingAttachments.concat(newAttachments)\n    : newAttachments;\n}\n\nif (item.shouldResetReviewState) {\n  recordPayload['진행 상태'] = null;\n  recordPayload['n8n_처리완료'] = 0;\n  recordPayload['n8n_처리일시'] = null;\n  recordPayload['n8n_신청알림'] = 0;\n  recordPayload['n8n_반려알림'] = 0;\n  recordPayload['n8n_반려_retry'] = 0;\n  recordPayload['반려 사유'] = '';\n}\n\nreturn [{\n  json: {\n    ...item,\n    recordPayload,\n  },\n}];"
       },
       "id": "code-build-record-payload",
       "name": "Code: 레코드 페이로드 생성",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [2460, 140]
+      "position": [
+        2460,
+        140
+      ]
     },
     {
       "parameters": {
@@ -312,7 +354,10 @@
       "name": "IF 기존 신청 수정",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2,
-      "position": [2680, 140]
+      "position": [
+        2680,
+        140
+      ]
     },
     {
       "parameters": {
@@ -336,7 +381,10 @@
       "name": "NocoDB 기존 신청 수정",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2900, 60],
+      "position": [
+        2900,
+        60
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "Vyw7FAboYUzOK48Q",
@@ -366,7 +414,10 @@
       "name": "NocoDB 신규 신청 생성",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [2900, 220],
+      "position": [
+        2900,
+        220
+      ],
       "credentials": {
         "httpHeaderAuth": {
           "id": "Vyw7FAboYUzOK48Q",
@@ -382,7 +433,10 @@
       "name": "Code: 성공 응답 포맷",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
-      "position": [3120, 140]
+      "position": [
+        3120,
+        140
+      ]
     },
     {
       "parameters": {
@@ -407,7 +461,10 @@
       "name": "Respond: 제출 완료",
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
-      "position": [3340, 140]
+      "position": [
+        3340,
+        140
+      ]
     }
   ],
   "connections": {

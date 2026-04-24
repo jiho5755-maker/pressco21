@@ -91,7 +91,7 @@ if [ -n "$source_worktree" ]; then
     exit 1
   fi
   if [ -x "$source_worktree/_tools/pressco21-check.sh" ]; then
-    bash "$source_worktree/_tools/pressco21-check.sh"
+    (cd "$source_worktree" && bash _tools/pressco21-check.sh)
   fi
 else
   echo "Note: no checked-out worktree found for $branch; merging branch ref only." >&2
@@ -102,7 +102,7 @@ git -C "$MAIN_ROOT" pull --ff-only
 
 git -C "$MAIN_ROOT" merge --no-ff "$branch" -m "Merge $branch"
 
-bash "$MAIN_ROOT/_tools/pressco21-check.sh"
+(cd "$MAIN_ROOT" && bash _tools/pressco21-check.sh)
 
 if [ "$push" -eq 1 ]; then
   git -C "$MAIN_ROOT" push origin main

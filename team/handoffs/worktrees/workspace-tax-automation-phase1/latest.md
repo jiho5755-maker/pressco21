@@ -1,82 +1,85 @@
 ---
-handoff_id: HOFF-2026-04-25-tax-automation-phase1-n8n-wf-draft
+handoff_id: HOFF-2026-04-25-tax-automation-prd-roadmap-guide
+created_at: 2026-04-25T04:00:00+09:00
 enabled: true
-created_at: 2026-04-25T03:45:00+09:00
 runtime: codex-omx
-owner_agent_id: choi-minseok-cto
-contributors: [park-seoyeon-cfo, han-jihoon-cso, yoon-haneul-pm]
-scope_type: cross-worktree
-project: n8n
-source_worktree_slot: workspace-tax-automation-phase1
-implementation_worktree_slot: n8n-tax-automation-phase1
-source_branch: work/workspace/tax-automation-phase1
-implementation_branch: work/n8n/tax-automation-phase1
-implementation_commit_sha: ebeed26
+owner_agent_id: yoon-haneul-pm
+contributors: [park-seoyeon-cfo, choi-minseok-cto]
+scope_type: workspace-docs
+project: workspace-tax-automation
+worktree_slot: workspace-tax-automation-phase1
+branch: work/workspace/tax-automation-phase1
 status: active
-summary: 종합소득세 자료 자동 수집 체계 Phase 1 후속으로 UNI-PASS API049 수입 제세 납부조회 WF와 API001 화물통관 진행조회 WF 초안을 작성했습니다. 운영 배포·NocoDB 테이블 생성은 아직 하지 않았습니다.
-decision: 비밀 인증키는 WF JSON에 넣지 않고 n8n 환경변수로 주입합니다. API049는 기간 조회가 아니라 수입신고번호 단건 조회만 지원하므로, 월 단위 자동화는 API001에서 확보한 dclrNo 또는 별도 수입신고번호 목록을 입력 소스로 삼는 구조로 잡습니다.
+summary: 세무 자동화 시스템의 근본 목표를 “종합소득세 자료 수집 OS → 무료 API/서비스 기반 자동화 → 세무사 전달 패키지”로 재정의하고, 팀미팅 기록·PRD·로드맵·비전공자용 자료 수집 가이드·무료 API/서비스 카탈로그·CSV 템플릿을 작성했습니다.
+decision: UNI-PASS API 자동화는 전체 목표 중 수입·통관·관세 증빙 모듈로 배치합니다. 1차 제품 범위는 자동 신고나 세액 확정이 아니라 자료 수집, 원본 보관, 상태 관리, 누락/중복 후보 탐지, 세무사 전달 패키지 생성입니다. 홈택스·은행·카드처럼 인증/법적 행위가 포함되는 원천은 수동 다운로드와 업로드 검증을 먼저 사용합니다.
 changed_artifacts:
-  - n8n-automation/workflows/tax-automation/WF-TAX-001_UNIPASS_수입제세_납부조회.json
-  - n8n-automation/workflows/tax-automation/WF-TAX-002_UNIPASS_화물통관_진행조회.json
-  - n8n-automation/workflows/tax-automation/README.md
+  - docs/tax-automation/README.md
+  - docs/tax-automation/team-meeting-tax-automation-2026-04-25.md
+  - docs/tax-automation/PRD-tax-automation-system-2026.md
+  - docs/tax-automation/ROADMAP-tax-automation-system-2026.md
+  - docs/tax-automation/종합소득세-자료수집-가이드-비전공자용-2026.md
+  - docs/tax-automation/free-api-service-catalog-tax-automation-2026.md
+  - docs/tax-automation/templates/tax_collection_items_template.csv
+  - docs/tax-automation/templates/tax_source_registry_template.csv
 verification:
-  - UNI-PASS 연계가이드 v3.9 확인: API049 필수 입력은 impDclrNo이며 수리일자/납부일자 기간 검색 파라미터는 없음.
-  - API049 더미 수입신고번호 읽기 프로브: HTTP 200, XML root taxMgQryRtnVo, tCnt=-1 응답 확인.
-  - API001 가이드 샘플 화물관리번호 읽기 프로브: HTTP 200, XML root cargCsclPrgsInfoQryRtnVo, tCnt=0 응답 확인.
-  - WF JSON 2개 python json.tool 파싱 성공.
-  - Code 노드 8개 Node 구문 검사 성공.
-  - UNI-PASS 인증키 literal 유입 검사 통과.
-  - pressco21 scope check 통과: work/n8n/tax-automation-phase1, allowed path n8n-automation/.
-  - n8n 구현 커밋 완료: ebeed26 [codex] 세무 자동화 UNI-PASS WF 초안.
+  - PM/CFO/CTO 관점 팀미팅 결과를 문서에 반영했습니다.
+  - 국세청, 홈택스/국세상담센터, 금융위원회, 금융결제원, 여신금융협회, 국민건강보험 사회보험통합징수포털, 정부24, 공공데이터포털, 관세청 공식 출처를 확인해 문서 출처에 남겼습니다.
+  - 작성 파일 라인 수 확인 완료: PRD 400줄, 로드맵 380줄, 비전공자 가이드 1081줄, API/서비스 카탈로그 235줄, 팀미팅 156줄, README 44줄, CSV 템플릿 2개.
+  - 문서 내 지정 이모지 검사 통과.
+  - pressco21 scope check 통과: branch work/workspace/tax-automation-phase1, allowed path docs/ and team/handoffs/.
+  - CSV 템플릿 파싱 확인: tax_collection_items_template.csv 16 rows, tax_source_registry_template.csv 10 rows.
+  - docs/tax-automation 내부 로컬 링크 누락 없음.
 open_risks:
-  - 실제 PRESSCO21 수입신고번호/화물관리번호로 운영 데이터 조회 검증은 아직 미실행.
-  - 운영 NocoDB customs_tax_payments, customs_clearance_status 테이블은 아직 미생성.
-  - 운영 n8n 서버 환경변수 UNIPASS_API049_CRKYCN, UNIPASS_API001_CRKYCN, NOCODB_*_TABLE_ID는 아직 미주입.
-  - 운영 n8n 배포/활성화는 외부 서비스 write라 명시 승인 전까지 보류.
-next_step: 운영 NocoDB 테이블 2개 생성과 n8n 환경변수 주입을 승인받은 뒤, 실제 신고번호/화물번호 1~2건으로 dry-run webhook을 실행하고 NocoDB upsert를 검증합니다.
+  - 세무사가 실제로 요구하는 2025년 귀속 종합소득세 요청자료 양식은 아직 확보하지 못했습니다.
+  - 실제 홈택스 화면 메뉴명은 개편될 수 있어, 가이드에는 검색창 기반 절차를 함께 사용했습니다.
+  - 실제 PRESSCO21 화물관리번호/수입신고번호 기반 UNI-PASS dry-run은 아직 미실행입니다.
+  - NocoDB 테이블 생성, n8n 환경변수 주입, 운영 배포는 외부 서비스 write이므로 명시 승인 전까지 보류 상태입니다.
+  - 세무 판단, 경비 인정, 공제 가능 여부, 신고 제출은 세무사 확인 영역으로 남아 있습니다.
+next_step: 세무사 요청자료 양식을 확보한 뒤 docs/tax-automation/templates/tax_collection_items_template.csv를 실제 담당자/마감일/상태값으로 채우고, 2025년 귀속 자료 수동 수집을 시작합니다. 병행해서 UNI-PASS 실제 테스트용 화물관리번호/수입신고번호 1~2건을 확보해 n8n 브랜치의 dry-run을 준비합니다.
 learn_to_save:
-  - UNI-PASS API049는 “납부내역 월간 수집 API”가 아니라 impDclrNo 기준 납부여부/납부일자 확인 API입니다. 월간 자동화에는 신고번호 소스 테이블이 반드시 필요합니다.
-  - 세무/관세 API 키는 WF JSON에 직접 넣지 말고 n8n 환경변수로만 주입해야 합니다.
-  - 통관 진행 API001 상세 이력의 dclrNo가 API049 입력 후보가 되므로, Phase 1은 API001 → 신고번호 적재 → API049 확인 순서가 안전합니다.
+  - 세무 자동화의 핵심은 “API 연결”이 아니라 원천별 자료 지도, 원본 파일 보관, 기간/출처/금액 메타데이터, 세무사 확인 상태를 관리하는 것입니다.
+  - 자동화 우선순위는 수동 업로드 MVP → 무료 API dry-run → 원천별 파서 → 대조/검증 큐 → 세무사 패키지 순서가 안전합니다.
+  - 홈택스·은행·카드·4대보험·정부24는 인증과 법적 발급/납부 행위가 얽혀 있으므로 초기에는 자동 로그인보다 다운로드 가이드와 파일 검증이 더 안전합니다.
 ---
 
 ## 담당
-최민석님(CTO)
+윤하늘님(PM)
 
-## 요약
-UNI-PASS 세무 자동화 Phase 1의 첫 n8n 워크플로우 초안을 만들었습니다. 기존 handoff의 다음 단계 중 “API049 curl 테스트”와 “n8n WF JSON 작성”을 먼저 처리했고, 외부 서비스 쓰기인 NocoDB 테이블 생성과 운영 배포는 보류했습니다.
+## 이번 세션 결과
 
-## 작성한 워크플로우
+세무 자동화의 거시 목표를 다시 잡았습니다. 이전 UNI-PASS 워크플로우 초안은 유지하되, 이제는 전체 세무 자료 수집 OS의 `통관·관세 모듈`로 위치를 조정했습니다.
 
-1. `WF-TAX-001 UNI-PASS 수입제세 납부조회`
-   - 수동 webhook: `tax-unipass-payments-sync`
-   - 월 1회 스케줄: 매월 1일 09:00 KST 기준
-   - 입력: 수입신고번호 목록
-   - 처리: API049 XML 조회 → 납부여부/납부일자 파싱 → NocoDB upsert → 텔레그램 요약
+새 문서 묶음은 `docs/tax-automation/`에 있습니다.
 
-2. `WF-TAX-002 UNI-PASS 화물통관 진행조회`
-   - 수동 webhook: `tax-unipass-clearance-sync`
-   - 일 1회 스케줄: 매일 08:30 KST 기준
-   - 입력: 화물관리번호 또는 BL 정보
-   - 처리: API001 XML 조회 → 진행상태/상세 이력/dclrNo 파싱 → NocoDB upsert → 텔레그램 요약
+1. `README.md`
+   - 문서 묶음의 인덱스와 다음 실행 우선순위
+2. `team-meeting-tax-automation-2026-04-25.md`
+   - 박서연님, 최민석님, 윤하늘님 관점의 팀미팅 기록
+3. `PRD-tax-automation-system-2026.md`
+   - 제품 정의, 범위, 사용자, 기능 요구사항, 데이터 모델, 성공 지표
+4. `ROADMAP-tax-automation-system-2026.md`
+   - Phase 0~8 실행 계획과 완료 기준
+5. `종합소득세-자료수집-가이드-비전공자용-2026.md`
+   - 홈택스, 은행, 카드, 오픈마켓, PG, 공제자료, 정부24, 4대보험, UNI-PASS 다운로드 절차
+6. `free-api-service-catalog-tax-automation-2026.md`
+   - 무료 API, 조건부 API, 무료 조회 서비스, 수동 다운로드 포털 분류
+7. `templates/tax_collection_items_template.csv`
+   - 바로 수집 체크리스트로 쓸 CSV
+8. `templates/tax_source_registry_template.csv`
+   - 원천/API/포털 레지스트리 CSV
 
-## 중요한 발견
+## 중요한 결정
 
-기존 handoff에는 API049를 “수리일자 기준 1개월 단위 반복 호출”로 적었지만, 가이드 v3.9 기준 API049는 기간 조회를 지원하지 않습니다. 수입신고번호 `impDclrNo`를 알아야만 납부여부/납부일자를 확인할 수 있습니다. 그래서 월간 자동화는 API001 통관 진행조회에서 `dclrNo`를 모으거나, 별도 수입신고번호 소스 테이블을 먼저 만드는 방식으로 이어가야 합니다.
+- 1차 목표: 2025년 귀속 종합소득세 자료 수집과 세무사 전달 패키지.
+- 하지 않을 것: 자동 신고, 세액 확정, 납부 실행, 인증 우회.
+- 먼저 만들 것: 수동 다운로드 가이드와 업로드/파일명/누락 검증 MVP.
+- API는 무료·공식·read-only dry-run부터 시작.
+- UNI-PASS API001/API049는 수입·관세 증빙 자동화의 첫 PoC.
 
-## 운영 전 필요 작업
+## 다음 작업
 
-- NocoDB 테이블 2개 생성
-  - `customs_tax_payments`
-  - `customs_clearance_status`
-- n8n 서버 환경변수 주입
-  - `UNIPASS_API049_CRKYCN`
-  - `UNIPASS_API001_CRKYCN`
-  - `NOCODB_CUSTOMS_TAX_PAYMENTS_TABLE_ID`
-  - `NOCODB_CUSTOMS_CLEARANCE_STATUS_TABLE_ID`
-- 실제 PRESSCO21 수입신고번호/화물관리번호 1~2건 확보
-- webhook dry-run 후 NocoDB 저장 테스트
-
-## 현재 상태
-
-n8n 구현 브랜치 `work/n8n/tax-automation-phase1`에 커밋 `ebeed26`으로 저장했습니다. 운영 배포는 하지 않았습니다.
+1. 세무사에게 실제 요청자료 양식이 있는지 확인한다.
+2. `tax_collection_items_template.csv`를 실제 담당자와 마감일로 채운다.
+3. 가이드에 따라 2025년 1월~12월 자료를 수집한다.
+4. 수집 중 막히는 메뉴명, 누락 자료, 반복 다운로드 항목을 기록한다.
+5. UNI-PASS 실제 테스트 번호를 확보한 뒤 n8n 브랜치 dry-run을 진행한다.

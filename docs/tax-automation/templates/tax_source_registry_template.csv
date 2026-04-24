@@ -1,0 +1,11 @@
+source_code,source_name,category,collection_method,auth_type,priority,automation_status,risk_level,source_url,notes
+HOMETAX,홈택스,세무포털,수동 다운로드,공동인증/간편인증,P0,MANUAL,HIGH,https://www.hometax.go.kr,지급명세서/전자세금계산서/현금영수증/사업용카드/신고내역
+UNIPASS_API001,UNI-PASS API001 화물통관 진행정보,통관관세,API,API_KEY,P0,POC,MEDIUM,https://unipass.customs.go.kr,화물관리번호/BL 기반 통관상태 조회
+UNIPASS_API049,UNI-PASS API049 수입제세 납부여부,통관관세,API,API_KEY,P0,POC,MEDIUM,https://unipass.customs.go.kr,impDclrNo 수입신고번호 단건 조회
+NTS_BIZ_STATUS,국세청 사업자등록정보 진위확인 및 상태조회,거래처검증,API,DATA_GO_KR_KEY,P1,TODO,LOW,https://www.data.go.kr/data/15081808/openapi.do,거래처 사업자 상태 보조 검증
+OPENBANKING_TX,금융결제원 오픈뱅킹 거래내역조회,은행,조건부 API,OAUTH/PARTNER,P1,REVIEW,HIGH,https://developers.kftc.or.kr/dev/openapi/open-banking/transaction,이용기관/사용자 동의 요건 확인 필요
+PAYINFO,계좌정보통합관리서비스,은행발견,무료 조회 서비스,본인인증,P2,MANUAL,MEDIUM,https://www.payinfo.or.kr,누락 계좌 찾기용
+INSURE_FIND,내보험찾아줌,보험/공제,무료 조회 서비스,본인인증,P2,MANUAL,MEDIUM,https://cont.insure.or.kr,보험계약/숨은보험금 확인
+CARDPOINT,카드포인트 통합조회,카드발견,무료 조회 서비스,본인인증,P2,MANUAL,LOW,https://www.cardpoint.or.kr,카드사 목록/포인트 확인
+SOCIAL_INSURANCE,사회보험통합징수포털,4대보험,수동 다운로드,공동인증,P2,MANUAL,HIGH,https://si4n.nhis.or.kr,납부확인서/완납증명서
+GOV24,정부24,민원증명,수동 다운로드,본인인증,P2,MANUAL,MEDIUM,https://www.gov.kr,사업자등록증명/납세증명/소득금액증명 등

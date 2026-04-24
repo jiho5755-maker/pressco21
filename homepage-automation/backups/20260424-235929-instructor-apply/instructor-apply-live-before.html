@@ -381,16 +381,6 @@
       border-left: 4px solid var(--gold);
       border-radius: var(--r-lg);
     }
-    .lookup-banner-inner.is-rejected {
-      background: linear-gradient(135deg, rgba(192,57,43,.07), rgba(184,155,94,.08));
-      border-color: rgba(192,57,43,.22);
-      border-left-color: var(--danger);
-    }
-    .lookup-banner-inner.is-approved {
-      background: linear-gradient(135deg, rgba(46,125,50,.06), rgba(125,150,117,.08));
-      border-color: rgba(46,125,50,.18);
-      border-left-color: #2e7d32;
-    }
     .lookup-status { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 15px; }
     .status-badge {
       display: inline-block; padding: 3px 10px; border-radius: 20px;
@@ -403,34 +393,6 @@
       margin: 10px 0 14px; padding: 12px 16px;
       background: var(--danger-bg); border-radius: var(--r-sm);
       font-size: 13px; color: var(--danger); line-height: 1.6;
-    }
-    .lookup-reason-title {
-      display: block;
-      margin-bottom: 6px;
-      font-size: 15px;
-      font-weight: 800;
-      color: var(--danger);
-    }
-    .lookup-reason-text {
-      margin: 0 0 8px;
-      white-space: pre-line;
-    }
-    .lookup-file-keep {
-      margin: 0;
-      font-size: 15.5px;
-      font-weight: 800;
-      line-height: 1.55;
-      color: var(--danger);
-    }
-    .shell .lookup-message {
-      margin: 10px 0 0;
-      font-size: 15px;
-      line-height: 1.7;
-      color: var(--text);
-    }
-    .shell .lookup-message strong {
-      color: var(--dark);
-      font-weight: 700;
     }
     .lookup-actions { display: flex; gap: 10px; margin-top: 14px; }
     .lookup-btn {
@@ -833,13 +795,10 @@
               <span id="lookupStatusBadge" class="status-badge"></span>
               <strong id="lookupName"></strong>님의 기존 신청
             </div>
-            <div id="lookupMessage" class="lookup-message">
-              <strong>전에 신청하신 내용을 불러왔습니다.</strong> 틀린 부분만 고치고 부족한 서류만 추가해 주세요.
-            </div>
             <div id="lookupReason" class="lookup-reason" style="display:none;"></div>
             <div class="lookup-actions">
-              <button id="lookupEditBtn" type="button" class="lookup-btn primary">입력된 내용 확인하기</button>
-              <button id="lookupNewBtn" type="button" class="lookup-btn">안내 접기</button>
+              <button id="lookupEditBtn" type="button" class="lookup-btn primary">기존 신청 수정하기</button>
+              <button id="lookupNewBtn" type="button" class="lookup-btn">새로 신청하기</button>
             </div>
           </div>
         </div>
@@ -867,8 +826,8 @@
               <div class="field full">
                 <label for="fieldMallId">자사몰 ID</label>
                 <input id="fieldMallId" class="input" name="mallId" type="text" maxlength="100" placeholder="회원 로그인에 사용하는 아이디" />
-                <small>프레스코21 로그인 시 사용하는 아이디입니다. 모르시면 빈칸으로 두셔도 됩니다. 이메일 주소는 아래 이메일 칸에 입력해 주세요.</small>
-                <div id="errorMallId" class="error">자사몰 ID는 로그인 아이디만 입력해주세요.</div>
+                <small>프레스코21 로그인 시 사용하는 아이디입니다. 모르시면 빈칸으로 두셔도 됩니다.</small>
+                <div id="errorMallId" class="error">자사몰 ID를 입력해주세요.</div>
               </div>
 
               <div class="field">
@@ -961,11 +920,10 @@
         </svg>
       </div>
       <h3 id="duplicateTitle">기존 신청 내역이 있습니다</h3>
-      <p id="duplicateDescription">전에 신청하신 내용을 불러왔습니다.
-틀린 부분만 고치고 부족한 서류만 추가해 주세요.</p>
+      <p id="duplicateDescription">같은 자사몰 ID로 접수된 신청이 확인되었습니다.</p>
       <div class="modal-actions">
-        <button id="modalUpdate" type="button" class="primary">입력된 내용 확인하기</button>
-        <button id="modalCreateNew" type="button">닫기</button>
+        <button id="modalUpdate" type="button" class="primary">기존 신청 수정하기</button>
+        <button id="modalCreateNew" type="button">새 신청으로 추가하기</button>
       </div>
     </div>
   </div>
@@ -1005,17 +963,13 @@
       var duplicateRecordId  = '';
       var selectedFiles      = [];
       var isEditMode         = false;
-      var editSubmitLabel    = '수정 제출하기 →';
       var lookupDone         = false;
       var lookupBanner       = document.getElementById('lookupBanner');
-      var lookupBannerInner  = lookupBanner.querySelector('.lookup-banner-inner');
       var lookupStatusBadge  = document.getElementById('lookupStatusBadge');
       var lookupNameEl       = document.getElementById('lookupName');
-      var lookupMessageEl    = document.getElementById('lookupMessage');
       var lookupReasonEl     = document.getElementById('lookupReason');
       var lookupEditBtn      = document.getElementById('lookupEditBtn');
       var lookupNewBtn       = document.getElementById('lookupNewBtn');
-      var lastExistingApplication = null;
 
       var fields = {
         name:        document.getElementById('fieldName'),
@@ -1035,162 +989,7 @@
 
       function setLoading(isLoading) {
         submitButton.disabled = isLoading;
-        submitButton.textContent = isLoading ? '제출 중...' : (isEditMode ? editSubmitLabel : '신청하기 →');
-      }
-
-      function duplicateApplicationMessage(data) {
-        var message = '전에 신청하신 내용을 불러왔습니다.\n틀린 부분만 고치고 부족한 서류만 추가해 주세요.';
-        if (data && data.isRejected) {
-          message += '\n반려된 신청입니다. 기존 서류는 유지되고 부족한 서류만 추가해 주세요.';
-        } else if (data && data.isApproved) {
-          message += '\n승인완료된 신청 정보 수정입니다. 변경된 정보만 확인해 주세요.';
-        } else if (data && data.statusLabel) {
-          message += '\n현재 상태: ' + data.statusLabel;
-        }
-        message += '\n바로 제출하지 않았습니다. 확인 후 수정·보완 제출 버튼을 눌러주세요.';
-        return message;
-      }
-
-      function firstValue(source, keys) {
-        var i;
-        if (!source) return '';
-        for (i = 0; i < keys.length; i += 1) {
-          if (source[keys[i]] !== undefined && source[keys[i]] !== null && source[keys[i]] !== '') {
-            return source[keys[i]];
-          }
-        }
-        return '';
-      }
-
-      function statusLabelFor(status) {
-        if (!status) return '';
-        var value = String(status);
-        var lower = value.toLowerCase();
-        if (lower.indexOf('reject') !== -1 || value.indexOf('반려') !== -1) return '반려';
-        if (lower.indexOf('pending') !== -1 || value.indexOf('심사') !== -1 || value.indexOf('대기') !== -1) return '심사중';
-        if (lower.indexOf('approve') !== -1 || value.indexOf('승인') !== -1) return '승인완료';
-        return value;
-      }
-
-      function normalizeApplicationData(source) {
-        var status;
-        var statusLabel;
-        var data = {};
-        source = source || {};
-        status = firstValue(source, ['status', 'applicationStatus', 'approvalStatus', 'existingStatus']);
-        statusLabel = statusLabelFor(status);
-        data.recordId = firstValue(source, ['recordId', 'id', 'Id', 'applicationId']);
-        data.name = firstValue(source, ['name', 'applicantName', 'userName', 'memberName']);
-        data.phone = firstValue(source, ['phone', 'mobile', 'contact', 'contactPhone']);
-        data.mallId = firstValue(source, ['mallId', 'mall_id', 'memberId', 'userId', 'makeshopId']);
-        data.email = firstValue(source, ['email', 'mail']);
-        data.association = firstValue(source, ['association', 'associationName', 'organization']);
-        data.rejectReason = firstValue(source, ['rejectReason', 'rejectionReason', 'reject_reason', 'reason']);
-        data.status = status;
-        data.statusLabel = statusLabel;
-        data.isRejected = source.isRejected === true || statusLabel === '반려';
-        data.isApproved = source.isApproved === true || statusLabel === '승인완료';
-        data.found = source.found !== false;
-        return data;
-      }
-
-      function mergeApplicationData(primary, fallback) {
-        var data = normalizeApplicationData(primary);
-        var backup = normalizeApplicationData(fallback);
-        var key;
-        for (key in backup) {
-          if (backup.hasOwnProperty(key) && (data[key] === '' || data[key] === null || data[key] === undefined)) {
-            data[key] = backup[key];
-          }
-        }
-        return data;
-      }
-
-      function setLookupReason(data) {
-        var title;
-        var reasonText;
-        var keepText;
-        lookupReasonEl.innerHTML = '';
-        if (!data || !data.isRejected) {
-          lookupReasonEl.style.display = 'none';
-          return;
-        }
-
-        title = document.createElement('strong');
-        title.className = 'lookup-reason-title';
-        title.textContent = '반려된 신청입니다';
-
-        reasonText = document.createElement('p');
-        reasonText.className = 'lookup-reason-text';
-        reasonText.textContent = data.rejectReason ? '반려 사유: ' + data.rejectReason : '반려 사유를 확인한 뒤 필요한 부분만 보완해 주세요.';
-
-        keepText = document.createElement('p');
-        keepText.className = 'lookup-file-keep';
-        keepText.textContent = '기존 서류는 유지되고 부족한 서류만 추가해 주세요.';
-
-        lookupReasonEl.appendChild(title);
-        lookupReasonEl.appendChild(reasonText);
-        lookupReasonEl.appendChild(keepText);
-        lookupReasonEl.style.display = 'block';
-      }
-
-      function setLookupBanner(data) {
-        var indicatorText = '수정 모드';
-        if (lookupBannerInner) {
-          lookupBannerInner.className = 'lookup-banner-inner';
-          if (data.isRejected) lookupBannerInner.classList.add('is-rejected');
-          if (data.isApproved) lookupBannerInner.classList.add('is-approved');
-        }
-
-        lookupNameEl.textContent = data.name || '신청자';
-        lookupMessageEl.innerHTML = '<strong>전에 신청하신 내용을 불러왔습니다.</strong> 틀린 부분만 고치고 부족한 서류만 추가해 주세요.';
-
-        if (data.isRejected) {
-          lookupStatusBadge.className = 'status-badge rejected';
-          lookupStatusBadge.textContent = '반려';
-          lookupMessageEl.innerHTML += '<br>반려된 신청입니다. 서류를 다시 전부 올리지 않아도 됩니다.';
-          lookupEditBtn.textContent = '보완할 내용 확인하기';
-          indicatorText = '반려 보완 모드';
-        } else if (data.isApproved) {
-          lookupStatusBadge.className = 'status-badge approved';
-          lookupStatusBadge.textContent = '승인완료';
-          lookupMessageEl.innerHTML += '<br>승인완료된 신청 정보 수정입니다. 변경된 정보만 확인해 주세요.';
-          lookupEditBtn.textContent = '승인완료 정보 확인하기';
-          indicatorText = '승인완료 정보 수정';
-        } else {
-          lookupStatusBadge.className = 'status-badge pending';
-          lookupStatusBadge.textContent = data.statusLabel || '심사중';
-          lookupMessageEl.innerHTML += '<br>현재 신청 내용이 아래 폼에 자동 입력되어 있습니다.';
-          lookupEditBtn.textContent = '입력된 내용 확인하기';
-        }
-
-        setLookupReason(data);
-        lookupEditBtn._data = data;
-        lookupEditBtn._indicatorText = indicatorText;
-        lookupBanner.style.display = 'block';
-      }
-
-      function setEditIndicator(text) {
-        var titleLabel = document.querySelector('.section-label');
-        var indicator;
-        if (!titleLabel) return;
-        indicator = titleLabel.querySelector('.edit-mode-indicator');
-        if (!indicator) {
-          titleLabel.insertAdjacentHTML('beforeend', '<span class="edit-mode-indicator">수정 모드</span>');
-          indicator = titleLabel.querySelector('.edit-mode-indicator');
-        }
-        if (indicator) indicator.textContent = text || '수정 모드';
-      }
-
-      function focusExistingForm() {
-        lookupBanner.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        setTimeout(function () {
-          try {
-            fields.name.focus({ preventScroll: true });
-          } catch (e) {
-            fields.name.focus();
-          }
-        }, 350);
+        submitButton.textContent = isLoading ? '제출 중...' : '신청하기 →';
       }
 
       function showGlobalError(message) {
@@ -1237,7 +1036,7 @@
       function restoreDraft() {
         try {
           if (wasSubmitted()) {
-            showGlobalError('이미 신청하셨어요. 새로 다시 신청하지 않아도 됩니다. 기존 신청만 수정·보완할 수 있습니다. 연락처를 입력한 뒤 기존 신청 수정·보완하기를 눌러주세요.');
+            showGlobalError('이전에 신청서를 제출하셨습니다. 내용을 수정하여 다시 제출하시면 기존 신청을 업데이트하거나 새로 접수할 수 있습니다.');
             clearSubmitted();
           }
           var raw = localStorage.getItem(DRAFT_KEY);
@@ -1396,56 +1195,59 @@
 
       // ─── 기존 신청 조회 ───
       async function lookupExisting(phone) {
-        var existingData;
-        var query;
         if (lookupDone) return;
         try {
-          query = '?phone=' + encodeURIComponent(phone);
-          if (fields.name.value.trim()) query += '&name=' + encodeURIComponent(fields.name.value.trim());
-          var resp = await fetch(LOOKUP_URL + query);
+          var resp = await fetch(LOOKUP_URL + '?phone=' + encodeURIComponent(phone));
           var data = await resp.json();
           if (!data.ok || !data.found) { hideLookupBanner(); return; }
 
           lookupDone = true;
-          existingData = normalizeApplicationData(data);
-          enterEditMode(existingData, true);
+          lookupNameEl.textContent = data.name || '신청자';
+
+          if (data.isRejected) {
+            lookupStatusBadge.className = 'status-badge rejected';
+            lookupStatusBadge.textContent = '반려';
+            if (data.rejectReason) {
+              lookupReasonEl.textContent = '반려 사유: ' + data.rejectReason;
+              lookupReasonEl.style.display = 'block';
+            }
+            lookupEditBtn.textContent = '서류 보완하여 재신청';
+          } else if (data.isApproved) {
+            lookupStatusBadge.className = 'status-badge approved';
+            lookupStatusBadge.textContent = '승인완료';
+            lookupEditBtn.textContent = '정보 수정하기';
+          } else {
+            lookupStatusBadge.className = 'status-badge pending';
+            lookupStatusBadge.textContent = '심사중';
+            lookupEditBtn.textContent = '신청 내용 수정하기';
+          }
+
+          // 기존 데이터 저장
+          lookupEditBtn._data = data;
+          lookupBanner.style.display = 'block';
         } catch (e) { /* 조회 실패는 무시 */ }
       }
 
-      function enterEditMode(data, shouldFocus) {
-        var indicatorText;
-        data = normalizeApplicationData(data);
-        lastExistingApplication = data;
+      function enterEditMode(data) {
         isEditMode = true;
         duplicateRecordId = String(data.recordId || '');
         if (data.name) fields.name.value = data.name;
-        if (data.phone) fields.phone.value = normalizePhone(String(data.phone));
         if (data.mallId) fields.mallId.value = data.mallId;
         if (data.email) fields.email.value = data.email;
         if (data.association) fields.association.value = data.association;
 
-        if (data.isRejected) {
-          editSubmitLabel = '부족한 서류 추가하고 제출하기 →';
-          indicatorText = '반려 보완 모드';
-        } else if (data.isApproved) {
-          editSubmitLabel = '승인완료 정보 수정 제출하기 →';
-          indicatorText = '승인완료 정보 수정';
-        } else {
-          editSubmitLabel = '수정 제출하기 →';
-          indicatorText = '수정 모드';
+        submitButton.textContent = '수정 제출하기 →';
+        var titleLabel = document.querySelector('.section-label');
+        if (titleLabel && !titleLabel.querySelector('.edit-mode-indicator')) {
+          titleLabel.insertAdjacentHTML('beforeend', '<span class="edit-mode-indicator">수정 모드</span>');
         }
-
-        submitButton.textContent = editSubmitLabel;
-        setLookupBanner(data);
-        setEditIndicator(indicatorText);
-        closeDuplicateModal();
-        if (shouldFocus !== false) focusExistingForm();
+        lookupBanner.style.display = 'none';
+        fields.name.focus();
       }
 
       function exitEditMode() {
         isEditMode = false;
         duplicateRecordId = '';
-        editSubmitLabel = '수정 제출하기 →';
         submitButton.textContent = '신청하기 →';
         var indicator = document.querySelector('.edit-mode-indicator');
         if (indicator) indicator.remove();
@@ -1458,9 +1260,9 @@
       }
 
       lookupEditBtn.addEventListener('click', function () {
-        if (lookupEditBtn._data) enterEditMode(lookupEditBtn._data, true);
+        if (lookupEditBtn._data) enterEditMode(lookupEditBtn._data);
       });
-      lookupNewBtn.addEventListener('click', function () { hideLookupBanner(); });
+      lookupNewBtn.addEventListener('click', function () { exitEditMode(); });
 
       function showSuccess(mode) {
         clearDraft();
@@ -1499,16 +1301,11 @@
           try { payload = text ? JSON.parse(text) : {}; } catch (e) { payload = {}; }
 
           if (response.status === 409 && payload.code === 'DUPLICATE_APPLICATION') {
-            var existingData = mergeApplicationData(payload.existingApplication || payload.existing_application || payload.application || payload.existing || payload, lastExistingApplication || {});
-            if (!existingData.recordId && payload.recordId) existingData.recordId = payload.recordId;
-            if (!existingData.status && payload.existingStatus) {
-              existingData.status = payload.existingStatus;
-              existingData.statusLabel = statusLabelFor(payload.existingStatus);
-              existingData.isRejected = existingData.statusLabel === '반려';
-              existingData.isApproved = existingData.statusLabel === '승인완료';
-            }
-            enterEditMode(existingData, false);
-            duplicateDescription.textContent = duplicateApplicationMessage(existingData);
+            duplicateRecordId = payload.recordId || '';
+            duplicateDescription.textContent =
+              payload.existingStatus
+                ? '같은 자사몰 ID로 접수된 신청이 있습니다. 현재 상태: ' + payload.existingStatus + '\n원하시는 처리 방식을 선택해주세요.'
+                : '같은 자사몰 ID로 접수된 신청이 있습니다. 원하시는 처리 방식을 선택해주세요.';
             duplicateModal.classList.add('is-visible');
             setLoading(false);
             return;
@@ -1579,12 +1376,11 @@
       });
 
       document.getElementById('modalUpdate').addEventListener('click', function () {
-        closeDuplicateModal();
-        focusExistingForm();
+        closeDuplicateModal(); submitForm('update');
       });
 
       document.getElementById('modalCreateNew').addEventListener('click', function () {
-        closeDuplicateModal();
+        closeDuplicateModal(); submitForm('create-new');
       });
 
       duplicateModal.addEventListener('click', function (e) {

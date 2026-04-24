@@ -19,7 +19,14 @@
 - 너무 피곤해하는 형식: 긴 내부 역할 설명, tool 중심 서술
 - 선호하는 요약 방식: 사람 이름이 먼저 보이는 founder-facing summary
 
+## Ad / Marketing decisions
+- 광고 플랫폼이 보여주는 ROAS를 그대로 신뢰하지 않음. 실지출(VAT 포함) 기준으로 재계산 요구.
+- 부가세 함정, 전환 기간 부풀리기, 중복 카운팅 등 플랫폼 수치의 한계를 인지하고 있음.
+- 입찰가 경쟁 반대. 순위 1등을 목표로 하지 않고, 1페이지 노출 최소 비용(벌크형)을 선호.
+- 광고비 예산은 전체 매출 대비 1% 상한. 마진 10~20% 구조에서 보수적 운영 원칙.
+- Evidence: 2026-04-25 광고 예산 전략 팀미팅 전 과정에서 반복 확인
+
 ## Last updated
-- Date: 2026-04-21
-- Evidence: shared-agent ecosystem 설계 세션 반복 피드백
-- Why this changes future behavior: continuity / pair-coding / review wording 기본값에 직접 영향
+- Date: 2026-04-25
+- Evidence: 광고 예산 전략 팀미팅 + shared-agent ecosystem 설계 세션
+- Why this changes future behavior: 광고 관련 분석/제안 시 플랫폼 표기가 아닌 실지출 기준으로, 벌크형 저비용 전략 우선

@@ -160,7 +160,7 @@ if [ "$push_branch" -eq 1 ]; then
 fi
 
 remaining="$(git -C "$CODEX_REPO_ROOT" status --short || true)"
-printf '\nFinal git status:\n%s\n' "${remaining:-'(clean)'}"
+printf '\nFinal git status:\n%s\n' "${remaining:-(clean)}"
 if [ -n "$remaining" ]; then
   cat <<'EOF_WARN'
 

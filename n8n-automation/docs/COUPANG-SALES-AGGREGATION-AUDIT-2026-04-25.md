@@ -154,3 +154,25 @@ The provided authorization grant ... or refresh token is invalid, expired, revok
 1. n8n UI에서 `Pressco21-GoogleDrive` / 관련 Google OAuth credential 재연결
 2. 2026-04-22, 2026-04-23 Sheet 행 `C:G`를 NocoDB 최신값과 맞춤
 3. F24/F26 Google Sheets 노드 정상 여부 재검증
+
+## 2026-04-25 Google Sheets 재연결 후 최종 마감
+
+사용자가 n8n Google OAuth credential을 재연결한 뒤 F23을 다시 실행해 Google Sheet까지 최종 반영했다.
+
+| 날짜 | n8n 실행 ID | Sheet 업데이트 범위 | 쿠팡윙 | 전체 매출 |
+|---|---:|---|---:|---:|
+| 2026-04-22 | 231537 | `일별 매출!C113:G113` | 643,300원 / 26건 | 5,052,890원 |
+| 2026-04-23 | 231540 | `일별 매출!C114:G114` | 182,000원 / 17건 | 9,954,280원 |
+
+Google Sheet 읽기 검증 결과:
+
+```text
+일별 매출!C113:G114
+2026-04-22: 698,380 / 1,234,210 / 0 / 2,477,000 / 643,300
+2026-04-23: 912,950 / 1,668,150 / 0 / 7,191,180 / 182,000
+```
+
+텔레그램 `PRESSCO21 매출 공유` 방에 정정본 1건을 발송했다.
+
+- message_id: `1320`
+- 내용: 2026-04-22/23 쿠팡윙 백필 완료, NocoDB와 Google Sheet 반영 완료, 재발 방지 조치 요약

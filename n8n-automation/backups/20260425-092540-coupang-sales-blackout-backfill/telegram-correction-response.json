@@ -1,0 +1,7 @@
+{
+  "ok": true,
+  "message_id": 1320,
+  "chat_id": -5251214343,
+  "chat_title": "PRESSCO21 매출 공유",
+  "text": "[매출 정정본] 쿠팡윙 백필 완료\n\n2026-04-22, 2026-04-23 쿠팡 API 오류로 누락됐던 쿠팡윙 매출을 재집계해 NocoDB와 Google Sheet에 반영했습니다.\n\n정정 결과\n2026-04-22\n- 쿠팡윙 643,300원 (26건)\n- 총 매출 5,052,890원\n\n2026-04-23\n- 쿠팡윙 182,000원 (17건)\n- 총 매출 9,954,280원\n\n재발 방지 조치\n- 쿠팡 API 호출 금지시간을 14:30~19:00으로 통일\n- 상태별 호출 재시도/지연/페이지네이션 보강\n- Google Sheet 반영 확인 완료\n\nThis message was sent automatically with n8n"
+}

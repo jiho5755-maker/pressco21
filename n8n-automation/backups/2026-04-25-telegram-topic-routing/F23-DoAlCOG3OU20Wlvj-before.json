@@ -1,0 +1,1103 @@
+{
+  "updatedAt": "2026-04-25T01:29:07.405Z",
+  "createdAt": "2026-04-08T13:27:35.811Z",
+  "id": "DoAlCOG3OU20Wlvj",
+  "name": "[F23] 통합 일일 매출 리포트",
+  "description": null,
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "triggerAtHour": 8,
+              "triggerAtMinute": 0
+            }
+          ]
+        }
+      },
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.2,
+      "position": [
+        200,
+        200
+      ],
+      "id": "node-schedule",
+      "name": "매일 08:00"
+    },
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "flora-daily-sales-all",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        200,
+        500
+      ],
+      "id": "node-webhook",
+      "name": "수동 조회",
+      "webhookId": "flora-daily-sales-all"
+    },
+    {
+      "parameters": {
+        "jsCode": "// 스케줄(08:00) → 전일 확정, 웹훅 → body.mode/targetDate 참조\nlet body = {};\ntry { body = $('수동 조회').first().json.body || {}; } catch(e) {}\nconst chatId = String(body.chatId || body.chat_id || '7713811206');\nconst requestedDate = String(body.targetDate || body.target_date || '').trim();\nconst mode = (body.mode || (requestedDate ? 'target-date' : 'yesterday')).toLowerCase();\n\nconst now = new Date();\nconst kstOffset = 9 * 60 * 60 * 1000;\nconst kstNow = new Date(now.getTime() + kstOffset);\n\nconst toDateString = (date) => date.toISOString().slice(0, 10);\nconst buildLabel = (date) => {\n  const m = date.getMonth() + 1;\n  const d = date.getDate();\n  const dow = ['일','월','화','수','목','금','토'][date.getDay()];\n  return `${m}/${d}(${dow}) 확정`;\n};\n\nlet targetDate, label;\nif (/^\\d{4}-\\d{2}-\\d{2}$/.test(requestedDate)) {\n  targetDate = requestedDate;\n  const [y, m, d] = requestedDate.split('-').map(Number);\n  const target = new Date(Date.UTC(y, m - 1, d));\n  label = buildLabel(target);\n} else if (mode === 'today') {\n  targetDate = toDateString(kstNow);\n  const h = parseInt(kstNow.toISOString().slice(11, 13));\n  const min = kstNow.toISOString().slice(14, 16);\n  label = `${kstNow.getMonth()+1}/${kstNow.getDate()} ${h}:${min} 기준 (집계 중)`;\n} else {\n  const yesterday = new Date(kstNow);\n  yesterday.setDate(yesterday.getDate() - 1);\n  targetDate = toDateString(yesterday);\n  label = buildLabel(yesterday);\n}\n\nconst fromDate = targetDate + ' 00:00:00';\nconst toDate = targetDate + ' 23:59:59';\nconst st11Date = targetDate.replace(/-/g, '');\n\n// Google Sheets 일별 매출 행 번호 (A1=헤더, 1/1=2행)\nconst p = targetDate.split('-').map(Number);\nconst target = new Date(Date.UTC(p[0], p[1]-1, p[2]));\nconst jan1 = new Date(Date.UTC(p[0], 0, 1));\nconst sheetsRow = Math.round((target - jan1) / 86400000) + 2;\n\n// 이번 달 누계용 (월 시작~전일)\nconst monthStart = targetDate.slice(0, 7) + '-01 00:00:00';\n\nreturn [{ json: { chatId, mode, requestedDate, targetDate, fromDate, toDate, st11Date, monthStart, label, sheetsRow } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        480,
+        350
+      ],
+      "id": "node-date",
+      "name": "날짜 계산"
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "http://foreverlove.co.kr/list/open_api.html",
+        "sendQuery": true,
+        "queryParameters": {
+          "parameters": [
+            {
+              "name": "mode",
+              "value": "search"
+            },
+            {
+              "name": "type",
+              "value": "order"
+            },
+            {
+              "name": "ver",
+              "value": "2"
+            },
+            {
+              "name": "InquiryTimeFrom",
+              "value": "={{ $('날짜 계산').first().json.fromDate }}"
+            },
+            {
+              "name": "InquiryTimeTo",
+              "value": "={{ $('날짜 계산').first().json.toDate }}"
+            },
+            {
+              "name": "limit",
+              "value": "500"
+            }
+          ]
+        },
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Shopkey",
+              "value": "={{ $env.MAKESHOP_SHOPKEY }}"
+            },
+            {
+              "name": "Licensekey",
+              "value": "={{ $env.MAKESHOP_LICENSEKEY }}"
+            }
+          ]
+        },
+        "options": {
+          "timeout": 15000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        720,
+        350
+      ],
+      "id": "node-makeshop",
+      "name": "메이크샵 주문 조회",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 네이버 커머스 API: bcrypt 서명 + httpRequest로 토큰 발급\nconst bcrypt = require('bcryptjs');\nconst clientId = $env.NAVER_COMMERCE_CLIENT_ID || '';\nconst clientSecret = $env.NAVER_COMMERCE_CLIENT_SECRET || '';\n\nif (!clientId || !clientSecret) {\n  return [{ json: { error: 'NAVER_COMMERCE 환경변수 미설정', accessToken: '' } }];\n}\n\ntry {\n  const timestamp = Date.now();\n  const password = clientId + '_' + timestamp;\n  const hashed = bcrypt.hashSync(password, clientSecret);\n  const signature = Buffer.from(hashed).toString('base64');\n  \n  const tokenData = await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://api.commerce.naver.com/external/v1/oauth2/token',\n    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n    body: 'client_id=' + encodeURIComponent(clientId) + '&timestamp=' + timestamp + '&client_secret_sign=' + encodeURIComponent(signature) + '&grant_type=client_credentials&type=SELF'\n  });\n  \n  if (!tokenData.access_token) {\n    return [{ json: { error: 'Token: ' + JSON.stringify(tokenData).slice(0, 200), accessToken: '' } }];\n  }\n  return [{ json: { accessToken: tokenData.access_token, error: '' } }];\n} catch (e) {\n  const respBody = e.response && e.response.data ? JSON.stringify(e.response.data).slice(0, 200) : '';\n  return [{ json: { error: 'Naver auth ' + e.message + (respBody ? ' | ' + respBody : ''), accessToken: '' } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        960,
+        350
+      ],
+      "id": "node-naver-auth",
+      "name": "네이버 인증",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 네이버 커머스 주문 조회 (GET product-orders)\nconst token = $('네이버 인증').first().json.accessToken || '';\nconst dateInfo = $('날짜 계산').first().json;\n\nif (!token) {\n  return [{ json: { error: $('네이버 인증').first().json.error || 'No token', totalRevenue: 0, totalOrders: 0 } }];\n}\n\ntry {\n  const from = dateInfo.targetDate + 'T00:00:00.000%2B09:00';\n  const to = dateInfo.targetDate + 'T23:59:59.999%2B09:00';\n  \n  const data = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://api.commerce.naver.com/external/v1/pay-order/seller/product-orders?from=' + from + '&to=' + to,\n    headers: { 'Authorization': 'Bearer ' + token }\n  });\n  \n  const contents = (data.data && data.data.contents) || [];\n  const CANCEL = ['CANCELED', 'RETURNED', 'EXCHANGED', 'CANCEL_REQUEST', 'RETURN_REQUEST', 'CANCEL_DONE'];\n  let totalRevenue = 0, totalOrders = 0, cancelCount = 0;\n  \n  for (const item of contents) {\n    const po = item.content && item.content.productOrder;\n    if (!po) continue;\n    const status = po.productOrderStatus || '';\n    if (CANCEL.includes(status)) { cancelCount++; continue; }\n    totalRevenue += parseInt(po.totalPaymentAmount || 0);\n    totalOrders++;\n  }\n  \n  return [{ json: { totalRevenue, totalOrders, cancelCount, rawCount: contents.length, error: '' } }];\n} catch (e) {\n  return [{ json: { error: 'Naver orders: ' + e.message, totalRevenue: 0, totalOrders: 0 } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1200,
+        350
+      ],
+      "id": "node-naver-orders",
+      "name": "네이버 주문 조회",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 11번가 Seller API: 주문 상태별 복수 endpoint 조회\n// /complete만 보면 이미 배송/판매완료로 넘어간 주문을 놓친다.\n// targetDate의 주문일(ordDt) 기준으로 complete/packaging/shipping/dlvcompleted/completed를 합산한다.\nconst apiKey = $env.ST11_API_KEY || '';\nconst dateInfo = $('날짜 계산').first().json;\n\nif (!apiKey) {\n  return [{ json: { error: 'ST11_API_KEY 미설정', totalRevenue: 0, totalOrders: 0, rawCount: 0, source: 'st11_multi_status' } }];\n}\n\nconst num = (v) => {\n  if (v === undefined || v === null || v === '') return 0;\n  const s = String(v).replace(/[^0-9.-]/g, '');\n  return parseInt(s) || 0;\n};\nconst get = (chunk, f) => {\n  const re = new RegExp('<(?:ns2:)?' + f + '>([\\\\s\\\\S]*?)</(?:ns2:)?' + f + '>', 'i');\n  const m = chunk.match(re);\n  return m ? String(m[1] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '').trim() : '';\n};\nconst date10 = (v) => {\n  const s = String(v || '');\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  if (/^\\d{4}\\d{2}\\d{2}/.test(s)) return s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8);\n  return '';\n};\nconst pickAmount = (chunk) => {\n  // ordAmt가 상품 매출 기준에 가장 잘 맞음. 없으면 결제/상품금액으로 보완.\n  return num(get(chunk, 'ordAmt')) || num(get(chunk, 'ordPayAmt')) || num(get(chunk, 'prdPayAmt')) || num(get(chunk, 'selPrc'));\n};\n\nconst d = dateInfo.st11Date; // yyyyMMdd\nconst startDateTime = d + '0000';\nconst endDateTime = d + '2359';\nconst endpoints = [\n  'complete',\n  'packaging',\n  'shipping',\n  'dlvcompleted',\n  'completed',\n  'reservatecomplete',\n];\n\nconst seen = new Set();\nconst rows = [];\nconst errors = [];\n\nfor (const ep of endpoints) {\n  try {\n    const xml = await this.helpers.httpRequest({\n      method: 'GET',\n      url: 'https://api.11st.co.kr/rest/ordservices/' + ep + '/' + startDateTime + '/' + endDateTime,\n      headers: { openapikey: apiKey },\n      returnFullResponse: false,\n      encoding: 'utf-8',\n      timeout: 20000,\n    });\n    const xmlStr = typeof xml === 'string' ? xml : JSON.stringify(xml);\n    if (xmlStr.includes('조회된 결과가 없습니다') || xmlStr.includes('해당 건이 없습니다')) continue;\n    const orderMatches = xmlStr.match(/<(?:ns2:)?order>[\\s\\S]*?<\\/(?:ns2:)?order>/g) || [];\n    for (const chunk of orderMatches) {\n      const ordDate = date10(get(chunk, 'ordDt'));\n      if (ordDate !== dateInfo.targetDate) continue;\n      const ordNo = get(chunk, 'ordNo');\n      const seq = get(chunk, 'ordPrdSeq');\n      const key = ordNo + '_' + seq;\n      if (seen.has(key)) continue;\n      const amount = pickAmount(chunk);\n      if (amount <= 0) continue;\n      seen.add(key);\n      rows.push({ endpoint: ep, ordNo, seq, amount, ordDate });\n    }\n  } catch (e) {\n    errors.push(ep + ': ' + e.message);\n  }\n}\n\nconst totalRevenue = rows.reduce((sum, r) => sum + r.amount, 0);\nreturn [{ json: { totalRevenue, totalOrders: seen.size, rawCount: rows.length, rows, error: errors.join(' | '), source: 'st11_multi_status' } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        350
+      ],
+      "id": "node-11st",
+      "name": "11번가 주문 조회",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// 쿠팡윙 OpenAPI 주문 조회\n// 운영 정책:\n// - 매일 14:30~19:00(KST)는 사방넷 출고 연동 시간으로 쿠팡 매출 API 사용 금지\n// - 금지 시간에는 API를 호출하지 않고, 뒤쪽 집계 노드가 기존 NocoDB/구글시트 값을 유지한다.\n// - 쿠팡은 간헐 403/429가 발생하므로 상태별 호출 사이를 늦추고, 재시도/페이지네이션을 적용한다.\nconst crypto = require('crypto');\nconst dateInfo = $('날짜 계산').first().json;\n\nconst kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);\nconst kstIso = kstNow.toISOString();\nconst kstDate = kstIso.slice(0, 10);\nconst kstHour = parseInt(kstIso.slice(11, 13));\nconst kstMinute = parseInt(kstIso.slice(14, 16));\nconst nowMinutes = kstHour * 60 + kstMinute;\nconst isCoupangBlackout = nowMinutes >= (14 * 60 + 30) && nowMinutes < (19 * 60);\n\nif (isCoupangBlackout) {\n  const reason = '14:30~19:00 사방넷 출고 연동 시간';\n  return [{ json: {\n    skipped: true,\n    reason,\n    blackoutWindow: 'KST 14:30-19:00',\n    kstNow: kstDate + ' ' + String(kstHour).padStart(2, '0') + ':' + String(kstMinute).padStart(2, '0'),\n    totalRevenue: 0,\n    totalOrders: 0,\n    rawCount: 0,\n    error: '',\n    source: 'coupang_wing_openapi_skipped',\n  } }];\n}\n\nconst accessKey = $env.COUPANG_ACCESS_KEY || $env.COUPANG_API_ACCESS_KEY || '';\nconst secretKey = $env.COUPANG_SECRET_KEY || $env.COUPANG_API_SECRET_KEY || '';\nconst vendorId = $env.COUPANG_VENDOR_ID || $env.COUPANG_API_VENDOR_ID || '';\nconst baseUrl = $env.COUPANG_API_BASE_URL || 'https://api-gateway.coupang.com';\n\nif (!accessKey || !secretKey || !vendorId) {\n  return [{ json: {\n    skipped: true,\n    reason: 'COUPANG 환경변수 미설정 — 기존 구글시트 G열 값 유지',\n    totalRevenue: 0,\n    totalOrders: 0,\n    rawCount: 0,\n    error: 'COUPANG_ACCESS_KEY / COUPANG_SECRET_KEY / COUPANG_VENDOR_ID 미설정',\n    source: 'coupang_wing_openapi_skipped_missing_env',\n  } }];\n}\n\nconst sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));\nconst signedDate = () => {\n  const iso = new Date().toISOString();\n  return iso.slice(2, 4) + iso.slice(5, 7) + iso.slice(8, 10) + 'T' + iso.slice(11, 13) + iso.slice(14, 16) + iso.slice(17, 19) + 'Z';\n};\n\nconst makeAuthHeader = (method, path, query) => {\n  const ts = signedDate();\n  const message = ts + method + path + query;\n  const signature = crypto.createHmac('sha256', secretKey).update(message).digest('hex');\n  return 'CEA algorithm=HmacSHA256, access-key=' + accessKey + ', signed-date=' + ts + ', signature=' + signature;\n};\n\nconst enc = (v) => encodeURIComponent(String(v));\nconst queryString = (obj) => Object.keys(obj)\n  .filter((k) => obj[k] !== undefined && obj[k] !== null && obj[k] !== '')\n  .map((k) => enc(k) + '=' + enc(obj[k]))\n  .join('&');\n\nconst money = (v) => {\n  if (v === undefined || v === null || v === '') return 0;\n  if (typeof v === 'number') return Math.round(v);\n  if (typeof v === 'string') return parseInt(v.replace(/[^0-9.-]/g, '')) || 0;\n  if (typeof v === 'object') {\n    const units = parseInt(v.units || v.amount || v.value || 0) || 0;\n    const nanos = parseInt(v.nanos || 0) || 0;\n    return units + Math.round(nanos / 1000000000);\n  }\n  return 0;\n};\n\nconst summarizeError = (e) => {\n  const parts = [];\n  const statusCode = e && (e.statusCode || e.httpCode || (e.response && (e.response.statusCode || e.response.status)));\n  if (statusCode) parts.push('HTTP ' + statusCode);\n  const body = e && e.response && (e.response.body || e.response.data);\n  if (body) {\n    if (typeof body === 'string') {\n      try {\n        const parsed = JSON.parse(body);\n        if (parsed.code) parts.push('code=' + parsed.code);\n        if (parsed.message) parts.push(String(parsed.message).slice(0, 120));\n      } catch (parseError) {\n        parts.push(body.slice(0, 120));\n      }\n    } else if (typeof body === 'object') {\n      if (body.code) parts.push('code=' + body.code);\n      if (body.message) parts.push(String(body.message).slice(0, 120));\n    }\n  }\n  if (e && e.message) parts.push(String(e.message).slice(0, 120));\n  return parts.filter(Boolean).join(' / ') || 'unknown error';\n};\n\nconst isRetryableError = (e) => {\n  const statusCode = e && (e.statusCode || e.httpCode || (e.response && (e.response.statusCode || e.response.status)));\n  if ([403, 408, 409, 425, 429, 500, 502, 503, 504].includes(Number(statusCode))) return true;\n  const msg = String((e && e.message) || '').toLowerCase();\n  return msg.includes('timeout') || msg.includes('econnreset') || msg.includes('socket hang up');\n};\n\nconst path = '/v2/providers/openapi/apis/api/v5/vendors/' + encodeURIComponent(vendorId) + '/ordersheets';\nconst from = dateInfo.targetDate + 'T00:00+09:00';\nconst to = dateInfo.targetDate + 'T23:59+09:00';\nconst statuses = ['ACCEPT', 'INSTRUCT', 'DEPARTURE', 'DELIVERING', 'FINAL_DELIVERY', 'NONE_TRACKING'];\nconst statusDelayMs = 1200;\nconst pageDelayMs = 450;\nconst maxAttempts = 3;\nconst maxPagesPerStatus = 20;\n\nconst requestPage = async (query, status) => {\n  let lastError = null;\n  for (let attempt = 1; attempt <= maxAttempts; attempt++) {\n    try {\n      const auth = makeAuthHeader('GET', path, query);\n      let resp = await this.helpers.httpRequest({\n        method: 'GET',\n        url: baseUrl + path + '?' + query,\n        headers: {\n          Authorization: auth,\n          'Content-Type': 'application/json;charset=UTF-8',\n        },\n        timeout: 30000,\n      });\n      if (typeof resp === 'string') {\n        try { resp = JSON.parse(resp); } catch(e) { resp = { raw: resp }; }\n      }\n      if (resp && resp.code && String(resp.code) !== '200' && String(resp.code).toUpperCase() !== 'SUCCESS') {\n        throw new Error('Coupang body error ' + (resp.message || resp.code));\n      }\n      return { resp, attempts: attempt };\n    } catch (e) {\n      lastError = e;\n      if (attempt >= maxAttempts || !isRetryableError(e)) break;\n      await sleep(statusDelayMs * attempt);\n    }\n  }\n  throw new Error(status + ': ' + summarizeError(lastError));\n};\n\nlet totalRevenue = 0;\nconst orderIds = new Set();\nconst lineKeys = new Set();\nconst apiErrors = [];\nconst statusSummary = [];\nlet rawCount = 0;\nlet retryCount = 0;\n\nfor (const status of statuses) {\n  let nextToken = '';\n  let pages = 0;\n  let statusRows = 0;\n  let statusAmount = 0;\n  let statusRetries = 0;\n\n  try {\n    while (pages < maxPagesPerStatus) {\n      pages++;\n      const query = queryString({\n        createdAtFrom: from,\n        createdAtTo: to,\n        searchType: 'timeFrame',\n        status,\n        nextToken,\n      });\n      const pageResult = await requestPage(query, status);\n      const resp = pageResult.resp;\n      const attempts = pageResult.attempts || 1;\n      if (attempts > 1) {\n        statusRetries += attempts - 1;\n        retryCount += attempts - 1;\n      }\n\n      const rows = Array.isArray(resp && resp.data) ? resp.data : [];\n      rawCount += rows.length;\n      statusRows += rows.length;\n\n      for (const order of rows) {\n        const orderId = String(order.orderId || order.shipmentBoxId || '');\n        if (orderId) orderIds.add(orderId);\n        const items = Array.isArray(order.orderItems) ? order.orderItems : [];\n        for (const item of items) {\n          if (item.canceled === true) continue;\n          const shippingCount = parseInt(item.shippingCount || item.salesQuantity || 1) || 1;\n          const cancelCount = parseInt(item.cancelCount || 0) || 0;\n          const holdCount = parseInt(item.holdCountForCancel || 0) || 0;\n          const activeCount = Math.max(0, shippingCount - cancelCount - holdCount);\n          if (activeCount <= 0) continue;\n\n          const key = [orderId, order.shipmentBoxId || '', item.vendorItemId || '', item.sellerProductId || '', item.vendorItemName || item.productName || ''].join(':');\n          if (lineKeys.has(key)) continue;\n          lineKeys.add(key);\n\n          let lineAmount = money(item.orderPrice);\n          if (lineAmount <= 0) {\n            const unit = money(item.salesPrice || item.unitSalesPrice);\n            lineAmount = unit * activeCount;\n          } else if (activeCount !== shippingCount && shippingCount > 0) {\n            lineAmount = Math.round(lineAmount * activeCount / shippingCount);\n          }\n          totalRevenue += lineAmount;\n          statusAmount += lineAmount;\n        }\n      }\n\n      nextToken = resp && resp.nextToken ? String(resp.nextToken) : '';\n      if (!nextToken) break;\n      await sleep(pageDelayMs);\n    }\n\n    if (nextToken) {\n      apiErrors.push(status + ': page limit exceeded with nextToken remaining');\n    }\n    statusSummary.push({ status, rows: statusRows, pages, amount: statusAmount, retries: statusRetries, truncated: !!nextToken });\n  } catch (e) {\n    apiErrors.push(e.message || String(e));\n    statusSummary.push({ status, rows: statusRows, pages, amount: statusAmount, retries: statusRetries, error: (e.message || String(e)).slice(0, 160) });\n  }\n\n  await sleep(statusDelayMs);\n}\n\nreturn [{ json: {\n  skipped: false,\n  totalRevenue,\n  totalOrders: orderIds.size,\n  rawCount,\n  lineCount: lineKeys.size,\n  retryCount,\n  statusSummary,\n  error: apiErrors.join(' | '),\n  source: 'coupang_wing_openapi',\n} }];\n"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1680,
+        350
+      ],
+      "id": "8741350d-b602-41ce-bf89-91b4575946aa",
+      "name": "쿠팡윙 주문 조회",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "// CRM 직접거래: NocoDB에서 최근 명세표 조회 후 날짜 필터\nconst dateInfo = $('날짜 계산').first().json;\nconst token = $env.NOCODB_TOKEN || '';\n\nif (!token) {\n  return [{ json: { list: [], error: 'NOCODB_TOKEN 미설정' } }];\n}\n\ntry {\n  const data = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/ml81i9mcuw0pjzk',\n    headers: { 'xc-token': token },\n    qs: { sort: '-invoice_date', fields: 'Id,invoice_date,total_amount,payment_status', limit: 500 }\n  });\n  \n  const allInvoices = data.list || [];\n  const filtered = allInvoices.filter(inv => String(inv.invoice_date || '').startsWith(dateInfo.targetDate));\n  \n  return [{ json: { list: filtered, error: '' } }];\n} catch (e) {\n  return [{ json: { list: [], error: 'CRM: ' + e.message } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1920,
+        350
+      ],
+      "id": "node-crm",
+      "name": "CRM 직접거래 조회",
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "method": "GET",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1B6F3XJLjK5WWaoOLy6f8JafjYNWs0-NQvVBvWKwTzhM/values/%EC%9D%BC%EB%B3%84%20%EB%A7%A4%EC%B6%9C!C{{ $('날짜 계산').first().json.sheetsRow }}:J{{ $('날짜 계산').first().json.sheetsRow }}",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2080,
+        350
+      ],
+      "id": "f10a02a5-ed04-42a3-b34c-e7cd2015f06e",
+      "name": "기존 시트 행 조회",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "2e6e75e1-2d4f-40ac-b992-c12aef75e69e",
+          "name": "Pressco21-GoogleDrive"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const dateInfo = $('날짜 계산').first().json;\n\nconst num = (v) => {\n  if (v === undefined || v === null || v === '') return 0;\n  return parseInt(String(v).replace(/[^0-9.-]/g, '')) || 0;\n};\n\nlet existingRow = [];\ntry {\n  const sheetResp = $('기존 시트 행 조회').first().json || {};\n  existingRow = (sheetResp.values && sheetResp.values[0]) || [];\n} catch(e) {}\nconst existingMakeShop = num(existingRow[0]);\nconst existingNaver = num(existingRow[1]);\nconst existingSt11 = num(existingRow[2]);\nconst existingCrm = num(existingRow[3]);\nconst existingCoupang = num(existingRow[4]); // C:J 조회 기준 G열\n\n// 같은 날짜의 최신 daily_sales 레코드가 있으면, 쿠팡 API 오류/휴지시간 재실행 시 해당 값을 우선 보존한다.\nlet latestDailySales = null;\ntry {\n  const token = String($env.NOCODB_TOKEN || '').trim();\n  if (token) {\n    const resp = await this.helpers.httpRequest({\n      method: 'GET',\n      url: 'https://nocodb.pressco21.com/api/v1/db/data/noco/pbmo0os7rnvfd48/mwxvxjiqtw177xu',\n      headers: { 'xc-token': token },\n      qs: {\n        where: '(report_date,eq,' + dateInfo.targetDate + ')',\n        sort: '-Id',\n        limit: 5,\n        fields: 'Id,report_date,coupang_revenue,coupang_orders,notes'\n      }\n    });\n    for (const row of (resp.list || [])) {\n      if (!latestDailySales || (parseInt(row.Id) || 0) > (parseInt(latestDailySales.Id) || 0)) latestDailySales = row;\n    }\n  }\n} catch(e) {}\nconst latestDailySalesCoupang = latestDailySales ? num(latestDailySales.coupang_revenue) : 0;\nconst latestDailySalesCoupangOrders = latestDailySales ? num(latestDailySales.coupang_orders) : 0;\nconst hasStoredCoupangFallback = latestDailySalesCoupang > 0 || latestDailySalesCoupangOrders > 0;\n\nconst isPersonalPaymentOrder = (entry) => {\n  const products = entry && entry.product ? entry.product : {};\n  const list = Array.isArray(products) ? products : Object.values(products || {});\n  const pattern = /개인\\s*결제|개별\\s*결제|개인\\s*결재|개별\\s*결재|개인결제|개별결제|개인결재|개별결재/i;\n  for (const p of list) {\n    const cate1 = String((p && p.product_cate1) || '');\n    const brand = String((p && p.brandcode) || '');\n    // PRESSCO21 개인결제 전용 카테고리: 097 / brandcode 097001...\n    if (cate1 === '097' || brand.indexOf('097001') === 0) return true;\n    const text = String((p && p.product_name) || '') + ' ' + String((p && p.option_data) || '') + ' ' + String((p && p.custom_option_data) || '');\n    if (pattern.test(text)) return true;\n  }\n  return false;\n};\n\nconst personalPaymentMatchText = (entry) => {\n  const order = entry && entry.order ? entry.order : entry;\n  const products = entry && entry.product ? entry.product : {};\n  const list = Array.isArray(products) ? products : Object.values(products || {});\n  const parts = [order && order.sender, order && order.memo, order && order.add_info, order && order.barcode, order && order.ordernum];\n  for (const p of list) {\n    parts.push(\n      p && p.product_name,\n      p && p.option_data,\n      p && p.custom_option_data,\n      p && p.product_uid,\n      p && p.product_no,\n      p && p.product_code,\n      p && p.barcode,\n      p && p.brandcode,\n      p && p.stock_key\n    );\n  }\n  return parts.filter(Boolean).join(' ');\n};\nconst normalizeMatchText = (value) => String(value || '')\n  .toLowerCase()\n  .replace(/개인\\s*결제|개별\\s*결제|개인\\s*결재|개별\\s*결재|개인결제건?|개별결제건?|개인결재건?|개별결재건?/g, ' ')\n  .replace(/\\(주\\)|주식회사|님|고객|귀하/g, ' ')\n  .replace(/[^0-9a-z가-힣]+/g, ' ')\n  .trim();\nconst hasTextOverlap = (left, right) => {\n  const a = normalizeMatchText(left);\n  const b = normalizeMatchText(right);\n  if (!a || !b) return false;\n  const compactA = a.replace(/\\s+/g, '');\n  const compactB = b.replace(/\\s+/g, '');\n  if (compactA.length >= 3 && compactB.length >= 3 && (compactA.includes(compactB) || compactB.includes(compactA))) return true;\n  const tokensA = a.split(/\\s+/).filter((token) => token.length >= 2);\n  const tokensB = new Set(b.split(/\\s+/).filter((token) => token.length >= 2));\n  return tokensA.some((token) => tokensB.has(token));\n};\nconst findCrmPersonalMatch = (entry, amount, invoices) => {\n  const personalText = personalPaymentMatchText(entry);\n  for (const inv of invoices || []) {\n    if (parseInt(inv.total_amount || 0) !== amount) continue;\n    const crmText = [inv.customer_name, inv.invoice_no, inv.memo].filter(Boolean).join(' ');\n    if (hasTextOverlap(personalText, crmText)) return inv;\n  }\n  return null;\n};\n\n// ── 0. CRM 직접거래 선파싱 ──\nlet crmRevenue = 0, crmOrders = 0;\nlet crmInvoices = [];\ntry {\n  const crmResp = $('CRM 직접거래 조회').first().json;\n  if (crmResp.error) throw new Error(crmResp.error);\n  crmInvoices = crmResp.list || [];\n  for (const inv of crmInvoices) {\n    if (inv.payment_status === 'cancelled') continue;\n    crmRevenue += parseInt(inv.total_amount || 0);\n    crmOrders++;\n  }\n} catch(e) { crmRevenue = existingCrm; }\nlet crmMatchInvoices = crmInvoices;\ntry {\n  const crmMatchResp = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/ml81i9mcuw0pjzk',\n    headers: { 'xc-token': $env.NOCODB_TOKEN },\n    qs: { sort: '-invoice_date', fields: 'Id,invoice_date,invoice_no,customer_name,total_amount,payment_status,memo', limit: 1000 }\n  });\n  crmMatchInvoices = (crmMatchResp.list || []).filter((inv) => inv.payment_status !== 'cancelled');\n} catch(e) {}\n\n// ── 1. 메이크샵 파싱 ──\nlet msRevenue = 0, msOrders = 0, msCancels = 0;\nlet msPersonalExcluded = 0, msPersonalIncluded = 0, msStatusSIncluded = 0;\ntry {\n  let orderResp = $('메이크샵 주문 조회').first().json;\n  if (typeof orderResp.data === 'string') {\n    try { orderResp = JSON.parse(orderResp.data); } catch(e) {}\n  }\n  if (typeof orderResp === 'string') {\n    try { orderResp = JSON.parse(orderResp); } catch(e) { orderResp = {}; }\n  }\n  const rawList = Array.isArray(orderResp.list) ? orderResp.list : (orderResp.list ? Object.values(orderResp.list) : []);\n  for (const entry of rawList) {\n    const o = entry.order || entry;\n    const status = String(o.order_status || o.ord_state || '');\n    // Y=결제완료, S=배송/처리 진행 후에도 결제 완료 매출로 유지한다.\n    // N/C 등 미입금·취소 상태만 제외한다.\n    const isRevenueStatus = status === 'Y' || status === 'S';\n    if (!isRevenueStatus) { msCancels++; continue; }\n    const amount = parseInt(o.pay_price || o.total_product_price || o.start_price || 0);\n    // 개인결제 상품은 CRM/직접거래 원장과 강하게 매칭될 때만 메이크샵에서 제외한다.\n    // CRM 매칭이 없으면 예외 개인결제 매출로 보고 메이크샵 매출에 1회 반영한다.\n    if (isPersonalPaymentOrder(entry)) {\n      const crmMatch = findCrmPersonalMatch(entry, amount, crmMatchInvoices);\n      if (crmMatch) { msPersonalExcluded += amount; continue; }\n      msPersonalIncluded += amount;\n    }\n    if (status === 'S') msStatusSIncluded += amount;\n    msRevenue += amount;\n    msOrders++;\n  }\n} catch(e) {}\n\n// ── 2. 네이버 ──\nlet nvRevenue = 0, nvOrders = 0, nvError = '';\ntry {\n  const nv = $('네이버 주문 조회').first().json;\n  nvRevenue = nv.totalRevenue || 0;\n  nvOrders = nv.totalOrders || 0;\n  nvError = nv.error || '';\n  if (nvError) nvRevenue = existingNaver;\n} catch(e) { nvError = e.message; nvRevenue = existingNaver; }\n\n// ── 3. 11번가 ──\nlet stRevenue = 0, stOrders = 0, stError = '';\ntry {\n  const st = $('11번가 주문 조회').first().json;\n  stRevenue = st.totalRevenue || 0;\n  stOrders = st.totalOrders || 0;\n  stError = st.error || '';\n  if (stError) stRevenue = existingSt11;\n} catch(e) { stError = e.message; stRevenue = existingSt11; }\n\n// ── 4. 쿠팡윙 ──\nlet cpRevenue = 0, cpOrders = 0, cpError = '', cpSkipped = false, cpNote = '', cpSource = 'coupang_wing_openapi';\ntry {\n  const cp = $('쿠팡윙 주문 조회').first().json;\n  cpSkipped = !!cp.skipped;\n  if (cpSkipped) {\n    if (hasStoredCoupangFallback) {\n      cpRevenue = latestDailySalesCoupang;\n      cpOrders = latestDailySalesCoupangOrders;\n      cpSource = 'nocodb_existing';\n      cpNote = (cp.reason || '쿠팡 API 휴지시간') + ' — 최신 NocoDB 확정값 유지';\n    } else if (existingCoupang > 0) {\n      cpRevenue = existingCoupang;\n      cpOrders = 0;\n      cpSource = 'sheet_existing_during_blackout';\n      cpNote = (cp.reason || '쿠팡 API 휴지시간') + ' — 기존 구글시트 G열 값 유지';\n    } else {\n      cpRevenue = 0;\n      cpOrders = 0;\n      cpSource = 'pending_backfill';\n      cpNote = (cp.reason || '쿠팡 API 휴지시간') + ' — 확정된 기존값이 없어 추후 수동 재조회 필요';\n    }\n  } else {\n    cpRevenue = cp.totalRevenue || 0;\n    cpOrders = cp.totalOrders || 0;\n    cpError = cp.error || '';\n    // API 오류/한도/인증 오류가 있으면 0으로 덮지 않고 최신 확정값 → 기존 G열 순으로 유지한다.\n    if (cpError) {\n      if (hasStoredCoupangFallback) {\n        cpRevenue = latestDailySalesCoupang;\n        cpOrders = latestDailySalesCoupangOrders;\n        cpSource = 'nocodb_existing';\n        cpNote = '쿠팡 API 오류 — 최신 NocoDB 확정값 유지: ' + cpError.slice(0, 80);\n      } else if (existingCoupang > 0) {\n        cpRevenue = existingCoupang;\n        cpOrders = 0;\n        cpSource = 'sheet_existing_on_error';\n        cpNote = '쿠팡 API 오류 — 기존 구글시트 G열 값 유지: ' + cpError.slice(0, 80);\n      } else {\n        cpRevenue = 0;\n        cpOrders = 0;\n        cpSource = 'pending_backfill';\n        cpNote = '쿠팡 API 오류 — 확정된 기존값이 없어 추후 수동 재조회 필요: ' + cpError.slice(0, 80);\n      }\n    }\n  }\n} catch(e) {\n  cpError = e.message;\n  if (hasStoredCoupangFallback) {\n    cpRevenue = latestDailySalesCoupang;\n    cpOrders = latestDailySalesCoupangOrders;\n    cpSource = 'nocodb_existing';\n    cpNote = '쿠팡 API 예외 — 최신 NocoDB 확정값 유지: ' + cpError.slice(0, 80);\n  } else if (existingCoupang > 0) {\n    cpRevenue = existingCoupang;\n    cpOrders = 0;\n    cpSource = 'sheet_existing_on_exception';\n    cpNote = '쿠팡 API 예외 — 기존 구글시트 G열 값 유지: ' + cpError.slice(0, 80);\n  } else {\n    cpRevenue = 0;\n    cpOrders = 0;\n    cpSource = 'pending_backfill';\n    cpNote = '쿠팡 API 예외 — 확정된 기존값이 없어 추후 수동 재조회 필요: ' + cpError.slice(0, 80);\n  }\n}\n// ── 5. CRM 직접거래: 위에서 선파싱 완료 ──\n\n// ── 총계 ──\nconst totalRevenue = msRevenue + nvRevenue + stRevenue + cpRevenue + crmRevenue;\nconst totalOrders = msOrders + nvOrders + stOrders + cpOrders + crmOrders;\nconst fmt = (n) => n.toLocaleString('ko-KR');\nconst pct = (n) => totalRevenue > 0 ? Math.round(n / totalRevenue * 100) : 0;\n\n// ── 리포트 생성 ──\nlet msg = '<b>[전일 매출] ' + dateInfo.label + '</b>\\n';\nmsg += '━━━━━━━━━━━━━━━━━━━\\n';\nmsg += '\\uD83D\\uDCB0 총 매출: <b>' + fmt(totalRevenue) + '원</b> (' + totalOrders + '건)\\n\\n';\nmsg += '채널별:\\n';\nmsg += '\\uD83C\\uDFEA 메이크샵  ' + fmt(msRevenue) + '원 (' + msOrders + '건) ' + pct(msRevenue) + '%';\nif (msCancels > 0) msg += ' | 제외 ' + msCancels + '건';\nif (msStatusSIncluded > 0) msg += ' | S상태 포함 ' + fmt(msStatusSIncluded) + '원';\nif (msPersonalIncluded > 0) msg += ' | 개인결제 미매칭 포함 ' + fmt(msPersonalIncluded) + '원';\nmsg += '\\n';\n\nif (nvError) {\n  msg += '\\uD83D\\uDFE2 네이버     (API 오류)\\n';\n} else {\n  msg += '\\uD83D\\uDFE2 네이버     ' + fmt(nvRevenue) + '원 (' + nvOrders + '건) ' + pct(nvRevenue) + '%\\n';\n}\n\nif (stError) {\n  msg += '\\uD83D\\uDD34 11번가     (API 오류)\\n';\n} else {\n  msg += '\\uD83D\\uDD34 11번가     ' + fmt(stRevenue) + '원 (' + stOrders + '건) ' + pct(stRevenue) + '%\\n';\n}\n\nif (cpSkipped) {\n  msg += '\\uD83D\\uDCE6 쿠팡윙     ' + fmt(cpRevenue) + '원 (API 휴지시간, ' + (cpSource === 'nocodb_existing' ? '기존 확정값 유지' : cpSource === 'pending_backfill' ? '추후 재조회 필요' : '기존값 유지') + ') ' + pct(cpRevenue) + '%\\n';\n} else if (cpError) {\n  msg += '\\uD83D\\uDCE6 쿠팡윙     (API 오류)\\n';\n} else {\n  msg += '\\uD83D\\uDCE6 쿠팡윙     ' + fmt(cpRevenue) + '원 (' + cpOrders + '건) ' + pct(cpRevenue) + '%\\n';\n}\n\nmsg += '\\uD83D\\uDCDE 직접거래  ' + fmt(crmRevenue) + '원 (' + crmOrders + '건) ' + pct(crmRevenue) + '%\\n';\n\n// 에러/휴지시간 요약\nconst errors = [];\nif (nvError) errors.push('네이버: ' + nvError.slice(0, 50));\nif (stError) errors.push('11번가: ' + stError.slice(0, 50));\nif (cpError) errors.push('쿠팡윙: ' + cpError.slice(0, 50));\nif (errors.length > 0) {\n  msg += '\\n\\u26A0\\uFE0F API 오류:\\n' + errors.map(e => '  · ' + e).join('\\n') + '\\n';\n}\nif (cpNote) {\n  msg += '\\n\\u26A0\\uFE0F ' + cpNote + '\\n';\n}\n\nif (totalOrders === 0) {\n  msg = '<b>[전일 매출] ' + dateInfo.label + '</b>\\n━━━━━━━━━━━━━━━━━━━\\n주문이 없습니다.';\n  if (errors.length > 0) msg += '\\n\\n\\u26A0\\uFE0F API 오류 (데이터 불완전):\\n' + errors.map(e => '  · ' + e).join('\\n');\n  if (cpNote) msg += '\\n\\n\\u26A0\\uFE0F ' + cpNote;\n}\n\nreturn [{ json: {\n  message: msg,\n  chatId: dateInfo.chatId,\n  reportDate: dateInfo.targetDate,\n  makeshop: { revenue: msRevenue, orders: msOrders, cancels: msCancels, personalExcluded: msPersonalExcluded, personalIncluded: msPersonalIncluded, statusSIncluded: msStatusSIncluded },\n  naver: { revenue: nvRevenue, orders: nvOrders, error: nvError },\n  st11: { revenue: stRevenue, orders: stOrders, error: stError },\n  coupang: { revenue: cpRevenue, orders: cpOrders, error: cpError, skipped: cpSkipped, note: cpNote, source: cpSource },\n  crm: { revenue: crmRevenue, orders: crmOrders },\n  total: { revenue: totalRevenue, orders: totalOrders },\n  sheetsRow: dateInfo.sheetsRow\n} }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2280,
+        350
+      ],
+      "id": "node-aggregate",
+      "name": "통합 집계"
+    },
+    {
+      "parameters": {
+        "method": "PUT",
+        "url": "=https://sheets.googleapis.com/v4/spreadsheets/1B6F3XJLjK5WWaoOLy6f8JafjYNWs0-NQvVBvWKwTzhM/values/%EC%9D%BC%EB%B3%84%20%EB%A7%A4%EC%B6%9C!C{{ $('통합 집계').first().json.sheetsRow }}:G{{ $('통합 집계').first().json.sheetsRow }}?valueInputOption=USER_ENTERED",
+        "authentication": "predefinedCredentialType",
+        "nodeCredentialType": "googleDriveOAuth2Api",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ values: [[ $('통합 집계').first().json.makeshop.revenue || 0, $('통합 집계').first().json.naver.revenue || 0, $('통합 집계').first().json.st11.revenue || 0, $('통합 집계').first().json.crm.revenue || 0, $('통합 집계').first().json.coupang.revenue || 0 ]] }) }}",
+        "options": {
+          "timeout": 10000
+        }
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [
+        2440,
+        350
+      ],
+      "id": "node-sheets",
+      "name": "Sheets 기입",
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "2e6e75e1-2d4f-40ac-b992-c12aef75e69e",
+          "name": "Pressco21-GoogleDrive"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const aggregate = $('통합 집계').first().json;\nlet sheetsResult = {};\ntry { sheetsResult = $('Sheets 기입').first().json || {}; } catch (e) { sheetsResult = { error: e.message }; }\n\nconst messageFrom = (value) => {\n  if (!value) return '';\n  if (typeof value === 'string') return value;\n  if (value.message) return String(value.message);\n  if (value.error && value.error.message) return String(value.error.message);\n  try { return JSON.stringify(value).slice(0, 500); } catch (e) { return String(value); }\n};\n\nconst sheetsError = sheetsResult.error || sheetsResult.message || sheetsResult.status === 'error'\n  ? messageFrom(sheetsResult.error || sheetsResult.message || sheetsResult)\n  : '';\nconst sheetsOk = !sheetsError;\nconst channelErrors = [];\nfor (const key of ['makeshop', 'naver', 'st11', 'crm', 'coupang']) {\n  const row = aggregate[key] || {};\n  if (row.error) channelErrors.push(key + ': ' + String(row.error).slice(0, 120));\n}\n\nconst row = aggregate.sheetsRow;\nconst range = '일별 매출!C' + row + ':G' + row;\nconst coupang = aggregate.coupang || {};\nconst coupangSource = String(coupang.source || '');\nconst coupangNeedsBackfill = coupangSource === 'pending_backfill';\nconst coupangUsedFallback = coupangSource.indexOf('existing') >= 0 || coupangSource.indexOf('sheet_existing') >= 0;\nconst coupangApiIssue = !!coupang.error || !!coupang.skipped || coupangNeedsBackfill;\nconst opsAlerts = [];\n\nif (!sheetsOk) {\n  opsAlerts.push('<b>[운영알림][F23] Google Sheets 기입 실패</b>\\n'\n    + '날짜: ' + aggregate.reportDate + '\\n'\n    + '범위: ' + range + '\\n'\n    + '조치: NocoDB upsert는 계속 시도됩니다. F24/F26은 NocoDB 기준으로 확인하세요.\\n'\n    + '오류: ' + String(sheetsError).slice(0, 700));\n}\n\nif (channelErrors.length) {\n  opsAlerts.push('<b>[운영알림][F23] 채널 API 오류 감지</b>\\n'\n    + '날짜: ' + aggregate.reportDate + '\\n'\n    + channelErrors.map((msg) => '- ' + msg).join('\\n'));\n}\n\nif (coupangNeedsBackfill) {\n  opsAlerts.push('<b>[운영알림][F23] 쿠팡 매출 보류</b>\\n'\n    + '날짜: ' + aggregate.reportDate + '\\n'\n    + '사유: ' + String(coupang.note || coupang.error || '확정값 없음').slice(0, 500) + '\\n'\n    + '조치: 19:30 쿠팡 pending backfill이 자동 재시도합니다.');\n} else if (coupangApiIssue && coupangUsedFallback) {\n  opsAlerts.push('<b>[운영알림][F23] 쿠팡 기존값 유지</b>\\n'\n    + '날짜: ' + aggregate.reportDate + '\\n'\n    + '상태: ' + coupangSource + '\\n'\n    + '메모: ' + String(coupang.note || coupang.error || 'API 휴지시간/오류').slice(0, 500));\n}\n\nconst severity = !sheetsOk || coupangNeedsBackfill ? 'ERROR' : (channelErrors.length || opsAlerts.length ? 'WARN' : 'OK');\nconst opsStatus = {\n  reportDate: aggregate.reportDate,\n  generatedAt: new Date().toISOString(),\n  severity,\n  sheets: {\n    ok: sheetsOk,\n    row,\n    range,\n    error: sheetsError,\n  },\n  channels: {\n    errorCount: channelErrors.length,\n    errors: channelErrors,\n  },\n  coupang: {\n    source: coupangSource,\n    skipped: !!coupang.skipped,\n    needsBackfill: coupangNeedsBackfill,\n    usedFallback: coupangUsedFallback,\n    note: coupang.note || '',\n    error: coupang.error || '',\n  },\n};\n\nreturn [{ json: { ...aggregate, opsStatus, opsAlerts } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2600,
+        350
+      ],
+      "id": "node-sheets-status",
+      "name": "Sheets 저장 상태"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
+        "additionalFields": {
+          "parse_mode": "HTML"
+        }
+      },
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1.2,
+      "position": [
+        2760,
+        350
+      ],
+      "id": "node-telegram",
+      "name": "운영 알림 전송",
+      "credentials": {
+        "telegramApi": {
+          "id": "RdFu3nsFuuO5NCff",
+          "name": "Pressco메이크샵봇"
+        }
+      },
+      "continueOnFail": true
+    },
+    {
+      "parameters": {
+        "jsCode": "const aggregate = $('통합 집계').first().json;\nlet status = {};\ntry { status = $('Sheets 저장 상태').first().json.opsStatus || {}; } catch(e) {}\nconst token = String($env.NOCODB_TOKEN || '').trim();\nconst baseUrl = 'https://nocodb.pressco21.com/api/v1/db/data/noco/pbmo0os7rnvfd48/mwxvxjiqtw177xu';\n\nconst coupang = aggregate.coupang || {};\nconst coupangSource = String(coupang.source || '');\nlet coupangCollectionStatus = 'confirmed';\nif (coupangSource === 'pending_backfill') {\n  coupangCollectionStatus = 'pending_backfill';\n} else if (coupang.skipped && coupangSource === 'nocodb_existing') {\n  coupangCollectionStatus = 'skipped_blackout_nocodb_existing';\n} else if (coupang.skipped && coupangSource.indexOf('sheet_existing') >= 0) {\n  coupangCollectionStatus = 'skipped_blackout_sheet_existing';\n} else if (coupang.error && coupangSource === 'nocodb_existing') {\n  coupangCollectionStatus = 'api_error_nocodb_existing';\n} else if (coupang.error && coupangSource.indexOf('sheet_existing') >= 0) {\n  coupangCollectionStatus = 'api_error_sheet_existing';\n} else if (coupang.error) {\n  coupangCollectionStatus = 'api_error';\n}\n\nconst notesParts = [];\nif (aggregate.naver && aggregate.naver.error) notesParts.push('naver:' + String(aggregate.naver.error).slice(0, 50));\nif (aggregate.st11 && aggregate.st11.error) notesParts.push('11st:' + String(aggregate.st11.error).slice(0, 50));\nif (aggregate.coupang && aggregate.coupang.error) notesParts.push('coupang:' + String(aggregate.coupang.error).slice(0, 50));\nif (aggregate.coupang && aggregate.coupang.note) notesParts.push(String(aggregate.coupang.note));\nif (status.sheets && !status.sheets.ok) notesParts.push('sheets_error:' + String(status.sheets.error || '').slice(0, 80));\nif (coupangCollectionStatus !== 'confirmed') notesParts.push('coupang_collection_status:' + coupangCollectionStatus);\n\nconst payload = {\n  report_date: aggregate.reportDate,\n  makeshop_revenue: aggregate.makeshop.revenue,\n  makeshop_orders: aggregate.makeshop.orders,\n  naver_revenue: aggregate.naver.revenue,\n  naver_orders: aggregate.naver.orders,\n  st11_revenue: aggregate.st11.revenue,\n  st11_orders: aggregate.st11.orders,\n  crm_revenue: aggregate.crm.revenue,\n  crm_orders: aggregate.crm.orders,\n  coupang_revenue: aggregate.coupang.revenue,\n  coupang_orders: aggregate.coupang.orders,\n  coupang_collection_status: coupangCollectionStatus,\n  total_revenue: aggregate.total.revenue,\n  total_orders: aggregate.total.orders,\n  notes: notesParts.join(' ').trim(),\n};\n\nif (!token) {\n  return [{ json: { ok: false, nocodb: { ok: false, action: 'skipped', error: 'NOCODB_TOKEN 미설정', reportDate: aggregate.reportDate }, payload } }];\n}\n\nconst deleteDuplicates = async (rows) => {\n  const deletedIds = [];\n  const errors = [];\n  for (const row of rows.slice(1)) {\n    if (!row || !row.Id) continue;\n    try {\n      await this.helpers.httpRequest({\n        method: 'DELETE',\n        url: baseUrl + '/' + row.Id,\n        headers: { 'xc-token': token },\n        timeout: 10000,\n      });\n      deletedIds.push(row.Id);\n    } catch (e) {\n      errors.push(row.Id + ':' + e.message);\n    }\n  }\n  return { deletedIds, errors };\n};\n\ntry {\n  const existing = await this.helpers.httpRequest({\n    method: 'GET',\n    url: baseUrl,\n    headers: { 'xc-token': token },\n    qs: {\n      where: '(report_date,eq,' + aggregate.reportDate + ')',\n      sort: '-Id',\n      limit: 20,\n      fields: 'Id,report_date'\n    }\n  });\n  const rows = (existing.list || []).filter((row) => String(row.report_date || '').slice(0, 10) === String(aggregate.reportDate));\n  rows.sort((a, b) => (parseInt(b.Id) || 0) - (parseInt(a.Id) || 0));\n  const latest = rows[0];\n\n  if (latest && latest.Id) {\n    await this.helpers.httpRequest({\n      method: 'PATCH',\n      url: baseUrl + '/' + latest.Id,\n      headers: { 'xc-token': token, 'Content-Type': 'application/json' },\n      body: payload,\n      timeout: 10000,\n    });\n    const duplicateCleanup = rows.length > 1 ? await deleteDuplicates(rows) : { deletedIds: [], errors: [] };\n    return [{ json: { ok: duplicateCleanup.errors.length === 0, nocodb: { ok: duplicateCleanup.errors.length === 0, action: 'patch', id: latest.Id, duplicateCount: Math.max(0, rows.length - 1), deletedDuplicateIds: duplicateCleanup.deletedIds, duplicateDeleteErrors: duplicateCleanup.errors, reportDate: aggregate.reportDate }, payload } }];\n  }\n\n  const created = await this.helpers.httpRequest({\n    method: 'POST',\n    url: baseUrl,\n    headers: { 'xc-token': token, 'Content-Type': 'application/json' },\n    body: payload,\n    timeout: 10000,\n  });\n  return [{ json: { ok: true, nocodb: { ok: true, action: 'post', id: created.Id || created.id || null, duplicateCount: 0, deletedDuplicateIds: [], duplicateDeleteErrors: [], reportDate: aggregate.reportDate }, payload } }];\n} catch (e) {\n  return [{ json: { ok: false, nocodb: { ok: false, action: 'error', error: e.message, reportDate: aggregate.reportDate }, payload } }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2920,
+        350
+      ],
+      "id": "node-save",
+      "name": "NocoDB 저장"
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ JSON.stringify({ ok: (($('Sheets 저장 상태').first().json.opsStatus.sheets || {}).ok !== false) && (($('NocoDB 저장').first().json.nocodb || {}).ok !== false), date: $('통합 집계').first().json.reportDate, total_revenue: $('통합 집계').first().json.total.revenue, total_orders: $('통합 집계').first().json.total.orders, channels: { makeshop: $('통합 집계').first().json.makeshop.revenue, naver: $('통합 집계').first().json.naver.revenue, st11: $('통합 집계').first().json.st11.revenue, crm: $('통합 집계').first().json.crm.revenue, coupang: $('통합 집계').first().json.coupang.revenue }, status: { sheets: $('Sheets 저장 상태').first().json.opsStatus.sheets, nocodb: $('NocoDB 저장').first().json.nocodb, coupang: $('Sheets 저장 상태').first().json.opsStatus.coupang, severity: $('Sheets 저장 상태').first().json.opsStatus.severity, alertCount: (($('Sheets 저장 상태').first().json.opsAlerts || []).length) } }) }}"
+      },
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [
+        3160,
+        350
+      ],
+      "id": "node-respond",
+      "name": "응답"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sheetItem = $('Sheets 저장 상태').first().json || {};\nconst saveItem = $('NocoDB 저장').first().json || {};\nconst aggregate = $('통합 집계').first().json || {};\nconst alerts = Array.isArray(sheetItem.opsAlerts) ? [...sheetItem.opsAlerts] : [];\nconst nocodb = saveItem.nocodb || {};\n\nif (nocodb.ok === false) {\n  alerts.push('<b>[운영알림][F23] NocoDB 저장 실패</b>\\n'\n    + '날짜: ' + (aggregate.reportDate || nocodb.reportDate || '') + '\\n'\n    + '조치: 구글시트 값은 기입됐을 수 있으나 원장 기준 F24/F26 리포트가 틀어질 수 있습니다.\\n'\n    + '오류: ' + String(nocodb.error || (nocodb.duplicateDeleteErrors || []).join(' | ') || 'unknown').slice(0, 700));\n} else if ((nocodb.duplicateCount || 0) > 0) {\n  alerts.push('<b>[운영알림][F23] NocoDB 중복 원장 자동 정리</b>\\n'\n    + '날짜: ' + (aggregate.reportDate || nocodb.reportDate || '') + '\\n'\n    + '유지 ID: ' + (nocodb.id || '') + '\\n'\n    + '삭제 ID: ' + (nocodb.deletedDuplicateIds || []).join(', '));\n}\n\nif (!alerts.length) return [];\nreturn [{ json: {\n  chatId: '-5251214343',\n  message: alerts.join('\\n\\n'),\n  reportDate: aggregate.reportDate || nocodb.reportDate || '',\n  alertCount: alerts.length,\n} }];"
+      },
+      "id": "446005a1-38e1-434c-bec0-eeb48518dfab",
+      "name": "운영 알림 필터",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        260
+      ]
+    }
+  ],
+  "connections": {
+    "매일 08:00": {
+      "main": [
+        [
+          {
+            "node": "날짜 계산",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "수동 조회": {
+      "main": [
+        [
+          {
+            "node": "날짜 계산",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "날짜 계산": {
+      "main": [
+        [
+          {
+            "node": "메이크샵 주문 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "메이크샵 주문 조회": {
+      "main": [
+        [
+          {
+            "node": "네이버 인증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "네이버 인증": {
+      "main": [
+        [
+          {
+            "node": "네이버 주문 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "네이버 주문 조회": {
+      "main": [
+        [
+          {
+            "node": "11번가 주문 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "11번가 주문 조회": {
+      "main": [
+        [
+          {
+            "node": "쿠팡윙 주문 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "CRM 직접거래 조회": {
+      "main": [
+        [
+          {
+            "node": "기존 시트 행 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "통합 집계": {
+      "main": [
+        [
+          {
+            "node": "Sheets 기입",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets 기입": {
+      "main": [
+        [
+          {
+            "node": "Sheets 저장 상태",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "NocoDB 저장": {
+      "main": [
+        [
+          {
+            "node": "운영 알림 필터",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "쿠팡윙 주문 조회": {
+      "main": [
+        [
+          {
+            "node": "CRM 직접거래 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "기존 시트 행 조회": {
+      "main": [
+        [
+          {
+            "node": "통합 집계",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets 저장 상태": {
+      "main": [
+        [
+          {
+            "node": "NocoDB 저장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "운영 알림 필터": {
+      "main": [
+        [
+          {
+            "node": "운영 알림 전송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "callerPolicy": "workflowsFromSameOwner",
+    "availableInMCP": false
+  },
+  "staticData": {
+    "node:매일 08:00": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": null,
+  "pinData": null,
+  "versionId": "dd070dd5-e7cf-40c7-9f22-deb115f7c54b",
+  "activeVersionId": "dd070dd5-e7cf-40c7-9f22-deb115f7c54b",
+  "versionCounter": 146,
+  "triggerCount": 2,
+  "shared": [
+    {
+      "updatedAt": "2026-04-08T13:27:35.811Z",
+      "createdAt": "2026-04-08T13:27:35.811Z",
+      "role": "workflow:owner",
+      "workflowId": "DoAlCOG3OU20Wlvj",
+      "projectId": "DIT0WAQj00qvNJUL",
+      "project": {
+        "updatedAt": "2026-02-28T07:51:06.297Z",
+        "createdAt": "2026-02-23T16:25:57.845Z",
+        "id": "DIT0WAQj00qvNJUL",
+        "name": "Unnamed Project",
+        "type": "personal",
+        "icon": null,
+        "description": null,
+        "creatorId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      }
+    }
+  ],
+  "tags": [],
+  "activeVersion": {
+    "updatedAt": "2026-04-25T01:24:22.126Z",
+    "createdAt": "2026-04-25T01:24:22.126Z",
+    "versionId": "dd070dd5-e7cf-40c7-9f22-deb115f7c54b",
+    "workflowId": "DoAlCOG3OU20Wlvj",
+    "nodes": [
+      {
+        "parameters": {
+          "rule": {
+            "interval": [
+              {
+                "triggerAtHour": 8,
+                "triggerAtMinute": 0
+              }
+            ]
+          }
+        },
+        "type": "n8n-nodes-base.scheduleTrigger",
+        "typeVersion": 1.2,
+        "position": [
+          200,
+          200
+        ],
+        "id": "node-schedule",
+        "name": "매일 08:00"
+      },
+      {
+        "parameters": {
+          "httpMethod": "POST",
+          "path": "flora-daily-sales-all",
+          "responseMode": "responseNode",
+          "options": {}
+        },
+        "type": "n8n-nodes-base.webhook",
+        "typeVersion": 2,
+        "position": [
+          200,
+          500
+        ],
+        "id": "node-webhook",
+        "name": "수동 조회",
+        "webhookId": "flora-daily-sales-all"
+      },
+      {
+        "parameters": {
+          "jsCode": "// 스케줄(08:00) → 전일 확정, 웹훅 → body.mode/targetDate 참조\nlet body = {};\ntry { body = $('수동 조회').first().json.body || {}; } catch(e) {}\nconst chatId = String(body.chatId || body.chat_id || '7713811206');\nconst requestedDate = String(body.targetDate || body.target_date || '').trim();\nconst mode = (body.mode || (requestedDate ? 'target-date' : 'yesterday')).toLowerCase();\n\nconst now = new Date();\nconst kstOffset = 9 * 60 * 60 * 1000;\nconst kstNow = new Date(now.getTime() + kstOffset);\n\nconst toDateString = (date) => date.toISOString().slice(0, 10);\nconst buildLabel = (date) => {\n  const m = date.getMonth() + 1;\n  const d = date.getDate();\n  const dow = ['일','월','화','수','목','금','토'][date.getDay()];\n  return `${m}/${d}(${dow}) 확정`;\n};\n\nlet targetDate, label;\nif (/^\\d{4}-\\d{2}-\\d{2}$/.test(requestedDate)) {\n  targetDate = requestedDate;\n  const [y, m, d] = requestedDate.split('-').map(Number);\n  const target = new Date(Date.UTC(y, m - 1, d));\n  label = buildLabel(target);\n} else if (mode === 'today') {\n  targetDate = toDateString(kstNow);\n  const h = parseInt(kstNow.toISOString().slice(11, 13));\n  const min = kstNow.toISOString().slice(14, 16);\n  label = `${kstNow.getMonth()+1}/${kstNow.getDate()} ${h}:${min} 기준 (집계 중)`;\n} else {\n  const yesterday = new Date(kstNow);\n  yesterday.setDate(yesterday.getDate() - 1);\n  targetDate = toDateString(yesterday);\n  label = buildLabel(yesterday);\n}\n\nconst fromDate = targetDate + ' 00:00:00';\nconst toDate = targetDate + ' 23:59:59';\nconst st11Date = targetDate.replace(/-/g, '');\n\n// Google Sheets 일별 매출 행 번호 (A1=헤더, 1/1=2행)\nconst p = targetDate.split('-').map(Number);\nconst target = new Date(Date.UTC(p[0], p[1]-1, p[2]));\nconst jan1 = new Date(Date.UTC(p[0], 0, 1));\nconst sheetsRow = Math.round((target - jan1) / 86400000) + 2;\n\n// 이번 달 누계용 (월 시작~전일)\nconst monthStart = targetDate.slice(0, 7) + '-01 00:00:00';\n\nreturn [{ json: { chatId, mode, requestedDate, targetDate, fromDate, toDate, st11Date, monthStart, label, sheetsRow } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          480,
+          350
+        ],
+        "id": "node-date",
+        "name": "날짜 계산"
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "http://foreverlove.co.kr/list/open_api.html",
+          "sendQuery": true,
+          "queryParameters": {
+            "parameters": [
+              {
+                "name": "mode",
+                "value": "search"
+              },
+              {
+                "name": "type",
+                "value": "order"
+              },
+              {
+                "name": "ver",
+                "value": "2"
+              },
+              {
+                "name": "InquiryTimeFrom",
+                "value": "={{ $('날짜 계산').first().json.fromDate }}"
+              },
+              {
+                "name": "InquiryTimeTo",
+                "value": "={{ $('날짜 계산').first().json.toDate }}"
+              },
+              {
+                "name": "limit",
+                "value": "500"
+              }
+            ]
+          },
+          "sendHeaders": true,
+          "headerParameters": {
+            "parameters": [
+              {
+                "name": "Shopkey",
+                "value": "={{ $env.MAKESHOP_SHOPKEY }}"
+              },
+              {
+                "name": "Licensekey",
+                "value": "={{ $env.MAKESHOP_LICENSEKEY }}"
+              }
+            ]
+          },
+          "options": {
+            "timeout": 15000
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          720,
+          350
+        ],
+        "id": "node-makeshop",
+        "name": "메이크샵 주문 조회",
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// 네이버 커머스 API: bcrypt 서명 + httpRequest로 토큰 발급\nconst bcrypt = require('bcryptjs');\nconst clientId = $env.NAVER_COMMERCE_CLIENT_ID || '';\nconst clientSecret = $env.NAVER_COMMERCE_CLIENT_SECRET || '';\n\nif (!clientId || !clientSecret) {\n  return [{ json: { error: 'NAVER_COMMERCE 환경변수 미설정', accessToken: '' } }];\n}\n\ntry {\n  const timestamp = Date.now();\n  const password = clientId + '_' + timestamp;\n  const hashed = bcrypt.hashSync(password, clientSecret);\n  const signature = Buffer.from(hashed).toString('base64');\n  \n  const tokenData = await this.helpers.httpRequest({\n    method: 'POST',\n    url: 'https://api.commerce.naver.com/external/v1/oauth2/token',\n    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },\n    body: 'client_id=' + encodeURIComponent(clientId) + '&timestamp=' + timestamp + '&client_secret_sign=' + encodeURIComponent(signature) + '&grant_type=client_credentials&type=SELF'\n  });\n  \n  if (!tokenData.access_token) {\n    return [{ json: { error: 'Token: ' + JSON.stringify(tokenData).slice(0, 200), accessToken: '' } }];\n  }\n  return [{ json: { accessToken: tokenData.access_token, error: '' } }];\n} catch (e) {\n  const respBody = e.response && e.response.data ? JSON.stringify(e.response.data).slice(0, 200) : '';\n  return [{ json: { error: 'Naver auth ' + e.message + (respBody ? ' | ' + respBody : ''), accessToken: '' } }];\n}"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          960,
+          350
+        ],
+        "id": "node-naver-auth",
+        "name": "네이버 인증",
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// 네이버 커머스 주문 조회 (GET product-orders)\nconst token = $('네이버 인증').first().json.accessToken || '';\nconst dateInfo = $('날짜 계산').first().json;\n\nif (!token) {\n  return [{ json: { error: $('네이버 인증').first().json.error || 'No token', totalRevenue: 0, totalOrders: 0 } }];\n}\n\ntry {\n  const from = dateInfo.targetDate + 'T00:00:00.000%2B09:00';\n  const to = dateInfo.targetDate + 'T23:59:59.999%2B09:00';\n  \n  const data = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://api.commerce.naver.com/external/v1/pay-order/seller/product-orders?from=' + from + '&to=' + to,\n    headers: { 'Authorization': 'Bearer ' + token }\n  });\n  \n  const contents = (data.data && data.data.contents) || [];\n  const CANCEL = ['CANCELED', 'RETURNED', 'EXCHANGED', 'CANCEL_REQUEST', 'RETURN_REQUEST', 'CANCEL_DONE'];\n  let totalRevenue = 0, totalOrders = 0, cancelCount = 0;\n  \n  for (const item of contents) {\n    const po = item.content && item.content.productOrder;\n    if (!po) continue;\n    const status = po.productOrderStatus || '';\n    if (CANCEL.includes(status)) { cancelCount++; continue; }\n    totalRevenue += parseInt(po.totalPaymentAmount || 0);\n    totalOrders++;\n  }\n  \n  return [{ json: { totalRevenue, totalOrders, cancelCount, rawCount: contents.length, error: '' } }];\n} catch (e) {\n  return [{ json: { error: 'Naver orders: ' + e.message, totalRevenue: 0, totalOrders: 0 } }];\n}"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1200,
+          350
+        ],
+        "id": "node-naver-orders",
+        "name": "네이버 주문 조회",
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// 11번가 Seller API: 주문 상태별 복수 endpoint 조회\n// /complete만 보면 이미 배송/판매완료로 넘어간 주문을 놓친다.\n// targetDate의 주문일(ordDt) 기준으로 complete/packaging/shipping/dlvcompleted/completed를 합산한다.\nconst apiKey = $env.ST11_API_KEY || '';\nconst dateInfo = $('날짜 계산').first().json;\n\nif (!apiKey) {\n  return [{ json: { error: 'ST11_API_KEY 미설정', totalRevenue: 0, totalOrders: 0, rawCount: 0, source: 'st11_multi_status' } }];\n}\n\nconst num = (v) => {\n  if (v === undefined || v === null || v === '') return 0;\n  const s = String(v).replace(/[^0-9.-]/g, '');\n  return parseInt(s) || 0;\n};\nconst get = (chunk, f) => {\n  const re = new RegExp('<(?:ns2:)?' + f + '>([\\\\s\\\\S]*?)</(?:ns2:)?' + f + '>', 'i');\n  const m = chunk.match(re);\n  return m ? String(m[1] || '').replace(/<!\\[CDATA\\[|\\]\\]>/g, '').trim() : '';\n};\nconst date10 = (v) => {\n  const s = String(v || '');\n  if (/^\\d{4}-\\d{2}-\\d{2}/.test(s)) return s.slice(0, 10);\n  if (/^\\d{4}\\d{2}\\d{2}/.test(s)) return s.slice(0, 4) + '-' + s.slice(4, 6) + '-' + s.slice(6, 8);\n  return '';\n};\nconst pickAmount = (chunk) => {\n  // ordAmt가 상품 매출 기준에 가장 잘 맞음. 없으면 결제/상품금액으로 보완.\n  return num(get(chunk, 'ordAmt')) || num(get(chunk, 'ordPayAmt')) || num(get(chunk, 'prdPayAmt')) || num(get(chunk, 'selPrc'));\n};\n\nconst d = dateInfo.st11Date; // yyyyMMdd\nconst startDateTime = d + '0000';\nconst endDateTime = d + '2359';\nconst endpoints = [\n  'complete',\n  'packaging',\n  'shipping',\n  'dlvcompleted',\n  'completed',\n  'reservatecomplete',\n];\n\nconst seen = new Set();\nconst rows = [];\nconst errors = [];\n\nfor (const ep of endpoints) {\n  try {\n    const xml = await this.helpers.httpRequest({\n      method: 'GET',\n      url: 'https://api.11st.co.kr/rest/ordservices/' + ep + '/' + startDateTime + '/' + endDateTime,\n      headers: { openapikey: apiKey },\n      returnFullResponse: false,\n      encoding: 'utf-8',\n      timeout: 20000,\n    });\n    const xmlStr = typeof xml === 'string' ? xml : JSON.stringify(xml);\n    if (xmlStr.includes('조회된 결과가 없습니다') || xmlStr.includes('해당 건이 없습니다')) continue;\n    const orderMatches = xmlStr.match(/<(?:ns2:)?order>[\\s\\S]*?<\\/(?:ns2:)?order>/g) || [];\n    for (const chunk of orderMatches) {\n      const ordDate = date10(get(chunk, 'ordDt'));\n      if (ordDate !== dateInfo.targetDate) continue;\n      const ordNo = get(chunk, 'ordNo');\n      const seq = get(chunk, 'ordPrdSeq');\n      const key = ordNo + '_' + seq;\n      if (seen.has(key)) continue;\n      const amount = pickAmount(chunk);\n      if (amount <= 0) continue;\n      seen.add(key);\n      rows.push({ endpoint: ep, ordNo, seq, amount, ordDate });\n    }\n  } catch (e) {\n    errors.push(ep + ': ' + e.message);\n  }\n}\n\nconst totalRevenue = rows.reduce((sum, r) => sum + r.amount, 0);\nreturn [{ json: { totalRevenue, totalOrders: seen.size, rawCount: rows.length, rows, error: errors.join(' | '), source: 'st11_multi_status' } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1440,
+          350
+        ],
+        "id": "node-11st",
+        "name": "11번가 주문 조회",
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// 쿠팡윙 OpenAPI 주문 조회\n// 운영 정책:\n// - 매일 14:30~19:00(KST)는 사방넷 출고 연동 시간으로 쿠팡 매출 API 사용 금지\n// - 금지 시간에는 API를 호출하지 않고, 뒤쪽 집계 노드가 기존 NocoDB/구글시트 값을 유지한다.\n// - 쿠팡은 간헐 403/429가 발생하므로 상태별 호출 사이를 늦추고, 재시도/페이지네이션을 적용한다.\nconst crypto = require('crypto');\nconst dateInfo = $('날짜 계산').first().json;\n\nconst kstNow = new Date(Date.now() + 9 * 60 * 60 * 1000);\nconst kstIso = kstNow.toISOString();\nconst kstDate = kstIso.slice(0, 10);\nconst kstHour = parseInt(kstIso.slice(11, 13));\nconst kstMinute = parseInt(kstIso.slice(14, 16));\nconst nowMinutes = kstHour * 60 + kstMinute;\nconst isCoupangBlackout = nowMinutes >= (14 * 60 + 30) && nowMinutes < (19 * 60);\n\nif (isCoupangBlackout) {\n  const reason = '14:30~19:00 사방넷 출고 연동 시간';\n  return [{ json: {\n    skipped: true,\n    reason,\n    blackoutWindow: 'KST 14:30-19:00',\n    kstNow: kstDate + ' ' + String(kstHour).padStart(2, '0') + ':' + String(kstMinute).padStart(2, '0'),\n    totalRevenue: 0,\n    totalOrders: 0,\n    rawCount: 0,\n    error: '',\n    source: 'coupang_wing_openapi_skipped',\n  } }];\n}\n\nconst accessKey = $env.COUPANG_ACCESS_KEY || $env.COUPANG_API_ACCESS_KEY || '';\nconst secretKey = $env.COUPANG_SECRET_KEY || $env.COUPANG_API_SECRET_KEY || '';\nconst vendorId = $env.COUPANG_VENDOR_ID || $env.COUPANG_API_VENDOR_ID || '';\nconst baseUrl = $env.COUPANG_API_BASE_URL || 'https://api-gateway.coupang.com';\n\nif (!accessKey || !secretKey || !vendorId) {\n  return [{ json: {\n    skipped: true,\n    reason: 'COUPANG 환경변수 미설정 — 기존 구글시트 G열 값 유지',\n    totalRevenue: 0,\n    totalOrders: 0,\n    rawCount: 0,\n    error: 'COUPANG_ACCESS_KEY / COUPANG_SECRET_KEY / COUPANG_VENDOR_ID 미설정',\n    source: 'coupang_wing_openapi_skipped_missing_env',\n  } }];\n}\n\nconst sleep = (ms) => new Promise((resolve) => setTimeout(resolve, ms));\nconst signedDate = () => {\n  const iso = new Date().toISOString();\n  return iso.slice(2, 4) + iso.slice(5, 7) + iso.slice(8, 10) + 'T' + iso.slice(11, 13) + iso.slice(14, 16) + iso.slice(17, 19) + 'Z';\n};\n\nconst makeAuthHeader = (method, path, query) => {\n  const ts = signedDate();\n  const message = ts + method + path + query;\n  const signature = crypto.createHmac('sha256', secretKey).update(message).digest('hex');\n  return 'CEA algorithm=HmacSHA256, access-key=' + accessKey + ', signed-date=' + ts + ', signature=' + signature;\n};\n\nconst enc = (v) => encodeURIComponent(String(v));\nconst queryString = (obj) => Object.keys(obj)\n  .filter((k) => obj[k] !== undefined && obj[k] !== null && obj[k] !== '')\n  .map((k) => enc(k) + '=' + enc(obj[k]))\n  .join('&');\n\nconst money = (v) => {\n  if (v === undefined || v === null || v === '') return 0;\n  if (typeof v === 'number') return Math.round(v);\n  if (typeof v === 'string') return parseInt(v.replace(/[^0-9.-]/g, '')) || 0;\n  if (typeof v === 'object') {\n    const units = parseInt(v.units || v.amount || v.value || 0) || 0;\n    const nanos = parseInt(v.nanos || 0) || 0;\n    return units + Math.round(nanos / 1000000000);\n  }\n  return 0;\n};\n\nconst summarizeError = (e) => {\n  const parts = [];\n  const statusCode = e && (e.statusCode || e.httpCode || (e.response && (e.response.statusCode || e.response.status)));\n  if (statusCode) parts.push('HTTP ' + statusCode);\n  const body = e && e.response && (e.response.body || e.response.data);\n  if (body) {\n    if (typeof body === 'string') {\n      try {\n        const parsed = JSON.parse(body);\n        if (parsed.code) parts.push('code=' + parsed.code);\n        if (parsed.message) parts.push(String(parsed.message).slice(0, 120));\n      } catch (parseError) {\n        parts.push(body.slice(0, 120));\n      }\n    } else if (typeof body === 'object') {\n      if (body.code) parts.push('code=' + body.code);\n      if (body.message) parts.push(String(body.message).slice(0, 120));\n    }\n  }\n  if (e && e.message) parts.push(String(e.message).slice(0, 120));\n  return parts.filter(Boolean).join(' / ') || 'unknown error';\n};\n\nconst isRetryableError = (e) => {\n  const statusCode = e && (e.statusCode || e.httpCode || (e.response && (e.response.statusCode || e.response.status)));\n  if ([403, 408, 409, 425, 429, 500, 502, 503, 504].includes(Number(statusCode))) return true;\n  const msg = String((e && e.message) || '').toLowerCase();\n  return msg.includes('timeout') || msg.includes('econnreset') || msg.includes('socket hang up');\n};\n\nconst path = '/v2/providers/openapi/apis/api/v5/vendors/' + encodeURIComponent(vendorId) + '/ordersheets';\nconst from = dateInfo.targetDate + 'T00:00+09:00';\nconst to = dateInfo.targetDate + 'T23:59+09:00';\nconst statuses = ['ACCEPT', 'INSTRUCT', 'DEPARTURE', 'DELIVERING', 'FINAL_DELIVERY', 'NONE_TRACKING'];\nconst statusDelayMs = 1200;\nconst pageDelayMs = 450;\nconst maxAttempts = 3;\nconst maxPagesPerStatus = 20;\n\nconst requestPage = async (query, status) => {\n  let lastError = null;\n  for (let attempt = 1; attempt <= maxAttempts; attempt++) {\n    try {\n      const auth = makeAuthHeader('GET', path, query);\n      let resp = await this.helpers.httpRequest({\n        method: 'GET',\n        url: baseUrl + path + '?' + query,\n        headers: {\n          Authorization: auth,\n          'Content-Type': 'application/json;charset=UTF-8',\n        },\n        timeout: 30000,\n      });\n      if (typeof resp === 'string') {\n        try { resp = JSON.parse(resp); } catch(e) { resp = { raw: resp }; }\n      }\n      if (resp && resp.code && String(resp.code) !== '200' && String(resp.code).toUpperCase() !== 'SUCCESS') {\n        throw new Error('Coupang body error ' + (resp.message || resp.code));\n      }\n      return { resp, attempts: attempt };\n    } catch (e) {\n      lastError = e;\n      if (attempt >= maxAttempts || !isRetryableError(e)) break;\n      await sleep(statusDelayMs * attempt);\n    }\n  }\n  throw new Error(status + ': ' + summarizeError(lastError));\n};\n\nlet totalRevenue = 0;\nconst orderIds = new Set();\nconst lineKeys = new Set();\nconst apiErrors = [];\nconst statusSummary = [];\nlet rawCount = 0;\nlet retryCount = 0;\n\nfor (const status of statuses) {\n  let nextToken = '';\n  let pages = 0;\n  let statusRows = 0;\n  let statusAmount = 0;\n  let statusRetries = 0;\n\n  try {\n    while (pages < maxPagesPerStatus) {\n      pages++;\n      const query = queryString({\n        createdAtFrom: from,\n        createdAtTo: to,\n        searchType: 'timeFrame',\n        status,\n        nextToken,\n      });\n      const pageResult = await requestPage(query, status);\n      const resp = pageResult.resp;\n      const attempts = pageResult.attempts || 1;\n      if (attempts > 1) {\n        statusRetries += attempts - 1;\n        retryCount += attempts - 1;\n      }\n\n      const rows = Array.isArray(resp && resp.data) ? resp.data : [];\n      rawCount += rows.length;\n      statusRows += rows.length;\n\n      for (const order of rows) {\n        const orderId = String(order.orderId || order.shipmentBoxId || '');\n        if (orderId) orderIds.add(orderId);\n        const items = Array.isArray(order.orderItems) ? order.orderItems : [];\n        for (const item of items) {\n          if (item.canceled === true) continue;\n          const shippingCount = parseInt(item.shippingCount || item.salesQuantity || 1) || 1;\n          const cancelCount = parseInt(item.cancelCount || 0) || 0;\n          const holdCount = parseInt(item.holdCountForCancel || 0) || 0;\n          const activeCount = Math.max(0, shippingCount - cancelCount - holdCount);\n          if (activeCount <= 0) continue;\n\n          const key = [orderId, order.shipmentBoxId || '', item.vendorItemId || '', item.sellerProductId || '', item.vendorItemName || item.productName || ''].join(':');\n          if (lineKeys.has(key)) continue;\n          lineKeys.add(key);\n\n          let lineAmount = money(item.orderPrice);\n          if (lineAmount <= 0) {\n            const unit = money(item.salesPrice || item.unitSalesPrice);\n            lineAmount = unit * activeCount;\n          } else if (activeCount !== shippingCount && shippingCount > 0) {\n            lineAmount = Math.round(lineAmount * activeCount / shippingCount);\n          }\n          totalRevenue += lineAmount;\n          statusAmount += lineAmount;\n        }\n      }\n\n      nextToken = resp && resp.nextToken ? String(resp.nextToken) : '';\n      if (!nextToken) break;\n      await sleep(pageDelayMs);\n    }\n\n    if (nextToken) {\n      apiErrors.push(status + ': page limit exceeded with nextToken remaining');\n    }\n    statusSummary.push({ status, rows: statusRows, pages, amount: statusAmount, retries: statusRetries, truncated: !!nextToken });\n  } catch (e) {\n    apiErrors.push(e.message || String(e));\n    statusSummary.push({ status, rows: statusRows, pages, amount: statusAmount, retries: statusRetries, error: (e.message || String(e)).slice(0, 160) });\n  }\n\n  await sleep(statusDelayMs);\n}\n\nreturn [{ json: {\n  skipped: false,\n  totalRevenue,\n  totalOrders: orderIds.size,\n  rawCount,\n  lineCount: lineKeys.size,\n  retryCount,\n  statusSummary,\n  error: apiErrors.join(' | '),\n  source: 'coupang_wing_openapi',\n} }];\n"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1680,
+          350
+        ],
+        "id": "8741350d-b602-41ce-bf89-91b4575946aa",
+        "name": "쿠팡윙 주문 조회",
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "// CRM 직접거래: NocoDB에서 최근 명세표 조회 후 날짜 필터\nconst dateInfo = $('날짜 계산').first().json;\nconst token = $env.NOCODB_TOKEN || '';\n\nif (!token) {\n  return [{ json: { list: [], error: 'NOCODB_TOKEN 미설정' } }];\n}\n\ntry {\n  const data = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/ml81i9mcuw0pjzk',\n    headers: { 'xc-token': token },\n    qs: { sort: '-invoice_date', fields: 'Id,invoice_date,total_amount,payment_status', limit: 500 }\n  });\n  \n  const allInvoices = data.list || [];\n  const filtered = allInvoices.filter(inv => String(inv.invoice_date || '').startsWith(dateInfo.targetDate));\n  \n  return [{ json: { list: filtered, error: '' } }];\n} catch (e) {\n  return [{ json: { list: [], error: 'CRM: ' + e.message } }];\n}"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          1920,
+          350
+        ],
+        "id": "node-crm",
+        "name": "CRM 직접거래 조회",
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "method": "GET",
+          "url": "=https://sheets.googleapis.com/v4/spreadsheets/1B6F3XJLjK5WWaoOLy6f8JafjYNWs0-NQvVBvWKwTzhM/values/%EC%9D%BC%EB%B3%84%20%EB%A7%A4%EC%B6%9C!C{{ $('날짜 계산').first().json.sheetsRow }}:J{{ $('날짜 계산').first().json.sheetsRow }}",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleDriveOAuth2Api",
+          "options": {
+            "timeout": 10000
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2080,
+          350
+        ],
+        "id": "f10a02a5-ed04-42a3-b34c-e7cd2015f06e",
+        "name": "기존 시트 행 조회",
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "2e6e75e1-2d4f-40ac-b992-c12aef75e69e",
+            "name": "Pressco21-GoogleDrive"
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const dateInfo = $('날짜 계산').first().json;\n\nconst num = (v) => {\n  if (v === undefined || v === null || v === '') return 0;\n  return parseInt(String(v).replace(/[^0-9.-]/g, '')) || 0;\n};\n\nlet existingRow = [];\ntry {\n  const sheetResp = $('기존 시트 행 조회').first().json || {};\n  existingRow = (sheetResp.values && sheetResp.values[0]) || [];\n} catch(e) {}\nconst existingMakeShop = num(existingRow[0]);\nconst existingNaver = num(existingRow[1]);\nconst existingSt11 = num(existingRow[2]);\nconst existingCrm = num(existingRow[3]);\nconst existingCoupang = num(existingRow[4]); // C:J 조회 기준 G열\n\n// 같은 날짜의 최신 daily_sales 레코드가 있으면, 쿠팡 API 오류/휴지시간 재실행 시 해당 값을 우선 보존한다.\nlet latestDailySales = null;\ntry {\n  const token = String($env.NOCODB_TOKEN || '').trim();\n  if (token) {\n    const resp = await this.helpers.httpRequest({\n      method: 'GET',\n      url: 'https://nocodb.pressco21.com/api/v1/db/data/noco/pbmo0os7rnvfd48/mwxvxjiqtw177xu',\n      headers: { 'xc-token': token },\n      qs: {\n        where: '(report_date,eq,' + dateInfo.targetDate + ')',\n        sort: '-Id',\n        limit: 5,\n        fields: 'Id,report_date,coupang_revenue,coupang_orders,notes'\n      }\n    });\n    for (const row of (resp.list || [])) {\n      if (!latestDailySales || (parseInt(row.Id) || 0) > (parseInt(latestDailySales.Id) || 0)) latestDailySales = row;\n    }\n  }\n} catch(e) {}\nconst latestDailySalesCoupang = latestDailySales ? num(latestDailySales.coupang_revenue) : 0;\nconst latestDailySalesCoupangOrders = latestDailySales ? num(latestDailySales.coupang_orders) : 0;\nconst hasStoredCoupangFallback = latestDailySalesCoupang > 0 || latestDailySalesCoupangOrders > 0;\n\nconst isPersonalPaymentOrder = (entry) => {\n  const products = entry && entry.product ? entry.product : {};\n  const list = Array.isArray(products) ? products : Object.values(products || {});\n  const pattern = /개인\\s*결제|개별\\s*결제|개인\\s*결재|개별\\s*결재|개인결제|개별결제|개인결재|개별결재/i;\n  for (const p of list) {\n    const cate1 = String((p && p.product_cate1) || '');\n    const brand = String((p && p.brandcode) || '');\n    // PRESSCO21 개인결제 전용 카테고리: 097 / brandcode 097001...\n    if (cate1 === '097' || brand.indexOf('097001') === 0) return true;\n    const text = String((p && p.product_name) || '') + ' ' + String((p && p.option_data) || '') + ' ' + String((p && p.custom_option_data) || '');\n    if (pattern.test(text)) return true;\n  }\n  return false;\n};\n\nconst personalPaymentMatchText = (entry) => {\n  const order = entry && entry.order ? entry.order : entry;\n  const products = entry && entry.product ? entry.product : {};\n  const list = Array.isArray(products) ? products : Object.values(products || {});\n  const parts = [order && order.sender, order && order.memo, order && order.add_info, order && order.barcode, order && order.ordernum];\n  for (const p of list) {\n    parts.push(\n      p && p.product_name,\n      p && p.option_data,\n      p && p.custom_option_data,\n      p && p.product_uid,\n      p && p.product_no,\n      p && p.product_code,\n      p && p.barcode,\n      p && p.brandcode,\n      p && p.stock_key\n    );\n  }\n  return parts.filter(Boolean).join(' ');\n};\nconst normalizeMatchText = (value) => String(value || '')\n  .toLowerCase()\n  .replace(/개인\\s*결제|개별\\s*결제|개인\\s*결재|개별\\s*결재|개인결제건?|개별결제건?|개인결재건?|개별결재건?/g, ' ')\n  .replace(/\\(주\\)|주식회사|님|고객|귀하/g, ' ')\n  .replace(/[^0-9a-z가-힣]+/g, ' ')\n  .trim();\nconst hasTextOverlap = (left, right) => {\n  const a = normalizeMatchText(left);\n  const b = normalizeMatchText(right);\n  if (!a || !b) return false;\n  const compactA = a.replace(/\\s+/g, '');\n  const compactB = b.replace(/\\s+/g, '');\n  if (compactA.length >= 3 && compactB.length >= 3 && (compactA.includes(compactB) || compactB.includes(compactA))) return true;\n  const tokensA = a.split(/\\s+/).filter((token) => token.length >= 2);\n  const tokensB = new Set(b.split(/\\s+/).filter((token) => token.length >= 2));\n  return tokensA.some((token) => tokensB.has(token));\n};\nconst findCrmPersonalMatch = (entry, amount, invoices) => {\n  const personalText = personalPaymentMatchText(entry);\n  for (const inv of invoices || []) {\n    if (parseInt(inv.total_amount || 0) !== amount) continue;\n    const crmText = [inv.customer_name, inv.invoice_no, inv.memo].filter(Boolean).join(' ');\n    if (hasTextOverlap(personalText, crmText)) return inv;\n  }\n  return null;\n};\n\n// ── 0. CRM 직접거래 선파싱 ──\nlet crmRevenue = 0, crmOrders = 0;\nlet crmInvoices = [];\ntry {\n  const crmResp = $('CRM 직접거래 조회').first().json;\n  if (crmResp.error) throw new Error(crmResp.error);\n  crmInvoices = crmResp.list || [];\n  for (const inv of crmInvoices) {\n    if (inv.payment_status === 'cancelled') continue;\n    crmRevenue += parseInt(inv.total_amount || 0);\n    crmOrders++;\n  }\n} catch(e) { crmRevenue = existingCrm; }\nlet crmMatchInvoices = crmInvoices;\ntry {\n  const crmMatchResp = await this.helpers.httpRequest({\n    method: 'GET',\n    url: 'https://nocodb.pressco21.com/api/v1/db/data/noco/pu0mwk97kac8a5p/ml81i9mcuw0pjzk',\n    headers: { 'xc-token': $env.NOCODB_TOKEN },\n    qs: { sort: '-invoice_date', fields: 'Id,invoice_date,invoice_no,customer_name,total_amount,payment_status,memo', limit: 1000 }\n  });\n  crmMatchInvoices = (crmMatchResp.list || []).filter((inv) => inv.payment_status !== 'cancelled');\n} catch(e) {}\n\n// ── 1. 메이크샵 파싱 ──\nlet msRevenue = 0, msOrders = 0, msCancels = 0;\nlet msPersonalExcluded = 0, msPersonalIncluded = 0, msStatusSIncluded = 0;\ntry {\n  let orderResp = $('메이크샵 주문 조회').first().json;\n  if (typeof orderResp.data === 'string') {\n    try { orderResp = JSON.parse(orderResp.data); } catch(e) {}\n  }\n  if (typeof orderResp === 'string') {\n    try { orderResp = JSON.parse(orderResp); } catch(e) { orderResp = {}; }\n  }\n  const rawList = Array.isArray(orderResp.list) ? orderResp.list : (orderResp.list ? Object.values(orderResp.list) : []);\n  for (const entry of rawList) {\n    const o = entry.order || entry;\n    const status = String(o.order_status || o.ord_state || '');\n    // Y=결제완료, S=배송/처리 진행 후에도 결제 완료 매출로 유지한다.\n    // N/C 등 미입금·취소 상태만 제외한다.\n    const isRevenueStatus = status === 'Y' || status === 'S';\n    if (!isRevenueStatus) { msCancels++; continue; }\n    const amount = parseInt(o.pay_price || o.total_product_price || o.start_price || 0);\n    // 개인결제 상품은 CRM/직접거래 원장과 강하게 매칭될 때만 메이크샵에서 제외한다.\n    // CRM 매칭이 없으면 예외 개인결제 매출로 보고 메이크샵 매출에 1회 반영한다.\n    if (isPersonalPaymentOrder(entry)) {\n      const crmMatch = findCrmPersonalMatch(entry, amount, crmMatchInvoices);\n      if (crmMatch) { msPersonalExcluded += amount; continue; }\n      msPersonalIncluded += amount;\n    }\n    if (status === 'S') msStatusSIncluded += amount;\n    msRevenue += amount;\n    msOrders++;\n  }\n} catch(e) {}\n\n// ── 2. 네이버 ──\nlet nvRevenue = 0, nvOrders = 0, nvError = '';\ntry {\n  const nv = $('네이버 주문 조회').first().json;\n  nvRevenue = nv.totalRevenue || 0;\n  nvOrders = nv.totalOrders || 0;\n  nvError = nv.error || '';\n  if (nvError) nvRevenue = existingNaver;\n} catch(e) { nvError = e.message; nvRevenue = existingNaver; }\n\n// ── 3. 11번가 ──\nlet stRevenue = 0, stOrders = 0, stError = '';\ntry {\n  const st = $('11번가 주문 조회').first().json;\n  stRevenue = st.totalRevenue || 0;\n  stOrders = st.totalOrders || 0;\n  stError = st.error || '';\n  if (stError) stRevenue = existingSt11;\n} catch(e) { stError = e.message; stRevenue = existingSt11; }\n\n// ── 4. 쿠팡윙 ──\nlet cpRevenue = 0, cpOrders = 0, cpError = '', cpSkipped = false, cpNote = '', cpSource = 'coupang_wing_openapi';\ntry {\n  const cp = $('쿠팡윙 주문 조회').first().json;\n  cpSkipped = !!cp.skipped;\n  if (cpSkipped) {\n    if (hasStoredCoupangFallback) {\n      cpRevenue = latestDailySalesCoupang;\n      cpOrders = latestDailySalesCoupangOrders;\n      cpSource = 'nocodb_existing';\n      cpNote = (cp.reason || '쿠팡 API 휴지시간') + ' — 최신 NocoDB 확정값 유지';\n    } else if (existingCoupang > 0) {\n      cpRevenue = existingCoupang;\n      cpOrders = 0;\n      cpSource = 'sheet_existing_during_blackout';\n      cpNote = (cp.reason || '쿠팡 API 휴지시간') + ' — 기존 구글시트 G열 값 유지';\n    } else {\n      cpRevenue = 0;\n      cpOrders = 0;\n      cpSource = 'pending_backfill';\n      cpNote = (cp.reason || '쿠팡 API 휴지시간') + ' — 확정된 기존값이 없어 추후 수동 재조회 필요';\n    }\n  } else {\n    cpRevenue = cp.totalRevenue || 0;\n    cpOrders = cp.totalOrders || 0;\n    cpError = cp.error || '';\n    // API 오류/한도/인증 오류가 있으면 0으로 덮지 않고 최신 확정값 → 기존 G열 순으로 유지한다.\n    if (cpError) {\n      if (hasStoredCoupangFallback) {\n        cpRevenue = latestDailySalesCoupang;\n        cpOrders = latestDailySalesCoupangOrders;\n        cpSource = 'nocodb_existing';\n        cpNote = '쿠팡 API 오류 — 최신 NocoDB 확정값 유지: ' + cpError.slice(0, 80);\n      } else if (existingCoupang > 0) {\n        cpRevenue = existingCoupang;\n        cpOrders = 0;\n        cpSource = 'sheet_existing_on_error';\n        cpNote = '쿠팡 API 오류 — 기존 구글시트 G열 값 유지: ' + cpError.slice(0, 80);\n      } else {\n        cpRevenue = 0;\n        cpOrders = 0;\n        cpSource = 'pending_backfill';\n        cpNote = '쿠팡 API 오류 — 확정된 기존값이 없어 추후 수동 재조회 필요: ' + cpError.slice(0, 80);\n      }\n    }\n  }\n} catch(e) {\n  cpError = e.message;\n  if (hasStoredCoupangFallback) {\n    cpRevenue = latestDailySalesCoupang;\n    cpOrders = latestDailySalesCoupangOrders;\n    cpSource = 'nocodb_existing';\n    cpNote = '쿠팡 API 예외 — 최신 NocoDB 확정값 유지: ' + cpError.slice(0, 80);\n  } else if (existingCoupang > 0) {\n    cpRevenue = existingCoupang;\n    cpOrders = 0;\n    cpSource = 'sheet_existing_on_exception';\n    cpNote = '쿠팡 API 예외 — 기존 구글시트 G열 값 유지: ' + cpError.slice(0, 80);\n  } else {\n    cpRevenue = 0;\n    cpOrders = 0;\n    cpSource = 'pending_backfill';\n    cpNote = '쿠팡 API 예외 — 확정된 기존값이 없어 추후 수동 재조회 필요: ' + cpError.slice(0, 80);\n  }\n}\n// ── 5. CRM 직접거래: 위에서 선파싱 완료 ──\n\n// ── 총계 ──\nconst totalRevenue = msRevenue + nvRevenue + stRevenue + cpRevenue + crmRevenue;\nconst totalOrders = msOrders + nvOrders + stOrders + cpOrders + crmOrders;\nconst fmt = (n) => n.toLocaleString('ko-KR');\nconst pct = (n) => totalRevenue > 0 ? Math.round(n / totalRevenue * 100) : 0;\n\n// ── 리포트 생성 ──\nlet msg = '<b>[전일 매출] ' + dateInfo.label + '</b>\\n';\nmsg += '━━━━━━━━━━━━━━━━━━━\\n';\nmsg += '\\uD83D\\uDCB0 총 매출: <b>' + fmt(totalRevenue) + '원</b> (' + totalOrders + '건)\\n\\n';\nmsg += '채널별:\\n';\nmsg += '\\uD83C\\uDFEA 메이크샵  ' + fmt(msRevenue) + '원 (' + msOrders + '건) ' + pct(msRevenue) + '%';\nif (msCancels > 0) msg += ' | 제외 ' + msCancels + '건';\nif (msStatusSIncluded > 0) msg += ' | S상태 포함 ' + fmt(msStatusSIncluded) + '원';\nif (msPersonalIncluded > 0) msg += ' | 개인결제 미매칭 포함 ' + fmt(msPersonalIncluded) + '원';\nmsg += '\\n';\n\nif (nvError) {\n  msg += '\\uD83D\\uDFE2 네이버     (API 오류)\\n';\n} else {\n  msg += '\\uD83D\\uDFE2 네이버     ' + fmt(nvRevenue) + '원 (' + nvOrders + '건) ' + pct(nvRevenue) + '%\\n';\n}\n\nif (stError) {\n  msg += '\\uD83D\\uDD34 11번가     (API 오류)\\n';\n} else {\n  msg += '\\uD83D\\uDD34 11번가     ' + fmt(stRevenue) + '원 (' + stOrders + '건) ' + pct(stRevenue) + '%\\n';\n}\n\nif (cpSkipped) {\n  msg += '\\uD83D\\uDCE6 쿠팡윙     ' + fmt(cpRevenue) + '원 (API 휴지시간, ' + (cpSource === 'nocodb_existing' ? '기존 확정값 유지' : cpSource === 'pending_backfill' ? '추후 재조회 필요' : '기존값 유지') + ') ' + pct(cpRevenue) + '%\\n';\n} else if (cpError) {\n  msg += '\\uD83D\\uDCE6 쿠팡윙     (API 오류)\\n';\n} else {\n  msg += '\\uD83D\\uDCE6 쿠팡윙     ' + fmt(cpRevenue) + '원 (' + cpOrders + '건) ' + pct(cpRevenue) + '%\\n';\n}\n\nmsg += '\\uD83D\\uDCDE 직접거래  ' + fmt(crmRevenue) + '원 (' + crmOrders + '건) ' + pct(crmRevenue) + '%\\n';\n\n// 에러/휴지시간 요약\nconst errors = [];\nif (nvError) errors.push('네이버: ' + nvError.slice(0, 50));\nif (stError) errors.push('11번가: ' + stError.slice(0, 50));\nif (cpError) errors.push('쿠팡윙: ' + cpError.slice(0, 50));\nif (errors.length > 0) {\n  msg += '\\n\\u26A0\\uFE0F API 오류:\\n' + errors.map(e => '  · ' + e).join('\\n') + '\\n';\n}\nif (cpNote) {\n  msg += '\\n\\u26A0\\uFE0F ' + cpNote + '\\n';\n}\n\nif (totalOrders === 0) {\n  msg = '<b>[전일 매출] ' + dateInfo.label + '</b>\\n━━━━━━━━━━━━━━━━━━━\\n주문이 없습니다.';\n  if (errors.length > 0) msg += '\\n\\n\\u26A0\\uFE0F API 오류 (데이터 불완전):\\n' + errors.map(e => '  · ' + e).join('\\n');\n  if (cpNote) msg += '\\n\\n\\u26A0\\uFE0F ' + cpNote;\n}\n\nreturn [{ json: {\n  message: msg,\n  chatId: dateInfo.chatId,\n  reportDate: dateInfo.targetDate,\n  makeshop: { revenue: msRevenue, orders: msOrders, cancels: msCancels, personalExcluded: msPersonalExcluded, personalIncluded: msPersonalIncluded, statusSIncluded: msStatusSIncluded },\n  naver: { revenue: nvRevenue, orders: nvOrders, error: nvError },\n  st11: { revenue: stRevenue, orders: stOrders, error: stError },\n  coupang: { revenue: cpRevenue, orders: cpOrders, error: cpError, skipped: cpSkipped, note: cpNote, source: cpSource },\n  crm: { revenue: crmRevenue, orders: crmOrders },\n  total: { revenue: totalRevenue, orders: totalOrders },\n  sheetsRow: dateInfo.sheetsRow\n} }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2280,
+          350
+        ],
+        "id": "node-aggregate",
+        "name": "통합 집계"
+      },
+      {
+        "parameters": {
+          "method": "PUT",
+          "url": "=https://sheets.googleapis.com/v4/spreadsheets/1B6F3XJLjK5WWaoOLy6f8JafjYNWs0-NQvVBvWKwTzhM/values/%EC%9D%BC%EB%B3%84%20%EB%A7%A4%EC%B6%9C!C{{ $('통합 집계').first().json.sheetsRow }}:G{{ $('통합 집계').first().json.sheetsRow }}?valueInputOption=USER_ENTERED",
+          "authentication": "predefinedCredentialType",
+          "nodeCredentialType": "googleDriveOAuth2Api",
+          "sendBody": true,
+          "specifyBody": "json",
+          "jsonBody": "={{ JSON.stringify({ values: [[ $('통합 집계').first().json.makeshop.revenue || 0, $('통합 집계').first().json.naver.revenue || 0, $('통합 집계').first().json.st11.revenue || 0, $('통합 집계').first().json.crm.revenue || 0, $('통합 집계').first().json.coupang.revenue || 0 ]] }) }}",
+          "options": {
+            "timeout": 10000
+          }
+        },
+        "type": "n8n-nodes-base.httpRequest",
+        "typeVersion": 4.2,
+        "position": [
+          2440,
+          350
+        ],
+        "id": "node-sheets",
+        "name": "Sheets 기입",
+        "credentials": {
+          "googleDriveOAuth2Api": {
+            "id": "2e6e75e1-2d4f-40ac-b992-c12aef75e69e",
+            "name": "Pressco21-GoogleDrive"
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const aggregate = $('통합 집계').first().json;\nlet sheetsResult = {};\ntry { sheetsResult = $('Sheets 기입').first().json || {}; } catch (e) { sheetsResult = { error: e.message }; }\n\nconst messageFrom = (value) => {\n  if (!value) return '';\n  if (typeof value === 'string') return value;\n  if (value.message) return String(value.message);\n  if (value.error && value.error.message) return String(value.error.message);\n  try { return JSON.stringify(value).slice(0, 500); } catch (e) { return String(value); }\n};\n\nconst sheetsError = sheetsResult.error || sheetsResult.message || sheetsResult.status === 'error'\n  ? messageFrom(sheetsResult.error || sheetsResult.message || sheetsResult)\n  : '';\nconst sheetsOk = !sheetsError;\nconst channelErrors = [];\nfor (const key of ['makeshop', 'naver', 'st11', 'crm', 'coupang']) {\n  const row = aggregate[key] || {};\n  if (row.error) channelErrors.push(key + ': ' + String(row.error).slice(0, 120));\n}\n\nconst row = aggregate.sheetsRow;\nconst range = '일별 매출!C' + row + ':G' + row;\nconst coupang = aggregate.coupang || {};\nconst coupangSource = String(coupang.source || '');\nconst coupangNeedsBackfill = coupangSource === 'pending_backfill';\nconst coupangUsedFallback = coupangSource.indexOf('existing') >= 0 || coupangSource.indexOf('sheet_existing') >= 0;\nconst coupangApiIssue = !!coupang.error || !!coupang.skipped || coupangNeedsBackfill;\nconst opsAlerts = [];\n\nif (!sheetsOk) {\n  opsAlerts.push('<b>[운영알림][F23] Google Sheets 기입 실패</b>\\n'\n    + '날짜: ' + aggregate.reportDate + '\\n'\n    + '범위: ' + range + '\\n'\n    + '조치: NocoDB upsert는 계속 시도됩니다. F24/F26은 NocoDB 기준으로 확인하세요.\\n'\n    + '오류: ' + String(sheetsError).slice(0, 700));\n}\n\nif (channelErrors.length) {\n  opsAlerts.push('<b>[운영알림][F23] 채널 API 오류 감지</b>\\n'\n    + '날짜: ' + aggregate.reportDate + '\\n'\n    + channelErrors.map((msg) => '- ' + msg).join('\\n'));\n}\n\nif (coupangNeedsBackfill) {\n  opsAlerts.push('<b>[운영알림][F23] 쿠팡 매출 보류</b>\\n'\n    + '날짜: ' + aggregate.reportDate + '\\n'\n    + '사유: ' + String(coupang.note || coupang.error || '확정값 없음').slice(0, 500) + '\\n'\n    + '조치: 19:30 쿠팡 pending backfill이 자동 재시도합니다.');\n} else if (coupangApiIssue && coupangUsedFallback) {\n  opsAlerts.push('<b>[운영알림][F23] 쿠팡 기존값 유지</b>\\n'\n    + '날짜: ' + aggregate.reportDate + '\\n'\n    + '상태: ' + coupangSource + '\\n'\n    + '메모: ' + String(coupang.note || coupang.error || 'API 휴지시간/오류').slice(0, 500));\n}\n\nconst severity = !sheetsOk || coupangNeedsBackfill ? 'ERROR' : (channelErrors.length || opsAlerts.length ? 'WARN' : 'OK');\nconst opsStatus = {\n  reportDate: aggregate.reportDate,\n  generatedAt: new Date().toISOString(),\n  severity,\n  sheets: {\n    ok: sheetsOk,\n    row,\n    range,\n    error: sheetsError,\n  },\n  channels: {\n    errorCount: channelErrors.length,\n    errors: channelErrors,\n  },\n  coupang: {\n    source: coupangSource,\n    skipped: !!coupang.skipped,\n    needsBackfill: coupangNeedsBackfill,\n    usedFallback: coupangUsedFallback,\n    note: coupang.note || '',\n    error: coupang.error || '',\n  },\n};\n\nreturn [{ json: { ...aggregate, opsStatus, opsAlerts } }];"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2600,
+          350
+        ],
+        "id": "node-sheets-status",
+        "name": "Sheets 저장 상태"
+      },
+      {
+        "parameters": {
+          "chatId": "={{ $json.chatId }}",
+          "text": "={{ $json.message }}",
+          "additionalFields": {
+            "parse_mode": "HTML"
+          }
+        },
+        "type": "n8n-nodes-base.telegram",
+        "typeVersion": 1.2,
+        "position": [
+          2760,
+          350
+        ],
+        "id": "node-telegram",
+        "name": "운영 알림 전송",
+        "credentials": {
+          "telegramApi": {
+            "id": "RdFu3nsFuuO5NCff",
+            "name": "Pressco메이크샵봇"
+          }
+        },
+        "continueOnFail": true
+      },
+      {
+        "parameters": {
+          "jsCode": "const aggregate = $('통합 집계').first().json;\nlet status = {};\ntry { status = $('Sheets 저장 상태').first().json.opsStatus || {}; } catch(e) {}\nconst token = String($env.NOCODB_TOKEN || '').trim();\nconst baseUrl = 'https://nocodb.pressco21.com/api/v1/db/data/noco/pbmo0os7rnvfd48/mwxvxjiqtw177xu';\n\nconst coupang = aggregate.coupang || {};\nconst coupangSource = String(coupang.source || '');\nlet coupangCollectionStatus = 'confirmed';\nif (coupangSource === 'pending_backfill') {\n  coupangCollectionStatus = 'pending_backfill';\n} else if (coupang.skipped && coupangSource === 'nocodb_existing') {\n  coupangCollectionStatus = 'skipped_blackout_nocodb_existing';\n} else if (coupang.skipped && coupangSource.indexOf('sheet_existing') >= 0) {\n  coupangCollectionStatus = 'skipped_blackout_sheet_existing';\n} else if (coupang.error && coupangSource === 'nocodb_existing') {\n  coupangCollectionStatus = 'api_error_nocodb_existing';\n} else if (coupang.error && coupangSource.indexOf('sheet_existing') >= 0) {\n  coupangCollectionStatus = 'api_error_sheet_existing';\n} else if (coupang.error) {\n  coupangCollectionStatus = 'api_error';\n}\n\nconst notesParts = [];\nif (aggregate.naver && aggregate.naver.error) notesParts.push('naver:' + String(aggregate.naver.error).slice(0, 50));\nif (aggregate.st11 && aggregate.st11.error) notesParts.push('11st:' + String(aggregate.st11.error).slice(0, 50));\nif (aggregate.coupang && aggregate.coupang.error) notesParts.push('coupang:' + String(aggregate.coupang.error).slice(0, 50));\nif (aggregate.coupang && aggregate.coupang.note) notesParts.push(String(aggregate.coupang.note));\nif (status.sheets && !status.sheets.ok) notesParts.push('sheets_error:' + String(status.sheets.error || '').slice(0, 80));\nif (coupangCollectionStatus !== 'confirmed') notesParts.push('coupang_collection_status:' + coupangCollectionStatus);\n\nconst payload = {\n  report_date: aggregate.reportDate,\n  makeshop_revenue: aggregate.makeshop.revenue,\n  makeshop_orders: aggregate.makeshop.orders,\n  naver_revenue: aggregate.naver.revenue,\n  naver_orders: aggregate.naver.orders,\n  st11_revenue: aggregate.st11.revenue,\n  st11_orders: aggregate.st11.orders,\n  crm_revenue: aggregate.crm.revenue,\n  crm_orders: aggregate.crm.orders,\n  coupang_revenue: aggregate.coupang.revenue,\n  coupang_orders: aggregate.coupang.orders,\n  coupang_collection_status: coupangCollectionStatus,\n  total_revenue: aggregate.total.revenue,\n  total_orders: aggregate.total.orders,\n  notes: notesParts.join(' ').trim(),\n};\n\nif (!token) {\n  return [{ json: { ok: false, nocodb: { ok: false, action: 'skipped', error: 'NOCODB_TOKEN 미설정', reportDate: aggregate.reportDate }, payload } }];\n}\n\nconst deleteDuplicates = async (rows) => {\n  const deletedIds = [];\n  const errors = [];\n  for (const row of rows.slice(1)) {\n    if (!row || !row.Id) continue;\n    try {\n      await this.helpers.httpRequest({\n        method: 'DELETE',\n        url: baseUrl + '/' + row.Id,\n        headers: { 'xc-token': token },\n        timeout: 10000,\n      });\n      deletedIds.push(row.Id);\n    } catch (e) {\n      errors.push(row.Id + ':' + e.message);\n    }\n  }\n  return { deletedIds, errors };\n};\n\ntry {\n  const existing = await this.helpers.httpRequest({\n    method: 'GET',\n    url: baseUrl,\n    headers: { 'xc-token': token },\n    qs: {\n      where: '(report_date,eq,' + aggregate.reportDate + ')',\n      sort: '-Id',\n      limit: 20,\n      fields: 'Id,report_date'\n    }\n  });\n  const rows = (existing.list || []).filter((row) => String(row.report_date || '').slice(0, 10) === String(aggregate.reportDate));\n  rows.sort((a, b) => (parseInt(b.Id) || 0) - (parseInt(a.Id) || 0));\n  const latest = rows[0];\n\n  if (latest && latest.Id) {\n    await this.helpers.httpRequest({\n      method: 'PATCH',\n      url: baseUrl + '/' + latest.Id,\n      headers: { 'xc-token': token, 'Content-Type': 'application/json' },\n      body: payload,\n      timeout: 10000,\n    });\n    const duplicateCleanup = rows.length > 1 ? await deleteDuplicates(rows) : { deletedIds: [], errors: [] };\n    return [{ json: { ok: duplicateCleanup.errors.length === 0, nocodb: { ok: duplicateCleanup.errors.length === 0, action: 'patch', id: latest.Id, duplicateCount: Math.max(0, rows.length - 1), deletedDuplicateIds: duplicateCleanup.deletedIds, duplicateDeleteErrors: duplicateCleanup.errors, reportDate: aggregate.reportDate }, payload } }];\n  }\n\n  const created = await this.helpers.httpRequest({\n    method: 'POST',\n    url: baseUrl,\n    headers: { 'xc-token': token, 'Content-Type': 'application/json' },\n    body: payload,\n    timeout: 10000,\n  });\n  return [{ json: { ok: true, nocodb: { ok: true, action: 'post', id: created.Id || created.id || null, duplicateCount: 0, deletedDuplicateIds: [], duplicateDeleteErrors: [], reportDate: aggregate.reportDate }, payload } }];\n} catch (e) {\n  return [{ json: { ok: false, nocodb: { ok: false, action: 'error', error: e.message, reportDate: aggregate.reportDate }, payload } }];\n}"
+        },
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          2920,
+          350
+        ],
+        "id": "node-save",
+        "name": "NocoDB 저장"
+      },
+      {
+        "parameters": {
+          "respondWith": "json",
+          "responseBody": "={{ JSON.stringify({ ok: (($('Sheets 저장 상태').first().json.opsStatus.sheets || {}).ok !== false) && (($('NocoDB 저장').first().json.nocodb || {}).ok !== false), date: $('통합 집계').first().json.reportDate, total_revenue: $('통합 집계').first().json.total.revenue, total_orders: $('통합 집계').first().json.total.orders, channels: { makeshop: $('통합 집계').first().json.makeshop.revenue, naver: $('통합 집계').first().json.naver.revenue, st11: $('통합 집계').first().json.st11.revenue, crm: $('통합 집계').first().json.crm.revenue, coupang: $('통합 집계').first().json.coupang.revenue }, status: { sheets: $('Sheets 저장 상태').first().json.opsStatus.sheets, nocodb: $('NocoDB 저장').first().json.nocodb, coupang: $('Sheets 저장 상태').first().json.opsStatus.coupang, severity: $('Sheets 저장 상태').first().json.opsStatus.severity, alertCount: (($('Sheets 저장 상태').first().json.opsAlerts || []).length) } }) }}"
+        },
+        "type": "n8n-nodes-base.respondToWebhook",
+        "typeVersion": 1.1,
+        "position": [
+          3160,
+          350
+        ],
+        "id": "node-respond",
+        "name": "응답"
+      },
+      {
+        "parameters": {
+          "jsCode": "const sheetItem = $('Sheets 저장 상태').first().json || {};\nconst saveItem = $('NocoDB 저장').first().json || {};\nconst aggregate = $('통합 집계').first().json || {};\nconst alerts = Array.isArray(sheetItem.opsAlerts) ? [...sheetItem.opsAlerts] : [];\nconst nocodb = saveItem.nocodb || {};\n\nif (nocodb.ok === false) {\n  alerts.push('<b>[운영알림][F23] NocoDB 저장 실패</b>\\n'\n    + '날짜: ' + (aggregate.reportDate || nocodb.reportDate || '') + '\\n'\n    + '조치: 구글시트 값은 기입됐을 수 있으나 원장 기준 F24/F26 리포트가 틀어질 수 있습니다.\\n'\n    + '오류: ' + String(nocodb.error || (nocodb.duplicateDeleteErrors || []).join(' | ') || 'unknown').slice(0, 700));\n} else if ((nocodb.duplicateCount || 0) > 0) {\n  alerts.push('<b>[운영알림][F23] NocoDB 중복 원장 자동 정리</b>\\n'\n    + '날짜: ' + (aggregate.reportDate || nocodb.reportDate || '') + '\\n'\n    + '유지 ID: ' + (nocodb.id || '') + '\\n'\n    + '삭제 ID: ' + (nocodb.deletedDuplicateIds || []).join(', '));\n}\n\nif (!alerts.length) return [];\nreturn [{ json: {\n  chatId: '-5251214343',\n  message: alerts.join('\\n\\n'),\n  reportDate: aggregate.reportDate || nocodb.reportDate || '',\n  alertCount: alerts.length,\n} }];"
+        },
+        "id": "446005a1-38e1-434c-bec0-eeb48518dfab",
+        "name": "운영 알림 필터",
+        "type": "n8n-nodes-base.code",
+        "typeVersion": 2,
+        "position": [
+          3120,
+          260
+        ]
+      }
+    ],
+    "connections": {
+      "매일 08:00": {
+        "main": [
+          [
+            {
+              "node": "날짜 계산",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "수동 조회": {
+        "main": [
+          [
+            {
+              "node": "날짜 계산",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "날짜 계산": {
+        "main": [
+          [
+            {
+              "node": "메이크샵 주문 조회",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "메이크샵 주문 조회": {
+        "main": [
+          [
+            {
+              "node": "네이버 인증",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "네이버 인증": {
+        "main": [
+          [
+            {
+              "node": "네이버 주문 조회",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "네이버 주문 조회": {
+        "main": [
+          [
+            {
+              "node": "11번가 주문 조회",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "11번가 주문 조회": {
+        "main": [
+          [
+            {
+              "node": "쿠팡윙 주문 조회",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "CRM 직접거래 조회": {
+        "main": [
+          [
+            {
+              "node": "기존 시트 행 조회",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "통합 집계": {
+        "main": [
+          [
+            {
+              "node": "Sheets 기입",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sheets 기입": {
+        "main": [
+          [
+            {
+              "node": "Sheets 저장 상태",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "NocoDB 저장": {
+        "main": [
+          [
+            {
+              "node": "운영 알림 필터",
+              "type": "main",
+              "index": 0
+            },
+            {
+              "node": "응답",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "쿠팡윙 주문 조회": {
+        "main": [
+          [
+            {
+              "node": "CRM 직접거래 조회",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "기존 시트 행 조회": {
+        "main": [
+          [
+            {
+              "node": "통합 집계",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "Sheets 저장 상태": {
+        "main": [
+          [
+            {
+              "node": "NocoDB 저장",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      },
+      "운영 알림 필터": {
+        "main": [
+          [
+            {
+              "node": "운영 알림 전송",
+              "type": "main",
+              "index": 0
+            }
+          ]
+        ]
+      }
+    },
+    "authors": "Admin User",
+    "name": null,
+    "description": null,
+    "autosaved": false,
+    "workflowPublishHistory": [
+      {
+        "createdAt": "2026-04-25T01:27:57.701Z",
+        "id": 2753,
+        "workflowId": "DoAlCOG3OU20Wlvj",
+        "versionId": "dd070dd5-e7cf-40c7-9f22-deb115f7c54b",
+        "event": "deactivated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      },
+      {
+        "createdAt": "2026-04-25T01:27:57.728Z",
+        "id": 2754,
+        "workflowId": "DoAlCOG3OU20Wlvj",
+        "versionId": "dd070dd5-e7cf-40c7-9f22-deb115f7c54b",
+        "event": "activated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      },
+      {
+        "createdAt": "2026-04-25T01:29:07.461Z",
+        "id": 2758,
+        "workflowId": "DoAlCOG3OU20Wlvj",
+        "versionId": "dd070dd5-e7cf-40c7-9f22-deb115f7c54b",
+        "event": "deactivated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      },
+      {
+        "createdAt": "2026-04-25T01:29:07.490Z",
+        "id": 2759,
+        "workflowId": "DoAlCOG3OU20Wlvj",
+        "versionId": "dd070dd5-e7cf-40c7-9f22-deb115f7c54b",
+        "event": "activated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      },
+      {
+        "createdAt": "2026-04-25T01:24:22.175Z",
+        "id": 2748,
+        "workflowId": "DoAlCOG3OU20Wlvj",
+        "versionId": "dd070dd5-e7cf-40c7-9f22-deb115f7c54b",
+        "event": "deactivated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      },
+      {
+        "createdAt": "2026-04-25T01:24:22.205Z",
+        "id": 2749,
+        "workflowId": "DoAlCOG3OU20Wlvj",
+        "versionId": "dd070dd5-e7cf-40c7-9f22-deb115f7c54b",
+        "event": "activated",
+        "userId": "0ab1958e-73b1-4f28-a746-4e9c0e6c7303"
+      }
+    ]
+  }
+}

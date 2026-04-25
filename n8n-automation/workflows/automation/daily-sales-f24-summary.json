@@ -175,11 +175,13 @@
       "parameters": {
         "resource": "message",
         "operation": "sendMessage",
-        "chatId": "-5251214343",
+        "chatId": "-1003917399249",
         "text": "={{ $('리포트 집계').first().json.message }}",
         "additionalFields": {
           "parse_mode": "HTML",
-          "disable_web_page_preview": true
+          "disable_web_page_preview": true,
+          "message_thread_id": 3,
+          "appendAttribution": false
         },
         "replyMarkup": "inlineKeyboard",
         "inlineKeyboard": {

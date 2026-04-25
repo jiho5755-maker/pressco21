@@ -115,10 +115,12 @@
     },
     {
       "parameters": {
-        "chatId": "-5251214343",
+        "chatId": "-1003917399249",
         "text": "={{ $json.message }}",
         "additionalFields": {
-          "parse_mode": "HTML"
+          "parse_mode": "HTML",
+          "message_thread_id": 4,
+          "appendAttribution": false
         }
       },
       "type": "n8n-nodes-base.telegram",

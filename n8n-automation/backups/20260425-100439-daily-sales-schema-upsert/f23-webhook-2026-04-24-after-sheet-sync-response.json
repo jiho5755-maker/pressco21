@@ -1,0 +1,44 @@
+{
+  "http": 200,
+  "response": {
+    "ok": true,
+    "date": "2026-04-24",
+    "total_revenue": 7179030,
+    "total_orders": 136,
+    "channels": {
+      "makeshop": 2751220,
+      "naver": 859110,
+      "st11": 2264000,
+      "crm": 513700,
+      "coupang": 791000
+    },
+    "status": {
+      "sheets": {
+        "ok": true,
+        "row": 115,
+        "range": "일별 매출!C115:G115",
+        "error": ""
+      },
+      "nocodb": {
+        "ok": true,
+        "action": "patch",
+        "id": 1244,
+        "duplicateCount": 0,
+        "deletedDuplicateIds": [],
+        "duplicateDeleteErrors": [],
+        "reportDate": "2026-04-24"
+      },
+      "coupang": {
+        "source": "coupang_wing_openapi",
+        "skipped": false,
+        "needsBackfill": false,
+        "usedFallback": false,
+        "note": "",
+        "error": ""
+      },
+      "severity": "OK",
+      "alertCount": 0
+    }
+  },
+  "timestamp": "2026-04-25T10:25:04.811474"
+}

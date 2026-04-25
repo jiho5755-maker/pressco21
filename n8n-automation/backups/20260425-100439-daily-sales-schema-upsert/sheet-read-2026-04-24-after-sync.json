@@ -1,0 +1,19 @@
+{
+  "http": 200,
+  "workflowId": "ZUqxXuw6PoAkj5uw",
+  "range": "일별 매출!C115:G115",
+  "result": {
+    "range": "'일별 매출'!C115:G115",
+    "majorDimension": "ROWS",
+    "values": [
+      [
+        "2,751,220",
+        "859,110",
+        "2,264,000",
+        "513,700",
+        "791,000"
+      ]
+    ]
+  },
+  "timestamp": "2026-04-25T10:25:49.136593"
+}

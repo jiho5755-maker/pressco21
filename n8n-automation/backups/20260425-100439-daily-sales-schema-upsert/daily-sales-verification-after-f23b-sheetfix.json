@@ -1,0 +1,56 @@
+{
+  "totalRows": 1216,
+  "dateCount": 1216,
+  "duplicateDateCount": 0,
+  "duplicates": {},
+  "focus": {
+    "2026-04-22": [
+      {
+        "Id": 1247,
+        "report_date": "2026-04-22",
+        "coupang_revenue": 643300,
+        "coupang_orders": 26,
+        "total_revenue": 5052890,
+        "total_orders": 156,
+        "notes": "",
+        "coupang_collection_status": "confirmed"
+      }
+    ],
+    "2026-04-23": [
+      {
+        "Id": 1248,
+        "report_date": "2026-04-23",
+        "coupang_revenue": 182000,
+        "coupang_orders": 17,
+        "total_revenue": 9954280,
+        "total_orders": 130,
+        "notes": "",
+        "coupang_collection_status": "confirmed"
+      }
+    ],
+    "2026-04-24": [
+      {
+        "Id": 1244,
+        "report_date": "2026-04-24",
+        "coupang_revenue": 791000,
+        "coupang_orders": 30,
+        "total_revenue": 7179030,
+        "total_orders": 136,
+        "notes": "",
+        "coupang_collection_status": "confirmed"
+      }
+    ],
+    "2026-04-25": [
+      {
+        "Id": 1223,
+        "report_date": "2026-04-25",
+        "coupang_revenue": 0,
+        "coupang_orders": 0,
+        "total_revenue": 0,
+        "total_orders": 0,
+        "notes": "imported_from_excel_2026",
+        "coupang_collection_status": null
+      }
+    ]
+  }
+}

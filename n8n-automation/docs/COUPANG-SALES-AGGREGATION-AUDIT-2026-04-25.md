@@ -176,3 +176,132 @@ Google Sheet 읽기 검증 결과:
 
 - message_id: `1320`
 - 내용: 2026-04-22/23 쿠팡윙 백필 완료, NocoDB와 Google Sheet 반영 완료, 재발 방지 조치 요약
+
+## 2026-04-25 재발 방지 6개 항목 추가 반영
+
+### 1. Google Sheets 실패 알림 분리
+
+F23은 정상 매출 보고를 보내지 않고, 실패/주의 상황만 `[운영알림]`으로 보낸다.
+
+- Google Sheets 기입 실패
+- 채널 API 오류
+- 쿠팡 `pending_backfill`
+- 쿠팡 API 오류로 기존값 유지
+- NocoDB 저장 실패
+- NocoDB 중복 원장 자동 정리
+
+정상일 때는 텔레그램 운영 알림을 보내지 않는다. 매출 공유용 리치 리포트는 기존처럼 F24가 담당한다.
+
+### 2. NocoDB `report_date` 기준 upsert
+
+F23의 NocoDB 저장은 더 이상 무조건 `POST`하지 않는다.
+
+1. `report_date`로 기존 daily_sales 행을 조회한다.
+2. 같은 날짜가 있으면 가장 큰 `Id`를 최신 행으로 보고 `PATCH`한다.
+3. 같은 날짜 중복 행이 있으면 최신 행만 남기고 나머지는 삭제한다.
+4. 같은 날짜가 없을 때만 `POST`한다.
+
+### 3. 쿠팡 수집 상태 컬럼
+
+NocoDB `daily_sales`에 `coupang_collection_status` 컬럼을 추가했다.
+
+사용 상태값:
+
+| 값 | 의미 |
+|---|---|
+| `confirmed` | 쿠팡 API 정상 수집값 |
+| `pending_backfill` | 확정값 없이 추후 재조회 필요 |
+| `skipped_blackout_nocodb_existing` | 호출금지 시간이라 NocoDB 기존값 유지 |
+| `skipped_blackout_sheet_existing` | 호출금지 시간이라 Sheet 기존값 유지 |
+| `api_error_nocodb_existing` | API 오류로 NocoDB 기존값 유지 |
+| `api_error_sheet_existing` | API 오류로 Sheet 기존값 유지 |
+| `api_error` | API 오류이며 기존값도 부족 |
+
+### 4. 19:30 쿠팡 pending backfill
+
+새 workflow를 추가했다.
+
+- 파일: `n8n-automation/workflows/automation/coupang-pending-backfill-1930.json`
+- 이름: `[F23B] 쿠팡 pending backfill (19:30)`
+- 스케줄: 매일 19:30 KST
+- 역할: 최근 14일 daily_sales에서 쿠팡 상태가 pending/api_error/skipped 계열이거나 쿠팡값이 0인 날짜를 찾아 F23 웹훅으로 재집계한다.
+- F23은 `report_date` upsert로 동작하므로 재실행해도 같은 날짜 중복 행을 만들지 않는다.
+
+### 5. Telegram 토픽 분리 검토 결과
+
+`PRESSCO21 매출 공유` 방의 현재 Telegram chat type은 `group`이다. Telegram forum topic은 `supergroup` + forum 활성화 상태에서만 생성 가능하므로, 현재 상태에서는 봇이 토픽을 생성할 수 없다.
+
+임시 운영 기준:
+
+- F24: 매출 보고 메시지 유지
+- F23/F23B: `[운영알림]` prefix로 운영 알림만 발송
+- 정상 F23은 메시지 미발송
+
+향후 방을 supergroup/forum으로 전환하면 F24에는 매출보고 topic `message_thread_id`, F23/F23B에는 운영알림 topic `message_thread_id`를 추가한다.
+
+### 6. 쿠팡 취소/반품 기준
+
+F23 일일 매출은 `createdAt` 기준 주문 집계이며 당일 운영용 총매출이다. 쿠팡 취소/반품/정산 보정은 당일 API 결과에 완전히 반영되지 않을 수 있으므로 F23 수치를 `정산 매출`이라고 부르지 않는다.
+
+운영 기준:
+
+- 당일/전일 자동 보고: 주문 생성 기준 총매출, 취소/반품 중 이미 주문 품목에 표시된 수량만 제외
+- 월마감: D+3~D+7에 취소/반품/정산 원장과 대조해 조정
+- 쿠팡 API 오류/호출금지 시간: 0원으로 덮지 않고 기존 확정값을 유지하거나 `pending_backfill`로 남김
+- 최종 재무 기준: 월마감 조정 후 확정값
+
+## 2026-04-25 NocoDB 원장 정리 결과
+
+NocoDB `daily_sales` 중복 원장을 정리했다.
+
+- 중복 날짜: 14개
+- 삭제된 구행: 19개
+- 유지 기준: 같은 `report_date` 중 가장 큰 `Id`
+- 정리 후 검증: 전체 row 수 1216개, 날짜 수 1216개, 중복 날짜 0개
+
+최근 쿠팡 보정 대상 확인값:
+
+| 날짜 | 유지 Id | 전체 매출 | 쿠팡윙 | 쿠팡 상태 |
+|---|---:|---:|---:|---|
+| 2026-04-20 | 1241 | 10,053,700원 | 1,083,870원 | confirmed |
+| 2026-04-21 | 1240 | 5,581,090원 | 595,740원 | confirmed |
+| 2026-04-22 | 1247 | 5,052,890원 | 643,300원 | confirmed |
+| 2026-04-23 | 1248 | 9,954,280원 | 182,000원 | confirmed |
+| 2026-04-24 | 1244 | 7,179,030원 | 791,000원 | confirmed |
+
+## 2026-04-25 추가 확인: 4월 24일 Google Sheet 누락 대응
+
+4월 24일 일별 매출 행이 Google Sheet에 비어 있는 문제는, 2026-04-25 08:00 자동 실행 당시 Google OAuth refresh token 오류로 `Sheets 기입` 노드가 실패했고, 이후 Google credential 재연결 뒤에는 4월 22일/23일만 수동 재집계했기 때문에 발생한 것으로 판단한다.
+
+재발 방지를 위해 F23B 19:30 backfill에 Google Sheet C:G 검산을 추가했다.
+
+- 읽기 범위: `일별 매출!C2:G367`
+- 비교 기준: 최근 14일 NocoDB `daily_sales` 최신 행의 자동 채널 5개 값
+  - MakeShop, Naver, 11번가, CRM, Coupang
+- Sheet 행이 비어 있거나 NocoDB와 불일치하면 해당 날짜를 F23 재집계 후보로 포함한다.
+- Google Sheet 조회 자체가 실패하면 `[운영알림]`으로 알리고, NocoDB 기준 쿠팡 pending 후보 처리는 계속 수행한다.
+
+따라서 앞으로 Google OAuth 장애가 복구된 뒤에도 누락 행이 남으면 19:30 backfill 또는 수동 backfill로 다시 기입된다.
+
+### 실시간 동기화 검증 결과
+
+2026-04-24 행은 F23 재실행으로 Google Sheet와 NocoDB가 다시 일치했다.
+
+- F23 재실행 대상: `2026-04-24`
+- Sheet 업데이트 범위: `일별 매출!C115:G115`
+- F23 응답: `sheets.ok=true`, `nocodb.action=patch`, `nocodb.id=1244`
+- Sheet 직접 읽기 결과: `2,751,220 / 859,110 / 2,264,000 / 513,700 / 791,000`
+
+이번 누락의 직접 원인은 동기화 설정 부재가 아니라 08:00 자동 실행 당시 Google OAuth credential이 만료되어 Sheet 쓰기가 실패한 점이다. 재연결 후 4월 22일/23일은 재실행했지만 4월 24일은 재실행하지 않아 Sheet 행만 비어 있었다.
+
+보완:
+
+- F23은 Sheet 실패 시 `[운영알림]`을 보낸다.
+- F23B는 19:30에 최근 14일 NocoDB와 Google Sheet C:G를 비교해 누락/불일치 행을 자동 재집계한다.
+- F23B는 당일 부분 집계를 만들지 않도록 자동 후보 범위를 전일까지만 제한한다. 당일 조회는 명시적인 수동 `targetDate` 요청에서만 허용한다.
+
+스모크 테스트 중 F23B가 기존 placeholder인 2026-04-25 행을 잘못 후보로 잡아 부분값을 한 번 기록한 문제가 있었고, 즉시 아래처럼 원복했다.
+
+- NocoDB 2026-04-25 Id 1223: 0원 placeholder 상태로 복구
+- Google Sheet `일별 매출!C116:G116`: clear 완료
+- F23B 후보 범위: 전일까지만 보도록 재배포

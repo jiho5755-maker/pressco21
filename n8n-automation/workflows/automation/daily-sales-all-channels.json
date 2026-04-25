@@ -251,8 +251,21 @@
     },
     {
       "parameters": {
-        "chatId": "-5251214343",
-        "text": "={{ $('\ud1b5\ud569 \uc9d1\uacc4').first().json.message }}",
+        "jsCode": "const aggregate = $('\ud1b5\ud569 \uc9d1\uacc4').first().json;\nlet sheetsResult = {};\ntry { sheetsResult = $('Sheets \uae30\uc785').first().json || {}; } catch (e) { sheetsResult = { error: e.message }; }\n\nconst messageFrom = (value) => {\n  if (!value) return '';\n  if (typeof value === 'string') return value;\n  if (value.message) return String(value.message);\n  if (value.error && value.error.message) return String(value.error.message);\n  try { return JSON.stringify(value).slice(0, 500); } catch (e) { return String(value); }\n};\n\nconst sheetsError = sheetsResult.error || sheetsResult.message || sheetsResult.status === 'error'\n  ? messageFrom(sheetsResult.error || sheetsResult.message || sheetsResult)\n  : '';\nconst sheetsOk = !sheetsError;\nconst channelErrors = [];\nfor (const key of ['makeshop', 'naver', 'st11', 'crm', 'coupang']) {\n  const row = aggregate[key] || {};\n  if (row.error) channelErrors.push(key + ': ' + String(row.error).slice(0, 120));\n}\n\nconst row = aggregate.sheetsRow;\nconst range = '\uc77c\ubcc4 \ub9e4\ucd9c!C' + row + ':G' + row;\nconst coupang = aggregate.coupang || {};\nconst coupangSource = String(coupang.source || '');\nconst coupangNeedsBackfill = coupangSource === 'pending_backfill';\nconst coupangUsedFallback = coupangSource.indexOf('existing') >= 0 || coupangSource.indexOf('sheet_existing') >= 0;\nconst coupangApiIssue = !!coupang.error || !!coupang.skipped || coupangNeedsBackfill;\nconst opsAlerts = [];\n\nif (!sheetsOk) {\n  opsAlerts.push('<b>[\uc6b4\uc601\uc54c\ub9bc][F23] Google Sheets \uae30\uc785 \uc2e4\ud328</b>\\n'\n    + '\ub0a0\uc9dc: ' + aggregate.reportDate + '\\n'\n    + '\ubc94\uc704: ' + range + '\\n'\n    + '\uc870\uce58: NocoDB upsert\ub294 \uacc4\uc18d \uc2dc\ub3c4\ub429\ub2c8\ub2e4. F24/F26\uc740 NocoDB \uae30\uc900\uc73c\ub85c \ud655\uc778\ud558\uc138\uc694.\\n'\n    + '\uc624\ub958: ' + String(sheetsError).slice(0, 700));\n}\n\nif (channelErrors.length) {\n  opsAlerts.push('<b>[\uc6b4\uc601\uc54c\ub9bc][F23] \ucc44\ub110 API \uc624\ub958 \uac10\uc9c0</b>\\n'\n    + '\ub0a0\uc9dc: ' + aggregate.reportDate + '\\n'\n    + channelErrors.map((msg) => '- ' + msg).join('\\n'));\n}\n\nif (coupangNeedsBackfill) {\n  opsAlerts.push('<b>[\uc6b4\uc601\uc54c\ub9bc][F23] \ucfe0\ud321 \ub9e4\ucd9c \ubcf4\ub958</b>\\n'\n    + '\ub0a0\uc9dc: ' + aggregate.reportDate + '\\n'\n    + '\uc0ac\uc720: ' + String(coupang.note || coupang.error || '\ud655\uc815\uac12 \uc5c6\uc74c').slice(0, 500) + '\\n'\n    + '\uc870\uce58: 19:30 \ucfe0\ud321 pending backfill\uc774 \uc790\ub3d9 \uc7ac\uc2dc\ub3c4\ud569\ub2c8\ub2e4.');\n} else if (coupangApiIssue && coupangUsedFallback) {\n  opsAlerts.push('<b>[\uc6b4\uc601\uc54c\ub9bc][F23] \ucfe0\ud321 \uae30\uc874\uac12 \uc720\uc9c0</b>\\n'\n    + '\ub0a0\uc9dc: ' + aggregate.reportDate + '\\n'\n    + '\uc0c1\ud0dc: ' + coupangSource + '\\n'\n    + '\uba54\ubaa8: ' + String(coupang.note || coupang.error || 'API \ud734\uc9c0\uc2dc\uac04/\uc624\ub958').slice(0, 500));\n}\n\nconst severity = !sheetsOk || coupangNeedsBackfill ? 'ERROR' : (channelErrors.length || opsAlerts.length ? 'WARN' : 'OK');\nconst opsStatus = {\n  reportDate: aggregate.reportDate,\n  generatedAt: new Date().toISOString(),\n  severity,\n  sheets: {\n    ok: sheetsOk,\n    row,\n    range,\n    error: sheetsError,\n  },\n  channels: {\n    errorCount: channelErrors.length,\n    errors: channelErrors,\n  },\n  coupang: {\n    source: coupangSource,\n    skipped: !!coupang.skipped,\n    needsBackfill: coupangNeedsBackfill,\n    usedFallback: coupangUsedFallback,\n    note: coupang.note || '',\n    error: coupang.error || '',\n  },\n};\n\nreturn [{ json: { ...aggregate, opsStatus, opsAlerts } }];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        2600,
+        350
+      ],
+      "id": "node-sheets-status",
+      "name": "Sheets \uc800\uc7a5 \uc0c1\ud0dc"
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chatId }}",
+        "text": "={{ $json.message }}",
         "additionalFields": {
           "parse_mode": "HTML"
         }
@@ -260,56 +273,36 @@
       "type": "n8n-nodes-base.telegram",
       "typeVersion": 1.2,
       "position": [
-        2680,
+        2760,
         350
       ],
       "id": "node-telegram",
-      "name": "\ud154\ub808\uadf8\ub7a8 \uc804\uc1a1",
+      "name": "\uc6b4\uc601 \uc54c\ub9bc \uc804\uc1a1",
       "credentials": {
         "telegramApi": {
           "id": "RdFu3nsFuuO5NCff",
           "name": "Pressco\uba54\uc774\ud06c\uc0f5\ubd07"
         }
-      }
+      },
+      "continueOnFail": true
     },
     {
       "parameters": {
-        "method": "POST",
-        "url": "https://nocodb.pressco21.com/api/v1/db/data/noco/pbmo0os7rnvfd48/mwxvxjiqtw177xu",
-        "sendHeaders": true,
-        "headerParameters": {
-          "parameters": [
-            {
-              "name": "xc-token",
-              "value": "={{ $env.NOCODB_TOKEN }}"
-            },
-            {
-              "name": "Content-Type",
-              "value": "application/json"
-            }
-          ]
-        },
-        "sendBody": true,
-        "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ report_date: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.reportDate, makeshop_revenue: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.makeshop.revenue, makeshop_orders: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.makeshop.orders, naver_revenue: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.naver.revenue, naver_orders: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.naver.orders, st11_revenue: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.st11.revenue, st11_orders: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.st11.orders, crm_revenue: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.crm.revenue, crm_orders: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.crm.orders, coupang_revenue: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.coupang.revenue, coupang_orders: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.coupang.orders, total_revenue: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.total.revenue, total_orders: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.total.orders, notes: ($('\ud1b5\ud569 \uc9d1\uacc4').first().json.naver.error ? 'naver:' + $('\ud1b5\ud569 \uc9d1\uacc4').first().json.naver.error.slice(0,50) + ' ' : '') + ($('\ud1b5\ud569 \uc9d1\uacc4').first().json.st11.error ? '11st:' + $('\ud1b5\ud569 \uc9d1\uacc4').first().json.st11.error.slice(0,50) + ' ' : '') + ($('\ud1b5\ud569 \uc9d1\uacc4').first().json.coupang.error ? 'coupang:' + $('\ud1b5\ud569 \uc9d1\uacc4').first().json.coupang.error.slice(0,50) + ' ' : '') + ($('\ud1b5\ud569 \uc9d1\uacc4').first().json.coupang.note || '') }) }}",
-        "options": {
-          "timeout": 10000
-        }
+        "jsCode": "const aggregate = $('\ud1b5\ud569 \uc9d1\uacc4').first().json;\nlet status = {};\ntry { status = $('Sheets \uc800\uc7a5 \uc0c1\ud0dc').first().json.opsStatus || {}; } catch(e) {}\nconst token = String($env.NOCODB_TOKEN || '').trim();\nconst baseUrl = 'https://nocodb.pressco21.com/api/v1/db/data/noco/pbmo0os7rnvfd48/mwxvxjiqtw177xu';\n\nconst coupang = aggregate.coupang || {};\nconst coupangSource = String(coupang.source || '');\nlet coupangCollectionStatus = 'confirmed';\nif (coupangSource === 'pending_backfill') {\n  coupangCollectionStatus = 'pending_backfill';\n} else if (coupang.skipped && coupangSource === 'nocodb_existing') {\n  coupangCollectionStatus = 'skipped_blackout_nocodb_existing';\n} else if (coupang.skipped && coupangSource.indexOf('sheet_existing') >= 0) {\n  coupangCollectionStatus = 'skipped_blackout_sheet_existing';\n} else if (coupang.error && coupangSource === 'nocodb_existing') {\n  coupangCollectionStatus = 'api_error_nocodb_existing';\n} else if (coupang.error && coupangSource.indexOf('sheet_existing') >= 0) {\n  coupangCollectionStatus = 'api_error_sheet_existing';\n} else if (coupang.error) {\n  coupangCollectionStatus = 'api_error';\n}\n\nconst notesParts = [];\nif (aggregate.naver && aggregate.naver.error) notesParts.push('naver:' + String(aggregate.naver.error).slice(0, 50));\nif (aggregate.st11 && aggregate.st11.error) notesParts.push('11st:' + String(aggregate.st11.error).slice(0, 50));\nif (aggregate.coupang && aggregate.coupang.error) notesParts.push('coupang:' + String(aggregate.coupang.error).slice(0, 50));\nif (aggregate.coupang && aggregate.coupang.note) notesParts.push(String(aggregate.coupang.note));\nif (status.sheets && !status.sheets.ok) notesParts.push('sheets_error:' + String(status.sheets.error || '').slice(0, 80));\nif (coupangCollectionStatus !== 'confirmed') notesParts.push('coupang_collection_status:' + coupangCollectionStatus);\n\nconst payload = {\n  report_date: aggregate.reportDate,\n  makeshop_revenue: aggregate.makeshop.revenue,\n  makeshop_orders: aggregate.makeshop.orders,\n  naver_revenue: aggregate.naver.revenue,\n  naver_orders: aggregate.naver.orders,\n  st11_revenue: aggregate.st11.revenue,\n  st11_orders: aggregate.st11.orders,\n  crm_revenue: aggregate.crm.revenue,\n  crm_orders: aggregate.crm.orders,\n  coupang_revenue: aggregate.coupang.revenue,\n  coupang_orders: aggregate.coupang.orders,\n  coupang_collection_status: coupangCollectionStatus,\n  total_revenue: aggregate.total.revenue,\n  total_orders: aggregate.total.orders,\n  notes: notesParts.join(' ').trim(),\n};\n\nif (!token) {\n  return [{ json: { ok: false, nocodb: { ok: false, action: 'skipped', error: 'NOCODB_TOKEN \ubbf8\uc124\uc815', reportDate: aggregate.reportDate }, payload } }];\n}\n\nconst deleteDuplicates = async (rows) => {\n  const deletedIds = [];\n  const errors = [];\n  for (const row of rows.slice(1)) {\n    if (!row || !row.Id) continue;\n    try {\n      await this.helpers.httpRequest({\n        method: 'DELETE',\n        url: baseUrl + '/' + row.Id,\n        headers: { 'xc-token': token },\n        timeout: 10000,\n      });\n      deletedIds.push(row.Id);\n    } catch (e) {\n      errors.push(row.Id + ':' + e.message);\n    }\n  }\n  return { deletedIds, errors };\n};\n\ntry {\n  const existing = await this.helpers.httpRequest({\n    method: 'GET',\n    url: baseUrl,\n    headers: { 'xc-token': token },\n    qs: {\n      where: '(report_date,eq,' + aggregate.reportDate + ')',\n      sort: '-Id',\n      limit: 20,\n      fields: 'Id,report_date'\n    }\n  });\n  const rows = (existing.list || []).filter((row) => String(row.report_date || '').slice(0, 10) === String(aggregate.reportDate));\n  rows.sort((a, b) => (parseInt(b.Id) || 0) - (parseInt(a.Id) || 0));\n  const latest = rows[0];\n\n  if (latest && latest.Id) {\n    await this.helpers.httpRequest({\n      method: 'PATCH',\n      url: baseUrl + '/' + latest.Id,\n      headers: { 'xc-token': token, 'Content-Type': 'application/json' },\n      body: payload,\n      timeout: 10000,\n    });\n    const duplicateCleanup = rows.length > 1 ? await deleteDuplicates(rows) : { deletedIds: [], errors: [] };\n    return [{ json: { ok: duplicateCleanup.errors.length === 0, nocodb: { ok: duplicateCleanup.errors.length === 0, action: 'patch', id: latest.Id, duplicateCount: Math.max(0, rows.length - 1), deletedDuplicateIds: duplicateCleanup.deletedIds, duplicateDeleteErrors: duplicateCleanup.errors, reportDate: aggregate.reportDate }, payload } }];\n  }\n\n  const created = await this.helpers.httpRequest({\n    method: 'POST',\n    url: baseUrl,\n    headers: { 'xc-token': token, 'Content-Type': 'application/json' },\n    body: payload,\n    timeout: 10000,\n  });\n  return [{ json: { ok: true, nocodb: { ok: true, action: 'post', id: created.Id || created.id || null, duplicateCount: 0, deletedDuplicateIds: [], duplicateDeleteErrors: [], reportDate: aggregate.reportDate }, payload } }];\n} catch (e) {\n  return [{ json: { ok: false, nocodb: { ok: false, action: 'error', error: e.message, reportDate: aggregate.reportDate }, payload } }];\n}"
       },
-      "type": "n8n-nodes-base.httpRequest",
-      "typeVersion": 4.2,
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
       "position": [
         2920,
         350
       ],
       "id": "node-save",
-      "name": "NocoDB \uc800\uc7a5",
-      "continueOnFail": true
+      "name": "NocoDB \uc800\uc7a5"
     },
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={{ JSON.stringify({ ok: true, date: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.reportDate, total_revenue: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.total.revenue, total_orders: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.total.orders, channels: { makeshop: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.makeshop.revenue, naver: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.naver.revenue, st11: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.st11.revenue, crm: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.crm.revenue, coupang: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.coupang.revenue } }) }}"
+        "responseBody": "={{ JSON.stringify({ ok: (($('Sheets \uc800\uc7a5 \uc0c1\ud0dc').first().json.opsStatus.sheets || {}).ok !== false) && (($('NocoDB \uc800\uc7a5').first().json.nocodb || {}).ok !== false), date: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.reportDate, total_revenue: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.total.revenue, total_orders: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.total.orders, channels: { makeshop: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.makeshop.revenue, naver: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.naver.revenue, st11: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.st11.revenue, crm: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.crm.revenue, coupang: $('\ud1b5\ud569 \uc9d1\uacc4').first().json.coupang.revenue }, status: { sheets: $('Sheets \uc800\uc7a5 \uc0c1\ud0dc').first().json.opsStatus.sheets, nocodb: $('NocoDB \uc800\uc7a5').first().json.nocodb, coupang: $('Sheets \uc800\uc7a5 \uc0c1\ud0dc').first().json.opsStatus.coupang, severity: $('Sheets \uc800\uc7a5 \uc0c1\ud0dc').first().json.opsStatus.severity, alertCount: (($('Sheets \uc800\uc7a5 \uc0c1\ud0dc').first().json.opsAlerts || []).length) } }) }}"
       },
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1.1,
@@ -319,6 +312,19 @@
       ],
       "id": "node-respond",
       "name": "\uc751\ub2f5"
+    },
+    {
+      "parameters": {
+        "jsCode": "const sheetItem = $('Sheets \uc800\uc7a5 \uc0c1\ud0dc').first().json || {};\nconst saveItem = $('NocoDB \uc800\uc7a5').first().json || {};\nconst aggregate = $('\ud1b5\ud569 \uc9d1\uacc4').first().json || {};\nconst alerts = Array.isArray(sheetItem.opsAlerts) ? [...sheetItem.opsAlerts] : [];\nconst nocodb = saveItem.nocodb || {};\n\nif (nocodb.ok === false) {\n  alerts.push('<b>[\uc6b4\uc601\uc54c\ub9bc][F23] NocoDB \uc800\uc7a5 \uc2e4\ud328</b>\\n'\n    + '\ub0a0\uc9dc: ' + (aggregate.reportDate || nocodb.reportDate || '') + '\\n'\n    + '\uc870\uce58: \uad6c\uae00\uc2dc\ud2b8 \uac12\uc740 \uae30\uc785\ub410\uc744 \uc218 \uc788\uc73c\ub098 \uc6d0\uc7a5 \uae30\uc900 F24/F26 \ub9ac\ud3ec\ud2b8\uac00 \ud2c0\uc5b4\uc9c8 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\\n'\n    + '\uc624\ub958: ' + String(nocodb.error || (nocodb.duplicateDeleteErrors || []).join(' | ') || 'unknown').slice(0, 700));\n} else if ((nocodb.duplicateCount || 0) > 0) {\n  alerts.push('<b>[\uc6b4\uc601\uc54c\ub9bc][F23] NocoDB \uc911\ubcf5 \uc6d0\uc7a5 \uc790\ub3d9 \uc815\ub9ac</b>\\n'\n    + '\ub0a0\uc9dc: ' + (aggregate.reportDate || nocodb.reportDate || '') + '\\n'\n    + '\uc720\uc9c0 ID: ' + (nocodb.id || '') + '\\n'\n    + '\uc0ad\uc81c ID: ' + (nocodb.deletedDuplicateIds || []).join(', '));\n}\n\nif (!alerts.length) return [];\nreturn [{ json: {\n  chatId: '-5251214343',\n  message: alerts.join('\\n\\n'),\n  reportDate: aggregate.reportDate || nocodb.reportDate || '',\n  alertCount: alerts.length,\n} }];"
+      },
+      "id": "446005a1-38e1-434c-bec0-eeb48518dfab",
+      "name": "\uc6b4\uc601 \uc54c\ub9bc \ud544\ud130",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        3120,
+        260
+      ]
     }
   ],
   "connections": {
@@ -425,7 +431,7 @@
       "main": [
         [
           {
-            "node": "NocoDB \uc800\uc7a5",
+            "node": "Sheets \uc800\uc7a5 \uc0c1\ud0dc",
             "type": "main",
             "index": 0
           }
@@ -435,6 +441,11 @@
     "NocoDB \uc800\uc7a5": {
       "main": [
         [
+          {
+            "node": "\uc6b4\uc601 \uc54c\ub9bc \ud544\ud130",
+            "type": "main",
+            "index": 0
+          },
           {
             "node": "\uc751\ub2f5",
             "type": "main",
@@ -459,6 +470,28 @@
         [
           {
             "node": "\ud1b5\ud569 \uc9d1\uacc4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Sheets \uc800\uc7a5 \uc0c1\ud0dc": {
+      "main": [
+        [
+          {
+            "node": "NocoDB \uc800\uc7a5",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "\uc6b4\uc601 \uc54c\ub9bc \ud544\ud130": {
+      "main": [
+        [
+          {
+            "node": "\uc6b4\uc601 \uc54c\ub9bc \uc804\uc1a1",
             "type": "main",
             "index": 0
           }

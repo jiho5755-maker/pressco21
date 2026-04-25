@@ -1,49 +1,49 @@
 ---
-handoff_id: HOFF-20260425-111509-daily-final-20260425
-created_at: 2026-04-25T11:15:10+0900
+handoff_id: HOFF-20260425-113419-sales-report-final-20260425
+created_at: 2026-04-25T11:34:20+0900
 runtime: codex-omx
 owner_agent_id: yoo-junho-paircoder
 contributors: []
 scope_type: worktree
 project: workspace
-worktree_slot: workspace-daily-final-handoff-20260425
-repo_root: /Users/jangjiho/workspace/pressco21-worktrees/workspace-daily-final-handoff-20260425
-branch: "work/workspace/daily-final-handoff-20260425"
-worktree_path: "/Users/jangjiho/workspace/pressco21-worktrees/workspace-daily-final-handoff-20260425"
-source_cwd: "/Users/jangjiho/workspace/pressco21-worktrees/workspace-daily-final-handoff-20260425"
-commit_sha: 61ca8f1
+worktree_slot: workspace-sales-report-final-handoff
+repo_root: /Users/jangjiho/workspace/pressco21-worktrees/workspace-sales-report-final-handoff
+branch: "work/workspace/sales-report-final-handoff"
+worktree_path: "/Users/jangjiho/workspace/pressco21-worktrees/workspace-sales-report-final-handoff"
+source_cwd: "/Users/jangjiho/workspace/pressco21-worktrees/workspace-sales-report-final-handoff"
+commit_sha: bda2398
 status: active
 promoted_to_global: true
-summary: "오늘 작업 마감: OpenClaw setup audit는 완료/통합됐고, 원장님 은행·자산 관제방 작업은 별도 브랜치로 분기/푸시했으며, 핸드오프 요청을 영속 저장·커밋·푸시 기준으로 처리하는 글로벌 프로토콜을 main과 Claude Code 홈 설정까지 적용했습니다"
+summary: "매출보고 자동화 마감: 쿠팡 집계 보완, 로켓배송 수기 동기화 확인, 텔레그램 매출보고/운영알림 토픽 분리, F22 그룹 서비스 메시지 무응답 처리, F24/F23/F23B 운영 배포 및 main 통합 완료. 2026-04-24 최종 매출보고는 매출보고 토픽 message_id 19로 1회 발송 완료."
 decision: "Codex durable handoff로 로컬 output 기록과 Git 추적 team/handoffs 기록을 함께 남겼습니다."
 changed_artifacts:
   - "(no working-tree changes at handoff time)"
 verification:
-  - "local output handoff saved: output/codex-handoffs/20260425-111509-daily-final-20260425.md"
+  - "local output handoff saved: output/codex-handoffs/20260425-113419-sales-report-final-20260425.md"
   - "git status captured at handoff time"
 open_risks:
-  - "main 정리 중 mcp-servers 자동 handoff dirty 파일은 삭제하지 않고 stash@{0} d355ae3433947614b3408166d7992021c46114a7 에 보존했습니다. 기존 은행 알림방/CRM 자동화/n8n 실서비스는 승인 전 변경 금지입니다"
-next_step: "다음 세션은 main 최신 상태에서 시작하고, 은행·자산 관제방은 work/workspace/telegram-bank-room-governance 브랜치의 handoff를 기준으로 별도 진행합니다"
+  - "Telegram All은 앱 전체보기라 제거 불가, General은 완전 삭제보다 숨김/닫기만 가능. 쿠팡 API 14:30~19:00 호출 금지 윈도우는 유지 필요."
+next_step: "2026-04-26 10:00 자동 루틴이 매출보고 토픽으로 정상 발송되는지만 모니터링하면 됩니다. 토픽을 삭제 후 재생성하면 message_thread_id가 바뀌므로 n8n 설정을 재반영하세요."
 learn_to_save:
   - "사용자가 핸드오프를 요청하면 output 로컬 파일만으로는 부족하며 team/handoffs 추적 파일까지 남겨야 합니다."
-local_output_handoff: "output/codex-handoffs/20260425-111509-daily-final-20260425.md"
-session_log: "output/codex-sessions/20260425-111509-daily-final-handoff.md"
+local_output_handoff: "output/codex-handoffs/20260425-113419-sales-report-final-20260425.md"
+session_log: "output/codex-sessions/20260425-113419-session.md"
 backup_folder: "(none)"
 ---
 
 # Codex durable handoff
 
 ## 요약
-오늘 작업 마감: OpenClaw setup audit는 완료/통합됐고, 원장님 은행·자산 관제방 작업은 별도 브랜치로 분기/푸시했으며, 핸드오프 요청을 영속 저장·커밋·푸시 기준으로 처리하는 글로벌 프로토콜을 main과 Claude Code 홈 설정까지 적용했습니다
+매출보고 자동화 마감: 쿠팡 집계 보완, 로켓배송 수기 동기화 확인, 텔레그램 매출보고/운영알림 토픽 분리, F22 그룹 서비스 메시지 무응답 처리, F24/F23/F23B 운영 배포 및 main 통합 완료. 2026-04-24 최종 매출보고는 매출보고 토픽 message_id 19로 1회 발송 완료.
 
 ## 다음 작업
-다음 세션은 main 최신 상태에서 시작하고, 은행·자산 관제방은 work/workspace/telegram-bank-room-governance 브랜치의 handoff를 기준으로 별도 진행합니다
+2026-04-26 10:00 자동 루틴이 매출보고 토픽으로 정상 발송되는지만 모니터링하면 됩니다. 토픽을 삭제 후 재생성하면 message_thread_id가 바뀌므로 n8n 설정을 재반영하세요.
 
 ## 리스크
-main 정리 중 mcp-servers 자동 handoff dirty 파일은 삭제하지 않고 stash@{0} d355ae3433947614b3408166d7992021c46114a7 에 보존했습니다. 기존 은행 알림방/CRM 자동화/n8n 실서비스는 승인 전 변경 금지입니다
+Telegram All은 앱 전체보기라 제거 불가, General은 완전 삭제보다 숨김/닫기만 가능. 쿠팡 API 14:30~19:00 호출 금지 윈도우는 유지 필요.
 
 ## 로컬 output handoff
-`output/codex-handoffs/20260425-111509-daily-final-20260425.md`
+`output/codex-handoffs/20260425-113419-sales-report-final-20260425.md`
 
 ## Git 상태
 
@@ -54,7 +54,7 @@ main 정리 중 mcp-servers 자동 handoff dirty 파일은 삭제하지 않고 s
 ## 최근 커밋
 
 ```text
-61ca8f1 Merge work/workspace/durable-handoff-protocol
-3b27fe4 [codex] handoff 저장: durable-handoff-protocol-final
-45d07fb [codex] handoff helper 상태 출력 보정
+bda2398 Merge work/n8n/telegram-topic-routing
+84c5dcc [codex] 텔레그램 토픽 라우팅 적용
+114f2f8 Merge work/workspace/daily-final-handoff-20260425
 ```

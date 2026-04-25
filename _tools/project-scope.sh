@@ -76,31 +76,31 @@ p21_slot_prefix() {
 p21_allowed_paths_print() {
   case "$1" in
     offline-crm)
-      printf '%s\n' 'offline-crm-v2/'
+      printf '%s\n' 'offline-crm-v2/' 'team/handoffs/'
       ;;
     partnerclass)
-      printf '%s\n' 'makeshop-skin/' '파트너클래스/' 'docs/파트너클래스/'
+      printf '%s\n' 'makeshop-skin/' '파트너클래스/' 'docs/파트너클래스/' 'team/handoffs/'
       ;;
     n8n)
-      printf '%s\n' 'n8n-automation/'
+      printf '%s\n' 'n8n-automation/' 'team/handoffs/'
       ;;
     mini-app)
-      printf '%s\n' 'mini-app-v2/'
+      printf '%s\n' 'mini-app-v2/' 'team/handoffs/'
       ;;
     mobile-app)
-      printf '%s\n' 'mobile-app/'
+      printf '%s\n' 'mobile-app/' 'team/handoffs/'
       ;;
     homepage)
-      printf '%s\n' 'makeshop-skin/' 'homepage-automation/' '메인페이지/' '간편 구매/' '브랜드스토리/' '파트너맵/' '레지너스 화이트페이퍼/' '1초 로그인(킵그로우)/'
+      printf '%s\n' 'makeshop-skin/' 'homepage-automation/' '메인페이지/' '간편 구매/' '브랜드스토리/' '파트너맵/' '레지너스 화이트페이퍼/' '1초 로그인(킵그로우)/' 'team/handoffs/'
       ;;
     workspace)
       printf '%s\n' 'AGENTS.md' '*/AGENTS.md' 'CLAUDE.md' 'README.md' 'OPS_STATE.md' 'HARNESS.md' 'ROADMAP.md' '.gitignore' '.codex/' '.claude/' '_tools/' 'docs/' 'archive/' 'tools/' 'team/handoffs/' 'team/knowledge-base/' 'AI_SYNC.md'
       ;;
     team)
-      printf '%s\n' 'team/' 'company-knowledge/직원/' 'docs/openmarket-ops/' 'docs/prd-templates/' 'AI_SYNC.md'
+      printf '%s\n' 'team/' 'team/handoffs/' 'company-knowledge/직원/' 'docs/openmarket-ops/' 'docs/prd-templates/' 'AI_SYNC.md'
       ;;
     mcp-servers)
-      printf '%s\n' 'mcp-servers/'
+      printf '%s\n' 'mcp-servers/' 'team/handoffs/'
       ;;
     *) return 1 ;;
   esac
@@ -108,7 +108,7 @@ p21_allowed_paths_print() {
 
 p21_sparse_paths_print() {
   # worktree 안에서 AI 도구와 hook이 동작하도록 루트 지침과 _tools는 항상 포함합니다.
-  printf '%s\n' '/AGENTS.md' '/CLAUDE.md' '/.gitignore' '/_tools/'
+  printf '%s\n' '/AGENTS.md' '/CLAUDE.md' '/.gitignore' '/_tools/' '/team/handoffs/'
   case "$1" in
     offline-crm)
       printf '%s\n' '/offline-crm-v2/'
@@ -144,6 +144,10 @@ p21_sparse_paths_print() {
 p21_is_path_allowed() {
   local project="$1"
   local path="$2"
+
+  # Cross-runtime handoff metadata is allowed from every project branch so
+  # Claude/Codex can preserve session continuity without dirtying main.
+  case "$path" in team/handoffs|team/handoffs/*) return 0 ;; esac
 
   case "$project" in
     offline-crm)

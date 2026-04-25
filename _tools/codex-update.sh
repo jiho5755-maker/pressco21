@@ -10,7 +10,7 @@ usage() {
 Usage:
   bash pressco21/_tools/codex-update.sh [--session <log>] [--scope <scope> --subdirectory <scope-path>]
     [--label <label>] [--backup-label <label>] --summary "<summary>" --next "<next step>"
-    [--risk "<risk>"] [path...]
+    [--risk "<risk>"] [--tracked-handoff] [--promote-global] [path...]
 
 Examples:
   bash pressco21/_tools/codex-update.sh --summary "parser drift checked" --next "resume from latest fixture failure" --risk "2 live cases still unverified"
@@ -27,6 +27,8 @@ backup_label=""
 summary=""
 next_step=""
 risk=""
+tracked_handoff=0
+promote_global=0
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -61,6 +63,15 @@ while [ $# -gt 0 ]; do
     --risk)
       risk="${2:-}"
       shift 2
+      ;;
+    --tracked-handoff)
+      tracked_handoff=1
+      shift
+      ;;
+    --promote-global)
+      promote_global=1
+      tracked_handoff=1
+      shift
       ;;
     -h|--help)
       usage
@@ -212,3 +223,131 @@ if [ -n "$backup_dir" ]; then
 fi
 printf '\nSuggested next-session prompt:\n'
 printf '이전 Codex 세션을 이어가자. 업데이트 노트 `%s` 기준으로 다음 작업 `%s`부터 진행해줘.\n' "$(codex_repo_rel "$handoff_file")" "$next_step"
+
+if [ "$tracked_handoff" -eq 1 ]; then
+  date_ymd="$(date '+%Y-%m-%d')"
+  worktree_slot="$(basename "$CODEX_REPO_ROOT")"
+  safe_branch="$(codex_safe_segment "$branch")"
+  safe_label="$(codex_slugify "$handoff_label")"
+  scope_type="worktree"
+  project="$branch_scope"
+  case "$branch" in
+    main)
+      scope_type="repo"
+      worktree_slot="main"
+      project="repo"
+      ;;
+  esac
+  case "$project" in
+    ""|\(*\)) project="unknown" ;;
+  esac
+  safe_project="$(codex_safe_segment "$project")"
+  output_handoff_rel="$(codex_repo_rel "$handoff_file")"
+
+  changed_artifacts=()
+  if [ ${#paths[@]} -gt 0 ]; then
+    changed_artifacts=("${paths[@]}")
+  else
+    while IFS= read -r status_line; do
+      [ -n "$status_line" ] && changed_artifacts+=("$status_line")
+    done < <(git -C "$CODEX_REPO_ROOT" status --short || true)
+    if [ ${#changed_artifacts[@]} -eq 0 ]; then
+      changed_artifacts=("(no working-tree changes at handoff time)")
+    fi
+  fi
+
+  primary_dir="$CODEX_REPO_ROOT/team/handoffs/worktrees/$worktree_slot"
+  if [ "$scope_type" = "repo" ]; then
+    primary_dir="$CODEX_REPO_ROOT/team/handoffs"
+  fi
+  branch_dir="$CODEX_REPO_ROOT/team/handoffs/branches/$safe_branch"
+  project_dir="$CODEX_REPO_ROOT/team/handoffs/projects/$safe_project"
+  archive_dir="$CODEX_REPO_ROOT/team/handoffs/archive/$date_ymd"
+  named_file="$CODEX_REPO_ROOT/team/handoffs/$date_ymd-$safe_label.md"
+  tracked_primary="$primary_dir/latest.md"
+
+  mkdir -p "$primary_dir" "$branch_dir" "$archive_dir"
+  if [ "$project" != "unknown" ] && [ "$project" != "repo" ]; then
+    mkdir -p "$project_dir"
+  fi
+
+  cat > "$tracked_primary" <<EOF
+---
+handoff_id: HOFF-$handoff_id
+created_at: $(date '+%Y-%m-%dT%H:%M:%S%z')
+runtime: codex-omx
+owner_agent_id: yoo-junho-paircoder
+contributors: []
+scope_type: $scope_type
+project: $project
+worktree_slot: $worktree_slot
+repo_root: $CODEX_REPO_ROOT
+branch: "$branch"
+worktree_path: "$CODEX_REPO_ROOT"
+source_cwd: "$PWD"
+commit_sha: $head_commit
+status: active
+promoted_to_global: $([ "$promote_global" -eq 1 ] && printf 'true' || printf 'false')
+summary: "$(codex_yaml_escape "$summary")"
+decision: "$(codex_yaml_escape "Codex durable handoff로 로컬 output 기록과 Git 추적 team/handoffs 기록을 함께 남겼습니다.")"
+changed_artifacts:
+$(codex_yaml_list "${changed_artifacts[@]}")
+verification:
+  - "$(codex_yaml_escape "local output handoff saved: $output_handoff_rel")"
+  - "$(codex_yaml_escape "git status captured at handoff time")"
+open_risks:
+  - "$(codex_yaml_escape "${risk:-"(none)"}")"
+next_step: "$(codex_yaml_escape "$next_step")"
+learn_to_save:
+  - "$(codex_yaml_escape "사용자가 핸드오프를 요청하면 output 로컬 파일만으로는 부족하며 team/handoffs 추적 파일까지 남겨야 합니다.")"
+local_output_handoff: "$output_handoff_rel"
+session_log: "$session_rel"
+backup_folder: "$backup_rel"
+---
+
+# Codex durable handoff
+
+## 요약
+$summary
+
+## 다음 작업
+$next_step
+
+## 리스크
+${risk:-"(none)"}
+
+## 로컬 output handoff
+\`$output_handoff_rel\`
+
+## Git 상태
+
+\`\`\`text
+$git_status
+\`\`\`
+
+## 최근 커밋
+
+\`\`\`text
+$recent_commits
+\`\`\`
+EOF
+
+  cp "$tracked_primary" "$branch_dir/latest.md"
+  if [ "$project" != "unknown" ] && [ "$project" != "repo" ]; then
+    cp "$tracked_primary" "$project_dir/latest.md"
+  fi
+  cp "$tracked_primary" "$archive_dir/$worktree_slot-$safe_branch-HOFF-$handoff_id.md"
+  cp "$tracked_primary" "$named_file"
+  if [ "$scope_type" = "repo" ] || [ "$promote_global" -eq 1 ]; then
+    cp "$tracked_primary" "$CODEX_REPO_ROOT/team/handoffs/latest.md"
+  fi
+
+  printf '\nTracked handoff saved:\n'
+  printf '  - %s\n' "$(codex_repo_rel "$tracked_primary")"
+  printf '  - %s\n' "$(codex_repo_rel "$branch_dir/latest.md")"
+  if [ "$project" != "unknown" ] && [ "$project" != "repo" ]; then
+    printf '  - %s\n' "$(codex_repo_rel "$project_dir/latest.md")"
+  fi
+  printf '  - %s\n' "$(codex_repo_rel "$named_file")"
+  printf '\nDurable handoff is not complete until these tracked files are committed and pushed.\n'
+fi

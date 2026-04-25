@@ -69,6 +69,7 @@ branch="$(git -C "$git_root" branch --show-current 2>/dev/null || echo unknown)"
 commit_sha="$(git -C "$git_root" rev-parse --short HEAD 2>/dev/null || echo unknown)"
 base_real="$(canonical_path "$BASE_REPO_ROOT")"
 git_real="$(canonical_path "$git_root")"
+registry_root="$git_root"
 
 project_from_branch() {
   case "$1" in
@@ -175,18 +176,18 @@ handoff_id="HOFF-$(TZ=Asia/Seoul date '+%Y-%m-%d')-claude-$(printf '%03d' $((RAN
 
 case "$scope_type" in
   repo)
-    primary_dir="$BASE_REPO_ROOT/team/handoffs"
+    primary_dir="$registry_root/team/handoffs"
     ;;
   worktree)
-    primary_dir="$BASE_REPO_ROOT/team/handoffs/worktrees/$worktree_slot"
+    primary_dir="$registry_root/team/handoffs/worktrees/$worktree_slot"
     ;;
   *)
-    primary_dir="$BASE_REPO_ROOT/team/handoffs/worktrees/$worktree_slot"
+    primary_dir="$registry_root/team/handoffs/worktrees/$worktree_slot"
     ;;
 esac
-branch_dir="$BASE_REPO_ROOT/team/handoffs/branches/$safe_branch"
-project_dir="$BASE_REPO_ROOT/team/handoffs/projects/$safe_project"
-archive_dir="$BASE_REPO_ROOT/team/handoffs/archive/$(TZ=Asia/Seoul date '+%Y-%m-%d')"
+branch_dir="$registry_root/team/handoffs/branches/$safe_branch"
+project_dir="$registry_root/team/handoffs/projects/$safe_project"
+archive_dir="$registry_root/team/handoffs/archive/$(TZ=Asia/Seoul date '+%Y-%m-%d')"
 
 mkdir -p "$primary_dir" "$branch_dir" "$archive_dir"
 if [[ "$project" != "unknown" && "$project" != "repo" ]]; then
@@ -204,7 +205,7 @@ contributors: $contributors
 scope_type: $scope_type
 project: $project
 worktree_slot: $worktree_slot
-repo_root: $BASE_REPO_ROOT
+repo_root: $git_root
 branch: ${branch:-unknown}
 worktree_path: $git_root
 source_cwd: $cwd
@@ -241,7 +242,7 @@ fi
 cp "$handoff_file" "$archive_dir/${worktree_slot}-${safe_branch}-${handoff_id}.md"
 
 if [[ "$scope_type" == "repo" || "$PROMOTE_GLOBAL" == "1" ]]; then
-  cp "$handoff_file" "$BASE_REPO_ROOT/team/handoffs/latest.md"
+  cp "$handoff_file" "$registry_root/team/handoffs/latest.md"
 fi
 
 log "OK: $handoff_id scope=$scope_type project=$project branch=$branch slot=$worktree_slot owner=$owner_agent file=$handoff_file"

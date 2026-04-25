@@ -26,6 +26,37 @@ codex_slugify() {
   printf '%s\n' "$slug"
 }
 
+codex_safe_segment() {
+  local raw="${1:-unknown}"
+  local segment
+  segment="$(printf '%s' "$raw" | tr '/ ' '__' | sed -E 's/[^A-Za-z0-9._-]+/-/g; s/^-+//; s/-+$//')"
+  if [ -z "$segment" ]; then
+    segment="unknown"
+  fi
+  printf '%s\n' "$segment"
+}
+
+codex_yaml_escape() {
+  # YAML double-quoted scalar escape. Keep output one-line for frontmatter fields.
+  python3 - "$1" <<'PYESC'
+import sys
+s = sys.argv[1]
+s = s.replace("\\", "\\\\").replace('"', '\\"').replace("\n", " ")
+print(s)
+PYESC
+}
+
+codex_yaml_list() {
+  local item
+  if [ $# -eq 0 ]; then
+    printf '  - "(none)"\n'
+    return 0
+  fi
+  for item in "$@"; do
+    printf '  - "%s"\n' "$(codex_yaml_escape "$item")"
+  done
+}
+
 codex_ensure_dirs() {
   mkdir -p "$CODEX_SESSION_DIR" "$CODEX_BACKUP_DIR" "$CODEX_HANDOFF_DIR"
 }

@@ -82,12 +82,34 @@ Claude Code가 기획/개발을 완료한 후, Codex CLI가 후속 관리를 담
 
 ### Cross-Runtime Handoff
 
-세션 종료 시 `team/handoffs/latest.md`에 handoff를 기록한다.
-다음 세션(어느 런타임이든)이 이 파일을 읽고 작업을 이어받는다.
+사용자가 "핸드오프", "오늘 여기까지", "세션 종료", "컴퓨터 끌게"처럼
+끊고 가려는 의도를 보이면 **영속 handoff**를 남긴다.
+
+영속 handoff는 로컬 `output/codex-handoffs/`만으로는 완료가 아니다.
+`output/`은 `.gitignore` 대상이므로 다른 세션/런타임/GitHub에서 안 보일 수 있다.
+반드시 현재 작업 branch 안의 `team/handoffs/**` 추적 파일을 만들고,
+가능하면 commit + push까지 확인한다.
+
+권장 helper:
+
+```bash
+bash _tools/pressco21-handoff.sh "<요약>" "<다음 작업>" --risk "<리스크>" --label "<작업명>"
+```
+
+다음 세션(Claude Code든 Codex든)은 현재 worktree/branch/project scope의
+`team/handoffs/**/latest.md`를 읽고 작업을 이어받는다.
 
 읽기 도구: `bash _tools/omx-handoff-reader.sh`
 
 필수 필드: handoff_id, runtime, owner_agent_id, summary, decision, changed_artifacts, verification, open_risks, next_step, learn_to_save
+
+완료 체크:
+1. 작업 변경이 있으면 먼저 안전하게 commit한다.
+2. `team/handoffs/worktrees/<slot>/latest.md`, branch/project fallback, archive 또는 named handoff를 갱신한다.
+3. handoff 파일을 commit한다.
+4. 현재 branch를 push한다.
+5. 최종 응답에 branch, commit, pushed 여부, handoff 경로, 남은 dirty 여부를 말한다.
+6. commit/push가 안 됐거나 dirty 변경이 남으면 "완료"라고 하지 않고 남은 위험을 명시한다.
 
 상세: `docs/ai-native-upgrade/shared-agent-kernel/handoff-contract-v1.md`
 
@@ -155,13 +177,14 @@ cd /Users/jangjiho/workspace/pressco21-worktrees/offline-crm-invoice-fix/offline
 
 | 프로젝트 | 브랜치 패턴 | 기본 허용 수정 범위 |
 |---|---|---|
-| CRM | `work/offline-crm/<task>` | `offline-crm-v2/**` |
-| 파트너클래스 | `work/partnerclass/<task>` | `makeshop-skin/**`, `파트너클래스/**`, `docs/파트너클래스/**` |
-| n8n | `work/n8n/<task>` | `n8n-automation/**` |
-| mini app | `work/mini-app/<task>` | `mini-app-v2/**` |
-| mobile app | `work/mobile-app/<task>` | `mobile-app/**` |
-| workspace governance | `work/workspace/<task>` | 루트 운영 문서/도구, `_tools/**`, `archive/**` |
+| CRM | `work/offline-crm/<task>` | `offline-crm-v2/**` + `team/handoffs/**` |
+| 파트너클래스 | `work/partnerclass/<task>` | `makeshop-skin/**`, `파트너클래스/**`, `docs/파트너클래스/**` + `team/handoffs/**` |
+| n8n | `work/n8n/<task>` | `n8n-automation/**` + `team/handoffs/**` |
+| mini app | `work/mini-app/<task>` | `mini-app-v2/**` + `team/handoffs/**` |
+| mobile app | `work/mobile-app/<task>` | `mobile-app/**` + `team/handoffs/**` |
+| workspace governance | `work/workspace/<task>` | 루트 운영 문서/도구, `_tools/**`, `archive/**`, `team/handoffs/**` |
 
+`team/handoffs/**`는 세션 연속성을 위한 cross-runtime 메타데이터이므로 모든 프로젝트 브랜치에서 commit 허용합니다.
 `pre-commit` hook은 위 브랜치 패턴을 보고 scope 밖 파일이 staged되면 커밋을 차단합니다.
 
 ### main 브랜치 규칙

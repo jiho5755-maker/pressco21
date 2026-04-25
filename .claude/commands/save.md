@@ -6,7 +6,11 @@ user_invocable: true
 
 # /save — 세션 체크포인트
 
-사용자가 `/save`를 입력하면 아래 3단계를 순서대로 실행한다. 생략 금지.
+사용자가 `/save`, "핸드오프", "오늘 여기까지", "세션 종료", "컴퓨터 끌게"처럼
+끊고 가려는 의도를 보이면 아래 단계를 순서대로 실행한다. 생략 금지.
+
+핵심: 로컬 `output/` 기록은 Git에서 무시되므로 handoff 완료로 보지 않는다.
+반드시 `team/handoffs/**` 추적 파일을 만들고 commit/push까지 확인해야 한다.
 
 ## Step 1: Git 저장
 
@@ -30,6 +34,14 @@ user_invocable: true
 
 이번 세션의 handoff를 현재 cwd의 scope에 맞는 위치에 기록한다.
 Stop 훅이 기계적 골격을 먼저 생성하지만, `/save` 실행 시 Claude가 판단 필드를 채워 덮어쓴다.
+가능하면 공용 helper를 사용한다:
+
+```bash
+bash _tools/pressco21-handoff.sh "<summary>" "<next step>" --risk "<risk>" --label "<task-label>"
+```
+
+이 helper는 `output/codex-handoffs` 로컬 기록과 `team/handoffs` Git 추적 기록을 함께 만들고,
+기본적으로 handoff commit/push까지 수행한다.
 
 **scope 결정 규칙:**
 1. `git rev-parse --show-toplevel`로 현재 worktree root를 계산한다.
@@ -113,3 +125,5 @@ templates 위치: `docs/ai-native-upgrade/shared-agent-kernel/templates/`
 - AI_SYNC.md는 Codex 위임 사항이 있을 때만 갱신한다
 - 커밋 메시지에 `[save]` prefix를 붙이지 않는다 — 일반 커밋과 동일하게 작성
 - `/save` 후 추가 작업 요청이 오면 새 작업으로 진행 (체크포인트 무효화 아님)
+- commit/push가 실패했거나 미커밋 변경이 남아 있으면 "저장 완료"라고 말하지 않는다.
+  사용자에게 남은 로컬 변경과 필요한 다음 조치를 짧게 알려야 한다.

@@ -250,7 +250,20 @@ if try_render_candidate "현재 작업 이어받기" "$git_root/team/handoffs/la
   exit 0
 fi
 
-# 2) 중앙 registry의 worktree/branch/project scope를 순서대로 확인한다.
+# 2) 현재 worktree 안의 scoped registry를 확인한다. 새 worktree에는
+# /team/handoffs/가 sparse-checkout에 포함되므로 main을 더럽히지 않고
+# 브랜치별 handoff를 이어받을 수 있다.
+if try_render_candidate "현재 작업 이어받기" "$git_root/team/handoffs/worktrees/$worktree_slot/latest.md" exact; then
+  exit 0
+fi
+if [[ -n "$safe_branch" ]] && try_render_candidate "현재 작업 이어받기" "$git_root/team/handoffs/branches/$safe_branch/latest.md" exact; then
+  exit 0
+fi
+if [[ "$project" != "unknown" && "$project" != "repo" ]] && try_render_candidate "같은 프로젝트 참고" "$git_root/team/handoffs/projects/$project/latest.md" project; then
+  exit 0
+fi
+
+# 3) 중앙(main) registry의 worktree/branch/project scope를 fallback으로 확인한다.
 if try_render_candidate "현재 작업 이어받기" "$BASE_REPO_ROOT/team/handoffs/worktrees/$worktree_slot/latest.md" exact; then
   exit 0
 fi
@@ -261,7 +274,7 @@ if [[ "$project" != "unknown" && "$project" != "repo" ]] && try_render_candidate
   exit 0
 fi
 
-# 3) 전역 latest는 main 통합 저장소에서만 기본 표시한다. 다른 worktree에서는 opt-in 참고만 허용한다.
+# 4) 전역 latest는 main 통합 저장소에서만 기본 표시한다. 다른 worktree에서는 opt-in 참고만 허용한다.
 if [[ "$worktree_slot" == "main" || "$SHOW_GLOBAL_REFERENCE" == "1" ]]; then
   try_render_candidate "전역 참고" "$BASE_REPO_ROOT/team/handoffs/latest.md" repo || true
 fi

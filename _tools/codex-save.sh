@@ -7,7 +7,8 @@ usage() {
   cat <<'EOF'
 Usage:
   save "<summary>" "<next step>" [--risk "<risk>"] [--label "<label>"] [--backup-label "<label>"]
-    [--session <log>] [--scope <scope> --subdirectory <scope-path>] [path...]
+    [--session <log>] [--scope <scope> --subdirectory <scope-path>] [--no-tracked]
+    [--promote-global] [path...]
   save --raw [original codex-update.sh args...]
 
 Examples:
@@ -43,6 +44,7 @@ shift 2
 
 forwarded=()
 paths=()
+tracked=1
 
 while [ $# -gt 0 ]; do
   case "$1" in
@@ -53,6 +55,14 @@ while [ $# -gt 0 ]; do
       fi
       forwarded+=("$1" "$2")
       shift 2
+      ;;
+    --promote-global)
+      forwarded+=("$1")
+      shift
+      ;;
+    --no-tracked)
+      tracked=0
+      shift
       ;;
     --help|-h)
       usage
@@ -70,6 +80,10 @@ cmd=(
   --summary "$summary"
   --next "$next_step"
 )
+
+if [ "$tracked" -eq 1 ]; then
+  cmd+=(--tracked-handoff)
+fi
 
 if [ ${#forwarded[@]} -gt 0 ]; then
   cmd+=("${forwarded[@]}")

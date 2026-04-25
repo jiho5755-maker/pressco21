@@ -267,7 +267,9 @@
         "chatId": "={{ $json.chatId }}",
         "text": "={{ $json.message }}",
         "additionalFields": {
-          "parse_mode": "HTML"
+          "parse_mode": "HTML",
+          "message_thread_id": 4,
+          "appendAttribution": false
         }
       },
       "type": "n8n-nodes-base.telegram",
@@ -315,7 +317,7 @@
     },
     {
       "parameters": {
-        "jsCode": "const sheetItem = $('Sheets \uc800\uc7a5 \uc0c1\ud0dc').first().json || {};\nconst saveItem = $('NocoDB \uc800\uc7a5').first().json || {};\nconst aggregate = $('\ud1b5\ud569 \uc9d1\uacc4').first().json || {};\nconst alerts = Array.isArray(sheetItem.opsAlerts) ? [...sheetItem.opsAlerts] : [];\nconst nocodb = saveItem.nocodb || {};\n\nif (nocodb.ok === false) {\n  alerts.push('<b>[\uc6b4\uc601\uc54c\ub9bc][F23] NocoDB \uc800\uc7a5 \uc2e4\ud328</b>\\n'\n    + '\ub0a0\uc9dc: ' + (aggregate.reportDate || nocodb.reportDate || '') + '\\n'\n    + '\uc870\uce58: \uad6c\uae00\uc2dc\ud2b8 \uac12\uc740 \uae30\uc785\ub410\uc744 \uc218 \uc788\uc73c\ub098 \uc6d0\uc7a5 \uae30\uc900 F24/F26 \ub9ac\ud3ec\ud2b8\uac00 \ud2c0\uc5b4\uc9c8 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\\n'\n    + '\uc624\ub958: ' + String(nocodb.error || (nocodb.duplicateDeleteErrors || []).join(' | ') || 'unknown').slice(0, 700));\n} else if ((nocodb.duplicateCount || 0) > 0) {\n  alerts.push('<b>[\uc6b4\uc601\uc54c\ub9bc][F23] NocoDB \uc911\ubcf5 \uc6d0\uc7a5 \uc790\ub3d9 \uc815\ub9ac</b>\\n'\n    + '\ub0a0\uc9dc: ' + (aggregate.reportDate || nocodb.reportDate || '') + '\\n'\n    + '\uc720\uc9c0 ID: ' + (nocodb.id || '') + '\\n'\n    + '\uc0ad\uc81c ID: ' + (nocodb.deletedDuplicateIds || []).join(', '));\n}\n\nif (!alerts.length) return [];\nreturn [{ json: {\n  chatId: '-5251214343',\n  message: alerts.join('\\n\\n'),\n  reportDate: aggregate.reportDate || nocodb.reportDate || '',\n  alertCount: alerts.length,\n} }];"
+        "jsCode": "const sheetItem = $('Sheets \uc800\uc7a5 \uc0c1\ud0dc').first().json || {};\nconst saveItem = $('NocoDB \uc800\uc7a5').first().json || {};\nconst aggregate = $('\ud1b5\ud569 \uc9d1\uacc4').first().json || {};\nconst alerts = Array.isArray(sheetItem.opsAlerts) ? [...sheetItem.opsAlerts] : [];\nconst nocodb = saveItem.nocodb || {};\n\nif (nocodb.ok === false) {\n  alerts.push('<b>[\uc6b4\uc601\uc54c\ub9bc][F23] NocoDB \uc800\uc7a5 \uc2e4\ud328</b>\\n'\n    + '\ub0a0\uc9dc: ' + (aggregate.reportDate || nocodb.reportDate || '') + '\\n'\n    + '\uc870\uce58: \uad6c\uae00\uc2dc\ud2b8 \uac12\uc740 \uae30\uc785\ub410\uc744 \uc218 \uc788\uc73c\ub098 \uc6d0\uc7a5 \uae30\uc900 F24/F26 \ub9ac\ud3ec\ud2b8\uac00 \ud2c0\uc5b4\uc9c8 \uc218 \uc788\uc2b5\ub2c8\ub2e4.\\n'\n    + '\uc624\ub958: ' + String(nocodb.error || (nocodb.duplicateDeleteErrors || []).join(' | ') || 'unknown').slice(0, 700));\n} else if ((nocodb.duplicateCount || 0) > 0) {\n  alerts.push('<b>[\uc6b4\uc601\uc54c\ub9bc][F23] NocoDB \uc911\ubcf5 \uc6d0\uc7a5 \uc790\ub3d9 \uc815\ub9ac</b>\\n'\n    + '\ub0a0\uc9dc: ' + (aggregate.reportDate || nocodb.reportDate || '') + '\\n'\n    + '\uc720\uc9c0 ID: ' + (nocodb.id || '') + '\\n'\n    + '\uc0ad\uc81c ID: ' + (nocodb.deletedDuplicateIds || []).join(', '));\n}\n\nif (!alerts.length) return [];\nreturn [{ json: {\n  chatId: '-1003917399249',\n  message: alerts.join('\\n\\n'),\n  reportDate: aggregate.reportDate || nocodb.reportDate || '',\n  alertCount: alerts.length,\n} }];"
       },
       "id": "446005a1-38e1-434c-bec0-eeb48518dfab",
       "name": "\uc6b4\uc601 \uc54c\ub9bc \ud544\ud130",

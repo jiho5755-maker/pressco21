@@ -31,6 +31,7 @@ from naver_ads_mcp.tools import landing_audit as land_ops
 from naver_ads_mcp.tools import negative_keywords as nkw_ops
 from naver_ads_mcp.tools import quality as qi_ops
 from naver_ads_mcp.tools import shopping as shop_ops
+from naver_ads_mcp.tools import master_report as mr_ops
 from naver_ads_mcp.tools import stats as stat_ops
 
 mcp = FastMCP(
@@ -764,6 +765,59 @@ async def landing_url_audit(campaign_id: str | None = None) -> str:
     """
     try:
         return _wrap(await land_ops.landing_url_audit(_get_sa(), campaign_id))
+    except NaverApiError as e:
+        return _err(e)
+
+
+# ─── MasterReport / 검색어 리포트 (2) ───
+
+
+@mcp.tool()
+async def master_report_create(
+    report_type: str,
+    start_date: str,
+    end_date: str,
+    entity_id: str | None = None,
+) -> str:
+    """MasterReport를 생성하고 결과를 반환합니다.
+
+    report_type: AD, KEYWORD, KEYWORD_QUERY, AD_CONVERSION 등.
+    날짜 형식: YYYY-MM-DD. entity_id: 캠페인/광고그룹 ID로 범위 한정 (선택).
+    """
+    try:
+        return _wrap(
+            await mr_ops.create_master_report(
+                _get_sa(), report_type, start_date, end_date, entity_id=entity_id
+            )
+        )
+    except NaverApiError as e:
+        return _err(e)
+
+
+@mcp.tool()
+async def search_query_report(
+    start_date: str,
+    end_date: str,
+    campaign_id: str | None = None,
+    min_clicks: int = 0,
+    zero_conversion_only: bool = False,
+) -> str:
+    """검색어(query) 리포트 — 실제 유입 검색어별 노출/클릭/전환 분석.
+
+    클릭은 있지만 전환이 0인 검색어를 자동 추출하여 제외 키워드 후보를 제안합니다.
+    날짜 형식: YYYY-MM-DD. min_clicks: 최소 클릭수 필터 (기본 0).
+    """
+    try:
+        return _wrap(
+            await mr_ops.search_query_report(
+                _get_sa(),
+                start_date,
+                end_date,
+                campaign_id=campaign_id,
+                min_clicks=min_clicks,
+                zero_conversion_only=zero_conversion_only,
+            )
+        )
     except NaverApiError as e:
         return _err(e)
 
